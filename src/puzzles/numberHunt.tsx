@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
-import { scoreNumberHunt } from "@/lib/duel/scoring";
 import {
   NUMHUNT_CIRCLE_PX,
   NUMHUNT_COUNT,

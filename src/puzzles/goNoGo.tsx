@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { ShapeGlyph } from "@/components/duel/ShapeGlyph";
 import { serverNow } from "@/lib/duel/clock";
 import { pick, shuffled } from "@/lib/duel/random";
-import { scoreGoNoGo } from "@/lib/duel/scoring";
 import {
   GONOGO_ITEMS,
   GONOGO_ITEM_MS,
