@@ -160,7 +160,7 @@ export async function submitAnswer(params: {
   answer: string;
   msRemaining: number;
   /** Reaction Time only: average of the three attempts. */
-  reactionAvgMs?: number;
+  reactionAvgMs?: number | undefined;
 }): Promise<void> {
   const reaction = params.reactionAvgMs ?? null;
   const isCorrect =
