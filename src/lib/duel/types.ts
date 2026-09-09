@@ -166,3 +166,7 @@ export const REACTION_RESPONSE_MS = 2_000;
 export const REACTION_FEEDBACK_MS = 1_000;
 /** Penalty recorded for a false start or a missed attempt. */
 export const REACTION_PENALTY_MS = 1_000;
+
+/** Colour Clash: a run of ten items, scored 10 points each plus a speed bonus. */
+export const STROOP_ITEMS = 10;
+export const STROOP_POINTS_PER_ITEM = 10;
