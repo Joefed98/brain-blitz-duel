@@ -3,13 +3,16 @@ import { arithmeticPuzzle } from "@/puzzles/arithmetic";
 import { equationPuzzle } from "@/puzzles/equation";
 import { goNoGoPuzzle } from "@/puzzles/goNoGo";
 import { missingLettersPuzzle } from "@/puzzles/missingLetters";
+import { numberHuntPuzzle } from "@/puzzles/numberHunt";
 import { numberSequencePuzzle } from "@/puzzles/numberSequence";
 import { oddWordPuzzle } from "@/puzzles/oddWordOut";
 import { patternCompletionPuzzle } from "@/puzzles/patternCompletion";
 import { reactionPuzzle } from "@/puzzles/reaction";
+import { rotationMatchPuzzle } from "@/puzzles/rotationMatch";
 import { sequencePuzzle } from "@/puzzles/sequence";
 import { spatialMemoryPuzzle } from "@/puzzles/spatialMemory";
 import { stroopPuzzle } from "@/puzzles/stroop";
+import { symbolScanPuzzle } from "@/puzzles/symbolScan";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import { ROUND_MS, type PuzzleCategory, type PuzzleData, type PuzzleType } from "./types";
@@ -26,8 +29,11 @@ export const PUZZLE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   spatial: spatialMemoryPuzzle,
   reaction: reactionPuzzle,
   gonogo: goNoGoPuzzle,
+  numhunt: numberHuntPuzzle,
   stroop: stroopPuzzle,
+  symscan: symbolScanPuzzle,
   patcomp: patternCompletionPuzzle,
+  rotmatch: rotationMatchPuzzle,
 };
 
 export const PUZZLE_TYPES = Object.keys(PUZZLE_REGISTRY) as PuzzleType[];

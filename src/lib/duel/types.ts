@@ -10,7 +10,10 @@ export type PuzzleType =
   | "stroop"
   | "spatial"
   | "gonogo"
-  | "patcomp";
+  | "patcomp"
+  | "symscan"
+  | "rotmatch"
+  | "numhunt";
 
 export type PuzzleCategory =
   | "word"
@@ -129,6 +132,41 @@ export interface PatternPuzzleData {
   rule: string;
 }
 
+/** The eight compass directions used by Symbol Scan. */
+export type ArrowDir = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
+
+export interface SymbolScanPuzzleData {
+  type: "symscan";
+  target: ArrowDir;
+  /** 36 cells, row-major, of a 6x6 grid. */
+  cells: ArrowDir[];
+  /** Indices of the cells matching the target. */
+  targets: number[];
+}
+
+export interface RotationPuzzleData {
+  type: "rotmatch";
+  /** Filled cell indices (0-15) of a 4x4 grid. */
+  target: number[];
+  /** Four candidates in their stored, shuffled order. */
+  candidates: number[][];
+  correctIndex: number;
+  /** Degrees the target was rotated by to produce the correct candidate. */
+  rotationDeg: number;
+}
+
+export interface HuntSpot {
+  /** Percentages of the puzzle area's width and height. */
+  x: number;
+  y: number;
+}
+
+export interface NumberHuntPuzzleData {
+  type: "numhunt";
+  /** Twelve positions; index 0 is the circle labelled 1. */
+  spots: HuntSpot[];
+}
+
 export type PuzzleData =
   | AnagramPuzzleData
   | OddWordPuzzleData
@@ -141,7 +179,10 @@ export type PuzzleData =
   | StroopPuzzleData
   | SpatialPuzzleData
   | GoNoGoPuzzleData
-  | PatternPuzzleData;
+  | PatternPuzzleData
+  | SymbolScanPuzzleData
+  | RotationPuzzleData
+  | NumberHuntPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result";
@@ -182,6 +223,8 @@ export interface RoundResultRow {
   reaction_avg_ms: number | null;
   /** Colour Clash rounds only: how many of the ten items were tapped correctly. */
   correct_count: number | null;
+  /** Number Hunt rounds only: how many wrong taps the player made. */
+  errors: number | null;
   score: number;
   submitted_at: string;
 }
@@ -238,3 +281,18 @@ export const GONOGO_SLOT_MS = GONOGO_ITEM_MS + GONOGO_GAP_MS;
 export const GONOGO_RUN_MS = GONOGO_ITEMS * GONOGO_SLOT_MS;
 export const GONOGO_POINTS_PER_ITEM = 10;
 export const GONOGO_MAX_BONUS = 130;
+
+/** Symbol Scan: a 6x6 grid of arrows with 5-8 matching the target. */
+export const SYMSCAN_COLS = 6;
+export const SYMSCAN_CELLS = SYMSCAN_COLS * SYMSCAN_COLS;
+export const SYMSCAN_MIN_TARGETS = 5;
+export const SYMSCAN_MAX_TARGETS = 8;
+
+/** Rotation Match: shapes drawn as filled cells of a 4x4 grid. */
+export const ROTATION_COLS = 4;
+
+/** Number Hunt: twelve circles tapped in ascending order. */
+export const NUMHUNT_COUNT = 12;
+export const NUMHUNT_CIRCLE_PX = 52;
+export const NUMHUNT_ERROR_PENALTY = 10;
+export const NUMHUNT_FLASH_MS = 200;

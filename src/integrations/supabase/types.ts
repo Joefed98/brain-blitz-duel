@@ -102,6 +102,7 @@ export type Database = {
           answer: string | null
           correct_count: number | null
           duel_id: string
+          errors: number | null
           id: string
           is_correct: boolean
           ms_remaining: number
@@ -115,6 +116,7 @@ export type Database = {
           answer?: string | null
           correct_count?: number | null
           duel_id: string
+          errors?: number | null
           id?: string
           is_correct?: boolean
           ms_remaining?: number
@@ -128,6 +130,7 @@ export type Database = {
           answer?: string | null
           correct_count?: number | null
           duel_id?: string
+          errors?: number | null
           id?: string
           is_correct?: boolean
           ms_remaining?: number
