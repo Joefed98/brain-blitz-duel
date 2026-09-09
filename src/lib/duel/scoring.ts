@@ -1,10 +1,14 @@
 import {
+  GONOGO_ITEMS,
+  GONOGO_MAX_BONUS,
+  GONOGO_POINTS_PER_ITEM,
   ROUND_MS,
   STROOP_ITEMS,
   STROOP_POINTS_PER_ITEM,
   TOTAL_ROUNDS,
   type RoundResultRow,
 } from "./types";
+
 
 export const BASE_POINTS = 100;
 export const POINTS_PER_SECOND = 5;
@@ -32,6 +36,23 @@ export function scoreStroop(correctCount: number, msRemaining: number): number {
   const clamped = Math.max(0, Math.min(ROUND_MS, msRemaining));
   const bonus =
     correctCount >= STROOP_ITEMS ? POINTS_PER_SECOND * Math.floor(clamped / 1000) : 0;
+  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+}
+
+/**
+ * Go / No-Go only: 10 per item handled correctly, plus a speed bonus that is
+ * only earned on a flawless run of twelve.
+ */
+export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): number {
+  const accuracy =
+    GONOGO_POINTS_PER_ITEM * Math.max(0, Math.min(GONOGO_ITEMS, correctCount));
+  const perfect = correctCount >= GONOGO_ITEMS && averageHitMs !== null;
+  const bonus = perfect
+    ? Math.max(
+        0,
+        Math.min(GONOGO_MAX_BONUS, Math.round(GONOGO_MAX_BONUS - (averageHitMs! - 250) / 2)),
+      )
+    : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
