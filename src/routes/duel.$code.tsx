@@ -10,11 +10,10 @@ import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
 import {
-  advanceRound,
+  advancePhase,
   ensureRematch,
+  fetchRevealPuzzle,
   markReady,
-  setPhase,
-  startDuel,
   submitAnswer,
 } from "@/lib/duel/api";
 import { serverNow, toMs } from "@/lib/duel/clock";
@@ -40,6 +39,7 @@ import {
   REVEAL_MS,
   ROUND_MS,
   TOTAL_ROUNDS,
+  type PuzzleData,
 } from "@/lib/duel/types";
 import type { SubmitMeta } from "@/puzzles/types";
 
@@ -94,9 +94,12 @@ function DuelScreen() {
 
   const [rematchBusy, setRematchBusy] = useState(false);
   const timeoutSubmitted = useRef<string>("");
+  const lastAdvance = useRef(0);
+  const dueSince = useRef(0);
+  const [revealed, setRevealed] = useState<{ round: number; puzzle: PuzzleData } | null>(null);
 
   const round = duel?.current_round ?? 0;
-  const puzzle = duel && round > 0 ? duel.puzzles[round - 1] : undefined;
+  const puzzle = duel && round > 0 ? duel.puzzles_public[round - 1] : undefined;
   const phase = duel?.phase ?? "intro";
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
@@ -121,13 +124,11 @@ function DuelScreen() {
 
   const isHost = me?.player_slot === 1;
 
-  // Slot 1 starts the duel as soon as both players are in.
+  // Kick the duel off if both players are in but the server hasn't started it.
   useEffect(() => {
     if (!duel || !me) return;
-    if (duel.status === "waiting" && players.length === 2 && me.player_slot === 1) {
-      void startDuel(duel.id);
-    }
-  }, [duel?.id, duel?.status, players.length, me?.player_slot]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (duel.status === "waiting" && players.length === 2) void advancePhase(duel.id);
+  }, [duel?.id, duel?.status, players.length, me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Timer ran out without a submission — record a zero for this round.
   useEffect(() => {
@@ -138,57 +139,65 @@ function DuelScreen() {
     timeoutSubmitted.current = key;
     void submitAnswer({
       duelId: duel.id,
-      playerSlot: me.player_slot,
       roundNumber: round,
-      puzzle,
       answer: "",
       msRemaining: 0,
     });
-  }, [duel?.id, duel?.status, phase, round, now, deadline, myResult, me?.player_slot, puzzle]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [duel?.id, duel?.status, phase, round, now, deadline, myResult, me?.id, puzzle]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Slot 1 drives every shared screen change off the stored phase timestamp.
+  /**
+   * Every timed screen change goes through the server, which is the single
+   * place phase, round and status move — and is idempotent, so both phones
+   * asking at once can never skip a screen. Slot 1 leads; slot 2 only steps in
+   * if the lead phone has stalled.
+   */
   useEffect(() => {
-    if (!duel || !isHost || duel.status !== "in_progress" || round < 1) return;
+    if (!duel || !me || duel.status !== "in_progress" || round < 1) return;
     if (phaseStart === null) return;
     const elapsed = now - phaseStart;
 
-    if (phase === "intro" && elapsed >= INTRO_MS) {
-      void setPhase({ duelId: duel.id, round, from: "intro", to: "puzzle" });
+    let due = false;
+    if (phase === "intro") due = elapsed >= INTRO_MS;
+    else if (phase === "puzzle")
+      due = (!!myResult && !!opponentResult) || (deadline !== null && now > deadline + 800);
+    else if (phase === "reveal") due = elapsed >= REVEAL_MS;
+    else
+      due =
+        (players.length === 2 && players.every((p) => p.ready_round >= round)) ||
+        elapsed >= NEXT_ROUND_AUTO_MS;
+
+    if (!due) {
+      dueSince.current = 0;
       return;
     }
-
-    if (phase === "puzzle") {
-      const bothSubmitted = !!myResult && !!opponentResult;
-      const timeUp = deadline !== null && now > deadline + 800;
-      if (bothSubmitted || timeUp) {
-        void setPhase({ duelId: duel.id, round, from: "puzzle", to: "reveal" });
-      }
-      return;
-    }
-
-    if (phase === "reveal" && elapsed >= REVEAL_MS) {
-      void setPhase({ duelId: duel.id, round, from: "reveal", to: "result" });
-      return;
-    }
-
-    if (phase === "result") {
-      const bothReady = players.length === 2 && players.every((p) => p.ready_round >= round);
-      if (bothReady || elapsed >= NEXT_ROUND_AUTO_MS) void advanceRound(duel);
-    }
+    if (dueSince.current === 0) dueSince.current = now;
+    if (!isHost && now - dueSince.current < 2_500) return;
+    if (Date.now() - lastAdvance.current < 1_500) return;
+    lastAdvance.current = Date.now();
+    void advancePhase(duel.id);
   }, [duel, isHost, phase, phaseStart, now, round, players, myResult, opponentResult, deadline]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The correct answer only exists on the client once the round has ended.
+  useEffect(() => {
+    if (!duel || round < 1 || phase !== "reveal") return;
+    if (revealed?.round === round) return;
+    let cancelled = false;
+    void fetchRevealPuzzle(duel.id, round).then((found) => {
+      if (found && !cancelled) setRevealed({ round, puzzle: found });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [duel?.id, phase, round, revealed?.round]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Both phones follow the rematch duel as soon as it exists.
   useEffect(() => {
     if (!duel?.next_duel_id || !me) return;
     let cancelled = false;
     void (async () => {
-      const { ensureJoined, fetchDuelById } = await import("@/lib/duel/api");
       try {
-        await ensureJoined(duel.next_duel_id!, me.display_name || getStoredName() || "Player");
-        const next = await fetchDuelById(duel.next_duel_id!);
-        if (next && !cancelled) {
-          await navigate({ to: "/duel/$code", params: { code: next.room_code } });
-        }
+        const next = await ensureRematch(duel.id, me.display_name || getStoredName() || "Player");
+        if (!cancelled) await navigate({ to: "/duel/$code", params: { code: next.roomCode } });
       } catch {
         /* opponent-only rematch; ignore */
       }
@@ -202,16 +211,14 @@ function DuelScreen() {
     if (!duel || !me || !puzzle || myResult) return;
     void submitAnswer({
       duelId: duel.id,
-      playerSlot: me.player_slot,
       roundNumber: round,
-      puzzle,
       answer,
       msRemaining: clockDeadline === null ? 0 : Math.max(0, clockDeadline - serverNow()),
-      reactionAvgMs: meta?.reactionAvgMs,
-      correctCount: meta?.correctCount,
-      errors: meta?.errors,
-      score: meta?.score,
-      isCorrect: meta?.isCorrect,
+      extra: {
+        reactionAvgMs: meta?.reactionAvgMs,
+        correctCount: meta?.correctCount,
+        errors: meta?.errors,
+      },
     });
   };
 
@@ -219,8 +226,8 @@ function DuelScreen() {
     if (!duel || !me) return;
     setRematchBusy(true);
     try {
-      const next = await ensureRematch(duel, me.display_name);
-      await navigate({ to: "/duel/$code", params: { code: next.room_code } });
+      const next = await ensureRematch(duel.id, me.display_name);
+      await navigate({ to: "/duel/$code", params: { code: next.roomCode } });
     } catch {
       setRematchBusy(false);
     }
@@ -336,7 +343,7 @@ function DuelScreen() {
       <PhoneShell>
         <AnswerReveal
           round={round}
-          puzzle={puzzle}
+          puzzle={revealed?.round === round ? revealed.puzzle : puzzle}
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
           myReactionAvgMs={myResult?.reaction_avg_ms ?? null}
@@ -364,7 +371,7 @@ function DuelScreen() {
           opponentTotal={opponentTotal}
           autoSeconds={autoSeconds}
           ready={me.ready_round >= round}
-          onNext={() => void markReady(me.id, round)}
+          onNext={() => void markReady(duel.id, round)}
         />
       </PhoneShell>
     );
