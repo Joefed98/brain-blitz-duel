@@ -100,11 +100,14 @@ function DuelScreen() {
   const phase = duel?.phase ?? "intro";
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
-  // The 30s clock starts once any puzzle preparation (sequence playback) is done.
+  // The clock starts once any puzzle preparation (sequence playback) is done.
   const puzzleStart = phase === "puzzle" ? phaseStart : null;
   const clockStart = puzzleStart === null ? null : puzzleStart + puzzlePrepMs(puzzle);
-  const deadline = clockStart === null ? null : clockStart + ROUND_MS;
-  const msRemaining = deadline === null ? ROUND_MS : Math.max(0, deadline - now);
+  // End of the puzzle phase. Most types run for 30s; Reaction Time has its own length.
+  const deadline = puzzleStart === null ? null : puzzleStart + puzzleDurationMs(puzzle);
+  const showTimer = puzzleShowsTimer(puzzle);
+  const clockDeadline = clockStart === null ? null : clockStart + ROUND_MS;
+  const msRemaining = clockDeadline === null ? ROUND_MS : Math.max(0, clockDeadline - now);
 
   const mySlot = me?.player_slot ?? 0;
   const opponentSlot = opponent?.player_slot ?? (mySlot === 1 ? 2 : 1);
