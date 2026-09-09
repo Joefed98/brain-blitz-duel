@@ -25,13 +25,13 @@ export const SEVEN_LETTER_WORDS = [
   "pretend","primary","printer","private","problem","produce","program","project","promise","protect",
   "publish","purpose","pyramid","quality","quarter","rainbow","reality","receipt","recover","reflect",
   "regular","related","release","remains","request","require","reserve","respect","restore","retreat",
-  "reverse","routine","sandwich".slice(0, 7),"scatter","science","scratch","section","serious","service",
+  "reverse","routine","sailing","scatter","science","scratch","section","serious","service",
   "shelter","shortly","similar","society","soldier","special","station","stomach","storage","stretch",
   "student","subject","success","support","surface","survive","sweater","teacher","texture","theatre",
   "therapy","thought","tonight","tourist","traffic","tragedy","trouble","tuition","typical","uniform",
   "unusual","upgrade","utility","vaccine","variety","vehicle","venture","version","victory","village",
   "vintage","visible","visitor","volcano","voltage","weather","wedding","weekend","welcome","western",
-  "whisper","winners".slice(0, 7),"without","witness","working","writing",
+  "whisper","willing","without","witness","working","writing",
 ].filter((w) => w.length === 7 && !w.endsWith("s"));
 
 /** A blank layout is only fair if exactly one bank word fits the pattern. */
