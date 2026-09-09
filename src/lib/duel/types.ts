@@ -50,13 +50,47 @@ export interface ReactionPuzzleData {
   delays: number[];
 }
 
+export interface MissingLettersPuzzleData {
+  type: "missing";
+  /** The complete seven-letter word, upper case. */
+  word: string;
+  /** Zero-based positions shown as blank tiles. */
+  blanks: number[];
+}
+
+export type Operator = "+" | "-" | "×" | "÷";
+
+export interface EquationPuzzleData {
+  type: "equation";
+  numbers: number[];
+  target: number;
+  /** The one operator pair that makes the equation true, left to right. */
+  operators: Operator[];
+}
+
+export type StroopColour = "RED" | "BLUE" | "GREEN" | "PURPLE";
+
+export interface StroopItem {
+  word: StroopColour;
+  /** Always different from `word`. */
+  ink: StroopColour;
+}
+
+export interface StroopPuzzleData {
+  type: "stroop";
+  items: StroopItem[];
+}
+
 export type PuzzleData =
   | AnagramPuzzleData
   | OddWordPuzzleData
   | ArithmeticPuzzleData
   | NumberSequencePuzzleData
   | SequencePuzzleData
-  | ReactionPuzzleData;
+  | ReactionPuzzleData
+  | MissingLettersPuzzleData
+  | EquationPuzzleData
+  | StroopPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result";
