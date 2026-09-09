@@ -262,6 +262,7 @@ export const numberHuntPuzzle: PuzzleDefinition = {
   name: "Number Hunt",
   category: "speed",
   generate: buildNumberHunt,
+  revealHeading: "Your run",
   check: (answer, puzzle) =>
     puzzle.type === "numhunt" && parseRun(answer).reached >= puzzle.spots.length,
   IntroExample,
