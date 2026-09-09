@@ -4,9 +4,12 @@ export type PuzzleType =
   | "arithmetic"
   | "numseq"
   | "sequence"
-  | "reaction";
+  | "reaction"
+  | "missing"
+  | "equation"
+  | "stroop";
 
-export type PuzzleCategory = "word" | "number" | "memory" | "speed";
+export type PuzzleCategory = "word" | "number" | "memory" | "speed" | "attention";
 
 export interface AnagramPuzzleData {
   type: "anagram";
@@ -47,13 +50,47 @@ export interface ReactionPuzzleData {
   delays: number[];
 }
 
+export interface MissingLettersPuzzleData {
+  type: "missing";
+  /** The complete seven-letter word, upper case. */
+  word: string;
+  /** Zero-based positions shown as blank tiles. */
+  blanks: number[];
+}
+
+export type Operator = "+" | "-" | "×" | "÷";
+
+export interface EquationPuzzleData {
+  type: "equation";
+  numbers: number[];
+  target: number;
+  /** The one operator pair that makes the equation true, left to right. */
+  operators: Operator[];
+}
+
+export type StroopColour = "RED" | "BLUE" | "GREEN" | "PURPLE";
+
+export interface StroopItem {
+  word: StroopColour;
+  /** Always different from `word`. */
+  ink: StroopColour;
+}
+
+export interface StroopPuzzleData {
+  type: "stroop";
+  items: StroopItem[];
+}
+
 export type PuzzleData =
   | AnagramPuzzleData
   | OddWordPuzzleData
   | ArithmeticPuzzleData
   | NumberSequencePuzzleData
   | SequencePuzzleData
-  | ReactionPuzzleData;
+  | ReactionPuzzleData
+  | MissingLettersPuzzleData
+  | EquationPuzzleData
+  | StroopPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result";
@@ -92,6 +129,8 @@ export interface RoundResultRow {
   ms_remaining: number;
   /** Reaction Time rounds only: average of the three attempts. */
   reaction_avg_ms: number | null;
+  /** Colour Clash rounds only: how many of the ten items were tapped correctly. */
+  correct_count: number | null;
   score: number;
   submitted_at: string;
 }
@@ -127,3 +166,7 @@ export const REACTION_RESPONSE_MS = 2_000;
 export const REACTION_FEEDBACK_MS = 1_000;
 /** Penalty recorded for a false start or a missed attempt. */
 export const REACTION_PENALTY_MS = 1_000;
+
+/** Colour Clash: a run of ten items, scored 10 points each plus a speed bonus. */
+export const STROOP_ITEMS = 10;
+export const STROOP_POINTS_PER_ITEM = 10;

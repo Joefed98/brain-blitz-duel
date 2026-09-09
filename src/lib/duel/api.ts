@@ -2,9 +2,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { serverNow } from "./clock";
 import { buildDuelPuzzles, checkAnswer, generateRoomCode } from "./puzzles";
-import { scoreReaction, scoreRound } from "./scoring";
+import { scoreReaction, scoreRound, scoreStroop } from "./scoring";
 import { getSessionToken } from "./session";
 import {
+  STROOP_ITEMS,
   TOTAL_ROUNDS,
   type DuelPhase,
   type DuelPlayerRow,
@@ -161,11 +162,25 @@ export async function submitAnswer(params: {
   msRemaining: number;
   /** Reaction Time only: average of the three attempts. */
   reactionAvgMs?: number | undefined;
+  /** Colour Clash only: how many of the ten items were tapped correctly. */
+  correctCount?: number | undefined;
 }): Promise<void> {
   const reaction = params.reactionAvgMs ?? null;
-  const isCorrect =
-    reaction !== null || (params.answer.length > 0 && checkAnswer(params.puzzle, params.answer));
+  const correctCount = params.correctCount ?? null;
   const msRemaining = Math.max(0, Math.round(params.msRemaining));
+
+  const isCorrect =
+    correctCount !== null
+      ? correctCount >= STROOP_ITEMS
+      : reaction !== null || (params.answer.length > 0 && checkAnswer(params.puzzle, params.answer));
+
+  const score =
+    correctCount !== null
+      ? scoreStroop(correctCount, msRemaining)
+      : reaction !== null
+        ? scoreReaction(reaction)
+        : scoreRound(isCorrect, msRemaining);
+
   const { error } = await supabase.from("round_results").insert({
     duel_id: params.duelId,
     player_slot: params.playerSlot,
@@ -174,7 +189,8 @@ export async function submitAnswer(params: {
     is_correct: isCorrect,
     ms_remaining: reaction !== null ? 0 : msRemaining,
     reaction_avg_ms: reaction,
-    score: reaction !== null ? scoreReaction(reaction) : scoreRound(isCorrect, msRemaining),
+    correct_count: correctCount,
+    score,
   });
   // Unique violation just means we already submitted this round.
   if (error && error.code !== "23505") throw new DuelError(error.message);

@@ -1,4 +1,10 @@
-import { ROUND_MS, TOTAL_ROUNDS, type RoundResultRow } from "./types";
+import {
+  ROUND_MS,
+  STROOP_ITEMS,
+  STROOP_POINTS_PER_ITEM,
+  TOTAL_ROUNDS,
+  type RoundResultRow,
+} from "./types";
 
 export const BASE_POINTS = 100;
 export const POINTS_PER_SECOND = 5;
@@ -15,6 +21,18 @@ export function scoreRound(isCorrect: boolean, msRemaining: number): number {
 export function scoreReaction(averageMs: number): number {
   const raw = Math.round(MAX_ROUND_SCORE - (averageMs - 150) / 2);
   return Math.max(0, Math.min(MAX_ROUND_SCORE, raw));
+}
+
+/**
+ * Colour Clash only: 10 per correct item, plus the usual 5 per second left —
+ * but the speed bonus is only earned on a flawless run of ten.
+ */
+export function scoreStroop(correctCount: number, msRemaining: number): number {
+  const accuracy = STROOP_POINTS_PER_ITEM * Math.max(0, Math.min(STROOP_ITEMS, correctCount));
+  const clamped = Math.max(0, Math.min(ROUND_MS, msRemaining));
+  const bonus =
+    correctCount >= STROOP_ITEMS ? POINTS_PER_SECOND * Math.floor(clamped / 1000) : 0;
+  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
 export function resultFor(

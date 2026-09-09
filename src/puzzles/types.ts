@@ -5,6 +5,8 @@ import type { PuzzleCategory, PuzzleData, PuzzleType } from "@/lib/duel/types";
 export interface SubmitMeta {
   /** Reaction Time only: average of the three attempts, in ms. */
   reactionAvgMs?: number;
+  /** Colour Clash only: how many of the ten items were tapped correctly. */
+  correctCount?: number;
 }
 
 export interface PuzzleStageProps {
