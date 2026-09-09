@@ -5,7 +5,7 @@ import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { CountdownTimer } from "@/components/duel/CountdownTimer";
 import { FinalResult } from "@/components/duel/FinalResult";
 import { PhoneShell } from "@/components/duel/PhoneShell";
-import { PuzzleStage } from "@/components/duel/PuzzleStage";
+
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
@@ -28,14 +28,20 @@ import {
 import { getStoredName } from "@/lib/duel/session";
 import { useDuel } from "@/lib/duel/useDuel";
 import {
+  puzzleDef,
+  puzzleDurationMs,
+  puzzleName,
+  puzzlePrepMs,
+  puzzleShowsTimer,
+} from "@/lib/duel/registry";
+import {
   INTRO_MS,
   NEXT_ROUND_AUTO_MS,
-  PUZZLE_LABELS,
   REVEAL_MS,
   ROUND_MS,
   TOTAL_ROUNDS,
-  puzzlePrepMs,
 } from "@/lib/duel/types";
+import type { SubmitMeta } from "@/puzzles/types";
 
 export const Route = createFileRoute("/duel/$code")({
   ssr: false,
@@ -94,11 +100,14 @@ function DuelScreen() {
   const phase = duel?.phase ?? "intro";
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
-  // The 30s clock starts once any puzzle preparation (sequence playback) is done.
+  // The clock starts once any puzzle preparation (sequence playback) is done.
   const puzzleStart = phase === "puzzle" ? phaseStart : null;
   const clockStart = puzzleStart === null ? null : puzzleStart + puzzlePrepMs(puzzle);
-  const deadline = clockStart === null ? null : clockStart + ROUND_MS;
-  const msRemaining = deadline === null ? ROUND_MS : Math.max(0, deadline - now);
+  // End of the puzzle phase. Most types run for 30s; Reaction Time has its own length.
+  const deadline = puzzleStart === null ? null : puzzleStart + puzzleDurationMs(puzzle);
+  const showTimer = puzzleShowsTimer(puzzle);
+  const clockDeadline = clockStart === null ? null : clockStart + ROUND_MS;
+  const msRemaining = clockDeadline === null ? ROUND_MS : Math.max(0, clockDeadline - now);
 
   const mySlot = me?.player_slot ?? 0;
   const opponentSlot = opponent?.player_slot ?? (mySlot === 1 ? 2 : 1);
@@ -189,15 +198,16 @@ function DuelScreen() {
     };
   }, [duel?.next_duel_id, me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSubmit = (answer: string) => {
-    if (!duel || !me || !puzzle || myResult || deadline === null) return;
+  const handleSubmit = (answer: string, meta?: SubmitMeta) => {
+    if (!duel || !me || !puzzle || myResult) return;
     void submitAnswer({
       duelId: duel.id,
       playerSlot: me.player_slot,
       roundNumber: round,
       puzzle,
       answer,
-      msRemaining: Math.max(0, deadline - serverNow()),
+      msRemaining: clockDeadline === null ? 0 : Math.max(0, clockDeadline - serverNow()),
+      reactionAvgMs: meta?.reactionAvgMs,
     });
   };
 
@@ -325,6 +335,7 @@ function DuelScreen() {
           puzzle={puzzle}
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
+          myReactionAvgMs={myResult?.reaction_avg_ms ?? null}
           startedAt={phaseStart ?? now}
           now={now}
         />
@@ -356,6 +367,7 @@ function DuelScreen() {
   }
 
   const clockActive = clockStart !== null && now >= clockStart;
+  const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
 
   return (
     <PhoneShell>
@@ -365,13 +377,15 @@ function DuelScreen() {
             Round {round} of {TOTAL_ROUNDS}
           </span>
           <span className="font-display text-sm font-bold text-foreground">
-            {puzzle ? PUZZLE_LABELS[puzzle.type] : ""}
+            {puzzle ? puzzleName(puzzle.type) : ""}
           </span>
         </div>
 
-        <div className="flex justify-center">
-          <CountdownTimer msRemaining={msRemaining} active={clockActive} />
-        </div>
+        {showTimer && (
+          <div className="flex justify-center">
+            <CountdownTimer msRemaining={msRemaining} active={clockActive} />
+          </div>
+        )}
 
         <ScoreStrip
           myName={me.display_name}
@@ -380,10 +394,10 @@ function DuelScreen() {
           opponentTotal={opponentTotal}
         />
 
-        {puzzle && (
-          <PuzzleStage
+        {puzzle && Stage && (
+          <Stage
             puzzle={puzzle}
-            roundStartedAt={puzzleStart ?? now}
+            phaseStartedAt={puzzleStart ?? now}
             now={now}
             locked={!!myResult}
             onSubmit={handleSubmit}

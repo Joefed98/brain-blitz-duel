@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { serverNow } from "./clock";
 import { buildDuelPuzzles, checkAnswer, generateRoomCode } from "./puzzles";
-import { scoreRound } from "./scoring";
+import { scoreReaction, scoreRound } from "./scoring";
 import { getSessionToken } from "./session";
 import {
   TOTAL_ROUNDS,
@@ -159,8 +159,12 @@ export async function submitAnswer(params: {
   puzzle: PuzzleData;
   answer: string;
   msRemaining: number;
+  /** Reaction Time only: average of the three attempts. */
+  reactionAvgMs?: number | undefined;
 }): Promise<void> {
-  const isCorrect = params.answer.length > 0 && checkAnswer(params.puzzle, params.answer);
+  const reaction = params.reactionAvgMs ?? null;
+  const isCorrect =
+    reaction !== null || (params.answer.length > 0 && checkAnswer(params.puzzle, params.answer));
   const msRemaining = Math.max(0, Math.round(params.msRemaining));
   const { error } = await supabase.from("round_results").insert({
     duel_id: params.duelId,
@@ -168,8 +172,9 @@ export async function submitAnswer(params: {
     round_number: params.roundNumber,
     answer: params.answer || null,
     is_correct: isCorrect,
-    ms_remaining: msRemaining,
-    score: scoreRound(isCorrect, msRemaining),
+    ms_remaining: reaction !== null ? 0 : msRemaining,
+    reaction_avg_ms: reaction,
+    score: reaction !== null ? scoreReaction(reaction) : scoreRound(isCorrect, msRemaining),
   });
   // Unique violation just means we already submitted this round.
   if (error && error.code !== "23505") throw new DuelError(error.message);

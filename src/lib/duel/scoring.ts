@@ -2,12 +2,19 @@ import { ROUND_MS, TOTAL_ROUNDS, type RoundResultRow } from "./types";
 
 export const BASE_POINTS = 100;
 export const POINTS_PER_SECOND = 5;
+export const MAX_ROUND_SCORE = 250;
 
 /** Correct: 100 + 5 per full second remaining. Wrong / timeout: 0. */
 export function scoreRound(isCorrect: boolean, msRemaining: number): number {
   if (!isCorrect) return 0;
   const clamped = Math.max(0, Math.min(ROUND_MS, msRemaining));
   return BASE_POINTS + POINTS_PER_SECOND * Math.floor(clamped / 1000);
+}
+
+/** Reaction Time only: 250 at a 150 ms average, 0 at 650 ms or slower. */
+export function scoreReaction(averageMs: number): number {
+  const raw = Math.round(MAX_ROUND_SCORE - (averageMs - 150) / 2);
+  return Math.max(0, Math.min(MAX_ROUND_SCORE, raw));
 }
 
 export function resultFor(
@@ -38,11 +45,18 @@ export function totalScoreThrough(
     .reduce((sum, r) => sum + r.score, 0);
 }
 
-/** Total time spent answering across all rounds — used for the tie-break. */
+/**
+ * Total time spent answering across all rounds — used for the tie-break.
+ * Reaction Time rounds contribute their average reaction time instead.
+ */
 export function totalAnswerMs(results: RoundResultRow[], slot: number): number {
   return results
     .filter((r) => r.player_slot === slot)
-    .reduce((sum, r) => sum + (ROUND_MS - r.ms_remaining), 0);
+    .reduce(
+      (sum, r) =>
+        sum + (r.reaction_avg_ms !== null ? r.reaction_avg_ms : ROUND_MS - r.ms_remaining),
+      0,
+    );
 }
 
 export type Outcome = "win" | "loss" | "draw";

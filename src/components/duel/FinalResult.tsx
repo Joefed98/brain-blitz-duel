@@ -1,4 +1,5 @@
-import { PUZZLE_LABELS, type PuzzleType } from "@/lib/duel/types";
+import { puzzleName } from "@/lib/duel/registry";
+import type { PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 
 interface FinalResultProps {
@@ -62,7 +63,7 @@ export function FinalResult({
               className="flex items-center justify-between border-b border-border px-4 py-3 last:border-b-0"
             >
               <span className="text-xs uppercase tracking-widest text-muted-foreground">
-                {PUZZLE_LABELS[roundOrder[row.round - 1] ?? "anagram"]}
+                {puzzleName(roundOrder[row.round - 1] ?? "anagram")}
               </span>
               <span className="font-mono text-sm font-bold tabular-nums">
                 <span className="text-me">{row.mine}</span>
