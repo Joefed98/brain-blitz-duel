@@ -198,15 +198,16 @@ function DuelScreen() {
     };
   }, [duel?.next_duel_id, me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSubmit = (answer: string) => {
-    if (!duel || !me || !puzzle || myResult || deadline === null) return;
+  const handleSubmit = (answer: string, meta?: SubmitMeta) => {
+    if (!duel || !me || !puzzle || myResult) return;
     void submitAnswer({
       duelId: duel.id,
       playerSlot: me.player_slot,
       roundNumber: round,
       puzzle,
       answer,
-      msRemaining: Math.max(0, deadline - serverNow()),
+      msRemaining: clockDeadline === null ? 0 : Math.max(0, clockDeadline - serverNow()),
+      reactionAvgMs: meta?.reactionAvgMs,
     });
   };
 
