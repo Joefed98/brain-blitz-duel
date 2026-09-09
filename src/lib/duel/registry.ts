@@ -1,9 +1,12 @@
 import { anagramPuzzle } from "@/puzzles/anagram";
 import { arithmeticPuzzle } from "@/puzzles/arithmetic";
+import { equationPuzzle } from "@/puzzles/equation";
+import { missingLettersPuzzle } from "@/puzzles/missingLetters";
 import { numberSequencePuzzle } from "@/puzzles/numberSequence";
 import { oddWordPuzzle } from "@/puzzles/oddWordOut";
 import { reactionPuzzle } from "@/puzzles/reaction";
 import { sequencePuzzle } from "@/puzzles/sequence";
+import { stroopPuzzle } from "@/puzzles/stroop";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import { ROUND_MS, type PuzzleCategory, type PuzzleData, type PuzzleType } from "./types";
@@ -12,10 +15,13 @@ import { ROUND_MS, type PuzzleCategory, type PuzzleData, type PuzzleType } from 
 export const PUZZLE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   anagram: anagramPuzzle,
   oddword: oddWordPuzzle,
+  missing: missingLettersPuzzle,
   arithmetic: arithmeticPuzzle,
   numseq: numberSequencePuzzle,
+  equation: equationPuzzle,
   sequence: sequencePuzzle,
   reaction: reactionPuzzle,
+  stroop: stroopPuzzle,
 };
 
 export const PUZZLE_TYPES = Object.keys(PUZZLE_REGISTRY) as PuzzleType[];

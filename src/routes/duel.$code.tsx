@@ -208,6 +208,7 @@ function DuelScreen() {
       answer,
       msRemaining: clockDeadline === null ? 0 : Math.max(0, clockDeadline - serverNow()),
       reactionAvgMs: meta?.reactionAvgMs,
+      correctCount: meta?.correctCount,
     });
   };
 
