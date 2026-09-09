@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { fetchDuelByCode, fetchPlayers, fetchResults, heartbeat } from "./api";
 import { initServerClock, serverNow } from "./clock";
-import { getSessionToken } from "./session";
+import { ensureSession } from "./session";
 import { DISCONNECT_MS, type DuelPlayerRow, type DuelRow, type RoundResultRow } from "./types";
 
 export interface DuelState {
@@ -36,6 +36,7 @@ export function useDuel(roomCode: string): DuelState {
   const [duel, setDuel] = useState<DuelRow | null>(null);
   const [players, setPlayers] = useState<DuelPlayerRow[]>([]);
   const [results, setResults] = useState<RoundResultRow[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const duelIdRef = useRef<string | null>(null);
   const now = useNow(100);
 
@@ -54,16 +55,29 @@ export function useDuel(roomCode: string): DuelState {
     setDuel(found);
     setPlayers(nextPlayers);
     setResults(nextResults);
+    setNotFound(false);
     setLoading(false);
   }, [roomCode]);
 
+  // This device's anonymous identity has to exist before anything is readable.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setNotFound(false);
-    void initServerClock().then(() => {
-      if (!cancelled) void load();
-    });
+    void (async () => {
+      try {
+        const id = await ensureSession();
+        if (cancelled) return;
+        setUserId(id);
+        await initServerClock();
+        if (!cancelled) await load();
+      } catch {
+        if (!cancelled) {
+          setNotFound(true);
+          setLoading(false);
+        }
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -71,6 +85,7 @@ export function useDuel(roomCode: string): DuelState {
 
   // Realtime: both phones react to duel, player and result changes instantly.
   useEffect(() => {
+    if (!userId) return;
     const channel = supabase
       .channel(`duel-${roomCode}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "duels" }, (payload) => {
@@ -100,25 +115,26 @@ export function useDuel(roomCode: string): DuelState {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [roomCode]);
+  }, [roomCode, userId]);
 
-  const token = typeof window === "undefined" ? "" : getSessionToken();
-  const me = players.find((p) => p.session_token === token) ?? null;
+  const me = userId ? (players.find((p) => p.user_id === userId) ?? null) : null;
   const opponent = me ? (players.find((p) => p.player_slot !== me.player_slot) ?? null) : null;
 
   // Heartbeat so the opponent can tell we are still here.
   useEffect(() => {
     if (!me) return;
-    void heartbeat(me.id);
-    const id = window.setInterval(() => void heartbeat(me.id), 4000);
+    const duelId = me.duel_id;
+    void heartbeat(duelId);
+    const id = window.setInterval(() => void heartbeat(duelId), 4000);
     return () => window.clearInterval(id);
   }, [me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Safety net against a missed realtime event.
   useEffect(() => {
+    if (!userId) return;
     const id = window.setInterval(() => void load(), 8000);
     return () => window.clearInterval(id);
-  }, [load]);
+  }, [load, userId]);
 
   const opponentDisconnected =
     !!opponent &&
