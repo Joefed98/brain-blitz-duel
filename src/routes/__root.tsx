@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { ensureSession } from "../lib/duel/session";
 
 function NotFoundComponent() {
   return (
@@ -122,6 +123,13 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Every device signs in anonymously so it has a real identity of its own.
+  useEffect(() => {
+    void ensureSession().catch(() => {
+      /* retried on the next action that needs it */
+    });
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
