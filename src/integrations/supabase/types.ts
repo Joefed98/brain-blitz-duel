@@ -14,7 +14,127 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      duel_players: {
+        Row: {
+          created_at: string
+          display_name: string
+          duel_id: string
+          id: string
+          last_seen_at: string
+          player_slot: number
+          ready_round: number
+          session_token: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          duel_id: string
+          id?: string
+          last_seen_at?: string
+          player_slot: number
+          ready_round?: number
+          session_token: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          duel_id?: string
+          id?: string
+          last_seen_at?: string
+          player_slot?: number
+          ready_round?: number
+          session_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duel_players_duel_id_fkey"
+            columns: ["duel_id"]
+            isOneToOne: false
+            referencedRelation: "duels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      duels: {
+        Row: {
+          created_at: string
+          current_round: number
+          id: string
+          next_duel_id: string | null
+          puzzles: Json
+          room_code: string
+          round_order: Json
+          round_started_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          current_round?: number
+          id?: string
+          next_duel_id?: string | null
+          puzzles: Json
+          room_code: string
+          round_order: Json
+          round_started_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          current_round?: number
+          id?: string
+          next_duel_id?: string | null
+          puzzles?: Json
+          room_code?: string
+          round_order?: Json
+          round_started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      round_results: {
+        Row: {
+          answer: string | null
+          duel_id: string
+          id: string
+          is_correct: boolean
+          ms_remaining: number
+          player_slot: number
+          round_number: number
+          score: number
+          submitted_at: string
+        }
+        Insert: {
+          answer?: string | null
+          duel_id: string
+          id?: string
+          is_correct?: boolean
+          ms_remaining?: number
+          player_slot: number
+          round_number: number
+          score?: number
+          submitted_at?: string
+        }
+        Update: {
+          answer?: string | null
+          duel_id?: string
+          id?: string
+          is_correct?: boolean
+          ms_remaining?: number
+          player_slot?: number
+          round_number?: number
+          score?: number
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_results_duel_id_fkey"
+            columns: ["duel_id"]
+            isOneToOne: false
+            referencedRelation: "duels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
