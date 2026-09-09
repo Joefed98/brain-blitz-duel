@@ -5,7 +5,7 @@ import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { CountdownTimer } from "@/components/duel/CountdownTimer";
 import { FinalResult } from "@/components/duel/FinalResult";
 import { PhoneShell } from "@/components/duel/PhoneShell";
-import { PuzzleStage } from "@/components/duel/PuzzleStage";
+
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
@@ -28,14 +28,20 @@ import {
 import { getStoredName } from "@/lib/duel/session";
 import { useDuel } from "@/lib/duel/useDuel";
 import {
+  puzzleDef,
+  puzzleDurationMs,
+  puzzleName,
+  puzzlePrepMs,
+  puzzleShowsTimer,
+} from "@/lib/duel/registry";
+import {
   INTRO_MS,
   NEXT_ROUND_AUTO_MS,
-  PUZZLE_LABELS,
   REVEAL_MS,
   ROUND_MS,
   TOTAL_ROUNDS,
-  puzzlePrepMs,
 } from "@/lib/duel/types";
+import type { SubmitMeta } from "@/puzzles/types";
 
 export const Route = createFileRoute("/duel/$code")({
   ssr: false,
