@@ -1,26 +1,37 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
+import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { CountdownTimer } from "@/components/duel/CountdownTimer";
 import { FinalResult } from "@/components/duel/FinalResult";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { PuzzleStage } from "@/components/duel/PuzzleStage";
+import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
 import {
   advanceRound,
   ensureRematch,
   markReady,
+  setPhase,
   startDuel,
   submitAnswer,
 } from "@/lib/duel/api";
 import { serverNow, toMs } from "@/lib/duel/clock";
-import { duelOutcome, resultFor, roundBreakdown, totalScore } from "@/lib/duel/scoring";
+import {
+  duelOutcome,
+  resultFor,
+  roundBreakdown,
+  totalScore,
+  totalScoreThrough,
+} from "@/lib/duel/scoring";
 import { getStoredName } from "@/lib/duel/session";
 import { useDuel } from "@/lib/duel/useDuel";
 import {
+  INTRO_MS,
   NEXT_ROUND_AUTO_MS,
   PUZZLE_LABELS,
+  REVEAL_MS,
   ROUND_MS,
   TOTAL_ROUNDS,
   puzzlePrepMs,
@@ -77,22 +88,29 @@ function DuelScreen() {
 
   const [rematchBusy, setRematchBusy] = useState(false);
   const timeoutSubmitted = useRef<string>("");
-  const resultShownAt = useRef<Record<number, number>>({});
 
   const round = duel?.current_round ?? 0;
   const puzzle = duel && round > 0 ? duel.puzzles[round - 1] : undefined;
-  const startedAt = toMs(duel?.round_started_at ?? null);
-  const clockStart = startedAt === null ? null : startedAt + puzzlePrepMs(puzzle);
+  const phase = duel?.phase ?? "intro";
+  const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
+
+  // The 30s clock starts once any puzzle preparation (sequence playback) is done.
+  const puzzleStart = phase === "puzzle" ? phaseStart : null;
+  const clockStart = puzzleStart === null ? null : puzzleStart + puzzlePrepMs(puzzle);
   const deadline = clockStart === null ? null : clockStart + ROUND_MS;
-  const inCountdown = startedAt !== null && now < startedAt;
   const msRemaining = deadline === null ? ROUND_MS : Math.max(0, deadline - now);
 
   const mySlot = me?.player_slot ?? 0;
   const opponentSlot = opponent?.player_slot ?? (mySlot === 1 ? 2 : 1);
   const myResult = resultFor(results, mySlot, round);
   const opponentResult = resultFor(results, opponentSlot, round);
-  const myTotal = totalScore(results, mySlot);
-  const opponentTotal = totalScore(results, opponentSlot);
+
+  // Scores stay hidden until a round is fully over.
+  const scoredThrough = phase === "result" ? round : round - 1;
+  const myTotal = totalScoreThrough(results, mySlot, scoredThrough);
+  const opponentTotal = totalScoreThrough(results, opponentSlot, scoredThrough);
+
+  const isHost = me?.player_slot === 1;
 
   // Slot 1 starts the duel as soon as both players are in.
   useEffect(() => {
@@ -104,7 +122,7 @@ function DuelScreen() {
 
   // Timer ran out without a submission — record a zero for this round.
   useEffect(() => {
-    if (!duel || !me || !puzzle || duel.status !== "in_progress") return;
+    if (!duel || !me || !puzzle || duel.status !== "in_progress" || phase !== "puzzle") return;
     if (deadline === null || now < deadline || myResult) return;
     const key = `${duel.id}-${round}`;
     if (timeoutSubmitted.current === key) return;
@@ -117,29 +135,38 @@ function DuelScreen() {
       answer: "",
       msRemaining: 0,
     });
-  }, [duel?.id, duel?.status, round, now, deadline, myResult, me?.player_slot, puzzle]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [duel?.id, duel?.status, phase, round, now, deadline, myResult, me?.player_slot, puzzle]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const roundOver =
-    !!myResult && (!!opponentResult || (deadline !== null && now > deadline + 1200));
-
-  // Auto-continue after 10 seconds on the round result screen.
+  // Slot 1 drives every shared screen change off the stored phase timestamp.
   useEffect(() => {
-    if (!roundOver || !me || !duel) return;
-    if (!resultShownAt.current[round]) resultShownAt.current[round] = now;
-    const shownAt = resultShownAt.current[round]!;
-    if (me.ready_round < round && now - shownAt > NEXT_ROUND_AUTO_MS) {
-      void markReady(me.id, round);
-    }
-  }, [roundOver, now, round, me?.id, me?.ready_round, duel?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!duel || !isHost || duel.status !== "in_progress" || round < 1) return;
+    if (phaseStart === null) return;
+    const elapsed = now - phaseStart;
 
-  // Slot 1 moves the shared duel state on once both players are ready.
-  useEffect(() => {
-    if (!duel || !me || me.player_slot !== 1 || duel.status !== "in_progress") return;
-    if (players.length < 2) return;
-    if (players.every((p) => p.ready_round >= round) && round > 0) {
-      void advanceRound(duel);
+    if (phase === "intro" && elapsed >= INTRO_MS) {
+      void setPhase({ duelId: duel.id, round, from: "intro", to: "puzzle" });
+      return;
     }
-  }, [duel, players, me?.player_slot, round]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (phase === "puzzle") {
+      const bothSubmitted = !!myResult && !!opponentResult;
+      const timeUp = deadline !== null && now > deadline + 800;
+      if (bothSubmitted || timeUp) {
+        void setPhase({ duelId: duel.id, round, from: "puzzle", to: "reveal" });
+      }
+      return;
+    }
+
+    if (phase === "reveal" && elapsed >= REVEAL_MS) {
+      void setPhase({ duelId: duel.id, round, from: "reveal", to: "result" });
+      return;
+    }
+
+    if (phase === "result") {
+      const bothReady = players.length === 2 && players.every((p) => p.ready_round >= round);
+      if (bothReady || elapsed >= NEXT_ROUND_AUTO_MS) void advanceRound(duel);
+    }
+  }, [duel, isHost, phase, phaseStart, now, round, players, myResult, opponentResult, deadline]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Both phones follow the rematch duel as soon as it exists.
   useEffect(() => {
@@ -265,8 +292,8 @@ function DuelScreen() {
           outcome={duelOutcome(results, mySlot, opponentSlot)}
           myName={me.display_name}
           opponentName={opponent?.display_name ?? "Opponent"}
-          myTotal={myTotal}
-          opponentTotal={opponentTotal}
+          myTotal={totalScore(results, mySlot)}
+          opponentTotal={totalScore(results, opponentSlot)}
           breakdown={roundBreakdown(results, mySlot, opponentSlot)}
           roundOrder={duel.round_order}
           busy={rematchBusy}
@@ -277,25 +304,38 @@ function DuelScreen() {
     );
   }
 
-  if (inCountdown) {
-    const secondsLeft = Math.max(1, Math.ceil(((startedAt ?? now) - now) / 1000));
+  if (phase === "intro" && puzzle) {
     return (
-      <Centered>
-        <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-          Round {round} of {TOTAL_ROUNDS}
-        </p>
-        <p className="font-mono text-8xl font-bold text-primary">
-          {secondsLeft > 0 ? secondsLeft : "GO"}
-        </p>
-      </Centered>
+      <PhoneShell>
+        <RoundIntro
+          round={round}
+          type={puzzle.type}
+          startedAt={phaseStart ?? now}
+          now={now}
+        />
+      </PhoneShell>
     );
   }
 
-  if (roundOver) {
-    const shownAt = resultShownAt.current[round] ?? now;
+  if (phase === "reveal" && puzzle) {
+    return (
+      <PhoneShell>
+        <AnswerReveal
+          round={round}
+          puzzle={puzzle}
+          myAnswer={myResult?.answer ?? null}
+          myCorrect={!!myResult?.is_correct}
+          startedAt={phaseStart ?? now}
+          now={now}
+        />
+      </PhoneShell>
+    );
+  }
+
+  if (phase === "result") {
     const autoSeconds = Math.max(
       0,
-      Math.ceil((NEXT_ROUND_AUTO_MS - (now - shownAt)) / 1000),
+      Math.ceil((NEXT_ROUND_AUTO_MS - (now - (phaseStart ?? now))) / 1000),
     );
     return (
       <PhoneShell>
@@ -343,7 +383,7 @@ function DuelScreen() {
         {puzzle && (
           <PuzzleStage
             puzzle={puzzle}
-            roundStartedAt={startedAt ?? now}
+            roundStartedAt={puzzleStart ?? now}
             now={now}
             locked={!!myResult}
             onSubmit={handleSubmit}
@@ -352,7 +392,7 @@ function DuelScreen() {
 
         {myResult && (
           <p className="pb-2 text-center text-sm text-muted-foreground">
-            Answer locked in — waiting for opponent…
+            Answer locked — waiting for opponent…
           </p>
         )}
       </div>

@@ -1,11 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 
+import { serverNow } from "./clock";
 import { buildDuelPuzzles, checkAnswer, generateRoomCode } from "./puzzles";
 import { scoreRound } from "./scoring";
 import { getSessionToken } from "./session";
 import {
-  COUNTDOWN_MS,
   TOTAL_ROUNDS,
+  type DuelPhase,
   type DuelPlayerRow,
   type DuelRow,
   type PuzzleData,
@@ -117,14 +118,38 @@ export async function ensureJoined(duelId: string, displayName: string): Promise
   await joinAsPlayer(duelId, slot, displayName);
 }
 
-/** Slot 1 kicks off the 3-2-1 countdown once both players are present. */
+/** Slot 1 opens round 1 with its intro screen once both players are present. */
 export async function startDuel(duelId: string): Promise<void> {
-  const startAt = new Date(Date.now() + COUNTDOWN_MS).toISOString();
+  const startedAt = new Date(serverNow()).toISOString();
   await supabase
     .from("duels")
-    .update({ status: "in_progress", current_round: 1, round_started_at: startAt })
+    .update({
+      status: "in_progress",
+      current_round: 1,
+      phase: "intro",
+      phase_started_at: startedAt,
+      round_started_at: startedAt,
+    })
     .eq("id", duelId)
     .eq("status", "waiting");
+}
+
+/**
+ * Slot 1 moves the duel to its next screen. Guarded on the current round and
+ * phase so a repeated call can never skip a screen.
+ */
+export async function setPhase(params: {
+  duelId: string;
+  round: number;
+  from: DuelPhase;
+  to: DuelPhase;
+}): Promise<void> {
+  await supabase
+    .from("duels")
+    .update({ phase: params.to, phase_started_at: new Date(serverNow()).toISOString() })
+    .eq("id", params.duelId)
+    .eq("current_round", params.round)
+    .eq("phase", params.from);
 }
 
 export async function submitAnswer(params: {
@@ -171,14 +196,18 @@ export async function advanceRound(duel: DuelRow): Promise<void> {
       .eq("status", "in_progress");
     return;
   }
+  const startedAt = new Date(serverNow()).toISOString();
   await supabase
     .from("duels")
     .update({
       current_round: duel.current_round + 1,
-      round_started_at: new Date(Date.now() + 800).toISOString(),
+      phase: "intro",
+      phase_started_at: startedAt,
+      round_started_at: startedAt,
     })
     .eq("id", duel.id)
-    .eq("current_round", duel.current_round);
+    .eq("current_round", duel.current_round)
+    .eq("phase", "result");
 }
 
 /**
