@@ -335,6 +335,7 @@ function DuelScreen() {
           puzzle={puzzle}
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
+          myReactionAvgMs={myResult?.reaction_avg_ms ?? null}
           startedAt={phaseStart ?? now}
           now={now}
         />
@@ -366,6 +367,7 @@ function DuelScreen() {
   }
 
   const clockActive = clockStart !== null && now >= clockStart;
+  const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
 
   return (
     <PhoneShell>
@@ -375,13 +377,15 @@ function DuelScreen() {
             Round {round} of {TOTAL_ROUNDS}
           </span>
           <span className="font-display text-sm font-bold text-foreground">
-            {puzzle ? PUZZLE_LABELS[puzzle.type] : ""}
+            {puzzle ? puzzleName(puzzle.type) : ""}
           </span>
         </div>
 
-        <div className="flex justify-center">
-          <CountdownTimer msRemaining={msRemaining} active={clockActive} />
-        </div>
+        {showTimer && (
+          <div className="flex justify-center">
+            <CountdownTimer msRemaining={msRemaining} active={clockActive} />
+          </div>
+        )}
 
         <ScoreStrip
           myName={me.display_name}
@@ -390,10 +394,10 @@ function DuelScreen() {
           opponentTotal={opponentTotal}
         />
 
-        {puzzle && (
-          <PuzzleStage
+        {puzzle && Stage && (
+          <Stage
             puzzle={puzzle}
-            roundStartedAt={puzzleStart ?? now}
+            phaseStartedAt={puzzleStart ?? now}
             now={now}
             locked={!!myResult}
             onSubmit={handleSubmit}
