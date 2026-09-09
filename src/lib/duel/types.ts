@@ -129,6 +129,8 @@ export interface RoundResultRow {
   ms_remaining: number;
   /** Reaction Time rounds only: average of the three attempts. */
   reaction_avg_ms: number | null;
+  /** Colour Clash rounds only: how many of the ten items were tapped correctly. */
+  correct_count: number | null;
   score: number;
   submitted_at: string;
 }
