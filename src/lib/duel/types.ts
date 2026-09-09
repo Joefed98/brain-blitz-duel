@@ -4,9 +4,12 @@ export type PuzzleType =
   | "arithmetic"
   | "numseq"
   | "sequence"
-  | "reaction";
+  | "reaction"
+  | "missing"
+  | "equation"
+  | "stroop";
 
-export type PuzzleCategory = "word" | "number" | "memory" | "speed";
+export type PuzzleCategory = "word" | "number" | "memory" | "speed" | "attention";
 
 export interface AnagramPuzzleData {
   type: "anagram";
