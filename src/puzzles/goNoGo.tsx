@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { ShapeGlyph } from "@/components/duel/ShapeGlyph";
 import { serverNow } from "@/lib/duel/clock";
 import { pick, shuffled } from "@/lib/duel/random";
-import { scoreGoNoGo } from "@/lib/duel/scoring";
 import {
   GONOGO_ITEMS,
   GONOGO_ITEM_MS,
@@ -107,8 +106,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     onSubmit(taps.map((t) => (t === null ? "-" : t)).join(","), {
       reactionAvgMs: averageHitMs ?? undefined,
       correctCount: correct,
-      score: scoreGoNoGo(correct, averageHitMs),
-      isCorrect: correct >= items.length,
     });
   }, [taps, now, locked, key, phaseStartedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 

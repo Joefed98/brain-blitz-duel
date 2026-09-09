@@ -2,6 +2,10 @@ import type { ComponentType } from "react";
 
 import type { PuzzleCategory, PuzzleData, PuzzleType } from "@/lib/duel/types";
 
+/**
+ * Per-type detail sent with a submission. Correctness and score are worked out
+ * on the server from the stored puzzle, never sent by the client.
+ */
 export interface SubmitMeta {
   /** Reaction Time / Go / No-Go: average reaction time, in ms. */
   reactionAvgMs?: number | undefined;
@@ -9,10 +13,6 @@ export interface SubmitMeta {
   correctCount?: number;
   /** Number Hunt: how many wrong taps the player made. */
   errors?: number;
-  /** Types that score themselves supply the round score directly. */
-  score?: number;
-  /** Paired with `score`: whether the run counts as a clean one. */
-  isCorrect?: boolean;
 }
 
 export interface PuzzleStageProps {

@@ -23,7 +23,7 @@ export type Database = {
           last_seen_at: string
           player_slot: number
           ready_round: number
-          session_token: string
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -33,7 +33,7 @@ export type Database = {
           last_seen_at?: string
           player_slot: number
           ready_round?: number
-          session_token: string
+          user_id: string
         }
         Update: {
           created_at?: string
@@ -43,13 +43,39 @@ export type Database = {
           last_seen_at?: string
           player_slot?: number
           ready_round?: number
-          session_token?: string
+          user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "duel_players_duel_id_fkey"
             columns: ["duel_id"]
             isOneToOne: false
+            referencedRelation: "duels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      duel_secrets: {
+        Row: {
+          created_at: string
+          duel_id: string
+          puzzles_private: Json
+        }
+        Insert: {
+          created_at?: string
+          duel_id: string
+          puzzles_private: Json
+        }
+        Update: {
+          created_at?: string
+          duel_id?: string
+          puzzles_private?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duel_secrets_duel_id_fkey"
+            columns: ["duel_id"]
+            isOneToOne: true
             referencedRelation: "duels"
             referencedColumns: ["id"]
           },
@@ -63,7 +89,7 @@ export type Database = {
           next_duel_id: string | null
           phase: string
           phase_started_at: string | null
-          puzzles: Json
+          puzzles_public: Json
           room_code: string
           round_order: Json
           round_started_at: string | null
@@ -76,7 +102,7 @@ export type Database = {
           next_duel_id?: string | null
           phase?: string
           phase_started_at?: string | null
-          puzzles: Json
+          puzzles_public?: Json
           room_code: string
           round_order: Json
           round_started_at?: string | null
@@ -89,7 +115,7 @@ export type Database = {
           next_duel_id?: string | null
           phase?: string
           phase_started_at?: string | null
-          puzzles?: Json
+          puzzles_public?: Json
           room_code?: string
           round_order?: Json
           round_started_at?: string | null
@@ -155,7 +181,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      duel_round_ended: {
+        Args: { _duel_id: string; _round: number }
+        Returns: boolean
+      }
+      is_duel_participant: { Args: { _duel_id: string }; Returns: boolean }
+      my_duel_slot: { Args: { _duel_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

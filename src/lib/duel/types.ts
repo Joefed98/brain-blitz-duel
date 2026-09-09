@@ -192,7 +192,11 @@ export interface DuelRow {
   room_code: string;
   status: "waiting" | "countdown" | "in_progress" | "finished";
   round_order: PuzzleType[];
-  puzzles: PuzzleData[];
+  /**
+   * Only what each player needs to render the round. Answers live in the
+   * server-only `duel_secrets` table and arrive at reveal time.
+   */
+  puzzles_public: PuzzleData[];
   current_round: number;
   phase: DuelPhase;
   phase_started_at: string | null;
@@ -206,7 +210,8 @@ export interface DuelPlayerRow {
   duel_id: string;
   player_slot: number;
   display_name: string;
-  session_token: string;
+  /** The device's anonymous auth identity. */
+  user_id: string;
   ready_round: number;
   last_seen_at: string;
 }
