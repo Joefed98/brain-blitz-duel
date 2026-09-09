@@ -143,11 +143,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     if (done === spots.length && submitted.current !== key) {
       submitted.current = key;
       const remaining = Math.max(0, ROUND_MS - (serverNow() - phaseStartedAt));
-      onSubmit(`${done},${errors},${Math.round(ROUND_MS - remaining)}`, {
-        score: scoreNumberHunt(true, remaining, errors),
-        isCorrect: true,
-        errors,
-      });
+      onSubmit(`${done},${errors},${Math.round(ROUND_MS - remaining)}`, { errors });
     }
   };
 

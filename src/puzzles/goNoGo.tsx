@@ -107,8 +107,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     onSubmit(taps.map((t) => (t === null ? "-" : t)).join(","), {
       reactionAvgMs: averageHitMs ?? undefined,
       correctCount: correct,
-      score: scoreGoNoGo(correct, averageHitMs),
-      isCorrect: correct >= items.length,
     });
   }, [taps, now, locked, key, phaseStartedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 

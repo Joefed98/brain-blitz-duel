@@ -53,7 +53,7 @@ function Home() {
         mode === "create"
           ? await createDuel(trimmed)
           : await joinDuelByCode(code.trim().toUpperCase(), trimmed);
-      await navigate({ to: "/duel/$code", params: { code: duel.room_code } });
+      await navigate({ to: "/duel/$code", params: { code: duel.roomCode } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
       setBusy(false);
