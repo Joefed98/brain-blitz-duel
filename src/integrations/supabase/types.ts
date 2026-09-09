@@ -105,6 +105,7 @@ export type Database = {
           is_correct: boolean
           ms_remaining: number
           player_slot: number
+          reaction_avg_ms: number | null
           round_number: number
           score: number
           submitted_at: string
@@ -116,6 +117,7 @@ export type Database = {
           is_correct?: boolean
           ms_remaining?: number
           player_slot: number
+          reaction_avg_ms?: number | null
           round_number: number
           score?: number
           submitted_at?: string
@@ -127,6 +129,7 @@ export type Database = {
           is_correct?: boolean
           ms_remaining?: number
           player_slot?: number
+          reaction_avg_ms?: number | null
           round_number?: number
           score?: number
           submitted_at?: string
