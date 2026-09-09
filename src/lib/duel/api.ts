@@ -29,7 +29,7 @@ export async function createDuel(displayName: string): Promise<DuelRow> {
         room_code: roomCode,
         status: "waiting",
         round_order: roundOrder,
-        puzzles,
+        puzzles: JSON.parse(JSON.stringify(puzzles)),
         current_round: 0,
       })
       .select()
