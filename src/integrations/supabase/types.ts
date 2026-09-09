@@ -100,6 +100,7 @@ export type Database = {
       round_results: {
         Row: {
           answer: string | null
+          correct_count: number | null
           duel_id: string
           id: string
           is_correct: boolean
@@ -112,6 +113,7 @@ export type Database = {
         }
         Insert: {
           answer?: string | null
+          correct_count?: number | null
           duel_id: string
           id?: string
           is_correct?: boolean
@@ -124,6 +126,7 @@ export type Database = {
         }
         Update: {
           answer?: string | null
+          correct_count?: number | null
           duel_id?: string
           id?: string
           is_correct?: boolean
