@@ -18,9 +18,8 @@ export async function initServerClock(): Promise<void> {
     const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string | undefined;
     if (!url || !key) return;
     const before = Date.now();
-    const res = await fetch(`${url}/rest/v1/duels?select=id&limit=1`, {
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
-    });
+    // Only the response's Date header matters here, so this asks for nothing.
+    const res = await fetch(`${url}/rest/v1/`, { headers: { apikey: key } });
     const after = Date.now();
     const dateHeader = res.headers.get("date");
     if (!dateHeader) return;
