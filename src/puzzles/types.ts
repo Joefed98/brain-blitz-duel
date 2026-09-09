@@ -7,6 +7,8 @@ export interface SubmitMeta {
   reactionAvgMs?: number | undefined;
   /** Colour Clash / Go / No-Go: how many items were handled correctly. */
   correctCount?: number;
+  /** Number Hunt: how many wrong taps the player made. */
+  errors?: number;
   /** Types that score themselves supply the round score directly. */
   score?: number;
   /** Paired with `score`: whether the run counts as a clean one. */

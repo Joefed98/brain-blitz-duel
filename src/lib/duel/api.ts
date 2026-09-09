@@ -164,12 +164,15 @@ export async function submitAnswer(params: {
   reactionAvgMs?: number | undefined;
   /** Colour Clash / Go / No-Go: how many items were handled correctly. */
   correctCount?: number | undefined;
+  /** Number Hunt: how many wrong taps the player made. */
+  errors?: number | undefined;
   /** Supplied by puzzle types that score themselves. */
   score?: number | undefined;
   isCorrect?: boolean | undefined;
 }): Promise<void> {
   const reaction = params.reactionAvgMs ?? null;
   const correctCount = params.correctCount ?? null;
+  const errors = params.errors ?? null;
   const msRemaining = Math.max(0, Math.round(params.msRemaining));
 
   const isCorrect =
@@ -198,6 +201,7 @@ export async function submitAnswer(params: {
     ms_remaining: reaction !== null ? 0 : msRemaining,
     reaction_avg_ms: reaction,
     correct_count: correctCount,
+    errors,
     score,
   });
   // Unique violation just means we already submitted this round.

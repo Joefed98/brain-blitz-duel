@@ -2,6 +2,7 @@ import {
   GONOGO_ITEMS,
   GONOGO_MAX_BONUS,
   GONOGO_POINTS_PER_ITEM,
+  NUMHUNT_ERROR_PENALTY,
   ROUND_MS,
   STROOP_ITEMS,
   STROOP_POINTS_PER_ITEM,
@@ -54,6 +55,19 @@ export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): 
       )
     : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+}
+
+/** Number Hunt only: a standard round score, less 10 points per wrong tap. */
+export function scoreNumberHunt(
+  finished: boolean,
+  msRemaining: number,
+  errors: number,
+): number {
+  if (!finished) return 0;
+  const clamped = Math.max(0, Math.min(ROUND_MS, msRemaining));
+  const raw =
+    BASE_POINTS + POINTS_PER_SECOND * Math.floor(clamped / 1000) - NUMHUNT_ERROR_PENALTY * errors;
+  return Math.max(0, Math.min(MAX_ROUND_SCORE, raw));
 }
 
 export function resultFor(
