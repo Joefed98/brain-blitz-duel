@@ -22,8 +22,8 @@ export function AnswerReveal({
   now,
 }: AnswerRevealProps) {
   const secondsLeft = Math.max(0, Math.ceil((REVEAL_MS - Math.max(0, now - startedAt)) / 1000));
-  const Reveal = puzzleDef(puzzle.type).Reveal;
-  const isReaction = puzzle.type === "reaction";
+  const def = puzzleDef(puzzle.type);
+  const Reveal = def.Reveal;
 
   return (
     <div className="flex flex-1 flex-col gap-6">
@@ -36,7 +36,7 @@ export function AnswerReveal({
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
         <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-          {isReaction ? "Your reactions" : "The answer was"}
+          {def.revealHeading ?? "The answer was"}
         </p>
         <Reveal
           puzzle={puzzle}

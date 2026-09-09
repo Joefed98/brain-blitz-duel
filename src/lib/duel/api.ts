@@ -160,26 +160,34 @@ export async function submitAnswer(params: {
   puzzle: PuzzleData;
   answer: string;
   msRemaining: number;
-  /** Reaction Time only: average of the three attempts. */
+  /** Reaction Time / Go / No-Go: average reaction time. */
   reactionAvgMs?: number | undefined;
-  /** Colour Clash only: how many of the ten items were tapped correctly. */
+  /** Colour Clash / Go / No-Go: how many items were handled correctly. */
   correctCount?: number | undefined;
+  /** Supplied by puzzle types that score themselves. */
+  score?: number | undefined;
+  isCorrect?: boolean | undefined;
 }): Promise<void> {
   const reaction = params.reactionAvgMs ?? null;
   const correctCount = params.correctCount ?? null;
   const msRemaining = Math.max(0, Math.round(params.msRemaining));
 
   const isCorrect =
-    correctCount !== null
-      ? correctCount >= STROOP_ITEMS
-      : reaction !== null || (params.answer.length > 0 && checkAnswer(params.puzzle, params.answer));
+    params.score !== undefined
+      ? !!params.isCorrect
+      : correctCount !== null
+        ? correctCount >= STROOP_ITEMS
+        : reaction !== null ||
+          (params.answer.length > 0 && checkAnswer(params.puzzle, params.answer));
 
   const score =
-    correctCount !== null
-      ? scoreStroop(correctCount, msRemaining)
-      : reaction !== null
-        ? scoreReaction(reaction)
-        : scoreRound(isCorrect, msRemaining);
+    params.score !== undefined
+      ? params.score
+      : correctCount !== null
+        ? scoreStroop(correctCount, msRemaining)
+        : reaction !== null
+          ? scoreReaction(reaction)
+          : scoreRound(isCorrect, msRemaining);
 
   const { error } = await supabase.from("round_results").insert({
     duel_id: params.duelId,

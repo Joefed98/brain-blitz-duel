@@ -7,9 +7,18 @@ export type PuzzleType =
   | "reaction"
   | "missing"
   | "equation"
-  | "stroop";
+  | "stroop"
+  | "spatial"
+  | "gonogo"
+  | "patcomp";
 
-export type PuzzleCategory = "word" | "number" | "memory" | "speed" | "attention";
+export type PuzzleCategory =
+  | "word"
+  | "number"
+  | "memory"
+  | "speed"
+  | "attention"
+  | "pattern";
 
 export interface AnagramPuzzleData {
   type: "anagram";
@@ -81,6 +90,45 @@ export interface StroopPuzzleData {
   items: StroopItem[];
 }
 
+export interface SpatialPuzzleData {
+  type: "spatial";
+  /** Four tile indices (0-15) of a 4x4 grid, lit together at the start. */
+  tiles: number[];
+}
+
+export type GlyphShape = "circle" | "square" | "triangle" | "star";
+/** Go / No-Go and Pattern Completion reuse the Colour Clash palette, plus gold. */
+export type GlyphColour = StroopColour | "GOLD";
+
+export interface GoNoGoItem {
+  shape: GlyphShape;
+  colour: GlyphColour;
+  /** True only for the gold circle. */
+  target: boolean;
+}
+
+export interface GoNoGoPuzzleData {
+  type: "gonogo";
+  items: GoNoGoItem[];
+}
+
+export interface PatternCell {
+  shape: GlyphShape;
+  colour: StroopColour;
+  count: 1 | 2 | 3;
+}
+
+export interface PatternPuzzleData {
+  type: "patcomp";
+  /** Nine cells, row-major; index 8 is the answer cell (shown as ? in play). */
+  cells: PatternCell[];
+  /** Four candidates in their stored, shuffled order. */
+  candidates: PatternCell[];
+  correctIndex: number;
+  /** Plain-English rule, shown on the answer reveal. */
+  rule: string;
+}
+
 export type PuzzleData =
   | AnagramPuzzleData
   | OddWordPuzzleData
@@ -90,7 +138,10 @@ export type PuzzleData =
   | ReactionPuzzleData
   | MissingLettersPuzzleData
   | EquationPuzzleData
-  | StroopPuzzleData;
+  | StroopPuzzleData
+  | SpatialPuzzleData
+  | GoNoGoPuzzleData
+  | PatternPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result";
@@ -170,3 +221,20 @@ export const REACTION_PENALTY_MS = 1_000;
 /** Colour Clash: a run of ten items, scored 10 points each plus a speed bonus. */
 export const STROOP_ITEMS = 10;
 export const STROOP_POINTS_PER_ITEM = 10;
+
+/** Spatial Memory: four tiles of a 4x4 grid, shown together before the clock starts. */
+export const SPATIAL_GRID_COLS = 4;
+export const SPATIAL_TILES = 4;
+export const SPATIAL_LEAD_IN_MS = 700;
+export const SPATIAL_SHOW_MS = 3_000;
+export const SPATIAL_PREP_MS = SPATIAL_LEAD_IN_MS + SPATIAL_SHOW_MS;
+
+/** Go / No-Go: twelve shapes, six of them gold circles, on a shared timeline. */
+export const GONOGO_ITEMS = 12;
+export const GONOGO_TARGETS = 6;
+export const GONOGO_ITEM_MS = 800;
+export const GONOGO_GAP_MS = 400;
+export const GONOGO_SLOT_MS = GONOGO_ITEM_MS + GONOGO_GAP_MS;
+export const GONOGO_RUN_MS = GONOGO_ITEMS * GONOGO_SLOT_MS;
+export const GONOGO_POINTS_PER_ITEM = 10;
+export const GONOGO_MAX_BONUS = 130;

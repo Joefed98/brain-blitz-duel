@@ -222,6 +222,7 @@ export const reactionPuzzle: PuzzleDefinition = {
   durationMs: (puzzle) =>
     puzzle.type === "reaction" ? reactionDurationMs(puzzle.delays) + 1_500 : 0,
   showTimer: false,
+  revealHeading: "Your reactions",
   IntroExample,
   Stage,
   Reveal,

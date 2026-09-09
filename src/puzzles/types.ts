@@ -3,10 +3,14 @@ import type { ComponentType } from "react";
 import type { PuzzleCategory, PuzzleData, PuzzleType } from "@/lib/duel/types";
 
 export interface SubmitMeta {
-  /** Reaction Time only: average of the three attempts, in ms. */
-  reactionAvgMs?: number;
-  /** Colour Clash only: how many of the ten items were tapped correctly. */
+  /** Reaction Time / Go / No-Go: average reaction time, in ms. */
+  reactionAvgMs?: number | undefined;
+  /** Colour Clash / Go / No-Go: how many items were handled correctly. */
   correctCount?: number;
+  /** Types that score themselves supply the round score directly. */
+  score?: number;
+  /** Paired with `score`: whether the run counts as a clean one. */
+  isCorrect?: boolean;
 }
 
 export interface PuzzleStageProps {
@@ -42,6 +46,8 @@ export interface PuzzleDefinition {
   prepMs?: (puzzle: PuzzleData) => number;
   /** Total length of the puzzle phase. Defaults to prep + 30s. */
   durationMs?: (puzzle: PuzzleData) => number;
+  /** Heading shown above the answer reveal. Defaults to "The answer was". */
+  revealHeading?: string;
   /** False for types that are not on a 30-second clock. */
   showTimer?: boolean;
   /** Fixed intro example — identical every single time. */
