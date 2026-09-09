@@ -19,6 +19,9 @@ export interface SequencePuzzleData {
 
 export type PuzzleData = AnagramPuzzleData | ArithmeticPuzzleData | SequencePuzzleData;
 
+/** Every timed screen of a round, driven by a shared timestamp. */
+export type DuelPhase = "intro" | "puzzle" | "reveal" | "result";
+
 export interface DuelRow {
   id: string;
   room_code: string;
@@ -26,6 +29,8 @@ export interface DuelRow {
   round_order: PuzzleType[];
   puzzles: PuzzleData[];
   current_round: number;
+  phase: DuelPhase;
+  phase_started_at: string | null;
   round_started_at: string | null;
   next_duel_id: string | null;
   created_at: string;
@@ -56,7 +61,12 @@ export interface RoundResultRow {
 export const ROUND_MS = 30_000;
 export const TOTAL_ROUNDS = 3;
 export const COUNTDOWN_MS = 3_000;
-export const NEXT_ROUND_AUTO_MS = 10_000;
+/** Round intro: 7s of progress bar, then a 3-2-1 countdown. */
+export const INTRO_MS = 10_000;
+export const INTRO_COUNTDOWN_MS = 3_000;
+/** Answer reveal after each round. */
+export const REVEAL_MS = 5_000;
+export const NEXT_ROUND_AUTO_MS = 8_000;
 export const DISCONNECT_MS = 15_000;
 
 /** Sequence Recall plays back before its 30s clock starts. */

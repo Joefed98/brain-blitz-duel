@@ -61,6 +61,8 @@ export type Database = {
           current_round: number
           id: string
           next_duel_id: string | null
+          phase: string
+          phase_started_at: string | null
           puzzles: Json
           room_code: string
           round_order: Json
@@ -72,6 +74,8 @@ export type Database = {
           current_round?: number
           id?: string
           next_duel_id?: string | null
+          phase?: string
+          phase_started_at?: string | null
           puzzles: Json
           room_code: string
           round_order: Json
@@ -83,6 +87,8 @@ export type Database = {
           current_round?: number
           id?: string
           next_duel_id?: string | null
+          phase?: string
+          phase_started_at?: string | null
           puzzles?: Json
           room_code?: string
           round_order?: Json

@@ -24,6 +24,20 @@ export function totalScore(results: RoundResultRow[], slot: number): number {
     .reduce((sum, r) => sum + r.score, 0);
 }
 
+/**
+ * Totals for finished rounds only. Used so nothing about the round in progress
+ * leaks onto either player's screen.
+ */
+export function totalScoreThrough(
+  results: RoundResultRow[],
+  slot: number,
+  lastRound: number,
+): number {
+  return results
+    .filter((r) => r.player_slot === slot && r.round_number <= lastRound)
+    .reduce((sum, r) => sum + r.score, 0);
+}
+
 /** Total time spent answering across all rounds — used for the tie-break. */
 export function totalAnswerMs(results: RoundResultRow[], slot: number): number {
   return results
