@@ -1,4 +1,5 @@
-import { PUZZLE_LABELS, type PuzzleType } from "@/lib/duel/types";
+import { puzzleName } from "@/lib/duel/registry";
+import type { PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 
 interface FinalResultProps {
