@@ -1,18 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 
 import { pick, randInt } from "@/lib/duel/random";
-import type {
-  ChainCalculationPuzzleData,
-  ChainOperation,
-  Operator,
-} from "@/lib/duel/types";
+import type { ChainCalculationPuzzleData, ChainOperation, Operator } from "@/lib/duel/types";
 
 import { MyAnswerLine } from "./anagram";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 function nextStep(current: number): ChainOperation {
   const options: ChainOperation[] = [];
-  if (current < 400) options.push({ operator: "+", operand: randInt(2, Math.min(30, 400 - current)) });
+  if (current < 400)
+    options.push({ operator: "+", operand: randInt(2, Math.min(30, 400 - current)) });
   if (current > 2) options.push({ operator: "-", operand: randInt(2, Math.min(30, current - 1)) });
   for (const operand of [2, 3, 4]) {
     if (current * operand <= 400) options.push({ operator: "×", operand });
@@ -70,8 +67,13 @@ function Chain({
         <span />
       </div>
       {operations.map((step, index) => (
-        <div key={index} className="grid grid-cols-[2rem_4rem_auto] items-center gap-x-2 border-t border-border/60 py-1">
-          <span className="text-muted-foreground">{step.operator === "-" ? "−" : step.operator}</span>
+        <div
+          key={index}
+          className="grid grid-cols-[2rem_4rem_auto] items-center gap-x-2 border-t border-border/60 py-1"
+        >
+          <span className="text-muted-foreground">
+            {step.operator === "-" ? "−" : step.operator}
+          </span>
           <span className="text-right font-bold">{step.operand}</span>
           {intermediates && (
             <span className="pl-2 text-xs text-muted-foreground">= {intermediates[index]}</span>
@@ -90,7 +92,9 @@ function IntroExample() {
   ];
   return (
     <div className="flex flex-col items-center gap-3">
-      <p className="text-center text-sm text-muted-foreground">Start at the top and work down the chain.</p>
+      <p className="text-center text-sm text-muted-foreground">
+        Start at the top and work down the chain.
+      </p>
       <Chain start={12} operations={operations} compact />
       <p className="font-mono text-sm text-muted-foreground">
         = <span className="font-bold text-primary">35</span>
@@ -105,7 +109,10 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const key = puzzle.type === "chaincalc" ? `${puzzle.start}:${puzzle.operations.map((step) => `${step.operator}${step.operand}`).join(",")}` : "";
+  const key =
+    puzzle.type === "chaincalc"
+      ? `${puzzle.start}:${puzzle.operations.map((step) => `${step.operator}${step.operand}`).join(",")}`
+      : "";
 
   useEffect(() => {
     setValue("");
@@ -120,7 +127,9 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   return (
     <div className="flex flex-1 flex-col justify-between gap-5">
       <div className="flex flex-col items-center gap-3">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Work top to bottom</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          Work top to bottom
+        </p>
         <Chain start={puzzle.start} operations={puzzle.operations} />
         <p className="font-mono text-3xl font-bold text-primary">= ?</p>
       </div>
@@ -154,7 +163,12 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "chaincalc") return null;
   return (
     <>
-      <Chain start={puzzle.start} operations={puzzle.operations} intermediates={puzzle.intermediates} compact />
+      <Chain
+        start={puzzle.start}
+        operations={puzzle.operations}
+        intermediates={puzzle.intermediates}
+        compact
+      />
       <p className="font-mono text-4xl font-bold text-primary">= {puzzle.answer}</p>
       <MyAnswerLine myAnswer={myAnswer} myCorrect={myCorrect} />
     </>

@@ -24,24 +24,21 @@ export function SequenceGrid({
     size === "xs"
       ? "h-9 w-9 text-xs"
       : cols >= 4
-      ? size === "sm"
-        ? "h-11 w-11 text-sm"
-        : "h-14 w-14 text-base"
-      : size === "sm"
-        ? "h-14 w-14 text-base"
-        : "h-[68px] w-[68px] text-lg";
+        ? size === "sm"
+          ? "h-11 w-11 text-sm"
+          : "h-14 w-14 text-base"
+        : size === "sm"
+          ? "h-14 w-14 text-base"
+          : "h-[68px] w-[68px] text-lg";
   const active =
     tone === "warn"
       ? "border-warn/60 bg-warn/15 text-warn"
       : tone === "opponent"
         ? "border-opponent/60 bg-opponent/15 text-opponent"
-      : "border-primary/60 bg-primary/15 text-primary";
+        : "border-primary/60 bg-primary/15 text-primary";
 
   return (
-    <div
-      className="grid gap-2"
-      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-    >
+    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
       {Array.from({ length: cols * cols }, (_, index) => {
         const position = order.indexOf(index);
         const on = position >= 0;

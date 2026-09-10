@@ -1,11 +1,7 @@
 import { SequenceGrid } from "@/components/duel/SequenceGrid";
 import { SequencePuzzle } from "@/components/puzzles/SequencePuzzle";
 import { shuffled } from "@/lib/duel/random";
-import {
-  SEQUENCE_LENGTH,
-  SEQUENCE_PLAYBACK_MS,
-  type SequencePuzzleData,
-} from "@/lib/duel/types";
+import { SEQUENCE_LENGTH, SEQUENCE_PLAYBACK_MS, type SequencePuzzleData } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -73,7 +69,9 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
             tone={myCorrect ? "primary" : "warn"}
             size="xs"
           />
-          <span className={`font-mono text-[10px] uppercase ${myCorrect ? "text-primary" : "text-warn"}`}>
+          <span
+            className={`font-mono text-[10px] uppercase ${myCorrect ? "text-primary" : "text-warn"}`}
+          >
             {myAnswer ? `Yours ${myCorrect ? "✓" : "✗"}` : "No answer"}
           </span>
         </div>
@@ -87,7 +85,10 @@ export const reverseRecallPuzzle: PuzzleDefinition = {
   name: "Reverse Recall",
   category: "memory",
   generate: () => {
-    const tiles = shuffled(Array.from({ length: 9 }, (_, index) => index)).slice(0, SEQUENCE_LENGTH);
+    const tiles = shuffled(Array.from({ length: 9 }, (_, index) => index)).slice(
+      0,
+      SEQUENCE_LENGTH,
+    );
     return {
       type: "reverse",
       tiles,

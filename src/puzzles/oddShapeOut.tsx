@@ -47,13 +47,19 @@ function Shape({
     difference === "rotated" ? "rotate(20deg)" : "",
     difference === "smaller" ? "scale(.82)" : "",
     difference === "flipped" ? "scaleX(-1)" : "",
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
   const shape = (() => {
     if (base === "circle") return <circle cx="20" cy="20" r="13" fill={fill} />;
     if (base === "square") return <rect x="7" y="7" width="26" height="26" rx="2" fill={fill} />;
     if (base === "triangle") return <polygon points="20,5 35,33 5,33" fill={fill} />;
-    if (base === "star") return <polygon points="20,3 24,14 36,14 26,22 30,35 20,27 10,35 14,22 4,14 16,14" fill={fill} />;
-    if (base === "hexagon") return <polygon points="12,5 28,5 36,20 28,35 12,35 4,20" fill={fill} />;
+    if (base === "star")
+      return (
+        <polygon points="20,3 24,14 36,14 26,22 30,35 20,27 10,35 14,22 4,14 16,14" fill={fill} />
+      );
+    if (base === "hexagon")
+      return <polygon points="12,5 28,5 36,20 28,35 12,35 4,20" fill={fill} />;
     return <path d="M4 14h18V7l14 13-14 13v-7H4z" fill={fill} />;
   })();
   return (
@@ -66,7 +72,9 @@ function Shape({
       style={{ transform, filter: difference === "shade" ? "brightness(0.68)" : undefined }}
     >
       {shape}
-      {difference === "notched" && <rect x="17" y="2" width="7" height="11" fill="var(--background)" />}
+      {difference === "notched" && (
+        <rect x="17" y="2" width="7" height="11" fill="var(--background)" />
+      )}
     </svg>
   );
 }
@@ -95,16 +103,21 @@ function ShapeGrid({
   const count = compact ? 9 : 25;
   const cols = compact ? 3 : 5;
   return (
-    <div className={`grid ${compact ? "gap-1.5" : "w-full max-w-[330px] gap-2"}`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+    <div
+      className={`grid ${compact ? "gap-1.5" : "w-full max-w-[330px] gap-2"}`}
+      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+    >
       {Array.from({ length: count }, (_, index) => {
-        const visibleDifference = variants?.[index] ?? (index === oddIndex ? difference : undefined);
+        const visibleDifference =
+          variants?.[index] ?? (index === oddIndex ? difference : undefined);
         const isOdd = index === oddIndex;
         const wrong = reveal && selectedIndex === index && !isOdd;
-        const cellClass = reveal && isOdd
-          ? "border-primary bg-primary/10"
-          : wrong
-            ? "border-warn bg-warn/10"
-            : "border-border bg-card";
+        const cellClass =
+          reveal && isOdd
+            ? "border-primary bg-primary/10"
+            : wrong
+              ? "border-warn bg-warn/10"
+              : "border-border bg-card";
         const contents = (
           <Shape
             base={base}
@@ -124,7 +137,10 @@ function ShapeGrid({
             {contents}
           </button>
         ) : (
-          <span key={index} className={`flex aspect-square min-w-0 items-center justify-center rounded-lg border ${cellClass}`}>
+          <span
+            key={index}
+            className={`flex aspect-square min-w-0 items-center justify-center rounded-lg border ${cellClass}`}
+          >
             {contents}
           </span>
         );
@@ -136,9 +152,13 @@ function ShapeGrid({
 function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
-      <p className="text-center text-sm text-muted-foreground">All the shapes are the same — except one. Find it.</p>
+      <p className="text-center text-sm text-muted-foreground">
+        All the shapes are the same — except one. Find it.
+      </p>
       <ShapeGrid base="circle" colour="BLUE" difference="smaller" oddIndex={4} reveal compact />
-      <p className="text-center text-xs text-muted-foreground">Tap once to lock your answer. Faster = more points.</p>
+      <p className="text-center text-xs text-muted-foreground">
+        Tap once to lock your answer. Faster = more points.
+      </p>
     </div>
   );
 }
@@ -194,7 +214,7 @@ export const oddShapeOutPuzzle: PuzzleDefinition = {
       base,
       colour: pick(Object.keys(COLOURS) as StroopColour[]),
       difference,
-      variants: Array.from({ length: 25 }, (_, index) => index === oddIndex ? difference : null),
+      variants: Array.from({ length: 25 }, (_, index) => (index === oddIndex ? difference : null)),
       oddIndex,
       differenceLabel: DIFFERENCE_LABELS[difference],
     } satisfies OddShapePuzzleData;

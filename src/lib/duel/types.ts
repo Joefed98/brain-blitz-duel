@@ -18,13 +18,7 @@ export type PuzzleType =
   | "oddshape"
   | "chaincalc";
 
-export type PuzzleCategory =
-  | "word"
-  | "number"
-  | "memory"
-  | "speed"
-  | "attention"
-  | "pattern";
+export type PuzzleCategory = "word" | "number" | "memory" | "speed" | "attention" | "pattern";
 
 export interface AnagramPuzzleData {
   type: "anagram";
