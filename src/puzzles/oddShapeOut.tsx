@@ -75,6 +75,7 @@ function ShapeGrid({
   base,
   colour,
   difference,
+  variants,
   oddIndex,
   selectedIndex,
   reveal = false,
@@ -162,7 +163,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
         colour={puzzle.colour}
         difference={puzzle.difference}
         oddIndex={puzzle.oddIndex}
-        selectedIndex={Number.isFinite(selected) ? selected : undefined}
+        {...(Number.isFinite(selected) ? { selectedIndex: selected } : {})}
         reveal
       />
       <p className="text-center text-sm text-muted-foreground">{puzzle.differenceLabel}</p>

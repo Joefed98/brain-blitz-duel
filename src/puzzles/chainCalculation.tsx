@@ -13,7 +13,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 function nextStep(current: number): ChainOperation {
   const options: ChainOperation[] = [];
   if (current < 400) options.push({ operator: "+", operand: randInt(2, Math.min(30, 400 - current)) });
-  if (current > 2) options.push({ operator: "−", operand: randInt(2, Math.min(30, current - 1)) });
+  if (current > 2) options.push({ operator: "-", operand: randInt(2, Math.min(30, current - 1)) });
   for (const operand of [2, 3, 4]) {
     if (current * operand <= 400) options.push({ operator: "×", operand });
   }
@@ -26,7 +26,7 @@ function nextStep(current: number): ChainOperation {
 function apply(value: number, step: ChainOperation): number {
   const actions: Record<Operator, () => number> = {
     "+": () => value + step.operand,
-    "−": () => value - step.operand,
+    "-": () => value - step.operand,
     "×": () => value * step.operand,
     "÷": () => value / step.operand,
   };
@@ -67,7 +67,7 @@ function Chain({
       </div>
       {operations.map((step, index) => (
         <div key={index} className="grid grid-cols-[2rem_4rem_auto] items-center gap-x-2 border-t border-border/60 py-1">
-          <span className="text-muted-foreground">{step.operator}</span>
+          <span className="text-muted-foreground">{step.operator === "-" ? "−" : step.operator}</span>
           <span className="text-right font-bold">{step.operand}</span>
           {intermediates && (
             <span className="pl-2 text-xs text-muted-foreground">= {intermediates[index]}</span>
@@ -82,7 +82,7 @@ function IntroExample() {
   const operations: ChainOperation[] = [
     { operator: "+", operand: 8 },
     { operator: "×", operand: 2 },
-    { operator: "−", operand: 5 },
+    { operator: "-", operand: 5 },
   ];
   return (
     <div className="flex flex-col items-center gap-3">
