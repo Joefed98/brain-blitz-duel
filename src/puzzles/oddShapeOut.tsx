@@ -105,7 +105,14 @@ function ShapeGrid({
           : wrong
             ? "border-warn bg-warn/10"
             : "border-border bg-card";
-        const contents = <Shape base={base} colour={colour} difference={visibleDifference ?? undefined} size={compact ? 27 : 40} />;
+        const contents = (
+          <Shape
+            base={base}
+            colour={colour}
+            size={compact ? 27 : 40}
+            {...(visibleDifference ? { difference: visibleDifference } : {})}
+          />
+        );
         return onSelect ? (
           <button
             key={index}
