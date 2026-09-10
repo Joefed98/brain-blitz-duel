@@ -34,17 +34,21 @@ function apply(value: number, step: ChainOperation): number {
 }
 
 export function generateChainCalculation(): ChainCalculationPuzzleData {
-  const start = randInt(5, 50);
-  const operations: ChainOperation[] = [];
-  const intermediates: number[] = [];
-  let current = start;
-  for (let index = 0; index < 4; index++) {
-    const step = nextStep(current);
-    current = apply(current, step);
-    operations.push(step);
-    intermediates.push(current);
+  for (;;) {
+    const start = randInt(5, 50);
+    const operations: ChainOperation[] = [];
+    const intermediates: number[] = [];
+    let current = start;
+    for (let index = 0; index < 4; index++) {
+      const step = nextStep(current);
+      current = apply(current, step);
+      operations.push(step);
+      intermediates.push(current);
+    }
+    if (operations.some((step) => step.operator === "×" || step.operator === "÷")) {
+      return { type: "chaincalc", start, operations, intermediates, answer: current };
+    }
   }
-  return { type: "chaincalc", start, operations, intermediates, answer: current };
 }
 
 function Chain({

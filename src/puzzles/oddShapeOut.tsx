@@ -146,7 +146,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
         colour={puzzle.colour}
         difference={puzzle.difference}
         variants={puzzle.variants}
-        oddIndex={puzzle.oddIndex}
+        oddIndex={-1}
         onSelect={(index) => !locked && onSubmit(String(index))}
       />
     </div>
