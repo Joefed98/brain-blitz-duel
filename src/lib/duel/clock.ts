@@ -19,7 +19,7 @@ export async function initServerClock(): Promise<void> {
     if (!url || !key) return;
     const before = Date.now();
     // Only the response's Date header matters here, so this asks for nothing.
-    const res = await fetch(`${url}/rest/v1/`, { headers: { apikey: key } });
+    const res = await fetch(`${url}/auth/v1/health`, { headers: { apikey: key } });
     const after = Date.now();
     const dateHeader = res.headers.get("date");
     if (!dateHeader) return;
