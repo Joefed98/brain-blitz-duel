@@ -1,6 +1,14 @@
+import { useEffect, useRef } from "react";
+
 import { puzzleName } from "@/lib/duel/registry";
 import type { PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
+import { buzz } from "@/lib/motion";
+import { playWin, playWrong } from "@/lib/sound";
+
+import { AnimatedScore } from "./AnimatedScore";
+import { Dots } from "./Dots";
+import { WinBurst } from "./WinBurst";
 
 interface FinalResultProps {
   outcome: Outcome;
@@ -30,11 +38,27 @@ export function FinalResult({
   const headline = outcome === "win" ? "WIN" : outcome === "loss" ? "LOSS" : "DRAW";
   const headlineColor =
     outcome === "win" ? "text-me" : outcome === "loss" ? "text-warn" : "text-foreground";
+  const cued = useRef(false);
+
+  useEffect(() => {
+    if (cued.current) return;
+    cued.current = true;
+    if (outcome === "win") {
+      playWin();
+      buzz([25, 50, 25]);
+    } else if (outcome === "loss") {
+      playWrong();
+      buzz(30);
+    }
+  }, [outcome]);
 
   return (
-    <div className="flex flex-1 flex-col justify-between gap-8 pt-8">
+    <div className="relative flex flex-1 flex-col justify-between gap-8 pt-8 animate-phase-in">
+      {outcome === "win" && <WinBurst />}
       <div className="flex flex-col gap-8">
-        <h1 className={`text-center font-display text-6xl font-bold ${headlineColor}`}>
+        <h1
+          className={`relative text-center font-display text-6xl font-bold animate-word-scale-in ${headlineColor}`}
+        >
           {headline}
         </h1>
 
@@ -43,7 +67,9 @@ export function FinalResult({
             <p className="max-w-[110px] truncate text-xs uppercase tracking-widest text-me">
               {myName}
             </p>
-            <p className="font-mono text-4xl font-bold tabular-nums text-me">{myTotal}</p>
+            <p className="font-mono text-4xl font-bold tabular-nums text-me">
+              <AnimatedScore value={myTotal} />
+            </p>
           </div>
           <span className="pb-2 font-mono text-2xl text-muted-foreground">–</span>
           <div className="text-center">
@@ -51,24 +77,31 @@ export function FinalResult({
               {opponentName}
             </p>
             <p className="font-mono text-4xl font-bold tabular-nums text-opponent">
-              {opponentTotal}
+              <AnimatedScore value={opponentTotal} />
             </p>
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl bg-card">
-          {breakdown.map((row) => (
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          {breakdown.map((row, i) => (
             <div
               key={row.round}
-              className="flex items-center justify-between border-b border-border px-4 py-3 last:border-b-0"
+              className="flex items-center justify-between border-b border-border px-4 py-3 last:border-b-0 animate-row-stagger"
+              style={{ animationDelay: `${240 + i * 110}ms` }}
             >
               <span className="text-xs uppercase tracking-widest text-muted-foreground">
                 {puzzleName(roundOrder[row.round - 1] ?? "anagram")}
               </span>
               <span className="font-mono text-sm font-bold tabular-nums">
-                <span className="text-me">{row.mine}</span>
+                <span className={row.mine > row.theirs ? "text-me" : "text-muted-foreground"}>
+                  {row.mine}
+                </span>
                 <span className="mx-2 text-muted-foreground">–</span>
-                <span className="text-opponent">{row.theirs}</span>
+                <span
+                  className={row.theirs > row.mine ? "text-opponent" : "text-muted-foreground"}
+                >
+                  {row.theirs}
+                </span>
               </span>
             </div>
           ))}
@@ -80,14 +113,21 @@ export function FinalResult({
           type="button"
           onClick={onPlayAgain}
           disabled={busy}
-          className="tap-target w-full rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
+          className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground"
         >
-          {busy ? "Setting up…" : "Play again"}
+          {busy ? (
+            <>
+              <span>Setting up</span>
+              <Dots className="bg-primary-foreground" />
+            </>
+          ) : (
+            "Play again"
+          )}
         </button>
         <button
           type="button"
           onClick={onHome}
-          className="tap-target w-full rounded-xl border border-border font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
+          className="press tap-target w-full rounded-xl border border-border font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
         >
           Home
         </button>

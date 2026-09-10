@@ -1,73 +1,70 @@
 import {
   GONOGO_ITEMS,
-  GONOGO_MAX_BONUS,
-  GONOGO_POINTS_PER_ITEM,
   NUMHUNT_ERROR_PENALTY,
   ROUND_MS,
   STROOP_ITEMS,
-  STROOP_POINTS_PER_ITEM,
   TOTAL_ROUNDS,
   type RoundResultRow,
 } from "./types";
 
-
 export const BASE_POINTS = 100;
-export const POINTS_PER_SECOND = 5;
-export const MAX_ROUND_SCORE = 250;
+/** Speed bonus on top of the base — a correct answer always scores 100–150. */
+export const MAX_SPEED_BONUS = 50;
+export const MAX_ROUND_SCORE = BASE_POINTS + MAX_SPEED_BONUS;
 
-/** Correct: 100 + 5 per full second remaining. Wrong / timeout: 0. */
+function clamp(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.max(min, Math.min(max, value));
+}
+
+/** 0–50 for how much of the 30 seconds was left. */
+export function speedBonus(msRemaining: number): number {
+  const clamped = clamp(msRemaining, 0, ROUND_MS);
+  return Math.round((MAX_SPEED_BONUS * clamped) / ROUND_MS);
+}
+
+/** 0–50 from an average reaction time: 50 at 150 ms, 0 at 650 ms or slower. */
+export function reactionBonus(averageMs: number): number {
+  return clamp(Math.round((650 - averageMs) / 10), 0, MAX_SPEED_BONUS);
+}
+
+/** Correct: 100 plus the speed bonus. Wrong / timeout: 0. */
 export function scoreRound(isCorrect: boolean, msRemaining: number): number {
   if (!isCorrect) return 0;
-  const clamped = Math.max(0, Math.min(ROUND_MS, msRemaining));
-  return BASE_POINTS + POINTS_PER_SECOND * Math.floor(clamped / 1000);
+  return BASE_POINTS + speedBonus(msRemaining);
 }
 
-/** Reaction Time only: 250 at a 150 ms average, 0 at 650 ms or slower. */
+/** Reaction Time only: a run is never wrong, so it always scores at least 100. */
 export function scoreReaction(averageMs: number): number {
-  const raw = Math.round(MAX_ROUND_SCORE - (averageMs - 150) / 2);
-  return Math.max(0, Math.min(MAX_ROUND_SCORE, raw));
+  return BASE_POINTS + reactionBonus(averageMs);
 }
 
-/**
- * Colour Clash only: 10 per correct item, plus the usual 5 per second left —
- * but the speed bonus is only earned on a flawless run of ten.
- */
+/** Colour Clash: accuracy out of 100, plus the speed bonus on a flawless run. */
 export function scoreStroop(correctCount: number, msRemaining: number): number {
-  const accuracy = STROOP_POINTS_PER_ITEM * Math.max(0, Math.min(STROOP_ITEMS, correctCount));
-  const clamped = Math.max(0, Math.min(ROUND_MS, msRemaining));
-  const bonus =
-    correctCount >= STROOP_ITEMS ? POINTS_PER_SECOND * Math.floor(clamped / 1000) : 0;
+  const correct = clamp(correctCount, 0, STROOP_ITEMS);
+  const accuracy = Math.round((BASE_POINTS * correct) / STROOP_ITEMS);
+  const bonus = correct >= STROOP_ITEMS ? speedBonus(msRemaining) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
-/**
- * Go / No-Go only: 10 per item handled correctly, plus a speed bonus that is
- * only earned on a flawless run of twelve.
- */
+/** Go / No-Go: accuracy out of 100, plus a reaction bonus on a flawless run. */
 export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): number {
-  const accuracy =
-    GONOGO_POINTS_PER_ITEM * Math.max(0, Math.min(GONOGO_ITEMS, correctCount));
-  const perfect = correctCount >= GONOGO_ITEMS && averageHitMs !== null;
-  const bonus = perfect
-    ? Math.max(
-        0,
-        Math.min(GONOGO_MAX_BONUS, Math.round(GONOGO_MAX_BONUS - (averageHitMs! - 250) / 2)),
-      )
-    : 0;
+  const correct = clamp(correctCount, 0, GONOGO_ITEMS);
+  const accuracy = Math.round((BASE_POINTS * correct) / GONOGO_ITEMS);
+  const perfect = correct >= GONOGO_ITEMS && averageHitMs !== null;
+  const bonus = perfect ? reactionBonus(averageHitMs!) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
-/** Number Hunt only: a standard round score, less 10 points per wrong tap. */
+/** Number Hunt: a standard round score, less 5 points per wrong tap. */
 export function scoreNumberHunt(
   finished: boolean,
   msRemaining: number,
   errors: number,
 ): number {
   if (!finished) return 0;
-  const clamped = Math.max(0, Math.min(ROUND_MS, msRemaining));
-  const raw =
-    BASE_POINTS + POINTS_PER_SECOND * Math.floor(clamped / 1000) - NUMHUNT_ERROR_PENALTY * errors;
-  return Math.max(0, Math.min(MAX_ROUND_SCORE, raw));
+  const raw = BASE_POINTS + speedBonus(msRemaining) - NUMHUNT_ERROR_PENALTY * errors;
+  return Math.round(clamp(raw, 0, MAX_ROUND_SCORE));
 }
 
 export function resultFor(
@@ -79,9 +76,7 @@ export function resultFor(
 }
 
 export function totalScore(results: RoundResultRow[], slot: number): number {
-  return results
-    .filter((r) => r.player_slot === slot)
-    .reduce((sum, r) => sum + r.score, 0);
+  return results.filter((r) => r.player_slot === slot).reduce((sum, r) => sum + r.score, 0);
 }
 
 /**
