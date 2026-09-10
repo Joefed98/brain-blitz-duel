@@ -1,10 +1,43 @@
 import type { ReactNode } from "react";
 
-/** Mobile-first column, centred on larger screens. */
-export function PhoneShell({ children }: { children: ReactNode }) {
+import { MuteToggle } from "./MuteToggle";
+import { Wordmark } from "./Wordmark";
+
+interface PhoneShellProps {
+  children: ReactNode;
+  /** Hide the slim top bar (the home screen carries its own big wordmark). */
+  bare?: boolean;
+}
+
+/** Mobile-first column, centred on larger screens, with a little depth behind. */
+export function PhoneShell({ children, bare = false }: PhoneShellProps) {
   return (
-    <div className="min-h-screen w-full bg-background">
-      <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col px-5 pb-8 pt-6">
+    <div className="relative min-h-screen w-full overflow-hidden bg-background">
+      {/* Depth: one soft warm glow top-centre, one cool glow bottom, faint grid. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(60% 40% at 50% -5%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%), radial-gradient(50% 35% at 50% 105%, color-mix(in oklab, var(--opponent) 10%, transparent), transparent 70%)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)",
+          backgroundSize: "44px 44px",
+        }}
+      />
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[430px] flex-col pad-safe">
+        {!bare && (
+          <div className="mb-2 flex items-center justify-between">
+            <Wordmark />
+            <MuteToggle />
+          </div>
+        )}
         {children}
       </div>
     </div>

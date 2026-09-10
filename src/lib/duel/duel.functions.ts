@@ -424,6 +424,20 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
       score,
     });
     if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
+
+    /**
+     * The round is over the moment the second answer lands — no waiting for the
+     * clock. `setPhase` is guarded on the round and the phase it moves away
+     * from, so this and a timer expiry arriving together cannot double-advance.
+     */
+    const { count } = await client
+      .from("round_results")
+      .select("id", { count: "exact", head: true })
+      .eq("duel_id", duel.id)
+      .eq("round_number", data.roundNumber);
+    if ((count ?? 0) >= 2) {
+      await setPhase(client, duel.id, data.roundNumber, "puzzle", "reveal");
+    }
     return { ok: true as const };
   });
 

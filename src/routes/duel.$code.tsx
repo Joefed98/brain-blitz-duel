@@ -2,13 +2,16 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
-import { CountdownTimer } from "@/components/duel/CountdownTimer";
+import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { FinalResult } from "@/components/duel/FinalResult";
 import { PhoneShell } from "@/components/duel/PhoneShell";
-
 import { RoundIntro } from "@/components/duel/RoundIntro";
+import { RoundPips } from "@/components/duel/RoundPips";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
+import { TimerRing } from "@/components/duel/TimerRing";
+import { buzz } from "@/lib/motion";
+import { unlockAudio } from "@/lib/sound";
 import {
   advancePhase,
   ensureRematch,
@@ -85,6 +88,59 @@ function HomeButton({ label = "Back to home" }: { label?: string }) {
   );
 }
 
+/** Lobby controls: copy the code, or share the join link where supported. */
+function LobbyActions({ roomCode }: { roomCode: string }) {
+  const [copied, setCopied] = useState(false);
+  const link = typeof window === "undefined" ? "" : `${window.location.origin}/duel/${roomCode}`;
+  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(roomCode);
+      setCopied(true);
+      buzz(10);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* clipboard blocked — the code is on screen anyway */
+    }
+  };
+
+  const share = async () => {
+    try {
+      await navigator.share({
+        title: "Duelz",
+        text: `Join my Duelz match with code ${roomCode}`,
+        url: link,
+      });
+    } catch {
+      /* dismissed */
+    }
+  };
+
+  return (
+    <div className="flex w-full gap-2">
+      <button
+        type="button"
+        onClick={() => void copy()}
+        className="press tap-target flex-1 rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+      >
+        {copied ? "Copied" : "Copy code"}
+      </button>
+      {canShare && (
+        <button
+          type="button"
+          onClick={() => void share()}
+          className="press tap-target flex-1 rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+        >
+          Share link
+        </button>
+      )}
+    </div>
+  );
+}
+
+
+
 function DuelScreen() {
   const { code } = Route.useParams();
   const navigate = useNavigate();
@@ -121,6 +177,13 @@ function DuelScreen() {
   const scoredThrough = phase === "result" ? round : round - 1;
   const myTotal = totalScoreThrough(results, mySlot, scoredThrough);
   const opponentTotal = totalScoreThrough(results, opponentSlot, scoredThrough);
+
+  // One pip per finished round: who took it.
+  const outcomes = Array.from({ length: scoredThrough }, (_, i) => {
+    const mine = resultFor(results, mySlot, i + 1)?.score ?? 0;
+    const theirs = resultFor(results, opponentSlot, i + 1)?.score ?? 0;
+    return mine > theirs ? ("win" as const) : mine < theirs ? ("loss" as const) : ("draw" as const);
+  });
 
   const isHost = me?.player_slot === 1;
 
@@ -209,6 +272,8 @@ function DuelScreen() {
 
   const handleSubmit = (answer: string, meta?: SubmitMeta) => {
     if (!duel || !me || !puzzle || myResult) return;
+    unlockAudio();
+    buzz(15);
     void submitAnswer({
       duelId: duel.id,
       roundNumber: round,
@@ -236,7 +301,7 @@ function DuelScreen() {
   if (state.loading) {
     return (
       <Centered>
-        <p className="text-sm text-muted-foreground">Loading duel…</p>
+        <WaitingLine label="Loading duel" />
       </Centered>
     );
   }
@@ -278,29 +343,46 @@ function DuelScreen() {
   }
 
   if (duel.status === "waiting") {
+    const opponentCard = players.find((p) => p.player_slot !== me.player_slot);
     return (
       <PhoneShell>
         <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Room code</p>
-          <p className="font-mono text-6xl font-bold tracking-[0.2em] text-primary">
-            {duel.room_code}
-          </p>
-          <p className="text-sm text-muted-foreground">Waiting for opponent…</p>
-          <div className="flex w-full flex-col gap-2">
-            {players.map((p) => (
-              <div
-                key={p.id}
-                className={`rounded-xl px-4 py-3 text-left font-display text-sm ${
-                  p.player_slot === me.player_slot
-                    ? "border border-me/40 bg-me/10 text-me"
-                    : "border border-opponent/40 bg-opponent/10 text-opponent"
-                }`}
-              >
-                {p.display_name}
-                {p.player_slot === me.player_slot && " (you)"}
-              </div>
-            ))}
+          <div>
+            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Room code</p>
+            <p className="mt-3 font-mono text-6xl font-bold tracking-[0.2em] text-primary animate-pop-in">
+              {duel.room_code}
+            </p>
           </div>
+
+          <LobbyActions roomCode={duel.room_code} />
+
+          <div className="flex w-full items-center gap-3">
+            <div className="flex-1 rounded-xl border border-me/40 bg-me/10 px-3 py-4 font-display text-sm text-me animate-pop-in">
+              <span className="block truncate">{me.display_name}</span>
+              <span className="text-[10px] uppercase tracking-widest opacity-70">You</span>
+            </div>
+            <span className="font-display text-xs uppercase tracking-widest text-muted-foreground">
+              vs
+            </span>
+            {opponentCard ? (
+              <div
+                key={opponentCard.id}
+                className="flex-1 rounded-xl border border-opponent/40 bg-opponent/10 px-3 py-4 font-display text-sm text-opponent animate-pop-in"
+              >
+                <span className="block truncate">{opponentCard.display_name}</span>
+                <span className="text-[10px] uppercase tracking-widest opacity-70">Ready</span>
+              </div>
+            ) : (
+              <div className="flex flex-1 flex-col items-center gap-2 rounded-xl border border-dashed border-border px-3 py-4">
+                <span className="h-2 w-2 rounded-full bg-muted-foreground animate-slow-pulse" />
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Waiting
+                </span>
+              </div>
+            )}
+          </div>
+
+          <WaitingLine label="Waiting for opponent" />
         </div>
       </PhoneShell>
     );
@@ -333,6 +415,7 @@ function DuelScreen() {
           type={puzzle.type}
           startedAt={phaseStart ?? now}
           now={now}
+          outcomes={outcomes}
         />
       </PhoneShell>
     );
@@ -382,19 +465,26 @@ function DuelScreen() {
 
   return (
     <PhoneShell>
-      <div className="flex flex-1 flex-col gap-5">
-        <div className="flex items-baseline justify-between">
+      <div className="flex flex-1 flex-col gap-5 animate-phase-in">
+        <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Round {round} of {TOTAL_ROUNDS}
           </span>
-          <span className="font-display text-sm font-bold text-foreground">
-            {puzzle ? puzzleName(puzzle.type) : ""}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="font-display text-sm font-bold text-foreground">
+              {puzzle ? puzzleName(puzzle.type) : ""}
+            </span>
+            <RoundPips currentRound={round} outcomes={outcomes} />
+          </div>
         </div>
 
         {showTimer && (
           <div className="flex justify-center">
-            <CountdownTimer msRemaining={msRemaining} active={clockActive} />
+            <TimerRing
+              msRemaining={myResult ? 0 : msRemaining}
+              totalMs={ROUND_MS}
+              active={clockActive && !myResult}
+            />
           </div>
         )}
 
@@ -405,21 +495,34 @@ function DuelScreen() {
           opponentTotal={opponentTotal}
         />
 
-        {puzzle && Stage && (
-          <Stage
-            puzzle={puzzle}
-            phaseStartedAt={puzzleStart ?? now}
-            now={now}
-            locked={!!myResult}
-            onSubmit={handleSubmit}
-          />
-        )}
+        <div className="relative flex flex-1 flex-col">
+          {puzzle && Stage && (
+            <div
+              className={
+                myResult ? "pointer-events-none opacity-30 transition-opacity duration-200" : ""
+              }
+            >
+              <Stage
+                puzzle={puzzle}
+                phaseStartedAt={puzzleStart ?? now}
+                now={now}
+                locked={!!myResult}
+                onSubmit={handleSubmit}
+              />
+            </div>
+          )}
 
-        {myResult && (
-          <p className="pb-2 text-center text-sm text-muted-foreground">
-            Answer locked — waiting for opponent…
-          </p>
-        )}
+          {myResult && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+              <span className="animate-stamp-in rounded-lg border-2 border-primary px-4 py-2 font-display text-lg font-bold uppercase tracking-[0.2em] text-primary">
+                Locked
+              </span>
+              <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                Waiting for opponent <Dots />
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </PhoneShell>
   );

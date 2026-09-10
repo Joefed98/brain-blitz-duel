@@ -1,9 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { Dots } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { Wordmark } from "@/components/duel/Wordmark";
+import { MuteToggle } from "@/components/duel/MuteToggle";
 import { createDuel, joinDuelByCode } from "@/lib/duel/api";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
+import { unlockAudio } from "@/lib/sound";
+import { buzz } from "@/lib/motion";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,22 +31,34 @@ export const Route = createFileRoute("/")({
 
 type Mode = "home" | "create" | "join";
 
+const CODE_LENGTH = 4;
+
 function Home() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("home");
-  const [name, setName] = useState(() => getStoredName());
+  const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [shake, setShake] = useState(0);
   const [busy, setBusy] = useState(false);
+  const codeRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => setName(getStoredName()), []);
+
+  const fail = (message: string) => {
+    setError(message);
+    setShake((n) => n + 1);
+    buzz([10, 50, 10]);
+  };
 
   const start = async () => {
     const trimmed = name.trim();
     if (trimmed.length === 0) {
-      setError("Enter a display name.");
+      fail("Enter a display name.");
       return;
     }
-    if (mode === "join" && code.trim().length !== 4) {
-      setError("Room codes are 4 letters.");
+    if (mode === "join" && code.trim().length !== CODE_LENGTH) {
+      fail("Room codes are 4 letters.");
       return;
     }
 
@@ -55,18 +72,32 @@ function Home() {
           : await joinDuelByCode(code.trim().toUpperCase(), trimmed);
       await navigate({ to: "/duel/$code", params: { code: duel.roomCode } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
       setBusy(false);
+      fail(err instanceof Error ? err.message : "Something went wrong. Try again.");
     }
   };
 
+  const openMode = (next: Mode) => {
+    unlockAudio();
+    setMode(next);
+    setError(null);
+  };
+
   return (
-    <PhoneShell>
+    <PhoneShell bare>
+      <div className="flex justify-end">
+        <MuteToggle />
+      </div>
+
       <div className="flex flex-1 flex-col justify-center gap-10">
-        <div className="text-center">
-          <h1 className="font-display text-5xl font-bold tracking-tight text-primary">Duelz</h1>
+        <div className="flex flex-col items-center text-center">
+          <Wordmark size="lg" />
           <p className="mt-3 text-sm text-muted-foreground">
             Three puzzles. Thirty seconds each. Fastest brain wins.
+          </p>
+          <div className="mt-6 h-px w-16 bg-border" />
+          <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+            3 rounds · 30s each · max 150 a round
           </p>
         </div>
 
@@ -74,27 +105,25 @@ function Home() {
           <div className="flex flex-col gap-3">
             <button
               type="button"
-              onClick={() => {
-                setMode("create");
-                setError(null);
-              }}
-              className="tap-target w-full rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground"
+              onClick={() => openMode("create")}
+              className="press tap-target relative w-full overflow-hidden rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground"
             >
-              Create duel
+              <span className="relative z-10">Create duel</span>
+              <span
+                aria-hidden="true"
+                className="animate-sheen pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-primary-foreground/20"
+              />
             </button>
             <button
               type="button"
-              onClick={() => {
-                setMode("join");
-                setError(null);
-              }}
-              className="tap-target w-full rounded-xl border border-border bg-card py-4 font-display text-lg font-semibold uppercase tracking-wide text-foreground"
+              onClick={() => openMode("join")}
+              className="press tap-target w-full rounded-xl border border-border bg-card/70 py-4 font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
             >
-              Join duel
+              Join with a code
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div key={mode} className="flex flex-col gap-4 animate-phase-in">
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="name"
@@ -109,6 +138,12 @@ function Home() {
                 maxLength={14}
                 placeholder="Your name"
                 onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (mode === "join") codeRef.current?.focus();
+                    else void start();
+                  }
+                }}
                 className="tap-target w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
             </div>
@@ -121,21 +156,44 @@ function Home() {
                 >
                   Room code
                 </label>
-                <input
-                  id="code"
-                  value={code}
-                  maxLength={4}
-                  autoCapitalize="characters"
-                  autoCorrect="off"
-                  placeholder="ABCD"
-                  onChange={(e) =>
-                    setCode(e.target.value.replace(/[^a-zA-Z]/g, "").toUpperCase())
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void start();
-                  }}
-                  className="tap-target w-full rounded-xl border border-border bg-card px-4 py-3 text-center font-mono text-2xl uppercase tracking-[0.4em] text-foreground placeholder:tracking-[0.4em] placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-                />
+                <div
+                  key={shake}
+                  className={`relative ${error ? "animate-shake" : ""}`}
+                  onClick={() => codeRef.current?.focus()}
+                >
+                  <div className="flex gap-2">
+                    {Array.from({ length: CODE_LENGTH }, (_, i) => (
+                      <div
+                        key={i}
+                        className={`flex h-16 flex-1 items-center justify-center rounded-xl border bg-card font-mono text-3xl font-bold ${
+                          code.length === i
+                            ? "border-primary text-primary"
+                            : "border-border text-foreground"
+                        }`}
+                      >
+                        {code[i] ?? ""}
+                      </div>
+                    ))}
+                  </div>
+                  <input
+                    ref={codeRef}
+                    id="code"
+                    value={code}
+                    maxLength={CODE_LENGTH}
+                    inputMode="text"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    aria-label="Room code"
+                    onChange={(e) => {
+                      setError(null);
+                      setCode(e.target.value.replace(/[^a-zA-Z]/g, "").toUpperCase());
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void start();
+                    }}
+                    className="absolute inset-0 h-full w-full cursor-pointer bg-transparent text-transparent caret-transparent outline-none"
+                  />
+                </div>
               </div>
             )}
 
@@ -145,17 +203,23 @@ function Home() {
               type="button"
               onClick={() => void start()}
               disabled={busy}
-              className="tap-target w-full rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
+              className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground"
             >
-              {busy ? "Please wait…" : mode === "create" ? "Create duel" : "Join duel"}
+              {busy ? (
+                <>
+                  <span>Please wait</span>
+                  <Dots className="bg-primary-foreground" />
+                </>
+              ) : mode === "create" ? (
+                "Create duel"
+              ) : (
+                "Join duel"
+              )}
             </button>
             <button
               type="button"
-              onClick={() => {
-                setMode("home");
-                setError(null);
-              }}
-              className="tap-target w-full font-display text-sm uppercase tracking-widest text-muted-foreground"
+              onClick={() => openMode("home")}
+              className="press tap-target w-full font-display text-sm uppercase tracking-widest text-muted-foreground"
             >
               Back
             </button>
