@@ -14,7 +14,7 @@ export type PuzzleType =
   | "patcomp"
   | "symscan"
   | "rotmatch"
-  | "numhunt";
+  | "numhunt"
   | "oddshape"
   | "chaincalc";
 
@@ -55,8 +55,35 @@ export interface NumberSequencePuzzleData {
 }
 
 export interface SequencePuzzleData {
-  type: "sequence";
+  type: "sequence" | "reverse";
   tiles: number[];
+  /** Reverse Recall only: the server-side answer order. */
+  answerOrder?: number[];
+}
+
+export type OddShapeBase = "circle" | "square" | "triangle" | "star" | "hexagon" | "arrow";
+export type OddShapeDifference = "rotated" | "smaller" | "shade" | "notched" | "flipped";
+
+export interface OddShapePuzzleData {
+  type: "oddshape";
+  base: OddShapeBase;
+  colour: StroopColour;
+  difference: OddShapeDifference;
+  oddIndex: number;
+  differenceLabel: string;
+}
+
+export interface ChainOperation {
+  operator: Operator;
+  operand: number;
+}
+
+export interface ChainCalculationPuzzleData {
+  type: "chaincalc";
+  start: number;
+  operations: ChainOperation[];
+  intermediates: number[];
+  answer: number;
 }
 
 export interface ReactionPuzzleData {
@@ -176,6 +203,8 @@ export type PuzzleData =
   | ArithmeticPuzzleData
   | NumberSequencePuzzleData
   | SequencePuzzleData
+  | OddShapePuzzleData
+  | ChainCalculationPuzzleData
   | ReactionPuzzleData
   | MissingLettersPuzzleData
   | EquationPuzzleData
