@@ -4,6 +4,7 @@ export type PuzzleType =
   | "arithmetic"
   | "numseq"
   | "sequence"
+  | "reverse"
   | "reaction"
   | "missing"
   | "equation"
@@ -13,15 +14,11 @@ export type PuzzleType =
   | "patcomp"
   | "symscan"
   | "rotmatch"
-  | "numhunt";
+  | "numhunt"
+  | "oddshape"
+  | "chaincalc";
 
-export type PuzzleCategory =
-  | "word"
-  | "number"
-  | "memory"
-  | "speed"
-  | "attention"
-  | "pattern";
+export type PuzzleCategory = "word" | "number" | "memory" | "speed" | "attention" | "pattern";
 
 export interface AnagramPuzzleData {
   type: "anagram";
@@ -52,8 +49,37 @@ export interface NumberSequencePuzzleData {
 }
 
 export interface SequencePuzzleData {
-  type: "sequence";
+  type: "sequence" | "reverse";
   tiles: number[];
+  /** Reverse Recall only: the server-side answer order. */
+  answerOrder?: number[];
+}
+
+export type OddShapeBase = "circle" | "square" | "triangle" | "star" | "hexagon" | "arrow";
+export type OddShapeDifference = "rotated" | "smaller" | "shade" | "notched" | "flipped";
+
+export interface OddShapePuzzleData {
+  type: "oddshape";
+  base: OddShapeBase;
+  colour: StroopColour;
+  difference: OddShapeDifference;
+  /** Visible per-cell variants; only one entry contains the generated difference. */
+  variants: (OddShapeDifference | null)[];
+  oddIndex: number;
+  differenceLabel: string;
+}
+
+export interface ChainOperation {
+  operator: Operator;
+  operand: number;
+}
+
+export interface ChainCalculationPuzzleData {
+  type: "chaincalc";
+  start: number;
+  operations: ChainOperation[];
+  intermediates: number[];
+  answer: number;
 }
 
 export interface ReactionPuzzleData {
@@ -173,6 +199,8 @@ export type PuzzleData =
   | ArithmeticPuzzleData
   | NumberSequencePuzzleData
   | SequencePuzzleData
+  | OddShapePuzzleData
+  | ChainCalculationPuzzleData
   | ReactionPuzzleData
   | MissingLettersPuzzleData
   | EquationPuzzleData

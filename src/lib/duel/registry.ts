@@ -1,13 +1,16 @@
 import { anagramPuzzle } from "@/puzzles/anagram";
 import { arithmeticPuzzle } from "@/puzzles/arithmetic";
+import { chainCalculationPuzzle } from "@/puzzles/chainCalculation";
 import { equationPuzzle } from "@/puzzles/equation";
 import { goNoGoPuzzle } from "@/puzzles/goNoGo";
 import { missingLettersPuzzle } from "@/puzzles/missingLetters";
 import { numberHuntPuzzle } from "@/puzzles/numberHunt";
 import { numberSequencePuzzle } from "@/puzzles/numberSequence";
 import { oddWordPuzzle } from "@/puzzles/oddWordOut";
+import { oddShapeOutPuzzle } from "@/puzzles/oddShapeOut";
 import { patternCompletionPuzzle } from "@/puzzles/patternCompletion";
 import { reactionPuzzle } from "@/puzzles/reaction";
+import { reverseRecallPuzzle } from "@/puzzles/reverseRecall";
 import { rotationMatchPuzzle } from "@/puzzles/rotationMatch";
 import { sequencePuzzle } from "@/puzzles/sequence";
 import { spatialMemoryPuzzle } from "@/puzzles/spatialMemory";
@@ -25,13 +28,16 @@ export const PUZZLE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   arithmetic: arithmeticPuzzle,
   numseq: numberSequencePuzzle,
   equation: equationPuzzle,
+  chaincalc: chainCalculationPuzzle,
   sequence: sequencePuzzle,
+  reverse: reverseRecallPuzzle,
   spatial: spatialMemoryPuzzle,
   reaction: reactionPuzzle,
   gonogo: goNoGoPuzzle,
   numhunt: numberHuntPuzzle,
   stroop: stroopPuzzle,
   symscan: symbolScanPuzzle,
+  oddshape: oddShapeOutPuzzle,
   patcomp: patternCompletionPuzzle,
   rotmatch: rotationMatchPuzzle,
 };

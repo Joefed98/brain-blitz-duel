@@ -14,6 +14,7 @@ interface SequencePuzzleProps {
   now: number;
   locked: boolean;
   onSubmit: (answer: string) => void;
+  reverse?: boolean;
 }
 
 /** Which tile is lit during playback, or null once playback has finished. */
@@ -32,6 +33,7 @@ export function SequencePuzzle({
   now,
   locked,
   onSubmit,
+  reverse = false,
 }: SequencePuzzleProps) {
   const [taps, setTaps] = useState<number[]>([]);
   const [flash, setFlash] = useState<number | null>(null);
@@ -60,7 +62,7 @@ export function SequencePuzzle({
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-7">
       <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-        {playing ? "Watch the sequence" : "Repeat the sequence"}
+        {playing ? "Watch the sequence" : reverse ? "Repeat it in reverse" : "Repeat the sequence"}
       </p>
 
       <div className="flex gap-2">
