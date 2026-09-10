@@ -4,6 +4,7 @@ export type PuzzleType =
   | "arithmetic"
   | "numseq"
   | "sequence"
+  | "reverse"
   | "reaction"
   | "missing"
   | "equation"
@@ -14,6 +15,8 @@ export type PuzzleType =
   | "symscan"
   | "rotmatch"
   | "numhunt";
+  | "oddshape"
+  | "chaincalc";
 
 export type PuzzleCategory =
   | "word"
