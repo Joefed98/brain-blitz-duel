@@ -84,6 +84,7 @@ function ShapeGrid({
   base: OddShapeBase;
   colour: StroopColour;
   difference: OddShapeDifference;
+  variants?: (OddShapeDifference | null)[];
   oddIndex: number;
   selectedIndex?: number;
   reveal?: boolean;
@@ -95,6 +96,7 @@ function ShapeGrid({
   return (
     <div className={`grid ${compact ? "gap-1.5" : "w-full max-w-[330px] gap-2"}`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
       {Array.from({ length: count }, (_, index) => {
+        const visibleDifference = variants?.[index] ?? (index === oddIndex ? difference : undefined);
         const isOdd = index === oddIndex;
         const wrong = reveal && selectedIndex === index && !isOdd;
         const cellClass = reveal && isOdd
@@ -102,7 +104,7 @@ function ShapeGrid({
           : wrong
             ? "border-warn bg-warn/10"
             : "border-border bg-card";
-        const contents = <Shape base={base} colour={colour} difference={isOdd ? difference : undefined} size={compact ? 27 : 40} />;
+        const contents = <Shape base={base} colour={colour} difference={visibleDifference ?? undefined} size={compact ? 27 : 40} />;
         return onSelect ? (
           <button
             key={index}
@@ -142,7 +144,8 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
         base={puzzle.base}
         colour={puzzle.colour}
         difference={puzzle.difference}
-        oddIndex={-1}
+        variants={puzzle.variants}
+        oddIndex={puzzle.oddIndex}
         onSelect={(index) => !locked && onSubmit(String(index))}
       />
     </div>
@@ -177,12 +180,14 @@ export const oddShapeOutPuzzle: PuzzleDefinition = {
   generate: () => {
     const base = pick(BASES);
     const difference = pick(possibleDifferences(base));
+    const oddIndex = randInt(0, 24);
     return {
       type: "oddshape",
       base,
       colour: pick(Object.keys(COLOURS) as StroopColour[]),
       difference,
-      oddIndex: randInt(0, 24),
+      variants: Array.from({ length: 25 }, (_, index) => index === oddIndex ? difference : null),
+      oddIndex,
       differenceLabel: DIFFERENCE_LABELS[difference],
     } satisfies OddShapePuzzleData;
   },

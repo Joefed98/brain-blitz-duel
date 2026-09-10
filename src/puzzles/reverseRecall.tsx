@@ -45,6 +45,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
       now={now}
       locked={locked}
       onSubmit={onSubmit}
+      reverse
     />
   );
 }

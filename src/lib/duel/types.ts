@@ -69,6 +69,8 @@ export interface OddShapePuzzleData {
   base: OddShapeBase;
   colour: StroopColour;
   difference: OddShapeDifference;
+  /** Visible per-cell variants; only one entry contains the generated difference. */
+  variants: (OddShapeDifference | null)[];
   oddIndex: number;
   differenceLabel: string;
 }

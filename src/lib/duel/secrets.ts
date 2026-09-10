@@ -15,6 +15,9 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   symscan: ["targets"],
   patcomp: ["correctIndex", "rule"],
   rotmatch: ["correctIndex", "rotationDeg"],
+  reverse: ["answerOrder"],
+  oddshape: ["oddIndex", "differenceLabel"],
+  chaincalc: ["intermediates", "answer"],
   // These types show the player everything they need on screen — there is
   // nothing extra to hide (the tiles, items and delays are the puzzle).
   sequence: [],

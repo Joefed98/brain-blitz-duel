@@ -3,8 +3,8 @@ interface SequenceGridProps {
   order: number[];
   /** Grid width — 3 for Sequence Recall, 4 for Spatial Memory. */
   cols?: number;
-  tone?: "primary" | "warn";
-  size?: "sm" | "md";
+  tone?: "primary" | "opponent" | "warn";
+  size?: "xs" | "sm" | "md";
   /** False for grids where order does not matter (Spatial Memory). */
   numbered?: boolean;
   /** Tiles to outline in red — wrong taps. */
@@ -21,7 +21,9 @@ export function SequenceGrid({
   wrong = [],
 }: SequenceGridProps) {
   const box =
-    cols >= 4
+    size === "xs"
+      ? "h-9 w-9 text-xs"
+      : cols >= 4
       ? size === "sm"
         ? "h-11 w-11 text-sm"
         : "h-14 w-14 text-base"
@@ -31,6 +33,8 @@ export function SequenceGrid({
   const active =
     tone === "warn"
       ? "border-warn/60 bg-warn/15 text-warn"
+      : tone === "opponent"
+        ? "border-opponent/60 bg-opponent/15 text-opponent"
       : "border-primary/60 bg-primary/15 text-primary";
 
   return (
