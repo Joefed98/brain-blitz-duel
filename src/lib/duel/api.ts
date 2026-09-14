@@ -2,12 +2,15 @@ import { supabase } from "@/integrations/supabase/client";
 
 import {
   advancePhaseFn,
-  createDuelFn,
+  createRoomFn,
   heartbeatFn,
-  joinDuelFn,
+  joinRoomFn,
+  leaveRoomFn,
   markReadyFn,
   rematchFn,
+  removePlayerFn,
   revealAnswerFn,
+  startRoomFn,
   submitAnswerFn,
   type SubmitExtra,
 } from "./duel.functions";
@@ -17,7 +20,7 @@ import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow } from "./types
 export class DuelError extends Error {}
 
 /* -------------------------------------------------------------------------- */
-/*  Reads — row level security limits these to duels this device is part of    */
+/*  Reads — row level security limits these to rooms this device is part of     */
 /* -------------------------------------------------------------------------- */
 
 export async function fetchDuelByCode(roomCode: string): Promise<DuelRow | null> {
@@ -56,24 +59,38 @@ export async function fetchResults(duelId: string): Promise<RoundResultRow[]> {
 /*  Writes — every one goes through a server function                          */
 /* -------------------------------------------------------------------------- */
 
-export async function createDuel(displayName: string): Promise<{ roomCode: string }> {
+export async function createRoom(displayName: string): Promise<{ roomCode: string }> {
   await ensureSession();
-  const result = await createDuelFn({ data: { displayName } });
+  const result = await createRoomFn({ data: { displayName } });
   return { roomCode: result.roomCode };
 }
 
-export async function joinDuelByCode(
+export async function joinRoomByCode(
   roomCode: string,
   displayName: string,
 ): Promise<{ roomCode: string }> {
   await ensureSession();
-  const result = await joinDuelFn({ data: { roomCode, displayName } });
+  const result = await joinRoomFn({ data: { roomCode, displayName } });
   if (!result.ok) throw new DuelError(result.message);
   return { roomCode: result.roomCode };
 }
 
-export async function advancePhase(duelId: string): Promise<void> {
-  await advancePhaseFn({ data: { duelId } });
+export async function startRoom(roomId: string): Promise<void> {
+  const result = await startRoomFn({ data: { roomId } });
+  if (!result.ok) throw new DuelError(result.message);
+}
+
+export async function removePlayer(roomId: string, slot: number): Promise<void> {
+  const result = await removePlayerFn({ data: { roomId, slot } });
+  if (!result.ok) throw new DuelError(result.message);
+}
+
+export async function leaveRoom(roomId: string): Promise<void> {
+  await leaveRoomFn({ data: { roomId } });
+}
+
+export async function advancePhase(roomId: string): Promise<void> {
+  await advancePhaseFn({ data: { roomId } });
 }
 
 export async function submitAnswer(params: {
@@ -85,7 +102,7 @@ export async function submitAnswer(params: {
 }): Promise<void> {
   await submitAnswerFn({
     data: {
-      duelId: params.duelId,
+      roomId: params.duelId,
       roundNumber: params.roundNumber,
       answer: params.answer,
       msRemaining: params.msRemaining,
@@ -94,12 +111,12 @@ export async function submitAnswer(params: {
   });
 }
 
-export async function markReady(duelId: string, roundNumber: number): Promise<void> {
-  await markReadyFn({ data: { duelId, roundNumber } });
+export async function markReady(roomId: string, roundNumber: number): Promise<void> {
+  await markReadyFn({ data: { roomId, roundNumber } });
 }
 
-export async function heartbeat(duelId: string): Promise<void> {
-  await heartbeatFn({ data: { duelId } });
+export async function heartbeat(roomId: string): Promise<void> {
+  await heartbeatFn({ data: { roomId } });
 }
 
 /** The correct answer for a finished round, fetched only at reveal time. */
@@ -107,15 +124,13 @@ export async function fetchRevealPuzzle(
   duelId: string,
   roundNumber: number,
 ): Promise<PuzzleData | null> {
-  const result = await revealAnswerFn({ data: { duelId, roundNumber } });
+  const result = await revealAnswerFn({ data: { roomId: duelId, roundNumber } });
   return result.ok ? (result.puzzle as PuzzleData) : null;
 }
 
-export async function ensureRematch(
-  duelId: string,
-  displayName: string,
-): Promise<{ roomCode: string }> {
-  const result = await rematchFn({ data: { duelId, displayName } });
+/** Host only: makes the next room and brings everyone along. */
+export async function ensureRematch(roomId: string): Promise<{ roomCode: string }> {
+  const result = await rematchFn({ data: { roomId } });
   if (!result.ok) throw new DuelError(result.message);
   return { roomCode: result.roomCode };
 }

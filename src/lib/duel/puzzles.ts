@@ -7,14 +7,17 @@ export function checkAnswer(puzzle: PuzzleData, answer: string): boolean {
 }
 
 /**
- * Generated ONCE when a duel is created and stored in the database so both
- * players receive identical puzzles in an identical order.
+ * Generated ONCE when a room starts and stored in the database so every player
+ * receives identical puzzles in an identical order.
  *
- * Rounds come from three different categories, one type picked at random from
- * each — so a duel never repeats a category or a type.
+ * One type is picked at random from each category, then the categories are
+ * shuffled — so a room never repeats a category or a type.
  */
-export function buildDuelPuzzles(): { roundOrder: PuzzleType[]; puzzles: PuzzleData[] } {
-  const categories = shuffled(puzzleCategories()).slice(0, TOTAL_ROUNDS);
+export function buildRoomPuzzles(rounds: number = TOTAL_ROUNDS): {
+  roundOrder: PuzzleType[];
+  puzzles: PuzzleData[];
+} {
+  const categories = shuffled(puzzleCategories()).slice(0, rounds);
   const roundOrder = shuffled(categories.map((category) => pick(typesInCategory(category))));
   return {
     roundOrder,

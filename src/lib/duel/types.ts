@@ -231,6 +231,10 @@ export interface DuelRow {
   id: string;
   room_code: string;
   status: "waiting" | "countdown" | "in_progress" | "finished";
+  /** The player who created the room; only they can start it or remove players. */
+  host_user_id: string | null;
+  max_players: number;
+  round_count: number;
   round_order: PuzzleType[];
   /**
    * Only what each player needs to render the round. Answers live in the
@@ -245,6 +249,8 @@ export interface DuelRow {
   created_at: string;
 }
 
+export type PlayerStatus = "active" | "inactive" | "left";
+
 export interface DuelPlayerRow {
   id: string;
   duel_id: string;
@@ -254,6 +260,9 @@ export interface DuelPlayerRow {
   user_id: string;
   ready_round: number;
   last_seen_at: string;
+  /** inactive = missed two rounds in a row; left = tapped Leave. */
+  status: PlayerStatus;
+  joined_at: string;
 }
 
 export interface RoundResultRow {
@@ -275,7 +284,11 @@ export interface RoundResultRow {
 }
 
 export const ROUND_MS = 30_000;
-export const TOTAL_ROUNDS = 3;
+/** Six rounds, one from each puzzle category. */
+export const TOTAL_ROUNDS = 6;
+/** A room holds two to ten players; two plays as the classic duel. */
+export const MIN_PLAYERS = 2;
+export const MAX_PLAYERS = 10;
 export const COUNTDOWN_MS = 3_000;
 /** Round intro: 7s of progress bar, then a 3-2-1 countdown. */
 export const INTRO_MS = 10_000;
@@ -283,6 +296,10 @@ export const INTRO_COUNTDOWN_MS = 3_000;
 /** Answer reveal after each round. */
 export const REVEAL_MS = 5_000;
 export const NEXT_ROUND_AUTO_MS = 8_000;
+/** How long the standings screen stays up in a room of three or more. */
+export const STANDINGS_MS = 10_000;
+/** Missing this many rounds in a row marks a player inactive. */
+export const INACTIVE_AFTER_MISSED = 2;
 export const DISCONNECT_MS = 15_000;
 
 /** Sequence Recall plays back before its 30s clock starts, on a 4x4 grid. */

@@ -6,6 +6,8 @@ import {
   STROOP_ITEMS,
   TOTAL_ROUNDS,
   WORDMATCH_ITEMS,
+  type DuelPlayerRow,
+  type PlayerStatus,
   type RoundResultRow,
 } from "./types";
 
@@ -150,5 +152,111 @@ export function roundBreakdown(results: RoundResultRow[], mySlot: number, oppone
       mine: resultFor(results, mySlot, round)?.score ?? 0,
       theirs: resultFor(results, opponentSlot, round)?.score ?? 0,
     };
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Rooms of three or more                                                     */
+/* -------------------------------------------------------------------------- */
+
+export interface Standing {
+  slot: number;
+  name: string;
+  status: PlayerStatus;
+  /** Running total through the round being shown. */
+  total: number;
+  /** Points from that round, and whether the answer was right. */
+  roundScore: number;
+  roundCorrect: boolean | null;
+  answerMs: number;
+  position: number;
+  /** Where they stood after the previous round, or null for round one. */
+  previousPosition: number | null;
+}
+
+function rank(
+  rows: { slot: number; total: number; answerMs: number }[],
+): { slot: number; position: number }[] {
+  const sorted = [...rows].sort((a, b) =>
+    b.total !== a.total ? b.total - a.total : a.answerMs - b.answerMs,
+  );
+  const out: { slot: number; position: number }[] = [];
+  sorted.forEach((row, index) => {
+    const previous = index > 0 ? sorted[index - 1]! : null;
+    const tied =
+      previous && previous.total === row.total && previous.answerMs === row.answerMs
+        ? out[index - 1]!.position
+        : index + 1;
+    out.push({ slot: row.slot, position: tied });
+  });
+  return out;
+}
+
+function answerMsThrough(
+  results: RoundResultRow[],
+  slot: number,
+  lastRound: number,
+): number {
+  return results
+    .filter((r) => r.player_slot === slot && r.round_number <= lastRound)
+    .reduce(
+      (sum, r) =>
+        sum + (r.reaction_avg_ms !== null ? r.reaction_avg_ms : ROUND_MS - r.ms_remaining),
+      0,
+    );
+}
+
+/**
+ * The ranked table shown after every round and at the end. Ties on total are
+ * broken by the quicker combined answer time; players still level share a
+ * position.
+ */
+export function standings(
+  players: DuelPlayerRow[],
+  results: RoundResultRow[],
+  throughRound: number,
+): Standing[] {
+  const inRoom = players.filter((p) => p.status !== "left");
+  const rows = inRoom.map((p) => ({
+    slot: p.player_slot,
+    total: totalScoreThrough(results, p.player_slot, throughRound),
+    answerMs: answerMsThrough(results, p.player_slot, throughRound),
+  }));
+  const positions = new Map(rank(rows).map((r) => [r.slot, r.position]));
+
+  const previousRows = inRoom.map((p) => ({
+    slot: p.player_slot,
+    total: totalScoreThrough(results, p.player_slot, throughRound - 1),
+    answerMs: answerMsThrough(results, p.player_slot, throughRound - 1),
+  }));
+  const previous = new Map(rank(previousRows).map((r) => [r.slot, r.position]));
+
+  return inRoom
+    .map((p) => {
+      const row = resultFor(results, p.player_slot, throughRound);
+      return {
+        slot: p.player_slot,
+        name: p.display_name,
+        status: p.status,
+        total: totalScoreThrough(results, p.player_slot, throughRound),
+        roundScore: row?.score ?? 0,
+        roundCorrect: row ? row.is_correct : null,
+        answerMs: answerMsThrough(results, p.player_slot, throughRound),
+        position: positions.get(p.player_slot) ?? inRoom.length,
+        previousPosition: throughRound > 1 ? (previous.get(p.player_slot) ?? null) : null,
+      } satisfies Standing;
+    })
+    .sort((a, b) => a.position - b.position || a.slot - b.slot);
+}
+
+/** Every player's per-round scores, for the expandable final table. */
+export function playerBreakdown(
+  results: RoundResultRow[],
+  slot: number,
+  rounds = TOTAL_ROUNDS,
+): { round: number; score: number; correct: boolean | null }[] {
+  return Array.from({ length: rounds }, (_, i) => {
+    const row = resultFor(results, slot, i + 1);
+    return { round: i + 1, score: row?.score ?? 0, correct: row ? row.is_correct : null };
   });
 }

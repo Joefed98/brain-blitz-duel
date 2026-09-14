@@ -14,8 +14,14 @@ export interface DuelState {
   players: DuelPlayerRow[];
   results: RoundResultRow[];
   me: DuelPlayerRow | null;
+  /** Only meaningful in a two-player room. */
   opponent: DuelPlayerRow | null;
   opponentDisconnected: boolean;
+  /** Everyone who has not tapped Leave, in slot order. */
+  roomPlayers: DuelPlayerRow[];
+  isHost: boolean;
+  /** True for a room of three or more: standings and podium replace the VS screens. */
+  isMulti: boolean;
   now: number;
   refresh: () => Promise<void>;
 }
@@ -118,7 +124,12 @@ export function useDuel(roomCode: string): DuelState {
   }, [roomCode, userId]);
 
   const me = userId ? (players.find((p) => p.user_id === userId) ?? null) : null;
-  const opponent = me ? (players.find((p) => p.player_slot !== me.player_slot) ?? null) : null;
+  const roomPlayers = players.filter((p) => p.status !== "left");
+  const opponent = me
+    ? (roomPlayers.find((p) => p.player_slot !== me.player_slot) ?? null)
+    : null;
+  const isMulti = roomPlayers.length > 2;
+  const isHost = !!me && !!duel && duel.host_user_id === me.user_id;
 
   // Heartbeat so the opponent can tell we are still here.
   useEffect(() => {
@@ -149,7 +160,10 @@ export function useDuel(roomCode: string): DuelState {
     results,
     me,
     opponent,
-    opponentDisconnected,
+    opponentDisconnected: opponentDisconnected && !isMulti,
+    roomPlayers,
+    isHost,
+    isMulti,
     now,
     refresh: load,
   };
