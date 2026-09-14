@@ -98,8 +98,7 @@ function PracticeScreen() {
       if (!puzzle || grading.current) return;
       grading.current = true;
       buzz(15);
-      const remaining =
-        clockDeadline === null ? ROUND_MS : Math.max(0, clockDeadline - Date.now());
+      const remaining = clockDeadline === null ? ROUND_MS : Math.max(0, clockDeadline - Date.now());
       const result = await practiceGradeFn({
         data: {
           puzzle,
@@ -222,7 +221,9 @@ function PracticeScreen() {
           <p className="font-mono text-6xl font-bold text-primary animate-pop-in">{graded.score}</p>
           <p className="text-sm text-muted-foreground">
             {graded.isCorrect ? "Correct" : "Not quite"} ·{" "}
-            {graded.reactionAvgMs !== null ? `${graded.reactionAvgMs}ms average` : `${secondsUsed}s`}
+            {graded.reactionAvgMs !== null
+              ? `${graded.reactionAvgMs}ms average`
+              : `${secondsUsed}s`}
           </p>
 
           <div className="flex w-full max-w-xs flex-col gap-2">

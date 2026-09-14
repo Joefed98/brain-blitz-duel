@@ -456,7 +456,6 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
 
 export type { SubmitExtra };
 
-
 /**
  * Checks the answer against the stored puzzle content and scores it on the
  * server. Clients never send `is_correct` or `score`.
@@ -500,7 +499,6 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
 
     const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, storedMs } =
       gradeSubmission(puzzle, data.answer, data.msRemaining, data.extra);
-
 
     const { error } = await client.from("round_results").insert({
       duel_id: room.id,
@@ -606,11 +604,7 @@ export const rematchFn = createServerFn({ method: "POST" })
     const host = players.find((p) => p.user_id === context.userId);
     const rest = players.filter((p) => p.user_id !== context.userId);
 
-    const fresh = await createRoomRow(
-      client,
-      context.userId,
-      host?.display_name ?? "Player",
-    );
+    const fresh = await createRoomRow(client, context.userId, host?.display_name ?? "Player");
     let slot = 2;
     for (const player of rest) {
       if (slot > MAX_PLAYERS) break;
