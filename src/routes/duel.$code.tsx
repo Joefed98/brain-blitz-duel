@@ -43,13 +43,13 @@ import {
   puzzleName,
   puzzlePrepMs,
   puzzleShowsTimer,
+  puzzleTimeLimitMs,
 } from "@/lib/duel/registry";
 import {
   INTRO_MS,
   NEXT_ROUND_AUTO_MS,
   REVEAL_MS,
   STANDINGS_MS,
-  ROUND_MS,
   TOTAL_ROUNDS,
   type PuzzleData,
 } from "@/lib/duel/types";
