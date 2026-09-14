@@ -475,12 +475,26 @@ export const COUNTUP_MAX_COUNT = 12;
 /*  Mirror Match                                                               */
 /* -------------------------------------------------------------------------- */
 
+/** Which dashed line the target is flipped across. */
+export type MirrorAxis = "vertical" | "horizontal" | "diagonal";
+
+/** How a wrong candidate differs from the true reflection. */
+export type MirrorCandidateKind = "correct" | "otherAxis" | "rotation" | "swap";
+
+/** A coloured shape: filled cells of a 5x5 grid, with one colour per cell. */
+export interface MirrorShape {
+  cells: number[];
+  colours: StroopColour[];
+}
+
 export interface MirrorPuzzleData {
   type: "mirmatch";
-  /** Filled cell indices (0-24) of a 5x5 grid. */
-  target: number[];
+  axis: MirrorAxis;
+  target: MirrorShape;
   /** Four candidates in their stored, shuffled order. */
-  candidates: number[][];
+  candidates: MirrorShape[];
   /** Server-side only: absent until the reveal. */
   correctIndex?: number;
+  /** Server-side only: what each candidate is, in stored order. */
+  kinds?: MirrorCandidateKind[];
 }
