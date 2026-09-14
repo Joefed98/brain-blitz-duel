@@ -13,6 +13,8 @@ export interface SubmitMeta {
   correctCount?: number;
   /** Number Hunt: how many wrong taps the player made. */
   errors?: number;
+  /** Target Number: the combining steps taken, replayed and checked server-side. */
+  steps?: { a: number; b: number; operator: string }[];
 }
 
 export interface PuzzleStageProps {
@@ -41,16 +43,18 @@ export interface PuzzleDefinition {
   key: PuzzleType;
   name: string;
   category: PuzzleCategory;
+  /** How long the player has on the clock. 30s for almost every type. */
+  timeLimitMs: number;
   /** Generated once, when the duel is created, and stored in the database. */
   generate: () => PuzzleData;
   check: (answer: string, puzzle: PuzzleData) => boolean;
-  /** Milliseconds of preparation before the 30s clock starts. */
+  /** Milliseconds of preparation before the clock starts. */
   prepMs?: (puzzle: PuzzleData) => number;
-  /** Total length of the puzzle phase. Defaults to prep + 30s. */
+  /** Total length of the puzzle phase. Defaults to prep + the type's time limit. */
   durationMs?: (puzzle: PuzzleData) => number;
   /** Heading shown above the answer reveal. Defaults to "The answer was". */
   revealHeading?: string;
-  /** False for types that are not on a 30-second clock. */
+  /** False for types that are not on a countdown clock. */
   showTimer?: boolean;
   /** Fixed intro example — identical every single time. */
   IntroExample: ComponentType;
