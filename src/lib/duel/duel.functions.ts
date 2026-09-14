@@ -13,7 +13,6 @@ import {
   MIN_PLAYERS,
   NEXT_ROUND_AUTO_MS,
   REVEAL_MS,
-  ROUND_MS,
   STANDINGS_MS,
   TOTAL_ROUNDS,
   type DuelPhase,
