@@ -12,8 +12,9 @@ export const ANAGRAM_WORDS = [...SEVEN_LETTER_WORDS, ...EIGHT_LETTER_WORDS];
  * A fair scramble never starts with the word's first letter and never leaves
  * two letters next to each other in their original order.
  */
-function isFairOrder(order: number[]): boolean {
-  if (order[0] === 0) return false;
+function isFairOrder(order: number[], word: string): boolean {
+  // Never opens with the word's first letter.
+  if (word[order[0]!] === word[0]) return false;
   for (let i = 0; i < order.length - 1; i++) {
     if (order[i + 1] === order[i]! + 1) return false;
   }
@@ -29,7 +30,7 @@ export function scramble(word: string): string {
       const j = Math.floor(Math.random() * (i + 1));
       [order[i], order[j]] = [order[j]!, order[i]!];
     }
-    if (!isFairOrder(order)) continue;
+    if (!isFairOrder(order, upper)) continue;
     return order.map((i) => upper[i]!).join("");
   }
   // Deterministic fallback: interleave from the back, which satisfies both rules.
