@@ -10,17 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as LayoutcheckRouteImport } from './routes/layoutcheck'
 import { Route as DuelCodeRouteImport } from './routes/duel.$code'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LayoutcheckRoute = LayoutcheckRouteImport.update({
-  id: '/layoutcheck',
-  path: '/layoutcheck',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DuelCodeRoute = DuelCodeRouteImport.update({
@@ -31,31 +25,27 @@ const DuelCodeRoute = DuelCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/layoutcheck': typeof LayoutcheckRoute
   '/duel/$code': typeof DuelCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/layoutcheck': typeof LayoutcheckRoute
   '/duel/$code': typeof DuelCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/layoutcheck': typeof LayoutcheckRoute
   '/duel/$code': typeof DuelCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/layoutcheck' | '/duel/$code'
+  fullPaths: '/' | '/duel/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/layoutcheck' | '/duel/$code'
-  id: '__root__' | '/' | '/layoutcheck' | '/duel/$code'
+  to: '/' | '/duel/$code'
+  id: '__root__' | '/' | '/duel/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  LayoutcheckRoute: typeof LayoutcheckRoute
   DuelCodeRoute: typeof DuelCodeRoute
 }
 
@@ -66,13 +56,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/layoutcheck': {
-      id: '/layoutcheck'
-      path: '/layoutcheck'
-      fullPath: '/layoutcheck'
-      preLoaderRoute: typeof LayoutcheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/duel/$code': {
@@ -87,7 +70,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  LayoutcheckRoute: LayoutcheckRoute,
   DuelCodeRoute: DuelCodeRoute,
 }
 export const routeTree = rootRouteImport
