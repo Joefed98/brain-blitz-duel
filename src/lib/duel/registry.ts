@@ -1,21 +1,27 @@
 import { anagramPuzzle } from "@/puzzles/anagram";
 import { arithmeticPuzzle } from "@/puzzles/arithmetic";
 import { chainCalculationPuzzle } from "@/puzzles/chainCalculation";
+import { countUpPuzzle } from "@/puzzles/countUp";
 import { equationPuzzle } from "@/puzzles/equation";
 import { goNoGoPuzzle } from "@/puzzles/goNoGo";
+import { mirrorMatchPuzzle } from "@/puzzles/mirrorMatch";
 import { missingLettersPuzzle } from "@/puzzles/missingLetters";
+import { numberSpanPuzzle } from "@/puzzles/numberSpan";
 import { numberHuntPuzzle } from "@/puzzles/numberHunt";
 import { numberSequencePuzzle } from "@/puzzles/numberSequence";
 import { oddWordPuzzle } from "@/puzzles/oddWordOut";
 import { oddShapeOutPuzzle } from "@/puzzles/oddShapeOut";
 import { patternCompletionPuzzle } from "@/puzzles/patternCompletion";
+import { percentSprintPuzzle } from "@/puzzles/percentSprint";
 import { reactionPuzzle } from "@/puzzles/reaction";
 import { reverseRecallPuzzle } from "@/puzzles/reverseRecall";
 import { rotationMatchPuzzle } from "@/puzzles/rotationMatch";
 import { sequencePuzzle } from "@/puzzles/sequence";
 import { spatialMemoryPuzzle } from "@/puzzles/spatialMemory";
+import { stopWatchPuzzle } from "@/puzzles/stopWatch";
 import { stroopPuzzle } from "@/puzzles/stroop";
 import { symbolScanPuzzle } from "@/puzzles/symbolScan";
+import { wordMatchPuzzle } from "@/puzzles/wordMatch";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import { ROUND_MS, type PuzzleCategory, type PuzzleData, type PuzzleType } from "./types";
@@ -40,6 +46,12 @@ export const PUZZLE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   oddshape: oddShapeOutPuzzle,
   patcomp: patternCompletionPuzzle,
   rotmatch: rotationMatchPuzzle,
+  wordmatch: wordMatchPuzzle,
+  pctsprint: percentSprintPuzzle,
+  numspan: numberSpanPuzzle,
+  stopwatch: stopWatchPuzzle,
+  countup: countUpPuzzle,
+  mirmatch: mirrorMatchPuzzle,
 };
 
 export const PUZZLE_TYPES = Object.keys(PUZZLE_REGISTRY) as PuzzleType[];

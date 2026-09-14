@@ -10,7 +10,9 @@ import {
   scoreNumberHunt,
   scoreReaction,
   scoreRound,
+  scoreStopWatch,
   scoreStroop,
+  scoreWordMatch,
 } from "./scoring";
 import {
   GONOGO_ITEMS,
@@ -20,8 +22,10 @@ import {
   REACTION_PENALTY_MS,
   REVEAL_MS,
   ROUND_MS,
+  STOPWATCH_MISS_MS,
   STROOP_ITEMS,
   TOTAL_ROUNDS,
+  WORDMATCH_ITEMS,
   type DuelPhase,
   type DuelPlayerRow,
   type DuelRow,
@@ -395,6 +399,28 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
         correctCount = clamp(extra.correctCount ?? 0, 0, STROOP_ITEMS);
         isCorrect = correctCount >= STROOP_ITEMS;
         score = scoreStroop(correctCount, ms);
+        break;
+      }
+      case "wordmatch": {
+        // Checked here against the stored answers — the client never sees them.
+        const picks = answer.split(",").map((v) => Number.parseInt(v, 10));
+        correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
+        isCorrect = correctCount >= WORDMATCH_ITEMS;
+        score = scoreWordMatch(correctCount, ms);
+        break;
+      }
+      case "stopwatch": {
+        const distances = answer
+          .split(",")
+          .map((v) => Number.parseInt(v, 10))
+          .filter((v) => Number.isFinite(v))
+          .map((v) => clamp(v, 0, STOPWATCH_MISS_MS));
+        reactionAvgMs = distances.length
+          ? Math.round(distances.reduce((a, b) => a + b, 0) / distances.length)
+          : STOPWATCH_MISS_MS;
+        isCorrect = true;
+        score = scoreStopWatch(reactionAvgMs);
+        storedMs = 0;
         break;
       }
       case "numhunt": {

@@ -8,12 +8,12 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 type Cells = number[];
 type Coord = [number, number];
 
-function toCoords(cells: Cells): Coord[] {
+export function toCoords(cells: Cells): Coord[] {
   return cells.map((i) => [Math.floor(i / N), i % N]);
 }
 
 /** Shift a shape's bounding box to the top-left so shapes compare by form only. */
-function normalise(coords: Coord[]): Cells {
+export function normalise(coords: Coord[]): Cells {
   const minR = Math.min(...coords.map((c) => c[0]));
   const minC = Math.min(...coords.map((c) => c[1]));
   return coords
@@ -25,27 +25,27 @@ function rotate90(cells: Cells): Cells {
   return normalise(toCoords(cells).map(([r, c]) => [c, N - 1 - r] as Coord));
 }
 
-function mirror(cells: Cells): Cells {
+export function mirror(cells: Cells): Cells {
   return normalise(toCoords(cells).map(([r, c]) => [r, N - 1 - c] as Coord));
 }
 
-function rotations(cells: Cells): Cells[] {
+export function rotations(cells: Cells): Cells[] {
   const out: Cells[] = [normalise(toCoords(cells))];
   for (let i = 0; i < 3; i++) out.push(rotate90(out[out.length - 1]!));
   return out;
 }
 
-const key = (cells: Cells) => cells.join(",");
+export const shapeKey = (cells: Cells) => cells.join(",");
 
 /** Chiral: no rotation of the shape equals its own mirror image. */
 export function isChiral(cells: Cells): boolean {
-  const mirrored = key(mirror(cells));
-  return !rotations(cells).some((r) => key(r) === mirrored);
+  const mirrored = shapeKey(mirror(cells));
+  return !rotations(cells).some((r) => shapeKey(r) === mirrored);
 }
 
 /** Four genuinely different rotations, so distractors are never duplicates. */
 export function hasFourRotations(cells: Cells): boolean {
-  return new Set(rotations(cells).map(key)).size === 4;
+  return new Set(rotations(cells).map(shapeKey)).size === 4;
 }
 
 /**
@@ -79,7 +79,7 @@ export const SHAPE_BANK: Cells[] = (() => {
   for (const shape of SOURCE) {
     for (const variant of [shape, mirror(shape)]) {
       if (!isChiral(variant) || !hasFourRotations(variant)) continue;
-      const k = key(normalise(toCoords(variant)));
+      const k = shapeKey(normalise(toCoords(variant)));
       if (seen.has(k)) continue;
       seen.add(k);
       bank.push(normalise(toCoords(variant)));
@@ -88,7 +88,7 @@ export const SHAPE_BANK: Cells[] = (() => {
   return bank;
 })();
 
-function ShapeSvg({
+export function ShapeSvg({
   cells,
   size = 84,
   tone = "grey",
@@ -259,17 +259,17 @@ export function buildRotationMatch(): RotationPuzzleData {
   const correct = rots[rotIndex]!;
 
   const mirrorRots = rotations(mirror(shape));
-  const seen = new Set([key(correct)]);
+  const seen = new Set([shapeKey(correct)]);
   const distractors: Cells[] = [];
   for (const cells of shuffled(mirrorRots)) {
-    if (seen.has(key(cells))) continue;
-    seen.add(key(cells));
+    if (seen.has(shapeKey(cells))) continue;
+    seen.add(shapeKey(cells));
     distractors.push(cells);
     if (distractors.length === 3) break;
   }
 
   const options = shuffled([correct, ...distractors]);
-  const correctIndex = options.findIndex((o) => key(o) === key(correct));
+  const correctIndex = options.findIndex((o) => shapeKey(o) === shapeKey(correct));
   return {
     type: "rotmatch",
     target,
