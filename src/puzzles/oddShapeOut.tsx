@@ -1,9 +1,11 @@
 import { pick, randInt } from "@/lib/duel/random";
-import type {
-  OddShapeBase,
-  OddShapeDifference,
-  OddShapePuzzleData,
-  StroopColour,
+import {
+  ODDSHAPE_CELLS,
+  ODDSHAPE_COLS,
+  type OddShapeBase,
+  type OddShapeDifference,
+  type OddShapePuzzleData,
+  type StroopColour,
 } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -13,6 +15,7 @@ const COLOURS: Record<StroopColour, string> = {
   BLUE: "#4D8CFF",
   GREEN: "#3DDC84",
   PURPLE: "#B26BFF",
+  PINK: "#FF6BD6",
 };
 
 const BASES: OddShapeBase[] = ["circle", "square", "triangle", "star", "hexagon", "arrow"];
@@ -44,8 +47,8 @@ function Shape({
 }) {
   const fill = COLOURS[colour];
   const transform = [
-    difference === "rotated" ? "rotate(20deg)" : "",
-    difference === "smaller" ? "scale(.82)" : "",
+    difference === "rotated" ? "rotate(12deg)" : "",
+    difference === "smaller" ? "scale(.90)" : "",
     difference === "flipped" ? "scaleX(-1)" : "",
   ]
     .filter(Boolean)
@@ -69,7 +72,7 @@ function Shape({
       viewBox="0 0 40 40"
       aria-hidden="true"
       className="shrink-0"
-      style={{ transform, filter: difference === "shade" ? "brightness(0.68)" : undefined }}
+      style={{ transform, filter: difference === "shade" ? "brightness(0.92)" : undefined }}
     >
       {shape}
       {difference === "notched" && (
@@ -100,11 +103,11 @@ function ShapeGrid({
   compact?: boolean;
   onSelect?: (index: number) => void;
 }) {
-  const count = compact ? 9 : 25;
-  const cols = compact ? 3 : 5;
+  const count = compact ? 9 : ODDSHAPE_CELLS;
+  const cols = compact ? 3 : ODDSHAPE_COLS;
   return (
     <div
-      className={`grid ${compact ? "gap-1.5" : "w-full max-w-[330px] gap-2"}`}
+      className={`grid ${compact ? "gap-1.5" : "w-full max-w-[336px] gap-1.5"}`}
       style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
     >
       {Array.from({ length: count }, (_, index) => {
@@ -122,7 +125,7 @@ function ShapeGrid({
           <Shape
             base={base}
             colour={colour}
-            size={compact ? 27 : 40}
+            size={compact ? 27 : 32}
             {...(visibleDifference ? { difference: visibleDifference } : {})}
           />
         );
@@ -208,13 +211,15 @@ export const oddShapeOutPuzzle: PuzzleDefinition = {
   generate: () => {
     const base = pick(BASES);
     const difference = pick(possibleDifferences(base));
-    const oddIndex = randInt(0, 24);
+    const oddIndex = randInt(0, ODDSHAPE_CELLS - 1);
     return {
       type: "oddshape",
       base,
       colour: pick(Object.keys(COLOURS) as StroopColour[]),
       difference,
-      variants: Array.from({ length: 25 }, (_, index) => (index === oddIndex ? difference : null)),
+      variants: Array.from({ length: ODDSHAPE_CELLS }, (_, index) =>
+        index === oddIndex ? difference : null,
+      ),
       oddIndex,
       differenceLabel: DIFFERENCE_LABELS[difference],
     } satisfies OddShapePuzzleData;
