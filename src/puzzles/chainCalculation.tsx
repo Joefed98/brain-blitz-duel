@@ -8,14 +8,14 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 function nextStep(current: number): ChainOperation {
   const options: ChainOperation[] = [];
-  if (current < 400)
-    options.push({ operator: "+", operand: randInt(2, Math.min(30, 400 - current)) });
-  if (current > 2) options.push({ operator: "-", operand: randInt(2, Math.min(30, current - 1)) });
-  for (const operand of [2, 3, 4]) {
-    if (current * operand <= 400) options.push({ operator: "×", operand });
-  }
+  if (current < 950)
+    options.push({ operator: "+", operand: randInt(3, Math.min(60, 999 - current)) });
+  if (current > 3) options.push({ operator: "-", operand: randInt(3, Math.min(60, current - 1)) });
   for (const operand of [2, 3, 4, 5]) {
-    if (current % operand === 0) options.push({ operator: "÷", operand });
+    if (current * operand <= 999) options.push({ operator: "×", operand });
+  }
+  for (const operand of [2, 3, 4, 5, 6]) {
+    if (current % operand === 0 && current / operand >= 1) options.push({ operator: "÷", operand });
   }
   return pick(options);
 }
@@ -32,17 +32,27 @@ function apply(value: number, step: ChainOperation): number {
 
 export function generateChainCalculation(): ChainCalculationPuzzleData {
   for (;;) {
-    const start = randInt(5, 50);
+    const start = randInt(10, 80);
+    const length = Math.random() < 0.5 ? 5 : 6;
     const operations: ChainOperation[] = [];
     const intermediates: number[] = [];
     let current = start;
-    for (let index = 0; index < 4; index++) {
+    let ok = true;
+    for (let index = 0; index < length; index++) {
       const step = nextStep(current);
       current = apply(current, step);
+      if (!Number.isInteger(current) || current < 1 || current > 999) {
+        ok = false;
+        break;
+      }
       operations.push(step);
       intermediates.push(current);
     }
-    if (operations.some((step) => step.operator === "×" || step.operator === "÷")) {
+    if (!ok) continue;
+    const heavy = operations.filter(
+      (step) => step.operator === "×" || step.operator === "÷",
+    ).length;
+    if (heavy >= 2) {
       return { type: "chaincalc", start, operations, intermediates, answer: current };
     }
   }
