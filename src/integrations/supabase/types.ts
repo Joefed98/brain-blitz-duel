@@ -20,9 +20,11 @@ export type Database = {
           display_name: string
           duel_id: string
           id: string
+          joined_at: string
           last_seen_at: string
           player_slot: number
           ready_round: number
+          status: string
           user_id: string
         }
         Insert: {
@@ -30,9 +32,11 @@ export type Database = {
           display_name: string
           duel_id: string
           id?: string
+          joined_at?: string
           last_seen_at?: string
           player_slot: number
           ready_round?: number
+          status?: string
           user_id: string
         }
         Update: {
@@ -40,9 +44,11 @@ export type Database = {
           display_name?: string
           duel_id?: string
           id?: string
+          joined_at?: string
           last_seen_at?: string
           player_slot?: number
           ready_round?: number
+          status?: string
           user_id?: string
         }
         Relationships: [
@@ -85,12 +91,15 @@ export type Database = {
         Row: {
           created_at: string
           current_round: number
+          host_user_id: string | null
           id: string
+          max_players: number
           next_duel_id: string | null
           phase: string
           phase_started_at: string | null
           puzzles_public: Json
           room_code: string
+          round_count: number
           round_order: Json
           round_started_at: string | null
           status: string
@@ -98,12 +107,15 @@ export type Database = {
         Insert: {
           created_at?: string
           current_round?: number
+          host_user_id?: string | null
           id?: string
+          max_players?: number
           next_duel_id?: string | null
           phase?: string
           phase_started_at?: string | null
           puzzles_public?: Json
           room_code: string
+          round_count?: number
           round_order: Json
           round_started_at?: string | null
           status?: string
@@ -111,12 +123,15 @@ export type Database = {
         Update: {
           created_at?: string
           current_round?: number
+          host_user_id?: string | null
           id?: string
+          max_players?: number
           next_duel_id?: string | null
           phase?: string
           phase_started_at?: string | null
           puzzles_public?: Json
           room_code?: string
+          round_count?: number
           round_order?: Json
           round_started_at?: string | null
           status?: string

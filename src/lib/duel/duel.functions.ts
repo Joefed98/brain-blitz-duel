@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { puzzleDurationMs } from "./registry";
-import { buildDuelPuzzles, checkAnswer, generateRoomCode } from "./puzzles";
+import { buildRoomPuzzles, checkAnswer, generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import {
   scoreGoNoGo,
@@ -16,12 +16,16 @@ import {
 } from "./scoring";
 import {
   GONOGO_ITEMS,
+  INACTIVE_AFTER_MISSED,
   INTRO_MS,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
   NEXT_ROUND_AUTO_MS,
   NUMHUNT_COUNT,
   REACTION_PENALTY_MS,
   REVEAL_MS,
   ROUND_MS,
+  STANDINGS_MS,
   STOPWATCH_MISS_MS,
   STROOP_ITEMS,
   TOTAL_ROUNDS,
@@ -34,6 +38,9 @@ import {
 
 /* -------------------------------------------------------------------------- */
 /*  Server-only helpers                                                        */
+/*                                                                             */
+/*  The tables are still named duels / duel_players / duel_secrets — a room is  */
+/*  simply a duel with two to ten players.                                      */
 /* -------------------------------------------------------------------------- */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -59,86 +66,85 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-async function getDuel(client: any, duelId: string): Promise<DuelRow> {
-  const { data, error } = await client.from("duels").select("*").eq("id", duelId).maybeSingle();
+async function getRoom(client: any, roomId: string): Promise<DuelRow> {
+  const { data, error } = await client.from("duels").select("*").eq("id", roomId).maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("That duel no longer exists.");
+  if (!data) throw new Error("That room no longer exists.");
   return data as DuelRow;
 }
 
-async function getPlayers(client: any, duelId: string): Promise<DuelPlayerRow[]> {
+async function getPlayers(client: any, roomId: string): Promise<DuelPlayerRow[]> {
   const { data, error } = await client
     .from("duel_players")
     .select("*")
-    .eq("duel_id", duelId)
+    .eq("duel_id", roomId)
     .order("player_slot");
   if (error) throw new Error(error.message);
   return (data ?? []) as DuelPlayerRow[];
 }
 
-/** Throws unless the caller has a player row in this duel. */
+/** Players still in the room (anyone who has not tapped Leave). */
+function present(players: DuelPlayerRow[]): DuelPlayerRow[] {
+  return players.filter((p) => p.status !== "left");
+}
+
+/** Players whose answers the room waits for. */
+function activePlayers(players: DuelPlayerRow[]): DuelPlayerRow[] {
+  return players.filter((p) => p.status === "active");
+}
+
+/** Throws unless the caller has a player row in this room. */
 async function requireParticipant(
   client: any,
-  duelId: string,
+  roomId: string,
   userId: string,
 ): Promise<DuelPlayerRow> {
   const { data } = await client
     .from("duel_players")
     .select("*")
-    .eq("duel_id", duelId)
+    .eq("duel_id", roomId)
     .eq("user_id", userId)
     .maybeSingle();
-  if (!data) throw new Error("You are not part of this duel.");
+  if (!data) throw new Error("You are not part of this room.");
   return data as DuelPlayerRow;
 }
 
-async function privatePuzzles(client: any, duelId: string): Promise<Record<string, unknown>[]> {
+async function privatePuzzles(client: any, roomId: string): Promise<Record<string, unknown>[]> {
   const { data } = await client
     .from("duel_secrets")
     .select("puzzles_private")
-    .eq("duel_id", duelId)
+    .eq("duel_id", roomId)
     .maybeSingle();
   return (data?.puzzles_private ?? []) as Record<string, unknown>[];
 }
 
 async function insertPlayer(
   client: any,
-  duelId: string,
+  roomId: string,
   slot: number,
   userId: string,
   displayName: string,
 ): Promise<void> {
   const { error } = await client.from("duel_players").insert({
-    duel_id: duelId,
+    duel_id: roomId,
     player_slot: slot,
     user_id: userId,
     display_name: cleanName(displayName),
+    status: "active",
   });
   if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
 }
 
-/** Opens round 1 as soon as the duel has both players. Idempotent. */
-async function startIfReady(client: any, duelId: string): Promise<void> {
-  const players = await getPlayers(client, duelId);
-  if (players.length < 2) return;
-  const startedAt = nowIso();
-  await client
-    .from("duels")
-    .update({
-      status: "in_progress",
-      current_round: 1,
-      phase: "intro",
-      phase_started_at: startedAt,
-      round_started_at: startedAt,
-    })
-    .eq("id", duelId)
-    .eq("status", "waiting");
+function firstFreeSlot(players: DuelPlayerRow[], maxPlayers: number): number | null {
+  const taken = new Set(present(players).map((p) => p.player_slot));
+  for (let slot = 1; slot <= maxPlayers; slot++) if (!taken.has(slot)) return slot;
+  return null;
 }
 
-/** Guarded so two phones calling at the same moment can never skip a screen. */
+/** Guarded so several phones calling at the same moment can never skip a screen. */
 async function setPhase(
   client: any,
-  duelId: string,
+  roomId: string,
   round: number,
   from: DuelPhase,
   to: DuelPhase,
@@ -146,22 +152,23 @@ async function setPhase(
   await client
     .from("duels")
     .update({ phase: to, phase_started_at: nowIso() })
-    .eq("id", duelId)
+    .eq("id", roomId)
     .eq("current_round", round)
     .eq("phase", from);
 }
 
-async function createDuelRow(client: any, userId: string, displayName: string): Promise<DuelRow> {
+async function createRoomRow(client: any, userId: string, displayName: string): Promise<DuelRow> {
   for (let attempt = 0; attempt < 8; attempt++) {
-    const { roundOrder, puzzles } = buildDuelPuzzles();
-    const split = puzzles.map(splitPuzzle);
     const { data, error } = await client
       .from("duels")
       .insert({
         room_code: generateRoomCode(),
         status: "waiting",
-        round_order: roundOrder,
-        puzzles_public: JSON.parse(JSON.stringify(split.map((s) => s.pub))),
+        host_user_id: userId,
+        max_players: MAX_PLAYERS,
+        round_count: TOTAL_ROUNDS,
+        round_order: [],
+        puzzles_public: [],
         current_round: 0,
       })
       .select("*")
@@ -172,39 +179,72 @@ async function createDuelRow(client: any, userId: string, displayName: string): 
       throw new Error(error.message);
     }
 
-    const duel = data as DuelRow;
-    const { error: secretError } = await client.from("duel_secrets").insert({
-      duel_id: duel.id,
-      puzzles_private: JSON.parse(JSON.stringify(split.map((s) => s.priv))),
-    });
-    if (secretError) throw new Error(secretError.message);
-
-    await insertPlayer(client, duel.id, 1, userId, displayName);
-    return duel;
+    const room = data as DuelRow;
+    await insertPlayer(client, room.id, 1, userId, displayName);
+    return room;
   }
-  throw new Error("Could not create a duel right now. Please try again.");
+  throw new Error("Could not create a room right now. Please try again.");
 }
 
-function roundHasEnded(duel: DuelRow, round: number): boolean {
-  if (duel.status === "finished") return true;
-  if (duel.current_round > round) return true;
-  return duel.current_round === round && (duel.phase === "reveal" || duel.phase === "result");
+function roundHasEnded(room: DuelRow, round: number): boolean {
+  if (room.status === "finished") return true;
+  if (room.current_round > round) return true;
+  return room.current_round === round && (room.phase === "reveal" || room.phase === "result");
+}
+
+/** How many answers are in for a round. */
+async function submissionCount(client: any, roomId: string, round: number): Promise<number> {
+  const { count } = await client
+    .from("round_results")
+    .select("id", { count: "exact", head: true })
+    .eq("duel_id", roomId)
+    .eq("round_number", round);
+  return count ?? 0;
+}
+
+/** Slots that answered a round. */
+async function answeredSlots(client: any, roomId: string, round: number): Promise<Set<number>> {
+  const { data } = await client
+    .from("round_results")
+    .select("player_slot")
+    .eq("duel_id", roomId)
+    .eq("round_number", round);
+  return new Set(((data ?? []) as { player_slot: number }[]).map((r) => r.player_slot));
+}
+
+/**
+ * A player who has answered nothing for two rounds in a row stops holding the
+ * room up. Any later answer puts them straight back to active.
+ */
+async function markInactivity(client: any, roomId: string, round: number): Promise<void> {
+  if (round < INACTIVE_AFTER_MISSED) return;
+  const players = activePlayers(await getPlayers(client, roomId));
+  if (players.length === 0) return;
+  const recent = await Promise.all(
+    Array.from({ length: INACTIVE_AFTER_MISSED }, (_, i) =>
+      answeredSlots(client, roomId, round - i),
+    ),
+  );
+  const missing = players.filter((p) => recent.every((slots) => !slots.has(p.player_slot)));
+  for (const player of missing) {
+    await client.from("duel_players").update({ status: "inactive" }).eq("id", player.id);
+  }
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Server functions — the only way any of the three tables is written         */
+/*  Server functions — the only way any of the tables is written               */
 /* -------------------------------------------------------------------------- */
 
-export const createDuelFn = createServerFn({ method: "POST" })
+export const createRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { displayName: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    const duel = await createDuelRow(client, context.userId, data.displayName);
-    return { duelId: duel.id, roomCode: duel.room_code };
+    const room = await createRoomRow(client, context.userId, data.displayName);
+    return { roomId: room.id, roomCode: room.room_code };
   });
 
-export const joinDuelFn = createServerFn({ method: "POST" })
+export const joinRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomCode: string; displayName: string }) => input)
   .handler(async ({ data, context }) => {
@@ -215,85 +255,184 @@ export const joinDuelFn = createServerFn({ method: "POST" })
       .select("*")
       .eq("room_code", code)
       .maybeSingle();
-    if (!found) return { ok: false as const, message: "No duel found with that code." };
+    if (!found) return { ok: false as const, message: "No room found with that code." };
 
-    const duel = found as DuelRow;
-    const players = await getPlayers(client, duel.id);
+    const room = found as DuelRow;
+    const players = await getPlayers(client, room.id);
     const mine = players.find((p) => p.user_id === context.userId);
-    if (!mine) {
-      if (players.length >= 2) {
-        return { ok: false as const, message: "That duel already has two players." };
+
+    if (mine) {
+      if (mine.status === "left") {
+        await client.from("duel_players").update({ status: "active" }).eq("id", mine.id);
       }
-      if (duel.status !== "waiting") {
-        return { ok: false as const, message: "That duel has already started." };
-      }
-      const slot = players.some((p) => p.player_slot === 1) ? 2 : 1;
-      await insertPlayer(client, duel.id, slot, context.userId, data.displayName);
+      return { ok: true as const, roomId: room.id, roomCode: room.room_code };
     }
 
-    await startIfReady(client, duel.id);
-    return { ok: true as const, duelId: duel.id, roomCode: duel.room_code };
+    if (room.status !== "waiting") {
+      return { ok: false as const, message: "Game already started." };
+    }
+    const slot = firstFreeSlot(players, room.max_players ?? MAX_PLAYERS);
+    if (slot === null) {
+      return { ok: false as const, message: `That room is full (${room.max_players} players).` };
+    }
+    await insertPlayer(client, room.id, slot, context.userId, data.displayName);
+    return { ok: true as const, roomId: room.id, roomCode: room.room_code };
+  });
+
+/** Host only: generates the six rounds and opens the Round 1 intro. */
+export const startRoomFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
+    if (room.host_user_id !== context.userId) {
+      return { ok: false as const, message: "Only the host can start the game." };
+    }
+    if (room.status !== "waiting") return { ok: true as const };
+    const players = present(await getPlayers(client, room.id));
+    if (players.length < MIN_PLAYERS) {
+      return { ok: false as const, message: "You need at least two players." };
+    }
+
+    const { roundOrder, puzzles } = buildRoomPuzzles(room.round_count ?? TOTAL_ROUNDS);
+    const split = puzzles.map(splitPuzzle);
+    const startedAt = nowIso();
+
+    const { data: claimed } = await client
+      .from("duels")
+      .update({
+        round_order: roundOrder,
+        puzzles_public: JSON.parse(JSON.stringify(split.map((s) => s.pub))),
+        status: "in_progress",
+        current_round: 1,
+        phase: "intro",
+        phase_started_at: startedAt,
+        round_started_at: startedAt,
+      })
+      .eq("id", room.id)
+      .eq("status", "waiting")
+      .select("id")
+      .maybeSingle();
+
+    if (claimed) {
+      const { error } = await client.from("duel_secrets").upsert({
+        duel_id: room.id,
+        puzzles_private: JSON.parse(JSON.stringify(split.map((s) => s.priv))),
+      });
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true as const };
+  });
+
+/** Host only, in the lobby: takes a player out of the room. */
+export const removePlayerFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string; slot: number }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    const room = await getRoom(client, data.roomId);
+    if (room.host_user_id !== context.userId) {
+      return { ok: false as const, message: "Only the host can remove players." };
+    }
+    if (room.status !== "waiting") {
+      return { ok: false as const, message: "The game has already started." };
+    }
+    await client
+      .from("duel_players")
+      .delete()
+      .eq("duel_id", room.id)
+      .eq("player_slot", data.slot)
+      .neq("user_id", context.userId);
+    return { ok: true as const };
+  });
+
+/** Leaving the room. A host who leaves the lobby hands over to the next player. */
+export const leaveRoomFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    const room = await getRoom(client, data.roomId);
+    await client
+      .from("duel_players")
+      .update({ status: "left" })
+      .eq("duel_id", room.id)
+      .eq("user_id", context.userId);
+
+    if (room.host_user_id === context.userId && room.status === "waiting") {
+      const remaining = present(await getPlayers(client, room.id)).sort((a, b) =>
+        a.joined_at < b.joined_at ? -1 : 1,
+      );
+      const next = remaining[0];
+      if (next) {
+        await client.from("duels").update({ host_user_id: next.user_id }).eq("id", room.id);
+      }
+    }
+    return { ok: true as const };
   });
 
 /**
- * The single place the duel's phase, round and status change. Idempotent: it
+ * The single place the room's phase, round and status change. Idempotent: it
  * decides from the stored timestamps what (if anything) is due next, and every
  * write is guarded on the round and phase it is moving away from.
  */
 export const advancePhaseFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { duelId: string }) => input)
+  .inputValidator((input: { roomId: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    await requireParticipant(client, data.duelId, context.userId);
-    const duel = await getDuel(client, data.duelId);
+    await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
 
-    if (duel.status === "waiting") {
-      await startIfReady(client, duel.id);
-      return { ok: true };
-    }
-    if (duel.status !== "in_progress") return { ok: true };
+    if (room.status !== "in_progress") return { ok: true };
 
-    const round = duel.current_round;
+    const round = room.current_round;
     if (round < 1) return { ok: true };
 
-    const stamp = duel.phase_started_at ?? duel.round_started_at;
+    const stamp = room.phase_started_at ?? room.round_started_at;
     const phaseStart = stamp ? Date.parse(stamp) : Date.now();
     const elapsed = Date.now() - phaseStart;
-    const puzzle = duel.puzzles_public[round - 1];
+    const puzzle = room.puzzles_public[round - 1];
+    const players = await getPlayers(client, room.id);
+    const waitingOn = activePlayers(players);
 
-    if (duel.phase === "intro") {
-      if (elapsed >= INTRO_MS) await setPhase(client, duel.id, round, "intro", "puzzle");
+    if (room.phase === "intro") {
+      if (elapsed >= INTRO_MS) await setPhase(client, room.id, round, "intro", "puzzle");
       return { ok: true };
     }
 
-    if (duel.phase === "puzzle") {
-      const { count } = await client
-        .from("round_results")
-        .select("id", { count: "exact", head: true })
-        .eq("duel_id", duel.id)
-        .eq("round_number", round);
-      const bothIn = (count ?? 0) >= 2;
+    if (room.phase === "puzzle") {
+      const answered = await submissionCount(client, room.id, round);
+      const allIn = waitingOn.length > 0 && answered >= waitingOn.length;
       const timeUp = elapsed > puzzleDurationMs(puzzle) + 800;
-      if (bothIn || timeUp) await setPhase(client, duel.id, round, "puzzle", "reveal");
+      if (allIn || timeUp) await setPhase(client, room.id, round, "puzzle", "reveal");
       return { ok: true };
     }
 
-    if (duel.phase === "reveal") {
-      if (elapsed >= REVEAL_MS) await setPhase(client, duel.id, round, "reveal", "result");
+    if (room.phase === "reveal") {
+      if (elapsed >= REVEAL_MS) {
+        await setPhase(client, room.id, round, "reveal", "result");
+        await markInactivity(client, room.id, round);
+      }
       return { ok: true };
     }
 
-    // result
-    const players = await getPlayers(client, duel.id);
-    const bothReady = players.length === 2 && players.every((p) => p.ready_round >= round);
-    if (!bothReady && elapsed < NEXT_ROUND_AUTO_MS) return { ok: true };
+    // standings / round result
+    const manyPlayers = present(players).length > 2;
+    const autoMs = manyPlayers ? STANDINGS_MS : NEXT_ROUND_AUTO_MS;
+    const host = players.find((p) => p.user_id === room.host_user_id);
+    const skipped = manyPlayers
+      ? !!host && host.ready_round >= round
+      : waitingOn.length > 0 && waitingOn.every((p) => p.ready_round >= round);
+    if (!skipped && elapsed < autoMs) return { ok: true };
 
-    if (round >= TOTAL_ROUNDS) {
+    if (round >= (room.round_count ?? TOTAL_ROUNDS)) {
       await client
         .from("duels")
         .update({ status: "finished" })
-        .eq("id", duel.id)
+        .eq("id", room.id)
         .eq("current_round", round)
         .eq("phase", "result");
       return { ok: true };
@@ -308,7 +447,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
         phase_started_at: startedAt,
         round_started_at: startedAt,
       })
-      .eq("id", duel.id)
+      .eq("id", room.id)
       .eq("current_round", round)
       .eq("phase", "result");
     return { ok: true };
@@ -328,7 +467,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     (input: {
-      duelId: string;
+      roomId: string;
       roundNumber: number;
       answer: string;
       msRemaining: number;
@@ -337,28 +476,28 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const client = await db();
-    const player = await requireParticipant(client, data.duelId, context.userId);
-    const duel = await getDuel(client, data.duelId);
+    const player = await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
 
-    if (duel.status !== "in_progress" || duel.current_round !== data.roundNumber) {
+    if (room.status !== "in_progress" || room.current_round !== data.roundNumber) {
       return { ok: false as const, message: "That round is over." };
     }
-    if (duel.phase !== "puzzle" && duel.phase !== "reveal") {
+    if (room.phase !== "puzzle" && room.phase !== "reveal") {
       return { ok: false as const, message: "That round is over." };
     }
 
     const existing = await client
       .from("round_results")
       .select("id")
-      .eq("duel_id", duel.id)
+      .eq("duel_id", room.id)
       .eq("player_slot", player.player_slot)
       .eq("round_number", data.roundNumber)
       .maybeSingle();
     if (existing.data) return { ok: true as const, alreadySubmitted: true };
 
-    const pub = duel.puzzles_public[data.roundNumber - 1];
+    const pub = room.puzzles_public[data.roundNumber - 1];
     if (!pub) return { ok: false as const, message: "That round is over." };
-    const priv = (await privatePuzzles(client, duel.id))[data.roundNumber - 1];
+    const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
     const puzzle: PuzzleData = mergePuzzle(pub, priv);
 
     const extra = data.extra ?? {};
@@ -434,7 +573,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     }
 
     const { error } = await client.from("round_results").insert({
-      duel_id: duel.id,
+      duel_id: room.id,
       player_slot: player.player_slot,
       round_number: data.roundNumber,
       answer: answer || null,
@@ -447,45 +586,49 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     });
     if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
 
+    // Answering again brings a player who had gone quiet back into the room.
+    if (player.status !== "active") {
+      await client.from("duel_players").update({ status: "active" }).eq("id", player.id);
+    }
+
     /**
-     * The round is over the moment the second answer lands — no waiting for the
-     * clock. `setPhase` is guarded on the round and the phase it moves away
-     * from, so this and a timer expiry arriving together cannot double-advance.
+     * The round is over the moment the last active player's answer lands — no
+     * waiting for the clock. `setPhase` is guarded on the round and the phase it
+     * moves away from, so this and a timer expiry arriving together cannot
+     * double-advance.
      */
-    const { count } = await client
-      .from("round_results")
-      .select("id", { count: "exact", head: true })
-      .eq("duel_id", duel.id)
-      .eq("round_number", data.roundNumber);
-    if ((count ?? 0) >= 2) {
-      await setPhase(client, duel.id, data.roundNumber, "puzzle", "reveal");
+    const players = await getPlayers(client, room.id);
+    const waitingOn = activePlayers(players).length || 1;
+    const answered = await submissionCount(client, room.id, data.roundNumber);
+    if (answered >= waitingOn) {
+      await setPhase(client, room.id, data.roundNumber, "puzzle", "reveal");
     }
     return { ok: true as const };
   });
 
 export const markReadyFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { duelId: string; roundNumber: number }) => input)
+  .inputValidator((input: { roomId: string; roundNumber: number }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    await requireParticipant(client, data.duelId, context.userId);
+    await requireParticipant(client, data.roomId, context.userId);
     await client
       .from("duel_players")
       .update({ ready_round: clamp(data.roundNumber, 0, TOTAL_ROUNDS) })
-      .eq("duel_id", data.duelId)
+      .eq("duel_id", data.roomId)
       .eq("user_id", context.userId);
     return { ok: true };
   });
 
 export const heartbeatFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { duelId: string }) => input)
+  .inputValidator((input: { roomId: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
     await client
       .from("duel_players")
       .update({ last_seen_at: nowIso() })
-      .eq("duel_id", data.duelId)
+      .eq("duel_id", data.roomId)
       .eq("user_id", context.userId);
     return { ok: true };
   });
@@ -493,68 +636,75 @@ export const heartbeatFn = createServerFn({ method: "POST" })
 /** The answer for one round — only ever returned once that round has ended. */
 export const revealAnswerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { duelId: string; roundNumber: number }) => input)
+  .inputValidator((input: { roomId: string; roundNumber: number }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    await requireParticipant(client, data.duelId, context.userId);
-    const duel = await getDuel(client, data.duelId);
-    if (!roundHasEnded(duel, data.roundNumber)) {
+    await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
+    if (!roundHasEnded(room, data.roundNumber)) {
       return { ok: false as const, message: "That round has not finished yet." };
     }
-    const pub = duel.puzzles_public[data.roundNumber - 1];
+    const pub = room.puzzles_public[data.roundNumber - 1];
     if (!pub) return { ok: false as const, message: "Unknown round." };
-    const priv = (await privatePuzzles(client, duel.id))[data.roundNumber - 1];
+    const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
     return { ok: true as const, puzzle: mergePuzzle(pub, priv) };
   });
 
-/** "Play again": the first caller creates the rematch, the second joins it. */
+/**
+ * "Play again": the host makes a fresh room and brings everyone still in this
+ * one along. Every other phone follows `next_duel_id` automatically.
+ */
 export const rematchFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { duelId: string; displayName: string }) => input)
+  .inputValidator((input: { roomId: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    await requireParticipant(client, data.duelId, context.userId);
-    const duel = await getDuel(client, data.duelId);
+    await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
 
-    if (duel.next_duel_id) {
-      const next = await getDuel(client, duel.next_duel_id);
-      const players = await getPlayers(client, next.id);
-      if (!players.some((p) => p.user_id === context.userId)) {
-        if (players.length >= 2) {
-          return { ok: false as const, message: "That rematch is already full." };
-        }
-        const slot = players.some((p) => p.player_slot === 1) ? 2 : 1;
-        await insertPlayer(client, next.id, slot, context.userId, data.displayName);
-      }
-      await startIfReady(client, next.id);
-      return { ok: true as const, duelId: next.id, roomCode: next.room_code };
+    if (room.next_duel_id) {
+      const next = await getRoom(client, room.next_duel_id);
+      return { ok: true as const, roomId: next.id, roomCode: next.room_code };
+    }
+    if (room.host_user_id !== context.userId) {
+      return { ok: false as const, message: "Waiting for the host to start a new room." };
     }
 
-    const rematch = await createDuelRow(client, context.userId, data.displayName);
+    const players = present(await getPlayers(client, room.id)).sort(
+      (a, b) => a.player_slot - b.player_slot,
+    );
+    const host = players.find((p) => p.user_id === context.userId);
+    const rest = players.filter((p) => p.user_id !== context.userId);
+
+    const fresh = await createRoomRow(
+      client,
+      context.userId,
+      host?.display_name ?? "Player",
+    );
+    let slot = 2;
+    for (const player of rest) {
+      if (slot > MAX_PLAYERS) break;
+      await insertPlayer(client, fresh.id, slot, player.user_id, player.display_name);
+      slot++;
+    }
+
     const { data: claimed } = await client
       .from("duels")
-      .update({ next_duel_id: rematch.id })
-      .eq("id", duel.id)
+      .update({ next_duel_id: fresh.id })
+      .eq("id", room.id)
       .is("next_duel_id", null)
       .select("id")
       .maybeSingle();
 
     if (!claimed) {
-      // The opponent won the race — use their rematch instead.
-      await client.from("duels").delete().eq("id", rematch.id);
-      const current = await getDuel(client, duel.id);
+      await client.from("duels").delete().eq("id", fresh.id);
+      const current = await getRoom(client, room.id);
       if (!current.next_duel_id) {
-        return { ok: false as const, message: "Could not start a rematch." };
+        return { ok: false as const, message: "Could not start a new room." };
       }
-      const next = await getDuel(client, current.next_duel_id);
-      const players = await getPlayers(client, next.id);
-      if (!players.some((p) => p.user_id === context.userId)) {
-        const slot = players.some((p) => p.player_slot === 1) ? 2 : 1;
-        await insertPlayer(client, next.id, slot, context.userId, data.displayName);
-      }
-      await startIfReady(client, next.id);
-      return { ok: true as const, duelId: next.id, roomCode: next.room_code };
+      const next = await getRoom(client, current.next_duel_id);
+      return { ok: true as const, roomId: next.id, roomCode: next.room_code };
     }
 
-    return { ok: true as const, duelId: rematch.id, roomCode: rematch.room_code };
+    return { ok: true as const, roomId: fresh.id, roomCode: fresh.room_code };
   });

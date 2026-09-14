@@ -8,15 +8,23 @@ import { PhoneShell } from "@/components/duel/PhoneShell";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundPips } from "@/components/duel/RoundPips";
 import { RoundResult } from "@/components/duel/RoundResult";
+import { RoomLobby } from "@/components/duel/RoomLobby";
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
+import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
+import { Standings } from "@/components/duel/Standings";
+import { Podium } from "@/components/duel/Podium";
 import { TimerRing } from "@/components/duel/TimerRing";
 import { buzz } from "@/lib/motion";
 import { unlockAudio } from "@/lib/sound";
 import {
   advancePhase,
   ensureRematch,
+  fetchDuelById,
   fetchRevealPuzzle,
+  leaveRoom,
   markReady,
+  removePlayer,
+  startRoom,
   submitAnswer,
 } from "@/lib/duel/api";
 import { serverNow, toMs } from "@/lib/duel/clock";
@@ -24,10 +32,10 @@ import {
   duelOutcome,
   resultFor,
   roundBreakdown,
+  standings,
   totalScore,
   totalScoreThrough,
 } from "@/lib/duel/scoring";
-import { getStoredName } from "@/lib/duel/session";
 import { useDuel } from "@/lib/duel/useDuel";
 import {
   puzzleDef,
@@ -40,6 +48,7 @@ import {
   INTRO_MS,
   NEXT_ROUND_AUTO_MS,
   REVEAL_MS,
+  STANDINGS_MS,
   ROUND_MS,
   TOTAL_ROUNDS,
   type PuzzleData,
@@ -50,15 +59,16 @@ export const Route = createFileRoute("/duel/$code")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Duel in progress — Duelz" },
+      { title: "Duelz room — six timed puzzle rounds" },
       {
         name: "description",
-        content: "Three timed puzzles, head to head. Solve faster than your opponent to win.",
+        content:
+          "Up to ten players solve the same six timed puzzles at the same moment. Highest total wins.",
       },
-      { property: "og:title", content: "Duel in progress — Duelz" },
+      { property: "og:title", content: "Duelz room — six timed puzzle rounds" },
       {
         property: "og:description",
-        content: "Three timed puzzles, head to head. Solve faster than your opponent to win.",
+        content: "Six rounds. Two to ten players. Fastest brain wins.",
       },
     ],
   }),
@@ -109,7 +119,7 @@ function LobbyActions({ roomCode }: { roomCode: string }) {
     try {
       await navigator.share({
         title: "Duelz",
-        text: `Join my Duelz match with code ${roomCode}`,
+        text: `Join my Duelz room — code ${roomCode} — ${link}`,
         url: link,
       });
     } catch {
@@ -146,13 +156,20 @@ function DuelScreen() {
   const navigate = useNavigate();
   const roomCode = code.toUpperCase();
   const state = useDuel(roomCode);
-  const { duel, players, results, me, opponent, now } = state;
+  const { duel, players, results, me, opponent, roomPlayers, isMulti, isHost, now } = state;
 
   const [rematchBusy, setRematchBusy] = useState(false);
+  const [starting, setStarting] = useState(false);
   const timeoutSubmitted = useRef<string>("");
   const lastAdvance = useRef(0);
   const dueSince = useRef(0);
   const [revealed, setRevealed] = useState<{ round: number; puzzle: PuzzleData } | null>(null);
+
+  // A new room (after Play again) starts with fresh button state.
+  useEffect(() => {
+    setStarting(false);
+    setRematchBusy(false);
+  }, [duel?.id]);
 
   const round = duel?.current_round ?? 0;
   const puzzle = duel && round > 0 ? duel.puzzles_public[round - 1] : undefined;
@@ -185,13 +202,12 @@ function DuelScreen() {
     return mine > theirs ? ("win" as const) : mine < theirs ? ("loss" as const) : ("draw" as const);
   });
 
-  const isHost = me?.player_slot === 1;
-
-  // Kick the duel off if both players are in but the server hasn't started it.
-  useEffect(() => {
-    if (!duel || !me) return;
-    if (duel.status === "waiting" && players.length === 2) void advancePhase(duel.id);
-  }, [duel?.id, duel?.status, players.length, me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const activeCount = roomPlayers.filter((p) => p.status === "active").length || 1;
+  const answeredThisRound = results.filter((r) => r.round_number === round).length;
+  const table = standings(roomPlayers, results, scoredThrough);
+  const myStanding = table.find((r) => r.slot === mySlot);
+  /** Only the host drives the standings screen on; timers do the rest. */
+  const leads = isHost;
 
   // Timer ran out without a submission — record a zero for this round.
   useEffect(() => {
@@ -222,23 +238,28 @@ function DuelScreen() {
     let due = false;
     if (phase === "intro") due = elapsed >= INTRO_MS;
     else if (phase === "puzzle")
-      due = (!!myResult && !!opponentResult) || (deadline !== null && now > deadline + 800);
+      due = answeredThisRound >= activeCount || (deadline !== null && now > deadline + 800);
     else if (phase === "reveal") due = elapsed >= REVEAL_MS;
-    else
-      due =
-        (players.length === 2 && players.every((p) => p.ready_round >= round)) ||
-        elapsed >= NEXT_ROUND_AUTO_MS;
+    else {
+      const autoMs = isMulti ? STANDINGS_MS : NEXT_ROUND_AUTO_MS;
+      const hostReady = roomPlayers.find((p) => p.user_id === duel.host_user_id);
+      const skipped = isMulti
+        ? !!hostReady && hostReady.ready_round >= round
+        : roomPlayers.length === 2 && roomPlayers.every((p) => p.ready_round >= round);
+      due = skipped || elapsed >= autoMs;
+    }
 
     if (!due) {
       dueSince.current = 0;
       return;
     }
     if (dueSince.current === 0) dueSince.current = now;
-    if (!isHost && now - dueSince.current < 2_500) return;
+    if (!leads && now - dueSince.current < 2_500) return;
     if (Date.now() - lastAdvance.current < 1_500) return;
     lastAdvance.current = Date.now();
     void advancePhase(duel.id);
-  }, [duel, isHost, phase, phaseStart, now, round, players, myResult, opponentResult, deadline]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duel, leads, phase, phaseStart, now, round, roomPlayers, answeredThisRound, activeCount, deadline]);
 
   // The correct answer only exists on the client once the round has ended.
   useEffect(() => {
@@ -253,17 +274,14 @@ function DuelScreen() {
     };
   }, [duel?.id, phase, round, revealed?.round]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Both phones follow the rematch duel as soon as it exists.
+  // Every phone follows the host into the new room as soon as it exists.
   useEffect(() => {
-    if (!duel?.next_duel_id || !me) return;
+    const nextId = duel?.next_duel_id;
+    if (!nextId || !me) return;
     let cancelled = false;
     void (async () => {
-      try {
-        const next = await ensureRematch(duel.id, me.display_name || getStoredName() || "Player");
-        if (!cancelled) await navigate({ to: "/duel/$code", params: { code: next.roomCode } });
-      } catch {
-        /* opponent-only rematch; ignore */
-      }
+      const next = await fetchDuelById(nextId);
+      if (next && !cancelled) await navigate({ to: "/duel/$code", params: { code: next.room_code } });
     })();
     return () => {
       cancelled = true;
@@ -291,17 +309,33 @@ function DuelScreen() {
     if (!duel || !me) return;
     setRematchBusy(true);
     try {
-      const next = await ensureRematch(duel.id, me.display_name);
+      const next = await ensureRematch(duel.id);
       await navigate({ to: "/duel/$code", params: { code: next.roomCode } });
     } catch {
       setRematchBusy(false);
     }
   };
 
+  const handleStart = async () => {
+    if (!duel) return;
+    unlockAudio();
+    setStarting(true);
+    try {
+      await startRoom(duel.id);
+    } catch {
+      setStarting(false);
+    }
+  };
+
+  const handleLeave = async () => {
+    if (duel) await leaveRoom(duel.id);
+    await navigate({ to: "/" });
+  };
+
   if (state.loading) {
     return (
       <Centered>
-        <WaitingLine label="Loading duel" />
+        <WaitingLine label="Loading room" />
       </Centered>
     );
   }
@@ -309,10 +343,8 @@ function DuelScreen() {
   if (state.notFound || !duel) {
     return (
       <Centered>
-        <h1 className="font-display text-2xl">Duel not found</h1>
-        <p className="text-sm text-muted-foreground">
-          No duel exists with the code {roomCode}.
-        </p>
+        <h1 className="font-display text-2xl">Room not found</h1>
+        <p className="text-sm text-muted-foreground">No room exists with the code {roomCode}.</p>
         <HomeButton />
       </Centered>
     );
@@ -321,7 +353,7 @@ function DuelScreen() {
   if (!me) {
     return (
       <Centered>
-        <h1 className="font-display text-2xl">You're not in this duel</h1>
+        <h1 className="font-display text-2xl">You're not in this room</h1>
         <p className="text-sm text-muted-foreground">
           Head back home and join with the room code.
         </p>
@@ -343,10 +375,9 @@ function DuelScreen() {
   }
 
   if (duel.status === "waiting") {
-    const opponentCard = players.find((p) => p.player_slot !== me.player_slot);
     return (
       <PhoneShell>
-        <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-7 text-center">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Room code</p>
             <p className="mt-3 font-mono text-6xl font-bold tracking-[0.2em] text-primary animate-pop-in">
@@ -356,39 +387,37 @@ function DuelScreen() {
 
           <LobbyActions roomCode={duel.room_code} />
 
-          <div className="flex w-full items-center gap-3">
-            <div className="flex-1 rounded-xl border border-me/40 bg-me/10 px-3 py-4 font-display text-sm text-me animate-pop-in">
-              <span className="block truncate">{me.display_name}</span>
-              <span className="text-[10px] uppercase tracking-widest opacity-70">You</span>
-            </div>
-            <span className="font-display text-xs uppercase tracking-widest text-muted-foreground">
-              vs
-            </span>
-            {opponentCard ? (
-              <div
-                key={opponentCard.id}
-                className="flex-1 rounded-xl border border-opponent/40 bg-opponent/10 px-3 py-4 font-display text-sm text-opponent animate-pop-in"
-              >
-                <span className="block truncate">{opponentCard.display_name}</span>
-                <span className="text-[10px] uppercase tracking-widest opacity-70">Ready</span>
-              </div>
-            ) : (
-              <div className="flex flex-1 flex-col items-center gap-2 rounded-xl border border-dashed border-border px-3 py-4">
-                <span className="h-2 w-2 rounded-full bg-muted-foreground animate-slow-pulse" />
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Waiting
-                </span>
-              </div>
-            )}
-          </div>
-
-          <WaitingLine label="Waiting for opponent" />
+          <RoomLobby
+            players={roomPlayers}
+            hostUserId={duel.host_user_id}
+            meUserId={me.user_id}
+            isHost={isHost}
+            starting={starting}
+            onStart={() => void handleStart()}
+            onRemove={(slot) => void removePlayer(duel.id, slot)}
+          />
         </div>
       </PhoneShell>
     );
   }
 
   if (duel.status === "finished") {
+    if (isMulti) {
+      return (
+        <PhoneShell>
+          <Podium
+            rows={standings(roomPlayers, results, TOTAL_ROUNDS)}
+            mySlot={mySlot}
+            results={results}
+            roundOrder={duel.round_order}
+            isHost={isHost}
+            busy={rematchBusy}
+            onPlayAgain={() => void handlePlayAgain()}
+            onLeave={() => void handleLeave()}
+          />
+        </PhoneShell>
+      );
+    }
     return (
       <PhoneShell>
         <FinalResult
@@ -441,8 +470,25 @@ function DuelScreen() {
   if (phase === "result") {
     const autoSeconds = Math.max(
       0,
-      Math.ceil((NEXT_ROUND_AUTO_MS - (now - (phaseStart ?? now))) / 1000),
+      Math.ceil(
+        ((isMulti ? STANDINGS_MS : NEXT_ROUND_AUTO_MS) - (now - (phaseStart ?? now))) / 1000,
+      ),
     );
+    if (isMulti) {
+      return (
+        <PhoneShell>
+          <Standings
+            round={round}
+            rows={table}
+            mySlot={mySlot}
+            autoSeconds={autoSeconds}
+            isHost={isHost}
+            ready={me.ready_round >= round}
+            onNext={() => void markReady(duel.id, round)}
+          />
+        </PhoneShell>
+      );
+    }
     return (
       <PhoneShell>
         <RoundResult
@@ -489,12 +535,21 @@ function DuelScreen() {
           </div>
         )}
 
-        <ScoreStrip
-          myName={me.display_name}
-          opponentName={opponent?.display_name ?? "Opponent"}
-          myTotal={myTotal}
-          opponentTotal={opponentTotal}
-        />
+        {isMulti ? (
+          <SoloScoreStrip
+            name={me.display_name}
+            total={myTotal}
+            position={myStanding?.position ?? 1}
+            playerCount={roomPlayers.length}
+          />
+        ) : (
+          <ScoreStrip
+            myName={me.display_name}
+            opponentName={opponent?.display_name ?? "Opponent"}
+            myTotal={myTotal}
+            opponentTotal={opponentTotal}
+          />
+        )}
 
         <div className="relative flex flex-1 flex-col">
           {puzzle && Stage && (
@@ -519,7 +574,7 @@ function DuelScreen() {
                 Locked
               </span>
               <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                Waiting for opponent <Dots />
+                {isMulti ? "Waiting for other players" : "Waiting for opponent"} <Dots />
               </span>
             </div>
           )}

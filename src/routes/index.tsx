@@ -5,7 +5,7 @@ import { Dots } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { Wordmark } from "@/components/duel/Wordmark";
 import { MuteToggle } from "@/components/duel/MuteToggle";
-import { createDuel, joinDuelByCode } from "@/lib/duel/api";
+import { createRoom, joinRoomByCode } from "@/lib/duel/api";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { unlockAudio } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
@@ -13,16 +13,16 @@ import { buzz } from "@/lib/motion";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Duelz — 1v1 Puzzle Duels" },
+      { title: "Duelz — Live Puzzle Rooms for 2–10 Players" },
       {
         name: "description",
         content:
-          "Duelz is a 1v1 puzzle duel: three timed puzzles, thirty seconds each, fastest brain wins. Create a room code and duel a friend.",
+          "Duelz is a live puzzle room: up to ten players solve the same six timed puzzles at the same moment. Share a room code and see who wins.",
       },
-      { property: "og:title", content: "Duelz — 1v1 Puzzle Duels" },
+      { property: "og:title", content: "Duelz — Live Puzzle Rooms for 2–10 Players" },
       {
         property: "og:description",
-        content: "Three puzzles. Thirty seconds each. Fastest brain wins.",
+        content: "Up to 10 players. Six rounds. Fastest brain wins.",
       },
     ],
   }),
@@ -68,8 +68,8 @@ function Home() {
       setStoredName(trimmed);
       const duel =
         mode === "create"
-          ? await createDuel(trimmed)
-          : await joinDuelByCode(code.trim().toUpperCase(), trimmed);
+          ? await createRoom(trimmed)
+          : await joinRoomByCode(code.trim().toUpperCase(), trimmed);
       await navigate({ to: "/duel/$code", params: { code: duel.roomCode } });
     } catch (err) {
       setBusy(false);
@@ -93,11 +93,11 @@ function Home() {
         <div className="flex flex-col items-center text-center">
           <Wordmark size="lg" />
           <p className="mt-3 text-sm text-muted-foreground">
-            Three puzzles. Thirty seconds each. Fastest brain wins.
+            Up to 10 players. Six rounds. Fastest brain wins.
           </p>
           <div className="mt-6 h-px w-16 bg-border" />
           <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-            3 rounds · 30s each · max 150 a round
+            24 puzzle types · 6 rounds · 2–10 players
           </p>
         </div>
 
@@ -108,7 +108,7 @@ function Home() {
               onClick={() => openMode("create")}
               className="press tap-target relative w-full overflow-hidden rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground"
             >
-              <span className="relative z-10">Create duel</span>
+              <span className="relative z-10">Create room</span>
               <span
                 aria-hidden="true"
                 className="animate-sheen pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-primary-foreground/20"
@@ -119,7 +119,7 @@ function Home() {
               onClick={() => openMode("join")}
               className="press tap-target w-full rounded-xl border border-border bg-card/70 py-4 font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
             >
-              Join with a code
+              Join room
             </button>
           </div>
         ) : (
@@ -211,9 +211,9 @@ function Home() {
                   <Dots className="bg-primary-foreground" />
                 </>
               ) : mode === "create" ? (
-                "Create duel"
+                "Create room"
               ) : (
-                "Join duel"
+                "Join room"
               )}
             </button>
             <button
