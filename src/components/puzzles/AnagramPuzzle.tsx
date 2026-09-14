@@ -28,11 +28,11 @@ export function AnagramPuzzle({ puzzle, locked, onSubmit }: AnagramPuzzleProps) 
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
           Unscramble the word
         </p>
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="flex flex-wrap justify-center gap-1.5">
           {puzzle.scrambled.split("").map((letter, index) => (
             <span
               key={`${letter}-${index}`}
-              className="flex h-14 w-12 items-center justify-center rounded-lg bg-card font-display text-2xl font-bold text-foreground"
+              className="flex h-14 w-10 items-center justify-center rounded-lg bg-card font-display text-xl font-bold text-foreground"
             >
               {letter}
             </span>

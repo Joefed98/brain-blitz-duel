@@ -3,57 +3,60 @@ import type { AnagramPuzzleData } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { AnagramPuzzle } from "@/components/puzzles/AnagramPuzzle";
+import { EIGHT_LETTER_WORDS, SEVEN_LETTER_WORDS } from "./words";
 
-export const SIX_LETTER_WORDS = [
-  "garden","silver","planet","orange","market","winter","summer","guitar","packet","rocket",
-  "socket","ticket","basket","castle","bottle","candle","handle","middle","purple","temple",
-  "animal","bridge","butter","camera","canvas","carpet","cheese","cherry","circle","coffee",
-  "copper","corner","cotton","damage","danger","desert","dinner","doctor","dollar","donkey",
-  "dragon","driver","engine","eleven","expert","family","farmer","finger","flower","forest",
-  "friend","future","garage","ginger","golden","ground","hammer","hidden","hollow","honest",
-  "hunter","island","jacket","jungle","kitten","ladder","laptop","lawyer","legend","letter",
-  "lizard","magnet","marble","meadow","member","mirror","monkey","mother","muscle","napkin",
-  "nature","needle","nickel","noodle","number","object","office","oxygen","palace","parent",
-  "parrot","pencil","people","pepper","person","pillow","pirate","pocket","poison","police",
-  "potato","powder","prince","prison","puzzle","rabbit","ribbon","rubber","saddle","salmon",
-  "school","season","second","shadow","shield","signal","singer","sister","soccer","spider",
-  "spring","square","statue","stream","street","string","studio","sunset","tunnel","turtle",
-  "valley","velvet","wallet","window","wizard","yellow",
-];
+/** Seven- and eight-letter words only. */
+export const ANAGRAM_WORDS = [...SEVEN_LETTER_WORDS, ...EIGHT_LETTER_WORDS];
+
+/**
+ * A fair scramble never starts with the word's first letter and never leaves
+ * two letters next to each other in their original order.
+ */
+function isFairOrder(order: number[]): boolean {
+  if (order[0] === 0) return false;
+  for (let i = 0; i < order.length - 1; i++) {
+    if (order[i + 1] === order[i]! + 1) return false;
+  }
+  return true;
+}
 
 export function scramble(word: string): string {
-  const letters = word.toUpperCase().split("");
-  let out = word.toUpperCase();
-  for (let attempt = 0; attempt < 20 && out === word.toUpperCase(); attempt++) {
-    for (let i = letters.length - 1; i > 0; i--) {
+  const upper = word.toUpperCase();
+  const indices = upper.split("").map((_, i) => i);
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const order = [...indices];
+    for (let i = order.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [letters[i], letters[j]] = [letters[j]!, letters[i]!];
+      [order[i], order[j]] = [order[j]!, order[i]!];
     }
-    out = letters.join("");
+    if (!isFairOrder(order)) continue;
+    return order.map((i) => upper[i]!).join("");
   }
-  if (out === word.toUpperCase()) out = out.slice(1) + out[0];
-  return out;
+  // Deterministic fallback: interleave from the back, which satisfies both rules.
+  const order: number[] = [];
+  for (let i = indices.length - 1; i >= 0; i--) order.push(i);
+  return order.map((i) => upper[i]!).join("");
 }
 
 /** Fixed intro example tiles — never randomised. */
-const EXAMPLE = ["T", "A", "P", "L", "N", "E"];
+const EXAMPLE = ["T", "A", "V", "H", "S", "R", "E"];
 
 function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">Unscramble the letters to make a word.</p>
-      <div className="flex gap-2">
+      <div className="flex gap-1.5">
         {EXAMPLE.map((letter, index) => (
           <span
             key={index}
-            className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-card font-display text-lg font-bold"
+            className="flex h-11 w-9 items-center justify-center rounded-lg border border-border bg-card font-display text-base font-bold"
           >
             {letter}
           </span>
         ))}
       </div>
       <p className="font-mono text-sm text-muted-foreground">
-        answer <span className="font-bold text-primary">PLANET</span>
+        answer <span className="font-bold text-primary">HARVEST</span>
       </p>
       <p className="text-xs text-muted-foreground">
         Type the word and hit Submit. Faster = more points.
@@ -71,7 +74,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "anagram") return null;
   return (
     <>
-      <p className="font-display text-5xl font-bold text-primary">{puzzle.word}</p>
+      <p className="font-display text-4xl font-bold text-primary">{puzzle.word}</p>
       <MyAnswerLine myAnswer={myAnswer} myCorrect={myCorrect} />
     </>
   );
@@ -92,7 +95,7 @@ export function MyAnswerLine({
         <p className="font-display text-2xl font-bold text-warn">No answer</p>
       ) : (
         <p
-          className={`font-display text-3xl font-bold ${myCorrect ? "text-primary" : "text-warn"}`}
+          className={`font-display text-2xl font-bold ${myCorrect ? "text-primary" : "text-warn"}`}
         >
           {myAnswer} {myCorrect ? "✓" : "✗"}
         </p>
@@ -106,7 +109,7 @@ export const anagramPuzzle: PuzzleDefinition = {
   name: "Anagram",
   category: "word",
   generate: () => {
-    const word = pick(SIX_LETTER_WORDS).toUpperCase();
+    const word = pick(ANAGRAM_WORDS).toUpperCase();
     return { type: "anagram", word, scrambled: scramble(word) } satisfies AnagramPuzzleData;
   },
   check: (answer, puzzle) =>
