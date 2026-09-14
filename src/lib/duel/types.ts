@@ -90,7 +90,7 @@ export interface ReactionPuzzleData {
 
 export interface MissingLettersPuzzleData {
   type: "missing";
-  /** The complete seven-letter word, upper case. */
+  /** The complete eight- or nine-letter word, upper case. */
   word: string;
   /** Zero-based positions shown as blank tiles. */
   blanks: number[];
@@ -106,7 +106,7 @@ export interface EquationPuzzleData {
   operators: Operator[];
 }
 
-export type StroopColour = "RED" | "BLUE" | "GREEN" | "PURPLE";
+export type StroopColour = "RED" | "BLUE" | "GREEN" | "PURPLE" | "PINK";
 
 export interface StroopItem {
   word: StroopColour;
@@ -121,7 +121,7 @@ export interface StroopPuzzleData {
 
 export interface SpatialPuzzleData {
   type: "spatial";
-  /** Four tile indices (0-15) of a 4x4 grid, lit together at the start. */
+  /** Six tile indices (0-24) of a 5x5 grid, lit together at the start. */
   tiles: number[];
 }
 
@@ -164,7 +164,7 @@ export type ArrowDir = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
 export interface SymbolScanPuzzleData {
   type: "symscan";
   target: ArrowDir;
-  /** 36 cells, row-major, of a 6x6 grid. */
+  /** 49 cells, row-major, of a 7x7 grid. */
   cells: ArrowDir[];
   /** Indices of the cells matching the target. */
   targets: number[];
@@ -172,7 +172,7 @@ export interface SymbolScanPuzzleData {
 
 export interface RotationPuzzleData {
   type: "rotmatch";
-  /** Filled cell indices (0-15) of a 4x4 grid. */
+  /** Filled cell indices (0-24) of a 5x5 grid. */
   target: number[];
   /** Four candidates in their stored, shuffled order. */
   candidates: number[][];
@@ -254,7 +254,7 @@ export interface RoundResultRow {
   ms_remaining: number;
   /** Reaction Time rounds only: average of the three attempts. */
   reaction_avg_ms: number | null;
-  /** Colour Clash rounds only: how many of the ten items were tapped correctly. */
+  /** Colour Clash rounds only: how many of the fifteen items were tapped correctly. */
   correct_count: number | null;
   /** Number Hunt rounds only: how many wrong taps the player made. */
   errors: number | null;
@@ -273,15 +273,20 @@ export const REVEAL_MS = 5_000;
 export const NEXT_ROUND_AUTO_MS = 8_000;
 export const DISCONNECT_MS = 15_000;
 
-/** Sequence Recall plays back before its 30s clock starts. */
+/** Sequence Recall plays back before its 30s clock starts, on a 4x4 grid. */
 export const SEQUENCE_LEAD_IN_MS = 700;
-export const SEQUENCE_FLASH_MS = 600;
-export const SEQUENCE_GAP_MS = 250;
-export const SEQUENCE_LENGTH = 5;
-export const SEQUENCE_PLAYBACK_MS =
-  SEQUENCE_LEAD_IN_MS +
-  SEQUENCE_LENGTH * SEQUENCE_FLASH_MS +
-  (SEQUENCE_LENGTH - 1) * SEQUENCE_GAP_MS;
+export const SEQUENCE_FLASH_MS = 450;
+export const SEQUENCE_GAP_MS = 150;
+export const SEQUENCE_COLS = 4;
+export const SEQUENCE_LENGTH = 7;
+/** Reverse Recall shows one fewer tile than Sequence Recall. */
+export const REVERSE_LENGTH = 6;
+
+export function sequencePlaybackMs(count: number): number {
+  return SEQUENCE_LEAD_IN_MS + count * SEQUENCE_FLASH_MS + (count - 1) * SEQUENCE_GAP_MS;
+}
+
+export const SEQUENCE_PLAYBACK_MS = sequencePlaybackMs(SEQUENCE_LENGTH);
 
 /** Reaction Time: three attempts, each in a fixed-length shared slot. */
 export const REACTION_ATTEMPTS = 3;
@@ -294,15 +299,14 @@ export const REACTION_FEEDBACK_MS = 1_000;
 /** Penalty recorded for a false start or a missed attempt. */
 export const REACTION_PENALTY_MS = 1_000;
 
-/** Colour Clash: a run of ten items, scored 10 points each plus a speed bonus. */
-export const STROOP_ITEMS = 10;
-export const STROOP_POINTS_PER_ITEM = 10;
+/** Colour Clash: a run of fifteen items across five colours. */
+export const STROOP_ITEMS = 15;
 
-/** Spatial Memory: four tiles of a 4x4 grid, shown together before the clock starts. */
-export const SPATIAL_GRID_COLS = 4;
-export const SPATIAL_TILES = 4;
+/** Spatial Memory: six tiles of a 5x5 grid, shown together before the clock starts. */
+export const SPATIAL_GRID_COLS = 5;
+export const SPATIAL_TILES = 6;
 export const SPATIAL_LEAD_IN_MS = 700;
-export const SPATIAL_SHOW_MS = 3_000;
+export const SPATIAL_SHOW_MS = 2_500;
 export const SPATIAL_PREP_MS = SPATIAL_LEAD_IN_MS + SPATIAL_SHOW_MS;
 
 /** Go / No-Go: twelve shapes, six of them gold circles, on a shared timeline. */
@@ -315,14 +319,18 @@ export const GONOGO_RUN_MS = GONOGO_ITEMS * GONOGO_SLOT_MS;
 export const GONOGO_POINTS_PER_ITEM = 10;
 export const GONOGO_MAX_BONUS = 130;
 
-/** Symbol Scan: a 6x6 grid of arrows with 5-8 matching the target. */
-export const SYMSCAN_COLS = 6;
+/** Symbol Scan: a 7x7 grid of arrows with 6-10 matching the target. */
+export const SYMSCAN_COLS = 7;
 export const SYMSCAN_CELLS = SYMSCAN_COLS * SYMSCAN_COLS;
-export const SYMSCAN_MIN_TARGETS = 5;
-export const SYMSCAN_MAX_TARGETS = 8;
+export const SYMSCAN_MIN_TARGETS = 6;
+export const SYMSCAN_MAX_TARGETS = 10;
 
-/** Rotation Match: shapes drawn as filled cells of a 4x4 grid. */
-export const ROTATION_COLS = 4;
+/** Odd Shape Out: a 6x6 grid of near-identical shapes. */
+export const ODDSHAPE_COLS = 6;
+export const ODDSHAPE_CELLS = ODDSHAPE_COLS * ODDSHAPE_COLS;
+
+/** Rotation Match: shapes drawn as filled cells of a 5x5 grid. */
+export const ROTATION_COLS = 5;
 
 /** Number Hunt: twelve circles tapped in ascending order. */
 export const NUMHUNT_COUNT = 12;
