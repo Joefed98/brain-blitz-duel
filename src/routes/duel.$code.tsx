@@ -165,6 +165,12 @@ function DuelScreen() {
   const dueSince = useRef(0);
   const [revealed, setRevealed] = useState<{ round: number; puzzle: PuzzleData } | null>(null);
 
+  // A new room (after Play again) starts with fresh button state.
+  useEffect(() => {
+    setStarting(false);
+    setRematchBusy(false);
+  }, [duel?.id]);
+
   const round = duel?.current_round ?? 0;
   const puzzle = duel && round > 0 ? duel.puzzles_public[round - 1] : undefined;
   const phase = duel?.phase ?? "intro";
