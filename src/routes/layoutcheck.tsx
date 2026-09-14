@@ -43,6 +43,14 @@ function LayoutCheck() {
             <div className="w-[390px] border border-border p-4" data-intro={type}>
               <Intro />
             </div>
+            <div className="w-[390px] border border-border p-4" data-reveal={type}>
+              <def.Reveal
+                puzzle={puzzle}
+                myAnswer={type === "wordmatch" ? "0,1,2,3,0,1,2,3" : "3"}
+                myCorrect={false}
+                myReactionAvgMs={180}
+              />
+            </div>
             <div
               className="flex min-h-[520px] w-[390px] flex-col border border-border p-4"
               data-stage={type}
