@@ -427,6 +427,7 @@ function DuelScreen() {
         <AnswerReveal
           round={round}
           puzzle={revealed?.round === round ? revealed.puzzle : puzzle}
+          answersReady={revealed?.round === round}
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
           myReactionAvgMs={myResult?.reaction_avg_ms ?? null}
