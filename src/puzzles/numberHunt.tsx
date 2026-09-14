@@ -26,9 +26,7 @@ function distancePx(a: HuntSpot, b: HuntSpot): number {
 
 /** "reached,errors,elapsedMs" — everything the reveal needs. */
 export function parseRun(answer: string | null) {
-  const [reached, errors, elapsed] = (answer ?? "")
-    .split(",")
-    .map((v) => Number.parseInt(v, 10));
+  const [reached, errors, elapsed] = (answer ?? "").split(",").map((v) => Number.parseInt(v, 10));
   return {
     reached: Number.isFinite(reached) ? reached! : 0,
     errors: Number.isFinite(errors) ? errors! : 0,

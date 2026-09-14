@@ -96,9 +96,7 @@ function IntroExample() {
         Find every arrow that matches the target.
       </p>
       <div className="flex flex-col items-center gap-1">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          Target
-        </span>
+        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
         <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
           <Arrow dir={EXAMPLE_TARGET} size={30} />
         </div>
@@ -140,9 +138,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-between gap-5">
       <div className="flex flex-col items-center gap-2">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          Target
-        </span>
+        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
         <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
           <Arrow dir={puzzle.target} size={34} />
         </div>
@@ -167,9 +163,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
 
       <button
         type="button"
-        onClick={() =>
-          !locked && onSubmit([...selected].sort((a, b) => a - b).join(","))
-        }
+        onClick={() => !locked && onSubmit([...selected].sort((a, b) => a - b).join(","))}
         disabled={locked || selected.length === 0}
         className="tap-target w-full rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
       >
@@ -254,9 +248,7 @@ export const symbolScanPuzzle: PuzzleDefinition = {
   check: (answer, puzzle) => {
     if (puzzle.type !== "symscan") return false;
     const selected = new Set(parseSelection(answer));
-    return (
-      selected.size === puzzle.targets.length && puzzle.targets.every((t) => selected.has(t))
-    );
+    return selected.size === puzzle.targets.length && puzzle.targets.every((t) => selected.has(t));
   },
   IntroExample,
   Stage,

@@ -75,9 +75,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   }
 
   const flashAt =
-    index < delays.length
-      ? phaseStartedAt + attemptStart(delays, index) + delays[index]!
-      : null;
+    index < delays.length ? phaseStartedAt + attemptStart(delays, index) + delays[index]! : null;
   const record = index < delays.length ? times[index] : null;
 
   // A missed attempt is recorded as the penalty once its window closes.
@@ -134,9 +132,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         {delays.map((_, i) => (
           <span
             key={i}
-            className={`h-2.5 w-2.5 rounded-full ${
-              times[i] !== null ? "bg-primary" : "bg-border"
-            }`}
+            className={`h-2.5 w-2.5 rounded-full ${times[i] !== null ? "bg-primary" : "bg-border"}`}
           />
         ))}
       </div>
@@ -146,9 +142,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         aria-label="Reaction area"
         onClick={handleTap}
         className={`flex h-64 w-full items-center justify-center rounded-2xl border transition-colors ${
-          live
-            ? "border-primary bg-primary"
-            : "border-border bg-muted/20"
+          live ? "border-primary bg-primary" : "border-border bg-muted/20"
         }`}
       >
         {done ? (
@@ -211,12 +205,13 @@ export const reactionPuzzle: PuzzleDefinition = {
   key: "reaction",
   name: "Reaction Time",
   category: "speed",
-  generate: () => ({
-    type: "reaction",
-    delays: Array.from({ length: REACTION_ATTEMPTS }, () =>
-      randInt(REACTION_MIN_DELAY_MS, REACTION_MAX_DELAY_MS),
-    ),
-  }) satisfies ReactionPuzzleData,
+  generate: () =>
+    ({
+      type: "reaction",
+      delays: Array.from({ length: REACTION_ATTEMPTS }, () =>
+        randInt(REACTION_MIN_DELAY_MS, REACTION_MAX_DELAY_MS),
+      ),
+    }) satisfies ReactionPuzzleData,
   // Scored from the average reaction time, not from correctness.
   check: () => true,
   durationMs: (puzzle) =>
