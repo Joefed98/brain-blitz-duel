@@ -15,8 +15,8 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const COLS = SPATIAL_GRID_COLS;
 
-/** Fixed intro example — tiles 2, 7, 9 and 16, every time. */
-const EXAMPLE = [1, 6, 8, 15];
+/** Fixed intro example — six tiles of the 5x5 grid, every time. */
+const EXAMPLE = [1, 7, 9, 13, 18, 20];
 
 function parseTaps(answer: string): number[] {
   return answer
@@ -31,7 +31,7 @@ function sameTiles(a: number[], b: number[]): boolean {
   return set.size === a.length && b.every((v) => set.has(v));
 }
 
-/** Four tiles in one row, one column, or a diagonal are too easy. */
+/** Tiles all in one row, one column, or a diagonal are too easy. */
 function isStraightLine(tiles: number[]): boolean {
   const rows = tiles.map((t) => Math.floor(t / COLS));
   const cols = tiles.map((t) => t % COLS);
@@ -56,7 +56,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        Four tiles light up, then vanish. Tap where they were — any order.
+        Six tiles light up, then vanish. Tap where they were — any order.
       </p>
       <SequenceGrid order={EXAMPLE} cols={COLS} size="sm" numbered={false} />
       <p className="text-xs text-muted-foreground">
@@ -93,7 +93,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-7">
       <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-        {revealing ? "Remember the tiles" : "Tap the four tiles"}
+        {revealing ? "Remember the tiles" : "Tap the six tiles"}
       </p>
 
       <div className="flex gap-2">
@@ -107,7 +107,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         ))}
       </div>
 
-      <div className="grid grid-cols-4 gap-2.5">
+      <div
+        className="grid gap-2"
+        style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}
+      >
         {Array.from({ length: COLS * COLS }, (_, index) => {
           const lit = showing && tiles.includes(index);
           const tapped = taps.includes(index);
@@ -118,7 +121,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
               aria-label={`Tile ${index + 1}`}
               onClick={() => handleTap(index)}
               disabled={revealing || locked}
-              className={`h-[68px] w-[68px] rounded-xl border transition-colors ${
+              className={`h-[58px] w-[58px] rounded-xl border transition-colors ${
                 lit
                   ? "border-primary bg-primary"
                   : tapped
@@ -166,7 +169,7 @@ export function buildSpatial(): SpatialPuzzleData {
     if (isStraightLine(tiles) || isBlock(tiles)) continue;
     return { type: "spatial", tiles };
   }
-  return { type: "spatial", tiles: [0, 5, 7, 14] };
+  return { type: "spatial", tiles: [1, 7, 9, 13, 18, 20] };
 }
 
 export const spatialMemoryPuzzle: PuzzleDefinition = {

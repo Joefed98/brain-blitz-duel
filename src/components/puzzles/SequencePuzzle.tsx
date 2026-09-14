@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import {
+  SEQUENCE_COLS,
   SEQUENCE_FLASH_MS,
   SEQUENCE_GAP_MS,
   SEQUENCE_LEAD_IN_MS,
@@ -76,8 +77,11 @@ export function SequencePuzzle({
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        {Array.from({ length: 9 }, (_, index) => {
+      <div
+        className="grid gap-2.5"
+        style={{ gridTemplateColumns: `repeat(${SEQUENCE_COLS}, minmax(0, 1fr))` }}
+      >
+        {Array.from({ length: SEQUENCE_COLS * SEQUENCE_COLS }, (_, index) => {
           const isLit = lit === index;
           const isFlash = flash === index;
           return (
@@ -87,7 +91,7 @@ export function SequencePuzzle({
               aria-label={`Tile ${index + 1}`}
               onClick={() => handleTap(index)}
               disabled={playing || locked}
-              className={`h-[86px] w-[86px] rounded-xl border transition-colors ${
+              className={`h-[72px] w-[72px] rounded-xl border transition-colors ${
                 isLit
                   ? "border-primary bg-primary"
                   : isFlash

@@ -49,24 +49,27 @@ export function hasFourRotations(cells: Cells): boolean {
 }
 
 /**
- * Source shapes, written as filled cells of a 4x4 grid. Every one is chiral
- * and has four distinct rotations — see the checks below.
+ * Source shapes, written as filled cells of a 5x5 grid: eight six-cell shapes
+ * and eight seven-cell shapes. Every one is chiral and has four distinct
+ * rotations — see the checks below.
  */
 const SOURCE: Cells[] = [
-  [1, 5, 9, 8, 12],
-  [0, 1, 4, 8, 12],
-  [1, 5, 4, 8, 9],
-  [0, 1, 4, 5, 8],
-  [1, 4, 5, 6, 10],
-  [0, 1, 2, 6, 7],
-  [0, 4, 8, 9, 13],
-  [0, 1, 5, 6, 7],
-  [2, 5, 6, 9, 10],
-  [0, 1, 2, 3, 4],
-  [0, 1, 2, 3, 7],
-  [0, 4, 5, 6, 7],
-  [0, 1, 2, 7, 11],
-  [0, 4, 5, 6, 11],
+  [0, 1, 2, 3, 5, 6],
+  [0, 1, 5, 6, 11, 12],
+  [0, 1, 2, 5, 7, 10],
+  [0, 1, 2, 3, 5, 10],
+  [0, 5, 6, 7, 10, 15],
+  [0, 5, 10, 11, 16, 17],
+  [0, 5, 6, 7, 8, 11],
+  [0, 5, 6, 11, 12, 16],
+  [0, 1, 2, 3, 5, 6, 7],
+  [0, 1, 2, 5, 6, 11, 12],
+  [0, 1, 2, 3, 5, 7, 12],
+  [0, 1, 2, 3, 5, 8, 10],
+  [0, 5, 6, 7, 10, 12, 15],
+  [0, 5, 7, 10, 11, 12, 16],
+  [0, 2, 3, 5, 6, 7, 11],
+  [0, 5, 6, 7, 11, 15, 16],
 ];
 
 /** Only chiral shapes with four distinct rotations make fair puzzles. */
@@ -128,8 +131,8 @@ function ShapeSvg({
   );
 }
 
-/** Fixed intro example — an L shape, with the true rotation highlighted. */
-const EXAMPLE_TARGET: Cells = [0, 4, 8, 9];
+/** Fixed intro example — a six-cell shape, with the true rotation highlighted. */
+const EXAMPLE_TARGET: Cells = [0, 1, 2, 3, 5, 6];
 const EXAMPLE_CANDIDATES: Cells[] = [
   rotate90(EXAMPLE_TARGET),
   mirror(EXAMPLE_TARGET),

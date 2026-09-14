@@ -17,6 +17,7 @@ export const STROOP_COLOURS: { name: StroopColour; hex: string }[] = [
   { name: "BLUE", hex: "#4D8CFF" },
   { name: "GREEN", hex: "#3DDC84" },
   { name: "PURPLE", hex: "#B26BFF" },
+  { name: "PINK", hex: "#FF6BD6" },
 ];
 
 function hexFor(colour: string): string {
@@ -25,11 +26,11 @@ function hexFor(colour: string): string {
 
 function Swatches({ highlight }: { highlight?: StroopColour }) {
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className="grid grid-cols-5 gap-2">
       {STROOP_COLOURS.map((c) => (
         <span
           key={c.name}
-          className={`h-9 w-12 rounded-lg border-2 ${
+          className={`h-9 w-full rounded-lg border-2 ${
             highlight === c.name ? "border-primary" : "border-transparent"
           }`}
           style={{ backgroundColor: c.hex }}
@@ -50,7 +51,7 @@ function IntroExample() {
       </p>
       <Swatches highlight="RED" />
       <p className="text-center text-xs text-muted-foreground">
-        Ten in a row. Every one must be right to earn the speed bonus.
+        Fifteen in a row. Every one must be right to earn the speed bonus.
       </p>
     </div>
   );
@@ -89,7 +90,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         </p>
         {item ? (
           <p
-            className="font-display text-6xl font-bold"
+            className="font-display text-5xl font-bold"
             style={{ color: hexFor(item.ink) }}
           >
             {item.word}
@@ -99,7 +100,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-5 gap-2">
         {STROOP_COLOURS.map((c) => (
           <button
             key={c.name}

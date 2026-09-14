@@ -1,16 +1,17 @@
 import { SequenceGrid } from "@/components/duel/SequenceGrid";
 import { SequencePuzzle } from "@/components/puzzles/SequencePuzzle";
-import { randInt } from "@/lib/duel/random";
+import { shuffled } from "@/lib/duel/random";
 import {
+  SEQUENCE_COLS,
   SEQUENCE_LENGTH,
-  SEQUENCE_PLAYBACK_MS,
+  sequencePlaybackMs,
   type SequencePuzzleData,
 } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro example sequence — tiles 1, 5, 9, 3, 7, every time. */
-const EXAMPLE = [0, 4, 8, 2, 6];
+/** Fixed intro example sequence — seven tiles of the 4x4 grid, every time. */
+const EXAMPLE = [0, 5, 10, 15, 3, 6, 9];
 
 function IntroExample() {
   return (
@@ -18,7 +19,7 @@ function IntroExample() {
       <p className="text-center text-sm text-muted-foreground">
         Watch the tiles light up, then tap them back in the same order.
       </p>
-      <SequenceGrid order={EXAMPLE} size="sm" />
+      <SequenceGrid order={EXAMPLE} cols={SEQUENCE_COLS} size="sm" />
       <p className="text-xs text-muted-foreground">
         Your timer starts after the sequence has played.
       </p>
@@ -50,7 +51,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "sequence") return null;
   return (
     <>
-      <SequenceGrid order={puzzle.tiles} />
+      <SequenceGrid order={puzzle.tiles} cols={SEQUENCE_COLS} />
       <div className="flex w-full flex-col items-center gap-3 rounded-2xl bg-card px-4 py-5">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your answer</p>
         {!myAnswer ? (
@@ -59,6 +60,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           <div className="flex flex-col items-center gap-2">
             <SequenceGrid
               order={parseTaps(myAnswer)}
+              cols={SEQUENCE_COLS}
               tone={myCorrect ? "primary" : "warn"}
               size="sm"
             />
@@ -81,12 +83,11 @@ export const sequencePuzzle: PuzzleDefinition = {
   name: "Sequence Recall",
   category: "memory",
   generate: () => {
-    const tiles: number[] = [];
-    while (tiles.length < SEQUENCE_LENGTH) {
-      const next = randInt(0, 8);
-      if (tiles[tiles.length - 1] === next) continue;
-      tiles.push(next);
-    }
+    const cells = SEQUENCE_COLS * SEQUENCE_COLS;
+    const tiles = shuffled(Array.from({ length: cells }, (_, index) => index)).slice(
+      0,
+      SEQUENCE_LENGTH,
+    );
     return { type: "sequence", tiles } satisfies SequencePuzzleData;
   },
   check: (answer, puzzle) => {
@@ -97,7 +98,7 @@ export const sequencePuzzle: PuzzleDefinition = {
       taps.every((tap, index) => tap === puzzle.tiles[index])
     );
   },
-  prepMs: () => SEQUENCE_PLAYBACK_MS,
+  prepMs: () => sequencePlaybackMs(SEQUENCE_LENGTH),
   IntroExample,
   Stage,
   Reveal,
