@@ -70,16 +70,16 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
 }
 
 function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
-  if (puzzle.type !== "mirmatch") return null;
-  const chosen = Number.parseInt(myAnswer ?? "", 10);
-  const picked = Number.isFinite(chosen) ? chosen : -1;
-
   // The target flips into the correct candidate over a second.
   const [flipped, setFlipped] = useState(false);
   useEffect(() => {
     const id = setTimeout(() => setFlipped(true), 400);
     return () => clearTimeout(id);
   }, []);
+
+  if (puzzle.type !== "mirmatch") return null;
+  const chosen = Number.parseInt(myAnswer ?? "", 10);
+  const picked = Number.isFinite(chosen) ? chosen : -1;
 
   return (
     <>
