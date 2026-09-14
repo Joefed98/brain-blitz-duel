@@ -1,11 +1,17 @@
 import { SequenceGrid } from "@/components/duel/SequenceGrid";
 import { SequencePuzzle } from "@/components/puzzles/SequencePuzzle";
 import { shuffled } from "@/lib/duel/random";
-import { SEQUENCE_LENGTH, SEQUENCE_PLAYBACK_MS, type SequencePuzzleData } from "@/lib/duel/types";
+import {
+  REVERSE_LENGTH,
+  SEQUENCE_COLS,
+  sequencePlaybackMs,
+  type SequencePuzzleData,
+} from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const EXAMPLE_SHOWN = [1, 5, 7];
+/** Fixed intro example — six tiles of the 4x4 grid, every time. */
+const EXAMPLE_SHOWN = [1, 6, 11, 12, 3, 9];
 const EXAMPLE_TAPS = [...EXAMPLE_SHOWN].reverse();
 
 function IntroExample() {
@@ -16,12 +22,12 @@ function IntroExample() {
       </p>
       <div className="flex items-center gap-3">
         <div className="flex flex-col items-center gap-2">
-          <SequenceGrid order={EXAMPLE_SHOWN} size="xs" />
+          <SequenceGrid order={EXAMPLE_SHOWN} cols={SEQUENCE_COLS} size="xs" />
           <span className="font-mono text-[10px] uppercase text-muted-foreground">Shown</span>
         </div>
         <span className="text-xl text-muted-foreground">→</span>
         <div className="flex flex-col items-center gap-2">
-          <SequenceGrid order={EXAMPLE_TAPS} tone="opponent" size="xs" />
+          <SequenceGrid order={EXAMPLE_TAPS} cols={SEQUENCE_COLS} tone="opponent" size="xs" />
           <span className="font-mono text-[10px] uppercase text-opponent">Tap</span>
         </div>
       </div>
@@ -60,12 +66,13 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
     <>
       <div className="flex items-start gap-3">
         <div className="flex flex-col items-center gap-2">
-          <SequenceGrid order={correctOrder} size="xs" />
+          <SequenceGrid order={correctOrder} cols={SEQUENCE_COLS} size="xs" />
           <span className="font-mono text-[10px] uppercase text-muted-foreground">Correct</span>
         </div>
         <div className="flex flex-col items-center gap-2">
           <SequenceGrid
             order={myAnswer ? parseTaps(myAnswer) : []}
+            cols={SEQUENCE_COLS}
             tone={myCorrect ? "primary" : "warn"}
             size="xs"
           />
@@ -85,9 +92,11 @@ export const reverseRecallPuzzle: PuzzleDefinition = {
   name: "Reverse Recall",
   category: "memory",
   generate: () => {
-    const tiles = shuffled(Array.from({ length: 9 }, (_, index) => index)).slice(
+    const cells = SEQUENCE_COLS * SEQUENCE_COLS;
+    // Distinct tiles, so the reverse order is never the same as the shown order.
+    const tiles = shuffled(Array.from({ length: cells }, (_, index) => index)).slice(
       0,
-      SEQUENCE_LENGTH,
+      REVERSE_LENGTH,
     );
     return {
       type: "reverse",
@@ -101,7 +110,7 @@ export const reverseRecallPuzzle: PuzzleDefinition = {
     const expected = puzzle.answerOrder ?? [...puzzle.tiles].reverse();
     return taps.length === expected.length && taps.every((tap, index) => tap === expected[index]);
   },
-  prepMs: () => SEQUENCE_PLAYBACK_MS,
+  prepMs: () => sequencePlaybackMs(REVERSE_LENGTH),
   IntroExample,
   Stage,
   Reveal,
