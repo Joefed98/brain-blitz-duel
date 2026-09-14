@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { buzz } from "@/lib/motion";
-import { serverNow } from "@/lib/duel/clock";
 import {
   applyOperation,
   decodeSteps,
@@ -12,7 +11,12 @@ import {
   replayTargetSteps,
   TARGET_OPERATORS,
 } from "@/lib/duel/target";
-import { TARGET_TIME_MS, type Operator, type TargetStep } from "@/lib/duel/types";
+import {
+  TARGET_TIME_MS,
+  type Operator,
+  type TargetNumberPuzzleData,
+  type TargetStep,
+} from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -80,9 +84,19 @@ interface HistoryEntry {
   madeId: number;
 }
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
-  if (puzzle.type !== "target") return null;
-  const { tiles: startTiles, target } = puzzle;
+function Stage(props: PuzzleStageProps) {
+  if (props.puzzle.type !== "target") return null;
+  return <TargetStage {...props} tiles={props.puzzle.tiles} target={props.puzzle.target} />;
+}
+
+function TargetStage({
+  tiles: startTiles,
+  target,
+  phaseStartedAt,
+  now,
+  locked,
+  onSubmit,
+}: PuzzleStageProps & { tiles: number[]; target: number }) {
 
   const [pool, setPool] = useState<Tile[]>(() =>
     startTiles.map((value, id) => ({ id, value, fromStep: false })),
@@ -282,8 +296,16 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
-  if (puzzle.type !== "target") return null;
+function Reveal(props: PuzzleRevealProps) {
+  if (props.puzzle.type !== "target") return null;
+  return <TargetReveal {...props} puzzle={props.puzzle} />;
+}
+
+function TargetReveal({
+  puzzle,
+  myAnswer,
+  myCorrect,
+}: PuzzleRevealProps & { puzzle: TargetNumberPuzzleData }) {
   const replay = useMemo(
     () => replayTargetSteps(puzzle.tiles, puzzle.target, decodeSteps(myAnswer ?? "")),
     [puzzle.tiles, puzzle.target, myAnswer],
