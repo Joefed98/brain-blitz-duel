@@ -32,7 +32,7 @@ export function AnagramPuzzle({ puzzle, locked, onSubmit }: AnagramPuzzleProps) 
           {puzzle.scrambled.split("").map((letter, index) => (
             <span
               key={`${letter}-${index}`}
-              className="flex h-14 w-10 items-center justify-center rounded-lg bg-card font-display text-xl font-bold text-foreground"
+              className="flex h-14 w-9 items-center justify-center rounded-lg bg-card font-display text-xl font-bold text-foreground"
             >
               {letter}
             </span>
