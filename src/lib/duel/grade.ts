@@ -64,7 +64,7 @@ export function gradeSubmission(
   let reactionAvgMs: number | null = null;
   let correctCount: number | null = null;
   let errors: number | null = null;
-  let extra: Record<string, unknown> | null = null;
+  let extraDetail: Record<string, unknown> | null = null;
   let storedMs = ms;
 
   switch (puzzle.type) {
@@ -129,7 +129,7 @@ export function gradeSubmission(
       const distance = replay.distance ?? Number.MAX_SAFE_INTEGER;
       isCorrect = distance === 0;
       score = scoreTargetNumber(distance, ms, timeLimitMs);
-      extra = {
+      extraDetail = {
         value: replay.value,
         steps: replay.steps.map(formatStep),
       };
@@ -141,5 +141,5 @@ export function gradeSubmission(
     }
   }
 
-  return { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra, storedMs };
+  return { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra: extraDetail, storedMs };
 }
