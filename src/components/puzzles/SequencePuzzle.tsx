@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import {
+  SEQUENCE_COLS,
   SEQUENCE_FLASH_MS,
   SEQUENCE_GAP_MS,
   SEQUENCE_LEAD_IN_MS,
@@ -90,7 +91,7 @@ export function SequencePuzzle({
               aria-label={`Tile ${index + 1}`}
               onClick={() => handleTap(index)}
               disabled={playing || locked}
-              className={`h-[86px] w-[86px] rounded-xl border transition-colors ${
+              className={`h-[72px] w-[72px] rounded-xl border transition-colors ${
                 isLit
                   ? "border-primary bg-primary"
                   : isFlash

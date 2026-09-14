@@ -1,16 +1,17 @@
 import { SequenceGrid } from "@/components/duel/SequenceGrid";
 import { SequencePuzzle } from "@/components/puzzles/SequencePuzzle";
-import { randInt } from "@/lib/duel/random";
+import { shuffled } from "@/lib/duel/random";
 import {
+  SEQUENCE_COLS,
   SEQUENCE_LENGTH,
-  SEQUENCE_PLAYBACK_MS,
+  sequencePlaybackMs,
   type SequencePuzzleData,
 } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro example sequence — tiles 1, 5, 9, 3, 7, every time. */
-const EXAMPLE = [0, 4, 8, 2, 6];
+/** Fixed intro example sequence — seven tiles of the 4x4 grid, every time. */
+const EXAMPLE = [0, 5, 10, 15, 3, 6, 9];
 
 function IntroExample() {
   return (
@@ -18,7 +19,7 @@ function IntroExample() {
       <p className="text-center text-sm text-muted-foreground">
         Watch the tiles light up, then tap them back in the same order.
       </p>
-      <SequenceGrid order={EXAMPLE} size="sm" />
+      <SequenceGrid order={EXAMPLE} cols={SEQUENCE_COLS} size="sm" />
       <p className="text-xs text-muted-foreground">
         Your timer starts after the sequence has played.
       </p>
