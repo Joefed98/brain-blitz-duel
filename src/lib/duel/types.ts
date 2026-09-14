@@ -335,7 +335,7 @@ export const REACTION_FEEDBACK_MS = 1_000;
 /** Penalty recorded for a false start or a missed attempt. */
 export const REACTION_PENALTY_MS = 1_000;
 
-/** Colour Clash: a run of fifteen items across five colours. */
+/** Colour Clash: a run of eight items across five colours. */
 export const STROOP_ITEMS = 8;
 /** Every run holds at least this many of each instruction. */
 export const STROOP_MIN_PER_INSTRUCTION = 3;
