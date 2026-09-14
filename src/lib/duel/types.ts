@@ -365,7 +365,7 @@ export const ROTATION_COLS = 5;
 
 /** Number Hunt: twelve circles tapped in ascending order. */
 export const NUMHUNT_COUNT = 12;
-export const NUMHUNT_CIRCLE_PX = 52;
+export const NUMHUNT_CIRCLE_PX = 56;
 export const NUMHUNT_ERROR_PENALTY = 10;
 export const NUMHUNT_FLASH_MS = 200;
 
