@@ -114,10 +114,15 @@ export interface EquationPuzzleData {
 
 export type StroopColour = "RED" | "BLUE" | "GREEN" | "PURPLE" | "PINK";
 
+/** Which colour the player must tap for an item. */
+export type StroopInstruction = "ink" | "word";
+
 export interface StroopItem {
   word: StroopColour;
   /** Always different from `word`. */
   ink: StroopColour;
+  /** Read this to know which swatch counts as correct. */
+  instruction: StroopInstruction;
 }
 
 export interface StroopPuzzleData {
@@ -330,8 +335,12 @@ export const REACTION_FEEDBACK_MS = 1_000;
 /** Penalty recorded for a false start or a missed attempt. */
 export const REACTION_PENALTY_MS = 1_000;
 
-/** Colour Clash: a run of fifteen items across five colours. */
-export const STROOP_ITEMS = 15;
+/** Colour Clash: a run of eight items across five colours. */
+export const STROOP_ITEMS = 8;
+/** Every run holds at least this many of each instruction. */
+export const STROOP_MIN_PER_INSTRUCTION = 3;
+/** Never more than this many of the same instruction in a row. */
+export const STROOP_MAX_STREAK = 3;
 
 /** Spatial Memory: six tiles of a 5x5 grid, shown together before the clock starts. */
 export const SPATIAL_GRID_COLS = 5;
