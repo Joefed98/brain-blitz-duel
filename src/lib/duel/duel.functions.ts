@@ -2,34 +2,19 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+import { gradeSubmission, type SubmitExtra } from "./grade";
 import { puzzleDurationMs } from "./registry";
-import { buildRoomPuzzles, checkAnswer, generateRoomCode } from "./puzzles";
+import { buildRoomPuzzles, generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import {
-  scoreGoNoGo,
-  scoreNumberHunt,
-  scoreReaction,
-  scoreRound,
-  scoreStopWatch,
-  scoreStroop,
-  scoreWordMatch,
-} from "./scoring";
-import {
-  GONOGO_ITEMS,
   INACTIVE_AFTER_MISSED,
   INTRO_MS,
   MAX_PLAYERS,
   MIN_PLAYERS,
   NEXT_ROUND_AUTO_MS,
-  NUMHUNT_COUNT,
-  REACTION_PENALTY_MS,
   REVEAL_MS,
-  ROUND_MS,
   STANDINGS_MS,
-  STOPWATCH_MISS_MS,
-  STROOP_ITEMS,
   TOTAL_ROUNDS,
-  WORDMATCH_ITEMS,
   type DuelPhase,
   type DuelPlayerRow,
   type DuelRow,
@@ -453,11 +438,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export interface SubmitExtra {
-  reactionAvgMs?: number | undefined;
-  correctCount?: number | undefined;
-  errors?: number | undefined;
-}
+export type { SubmitExtra };
 
 /**
  * Checks the answer against the stored puzzle content and scores it on the
@@ -500,77 +481,8 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
     const puzzle: PuzzleData = mergePuzzle(pub, priv);
 
-    const extra = data.extra ?? {};
-    const answer = typeof data.answer === "string" ? data.answer.slice(0, 200) : "";
-    const ms = clamp(data.msRemaining, 0, ROUND_MS);
-
-    let isCorrect = false;
-    let score = 0;
-    let reactionAvgMs: number | null = null;
-    let correctCount: number | null = null;
-    let errors: number | null = null;
-    let storedMs = ms;
-
-    switch (puzzle.type) {
-      case "reaction": {
-        reactionAvgMs = clamp(extra.reactionAvgMs ?? REACTION_PENALTY_MS, 0, 5_000);
-        isCorrect = true;
-        score = scoreReaction(reactionAvgMs);
-        storedMs = 0;
-        break;
-      }
-      case "gonogo": {
-        correctCount = clamp(extra.correctCount ?? 0, 0, GONOGO_ITEMS);
-        reactionAvgMs =
-          extra.reactionAvgMs === undefined || extra.reactionAvgMs === null
-            ? null
-            : clamp(extra.reactionAvgMs, 0, 5_000);
-        isCorrect = correctCount >= GONOGO_ITEMS;
-        score = scoreGoNoGo(correctCount, reactionAvgMs);
-        storedMs = 0;
-        break;
-      }
-      case "stroop": {
-        correctCount = clamp(extra.correctCount ?? 0, 0, STROOP_ITEMS);
-        isCorrect = correctCount >= STROOP_ITEMS;
-        score = scoreStroop(correctCount, ms);
-        break;
-      }
-      case "wordmatch": {
-        // Checked here against the stored answers — the client never sees them.
-        const picks = answer.split(",").map((v) => Number.parseInt(v, 10));
-        correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
-        isCorrect = correctCount >= WORDMATCH_ITEMS;
-        score = scoreWordMatch(correctCount, ms);
-        break;
-      }
-      case "stopwatch": {
-        const distances = answer
-          .split(",")
-          .map((v) => Number.parseInt(v, 10))
-          .filter((v) => Number.isFinite(v))
-          .map((v) => clamp(v, 0, STOPWATCH_MISS_MS));
-        reactionAvgMs = distances.length
-          ? Math.round(distances.reduce((a, b) => a + b, 0) / distances.length)
-          : STOPWATCH_MISS_MS;
-        isCorrect = true;
-        score = scoreStopWatch(reactionAvgMs);
-        storedMs = 0;
-        break;
-      }
-      case "numhunt": {
-        const reached = Number.parseInt(answer.split(",")[0] ?? "0", 10);
-        errors = clamp(extra.errors ?? 0, 0, 99);
-        const finished = Number.isFinite(reached) && reached >= NUMHUNT_COUNT;
-        isCorrect = finished;
-        score = scoreNumberHunt(finished, ms, errors);
-        break;
-      }
-      default: {
-        isCorrect = answer.length > 0 && checkAnswer(puzzle, answer);
-        score = scoreRound(isCorrect, ms);
-      }
-    }
+    const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, storedMs } =
+      gradeSubmission(puzzle, data.answer, data.msRemaining, data.extra);
 
     const { error } = await client.from("round_results").insert({
       duel_id: room.id,
@@ -676,11 +588,7 @@ export const rematchFn = createServerFn({ method: "POST" })
     const host = players.find((p) => p.user_id === context.userId);
     const rest = players.filter((p) => p.user_id !== context.userId);
 
-    const fresh = await createRoomRow(
-      client,
-      context.userId,
-      host?.display_name ?? "Player",
-    );
+    const fresh = await createRoomRow(client, context.userId, host?.display_name ?? "Player");
     let slot = 2;
     for (const player of rest) {
       if (slot > MAX_PLAYERS) break;
