@@ -15,8 +15,7 @@ export function checkAnswer(puzzle: PuzzleData, answer: string): boolean {
  */
 export function buildDuelPuzzles(): { roundOrder: PuzzleType[]; puzzles: PuzzleData[] } {
   const categories = shuffled(puzzleCategories()).slice(0, TOTAL_ROUNDS);
-  const roundOrder: PuzzleType[] = ["stopwatch", "countup", "mirmatch"];
-  void categories; void pick; void typesInCategory;
+  const roundOrder = shuffled(categories.map((category) => pick(typesInCategory(category))));
   return {
     roundOrder,
     puzzles: roundOrder.map((type) => puzzleDef(type).generate()),
