@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
 import {
   SYMSCAN_CELLS,
+  SYMSCAN_COLS,
   SYMSCAN_MAX_TARGETS,
   SYMSCAN_MIN_TARGETS,
   type ArrowDir,
@@ -147,12 +148,15 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-6 gap-1.5">
+      <div
+        className="grid gap-1"
+        style={{ gridTemplateColumns: `repeat(${SYMSCAN_COLS}, minmax(0, 1fr))` }}
+      >
         {puzzle.cells.map((dir, index) => (
           <CellBox
             key={index}
             dir={dir}
-            size={48}
+            size={46}
             state={selected.includes(index) ? "selected" : "plain"}
             onClick={() => toggle(index)}
             disabled={locked}
@@ -189,7 +193,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
   return (
     <>
-      <div className="grid grid-cols-6 gap-1.5">
+      <div
+        className="grid gap-1"
+        style={{ gridTemplateColumns: `repeat(${SYMSCAN_COLS}, minmax(0, 1fr))` }}
+      >
         {puzzle.cells.map((dir, index) => {
           const isTarget = puzzle.targets.includes(index);
           const isSelected = selected.includes(index);
@@ -200,7 +207,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             : isSelected
               ? "wrong"
               : "plain";
-          return <CellBox key={index} dir={dir} size={44} state={state} />;
+          return <CellBox key={index} dir={dir} size={42} state={state} />;
         })}
       </div>
       <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-4">
@@ -217,15 +224,12 @@ function adjacentDirs(target: ArrowDir): ArrowDir[] {
   return [DIRECTIONS[(i + 1) % 8]!, DIRECTIONS[(i + 7) % 8]!];
 }
 
-/** Non-target cells are weighted towards the two neighbouring directions. */
-function distractorPool(target: ArrowDir): ArrowDir[] {
+/** Six in ten non-target cells use one of the two neighbouring directions. */
+const ADJACENT_SHARE = 0.6;
+
+function nonAdjacentDirs(target: ArrowDir): ArrowDir[] {
   const adjacent = adjacentDirs(target);
-  const pool: ArrowDir[] = [];
-  DIRECTIONS.filter((d) => d !== target).forEach((dir) => {
-    const weight = adjacent.includes(dir) ? 4 : 1;
-    for (let i = 0; i < weight; i++) pool.push(dir);
-  });
-  return pool;
+  return DIRECTIONS.filter((d) => d !== target && !adjacent.includes(d));
 }
 
 export function buildSymbolScan(): SymbolScanPuzzleData {
@@ -234,9 +238,10 @@ export function buildSymbolScan(): SymbolScanPuzzleData {
   const targets = shuffled(Array.from({ length: SYMSCAN_CELLS }, (_, i) => i))
     .slice(0, count)
     .sort((a, b) => a - b);
-  const pool = distractorPool(target);
+  const near = adjacentDirs(target);
+  const far = nonAdjacentDirs(target);
   const cells = Array.from({ length: SYMSCAN_CELLS }, (_, i) =>
-    targets.includes(i) ? target : pick(pool),
+    targets.includes(i) ? target : Math.random() < ADJACENT_SHARE ? pick(near) : pick(far),
   );
   return { type: "symscan", target, cells, targets };
 }
