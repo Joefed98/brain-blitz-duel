@@ -151,11 +151,7 @@ async function setPhase(
     .eq("phase", from);
 }
 
-async function createDuelRow(
-  client: any,
-  userId: string,
-  displayName: string,
-): Promise<DuelRow> {
+async function createDuelRow(client: any, userId: string, displayName: string): Promise<DuelRow> {
   for (let attempt = 0; attempt < 8; attempt++) {
     const { roundOrder, puzzles } = buildDuelPuzzles();
     const split = puzzles.map(splitPuzzle);

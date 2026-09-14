@@ -23,12 +23,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   if (puzzle.type !== "pctsprint") return null;
   return (
-    <NumberEntry
-      label="Percentages"
-      resetKey={puzzle.question}
-      locked={locked}
-      onSubmit={onSubmit}
-    >
+    <NumberEntry label="Percentages" resetKey={puzzle.question} locked={locked} onSubmit={onSubmit}>
       <div className="rounded-2xl bg-card px-5 py-7">
         <p className="text-center font-mono text-2xl font-bold tabular-nums text-foreground">
           {puzzle.question}

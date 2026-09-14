@@ -170,9 +170,10 @@ export function buildCountUp(): CountUpPuzzleData {
   }
 
   // One shape per grid cell, jittered inside it, so nothing ever overlaps.
-  const cells = shuffled(
-    Array.from({ length: COUNTUP_COLS * COUNTUP_ROWS }, (_, i) => i),
-  ).slice(0, slots.length);
+  const cells = shuffled(Array.from({ length: COUNTUP_COLS * COUNTUP_ROWS }, (_, i) => i)).slice(
+    0,
+    slots.length,
+  );
 
   const shapes: CountUpShape[] = shuffled(slots).map((slot, index) => {
     const cell = cells[index]!;

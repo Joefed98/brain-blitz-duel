@@ -3,25 +3,14 @@ import { useEffect, useState } from "react";
 import { pick, shuffled } from "@/lib/duel/random";
 import type { MirrorPuzzleData } from "@/lib/duel/types";
 
-import {
-  SHAPE_BANK,
-  ShapeSvg,
-  mirror,
-  rotations,
-  shapeKey,
-} from "./rotationMatch";
+import { SHAPE_BANK, ShapeSvg, mirror, rotations, shapeKey } from "./rotationMatch";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Fixed intro example — an L-shape with its mirror highlighted, every time. */
 const EXAMPLE_TARGET = [0, 1, 2, 3, 5, 6];
 const EXAMPLE_MIRROR = mirror(EXAMPLE_TARGET);
 const EXAMPLE_ROTS = rotations(EXAMPLE_TARGET);
-const EXAMPLE_CANDIDATES = [
-  EXAMPLE_ROTS[1]!,
-  EXAMPLE_MIRROR,
-  EXAMPLE_ROTS[2]!,
-  EXAMPLE_ROTS[3]!,
-];
+const EXAMPLE_CANDIDATES = [EXAMPLE_ROTS[1]!, EXAMPLE_MIRROR, EXAMPLE_ROTS[2]!, EXAMPLE_ROTS[3]!];
 
 function IntroExample() {
   return (
@@ -43,9 +32,7 @@ function IntroExample() {
           </div>
         ))}
       </div>
-      <p className="text-center text-xs text-muted-foreground">
-        Tap once to lock your answer.
-      </p>
+      <p className="text-center text-xs text-muted-foreground">Tap once to lock your answer.</p>
     </div>
   );
 }
@@ -56,9 +43,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6">
       <div className="flex flex-col items-center gap-2">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          Target
-        </span>
+        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
         <ShapeSvg cells={puzzle.target} size={88} tone="gold" />
       </div>
 

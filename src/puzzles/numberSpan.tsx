@@ -31,9 +31,7 @@ function IntroExample() {
         Memorise the digits, then type them back in order.
       </p>
       <Digits value={EXAMPLE} size="sm" />
-      <p className="text-xs text-muted-foreground">
-        Your timer starts when the numbers disappear.
-      </p>
+      <p className="text-xs text-muted-foreground">Your timer starts when the numbers disappear.</p>
     </div>
   );
 }
@@ -75,9 +73,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
       onSubmit={onSubmit}
     >
       <div className="flex h-24 items-center justify-center rounded-2xl bg-card px-6">
-        <p className="font-mono text-sm text-muted-foreground">
-          {NUMSPAN_LENGTH} digits, in order
-        </p>
+        <p className="font-mono text-sm text-muted-foreground">{NUMSPAN_LENGTH} digits, in order</p>
       </div>
     </NumberEntry>
   );

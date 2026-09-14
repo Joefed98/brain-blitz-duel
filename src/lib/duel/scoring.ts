@@ -77,11 +77,7 @@ export function scoreStopWatch(averageDistanceMs: number): number {
 }
 
 /** Number Hunt: a standard round score, less 5 points per wrong tap. */
-export function scoreNumberHunt(
-  finished: boolean,
-  msRemaining: number,
-  errors: number,
-): number {
+export function scoreNumberHunt(finished: boolean, msRemaining: number, errors: number): number {
   if (!finished) return 0;
   const raw = BASE_POINTS + speedBonus(msRemaining) - NUMHUNT_ERROR_PENALTY * errors;
   return Math.round(clamp(raw, 0, MAX_ROUND_SCORE));
@@ -146,11 +142,7 @@ export function duelOutcome(
   return "draw";
 }
 
-export function roundBreakdown(
-  results: RoundResultRow[],
-  mySlot: number,
-  opponentSlot: number,
-) {
+export function roundBreakdown(results: RoundResultRow[], mySlot: number, opponentSlot: number) {
   return Array.from({ length: TOTAL_ROUNDS }, (_, i) => {
     const round = i + 1;
     return {

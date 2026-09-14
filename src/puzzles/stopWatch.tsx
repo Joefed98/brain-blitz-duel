@@ -20,8 +20,8 @@ export function stopWatchDurationMs(): number {
 
 /** Where the marker sits (0–1) this many ms into an attempt. */
 export function markerAt(elapsed: number): number {
-  const cycle = ((elapsed % (STOPWATCH_SWEEP_MS * 2)) + STOPWATCH_SWEEP_MS * 2) %
-    (STOPWATCH_SWEEP_MS * 2);
+  const cycle =
+    ((elapsed % (STOPWATCH_SWEEP_MS * 2)) + STOPWATCH_SWEEP_MS * 2) % (STOPWATCH_SWEEP_MS * 2);
   const phase = cycle / STOPWATCH_SWEEP_MS;
   return phase <= 1 ? phase : 2 - phase;
 }
