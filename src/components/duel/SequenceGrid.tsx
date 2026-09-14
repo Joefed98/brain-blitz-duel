@@ -1,7 +1,7 @@
 interface SequenceGridProps {
   /** Tile indices in the order they are played / tapped. */
   order: number[];
-  /** Grid width — 3 for Sequence Recall, 4 for Spatial Memory. */
+  /** Grid width — 4 for the recall games, 5 for Spatial Memory. */
   cols?: number;
   tone?: "primary" | "opponent" | "warn";
   size?: "xs" | "sm" | "md";
@@ -11,25 +11,23 @@ interface SequenceGridProps {
   wrong?: number[];
 }
 
+/** Tile size for each grid width, so 4x4 and 5x5 both fit a 390px phone. */
+const BOXES: Record<"xs" | "sm" | "md", Record<number, string>> = {
+  xs: { 3: "h-9 w-9 text-xs", 4: "h-8 w-8 text-[10px]", 5: "h-7 w-7 text-[10px]" },
+  sm: { 3: "h-14 w-14 text-base", 4: "h-11 w-11 text-sm", 5: "h-9 w-9 text-xs" },
+  md: { 3: "h-[68px] w-[68px] text-lg", 4: "h-14 w-14 text-base", 5: "h-12 w-12 text-sm" },
+};
+
 /** Static square grid with marked tiles, optionally numbered in order. */
 export function SequenceGrid({
   order,
-  cols = 3,
+  cols = 4,
   tone = "primary",
   size = "md",
   numbered = true,
   wrong = [],
 }: SequenceGridProps) {
-  const box =
-    size === "xs"
-      ? "h-9 w-9 text-xs"
-      : cols >= 4
-        ? size === "sm"
-          ? "h-11 w-11 text-sm"
-          : "h-14 w-14 text-base"
-        : size === "sm"
-          ? "h-14 w-14 text-base"
-          : "h-[68px] w-[68px] text-lg";
+  const box = BOXES[size][Math.min(Math.max(cols, 3), 5)] ?? BOXES[size][4]!;
   const active =
     tone === "warn"
       ? "border-warn/60 bg-warn/15 text-warn"

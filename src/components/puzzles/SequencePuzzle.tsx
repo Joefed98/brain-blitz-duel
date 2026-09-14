@@ -76,8 +76,11 @@ export function SequencePuzzle({
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        {Array.from({ length: 9 }, (_, index) => {
+      <div
+        className="grid gap-2.5"
+        style={{ gridTemplateColumns: `repeat(${SEQUENCE_COLS}, minmax(0, 1fr))` }}
+      >
+        {Array.from({ length: SEQUENCE_COLS * SEQUENCE_COLS }, (_, index) => {
           const isLit = lit === index;
           const isFlash = flash === index;
           return (
