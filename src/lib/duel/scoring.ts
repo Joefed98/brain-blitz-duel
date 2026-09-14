@@ -4,6 +4,8 @@ import {
   ROUND_MS,
   STOPWATCH_MAX_DIST_MS,
   STROOP_ITEMS,
+  TARGET_FAR_POINTS,
+  TARGET_NEAR_POINTS,
   TOTAL_ROUNDS,
   WORDMATCH_ITEMS,
   type DuelPlayerRow,
@@ -21,10 +23,11 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-/** 0–50 for how much of the 30 seconds was left. */
-export function speedBonus(msRemaining: number): number {
-  const clamped = clamp(msRemaining, 0, ROUND_MS);
-  return Math.round((MAX_SPEED_BONUS * clamped) / ROUND_MS);
+/** 0–50 for how much of the type's own time limit was left. */
+export function speedBonus(msRemaining: number, timeLimitMs: number = ROUND_MS): number {
+  const limit = timeLimitMs > 0 ? timeLimitMs : ROUND_MS;
+  const clamped = clamp(msRemaining, 0, limit);
+  return Math.round((MAX_SPEED_BONUS * clamped) / limit);
 }
 
 /** 0–50 from an average reaction time: 50 at 150 ms, 0 at 650 ms or slower. */
@@ -33,9 +36,28 @@ export function reactionBonus(averageMs: number): number {
 }
 
 /** Correct: 100 plus the speed bonus. Wrong / timeout: 0. */
-export function scoreRound(isCorrect: boolean, msRemaining: number): number {
+export function scoreRound(
+  isCorrect: boolean,
+  msRemaining: number,
+  timeLimitMs: number = ROUND_MS,
+): number {
   if (!isCorrect) return 0;
-  return BASE_POINTS + speedBonus(msRemaining);
+  return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
+}
+
+/**
+ * Target Number: an exact hit scores the standard 100 plus the speed bonus,
+ * a near miss scores a flat amount, anything further away scores nothing.
+ */
+export function scoreTargetNumber(
+  distance: number,
+  msRemaining: number,
+  timeLimitMs: number,
+): number {
+  if (distance === 0) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
+  if (distance <= 5) return TARGET_NEAR_POINTS;
+  if (distance <= 10) return TARGET_FAR_POINTS;
+  return 0;
 }
 
 /** Reaction Time only: a run is never wrong, so it always scores at least 100. */
