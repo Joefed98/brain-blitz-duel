@@ -158,12 +158,6 @@ const WRONG_LINE: Record<MirrorCandidateKind, string> = {
 /*  Generation                                                                 */
 /* -------------------------------------------------------------------------- */
 
-function colourise(cells: number[], colours: StroopColour[]): MirrorShape {
-  const palette = shuffled(PALETTE).slice(0, colours.length);
-  void palette;
-  return { cells, colours };
-}
-
 /** A random asymmetric colouring: two or three colours, all of them used. */
 function randomColouring(cells: number[]): MirrorShape | null {
   const count = randInt(2, 3);
@@ -173,7 +167,7 @@ function randomColouring(cells: number[]): MirrorShape | null {
   const used = new Set(colours);
   if (used.size !== count) return null;
 
-  const shape = colourise(cells, colours);
+  const shape: MirrorShape = { cells, colours };
   const pts = toPts(shape);
   const key = shapeKey(normalise(pts));
   // Asymmetric: the colouring must survive neither a flip nor a turn unchanged.
