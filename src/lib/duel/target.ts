@@ -192,6 +192,8 @@ export function decodeSteps(answer: string): RawStep[] {
     });
 }
 
+/** Written with a proper minus sign for the screen. */
 export function formatStep(step: TargetStep): string {
-  return `${step.a} ${step.operator} ${step.b} = ${step.result}`;
+  const symbol = step.operator === "-" ? "\u2212" : step.operator;
+  return `${step.a} ${symbol} ${step.b} = ${step.result}`;
 }

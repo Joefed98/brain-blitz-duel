@@ -281,7 +281,7 @@ function TargetStage({
           disabled={isLockedNow}
           className="press tap-target rounded-xl bg-primary px-6 font-display text-sm font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
         >
-          Lock{away !== null && away > 0 ? ` · ${away} away` : ""}
+          Lock{steps.length > 0 && away !== null && away > 0 ? ` · ${away} away` : ""}
         </button>
       </div>
 
