@@ -338,7 +338,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   const pickedKind = puzzle.kinds?.[picked];
 
   return (
-    <>
+    <div className="flex flex-col items-center gap-3">
       <div
         className="transition-transform duration-1000 ease-in-out"
         style={{ transform: flipped ? FLIP_TRANSFORM[puzzle.axis] : "none" }}
@@ -378,7 +378,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
         !myCorrect &&
         pickedKind && <p className="text-center text-sm text-warn">{WRONG_LINE[pickedKind]}</p>
       )}
-    </>
+    </div>
   );
 }
 
