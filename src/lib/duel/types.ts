@@ -191,11 +191,13 @@ export interface HuntSpot {
   /** Percentages of the puzzle area's width and height. */
   x: number;
   y: number;
+  /** The two-digit number shown in the circle. */
+  n: number;
 }
 
 export interface NumberHuntPuzzleData {
   type: "numhunt";
-  /** Twelve positions; index 0 is the circle labelled 1. */
+  /** Twelve positions in ascending value order; index 0 is the smallest number. */
   spots: HuntSpot[];
 }
 
@@ -363,7 +365,7 @@ export const ROTATION_COLS = 5;
 
 /** Number Hunt: twelve circles tapped in ascending order. */
 export const NUMHUNT_COUNT = 12;
-export const NUMHUNT_CIRCLE_PX = 52;
+export const NUMHUNT_CIRCLE_PX = 56;
 export const NUMHUNT_ERROR_PENALTY = 10;
 export const NUMHUNT_FLASH_MS = 200;
 

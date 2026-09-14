@@ -35,12 +35,12 @@ export function parseRun(answer: string | null) {
 }
 
 const EXAMPLE_SPOTS: HuntSpot[] = [
-  { x: 20, y: 22 },
-  { x: 74, y: 32 },
-  { x: 38, y: 62 },
-  { x: 82, y: 74 },
-  { x: 16, y: 84 },
-  { x: 54, y: 12 },
+  { x: 20, y: 22, n: 12 },
+  { x: 74, y: 32, n: 34 },
+  { x: 38, y: 62, n: 57 },
+  { x: 82, y: 74, n: 68 },
+  { x: 16, y: 84, n: 81 },
+  { x: 54, y: 12, n: 95 },
 ];
 
 function Circle({
@@ -74,7 +74,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        Tap the numbers in order, 1 to 12, as fast as you can.
+        Tap the numbers in order, smallest to largest, as fast as you can.
       </p>
       <div className="relative h-40 w-56">
         {EXAMPLE_SPOTS.map((spot, index) => (
@@ -83,10 +83,10 @@ function IntroExample() {
             className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
           >
-            <Circle n={index + 1} done={index < 3} size={34} />
+            <Circle n={spot.n} done={index < 3} size={38} />
           </span>
         ))}
-        {/* Finger pointing at 4 — drawn inline, never a Unicode glyph. */}
+        {/* Finger pointing at 68 — drawn inline, never a Unicode glyph. */}
         <svg
           className="absolute text-primary"
           style={{ left: `${EXAMPLE_SPOTS[3]!.x + 6}%`, top: `${EXAMPLE_SPOTS[3]!.y}%` }}
@@ -150,7 +150,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     <div className="flex flex-1 flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Next: {Math.min(next + 1, spots.length)}
+          Next: {spots[Math.min(next, spots.length - 1)]?.n ?? ""}
         </span>
         <span className="font-mono text-xs text-muted-foreground">
           {errors} {errors === 1 ? "error" : "errors"}
@@ -162,13 +162,13 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
           <button
             key={index}
             type="button"
-            aria-label={`Circle ${index + 1}`}
+            aria-label={`Circle ${spot.n}`}
             disabled={locked}
             onClick={() => handleTap(index)}
             className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
           >
-            <Circle n={index + 1} done={index < next} wrong={flash === index} />
+            <Circle n={spot.n} done={index < next} wrong={flash === index} />
           </button>
         ))}
       </div>
@@ -194,7 +194,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
           >
-            <Circle n={index + 1} done size={40} />
+            <Circle n={spot.n} done size={44} />
           </span>
         ))}
       </div>
@@ -204,11 +204,18 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             ? `Finished with ${errors} ${errors === 1 ? "error" : "errors"} · ${(
                 elapsedMs / 1000
               ).toFixed(1)}s`
-            : `Did not finish · reached ${Math.max(reached, 0)}`}
+            : `Did not finish · reached ${Math.max(reached, 0)} of ${puzzle.spots.length}`}
         </p>
       </div>
     </>
   );
+}
+
+/** Twelve distinct two-digit numbers, ascending. */
+function pickValues(): number[] {
+  const pool = new Set<number>();
+  while (pool.size < NUMHUNT_COUNT) pool.add(10 + Math.floor(Math.random() * 90));
+  return [...pool].sort((a, b) => a - b);
 }
 
 /**
@@ -216,6 +223,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
  * identically. No two circles touch, and consecutive numbers are never close.
  */
 export function buildNumberHunt(): NumberHuntPuzzleData {
+  const values = pickValues();
   for (let attempt = 0; attempt < 400; attempt++) {
     const spots: HuntSpot[] = [];
     let ok = true;
@@ -223,8 +231,9 @@ export function buildNumberHunt(): NumberHuntPuzzleData {
       let placed = false;
       for (let tries = 0; tries < 300; tries++) {
         const spot: HuntSpot = {
-          x: Math.round(10 + Math.random() * 80),
-          y: Math.round(9 + Math.random() * 82),
+          x: Math.round(11 + Math.random() * 78),
+          y: Math.round(10 + Math.random() * 80),
+          n: values[i]!,
         };
         if (spots.some((s) => distancePx(s, spot) < MIN_GAP_PX)) continue;
         const previous = spots[i - 1];
@@ -246,6 +255,7 @@ export function buildNumberHunt(): NumberHuntPuzzleData {
     spots: Array.from({ length: NUMHUNT_COUNT }, (_, i) => ({
       x: 18 + (i % 3) * 32,
       y: 12 + Math.floor(i / 3) * 25,
+      n: values[i]!,
     })),
   };
 }
