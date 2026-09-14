@@ -453,11 +453,8 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export interface SubmitExtra {
-  reactionAvgMs?: number | undefined;
-  correctCount?: number | undefined;
-  errors?: number | undefined;
-}
+export type { SubmitExtra } from "./grade";
+
 
 /**
  * Checks the answer against the stored puzzle content and scores it on the
