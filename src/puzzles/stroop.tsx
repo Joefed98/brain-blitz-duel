@@ -94,7 +94,7 @@ function IntroExample() {
         <MiniExample instruction="word" highlight="BLUE" />
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Eight in a row. Every one must be right to earn the speed bonus.
+        Twelve in a row. Every one must be right to earn the speed bonus.
       </p>
     </div>
   );
