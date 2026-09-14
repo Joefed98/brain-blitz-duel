@@ -63,7 +63,7 @@ function OperatorSlot({ value, onClick }: { value: Operator | null; onClick?: ()
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`flex h-10 w-10 items-center justify-center rounded-lg border font-mono text-xl font-bold ${
+      className={`flex h-11 w-11 items-center justify-center rounded-lg border font-mono text-xl font-bold ${
         value
           ? "border-primary/70 bg-primary/15 text-primary"
           : "border-dashed border-border bg-card text-muted-foreground"
