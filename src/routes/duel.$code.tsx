@@ -182,8 +182,9 @@ function DuelScreen() {
   // End of the puzzle phase. Most types run for 30s; Reaction Time has its own length.
   const deadline = puzzleStart === null ? null : puzzleStart + puzzleDurationMs(puzzle);
   const showTimer = puzzleShowsTimer(puzzle);
-  const clockDeadline = clockStart === null ? null : clockStart + ROUND_MS;
-  const msRemaining = clockDeadline === null ? ROUND_MS : Math.max(0, clockDeadline - now);
+  const timeLimitMs = puzzleTimeLimitMs(puzzle);
+  const clockDeadline = clockStart === null ? null : clockStart + timeLimitMs;
+  const msRemaining = clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - now);
 
   const mySlot = me?.player_slot ?? 0;
   const opponentSlot = opponent?.player_slot ?? (mySlot === 1 ? 2 : 1);
@@ -529,7 +530,7 @@ function DuelScreen() {
           <div className="flex justify-center">
             <TimerRing
               msRemaining={myResult ? 0 : msRemaining}
-              totalMs={ROUND_MS}
+              totalMs={timeLimitMs}
               active={clockActive && !myResult}
             />
           </div>
