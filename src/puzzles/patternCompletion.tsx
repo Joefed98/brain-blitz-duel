@@ -187,13 +187,16 @@ function otherValue(attr: Attribute, cell: PatternCell): GlyphShape | StroopColo
   return pick(COUNTS.filter((c) => c !== cell.count));
 }
 
+function sameCell(a: PatternCell, b: PatternCell): boolean {
+  return a.shape === b.shape && a.colour === b.colour && a.count === b.count;
+}
+
 export function buildPatternCompletion(): PatternPuzzleData {
   const [rowAttr, colAttr] = shuffled(ATTRIBUTES);
   const thirdAttr = ATTRIBUTES.find((a) => a !== rowAttr && a !== colAttr)!;
   const rowValues = valuesFor(rowAttr!);
   const colValues = valuesFor(colAttr!);
   const thirdValues = valuesFor(thirdAttr);
-  const latin = Math.random() < 0.5;
 
   const cells: PatternCell[] = [];
   for (let r = 0; r < 3; r++) {
@@ -201,30 +204,38 @@ export function buildPatternCompletion(): PatternPuzzleData {
       let cell: PatternCell = { shape: "circle", colour: "RED", count: 1 };
       cell = withAttribute(cell, rowAttr!, rowValues[r]!);
       cell = withAttribute(cell, colAttr!, colValues[c]!);
-      cell = withAttribute(
-        cell,
-        thirdAttr,
-        latin ? thirdValues[(r + c) % 3]! : thirdValues[0]!,
-      );
+      // The third attribute is always a Latin square: never repeated in a row or column.
+      cell = withAttribute(cell, thirdAttr, thirdValues[(r + c) % 3]!);
       cells.push(cell);
     }
   }
 
   const answer = cells[8]!;
-  // Each distractor differs from the answer in exactly one attribute.
-  const distractors = ATTRIBUTES.map((attr) =>
-    withAttribute(answer, attr, otherValue(attr, answer)),
-  );
-  const options = shuffled([answer, ...distractors]);
-  const correctIndex = options.findIndex(
-    (o) => o.shape === answer.shape && o.colour === answer.colour && o.count === answer.count,
-  );
+  // Two distractors differ from the answer in one attribute, one differs in two.
+  let options: PatternCell[] = [];
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const [oneA, oneB, extra] = shuffled(ATTRIBUTES);
+    const near = [oneA!, oneB!].map((attr) =>
+      withAttribute(answer, attr, otherValue(attr, answer)),
+    );
+    let far = withAttribute(answer, oneA!, otherValue(oneA!, answer));
+    far = withAttribute(far, extra!, otherValue(extra!, answer));
+    const candidates = [...near, far];
+    const all = [answer, ...candidates];
+    const distinct = all.every((cell, i) => all.findIndex((o) => sameCell(o, cell)) === i);
+    if (!distinct) continue;
+    options = shuffled(all);
+    break;
+  }
+  if (options.length === 0) {
+    options = shuffled([
+      answer,
+      ...ATTRIBUTES.map((attr) => withAttribute(answer, attr, otherValue(attr, answer))),
+    ]);
+  }
+  const correctIndex = options.findIndex((o) => sameCell(o, answer));
 
-  const rule = `${LABEL[rowAttr!]} changes by row, ${LABEL[colAttr!].toLowerCase()} by column${
-    latin
-      ? `, and ${LABEL[thirdAttr].toLowerCase()} never repeats in a row or column`
-      : `, while ${LABEL[thirdAttr].toLowerCase()} stays the same`
-  }.`;
+  const rule = `${LABEL[rowAttr!]} changes by row, ${LABEL[colAttr!].toLowerCase()} by column, and ${LABEL[thirdAttr].toLowerCase()} never repeats in a row or column.`;
 
   return { type: "patcomp", cells, candidates: options, correctIndex, rule };
 }
