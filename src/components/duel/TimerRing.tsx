@@ -20,13 +20,18 @@ function format(ms: number): string {
   return `${Math.floor(clamped / 1000)}.${Math.floor((clamped % 1000) / 100)}`;
 }
 
-/** Countdown ring: gold, amber under 10s, red under 5s with a soft tick. */
+/**
+ * Countdown ring: gold, amber with a third of the time left, red with a sixth
+ * left — both measured against this puzzle type's own limit. The last three
+ * seconds tick.
+ */
 export function TimerRing({ msRemaining, totalMs, active }: TimerRingProps) {
   const reduced = useReducedMotion();
   const lastTick = useRef(-1);
   const seconds = msRemaining / 1000;
-  const danger = active && seconds <= 5;
-  const warn = active && !danger && seconds <= 10;
+  const limit = totalMs > 0 ? totalMs : 1;
+  const danger = active && msRemaining <= limit / 6;
+  const warn = active && !danger && msRemaining <= limit / 3;
 
   useEffect(() => {
     if (!active) return;

@@ -196,6 +196,7 @@ export const countUpPuzzle: PuzzleDefinition = {
   key: "countup",
   name: "Count Up",
   category: "attention",
+  timeLimitMs: 30_000,
   generate: buildCountUp,
   check: (answer, puzzle) => {
     if (puzzle.type !== "countup") return false;

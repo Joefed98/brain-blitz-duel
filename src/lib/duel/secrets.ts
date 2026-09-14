@@ -8,7 +8,7 @@ import type { PatternCell, PuzzleData, PuzzleType } from "./types";
 const SECRET_KEYS: Record<PuzzleType, string[]> = {
   anagram: ["word"],
   oddword: ["odd", "theme"],
-  arithmetic: ["answer"],
+  target: ["solution"],
   numseq: ["answer", "rule"],
   missing: ["word"],
   equation: ["operators"],

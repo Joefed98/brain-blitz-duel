@@ -205,6 +205,7 @@ export const reactionPuzzle: PuzzleDefinition = {
   key: "reaction",
   name: "Reaction Time",
   category: "speed",
+  timeLimitMs: 30_000,
   generate: () =>
     ({
       type: "reaction",

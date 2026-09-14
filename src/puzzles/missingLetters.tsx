@@ -178,6 +178,7 @@ export const missingLettersPuzzle: PuzzleDefinition = {
   key: "missing",
   name: "Missing Letters",
   category: "word",
+  timeLimitMs: 30_000,
   generate: buildMissingLetters,
   check: (answer, puzzle) =>
     puzzle.type === "missing" && answer.trim().toUpperCase() === puzzle.word.trim().toUpperCase(),

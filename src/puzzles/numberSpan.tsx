@@ -146,6 +146,7 @@ export const numberSpanPuzzle: PuzzleDefinition = {
   key: "numspan",
   name: "Number Span",
   category: "memory",
+  timeLimitMs: 30_000,
   generate: buildNumberSpan,
   check: (answer, puzzle) => {
     if (puzzle.type !== "numspan") return false;

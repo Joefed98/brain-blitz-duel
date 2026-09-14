@@ -242,6 +242,7 @@ export const stroopPuzzle: PuzzleDefinition = {
   key: "stroop",
   name: "Colour Clash",
   category: "attention",
+  timeLimitMs: 30_000,
   generate: buildStroop,
   // Scored from how many items were right, not from a single answer.
   check: () => true,

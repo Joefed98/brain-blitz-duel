@@ -1,5 +1,4 @@
 import { anagramPuzzle } from "@/puzzles/anagram";
-import { arithmeticPuzzle } from "@/puzzles/arithmetic";
 import { chainCalculationPuzzle } from "@/puzzles/chainCalculation";
 import { countUpPuzzle } from "@/puzzles/countUp";
 import { equationPuzzle } from "@/puzzles/equation";
@@ -21,6 +20,7 @@ import { spatialMemoryPuzzle } from "@/puzzles/spatialMemory";
 import { stopWatchPuzzle } from "@/puzzles/stopWatch";
 import { stroopPuzzle } from "@/puzzles/stroop";
 import { symbolScanPuzzle } from "@/puzzles/symbolScan";
+import { targetNumberPuzzle } from "@/puzzles/targetNumber";
 import { wordMatchPuzzle } from "@/puzzles/wordMatch";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -31,7 +31,7 @@ export const PUZZLE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   anagram: anagramPuzzle,
   oddword: oddWordPuzzle,
   missing: missingLettersPuzzle,
-  arithmetic: arithmeticPuzzle,
+  target: targetNumberPuzzle,
   numseq: numberSequencePuzzle,
   equation: equationPuzzle,
   chaincalc: chainCalculationPuzzle,
@@ -72,6 +72,17 @@ export function typesInCategory(category: PuzzleCategory): PuzzleType[] {
   return PUZZLE_TYPES.filter((t) => PUZZLE_REGISTRY[t].category === category);
 }
 
+/** The clock length for a puzzle type (30s unless the type says otherwise). */
+export function typeTimeLimitMs(type: PuzzleType): number {
+  return puzzleDef(type).timeLimitMs ?? ROUND_MS;
+}
+
+/** The clock length for a specific puzzle. */
+export function puzzleTimeLimitMs(puzzle: PuzzleData | undefined): number {
+  if (!puzzle) return ROUND_MS;
+  return typeTimeLimitMs(puzzle.type);
+}
+
 /** Preparation time before a puzzle's clock starts (0 for most types). */
 export function puzzlePrepMs(puzzle: PuzzleData | undefined): number {
   if (!puzzle) return 0;
@@ -82,7 +93,7 @@ export function puzzlePrepMs(puzzle: PuzzleData | undefined): number {
 export function puzzleDurationMs(puzzle: PuzzleData | undefined): number {
   if (!puzzle) return ROUND_MS;
   const def = puzzleDef(puzzle.type);
-  return def.durationMs?.(puzzle) ?? puzzlePrepMs(puzzle) + ROUND_MS;
+  return def.durationMs?.(puzzle) ?? puzzlePrepMs(puzzle) + puzzleTimeLimitMs(puzzle);
 }
 
 export function puzzleShowsTimer(puzzle: PuzzleData | undefined): boolean {

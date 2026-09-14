@@ -1,7 +1,7 @@
 export type PuzzleType =
   | "anagram"
   | "oddword"
-  | "arithmetic"
+  | "target"
   | "numseq"
   | "sequence"
   | "reverse"
@@ -40,10 +40,22 @@ export interface OddWordPuzzleData {
   odd: string;
 }
 
-export interface ArithmeticPuzzleData {
-  type: "arithmetic";
-  expression: string;
-  answer: number;
+/** One combining step: two values and an operator, giving a new value. */
+export interface TargetStep {
+  a: number;
+  b: number;
+  operator: Operator;
+  result: number;
+}
+
+export interface TargetNumberPuzzleData {
+  type: "target";
+  /** The six starting tiles, in the order both players see them. */
+  tiles: number[];
+  /** The three-digit number to reach exactly. */
+  target: number;
+  /** One valid solution, kept server-side until the reveal. */
+  solution: TargetStep[];
 }
 
 export interface NumberSequencePuzzleData {
@@ -209,7 +221,7 @@ export interface NumberHuntPuzzleData {
 export type PuzzleData =
   | AnagramPuzzleData
   | OddWordPuzzleData
-  | ArithmeticPuzzleData
+  | TargetNumberPuzzleData
   | NumberSequencePuzzleData
   | SequencePuzzleData
   | OddShapePuzzleData
@@ -286,11 +298,18 @@ export interface RoundResultRow {
   correct_count: number | null;
   /** Number Hunt rounds only: how many wrong taps the player made. */
   errors: number | null;
+  /** Per-type detail — Target Number stores the value reached and the steps. */
+  extra: Record<string, unknown> | null;
   score: number;
   submitted_at: string;
 }
 
 export const ROUND_MS = 30_000;
+/** Target Number gets a full minute. */
+export const TARGET_TIME_MS = 60_000;
+/** Target Number: how close a miss still earns something. */
+export const TARGET_NEAR_POINTS = 50;
+export const TARGET_FAR_POINTS = 25;
 /** Six rounds, one from each puzzle category. */
 export const TOTAL_ROUNDS = 6;
 /** A room holds two to ten players; two plays as the classic duel. */

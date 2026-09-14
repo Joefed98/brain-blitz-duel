@@ -220,6 +220,7 @@ export const stopWatchPuzzle: PuzzleDefinition = {
   key: "stopwatch",
   name: "Stop Watch",
   category: "speed",
+  timeLimitMs: 30_000,
   generate: buildStopWatch,
   // Scored from the average distance, not from correctness.
   check: () => true,

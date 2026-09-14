@@ -176,6 +176,7 @@ export const wordMatchPuzzle: PuzzleDefinition = {
   key: "wordmatch",
   name: "Word Match",
   category: "word",
+  timeLimitMs: 30_000,
   generate: buildWordMatch,
   // Scored on the server from how many of the eight items were right.
   check: () => true,

@@ -1,4 +1,6 @@
 import { checkAnswer } from "./puzzles";
+import { puzzleTimeLimitMs } from "./registry";
+import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import {
   scoreGoNoGo,
   scoreNumberHunt,
@@ -6,6 +8,7 @@ import {
   scoreRound,
   scoreStopWatch,
   scoreStroop,
+  scoreTargetNumber,
   scoreWordMatch,
 } from "./scoring";
 import {
@@ -32,6 +35,8 @@ export interface Graded {
   reactionAvgMs: number | null;
   correctCount: number | null;
   errors: number | null;
+  /** Per-type detail stored on the round (Target Number: value reached + steps). */
+  extra: Record<string, unknown> | null;
   storedMs: number;
 }
 
@@ -51,13 +56,15 @@ export function gradeSubmission(
 ): Graded {
   const extra = rawExtra ?? {};
   const answer = typeof rawAnswer === "string" ? rawAnswer.slice(0, 200) : "";
-  const ms = clamp(msRemaining, 0, ROUND_MS);
+  const timeLimitMs = puzzleTimeLimitMs(puzzle);
+  const ms = clamp(msRemaining, 0, timeLimitMs);
 
   let isCorrect = false;
   let score = 0;
   let reactionAvgMs: number | null = null;
   let correctCount: number | null = null;
   let errors: number | null = null;
+  let extraDetail: Record<string, unknown> | null = null;
   let storedMs = ms;
 
   switch (puzzle.type) {
@@ -115,11 +122,24 @@ export function gradeSubmission(
       score = scoreNumberHunt(finished, ms, errors);
       break;
     }
+    case "target": {
+      // The client sends its steps; every one is replayed and re-checked here
+      // and the final value is worked out from the tiles, never trusted.
+      const replay = replayTargetSteps(puzzle.tiles, puzzle.target, decodeSteps(answer));
+      const distance = replay.distance ?? Number.MAX_SAFE_INTEGER;
+      isCorrect = distance === 0;
+      score = scoreTargetNumber(distance, ms, timeLimitMs);
+      extraDetail = {
+        value: replay.value,
+        steps: replay.steps.map(formatStep),
+      };
+      break;
+    }
     default: {
       isCorrect = answer.length > 0 && checkAnswer(puzzle, answer);
-      score = scoreRound(isCorrect, ms);
+      score = scoreRound(isCorrect, ms, timeLimitMs);
     }
   }
 
-  return { answer, isCorrect, score, reactionAvgMs, correctCount, errors, storedMs };
+  return { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra: extraDetail, storedMs };
 }

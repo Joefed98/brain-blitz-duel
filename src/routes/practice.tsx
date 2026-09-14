@@ -15,9 +15,10 @@ import {
   puzzleName,
   puzzlePrepMs,
   puzzleShowsTimer,
+  puzzleTimeLimitMs,
   typesInCategory,
 } from "@/lib/duel/registry";
-import { INTRO_MS, REVEAL_MS, ROUND_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
+import { INTRO_MS, REVEAL_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { unlockAudio } from "@/lib/sound";
 import type { SubmitMeta } from "@/puzzles/types";
@@ -90,15 +91,17 @@ function PracticeScreen() {
   const prepMs = puzzlePrepMs(puzzle ?? undefined);
   const durationMs = puzzleDurationMs(puzzle ?? undefined);
   const clockStart = stage === "puzzle" ? startedAt + prepMs : null;
-  const clockDeadline = clockStart === null ? null : clockStart + ROUND_MS;
-  const msRemaining = clockDeadline === null ? ROUND_MS : Math.max(0, clockDeadline - now);
+  const timeLimitMs = puzzleTimeLimitMs(puzzle ?? undefined);
+  const clockDeadline = clockStart === null ? null : clockStart + timeLimitMs;
+  const msRemaining = clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - now);
 
   const grade = useCallback(
     async (answer: string, meta?: SubmitMeta) => {
       if (!puzzle || grading.current) return;
       grading.current = true;
       buzz(15);
-      const remaining = clockDeadline === null ? ROUND_MS : Math.max(0, clockDeadline - Date.now());
+      const remaining =
+        clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - Date.now());
       const result = await practiceGradeFn({
         data: {
           puzzle,
@@ -116,7 +119,7 @@ function PracticeScreen() {
       setStartedAt(Date.now());
       setStage("reveal");
     },
-    [puzzle, sealed, clockDeadline],
+    [puzzle, sealed, clockDeadline, timeLimitMs],
   );
 
   // The intro runs for exactly as long as it does in a room.
@@ -211,7 +214,7 @@ function PracticeScreen() {
   }
 
   if (stage === "result" && graded) {
-    const secondsUsed = Math.max(0, Math.round((ROUND_MS - graded.msRemaining) / 100) / 10);
+    const secondsUsed = Math.max(0, Math.round((timeLimitMs - graded.msRemaining) / 100) / 10);
     return (
       <PhoneShell>
         <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center animate-phase-in">
@@ -264,7 +267,7 @@ function PracticeScreen() {
 
         {puzzleShowsTimer(puzzle) && (
           <div className="flex justify-center">
-            <TimerRing msRemaining={msRemaining} totalMs={ROUND_MS} active={clockActive} />
+            <TimerRing msRemaining={msRemaining} totalMs={timeLimitMs} active={clockActive} />
           </div>
         )}
 

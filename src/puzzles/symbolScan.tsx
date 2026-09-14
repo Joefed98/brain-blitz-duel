@@ -244,6 +244,7 @@ export const symbolScanPuzzle: PuzzleDefinition = {
   key: "symscan",
   name: "Symbol Scan",
   category: "attention",
+  timeLimitMs: 30_000,
   generate: buildSymbolScan,
   check: (answer, puzzle) => {
     if (puzzle.type !== "symscan") return false;

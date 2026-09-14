@@ -1,4 +1,4 @@
-import { puzzleDef, puzzleName } from "@/lib/duel/registry";
+import { puzzleDef, puzzleName, typeTimeLimitMs } from "@/lib/duel/registry";
 import {
   INTRO_COUNTDOWN_MS,
   INTRO_MS,
@@ -25,6 +25,7 @@ export function RoundIntro({ round, type, startedAt, now, outcomes }: RoundIntro
   const progress = Math.min(100, (elapsed / (INTRO_MS - INTRO_COUNTDOWN_MS)) * 100);
   const secondsLeft = Math.max(1, Math.ceil(remaining / 1000));
   const Example = puzzleDef(type).IntroExample;
+  const seconds = Math.round(typeTimeLimitMs(type) / 1000);
 
   return (
     <div className="flex flex-1 flex-col gap-6 animate-phase-in">
@@ -39,8 +40,9 @@ export function RoundIntro({ round, type, startedAt, now, outcomes }: RoundIntro
         {puzzleName(type)}
       </h1>
 
-      <div className="flex flex-1 flex-col items-center justify-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <Example />
+        <p className="text-xs text-muted-foreground">You have {seconds} seconds</p>
       </div>
 
       <div className="flex h-24 items-center justify-center">

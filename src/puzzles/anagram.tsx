@@ -109,6 +109,7 @@ export const anagramPuzzle: PuzzleDefinition = {
   key: "anagram",
   name: "Anagram",
   category: "word",
+  timeLimitMs: 30_000,
   generate: () => {
     const word = pick(ANAGRAM_WORDS).toUpperCase();
     return { type: "anagram", word, scrambled: scramble(word) } satisfies AnagramPuzzleData;
