@@ -68,15 +68,15 @@ export function solveTarget(tiles: number[], target: number): TargetStep[] | nul
           [b, a],
         ];
         for (const operator of TARGET_OPERATORS) {
-          for (const [left, right] of pairs) {
-            const result = applyOperation(left, right, operator);
+          // + and × give the same result either way round.
+          const ordered = operator === "+" || operator === "×" ? pairs.slice(0, 1) : pairs;
+          for (const [left, right] of ordered) {
+            const result = applyOperation(left!, right!, operator);
             if (result === null) continue;
             const next = [...without(pool, i, j), result];
-            const found = search(next, [...steps, { a: left, b: right, operator, result }]);
+            const found = search(next, [...steps, { a: left!, b: right!, operator, result }]);
             if (found) return found;
           }
-          // + and × are the same either way round.
-          if (operator === "+" || operator === "×") continue;
         }
       }
     }
@@ -175,6 +175,21 @@ export function replayTargetSteps(
     }
   }
   return { pool, steps, value, distance };
+}
+
+/** Wire format: one step per ";", written "a|operator|b". */
+export function encodeSteps(steps: { a: number; b: number; operator: Operator }[]): string {
+  return steps.map((s) => `${s.a}|${s.operator}|${s.b}`).join(";");
+}
+
+export function decodeSteps(answer: string): RawStep[] {
+  return (answer ?? "")
+    .split(";")
+    .filter((part) => part.length > 0)
+    .map((part) => {
+      const [a, operator, b] = part.split("|");
+      return { a: Number(a), b: Number(b), operator: operator ?? "" };
+    });
 }
 
 export function formatStep(step: TargetStep): string {
