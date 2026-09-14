@@ -99,6 +99,8 @@ function IntroExample() {
     { operator: "+", operand: 8 },
     { operator: "×", operand: 2 },
     { operator: "-", operand: 5 },
+    { operator: "÷", operand: 7 },
+    { operator: "×", operand: 9 },
   ];
   return (
     <div className="flex flex-col items-center gap-3">
@@ -107,7 +109,7 @@ function IntroExample() {
       </p>
       <Chain start={12} operations={operations} compact />
       <p className="font-mono text-sm text-muted-foreground">
-        = <span className="font-bold text-primary">35</span>
+        = <span className="font-bold text-primary">45</span>
       </p>
       <p className="text-center text-xs text-muted-foreground">
         Type the final number and hit Submit. Faster = more points.
