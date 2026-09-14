@@ -4,33 +4,18 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { gradeSubmission, type SubmitExtra } from "./grade";
 import { puzzleDurationMs } from "./registry";
-import { buildRoomPuzzles, checkAnswer, generateRoomCode } from "./puzzles";
+import { buildRoomPuzzles, generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import {
-  scoreGoNoGo,
-  scoreNumberHunt,
-  scoreReaction,
-  scoreRound,
-  scoreStopWatch,
-  scoreStroop,
-  scoreWordMatch,
-} from "./scoring";
-import {
-  GONOGO_ITEMS,
   INACTIVE_AFTER_MISSED,
   INTRO_MS,
   MAX_PLAYERS,
   MIN_PLAYERS,
   NEXT_ROUND_AUTO_MS,
-  NUMHUNT_COUNT,
-  REACTION_PENALTY_MS,
   REVEAL_MS,
   ROUND_MS,
   STANDINGS_MS,
-  STOPWATCH_MISS_MS,
-  STROOP_ITEMS,
   TOTAL_ROUNDS,
-  WORDMATCH_ITEMS,
   type DuelPhase,
   type DuelPlayerRow,
   type DuelRow,
