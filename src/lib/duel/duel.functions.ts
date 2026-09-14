@@ -481,7 +481,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
     const puzzle: PuzzleData = mergePuzzle(pub, priv);
 
-    const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, storedMs } =
+    const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra, storedMs } =
       gradeSubmission(puzzle, data.answer, data.msRemaining, data.extra);
 
     const { error } = await client.from("round_results").insert({
@@ -494,6 +494,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
       reaction_avg_ms: reactionAvgMs,
       correct_count: correctCount,
       errors,
+      extra,
       score,
     });
     if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
