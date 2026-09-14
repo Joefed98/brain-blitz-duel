@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+import { gradeSubmission, type SubmitExtra } from "./grade";
 import { puzzleDurationMs } from "./registry";
 import { buildRoomPuzzles, checkAnswer, generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
@@ -453,7 +454,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export type { SubmitExtra } from "./grade";
+export type { SubmitExtra };
 
 
 /**
