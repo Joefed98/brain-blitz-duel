@@ -114,10 +114,15 @@ export interface EquationPuzzleData {
 
 export type StroopColour = "RED" | "BLUE" | "GREEN" | "PURPLE" | "PINK";
 
+/** Which colour the player must tap for an item. */
+export type StroopInstruction = "ink" | "word";
+
 export interface StroopItem {
   word: StroopColour;
   /** Always different from `word`. */
   ink: StroopColour;
+  /** Read this to know which swatch counts as correct. */
+  instruction: StroopInstruction;
 }
 
 export interface StroopPuzzleData {
