@@ -1,0 +1,1 @@
+ALTER TABLE public.round_results ADD COLUMN IF NOT EXISTS extra jsonb;

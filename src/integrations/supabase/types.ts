@@ -144,6 +144,7 @@ export type Database = {
           correct_count: number | null
           duel_id: string
           errors: number | null
+          extra: Json | null
           id: string
           is_correct: boolean
           ms_remaining: number
@@ -158,6 +159,7 @@ export type Database = {
           correct_count?: number | null
           duel_id: string
           errors?: number | null
+          extra?: Json | null
           id?: string
           is_correct?: boolean
           ms_remaining?: number
@@ -172,6 +174,7 @@ export type Database = {
           correct_count?: number | null
           duel_id?: string
           errors?: number | null
+          extra?: Json | null
           id?: string
           is_correct?: boolean
           ms_remaining?: number
