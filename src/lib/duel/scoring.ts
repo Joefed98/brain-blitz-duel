@@ -2,8 +2,10 @@ import {
   GONOGO_ITEMS,
   NUMHUNT_ERROR_PENALTY,
   ROUND_MS,
+  STOPWATCH_MAX_DIST_MS,
   STROOP_ITEMS,
   TOTAL_ROUNDS,
+  WORDMATCH_ITEMS,
   type RoundResultRow,
 } from "./types";
 
@@ -56,12 +58,26 @@ export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): 
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
+/** Word Match: accuracy out of 100, plus the speed bonus on a flawless run. */
+export function scoreWordMatch(correctCount: number, msRemaining: number): number {
+  const correct = clamp(correctCount, 0, WORDMATCH_ITEMS);
+  const accuracy = Math.round((BASE_POINTS * correct) / WORDMATCH_ITEMS);
+  const bonus = correct >= WORDMATCH_ITEMS ? speedBonus(msRemaining) : 0;
+  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+}
+
+/** Stop Watch: 150 for a perfect average, down to 100 at 400 ms or worse. */
+export function scoreStopWatch(averageDistanceMs: number): number {
+  const bonus = clamp(
+    Math.round(MAX_SPEED_BONUS * (1 - averageDistanceMs / STOPWATCH_MAX_DIST_MS)),
+    0,
+    MAX_SPEED_BONUS,
+  );
+  return BASE_POINTS + bonus;
+}
+
 /** Number Hunt: a standard round score, less 5 points per wrong tap. */
-export function scoreNumberHunt(
-  finished: boolean,
-  msRemaining: number,
-  errors: number,
-): number {
+export function scoreNumberHunt(finished: boolean, msRemaining: number, errors: number): number {
   if (!finished) return 0;
   const raw = BASE_POINTS + speedBonus(msRemaining) - NUMHUNT_ERROR_PENALTY * errors;
   return Math.round(clamp(raw, 0, MAX_ROUND_SCORE));
@@ -126,11 +142,7 @@ export function duelOutcome(
   return "draw";
 }
 
-export function roundBreakdown(
-  results: RoundResultRow[],
-  mySlot: number,
-  opponentSlot: number,
-) {
+export function roundBreakdown(results: RoundResultRow[], mySlot: number, opponentSlot: number) {
   return Array.from({ length: TOTAL_ROUNDS }, (_, i) => {
     const round = i + 1;
     return {

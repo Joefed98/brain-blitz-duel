@@ -16,7 +16,13 @@ export type PuzzleType =
   | "rotmatch"
   | "numhunt"
   | "oddshape"
-  | "chaincalc";
+  | "chaincalc"
+  | "wordmatch"
+  | "pctsprint"
+  | "numspan"
+  | "stopwatch"
+  | "countup"
+  | "mirmatch";
 
 export type PuzzleCategory = "word" | "number" | "memory" | "speed" | "attention" | "pattern";
 
@@ -210,7 +216,13 @@ export type PuzzleData =
   | PatternPuzzleData
   | SymbolScanPuzzleData
   | RotationPuzzleData
-  | NumberHuntPuzzleData;
+  | NumberHuntPuzzleData
+  | WordMatchPuzzleData
+  | PercentPuzzleData
+  | NumberSpanPuzzleData
+  | StopWatchPuzzleData
+  | CountUpPuzzleData
+  | MirrorPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result";
@@ -337,3 +349,119 @@ export const NUMHUNT_COUNT = 12;
 export const NUMHUNT_CIRCLE_PX = 52;
 export const NUMHUNT_ERROR_PENALTY = 10;
 export const NUMHUNT_FLASH_MS = 200;
+
+/* -------------------------------------------------------------------------- */
+/*  Word Match                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export type WordMatchMode = "synonym" | "antonym";
+
+export interface WordMatchItem {
+  prompt: string;
+  mode: WordMatchMode;
+  /** Four options in their stored, shuffled order. */
+  options: string[];
+}
+
+export interface WordMatchPuzzleData {
+  type: "wordmatch";
+  items: WordMatchItem[];
+  /** Server-side only: the correct option index of each item. */
+  answers?: number[];
+}
+
+/** Word Match: a run of eight prompts. */
+export const WORDMATCH_ITEMS = 8;
+
+/* -------------------------------------------------------------------------- */
+/*  Percent Sprint                                                             */
+/* -------------------------------------------------------------------------- */
+
+export interface PercentPuzzleData {
+  type: "pctsprint";
+  question: string;
+  /** Server-side only, until the reveal. */
+  answer?: number;
+  /** One line of working, shown on the answer reveal. */
+  working?: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Number Span                                                                */
+/* -------------------------------------------------------------------------- */
+
+export interface NumberSpanPuzzleData {
+  type: "numspan";
+  /** The digit string, shown before the clock starts. */
+  digits: string;
+}
+
+export const NUMSPAN_LENGTH = 8;
+export const NUMSPAN_LEAD_IN_MS = 700;
+export const NUMSPAN_SHOW_MS = 2_500;
+export const NUMSPAN_PREP_MS = NUMSPAN_LEAD_IN_MS + NUMSPAN_SHOW_MS;
+
+/* -------------------------------------------------------------------------- */
+/*  Stop Watch                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export interface StopWatchPuzzleData {
+  type: "stopwatch";
+  /** Target centres of each attempt, as a fraction of the bar (0–1). */
+  targets: number[];
+}
+
+export const STOPWATCH_ATTEMPTS = 3;
+/** One full sweep of the bar; the marker then bounces back. */
+export const STOPWATCH_SWEEP_MS = 1_600;
+export const STOPWATCH_TIMEOUT_MS = 6_000;
+export const STOPWATCH_FEEDBACK_MS = 1_000;
+export const STOPWATCH_SLOT_MS = STOPWATCH_TIMEOUT_MS + STOPWATCH_FEEDBACK_MS;
+/** Recorded when an attempt is never tapped. */
+export const STOPWATCH_MISS_MS = 800;
+/** Distance at which the accuracy bonus reaches zero. */
+export const STOPWATCH_MAX_DIST_MS = 400;
+/** Half-width of the gold zone, as a fraction of the bar. */
+export const STOPWATCH_ZONE = 0.06;
+
+/* -------------------------------------------------------------------------- */
+/*  Count Up                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export interface CountUpShape {
+  shape: GlyphShape;
+  colour: GlyphColour;
+  /** Percentages of the field's width and height. */
+  x: number;
+  y: number;
+}
+
+export interface CountUpPuzzleData {
+  type: "countup";
+  shapes: CountUpShape[];
+  targetShape: GlyphShape;
+  targetColour: GlyphColour;
+  /** Server-side only: how many shapes match the question. */
+  count?: number;
+}
+
+export const COUNTUP_COLS = 6;
+export const COUNTUP_ROWS = 10;
+export const COUNTUP_MIN_SHAPES = 40;
+export const COUNTUP_MAX_SHAPES = 56;
+export const COUNTUP_MIN_COUNT = 5;
+export const COUNTUP_MAX_COUNT = 12;
+
+/* -------------------------------------------------------------------------- */
+/*  Mirror Match                                                               */
+/* -------------------------------------------------------------------------- */
+
+export interface MirrorPuzzleData {
+  type: "mirmatch";
+  /** Filled cell indices (0-24) of a 5x5 grid. */
+  target: number[];
+  /** Four candidates in their stored, shuffled order. */
+  candidates: number[][];
+  /** Server-side only: absent until the reveal. */
+  correctIndex?: number;
+}
