@@ -191,11 +191,13 @@ export interface HuntSpot {
   /** Percentages of the puzzle area's width and height. */
   x: number;
   y: number;
+  /** The two-digit number shown in the circle. */
+  n: number;
 }
 
 export interface NumberHuntPuzzleData {
   type: "numhunt";
-  /** Twelve positions; index 0 is the circle labelled 1. */
+  /** Twelve positions in ascending value order; index 0 is the smallest number. */
   spots: HuntSpot[];
 }
 
