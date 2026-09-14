@@ -1,0 +1,96 @@
+import { createServerFn } from "@tanstack/react-start";
+
+import { gradeSubmission, type SubmitExtra } from "./grade";
+import { puzzleDef } from "./registry";
+import { mergePuzzle, splitPuzzle } from "./secrets";
+import { PUZZLE_TYPES } from "./registry";
+import type { PuzzleData, PuzzleType } from "./types";
+
+/* -------------------------------------------------------------------------- */
+/*  Practice mode: one puzzle, on this device only.                            */
+/*                                                                             */
+/*  Nothing is stored — no room, no players, no results. The answer half of the */
+/*  puzzle travels back to the device sealed (encrypted with a server-only key) */
+/*  so it stays unreadable until the practice answer has been graded here.      */
+/* -------------------------------------------------------------------------- */
+
+type Loose = Record<string, unknown>;
+
+async function sealKey(): Promise<CryptoKey> {
+  const material = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? process.env["SUPABASE_URL"] ?? "";
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material));
+  return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let out = "";
+  for (const byte of bytes) out += String.fromCharCode(byte);
+  return btoa(out);
+}
+
+function fromBase64(value: string): Uint8Array {
+  const raw = atob(value);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return bytes;
+}
+
+async function seal(payload: unknown): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = new TextEncoder().encode(JSON.stringify(payload));
+  const cipher = new Uint8Array(
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await sealKey(), data),
+  );
+  return `${toBase64(iv)}.${toBase64(cipher)}`;
+}
+
+async function unseal(sealed: string): Promise<Loose> {
+  const [ivPart, cipherPart] = sealed.split(".");
+  if (!ivPart || !cipherPart) throw new Error("Bad practice puzzle.");
+  const plain = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: fromBase64(ivPart) },
+    await sealKey(),
+    fromBase64(cipherPart),
+  );
+  return JSON.parse(new TextDecoder().decode(plain)) as Loose;
+}
+
+function validType(type: string): PuzzleType {
+  if (!(PUZZLE_TYPES as string[]).includes(type)) throw new Error("Unknown puzzle type.");
+  return type as PuzzleType;
+}
+
+/** Generates one puzzle of the requested type with the same code rooms use. */
+export const practiceGenerateFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { type: string }) => input)
+  .handler(async ({ data }) => {
+    const type = validType(data.type);
+    const { pub, priv } = splitPuzzle(puzzleDef(type).generate());
+    return { puzzle: pub, sealed: await seal(priv) };
+  });
+
+/** Checks and scores a practice answer, then hands back the full puzzle. */
+export const practiceGradeFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      puzzle: PuzzleData;
+      sealed: string;
+      answer: string;
+      msRemaining: number;
+      extra?: SubmitExtra;
+    }) => input,
+  )
+  .handler(async ({ data }) => {
+    const priv = await unseal(data.sealed);
+    if (priv["type"] !== data.puzzle.type) throw new Error("Bad practice puzzle.");
+    const puzzle = mergePuzzle(data.puzzle, priv);
+    const graded = gradeSubmission(puzzle, data.answer, data.msRemaining, data.extra);
+    return {
+      puzzle,
+      isCorrect: graded.isCorrect,
+      score: graded.score,
+      msRemaining: graded.storedMs,
+      reactionAvgMs: graded.reactionAvgMs,
+      answer: graded.answer,
+    };
+  });
