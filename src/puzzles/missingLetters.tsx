@@ -5,38 +5,20 @@ import type { MissingLettersPuzzleData } from "@/lib/duel/types";
 
 import { MyAnswerLine } from "./anagram";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { EIGHT_LETTER_WORDS, NINE_LETTER_WORDS } from "./words";
 
-/** Common seven-letter words: no proper nouns, no plurals ending in S. */
-export const SEVEN_LETTER_WORDS = [
-  "balance","bargain","battery","bedroom","believe","between","bicycle","biology","blanket","brother",
-  "cabinet","caption","capture","carrier","ceiling","central","century","chamber","channel","chapter",
-  "charity","chicken","circuit","climate","clothes","collect","comfort","command","company","compare",
-  "concert","confirm","connect","control","country","courage","crystal","culture","curtain","cushion",
-  "dentist","deliver","descent","develop","diamond","digital","dolphin","drawing","eastern","economy",
-  "elegant","embrace","engaged","evening","example","explain","factory","fashion","feather","fiction",
-  "finance","fishing","fitness","flavour","flowers","foreign","forever","fortune","freedom","furnace",
-  "gallery","garbage","gateway","general","genuine","glimpse","gravity","harbour","harmony","harvest",
-  "healthy","hearing","heating","helpful","holiday","hunting","husband","imagine","improve","include",
-  "journey","justice","kitchen","landing","laundry","leather","lecture","leisure","library","lighter",
-  "machine","magical","manager","mansion","measure","meeting","message","mineral","mixture","monitor",
-  "morning","musical","mystery","natural","network","nothing","obvious","organic","outdoor","package",
-  "painter","parking","partner","passion","patient","pattern","payment","penalty","pension","perfect",
-  "picture","pioneer","plastic","popular","portion","poverty","precise","predict","premium","present",
-  "pretend","primary","printer","private","problem","produce","program","project","promise","protect",
-  "publish","purpose","pyramid","quality","quarter","rainbow","reality","receipt","recover","reflect",
-  "regular","related","release","remains","request","require","reserve","respect","restore","retreat",
-  "reverse","routine","sailing","scatter","science","scratch","section","serious","service",
-  "shelter","shortly","similar","society","soldier","special","station","stomach","storage","stretch",
-  "student","subject","success","support","surface","survive","sweater","teacher","texture","theatre",
-  "therapy","thought","tonight","tourist","traffic","tragedy","trouble","tuition","typical","uniform",
-  "unusual","upgrade","utility","vaccine","variety","vehicle","venture","version","victory","village",
-  "vintage","visible","visitor","volcano","voltage","weather","wedding","weekend","welcome","western",
-  "whisper","willing","without","witness","working","writing",
-].filter((w) => w.length === 7 && !w.endsWith("s"));
+/** Eight- and nine-letter words, kept in separate banks for the uniqueness check. */
+const BANKS: Record<number, string[]> = {
+  8: EIGHT_LETTER_WORDS,
+  9: NINE_LETTER_WORDS,
+};
+
+const BLANK_COUNT = 4;
 
 /** A blank layout is only fair if exactly one bank word fits the pattern. */
 function unique(word: string, blanks: number[]): boolean {
-  const matches = SEVEN_LETTER_WORDS.filter((candidate) =>
+  const bank = BANKS[word.length] ?? [];
+  const matches = bank.filter((candidate) =>
     candidate.split("").every((letter, i) => blanks.includes(i) || letter === word[i]),
   );
   return matches.length === 1;
@@ -44,17 +26,15 @@ function unique(word: string, blanks: number[]): boolean {
 
 function validBlanks(blanks: number[]): boolean {
   const sorted = [...blanks].sort((a, b) => a - b);
-  // Never all three adjacent.
-  if (sorted[1] === sorted[0]! + 1 && sorted[2] === sorted[1]! + 1) return false;
-  // At most one of the first two letters.
+  // Never all four adjacent.
+  if (sorted.every((p, i) => i === 0 || p === sorted[i - 1]! + 1)) return false;
+  // Never both of the first two letters.
   if (sorted.filter((p) => p < 2).length > 1) return false;
   return true;
 }
 
-const POSITIONS = [0, 1, 2, 3, 4, 5, 6];
-
-const EXAMPLE_WORD = "BALANCE";
-const EXAMPLE_BLANKS = [1, 3, 5];
+const EXAMPLE_WORD = "SANDWICH";
+const EXAMPLE_BLANKS = [1, 3, 5, 7];
 
 function Tiles({
   word,
@@ -67,9 +47,15 @@ function Tiles({
   reveal?: boolean;
   size?: "sm" | "md";
 }) {
-  const box = size === "sm" ? "h-10 w-8 text-base" : "h-12 w-10 text-lg";
+  const long = word.length >= 9;
+  const box =
+    size === "sm"
+      ? "h-10 w-7 text-sm"
+      : long
+        ? "h-12 w-8 text-base"
+        : "h-12 w-9 text-lg";
   return (
-    <div className="flex justify-center gap-1.5">
+    <div className="flex justify-center gap-1">
       {word.split("").map((letter, index) => {
         const blank = blanks.includes(index);
         return (
@@ -101,7 +87,7 @@ function IntroExample() {
       </p>
       <Tiles word={EXAMPLE_WORD} blanks={EXAMPLE_BLANKS} />
       <p className="font-mono text-sm text-muted-foreground">
-        answer <span className="font-bold text-primary">BALANCE</span>
+        answer <span className="font-bold text-primary">SANDWICH</span>
       </p>
       <p className="text-xs text-muted-foreground">
         Type the whole word and hit Submit. Faster = more points.
@@ -145,13 +131,13 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          maxLength={7}
+          maxLength={9}
           placeholder="Whole word"
           onChange={(e) => setValue(e.target.value.replace(/[^a-zA-Z]/g, "").toUpperCase())}
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
           }}
-          className="tap-target w-full rounded-xl border border-border bg-card px-4 py-3 text-center font-display text-2xl uppercase tracking-[0.2em] text-foreground placeholder:font-sans placeholder:text-base placeholder:normal-case placeholder:tracking-normal placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+          className="tap-target w-full rounded-xl border border-border bg-card px-4 py-3 text-center font-display text-2xl uppercase tracking-[0.15em] text-foreground placeholder:font-sans placeholder:text-base placeholder:normal-case placeholder:tracking-normal placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
         />
         <button
           type="button"
@@ -177,16 +163,20 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
 }
 
 export function buildMissingLetters(): MissingLettersPuzzleData {
-  for (let attempt = 0; attempt < 200; attempt++) {
-    const word = pick(SEVEN_LETTER_WORDS).toUpperCase();
-    for (let tries = 0; tries < 12; tries++) {
-      const blanks = shuffled(POSITIONS).slice(0, 3).sort((a, b) => a - b);
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const length = Math.random() < 0.5 ? 8 : 9;
+    const word = pick(BANKS[length]!).toUpperCase();
+    const positions = Array.from({ length }, (_, i) => i);
+    for (let tries = 0; tries < 20; tries++) {
+      const blanks = shuffled(positions)
+        .slice(0, BLANK_COUNT)
+        .sort((a, b) => a - b);
       if (!validBlanks(blanks)) continue;
       if (!unique(word.toLowerCase(), blanks)) continue;
       return { type: "missing", word, blanks };
     }
   }
-  return { type: "missing", word: "JOURNEY", blanks: [1, 3, 5] };
+  return { type: "missing", word: "SANDWICH", blanks: [1, 3, 5, 7] };
 }
 
 export const missingLettersPuzzle: PuzzleDefinition = {
