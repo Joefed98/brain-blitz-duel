@@ -208,6 +208,7 @@ export const oddShapeOutPuzzle: PuzzleDefinition = {
   key: "oddshape",
   name: "Odd Shape Out",
   category: "attention",
+  timeLimitMs: 30_000,
   generate: () => {
     const base = pick(BASES);
     const difference = pick(possibleDifferences(base));

@@ -281,6 +281,7 @@ export const rotationMatchPuzzle: PuzzleDefinition = {
   key: "rotmatch",
   name: "Rotation Match",
   category: "pattern",
+  timeLimitMs: 30_000,
   generate: buildRotationMatch,
   check: (answer, puzzle) => {
     if (puzzle.type !== "rotmatch") return false;

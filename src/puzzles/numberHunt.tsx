@@ -264,6 +264,7 @@ export const numberHuntPuzzle: PuzzleDefinition = {
   key: "numhunt",
   name: "Number Hunt",
   category: "speed",
+  timeLimitMs: 30_000,
   generate: buildNumberHunt,
   revealHeading: "Your run",
   check: (answer, puzzle) =>

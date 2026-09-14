@@ -91,6 +91,7 @@ export const reverseRecallPuzzle: PuzzleDefinition = {
   key: "reverse",
   name: "Reverse Recall",
   category: "memory",
+  timeLimitMs: 30_000,
   generate: () => {
     const cells = SEQUENCE_COLS * SEQUENCE_COLS;
     // Distinct tiles, so the reverse order is never the same as the shown order.

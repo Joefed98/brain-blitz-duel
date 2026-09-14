@@ -176,6 +176,7 @@ export const spatialMemoryPuzzle: PuzzleDefinition = {
   key: "spatial",
   name: "Spatial Memory",
   category: "memory",
+  timeLimitMs: 30_000,
   generate: buildSpatial,
   check: (answer, puzzle) => {
     if (puzzle.type !== "spatial") return false;

@@ -205,6 +205,7 @@ export const oddWordPuzzle: PuzzleDefinition = {
   key: "oddword",
   name: "Odd-Word-Out",
   category: "word",
+  timeLimitMs: 30_000,
   generate: () => {
     const set = pick(ODD_WORD_SETS);
     return {

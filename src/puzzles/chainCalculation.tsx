@@ -191,6 +191,7 @@ export const chainCalculationPuzzle: PuzzleDefinition = {
   key: "chaincalc",
   name: "Chain Calculation",
   category: "number",
+  timeLimitMs: 30_000,
   generate: generateChainCalculation,
   check: (answer, puzzle) =>
     puzzle.type === "chaincalc" && Number.parseInt(answer.trim(), 10) === puzzle.answer,

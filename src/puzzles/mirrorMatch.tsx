@@ -386,6 +386,7 @@ export const mirrorMatchPuzzle: PuzzleDefinition = {
   key: "mirmatch",
   name: "Mirror Match",
   category: "pattern",
+  timeLimitMs: 30_000,
   generate: buildMirrorMatch,
   check: (answer, puzzle) => {
     if (puzzle.type !== "mirmatch") return false;

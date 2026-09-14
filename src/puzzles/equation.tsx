@@ -224,6 +224,7 @@ export const equationPuzzle: PuzzleDefinition = {
   key: "equation",
   name: "Equation Balancing",
   category: "number",
+  timeLimitMs: 30_000,
   generate: buildEquation,
   check: (answer, puzzle) => {
     if (puzzle.type !== "equation") return false;

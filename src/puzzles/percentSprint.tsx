@@ -134,6 +134,7 @@ export const percentSprintPuzzle: PuzzleDefinition = {
   key: "pctsprint",
   name: "Percent Sprint",
   category: "number",
+  timeLimitMs: 30_000,
   generate: buildPercentSprint,
   check: (answer, puzzle) => {
     if (puzzle.type !== "pctsprint") return false;

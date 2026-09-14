@@ -82,6 +82,7 @@ export const sequencePuzzle: PuzzleDefinition = {
   key: "sequence",
   name: "Sequence Recall",
   category: "memory",
+  timeLimitMs: 30_000,
   generate: () => {
     const cells = SEQUENCE_COLS * SEQUENCE_COLS;
     const tiles = shuffled(Array.from({ length: cells }, (_, index) => index)).slice(

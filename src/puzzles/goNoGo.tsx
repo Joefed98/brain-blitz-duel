@@ -218,6 +218,7 @@ export const goNoGoPuzzle: PuzzleDefinition = {
   key: "gonogo",
   name: "Go / No-Go",
   category: "speed",
+  timeLimitMs: 30_000,
   generate: buildGoNoGo,
   // Scored from hits and correct rejections, not from a single answer.
   check: () => true,

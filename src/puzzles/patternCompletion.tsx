@@ -239,6 +239,7 @@ export const patternCompletionPuzzle: PuzzleDefinition = {
   key: "patcomp",
   name: "Pattern Completion",
   category: "pattern",
+  timeLimitMs: 30_000,
   generate: buildPatternCompletion,
   check: (answer, puzzle) => {
     if (puzzle.type !== "patcomp") return false;
