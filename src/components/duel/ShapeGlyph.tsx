@@ -6,6 +6,7 @@ export const GLYPH_COLOURS: Record<GlyphColour, string> = {
   BLUE: "#4D8CFF",
   GREEN: "#3DDC84",
   PURPLE: "#B26BFF",
+  PINK: "#FF6BD6",
   GOLD: "#F5C64C",
 };
 
