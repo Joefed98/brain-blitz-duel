@@ -94,8 +94,7 @@ export const sequencePuzzle: PuzzleDefinition = {
     if (puzzle.type !== "sequence") return false;
     const taps = parseTaps(answer);
     return (
-      taps.length === puzzle.tiles.length &&
-      taps.every((tap, index) => tap === puzzle.tiles[index])
+      taps.length === puzzle.tiles.length && taps.every((tap, index) => tap === puzzle.tiles[index])
     );
   },
   prepMs: () => sequencePlaybackMs(SEQUENCE_LENGTH),

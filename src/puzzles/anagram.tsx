@@ -114,8 +114,7 @@ export const anagramPuzzle: PuzzleDefinition = {
     return { type: "anagram", word, scrambled: scramble(word) } satisfies AnagramPuzzleData;
   },
   check: (answer, puzzle) =>
-    puzzle.type === "anagram" &&
-    answer.trim().toUpperCase() === puzzle.word.trim().toUpperCase(),
+    puzzle.type === "anagram" && answer.trim().toUpperCase() === puzzle.word.trim().toUpperCase(),
   IntroExample,
   Stage,
   Reveal,

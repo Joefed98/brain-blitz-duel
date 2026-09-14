@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 
+import { WaitingLine } from "@/components/duel/Dots";
+
 import { puzzleDef } from "@/lib/duel/registry";
 import { REVEAL_MS, TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -12,6 +14,8 @@ interface AnswerRevealProps {
   myAnswer: string | null;
   myCorrect: boolean;
   myReactionAvgMs: number | null;
+  /** False until the round's answers have arrived from the server. */
+  answersReady: boolean;
   startedAt: number;
   now: number;
 }
@@ -55,6 +59,7 @@ export function AnswerReveal({
   myAnswer,
   myCorrect,
   myReactionAvgMs,
+  answersReady,
   startedAt,
   now,
 }: AnswerRevealProps) {
@@ -90,12 +95,18 @@ export function AnswerReveal({
           {def.revealHeading ?? "The answer was"}
         </p>
         <div className="w-full animate-rise-settle">
-          <Reveal
-            puzzle={puzzle}
-            myAnswer={myAnswer}
-            myCorrect={myCorrect}
-            myReactionAvgMs={myReactionAvgMs}
-          />
+          {answersReady ? (
+            <Reveal
+              puzzle={puzzle}
+              myAnswer={myAnswer}
+              myCorrect={myCorrect}
+              myReactionAvgMs={myReactionAvgMs}
+            />
+          ) : (
+            <div className="flex justify-center">
+              <WaitingLine label="Revealing" />
+            </div>
+          )}
         </div>
       </div>
     </div>

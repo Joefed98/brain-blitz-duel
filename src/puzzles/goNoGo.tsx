@@ -171,9 +171,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             <div key={index} className="flex flex-col items-center gap-1">
               <ShapeGlyph shape={item.shape} colour={item.colour} size={26} />
               <span
-                className={`font-display text-xs font-bold ${
-                  ok ? "text-primary" : "text-warn"
-                }`}
+                className={`font-display text-xs font-bold ${ok ? "text-primary" : "text-warn"}`}
               >
                 {ok ? "✓" : "✗"}
               </span>
@@ -194,12 +192,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 /** Shuffled run of twelve, six targets, never more than two targets in a row. */
 export function buildGoNoGo(): GoNoGoPuzzleData {
-  const distractors: GoNoGoItem[] = Array.from(
-    { length: GONOGO_ITEMS - GONOGO_TARGETS },
-    (_, i) =>
-      i % 2 === 0
-        ? { shape: "circle", colour: pick(DISTRACTOR_COLOURS), target: false }
-        : { shape: pick(GOLD_SHAPES), colour: "GOLD", target: false },
+  const distractors: GoNoGoItem[] = Array.from({ length: GONOGO_ITEMS - GONOGO_TARGETS }, (_, i) =>
+    i % 2 === 0
+      ? { shape: "circle", colour: pick(DISTRACTOR_COLOURS), target: false }
+      : { shape: pick(GOLD_SHAPES), colour: "GOLD", target: false },
   );
   const targets: GoNoGoItem[] = Array.from({ length: GONOGO_TARGETS }, () => ({
     shape: "circle",

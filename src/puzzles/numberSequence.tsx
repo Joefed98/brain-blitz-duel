@@ -137,7 +137,9 @@ const FAMILIES: Family[] = [
 function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
-      <p className="text-sm text-muted-foreground">Work out the pattern and type the next number.</p>
+      <p className="text-sm text-muted-foreground">
+        Work out the pattern and type the next number.
+      </p>
       <p className="font-mono text-2xl font-bold tabular-nums">2 4 8 16 ?</p>
       <p className="font-mono text-sm text-muted-foreground">
         answer <span className="font-bold text-primary">32</span>
@@ -169,9 +171,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   return (
     <div className="flex flex-1 flex-col justify-between gap-8">
       <div className="flex flex-col items-center gap-5 pt-4">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          What comes next?
-        </p>
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">What comes next?</p>
         <div className="flex flex-wrap items-center justify-center gap-2 rounded-2xl bg-card px-4 py-6">
           {puzzle.numbers.map((n, index) => (
             <span key={index} className="font-mono text-2xl font-bold tabular-nums text-foreground">

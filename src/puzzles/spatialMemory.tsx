@@ -59,9 +59,7 @@ function IntroExample() {
         Six tiles light up, then vanish. Tap where they were — any order.
       </p>
       <SequenceGrid order={EXAMPLE} cols={COLS} size="sm" numbered={false} />
-      <p className="text-xs text-muted-foreground">
-        Your timer starts after the tiles disappear.
-      </p>
+      <p className="text-xs text-muted-foreground">Your timer starts after the tiles disappear.</p>
     </div>
   );
 }
@@ -165,7 +163,9 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
 export function buildSpatial(): SpatialPuzzleData {
   const all = Array.from({ length: COLS * COLS }, (_, i) => i);
   for (let attempt = 0; attempt < 200; attempt++) {
-    const tiles = shuffled(all).slice(0, SPATIAL_TILES).sort((a, b) => a - b);
+    const tiles = shuffled(all)
+      .slice(0, SPATIAL_TILES)
+      .sort((a, b) => a - b);
     if (isStraightLine(tiles) || isBlock(tiles)) continue;
     return { type: "spatial", tiles };
   }

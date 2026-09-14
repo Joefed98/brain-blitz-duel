@@ -48,12 +48,7 @@ function Tiles({
   size?: "sm" | "md";
 }) {
   const long = word.length >= 9;
-  const box =
-    size === "sm"
-      ? "h-10 w-7 text-sm"
-      : long
-        ? "h-12 w-8 text-base"
-        : "h-12 w-9 text-lg";
+  const box = size === "sm" ? "h-10 w-7 text-sm" : long ? "h-12 w-8 text-base" : "h-12 w-9 text-lg";
   return (
     <div className="flex justify-center gap-1">
       {word.split("").map((letter, index) => {
@@ -185,8 +180,7 @@ export const missingLettersPuzzle: PuzzleDefinition = {
   category: "word",
   generate: buildMissingLetters,
   check: (answer, puzzle) =>
-    puzzle.type === "missing" &&
-    answer.trim().toUpperCase() === puzzle.word.trim().toUpperCase(),
+    puzzle.type === "missing" && answer.trim().toUpperCase() === puzzle.word.trim().toUpperCase(),
   IntroExample,
   Stage,
   Reveal,

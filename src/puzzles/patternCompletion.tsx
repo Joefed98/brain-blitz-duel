@@ -1,11 +1,6 @@
 import { ShapeGlyph } from "@/components/duel/ShapeGlyph";
 import { pick, shuffled } from "@/lib/duel/random";
-import type {
-  GlyphShape,
-  PatternCell,
-  PatternPuzzleData,
-  StroopColour,
-} from "@/lib/duel/types";
+import type { GlyphShape, PatternCell, PatternPuzzleData, StroopColour } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 

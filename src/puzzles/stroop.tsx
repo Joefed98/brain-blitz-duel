@@ -89,10 +89,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
           {Math.min(index + 1, puzzle.items.length)} of {puzzle.items.length}
         </p>
         {item ? (
-          <p
-            className="font-display text-5xl font-bold"
-            style={{ color: hexFor(item.ink) }}
-          >
+          <p className="font-display text-5xl font-bold" style={{ color: hexFor(item.ink) }}>
             {item.word}
           </p>
         ) : (
@@ -129,10 +126,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           const tap = taps[index];
           return (
             <div key={index} className="flex items-center justify-between gap-2">
-              <span
-                className="font-display text-sm font-bold"
-                style={{ color: hexFor(item.ink) }}
-              >
+              <span className="font-display text-sm font-bold" style={{ color: hexFor(item.ink) }}>
                 {item.word}
               </span>
               <span

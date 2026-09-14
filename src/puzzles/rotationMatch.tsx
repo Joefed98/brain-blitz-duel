@@ -16,9 +16,7 @@ export function toCoords(cells: Cells): Coord[] {
 export function normalise(coords: Coord[]): Cells {
   const minR = Math.min(...coords.map((c) => c[0]));
   const minC = Math.min(...coords.map((c) => c[1]));
-  return coords
-    .map(([r, c]) => (r - minR) * N + (c - minC))
-    .sort((a, b) => a - b);
+  return coords.map(([r, c]) => (r - minR) * N + (c - minC)).sort((a, b) => a - b);
 }
 
 function rotate90(cells: Cells): Cells {
@@ -172,9 +170,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6">
       <div className="flex flex-col items-center gap-2">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          Target
-        </span>
+        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
         <ShapeSvg cells={puzzle.target} size={88} tone="gold" />
       </div>
 
@@ -201,17 +197,19 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
 }
 
 function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
-  if (puzzle.type !== "rotmatch") return null;
-  const chosen = Number.parseInt(myAnswer ?? "", 10);
-  const picked = Number.isFinite(chosen) ? chosen : -1;
+  const rotationDeg = puzzle.type === "rotmatch" ? puzzle.rotationDeg : 0;
 
   // When wrong, the correct candidate turns back into the target over a second.
   const [hintDeg, setHintDeg] = useState(0);
   useEffect(() => {
     if (myCorrect) return;
-    const id = setTimeout(() => setHintDeg(-puzzle.rotationDeg), 400);
+    const id = setTimeout(() => setHintDeg(-rotationDeg), 400);
     return () => clearTimeout(id);
-  }, [myCorrect, puzzle.rotationDeg]);
+  }, [myCorrect, rotationDeg]);
+
+  if (puzzle.type !== "rotmatch") return null;
+  const chosen = Number.parseInt(myAnswer ?? "", 10);
+  const picked = Number.isFinite(chosen) ? chosen : -1;
 
   return (
     <>
