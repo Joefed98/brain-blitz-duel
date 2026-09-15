@@ -133,12 +133,12 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   const ready = slots.every((s) => s !== null);
 
   return (
-    <div className="flex flex-1 flex-col justify-between gap-6">
-      <div className="flex flex-col items-center gap-6 pt-2">
+    <div className="flex min-h-0 flex-1 flex-col justify-between gap-3">
+      <div className="flex flex-col items-center gap-3">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
           Left to right — no BODMAS
         </p>
-        <div className="flex w-full flex-wrap items-center justify-center gap-1.5 rounded-2xl bg-card px-3 py-6 font-mono text-xl font-bold tabular-nums">
+        <div className="flex w-full flex-wrap items-center justify-center gap-1 rounded-2xl bg-card px-2 py-3 font-mono text-lg font-bold tabular-nums min-[390px]:text-xl">
           {puzzle.numbers.map((n, index) => (
             <span key={index} className="flex items-center gap-1.5">
               <span>{n}</span>

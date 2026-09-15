@@ -46,6 +46,16 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
       ? PATCOMP_TIME_MS
     : puzzle.type === "target"
       ? TARGET_TIME_MS
+    : puzzle.type === "equation" || puzzle.type === "chaincalc" || puzzle.type === "symscan" || puzzle.type === "countup"
+      ? 45_000
+    : puzzle.type === "numseq"
+      ? 40_000
+    : puzzle.type === "mirmatch"
+      ? MIRMATCH_TIME_MS
+    : puzzle.type === "spin"
+      ? SPIN_TIME_MS
+    : puzzle.type === "spotdiff"
+      ? SPOT_TIME_MS
       : puzzle.type === "wordsmith"
         ? WORDSMITH_TIME_MS
         : puzzle.type === "wordhunt"
@@ -305,6 +315,7 @@ function targetSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail 
 }
 
 const rawSingle = singleAnswer((result) => rawAnswer(result));
+const chainSummary = singleAnswer((result) => rawAnswer(result));
 const optionSingle = singleAnswer((result) => optionAnswer(result));
 const cellsSingle = singleAnswer((result) => cellsAnswer(result));
 const sequenceSingle = singleAnswer(sequenceAnswer);
@@ -372,7 +383,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   spin: spinSummary,
   numhunt: numberHuntSummary,
   spotdiff: spotDifferenceSummary,
-  chaincalc: rawSingle,
+  chaincalc: chainSummary,
   wordmatch: wordMatchSummary,
   pctsprint: percentSprintSummary,
   numspan: rawSingle,
