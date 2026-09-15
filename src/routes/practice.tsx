@@ -18,11 +18,12 @@ import {
   puzzleDurationMs,
   puzzleName,
   puzzlePrepMs,
+  puzzleRevealMs,
   puzzleShowsTimer,
   puzzleTimeLimitMs,
   typesInCategory,
 } from "@/lib/duel/registry";
-import { INTRO_MS, REVEAL_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
+import { INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { unlockAudio } from "@/lib/sound";
 import type { SubmitMeta } from "@/puzzles/types";
@@ -143,9 +144,9 @@ function PracticeScreen() {
 
   useEffect(() => {
     if (stage !== "reveal") return;
-    if (now - startedAt < REVEAL_MS) return;
+    if (now - startedAt < puzzleRevealMs(puzzle ?? undefined)) return;
     setStage("result");
-  }, [stage, now, startedAt]);
+  }, [stage, now, startedAt, puzzle]);
 
   if (stage === "list") {
     return (
@@ -201,6 +202,7 @@ function PracticeScreen() {
           startedAt={startedAt}
           now={now}
           outcomes={[]}
+          practice
           onReady={() => {
             setStartedAt(Date.now());
             setStage("puzzle");
@@ -269,10 +271,10 @@ function PracticeScreen() {
 
   return (
     <PhoneShell>
-      <div className="flex flex-1 flex-col gap-5 animate-phase-in">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            Practice
+            PRACTICE
           </span>
           <span className="font-display text-sm font-bold text-foreground">
             {puzzleName(puzzle.type)}
@@ -280,12 +282,12 @@ function PracticeScreen() {
         </div>
 
         {puzzleShowsTimer(puzzle) && (
-          <div className="flex justify-center">
+          <div className="flex scale-[0.78] justify-center -my-3">
             <TimerRing msRemaining={msRemaining} totalMs={timeLimitMs} active={clockActive} />
           </div>
         )}
 
-        <div className="relative flex flex-1 flex-col">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           <StageComponent
             puzzle={puzzle}
             phaseStartedAt={startedAt}

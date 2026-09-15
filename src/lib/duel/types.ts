@@ -420,7 +420,7 @@ export interface RoundRevealData {
 
 export const ROUND_MS = 30_000;
 /** Target Number gets a full minute. */
-export const TARGET_TIME_MS = 60_000;
+export const TARGET_TIME_MS = 75_000;
 /** Target Number: how close a miss still earns something. */
 export const TARGET_NEAR_POINTS = 50;
 export const TARGET_FAR_POINTS = 25;

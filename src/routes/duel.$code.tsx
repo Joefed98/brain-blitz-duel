@@ -44,6 +44,7 @@ import {
   puzzleDurationMs,
   puzzleName,
   puzzlePrepMs,
+  puzzleRevealMs,
   puzzleShowsTimer,
   puzzleTimeLimitMs,
 } from "@/lib/duel/registry";
@@ -51,7 +52,6 @@ import {
   INTRO_MS,
   INTRO_WAIT_MS,
   NEXT_ROUND_AUTO_MS,
-  REVEAL_MS,
   STANDINGS_MS,
   TOTAL_ROUNDS,
   type PuzzleData,
@@ -262,7 +262,7 @@ function DuelScreen() {
       due = elapsed >= INTRO_MS || (elapsed < INTRO_WAIT_MS && activeReady >= activeCount);
     else if (phase === "puzzle")
       due = answeredThisRound >= activeCount || (deadline !== null && now > deadline + 800);
-    else if (phase === "reveal") due = elapsed >= REVEAL_MS;
+    else if (phase === "reveal") due = elapsed >= puzzleRevealMs(puzzle);
     else {
       const autoMs = isMulti ? STANDINGS_MS : NEXT_ROUND_AUTO_MS;
       const hostReady = roomPlayers.find((p) => p.user_id === duel.host_user_id);
@@ -547,7 +547,7 @@ function DuelScreen() {
 
   return (
     <PhoneShell>
-      <div className="flex flex-1 flex-col gap-5 animate-phase-in">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Round {round} of {TOTAL_ROUNDS}
@@ -561,7 +561,7 @@ function DuelScreen() {
         </div>
 
         {showTimer && (
-          <div className="flex justify-center">
+          <div className="flex scale-[0.78] justify-center -my-3">
             <TimerRing
               msRemaining={myResult ? 0 : msRemaining}
               totalMs={timeLimitMs}
@@ -586,7 +586,7 @@ function DuelScreen() {
           />
         )}
 
-        <div className="relative flex flex-1 flex-col">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           {puzzle && Stage && (
             <div
               className={

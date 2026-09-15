@@ -66,35 +66,23 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </p>
 
       {mine.length > 0 && (
-        <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-1">
+        <ul className="flex w-full flex-wrap justify-center gap-x-3 gap-y-1">
           {mine.map((word) => (
             <li
               key={word}
-              className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-foreground"
+              className="font-mono text-[10px] uppercase text-foreground"
             >
               <span>{word}</span>
-              <span className="text-primary">{wordHuntPoints(word)}</span>
+              <span className="ml-1 text-primary">{wordHuntPoints(word)}</span>
             </li>
           ))}
         </ul>
       )}
 
       {missed.length > 0 && (
-        <div className="flex w-full flex-col items-center gap-2">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            best words you missed
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            {missed.map((entry) => (
-              <div key={entry.word} className="flex flex-col items-center gap-1">
-                <WordHuntBoard grid={puzzle.grid} path={entry.path} size={72} />
-                <span className="font-mono text-[10px] uppercase tracking-widest text-foreground">
-                  {entry.word} <span className="text-primary">{entry.points}</span>
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <p className="w-full truncate text-center font-mono text-[10px] text-muted-foreground">
+          Missed: {missed.map((entry) => `${entry.word} (${entry.points})`).join(" · ")}
+        </p>
       )}
     </div>
   );

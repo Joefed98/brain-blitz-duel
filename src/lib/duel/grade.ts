@@ -14,6 +14,7 @@ import {
   scoreBlockParty,
   scoreMirrorMatch,
   scoreSpin,
+  scoreSymbolScan,
   scoreStroop,
   scoreUnblock,
   scoreTargetNumber,
@@ -147,6 +148,16 @@ export function gradeSubmission(
       correctCount = differences.filter((d) => d.cells.some((c) => tapped.includes(c))).length;
       isCorrect = correctCount >= SPOT_DIFFERENCES;
       score = scoreSpotDifference(correctCount, ms);
+      break;
+    }
+    case "symscan": {
+      const selected = new Set(
+        answer.split(",").map((v) => Number.parseInt(v, 10)).filter(Number.isFinite),
+      );
+      correctCount = puzzle.targets.filter((target) => selected.has(target)).length;
+      errors = [...selected].filter((index) => !puzzle.targets.includes(index)).length;
+      isCorrect = correctCount === puzzle.targets.length && errors === 0;
+      score = scoreSymbolScan(correctCount, puzzle.targets.length, errors, ms);
       break;
     }
     case "stopwatch": {

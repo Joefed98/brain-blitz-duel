@@ -211,19 +211,20 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
   return (
     <div className="flex w-full flex-col gap-2">
-      <p className="text-center font-mono text-sm text-muted-foreground">
+      <p className="text-center font-mono text-3xl font-bold text-primary">
         {correctCount} / {puzzle.items.length} correct
       </p>
+      <div className="grid grid-cols-2 gap-1.5">
       {puzzle.items.map((item, i) => {
         const answer = answers[i];
         const mine = picks[i];
         const ok = mine !== undefined && mine === answer;
         return (
-          <div key={i} className="flex items-center gap-2 rounded-xl bg-card px-3 py-1.5">
-            <ColourShape shape={item.target} size={34} />
-            <ColourShape shape={item.shown} size={34} />
-            <span className="font-mono text-xs text-primary">{answer ? SPIN_LABELS[answer] : "—"}</span>
-            <span className="ml-auto font-mono text-[11px] text-muted-foreground">
+          <div key={i} className="flex min-w-0 items-center gap-1 rounded-lg bg-card px-1.5 py-1">
+            <ColourShape shape={item.target} size={25} />
+            <ColourShape shape={item.shown} size={25} />
+            <span className="font-mono text-[9px] text-primary">{answer ? SPIN_LABELS[answer] : "—"}</span>
+            <span className="ml-auto truncate font-mono text-[9px] text-muted-foreground">
               {mine ? SPIN_LABELS[mine] : "no answer"}
             </span>
             <span className={`text-lg ${ok ? "text-primary" : "text-destructive"}`}>
@@ -232,6 +233,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

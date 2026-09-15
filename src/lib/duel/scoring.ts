@@ -89,6 +89,21 @@ export function scoreStroop(correctCount: number, msRemaining: number): number {
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
+/** Symbol Scan: proportional credit, with a penalty for every incorrect selection. */
+export function scoreSymbolScan(
+  foundTargets: number,
+  totalTargets: number,
+  wrongSelections: number,
+  msRemaining: number,
+): number {
+  const total = Math.max(1, totalTargets);
+  const found = clamp(Math.round(foundTargets), 0, total);
+  const wrong = Math.max(0, Math.round(wrongSelections));
+  const accuracy = clamp(Math.round((BASE_POINTS * found) / total) - 15 * wrong, 0, BASE_POINTS);
+  const bonus = found === total && wrong === 0 ? speedBonus(msRemaining, 45_000) : 0;
+  return accuracy + bonus;
+}
+
 /** Mirror Match: three flips, accuracy out of 100 plus a bonus for all three. */
 export function scoreMirrorMatch(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, MIRMATCH_ITEMS);

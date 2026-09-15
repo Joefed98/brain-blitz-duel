@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { type SubmitExtra } from "./grade";
-import { puzzleDef, puzzleDurationMs } from "./registry";
+import { puzzleDef, puzzleDurationMs, puzzleRevealMs } from "./registry";
 import { generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import {
@@ -13,7 +13,6 @@ import {
   MAX_PLAYERS,
   MIN_PLAYERS,
   NEXT_ROUND_AUTO_MS,
-  REVEAL_MS,
   STANDINGS_MS,
   TOTAL_ROUNDS,
   type DuelPhase,
@@ -426,7 +425,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     }
 
     if (room.phase === "reveal") {
-      if (elapsed >= REVEAL_MS) {
+      if (elapsed >= puzzleRevealMs(puzzle)) {
         await setPhase(client, room.id, round, "reveal", "result");
         await markInactivity(client, room.id, round);
       }

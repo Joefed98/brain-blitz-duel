@@ -133,12 +133,12 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   const ready = slots.every((s) => s !== null);
 
   return (
-    <div className="flex flex-1 flex-col justify-between gap-6">
-      <div className="flex flex-col items-center gap-6 pt-2">
+    <div className="flex min-h-0 flex-1 flex-col justify-between gap-3">
+      <div className="flex flex-col items-center gap-3">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
           Left to right — no BODMAS
         </p>
-        <div className="flex w-full flex-wrap items-center justify-center gap-1.5 rounded-2xl bg-card px-3 py-6 font-mono text-xl font-bold tabular-nums">
+        <div className="flex w-full flex-wrap items-center justify-center gap-1 rounded-2xl bg-card px-2 py-3 font-mono text-lg font-bold tabular-nums min-[390px]:text-xl">
           {puzzle.numbers.map((n, index) => (
             <span key={index} className="flex items-center gap-1.5">
               <span>{n}</span>
@@ -199,7 +199,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   const mine = (myAnswer ?? "").split(",").filter((v) => v.length > 0);
   return (
     <>
-      <p className="font-mono text-2xl font-bold tabular-nums text-primary">
+      <p className="w-full text-center font-mono text-xl font-bold tabular-nums text-primary min-[390px]:text-2xl">
         <Line numbers={puzzle.numbers} ops={puzzle.operators} /> = {puzzle.target}
       </p>
       <div className="flex w-full flex-col items-center gap-3 rounded-2xl bg-card px-4 py-5">
@@ -208,7 +208,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           <p className="font-display text-2xl font-bold text-warn">No answer</p>
         ) : (
           <p
-            className={`font-mono text-xl font-bold tabular-nums ${
+            className={`w-full text-center font-mono text-base font-bold tabular-nums min-[390px]:text-lg ${
               myCorrect ? "text-primary" : "text-warn"
             }`}
           >
@@ -224,7 +224,7 @@ export const equationPuzzle: PuzzleDefinition = {
   key: "equation",
   name: "Equation Balancing",
   category: "number",
-  timeLimitMs: 30_000,
+  timeLimitMs: 45_000,
   generate: buildEquation,
   check: (answer, puzzle) => {
     if (puzzle.type !== "equation") return false;

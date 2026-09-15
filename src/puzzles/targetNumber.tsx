@@ -31,12 +31,12 @@ function isLarge(value: number): boolean {
   return LARGE_TILES.includes(value);
 }
 
-function tileClass(value: number, state: "idle" | "selected" | "result"): string {
+function tileClass(value: number, state: "idle" | "selected" | "consumed"): string {
   const base =
     "press flex h-16 items-center justify-center rounded-2xl border font-mono text-2xl font-bold tabular-nums transition-all duration-150";
   const colour = isLarge(value) ? "text-primary" : "text-foreground";
   if (state === "selected") return `${base} border-primary bg-primary/15 scale-105 ${colour}`;
-  if (state === "result") return `${base} border-me/60 bg-card ${colour} animate-pop-in`;
+  if (state === "consumed") return `${base} border-border/40 bg-card/40 text-muted-foreground opacity-35`;
   return `${base} border-border bg-card ${colour}`;
 }
 
@@ -74,14 +74,12 @@ function IntroExample() {
 interface Tile {
   id: number;
   value: number;
-  /** True once the tile came out of a step rather than the original six. */
-  fromStep: boolean;
+  active: boolean;
 }
 
 interface HistoryEntry {
   step: TargetStep;
-  removed: Tile[];
-  madeId: number;
+  before: Tile[];
 }
 
 function Stage(props: PuzzleStageProps) {
@@ -99,14 +97,13 @@ function TargetStage({
 }: PuzzleStageProps & { tiles: number[]; target: number }) {
 
   const [pool, setPool] = useState<Tile[]>(() =>
-    startTiles.map((value, id) => ({ id, value, fromStep: false })),
+    startTiles.map((value, id) => ({ id, value, active: true })),
   );
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [operator, setOperator] = useState<Operator | null>(null);
   const [shake, setShake] = useState(0);
   const [lockedHere, setLockedHere] = useState(false);
-  const nextId = useRef(startTiles.length);
   const submitted = useRef(false);
 
   const steps = history.map((h) => h.step);
@@ -127,25 +124,24 @@ function TargetStage({
 
   const reset = () => {
     if (locked || lockedHere) return;
-    setPool(startTiles.map((value, id) => ({ id, value, fromStep: false })));
+    setPool(startTiles.map((value, id) => ({ id, value, active: true })));
     setHistory([]);
     setSelectedId(null);
     setOperator(null);
-    nextId.current = startTiles.length;
   };
 
   const undo = () => {
     if (locked || lockedHere) return;
     const last = history[history.length - 1];
     if (!last) return;
-    setPool((current) => [...current.filter((t) => t.id !== last.madeId), ...last.removed]);
+    setPool(last.before);
     setHistory((current) => current.slice(0, -1));
     setSelectedId(null);
     setOperator(null);
   };
 
   const tapTile = (tile: Tile) => {
-    if (locked || lockedHere) return;
+    if (locked || lockedHere || !tile.active) return;
     if (selectedId === null) {
       setSelectedId(tile.id);
       return;
@@ -164,12 +160,16 @@ function TargetStage({
     const result = applyOperation(first.value, tile.value, operator);
     if (result === null) return refuse();
 
-    const made: Tile = { id: nextId.current++, value: result, fromStep: true };
     const step: TargetStep = { a: first.value, b: tile.value, operator, result };
-    const nextHistory = [...history, { step, removed: [first, tile], madeId: made.id }];
-    setPool((current) => [...current.filter((t) => t.id !== first.id && t.id !== tile.id), made]);
+    const before = pool.map((entry) => ({ ...entry }));
+    const nextHistory = [...history, { step, before }];
+    setPool((current) => current.map((entry) => {
+      if (entry.id === first.id) return { ...entry, value: result, active: true };
+      if (entry.id === tile.id) return { ...entry, active: false };
+      return entry;
+    }));
     setHistory(nextHistory);
-    setSelectedId(null);
+    setSelectedId(first.id);
     setOperator(null);
     buzz(10);
 
@@ -184,7 +184,7 @@ function TargetStage({
     send(steps);
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const closest = pool.reduce<number | null>(
+  const closest = pool.filter((tile) => tile.active).reduce<number | null>(
     (best, tile) =>
       best === null || Math.abs(tile.value - target) < Math.abs(best - target) ? tile.value : best,
     null,
@@ -193,15 +193,15 @@ function TargetStage({
   const isLockedNow = locked || lockedHere;
 
   return (
-    <div className="relative flex flex-1 flex-col justify-between gap-4">
+    <div className="relative flex min-h-0 flex-1 flex-col justify-between gap-2">
       <div className="flex flex-col items-center gap-2">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Target</p>
-        <p className="font-mono text-6xl font-bold leading-none text-primary tabular-nums">
+        <p className="font-mono text-5xl font-bold leading-none text-primary tabular-nums">
           {target}
         </p>
       </div>
 
-      <div className="flex min-h-16 flex-col items-center gap-1">
+      <div className="flex max-h-[3.75rem] min-h-10 flex-col items-center gap-0.5 overflow-y-auto rounded-lg px-2">
         {steps.length === 0 ? (
           <p className="font-mono text-xs text-muted-foreground">No steps yet</p>
         ) : (
@@ -222,18 +222,15 @@ function TargetStage({
             <button
               key={tile.id}
               type="button"
-              disabled={isLockedNow}
+              disabled={isLockedNow || !tile.active}
               onClick={() => tapTile(tile)}
               className={tileClass(
                 tile.value,
-                selectedId === tile.id ? "selected" : tile.fromStep ? "result" : "idle",
+                !tile.active ? "consumed" : selectedId === tile.id ? "selected" : "idle",
               )}
             >
               {tile.value}
             </button>
-          ))}
-          {Array.from({ length: Math.max(0, 6 - pool.length) }, (_, i) => (
-            <div key={`gap-${i}`} className="h-16 rounded-2xl border border-border/40 opacity-30" />
           ))}
         </div>
       </div>
@@ -319,44 +316,17 @@ function TargetReveal({
         : "✗";
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
-      <p className="font-mono text-5xl font-bold text-primary tabular-nums">{puzzle.target}</p>
-
-      <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-4">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">You reached</p>
-        <p
-          className={`font-display text-2xl font-bold ${
-            myCorrect ? "text-primary" : away !== null && away <= 10 ? "text-me" : "text-warn"
-          }`}
-        >
-          {replay.value ?? "—"} {tag}
-        </p>
-        {replay.steps.length > 0 && (
-          <div className="flex flex-col items-center">
-            {replay.steps.map((step, index) => (
-              <p
-                key={`${index}-${step.result}`}
-                className="font-mono text-xs tabular-nums text-muted-foreground"
-              >
-                {formatStep(step)}
-              </p>
-            ))}
-          </div>
-        )}
-      </div>
-
+    <div className="flex w-full flex-col items-center gap-2">
+      <p className="w-full truncate text-center font-mono text-2xl font-bold text-primary tabular-nums">
+        {puzzle.target} · <span className="text-foreground">you reached {replay.value ?? "—"}</span> <span className={myCorrect ? "text-primary" : "text-warn"}>{tag}</span>
+      </p>
+      <p className="w-full truncate text-center font-mono text-[11px] text-muted-foreground" title={replay.steps.map(formatStep).join(" · ")}>
+        {replay.steps.length ? replay.steps.map(formatStep).join(" · ") : "No steps"}
+      </p>
       {(puzzle.solution ?? []).length > 0 && (
-        <div className="flex flex-col items-center gap-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">One way</p>
-          {puzzle.solution.map((step, index) => (
-            <p
-              key={`sol-${index}`}
-              className="font-mono text-xs tabular-nums text-muted-foreground/70"
-            >
-              {formatStep(step)}
-            </p>
-          ))}
-        </div>
+        <p className="w-full truncate text-center font-mono text-[11px] text-muted-foreground/70" title={puzzle.solution.map(formatStep).join(" · ")}>
+          <span className="uppercase">One way:</span> {puzzle.solution.map(formatStep).join(" · ")}
+        </p>
       )}
     </div>
   );
