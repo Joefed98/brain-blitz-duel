@@ -11,13 +11,19 @@ export function ColourShape({
   size = 84,
   axis,
   faded = false,
+  box,
 }: {
   shape: MirrorShape;
   size?: number;
   axis?: "vertical" | "horizontal";
   faded?: boolean;
+  /** Shared box side, so shapes drawn side by side sit on one baseline. */
+  box?: number;
 }) {
-  const m = boxSize(shape);
+  const own = boxSize(shape);
+  const m = Math.max(own, box ?? 0);
+  // Sit the shape on the bottom of the shared box.
+  const drop = m - own;
   const pad = axis ? 0.45 : 0.12;
   const span = m + pad * 2;
 
@@ -37,7 +43,7 @@ export function ColourShape({
         <rect
           key={i}
           x={(i % N) + 0.06}
-          y={Math.floor(i / N) + 0.06}
+          y={Math.floor(i / N) + drop + 0.06}
           width={0.88}
           height={0.88}
           rx={0.14}

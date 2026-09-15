@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ColourShape, RunProgress } from "@/components/puzzles/ColourShape";
 import { pick, shuffled } from "@/lib/duel/random";
 import {
+  boxSize,
   normalise,
   orientations,
   randomColouring,
@@ -104,9 +105,9 @@ function IntroExample() {
         How was the shape turned? Tap the answer — or FLIPPED if it&apos;s been mirrored.
       </p>
       <div className="flex items-end justify-center gap-4">
-        <ColourShape shape={EXAMPLE} size={78} />
+        <ColourShape shape={EXAMPLE} size={78} box={3} />
         <span className="pb-6 font-mono text-xs text-muted-foreground">→</span>
-        <ColourShape shape={EXAMPLE_SHOWN} size={78} />
+        <ColourShape shape={EXAMPLE_SHOWN} size={78} box={3} />
       </div>
       <div className="grid w-full grid-cols-4 gap-1.5">
         {SPIN_TRANSFORMS.map((t) => (
@@ -164,8 +165,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
               {index + 1} of {puzzle.items.length}
             </p>
             <div className="flex items-end justify-center gap-3">
-              <ColourShape shape={item.target} size={136} />
-              <ColourShape shape={item.shown} size={136} />
+              {(() => {
+                const box = Math.max(boxSize(item.target), boxSize(item.shown));
+                return (
+                  <>
+                    <ColourShape shape={item.target} size={150} box={box} />
+                    <ColourShape shape={item.shown} size={150} box={box} />
+                  </>
+                );
+              })()}
             </div>
           </div>
           <div className="grid w-full grid-cols-2 gap-3">
