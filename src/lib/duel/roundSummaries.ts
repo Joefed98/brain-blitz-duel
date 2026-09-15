@@ -5,6 +5,8 @@ import {
   ROUND_MS,
   STROOP_ITEMS,
   TARGET_TIME_MS,
+  WORDSMITH_TIME_MS,
+  wordsmithPoints,
   WORDMATCH_ITEMS,
   type GoNoGoItem,
   type PlayerRoundDetail,
@@ -19,7 +21,12 @@ type SummaryBuilder = (result: RoundResultRow, puzzle: PuzzleData) => BuiltDetai
 type AnswerBuilder = (puzzle: PuzzleData) => string | null;
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
-  const limit = puzzle.type === "target" ? TARGET_TIME_MS : ROUND_MS;
+  const limit =
+    puzzle.type === "target"
+      ? TARGET_TIME_MS
+      : puzzle.type === "wordsmith"
+        ? WORDSMITH_TIME_MS
+        : ROUND_MS;
   return Math.max(0, limit - result.ms_remaining);
 }
 
@@ -124,6 +131,18 @@ function goNoGoSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail 
   return { summary: `${count} / ${GONOGO_ITEMS} · ${seconds(GONOGO_RUN_MS)}`, detail };
 }
 
+function wordsmithSummary(result: RoundResultRow): BuiltDetail {
+  const words = Array.isArray(result.extra?.["words"])
+    ? result.extra["words"].filter((word): word is string => typeof word === "string")
+    : [];
+  const points = typeof result.extra?.["points"] === "number" ? result.extra["points"] : 0;
+  if (words.length === 0) return { summary: "No words", detail: [] };
+  return {
+    summary: `${words.length} words · ${points} pts`,
+    detail: words.map((word) => `${word} (${wordsmithPoints(word)})`),
+  };
+}
+
 function averageSummary(result: RoundResultRow): BuiltDetail {
   return { summary: `avg ${result.reaction_avg_ms ?? 0} ms`, detail: [] };
 }
@@ -161,7 +180,7 @@ const cellsSingle = singleAnswer((result) => cellsAnswer(result));
 const sequenceSingle = singleAnswer(sequenceAnswer);
 
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
-  anagram: rawSingle,
+  wordsmith: wordsmithSummary,
   oddword: rawSingle,
   target: targetSummary,
   numseq: rawSingle,
@@ -192,7 +211,7 @@ function joinOperators(values: string[]): string {
 }
 
 export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
-  anagram: (p) => p.type === "anagram" ? p.word : null,
+  wordsmith: () => null,
   oddword: (p) => p.type === "oddword" ? p.odd : null,
   target: (p) => p.type === "target" ? String(p.target) : null,
   numseq: (p) => p.type === "numseq" ? String(p.answer) : null,
