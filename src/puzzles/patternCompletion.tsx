@@ -42,11 +42,12 @@ function Glyph({
   size = 26,
 }: {
   shape: PatternShape;
-  colour: StroopColour;
+  /** Game colours, or "WHITE" for the plain white picker icons. */
+  colour: StroopColour | "WHITE";
   rot?: PatternRotation;
   size?: number;
 }) {
-  const fill = GLYPH_COLOURS[colour];
+  const fill = colour === "WHITE" ? "#FFFFFF" : GLYPH_COLOURS[colour];
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
       <g transform={`rotate(${rot} 12 12)`}>
