@@ -61,6 +61,8 @@ export interface PuzzleDefinition {
   category: PuzzleCategory;
   /** How long the player has on the clock. 30s for almost every type. */
   timeLimitMs: number;
+  /** How long the answer reveal remains visible. Defaults to five seconds. */
+  revealMs?: number;
   /** Generated once, when the duel is created, and stored in the database. */
   generate: () => PuzzleData;
   check: (answer: string, puzzle: PuzzleData) => boolean;

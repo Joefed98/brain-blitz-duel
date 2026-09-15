@@ -44,6 +44,7 @@ import {
   puzzleDurationMs,
   puzzleName,
   puzzlePrepMs,
+  puzzleRevealMs,
   puzzleShowsTimer,
   puzzleTimeLimitMs,
 } from "@/lib/duel/registry";
@@ -51,7 +52,6 @@ import {
   INTRO_MS,
   INTRO_WAIT_MS,
   NEXT_ROUND_AUTO_MS,
-  REVEAL_MS,
   STANDINGS_MS,
   TOTAL_ROUNDS,
   type PuzzleData,
@@ -262,7 +262,7 @@ function DuelScreen() {
       due = elapsed >= INTRO_MS || (elapsed < INTRO_WAIT_MS && activeReady >= activeCount);
     else if (phase === "puzzle")
       due = answeredThisRound >= activeCount || (deadline !== null && now > deadline + 800);
-    else if (phase === "reveal") due = elapsed >= REVEAL_MS;
+    else if (phase === "reveal") due = elapsed >= puzzleRevealMs(puzzle);
     else {
       const autoMs = isMulti ? STANDINGS_MS : NEXT_ROUND_AUTO_MS;
       const hostReady = roomPlayers.find((p) => p.user_id === duel.host_user_id);

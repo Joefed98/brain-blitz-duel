@@ -2,8 +2,8 @@ import { useEffect, useRef } from "react";
 
 import { WaitingLine } from "@/components/duel/Dots";
 
-import { puzzleDef } from "@/lib/duel/registry";
-import { REVEAL_MS, TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
+import { puzzleDef, puzzleRevealMs } from "@/lib/duel/registry";
+import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
@@ -63,7 +63,7 @@ export function AnswerReveal({
   startedAt,
   now,
 }: AnswerRevealProps) {
-  const secondsLeft = Math.max(0, Math.ceil((REVEAL_MS - Math.max(0, now - startedAt)) / 1000));
+  const secondsLeft = Math.max(0, Math.ceil((puzzleRevealMs(puzzle) - Math.max(0, now - startedAt)) / 1000));
   const def = puzzleDef(puzzle.type);
   const Reveal = def.Reveal;
   const cued = useRef(0);
@@ -81,7 +81,7 @@ export function AnswerReveal({
   }, [round, myCorrect]);
 
   return (
-    <div className="flex flex-1 flex-col gap-6 animate-phase-in">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">
       <div className="flex items-baseline justify-between">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           Round {round} of {TOTAL_ROUNDS}
@@ -89,12 +89,12 @@ export function AnswerReveal({
         <span className="font-mono text-xs text-muted-foreground">{secondsLeft}s</span>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-6">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
         <Verdict correct={myCorrect} />
         <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
           {def.revealHeading ?? "The answer was"}
         </p>
-        <div className="w-full animate-rise-settle">
+        <div className="answer-reveal-content flex min-h-0 w-full flex-col items-center justify-center overflow-hidden animate-rise-settle">
           {answersReady ? (
             <Reveal
               puzzle={puzzle}

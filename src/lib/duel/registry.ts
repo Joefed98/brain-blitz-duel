@@ -27,11 +27,16 @@ import { targetNumberPuzzle } from "@/puzzles/targetNumber";
 import { wordMatchPuzzle } from "@/puzzles/wordMatch";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
-import { ROUND_MS, type PuzzleCategory, type PuzzleData, type PuzzleType } from "./types";
+import { REVEAL_MS, ROUND_MS, type PuzzleCategory, type PuzzleData, type PuzzleType } from "./types";
 import { CORRECT_ANSWERS, ROUND_SUMMARIES } from "./roundSummaries";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
 type RegisteredPuzzleDefinition = PuzzleDefinition & Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer">>;
+
+const LONG_REVEAL_TYPES = new Set<PuzzleType>([
+  "chaincalc", "target", "wordsmith", "wordhunt", "stroop", "wordmatch",
+  "pctsprint", "spin", "mirmatch", "gonogo", "spotdiff",
+]);
 
 const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   wordsmith: wordsmithPuzzle,
@@ -68,6 +73,7 @@ export const PUZZLE_REGISTRY = Object.fromEntries(
     type,
     {
       ...definition,
+      revealMs: definition.revealMs ?? (LONG_REVEAL_TYPES.has(type as PuzzleType) ? 8_000 : REVEAL_MS),
       roundSummary: ROUND_SUMMARIES[type as PuzzleType],
       correctAnswer: CORRECT_ANSWERS[type as PuzzleType],
     },
@@ -101,6 +107,11 @@ export function typeTimeLimitMs(type: PuzzleType): number {
 export function puzzleTimeLimitMs(puzzle: PuzzleData | undefined): number {
   if (!puzzle) return ROUND_MS;
   return typeTimeLimitMs(puzzle.type);
+}
+
+export function puzzleRevealMs(puzzle: PuzzleData | undefined): number {
+  if (!puzzle) return REVEAL_MS;
+  return puzzleDef(puzzle.type).revealMs ?? REVEAL_MS;
 }
 
 /** Preparation time before a puzzle's clock starts (0 for most types). */

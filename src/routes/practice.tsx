@@ -18,11 +18,12 @@ import {
   puzzleDurationMs,
   puzzleName,
   puzzlePrepMs,
+  puzzleRevealMs,
   puzzleShowsTimer,
   puzzleTimeLimitMs,
   typesInCategory,
 } from "@/lib/duel/registry";
-import { INTRO_MS, REVEAL_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
+import { INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { unlockAudio } from "@/lib/sound";
 import type { SubmitMeta } from "@/puzzles/types";
@@ -143,9 +144,9 @@ function PracticeScreen() {
 
   useEffect(() => {
     if (stage !== "reveal") return;
-    if (now - startedAt < REVEAL_MS) return;
+    if (now - startedAt < puzzleRevealMs(puzzle)) return;
     setStage("result");
-  }, [stage, now, startedAt]);
+  }, [stage, now, startedAt, puzzle]);
 
   if (stage === "list") {
     return (
@@ -201,6 +202,7 @@ function PracticeScreen() {
           startedAt={startedAt}
           now={now}
           outcomes={[]}
+          practice
           onReady={() => {
             setStartedAt(Date.now());
             setStage("puzzle");

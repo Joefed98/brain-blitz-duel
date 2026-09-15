@@ -22,6 +22,7 @@ interface RoundIntroProps {
   readyCount?: number;
   activeCount?: number;
   onReady?: () => void;
+  practice?: boolean;
 }
 
 export function RoundIntro({
@@ -34,6 +35,7 @@ export function RoundIntro({
   readyCount = 0,
   activeCount = 0,
   onReady,
+  practice = false,
 }: RoundIntroProps) {
   const elapsed = Math.max(0, now - startedAt);
   const remaining = Math.max(0, INTRO_MS - elapsed);
@@ -49,7 +51,7 @@ export function RoundIntro({
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-0.5">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            Round {round} of {TOTAL_ROUNDS}
+            {practice ? "Practice" : `Round ${round} of ${TOTAL_ROUNDS}`}
           </span>
           {!counting && onReady ? (
             <span className="font-mono text-[0.7rem] text-muted-foreground/70">
@@ -57,7 +59,7 @@ export function RoundIntro({
             </span>
           ) : null}
         </div>
-        <RoundPips currentRound={round} outcomes={outcomes} />
+        {!practice && <RoundPips currentRound={round} outcomes={outcomes} />}
       </div>
 
       <h1 className="text-center font-display text-[2.75rem] font-bold leading-none animate-pop-in">
