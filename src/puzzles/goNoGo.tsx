@@ -162,14 +162,17 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const { correct, averageHitMs } = summarise(puzzle.items, taps);
 
   return (
-    <>
-      <div className="grid grid-cols-6 gap-x-2 gap-y-3">
+    <div className="flex w-full flex-col gap-2">
+      <p className="text-center font-mono text-3xl font-bold tabular-nums text-primary">
+        {correct} / {puzzle.items.length} correct
+      </p>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1">
         {puzzle.items.map((item, index) => {
           const tap = taps[index] ?? null;
           const ok = item.target ? tap !== null : tap === null;
           return (
-            <div key={index} className="flex flex-col items-center gap-1">
-              <ShapeGlyph shape={item.shape} colour={item.colour} size={26} />
+            <div key={index} className="flex items-center justify-center gap-2">
+              <ShapeGlyph shape={item.shape} colour={item.colour} size={20} />
               <span
                 className={`font-display text-xs font-bold ${ok ? "text-primary" : "text-warn"}`}
               >
@@ -179,14 +182,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           );
         })}
       </div>
-      <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your run</p>
-        <p className="font-mono text-2xl font-bold tabular-nums text-primary">
-          {correct} / {puzzle.items.length} correct
-          {averageHitMs !== null ? ` · avg ${averageHitMs} ms` : ""}
-        </p>
       </div>
-    </>
+      {averageHitMs !== null && <p className="text-center font-mono text-xs text-muted-foreground">avg {averageHitMs} ms</p>}
+    </div>
   );
 }
 

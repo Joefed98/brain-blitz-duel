@@ -135,16 +135,19 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const correct = puzzle.items.filter((_, i) => taps[i] === answers[i]).length;
 
   return (
-    <>
-      <div className="flex w-full flex-col gap-2">
+    <div className="flex w-full flex-col gap-2">
+      <p className="text-center font-mono text-3xl font-bold tabular-nums text-primary">
+        {correct} / {puzzle.items.length} correct
+      </p>
+      <div className="grid w-full grid-cols-2 gap-x-3 gap-y-1">
         {puzzle.items.map((item, index) => {
           const answerIndex = answers[index] ?? -1;
           const tap = taps[index];
           const got = tap === answerIndex;
           return (
-            <div key={index} className="flex items-center justify-between gap-2 text-sm">
-              <span className="font-mono tabular-nums">{item.question}</span>
-              <span className="flex items-center gap-2 font-mono tabular-nums">
+            <div key={index} className="flex min-w-0 items-center justify-between gap-1 text-[11px]">
+              <span className="truncate font-mono tabular-nums">{item.question}</span>
+              <span className="flex items-center gap-1 font-mono tabular-nums">
                 <span className="text-primary">{item.options[answerIndex] ?? "—"}</span>
                 {tap === undefined ? (
                   <span className="text-xs text-muted-foreground">—</span>
@@ -158,13 +161,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           );
         })}
       </div>
-      <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your run</p>
-        <p className="font-mono text-3xl font-bold tabular-nums text-primary">
-          {correct} / {puzzle.items.length} correct
-        </p>
       </div>
-    </>
+    </div>
   );
 }
 

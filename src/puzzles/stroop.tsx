@@ -169,14 +169,17 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const correct = puzzle.items.filter((item, i) => taps[i] === expected(item)).length;
 
   return (
-    <>
-      <div className="flex w-full flex-col gap-1.5">
+    <div className="flex w-full flex-col gap-2">
+      <p className="text-center font-mono text-3xl font-bold tabular-nums text-primary">
+        {correct} / {puzzle.items.length} correct
+      </p>
+      <div className="grid w-full grid-cols-2 gap-x-3 gap-y-1">
         {puzzle.items.map((item, index) => {
           const ok = taps[index] === expected(item);
           return (
-            <div key={index} className="flex items-center justify-between gap-2">
+            <div key={index} className="flex min-w-0 items-center justify-between gap-1">
               <InstructionPill instruction={item.instruction} small />
-              <span className="font-display text-sm font-bold" style={{ color: hexFor(item.ink) }}>
+              <span className="truncate font-display text-xs font-bold" style={{ color: hexFor(item.ink) }}>
                 {item.word}
               </span>
               <span
@@ -188,13 +191,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           );
         })}
       </div>
-      <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your run</p>
-        <p className="font-mono text-3xl font-bold tabular-nums text-primary">
-          {correct} / {puzzle.items.length} correct
-        </p>
       </div>
-    </>
+    </div>
   );
 }
 
