@@ -274,7 +274,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
                 selected={shape === option}
                 onPress={() => !locked && setShape(option)}
               >
-                <Glyph shape={option} colour={shape === option ? "PINK" : "BLUE"} size={24} />
+                <Glyph shape={option} colour="WHITE" size={24} />
               </PickerButton>
             ))}
           </div>
