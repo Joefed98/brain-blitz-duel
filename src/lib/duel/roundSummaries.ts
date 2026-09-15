@@ -7,6 +7,8 @@ import {
   PCTSPRINT_ITEMS,
   PCTSPRINT_TIME_MS,
   ROUND_MS,
+  SPOT_DIFFERENCES,
+  SPOT_TIME_MS,
   STROOP_ITEMS,
   TARGET_TIME_MS,
   UNBLOCK_TIME_MS,
@@ -145,6 +147,26 @@ function percentSprintSummary(result: RoundResultRow, puzzle: PuzzleData): Built
   return { summary: `${count} / ${PCTSPRINT_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`, detail };
 }
 
+function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  const count = result.correct_count ?? 0;
+  const taps = (result.answer ?? "")
+    .split(",")
+    .map((value) => Number.parseInt(value, 10))
+    .filter((value) => Number.isFinite(value));
+  const detail =
+    puzzle.type === "spotdiff"
+      ? (puzzle.differences ?? []).map((difference, index) => {
+          const got = difference.cells.some((cell) => taps.includes(cell));
+          return `${index + 1}. ${difference.label} · ${got ? "✓" : "✗"}`;
+        })
+      : [];
+  const summary =
+    count >= SPOT_DIFFERENCES
+      ? `${count} / ${SPOT_DIFFERENCES} · ${seconds(elapsedMs(result, puzzle))}`
+      : `${count} / ${SPOT_DIFFERENCES}`;
+  return { summary, detail };
+}
+
 function describeGoNoGo(item: GoNoGoItem): string {
   return item.target ? "gold circle" : `${item.colour.toLowerCase()} ${item.shape}`;
 }
@@ -272,7 +294,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   symscan: cellsSingle,
   rotmatch: optionSingle,
   numhunt: numberHuntSummary,
-  oddshape: optionSingle,
+  spotdiff: spotDifferenceSummary,
   chaincalc: rawSingle,
   wordmatch: wordMatchSummary,
   pctsprint: percentSprintSummary,
@@ -306,7 +328,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   symscan: (p) => p.type === "symscan" ? `${p.targets.length} arrows` : null,
   rotmatch: (p) => p.type === "rotmatch" ? `Option ${p.correctIndex + 1}` : null,
   numhunt: () => null,
-  oddshape: (p) => p.type === "oddshape" ? `Cell ${p.oddIndex + 1}` : null,
+  spotdiff: (p) => p.type === "spotdiff" ? `${(p.differences ?? []).length} differences` : null,
   chaincalc: (p) => p.type === "chaincalc" ? String(p.answer) : null,
   wordmatch: () => null,
   pctsprint: () => null,

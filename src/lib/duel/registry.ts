@@ -12,7 +12,7 @@ import { numberSpanPuzzle } from "@/puzzles/numberSpan";
 import { numberHuntPuzzle } from "@/puzzles/numberHunt";
 import { numberSequencePuzzle } from "@/puzzles/numberSequence";
 import { oddWordPuzzle } from "@/puzzles/oddWordOut";
-import { oddShapeOutPuzzle } from "@/puzzles/oddShapeOut";
+import { spotDifferencePuzzle } from "@/puzzles/spotTheDifference";
 import { patternCompletionPuzzle } from "@/puzzles/patternCompletion";
 import { percentSprintPuzzle } from "@/puzzles/percentSprint";
 import { reactionPuzzle } from "@/puzzles/reaction";
@@ -49,7 +49,7 @@ const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   numhunt: numberHuntPuzzle,
   stroop: stroopPuzzle,
   symscan: symbolScanPuzzle,
-  oddshape: oddShapeOutPuzzle,
+  spotdiff: spotDifferencePuzzle,
   patcomp: patternCompletionPuzzle,
   rotmatch: rotationMatchPuzzle,
   wordmatch: wordMatchPuzzle,

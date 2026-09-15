@@ -9,6 +9,7 @@ import {
   scorePercentSprint,
   scoreReaction,
   scoreRound,
+  scoreSpotDifference,
   scoreStopWatch,
   scoreBlockParty,
   scoreStroop,
@@ -22,6 +23,7 @@ import {
   PCTSPRINT_ITEMS,
   REACTION_PENALTY_MS,
   ROUND_MS,
+  SPOT_DIFFERENCES,
   STOPWATCH_MISS_MS,
   STROOP_ITEMS,
   WORDMATCH_ITEMS,
@@ -112,6 +114,19 @@ export function gradeSubmission(
       correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
       isCorrect = correctCount >= PCTSPRINT_ITEMS;
       score = scorePercentSprint(correctCount, ms);
+      break;
+    }
+    case "spotdiff": {
+      // The phone sends every cell it tapped; the three differences live
+      // server-side, so only the stored answers decide the score.
+      const tapped = answer
+        .split(",")
+        .map((v) => Number.parseInt(v, 10))
+        .filter((v) => Number.isFinite(v));
+      const differences = puzzle.differences ?? [];
+      correctCount = differences.filter((d) => d.cells.some((c) => tapped.includes(c))).length;
+      isCorrect = correctCount >= SPOT_DIFFERENCES;
+      score = scoreSpotDifference(correctCount, ms);
       break;
     }
     case "stopwatch": {

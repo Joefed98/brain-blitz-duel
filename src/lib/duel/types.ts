@@ -15,7 +15,7 @@ export type PuzzleType =
   | "symscan"
   | "rotmatch"
   | "numhunt"
-  | "oddshape"
+  | "spotdiff"
   | "chaincalc"
   | "wordmatch"
   | "pctsprint"
@@ -101,18 +101,35 @@ export interface SequencePuzzleData {
   answerOrder?: number[];
 }
 
-export type OddShapeBase = "circle" | "square" | "triangle" | "star" | "hexagon" | "arrow";
-export type OddShapeDifference = "rotated" | "smaller" | "shade" | "notched" | "flipped";
+export type SpotShapeKind = "circle" | "square" | "triangle" | "star" | "hexagon" | "arrow";
 
-export interface OddShapePuzzleData {
-  type: "oddshape";
-  base: OddShapeBase;
+/** One shape in a Spot the Difference scene, placed on an 8x5 grid. */
+export interface SpotShape {
+  /** Cell index, 0 .. SPOT_CELLS - 1. */
+  cell: number;
+  kind: SpotShapeKind;
   colour: StroopColour;
-  difference: OddShapeDifference;
-  /** Visible per-cell variants; only one entry contains the generated difference. */
-  variants: (OddShapeDifference | null)[];
-  oddIndex: number;
-  differenceLabel: string;
+  /** Quarter turn, 0 or 90 (arrows and triangles only). */
+  rot?: number;
+  /** Mirrored horizontally (arrows and triangles only). */
+  flip?: boolean;
+}
+
+export type SpotDifferenceKind = "colour" | "turn" | "move" | "remove" | "kind";
+
+export interface SpotDifference {
+  kind: SpotDifferenceKind;
+  /** The cells that count as this difference — two when a shape moved. */
+  cells: number[];
+  label: string;
+}
+
+export interface SpotPuzzleData {
+  type: "spotdiff";
+  top: SpotShape[];
+  bottom: SpotShape[];
+  /** Server-side only until the reveal: the three differences. */
+  differences?: SpotDifference[];
 }
 
 export interface ChainOperation {
@@ -254,7 +271,7 @@ export type PuzzleData =
   | TargetNumberPuzzleData
   | NumberSequencePuzzleData
   | SequencePuzzleData
-  | OddShapePuzzleData
+  | SpotPuzzleData
   | ChainCalculationPuzzleData
   | ReactionPuzzleData
   | MissingLettersPuzzleData
@@ -439,9 +456,17 @@ export const SYMSCAN_CELLS = SYMSCAN_COLS * SYMSCAN_COLS;
 export const SYMSCAN_MIN_TARGETS = 6;
 export const SYMSCAN_MAX_TARGETS = 10;
 
-/** Odd Shape Out: a 6x6 grid of near-identical shapes. */
-export const ODDSHAPE_COLS = 6;
-export const ODDSHAPE_CELLS = ODDSHAPE_COLS * ODDSHAPE_COLS;
+/** Spot the Difference: two panels drawn on an invisible 8x5 grid. */
+export const SPOT_COLS = 8;
+export const SPOT_ROWS = 5;
+export const SPOT_CELLS = SPOT_COLS * SPOT_ROWS;
+export const SPOT_MIN_SHAPES = 12;
+export const SPOT_MAX_SHAPES = 15;
+export const SPOT_DIFFERENCES = 3;
+export const SPOT_TIME_MS = 45_000;
+/** Flat scores for finding only some of the three differences. */
+export const SPOT_TWO_POINTS = 60;
+export const SPOT_ONE_POINTS = 30;
 
 /** Rotation Match: shapes drawn as filled cells of a 5x5 grid. */
 export const ROTATION_COLS = 5;
