@@ -132,6 +132,19 @@ function wordMatchSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDeta
   return { summary: `${count} / ${WORDMATCH_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`, detail };
 }
 
+function percentSprintSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  const count = result.correct_count ?? 0;
+  const picks = (result.answer ?? "").split(",").map((value) => Number.parseInt(value, 10));
+  const detail = puzzle.type === "pctsprint"
+    ? puzzle.items.map((item, index) => {
+        const chosen = item.options[picks[index] ?? -1] ?? "No answer";
+        const expected = item.options[puzzle.answers?.[index] ?? -1] ?? "—";
+        return `${index + 1}. ${item.question} · ${chosen === expected ? `✓ ${chosen}` : `✗ ${chosen} · ${expected}`}`;
+      })
+    : [];
+  return { summary: `${count} / ${PCTSPRINT_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`, detail };
+}
+
 function describeGoNoGo(item: GoNoGoItem): string {
   return item.target ? "gold circle" : `${item.colour.toLowerCase()} ${item.shape}`;
 }
