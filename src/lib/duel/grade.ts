@@ -6,6 +6,7 @@ import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import {
   scoreGoNoGo,
   scoreNumberHunt,
+  scorePercentSprint,
   scoreReaction,
   scoreRound,
   scoreStopWatch,
@@ -18,6 +19,7 @@ import {
 import {
   GONOGO_ITEMS,
   NUMHUNT_COUNT,
+  PCTSPRINT_ITEMS,
   REACTION_PENALTY_MS,
   ROUND_MS,
   STOPWATCH_MISS_MS,
@@ -102,6 +104,14 @@ export function gradeSubmission(
       correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
       isCorrect = correctCount >= WORDMATCH_ITEMS;
       score = scoreWordMatch(correctCount, ms);
+      break;
+    }
+    case "pctsprint": {
+      // Same again: the three correct option indices live server-side only.
+      const picks = answer.split(",").map((v) => Number.parseInt(v, 10));
+      correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
+      isCorrect = correctCount >= PCTSPRINT_ITEMS;
+      score = scorePercentSprint(correctCount, ms);
       break;
     }
     case "stopwatch": {

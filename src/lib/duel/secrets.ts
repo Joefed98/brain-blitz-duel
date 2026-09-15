@@ -22,7 +22,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   oddshape: ["oddIndex", "differenceLabel"],
   chaincalc: ["intermediates", "answer"],
   wordmatch: ["answers"],
-  pctsprint: ["answer", "working"],
+  pctsprint: ["answers"],
   countup: ["count"],
   mirmatch: ["correctIndex", "kinds"],
   // These types show the player everything they need on screen — there is
