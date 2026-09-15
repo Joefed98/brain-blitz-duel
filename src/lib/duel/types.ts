@@ -362,8 +362,8 @@ export const TOTAL_ROUNDS = 6;
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 10;
 export const COUNTDOWN_MS = 3_000;
-/** Round intro: 7s of progress bar, then a 3-2-1 countdown. */
-export const INTRO_MS = 10_000;
+/** Round intro: 10s of explanation, then a 3-2-1 countdown. */
+export const INTRO_MS = 13_000;
 export const INTRO_COUNTDOWN_MS = 3_000;
 /** Answer reveal after each round. */
 export const REVEAL_MS = 5_000;

@@ -28,7 +28,7 @@ export function RoundIntro({ round, type, startedAt, now, outcomes }: RoundIntro
   const seconds = Math.round(typeTimeLimitMs(type) / 1000);
 
   return (
-    <div className="flex flex-1 flex-col gap-6 animate-phase-in">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 animate-phase-in">
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           Round {round} of {TOTAL_ROUNDS}
@@ -36,7 +36,7 @@ export function RoundIntro({ round, type, startedAt, now, outcomes }: RoundIntro
         <RoundPips currentRound={round} outcomes={outcomes} />
       </div>
 
-      <h1 className="text-center font-display text-3xl font-bold animate-pop-in">
+      <h1 className="text-center font-display text-5xl font-bold leading-none animate-pop-in">
         {puzzleName(type)}
       </h1>
 
@@ -51,18 +51,22 @@ export function RoundIntro({ round, type, startedAt, now, outcomes }: RoundIntro
         </div>
       ) : (
         <>
-          <div className="flex flex-1 flex-col items-center justify-center gap-3">
-            <Example />
-            <p className="text-xs text-muted-foreground">You have {seconds} seconds</p>
+          <div className="round-intro-content flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+            <div className="round-intro-example">
+              <Example />
+            </div>
+            <p className="round-intro-time text-xs text-muted-foreground">
+              You have {seconds} seconds
+            </p>
           </div>
 
-          <div className="flex h-24 items-center justify-center">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-card">
-            <div
-              className="h-full rounded-full bg-primary transition-[width] duration-100 ease-linear"
-              style={{ width: `${100 - progress}%` }}
-            />
-          </div>
+          <div className="flex h-12 items-center justify-center">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-card">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-100 ease-linear"
+                style={{ width: `${100 - progress}%` }}
+              />
+            </div>
           </div>
         </>
       )}
