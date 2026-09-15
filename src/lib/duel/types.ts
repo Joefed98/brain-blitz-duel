@@ -472,21 +472,32 @@ export interface WordMatchPuzzleData {
   answers?: number[];
 }
 
-/** Word Match: a run of eight prompts. */
+/** Word Match: a run of eight prompts, over 45 seconds. */
 export const WORDMATCH_ITEMS = 8;
+export const WORDMATCH_TIME_MS = 45_000;
 
 /* -------------------------------------------------------------------------- */
 /*  Percent Sprint                                                             */
 /* -------------------------------------------------------------------------- */
 
+export interface PercentItem {
+  question: string;
+  /** Four options in their stored order — one correct, three near misses. */
+  options: number[];
+  /** One line of working, shown on the answer reveal. */
+  working: string;
+}
+
 export interface PercentPuzzleData {
   type: "pctsprint";
-  question: string;
-  /** Server-side only, until the reveal. */
-  answer?: number;
-  /** One line of working, shown on the answer reveal. */
-  working?: string;
+  items: PercentItem[];
+  /** Server-side only, until the reveal: the correct option index per question. */
+  answers?: number[];
 }
+
+/** Percent Sprint: three questions over 45 seconds. */
+export const PCTSPRINT_ITEMS = 3;
+export const PCTSPRINT_TIME_MS = 45_000;
 
 /* -------------------------------------------------------------------------- */
 /*  Number Span                                                                */
