@@ -6,7 +6,11 @@ import { WaitingLine } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { TimerRing } from "@/components/duel/TimerRing";
-import { practiceGenerateFn, practiceGradeFn } from "@/lib/duel/practice.functions";
+import {
+  practiceCheckWordFn,
+  practiceGenerateFn,
+  practiceGradeFn,
+} from "@/lib/duel/practice.functions";
 import {
   PUZZLE_REGISTRY,
   puzzleCategories,
@@ -278,6 +282,9 @@ function PracticeScreen() {
             now={now}
             locked={false}
             onSubmit={(answer, meta) => void grade(answer, meta)}
+            checkWord={(word, found) =>
+              practiceCheckWordFn({ data: { puzzle, word, found } })
+            }
           />
         </div>
       </div>

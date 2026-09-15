@@ -580,6 +580,9 @@ function DuelScreen() {
                 now={now}
                 locked={!!myResult}
                 onSubmit={handleSubmit}
+                checkWord={(word, found) =>
+                  checkWord(duel.id, round, word, found)
+                }
               />
             </div>
           )}
