@@ -17,14 +17,14 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   equation: ["operators"],
   symscan: ["targets"],
   patcomp: ["rules", "answer"],
-  rotmatch: ["correctIndex", "rotationDeg"],
+  spin: ["answers"],
   reverse: ["answerOrder"],
   spotdiff: ["differences"],
   chaincalc: ["intermediates", "answer"],
   wordmatch: ["answers"],
   pctsprint: ["answers"],
   countup: ["count"],
-  mirmatch: ["correctIndex", "kinds"],
+  mirmatch: ["answers", "kinds"],
   // These types show the player everything they need on screen — there is
   // nothing extra to hide (the tiles, items and delays are the puzzle).
   sequence: [],

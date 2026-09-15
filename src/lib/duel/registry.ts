@@ -17,7 +17,7 @@ import { patternCompletionPuzzle } from "@/puzzles/patternCompletion";
 import { percentSprintPuzzle } from "@/puzzles/percentSprint";
 import { reactionPuzzle } from "@/puzzles/reaction";
 import { reverseRecallPuzzle } from "@/puzzles/reverseRecall";
-import { rotationMatchPuzzle } from "@/puzzles/rotationMatch";
+import { spinPuzzle } from "@/puzzles/spin";
 import { sequencePuzzle } from "@/puzzles/sequence";
 import { spatialMemoryPuzzle } from "@/puzzles/spatialMemory";
 import { stopWatchPuzzle } from "@/puzzles/stopWatch";
@@ -51,7 +51,7 @@ const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   symscan: symbolScanPuzzle,
   spotdiff: spotDifferencePuzzle,
   patcomp: patternCompletionPuzzle,
-  rotmatch: rotationMatchPuzzle,
+  spin: spinPuzzle,
   wordmatch: wordMatchPuzzle,
   pctsprint: percentSprintPuzzle,
   numspan: numberSpanPuzzle,

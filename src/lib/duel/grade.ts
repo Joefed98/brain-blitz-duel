@@ -12,6 +12,8 @@ import {
   scoreSpotDifference,
   scoreStopWatch,
   scoreBlockParty,
+  scoreMirrorMatch,
+  scoreSpin,
   scoreStroop,
   scoreUnblock,
   scoreTargetNumber,
@@ -25,6 +27,8 @@ import {
   ROUND_MS,
   SPOT_DIFFERENCES,
   STOPWATCH_MISS_MS,
+  MIRMATCH_ITEMS,
+  SPIN_ITEMS,
   STROOP_ITEMS,
   WORDMATCH_ITEMS,
   type PuzzleData,
@@ -98,6 +102,22 @@ export function gradeSubmission(
       correctCount = clamp(extra.correctCount ?? 0, 0, STROOP_ITEMS);
       isCorrect = correctCount >= STROOP_ITEMS;
       score = scoreStroop(correctCount, ms);
+      break;
+    }
+    case "mirmatch": {
+      // The correct candidate of each item lives server-side only.
+      const picks = answer.split(",").map((v) => Number.parseInt(v, 10));
+      correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
+      isCorrect = correctCount >= MIRMATCH_ITEMS;
+      score = scoreMirrorMatch(correctCount, ms);
+      break;
+    }
+    case "spin": {
+      // Same again: the transform used for each item is never sent to the phone.
+      const picks = answer.split(",").filter(Boolean);
+      correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
+      isCorrect = correctCount >= SPIN_ITEMS;
+      score = scoreSpin(correctCount, ms);
       break;
     }
     case "wordmatch": {
