@@ -43,6 +43,8 @@ export interface PuzzleStageProps {
   now: number;
   locked: boolean;
   onSubmit: (answer: string, meta?: SubmitMeta) => void;
+  /** Keeps an incomplete answer available for server grading if the timer expires. */
+  onDraftAnswer?: (answer: string) => void;
   /** Wordsmith and Word Hunt only: live server-side word checking. */
   checkWord?: CheckWord;
   /** Groups only: checks a candidate group without exposing the other answer. */
@@ -55,6 +57,7 @@ export interface PuzzleRevealProps {
   myAnswer: string | null;
   myCorrect: boolean;
   myReactionAvgMs: number | null;
+  myMsRemaining?: number;
 }
 
 /**

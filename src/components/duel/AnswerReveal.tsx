@@ -14,6 +14,7 @@ interface AnswerRevealProps {
   myAnswer: string | null;
   myCorrect: boolean;
   myReactionAvgMs: number | null;
+  myMsRemaining?: number;
   /** False until the round's answers have arrived from the server. */
   answersReady: boolean;
   startedAt: number;
@@ -59,6 +60,7 @@ export function AnswerReveal({
   myAnswer,
   myCorrect,
   myReactionAvgMs,
+  myMsRemaining,
   answersReady,
   startedAt,
   now,
@@ -101,6 +103,7 @@ export function AnswerReveal({
               myAnswer={myAnswer}
               myCorrect={myCorrect}
               myReactionAvgMs={myReactionAvgMs}
+              myMsRemaining={myMsRemaining}
             />
           ) : (
             <div className="flex justify-center">

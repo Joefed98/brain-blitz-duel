@@ -24,7 +24,7 @@ function IntroExample() {
   </div>;
 }
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, checkGroup }: PuzzleStageProps) {
+function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkGroup }: PuzzleStageProps) {
   const data = puzzle.type === "groups" ? puzzle : null;
   const key = data?.words.join("|") ?? "";
   const [order, setOrder] = useState<number[]>(() => data?.words.map((_, index) => index) ?? []);
@@ -45,11 +45,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, checkGroup }: Pu
     onSubmit(groups.map((group) => group.indices.join(",")).join(";"));
   };
 
-  useEffect(() => {
-    if (!data || locked || submitted.current) return;
-    if (now >= phaseStartedAt + GROUPS_TIME_MS - 350) submitFinal(found);
-  }, [now, phaseStartedAt, locked, found, data]); // eslint-disable-line react-hooks/exhaustive-deps
-
   if (!data) return null;
   const foundIndices = new Set(found.flatMap((group) => group.indices));
   const remaining = order.filter((index) => !foundIndices.has(index));
@@ -64,6 +59,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, checkGroup }: Pu
     }
     const next = [...found, { groupIndex: verdict.groupIndex, theme: verdict.theme, indices: [...selected], words: selected.map((index) => data.words[index] ?? "") }];
     setFound(next); setSelected([]);
+    onDraftAnswer?.(next.map((group) => group.indices.join(",")).join(";"));
     if (next.length === 2) submitFinal(next);
   };
 
@@ -85,14 +81,16 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, checkGroup }: Pu
   </div>;
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "groups" || !puzzle.groups) return null;
   const foundCount = Math.min(2, (myAnswer ?? "").split(";").filter((part) => part.split(",").filter(Boolean).length === 4).length);
   const label = foundCount === 2 ? "Both groups" : foundCount === 1 ? "One group" : "No groups";
+  const elapsed = ((GROUPS_TIME_MS - Math.max(0, myMsRemaining ?? 0)) / 1000).toFixed(1);
   return <div className="flex w-full flex-col items-center gap-2">
     {puzzle.groups.map((group, index) => <GroupBand key={group.theme} theme={group.theme} words={group.words} index={index} />)}
     <div className="mt-1 rounded-lg bg-card px-4 py-2 text-center">
       <p className={`font-display text-lg font-bold ${myCorrect ? "text-primary" : "text-warn"}`}>{myCorrect ? "✓" : "✗"} {label}</p>
+      <p className="font-mono text-xs text-muted-foreground">{elapsed}s</p>
     </div>
   </div>;
 }
