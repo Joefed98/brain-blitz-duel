@@ -1,3 +1,4 @@
+import { patternAttributeLabel, patternMistakes } from "./pattern";
 import {
   BLOCK_FREE_CELLS,
   BLOCK_TIME_MS,
@@ -6,6 +7,7 @@ import {
   NUMHUNT_COUNT,
   PCTSPRINT_ITEMS,
   PCTSPRINT_TIME_MS,
+  PATCOMP_TIME_MS,
   ROUND_MS,
   SPOT_DIFFERENCES,
   SPOT_TIME_MS,
@@ -36,6 +38,8 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
       ? WORDMATCH_TIME_MS
     : puzzle.type === "pctsprint"
       ? PCTSPRINT_TIME_MS
+    : puzzle.type === "patcomp"
+      ? PATCOMP_TIME_MS
     : puzzle.type === "target"
       ? TARGET_TIME_MS
       : puzzle.type === "wordsmith"
@@ -145,6 +149,17 @@ function percentSprintSummary(result: RoundResultRow, puzzle: PuzzleData): Built
       })
     : [];
   return { summary: `${count} / ${PCTSPRINT_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`, detail };
+}
+
+function patternSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  if (puzzle.type !== "patcomp") return { summary: "—", detail: [] };
+  const rules = (puzzle.rules ?? []).map((rule) => rule.text);
+  if (result.is_correct) {
+    return { summary: `✓ ${seconds(elapsedMs(result, puzzle))}`, detail: rules };
+  }
+  const wrong = patternMistakes(puzzle, result.answer).map(patternAttributeLabel);
+  const summary = wrong.length > 0 ? `✗ (${wrong.join(", ")} wrong)` : "✗ No answer";
+  return { summary, detail: rules };
 }
 
 function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
@@ -290,7 +305,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   stroop: stroopSummary,
   spatial: cellsSingle,
   gonogo: goNoGoSummary,
-  patcomp: optionSingle,
+  patcomp: patternSummary,
   symscan: cellsSingle,
   rotmatch: optionSingle,
   numhunt: numberHuntSummary,
@@ -324,7 +339,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   stroop: () => null,
   spatial: (p) => p.type === "spatial" ? `Cells ${p.tiles.map((i) => i + 1).join(", ")}` : null,
   gonogo: () => null,
-  patcomp: (p) => p.type === "patcomp" ? `Option ${p.correctIndex + 1}` : null,
+  patcomp: (p) => p.type === "patcomp" && p.answer ? "See the grid" : null,
   symscan: (p) => p.type === "symscan" ? `${p.targets.length} arrows` : null,
   rotmatch: (p) => p.type === "rotmatch" ? `Option ${p.correctIndex + 1}` : null,
   numhunt: () => null,

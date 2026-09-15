@@ -211,22 +211,52 @@ export interface GoNoGoPuzzleData {
   items: GoNoGoItem[];
 }
 
+/** Pattern Completion draws its own shapes, including two the glyph set lacks. */
+export type PatternShape =
+  | "circle"
+  | "square"
+  | "triangle"
+  | "star"
+  | "hexagon"
+  | "arrow";
+
+/** Only triangles and arrows show their rotation; everything else stays at 0. */
+export type PatternRotation = 0 | 90 | 180 | 270;
+
 export interface PatternCell {
-  shape: GlyphShape;
+  shape: PatternShape;
   colour: StroopColour;
   count: 1 | 2 | 3;
+  rot: PatternRotation;
+}
+
+export type PatternAttribute = "shape" | "colour" | "count" | "rot";
+
+/** How one attribute behaves across the grid. */
+export type PatternRuleKind = "row" | "prog" | "latin";
+
+export interface PatternRule {
+  attr: PatternAttribute;
+  kind: PatternRuleKind;
+  /** Plain English, shown on the answer reveal. */
+  text: string;
 }
 
 export interface PatternPuzzleData {
   type: "patcomp";
   /** Nine cells, row-major; index 8 is the answer cell (shown as ? in play). */
   cells: PatternCell[];
-  /** Four candidates in their stored, shuffled order. */
-  candidates: PatternCell[];
-  correctIndex: number;
-  /** Plain-English rule, shown on the answer reveal. */
-  rule: string;
+  /** The attributes the player composes; the fourth is constant and pre-filled. */
+  active: PatternAttribute[];
+  /** True when the grid uses a rotatable shape, so the rotation picker shows. */
+  rotatable: boolean;
+  /** Server-side only until the reveal. */
+  rules?: PatternRule[];
+  answer?: PatternCell;
 }
+
+/** Pattern Completion: build the missing piece. */
+export const PATCOMP_TIME_MS = 45_000;
 
 /** The eight compass directions used by Symbol Scan. */
 export type ArrowDir = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
