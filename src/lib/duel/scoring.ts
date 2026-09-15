@@ -61,6 +61,12 @@ export function scoreRound(
   return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
 }
 
+/** Groups: both sets earn the standard score; one set at timeout earns 50. */
+export function scoreGroups(foundGroups: number, msRemaining: number): number {
+  if (foundGroups >= 2) return BASE_POINTS + speedBonus(msRemaining, 60_000);
+  return foundGroups === 1 ? 50 : 0;
+}
+
 /**
  * Target Number: an exact hit scores the standard 100 plus the speed bonus,
  * a near miss scores a flat amount, anything further away scores nothing.

@@ -10,7 +10,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   wordhunt: ["words", "totalPoints", "par"],
   unblock: ["minMoves", "solution"],
   blockparty: ["solution", "solutions"],
-  oddword: ["odd", "theme"],
+  groups: ["groups"],
   target: ["solution"],
   numseq: ["answer", "rule"],
   missing: ["word"],

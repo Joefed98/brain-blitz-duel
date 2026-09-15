@@ -11,7 +11,7 @@ import { missingLettersPuzzle } from "@/puzzles/missingLetters";
 import { numberSpanPuzzle } from "@/puzzles/numberSpan";
 import { numberHuntPuzzle } from "@/puzzles/numberHunt";
 import { numberSequencePuzzle } from "@/puzzles/numberSequence";
-import { oddWordPuzzle } from "@/puzzles/oddWordOut";
+import { groupsPuzzle } from "@/puzzles/groups";
 import { spotDifferencePuzzle } from "@/puzzles/spotTheDifference";
 import { patternCompletionPuzzle } from "@/puzzles/patternCompletion";
 import { percentSprintPuzzle } from "@/puzzles/percentSprint";
@@ -36,11 +36,12 @@ type RegisteredPuzzleDefinition = PuzzleDefinition & Required<Pick<PuzzleDefinit
 const LONG_REVEAL_TYPES = new Set<PuzzleType>([
   "chaincalc", "target", "wordsmith", "wordhunt", "stroop", "wordmatch",
   "pctsprint", "spin", "mirmatch", "gonogo", "spotdiff",
+  "groups",
 ]);
 
 const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   wordsmith: wordsmithPuzzle,
-  oddword: oddWordPuzzle,
+  groups: groupsPuzzle,
   missing: missingLettersPuzzle,
   target: targetNumberPuzzle,
   numseq: numberSequencePuzzle,

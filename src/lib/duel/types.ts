@@ -1,6 +1,6 @@
 export type PuzzleType =
   | "wordsmith"
-  | "oddword"
+  | "groups"
   | "target"
   | "numseq"
   | "sequence"
@@ -60,12 +60,19 @@ export interface WordsmithPuzzleData {
   source?: string;
 }
 
-export interface OddWordPuzzleData {
-  type: "oddword";
+export const GROUPS_TIME_MS = 60_000;
+
+export interface GroupsSecretGroup {
   theme: string;
-  /** Four words in the shuffled order both players see. */
+  words: [string, string, string, string] | string[];
+}
+
+export interface GroupsPuzzleData {
+  type: "groups";
+  /** Eight words in the stored order every player sees. */
   words: string[];
-  odd: string;
+  /** Server-side only until reveal: the exact two groups and their themes. */
+  groups?: [GroupsSecretGroup, GroupsSecretGroup] | GroupsSecretGroup[];
 }
 
 /** One combining step: two values and an operator, giving a new value. */
@@ -314,7 +321,7 @@ export interface NumberHuntPuzzleData {
 
 export type PuzzleData =
   | WordsmithPuzzleData
-  | OddWordPuzzleData
+  | GroupsPuzzleData
   | TargetNumberPuzzleData
   | NumberSequencePuzzleData
   | SequencePuzzleData

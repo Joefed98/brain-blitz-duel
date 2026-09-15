@@ -31,6 +31,11 @@ export type CheckWord = (
   path?: number[],
 ) => Promise<{ valid: boolean; points: number; word: string; reason?: string }>;
 
+/** Groups only: validates one four-tile selection against the private partition. */
+export type CheckGroup = (
+  indices: number[],
+) => Promise<{ valid: boolean; groupIndex?: number; theme?: string }>;
+
 export interface PuzzleStageProps {
   puzzle: PuzzleData;
   /** Server-synced timestamp the puzzle phase started on both phones. */
@@ -40,6 +45,8 @@ export interface PuzzleStageProps {
   onSubmit: (answer: string, meta?: SubmitMeta) => void;
   /** Wordsmith and Word Hunt only: live server-side word checking. */
   checkWord?: CheckWord;
+  /** Groups only: checks a candidate group without exposing the other answer. */
+  checkGroup?: CheckGroup;
 }
 
 export interface PuzzleRevealProps {
