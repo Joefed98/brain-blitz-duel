@@ -145,3 +145,20 @@ export function decodePlacements(raw: string): BlockPlacement[] {
     })
     .filter((p) => Number.isInteger(p.piece));
 }
+
+/** The piece's cells after a number of quarter turns and an optional flip. */
+export function orientationOffsets(piece: number, rot: number, flipped: boolean): Offsets {
+  let cells = normalise(BLOCK_PIECES[piece]!.cells);
+  if (flipped) cells = flip(cells);
+  const turns = ((rot % 4) + 4) % 4;
+  for (let i = 0; i < turns; i++) cells = rotate(cells);
+  return cells;
+}
+
+/** Bounding box of an orientation, in cells. */
+export function offsetsSize(offsets: Offsets): { rows: number; cols: number } {
+  return {
+    rows: Math.max(...offsets.map(([r]) => r)) + 1,
+    cols: Math.max(...offsets.map(([, c]) => c)) + 1,
+  };
+}
