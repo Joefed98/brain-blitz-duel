@@ -423,6 +423,7 @@ function applyDifference(
   kind: SpotDifferenceKind,
   shape: SpotShape,
   occupied: Set<number>,
+  usedCells: number[],
 ): { bottom: SpotShape | null; difference: SpotDifference } | null {
   switch (kind) {
     case "colour": {
@@ -453,7 +454,12 @@ function applyDifference(
       };
     }
     case "move": {
-      const free = neighbours(shape.cell).filter((cell) => !occupied.has(cell));
+      const free = neighbours(shape.cell).filter(
+        (cell) =>
+          !occupied.has(cell) &&
+          // The square it moves into must also stay clear of the other two.
+          usedCells.every((used) => cellsApart(used, cell) >= 2),
+      );
       if (free.length === 0) return null;
       const cell = pick(free);
       occupied.add(cell);
@@ -509,7 +515,7 @@ export function buildSpotDifference(): SpotPuzzleData {
           usedCells.every((cell) => cellsApart(cell, s.cell) >= 2),
       );
       if (!shape) break;
-      const applied = applyDifference(kind, shape, occupied);
+      const applied = applyDifference(kind, shape, occupied, usedCells);
       if (!applied) continue;
       bottom.delete(shape.cell);
       if (applied.bottom) bottom.set(applied.bottom.cell, applied.bottom);
