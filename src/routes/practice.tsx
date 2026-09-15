@@ -8,6 +8,7 @@ import { RoundIntro } from "@/components/duel/RoundIntro";
 import { TimerRing } from "@/components/duel/TimerRing";
 import {
   practiceCheckWordFn,
+  practiceCheckGroupFn,
   practiceGenerateFn,
   practiceGradeFn,
 } from "@/lib/duel/practice.functions";
@@ -296,6 +297,9 @@ function PracticeScreen() {
             onSubmit={(answer, meta) => void grade(answer, meta)}
             checkWord={(word, found, path) =>
               practiceCheckWordFn({ data: { puzzle, word, found, path: path ?? [] } })
+            }
+            checkGroup={(indices) =>
+              practiceCheckGroupFn({ data: { puzzle, sealed, indices } })
             }
           />
         </div>

@@ -18,6 +18,7 @@ import { buzz } from "@/lib/motion";
 import { unlockAudio } from "@/lib/sound";
 import {
   advancePhase,
+  checkGroup,
   checkWord,
   ensureRematch,
   fetchDuelById,
@@ -602,6 +603,7 @@ function DuelScreen() {
                 checkWord={(word, found, path) =>
                   checkWord(duel.id, round, word, found, path)
                 }
+                checkGroup={(indices) => checkGroup(duel.id, round, indices)}
               />
             </div>
           )}
