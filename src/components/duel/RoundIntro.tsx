@@ -36,7 +36,7 @@ export function RoundIntro({ round, type, startedAt, now, outcomes }: RoundIntro
         <RoundPips currentRound={round} outcomes={outcomes} />
       </div>
 
-      <h1 className="text-center font-display text-5xl font-bold leading-none animate-pop-in">
+      <h1 className="text-center font-display text-[2.75rem] font-bold leading-none animate-pop-in">
         {puzzleName(type)}
       </h1>
 
