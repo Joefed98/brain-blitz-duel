@@ -246,7 +246,7 @@ export function WordHuntPuzzle({
       </div>
 
       <div
-        className={`rounded-xl p-1 transition-colors duration-150 ${
+        className={`-mx-1 rounded-xl p-1 transition-colors duration-150 ${
           flash === "good" ? "bg-ok/25" : flash === "bad" ? "bg-warn/25" : "bg-transparent"
         }`}
       >
