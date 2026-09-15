@@ -13,6 +13,7 @@ import { TOTAL_ROUNDS, type PuzzleData, type PuzzleType } from "./types";
 import { generateUnblock } from "./unblock.server";
 import { generateWordHunt, gradeWordHunt } from "./wordHunt.server";
 import { generateWordsmith, gradeWordsmith } from "./wordsmith.server";
+import { generateWordLadder } from "./wordLadder.server";
 
 export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "wordsmith") return generateWordsmith();
@@ -20,6 +21,7 @@ export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "unblock") return generateUnblock();
   if (type === "blockparty") return generateBlockParty();
   if (type === "groups") return generateGroups();
+  if (type === "ladder") return generateWordLadder();
   return puzzleDef(type).generate();
 }
 

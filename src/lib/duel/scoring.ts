@@ -67,6 +67,25 @@ export function scoreGroups(foundGroups: number, msRemaining: number): number {
   return foundGroups === 1 ? 50 : 0;
 }
 
+/** Word Ladder: solved earns standard points, plus 20 for a minimum path, capped at 150. */
+export function scoreWordLadder(
+  solved: boolean,
+  validRungs: number,
+  shortestLength: number,
+  msRemaining: number,
+): number {
+  if (!solved) return validRungs >= 2 ? 30 : 0;
+  const minimumBonus = validRungs === shortestLength ? 20 : 0;
+  return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, 60_000) + minimumBonus);
+}
+
+/** Number Climb: partial credit is proportional to the correct leading span. */
+export function scoreNumberClimb(span: number, msRemaining: number): number {
+  const correct = clamp(Math.round(span), 0, 12);
+  if (correct === 12) return BASE_POINTS + speedBonus(msRemaining, 45_000);
+  return Math.round((BASE_POINTS * correct) / 12);
+}
+
 /**
  * Target Number: an exact hit scores the standard 100 plus the speed bonus,
  * a near miss scores a flat amount, anything further away scores nothing.

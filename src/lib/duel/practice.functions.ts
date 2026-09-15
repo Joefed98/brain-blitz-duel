@@ -96,7 +96,7 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     };
   });
 
-/** Wordsmith practice: checks one word against the sealed board. */
+/** Word puzzles: checks one word or ladder rung using server-only vocabulary. */
 export const practiceCheckWordFn = createServerFn({ method: "POST" })
   .inputValidator(
     (input: { puzzle: PuzzleData; word: string; found: string[]; path?: number[] }) => input,
@@ -107,6 +107,11 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
       const { checkWordHuntPath } = await import("./wordHunt.server");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
       return checkWordHuntPath(data.puzzle.grid, path, found);
+    }
+    if (data.puzzle.type === "ladder") {
+      const { checkLadderRung } = await import("./wordLadder.server");
+      const previous = found.at(-1) ?? data.puzzle.startWord;
+      return { ...checkLadderRung(previous, data.word), points: 0 };
     }
     if (data.puzzle.type !== "wordsmith") {
       return { valid: false as const, points: 0, word: "", reason: "Not this round." };

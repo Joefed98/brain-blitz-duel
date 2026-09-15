@@ -23,7 +23,7 @@ export interface SubmitMeta {
   steps?: { a: number; b: number; operator: string }[];
 }
 
-/** Wordsmith and Word Hunt: asks the server whether one word counts. */
+/** Wordsmith, Word Hunt, and Word Ladder: asks the server whether one word counts. */
 export type CheckWord = (
   word: string,
   found: string[],
@@ -45,7 +45,7 @@ export interface PuzzleStageProps {
   onSubmit: (answer: string, meta?: SubmitMeta) => void;
   /** Keeps an incomplete answer available for server grading if the timer expires. */
   onDraftAnswer?: (answer: string) => void;
-  /** Wordsmith and Word Hunt only: live server-side word checking. */
+  /** Wordsmith, Word Hunt, and Word Ladder: live server-side word checking. */
   checkWord?: CheckWord;
   /** Groups only: checks a candidate group without exposing the other answer. */
   checkGroup?: CheckGroup;

@@ -696,7 +696,7 @@ export const rematchFn = createServerFn({ method: "POST" })
   });
 
 /**
- * Wordsmith only: checks one submitted word while the round is running. The
+ * Word puzzles: checks one submitted word or rung while the round is running. The
  * dictionary stays on the server; only the verdict travels back.
  */
 export const checkWordFn = createServerFn({ method: "POST" })
@@ -725,6 +725,11 @@ export const checkWordFn = createServerFn({ method: "POST" })
       const { checkWordHuntPath } = await import("./wordHunt.server");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
       return checkWordHuntPath(pub.grid, path, found);
+    }
+    if (pub?.type === "ladder") {
+      const { checkLadderRung } = await import("./wordLadder.server");
+      const previous = found.at(-1) ?? pub.startWord;
+      return { ...checkLadderRung(previous, String(data.word ?? "")), points: 0 };
     }
     if (!pub || pub.type !== "wordsmith") {
       return { valid: false as const, points: 0, word: "", reason: "Not this round." };

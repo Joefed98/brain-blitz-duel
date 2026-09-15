@@ -7,8 +7,8 @@ import { countUpPuzzle } from "@/puzzles/countUp";
 import { equationPuzzle } from "@/puzzles/equation";
 import { goNoGoPuzzle } from "@/puzzles/goNoGo";
 import { mirrorMatchPuzzle } from "@/puzzles/mirrorMatch";
-import { missingLettersPuzzle } from "@/puzzles/missingLetters";
-import { numberSpanPuzzle } from "@/puzzles/numberSpan";
+import { wordLadderPuzzle } from "@/puzzles/wordLadder";
+import { numberClimbPuzzle } from "@/puzzles/numberClimb";
 import { numberHuntPuzzle } from "@/puzzles/numberHunt";
 import { numberSequencePuzzle } from "@/puzzles/numberSequence";
 import { groupsPuzzle } from "@/puzzles/groups";
@@ -36,13 +36,13 @@ type RegisteredPuzzleDefinition = PuzzleDefinition & Required<Pick<PuzzleDefinit
 const LONG_REVEAL_TYPES = new Set<PuzzleType>([
   "chaincalc", "target", "wordsmith", "wordhunt", "stroop", "wordmatch",
   "pctsprint", "spin", "mirmatch", "gonogo", "spotdiff",
-  "groups",
+  "groups", "ladder",
 ]);
 
 const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   wordsmith: wordsmithPuzzle,
   groups: groupsPuzzle,
-  missing: missingLettersPuzzle,
+  ladder: wordLadderPuzzle,
   target: targetNumberPuzzle,
   numseq: numberSequencePuzzle,
   equation: equationPuzzle,
@@ -60,7 +60,7 @@ const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   spin: spinPuzzle,
   wordmatch: wordMatchPuzzle,
   pctsprint: percentSprintPuzzle,
-  numspan: numberSpanPuzzle,
+  numclimb: numberClimbPuzzle,
   stopwatch: stopWatchPuzzle,
   countup: countUpPuzzle,
   mirmatch: mirrorMatchPuzzle,

@@ -13,7 +13,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   groups: ["groups"],
   target: ["solution"],
   numseq: ["answer", "rule"],
-  missing: ["word"],
+  ladder: ["shortestLength", "shortestPath"],
   equation: ["operators"],
   symscan: ["targets"],
   patcomp: ["rules", "answer"],
@@ -33,7 +33,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   gonogo: [],
   stroop: [],
   numhunt: [],
-  numspan: [],
+  numclimb: ["answerDigits"],
   stopwatch: [],
 };
 
@@ -42,13 +42,6 @@ type Loose = Record<string, unknown>;
 const PLACEHOLDER_CELL: PatternCell = { shape: "circle", colour: "RED", count: 1, rot: 0 };
 
 /** Blank positions become "_" so the client never receives the full word. */
-function maskWord(word: string, blanks: number[]): string {
-  return word
-    .split("")
-    .map((letter, index) => (blanks.includes(index) ? "_" : letter))
-    .join("");
-}
-
 export interface SplitPuzzle {
   /** Everything the player needs to render and play the round. */
   pub: PuzzleData;
@@ -65,10 +58,6 @@ export function splitPuzzle(puzzle: PuzzleData): SplitPuzzle {
   for (const [key, value] of Object.entries(full)) {
     if (secrets.includes(key)) priv[key] = value;
     else pub[key] = value;
-  }
-
-  if (puzzle.type === "missing") {
-    pub["word"] = maskWord(puzzle.word, puzzle.blanks);
   }
 
   if (puzzle.type === "patcomp") {
