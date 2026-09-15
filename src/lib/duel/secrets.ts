@@ -19,7 +19,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   patcomp: ["correctIndex", "rule"],
   rotmatch: ["correctIndex", "rotationDeg"],
   reverse: ["answerOrder"],
-  oddshape: ["oddIndex", "differenceLabel"],
+  spotdiff: ["differences"],
   chaincalc: ["intermediates", "answer"],
   wordmatch: ["answers"],
   pctsprint: ["answers"],

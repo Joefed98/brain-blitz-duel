@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { pick, randInt, shuffled } from "@/lib/duel/random";
 import {
@@ -280,34 +280,34 @@ function IntroExample() {
 /*  Play                                                                      */
 /* -------------------------------------------------------------------------- */
 
-function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
+function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
   const top = puzzle.type === "spotdiff" ? puzzle.top : [];
   const bottom = puzzle.type === "spotdiff" ? puzzle.bottom : [];
   const key = top.map((s) => `${s.cell}${s.kind}${s.colour}`).join("|");
   const groups = useMemo(() => differenceGroups(top, bottom), [key]); // eslint-disable-line react-hooks/exhaustive-deps
   const [taps, setTaps] = useState<number[]>([]);
   const [wrong, setWrong] = useState<number | null>(null);
+  const submitted = useRef("");
 
   useEffect(() => {
     setTaps([]);
     setWrong(null);
+    submitted.current = "";
   }, [key]);
 
   const foundGroups = groups.filter((g) => g.some((cell) => taps.includes(cell)));
   const foundCells = foundGroups.flat();
   const total = Math.min(SPOT_DIFFERENCES, groups.length) || SPOT_DIFFERENCES;
 
-  // All three found locks the round in — the server re-checks every tap.
+  // All three found locks the round in; otherwise the taps so far go up just
+  // before the clock runs out. The server re-checks every tap either way.
   useEffect(() => {
-    if (locked || foundGroups.length < total) return;
+    if (groups.length === 0 || locked || submitted.current === key) return;
+    const timeUp = now >= phaseStartedAt + SPOT_TIME_MS - 400;
+    if (foundGroups.length < total && !timeUp) return;
+    submitted.current = key;
     onSubmit(taps.join(","));
-  }, [foundGroups.length, total, locked]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Time ran out with fewer than three: the taps so far are the answer.
-  useEffect(() => {
-    if (!locked) return;
-    onSubmit(taps.join(","));
-  }, [locked]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [foundGroups.length, total, locked, now, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (wrong === null) return;
@@ -360,7 +360,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrectCount }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "spotdiff") return null;
   const differences = puzzle.differences ?? [];
   const cells = differences.flatMap((d) => d.cells);
@@ -391,7 +391,7 @@ function Reveal({ puzzle, myAnswer, myCorrectCount }: PuzzleRevealProps) {
         })}
       </div>
       <p className="font-mono text-2xl font-bold tabular-nums text-primary">
-        {myCorrectCount ?? found.length} / {SPOT_DIFFERENCES} found
+        {found.length} / {SPOT_DIFFERENCES} found
       </p>
     </>
   );
@@ -511,7 +511,6 @@ export function buildSpotDifference(): SpotPuzzleData {
       if (!shape) break;
       const applied = applyDifference(kind, shape, occupied);
       if (!applied) continue;
-      if (applied.bottom) bottom.set(shape.cell, applied.bottom);
       bottom.delete(shape.cell);
       if (applied.bottom) bottom.set(applied.bottom.cell, applied.bottom);
       differences.push(applied.difference);
