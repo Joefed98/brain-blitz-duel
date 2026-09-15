@@ -6,7 +6,7 @@ import type { PatternCell, PuzzleData, PuzzleType } from "./types";
  * player device can read.
  */
 const SECRET_KEYS: Record<PuzzleType, string[]> = {
-  anagram: ["word"],
+  wordsmith: ["words", "totalPoints", "par", "source"],
   oddword: ["odd", "theme"],
   target: ["solution"],
   numseq: ["answer", "rule"],
