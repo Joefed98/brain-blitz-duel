@@ -282,6 +282,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "You need at least two players." };
     }
 
+    const { buildRoomPuzzles } = await import("./generate.server");
     const { roundOrder, puzzles } = buildRoomPuzzles(room.round_count ?? TOTAL_ROUNDS);
     const split = puzzles.map(splitPuzzle);
     const startedAt = nowIso();
