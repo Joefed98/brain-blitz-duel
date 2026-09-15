@@ -1,4 +1,6 @@
+import { decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
 import { checkAnswer } from "./puzzles";
+import { decodeMoves, replayUnblock } from "./unblock";
 import { puzzleTimeLimitMs } from "./registry";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import {
@@ -7,7 +9,9 @@ import {
   scoreReaction,
   scoreRound,
   scoreStopWatch,
+  scoreBlockParty,
   scoreStroop,
+  scoreUnblock,
   scoreTargetNumber,
   scoreWordMatch,
 } from "./scoring";
@@ -55,7 +59,7 @@ export function gradeSubmission(
   rawExtra?: SubmitExtra,
 ): Graded {
   const extra = rawExtra ?? {};
-  const answer = typeof rawAnswer === "string" ? rawAnswer.slice(0, 200) : "";
+  const answer = typeof rawAnswer === "string" ? rawAnswer.slice(0, 4_000) : "";
   const timeLimitMs = puzzleTimeLimitMs(puzzle);
   const ms = clamp(msRemaining, 0, timeLimitMs);
 
@@ -132,6 +136,27 @@ export function gradeSubmission(
       extraDetail = {
         value: replay.value,
         steps: replay.steps.map(formatStep),
+      };
+      break;
+    }
+    case "unblock": {
+      // The phone sends its slides; every one is replayed on the stored layout.
+      const replay = replayUnblock(puzzle.vehicles, decodeMoves(answer));
+      const min = puzzle.minMoves ?? 0;
+      isCorrect = replay.solved;
+      score = scoreUnblock(replay.solved, ms, replay.moves, min);
+      extraDetail = { solved: replay.solved, moves: replay.moves, minMoves: min };
+      break;
+    }
+    case "blockparty": {
+      // Only placements that are legal together count towards the coverage.
+      const verdict = verifyPlacements(puzzle.blockers, decodePlacements(answer));
+      isCorrect = verdict.solved;
+      score = scoreBlockParty(verdict.solved, ms, verdict.covered);
+      extraDetail = {
+        solved: verdict.solved,
+        covered: verdict.covered,
+        placements: encodePlacements(verdict.legal),
       };
       break;
     }
