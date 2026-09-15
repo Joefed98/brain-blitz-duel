@@ -13,7 +13,7 @@ export type PuzzleType =
   | "gonogo"
   | "patcomp"
   | "symscan"
-  | "rotmatch"
+  | "spin"
   | "numhunt"
   | "spotdiff"
   | "chaincalc"
@@ -270,15 +270,32 @@ export interface SymbolScanPuzzleData {
   targets: number[];
 }
 
-export interface RotationPuzzleData {
-  type: "rotmatch";
-  /** Filled cell indices (0-24) of a 5x5 grid. */
-  target: number[];
-  /** Four candidates in their stored, shuffled order. */
-  candidates: number[][];
-  correctIndex: number;
-  /** Degrees the target was rotated by to produce the correct candidate. */
-  rotationDeg: number;
+/* -------------------------------------------------------------------------- */
+/*  Spin                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export const SPIN_ITEMS = 8;
+export const SPIN_TIME_MS = 45_000;
+export const SPIN_MAX_STREAK = 2;
+
+/** How the copy on the right was made from the shape on the left. */
+export type SpinTransform = "cw" | "half" | "ccw" | "flip";
+
+/** Fixed button order for the whole run. */
+export const SPIN_TRANSFORMS: SpinTransform[] = ["cw", "half", "ccw", "flip"];
+
+export interface SpinItem {
+  /** The shape on the left. */
+  target: MirrorShape;
+  /** The transformed copy on the right. */
+  shown: MirrorShape;
+}
+
+export interface SpinPuzzleData {
+  type: "spin";
+  items: SpinItem[];
+  /** Server-side only: the transform used for each item, in order. */
+  answers?: SpinTransform[];
 }
 
 export interface HuntSpot {
@@ -311,7 +328,7 @@ export type PuzzleData =
   | GoNoGoPuzzleData
   | PatternPuzzleData
   | SymbolScanPuzzleData
-  | RotationPuzzleData
+  | SpinPuzzleData
   | NumberHuntPuzzleData
   | WordMatchPuzzleData
   | PercentPuzzleData
@@ -627,8 +644,12 @@ export const COUNTUP_MAX_COUNT = 12;
 /*  Mirror Match                                                               */
 /* -------------------------------------------------------------------------- */
 
+/** A run of three flips in one round. */
+export const MIRMATCH_ITEMS = 3;
+export const MIRMATCH_TIME_MS = 45_000;
+
 /** Which dashed line the target is flipped across. */
-export type MirrorAxis = "vertical" | "horizontal" | "diagonal";
+export type MirrorAxis = "vertical" | "horizontal";
 
 /** How a wrong candidate differs from the true reflection. */
 export type MirrorCandidateKind = "correct" | "otherAxis" | "rotation" | "swap";
@@ -639,16 +660,21 @@ export interface MirrorShape {
   colours: StroopColour[];
 }
 
-export interface MirrorPuzzleData {
-  type: "mirmatch";
+export interface MirrorItem {
   axis: MirrorAxis;
   target: MirrorShape;
   /** Four candidates in their stored, shuffled order. */
   candidates: MirrorShape[];
-  /** Server-side only: absent until the reveal. */
-  correctIndex?: number;
-  /** Server-side only: what each candidate is, in stored order. */
-  kinds?: MirrorCandidateKind[];
+}
+
+export interface MirrorPuzzleData {
+  type: "mirmatch";
+  /** Three puzzles, played one after the other. */
+  items: MirrorItem[];
+  /** Server-side only: the correct candidate of each item, in order. */
+  answers?: number[];
+  /** Server-side only: what each candidate is, per item, in stored order. */
+  kinds?: MirrorCandidateKind[][];
 }
 
 /* -------------------------------------------------------------------------- */

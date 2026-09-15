@@ -12,6 +12,10 @@ import {
   SPOT_TIME_MS,
   SPOT_TWO_POINTS,
   STOPWATCH_MAX_DIST_MS,
+  MIRMATCH_ITEMS,
+  MIRMATCH_TIME_MS,
+  SPIN_ITEMS,
+  SPIN_TIME_MS,
   STROOP_ITEMS,
   TARGET_FAR_POINTS,
   TARGET_NEAR_POINTS,
@@ -82,6 +86,22 @@ export function scoreStroop(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, STROOP_ITEMS);
   const accuracy = Math.round((BASE_POINTS * correct) / STROOP_ITEMS);
   const bonus = correct >= STROOP_ITEMS ? speedBonus(msRemaining) : 0;
+  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+}
+
+/** Mirror Match: three flips, accuracy out of 100 plus a bonus for all three. */
+export function scoreMirrorMatch(correctCount: number, msRemaining: number): number {
+  const correct = clamp(correctCount, 0, MIRMATCH_ITEMS);
+  const accuracy = Math.round((BASE_POINTS * correct) / MIRMATCH_ITEMS);
+  const bonus = correct >= MIRMATCH_ITEMS ? speedBonus(msRemaining, MIRMATCH_TIME_MS) : 0;
+  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+}
+
+/** Spin: eight items, accuracy out of 100 plus a bonus for a flawless run. */
+export function scoreSpin(correctCount: number, msRemaining: number): number {
+  const correct = clamp(correctCount, 0, SPIN_ITEMS);
+  const accuracy = Math.round((BASE_POINTS * correct) / SPIN_ITEMS);
+  const bonus = correct >= SPIN_ITEMS ? speedBonus(msRemaining, SPIN_TIME_MS) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
