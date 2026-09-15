@@ -572,3 +572,100 @@ export interface MirrorPuzzleData {
   /** Server-side only: what each candidate is, in stored order. */
   kinds?: MirrorCandidateKind[];
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Word Hunt                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export const WORDHUNT_COLS = 4;
+export const WORDHUNT_CELLS = WORDHUNT_COLS * WORDHUNT_COLS;
+export const WORDHUNT_TIME_MS = 60_000;
+export const WORDHUNT_MIN_LENGTH = 4;
+/** A board is only used when the dictionary finds at least this many words. */
+export const WORDHUNT_MIN_WORDS = 40;
+export const WORDHUNT_PAR_SHARE = 0.35;
+
+/** 4 letters = 1 point, rising to 11 for eight letters or more. */
+export function wordHuntPoints(word: string): number {
+  const length = word.trim().length;
+  if (length >= 8) return 11;
+  return { 4: 1, 5: 2, 6: 4, 7: 7 }[length] ?? 0;
+}
+
+export interface WordHuntWord {
+  word: string;
+  points: number;
+  /** Cell indices of one path that spells it. */
+  path: number[];
+}
+
+export interface WordHuntPuzzleData {
+  type: "wordhunt";
+  /** Sixteen tiles, row-major; a Q tile always reads "QU". */
+  grid: string[];
+  /** Server-side only until the reveal: every word the board allows. */
+  words?: WordHuntWord[];
+  totalPoints?: number;
+  par?: number;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Unblock                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export const UNBLOCK_COLS = 6;
+export const UNBLOCK_TIME_MS = 90_000;
+/** The gold car and the exit gap both sit on this row (0-based). */
+export const UNBLOCK_EXIT_ROW = 2;
+/** Flat bonus for solving in the fewest possible moves. */
+export const UNBLOCK_MIN_MOVE_BONUS = 20;
+
+export type UnblockAxis = "h" | "v";
+
+export interface UnblockVehicle {
+  /** Stable id; 0 is always the gold car. */
+  id: number;
+  row: number;
+  col: number;
+  /** 2 for a car, 3 for a lorry. */
+  len: number;
+  axis: UnblockAxis;
+}
+
+export interface UnblockPuzzleData {
+  type: "unblock";
+  vehicles: UnblockVehicle[];
+  /** Server-side only: the fewest moves the layout can be solved in. */
+  minMoves?: number;
+  /** Server-side only: one minimum-length solution, as encoded moves. */
+  solution?: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Block Party                                                                */
+/* -------------------------------------------------------------------------- */
+
+export const BLOCK_COLS = 6;
+export const BLOCK_CELLS = BLOCK_COLS * BLOCK_COLS;
+export const BLOCK_BLOCKERS = 7;
+export const BLOCK_FREE_CELLS = BLOCK_CELLS - BLOCK_BLOCKERS;
+export const BLOCK_TIME_MS = 90_000;
+/** Partial credit when the board is not filled by the timer. */
+export const BLOCK_PARTIAL_POINTS = 60;
+
+/** One piece sitting on the board, by the absolute cells it covers. */
+export interface BlockPlacement {
+  /** Index into the tray piece list. */
+  piece: number;
+  cells: number[];
+}
+
+export interface BlockPartyPuzzleData {
+  type: "blockparty";
+  /** Seven peg cells the pieces must fit around. */
+  blockers: number[];
+  /** Server-side only: one full solution. */
+  solution?: BlockPlacement[];
+  /** Server-side only: how many solutions the layout has (capped). */
+  solutions?: number;
+}
