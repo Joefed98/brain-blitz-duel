@@ -57,7 +57,7 @@ export interface PuzzleRevealProps {
   myAnswer: string | null;
   myCorrect: boolean;
   myReactionAvgMs: number | null;
-  myMsRemaining?: number;
+  myMsRemaining?: number | undefined;
 }
 
 /**
