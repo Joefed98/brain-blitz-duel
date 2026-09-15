@@ -428,8 +428,8 @@ export const DISCONNECT_MS = 15_000;
 
 /** Sequence Recall plays back before its 30s clock starts, on a 4x4 grid. */
 export const SEQUENCE_LEAD_IN_MS = 700;
-export const SEQUENCE_FLASH_MS = 450;
-export const SEQUENCE_GAP_MS = 150;
+export const SEQUENCE_FLASH_MS = 700;
+export const SEQUENCE_GAP_MS = 350;
 export const SEQUENCE_COLS = 4;
 export const SEQUENCE_LENGTH = 7;
 /** Reverse Recall shows one fewer tile than Sequence Recall. */
