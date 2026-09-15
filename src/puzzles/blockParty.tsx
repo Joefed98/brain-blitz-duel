@@ -1,10 +1,6 @@
 import { BlockBoard, BlockPartyPuzzle } from "@/components/puzzles/BlockPartyPuzzle";
 import { decodePlacements } from "@/lib/duel/blockParty";
-import {
-  BLOCK_FREE_CELLS,
-  BLOCK_TIME_MS,
-  type BlockPartyPuzzleData,
-} from "@/lib/duel/types";
+import { BLOCK_FREE_CELLS, BLOCK_TIME_MS, type BlockPartyPuzzleData } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 

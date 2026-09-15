@@ -2,11 +2,7 @@ import { useEffect, useState } from "react";
 
 import { UnblockBoard, UnblockPuzzle } from "@/components/puzzles/UnblockPuzzle";
 import { applyMove, decodeMoves } from "@/lib/duel/unblock";
-import {
-  UNBLOCK_TIME_MS,
-  type UnblockPuzzleData,
-  type UnblockVehicle,
-} from "@/lib/duel/types";
+import { UNBLOCK_TIME_MS, type UnblockPuzzleData, type UnblockVehicle } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -68,8 +64,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
 }
 
 function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
-  if (puzzle.type !== "unblock") return null;
-  const solution = decodeMoves(puzzle.solution ?? "");
+  const solution = decodeMoves(puzzle.type === "unblock" ? (puzzle.solution ?? "") : "");
   const [step, setStep] = useState(0);
 
   // The shortest solution plays back over about three seconds.
@@ -81,6 +76,8 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
     }, gap);
     return () => clearInterval(id);
   }, [solution.length]);
+
+  if (puzzle.type !== "unblock") return null;
 
   let vehicles = puzzle.vehicles.map((vehicle) => ({ ...vehicle }));
   for (const move of solution.slice(0, step)) {

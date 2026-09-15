@@ -235,7 +235,8 @@ export function BlockPartyPuzzle({
           return true;
         }
         const previous = lastTap.current;
-        const double = previous && previous.piece === info.item.piece && Date.now() - previous.at < 300;
+        const double =
+          previous && previous.piece === info.item.piece && Date.now() - previous.at < 300;
         lastTap.current = { piece: info.item.piece, at: Date.now() };
         setPose((current) => {
           const state = current[info.item.piece] ?? { rot: 0, flip: false };

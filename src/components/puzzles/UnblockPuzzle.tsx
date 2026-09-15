@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { liftStyle, useDragSnap, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
-import {
-  clampSlide,
-  encodeMoves,
-  isSolved,
-  position,
-  type UnblockMove,
-} from "@/lib/duel/unblock";
+import { clampSlide, encodeMoves, isSolved, position, type UnblockMove } from "@/lib/duel/unblock";
 import {
   UNBLOCK_COLS as N,
   UNBLOCK_EXIT_ROW,
@@ -52,9 +46,7 @@ function Vehicle({
       }}
       aria-label={gold ? "Gold car" : `${vehicle.len === 3 ? "Lorry" : "Car"} ${vehicle.id}`}
     >
-      <div
-        className={`h-full w-full rounded-[7px] ${gold ? "bg-primary" : "bg-foreground/25"}`}
-      />
+      <div className={`h-full w-full rounded-[7px] ${gold ? "bg-primary" : "bg-foreground/25"}`} />
     </div>
   );
 }
