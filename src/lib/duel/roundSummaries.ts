@@ -20,6 +20,8 @@ import {
   wordsmithPoints,
   WORDMATCH_ITEMS,
   WORDMATCH_TIME_MS,
+  WORD_LADDER_TIME_MS,
+  NUMBER_CLIMB_TIME_MS,
   type GoNoGoItem,
   type PlayerRoundDetail,
   type PuzzleData,
@@ -58,6 +60,10 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
       ? SPOT_TIME_MS
     : puzzle.type === "groups"
       ? 60_000
+    : puzzle.type === "ladder"
+      ? WORD_LADDER_TIME_MS
+    : puzzle.type === "numclimb"
+      ? NUMBER_CLIMB_TIME_MS
       : puzzle.type === "wordsmith"
         ? WORDSMITH_TIME_MS
         : puzzle.type === "wordhunt"
@@ -395,15 +401,33 @@ const groupsSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
+const ladderSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "ladder" || !result.is_correct) return { summary: "Not solved", detail: [] };
+  const rungs = (result.answer ?? "").split(",").filter(Boolean);
+  return {
+    summary: `Solved · ${rungs.length} rungs · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: [[puzzle.startWord, ...rungs].join(" → ")],
+  };
+};
+
+const numberClimbSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "numclimb") return { summary: "—", detail: [] };
+  const span = Math.max(0, Math.min(12, Number(result.extra?.["span"] ?? 0)));
+  return {
+    summary: `Span ${span}${span === 12 ? " ✓" : ""} / 12 · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: result.answer ? [`Typed ${result.answer}`] : [],
+  };
+};
+
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
   groups: groupsSummary,
+  ladder: ladderSummary,
   target: targetSummary,
   numseq: rawSingle,
   sequence: sequenceSingle,
   reverse: sequenceSingle,
   reaction: averageSummary,
-  missing: rawSingle,
   equation: equationSummary,
   stroop: stroopSummary,
   spatial: cellsSingle,
@@ -416,7 +440,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   chaincalc: chainCalculationSummary,
   wordmatch: wordMatchSummary,
   pctsprint: percentSprintSummary,
-  numspan: rawSingle,
+  numclimb: numberClimbSummary,
   stopwatch: averageSummary,
   countup: rawSingle,
   mirmatch: mirrorSummary,
@@ -432,12 +456,12 @@ function joinOperators(values: string[]): string {
 export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   wordsmith: () => null,
   groups: () => "Two groups of four",
+  ladder: (p) => p.type === "ladder" ? (p.shortestPath ?? []).join(" → ") : null,
   target: (p) => p.type === "target" ? String(p.target) : null,
   numseq: (p) => p.type === "numseq" ? String(p.answer) : null,
   sequence: (p) => p.type === "sequence" ? p.tiles.join(" → ") : null,
   reverse: (p) => p.type === "reverse" ? (p.answerOrder ?? [...p.tiles].reverse()).map((i) => p.tiles[i] ?? i + 1).join(" → ") : null,
   reaction: () => null,
-  missing: (p) => p.type === "missing" ? p.word : null,
   equation: (p) => p.type === "equation" ? joinOperators(p.operators) : null,
   stroop: () => null,
   spatial: (p) => p.type === "spatial" ? `Cells ${p.tiles.map((i) => i + 1).join(", ")}` : null,
@@ -450,7 +474,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   chaincalc: (p) => p.type === "chaincalc" ? String(p.answer) : null,
   wordmatch: () => null,
   pctsprint: () => null,
-  numspan: (p) => p.type === "numspan" ? p.digits : null,
+  numclimb: (p) => p.type === "numclimb" ? (p.answerDigits ?? p.digits) : null,
   stopwatch: () => null,
   countup: (p) => p.type === "countup" ? String(p.count) : null,
   mirmatch: () => null,

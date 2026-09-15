@@ -136,7 +136,7 @@ export async function fetchRevealPuzzle(
   return result.ok ? (result.data as RoundRevealData) : null;
 }
 
-/** Wordsmith and Word Hunt: asks the server whether one word counts. */
+/** Word puzzles: asks the server whether one submitted word or rung counts. */
 export async function checkWord(
   duelId: string,
   roundNumber: number,
