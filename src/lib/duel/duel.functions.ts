@@ -3,8 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { gradeSubmission, type SubmitExtra } from "./grade";
-import { puzzleDurationMs } from "./registry";
-import { puzzleDef } from "./registry";
+import { puzzleDef, puzzleDurationMs } from "./registry";
 import { buildRoomPuzzles, generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import {
