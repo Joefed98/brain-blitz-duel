@@ -98,6 +98,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     Array.from({ length: STOPWATCH_ATTEMPTS }, () => null),
   );
   const submitted = useRef("");
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const markerRef = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
     setDistances(Array.from({ length: STOPWATCH_ATTEMPTS }, () => null));
