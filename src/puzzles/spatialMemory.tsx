@@ -131,7 +131,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}
       >
         {Array.from({ length: COLS * COLS }, (_, index) => {
-          const lit = showing && tiles.includes(index);
+          const lit = showing.includes(index);
           const tapped = taps.includes(index);
           return (
             <button
@@ -183,14 +183,16 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
 
 export function buildSpatial(): SpatialPuzzleData {
   const all = Array.from({ length: COLS * COLS }, (_, i) => i);
+  // Two groups of three, or three groups of two — chosen and stored per puzzle.
+  const groupSize = pick([2, 3]);
   for (let attempt = 0; attempt < 200; attempt++) {
-    const tiles = shuffled(all)
-      .slice(0, SPATIAL_TILES)
-      .sort((a, b) => a - b);
-    if (isStraightLine(tiles) || isBlock(tiles)) continue;
-    return { type: "spatial", tiles };
+    const tiles = shuffled(all).slice(0, SPATIAL_TILES);
+    const sorted = [...tiles].sort((a, b) => a - b);
+    if (isStraightLine(sorted) || isBlock(sorted)) continue;
+    // Stored in the order they light up, group by group.
+    return { type: "spatial", tiles, groupSize };
   }
-  return { type: "spatial", tiles: [1, 7, 9, 13, 18, 20] };
+  return { type: "spatial", tiles: [1, 7, 9, 13, 18, 20], groupSize };
 }
 
 export const spatialMemoryPuzzle: PuzzleDefinition = {
@@ -203,7 +205,10 @@ export const spatialMemoryPuzzle: PuzzleDefinition = {
     if (puzzle.type !== "spatial") return false;
     return sameTiles(parseTaps(answer), puzzle.tiles);
   },
-  prepMs: () => SPATIAL_PREP_MS,
+  prepMs: (puzzle) =>
+    spatialPrepMs(
+      puzzle.type === "spatial" ? groupsOf(puzzle.tiles, puzzle.groupSize).length : 2,
+    ),
   IntroExample,
   Stage,
   Reveal,
