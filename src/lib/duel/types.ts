@@ -464,6 +464,9 @@ export const SPOT_MIN_SHAPES = 12;
 export const SPOT_MAX_SHAPES = 15;
 export const SPOT_DIFFERENCES = 3;
 export const SPOT_TIME_MS = 45_000;
+/** Flat scores for finding only some of the three differences. */
+export const SPOT_TWO_POINTS = 60;
+export const SPOT_ONE_POINTS = 30;
 
 /** Rotation Match: shapes drawn as filled cells of a 5x5 grid. */
 export const ROTATION_COLS = 5;

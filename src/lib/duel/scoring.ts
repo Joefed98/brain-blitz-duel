@@ -7,6 +7,10 @@ import {
   PCTSPRINT_ITEMS,
   PCTSPRINT_TIME_MS,
   ROUND_MS,
+  SPOT_DIFFERENCES,
+  SPOT_ONE_POINTS,
+  SPOT_TIME_MS,
+  SPOT_TWO_POINTS,
   STOPWATCH_MAX_DIST_MS,
   STROOP_ITEMS,
   TARGET_FAR_POINTS,
@@ -88,6 +92,18 @@ export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): 
   const perfect = correct >= GONOGO_ITEMS && averageHitMs !== null;
   const bonus = perfect ? reactionBonus(averageHitMs!) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+}
+
+/**
+ * Spot the Difference: all three found scores 100 plus the speed bonus; a
+ * partial find is worth a flat 60 or 30.
+ */
+export function scoreSpotDifference(foundCount: number, msRemaining: number): number {
+  const found = clamp(Math.round(foundCount), 0, SPOT_DIFFERENCES);
+  if (found >= SPOT_DIFFERENCES) return BASE_POINTS + speedBonus(msRemaining, SPOT_TIME_MS);
+  if (found === 2) return SPOT_TWO_POINTS;
+  if (found === 1) return SPOT_ONE_POINTS;
+  return 0;
 }
 
 /** Word Match: accuracy out of 100, plus the speed bonus on a flawless run. */
