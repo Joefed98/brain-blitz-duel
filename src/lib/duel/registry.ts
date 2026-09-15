@@ -28,7 +28,9 @@ import { ROUND_MS, type PuzzleCategory, type PuzzleData, type PuzzleType } from 
 import { CORRECT_ANSWERS, ROUND_SUMMARIES } from "./roundSummaries";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
-const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "roundSummary" | "correctAnswer">> = {
+type RegisteredPuzzleDefinition = PuzzleDefinition & Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer">>;
+
+const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   anagram: anagramPuzzle,
   oddword: oddWordPuzzle,
   missing: missingLettersPuzzle,
@@ -64,11 +66,11 @@ export const PUZZLE_REGISTRY = Object.fromEntries(
       correctAnswer: CORRECT_ANSWERS[type as PuzzleType],
     },
   ]),
-) as Record<PuzzleType, PuzzleDefinition>;
+) as Record<PuzzleType, RegisteredPuzzleDefinition>;
 
 export const PUZZLE_TYPES = Object.keys(PUZZLE_REGISTRY) as PuzzleType[];
 
-export function puzzleDef(type: PuzzleType): PuzzleDefinition {
+export function puzzleDef(type: PuzzleType): RegisteredPuzzleDefinition {
   return PUZZLE_REGISTRY[type];
 }
 

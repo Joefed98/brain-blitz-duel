@@ -137,6 +137,7 @@ function numberHuntSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDet
 
 function targetSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   if (puzzle.type !== "target") return { summary: "No answer", detail: [] };
+  if (!rawAnswer(result)) return { summary: "No answer", detail: [] };
   const value = typeof result.extra?.["value"] === "number" ? result.extra["value"] : null;
   const steps = Array.isArray(result.extra?.["steps"])
     ? result.extra["steps"].filter((step): step is string => typeof step === "string")
