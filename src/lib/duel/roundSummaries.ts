@@ -4,6 +4,8 @@ import {
   GONOGO_ITEMS,
   GONOGO_RUN_MS,
   NUMHUNT_COUNT,
+  PCTSPRINT_ITEMS,
+  PCTSPRINT_TIME_MS,
   ROUND_MS,
   STROOP_ITEMS,
   TARGET_TIME_MS,
@@ -13,6 +15,7 @@ import {
   WORDSMITH_TIME_MS,
   wordsmithPoints,
   WORDMATCH_ITEMS,
+  WORDMATCH_TIME_MS,
   type GoNoGoItem,
   type PlayerRoundDetail,
   type PuzzleData,
@@ -27,7 +30,11 @@ type AnswerBuilder = (puzzle: PuzzleData) => string | null;
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
   const limit =
-    puzzle.type === "target"
+    puzzle.type === "wordmatch"
+      ? WORDMATCH_TIME_MS
+    : puzzle.type === "pctsprint"
+      ? PCTSPRINT_TIME_MS
+    : puzzle.type === "target"
       ? TARGET_TIME_MS
       : puzzle.type === "wordsmith"
         ? WORDSMITH_TIME_MS
@@ -123,6 +130,19 @@ function wordMatchSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDeta
       })
     : [];
   return { summary: `${count} / ${WORDMATCH_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`, detail };
+}
+
+function percentSprintSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  const count = result.correct_count ?? 0;
+  const picks = (result.answer ?? "").split(",").map((value) => Number.parseInt(value, 10));
+  const detail = puzzle.type === "pctsprint"
+    ? puzzle.items.map((item, index) => {
+        const chosen = item.options[picks[index] ?? -1] ?? "No answer";
+        const expected = item.options[puzzle.answers?.[index] ?? -1] ?? "—";
+        return `${index + 1}. ${item.question} · ${chosen === expected ? `✓ ${chosen}` : `✗ ${chosen} · ${expected}`}`;
+      })
+    : [];
+  return { summary: `${count} / ${PCTSPRINT_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`, detail };
 }
 
 function describeGoNoGo(item: GoNoGoItem): string {
@@ -255,7 +275,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   oddshape: optionSingle,
   chaincalc: rawSingle,
   wordmatch: wordMatchSummary,
-  pctsprint: rawSingle,
+  pctsprint: percentSprintSummary,
   numspan: rawSingle,
   stopwatch: averageSummary,
   countup: rawSingle,
@@ -289,7 +309,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   oddshape: (p) => p.type === "oddshape" ? `Cell ${p.oddIndex + 1}` : null,
   chaincalc: (p) => p.type === "chaincalc" ? String(p.answer) : null,
   wordmatch: () => null,
-  pctsprint: (p) => p.type === "pctsprint" ? String(p.answer) : null,
+  pctsprint: () => null,
   numspan: (p) => p.type === "numspan" ? p.digits : null,
   stopwatch: () => null,
   countup: (p) => p.type === "countup" ? String(p.count) : null,

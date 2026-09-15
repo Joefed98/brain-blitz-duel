@@ -172,8 +172,10 @@ export interface StroopPuzzleData {
 
 export interface SpatialPuzzleData {
   type: "spatial";
-  /** Six tile indices (0-24) of a 5x5 grid, lit together at the start. */
+  /** Six tile indices (0-24) of a 5x5 grid, lit in stored groups at the start. */
   tiles: number[];
+  /** How many tiles light up together per group — 2 or 3, chosen per puzzle. */
+  groupSize?: number;
 }
 
 export type GlyphShape = "circle" | "square" | "triangle" | "star";
@@ -407,12 +409,19 @@ export const STROOP_MIN_PER_INSTRUCTION = 4;
 /** Never more than this many of the same instruction in a row. */
 export const STROOP_MAX_STREAK = 3;
 
-/** Spatial Memory: six tiles of a 5x5 grid, shown together before the clock starts. */
+/** Spatial Memory: six tiles of a 5x5 grid, lit in groups before the clock starts. */
 export const SPATIAL_GRID_COLS = 5;
 export const SPATIAL_TILES = 6;
 export const SPATIAL_LEAD_IN_MS = 700;
-export const SPATIAL_SHOW_MS = 2_500;
-export const SPATIAL_PREP_MS = SPATIAL_LEAD_IN_MS + SPATIAL_SHOW_MS;
+/** How long each group of tiles stays gold, and the dark gap between groups. */
+export const SPATIAL_GROUP_MS = 1_200;
+export const SPATIAL_GROUP_GAP_MS = 300;
+
+/** Total preparation time for a puzzle shown in `groups` groups. */
+export function spatialPrepMs(groups: number): number {
+  const count = Math.max(1, groups);
+  return SPATIAL_LEAD_IN_MS + count * SPATIAL_GROUP_MS + (count - 1) * SPATIAL_GROUP_GAP_MS;
+}
 
 /** Go / No-Go: twelve shapes, six of them gold circles, on a shared timeline. */
 export const GONOGO_ITEMS = 12;
@@ -463,21 +472,32 @@ export interface WordMatchPuzzleData {
   answers?: number[];
 }
 
-/** Word Match: a run of eight prompts. */
+/** Word Match: a run of eight prompts, over 45 seconds. */
 export const WORDMATCH_ITEMS = 8;
+export const WORDMATCH_TIME_MS = 45_000;
 
 /* -------------------------------------------------------------------------- */
 /*  Percent Sprint                                                             */
 /* -------------------------------------------------------------------------- */
 
+export interface PercentItem {
+  question: string;
+  /** Four options in their stored order — one correct, three near misses. */
+  options: number[];
+  /** One line of working, shown on the answer reveal. */
+  working: string;
+}
+
 export interface PercentPuzzleData {
   type: "pctsprint";
-  question: string;
-  /** Server-side only, until the reveal. */
-  answer?: number;
-  /** One line of working, shown on the answer reveal. */
-  working?: string;
+  items: PercentItem[];
+  /** Server-side only, until the reveal: the correct option index per question. */
+  answers?: number[];
 }
+
+/** Percent Sprint: three questions over 45 seconds. */
+export const PCTSPRINT_ITEMS = 3;
+export const PCTSPRINT_TIME_MS = 45_000;
 
 /* -------------------------------------------------------------------------- */
 /*  Number Span                                                                */

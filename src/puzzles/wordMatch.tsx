@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { pick, shuffled } from "@/lib/duel/random";
 import {
-  ROUND_MS,
   WORDMATCH_ITEMS,
+  WORDMATCH_TIME_MS,
   type WordMatchItem,
   type WordMatchMode,
   type WordMatchPuzzleData,
@@ -65,7 +65,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   // Submit the run once every item is answered, or just before time is up.
   useEffect(() => {
     if (items.length === 0 || locked || submitted.current === key) return;
-    const timeUp = now >= phaseStartedAt + ROUND_MS - 400;
+    const timeUp = now >= phaseStartedAt + WORDMATCH_TIME_MS - 400;
     if (taps.length < items.length && !timeUp) return;
     submitted.current = key;
     onSubmit(taps.join(","));
@@ -176,7 +176,7 @@ export const wordMatchPuzzle: PuzzleDefinition = {
   key: "wordmatch",
   name: "Word Match",
   category: "word",
-  timeLimitMs: 30_000,
+  timeLimitMs: WORDMATCH_TIME_MS,
   generate: buildWordMatch,
   // Scored on the server from how many of the eight items were right.
   check: () => true,

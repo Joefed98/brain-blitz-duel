@@ -136,8 +136,11 @@ export function WordsmithPuzzle({
         <p className="text-center font-mono text-xs text-warn">{message}</p>
       )}
 
-      {/* Tiles. */}
-      <div className="flex flex-wrap justify-center gap-1.5">
+      {/* Tiles — always one row, sized to fit however many letters there are. */}
+      <div
+        className="grid w-full gap-1"
+        style={{ gridTemplateColumns: `repeat(${letters.length || 1}, minmax(0, 1fr))` }}
+      >
         {order.map((index) => {
           const spent = used.includes(index);
           return (
@@ -146,7 +149,7 @@ export function WordsmithPuzzle({
               type="button"
               disabled={locked}
               onClick={() => tapTile(index)}
-              className={`flex h-14 w-11 items-center justify-center rounded-xl border font-display text-xl font-bold transition-transform duration-150 ${
+              className={`flex h-12 w-full items-center justify-center rounded-xl border font-display text-lg font-bold transition-transform duration-150 ${
                 spent
                   ? "-translate-y-1 border-primary bg-primary/10 text-primary"
                   : "border-border bg-card text-foreground"
