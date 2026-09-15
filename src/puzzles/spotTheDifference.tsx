@@ -49,7 +49,7 @@ const KIND_SWAP: Partial<Record<SpotShapeKind, SpotShapeKind>> = {
 /* -------------------------------------------------------------------------- */
 
 const CELL_W = 48;
-const CELL_H = 44;
+const CELL_H = 48;
 const PANEL_W = SPOT_COLS * CELL_W;
 const PANEL_H = SPOT_ROWS * CELL_H;
 const SHAPE = 34;
