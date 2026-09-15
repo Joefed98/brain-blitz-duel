@@ -63,7 +63,7 @@ export const GROUPS_BANK: GroupsBankEntry[] = [
   entry("Words before LAND", ["Green","Ice","Main","Dream"], "Words before MARK", ["Land","Hall","Trade","Bench"], ["Landmark is exact","Dreamland and hallmark evoke places"]),
   entry("Words after HOME", ["Work","Land","Made","Sick"], "Words after HAND", ["Cuff","Shake","Bag","Rail"], ["Homework and handwork both exact","Handmade and homemade both exact"]),
   entry("Words before NOTE", ["Foot","Bank","Key","Love"], "Words before BOOK", ["Note","Text","Guide","Scrap"], ["Notebook is exact","Footbook sounds plausible"]),
-  entry("Words after RAIN", ["Bow","Drop","Fall","Coat"], "Words after SNOW", ["Ball","Fall","Man","Drop"], ["Fall and drop pair naturally with both weather words","Rainbow resembles snowbow"]),
+  entry("Words after RAIN", ["Bow","Drop","Fall","Coat"], "Words after SNOW", ["Ball","Man","Plough","Shoe"], ["Snowfall is exact","Raindrop and snowball are weather forms"]),
   entry("Words before SCREEN", ["Sun","Wind","Touch","Blue"], "Words before SAVER", ["Screen","Life","Time","Labour"], ["Screensaver is exact","Sunsaver is a product-like phrase"]),
   entry("Words after LIGHT", ["House","Bulb","Year","Weight"], "Words after HEAVY", ["Rain","Metal","Duty","Heart"], ["Lightweight and heavyweight are exact opposites","Light metal is valid"]),
   entry("Words before SHOP", ["Work","Coffee","Pet","Book"], "Words before STORE", ["Drug","Dept","Chain","App"], ["Book belongs naturally with both retail terms","Workshop may be a store workspace"]),
