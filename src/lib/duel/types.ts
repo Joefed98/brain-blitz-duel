@@ -241,7 +241,7 @@ export interface NumberHuntPuzzleData {
 }
 
 export type PuzzleData =
-  | AnagramPuzzleData
+  | WordsmithPuzzleData
   | OddWordPuzzleData
   | TargetNumberPuzzleData
   | NumberSequencePuzzleData
