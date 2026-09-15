@@ -483,8 +483,9 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
     const puzzle: PuzzleData = mergePuzzle(pub, priv);
 
+    const { gradeAnswer } = await import("./generate.server");
     const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra, storedMs } =
-      gradeSubmission(puzzle, data.answer, data.msRemaining, data.extra);
+      gradeAnswer(puzzle, data.answer, data.msRemaining, data.extra);
 
     const { error } = await client.from("round_results").insert({
       duel_id: room.id,
