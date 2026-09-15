@@ -40,28 +40,32 @@ export function RoundIntro({ round, type, startedAt, now, outcomes }: RoundIntro
         {puzzleName(type)}
       </h1>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <Example />
-        <p className="text-xs text-muted-foreground">You have {seconds} seconds</p>
-      </div>
-
-      <div className="flex h-24 items-center justify-center">
-        {counting ? (
+      {counting ? (
+        <div className="flex flex-1 items-center justify-center" aria-live="polite">
           <p
             key={secondsLeft}
-            className="font-mono text-7xl font-bold leading-none text-primary animate-pop-in"
+            className="font-mono text-[min(40vh,18rem)] font-bold leading-none text-primary animate-countdown-number"
           >
             {secondsLeft}
           </p>
-        ) : (
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-1 flex-col items-center justify-center gap-3">
+            <Example />
+            <p className="text-xs text-muted-foreground">You have {seconds} seconds</p>
+          </div>
+
+          <div className="flex h-24 items-center justify-center">
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-card">
             <div
               className="h-full rounded-full bg-primary transition-[width] duration-100 ease-linear"
               style={{ width: `${100 - progress}%` }}
             />
           </div>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
