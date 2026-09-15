@@ -28,7 +28,7 @@ export const BLOCK_PIECES: BlockPieceDef[] = [
 
 export const BLOCK_PIECE_CELLS = BLOCK_PIECES.reduce((sum, p) => sum + p.cells.length, 0);
 
-type Offsets = [number, number][];
+export type Offsets = [number, number][];
 
 function normalise(cells: Offsets): Offsets {
   const minR = Math.min(...cells.map(([r]) => r));
