@@ -132,10 +132,29 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     onSubmit(values.join(","), { reactionAvgMs: avg });
   }, [distances, elapsedTotal, locked, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (puzzle.type !== "stopwatch") return null;
+  const target = puzzle.type === "stopwatch" ? (puzzle.targets[index] ?? 0.5) : 0.5;
 
-  const target = puzzle.targets[index] ?? 0.5;
-  const marker = live ? markerAt(inSlot) : null;
+  // The marker glides: every frame we work its position out from the shared
+  // attempt start time and write it straight to a transform.
+  useEffect(() => {
+    if (!live) return;
+    const attemptStart = phaseStartedAt + index * STOPWATCH_SLOT_MS;
+    let raf = 0;
+    const frame = () => {
+      const bar = barRef.current;
+      const el = markerRef.current;
+      if (bar && el) {
+        const width = bar.clientWidth;
+        const pos = markerAt(Math.max(0, serverNow() - attemptStart));
+        el.style.transform = `translate3d(${pos * width - MARKER_W / 2}px, 0, 0)`;
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [live, index, phaseStartedAt]);
+
+  if (puzzle.type !== "stopwatch") return null;
 
   const handleTap = () => {
     if (locked || !live) return;
