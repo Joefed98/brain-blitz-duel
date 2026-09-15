@@ -39,8 +39,8 @@ function Bar({
   target: number;
   marker: number | null;
   dim?: boolean;
-  barRef?: React.RefObject<HTMLDivElement | null>;
-  markerRef?: React.RefObject<HTMLSpanElement | null>;
+  barRef?: React.RefObject<HTMLDivElement | null> | undefined;
+  markerRef?: React.RefObject<HTMLSpanElement | null> | undefined;
 }) {
   return (
     <div
