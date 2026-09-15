@@ -282,8 +282,8 @@ function PracticeScreen() {
             now={now}
             locked={false}
             onSubmit={(answer, meta) => void grade(answer, meta)}
-            checkWord={(word, found) =>
-              practiceCheckWordFn({ data: { puzzle, word, found } })
+            checkWord={(word, found, path) =>
+              practiceCheckWordFn({ data: { puzzle, word, found, path: path ?? [] } })
             }
           />
         </div>

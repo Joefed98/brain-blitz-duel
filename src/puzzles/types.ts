@@ -23,10 +23,12 @@ export interface SubmitMeta {
   steps?: { a: number; b: number; operator: string }[];
 }
 
-/** Wordsmith: asks the server whether one word counts. */
+/** Wordsmith and Word Hunt: asks the server whether one word counts. */
 export type CheckWord = (
   word: string,
   found: string[],
+  /** Word Hunt only: the traced path, re-walked on the server. */
+  path?: number[],
 ) => Promise<{ valid: boolean; points: number; word: string; reason?: string }>;
 
 export interface PuzzleStageProps {
@@ -36,7 +38,7 @@ export interface PuzzleStageProps {
   now: number;
   locked: boolean;
   onSubmit: (answer: string, meta?: SubmitMeta) => void;
-  /** Wordsmith only: live server-side word checking. */
+  /** Wordsmith and Word Hunt only: live server-side word checking. */
   checkWord?: CheckWord;
 }
 
