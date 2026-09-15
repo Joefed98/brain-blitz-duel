@@ -2,9 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-import { gradeSubmission, type SubmitExtra } from "./grade";
+import { type SubmitExtra } from "./grade";
 import { puzzleDef, puzzleDurationMs } from "./registry";
-import { buildRoomPuzzles, generateRoomCode } from "./puzzles";
+import { generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import {
   INACTIVE_AFTER_MISSED,
@@ -282,6 +282,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "You need at least two players." };
     }
 
+    const { buildRoomPuzzles } = await import("./generate.server");
     const { roundOrder, puzzles } = buildRoomPuzzles(room.round_count ?? TOTAL_ROUNDS);
     const split = puzzles.map(splitPuzzle);
     const startedAt = nowIso();
@@ -482,8 +483,9 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
     const puzzle: PuzzleData = mergePuzzle(pub, priv);
 
+    const { gradeAnswer } = await import("./generate.server");
     const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra, storedMs } =
-      gradeSubmission(puzzle, data.answer, data.msRemaining, data.extra);
+      gradeAnswer(puzzle, data.answer, data.msRemaining, data.extra);
 
     const { error } = await client.from("round_results").insert({
       duel_id: room.id,
@@ -637,4 +639,31 @@ export const rematchFn = createServerFn({ method: "POST" })
     }
 
     return { ok: true as const, roomId: fresh.id, roomCode: fresh.room_code };
+  });
+
+/**
+ * Wordsmith only: checks one submitted word while the round is running. The
+ * dictionary stays on the server; only the verdict travels back.
+ */
+export const checkWordFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: { roomId: string; roundNumber: number; word: string; found: string[] }) => input,
+  )
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
+
+    if (room.status !== "in_progress" || room.current_round !== data.roundNumber) {
+      return { valid: false as const, points: 0, word: "", reason: "That round is over." };
+    }
+    const pub = room.puzzles_public[data.roundNumber - 1];
+    if (!pub || pub.type !== "wordsmith") {
+      return { valid: false as const, points: 0, word: "", reason: "Not this round." };
+    }
+
+    const { checkWordsmithWord } = await import("./wordsmith.server");
+    const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
+    return checkWordsmithWord(pub.letters, String(data.word ?? ""), found);
   });

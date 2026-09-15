@@ -18,6 +18,7 @@ import { buzz } from "@/lib/motion";
 import { unlockAudio } from "@/lib/sound";
 import {
   advancePhase,
+  checkWord,
   ensureRematch,
   fetchDuelById,
   fetchRevealPuzzle,
@@ -580,6 +581,9 @@ function DuelScreen() {
                 now={now}
                 locked={!!myResult}
                 onSubmit={handleSubmit}
+                checkWord={(word, found) =>
+                  checkWord(duel.id, round, word, found)
+                }
               />
             </div>
           )}

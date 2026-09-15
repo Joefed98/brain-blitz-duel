@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
-import { gradeSubmission, type SubmitExtra } from "./grade";
-import { puzzleDef } from "./registry";
+import { type SubmitExtra } from "./grade";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import { PUZZLE_TYPES } from "./registry";
 import type { PuzzleData, PuzzleType } from "./types";
@@ -65,7 +64,8 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
   .inputValidator((input: { type: string }) => input)
   .handler(async ({ data }) => {
     const type = validType(data.type);
-    const { pub, priv } = splitPuzzle(puzzleDef(type).generate());
+    const { generatePuzzle } = await import("./generate.server");
+    const { pub, priv } = splitPuzzle(generatePuzzle(type));
     return { puzzle: pub, sealed: await seal(priv) };
   });
 
@@ -84,7 +84,8 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     const priv = await unseal(data.sealed);
     if (priv["type"] !== data.puzzle.type) throw new Error("Bad practice puzzle.");
     const puzzle = mergePuzzle(data.puzzle, priv);
-    const graded = gradeSubmission(puzzle, data.answer, data.msRemaining, data.extra);
+    const { gradeAnswer } = await import("./generate.server");
+    const graded = gradeAnswer(puzzle, data.answer, data.msRemaining, data.extra);
     return {
       puzzle,
       isCorrect: graded.isCorrect,
@@ -93,4 +94,16 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
       reactionAvgMs: graded.reactionAvgMs,
       answer: graded.answer,
     };
+  });
+
+/** Wordsmith practice: checks one word against the sealed board. */
+export const practiceCheckWordFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { puzzle: PuzzleData; word: string; found: string[] }) => input)
+  .handler(async ({ data }) => {
+    if (data.puzzle.type !== "wordsmith") {
+      return { valid: false as const, points: 0, word: "", reason: "Not this round." };
+    }
+    const { checkWordsmithWord } = await import("./wordsmith.server");
+    const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
+    return checkWordsmithWord(data.puzzle.letters, String(data.word ?? ""), found);
   });

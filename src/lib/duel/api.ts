@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import {
   advancePhaseFn,
+  checkWordFn,
   createRoomFn,
   heartbeatFn,
   joinRoomFn,
@@ -126,6 +127,16 @@ export async function fetchRevealPuzzle(
 ): Promise<RoundRevealData | null> {
   const result = await revealAnswerFn({ data: { roomId: duelId, roundNumber } });
   return result.ok ? (result.data as RoundRevealData) : null;
+}
+
+/** Wordsmith: asks the server whether one word counts. */
+export async function checkWord(
+  duelId: string,
+  roundNumber: number,
+  word: string,
+  found: string[],
+): Promise<{ valid: boolean; points: number; word: string; reason?: string }> {
+  return checkWordFn({ data: { roomId: duelId, roundNumber, word, found } });
 }
 
 /** Host only: makes the next room and brings everyone along. */

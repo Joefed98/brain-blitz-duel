@@ -14,7 +14,7 @@ import {
   type GlyphShape,
 } from "@/lib/duel/types";
 
-import { MyAnswerLine } from "./anagram";
+import { MyAnswerLine } from "@/components/puzzles/MyAnswerLine";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const SHAPES: GlyphShape[] = ["circle", "square", "triangle", "star"];

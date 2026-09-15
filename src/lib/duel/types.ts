@@ -1,5 +1,5 @@
 export type PuzzleType =
-  | "anagram"
+  | "wordsmith"
   | "oddword"
   | "target"
   | "numseq"
@@ -26,10 +26,35 @@ export type PuzzleType =
 
 export type PuzzleCategory = "word" | "number" | "memory" | "speed" | "attention" | "pattern";
 
-export interface AnagramPuzzleData {
-  type: "anagram";
+/** Wordsmith: build as many words as you can from the tiles. */
+export const WORDSMITH_TIME_MS = 60_000;
+export const WORDSMITH_MIN_LENGTH = 4;
+export const WORDSMITH_MIN_WORDS = 20;
+/** Par is this share of every point available on the board. */
+export const WORDSMITH_PAR_SHARE = 0.35;
+/** Boards are only used when par lands in a fair band. */
+export const WORDSMITH_MIN_PAR = 12;
+export const WORDSMITH_MAX_PAR = 40;
+const WORDSMITH_POINTS: Record<number, number> = { 4: 1, 5: 2, 6: 4, 7: 7, 8: 11 };
+
+export function wordsmithPoints(word: string): number {
+  return WORDSMITH_POINTS[word.trim().length] ?? 0;
+}
+
+export interface WordsmithWord {
   word: string;
-  scrambled: string;
+  points: number;
+}
+
+export interface WordsmithPuzzleData {
+  type: "wordsmith";
+  /** The seven or eight tiles, in the order every player sees them. */
+  letters: string[];
+  /** Server-side only until the reveal: every word the board allows. */
+  words?: WordsmithWord[];
+  totalPoints?: number;
+  par?: number;
+  source?: string;
 }
 
 export interface OddWordPuzzleData {
@@ -219,7 +244,7 @@ export interface NumberHuntPuzzleData {
 }
 
 export type PuzzleData =
-  | AnagramPuzzleData
+  | WordsmithPuzzleData
   | OddWordPuzzleData
   | TargetNumberPuzzleData
   | NumberSequencePuzzleData

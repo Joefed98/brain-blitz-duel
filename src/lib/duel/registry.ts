@@ -1,4 +1,4 @@
-import { anagramPuzzle } from "@/puzzles/anagram";
+import { wordsmithPuzzle } from "@/puzzles/wordsmith";
 import { chainCalculationPuzzle } from "@/puzzles/chainCalculation";
 import { countUpPuzzle } from "@/puzzles/countUp";
 import { equationPuzzle } from "@/puzzles/equation";
@@ -31,7 +31,7 @@ import { CORRECT_ANSWERS, ROUND_SUMMARIES } from "./roundSummaries";
 type RegisteredPuzzleDefinition = PuzzleDefinition & Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer">>;
 
 const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
-  anagram: anagramPuzzle,
+  wordsmith: wordsmithPuzzle,
   oddword: oddWordPuzzle,
   missing: missingLettersPuzzle,
   target: targetNumberPuzzle,
