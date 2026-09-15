@@ -172,8 +172,10 @@ export interface StroopPuzzleData {
 
 export interface SpatialPuzzleData {
   type: "spatial";
-  /** Six tile indices (0-24) of a 5x5 grid, lit together at the start. */
+  /** Six tile indices (0-24) of a 5x5 grid, lit in stored groups at the start. */
   tiles: number[];
+  /** How many tiles light up together per group — 2 or 3, chosen per puzzle. */
+  groupSize?: number;
 }
 
 export type GlyphShape = "circle" | "square" | "triangle" | "star";
