@@ -299,6 +299,28 @@
   animation: pop-in 260ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 
+/* --- Round intro countdown --------------------------------------------- */
+
+@keyframes countdown-number {
+  0% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  15%,
+  85% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@utility animate-countdown-number {
+  animation: countdown-number 1s ease-out both;
+}
+
 /* --- Waiting / loading dots -------------------------------------------- */
 
 @keyframes dot-bounce {
@@ -383,6 +405,10 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .animate-countdown-number {
+    animation: none !important;
   }
 }
 
