@@ -1,19 +1,38 @@
 import { useEffect, useState } from "react";
 
 import { SequenceGrid } from "@/components/duel/SequenceGrid";
-import { shuffled } from "@/lib/duel/random";
+import { pick, shuffled } from "@/lib/duel/random";
 import {
   SPATIAL_GRID_COLS,
+  SPATIAL_GROUP_GAP_MS,
+  SPATIAL_GROUP_MS,
   SPATIAL_LEAD_IN_MS,
-  SPATIAL_PREP_MS,
-  SPATIAL_SHOW_MS,
   SPATIAL_TILES,
+  spatialPrepMs,
   type SpatialPuzzleData,
 } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const COLS = SPATIAL_GRID_COLS;
+const SLOT_MS = SPATIAL_GROUP_MS + SPATIAL_GROUP_GAP_MS;
+
+/** The stored tile order split into its groups — identical on every phone. */
+function groupsOf(tiles: number[], groupSize: number | undefined): number[][] {
+  const size = groupSize === 2 || groupSize === 3 ? groupSize : 3;
+  const out: number[][] = [];
+  for (let i = 0; i < tiles.length; i += size) out.push(tiles.slice(i, i + size));
+  return out;
+}
+
+/** Which group is lit right now, or -1 when the grid is dark. */
+function litGroup(elapsed: number, groupCount: number): number {
+  const offset = elapsed - SPATIAL_LEAD_IN_MS;
+  if (offset < 0) return -1;
+  const index = Math.floor(offset / SLOT_MS);
+  if (index >= groupCount) return -1;
+  return offset - index * SLOT_MS < SPATIAL_GROUP_MS ? index : -1;
+}
 
 /** Fixed intro example — six tiles of the 5x5 grid, every time. */
 const EXAMPLE = [1, 7, 9, 13, 18, 20];
