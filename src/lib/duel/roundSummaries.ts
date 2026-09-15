@@ -121,6 +121,22 @@ function symbolScanSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDet
   };
 }
 
+function equationSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  const answer = equationAnswer(result);
+  return {
+    summary: `${answer ?? "No answer"} · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: [],
+  };
+}
+
+function chainCalculationSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  const answer = rawAnswer(result);
+  return {
+    summary: `${answer ?? "No answer"} · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: [],
+  };
+}
+
 function singleAnswer(display: (result: RoundResultRow, puzzle: PuzzleData) => string | null): SummaryBuilder {
   return (result, puzzle) => {
     const answer = display(result, puzzle);
@@ -315,7 +331,6 @@ function targetSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail 
 }
 
 const rawSingle = singleAnswer((result) => rawAnswer(result));
-const chainSummary = singleAnswer((result) => rawAnswer(result));
 const optionSingle = singleAnswer((result) => optionAnswer(result));
 const cellsSingle = singleAnswer((result) => cellsAnswer(result));
 const sequenceSingle = singleAnswer(sequenceAnswer);
@@ -374,7 +389,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   reverse: sequenceSingle,
   reaction: averageSummary,
   missing: rawSingle,
-  equation: singleAnswer((result) => equationAnswer(result)),
+  equation: equationSummary,
   stroop: stroopSummary,
   spatial: cellsSingle,
   gonogo: goNoGoSummary,
@@ -383,7 +398,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   spin: spinSummary,
   numhunt: numberHuntSummary,
   spotdiff: spotDifferenceSummary,
-  chaincalc: chainSummary,
+  chaincalc: chainCalculationSummary,
   wordmatch: wordMatchSummary,
   pctsprint: percentSprintSummary,
   numspan: rawSingle,

@@ -274,7 +274,7 @@ function PracticeScreen() {
       <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            Practice
+            PRACTICE
           </span>
           <span className="font-display text-sm font-bold text-foreground">
             {puzzleName(puzzle.type)}
