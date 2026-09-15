@@ -76,8 +76,8 @@ export function UnblockBoard({
     >
       {/* The exit gap. */}
       <div
-        className="absolute right-0 border-y-2 border-r-4 border-primary"
-        style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 8 }}
+        className="absolute rounded-r-sm border-y-2 border-r-4 border-primary bg-primary/20"
+        style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 10, right: -10 }}
         aria-hidden="true"
       />
       <div className="absolute inset-0 grid grid-cols-6 grid-rows-6" aria-hidden="true">
@@ -215,8 +215,8 @@ export function UnblockPuzzle({
       <div ref={boardRef} className="relative aspect-square w-full">
         <div className="relative h-full w-full rounded-xl border border-border bg-card/60">
           <div
-            className="absolute right-0 border-y-2 border-r-4 border-primary"
-            style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 8 }}
+            className="absolute rounded-r-sm border-y-2 border-r-4 border-primary bg-primary/20"
+            style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 10, right: -10 }}
             aria-hidden="true"
           />
           <div className="absolute inset-0 grid grid-cols-6 grid-rows-6" aria-hidden="true">

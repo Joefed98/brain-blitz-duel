@@ -283,7 +283,7 @@ export function BlockPartyPuzzle({
         <span>
           covered <span className="text-primary">{covered}</span> / {BLOCK_FREE_CELLS}
         </span>
-        <span>tap to turn · double tap to flip</span>
+        <span className="text-[10px]">tap: turn · double: flip</span>
       </div>
 
       <BlockBoard blockers={puzzle.blockers} placements={placed} boardRef={boardRef}>
