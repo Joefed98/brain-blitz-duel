@@ -405,7 +405,7 @@ const ladderSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "ladder" || !result.is_correct) return { summary: "Not solved", detail: [] };
   const rungs = (result.answer ?? "").split(",").filter(Boolean);
   return {
-    summary: `Solved · ${rungs.length} rungs · ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `Solved · ${rungs.length + 1} rungs · ${seconds(elapsedMs(result, puzzle))}`,
     detail: [[puzzle.startWord, ...rungs].join(" → ")],
   };
 };

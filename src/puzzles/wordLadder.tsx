@@ -76,7 +76,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   const rungs = (myAnswer ?? "").split(",").filter(Boolean);
   const player = [puzzle.startWord, ...rungs];
   return <div className="flex w-full flex-col gap-3 text-center">
-    <p className="break-words font-mono text-sm font-bold text-foreground">{player.join(" → ")} {myCorrect ? "✓" : "✗"} · {rungs.length} rungs, shortest {puzzle.shortestLength ?? "—"}</p>
+    <p className="break-words font-mono text-sm font-bold text-foreground">{player.join(" → ")} {myCorrect ? "✓" : "✗"} · {player.length} rungs, shortest {puzzle.shortestLength ?? "—"}</p>
     <p className="font-mono text-xs text-muted-foreground">{(puzzle.shortestPath ?? []).join(" → ")}</p>
   </div>;
 }

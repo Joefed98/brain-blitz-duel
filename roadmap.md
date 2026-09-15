@@ -12,5 +12,5 @@
 - [ ] Update standings summaries, requested time limits, and Symbol Scan scoring
 - [ ] Verify requested play/reveal scenarios at 390×700
 - [x] Replace Odd-Word-Out with secure Groups puzzle, summaries, reveal, and practice verification
-- [ ] Replace Missing Letters with secure Word Ladder and verify practice flow
-- [ ] Replace Number Span with secure Number Climb and verify timing, scoring, and reveals
+- [x] Replace Missing Letters with secure Word Ladder and verify practice flow
+- [x] Replace Number Span with secure Number Climb and verify timing, scoring, and reveals
