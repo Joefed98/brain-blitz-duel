@@ -75,7 +75,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        Six tiles light up, then vanish. Tap where they were — any order.
+        Tiles light up in groups, then vanish. Tap all of them — any order.
       </p>
       <SequenceGrid order={EXAMPLE} cols={COLS} size="sm" numbered={false} />
       <p className="text-xs text-muted-foreground">Your timer starts after the tiles disappear.</p>
@@ -92,9 +92,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     setTaps([]);
   }, [key]);
 
+  const groups = groupsOf(tiles, puzzle.type === "spatial" ? puzzle.groupSize : undefined);
   const elapsed = now - phaseStartedAt;
-  const showing = elapsed >= SPATIAL_LEAD_IN_MS && elapsed < SPATIAL_LEAD_IN_MS + SPATIAL_SHOW_MS;
-  const revealing = elapsed < SPATIAL_PREP_MS;
+  const current = litGroup(elapsed, groups.length);
+  const showing = groups[current] ?? [];
+  const revealing = elapsed < spatialPrepMs(groups.length);
 
   if (puzzle.type !== "spatial") return null;
 
