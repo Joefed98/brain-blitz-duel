@@ -13,7 +13,7 @@ export type PuzzleType =
   | "gonogo"
   | "patcomp"
   | "symscan"
-  | "rotmatch"
+  | "spin"
   | "numhunt"
   | "spotdiff"
   | "chaincalc"
@@ -270,15 +270,32 @@ export interface SymbolScanPuzzleData {
   targets: number[];
 }
 
-export interface RotationPuzzleData {
-  type: "rotmatch";
-  /** Filled cell indices (0-24) of a 5x5 grid. */
-  target: number[];
-  /** Four candidates in their stored, shuffled order. */
-  candidates: number[][];
-  correctIndex: number;
-  /** Degrees the target was rotated by to produce the correct candidate. */
-  rotationDeg: number;
+/* -------------------------------------------------------------------------- */
+/*  Spin                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export const SPIN_ITEMS = 8;
+export const SPIN_TIME_MS = 45_000;
+export const SPIN_MAX_STREAK = 2;
+
+/** How the copy on the right was made from the shape on the left. */
+export type SpinTransform = "cw" | "half" | "ccw" | "flip";
+
+/** Fixed button order for the whole run. */
+export const SPIN_TRANSFORMS: SpinTransform[] = ["cw", "half", "ccw", "flip"];
+
+export interface SpinItem {
+  /** The shape on the left. */
+  target: MirrorShape;
+  /** The transformed copy on the right. */
+  shown: MirrorShape;
+}
+
+export interface SpinPuzzleData {
+  type: "spin";
+  items: SpinItem[];
+  /** Server-side only: the transform used for each item, in order. */
+  answers?: SpinTransform[];
 }
 
 export interface HuntSpot {
@@ -311,7 +328,7 @@ export type PuzzleData =
   | GoNoGoPuzzleData
   | PatternPuzzleData
   | SymbolScanPuzzleData
-  | RotationPuzzleData
+  | SpinPuzzleData
   | NumberHuntPuzzleData
   | WordMatchPuzzleData
   | PercentPuzzleData
