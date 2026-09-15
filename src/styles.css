@@ -321,6 +321,38 @@
   animation: countdown-number 1s ease-out both;
 }
 
+/* The fixed puzzle examples expose their instruction as the first paragraph.
+ * Flatten only the round-intro wrapper so the shared time limit can sit
+ * directly below that instruction without changing any puzzle module. */
+.round-intro-example,
+.round-intro-example > div {
+  display: contents;
+}
+
+.round-intro-example > div > * {
+  order: 3;
+}
+
+.round-intro-example > div > p:first-child {
+  order: 1;
+  max-width: 22rem;
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.round-intro-time {
+  order: 2;
+}
+
+.round-intro-example > div > :not(p) {
+  transform: scale(1.1);
+  margin-block: 0.25rem;
+}
+
 /* --- Waiting / loading dots -------------------------------------------- */
 
 @keyframes dot-bounce {
