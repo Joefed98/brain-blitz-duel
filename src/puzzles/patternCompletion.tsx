@@ -233,12 +233,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
       count: active.includes("count") ? (count ?? fixed.count) : fixed.count,
       rot: showRotation ? (rot ?? 0) : 0,
     };
-    const touched =
-      (!active.includes("shape") || shape !== null) &&
-      (!active.includes("colour") || colour !== null) &&
-      (!active.includes("count") || count !== null) &&
-      (!showRotation || rot !== null);
-    return touched || shape || colour || count || rot !== null ? chosen : undefined;
+    const touched = shape !== null || colour !== null || count !== null || rot !== null;
+    return touched ? chosen : undefined;
   }, [fixed, key, shape, colour, count, rot]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ready =
