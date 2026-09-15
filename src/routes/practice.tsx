@@ -144,7 +144,7 @@ function PracticeScreen() {
 
   useEffect(() => {
     if (stage !== "reveal") return;
-    if (now - startedAt < puzzleRevealMs(puzzle)) return;
+    if (now - startedAt < puzzleRevealMs(puzzle ?? undefined)) return;
     setStage("result");
   }, [stage, now, startedAt, puzzle]);
 

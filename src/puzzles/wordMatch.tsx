@@ -147,7 +147,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           );
         })}
       </div>
-      </div>
     </div>
   );
 }
