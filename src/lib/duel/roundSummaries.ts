@@ -1,10 +1,15 @@
 import {
+  BLOCK_FREE_CELLS,
+  BLOCK_TIME_MS,
   GONOGO_ITEMS,
   GONOGO_RUN_MS,
   NUMHUNT_COUNT,
   ROUND_MS,
   STROOP_ITEMS,
   TARGET_TIME_MS,
+  UNBLOCK_TIME_MS,
+  WORDHUNT_TIME_MS,
+  wordHuntPoints,
   WORDSMITH_TIME_MS,
   wordsmithPoints,
   WORDMATCH_ITEMS,
@@ -26,7 +31,13 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
       ? TARGET_TIME_MS
       : puzzle.type === "wordsmith"
         ? WORDSMITH_TIME_MS
-        : ROUND_MS;
+        : puzzle.type === "wordhunt"
+          ? WORDHUNT_TIME_MS
+          : puzzle.type === "unblock"
+            ? UNBLOCK_TIME_MS
+            : puzzle.type === "blockparty"
+              ? BLOCK_TIME_MS
+              : ROUND_MS;
   return Math.max(0, limit - result.ms_remaining);
 }
 
@@ -179,6 +190,51 @@ const optionSingle = singleAnswer((result) => optionAnswer(result));
 const cellsSingle = singleAnswer((result) => cellsAnswer(result));
 const sequenceSingle = singleAnswer(sequenceAnswer);
 
+/** "9 words · 18 pts", with the words themselves in the expanded detail. */
+const wordHuntSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "wordhunt") return { summary: "—", detail: [] };
+  const words = (result.answer ?? "")
+    .split(",")
+    .map((word) => word.trim().toUpperCase())
+    .filter((word) => word.length > 0);
+  const points = words.reduce((sum, word) => sum + wordHuntPoints(word), 0);
+  const par = puzzle.par ?? 0;
+  return {
+    summary: `${words.length} words · ${points} pts`,
+    detail: [
+      ...(par > 0 ? [`Par ${par} · ${seconds(elapsedMs(result, puzzle))}`] : []),
+      ...(words.length > 0 ? [words.join(" · ")] : ["No words"]),
+    ],
+  };
+};
+
+const unblockSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "unblock") return { summary: "—", detail: [] };
+  const extra = result.extra ?? {};
+  const moves = Number(extra["moves"] ?? 0);
+  const min = Number(extra["minMoves"] ?? puzzle.minMoves ?? 0);
+  if (!result.is_correct) return { summary: "Not solved", detail: [`${moves} moves made`] };
+  return {
+    summary: `Solved · ${moves} moves (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: [moves === min ? "Fewest moves possible" : `${moves - min} more than the minimum`],
+  };
+};
+
+const blockPartySummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "blockparty") return { summary: "—", detail: [] };
+  const covered = Number(result.extra?.["covered"] ?? 0);
+  if (!result.is_correct) {
+    return {
+      summary: `${covered} / ${BLOCK_FREE_CELLS}`,
+      detail: [`${covered} of ${BLOCK_FREE_CELLS} squares covered`],
+    };
+  }
+  return {
+    summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: ["Every free square covered"],
+  };
+};
+
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
   oddword: rawSingle,
@@ -204,6 +260,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   stopwatch: averageSummary,
   countup: rawSingle,
   mirmatch: optionSingle,
+  wordhunt: wordHuntSummary,
+  unblock: unblockSummary,
+  blockparty: blockPartySummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -235,4 +294,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   stopwatch: () => null,
   countup: (p) => p.type === "countup" ? String(p.count) : null,
   mirmatch: (p) => p.type === "mirmatch" && p.correctIndex !== undefined ? `Option ${p.correctIndex + 1}` : null,
+  wordhunt: () => null,
+  unblock: (p) => p.type === "unblock" && p.minMoves ? `${p.minMoves} moves` : null,
+  blockparty: () => null,
 };
