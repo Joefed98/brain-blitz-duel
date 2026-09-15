@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { gradeSubmission, type SubmitExtra } from "./grade";
 import { puzzleDurationMs } from "./registry";
+import { puzzleDef } from "./registry";
 import { buildRoomPuzzles, generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import {
@@ -19,6 +20,7 @@ import {
   type DuelPlayerRow,
   type DuelRow,
   type PuzzleData,
+  type RoundResultRow,
 } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -560,7 +562,27 @@ export const revealAnswerFn = createServerFn({ method: "POST" })
     const pub = room.puzzles_public[data.roundNumber - 1];
     if (!pub) return { ok: false as const, message: "Unknown round." };
     const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
-    return { ok: true as const, puzzle: mergePuzzle(pub, priv) };
+    const puzzle = mergePuzzle(pub, priv);
+    const definition = puzzleDef(puzzle.type);
+    const { data: resultRows, error } = await client
+      .from("round_results")
+      .select("*")
+      .eq("duel_id", room.id)
+      .eq("round_number", data.roundNumber)
+      .order("player_slot");
+    if (error) throw new Error(error.message);
+    const players = ((resultRows ?? []) as RoundResultRow[]).map((result) => ({
+      playerSlot: result.player_slot,
+      ...definition.roundSummary(result, puzzle),
+    }));
+    return {
+      ok: true as const,
+      data: {
+        puzzle,
+        correctAnswer: definition.correctAnswer(puzzle),
+        players,
+      },
+    };
   });
 
 /**

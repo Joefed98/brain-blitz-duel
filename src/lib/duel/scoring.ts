@@ -194,6 +194,8 @@ export interface Standing {
   position: number;
   /** Where they stood after the previous round, or null for round one. */
   previousPosition: number | null;
+  summary: string;
+  detail: string[];
 }
 
 function rank(
@@ -237,6 +239,7 @@ export function standings(
   players: DuelPlayerRow[],
   results: RoundResultRow[],
   throughRound: number,
+  details: Map<number, { summary: string; detail: string[] }> = new Map(),
 ): Standing[] {
   const inRoom = players.filter((p) => p.status !== "left");
   const rows = inRoom.map((p) => ({
@@ -266,6 +269,8 @@ export function standings(
         answerMs: answerMsThrough(results, p.player_slot, throughRound),
         position: positions.get(p.player_slot) ?? inRoom.length,
         previousPosition: throughRound > 1 ? (previous.get(p.player_slot) ?? null) : null,
+        summary: details.get(p.player_slot)?.summary ?? "No answer",
+        detail: details.get(p.player_slot)?.detail ?? [],
       } satisfies Standing;
     })
     .sort((a, b) => a.position - b.position || a.slot - b.slot);

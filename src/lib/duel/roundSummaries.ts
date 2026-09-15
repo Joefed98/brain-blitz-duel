@@ -2,8 +2,8 @@ import {
   GONOGO_ITEMS,
   GONOGO_RUN_MS,
   NUMHUNT_COUNT,
-  ROUND_MS,
   STROOP_ITEMS,
+  TARGET_TIME_MS,
   WORDMATCH_ITEMS,
   type GoNoGoItem,
   type PlayerRoundDetail,
@@ -12,14 +12,14 @@ import {
   type RoundResultRow,
   type StroopItem,
 } from "./types";
-import { puzzleTimeLimitMs } from "./registry";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
 type SummaryBuilder = (result: RoundResultRow, puzzle: PuzzleData) => BuiltDetail;
 type AnswerBuilder = (puzzle: PuzzleData) => string | null;
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
-  return Math.max(0, puzzleTimeLimitMs(puzzle) - result.ms_remaining);
+  const limit = puzzle.type === "target" ? TARGET_TIME_MS : ROUND_MS;
+  return Math.max(0, limit - result.ms_remaining);
 }
 
 function seconds(ms: number): string {

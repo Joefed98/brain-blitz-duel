@@ -15,7 +15,7 @@ import {
   type SubmitExtra,
 } from "./duel.functions";
 import { ensureSession } from "./session";
-import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow } from "./types";
+import type { DuelPlayerRow, DuelRow, RoundResultRow, RoundRevealData } from "./types";
 
 export class DuelError extends Error {}
 
@@ -123,9 +123,9 @@ export async function heartbeat(roomId: string): Promise<void> {
 export async function fetchRevealPuzzle(
   duelId: string,
   roundNumber: number,
-): Promise<PuzzleData | null> {
+): Promise<RoundRevealData | null> {
   const result = await revealAnswerFn({ data: { roomId: duelId, roundNumber } });
-  return result.ok ? (result.puzzle as PuzzleData) : null;
+  return result.ok ? (result.data as RoundRevealData) : null;
 }
 
 /** Host only: makes the next room and brings everyone along. */
