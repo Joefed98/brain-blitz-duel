@@ -46,10 +46,17 @@ export function RoundIntro({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 animate-phase-in">
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Round {round} of {TOTAL_ROUNDS}
-        </span>
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            Round {round} of {TOTAL_ROUNDS}
+          </span>
+          {!counting && onReady ? (
+            <span className="font-mono text-[0.7rem] text-muted-foreground/70">
+              auto-start in {autoSeconds}s
+            </span>
+          ) : null}
+        </div>
         <RoundPips currentRound={round} outcomes={outcomes} />
       </div>
 
@@ -103,10 +110,6 @@ export function RoundIntro({
                   </>
                 )
               ) : null}
-            </p>
-
-            <p className="font-mono text-[0.7rem] uppercase tracking-widest text-muted-foreground/70">
-              auto-start in {autoSeconds}s
             </p>
           </div>
         </>
