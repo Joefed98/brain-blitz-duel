@@ -6,7 +6,7 @@ export type PuzzleType =
   | "sequence"
   | "reverse"
   | "reaction"
-  | "missing"
+  | "ladder"
   | "equation"
   | "stroop"
   | "spatial"
@@ -19,7 +19,7 @@ export type PuzzleType =
   | "chaincalc"
   | "wordmatch"
   | "pctsprint"
-  | "numspan"
+  | "numclimb"
   | "stopwatch"
   | "countup"
   | "mirmatch"
@@ -158,12 +158,14 @@ export interface ReactionPuzzleData {
   delays: number[];
 }
 
-export interface MissingLettersPuzzleData {
-  type: "missing";
-  /** The complete eight- or nine-letter word, upper case. */
-  word: string;
-  /** Zero-based positions shown as blank tiles. */
-  blanks: number[];
+export interface WordLadderPuzzleData {
+  type: "ladder";
+  startWord: string;
+  targetWord: string;
+  /** Server-side only until reveal. Number of one-letter changes. */
+  shortestLength?: number;
+  /** Server-side only until reveal. One minimum path, including both endpoints. */
+  shortestPath?: string[];
 }
 
 export type Operator = "+" | "-" | "×" | "÷";
@@ -328,7 +330,7 @@ export type PuzzleData =
   | SpotPuzzleData
   | ChainCalculationPuzzleData
   | ReactionPuzzleData
-  | MissingLettersPuzzleData
+  | WordLadderPuzzleData
   | EquationPuzzleData
   | StroopPuzzleData
   | SpatialPuzzleData
@@ -339,7 +341,7 @@ export type PuzzleData =
   | NumberHuntPuzzleData
   | WordMatchPuzzleData
   | PercentPuzzleData
-  | NumberSpanPuzzleData
+  | NumberClimbPuzzleData
   | StopWatchPuzzleData
   | CountUpPuzzleData
   | MirrorPuzzleData
@@ -582,19 +584,19 @@ export const PCTSPRINT_ITEMS = 3;
 export const PCTSPRINT_TIME_MS = 45_000;
 
 /* -------------------------------------------------------------------------- */
-/*  Number Span                                                                */
+/*  Number Climb                                                               */
 /* -------------------------------------------------------------------------- */
 
-export interface NumberSpanPuzzleData {
-  type: "numspan";
-  /** The digit string, shown before the clock starts. */
+export interface NumberClimbPuzzleData {
+  type: "numclimb";
+  /** The 12-digit prompt, shown for six seconds before the clock starts. */
   digits: string;
 }
 
-export const NUMSPAN_LENGTH = 8;
-export const NUMSPAN_LEAD_IN_MS = 700;
-export const NUMSPAN_SHOW_MS = 2_500;
-export const NUMSPAN_PREP_MS = NUMSPAN_LEAD_IN_MS + NUMSPAN_SHOW_MS;
+export const WORD_LADDER_TIME_MS = 60_000;
+export const NUMBER_CLIMB_LENGTH = 12;
+export const NUMBER_CLIMB_TIME_MS = 45_000;
+export const NUMBER_CLIMB_PREP_MS = 6_000;
 
 /* -------------------------------------------------------------------------- */
 /*  Stop Watch                                                                 */
