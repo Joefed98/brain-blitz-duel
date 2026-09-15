@@ -26,17 +26,25 @@ export function markerAt(elapsed: number): number {
   return phase <= 1 ? phase : 2 - phase;
 }
 
+/** Marker width in px — kept here so the transform can centre it exactly. */
+const MARKER_W = 6;
+
 function Bar({
   target,
   marker,
   dim = false,
+  barRef,
+  markerRef,
 }: {
   target: number;
   marker: number | null;
   dim?: boolean;
+  barRef?: React.RefObject<HTMLDivElement | null> | undefined;
+  markerRef?: React.RefObject<HTMLSpanElement | null> | undefined;
 }) {
   return (
     <div
+      ref={barRef}
       className={`relative h-16 w-full overflow-hidden rounded-2xl border border-border bg-card ${
         dim ? "opacity-60" : ""
       }`}
@@ -52,11 +60,20 @@ function Bar({
         className="absolute inset-y-2 w-[3px] rounded-full bg-primary"
         style={{ left: `${target * 100}%`, transform: "translateX(-50%)" }}
       />
-      {marker !== null && (
+      {markerRef ? (
+        // Driven every frame by requestAnimationFrame — no transition, no stepping.
         <span
-          className="absolute inset-y-0 w-[6px] rounded-full bg-foreground"
-          style={{ left: `${marker * 100}%`, transform: "translateX(-50%)" }}
+          ref={markerRef}
+          className="absolute inset-y-0 left-0 rounded-full bg-foreground will-change-transform"
+          style={{ width: MARKER_W }}
         />
+      ) : (
+        marker !== null && (
+          <span
+            className="absolute inset-y-0 rounded-full bg-foreground"
+            style={{ width: MARKER_W, left: `${marker * 100}%`, transform: "translateX(-50%)" }}
+          />
+        )
       )}
     </div>
   );
@@ -81,6 +98,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     Array.from({ length: STOPWATCH_ATTEMPTS }, () => null),
   );
   const submitted = useRef("");
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const markerRef = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
     setDistances(Array.from({ length: STOPWATCH_ATTEMPTS }, () => null));
@@ -115,10 +134,29 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     onSubmit(values.join(","), { reactionAvgMs: avg });
   }, [distances, elapsedTotal, locked, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (puzzle.type !== "stopwatch") return null;
+  const target = puzzle.type === "stopwatch" ? (puzzle.targets[index] ?? 0.5) : 0.5;
 
-  const target = puzzle.targets[index] ?? 0.5;
-  const marker = live ? markerAt(inSlot) : null;
+  // The marker glides: every frame we work its position out from the shared
+  // attempt start time and write it straight to a transform.
+  useEffect(() => {
+    if (!live) return;
+    const attemptStart = phaseStartedAt + index * STOPWATCH_SLOT_MS;
+    let raf = 0;
+    const frame = () => {
+      const bar = barRef.current;
+      const el = markerRef.current;
+      if (bar && el) {
+        const width = bar.clientWidth;
+        const pos = markerAt(Math.max(0, serverNow() - attemptStart));
+        el.style.transform = `translate3d(${pos * width - MARKER_W / 2}px, 0, 0)`;
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [live, index, phaseStartedAt]);
+
+  if (puzzle.type !== "stopwatch") return null;
 
   const handleTap = () => {
     if (locked || !live) return;
@@ -148,7 +186,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         ))}
       </div>
 
-      <Bar target={target} marker={marker} dim={done} />
+      <Bar
+        key={index}
+        target={target}
+        marker={null}
+        dim={done}
+        barRef={live ? barRef : undefined}
+        markerRef={live ? markerRef : undefined}
+      />
 
       <button
         type="button"
