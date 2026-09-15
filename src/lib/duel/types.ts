@@ -304,6 +304,21 @@ export interface RoundResultRow {
   submitted_at: string;
 }
 
+/** Server-built display data, released only after its round has ended. */
+export interface PlayerRoundDetail {
+  playerSlot: number;
+  summary: string;
+  /** Longer answer detail shown when a standings row is expanded. */
+  detail: string[];
+}
+
+export interface RoundRevealData {
+  puzzle: PuzzleData;
+  /** Compact correct-answer text for the result header, when the type has one. */
+  correctAnswer: string | null;
+  players: PlayerRoundDetail[];
+}
+
 export const ROUND_MS = 30_000;
 /** Target Number gets a full minute. */
 export const TARGET_TIME_MS = 60_000;
@@ -323,7 +338,7 @@ export const INTRO_COUNTDOWN_MS = 3_000;
 export const REVEAL_MS = 5_000;
 export const NEXT_ROUND_AUTO_MS = 8_000;
 /** How long the standings screen stays up in a room of three or more. */
-export const STANDINGS_MS = 10_000;
+export const STANDINGS_MS = 12_000;
 /** Missing this many rounds in a row marks a player inactive. */
 export const INACTIVE_AFTER_MISSED = 2;
 export const DISCONNECT_MS = 15_000;

@@ -1,6 +1,12 @@
 import type { ComponentType } from "react";
 
-import type { PuzzleCategory, PuzzleData, PuzzleType } from "@/lib/duel/types";
+import type {
+  PlayerRoundDetail,
+  PuzzleCategory,
+  PuzzleData,
+  PuzzleType,
+  RoundResultRow,
+} from "@/lib/duel/types";
 
 /**
  * Per-type detail sent with a submission. Correctness and score are worked out
@@ -48,6 +54,10 @@ export interface PuzzleDefinition {
   /** Generated once, when the duel is created, and stored in the database. */
   generate: () => PuzzleData;
   check: (answer: string, puzzle: PuzzleData) => boolean;
+  /** Built on the server after the round ends; never called during play. */
+  roundSummary: (result: RoundResultRow, puzzle: PuzzleData) => Omit<PlayerRoundDetail, "playerSlot">;
+  /** Correct-answer text for the compact result heading, where meaningful. */
+  correctAnswer: (puzzle: PuzzleData) => string | null;
   /** Milliseconds of preparation before the clock starts. */
   prepMs?: (puzzle: PuzzleData) => number;
   /** Total length of the puzzle phase. Defaults to prep + the type's time limit. */
