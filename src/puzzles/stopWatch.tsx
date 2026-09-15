@@ -26,17 +26,25 @@ export function markerAt(elapsed: number): number {
   return phase <= 1 ? phase : 2 - phase;
 }
 
+/** Marker width in px — kept here so the transform can centre it exactly. */
+const MARKER_W = 6;
+
 function Bar({
   target,
   marker,
   dim = false,
+  barRef,
+  markerRef,
 }: {
   target: number;
   marker: number | null;
   dim?: boolean;
+  barRef?: React.RefObject<HTMLDivElement | null>;
+  markerRef?: React.RefObject<HTMLSpanElement | null>;
 }) {
   return (
     <div
+      ref={barRef}
       className={`relative h-16 w-full overflow-hidden rounded-2xl border border-border bg-card ${
         dim ? "opacity-60" : ""
       }`}
@@ -52,11 +60,20 @@ function Bar({
         className="absolute inset-y-2 w-[3px] rounded-full bg-primary"
         style={{ left: `${target * 100}%`, transform: "translateX(-50%)" }}
       />
-      {marker !== null && (
+      {markerRef ? (
+        // Driven every frame by requestAnimationFrame — no transition, no stepping.
         <span
-          className="absolute inset-y-0 w-[6px] rounded-full bg-foreground"
-          style={{ left: `${marker * 100}%`, transform: "translateX(-50%)" }}
+          ref={markerRef}
+          className="absolute inset-y-0 left-0 rounded-full bg-foreground will-change-transform"
+          style={{ width: MARKER_W }}
         />
+      ) : (
+        marker !== null && (
+          <span
+            className="absolute inset-y-0 rounded-full bg-foreground"
+            style={{ width: MARKER_W, left: `${marker * 100}%`, transform: "translateX(-50%)" }}
+          />
+        )
       )}
     </div>
   );
