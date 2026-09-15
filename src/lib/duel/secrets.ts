@@ -16,7 +16,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   missing: ["word"],
   equation: ["operators"],
   symscan: ["targets"],
-  patcomp: ["correctIndex", "rule"],
+  patcomp: ["rules", "answer"],
   rotmatch: ["correctIndex", "rotationDeg"],
   reverse: ["answerOrder"],
   spotdiff: ["differences"],
@@ -39,7 +39,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
 
 type Loose = Record<string, unknown>;
 
-const PLACEHOLDER_CELL: PatternCell = { shape: "circle", colour: "RED", count: 1 };
+const PLACEHOLDER_CELL: PatternCell = { shape: "circle", colour: "RED", count: 1, rot: 0 };
 
 /** Blank positions become "_" so the client never receives the full word. */
 function maskWord(word: string, blanks: number[]): string {
