@@ -19,6 +19,7 @@ import {
   type MirrorItem,
   type MirrorPuzzleData,
   type MirrorShape,
+  type StroopColour,
 } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -38,10 +39,10 @@ const otherAxis = (axis: MirrorAxis): MirrorAxis => (axis === "vertical" ? "hori
 function swapColours(shape: MirrorShape): MirrorShape | null {
   const distinct = [...new Set(shape.colours)];
   if (distinct.length < 2) return null;
-  const [a, b] = shuffled(distinct).slice(0, 2) as [string, string];
+  const [a, b] = shuffled(distinct).slice(0, 2) as [StroopColour, StroopColour];
   return {
     cells: [...shape.cells],
-    colours: shape.colours.map((c) => (c === a ? (b as never) : c === b ? (a as never) : c)),
+    colours: shape.colours.map((c) => (c === a ? b : c === b ? a : c)),
   };
 }
 
@@ -242,11 +243,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 }
 
 export const mirrorMatchPuzzle: PuzzleDefinition = {
-  type: "mirmatch",
+  key: "mirmatch",
   name: "Mirror Match",
   category: "pattern",
   timeLimitMs: MIRMATCH_TIME_MS,
-  instruction: "Flip the shape across the dashed line, colours and all.",
   generate: buildMirrorMatch,
   check: (answer, puzzle) => {
     if (puzzle.type !== "mirmatch") return false;
