@@ -60,6 +60,11 @@ function sequenceAnswer(result: RoundResultRow, puzzle: PuzzleData): string | nu
   return indices.map((index) => puzzle.tiles[index] ?? index + 1).join(" → ");
 }
 
+function equationAnswer(result: RoundResultRow): string | null {
+  const answer = rawAnswer(result);
+  return answer ? joinOperators(answer.split(",")) : null;
+}
+
 function singleAnswer(display: (result: RoundResultRow, puzzle: PuzzleData) => string | null): SummaryBuilder {
   return (result, puzzle) => {
     const answer = display(result, puzzle);
