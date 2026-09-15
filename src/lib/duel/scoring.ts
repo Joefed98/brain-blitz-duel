@@ -4,6 +4,8 @@ import {
   BLOCK_TIME_MS,
   GONOGO_ITEMS,
   NUMHUNT_ERROR_PENALTY,
+  PCTSPRINT_ITEMS,
+  PCTSPRINT_TIME_MS,
   ROUND_MS,
   STOPWATCH_MAX_DIST_MS,
   STROOP_ITEMS,
@@ -13,6 +15,7 @@ import {
   UNBLOCK_MIN_MOVE_BONUS,
   UNBLOCK_TIME_MS,
   WORDMATCH_ITEMS,
+  WORDMATCH_TIME_MS,
   type DuelPlayerRow,
   type PlayerStatus,
   type RoundResultRow,
@@ -91,7 +94,15 @@ export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): 
 export function scoreWordMatch(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, WORDMATCH_ITEMS);
   const accuracy = Math.round((BASE_POINTS * correct) / WORDMATCH_ITEMS);
-  const bonus = correct >= WORDMATCH_ITEMS ? speedBonus(msRemaining) : 0;
+  const bonus = correct >= WORDMATCH_ITEMS ? speedBonus(msRemaining, WORDMATCH_TIME_MS) : 0;
+  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+}
+
+/** Percent Sprint: accuracy out of 100, plus the speed bonus on a flawless run. */
+export function scorePercentSprint(correctCount: number, msRemaining: number): number {
+  const correct = clamp(correctCount, 0, PCTSPRINT_ITEMS);
+  const accuracy = Math.round((BASE_POINTS * correct) / PCTSPRINT_ITEMS);
+  const bonus = correct >= PCTSPRINT_ITEMS ? speedBonus(msRemaining, PCTSPRINT_TIME_MS) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
