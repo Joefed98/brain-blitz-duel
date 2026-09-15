@@ -124,7 +124,7 @@ export function Podium({
                     className="flex items-center justify-between py-1 text-[11px]"
                   >
                     <span className="uppercase tracking-widest text-muted-foreground">
-                      {puzzleName(roundOrder[entry.round - 1] ?? "anagram")}
+                      {puzzleName(roundOrder[entry.round - 1] ?? "wordsmith")}
                     </span>
                     <span className="font-mono tabular-nums">{entry.score}</span>
                   </div>

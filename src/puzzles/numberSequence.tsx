@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { pick, randInt } from "@/lib/duel/random";
 import type { NumberSequencePuzzleData } from "@/lib/duel/types";
 
-import { MyAnswerLine } from "./anagram";
+import { MyAnswerLine } from "@/components/puzzles/MyAnswerLine";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 type Family =

@@ -1,7 +1,7 @@
 import { pick, randInt } from "@/lib/duel/random";
 import type { PercentPuzzleData } from "@/lib/duel/types";
 
-import { MyAnswerLine } from "./anagram";
+import { MyAnswerLine } from "@/components/puzzles/MyAnswerLine";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 

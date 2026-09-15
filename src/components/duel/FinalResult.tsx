@@ -90,7 +90,7 @@ export function FinalResult({
               style={{ animationDelay: `${240 + i * 110}ms` }}
             >
               <span className="text-xs uppercase tracking-widest text-muted-foreground">
-                {puzzleName(roundOrder[row.round - 1] ?? "anagram")}
+                {puzzleName(roundOrder[row.round - 1] ?? "wordsmith")}
               </span>
               <span className="font-mono text-sm font-bold tabular-nums">
                 <span className={row.mine > row.theirs ? "text-me" : "text-muted-foreground"}>
