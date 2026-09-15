@@ -27,7 +27,11 @@ type AnswerBuilder = (puzzle: PuzzleData) => string | null;
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
   const limit =
-    puzzle.type === "target"
+    puzzle.type === "wordmatch"
+      ? WORDMATCH_TIME_MS
+    : puzzle.type === "pctsprint"
+      ? PCTSPRINT_TIME_MS
+    : puzzle.type === "target"
       ? TARGET_TIME_MS
       : puzzle.type === "wordsmith"
         ? WORDSMITH_TIME_MS
