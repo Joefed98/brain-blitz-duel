@@ -648,7 +648,13 @@ export const rematchFn = createServerFn({ method: "POST" })
 export const checkWordFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (input: { roomId: string; roundNumber: number; word: string; found: string[] }) => input,
+    (input: {
+      roomId: string;
+      roundNumber: number;
+      word: string;
+      found: string[];
+      path?: number[];
+    }) => input,
   )
   .handler(async ({ data, context }) => {
     const client = await db();
@@ -659,11 +665,17 @@ export const checkWordFn = createServerFn({ method: "POST" })
       return { valid: false as const, points: 0, word: "", reason: "That round is over." };
     }
     const pub = room.puzzles_public[data.roundNumber - 1];
+    const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
+
+    if (pub?.type === "wordhunt") {
+      const { checkWordHuntPath } = await import("./wordHunt.server");
+      const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
+      return checkWordHuntPath(pub.grid, path, found);
+    }
     if (!pub || pub.type !== "wordsmith") {
       return { valid: false as const, points: 0, word: "", reason: "Not this round." };
     }
 
     const { checkWordsmithWord } = await import("./wordsmith.server");
-    const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
     return checkWordsmithWord(pub.letters, String(data.word ?? ""), found);
   });

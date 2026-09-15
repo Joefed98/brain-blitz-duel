@@ -7,6 +7,9 @@ import type { PatternCell, PuzzleData, PuzzleType } from "./types";
  */
 const SECRET_KEYS: Record<PuzzleType, string[]> = {
   wordsmith: ["words", "totalPoints", "par", "source"],
+  wordhunt: ["words", "totalPoints", "par"],
+  unblock: ["minMoves", "solution"],
+  blockparty: ["solution", "solutions"],
   oddword: ["odd", "theme"],
   target: ["solution"],
   numseq: ["answer", "rule"],

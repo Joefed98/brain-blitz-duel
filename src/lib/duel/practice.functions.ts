@@ -98,12 +98,19 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
 
 /** Wordsmith practice: checks one word against the sealed board. */
 export const practiceCheckWordFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { puzzle: PuzzleData; word: string; found: string[] }) => input)
+  .inputValidator(
+    (input: { puzzle: PuzzleData; word: string; found: string[]; path?: number[] }) => input,
+  )
   .handler(async ({ data }) => {
+    const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
+    if (data.puzzle.type === "wordhunt") {
+      const { checkWordHuntPath } = await import("./wordHunt.server");
+      const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
+      return checkWordHuntPath(data.puzzle.grid, path, found);
+    }
     if (data.puzzle.type !== "wordsmith") {
       return { valid: false as const, points: 0, word: "", reason: "Not this round." };
     }
     const { checkWordsmithWord } = await import("./wordsmith.server");
-    const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
     return checkWordsmithWord(data.puzzle.letters, String(data.word ?? ""), found);
   });

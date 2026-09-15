@@ -1,4 +1,7 @@
 import {
+  BLOCK_FREE_CELLS,
+  BLOCK_PARTIAL_POINTS,
+  BLOCK_TIME_MS,
   GONOGO_ITEMS,
   NUMHUNT_ERROR_PENALTY,
   ROUND_MS,
@@ -7,6 +10,8 @@ import {
   TARGET_FAR_POINTS,
   TARGET_NEAR_POINTS,
   TOTAL_ROUNDS,
+  UNBLOCK_MIN_MOVE_BONUS,
+  UNBLOCK_TIME_MS,
   WORDMATCH_ITEMS,
   type DuelPlayerRow,
   type PlayerStatus,
@@ -286,4 +291,35 @@ export function playerBreakdown(
     const row = resultFor(results, slot, i + 1);
     return { round: i + 1, score: row?.score ?? 0, correct: row ? row.is_correct : null };
   });
+}
+
+/** Word Hunt: the same points-against-par curve Wordsmith uses. */
+export function scoreWordHunt(points: number, par: number): number {
+  if (points <= 0) return 0;
+  const target = par > 0 ? par : 1;
+  return Math.min(MAX_ROUND_SCORE, Math.round((MAX_ROUND_SCORE * points) / target));
+}
+
+/** Unblock: solved scores 100 plus the speed bonus, plus 20 for a perfect run. */
+export function scoreUnblock(
+  solved: boolean,
+  msRemaining: number,
+  moves: number,
+  minMoves: number,
+): number {
+  if (!solved) return 0;
+  const perfect = minMoves > 0 && moves <= minMoves ? UNBLOCK_MIN_MOVE_BONUS : 0;
+  return Math.min(
+    MAX_ROUND_SCORE,
+    BASE_POINTS + speedBonus(msRemaining, UNBLOCK_TIME_MS) + perfect,
+  );
+}
+
+/** Block Party: a full board scores 100 plus the speed bonus, else part marks. */
+export function scoreBlockParty(solved: boolean, msRemaining: number, covered: number): number {
+  if (solved) {
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, BLOCK_TIME_MS));
+  }
+  const cells = clamp(covered, 0, BLOCK_FREE_CELLS);
+  return Math.round((BLOCK_PARTIAL_POINTS * cells) / BLOCK_FREE_CELLS);
 }

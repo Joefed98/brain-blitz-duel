@@ -154,3 +154,22 @@ export function buildableFrom(word: string, letters: string[]): boolean {
   }
   return fits(word.toLowerCase(), pool);
 }
+
+/** The everyday word list used when solving a board. */
+export function commonWords(): string[] {
+  return dictionary().common;
+}
+
+let prefixes: Set<string> | null = null;
+
+/** Prefix set of the everyday list, so a grid search can stop early. */
+export function isCommonPrefix(prefix: string): boolean {
+  if (!prefixes) {
+    const set = new Set<string>();
+    for (const word of dictionary().common) {
+      for (let i = 1; i <= word.length; i++) set.add(word.slice(0, i));
+    }
+    prefixes = set;
+  }
+  return prefixes.has(prefix);
+}

@@ -129,14 +129,17 @@ export async function fetchRevealPuzzle(
   return result.ok ? (result.data as RoundRevealData) : null;
 }
 
-/** Wordsmith: asks the server whether one word counts. */
+/** Wordsmith and Word Hunt: asks the server whether one word counts. */
 export async function checkWord(
   duelId: string,
   roundNumber: number,
   word: string,
   found: string[],
+  path?: number[],
 ): Promise<{ valid: boolean; points: number; word: string; reason?: string }> {
-  return checkWordFn({ data: { roomId: duelId, roundNumber, word, found } });
+  return checkWordFn({
+    data: { roomId: duelId, roundNumber, word, found, path: path ?? [] },
+  });
 }
 
 /** Host only: makes the next room and brings everyone along. */
