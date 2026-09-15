@@ -43,7 +43,7 @@ export function RoundResult({
     <div className="flex flex-1 flex-col justify-between gap-8 pt-6 animate-phase-in">
       <div className="flex flex-col gap-6">
         <div className="text-center">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">{roundTitle}</p>
+          <p className="break-words font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">{roundTitle}</p>
           <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Round {round} result</p>
         </div>
 

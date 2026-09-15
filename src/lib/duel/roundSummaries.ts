@@ -169,7 +169,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   reverse: sequenceSingle,
   reaction: averageSummary,
   missing: rawSingle,
-  equation: rawSingle,
+  equation: singleAnswer((result) => equationAnswer(result)),
   stroop: stroopSummary,
   spatial: cellsSingle,
   gonogo: goNoGoSummary,

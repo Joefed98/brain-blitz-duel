@@ -76,7 +76,7 @@ export function Standings({
     <div className="flex flex-1 flex-col justify-between gap-6 pt-4 animate-phase-in">
       <div className="flex flex-col gap-4">
         <div className="text-center">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          <p className="break-words font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
             {roundTitle}
           </p>
           <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
