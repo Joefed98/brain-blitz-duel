@@ -78,11 +78,13 @@ function PracticeScreen() {
   const [startedAt, setStartedAt] = useState(0);
   const [graded, setGraded] = useState<Graded | null>(null);
   const grading = useRef(false);
+  const draftAnswer = useRef("");
   const now = useTicker(stage === "intro" || stage === "puzzle" || stage === "reveal");
 
   const load = useCallback(async (next: PuzzleType) => {
     unlockAudio();
     grading.current = false;
+    draftAnswer.current = "";
     setType(next);
     setGraded(null);
     setPuzzle(null);
@@ -140,7 +142,7 @@ function PracticeScreen() {
   useEffect(() => {
     if (stage !== "puzzle" || !puzzle) return;
     if (now - startedAt <= durationMs) return;
-    void grade("");
+    void grade(draftAnswer.current);
   }, [stage, now, startedAt, durationMs, puzzle, grade]);
 
   useEffect(() => {
@@ -223,6 +225,7 @@ function PracticeScreen() {
           myAnswer={graded.answer || null}
           myCorrect={graded.isCorrect}
           myReactionAvgMs={graded.reactionAvgMs}
+          myMsRemaining={graded.msRemaining}
           startedAt={startedAt}
           now={now}
         />
@@ -295,6 +298,7 @@ function PracticeScreen() {
             now={now}
             locked={false}
             onSubmit={(answer, meta) => void grade(answer, meta)}
+            onDraftAnswer={(answer) => { draftAnswer.current = answer; }}
             checkWord={(word, found, path) =>
               practiceCheckWordFn({ data: { puzzle, word, found, path: path ?? [] } })
             }

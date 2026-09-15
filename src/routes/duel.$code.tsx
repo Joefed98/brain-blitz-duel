@@ -166,6 +166,7 @@ function DuelScreen() {
   const [rematchBusy, setRematchBusy] = useState(false);
   const [starting, setStarting] = useState(false);
   const timeoutSubmitted = useRef<string>("");
+  const draftAnswer = useRef("");
   const lastAdvance = useRef(0);
   const dueSince = useRef(0);
   const [revealed, setRevealed] = useState<{ round: number; data: RoundRevealData } | null>(null);
@@ -238,7 +239,7 @@ function DuelScreen() {
     void submitAnswer({
       duelId: duel.id,
       roundNumber: round,
-      answer: "",
+      answer: draftAnswer.current,
       msRemaining: 0,
     });
   }, [duel?.id, duel?.status, phase, round, now, deadline, myResult, me?.id, puzzle]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -492,6 +493,7 @@ function DuelScreen() {
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
           myReactionAvgMs={myResult?.reaction_avg_ms ?? null}
+          myMsRemaining={myResult?.ms_remaining ?? 0}
           startedAt={phaseStart ?? now}
           now={now}
         />
@@ -600,6 +602,7 @@ function DuelScreen() {
                 now={now}
                 locked={!!myResult}
                 onSubmit={handleSubmit}
+                onDraftAnswer={(answer) => { draftAnswer.current = answer; }}
                 checkWord={(word, found, path) =>
                   checkWord(duel.id, round, word, found, path)
                 }
