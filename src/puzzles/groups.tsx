@@ -83,7 +83,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkGroup }: PuzzleSt
 
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "groups" || !puzzle.groups) return null;
-  const foundCount = Math.min(2, (myAnswer ?? "").split(";").filter((part) => part.split(",").filter(Boolean).length === 4).length);
+  const foundCount = new Set(
+    (myAnswer ?? "").split(";").map((part) => {
+      const words = part.split(",").map(Number).filter(Number.isInteger).map((index) => puzzle.words[index]).filter(Boolean).sort();
+      return puzzle.groups?.findIndex((group) => [...group.words].sort().join("|") === words.join("|")) ?? -1;
+    }).filter((index) => index >= 0),
+  ).size;
   const label = foundCount === 2 ? "Both groups" : foundCount === 1 ? "One group" : "No groups";
   const elapsed = ((GROUPS_TIME_MS - Math.max(0, myMsRemaining ?? 0)) / 1000).toFixed(1);
   return <div className="flex w-full flex-col items-center gap-2">

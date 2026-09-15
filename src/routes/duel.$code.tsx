@@ -180,6 +180,10 @@ function DuelScreen() {
   const round = duel?.current_round ?? 0;
   const puzzle = duel && round > 0 ? duel.puzzles_public[round - 1] : undefined;
   const phase = duel?.phase ?? "intro";
+
+  useEffect(() => {
+    draftAnswer.current = "";
+  }, [duel?.id, round]);
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
   // The clock starts once any puzzle preparation (sequence playback) is done.

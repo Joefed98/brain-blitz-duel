@@ -72,7 +72,7 @@ export const GROUPS_BANK: GroupsBankEntry[] = [
   entry("Words after SOUND", ["Track","Wave","Board","Proof"], "Words after WATER", ["Line","Fall","Mark","Shed"], ["Soundproof and waterproof are exact","Water sound is natural"]),
   entry("Words before TRACK", ["Sound","Race","Fast","Eight"], "Words before ROAD", ["Rail","Silk","Ring","Back"], ["Rail track and railroad overlap","Race road is plausible"]),
   entry("Words after CLASS", ["Room","Mate","Work","Act"], "Words after TEAM", ["Goal","Player","Sheet","Spirit"], ["Classmate and teammate are exact","Classwork and teamwork are exact"]),
-  entry("Words before COAT", ["Rain","Over","Petticoat","Top"], "Words before CAP", ["Night","Knee","Bottle","Ice"], ["Night coat is plausible","Ice coat is a layer"]),
+  entry("Words before COAT", ["Rain","Over","Trench","Top"], "Words before CAP", ["Night","Knee","Bottle","Ice"], ["Night coat is plausible","Ice coat is a layer"]),
   entry("Words after BED", ["Room","Time","Rock","Bug"], "Words after NIGHT", ["Club","Shift","Owl","Gown"], ["Bedtime and nighttime are exact","Night bug is plausible"]),
   entry("Words before FLY", ["Butter","Dragon","Fire","Horse"], "Words before BIRD", ["Black","Blue","Humming","Jail"], ["Black fly is exact","Firebird is exact"]),
   entry("Words after TREE", ["House","Top","Line","Ring"], "Words after FAMILY", ["Tree","Name","Room","Man"], ["Family tree is exact","Treehouse can hold a family"]),
