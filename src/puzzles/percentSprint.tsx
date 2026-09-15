@@ -1,46 +1,169 @@
-import { pick, randInt } from "@/lib/duel/random";
-import type { PercentPuzzleData } from "@/lib/duel/types";
+import { useEffect, useRef, useState } from "react";
 
-import { MyAnswerLine } from "@/components/puzzles/MyAnswerLine";
-import { NumberEntry } from "@/components/puzzles/NumberEntry";
+import { pick, randInt, shuffled } from "@/lib/duel/random";
+import {
+  PCTSPRINT_ITEMS,
+  PCTSPRINT_TIME_MS,
+  type PercentItem,
+  type PercentPuzzleData,
+} from "@/lib/duel/types";
+
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+
+/** Fixed intro example — never randomised. */
+const EXAMPLE_QUESTION = "15% of 240 = ?";
+const EXAMPLE_OPTIONS = [36, 24, 32, 42];
+const EXAMPLE_ANSWER = 36;
+
+function OptionGrid({
+  options,
+  highlight,
+  onPick,
+  disabled,
+}: {
+  options: number[];
+  highlight?: number;
+  onPick?: (index: number) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="grid w-full grid-cols-2 gap-2">
+      {options.map((value, index) => {
+        const lit = highlight === value;
+        const className = `flex items-center justify-center rounded-xl border font-mono text-2xl font-bold tabular-nums ${
+          lit
+            ? "border-primary bg-primary/10 text-primary"
+            : "border-border bg-card text-foreground"
+        }`;
+        if (!onPick) {
+          return (
+            <span key={index} className={`${className} h-14`}>
+              {value}
+            </span>
+          );
+        }
+        return (
+          <button
+            key={index}
+            type="button"
+            disabled={disabled}
+            onClick={() => onPick(index)}
+            className={`tap-target h-20 ${className} disabled:opacity-40`}
+          >
+            {value}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function IntroExample() {
   return (
-    <div className="flex flex-col items-center gap-4">
-      <p className="text-sm text-muted-foreground">Work out the percentage or ratio.</p>
-      <p className="font-mono text-3xl font-bold">25% of 160 = ?</p>
-      <p className="font-mono text-sm text-muted-foreground">
-        answer <span className="font-bold text-primary">40</span>
+    <div className="flex w-full flex-col items-center gap-4">
+      <p className="text-center text-sm text-muted-foreground">
+        Work out the percentage, then tap the right number.
       </p>
-      <p className="text-xs text-muted-foreground">
-        Type the number and hit Submit. Faster = more points.
+      <p className="font-mono text-3xl font-bold">{EXAMPLE_QUESTION}</p>
+      <OptionGrid options={EXAMPLE_OPTIONS} highlight={EXAMPLE_ANSWER} />
+      <p className="text-center text-xs text-muted-foreground">
+        Three questions. Tap the answer. Get all three right to earn the speed bonus. You have 45
+        seconds.
       </p>
     </div>
   );
 }
 
-function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
+function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
+  const items: PercentItem[] = puzzle.type === "pctsprint" ? puzzle.items : [];
+  const key = items.map((i) => i.question).join("|");
+  const [taps, setTaps] = useState<number[]>([]);
+  const submitted = useRef("");
+
+  useEffect(() => {
+    setTaps([]);
+  }, [key]);
+
+  // Submit the run once every question is answered, or just before time is up.
+  useEffect(() => {
+    if (items.length === 0 || locked || submitted.current === key) return;
+    const timeUp = now >= phaseStartedAt + PCTSPRINT_TIME_MS - 400;
+    if (taps.length < items.length && !timeUp) return;
+    submitted.current = key;
+    onSubmit(taps.join(","));
+  }, [taps, now, locked, key, phaseStartedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (puzzle.type !== "pctsprint") return null;
+
+  const index = taps.length;
+  const item = puzzle.items[index];
+
   return (
-    <NumberEntry label="Percentages" resetKey={puzzle.question} locked={locked} onSubmit={onSubmit}>
-      <div className="rounded-2xl bg-card px-5 py-7">
-        <p className="text-center font-mono text-2xl font-bold tabular-nums text-foreground">
-          {puzzle.question}
+    <div className="flex flex-1 flex-col justify-between gap-6">
+      <div className="flex flex-1 flex-col items-center justify-center gap-5">
+        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          {Math.min(index + 1, puzzle.items.length)} of {puzzle.items.length}
         </p>
+        {item ? (
+          <p className="text-center font-mono text-3xl font-bold tabular-nums">{item.question}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">Run complete</p>
+        )}
       </div>
-    </NumberEntry>
+
+      <OptionGrid
+        options={item?.options ?? [0, 0, 0, 0]}
+        onPick={(optionIndex) => {
+          if (!item || locked) return;
+          setTaps((prev) => [...prev, optionIndex]);
+        }}
+        disabled={locked || !item}
+      />
+    </div>
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "pctsprint") return null;
+  // The answers only reach the phone once the round has ended.
+  const answers = puzzle.answers;
+  if (!answers) return null;
+  const taps = (myAnswer ?? "")
+    .split(",")
+    .map((v) => Number.parseInt(v, 10))
+    .filter((v) => Number.isFinite(v));
+  const correct = puzzle.items.filter((_, i) => taps[i] === answers[i]).length;
+
   return (
     <>
-      <p className="text-center font-mono text-sm text-muted-foreground">{puzzle.question}</p>
-      <p className="font-mono text-6xl font-bold text-primary">{puzzle.answer ?? "—"}</p>
-      <p className="text-center font-mono text-xs text-muted-foreground">{puzzle.working ?? ""}</p>
-      <MyAnswerLine myAnswer={myAnswer} myCorrect={myCorrect} />
+      <div className="flex w-full flex-col gap-2">
+        {puzzle.items.map((item, index) => {
+          const answerIndex = answers[index] ?? -1;
+          const tap = taps[index];
+          const got = tap === answerIndex;
+          return (
+            <div key={index} className="flex items-center justify-between gap-2 text-sm">
+              <span className="font-mono tabular-nums">{item.question}</span>
+              <span className="flex items-center gap-2 font-mono tabular-nums">
+                <span className="text-primary">{item.options[answerIndex] ?? "—"}</span>
+                {tap === undefined ? (
+                  <span className="text-xs text-muted-foreground">—</span>
+                ) : (
+                  <span className={`font-display font-bold ${got ? "text-primary" : "text-warn"}`}>
+                    {got ? "✓" : `✗ ${item.options[tap] ?? ""}`}
+                  </span>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your run</p>
+        <p className="font-mono text-3xl font-bold tabular-nums text-primary">
+          {correct} / {puzzle.items.length} correct
+        </p>
+      </div>
     </>
   );
 }
@@ -115,32 +238,89 @@ function build(): Built | null {
   };
 }
 
-export function buildPercentSprint(): PercentPuzzleData {
+/**
+ * Three plausible near misses: a small slip either side of the answer, so no
+ * option is ever wildly off (15% of 240 → 36 / 24 / 32 / 42).
+ */
+function nearMisses(answer: number): number[] {
+  const candidates = [
+    Math.round(answer * 1.5),
+    Math.round(answer / 1.5),
+    answer + Math.max(1, Math.round(answer * 0.15)),
+    answer - Math.max(1, Math.round(answer * 0.15)),
+    answer + Math.max(2, Math.round(answer * 0.25)),
+    answer - Math.max(2, Math.round(answer * 0.25)),
+    answer + 10,
+    answer - 10,
+    answer + 1,
+    answer - 1,
+  ];
+  const picked: number[] = [];
+  for (const value of shuffled(candidates)) {
+    if (value === answer || value < 1 || value > 999) continue;
+    if (picked.includes(value)) continue;
+    picked.push(value);
+    if (picked.length === 3) break;
+  }
+  // Fall back to tight neighbours if the answer is very small.
+  let step = 1;
+  while (picked.length < 3) {
+    const value = answer + step;
+    if (value !== answer && value >= 1 && value <= 999 && !picked.includes(value)) picked.push(value);
+    step = step > 0 ? -step : -step + 1;
+  }
+  return picked;
+}
+
+function buildItem(seen: Set<string>): { item: PercentItem; answerIndex: number } | null {
   for (let attempt = 0; attempt < 80; attempt++) {
     const built = build();
     if (!built) continue;
     if (!Number.isInteger(built.answer) || built.answer < 1 || built.answer > 999) continue;
-    return { type: "pctsprint", ...built };
+    if (seen.has(built.question)) continue;
+    seen.add(built.question);
+    const options = shuffled([built.answer, ...nearMisses(built.answer)]);
+    return {
+      item: { question: built.question, options, working: built.working },
+      answerIndex: options.indexOf(built.answer),
+    };
   }
-  return {
-    type: "pctsprint",
-    question: "25% of 160 = ?",
-    answer: 40,
-    working: "10% is 16, so 25% is 40",
-  };
+  return null;
+}
+
+export function buildPercentSprint(): PercentPuzzleData {
+  const seen = new Set<string>();
+  const items: PercentItem[] = [];
+  const answers: number[] = [];
+
+  while (items.length < PCTSPRINT_ITEMS) {
+    const next = buildItem(seen);
+    if (!next) {
+      const options = [40, 30, 36, 48];
+      items.push({
+        question: "25% of 160 = ?",
+        options,
+        working: "10% is 16, so 25% is 40",
+      });
+      answers.push(options.indexOf(40));
+      continue;
+    }
+    items.push(next.item);
+    answers.push(next.answerIndex);
+  }
+
+  return { type: "pctsprint", items, answers };
 }
 
 export const percentSprintPuzzle: PuzzleDefinition = {
   key: "pctsprint",
   name: "Percent Sprint",
   category: "number",
-  timeLimitMs: 30_000,
+  timeLimitMs: PCTSPRINT_TIME_MS,
   generate: buildPercentSprint,
-  check: (answer, puzzle) => {
-    if (puzzle.type !== "pctsprint") return false;
-    const parsed = Number.parseInt(answer.trim(), 10);
-    return Number.isFinite(parsed) && parsed === puzzle.answer;
-  },
+  // Scored on the server from how many of the three questions were right.
+  check: () => true,
+  revealHeading: "The answers were",
   IntroExample,
   Stage,
   Reveal,
