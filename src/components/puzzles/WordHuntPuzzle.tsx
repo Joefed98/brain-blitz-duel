@@ -43,7 +43,10 @@ export function WordHuntBoard({
   return (
     <div
       className="relative aspect-square w-full select-none"
-      style={size ? { width: size, height: size } : undefined}
+      style={{
+        ...(size ? { width: size, height: size } : {}),
+        containerType: "inline-size",
+      }}
     >
       <svg
         viewBox="0 0 100 100"
@@ -62,7 +65,7 @@ export function WordHuntBoard({
           />
         )}
       </svg>
-      <div className="grid h-full w-full grid-cols-4 gap-1">
+      <div className="grid h-full w-full grid-cols-4 gap-2">
         {grid.map((letter, cell) => {
           const lit = path.includes(cell);
           return (
@@ -77,7 +80,11 @@ export function WordHuntBoard({
                   ? "border-primary bg-primary/20 text-primary"
                   : "border-border bg-card text-foreground"
               }`}
-              style={{ fontSize: size ? Math.max(10, size / 9) : undefined, touchAction: "none" }}
+              style={{
+                fontSize: "max(10px, calc((100cqw - 24px) / 4 * 0.6))",
+                lineHeight: 1,
+                touchAction: "none",
+              }}
             >
               {letter === "QU" ? "Qu" : letter}
             </div>
@@ -230,7 +237,7 @@ export function WordHuntPuzzle({
   }, [finish]);
 
   return (
-    <div className="flex flex-1 flex-col gap-3">
+    <div className="flex flex-1 flex-col gap-2">
       <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           points <span className="text-primary">{points}</span>
@@ -239,7 +246,7 @@ export function WordHuntPuzzle({
       </div>
 
       <div
-        className={`rounded-xl p-1 transition-colors duration-150 ${
+        className={`-mx-1 rounded-xl p-1 transition-colors duration-150 ${
           flash === "good" ? "bg-ok/25" : flash === "bad" ? "bg-warn/25" : "bg-transparent"
         }`}
       >
