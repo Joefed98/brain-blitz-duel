@@ -101,18 +101,35 @@ export interface SequencePuzzleData {
   answerOrder?: number[];
 }
 
-export type OddShapeBase = "circle" | "square" | "triangle" | "star" | "hexagon" | "arrow";
-export type OddShapeDifference = "rotated" | "smaller" | "shade" | "notched" | "flipped";
+export type SpotShapeKind = "circle" | "square" | "triangle" | "star" | "hexagon" | "arrow";
 
-export interface OddShapePuzzleData {
-  type: "oddshape";
-  base: OddShapeBase;
+/** One shape in a Spot the Difference scene, placed on an 8x5 grid. */
+export interface SpotShape {
+  /** Cell index, 0 .. SPOT_CELLS - 1. */
+  cell: number;
+  kind: SpotShapeKind;
   colour: StroopColour;
-  difference: OddShapeDifference;
-  /** Visible per-cell variants; only one entry contains the generated difference. */
-  variants: (OddShapeDifference | null)[];
-  oddIndex: number;
-  differenceLabel: string;
+  /** Quarter turn, 0 or 90 (arrows and triangles only). */
+  rot?: number;
+  /** Mirrored horizontally (arrows and triangles only). */
+  flip?: boolean;
+}
+
+export type SpotDifferenceKind = "colour" | "turn" | "move" | "remove" | "kind";
+
+export interface SpotDifference {
+  kind: SpotDifferenceKind;
+  /** The cells that count as this difference — two when a shape moved. */
+  cells: number[];
+  label: string;
+}
+
+export interface SpotPuzzleData {
+  type: "spotdiff";
+  top: SpotShape[];
+  bottom: SpotShape[];
+  /** Server-side only until the reveal: the three differences. */
+  differences?: SpotDifference[];
 }
 
 export interface ChainOperation {
