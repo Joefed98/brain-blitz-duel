@@ -33,7 +33,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord }: PuzzleSta
   const submit = async () => {
     if (locked || busy || value.length !== 4 || !checkWord) return;
     setBusy(true);
-    const verdict = await checkWord(value, rungs);
+    const verdict = await checkWord(value, [puzzle.startWord, ...rungs]);
     setBusy(false);
     if (!verdict.valid) {
       setBad(true); window.setTimeout(() => setBad(false), 420); return;
@@ -63,7 +63,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord }: PuzzleSta
       <span className="h-2 border-l border-border"/><Rung word={puzzle.targetWord} target />
     </div>
     <input ref={inputRef} value={value} aria-label="Next rung" autoCapitalize="characters" autoComplete="off" maxLength={4} onChange={(e) => setValue(e.target.value.replace(/[^a-z]/gi, "").toUpperCase())} onKeyDown={(e) => { if (e.key === "Enter") void submit(); }} className="h-11 w-full rounded-lg border border-border bg-card px-3 text-center font-mono text-xl uppercase tracking-[0.25em] focus:border-primary focus:outline-none" />
-    <div className="grid grid-cols-13 gap-0.5" aria-label="Letter picker">{LETTERS.map((letter) => <button key={letter} type="button" onClick={() => setLetter(letter)} className="h-8 min-w-0 rounded bg-card font-mono text-[11px] font-bold text-foreground">{letter}</button>)}</div>
+    <div className="grid grid-cols-[repeat(13,minmax(0,1fr))] gap-0.5" aria-label="Letter picker">{LETTERS.map((letter) => <button key={letter} type="button" onClick={() => setLetter(letter)} className="h-8 min-w-0 rounded bg-card font-mono text-[11px] font-bold text-foreground">{letter}</button>)}</div>
     <div className="flex items-center gap-2">
       <button type="button" disabled={!rungs.length || locked} onClick={() => { const next=rungs.slice(0,-1); setRungs(next); onDraftAnswer?.(next.join(",")); }} className="h-11 px-3 text-xs font-semibold uppercase text-muted-foreground disabled:opacity-30">Undo</button>
       <button type="button" disabled={value.length !== 4 || busy || locked} onClick={() => void submit()} className="h-11 flex-1 rounded-lg bg-primary font-display text-sm font-bold uppercase text-primary-foreground disabled:opacity-40">Submit rung</button>

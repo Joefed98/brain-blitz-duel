@@ -20,9 +20,12 @@ export function buildNumberClimb(): NumberClimbPuzzleData {
     }
     if (digits.length !== NUMBER_CLIMB_LENGTH) continue;
     const groups = [0, 3, 6, 9].map((index) => digits.slice(index, index + 3).join(""));
-    if (new Set(groups).size === groups.length) return { type: "numclimb", digits: digits.join("") };
+    if (new Set(groups).size === groups.length) {
+      const value = digits.join("");
+      return { type: "numclimb", digits: value, answerDigits: value };
+    }
   }
-  return { type: "numclimb", digits: "492715836041" };
+  return { type: "numclimb", digits: "492715836041", answerDigits: "492715836041" };
 }
 
 export function numberClimbSpan(answer: string, expected: string): number {

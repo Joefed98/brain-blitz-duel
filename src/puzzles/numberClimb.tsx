@@ -19,11 +19,11 @@ function IntroExample() {
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [value, setValue] = useState("");
   const input = useRef<HTMLInputElement>(null);
-  if (puzzle.type !== "numclimb") return null;
   const elapsed = now - phaseStartedAt;
   const showing = elapsed < NUMBER_CLIMB_PREP_MS;
   const submit = () => { if (!locked && value.length) onSubmit(value); };
   useEffect(() => { if (!showing) input.current?.focus(); }, [showing]);
+  if (puzzle.type !== "numclimb") return null;
   return <div className="flex flex-1 flex-col justify-between gap-4">
     <div className="flex flex-col items-center gap-4 pt-8">
       <div className="flex h-24 w-full items-center justify-center">
@@ -38,9 +38,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "numclimb") return null;
-  const entry=(myAnswer??"").replace(/\D/g,""); const span=numberClimbSpan(entry,puzzle.digits);
+  const answer = puzzle.answerDigits ?? puzzle.digits;
+  const entry=(myAnswer??"").replace(/\D/g,""); const span=numberClimbSpan(entry,answer);
   return <div className="flex w-full flex-col items-center gap-4">
-    <p className="font-mono text-2xl font-bold tracking-[0.12em] text-primary">{grouped(puzzle.digits)}</p>
+    <p className="font-mono text-2xl font-bold tracking-[0.12em] text-primary">{grouped(answer)}</p>
     <p className="font-mono text-xl font-bold tracking-[0.12em]">{entry ? entry.split("").map((digit,index)=><span key={index} className={index<span ? "text-primary":"text-warn"}>{digit}{index%3===2?" ":""}</span>):<span className="text-warn">No answer</span>}</p>
     <p className="font-display text-lg font-bold text-foreground">Span: {span} of 12</p>
   </div>;

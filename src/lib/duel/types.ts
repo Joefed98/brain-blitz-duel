@@ -591,6 +591,8 @@ export interface NumberClimbPuzzleData {
   type: "numclimb";
   /** The 12-digit prompt, shown for six seconds before the clock starts. */
   digits: string;
+  /** Server-side grading copy, kept in private puzzle data. */
+  answerDigits?: string;
 }
 
 export const WORD_LADDER_TIME_MS = 60_000;

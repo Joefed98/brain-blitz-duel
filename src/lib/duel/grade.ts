@@ -1,5 +1,7 @@
 import { decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
 import { decodeGroupsAnswer, matchGroupsSelection } from "./groups.server";
+import { numberClimbSpan } from "./numberClimb";
+import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
 import { decodeMoves, replayUnblock } from "./unblock";
 import { puzzleTimeLimitMs } from "./registry";
@@ -7,6 +9,8 @@ import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import {
   scoreGoNoGo,
   scoreGroups,
+  scoreWordLadder,
+  scoreNumberClimb,
   scoreNumberHunt,
   scorePercentSprint,
   scoreReaction,
@@ -93,6 +97,24 @@ export function gradeSubmission(
       isCorrect = correctCount === 2;
       score = scoreGroups(correctCount, ms);
       extraDetail = { foundGroups: correctCount };
+      break;
+    }
+    case "ladder": {
+      const verdict = validateLadder(puzzle, answer);
+      const shortestLength = puzzle.shortestLength ?? 0;
+      isCorrect = verdict.solved;
+      correctCount = verdict.validRungs.length;
+      score = scoreWordLadder(isCorrect, correctCount, shortestLength, ms);
+      extraDetail = { rungsUsed: correctCount, shortestLength };
+      break;
+    }
+    case "numclimb": {
+      const expected = puzzle.answerDigits ?? "";
+      const span = numberClimbSpan(answer, expected);
+      correctCount = span;
+      isCorrect = span === 12;
+      score = scoreNumberClimb(span, ms);
+      extraDetail = { span };
       break;
     }
     case "reaction": {

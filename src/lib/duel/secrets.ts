@@ -33,7 +33,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   gonogo: [],
   stroop: [],
   numhunt: [],
-  numclimb: ["digits"],
+  numclimb: ["answerDigits"],
   stopwatch: [],
 };
 
@@ -42,13 +42,6 @@ type Loose = Record<string, unknown>;
 const PLACEHOLDER_CELL: PatternCell = { shape: "circle", colour: "RED", count: 1, rot: 0 };
 
 /** Blank positions become "_" so the client never receives the full word. */
-function maskWord(word: string, blanks: number[]): string {
-  return word
-    .split("")
-    .map((letter, index) => (blanks.includes(index) ? "_" : letter))
-    .join("");
-}
-
 export interface SplitPuzzle {
   /** Everything the player needs to render and play the round. */
   pub: PuzzleData;
