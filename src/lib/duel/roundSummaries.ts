@@ -100,6 +100,17 @@ function equationAnswer(result: RoundResultRow): string | null {
   return answer ? joinOperators(answer.split(",")) : null;
 }
 
+function symbolScanSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  if (puzzle.type !== "symscan") return { summary: "No answer", detail: [] };
+  const selected = new Set((result.answer ?? "").split(",").map(Number).filter(Number.isFinite));
+  const found = puzzle.targets.filter((target) => selected.has(target)).length;
+  const wrong = [...selected].filter((index) => !puzzle.targets.includes(index)).length;
+  return {
+    summary: `${found} / ${puzzle.targets.length} targets · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: wrong > 0 ? [`${wrong} wrong selection${wrong === 1 ? "" : "s"}`] : [],
+  };
+}
+
 function singleAnswer(display: (result: RoundResultRow, puzzle: PuzzleData) => string | null): SummaryBuilder {
   return (result, puzzle) => {
     const answer = display(result, puzzle);
@@ -357,7 +368,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   spatial: cellsSingle,
   gonogo: goNoGoSummary,
   patcomp: patternSummary,
-  symscan: cellsSingle,
+  symscan: symbolScanSummary,
   spin: spinSummary,
   numhunt: numberHuntSummary,
   spotdiff: spotDifferenceSummary,
@@ -374,7 +385,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
 };
 
 function joinOperators(values: string[]): string {
-  return values.map((value) => value === "-" ? "−" : value).join(" then ");
+  return values.map((value) => value === "-" ? "−" : value).join(" ");
 }
 
 export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {

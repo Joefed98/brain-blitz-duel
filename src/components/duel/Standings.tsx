@@ -109,7 +109,7 @@ export function Standings({
                   <Arrow standing={row} />
                   <span className="min-w-0">
                     <span className="block truncate font-display text-sm text-foreground">{row.name}</span>
-                    <span className={`block truncate font-mono text-[10px] ${isMe ? "text-primary/80" : "text-muted-foreground"}`}>
+                     <span title={row.summary} className={`block truncate whitespace-nowrap font-mono text-[10px] ${isMe ? "text-primary/80" : "text-muted-foreground"}`}>
                       {row.summary}
                     </span>
                   </span>

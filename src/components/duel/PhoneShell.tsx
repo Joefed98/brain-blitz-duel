@@ -12,7 +12,7 @@ interface PhoneShellProps {
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
 export function PhoneShell({ children, bare = false }: PhoneShellProps) {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-background">
+    <div className="relative h-[100dvh] w-full overflow-hidden bg-background">
       {/* Depth: one soft warm glow top-centre, one cool glow bottom, faint grid. */}
       <div
         aria-hidden="true"
@@ -31,7 +31,7 @@ export function PhoneShell({ children, bare = false }: PhoneShellProps) {
           backgroundSize: "44px 44px",
         }}
       />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[430px] flex-col pad-safe">
+      <div className="relative mx-auto flex h-[100dvh] min-h-0 w-full max-w-[430px] flex-col overflow-hidden pad-safe">
         {!bare && (
           <div className="mb-2 flex items-center justify-between">
             <Wordmark />

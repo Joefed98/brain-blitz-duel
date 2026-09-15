@@ -77,14 +77,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </p>
 
       {mine.length > 0 && (
-        <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-1">
+        <ul className="flex w-full flex-wrap justify-center gap-x-3 gap-y-1">
           {mine.map((word) => (
             <li
               key={word}
-              className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-foreground"
+              className="font-mono text-[10px] uppercase text-foreground"
             >
               <span>{word}</span>
-              <span className="text-primary">{wordsmithPoints(word)}</span>
+              <span className="ml-1 text-primary">{wordsmithPoints(word)}</span>
             </li>
           ))}
         </ul>
