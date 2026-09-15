@@ -199,7 +199,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   const mine = (myAnswer ?? "").split(",").filter((v) => v.length > 0);
   return (
     <>
-      <p className="font-mono text-2xl font-bold tabular-nums text-primary">
+      <p className="w-full text-center font-mono text-xl font-bold tabular-nums text-primary min-[390px]:text-2xl">
         <Line numbers={puzzle.numbers} ops={puzzle.operators} /> = {puzzle.target}
       </p>
       <div className="flex w-full flex-col items-center gap-3 rounded-2xl bg-card px-4 py-5">
@@ -208,7 +208,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           <p className="font-display text-2xl font-bold text-warn">No answer</p>
         ) : (
           <p
-            className={`font-mono text-xl font-bold tabular-nums ${
+            className={`w-full text-center font-mono text-base font-bold tabular-nums min-[390px]:text-lg ${
               myCorrect ? "text-primary" : "text-warn"
             }`}
           >
@@ -224,7 +224,7 @@ export const equationPuzzle: PuzzleDefinition = {
   key: "equation",
   name: "Equation Balancing",
   category: "number",
-  timeLimitMs: 30_000,
+  timeLimitMs: 45_000,
   generate: buildEquation,
   check: (answer, puzzle) => {
     if (puzzle.type !== "equation") return false;

@@ -70,8 +70,8 @@ function Chain({
   compact?: boolean;
 }) {
   return (
-    <div className={`font-mono tabular-nums ${compact ? "text-xl" : "text-3xl"}`}>
-      <div className="grid grid-cols-[2rem_4rem_auto] items-center gap-x-2 py-1">
+    <div className={`font-mono tabular-nums ${compact ? "text-xs" : "text-2xl"}`}>
+      <div className="grid grid-cols-[2rem_4rem_auto] items-center gap-x-2 py-0.5">
         <span />
         <span className="text-right font-bold">{start}</span>
         <span />
@@ -79,7 +79,7 @@ function Chain({
       {operations.map((step, index) => (
         <div
           key={index}
-          className="grid grid-cols-[2rem_4rem_auto] items-center gap-x-2 border-t border-border/60 py-1"
+          className="grid grid-cols-[2rem_4rem_auto] items-center gap-x-2 border-t border-border/60 py-0.5"
         >
           <span className="text-muted-foreground">
             {step.operator === "-" ? "−" : step.operator}
@@ -173,17 +173,18 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "chaincalc") return null;
+  const expression = [
+    String(puzzle.start),
+    ...puzzle.operations.flatMap((step) => [step.operator === "-" ? "−" : step.operator, String(step.operand)]),
+  ].join(" ");
   return (
-    <>
-      <Chain
-        start={puzzle.start}
-        operations={puzzle.operations}
-        intermediates={puzzle.intermediates}
-        compact
-      />
-      <p className="font-mono text-4xl font-bold text-primary">= {puzzle.answer}</p>
+    <div className="flex w-full flex-col items-center gap-2">
+      <p className="font-mono text-5xl font-bold text-primary">{puzzle.answer}</p>
+      <button type="button" title={`Intermediate values: ${puzzle.intermediates.join(" · ")}`} className="w-full truncate font-mono text-[11px] text-muted-foreground">
+        {expression}
+      </button>
       <MyAnswerLine myAnswer={myAnswer} myCorrect={myCorrect} />
-    </>
+    </div>
   );
 }
 
@@ -191,7 +192,7 @@ export const chainCalculationPuzzle: PuzzleDefinition = {
   key: "chaincalc",
   name: "Chain Calculation",
   category: "number",
-  timeLimitMs: 30_000,
+  timeLimitMs: 45_000,
   generate: generateChainCalculation,
   check: (answer, puzzle) =>
     puzzle.type === "chaincalc" && Number.parseInt(answer.trim(), 10) === puzzle.answer,
