@@ -11,7 +11,7 @@ interface TimerRingProps {
 }
 
 const SIZE = 132;
-const STROKE = 7;
+const STROKE = 11;
 const R = (SIZE - STROKE) / 2;
 const CIRC = 2 * Math.PI * R;
 
@@ -59,8 +59,13 @@ export function TimerRing({ msRemaining, totalMs, active }: TimerRingProps) {
 
   return (
     <div
-      className={`relative ${danger && !reduced ? "animate-timer-pulse" : ""}`}
-      style={{ width: SIZE, height: SIZE }}
+      className={`relative rounded-full ${danger && !reduced ? "animate-timer-pulse-strong" : ""}`}
+      style={{
+        width: SIZE,
+        height: SIZE,
+        background: "var(--card)",
+        boxShadow: "0 0 0 1px var(--border), 0 0 18px 2px color-mix(in oklab, var(--primary) 32%, transparent)",
+      }}
       aria-label="Time remaining"
       role="timer"
     >
@@ -87,7 +92,10 @@ export function TimerRing({ msRemaining, totalMs, active }: TimerRingProps) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`font-mono text-4xl font-bold tabular-nums ${textColor}`}>
+        <span
+          className={`font-mono text-[3rem] font-bold leading-none tabular-nums ${textColor}`}
+          style={active && !danger ? { color: "#FFD166" } : undefined}
+        >
           {format(msRemaining)}
         </span>
       </div>

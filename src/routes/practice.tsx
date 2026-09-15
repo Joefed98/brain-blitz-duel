@@ -195,7 +195,17 @@ function PracticeScreen() {
   if (stage === "intro") {
     return (
       <PhoneShell>
-        <RoundIntro round={1} type={type} startedAt={startedAt} now={now} outcomes={[]} />
+        <RoundIntro
+          round={1}
+          type={type}
+          startedAt={startedAt}
+          now={now}
+          outcomes={[]}
+          onReady={() => {
+            setStartedAt(Date.now());
+            setStage("puzzle");
+          }}
+        />
       </PhoneShell>
     );
   }

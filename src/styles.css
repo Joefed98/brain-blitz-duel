@@ -127,6 +127,29 @@
   animation: timer-pulse 1s ease-in-out infinite;
 }
 
+/* Red phase: a firmer beat than the amber warning. */
+@keyframes timer-pulse-strong {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow:
+      0 0 0 1px var(--border),
+      0 0 18px 2px color-mix(in oklab, var(--warn) 40%, transparent);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.07);
+    box-shadow:
+      0 0 0 1px var(--border),
+      0 0 26px 6px color-mix(in oklab, var(--warn) 60%, transparent);
+  }
+}
+
+@utility animate-timer-pulse-strong {
+  animation: timer-pulse-strong 0.85s ease-in-out infinite;
+}
+
 @keyframes tile-flash {
   0% {
     transform: scale(1);

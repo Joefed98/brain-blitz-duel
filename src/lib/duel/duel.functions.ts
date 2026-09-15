@@ -9,6 +9,7 @@ import { mergePuzzle, splitPuzzle } from "./secrets";
 import {
   INACTIVE_AFTER_MISSED,
   INTRO_MS,
+  INTRO_WAIT_MS,
   MAX_PLAYERS,
   MIN_PLAYERS,
   NEXT_ROUND_AUTO_MS,
@@ -141,6 +142,28 @@ async function setPhase(
     .eq("id", roomId)
     .eq("current_round", round)
     .eq("phase", from);
+}
+
+/**
+ * Everyone active has tapped READY: pull the intro's start stamp back so only
+ * the 3-2-1 countdown is left. Guarded on the stamp itself, so a burst of taps
+ * shifts the round forward exactly once.
+ */
+async function startIntroCountdown(client: any, room: DuelRow, round: number): Promise<void> {
+  const cutoff = new Date(Date.now() - INTRO_WAIT_MS).toISOString();
+  await client
+    .from("duels")
+    .update({ phase_started_at: cutoff })
+    .eq("id", room.id)
+    .eq("current_round", round)
+    .eq("phase", "intro")
+    .gt("phase_started_at", cutoff);
+}
+
+/** True once every active player is ready for this round's intro. */
+function allIntroReady(players: DuelPlayerRow[], round: number): boolean {
+  const waitingOn = activePlayers(players);
+  return waitingOn.length > 0 && waitingOn.every((p) => p.intro_ready_round >= round);
 }
 
 async function createRoomRow(client: any, userId: string, displayName: string): Promise<DuelRow> {
@@ -386,6 +409,10 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     const waitingOn = activePlayers(players);
 
     if (room.phase === "intro") {
+      if (elapsed < INTRO_WAIT_MS && allIntroReady(players, round)) {
+        await startIntroCountdown(client, room, round);
+        return { ok: true };
+      }
       if (elapsed >= INTRO_MS) await setPhase(client, room.id, round, "intro", "puzzle");
       return { ok: true };
     }
@@ -534,6 +561,34 @@ export const markReadyFn = createServerFn({ method: "POST" })
       .eq("duel_id", data.roomId)
       .eq("user_id", context.userId);
     return { ok: true };
+  });
+
+/**
+ * "READY" on the round intro. Stored per player per round so a refresh comes
+ * back with the right state, and the round starts as soon as every active
+ * player is in.
+ */
+export const readyUpFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string; roundNumber: number }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    const player = await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
+    const round = clamp(data.roundNumber, 1, TOTAL_ROUNDS);
+    if (room.status !== "in_progress" || room.current_round !== round || room.phase !== "intro") {
+      return { ok: true as const };
+    }
+
+    await client
+      .from("duel_players")
+      .update({ intro_ready_round: round, status: "active" })
+      .eq("id", player.id)
+      .lt("intro_ready_round", round);
+
+    const players = await getPlayers(client, room.id);
+    if (allIntroReady(players, round)) await startIntroCountdown(client, room, round);
+    return { ok: true as const };
   });
 
 export const heartbeatFn = createServerFn({ method: "POST" })

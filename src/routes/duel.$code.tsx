@@ -24,6 +24,7 @@ import {
   fetchRevealPuzzle,
   leaveRoom,
   markReady,
+  readyUp,
   removePlayer,
   startRoom,
   submitAnswer,
@@ -48,6 +49,7 @@ import {
 } from "@/lib/duel/registry";
 import {
   INTRO_MS,
+  INTRO_WAIT_MS,
   NEXT_ROUND_AUTO_MS,
   REVEAL_MS,
   STANDINGS_MS,
@@ -206,6 +208,9 @@ function DuelScreen() {
   });
 
   const activeCount = roomPlayers.filter((p) => p.status === "active").length || 1;
+  const introReadyCount = roomPlayers.filter(
+    (p) => p.status === "active" && p.intro_ready_round >= round,
+  ).length;
   const answeredThisRound = results.filter((r) => r.round_number === round).length;
   const roundDetails = new Map(
     (revealed?.round === round ? revealed.data.players : []).map((detail) => [
@@ -248,8 +253,13 @@ function DuelScreen() {
     if (phaseStart === null) return;
     const elapsed = now - phaseStart;
 
+    const activeReady = roomPlayers.filter(
+      (p) => p.status === "active" && p.intro_ready_round >= round,
+    ).length;
+
     let due = false;
-    if (phase === "intro") due = elapsed >= INTRO_MS;
+    if (phase === "intro")
+      due = elapsed >= INTRO_MS || (elapsed < INTRO_WAIT_MS && activeReady >= activeCount);
     else if (phase === "puzzle")
       due = answeredThisRound >= activeCount || (deadline !== null && now > deadline + 800);
     else if (phase === "reveal") due = elapsed >= REVEAL_MS;
@@ -458,6 +468,14 @@ function DuelScreen() {
           startedAt={phaseStart ?? now}
           now={now}
           outcomes={outcomes}
+          ready={me.intro_ready_round >= round}
+          readyCount={introReadyCount}
+          activeCount={activeCount}
+          onReady={() => {
+            unlockAudio();
+            buzz(15);
+            void readyUp(duel.id, round);
+          }}
         />
       </PhoneShell>
     );

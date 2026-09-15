@@ -358,6 +358,8 @@ export interface DuelPlayerRow {
   /** The device's anonymous auth identity. */
   user_id: string;
   ready_round: number;
+  /** The round this player has tapped READY on the intro screen for. */
+  intro_ready_round: number;
   last_seen_at: string;
   /** inactive = missed two rounds in a row; left = tapped Leave. */
   status: PlayerStatus;
@@ -411,8 +413,9 @@ export const TOTAL_ROUNDS = 6;
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 10;
 export const COUNTDOWN_MS = 3_000;
-/** Round intro: 10s of explanation, then a 3-2-1 countdown. */
-export const INTRO_MS = 13_000;
+/** Round intro: up to 30s waiting on READY taps, then a 3-2-1 countdown. */
+export const INTRO_WAIT_MS = 30_000;
+export const INTRO_MS = 33_000;
 export const INTRO_COUNTDOWN_MS = 3_000;
 /** Answer reveal after each round. */
 export const REVEAL_MS = 5_000;
