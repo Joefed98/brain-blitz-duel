@@ -8,6 +8,7 @@ import {
   joinRoomFn,
   leaveRoomFn,
   markReadyFn,
+  readyUpFn,
   rematchFn,
   removePlayerFn,
   revealAnswerFn,
@@ -114,6 +115,11 @@ export async function submitAnswer(params: {
 
 export async function markReady(roomId: string, roundNumber: number): Promise<void> {
   await markReadyFn({ data: { roomId, roundNumber } });
+}
+
+/** Tapping READY on the round intro. */
+export async function readyUp(roomId: string, roundNumber: number): Promise<void> {
+  await readyUpFn({ data: { roomId, roundNumber } });
 }
 
 export async function heartbeat(roomId: string): Promise<void> {
