@@ -126,6 +126,7 @@ function Panel({
   wrongCell,
   onTap,
   height,
+  rows = SPOT_ROWS,
 }: {
   shapes: SpotShape[];
   /** Cells ringed in gold. */
@@ -133,10 +134,12 @@ function Panel({
   wrongCell?: number | null;
   onTap?: (cell: number) => void;
   height?: number;
+  /** Crop the panel to the first rows — used by the small intro example. */
+  rows?: number;
 }) {
   return (
     <svg
-      viewBox={`0 0 ${PANEL_W} ${PANEL_H}`}
+      viewBox={`0 0 ${PANEL_W} ${rows * CELL_H}`}
       width="100%"
       {...(height ? { height } : {})}
       className="block w-full select-none"
@@ -246,16 +249,16 @@ export function differenceGroups(top: SpotShape[], bottom: SpotShape[]): number[
 /* -------------------------------------------------------------------------- */
 
 const EXAMPLE_TOP: SpotShape[] = [
-  { cell: 9, kind: "square", colour: "GREEN" },
-  { cell: 12, kind: "circle", colour: "RED" },
-  { cell: 21, kind: "triangle", colour: "BLUE" },
-  { cell: 27, kind: "star", colour: "PURPLE" },
+  { cell: 1, kind: "square", colour: "GREEN" },
+  { cell: 4, kind: "circle", colour: "RED" },
+  { cell: 10, kind: "triangle", colour: "BLUE" },
+  { cell: 13, kind: "star", colour: "PURPLE" },
 ];
 const EXAMPLE_BOTTOM: SpotShape[] = [
-  { cell: 9, kind: "square", colour: "GREEN" },
-  { cell: 12, kind: "circle", colour: "BLUE" },
-  { cell: 21, kind: "triangle", colour: "BLUE" },
-  { cell: 27, kind: "star", colour: "PURPLE" },
+  { cell: 1, kind: "square", colour: "GREEN" },
+  { cell: 4, kind: "circle", colour: "BLUE" },
+  { cell: 10, kind: "triangle", colour: "BLUE" },
+  { cell: 13, kind: "star", colour: "PURPLE" },
 ];
 
 function IntroExample() {
@@ -265,9 +268,9 @@ function IntroExample() {
         Find the three differences between the top and bottom pictures.
       </p>
       <div className="w-full overflow-hidden rounded-xl border border-border bg-card">
-        <Panel shapes={EXAMPLE_TOP} found={[12]} />
+        <Panel shapes={EXAMPLE_TOP} found={[4]} rows={2} />
         <div className="h-[2px] w-full bg-primary" />
-        <Panel shapes={EXAMPLE_BOTTOM} found={[12]} />
+        <Panel shapes={EXAMPLE_BOTTOM} found={[4]} rows={2} />
       </div>
       <p className="text-center text-xs text-muted-foreground">
         Tap each difference in either picture. You have 45 seconds.
