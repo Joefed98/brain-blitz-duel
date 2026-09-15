@@ -235,7 +235,8 @@ export function BlockPartyPuzzle({
           return true;
         }
         const previous = lastTap.current;
-        const double = previous && previous.piece === info.item.piece && Date.now() - previous.at < 300;
+        const double =
+          previous && previous.piece === info.item.piece && Date.now() - previous.at < 300;
         lastTap.current = { piece: info.item.piece, at: Date.now() };
         setPose((current) => {
           const state = current[info.item.piece] ?? { rot: 0, flip: false };
@@ -283,7 +284,7 @@ export function BlockPartyPuzzle({
         <span>
           covered <span className="text-primary">{covered}</span> / {BLOCK_FREE_CELLS}
         </span>
-        <span>tap to turn · double tap to flip</span>
+        <span className="text-[10px]">tap: turn · double: flip</span>
       </div>
 
       <BlockBoard blockers={puzzle.blockers} placements={placed} boardRef={boardRef}>

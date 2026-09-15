@@ -1,9 +1,5 @@
 import { WordHuntBoard, WordHuntPuzzle } from "@/components/puzzles/WordHuntPuzzle";
-import {
-  WORDHUNT_TIME_MS,
-  wordHuntPoints,
-  type WordHuntPuzzleData,
-} from "@/lib/duel/types";
+import { WORDHUNT_TIME_MS, wordHuntPoints, type WordHuntPuzzleData } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -33,9 +29,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Longer words score more. You have 60 seconds.
-      </p>
+      <p className="text-xs text-muted-foreground">Longer words score more. You have 60 seconds.</p>
     </div>
   );
 }

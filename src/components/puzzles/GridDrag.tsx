@@ -132,11 +132,7 @@ export function useDragSnap<T>(options: {
 }
 
 /** Style for the piece under the finger: lifted, shadowed and above the grid. */
-export function liftStyle(
-  dx: number,
-  dy: number,
-  reducedMotion: boolean,
-): React.CSSProperties {
+export function liftStyle(dx: number, dy: number, reducedMotion: boolean): React.CSSProperties {
   return {
     transform: `translate3d(${dx}px, ${dy - (reducedMotion ? 0 : 6)}px, 0) scale(${reducedMotion ? 1 : 1.06})`,
     boxShadow: reducedMotion ? undefined : "0 12px 22px rgba(0,0,0,0.45)",

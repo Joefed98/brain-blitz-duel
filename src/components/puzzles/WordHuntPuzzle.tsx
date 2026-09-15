@@ -121,9 +121,7 @@ export function WordHuntPuzzle({
   const lockIn = useCallback(() => {
     if (submitted.current) return;
     submitted.current = true;
-    onSubmit(
-      foundRef.current.map((entry) => `${entry.word}:${entry.path.join("-")}`).join(","),
-    );
+    onSubmit(foundRef.current.map((entry) => `${entry.word}:${entry.path.join("-")}`).join(","));
   }, [onSubmit]);
 
   // The round runs the full minute; the traced words go in just before it ends.
@@ -134,7 +132,11 @@ export function WordHuntPuzzle({
   }, [locked, now, phaseStartedAt, lockIn]);
 
   const wordOf = useCallback(
-    (cells: number[]) => cells.map((cell) => grid[cell] ?? "").join("").toUpperCase(),
+    (cells: number[]) =>
+      cells
+        .map((cell) => grid[cell] ?? "")
+        .join("")
+        .toUpperCase(),
     [grid],
   );
 
@@ -151,9 +153,16 @@ export function WordHuntPuzzle({
       return;
     }
     if (!checkWord) return;
-    const verdict = await checkWord(word, foundRef.current.map((entry) => entry.word), cells);
+    const verdict = await checkWord(
+      word,
+      foundRef.current.map((entry) => entry.word),
+      cells,
+    );
     if (verdict.valid) {
-      setFound((current) => [{ word: verdict.word, points: verdict.points, path: cells }, ...current]);
+      setFound((current) => [
+        { word: verdict.word, points: verdict.points, path: cells },
+        ...current,
+      ]);
       setFlash("good");
       setMessage(null);
       hapticTick();

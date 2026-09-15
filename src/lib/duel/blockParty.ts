@@ -16,14 +16,82 @@ export interface BlockPieceDef {
 /** Nine pieces covering exactly the 29 free cells of the board. */
 export const BLOCK_PIECES: BlockPieceDef[] = [
   { name: "Dot", cells: [[0, 0]], colour: 0 },
-  { name: "Two", cells: [[0, 0], [0, 1]], colour: 1 },
-  { name: "Three", cells: [[0, 0], [0, 1], [0, 2]], colour: 2 },
-  { name: "Four", cells: [[0, 0], [0, 1], [0, 2], [0, 3]], colour: 3 },
-  { name: "Square", cells: [[0, 0], [0, 1], [1, 0], [1, 1]], colour: 4 },
-  { name: "Corner", cells: [[0, 0], [1, 0], [1, 1]], colour: 0 },
-  { name: "L", cells: [[0, 0], [1, 0], [2, 0], [2, 1]], colour: 1 },
-  { name: "T", cells: [[0, 0], [0, 1], [0, 2], [1, 1]], colour: 2 },
-  { name: "S", cells: [[0, 1], [0, 2], [1, 0], [1, 1]], colour: 3 },
+  {
+    name: "Two",
+    cells: [
+      [0, 0],
+      [0, 1],
+    ],
+    colour: 1,
+  },
+  {
+    name: "Three",
+    cells: [
+      [0, 0],
+      [0, 1],
+      [0, 2],
+    ],
+    colour: 2,
+  },
+  {
+    name: "Four",
+    cells: [
+      [0, 0],
+      [0, 1],
+      [0, 2],
+      [0, 3],
+    ],
+    colour: 3,
+  },
+  {
+    name: "Square",
+    cells: [
+      [0, 0],
+      [0, 1],
+      [1, 0],
+      [1, 1],
+    ],
+    colour: 4,
+  },
+  {
+    name: "Corner",
+    cells: [
+      [0, 0],
+      [1, 0],
+      [1, 1],
+    ],
+    colour: 0,
+  },
+  {
+    name: "L",
+    cells: [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [2, 1],
+    ],
+    colour: 1,
+  },
+  {
+    name: "T",
+    cells: [
+      [0, 0],
+      [0, 1],
+      [0, 2],
+      [1, 1],
+    ],
+    colour: 2,
+  },
+  {
+    name: "S",
+    cells: [
+      [0, 1],
+      [0, 2],
+      [1, 0],
+      [1, 1],
+    ],
+    colour: 3,
+  },
 ];
 
 export const BLOCK_PIECE_CELLS = BLOCK_PIECES.reduce((sum, p) => sum + p.cells.length, 0);
@@ -92,10 +160,7 @@ export interface BlockVerdict {
  * Checks a set of placements: one entry per piece at most, matching that piece's
  * real shape, inside the grid, never on a peg or another piece.
  */
-export function verifyPlacements(
-  blockers: number[],
-  placements: BlockPlacement[],
-): BlockVerdict {
+export function verifyPlacements(blockers: number[], placements: BlockPlacement[]): BlockVerdict {
   const taken = new Set<number>(blockers);
   const used = new Set<number>();
   const legal: BlockPlacement[] = [];
@@ -120,7 +185,9 @@ export function verifyPlacements(
 
 /** True when these absolute cells are one of the piece's real orientations. */
 export function matchesShape(piece: number, cells: number[]): boolean {
-  const offsets = normalise(cells.map((cell) => [Math.floor(cell / N), cell % N] as [number, number]));
+  const offsets = normalise(
+    cells.map((cell) => [Math.floor(cell / N), cell % N] as [number, number]),
+  );
   const wanted = key(offsets);
   return BLOCK_ORIENTATIONS[piece]!.some((option) => key(option) === wanted);
 }
