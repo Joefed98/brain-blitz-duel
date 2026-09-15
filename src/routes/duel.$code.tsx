@@ -52,6 +52,7 @@ import {
   STANDINGS_MS,
   TOTAL_ROUNDS,
   type PuzzleData,
+  type RoundRevealData,
 } from "@/lib/duel/types";
 import type { SubmitMeta } from "@/puzzles/types";
 
@@ -163,7 +164,7 @@ function DuelScreen() {
   const timeoutSubmitted = useRef<string>("");
   const lastAdvance = useRef(0);
   const dueSince = useRef(0);
-  const [revealed, setRevealed] = useState<{ round: number; puzzle: PuzzleData } | null>(null);
+  const [revealed, setRevealed] = useState<{ round: number; data: RoundRevealData } | null>(null);
 
   // A new room (after Play again) starts with fresh button state.
   useEffect(() => {
@@ -205,8 +206,18 @@ function DuelScreen() {
 
   const activeCount = roomPlayers.filter((p) => p.status === "active").length || 1;
   const answeredThisRound = results.filter((r) => r.round_number === round).length;
-  const table = standings(roomPlayers, results, scoredThrough);
+  const roundDetails = new Map(
+    (revealed?.round === round ? revealed.data.players : []).map((detail) => [
+      detail.playerSlot,
+      detail,
+    ]),
+  );
+  const table = standings(roomPlayers, results, scoredThrough, roundDetails);
   const myStanding = table.find((r) => r.slot === mySlot);
+  const opponentStanding = table.find((r) => r.slot === opponentSlot);
+  const roundTitle = puzzle
+    ? `Round ${round} · ${puzzleName(puzzle.type)}${revealed?.round === round && revealed.data.correctAnswer ? ` · ${revealed.data.correctAnswer}` : ""}`
+    : `Round ${round}`;
   /** Only the host drives the standings screen on; timers do the rest. */
   const leads = isHost;
 
@@ -264,11 +275,11 @@ function DuelScreen() {
 
   // The correct answer only exists on the client once the round has ended.
   useEffect(() => {
-    if (!duel || round < 1 || phase !== "reveal") return;
+    if (!duel || round < 1 || (phase !== "reveal" && phase !== "result")) return;
     if (revealed?.round === round) return;
     let cancelled = false;
     void fetchRevealPuzzle(duel.id, round).then((found) => {
-      if (found && !cancelled) setRevealed({ round, puzzle: found });
+      if (found && !cancelled) setRevealed({ round, data: found });
     });
     return () => {
       cancelled = true;
@@ -456,7 +467,7 @@ function DuelScreen() {
       <PhoneShell>
         <AnswerReveal
           round={round}
-          puzzle={revealed?.round === round ? revealed.puzzle : puzzle}
+           puzzle={revealed?.round === round ? revealed.data.puzzle : puzzle}
           answersReady={revealed?.round === round}
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
@@ -480,6 +491,7 @@ function DuelScreen() {
         <PhoneShell>
           <Standings
             round={round}
+             roundTitle={roundTitle}
             rows={table}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
@@ -494,10 +506,13 @@ function DuelScreen() {
       <PhoneShell>
         <RoundResult
           round={round}
+           roundTitle={roundTitle}
           myName={me.display_name}
           opponentName={opponent?.display_name ?? "Opponent"}
           myRoundScore={myResult?.score ?? 0}
+           mySummary={myStanding?.summary ?? "No answer"}
           opponentRoundScore={opponentResult?.score ?? 0}
+           opponentSummary={opponentStanding?.summary ?? "No answer"}
           myTotal={myTotal}
           opponentTotal={opponentTotal}
           autoSeconds={autoSeconds}

@@ -25,9 +25,12 @@ import { wordMatchPuzzle } from "@/puzzles/wordMatch";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import { ROUND_MS, type PuzzleCategory, type PuzzleData, type PuzzleType } from "./types";
+import { CORRECT_ANSWERS, ROUND_SUMMARIES } from "./roundSummaries";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
-export const PUZZLE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
+type RegisteredPuzzleDefinition = PuzzleDefinition & Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer">>;
+
+const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   anagram: anagramPuzzle,
   oddword: oddWordPuzzle,
   missing: missingLettersPuzzle,
@@ -54,9 +57,20 @@ export const PUZZLE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   mirmatch: mirrorMatchPuzzle,
 };
 
+export const PUZZLE_REGISTRY = Object.fromEntries(
+  Object.entries(BASE_REGISTRY).map(([type, definition]) => [
+    type,
+    {
+      ...definition,
+      roundSummary: ROUND_SUMMARIES[type as PuzzleType],
+      correctAnswer: CORRECT_ANSWERS[type as PuzzleType],
+    },
+  ]),
+) as Record<PuzzleType, RegisteredPuzzleDefinition>;
+
 export const PUZZLE_TYPES = Object.keys(PUZZLE_REGISTRY) as PuzzleType[];
 
-export function puzzleDef(type: PuzzleType): PuzzleDefinition {
+export function puzzleDef(type: PuzzleType): RegisteredPuzzleDefinition {
   return PUZZLE_REGISTRY[type];
 }
 
