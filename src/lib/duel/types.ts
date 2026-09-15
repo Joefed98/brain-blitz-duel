@@ -1,5 +1,5 @@
 export type PuzzleType =
-  | "anagram"
+  | "wordsmith"
   | "oddword"
   | "target"
   | "numseq"
