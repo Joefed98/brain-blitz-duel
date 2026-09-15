@@ -7,22 +7,12 @@ export function checkAnswer(puzzle: PuzzleData, answer: string): boolean {
 }
 
 /**
- * Generated ONCE when a room starts and stored in the database so every player
- * receives identical puzzles in an identical order.
- *
  * One type is picked at random from each category, then the categories are
  * shuffled — so a room never repeats a category or a type.
  */
-export function buildRoomPuzzles(rounds: number = TOTAL_ROUNDS): {
-  roundOrder: PuzzleType[];
-  puzzles: PuzzleData[];
-} {
+export function pickRoundOrder(rounds: number = TOTAL_ROUNDS): PuzzleType[] {
   const categories = shuffled(puzzleCategories()).slice(0, rounds);
-  const roundOrder = shuffled(categories.map((category) => pick(typesInCategory(category))));
-  return {
-    roundOrder,
-    puzzles: roundOrder.map((type) => puzzleDef(type).generate()),
-  };
+  return shuffled(categories.map((category) => pick(typesInCategory(category))));
 }
 
 const CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // no I or O
