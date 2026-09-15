@@ -18,6 +18,7 @@ import { buzz } from "@/lib/motion";
 import { unlockAudio } from "@/lib/sound";
 import {
   advancePhase,
+  checkWord,
   ensureRematch,
   fetchDuelById,
   fetchRevealPuzzle,
