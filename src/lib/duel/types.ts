@@ -15,7 +15,7 @@ export type PuzzleType =
   | "symscan"
   | "rotmatch"
   | "numhunt"
-  | "oddshape"
+  | "spotdiff"
   | "chaincalc"
   | "wordmatch"
   | "pctsprint"
@@ -271,7 +271,7 @@ export type PuzzleData =
   | TargetNumberPuzzleData
   | NumberSequencePuzzleData
   | SequencePuzzleData
-  | OddShapePuzzleData
+  | SpotPuzzleData
   | ChainCalculationPuzzleData
   | ReactionPuzzleData
   | MissingLettersPuzzleData
@@ -456,9 +456,14 @@ export const SYMSCAN_CELLS = SYMSCAN_COLS * SYMSCAN_COLS;
 export const SYMSCAN_MIN_TARGETS = 6;
 export const SYMSCAN_MAX_TARGETS = 10;
 
-/** Odd Shape Out: a 6x6 grid of near-identical shapes. */
-export const ODDSHAPE_COLS = 6;
-export const ODDSHAPE_CELLS = ODDSHAPE_COLS * ODDSHAPE_COLS;
+/** Spot the Difference: two panels drawn on an invisible 8x5 grid. */
+export const SPOT_COLS = 8;
+export const SPOT_ROWS = 5;
+export const SPOT_CELLS = SPOT_COLS * SPOT_ROWS;
+export const SPOT_MIN_SHAPES = 12;
+export const SPOT_MAX_SHAPES = 15;
+export const SPOT_DIFFERENCES = 3;
+export const SPOT_TIME_MS = 45_000;
 
 /** Rotation Match: shapes drawn as filled cells of a 5x5 grid. */
 export const ROTATION_COLS = 5;
