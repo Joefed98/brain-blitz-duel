@@ -22,7 +22,10 @@ export type PuzzleType =
   | "numspan"
   | "stopwatch"
   | "countup"
-  | "mirmatch";
+  | "mirmatch"
+  | "wordhunt"
+  | "unblock"
+  | "blockparty";
 
 export type PuzzleCategory = "word" | "number" | "memory" | "speed" | "attention" | "pattern";
 
@@ -266,7 +269,10 @@ export type PuzzleData =
   | NumberSpanPuzzleData
   | StopWatchPuzzleData
   | CountUpPuzzleData
-  | MirrorPuzzleData;
+  | MirrorPuzzleData
+  | WordHuntPuzzleData
+  | UnblockPuzzleData
+  | BlockPartyPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result";
