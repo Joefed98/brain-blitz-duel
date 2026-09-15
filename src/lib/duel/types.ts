@@ -409,12 +409,19 @@ export const STROOP_MIN_PER_INSTRUCTION = 4;
 /** Never more than this many of the same instruction in a row. */
 export const STROOP_MAX_STREAK = 3;
 
-/** Spatial Memory: six tiles of a 5x5 grid, shown together before the clock starts. */
+/** Spatial Memory: six tiles of a 5x5 grid, lit in groups before the clock starts. */
 export const SPATIAL_GRID_COLS = 5;
 export const SPATIAL_TILES = 6;
 export const SPATIAL_LEAD_IN_MS = 700;
-export const SPATIAL_SHOW_MS = 2_500;
-export const SPATIAL_PREP_MS = SPATIAL_LEAD_IN_MS + SPATIAL_SHOW_MS;
+/** How long each group of tiles stays gold, and the dark gap between groups. */
+export const SPATIAL_GROUP_MS = 1_200;
+export const SPATIAL_GROUP_GAP_MS = 300;
+
+/** Total preparation time for a puzzle shown in `groups` groups. */
+export function spatialPrepMs(groups: number): number {
+  const count = Math.max(1, groups);
+  return SPATIAL_LEAD_IN_MS + count * SPATIAL_GROUP_MS + (count - 1) * SPATIAL_GROUP_GAP_MS;
+}
 
 /** Go / No-Go: twelve shapes, six of them gold circles, on a shared timeline. */
 export const GONOGO_ITEMS = 12;
