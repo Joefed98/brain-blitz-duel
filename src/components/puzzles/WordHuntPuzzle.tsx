@@ -237,7 +237,7 @@ export function WordHuntPuzzle({
   }, [finish]);
 
   return (
-    <div className="flex flex-1 flex-col gap-3">
+    <div className="flex flex-1 flex-col gap-2">
       <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           points <span className="text-primary">{points}</span>
