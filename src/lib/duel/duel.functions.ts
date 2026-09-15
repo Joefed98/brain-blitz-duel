@@ -640,3 +640,30 @@ export const rematchFn = createServerFn({ method: "POST" })
 
     return { ok: true as const, roomId: fresh.id, roomCode: fresh.room_code };
   });
+
+/**
+ * Wordsmith only: checks one submitted word while the round is running. The
+ * dictionary stays on the server; only the verdict travels back.
+ */
+export const checkWordFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: { roomId: string; roundNumber: number; word: string; found: string[] }) => input,
+  )
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
+
+    if (room.status !== "in_progress" || room.current_round !== data.roundNumber) {
+      return { valid: false as const, points: 0, word: "", reason: "That round is over." };
+    }
+    const pub = room.puzzles_public[data.roundNumber - 1];
+    if (!pub || pub.type !== "wordsmith") {
+      return { valid: false as const, points: 0, word: "", reason: "Not this round." };
+    }
+
+    const { checkWordsmithWord } = await import("./wordsmith.server");
+    const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
+    return checkWordsmithWord(pub.letters, String(data.word ?? ""), found);
+  });
