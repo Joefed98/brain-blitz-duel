@@ -105,7 +105,7 @@ export function gradeSubmission(
       isCorrect = verdict.solved;
       correctCount = verdict.validRungs.length;
       score = scoreWordLadder(isCorrect, correctCount, shortestLength, ms);
-      extraDetail = { rungsUsed: correctCount, shortestLength };
+      extraDetail = { rungsUsed: correctCount + 1, shortestLength };
       break;
     }
     case "numclimb": {
