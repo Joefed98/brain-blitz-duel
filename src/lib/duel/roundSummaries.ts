@@ -25,6 +25,10 @@ import {
   type PuzzleData,
   type PuzzleType,
   type RoundResultRow,
+  MIRMATCH_ITEMS,
+  MIRMATCH_TIME_MS,
+  SPIN_ITEMS,
+  SPIN_TIME_MS,
   type StroopItem,
 } from "./types";
 
@@ -149,6 +153,53 @@ function percentSprintSummary(result: RoundResultRow, puzzle: PuzzleData): Built
       })
     : [];
   return { summary: `${count} / ${PCTSPRINT_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`, detail };
+}
+
+const MIRROR_WRONG: Record<string, string> = {
+  otherAxis: "flip across the other line",
+  rotation: "turned, not flipped",
+  swap: "colours swapped",
+};
+
+function mirrorSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  const count = result.correct_count ?? 0;
+  const picks = (result.answer ?? "").split(",").map((value) => Number.parseInt(value, 10));
+  const detail = puzzle.type === "mirmatch"
+    ? puzzle.items.map((item, index) => {
+        const answer = puzzle.answers?.[index];
+        const mine = picks[index];
+        const line = `${index + 1}. Flip ${item.axis === "vertical" ? "left/right" : "up/down"}`;
+        if (mine === undefined || Number.isNaN(mine)) return `${line} · ✗ No answer`;
+        if (mine === answer) return `${line} · ✓`;
+        const kind = puzzle.kinds?.[index]?.[mine];
+        return `${line} · ✗ ${kind ? MIRROR_WRONG[kind] ?? "wrong shape" : "wrong shape"}`;
+      })
+    : [];
+  return { summary: `${count} / ${MIRMATCH_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`, detail };
+}
+
+const SPIN_TEXT: Record<string, string> = {
+  cw: "90° clockwise",
+  half: "180°",
+  ccw: "90° anticlockwise",
+  flip: "flipped",
+};
+
+function spinSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  const count = result.correct_count ?? 0;
+  const picks = (result.answer ?? "").split(",").filter(Boolean);
+  const detail = puzzle.type === "spin"
+    ? puzzle.items.map((_item, index) => {
+        const answer = puzzle.answers?.[index];
+        const mine = picks[index];
+        const expected = answer ? SPIN_TEXT[answer] ?? answer : "—";
+        if (!mine) return `${index + 1}. ${expected} · ✗ No answer`;
+        return mine === answer
+          ? `${index + 1}. ${expected} · ✓`
+          : `${index + 1}. ${expected} · ✗ ${SPIN_TEXT[mine] ?? mine}`;
+      })
+    : [];
+  return { summary: `${count} / ${SPIN_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`, detail };
 }
 
 function patternSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
@@ -307,7 +358,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   gonogo: goNoGoSummary,
   patcomp: patternSummary,
   symscan: cellsSingle,
-  rotmatch: optionSingle,
+  spin: spinSummary,
   numhunt: numberHuntSummary,
   spotdiff: spotDifferenceSummary,
   chaincalc: rawSingle,
@@ -316,7 +367,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   numspan: rawSingle,
   stopwatch: averageSummary,
   countup: rawSingle,
-  mirmatch: optionSingle,
+  mirmatch: mirrorSummary,
   wordhunt: wordHuntSummary,
   unblock: unblockSummary,
   blockparty: blockPartySummary,
@@ -341,7 +392,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   gonogo: () => null,
   patcomp: (p) => p.type === "patcomp" && p.answer ? "See the grid" : null,
   symscan: (p) => p.type === "symscan" ? `${p.targets.length} arrows` : null,
-  rotmatch: (p) => p.type === "rotmatch" ? `Option ${p.correctIndex + 1}` : null,
+  spin: () => null,
   numhunt: () => null,
   spotdiff: (p) => p.type === "spotdiff" ? `${(p.differences ?? []).length} differences` : null,
   chaincalc: (p) => p.type === "chaincalc" ? String(p.answer) : null,
@@ -350,7 +401,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   numspan: (p) => p.type === "numspan" ? p.digits : null,
   stopwatch: () => null,
   countup: (p) => p.type === "countup" ? String(p.count) : null,
-  mirmatch: (p) => p.type === "mirmatch" && p.correctIndex !== undefined ? `Option ${p.correctIndex + 1}` : null,
+  mirmatch: () => null,
   wordhunt: () => null,
   unblock: (p) => p.type === "unblock" && p.minMoves ? `${p.minMoves} moves` : null,
   blockparty: () => null,
