@@ -20,6 +20,7 @@ export type Database = {
           display_name: string
           duel_id: string
           id: string
+          intro_ready_round: number
           joined_at: string
           last_seen_at: string
           player_slot: number
@@ -32,6 +33,7 @@ export type Database = {
           display_name: string
           duel_id: string
           id?: string
+          intro_ready_round?: number
           joined_at?: string
           last_seen_at?: string
           player_slot: number
@@ -44,6 +46,7 @@ export type Database = {
           display_name?: string
           duel_id?: string
           id?: string
+          intro_ready_round?: number
           joined_at?: string
           last_seen_at?: string
           player_slot?: number
