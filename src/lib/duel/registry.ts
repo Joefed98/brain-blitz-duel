@@ -1,4 +1,7 @@
 import { wordsmithPuzzle } from "@/puzzles/wordsmith";
+import { wordHuntPuzzle } from "@/puzzles/wordHunt";
+import { unblockPuzzle } from "@/puzzles/unblock";
+import { blockPartyPuzzle } from "@/puzzles/blockParty";
 import { chainCalculationPuzzle } from "@/puzzles/chainCalculation";
 import { countUpPuzzle } from "@/puzzles/countUp";
 import { equationPuzzle } from "@/puzzles/equation";
@@ -55,6 +58,9 @@ const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   stopwatch: stopWatchPuzzle,
   countup: countUpPuzzle,
   mirmatch: mirrorMatchPuzzle,
+  wordhunt: wordHuntPuzzle,
+  unblock: unblockPuzzle,
+  blockparty: blockPartyPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

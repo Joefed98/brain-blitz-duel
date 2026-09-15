@@ -11,9 +11,9 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 /** Fixed intro example — never randomised. */
 const EXAMPLE_BLOCKERS = [3, 7, 12, 16, 21, 28, 33];
 const EXAMPLE_PLACED = [
-  { piece: 4, cells: [0, 1, 6, 7 - 1] },
+  { piece: 4, cells: [24, 25, 30, 31] },
   { piece: 2, cells: [18, 19, 20] },
-  { piece: 1, cells: [30, 31] },
+  { piece: 1, cells: [13, 14] },
 ];
 
 function IntroExample() {
