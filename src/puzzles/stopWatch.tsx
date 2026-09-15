@@ -186,7 +186,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         ))}
       </div>
 
-      <Bar target={target} marker={marker} dim={done} />
+      <Bar
+        key={index}
+        target={target}
+        marker={null}
+        dim={done}
+        barRef={live ? barRef : undefined}
+        markerRef={live ? markerRef : undefined}
+      />
 
       <button
         type="button"
