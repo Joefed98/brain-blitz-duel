@@ -9,7 +9,9 @@ import { buildableFrom, isWord, wordsFrom } from "./dictionary.server";
 import { pick, shuffled } from "./random";
 import type { Graded } from "./grade";
 import {
+  WORDSMITH_MAX_PAR,
   WORDSMITH_MIN_LENGTH,
+  WORDSMITH_MIN_PAR,
   WORDSMITH_MIN_WORDS,
   WORDSMITH_PAR_SHARE,
   WORDSMITH_TIME_MS,
@@ -60,12 +62,16 @@ export function generateWordsmith(): WordsmithPuzzleData {
       .map((word) => ({ word: word.toUpperCase(), points: wordsmithPoints(word) }))
       .sort((a, b) => b.points - a.points || a.word.localeCompare(b.word));
     const totalPoints = words.reduce((sum, entry) => sum + entry.points, 0);
+    const par = Math.max(1, Math.round(totalPoints * WORDSMITH_PAR_SHARE));
+    // Boards with a wildly high or low par make for unfair rounds; keep the
+    // target reachable but worth working for.
+    if (attempt < 150 && (par < WORDSMITH_MIN_PAR || par > WORDSMITH_MAX_PAR)) continue;
     return {
       type: "wordsmith",
       letters: shuffleLetters(source),
       words,
       totalPoints,
-      par: Math.max(1, Math.round(totalPoints * WORDSMITH_PAR_SHARE)),
+      par,
       source: source.toUpperCase(),
     };
   }

@@ -32,6 +32,9 @@ export const WORDSMITH_MIN_LENGTH = 4;
 export const WORDSMITH_MIN_WORDS = 20;
 /** Par is this share of every point available on the board. */
 export const WORDSMITH_PAR_SHARE = 0.35;
+/** Boards are only used when par lands in a fair band. */
+export const WORDSMITH_MIN_PAR = 12;
+export const WORDSMITH_MAX_PAR = 40;
 const WORDSMITH_POINTS: Record<number, number> = { 4: 1, 5: 2, 6: 4, 7: 7, 8: 11 };
 
 export function wordsmithPoints(word: string): number {
