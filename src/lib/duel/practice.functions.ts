@@ -114,3 +114,18 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
     const { checkWordsmithWord } = await import("./wordsmith.server");
     return checkWordsmithWord(data.puzzle.letters, String(data.word ?? ""), found);
   });
+
+/** Groups practice: checks one candidate against the sealed private partition. */
+export const practiceCheckGroupFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { puzzle: PuzzleData; sealed: string; indices: number[] }) => input)
+  .handler(async ({ data }) => {
+    if (data.puzzle.type !== "groups") return { valid: false as const };
+    const priv = await unseal(data.sealed);
+    if (priv["type"] !== "groups") throw new Error("Bad practice puzzle.");
+    const puzzle = mergePuzzle(data.puzzle, priv);
+    if (puzzle.type !== "groups") return { valid: false as const };
+    const { matchGroupsSelection } = await import("./groups.server");
+    const groupIndex = matchGroupsSelection(puzzle, data.indices.slice(0, 4));
+    if (groupIndex === null) return { valid: false as const };
+    return { valid: true as const, groupIndex, theme: puzzle.groups?.[groupIndex]?.theme ?? "Group" };
+  });

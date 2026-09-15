@@ -8,6 +8,7 @@ import { RoundIntro } from "@/components/duel/RoundIntro";
 import { TimerRing } from "@/components/duel/TimerRing";
 import {
   practiceCheckWordFn,
+  practiceCheckGroupFn,
   practiceGenerateFn,
   practiceGradeFn,
 } from "@/lib/duel/practice.functions";
@@ -77,11 +78,13 @@ function PracticeScreen() {
   const [startedAt, setStartedAt] = useState(0);
   const [graded, setGraded] = useState<Graded | null>(null);
   const grading = useRef(false);
+  const draftAnswer = useRef("");
   const now = useTicker(stage === "intro" || stage === "puzzle" || stage === "reveal");
 
   const load = useCallback(async (next: PuzzleType) => {
     unlockAudio();
     grading.current = false;
+    draftAnswer.current = "";
     setType(next);
     setGraded(null);
     setPuzzle(null);
@@ -139,7 +142,7 @@ function PracticeScreen() {
   useEffect(() => {
     if (stage !== "puzzle" || !puzzle) return;
     if (now - startedAt <= durationMs) return;
-    void grade("");
+    void grade(draftAnswer.current);
   }, [stage, now, startedAt, durationMs, puzzle, grade]);
 
   useEffect(() => {
@@ -222,6 +225,7 @@ function PracticeScreen() {
           myAnswer={graded.answer || null}
           myCorrect={graded.isCorrect}
           myReactionAvgMs={graded.reactionAvgMs}
+          myMsRemaining={graded.msRemaining}
           startedAt={startedAt}
           now={now}
         />
@@ -294,8 +298,12 @@ function PracticeScreen() {
             now={now}
             locked={false}
             onSubmit={(answer, meta) => void grade(answer, meta)}
+            onDraftAnswer={(answer) => { draftAnswer.current = answer; }}
             checkWord={(word, found, path) =>
               practiceCheckWordFn({ data: { puzzle, word, found, path: path ?? [] } })
+            }
+            checkGroup={(indices) =>
+              practiceCheckGroupFn({ data: { puzzle, sealed, indices } })
             }
           />
         </div>

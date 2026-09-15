@@ -1,10 +1,12 @@
 import { decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
+import { decodeGroupsAnswer, matchGroupsSelection } from "./groups.server";
 import { checkAnswer } from "./puzzles";
 import { decodeMoves, replayUnblock } from "./unblock";
 import { puzzleTimeLimitMs } from "./registry";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import {
   scoreGoNoGo,
+  scoreGroups,
   scoreNumberHunt,
   scorePercentSprint,
   scoreReaction,
@@ -81,6 +83,18 @@ export function gradeSubmission(
   let storedMs = ms;
 
   switch (puzzle.type) {
+    case "groups": {
+      const matches = new Set(
+        decodeGroupsAnswer(answer)
+          .map((selection) => matchGroupsSelection(puzzle, selection))
+          .filter((index): index is number => index !== null),
+      );
+      correctCount = matches.size;
+      isCorrect = correctCount === 2;
+      score = scoreGroups(correctCount, ms);
+      extraDetail = { foundGroups: correctCount };
+      break;
+    }
     case "reaction": {
       reactionAvgMs = clamp(extra.reactionAvgMs ?? REACTION_PENALTY_MS, 0, 5_000);
       isCorrect = true;

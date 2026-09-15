@@ -11,4 +11,4 @@
 - [ ] Add typed Enter submission, practice heading fix, and verify countdown clock start
 - [ ] Update standings summaries, requested time limits, and Symbol Scan scoring
 - [ ] Verify requested play/reveal scenarios at 390×700
-- [ ] Replace Odd-Word-Out with secure Groups puzzle, summaries, reveal, and practice verification
+- [x] Replace Odd-Word-Out with secure Groups puzzle, summaries, reveal, and practice verification

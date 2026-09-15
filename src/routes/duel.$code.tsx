@@ -18,6 +18,7 @@ import { buzz } from "@/lib/motion";
 import { unlockAudio } from "@/lib/sound";
 import {
   advancePhase,
+  checkGroup,
   checkWord,
   ensureRematch,
   fetchDuelById,
@@ -165,6 +166,7 @@ function DuelScreen() {
   const [rematchBusy, setRematchBusy] = useState(false);
   const [starting, setStarting] = useState(false);
   const timeoutSubmitted = useRef<string>("");
+  const draftAnswer = useRef("");
   const lastAdvance = useRef(0);
   const dueSince = useRef(0);
   const [revealed, setRevealed] = useState<{ round: number; data: RoundRevealData } | null>(null);
@@ -178,6 +180,10 @@ function DuelScreen() {
   const round = duel?.current_round ?? 0;
   const puzzle = duel && round > 0 ? duel.puzzles_public[round - 1] : undefined;
   const phase = duel?.phase ?? "intro";
+
+  useEffect(() => {
+    draftAnswer.current = "";
+  }, [duel?.id, round]);
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
   // The clock starts once any puzzle preparation (sequence playback) is done.
@@ -237,7 +243,7 @@ function DuelScreen() {
     void submitAnswer({
       duelId: duel.id,
       roundNumber: round,
-      answer: "",
+      answer: draftAnswer.current,
       msRemaining: 0,
     });
   }, [duel?.id, duel?.status, phase, round, now, deadline, myResult, me?.id, puzzle]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -491,6 +497,7 @@ function DuelScreen() {
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
           myReactionAvgMs={myResult?.reaction_avg_ms ?? null}
+          myMsRemaining={myResult?.ms_remaining ?? 0}
           startedAt={phaseStart ?? now}
           now={now}
         />
@@ -599,9 +606,11 @@ function DuelScreen() {
                 now={now}
                 locked={!!myResult}
                 onSubmit={handleSubmit}
+                onDraftAnswer={(answer) => { draftAnswer.current = answer; }}
                 checkWord={(word, found, path) =>
                   checkWord(duel.id, round, word, found, path)
                 }
+                checkGroup={(indices) => checkGroup(duel.id, round, indices)}
               />
             </div>
           )}

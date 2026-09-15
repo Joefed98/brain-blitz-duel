@@ -733,3 +733,31 @@ export const checkWordFn = createServerFn({ method: "POST" })
     const { checkWordsmithWord } = await import("./wordsmith.server");
     return checkWordsmithWord(pub.letters, String(data.word ?? ""), found);
   });
+
+/** Groups only: validates four selected tile indices without revealing either partition. */
+export const checkGroupFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: { roomId: string; roundNumber: number; indices: number[] }) => input,
+  )
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
+    if (
+      room.status !== "in_progress" ||
+      room.current_round !== data.roundNumber ||
+      room.phase !== "puzzle"
+    ) return { valid: false as const };
+
+    const pub = room.puzzles_public[data.roundNumber - 1];
+    if (!pub || pub.type !== "groups") return { valid: false as const };
+    const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
+    const puzzle = mergePuzzle(pub, priv);
+    if (puzzle.type !== "groups") return { valid: false as const };
+    const { matchGroupsSelection } = await import("./groups.server");
+    const indices = Array.isArray(data.indices) ? data.indices.slice(0, 4).map(Number) : [];
+    const groupIndex = matchGroupsSelection(puzzle, indices);
+    if (groupIndex === null) return { valid: false as const };
+    return { valid: true as const, groupIndex, theme: puzzle.groups?.[groupIndex]?.theme ?? "Group" };
+  });

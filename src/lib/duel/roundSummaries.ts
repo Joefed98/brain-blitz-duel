@@ -56,6 +56,8 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
       ? SPIN_TIME_MS
     : puzzle.type === "spotdiff"
       ? SPOT_TIME_MS
+    : puzzle.type === "groups"
+      ? 60_000
       : puzzle.type === "wordsmith"
         ? WORDSMITH_TIME_MS
         : puzzle.type === "wordhunt"
@@ -380,9 +382,22 @@ const blockPartySummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
+const groupsSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "groups") return { summary: "—", detail: [] };
+  const found = Math.max(0, Math.min(2, Number(result.extra?.["foundGroups"] ?? 0)));
+  if (found === 2) return {
+    summary: `Both groups · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: (puzzle.groups ?? []).map((group) => `${group.theme}: ${group.words.join(", ")}`),
+  };
+  return {
+    summary: found === 1 ? "One group" : "No groups",
+    detail: (puzzle.groups ?? []).map((group) => `${group.theme}: ${group.words.join(", ")}`),
+  };
+};
+
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
-  oddword: rawSingle,
+  groups: groupsSummary,
   target: targetSummary,
   numseq: rawSingle,
   sequence: sequenceSingle,
@@ -416,7 +431,7 @@ function joinOperators(values: string[]): string {
 
 export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   wordsmith: () => null,
-  oddword: (p) => p.type === "oddword" ? p.odd : null,
+  groups: () => "Two groups of four",
   target: (p) => p.type === "target" ? String(p.target) : null,
   numseq: (p) => p.type === "numseq" ? String(p.answer) : null,
   sequence: (p) => p.type === "sequence" ? p.tiles.join(" → ") : null,

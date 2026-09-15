@@ -5,6 +5,7 @@
  */
 
 import { generateBlockParty } from "./blockParty.server";
+import { generateGroups } from "./groups.server";
 import { gradeSubmission, type Graded, type SubmitExtra } from "./grade";
 import { pickRoundOrder } from "./puzzles";
 import { puzzleDef } from "./registry";
@@ -18,6 +19,7 @@ export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "wordhunt") return generateWordHunt();
   if (type === "unblock") return generateUnblock();
   if (type === "blockparty") return generateBlockParty();
+  if (type === "groups") return generateGroups();
   return puzzleDef(type).generate();
 }
 
