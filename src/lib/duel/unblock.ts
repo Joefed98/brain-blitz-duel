@@ -116,12 +116,19 @@ export function serialiseLayout(vehicles: UnblockVehicle[]): string {
   return vehicles.map((v) => `${v.id}${v.axis}${v.len}${v.row}${v.col}`).join(",");
 }
 
+/** Reads "0h2,10v3,..." — the id may be more than one digit. */
 export function parseLayout(raw: string): UnblockVehicle[] {
-  return raw.split(",").map((part, index) => ({
-    id: index,
-    axis: part[1] === "v" ? "v" : "h",
-    len: Number.parseInt(part[2] ?? "2", 10),
-    row: Number.parseInt(part[3] ?? "0", 10),
-    col: Number.parseInt(part[4] ?? "0", 10),
-  }));
+  const out: UnblockVehicle[] = [];
+  for (const part of raw.split(",")) {
+    const match = /^(\d+)([hv])(\d)(\d)(\d)$/.exec(part.trim());
+    if (!match) continue;
+    out.push({
+      id: Number.parseInt(match[1]!, 10),
+      axis: match[2] === "v" ? "v" : "h",
+      len: Number.parseInt(match[3]!, 10),
+      row: Number.parseInt(match[4]!, 10),
+      col: Number.parseInt(match[5]!, 10),
+    });
+  }
+  return out;
 }
