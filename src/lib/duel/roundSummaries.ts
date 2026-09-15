@@ -210,5 +210,5 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   numspan: (p) => p.type === "numspan" ? p.digits : null,
   stopwatch: () => null,
   countup: (p) => p.type === "countup" ? String(p.count) : null,
-  mirmatch: (p) => p.type === "mirmatch" ? `Option ${p.correctIndex + 1}` : null,
+  mirmatch: (p) => p.type === "mirmatch" && p.correctIndex !== undefined ? `Option ${p.correctIndex + 1}` : null,
 };
