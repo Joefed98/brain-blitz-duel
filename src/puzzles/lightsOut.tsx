@@ -1,4 +1,4 @@
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playCorrect } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { decodePresses, encodePresses, lightsAllOff, replayLights } from "@/lib/duel/logic";

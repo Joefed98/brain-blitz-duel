@@ -1,4 +1,4 @@
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playWrong } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { buzz } from "@/lib/motion";
