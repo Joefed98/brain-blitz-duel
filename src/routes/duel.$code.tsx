@@ -489,7 +489,7 @@ function DuelScreen() {
 
   if (phase === "reveal" && puzzle) {
     return (
-      <PhoneShell>
+      <PhoneShell constrained>
         <AnswerReveal
           round={round}
            puzzle={revealed?.round === round ? revealed.data.puzzle : puzzle}
@@ -553,7 +553,7 @@ function DuelScreen() {
   const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
 
   return (
-    <PhoneShell>
+    <PhoneShell constrained>
       <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">

@@ -78,7 +78,6 @@
     color: var(--color-foreground);
     font-family: var(--font-body);
     -webkit-tap-highlight-color: transparent;
-    overflow: hidden;
   }
 
   h1,

@@ -217,7 +217,7 @@ function PracticeScreen() {
 
   if (stage === "reveal" && graded) {
     return (
-      <PhoneShell>
+      <PhoneShell constrained>
         <AnswerReveal
           round={1}
           puzzle={graded.puzzle}
@@ -274,7 +274,7 @@ function PracticeScreen() {
   const clockActive = clockStart !== null && now >= clockStart;
 
   return (
-    <PhoneShell>
+    <PhoneShell constrained>
       <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
