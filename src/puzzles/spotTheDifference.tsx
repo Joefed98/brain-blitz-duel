@@ -385,11 +385,15 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const found = differences.filter((d) => d.cells.some((cell) => taps.includes(cell)));
 
   return (
-    <>
-      <div className="w-full overflow-hidden rounded-2xl border border-border bg-card">
-        <Panel shapes={puzzle.top} found={cells} />
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1.5">
+      <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+          <Panel shapes={puzzle.top} found={cells} fitHeight />
+        </div>
         <div className="h-[2px] w-full bg-primary" />
-        <Panel shapes={puzzle.bottom} found={cells} />
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+          <Panel shapes={puzzle.bottom} found={cells} fitHeight />
+        </div>
       </div>
       <div className="flex w-full flex-col gap-1">
         {differences.map((difference, index) => {
@@ -407,7 +411,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="font-mono text-2xl font-bold tabular-nums text-primary">
         {found.length} / {SPOT_DIFFERENCES} found
       </p>
-    </>
+    </div>
   );
 }
 
