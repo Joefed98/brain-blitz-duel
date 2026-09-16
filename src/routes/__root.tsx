@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ensureSession } from "../lib/duel/session";
+import { installSoundUnlock } from "../lib/sound";
 
 function NotFoundComponent() {
   return (
@@ -137,6 +138,9 @@ function RootComponent() {
       /* retried on the next action that needs it */
     });
   }, []);
+
+  // The first tap anywhere unlocks audio (iOS only counts touchend/click).
+  useEffect(() => installSoundUnlock(), []);
 
   return (
     <QueryClientProvider client={queryClient}>
