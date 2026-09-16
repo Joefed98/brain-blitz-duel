@@ -6,7 +6,7 @@ import type { Standing } from "@/lib/duel/scoring";
 import type { PuzzleType, RoundResultRow } from "@/lib/duel/types";
 import { playerBreakdown } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
-import { playWin } from "@/lib/sound";
+import { playFanfare, playRoundWon, stopMusic } from "@/lib/sound";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { Dots } from "./Dots";
@@ -68,9 +68,12 @@ export function Podium({
   useEffect(() => {
     if (cued.current) return;
     cued.current = true;
+    stopMusic(400);
     if (won) {
-      playWin();
+      playFanfare();
       buzz([25, 50, 25]);
+    } else {
+      playRoundWon();
     }
   }, [won]);
 

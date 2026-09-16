@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { useReducedMotion } from "@/lib/motion";
-import { playTick } from "@/lib/sound";
+import { playTick, startMusic, stopMusic } from "@/lib/sound";
 
 interface TimerRingProps {
   msRemaining: number;
@@ -41,6 +41,27 @@ export function TimerRing({ msRemaining, totalMs, active }: TimerRingProps) {
     lastTick.current = whole;
     playTick();
   }, [active, seconds]);
+
+  // The tension bed rides the last sixth of the round, speeding up as it goes.
+  const tensionRemaining = useRef(0);
+  if (danger) tensionRemaining.current = msRemaining;
+  useEffect(() => {
+    if (!danger) return;
+    startMusic("tension_loop", {
+      rate: 1,
+      rampToRate: 1.15,
+      rampMs: Math.max(400, tensionRemaining.current),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [danger]);
+
+  // The instant the round ends — submission, auto-lock or timeout — it stops.
+  useEffect(() => {
+    if (active) return;
+    stopMusic(200);
+  }, [active]);
+
+  useEffect(() => () => stopMusic(200), []);
 
   const stroke = !active
     ? "var(--muted-foreground)"

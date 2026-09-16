@@ -4,7 +4,7 @@ import { puzzleName } from "@/lib/duel/registry";
 import type { PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
-import { playWin, playWrong } from "@/lib/sound";
+import { playFanfare, playRoundWon, stopMusic } from "@/lib/sound";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { Dots } from "./Dots";
@@ -43,12 +43,14 @@ export function FinalResult({
   useEffect(() => {
     if (cued.current) return;
     cued.current = true;
+    // No music on the final screen — just the one cue.
+    stopMusic(400);
     if (outcome === "win") {
-      playWin();
+      playFanfare();
       buzz([25, 50, 25]);
-    } else if (outcome === "loss") {
-      playWrong();
-      buzz(30);
+    } else {
+      playRoundWon();
+      if (outcome === "loss") buzz(30);
     }
   }, [outcome]);
 

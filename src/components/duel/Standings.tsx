@@ -4,7 +4,7 @@ import { ordinal } from "@/lib/duel/ordinal";
 import type { Standing } from "@/lib/duel/scoring";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect } from "@/lib/sound";
+import { playRoundWon } from "@/lib/sound";
 
 import { AnimatedScore } from "./AnimatedScore";
 
