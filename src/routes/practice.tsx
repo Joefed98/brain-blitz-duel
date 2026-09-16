@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
-import { SoundDebugPanel } from "@/components/duel/SoundDebugPanel";
+
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { TimerRing } from "@/components/duel/TimerRing";
 import {
@@ -73,11 +73,6 @@ function useTicker(active: boolean): number {
 }
 
 function PracticeScreen() {
-  const [showSoundDebug] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).get("sound") === "1",
-  );
   const [stage, setStage] = useState<Stage>("list");
   const [type, setType] = useState<PuzzleType | null>(null);
   const [puzzle, setPuzzle] = useState<PuzzleData | null>(null);
