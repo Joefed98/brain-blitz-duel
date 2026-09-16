@@ -279,7 +279,7 @@ function ready(): boolean {
   const state = contextState();
   if (state === "suspended" || state === "interrupted") {
     resumeContext();
-    return state === "suspended" ? false : false;
+    return false;
   }
   return true;
 }
