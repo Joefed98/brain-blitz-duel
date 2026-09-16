@@ -49,12 +49,20 @@ export function Standings({
   const offsets = useRef(new Map<number, number>());
   const [expanded, setExpanded] = useState<number | null>(null);
 
+  // Only the round's top scorer hears the round-won cue.
+  const iTookTheRound = (() => {
+    const mine = rows.find((r) => r.slot === mySlot);
+    return !!mine && mine.roundScore > 0 && mine.roundScore === topScore;
+  })();
+
   useEffect(() => {
     if (cued.current) return;
     cued.current = true;
-    playCorrect();
-    buzz(12);
-  }, []);
+    if (iTookTheRound) {
+      playRoundWon();
+      buzz(12);
+    }
+  }, [iTookTheRound]);
 
   // FLIP: rows slide from where they sat to their new position.
   useLayoutEffect(() => {
