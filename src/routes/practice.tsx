@@ -195,7 +195,6 @@ function PracticeScreen() {
             </p>
           </div>
 
-
           {puzzleCategories().map((category) => (
             <div key={category} className="flex flex-col gap-2">
               <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">

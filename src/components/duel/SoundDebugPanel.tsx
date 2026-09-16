@@ -51,7 +51,9 @@ export function SoundDebugPanel() {
         volumes: music {info?.musicVolume ?? "-"} / fx {info?.effectsVolume ?? "-"}
       </p>
       <p>track: {info?.currentTrack ?? "none"}</p>
-      <p>loaded ({info?.loaded.length ?? 0}): {info?.loaded.join(", ") || "-"}</p>
+      <p>
+        loaded ({info?.loaded.length ?? 0}): {info?.loaded.join(", ") || "-"}
+      </p>
       <p>pending: {info?.pending.join(", ") || "-"}</p>
       <p>failed: {info?.failed.join(", ") || "-"}</p>
       {testing && <p className="text-foreground">playing: {testing}</p>}
