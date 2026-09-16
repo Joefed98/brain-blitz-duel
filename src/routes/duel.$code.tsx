@@ -572,6 +572,8 @@ function DuelScreen() {
             className={`flex justify-center -my-3 ${
               puzzle?.type === "spotdiff"
                 ? "h-[84px] shrink-0 items-center scale-[0.68] [@media(max-height:680px)]:h-[72px] [@media(max-height:680px)]:scale-[0.58]"
+                : puzzle?.type === "blockparty"
+                  ? "h-[88px] shrink-0 items-center scale-[0.7]"
                 : "scale-[0.78]"
             }`}
           >
@@ -583,7 +585,7 @@ function DuelScreen() {
           </div>
         )}
 
-        {puzzle?.type !== "spotdiff" &&
+        {puzzle?.type !== "spotdiff" && puzzle?.type !== "blockparty" &&
           (isMulti ? (
             <SoloScoreStrip
               name={me.display_name}

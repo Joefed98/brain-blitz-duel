@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { liftStyle, useDragSnap, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
@@ -149,7 +149,11 @@ export function BlockPartyPuzzle({
   onSubmit,
 }: BlockPartyPuzzleProps) {
   const reduced = usePrefersReducedMotion();
+  const layoutRef = useRef<HTMLDivElement>(null);
+  const trayRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
+  const [layoutSize, setLayoutSize] = useState({ width: 348, height: 480 });
+  const [traySize, setTraySize] = useState({ width: 348, height: 120 });
   const [placed, setPlaced] = useState<BlockPlacement[]>([]);
   const [pose, setPose] = useState<Record<number, { rot: number; flip: boolean }>>({});
   const [ghost, setGhost] = useState<{ cells: number[]; legal: boolean } | null>(null);
@@ -278,73 +282,141 @@ export function BlockPartyPuzzle({
     (piece) => !placed.some((entry) => entry.piece === piece),
   );
 
+  useEffect(() => {
+    const layout = layoutRef.current;
+    const tray = trayRef.current;
+    if (!layout || !tray) return;
+    const read = () => {
+      const layoutRect = layout.getBoundingClientRect();
+      const trayRect = tray.getBoundingClientRect();
+      setLayoutSize({ width: layoutRect.width, height: layoutRect.height });
+      setTraySize({ width: trayRect.width, height: trayRect.height });
+    };
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(layout);
+    observer.observe(tray);
+    return () => observer.disconnect();
+  }, []);
+
+  // Keep a useful tray beneath the square board even on the shortest supported
+  // phone. The tray then computes the largest cell size that fits every row.
+  const boardSize = Math.max(180, Math.min(layoutSize.width, layoutSize.height - 116));
+  const boardCell = boardSize / N;
+  const trayRows = useMemo(() => {
+    const rows: number[][] = [];
+    for (let index = 0; index < inTray.length; index += 3) rows.push(inTray.slice(index, index + 3));
+    return rows;
+  }, [inTray]);
+  const trayHeightUnits = trayRows.reduce(
+    (sum, row) => Math.max(...row.map((piece) => offsetsSize(offsetsFor(piece)).rows), 1) + sum,
+    0,
+  );
+  const trayWidthUnits = Math.max(
+    ...trayRows.map((row) => row.reduce((sum, piece) => sum + offsetsSize(offsetsFor(piece)).cols, 0)),
+    1,
+  );
+  const trayCell = Math.max(
+    8,
+    Math.min(
+      boardCell * 0.6,
+      (traySize.height - 20 - Math.max(0, trayRows.length - 1) * 4) / trayHeightUnits,
+      (traySize.width - 20 - 8) / trayWidthUnits,
+    ),
+  );
+
   return (
-    <div className="flex flex-1 flex-col gap-3">
-      <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
+    <div ref={layoutRef} className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">
+      <div className="flex shrink-0 items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           covered <span className="text-primary">{covered}</span> / {BLOCK_FREE_CELLS}
         </span>
         <span className="text-[10px]">tap: turn · double: flip</span>
       </div>
 
-      <BlockBoard blockers={puzzle.blockers} placements={placed} boardRef={boardRef}>
-        {ghost && (
-          <>
-            {ghost.cells.map((cell) => (
+      <div className="flex min-h-0 shrink-0 justify-center">
+        <BlockBoard
+          blockers={puzzle.blockers}
+          placements={placed}
+          boardRef={boardRef}
+          size={boardSize}
+        >
+          {ghost && (
+            <>
+              {ghost.cells.map((cell) => (
+                <div
+                  key={`ghost-${cell}`}
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute rounded-[4px] border-2 border-dashed ${
+                    ghost.legal ? "border-primary/70 bg-primary/10" : "border-warn/70 bg-warn/10"
+                  }`}
+                  style={{
+                    left: pct(cell % N),
+                    top: pct(Math.floor(cell / N)),
+                    width: pct(1),
+                    height: pct(1),
+                  }}
+                />
+              ))}
+            </>
+          )}
+          {/* Placed pieces can be picked back up. */}
+          {placed.map((placement) =>
+            placement.cells.map((cell) => (
               <div
-                key={`ghost-${cell}`}
-                aria-hidden="true"
-                className={`pointer-events-none absolute rounded-[4px] border-2 border-dashed ${
-                  ghost.legal ? "border-primary/70 bg-primary/10" : "border-warn/70 bg-warn/10"
-                }`}
+                key={`grab-${placement.piece}-${cell}`}
+                onPointerDown={drag.start({ piece: placement.piece, from: "board" })}
+                className="absolute"
                 style={{
                   left: pct(cell % N),
                   top: pct(Math.floor(cell / N)),
                   width: pct(1),
                   height: pct(1),
+                  touchAction: "none",
                 }}
               />
-            ))}
-          </>
-        )}
-        {/* Placed pieces can be picked back up. */}
-        {placed.map((placement) =>
-          placement.cells.map((cell) => (
-            <div
-              key={`grab-${placement.piece}-${cell}`}
-              onPointerDown={drag.start({ piece: placement.piece, from: "board" })}
-              className="absolute"
-              style={{
-                left: pct(cell % N),
-                top: pct(Math.floor(cell / N)),
-                width: pct(1),
-                height: pct(1),
-                touchAction: "none",
-              }}
-            />
-          )),
-        )}
-      </BlockBoard>
+            )),
+          )}
+        </BlockBoard>
+      </div>
 
       {/* Tray: every remaining piece, at a reduced scale. */}
-      <div className="flex flex-wrap items-end justify-center gap-3 rounded-xl bg-card/60 px-3 py-3">
+      <div
+        ref={trayRef}
+        className="grid min-h-0 flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 overflow-visible rounded-xl bg-card/60 px-2.5 py-2.5"
+      >
         {inTray.length === 0 ? (
-          <p className="font-mono text-xs uppercase tracking-widest text-primary">board full</p>
+          <p className="col-span-3 text-center font-mono text-xs uppercase tracking-widest text-primary">
+            board full
+          </p>
         ) : (
           inTray.map((piece) => {
             const dragging = drag.drag?.item.piece === piece && drag.drag.item.from === "tray";
+            const dragInfo = dragging ? drag.drag : null;
+            const offsets = offsetsFor(piece);
+            const { rows, cols } = offsetsSize(offsets);
             return (
               <div
                 key={piece}
                 onPointerDown={drag.start({ piece, from: "tray" })}
-                className={drag.rejected?.piece === piece ? "animate-shake" : ""}
-                style={
-                  dragging
-                    ? liftStyle(drag.drag!.dx, drag.drag!.dy, reduced)
-                    : { touchAction: "none" }
-                }
+                className={`relative flex min-h-0 items-center justify-center ${
+                  drag.rejected?.piece === piece ? "animate-shake" : ""
+                }`}
+                style={{ minWidth: cols * trayCell, minHeight: rows * trayCell }}
+                aria-label={`Piece ${piece + 1}`}
               >
-                <PieceGlyph offsets={offsetsFor(piece)} colour={pieceColour(piece)} cell={15} />
+                <div
+                  style={
+                    dragInfo
+                      ? {
+                          ...liftStyle(dragInfo.dx, dragInfo.dy, reduced),
+                          transform: `translate3d(${dragInfo.dx}px, ${dragInfo.dy - (reduced ? 0 : 6)}px, 0) scale(${boardCell / trayCell})`,
+                        }
+                      : { touchAction: "none" }
+                  }
+                >
+                  <PieceGlyph offsets={offsets} colour={pieceColour(piece)} cell={trayCell} />
+                </div>
               </div>
             );
           })
