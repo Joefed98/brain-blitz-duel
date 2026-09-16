@@ -52,7 +52,7 @@ const CELL_W = 48;
 const CELL_H = 48;
 const PANEL_W = SPOT_COLS * CELL_W;
 const PANEL_H = SPOT_ROWS * CELL_H;
-const SHAPE = 50;
+const SHAPE = 34;
 
 function cellCentre(cell: number): { x: number; y: number } {
   const col = cell % SPOT_COLS;
@@ -105,9 +105,9 @@ function shapePath(kind: SpotShapeKind, fill: string) {
   }
 }
 
-function DrawnShape({ shape }: { shape: SpotShape }) {
+function DrawnShape({ shape, size = SHAPE }: { shape: SpotShape; size?: number }) {
   const { x, y } = cellCentre(shape.cell);
-  const scale = SHAPE / 40;
+  const scale = size / 40;
   const turns = [
     `translate(${x} ${y})`,
     shape.rot ? `rotate(${shape.rot})` : "",
@@ -128,6 +128,7 @@ function Panel({
   height,
   rows = SPOT_ROWS,
   fitHeight = false,
+  shapeSize = SHAPE,
 }: {
   shapes: SpotShape[];
   /** Cells ringed in gold. */
@@ -139,6 +140,7 @@ function Panel({
   rows?: number;
   /** Fit inside an equal-height play area instead of sizing from the full width. */
   fitHeight?: boolean;
+  shapeSize?: number;
 }) {
   return (
     <svg
@@ -150,7 +152,7 @@ function Panel({
       style={{ touchAction: "manipulation" }}
     >
       {shapes.map((shape) => (
-        <DrawnShape key={`${shape.cell}-${shape.kind}`} shape={shape} />
+        <DrawnShape key={`${shape.cell}-${shape.kind}`} shape={shape} size={shapeSize} />
       ))}
       {found.map((cell) => {
         const { x, y } = cellCentre(cell);
@@ -353,6 +355,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
             wrongCell={wrong}
             onTap={tap}
             fitHeight
+            shapeSize={50}
           />
         </div>
         <div className="h-[2px] w-full shrink-0 bg-primary" />
@@ -363,6 +366,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
             wrongCell={wrong}
             onTap={tap}
             fitHeight
+            shapeSize={50}
           />
         </div>
       </div>
