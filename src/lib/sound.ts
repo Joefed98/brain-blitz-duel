@@ -1,11 +1,19 @@
 /**
  * Sound manager. Ten MP3 cues served from /sounds, decoded once on the first
- * user gesture, played through two channels: music (looping beds) and effects
- * (everything else).
+ * real user gesture, played through two channels: music (looping beds) and
+ * effects (everything else).
+ *
+ * Mobile rules that drive the shape of this file:
+ *  - iOS only counts a gesture inside `touchend` / `click` / `pointerup`, so
+ *    the context is created *synchronously* in those handlers and immediately
+ *    given a one-sample silent buffer to play.
+ *  - iOS suspends ("suspended") or interrupts ("interrupted") the context when
+ *    the app is backgrounded or a call comes in, so we resume on
+ *    visibilitychange, pageshow and every later touch.
+ *  - Everything is decoded into AudioBuffers; no <audio>/new Audio() anywhere.
  *
  * Nothing plays and nothing errors before that first gesture, and every
- * failure — blocked autoplay, a phone on silent, a missing decoder — is
- * swallowed: sound is a nicety, never a failure.
+ * failure is swallowed: sound is a nicety, never a failure.
  */
 
 const MUTE_KEY = "duelz_muted";
@@ -43,7 +51,11 @@ const FILES: Record<Cue | Track, string> = {
   podium_fanfare: "/sounds/podium_fanfare.mp3",
 };
 
+export const SOUND_NAMES = Object.keys(FILES) as (Cue | Track)[];
+
 const FADE_MS = 400;
+
+type AnyContextState = AudioContextState | "interrupted";
 
 let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
@@ -51,9 +63,20 @@ let musicGain: GainNode | null = null;
 let effectsGain: GainNode | null = null;
 let unlocked = false;
 let loading: Promise<void> | null = null;
+let lifecycleBound = false;
+let loggedFailure = false;
 const buffers = new Map<string, AudioBuffer>();
+const failedFiles = new Set<string>();
 const playingEffects = new Map<Cue, AudioBufferSourceNode>();
 let currentTrack: { name: Track; source: AudioBufferSourceNode; gain: GainNode } | null = null;
+/** What music should be playing, so we can restart it after an interruption. */
+let desiredTrack: { name: Track; options: MusicOptions } | null = null;
+
+function warnOnce(message: string, error?: unknown): void {
+  if (loggedFailure) return;
+  loggedFailure = true;
+  console.warn(`[sound] ${message}`, error ?? "");
+}
 
 /* ---------------------------------------------------------------- settings */
 
@@ -126,20 +149,76 @@ export const onMuteChange = onSoundSettingsChange;
 
 async function preload(): Promise<void> {
   if (!ctx) return;
-  const entries = Object.entries(FILES);
   await Promise.all(
-    entries.map(async ([name, url]) => {
+    Object.entries(FILES).map(async ([name, url]) => {
       if (buffers.has(name)) return;
       try {
         const response = await fetch(url);
+        if (!response.ok) throw new Error(`${response.status}`);
         const bytes = await response.arrayBuffer();
         const decoded = await ctx!.decodeAudioData(bytes);
         buffers.set(name, decoded);
-      } catch {
-        /* one missing cue must never break the rest */
+        failedFiles.delete(name);
+      } catch (error) {
+        failedFiles.add(name);
+        warnOnce(`could not load ${url}`, error);
       }
     }),
   );
+}
+
+/** One sample of silence: the canonical iOS unlock, must run inside a gesture. */
+function playSilentSample(): void {
+  if (!ctx) return;
+  try {
+    const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
+  } catch (error) {
+    warnOnce("silent unlock sample failed", error);
+  }
+}
+
+function contextState(): AnyContextState | "none" {
+  return (ctx?.state as AnyContextState | undefined) ?? "none";
+}
+
+/** Resume a suspended/interrupted context and restart the music that was on. */
+function resumeContext(): void {
+  if (!ctx) return;
+  const state = contextState();
+  if (state !== "suspended" && state !== "interrupted") return;
+  try {
+    void ctx
+      .resume()
+      .then(() => {
+        if (desiredTrack && !currentTrack) {
+          const { name, options } = desiredTrack;
+          desiredTrack = null;
+          startMusic(name, options);
+        }
+      })
+      .catch((error) => warnOnce("resume failed", error));
+  } catch (error) {
+    warnOnce("resume threw", error);
+  }
+}
+
+function bindLifecycle(): void {
+  if (lifecycleBound || typeof window === "undefined") return;
+  lifecycleBound = true;
+  const onVisible = () => {
+    if (document.visibilityState === "visible") resumeContext();
+  };
+  document.addEventListener("visibilitychange", onVisible);
+  window.addEventListener("pageshow", resumeContext);
+  window.addEventListener("focus", resumeContext);
+  ctx?.addEventListener?.("statechange", () => {
+    const state = contextState();
+    if (state === "suspended" || state === "interrupted") resumeContext();
+  });
 }
 
 /** Call from a real user gesture. Safe to call as often as you like. */
@@ -149,7 +228,10 @@ export function unlockAudio(): void {
     const Ctor =
       window.AudioContext ??
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctor) return;
+    if (!Ctor) {
+      warnOnce("Web Audio is unavailable on this device");
+      return;
+    }
     if (!ctx) {
       ctx = new Ctor();
       masterGain = ctx.createGain();
@@ -159,20 +241,75 @@ export function unlockAudio(): void {
       effectsGain.connect(masterGain);
       masterGain.connect(ctx.destination);
       applySettings();
+      bindLifecycle();
     }
-    void ctx.resume();
+    playSilentSample();
+    void ctx.resume().catch((error) => warnOnce("initial resume failed", error));
+    resumeContext();
     unlocked = true;
     loading ??= preload();
-  } catch {
-    /* audio is a nicety, never a failure */
+  } catch (error) {
+    warnOnce("could not create the audio context", error);
   }
+}
+
+/**
+ * Attaches the first-gesture unlock to the document. iOS only honours
+ * touchend/click/pointerup, so all three are listened for and the listeners
+ * come off as soon as audio is running.
+ */
+export function installSoundUnlock(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const events = ["touchend", "pointerup", "click", "keydown"] as const;
+  const handler = () => {
+    unlockAudio();
+    if (unlocked && ctx && contextState() === "running") detach();
+  };
+  const detach = () => {
+    for (const name of events) document.removeEventListener(name, handler, true);
+  };
+  for (const name of events) document.addEventListener(name, handler, true);
+  bindLifecycle();
+  return detach;
 }
 
 function ready(): boolean {
   if (isMuted()) return false;
   if (!unlocked || !ctx) return false;
-  if (ctx.state === "suspended") void ctx.resume();
+  const state = contextState();
+  if (state === "suspended" || state === "interrupted") {
+    resumeContext();
+    return state === "suspended" ? false : false;
+  }
   return true;
+}
+
+/* --------------------------------------------------------------- diagnostics */
+
+export interface SoundDiagnostics {
+  unlocked: boolean;
+  state: AnyContextState | "none";
+  muted: boolean;
+  musicVolume: number;
+  effectsVolume: number;
+  currentTrack: Track | null;
+  loaded: string[];
+  failed: string[];
+  pending: string[];
+}
+
+export function soundDiagnostics(): SoundDiagnostics {
+  return {
+    unlocked,
+    state: contextState(),
+    muted: isMuted(),
+    musicVolume: musicVolume(),
+    effectsVolume: effectsVolume(),
+    currentTrack: currentTrack?.name ?? null,
+    loaded: SOUND_NAMES.filter((name) => buffers.has(name)),
+    failed: SOUND_NAMES.filter((name) => failedFiles.has(name)),
+    pending: SOUND_NAMES.filter((name) => !buffers.has(name) && !failedFiles.has(name)),
+  };
 }
 
 /* ----------------------------------------------------------------- effects */
@@ -201,8 +338,8 @@ export function playCue(cue: Cue): void {
     };
     playingEffects.set(cue, source);
     source.start();
-  } catch {
-    /* silent failure (iOS silent switch, exhausted sources) */
+  } catch (error) {
+    warnOnce("effect playback failed", error);
   }
 }
 
@@ -244,8 +381,10 @@ interface MusicOptions {
  * one track at a time. Re-calling with the track already playing does nothing.
  */
 export function startMusic(name: Track, options: MusicOptions = {}): void {
-  if (!ready() || !ctx || !musicGain) return;
   if (currentTrack?.name === name) return;
+  // Remembered so an interruption (call, app switch) can restart it on resume.
+  desiredTrack = { name, options };
+  if (!ready() || !ctx || !musicGain) return;
   const buffer = buffers.get(name);
   if (!buffer) return;
   const fade = options.fadeMs ?? FADE_MS;
@@ -268,12 +407,14 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
     source.connect(gain).connect(musicGain);
     source.start();
     currentTrack = { name, source, gain };
-  } catch {
-    /* silent failure */
+    desiredTrack = null;
+  } catch (error) {
+    warnOnce("music playback failed", error);
   }
 }
 
 export function stopMusic(fadeMs: number = FADE_MS): void {
+  desiredTrack = null;
   if (!currentTrack) return;
   fadeOut(currentTrack, fadeMs);
   currentTrack = null;
