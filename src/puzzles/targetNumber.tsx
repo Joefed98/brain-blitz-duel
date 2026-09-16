@@ -36,7 +36,8 @@ function tileClass(value: number, state: "idle" | "selected" | "consumed"): stri
     "press flex h-16 items-center justify-center rounded-2xl border font-mono text-2xl font-bold tabular-nums transition-all duration-150";
   const colour = isLarge(value) ? "text-primary" : "text-foreground";
   if (state === "selected") return `${base} border-primary bg-primary/15 scale-105 ${colour}`;
-  if (state === "consumed") return `${base} border-border/40 bg-card/40 text-muted-foreground opacity-35`;
+  if (state === "consumed")
+    return `${base} border-border/40 bg-card/40 text-muted-foreground opacity-35`;
   return `${base} border-border bg-card ${colour}`;
 }
 
@@ -95,7 +96,6 @@ function TargetStage({
   locked,
   onSubmit,
 }: PuzzleStageProps & { tiles: number[]; target: number }) {
-
   const [pool, setPool] = useState<Tile[]>(() =>
     startTiles.map((value, id) => ({ id, value, active: true })),
   );
@@ -163,11 +163,13 @@ function TargetStage({
     const step: TargetStep = { a: first.value, b: tile.value, operator, result };
     const before = pool.map((entry) => ({ ...entry }));
     const nextHistory = [...history, { step, before }];
-    setPool((current) => current.map((entry) => {
-      if (entry.id === first.id) return { ...entry, value: result, active: true };
-      if (entry.id === tile.id) return { ...entry, active: false };
-      return entry;
-    }));
+    setPool((current) =>
+      current.map((entry) => {
+        if (entry.id === first.id) return { ...entry, value: result, active: true };
+        if (entry.id === tile.id) return { ...entry, active: false };
+        return entry;
+      }),
+    );
     setHistory(nextHistory);
     setSelectedId(first.id);
     setOperator(null);
@@ -182,13 +184,17 @@ function TargetStage({
     if (locked || lockedHere || submitted.current) return;
     if (now < phaseStartedAt + TARGET_TIME_MS - 400) return;
     send(steps);
-  }); // eslint-disable-line react-hooks/exhaustive-deps
+  });
 
-  const closest = pool.filter((tile) => tile.active).reduce<number | null>(
-    (best, tile) =>
-      best === null || Math.abs(tile.value - target) < Math.abs(best - target) ? tile.value : best,
-    null,
-  );
+  const closest = pool
+    .filter((tile) => tile.active)
+    .reduce<number | null>(
+      (best, tile) =>
+        best === null || Math.abs(tile.value - target) < Math.abs(best - target)
+          ? tile.value
+          : best,
+      null,
+    );
   const away = closest === null ? null : Math.abs(closest - target);
   const isLockedNow = locked || lockedHere;
 
@@ -308,23 +314,25 @@ function TargetReveal({
     [puzzle.tiles, puzzle.target, myAnswer],
   );
   const away = replay.distance;
-  const tag =
-    myCorrect || away === 0
-      ? "✓"
-      : away !== null && away <= 10
-        ? `${away} away`
-        : "✗";
+  const tag = myCorrect || away === 0 ? "✓" : away !== null && away <= 10 ? `${away} away` : "✗";
 
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <p className="w-full truncate text-center font-mono text-2xl font-bold text-primary tabular-nums">
-        {puzzle.target} · <span className="text-foreground">you reached {replay.value ?? "—"}</span> <span className={myCorrect ? "text-primary" : "text-warn"}>{tag}</span>
+        {puzzle.target} · <span className="text-foreground">you reached {replay.value ?? "—"}</span>{" "}
+        <span className={myCorrect ? "text-primary" : "text-warn"}>{tag}</span>
       </p>
-      <p className="w-full truncate text-center font-mono text-[11px] text-muted-foreground" title={replay.steps.map(formatStep).join(" · ")}>
+      <p
+        className="w-full truncate text-center font-mono text-[11px] text-muted-foreground"
+        title={replay.steps.map(formatStep).join(" · ")}
+      >
         {replay.steps.length ? replay.steps.map(formatStep).join(" · ") : "No steps"}
       </p>
       {(puzzle.solution ?? []).length > 0 && (
-        <p className="w-full truncate text-center font-mono text-[11px] text-muted-foreground/70" title={puzzle.solution.map(formatStep).join(" · ")}>
+        <p
+          className="w-full truncate text-center font-mono text-[11px] text-muted-foreground/70"
+          title={puzzle.solution.map(formatStep).join(" · ")}
+        >
           <span className="uppercase">One way:</span> {puzzle.solution.map(formatStep).join(" · ")}
         </p>
       )}

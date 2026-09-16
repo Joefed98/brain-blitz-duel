@@ -55,7 +55,9 @@ function LightsGrid({
               className={`absolute inset-0 flex items-center justify-center font-mono font-bold ${
                 on ? "text-background" : "text-primary"
               }`}
-              style={{ fontSize: `max(11px, calc((100cqw - ${(cols - 1) * gap}px) / ${cols} * 0.45))` }}
+              style={{
+                fontSize: `max(11px, calc((100cqw - ${(cols - 1) * gap}px) / ${cols} * 0.45))`,
+              }}
             >
               {numbers[cell]}
             </span>
@@ -81,7 +83,12 @@ function IntroExample() {
         </div>
         <svg viewBox="0 0 24 12" className="h-4 w-8" aria-hidden="true">
           <line x1={1} y1={6} x2={19} y2={6} stroke="var(--primary)" strokeWidth={1.6} />
-          <polyline points="15,2 21,6 15,10" fill="none" stroke="var(--primary)" strokeWidth={1.6} />
+          <polyline
+            points="15,2 21,6 15,10"
+            fill="none"
+            stroke="var(--primary)"
+            strokeWidth={1.6}
+          />
         </svg>
         <div style={{ width: 96 }}>
           <LightsGrid lights={after} cols={3} gap={6} />
@@ -169,7 +176,8 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
         <LightsGrid lights={puzzle.lights} numbers={numbers} gap={8} />
       </div>
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
-        {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · min {min}
+        {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · min{" "}
+        {min}
       </p>
     </div>
   );

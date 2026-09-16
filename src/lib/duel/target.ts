@@ -139,11 +139,7 @@ function takeIndex(pool: number[], value: number): number {
  * re-checked here, and the final value is worked out from the pool — a client's
  * own idea of the result is never trusted.
  */
-export function replayTargetSteps(
-  tiles: number[],
-  target: number,
-  rawSteps: unknown,
-): Replay {
+export function replayTargetSteps(tiles: number[], target: number, rawSteps: unknown): Replay {
   let pool = [...tiles];
   const steps: TargetStep[] = [];
   const list = Array.isArray(rawSteps) ? rawSteps.slice(0, 20) : [];

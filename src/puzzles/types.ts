@@ -38,6 +38,12 @@ export type CheckGroup = (
 
 export interface PuzzleStageProps {
   puzzle: PuzzleData;
+  /**
+   * Identifies this round's inputs — room id plus round number, or one practice
+   * run. In-progress answers are stored under it, outside the component tree,
+   * so a room update mid-round cannot reset them.
+   */
+  stateKey?: string;
   /** Server-synced timestamp the puzzle phase started on both phones. */
   phaseStartedAt: number;
   now: number;
@@ -77,7 +83,10 @@ export interface PuzzleDefinition {
   generate: () => PuzzleData;
   check: (answer: string, puzzle: PuzzleData) => boolean;
   /** Built on the server after the round ends; never called during play. */
-  roundSummary?: (result: RoundResultRow, puzzle: PuzzleData) => Omit<PlayerRoundDetail, "playerSlot">;
+  roundSummary?: (
+    result: RoundResultRow,
+    puzzle: PuzzleData,
+  ) => Omit<PlayerRoundDetail, "playerSlot">;
   /** Correct-answer text for the compact result heading, where meaningful. */
   correctAnswer?: (puzzle: PuzzleData) => string | null;
   /** Milliseconds of preparation before the clock starts. */

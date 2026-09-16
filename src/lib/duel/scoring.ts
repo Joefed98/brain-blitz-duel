@@ -316,11 +316,7 @@ function rank(
   return out;
 }
 
-function answerMsThrough(
-  results: RoundResultRow[],
-  slot: number,
-  lastRound: number,
-): number {
+function answerMsThrough(results: RoundResultRow[], slot: number, lastRound: number): number {
   return results
     .filter((r) => r.player_slot === slot && r.round_number <= lastRound)
     .reduce(
@@ -434,10 +430,7 @@ export function scoreLightsOut(
 ): number {
   if (solved) {
     const bonus = minPresses > 0 && presses === minPresses ? LIGHTS_MIN_BONUS : 0;
-    return Math.min(
-      MAX_ROUND_SCORE,
-      BASE_POINTS + speedBonus(msRemaining, LIGHTS_TIME_MS) + bonus,
-    );
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, LIGHTS_TIME_MS) + bonus);
   }
   const start = Math.max(1, lightsAtStart);
   return clamp(Math.round((LIGHTS_PARTIAL_POINTS * lightsOff) / start), 0, LIGHTS_PARTIAL_POINTS);

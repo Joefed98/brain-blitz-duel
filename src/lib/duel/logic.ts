@@ -71,20 +71,15 @@ export function replayLights(start: boolean[], presses: number[]): boolean[] {
 /*  Pipes                                                                      */
 /* -------------------------------------------------------------------------- */
 
-/** Openings as a bitmask: north 1, east 2, south 4, west 8. */
+/** Open sides as a bitmask: north 1, east 2, south 4, west 8. */
 export const PIPE_N = 1;
 export const PIPE_E = 2;
 export const PIPE_S = 4;
 export const PIPE_W = 8;
 
-const BASE_OPENINGS: Record<PipeShape, number> = {
-  end: PIPE_N,
-  straight: PIPE_N | PIPE_S,
-  corner: PIPE_N | PIPE_E,
-  tee: PIPE_N | PIPE_E | PIPE_S,
-};
+export const PIPE_BITS = [PIPE_N, PIPE_E, PIPE_S, PIPE_W];
 
-/** Rotates an opening mask by `turns` quarter turns clockwise. */
+/** Rotates a side-set by `turns` quarter turns clockwise (N→E→S→W→N). */
 export function rotateMask(mask: number, turns: number): number {
   const t = ((turns % 4) + 4) % 4;
   let out = 0;
@@ -94,24 +89,33 @@ export function rotateMask(mask: number, turns: number): number {
   return out;
 }
 
+/** The tile's open sides — the single source of truth for drawing and flow. */
 export function tileOpenings(tile: PipeTile): number {
-  return rotateMask(BASE_OPENINGS[tile.shape], tile.rot);
+  return (tile?.sides ?? 0) & 15;
 }
 
-/** The rotation (0–3) that gives a shape the wanted openings, or 0. */
-export function rotationFor(shape: PipeShape, wanted: number): number {
-  for (let rot = 0; rot < 4; rot++) {
-    if (rotateMask(BASE_OPENINGS[shape], rot) === wanted) return rot;
-  }
-  return 0;
+export function rotateTile(tile: PipeTile, turns = 1): PipeTile {
+  return { sides: rotateMask(tileOpenings(tile), turns) };
 }
 
+/** Every distinct side-set this tile can be turned into. */
+export function tileRotations(tile: PipeTile): number[] {
+  const seen = new Set<number>();
+  for (let turns = 0; turns < 4; turns++) seen.add(rotateMask(tileOpenings(tile), turns));
+  return [...seen];
+}
+
+/** Drawn shape, derived from the side-set alone. */
 export function shapeForMask(mask: number): PipeShape {
-  const count = [PIPE_N, PIPE_E, PIPE_S, PIPE_W].filter((bit) => mask & bit).length;
-  if (count === 1) return "end";
+  const open = mask & 15;
+  const count = PIPE_BITS.filter((bit) => open & bit).length;
+  if (count === 4) return "cross";
   if (count === 3) return "tee";
-  if (count === 2) return mask === (PIPE_N | PIPE_S) || mask === (PIPE_E | PIPE_W) ? "straight" : "corner";
-  return "tee";
+  if (count === 1) return "end";
+  if (count === 2) {
+    return open === (PIPE_N | PIPE_S) || open === (PIPE_E | PIPE_W) ? "straight" : "corner";
+  }
+  return "end";
 }
 
 /** The neighbour reached through one opening, or null at a wall. */
@@ -177,17 +181,22 @@ export function pipesState(tiles: PipeTile[], source: number): PipesState {
   };
 }
 
-export function encodeRotations(tiles: PipeTile[]): string {
-  return tiles.map((tile) => ((tile.rot % 4) + 4) % 4).join("");
+/** One hex character per tile, holding its open sides. */
+export function encodeSides(tiles: PipeTile[]): string {
+  return tiles.map((tile) => tileOpenings(tile).toString(16)).join("");
 }
 
-/** Reads a phone's final orientations back onto the stored shapes. */
-export function decodeRotations(tiles: PipeTile[], raw: string): PipeTile[] {
-  const digits = String(raw ?? "").replace(/[^0-3]/g, "");
-  return tiles.map((tile, index) => ({
-    shape: tile.shape,
-    rot: Number.parseInt(digits[index] ?? String(tile.rot), 10) || 0,
-  }));
+/**
+ * Reads a phone's final side-sets back. A submitted set is only accepted when
+ * it is a rotation of the stored tile, so a phone cannot invent a new shape.
+ */
+export function decodeSides(tiles: PipeTile[], raw: string): PipeTile[] {
+  const chars = String(raw ?? "").replace(/[^0-9a-fA-F]/g, "");
+  return tiles.map((tile, index) => {
+    const parsed = Number.parseInt(chars[index] ?? "", 16);
+    const allowed = tileRotations(tile);
+    return { sides: allowed.includes(parsed) ? parsed : tileOpenings(tile) };
+  });
 }
 
 export const PIPES_TILE_COUNT = PIPES_CELLS;
@@ -199,8 +208,10 @@ export const PIPES_TILE_COUNT = PIPES_CELLS;
 export function sudokuBox(cell: number): number {
   const row = Math.floor(cell / SUDOKU_COLS);
   const col = cell % SUDOKU_COLS;
-  return Math.floor(row / SUDOKU_BOX_ROWS) * (SUDOKU_COLS / SUDOKU_BOX_COLS) +
-    Math.floor(col / SUDOKU_BOX_COLS);
+  return (
+    Math.floor(row / SUDOKU_BOX_ROWS) * (SUDOKU_COLS / SUDOKU_BOX_COLS) +
+    Math.floor(col / SUDOKU_BOX_COLS)
+  );
 }
 
 /** True when no row, column or box repeats a digit (empties ignored). */
@@ -243,7 +254,8 @@ export function encodeSudoku(grid: number[]): string {
 
 export function decodeSudoku(raw: string): number[] {
   const digits = String(raw ?? "").replace(/[^0-6]/g, "");
-  return Array.from({ length: SUDOKU_CELLS }, (_, index) =>
-    Number.parseInt(digits[index] ?? "0", 10) || 0,
+  return Array.from(
+    { length: SUDOKU_CELLS },
+    (_, index) => Number.parseInt(digits[index] ?? "0", 10) || 0,
   );
 }

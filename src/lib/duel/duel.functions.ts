@@ -509,9 +509,24 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
     const puzzle: PuzzleData = mergePuzzle(pub, priv);
 
+    // The player's own measurement stands unless it is impossible for the clock.
+    const { puzzleTimeLimitMs, puzzlePrepMs } = await import("./registry");
+    const { trustedMsRemaining } = await import("./grade");
+    const limitMs = puzzleTimeLimitMs(puzzle);
+    const startedAt = Date.parse(room.phase_started_at ?? room.round_started_at ?? "");
+    const serverMs = Number.isFinite(startedAt)
+      ? limitMs - (Date.now() - startedAt - puzzlePrepMs(puzzle))
+      : limitMs;
+    const { ms: trustedMs, clamped } = trustedMsRemaining(data.msRemaining, serverMs, limitMs);
+    if (clamped) {
+      console.warn(
+        `submit_answer: time claim ${data.msRemaining}ms beyond server ${Math.round(serverMs)}ms (room ${room.id}, round ${data.roundNumber})`,
+      );
+    }
+
     const { gradeAnswer } = await import("./generate.server");
     const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra, storedMs } =
-      gradeAnswer(puzzle, data.answer, data.msRemaining, data.extra);
+      gradeAnswer(puzzle, data.answer, trustedMs, data.extra);
 
     const { error } = await client.from("round_results").insert({
       duel_id: room.id,
@@ -742,9 +757,7 @@ export const checkWordFn = createServerFn({ method: "POST" })
 /** Groups only: validates four selected tile indices without revealing either partition. */
 export const checkGroupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: { roomId: string; roundNumber: number; indices: number[] }) => input,
-  )
+  .inputValidator((input: { roomId: string; roundNumber: number; indices: number[] }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
@@ -753,7 +766,8 @@ export const checkGroupFn = createServerFn({ method: "POST" })
       room.status !== "in_progress" ||
       room.current_round !== data.roundNumber ||
       room.phase !== "puzzle"
-    ) return { valid: false as const };
+    )
+      return { valid: false as const };
 
     const pub = room.puzzles_public[data.roundNumber - 1];
     if (!pub || pub.type !== "groups") return { valid: false as const };
@@ -764,5 +778,9 @@ export const checkGroupFn = createServerFn({ method: "POST" })
     const indices = Array.isArray(data.indices) ? data.indices.slice(0, 4).map(Number) : [];
     const groupIndex = matchGroupsSelection(puzzle, indices);
     if (groupIndex === null) return { valid: false as const };
-    return { valid: true as const, groupIndex, theme: puzzle.groups?.[groupIndex]?.theme ?? "Group" };
+    return {
+      valid: true as const,
+      groupIndex,
+      theme: puzzle.groups?.[groupIndex]?.theme ?? "Group",
+    };
   });

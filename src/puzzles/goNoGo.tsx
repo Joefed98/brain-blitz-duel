@@ -182,7 +182,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           );
         })}
       </div>
-      {averageHitMs !== null && <p className="text-center font-mono text-xs text-muted-foreground">avg {averageHitMs} ms</p>}
+      {averageHitMs !== null && (
+        <p className="text-center font-mono text-xs text-muted-foreground">avg {averageHitMs} ms</p>
+      )}
     </div>
   );
 }

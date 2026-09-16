@@ -132,11 +132,13 @@ export function reflect(pts: Pt[], axis: "vertical" | "horizontal"): Pt[] {
 /** Quarter turns clockwise. */
 export function rotate(pts: Pt[], quarters: number): Pt[] {
   let out = pts;
-  for (let i = 0; i < ((quarters % 4) + 4) % 4; i++) out = out.map((p) => ({ ...p, r: p.c, c: -p.r }));
+  for (let i = 0; i < ((quarters % 4) + 4) % 4; i++)
+    out = out.map((p) => ({ ...p, r: p.c, c: -p.r }));
   return out;
 }
 
-export const shapeKey = (shape: MirrorShape) => `${shape.cells.join(",")}|${shape.colours.join(",")}`;
+export const shapeKey = (shape: MirrorShape) =>
+  `${shape.cells.join(",")}|${shape.colours.join(",")}`;
 
 /** Side of the square box the shape (and its dashed line) is drawn in. */
 export function boxSize(shape: MirrorShape): number {

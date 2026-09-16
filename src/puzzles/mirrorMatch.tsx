@@ -33,7 +33,8 @@ function pickAxis(): MirrorAxis {
   return Math.random() < 0.5 ? "vertical" : "horizontal";
 }
 
-const otherAxis = (axis: MirrorAxis): MirrorAxis => (axis === "vertical" ? "horizontal" : "vertical");
+const otherAxis = (axis: MirrorAxis): MirrorAxis =>
+  axis === "vertical" ? "horizontal" : "vertical";
 
 /** Swaps two colours of the shape, so the outline is right but the paint isn't. */
 function swapColours(shape: MirrorShape): MirrorShape | null {
@@ -198,9 +199,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "mirmatch") return null;
   const answers = puzzle.answers ?? [];
   const kinds = puzzle.kinds ?? [];
-  const picks = (myAnswer ?? "")
-    .split(",")
-    .map((v) => Number.parseInt(v, 10));
+  const picks = (myAnswer ?? "").split(",").map((v) => Number.parseInt(v, 10));
   const correctCount = answers.filter((a, i) => picks[i] === a).length;
 
   return (

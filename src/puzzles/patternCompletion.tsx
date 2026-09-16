@@ -29,8 +29,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 /*  Drawing                                                                   */
 /* -------------------------------------------------------------------------- */
 
-const STAR =
-  "12,2 14.9,8.9 22.4,9.5 16.7,14.4 18.5,21.7 12,17.8 5.5,21.7 7.3,14.4 1.6,9.5 9.1,8.9";
+const STAR = "12,2 14.9,8.9 22.4,9.5 16.7,14.4 18.5,21.7 12,17.8 5.5,21.7 7.3,14.4 1.6,9.5 9.1,8.9";
 const HEX = "12,2 21,7 21,17 12,22 3,17 3,7";
 const ARROW = "12,2 20,12 14.5,12 14.5,22 9.5,22 9.5,12 4,12";
 
@@ -127,7 +126,9 @@ function Grid({
   glyphSize?: number;
 }) {
   return (
-    <div className={`grid grid-cols-3 gap-2 ${fluid ? "aspect-square h-auto max-h-full w-auto max-w-full" : ""}`}>
+    <div
+      className={`grid grid-cols-3 gap-2 ${fluid ? "aspect-square h-auto max-h-full w-auto max-w-full" : ""}`}
+    >
       {cells.slice(0, 8).map((cell, index) => (
         <Cell key={index} cell={cell} fluid={fluid} cellSize={cellSize} glyphSize={glyphSize} />
       ))}
@@ -329,7 +330,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
                 selected={rot === option}
                 onPress={() => !locked && setRot(option)}
               >
-                <Glyph shape="arrow" colour={rot === option ? "PINK" : "BLUE"} rot={option} size={24} />
+                <Glyph
+                  shape="arrow"
+                  colour={rot === option ? "PINK" : "BLUE"}
+                  rot={option}
+                  size={24}
+                />
               </PickerButton>
             ))}
           </div>

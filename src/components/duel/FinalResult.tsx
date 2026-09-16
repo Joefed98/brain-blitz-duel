@@ -97,9 +97,7 @@ export function FinalResult({
                   {row.mine}
                 </span>
                 <span className="mx-2 text-muted-foreground">–</span>
-                <span
-                  className={row.theirs > row.mine ? "text-opponent" : "text-muted-foreground"}
-                >
+                <span className={row.theirs > row.mine ? "text-opponent" : "text-muted-foreground"}>
                   {row.theirs}
                 </span>
               </span>

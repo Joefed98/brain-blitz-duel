@@ -4,7 +4,14 @@
  */
 
 import { pick } from "./random";
-import { encodeMoves, isSolved, parseLayout, position, slideRange, type UnblockMove } from "./unblock";
+import {
+  encodeMoves,
+  isSolved,
+  parseLayout,
+  position,
+  slideRange,
+  type UnblockMove,
+} from "./unblock";
 import { UNBLOCK_BANK } from "./unblockBank.server";
 import type { UnblockPuzzleData, UnblockVehicle } from "./types";
 

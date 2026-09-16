@@ -24,6 +24,7 @@ import {
   puzzleTimeLimitMs,
   typesInCategory,
 } from "@/lib/duel/registry";
+import { clearStageState } from "@/lib/duel/stageState";
 import { INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { unlockAudio } from "@/lib/sound";
@@ -77,14 +78,20 @@ function PracticeScreen() {
   const [sealed, setSealed] = useState("");
   const [startedAt, setStartedAt] = useState(0);
   const [graded, setGraded] = useState<Graded | null>(null);
+  const [run, setRun] = useState(0);
   const grading = useRef(false);
   const draftAnswer = useRef("");
   const now = useTicker(stage === "intro" || stage === "puzzle" || stage === "reveal");
+  const stateKey = `practice-${run}`;
 
   const load = useCallback(async (next: PuzzleType) => {
     unlockAudio();
     grading.current = false;
     draftAnswer.current = "";
+    setRun((count) => {
+      clearStageState(`practice-${count}`);
+      return count + 1;
+    });
     setType(next);
     setGraded(null);
     setPuzzle(null);
@@ -310,18 +317,20 @@ function PracticeScreen() {
 
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           <StageComponent
+            key={stateKey}
+            stateKey={stateKey}
             puzzle={puzzle}
             phaseStartedAt={startedAt}
             now={now}
             locked={false}
             onSubmit={(answer, meta) => void grade(answer, meta)}
-            onDraftAnswer={(answer) => { draftAnswer.current = answer; }}
+            onDraftAnswer={(answer) => {
+              draftAnswer.current = answer;
+            }}
             checkWord={(word, found, path) =>
               practiceCheckWordFn({ data: { puzzle, word, found, path: path ?? [] } })
             }
-            checkGroup={(indices) =>
-              practiceCheckGroupFn({ data: { puzzle, sealed, indices } })
-            }
+            checkGroup={(indices) => practiceCheckGroupFn({ data: { puzzle, sealed, indices } })}
           />
         </div>
       </div>

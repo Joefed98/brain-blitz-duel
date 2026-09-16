@@ -175,12 +175,19 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "chaincalc") return null;
   const expression = [
     String(puzzle.start),
-    ...puzzle.operations.flatMap((step) => [step.operator === "-" ? "−" : step.operator, String(step.operand)]),
+    ...puzzle.operations.flatMap((step) => [
+      step.operator === "-" ? "−" : step.operator,
+      String(step.operand),
+    ]),
   ].join(" ");
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <p className="font-mono text-5xl font-bold text-primary">{puzzle.answer}</p>
-      <button type="button" title={`Intermediate values: ${puzzle.intermediates.join(" · ")}`} className="w-full truncate font-mono text-[11px] text-muted-foreground">
+      <button
+        type="button"
+        title={`Intermediate values: ${puzzle.intermediates.join(" · ")}`}
+        className="w-full truncate font-mono text-[11px] text-muted-foreground"
+      >
         {expression}
       </button>
       <MyAnswerLine myAnswer={myAnswer} myCorrect={myCorrect} />

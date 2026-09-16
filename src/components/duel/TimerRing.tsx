@@ -49,11 +49,7 @@ export function TimerRing({ msRemaining, totalMs, active }: TimerRingProps) {
       : warn
         ? "var(--primary)"
         : "var(--me)";
-  const textColor = !active
-    ? "text-muted-foreground"
-    : danger
-      ? "text-warn"
-      : "text-foreground";
+  const textColor = !active ? "text-muted-foreground" : danger ? "text-warn" : "text-foreground";
 
   const progress = Math.max(0, Math.min(1, msRemaining / totalMs));
 
@@ -64,7 +60,8 @@ export function TimerRing({ msRemaining, totalMs, active }: TimerRingProps) {
         width: SIZE,
         height: SIZE,
         background: "var(--card)",
-        boxShadow: "0 0 0 1px var(--border), 0 0 18px 2px color-mix(in oklab, var(--primary) 32%, transparent)",
+        boxShadow:
+          "0 0 0 1px var(--border), 0 0 18px 2px color-mix(in oklab, var(--primary) 32%, transparent)",
       }}
       aria-label="Time remaining"
       role="timer"

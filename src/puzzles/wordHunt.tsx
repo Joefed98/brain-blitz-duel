@@ -68,10 +68,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       {mine.length > 0 && (
         <ul className="flex w-full flex-wrap justify-center gap-x-3 gap-y-1">
           {mine.map((word) => (
-            <li
-              key={word}
-              className="font-mono text-[10px] uppercase text-foreground"
-            >
+            <li key={word} className="font-mono text-[10px] uppercase text-foreground">
               <span>{word}</span>
               <span className="ml-1 text-primary">{wordHuntPoints(word)}</span>
             </li>

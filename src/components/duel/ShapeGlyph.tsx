@@ -23,13 +23,7 @@ interface ShapeGlyphProps {
 export function ShapeGlyph({ shape, colour, size = 28 }: ShapeGlyphProps) {
   const fill = GLYPH_COLOURS[colour];
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="shrink-0"
-    >
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
       {shape === "circle" && <circle cx="12" cy="12" r="9.5" fill={fill} />}
       {shape === "square" && <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />}
       {shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill={fill} />}

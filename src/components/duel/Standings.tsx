@@ -102,29 +102,49 @@ export function Standings({
                 <button
                   type="button"
                   aria-expanded={expanded === row.slot}
-                  onClick={() => setExpanded((open) => open === row.slot ? null : row.slot)}
+                  onClick={() => setExpanded((open) => (open === row.slot ? null : row.slot))}
                   className="grid w-full grid-cols-[1.5rem_1rem_minmax(0,1fr)_auto_auto] items-center gap-x-2 text-left"
                 >
-                  <span className="font-mono text-sm font-bold tabular-nums text-muted-foreground">{row.position}</span>
+                  <span className="font-mono text-sm font-bold tabular-nums text-muted-foreground">
+                    {row.position}
+                  </span>
                   <Arrow standing={row} />
                   <span className="min-w-0">
-                    <span className="block truncate font-display text-sm text-foreground">{row.name}</span>
-                     <span title={row.summary} className={`block truncate whitespace-nowrap font-mono text-[10px] ${isMe ? "text-primary/80" : "text-muted-foreground"}`}>
+                    <span className="block truncate font-display text-sm text-foreground">
+                      {row.name}
+                    </span>
+                    <span
+                      title={row.summary}
+                      className={`block truncate whitespace-nowrap font-mono text-[10px] ${isMe ? "text-primary/80" : "text-muted-foreground"}`}
+                    >
                       {row.summary}
                     </span>
                   </span>
                   <span className="flex items-center gap-1">
-                    {wonRound && <span className="hidden rounded border border-primary px-1 py-0.5 font-display text-[8px] uppercase tracking-wider text-primary min-[390px]:inline">Round won</span>}
+                    {wonRound && (
+                      <span className="hidden rounded border border-primary px-1 py-0.5 font-display text-[8px] uppercase tracking-wider text-primary min-[390px]:inline">
+                        Round won
+                      </span>
+                    )}
                     <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                      {row.roundCorrect === null ? "" : row.roundCorrect ? "✓" : "✕"} +{row.roundScore}
+                      {row.roundCorrect === null ? "" : row.roundCorrect ? "✓" : "✕"} +
+                      {row.roundScore}
                     </span>
                   </span>
-                  <AnimatedScore value={row.total} className="w-10 text-right font-mono text-base font-bold tabular-nums text-foreground" />
+                  <AnimatedScore
+                    value={row.total}
+                    className="w-10 text-right font-mono text-base font-bold tabular-nums text-foreground"
+                  />
                 </button>
                 {expanded === row.slot && row.detail.length > 0 && (
                   <div className="mt-3 border-t border-border pt-2">
                     {row.detail.map((line, index) => (
-                      <p key={index} className={`font-mono text-[10px] leading-relaxed ${isMe ? "text-primary/80" : "text-muted-foreground"}`}>{line}</p>
+                      <p
+                        key={index}
+                        className={`font-mono text-[10px] leading-relaxed ${isMe ? "text-primary/80" : "text-muted-foreground"}`}
+                      >
+                        {line}
+                      </p>
                     ))}
                   </div>
                 )}

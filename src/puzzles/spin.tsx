@@ -114,7 +114,9 @@ function IntroExample() {
           <span
             key={t}
             className={`rounded-lg border-2 py-1 text-center font-mono text-[10px] ${
-              t === "cw" ? "border-primary text-primary" : "border-transparent text-muted-foreground"
+              t === "cw"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground"
             }`}
           >
             {SPIN_LABELS[t]}
@@ -215,24 +217,26 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {correctCount} / {puzzle.items.length} correct
       </p>
       <div className="grid grid-cols-2 gap-1.5">
-      {puzzle.items.map((item, i) => {
-        const answer = answers[i];
-        const mine = picks[i];
-        const ok = mine !== undefined && mine === answer;
-        return (
-          <div key={i} className="flex min-w-0 items-center gap-1 rounded-lg bg-card px-1.5 py-1">
-            <ColourShape shape={item.target} size={25} />
-            <ColourShape shape={item.shown} size={25} />
-            <span className="font-mono text-[9px] text-primary">{answer ? SPIN_LABELS[answer] : "—"}</span>
-            <span className="ml-auto truncate font-mono text-[9px] text-muted-foreground">
-              {mine ? SPIN_LABELS[mine] : "no answer"}
-            </span>
-            <span className={`text-lg ${ok ? "text-primary" : "text-destructive"}`}>
-              {ok ? "✓" : "✕"}
-            </span>
-          </div>
-        );
-      })}
+        {puzzle.items.map((item, i) => {
+          const answer = answers[i];
+          const mine = picks[i];
+          const ok = mine !== undefined && mine === answer;
+          return (
+            <div key={i} className="flex min-w-0 items-center gap-1 rounded-lg bg-card px-1.5 py-1">
+              <ColourShape shape={item.target} size={25} />
+              <ColourShape shape={item.shown} size={25} />
+              <span className="font-mono text-[9px] text-primary">
+                {answer ? SPIN_LABELS[answer] : "—"}
+              </span>
+              <span className="ml-auto truncate font-mono text-[9px] text-muted-foreground">
+                {mine ? SPIN_LABELS[mine] : "no answer"}
+              </span>
+              <span className={`text-lg ${ok ? "text-primary" : "text-destructive"}`}>
+                {ok ? "✓" : "✕"}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

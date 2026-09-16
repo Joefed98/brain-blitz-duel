@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { WORDSMITH_MIN_LENGTH, WORDSMITH_TIME_MS, type WordsmithPuzzleData } from "@/lib/duel/types";
+import {
+  WORDSMITH_MIN_LENGTH,
+  WORDSMITH_TIME_MS,
+  type WordsmithPuzzleData,
+} from "@/lib/duel/types";
 import type { CheckWord } from "@/puzzles/types";
 
 interface WordsmithPuzzleProps {
@@ -75,7 +79,10 @@ export function WordsmithPuzzle({
     }
     if (!checkWord) return;
     setBusy(true);
-    const verdict = await checkWord(candidate, found.map((entry) => entry.word));
+    const verdict = await checkWord(
+      candidate,
+      found.map((entry) => entry.word),
+    );
     setBusy(false);
     if (verdict.valid) {
       setFound((current) => [{ word: verdict.word, points: verdict.points }, ...current]);

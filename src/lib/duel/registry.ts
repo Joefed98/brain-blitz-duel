@@ -30,16 +30,33 @@ import { pipesPuzzle } from "@/puzzles/pipes";
 import { miniSudokuPuzzle } from "@/puzzles/miniSudoku";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
-import { REVEAL_MS, ROUND_MS, type PuzzleCategory, type PuzzleData, type PuzzleType } from "./types";
+import {
+  REVEAL_MS,
+  ROUND_MS,
+  type PuzzleCategory,
+  type PuzzleData,
+  type PuzzleType,
+} from "./types";
 import { CORRECT_ANSWERS, ROUND_SUMMARIES } from "./roundSummaries";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
-type RegisteredPuzzleDefinition = PuzzleDefinition & Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer">>;
+type RegisteredPuzzleDefinition = PuzzleDefinition &
+  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer">>;
 
 const LONG_REVEAL_TYPES = new Set<PuzzleType>([
-  "chaincalc", "target", "wordsmith", "wordhunt", "stroop", "wordmatch",
-  "pctsprint", "spin", "mirmatch", "gonogo", "spotdiff",
-  "groups", "ladder",
+  "chaincalc",
+  "target",
+  "wordsmith",
+  "wordhunt",
+  "stroop",
+  "wordmatch",
+  "pctsprint",
+  "spin",
+  "mirmatch",
+  "gonogo",
+  "spotdiff",
+  "groups",
+  "ladder",
 ]);
 
 const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
@@ -80,7 +97,8 @@ export const PUZZLE_REGISTRY = Object.fromEntries(
     type,
     {
       ...definition,
-      revealMs: definition.revealMs ?? (LONG_REVEAL_TYPES.has(type as PuzzleType) ? 8_000 : REVEAL_MS),
+      revealMs:
+        definition.revealMs ?? (LONG_REVEAL_TYPES.has(type as PuzzleType) ? 8_000 : REVEAL_MS),
       roundSummary: ROUND_SUMMARIES[type as PuzzleType],
       correctAnswer: CORRECT_ANSWERS[type as PuzzleType],
     },

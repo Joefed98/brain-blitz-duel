@@ -31,13 +31,7 @@ export type PuzzleType =
   | "sudoku";
 
 export type PuzzleCategory =
-  | "word"
-  | "number"
-  | "memory"
-  | "speed"
-  | "attention"
-  | "pattern"
-  | "logic";
+  "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
 
 /** Wordsmith: build as many words as you can from the tiles. */
 export const WORDSMITH_TIME_MS = 60_000;
@@ -231,13 +225,7 @@ export interface GoNoGoPuzzleData {
 }
 
 /** Pattern Completion draws its own shapes, including two the glyph set lacks. */
-export type PatternShape =
-  | "circle"
-  | "square"
-  | "triangle"
-  | "star"
-  | "hexagon"
-  | "arrow";
+export type PatternShape = "circle" | "square" | "triangle" | "star" | "hexagon" | "arrow";
 
 /** Only triangles and arrows show their rotation; everything else stays at 0. */
 export type PatternRotation = 0 | 90 | 180 | 270;
@@ -834,21 +822,24 @@ export const PIPES_CELLS = PIPES_COLS * PIPES_COLS;
 export const PIPES_TIME_MS = 60_000;
 export const PIPES_PARTIAL_POINTS = 60;
 
-export type PipeShape = "end" | "straight" | "corner" | "tee";
+export type PipeShape = "end" | "straight" | "corner" | "tee" | "cross";
 
+/**
+ * A tile is nothing but its set of open sides — north 1, east 2, south 4,
+ * west 8. The drawn shape is derived from that set, so there is no shape name
+ * plus rotation to keep in step.
+ */
 export interface PipeTile {
-  shape: PipeShape;
-  /** Quarter turns clockwise, 0–3. */
-  rot: number;
+  sides: number;
 }
 
 export interface PipesPuzzleData {
   type: "pipes";
-  /** Thirty-six tiles in their scrambled starting rotations. */
+  /** Thirty-six tiles with their scrambled open sides. */
   tiles: PipeTile[];
-  /** The cell water flows from. */
+  /** The cell water flows from — the root of the spanning tree. */
   source: number;
-  /** Server-side only: the solved rotation of every tile. */
+  /** Server-side only: the solved open sides of every tile. */
   solution?: number[];
 }
 

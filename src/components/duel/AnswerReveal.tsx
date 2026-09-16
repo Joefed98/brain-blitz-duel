@@ -28,7 +28,15 @@ function Verdict({ correct }: { correct: boolean }) {
         correct ? "border-me text-me" : "border-warn text-warn"
       }`}
     >
-      <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        className="h-7 w-7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        aria-hidden="true"
+      >
         {correct ? (
           <path
             d="m5 13 4.5 4.5L19 7"
@@ -45,7 +53,11 @@ function Verdict({ correct }: { correct: boolean }) {
             <path
               d="M18 6 6 18"
               className="animate-draw-stroke"
-              style={{ strokeDasharray: 24, ["--draw-length" as string]: 24, animationDelay: "120ms" }}
+              style={{
+                strokeDasharray: 24,
+                ["--draw-length" as string]: 24,
+                animationDelay: "120ms",
+              }}
             />
           </>
         )}
@@ -65,7 +77,10 @@ export function AnswerReveal({
   startedAt,
   now,
 }: AnswerRevealProps) {
-  const secondsLeft = Math.max(0, Math.ceil((puzzleRevealMs(puzzle) - Math.max(0, now - startedAt)) / 1000));
+  const secondsLeft = Math.max(
+    0,
+    Math.ceil((puzzleRevealMs(puzzle) - Math.max(0, now - startedAt)) / 1000),
+  );
   const def = puzzleDef(puzzle.type);
   const Reveal = def.Reveal;
   const cued = useRef(0);

@@ -1,12 +1,6 @@
 import { decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
 import { decodeGroupsAnswer, matchGroupsSelection } from "./groups.server";
-import {
-  decodePresses,
-  decodeRotations,
-  lightsAllOff,
-  lightsOnCount,
-  replayLights,
-} from "./logic";
+import { decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
 import { numberClimbSpan } from "./numberClimb";
 import { validateLadder } from "./wordLadder.server";
@@ -72,6 +66,26 @@ export interface Graded {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+/** Network allowance between a player's tap and the server receiving it. */
+export const TIME_CLAIM_TOLERANCE_MS = 1_500;
+
+/**
+ * The phone times its own tap against the shared round start, which is the only
+ * fair measure. The server keeps that figure unless it is impossible — more
+ * time left than the server's own receipt time allows, network grace included.
+ */
+export function trustedMsRemaining(
+  claimedMs: number,
+  serverMsRemaining: number,
+  timeLimitMs: number,
+): { ms: number; clamped: boolean } {
+  const claim = Number(claimedMs);
+  const bounded = Number.isFinite(claim) ? clamp(claim, 0, timeLimitMs) : 0;
+  const ceiling = clamp(serverMsRemaining, 0, timeLimitMs) + TIME_CLAIM_TOLERANCE_MS;
+  if (bounded > ceiling) return { ms: clamp(serverMsRemaining, 0, timeLimitMs), clamped: true };
+  return { ms: bounded, clamped: false };
 }
 
 /**
@@ -199,7 +213,10 @@ export function gradeSubmission(
     }
     case "symscan": {
       const selected = new Set(
-        answer.split(",").map((v) => Number.parseInt(v, 10)).filter(Number.isFinite),
+        answer
+          .split(",")
+          .map((v) => Number.parseInt(v, 10))
+          .filter(Number.isFinite),
       );
       correctCount = puzzle.targets.filter((target) => selected.has(target)).length;
       errors = [...selected].filter((index) => !puzzle.targets.includes(index)).length;
@@ -283,8 +300,8 @@ export function gradeSubmission(
     }
     case "pipes": {
       // Connectivity and leaks are worked out here, so any valid layout counts.
-      const board = decodeRotations(puzzle.tiles, answer);
-      const verdict = gradePipesBoard(puzzle.tiles, puzzle.source, board);
+      const board = decodeSides(puzzle.tiles, answer);
+      const verdict = gradePipesBoard(puzzle.source, board);
       isCorrect = verdict.solved;
       correctCount = verdict.connected;
       score = scorePipes(verdict.solved, verdict.connected, ms);
@@ -306,5 +323,14 @@ export function gradeSubmission(
     }
   }
 
-  return { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra: extraDetail, storedMs };
+  return {
+    answer,
+    isCorrect,
+    score,
+    reactionAvgMs,
+    correctCount,
+    errors,
+    extra: extraDetail,
+    storedMs,
+  };
 }

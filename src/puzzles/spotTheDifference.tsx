@@ -420,9 +420,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /* -------------------------------------------------------------------------- */
 
 function otherColour(colour: StroopColour): StroopColour {
-  const banned = TOO_CLOSE.flatMap(([a, b]) =>
-    colour === a ? [b] : colour === b ? [a] : [],
-  );
+  const banned = TOO_CLOSE.flatMap(([a, b]) => (colour === a ? [b] : colour === b ? [a] : []));
   const options = COLOUR_KEYS.filter((c) => c !== colour && !banned.includes(c));
   return pick(options);
 }
