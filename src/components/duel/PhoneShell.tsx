@@ -7,12 +7,18 @@ interface PhoneShellProps {
   children: ReactNode;
   /** Hide the slim top bar (the home screen carries its own big wordmark). */
   bare?: boolean;
+  /** Lock active puzzle and reveal layouts to the device viewport. */
+  constrained?: boolean;
 }
 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
-export function PhoneShell({ children, bare = false }: PhoneShellProps) {
+export function PhoneShell({ children, bare = false, constrained = false }: PhoneShellProps) {
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-background">
+    <div
+      className={`relative w-full bg-background ${
+        constrained ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
+      }`}
+    >
       {/* Depth: one soft warm glow top-centre, one cool glow bottom, faint grid. */}
       <div
         aria-hidden="true"
@@ -31,7 +37,11 @@ export function PhoneShell({ children, bare = false }: PhoneShellProps) {
           backgroundSize: "44px 44px",
         }}
       />
-      <div className="relative mx-auto flex h-[100dvh] min-h-0 w-full max-w-[430px] flex-col overflow-hidden pad-safe">
+      <div
+        className={`relative mx-auto flex min-h-0 w-full max-w-[430px] flex-col pad-safe ${
+          constrained ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
+        }`}
+      >
         {!bare && (
           <div className="mb-2 flex items-center justify-between">
             <Wordmark />
