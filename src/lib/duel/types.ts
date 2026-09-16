@@ -25,9 +25,19 @@ export type PuzzleType =
   | "mirmatch"
   | "wordhunt"
   | "unblock"
-  | "blockparty";
+  | "blockparty"
+  | "lightsout"
+  | "pipes"
+  | "sudoku";
 
-export type PuzzleCategory = "word" | "number" | "memory" | "speed" | "attention" | "pattern";
+export type PuzzleCategory =
+  | "word"
+  | "number"
+  | "memory"
+  | "speed"
+  | "attention"
+  | "pattern"
+  | "logic";
 
 /** Wordsmith: build as many words as you can from the tiles. */
 export const WORDSMITH_TIME_MS = 60_000;
@@ -347,7 +357,10 @@ export type PuzzleData =
   | MirrorPuzzleData
   | WordHuntPuzzleData
   | UnblockPuzzleData
-  | BlockPartyPuzzleData;
+  | BlockPartyPuzzleData
+  | LightsOutPuzzleData
+  | PipesPuzzleData
+  | SudokuPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result";
@@ -783,4 +796,80 @@ export interface BlockPartyPuzzleData {
   solution?: BlockPlacement[];
   /** Server-side only: how many solutions the layout has (capped). */
   solutions?: number;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Lights Out                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export const LIGHTS_COLS = 5;
+export const LIGHTS_CELLS = LIGHTS_COLS * LIGHTS_COLS;
+export const LIGHTS_TIME_MS = 45_000;
+/** Presses used to build a pattern. */
+export const LIGHTS_MIN_BUILD = 5;
+export const LIGHTS_MAX_BUILD = 8;
+/** Patterns with fewer lights than this are thrown away. */
+export const LIGHTS_MIN_ON = 6;
+/** Bonus for solving in the fewest possible presses. */
+export const LIGHTS_MIN_BONUS = 20;
+/** Most a partly-cleared board can earn. */
+export const LIGHTS_PARTIAL_POINTS = 60;
+
+export interface LightsOutPuzzleData {
+  type: "lightsout";
+  /** Twenty-five lights, true for lit, in the order every player sees them. */
+  lights: boolean[];
+  /** Server-side only: the fewest presses this pattern can be cleared in. */
+  minPresses?: number;
+  /** Server-side only: one shortest press set. */
+  solution?: number[];
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Pipes                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export const PIPES_COLS = 6;
+export const PIPES_CELLS = PIPES_COLS * PIPES_COLS;
+export const PIPES_TIME_MS = 60_000;
+export const PIPES_PARTIAL_POINTS = 60;
+
+export type PipeShape = "end" | "straight" | "corner" | "tee";
+
+export interface PipeTile {
+  shape: PipeShape;
+  /** Quarter turns clockwise, 0–3. */
+  rot: number;
+}
+
+export interface PipesPuzzleData {
+  type: "pipes";
+  /** Thirty-six tiles in their scrambled starting rotations. */
+  tiles: PipeTile[];
+  /** The cell water flows from. */
+  source: number;
+  /** Server-side only: the solved rotation of every tile. */
+  solution?: number[];
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Mini Sudoku                                                               */
+/* -------------------------------------------------------------------------- */
+
+export const SUDOKU_COLS = 6;
+export const SUDOKU_CELLS = SUDOKU_COLS * SUDOKU_COLS;
+/** Boxes are two rows tall and three columns wide. */
+export const SUDOKU_BOX_ROWS = 2;
+export const SUDOKU_BOX_COLS = 3;
+export const SUDOKU_TIME_MS = 90_000;
+export const SUDOKU_MIN_GIVENS = 14;
+export const SUDOKU_MAX_GIVENS = 16;
+export const SUDOKU_PARTIAL_POINTS = 60;
+
+export interface SudokuPuzzleData {
+  type: "sudoku";
+  /** Thirty-six cells: the fixed digits, 0 where the player must fill in. */
+  givens: number[];
+  /** Server-side only: the one grid the givens allow. */
+  solution?: number[];
 }

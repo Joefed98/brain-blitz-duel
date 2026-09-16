@@ -24,6 +24,14 @@ import {
   UNBLOCK_TIME_MS,
   WORDMATCH_ITEMS,
   WORDMATCH_TIME_MS,
+  LIGHTS_MIN_BONUS,
+  LIGHTS_PARTIAL_POINTS,
+  LIGHTS_TIME_MS,
+  PIPES_CELLS,
+  PIPES_PARTIAL_POINTS,
+  PIPES_TIME_MS,
+  SUDOKU_PARTIAL_POINTS,
+  SUDOKU_TIME_MS,
   type DuelPlayerRow,
   type PlayerStatus,
   type RoundResultRow,
@@ -409,4 +417,54 @@ export function scoreBlockParty(solved: boolean, msRemaining: number, covered: n
   }
   const cells = clamp(covered, 0, BLOCK_FREE_CELLS);
   return Math.round((BLOCK_PARTIAL_POINTS * cells) / BLOCK_FREE_CELLS);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Logic types                                                                */
+/* -------------------------------------------------------------------------- */
+
+/** Lights Out: clearing the board scores the standard points, +20 for the minimum. */
+export function scoreLightsOut(
+  solved: boolean,
+  presses: number,
+  minPresses: number,
+  msRemaining: number,
+  lightsOff: number,
+  lightsAtStart: number,
+): number {
+  if (solved) {
+    const bonus = minPresses > 0 && presses === minPresses ? LIGHTS_MIN_BONUS : 0;
+    return Math.min(
+      MAX_ROUND_SCORE,
+      BASE_POINTS + speedBonus(msRemaining, LIGHTS_TIME_MS) + bonus,
+    );
+  }
+  const start = Math.max(1, lightsAtStart);
+  return clamp(Math.round((LIGHTS_PARTIAL_POINTS * lightsOff) / start), 0, LIGHTS_PARTIAL_POINTS);
+}
+
+/** Pipes: a fully connected network scores the standard points. */
+export function scorePipes(solved: boolean, connected: number, msRemaining: number): number {
+  if (solved) return BASE_POINTS + speedBonus(msRemaining, PIPES_TIME_MS);
+  return clamp(
+    Math.round((PIPES_PARTIAL_POINTS * connected) / PIPES_CELLS),
+    0,
+    PIPES_PARTIAL_POINTS,
+  );
+}
+
+/** Mini Sudoku: a finished, rule-correct grid scores the standard points. */
+export function scoreSudoku(
+  solved: boolean,
+  correctCells: number,
+  totalCells: number,
+  msRemaining: number,
+): number {
+  if (solved) return BASE_POINTS + speedBonus(msRemaining, SUDOKU_TIME_MS);
+  const total = Math.max(1, totalCells);
+  return clamp(
+    Math.round((SUDOKU_PARTIAL_POINTS * correctCells) / total),
+    0,
+    SUDOKU_PARTIAL_POINTS,
+  );
 }

@@ -22,6 +22,10 @@ import {
   WORDMATCH_TIME_MS,
   WORD_LADDER_TIME_MS,
   NUMBER_CLIMB_TIME_MS,
+  LIGHTS_TIME_MS,
+  PIPES_CELLS,
+  PIPES_TIME_MS,
+  SUDOKU_TIME_MS,
   type GoNoGoItem,
   type PlayerRoundDetail,
   type PuzzleData,
@@ -64,6 +68,12 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
       ? WORD_LADDER_TIME_MS
     : puzzle.type === "numclimb"
       ? NUMBER_CLIMB_TIME_MS
+    : puzzle.type === "lightsout"
+      ? LIGHTS_TIME_MS
+    : puzzle.type === "pipes"
+      ? PIPES_TIME_MS
+    : puzzle.type === "sudoku"
+      ? SUDOKU_TIME_MS
       : puzzle.type === "wordsmith"
         ? WORDSMITH_TIME_MS
         : puzzle.type === "wordhunt"
@@ -419,6 +429,57 @@ const numberClimbSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
+const lightsOutSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "lightsout") return { summary: "—", detail: [] };
+  const presses = Number(result.extra?.["presses"] ?? 0);
+  const min = Number(result.extra?.["minPresses"] ?? puzzle.minPresses ?? 0);
+  const startOn = Number(result.extra?.["lightsAtStart"] ?? 0);
+  const left = Number(result.extra?.["lightsLeft"] ?? startOn);
+  if (result.is_correct) {
+    return {
+      summary: `Solved · ${presses} presses (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: [
+        presses === min ? "Cleared in the fewest presses" : `${presses - min} more than the minimum`,
+      ],
+    };
+  }
+  return {
+    summary: `Not solved · ${startOn - left} / ${startOn} off`,
+    detail: [`${presses} press${presses === 1 ? "" : "es"} used`],
+  };
+};
+
+const pipesSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "pipes") return { summary: "—", detail: [] };
+  const connected = Number(result.extra?.["connected"] ?? 0);
+  if (result.is_correct) {
+    return {
+      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: ["Every pipe connected, no leaks"],
+    };
+  }
+  return {
+    summary: `${connected} / ${PIPES_CELLS} connected`,
+    detail: [`${PIPES_CELLS - connected} tiles left off the network`],
+  };
+};
+
+const sudokuSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "sudoku") return { summary: "—", detail: [] };
+  const correct = Number(result.extra?.["correct"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? puzzle.givens.filter((given) => !given).length);
+  if (result.is_correct) {
+    return {
+      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: [`All ${total} cells filled correctly`],
+    };
+  }
+  return {
+    summary: `${correct} / ${total} cells`,
+    detail: [`${total - correct} cells wrong or empty`],
+  };
+};
+
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
   groups: groupsSummary,
@@ -447,6 +508,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordhunt: wordHuntSummary,
   unblock: unblockSummary,
   blockparty: blockPartySummary,
+  lightsout: lightsOutSummary,
+  pipes: pipesSummary,
+  sudoku: sudokuSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -481,4 +545,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   wordhunt: () => null,
   unblock: (p) => p.type === "unblock" && p.minMoves ? `${p.minMoves} moves` : null,
   blockparty: () => null,
+  lightsout: (p) => (p.type === "lightsout" && p.minPresses ? `${p.minPresses} presses` : null),
+  pipes: () => null,
+  sudoku: () => null,
 };
