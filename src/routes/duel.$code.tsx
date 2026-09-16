@@ -414,6 +414,7 @@ function DuelScreen() {
     } = latest.current;
     if (!room || !player || !current || mine) return;
     unlockAudio();
+    playLock();
     buzz(15);
     void submitAnswer({
       duelId: room.id,
@@ -458,6 +459,7 @@ function DuelScreen() {
   const handleStart = async () => {
     if (!duel) return;
     unlockAudio();
+    playLock();
     setStarting(true);
     try {
       await startRoom(duel.id);
@@ -587,6 +589,7 @@ function DuelScreen() {
           activeCount={activeCount}
           onReady={() => {
             unlockAudio();
+            playLock();
             buzz(15);
             void readyUp(duel.id, round);
           }}
