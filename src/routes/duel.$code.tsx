@@ -568,7 +568,13 @@ function DuelScreen() {
         </div>
 
         {showTimer && (
-          <div className="flex scale-[0.78] justify-center -my-3">
+          <div
+            className={`flex justify-center -my-3 ${
+              puzzle?.type === "spotdiff"
+                ? "h-[84px] shrink-0 items-center scale-[0.68] [@media(max-height:680px)]:h-[72px] [@media(max-height:680px)]:scale-[0.58]"
+                : "scale-[0.78]"
+            }`}
+          >
             <TimerRing
               msRemaining={myResult ? 0 : msRemaining}
               totalMs={timeLimitMs}
@@ -577,28 +583,29 @@ function DuelScreen() {
           </div>
         )}
 
-        {isMulti ? (
-          <SoloScoreStrip
-            name={me.display_name}
-            total={myTotal}
-            position={myStanding?.position ?? 1}
-            playerCount={roomPlayers.length}
-          />
-        ) : (
-          <ScoreStrip
-            myName={me.display_name}
-            opponentName={opponent?.display_name ?? "Opponent"}
-            myTotal={myTotal}
-            opponentTotal={opponentTotal}
-          />
-        )}
+        {puzzle?.type !== "spotdiff" &&
+          (isMulti ? (
+            <SoloScoreStrip
+              name={me.display_name}
+              total={myTotal}
+              position={myStanding?.position ?? 1}
+              playerCount={roomPlayers.length}
+            />
+          ) : (
+            <ScoreStrip
+              myName={me.display_name}
+              opponentName={opponent?.display_name ?? "Opponent"}
+              myTotal={myTotal}
+              opponentTotal={opponentTotal}
+            />
+          ))}
 
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           {puzzle && Stage && (
             <div
-              className={
+              className={`flex min-h-0 flex-1 flex-col ${
                 myResult ? "pointer-events-none opacity-30 transition-opacity duration-200" : ""
-              }
+              }`}
             >
               <Stage
                 puzzle={puzzle}
