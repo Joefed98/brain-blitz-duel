@@ -286,7 +286,13 @@ function PracticeScreen() {
         </div>
 
         {puzzleShowsTimer(puzzle) && (
-          <div className="flex scale-[0.78] justify-center -my-3">
+          <div
+            className={`flex justify-center -my-3 ${
+              puzzle.type === "spotdiff"
+                ? "scale-[0.68] [@media(max-height:680px)]:scale-[0.58]"
+                : "scale-[0.78]"
+            }`}
+          >
             <TimerRing msRemaining={msRemaining} totalMs={timeLimitMs} active={clockActive} />
           </div>
         )}

@@ -127,6 +127,7 @@ function Panel({
   onTap,
   height,
   rows = SPOT_ROWS,
+  fitHeight = false,
 }: {
   shapes: SpotShape[];
   /** Cells ringed in gold. */
@@ -136,13 +137,16 @@ function Panel({
   height?: number;
   /** Crop the panel to the first rows — used by the small intro example. */
   rows?: number;
+  /** Fit inside an equal-height play area instead of sizing from the full width. */
+  fitHeight?: boolean;
 }) {
   return (
     <svg
       viewBox={`0 0 ${PANEL_W} ${rows * CELL_H}`}
       width="100%"
+      preserveAspectRatio="xMidYMid meet"
       {...(height ? { height } : {})}
-      className="block w-full select-none"
+      className={`block select-none ${fitHeight ? "h-full min-h-0 w-full" : "w-full"}`}
       style={{ touchAction: "manipulation" }}
     >
       {shapes.map((shape) => (
@@ -333,32 +337,35 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   };
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3">
-      <p className="font-mono text-sm uppercase tracking-widest text-primary">
+    <div className="spot-difference-stage flex min-h-0 flex-1 flex-col items-center gap-2">
+      <p className="shrink-0 font-mono text-sm uppercase tracking-widest text-primary">
         {foundGroups.length} / {total} found
       </p>
       <div
-        className={`w-full overflow-hidden rounded-2xl border border-border bg-card ${
+        className={`flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card ${
           wrong !== null ? "animate-shake" : ""
         }`}
       >
-        <Panel
-          shapes={puzzle.top}
-          found={foundCells}
-          wrongCell={wrong}
-          onTap={tap}
-        />
-        <div className="h-[2px] w-full bg-primary" />
-        <Panel
-          shapes={puzzle.bottom}
-          found={foundCells}
-          wrongCell={wrong}
-          onTap={tap}
-        />
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+          <Panel
+            shapes={puzzle.top}
+            found={foundCells}
+            wrongCell={wrong}
+            onTap={tap}
+            fitHeight
+          />
+        </div>
+        <div className="h-[2px] w-full shrink-0 bg-primary" />
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+          <Panel
+            shapes={puzzle.bottom}
+            found={foundCells}
+            wrongCell={wrong}
+            onTap={tap}
+            fitHeight
+          />
+        </div>
       </div>
-      <p className="text-center text-xs text-muted-foreground">
-        Tap each difference in either picture.
-      </p>
     </div>
   );
 }
