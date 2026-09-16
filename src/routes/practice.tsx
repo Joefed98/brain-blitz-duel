@@ -27,7 +27,7 @@ import {
 import { clearStageState } from "@/lib/duel/stageState";
 import { INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { unlockAudio } from "@/lib/sound";
+import { playCorrect, playLock, playRoundStart, unlockAudio } from "@/lib/sound";
 import type { SubmitMeta } from "@/puzzles/types";
 
 export const Route = createFileRoute("/practice")({
@@ -114,6 +114,7 @@ function PracticeScreen() {
     async (answer: string, meta?: SubmitMeta) => {
       if (!puzzle || grading.current) return;
       grading.current = true;
+      playLock();
       buzz(15);
       const remaining =
         clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - Date.now());
