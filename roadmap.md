@@ -14,3 +14,7 @@
 - [x] Replace Odd-Word-Out with secure Groups puzzle, summaries, reveal, and practice verification
 - [x] Replace Missing Letters with secure Word Ladder and verify practice flow
 - [x] Replace Number Span with secure Number Climb and verify timing, scoring, and reveals
+
+- [x] Keep in-progress puzzle input outside the room-update render tree (round-keyed store)
+- [x] Measure answer times on the player's device against a calibrated shared clock, validated server-side
+- [x] Rebuild Pipes from a proven spanning tree; 200-board solvability test
