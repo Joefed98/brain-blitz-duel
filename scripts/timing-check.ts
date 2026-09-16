@@ -9,7 +9,13 @@ const LIMIT = 30_000;
 const cases: { name: string; claim: number; server: number; want: number; clamped: boolean }[] = [
   { name: "fast link, honest claim", claim: 24_300, server: 24_250, want: 24_300, clamped: false },
   { name: "slow link, 1.2s behind", claim: 24_300, server: 23_100, want: 24_300, clamped: false },
-  { name: "exactly at tolerance", claim: 20_000, server: 20_000 - TIME_CLAIM_TOLERANCE_MS, want: 20_000, clamped: false },
+  {
+    name: "exactly at tolerance",
+    claim: 20_000,
+    server: 20_000 - TIME_CLAIM_TOLERANCE_MS,
+    want: 20_000,
+    clamped: false,
+  },
   { name: "impossible claim", claim: 29_000, server: 12_000, want: 12_000, clamped: true },
   { name: "over the limit", claim: 45_000, server: 29_500, want: 30_000, clamped: false },
   { name: "negative claim", claim: -500, server: 100, want: 0, clamped: false },
@@ -20,7 +26,9 @@ const cases: { name: string; claim: number; server: number; want: number; clampe
 for (const c of cases) {
   const got = trustedMsRemaining(c.claim, c.server, LIMIT);
   if (got.ms !== c.want || got.clamped !== c.clamped) {
-    throw new Error(`${c.name}: got ${got.ms}ms clamped=${got.clamped}, wanted ${c.want}ms clamped=${c.clamped}`);
+    throw new Error(
+      `${c.name}: got ${got.ms}ms clamped=${got.clamped}, wanted ${c.want}ms clamped=${c.clamped}`,
+    );
   }
 }
 

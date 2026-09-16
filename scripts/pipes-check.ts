@@ -26,7 +26,8 @@ for (let board = 0; board < 200; board++) {
   });
 
   // The scrambled board is not already solved, and mostly starts wrong.
-  if (pipesState(puzzle.tiles, puzzle.source).solved) throw new Error(`board ${board}: starts solved`);
+  if (pipesState(puzzle.tiles, puzzle.source).solved)
+    throw new Error(`board ${board}: starts solved`);
   const wrong = puzzle.tiles.filter((tile, cell) => tileOpenings(tile) !== solution[cell]).length;
   minWrong = Math.min(minWrong, wrong / PIPES_CELLS);
   if (wrong / PIPES_CELLS < 0.8) throw new Error(`board ${board}: only ${wrong} tiles wrong`);
