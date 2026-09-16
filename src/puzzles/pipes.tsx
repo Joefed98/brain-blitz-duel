@@ -121,7 +121,11 @@ function PipesBoard({
   return (
     <div
       className="mx-auto grid aspect-square h-full max-h-full w-full max-w-full"
-      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap }}
+      style={{
+        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${Math.ceil(tiles.length / cols)}, minmax(0, 1fr))`,
+        gap,
+      }}
     >
       {tiles.map((tile, cell) => (
         <PipeTileView
