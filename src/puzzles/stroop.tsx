@@ -37,7 +37,13 @@ function expected(item: StroopItem): StroopColour {
   return item.instruction === "ink" ? item.ink : item.word;
 }
 
-function InstructionPill({ instruction, small }: { instruction: StroopInstruction; small?: boolean }) {
+function InstructionPill({
+  instruction,
+  small,
+}: {
+  instruction: StroopInstruction;
+  small?: boolean;
+}) {
   return (
     <span
       className={`inline-block whitespace-nowrap rounded-full bg-foreground/90 font-mono font-bold uppercase tracking-widest text-background ${
@@ -179,7 +185,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           return (
             <div key={index} className="flex min-w-0 items-center justify-between gap-1">
               <InstructionPill instruction={item.instruction} small />
-              <span className="truncate font-display text-xs font-bold" style={{ color: hexFor(item.ink) }}>
+              <span
+                className="truncate font-display text-xs font-bold"
+                style={{ color: hexFor(item.ink) }}
+              >
                 {item.word}
               </span>
               <span

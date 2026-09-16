@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
@@ -31,6 +31,7 @@ import {
   submitAnswer,
 } from "@/lib/duel/api";
 import { serverNow, toMs } from "@/lib/duel/clock";
+import { clearStageState } from "@/lib/duel/stageState";
 import {
   duelOutcome,
   resultFor,
@@ -154,8 +155,6 @@ function LobbyActions({ roomCode }: { roomCode: string }) {
   );
 }
 
-
-
 function DuelScreen() {
   const { code } = Route.useParams();
   const navigate = useNavigate();
@@ -178,12 +177,28 @@ function DuelScreen() {
   }, [duel?.id]);
 
   const round = duel?.current_round ?? 0;
-  const puzzle = duel && round > 0 ? duel.puzzles_public[round - 1] : undefined;
   const phase = duel?.phase ?? "intro";
+
+  /**
+   * The round's puzzle never changes once the round starts, so it is held by
+   * room + round rather than taken fresh from every refreshed room row. That
+   * keeps the puzzle object identical while a round is live, so a realtime
+   * update cannot re-mount or reset the puzzle a player is working on.
+   */
+  const stateKey = duel && round > 0 ? `${duel.id}-${round}` : "";
+  const incoming = duel && round > 0 ? duel.puzzles_public[round - 1] : undefined;
+  const heldPuzzle = useRef<{ key: string; value: PuzzleData | undefined }>({
+    key: "",
+    value: undefined,
+  });
+  if (heldPuzzle.current.key !== stateKey) heldPuzzle.current = { key: stateKey, value: incoming };
+  const puzzle = heldPuzzle.current.value;
 
   useEffect(() => {
     draftAnswer.current = "";
-  }, [duel?.id, round]);
+    // The previous round's inputs are no longer needed once a new round opens.
+    if (duel && round > 1) clearStageState(`${duel.id}-${round - 1}`);
+  }, [duel?.id, round]); // eslint-disable-line react-hooks/exhaustive-deps
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
   // The clock starts once any puzzle preparation (sequence playback) is done.
@@ -288,7 +303,18 @@ function DuelScreen() {
     lastAdvance.current = Date.now();
     void advancePhase(duel.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duel, leads, phase, phaseStart, now, round, roomPlayers, answeredThisRound, activeCount, deadline]);
+  }, [
+    duel,
+    leads,
+    phase,
+    phaseStart,
+    now,
+    round,
+    roomPlayers,
+    answeredThisRound,
+    activeCount,
+    deadline,
+  ]);
 
   // The correct answer only exists on the client once the round has ended.
   useEffect(() => {
@@ -310,29 +336,63 @@ function DuelScreen() {
     let cancelled = false;
     void (async () => {
       const next = await fetchDuelById(nextId);
-      if (next && !cancelled) await navigate({ to: "/duel/$code", params: { code: next.room_code } });
+      if (next && !cancelled)
+        await navigate({ to: "/duel/$code", params: { code: next.room_code } });
     })();
     return () => {
       cancelled = true;
     };
   }, [duel?.next_duel_id, me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSubmit = (answer: string, meta?: SubmitMeta) => {
-    if (!duel || !me || !puzzle || myResult) return;
+  /**
+   * The callbacks handed to a puzzle keep the same identity for the whole round
+   * — the latest room state is read through a ref instead — so nothing inside
+   * the puzzle re-runs because the room changed.
+   */
+  const latest = useRef({ duel, me, puzzle, myResult, round, clockDeadline });
+  latest.current = { duel, me, puzzle, myResult, round, clockDeadline };
+
+  const handleSubmit = useCallback((answer: string, meta?: SubmitMeta) => {
+    // The elapsed time is measured here, at the moment of the player's action.
+    const at = serverNow();
+    const {
+      duel: room,
+      me: player,
+      puzzle: current,
+      myResult: mine,
+      round: roundNumber,
+    } = latest.current;
+    if (!room || !player || !current || mine) return;
     unlockAudio();
     buzz(15);
     void submitAnswer({
-      duelId: duel.id,
-      roundNumber: round,
+      duelId: room.id,
+      roundNumber,
       answer,
-      msRemaining: clockDeadline === null ? 0 : Math.max(0, clockDeadline - serverNow()),
+      msRemaining:
+        latest.current.clockDeadline === null ? 0 : Math.max(0, latest.current.clockDeadline - at),
       extra: {
         reactionAvgMs: meta?.reactionAvgMs,
         correctCount: meta?.correctCount,
         errors: meta?.errors,
       },
     });
-  };
+  }, []);
+
+  const handleDraftAnswer = useCallback((answer: string) => {
+    draftAnswer.current = answer;
+  }, []);
+
+  const handleCheckWord = useCallback(
+    (word: string, found: string[], path?: number[]) =>
+      checkWord(latest.current.duel!.id, latest.current.round, word, found, path),
+    [],
+  );
+
+  const handleCheckGroup = useCallback(
+    (indices: number[]) => checkGroup(latest.current.duel!.id, latest.current.round, indices),
+    [],
+  );
 
   const handlePlayAgain = async () => {
     if (!duel || !me) return;
@@ -383,9 +443,7 @@ function DuelScreen() {
     return (
       <Centered>
         <h1 className="font-display text-2xl">You're not in this room</h1>
-        <p className="text-sm text-muted-foreground">
-          Head back home and join with the room code.
-        </p>
+        <p className="text-sm text-muted-foreground">Head back home and join with the room code.</p>
         <HomeButton />
       </Centered>
     );
@@ -492,7 +550,7 @@ function DuelScreen() {
       <PhoneShell constrained>
         <AnswerReveal
           round={round}
-           puzzle={revealed?.round === round ? revealed.data.puzzle : puzzle}
+          puzzle={revealed?.round === round ? revealed.data.puzzle : puzzle}
           answersReady={revealed?.round === round}
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
@@ -517,7 +575,7 @@ function DuelScreen() {
         <PhoneShell>
           <Standings
             round={round}
-             roundTitle={roundTitle}
+            roundTitle={roundTitle}
             rows={table}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
@@ -532,13 +590,13 @@ function DuelScreen() {
       <PhoneShell>
         <RoundResult
           round={round}
-           roundTitle={roundTitle}
+          roundTitle={roundTitle}
           myName={me.display_name}
           opponentName={opponent?.display_name ?? "Opponent"}
           myRoundScore={myResult?.score ?? 0}
-           mySummary={myStanding?.summary ?? "No answer"}
+          mySummary={myStanding?.summary ?? "No answer"}
           opponentRoundScore={opponentResult?.score ?? 0}
-           opponentSummary={opponentStanding?.summary ?? "No answer"}
+          opponentSummary={opponentStanding?.summary ?? "No answer"}
           myTotal={myTotal}
           opponentTotal={opponentTotal}
           autoSeconds={autoSeconds}
@@ -596,7 +654,8 @@ function DuelScreen() {
           </div>
         )}
 
-        {puzzle?.type !== "spotdiff" && puzzle?.type !== "blockparty" &&
+        {puzzle?.type !== "spotdiff" &&
+          puzzle?.type !== "blockparty" &&
           (isMulti ? (
             <SoloScoreStrip
               name={me.display_name}
@@ -620,17 +679,18 @@ function DuelScreen() {
                 myResult ? "pointer-events-none opacity-30 transition-opacity duration-200" : ""
               }`}
             >
+              {/* Keyed by the round alone: mounted once, never re-keyed by room updates. */}
               <Stage
+                key={stateKey}
+                stateKey={stateKey}
                 puzzle={puzzle}
                 phaseStartedAt={puzzleStart ?? now}
                 now={now}
                 locked={!!myResult}
                 onSubmit={handleSubmit}
-                onDraftAnswer={(answer) => { draftAnswer.current = answer; }}
-                checkWord={(word, found, path) =>
-                  checkWord(duel.id, round, word, found, path)
-                }
-                checkGroup={(indices) => checkGroup(duel.id, round, indices)}
+                onDraftAnswer={handleDraftAnswer}
+                checkWord={handleCheckWord}
+                checkGroup={handleCheckGroup}
               />
             </div>
           )}

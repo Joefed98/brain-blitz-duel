@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  decodeSudoku,
-  encodeSudoku,
-  sudokuBox,
-  sudokuSolved,
-} from "@/lib/duel/logic";
+import { decodeSudoku, encodeSudoku, sudokuBox, sudokuSolved } from "@/lib/duel/logic";
 import {
   SUDOKU_BOX_COLS,
   SUDOKU_BOX_ROWS,
@@ -49,7 +44,8 @@ function SudokuGrid({
   onSelect?: ((cell: number) => void) | undefined;
   cols?: number | undefined;
 }) {
-  const selectedRow = selected === null || selected === undefined ? -1 : Math.floor(selected / cols);
+  const selectedRow =
+    selected === null || selected === undefined ? -1 : Math.floor(selected / cols);
   const selectedCol = selected === null || selected === undefined ? -1 : selected % cols;
   const selectedBox = selected === null || selected === undefined ? -1 : sudokuBox(selected);
 
@@ -112,12 +108,8 @@ function SudokuGrid({
 
 /** Fixed intro example — never randomised. */
 const EXAMPLE_VALUES = [
-  1, 2, 3, 0, 5, 0,
-  4, 5, 6, 1, 0, 3,
-  0, 0, 0, 0, 6, 0,
-  0, 6, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 5,
-  0, 0, 0, 0, 0, 0,
+  1, 2, 3, 0, 5, 0, 4, 5, 6, 1, 0, 3, 0, 0, 0, 0, 6, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0,
+  0, 0, 0,
 ];
 
 function IntroExample() {
@@ -150,7 +142,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitted = useRef(false);
 
   const grid = useMemo(
-    () => givens.map((given, cell) => (given ? given : entries[cell] ?? 0)),
+    () => givens.map((given, cell) => (given ? given : (entries[cell] ?? 0))),
     [givens, entries],
   );
 

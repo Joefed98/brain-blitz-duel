@@ -132,5 +132,9 @@ export const practiceCheckGroupFn = createServerFn({ method: "POST" })
     const { matchGroupsSelection } = await import("./groups.server");
     const groupIndex = matchGroupsSelection(puzzle, data.indices.slice(0, 4));
     if (groupIndex === null) return { valid: false as const };
-    return { valid: true as const, groupIndex, theme: puzzle.groups?.[groupIndex]?.theme ?? "Group" };
+    return {
+      valid: true as const,
+      groupIndex,
+      theme: puzzle.groups?.[groupIndex]?.theme ?? "Group",
+    };
   });

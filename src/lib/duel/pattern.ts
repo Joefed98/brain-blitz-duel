@@ -256,9 +256,9 @@ function buildGrid(plan: Plan): PatternCell[] | null {
         } else if (rule.kind === "latin") {
           cell = withValue(cell, rule.attr, values[(r + c) % 3]!);
         } else if (rule.attr === "count") {
-          cell = withValue(cell, rule.attr, ((starts[r]! + c) as 1 | 2 | 3));
+          cell = withValue(cell, rule.attr, (starts[r]! + c) as 1 | 2 | 3);
         } else {
-          cell = withValue(cell, rule.attr, (((starts[r]! + 90 * c) % 360) as PatternRotation));
+          cell = withValue(cell, rule.attr, ((starts[r]! + 90 * c) % 360) as PatternRotation);
         }
       }
       cells.push(cell);

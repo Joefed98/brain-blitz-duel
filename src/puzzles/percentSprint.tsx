@@ -145,7 +145,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           const tap = taps[index];
           const got = tap === answerIndex;
           return (
-            <div key={index} className="flex min-w-0 items-center justify-between gap-1 text-[11px]">
+            <div
+              key={index}
+              className="flex min-w-0 items-center justify-between gap-1 text-[11px]"
+            >
               <span className="truncate font-mono tabular-nums">{item.question}</span>
               <span className="flex items-center gap-1 font-mono tabular-nums">
                 <span className="text-primary">{item.options[answerIndex] ?? "—"}</span>
@@ -263,7 +266,8 @@ function nearMisses(answer: number): number[] {
   let step = 1;
   while (picked.length < 3) {
     const value = answer + step;
-    if (value !== answer && value >= 1 && value <= 999 && !picked.includes(value)) picked.push(value);
+    if (value !== answer && value >= 1 && value <= 999 && !picked.includes(value))
+      picked.push(value);
     step = step > 0 ? -step : -step + 1;
   }
   return picked;

@@ -1,10 +1,5 @@
 import { puzzleDef, puzzleName, typeTimeLimitMs } from "@/lib/duel/registry";
-import {
-  INTRO_COUNTDOWN_MS,
-  INTRO_MS,
-  TOTAL_ROUNDS,
-  type PuzzleType,
-} from "@/lib/duel/types";
+import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 
 import { RoundPips } from "./RoundPips";
@@ -92,9 +87,7 @@ export function RoundIntro({
               disabled={ready}
               onClick={onReady}
               className={`press h-[60px] w-full rounded-2xl font-display text-2xl font-bold uppercase tracking-[0.12em] disabled:opacity-100 ${
-                ready
-                  ? "bg-opponent text-primary-foreground"
-                  : "bg-primary text-primary-foreground"
+                ready ? "bg-opponent text-primary-foreground" : "bg-primary text-primary-foreground"
               }`}
             >
               {ready ? "Ready ✓" : "Ready"}

@@ -18,7 +18,16 @@ export function MuteToggle() {
       onClick={() => setMuted(!muted)}
       className="press flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
     >
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        className="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
         <path d="M4 9v6h3l5 4V5L7 9H4Z" />
         {muted ? (
           <path d="m16 9 5 6m0-6-5 6" />

@@ -3,11 +3,7 @@
  * has proved it fits and counted how many ways it can be done.
  */
 
-import {
-  BLOCK_ORIENTATIONS,
-  BLOCK_PIECES,
-  absoluteCells,
-} from "./blockParty";
+import { BLOCK_ORIENTATIONS, BLOCK_PIECES, absoluteCells } from "./blockParty";
 import { shuffled } from "./random";
 import {
   BLOCK_BLOCKERS,

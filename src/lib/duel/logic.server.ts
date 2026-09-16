@@ -12,14 +12,10 @@ import {
   pipesState,
   pressLights,
   rotateMask,
-  rotationFor,
   shapeForMask,
   sudokuBox,
   tileOpenings,
-  PIPE_E,
-  PIPE_N,
-  PIPE_S,
-  PIPE_W,
+  PIPE_BITS,
 } from "./logic";
 import { pick, shuffled } from "./random";
 import {
@@ -164,71 +160,65 @@ export function generateLightsOut(): LightsOutPuzzleData {
 /*  Pipes                                                                      */
 /* -------------------------------------------------------------------------- */
 
-const PIPE_BITS = [PIPE_N, PIPE_E, PIPE_S, PIPE_W];
-
-/** A random spanning tree over the grid, with no cell taking a fourth pipe. */
-function spanningTree(): number[] | null {
+/**
+ * A random spanning tree over all 36 cells. Every cell is a node and edges only
+ * join orthogonal neighbours, so a cell's open sides are exactly the tree edges
+ * touching it — the board is solvable by construction.
+ */
+function spanningTree(): { masks: number[]; root: number } {
   const masks = new Array<number>(PIPES_CELLS).fill(0);
-  const degree = new Array<number>(PIPES_CELLS).fill(0);
   const visited = new Array<boolean>(PIPES_CELLS).fill(false);
-  const start = randomInt(PIPES_CELLS);
-  visited[start] = true;
+  const root = randomInt(PIPES_CELLS);
+  visited[root] = true;
 
-  let candidates: { from: number; bit: number }[] = PIPE_BITS.map((bit) => ({ from: start, bit }));
+  let frontier: { from: number; bit: number }[] = PIPE_BITS.map((bit) => ({ from: root, bit }));
 
-  while (true) {
-    candidates = candidates.filter(({ from, bit }) => {
+  while (frontier.length) {
+    frontier = frontier.filter(({ from, bit }) => {
       const to = pipeNeighbour(from, bit);
-      return to !== null && !visited[to] && degree[from]! < 3;
+      return to !== null && !visited[to];
     });
-    if (candidates.length === 0) break;
-    const choice = candidates[randomInt(candidates.length)]!;
+    if (!frontier.length) break;
+    const choice = frontier[randomInt(frontier.length)]!;
     const to = pipeNeighbour(choice.from, choice.bit)!;
     masks[choice.from]! |= choice.bit;
     masks[to]! |= rotateMask(choice.bit, 2);
-    degree[choice.from]! += 1;
-    degree[to]! += 1;
     visited[to] = true;
-    for (const bit of PIPE_BITS) candidates.push({ from: to, bit });
+    for (const bit of PIPE_BITS) frontier.push({ from: to, bit });
   }
 
-  return visited.every(Boolean) ? masks : null;
+  return { masks, root };
+}
+
+/** Turns each tile 1–3 quarter turns, never landing back on its solved sides. */
+function scramble(masks: number[]): { tiles: PipeTile[]; wrong: number } {
+  let wrong = 0;
+  const tiles = masks.map((solved) => {
+    const options = [1, 2, 3]
+      .map((turns) => rotateMask(solved, turns))
+      .filter((sides) => sides !== solved);
+    if (!options.length) return { sides: solved };
+    wrong += 1;
+    return { sides: pick(options) };
+  });
+  return { tiles, wrong };
 }
 
 export function generatePipes(): PipesPuzzleData {
-  let masks: number[] | null = null;
-  for (let attempt = 0; attempt < 400 && !masks; attempt++) masks = spanningTree();
-  if (!masks) {
-    // Snake fallback — always a valid degree-2 spanning path.
-    masks = new Array<number>(PIPES_CELLS).fill(0);
-    for (let cell = 0; cell < PIPES_CELLS - 1; cell++) {
-      const row = Math.floor(cell / PIPES_COLS);
-      const col = cell % PIPES_COLS;
-      const goingRight = row % 2 === 0;
-      const atEnd = goingRight ? col === PIPES_COLS - 1 : col === 0;
-      const bit = atEnd ? PIPE_S : goingRight ? PIPE_E : PIPE_W;
-      const to = pipeNeighbour(cell, bit)!;
-      masks[cell]! |= bit;
-      masks[to]! |= rotateMask(bit, 2);
-    }
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const { masks, root } = spanningTree();
+    const solved: PipeTile[] = masks.map((sides) => ({ sides }));
+
+    // Never ship a board the solved side-sets do not actually solve.
+    if (!pipesState(solved, root).solved) continue;
+
+    const { tiles, wrong } = scramble(masks);
+    // Cross tiles look the same in every orientation, so keep them rare.
+    if (wrong / PIPES_CELLS < 0.8) continue;
+
+    return { type: "pipes", tiles, source: root, solution: masks };
   }
-
-  const solvedTiles: PipeTile[] = masks.map((mask) => {
-    const shape = shapeForMask(mask);
-    return { shape, rot: rotationFor(shape, mask) };
-  });
-  const solution = solvedTiles.map((tile) => tile.rot);
-
-  // Scramble every tile away from its solved openings.
-  const tiles: PipeTile[] = solvedTiles.map((tile) => {
-    const solvedOpenings = tileOpenings(tile);
-    const options = [0, 1, 2, 3].filter(
-      (rot) => tileOpenings({ shape: tile.shape, rot }) !== solvedOpenings,
-    );
-    return { shape: tile.shape, rot: options.length ? pick(options) : tile.rot };
-  });
-
-  return { type: "pipes", tiles, source: randomInt(PIPES_CELLS), solution };
+  throw new Error("Pipes generator could not build a proven-solvable board");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -376,16 +366,14 @@ export function gradeSudokuGrid(
   return { solved, correct, total: blanks.length };
 }
 
-/** Server-side check of a Pipes submission: connectivity and leaks, not a diff. */
+/**
+ * Server-side check of a Pipes submission — the same flood-fill the phone runs
+ * live, never a diff against the stored solution.
+ */
 export function gradePipesBoard(
-  tiles: PipeTile[],
   source: number,
-  rotations: PipeTile[],
+  board: PipeTile[],
 ): { solved: boolean; connected: number } {
-  const board = rotations.map((tile, index) => ({
-    shape: tiles[index]?.shape ?? tile.shape,
-    rot: tile.rot,
-  }));
   const state = pipesState(board, source);
   return { solved: state.solved, connected: state.connected.size };
 }

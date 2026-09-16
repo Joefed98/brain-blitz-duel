@@ -62,7 +62,9 @@ function pathsFrom(start: string): Map<string, string[]> {
 }
 
 export function generateWordLadder(): WordLadderPuzzleData {
-  const candidates = graph().words.filter((word) => (graph().neighbours.get(word)?.length ?? 0) >= 2);
+  const candidates = graph().words.filter(
+    (word) => (graph().neighbours.get(word)?.length ?? 0) >= 2,
+  );
   for (const start of shuffled(candidates).slice(0, 80)) {
     const paths = pathsFrom(start);
     const targets = [...paths.entries()].filter(([, path]) => path.length >= 5 && path.length <= 7);
@@ -85,25 +87,39 @@ export function generateWordLadder(): WordLadderPuzzleData {
   };
 }
 
-export function checkLadderRung(previous: string, candidate: string): {
+export function checkLadderRung(
+  previous: string,
+  candidate: string,
+): {
   valid: boolean;
   word: string;
   reason?: string;
 } {
   const word = candidate.trim().toLowerCase();
   const before = previous.trim().toLowerCase();
-  if (word.length !== 4) return { valid: false, word: word.toUpperCase(), reason: "Use four letters." };
-  if (word === before) return { valid: false, word: word.toUpperCase(), reason: "Change one letter." };
-  if (!differsByOne(before, word)) return { valid: false, word: word.toUpperCase(), reason: "Change exactly one letter." };
-  if (!isWord(word)) return { valid: false, word: word.toUpperCase(), reason: "Not in the dictionary." };
+  if (word.length !== 4)
+    return { valid: false, word: word.toUpperCase(), reason: "Use four letters." };
+  if (word === before)
+    return { valid: false, word: word.toUpperCase(), reason: "Change one letter." };
+  if (!differsByOne(before, word))
+    return { valid: false, word: word.toUpperCase(), reason: "Change exactly one letter." };
+  if (!isWord(word))
+    return { valid: false, word: word.toUpperCase(), reason: "Not in the dictionary." };
   return { valid: true, word: word.toUpperCase() };
 }
 
-export function validateLadder(puzzle: WordLadderPuzzleData, raw: string): {
+export function validateLadder(
+  puzzle: WordLadderPuzzleData,
+  raw: string,
+): {
   validRungs: string[];
   solved: boolean;
 } {
-  const submitted = raw.split(",").map((word) => word.trim().toUpperCase()).filter(Boolean).slice(0, 30);
+  const submitted = raw
+    .split(",")
+    .map((word) => word.trim().toUpperCase())
+    .filter(Boolean)
+    .slice(0, 30);
   const validRungs: string[] = [];
   let previous = puzzle.startWord;
   for (const word of submitted) {

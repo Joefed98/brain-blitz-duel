@@ -36,9 +36,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Longer words score more. You have 60 seconds.
-      </p>
+      <p className="text-xs text-muted-foreground">Longer words score more. You have 60 seconds.</p>
     </div>
   );
 }
@@ -65,9 +63,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     .filter((word) => word.length > 0);
   const points = mine.reduce((sum, word) => sum + wordsmithPoints(word), 0);
   const par = puzzle.par ?? 0;
-  const missed = (puzzle.words ?? [])
-    .filter((entry) => !mine.includes(entry.word))
-    .slice(0, 5);
+  const missed = (puzzle.words ?? []).filter((entry) => !mine.includes(entry.word)).slice(0, 5);
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
@@ -79,10 +75,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       {mine.length > 0 && (
         <ul className="flex w-full flex-wrap justify-center gap-x-3 gap-y-1">
           {mine.map((word) => (
-            <li
-              key={word}
-              className="font-mono text-[10px] uppercase text-foreground"
-            >
+            <li key={word} className="font-mono text-[10px] uppercase text-foreground">
               <span>{word}</span>
               <span className="ml-1 text-primary">{wordsmithPoints(word)}</span>
             </li>

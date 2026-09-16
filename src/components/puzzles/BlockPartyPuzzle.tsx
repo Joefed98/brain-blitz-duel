@@ -305,7 +305,8 @@ export function BlockPartyPuzzle({
   const boardCell = boardSize / N;
   const trayRows = useMemo(() => {
     const rows: number[][] = [];
-    for (let index = 0; index < inTray.length; index += 3) rows.push(inTray.slice(index, index + 3));
+    for (let index = 0; index < inTray.length; index += 3)
+      rows.push(inTray.slice(index, index + 3));
     return rows;
   }, [inTray]);
   const trayHeightUnits = trayRows.reduce(
@@ -313,7 +314,9 @@ export function BlockPartyPuzzle({
     0,
   );
   const trayWidthUnits = Math.max(
-    ...trayRows.map((row) => row.reduce((sum, piece) => sum + offsetsSize(offsetsFor(piece)).cols, 0)),
+    ...trayRows.map((row) =>
+      row.reduce((sum, piece) => sum + offsetsSize(offsetsFor(piece)).cols, 0),
+    ),
     1,
   );
   const trayCell = Math.max(

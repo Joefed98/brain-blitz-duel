@@ -206,9 +206,7 @@ export const spatialMemoryPuzzle: PuzzleDefinition = {
     return sameTiles(parseTaps(answer), puzzle.tiles);
   },
   prepMs: (puzzle) =>
-    spatialPrepMs(
-      puzzle.type === "spatial" ? groupsOf(puzzle.tiles, puzzle.groupSize).length : 2,
-    ),
+    spatialPrepMs(puzzle.type === "spatial" ? groupsOf(puzzle.tiles, puzzle.groupSize).length : 2),
   IntroExample,
   Stage,
   Reveal,

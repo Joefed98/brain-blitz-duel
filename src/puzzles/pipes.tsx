@@ -1,32 +1,27 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import {
-  decodeRotations,
-  encodeRotations,
+  decodeSides,
+  encodeSides,
   pipesState,
+  rotateMask,
+  tileOpenings,
   PIPE_E,
   PIPE_N,
   PIPE_S,
   PIPE_W,
 } from "@/lib/duel/logic";
+import { useStageState } from "@/lib/duel/stageState";
 import {
   PIPES_CELLS,
   PIPES_COLS,
   PIPES_TIME_MS,
-  type PipeShape,
   type PipeTile,
   type PipesPuzzleData,
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
-
-const BASE_OPENINGS: Record<PipeShape, number> = {
-  end: PIPE_N,
-  straight: PIPE_N | PIPE_S,
-  corner: PIPE_N | PIPE_E,
-  tee: PIPE_N | PIPE_E | PIPE_S,
-};
 
 const ARMS: { bit: number; x: number; y: number }[] = [
   { bit: PIPE_N, x: 50, y: 0 },
@@ -35,26 +30,23 @@ const ARMS: { bit: number; x: number; y: number }[] = [
   { bit: PIPE_W, x: 0, y: 50 },
 ];
 
-/**
- * One pipe tile. The shape is drawn in its base orientation and the whole tile
- * is rotated, so a tap animates the turn over 120 ms.
- */
+/** One pipe tile, drawn straight from its set of open sides. */
 function PipeTileView({
   tile,
-  turns,
   lit,
   source,
   leak,
   onTap,
+  label,
 }: {
   tile: PipeTile;
-  turns: number;
   lit: boolean;
   source: boolean;
   leak?: boolean | undefined;
   onTap?: (() => void) | undefined;
+  label?: string;
 }) {
-  const mask = BASE_OPENINGS[tile.shape];
+  const mask = tileOpenings(tile);
   const stroke = lit ? "var(--primary)" : "var(--muted-foreground)";
   return (
     <button
@@ -64,17 +56,9 @@ function PipeTileView({
       className={`relative rounded-lg border transition-colors duration-100 ${
         lit ? "border-primary/60 bg-primary/10" : "border-border bg-card"
       }`}
-      aria-label="Pipe tile"
+      aria-label={label ?? "Pipe tile"}
     >
-      <svg
-        viewBox="0 0 100 100"
-        className="h-full w-full"
-        style={{
-          transform: `rotate(${turns * 90}deg)`,
-          transition: "transform 120ms ease-out",
-        }}
-        aria-hidden="true"
-      >
+      <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden="true">
         {ARMS.filter((arm) => mask & arm.bit).map((arm) => (
           <line
             key={arm.bit}
@@ -101,7 +85,6 @@ function PipeTileView({
 
 function PipesBoard({
   tiles,
-  turns,
   source,
   connected,
   leaks,
@@ -110,7 +93,6 @@ function PipesBoard({
   cols = PIPES_COLS,
 }: {
   tiles: PipeTile[];
-  turns: number[];
   source: number;
   connected: Set<number>;
   leaks?: Set<number> | undefined;
@@ -130,8 +112,8 @@ function PipesBoard({
       {tiles.map((tile, cell) => (
         <PipeTileView
           key={cell}
+          label={`Pipe tile ${cell + 1}`}
           tile={tile}
-          turns={turns[cell] ?? tile.rot}
           lit={connected.has(cell)}
           source={cell === source}
           leak={leaks?.has(cell)}
@@ -145,15 +127,15 @@ function PipesBoard({
 /** Fixed intro example — never randomised. */
 function IntroExample() {
   const tiles: PipeTile[] = [
-    { shape: "corner", rot: 1 },
-    { shape: "straight", rot: 1 },
-    { shape: "end", rot: 3 },
-    { shape: "end", rot: 0 },
-    { shape: "corner", rot: 0 },
-    { shape: "end", rot: 1 },
-    { shape: "end", rot: 0 },
-    { shape: "end", rot: 0 },
-    { shape: "end", rot: 0 },
+    { sides: PIPE_E | PIPE_S },
+    { sides: PIPE_E | PIPE_W },
+    { sides: PIPE_W },
+    { sides: PIPE_N },
+    { sides: PIPE_N | PIPE_E },
+    { sides: PIPE_S },
+    { sides: PIPE_N },
+    { sides: PIPE_E },
+    { sides: PIPE_N },
   ];
   return (
     <div className="flex flex-col items-center gap-4">
@@ -163,7 +145,6 @@ function IntroExample() {
       <div style={{ width: 132 }}>
         <PipesBoard
           tiles={tiles}
-          turns={tiles.map((t) => t.rot)}
           source={0}
           cols={3}
           connected={new Set([0, 1])}
@@ -177,34 +158,39 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: PuzzleStageProps) {
   const startTiles = puzzle.type === "pipes" ? puzzle.tiles : [];
   const source = puzzle.type === "pipes" ? puzzle.source : 0;
-  const [turns, setTurns] = useState<number[]>(() => startTiles.map((tile) => tile.rot));
+  const [sides, setSides] = useStageState<number[]>(stateKey, "pipeSides", () =>
+    startTiles.map((tile) => tileOpenings(tile)),
+  );
   const submitted = useRef(false);
 
-  const tiles = useMemo(
-    () => startTiles.map((tile, index) => ({ shape: tile.shape, rot: turns[index] ?? tile.rot })),
-    [startTiles, turns],
+  const tiles = useMemo<PipeTile[]>(
+    () => startTiles.map((tile, index) => ({ sides: sides[index] ?? tileOpenings(tile) })),
+    [startTiles, sides],
   );
   const state = useMemo(() => pipesState(tiles, source), [tiles, source]);
 
   useEffect(() => {
-    onDraftAnswer?.(encodeRotations(tiles));
+    onDraftAnswer?.(encodeSides(tiles));
   }, [tiles, onDraftAnswer]);
 
   useEffect(() => {
-    if (locked || submitted.current || !state.solved) return;
+    if (locked || submitted.current || !state.solved || !tiles.length) return;
     submitted.current = true;
-    onSubmit(encodeRotations(tiles));
+    onSubmit(encodeSides(tiles));
   }, [state.solved, tiles, locked, onSubmit]);
 
   if (puzzle.type !== "pipes") return null;
 
+  /** A tap turns only the tapped tile, one quarter turn clockwise. */
   const rotate = (cell: number) => {
     if (locked || submitted.current) return;
     buzz(8);
-    setTurns((current) => current.map((value, index) => (index === cell ? value + 1 : value)));
+    setSides((current) =>
+      current.map((value, index) => (index === cell ? rotateMask(value, 1) : value)),
+    );
   };
 
   return (
@@ -215,7 +201,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <PipesBoard
           tiles={tiles}
-          turns={turns}
           source={source}
           connected={state.connected}
           onTap={locked ? undefined : rotate}
@@ -228,10 +213,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "pipes") return null;
   const solved: PipeTile[] = puzzle.tiles.map((tile, index) => ({
-    shape: tile.shape,
-    rot: puzzle.solution?.[index] ?? tile.rot,
+    sides: puzzle.solution?.[index] ?? tileOpenings(tile),
   }));
-  const mine = decodeRotations(puzzle.tiles, myAnswer ?? encodeRotations(puzzle.tiles));
+  const mine = decodeSides(puzzle.tiles, myAnswer ?? encodeSides(puzzle.tiles));
   const mineState = pipesState(mine, puzzle.source);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((PIPES_TIME_MS - myMsRemaining) / 100) / 10;
@@ -242,7 +226,6 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         <div className="flex flex-col items-center gap-1" style={{ width: 132 }}>
           <PipesBoard
             tiles={solved}
-            turns={solved.map((tile) => tile.rot)}
             source={puzzle.source}
             connected={new Set(solved.map((_, index) => index))}
             gap={4}
@@ -254,7 +237,6 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         <div className="flex flex-col items-center gap-1" style={{ width: 132 }}>
           <PipesBoard
             tiles={mine}
-            turns={mine.map((tile) => tile.rot)}
             source={puzzle.source}
             connected={mineState.connected}
             leaks={mineState.leaks}
@@ -267,14 +249,14 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       </div>
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
         {myCorrect
-          ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed}s`}`
+          ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `✗ ${mineState.connected.size} / ${PIPES_CELLS} connected`}
       </p>
     </div>
   );
 }
 
-/** The solved rotations stay server-side; the server re-checks the flow itself. */
+/** The solved side-sets stay server-side; the server re-checks the flow itself. */
 export const pipesPuzzle: PuzzleDefinition = {
   key: "pipes",
   name: "Pipes",

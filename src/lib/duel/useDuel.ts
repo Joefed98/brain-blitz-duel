@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { fetchDuelByCode, fetchPlayers, fetchResults, heartbeat } from "./api";
-import { initServerClock, serverNow } from "./clock";
+import { calibrateServerClock, initServerClock, serverNow } from "./clock";
 import { ensureSession } from "./session";
 import { DISCONNECT_MS, type DuelPlayerRow, type DuelRow, type RoundResultRow } from "./types";
 
@@ -123,11 +123,15 @@ export function useDuel(roomCode: string): DuelState {
     };
   }, [roomCode, userId]);
 
+  // Re-measure the shared clock the moment the room starts playing.
+  useEffect(() => {
+    if (duel?.status !== "in_progress") return;
+    void calibrateServerClock();
+  }, [duel?.id, duel?.status]);
+
   const me = userId ? (players.find((p) => p.user_id === userId) ?? null) : null;
   const roomPlayers = players.filter((p) => p.status !== "left");
-  const opponent = me
-    ? (roomPlayers.find((p) => p.player_slot !== me.player_slot) ?? null)
-    : null;
+  const opponent = me ? (roomPlayers.find((p) => p.player_slot !== me.player_slot) ?? null) : null;
   const isMulti = roomPlayers.length > 2;
   const isHost = !!me && !!duel && duel.host_user_id === me.user_id;
 

@@ -43,8 +43,12 @@ export function RoundResult({
     <div className="flex flex-1 flex-col justify-between gap-8 pt-6 animate-phase-in">
       <div className="flex flex-col gap-6">
         <div className="text-center">
-          <p className="break-words font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">{roundTitle}</p>
-          <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Round {round} result</p>
+          <p className="break-words font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            {roundTitle}
+          </p>
+          <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Round {round} result
+          </p>
         </div>
 
         <div className="flex gap-3">
@@ -54,7 +58,12 @@ export function RoundResult({
             } ${theyWon ? "opacity-60" : ""}`}
           >
             <p className="truncate font-display text-sm text-me">{myName}</p>
-             <p title={mySummary} className="mt-1 truncate whitespace-nowrap font-mono text-[10px] text-primary/80">{mySummary}</p>
+            <p
+              title={mySummary}
+              className="mt-1 truncate whitespace-nowrap font-mono text-[10px] text-primary/80"
+            >
+              {mySummary}
+            </p>
             <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-me">
               <AnimatedScore value={myRoundScore} />
             </p>
@@ -76,7 +85,12 @@ export function RoundResult({
             } ${iWon ? "opacity-60" : ""}`}
           >
             <p className="truncate font-display text-sm text-opponent">{opponentName}</p>
-             <p title={opponentSummary} className="mt-1 truncate whitespace-nowrap font-mono text-[10px] text-muted-foreground">{opponentSummary}</p>
+            <p
+              title={opponentSummary}
+              className="mt-1 truncate whitespace-nowrap font-mono text-[10px] text-muted-foreground"
+            >
+              {opponentSummary}
+            </p>
             <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-opponent">
               <AnimatedScore value={opponentRoundScore} />
             </p>

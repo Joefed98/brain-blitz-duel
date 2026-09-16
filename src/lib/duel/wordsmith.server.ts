@@ -100,11 +100,7 @@ export interface WordVerdict {
 }
 
 /** Checks one submitted word live, during play. */
-export function checkWordsmithWord(
-  letters: string[],
-  raw: string,
-  already: string[],
-): WordVerdict {
+export function checkWordsmithWord(letters: string[], raw: string, already: string[]): WordVerdict {
   const word = raw.trim().toUpperCase();
   const base = { valid: false, points: 0, word };
   if (!/^[A-Z]+$/.test(word)) return { ...base, reason: "Letters only" };
