@@ -15,7 +15,14 @@ import { Standings } from "@/components/duel/Standings";
 import { Podium } from "@/components/duel/Podium";
 import { TimerRing } from "@/components/duel/TimerRing";
 import { buzz } from "@/lib/motion";
-import { unlockAudio } from "@/lib/sound";
+import {
+  playLock,
+  playPlayerJoined,
+  playRoundStart,
+  startMusic,
+  stopMusic,
+  unlockAudio,
+} from "@/lib/sound";
 import {
   advancePhase,
   checkGroup,
@@ -329,6 +336,49 @@ function DuelScreen() {
     };
   }, [duel?.id, phase, round, revealed?.round]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /**
+   * The lobby bed plays from the waiting room through the first round's intro,
+   * and fades out as round one's puzzle opens.
+   */
+  const lobbyMusic =
+    !!duel &&
+    (duel.status === "waiting" ||
+      (duel.status === "in_progress" && round === 1 && phase === "intro"));
+  const lobbyPlaying = useRef(false);
+  useEffect(() => {
+    if (lobbyMusic) {
+      lobbyPlaying.current = true;
+      startMusic("lobby_loop");
+    } else if (lobbyPlaying.current) {
+      lobbyPlaying.current = false;
+      stopMusic(400);
+    }
+  }, [lobbyMusic]);
+  useEffect(
+    () => () => {
+      if (lobbyPlaying.current) stopMusic(400);
+    },
+    [],
+  );
+
+  // A cue for each new player card in the lobby.
+  const lobbyCount = duel?.status === "waiting" ? roomPlayers.length : 0;
+  const seenCount = useRef(0);
+  useEffect(() => {
+    if (seenCount.current > 0 && lobbyCount > seenCount.current) playPlayerJoined();
+    seenCount.current = lobbyCount;
+  }, [lobbyCount]);
+
+  // The countdown sting lands its final hit on GO.
+  const roundStartCued = useRef(0);
+  useEffect(() => {
+    if (phase !== "intro" || round < 1 || phaseStart === null) return;
+    if (roundStartCued.current === round) return;
+    if (now < phaseStart + INTRO_MS - 1300) return;
+    roundStartCued.current = round;
+    playRoundStart();
+  }, [phase, round, now, phaseStart]);
+
   // Every phone follows the host into the new room as soon as it exists.
   useEffect(() => {
     const nextId = duel?.next_duel_id;
@@ -364,6 +414,7 @@ function DuelScreen() {
     } = latest.current;
     if (!room || !player || !current || mine) return;
     unlockAudio();
+    playLock();
     buzz(15);
     void submitAnswer({
       duelId: room.id,
@@ -408,6 +459,7 @@ function DuelScreen() {
   const handleStart = async () => {
     if (!duel) return;
     unlockAudio();
+    playLock();
     setStarting(true);
     try {
       await startRoom(duel.id);
@@ -537,6 +589,7 @@ function DuelScreen() {
           activeCount={activeCount}
           onReady={() => {
             unlockAudio();
+            playLock();
             buzz(15);
             void readyUp(duel.id, round);
           }}

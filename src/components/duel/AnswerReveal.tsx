@@ -5,7 +5,7 @@ import { WaitingLine } from "@/components/duel/Dots";
 import { puzzleDef, puzzleRevealMs } from "@/lib/duel/registry";
 import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playCorrect, playWrong, stopMusic } from "@/lib/sound";
 
 interface AnswerRevealProps {
   round: number;
@@ -88,6 +88,7 @@ export function AnswerReveal({
   useEffect(() => {
     if (cued.current === round) return;
     cued.current = round;
+    stopMusic(200);
     if (myCorrect) {
       playCorrect();
       buzz(20);

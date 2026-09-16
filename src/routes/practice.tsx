@@ -27,7 +27,7 @@ import {
 import { clearStageState } from "@/lib/duel/stageState";
 import { INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { unlockAudio } from "@/lib/sound";
+import { playCorrect, playLock, playRoundStart, unlockAudio } from "@/lib/sound";
 import type { SubmitMeta } from "@/puzzles/types";
 
 export const Route = createFileRoute("/practice")({
@@ -114,6 +114,7 @@ function PracticeScreen() {
     async (answer: string, meta?: SubmitMeta) => {
       if (!puzzle || grading.current) return;
       grading.current = true;
+      playLock();
       buzz(15);
       const remaining =
         clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - Date.now());
@@ -157,6 +158,24 @@ function PracticeScreen() {
     if (now - startedAt < puzzleRevealMs(puzzle ?? undefined)) return;
     setStage("result");
   }, [stage, now, startedAt, puzzle]);
+
+  // The countdown sting lands its final hit on GO, exactly as a room does.
+  const stingCued = useRef(0);
+  useEffect(() => {
+    if (stage !== "intro") return;
+    if (stingCued.current === run) return;
+    if (now - startedAt < INTRO_MS - 1300) return;
+    stingCued.current = run;
+    playRoundStart();
+  }, [stage, now, startedAt, run]);
+
+  // The practice card takes the place of the podium fanfare.
+  const resultCued = useRef(0);
+  useEffect(() => {
+    if (stage !== "result" || resultCued.current === run) return;
+    resultCued.current = run;
+    playCorrect();
+  }, [stage, run]);
 
   if (stage === "list") {
     return (
@@ -214,6 +233,7 @@ function PracticeScreen() {
           outcomes={[]}
           practice
           onReady={() => {
+            playLock();
             setStartedAt(Date.now());
             setStage("puzzle");
           }}

@@ -4,7 +4,7 @@ import { ordinal } from "@/lib/duel/ordinal";
 import type { Standing } from "@/lib/duel/scoring";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect } from "@/lib/sound";
+import { playRoundWon } from "@/lib/sound";
 
 import { AnimatedScore } from "./AnimatedScore";
 
@@ -49,12 +49,20 @@ export function Standings({
   const offsets = useRef(new Map<number, number>());
   const [expanded, setExpanded] = useState<number | null>(null);
 
+  // Only the round's top scorer hears the round-won cue.
+  const iTookTheRound = (() => {
+    const mine = rows.find((r) => r.slot === mySlot);
+    return !!mine && mine.roundScore > 0 && mine.roundScore === topScore;
+  })();
+
   useEffect(() => {
     if (cued.current) return;
     cued.current = true;
-    playCorrect();
-    buzz(12);
-  }, []);
+    if (iTookTheRound) {
+      playRoundWon();
+      buzz(12);
+    }
+  }, [iTookTheRound]);
 
   // FLIP: rows slide from where they sat to their new position.
   useLayoutEffect(() => {
