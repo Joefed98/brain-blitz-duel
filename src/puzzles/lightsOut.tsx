@@ -32,6 +32,7 @@ function LightsGrid({
       className="mx-auto grid aspect-square h-full max-h-full w-full max-w-full"
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${Math.ceil(lights.length / cols)}, minmax(0, 1fr))`,
         gap,
         containerType: "inline-size",
       }}
