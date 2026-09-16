@@ -52,7 +52,7 @@ const CELL_W = 48;
 const CELL_H = 48;
 const PANEL_W = SPOT_COLS * CELL_W;
 const PANEL_H = SPOT_ROWS * CELL_H;
-const SHAPE = 34;
+const SHAPE = 50;
 
 function cellCentre(cell: number): { x: number; y: number } {
   const col = cell % SPOT_COLS;

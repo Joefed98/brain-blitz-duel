@@ -571,7 +571,7 @@ function DuelScreen() {
           <div
             className={`flex justify-center -my-3 ${
               puzzle?.type === "spotdiff"
-                ? "scale-[0.68] [@media(max-height:680px)]:scale-[0.58]"
+                ? "h-[84px] shrink-0 items-center scale-[0.68] [@media(max-height:680px)]:h-[72px] [@media(max-height:680px)]:scale-[0.58]"
                 : "scale-[0.78]"
             }`}
           >
