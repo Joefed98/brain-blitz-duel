@@ -1,4 +1,7 @@
+import { useEffect, useRef } from "react";
+
 import { MAX_ROUND_SCORE } from "@/lib/duel/scoring";
+import { playRoundWon } from "@/lib/sound";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { Dots } from "./Dots";
