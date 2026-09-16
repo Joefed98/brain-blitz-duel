@@ -39,6 +39,14 @@ export function RoundResult({
 }: RoundResultProps) {
   const iWon = myRoundScore > opponentRoundScore;
   const theyWon = opponentRoundScore > myRoundScore;
+  const cued = useRef(false);
+
+  // Only the round's top scorer hears the round-won cue.
+  useEffect(() => {
+    if (cued.current) return;
+    cued.current = true;
+    if (iWon) playRoundWon();
+  }, [iWon]);
 
   const bar = (score: number) => `${Math.round((score / MAX_ROUND_SCORE) * 100)}%`;
 
