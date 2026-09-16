@@ -1,3 +1,4 @@
+import { playCorrect, playWrong } from "@/lib/sound";
 import { useEffect, useMemo, useRef } from "react";
 
 import {
@@ -179,6 +180,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
   useEffect(() => {
     if (locked || submitted.current || !state.solved || !tiles.length) return;
     submitted.current = true;
+    playCorrect();
     onSubmit(encodeSides(tiles));
   }, [state.solved, tiles, locked, onSubmit]);
 

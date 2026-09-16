@@ -1,3 +1,4 @@
+import { playCorrect, playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
@@ -155,6 +156,7 @@ export function WordHuntPuzzle({
     if (cells.length < 2) return;
     const word = wordOf(cells);
     if (word.length < WORDHUNT_MIN_LENGTH) {
+      playWrong();
       setFlash("bad");
       setMessage(`${WORDHUNT_MIN_LENGTH} letters or more`);
       return;
@@ -170,6 +172,7 @@ export function WordHuntPuzzle({
         { word: verdict.word, points: verdict.points, path: cells },
         ...current,
       ]);
+      playCorrect();
       setFlash("good");
       setMessage(null);
       hapticTick();

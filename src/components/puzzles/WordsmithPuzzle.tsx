@@ -1,3 +1,4 @@
+import { playCorrect, playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -85,10 +86,12 @@ export function WordsmithPuzzle({
     );
     setBusy(false);
     if (verdict.valid) {
+      playCorrect();
       setFound((current) => [{ word: verdict.word, points: verdict.points }, ...current]);
       setWord("");
       setMessage(null);
     } else {
+      playWrong();
       setMessage(verdict.reason ?? "Not a word");
       setShake((n) => n + 1);
     }

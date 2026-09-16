@@ -1,3 +1,4 @@
+import { playCorrect, playWrong } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { shuffled } from "@/lib/duel/random";
 import { GROUPS_TIME_MS, type GroupsPuzzleData } from "@/lib/duel/types";
@@ -84,6 +85,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkGroup }: PuzzleSt
     const verdict = await checkGroup(selected);
     setChecking(false);
     if (!verdict.valid || verdict.groupIndex === undefined || !verdict.theme) {
+      playWrong();
       setShaking(true);
       window.setTimeout(() => setShaking(false), 360);
       return;
@@ -97,6 +99,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkGroup }: PuzzleSt
         words: selected.map((index) => data.words[index] ?? ""),
       },
     ];
+    playCorrect();
     setFound(next);
     setSelected([]);
     onDraftAnswer?.(next.map((group) => group.indices.join(",")).join(";"));

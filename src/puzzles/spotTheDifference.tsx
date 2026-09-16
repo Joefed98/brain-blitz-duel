@@ -1,3 +1,4 @@
+import { playCorrect, playWrong } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { pick, randInt, shuffled } from "@/lib/duel/random";
@@ -331,8 +332,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     if (foundCells.includes(cell)) return;
     const hit = groups.some((g) => g.includes(cell));
     if (hit) {
+      playCorrect();
       setTaps((prev) => (prev.includes(cell) ? prev : [...prev, cell]));
     } else {
+      playWrong();
       setTaps((prev) => (prev.includes(cell) ? prev : [...prev, cell]));
       setWrong(cell);
     }

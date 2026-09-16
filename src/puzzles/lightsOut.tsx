@@ -1,3 +1,4 @@
+import { playCorrect, playWrong } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { decodePresses, encodePresses, lightsAllOff, replayLights } from "@/lib/duel/logic";
@@ -117,6 +118,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     if (locked || submitted.current) return;
     if (presses.length === 0 || !lightsAllOff(lights)) return;
     submitted.current = true;
+    playCorrect();
     onSubmit(encodePresses(presses));
   }, [lights, presses, locked, onSubmit]);
 

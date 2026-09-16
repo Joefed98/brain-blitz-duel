@@ -1,3 +1,4 @@
+import { playCorrect, playWrong } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { buzz } from "@/lib/motion";
@@ -117,6 +118,7 @@ function TargetStage({
 
   const refuse = () => {
     setShake((n) => n + 1);
+    playWrong();
     buzz(20);
     setSelectedId(null);
     setOperator(null);
