@@ -25,6 +25,9 @@ import { stroopPuzzle } from "@/puzzles/stroop";
 import { symbolScanPuzzle } from "@/puzzles/symbolScan";
 import { targetNumberPuzzle } from "@/puzzles/targetNumber";
 import { wordMatchPuzzle } from "@/puzzles/wordMatch";
+import { lightsOutPuzzle } from "@/puzzles/lightsOut";
+import { pipesPuzzle } from "@/puzzles/pipes";
+import { miniSudokuPuzzle } from "@/puzzles/miniSudoku";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import { REVEAL_MS, ROUND_MS, type PuzzleCategory, type PuzzleData, type PuzzleType } from "./types";
@@ -67,6 +70,9 @@ const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   wordhunt: wordHuntPuzzle,
   unblock: unblockPuzzle,
   blockparty: blockPartyPuzzle,
+  lightsout: lightsOutPuzzle,
+  pipes: pipesPuzzle,
+  sudoku: miniSudokuPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

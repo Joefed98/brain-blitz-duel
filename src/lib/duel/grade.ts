@@ -1,5 +1,13 @@
 import { decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
 import { decodeGroupsAnswer, matchGroupsSelection } from "./groups.server";
+import {
+  decodePresses,
+  decodeRotations,
+  lightsAllOff,
+  lightsOnCount,
+  replayLights,
+} from "./logic";
+import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
 import { numberClimbSpan } from "./numberClimb";
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
@@ -25,6 +33,9 @@ import {
   scoreUnblock,
   scoreTargetNumber,
   scoreWordMatch,
+  scoreLightsOut,
+  scorePipes,
+  scoreSudoku,
 } from "./scoring";
 import {
   GONOGO_ITEMS,
@@ -250,6 +261,43 @@ export function gradeSubmission(
         covered: verdict.covered,
         placements: encodePlacements(verdict.legal),
       };
+      break;
+    }
+    case "lightsout": {
+      // The phone sends its presses; they are replayed on the stored pattern.
+      const presses = decodePresses(answer);
+      const finalState = replayLights(puzzle.lights, presses);
+      const startOn = lightsOnCount(puzzle.lights);
+      const leftOn = lightsOnCount(finalState);
+      const min = puzzle.minPresses ?? 0;
+      isCorrect = presses.length > 0 && lightsAllOff(finalState);
+      correctCount = presses.length;
+      score = scoreLightsOut(isCorrect, presses.length, min, ms, startOn - leftOn, startOn);
+      extraDetail = {
+        presses: presses.length,
+        minPresses: min,
+        lightsLeft: leftOn,
+        lightsAtStart: startOn,
+      };
+      break;
+    }
+    case "pipes": {
+      // Connectivity and leaks are worked out here, so any valid layout counts.
+      const board = decodeRotations(puzzle.tiles, answer);
+      const verdict = gradePipesBoard(puzzle.tiles, puzzle.source, board);
+      isCorrect = verdict.solved;
+      correctCount = verdict.connected;
+      score = scorePipes(verdict.solved, verdict.connected, ms);
+      extraDetail = { solved: verdict.solved, connected: verdict.connected };
+      break;
+    }
+    case "sudoku": {
+      // Checked against the rules themselves, not just the stored grid.
+      const verdict = gradeSudokuGrid(puzzle.givens, puzzle.solution ?? [], answer);
+      isCorrect = verdict.solved;
+      correctCount = verdict.correct;
+      score = scoreSudoku(verdict.solved, verdict.correct, verdict.total, ms);
+      extraDetail = { solved: verdict.solved, correct: verdict.correct, total: verdict.total };
       break;
     }
     default: {

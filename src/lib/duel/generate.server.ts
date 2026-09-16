@@ -14,6 +14,7 @@ import { generateUnblock } from "./unblock.server";
 import { generateWordHunt, gradeWordHunt } from "./wordHunt.server";
 import { generateWordsmith, gradeWordsmith } from "./wordsmith.server";
 import { generateWordLadder } from "./wordLadder.server";
+import { generateLightsOut, generatePipes, generateSudoku } from "./logic.server";
 
 export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "wordsmith") return generateWordsmith();
@@ -22,6 +23,9 @@ export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "blockparty") return generateBlockParty();
   if (type === "groups") return generateGroups();
   if (type === "ladder") return generateWordLadder();
+  if (type === "lightsout") return generateLightsOut();
+  if (type === "pipes") return generatePipes();
+  if (type === "sudoku") return generateSudoku();
   return puzzleDef(type).generate();
 }
 
