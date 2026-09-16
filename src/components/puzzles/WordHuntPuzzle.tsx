@@ -237,7 +237,7 @@ export function WordHuntPuzzle({
   }, [finish]);
 
   return (
-    <div className="flex flex-1 flex-col gap-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           points <span className="text-primary">{points}</span>
@@ -246,18 +246,20 @@ export function WordHuntPuzzle({
       </div>
 
       <div
-        className={`-mx-1 rounded-xl p-1 transition-colors duration-150 ${
+        className={`-mx-1 flex min-h-0 flex-1 items-center justify-center rounded-xl p-1 transition-colors duration-150 ${
           flash === "good" ? "bg-ok/25" : flash === "bad" ? "bg-warn/25" : "bg-transparent"
         }`}
       >
-        <WordHuntBoard grid={grid} path={path} interactive={!locked} onPathStart={startTrace} />
+        <div className="aspect-square h-auto max-h-full w-auto max-w-full flex-1">
+          <WordHuntBoard grid={grid} path={path} interactive={!locked} onPathStart={startTrace} />
+        </div>
       </div>
 
       <p className="text-center font-mono text-sm uppercase tracking-[0.2em] text-primary">
         {path.length > 0 ? wordOf(path) : (message ?? "drag through touching letters")}
       </p>
 
-      <div className="min-h-16 flex-1 overflow-y-auto rounded-xl bg-card/60 px-3 py-2">
+      <div className="h-16 shrink-0 overflow-y-auto rounded-xl bg-card/60 px-3 py-2">
         {found.length === 0 ? (
           <p className="font-mono text-xs text-muted-foreground">no words yet</p>
         ) : (

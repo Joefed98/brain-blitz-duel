@@ -57,7 +57,7 @@ function CellBox({
 }: {
   dir: ArrowDir;
   state: CellState;
-  size: number;
+  size?: number;
   onClick?: () => void;
   disabled?: boolean;
   label?: string;
@@ -76,10 +76,10 @@ function CellBox({
   return (
     <Tag
       {...(onClick ? { type: "button" as const, onClick, disabled, "aria-label": label } : {})}
-      className={`flex items-center justify-center rounded-lg border ${style}`}
-      style={{ width: size, height: size }}
+      className={`flex aspect-square w-full items-center justify-center rounded-lg border ${style}`}
+      style={size ? { width: size, height: size } : undefined}
     >
-      <Arrow dir={dir} size={Math.round(size * 0.66)} />
+      <Arrow dir={dir} size={size ? Math.round(size * 0.66) : 28} />
     </Tag>
   );
 }
@@ -136,7 +136,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   };
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-between gap-5">
+    <div className="flex min-h-0 flex-1 flex-col items-center gap-3">
       <div className="flex flex-col items-center gap-2">
         <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
         <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
@@ -145,14 +145,13 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       </div>
 
       <div
-        className="grid gap-1"
+        className="grid min-h-0 w-full flex-1 gap-1"
         style={{ gridTemplateColumns: `repeat(${SYMSCAN_COLS}, minmax(0, 1fr))` }}
       >
         {puzzle.cells.map((dir, index) => (
           <CellBox
             key={index}
             dir={dir}
-            size={46}
             state={selected.includes(index) ? "selected" : "plain"}
             onClick={() => toggle(index)}
             disabled={locked}
@@ -165,7 +164,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
         type="button"
         onClick={() => !locked && onSubmit([...selected].sort((a, b) => a - b).join(","))}
         disabled={locked || selected.length === 0}
-        className="tap-target w-full rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
+        className="tap-target w-full shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
       >
         Submit
       </button>

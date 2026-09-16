@@ -34,7 +34,7 @@ export function countUpQuestion(colour: GlyphColour, shape: GlyphShape): string 
 function Field({
   shapes,
   highlight,
-  height = 340,
+  height,
   size = 22,
 }: {
   shapes: CountUpShape[];
@@ -44,8 +44,8 @@ function Field({
 }) {
   return (
     <div
-      className="relative w-full overflow-hidden rounded-2xl border border-border bg-card"
-      style={{ height }}
+      className={`relative w-full overflow-hidden rounded-2xl border border-border bg-card ${height ? "" : "min-h-0 flex-1"}`}
+      style={height ? { height } : undefined}
     >
       {shapes.map((item, index) => {
         const lit =
@@ -112,7 +112,9 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       placeholder="How many?"
       onSubmit={onSubmit}
     >
-      <Field shapes={puzzle.shapes} />
+      <div className="flex min-h-0 w-full flex-1">
+        <Field shapes={puzzle.shapes} />
+      </div>
     </NumberEntry>
   );
 }

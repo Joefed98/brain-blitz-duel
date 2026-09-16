@@ -76,6 +76,7 @@ function Cell({
   cell,
   marked = false,
   pending = false,
+  fluid = false,
   cellSize = 96,
   glyphSize = 26,
 }: {
@@ -84,6 +85,7 @@ function Cell({
   marked?: boolean;
   /** Dashed gold outline (the live answer slot). */
   pending?: boolean;
+  fluid?: boolean;
   cellSize?: number;
   glyphSize?: number;
 }) {
@@ -94,8 +96,8 @@ function Cell({
       : "border-border";
   return (
     <div
-      className={`flex items-center justify-center rounded-xl border-2 bg-card ${border}`}
-      style={{ width: cellSize, height: cellSize }}
+      className={`flex items-center justify-center rounded-xl border-2 bg-card ${border} ${fluid ? "aspect-square min-h-0 w-full" : ""}`}
+      style={fluid ? undefined : { width: cellSize, height: cellSize }}
     >
       {cell ? (
         <CellFace cell={cell} size={glyphSize} />
@@ -111,6 +113,7 @@ function Grid({
   answerCell,
   marked = false,
   pending = false,
+  fluid = false,
   cellSize = 96,
   glyphSize = 26,
 }: {
@@ -119,18 +122,20 @@ function Grid({
   answerCell?: PatternCell | undefined;
   marked?: boolean;
   pending?: boolean;
+  fluid?: boolean;
   cellSize?: number;
   glyphSize?: number;
 }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className={`grid grid-cols-3 gap-2 ${fluid ? "aspect-square h-auto max-h-full w-auto max-w-full" : ""}`}>
       {cells.slice(0, 8).map((cell, index) => (
-        <Cell key={index} cell={cell} cellSize={cellSize} glyphSize={glyphSize} />
+        <Cell key={index} cell={cell} fluid={fluid} cellSize={cellSize} glyphSize={glyphSize} />
       ))}
       <Cell
         cell={answerCell}
         marked={marked}
         pending={pending}
+        fluid={fluid}
         cellSize={cellSize}
         glyphSize={glyphSize}
       />
@@ -261,10 +266,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   if (!data || !fixed) return null;
 
   return (
-    <div className="flex w-full flex-1 flex-col items-center justify-between gap-3">
-      <Grid cells={data.cells} answerCell={composed} pending={!locked} cellSize={92} glyphSize={22} />
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+        <Grid cells={data.cells} answerCell={composed} pending={!locked} fluid glyphSize={22} />
+      </div>
 
-      <div className="flex w-full flex-col gap-2">
+      <div className="flex w-full shrink-0 flex-col gap-1.5">
         {active.includes("shape") ? (
           <div className="flex w-full gap-1.5">
             {PATTERN_SHAPES.map((option) => (

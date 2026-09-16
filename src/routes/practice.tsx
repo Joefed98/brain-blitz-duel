@@ -272,6 +272,17 @@ function PracticeScreen() {
 
   const StageComponent = puzzleDef(puzzle.type).Stage;
   const clockActive = clockStart !== null && now >= clockStart;
+  const compactTimer = [
+    "target",
+    "blockparty",
+    "chaincalc",
+    "wordsmith",
+    "wordhunt",
+    "spotdiff",
+    "sudoku",
+    "pipes",
+    "patcomp",
+  ].includes(puzzle.type);
 
   return (
     <PhoneShell constrained>
@@ -288,11 +299,9 @@ function PracticeScreen() {
         {puzzleShowsTimer(puzzle) && (
           <div
             className={`flex justify-center -my-3 ${
-              puzzle.type === "spotdiff"
-                ? "h-[84px] shrink-0 items-center scale-[0.68] [@media(max-height:680px)]:h-[72px] [@media(max-height:680px)]:scale-[0.58]"
-                : puzzle.type === "blockparty"
-                  ? "h-[88px] shrink-0 items-center scale-[0.7]"
-                : "scale-[0.78]"
+              compactTimer
+                ? "h-[88px] shrink-0 items-center scale-[0.7] [@media(max-height:680px)]:h-[80px] [@media(max-height:680px)]:scale-[0.64]"
+                : "h-[104px] shrink-0 items-center scale-[0.78]"
             }`}
           >
             <TimerRing msRemaining={msRemaining} totalMs={timeLimitMs} active={clockActive} />
