@@ -159,6 +159,24 @@ function PracticeScreen() {
     setStage("result");
   }, [stage, now, startedAt, puzzle]);
 
+  // The countdown sting lands its final hit on GO, exactly as a room does.
+  const stingCued = useRef(0);
+  useEffect(() => {
+    if (stage !== "intro") return;
+    if (stingCued.current === run) return;
+    if (now - startedAt < INTRO_MS - 1300) return;
+    stingCued.current = run;
+    playRoundStart();
+  }, [stage, now, startedAt, run]);
+
+  // The practice card takes the place of the podium fanfare.
+  const resultCued = useRef(0);
+  useEffect(() => {
+    if (stage !== "result" || resultCued.current === run) return;
+    resultCued.current = run;
+    playCorrect();
+  }, [stage, run]);
+
   if (stage === "list") {
     return (
       <PhoneShell>
