@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowPad, useSwipe } from "@/components/puzzles/GridDrag";
-import { encodeSlideMoves, replaySlide, shortestSlideRoute, slideOutcome } from "@/lib/duel/slide";
+import {
+  arrowMap,
+  encodeSlideMoves,
+  replaySlide,
+  shortestSlideRoute,
+  slideOutcome,
+} from "@/lib/duel/slide";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   SLIDE_CELLS,
   SLIDE_COLS,
   SLIDE_TIME_MS,
+  type SlideArrow,
   type SlideDir,
   type SlidePuzzleData,
 } from "@/lib/duel/types";
@@ -17,9 +24,32 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const GOLD = "var(--primary)";
 
+/** A one-way cell wears a chevron pointing the way the ball is sent. */
+function Chevron({ dir }: { dir: SlideDir }) {
+  const turn = dir === "U" ? 270 : dir === "D" ? 90 : dir === "L" ? 180 : 0;
+  return (
+    <svg
+      viewBox="0 0 10 10"
+      aria-label={`One way ${dir}`}
+      className="block"
+      style={{ width: "78%", height: "78%", transform: `rotate(${turn}deg)` }}
+    >
+      <polyline
+        points="3,2 7,5 3,8"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function Board({
   walls,
   holes = [],
+  arrows = [],
   start,
   exit,
   ball,
@@ -30,6 +60,7 @@ function Board({
 }: {
   walls: number[];
   holes?: number[];
+  arrows?: SlideArrow[];
   start: number;
   exit: number;
   ball: number;
@@ -42,6 +73,7 @@ function Board({
   const rows = Math.ceil(cells / cols);
   const wall = new Set(walls);
   const pit = new Set(holes);
+  const turns = new Map(arrows.map((arrow) => [arrow.cell, arrow.dir]));
 
   return (
     <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full">
@@ -57,6 +89,7 @@ function Board({
             pointer or pixel maths — so a slide moves it whole cells at a time. */}
         {Array.from({ length: cols * rows }, (_, cell) => {
           const isBall = cell === ball;
+          const turn = turns.get(cell);
           const piece = isBall ? (
             <span
               aria-label="Ball"
@@ -69,6 +102,8 @@ function Board({
               className="block rounded-full bg-background"
               style={{ width: "72%", height: "72%", border: "2px solid var(--foreground)" }}
             />
+          ) : turn ? (
+            <Chevron dir={turn} />
           ) : cell === start ? (
             <span
               className="block rounded-full bg-muted-foreground"
@@ -113,6 +148,7 @@ function Board({
     </div>
   );
 }
+
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
