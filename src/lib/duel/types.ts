@@ -910,18 +910,23 @@ export interface FlowPuzzleData {
 /*  Ice Slide                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const SLIDE_COLS = 9;
+export const SLIDE_COLS = 10;
 export const SLIDE_CELLS = SLIDE_COLS * SLIDE_COLS;
 export const SLIDE_TIME_MS = 75_000;
-export const SLIDE_MIN_WALLS = 18;
-export const SLIDE_MAX_WALLS = 26;
-export const SLIDE_MIN_MOVES = 9;
-export const SLIDE_MAX_MOVES = 13;
+export const SLIDE_MIN_WALLS = 22;
+export const SLIDE_MAX_WALLS = 30;
+export const SLIDE_MIN_MOVES = 11;
+export const SLIDE_MAX_MOVES = 16;
+/** The exit may not be within this many slides of the start. */
+export const SLIDE_EASY_MOVES = 6;
 /** Holes the ball must slide around: falling in sends it back to the start. */
-export const SLIDE_MIN_HOLES = 1;
-export const SLIDE_MAX_HOLES = 3;
+export const SLIDE_MIN_HOLES = 2;
+export const SLIDE_MAX_HOLES = 4;
+/** One-way arrow cells: a ball entering one is deflected and keeps sliding. */
+export const SLIDE_MIN_ARROWS = 1;
+export const SLIDE_MAX_ARROWS = 3;
 /** At least this many walls must be stoppers the shortest route depends on. */
-export const SLIDE_MIN_STOPPERS = 3;
+export const SLIDE_MIN_STOPPERS = 4;
 /** Bonus for reaching the exit in the fewest possible slides. */
 export const SLIDE_MIN_MOVE_BONUS = 20;
 /** Consolation for stopping within two slides of the exit. */
@@ -931,20 +936,43 @@ export const SLIDE_NEAR_MOVES = 2;
 /** Up, down, left, right — the only four directions a slide can take. */
 export type SlideDir = "U" | "D" | "L" | "R";
 
+/** A one-way cell: whatever enters it leaves in this direction. */
+export interface SlideArrow {
+  cell: number;
+  dir: SlideDir;
+}
+
+/** Generator figures, shown only in the dev readout. */
+export interface SlideStats {
+  walls: number;
+  holes: number;
+  arrows: number;
+  minMoves: number;
+  /** True when the exit is reachable in six slides or fewer — must be false. */
+  easyExit: boolean;
+  stoppers: number;
+  attempts: number;
+}
+
 export interface SlidePuzzleData {
   type: "iceslide";
   /** Wall cells the ball stops against. */
   walls: number[];
   /** Holes: sliding over one drops the ball back on the start. */
   holes: number[];
+  /** One-way arrow cells. */
+  arrows?: SlideArrow[];
   start: number;
   /** The gold gap in the border. */
   exit: number;
+  /** Generator figures for the dev readout. */
+  stats?: SlideStats;
   /** Server-side only: the fewest slides the layout needs. */
   minMoves?: number;
   /** Server-side only: one shortest sequence, as UDLR letters. */
   solution?: string;
 }
+
 
 
 /* -------------------------------------------------------------------------- */
