@@ -212,12 +212,13 @@ function LaserBoard({
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
-  const gems = [5, 14];
+  const gems = [2, 11];
+  const bombs = [5];
   const solution: MirrorPlacement[] = [
-    { cell: 1, kind: "\\" },
-    { cell: 13, kind: "/" },
+    { cell: 3, kind: "\\" },
+    { cell: 15, kind: "/" },
   ];
-  const trace = traceBeam(0, "R", solution, [], [7], gems);
+  const trace = traceBeam(0, "R", solution, [], bombs, gems);
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
@@ -230,7 +231,7 @@ function IntroExample() {
           source={0}
           dir="R"
           gems={gems}
-          bombs={[7]}
+          bombs={bombs}
           blocks={[]}
           placed={solution}
           beam={trace.cells}
