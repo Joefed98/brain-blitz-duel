@@ -657,7 +657,6 @@ function DuelScreen() {
     return (
       <PhoneShell>
         <RoundResult
-          round={round}
           roundTitle={roundTitle}
           myName={me.display_name}
           opponentName={opponent?.display_name ?? "Opponent"}

@@ -5,4 +5,5 @@
 - [x] Build compact overall table with position changes and reorder animation
 - [x] Preserve two-player VS presentation across both parts
 - [x] Skip overall standings after the final round
-- [ ] Validate types, focused lint, tests, and preview build without browser tests
+- [x] Validate focused result-presentation behavior without browser tests
+- [ ] Validate types, focused lint, and preview build
