@@ -153,7 +153,7 @@ export function generateFlow(): FlowPuzzleData {
     const hamiltonian = hamiltonianPath();
     if (!hamiltonian) continue;
 
-    for (let cut = 0; cut < 60; cut++) {
+    for (let cut = 0; cut < 600; cut++) {
       const lengths = segmentLengths();
       const paths: number[][] = [];
       let at = 0;
