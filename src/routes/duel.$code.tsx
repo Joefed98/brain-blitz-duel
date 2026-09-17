@@ -678,9 +678,6 @@ function DuelScreen() {
         "laser",
         "tower",
         "maze",
-    "laser",
-    "tower",
-    "maze",
         "push",
       ].includes(puzzle.type)
     : false;
