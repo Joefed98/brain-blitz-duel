@@ -70,7 +70,7 @@ export interface WordsmithPuzzleData {
   source?: string;
 }
 
-export const GROUPS_TIME_MS = 60_000;
+export const GROUPS_TIME_MS = 90_000;
 
 export interface GroupsSecretGroup {
   theme: string;
