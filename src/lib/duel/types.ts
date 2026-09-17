@@ -1093,20 +1093,28 @@ export interface LaserPuzzleData {
 /*  Tower                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export const TOWER_TIME_MS = 90_000;
-/** Six discs across four pegs. */
-export const TOWER_DISCS = 6;
+export const TOWER_TIME_MS = 120_000;
+/** Eight discs across four pegs. */
+export const TOWER_DISCS = 8;
 export const TOWER_PEGS = 4;
 /** A starting spread is only used when it needs at least this many moves. */
-export const TOWER_MIN_MINIMUM = 12;
+export const TOWER_MIN_MINIMUM = 25;
 /** Bonus for finishing in the fewest possible moves. */
 export const TOWER_MIN_MOVE_BONUS = 20;
 /** Most a partly-built tower can earn. */
 export const TOWER_PARTIAL_POINTS = 60;
 
+/** Generator figures, shown only in the dev readout. */
+export interface TowerStats {
+  discs: number;
+  pegs: number;
+  minMoves: number;
+  attempts: number;
+}
+
 export interface TowerPuzzleData {
   type: "tower";
-  /** How many discs are in play: six. */
+  /** How many discs are in play: eight. */
   discs: number;
   /** The starting spread, one stack per peg, bottom disc first. */
   start: number[][];
@@ -1116,9 +1124,12 @@ export interface TowerPuzzleData {
   minMoves: number;
   /** This puzzle's own clock. */
   timeLimitMs: number;
+  /** Generator figures for the dev readout. */
+  stats?: TowerStats;
   /** Server-side only: one shortest sequence of moves. */
   solution?: string;
 }
+
 
 /* -------------------------------------------------------------------------- */
 /*  Maze Dash                                                                 */
