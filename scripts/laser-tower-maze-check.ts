@@ -22,7 +22,8 @@ import {
   LASER_MAX_MIRRORS,
   LASER_MIN_BLOCKS,
   LASER_GEMS,
-  LASER_BOMBS,
+  LASER_MAX_BOMBS,
+  LASER_MIN_BOMBS,
   MAZE_DEAD_END_LENGTH,
   MAZE_LONG_DEAD_END_LENGTH,
   MAZE_MIN_DEAD_ENDS,
@@ -54,7 +55,15 @@ for (let index = 0; index < 6; index++) {
     fail(`laser block count ${puzzle.blocks.length}`);
   }
   if (puzzle.gems.length !== LASER_GEMS) fail(`laser gem count ${puzzle.gems.length}`);
-  if (puzzle.bombs.length !== LASER_BOMBS) fail(`laser bomb count ${puzzle.bombs.length}`);
+  const central = puzzle.blocks.filter((cell) => {
+    const row = Math.floor(cell / 10);
+    const col = cell % 10;
+    return row >= 2 && row <= 7 && col >= 2 && col <= 7;
+  }).length;
+  if (central < 10) fail(`only ${central} blocks in the central 6x6`);
+  if (puzzle.bombs.length < LASER_MIN_BOMBS || puzzle.bombs.length > LASER_MAX_BOMBS) {
+    fail(`laser bomb count ${puzzle.bombs.length}`);
+  }
   const solution = puzzle.solution ?? [];
   if (solution.length !== LASER_MAX_MIRRORS) fail(`laser mirror count ${solution.length}`);
   if (solution.length !== puzzle.mirrors) fail("tray does not match the solution");

@@ -12,13 +12,14 @@
 import { laserCol, laserRow, laserStep, traceBeam } from "./laser";
 import { shuffled } from "./random";
 import {
-  LASER_BOMBS,
+  LASER_MAX_BOMBS,
   LASER_CELLS,
   LASER_CENTRAL_FROM,
   LASER_CENTRAL_TO,
   LASER_COLS as N,
   LASER_GEMS,
   LASER_MAX_BLOCKS,
+  LASER_MIN_BOMBS,
   LASER_MAX_MIRRORS,
   LASER_MIN_ADJACENT_BLOCKS,
   LASER_MIN_BLOCKS,
@@ -446,7 +447,8 @@ export function generateLaser(): LaserPuzzleData {
       offRoute.filter((cell) => beside.has(cell) && !chosen.includes(cell)),
     ).slice(0, LASER_MIN_ADJACENT_BLOCKS + randomInt(3));
     const wanted = [...chosen, ...asidePicks];
-    const blockCount = LASER_MIN_BLOCKS + randomInt(3);
+    const blockCount =
+      LASER_MIN_BLOCKS + randomInt(LASER_MAX_BLOCKS - LASER_MIN_BLOCKS + 1);
     const filler = shuffled(offRoute.filter((cell) => !wanted.includes(cell))).slice(
       0,
       Math.max(0, blockCount - wanted.length),
@@ -477,9 +479,11 @@ export function generateLaser(): LaserPuzzleData {
       .filter(([, count]) => count >= LASER_MIN_BOMB_CROSSINGS)
       .sort((a, b) => b[1] - a[1])
       .map(([cell]) => cell);
-    if (bombCandidates.length < LASER_BOMBS) continue;
-    const bombs = shuffled(bombCandidates.slice(0, Math.max(LASER_BOMBS, 8))).slice(0, LASER_BOMBS);
-    if (bombs.length !== LASER_BOMBS) continue;
+    const bombCount =
+      LASER_MIN_BOMBS + randomInt(LASER_MAX_BOMBS - LASER_MIN_BOMBS + 1);
+    if (bombCandidates.length < bombCount) continue;
+    const bombs = shuffled(bombCandidates.slice(0, Math.max(bombCount, 8))).slice(0, bombCount);
+    if (bombs.length !== bombCount) continue;
 
     const litByRoute = () => traceBeam(source, dir, route.bends, blocks, bombs, gems!).litAll;
     if (!litByRoute()) continue;
@@ -522,7 +526,7 @@ export function generateLaser(): LaserPuzzleData {
     if (!solutionTrace.litAll || solutionTrace.hitBomb) continue;
 
     console.log(
-      `[laser] layout accepted after ${attempt} attempt(s): ${blocks.length} blocks (${blocks.filter(isCentral).length} central), 2 bombs on near-miss routes, ${proof.tested} placements proved to fail`,
+      `[laser] layout accepted after ${attempt} attempt(s): ${blocks.length} blocks (${blocks.filter(isCentral).length} central), ${bombs.length} bombs on near-miss routes, ${proof.tested} placements proved to fail`,
     );
     return {
       type: "laser",

@@ -1033,17 +1033,18 @@ export const LASER_TIME_MS = 75_000;
 /** Always exactly four mirrors, and the route always bends once per mirror. */
 export const LASER_MIN_MIRRORS = 4;
 export const LASER_MAX_MIRRORS = 4;
-export const LASER_MIN_BLOCKS = 12;
-export const LASER_MAX_BLOCKS = 18;
-/** Two gems the beam must pass through, and two bombs it must miss. */
+export const LASER_MIN_BLOCKS = 20;
+export const LASER_MAX_BLOCKS = 26;
+/** Two gems the beam must pass through, and three or four bombs it must miss. */
 export const LASER_GEMS = 2;
-export const LASER_BOMBS = 2;
+export const LASER_MIN_BOMBS = 3;
+export const LASER_MAX_BOMBS = 4;
 /** Blocks closing off the straight and single-bend shortcuts. */
 export const LASER_MIN_SHORTCUT_BLOCKS = 3;
 /** Blocks touching the beam route without sitting on it, hiding the corridor. */
 export const LASER_MIN_ADJACENT_BLOCKS = 3;
 /** Blocks that must sit in the middle 6x6, so the centre is genuinely obstructed. */
-export const LASER_MIN_CENTRAL_BLOCKS = 6;
+export const LASER_MIN_CENTRAL_BLOCKS = 10;
 /** The middle 6x6 area, as inclusive row/column indices on the 10x10 grid. */
 export const LASER_CENTRAL_FROM = 2;
 export const LASER_CENTRAL_TO = 7;
