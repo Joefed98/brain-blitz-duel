@@ -16,11 +16,7 @@ import {
 } from "../src/lib/duel/tower";
 import { generateMaze } from "../src/lib/duel/maze.server";
 import { mazeRoute, mazeTurns, verifyMazePath } from "../src/lib/duel/maze";
-import {
-  mazeExitInSight,
-  mazeFalseTrailLengths,
-  mazeJunctions,
-} from "../src/lib/duel/maze.server";
+import { mazeExitInSight, mazeFalseTrailLengths, mazeJunctions } from "../src/lib/duel/maze.server";
 import {
   LASER_MAX_MIRRORS,
   LASER_MIN_MIRRORS,
@@ -36,7 +32,6 @@ import {
   TOWER_PEGS,
   TOWER_TIME_MS,
 } from "../src/lib/duel/types";
-
 
 function fail(message: string): never {
   console.error(`FAIL: ${message}`);
@@ -80,7 +75,6 @@ for (let index = 0; index < 60; index++) {
   }
   const orientations = new Set(solution.map((mirror) => mirror.kind));
   if (orientations.size !== 2) fail("the solution uses only one mirror orientation");
-
 }
 console.log(
   "Laser: 60 layouts — four mirrors, all four necessary, both orientations, empty grid never hits",
@@ -131,7 +125,8 @@ for (let index = 0; index < 40; index++) {
   const enough = trails.filter((length) => length >= MAZE_DEAD_END_LENGTH).length;
   if (enough < MAZE_MIN_DEAD_ENDS) fail(`only ${enough} false trails`);
   if (long < MAZE_MIN_LONG_DEAD_ENDS) fail(`only ${long} long false trails`);
-  if (mazeExitInSight(puzzle.cells, route, puzzle.exit)) fail("the exit is visible down a corridor");
+  if (mazeExitInSight(puzzle.cells, route, puzzle.exit))
+    fail("the exit is visible down a corridor");
   if (route[0] !== puzzle.start || route[route.length - 1] !== puzzle.exit)
     fail("route ends wrong");
   // A perfect maze: the route found from the cells is the stored one.
@@ -159,4 +154,3 @@ console.log("Maze Dash: 40 mazes — long, twisty, junction-rich, with blind tai
 }
 
 console.log("All checks passed.");
-

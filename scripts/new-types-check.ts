@@ -32,7 +32,6 @@ import {
   SLIDE_MIN_MOVES,
 } from "../src/lib/duel/types";
 
-
 function fail(message: string): never {
   console.error(`FAIL: ${message}`);
   process.exit(1);
@@ -67,7 +66,8 @@ for (let i = 0; i < 120; i++) {
   const puzzle = generateIceSlide();
   const holes = puzzle.holes ?? [];
   const min = puzzle.minMoves ?? 0;
-  if (min < SLIDE_MIN_MOVES || min > SLIDE_MAX_MOVES) fail(`Ice Slide minimum out of range: ${min}`);
+  if (min < SLIDE_MIN_MOVES || min > SLIDE_MAX_MOVES)
+    fail(`Ice Slide minimum out of range: ${min}`);
   if (holes.length < SLIDE_MIN_HOLES || holes.length > SLIDE_MAX_HOLES) {
     fail(`Ice Slide hole count ${holes.length}`);
   }
@@ -76,7 +76,8 @@ for (let i = 0; i < 120; i++) {
   if (distance !== min) fail(`Ice Slide minimum ${min} disagrees with the search (${distance})`);
   const moves = decodeSlideMoves(puzzle.solution ?? "");
   const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, moves);
-  if (!replay.solved || replay.moves !== min) fail("Ice Slide stored route does not reach the exit");
+  if (!replay.solved || replay.moves !== min)
+    fail("Ice Slide stored route does not reach the exit");
   if (replay.falls) fail("Ice Slide stored route falls into a hole");
   if (!slideRouteAvoidsHoles(puzzle.walls, holes, puzzle.start, puzzle.exit, moves)) {
     fail("Ice Slide stored route slides over a hole");

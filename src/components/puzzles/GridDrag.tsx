@@ -184,7 +184,6 @@ export function gridCellCentre(
   };
 }
 
-
 /** Which track the position falls in: the containing cell, or the nearer one when in a gap. */
 function trackAt(position: number, cell: number, gap: number, count: number): number | null {
   const pitch = cell + gap;

@@ -35,7 +35,6 @@ interface Entry {
   solution: string;
 }
 
-
 function row(cell: number) {
   return Math.floor(cell / N);
 }
@@ -294,13 +293,7 @@ while (bank.length < PUSH_BANK_SIZE && guard < 200_000) {
   if (!counts) continue;
   if (counts.some((count) => count < PUSH_MIN_MOVES_PER_CRATE)) continue;
 
-  const forward = forwardMinPushes(
-    walls,
-    targets,
-    node.crates,
-    node.pusher,
-    PUSH_MAX_PUSHES + 2,
-  );
+  const forward = forwardMinPushes(walls, targets, node.crates, node.pusher, PUSH_MAX_PUSHES + 2);
   if (forward !== node.depth) continue;
 
   const wallList = [...walls].sort((a, b) => a - b);
@@ -355,4 +348,3 @@ writeFileSync("src/lib/duel/pushBank.server.ts", file);
 console.log(`${bank.length} layouts written`);
 const mins = bank.map((entry) => entry.minPushes);
 console.log(`  minimum pushes ${Math.min(...mins)}–${Math.max(...mins)}`);
-

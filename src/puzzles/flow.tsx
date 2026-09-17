@@ -127,7 +127,6 @@ function FlowBoard({
   );
 }
 
-
 /** Fixed intro example — never randomised. */
 function IntroExample() {
   const pairs: FlowPair[] = [

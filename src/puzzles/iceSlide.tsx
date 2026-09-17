@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowPad, useSwipe } from "@/components/puzzles/GridDrag";
-import {
-  encodeSlideMoves,
-  replaySlide,
-  shortestSlideRoute,
-  slideOutcome,
-} from "@/lib/duel/slide";
+import { encodeSlideMoves, replaySlide, shortestSlideRoute, slideOutcome } from "@/lib/duel/slide";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   SLIDE_CELLS,
@@ -194,14 +189,7 @@ function Stage({
 
   const slide = (dir: SlideDir) => {
     if (locked || submitted.current || replay.solved) return;
-    const outcome = slideOutcome(
-      replay.cell,
-      dir,
-      new Set(walls),
-      new Set(holes),
-      exit,
-      start,
-    );
+    const outcome = slideOutcome(replay.cell, dir, new Set(walls), new Set(holes), exit, start);
     if (!outcome.path.length) return;
     setMoves((current) => [...current, dir]);
   };
