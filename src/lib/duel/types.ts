@@ -979,16 +979,16 @@ export interface SlidePuzzleData {
 /*  Push                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export const PUSH_COLS = 8;
+export const PUSH_COLS = 9;
 export const PUSH_CELLS = PUSH_COLS * PUSH_COLS;
-export const PUSH_TIME_MS = 90_000;
+export const PUSH_TIME_MS = 120_000;
 /** Every bank layout needs between this many and this many pushes. */
-export const PUSH_MIN_PUSHES = 10;
-export const PUSH_MAX_PUSHES = 22;
-/** Three or four crates, and every one of them has to move at least twice. */
-export const PUSH_MIN_CRATES = 3;
-export const PUSH_MAX_CRATES = 4;
-export const PUSH_MIN_MOVES_PER_CRATE = 2;
+export const PUSH_MIN_PUSHES = 16;
+export const PUSH_MAX_PUSHES = 30;
+/** Four or five crates, and every one of them has to move at least three times. */
+export const PUSH_MIN_CRATES = 4;
+export const PUSH_MAX_CRATES = 5;
+export const PUSH_MIN_MOVES_PER_CRATE = 3;
 /** How many solver-verified layouts the bank holds. */
 export const PUSH_BANK_SIZE = 120;
 /** Bonus for finishing in the fewest possible pushes. */
@@ -996,6 +996,14 @@ export const PUSH_MIN_PUSH_BONUS = 20;
 /** Most a partly-finished warehouse can earn. */
 export const PUSH_PARTIAL_POINTS = 60;
 
+/** Generator figures, shown only in the dev readout. */
+export interface PushStats {
+  crates: number;
+  minPushes: number;
+  minMoves: number;
+  /** True when the optimal solution takes a crate away from its own target. */
+  detour: boolean;
+}
 
 export interface PushPuzzleData {
   type: "push";
@@ -1006,11 +1014,14 @@ export interface PushPuzzleData {
   targets: number[];
   /** Where the pusher starts. */
   pusher: number;
+  /** Generator figures for the dev readout. */
+  stats?: PushStats;
   /** Server-side only: the fewest pushes the layout can be finished in. */
   minPushes?: number;
   /** Server-side only: one minimum solution, as "cell:dir" pushes. */
   solution?: string;
 }
+
 
 /* -------------------------------------------------------------------------- */
 /*  Laser and Mirrors                                                         */
