@@ -120,7 +120,7 @@ for (let index = 0; index < 12; index++) {
   if (replay.moves !== puzzle.minMoves) fail("stored solution is not the minimum");
 }
 console.log(
-  "Tower: 12 puzzles — six discs, four pegs, legal spreads, BFS minimum ≥ 12, 90s clock",
+  "Tower: 12 puzzles — eight discs, four pegs, legal spreads, BFS minimum ≥ 25, 120s clock",
 );
 
 /* ------------------------------ Maze Dash -------------------------------- */
