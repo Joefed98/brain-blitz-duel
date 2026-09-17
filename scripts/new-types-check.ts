@@ -62,7 +62,7 @@ for (let i = 0; i < 200; i++) {
   );
   if (!replay.solved || replay.moves !== min) fail("Ice Slide stored route does not reach the exit");
 }
-console.log("Ice Slide: 200 layouts OK · every exit reachable in 4-7 slides");
+console.log(`Ice Slide: 200 layouts OK · every minimum is ${SLIDE_MIN_MOVES}-${SLIDE_MAX_MOVES} slides`);
 
 /* ----------------------------------- Push -------------------------------- */
 
