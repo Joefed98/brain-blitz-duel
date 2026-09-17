@@ -1,0 +1,1 @@
+ALTER TABLE public.duels ADD COLUMN IF NOT EXISTS no_maths boolean NOT NULL DEFAULT false;
