@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
-import {
-  encodeFlowPaths,
-  flowAdjacent,
-  flowFilledCells,
-  verifyFlow,
-} from "@/lib/duel/flow";
+import { encodeFlowPaths, flowAdjacent, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   FLOW_CELLS,

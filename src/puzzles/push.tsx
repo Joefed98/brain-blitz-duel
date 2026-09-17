@@ -237,12 +237,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <div style={{ width: 176 }}>
-        <Board
-          walls={puzzle.walls}
-          targets={puzzle.targets}
-          crates={crates}
-          pusher={pusherCell}
-        />
+        <Board walls={puzzle.walls} targets={puzzle.targets} crates={crates} pusher={pusherCell} />
       </div>
       <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
         minimum · {min} push{min === 1 ? "" : "es"}

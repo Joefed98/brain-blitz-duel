@@ -514,9 +514,5 @@ export function scorePush(
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, PUSH_TIME_MS) + bonus);
   }
   const total = Math.max(1, totalCrates);
-  return clamp(
-    Math.round((PUSH_PARTIAL_POINTS * cratesHome) / total),
-    0,
-    PUSH_PARTIAL_POINTS,
-  );
+  return clamp(Math.round((PUSH_PARTIAL_POINTS * cratesHome) / total), 0, PUSH_PARTIAL_POINTS);
 }

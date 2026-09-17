@@ -88,15 +88,15 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
                                       ? SLIDE_TIME_MS
                                       : puzzle.type === "push"
                                         ? PUSH_TIME_MS
-                                  : puzzle.type === "wordsmith"
-                                    ? WORDSMITH_TIME_MS
-                                    : puzzle.type === "wordhunt"
-                                      ? WORDHUNT_TIME_MS
-                                      : puzzle.type === "unblock"
-                                        ? UNBLOCK_TIME_MS
-                                        : puzzle.type === "blockparty"
-                                          ? BLOCK_TIME_MS
-                                          : ROUND_MS;
+                                        : puzzle.type === "wordsmith"
+                                          ? WORDSMITH_TIME_MS
+                                          : puzzle.type === "wordhunt"
+                                            ? WORDHUNT_TIME_MS
+                                            : puzzle.type === "unblock"
+                                              ? UNBLOCK_TIME_MS
+                                              : puzzle.type === "blockparty"
+                                                ? BLOCK_TIME_MS
+                                                : ROUND_MS;
   return Math.max(0, limit - result.ms_remaining);
 }
 
@@ -541,7 +541,11 @@ const slideSummary: SummaryBuilder = (result, puzzle) => {
   if (result.is_correct) {
     return {
       summary: `Solved · ${moves} move${moves === 1 ? "" : "s"} (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
-      detail: [moves <= min ? "Reached the exit in the fewest moves" : `${moves - min} more than the minimum`],
+      detail: [
+        moves <= min
+          ? "Reached the exit in the fewest moves"
+          : `${moves - min} more than the minimum`,
+      ],
     };
   }
   const away = result.extra?.["movesFromExit"];
@@ -565,7 +569,9 @@ const pushSummary: SummaryBuilder = (result, puzzle) => {
   if (result.is_correct) {
     return {
       summary: `Solved · ${pushes} push${pushes === 1 ? "" : "es"} (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
-      detail: [pushes <= min ? "Finished in the fewest pushes" : `${pushes - min} more than the minimum`],
+      detail: [
+        pushes <= min ? "Finished in the fewest pushes" : `${pushes - min} more than the minimum`,
+      ],
     };
   }
   return {

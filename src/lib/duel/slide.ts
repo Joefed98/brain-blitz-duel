@@ -20,12 +20,7 @@ function step(cell: number, dir: SlideDir): number | null {
  * One slide: the ball keeps going until a wall or the grid edge stops it. The
  * exit stops it too, so the route to the exit is always well defined.
  */
-export function slidePath(
-  from: number,
-  dir: SlideDir,
-  walls: Set<number>,
-  exit: number,
-): number[] {
+export function slidePath(from: number, dir: SlideDir, walls: Set<number>, exit: number): number[] {
   const path: number[] = [];
   let cell = from;
   for (let guard = 0; guard < SLIDE_CELLS; guard++) {
@@ -85,11 +80,7 @@ export function replaySlide(
 }
 
 /** Fewest slides from a cell to the exit, or null when it cannot be reached. */
-export function slideDistance(
-  walls: number[],
-  from: number,
-  exit: number,
-): number | null {
+export function slideDistance(walls: number[], from: number, exit: number): number | null {
   const blocked = new Set(walls);
   if (from === exit) return 0;
   const seen = new Set<number>([from]);

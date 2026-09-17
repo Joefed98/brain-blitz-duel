@@ -360,13 +360,7 @@ export function gradeSubmission(
     case "push": {
       // Every step is replayed on the stored warehouse, so only legal pushes count.
       const moves = decodePushMoves(answer);
-      const replay = replayPush(
-        puzzle.walls,
-        puzzle.targets,
-        puzzle.pusher,
-        puzzle.crates,
-        moves,
-      );
+      const replay = replayPush(puzzle.walls, puzzle.targets, puzzle.pusher, puzzle.crates, moves);
       const min = puzzle.minPushes ?? 0;
       const home = replay.solved
         ? puzzle.targets.length

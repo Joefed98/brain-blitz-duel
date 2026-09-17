@@ -673,6 +673,9 @@ function DuelScreen() {
         "sudoku",
         "pipes",
         "patcomp",
+        "flow",
+        "iceslide",
+        "push",
       ].includes(puzzle.type)
     : false;
 

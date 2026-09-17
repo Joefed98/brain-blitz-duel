@@ -140,10 +140,7 @@ function Stage({
   const [moves, setMoves] = useStageState<SlideDir[]>(stateKey, "slideMoves", () => []);
   const submitted = useRef(false);
 
-  const replay = useMemo(
-    () => replaySlide(walls, start, exit, moves),
-    [walls, start, exit, moves],
-  );
+  const replay = useMemo(() => replaySlide(walls, start, exit, moves), [walls, start, exit, moves]);
 
   useEffect(() => {
     onDraftAnswer?.(encodeSlideMoves(moves));
@@ -259,8 +256,7 @@ export const iceSlidePuzzle: PuzzleDefinition = {
   category: "pattern",
   timeLimitMs: SLIDE_TIME_MS,
   revealMs: 8_000,
-  generate: () =>
-    ({ type: "iceslide", walls: [], start: 0, exit: 0 }) satisfies SlidePuzzleData,
+  generate: () => ({ type: "iceslide", walls: [], start: 0, exit: 0 }) satisfies SlidePuzzleData,
   check: () => false,
   revealHeading: "The shortest route",
   IntroExample,
