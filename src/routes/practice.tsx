@@ -312,6 +312,9 @@ function PracticeScreen() {
     "patcomp",
     "flow",
     "iceslide",
+    "laser",
+    "tower",
+    "maze",
     "push",
   ].includes(puzzle.type);
 

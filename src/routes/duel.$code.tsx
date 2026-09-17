@@ -675,6 +675,12 @@ function DuelScreen() {
         "patcomp",
         "flow",
         "iceslide",
+        "laser",
+        "tower",
+        "maze",
+    "laser",
+    "tower",
+    "maze",
         "push",
       ].includes(puzzle.type)
     : false;
