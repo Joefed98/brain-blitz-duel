@@ -4,7 +4,7 @@
  *   bun scripts/laser-tower-maze-check.ts
  */
 
-import { encodeMirrors, decodeMirrors, traceBeam, verifyLaser } from "../src/lib/duel/laser";
+import { encodeLaserAnswer, decodeLaserAnswer, traceBeam, verifyLaser } from "../src/lib/duel/laser";
 import { generateLaser } from "../src/lib/duel/laser.server";
 import { generateTower } from "../src/lib/duel/tower.server";
 import {
@@ -21,8 +21,8 @@ import {
   LASER_MAX_BLOCKS,
   LASER_MAX_MIRRORS,
   LASER_MIN_BLOCKS,
-  LASER_MIN_GAP_SEGMENTS,
-  LASER_MIN_MIRRORS,
+  LASER_GEMS,
+  LASER_BOMBS,
   MAZE_DEAD_END_LENGTH,
   MAZE_LONG_DEAD_END_LENGTH,
   MAZE_MIN_DEAD_ENDS,
@@ -43,53 +43,65 @@ function fail(message: string): never {
 
 /* ------------------------------- Laser ---------------------------------- */
 
-for (let index = 0; index < 8; index++) {
+for (let index = 0; index < 6; index++) {
   const puzzle = generateLaser();
   const stats = puzzle.stats;
   if (!stats) fail("laser shipped no generator stats");
   if (!stats.necessityPass) fail("laser necessity proof did not pass");
-  if (stats.subsetsTested < 1) fail("laser necessity proof tested nothing");
+  if (stats.subsetsTested < 1000) fail("laser necessity proof barely tested anything");
   if (stats.blocks !== puzzle.blocks.length) fail("laser stats block count disagrees");
-  if (stats.gapSegments < LASER_MIN_GAP_SEGMENTS) fail("laser has too few one-cell gap segments");
   if (puzzle.blocks.length < LASER_MIN_BLOCKS || puzzle.blocks.length > LASER_MAX_BLOCKS) {
     fail(`laser block count ${puzzle.blocks.length}`);
   }
+  if (puzzle.gems.length !== LASER_GEMS) fail(`laser gem count ${puzzle.gems.length}`);
+  if (puzzle.bombs.length !== LASER_BOMBS) fail(`laser bomb count ${puzzle.bombs.length}`);
   const solution = puzzle.solution ?? [];
-  if (solution.length < LASER_MIN_MIRRORS || solution.length > LASER_MAX_MIRRORS) {
-    fail(`laser mirror count ${solution.length}`);
-  }
+  if (solution.length !== LASER_MAX_MIRRORS) fail(`laser mirror count ${solution.length}`);
   if (solution.length !== puzzle.mirrors) fail("tray does not match the solution");
-  if (solution.length !== 4) fail(`laser tray is not exactly four mirrors: ${solution.length}`);
 
-  const solved = traceBeam(puzzle.source, puzzle.dir, solution, puzzle.blocks, puzzle.target);
-  if (!solved.hitTarget) fail("stored placement does not hit the target");
+  const solved = traceBeam(
+    puzzle.source,
+    puzzle.dir,
+    solution,
+    puzzle.blocks,
+    puzzle.bombs,
+    puzzle.gems,
+  );
+  if (!solved.litAll) fail("stored placement does not light both gems");
+  if (solved.hitBomb) fail("stored placement touches a bomb");
 
-  const empty = traceBeam(puzzle.source, puzzle.dir, [], puzzle.blocks, puzzle.target);
-  if (empty.hitTarget) fail("empty grid already hits the target");
+  const empty = traceBeam(puzzle.source, puzzle.dir, [], puzzle.blocks, puzzle.bombs, puzzle.gems);
+  if (empty.gemsLit.length > 0) fail("a gem is lit straight from the source");
 
   // The server's own verification agrees, through the wire format.
-  const round = decodeMirrors(encodeMirrors(solution), puzzle.mirrors);
-  if (!verifyLaser(puzzle, round).solved) fail("verifyLaser rejects its own solution");
+  const round = decodeLaserAnswer(encodeLaserAnswer(solution, 1), puzzle.mirrors);
+  if (round.fires !== 1) fail("the shot number does not survive the wire format");
+  if (!verifyLaser(puzzle, round.mirrors, round.fires).solved) {
+    fail("verifyLaser rejects its own solution");
+  }
   if (verifyLaser(puzzle, []).solved) fail("verifyLaser accepts an empty tray");
 
   for (const mirror of solution) {
     if (puzzle.blocks.includes(mirror.cell)) fail("a mirror sits on a block");
-    if (mirror.cell === puzzle.source || mirror.cell === puzzle.target)
-      fail("mirror on an endpoint");
+    if (puzzle.bombs.includes(mirror.cell)) fail("a mirror sits on a bomb");
+    if (puzzle.gems.includes(mirror.cell)) fail("a mirror sits on a gem");
+    if (mirror.cell === puzzle.source) fail("mirror on the source");
   }
 
-  // Every mirror must be needed: drop any one and the beam misses.
+  // Every mirror must be needed: drop any one and the shot fails.
   for (let drop = 0; drop < solution.length; drop++) {
     const fewer = solution.filter((_, index) => index !== drop);
-    if (traceBeam(puzzle.source, puzzle.dir, fewer, puzzle.blocks, puzzle.target).hitTarget) {
-      fail("the target is reachable with three of the four mirrors");
+    if (
+      traceBeam(puzzle.source, puzzle.dir, fewer, puzzle.blocks, puzzle.bombs, puzzle.gems).litAll
+    ) {
+      fail("both gems are reachable with three of the four mirrors");
     }
   }
   const orientations = new Set(solution.map((mirror) => mirror.kind));
   if (orientations.size !== 2) fail("the solution uses only one mirror orientation");
 }
 console.log(
-  "Laser: 8 layouts — four mirrors, all four necessary, both orientations, empty grid never hits",
+  "Laser: 6 layouts — two gems, two bombs, four necessary mirrors, no straight-line gem",
 );
 
 /* -------------------------------- Tower ---------------------------------- */

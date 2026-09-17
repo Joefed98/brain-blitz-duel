@@ -6,7 +6,7 @@ import { numberClimbSpan } from "./numberClimb";
 import { decodeFlowPaths, verifyFlow } from "./flow";
 import { decodeSlideMoves, replaySlide, slideDistance } from "./slide";
 import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
-import { decodeMirrors, verifyLaser } from "./laser";
+import { decodeLaserAnswer, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
 import { decodeMazePath, verifyMazePath } from "./maze";
 import { validateLadder } from "./wordLadder.server";
