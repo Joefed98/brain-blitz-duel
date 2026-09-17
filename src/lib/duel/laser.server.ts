@@ -182,7 +182,7 @@ function walkPath(
 }
 
 export interface ShortcutSearch {
-  /** The first one-, two- or three-mirror placement that lights both gems. */
+  /** The first placement of four mirrors or fewer that lights every gem. */
   hit: { cells: number[] } | null;
   /** How many placements were traced. */
   tested: number;
@@ -190,9 +190,11 @@ export interface ShortcutSearch {
 
 /**
  * Tries EVERY placement of one, two or three mirrors, both orientations, on the
- * free cells. With `stopOnFirst` it returns the beam path of the first shortcut
- * found (so a block can be dropped on it); otherwise it runs to the end and the
- * tested count is the full number of placements proved to fail.
+ * free cells, then extends the near misses among them — the ones already
+ * lighting all but one gem — with a fourth mirror in every free cell and both
+ * orientations. With `stopOnFirst` it returns the beam path of the first
+ * shortcut found (so a block can be dropped on it); otherwise it runs to the end
+ * and the tested count is the full number of placements proved to fail.
  */
 export function searchShortcuts(
   source: number,
@@ -215,49 +217,52 @@ export function searchShortcuts(
     free.push(cell);
   }
 
+  const need = gems.length;
   const trail: number[] = [];
   let tested = 0;
   let hit: { cells: number[] } | null = null;
-  const fire = () => walkPath(source, dir, blocked, bomb, gem, mirrors, trail) >= gems.length;
+  /** Placements lighting all but one gem, kept as [cell, kind, ...] pairs. */
+  const promising: number[][] = [];
 
-  tested += 1;
-  if (fire()) return { hit: { cells: [...trail] }, tested };
+  /** Traces the mirrors currently on the board; true when it lights every gem. */
+  const fire = (carry: number[] | null): boolean => {
+    tested += 1;
+    const lit = walkPath(source, dir, blocked, bomb, gem, mirrors, trail);
+    if (lit >= need) {
+      hit ??= { cells: [...trail] };
+      return true;
+    }
+    if (carry && lit >= need - 1 && promising.length < LASER_PROMISING_CAP) {
+      promising.push([...carry]);
+    }
+    return false;
+  };
+
+  if (fire(null) && stopOnFirst) return { hit, tested };
 
   for (let a = 0; a < free.length; a++) {
     for (let ka = 1 as 1 | 2; ka <= 2; ka++) {
       mirrors[free[a]!] = ka;
-      tested += 1;
-      if (fire()) {
-        hit ??= { cells: [...trail] };
-        if (stopOnFirst) {
-          mirrors[free[a]!] = 0;
-          return { hit, tested };
-        }
+      if (fire([free[a]!, ka]) && stopOnFirst) {
+        mirrors[free[a]!] = 0;
+        return { hit, tested };
       }
       for (let b = a + 1; b < free.length; b++) {
         for (let kb = 1 as 1 | 2; kb <= 2; kb++) {
           mirrors[free[b]!] = kb;
-          tested += 1;
-          if (fire()) {
-            hit ??= { cells: [...trail] };
-            if (stopOnFirst) {
-              mirrors[free[a]!] = 0;
-              mirrors[free[b]!] = 0;
-              return { hit, tested };
-            }
+          if (fire([free[a]!, ka, free[b]!, kb]) && stopOnFirst) {
+            mirrors[free[a]!] = 0;
+            mirrors[free[b]!] = 0;
+            return { hit, tested };
           }
           for (let c = b + 1; c < free.length; c++) {
             for (let kc = 1 as 1 | 2; kc <= 2; kc++) {
               mirrors[free[c]!] = kc;
-              tested += 1;
-              if (fire()) {
-                hit ??= { cells: [...trail] };
-                if (stopOnFirst) {
-                  mirrors[free[a]!] = 0;
-                  mirrors[free[b]!] = 0;
-                  mirrors[free[c]!] = 0;
-                  return { hit, tested };
-                }
+              if (fire([free[a]!, ka, free[b]!, kb, free[c]!, kc]) && stopOnFirst) {
+                mirrors[free[a]!] = 0;
+                mirrors[free[b]!] = 0;
+                mirrors[free[c]!] = 0;
+                return { hit, tested };
               }
             }
             mirrors[free[c]!] = 0;
@@ -268,6 +273,25 @@ export function searchShortcuts(
     }
     mirrors[free[a]!] = 0;
   }
+
+  // Four mirrors: every near miss found above, extended by one more mirror.
+  for (const carry of promising) {
+    for (let index = 0; index < carry.length; index += 2) mirrors[carry[index]!] = carry[index + 1]!;
+    for (const cell of free) {
+      if (mirrors[cell]) continue;
+      for (let kind = 1 as 1 | 2; kind <= 2; kind++) {
+        mirrors[cell] = kind;
+        if (fire(null) && stopOnFirst) {
+          mirrors[cell] = 0;
+          for (let index = 0; index < carry.length; index += 2) mirrors[carry[index]!] = 0;
+          return { hit, tested };
+        }
+      }
+      mirrors[cell] = 0;
+    }
+    for (let index = 0; index < carry.length; index += 2) mirrors[carry[index]!] = 0;
+  }
+
   return { hit, tested };
 }
 
