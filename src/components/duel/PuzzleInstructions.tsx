@@ -14,12 +14,16 @@ export function PuzzleInstructions({ type, overlay = false }: PuzzleInstructions
 
   return (
     <section
-      className={overlay ? "flex w-full flex-col gap-4" : "round-instructions flex w-full flex-col gap-2"}
+      className={
+        overlay ? "flex w-full flex-col gap-4" : "round-instructions flex w-full flex-col gap-2"
+      }
       aria-label={`${puzzleDef(type).name} instructions`}
     >
       <div>
         <p className="font-mono text-[10px] font-bold uppercase text-primary">Goal</p>
-        <p className={`font-display font-bold leading-tight text-foreground ${overlay ? "text-2xl" : "text-lg"}`}>
+        <p
+          className={`font-display font-bold leading-tight text-foreground ${overlay ? "text-2xl" : "text-lg"}`}
+        >
           {instructions.goal}
         </p>
       </div>
