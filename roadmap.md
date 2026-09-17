@@ -1,6 +1,5 @@
-# Three scoped puzzle layout fixes
+# Block Party sizing adjustment
 
-- [x] Make Groups bands natural-height and its 4×4 grid fill remaining space
-- [x] Explicitly size Symbol Scan's 7×7 grid above Submit
-- [x] Restore Block Party's width-filling board and remaining-height tray sizing
-- [x] Validate the scoped changes without browser tests
+- [ ] Reduce and centre the board at 85% width
+- [ ] Give freed height to the tray and enlarge pieces up to 75% of a board cell
+- [ ] Verify scoped sizing constraints without browser tests
