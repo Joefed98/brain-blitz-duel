@@ -149,7 +149,6 @@ function Board({
   );
 }
 
-
 /** Fixed intro example — never randomised. */
 function IntroExample() {
   return (
@@ -177,7 +176,6 @@ function IntroExample() {
     </div>
   );
 }
-
 
 function Stage({
   puzzle,

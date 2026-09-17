@@ -302,8 +302,7 @@ function PracticeScreen() {
   const StageComponent = puzzleDef(puzzle.type).Stage;
   // Temporary: ?dev=1 shows the generator's stored figures under the puzzle.
   const devReadout =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("dev") === "1";
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("dev") === "1";
   const clockActive = clockStart !== null && now >= clockStart;
   const compactTimer = [
     "target",

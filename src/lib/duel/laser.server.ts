@@ -291,9 +291,7 @@ function gapSegments(route: Route, blocks: number[]): number {
     const squeezed = segment.cells.some((cell) => {
       const left = laserStep(cell, sides[0]!);
       const right = laserStep(cell, sides[1]!);
-      return (
-        left !== null && right !== null && blocked.has(left) && blocked.has(right)
-      );
+      return left !== null && right !== null && blocked.has(left) && blocked.has(right);
     });
     if (squeezed) count += 1;
   }
