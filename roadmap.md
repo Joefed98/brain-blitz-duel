@@ -1,6 +1,8 @@
-# Clear round instructions and in-round help
+# Split post-round results
 
-- [x] Add GOAL / HOW / SCORE instructions for every puzzle type
-- [x] Show the structured instructions before each fixed intro example
-- [x] Add a dismissible in-round help overlay to duel and practice
-- [x] Verify static checks and preview build without browser tests
+- [ ] Add sequential round-results and overall-standings phases
+- [ ] Build compact 10-player round-results table with expandable summaries
+- [ ] Build compact overall table with position changes and reorder animation
+- [ ] Preserve two-player VS presentation across both parts
+- [ ] Skip overall standings after the final round
+- [ ] Validate types, focused lint, tests, and preview build without browser tests
