@@ -1,6 +1,7 @@
-# Per-game tuning
+# Per-game changes
 
-- [x] Update Reaction Time, Number Hunt, Stop Watch, Symbol Scan, Spot the Difference, Count Up, and Maze Dash
-- [x] Convert Pattern Completion to three puzzles in one continuous 30-second round
-- [x] Enlarge Spin quarter-turn glyphs and strengthen Mirror Match distractors
-- [x] Verify generators, grading, TypeScript, and preview build without browser tests
+- [ ] Rename Flow to Colour Connect and update it to 8×8 with eight colour pairs and 45 seconds
+- [ ] Fix Block Party wording and anchor-cell drop precision
+- [ ] Strengthen Ice Slide one-way-arrow generation invariants
+- [ ] Change Laser undo to placement-only history
+- [ ] Confirm listed time limits and validate without browser tests
