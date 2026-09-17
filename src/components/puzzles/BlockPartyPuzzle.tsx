@@ -178,6 +178,7 @@ export function BlockPartyPuzzle({
   const [placed, setPlaced] = useState<BlockPlacement[]>([]);
   const [pose, setPose] = useState<Record<number, { rot: number; flip: boolean }>>({});
   const [ghost, setGhost] = useState<{ cells: number[]; legal: boolean } | null>(null);
+  const lastTap = useRef<{ piece: number; at: number } | null>(null);
   const submitted = useRef(false);
   const placedRef = useRef<BlockPlacement[]>([]);
   placedRef.current = placed;
@@ -247,17 +248,23 @@ export function BlockPartyPuzzle({
       setGhost(null);
       const moved = Math.abs(info.dx) + Math.abs(info.dy);
 
-      // A tap on a tray piece rotates it.
+      // A tap on a tray piece rotates it; preserve the existing alternate pose gesture.
       if (moved < 8) {
         if (info.item.from === "board") {
           setPlaced((current) => current.filter((entry) => entry.piece !== info.item.piece));
           return true;
         }
+        const previous = lastTap.current;
+        const double =
+          previous && previous.piece === info.item.piece && Date.now() - previous.at < 300;
+        lastTap.current = { piece: info.item.piece, at: Date.now() };
         setPose((current) => {
           const state = current[info.item.piece] ?? { rot: 0, flip: false };
           return {
             ...current,
-            [info.item.piece]: { ...state, rot: (state.rot + 1) % 4 },
+            [info.item.piece]: double
+              ? { ...state, flip: !state.flip }
+              : { ...state, rot: (state.rot + 1) % 4 },
           };
         });
         return true;

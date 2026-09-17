@@ -1,5 +1,5 @@
 /**
- * Flow rules. Shared by the phone (to draw and edit paths live) and by the
+ * Colour Connect rules. Shared by the phone (to draw and edit paths live) and by the
  * server (to re-check every path a phone sends). Pure logic, no generator and
  * no stored answers.
  */
