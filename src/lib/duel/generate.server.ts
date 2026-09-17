@@ -18,6 +18,9 @@ import { generateLightsOut, generatePipes, generateSudoku } from "./logic.server
 import { generateFlow } from "./flow.server";
 import { generateIceSlide } from "./slide.server";
 import { generatePush } from "./push.server";
+import { generateLaser } from "./laser.server";
+import { generateTower } from "./tower.server";
+import { generateMaze } from "./maze.server";
 
 export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "wordsmith") return generateWordsmith();
@@ -32,6 +35,9 @@ export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "flow") return generateFlow();
   if (type === "iceslide") return generateIceSlide();
   if (type === "push") return generatePush();
+  if (type === "laser") return generateLaser();
+  if (type === "tower") return generateTower();
+  if (type === "maze") return generateMaze();
   return puzzleDef(type).generate();
 }
 

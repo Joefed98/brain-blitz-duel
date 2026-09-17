@@ -6,6 +6,9 @@ import { numberClimbSpan } from "./numberClimb";
 import { decodeFlowPaths, verifyFlow } from "./flow";
 import { decodeSlideMoves, replaySlide, slideDistance } from "./slide";
 import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
+import { decodeMirrors, verifyLaser } from "./laser";
+import { decodeTowerMoves, replayTower } from "./tower";
+import { decodeMazePath, verifyMazePath } from "./maze";
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
 import { decodeMoves, replayUnblock } from "./unblock";
@@ -36,6 +39,9 @@ import {
   scoreFlow,
   scoreIceSlide,
   scorePush,
+  scoreLaser,
+  scoreTower,
+  scoreMaze,
 } from "./scoring";
 import {
   GONOGO_ITEMS,
@@ -375,6 +381,64 @@ export function gradeSubmission(
         minPushes: min,
         cratesHome: home,
         crates: puzzle.targets.length,
+      };
+      break;
+    }
+    case "laser": {
+      // The beam is re-traced here from the placement the phone sent.
+      const placed = decodeMirrors(answer, puzzle.mirrors);
+      const verdict = verifyLaser(puzzle, placed);
+      isCorrect = verdict.solved;
+      correctCount = verdict.mirrorsPlaced;
+      score = scoreLaser(verdict.solved, verdict.near, ms);
+      extraDetail = {
+        solved: verdict.solved,
+        near: verdict.near,
+        mirrorsPlaced: verdict.mirrorsPlaced,
+      };
+      break;
+    }
+    case "tower": {
+      // Every move is replayed on a fresh tower, so illegal moves never count.
+      const moves = decodeTowerMoves(answer);
+      const replay = replayTower(puzzle.discs, puzzle.targetPeg, moves);
+      isCorrect = replay.solved;
+      correctCount = replay.moves;
+      score = scoreTower(
+        replay.solved,
+        replay.moves,
+        puzzle.minMoves,
+        ms,
+        timeLimitMs,
+        replay.correctFromBottom,
+        puzzle.discs,
+      );
+      extraDetail = {
+        solved: replay.solved,
+        moves: replay.moves,
+        minMoves: puzzle.minMoves,
+        discs: puzzle.discs,
+        discsHome: replay.correctFromBottom,
+      };
+      break;
+    }
+    case "maze": {
+      // The drawn route is re-walked through the stored corridors.
+      const path = decodeMazePath(answer);
+      const verdict = verifyMazePath(
+        puzzle.cells,
+        puzzle.start,
+        puzzle.exit,
+        puzzle.solution ?? [],
+        path,
+      );
+      isCorrect = verdict.solved;
+      correctCount = verdict.walked;
+      score = scoreMaze(verdict.solved, verdict.progress, ms);
+      extraDetail = {
+        solved: verdict.solved,
+        progress: Math.round(verdict.progress * 100),
+        wasted: verdict.wasted,
       };
       break;
     }
