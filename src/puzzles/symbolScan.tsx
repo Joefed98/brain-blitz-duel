@@ -144,20 +144,22 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
         </div>
       </div>
 
-      <div
-        className="grid min-h-0 w-full flex-1 gap-1"
-        style={{ gridTemplateColumns: `repeat(${SYMSCAN_COLS}, minmax(0, 1fr))` }}
-      >
-        {puzzle.cells.map((dir, index) => (
-          <CellBox
-            key={index}
-            dir={dir}
-            state={selected.includes(index) ? "selected" : "plain"}
-            onClick={() => toggle(index)}
-            disabled={locked}
-            label={`Cell ${index + 1}`}
-          />
-        ))}
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden pb-1">
+        <div
+          className="grid aspect-square h-auto max-h-full w-full max-w-full gap-1"
+          style={{ gridTemplateColumns: `repeat(${SYMSCAN_COLS}, minmax(0, 1fr))` }}
+        >
+          {puzzle.cells.map((dir, index) => (
+            <CellBox
+              key={index}
+              dir={dir}
+              state={selected.includes(index) ? "selected" : "plain"}
+              onClick={() => toggle(index)}
+              disabled={locked}
+              label={`Cell ${index + 1}`}
+            />
+          ))}
+        </div>
       </div>
 
       <button

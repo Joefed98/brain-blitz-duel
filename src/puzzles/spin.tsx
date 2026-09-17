@@ -33,6 +33,18 @@ export const SPIN_LABELS: Record<SpinTransform, string> = {
   flip: "FLIPPED",
 };
 
+function SpinLabel({ transform }: { transform: SpinTransform }) {
+  if (transform === "cw" || transform === "ccw") {
+    return (
+      <span className="inline-flex items-center gap-2">
+        <span className="text-[2em] leading-none">{transform === "cw" ? "↻" : "↺"}</span>
+        <span>90°</span>
+      </span>
+    );
+  }
+  return <>{SPIN_LABELS[transform]}</>;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Generation (server side)                                                   */
 /* -------------------------------------------------------------------------- */
@@ -187,7 +199,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
                 onClick={() => setPicks((prev) => [...prev, t])}
                 className="min-h-[56px] rounded-2xl bg-card font-mono text-base font-bold text-foreground active:scale-95"
               >
-                {SPIN_LABELS[t]}
+                <SpinLabel transform={t} />
               </button>
             ))}
           </div>

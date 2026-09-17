@@ -247,8 +247,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
         <MazeBoard cells={cells} start={start} exit={exit} path={path} onCell={touch} />
       </div>
 
-      <div className="flex shrink-0 items-center justify-center gap-3">
-        <ArrowPad onPress={step} disabled={locked || solved} repeatMs={120} size={112} />
+      <div className="flex shrink-0 items-center justify-center gap-5">
+        <ArrowPad
+          onPress={step}
+          disabled={locked || solved}
+          repeatMs={120}
+          size={144}
+          buttonSize={56}
+        />
         <button
           type="button"
           disabled={locked || path.length < 2}
