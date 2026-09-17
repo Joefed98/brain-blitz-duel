@@ -26,10 +26,14 @@ import {
   PUSH_MIN_CRATES,
   PUSH_MIN_MOVES_PER_CRATE,
   PUSH_MIN_PUSHES,
+  SLIDE_EASY_MOVES,
+  SLIDE_MAX_ARROWS,
   SLIDE_MAX_HOLES,
   SLIDE_MAX_MOVES,
+  SLIDE_MIN_ARROWS,
   SLIDE_MIN_HOLES,
   SLIDE_MIN_MOVES,
+  SLIDE_MIN_STOPPERS,
 } from "../src/lib/duel/types";
 
 function fail(message: string): never {
