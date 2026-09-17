@@ -951,13 +951,23 @@ export interface SlidePuzzleData {
 /*  Push                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export const PUSH_COLS = 7;
+export const PUSH_COLS = 8;
 export const PUSH_CELLS = PUSH_COLS * PUSH_COLS;
 export const PUSH_TIME_MS = 90_000;
+/** Every bank layout needs between this many and this many pushes. */
+export const PUSH_MIN_PUSHES = 10;
+export const PUSH_MAX_PUSHES = 22;
+/** Three or four crates, and every one of them has to move at least twice. */
+export const PUSH_MIN_CRATES = 3;
+export const PUSH_MAX_CRATES = 4;
+export const PUSH_MIN_MOVES_PER_CRATE = 2;
+/** How many solver-verified layouts the bank holds. */
+export const PUSH_BANK_SIZE = 120;
 /** Bonus for finishing in the fewest possible pushes. */
 export const PUSH_MIN_PUSH_BONUS = 20;
 /** Most a partly-finished warehouse can earn. */
 export const PUSH_PARTIAL_POINTS = 60;
+
 
 export interface PushPuzzleData {
   type: "push";
