@@ -327,7 +327,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
 /** The solved paths stay server-side; the server re-walks whatever a phone sends. */
 export const flowPuzzle: PuzzleDefinition = {
   key: "flow",
-  name: "Flow",
+  name: "Colour Connect",
   category: "logic",
   timeLimitMs: FLOW_TIME_MS,
   revealMs: 8_000,

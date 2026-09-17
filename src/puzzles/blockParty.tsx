@@ -16,7 +16,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Fit all nine pieces around the pegs. Rotate with a tap, flip with a double tap.
+        Fit all nine pieces around the pegs. Tap to rotate.
       </p>
       <BlockBoard blockers={EXAMPLE_BLOCKERS} placements={EXAMPLE_PLACED} size={150} />
       <p className="text-xs text-muted-foreground">

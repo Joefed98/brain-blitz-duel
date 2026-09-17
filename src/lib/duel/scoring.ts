@@ -493,7 +493,7 @@ export function scoreSudoku(
   );
 }
 
-/** Flow: a full board scores the standard points, else part marks per pair joined. */
+/** Colour Connect: a full board scores the standard points, else part marks per pair joined. */
 export function scoreFlow(solved: boolean, pairsJoined: number, msRemaining: number): number {
   if (solved) {
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, FLOW_TIME_MS));

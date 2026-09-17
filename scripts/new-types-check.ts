@@ -1,5 +1,5 @@
 /**
- * Source-level checks for Flow, Ice Slide and Push.
+ * Source-level checks for Colour Connect, Ice Slide and Push.
  *
  *   bun scripts/new-types-check.ts
  */
@@ -13,6 +13,7 @@ import {
   slideRouteAvoidsHoles,
 } from "../src/lib/duel/slide";
 import { generateIceSlide } from "../src/lib/duel/slide.server";
+import { meaningfulSlideArrows } from "../src/lib/duel/slide.server";
 import { PUSH_BANK } from "../src/lib/duel/pushBank.server";
 import { decodePushSolution, pushStep, replayPush } from "../src/lib/duel/push";
 import {
@@ -41,28 +42,32 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-/* ---------------------------------- Flow --------------------------------- */
+/* ----------------------------- Colour Connect ---------------------------- */
 
 let shortest = FLOW_CELLS;
 for (let i = 0; i < 200; i++) {
   const puzzle = generateFlow();
   const paths = puzzle.solution ?? [];
-  if (paths.length !== FLOW_PAIRS) fail("Flow did not produce five paths");
-  if (!verifyFlow(puzzle.pairs, paths).solved) fail("Flow stored paths do not solve the board");
+  if (paths.length !== FLOW_PAIRS) fail("Colour Connect did not produce eight paths");
+  if (new Set(puzzle.pairs.map((pair) => pair.colour)).size !== FLOW_PAIRS)
+    fail("Colour Connect did not use all eight colours");
+  if (!verifyFlow(puzzle.pairs, paths).solved)
+    fail("Colour Connect stored paths do not solve the board");
   for (const [index, path] of paths.entries()) {
-    if (path.length < FLOW_MIN_PATH) fail(`Flow path shorter than ${FLOW_MIN_PATH}`);
+    if (path.length < FLOW_MIN_PATH) fail(`Colour Connect path shorter than ${FLOW_MIN_PATH}`);
     shortest = Math.min(shortest, path.length);
     const rows = new Set(path.map((cell) => Math.floor(cell / FLOW_COLS)));
     const cols = new Set(path.map((cell) => cell % FLOW_COLS));
 
-    if (rows.size === 1 || cols.size === 1) fail("Flow produced a straight path");
+    if (rows.size === 1 || cols.size === 1) fail("Colour Connect produced a straight path");
     const pair = puzzle.pairs[index]!;
-    if (flowNeighbours(pair.a).includes(pair.b)) fail("Flow produced an adjacent pair");
+    if (flowNeighbours(pair.a).includes(pair.b))
+      fail("Colour Connect produced an adjacent pair");
   }
   const covered = new Set(paths.flat());
-  if (covered.size !== FLOW_CELLS) fail("Flow does not fill every cell");
+  if (covered.size !== FLOW_CELLS) fail("Colour Connect does not fill every cell");
 }
-console.log(`Flow: 200 boards OK · shortest path ${shortest} cells`);
+console.log(`Colour Connect: 200 boards OK · shortest path ${shortest} cells`);
 
 /* -------------------------------- Ice Slide ------------------------------- */
 
@@ -78,6 +83,9 @@ for (let i = 0; i < 40; i++) {
   }
   if (arrows.length < SLIDE_MIN_ARROWS || arrows.length > SLIDE_MAX_ARROWS) {
     fail(`Ice Slide arrow count ${arrows.length}`);
+  }
+  if (!meaningfulSlideArrows(puzzle.walls, holes, arrows, puzzle.start, puzzle.exit)) {
+    fail("Ice Slide shipped an arrow that does not change a reachable path");
   }
   const distance = slideDistance(
     puzzle.walls,

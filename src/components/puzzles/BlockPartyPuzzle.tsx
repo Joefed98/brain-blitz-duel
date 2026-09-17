@@ -41,7 +41,17 @@ export function pieceColour(piece: number): string {
 }
 
 /** A small drawing of one piece, used in the tray. */
-function PieceGlyph({ offsets, colour, cell }: { offsets: Offsets; colour: string; cell: number }) {
+function PieceGlyph({
+  offsets,
+  colour,
+  cell,
+  onCellPointerDown,
+}: {
+  offsets: Offsets;
+  colour: string;
+  cell: number;
+  onCellPointerDown?: ((event: React.PointerEvent<HTMLDivElement>, row: number, col: number) => void) | undefined;
+}) {
   const { rows, cols } = offsetsSize(offsets);
   return (
     <div
@@ -52,6 +62,9 @@ function PieceGlyph({ offsets, colour, cell }: { offsets: Offsets; colour: strin
       {offsets.map(([r, c], index) => (
         <div
           key={index}
+          onPointerDown={
+            onCellPointerDown ? (event) => onCellPointerDown(event, r, c) : undefined
+          }
           className="absolute rounded-[3px]"
           style={{
             left: c * cell,
@@ -138,6 +151,8 @@ export function BlockBoard({
 interface DragItem {
   piece: number;
   from: "tray" | "board";
+  grabR: number;
+  grabC: number;
 }
 
 interface BlockPartyPuzzleProps {
@@ -164,7 +179,6 @@ export function BlockPartyPuzzle({
   const [placed, setPlaced] = useState<BlockPlacement[]>([]);
   const [pose, setPose] = useState<Record<number, { rot: number; flip: boolean }>>({});
   const [ghost, setGhost] = useState<{ cells: number[]; legal: boolean } | null>(null);
-  const lastTap = useRef<{ piece: number; at: number } | null>(null);
   const submitted = useRef(false);
   const placedRef = useRef<BlockPlacement[]>([]);
   placedRef.current = placed;
@@ -196,13 +210,12 @@ export function BlockPartyPuzzle({
 
   /** Where the piece would land if dropped with the pointer here. */
   const targetCells = useCallback(
-    (piece: number, x: number, y: number): number[] | null => {
+    (item: DragItem, x: number, y: number): number[] | null => {
       const at = gridColRowAt(boardRef.current, x, y, N, N);
       if (!at) return null;
-      const offsets = offsetsFor(piece);
-      const { rows, cols } = offsetsSize(offsets);
-      const row = at.row - Math.floor((rows - 1) / 2);
-      const col = at.col - Math.floor((cols - 1) / 2);
+      const offsets = offsetsFor(item.piece);
+      const row = at.row - item.grabR;
+      const col = at.col - item.grabC;
       return absoluteCells(offsets, row, col);
     },
     [offsetsFor],
@@ -223,7 +236,7 @@ export function BlockPartyPuzzle({
   const drag = useDragSnap<DragItem>({
     disabled: locked,
     onMove: (info) => {
-      const cells = targetCells(info.item.piece, info.x, info.y);
+      const cells = targetCells(info.item, info.x, info.y);
       if (!cells) {
         setGhost(null);
         return;
@@ -235,29 +248,23 @@ export function BlockPartyPuzzle({
       setGhost(null);
       const moved = Math.abs(info.dx) + Math.abs(info.dy);
 
-      // A tap on a tray piece turns it; a second quick tap flips it.
+      // A tap on a tray piece rotates it.
       if (moved < 8) {
         if (info.item.from === "board") {
           setPlaced((current) => current.filter((entry) => entry.piece !== info.item.piece));
           return true;
         }
-        const previous = lastTap.current;
-        const double =
-          previous && previous.piece === info.item.piece && Date.now() - previous.at < 300;
-        lastTap.current = { piece: info.item.piece, at: Date.now() };
         setPose((current) => {
           const state = current[info.item.piece] ?? { rot: 0, flip: false };
           return {
             ...current,
-            [info.item.piece]: double
-              ? { ...state, flip: !state.flip }
-              : { ...state, rot: (state.rot + 1) % 4 },
+            [info.item.piece]: { ...state, rot: (state.rot + 1) % 4 },
           };
         });
         return true;
       }
 
-      const cells = targetCells(info.item.piece, info.x, info.y);
+      const cells = targetCells(info.item, info.x, info.y);
       if (!cells) {
         // Dropped off the board: the piece goes back to the tray.
         if (info.item.from === "board") {
@@ -337,7 +344,7 @@ export function BlockPartyPuzzle({
         <span>
           covered <span className="text-primary">{covered}</span> / {BLOCK_FREE_CELLS}
         </span>
-        <span className="text-[10px]">tap: turn · double: flip</span>
+        <span className="text-[10px]">tap to rotate</span>
       </div>
 
       <div className="flex min-h-0 shrink-0 justify-center">
@@ -347,31 +354,39 @@ export function BlockPartyPuzzle({
           boardRef={boardRef}
           size={boardSize}
         >
-          {ghost && (
+          {ghost && drag.drag && (
             <>
               {ghost.cells.map((cell) => (
                 <div
                   key={`ghost-${cell}`}
                   aria-hidden="true"
                   className={`pointer-events-none absolute rounded-[4px] border-2 border-dashed ${
-                    ghost.legal ? "border-primary/70 bg-primary/10" : "border-warn/70 bg-warn/10"
+                    ghost.legal ? "border-current bg-primary/10" : "border-warn/70 bg-warn/10"
                   }`}
                   style={{
                     left: pct(cell % N),
                     top: pct(Math.floor(cell / N)),
                     width: pct(1),
                     height: pct(1),
+                    color: ghost.legal ? pieceColour(drag.drag.item.piece) : undefined,
                   }}
                 />
               ))}
             </>
           )}
           {/* Placed pieces can be picked back up. */}
-          {placed.map((placement) =>
-            placement.cells.map((cell) => (
+          {placed.map((placement) => {
+            const minRow = Math.min(...placement.cells.map((cell) => Math.floor(cell / N)));
+            const minCol = Math.min(...placement.cells.map((cell) => cell % N));
+            return placement.cells.map((cell) => (
               <div
                 key={`grab-${placement.piece}-${cell}`}
-                onPointerDown={drag.start({ piece: placement.piece, from: "board" })}
+                onPointerDown={drag.start({
+                  piece: placement.piece,
+                  from: "board",
+                  grabR: Math.floor(cell / N) - minRow,
+                  grabC: (cell % N) - minCol,
+                })}
                 className="absolute"
                 style={{
                   left: pct(cell % N),
@@ -381,8 +396,8 @@ export function BlockPartyPuzzle({
                   touchAction: "none",
                 }}
               />
-            )),
-          )}
+            ));
+          })}
         </BlockBoard>
       </div>
 
@@ -404,7 +419,6 @@ export function BlockPartyPuzzle({
             return (
               <div
                 key={piece}
-                onPointerDown={drag.start({ piece, from: "tray" })}
                 className={`relative flex min-h-0 items-center justify-center ${
                   drag.rejected?.piece === piece ? "animate-shake" : ""
                 }`}
@@ -421,7 +435,14 @@ export function BlockPartyPuzzle({
                       : { touchAction: "none" }
                   }
                 >
-                  <PieceGlyph offsets={offsets} colour={pieceColour(piece)} cell={trayCell} />
+                  <PieceGlyph
+                    offsets={offsets}
+                    colour={pieceColour(piece)}
+                    cell={trayCell}
+                    onCellPointerDown={(event, grabR, grabC) =>
+                      drag.start({ piece, from: "tray", grabR, grabC })(event)
+                    }
+                  />
                 </div>
               </div>
             );

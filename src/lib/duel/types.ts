@@ -889,13 +889,13 @@ export interface SudokuPuzzleData {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Flow                                                                      */
+/*  Colour Connect                                                            */
 /* -------------------------------------------------------------------------- */
 
-export const FLOW_COLS = 7;
+export const FLOW_COLS = 8;
 export const FLOW_CELLS = FLOW_COLS * FLOW_COLS;
-/** Seven pairs, one per game colour. */
-export const FLOW_PAIRS = 7;
+/** Eight pairs, one per game colour. */
+export const FLOW_PAIRS = 8;
 export const FLOW_TIME_MS = 45_000;
 /** Every path in a layout covers at least this many cells. */
 export const FLOW_MIN_PATH = 4;
@@ -911,7 +911,7 @@ export interface FlowPair {
 
 export interface FlowPuzzleData {
   type: "flow";
-  /** Five pairs in the order every player sees them. */
+  /** Eight pairs in the order every player sees them. */
   pairs: FlowPair[];
   /** Server-side only: the cell path of each pair, in pair order. */
   solution?: number[][];

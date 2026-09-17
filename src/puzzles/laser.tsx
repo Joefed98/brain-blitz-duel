@@ -35,9 +35,6 @@ const GOLD = "var(--primary)";
 const GREY = "var(--muted-foreground)";
 const RED = "var(--destructive)";
 
-/** How many mirror actions Undo can walk back. */
-const LASER_UNDO_STEPS = 20;
-
 /**
  * A faceted diamond — a rotated square with a lighter facet line across it —
  * drawn inline so no icon font or emoji is involved. Dim grey until the beam
@@ -299,7 +296,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   const total = isLaser ? puzzle.mirrors : 0;
 
   const [placed, setPlaced] = useStageState<MirrorPlacement[]>(stateKey, "mirrors", () => []);
-  const [history, setHistory] = useStageState<MirrorPlacement[][]>(stateKey, "history", () => []);
+  const [history, setHistory] = useStageState<number[]>(stateKey, "history", () => []);
   const [fires, setFires] = useStageState<number>(stateKey, "fires", () => 0);
   const [shot, setShot] = useState<{ trace: BeamTrace; step: number; done: boolean } | null>(null);
   const [ghost, setGhost] = useState<number | null>(null);
@@ -339,16 +336,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     window.setTimeout(() => setShake((count) => Math.max(0, count - 1)), 320);
   }, []);
 
-  /** Every mirror change goes through here, so Undo always has a step to take. */
-  const commit = useCallback(
-    (next: MirrorPlacement[]) => {
-      const before = placedRef.current;
-      setHistory((current) => [...current, before].slice(-LASER_UNDO_STEPS));
-      setPlaced(next);
-    },
-    [setHistory, setPlaced],
-  );
-
   const taken = useCallback(
     (cell: number) =>
       cell === source || gems.includes(cell) || bombs.includes(cell) || blocks.includes(cell),
@@ -374,13 +361,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       // Dropped off the board — back to the tray.
       if (target === null) {
         hapticTick();
-        commit(current.filter((mirror) => mirror.cell !== drag.from));
+        setPlaced(current.filter((mirror) => mirror.cell !== drag.from));
+        setHistory((order) => order.filter((cell) => cell !== drag.from));
         return;
       }
       // Dropped where it started — a tap, so flip it.
       if (target === drag.from) {
         hapticTick();
-        commit(
+        setPlaced(
           current.map((mirror) =>
             mirror.cell === drag.from
               ? { cell: mirror.cell, kind: flipMirror(mirror.kind) }
@@ -395,7 +383,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       }
       const kind = current.find((mirror) => mirror.cell === drag.from)?.kind ?? "/";
       hapticTick();
-      commit([...current.filter((mirror) => mirror.cell !== drag.from), { cell: target, kind }]);
+      setPlaced([...current.filter((mirror) => mirror.cell !== drag.from), { cell: target, kind }]);
+      setHistory((order) => order.map((cell) => (cell === drag.from ? target : cell)));
       return;
     }
 
@@ -410,8 +399,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       return;
     }
     hapticTick();
-    commit([...current, { cell: target, kind: "/" }]);
-  }, [commit, refuse, taken, total]);
+    setPlaced([...current, { cell: target, kind: "/" }]);
+    setHistory((order) => [...order.filter((cell) => cell !== target), target]);
+  }, [refuse, setHistory, setPlaced, taken, total]);
 
   const trackDrag = useCallback(
     (clientX: number, clientY: number) => {
@@ -523,7 +513,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       return;
     }
     hapticTick();
-    commit([...placed, { cell, kind: "/" }]);
+    setPlaced([...placed, { cell, kind: "/" }]);
+    setHistory((order) => [...order.filter((placedCell) => placedCell !== cell), cell]);
   };
 
   const undo = () => {
@@ -531,7 +522,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     const last = history[history.length - 1]!;
     hapticTick();
     setHistory((current) => current.slice(0, -1));
-    setPlaced(last);
+    setPlaced((current) => current.filter((mirror) => mirror.cell !== last));
   };
 
   if (!isLaser) return null;
@@ -587,7 +578,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
         <button
           type="button"
           disabled={locked || solved || !placed.length || Boolean(shot)}
-          onClick={() => commit([])}
+          onClick={() => {
+            setPlaced([]);
+            setHistory([]);
+          }}
           className="h-11 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset
