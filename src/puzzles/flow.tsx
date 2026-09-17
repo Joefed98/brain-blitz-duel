@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
+import { useGridPointer } from "@/components/puzzles/GridDrag";
 import { encodeFlowPaths, flowAdjacent, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -15,34 +16,25 @@ import { playCorrect } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** The dots and paths, drawn in cell units so the board scales to any size. */
+/** The dots and paths, drawn from cell centres so the board scales to any size. */
 function FlowBoard({
   pairs,
   paths,
   cols = FLOW_COLS,
+  cells = FLOW_CELLS,
   onCell,
   onRelease,
-  onDot,
 }: {
   pairs: FlowPair[];
   paths: number[][];
   cols?: number;
+  cells?: number;
   onCell?: ((cell: number) => void) | undefined;
   onRelease?: (() => void) | undefined;
-  onDot?: ((pair: number) => void) | undefined;
 }) {
-  const rows = Math.ceil(FLOW_CELLS / cols) || cols;
-  const box = useRef<HTMLDivElement | null>(null);
+  const rows = Math.ceil(cells / cols) || cols;
   const total = cols * rows;
-
-  const cellAt = (clientX: number, clientY: number): number | null => {
-    const rect = box.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return null;
-    const col = Math.floor(((clientX - rect.left) / rect.width) * cols);
-    const row = Math.floor(((clientY - rect.top) / rect.height) * rows);
-    if (col < 0 || row < 0 || col >= cols || row >= rows) return null;
-    return row * cols + col;
-  };
+  const pointer = useGridPointer({ cols, rows, onCell, onRelease });
 
   const filled = new Map<number, string>();
   paths.forEach((path, index) => {
@@ -51,32 +43,23 @@ function FlowBoard({
     for (const cell of path) filled.set(cell, GLYPH_COLOURS[colour]);
   });
 
+  const centre = (cell: number) => `${(cell % cols) + 0.5},${Math.floor(cell / cols) + 0.5}`;
+
   return (
-    <div
-      ref={box}
-      className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full touch-none select-none"
-      style={{ touchAction: "none" }}
-      onPointerDown={(event) => {
-        if (!onCell) return;
-        event.preventDefault();
-        const cell = cellAt(event.clientX, event.clientY);
-        if (cell !== null) onCell(cell);
-      }}
-      onPointerMove={(event) => {
-        if (!onCell || event.buttons === 0) return;
-        const cell = cellAt(event.clientX, event.clientY);
-        if (cell !== null) onCell(cell);
-      }}
-      onPointerUp={() => onRelease?.()}
-      onPointerCancel={() => onRelease?.()}
-    >
+    <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none">
       <div
-        className="grid h-full w-full"
+        ref={pointer.ref}
+        className="grid h-full w-full touch-none"
         style={{
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
           gap: 2,
+          ...pointer.handlers.style,
         }}
+        onPointerDown={pointer.handlers.onPointerDown}
+        onPointerMove={pointer.handlers.onPointerMove}
+        onPointerUp={pointer.handlers.onPointerUp}
+        onPointerCancel={pointer.handlers.onPointerCancel}
       >
         {Array.from({ length: total }, (_, cell) => {
           const tint = filled.get(cell);
@@ -98,16 +81,13 @@ function FlowBoard({
         {paths.map((path, index) => {
           const colour = pairs[index]?.colour;
           if (!colour || path.length < 2) return null;
-          const points = path
-            .map((cell) => `${(cell % cols) + 0.5},${Math.floor(cell / cols) + 0.5}`)
-            .join(" ");
           return (
             <polyline
               key={index}
-              points={points}
+              points={path.map(centre).join(" ")}
               fill="none"
               stroke={GLYPH_COLOURS[colour]}
-              strokeWidth={0.34}
+              strokeWidth={0.32}
               strokeLinecap="round"
               strokeLinejoin="round"
             />
@@ -125,25 +105,6 @@ function FlowBoard({
           )),
         )}
       </svg>
-
-      {onDot &&
-        pairs.map((pair, index) =>
-          [pair.a, pair.b].map((cell) => (
-            <button
-              key={`tap-${index}-${cell}`}
-              type="button"
-              aria-label={`Clear the ${pair.colour.toLowerCase()} path`}
-              className="absolute opacity-0"
-              style={{
-                left: `${((cell % cols) / cols) * 100}%`,
-                top: `${(Math.floor(cell / cols) / rows) * 100}%`,
-                width: `${100 / cols}%`,
-                height: `${100 / rows}%`,
-              }}
-              onClick={() => onDot(index)}
-            />
-          )),
-        )}
     </div>
   );
 }
@@ -153,7 +114,7 @@ function IntroExample() {
   const pairs: FlowPair[] = [
     { colour: "RED", a: 0, b: 6 },
     { colour: "BLUE", a: 3, b: 15 },
-    { colour: "GREEN", a: 8, b: 11 },
+    { colour: "ORANGE", a: 8, b: 11 },
   ];
   const paths = [[0, 1, 5, 6], [3, 7, 11, 15], []];
   return (
@@ -162,7 +123,7 @@ function IntroExample() {
         Join each pair of dots with a path. Paths can&apos;t cross, and every square must be filled.
       </p>
       <div style={{ width: 148 }}>
-        <FlowBoard pairs={pairs} paths={paths} cols={4} />
+        <FlowBoard pairs={pairs} paths={paths} cols={4} cells={16} />
       </div>
       <p className="text-xs text-muted-foreground">
         Drag from a dot to its partner. You have 60 seconds.
@@ -176,8 +137,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   const [paths, setPaths] = useStageState<number[][]>(stateKey, "flowPaths", () =>
     pairs.map(() => []),
   );
+  /** The pair being drawn, and whether the finger has actually moved. */
   const drawing = useRef<number | null>(null);
   const moved = useRef(false);
+  const startedOnDot = useRef<number | null>(null);
   const submitted = useRef(false);
 
   const verdict = useMemo(() => verifyFlow(pairs, paths), [pairs, paths]);
@@ -206,11 +169,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
       const active = drawing.current;
 
       if (active === null) {
+        // A dot starts its own path afresh…
         const pair = dotPair(cell);
-        if (pair === -1) return;
-        drawing.current = pair;
+        if (pair !== -1) {
+          drawing.current = pair;
+          moved.current = false;
+          startedOnDot.current = pair;
+          setPaths((current) => current.map((path, index) => (index === pair ? [cell] : path)));
+          return;
+        }
+        // …and the loose end of a path can be picked up to carry on from there.
+        const loose = paths.findIndex((path) => path.length > 1 && path[path.length - 1] === cell);
+        if (loose === -1) return;
+        drawing.current = loose;
         moved.current = false;
-        setPaths((current) => current.map((path, index) => (index === pair ? [cell] : path)));
+        startedOnDot.current = null;
         return;
       }
 
@@ -225,13 +198,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
         }
         if (!flowAdjacent(last, cell)) return current;
         if (path.includes(cell)) return current;
-        // Another pair's dot is never walkable.
-        const otherDot = pairs.some(
-          (pair, index) => index !== active && (pair.a === cell || pair.b === cell),
-        );
-        if (otherDot) return current;
 
         const pair = pairs[active]!;
+        // Another colour's dot is refused: the path simply stops where it was.
+        const otherDot = pairs.some(
+          (other, index) => index !== active && (other.a === cell || other.b === cell),
+        );
+        if (otherDot) {
+          drawing.current = null;
+          return current;
+        }
+
+        // Entering the partner dot completes the pair there and then.
         const ends = cell === pair.a || cell === pair.b;
         // Crossing another colour cuts it back to the cell before.
         const next = current.map((value, index) => {
@@ -240,28 +218,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
           return at === -1 ? value : value.slice(0, at);
         });
         moved.current = true;
-        const extended = [...path, cell];
-        next[active] = extended;
+        next[active] = [...path, cell];
         if (ends) drawing.current = null;
         return next;
       });
       buzz(4);
     },
-    [dotPair, locked, pairs, setPaths],
+    [dotPair, locked, pairs, paths, setPaths],
   );
 
+  /** Lifting the finger without moving, on a dot, clears that colour. */
   const release = useCallback(() => {
+    const pair = startedOnDot.current;
+    const wasStill = !moved.current;
     drawing.current = null;
-  }, []);
-
-  /** A tap on a dot (no drag) clears that colour. */
-  const clearPair = useCallback(
-    (pair: number) => {
-      if (locked || submitted.current || moved.current) return;
-      setPaths((current) => current.map((path, index) => (index === pair ? [] : path)));
-    },
-    [locked, setPaths],
-  );
+    startedOnDot.current = null;
+    if (pair === null || !wasStill || locked || submitted.current) return;
+    setPaths((current) => current.map((path, index) => (index === pair ? [] : path)));
+  }, [locked, setPaths]);
 
   if (puzzle.type !== "flow") return null;
 
@@ -277,9 +251,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
           paths={paths}
           onCell={locked ? undefined : touch}
           onRelease={release}
-          onDot={locked ? undefined : clearPair}
         />
       </div>
+      <p className="shrink-0 text-center text-[11px] text-muted-foreground">
+        Drag dot to dot · drag from a loose end to carry on · tap a dot to clear it
+      </p>
     </div>
   );
 }

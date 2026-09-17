@@ -18,7 +18,26 @@ import { MyAnswerLine } from "@/components/puzzles/MyAnswerLine";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const SHAPES: GlyphShape[] = ["circle", "square", "triangle", "star"];
-const COLOURS: GlyphColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK"];
+const COLOURS: GlyphColour[] = [
+  "RED",
+  "BLUE",
+  "GREEN",
+  "PURPLE",
+  "PINK",
+  "ORANGE",
+  "BROWN",
+];
+
+/** Colours too alike to tell apart at a glance — never the near-miss pair. */
+const TOO_CLOSE: [GlyphColour, GlyphColour][] = [
+  ["RED", "ORANGE"],
+  ["ORANGE", "BROWN"],
+  ["BLUE", "PURPLE"],
+];
+
+function tooClose(a: GlyphColour, b: GlyphColour): boolean {
+  return TOO_CLOSE.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+}
 
 const PLURAL: Record<GlyphShape, string> = {
   circle: "circles",
@@ -150,7 +169,7 @@ export function buildCountUp(): CountUpPuzzleData {
 
   // Two near-miss populations with similar counts, so a rough impression fails.
   const otherShape = pick(SHAPES.filter((s) => s !== targetShape));
-  const otherColour = pick(COLOURS.filter((c) => c !== targetColour));
+  const otherColour = pick(COLOURS.filter((c) => c !== targetColour && !tooClose(c, targetColour)));
   const near = () => Math.max(3, count + pick([-2, -1, 1, 2]));
   const nearA = near();
   const nearB = near();
@@ -168,6 +187,8 @@ export function buildCountUp(): CountUpPuzzleData {
     const shape = pick(SHAPES);
     const colour = pick(COLOURS);
     if (shape === targetShape && colour === targetColour) continue; // never inflate the answer
+    // A near-identical colour on the target shape would make counting a guess.
+    if (shape === targetShape && tooClose(colour, targetColour)) continue;
     slots.push({ shape, colour });
   }
 

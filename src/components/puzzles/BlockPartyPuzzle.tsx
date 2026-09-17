@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
-import { liftStyle, useDragSnap, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
+import {
+  gridColRowAt,
+  liftStyle,
+  useDragSnap,
+  usePrefersReducedMotion,
+} from "@/components/puzzles/GridDrag";
 import {
   BLOCK_PIECES,
   absoluteCells,
@@ -18,13 +23,15 @@ import {
   type BlockPlacement,
 } from "@/lib/duel/types";
 
-/** Five soft colours from the game palette, so pieces stay distinguishable. */
+/** The seven game colours, so pieces stay distinguishable. */
 const PIECE_COLOURS = [
   GLYPH_COLOURS.BLUE,
   GLYPH_COLOURS.GREEN,
   GLYPH_COLOURS.PURPLE,
   GLYPH_COLOURS.PINK,
   GLYPH_COLOURS.RED,
+  GLYPH_COLOURS.ORANGE,
+  GLYPH_COLOURS.BROWN,
 ];
 
 const pct = (value: number) => `${(value * 100) / N}%`;
@@ -190,16 +197,12 @@ export function BlockPartyPuzzle({
   /** Where the piece would land if dropped with the pointer here. */
   const targetCells = useCallback(
     (piece: number, x: number, y: number): number[] | null => {
-      const rect = boardRef.current?.getBoundingClientRect();
-      if (!rect) return null;
-      if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) return null;
-      const cell = rect.width / N;
+      const at = gridColRowAt(boardRef.current, x, y, N, N);
+      if (!at) return null;
       const offsets = offsetsFor(piece);
       const { rows, cols } = offsetsSize(offsets);
-      const pointerCol = Math.floor((x - rect.left) / cell);
-      const pointerRow = Math.floor((y - rect.top) / cell);
-      const row = pointerRow - Math.floor((rows - 1) / 2);
-      const col = pointerCol - Math.floor((cols - 1) / 2);
+      const row = at.row - Math.floor((rows - 1) / 2);
+      const col = at.col - Math.floor((cols - 1) / 2);
       return absoluteCells(offsets, row, col);
     },
     [offsetsFor],

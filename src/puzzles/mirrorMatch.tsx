@@ -98,7 +98,7 @@ function buildMirrorMatch(): MirrorPuzzleData {
 
 const EXAMPLE: MirrorShape = {
   cells: [0, 1, 5, 11],
-  colours: ["RED", "BLUE", "GREEN", "PURPLE"],
+  colours: ["RED", "ORANGE", "GREEN", "PURPLE"],
 };
 const EXAMPLE_ANSWER = normalise(reflect(toPts(EXAMPLE), "vertical"));
 

@@ -9,7 +9,15 @@ import { ROTATION_COLS as N, type MirrorShape, type StroopColour } from "./types
 
 export const SHAPE_COLS = N;
 
-export const SHAPE_PALETTE: StroopColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK"];
+export const SHAPE_PALETTE: StroopColour[] = [
+  "RED",
+  "BLUE",
+  "GREEN",
+  "PURPLE",
+  "PINK",
+  "ORANGE",
+  "BROWN",
+];
 
 type Cells = number[];
 type Coord = [number, number];

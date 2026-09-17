@@ -1,7 +1,8 @@
 /**
  * Server-only Laser and Mirrors generation. The beam route is chosen first and
  * mirrors are placed on its bends, so the stored placement is a solution by
- * construction — and the tracer proves it before the layout is ever stored.
+ * construction — and the tracer proves it, and proves that no smaller set of
+ * those mirrors works, before the layout is ever stored.
  */
 
 import { laserCol, laserRow, laserStep, traceBeam } from "./laser";
@@ -11,6 +12,7 @@ import {
   LASER_COLS as N,
   LASER_MAX_BLOCKS,
   LASER_MAX_MIRRORS,
+  LASER_MIN_BENDS,
   LASER_MIN_BLOCKS,
   LASER_MIN_MIRRORS,
   type BeamDir,
@@ -59,7 +61,7 @@ interface Route {
   target: number;
 }
 
-/** Walks a random zig-zag of 2–4 bends from the source, never re-using a cell. */
+/** Walks a random zig-zag of several bends from the source, never re-using a cell. */
 function randomRoute(source: number, dir: BeamDir, bends: number): Route | null {
   const visited = new Set<number>([source]);
   const cells = [source];
@@ -97,14 +99,37 @@ function randomRoute(source: number, dir: BeamDir, bends: number): Route | null 
   return { cells, bends: placements, target };
 }
 
+/** Every proper subset of the mirrors must miss the target — all of them are needed. */
+function everyMirrorNeeded(
+  source: number,
+  dir: BeamDir,
+  mirrors: MirrorPlacement[],
+  blocks: number[],
+  target: number,
+): boolean {
+  const total = mirrors.length;
+  for (let mask = 0; mask < 1 << total; mask++) {
+    const subset = mirrors.filter((_, index) => mask & (1 << index));
+    if (subset.length === total) continue;
+    if (traceBeam(source, dir, subset, blocks, target).hitTarget) return false;
+  }
+  return true;
+}
+
 export function generateLaser(): LaserPuzzleData {
-  for (let attempt = 0; attempt < 4_000; attempt++) {
+  for (let attempt = 0; attempt < 8_000; attempt++) {
     const { cell: source, dir } = shuffled(sources())[0]!;
-    const bendCount = LASER_MIN_MIRRORS + randomInt(LASER_MAX_MIRRORS - LASER_MIN_MIRRORS + 1);
+    const bendCount = Math.max(
+      LASER_MIN_BENDS,
+      LASER_MIN_MIRRORS + randomInt(LASER_MAX_MIRRORS - LASER_MIN_MIRRORS + 1),
+    );
     const route = randomRoute(source, dir, bendCount);
     if (!route) continue;
+    if (route.bends.length < LASER_MIN_BENDS) continue;
 
     const onRoute = new Set(route.cells);
+    // Blocks never crowd the route: they sit off it, leaving open space around
+    // the beam so wrong-looking placements still look plausible.
     const free = shuffled(
       Array.from({ length: LASER_CELLS }, (_, cell) => cell).filter((cell) => !onRoute.has(cell)),
     );
@@ -129,6 +154,9 @@ export function generateLaser(): LaserPuzzleData {
       empty = traceBeam(source, dir, [], blocks, route.target);
       if (empty.hitTarget) continue;
     }
+
+    // Nothing short of the whole tray may solve it.
+    if (!everyMirrorNeeded(source, dir, route.bends, blocks, route.target)) continue;
 
     return {
       type: "laser",

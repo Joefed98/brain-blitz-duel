@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { liftStyle, useDragSnap, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
+import {
+  gridCellSize,
+  liftStyle,
+  useDragSnap,
+  usePrefersReducedMotion,
+} from "@/components/puzzles/GridDrag";
 import { clampSlide, encodeMoves, isSolved, position, type UnblockMove } from "@/lib/duel/unblock";
 import {
   UNBLOCK_COLS as N,
@@ -102,7 +107,6 @@ export function UnblockPuzzle({
 }: UnblockPuzzleProps) {
   const reduced = usePrefersReducedMotion();
   const boardRef = useRef<HTMLDivElement>(null);
-  const [cellPx, setCellPx] = useState(52);
   const [vehicles, setVehicles] = useState<UnblockVehicle[]>(() =>
     puzzle.vehicles.map((v) => ({ ...v })),
   );
@@ -113,16 +117,6 @@ export function UnblockPuzzle({
   const submitted = useRef(false);
   const movesRef = useRef<UnblockMove[]>([]);
   movesRef.current = moves;
-
-  useEffect(() => {
-    const measure = () => {
-      const width = boardRef.current?.clientWidth ?? 0;
-      if (width > 0) setCellPx(width / N);
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
 
   const lockIn = useCallback(
     (final: UnblockMove[]) => {
@@ -139,13 +133,13 @@ export function UnblockPuzzle({
     if (remaining <= 600) lockIn(movesRef.current);
   }, [locked, now, phaseStartedAt, lockIn]);
 
-  const wantedPosition = useCallback(
-    (vehicle: UnblockVehicle, dx: number, dy: number) => {
-      const delta = Math.round((vehicle.axis === "h" ? dx : dy) / cellPx);
-      return position(vehicle) + delta;
-    },
-    [cellPx],
-  );
+  const wantedPosition = useCallback((vehicle: UnblockVehicle, dx: number, dy: number) => {
+    // Measured live, so a resized or scaled board still steps by whole cells.
+    const size = gridCellSize(boardRef.current, N, N);
+    const cellPx = vehicle.axis === "h" ? (size?.cellW ?? 52) : (size?.cellH ?? 52);
+    const delta = Math.round((vehicle.axis === "h" ? dx : dy) / (cellPx || 52));
+    return position(vehicle) + delta;
+  }, []);
 
   const drag = useDragSnap<number>({
     disabled: locked || escaping,

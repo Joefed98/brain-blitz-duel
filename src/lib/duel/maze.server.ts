@@ -1,6 +1,7 @@
 /**
  * Server-only Maze Dash generation: a perfect maze by randomised depth-first
- * search, kept only when its single route is long enough and twisty enough.
+ * search, kept only when its single route is long enough, twisty enough, and
+ * hung with enough long false trails to punish a careless run.
  */
 
 import {
@@ -9,6 +10,7 @@ import {
   MAZE_S,
   MAZE_W,
   mazeCol,
+  mazeCorridorNeighbours,
   mazeRoute,
   mazeRow,
   mazeSideBetween,
@@ -18,6 +20,8 @@ import { shuffled } from "./random";
 import {
   MAZE_CELLS,
   MAZE_COLS as N,
+  MAZE_DEAD_END_LENGTH,
+  MAZE_MIN_DEAD_ENDS,
   MAZE_MIN_PATH,
   MAZE_MIN_TURNS,
   type MazePuzzleData,
@@ -59,15 +63,50 @@ function carve(): number[] {
   return cells;
 }
 
+/**
+ * False trails: branches that leave the solution route and run at least the
+ * required number of cells before dying. Counted per branch, not per cell.
+ */
+export function mazeFalseTrails(cells: number[], route: number[], minLength: number): number {
+  const onRoute = new Set(route);
+  let trails = 0;
+
+  for (const cell of route) {
+    for (const first of mazeCorridorNeighbours(cells, cell)) {
+      if (onRoute.has(first)) continue;
+      // Walk the whole branch subtree and take its longest run.
+      let longest = 0;
+      const stack: { cell: number; depth: number }[] = [{ cell: first, depth: 1 }];
+      const seen = new Set<number>([cell, first]);
+      while (stack.length) {
+        const node = stack.pop()!;
+        if (node.depth > longest) longest = node.depth;
+        for (const next of mazeCorridorNeighbours(cells, node.cell)) {
+          if (seen.has(next) || onRoute.has(next)) continue;
+          seen.add(next);
+          stack.push({ cell: next, depth: node.depth + 1 });
+        }
+      }
+      if (longest >= minLength) trails += 1;
+    }
+  }
+  return trails;
+}
+
 export function generateMaze(): MazePuzzleData {
   const start = 0;
   const exit = MAZE_CELLS - 1;
-  for (let attempt = 0; attempt < 2_000; attempt++) {
-    const cells = carve();
-    const route = mazeRoute(cells, start, exit);
-    if (route.length < MAZE_MIN_PATH) continue;
-    if (mazeTurns(route) < MAZE_MIN_TURNS) continue;
-    return { type: "maze", cells, start, exit, solution: route };
+  // Fifty attempts per seed, then a fresh seed — the shape of the search changes
+  // completely with each carve, so retrying is always worth it.
+  for (let round = 0; round < 200; round++) {
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const cells = carve();
+      const route = mazeRoute(cells, start, exit);
+      if (route.length < MAZE_MIN_PATH) continue;
+      if (mazeTurns(route) < MAZE_MIN_TURNS) continue;
+      if (mazeFalseTrails(cells, route, MAZE_DEAD_END_LENGTH) < MAZE_MIN_DEAD_ENDS) continue;
+      return { type: "maze", cells, start, exit, solution: route };
+    }
   }
   throw new Error("Maze generator could not build a long enough route");
 }

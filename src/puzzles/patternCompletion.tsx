@@ -150,7 +150,7 @@ function Grid({
 
 // Shape changes down the rows, colour across the columns, count +1 across each row.
 const EXAMPLE_SHAPES: PatternShape[] = ["circle", "square", "star"];
-const EXAMPLE_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN"];
+const EXAMPLE_COLOURS: StroopColour[] = ["RED", "ORANGE", "GREEN"];
 const EXAMPLE_CELLS: PatternCell[] = Array.from({ length: 9 }, (_, index) => ({
   shape: EXAMPLE_SHAPES[Math.floor(index / 3)]!,
   colour: EXAMPLE_COLOURS[index % 3]!,

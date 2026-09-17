@@ -100,3 +100,13 @@ for (let index = 0; index < 200; index++) {
 console.log("Maze Dash: 200 mazes — every route long enough, twisty enough and server-checked");
 
 console.log("All checks passed.");
+
+// Tower must never count a rule-breaking move list as solved.
+{
+  const bad = replayTower(4, 2, [
+    { from: 0, to: 2 },
+    { from: 0, to: 2 },
+  ]);
+  if (!bad.illegal || bad.solved) throw new Error("Tower accepted an illegal move list");
+  console.log("Tower: illegal move lists are rejected by the server replay");
+}

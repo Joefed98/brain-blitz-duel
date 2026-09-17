@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
+import { gridCellAt } from "@/components/puzzles/GridDrag";
+
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import { decodeMirrors, encodeMirrors, flipMirror, traceBeam, verifyLaser } from "@/lib/duel/laser";
 import { useStageState } from "@/lib/duel/stageState";
@@ -48,14 +50,9 @@ function LaserBoard({
   const hit = trace.hitTarget;
   const mirrorAt = new Map(placed.map((mirror) => [mirror.cell, mirror.kind]));
 
-  const cellAt = (clientX: number, clientY: number): number | null => {
-    const rect = box.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return null;
-    const col = Math.floor(((clientX - rect.left) / rect.width) * cols);
-    const row = Math.floor(((clientY - rect.top) / rect.height) * rows);
-    if (col < 0 || row < 0 || col >= cols || row >= rows) return null;
-    return row * cols + col;
-  };
+  // Measured from the live board on every event, so taps land on the cell touched.
+  const cellAt = (clientX: number, clientY: number): number | null =>
+    gridCellAt(box.current, clientX, clientY, cols, rows);
 
   const centre = (cell: number) => `${(cell % cols) + 0.5},${Math.floor(cell / cols) + 0.5}`;
 
@@ -63,9 +60,10 @@ function LaserBoard({
     <div
       ref={box}
       className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none"
-      style={{ touchAction: "manipulation" }}
+      style={{ touchAction: "none" }}
       onPointerDown={(event) => {
         if (!onCell) return;
+        event.preventDefault();
         const cell = cellAt(event.clientX, event.clientY);
         if (cell !== null) onCell(cell);
       }}

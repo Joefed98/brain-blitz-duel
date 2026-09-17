@@ -26,6 +26,8 @@ const COLOURS: Record<StroopColour, string> = {
   GREEN: "#3DDC84",
   PURPLE: "#B26BFF",
   PINK: "#FF6BD6",
+  ORANGE: "#FF8A3D",
+  BROWN: "#C9895A",
 };
 
 const COLOUR_KEYS = Object.keys(COLOURS) as StroopColour[];
@@ -33,6 +35,8 @@ const COLOUR_KEYS = Object.keys(COLOURS) as StroopColour[];
 const TOO_CLOSE: [StroopColour, StroopColour][] = [
   ["RED", "PINK"],
   ["BLUE", "PURPLE"],
+  ["RED", "ORANGE"],
+  ["ORANGE", "BROWN"],
 ];
 
 const KINDS: SpotShapeKind[] = ["circle", "square", "triangle", "star", "hexagon", "arrow"];

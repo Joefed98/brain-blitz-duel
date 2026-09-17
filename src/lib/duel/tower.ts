@@ -59,9 +59,11 @@ export function decodeTowerMoves(raw: string): TowerMove[] {
 
 export interface TowerReplay {
   pegs: TowerPegs;
-  /** Moves that were actually legal. */
+  /** Moves that were actually played. */
   moves: number;
   solved: boolean;
+  /** True when the move list broke the rules and was cut short. */
+  illegal: boolean;
   /** Discs stacked correctly from the bottom of the target peg. */
   correctFromBottom: number;
 }
@@ -77,22 +79,41 @@ export function towerCorrectFromBottom(pegs: TowerPegs, targetPeg: number, discs
   return count;
 }
 
+/** Every peg must read largest at the bottom to smallest at the top. */
+export function towerStacksLegal(pegs: TowerPegs): boolean {
+  return pegs.every((peg) => peg.every((disc, index) => index === 0 || disc < peg[index - 1]!));
+}
+
+/**
+ * Replays a move list on a fresh tower. A move that would put a larger disc on a
+ * smaller one is illegal: the replay stops there, so a move list that breaks the
+ * rules can never be counted as solved.
+ */
 export function replayTower(discs: number, targetPeg: number, moves: TowerMove[]): TowerReplay {
   let pegs = towerStart(discs);
   let count = 0;
+  let illegal = false;
   for (const move of moves) {
-    if (!towerCanMove(pegs, move.from, move.to)) continue;
+    if (!towerCanMove(pegs, move.from, move.to)) {
+      illegal = true;
+      break;
+    }
     pegs = towerApply(pegs, move.from, move.to);
     count += 1;
     if ((pegs[targetPeg] ?? []).length === discs) break;
   }
+  const home = pegs[targetPeg] ?? [];
+  const correctFromBottom = towerCorrectFromBottom(pegs, targetPeg, discs);
   return {
     pegs,
     moves: count,
-    solved: (pegs[targetPeg] ?? []).length === discs,
-    correctFromBottom: towerCorrectFromBottom(pegs, targetPeg, discs),
+    // Solved only when every disc sits on the target peg in the right order.
+    solved: home.length === discs && correctFromBottom === discs && towerStacksLegal(pegs),
+    illegal,
+    correctFromBottom,
   };
 }
+
 
 /** The classic recursive optimum: 2^discs − 1 moves. */
 export function towerOptimal(discs: number, from: number, to: number): TowerMove[] {
