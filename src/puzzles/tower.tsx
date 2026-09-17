@@ -7,7 +7,6 @@ import {
   encodeTowerMoves,
   replayTower,
   towerCanMove,
-  towerStart,
   type TowerMove,
   type TowerPegs,
 } from "@/lib/duel/tower";
@@ -285,6 +284,3 @@ export const towerPuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
-
-/** Kept for the intro example's starting stack. */
-export const towerExampleStart = towerStart;
