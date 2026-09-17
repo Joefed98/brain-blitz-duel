@@ -86,10 +86,12 @@ export function scoreRound(
   return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
 }
 
-/** Groups: both sets earn the standard score; one set at timeout earns 50. */
+/** Groups: all four earn the standard score; partial groups earn flat credit. */
 export function scoreGroups(foundGroups: number, msRemaining: number): number {
-  if (foundGroups >= 2) return BASE_POINTS + speedBonus(msRemaining, 60_000);
-  return foundGroups === 1 ? 50 : 0;
+  if (foundGroups >= 4) return BASE_POINTS + speedBonus(msRemaining, 90_000);
+  if (foundGroups === 3) return 60;
+  if (foundGroups === 2) return 40;
+  return foundGroups === 1 ? 20 : 0;
 }
 
 /** Word Ladder: solved earns standard points, plus 20 for a minimum path, capped at 150. */

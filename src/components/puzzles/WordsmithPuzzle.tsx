@@ -99,7 +99,11 @@ export function WordsmithPuzzle({
 
   const tapTile = (index: number) => {
     if (locked) return;
-    if (used.includes(index)) return;
+    const usedAt = used.indexOf(index);
+    if (usedAt >= 0) {
+      removeAt(usedAt);
+      return;
+    }
     setMessage(null);
     setWord((current) => current + (letters[index] ?? ""));
   };
@@ -196,6 +200,14 @@ export function WordsmithPuzzle({
       />
 
       <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setWord((current) => current.slice(0, -1))}
+          disabled={locked || word.length === 0}
+          className="press tap-target rounded-xl border border-border bg-card px-3 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground disabled:opacity-35"
+        >
+          Undo
+        </button>
         <button
           type="button"
           onClick={() => void trySubmit()}

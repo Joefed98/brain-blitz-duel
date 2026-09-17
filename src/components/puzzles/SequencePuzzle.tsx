@@ -55,6 +55,11 @@ export function SequencePuzzle({
     if (playing || locked || taps.length >= puzzle.tiles.length) return;
     setFlash(index);
     window.setTimeout(() => setFlash(null), 200);
+    const existing = taps.indexOf(index);
+    if (existing >= 0) {
+      setTaps(taps.slice(0, existing));
+      return;
+    }
     const next = [...taps, index];
     setTaps(next);
     if (next.length === puzzle.tiles.length) onSubmit(next.join(","));

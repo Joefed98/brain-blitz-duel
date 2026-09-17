@@ -14,7 +14,7 @@ import { WORD_PAIRS } from "./wordPairs";
 
 function ModeLabel({ mode }: { mode: WordMatchMode }) {
   return (
-    <span className="font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+    <span className="rounded-full bg-foreground px-4 py-2 font-mono text-xl font-bold uppercase tracking-widest text-background">
       {mode === "synonym" ? "SYNONYM" : "ANTONYM"}
     </span>
   );
