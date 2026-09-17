@@ -350,11 +350,12 @@ export function gradeSubmission(
       // The phone sends its slides; they are replayed on the stored layout.
       const moves = decodeSlideMoves(answer);
       const holes = puzzle.holes ?? [];
-      const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, moves);
+      const arrows = puzzle.arrows ?? [];
+      const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, moves, arrows);
       const min = puzzle.minMoves ?? 0;
       const away = replay.solved
         ? null
-        : slideDistance(puzzle.walls, holes, replay.cell, puzzle.exit, puzzle.start);
+        : slideDistance(puzzle.walls, holes, replay.cell, puzzle.exit, puzzle.start, arrows);
       isCorrect = replay.solved;
       correctCount = replay.moves;
       score = scoreIceSlide(replay.solved, replay.moves, min, ms, away);
