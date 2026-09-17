@@ -2,7 +2,8 @@
  * Server-only Maze Dash generation: a perfect maze grown by the growing-tree
  * method, biased towards branching so the run is full of forks, and kept only
  * when its single route is long enough, twisty enough, forked enough and hung
- * with enough long false trails to punish a careless run.
+ * with enough long false trails to punish a careless run — and only when the
+ * exit cannot be spotted down a straight corridor near the end.
  */
 
 import {
@@ -12,6 +13,7 @@ import {
   MAZE_W,
   mazeCol,
   mazeCorridorNeighbours,
+  mazeOpen,
   mazeRoute,
   mazeRow,
   mazeSideBetween,
@@ -19,11 +21,14 @@ import {
 } from "./maze";
 import { shuffled } from "./random";
 import {
+  MAZE_BLIND_TAIL,
   MAZE_CELLS,
   MAZE_COLS as N,
   MAZE_DEAD_END_LENGTH,
+  MAZE_LONG_DEAD_END_LENGTH,
   MAZE_MIN_DEAD_ENDS,
   MAZE_MIN_JUNCTIONS,
+  MAZE_MIN_LONG_DEAD_ENDS,
   MAZE_MIN_PATH,
   MAZE_MIN_TURNS,
   type MazePuzzleData,
@@ -93,12 +98,13 @@ export function mazeJunctions(cells: number[], route: number[]): number {
 }
 
 /**
- * False trails: branches that leave the solution route at a fork and run at
- * least the required number of cells before dying. Counted per branch.
+ * False trails: branches that leave the solution route at a fork. Returns the
+ * longest run of each branch, so both the count and the really long ones can be
+ * checked.
  */
-export function mazeFalseTrails(cells: number[], route: number[], minLength: number): number {
+export function mazeFalseTrailLengths(cells: number[], route: number[]): number[] {
   const onRoute = new Set(route);
-  let trails = 0;
+  const lengths: number[] = [];
 
   for (const cell of route) {
     // Only a fork offers a wrong turn; a plain corridor cell cannot.
@@ -118,10 +124,32 @@ export function mazeFalseTrails(cells: number[], route: number[], minLength: num
           stack.push({ cell: next, depth: node.depth + 1 });
         }
       }
-      if (longest >= minLength) trails += 1;
+      lengths.push(longest);
     }
   }
-  return trails;
+  return lengths;
+}
+
+/**
+ * True when the exit can be seen straight down a corridor from the closing
+ * stretch of the route. The last two cells are left out — the final step into
+ * the exit is always in view, and that is the point of it.
+ */
+export function mazeExitInSight(cells: number[], route: number[], exit: number): boolean {
+  const tail = route.slice(Math.max(0, route.length - MAZE_BLIND_TAIL), route.length - 2);
+  for (const from of tail) {
+    for (const first of [-N, N, -1, 1]) {
+      let cell = from;
+      while (true) {
+        const next = cell + first;
+        if (next < 0 || next >= MAZE_CELLS) break;
+        if (!mazeOpen(cells, cell, next)) break;
+        cell = next;
+        if (cell === exit) return true;
+      }
+    }
+  }
+  return false;
 }
 
 export function generateMaze(): MazePuzzleData {
@@ -136,7 +164,17 @@ export function generateMaze(): MazePuzzleData {
       if (route.length < MAZE_MIN_PATH) continue;
       if (mazeTurns(route) < MAZE_MIN_TURNS) continue;
       if (mazeJunctions(cells, route) < MAZE_MIN_JUNCTIONS) continue;
-      if (mazeFalseTrails(cells, route, MAZE_DEAD_END_LENGTH) < MAZE_MIN_DEAD_ENDS) continue;
+
+      const trails = mazeFalseTrailLengths(cells, route);
+      if (trails.filter((length) => length >= MAZE_DEAD_END_LENGTH).length < MAZE_MIN_DEAD_ENDS)
+        continue;
+      if (
+        trails.filter((length) => length >= MAZE_LONG_DEAD_END_LENGTH).length <
+        MAZE_MIN_LONG_DEAD_ENDS
+      )
+        continue;
+      if (mazeExitInSight(cells, route, exit)) continue;
+
       return { type: "maze", cells, start, exit, solution: route };
     }
   }
