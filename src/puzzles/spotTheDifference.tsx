@@ -122,7 +122,9 @@ function DrawnShape({ shape, size = SHAPE }: { shape: SpotShape; size?: number }
   ]
     .filter(Boolean)
     .join(" ");
-  return <g transform={turns}>{shapePath(shape.kind, COLOURS[shape.colour])}</g>;
+  const colour = COLOURS[shape.colour as keyof typeof COLOURS];
+  if (!colour) return null;
+  return <g transform={turns}>{shapePath(shape.kind, colour)}</g>;
 }
 
 function Panel({
