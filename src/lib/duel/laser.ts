@@ -85,7 +85,8 @@ export function traceBeam(
   let cell = source;
   let heading = dir;
 
-  if (blocked.has(source)) return { cells: [source], segments: [[source]], endCell: source, hitTarget: false };
+  if (blocked.has(source))
+    return { cells: [source], segments: [[source]], endCell: source, hitTarget: false };
 
   cells.push(cell);
   segment.push(cell);

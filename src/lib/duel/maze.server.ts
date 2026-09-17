@@ -15,7 +15,13 @@ import {
   mazeTurns,
 } from "./maze";
 import { shuffled } from "./random";
-import { MAZE_CELLS, MAZE_COLS as N, MAZE_MIN_PATH, MAZE_MIN_TURNS, type MazePuzzleData } from "./types";
+import {
+  MAZE_CELLS,
+  MAZE_COLS as N,
+  MAZE_MIN_PATH,
+  MAZE_MIN_TURNS,
+  type MazePuzzleData,
+} from "./types";
 
 function neighbours(cell: number): number[] {
   const out: number[] = [];

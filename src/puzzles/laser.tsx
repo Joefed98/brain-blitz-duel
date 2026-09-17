@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
-import {
-  decodeMirrors,
-  encodeMirrors,
-  flipMirror,
-  traceBeam,
-  verifyLaser,
-} from "@/lib/duel/laser";
+import { decodeMirrors, encodeMirrors, flipMirror, traceBeam, verifyLaser } from "@/lib/duel/laser";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   LASER_CELLS,
@@ -146,7 +140,12 @@ function LaserBoard({
             />
           );
         })}
-        <circle cx={(source % cols) + 0.5} cy={Math.floor(source / cols) + 0.5} r={0.18} fill={GOLD} />
+        <circle
+          cx={(source % cols) + 0.5}
+          cy={Math.floor(source / cols) + 0.5}
+          r={0.18}
+          fill={GOLD}
+        />
       </svg>
     </div>
   );
@@ -170,9 +169,7 @@ function IntroExample() {
           placed={[{ cell: 2, kind: "\\" }]}
         />
       </div>
-      <p className="text-xs text-muted-foreground">
-        Tap a mirror to flip it. You have 60 seconds.
-      </p>
+      <p className="text-xs text-muted-foreground">Tap a mirror to flip it. You have 60 seconds.</p>
     </div>
   );
 }
@@ -316,9 +313,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         </div>
       </div>
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
-        {myCorrect
-          ? `Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
-          : "Not solved"}
+        {myCorrect ? `Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}` : "Not solved"}
       </p>
     </div>
   );

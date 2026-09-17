@@ -42,7 +42,8 @@ function Pegs({
   onPeg?: ((peg: number) => void) | undefined;
   compact?: boolean;
 }) {
-  const liftedDisc = lifted === null || lifted === undefined ? null : (pegs[lifted]?.at(-1) ?? null);
+  const liftedDisc =
+    lifted === null || lifted === undefined ? null : (pegs[lifted]?.at(-1) ?? null);
 
   return (
     <div className="flex h-full w-full items-end justify-center gap-2">
@@ -95,7 +96,8 @@ function Pegs({
                         width: `${30 + (size / discs) * 65}%`,
                         backgroundColor: discColour(size),
                         opacity: hide ? 0.25 : 1,
-                        outline: top === size && !hide ? "1px solid rgba(255,255,255,0.25)" : "none",
+                        outline:
+                          top === size && !hide ? "1px solid rgba(255,255,255,0.25)" : "none",
                       }}
                     />
                   );
@@ -116,11 +118,7 @@ function Pegs({
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
-  const pegs: TowerPegs = [
-    [4, 3],
-    [2],
-    [1],
-  ];
+  const pegs: TowerPegs = [[4, 3], [2], [1]];
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
@@ -242,17 +240,13 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   if (puzzle.type !== "tower") return null;
   const mine = replayTower(puzzle.discs, puzzle.targetPeg, decodeTowerMoves(myAnswer ?? ""));
   const limit = puzzle.timeLimitMs ?? TOWER_TIME_MS;
-  const elapsed = myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
+  const elapsed =
+    myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <div style={{ width: 190, height: 110 }}>
-        <Pegs
-          pegs={mine.pegs}
-          discs={puzzle.discs}
-          targetPeg={puzzle.targetPeg}
-          compact
-        />
+        <Pegs pegs={mine.pegs} discs={puzzle.discs} targetPeg={puzzle.targetPeg} compact />
       </div>
       <p className="font-display text-2xl font-bold">
         <span className={myCorrect ? "text-primary" : "text-warn"}>

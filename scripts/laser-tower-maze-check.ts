@@ -47,7 +47,8 @@ for (let index = 0; index < 300; index++) {
 
   for (const mirror of solution) {
     if (puzzle.blocks.includes(mirror.cell)) fail("a mirror sits on a block");
-    if (mirror.cell === puzzle.source || mirror.cell === puzzle.target) fail("mirror on an endpoint");
+    if (mirror.cell === puzzle.source || mirror.cell === puzzle.target)
+      fail("mirror on an endpoint");
   }
 }
 console.log("Laser: 300 layouts — stored placement always hits, empty grid never does");
@@ -64,7 +65,11 @@ for (let index = 0; index < 400; index++) {
   if (puzzle.timeLimitMs !== expected) fail(`five-disc clock is ${puzzle.timeLimitMs}`);
   if (puzzle.discs === 5) five += 1;
 
-  const replay = replayTower(puzzle.discs, puzzle.targetPeg, decodeTowerMoves(puzzle.solution ?? ""));
+  const replay = replayTower(
+    puzzle.discs,
+    puzzle.targetPeg,
+    decodeTowerMoves(puzzle.solution ?? ""),
+  );
   if (!replay.solved) fail("stored solution does not finish the tower");
   if (replay.moves !== puzzle.minMoves) fail("stored solution is not the minimum");
 }
@@ -80,7 +85,8 @@ for (let index = 0; index < 200; index++) {
   const route = puzzle.solution ?? [];
   if (route.length < MAZE_MIN_PATH) fail(`route length ${route.length}`);
   if (mazeTurns(route) < MAZE_MIN_TURNS) fail(`route turns ${mazeTurns(route)}`);
-  if (route[0] !== puzzle.start || route[route.length - 1] !== puzzle.exit) fail("route ends wrong");
+  if (route[0] !== puzzle.start || route[route.length - 1] !== puzzle.exit)
+    fail("route ends wrong");
   // A perfect maze: the route found from the cells is the stored one.
   if (mazeRoute(puzzle.cells, puzzle.start, puzzle.exit).join(",") !== route.join(",")) {
     fail("stored route is not the maze's own route");
