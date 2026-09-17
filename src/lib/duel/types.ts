@@ -965,3 +965,98 @@ export interface PushPuzzleData {
   /** Server-side only: one minimum solution, as "cell:dir" pushes. */
   solution?: string;
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Laser and Mirrors                                                         */
+/* -------------------------------------------------------------------------- */
+
+export const LASER_COLS = 7;
+export const LASER_CELLS = LASER_COLS * LASER_COLS;
+export const LASER_TIME_MS = 60_000;
+export const LASER_MIN_MIRRORS = 2;
+export const LASER_MAX_MIRRORS = 4;
+export const LASER_MIN_BLOCKS = 3;
+export const LASER_MAX_BLOCKS = 5;
+/** Consolation for a beam that stops within one cell of the target. */
+export const LASER_NEAR_POINTS = 30;
+
+/** A diagonal mirror: "/" or "\". */
+export type MirrorKind = "/" | "\\";
+
+/** Up, down, left, right — the direction a beam travels. */
+export type BeamDir = "U" | "D" | "L" | "R";
+
+export interface MirrorPlacement {
+  cell: number;
+  kind: MirrorKind;
+}
+
+export interface LaserPuzzleData {
+  type: "laser";
+  /** The edge cell the laser fires from. */
+  source: number;
+  /** The direction it fires, inward from that edge. */
+  dir: BeamDir;
+  target: number;
+  /** Cells the beam cannot pass. */
+  blocks: number[];
+  /** Exactly as many mirrors as the solution needs. */
+  mirrors: number;
+  /** Server-side only: where each mirror belongs, and which way it faces. */
+  solution?: MirrorPlacement[];
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Tower                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export const TOWER_TIME_MS = 60_000;
+/** Five-disc towers get longer on the clock. */
+export const TOWER_LONG_TIME_MS = 90_000;
+/** Share of puzzles that use five discs instead of four. */
+export const TOWER_FIVE_DISC_SHARE = 0.3;
+/** Bonus for finishing in the fewest possible moves. */
+export const TOWER_MIN_MOVE_BONUS = 20;
+/** Most a partly-built tower can earn. */
+export const TOWER_PARTIAL_POINTS = 60;
+
+export interface TowerPuzzleData {
+  type: "tower";
+  /** Four discs, or five in the harder variant. */
+  discs: number;
+  /** Which peg the tower must end on: 1 (middle) or 2 (right). */
+  targetPeg: number;
+  /** The fewest moves the puzzle can be finished in (2^discs − 1). */
+  minMoves: number;
+  /** This puzzle's own clock, which the five-disc variant lengthens. */
+  timeLimitMs: number;
+  /** Server-side only: one shortest sequence of moves. */
+  solution?: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Maze Dash                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export const MAZE_COLS = 9;
+export const MAZE_CELLS = MAZE_COLS * MAZE_COLS;
+export const MAZE_TIME_MS = 45_000;
+/** The route from start to exit is never shorter than this. */
+export const MAZE_MIN_PATH = 30;
+/** And never straighter than this. */
+export const MAZE_MIN_TURNS = 6;
+/** Most a partly-run maze can earn. */
+export const MAZE_PARTIAL_POINTS = 60;
+
+export interface MazePuzzleData {
+  type: "maze";
+  /**
+   * One open-side mask per cell: north 1, east 2, south 4, west 8. A perfect
+   * maze, so exactly one route joins any two cells.
+   */
+  cells: number[];
+  start: number;
+  exit: number;
+  /** Server-side only: the one route from the start to the exit. */
+  solution?: number[];
+}
