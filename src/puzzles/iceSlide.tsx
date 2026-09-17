@@ -188,6 +188,7 @@ function Stage({
 }: PuzzleStageProps) {
   const walls = puzzle.type === "iceslide" ? puzzle.walls : [];
   const holes = puzzle.type === "iceslide" ? (puzzle.holes ?? []) : [];
+  const arrows = puzzle.type === "iceslide" ? (puzzle.arrows ?? []) : [];
   const start = puzzle.type === "iceslide" ? puzzle.start : 0;
   const exit = puzzle.type === "iceslide" ? puzzle.exit : 0;
   const [moves, setMoves] = useStageState<SlideDir[]>(stateKey, "slideMoves", () => []);
@@ -196,8 +197,8 @@ function Stage({
   const fallsSeen = useRef(0);
 
   const replay = useMemo(
-    () => replaySlide(walls, holes, start, exit, moves),
-    [walls, holes, start, exit, moves],
+    () => replaySlide(walls, holes, start, exit, moves, arrows),
+    [walls, holes, arrows, start, exit, moves],
   );
 
   useEffect(() => {
