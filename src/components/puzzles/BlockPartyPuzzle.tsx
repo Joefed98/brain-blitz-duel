@@ -343,16 +343,14 @@ export function BlockPartyPuzzle({
   );
   const boardSize = Math.max(
     120,
-    Math.min(layoutSize.width, layoutSize.height - traySize.height - 36, (trayCellCapacity / 0.45) * N),
-  );
-  const boardCell = boardSize / N;
-  const trayCell = Math.max(
-    boardCell * 0.45,
     Math.min(
-      boardCell * 0.6,
-      trayCellCapacity,
+      layoutSize.width,
+      layoutSize.height - traySize.height - 36,
+      (trayCellCapacity / 0.45) * N,
     ),
   );
+  const boardCell = boardSize / N;
+  const trayCell = Math.max(boardCell * 0.45, Math.min(boardCell * 0.6, trayCellCapacity));
 
   return (
     <div ref={layoutRef} className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">

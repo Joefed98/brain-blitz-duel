@@ -176,21 +176,21 @@ export function WordsmithPuzzle({
         spellCheck={false}
         maxLength={letters.length}
         placeholder="type here"
-          onChange={(event) => {
+        onChange={(event) => {
           const next = event.target.value.toUpperCase().replace(/[^A-Z]/g, "");
-            if (next === word.slice(0, -1)) {
-              setSelectedTiles((current) => current.slice(0, -1));
-              setMessage(null);
-              return;
-            }
-            if (!next.startsWith(word) || next.length !== word.length + 1) return;
-            const typed = next.at(-1);
-            const tileIndex = order.find(
-              (index) => letters[index] === typed && !selectedTiles.includes(index),
-            );
-            if (tileIndex === undefined) return;
+          if (next === word.slice(0, -1)) {
+            setSelectedTiles((current) => current.slice(0, -1));
+            setMessage(null);
+            return;
+          }
+          if (!next.startsWith(word) || next.length !== word.length + 1) return;
+          const typed = next.at(-1);
+          const tileIndex = order.find(
+            (index) => letters[index] === typed && !selectedTiles.includes(index),
+          );
+          if (tileIndex === undefined) return;
           setMessage(null);
-            setSelectedTiles((current) => [...current, tileIndex]);
+          setSelectedTiles((current) => [...current, tileIndex]);
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter") void trySubmit();
@@ -236,7 +236,6 @@ export function WordsmithPuzzle({
           Done
         </button>
       </div>
-
     </div>
   );
 }

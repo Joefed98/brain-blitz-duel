@@ -21,7 +21,9 @@ function GroupBand({
   index?: number;
 }) {
   return (
-    <div className={`flex min-h-12 w-full flex-col justify-center rounded-lg border px-2 py-1.5 text-center ${BAND_CLASSES[index % 4]}`}>
+    <div
+      className={`flex min-h-12 w-full flex-col justify-center rounded-lg border px-2 py-1.5 text-center ${BAND_CLASSES[index % 4]}`}
+    >
       <p className="font-mono text-[11px] font-bold uppercase tracking-widest">{theme}</p>
       <p className="mt-0.5 truncate font-display text-[13px] font-semibold">{words.join(" · ")}</p>
     </div>
