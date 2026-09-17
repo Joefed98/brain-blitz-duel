@@ -156,7 +156,7 @@ function IntroExample() {
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
         Swipe to slide the ball. It won&apos;t stop until it hits something. Avoid the holes — fall
-        in and you start again.
+        in and you start again. A chevron is one-way: it turns the ball as it passes.
       </p>
       <div style={{ width: 132 }}>
         <Board
@@ -164,6 +164,7 @@ function IntroExample() {
           cells={16}
           walls={[6, 12]}
           holes={[9]}
+          arrows={[{ cell: 5, dir: "D" }]}
           start={0}
           exit={15}
           ball={0}
@@ -176,6 +177,7 @@ function IntroExample() {
     </div>
   );
 }
+
 
 function Stage({
   puzzle,
