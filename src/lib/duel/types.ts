@@ -1029,14 +1029,14 @@ export interface PushPuzzleData {
 
 export const LASER_COLS = 10;
 export const LASER_CELLS = LASER_COLS * LASER_COLS;
-export const LASER_TIME_MS = 75_000;
-/** Always exactly four mirrors, and the route always bends once per mirror. */
-export const LASER_MIN_MIRRORS = 4;
-export const LASER_MAX_MIRRORS = 4;
+export const LASER_TIME_MS = 90_000;
+/** Always exactly five mirrors, and the route always bends once per mirror. */
+export const LASER_MIN_MIRRORS = 5;
+export const LASER_MAX_MIRRORS = 5;
 export const LASER_MIN_BLOCKS = 20;
 export const LASER_MAX_BLOCKS = 26;
-/** Two gems the beam must pass through, and three or four bombs it must miss. */
-export const LASER_GEMS = 2;
+/** Three gems the beam must pass through, and three or four bombs it must miss. */
+export const LASER_GEMS = 3;
 export const LASER_MIN_BOMBS = 3;
 export const LASER_MAX_BOMBS = 4;
 /** Blocks closing off the straight and single-bend shortcuts. */
@@ -1051,13 +1051,16 @@ export const LASER_CENTRAL_TO = 7;
 /** A bomb must lie on this many different near-miss beams. */
 export const LASER_MIN_BOMB_CROSSINGS = 2;
 /** The beam route always turns at least this many times. */
-export const LASER_MIN_BENDS = 4;
+export const LASER_MIN_BENDS = 5;
 /** Three shots per round. */
 export const LASER_MAX_FIRES = 3;
-/** Base points by the shot that lit both gems: first, second, third. */
+/** Base points by the shot that lit all three gems: first, second, third. */
 export const LASER_FIRE_BASE = [100, 85, 70];
-/** Consolation for finishing with exactly one gem lit. */
-export const LASER_ONE_GEM_POINTS = 30;
+/** Consolation for finishing with two gems lit, or with just one. */
+export const LASER_TWO_GEM_POINTS = 40;
+export const LASER_ONE_GEM_POINTS = 20;
+/** How many near-miss placements the necessity search may carry forward. */
+export const LASER_PROMISING_CAP = 20_000;
 /** How long the beam takes to draw itself, and how long it lingers after a miss. */
 export const LASER_BEAM_MS = 600;
 export const LASER_FADE_MS = 1_500;
@@ -1080,7 +1083,7 @@ export interface LaserStats {
   bends: number;
   gems: number;
   bombs: number;
-  /** True when no placement of one, two or three mirrors lights both gems. */
+  /** True when no placement of one to four mirrors lights all three gems. */
   necessityPass: boolean;
   /** How many mirror placements the exhaustive search traced. */
   subsetsTested: number;
@@ -1093,7 +1096,7 @@ export interface LaserPuzzleData {
   source: number;
   /** The direction it fires, inward from that edge. */
   dir: BeamDir;
-  /** The two gems one beam must pass through, in either order. */
+  /** The three gems one beam must pass through, in any order. */
   gems: number[];
   /** Bombs: touching one ends the shot at once. */
   bombs: number[];

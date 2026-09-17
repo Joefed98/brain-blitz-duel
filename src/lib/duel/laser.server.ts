@@ -1,12 +1,12 @@
 /**
  * Server-only Laser and Mirrors generation. A beam route is chosen first and a
- * mirror is put on each of its four bends, so the stored placement is a solution
- * by construction; the two gems are picked off that route, so one shot passes
- * through both. Blocks then obstruct the middle of the board and hide the
+ * mirror is put on each of its five bends, so the stored placement is a solution
+ * by construction; the three gems are picked off that route, so one shot passes
+ * through all of them. Blocks then obstruct the middle of the board and hide the
  * corridor, bombs go where a plausible wrong route runs — cells crossed by
  * several near-miss beams — and an EXHAUSTIVE search tries every placement of
- * one, two or three mirrors in both orientations: the layout is only accepted
- * when none of them lights both gems, so all four mirrors are always needed.
+ * up to four mirrors in both orientations: the layout is only accepted when none
+ * of them lights all three gems, so all five mirrors are always needed.
  */
 
 import { laserCol, laserRow, laserStep, traceBeam } from "./laser";
@@ -26,6 +26,7 @@ import {
   LASER_MIN_BOMB_CROSSINGS,
   LASER_MIN_CENTRAL_BLOCKS,
   LASER_MIN_SHORTCUT_BLOCKS,
+  LASER_PROMISING_CAP,
   type BeamDir,
   type LaserPuzzleData,
   type MirrorKind,
@@ -182,7 +183,7 @@ function walkPath(
 }
 
 export interface ShortcutSearch {
-  /** The first one-, two- or three-mirror placement that lights both gems. */
+  /** The first placement of four mirrors or fewer that lights every gem. */
   hit: { cells: number[] } | null;
   /** How many placements were traced. */
   tested: number;
@@ -190,9 +191,11 @@ export interface ShortcutSearch {
 
 /**
  * Tries EVERY placement of one, two or three mirrors, both orientations, on the
- * free cells. With `stopOnFirst` it returns the beam path of the first shortcut
- * found (so a block can be dropped on it); otherwise it runs to the end and the
- * tested count is the full number of placements proved to fail.
+ * free cells, then extends the near misses among them — the ones already
+ * lighting all but one gem — with a fourth mirror in every free cell and both
+ * orientations. With `stopOnFirst` it returns the beam path of the first
+ * shortcut found (so a block can be dropped on it); otherwise it runs to the end
+ * and the tested count is the full number of placements proved to fail.
  */
 export function searchShortcuts(
   source: number,
@@ -215,49 +218,52 @@ export function searchShortcuts(
     free.push(cell);
   }
 
+  const need = gems.length;
   const trail: number[] = [];
   let tested = 0;
   let hit: { cells: number[] } | null = null;
-  const fire = () => walkPath(source, dir, blocked, bomb, gem, mirrors, trail) >= gems.length;
+  /** Placements lighting all but one gem, kept as [cell, kind, ...] pairs. */
+  const promising: number[][] = [];
 
-  tested += 1;
-  if (fire()) return { hit: { cells: [...trail] }, tested };
+  /** Traces the mirrors currently on the board; true when it lights every gem. */
+  const fire = (carry: number[] | null): boolean => {
+    tested += 1;
+    const lit = walkPath(source, dir, blocked, bomb, gem, mirrors, trail);
+    if (lit >= need) {
+      hit ??= { cells: [...trail] };
+      return true;
+    }
+    if (carry && lit >= need - 1 && promising.length < LASER_PROMISING_CAP) {
+      promising.push([...carry]);
+    }
+    return false;
+  };
+
+  if (fire(null) && stopOnFirst) return { hit, tested };
 
   for (let a = 0; a < free.length; a++) {
     for (let ka = 1 as 1 | 2; ka <= 2; ka++) {
       mirrors[free[a]!] = ka;
-      tested += 1;
-      if (fire()) {
-        hit ??= { cells: [...trail] };
-        if (stopOnFirst) {
-          mirrors[free[a]!] = 0;
-          return { hit, tested };
-        }
+      if (fire([free[a]!, ka]) && stopOnFirst) {
+        mirrors[free[a]!] = 0;
+        return { hit, tested };
       }
       for (let b = a + 1; b < free.length; b++) {
         for (let kb = 1 as 1 | 2; kb <= 2; kb++) {
           mirrors[free[b]!] = kb;
-          tested += 1;
-          if (fire()) {
-            hit ??= { cells: [...trail] };
-            if (stopOnFirst) {
-              mirrors[free[a]!] = 0;
-              mirrors[free[b]!] = 0;
-              return { hit, tested };
-            }
+          if (fire([free[a]!, ka, free[b]!, kb]) && stopOnFirst) {
+            mirrors[free[a]!] = 0;
+            mirrors[free[b]!] = 0;
+            return { hit, tested };
           }
           for (let c = b + 1; c < free.length; c++) {
             for (let kc = 1 as 1 | 2; kc <= 2; kc++) {
               mirrors[free[c]!] = kc;
-              tested += 1;
-              if (fire()) {
-                hit ??= { cells: [...trail] };
-                if (stopOnFirst) {
-                  mirrors[free[a]!] = 0;
-                  mirrors[free[b]!] = 0;
-                  mirrors[free[c]!] = 0;
-                  return { hit, tested };
-                }
+              if (fire([free[a]!, ka, free[b]!, kb, free[c]!, kc]) && stopOnFirst) {
+                mirrors[free[a]!] = 0;
+                mirrors[free[b]!] = 0;
+                mirrors[free[c]!] = 0;
+                return { hit, tested };
               }
             }
             mirrors[free[c]!] = 0;
@@ -268,6 +274,26 @@ export function searchShortcuts(
     }
     mirrors[free[a]!] = 0;
   }
+
+  // Four mirrors: every near miss found above, extended by one more mirror.
+  for (const carry of promising) {
+    for (let index = 0; index < carry.length; index += 2)
+      mirrors[carry[index]!] = carry[index + 1]!;
+    for (const cell of free) {
+      if (mirrors[cell]) continue;
+      for (let kind = 1 as 1 | 2; kind <= 2; kind++) {
+        mirrors[cell] = kind;
+        if (fire(null) && stopOnFirst) {
+          mirrors[cell] = 0;
+          for (let index = 0; index < carry.length; index += 2) mirrors[carry[index]!] = 0;
+          return { hit, tested };
+        }
+      }
+      mirrors[cell] = 0;
+    }
+    for (let index = 0; index < carry.length; index += 2) mirrors[carry[index]!] = 0;
+  }
+
   return { hit, tested };
 }
 
@@ -307,7 +333,7 @@ export function nearMissCrossings(
   };
   /** A near miss lights one gem, or passes within one cell of a gem it missed. */
   const nearMiss = (lit: number): boolean => {
-    if (lit === 1) return true;
+    if (lit >= 1 && lit < gems.length) return true;
     if (lit !== 0) return false;
     return gems.some((target) =>
       trail.some(
@@ -340,16 +366,16 @@ export function nearMissCrossings(
     mirrors[free[a]!] = 0;
   }
 
-  // A sample of four-mirror placements, which no exhaustive pass could cover.
+  // A sample of five-mirror placements, which no exhaustive pass could cover.
   for (let sample = 0; sample < 40_000; sample++) {
     const picked: number[] = [];
-    for (let index = 0; index < 4; index++) {
+    for (let index = 0; index < 5; index++) {
       const cell = free[randomInt(free.length)]!;
       if (mirrors[cell]) continue;
       mirrors[cell] = randomInt(2) === 0 ? 1 : 2;
       picked.push(cell);
     }
-    if (picked.length === 4) {
+    if (picked.length === 5) {
       if (nearMiss(walkPath(source, dir, blocked, bomb, gem, mirrors, trail))) record();
     }
     for (const cell of picked) mirrors[cell] = 0;
@@ -389,35 +415,46 @@ function shortcutLines(source: number, dir: BeamDir, gems: number[]): Set<number
 export function generateLaser(): LaserPuzzleData {
   for (let attempt = 1; attempt <= 40_000; attempt++) {
     const { cell: source, dir } = shuffled(sources())[0]!;
-    // Always exactly four mirrors, so the route always bends four times.
+    // Always exactly five mirrors, so the route always bends five times.
     const route = randomRoute(source, dir, LASER_MAX_MIRRORS);
     if (!route) continue;
     // Both orientations have to show up, so the tray is never all one way.
     if (new Set(route.bends.map((mirror) => mirror.kind)).size < 2) continue;
 
     const bendCells = new Set(route.bends.map((mirror) => mirror.cell));
-    const bendIndex = route.bends.map((mirror) => route.cells.indexOf(mirror.cell));
     const gemPool = route.cells
       .map((cell, index) => ({ cell, index }))
       .filter((spot) => spot.cell !== source && !bendCells.has(spot.cell));
 
-    // One gem past the first bend, the other past the third, so a short answer
-    // cannot reach both.
-    const early = shuffled(gemPool.filter((spot) => spot.index > bendIndex[0]!));
-    const late = shuffled(gemPool.filter((spot) => spot.index > bendIndex[2]!));
+    // One gem on each of three different straight runs of the route, so no short
+    // answer can reach them all, and never two gems close together.
+    const segmentOf = new Map<number, number>();
+    route.segments.forEach((segment, index) => {
+      for (const cell of segment.cells) if (!segmentOf.has(cell)) segmentOf.set(cell, index);
+    });
+    const bySegment = new Map<number, number[]>();
+    for (const spot of gemPool) {
+      const segment = segmentOf.get(spot.cell);
+      // Skip the first run: a gem there could be lit with no mirror at all.
+      if (segment === undefined || segment < 1) continue;
+      const list = bySegment.get(segment) ?? [];
+      list.push(spot.cell);
+      bySegment.set(segment, list);
+    }
+    const apart = (a: number, b: number) =>
+      Math.max(Math.abs(laserRow(a) - laserRow(b)), Math.abs(laserCol(a) - laserCol(b))) >= 3;
     let gems: number[] | null = null;
-    for (const first of early) {
-      const partner = late.find(
-        (spot) =>
-          spot.cell !== first.cell &&
-          Math.max(
-            Math.abs(laserRow(spot.cell) - laserRow(first.cell)),
-            Math.abs(laserCol(spot.cell) - laserCol(first.cell)),
-          ) >= 3,
-      );
-      if (partner) {
-        gems = [first.cell, partner.cell];
-        break;
+    const segmentKeys = [...bySegment.keys()];
+    if (segmentKeys.length >= LASER_GEMS) {
+      for (let tries = 0; tries < 60 && !gems; tries++) {
+        const picked = shuffled(segmentKeys)
+          .slice(0, LASER_GEMS)
+          .map((segment) => shuffled(bySegment.get(segment)!)[0]!);
+        if (new Set(picked).size !== LASER_GEMS) continue;
+        const spread = picked.every((cell, index) =>
+          picked.every((other, otherIndex) => otherIndex === index || apart(cell, other)),
+        );
+        if (spread) gems = picked;
       }
     }
     if (!gems || gems.length !== LASER_GEMS) continue;
@@ -447,8 +484,7 @@ export function generateLaser(): LaserPuzzleData {
       offRoute.filter((cell) => beside.has(cell) && !chosen.includes(cell)),
     ).slice(0, LASER_MIN_ADJACENT_BLOCKS + randomInt(3));
     const wanted = [...chosen, ...asidePicks];
-    const blockCount =
-      LASER_MIN_BLOCKS + randomInt(LASER_MAX_BLOCKS - LASER_MIN_BLOCKS + 1);
+    const blockCount = LASER_MIN_BLOCKS + randomInt(LASER_MAX_BLOCKS - LASER_MIN_BLOCKS + 1);
     const filler = shuffled(offRoute.filter((cell) => !wanted.includes(cell))).slice(
       0,
       Math.max(0, blockCount - wanted.length),
@@ -479,8 +515,7 @@ export function generateLaser(): LaserPuzzleData {
       .filter(([, count]) => count >= LASER_MIN_BOMB_CROSSINGS)
       .sort((a, b) => b[1] - a[1])
       .map(([cell]) => cell);
-    const bombCount =
-      LASER_MIN_BOMBS + randomInt(LASER_MAX_BOMBS - LASER_MIN_BOMBS + 1);
+    const bombCount = LASER_MIN_BOMBS + randomInt(LASER_MAX_BOMBS - LASER_MIN_BOMBS + 1);
     if (bombCandidates.length < bombCount) continue;
     const bombs = shuffled(bombCandidates.slice(0, Math.max(bombCount, 8))).slice(0, bombCount);
     if (bombs.length !== bombCount) continue;
@@ -518,7 +553,7 @@ export function generateLaser(): LaserPuzzleData {
     if (!litByRoute()) continue;
 
     // Final proof, run to the end with the blocks and bombs final: NO placement
-    // of one, two or three mirrors lights both gems, so all four are required.
+    // of four mirrors or fewer lights all three gems, so all five are required.
     const proof = searchShortcuts(source, dir, blocks, bombs, gems, false);
     if (proof.hit) continue;
 
@@ -526,7 +561,7 @@ export function generateLaser(): LaserPuzzleData {
     if (!solutionTrace.litAll || solutionTrace.hitBomb) continue;
 
     console.log(
-      `[laser] layout accepted after ${attempt} attempt(s): ${blocks.length} blocks (${blocks.filter(isCentral).length} central), ${bombs.length} bombs on near-miss routes, ${proof.tested} placements proved to fail`,
+      `[laser] layout accepted after ${attempt} attempt(s): ${blocks.length} blocks (${blocks.filter(isCentral).length} central), ${bombs.length} bombs on near-miss routes, ${gems.length} gems, ${proof.tested} placements proved to fail`,
     );
     return {
       type: "laser",
