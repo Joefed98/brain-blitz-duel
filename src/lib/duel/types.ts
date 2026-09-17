@@ -988,18 +988,23 @@ export interface PushPuzzleData {
 /*  Laser and Mirrors                                                         */
 /* -------------------------------------------------------------------------- */
 
-export const LASER_COLS = 8;
+export const LASER_COLS = 9;
 export const LASER_CELLS = LASER_COLS * LASER_COLS;
 export const LASER_TIME_MS = 60_000;
 /** Always exactly four mirrors, and the route always bends once per mirror. */
 export const LASER_MIN_MIRRORS = 4;
 export const LASER_MAX_MIRRORS = 4;
-export const LASER_MIN_BLOCKS = 6;
-export const LASER_MAX_BLOCKS = 9;
+export const LASER_MIN_BLOCKS = 10;
+export const LASER_MAX_BLOCKS = 14;
+/** Blocks closing off the straight and single-bend shortcuts. */
+export const LASER_MIN_SHORTCUT_BLOCKS = 3;
+/** Blocks touching the beam route without sitting on it, hiding the corridor. */
+export const LASER_MIN_ADJACENT_BLOCKS = 3;
 /** The beam route always turns at least this many times. */
 export const LASER_MIN_BENDS = 4;
 /** Consolation for a beam that stops within one cell of the target. */
 export const LASER_NEAR_POINTS = 30;
+
 
 /** A diagonal mirror: "/" or "\". */
 export type MirrorKind = "/" | "\\";
