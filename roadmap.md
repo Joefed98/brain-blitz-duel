@@ -6,4 +6,4 @@
 - [x] Preserve two-player VS presentation across both parts
 - [x] Skip overall standings after the final round
 - [x] Validate focused result-presentation behavior without browser tests
-- [ ] Validate types, focused lint, and preview build
+- [x] Validate types, focused lint, and preview build
