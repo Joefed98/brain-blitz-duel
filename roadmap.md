@@ -1,5 +1,6 @@
-# Block Party sizing adjustment
+# Clear round instructions and in-round help
 
-- [x] Reduce and centre the board at 85% width
-- [x] Give freed height to the tray and enlarge pieces up to 75% of a board cell
-- [x] Verify scoped sizing constraints without browser tests
+- [x] Add GOAL / HOW / SCORE instructions for every puzzle type
+- [x] Show the structured instructions before each fixed intro example
+- [x] Add a dismissible in-round help overlay to duel and practice
+- [x] Verify static checks and preview build without browser tests

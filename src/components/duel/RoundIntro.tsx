@@ -4,6 +4,7 @@ import type { Outcome } from "@/lib/duel/scoring";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
+import { PuzzleInstructions } from "./PuzzleInstructions";
 
 interface RoundIntroProps {
   round: number;
@@ -42,7 +43,7 @@ export function RoundIntro({
   const twoPlayer = activeCount === 2;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 animate-phase-in">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-0.5">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -57,7 +58,7 @@ export function RoundIntro({
         {!practice && <RoundPips currentRound={round} outcomes={outcomes} />}
       </div>
 
-      <h1 className="text-center font-display text-[2.75rem] font-bold leading-none animate-pop-in">
+      <h1 className="text-center font-display text-[2.25rem] font-bold leading-none animate-pop-in sm:text-[2.75rem]">
         {puzzleName(type)}
       </h1>
 
@@ -72,7 +73,8 @@ export function RoundIntro({
         </div>
       ) : (
         <>
-          <div className="round-intro-content flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+          <div className="round-intro-content flex min-h-0 flex-1 flex-col items-center justify-center gap-2 overflow-hidden">
+            <PuzzleInstructions type={type} />
             <div className="round-intro-example">
               <Example />
             </div>

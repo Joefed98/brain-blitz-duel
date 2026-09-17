@@ -7,6 +7,7 @@ import type {
   PuzzleType,
   RoundResultRow,
 } from "@/lib/duel/types";
+import type { PuzzleInstructions } from "@/lib/duel/instructions";
 
 /**
  * Per-type detail sent with a submission. Correctness and score are worked out
@@ -97,6 +98,8 @@ export interface PuzzleDefinition {
   revealHeading?: string;
   /** False for types that are not on a countdown clock. */
   showTimer?: boolean;
+  /** Shared GOAL / HOW / SCORE copy used by the intro and in-round help. */
+  instructions?: PuzzleInstructions;
   /** Fixed intro example — identical every single time. */
   IntroExample: ComponentType;
   Stage: ComponentType<PuzzleStageProps>;

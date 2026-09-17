@@ -44,10 +44,11 @@ import {
   type PuzzleType,
 } from "./types";
 import { CORRECT_ANSWERS, ROUND_SUMMARIES } from "./roundSummaries";
+import { PUZZLE_INSTRUCTIONS } from "./instructions";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
 type RegisteredPuzzleDefinition = PuzzleDefinition &
-  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer">>;
+  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions">>;
 
 const LONG_REVEAL_TYPES = new Set<PuzzleType>([
   "chaincalc",
@@ -65,7 +66,7 @@ const LONG_REVEAL_TYPES = new Set<PuzzleType>([
   "ladder",
 ]);
 
-const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
+const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> = {
   wordsmith: wordsmithPuzzle,
   groups: groupsPuzzle,
   ladder: wordLadderPuzzle,
@@ -109,6 +110,7 @@ export const PUZZLE_REGISTRY = Object.fromEntries(
     type,
     {
       ...definition,
+      instructions: PUZZLE_INSTRUCTIONS[type as PuzzleType],
       revealMs:
         definition.revealMs ?? (LONG_REVEAL_TYPES.has(type as PuzzleType) ? 8_000 : REVEAL_MS),
       roundSummary: ROUND_SUMMARIES[type as PuzzleType],

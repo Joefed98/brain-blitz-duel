@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { TimerRing, timerSlotClass } from "@/components/duel/TimerRing";
@@ -80,10 +81,13 @@ function PracticeScreen() {
   const [startedAt, setStartedAt] = useState(0);
   const [graded, setGraded] = useState<Graded | null>(null);
   const [run, setRun] = useState(0);
+  const [helpOpen, setHelpOpen] = useState(false);
   const grading = useRef(false);
   const draftAnswer = useRef("");
   const now = useTicker(stage === "intro" || stage === "puzzle" || stage === "reveal");
   const stateKey = `practice-${run}`;
+
+  useEffect(() => setHelpOpen(false), [stage, type]);
 
   const load = useCallback(async (next: PuzzleType) => {
     unlockAudio();
@@ -307,9 +311,12 @@ function PracticeScreen() {
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             PRACTICE
           </span>
-          <span className="font-display text-sm font-bold text-foreground">
-            {puzzleName(puzzle.type)}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-display text-sm font-bold text-foreground">
+              {puzzleName(puzzle.type)}
+            </span>
+            <PuzzleHelpButton onClick={() => setHelpOpen(true)} />
+          </div>
         </div>
 
         {puzzleShowsTimer(puzzle) && (
@@ -337,6 +344,7 @@ function PracticeScreen() {
             }
             checkGroup={(indices) => practiceCheckGroupFn({ data: { puzzle, sealed, indices } })}
           />
+          <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
         </div>
       </div>
     </PhoneShell>

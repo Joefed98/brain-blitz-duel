@@ -355,9 +355,8 @@
   animation: countdown-number 1s ease-out both;
 }
 
-/* The fixed puzzle examples expose their instruction as the first paragraph.
- * Flatten only the round-intro wrapper so the shared time limit can sit
- * directly below that instruction without changing any puzzle module. */
+/* Fixed examples keep their visual demonstration. Their old first and last
+ * instruction captions are superseded by the shared GOAL / HOW / SCORE card. */
 .round-intro-example,
 .round-intro-example > div {
   display: contents;
@@ -367,24 +366,29 @@
   order: 3;
 }
 
-.round-intro-example > div > p:first-child {
-  order: 1;
-  max-width: 22rem;
-  color: var(--color-foreground);
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.55;
-  text-align: center;
+.round-intro-example > div > p:first-child,
+.round-intro-example > div > p:last-child {
+  display: none;
 }
 
 .round-intro-time {
-  order: 2;
+  order: 4;
 }
 
 .round-intro-example > div > :not(p) {
-  transform: scale(1.1);
-  margin-block: 0.25rem;
+  transform: scale(0.82);
+  margin-block: -0.35rem;
+}
+
+.round-instructions {
+  order: 1;
+}
+
+@media (min-height: 720px) {
+  .round-intro-example > div > :not(p) {
+    transform: scale(0.95);
+    margin-block: 0;
+  }
 }
 
 /* --- Waiting / loading dots -------------------------------------------- */
