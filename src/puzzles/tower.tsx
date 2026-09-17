@@ -7,11 +7,12 @@ import {
   encodeTowerMoves,
   replayTower,
   towerCanMove,
+  towerPegsFrom,
   type TowerMove,
   type TowerPegs,
 } from "@/lib/duel/tower";
 import { useStageState } from "@/lib/duel/stageState";
-import { TOWER_TIME_MS, type TowerPuzzleData } from "@/lib/duel/types";
+import { TOWER_DISCS, TOWER_PEGS, TOWER_TIME_MS, type TowerPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
@@ -23,7 +24,7 @@ function discColour(size: number): string {
   return GLYPH_COLOURS[DISC_COLOURS[(size - 1) % DISC_COLOURS.length]!];
 }
 
-/** Three pegs on a base; the target peg wears a gold base. */
+/** Four pegs on a base; the target peg wears a gold base. */
 function Pegs({
   pegs,
   discs,
@@ -45,8 +46,8 @@ function Pegs({
     lifted === null || lifted === undefined ? null : (pegs[lifted]?.at(-1) ?? null);
 
   return (
-    <div className="flex h-full w-full items-end justify-center gap-2">
-      {[0, 1, 2].map((peg) => {
+    <div className="flex h-full w-full items-end justify-center gap-1.5">
+      {Array.from({ length: TOWER_PEGS }, (_, peg) => {
         const stack = pegs[peg] ?? [];
         const isLifted = lifted === peg;
         const top = stack.length ? stack[stack.length - 1]! : null;
@@ -69,7 +70,7 @@ function Pegs({
                   <div
                     className="rounded-full border-2 border-primary"
                     style={{
-                      height: compact ? 8 : 12,
+                      height: compact ? 7 : 11,
                       width: `${30 + (liftedDisc / discs) * 65}%`,
                       backgroundColor: discColour(liftedDisc),
                     }}
@@ -92,7 +93,7 @@ function Pegs({
                       key={size}
                       className={`relative z-10 rounded-full ${shake === peg ? "animate-shake" : ""}`}
                       style={{
-                        height: compact ? 8 : 14,
+                        height: compact ? 7 : 12,
                         marginTop: 2,
                         width: `${30 + (size / discs) * 65}%`,
                         backgroundColor: discColour(size),
@@ -119,18 +120,17 @@ function Pegs({
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
-  const pegs: TowerPegs = [[4, 3], [2], [1]];
+  const pegs: TowerPegs = [[6, 4], [5, 2], [3], [1]];
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Move the whole tower to the marked peg, one disc at a time. Never put a bigger disc on a
-        smaller one.
+        Move every disc to the marked peg, one at a time. Never put a bigger disc on a smaller one.
       </p>
-      <div style={{ width: 168, height: 96 }}>
-        <Pegs pegs={pegs} discs={4} targetPeg={2} compact />
+      <div style={{ width: 190, height: 96 }}>
+        <Pegs pegs={pegs} discs={6} targetPeg={3} compact />
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewest moves earns a bonus. You have 60 seconds.
+        Fewest moves earns a bonus. You have 90 seconds.
       </p>
     </div>
   );
@@ -138,14 +138,23 @@ function IntroExample() {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: PuzzleStageProps) {
   const isTower = puzzle.type === "tower";
-  const discs = isTower ? puzzle.discs : 4;
-  const targetPeg = isTower ? puzzle.targetPeg : 2;
+  const discs = isTower ? puzzle.discs : TOWER_DISCS;
+  const targetPeg = isTower ? puzzle.targetPeg : TOWER_PEGS - 1;
+  const start = useMemo(
+    () => (isTower ? (puzzle.start ?? []) : []),
+    // The stored spread never changes during a round.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isTower],
+  );
   const [moves, setMoves] = useStageState<TowerMove[]>(stateKey, "towerMoves", () => []);
   const [lifted, setLifted] = useStageState<number | null>(stateKey, "towerLifted", () => null);
   const [shake, setShake] = useStageState<number | null>(stateKey, "towerShake", () => null);
   const submitted = useRef(false);
 
-  const replay = useMemo(() => replayTower(discs, targetPeg, moves), [discs, targetPeg, moves]);
+  const replay = useMemo(
+    () => replayTower(start, targetPeg, discs, moves),
+    [start, targetPeg, discs, moves],
+  );
 
   useEffect(() => {
     onDraftAnswer?.(encodeTowerMoves(moves));
@@ -239,15 +248,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
 
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "tower") return null;
-  const mine = replayTower(puzzle.discs, puzzle.targetPeg, decodeTowerMoves(myAnswer ?? ""));
+  const start = puzzle.start ?? [];
+  const mine = replayTower(start, puzzle.targetPeg, puzzle.discs, decodeTowerMoves(myAnswer ?? ""));
   const limit = puzzle.timeLimitMs ?? TOWER_TIME_MS;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <div style={{ width: 190, height: 110 }}>
-        <Pegs pegs={mine.pegs} discs={puzzle.discs} targetPeg={puzzle.targetPeg} compact />
+      <div style={{ width: 200, height: 110 }}>
+        <Pegs
+          pegs={mine.moves ? mine.pegs : towerPegsFrom(start)}
+          discs={puzzle.discs}
+          targetPeg={puzzle.targetPeg}
+          compact
+        />
       </div>
       <p className="font-display text-2xl font-bold">
         <span className={myCorrect ? "text-primary" : "text-warn"}>
@@ -259,13 +274,13 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         </span>
       </p>
       <p className="text-center text-xs text-muted-foreground">
-        The smallest disc moves every other turn.
+        Park the big discs where they won&apos;t block you.
       </p>
     </div>
   );
 }
 
-/** The tower itself is fixed; only the target peg and disc count vary. */
+/** The spread, the minimum and one shortest solution all come from the server. */
 export const towerPuzzle: PuzzleDefinition = {
   key: "tower",
   name: "Tower",
@@ -275,9 +290,10 @@ export const towerPuzzle: PuzzleDefinition = {
   generate: () =>
     ({
       type: "tower",
-      discs: 4,
-      targetPeg: 2,
-      minMoves: 15,
+      discs: TOWER_DISCS,
+      targetPeg: TOWER_PEGS - 1,
+      start: [],
+      minMoves: 0,
       timeLimitMs: TOWER_TIME_MS,
     }) satisfies TowerPuzzleData,
   check: () => false,
