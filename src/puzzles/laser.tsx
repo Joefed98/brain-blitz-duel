@@ -254,14 +254,13 @@ function LaserBoard({
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
-  // A 4x4 example: the beam runs right, turns down, turns right, and passes
+  // A 4x4 example: the beam runs right, turns down, turns left, and passes
   // through all three gems on the way.
   const gems = [2, 7, 14];
   const bombs = [9];
   const solution: MirrorPlacement[] = [
     { cell: 3, kind: "\\" },
     { cell: 15, kind: "/" },
-    { cell: 12, kind: "\\" },
   ];
   const trace = traceBeam(0, "R", solution, [], bombs, gems);
   return (
