@@ -55,6 +55,12 @@ for (let index = 0; index < 6; index++) {
     fail(`laser block count ${puzzle.blocks.length}`);
   }
   if (puzzle.gems.length !== LASER_GEMS) fail(`laser gem count ${puzzle.gems.length}`);
+  const central = puzzle.blocks.filter((cell) => {
+    const row = Math.floor(cell / 10);
+    const col = cell % 10;
+    return row >= 2 && row <= 7 && col >= 2 && col <= 7;
+  }).length;
+  if (central < 10) fail(`only ${central} blocks in the central 6x6`);
   if (puzzle.bombs.length < LASER_MIN_BOMBS || puzzle.bombs.length > LASER_MAX_BOMBS) {
     fail(`laser bomb count ${puzzle.bombs.length}`);
   }
