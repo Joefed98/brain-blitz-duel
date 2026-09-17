@@ -1,7 +1,10 @@
-# Per-game changes
+# Seven focused puzzle fixes
 
-- [x] Rename Flow to Colour Connect and update it to 8×8 with eight colour pairs and 45 seconds
-- [x] Fix Block Party wording and anchor-cell drop precision
-- [x] Strengthen Ice Slide one-way-arrow generation invariants
-- [x] Change Laser undo to placement-only history
-- [x] Confirm listed time limits and validate without browser tests
+- [ ] Track Wordsmith selections by tile index and hide its in-round word list
+- [ ] Enlarge Groups tiles and found-group bands
+- [ ] Remove Word Hunt's in-round found-word list
+- [ ] Keep Sequence Recall and Reverse Recall selections lit
+- [ ] Separate Symbol Scan's square grid from its Submit button
+- [ ] Add a neutral divider and 12px separation to Spot the Difference
+- [ ] Reserve and scale Block Party's tray without scrolling
+- [ ] Validate the scoped changes without browser tests

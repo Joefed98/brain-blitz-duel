@@ -89,6 +89,7 @@ export function SequencePuzzle({
         {Array.from({ length: SEQUENCE_COLS * SEQUENCE_COLS }, (_, index) => {
           const isLit = lit === index;
           const isFlash = flash === index;
+          const isTapped = taps.includes(index);
           return (
             <button
               key={index}
@@ -99,8 +100,8 @@ export function SequencePuzzle({
               className={`h-[72px] w-[72px] rounded-xl border transition-colors ${
                 isLit
                   ? "border-primary bg-primary"
-                  : isFlash
-                    ? "border-primary bg-primary/40 animate-tile-flash"
+                  : isTapped
+                    ? `border-primary bg-primary/25 ${isFlash ? "animate-tile-flash" : ""}`
                     : "border-border bg-card"
               } ${playing || locked ? "cursor-default" : ""}`}
             />
