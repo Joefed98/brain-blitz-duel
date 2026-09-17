@@ -20,14 +20,19 @@ const DELAY_BANDS = [
 
 function drawDelay(): number {
   const roll = random();
-  const band = roll < DELAY_BANDS[0].weight ? DELAY_BANDS[0] : roll < 0.7 ? DELAY_BANDS[1] : DELAY_BANDS[2];
+  const band =
+    roll < DELAY_BANDS[0].weight ? DELAY_BANDS[0] : roll < 0.7 ? DELAY_BANDS[1] : DELAY_BANDS[2];
   return Math.round(band.min + random() * (band.max - band.min));
 }
 
 export function buildReactionDelays(): number[] {
   for (let attempt = 0; attempt < 1_000; attempt++) {
     const delays = Array.from({ length: REACTION_ATTEMPTS }, drawDelay);
-    if (delays.every((delay, index) => delays.slice(0, index).every((other) => Math.abs(delay - other) >= 400))) {
+    if (
+      delays.every((delay, index) =>
+        delays.slice(0, index).every((other) => Math.abs(delay - other) >= 400),
+      )
+    ) {
       return delays;
     }
   }

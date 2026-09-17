@@ -208,7 +208,8 @@ function makePlan(): Plan {
   if (rotatable) {
     // One rotatable shape all over the grid; exactly two attributes vary.
     const other = pick<PatternAttribute>(["colour", "count"]);
-    const otherKind: PatternRuleKind = other === "count" && Math.random() < 0.5 ? "prog" : pick(["row", "latin"]);
+    const otherKind: PatternRuleKind =
+      other === "count" && Math.random() < 0.5 ? "prog" : pick(["row", "latin"]);
     return {
       fixedAttr: "shape",
       shapes,
@@ -326,7 +327,10 @@ export function decodePatternAnswers(answer: string | null | undefined): string[
   return (answer ?? "").split("|").slice(0, 3);
 }
 
-export function countPatternAnswers(puzzle: PatternPuzzleData, answer: string | null | undefined): number {
+export function countPatternAnswers(
+  puzzle: PatternPuzzleData,
+  answer: string | null | undefined,
+): number {
   const answers = decodePatternAnswers(answer);
   return puzzle.puzzles.reduce(
     (count, item, index) => count + (checkPatternAnswer(answers[index] ?? "", item) ? 1 : 0),

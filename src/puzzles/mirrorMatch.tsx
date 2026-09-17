@@ -36,7 +36,15 @@ function pickAxis(): MirrorAxis {
 const otherAxis = (axis: MirrorAxis): MirrorAxis =>
   axis === "vertical" ? "horizontal" : "vertical";
 
-const MIRROR_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE", "BROWN"];
+const MIRROR_COLOURS: StroopColour[] = [
+  "RED",
+  "BLUE",
+  "GREEN",
+  "PURPLE",
+  "PINK",
+  "ORANGE",
+  "BROWN",
+];
 
 /** Keeps the reflected outline exact while changing one or two painted cells. */
 function wrongColouring(shape: MirrorShape, changedCells: 1 | 2): MirrorShape {
@@ -44,7 +52,9 @@ function wrongColouring(shape: MirrorShape, changedCells: 1 | 2): MirrorShape {
   return {
     cells: [...shape.cells],
     colours: shape.colours.map((colour, index) =>
-      indices.includes(index) ? pick(MIRROR_COLOURS.filter((candidate) => candidate !== colour)) : colour,
+      indices.includes(index)
+        ? pick(MIRROR_COLOURS.filter((candidate) => candidate !== colour))
+        : colour,
     ),
   };
 }

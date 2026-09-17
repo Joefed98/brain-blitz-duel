@@ -200,8 +200,9 @@ export function scoreSpotDifference(foundCount: number, msRemaining: number): nu
 /** Pattern Completion: partial credit per board; speed only rewards a perfect set. */
 export function scorePatternCompletion(correctCount: number, msRemaining: number): number {
   const correct = clamp(Math.round(correctCount), 0, 3);
-  return Math.round((BASE_POINTS * correct) / 3) +
-    (correct === 3 ? speedBonus(msRemaining, 30_000) : 0);
+  return (
+    Math.round((BASE_POINTS * correct) / 3) + (correct === 3 ? speedBonus(msRemaining, 30_000) : 0)
+  );
 }
 
 /** Word Match: accuracy out of 100, plus the speed bonus on a flawless run. */

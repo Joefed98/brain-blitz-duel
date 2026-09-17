@@ -314,7 +314,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   const foundCells = foundGroups.flat();
   const total = Math.min(SPOT_DIFFERENCES, groups.length) || SPOT_DIFFERENCES;
 
-    // All five found lock the round in; otherwise the taps so far go up just
+  // All five found lock the round in; otherwise the taps so far go up just
   // before the clock runs out. The server re-checks every tap either way.
   useEffect(() => {
     if (groups.length === 0 || locked || submitted.current === key) return;

@@ -290,7 +290,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
-      <div className="flex w-full shrink-0 gap-1.5" aria-label={`Pattern ${index + 1} of ${data.puzzles.length}`}>
+      <div
+        className="flex w-full shrink-0 gap-1.5"
+        aria-label={`Pattern ${index + 1} of ${data.puzzles.length}`}
+      >
         {data.puzzles.map((_, progressIndex) => (
           <span
             key={progressIndex}
@@ -402,7 +405,9 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "patcomp") return null;
   const data = puzzle as PatternPuzzleData;
   const answers = (myAnswer ?? "").split("|");
-  const correctCount = data.puzzles.filter((item, index) => checkPatternAnswer(answers[index] ?? "", item)).length;
+  const correctCount = data.puzzles.filter((item, index) =>
+    checkPatternAnswer(answers[index] ?? "", item),
+  ).length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
@@ -416,12 +421,24 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           const wrong = patternMistakes(item, answers[index]);
           return (
             <div key={index} className="flex min-w-0 flex-col items-center gap-1">
-              <Grid cells={item.cells} answerCell={item.answer ?? item.cells[8]} marked cellSize={28} glyphSize={7} />
-              <span className={`font-display text-lg font-bold ${ok ? "text-primary" : "text-warn"}`}>
+              <Grid
+                cells={item.cells}
+                answerCell={item.answer ?? item.cells[8]}
+                marked
+                cellSize={28}
+                glyphSize={7}
+              />
+              <span
+                className={`font-display text-lg font-bold ${ok ? "text-primary" : "text-warn"}`}
+              >
                 {ok ? "✓" : "✗"}
               </span>
               <span className="text-center text-[10px] text-muted-foreground">
-                {!mine ? "Skipped" : wrong.length ? `${wrong.map(patternAttributeLabel).join(", ")} wrong` : "Correct"}
+                {!mine
+                  ? "Skipped"
+                  : wrong.length
+                    ? `${wrong.map(patternAttributeLabel).join(", ")} wrong`
+                    : "Correct"}
               </span>
             </div>
           );

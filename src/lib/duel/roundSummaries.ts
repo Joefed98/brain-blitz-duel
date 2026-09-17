@@ -1,4 +1,9 @@
-import { checkPatternAnswer, decodePatternAnswers, patternAttributeLabel, patternMistakes } from "./pattern";
+import {
+  checkPatternAnswer,
+  decodePatternAnswers,
+  patternAttributeLabel,
+  patternMistakes,
+} from "./pattern";
 import {
   BLOCK_FREE_CELLS,
   BLOCK_TIME_MS,
@@ -66,47 +71,47 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
                 ? 20_000
                 : puzzle.type === "countup"
                   ? 15_000
-              : puzzle.type === "numseq"
-                ? 30_000
-                : puzzle.type === "mirmatch"
-                  ? MIRMATCH_TIME_MS
-                  : puzzle.type === "spin"
-                    ? SPIN_TIME_MS
-                    : puzzle.type === "spotdiff"
-                      ? SPOT_TIME_MS
-                      : puzzle.type === "groups"
-                        ? 90_000
-                        : puzzle.type === "ladder"
-                          ? WORD_LADDER_TIME_MS
-                          : puzzle.type === "numclimb"
-                            ? NUMBER_CLIMB_TIME_MS
-                            : puzzle.type === "lightsout"
-                              ? LIGHTS_TIME_MS
-                              : puzzle.type === "pipes"
-                                ? PIPES_TIME_MS
-                                : puzzle.type === "sudoku"
-                                  ? SUDOKU_TIME_MS
-                                  : puzzle.type === "flow"
-                                    ? FLOW_TIME_MS
-                                    : puzzle.type === "iceslide"
-                                      ? SLIDE_TIME_MS
-                                      : puzzle.type === "push"
-                                        ? PUSH_TIME_MS
-                                        : puzzle.type === "laser"
-                                          ? LASER_TIME_MS
-                                          : puzzle.type === "maze"
-                                            ? MAZE_TIME_MS
-                                            : puzzle.type === "tower"
-                                              ? (puzzle.timeLimitMs ?? TOWER_TIME_MS)
-                                              : puzzle.type === "wordsmith"
-                                                ? WORDSMITH_TIME_MS
-                                                : puzzle.type === "wordhunt"
-                                                  ? WORDHUNT_TIME_MS
-                                                  : puzzle.type === "unblock"
-                                                    ? UNBLOCK_TIME_MS
-                                                    : puzzle.type === "blockparty"
-                                                      ? BLOCK_TIME_MS
-                                                      : ROUND_MS;
+                  : puzzle.type === "numseq"
+                    ? 30_000
+                    : puzzle.type === "mirmatch"
+                      ? MIRMATCH_TIME_MS
+                      : puzzle.type === "spin"
+                        ? SPIN_TIME_MS
+                        : puzzle.type === "spotdiff"
+                          ? SPOT_TIME_MS
+                          : puzzle.type === "groups"
+                            ? 90_000
+                            : puzzle.type === "ladder"
+                              ? WORD_LADDER_TIME_MS
+                              : puzzle.type === "numclimb"
+                                ? NUMBER_CLIMB_TIME_MS
+                                : puzzle.type === "lightsout"
+                                  ? LIGHTS_TIME_MS
+                                  : puzzle.type === "pipes"
+                                    ? PIPES_TIME_MS
+                                    : puzzle.type === "sudoku"
+                                      ? SUDOKU_TIME_MS
+                                      : puzzle.type === "flow"
+                                        ? FLOW_TIME_MS
+                                        : puzzle.type === "iceslide"
+                                          ? SLIDE_TIME_MS
+                                          : puzzle.type === "push"
+                                            ? PUSH_TIME_MS
+                                            : puzzle.type === "laser"
+                                              ? LASER_TIME_MS
+                                              : puzzle.type === "maze"
+                                                ? MAZE_TIME_MS
+                                                : puzzle.type === "tower"
+                                                  ? (puzzle.timeLimitMs ?? TOWER_TIME_MS)
+                                                  : puzzle.type === "wordsmith"
+                                                    ? WORDSMITH_TIME_MS
+                                                    : puzzle.type === "wordhunt"
+                                                      ? WORDHUNT_TIME_MS
+                                                      : puzzle.type === "unblock"
+                                                        ? UNBLOCK_TIME_MS
+                                                        : puzzle.type === "blockparty"
+                                                          ? BLOCK_TIME_MS
+                                                          : ROUND_MS;
   return Math.max(0, limit - result.ms_remaining);
 }
 
