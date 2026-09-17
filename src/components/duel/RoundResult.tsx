@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { AnimatedScore } from "./AnimatedScore";
 
 interface RoundResultProps {
-  round: number;
   roundTitle: string;
   myName: string;
   opponentName: string;
@@ -24,7 +23,6 @@ interface RoundResultProps {
 }
 
 export function RoundResult({
-  round,
   roundTitle,
   myName,
   opponentName,
@@ -71,7 +69,7 @@ export function RoundResult({
             <p className="font-mono text-[10px] text-muted-foreground">{myTime}</p>
             <p
               title={mySummary}
-              className="mt-1 truncate whitespace-nowrap font-mono text-[10px] text-primary/80"
+              className="mt-1 font-mono text-[10px] leading-snug text-primary/80"
             >
               {mySummary}
             </p>
@@ -99,7 +97,7 @@ export function RoundResult({
             <p className="font-mono text-[10px] text-muted-foreground">{opponentTime}</p>
             <p
               title={opponentSummary}
-              className="mt-1 truncate whitespace-nowrap font-mono text-[10px] text-muted-foreground"
+              className="mt-1 font-mono text-[10px] leading-snug text-muted-foreground"
             >
               {opponentSummary}
             </p>
