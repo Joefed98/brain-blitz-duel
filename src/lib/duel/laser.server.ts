@@ -123,12 +123,7 @@ const KINDS: MirrorKind[] = ["/", "\\"];
  * mirror, nor any pair of mirrors placed anywhere at all, may reach the target.
  * Searched exhaustively, so the tray is always needed in full.
  */
-function noShortSolution(
-  source: number,
-  dir: BeamDir,
-  blocks: number[],
-  target: number,
-): boolean {
+function noShortSolution(source: number, dir: BeamDir, blocks: number[], target: number): boolean {
   const blocked = new Set(blocks);
   const open: number[] = [];
   for (let cell = 0; cell < LASER_CELLS; cell++) {
@@ -169,8 +164,7 @@ function shortcutBlocks(source: number, dir: BeamDir, blocks: number[], target: 
   const targetRow = laserRow(target);
   const targetCol = laserCol(target);
   return blocks.filter(
-    (cell) =>
-      straight.has(cell) || laserRow(cell) === targetRow || laserCol(cell) === targetCol,
+    (cell) => straight.has(cell) || laserRow(cell) === targetRow || laserCol(cell) === targetCol,
   ).length;
 }
 

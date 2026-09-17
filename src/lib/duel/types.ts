@@ -188,14 +188,7 @@ export interface EquationPuzzleData {
   operators: Operator[];
 }
 
-export type StroopColour =
-  | "RED"
-  | "BLUE"
-  | "GREEN"
-  | "PURPLE"
-  | "PINK"
-  | "ORANGE"
-  | "BROWN";
+export type StroopColour = "RED" | "BLUE" | "GREEN" | "PURPLE" | "PINK" | "ORANGE" | "BROWN";
 
 /** Which colour the player must tap for an item. */
 export type StroopInstruction = "ink" | "word";

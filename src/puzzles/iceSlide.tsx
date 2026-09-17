@@ -69,9 +69,11 @@ function Board({
           if (wall.has(cell)) {
             return <div key={cell} className="rounded-md bg-foreground/70" />;
           }
-          const className = "flex items-center justify-center " + (cell === exit
-            ? "rounded-md border-2 border-primary bg-primary/20"
-            : "rounded-[3px] bg-secondary/60");
+          const className =
+            "flex items-center justify-center " +
+            (cell === exit
+              ? "rounded-md border-2 border-primary bg-primary/20"
+              : "rounded-[3px] bg-secondary/60");
           return (
             <div key={cell} className={className} aria-label={cell === exit ? "Exit" : undefined}>
               {piece}

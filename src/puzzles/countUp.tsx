@@ -18,15 +18,7 @@ import { MyAnswerLine } from "@/components/puzzles/MyAnswerLine";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const SHAPES: GlyphShape[] = ["circle", "square", "triangle", "star"];
-const COLOURS: GlyphColour[] = [
-  "RED",
-  "BLUE",
-  "GREEN",
-  "PURPLE",
-  "PINK",
-  "ORANGE",
-  "BROWN",
-];
+const COLOURS: GlyphColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE", "BROWN"];
 
 /** Colours too alike to tell apart at a glance — never the near-miss pair. */
 const TOO_CLOSE: [GlyphColour, GlyphColour][] = [

@@ -214,7 +214,6 @@ export function useGridPointer(options: {
   };
 }
 
-
 export interface DragInfo<T> {
   item: T;
   /** Pixels moved since the drag began. */

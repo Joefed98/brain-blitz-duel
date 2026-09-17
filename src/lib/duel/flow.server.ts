@@ -17,15 +17,7 @@ import {
 } from "./types";
 
 /** The seven game colours, one per pair. */
-const COLOURS: StroopColour[] = [
-  "RED",
-  "BLUE",
-  "GREEN",
-  "PURPLE",
-  "PINK",
-  "ORANGE",
-  "BROWN",
-];
+const COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE", "BROWN"];
 
 /** A random Hamiltonian path over the grid, found by randomised backtracking. */
 function hamiltonianPath(): number[] | null {
@@ -146,7 +138,6 @@ function acceptable(paths: number[][]): boolean {
   }
   return true;
 }
-
 
 export function generateFlow(): FlowPuzzleData {
   for (let attempt = 0; attempt < 400; attempt++) {
