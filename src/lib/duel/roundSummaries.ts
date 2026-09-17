@@ -24,8 +24,13 @@ import {
   NUMBER_CLIMB_TIME_MS,
   LIGHTS_TIME_MS,
   PIPES_CELLS,
+  FLOW_CELLS,
   PIPES_TIME_MS,
   SUDOKU_TIME_MS,
+  FLOW_TIME_MS,
+  FLOW_PAIRS,
+  SLIDE_TIME_MS,
+  PUSH_TIME_MS,
   type GoNoGoItem,
   type PlayerRoundDetail,
   type PuzzleData,
@@ -77,15 +82,21 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
                                 ? PIPES_TIME_MS
                                 : puzzle.type === "sudoku"
                                   ? SUDOKU_TIME_MS
-                                  : puzzle.type === "wordsmith"
-                                    ? WORDSMITH_TIME_MS
-                                    : puzzle.type === "wordhunt"
-                                      ? WORDHUNT_TIME_MS
-                                      : puzzle.type === "unblock"
-                                        ? UNBLOCK_TIME_MS
-                                        : puzzle.type === "blockparty"
-                                          ? BLOCK_TIME_MS
-                                          : ROUND_MS;
+                                  : puzzle.type === "flow"
+                                    ? FLOW_TIME_MS
+                                    : puzzle.type === "iceslide"
+                                      ? SLIDE_TIME_MS
+                                      : puzzle.type === "push"
+                                        ? PUSH_TIME_MS
+                                        : puzzle.type === "wordsmith"
+                                          ? WORDSMITH_TIME_MS
+                                          : puzzle.type === "wordhunt"
+                                            ? WORDHUNT_TIME_MS
+                                            : puzzle.type === "unblock"
+                                              ? UNBLOCK_TIME_MS
+                                              : puzzle.type === "blockparty"
+                                                ? BLOCK_TIME_MS
+                                                : ROUND_MS;
   return Math.max(0, limit - result.ms_remaining);
 }
 
@@ -507,6 +518,68 @@ const sudokuSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
+const flowSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "flow") return { summary: "—", detail: [] };
+  const joined = Number(result.extra?.["pairsJoined"] ?? 0);
+  const filled = Number(result.extra?.["filled"] ?? 0);
+  if (result.is_correct) {
+    return {
+      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: ["Every pair joined and every square filled"],
+    };
+  }
+  return {
+    summary: `${joined} / ${FLOW_PAIRS} pairs`,
+    detail: [`${filled} / ${FLOW_CELLS} squares filled`],
+  };
+};
+
+const slideSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "iceslide") return { summary: "—", detail: [] };
+  const moves = Number(result.extra?.["moves"] ?? 0);
+  const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
+  if (result.is_correct) {
+    return {
+      summary: `Solved · ${moves} move${moves === 1 ? "" : "s"} (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: [
+        moves <= min
+          ? "Reached the exit in the fewest moves"
+          : `${moves - min} more than the minimum`,
+      ],
+    };
+  }
+  const away = result.extra?.["movesFromExit"];
+  const distance = typeof away === "number" ? away : null;
+  return {
+    summary: "Not solved",
+    detail: [
+      distance === null
+        ? `${moves} move${moves === 1 ? "" : "s"} made`
+        : `${distance} move${distance === 1 ? "" : "s"} from the exit`,
+    ],
+  };
+};
+
+const pushSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "push") return { summary: "—", detail: [] };
+  const pushes = Number(result.extra?.["pushes"] ?? 0);
+  const min = Number(result.extra?.["minPushes"] ?? puzzle.minPushes ?? 0);
+  const crates = Number(result.extra?.["crates"] ?? puzzle.targets.length);
+  const home = Number(result.extra?.["cratesHome"] ?? 0);
+  if (result.is_correct) {
+    return {
+      summary: `Solved · ${pushes} push${pushes === 1 ? "" : "es"} (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: [
+        pushes <= min ? "Finished in the fewest pushes" : `${pushes - min} more than the minimum`,
+      ],
+    };
+  }
+  return {
+    summary: `${home} / ${crates} crates home`,
+    detail: [`${pushes} push${pushes === 1 ? "" : "es"} made`],
+  };
+};
+
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
   groups: groupsSummary,
@@ -538,6 +611,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   lightsout: lightsOutSummary,
   pipes: pipesSummary,
   sudoku: sudokuSummary,
+  flow: flowSummary,
+  iceslide: slideSummary,
+  push: pushSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -578,4 +654,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   lightsout: (p) => (p.type === "lightsout" && p.minPresses ? `${p.minPresses} presses` : null),
   pipes: () => null,
   sudoku: () => null,
+  flow: () => null,
+  iceslide: (p) => (p.type === "iceslide" && p.minMoves ? `${p.minMoves} moves` : null),
+  push: (p) => (p.type === "push" && p.minPushes ? `${p.minPushes} pushes` : null),
 };

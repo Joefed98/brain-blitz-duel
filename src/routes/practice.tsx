@@ -183,7 +183,6 @@ function PracticeScreen() {
       <PhoneShell>
         <div className="flex flex-1 flex-col gap-6">
           <div>
-            
             <h1 className="font-display text-2xl font-bold">Practice</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               One puzzle at a time, on this device. Nothing is scored or saved.
@@ -311,6 +310,9 @@ function PracticeScreen() {
     "sudoku",
     "pipes",
     "patcomp",
+    "flow",
+    "iceslide",
+    "push",
   ].includes(puzzle.type);
 
   return (

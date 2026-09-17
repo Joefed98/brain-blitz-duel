@@ -28,6 +28,9 @@ import { wordMatchPuzzle } from "@/puzzles/wordMatch";
 import { lightsOutPuzzle } from "@/puzzles/lightsOut";
 import { pipesPuzzle } from "@/puzzles/pipes";
 import { miniSudokuPuzzle } from "@/puzzles/miniSudoku";
+import { flowPuzzle } from "@/puzzles/flow";
+import { iceSlidePuzzle } from "@/puzzles/iceSlide";
+import { pushPuzzle } from "@/puzzles/push";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import {
@@ -90,6 +93,9 @@ const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   lightsout: lightsOutPuzzle,
   pipes: pipesPuzzle,
   sudoku: miniSudokuPuzzle,
+  flow: flowPuzzle,
+  iceslide: iceSlidePuzzle,
+  push: pushPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

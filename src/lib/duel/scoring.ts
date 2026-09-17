@@ -32,6 +32,15 @@ import {
   PIPES_TIME_MS,
   SUDOKU_PARTIAL_POINTS,
   SUDOKU_TIME_MS,
+  FLOW_PAIRS,
+  FLOW_PARTIAL_POINTS,
+  FLOW_TIME_MS,
+  PUSH_MIN_PUSH_BONUS,
+  PUSH_PARTIAL_POINTS,
+  PUSH_TIME_MS,
+  SLIDE_MIN_MOVE_BONUS,
+  SLIDE_NEAR_POINTS,
+  SLIDE_TIME_MS,
   type DuelPlayerRow,
   type PlayerStatus,
   type RoundResultRow,
@@ -460,4 +469,50 @@ export function scoreSudoku(
     0,
     SUDOKU_PARTIAL_POINTS,
   );
+}
+
+/** Flow: a full board scores the standard points, else part marks per pair joined. */
+export function scoreFlow(solved: boolean, pairsJoined: number, msRemaining: number): number {
+  if (solved) {
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, FLOW_TIME_MS));
+  }
+  const pairs = clamp(pairsJoined, 0, FLOW_PAIRS);
+  return Math.round((FLOW_PARTIAL_POINTS * pairs) / FLOW_PAIRS);
+}
+
+/**
+ * Ice Slide: reaching the exit scores the standard points, +20 for the fewest
+ * possible slides. Otherwise only a near miss — two slides or fewer from the
+ * exit — earns anything.
+ */
+export function scoreIceSlide(
+  solved: boolean,
+  moves: number,
+  minMoves: number,
+  msRemaining: number,
+  movesFromExit: number | null,
+): number {
+  if (solved) {
+    const bonus = minMoves > 0 && moves <= minMoves ? SLIDE_MIN_MOVE_BONUS : 0;
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, SLIDE_TIME_MS) + bonus);
+  }
+  if (movesFromExit !== null && movesFromExit <= 2) return SLIDE_NEAR_POINTS;
+  return 0;
+}
+
+/** Push: every crate home scores the standard points, +20 for the fewest pushes. */
+export function scorePush(
+  solved: boolean,
+  pushes: number,
+  minPushes: number,
+  msRemaining: number,
+  cratesHome: number,
+  totalCrates: number,
+): number {
+  if (solved) {
+    const bonus = minPushes > 0 && pushes <= minPushes ? PUSH_MIN_PUSH_BONUS : 0;
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, PUSH_TIME_MS) + bonus);
+  }
+  const total = Math.max(1, totalCrates);
+  return clamp(Math.round((PUSH_PARTIAL_POINTS * cratesHome) / total), 0, PUSH_PARTIAL_POINTS);
 }

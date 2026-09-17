@@ -3,6 +3,9 @@ import { decodeGroupsAnswer, matchGroupsSelection } from "./groups.server";
 import { decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
 import { numberClimbSpan } from "./numberClimb";
+import { decodeFlowPaths, verifyFlow } from "./flow";
+import { decodeSlideMoves, replaySlide, slideDistance } from "./slide";
+import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
 import { decodeMoves, replayUnblock } from "./unblock";
@@ -30,6 +33,9 @@ import {
   scoreLightsOut,
   scorePipes,
   scoreSudoku,
+  scoreFlow,
+  scoreIceSlide,
+  scorePush,
 } from "./scoring";
 import {
   GONOGO_ITEMS,
@@ -43,6 +49,7 @@ import {
   SPIN_ITEMS,
   STROOP_ITEMS,
   WORDMATCH_ITEMS,
+  FLOW_PAIRS,
   type PuzzleData,
 } from "./types";
 
@@ -315,6 +322,60 @@ export function gradeSubmission(
       correctCount = verdict.correct;
       score = scoreSudoku(verdict.solved, verdict.correct, verdict.total, ms);
       extraDetail = { solved: verdict.solved, correct: verdict.correct, total: verdict.total };
+      break;
+    }
+    case "flow": {
+      // Every path the phone sends is re-walked here: contiguous, ending on the
+      // right dots, and sharing no cell with another colour.
+      const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS);
+      const verdict = verifyFlow(puzzle.pairs, paths);
+      isCorrect = verdict.solved;
+      correctCount = verdict.pairsJoined;
+      score = scoreFlow(verdict.solved, verdict.pairsJoined, ms);
+      extraDetail = {
+        solved: verdict.solved,
+        pairsJoined: verdict.pairsJoined,
+        pairs: puzzle.pairs.length,
+        filled: verdict.filled,
+      };
+      break;
+    }
+    case "iceslide": {
+      // The phone sends its slides; they are replayed on the stored layout.
+      const moves = decodeSlideMoves(answer);
+      const replay = replaySlide(puzzle.walls, puzzle.start, puzzle.exit, moves);
+      const min = puzzle.minMoves ?? 0;
+      const away = replay.solved ? null : slideDistance(puzzle.walls, replay.cell, puzzle.exit);
+      isCorrect = replay.solved;
+      correctCount = replay.moves;
+      score = scoreIceSlide(replay.solved, replay.moves, min, ms, away);
+      extraDetail = {
+        solved: replay.solved,
+        moves: replay.moves,
+        minMoves: min,
+        movesFromExit: away,
+      };
+      break;
+    }
+    case "push": {
+      // Every step is replayed on the stored warehouse, so only legal pushes count.
+      const moves = decodePushMoves(answer);
+      const replay = replayPush(puzzle.walls, puzzle.targets, puzzle.pusher, puzzle.crates, moves);
+      const min = puzzle.minPushes ?? 0;
+      const home = replay.solved
+        ? puzzle.targets.length
+        : cratesOnTargets(replay.state.crates, puzzle.targets);
+      isCorrect = replay.solved;
+      correctCount = replay.pushes;
+      score = scorePush(replay.solved, replay.pushes, min, ms, home, puzzle.targets.length);
+      extraDetail = {
+        solved: replay.solved,
+        pushes: replay.pushes,
+        moves: replay.moves,
+        minPushes: min,
+        cratesHome: home,
+        crates: puzzle.targets.length,
+      };
       break;
     }
     default: {
