@@ -394,27 +394,65 @@ export function useSwipe(
   return { onPointerDown };
 }
 
-/** The four arrow buttons in a diamond, within thumb reach. */
+/**
+ * The four arrow buttons in a diamond, within thumb reach. With `repeatMs` the
+ * direction keeps firing while the button is held down.
+ */
 export function ArrowPad({
   onPress,
   disabled = false,
+  repeatMs,
+  size = 132,
 }: {
   onPress: (dir: "U" | "D" | "L" | "R") => void;
   disabled?: boolean;
+  repeatMs?: number | undefined;
+  size?: number;
 }) {
+  const press = useRef(onPress);
+  press.current = onPress;
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stop = useCallback(() => {
+    if (timer.current !== null) {
+      clearInterval(timer.current);
+      timer.current = null;
+    }
+  }, []);
+
+  useEffect(() => stop, [stop]);
+
+  const start = useCallback(
+    (dir: "U" | "D" | "L" | "R") => {
+      if (disabled) return;
+      press.current(dir);
+      if (!repeatMs) return;
+      stop();
+      timer.current = setInterval(() => press.current(dir), repeatMs);
+    },
+    [disabled, repeatMs, stop],
+  );
+
   const button = (dir: "U" | "D" | "L" | "R", glyph: string, label: string, className: string) => (
     <button
+      key={dir}
       type="button"
       disabled={disabled}
-      onClick={() => onPress(dir)}
+      onPointerDown={(event) => {
+        event.preventDefault();
+        start(dir);
+      }}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
       aria-label={label}
-      className={`absolute flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-lg text-foreground transition-colors active:bg-primary/20 disabled:opacity-40 ${className}`}
+      className={`absolute flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-lg text-foreground transition-colors select-none touch-none active:bg-primary/20 disabled:opacity-40 ${className}`}
     >
       {glyph}
     </button>
   );
   return (
-    <div className="relative mx-auto h-[132px] w-[132px] shrink-0">
+    <div className="relative mx-auto shrink-0" style={{ height: size, width: size }}>
       {button("U", "▲", "Up", "left-1/2 top-0 -translate-x-1/2")}
       {button("L", "◀", "Left", "left-0 top-1/2 -translate-y-1/2")}
       {button("R", "▶", "Right", "right-0 top-1/2 -translate-y-1/2")}

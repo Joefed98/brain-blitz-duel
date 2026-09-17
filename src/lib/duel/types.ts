@@ -920,12 +920,12 @@ export interface FlowPuzzleData {
 export const SLIDE_COLS = 8;
 export const SLIDE_CELLS = SLIDE_COLS * SLIDE_COLS;
 export const SLIDE_TIME_MS = 60_000;
-export const SLIDE_MIN_WALLS = 12;
-export const SLIDE_MAX_WALLS = 18;
-export const SLIDE_MIN_MOVES = 6;
-export const SLIDE_MAX_MOVES = 9;
+export const SLIDE_MIN_WALLS = 14;
+export const SLIDE_MAX_WALLS = 20;
+export const SLIDE_MIN_MOVES = 7;
+export const SLIDE_MAX_MOVES = 10;
 /** At least this many walls must be stoppers the shortest route depends on. */
-export const SLIDE_MIN_STOPPERS = 2;
+export const SLIDE_MIN_STOPPERS = 3;
 /** Bonus for reaching the exit in the fewest possible slides. */
 export const SLIDE_MIN_MOVE_BONUS = 20;
 /** Consolation for stopping within two slides of the exit. */
@@ -982,12 +982,13 @@ export interface PushPuzzleData {
 export const LASER_COLS = 8;
 export const LASER_CELLS = LASER_COLS * LASER_COLS;
 export const LASER_TIME_MS = 60_000;
-export const LASER_MIN_MIRRORS = 3;
-export const LASER_MAX_MIRRORS = 5;
-export const LASER_MIN_BLOCKS = 5;
-export const LASER_MAX_BLOCKS = 8;
+/** Always exactly four mirrors, and the route always bends once per mirror. */
+export const LASER_MIN_MIRRORS = 4;
+export const LASER_MAX_MIRRORS = 4;
+export const LASER_MIN_BLOCKS = 6;
+export const LASER_MAX_BLOCKS = 9;
 /** The beam route always turns at least this many times. */
-export const LASER_MIN_BENDS = 3;
+export const LASER_MIN_BENDS = 4;
 /** Consolation for a beam that stops within one cell of the target. */
 export const LASER_NEAR_POINTS = 30;
 
@@ -1053,12 +1054,14 @@ export const MAZE_COLS = 13;
 export const MAZE_CELLS = MAZE_COLS * MAZE_COLS;
 export const MAZE_TIME_MS = 45_000;
 /** The route from start to exit is never shorter than this. */
-export const MAZE_MIN_PATH = 60;
+export const MAZE_MIN_PATH = 55;
 /** And never straighter than this. */
-export const MAZE_MIN_TURNS = 12;
+export const MAZE_MIN_TURNS = 10;
 /** False trails: dead-end branches leaving the route, and how long each runs. */
-export const MAZE_MIN_DEAD_ENDS = 4;
-export const MAZE_DEAD_END_LENGTH = 5;
+export const MAZE_MIN_DEAD_ENDS = 6;
+export const MAZE_DEAD_END_LENGTH = 4;
+/** Forks on or beside the route, so the player has to choose. */
+export const MAZE_MIN_JUNCTIONS = 10;
 /** Most a partly-run maze can earn. */
 export const MAZE_PARTIAL_POINTS = 60;
 
