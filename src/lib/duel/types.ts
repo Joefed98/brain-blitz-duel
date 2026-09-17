@@ -31,7 +31,10 @@ export type PuzzleType =
   | "sudoku"
   | "flow"
   | "iceslide"
-  | "push";
+  | "push"
+  | "laser"
+  | "tower"
+  | "maze";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
@@ -354,7 +357,10 @@ export type PuzzleData =
   | SudokuPuzzleData
   | FlowPuzzleData
   | SlidePuzzleData
-  | PushPuzzleData;
+  | PushPuzzleData
+  | LaserPuzzleData
+  | TowerPuzzleData
+  | MazePuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result";
