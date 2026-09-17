@@ -225,9 +225,8 @@ function interior(): number[] {
 
 function randomLayout() {
   const floor = interior();
-  const wallCount = 2 + Math.floor(Math.random() * 4);
-  const shuffled = shuffle(floor);
-  const inner = shuffled.slice(0, wallCount);
+  const wallCount = 3 + Math.floor(Math.random() * 6);
+  const inner = shuffle(floor).slice(0, wallCount);
   const walls = new Set<number>();
   for (let cell = 0; cell < PUSH_CELLS; cell++) {
     const r = row(cell);
@@ -237,67 +236,91 @@ function randomLayout() {
   for (const cell of inner) walls.add(cell);
 
   const open = floor.filter((cell) => !walls.has(cell));
-  const crateCount = Math.random() < 0.5 ? 2 : 3;
+  const crateCount =
+    PUSH_MIN_CRATES + Math.floor(Math.random() * (PUSH_MAX_CRATES - PUSH_MIN_CRATES + 1));
   const targets = shuffle(open).slice(0, crateCount);
   if (targets.length < crateCount) return null;
   return { walls, targets };
 }
 
+/** How many pushes each crate takes over the whole solution. */
+function pushesPerCrate(startCrates: number[], solution: { cell: number; dir: SlideDir }[]) {
+  const crates = [...startCrates];
+  const counts = new Array<number>(startCrates.length).fill(0);
+  for (const move of solution) {
+    const index = crates.indexOf(move.cell);
+    const to = step(move.cell, move.dir);
+    if (index === -1 || to === null) return null;
+    crates[index] = to;
+    counts[index] = (counts[index] ?? 0) + 1;
+  }
+  return counts;
+}
+
 const bank: Entry[] = [];
 const seen = new Set<string>();
+let guard = 0;
 
-for (const bucket of BUCKETS) {
-  let found = 0;
-  let guard = 0;
-  while (found < bucket.count && guard < 60_000) {
-    guard += 1;
-    const layout = randomLayout();
-    if (!layout) continue;
-    const { walls, targets } = layout;
-    const nodes = backwardSearch(walls, targets, bucket.max);
-    const candidates = [...nodes.entries()].filter(
-      ([, node]) => node.depth >= bucket.min && node.depth <= bucket.max,
-    );
-    if (!candidates.length) continue;
-    const [id, node] = shuffle(candidates)[0]!;
+while (bank.length < PUSH_BANK_SIZE && guard < 200_000) {
+  guard += 1;
+  const layout = randomLayout();
+  if (!layout) continue;
+  const { walls, targets } = layout;
+  const nodes = backwardSearch(walls, targets, PUSH_MAX_PUSHES);
+  const candidates = [...nodes.entries()].filter(
+    ([, node]) => node.depth >= PUSH_MIN_PUSHES && node.depth <= PUSH_MAX_PUSHES,
+  );
+  if (!candidates.length) continue;
+  const [id, node] = shuffle(candidates)[0]!;
 
-    // No crate may start on a target, and the pusher must stand on free floor.
-    if (node.crates.some((cell) => targets.includes(cell))) continue;
-    if (node.crates.includes(node.pusher)) continue;
+  // No crate may start on a target, and the pusher must stand on free floor.
+  if (node.crates.some((cell) => targets.includes(cell))) continue;
+  if (node.crates.includes(node.pusher)) continue;
 
-    // Walk the parent chain to collect the forward pushes.
-    const solution: { cell: number; dir: SlideDir }[] = [];
-    let cursor: string | undefined = id;
-    while (cursor) {
-      const current: Node | undefined = nodes.get(cursor);
-      if (!current?.push) break;
-      solution.push(current.push);
-      cursor = current.parent;
-    }
-    if (solution.length !== node.depth) continue;
-    if (!replaySolution(walls, targets, node.crates, node.pusher, solution)) continue;
-
-    const forward = forwardMinPushes(walls, targets, node.crates, node.pusher, bucket.max + 2);
-    if (forward !== node.depth) continue;
-
-    const wallList = [...walls].sort((a, b) => a - b);
-    const fingerprint = `${wallList.join(".")}/${[...targets].sort((a, b) => a - b).join(".")}/${[...node.crates].sort((a, b) => a - b).join(".")}/${node.pusher}`;
-    if (seen.has(fingerprint)) continue;
-    seen.add(fingerprint);
-
-    bank.push({
-      walls: wallList,
-      targets: [...targets].sort((a, b) => a - b),
-      crates: [...node.crates].sort((a, b) => a - b),
-      pusher: node.pusher,
-      minPushes: node.depth,
-      solution: solution.map((move) => `${move.cell}:${move.dir}`).join(","),
-    });
-    found += 1;
+  // Walk the parent chain to collect the forward pushes.
+  const solution: { cell: number; dir: SlideDir }[] = [];
+  let cursor: string | undefined = id;
+  while (cursor) {
+    const current: Node | undefined = nodes.get(cursor);
+    if (!current?.push) break;
+    solution.push(current.push);
+    cursor = current.parent;
   }
-  if (found < bucket.count) {
-    throw new Error(`Only found ${found} layouts for depth ${bucket.min}-${bucket.max}`);
-  }
+  if (solution.length !== node.depth) continue;
+  if (!replaySolution(walls, targets, node.crates, node.pusher, solution)) continue;
+
+  // Every crate has to be a real part of the puzzle, not scenery.
+  const counts = pushesPerCrate(node.crates, solution);
+  if (!counts) continue;
+  if (counts.some((count) => count < PUSH_MIN_MOVES_PER_CRATE)) continue;
+
+  const forward = forwardMinPushes(
+    walls,
+    targets,
+    node.crates,
+    node.pusher,
+    PUSH_MAX_PUSHES + 2,
+  );
+  if (forward !== node.depth) continue;
+
+  const wallList = [...walls].sort((a, b) => a - b);
+  const fingerprint = `${wallList.join(".")}/${[...targets].sort((a, b) => a - b).join(".")}/${[...node.crates].sort((a, b) => a - b).join(".")}/${node.pusher}`;
+  if (seen.has(fingerprint)) continue;
+  seen.add(fingerprint);
+
+  bank.push({
+    walls: wallList,
+    targets: [...targets].sort((a, b) => a - b),
+    crates: [...node.crates].sort((a, b) => a - b),
+    pusher: node.pusher,
+    minPushes: node.depth,
+    solution: solution.map((move) => `${move.cell}:${move.dir}`).join(","),
+  });
+  if (bank.length % 10 === 0) console.log(`  ${bank.length} / ${PUSH_BANK_SIZE}`);
+}
+
+if (bank.length < PUSH_BANK_SIZE) {
+  throw new Error(`Only found ${bank.length} layouts of ${PUSH_BANK_SIZE}`);
 }
 
 const lines = bank
@@ -309,8 +332,9 @@ const lines = bank
 
 const file = `/**
  * Curated Push layouts. Generated by scripts/push-bank.ts — every entry was
- * grown backwards from its solved position and its minimum push count was
- * confirmed by an independent forward search. Do not edit by hand.
+ * grown backwards from its solved position, its minimum push count was
+ * confirmed by an independent forward search, and every crate moves at least
+ * twice. Do not edit by hand.
  */
 
 export interface PushBankEntry {
@@ -329,7 +353,6 @@ ${lines}
 
 writeFileSync("src/lib/duel/pushBank.server.ts", file);
 console.log(`${bank.length} layouts written`);
-for (const bucket of BUCKETS) {
-  const count = bank.filter((e) => e.minPushes >= bucket.min && e.minPushes <= bucket.max).length;
-  console.log(`  depth ${bucket.min}-${bucket.max}: ${count}`);
-}
+const mins = bank.map((entry) => entry.minPushes);
+console.log(`  minimum pushes ${Math.min(...mins)}–${Math.max(...mins)}`);
+
