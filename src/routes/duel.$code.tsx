@@ -42,10 +42,7 @@ import {
 } from "@/lib/duel/api";
 import { serverNow, toMs } from "@/lib/duel/clock";
 import { clearStageState } from "@/lib/duel/stageState";
-import {
-  elapsedMs,
-  formatElapsed,
-} from "@/lib/duel/resultPresentation";
+import { elapsedMs, formatElapsed } from "@/lib/duel/resultPresentation";
 import {
   duelOutcome,
   resultFor,
@@ -335,11 +332,7 @@ function DuelScreen() {
 
   // The correct answer only exists on the client once the round has ended.
   useEffect(() => {
-    if (
-      !duel ||
-      round < 1 ||
-      (phase !== "reveal" && phase !== "result" && phase !== "standings")
-    )
+    if (!duel || round < 1 || (phase !== "reveal" && phase !== "result" && phase !== "standings"))
       return;
     if (revealed?.round === round) return;
     let cancelled = false;
@@ -676,10 +669,7 @@ function DuelScreen() {
   }
 
   if (phase === "standings") {
-    const autoSeconds = Math.max(
-      0,
-      Math.ceil((STANDINGS_MS - (now - (phaseStart ?? now))) / 1000),
-    );
+    const autoSeconds = Math.max(0, Math.ceil((STANDINGS_MS - (now - (phaseStart ?? now))) / 1000));
     return (
       <PhoneShell>
         {isMulti ? (

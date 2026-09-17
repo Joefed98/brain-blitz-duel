@@ -54,9 +54,15 @@ export function RoundResult({
     <div className="flex flex-1 flex-col justify-between gap-6 pt-4 animate-phase-in">
       <div className="flex flex-col gap-6">
         <div className="relative px-12 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Round results</p>
-          <p className="mt-1 break-words font-display text-sm font-bold text-foreground">{roundTitle}</p>
-          <span className="absolute right-0 top-0 font-mono text-[10px] uppercase text-muted-foreground">{finalRound ? "Final round" : "1 of 2"}</span>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+            Round results
+          </p>
+          <p className="mt-1 break-words font-display text-sm font-bold text-foreground">
+            {roundTitle}
+          </p>
+          <span className="absolute right-0 top-0 font-mono text-[10px] uppercase text-muted-foreground">
+            {finalRound ? "Final round" : "1 of 2"}
+          </span>
         </div>
 
         <div className="flex gap-3">
@@ -117,11 +123,17 @@ export function RoundResult({
             )}
           </div>
         </div>
-
       </div>
 
       <div className="flex flex-col gap-2">
-        {isHost && <Button onClick={onNext} className="press tap-target w-full font-display font-bold uppercase">{finalRound ? "Podium" : "Next"} ({autoSeconds}s)</Button>}
+        {isHost && (
+          <Button
+            onClick={onNext}
+            className="press tap-target w-full font-display font-bold uppercase"
+          >
+            {finalRound ? "Podium" : "Next"} ({autoSeconds}s)
+          </Button>
+        )}
         <p className="text-center font-mono text-xs text-muted-foreground">
           {finalRound ? "Podium" : "Standings"} in {autoSeconds}s
         </p>

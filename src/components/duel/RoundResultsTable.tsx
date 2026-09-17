@@ -47,7 +47,9 @@ export function RoundResultsTable({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2 animate-phase-in">
       <header className="relative shrink-0 px-12 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Round results</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+          Round results
+        </p>
         <h1 className="mt-1 break-words font-display text-sm font-bold text-foreground">
           {roundTitle}
         </h1>
@@ -56,7 +58,10 @@ export function RoundResultsTable({
         </span>
       </header>
 
-      <ol className="grid min-h-0 flex-1 gap-1.5" style={{ gridTemplateRows: `repeat(${ordered.length}, minmax(0, 1fr))` }}>
+      <ol
+        className="grid min-h-0 flex-1 gap-1.5"
+        style={{ gridTemplateRows: `repeat(${ordered.length}, minmax(0, 1fr))` }}
+      >
         {ordered.map((row, index) => {
           const isMe = row.slot === mySlot;
           const won = row.roundScore > 0 && row.roundScore === topScore;
@@ -71,7 +76,9 @@ export function RoundResultsTable({
                   isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
                 } ${row.status === "inactive" ? "opacity-40" : ""}`}
               >
-                <span className="font-mono text-xs font-bold text-muted-foreground">{index + 1}</span>
+                <span className="font-mono text-xs font-bold text-muted-foreground">
+                  {index + 1}
+                </span>
                 <span className="min-w-0 self-center">
                   <span className="flex min-w-0 items-center gap-1.5">
                     <span className="truncate font-display text-xs font-semibold text-foreground">
@@ -86,7 +93,9 @@ export function RoundResultsTable({
                       {formatElapsed(times.get(row.slot) ?? null)}
                     </span>
                   </span>
-                  <span className={`block font-mono text-[9px] leading-tight text-muted-foreground ${open ? "whitespace-normal" : "truncate"}`}>
+                  <span
+                    className={`block font-mono text-[9px] leading-tight text-muted-foreground ${open ? "whitespace-normal" : "truncate"}`}
+                  >
                     {open ? [row.summary, ...row.detail].join(" · ") : row.summary}
                   </span>
                 </span>
@@ -102,7 +111,10 @@ export function RoundResultsTable({
 
       <footer className="shrink-0 pt-1">
         {isHost ? (
-          <Button className="press tap-target w-full font-display font-bold uppercase" onClick={onNext}>
+          <Button
+            className="press tap-target w-full font-display font-bold uppercase"
+            onClick={onNext}
+          >
             {finalRound ? `Podium (${autoSeconds}s)` : `Next (${autoSeconds}s)`}
           </Button>
         ) : (
