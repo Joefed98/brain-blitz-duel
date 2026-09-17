@@ -306,24 +306,6 @@ export function WordHuntPuzzle({
 
       {message && <p className="text-center font-mono text-xs text-warn">{message}</p>}
 
-      <div className="h-16 shrink-0 overflow-y-auto rounded-xl bg-card/60 px-3 py-2">
-        {found.length === 0 ? (
-          <p className="font-mono text-xs text-muted-foreground">no words yet</p>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {found.map((entry) => (
-              <li
-                key={entry.word}
-                className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-foreground animate-pop-in"
-              >
-                <span>{entry.word}</span>
-                <span className="text-primary">{entry.points}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
       <button
         type="button"
         onClick={lockIn}

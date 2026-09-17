@@ -280,8 +280,9 @@ function IntroExample() {
       <p className="text-center text-sm text-muted-foreground">
         Find the five differences between the top and bottom pictures.
       </p>
-      <div className="flex w-full flex-col gap-[10px] overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex w-full flex-col gap-[5.5px] overflow-hidden rounded-xl border border-border bg-card">
         <Panel shapes={EXAMPLE_TOP} found={[4]} rows={2} />
+        <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
         <Panel shapes={EXAMPLE_BOTTOM} found={[4]} rows={2} />
       </div>
       <p className="text-center text-xs text-muted-foreground">
@@ -352,7 +353,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         {foundGroups.length} / {total} found
       </p>
       <div
-        className={`flex min-h-0 w-full flex-1 flex-col gap-[10px] overflow-hidden rounded-2xl border border-border bg-card ${
+        className={`flex min-h-0 w-full flex-1 flex-col gap-[5.5px] overflow-hidden rounded-2xl border border-border bg-card ${
           wrong !== null ? "animate-shake" : ""
         }`}
       >
@@ -366,6 +367,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
             shapeSize={50}
           />
         </div>
+        <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <Panel
             shapes={puzzle.bottom}
@@ -393,10 +395,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1.5">
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-[10px] overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-[5.5px] overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <Panel shapes={puzzle.top} found={cells} fitHeight />
         </div>
+        <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <Panel shapes={puzzle.bottom} found={cells} fitHeight />
         </div>

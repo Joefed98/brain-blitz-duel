@@ -1,5 +1,5 @@
 import { playCorrect, playWrong } from "@/lib/sound";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   WORDSMITH_MIN_LENGTH,
@@ -22,17 +22,6 @@ interface Found {
   points: number;
 }
 
-/** Which tile each typed letter uses, or null when the word cannot be built. */
-function tileIndices(word: string, letters: string[]): number[] | null {
-  const used: number[] = [];
-  for (const letter of word) {
-    const index = letters.findIndex((tile, i) => tile === letter && !used.includes(i));
-    if (index === -1) return null;
-    used.push(index);
-  }
-  return used;
-}
-
 export function WordsmithPuzzle({
   puzzle,
   phaseStartedAt,
@@ -43,7 +32,7 @@ export function WordsmithPuzzle({
 }: WordsmithPuzzleProps) {
   const letters = puzzle.letters;
   const [order, setOrder] = useState(() => letters.map((_, i) => i));
-  const [word, setWord] = useState("");
+  const [selectedTiles, setSelectedTiles] = useState<number[]>([]);
   const [found, setFound] = useState<Found[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
@@ -53,7 +42,7 @@ export function WordsmithPuzzle({
   const foundRef = useRef<Found[]>([]);
   foundRef.current = found;
 
-  const used = useMemo(() => tileIndices(word, letters) ?? [], [word, letters]);
+  const word = selectedTiles.map((index) => letters[index] ?? "").join("");
   const points = found.reduce((sum, entry) => sum + entry.points, 0);
 
   const lockIn = useCallback(() => {
@@ -88,7 +77,7 @@ export function WordsmithPuzzle({
     if (verdict.valid) {
       playCorrect();
       setFound((current) => [{ word: verdict.word, points: verdict.points }, ...current]);
-      setWord("");
+      setSelectedTiles([]);
       setMessage(null);
     } else {
       playWrong();
@@ -99,18 +88,18 @@ export function WordsmithPuzzle({
 
   const tapTile = (index: number) => {
     if (locked) return;
-    const usedAt = used.indexOf(index);
+    const usedAt = selectedTiles.indexOf(index);
     if (usedAt >= 0) {
       removeAt(usedAt);
       return;
     }
     setMessage(null);
-    setWord((current) => current + (letters[index] ?? ""));
+    setSelectedTiles((current) => [...current, index]);
   };
 
   const removeAt = (position: number) => {
     if (locked) return;
-    setWord((current) => current.slice(0, position) + current.slice(position + 1));
+    setSelectedTiles((current) => current.filter((_, index) => index !== position));
   };
 
   return (
@@ -134,14 +123,14 @@ export function WordsmithPuzzle({
             {message ?? "Tap or type letters"}
           </span>
         ) : (
-          word.split("").map((letter, position) => (
+          selectedTiles.map((tileIndex, position) => (
             <button
-              key={`${letter}-${position}`}
+              key={tileIndex}
               type="button"
               onClick={() => removeAt(position)}
               className="font-mono text-2xl font-bold uppercase tracking-[0.15em] text-primary"
             >
-              {letter}
+              {letters[tileIndex]}
             </button>
           ))
         )}
@@ -156,7 +145,7 @@ export function WordsmithPuzzle({
         style={{ gridTemplateColumns: `repeat(${letters.length || 1}, minmax(0, 1fr))` }}
       >
         {order.map((index) => {
-          const spent = used.includes(index);
+          const spent = selectedTiles.includes(index);
           return (
             <button
               key={index}
@@ -189,9 +178,19 @@ export function WordsmithPuzzle({
         placeholder="type here"
         onChange={(event) => {
           const next = event.target.value.toUpperCase().replace(/[^A-Z]/g, "");
-          if (tileIndices(next, letters) === null) return;
+          if (next === word.slice(0, -1)) {
+            setSelectedTiles((current) => current.slice(0, -1));
+            setMessage(null);
+            return;
+          }
+          if (!next.startsWith(word) || next.length !== word.length + 1) return;
+          const typed = next.at(-1);
+          const tileIndex = order.find(
+            (index) => letters[index] === typed && !selectedTiles.includes(index),
+          );
+          if (tileIndex === undefined) return;
           setMessage(null);
-          setWord(next);
+          setSelectedTiles((current) => [...current, tileIndex]);
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter") void trySubmit();
@@ -202,7 +201,7 @@ export function WordsmithPuzzle({
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => setWord((current) => current.slice(0, -1))}
+          onClick={() => setSelectedTiles((current) => current.slice(0, -1))}
           disabled={locked || word.length === 0}
           className="press tap-target rounded-xl border border-border bg-card px-3 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground disabled:opacity-35"
         >
@@ -219,7 +218,7 @@ export function WordsmithPuzzle({
         <button
           type="button"
           onClick={() => {
-            setWord("");
+            setSelectedTiles([]);
             setOrder((current) => [...current].sort(() => Math.random() - 0.5));
             inputRef.current?.blur();
           }}
@@ -236,25 +235,6 @@ export function WordsmithPuzzle({
         >
           Done
         </button>
-      </div>
-
-      {/* Found words. */}
-      <div className="min-h-16 flex-1 overflow-y-auto rounded-xl bg-card/60 px-3 py-2">
-        {found.length === 0 ? (
-          <p className="font-mono text-xs text-muted-foreground">no words yet</p>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {found.map((entry) => (
-              <li
-                key={entry.word}
-                className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-foreground animate-pop-in"
-              >
-                <span>{entry.word}</span>
-                <span className="text-primary">{entry.points}</span>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </div>
   );

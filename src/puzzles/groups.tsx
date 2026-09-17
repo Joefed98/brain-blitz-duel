@@ -21,9 +21,11 @@ function GroupBand({
   index?: number;
 }) {
   return (
-    <div className={`w-full rounded-lg border px-2 py-1.5 text-center ${BAND_CLASSES[index % 4]}`}>
-      <p className="font-mono text-[10px] font-bold uppercase tracking-widest">{theme}</p>
-      <p className="mt-1 truncate font-display text-xs font-semibold">{words.join(" · ")}</p>
+    <div
+      className={`flex min-h-12 w-full flex-col justify-center rounded-lg border px-2 py-1.5 text-center ${BAND_CLASSES[index % 4]}`}
+    >
+      <p className="font-mono text-[11px] font-bold uppercase tracking-widest">{theme}</p>
+      <p className="mt-0.5 truncate font-display text-[13px] font-semibold">{words.join(" · ")}</p>
     </div>
   );
 }
@@ -113,12 +115,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkGroup }: PuzzleSt
 
   return (
     <div className="flex min-h-0 flex-1 flex-col justify-between gap-2">
-      <div className="flex min-h-[128px] flex-col gap-1">
+      <div className="flex min-h-[192px] flex-col gap-1.5">
         {found.map((group, index) => (
           <GroupBand key={group.groupIndex} theme={group.theme} words={group.words} index={index} />
         ))}
       </div>
-      <div className={`grid grid-cols-4 gap-1.5 ${shaking ? "animate-shake" : ""}`}>
+      <div className={`grid w-full grid-cols-4 gap-1.5 ${shaking ? "animate-shake" : ""}`}>
         {remaining.map((index) => {
           const word = data.words[index] ?? "";
           const active = selected.includes(index);
@@ -136,7 +138,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkGroup }: PuzzleSt
                       : current,
                 )
               }
-              className={`flex h-12 min-w-0 items-center justify-center rounded-lg border px-0.5 text-center font-display text-[clamp(9px,2.8vw,12px)] font-bold leading-tight ${active ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-foreground"}`}
+              className={`flex min-h-11 min-w-0 items-center justify-center overflow-hidden whitespace-nowrap rounded-lg border px-0.5 text-center font-display font-bold leading-none ${word.length <= 10 ? "text-[13px]" : "text-[clamp(9px,2.7vw,12px)]"} ${active ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-foreground"}`}
             >
               {word}
             </button>

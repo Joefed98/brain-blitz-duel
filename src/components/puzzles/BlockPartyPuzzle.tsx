@@ -174,7 +174,7 @@ export function BlockPartyPuzzle({
   const trayRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const [layoutSize, setLayoutSize] = useState({ width: 348, height: 480 });
-  const [traySize, setTraySize] = useState({ width: 348, height: 120 });
+  const [traySize, setTraySize] = useState({ width: 348, height: 234 });
   const [placed, setPlaced] = useState<BlockPlacement[]>([]);
   const [pose, setPose] = useState<Record<number, { rot: number; flip: boolean }>>({});
   const [ghost, setGhost] = useState<{ cells: number[]; legal: boolean } | null>(null);
@@ -318,8 +318,6 @@ export function BlockPartyPuzzle({
 
   // Keep a useful tray beneath the square board even on the shortest supported
   // phone. The tray then computes the largest cell size that fits every row.
-  const boardSize = Math.max(180, Math.min(layoutSize.width, layoutSize.height - 116));
-  const boardCell = boardSize / N;
   const trayRows = useMemo(() => {
     const rows: number[][] = [];
     for (let index = 0; index < inTray.length; index += 3)
@@ -336,14 +334,23 @@ export function BlockPartyPuzzle({
     ),
     1,
   );
-  const trayCell = Math.max(
-    8,
+  const trayCellCapacity = Math.max(
+    1,
     Math.min(
-      boardCell * 0.6,
       (traySize.height - 20 - Math.max(0, trayRows.length - 1) * 4) / trayHeightUnits,
       (traySize.width - 20 - 8) / trayWidthUnits,
     ),
   );
+  const boardSize = Math.max(
+    120,
+    Math.min(
+      layoutSize.width,
+      layoutSize.height - traySize.height - 36,
+      (trayCellCapacity / 0.45) * N,
+    ),
+  );
+  const boardCell = boardSize / N;
+  const trayCell = Math.max(boardCell * 0.45, Math.min(boardCell * 0.6, trayCellCapacity));
 
   return (
     <div ref={layoutRef} className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">
@@ -411,7 +418,7 @@ export function BlockPartyPuzzle({
       {/* Tray: every remaining piece, at a reduced scale. */}
       <div
         ref={trayRef}
-        className="grid min-h-0 flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 overflow-visible rounded-xl bg-card/60 px-2.5 py-2.5"
+        className="grid min-h-[35dvh] flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 overflow-hidden rounded-xl bg-card/60 px-2.5 py-2.5"
       >
         {inTray.length === 0 ? (
           <p className="col-span-3 text-center font-mono text-xs uppercase tracking-widest text-primary">
