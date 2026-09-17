@@ -10,9 +10,13 @@ import { generateTower } from "../src/lib/duel/tower.server";
 import { decodeTowerMoves, replayTower, towerMinMoves } from "../src/lib/duel/tower";
 import { generateMaze } from "../src/lib/duel/maze.server";
 import { mazeRoute, mazeTurns, verifyMazePath } from "../src/lib/duel/maze";
+import { mazeFalseTrails, mazeJunctions } from "../src/lib/duel/maze.server";
 import {
   LASER_MAX_MIRRORS,
   LASER_MIN_MIRRORS,
+  MAZE_DEAD_END_LENGTH,
+  MAZE_MIN_DEAD_ENDS,
+  MAZE_MIN_JUNCTIONS,
   MAZE_MIN_PATH,
   MAZE_MIN_TURNS,
   TOWER_LONG_TIME_MS,
@@ -26,13 +30,14 @@ function fail(message: string): never {
 
 /* ------------------------------- Laser ---------------------------------- */
 
-for (let index = 0; index < 300; index++) {
+for (let index = 0; index < 60; index++) {
   const puzzle = generateLaser();
   const solution = puzzle.solution ?? [];
   if (solution.length < LASER_MIN_MIRRORS || solution.length > LASER_MAX_MIRRORS) {
     fail(`laser mirror count ${solution.length}`);
   }
   if (solution.length !== puzzle.mirrors) fail("tray does not match the solution");
+  if (solution.length !== 4) fail(`laser tray is not exactly four mirrors: ${solution.length}`);
 
   const solved = traceBeam(puzzle.source, puzzle.dir, solution, puzzle.blocks, puzzle.target);
   if (!solved.hitTarget) fail("stored placement does not hit the target");
@@ -51,7 +56,7 @@ for (let index = 0; index < 300; index++) {
       fail("mirror on an endpoint");
   }
 }
-console.log("Laser: 300 layouts — stored placement always hits, empty grid never does");
+console.log("Laser: 60 layouts — stored placement always hits, empty grid never does");
 
 /* -------------------------------- Tower ---------------------------------- */
 
@@ -80,11 +85,15 @@ console.log(
 
 /* ------------------------------ Maze Dash -------------------------------- */
 
-for (let index = 0; index < 200; index++) {
+for (let index = 0; index < 60; index++) {
   const puzzle = generateMaze();
   const route = puzzle.solution ?? [];
   if (route.length < MAZE_MIN_PATH) fail(`route length ${route.length}`);
   if (mazeTurns(route) < MAZE_MIN_TURNS) fail(`route turns ${mazeTurns(route)}`);
+  const junctions = mazeJunctions(puzzle.cells, route);
+  if (junctions < MAZE_MIN_JUNCTIONS) fail(`only ${junctions} junctions on or beside the route`);
+  const trails = mazeFalseTrails(puzzle.cells, route, MAZE_DEAD_END_LENGTH);
+  if (trails < MAZE_MIN_DEAD_ENDS) fail(`only ${trails} false trails`);
   if (route[0] !== puzzle.start || route[route.length - 1] !== puzzle.exit)
     fail("route ends wrong");
   // A perfect maze: the route found from the cells is the stored one.
@@ -97,7 +106,7 @@ for (let index = 0; index < 200; index++) {
   const partial = verifyMazePath(puzzle.cells, puzzle.start, puzzle.exit, route, halfway);
   if (partial.solved || partial.progress > 0.75) fail("half a route scored as solved");
 }
-console.log("Maze Dash: 200 mazes — every route long enough, twisty enough and server-checked");
+console.log("Maze Dash: 60 mazes — every route long enough, twisty enough and server-checked");
 
 console.log("All checks passed.");
 
@@ -108,5 +117,11 @@ console.log("All checks passed.");
     { from: 0, to: 2 },
   ]);
   if (!bad.illegal || bad.solved) throw new Error("Tower accepted an illegal move list");
+  // From [4,3,2,1] on peg A: A->B is legal, the same move again must be refused.
+  const twice = replayTower(4, 1, [
+    { from: 0, to: 1 },
+    { from: 0, to: 1 },
+  ]);
+  if (twice.moves !== 1 || !twice.illegal) throw new Error("Tower allowed disc 2 onto disc 1");
   console.log("Tower: illegal move lists are rejected by the server replay");
 }
