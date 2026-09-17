@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { gridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
+import {
+  gridCellAt,
+  gridCellCentre,
+  hapticTick,
+  useGridMetrics,
+} from "@/components/puzzles/GridDrag";
 import {
   decodeLaserAnswer,
   encodeLaserAnswer,
@@ -27,37 +32,58 @@ import { playCorrect, playWrong } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const GOLD = "var(--primary)";
+const GREY = "var(--muted-foreground)";
+const RED = "var(--destructive)";
 
-/** A faceted diamond, dim until the beam passes through it. */
+/** How many mirror actions Undo can walk back. */
+const LASER_UNDO_STEPS = 20;
+
+/**
+ * A faceted diamond — a rotated square with a lighter facet line across it —
+ * drawn inline so no icon font or emoji is involved. Dim grey until the beam
+ * passes through it, then gold with a soft glow.
+ */
 function Gem({ lit }: { lit: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-full w-full" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-full w-full overflow-visible" aria-hidden="true">
       <polygon
-        points="12,2 22,9 12,22 2,9"
-        fill={lit ? GOLD : "transparent"}
-        stroke={lit ? GOLD : "hsl(var(--muted-foreground))"}
-        strokeWidth={2}
-        opacity={lit ? 1 : 0.65}
+        points="12,2 22,12 12,22 2,12"
+        fill={lit ? GOLD : GREY}
+        fillOpacity={lit ? 1 : 0.55}
+        stroke={GOLD}
+        strokeOpacity={lit ? 1 : 0.45}
+        strokeWidth={1.6}
+        style={lit ? { filter: "drop-shadow(0 0 3px rgba(245,198,76,0.95))" } : undefined}
       />
       <polyline
-        points="2,9 22,9"
+        points="4.5,10 19.5,10"
         fill="none"
-        stroke={lit ? "rgba(0,0,0,0.35)" : "hsl(var(--muted-foreground))"}
-        strokeWidth={1.4}
-        opacity={0.7}
-      />
-      <polyline
-        points="7,9 12,22 17,9"
-        fill="none"
-        stroke={lit ? "rgba(0,0,0,0.35)" : "hsl(var(--muted-foreground))"}
-        strokeWidth={1.4}
-        opacity={0.6}
+        stroke="#FFFFFF"
+        strokeOpacity={lit ? 0.75 : 0.5}
+        strokeWidth={1.2}
       />
     </svg>
   );
 }
 
-/** The grid, the fired beam and the mirrors, drawn in cell units so it scales freely. */
+/** The arrow head on the source cell, drawn from the stored beam direction. */
+function sourceArrowPoints(x: number, y: number, dir: BeamDir, size: number): string {
+  const half = size / 2;
+  if (dir === "R") return `${x - half},${y - half} ${x + half},${y} ${x - half},${y + half}`;
+  if (dir === "L") return `${x + half},${y - half} ${x - half},${y} ${x + half},${y + half}`;
+  if (dir === "D") return `${x - half},${y - half} ${x},${y + half} ${x + half},${y - half}`;
+  return `${x - half},${y + half} ${x},${y - half} ${x + half},${y + half}`;
+}
+
+interface BoardPointer {
+  onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
+}
+
+/**
+ * The grid, the fired beam and the mirrors. Everything drawn over the grid is
+ * placed from the grid's own measured cell centres, so the beam, the mirrors
+ * and the drag ghost always sit exactly on the squares they belong to.
+ */
 function LaserBoard({
   source,
   dir,
@@ -70,8 +96,10 @@ function LaserBoard({
   bombFlash = false,
   cols = LASER_COLS,
   cells = LASER_CELLS,
-  onCell,
-  boxRef,
+  ghostCell = null,
+  shake = false,
+  pointer,
+  gridRef,
 }: {
   source: number;
   dir: BeamDir;
@@ -85,8 +113,12 @@ function LaserBoard({
   bombFlash?: boolean;
   cols?: number;
   cells?: number;
-  onCell?: ((cell: number) => void) | undefined;
-  boxRef?: React.RefObject<HTMLDivElement | null> | undefined;
+  /** The cell a drag would drop on right now. */
+  ghostCell?: number | null;
+  shake?: boolean;
+  pointer?: BoardPointer | undefined;
+  /** The grid element itself, used for hit testing. */
+  gridRef?: React.RefObject<HTMLDivElement | null> | undefined;
 }) {
   const rows = Math.ceil(cells / cols);
   const wall = new Set(blocks);
@@ -94,29 +126,22 @@ function LaserBoard({
   const bombSet = new Set(bombs);
   const litSet = new Set(litGems);
   const inner = useRef<HTMLDivElement | null>(null);
-  const box = boxRef ?? inner;
+  const grid = gridRef ?? inner;
+  const metrics = useGridMetrics(grid, cols, rows);
   const mirrorAt = new Map(placed.map((mirror) => [mirror.cell, mirror.kind]));
-
-  // Measured from the live board on every event, so taps land on the cell touched.
-  const cellAt = (clientX: number, clientY: number): number | null =>
-    gridCellAt(box.current, clientX, clientY, cols, rows);
-
-  const centre = (cell: number) => `${(cell % cols) + 0.5},${Math.floor(cell / cols) + 0.5}`;
-  const arrow: Record<BeamDir, string> = { U: "▲", D: "▼", L: "◀", R: "▶" };
+  const unit = metrics ? Math.min(metrics.cellW, metrics.cellH) : 0;
+  const at = (cell: number) => (metrics ? gridCellCentre(metrics, cell, cols) : { x: 0, y: 0 });
 
   return (
     <div
-      ref={box}
-      className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none"
+      className={`relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none ${
+        shake ? "animate-shake" : ""
+      }`}
       style={{ touchAction: "none" }}
-      onPointerDown={(event) => {
-        if (!onCell) return;
-        event.preventDefault();
-        const cell = cellAt(event.clientX, event.clientY);
-        if (cell !== null) onCell(cell);
-      }}
+      onPointerDown={pointer?.onPointerDown}
     >
       <div
+        ref={grid}
         className="grid h-full w-full"
         style={{
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
@@ -128,8 +153,14 @@ function LaserBoard({
           if (wall.has(cell)) return <div key={cell} className="rounded-md bg-foreground/75" />;
           if (gemSet.has(cell)) {
             return (
-              <div key={cell} aria-label={litSet.has(cell) ? "Gem lit" : "Gem"} className="p-[1px]">
-                <Gem lit={litSet.has(cell)} />
+              <div
+                key={cell}
+                aria-label={litSet.has(cell) ? "Gem lit" : "Gem"}
+                className="flex items-center justify-center"
+              >
+                <div className="h-[70%] w-[70%]">
+                  <Gem lit={litSet.has(cell)} />
+                </div>
               </div>
             );
           }
@@ -147,15 +178,7 @@ function LaserBoard({
             );
           }
           if (cell === source) {
-            return (
-              <div
-                key={cell}
-                aria-label="Laser"
-                className="flex items-center justify-center rounded-md bg-primary/25 text-[8px] leading-none text-primary"
-              >
-                {arrow[dir]}
-              </div>
-            );
+            return <div key={cell} aria-label="Laser" className="rounded-md bg-primary/25" />;
           }
           return (
             <div
@@ -168,43 +191,62 @@ function LaserBoard({
         })}
       </div>
 
-      <svg
-        viewBox={`0 0 ${cols} ${rows}`}
-        className="pointer-events-none absolute inset-0 h-full w-full"
-        aria-hidden="true"
-      >
-        {beam && beam.length > 1 ? (
-          <polyline
-            points={beam.map(centre).join(" ")}
-            fill="none"
-            stroke={bombFlash ? "hsl(var(--destructive))" : GOLD}
-            strokeWidth={0.14}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{
-              filter: bombFlash
-                ? "drop-shadow(0 0 3px rgba(255,80,80,0.9))"
-                : "drop-shadow(0 0 3px rgba(245,198,76,0.85))",
-            }}
-          />
-        ) : null}
-        {placed.map((mirror) => {
-          const col = mirror.cell % cols;
-          const row = Math.floor(mirror.cell / cols);
-          const forward = mirror.kind === "/";
-          return (
-            <line
-              key={`m-${mirror.cell}`}
-              x1={col + 0.18}
-              y1={row + (forward ? 0.82 : 0.18)}
-              x2={col + 0.82}
-              y2={row + (forward ? 0.18 : 0.82)}
-              stroke="#FFFFFF"
-              strokeWidth={0.12}
-              strokeLinecap="round"
+      <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+        {metrics ? (
+          <>
+            {/* The source arrow, from the same stored direction the beam uses. */}
+            <polygon
+              points={sourceArrowPoints(at(source).x, at(source).y, dir, unit * 0.5)}
+              fill={GOLD}
+              opacity={0.9}
             />
-          );
-        })}
+            {beam && beam.length > 1 ? (
+              <polyline
+                points={beam.map((cell) => `${at(cell).x},${at(cell).y}`).join(" ")}
+                fill="none"
+                stroke={bombFlash ? RED : GOLD}
+                strokeWidth={Math.max(1.5, unit * 0.16)}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  filter: bombFlash
+                    ? "drop-shadow(0 0 3px rgba(255,80,80,0.9))"
+                    : "drop-shadow(0 0 3px rgba(245,198,76,0.85))",
+                }}
+              />
+            ) : null}
+            {placed.map((mirror) => {
+              const centre = at(mirror.cell);
+              const reach = unit * 0.34;
+              const forward = mirror.kind === "/";
+              return (
+                <line
+                  key={`m-${mirror.cell}`}
+                  x1={centre.x - reach}
+                  y1={centre.y + (forward ? reach : -reach)}
+                  x2={centre.x + reach}
+                  y2={centre.y + (forward ? -reach : reach)}
+                  stroke="#FFFFFF"
+                  strokeWidth={Math.max(1.5, unit * 0.14)}
+                  strokeLinecap="round"
+                />
+              );
+            })}
+            {ghostCell !== null ? (
+              <rect
+                x={at(ghostCell).x - unit * 0.44}
+                y={at(ghostCell).y - unit * 0.44}
+                width={unit * 0.88}
+                height={unit * 0.88}
+                rx={unit * 0.12}
+                fill="none"
+                stroke={GOLD}
+                strokeWidth={2}
+                strokeDasharray="4 3"
+              />
+            ) : null}
+          </>
+        ) : null}
       </svg>
     </div>
   );
@@ -255,10 +297,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   const total = isLaser ? puzzle.mirrors : 0;
 
   const [placed, setPlaced] = useStageState<MirrorPlacement[]>(stateKey, "mirrors", () => []);
+  const [history, setHistory] = useStageState<MirrorPlacement[][]>(stateKey, "history", () => []);
   const [fires, setFires] = useStageState<number>(stateKey, "fires", () => 0);
   const [shot, setShot] = useState<{ trace: BeamTrace; step: number; done: boolean } | null>(null);
+  const [ghost, setGhost] = useState<number | null>(null);
+  const [shake, setShake] = useState(0);
   const submitted = useRef(false);
   const timers = useRef<number[]>([]);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+
+  // Live copies for the window-level drag handlers.
+  const placedRef = useRef(placed);
+  placedRef.current = placed;
+  const ghostRef = useRef<number | null>(null);
+  const dragRef = useRef<{ kind: "tray" | "move"; from: number | null } | null>(null);
+  const busyRef = useRef(false);
+  busyRef.current = Boolean(locked || submitted.current || shot);
 
   const clearTimers = () => {
     for (const id of timers.current) window.clearTimeout(id);
@@ -275,6 +329,124 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   const bombFlash = Boolean(shot?.done && shot.trace.hitBomb);
   const solved = submitted.current;
   const firesLeft = Math.max(0, LASER_MAX_FIRES - fires);
+
+  const refuse = useCallback(() => {
+    buzz(20);
+    playWrong();
+    setShake((count) => count + 1);
+    window.setTimeout(() => setShake((count) => Math.max(0, count - 1)), 320);
+  }, []);
+
+  /** Every mirror change goes through here, so Undo always has a step to take. */
+  const commit = useCallback(
+    (next: MirrorPlacement[]) => {
+      const before = placedRef.current;
+      setHistory((current) => [...current, before].slice(-LASER_UNDO_STEPS));
+      setPlaced(next);
+    },
+    [setHistory, setPlaced],
+  );
+
+  const taken = useCallback(
+    (cell: number) =>
+      cell === source || gems.includes(cell) || bombs.includes(cell) || blocks.includes(cell),
+    [source, gems, bombs, blocks],
+  );
+
+  const cellAt = useCallback(
+    (clientX: number, clientY: number) =>
+      gridCellAt(gridRef.current, clientX, clientY, LASER_COLS, LASER_COLS),
+    [],
+  );
+
+  const endDrag = useCallback(() => {
+    const drag = dragRef.current;
+    const target = ghostRef.current;
+    dragRef.current = null;
+    ghostRef.current = null;
+    setGhost(null);
+    if (!drag || busyRef.current) return;
+    const current = placedRef.current;
+
+    if (drag.kind === "move" && drag.from !== null) {
+      // Dropped off the board — back to the tray.
+      if (target === null) {
+        hapticTick();
+        commit(current.filter((mirror) => mirror.cell !== drag.from));
+        return;
+      }
+      // Dropped where it started — a tap, so flip it.
+      if (target === drag.from) {
+        hapticTick();
+        commit(
+          current.map((mirror) =>
+            mirror.cell === drag.from
+              ? { cell: mirror.cell, kind: flipMirror(mirror.kind) }
+              : mirror,
+          ),
+        );
+        return;
+      }
+      if (taken(target) || current.some((mirror) => mirror.cell === target)) {
+        refuse();
+        return;
+      }
+      const kind = current.find((mirror) => mirror.cell === drag.from)?.kind ?? "/";
+      hapticTick();
+      commit([...current.filter((mirror) => mirror.cell !== drag.from), { cell: target, kind }]);
+      return;
+    }
+
+    // From the tray onto the board.
+    if (target === null) return;
+    if (taken(target) || current.some((mirror) => mirror.cell === target)) {
+      refuse();
+      return;
+    }
+    if (current.length >= total) {
+      refuse();
+      return;
+    }
+    hapticTick();
+    commit([...current, { cell: target, kind: "/" }]);
+  }, [commit, refuse, taken, total]);
+
+  const trackDrag = useCallback(
+    (clientX: number, clientY: number) => {
+      const cell = cellAt(clientX, clientY);
+      ghostRef.current = cell;
+      setGhost(cell);
+    },
+    [cellAt],
+  );
+
+  // One set of window listeners for the whole drag, so a finger that leaves the
+  // board still reports the cell it is over — and the drop uses that same cell.
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      if (!dragRef.current) return;
+      event.preventDefault();
+      trackDrag(event.clientX, event.clientY);
+    };
+    const up = (event: PointerEvent) => {
+      if (!dragRef.current) return;
+      trackDrag(event.clientX, event.clientY);
+      endDrag();
+    };
+    const cancel = () => {
+      dragRef.current = null;
+      ghostRef.current = null;
+      setGhost(null);
+    };
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
+    };
+  }, [trackDrag, endDrag]);
 
   const fire = useCallback(() => {
     if (locked || submitted.current || firesLeft === 0 || shot) return;
@@ -328,30 +500,41 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     onSubmit,
   ]);
 
-  const tapCell = (cell: number) => {
-    if (locked || submitted.current || shot) return;
-    if (cell === source || gems.includes(cell) || bombs.includes(cell) || blocks.includes(cell))
+  const onBoardDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (busyRef.current) return;
+    event.preventDefault();
+    const cell = cellAt(event.clientX, event.clientY);
+    if (cell === null) return;
+    if (placed.some((mirror) => mirror.cell === cell)) {
+      // A press on a placed mirror: a tap flips it, a drag moves it.
+      dragRef.current = { kind: "move", from: cell };
+      ghostRef.current = cell;
+      setGhost(cell);
       return;
-    const existing = placed.find((mirror) => mirror.cell === cell);
-    if (existing) {
-      hapticTick();
-      setPlaced((current) =>
-        current.map((mirror) =>
-          mirror.cell === cell ? { cell, kind: flipMirror(mirror.kind) } : mirror,
-        ),
-      );
+    }
+    if (taken(cell)) {
+      refuse();
       return;
     }
     if (placed.length >= total) {
-      buzz(20);
-      playWrong();
+      refuse();
       return;
     }
     hapticTick();
-    setPlaced((current) => [...current, { cell, kind: "/" }]);
+    commit([...placed, { cell, kind: "/" }]);
+  };
+
+  const undo = () => {
+    if (!history.length) return;
+    const last = history[history.length - 1]!;
+    hapticTick();
+    setHistory((current) => current.slice(0, -1));
+    setPlaced(last);
   };
 
   if (!isLaser) return null;
+
+  const trayLeft = Math.max(0, total - placed.length);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -370,20 +553,30 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
           beam={revealed}
           litGems={litGems}
           bombFlash={bombFlash}
-          onCell={tapCell}
+          ghostCell={dragRef.current ? ghost : null}
+          shake={shake > 0}
+          gridRef={gridRef}
+          pointer={{ onPointerDown: onBoardDown }}
         />
       </div>
 
       <div className="flex shrink-0 items-center justify-center gap-2">
         {Array.from({ length: total }, (_, index) => {
-          const used = index < placed.length;
+          const used = index >= trayLeft;
           return (
             <div
               key={index}
               aria-label={used ? "Mirror placed" : "Mirror in the tray"}
+              onPointerDown={(event) => {
+                if (used || busyRef.current) return;
+                event.preventDefault();
+                dragRef.current = { kind: "tray", from: null };
+                trackDrag(event.clientX, event.clientY);
+              }}
               className={`flex h-11 w-11 items-center justify-center rounded-xl border ${
                 used ? "border-border/40 opacity-30" : "border-primary/60 bg-card"
               }`}
+              style={{ touchAction: "none" }}
             >
               <span className="text-lg text-foreground">/</span>
             </div>
@@ -392,14 +585,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
         <button
           type="button"
           disabled={locked || solved || !placed.length || Boolean(shot)}
-          onClick={() => setPlaced([])}
+          onClick={() => commit([])}
           className="h-11 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
-          Clear
+          Reset
         </button>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
           disabled={locked || solved || firesLeft === 0 || Boolean(shot)}
@@ -408,8 +601,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
         >
           Fire
         </button>
-        <span className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Fires left: {firesLeft}
+        <button
+          type="button"
+          disabled={locked || solved || !history.length || Boolean(shot)}
+          onClick={undo}
+          className="h-12 shrink-0 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+        >
+          Undo
+        </button>
+        <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          Fires
+          <br />
+          left: {firesLeft}
         </span>
       </div>
     </div>

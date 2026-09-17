@@ -2,10 +2,11 @@
  * Server-only Laser and Mirrors generation. A beam route is chosen first and a
  * mirror is put on each of its four bends, so the stored placement is a solution
  * by construction; the two gems are picked off that route, so one shot passes
- * through both. Bombs then go on the tempting shortcut lines, blocks hide the
- * corridor, and an EXHAUSTIVE search tries every placement of one, two or three
- * mirrors in both orientations: the layout is only accepted when none of them
- * lights both gems, so all four mirrors are always needed.
+ * through both. Blocks then obstruct the middle of the board and hide the
+ * corridor, bombs go where a plausible wrong route runs — cells crossed by
+ * several near-miss beams — and an EXHAUSTIVE search tries every placement of
+ * one, two or three mirrors in both orientations: the layout is only accepted
+ * when none of them lights both gems, so all four mirrors are always needed.
  */
 
 import { laserCol, laserRow, laserStep, traceBeam } from "./laser";
@@ -13,12 +14,16 @@ import { shuffled } from "./random";
 import {
   LASER_BOMBS,
   LASER_CELLS,
+  LASER_CENTRAL_FROM,
+  LASER_CENTRAL_TO,
   LASER_COLS as N,
   LASER_GEMS,
   LASER_MAX_BLOCKS,
   LASER_MAX_MIRRORS,
   LASER_MIN_ADJACENT_BLOCKS,
   LASER_MIN_BLOCKS,
+  LASER_MIN_BOMB_CROSSINGS,
+  LASER_MIN_CENTRAL_BLOCKS,
   LASER_MIN_SHORTCUT_BLOCKS,
   type BeamDir,
   type LaserPuzzleData,
@@ -48,6 +53,18 @@ const PERPENDICULAR: Record<BeamDir, BeamDir[]> = {
 
 const DIR_INDEX: Record<BeamDir, number> = { U: 0, D: 1, L: 2, R: 3 };
 const DIRS: BeamDir[] = ["U", "D", "L", "R"];
+
+/** True for the middle 6x6 of the board. */
+function isCentral(cell: number): boolean {
+  const row = laserRow(cell);
+  const col = laserCol(cell);
+  return (
+    row >= LASER_CENTRAL_FROM &&
+    row <= LASER_CENTRAL_TO &&
+    col >= LASER_CENTRAL_FROM &&
+    col <= LASER_CENTRAL_TO
+  );
+}
 
 /** Every edge cell with the direction that fires inward from it. */
 function sources(): { cell: number; dir: BeamDir }[] {
@@ -113,25 +130,26 @@ function randomRoute(source: number, dir: BeamDir, bends: number): Route | null 
 
 /**
  * One beam walk over flat arrays: no allocation, so hundreds of thousands run
- * fast. Returns true only when this single shot lights every gem without
- * touching a bomb.
+ * fast. Fills `trail` with the path and returns how many gems the shot lit; a
+ * bomb, a block or the edge ends the walk.
  */
-function walk(
+function walkPath(
   source: number,
   dir: BeamDir,
   blocked: Uint8Array,
   bomb: Uint8Array,
   gem: Uint8Array,
-  gemCount: number,
   mirrors: Int8Array,
   trail: number[] | null,
-): boolean {
+): number {
   let cell = source;
   let heading = DIR_INDEX[dir];
   let lit = 0;
   const seen = new Set<number>();
-  if (trail) trail.length = 0;
-  if (trail) trail.push(cell);
+  if (trail) {
+    trail.length = 0;
+    trail.push(cell);
+  }
   if (gem[cell]) {
     lit += 1;
     seen.add(cell);
@@ -150,17 +168,16 @@ function walk(
     else if (heading === 1) next = row < N - 1 ? cell + N : -1;
     else if (heading === 2) next = col > 0 ? cell - 1 : -1;
     else next = col < N - 1 ? cell + 1 : -1;
-    if (next < 0 || blocked[next]) return false;
+    if (next < 0 || blocked[next]) return lit;
     cell = next;
     if (trail) trail.push(cell);
-    if (bomb[cell]) return false;
+    if (bomb[cell]) return lit;
     if (gem[cell] && !seen.has(cell)) {
       seen.add(cell);
       lit += 1;
-      if (lit >= gemCount) return true;
     }
   }
-  return false;
+  return lit;
 }
 
 export interface ShortcutSearch {
@@ -200,8 +217,7 @@ export function searchShortcuts(
   const trail: number[] = [];
   let tested = 0;
   let hit: { cells: number[] } | null = null;
-  const fire = () =>
-    walk(source, dir, blocked, bomb, gem, gems.length, mirrors, trail);
+  const fire = () => walkPath(source, dir, blocked, bomb, gem, mirrors, trail) >= gems.length;
 
   tested += 1;
   if (fire()) return { hit: { cells: [...trail] }, tested };
@@ -254,6 +270,93 @@ export function searchShortcuts(
   return { hit, tested };
 }
 
+/**
+ * Where the plausible wrong routes go. Every three-mirror placement is traced
+ * exhaustively and a large sample of four-mirror placements on top, and each
+ * beam that lights exactly one gem — or comes within one cell of the second —
+ * has its path counted. The result is how many near-miss beams cross each cell,
+ * which is where a bomb belongs.
+ */
+export function nearMissCrossings(
+  source: number,
+  dir: BeamDir,
+  blocks: number[],
+  gems: number[],
+  exclude: Set<number>,
+): Map<number, number> {
+  const blocked = new Uint8Array(LASER_CELLS);
+  for (const cell of blocks) blocked[cell] = 1;
+  const bomb = new Uint8Array(LASER_CELLS);
+  const gem = new Uint8Array(LASER_CELLS);
+  for (const cell of gems) gem[cell] = 1;
+  const mirrors = new Int8Array(LASER_CELLS);
+  const free: number[] = [];
+  for (let cell = 0; cell < LASER_CELLS; cell++) {
+    if (cell === source || blocked[cell] || gem[cell]) continue;
+    free.push(cell);
+  }
+
+  const counts = new Map<number, number>();
+  const trail: number[] = [];
+  const record = () => {
+    for (const cell of trail) {
+      if (exclude.has(cell)) continue;
+      counts.set(cell, (counts.get(cell) ?? 0) + 1);
+    }
+  };
+  /** A near miss lights one gem, or passes within one cell of a gem it missed. */
+  const nearMiss = (lit: number): boolean => {
+    if (lit === 1) return true;
+    if (lit !== 0) return false;
+    return gems.some((target) =>
+      trail.some(
+        (cell) =>
+          Math.abs(laserRow(cell) - laserRow(target)) +
+            Math.abs(laserCol(cell) - laserCol(target)) <=
+          1,
+      ),
+    );
+  };
+
+  // Every three-mirror placement.
+  for (let a = 0; a < free.length; a++) {
+    for (let ka = 1 as 1 | 2; ka <= 2; ka++) {
+      mirrors[free[a]!] = ka;
+      for (let b = a + 1; b < free.length; b++) {
+        for (let kb = 1 as 1 | 2; kb <= 2; kb++) {
+          mirrors[free[b]!] = kb;
+          for (let c = b + 1; c < free.length; c++) {
+            for (let kc = 1 as 1 | 2; kc <= 2; kc++) {
+              mirrors[free[c]!] = kc;
+              if (nearMiss(walkPath(source, dir, blocked, bomb, gem, mirrors, trail))) record();
+            }
+            mirrors[free[c]!] = 0;
+          }
+        }
+        mirrors[free[b]!] = 0;
+      }
+    }
+    mirrors[free[a]!] = 0;
+  }
+
+  // A sample of four-mirror placements, which no exhaustive pass could cover.
+  for (let sample = 0; sample < 40_000; sample++) {
+    const picked: number[] = [];
+    for (let index = 0; index < 4; index++) {
+      const cell = free[randomInt(free.length)]!;
+      if (mirrors[cell]) continue;
+      mirrors[cell] = randomInt(2) === 0 ? 1 : 2;
+      picked.push(cell);
+    }
+    if (picked.length === 4) {
+      if (nearMiss(walkPath(source, dir, blocked, bomb, gem, mirrors, trail))) record();
+    }
+    for (const cell of picked) mirrors[cell] = 0;
+  }
+
+  return counts;
+}
+
 /** The four cells touching a cell, inside the grid. */
 function around(cell: number): number[] {
   return DIRS.map((dir) => laserStep(cell, dir)).filter((next): next is number => next !== null);
@@ -261,7 +364,7 @@ function around(cell: number): number[] {
 
 /**
  * The tempting lines: straight out of the source, straight into either gem, and
- * straight between the two gems. Bombs sit here, so the obvious shot fails.
+ * straight between the two gems. Blocks sit here, so the obvious shot fails.
  */
 function shortcutLines(source: number, dir: BeamDir, gems: number[]): Set<number> {
   const cells = new Set(traceBeam(source, dir, [], [], [], []).cells);
@@ -323,53 +426,69 @@ export function generateLaser(): LaserPuzzleData {
       (cell) => !onRoute.has(cell),
     );
 
-    // Bombs go where the greedy shot would go.
+    // Blocks are chosen with a job to do: some obstruct the middle of the board,
+    // some close the shortcut lines, some hug the route so the corridor is not
+    // obvious, the rest fill in around.
     const shortcuts = shortcutLines(source, dir, gems);
-    const bombs = shuffled(offRoute.filter((cell) => shortcuts.has(cell))).slice(0, LASER_BOMBS);
-    if (bombs.length !== LASER_BOMBS) continue;
-
-    // Blocks are chosen with a job to do: some close the shortcut lines, some
-    // hug the route so the corridor is not obvious, the rest fill in around.
     const beside = new Set<number>();
     for (const cell of route.cells) for (const next of around(cell)) beside.add(next);
-    const free = offRoute.filter((cell) => !bombs.includes(cell));
 
-    const shortcutPicks = shuffled(free.filter((cell) => shortcuts.has(cell))).slice(
+    const centralPicks = shuffled(offRoute.filter(isCentral)).slice(
       0,
-      LASER_MIN_SHORTCUT_BLOCKS + randomInt(3),
+      LASER_MIN_CENTRAL_BLOCKS + randomInt(3),
     );
+    if (centralPicks.length < LASER_MIN_CENTRAL_BLOCKS) continue;
+    const shortcutPicks = shuffled(
+      offRoute.filter((cell) => shortcuts.has(cell) && !centralPicks.includes(cell)),
+    ).slice(0, LASER_MIN_SHORTCUT_BLOCKS + randomInt(3));
+    const chosen = [...centralPicks, ...shortcutPicks];
     const asidePicks = shuffled(
-      free.filter((cell) => beside.has(cell) && !shortcutPicks.includes(cell)),
+      offRoute.filter((cell) => beside.has(cell) && !chosen.includes(cell)),
     ).slice(0, LASER_MIN_ADJACENT_BLOCKS + randomInt(3));
+    const wanted = [...chosen, ...asidePicks];
     const blockCount = LASER_MIN_BLOCKS + randomInt(3);
-    const chosen = [...shortcutPicks, ...asidePicks];
-    const filler = shuffled(free.filter((cell) => !chosen.includes(cell))).slice(
+    const filler = shuffled(offRoute.filter((cell) => !wanted.includes(cell))).slice(
       0,
-      Math.max(0, blockCount - chosen.length),
+      Math.max(0, blockCount - wanted.length),
     );
-    const blocks = [...new Set([...chosen, ...filler])].slice(0, blockCount);
-    if (blocks.length < LASER_MIN_BLOCKS) continue;
-
-    const litByRoute = () =>
-      traceBeam(source, dir, route.bends, blocks, bombs, gems!).litAll;
-
-    // The stored solution must survive the blocks and miss both bombs, and the
-    // empty grid must light no gem at all.
-    if (!litByRoute()) continue;
-    const bare = traceBeam(source, dir, [], blocks, bombs, gems);
-    if (bare.gemsLit.length > 0) continue;
+    const blocks = [...new Set([...wanted, ...filler])].slice(
+      0,
+      Math.max(blockCount, wanted.length),
+    );
+    if (blocks.length < LASER_MIN_BLOCKS || blocks.length > LASER_MAX_BLOCKS) continue;
 
     // Enough blocks doing each job, counted on the set actually used.
+    if (blocks.filter(isCentral).length < LASER_MIN_CENTRAL_BLOCKS) continue;
     if (blocks.filter((cell) => shortcuts.has(cell)).length < LASER_MIN_SHORTCUT_BLOCKS) continue;
     if (blocks.filter((cell) => beside.has(cell)).length < LASER_MIN_ADJACENT_BLOCKS) continue;
 
+    // The empty grid must light no gem at all, and the stored route must survive
+    // the blocks.
+    if (!traceBeam(source, dir, route.bends, blocks, [], gems).litAll) continue;
+    if (traceBeam(source, dir, [], blocks, [], gems).gemsLit.length > 0) continue;
+
+    // Bombs go where a plausible wrong route runs: on cells crossed by at least
+    // two near-miss beams, never on the solution's own path, and never next to a
+    // gem or the source.
+    const forbidden = new Set<number>([source, ...gems, ...blocks, ...route.cells]);
+    for (const cell of [source, ...gems]) for (const next of around(cell)) forbidden.add(next);
+    const crossings = nearMissCrossings(source, dir, blocks, gems, forbidden);
+    const bombCandidates = [...crossings.entries()]
+      .filter(([, count]) => count >= LASER_MIN_BOMB_CROSSINGS)
+      .sort((a, b) => b[1] - a[1])
+      .map(([cell]) => cell);
+    if (bombCandidates.length < LASER_BOMBS) continue;
+    const bombs = shuffled(bombCandidates.slice(0, Math.max(LASER_BOMBS, 8))).slice(0, LASER_BOMBS);
+    if (bombs.length !== LASER_BOMBS) continue;
+
+    const litByRoute = () => traceBeam(source, dir, route.bends, blocks, bombs, gems!).litAll;
+    if (!litByRoute()) continue;
+
     // Close off every shorter answer by blocking a cell on its beam path, and
     // keep going until the exhaustive search finds nothing at all.
-    let tested = 0;
     let necessityPass = false;
     for (let repair = 0; repair <= LASER_MAX_BLOCKS; repair++) {
       const search = searchShortcuts(source, dir, blocks, bombs, gems, true);
-      tested = search.tested;
       if (!search.hit) {
         necessityPass = true;
         break;
@@ -391,10 +510,11 @@ export function generateLaser(): LaserPuzzleData {
     }
     if (!necessityPass) continue;
     if (blocks.length < LASER_MIN_BLOCKS || blocks.length > LASER_MAX_BLOCKS) continue;
+    if (blocks.filter(isCentral).length < LASER_MIN_CENTRAL_BLOCKS) continue;
     if (!litByRoute()) continue;
 
-    // Final proof, run to the end: NO placement of one, two or three mirrors
-    // lights both gems, so all four are required.
+    // Final proof, run to the end with the blocks and bombs final: NO placement
+    // of one, two or three mirrors lights both gems, so all four are required.
     const proof = searchShortcuts(source, dir, blocks, bombs, gems, false);
     if (proof.hit) continue;
 
@@ -402,7 +522,7 @@ export function generateLaser(): LaserPuzzleData {
     if (!solutionTrace.litAll || solutionTrace.hitBomb) continue;
 
     console.log(
-      `[laser] layout accepted after ${attempt} attempt(s): ${blocks.length} blocks, 2 bombs, ${proof.tested} placements proved to fail`,
+      `[laser] layout accepted after ${attempt} attempt(s): ${blocks.length} blocks (${blocks.filter(isCentral).length} central), 2 bombs on near-miss routes, ${proof.tested} placements proved to fail`,
     );
     return {
       type: "laser",
