@@ -1,5 +1,5 @@
 import { playCorrect, playWrong } from "@/lib/sound";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { shuffled } from "@/lib/duel/random";
 import { GROUPS_TIME_MS, type GroupsPuzzleData } from "@/lib/duel/types";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";

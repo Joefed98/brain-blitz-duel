@@ -66,7 +66,7 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
                 puzzle.type === "countup"
               ? 45_000
               : puzzle.type === "numseq"
-                ? 40_000
+                ? 30_000
                 : puzzle.type === "mirmatch"
                   ? MIRMATCH_TIME_MS
                   : puzzle.type === "spin"

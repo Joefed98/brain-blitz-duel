@@ -109,7 +109,7 @@ export function scoreWordLadder(
 /** Number Climb: partial credit is proportional to the correct leading span. */
 export function scoreNumberClimb(span: number, msRemaining: number): number {
   const correct = clamp(Math.round(span), 0, 12);
-  if (correct === 12) return BASE_POINTS + speedBonus(msRemaining, 45_000);
+  if (correct === 12) return BASE_POINTS + speedBonus(msRemaining, 20_000);
   return Math.round((BASE_POINTS * correct) / 12);
 }
 
