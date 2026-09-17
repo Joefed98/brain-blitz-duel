@@ -591,22 +591,31 @@ const pushSummary: SummaryBuilder = (result, puzzle) => {
 
 const laserSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "laser") return { summary: "—", detail: [] };
-  const placed = Number(result.extra?.["mirrorsPlaced"] ?? 0);
+  const gems = Number(result.extra?.["gemsLit"] ?? 0);
+  const fires = Math.max(1, Number(result.extra?.["fires"] ?? 1));
+  const ordinal = fires === 1 ? "1st" : fires === 2 ? "2nd" : "3rd";
   if (result.is_correct) {
     return {
-      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `Both gems · ${ordinal} shot · ${seconds(elapsedMs(result, puzzle))}`,
       detail: [`All ${puzzle.mirrors} mirrors in place`],
     };
   }
+  if (gems >= 1) {
+    return {
+      summary: "1 gem",
+      detail: [result.extra?.["hitBomb"] ? "The last shot hit a bomb" : "One gem left dark"],
+    };
+  }
   return {
-    summary: "Not solved",
+    summary: "Missed",
     detail: [
-      result.extra?.["near"]
-        ? "The beam stopped one square from the target"
-        : `${placed} / ${puzzle.mirrors} mirrors placed`,
+      result.extra?.["hitBomb"]
+        ? "The last shot hit a bomb"
+        : `${Number(result.extra?.["mirrorsPlaced"] ?? 0)} / ${puzzle.mirrors} mirrors placed`,
     ],
   };
 };
+
 
 const towerSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tower") return { summary: "—", detail: [] };

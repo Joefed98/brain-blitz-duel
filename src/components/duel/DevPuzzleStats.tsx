@@ -13,10 +13,11 @@ function rows(puzzle: PuzzleData): [string, string][] | null {
       ["blocks", String(s.blocks)],
       ["mirrors", String(s.mirrors)],
       ["route bends", String(s.bends)],
+      ["gems / bombs", `${s.gems} / ${s.bombs}`],
       ["necessity", `${s.necessityPass ? "pass" : "fail"} · ${s.subsetsTested} tested`],
-      ["gap segments", String(s.gapSegments)],
       ["attempts", String(s.attempts)],
     ];
+
   }
   if (puzzle.type === "iceslide" && puzzle.stats) {
     const s = puzzle.stats;
