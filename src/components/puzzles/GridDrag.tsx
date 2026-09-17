@@ -103,6 +103,87 @@ export function gridCellSize(
   return geometry ? { cellW: geometry.cellW, cellH: geometry.cellH } : null;
 }
 
+export interface GridMetrics {
+  /** Content-box size of the grid in layout pixels. */
+  width: number;
+  height: number;
+  cellW: number;
+  cellH: number;
+  gapX: number;
+  gapY: number;
+  /** Where the grid's content box starts inside the element. */
+  offsetX: number;
+  offsetY: number;
+}
+
+/**
+ * The grid's own measurements, taken on mount and again whenever it resizes.
+ * Anything drawn over a grid — a path overlay, a beam — reads its cell centres
+ * from here, never from pointer coordinates.
+ */
+export function useGridMetrics(
+  ref: React.RefObject<HTMLElement | null>,
+  cols: number,
+  rows: number,
+): GridMetrics | null {
+  const [metrics, setMetrics] = useState<GridMetrics | null>(null);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const measure = () => {
+      const geometry = gridGeometry(element, 0, 0, cols, rows);
+      if (!geometry) return;
+      const style = window.getComputedStyle(element);
+      const next: GridMetrics = {
+        width: geometry.width,
+        height: geometry.height,
+        cellW: geometry.cellW,
+        cellH: geometry.cellH,
+        gapX: geometry.gapX,
+        gapY: geometry.gapY,
+        offsetX: number(style.paddingLeft) + number(style.borderLeftWidth),
+        offsetY: number(style.paddingTop) + number(style.borderTopWidth),
+      };
+      setMetrics((current) =>
+        current &&
+        current.width === next.width &&
+        current.height === next.height &&
+        current.cellW === next.cellW &&
+        current.cellH === next.cellH
+          ? current
+          : next,
+      );
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [ref, cols, rows]);
+
+  return metrics;
+}
+
+/** The pixel centre of a cell, from the grid's measured geometry. */
+export function gridCellCentre(
+  metrics: GridMetrics,
+  cell: number,
+  cols: number,
+): { x: number; y: number } {
+  const col = cell % cols;
+  const row = Math.floor(cell / cols);
+  return {
+    x: metrics.offsetX + col * (metrics.cellW + metrics.gapX) + metrics.cellW / 2,
+    y: metrics.offsetY + row * (metrics.cellH + metrics.gapY) + metrics.cellH / 2,
+  };
+}
+
 /** Which track the position falls in: the containing cell, or the nearer one when in a gap. */
 function trackAt(position: number, cell: number, gap: number, count: number): number | null {
   const pitch = cell + gap;

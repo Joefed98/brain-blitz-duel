@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowPad, useSwipe } from "@/components/puzzles/GridDrag";
-import { encodeSlideMoves, replaySlide, shortestSlideRoute, slidePath } from "@/lib/duel/slide";
+import { encodeSlideMoves, replaySlide, shortestSlideRoute, slideOutcome } from "@/lib/duel/slide";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   SLIDE_CELLS,
@@ -10,7 +10,8 @@ import {
   type SlideDir,
   type SlidePuzzleData,
 } from "@/lib/duel/types";
-import { playCorrect } from "@/lib/sound";
+import { buzz } from "@/lib/motion";
+import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -18,6 +19,7 @@ const GOLD = "var(--primary)";
 
 function Board({
   walls,
+  holes = [],
   start,
   exit,
   ball,
@@ -27,6 +29,7 @@ function Board({
   dotted,
 }: {
   walls: number[];
+  holes?: number[];
   start: number;
   exit: number;
   ball: number;
@@ -38,6 +41,7 @@ function Board({
 }) {
   const rows = Math.ceil(cells / cols);
   const wall = new Set(walls);
+  const pit = new Set(holes);
 
   return (
     <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full">
@@ -58,6 +62,12 @@ function Board({
               aria-label="Ball"
               className="block rounded-full"
               style={{ width: "80%", height: "80%", backgroundColor: GOLD }}
+            />
+          ) : pit.has(cell) ? (
+            <span
+              aria-label="Hole"
+              className="block rounded-full bg-background"
+              style={{ width: "72%", height: "72%", border: "2px solid var(--foreground)" }}
             />
           ) : cell === start ? (
             <span
@@ -109,14 +119,15 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Swipe to slide the ball. It won&apos;t stop until it hits something. Reach the exit in the
-        fewest moves.
+        Swipe to slide the ball. It won&apos;t stop until it hits something. Avoid the holes — fall
+        in and you start again.
       </p>
       <div style={{ width: 132 }}>
         <Board
           cols={4}
           cells={16}
           walls={[6, 12]}
+          holes={[9]}
           start={0}
           exit={15}
           ball={0}
@@ -124,7 +135,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewer moves earns a bonus. You have 60 seconds.
+        Fewer moves earns a bonus. You have 75 seconds.
       </p>
     </div>
   );
@@ -138,16 +149,36 @@ function Stage({
   stateKey = "iceslide",
 }: PuzzleStageProps) {
   const walls = puzzle.type === "iceslide" ? puzzle.walls : [];
+  const holes = puzzle.type === "iceslide" ? (puzzle.holes ?? []) : [];
   const start = puzzle.type === "iceslide" ? puzzle.start : 0;
   const exit = puzzle.type === "iceslide" ? puzzle.exit : 0;
   const [moves, setMoves] = useStageState<SlideDir[]>(stateKey, "slideMoves", () => []);
   const submitted = useRef(false);
+  const [flash, setFlash] = useState(false);
+  const fallsSeen = useRef(0);
 
-  const replay = useMemo(() => replaySlide(walls, start, exit, moves), [walls, start, exit, moves]);
+  const replay = useMemo(
+    () => replaySlide(walls, holes, start, exit, moves),
+    [walls, holes, start, exit, moves],
+  );
 
   useEffect(() => {
     onDraftAnswer?.(encodeSlideMoves(moves));
   }, [moves, onDraftAnswer]);
+
+  // A fall flashes the board red and buzzes; the move still counts.
+  useEffect(() => {
+    if (replay.falls <= fallsSeen.current) {
+      fallsSeen.current = replay.falls;
+      return;
+    }
+    fallsSeen.current = replay.falls;
+    setFlash(true);
+    buzz(25);
+    playWrong();
+    const timer = setTimeout(() => setFlash(false), 320);
+    return () => clearTimeout(timer);
+  }, [replay.falls]);
 
   useEffect(() => {
     if (locked || submitted.current || !replay.solved) return;
@@ -158,8 +189,8 @@ function Stage({
 
   const slide = (dir: SlideDir) => {
     if (locked || submitted.current || replay.solved) return;
-    const blocked = new Set(walls);
-    if (!slidePath(replay.cell, dir, blocked, exit).length) return;
+    const outcome = slideOutcome(replay.cell, dir, new Set(walls), new Set(holes), exit, start);
+    if (!outcome.path.length) return;
     setMoves((current) => [...current, dir]);
   };
 
@@ -171,13 +202,17 @@ function Stage({
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         moves <span className="text-primary">{replay.moves}</span>
+        {replay.falls > 0 ? ` · ${replay.falls} fall${replay.falls === 1 ? "" : "s"}` : ""}
       </p>
       <div
-        className="flex min-h-0 flex-1 items-center justify-center touch-none"
-        style={{ touchAction: "none" }}
+        className="flex min-h-0 flex-1 items-center justify-center touch-none rounded-lg transition-colors"
+        style={{
+          touchAction: "none",
+          backgroundColor: flash ? "color-mix(in srgb, var(--warn) 35%, transparent)" : undefined,
+        }}
         {...swipe}
       >
-        <Board walls={walls} start={start} exit={exit} ball={replay.cell} />
+        <Board walls={walls} holes={holes} start={start} exit={exit} ball={replay.cell} />
       </div>
       <ArrowPad onPress={slide} disabled={locked || replay.solved} />
       <div className="flex shrink-0 justify-center gap-2">
@@ -203,15 +238,22 @@ function Stage({
 }
 
 /** Walks a move list into the cells the ball passes through. */
-function routeCells(walls: number[], start: number, exit: number, moves: SlideDir[]): number[] {
+function routeCells(
+  walls: number[],
+  holes: number[],
+  start: number,
+  exit: number,
+  moves: SlideDir[],
+): number[] {
   const blocked = new Set(walls);
+  const pits = new Set(holes);
   const cells = [start];
   let cell = start;
   for (const dir of moves) {
-    const path = slidePath(cell, dir, blocked, exit);
-    if (!path.length) continue;
-    cells.push(...path);
-    cell = path[path.length - 1]!;
+    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start);
+    if (!outcome.path.length) continue;
+    cells.push(...outcome.path);
+    cell = outcome.cell;
     if (cell === exit) break;
   }
   return cells;
@@ -219,12 +261,13 @@ function routeCells(walls: number[], start: number, exit: number, moves: SlideDi
 
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "iceslide") return null;
+  const holes = puzzle.holes ?? [];
   const best = puzzle.solution
     ? (puzzle.solution.split("") as SlideDir[])
-    : shortestSlideRoute(puzzle.walls, puzzle.start, puzzle.exit);
-  const route = routeCells(puzzle.walls, puzzle.start, puzzle.exit, best);
+    : shortestSlideRoute(puzzle.walls, holes, puzzle.start, puzzle.exit);
+  const route = routeCells(puzzle.walls, holes, puzzle.start, puzzle.exit, best);
   const mine = (myAnswer ?? "").split("") as SlideDir[];
-  const replay = replaySlide(puzzle.walls, puzzle.start, puzzle.exit, mine);
+  const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, mine);
   const min = puzzle.minMoves ?? best.length;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((SLIDE_TIME_MS - myMsRemaining) / 100) / 10;
@@ -234,6 +277,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       <div style={{ width: 176 }}>
         <Board
           walls={puzzle.walls}
+          holes={holes}
           start={puzzle.start}
           exit={puzzle.exit}
           ball={puzzle.start}
@@ -259,7 +303,8 @@ export const iceSlidePuzzle: PuzzleDefinition = {
   category: "pattern",
   timeLimitMs: SLIDE_TIME_MS,
   revealMs: 8_000,
-  generate: () => ({ type: "iceslide", walls: [], start: 0, exit: 0 }) satisfies SlidePuzzleData,
+  generate: () =>
+    ({ type: "iceslide", walls: [], holes: [], start: 0, exit: 0 }) satisfies SlidePuzzleData,
   check: () => false,
   revealHeading: "The shortest route",
   IntroExample,

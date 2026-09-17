@@ -1,6 +1,7 @@
 /**
  * Ice Slide rules. The same slide function runs on the phone (to animate the
- * ball) and on the server (to replay the moves a phone sends).
+ * ball) and on the server (to replay the moves a phone sends). A hole swallows
+ * the ball mid-slide and drops it back on the start; the move still counts.
  */
 
 import { SLIDE_CELLS, SLIDE_COLS as N, type SlideDir } from "./types";
@@ -16,11 +17,27 @@ function step(cell: number, dir: SlideDir): number | null {
   return col < N - 1 ? cell + 1 : null;
 }
 
+export interface SlideOutcome {
+  /** Cells the ball travels over, in order. */
+  path: number[];
+  /** Where it comes to rest — the start again when it fell in a hole. */
+  cell: number;
+  /** True when a hole swallowed it on the way. */
+  fell: boolean;
+}
+
 /**
  * One slide: the ball keeps going until a wall or the grid edge stops it. The
- * exit stops it too, so the route to the exit is always well defined.
+ * exit stops it too. A hole ends the slide there and sends the ball home.
  */
-export function slidePath(from: number, dir: SlideDir, walls: Set<number>, exit: number): number[] {
+export function slideOutcome(
+  from: number,
+  dir: SlideDir,
+  walls: Set<number>,
+  holes: Set<number>,
+  exit: number,
+  start: number,
+): SlideOutcome {
   const path: number[] = [];
   let cell = from;
   for (let guard = 0; guard < SLIDE_CELLS; guard++) {
@@ -28,14 +45,10 @@ export function slidePath(from: number, dir: SlideDir, walls: Set<number>, exit:
     if (next === null || walls.has(next)) break;
     cell = next;
     path.push(cell);
+    if (holes.has(cell)) return { path, cell: start, fell: true };
     if (cell === exit) break;
   }
-  return path;
-}
-
-export function slideTo(from: number, dir: SlideDir, walls: Set<number>, exit: number): number {
-  const path = slidePath(from, dir, walls, exit);
-  return path.length ? path[path.length - 1]! : from;
+  return { path, cell: path.length ? cell : from, fell: false };
 }
 
 export function decodeSlideMoves(raw: string): SlideDir[] {
@@ -56,32 +69,49 @@ export interface SlideReplay {
   /** Slides that actually moved the ball. */
   moves: number;
   solved: boolean;
+  /** How many times a hole sent it home. */
+  falls: number;
 }
 
 /** Replays a move list from the stored start. Moves that change nothing are dropped. */
 export function replaySlide(
   walls: number[],
+  holes: number[],
   start: number,
   exit: number,
   moves: SlideDir[],
 ): SlideReplay {
   const blocked = new Set(walls);
+  const pits = new Set(holes);
   let cell = start;
   let count = 0;
+  let falls = 0;
   for (const dir of moves) {
     if (cell === exit) break;
-    const next = slideTo(cell, dir, blocked, exit);
-    if (next === cell) continue;
-    cell = next;
+    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start);
+    // A slide into a hole still costs a move, even though the ball ends at home.
+    if (!outcome.path.length) continue;
+    cell = outcome.cell;
     count += 1;
+    if (outcome.fell) falls += 1;
     if (cell === exit) break;
   }
-  return { cell, moves: count, solved: cell === exit };
+  return { cell, moves: count, solved: cell === exit, falls };
 }
 
-/** Fewest slides from a cell to the exit, or null when it cannot be reached. */
-export function slideDistance(walls: number[], from: number, exit: number): number | null {
+/**
+ * Fewest slides from a cell to the exit, or null when it cannot be reached.
+ * Holes are part of the search: a slide over one simply lands back on the start.
+ */
+export function slideDistance(
+  walls: number[],
+  holes: number[],
+  from: number,
+  exit: number,
+  start: number,
+): number | null {
   const blocked = new Set(walls);
+  const pits = new Set(holes);
   if (from === exit) return 0;
   const seen = new Set<number>([from]);
   let frontier = [from];
@@ -89,7 +119,7 @@ export function slideDistance(walls: number[], from: number, exit: number): numb
     const next: number[] = [];
     for (const cell of frontier) {
       for (const dir of SLIDE_DIRS) {
-        const landed = slideTo(cell, dir, blocked, exit);
+        const landed = slideOutcome(cell, dir, blocked, pits, exit, start).cell;
         if (landed === cell || seen.has(landed)) continue;
         if (landed === exit) return depth;
         seen.add(landed);
@@ -103,8 +133,14 @@ export function slideDistance(walls: number[], from: number, exit: number): numb
 }
 
 /** One shortest route from the start, as UDLR letters ("" when unreachable). */
-export function shortestSlideRoute(walls: number[], start: number, exit: number): SlideDir[] {
+export function shortestSlideRoute(
+  walls: number[],
+  holes: number[],
+  start: number,
+  exit: number,
+): SlideDir[] {
   const blocked = new Set(walls);
+  const pits = new Set(holes);
   if (start === exit) return [];
   const seen = new Set<number>([start]);
   let frontier: { cell: number; moves: SlideDir[] }[] = [{ cell: start, moves: [] }];
@@ -112,7 +148,7 @@ export function shortestSlideRoute(walls: number[], start: number, exit: number)
     const next: typeof frontier = [];
     for (const node of frontier) {
       for (const dir of SLIDE_DIRS) {
-        const landed = slideTo(node.cell, dir, blocked, exit);
+        const landed = slideOutcome(node.cell, dir, blocked, pits, exit, start).cell;
         if (landed === node.cell || seen.has(landed)) continue;
         const moves = [...node.moves, dir];
         if (landed === exit) return moves;
@@ -124,4 +160,25 @@ export function shortestSlideRoute(walls: number[], start: number, exit: number)
     frontier = next;
   }
   return [];
+}
+
+/** True when a route never slides over a hole. */
+export function slideRouteAvoidsHoles(
+  walls: number[],
+  holes: number[],
+  start: number,
+  exit: number,
+  moves: SlideDir[],
+): boolean {
+  const blocked = new Set(walls);
+  const pits = new Set(holes);
+  let cell = start;
+  for (const dir of moves) {
+    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start);
+    if (outcome.fell) return false;
+    if (!outcome.path.length) continue;
+    cell = outcome.cell;
+    if (cell === exit) break;
+  }
+  return true;
 }

@@ -1,7 +1,10 @@
 /**
- * Tower rules. One replay function, used by the phone (to move discs live) and
- * by the server (to replay the move list a phone sends).
+ * Tower rules: six discs across four pegs. One replay function, used by the
+ * phone (to move discs live) and by the server (to replay the move list a phone
+ * sends). Nothing here knows how a starting spread is chosen.
  */
+
+import { TOWER_PEGS } from "./types";
 
 /** Each peg holds disc sizes from bottom to top; a peg is always descending. */
 export type TowerPegs = number[][];
@@ -11,8 +14,9 @@ export interface TowerMove {
   to: number;
 }
 
-export function towerStart(discs: number): TowerPegs {
-  return [Array.from({ length: discs }, (_, index) => discs - index), [], []];
+/** A fresh copy of a stored spread, padded out to the full four pegs. */
+export function towerPegsFrom(start: number[][]): TowerPegs {
+  return Array.from({ length: TOWER_PEGS }, (_, peg) => [...(start[peg] ?? [])]);
 }
 
 /** True when the top of `from` may sit on `to`. */
@@ -50,9 +54,9 @@ export function decodeTowerMoves(raw: string): TowerMove[] {
         Number.isInteger(move.from) &&
         Number.isInteger(move.to) &&
         move.from >= 0 &&
-        move.from < 3 &&
+        move.from < TOWER_PEGS &&
         move.to >= 0 &&
-        move.to < 3,
+        move.to < TOWER_PEGS,
     )
     .slice(0, 400);
 }
@@ -85,12 +89,17 @@ export function towerStacksLegal(pegs: TowerPegs): boolean {
 }
 
 /**
- * Replays a move list on a fresh tower. A move that would put a larger disc on a
- * smaller one is illegal: the replay stops there, so a move list that breaks the
- * rules can never be counted as solved.
+ * Replays a move list from the stored spread. A move that would put a larger
+ * disc on a smaller one is illegal: the replay stops there, so a move list that
+ * breaks the rules can never be counted as solved.
  */
-export function replayTower(discs: number, targetPeg: number, moves: TowerMove[]): TowerReplay {
-  let pegs = towerStart(discs);
+export function replayTower(
+  start: number[][],
+  targetPeg: number,
+  discs: number,
+  moves: TowerMove[],
+): TowerReplay {
+  let pegs = towerPegsFrom(start);
   let count = 0;
   let illegal = false;
   for (const move of moves) {
@@ -114,17 +123,94 @@ export function replayTower(discs: number, targetPeg: number, moves: TowerMove[]
   };
 }
 
-/** The classic recursive optimum: 2^discs − 1 moves. */
-export function towerOptimal(discs: number, from: number, to: number): TowerMove[] {
-  if (discs <= 0) return [];
-  const spare = 3 - from - to;
-  return [
-    ...towerOptimal(discs - 1, from, spare),
-    { from, to },
-    ...towerOptimal(discs - 1, spare, to),
-  ];
+/* -------------------------------------------------------------------------- */
+/*  Search                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A state is just which peg each disc sits on: with strictly-decreasing stacks
+ * the order on a peg is forced, so the whole game is 4^6 states.
+ */
+export type TowerState = number[];
+
+export function towerStateFromPegs(pegs: number[][], discs: number): TowerState {
+  const state = new Array<number>(discs).fill(0);
+  pegs.forEach((peg, index) => {
+    for (const disc of peg) state[disc - 1] = index;
+  });
+  return state;
 }
 
-export function towerMinMoves(discs: number): number {
-  return 2 ** discs - 1;
+export function towerPegsFromState(state: TowerState, discs: number): TowerPegs {
+  const pegs: TowerPegs = Array.from({ length: TOWER_PEGS }, () => []);
+  // Largest first, so every peg comes out descending from the bottom.
+  for (let disc = discs; disc >= 1; disc--) pegs[state[disc - 1]!]!.push(disc);
+  return pegs;
+}
+
+/** The smallest disc on a peg, which is the only one that can be lifted. */
+function topDisc(state: TowerState, peg: number): number | null {
+  for (let disc = 1; disc <= state.length; disc++) if (state[disc - 1] === peg) return disc;
+  return null;
+}
+
+function stateKey(state: TowerState): string {
+  return state.join("");
+}
+
+/**
+ * Breadth-first search over every state to the solved one: the exact minimum,
+ * plus one shortest move list.
+ */
+export function towerShortest(
+  start: number[][],
+  targetPeg: number,
+  discs: number,
+): { minMoves: number; solution: TowerMove[] } | null {
+  const from = towerStateFromPegs(start, discs);
+  const goal = stateKey(new Array<number>(discs).fill(targetPeg));
+  if (stateKey(from) === goal) return { minMoves: 0, solution: [] };
+
+  const seen = new Map<string, { state: TowerState; move: TowerMove | null; parent: string | null }>();
+  seen.set(stateKey(from), { state: from, move: null, parent: null });
+  let frontier = [stateKey(from)];
+
+  for (let depth = 1; depth <= 4 ** discs; depth++) {
+    const next: string[] = [];
+    for (const id of frontier) {
+      const node = seen.get(id)!;
+      for (let source = 0; source < TOWER_PEGS; source++) {
+        const disc = topDisc(node.state, source);
+        if (disc === null) continue;
+        for (let destination = 0; destination < TOWER_PEGS; destination++) {
+          if (destination === source) continue;
+          const onTop = topDisc(node.state, destination);
+          if (onTop !== null && onTop < disc) continue;
+          const moved = [...node.state];
+          moved[disc - 1] = destination;
+          const key = stateKey(moved);
+          if (seen.has(key)) continue;
+          seen.set(key, { state: moved, move: { from: source, to: destination }, parent: id });
+          if (key === goal) {
+            // Walk the chain back to the start to read the move list off.
+            const solution: TowerMove[] = [];
+            let cursor: string | null = key;
+            while (cursor) {
+              const step: { state: TowerState; move: TowerMove | null; parent: string | null } =
+                seen.get(cursor)!;
+
+              if (!step.move) break;
+              solution.unshift(step.move);
+              cursor = step.parent;
+            }
+            return { minMoves: depth, solution };
+          }
+          next.push(key);
+        }
+      }
+    }
+    if (!next.length) return null;
+    frontier = next;
+  }
+  return null;
 }

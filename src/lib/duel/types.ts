@@ -910,13 +910,16 @@ export interface FlowPuzzleData {
 /*  Ice Slide                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const SLIDE_COLS = 8;
+export const SLIDE_COLS = 9;
 export const SLIDE_CELLS = SLIDE_COLS * SLIDE_COLS;
-export const SLIDE_TIME_MS = 60_000;
-export const SLIDE_MIN_WALLS = 14;
-export const SLIDE_MAX_WALLS = 20;
-export const SLIDE_MIN_MOVES = 7;
-export const SLIDE_MAX_MOVES = 10;
+export const SLIDE_TIME_MS = 75_000;
+export const SLIDE_MIN_WALLS = 18;
+export const SLIDE_MAX_WALLS = 26;
+export const SLIDE_MIN_MOVES = 9;
+export const SLIDE_MAX_MOVES = 13;
+/** Holes the ball must slide around: falling in sends it back to the start. */
+export const SLIDE_MIN_HOLES = 1;
+export const SLIDE_MAX_HOLES = 3;
 /** At least this many walls must be stoppers the shortest route depends on. */
 export const SLIDE_MIN_STOPPERS = 3;
 /** Bonus for reaching the exit in the fewest possible slides. */
@@ -932,6 +935,8 @@ export interface SlidePuzzleData {
   type: "iceslide";
   /** Wall cells the ball stops against. */
   walls: number[];
+  /** Holes: sliding over one drops the ball back on the start. */
+  holes: number[];
   start: number;
   /** The gold gap in the border. */
   exit: number;
@@ -941,17 +946,28 @@ export interface SlidePuzzleData {
   solution?: string;
 }
 
+
 /* -------------------------------------------------------------------------- */
 /*  Push                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export const PUSH_COLS = 7;
+export const PUSH_COLS = 8;
 export const PUSH_CELLS = PUSH_COLS * PUSH_COLS;
 export const PUSH_TIME_MS = 90_000;
+/** Every bank layout needs between this many and this many pushes. */
+export const PUSH_MIN_PUSHES = 10;
+export const PUSH_MAX_PUSHES = 22;
+/** Three or four crates, and every one of them has to move at least twice. */
+export const PUSH_MIN_CRATES = 3;
+export const PUSH_MAX_CRATES = 4;
+export const PUSH_MIN_MOVES_PER_CRATE = 2;
+/** How many solver-verified layouts the bank holds. */
+export const PUSH_BANK_SIZE = 120;
 /** Bonus for finishing in the fewest possible pushes. */
 export const PUSH_MIN_PUSH_BONUS = 20;
 /** Most a partly-finished warehouse can earn. */
 export const PUSH_PARTIAL_POINTS = 60;
+
 
 export interface PushPuzzleData {
   type: "push";
@@ -972,18 +988,23 @@ export interface PushPuzzleData {
 /*  Laser and Mirrors                                                         */
 /* -------------------------------------------------------------------------- */
 
-export const LASER_COLS = 8;
+export const LASER_COLS = 9;
 export const LASER_CELLS = LASER_COLS * LASER_COLS;
 export const LASER_TIME_MS = 60_000;
 /** Always exactly four mirrors, and the route always bends once per mirror. */
 export const LASER_MIN_MIRRORS = 4;
 export const LASER_MAX_MIRRORS = 4;
-export const LASER_MIN_BLOCKS = 6;
-export const LASER_MAX_BLOCKS = 9;
+export const LASER_MIN_BLOCKS = 10;
+export const LASER_MAX_BLOCKS = 14;
+/** Blocks closing off the straight and single-bend shortcuts. */
+export const LASER_MIN_SHORTCUT_BLOCKS = 3;
+/** Blocks touching the beam route without sitting on it, hiding the corridor. */
+export const LASER_MIN_ADJACENT_BLOCKS = 3;
 /** The beam route always turns at least this many times. */
 export const LASER_MIN_BENDS = 4;
 /** Consolation for a beam that stops within one cell of the target. */
 export const LASER_NEAR_POINTS = 30;
+
 
 /** A diagonal mirror: "/" or "\". */
 export type MirrorKind = "/" | "\\";
@@ -1015,11 +1036,12 @@ export interface LaserPuzzleData {
 /*  Tower                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export const TOWER_TIME_MS = 60_000;
-/** Five-disc towers get longer on the clock. */
-export const TOWER_LONG_TIME_MS = 90_000;
-/** Share of puzzles that use five discs instead of four. */
-export const TOWER_FIVE_DISC_SHARE = 0.3;
+export const TOWER_TIME_MS = 90_000;
+/** Six discs across four pegs. */
+export const TOWER_DISCS = 6;
+export const TOWER_PEGS = 4;
+/** A starting spread is only used when it needs at least this many moves. */
+export const TOWER_MIN_MINIMUM = 12;
 /** Bonus for finishing in the fewest possible moves. */
 export const TOWER_MIN_MOVE_BONUS = 20;
 /** Most a partly-built tower can earn. */
@@ -1027,13 +1049,15 @@ export const TOWER_PARTIAL_POINTS = 60;
 
 export interface TowerPuzzleData {
   type: "tower";
-  /** Four discs, or five in the harder variant. */
+  /** How many discs are in play: six. */
   discs: number;
-  /** Which peg the tower must end on: 1 (middle) or 2 (right). */
+  /** The starting spread, one stack per peg, bottom disc first. */
+  start: number[][];
+  /** Which of the four pegs the tower must end on. */
   targetPeg: number;
-  /** The fewest moves the puzzle can be finished in (2^discs − 1). */
+  /** The fewest moves this spread can be finished in, found by search. */
   minMoves: number;
-  /** This puzzle's own clock, which the five-disc variant lengthens. */
+  /** This puzzle's own clock. */
   timeLimitMs: number;
   /** Server-side only: one shortest sequence of moves. */
   solution?: string;
@@ -1043,20 +1067,26 @@ export interface TowerPuzzleData {
 /*  Maze Dash                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const MAZE_COLS = 13;
+export const MAZE_COLS = 15;
 export const MAZE_CELLS = MAZE_COLS * MAZE_COLS;
-export const MAZE_TIME_MS = 45_000;
+export const MAZE_TIME_MS = 60_000;
 /** The route from start to exit is never shorter than this. */
-export const MAZE_MIN_PATH = 55;
+export const MAZE_MIN_PATH = 70;
 /** And never straighter than this. */
-export const MAZE_MIN_TURNS = 10;
+export const MAZE_MIN_TURNS = 14;
 /** False trails: dead-end branches leaving the route, and how long each runs. */
-export const MAZE_MIN_DEAD_ENDS = 6;
-export const MAZE_DEAD_END_LENGTH = 4;
+export const MAZE_MIN_DEAD_ENDS = 8;
+export const MAZE_DEAD_END_LENGTH = 5;
+/** And some of those trails have to be long enough to really cost time. */
+export const MAZE_MIN_LONG_DEAD_ENDS = 3;
+export const MAZE_LONG_DEAD_END_LENGTH = 11;
 /** Forks on or beside the route, so the player has to choose. */
-export const MAZE_MIN_JUNCTIONS = 10;
+export const MAZE_MIN_JUNCTIONS = 14;
+/** The exit may not be visible down a straight corridor from this last stretch. */
+export const MAZE_BLIND_TAIL = 10;
 /** Most a partly-run maze can earn. */
 export const MAZE_PARTIAL_POINTS = 60;
+
 
 export interface MazePuzzleData {
   type: "maze";

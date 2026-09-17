@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
-import { useGridPointer } from "@/components/puzzles/GridDrag";
+import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";
 import { encodeFlowPaths, flowAdjacent, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -16,7 +16,12 @@ import { playCorrect } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** The dots and paths, drawn from cell centres so the board scales to any size. */
+/**
+ * The dots are centred children of their own cells; the paths are one SVG layer
+ * over the top, drawn through cell centres measured from the rendered grid, so
+ * a line always runs dead through the middle of every square it covers and ends
+ * exactly on the partner dot.
+ */
 function FlowBoard({
   pairs,
   paths,
@@ -35,6 +40,7 @@ function FlowBoard({
   const rows = Math.ceil(cells / cols) || cols;
   const total = cols * rows;
   const pointer = useGridPointer({ cols, rows, onCell, onRelease });
+  const metrics = useGridMetrics(pointer.ref, cols, rows);
 
   const filled = new Map<number, string>();
   paths.forEach((path, index) => {
@@ -43,7 +49,7 @@ function FlowBoard({
     for (const cell of path) filled.set(cell, GLYPH_COLOURS[colour]);
   });
 
-  const centre = (cell: number) => `${(cell % cols) + 0.5},${Math.floor(cell / cols) + 0.5}`;
+  const stroke = metrics ? Math.max(2, metrics.cellW * 0.55) : 0;
 
   return (
     <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none">
@@ -70,13 +76,15 @@ function FlowBoard({
               className="flex items-center justify-center rounded-[3px] border border-border/60 bg-card"
               style={tint ? { backgroundColor: `${tint}22`, borderColor: `${tint}55` } : undefined}
             >
-              {/* The dot is a child of its own cell, so it is always dead centre. */}
+              {/* The dot is a child of its own cell, so it is always dead centre,
+                  and it sits above the path layer. */}
               {dot && (
                 <span
-                  className="block rounded-full"
+                  className="relative block rounded-full"
                   style={{
                     width: "62%",
                     height: "62%",
+                    zIndex: 2,
                     backgroundColor: GLYPH_COLOURS[dot.colour],
                   }}
                 />
@@ -86,27 +94,35 @@ function FlowBoard({
         })}
       </div>
 
-      <svg
-        viewBox={`0 0 ${cols} ${rows}`}
-        className="pointer-events-none absolute inset-0 h-full w-full"
-        aria-hidden="true"
-      >
-        {paths.map((path, index) => {
-          const colour = pairs[index]?.colour;
-          if (!colour || path.length < 2) return null;
-          return (
-            <polyline
-              key={index}
-              points={path.map(centre).join(" ")}
-              fill="none"
-              stroke={GLYPH_COLOURS[colour]}
-              strokeWidth={0.32}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          );
-        })}
-      </svg>
+      {/* One overlay exactly covering the grid, in the grid's own pixels. */}
+      {metrics && (
+        <svg
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          style={{ zIndex: 1 }}
+          aria-hidden="true"
+        >
+          {paths.map((path, index) => {
+            const colour = pairs[index]?.colour;
+            if (!colour || path.length < 2) return null;
+            return (
+              <polyline
+                key={index}
+                points={path
+                  .map((cell) => {
+                    const at = gridCellCentre(metrics, cell, cols);
+                    return `${at.x},${at.y}`;
+                  })
+                  .join(" ")}
+                fill="none"
+                stroke={GLYPH_COLOURS[colour]}
+                strokeWidth={stroke}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            );
+          })}
+        </svg>
+      )}
     </div>
   );
 }
