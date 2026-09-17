@@ -38,6 +38,9 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   lightsout: ["minPresses", "solution"],
   pipes: ["solution"],
   sudoku: ["solution"],
+  flow: ["solution"],
+  iceslide: ["minMoves", "solution"],
+  push: ["minPushes", "solution"],
 };
 
 type Loose = Record<string, unknown>;

@@ -15,6 +15,9 @@ import { generateWordHunt, gradeWordHunt } from "./wordHunt.server";
 import { generateWordsmith, gradeWordsmith } from "./wordsmith.server";
 import { generateWordLadder } from "./wordLadder.server";
 import { generateLightsOut, generatePipes, generateSudoku } from "./logic.server";
+import { generateFlow } from "./flow.server";
+import { generateIceSlide } from "./slide.server";
+import { generatePush } from "./push.server";
 
 export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "wordsmith") return generateWordsmith();
@@ -26,6 +29,9 @@ export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "lightsout") return generateLightsOut();
   if (type === "pipes") return generatePipes();
   if (type === "sudoku") return generateSudoku();
+  if (type === "flow") return generateFlow();
+  if (type === "iceslide") return generateIceSlide();
+  if (type === "push") return generatePush();
   return puzzleDef(type).generate();
 }
 

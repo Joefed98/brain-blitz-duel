@@ -28,7 +28,10 @@ export type PuzzleType =
   | "blockparty"
   | "lightsout"
   | "pipes"
-  | "sudoku";
+  | "sudoku"
+  | "flow"
+  | "iceslide"
+  | "push";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
@@ -348,7 +351,10 @@ export type PuzzleData =
   | BlockPartyPuzzleData
   | LightsOutPuzzleData
   | PipesPuzzleData
-  | SudokuPuzzleData;
+  | SudokuPuzzleData
+  | FlowPuzzleData
+  | SlidePuzzleData
+  | PushPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result";
@@ -863,4 +869,93 @@ export interface SudokuPuzzleData {
   givens: number[];
   /** Server-side only: the one grid the givens allow. */
   solution?: number[];
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Flow                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export const FLOW_COLS = 6;
+export const FLOW_CELLS = FLOW_COLS * FLOW_COLS;
+/** Five pairs, one per game colour. */
+export const FLOW_PAIRS = 5;
+export const FLOW_TIME_MS = 60_000;
+/** Every path in a layout covers at least this many cells. */
+export const FLOW_MIN_PATH = 4;
+/** Most a partly-joined board can earn. */
+export const FLOW_PARTIAL_POINTS = 60;
+
+export interface FlowPair {
+  colour: StroopColour;
+  /** The two dot cells; either end may be drawn from. */
+  a: number;
+  b: number;
+}
+
+export interface FlowPuzzleData {
+  type: "flow";
+  /** Five pairs in the order every player sees them. */
+  pairs: FlowPair[];
+  /** Server-side only: the cell path of each pair, in pair order. */
+  solution?: number[][];
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Ice Slide                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export const SLIDE_COLS = 7;
+export const SLIDE_CELLS = SLIDE_COLS * SLIDE_COLS;
+export const SLIDE_TIME_MS = 60_000;
+export const SLIDE_MIN_WALLS = 8;
+export const SLIDE_MAX_WALLS = 12;
+export const SLIDE_MIN_MOVES = 4;
+export const SLIDE_MAX_MOVES = 7;
+/** Bonus for reaching the exit in the fewest possible slides. */
+export const SLIDE_MIN_MOVE_BONUS = 20;
+/** Consolation for stopping within two slides of the exit. */
+export const SLIDE_NEAR_POINTS = 30;
+export const SLIDE_NEAR_MOVES = 2;
+
+/** Up, down, left, right — the only four directions a slide can take. */
+export type SlideDir = "U" | "D" | "L" | "R";
+
+export interface SlidePuzzleData {
+  type: "iceslide";
+  /** Wall cells the ball stops against. */
+  walls: number[];
+  start: number;
+  /** The gold gap in the border. */
+  exit: number;
+  /** Server-side only: the fewest slides the layout needs. */
+  minMoves?: number;
+  /** Server-side only: one shortest sequence, as UDLR letters. */
+  solution?: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Push                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export const PUSH_COLS = 7;
+export const PUSH_CELLS = PUSH_COLS * PUSH_COLS;
+export const PUSH_TIME_MS = 90_000;
+/** Bonus for finishing in the fewest possible pushes. */
+export const PUSH_MIN_PUSH_BONUS = 20;
+/** Most a partly-finished warehouse can earn. */
+export const PUSH_PARTIAL_POINTS = 60;
+
+export interface PushPuzzleData {
+  type: "push";
+  walls: number[];
+  /** Starting crate cells. */
+  crates: number[];
+  /** The same number of target cells. */
+  targets: number[];
+  /** Where the pusher starts. */
+  pusher: number;
+  /** Server-side only: the fewest pushes the layout can be finished in. */
+  minPushes?: number;
+  /** Server-side only: one minimum solution, as "cell:dir" pushes. */
+  solution?: string;
 }

@@ -152,3 +152,79 @@ export function GhostOutline({ style }: { style: React.CSSProperties }) {
     />
   );
 }
+
+/**
+ * The shared swipe behaviour used by Ice Slide and Push: one flick anywhere on
+ * the board resolves to up, down, left or right once it clears the threshold.
+ */
+export function useSwipe(
+  onSwipe: (dir: "U" | "D" | "L" | "R") => void,
+  options: { disabled?: boolean; threshold?: number } = {},
+): { onPointerDown: (event: React.PointerEvent) => void } {
+  const { disabled = false, threshold = 24 } = options;
+  const from = useRef<{ x: number; y: number } | null>(null);
+  const fired = useRef(false);
+  const handler = useRef(onSwipe);
+  handler.current = onSwipe;
+
+  const onPointerDown = useCallback(
+    (event: React.PointerEvent) => {
+      if (disabled) return;
+      from.current = { x: event.clientX, y: event.clientY };
+      fired.current = false;
+
+      const move = (moveEvent: PointerEvent) => {
+        const origin = from.current;
+        if (!origin || fired.current) return;
+        const dx = moveEvent.clientX - origin.x;
+        const dy = moveEvent.clientY - origin.y;
+        if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return;
+        fired.current = true;
+        hapticTick();
+        if (Math.abs(dx) > Math.abs(dy)) handler.current(dx > 0 ? "R" : "L");
+        else handler.current(dy > 0 ? "D" : "U");
+      };
+      const finish = () => {
+        from.current = null;
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", finish);
+        window.removeEventListener("pointercancel", finish);
+      };
+      window.addEventListener("pointermove", move, { passive: true });
+      window.addEventListener("pointerup", finish);
+      window.addEventListener("pointercancel", finish);
+    },
+    [disabled, threshold],
+  );
+
+  return { onPointerDown };
+}
+
+/** The four arrow buttons in a diamond, within thumb reach. */
+export function ArrowPad({
+  onPress,
+  disabled = false,
+}: {
+  onPress: (dir: "U" | "D" | "L" | "R") => void;
+  disabled?: boolean;
+}) {
+  const button = (dir: "U" | "D" | "L" | "R", glyph: string, label: string, className: string) => (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onPress(dir)}
+      aria-label={label}
+      className={`absolute flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-lg text-foreground transition-colors active:bg-primary/20 disabled:opacity-40 ${className}`}
+    >
+      {glyph}
+    </button>
+  );
+  return (
+    <div className="relative mx-auto h-[132px] w-[132px] shrink-0">
+      {button("U", "▲", "Up", "left-1/2 top-0 -translate-x-1/2")}
+      {button("L", "◀", "Left", "left-0 top-1/2 -translate-y-1/2")}
+      {button("R", "▶", "Right", "right-0 top-1/2 -translate-y-1/2")}
+      {button("D", "▼", "Down", "bottom-0 left-1/2 -translate-x-1/2")}
+    </div>
+  );
+}
