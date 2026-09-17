@@ -6,17 +6,32 @@
 
 import { flowNeighbours, verifyFlow } from "../src/lib/duel/flow";
 import { generateFlow } from "../src/lib/duel/flow.server";
-import { decodeSlideMoves, replaySlide, slideDistance } from "../src/lib/duel/slide";
+import {
+  decodeSlideMoves,
+  replaySlide,
+  slideDistance,
+  slideRouteAvoidsHoles,
+} from "../src/lib/duel/slide";
 import { generateIceSlide } from "../src/lib/duel/slide.server";
 import { PUSH_BANK } from "../src/lib/duel/pushBank.server";
 import { decodePushSolution, pushStep, replayPush } from "../src/lib/duel/push";
 import {
   FLOW_CELLS,
+  FLOW_COLS,
   FLOW_MIN_PATH,
   FLOW_PAIRS,
+  PUSH_BANK_SIZE,
+  PUSH_MAX_CRATES,
+  PUSH_MAX_PUSHES,
+  PUSH_MIN_CRATES,
+  PUSH_MIN_MOVES_PER_CRATE,
+  PUSH_MIN_PUSHES,
+  SLIDE_MAX_HOLES,
   SLIDE_MAX_MOVES,
+  SLIDE_MIN_HOLES,
   SLIDE_MIN_MOVES,
 } from "../src/lib/duel/types";
+
 
 function fail(message: string): never {
   console.error(`FAIL: ${message}`);
