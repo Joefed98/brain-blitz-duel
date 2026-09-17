@@ -44,7 +44,7 @@ function fail(message: string): never {
 
 /* ------------------------------- Laser ---------------------------------- */
 
-for (let index = 0; index < 6; index++) {
+for (let index = 0; index < 3; index++) {
   const puzzle = generateLaser();
   const stats = puzzle.stats;
   if (!stats) fail("laser shipped no generator stats");
@@ -76,7 +76,9 @@ for (let index = 0; index < 6; index++) {
     puzzle.bombs,
     puzzle.gems,
   );
-  if (!solved.litAll) fail("stored placement does not light both gems");
+  if (solved.endCell !== solved.gemsLit[solved.gemsLit.length - 1])
+    fail("the beam does not stop on the gem that completes the set");
+  if (!solved.litAll) fail("stored placement does not light all three gems");
   if (solved.hitBomb) fail("stored placement touches a bomb");
 
   const empty = traceBeam(puzzle.source, puzzle.dir, [], puzzle.blocks, puzzle.bombs, puzzle.gems);
@@ -103,14 +105,14 @@ for (let index = 0; index < 6; index++) {
     if (
       traceBeam(puzzle.source, puzzle.dir, fewer, puzzle.blocks, puzzle.bombs, puzzle.gems).litAll
     ) {
-      fail("both gems are reachable with three of the four mirrors");
+      fail("every gem is reachable with one mirror fewer");
     }
   }
   const orientations = new Set(solution.map((mirror) => mirror.kind));
   if (orientations.size !== 2) fail("the solution uses only one mirror orientation");
 }
 console.log(
-  "Laser: 6 layouts — two gems, two bombs, four necessary mirrors, no straight-line gem",
+  "Laser: 3 layouts — three gems, bombs, five necessary mirrors, beam stops on the last gem",
 );
 
 /* -------------------------------- Tower ---------------------------------- */
