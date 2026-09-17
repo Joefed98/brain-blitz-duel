@@ -316,8 +316,8 @@ export function BlockPartyPuzzle({
     return () => observer.disconnect();
   }, []);
 
-  // Keep a useful tray beneath the square board even on the shortest supported
-  // phone. The tray then computes the largest cell size that fits every row.
+  // The board fills the stage width; the tray uses the remaining height and
+  // computes the largest piece scale that keeps all remaining pieces visible.
   const trayRows = useMemo(() => {
     const rows: number[][] = [];
     for (let index = 0; index < inTray.length; index += 3)
@@ -341,16 +341,9 @@ export function BlockPartyPuzzle({
       (traySize.width - 20 - 8) / trayWidthUnits,
     ),
   );
-  const boardSize = Math.max(
-    120,
-    Math.min(
-      layoutSize.width,
-      layoutSize.height - traySize.height - 36,
-      (trayCellCapacity / 0.45) * N,
-    ),
-  );
+  const boardSize = layoutSize.width;
   const boardCell = boardSize / N;
-  const trayCell = Math.max(boardCell * 0.45, Math.min(boardCell * 0.6, trayCellCapacity));
+  const trayCell = Math.min(boardCell * 0.6, trayCellCapacity);
 
   return (
     <div ref={layoutRef} className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">
@@ -361,7 +354,7 @@ export function BlockPartyPuzzle({
         <span className="text-[10px]">tap to rotate</span>
       </div>
 
-      <div className="flex min-h-0 shrink-0 justify-center">
+      <div className="flex shrink-0 justify-center">
         <BlockBoard
           blockers={puzzle.blockers}
           placements={placed}
@@ -418,7 +411,7 @@ export function BlockPartyPuzzle({
       {/* Tray: every remaining piece, at a reduced scale. */}
       <div
         ref={trayRef}
-        className="grid min-h-[35dvh] flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 overflow-hidden rounded-xl bg-card/60 px-2.5 py-2.5"
+        className="grid min-h-0 flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 overflow-hidden rounded-xl bg-card/60 px-2.5 py-2.5"
       >
         {inTray.length === 0 ? (
           <p className="col-span-3 text-center font-mono text-xs uppercase tracking-widest text-primary">

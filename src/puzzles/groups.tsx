@@ -114,13 +114,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkGroup }: PuzzleSt
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col justify-between gap-2">
-      <div className="flex min-h-[192px] flex-col gap-1.5">
-        {found.map((group, index) => (
-          <GroupBand key={group.groupIndex} theme={group.theme} words={group.words} index={index} />
-        ))}
-      </div>
-      <div className={`grid w-full grid-cols-4 gap-1.5 ${shaking ? "animate-shake" : ""}`}>
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      {found.length > 0 && (
+        <div className="flex shrink-0 flex-col gap-1.5">
+          {found.map((group, index) => (
+            <GroupBand
+              key={group.groupIndex}
+              theme={group.theme}
+              words={group.words}
+              index={index}
+            />
+          ))}
+        </div>
+      )}
+      <div
+        className={`grid min-h-0 w-full flex-1 grid-cols-4 gap-1.5 ${shaking ? "animate-shake" : ""}`}
+        style={{ gridAutoRows: "minmax(44px, 1fr)" }}
+      >
         {remaining.map((index) => {
           const word = data.words[index] ?? "";
           const active = selected.includes(index);
@@ -138,7 +148,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkGroup }: PuzzleSt
                       : current,
                 )
               }
-              className={`flex min-h-11 min-w-0 items-center justify-center overflow-hidden whitespace-nowrap rounded-lg border px-0.5 text-center font-display font-bold leading-none ${word.length <= 10 ? "text-[13px]" : "text-[clamp(9px,2.7vw,12px)]"} ${active ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-foreground"}`}
+              className={`flex h-full min-h-11 min-w-0 items-center justify-center overflow-hidden whitespace-nowrap rounded-lg border px-0.5 text-center font-display font-bold leading-none ${word.length <= 10 ? "text-[13px]" : "text-[clamp(9px,2.7vw,12px)]"} ${active ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-foreground"}`}
             >
               {word}
             </button>
