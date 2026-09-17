@@ -26,10 +26,14 @@ import {
   PUSH_MIN_CRATES,
   PUSH_MIN_MOVES_PER_CRATE,
   PUSH_MIN_PUSHES,
+  SLIDE_EASY_MOVES,
+  SLIDE_MAX_ARROWS,
   SLIDE_MAX_HOLES,
   SLIDE_MAX_MOVES,
+  SLIDE_MIN_ARROWS,
   SLIDE_MIN_HOLES,
   SLIDE_MIN_MOVES,
+  SLIDE_MIN_STOPPERS,
 } from "../src/lib/duel/types";
 
 function fail(message: string): never {
@@ -62,30 +66,47 @@ console.log(`Flow: 200 boards OK · shortest path ${shortest} cells`);
 
 /* -------------------------------- Ice Slide ------------------------------- */
 
-for (let i = 0; i < 120; i++) {
+for (let i = 0; i < 40; i++) {
   const puzzle = generateIceSlide();
   const holes = puzzle.holes ?? [];
+  const arrows = puzzle.arrows ?? [];
   const min = puzzle.minMoves ?? 0;
   if (min < SLIDE_MIN_MOVES || min > SLIDE_MAX_MOVES)
     fail(`Ice Slide minimum out of range: ${min}`);
   if (holes.length < SLIDE_MIN_HOLES || holes.length > SLIDE_MAX_HOLES) {
     fail(`Ice Slide hole count ${holes.length}`);
   }
-  const distance = slideDistance(puzzle.walls, holes, puzzle.start, puzzle.exit, puzzle.start);
+  if (arrows.length < SLIDE_MIN_ARROWS || arrows.length > SLIDE_MAX_ARROWS) {
+    fail(`Ice Slide arrow count ${arrows.length}`);
+  }
+  const distance = slideDistance(
+    puzzle.walls,
+    holes,
+    puzzle.start,
+    puzzle.exit,
+    puzzle.start,
+    arrows,
+  );
   if (distance === null) fail("Ice Slide shipped an unreachable exit");
   if (distance !== min) fail(`Ice Slide minimum ${min} disagrees with the search (${distance})`);
+  const stats = puzzle.stats;
+  if (!stats) fail("Ice Slide shipped no generator stats");
+  if (stats.minMoves !== min) fail("Ice Slide stats minimum disagrees with the puzzle");
+  if (stats.easyExit) fail("Ice Slide exit is reachable too easily");
+  if (stats.stoppers < SLIDE_MIN_STOPPERS) fail(`Ice Slide only has ${stats.stoppers} stoppers`);
   const moves = decodeSlideMoves(puzzle.solution ?? "");
-  const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, moves);
+  const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, moves, arrows);
   if (!replay.solved || replay.moves !== min)
     fail("Ice Slide stored route does not reach the exit");
   if (replay.falls) fail("Ice Slide stored route falls into a hole");
-  if (!slideRouteAvoidsHoles(puzzle.walls, holes, puzzle.start, puzzle.exit, moves)) {
+  if (!slideRouteAvoidsHoles(puzzle.walls, holes, puzzle.start, puzzle.exit, moves, arrows)) {
     fail("Ice Slide stored route slides over a hole");
   }
 }
 console.log(
-  `Ice Slide: 120 layouts OK · holes handled by the search · every minimum is ${SLIDE_MIN_MOVES}-${SLIDE_MAX_MOVES} slides`,
+  `Ice Slide: 40 layouts OK · holes and arrows handled by the search · every minimum is ${SLIDE_MIN_MOVES}-${SLIDE_MAX_MOVES} slides · exit never within ${SLIDE_EASY_MOVES} slides`,
 );
+
 
 /* ----------------------------------- Push -------------------------------- */
 

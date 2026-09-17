@@ -17,6 +17,12 @@ export function generatePush(): PushPuzzleData {
     targets: entry.targets,
     pusher: entry.pusher,
     minPushes: entry.minPushes,
+    stats: {
+      crates: entry.crates.length,
+      minPushes: entry.minPushes,
+      minMoves: entry.minMoves,
+      detour: entry.detour,
+    },
     solution: entry.solution,
   };
 }

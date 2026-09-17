@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
+import { DevPuzzleStats } from "@/components/duel/DevPuzzleStats";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 
 import { RoundIntro } from "@/components/duel/RoundIntro";
@@ -299,6 +300,9 @@ function PracticeScreen() {
   }
 
   const StageComponent = puzzleDef(puzzle.type).Stage;
+  // Temporary: ?dev=1 shows the generator's stored figures under the puzzle.
+  const devReadout =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("dev") === "1";
   const clockActive = clockStart !== null && now >= clockStart;
   const compactTimer = [
     "target",
@@ -360,6 +364,8 @@ function PracticeScreen() {
             checkGroup={(indices) => practiceCheckGroupFn({ data: { puzzle, sealed, indices } })}
           />
         </div>
+
+        {devReadout && <DevPuzzleStats puzzle={puzzle} />}
       </div>
     </PhoneShell>
   );

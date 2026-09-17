@@ -1,9 +1,10 @@
 /**
  * Server-only Laser and Mirrors generation. The beam route is chosen first and
  * mirrors are placed on its bends, so the stored placement is a solution by
- * construction — and the tracer then proves that all four mirrors are needed,
- * that no three of them will do, and that no one or two mirrors placed anywhere
- * at all reach the target, before the layout is ever stored.
+ * construction. An EXHAUSTIVE search then tries every placement of one, two or
+ * three mirrors, in both orientations, on every free cell: the layout is only
+ * accepted when none of them reaches the target, so all four mirrors are always
+ * needed. Shortcuts found along the way are closed off with extra blocks.
  */
 
 import { laserCol, laserRow, laserStep, traceBeam } from "./laser";
@@ -15,6 +16,7 @@ import {
   LASER_MAX_MIRRORS,
   LASER_MIN_ADJACENT_BLOCKS,
   LASER_MIN_BLOCKS,
+  LASER_MIN_GAP_SEGMENTS,
   LASER_MIN_SHORTCUT_BLOCKS,
   type BeamDir,
   type LaserPuzzleData,
@@ -42,6 +44,9 @@ const PERPENDICULAR: Record<BeamDir, BeamDir[]> = {
   R: ["U", "D"],
 };
 
+const DIR_INDEX: Record<BeamDir, number> = { U: 0, D: 1, L: 2, R: 3 };
+const DIRS: BeamDir[] = ["U", "D", "L", "R"];
+
 /** Every edge cell with the direction that fires inward from it. */
 function sources(): { cell: number; dir: BeamDir }[] {
   const out: { cell: number; dir: BeamDir }[] = [];
@@ -59,6 +64,8 @@ function sources(): { cell: number; dir: BeamDir }[] {
 interface Route {
   cells: number[];
   bends: MirrorPlacement[];
+  /** The straight runs between bends, each with the heading it travelled. */
+  segments: { cells: number[]; dir: BeamDir }[];
   target: number;
 }
 
@@ -69,10 +76,12 @@ function randomRoute(source: number, dir: BeamDir, bends: number): Route | null 
   let cell = source;
   let heading = dir;
   const placements: MirrorPlacement[] = [];
+  const segments: { cells: number[]; dir: BeamDir }[] = [];
 
   for (let bend = 0; bend <= bends; bend++) {
     const runMax = bend === bends ? 4 : 5;
     const run = 1 + randomInt(runMax);
+    const walked: number[] = [cell];
     let moved = 0;
     for (let step = 0; step < run; step++) {
       const next = laserStep(cell, heading);
@@ -80,9 +89,11 @@ function randomRoute(source: number, dir: BeamDir, bends: number): Route | null 
       cell = next;
       visited.add(cell);
       cells.push(cell);
+      walked.push(cell);
       moved += 1;
     }
     if (moved === 0) return null;
+    segments.push({ cells: walked, dir: heading });
     if (bend === bends) break;
 
     const turn = shuffled(PERPENDICULAR[heading])[0]!;
@@ -97,66 +108,132 @@ function randomRoute(source: number, dir: BeamDir, bends: number): Route | null 
   const target = cells[cells.length - 1]!;
   if (target === source) return null;
   if (placements.some((mirror) => mirror.cell === target)) return null;
-  return { cells, bends: placements, target };
+  return { cells, bends: placements, segments, target };
 }
 
-/**
- * Every proper subset of the mirrors must miss the target — so all four are
- * needed, and in particular no three of them will do.
- */
-function everyMirrorNeeded(
+/* -------------------------------------------------------------------------- */
+/*  Fast tracer for the exhaustive search                                     */
+/* -------------------------------------------------------------------------- */
+
+/** One beam walk over flat arrays: no allocation, so hundreds of thousands run fast. */
+function walk(
   source: number,
   dir: BeamDir,
-  mirrors: MirrorPlacement[],
-  blocks: number[],
+  blocked: Uint8Array,
+  mirrors: Int8Array,
   target: number,
+  trail: number[] | null,
 ): boolean {
-  const total = mirrors.length;
-  for (let mask = 0; mask < 1 << total; mask++) {
-    const subset = mirrors.filter((_, index) => mask & (1 << index));
-    if (subset.length === total) continue;
-    if (traceBeam(source, dir, subset, blocks, target).hitTarget) return false;
+  let cell = source;
+  let heading = DIR_INDEX[dir];
+  if (trail) trail.length = 0;
+  if (trail) trail.push(cell);
+  for (let guard = 0; guard < LASER_CELLS * 4; guard++) {
+    const mirror = mirrors[cell];
+    if (mirror && cell !== source) {
+      // "/" is 1, "\" is 2.
+      if (mirror === 1) heading = heading === 3 ? 0 : heading === 0 ? 3 : heading === 2 ? 1 : 2;
+      else heading = heading === 3 ? 1 : heading === 1 ? 3 : heading === 2 ? 0 : 2;
+    }
+    if (cell === target) return true;
+    const row = Math.floor(cell / N);
+    const col = cell % N;
+    let next = -1;
+    if (heading === 0) next = row > 0 ? cell - N : -1;
+    else if (heading === 1) next = row < N - 1 ? cell + N : -1;
+    else if (heading === 2) next = col > 0 ? cell - 1 : -1;
+    else next = col < N - 1 ? cell + 1 : -1;
+    if (next < 0 || blocked[next]) return false;
+    cell = next;
+    if (trail) trail.push(cell);
+    if (cell === target) return true;
   }
-  return true;
+  return false;
 }
 
-const KINDS: MirrorKind[] = ["/", "\\"];
+export interface ShortcutSearch {
+  /** The first one-, two- or three-mirror placement that reaches the target. */
+  hit: { cells: number[] } | null;
+  /** How many placements were traced. */
+  tested: number;
+}
 
 /**
- * No shorter answer anywhere on the grid: neither a bare beam, nor any single
- * mirror, nor any pair of mirrors placed anywhere at all, may reach the target.
- * Searched exhaustively, so the tray is always needed in full.
+ * Tries EVERY placement of one, two or three mirrors, both orientations, on the
+ * free cells. With `stopOnFirst` it returns the beam path of the first shortcut
+ * found (so a block can be dropped on it); otherwise it runs to the end and the
+ * tested count is the full number of placements proved to fail.
  */
-function noShortSolution(source: number, dir: BeamDir, blocks: number[], target: number): boolean {
-  const blocked = new Set(blocks);
-  const open: number[] = [];
+export function searchShortcuts(
+  source: number,
+  dir: BeamDir,
+  blocks: number[],
+  target: number,
+  stopOnFirst: boolean,
+): ShortcutSearch {
+  const blocked = new Uint8Array(LASER_CELLS);
+  for (const cell of blocks) blocked[cell] = 1;
+  const mirrors = new Int8Array(LASER_CELLS);
+  const free: number[] = [];
   for (let cell = 0; cell < LASER_CELLS; cell++) {
-    if (cell === source || cell === target || blocked.has(cell)) continue;
-    open.push(cell);
+    if (cell === source || cell === target || blocked[cell]) continue;
+    free.push(cell);
   }
 
-  // The direct line, and every one-bend line.
-  if (traceBeam(source, dir, [], blocks, target).hitTarget) return false;
-  for (const cell of open) {
-    for (const kind of KINDS) {
-      if (traceBeam(source, dir, [{ cell, kind }], blocks, target).hitTarget) return false;
-    }
-  }
-  // Every two-mirror placement.
-  for (let first = 0; first < open.length; first++) {
-    for (let second = first + 1; second < open.length; second++) {
-      for (const kindA of KINDS) {
-        for (const kindB of KINDS) {
-          const trial = [
-            { cell: open[first]!, kind: kindA },
-            { cell: open[second]!, kind: kindB },
-          ];
-          if (traceBeam(source, dir, trial, blocks, target).hitTarget) return false;
+  const trail: number[] = [];
+  let tested = 0;
+  let hit: { cells: number[] } | null = null;
+
+  const bare = walk(source, dir, blocked, mirrors, target, trail);
+  tested += 1;
+  if (bare) return { hit: { cells: [...trail] }, tested };
+
+  for (let a = 0; a < free.length; a++) {
+    for (let ka = 1 as 1 | 2; ka <= 2; ka++) {
+      mirrors[free[a]!] = ka;
+      tested += 1;
+      if (walk(source, dir, blocked, mirrors, target, trail)) {
+        hit ??= { cells: [...trail] };
+        if (stopOnFirst) {
+          mirrors[free[a]!] = 0;
+          return { hit, tested };
         }
       }
+      for (let b = a + 1; b < free.length; b++) {
+        for (let kb = 1 as 1 | 2; kb <= 2; kb++) {
+          mirrors[free[b]!] = kb;
+          tested += 1;
+          if (walk(source, dir, blocked, mirrors, target, trail)) {
+            hit ??= { cells: [...trail] };
+            if (stopOnFirst) {
+              mirrors[free[a]!] = 0;
+              mirrors[free[b]!] = 0;
+              return { hit, tested };
+            }
+          }
+          for (let c = b + 1; c < free.length; c++) {
+            for (let kc = 1 as 1 | 2; kc <= 2; kc++) {
+              mirrors[free[c]!] = kc;
+              tested += 1;
+              if (walk(source, dir, blocked, mirrors, target, trail)) {
+                hit ??= { cells: [...trail] };
+                if (stopOnFirst) {
+                  mirrors[free[a]!] = 0;
+                  mirrors[free[b]!] = 0;
+                  mirrors[free[c]!] = 0;
+                  return { hit, tested };
+                }
+              }
+            }
+            mirrors[free[c]!] = 0;
+          }
+        }
+        mirrors[free[b]!] = 0;
+      }
     }
+    mirrors[free[a]!] = 0;
   }
-  return true;
+  return { hit, tested };
 }
 
 /** Cells on the straight line out of the source, or on a line into the target. */
@@ -174,15 +251,55 @@ function shortcutLine(source: number, dir: BeamDir, target: number): Set<number>
 
 /** The four cells touching a cell, inside the grid. */
 function around(cell: number): number[] {
-  return (["U", "D", "L", "R"] as BeamDir[])
-    .map((dir) => laserStep(cell, dir))
-    .filter((next): next is number => next !== null);
+  return DIRS.map((dir) => laserStep(cell, dir)).filter((next): next is number => next !== null);
+}
+
+/** A straight sightline from a cell, stopping at a block or the edge. */
+function seesTarget(from: number, dir: BeamDir, blocked: Set<number>, target: number): boolean {
+  let cell = from;
+  for (let guard = 0; guard < LASER_CELLS; guard++) {
+    const next = laserStep(cell, dir);
+    if (next === null || blocked.has(next)) return false;
+    cell = next;
+    if (cell === target) return true;
+  }
+  return false;
+}
+
+/**
+ * The target may not be visible straight down any line from the source, or from
+ * any cell sharing the source's row or column.
+ */
+function targetHidden(source: number, blocks: number[], target: number): boolean {
+  const blocked = new Set(blocks);
+  const sourceRow = laserRow(source);
+  const sourceCol = laserCol(source);
+  for (let cell = 0; cell < LASER_CELLS; cell++) {
+    if (blocked.has(cell) || cell === target) continue;
+    if (laserRow(cell) !== sourceRow && laserCol(cell) !== sourceCol) continue;
+    for (const dir of DIRS) if (seesTarget(cell, dir, blocked, target)) return false;
+  }
+  return true;
+}
+
+/** How many route segments squeeze through a one-cell gap between two blocks. */
+function gapSegments(route: Route, blocks: number[]): number {
+  const blocked = new Set(blocks);
+  let count = 0;
+  for (const segment of route.segments) {
+    const sides: BeamDir[] = PERPENDICULAR[segment.dir];
+    const squeezed = segment.cells.some((cell) => {
+      const left = laserStep(cell, sides[0]!);
+      const right = laserStep(cell, sides[1]!);
+      return left !== null && right !== null && blocked.has(left) && blocked.has(right);
+    });
+    if (squeezed) count += 1;
+  }
+  return count;
 }
 
 export function generateLaser(): LaserPuzzleData {
-  let attempts = 0;
-  for (let attempt = 0; attempt < 40_000; attempt++) {
-    attempts += 1;
+  for (let attempt = 1; attempt <= 40_000; attempt++) {
     const { cell: source, dir } = shuffled(sources())[0]!;
     // Always exactly four mirrors, so the route always bends four times.
     const route = randomRoute(source, dir, LASER_MAX_MIRRORS);
@@ -205,18 +322,18 @@ export function generateLaser(): LaserPuzzleData {
 
     const shortcutPicks = shuffled(offRoute.filter((cell) => shortcuts.has(cell))).slice(
       0,
-      LASER_MIN_SHORTCUT_BLOCKS + randomInt(2),
+      LASER_MIN_SHORTCUT_BLOCKS + randomInt(3),
     );
     const asidePicks = shuffled(
       offRoute.filter((cell) => beside.has(cell) && !shortcutPicks.includes(cell)),
-    ).slice(0, LASER_MIN_ADJACENT_BLOCKS + randomInt(2));
-    const blockCount = LASER_MIN_BLOCKS + randomInt(LASER_MAX_BLOCKS - LASER_MIN_BLOCKS + 1);
+    ).slice(0, LASER_MIN_ADJACENT_BLOCKS + randomInt(3));
+    const blockCount = LASER_MIN_BLOCKS + randomInt(3);
     const chosen = [...shortcutPicks, ...asidePicks];
     const filler = shuffled(offRoute.filter((cell) => !chosen.includes(cell))).slice(
       0,
       Math.max(0, blockCount - chosen.length),
     );
-    const blocks = [...chosen, ...filler].slice(0, blockCount);
+    const blocks = [...new Set([...chosen, ...filler])].slice(0, blockCount);
     if (blocks.length < LASER_MIN_BLOCKS) continue;
 
     // The route must survive the blocks, and the empty grid must not reach the target.
@@ -231,12 +348,52 @@ export function generateLaser(): LaserPuzzleData {
     )
       continue;
 
-    // Nothing short of the whole tray may solve it — neither a subset of these
-    // four mirrors, nor any one or two mirrors placed anywhere on the grid.
-    if (!everyMirrorNeeded(source, dir, route.bends, blocks, route.target)) continue;
-    if (!noShortSolution(source, dir, blocks, route.target)) continue;
+    // Close off every shorter answer by blocking a cell on its beam path, and
+    // keep going until the exhaustive search finds nothing at all.
+    const solutionCells = new Set(route.bends.map((mirror) => mirror.cell));
+    let tested = 0;
+    let necessityPass = false;
+    for (let repair = 0; repair <= LASER_MAX_BLOCKS; repair++) {
+      const search = searchShortcuts(source, dir, blocks, route.target, true);
+      tested = search.tested;
+      if (!search.hit) {
+        necessityPass = true;
+        break;
+      }
+      if (blocks.length >= LASER_MAX_BLOCKS) break;
+      const candidates = shuffled(
+        search.hit.cells.filter(
+          (cell) =>
+            !onRoute.has(cell) &&
+            !solutionCells.has(cell) &&
+            cell !== source &&
+            cell !== route.target &&
+            !blocks.includes(cell),
+        ),
+      );
+      const pick = candidates[0];
+      if (pick === undefined) break;
+      blocks.push(pick);
+      if (!traceBeam(source, dir, route.bends, blocks, route.target).hitTarget) break;
+    }
+    if (!necessityPass) continue;
+    if (blocks.length < LASER_MIN_BLOCKS || blocks.length > LASER_MAX_BLOCKS) continue;
 
-    console.log(`[laser] layout accepted after ${attempts} attempt(s)`);
+    // The target may not simply be in plain sight.
+    if (!targetHidden(source, blocks, route.target)) continue;
+    // And the beam has to thread at least two one-cell gaps.
+    const gaps = gapSegments(route, blocks);
+    if (gaps < LASER_MIN_GAP_SEGMENTS) continue;
+
+    // Final proof, run to the end: NO placement of one, two or three mirrors
+    // reaches the target, so all four are required.
+    const proof = searchShortcuts(source, dir, blocks, route.target, false);
+    if (proof.hit) continue;
+    if (!traceBeam(source, dir, route.bends, blocks, route.target).hitTarget) continue;
+
+    console.log(
+      `[laser] layout accepted after ${attempt} attempt(s): ${blocks.length} blocks, ${proof.tested} placements proved to fail`,
+    );
     return {
       type: "laser",
       source,
@@ -244,6 +401,15 @@ export function generateLaser(): LaserPuzzleData {
       target: route.target,
       blocks: [...blocks].sort((a, b) => a - b),
       mirrors: route.bends.length,
+      stats: {
+        blocks: blocks.length,
+        mirrors: route.bends.length,
+        bends: route.bends.length,
+        necessityPass: true,
+        subsetsTested: proof.tested,
+        gapSegments: gaps,
+        attempts: attempt,
+      },
       solution: route.bends,
     };
   }

@@ -910,18 +910,23 @@ export interface FlowPuzzleData {
 /*  Ice Slide                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const SLIDE_COLS = 9;
+export const SLIDE_COLS = 10;
 export const SLIDE_CELLS = SLIDE_COLS * SLIDE_COLS;
 export const SLIDE_TIME_MS = 75_000;
-export const SLIDE_MIN_WALLS = 18;
-export const SLIDE_MAX_WALLS = 26;
-export const SLIDE_MIN_MOVES = 9;
-export const SLIDE_MAX_MOVES = 13;
+export const SLIDE_MIN_WALLS = 22;
+export const SLIDE_MAX_WALLS = 30;
+export const SLIDE_MIN_MOVES = 11;
+export const SLIDE_MAX_MOVES = 16;
+/** The exit may not be within this many slides of the start. */
+export const SLIDE_EASY_MOVES = 6;
 /** Holes the ball must slide around: falling in sends it back to the start. */
-export const SLIDE_MIN_HOLES = 1;
-export const SLIDE_MAX_HOLES = 3;
+export const SLIDE_MIN_HOLES = 2;
+export const SLIDE_MAX_HOLES = 4;
+/** One-way arrow cells: a ball entering one is deflected and keeps sliding. */
+export const SLIDE_MIN_ARROWS = 1;
+export const SLIDE_MAX_ARROWS = 3;
 /** At least this many walls must be stoppers the shortest route depends on. */
-export const SLIDE_MIN_STOPPERS = 3;
+export const SLIDE_MIN_STOPPERS = 4;
 /** Bonus for reaching the exit in the fewest possible slides. */
 export const SLIDE_MIN_MOVE_BONUS = 20;
 /** Consolation for stopping within two slides of the exit. */
@@ -931,15 +936,37 @@ export const SLIDE_NEAR_MOVES = 2;
 /** Up, down, left, right — the only four directions a slide can take. */
 export type SlideDir = "U" | "D" | "L" | "R";
 
+/** A one-way cell: whatever enters it leaves in this direction. */
+export interface SlideArrow {
+  cell: number;
+  dir: SlideDir;
+}
+
+/** Generator figures, shown only in the dev readout. */
+export interface SlideStats {
+  walls: number;
+  holes: number;
+  arrows: number;
+  minMoves: number;
+  /** True when the exit is reachable in six slides or fewer — must be false. */
+  easyExit: boolean;
+  stoppers: number;
+  attempts: number;
+}
+
 export interface SlidePuzzleData {
   type: "iceslide";
   /** Wall cells the ball stops against. */
   walls: number[];
   /** Holes: sliding over one drops the ball back on the start. */
   holes: number[];
+  /** One-way arrow cells. */
+  arrows?: SlideArrow[];
   start: number;
   /** The gold gap in the border. */
   exit: number;
+  /** Generator figures for the dev readout. */
+  stats?: SlideStats;
   /** Server-side only: the fewest slides the layout needs. */
   minMoves?: number;
   /** Server-side only: one shortest sequence, as UDLR letters. */
@@ -947,20 +974,21 @@ export interface SlidePuzzleData {
 }
 
 
+
 /* -------------------------------------------------------------------------- */
 /*  Push                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export const PUSH_COLS = 8;
+export const PUSH_COLS = 9;
 export const PUSH_CELLS = PUSH_COLS * PUSH_COLS;
-export const PUSH_TIME_MS = 90_000;
+export const PUSH_TIME_MS = 120_000;
 /** Every bank layout needs between this many and this many pushes. */
-export const PUSH_MIN_PUSHES = 10;
-export const PUSH_MAX_PUSHES = 22;
-/** Three or four crates, and every one of them has to move at least twice. */
-export const PUSH_MIN_CRATES = 3;
-export const PUSH_MAX_CRATES = 4;
-export const PUSH_MIN_MOVES_PER_CRATE = 2;
+export const PUSH_MIN_PUSHES = 16;
+export const PUSH_MAX_PUSHES = 30;
+/** Four or five crates, and every one of them has to move at least three times. */
+export const PUSH_MIN_CRATES = 4;
+export const PUSH_MAX_CRATES = 5;
+export const PUSH_MIN_MOVES_PER_CRATE = 3;
 /** How many solver-verified layouts the bank holds. */
 export const PUSH_BANK_SIZE = 120;
 /** Bonus for finishing in the fewest possible pushes. */
@@ -968,6 +996,14 @@ export const PUSH_MIN_PUSH_BONUS = 20;
 /** Most a partly-finished warehouse can earn. */
 export const PUSH_PARTIAL_POINTS = 60;
 
+/** Generator figures, shown only in the dev readout. */
+export interface PushStats {
+  crates: number;
+  minPushes: number;
+  minMoves: number;
+  /** True when the optimal solution takes a crate away from its own target. */
+  detour: boolean;
+}
 
 export interface PushPuzzleData {
   type: "push";
@@ -978,11 +1014,14 @@ export interface PushPuzzleData {
   targets: number[];
   /** Where the pusher starts. */
   pusher: number;
+  /** Generator figures for the dev readout. */
+  stats?: PushStats;
   /** Server-side only: the fewest pushes the layout can be finished in. */
   minPushes?: number;
   /** Server-side only: one minimum solution, as "cell:dir" pushes. */
   solution?: string;
 }
+
 
 /* -------------------------------------------------------------------------- */
 /*  Laser and Mirrors                                                         */
@@ -994,8 +1033,10 @@ export const LASER_TIME_MS = 60_000;
 /** Always exactly four mirrors, and the route always bends once per mirror. */
 export const LASER_MIN_MIRRORS = 4;
 export const LASER_MAX_MIRRORS = 4;
-export const LASER_MIN_BLOCKS = 10;
-export const LASER_MAX_BLOCKS = 14;
+export const LASER_MIN_BLOCKS = 16;
+export const LASER_MAX_BLOCKS = 22;
+/** At least this many route segments squeeze through a one-cell gap in blocks. */
+export const LASER_MIN_GAP_SEGMENTS = 2;
 /** Blocks closing off the straight and single-bend shortcuts. */
 export const LASER_MIN_SHORTCUT_BLOCKS = 3;
 /** Blocks touching the beam route without sitting on it, hiding the corridor. */
@@ -1017,6 +1058,19 @@ export interface MirrorPlacement {
   kind: MirrorKind;
 }
 
+/** Generator figures, shown only in the dev readout. */
+export interface LaserStats {
+  blocks: number;
+  mirrors: number;
+  bends: number;
+  /** True when no placement of one, two or three mirrors reaches the target. */
+  necessityPass: boolean;
+  /** How many mirror placements the exhaustive search traced. */
+  subsetsTested: number;
+  gapSegments: number;
+  attempts: number;
+}
+
 export interface LaserPuzzleData {
   type: "laser";
   /** The edge cell the laser fires from. */
@@ -1028,28 +1082,39 @@ export interface LaserPuzzleData {
   blocks: number[];
   /** Exactly as many mirrors as the solution needs. */
   mirrors: number;
+  /** Generator figures for the dev readout. */
+  stats?: LaserStats;
   /** Server-side only: where each mirror belongs, and which way it faces. */
   solution?: MirrorPlacement[];
 }
+
 
 /* -------------------------------------------------------------------------- */
 /*  Tower                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export const TOWER_TIME_MS = 90_000;
-/** Six discs across four pegs. */
-export const TOWER_DISCS = 6;
+export const TOWER_TIME_MS = 120_000;
+/** Eight discs across four pegs. */
+export const TOWER_DISCS = 8;
 export const TOWER_PEGS = 4;
 /** A starting spread is only used when it needs at least this many moves. */
-export const TOWER_MIN_MINIMUM = 12;
+export const TOWER_MIN_MINIMUM = 25;
 /** Bonus for finishing in the fewest possible moves. */
 export const TOWER_MIN_MOVE_BONUS = 20;
 /** Most a partly-built tower can earn. */
 export const TOWER_PARTIAL_POINTS = 60;
 
+/** Generator figures, shown only in the dev readout. */
+export interface TowerStats {
+  discs: number;
+  pegs: number;
+  minMoves: number;
+  attempts: number;
+}
+
 export interface TowerPuzzleData {
   type: "tower";
-  /** How many discs are in play: six. */
+  /** How many discs are in play: eight. */
   discs: number;
   /** The starting spread, one stack per peg, bottom disc first. */
   start: number[][];
@@ -1059,9 +1124,12 @@ export interface TowerPuzzleData {
   minMoves: number;
   /** This puzzle's own clock. */
   timeLimitMs: number;
+  /** Generator figures for the dev readout. */
+  stats?: TowerStats;
   /** Server-side only: one shortest sequence of moves. */
   solution?: string;
 }
+
 
 /* -------------------------------------------------------------------------- */
 /*  Maze Dash                                                                 */

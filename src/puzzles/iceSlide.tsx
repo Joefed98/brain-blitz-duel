@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowPad, useSwipe } from "@/components/puzzles/GridDrag";
-import { encodeSlideMoves, replaySlide, shortestSlideRoute, slideOutcome } from "@/lib/duel/slide";
+import {
+  arrowMap,
+  encodeSlideMoves,
+  replaySlide,
+  shortestSlideRoute,
+  slideOutcome,
+} from "@/lib/duel/slide";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   SLIDE_CELLS,
   SLIDE_COLS,
   SLIDE_TIME_MS,
+  type SlideArrow,
   type SlideDir,
   type SlidePuzzleData,
 } from "@/lib/duel/types";
@@ -17,9 +24,32 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const GOLD = "var(--primary)";
 
+/** A one-way cell wears a chevron pointing the way the ball is sent. */
+function Chevron({ dir }: { dir: SlideDir }) {
+  const turn = dir === "U" ? 270 : dir === "D" ? 90 : dir === "L" ? 180 : 0;
+  return (
+    <svg
+      viewBox="0 0 10 10"
+      aria-label={`One way ${dir}`}
+      className="block"
+      style={{ width: "78%", height: "78%", transform: `rotate(${turn}deg)` }}
+    >
+      <polyline
+        points="3,2 7,5 3,8"
+        fill="none"
+        stroke="var(--primary)"
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function Board({
   walls,
   holes = [],
+  arrows = [],
   start,
   exit,
   ball,
@@ -30,6 +60,7 @@ function Board({
 }: {
   walls: number[];
   holes?: number[];
+  arrows?: SlideArrow[];
   start: number;
   exit: number;
   ball: number;
@@ -42,6 +73,7 @@ function Board({
   const rows = Math.ceil(cells / cols);
   const wall = new Set(walls);
   const pit = new Set(holes);
+  const turns = new Map(arrows.map((arrow) => [arrow.cell, arrow.dir]));
 
   return (
     <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full">
@@ -57,6 +89,7 @@ function Board({
             pointer or pixel maths — so a slide moves it whole cells at a time. */}
         {Array.from({ length: cols * rows }, (_, cell) => {
           const isBall = cell === ball;
+          const turn = turns.get(cell);
           const piece = isBall ? (
             <span
               aria-label="Ball"
@@ -69,6 +102,8 @@ function Board({
               className="block rounded-full bg-background"
               style={{ width: "72%", height: "72%", border: "2px solid var(--foreground)" }}
             />
+          ) : turn ? (
+            <Chevron dir={turn} />
           ) : cell === start ? (
             <span
               className="block rounded-full bg-muted-foreground"
@@ -120,7 +155,7 @@ function IntroExample() {
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
         Swipe to slide the ball. It won&apos;t stop until it hits something. Avoid the holes — fall
-        in and you start again.
+        in and you start again. A chevron is one-way: it turns the ball as it passes.
       </p>
       <div style={{ width: 132 }}>
         <Board
@@ -128,6 +163,7 @@ function IntroExample() {
           cells={16}
           walls={[6, 12]}
           holes={[9]}
+          arrows={[{ cell: 5, dir: "D" }]}
           start={0}
           exit={15}
           ball={0}
@@ -150,6 +186,7 @@ function Stage({
 }: PuzzleStageProps) {
   const walls = puzzle.type === "iceslide" ? puzzle.walls : [];
   const holes = puzzle.type === "iceslide" ? (puzzle.holes ?? []) : [];
+  const arrows = puzzle.type === "iceslide" ? (puzzle.arrows ?? []) : [];
   const start = puzzle.type === "iceslide" ? puzzle.start : 0;
   const exit = puzzle.type === "iceslide" ? puzzle.exit : 0;
   const [moves, setMoves] = useStageState<SlideDir[]>(stateKey, "slideMoves", () => []);
@@ -158,8 +195,8 @@ function Stage({
   const fallsSeen = useRef(0);
 
   const replay = useMemo(
-    () => replaySlide(walls, holes, start, exit, moves),
-    [walls, holes, start, exit, moves],
+    () => replaySlide(walls, holes, start, exit, moves, arrows),
+    [walls, holes, arrows, start, exit, moves],
   );
 
   useEffect(() => {
@@ -189,7 +226,15 @@ function Stage({
 
   const slide = (dir: SlideDir) => {
     if (locked || submitted.current || replay.solved) return;
-    const outcome = slideOutcome(replay.cell, dir, new Set(walls), new Set(holes), exit, start);
+    const outcome = slideOutcome(
+      replay.cell,
+      dir,
+      new Set(walls),
+      new Set(holes),
+      exit,
+      start,
+      arrowMap(arrows),
+    );
     if (!outcome.path.length) return;
     setMoves((current) => [...current, dir]);
   };
@@ -212,7 +257,14 @@ function Stage({
         }}
         {...swipe}
       >
-        <Board walls={walls} holes={holes} start={start} exit={exit} ball={replay.cell} />
+        <Board
+          walls={walls}
+          holes={holes}
+          arrows={arrows}
+          start={start}
+          exit={exit}
+          ball={replay.cell}
+        />
       </div>
       <ArrowPad onPress={slide} disabled={locked || replay.solved} />
       <div className="flex shrink-0 justify-center gap-2">
@@ -244,13 +296,15 @@ function routeCells(
   start: number,
   exit: number,
   moves: SlideDir[],
+  arrows: SlideArrow[],
 ): number[] {
   const blocked = new Set(walls);
   const pits = new Set(holes);
+  const turns = arrowMap(arrows);
   const cells = [start];
   let cell = start;
   for (const dir of moves) {
-    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start);
+    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
     if (!outcome.path.length) continue;
     cells.push(...outcome.path);
     cell = outcome.cell;
@@ -262,12 +316,13 @@ function routeCells(
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "iceslide") return null;
   const holes = puzzle.holes ?? [];
+  const arrows = puzzle.arrows ?? [];
   const best = puzzle.solution
     ? (puzzle.solution.split("") as SlideDir[])
-    : shortestSlideRoute(puzzle.walls, holes, puzzle.start, puzzle.exit);
-  const route = routeCells(puzzle.walls, holes, puzzle.start, puzzle.exit, best);
+    : shortestSlideRoute(puzzle.walls, holes, puzzle.start, puzzle.exit, arrows);
+  const route = routeCells(puzzle.walls, holes, puzzle.start, puzzle.exit, best, arrows);
   const mine = (myAnswer ?? "").split("") as SlideDir[];
-  const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, mine);
+  const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, mine, arrows);
   const min = puzzle.minMoves ?? best.length;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((SLIDE_TIME_MS - myMsRemaining) / 100) / 10;
@@ -278,6 +333,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         <Board
           walls={puzzle.walls}
           holes={holes}
+          arrows={arrows}
           start={puzzle.start}
           exit={puzzle.exit}
           ball={puzzle.start}

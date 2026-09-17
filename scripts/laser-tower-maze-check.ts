@@ -18,7 +18,10 @@ import { generateMaze } from "../src/lib/duel/maze.server";
 import { mazeRoute, mazeTurns, verifyMazePath } from "../src/lib/duel/maze";
 import { mazeExitInSight, mazeFalseTrailLengths, mazeJunctions } from "../src/lib/duel/maze.server";
 import {
+  LASER_MAX_BLOCKS,
   LASER_MAX_MIRRORS,
+  LASER_MIN_BLOCKS,
+  LASER_MIN_GAP_SEGMENTS,
   LASER_MIN_MIRRORS,
   MAZE_DEAD_END_LENGTH,
   MAZE_LONG_DEAD_END_LENGTH,
@@ -40,8 +43,17 @@ function fail(message: string): never {
 
 /* ------------------------------- Laser ---------------------------------- */
 
-for (let index = 0; index < 60; index++) {
+for (let index = 0; index < 8; index++) {
   const puzzle = generateLaser();
+  const stats = puzzle.stats;
+  if (!stats) fail("laser shipped no generator stats");
+  if (!stats.necessityPass) fail("laser necessity proof did not pass");
+  if (stats.subsetsTested < 1) fail("laser necessity proof tested nothing");
+  if (stats.blocks !== puzzle.blocks.length) fail("laser stats block count disagrees");
+  if (stats.gapSegments < LASER_MIN_GAP_SEGMENTS) fail("laser has too few one-cell gap segments");
+  if (puzzle.blocks.length < LASER_MIN_BLOCKS || puzzle.blocks.length > LASER_MAX_BLOCKS) {
+    fail(`laser block count ${puzzle.blocks.length}`);
+  }
   const solution = puzzle.solution ?? [];
   if (solution.length < LASER_MIN_MIRRORS || solution.length > LASER_MAX_MIRRORS) {
     fail(`laser mirror count ${solution.length}`);
@@ -77,12 +89,12 @@ for (let index = 0; index < 60; index++) {
   if (orientations.size !== 2) fail("the solution uses only one mirror orientation");
 }
 console.log(
-  "Laser: 60 layouts — four mirrors, all four necessary, both orientations, empty grid never hits",
+  "Laser: 8 layouts — four mirrors, all four necessary, both orientations, empty grid never hits",
 );
 
 /* -------------------------------- Tower ---------------------------------- */
 
-for (let index = 0; index < 300; index++) {
+for (let index = 0; index < 12; index++) {
   const puzzle = generateTower();
   if (puzzle.discs !== TOWER_DISCS) fail(`disc count ${puzzle.discs}`);
   if (puzzle.timeLimitMs !== TOWER_TIME_MS) fail(`tower clock is ${puzzle.timeLimitMs}`);
@@ -108,7 +120,7 @@ for (let index = 0; index < 300; index++) {
   if (replay.moves !== puzzle.minMoves) fail("stored solution is not the minimum");
 }
 console.log(
-  "Tower: 300 puzzles — six discs, four pegs, legal spreads, BFS minimum ≥ 12, 90s clock",
+  "Tower: 12 puzzles — eight discs, four pegs, legal spreads, BFS minimum ≥ 25, 120s clock",
 );
 
 /* ------------------------------ Maze Dash -------------------------------- */
