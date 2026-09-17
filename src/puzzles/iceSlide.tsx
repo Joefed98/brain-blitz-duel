@@ -298,13 +298,15 @@ function routeCells(
   start: number,
   exit: number,
   moves: SlideDir[],
+  arrows: SlideArrow[],
 ): number[] {
   const blocked = new Set(walls);
   const pits = new Set(holes);
+  const turns = arrowMap(arrows);
   const cells = [start];
   let cell = start;
   for (const dir of moves) {
-    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start);
+    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
     if (!outcome.path.length) continue;
     cells.push(...outcome.path);
     cell = outcome.cell;
@@ -316,12 +318,13 @@ function routeCells(
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "iceslide") return null;
   const holes = puzzle.holes ?? [];
+  const arrows = puzzle.arrows ?? [];
   const best = puzzle.solution
     ? (puzzle.solution.split("") as SlideDir[])
-    : shortestSlideRoute(puzzle.walls, holes, puzzle.start, puzzle.exit);
-  const route = routeCells(puzzle.walls, holes, puzzle.start, puzzle.exit, best);
+    : shortestSlideRoute(puzzle.walls, holes, puzzle.start, puzzle.exit, arrows);
+  const route = routeCells(puzzle.walls, holes, puzzle.start, puzzle.exit, best, arrows);
   const mine = (myAnswer ?? "").split("") as SlideDir[];
-  const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, mine);
+  const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, mine, arrows);
   const min = puzzle.minMoves ?? best.length;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((SLIDE_TIME_MS - myMsRemaining) / 100) / 10;
@@ -332,6 +335,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         <Board
           walls={puzzle.walls}
           holes={holes}
+          arrows={arrows}
           start={puzzle.start}
           exit={puzzle.exit}
           ball={puzzle.start}
