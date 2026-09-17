@@ -524,13 +524,23 @@ export function scorePush(
 }
 
 /**
- * Laser and Mirrors: the beam on the target scores the standard points; a beam
- * stopping within one cell of it earns a consolation.
+ * Laser and Mirrors: both gems on the first shot scores most, the third shot
+ * least; a single gem left lit at the end is a consolation.
  */
-export function scoreLaser(solved: boolean, near: boolean, msRemaining: number): number {
-  if (solved) return BASE_POINTS + speedBonus(msRemaining, LASER_TIME_MS);
-  return near ? LASER_NEAR_POINTS : 0;
+export function scoreLaser(
+  solved: boolean,
+  gemsLit: number,
+  fires: number,
+  msRemaining: number,
+): number {
+  if (solved) {
+    const shot = Math.max(1, Math.min(LASER_FIRE_BASE.length, Math.round(fires) || 1));
+    const base = LASER_FIRE_BASE[shot - 1]!;
+    return Math.min(MAX_ROUND_SCORE, base + speedBonus(msRemaining, LASER_TIME_MS));
+  }
+  return gemsLit >= 1 ? LASER_ONE_GEM_POINTS : 0;
 }
+
 
 /** Tower: the whole stack home scores the standard points, +20 for the minimum. */
 export function scoreTower(

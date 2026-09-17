@@ -391,19 +391,23 @@ export function gradeSubmission(
       break;
     }
     case "laser": {
-      // The beam is re-traced here from the placement the phone sent.
-      const placed = decodeMirrors(answer, puzzle.mirrors);
-      const verdict = verifyLaser(puzzle, placed);
+      // The beam is re-traced here from the placement the phone sent, so the
+      // client's own claim about the shot is never trusted.
+      const shot = decodeLaserAnswer(answer, puzzle.mirrors);
+      const verdict = verifyLaser(puzzle, shot.mirrors, shot.fires);
       isCorrect = verdict.solved;
-      correctCount = verdict.mirrorsPlaced;
-      score = scoreLaser(verdict.solved, verdict.near, ms);
+      correctCount = verdict.gemsLit;
+      score = scoreLaser(verdict.solved, verdict.gemsLit, verdict.fires, ms);
       extraDetail = {
         solved: verdict.solved,
-        near: verdict.near,
+        gemsLit: verdict.gemsLit,
+        fires: verdict.fires,
+        hitBomb: verdict.trace.hitBomb,
         mirrorsPlaced: verdict.mirrorsPlaced,
       };
       break;
     }
+
     case "tower": {
       // Every move is replayed on the stored spread, so illegal moves never count.
       const moves = decodeTowerMoves(answer);
