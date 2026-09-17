@@ -7,21 +7,36 @@
 import { encodeMirrors, decodeMirrors, traceBeam, verifyLaser } from "../src/lib/duel/laser";
 import { generateLaser } from "../src/lib/duel/laser.server";
 import { generateTower } from "../src/lib/duel/tower.server";
-import { decodeTowerMoves, replayTower, towerMinMoves } from "../src/lib/duel/tower";
+import {
+  decodeTowerMoves,
+  replayTower,
+  towerShortest,
+  towerStacksLegal,
+  towerPegsFrom,
+} from "../src/lib/duel/tower";
 import { generateMaze } from "../src/lib/duel/maze.server";
 import { mazeRoute, mazeTurns, verifyMazePath } from "../src/lib/duel/maze";
-import { mazeFalseTrails, mazeJunctions } from "../src/lib/duel/maze.server";
+import {
+  mazeExitInSight,
+  mazeFalseTrailLengths,
+  mazeJunctions,
+} from "../src/lib/duel/maze.server";
 import {
   LASER_MAX_MIRRORS,
   LASER_MIN_MIRRORS,
   MAZE_DEAD_END_LENGTH,
+  MAZE_LONG_DEAD_END_LENGTH,
   MAZE_MIN_DEAD_ENDS,
   MAZE_MIN_JUNCTIONS,
+  MAZE_MIN_LONG_DEAD_ENDS,
   MAZE_MIN_PATH,
   MAZE_MIN_TURNS,
-  TOWER_LONG_TIME_MS,
+  TOWER_DISCS,
+  TOWER_MIN_MINIMUM,
+  TOWER_PEGS,
   TOWER_TIME_MS,
 } from "../src/lib/duel/types";
+
 
 function fail(message: string): never {
   console.error(`FAIL: ${message}`);
