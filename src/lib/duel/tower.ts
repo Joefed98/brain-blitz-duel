@@ -196,7 +196,9 @@ export function towerShortest(
             const solution: TowerMove[] = [];
             let cursor: string | null = key;
             while (cursor) {
-              const step = seen.get(cursor)!;
+              const step: { state: TowerState; move: TowerMove | null; parent: string | null } =
+                seen.get(cursor)!;
+
               if (!step.move) break;
               solution.unshift(step.move);
               cursor = step.parent;
