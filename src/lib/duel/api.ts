@@ -98,8 +98,8 @@ export async function leaveRoom(roomId: string): Promise<void> {
   await leaveRoomFn({ data: { roomId } });
 }
 
-export async function advancePhase(roomId: string): Promise<void> {
-  await advancePhaseFn({ data: { roomId } });
+export async function advancePhase(roomId: string, hostNext = false): Promise<void> {
+  await advancePhaseFn({ data: { roomId, hostNext } });
 }
 
 export async function submitAnswer(params: {

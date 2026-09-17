@@ -1,6 +1,6 @@
 # Split post-round results
 
-- [ ] Add sequential round-results and overall-standings phases
+- [x] Add sequential round-results and overall-standings phases
 - [ ] Build compact 10-player round-results table with expandable summaries
 - [ ] Build compact overall table with position changes and reorder animation
 - [ ] Preserve two-player VS presentation across both parts

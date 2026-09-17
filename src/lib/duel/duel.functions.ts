@@ -207,7 +207,10 @@ async function createRoomRow(
 function roundHasEnded(room: DuelRow, round: number): boolean {
   if (room.status === "finished") return true;
   if (room.current_round > round) return true;
-  return room.current_round === round && (room.phase === "reveal" || room.phase === "result");
+  return (
+    room.current_round === round &&
+    (room.phase === "reveal" || room.phase === "result" || room.phase === "standings")
+  );
 }
 
 /** How many answers are in for a round. */
@@ -478,7 +481,7 @@ export const leaveRoomFn = createServerFn({ method: "POST" })
  */
 export const advancePhaseFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string }) => input)
+  .inputValidator((input: { roomId: string; hostNext?: boolean }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
@@ -521,14 +524,26 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
-    // standings / round result
-    const manyPlayers = present(players).length > 2;
-    const autoMs = manyPlayers ? STANDINGS_MS : NEXT_ROUND_AUTO_MS;
-    const host = players.find((p) => p.user_id === room.host_user_id);
-    const skipped = manyPlayers
-      ? !!host && host.ready_round >= round
-      : waitingOn.length > 0 && waitingOn.every((p) => p.ready_round >= round);
-    if (!skipped && elapsed < autoMs) return { ok: true };
+    const hostNext = data.hostNext === true && context.userId === room.host_user_id;
+
+    if (room.phase === "result") {
+      if (!hostNext && elapsed < NEXT_ROUND_AUTO_MS) return { ok: true };
+      if (round >= (room.round_count ?? TOTAL_ROUNDS)) {
+        await client
+          .from("duels")
+          .update({ status: "finished" })
+          .eq("id", room.id)
+          .eq("current_round", round)
+          .eq("phase", "result");
+        return { ok: true };
+      }
+      await setPhase(client, room.id, round, "result", "standings");
+      return { ok: true };
+    }
+
+    if (room.phase !== "standings" || (!hostNext && elapsed < STANDINGS_MS)) {
+      return { ok: true };
+    }
 
     if (round >= (room.round_count ?? TOTAL_ROUNDS)) {
       await client
@@ -536,7 +551,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
         .update({ status: "finished" })
         .eq("id", room.id)
         .eq("current_round", round)
-        .eq("phase", "result");
+        .eq("phase", "standings");
       return { ok: true };
     }
 
@@ -551,7 +566,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
       })
       .eq("id", room.id)
       .eq("current_round", round)
-      .eq("phase", "result");
+      .eq("phase", "standings");
     return { ok: true };
   });
 
