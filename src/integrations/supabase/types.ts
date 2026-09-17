@@ -98,6 +98,7 @@ export type Database = {
           id: string
           max_players: number
           next_duel_id: string | null
+          no_maths: boolean
           phase: string
           phase_started_at: string | null
           puzzles_public: Json
@@ -114,6 +115,7 @@ export type Database = {
           id?: string
           max_players?: number
           next_duel_id?: string | null
+          no_maths?: boolean
           phase?: string
           phase_started_at?: string | null
           puzzles_public?: Json
@@ -130,6 +132,7 @@ export type Database = {
           id?: string
           max_players?: number
           next_duel_id?: string | null
+          no_maths?: boolean
           phase?: string
           phase_started_at?: string | null
           puzzles_public?: Json

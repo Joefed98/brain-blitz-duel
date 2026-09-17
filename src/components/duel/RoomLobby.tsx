@@ -16,6 +16,8 @@ function Crown() {
 }
 
 interface RoomLobbyProps {
+  noMaths: boolean;
+  onNoMathsChange: (value: boolean) => void;
   players: DuelPlayerRow[];
   hostUserId: string | null;
   meUserId: string;
@@ -28,6 +30,8 @@ interface RoomLobbyProps {
 /** The waiting room for two to ten players. */
 export function RoomLobby({
   players,
+  noMaths,
+  onNoMathsChange,
   hostUserId,
   meUserId,
   isHost,
@@ -74,6 +78,41 @@ export function RoomLobby({
           );
         })}
       </ul>
+
+      {isHost ? (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={noMaths}
+          onClick={() => onNoMathsChange(!noMaths)}
+          className="press tap-target flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3"
+        >
+          <span className="font-display text-sm text-foreground">No maths</span>
+          <span
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+              noMaths ? "bg-primary" : "bg-muted"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-background transition-all ${
+                noMaths ? "left-[22px]" : "left-0.5"
+              }`}
+            />
+          </span>
+        </button>
+      ) : (
+        noMaths && (
+          <p className="text-center font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+            no maths
+          </p>
+        )
+      )}
+
+      {isHost && noMaths && (
+        <p className="text-center font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+          no maths
+        </p>
+      )}
 
       {isHost ? (
         <button
