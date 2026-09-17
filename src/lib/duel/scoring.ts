@@ -8,7 +8,9 @@ import {
   PCTSPRINT_TIME_MS,
   ROUND_MS,
   SPOT_DIFFERENCES,
+  SPOT_FOUR_POINTS,
   SPOT_ONE_POINTS,
+  SPOT_THREE_POINTS,
   SPOT_TIME_MS,
   SPOT_TWO_POINTS,
   STOPWATCH_MAX_DIST_MS,
@@ -188,9 +190,18 @@ export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): 
 export function scoreSpotDifference(foundCount: number, msRemaining: number): number {
   const found = clamp(Math.round(foundCount), 0, SPOT_DIFFERENCES);
   if (found >= SPOT_DIFFERENCES) return BASE_POINTS + speedBonus(msRemaining, SPOT_TIME_MS);
+  if (found === 4) return SPOT_FOUR_POINTS;
+  if (found === 3) return SPOT_THREE_POINTS;
   if (found === 2) return SPOT_TWO_POINTS;
   if (found === 1) return SPOT_ONE_POINTS;
   return 0;
+}
+
+/** Pattern Completion: partial credit per board; speed only rewards a perfect set. */
+export function scorePatternCompletion(correctCount: number, msRemaining: number): number {
+  const correct = clamp(Math.round(correctCount), 0, 3);
+  return Math.round((BASE_POINTS * correct) / 3) +
+    (correct === 3 ? speedBonus(msRemaining, 30_000) : 0);
 }
 
 /** Word Match: accuracy out of 100, plus the speed bonus on a flawless run. */

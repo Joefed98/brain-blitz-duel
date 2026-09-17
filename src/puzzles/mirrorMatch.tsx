@@ -36,14 +36,16 @@ function pickAxis(): MirrorAxis {
 const otherAxis = (axis: MirrorAxis): MirrorAxis =>
   axis === "vertical" ? "horizontal" : "vertical";
 
-/** Swaps two colours of the shape, so the outline is right but the paint isn't. */
-function swapColours(shape: MirrorShape): MirrorShape | null {
-  const distinct = [...new Set(shape.colours)];
-  if (distinct.length < 2) return null;
-  const [a, b] = shuffled(distinct).slice(0, 2) as [StroopColour, StroopColour];
+const MIRROR_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE", "BROWN"];
+
+/** Keeps the reflected outline exact while changing one or two painted cells. */
+function wrongColouring(shape: MirrorShape, changedCells: 1 | 2): MirrorShape {
+  const indices = shuffled(shape.colours.map((_, index) => index)).slice(0, changedCells);
   return {
     cells: [...shape.cells],
-    colours: shape.colours.map((c) => (c === a ? b : c === b ? a : c)),
+    colours: shape.colours.map((colour, index) =>
+      indices.includes(index) ? pick(MIRROR_COLOURS.filter((candidate) => candidate !== colour)) : colour,
+    ),
   };
 }
 
@@ -55,18 +57,20 @@ function buildItem(): MirrorItem & { kinds: MirrorCandidateKind[]; correctIndex:
     const pts = toPts(target);
 
     const correct = normalise(reflect(pts, axis));
-    // (a) reflected across the other of the two lines, (b) turned instead of
-    // flipped, (c) the right outline with two colours swapped.
+    // Every item has a correct-outline/wrong-colouring trap. Half have two of
+    // those traps (one and two changed cells), leaving one rotation distractor.
     const wrongAxis = normalise(reflect(pts, otherAxis(axis)));
     const turned = normalise(rotate(pts, pick([1, 2, 3])));
-    const swapped = swapColours(correct);
-    if (!swapped) continue;
-
+    const oneWrong = wrongColouring(correct, 1);
+    const twoWrong = wrongColouring(correct, 2);
+    const doubleColourTrap = Math.random() < 0.5;
     const options: { shape: MirrorShape; kind: MirrorCandidateKind }[] = [
       { shape: correct, kind: "correct" },
-      { shape: wrongAxis, kind: "otherAxis" },
       { shape: turned, kind: "rotation" },
-      { shape: normalise(toPts(swapped)), kind: "swap" },
+      { shape: normalise(toPts(oneWrong)), kind: "swap" },
+      doubleColourTrap
+        ? { shape: normalise(toPts(twoWrong)), kind: "swap" }
+        : { shape: wrongAxis, kind: "otherAxis" },
     ];
     if (new Set(options.map((o) => shapeKey(o.shape))).size !== 4) continue;
 

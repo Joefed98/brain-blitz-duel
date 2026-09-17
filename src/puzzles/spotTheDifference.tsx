@@ -278,11 +278,10 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center text-sm text-muted-foreground">
-        Find the three differences between the top and bottom pictures.
+        Find the five differences between the top and bottom pictures.
       </p>
-      <div className="w-full overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex w-full flex-col gap-[10px] overflow-hidden rounded-xl border border-border bg-card">
         <Panel shapes={EXAMPLE_TOP} found={[4]} rows={2} />
-        <div className="h-[2px] w-full bg-primary" />
         <Panel shapes={EXAMPLE_BOTTOM} found={[4]} rows={2} />
       </div>
       <p className="text-center text-xs text-muted-foreground">
@@ -315,7 +314,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   const foundCells = foundGroups.flat();
   const total = Math.min(SPOT_DIFFERENCES, groups.length) || SPOT_DIFFERENCES;
 
-  // All three found locks the round in; otherwise the taps so far go up just
+    // All five found lock the round in; otherwise the taps so far go up just
   // before the clock runs out. The server re-checks every tap either way.
   useEffect(() => {
     if (groups.length === 0 || locked || submitted.current === key) return;
@@ -353,7 +352,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         {foundGroups.length} / {total} found
       </p>
       <div
-        className={`flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card ${
+        className={`flex min-h-0 w-full flex-1 flex-col gap-[10px] overflow-hidden rounded-2xl border border-border bg-card ${
           wrong !== null ? "animate-shake" : ""
         }`}
       >
@@ -367,7 +366,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
             shapeSize={50}
           />
         </div>
-        <div className="h-[2px] w-full shrink-0 bg-primary" />
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <Panel
             shapes={puzzle.bottom}
@@ -395,11 +393,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1.5">
-      <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-[10px] overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <Panel shapes={puzzle.top} found={cells} fitHeight />
         </div>
-        <div className="h-[2px] w-full bg-primary" />
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <Panel shapes={puzzle.bottom} found={cells} fitHeight />
         </div>
@@ -563,29 +560,22 @@ export function buildSpotDifference(): SpotPuzzleData {
     };
   }
 
-  // Fallback: one plain colour change on a tiny scene (only if generation fails).
+  // Fallback: five separated edits on a fixed-size scene.
   const top = scatter(SPOT_MIN_SHAPES);
-  const first = top[0]!;
-  const second = top[4]!;
-  const third = top[8]!;
-  const bottom = top
-    .filter((s) => s.cell !== third.cell)
-    .map((s) =>
-      s.cell === first.cell
-        ? { ...s, colour: otherColour(s.colour) }
-        : s.cell === second.cell
-          ? { ...s, kind: (KIND_SWAP[s.kind] ?? "hexagon") as SpotShapeKind }
-          : s,
-    );
+  const chosen = top.slice(0, SPOT_DIFFERENCES);
+  const bottom = top.map((shape) => {
+    const index = chosen.findIndex((candidate) => candidate.cell === shape.cell);
+    return index >= 0 ? { ...shape, colour: otherColour(shape.colour) } : shape;
+  });
   return {
     type: "spotdiff",
     top,
     bottom,
-    differences: [
-      { kind: "colour", cells: [first.cell], label: "A shape changed colour" },
-      { kind: "kind", cells: [second.cell], label: "A shape changed shape" },
-      { kind: "remove", cells: [third.cell], label: "A shape is missing" },
-    ],
+    differences: chosen.map((shape) => ({
+      kind: "colour" as const,
+      cells: [shape.cell],
+      label: "A shape changed colour",
+    })),
   };
 }
 
@@ -595,9 +585,9 @@ export const spotDifferencePuzzle: PuzzleDefinition = {
   category: "attention",
   timeLimitMs: SPOT_TIME_MS,
   generate: buildSpotDifference,
-  // Scored from how many of the three stored differences were tapped.
+  // Scored from how many of the five stored differences were tapped.
   check: () => true,
-  revealHeading: "The three differences",
+  revealHeading: "The five differences",
   IntroExample,
   Stage,
   Reveal,
