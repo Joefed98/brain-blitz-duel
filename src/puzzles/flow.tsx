@@ -63,12 +63,25 @@ function FlowBoard({
       >
         {Array.from({ length: total }, (_, cell) => {
           const tint = filled.get(cell);
+          const dot = pairs.find((pair) => pair.a === cell || pair.b === cell);
           return (
             <div
               key={cell}
-              className="rounded-[3px] border border-border/60 bg-card"
+              className="flex items-center justify-center rounded-[3px] border border-border/60 bg-card"
               style={tint ? { backgroundColor: `${tint}22`, borderColor: `${tint}55` } : undefined}
-            />
+            >
+              {/* The dot is a child of its own cell, so it is always dead centre. */}
+              {dot && (
+                <span
+                  className="block rounded-full"
+                  style={{
+                    width: "62%",
+                    height: "62%",
+                    backgroundColor: GLYPH_COLOURS[dot.colour],
+                  }}
+                />
+              )}
+            </div>
           );
         })}
       </div>
@@ -93,17 +106,6 @@ function FlowBoard({
             />
           );
         })}
-        {pairs.map((pair, index) =>
-          [pair.a, pair.b].map((cell) => (
-            <circle
-              key={`${index}-${cell}`}
-              cx={(cell % cols) + 0.5}
-              cy={Math.floor(cell / cols) + 0.5}
-              r={0.3}
-              fill={GLYPH_COLOURS[pair.colour]}
-            />
-          )),
-        )}
       </svg>
     </div>
   );
