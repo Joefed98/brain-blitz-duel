@@ -120,17 +120,17 @@ function Pegs({
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
-  const pegs: TowerPegs = [[6, 4], [5, 2], [3], [1]];
+  const pegs: TowerPegs = [[8, 6], [7, 4, 2], [5, 3], [1]];
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
         Move every disc to the marked peg, one at a time. Never put a bigger disc on a smaller one.
       </p>
       <div style={{ width: 190, height: 96 }}>
-        <Pegs pegs={pegs} discs={6} targetPeg={3} compact />
+        <Pegs pegs={pegs} discs={8} targetPeg={3} compact />
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewest moves earns a bonus. You have 90 seconds.
+        Fewest moves earns a bonus. You have 120 seconds.
       </p>
     </div>
   );
