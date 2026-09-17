@@ -1036,11 +1036,12 @@ export interface LaserPuzzleData {
 /*  Tower                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export const TOWER_TIME_MS = 60_000;
-/** Five-disc towers get longer on the clock. */
-export const TOWER_LONG_TIME_MS = 90_000;
-/** Share of puzzles that use five discs instead of four. */
-export const TOWER_FIVE_DISC_SHARE = 0.3;
+export const TOWER_TIME_MS = 90_000;
+/** Six discs across four pegs. */
+export const TOWER_DISCS = 6;
+export const TOWER_PEGS = 4;
+/** A starting spread is only used when it needs at least this many moves. */
+export const TOWER_MIN_MINIMUM = 12;
 /** Bonus for finishing in the fewest possible moves. */
 export const TOWER_MIN_MOVE_BONUS = 20;
 /** Most a partly-built tower can earn. */
@@ -1048,13 +1049,15 @@ export const TOWER_PARTIAL_POINTS = 60;
 
 export interface TowerPuzzleData {
   type: "tower";
-  /** Four discs, or five in the harder variant. */
+  /** How many discs are in play: six. */
   discs: number;
-  /** Which peg the tower must end on: 1 (middle) or 2 (right). */
+  /** The starting spread, one stack per peg, bottom disc first. */
+  start: number[][];
+  /** Which of the four pegs the tower must end on. */
   targetPeg: number;
-  /** The fewest moves the puzzle can be finished in (2^discs − 1). */
+  /** The fewest moves this spread can be finished in, found by search. */
   minMoves: number;
-  /** This puzzle's own clock, which the five-disc variant lengthens. */
+  /** This puzzle's own clock. */
   timeLimitMs: number;
   /** Server-side only: one shortest sequence of moves. */
   solution?: string;
@@ -1064,20 +1067,26 @@ export interface TowerPuzzleData {
 /*  Maze Dash                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const MAZE_COLS = 13;
+export const MAZE_COLS = 15;
 export const MAZE_CELLS = MAZE_COLS * MAZE_COLS;
-export const MAZE_TIME_MS = 45_000;
+export const MAZE_TIME_MS = 60_000;
 /** The route from start to exit is never shorter than this. */
-export const MAZE_MIN_PATH = 55;
+export const MAZE_MIN_PATH = 70;
 /** And never straighter than this. */
-export const MAZE_MIN_TURNS = 10;
+export const MAZE_MIN_TURNS = 14;
 /** False trails: dead-end branches leaving the route, and how long each runs. */
-export const MAZE_MIN_DEAD_ENDS = 6;
-export const MAZE_DEAD_END_LENGTH = 4;
+export const MAZE_MIN_DEAD_ENDS = 8;
+export const MAZE_DEAD_END_LENGTH = 5;
+/** And some of those trails have to be long enough to really cost time. */
+export const MAZE_MIN_LONG_DEAD_ENDS = 3;
+export const MAZE_LONG_DEAD_END_LENGTH = 11;
 /** Forks on or beside the route, so the player has to choose. */
-export const MAZE_MIN_JUNCTIONS = 10;
+export const MAZE_MIN_JUNCTIONS = 14;
+/** The exit may not be visible down a straight corridor from this last stretch. */
+export const MAZE_BLIND_TAIL = 10;
 /** Most a partly-run maze can earn. */
 export const MAZE_PARTIAL_POINTS = 60;
+
 
 export interface MazePuzzleData {
   type: "maze";
