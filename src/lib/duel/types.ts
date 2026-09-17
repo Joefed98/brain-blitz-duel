@@ -1058,6 +1058,19 @@ export interface MirrorPlacement {
   kind: MirrorKind;
 }
 
+/** Generator figures, shown only in the dev readout. */
+export interface LaserStats {
+  blocks: number;
+  mirrors: number;
+  bends: number;
+  /** True when no placement of one, two or three mirrors reaches the target. */
+  necessityPass: boolean;
+  /** How many mirror placements the exhaustive search traced. */
+  subsetsTested: number;
+  gapSegments: number;
+  attempts: number;
+}
+
 export interface LaserPuzzleData {
   type: "laser";
   /** The edge cell the laser fires from. */
@@ -1069,9 +1082,12 @@ export interface LaserPuzzleData {
   blocks: number[];
   /** Exactly as many mirrors as the solution needs. */
   mirrors: number;
+  /** Generator figures for the dev readout. */
+  stats?: LaserStats;
   /** Server-side only: where each mirror belongs, and which way it faces. */
   solution?: MirrorPlacement[];
 }
+
 
 /* -------------------------------------------------------------------------- */
 /*  Tower                                                                     */
