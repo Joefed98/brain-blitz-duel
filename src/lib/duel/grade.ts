@@ -11,6 +11,7 @@ import { decodeTowerMoves, replayTower } from "./tower";
 import { decodeMazePath, verifyMazePath } from "./maze";
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
+import { countPatternAnswers } from "./pattern";
 import { decodeMoves, replayUnblock } from "./unblock";
 import { puzzleTimeLimitMs } from "./registry";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
@@ -21,6 +22,7 @@ import {
   scoreNumberClimb,
   scoreNumberHunt,
   scorePercentSprint,
+  scorePatternCompletion,
   scoreReaction,
   scoreRound,
   scoreSpotDifference,
@@ -185,6 +187,12 @@ export function gradeSubmission(
       correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
       isCorrect = correctCount >= MIRMATCH_ITEMS;
       score = scoreMirrorMatch(correctCount, ms);
+      break;
+    }
+    case "patcomp": {
+      correctCount = countPatternAnswers(puzzle, answer);
+      isCorrect = correctCount === 3;
+      score = scorePatternCompletion(correctCount, ms);
       break;
     }
     case "spin": {

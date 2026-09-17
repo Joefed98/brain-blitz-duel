@@ -16,7 +16,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   ladder: ["shortestLength", "shortestPath"],
   equation: ["operators"],
   symscan: ["targets"],
-  patcomp: ["rules", "answer"],
+  patcomp: ["puzzles"],
   spin: ["answers"],
   reverse: ["answerOrder"],
   spotdiff: ["differences"],
@@ -70,9 +70,12 @@ export function splitPuzzle(puzzle: PuzzleData): SplitPuzzle {
   }
 
   if (puzzle.type === "patcomp") {
-    // The bottom-right cell is the answer; it is drawn as "?" during play.
-    priv["cells"] = puzzle.cells;
-    pub["cells"] = [...puzzle.cells.slice(0, 8), PLACEHOLDER_CELL];
+    // Each bottom-right cell and its rules remain private until the reveal.
+    pub["puzzles"] = puzzle.puzzles.map((item) => ({
+      cells: [...item.cells.slice(0, 8), PLACEHOLDER_CELL],
+      active: item.active,
+      rotatable: item.rotatable,
+    }));
   }
 
   return { pub: pub as unknown as PuzzleData, priv };

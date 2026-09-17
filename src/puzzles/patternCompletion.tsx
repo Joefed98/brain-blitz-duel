@@ -15,9 +15,11 @@ import {
 } from "@/lib/duel/pattern";
 import {
   PATCOMP_TIME_MS,
+  PATCOMP_ITEMS,
   type PatternAttribute,
   type PatternCell,
   type PatternPuzzleData,
+  type PatternRoundItem,
   type PatternRotation,
   type PatternShape,
   type StroopColour,
@@ -172,7 +174,7 @@ function IntroExample() {
         glyphSize={15}
       />
       <p className="text-center text-xs text-muted-foreground">
-        Set the shape, colour and count to match. You have 45 seconds.
+        Solve three patterns in 30 seconds. Each uses two changing attributes; you can skip.
       </p>
     </div>
   );
@@ -213,25 +215,36 @@ function PickerButton({
 
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
   const data = puzzle.type === "patcomp" ? (puzzle as PatternPuzzleData) : null;
-  const key = data ? data.cells.slice(0, 8).map(encodePatternCell).join("|") : "";
-  const fixed = data?.cells[0];
+  const roundKey = data
+    ? data.puzzles.map((item) => item.cells.slice(0, 8).map(encodePatternCell).join(",")).join("|")
+    : "";
+  const [index, setIndex] = useState(0);
+  const item: PatternRoundItem | undefined = data?.puzzles[index];
+  const key = item ? `${index}:${item.cells.slice(0, 8).map(encodePatternCell).join(",")}` : "";
+  const fixed = item?.cells[0];
 
   const [shape, setShape] = useState<PatternShape | null>(null);
   const [colour, setColour] = useState<StroopColour | null>(null);
   const [count, setCount] = useState<1 | 2 | 3 | null>(null);
   const [rot, setRot] = useState<PatternRotation | null>(null);
-  const submitted = useRef("");
+  const [answers, setAnswers] = useState<string[]>([]);
+  const submitted = useRef(false);
 
   useEffect(() => {
     setShape(null);
     setColour(null);
     setCount(null);
     setRot(null);
-    submitted.current = "";
   }, [key]);
 
-  const active = data?.active ?? [];
-  const showRotation = Boolean(data?.rotatable);
+  useEffect(() => {
+    setIndex(0);
+    setAnswers([]);
+    submitted.current = false;
+  }, [roundKey]);
+
+  const active = item?.active ?? [];
+  const showRotation = Boolean(item?.rotatable);
   const composed: PatternCell | undefined = useMemo(() => {
     if (!fixed) return undefined;
     const chosen: PatternCell = {
@@ -250,26 +263,46 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     (!active.includes("count") || count !== null) &&
     (!showRotation || rot !== null);
 
-  function send() {
-    if (!composed || submitted.current === key) return;
-    submitted.current = key;
-    onSubmit(encodePatternCell(composed));
+  function advance(answer: string) {
+    if (!data || submitted.current) return;
+    const next = [...answers, answer];
+    if (index >= data.puzzles.length - 1) {
+      submitted.current = true;
+      onSubmit(next.join("|"));
+      return;
+    }
+    setAnswers(next);
+    setIndex((current) => current + 1);
   }
 
   // Whatever is composed goes up just before the clock runs out.
   useEffect(() => {
-    if (!data || locked || submitted.current === key) return;
+    if (!data || locked || submitted.current) return;
     if (now < phaseStartedAt + PATCOMP_TIME_MS - 400) return;
-    submitted.current = key;
-    onSubmit(composed ? encodePatternCell(composed) : "");
-  }, [now, locked, key]); // eslint-disable-line react-hooks/exhaustive-deps
+    submitted.current = true;
+    const final = [...answers];
+    final[index] = composed ? encodePatternCell(composed) : "";
+    while (final.length < PATCOMP_ITEMS) final.push("");
+    onSubmit(final.join("|"));
+  }, [now, locked, roundKey, index, answers, composed, data, phaseStartedAt, onSubmit]);
 
-  if (!data || !fixed) return null;
+  if (!data || !item || !fixed) return null;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
+      <div
+        className="flex w-full shrink-0 gap-1.5"
+        aria-label={`Pattern ${index + 1} of ${data.puzzles.length}`}
+      >
+        {data.puzzles.map((_, progressIndex) => (
+          <span
+            key={progressIndex}
+            className={`h-1.5 flex-1 rounded-full ${progressIndex <= index ? "bg-primary" : "bg-border"}`}
+          />
+        ))}
+      </div>
       <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
-        <Grid cells={data.cells} answerCell={composed} pending={!locked} fluid glyphSize={22} />
+        <Grid cells={item.cells} answerCell={composed} pending={!locked} fluid glyphSize={22} />
       </div>
 
       <div className="flex w-full shrink-0 flex-col gap-1.5">
@@ -341,14 +374,24 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
           </div>
         ) : null}
 
-        <button
-          type="button"
-          disabled={locked || !ready}
-          onClick={send}
-          className="tap-target h-[52px] w-full rounded-xl bg-primary font-display text-lg font-bold text-primary-foreground disabled:opacity-40"
-        >
-          {locked ? "Locked" : "Submit"}
-        </button>
+        <div className="flex w-full gap-2">
+          <button
+            type="button"
+            disabled={locked}
+            onClick={() => advance("")}
+            className="tap-target h-[52px] flex-1 rounded-xl border border-border bg-card font-display text-base font-bold text-foreground disabled:opacity-40"
+          >
+            Skip
+          </button>
+          <button
+            type="button"
+            disabled={locked || !ready}
+            onClick={() => composed && advance(encodePatternCell(composed))}
+            className="tap-target h-[52px] flex-[2] rounded-xl bg-primary font-display text-lg font-bold text-primary-foreground disabled:opacity-40"
+          >
+            {locked ? "Locked" : "Submit"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -361,46 +404,47 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
 function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "patcomp") return null;
   const data = puzzle as PatternPuzzleData;
-  const mine = parsePatternCell(myAnswer);
-  const wrong = patternMistakes(data, myAnswer);
+  const answers = (myAnswer ?? "").split("|");
+  const correctCount = data.puzzles.filter((item, index) =>
+    checkPatternAnswer(answers[index] ?? "", item),
+  ).length;
 
   return (
-    <>
-      <Grid
-        cells={data.cells}
-        answerCell={data.answer ?? data.cells[8]!}
-        marked
-        cellSize={72}
-        glyphSize={18}
-      />
-      <div className="flex w-full flex-col gap-1">
-        {(data.rules ?? []).map((rule) => (
-          <p key={rule.attr} className="text-center text-sm text-muted-foreground">
-            {rule.text}
-          </p>
-        ))}
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
+      <p className={`font-mono text-2xl font-bold ${myCorrect ? "text-primary" : "text-warn"}`}>
+        {correctCount} / {PATCOMP_ITEMS} correct
+      </p>
+      <div className="grid min-h-0 w-full flex-1 grid-cols-3 items-center gap-2">
+        {data.puzzles.map((item, index) => {
+          const mine = parsePatternCell(answers[index]);
+          const ok = checkPatternAnswer(answers[index] ?? "", item);
+          const wrong = patternMistakes(item, answers[index]);
+          return (
+            <div key={index} className="flex min-w-0 flex-col items-center gap-1">
+              <Grid
+                cells={item.cells}
+                answerCell={item.answer ?? item.cells[8]}
+                marked
+                cellSize={28}
+                glyphSize={7}
+              />
+              <span
+                className={`font-display text-lg font-bold ${ok ? "text-primary" : "text-warn"}`}
+              >
+                {ok ? "✓" : "✗"}
+              </span>
+              <span className="text-center text-[10px] text-muted-foreground">
+                {!mine
+                  ? "Skipped"
+                  : wrong.length
+                    ? `${wrong.map(patternAttributeLabel).join(", ")} wrong`
+                    : "Correct"}
+              </span>
+            </div>
+          );
+        })}
       </div>
-      <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-4">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your piece</p>
-        {!mine ? (
-          <p className="font-display text-2xl font-bold text-warn">No answer</p>
-        ) : (
-          <div className="flex items-center gap-4">
-            <Cell cell={mine} marked={myCorrect} cellSize={72} glyphSize={18} />
-            <span
-              className={`font-display text-2xl font-bold ${myCorrect ? "text-primary" : "text-warn"}`}
-            >
-              {myCorrect ? "✓" : "✗"}
-            </span>
-          </div>
-        )}
-        {!myCorrect && wrong.length > 0 ? (
-          <p className="text-center text-sm font-bold text-warn">
-            {wrong.map(patternAttributeLabel).join(", ")} wrong
-          </p>
-        ) : null}
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -411,8 +455,9 @@ export const patternCompletionPuzzle: PuzzleDefinition = {
   timeLimitMs: PATCOMP_TIME_MS,
   generate: buildPatternCompletion,
   check: (answer, puzzle) =>
-    puzzle.type === "patcomp" ? checkPatternAnswer(answer, puzzle as PatternPuzzleData) : false,
-  revealHeading: "The missing piece",
+    puzzle.type === "patcomp" &&
+    puzzle.puzzles.every((item, index) => checkPatternAnswer(answer.split("|")[index] ?? "", item)),
+  revealHeading: "The three patterns",
   IntroExample,
   Stage,
   Reveal,

@@ -211,7 +211,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
-/** Twelve distinct two-digit numbers, ascending. */
+/** Fourteen distinct two-digit numbers, ascending. */
 function pickValues(): number[] {
   const pool = new Set<number>();
   while (pool.size < NUMHUNT_COUNT) pool.add(10 + Math.floor(Math.random() * 90));
@@ -249,12 +249,12 @@ export function buildNumberHunt(): NumberHuntPuzzleData {
     }
     if (ok) return { type: "numhunt", spots };
   }
-  // Fallback grid — spaced widely enough that it can never overlap.
+  // Fallback staggered grid — fourteen circles with safe spacing at 390×700.
   return {
     type: "numhunt",
     spots: Array.from({ length: NUMHUNT_COUNT }, (_, i) => ({
-      x: 18 + (i % 3) * 32,
-      y: 12 + Math.floor(i / 3) * 25,
+      x: 11 + (i % 4) * 26,
+      y: 13 + Math.floor(i / 4) * 25,
       n: values[i]!,
     })),
   };

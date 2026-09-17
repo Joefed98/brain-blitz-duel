@@ -1,4 +1,9 @@
-import { patternAttributeLabel, patternMistakes } from "./pattern";
+import {
+  checkPatternAnswer,
+  decodePatternAnswers,
+  patternAttributeLabel,
+  patternMistakes,
+} from "./pattern";
 import {
   BLOCK_FREE_CELLS,
   BLOCK_TIME_MS,
@@ -60,52 +65,53 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
           ? PATCOMP_TIME_MS
           : puzzle.type === "target"
             ? TARGET_TIME_MS
-            : puzzle.type === "equation" ||
-                puzzle.type === "chaincalc" ||
-                puzzle.type === "symscan" ||
-                puzzle.type === "countup"
+            : puzzle.type === "equation" || puzzle.type === "chaincalc"
               ? 45_000
-              : puzzle.type === "numseq"
-                ? 30_000
-                : puzzle.type === "mirmatch"
-                  ? MIRMATCH_TIME_MS
-                  : puzzle.type === "spin"
-                    ? SPIN_TIME_MS
-                    : puzzle.type === "spotdiff"
-                      ? SPOT_TIME_MS
-                      : puzzle.type === "groups"
-                        ? 90_000
-                        : puzzle.type === "ladder"
-                          ? WORD_LADDER_TIME_MS
-                          : puzzle.type === "numclimb"
-                            ? NUMBER_CLIMB_TIME_MS
-                            : puzzle.type === "lightsout"
-                              ? LIGHTS_TIME_MS
-                              : puzzle.type === "pipes"
-                                ? PIPES_TIME_MS
-                                : puzzle.type === "sudoku"
-                                  ? SUDOKU_TIME_MS
-                                  : puzzle.type === "flow"
-                                    ? FLOW_TIME_MS
-                                    : puzzle.type === "iceslide"
-                                      ? SLIDE_TIME_MS
-                                      : puzzle.type === "push"
-                                        ? PUSH_TIME_MS
-                                        : puzzle.type === "laser"
-                                          ? LASER_TIME_MS
-                                          : puzzle.type === "maze"
-                                            ? MAZE_TIME_MS
-                                            : puzzle.type === "tower"
-                                              ? (puzzle.timeLimitMs ?? TOWER_TIME_MS)
-                                              : puzzle.type === "wordsmith"
-                                                ? WORDSMITH_TIME_MS
-                                                : puzzle.type === "wordhunt"
-                                                  ? WORDHUNT_TIME_MS
-                                                  : puzzle.type === "unblock"
-                                                    ? UNBLOCK_TIME_MS
-                                                    : puzzle.type === "blockparty"
-                                                      ? BLOCK_TIME_MS
-                                                      : ROUND_MS;
+              : puzzle.type === "symscan"
+                ? 20_000
+                : puzzle.type === "countup"
+                  ? 15_000
+                  : puzzle.type === "numseq"
+                    ? 30_000
+                    : puzzle.type === "mirmatch"
+                      ? MIRMATCH_TIME_MS
+                      : puzzle.type === "spin"
+                        ? SPIN_TIME_MS
+                        : puzzle.type === "spotdiff"
+                          ? SPOT_TIME_MS
+                          : puzzle.type === "groups"
+                            ? 90_000
+                            : puzzle.type === "ladder"
+                              ? WORD_LADDER_TIME_MS
+                              : puzzle.type === "numclimb"
+                                ? NUMBER_CLIMB_TIME_MS
+                                : puzzle.type === "lightsout"
+                                  ? LIGHTS_TIME_MS
+                                  : puzzle.type === "pipes"
+                                    ? PIPES_TIME_MS
+                                    : puzzle.type === "sudoku"
+                                      ? SUDOKU_TIME_MS
+                                      : puzzle.type === "flow"
+                                        ? FLOW_TIME_MS
+                                        : puzzle.type === "iceslide"
+                                          ? SLIDE_TIME_MS
+                                          : puzzle.type === "push"
+                                            ? PUSH_TIME_MS
+                                            : puzzle.type === "laser"
+                                              ? LASER_TIME_MS
+                                              : puzzle.type === "maze"
+                                                ? MAZE_TIME_MS
+                                                : puzzle.type === "tower"
+                                                  ? (puzzle.timeLimitMs ?? TOWER_TIME_MS)
+                                                  : puzzle.type === "wordsmith"
+                                                    ? WORDSMITH_TIME_MS
+                                                    : puzzle.type === "wordhunt"
+                                                      ? WORDHUNT_TIME_MS
+                                                      : puzzle.type === "unblock"
+                                                        ? UNBLOCK_TIME_MS
+                                                        : puzzle.type === "blockparty"
+                                                          ? BLOCK_TIME_MS
+                                                          : ROUND_MS;
   return Math.max(0, limit - result.ms_remaining);
 }
 
@@ -299,13 +305,20 @@ function spinSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
 
 function patternSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   if (puzzle.type !== "patcomp") return { summary: "—", detail: [] };
-  const rules = (puzzle.rules ?? []).map((rule) => rule.text);
-  if (result.is_correct) {
-    return { summary: `✓ ${seconds(elapsedMs(result, puzzle))}`, detail: rules };
-  }
-  const wrong = patternMistakes(puzzle, result.answer).map(patternAttributeLabel);
-  const summary = wrong.length > 0 ? `✗ (${wrong.join(", ")} wrong)` : "✗ No answer";
-  return { summary, detail: rules };
+  const answers = decodePatternAnswers(result.answer);
+  const count = puzzle.puzzles.filter((item, index) =>
+    checkPatternAnswer(answers[index] ?? "", item),
+  ).length;
+  const detail = puzzle.puzzles.map((item, index) => {
+    const answer = answers[index] ?? "";
+    if (checkPatternAnswer(answer, item)) return `${index + 1}. ✓`;
+    const wrong = patternMistakes(item, answer).map(patternAttributeLabel);
+    return `${index + 1}. ✗ ${wrong.length ? `${wrong.join(", ")} wrong` : "Skipped"}`;
+  });
+  return {
+    summary: count === 3 ? `3 / 3 · ${seconds(elapsedMs(result, puzzle))}` : `${count} / 3 correct`,
+    detail,
+  };
 }
 
 function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
@@ -709,7 +722,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   stroop: () => null,
   spatial: (p) => (p.type === "spatial" ? `Cells ${p.tiles.map((i) => i + 1).join(", ")}` : null),
   gonogo: () => null,
-  patcomp: (p) => (p.type === "patcomp" && p.answer ? "See the grid" : null),
+  patcomp: (p) => (p.type === "patcomp" ? "See the three grids" : null),
   symscan: (p) => (p.type === "symscan" ? `${p.targets.length} arrows` : null),
   spin: () => null,
   numhunt: () => null,

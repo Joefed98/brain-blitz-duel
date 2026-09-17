@@ -145,7 +145,7 @@ export interface SpotPuzzleData {
   type: "spotdiff";
   top: SpotShape[];
   bottom: SpotShape[];
-  /** Server-side only until the reveal: the three differences. */
+  /** Server-side only until the reveal: the five differences. */
   differences?: SpotDifference[];
 }
 
@@ -328,7 +328,7 @@ export interface HuntSpot {
 
 export interface NumberHuntPuzzleData {
   type: "numhunt";
-  /** Twelve positions in ascending value order; index 0 is the smallest number. */
+  /** Fourteen positions in ascending value order; index 0 is the smallest number. */
   spots: HuntSpot[];
 }
 
@@ -554,7 +554,7 @@ export const SPOT_ONE_POINTS = 15;
 /** Rotation Match: shapes drawn as filled cells of a 5x5 grid. */
 export const ROTATION_COLS = 5;
 
-/** Number Hunt: twelve circles tapped in ascending order. */
+/** Number Hunt: fourteen circles tapped in ascending order. */
 export const NUMHUNT_COUNT = 14;
 export const NUMHUNT_CIRCLE_PX = 56;
 export const NUMHUNT_ERROR_PENALTY = 10;
