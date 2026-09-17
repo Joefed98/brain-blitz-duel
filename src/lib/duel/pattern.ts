@@ -297,7 +297,7 @@ function buildPatternItem(): PatternRoundItem {
       cells.push({
         shape: shapes[r]!,
         colour: colours[(r + c) % 3]!,
-        count: (c + 1) as 1 | 2 | 3,
+        count: 1,
         rot: 0,
       });
     }

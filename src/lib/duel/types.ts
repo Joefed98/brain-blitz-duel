@@ -145,7 +145,7 @@ export interface SpotPuzzleData {
   type: "spotdiff";
   top: SpotShape[];
   bottom: SpotShape[];
-  /** Server-side only until the reveal: the three differences. */
+  /** Server-side only until the reveal: the five differences. */
   differences?: SpotDifference[];
 }
 

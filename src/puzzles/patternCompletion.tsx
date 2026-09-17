@@ -416,7 +416,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           const wrong = patternMistakes(item, answers[index]);
           return (
             <div key={index} className="flex min-w-0 flex-col items-center gap-1">
-              <Grid cells={item.cells} answerCell={item.answer ?? item.cells[8]} marked cellSize={34} glyphSize={8} />
+              <Grid cells={item.cells} answerCell={item.answer ?? item.cells[8]} marked cellSize={28} glyphSize={7} />
               <span className={`font-display text-lg font-bold ${ok ? "text-primary" : "text-warn"}`}>
                 {ok ? "✓" : "✗"}
               </span>

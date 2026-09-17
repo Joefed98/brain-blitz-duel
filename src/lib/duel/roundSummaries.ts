@@ -60,11 +60,12 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
           ? PATCOMP_TIME_MS
           : puzzle.type === "target"
             ? TARGET_TIME_MS
-            : puzzle.type === "equation" ||
-                puzzle.type === "chaincalc" ||
-                puzzle.type === "symscan" ||
-                puzzle.type === "countup"
+            : puzzle.type === "equation" || puzzle.type === "chaincalc"
               ? 45_000
+              : puzzle.type === "symscan"
+                ? 20_000
+                : puzzle.type === "countup"
+                  ? 15_000
               : puzzle.type === "numseq"
                 ? 30_000
                 : puzzle.type === "mirmatch"

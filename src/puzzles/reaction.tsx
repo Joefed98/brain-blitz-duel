@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
+import { random } from "@/lib/duel/random";
 import {
   REACTION_ATTEMPTS,
   REACTION_FEEDBACK_MS,
@@ -18,9 +19,9 @@ const DELAY_BANDS = [
 ] as const;
 
 function drawDelay(): number {
-  const roll = Math.random();
+  const roll = random();
   const band = roll < DELAY_BANDS[0].weight ? DELAY_BANDS[0] : roll < 0.7 ? DELAY_BANDS[1] : DELAY_BANDS[2];
-  return Math.round(band.min + Math.random() * (band.max - band.min));
+  return Math.round(band.min + random() * (band.max - band.min));
 }
 
 export function buildReactionDelays(): number[] {
