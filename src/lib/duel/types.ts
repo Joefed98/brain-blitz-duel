@@ -1042,6 +1042,13 @@ export const LASER_BOMBS = 2;
 export const LASER_MIN_SHORTCUT_BLOCKS = 3;
 /** Blocks touching the beam route without sitting on it, hiding the corridor. */
 export const LASER_MIN_ADJACENT_BLOCKS = 3;
+/** Blocks that must sit in the middle 6x6, so the centre is genuinely obstructed. */
+export const LASER_MIN_CENTRAL_BLOCKS = 6;
+/** The middle 6x6 area, as inclusive row/column indices on the 10x10 grid. */
+export const LASER_CENTRAL_FROM = 2;
+export const LASER_CENTRAL_TO = 7;
+/** A bomb must lie on this many different near-miss beams. */
+export const LASER_MIN_BOMB_CROSSINGS = 2;
 /** The beam route always turns at least this many times. */
 export const LASER_MIN_BENDS = 4;
 /** Three shots per round. */
