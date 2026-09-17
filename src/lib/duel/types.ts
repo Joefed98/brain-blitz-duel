@@ -1033,8 +1033,10 @@ export const LASER_TIME_MS = 60_000;
 /** Always exactly four mirrors, and the route always bends once per mirror. */
 export const LASER_MIN_MIRRORS = 4;
 export const LASER_MAX_MIRRORS = 4;
-export const LASER_MIN_BLOCKS = 10;
-export const LASER_MAX_BLOCKS = 14;
+export const LASER_MIN_BLOCKS = 16;
+export const LASER_MAX_BLOCKS = 22;
+/** At least this many route segments squeeze through a one-cell gap in blocks. */
+export const LASER_MIN_GAP_SEGMENTS = 2;
 /** Blocks closing off the straight and single-bend shortcuts. */
 export const LASER_MIN_SHORTCUT_BLOCKS = 3;
 /** Blocks touching the beam route without sitting on it, hiding the corridor. */
