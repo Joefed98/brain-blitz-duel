@@ -78,8 +78,9 @@ for (let index = 0; index < 60; index++) {
       fail("the target is reachable with three of the four mirrors");
     }
   }
-  const orientations = new Set(solution.map((mirror) => mirror.orientation));
+  const orientations = new Set(solution.map((mirror) => mirror.kind));
   if (orientations.size !== 2) fail("the solution uses only one mirror orientation");
+
 }
 console.log(
   "Laser: 60 layouts — four mirrors, all four necessary, both orientations, empty grid never hits",
