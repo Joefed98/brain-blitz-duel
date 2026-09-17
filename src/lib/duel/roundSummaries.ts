@@ -596,14 +596,19 @@ const laserSummary: SummaryBuilder = (result, puzzle) => {
   const ordinal = fires === 1 ? "1st" : fires === 2 ? "2nd" : "3rd";
   if (result.is_correct) {
     return {
-      summary: `Both gems · ${ordinal} shot · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `${puzzle.gems.length} / ${puzzle.gems.length} gems · ${ordinal} shot · ${seconds(elapsedMs(result, puzzle))}`,
       detail: [`All ${puzzle.mirrors} mirrors in place`],
     };
   }
   if (gems >= 1) {
+    const dark = puzzle.gems.length - gems;
     return {
-      summary: "1 gem",
-      detail: [result.extra?.["hitBomb"] ? "The last shot hit a bomb" : "One gem left dark"],
+      summary: `${gems} / ${puzzle.gems.length} gems`,
+      detail: [
+        result.extra?.["hitBomb"]
+          ? "The last shot hit a bomb"
+          : `${dark} gem${dark === 1 ? "" : "s"} left dark`,
+      ],
     };
   }
   return {

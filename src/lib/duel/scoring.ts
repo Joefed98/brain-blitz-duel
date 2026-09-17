@@ -43,6 +43,7 @@ import {
   SLIDE_TIME_MS,
   LASER_FIRE_BASE,
   LASER_ONE_GEM_POINTS,
+  LASER_TWO_GEM_POINTS,
   LASER_TIME_MS,
   MAZE_PARTIAL_POINTS,
   MAZE_TIME_MS,
@@ -525,8 +526,8 @@ export function scorePush(
 }
 
 /**
- * Laser and Mirrors: both gems on the first shot scores most, the third shot
- * least; a single gem left lit at the end is a consolation.
+ * Laser and Mirrors: all three gems on the first shot scores most, the third
+ * shot least; gems left lit at the end are a consolation.
  */
 export function scoreLaser(
   solved: boolean,
@@ -539,6 +540,7 @@ export function scoreLaser(
     const base = LASER_FIRE_BASE[shot - 1]!;
     return Math.min(MAX_ROUND_SCORE, base + speedBonus(msRemaining, LASER_TIME_MS));
   }
+  if (gemsLit >= 2) return LASER_TWO_GEM_POINTS;
   return gemsLit >= 1 ? LASER_ONE_GEM_POINTS : 0;
 }
 

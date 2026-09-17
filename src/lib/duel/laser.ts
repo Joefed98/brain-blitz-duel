@@ -2,7 +2,7 @@
  * Laser and Mirrors rules. One beam tracer, used by the phone (to animate a
  * fired shot) and by the server (to re-trace whatever placement a phone sends).
  * The beam passes THROUGH gems and lights them; it stops dead on a bomb, on a
- * block, or at the edge. Pure logic: no generator and no stored answers.
+ * block, at the edge, or on the gem that completes the set. Pure logic: no generator and no stored answers.
  */
 
 import {
@@ -60,7 +60,7 @@ export interface BeamTrace {
   gemsLit: number[];
   /** True when the shot ended on a bomb. */
   hitBomb: boolean;
-  /** True when this one shot lit both gems without touching a bomb. */
+  /** True when this one shot lit every gem without touching a bomb. */
   litAll: boolean;
 }
 
@@ -102,7 +102,11 @@ export function traceBeam(
       hitBomb = true;
       break;
     }
-    if (gemAt.has(cell) && !gemsLit.includes(cell)) gemsLit.push(cell);
+    if (gemAt.has(cell) && !gemsLit.includes(cell)) {
+      gemsLit.push(cell);
+      // The shot is done the moment the last gem lights: the beam stops there.
+      if (gemsLit.length >= gems.length) break;
+    }
   }
 
   return {
@@ -155,7 +159,7 @@ export function decodeLaserAnswer(
 }
 
 export interface LaserVerdict {
-  /** Both gems lit by the one shot, without touching a bomb. */
+  /** Every gem lit by the one shot, without touching a bomb. */
   solved: boolean;
   /** How many gems that shot lit. */
   gemsLit: number;
