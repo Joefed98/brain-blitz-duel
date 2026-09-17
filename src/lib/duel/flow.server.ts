@@ -1,5 +1,5 @@
 /**
- * Server-only Flow generation. The grid is partitioned into seven non-branching
+ * Server-only Colour Connect generation. The grid is partitioned into eight non-branching
  * paths by cutting a random Hamiltonian path into segments, so every layout is
  * solvable by construction and the solution is exactly those segments.
  */
@@ -176,10 +176,10 @@ export function generateFlow(): FlowPuzzleData {
       return { type: "flow", pairs, solution: paths };
     }
   }
-  throw new Error("Flow generator could not build a proven-solvable board");
+  throw new Error("Colour Connect generator could not build a proven-solvable board");
 }
 
-/** Server-side check of a Flow submission against the rules themselves. */
+/** Server-side check of a Colour Connect submission against the rules themselves. */
 export function gradeFlowPaths(
   pairs: FlowPair[],
   paths: number[][],

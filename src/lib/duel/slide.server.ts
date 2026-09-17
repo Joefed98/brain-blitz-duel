@@ -5,7 +5,13 @@
  * count, the checks behind it and one shortest route are stored with the puzzle.
  */
 
-import { shortestSlideRoute, slideDistance, slideRouteAvoidsHoles } from "./slide";
+import {
+  reachableSlidePaths,
+  shortestSlideRoute,
+  slideDistance,
+  slideRouteAvoidsHoles,
+  slideStep,
+} from "./slide";
 import { shuffled } from "./random";
 import {
   SLIDE_CELLS,
@@ -57,6 +63,31 @@ function stoppers(
   return count;
 }
 
+function samePaths(a: Set<string>, b: Set<string>): boolean {
+  return a.size === b.size && [...a].every((path) => b.has(path));
+}
+
+/** Every arrow is crossed from a reachable stop and changes reachable slide geometry. */
+export function meaningfulSlideArrows(
+  walls: number[],
+  holes: number[],
+  arrows: SlideArrow[],
+  start: number,
+  exit: number,
+): boolean {
+  const blocked = new Set(walls);
+  const full = reachableSlidePaths(walls, holes, start, exit, arrows);
+  return arrows.every((arrow, index) => {
+    const next = slideStep(arrow.cell, arrow.dir);
+    if (next === null || blocked.has(next) || !full.crossed.has(arrow.cell)) return false;
+    const without = arrows.filter((_, arrowIndex) => arrowIndex !== index);
+    return !samePaths(
+      full.signatures,
+      reachableSlidePaths(walls, holes, start, exit, without).signatures,
+    );
+  });
+}
+
 export function generateIceSlide(): SlidePuzzleData {
   for (let attempt = 1; attempt <= 40_000; attempt++) {
     const cells = shuffled(Array.from({ length: SLIDE_CELLS }, (_, i) => i));
@@ -82,6 +113,7 @@ export function generateIceSlide(): SlidePuzzleData {
     const min = slideDistance(walls, holes, start, exit, start, arrows);
     // At least eleven slides, so the exit is never six moves or fewer away.
     if (min === null || min < SLIDE_MIN_MOVES || min > SLIDE_MAX_MOVES) continue;
+    if (!meaningfulSlideArrows(walls, holes, arrows, start, exit)) continue;
     // And at least four walls the shortest route genuinely depends on.
     const stopperCount = stoppers(walls, holes, arrows, start, exit, min);
     if (stopperCount < SLIDE_MIN_STOPPERS) continue;

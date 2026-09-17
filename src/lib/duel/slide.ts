@@ -9,7 +9,7 @@ import { SLIDE_CELLS, SLIDE_COLS as N, type SlideArrow, type SlideDir } from "./
 
 export const SLIDE_DIRS: SlideDir[] = ["U", "D", "L", "R"];
 
-function step(cell: number, dir: SlideDir): number | null {
+export function slideStep(cell: number, dir: SlideDir): number | null {
   const row = Math.floor(cell / N);
   const col = cell % N;
   if (dir === "U") return row > 0 ? cell - N : null;
@@ -51,7 +51,7 @@ export function slideOutcome(
   let cell = from;
   let heading = dir;
   for (let guard = 0; guard < SLIDE_CELLS * 4; guard++) {
-    const next = step(cell, heading);
+    const next = slideStep(cell, heading);
     if (next === null || walls.has(next)) break;
     cell = next;
     path.push(cell);
@@ -153,6 +153,38 @@ export function slideDistance(
     frontier = next;
   }
   return null;
+}
+
+/** Every slide path reachable from the start, including the cells crossed. */
+export function reachableSlidePaths(
+  walls: number[],
+  holes: number[],
+  start: number,
+  exit: number,
+  arrows?: SlideArrow[],
+): { signatures: Set<string>; crossed: Set<number> } {
+  const blocked = new Set(walls);
+  const pits = new Set(holes);
+  const turns = arrowMap(arrows);
+  const seen = new Set<number>([start]);
+  const queue = [start];
+  const signatures = new Set<string>();
+  const crossed = new Set<number>();
+  for (let at = 0; at < queue.length; at++) {
+    const cell = queue[at]!;
+    if (cell === exit) continue;
+    for (const dir of SLIDE_DIRS) {
+      const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
+      if (!outcome.path.length) continue;
+      outcome.path.forEach((pathCell) => crossed.add(pathCell));
+      signatures.add(`${cell}:${dir}:${outcome.path.join(",")}>${outcome.cell}`);
+      if (!seen.has(outcome.cell)) {
+        seen.add(outcome.cell);
+        queue.push(outcome.cell);
+      }
+    }
+  }
+  return { signatures, crossed };
 }
 
 /** One shortest route from the start, as UDLR letters ("" when unreachable). */
