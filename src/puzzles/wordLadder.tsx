@@ -1,11 +1,9 @@
 import { playCorrect, playWrong } from "@/lib/sound";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useStageState } from "@/lib/duel/stageState";
 import { WORD_LADDER_TIME_MS } from "@/lib/duel/types";
-
-const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 function Rung({ word, target = false }: { word: string; target?: boolean }) {
   return (
@@ -60,10 +58,13 @@ function Stage({
   // Kept outside the tree, keyed by room and round, so room updates never wipe it.
   const [rungs, setRungs] = useStageState<string[]>(stateKey, "rungs", () => []);
   const [value, setValue] = useStageState<string>(stateKey, "value", () => "");
-  const [active, setActive] = useStageState<number>(stateKey, "active", () => 0);
   const [bad, setBad] = useState(false);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!locked) inputRef.current?.focus();
+  }, [locked, puzzle.type]);
 
   if (puzzle.type !== "ladder") return null;
 
@@ -82,18 +83,10 @@ function Stage({
     const next = [...rungs, verdict.word];
     setRungs(next);
     setValue("");
-    setActive(0);
     onDraftAnswer?.(next.join(","));
     if (verdict.word === puzzle.targetWord) onSubmit(next.join(","));
     else inputRef.current?.focus();
   };
-  const setLetter = (letter: string) => {
-    const chars = value.padEnd(4, " ").split("");
-    chars[active] = letter;
-    setValue(chars.join("").trimEnd());
-    setActive((active + 1) % 4);
-  };
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex min-h-0 flex-[2] flex-col items-center overflow-y-auto rounded-xl border border-border bg-card/40 py-2">
@@ -112,14 +105,12 @@ function Stage({
                 className={`grid w-44 grid-cols-4 gap-1 rounded-lg border px-2 py-1.5 ${bad ? "border-warn" : "border-primary/60"}`}
               >
                 {[0, 1, 2, 3].map((index) => (
-                  <button
+                  <span
                     key={index}
-                    type="button"
-                    onClick={() => setActive(index)}
-                    className={`h-8 border-b font-mono text-xl font-bold ${active === index ? "border-primary text-primary" : "border-border text-foreground"}`}
+                    className="flex h-8 items-center justify-center border-b border-border font-mono text-xl font-bold text-foreground"
                   >
                     {value[index] ?? ""}
-                  </button>
+                  </span>
                 ))}
               </div>
             </div>
@@ -133,7 +124,10 @@ function Stage({
         value={value}
         aria-label="Next rung"
         autoCapitalize="characters"
+        autoFocus
         autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
         maxLength={4}
         onChange={(e) => setValue(e.target.value.replace(/[^a-z]/gi, "").toUpperCase())}
         onKeyDown={(e) => {
@@ -141,18 +135,6 @@ function Stage({
         }}
         className="h-11 w-full rounded-lg border border-border bg-card px-3 text-center font-mono text-xl uppercase tracking-[0.25em] focus:border-primary focus:outline-none"
       />
-      <div className="grid grid-cols-[repeat(13,minmax(0,1fr))] gap-0.5" aria-label="Letter picker">
-        {LETTERS.map((letter) => (
-          <button
-            key={letter}
-            type="button"
-            onClick={() => setLetter(letter)}
-            className="h-8 min-w-0 rounded bg-card font-mono text-[11px] font-bold text-foreground"
-          >
-            {letter}
-          </button>
-        ))}
-      </div>
       <div className="flex items-center gap-2">
         <button
           type="button"

@@ -86,10 +86,12 @@ export function scoreRound(
   return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
 }
 
-/** Groups: both sets earn the standard score; one set at timeout earns 50. */
+/** Groups: all four earn the standard score; partial groups earn flat credit. */
 export function scoreGroups(foundGroups: number, msRemaining: number): number {
-  if (foundGroups >= 2) return BASE_POINTS + speedBonus(msRemaining, 60_000);
-  return foundGroups === 1 ? 50 : 0;
+  if (foundGroups >= 4) return BASE_POINTS + speedBonus(msRemaining, 90_000);
+  if (foundGroups === 3) return 60;
+  if (foundGroups === 2) return 40;
+  return foundGroups === 1 ? 20 : 0;
 }
 
 /** Word Ladder: solved earns standard points, plus 20 for a minimum path, capped at 150. */
@@ -107,7 +109,7 @@ export function scoreWordLadder(
 /** Number Climb: partial credit is proportional to the correct leading span. */
 export function scoreNumberClimb(span: number, msRemaining: number): number {
   const correct = clamp(Math.round(span), 0, 12);
-  if (correct === 12) return BASE_POINTS + speedBonus(msRemaining, 45_000);
+  if (correct === 12) return BASE_POINTS + speedBonus(msRemaining, 20_000);
   return Math.round((BASE_POINTS * correct) / 12);
 }
 
@@ -543,7 +545,6 @@ export function scoreLaser(
   if (gemsLit >= 2) return LASER_TWO_GEM_POINTS;
   return gemsLit >= 1 ? LASER_ONE_GEM_POINTS : 0;
 }
-
 
 /** Tower: the whole stack home scores the standard points, +20 for the minimum. */
 export function scoreTower(

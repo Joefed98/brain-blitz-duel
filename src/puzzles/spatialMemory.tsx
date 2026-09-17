@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { SequenceGrid } from "@/components/duel/SequenceGrid";
-import { pick, shuffled } from "@/lib/duel/random";
+import { shuffled } from "@/lib/duel/random";
 import {
   SPATIAL_GRID_COLS,
   SPATIAL_GROUP_GAP_MS,
@@ -19,7 +19,7 @@ const SLOT_MS = SPATIAL_GROUP_MS + SPATIAL_GROUP_GAP_MS;
 
 /** The stored tile order split into its groups — identical on every phone. */
 function groupsOf(tiles: number[], groupSize: number | undefined): number[][] {
-  const size = groupSize === 2 || groupSize === 3 ? groupSize : 3;
+  const size = groupSize === 2 ? groupSize : 2;
   const out: number[][] = [];
   for (let i = 0; i < tiles.length; i += size) out.push(tiles.slice(i, i + size));
   return out;
@@ -34,8 +34,8 @@ function litGroup(elapsed: number, groupCount: number): number {
   return offset - index * SLOT_MS < SPATIAL_GROUP_MS ? index : -1;
 }
 
-/** Fixed intro example — six tiles of the 5x5 grid, every time. */
-const EXAMPLE = [1, 7, 9, 13, 18, 20];
+/** Fixed intro example — eight tiles of the 5x5 grid in four pairs. */
+const EXAMPLE = [1, 7, 9, 13, 18, 20, 22, 4];
 
 function parseTaps(answer: string): number[] {
   return answer
@@ -75,7 +75,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        Tiles light up in groups, then vanish. Tap all of them — any order.
+        Eight tiles light up in four groups of two, then vanish. Tap all eight — any order.
       </p>
       <SequenceGrid order={EXAMPLE} cols={COLS} size="sm" numbered={false} />
       <p className="text-xs text-muted-foreground">
@@ -103,7 +103,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   if (puzzle.type !== "spatial") return null;
 
   const handleTap = (index: number) => {
-    if (revealing || locked || taps.includes(index) || taps.length >= tiles.length) return;
+    if (revealing || locked || taps.length >= tiles.length) return;
+    if (taps.includes(index)) {
+      setTaps((current) => current.filter((tile) => tile !== index));
+      return;
+    }
     const next = [...taps, index];
     setTaps(next);
     if (next.length === tiles.length) {
@@ -114,7 +118,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-7">
       <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-        {revealing ? "Remember the tiles" : "Tap the six tiles"}
+        {revealing ? "Remember the pairs" : "Tap the eight tiles"}
       </p>
 
       <div className="flex gap-2">
@@ -185,8 +189,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
 
 export function buildSpatial(): SpatialPuzzleData {
   const all = Array.from({ length: COLS * COLS }, (_, i) => i);
-  // Two groups of three, or three groups of two — chosen and stored per puzzle.
-  const groupSize = pick([2, 3]);
+  const groupSize = 2;
   for (let attempt = 0; attempt < 200; attempt++) {
     const tiles = shuffled(all).slice(0, SPATIAL_TILES);
     const sorted = [...tiles].sort((a, b) => a - b);
@@ -194,7 +197,7 @@ export function buildSpatial(): SpatialPuzzleData {
     // Stored in the order they light up, group by group.
     return { type: "spatial", tiles, groupSize };
   }
-  return { type: "spatial", tiles: [1, 7, 9, 13, 18, 20], groupSize };
+  return { type: "spatial", tiles: [1, 7, 9, 13, 18, 20, 22, 4], groupSize };
 }
 
 export const spatialMemoryPuzzle: PuzzleDefinition = {

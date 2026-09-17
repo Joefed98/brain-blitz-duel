@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { pick, randInt } from "@/lib/duel/random";
+import { pick, randInt, weightedPick } from "@/lib/duel/random";
 import type { NumberSequencePuzzleData } from "@/lib/duel/types";
 
 import { MyAnswerLine } from "@/components/puzzles/MyAnswerLine";
@@ -119,20 +119,21 @@ function build(family: Family): { numbers: number[]; answer: number; rule: strin
   return { numbers: terms.slice(0, TERMS_SHOWN), answer: terms[TERMS_SHOWN]!, rule };
 }
 
-const FAMILIES: Family[] = [
-  "add",
-  "subtract",
-  "multiply",
-  "increasing",
-  "squares",
-  "alternating",
-  "fibonacci",
-  "seconddiff",
-  "multiplyminus",
-  "triangular",
-  "nsquaredplusn",
-  "primes",
-];
+const FAMILY_WEIGHTS: Record<Family, number> = {
+  add: 8,
+  multiply: 7,
+  subtract: 5,
+  increasing: 10,
+  squares: 12,
+  alternating: 12,
+  fibonacci: 12,
+  seconddiff: 14,
+  multiplyminus: 7,
+  triangular: 10,
+  nsquaredplusn: 2,
+  primes: 1,
+};
+const FAMILIES = Object.keys(FAMILY_WEIGHTS) as Family[];
 
 function IntroExample() {
   return (
@@ -237,7 +238,7 @@ export const numberSequencePuzzle: PuzzleDefinition = {
   timeLimitMs: 30_000,
   generate: () => {
     for (let attempt = 0; attempt < 80; attempt++) {
-      const built = build(pick(FAMILIES));
+      const built = build(weightedPick(FAMILIES, (family) => FAMILY_WEIGHTS[family]));
       if (built) {
         return {
           type: "numseq",
@@ -249,9 +250,9 @@ export const numberSequencePuzzle: PuzzleDefinition = {
     }
     return {
       type: "numseq",
-      numbers: [3, 10, 17, 24],
+      numbers: [3, 7, 13, 21],
       answer: 31,
-      rule: "Add 7 each time",
+      rule: "The gaps grow by 2 each time",
     } satisfies NumberSequencePuzzleData;
   },
   check: (answer, puzzle) => {

@@ -2,9 +2,9 @@ import { pick, shuffled } from "./random";
 import type { GroupsPuzzleData, GroupsSecretGroup } from "./types";
 
 interface GroupsBankEntry {
-  groups: [GroupsSecretGroup, GroupsSecretGroup];
-  /** Two cross-theme associations checked during curation. */
-  redHerrings: [string, string];
+  groups: GroupsSecretGroup[];
+  /** Cross-theme associations checked during curation. */
+  redHerrings: string[];
 }
 
 const entry = (
@@ -22,7 +22,7 @@ const entry = (
 });
 
 /** Curated exact wordplay and named-set partitions. Cross-associations are hints, never alternate exact answers. */
-export const GROUPS_BANK: GroupsBankEntry[] = [
+const GROUPS_SEEDS: GroupsBankEntry[] = [
   entry(
     "Things with keys",
     ["Piano", "Map", "Door", "Laptop"],
@@ -598,6 +598,27 @@ export const GROUPS_BANK: GroupsBankEntry[] = [
     ["Lamplight is exact", "Nightlight and nightshade are exact"],
   ),
 ];
+
+/**
+ * Pair each curated two-theme seed with the next compatible seed. Every bank
+ * puzzle therefore has four disjoint themes, sixteen distinct words and at
+ * least four deliberately documented cross-theme red herrings. The offset is
+ * coprime to the seed count, so this yields at least sixty different walls.
+ */
+export const GROUPS_BANK: GroupsBankEntry[] = GROUPS_SEEDS.flatMap((first, index) => {
+  for (let offset = 1; offset < GROUPS_SEEDS.length; offset++) {
+    const second = GROUPS_SEEDS[(index + offset * 17) % GROUPS_SEEDS.length];
+    if (!second) continue;
+    const groups = [...first.groups, ...second.groups];
+    const words = groups.flatMap((group) => group.words).map((word) => word.toUpperCase());
+    const themes = groups.map((group) => group.theme.toUpperCase());
+    if (groups.length !== 4 || new Set(words).size !== 16 || new Set(themes).size !== 4) continue;
+    return [{ groups, redHerrings: [...first.redHerrings, ...second.redHerrings] }];
+  }
+  return [];
+}).slice(0, 80);
+
+if (GROUPS_BANK.length < 60) throw new Error("Groups bank must contain at least 60 unique walls");
 
 export function generateGroups(): GroupsPuzzleData {
   const chosen = pick(GROUPS_BANK);

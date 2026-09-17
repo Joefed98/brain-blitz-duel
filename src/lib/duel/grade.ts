@@ -132,7 +132,7 @@ export function gradeSubmission(
           .filter((index): index is number => index !== null),
       );
       correctCount = matches.size;
-      isCorrect = correctCount === 2;
+      isCorrect = correctCount === 4;
       score = scoreGroups(correctCount, ms);
       extraDetail = { foundGroups: correctCount };
       break;

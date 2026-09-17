@@ -79,10 +79,10 @@ export interface GroupsSecretGroup {
 
 export interface GroupsPuzzleData {
   type: "groups";
-  /** Eight words in the stored order every player sees. */
+  /** Sixteen words in the stored order every player sees. */
   words: string[];
-  /** Server-side only until reveal: the exact two groups and their themes. */
-  groups?: [GroupsSecretGroup, GroupsSecretGroup] | GroupsSecretGroup[];
+  /** Server-side only until reveal: the exact four groups and their themes. */
+  groups?: GroupsSecretGroup[];
 }
 
 /** One combining step: two values and an operator, giving a new value. */
@@ -189,14 +189,7 @@ export interface EquationPuzzleData {
 }
 
 export type StroopColour =
-  | "RED"
-  | "BLUE"
-  | "GREEN"
-  | "PURPLE"
-  | "PINK"
-  | "ORANGE"
-  | "BROWN"
-  | "YELLOW";
+  "RED" | "BLUE" | "GREEN" | "PURPLE" | "PINK" | "ORANGE" | "BROWN" | "YELLOW";
 
 /** Which colour the player must tap for an item. */
 export type StroopInstruction = "ink" | "word";
@@ -216,9 +209,9 @@ export interface StroopPuzzleData {
 
 export interface SpatialPuzzleData {
   type: "spatial";
-  /** Six tile indices (0-24) of a 5x5 grid, lit in stored groups at the start. */
+  /** Eight tile indices (0-24) of a 5x5 grid, lit in four groups of two. */
   tiles: number[];
-  /** How many tiles light up together per group — 2 or 3, chosen per puzzle. */
+  /** Always two; stored for backward compatibility with existing rooms. */
   groupSize?: number;
 }
 
@@ -508,12 +501,12 @@ export const STROOP_MIN_PER_INSTRUCTION = 4;
 /** Never more than this many of the same instruction in a row. */
 export const STROOP_MAX_STREAK = 3;
 
-/** Spatial Memory: six tiles of a 5x5 grid, lit in groups before the clock starts. */
+/** Spatial Memory: eight tiles of a 5x5 grid, lit in four groups of two. */
 export const SPATIAL_GRID_COLS = 5;
-export const SPATIAL_TILES = 6;
+export const SPATIAL_TILES = 8;
 export const SPATIAL_LEAD_IN_MS = 700;
 /** How long each group of tiles stays gold, and the dark gap between groups. */
-export const SPATIAL_GROUP_MS = 1_200;
+export const SPATIAL_GROUP_MS = 1_000;
 export const SPATIAL_GROUP_GAP_MS = 300;
 
 /** Total preparation time for a puzzle shown in `groups` groups. */
@@ -983,8 +976,6 @@ export interface SlidePuzzleData {
   solution?: string;
 }
 
-
-
 /* -------------------------------------------------------------------------- */
 /*  Push                                                                      */
 /* -------------------------------------------------------------------------- */
@@ -1031,7 +1022,6 @@ export interface PushPuzzleData {
   /** Server-side only: one minimum solution, as "cell:dir" pushes. */
   solution?: string;
 }
-
 
 /* -------------------------------------------------------------------------- */
 /*  Laser and Mirrors                                                         */
@@ -1120,8 +1110,6 @@ export interface LaserPuzzleData {
   solution?: MirrorPlacement[];
 }
 
-
-
 /* -------------------------------------------------------------------------- */
 /*  Tower                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -1163,7 +1151,6 @@ export interface TowerPuzzleData {
   solution?: string;
 }
 
-
 /* -------------------------------------------------------------------------- */
 /*  Maze Dash                                                                 */
 /* -------------------------------------------------------------------------- */
@@ -1187,7 +1174,6 @@ export const MAZE_MIN_JUNCTIONS = 14;
 export const MAZE_BLIND_TAIL = 10;
 /** Most a partly-run maze can earn. */
 export const MAZE_PARTIAL_POINTS = 60;
-
 
 export interface MazePuzzleData {
   type: "maze";

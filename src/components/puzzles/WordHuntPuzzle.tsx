@@ -1,7 +1,12 @@
 import { playCorrect, playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { gridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
+import {
+  adjacentGridCellAt,
+  gridCellAt,
+  gridGeometry,
+  hapticTick,
+} from "@/components/puzzles/GridDrag";
 import {
   WORDHUNT_COLS as N,
   WORDHUNT_MIN_LENGTH,
@@ -35,6 +40,7 @@ export function WordHuntBoard({
   interactive = false,
   onPathStart,
   gridRef,
+  pointer,
 }: {
   grid: string[];
   path?: number[];
@@ -42,6 +48,7 @@ export function WordHuntBoard({
   interactive?: boolean;
   onPathStart?: (cell: number, event: React.PointerEvent) => void;
   gridRef?: React.Ref<HTMLDivElement>;
+  pointer?: { x: number; y: number } | null;
 }) {
   return (
     <div
@@ -64,6 +71,18 @@ export function WordHuntBoard({
             strokeWidth={2.6}
             strokeLinecap="round"
             strokeLinejoin="round"
+            opacity={0.9}
+          />
+        )}
+        {path.length > 0 && pointer && (
+          <line
+            x1={centre(path[path.length - 1] ?? 0).x}
+            y1={centre(path[path.length - 1] ?? 0).y}
+            x2={pointer.x}
+            y2={pointer.y}
+            stroke="var(--primary)"
+            strokeWidth={2.6}
+            strokeLinecap="round"
             opacity={0.9}
           />
         )}
@@ -124,6 +143,7 @@ export function WordHuntPuzzle({
   const [found, setFound] = useState<Found[]>([]);
   const [flash, setFlash] = useState<"good" | "bad" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const tracing = useRef(false);
   const livePath = useRef<number[]>([]);
@@ -160,6 +180,7 @@ export function WordHuntPuzzle({
     tracing.current = false;
     livePath.current = [];
     setPath([]);
+    setPointer(null);
     if (cells.length < 2) return;
     const word = wordOf(cells);
     if (word.length < WORDHUNT_MIN_LENGTH) {
@@ -208,6 +229,7 @@ export function WordHuntPuzzle({
     tracing.current = true;
     livePath.current = [cell];
     setPath([cell]);
+    setPointer(centre(cell));
     setMessage(null);
     hapticTick();
   };
@@ -215,10 +237,22 @@ export function WordHuntPuzzle({
   useEffect(() => {
     const move = (event: PointerEvent) => {
       if (!tracing.current) return;
-      const cell = cellAt(event.clientX, event.clientY);
-      if (cell === null) return;
       const current = livePath.current;
       const last = current[current.length - 1];
+      if (last === undefined) return;
+      const geometry = gridGeometry(gridRef.current, event.clientX, event.clientY, N, N);
+      if (geometry) {
+        setPointer({
+          x: (geometry.x / geometry.width) * 100,
+          y: (geometry.y / geometry.height) * 100,
+        });
+      }
+      const direct = cellAt(event.clientX, event.clientY);
+      const cell =
+        direct === last
+          ? last
+          : adjacentGridCellAt(gridRef.current, event.clientX, event.clientY, N, N, last);
+      if (cell === null) return;
       if (cell === last) return;
       if (current.length > 1 && cell === current[current.length - 2]) {
         livePath.current = current.slice(0, -1);
@@ -265,13 +299,12 @@ export function WordHuntPuzzle({
             interactive={!locked}
             onPathStart={startTrace}
             gridRef={gridRef}
+            pointer={pointer}
           />
         </div>
       </div>
 
-      <p className="text-center font-mono text-sm uppercase tracking-[0.2em] text-primary">
-        {path.length > 0 ? wordOf(path) : (message ?? "drag through touching letters")}
-      </p>
+      {message && <p className="text-center font-mono text-xs text-warn">{message}</p>}
 
       <div className="h-16 shrink-0 overflow-y-auto rounded-xl bg-card/60 px-3 py-2">
         {found.length === 0 ? (
