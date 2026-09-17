@@ -13,7 +13,7 @@ import { ScoreStrip } from "@/components/duel/ScoreStrip";
 import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
 import { Standings } from "@/components/duel/Standings";
 import { Podium } from "@/components/duel/Podium";
-import { TimerRing } from "@/components/duel/TimerRing";
+import { TimerRing, timerSlotClass } from "@/components/duel/TimerRing";
 import { buzz } from "@/lib/motion";
 import {
   playLock,
@@ -665,26 +665,6 @@ function DuelScreen() {
 
   const clockActive = clockStart !== null && now >= clockStart;
   const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
-  const compactTimer = puzzle
-    ? [
-        "target",
-        "blockparty",
-        "chaincalc",
-        "wordsmith",
-        "wordhunt",
-        "spotdiff",
-        "sudoku",
-        "pipes",
-        "patcomp",
-        "flow",
-        "iceslide",
-        "laser",
-        "tower",
-        "maze",
-        "push",
-      ].includes(puzzle.type)
-    : false;
-
   return (
     <PhoneShell constrained>
       <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
@@ -702,10 +682,8 @@ function DuelScreen() {
 
         {showTimer && (
           <div
-            className={`flex justify-center -my-3 ${
-              compactTimer
-                ? "h-[88px] shrink-0 items-center scale-[0.7] [@media(max-height:680px)]:h-[80px] [@media(max-height:680px)]:scale-[0.64]"
-                : "h-[104px] shrink-0 items-center scale-[0.78]"
+            className={`flex shrink-0 items-center justify-center ${
+              puzzle ? timerSlotClass(puzzle.type) : "h-[88px] scale-[0.66]"
             }`}
           >
             <TimerRing

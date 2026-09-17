@@ -22,7 +22,8 @@ export const STROOP_COLOURS: { name: StroopColour; hex: string }[] = [
   { name: "PURPLE", hex: "#B26BFF" },
   { name: "PINK", hex: "#FF6BD6" },
   { name: "ORANGE", hex: "#FF8A3D" },
-  { name: "BROWN", hex: "#C9895A" },
+  { name: "BROWN", hex: "#8B5A2B" },
+  { name: "YELLOW", hex: "#FFE600" },
 ];
 
 function hexFor(colour: string): string {
@@ -49,7 +50,7 @@ function InstructionPill({
   return (
     <span
       className={`inline-block whitespace-nowrap rounded-full bg-foreground/90 font-mono font-bold uppercase tracking-widest text-background ${
-        small ? "px-2 py-0.5 text-[9px]" : "px-3 py-1 text-[11px]"
+        small ? "px-2.5 py-1 text-[10px]" : "px-4 py-1.5 text-sm"
       }`}
     >
       {LABEL[instruction]}

@@ -42,7 +42,7 @@ function IntroExample() {
         ))}
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Find both groups. Some words fit more than one — choose carefully. You have 60 seconds.
+        Find both groups. Some words fit more than one — choose carefully. You have 90 seconds.
       </p>
     </div>
   );

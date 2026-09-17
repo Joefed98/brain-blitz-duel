@@ -188,7 +188,15 @@ export interface EquationPuzzleData {
   operators: Operator[];
 }
 
-export type StroopColour = "RED" | "BLUE" | "GREEN" | "PURPLE" | "PINK" | "ORANGE" | "BROWN";
+export type StroopColour =
+  | "RED"
+  | "BLUE"
+  | "GREEN"
+  | "PURPLE"
+  | "PINK"
+  | "ORANGE"
+  | "BROWN"
+  | "YELLOW";
 
 /** Which colour the player must tap for an item. */
 export type StroopInstruction = "ink" | "word";
@@ -493,7 +501,7 @@ export const REACTION_FEEDBACK_MS = 1_000;
 /** Penalty recorded for a false start or a missed attempt. */
 export const REACTION_PENALTY_MS = 1_000;
 
-/** Colour Clash: a run of twelve items across five colours. */
+/** Colour Clash: a run of twelve items across eight colours. */
 export const STROOP_ITEMS = 12;
 /** Every run holds at least this many of each instruction. */
 export const STROOP_MIN_PER_INSTRUCTION = 4;
@@ -537,7 +545,7 @@ export const SPOT_CELLS = SPOT_COLS * SPOT_ROWS;
 export const SPOT_MIN_SHAPES = 12;
 export const SPOT_MAX_SHAPES = 15;
 export const SPOT_DIFFERENCES = 3;
-export const SPOT_TIME_MS = 45_000;
+export const SPOT_TIME_MS = 20_000;
 /** Flat scores for finding only some of the three differences. */
 export const SPOT_TWO_POINTS = 60;
 export const SPOT_ONE_POINTS = 30;
@@ -612,7 +620,7 @@ export interface NumberClimbPuzzleData {
 
 export const WORD_LADDER_TIME_MS = 60_000;
 export const NUMBER_CLIMB_LENGTH = 12;
-export const NUMBER_CLIMB_TIME_MS = 45_000;
+export const NUMBER_CLIMB_TIME_MS = 20_000;
 export const NUMBER_CLIMB_PREP_MS = 6_000;
 
 /* -------------------------------------------------------------------------- */
@@ -672,7 +680,7 @@ export const COUNTUP_MAX_COUNT = 12;
 
 /** A run of three flips in one round. */
 export const MIRMATCH_ITEMS = 3;
-export const MIRMATCH_TIME_MS = 45_000;
+export const MIRMATCH_TIME_MS = 30_000;
 
 /** Which dashed line the target is flipped across. */
 export type MirrorAxis = "vertical" | "horizontal";
@@ -744,7 +752,7 @@ export interface WordHuntPuzzleData {
 /* -------------------------------------------------------------------------- */
 
 export const UNBLOCK_COLS = 6;
-export const UNBLOCK_TIME_MS = 90_000;
+export const UNBLOCK_TIME_MS = 60_000;
 /** The gold car and the exit gap both sit on this row (0-based). */
 export const UNBLOCK_EXIT_ROW = 2;
 /** Flat bonus for solving in the fewest possible moves. */
@@ -779,7 +787,7 @@ export const BLOCK_COLS = 6;
 export const BLOCK_CELLS = BLOCK_COLS * BLOCK_COLS;
 export const BLOCK_BLOCKERS = 7;
 export const BLOCK_FREE_CELLS = BLOCK_CELLS - BLOCK_BLOCKERS;
-export const BLOCK_TIME_MS = 90_000;
+export const BLOCK_TIME_MS = 60_000;
 /** Partial credit when the board is not filled by the timer. */
 export const BLOCK_PARTIAL_POINTS = 60;
 
@@ -806,7 +814,7 @@ export interface BlockPartyPuzzleData {
 
 export const LIGHTS_COLS = 5;
 export const LIGHTS_CELLS = LIGHTS_COLS * LIGHTS_COLS;
-export const LIGHTS_TIME_MS = 45_000;
+export const LIGHTS_TIME_MS = 60_000;
 /** Presses used to build a pattern. */
 export const LIGHTS_MIN_BUILD = 5;
 export const LIGHTS_MAX_BUILD = 8;
@@ -833,7 +841,7 @@ export interface LightsOutPuzzleData {
 
 export const PIPES_COLS = 6;
 export const PIPES_CELLS = PIPES_COLS * PIPES_COLS;
-export const PIPES_TIME_MS = 60_000;
+export const PIPES_TIME_MS = 90_000;
 export const PIPES_PARTIAL_POINTS = 60;
 
 export type PipeShape = "end" | "straight" | "corner" | "tee" | "cross";
@@ -887,7 +895,7 @@ export const FLOW_COLS = 7;
 export const FLOW_CELLS = FLOW_COLS * FLOW_COLS;
 /** Seven pairs, one per game colour. */
 export const FLOW_PAIRS = 7;
-export const FLOW_TIME_MS = 60_000;
+export const FLOW_TIME_MS = 45_000;
 /** Every path in a layout covers at least this many cells. */
 export const FLOW_MIN_PATH = 4;
 /** Most a partly-joined board can earn. */
@@ -914,7 +922,7 @@ export interface FlowPuzzleData {
 
 export const SLIDE_COLS = 10;
 export const SLIDE_CELLS = SLIDE_COLS * SLIDE_COLS;
-export const SLIDE_TIME_MS = 75_000;
+export const SLIDE_TIME_MS = 45_000;
 export const SLIDE_MIN_WALLS = 22;
 export const SLIDE_MAX_WALLS = 30;
 export const SLIDE_MIN_MOVES = 11;
@@ -1031,7 +1039,7 @@ export interface PushPuzzleData {
 
 export const LASER_COLS = 10;
 export const LASER_CELLS = LASER_COLS * LASER_COLS;
-export const LASER_TIME_MS = 90_000;
+export const LASER_TIME_MS = 45_000;
 /** Always exactly five mirrors, and the route always bends once per mirror. */
 export const LASER_MIN_MIRRORS = 5;
 export const LASER_MAX_MIRRORS = 5;

@@ -8,9 +8,9 @@ export const GLYPH_COLOURS: Record<GlyphColour, string> = {
   PURPLE: "#B26BFF",
   PINK: "#FF6BD6",
   ORANGE: "#FF8A3D",
-  // A warm tan, so brown still reads clearly against the near-black background.
-  BROWN: "#C9895A",
-  GOLD: "#F5C64C",
+  BROWN: "#8B5A2B",
+  YELLOW: "#FFE600",
+  GOLD: "#F5B82E",
 };
 
 

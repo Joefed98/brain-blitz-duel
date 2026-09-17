@@ -283,7 +283,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Three shots. Fewer shots scores more. You have 90 seconds.
+        Three shots. Fewer shots scores more. You have 45 seconds.
       </p>
     </div>
   );

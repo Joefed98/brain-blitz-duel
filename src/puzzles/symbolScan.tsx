@@ -112,7 +112,7 @@ function IntroExample() {
         ))}
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Tap each match, then hit Submit. Miss one and it's wrong.
+        Tap each match, then hit Submit. Miss one and it&apos;s wrong. You have 20 seconds.
       </p>
     </div>
   );
@@ -243,7 +243,7 @@ export const symbolScanPuzzle: PuzzleDefinition = {
   key: "symscan",
   name: "Symbol Scan",
   category: "attention",
-  timeLimitMs: 45_000,
+  timeLimitMs: 20_000,
   generate: buildSymbolScan,
   check: (answer, puzzle) => {
     if (puzzle.type !== "symscan") return false;

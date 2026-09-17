@@ -144,7 +144,7 @@ function IntroExample() {
         <FlowBoard pairs={pairs} paths={paths} cols={4} cells={16} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Drag from a dot to its partner. You have 60 seconds.
+        Drag from a dot to its partner. You have 45 seconds.
       </p>
     </div>
   );
