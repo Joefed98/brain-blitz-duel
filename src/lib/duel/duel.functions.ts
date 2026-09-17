@@ -19,8 +19,12 @@ import {
   type DuelPlayerRow,
   type DuelRow,
   type PuzzleData,
+  type PuzzleType,
   type RoundResultRow,
 } from "./types";
+
+/** How many of the host's recent rooms feed the repeat-avoiding draw. */
+const RECENT_ROOMS = 3;
 
 /* -------------------------------------------------------------------------- */
 /*  Server-only helpers                                                        */
@@ -165,7 +169,12 @@ function allIntroReady(players: DuelPlayerRow[], round: number): boolean {
   return waitingOn.length > 0 && waitingOn.every((p) => p.intro_ready_round >= round);
 }
 
-async function createRoomRow(client: any, userId: string, displayName: string): Promise<DuelRow> {
+async function createRoomRow(
+  client: any,
+  userId: string,
+  displayName: string,
+  noMaths = false,
+): Promise<DuelRow> {
   for (let attempt = 0; attempt < 8; attempt++) {
     const { data, error } = await client
       .from("duels")
@@ -176,6 +185,7 @@ async function createRoomRow(client: any, userId: string, displayName: string): 
         max_players: MAX_PLAYERS,
         round_count: TOTAL_ROUNDS,
         round_order: [],
+        no_maths: noMaths,
         puzzles_public: [],
         current_round: 0,
       })
@@ -237,6 +247,52 @@ async function markInactivity(client: any, roomId: string, round: number): Promi
   for (const player of missing) {
     await client.from("duel_players").update({ status: "inactive" }).eq("id", player.id);
   }
+}
+
+/**
+ * The round orders of the host's last few rooms, most recent first — plus the
+ * room a rematch came from. Selection uses these to avoid repeats.
+ */
+async function recentRoundOrders(
+  client: any,
+  room: DuelRow,
+  hostUserId: string | null,
+): Promise<PuzzleType[][]> {
+  const orders: PuzzleType[][] = [];
+
+  const { data: source } = await client
+    .from("duels")
+    .select("round_order")
+    .eq("next_duel_id", room.id)
+    .maybeSingle();
+  const fromRematch = (source?.round_order ?? []) as PuzzleType[];
+  if (fromRematch.length > 0) orders.push(fromRematch);
+
+  if (hostUserId) {
+    const { data } = await client
+      .from("duels")
+      .select("round_order")
+      .eq("host_user_id", hostUserId)
+      .eq("status", "finished")
+      .neq("id", room.id)
+      .order("created_at", { ascending: false })
+      .limit(RECENT_ROOMS);
+    for (const row of (data ?? []) as { round_order: PuzzleType[] }[]) {
+      const order = row.round_order ?? [];
+      if (order.length > 0) orders.push(order);
+    }
+  }
+
+  // De-duplicate while keeping "most recent first" order.
+  const seen = new Set<string>();
+  const unique: PuzzleType[][] = [];
+  for (const order of orders) {
+    const key = order.join(",");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(order);
+  }
+  return unique.slice(0, RECENT_ROOMS);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -305,7 +361,16 @@ export const startRoomFn = createServerFn({ method: "POST" })
     }
 
     const { buildRoomPuzzles } = await import("./generate.server");
-    const { roundOrder, puzzles } = buildRoomPuzzles(room.round_count ?? TOTAL_ROUNDS);
+    const recent = await recentRoundOrders(client, room, room.host_user_id);
+    const noMaths = room.no_maths === true;
+    const { roundOrder, puzzles } = buildRoomPuzzles({
+      rounds: room.round_count ?? TOTAL_ROUNDS,
+      recent,
+      noMaths,
+    });
+    console.log(
+      `[room-selection] room=${room.room_code} noMaths=${noMaths} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
+    );
     const split = puzzles.map(splitPuzzle);
     const startedAt = nowIso();
 
@@ -332,6 +397,30 @@ export const startRoomFn = createServerFn({ method: "POST" })
       });
       if (error) throw new Error(error.message);
     }
+    return { ok: true as const };
+  });
+
+/** Host only, in the lobby: turns the "No maths" setting on or off. */
+export const setNoMathsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string; noMaths: boolean }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
+    if (room.host_user_id !== context.userId) {
+      return { ok: false as const, message: "Only the host can change this." };
+    }
+    if (room.status !== "waiting") {
+      return { ok: false as const, message: "The game has already started." };
+    }
+    const noMaths = data.noMaths === true;
+    await client
+      .from("duels")
+      .update({ no_maths: noMaths })
+      .eq("id", room.id)
+      .eq("status", "waiting");
+    console.log(`[room-selection] room=${room.room_code} noMaths toggled to ${noMaths}`);
     return { ok: true as const };
   });
 
@@ -681,7 +770,12 @@ export const rematchFn = createServerFn({ method: "POST" })
     const host = players.find((p) => p.user_id === context.userId);
     const rest = players.filter((p) => p.user_id !== context.userId);
 
-    const fresh = await createRoomRow(client, context.userId, host?.display_name ?? "Player");
+    const fresh = await createRoomRow(
+      client,
+      context.userId,
+      host?.display_name ?? "Player",
+      room.no_maths === true,
+    );
     let slot = 2;
     for (const player of rest) {
       if (slot > MAX_PLAYERS) break;
