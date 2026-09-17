@@ -74,7 +74,7 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
                     : puzzle.type === "spotdiff"
                       ? SPOT_TIME_MS
                       : puzzle.type === "groups"
-                        ? 60_000
+                        ? 90_000
                         : puzzle.type === "ladder"
                           ? WORD_LADDER_TIME_MS
                           : puzzle.type === "numclimb"
@@ -444,14 +444,14 @@ const blockPartySummary: SummaryBuilder = (result, puzzle) => {
 
 const groupsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "groups") return { summary: "—", detail: [] };
-  const found = Math.max(0, Math.min(2, Number(result.extra?.["foundGroups"] ?? 0)));
-  if (found === 2)
+  const found = Math.max(0, Math.min(4, Number(result.extra?.["foundGroups"] ?? 0)));
+  if (found === 4)
     return {
-      summary: `Both groups · ${seconds(elapsedMs(result, puzzle))}`,
+      summary: `4 / 4 groups · ${seconds(elapsedMs(result, puzzle))}`,
       detail: (puzzle.groups ?? []).map((group) => `${group.theme}: ${group.words.join(", ")}`),
     };
   return {
-    summary: found === 1 ? "One group" : "No groups",
+    summary: `${found} / 4 groups`,
     detail: (puzzle.groups ?? []).map((group) => `${group.theme}: ${group.words.join(", ")}`),
   };
 };
@@ -696,7 +696,7 @@ function joinOperators(values: string[]): string {
 
 export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   wordsmith: () => null,
-  groups: () => "Two groups of four",
+  groups: () => "Four groups of four",
   ladder: (p) => (p.type === "ladder" ? (p.shortestPath ?? []).join(" → ") : null),
   target: (p) => (p.type === "target" ? String(p.target) : null),
   numseq: (p) => (p.type === "numseq" ? String(p.answer) : null),

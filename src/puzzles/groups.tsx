@@ -4,7 +4,12 @@ import { shuffled } from "@/lib/duel/random";
 import { GROUPS_TIME_MS, type GroupsPuzzleData } from "@/lib/duel/types";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const BAND_CLASSES = ["border-primary/60 bg-primary/15", "border-opponent/60 bg-opponent/15"];
+const BAND_CLASSES = [
+  "border-primary/60 bg-primary/15",
+  "border-opponent/60 bg-opponent/15",
+  "border-ok/60 bg-ok/15",
+  "border-warn/60 bg-warn/15",
+];
 
 function GroupBand({
   theme,
@@ -16,7 +21,7 @@ function GroupBand({
   index?: number;
 }) {
   return (
-    <div className={`w-full rounded-lg border px-2 py-2 text-center ${BAND_CLASSES[index % 2]}`}>
+    <div className={`w-full rounded-lg border px-2 py-1.5 text-center ${BAND_CLASSES[index % 4]}`}>
       <p className="font-mono text-[10px] font-bold uppercase tracking-widest">{theme}</p>
       <p className="mt-1 truncate font-display text-xs font-semibold">{words.join(" · ")}</p>
     </div>
@@ -24,11 +29,11 @@ function GroupBand({
 }
 
 function IntroExample() {
-  const remaining = ["Ruby", "Coral", "Amber", "Jade"];
+  const remaining = ["Ruby", "Coral", "Amber", "Jade", "Mars", "Venus", "Earth", "Saturn"];
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center text-sm text-muted-foreground">
-        Sort the eight words into two groups of four.
+        Sort the sixteen words into four groups of four.
       </p>
       <GroupBand theme="Fruit" words={["Apple", "Cherry", "Banana", "Grape"]} />
       <div className="grid w-full grid-cols-4 gap-1.5">
@@ -42,7 +47,7 @@ function IntroExample() {
         ))}
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Find both groups. Some words fit more than one — choose carefully. You have 90 seconds.
+        Find all four groups. Some words fit more than one — choose carefully. You have 90 seconds.
       </p>
     </div>
   );
@@ -103,12 +108,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkGroup }: PuzzleSt
     setFound(next);
     setSelected([]);
     onDraftAnswer?.(next.map((group) => group.indices.join(",")).join(";"));
-    if (next.length === 2) submitFinal(next);
+    if (next.length === 4) submitFinal(next);
   };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col justify-between gap-2">
-      <div className="flex min-h-[112px] flex-col gap-2">
+      <div className="flex min-h-[128px] flex-col gap-1">
         {found.map((group, index) => (
           <GroupBand key={group.groupIndex} theme={group.theme} words={group.words} index={index} />
         ))}
@@ -131,7 +136,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkGroup }: PuzzleSt
                       : current,
                 )
               }
-              className={`flex h-16 min-w-0 items-center justify-center rounded-lg border px-0.5 text-center font-display text-[clamp(10px,3vw,13px)] font-bold leading-tight ${active ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-foreground"}`}
+              className={`flex h-12 min-w-0 items-center justify-center rounded-lg border px-0.5 text-center font-display text-[clamp(9px,2.8vw,12px)] font-bold leading-tight ${active ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-foreground"}`}
             >
               {word}
             </button>
@@ -189,7 +194,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       })
       .filter((index) => index >= 0),
   ).size;
-  const label = foundCount === 2 ? "Both groups" : foundCount === 1 ? "One group" : "No groups";
+  const label = foundCount === 4 ? "All four groups" : `${foundCount} / 4 groups`;
   const elapsed = ((GROUPS_TIME_MS - Math.max(0, myMsRemaining ?? 0)) / 1000).toFixed(1);
   return (
     <div className="flex w-full flex-col items-center gap-2">

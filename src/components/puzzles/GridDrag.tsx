@@ -224,6 +224,41 @@ export function gridCellAt(
 }
 
 /**
+ * Nearest adjacent cell centre for path drawing. A small corner dead-zone
+ * prevents a diagonal gesture from jumping sideways when it only grazes a
+ * corner; non-adjacent cells are never returned.
+ */
+export function adjacentGridCellAt(
+  element: HTMLElement | null,
+  clientX: number,
+  clientY: number,
+  cols: number,
+  rows: number,
+  from: number,
+): number | null {
+  const geometry = gridGeometry(element, clientX, clientY, cols, rows);
+  if (!geometry) return null;
+  const fromCol = from % cols;
+  const fromRow = Math.floor(from / cols);
+  let best: { cell: number; distance: number } | null = null;
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      const col = fromCol + dc;
+      const row = fromRow + dr;
+      if (col < 0 || col >= cols || row < 0 || row >= rows) continue;
+      const cx = col * (geometry.cellW + geometry.gapX) + geometry.cellW / 2;
+      const cy = row * (geometry.cellH + geometry.gapY) + geometry.cellH / 2;
+      const distance = Math.hypot(geometry.x - cx, geometry.y - cy);
+      if (!best || distance < best.distance) best = { cell: row * cols + col, distance };
+    }
+  }
+  if (!best) return null;
+  const radius = Math.min(geometry.cellW, geometry.cellH) * 0.68;
+  return best.distance <= radius ? best.cell : null;
+}
+
+/**
  * The one pointer handler every grid game uses: a tap or a drag reports the cell
  * under the finger, the pointer is captured so a drag never scrolls or drops,
  * and the same mapping serves the first touch and every move after it.
