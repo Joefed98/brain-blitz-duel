@@ -290,6 +290,7 @@ export function BlockPartyPuzzle({
   const inTray = BLOCK_PIECES.map((_, piece) => piece).filter(
     (piece) => !placed.some((entry) => entry.piece === piece),
   );
+  const draggedPiece = drag.drag?.item.piece;
 
   useEffect(() => {
     const layout = layoutRef.current;
@@ -353,7 +354,7 @@ export function BlockPartyPuzzle({
           boardRef={boardRef}
           size={boardSize}
         >
-          {ghost && drag.drag && (
+          {ghost && draggedPiece !== undefined && (
             <>
               {ghost.cells.map((cell) => (
                 <div
@@ -367,7 +368,7 @@ export function BlockPartyPuzzle({
                     top: pct(Math.floor(cell / N)),
                     width: pct(1),
                     height: pct(1),
-                    color: ghost.legal ? pieceColour(drag.drag.item.piece) : undefined,
+                    color: ghost.legal ? pieceColour(draggedPiece) : undefined,
                   }}
                 />
               ))}
