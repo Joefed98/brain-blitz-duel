@@ -42,7 +42,7 @@ export function reflect(dir: BeamDir, kind: MirrorKind): BeamDir {
   if (dir === "R") return "D";
   if (dir === "D") return "R";
   if (dir === "L") return "U";
-  return "L" === dir ? "U" : "L";
+  return "L";
 }
 
 export function flipMirror(kind: MirrorKind): MirrorKind {
