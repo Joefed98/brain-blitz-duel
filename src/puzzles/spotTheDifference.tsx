@@ -521,7 +521,7 @@ export function buildSpotDifference(): SpotPuzzleData {
   for (let attempt = 0; attempt < 400; attempt++) {
     const top = scatter(randInt(SPOT_MIN_SHAPES, SPOT_MAX_SHAPES));
     const occupied = new Set(top.map((s) => s.cell));
-    // One of each kind where the scene allows it, never two of the same.
+    // Exactly one of each kind, spread across the scene.
     const wanted = shuffled(ALL).slice(0, SPOT_DIFFERENCES);
     const candidates = shuffled(top);
 
@@ -538,7 +538,7 @@ export function buildSpotDifference(): SpotPuzzleData {
       );
       if (!shape) break;
       const applied = applyDifference(kind, shape, occupied, usedCells);
-      if (!applied) continue;
+      if (!applied) break;
       bottom.delete(shape.cell);
       if (applied.bottom) bottom.set(applied.bottom.cell, applied.bottom);
       differences.push(applied.difference);

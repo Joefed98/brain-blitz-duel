@@ -1,4 +1,4 @@
-import { patternAttributeLabel, patternMistakes } from "./pattern";
+import { checkPatternAnswer, decodePatternAnswers, patternAttributeLabel, patternMistakes } from "./pattern";
 import {
   BLOCK_FREE_CELLS,
   BLOCK_TIME_MS,
@@ -299,13 +299,20 @@ function spinSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
 
 function patternSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   if (puzzle.type !== "patcomp") return { summary: "—", detail: [] };
-  const rules = (puzzle.rules ?? []).map((rule) => rule.text);
-  if (result.is_correct) {
-    return { summary: `✓ ${seconds(elapsedMs(result, puzzle))}`, detail: rules };
-  }
-  const wrong = patternMistakes(puzzle, result.answer).map(patternAttributeLabel);
-  const summary = wrong.length > 0 ? `✗ (${wrong.join(", ")} wrong)` : "✗ No answer";
-  return { summary, detail: rules };
+  const answers = decodePatternAnswers(result.answer);
+  const count = puzzle.puzzles.filter((item, index) =>
+    checkPatternAnswer(answers[index] ?? "", item),
+  ).length;
+  const detail = puzzle.puzzles.map((item, index) => {
+    const answer = answers[index] ?? "";
+    if (checkPatternAnswer(answer, item)) return `${index + 1}. ✓`;
+    const wrong = patternMistakes(item, answer).map(patternAttributeLabel);
+    return `${index + 1}. ✗ ${wrong.length ? `${wrong.join(", ")} wrong` : "Skipped"}`;
+  });
+  return {
+    summary: count === 3 ? `3 / 3 · ${seconds(elapsedMs(result, puzzle))}` : `${count} / 3 correct`,
+    detail,
+  };
 }
 
 function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
@@ -709,7 +716,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   stroop: () => null,
   spatial: (p) => (p.type === "spatial" ? `Cells ${p.tiles.map((i) => i + 1).join(", ")}` : null),
   gonogo: () => null,
-  patcomp: (p) => (p.type === "patcomp" && p.answer ? "See the grid" : null),
+  patcomp: (p) => (p.type === "patcomp" ? "See the three grids" : null),
   symscan: (p) => (p.type === "symscan" ? `${p.targets.length} arrows` : null),
   spin: () => null,
   numhunt: () => null,
