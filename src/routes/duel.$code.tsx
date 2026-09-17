@@ -9,10 +9,12 @@ import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructio
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundPips } from "@/components/duel/RoundPips";
 import { RoundResult } from "@/components/duel/RoundResult";
+import { RoundResultsTable } from "@/components/duel/RoundResultsTable";
 import { RoomLobby } from "@/components/duel/RoomLobby";
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
 import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
 import { Standings } from "@/components/duel/Standings";
+import { DuelOverall } from "@/components/duel/DuelOverall";
 import { Podium } from "@/components/duel/Podium";
 import { TimerRing, timerSlotClass } from "@/components/duel/TimerRing";
 import { buzz } from "@/lib/motion";
@@ -32,7 +34,6 @@ import {
   fetchDuelById,
   fetchRevealPuzzle,
   leaveRoom,
-  markReady,
   readyUp,
   removePlayer,
   setNoMaths,
@@ -41,6 +42,7 @@ import {
 } from "@/lib/duel/api";
 import { serverNow, toMs } from "@/lib/duel/clock";
 import { clearStageState } from "@/lib/duel/stageState";
+import { elapsedMs, formatElapsed } from "@/lib/duel/resultPresentation";
 import {
   duelOutcome,
   resultFor,
@@ -229,7 +231,7 @@ function DuelScreen() {
   const opponentResult = resultFor(results, opponentSlot, round);
 
   // Scores stay hidden until a round is fully over.
-  const scoredThrough = phase === "result" ? round : round - 1;
+  const scoredThrough = phase === "result" || phase === "standings" ? round : round - 1;
   const myTotal = totalScoreThrough(results, mySlot, scoredThrough);
   const opponentTotal = totalScoreThrough(results, opponentSlot, scoredThrough);
 
@@ -259,6 +261,12 @@ function DuelScreen() {
     : `Round ${round}`;
   /** Only the host drives the standings screen on; timers do the rest. */
   const leads = isHost;
+  const roundTimes = new Map(
+    roomPlayers.map((player) => [
+      player.player_slot,
+      elapsedMs(resultFor(results, player.player_slot, round), timeLimitMs),
+    ]),
+  );
 
   // Timer ran out without a submission — record a zero for this round.
   useEffect(() => {
@@ -296,14 +304,8 @@ function DuelScreen() {
     else if (phase === "puzzle")
       due = answeredThisRound >= activeCount || (deadline !== null && now > deadline + 800);
     else if (phase === "reveal") due = elapsed >= puzzleRevealMs(puzzle);
-    else {
-      const autoMs = isMulti ? STANDINGS_MS : NEXT_ROUND_AUTO_MS;
-      const hostReady = roomPlayers.find((p) => p.user_id === duel.host_user_id);
-      const skipped = isMulti
-        ? !!hostReady && hostReady.ready_round >= round
-        : roomPlayers.length === 2 && roomPlayers.every((p) => p.ready_round >= round);
-      due = skipped || elapsed >= autoMs;
-    }
+    else if (phase === "result") due = elapsed >= NEXT_ROUND_AUTO_MS;
+    else if (phase === "standings") due = elapsed >= STANDINGS_MS;
 
     if (!due) {
       dueSince.current = 0;
@@ -330,7 +332,8 @@ function DuelScreen() {
 
   // The correct answer only exists on the client once the round has ended.
   useEffect(() => {
-    if (!duel || round < 1 || (phase !== "reveal" && phase !== "result")) return;
+    if (!duel || round < 1 || (phase !== "reveal" && phase !== "result" && phase !== "standings"))
+      return;
     if (revealed?.round === round) return;
     let cancelled = false;
     void fetchRevealPuzzle(duel.id, round).then((found) => {
@@ -626,22 +629,20 @@ function DuelScreen() {
   if (phase === "result") {
     const autoSeconds = Math.max(
       0,
-      Math.ceil(
-        ((isMulti ? STANDINGS_MS : NEXT_ROUND_AUTO_MS) - (now - (phaseStart ?? now))) / 1000,
-      ),
+      Math.ceil((NEXT_ROUND_AUTO_MS - (now - (phaseStart ?? now))) / 1000),
     );
     if (isMulti) {
       return (
         <PhoneShell>
-          <Standings
-            round={round}
+          <RoundResultsTable
             roundTitle={roundTitle}
             rows={table}
+            times={roundTimes}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
             isHost={isHost}
-            ready={me.ready_round >= round}
-            onNext={() => void markReady(duel.id, round)}
+            finalRound={round >= duel.round_count}
+            onNext={() => void advancePhase(duel.id, true)}
           />
         </PhoneShell>
       );
@@ -649,20 +650,47 @@ function DuelScreen() {
     return (
       <PhoneShell>
         <RoundResult
-          round={round}
           roundTitle={roundTitle}
           myName={me.display_name}
           opponentName={opponent?.display_name ?? "Opponent"}
           myRoundScore={myResult?.score ?? 0}
           mySummary={myStanding?.summary ?? "No answer"}
+          myTime={formatElapsed(roundTimes.get(mySlot) ?? null)}
           opponentRoundScore={opponentResult?.score ?? 0}
           opponentSummary={opponentStanding?.summary ?? "No answer"}
-          myTotal={myTotal}
-          opponentTotal={opponentTotal}
+          opponentTime={formatElapsed(roundTimes.get(opponentSlot) ?? null)}
           autoSeconds={autoSeconds}
-          ready={me.ready_round >= round}
-          onNext={() => void markReady(duel.id, round)}
+          finalRound={round >= duel.round_count}
+          isHost={isHost}
+          onNext={() => void advancePhase(duel.id, true)}
         />
+      </PhoneShell>
+    );
+  }
+
+  if (phase === "standings") {
+    const autoSeconds = Math.max(0, Math.ceil((STANDINGS_MS - (now - (phaseStart ?? now))) / 1000));
+    return (
+      <PhoneShell>
+        {isMulti ? (
+          <Standings
+            round={round}
+            rows={table}
+            mySlot={mySlot}
+            autoSeconds={autoSeconds}
+            isHost={isHost}
+            onNext={() => void advancePhase(duel.id, true)}
+          />
+        ) : (
+          <DuelOverall
+            round={round}
+            rows={table}
+            mySlot={mySlot}
+            autoSeconds={autoSeconds}
+            isHost={isHost}
+            onNext={() => void advancePhase(duel.id, true)}
+          />
+        )}
       </PhoneShell>
     );
   }

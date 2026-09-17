@@ -370,7 +370,7 @@ export type PuzzleData =
   | MazePuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
-export type DuelPhase = "intro" | "puzzle" | "reveal" | "result";
+export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
 
 export interface DuelRow {
   id: string;
@@ -468,8 +468,8 @@ export const INTRO_COUNTDOWN_MS = 3_000;
 /** Answer reveal after each round. */
 export const REVEAL_MS = 5_000;
 export const NEXT_ROUND_AUTO_MS = 8_000;
-/** How long the standings screen stays up in a room of three or more. */
-export const STANDINGS_MS = 12_000;
+/** How long the overall standings screen stays up. */
+export const STANDINGS_MS = 10_000;
 /** Missing this many rounds in a row marks a player inactive. */
 export const INACTIVE_AFTER_MISSED = 2;
 export const DISCONNECT_MS = 15_000;

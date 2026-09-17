@@ -2,39 +2,39 @@ import { useEffect, useRef } from "react";
 
 import { MAX_ROUND_SCORE } from "@/lib/duel/scoring";
 import { playRoundWon } from "@/lib/sound";
+import { Button } from "@/components/ui/button";
 
 import { AnimatedScore } from "./AnimatedScore";
-import { Dots } from "./Dots";
 
 interface RoundResultProps {
-  round: number;
   roundTitle: string;
   myName: string;
   opponentName: string;
   myRoundScore: number;
   mySummary: string;
+  myTime: string;
   opponentRoundScore: number;
   opponentSummary: string;
-  myTotal: number;
-  opponentTotal: number;
+  opponentTime: string;
   autoSeconds: number;
-  ready: boolean;
+  finalRound: boolean;
+  isHost: boolean;
   onNext: () => void;
 }
 
 export function RoundResult({
-  round,
   roundTitle,
   myName,
   opponentName,
   myRoundScore,
   mySummary,
+  myTime,
   opponentRoundScore,
   opponentSummary,
-  myTotal,
-  opponentTotal,
+  opponentTime,
   autoSeconds,
-  ready,
+  finalRound,
+  isHost,
   onNext,
 }: RoundResultProps) {
   const iWon = myRoundScore > opponentRoundScore;
@@ -51,15 +51,18 @@ export function RoundResult({
   const bar = (score: number) => `${Math.round((score / MAX_ROUND_SCORE) * 100)}%`;
 
   return (
-    <div className="flex flex-1 flex-col justify-between gap-8 pt-6 animate-phase-in">
+    <div className="flex flex-1 flex-col justify-between gap-6 pt-4 animate-phase-in">
       <div className="flex flex-col gap-6">
-        <div className="text-center">
-          <p className="break-words font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="relative px-12 text-center">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+            Round results
+          </p>
+          <p className="mt-1 break-words font-display text-sm font-bold text-foreground">
             {roundTitle}
           </p>
-          <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Round {round} result
-          </p>
+          <span className="absolute right-0 top-0 font-mono text-[10px] uppercase text-muted-foreground">
+            {finalRound ? "Final round" : "1 of 2"}
+          </span>
         </div>
 
         <div className="flex gap-3">
@@ -69,9 +72,10 @@ export function RoundResult({
             } ${theyWon ? "opacity-60" : ""}`}
           >
             <p className="truncate font-display text-sm text-me">{myName}</p>
+            <p className="font-mono text-[10px] text-muted-foreground">{myTime}</p>
             <p
               title={mySummary}
-              className="mt-1 truncate whitespace-nowrap font-mono text-[10px] text-primary/80"
+              className="mt-1 font-mono text-[10px] leading-snug text-primary/80"
             >
               {mySummary}
             </p>
@@ -96,9 +100,10 @@ export function RoundResult({
             } ${iWon ? "opacity-60" : ""}`}
           >
             <p className="truncate font-display text-sm text-opponent">{opponentName}</p>
+            <p className="font-mono text-[10px] text-muted-foreground">{opponentTime}</p>
             <p
               title={opponentSummary}
-              className="mt-1 truncate whitespace-nowrap font-mono text-[10px] text-muted-foreground"
+              className="mt-1 font-mono text-[10px] leading-snug text-muted-foreground"
             >
               {opponentSummary}
             </p>
@@ -118,35 +123,19 @@ export function RoundResult({
             )}
           </div>
         </div>
-
-        <div className="flex items-center justify-between rounded-xl bg-card px-4 py-3">
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">Total</span>
-          <span className="font-mono text-lg font-bold tabular-nums">
-            <AnimatedScore value={myTotal} className="text-me" />
-            <span className="mx-2 text-muted-foreground">–</span>
-            <AnimatedScore value={opponentTotal} className="text-opponent" />
-          </span>
-        </div>
       </div>
 
       <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={ready}
-          className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground"
-        >
-          {ready ? (
-            <>
-              <span>Waiting for opponent</span>
-              <Dots className="bg-primary-foreground" />
-            </>
-          ) : (
-            "Next round"
-          )}
-        </button>
+        {isHost && (
+          <Button
+            onClick={onNext}
+            className="press tap-target w-full font-display font-bold uppercase"
+          >
+            {finalRound ? "Podium" : "Next"} ({autoSeconds}s)
+          </Button>
+        )}
         <p className="text-center font-mono text-xs text-muted-foreground">
-          Continues automatically in {autoSeconds}s
+          {finalRound ? "Podium" : "Standings"} in {autoSeconds}s
         </p>
       </div>
     </div>
