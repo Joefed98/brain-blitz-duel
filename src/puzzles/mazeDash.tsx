@@ -198,6 +198,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
     onSubmit(encodeMazePath(path));
   }, [solved, path, locked, onSubmit]);
 
+  /**
+   * One cell touched by the finger: the route grows only into a cell next to its
+   * end with no wall between, and retraces when the finger goes back. Anything
+   * else is ignored — the route is never reset by a stray touch.
+   */
   const touch = (cell: number) => {
     if (locked || submitted.current || solved) return;
     setPath((current) => {
@@ -210,10 +215,30 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
     });
   };
 
+  /** The arrows drive the very same route as the finger does. */
+  const step = (dir: "U" | "D" | "L" | "R") => {
+    const last = path[path.length - 1] ?? start;
+    const col = last % MAZE_COLS;
+    const row = Math.floor(last / MAZE_COLS);
+    if (dir === "U" && row === 0) return;
+    if (dir === "D" && row >= Math.floor((cells.length - 1) / MAZE_COLS)) return;
+    if (dir === "L" && col === 0) return;
+    if (dir === "R" && col === MAZE_COLS - 1) return;
+    const next =
+      dir === "U"
+        ? last - MAZE_COLS
+        : dir === "D"
+          ? last + MAZE_COLS
+          : dir === "L"
+            ? last - 1
+            : last + 1;
+    touch(next);
+  };
+
   if (!isMaze) return null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-1">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         squares <span className="text-primary">{path.length}</span> · wasted {wasted}
       </p>
@@ -222,18 +247,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
         <MazeBoard cells={cells} start={start} exit={exit} path={path} onCell={touch} />
       </div>
 
-      <div className="flex shrink-0 justify-center">
+      <div className="flex shrink-0 items-center justify-center gap-3">
+        <ArrowPad onPress={step} disabled={locked || solved} repeatMs={120} size={112} />
         <button
           type="button"
           disabled={locked || path.length < 2}
           onClick={() => setPath([start])}
-          className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+          className="h-11 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset
         </button>
       </div>
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        Drag from the dot · retrace to undo a wrong turn
+        Tap or hold an arrow · or draw with your finger · go back to undo
       </p>
     </div>
   );
