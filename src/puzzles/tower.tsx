@@ -17,7 +17,7 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const DISC_COLOURS = ["RED", "BLUE", "GREEN", "PURPLE", "PINK"] as const;
+const DISC_COLOURS = ["RED", "ORANGE", "GREEN", "BLUE", "PURPLE", "PINK", "BROWN"] as const;
 
 function discColour(size: number): string {
   return GLYPH_COLOURS[DISC_COLOURS[(size - 1) % DISC_COLOURS.length]!];

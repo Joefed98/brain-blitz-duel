@@ -27,6 +27,194 @@ export function hapticTick(): void {
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Shared pointer-to-cell mapping — every grid game uses this and nothing     */
+/*  else, so a tap always lands on the square under the finger.                */
+/* -------------------------------------------------------------------------- */
+
+export interface GridGeometry {
+  /** Content-box size in layout pixels (padding removed, CSS scale removed). */
+  width: number;
+  height: number;
+  cellW: number;
+  cellH: number;
+  gapX: number;
+  gapY: number;
+  /** Pointer position inside the content box, in layout pixels. */
+  x: number;
+  y: number;
+}
+
+function number(value: string): number {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/**
+ * Measures the grid at the moment of the event — never a cached size — and puts
+ * the pointer into the grid's own content-box coordinates, undoing any CSS
+ * scale and the element's padding.
+ */
+export function gridGeometry(
+  element: HTMLElement | null,
+  clientX: number,
+  clientY: number,
+  cols: number,
+  rows: number,
+): GridGeometry | null {
+  if (!element || cols <= 0 || rows <= 0) return null;
+  const rect = element.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return null;
+  const style = window.getComputedStyle(element);
+  // A CSS transform scales the rect but not the computed padding or gap.
+  const scaleX = element.offsetWidth ? rect.width / element.offsetWidth : 1;
+  const scaleY = element.offsetHeight ? rect.height / element.offsetHeight : 1;
+  const padLeft = number(style.paddingLeft);
+  const padTop = number(style.paddingTop);
+  const padRight = number(style.paddingRight);
+  const padBottom = number(style.paddingBottom);
+  const borderLeft = number(style.borderLeftWidth);
+  const borderTop = number(style.borderTopWidth);
+  const width = element.clientWidth - padLeft - padRight;
+  const height = element.clientHeight - padTop - padBottom;
+  if (width <= 0 || height <= 0) return null;
+
+  const gapX = cols > 1 ? number(style.columnGap) : 0;
+  const gapY = rows > 1 ? number(style.rowGap) : 0;
+  return {
+    width,
+    height,
+    cellW: (width - gapX * (cols - 1)) / cols,
+    cellH: (height - gapY * (rows - 1)) / rows,
+    gapX,
+    gapY,
+    x: (clientX - rect.left) / (scaleX || 1) - borderLeft - padLeft,
+    y: (clientY - rect.top) / (scaleY || 1) - borderTop - padTop,
+  };
+}
+
+/** The live size of one cell, measured from the grid element itself. */
+export function gridCellSize(
+  element: HTMLElement | null,
+  cols: number,
+  rows: number,
+): { cellW: number; cellH: number } | null {
+  const geometry = gridGeometry(element, 0, 0, cols, rows);
+  return geometry ? { cellW: geometry.cellW, cellH: geometry.cellH } : null;
+}
+
+/** Which track the position falls in: the containing cell, or the nearer one when in a gap. */
+function trackAt(position: number, cell: number, gap: number, count: number): number | null {
+  const pitch = cell + gap;
+  if (position < -cell * 0.35 || position > count * pitch - gap + cell * 0.35) return null;
+  const index = Math.floor(position / pitch);
+  const inside = position - index * pitch;
+  // Past the cell means the pointer is in the gap: take whichever centre is nearer.
+  const chosen = inside <= cell + gap / 2 ? index : index + 1;
+  return Math.max(0, Math.min(count - 1, chosen));
+}
+
+/** The column and row under the pointer, or null when it is off the grid. */
+export function gridColRowAt(
+  element: HTMLElement | null,
+  clientX: number,
+  clientY: number,
+  cols: number,
+  rows: number,
+): { col: number; row: number } | null {
+  const geometry = gridGeometry(element, clientX, clientY, cols, rows);
+  if (!geometry) return null;
+  const col = trackAt(geometry.x, geometry.cellW, geometry.gapX, cols);
+  const row = trackAt(geometry.y, geometry.cellH, geometry.gapY, rows);
+  if (col === null || row === null) return null;
+  return { col, row };
+}
+
+/** The cell index under the pointer, using the grid's live measurements. */
+export function gridCellAt(
+  element: HTMLElement | null,
+  clientX: number,
+  clientY: number,
+  cols: number,
+  rows: number,
+): number | null {
+  const at = gridColRowAt(element, clientX, clientY, cols, rows);
+  return at === null ? null : at.row * cols + at.col;
+}
+
+/**
+ * The one pointer handler every grid game uses: a tap or a drag reports the cell
+ * under the finger, the pointer is captured so a drag never scrolls or drops,
+ * and the same mapping serves the first touch and every move after it.
+ */
+export function useGridPointer(options: {
+  cols: number;
+  rows: number;
+  onCell: ((cell: number) => void) | undefined;
+  onRelease?: (() => void) | undefined;
+}): {
+  ref: React.RefObject<HTMLDivElement | null>;
+  handlers: {
+    onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => void;
+    onPointerCancel: (event: React.PointerEvent<HTMLDivElement>) => void;
+    style: React.CSSProperties;
+  };
+} {
+  const { cols, rows, onCell, onRelease } = options;
+  const ref = useRef<HTMLDivElement | null>(null);
+  const down = useRef(false);
+
+  const report = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!onCell) return;
+      const cell = gridCellAt(ref.current, clientX, clientY, cols, rows);
+      if (cell !== null) onCell(cell);
+    },
+    [cols, rows, onCell],
+  );
+
+  const finish = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!down.current) return;
+      down.current = false;
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // The capture may already be gone; that is fine.
+      }
+      onRelease?.();
+    },
+    [onRelease],
+  );
+
+  return {
+    ref,
+    handlers: {
+      style: { touchAction: "none" },
+      onPointerDown: (event) => {
+        if (!onCell) return;
+        event.preventDefault();
+        down.current = true;
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        } catch {
+          // Capture is a nicety; the move handler still works without it.
+        }
+        report(event.clientX, event.clientY);
+      },
+      onPointerMove: (event) => {
+        if (!down.current) return;
+        report(event.clientX, event.clientY);
+      },
+      onPointerUp: finish,
+      onPointerCancel: finish,
+    },
+  };
+}
+
+
 export interface DragInfo<T> {
   item: T;
   /** Pixels moved since the drag began. */
@@ -172,6 +360,12 @@ export function useSwipe(
       if (disabled) return;
       from.current = { x: event.clientX, y: event.clientY };
       fired.current = false;
+      // Capture the pointer so a flick never scrolls the page or drops mid-way.
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Capture is a nicety; the window listeners still finish the swipe.
+      }
 
       const move = (moveEvent: PointerEvent) => {
         const origin = from.current;

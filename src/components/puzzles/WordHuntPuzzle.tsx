@@ -1,7 +1,7 @@
 import { playCorrect, playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { hapticTick } from "@/components/puzzles/GridDrag";
+import { gridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
 import {
   WORDHUNT_COLS as N,
   WORDHUNT_MIN_LENGTH,
@@ -34,12 +34,14 @@ export function WordHuntBoard({
   size,
   interactive = false,
   onPathStart,
+  gridRef,
 }: {
   grid: string[];
   path?: number[];
   size?: number;
   interactive?: boolean;
   onPathStart?: (cell: number, event: React.PointerEvent) => void;
+  gridRef?: React.Ref<HTMLDivElement>;
 }) {
   return (
     <div
@@ -66,7 +68,7 @@ export function WordHuntBoard({
           />
         )}
       </svg>
-      <div className="grid h-full w-full grid-cols-4 gap-2">
+      <div ref={gridRef} className="grid h-full w-full grid-cols-4 gap-2" style={{ touchAction: "none" }}>
         {grid.map((letter, cell) => {
           const lit = path.includes(cell);
           return (
@@ -118,6 +120,7 @@ export function WordHuntPuzzle({
   const [found, setFound] = useState<Found[]>([]);
   const [flash, setFlash] = useState<"good" | "bad" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
   const tracing = useRef(false);
   const livePath = useRef<number[]>([]);
   const foundRef = useRef<Found[]>([]);
@@ -188,18 +191,16 @@ export function WordHuntPuzzle({
     return () => clearTimeout(id);
   }, [flash]);
 
-  const cellAt = (x: number, y: number): number | null => {
-    const element = document.elementFromPoint(x, y);
-    const holder = (element as HTMLElement | null)?.closest("[data-cell]");
-    const value = holder?.getAttribute("data-cell");
-    if (!value) return null;
-    const cell = Number.parseInt(value, 10);
-    return Number.isFinite(cell) ? cell : null;
-  };
+  const cellAt = (x: number, y: number): number | null => gridCellAt(gridRef.current, x, y, N, N);
 
   const startTrace = (cell: number, event: React.PointerEvent) => {
     if (locked) return;
     event.preventDefault();
+    try {
+      (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+    } catch {
+      // Capture is a nicety; the window listeners still follow the finger.
+    }
     tracing.current = true;
     livePath.current = [cell];
     setPath([cell]);
@@ -254,7 +255,13 @@ export function WordHuntPuzzle({
         }`}
       >
         <div className="aspect-square h-auto max-h-full w-auto max-w-full flex-1">
-          <WordHuntBoard grid={grid} path={path} interactive={!locked} onPathStart={startTrace} />
+          <WordHuntBoard
+            grid={grid}
+            path={path}
+            interactive={!locked}
+            onPathStart={startTrace}
+            gridRef={gridRef}
+          />
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 /**
- * Server-only Flow generation. The grid is partitioned into five non-branching
+ * Server-only Flow generation. The grid is partitioned into seven non-branching
  * paths by cutting a random Hamiltonian path into segments, so every layout is
  * solvable by construction and the solution is exactly those segments.
  */
@@ -8,6 +8,7 @@ import { flowCol, flowNeighbours, flowRow, verifyFlow } from "./flow";
 import { shuffled } from "./random";
 import {
   FLOW_CELLS,
+  FLOW_COLS,
   FLOW_MIN_PATH,
   FLOW_PAIRS,
   type FlowPair,
@@ -15,7 +16,16 @@ import {
   type StroopColour,
 } from "./types";
 
-const COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK"];
+/** The seven game colours, one per pair. */
+const COLOURS: StroopColour[] = [
+  "RED",
+  "BLUE",
+  "GREEN",
+  "PURPLE",
+  "PINK",
+  "ORANGE",
+  "BROWN",
+];
 
 /** A random Hamiltonian path over the grid, found by randomised backtracking. */
 function hamiltonianPath(): number[] | null {
@@ -48,7 +58,7 @@ function hamiltonianPath(): number[] | null {
   return search() ? path : null;
 }
 
-/** Random segment lengths that sum to 36, each at least the minimum. */
+/** Random segment lengths that sum to the whole grid, each at least the minimum. */
 function segmentLengths(): number[] {
   const lengths = new Array<number>(FLOW_PAIRS).fill(FLOW_MIN_PATH);
   let spare = FLOW_CELLS - FLOW_MIN_PATH * FLOW_PAIRS;
@@ -61,6 +71,17 @@ function segmentLengths(): number[] {
   return lengths;
 }
 
+/** How many times a path changes direction. */
+export function flowBends(path: number[]): number {
+  let bends = 0;
+  for (let index = 2; index < path.length; index++) {
+    const first = path[index - 1]! - path[index - 2]!;
+    const second = path[index]! - path[index - 1]!;
+    if (first !== second) bends += 1;
+  }
+  return bends;
+}
+
 /** A path is straight when every cell shares a row or every cell shares a column. */
 function straight(path: number[]): boolean {
   const rows = new Set(path.map(flowRow));
@@ -68,24 +89,71 @@ function straight(path: number[]): boolean {
   return rows.size === 1 || cols.size === 1;
 }
 
+/** The cells of an L route between two dots, turning at the given corner. */
+function elbow(a: number, b: number, corner: "row" | "col"): number[] {
+  const [ra, ca, rb, cb] = [flowRow(a), flowCol(a), flowRow(b), flowCol(b)];
+  const cells: number[] = [];
+  const step = (from: number, to: number) => (from <= to ? 1 : -1);
+  if (corner === "row") {
+    for (let c = ca; ; c += step(ca, cb)) {
+      cells.push(ra * FLOW_COLS + c);
+      if (c === cb) break;
+    }
+    for (let r = ra + step(ra, rb); ; r += step(ra, rb)) {
+      cells.push(r * FLOW_COLS + cb);
+      if (r === rb) break;
+      if (ra === rb) break;
+    }
+  } else {
+    for (let r = ra; ; r += step(ra, rb)) {
+      cells.push(r * FLOW_COLS + ca);
+      if (r === rb) break;
+    }
+    for (let c = ca + step(ca, cb); ; c += step(ca, cb)) {
+      cells.push(rb * FLOW_COLS + c);
+      if (c === cb) break;
+      if (ca === cb) break;
+    }
+  }
+  return cells;
+}
+
+/**
+ * True when the pair could be joined by a straight line or a single bend that
+ * misses every other dot — an obvious route we never want to ship.
+ */
+function joinableTooEasily(a: number, b: number, dots: Set<number>): boolean {
+  if (flowRow(a) === flowRow(b) || flowCol(a) === flowCol(b)) return true;
+  // Both single-bend routes must be blocked by another dot, or the pair reads as obvious.
+  return (["row", "col"] as const).every((corner) =>
+    elbow(a, b, corner).every((cell) => cell === a || cell === b || !dots.has(cell)),
+  );
+}
+
 function acceptable(paths: number[][]): boolean {
+  const dots = new Set(paths.flatMap((path) => [path[0]!, path[path.length - 1]!]));
   for (const path of paths) {
     if (path.length < FLOW_MIN_PATH) return false;
     if (straight(path)) return false;
+    // A straight run or a single L is too easy to see: every pair needs two bends.
+    if (flowBends(path) < 2) return false;
     const a = path[0]!;
     const b = path[path.length - 1]!;
     // Dots side by side make the pair trivial.
     if (flowNeighbours(a).includes(b)) return false;
+    // No pair may be joinable by a straight or single-bend route either.
+    if (joinableTooEasily(a, b, dots)) return false;
   }
   return true;
 }
+
 
 export function generateFlow(): FlowPuzzleData {
   for (let attempt = 0; attempt < 400; attempt++) {
     const hamiltonian = hamiltonianPath();
     if (!hamiltonian) continue;
 
-    for (let cut = 0; cut < 30; cut++) {
+    for (let cut = 0; cut < 60; cut++) {
       const lengths = segmentLengths();
       const paths: number[][] = [];
       let at = 0;
@@ -95,7 +163,7 @@ export function generateFlow(): FlowPuzzleData {
       }
       if (!acceptable(paths)) continue;
 
-      const colours = shuffled(COLOURS);
+      const colours = shuffled(COLOURS).slice(0, FLOW_PAIRS);
       const pairs: FlowPair[] = paths.map((path, index) => ({
         colour: colours[index]!,
         a: path[0]!,

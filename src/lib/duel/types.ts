@@ -188,7 +188,14 @@ export interface EquationPuzzleData {
   operators: Operator[];
 }
 
-export type StroopColour = "RED" | "BLUE" | "GREEN" | "PURPLE" | "PINK";
+export type StroopColour =
+  | "RED"
+  | "BLUE"
+  | "GREEN"
+  | "PURPLE"
+  | "PINK"
+  | "ORANGE"
+  | "BROWN";
 
 /** Which colour the player must tap for an item. */
 export type StroopInstruction = "ink" | "word";
@@ -881,10 +888,10 @@ export interface SudokuPuzzleData {
 /*  Flow                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export const FLOW_COLS = 6;
+export const FLOW_COLS = 7;
 export const FLOW_CELLS = FLOW_COLS * FLOW_COLS;
-/** Five pairs, one per game colour. */
-export const FLOW_PAIRS = 5;
+/** Seven pairs, one per game colour. */
+export const FLOW_PAIRS = 7;
 export const FLOW_TIME_MS = 60_000;
 /** Every path in a layout covers at least this many cells. */
 export const FLOW_MIN_PATH = 4;
@@ -910,13 +917,15 @@ export interface FlowPuzzleData {
 /*  Ice Slide                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const SLIDE_COLS = 7;
+export const SLIDE_COLS = 8;
 export const SLIDE_CELLS = SLIDE_COLS * SLIDE_COLS;
 export const SLIDE_TIME_MS = 60_000;
-export const SLIDE_MIN_WALLS = 8;
-export const SLIDE_MAX_WALLS = 12;
-export const SLIDE_MIN_MOVES = 4;
-export const SLIDE_MAX_MOVES = 7;
+export const SLIDE_MIN_WALLS = 12;
+export const SLIDE_MAX_WALLS = 18;
+export const SLIDE_MIN_MOVES = 6;
+export const SLIDE_MAX_MOVES = 9;
+/** At least this many walls must be stoppers the shortest route depends on. */
+export const SLIDE_MIN_STOPPERS = 2;
 /** Bonus for reaching the exit in the fewest possible slides. */
 export const SLIDE_MIN_MOVE_BONUS = 20;
 /** Consolation for stopping within two slides of the exit. */
@@ -970,13 +979,15 @@ export interface PushPuzzleData {
 /*  Laser and Mirrors                                                         */
 /* -------------------------------------------------------------------------- */
 
-export const LASER_COLS = 7;
+export const LASER_COLS = 8;
 export const LASER_CELLS = LASER_COLS * LASER_COLS;
 export const LASER_TIME_MS = 60_000;
-export const LASER_MIN_MIRRORS = 2;
-export const LASER_MAX_MIRRORS = 4;
-export const LASER_MIN_BLOCKS = 3;
-export const LASER_MAX_BLOCKS = 5;
+export const LASER_MIN_MIRRORS = 3;
+export const LASER_MAX_MIRRORS = 5;
+export const LASER_MIN_BLOCKS = 5;
+export const LASER_MAX_BLOCKS = 8;
+/** The beam route always turns at least this many times. */
+export const LASER_MIN_BENDS = 3;
 /** Consolation for a beam that stops within one cell of the target. */
 export const LASER_NEAR_POINTS = 30;
 
@@ -1038,13 +1049,16 @@ export interface TowerPuzzleData {
 /*  Maze Dash                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const MAZE_COLS = 9;
+export const MAZE_COLS = 13;
 export const MAZE_CELLS = MAZE_COLS * MAZE_COLS;
 export const MAZE_TIME_MS = 45_000;
 /** The route from start to exit is never shorter than this. */
-export const MAZE_MIN_PATH = 30;
+export const MAZE_MIN_PATH = 60;
 /** And never straighter than this. */
-export const MAZE_MIN_TURNS = 6;
+export const MAZE_MIN_TURNS = 12;
+/** False trails: dead-end branches leaving the route, and how long each runs. */
+export const MAZE_MIN_DEAD_ENDS = 4;
+export const MAZE_DEAD_END_LENGTH = 5;
 /** Most a partly-run maze can earn. */
 export const MAZE_PARTIAL_POINTS = 60;
 

@@ -23,7 +23,15 @@ export const PATTERN_SHAPES: PatternShape[] = [
   "hexagon",
   "arrow",
 ];
-export const PATTERN_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK"];
+export const PATTERN_COLOURS: StroopColour[] = [
+  "RED",
+  "BLUE",
+  "GREEN",
+  "PURPLE",
+  "PINK",
+  "ORANGE",
+  "BROWN",
+];
 export const PATTERN_COUNTS: (1 | 2 | 3)[] = [1, 2, 3];
 export const PATTERN_ROTATIONS: PatternRotation[] = [0, 90, 180, 270];
 /** Rotation only reads as rotation on these two. */

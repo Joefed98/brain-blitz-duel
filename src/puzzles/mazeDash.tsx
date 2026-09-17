@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
+import { gridCellAt } from "@/components/puzzles/GridDrag";
+
 import {
   MAZE_E,
   MAZE_N,
@@ -42,14 +44,9 @@ function MazeBoard({
   const rows = Math.ceil(cells.length / cols) || cols;
   const box = useRef<HTMLDivElement | null>(null);
 
-  const cellAt = (clientX: number, clientY: number): number | null => {
-    const rect = box.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return null;
-    const col = Math.floor(((clientX - rect.left) / rect.width) * cols);
-    const row = Math.floor(((clientY - rect.top) / rect.height) * rows);
-    if (col < 0 || row < 0 || col >= cols || row >= rows) return null;
-    return row * cols + col;
-  };
+  // Measured from the live board on every event, so the finger tracks the corridor.
+  const cellAt = (clientX: number, clientY: number): number | null =>
+    gridCellAt(box.current, clientX, clientY, cols, rows);
 
   const centre = (cell: number) => `${(cell % cols) + 0.5},${Math.floor(cell / cols) + 0.5}`;
 
@@ -73,6 +70,11 @@ function MazeBoard({
       onPointerDown={(event) => {
         if (!onCell) return;
         event.preventDefault();
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        } catch {
+          // Capture is a nicety; the drag still works without it.
+        }
         const cell = cellAt(event.clientX, event.clientY);
         if (cell !== null) onCell(cell);
       }}
@@ -90,7 +92,7 @@ function MazeBoard({
             points={ghost.map(centre).join(" ")}
             fill="none"
             stroke="var(--muted-foreground)"
-            strokeWidth={0.3}
+            strokeWidth={0.22}
             strokeLinecap="round"
             strokeLinejoin="round"
             opacity={0.45}
@@ -101,7 +103,7 @@ function MazeBoard({
             points={path.map(centre).join(" ")}
             fill="none"
             stroke={GOLD}
-            strokeWidth={0.34}
+            strokeWidth={0.26}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -113,15 +115,16 @@ function MazeBoard({
             y1={wall.y1}
             x2={wall.x2}
             y2={wall.y2}
-            stroke="var(--border)"
-            strokeWidth={0.07}
+            stroke="var(--muted-foreground)"
+            strokeWidth={0.075}
+            opacity={0.85}
             strokeLinecap="square"
           />
         ))}
         <circle
           cx={(start % cols) + 0.5}
           cy={Math.floor(start / cols) + 0.5}
-          r={0.22}
+          r={0.18}
           fill="var(--muted-foreground)"
         />
         <rect

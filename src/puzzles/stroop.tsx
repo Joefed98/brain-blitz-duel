@@ -21,6 +21,8 @@ export const STROOP_COLOURS: { name: StroopColour; hex: string }[] = [
   { name: "GREEN", hex: "#3DDC84" },
   { name: "PURPLE", hex: "#B26BFF" },
   { name: "PINK", hex: "#FF6BD6" },
+  { name: "ORANGE", hex: "#FF8A3D" },
+  { name: "BROWN", hex: "#C9895A" },
 ];
 
 function hexFor(colour: string): string {
@@ -57,7 +59,7 @@ function InstructionPill({
 
 function Swatches({ highlight, small }: { highlight?: StroopColour; small?: boolean }) {
   return (
-    <div className="grid w-full grid-cols-5 gap-1.5">
+    <div className="grid w-full grid-cols-4 gap-1.5">
       {STROOP_COLOURS.map((c) => (
         <span
           key={c.name}
@@ -152,7 +154,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         )}
       </div>
 
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         {STROOP_COLOURS.map((c) => (
           <button
             key={c.name}
@@ -160,7 +162,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
             aria-label={c.name}
             disabled={locked || !item}
             onClick={() => item && !locked && setTaps((prev) => [...prev, c.name])}
-            className="tap-target h-20 rounded-xl border border-border disabled:opacity-40"
+            className="tap-target h-16 rounded-xl border border-border disabled:opacity-40"
             style={{ backgroundColor: c.hex }}
           />
         ))}
