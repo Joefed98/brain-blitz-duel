@@ -48,7 +48,7 @@ import { PUZZLE_INSTRUCTIONS } from "./instructions";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
 type RegisteredPuzzleDefinition = PuzzleDefinition &
-  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer">>;
+  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions">>;
 
 const LONG_REVEAL_TYPES = new Set<PuzzleType>([
   "chaincalc",

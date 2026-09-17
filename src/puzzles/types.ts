@@ -99,7 +99,7 @@ export interface PuzzleDefinition {
   /** False for types that are not on a countdown clock. */
   showTimer?: boolean;
   /** Shared GOAL / HOW / SCORE copy used by the intro and in-round help. */
-  instructions: PuzzleInstructions;
+  instructions?: PuzzleInstructions;
   /** Fixed intro example — identical every single time. */
   IntroExample: ComponentType;
   Stage: ComponentType<PuzzleStageProps>;

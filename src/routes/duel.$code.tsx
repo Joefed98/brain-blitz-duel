@@ -5,6 +5,7 @@ import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { FinalResult } from "@/components/duel/FinalResult";
 import { PhoneShell } from "@/components/duel/PhoneShell";
+import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundPips } from "@/components/duel/RoundPips";
 import { RoundResult } from "@/components/duel/RoundResult";
