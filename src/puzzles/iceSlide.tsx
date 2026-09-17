@@ -228,7 +228,15 @@ function Stage({
 
   const slide = (dir: SlideDir) => {
     if (locked || submitted.current || replay.solved) return;
-    const outcome = slideOutcome(replay.cell, dir, new Set(walls), new Set(holes), exit, start);
+    const outcome = slideOutcome(
+      replay.cell,
+      dir,
+      new Set(walls),
+      new Set(holes),
+      exit,
+      start,
+      arrowMap(arrows),
+    );
     if (!outcome.path.length) return;
     setMoves((current) => [...current, dir]);
   };
