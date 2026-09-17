@@ -421,7 +421,6 @@ export function generateLaser(): LaserPuzzleData {
     if (new Set(route.bends.map((mirror) => mirror.kind)).size < 2) continue;
 
     const bendCells = new Set(route.bends.map((mirror) => mirror.cell));
-    const bendIndex = route.bends.map((mirror) => route.cells.indexOf(mirror.cell));
     const gemPool = route.cells
       .map((cell, index) => ({ cell, index }))
       .filter((spot) => spot.cell !== source && !bendCells.has(spot.cell));

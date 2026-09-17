@@ -254,17 +254,20 @@ function LaserBoard({
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
-  const gems = [2, 11];
-  const bombs = [5];
+  // A 4x4 example: the beam runs right, turns down, turns right, and passes
+  // through all three gems on the way.
+  const gems = [2, 7, 14];
+  const bombs = [9];
   const solution: MirrorPlacement[] = [
     { cell: 3, kind: "\\" },
     { cell: 15, kind: "/" },
+    { cell: 12, kind: "\\" },
   ];
   const trace = traceBeam(0, "R", solution, [], bombs, gems);
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Place all four mirrors so one shot lights both gems — and never touches a bomb.
+        Place all five mirrors so one shot lights all three gems — and never touches a bomb.
       </p>
       <div style={{ width: 132 }}>
         <LaserBoard
@@ -281,7 +284,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Three shots. Fewer shots scores more. You have 75 seconds.
+        Three shots. Fewer shots scores more. You have 90 seconds.
       </p>
     </div>
   );
@@ -643,10 +646,11 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((LASER_TIME_MS - myMsRemaining) / 100) / 10;
   const ordinal = mine.fires === 1 ? "1st" : mine.fires === 2 ? "2nd" : "3rd";
+  const total = puzzle.gems.length;
   const result = myCorrect
-    ? `Both gems · ${ordinal} shot${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
+    ? `${total} / ${total} gems · ${ordinal} shot${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
     : myTrace.gemsLit.length >= 1
-      ? "1 gem"
+      ? `${myTrace.gemsLit.length} / ${total} gems`
       : "Missed";
 
   return (
