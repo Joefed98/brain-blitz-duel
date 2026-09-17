@@ -1,12 +1,14 @@
 /**
- * Laser and Mirrors rules. One beam tracer, used by the phone (to draw the beam
- * live) and by the server (to re-trace whatever placement a phone sends). Pure
- * logic: no generator and no stored answers.
+ * Laser and Mirrors rules. One beam tracer, used by the phone (to animate a
+ * fired shot) and by the server (to re-trace whatever placement a phone sends).
+ * The beam passes THROUGH gems and lights them; it stops dead on a bomb, on a
+ * block, or at the edge. Pure logic: no generator and no stored answers.
  */
 
 import {
   LASER_CELLS,
   LASER_COLS as N,
+  LASER_MAX_FIRES,
   type BeamDir,
   type MirrorKind,
   type MirrorPlacement,
@@ -49,71 +51,66 @@ export function flipMirror(kind: MirrorKind): MirrorKind {
   return kind === "/" ? "\\" : "/";
 }
 
-/** How far apart two cells are, counting a diagonal step as one. */
-export function laserChebyshev(a: number, b: number): number {
-  return Math.max(Math.abs(laserRow(a) - laserRow(b)), Math.abs(laserCol(a) - laserCol(b)));
-}
-
 export interface BeamTrace {
   /** Every cell the beam passes through, from the source onward. */
   cells: number[];
-  /** The straight runs of the beam, for drawing: each is a list of cells. */
-  segments: number[][];
   /** Where the beam stopped. */
   endCell: number;
-  hitTarget: boolean;
+  /** Which gems the shot lit, in the order the beam met them. */
+  gemsLit: number[];
+  /** True when the shot ended on a bomb. */
+  hitBomb: boolean;
+  /** True when this one shot lit both gems without touching a bomb. */
+  litAll: boolean;
 }
 
 /**
- * Fires the beam from the source. It travels in straight lines, turns on a
- * mirror, and stops at a block, the target, or the edge of the grid.
+ * Fires the beam once. It travels in straight lines, turns on a mirror, passes
+ * through gems, and stops at a block, a bomb, or the edge of the grid.
  */
 export function traceBeam(
   source: number,
   dir: BeamDir,
   mirrors: MirrorPlacement[],
   blocks: number[],
-  target: number,
+  bombs: number[],
+  gems: number[],
 ): BeamTrace {
   const mirrorAt = new Map<number, MirrorKind>();
   for (const mirror of mirrors) mirrorAt.set(mirror.cell, mirror.kind);
   const blocked = new Set(blocks);
+  const bombAt = new Set(bombs);
+  const gemAt = new Set(gems);
 
-  const cells: number[] = [];
-  const segments: number[][] = [];
-  let segment: number[] = [];
+  const cells: number[] = [source];
+  const gemsLit: number[] = [];
   let cell = source;
   let heading = dir;
+  let hitBomb = false;
 
-  if (blocked.has(source))
-    return { cells: [source], segments: [[source]], endCell: source, hitTarget: false };
-
-  cells.push(cell);
-  segment.push(cell);
+  if (gemAt.has(source)) gemsLit.push(source);
 
   for (let guard = 0; guard < LASER_CELLS * 4; guard++) {
     const mirror = mirrorAt.get(cell);
-    if (mirror && cell !== source) {
-      heading = reflect(heading, mirror);
-      segments.push(segment);
-      segment = [cell];
-    }
-    if (cell === target && cells.length > 1) break;
+    if (mirror && cell !== source) heading = reflect(heading, mirror);
 
     const next = laserStep(cell, heading);
     if (next === null || blocked.has(next)) break;
     cell = next;
     cells.push(cell);
-    segment.push(cell);
-    if (cell === target) break;
+    if (bombAt.has(cell)) {
+      hitBomb = true;
+      break;
+    }
+    if (gemAt.has(cell) && !gemsLit.includes(cell)) gemsLit.push(cell);
   }
 
-  segments.push(segment);
   return {
     cells,
-    segments: segments.filter((run) => run.length > 0),
     endCell: cell,
-    hitTarget: cells.includes(target) && cells.length > 1,
+    gemsLit,
+    hitBomb,
+    litAll: !hitBomb && gems.length > 0 && gems.every((gem) => gemsLit.includes(gem)),
   };
 }
 
@@ -138,41 +135,69 @@ export function decodeMirrors(raw: string, max: number): MirrorPlacement[] {
   return out;
 }
 
+/** "2|12:/,20:\\" — the shot number, then the placement fired on it. */
+export function encodeLaserAnswer(mirrors: MirrorPlacement[], fires: number): string {
+  return `${Math.max(0, Math.min(LASER_MAX_FIRES, Math.round(fires)))}|${encodeMirrors(mirrors)}`;
+}
+
+export function decodeLaserAnswer(
+  raw: string,
+  max: number,
+): { mirrors: MirrorPlacement[]; fires: number } {
+  const text = String(raw ?? "");
+  const bar = text.indexOf("|");
+  if (bar === -1) return { mirrors: decodeMirrors(text, max), fires: LASER_MAX_FIRES };
+  const fires = Number.parseInt(text.slice(0, bar), 10);
+  return {
+    mirrors: decodeMirrors(text.slice(bar + 1), max),
+    fires: Number.isInteger(fires) ? Math.max(0, Math.min(LASER_MAX_FIRES, fires)) : LASER_MAX_FIRES,
+  };
+}
+
 export interface LaserVerdict {
+  /** Both gems lit by the one shot, without touching a bomb. */
   solved: boolean;
-  /** The beam stopped within one cell of the target, straight or diagonal. */
-  near: boolean;
+  /** How many gems that shot lit. */
+  gemsLit: number;
   mirrorsPlaced: number;
+  /** Which shot this was, 1 to 3. */
+  fires: number;
   trace: BeamTrace;
 }
 
 /**
- * The single check: mirrors on blocks, on the source or on the target simply do
- * not count, and no more mirrors than the tray holds are honoured.
+ * The single check: mirrors on blocks, bombs, gems or the source simply do not
+ * count, and no more mirrors than the tray holds are honoured.
  */
 export function verifyLaser(
   puzzle: {
     source: number;
     dir: BeamDir;
-    target: number;
+    gems: number[];
+    bombs: number[];
     blocks: number[];
     mirrors: number;
   },
   placements: MirrorPlacement[],
+  fires = LASER_MAX_FIRES,
 ): LaserVerdict {
-  const blocked = new Set(puzzle.blocks);
-  const legal = placements
-    .filter(
-      (mirror) =>
-        !blocked.has(mirror.cell) && mirror.cell !== puzzle.source && mirror.cell !== puzzle.target,
-    )
-    .slice(0, puzzle.mirrors);
+  const taken = new Set([...puzzle.blocks, ...puzzle.bombs, ...puzzle.gems, puzzle.source]);
+  const legal = placements.filter((mirror) => !taken.has(mirror.cell)).slice(0, puzzle.mirrors);
 
-  const trace = traceBeam(puzzle.source, puzzle.dir, legal, puzzle.blocks, puzzle.target);
+  const trace = traceBeam(
+    puzzle.source,
+    puzzle.dir,
+    legal,
+    puzzle.blocks,
+    puzzle.bombs,
+    puzzle.gems,
+  );
+  const shot = Math.max(1, Math.min(LASER_MAX_FIRES, Math.round(fires) || LASER_MAX_FIRES));
   return {
-    solved: trace.hitTarget,
-    near: !trace.hitTarget && laserChebyshev(trace.endCell, puzzle.target) <= 1,
+    solved: trace.litAll,
+    gemsLit: trace.gemsLit.length,
     mirrorsPlaced: legal.length,
+    fires: shot,
     trace,
   };
 }
