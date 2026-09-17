@@ -189,14 +189,7 @@ export interface EquationPuzzleData {
 }
 
 export type StroopColour =
-  | "RED"
-  | "BLUE"
-  | "GREEN"
-  | "PURPLE"
-  | "PINK"
-  | "ORANGE"
-  | "BROWN"
-  | "YELLOW";
+  "RED" | "BLUE" | "GREEN" | "PURPLE" | "PINK" | "ORANGE" | "BROWN" | "YELLOW";
 
 /** Which colour the player must tap for an item. */
 export type StroopInstruction = "ink" | "word";
@@ -983,8 +976,6 @@ export interface SlidePuzzleData {
   solution?: string;
 }
 
-
-
 /* -------------------------------------------------------------------------- */
 /*  Push                                                                      */
 /* -------------------------------------------------------------------------- */
@@ -1031,7 +1022,6 @@ export interface PushPuzzleData {
   /** Server-side only: one minimum solution, as "cell:dir" pushes. */
   solution?: string;
 }
-
 
 /* -------------------------------------------------------------------------- */
 /*  Laser and Mirrors                                                         */
@@ -1120,8 +1110,6 @@ export interface LaserPuzzleData {
   solution?: MirrorPlacement[];
 }
 
-
-
 /* -------------------------------------------------------------------------- */
 /*  Tower                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -1163,7 +1151,6 @@ export interface TowerPuzzleData {
   solution?: string;
 }
 
-
 /* -------------------------------------------------------------------------- */
 /*  Maze Dash                                                                 */
 /* -------------------------------------------------------------------------- */
@@ -1187,7 +1174,6 @@ export const MAZE_MIN_JUNCTIONS = 14;
 export const MAZE_BLIND_TAIL = 10;
 /** Most a partly-run maze can earn. */
 export const MAZE_PARTIAL_POINTS = 60;
-
 
 export interface MazePuzzleData {
   type: "maze";

@@ -242,12 +242,16 @@ export function WordHuntPuzzle({
       if (last === undefined) return;
       const geometry = gridGeometry(gridRef.current, event.clientX, event.clientY, N, N);
       if (geometry) {
-        setPointer({ x: (geometry.x / geometry.width) * 100, y: (geometry.y / geometry.height) * 100 });
+        setPointer({
+          x: (geometry.x / geometry.width) * 100,
+          y: (geometry.y / geometry.height) * 100,
+        });
       }
       const direct = cellAt(event.clientX, event.clientY);
-      const cell = direct === last
-        ? last
-        : adjacentGridCellAt(gridRef.current, event.clientX, event.clientY, N, N, last);
+      const cell =
+        direct === last
+          ? last
+          : adjacentGridCellAt(gridRef.current, event.clientX, event.clientY, N, N, last);
       if (cell === null) return;
       if (cell === last) return;
       if (current.length > 1 && cell === current[current.length - 2]) {

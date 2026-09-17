@@ -621,7 +621,6 @@ const laserSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
-
 const towerSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tower") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);

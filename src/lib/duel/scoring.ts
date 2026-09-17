@@ -546,7 +546,6 @@ export function scoreLaser(
   return gemsLit >= 1 ? LASER_ONE_GEM_POINTS : 0;
 }
 
-
 /** Tower: the whole stack home scores the standard points, +20 for the minimum. */
 export function scoreTower(
   solved: boolean,
