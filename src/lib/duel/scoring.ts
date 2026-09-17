@@ -41,6 +41,12 @@ import {
   SLIDE_MIN_MOVE_BONUS,
   SLIDE_NEAR_POINTS,
   SLIDE_TIME_MS,
+  LASER_NEAR_POINTS,
+  LASER_TIME_MS,
+  MAZE_PARTIAL_POINTS,
+  MAZE_TIME_MS,
+  TOWER_MIN_MOVE_BONUS,
+  TOWER_PARTIAL_POINTS,
   type DuelPlayerRow,
   type PlayerStatus,
   type RoundResultRow,
@@ -515,4 +521,41 @@ export function scorePush(
   }
   const total = Math.max(1, totalCrates);
   return clamp(Math.round((PUSH_PARTIAL_POINTS * cratesHome) / total), 0, PUSH_PARTIAL_POINTS);
+}
+
+/**
+ * Laser and Mirrors: the beam on the target scores the standard points; a beam
+ * stopping within one cell of it earns a consolation.
+ */
+export function scoreLaser(solved: boolean, near: boolean, msRemaining: number): number {
+  if (solved) return BASE_POINTS + speedBonus(msRemaining, LASER_TIME_MS);
+  return near ? LASER_NEAR_POINTS : 0;
+}
+
+/** Tower: the whole stack home scores the standard points, +20 for the minimum. */
+export function scoreTower(
+  solved: boolean,
+  moves: number,
+  minMoves: number,
+  msRemaining: number,
+  timeLimitMs: number,
+  correctFromBottom: number,
+  discs: number,
+): number {
+  if (solved) {
+    const bonus = minMoves > 0 && moves <= minMoves ? TOWER_MIN_MOVE_BONUS : 0;
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, timeLimitMs) + bonus);
+  }
+  const total = Math.max(1, discs);
+  return clamp(
+    Math.round((TOWER_PARTIAL_POINTS * correctFromBottom) / total),
+    0,
+    TOWER_PARTIAL_POINTS,
+  );
+}
+
+/** Maze Dash: reaching the exit scores the standard points, else part marks. */
+export function scoreMaze(solved: boolean, progress: number, msRemaining: number): number {
+  if (solved) return BASE_POINTS + speedBonus(msRemaining, MAZE_TIME_MS);
+  return clamp(Math.round(MAZE_PARTIAL_POINTS * clamp(progress, 0, 1)), 0, MAZE_PARTIAL_POINTS);
 }

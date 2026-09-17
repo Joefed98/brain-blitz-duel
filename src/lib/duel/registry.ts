@@ -31,6 +31,9 @@ import { miniSudokuPuzzle } from "@/puzzles/miniSudoku";
 import { flowPuzzle } from "@/puzzles/flow";
 import { iceSlidePuzzle } from "@/puzzles/iceSlide";
 import { pushPuzzle } from "@/puzzles/push";
+import { laserPuzzle } from "@/puzzles/laser";
+import { towerPuzzle } from "@/puzzles/tower";
+import { mazeDashPuzzle } from "@/puzzles/mazeDash";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import {
@@ -96,6 +99,9 @@ const BASE_REGISTRY: Record<PuzzleType, PuzzleDefinition> = {
   flow: flowPuzzle,
   iceslide: iceSlidePuzzle,
   push: pushPuzzle,
+  laser: laserPuzzle,
+  tower: towerPuzzle,
+  maze: mazeDashPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(
@@ -134,9 +140,14 @@ export function typeTimeLimitMs(type: PuzzleType): number {
   return puzzleDef(type).timeLimitMs ?? ROUND_MS;
 }
 
-/** The clock length for a specific puzzle. */
+/**
+ * The clock length for a specific puzzle. A puzzle may carry its own limit —
+ * Tower's five-disc variant does — which always wins over the type's default.
+ */
 export function puzzleTimeLimitMs(puzzle: PuzzleData | undefined): number {
   if (!puzzle) return ROUND_MS;
+  const own = (puzzle as { timeLimitMs?: number }).timeLimitMs;
+  if (typeof own === "number" && own > 0) return own;
   return typeTimeLimitMs(puzzle.type);
 }
 
