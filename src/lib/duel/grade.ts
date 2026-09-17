@@ -349,9 +349,12 @@ export function gradeSubmission(
     case "iceslide": {
       // The phone sends its slides; they are replayed on the stored layout.
       const moves = decodeSlideMoves(answer);
-      const replay = replaySlide(puzzle.walls, puzzle.start, puzzle.exit, moves);
+      const holes = puzzle.holes ?? [];
+      const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, moves);
       const min = puzzle.minMoves ?? 0;
-      const away = replay.solved ? null : slideDistance(puzzle.walls, replay.cell, puzzle.exit);
+      const away = replay.solved
+        ? null
+        : slideDistance(puzzle.walls, holes, replay.cell, puzzle.exit, puzzle.start);
       isCorrect = replay.solved;
       correctCount = replay.moves;
       score = scoreIceSlide(replay.solved, replay.moves, min, ms, away);
@@ -360,9 +363,11 @@ export function gradeSubmission(
         moves: replay.moves,
         minMoves: min,
         movesFromExit: away,
+        falls: replay.falls,
       };
       break;
     }
+
     case "push": {
       // Every step is replayed on the stored warehouse, so only legal pushes count.
       const moves = decodePushMoves(answer);
