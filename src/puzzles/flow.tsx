@@ -143,6 +143,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   const drawing = useRef<number | null>(null);
   const moved = useRef(false);
   const startedOnDot = useRef<number | null>(null);
+  /** True from the first touch of a drag until the finger lifts. */
+  const holding = useRef(false);
   const submitted = useRef(false);
 
   const verdict = useMemo(() => verifyFlow(pairs, paths), [pairs, paths]);
@@ -238,6 +240,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
     const wasStill = !moved.current;
     drawing.current = null;
     startedOnDot.current = null;
+    holding.current = false;
     if (pair === null || !wasStill || locked || submitted.current) return;
     setPaths((current) => current.map((path, index) => (index === pair ? [] : path)));
   }, [locked, setPaths]);
