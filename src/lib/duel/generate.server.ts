@@ -7,7 +7,7 @@
 import { generateBlockParty } from "./blockParty.server";
 import { generateGroups } from "./groups.server";
 import { gradeSubmission, type Graded, type SubmitExtra } from "./grade";
-import { pickRoundOrder } from "./puzzles";
+import { pickRoundOrder, type RoundSelectionOptions } from "./selection";
 import { puzzleDef } from "./registry";
 import { TOTAL_ROUNDS, type PuzzleData, type PuzzleType } from "./types";
 import { generateUnblock } from "./unblock.server";
@@ -42,11 +42,11 @@ export function generatePuzzle(type: PuzzleType): PuzzleData {
 }
 
 /** Generated ONCE per room so every player receives identical puzzles. */
-export function buildRoomPuzzles(rounds: number = TOTAL_ROUNDS): {
+export function buildRoomPuzzles(options: RoundSelectionOptions = {}): {
   roundOrder: PuzzleType[];
   puzzles: PuzzleData[];
 } {
-  const roundOrder = pickRoundOrder(rounds);
+  const roundOrder = pickRoundOrder({ rounds: TOTAL_ROUNDS, ...options });
   return { roundOrder, puzzles: roundOrder.map(generatePuzzle) };
 }
 
