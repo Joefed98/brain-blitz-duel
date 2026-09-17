@@ -177,6 +177,7 @@ function DuelScreen() {
   const lastAdvance = useRef(0);
   const dueSince = useRef(0);
   const [revealed, setRevealed] = useState<{ round: number; data: RoundRevealData } | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // A new room (after Play again) starts with fresh button state.
   useEffect(() => {
@@ -186,6 +187,8 @@ function DuelScreen() {
 
   const round = duel?.current_round ?? 0;
   const phase = duel?.phase ?? "intro";
+
+  useEffect(() => setHelpOpen(false), [phase, round]);
 
   /**
    * The round's puzzle never changes once the round starts, so it is held by
@@ -676,6 +679,7 @@ function DuelScreen() {
             <span className="font-display text-sm font-bold text-foreground">
               {puzzle ? puzzleName(puzzle.type) : ""}
             </span>
+            <PuzzleHelpButton onClick={() => setHelpOpen(true)} />
             <RoundPips currentRound={round} outcomes={outcomes} />
           </div>
         </div>
@@ -733,6 +737,9 @@ function DuelScreen() {
                 checkGroup={handleCheckGroup}
               />
             </div>
+          )}
+          {puzzle && (
+            <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
           )}
 
           {myResult && (
