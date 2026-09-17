@@ -518,11 +518,13 @@ export function ArrowPad({
   disabled = false,
   repeatMs,
   size = 132,
+  buttonSize = 44,
 }: {
   onPress: (dir: "U" | "D" | "L" | "R") => void;
   disabled?: boolean;
   repeatMs?: number | undefined;
   size?: number;
+  buttonSize?: number;
 }) {
   const press = useRef(onPress);
   press.current = onPress;
@@ -561,7 +563,8 @@ export function ArrowPad({
       onPointerLeave={stop}
       onPointerCancel={stop}
       aria-label={label}
-      className={`absolute flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-lg text-foreground transition-colors select-none touch-none active:bg-primary/20 disabled:opacity-40 ${className}`}
+      style={{ width: buttonSize, height: buttonSize }}
+      className={`absolute flex items-center justify-center rounded-xl border border-border bg-card text-xl text-foreground transition-colors select-none touch-none active:bg-primary/20 disabled:opacity-40 ${className}`}
     >
       {glyph}
     </button>

@@ -1,18 +1,37 @@
 import { useEffect, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
-import { randInt } from "@/lib/duel/random";
 import {
   REACTION_ATTEMPTS,
   REACTION_FEEDBACK_MS,
-  REACTION_MAX_DELAY_MS,
-  REACTION_MIN_DELAY_MS,
   REACTION_PENALTY_MS,
   REACTION_RESPONSE_MS,
   type ReactionPuzzleData,
 } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+
+const DELAY_BANDS = [
+  { weight: 0.3, min: 600, max: 1_200 },
+  { weight: 0.4, min: 1_200, max: 3_000 },
+  { weight: 0.3, min: 3_000, max: 5_500 },
+] as const;
+
+function drawDelay(): number {
+  const roll = Math.random();
+  const band = roll < DELAY_BANDS[0].weight ? DELAY_BANDS[0] : roll < 0.7 ? DELAY_BANDS[1] : DELAY_BANDS[2];
+  return Math.round(band.min + Math.random() * (band.max - band.min));
+}
+
+export function buildReactionDelays(): number[] {
+  for (let attempt = 0; attempt < 1_000; attempt++) {
+    const delays = Array.from({ length: REACTION_ATTEMPTS }, drawDelay);
+    if (delays.every((delay, index) => delays.slice(0, index).every((other) => Math.abs(delay - other) >= 400))) {
+      return delays;
+    }
+  }
+  return [900, 2_100, 4_300];
+}
 
 /** Each attempt occupies a fixed-length slot so both phones stay in step. */
 function slotLength(delay: number): number {
@@ -209,9 +228,7 @@ export const reactionPuzzle: PuzzleDefinition = {
   generate: () =>
     ({
       type: "reaction",
-      delays: Array.from({ length: REACTION_ATTEMPTS }, () =>
-        randInt(REACTION_MIN_DELAY_MS, REACTION_MAX_DELAY_MS),
-      ),
+      delays: buildReactionDelays(),
     }) satisfies ReactionPuzzleData,
   // Scored from the average reaction time, not from correctness.
   check: () => true,

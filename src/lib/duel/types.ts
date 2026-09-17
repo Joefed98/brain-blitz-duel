@@ -256,8 +256,7 @@ export interface PatternRule {
   text: string;
 }
 
-export interface PatternPuzzleData {
-  type: "patcomp";
+export interface PatternRoundItem {
   /** Nine cells, row-major; index 8 is the answer cell (shown as ? in play). */
   cells: PatternCell[];
   /** The attributes the player composes; the fourth is constant and pre-filled. */
@@ -269,8 +268,15 @@ export interface PatternPuzzleData {
   answer?: PatternCell;
 }
 
+export interface PatternPuzzleData {
+  type: "patcomp";
+  /** Three independent boards played inside one continuous round. */
+  puzzles: PatternRoundItem[];
+}
+
 /** Pattern Completion: build the missing piece. */
-export const PATCOMP_TIME_MS = 45_000;
+export const PATCOMP_ITEMS = 3;
+export const PATCOMP_TIME_MS = 30_000;
 
 /** The eight compass directions used by Symbol Scan. */
 export type ArrowDir = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
@@ -537,17 +543,19 @@ export const SPOT_ROWS = 5;
 export const SPOT_CELLS = SPOT_COLS * SPOT_ROWS;
 export const SPOT_MIN_SHAPES = 12;
 export const SPOT_MAX_SHAPES = 15;
-export const SPOT_DIFFERENCES = 3;
+export const SPOT_DIFFERENCES = 5;
 export const SPOT_TIME_MS = 20_000;
-/** Flat scores for finding only some of the three differences. */
-export const SPOT_TWO_POINTS = 60;
-export const SPOT_ONE_POINTS = 30;
+/** Flat scores for partial finds. */
+export const SPOT_FOUR_POINTS = 70;
+export const SPOT_THREE_POINTS = 50;
+export const SPOT_TWO_POINTS = 30;
+export const SPOT_ONE_POINTS = 15;
 
 /** Rotation Match: shapes drawn as filled cells of a 5x5 grid. */
 export const ROTATION_COLS = 5;
 
 /** Number Hunt: twelve circles tapped in ascending order. */
-export const NUMHUNT_COUNT = 12;
+export const NUMHUNT_COUNT = 14;
 export const NUMHUNT_CIRCLE_PX = 56;
 export const NUMHUNT_ERROR_PENALTY = 10;
 export const NUMHUNT_FLASH_MS = 200;
@@ -628,7 +636,7 @@ export interface StopWatchPuzzleData {
 
 export const STOPWATCH_ATTEMPTS = 3;
 /** One full sweep of the bar; the marker then bounces back. */
-export const STOPWATCH_SWEEP_MS = 1_600;
+export const STOPWATCH_SWEEP_MS = 1_100;
 export const STOPWATCH_TIMEOUT_MS = 6_000;
 export const STOPWATCH_FEEDBACK_MS = 1_000;
 export const STOPWATCH_SLOT_MS = STOPWATCH_TIMEOUT_MS + STOPWATCH_FEEDBACK_MS;
@@ -664,7 +672,7 @@ export const COUNTUP_COLS = 6;
 export const COUNTUP_ROWS = 10;
 export const COUNTUP_MIN_SHAPES = 40;
 export const COUNTUP_MAX_SHAPES = 56;
-export const COUNTUP_MIN_COUNT = 5;
+export const COUNTUP_MIN_COUNT = 6;
 export const COUNTUP_MAX_COUNT = 12;
 
 /* -------------------------------------------------------------------------- */
