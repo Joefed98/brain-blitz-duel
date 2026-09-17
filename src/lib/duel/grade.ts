@@ -404,9 +404,10 @@ export function gradeSubmission(
       break;
     }
     case "tower": {
-      // Every move is replayed on a fresh tower, so illegal moves never count.
+      // Every move is replayed on the stored spread, so illegal moves never count.
       const moves = decodeTowerMoves(answer);
-      const replay = replayTower(puzzle.discs, puzzle.targetPeg, moves);
+      const replay = replayTower(puzzle.start ?? [], puzzle.targetPeg, puzzle.discs, moves);
+
       isCorrect = replay.solved;
       correctCount = replay.moves;
       score = scoreTower(
