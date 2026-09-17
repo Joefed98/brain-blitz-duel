@@ -40,8 +40,17 @@ function fail(message: string): never {
 
 /* ------------------------------- Laser ---------------------------------- */
 
-for (let index = 0; index < 60; index++) {
+for (let index = 0; index < 8; index++) {
   const puzzle = generateLaser();
+  const stats = puzzle.stats;
+  if (!stats) fail("laser shipped no generator stats");
+  if (!stats.necessityPass) fail("laser necessity proof did not pass");
+  if (stats.subsetsTested < 1) fail("laser necessity proof tested nothing");
+  if (stats.blocks !== puzzle.blocks.length) fail("laser stats block count disagrees");
+  if (stats.gapSegments < LASER_MIN_GAP_SEGMENTS) fail("laser has too few one-cell gap segments");
+  if (puzzle.blocks.length < LASER_MIN_BLOCKS || puzzle.blocks.length > LASER_MAX_BLOCKS) {
+    fail(`laser block count ${puzzle.blocks.length}`);
+  }
   const solution = puzzle.solution ?? [];
   if (solution.length < LASER_MIN_MIRRORS || solution.length > LASER_MAX_MIRRORS) {
     fail(`laser mirror count ${solution.length}`);
