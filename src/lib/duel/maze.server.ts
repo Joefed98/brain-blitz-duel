@@ -77,7 +77,6 @@ function isJunction(cells: number[], cell: number): boolean {
 
 /** Forks on the solution route, or one cell off it — the choices the player faces. */
 export function mazeJunctions(cells: number[], route: number[]): number {
-  const onRoute = new Set(route);
   const near = new Set<number>();
   for (const cell of route) {
     near.add(cell);
@@ -85,7 +84,7 @@ export function mazeJunctions(cells: number[], route: number[]): number {
   }
   let count = 0;
   for (const cell of near) {
-    if (isJunction(cells, cell) && (onRoute.has(cell) || true)) count += 1;
+    if (isJunction(cells, cell)) count += 1;
   }
   return count;
 }
