@@ -217,8 +217,7 @@ export function searchShortcuts(
   const trail: number[] = [];
   let tested = 0;
   let hit: { cells: number[] } | null = null;
-  const fire = () =>
-    walkPath(source, dir, blocked, bomb, gem, mirrors, trail) >= gems.length;
+  const fire = () => walkPath(source, dir, blocked, bomb, gem, mirrors, trail) >= gems.length;
 
   tested += 1;
   if (fire()) return { hit: { cells: [...trail] }, tested };

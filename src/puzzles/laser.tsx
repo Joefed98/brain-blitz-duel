@@ -380,7 +380,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
         hapticTick();
         commit(
           current.map((mirror) =>
-            mirror.cell === drag.from ? { cell: mirror.cell, kind: flipMirror(mirror.kind) } : mirror,
+            mirror.cell === drag.from
+              ? { cell: mirror.cell, kind: flipMirror(mirror.kind) }
+              : mirror,
           ),
         );
         return;
@@ -391,10 +393,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       }
       const kind = current.find((mirror) => mirror.cell === drag.from)?.kind ?? "/";
       hapticTick();
-      commit([
-        ...current.filter((mirror) => mirror.cell !== drag.from),
-        { cell: target, kind },
-      ]);
+      commit([...current.filter((mirror) => mirror.cell !== drag.from), { cell: target, kind }]);
       return;
     }
 
