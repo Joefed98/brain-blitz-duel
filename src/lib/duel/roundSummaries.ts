@@ -31,6 +31,9 @@ import {
   FLOW_PAIRS,
   SLIDE_TIME_MS,
   PUSH_TIME_MS,
+  LASER_TIME_MS,
+  MAZE_TIME_MS,
+  TOWER_TIME_MS,
   type GoNoGoItem,
   type PlayerRoundDetail,
   type PuzzleData,
@@ -88,6 +91,12 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
                                       ? SLIDE_TIME_MS
                                       : puzzle.type === "push"
                                         ? PUSH_TIME_MS
+                                        : puzzle.type === "laser"
+                                          ? LASER_TIME_MS
+                                          : puzzle.type === "maze"
+                                            ? MAZE_TIME_MS
+                                            : puzzle.type === "tower"
+                                              ? (puzzle.timeLimitMs ?? TOWER_TIME_MS)
                                         : puzzle.type === "wordsmith"
                                           ? WORDSMITH_TIME_MS
                                           : puzzle.type === "wordhunt"
@@ -580,6 +589,54 @@ const pushSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
+const laserSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "laser") return { summary: "—", detail: [] };
+  const placed = Number(result.extra?.["mirrorsPlaced"] ?? 0);
+  if (result.is_correct) {
+    return {
+      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: [`All ${puzzle.mirrors} mirrors in place`],
+    };
+  }
+  return {
+    summary: "Not solved",
+    detail: [
+      result.extra?.["near"]
+        ? "The beam stopped one square from the target"
+        : `${placed} / ${puzzle.mirrors} mirrors placed`,
+    ],
+  };
+};
+
+const towerSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "tower") return { summary: "—", detail: [] };
+  const moves = Number(result.extra?.["moves"] ?? 0);
+  const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves);
+  const home = Number(result.extra?.["discsHome"] ?? 0);
+  if (result.is_correct) {
+    return {
+      summary: `Solved · ${moves} moves (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: [moves <= min ? "Built in the fewest moves" : `${moves - min} more than the minimum`],
+    };
+  }
+  return {
+    summary: `${home} / ${puzzle.discs} discs`,
+    detail: [`${moves} move${moves === 1 ? "" : "s"} made`],
+  };
+};
+
+const mazeSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "maze") return { summary: "—", detail: [] };
+  const progress = Number(result.extra?.["progress"] ?? 0);
+  if (result.is_correct) {
+    return {
+      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: [`${Number(result.extra?.["wasted"] ?? 0)} wasted squares`],
+    };
+  }
+  return { summary: `${progress}%`, detail: [`${progress}% of the way to the exit`] };
+};
+
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
   groups: groupsSummary,
@@ -614,6 +671,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   flow: flowSummary,
   iceslide: slideSummary,
   push: pushSummary,
+  laser: laserSummary,
+  tower: towerSummary,
+  maze: mazeSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -657,4 +717,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   flow: () => null,
   iceslide: (p) => (p.type === "iceslide" && p.minMoves ? `${p.minMoves} moves` : null),
   push: (p) => (p.type === "push" && p.minPushes ? `${p.minPushes} pushes` : null),
+  laser: () => null,
+  tower: (p) => (p.type === "tower" ? `${p.minMoves} moves` : null),
+  maze: () => null,
 };
