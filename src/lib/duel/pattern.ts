@@ -8,6 +8,7 @@ import type {
   PatternAttribute,
   PatternCell,
   PatternPuzzleData,
+  PatternRoundItem,
   PatternRotation,
   PatternRule,
   PatternRuleKind,
@@ -105,7 +106,7 @@ export function parsePatternCell(answer: string | null | undefined): PatternCell
 
 /** Which of the puzzle's attributes the player got wrong, in reading order. */
 export function patternMistakes(
-  puzzle: PatternPuzzleData,
+  puzzle: PatternRoundItem,
   answer: string | null | undefined,
 ): PatternAttribute[] {
   const cell = parsePatternCell(answer);
@@ -124,7 +125,7 @@ export function patternAttributeLabel(attr: PatternAttribute): string {
 }
 
 /** Server-side check: every attribute the player could set has to match. */
-export function checkPatternAnswer(answer: string, puzzle: PatternPuzzleData): boolean {
+export function checkPatternAnswer(answer: string, puzzle: PatternRoundItem): boolean {
   if (!puzzle.answer) return false;
   return parsePatternCell(answer) !== null && patternMistakes(puzzle, answer).length === 0;
 }
@@ -205,38 +206,30 @@ function makePlan(): Plan {
   };
 
   if (rotatable) {
-    // One rotatable shape all over the grid; colour, count and rotation vary.
-    const progAttr: PatternAttribute = pick(["count", "rot"]);
-    const others = (["colour", "count", "rot"] as PatternAttribute[]).filter(
-      (attr) => attr !== progAttr,
-    );
-    const kinds = shuffled<PatternRuleKind>(["row", "latin"]);
+    // One rotatable shape all over the grid; exactly two attributes vary.
+    const other = pick<PatternAttribute>(["colour", "count"]);
+    const otherKind: PatternRuleKind = other === "count" && Math.random() < 0.5 ? "prog" : pick(["row", "latin"]);
     return {
       fixedAttr: "shape",
       shapes,
       base,
       rules: [
-        { attr: progAttr, kind: "prog", text: ruleText(progAttr, "prog") },
-        ...others.map((attr, index) => ({
-          attr,
-          kind: kinds[index]!,
-          text: ruleText(attr, kinds[index]!),
-        })),
+        { attr: "rot", kind: "prog", text: ruleText("rot", "prog") },
+        { attr: other, kind: otherKind, text: ruleText(other, otherKind) },
       ],
     };
   }
 
-  // No rotation in play: shape, colour and count carry the three rules.
-  const kinds = shuffled<PatternRuleKind>(["row", "latin"]);
+  // No rotation in play: exactly two of shape, colour and count carry rules.
+  const active = shuffled<PatternAttribute>(["shape", "colour", "count"]).slice(0, 2);
   return {
     fixedAttr: "rot",
     shapes,
     base,
-    rules: [
-      { attr: "count", kind: "prog", text: ruleText("count", "prog") },
-      { attr: "shape", kind: kinds[0]!, text: ruleText("shape", kinds[0]!) },
-      { attr: "colour", kind: kinds[1]!, text: ruleText("colour", kinds[1]!) },
-    ],
+    rules: active.map((attr) => {
+      const kind: PatternRuleKind = attr === "count" ? "prog" : pick(["row", "latin"]);
+      return { attr, kind, text: ruleText(attr, kind) };
+    }),
   };
 }
 
@@ -281,14 +274,13 @@ function buildGrid(plan: Plan): PatternCell[] | null {
   return cells;
 }
 
-export function buildPatternCompletion(): PatternPuzzleData {
+function buildPatternItem(): PatternRoundItem {
   for (let attempt = 0; attempt < 200; attempt++) {
     const plan = makePlan();
     const cells = buildGrid(plan);
     if (!cells) continue;
     const active = plan.rules.map((rule) => rule.attr);
     return {
-      type: "patcomp",
       cells,
       active,
       rotatable: ROTATABLE_SHAPES.includes(cells[0]!.shape) && active.includes("rot"),
@@ -313,14 +305,31 @@ export function buildPatternCompletion(): PatternPuzzleData {
   const rules: PatternRule[] = [
     { attr: "shape", kind: "row", text: ruleText("shape", "row") },
     { attr: "colour", kind: "latin", text: ruleText("colour", "latin") },
-    { attr: "count", kind: "prog", text: ruleText("count", "prog") },
   ];
   return {
-    type: "patcomp",
     cells,
-    active: ["shape", "colour", "count"],
+    active: ["shape", "colour"],
     rotatable: false,
     rules,
     answer: cells[8]!,
   };
+}
+
+export function buildPatternCompletion(): PatternPuzzleData {
+  return {
+    type: "patcomp",
+    puzzles: Array.from({ length: 3 }, buildPatternItem),
+  };
+}
+
+export function decodePatternAnswers(answer: string | null | undefined): string[] {
+  return (answer ?? "").split("|").slice(0, 3);
+}
+
+export function countPatternAnswers(puzzle: PatternPuzzleData, answer: string | null | undefined): number {
+  const answers = decodePatternAnswers(answer);
+  return puzzle.puzzles.reduce(
+    (count, item, index) => count + (checkPatternAnswer(answers[index] ?? "", item) ? 1 : 0),
+    0,
+  );
 }
