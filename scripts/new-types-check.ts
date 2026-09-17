@@ -61,8 +61,7 @@ for (let i = 0; i < 200; i++) {
 
     if (rows.size === 1 || cols.size === 1) fail("Colour Connect produced a straight path");
     const pair = puzzle.pairs[index]!;
-    if (flowNeighbours(pair.a).includes(pair.b))
-      fail("Colour Connect produced an adjacent pair");
+    if (flowNeighbours(pair.a).includes(pair.b)) fail("Colour Connect produced an adjacent pair");
   }
   const covered = new Set(paths.flat());
   if (covered.size !== FLOW_CELLS) fail("Colour Connect does not fill every cell");
@@ -114,7 +113,6 @@ for (let i = 0; i < 40; i++) {
 console.log(
   `Ice Slide: 40 layouts OK · holes and arrows handled by the search · every minimum is ${SLIDE_MIN_MOVES}-${SLIDE_MAX_MOVES} slides · exit never within ${SLIDE_EASY_MOVES} slides`,
 );
-
 
 /* ----------------------------------- Push -------------------------------- */
 

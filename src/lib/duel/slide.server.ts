@@ -81,7 +81,10 @@ export function meaningfulSlideArrows(
     const next = slideStep(arrow.cell, arrow.dir);
     if (next === null || blocked.has(next) || !full.crossed.has(arrow.cell)) return false;
     const without = arrows.filter((_, arrowIndex) => arrowIndex !== index);
-    return !samePaths(full.signatures, reachableSlidePaths(walls, holes, start, exit, without).signatures);
+    return !samePaths(
+      full.signatures,
+      reachableSlidePaths(walls, holes, start, exit, without).signatures,
+    );
   });
 }
 

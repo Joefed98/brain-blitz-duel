@@ -50,7 +50,8 @@ function PieceGlyph({
   offsets: Offsets;
   colour: string;
   cell: number;
-  onCellPointerDown?: ((event: React.PointerEvent<HTMLDivElement>, row: number, col: number) => void) | undefined;
+  onCellPointerDown?:
+    ((event: React.PointerEvent<HTMLDivElement>, row: number, col: number) => void) | undefined;
 }) {
   const { rows, cols } = offsetsSize(offsets);
   return (
@@ -62,9 +63,7 @@ function PieceGlyph({
       {offsets.map(([r, c], index) => (
         <div
           key={index}
-          onPointerDown={
-            onCellPointerDown ? (event) => onCellPointerDown(event, r, c) : undefined
-          }
+          onPointerDown={onCellPointerDown ? (event) => onCellPointerDown(event, r, c) : undefined}
           className="absolute rounded-[3px]"
           style={{
             left: c * cell,
