@@ -1,6 +1,6 @@
-# Global timer and colour tuning
+# Per-game tuning
 
-- [x] Audit timer-ring sizing and spacing across all active puzzle stages at short-phone heights
-- [x] Update shared glyph palette and Colour Clash options/instruction pill
-- [x] Apply requested time limits and synchronize affected intro copy
-- [x] Verify source checks, typecheck, and preview build without browser tests
+- [ ] Update Reaction Time, Number Hunt, Stop Watch, Symbol Scan, Spot the Difference, Count Up, and Maze Dash
+- [ ] Convert Pattern Completion to three puzzles in one continuous 30-second round
+- [ ] Enlarge Spin quarter-turn glyphs and strengthen Mirror Match distractors
+- [ ] Verify generators, grading, TypeScript, and preview build without browser tests
