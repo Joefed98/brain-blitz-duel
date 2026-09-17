@@ -39,10 +39,10 @@ function neighbours(cell: number): number[] {
 }
 
 /**
- * Growing-tree carving: the next cell to grow from is a random one in the
- * active list 60% of the time and the newest one otherwise. Picking at random
- * spreads the tree sideways, which is what makes forks instead of one long
- * forced corridor.
+ * Growing-tree carving: the next cell to grow from is usually the newest one,
+ * and a random one in the active list some of the time. The random picks spread
+ * the tree sideways, which is what makes forks and dead ends instead of one
+ * long forced corridor.
  */
 function carve(): number[] {
   const cells = new Array<number>(MAZE_CELLS).fill(0);
@@ -50,7 +50,10 @@ function carve(): number[] {
   const active = [0];
 
   while (active.length) {
-    const pick = Math.random() < 0.6 ? Math.floor(Math.random() * active.length) : active.length - 1;
+    // A mostly-newest choice keeps the solution long; the random pick sprays
+    // side branches off it, which is where the forks and dead ends come from.
+    const pick =
+      Math.random() < 0.15 ? Math.floor(Math.random() * active.length) : active.length - 1;
     const cell = active[pick]!;
     const next = shuffled(neighbours(cell)).find((option) => !seen.has(option));
     if (next === undefined) {
