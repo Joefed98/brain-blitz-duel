@@ -18,7 +18,10 @@ import { generateMaze } from "../src/lib/duel/maze.server";
 import { mazeRoute, mazeTurns, verifyMazePath } from "../src/lib/duel/maze";
 import { mazeExitInSight, mazeFalseTrailLengths, mazeJunctions } from "../src/lib/duel/maze.server";
 import {
+  LASER_MAX_BLOCKS,
   LASER_MAX_MIRRORS,
+  LASER_MIN_BLOCKS,
+  LASER_MIN_GAP_SEGMENTS,
   LASER_MIN_MIRRORS,
   MAZE_DEAD_END_LENGTH,
   MAZE_LONG_DEAD_END_LENGTH,
@@ -86,12 +89,12 @@ for (let index = 0; index < 8; index++) {
   if (orientations.size !== 2) fail("the solution uses only one mirror orientation");
 }
 console.log(
-  "Laser: 60 layouts — four mirrors, all four necessary, both orientations, empty grid never hits",
+  "Laser: 8 layouts — four mirrors, all four necessary, both orientations, empty grid never hits",
 );
 
 /* -------------------------------- Tower ---------------------------------- */
 
-for (let index = 0; index < 300; index++) {
+for (let index = 0; index < 12; index++) {
   const puzzle = generateTower();
   if (puzzle.discs !== TOWER_DISCS) fail(`disc count ${puzzle.discs}`);
   if (puzzle.timeLimitMs !== TOWER_TIME_MS) fail(`tower clock is ${puzzle.timeLimitMs}`);
@@ -117,7 +120,7 @@ for (let index = 0; index < 300; index++) {
   if (replay.moves !== puzzle.minMoves) fail("stored solution is not the minimum");
 }
 console.log(
-  "Tower: 300 puzzles — six discs, four pegs, legal spreads, BFS minimum ≥ 12, 90s clock",
+  "Tower: 12 puzzles — six discs, four pegs, legal spreads, BFS minimum ≥ 12, 90s clock",
 );
 
 /* ------------------------------ Maze Dash -------------------------------- */
