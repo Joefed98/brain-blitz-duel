@@ -154,7 +154,9 @@ export function decodeLaserAnswer(
   const fires = Number.parseInt(text.slice(0, bar), 10);
   return {
     mirrors: decodeMirrors(text.slice(bar + 1), max),
-    fires: Number.isInteger(fires) ? Math.max(0, Math.min(LASER_MAX_FIRES, fires)) : LASER_MAX_FIRES,
+    fires: Number.isInteger(fires)
+      ? Math.max(0, Math.min(LASER_MAX_FIRES, fires))
+      : LASER_MAX_FIRES,
   };
 }
 

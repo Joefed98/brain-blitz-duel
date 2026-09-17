@@ -277,7 +277,8 @@ export function searchShortcuts(
 
   // Four mirrors: every near miss found above, extended by one more mirror.
   for (const carry of promising) {
-    for (let index = 0; index < carry.length; index += 2) mirrors[carry[index]!] = carry[index + 1]!;
+    for (let index = 0; index < carry.length; index += 2)
+      mirrors[carry[index]!] = carry[index + 1]!;
     for (const cell of free) {
       if (mirrors[cell]) continue;
       for (let kind = 1 as 1 | 2; kind <= 2; kind++) {
@@ -483,8 +484,7 @@ export function generateLaser(): LaserPuzzleData {
       offRoute.filter((cell) => beside.has(cell) && !chosen.includes(cell)),
     ).slice(0, LASER_MIN_ADJACENT_BLOCKS + randomInt(3));
     const wanted = [...chosen, ...asidePicks];
-    const blockCount =
-      LASER_MIN_BLOCKS + randomInt(LASER_MAX_BLOCKS - LASER_MIN_BLOCKS + 1);
+    const blockCount = LASER_MIN_BLOCKS + randomInt(LASER_MAX_BLOCKS - LASER_MIN_BLOCKS + 1);
     const filler = shuffled(offRoute.filter((cell) => !wanted.includes(cell))).slice(
       0,
       Math.max(0, blockCount - wanted.length),
@@ -515,8 +515,7 @@ export function generateLaser(): LaserPuzzleData {
       .filter(([, count]) => count >= LASER_MIN_BOMB_CROSSINGS)
       .sort((a, b) => b[1] - a[1])
       .map(([cell]) => cell);
-    const bombCount =
-      LASER_MIN_BOMBS + randomInt(LASER_MAX_BOMBS - LASER_MIN_BOMBS + 1);
+    const bombCount = LASER_MIN_BOMBS + randomInt(LASER_MAX_BOMBS - LASER_MIN_BOMBS + 1);
     if (bombCandidates.length < bombCount) continue;
     const bombs = shuffled(bombCandidates.slice(0, Math.max(bombCount, 8))).slice(0, bombCount);
     if (bombs.length !== bombCount) continue;
