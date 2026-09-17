@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { useReducedMotion } from "@/lib/motion";
 import { playTick, startMusic, stopMusic } from "@/lib/sound";
+import type { PuzzleType } from "@/lib/duel/types";
 
 interface TimerRingProps {
   msRemaining: number;
@@ -14,6 +15,32 @@ const SIZE = 132;
 const STROKE = 11;
 const R = (SIZE - STROKE) / 2;
 const CIRC = 2 * Math.PI * R;
+
+/** Dense stages reserve a smaller, collision-safe timer slot on short phones. */
+const COMPACT_TIMER_TYPES = new Set<PuzzleType>([
+  "target",
+  "blockparty",
+  "chaincalc",
+  "wordsmith",
+  "wordhunt",
+  "spotdiff",
+  "sudoku",
+  "lightsout",
+  "pipes",
+  "patcomp",
+  "flow",
+  "iceslide",
+  "laser",
+  "tower",
+  "maze",
+  "push",
+]);
+
+export function timerSlotClass(type: PuzzleType): string {
+  return COMPACT_TIMER_TYPES.has(type)
+    ? "h-[94px] scale-[0.7] [@media(max-height:700px)]:h-[80px] [@media(max-height:700px)]:scale-[0.6]"
+    : "h-[104px] scale-[0.78] [@media(max-height:700px)]:h-[88px] [@media(max-height:700px)]:scale-[0.66]";
+}
 
 function format(ms: number): string {
   const clamped = Math.max(0, ms);

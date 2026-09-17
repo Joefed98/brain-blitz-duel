@@ -20,7 +20,7 @@ function IntroExample() {
       </p>
       <BlockBoard blockers={EXAMPLE_BLOCKERS} placements={EXAMPLE_PLACED} size={150} />
       <p className="text-xs text-muted-foreground">
-        Fill every free square to finish. You have 90 seconds.
+        Fill every free square to finish. You have 60 seconds.
       </p>
     </div>
   );

@@ -153,7 +153,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Every pipe must be connected. You have 60 seconds.
+        Every pipe must be connected. You have 90 seconds.
       </p>
     </div>
   );

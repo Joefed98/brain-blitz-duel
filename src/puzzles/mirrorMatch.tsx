@@ -116,7 +116,7 @@ function IntroExample() {
         </span>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Three shapes — get them all to earn the speed bonus.
+        Three shapes — get them all to earn the speed bonus. You have 30 seconds.
       </p>
     </div>
   );

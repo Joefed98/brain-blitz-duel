@@ -16,8 +16,17 @@ import {
   type StroopColour,
 } from "./types";
 
-/** The seven game colours, one per pair. */
-const COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE", "BROWN"];
+/** Colour Connect alone shares Colour Clash's eight-colour palette. */
+const COLOURS: StroopColour[] = [
+  "RED",
+  "BLUE",
+  "GREEN",
+  "PURPLE",
+  "PINK",
+  "ORANGE",
+  "BROWN",
+  "YELLOW",
+];
 
 /** A random Hamiltonian path over the grid, found by randomised backtracking. */
 function hamiltonianPath(): number[] | null {

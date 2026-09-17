@@ -107,7 +107,9 @@ function IntroExample() {
       <p className="font-mono text-sm text-muted-foreground">
         answer <span className="font-bold text-primary">3</span>
       </p>
-      <p className="text-xs text-muted-foreground">Type the number and hit Submit.</p>
+      <p className="text-xs text-muted-foreground">
+        Type the number and hit Submit. You have 15 seconds.
+      </p>
     </div>
   );
 }
@@ -211,7 +213,7 @@ export const countUpPuzzle: PuzzleDefinition = {
   key: "countup",
   name: "Count Up",
   category: "attention",
-  timeLimitMs: 45_000,
+  timeLimitMs: 15_000,
   generate: buildCountUp,
   check: (answer, puzzle) => {
     if (puzzle.type !== "countup") return false;

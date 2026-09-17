@@ -44,7 +44,7 @@ function IntroExample() {
         </svg>
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewer moves earns a bonus. You have 90 seconds.
+        Fewer moves earns a bonus. You have 60 seconds.
       </p>
     </div>
   );

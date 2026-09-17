@@ -78,7 +78,9 @@ function IntroExample() {
         Tiles light up in groups, then vanish. Tap all of them — any order.
       </p>
       <SequenceGrid order={EXAMPLE} cols={COLS} size="sm" numbered={false} />
-      <p className="text-xs text-muted-foreground">Your timer starts after the tiles disappear.</p>
+      <p className="text-xs text-muted-foreground">
+        Your 20-second timer starts after the tiles disappear.
+      </p>
     </div>
   );
 }
@@ -199,7 +201,7 @@ export const spatialMemoryPuzzle: PuzzleDefinition = {
   key: "spatial",
   name: "Spatial Memory",
   category: "memory",
-  timeLimitMs: 30_000,
+  timeLimitMs: 20_000,
   generate: buildSpatial,
   check: (answer, puzzle) => {
     if (puzzle.type !== "spatial") return false;

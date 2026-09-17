@@ -16,7 +16,7 @@ function IntroExample() {
       <p className="font-mono text-xl font-bold text-primary">{grouped(EXAMPLE)}</p>
       <p className="text-xs text-muted-foreground">You typed 492 715 8 → span 7</p>
       <p className="text-xs text-muted-foreground">
-        Every digit you get right in a row counts. You have 45 seconds once they vanish.
+        Every digit you get right in a row counts. You have 20 seconds once they vanish.
       </p>
     </div>
   );

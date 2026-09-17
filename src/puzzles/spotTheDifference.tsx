@@ -20,17 +20,17 @@ import {
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const COLOURS: Record<StroopColour, string> = {
+const COLOURS: Record<Exclude<StroopColour, "YELLOW">, string> = {
   RED: "#FF4D4D",
   BLUE: "#4D8CFF",
   GREEN: "#3DDC84",
   PURPLE: "#B26BFF",
   PINK: "#FF6BD6",
   ORANGE: "#FF8A3D",
-  BROWN: "#C9895A",
+  BROWN: "#8B5A2B",
 };
 
-const COLOUR_KEYS = Object.keys(COLOURS) as StroopColour[];
+const COLOUR_KEYS = Object.keys(COLOURS) as Exclude<StroopColour, "YELLOW">[];
 /** The two pairs that read as the same colour at a glance — never swapped. */
 const TOO_CLOSE: [StroopColour, StroopColour][] = [
   ["RED", "PINK"],
@@ -122,7 +122,9 @@ function DrawnShape({ shape, size = SHAPE }: { shape: SpotShape; size?: number }
   ]
     .filter(Boolean)
     .join(" ");
-  return <g transform={turns}>{shapePath(shape.kind, COLOURS[shape.colour])}</g>;
+  const colour = COLOURS[shape.colour as keyof typeof COLOURS];
+  if (!colour) return null;
+  return <g transform={turns}>{shapePath(shape.kind, colour)}</g>;
 }
 
 function Panel({
@@ -284,7 +286,7 @@ function IntroExample() {
         <Panel shapes={EXAMPLE_BOTTOM} found={[4]} rows={2} />
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Tap each difference in either picture. You have 45 seconds.
+        Tap each difference in either picture. You have 20 seconds.
       </p>
     </div>
   );

@@ -6,7 +6,7 @@ import { WaitingLine } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 
 import { RoundIntro } from "@/components/duel/RoundIntro";
-import { TimerRing } from "@/components/duel/TimerRing";
+import { TimerRing, timerSlotClass } from "@/components/duel/TimerRing";
 import {
   practiceCheckWordFn,
   practiceCheckGroupFn,
@@ -300,24 +300,6 @@ function PracticeScreen() {
 
   const StageComponent = puzzleDef(puzzle.type).Stage;
   const clockActive = clockStart !== null && now >= clockStart;
-  const compactTimer = [
-    "target",
-    "blockparty",
-    "chaincalc",
-    "wordsmith",
-    "wordhunt",
-    "spotdiff",
-    "sudoku",
-    "pipes",
-    "patcomp",
-    "flow",
-    "iceslide",
-    "laser",
-    "tower",
-    "maze",
-    "push",
-  ].includes(puzzle.type);
-
   return (
     <PhoneShell constrained>
       <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
@@ -332,11 +314,7 @@ function PracticeScreen() {
 
         {puzzleShowsTimer(puzzle) && (
           <div
-            className={`flex justify-center -my-3 ${
-              compactTimer
-                ? "h-[88px] shrink-0 items-center scale-[0.7] [@media(max-height:680px)]:h-[80px] [@media(max-height:680px)]:scale-[0.64]"
-                : "h-[104px] shrink-0 items-center scale-[0.78]"
-            }`}
+            className={`flex shrink-0 items-center justify-center ${timerSlotClass(puzzle.type)}`}
           >
             <TimerRing msRemaining={msRemaining} totalMs={timeLimitMs} active={clockActive} />
           </div>
