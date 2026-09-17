@@ -910,13 +910,16 @@ export interface FlowPuzzleData {
 /*  Ice Slide                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const SLIDE_COLS = 8;
+export const SLIDE_COLS = 9;
 export const SLIDE_CELLS = SLIDE_COLS * SLIDE_COLS;
-export const SLIDE_TIME_MS = 60_000;
-export const SLIDE_MIN_WALLS = 14;
-export const SLIDE_MAX_WALLS = 20;
-export const SLIDE_MIN_MOVES = 7;
-export const SLIDE_MAX_MOVES = 10;
+export const SLIDE_TIME_MS = 75_000;
+export const SLIDE_MIN_WALLS = 18;
+export const SLIDE_MAX_WALLS = 26;
+export const SLIDE_MIN_MOVES = 9;
+export const SLIDE_MAX_MOVES = 13;
+/** Holes the ball must slide around: falling in sends it back to the start. */
+export const SLIDE_MIN_HOLES = 1;
+export const SLIDE_MAX_HOLES = 3;
 /** At least this many walls must be stoppers the shortest route depends on. */
 export const SLIDE_MIN_STOPPERS = 3;
 /** Bonus for reaching the exit in the fewest possible slides. */
@@ -932,6 +935,8 @@ export interface SlidePuzzleData {
   type: "iceslide";
   /** Wall cells the ball stops against. */
   walls: number[];
+  /** Holes: sliding over one drops the ball back on the start. */
+  holes: number[];
   start: number;
   /** The gold gap in the border. */
   exit: number;
@@ -940,6 +945,7 @@ export interface SlidePuzzleData {
   /** Server-side only: one shortest sequence, as UDLR letters. */
   solution?: string;
 }
+
 
 /* -------------------------------------------------------------------------- */
 /*  Push                                                                      */
