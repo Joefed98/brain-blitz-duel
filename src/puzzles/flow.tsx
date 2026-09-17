@@ -171,6 +171,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
       const active = drawing.current;
 
       if (active === null) {
+        // Once a colour has just been completed, the rest of this drag is ignored:
+        // sliding on must never re-start the path from the dot it finished on.
+        if (holding.current) return;
+        holding.current = true;
         // A dot starts its own path afresh…
         const pair = dotPair(cell);
         if (pair !== -1) {
@@ -189,6 +193,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
         return;
       }
 
+      let completed = false;
       setPaths((current) => {
         const path = current[active] ?? [];
         const last = path[path.length - 1];
@@ -202,28 +207,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
         if (path.includes(cell)) return current;
 
         const pair = pairs[active]!;
-        // Another colour's dot is refused: the path simply stops where it was.
+        // Its own partner dot is welcome; any other colour's dot is refused.
+        const ends = cell === pair.a || cell === pair.b;
         const otherDot = pairs.some(
           (other, index) => index !== active && (other.a === cell || other.b === cell),
         );
-        if (otherDot) {
-          drawing.current = null;
-          return current;
-        }
+        if (otherDot) return current;
+        // Another colour's path is refused too — it is never cut back.
+        const crosses = current.some((value, index) => index !== active && value.includes(cell));
+        if (crosses) return current;
 
-        // Entering the partner dot completes the pair there and then.
-        const ends = cell === pair.a || cell === pair.b;
-        // Crossing another colour cuts it back to the cell before.
-        const next = current.map((value, index) => {
-          if (index === active) return value;
-          const at = value.indexOf(cell);
-          return at === -1 ? value : value.slice(0, at);
-        });
         moved.current = true;
+        const next = [...current];
         next[active] = [...path, cell];
-        if (ends) drawing.current = null;
+        if (ends) {
+          drawing.current = null;
+          completed = true;
+        }
         return next;
       });
+      if (completed) playCorrect();
       buzz(4);
     },
     [dotPair, locked, pairs, paths, setPaths],
