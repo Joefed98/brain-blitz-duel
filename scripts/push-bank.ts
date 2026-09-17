@@ -3,24 +3,28 @@
  *
  * Layouts are grown backwards from the solved position by "pulling" crates, so
  * every entry is solvable. The minimum push count from that backward search is
- * then confirmed by an independent forward search, and the stored solution is
- * replayed before the entry is accepted.
+ * then confirmed by an independent forward search, the stored solution is
+ * replayed, and every crate must be pushed at least twice.
  *
  *   bun scripts/push-bank.ts
  */
 
 import { writeFileSync } from "node:fs";
 
-import { PUSH_CELLS, PUSH_COLS as N, type SlideDir } from "../src/lib/duel/types";
+import {
+  PUSH_BANK_SIZE,
+  PUSH_CELLS,
+  PUSH_COLS as N,
+  PUSH_MAX_CRATES,
+  PUSH_MAX_PUSHES,
+  PUSH_MIN_CRATES,
+  PUSH_MIN_MOVES_PER_CRATE,
+  PUSH_MIN_PUSHES,
+  type SlideDir,
+} from "../src/lib/duel/types";
 
 const DIRS: SlideDir[] = ["U", "D", "L", "R"];
 const DELTA: Record<SlideDir, number> = { U: -N, D: N, L: -1, R: 1 };
-
-const BUCKETS = [
-  { min: 4, max: 8, count: 30 },
-  { min: 9, max: 14, count: 30 },
-  { min: 15, max: 20, count: 30 },
-];
 
 interface Entry {
   walls: number[];
@@ -30,6 +34,7 @@ interface Entry {
   minPushes: number;
   solution: string;
 }
+
 
 function row(cell: number) {
   return Math.floor(cell / N);
