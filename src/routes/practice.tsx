@@ -360,6 +360,8 @@ function PracticeScreen() {
             checkGroup={(indices) => practiceCheckGroupFn({ data: { puzzle, sealed, indices } })}
           />
         </div>
+
+        {devReadout && <DevPuzzleStats puzzle={puzzle} />}
       </div>
     </PhoneShell>
   );
