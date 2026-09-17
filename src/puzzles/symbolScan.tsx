@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { pick, randInt, shuffled } from "@/lib/duel/random";
 import {
@@ -121,10 +121,34 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   const key = puzzle.type === "symscan" ? puzzle.cells.join("") : "";
   const [selected, setSelected] = useState<number[]>([]);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const targetRef = useRef<HTMLDivElement>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
+  const [gridSide, setGridSide] = useState(280);
 
   useEffect(() => {
     setSelected([]);
   }, [key]);
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    const target = targetRef.current;
+    const submit = submitRef.current;
+    if (!stage || !target || !submit) return;
+    const read = () => {
+      const stageRect = stage.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const submitRect = submit.getBoundingClientRect();
+      const availableHeight = stageRect.height - targetRect.height - submitRect.height - 12;
+      setGridSide(Math.max(0, Math.floor(Math.min(availableHeight, stageRect.width))));
+    };
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(stage);
+    observer.observe(target);
+    observer.observe(submit);
+    return () => observer.disconnect();
+  }, []);
 
   if (puzzle.type !== "symscan") return null;
 
@@ -136,18 +160,22 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center">
-      <div className="flex shrink-0 flex-col items-center gap-2">
+    <div ref={stageRef} className="flex min-h-0 flex-1 flex-col items-center">
+      <div ref={targetRef} className="flex shrink-0 flex-col items-center gap-2">
         <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
         <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
           <Arrow dir={puzzle.target} size={34} />
         </div>
       </div>
 
-      <div className="mb-3 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
         <div
-          className="grid aspect-square h-auto max-h-full w-full max-w-full gap-1"
-          style={{ gridTemplateColumns: `repeat(${SYMSCAN_COLS}, minmax(0, 1fr))` }}
+          className="grid shrink-0 gap-1"
+          style={{
+            width: gridSide,
+            height: gridSide,
+            gridTemplateColumns: `repeat(${SYMSCAN_COLS}, minmax(0, 1fr))`,
+          }}
         >
           {puzzle.cells.map((dir, index) => (
             <CellBox
@@ -163,10 +191,11 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       </div>
 
       <button
+        ref={submitRef}
         type="button"
         onClick={() => !locked && onSubmit([...selected].sort((a, b) => a - b).join(","))}
         disabled={locked || selected.length === 0}
-        className="tap-target w-full shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
+        className="tap-target mt-3 w-full shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
       >
         Submit
       </button>
