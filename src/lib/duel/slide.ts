@@ -1,10 +1,11 @@
 /**
  * Ice Slide rules. The same slide function runs on the phone (to animate the
  * ball) and on the server (to replay the moves a phone sends). A hole swallows
- * the ball mid-slide and drops it back on the start; the move still counts.
+ * the ball mid-slide and drops it back on the start; the move still counts. A
+ * one-way arrow cell turns a sliding ball in the arrow's direction.
  */
 
-import { SLIDE_CELLS, SLIDE_COLS as N, type SlideDir } from "./types";
+import { SLIDE_CELLS, SLIDE_COLS as N, type SlideArrow, type SlideDir } from "./types";
 
 export const SLIDE_DIRS: SlideDir[] = ["U", "D", "L", "R"];
 
@@ -15,6 +16,10 @@ function step(cell: number, dir: SlideDir): number | null {
   if (dir === "D") return row < N - 1 ? cell + N : null;
   if (dir === "L") return col > 0 ? cell - 1 : null;
   return col < N - 1 ? cell + 1 : null;
+}
+
+export function arrowMap(arrows: SlideArrow[] | undefined): Map<number, SlideDir> {
+  return new Map((arrows ?? []).map((arrow) => [arrow.cell, arrow.dir]));
 }
 
 export interface SlideOutcome {
@@ -28,7 +33,8 @@ export interface SlideOutcome {
 
 /**
  * One slide: the ball keeps going until a wall or the grid edge stops it. The
- * exit stops it too. A hole ends the slide there and sends the ball home.
+ * exit stops it too. A hole ends the slide there and sends the ball home, and
+ * an arrow cell turns it and lets it carry on.
  */
 export function slideOutcome(
   from: number,
@@ -37,16 +43,28 @@ export function slideOutcome(
   holes: Set<number>,
   exit: number,
   start: number,
+  arrows?: Map<number, SlideDir>,
 ): SlideOutcome {
+  const turns = arrows ?? new Map<number, SlideDir>();
   const path: number[] = [];
+  const seen = new Set<string>();
   let cell = from;
-  for (let guard = 0; guard < SLIDE_CELLS; guard++) {
-    const next = step(cell, dir);
+  let heading = dir;
+  for (let guard = 0; guard < SLIDE_CELLS * 4; guard++) {
+    const next = step(cell, heading);
     if (next === null || walls.has(next)) break;
     cell = next;
     path.push(cell);
     if (holes.has(cell)) return { path, cell: start, fell: true };
     if (cell === exit) break;
+    const turn = turns.get(cell);
+    if (turn) {
+      const id = `${cell}:${turn}`;
+      // An arrow loop would spin forever: the ball simply stops there.
+      if (seen.has(id)) break;
+      seen.add(id);
+      heading = turn;
+    }
   }
   return { path, cell: path.length ? cell : from, fell: false };
 }
@@ -80,15 +98,17 @@ export function replaySlide(
   start: number,
   exit: number,
   moves: SlideDir[],
+  arrows?: SlideArrow[],
 ): SlideReplay {
   const blocked = new Set(walls);
   const pits = new Set(holes);
+  const turns = arrowMap(arrows);
   let cell = start;
   let count = 0;
   let falls = 0;
   for (const dir of moves) {
     if (cell === exit) break;
-    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start);
+    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
     // A slide into a hole still costs a move, even though the ball ends at home.
     if (!outcome.path.length) continue;
     cell = outcome.cell;
@@ -101,7 +121,8 @@ export function replaySlide(
 
 /**
  * Fewest slides from a cell to the exit, or null when it cannot be reached.
- * Holes are part of the search: a slide over one simply lands back on the start.
+ * Holes and arrows are both part of the search: a slide over a hole simply
+ * lands back on the start, and an arrow turns the ball mid-slide.
  */
 export function slideDistance(
   walls: number[],
@@ -109,9 +130,11 @@ export function slideDistance(
   from: number,
   exit: number,
   start: number,
+  arrows?: SlideArrow[],
 ): number | null {
   const blocked = new Set(walls);
   const pits = new Set(holes);
+  const turns = arrowMap(arrows);
   if (from === exit) return 0;
   const seen = new Set<number>([from]);
   let frontier = [from];
@@ -119,7 +142,7 @@ export function slideDistance(
     const next: number[] = [];
     for (const cell of frontier) {
       for (const dir of SLIDE_DIRS) {
-        const landed = slideOutcome(cell, dir, blocked, pits, exit, start).cell;
+        const landed = slideOutcome(cell, dir, blocked, pits, exit, start, turns).cell;
         if (landed === cell || seen.has(landed)) continue;
         if (landed === exit) return depth;
         seen.add(landed);
@@ -138,9 +161,11 @@ export function shortestSlideRoute(
   holes: number[],
   start: number,
   exit: number,
+  arrows?: SlideArrow[],
 ): SlideDir[] {
   const blocked = new Set(walls);
   const pits = new Set(holes);
+  const turns = arrowMap(arrows);
   if (start === exit) return [];
   const seen = new Set<number>([start]);
   let frontier: { cell: number; moves: SlideDir[] }[] = [{ cell: start, moves: [] }];
@@ -148,7 +173,7 @@ export function shortestSlideRoute(
     const next: typeof frontier = [];
     for (const node of frontier) {
       for (const dir of SLIDE_DIRS) {
-        const landed = slideOutcome(node.cell, dir, blocked, pits, exit, start).cell;
+        const landed = slideOutcome(node.cell, dir, blocked, pits, exit, start, turns).cell;
         if (landed === node.cell || seen.has(landed)) continue;
         const moves = [...node.moves, dir];
         if (landed === exit) return moves;
@@ -169,12 +194,14 @@ export function slideRouteAvoidsHoles(
   start: number,
   exit: number,
   moves: SlideDir[],
+  arrows?: SlideArrow[],
 ): boolean {
   const blocked = new Set(walls);
   const pits = new Set(holes);
+  const turns = arrowMap(arrows);
   let cell = start;
   for (const dir of moves) {
-    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start);
+    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
     if (outcome.fell) return false;
     if (!outcome.path.length) continue;
     cell = outcome.cell;
