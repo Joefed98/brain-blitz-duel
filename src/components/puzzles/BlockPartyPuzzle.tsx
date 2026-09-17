@@ -316,8 +316,8 @@ export function BlockPartyPuzzle({
     return () => observer.disconnect();
   }, []);
 
-  // The board fills the stage width; the tray uses the remaining height and
-  // computes the largest piece scale that keeps all remaining pieces visible.
+  // The centred board uses 85% of the stage width; the tray receives all
+  // remaining height and uses the largest piece scale that keeps every piece visible.
   const trayRows = useMemo(() => {
     const rows: number[][] = [];
     for (let index = 0; index < inTray.length; index += 3)
@@ -341,9 +341,9 @@ export function BlockPartyPuzzle({
       (traySize.width - 20 - 8) / trayWidthUnits,
     ),
   );
-  const boardSize = layoutSize.width;
+  const boardSize = layoutSize.width * 0.85;
   const boardCell = boardSize / N;
-  const trayCell = Math.min(boardCell * 0.6, trayCellCapacity);
+  const trayCell = Math.min(boardCell * 0.75, trayCellCapacity);
 
   return (
     <div ref={layoutRef} className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">
