@@ -49,8 +49,9 @@ for (let i = 0; i < 200; i++) {
   for (const [index, path] of paths.entries()) {
     if (path.length < FLOW_MIN_PATH) fail(`Flow path shorter than ${FLOW_MIN_PATH}`);
     shortest = Math.min(shortest, path.length);
-    const rows = new Set(path.map((cell) => Math.floor(cell / 6)));
-    const cols = new Set(path.map((cell) => cell % 6));
+    const rows = new Set(path.map((cell) => Math.floor(cell / FLOW_COLS)));
+    const cols = new Set(path.map((cell) => cell % FLOW_COLS));
+
     if (rows.size === 1 || cols.size === 1) fail("Flow produced a straight path");
     const pair = puzzle.pairs[index]!;
     if (flowNeighbours(pair.a).includes(pair.b)) fail("Flow produced an adjacent pair");
