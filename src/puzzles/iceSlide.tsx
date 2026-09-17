@@ -259,7 +259,14 @@ function Stage({
         }}
         {...swipe}
       >
-        <Board walls={walls} holes={holes} start={start} exit={exit} ball={replay.cell} />
+        <Board
+          walls={walls}
+          holes={holes}
+          arrows={arrows}
+          start={start}
+          exit={exit}
+          ball={replay.cell}
+        />
       </div>
       <ArrowPad onPress={slide} disabled={locked || replay.solved} />
       <div className="flex shrink-0 justify-center gap-2">
