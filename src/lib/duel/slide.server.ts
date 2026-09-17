@@ -50,8 +50,9 @@ export function generateIceSlide(): SlidePuzzleData {
     if (start === undefined) continue;
 
     const min = slideDistance(walls, start, exit);
-    // At least six slides, so the exit is never three moves or fewer away.
+    // At least seven slides, so the exit is never four moves or fewer away.
     if (min === null || min < SLIDE_MIN_MOVES || min > SLIDE_MAX_MOVES) continue;
+    // And at least three walls the shortest route genuinely depends on.
     if (stoppers(walls, start, exit, min) < SLIDE_MIN_STOPPERS) continue;
 
     const route = shortestSlideRoute(walls, start, exit);

@@ -49,20 +49,36 @@ function Board({
           gap: 2,
         }}
       >
+        {/* The ball is a centred child of the cell it occupies — never drawn from
+            pointer or pixel maths — so a slide moves it whole cells at a time. */}
         {Array.from({ length: cols * rows }, (_, cell) => {
+          const isBall = cell === ball;
+          const piece = isBall ? (
+            <span
+              aria-label="Ball"
+              className="block rounded-full"
+              style={{ width: "80%", height: "80%", backgroundColor: GOLD }}
+            />
+          ) : cell === start ? (
+            <span
+              className="block rounded-full bg-muted-foreground"
+              style={{ width: "28%", height: "28%" }}
+            />
+          ) : null;
+
           if (wall.has(cell)) {
             return <div key={cell} className="rounded-md bg-foreground/70" />;
           }
-          if (cell === exit) {
-            return (
-              <div
-                key={cell}
-                className="rounded-md border-2 border-primary bg-primary/20"
-                aria-label="Exit"
-              />
-            );
-          }
-          return <div key={cell} className="rounded-[3px] bg-secondary/60" />;
+          const className =
+            "flex items-center justify-center " +
+            (cell === exit
+              ? "rounded-md border-2 border-primary bg-primary/20"
+              : "rounded-[3px] bg-secondary/60");
+          return (
+            <div key={cell} className={className} aria-label={cell === exit ? "Exit" : undefined}>
+              {piece}
+            </div>
+          );
         })}
       </div>
 
@@ -83,19 +99,6 @@ function Board({
             strokeDasharray={dotted === false ? undefined : "0.25 0.2"}
           />
         )}
-        <circle
-          cx={(start % cols) + 0.5}
-          cy={Math.floor(start / cols) + 0.5}
-          r={0.14}
-          fill="var(--muted-foreground)"
-        />
-        <circle
-          cx={(ball % cols) + 0.5}
-          cy={Math.floor(ball / cols) + 0.5}
-          r={0.3}
-          fill={GOLD}
-          style={{ transition: "cx 160ms linear, cy 160ms linear" }}
-        />
       </svg>
     </div>
   );

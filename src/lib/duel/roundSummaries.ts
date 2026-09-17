@@ -97,15 +97,15 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
                                             ? MAZE_TIME_MS
                                             : puzzle.type === "tower"
                                               ? (puzzle.timeLimitMs ?? TOWER_TIME_MS)
-                                        : puzzle.type === "wordsmith"
-                                          ? WORDSMITH_TIME_MS
-                                          : puzzle.type === "wordhunt"
-                                            ? WORDHUNT_TIME_MS
-                                            : puzzle.type === "unblock"
-                                              ? UNBLOCK_TIME_MS
-                                              : puzzle.type === "blockparty"
-                                                ? BLOCK_TIME_MS
-                                                : ROUND_MS;
+                                              : puzzle.type === "wordsmith"
+                                                ? WORDSMITH_TIME_MS
+                                                : puzzle.type === "wordhunt"
+                                                  ? WORDHUNT_TIME_MS
+                                                  : puzzle.type === "unblock"
+                                                    ? UNBLOCK_TIME_MS
+                                                    : puzzle.type === "blockparty"
+                                                      ? BLOCK_TIME_MS
+                                                      : ROUND_MS;
   return Math.max(0, limit - result.ms_remaining);
 }
 

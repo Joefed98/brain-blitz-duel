@@ -83,8 +83,10 @@ function Pegs({
                   className="absolute bottom-0 w-[6px] rounded-t bg-border"
                   style={{ height: "100%" }}
                 />
-                {stack.map((size, index) => {
-                  const hide = isLifted && index === stack.length - 1;
+                {/* The stack is bottom-to-top from index 0, so the column is drawn
+                    in reverse: the smallest disc is the topmost element. */}
+                {[...stack].reverse().map((size, index) => {
+                  const hide = isLifted && index === 0;
                   return (
                     <div
                       key={size}

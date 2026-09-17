@@ -40,6 +40,8 @@ function Board({
   const rows = Math.ceil(cells / cols);
   const wall = new Set(walls);
 
+  const crate = new Set(crates);
+
   return (
     <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full">
       <div
@@ -50,46 +52,41 @@ function Board({
           gap: 2,
         }}
       >
+        {/* Every piece is a centred child of its own cell, so nothing can drift. */}
         {Array.from({ length: cols * rows }, (_, cell) => {
           if (wall.has(cell)) return <div key={cell} className="rounded-md bg-foreground/70" />;
           const onTarget = targets.includes(cell);
+          const hasCrate = crate.has(cell);
+          const hasPusher = cell === pusher;
           return (
             <div
               key={cell}
-              className={`rounded-[3px] bg-card ${onTarget ? "border-2 border-primary/70" : "border border-border/50"}`}
-            />
+              className={`flex items-center justify-center rounded-[3px] bg-card ${
+                onTarget ? "border-2 border-primary/70" : "border border-border/50"
+              }`}
+            >
+              {hasCrate && (
+                <span
+                  aria-label={onTarget ? "Crate home" : "Crate"}
+                  className="block rounded-[15%]"
+                  style={{
+                    width: "80%",
+                    height: "80%",
+                    backgroundColor: onTarget ? "var(--primary)" : "#B07B4F",
+                  }}
+                />
+              )}
+              {hasPusher && !hasCrate && (
+                <span
+                  aria-label="You"
+                  className="block rounded-full bg-primary"
+                  style={{ width: "70%", height: "70%" }}
+                />
+              )}
+            </div>
           );
         })}
       </div>
-
-      <svg
-        viewBox={`0 0 ${cols} ${rows}`}
-        className="pointer-events-none absolute inset-0 h-full w-full"
-        aria-hidden="true"
-      >
-        {crates.map((cell) => {
-          const home = targets.includes(cell);
-          return (
-            <rect
-              key={`crate-${cell}`}
-              x={(cell % cols) + 0.14}
-              y={Math.floor(cell / cols) + 0.14}
-              width={0.72}
-              height={0.72}
-              rx={0.16}
-              fill={home ? "var(--primary)" : "#B07B4F"}
-              style={{ transition: "x 150ms linear, y 150ms linear" }}
-            />
-          );
-        })}
-        <circle
-          cx={(pusher % cols) + 0.5}
-          cy={Math.floor(pusher / cols) + 0.5}
-          r={0.26}
-          fill="var(--primary)"
-          style={{ transition: "cx 150ms linear, cy 150ms linear" }}
-        />
-      </svg>
     </div>
   );
 }

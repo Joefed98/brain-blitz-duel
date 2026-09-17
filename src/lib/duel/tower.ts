@@ -114,7 +114,6 @@ export function replayTower(discs: number, targetPeg: number, moves: TowerMove[]
   };
 }
 
-
 /** The classic recursive optimum: 2^discs − 1 moves. */
 export function towerOptimal(discs: number, from: number, to: number): TowerMove[] {
   if (discs <= 0) return [];

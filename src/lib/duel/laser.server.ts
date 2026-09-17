@@ -116,16 +116,66 @@ function everyMirrorNeeded(
   return true;
 }
 
+const KINDS: MirrorKind[] = ["/", "\\"];
+
+/**
+ * No shorter answer anywhere on the grid: neither a bare beam, nor any single
+ * mirror, nor any pair of mirrors placed anywhere at all, may reach the target.
+ * Searched exhaustively, so the tray is always needed in full.
+ */
+function noShortSolution(source: number, dir: BeamDir, blocks: number[], target: number): boolean {
+  const blocked = new Set(blocks);
+  const open: number[] = [];
+  for (let cell = 0; cell < LASER_CELLS; cell++) {
+    if (cell === source || cell === target || blocked.has(cell)) continue;
+    open.push(cell);
+  }
+
+  // The direct line, and every one-bend line.
+  if (traceBeam(source, dir, [], blocks, target).hitTarget) return false;
+  for (const cell of open) {
+    for (const kind of KINDS) {
+      if (traceBeam(source, dir, [{ cell, kind }], blocks, target).hitTarget) return false;
+    }
+  }
+  // Every two-mirror placement.
+  for (let first = 0; first < open.length; first++) {
+    for (let second = first + 1; second < open.length; second++) {
+      for (const kindA of KINDS) {
+        for (const kindB of KINDS) {
+          const trial = [
+            { cell: open[first]!, kind: kindA },
+            { cell: open[second]!, kind: kindB },
+          ];
+          if (traceBeam(source, dir, trial, blocks, target).hitTarget) return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * Blocks that sit on a line into the target, or on the laser's own straight
+ * line: those are the ones closing off a shorter route.
+ */
+function shortcutBlocks(source: number, dir: BeamDir, blocks: number[], target: number): number {
+  const straight = new Set(traceBeam(source, dir, [], [], target).cells);
+  const targetRow = laserRow(target);
+  const targetCol = laserCol(target);
+  return blocks.filter(
+    (cell) => straight.has(cell) || laserRow(cell) === targetRow || laserCol(cell) === targetCol,
+  ).length;
+}
+
 export function generateLaser(): LaserPuzzleData {
-  for (let attempt = 0; attempt < 8_000; attempt++) {
+  for (let attempt = 0; attempt < 20_000; attempt++) {
     const { cell: source, dir } = shuffled(sources())[0]!;
-    const bendCount = Math.max(
-      LASER_MIN_BENDS,
-      LASER_MIN_MIRRORS + randomInt(LASER_MAX_MIRRORS - LASER_MIN_MIRRORS + 1),
-    );
+    // Always exactly four mirrors, so the route always bends four times.
+    const bendCount = LASER_MAX_MIRRORS;
     const route = randomRoute(source, dir, bendCount);
     if (!route) continue;
-    if (route.bends.length < LASER_MIN_BENDS) continue;
+    if (route.bends.length !== LASER_MAX_MIRRORS) continue;
 
     const onRoute = new Set(route.cells);
     // Blocks never crowd the route: they sit off it, leaving open space around
@@ -155,8 +205,13 @@ export function generateLaser(): LaserPuzzleData {
       if (empty.hitTarget) continue;
     }
 
-    // Nothing short of the whole tray may solve it.
+    // At least two blocks must be closing off a shorter route.
+    if (shortcutBlocks(source, dir, blocks, route.target) < 2) continue;
+
+    // Nothing short of the whole tray may solve it — neither a subset of these
+    // four mirrors, nor any one or two mirrors placed anywhere on the grid.
     if (!everyMirrorNeeded(source, dir, route.bends, blocks, route.target)) continue;
+    if (!noShortSolution(source, dir, blocks, route.target)) continue;
 
     return {
       type: "laser",
