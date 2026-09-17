@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 
-import { gridCellAt } from "@/components/puzzles/GridDrag";
+import { ArrowPad, gridCellAt } from "@/components/puzzles/GridDrag";
 
 import {
   MAZE_E,
