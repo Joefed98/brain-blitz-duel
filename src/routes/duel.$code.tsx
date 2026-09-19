@@ -10,6 +10,7 @@ import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundPips } from "@/components/duel/RoundPips";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { RoundResultsTable } from "@/components/duel/RoundResultsTable";
+import { RoomChat } from "@/components/duel/RoomChat";
 import { RoomLobby } from "@/components/duel/RoomLobby";
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
 import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
@@ -52,6 +53,7 @@ import {
   totalScoreThrough,
 } from "@/lib/duel/scoring";
 import { useDuel } from "@/lib/duel/useDuel";
+import { setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
 import {
   puzzleDef,
   puzzleDurationMs,
@@ -214,6 +216,13 @@ function DuelScreen() {
     if (duel && round > 1) clearStageState(`${duel.id}-${round - 1}`);
   }, [duel?.id, round]); // eslint-disable-line react-hooks/exhaustive-deps
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
+
+  // Chat and reactions are live on every screen except an active puzzle.
+  const chatActive = !!duel && !(duel.status === "in_progress" && duel.phase === "puzzle");
+  const chat = useRoomChat(duel?.id ?? null, me?.user_id ?? null, chatActive);
+  useEffect(() => {
+    if (!chatActive) chat.setSheetOpen(false);
+  }, [chatActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The clock starts once any puzzle preparation (sequence playback) is done.
   const puzzleStart = phase === "puzzle" ? phaseStart : null;
@@ -545,8 +554,10 @@ function DuelScreen() {
             addMemory={duel.add_memory === true}
             onModesChange={(modes) => void setRoomModes(duel.id, modes)}
             onRemove={(slot) => void removePlayer(duel.id, slot)}
+            onMuteForEveryone={(slot, muted) => void setPlayerMuted(duel.id, slot, muted)}
           />
         </div>
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -565,6 +576,7 @@ function DuelScreen() {
             onPlayAgain={() => void handlePlayAgain()}
             onLeave={() => void handleLeave()}
           />
+          <RoomChat chat={chat} myUserId={me.user_id} />
         </PhoneShell>
       );
     }
@@ -582,6 +594,7 @@ function DuelScreen() {
           onPlayAgain={() => void handlePlayAgain()}
           onHome={() => void navigate({ to: "/" })}
         />
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -605,6 +618,7 @@ function DuelScreen() {
             void readyUp(duel.id, round);
           }}
         />
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -623,6 +637,7 @@ function DuelScreen() {
           startedAt={phaseStart ?? now}
           now={now}
         />
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -645,6 +660,7 @@ function DuelScreen() {
             finalRound={round >= duel.round_count}
             onNext={() => void advancePhase(duel.id, true)}
           />
+          <RoomChat chat={chat} myUserId={me.user_id} />
         </PhoneShell>
       );
     }
@@ -665,6 +681,7 @@ function DuelScreen() {
           isHost={isHost}
           onNext={() => void advancePhase(duel.id, true)}
         />
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -692,6 +709,7 @@ function DuelScreen() {
             onNext={() => void advancePhase(duel.id, true)}
           />
         )}
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }

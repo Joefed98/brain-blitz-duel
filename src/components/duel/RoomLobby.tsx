@@ -26,6 +26,8 @@ interface RoomLobbyProps {
   starting: boolean;
   onStart: () => void;
   onRemove: (slot: number) => void;
+  /** Host only: mute or unmute a player's chat and reactions for everyone. */
+  onMuteForEveryone: (slot: number, muted: boolean) => void;
 }
 
 /** The waiting room for two to ten players. */
@@ -40,6 +42,7 @@ export function RoomLobby({
   starting,
   onStart,
   onRemove,
+  onMuteForEveryone,
 }: RoomLobbyProps) {
   const canStart = players.length >= MIN_PLAYERS;
 
@@ -65,6 +68,22 @@ export function RoomLobby({
               </span>
               {isMe && (
                 <span className="text-[10px] uppercase tracking-widest text-primary">You</span>
+              )}
+              {isHost && !isMe && (
+                <button
+                  type="button"
+                  aria-label={
+                    player.muted_by_host
+                      ? `Unmute ${player.display_name} for everyone`
+                      : `Mute ${player.display_name} for everyone`
+                  }
+                  onClick={() => onMuteForEveryone(player.player_slot, !player.muted_by_host)}
+                  className={`press flex h-11 w-11 items-center justify-center rounded-lg text-sm ${
+                    player.muted_by_host ? "text-warn" : "text-muted-foreground"
+                  }`}
+                >
+                  {player.muted_by_host ? "🔇" : "🔊"}
+                </button>
               )}
               {isHost && !isMe && (
                 <button
