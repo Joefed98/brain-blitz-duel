@@ -49,7 +49,7 @@ export function generateIntruder(): IntruderPuzzleData {
 
   for (const size of INTRUDER_BOARD_SIZES) {
     const count = size * size;
-    let cells = Array.from({ length: count }, randomCell);
+    const cells = Array.from({ length: count }, randomCell);
     let target = randomBelow(count);
 
     // The changed cell never sits in the same row and column twice in a row.

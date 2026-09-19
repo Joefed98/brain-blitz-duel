@@ -228,7 +228,7 @@ function Stage({
         ) : null}
       </div>
 
-      <div className="mt-2 flex shrink-0 items-center justify-center gap-4">
+      <div className="mt-4 flex shrink-0 items-center justify-center gap-4">
         <div className="grid grid-cols-3 grid-rows-3 gap-3">
           <span aria-hidden="true" />
           <TiltButton dir="U" onPress={press} disabled={locked} />
