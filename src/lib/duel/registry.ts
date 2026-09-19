@@ -67,13 +67,7 @@ const LONG_REVEAL_TYPES = new Set<PuzzleType>([
 ]);
 
 /** Always in the room draw. */
-export const CORE_CATEGORIES: PuzzleCategory[] = [
-  "logic",
-  "pattern",
-  "speed",
-  "attention",
-  "word",
-];
+export const CORE_CATEGORIES: PuzzleCategory[] = ["logic", "pattern", "speed", "attention", "word"];
 
 /** Only drawn when the host switches them on in the lobby. */
 export const OPT_IN_CATEGORIES: PuzzleCategory[] = ["number", "memory"];

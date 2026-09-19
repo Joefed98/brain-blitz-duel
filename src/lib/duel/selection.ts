@@ -10,12 +10,7 @@
  */
 
 import { shuffled, weightedPick } from "./random";
-import {
-  CORE_CATEGORIES,
-  CORE_SIXTH_WEIGHTS,
-  puzzleDef,
-  typesInCategory,
-} from "./registry";
+import { CORE_CATEGORIES, CORE_SIXTH_WEIGHTS, puzzleDef, typesInCategory } from "./registry";
 import { TOTAL_ROUNDS, type PuzzleCategory, type PuzzleType } from "./types";
 
 /**
@@ -84,9 +79,7 @@ export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[
   const remaining = shuffled(pool);
   const categories: PuzzleCategory[] = [];
   while (categories.length < rounds && remaining.length > 0) {
-    const chosen = weightedPick(remaining, (category) =>
-      recencyWeight(category, recentCategories),
-    );
+    const chosen = weightedPick(remaining, (category) => recencyWeight(category, recentCategories));
     categories.push(chosen);
     remaining.splice(remaining.indexOf(chosen), 1);
   }

@@ -83,12 +83,10 @@ export function RoomLobby({
 
       {isHost ? (
         <div className="flex flex-col gap-2">
-          {(
-            [
-              { label: "Add maths", value: addMaths, key: "addMaths" as const },
-              { label: "Add memory", value: addMemory, key: "addMemory" as const },
-            ]
-          ).map((mode) => (
+          {[
+            { label: "Add maths", value: addMaths, key: "addMaths" as const },
+            { label: "Add memory", value: addMemory, key: "addMemory" as const },
+          ].map((mode) => (
             <button
               key={mode.key}
               type="button"
