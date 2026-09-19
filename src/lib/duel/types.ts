@@ -34,7 +34,10 @@ export type PuzzleType =
   | "push"
   | "laser"
   | "tower"
-  | "maze";
+  | "maze"
+  | "tubes"
+  | "safe"
+  | "bomb";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
@@ -367,7 +370,10 @@ export type PuzzleData =
   | PushPuzzleData
   | LaserPuzzleData
   | TowerPuzzleData
-  | MazePuzzleData;
+  | MazePuzzleData
+  | TubesPuzzleData
+  | SafePuzzleData
+  | BombPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1201,4 +1207,78 @@ export interface MazePuzzleData {
   exit: number;
   /** Server-side only: the one route from the start to the exit. */
   solution?: number[];
+}
+
+/* ============================ Sort the Tubes ============================ */
+
+export const TUBES_TIME_MS = 60_000;
+export const TUBES_COUNT = 6;
+export const TUBE_CAPACITY = 4;
+export const TUBES_COLOURS = 4;
+/** How many reverse pours scramble the solved board. */
+export const TUBES_MIN_SCRAMBLE = 25;
+export const TUBES_MAX_SCRAMBLE = 40;
+/** The searched minimum has to land in this band for the board to be used. */
+export const TUBES_MIN_MIN_MOVES = 8;
+export const TUBES_MAX_MIN_MOVES = 14;
+/** The breadth-first search gives up past this many states, and we re-roll. */
+export const TUBES_BFS_CAP = 200_000;
+/** Bonus for solving in the fewest possible pours. */
+export const TUBES_MIN_MOVE_BONUS = 20;
+/** Most an unsolved board can earn, shared out per finished tube. */
+export const TUBES_PARTIAL_POINTS = 60;
+
+export interface TubesPuzzleData {
+  type: "tubes";
+  /** One tube per entry, bottom ball first, holding colour indices 0–3. */
+  tubes: number[][];
+  /** Server-side only: the searched minimum number of pours. */
+  minMoves?: number;
+  /** Server-side only: one shortest pour list, as `0>3,1>2`. */
+  solution?: string;
+}
+
+/* ============================= Safe Cracker ============================= */
+
+export const SAFE_TIME_MS = 75_000;
+export const SAFE_DIALS = 4;
+export const SAFE_CLUE_COUNT = 4;
+export const SAFE_TRIES = 3;
+/** Base points by the try that opened the safe: first, second, third. */
+export const SAFE_TRY_POINTS = [100, 85, 70];
+/** Points per correct dial when the safe stays shut. */
+export const SAFE_DIAL_POINTS = 15;
+
+export interface SafePuzzleData {
+  type: "safe";
+  /** The four clues printed on the card — public from the start. */
+  clues: import("./safe").SafeClue[];
+  /** Server-side only: the digits that open the safe. */
+  combination?: number[];
+}
+
+/* ============================ Bomb Defusal ============================= */
+
+export const BOMB_TIME_MS = 60_000;
+export const BOMB_WIRES = 5;
+export const BOMB_RULE_COUNT = 4;
+export const BOMB_MIN_SEQUENCE = 2;
+export const BOMB_MAX_SEQUENCE = 4;
+/** Base points for defusing with one strike rather than none. */
+export const BOMB_ONE_STRIKE_POINTS = 80;
+/** Points per correct step when the bomb goes off or the clock runs out. */
+export const BOMB_STEP_POINTS = 20;
+export const BOMB_PARTIAL_POINTS = 60;
+
+export interface BombPuzzleData {
+  type: "bomb";
+  wires: import("./bomb").WireColour[];
+  buttons: import("./bomb").BombButton[];
+  light: boolean;
+  /** Three digits on the plate. */
+  serial: string;
+  /** The rule card, in the order it must be read. */
+  rules: { id: string; text: string }[];
+  /** Server-side only: the required actions, as `bA,w2`. */
+  sequence?: string;
 }
