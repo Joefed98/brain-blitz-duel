@@ -34,6 +34,9 @@ import { pushPuzzle } from "@/puzzles/push";
 import { laserPuzzle } from "@/puzzles/laser";
 import { towerPuzzle } from "@/puzzles/tower";
 import { mazeDashPuzzle } from "@/puzzles/mazeDash";
+import { sortTubesPuzzle } from "@/puzzles/sortTubes";
+import { safeCrackerPuzzle } from "@/puzzles/safeCracker";
+import { bombDefusalPuzzle } from "@/puzzles/bombDefusal";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import {
@@ -130,6 +133,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   laser: laserPuzzle,
   tower: towerPuzzle,
   maze: mazeDashPuzzle,
+  tubes: sortTubesPuzzle,
+  safe: safeCrackerPuzzle,
+  bomb: bombDefusalPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

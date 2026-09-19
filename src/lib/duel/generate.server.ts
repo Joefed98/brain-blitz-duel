@@ -21,6 +21,9 @@ import { generatePush } from "./push.server";
 import { generateLaser } from "./laser.server";
 import { generateTower } from "./tower.server";
 import { generateMaze } from "./maze.server";
+import { generateTubes } from "./tubes.server";
+import { generateSafe } from "./safe.server";
+import { generateBomb } from "./bomb.server";
 
 export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "wordsmith") return generateWordsmith();
@@ -38,6 +41,9 @@ export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "laser") return generateLaser();
   if (type === "tower") return generateTower();
   if (type === "maze") return generateMaze();
+  if (type === "tubes") return generateTubes();
+  if (type === "safe") return generateSafe();
+  if (type === "bomb") return generateBomb();
   return puzzleDef(type).generate();
 }
 
