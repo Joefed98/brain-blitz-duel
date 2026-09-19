@@ -19,8 +19,6 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const STAR = "12,2 14.9,8.9 22.4,9.5 16.7,14.4 18.5,21.7 12,17.8 5.5,21.7 7.3,14.4 1.6,9.5 9.1,8.9";
-
 function CellGlyph({ cell, size }: { cell: IntruderCell; size: number }) {
   const fill = GLYPH_COLOURS[cell.colour];
   return (
@@ -31,7 +29,6 @@ function CellGlyph({ cell, size }: { cell: IntruderCell; size: number }) {
           <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />
         )}
         {cell.shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill={fill} />}
-        {cell.shape === "star" && <polygon points={STAR} fill={fill} />}
       </g>
     </svg>
   );
@@ -61,7 +58,12 @@ function Grid({
       ref={ref}
       {...(onCell ? pointer : {})}
       className="grid aspect-square max-h-full w-full gap-[3px]"
-      style={{ ...style, gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
+      style={{
+        ...style,
+        minWidth: size * 48 + (size - 1) * 3,
+        minHeight: size * 48 + (size - 1) * 3,
+        gridTemplateColumns: `repeat(${size}, minmax(48px, 1fr))`,
+      }}
     >
       {Array.from({ length: size * size }, (_, index) => {
         const cell = cells?.[index];
@@ -87,17 +89,17 @@ function Grid({
 const EXAMPLE_BEFORE: IntruderCell[] = [
   { shape: "circle", colour: "RED", rot: 0 },
   { shape: "square", colour: "BLUE", rot: 0 },
-  { shape: "star", colour: "GREEN", rot: 0 },
+  { shape: "triangle", colour: "GREEN", rot: 0 },
   { shape: "triangle", colour: "YELLOW", rot: 0 },
-  { shape: "circle", colour: "PURPLE", rot: 0 },
-  { shape: "square", colour: "PINK", rot: 0 },
-  { shape: "star", colour: "BROWN", rot: 0 },
+  { shape: "circle", colour: "RED", rot: 0 },
+  { shape: "square", colour: "YELLOW", rot: 0 },
+  { shape: "circle", colour: "BLUE", rot: 0 },
   { shape: "triangle", colour: "GREEN", rot: 0 },
   { shape: "circle", colour: "BLUE", rot: 0 },
 ];
 
 const EXAMPLE_AFTER = EXAMPLE_BEFORE.map((cell, index) =>
-  index === 5 ? { ...cell, shape: "star" as const } : cell,
+  index === 5 ? { ...cell, shape: "triangle" as const } : cell,
 );
 
 /** Fixed intro example — never randomised. */

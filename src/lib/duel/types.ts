@@ -1370,33 +1370,24 @@ export interface ChainPuzzleData {
 
 export const INTRUDER_TIME_MS = 30_000;
 export const INTRUDER_BOARDS = 3;
-/** Each board is bigger than the last. */
-export const INTRUDER_BOARD_SIZES = [4, 5, 6] as const;
+/** Two approachable boards, then one slightly denser board. */
+export const INTRUDER_BOARD_SIZES = [4, 4, 5] as const;
 /** How long the grid is on show before it vanishes. */
-export const INTRUDER_SHOW_MS = 3_000;
-export const INTRUDER_HIDE_MS = 800;
+export const INTRUDER_SHOW_MS = 4_000;
+export const INTRUDER_HIDE_MS = 500;
 /** Taps allowed per board. */
 export const INTRUDER_ATTEMPTS = 2;
 
-export const INTRUDER_SHAPES = ["circle", "square", "triangle", "star"] as const;
-export const INTRUDER_COLOURS: StroopColour[] = [
-  "RED",
-  "BLUE",
-  "GREEN",
-  "PURPLE",
-  "PINK",
-  "ORANGE",
-  "BROWN",
-  "YELLOW",
-];
+export const INTRUDER_SHAPES = ["circle", "square", "triangle"] as const;
+export const INTRUDER_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "YELLOW"];
 
 export type IntruderShape = (typeof INTRUDER_SHAPES)[number];
-export type IntruderChangeKind = "colour" | "shape" | "rot";
+export type IntruderChangeKind = "colour" | "shape";
 
 export interface IntruderCell {
   shape: IntruderShape;
   colour: StroopColour;
-  /** Only a triangle ever shows a rotation. */
+  /** Kept at zero; Intruder now changes only colour or shape. */
   rot: 0 | 180;
 }
 

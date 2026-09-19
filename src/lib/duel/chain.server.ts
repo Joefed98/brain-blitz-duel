@@ -2,8 +2,8 @@
  * Server-only generation for Don't Break the Chain.
  *
  * Every layout is checked step by step: at each of the twelve taps there are at
- * least two nodes that satisfy the rule and at least four that do not, so the
- * player always has a choice to make and something to avoid.
+ * least two unused nodes that satisfy the rule and at least four that do not,
+ * so the player always has a choice to make and something to avoid.
  */
 
 import { pick, random, shuffled } from "./random";
@@ -43,8 +43,11 @@ export function chainLayoutIsFair(
 ): boolean {
   for (let step = 0; step < CHAIN_LENGTH; step++) {
     const needed = chainRequired(cycle, step);
-    const valid = nodes.filter((node) => chainValue(node, kind) === needed).length;
-    const invalid = nodes.length - valid;
+    const usedNeeded = Math.floor(step / CHAIN_CYCLE);
+    const usedTotal = step;
+    const matching = nodes.filter((node) => chainValue(node, kind) === needed).length;
+    const valid = matching - usedNeeded;
+    const invalid = nodes.length - usedTotal - valid;
     if (valid < CHAIN_MIN_VALID || invalid < CHAIN_MIN_INVALID) return false;
   }
   return true;
@@ -60,10 +63,10 @@ export function generateChain(): ChainPuzzleData {
     const points = layout(gap);
     if (points.length < CHAIN_NODES) continue;
 
-    // Give every value in the cycle a fair share, then fill at random.
+    // Six of each value leaves at least three unused matching choices even on
+    // the fourth visit to a rule item.
     const assigned: string[] = [];
-    for (const value of cycle) for (let i = 0; i < 4; i++) assigned.push(value);
-    while (assigned.length < CHAIN_NODES) assigned.push(pick(cycle));
+    for (const value of cycle) for (let i = 0; i < CHAIN_NODES / CHAIN_CYCLE; i++) assigned.push(value);
     const spread = shuffled(assigned);
 
     const nodes: ChainNode[] = points.map((point, index) => {

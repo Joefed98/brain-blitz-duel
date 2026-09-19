@@ -28,6 +28,10 @@ export function decodeChainTaps(raw: string): number[] {
 }
 
 export interface ChainReplay {
+  /** The exact repeating three-item rule used by this round. */
+  rule: string[];
+  /** Number of accepted nodes; also selects rule[index % 3]. */
+  index: number;
   /** Correct taps, in order — the gold chain. */
   chain: number[];
   errors: number;
@@ -55,11 +59,19 @@ export function replayChain(
       errors++;
       continue;
     }
-    const ok = chainValue(node, kind) === chainRequired(cycle, chain.length);
+    const ok =
+      !chain.includes(tap) && chainValue(node, kind) === chainRequired(cycle, chain.length);
     verdicts.push(ok);
     if (ok) chain.push(tap);
     else errors++;
   }
 
-  return { chain, errors, completed: chain.length >= CHAIN_LENGTH, verdicts };
+  return {
+    rule: cycle.slice(0, CHAIN_CYCLE),
+    index: chain.length,
+    chain,
+    errors,
+    completed: chain.length >= CHAIN_LENGTH,
+    verdicts,
+  };
 }

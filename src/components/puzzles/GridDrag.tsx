@@ -27,6 +27,18 @@ export function hapticTick(): void {
   }
 }
 
+/**
+ * Reads an indexed hit from the actual interactive element under a pointer.
+ * Scattered-node games use this instead of estimating a hit from their parent.
+ */
+export function pointerElementIndex(element: HTMLElement | null): number | null {
+  if (!element || element.style.pointerEvents === "none") return null;
+  const raw = element.dataset.pointerIndex;
+  if (raw === undefined) return null;
+  const index = Number.parseInt(raw, 10);
+  return Number.isInteger(index) && index >= 0 ? index : null;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Shared pointer-to-cell mapping — every grid game uses this and nothing     */
 /*  else, so a tap always lands on the square under the finger.                */

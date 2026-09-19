@@ -25,9 +25,7 @@ function randomCell(): IntruderCell {
 
 /** The one changed cell, and which attribute moved. */
 function changeCell(cell: IntruderCell): { cell: IntruderCell; kind: IntruderChangeKind } {
-  const canRotate = cell.shape === "triangle";
-  const roll = randomBelow(canRotate ? 3 : 2);
-  const kind: IntruderChangeKind = roll === 0 ? "colour" : roll === 1 ? "shape" : "rot";
+  const kind: IntruderChangeKind = randomBelow(2) === 0 ? "colour" : "shape";
 
   if (kind === "colour") {
     for (let guard = 0; guard < 40; guard++) {
@@ -36,9 +34,6 @@ function changeCell(cell: IntruderCell): { cell: IntruderCell; kind: IntruderCha
       if (intruderColoursTooClose(colour, cell.colour)) continue;
       return { cell: { ...cell, colour }, kind };
     }
-  }
-  if (kind === "rot") {
-    return { cell: { ...cell, rot: cell.rot === 0 ? 180 : 0 }, kind };
   }
   for (let guard = 0; guard < 40; guard++) {
     const shape = pick(INTRUDER_SHAPES);
@@ -65,24 +60,7 @@ export function generateIntruder(): IntruderPuzzleData {
       target = randomBelow(count);
     }
 
-    // A rotation change only reads as a change on a triangle.
-    let changed = changeCell(cells[target]!);
-    for (
-      let guard = 0;
-      guard < 10 && changed.kind === "rot" && cells[target]!.shape !== "triangle";
-      guard++
-    ) {
-      changed = changeCell(cells[target]!);
-    }
-    if (changed.kind === "rot") {
-      cells = cells.map((cell, index) =>
-        index === target ? { ...cell, shape: "triangle" } : cell,
-      );
-      changed = {
-        cell: { ...cells[target]!, rot: cells[target]!.rot === 0 ? 180 : 0 },
-        kind: "rot",
-      };
-    }
+    const changed = changeCell(cells[target]!);
 
     const after = cells.map((cell, index) => (index === target ? changed.cell : cell));
     boards.push({ size, cells, after });
