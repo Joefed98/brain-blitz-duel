@@ -38,6 +38,7 @@ const COMPACT_TIMER_TYPES = new Set<PuzzleType>([
   "safe",
   "bomb",
   "gravity",
+  "chain",
   "intruder",
 ]);
 
