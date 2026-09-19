@@ -37,7 +37,11 @@ export type PuzzleType =
   | "maze"
   | "tubes"
   | "safe"
-  | "bomb";
+  | "bomb"
+  | "gravity"
+  | "chain"
+  | "intruder";
+
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
@@ -373,7 +377,11 @@ export type PuzzleData =
   | MazePuzzleData
   | TubesPuzzleData
   | SafePuzzleData
-  | BombPuzzleData;
+  | BombPuzzleData
+  | GravityPuzzleData
+  | ChainPuzzleData
+  | IntruderPuzzleData;
+
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
