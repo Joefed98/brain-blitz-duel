@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
-import { hapticTick } from "@/components/puzzles/GridDrag";
+import { hapticTick, pointerElementIndex } from "@/components/puzzles/GridDrag";
+import { Button } from "@/components/ui/button";
 import {
   chainRequired,
   chainValue,
@@ -148,27 +149,29 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
 
   if (!data || !replay) return null;
 
-  const tap = (index: number) => {
+  const tap = (nodeId: number) => {
     if (locked || submitted.current || replay.completed) return;
-    const node = data.nodes[index];
+    const node = data.nodes[nodeId];
     if (!node) return;
-    const ok = chainValue(node, data.kind) === chainRequired(data.cycle, replay.chain.length);
+    const ok =
+      !replay.chain.includes(nodeId) &&
+      chainValue(node, data.kind) === chainRequired(replay.rule, replay.index);
     if (ok) {
       hapticTick();
     } else {
       buzz(20);
       playWrong();
-      setWrong(index);
+      setWrong(nodeId);
       setTimeout(() => setWrong(null), 280);
     }
-    setTaps((current) => [...current, index]);
+    setTaps((current) => [...current, nodeId]);
   };
 
   const chainSet = new Set(replay.chain);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <RuleStrip kind={data.kind} cycle={data.cycle} step={replay.chain.length} />
+      <RuleStrip kind={data.kind} cycle={replay.rule} step={replay.index} />
       <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         chain{" "}
         <span className="text-primary">
@@ -196,13 +199,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
           })}
         </svg>
         {data.nodes.map((node, index) => (
-          <button
+          <Button
             key={index}
             type="button"
             disabled={locked}
             aria-label={`Node ${index + 1}`}
-            onClick={() => tap(index)}
-            className={`absolute flex items-center justify-center rounded-full border-2 bg-card ${
+            data-pointer-index={index}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              const hit = pointerElementIndex(event.currentTarget);
+              if (hit !== null) tap(hit);
+            }}
+            className={`pointer-events-auto absolute flex items-center justify-center rounded-full border-2 bg-card p-0 ${
               wrong === index
                 ? "animate-shake border-warn"
                 : chainSet.has(index)
@@ -217,7 +225,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
             }}
           >
             <NodeGlyph node={node} size={46} />
-          </button>
+          </Button>
         ))}
       </div>
     </div>

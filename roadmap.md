@@ -10,3 +10,4 @@
 - [x] Play, intro example and reveal screens with the shared hit-test and no-scroll layouts
 - [x] Registry entries: all three core, none retired; compact timer slots
 - [x] Proof script `scripts/gravity-chain-intruder-check.ts` — 40 rounds each, all pass
+- [x] Follow-up fixes: explicit unique-node chain progression, easier 4×4/4×4/5×5 Intruder rounds with four colours and three shapes, and measured Gravity board space above 52px controls

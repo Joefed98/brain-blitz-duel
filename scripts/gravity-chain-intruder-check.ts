@@ -56,15 +56,21 @@ for (let round = 0; round < ROUNDS; round++) {
   );
   for (let step = 0; step < CHAIN_LENGTH; step++) {
     const needed = chainRequired(puzzle.cycle, step);
-    const valid = puzzle.nodes.filter((node) => chainValue(node, puzzle.kind) === needed).length;
+    const usedNeeded = Math.floor(step / 3);
+    const valid =
+      puzzle.nodes.filter((node) => chainValue(node, puzzle.kind) === needed).length - usedNeeded;
     check("chain two valid choices", valid >= CHAIN_MIN_VALID);
-    check("chain four invalid nodes", puzzle.nodes.length - valid >= CHAIN_MIN_INVALID);
+    check("chain four invalid nodes", puzzle.nodes.length - step - valid >= CHAIN_MIN_INVALID);
   }
   // A perfect run of twelve completes; a wrong tap never advances the chain.
   const perfect: number[] = [];
   for (let step = 0; step < CHAIN_LENGTH; step++) {
     const needed = chainRequired(puzzle.cycle, step);
-    perfect.push(puzzle.nodes.findIndex((node) => chainValue(node, puzzle.kind) === needed));
+    perfect.push(
+      puzzle.nodes.findIndex(
+        (node, index) => !perfect.includes(index) && chainValue(node, puzzle.kind) === needed,
+      ),
+    );
   }
   const good = replayChain(puzzle.nodes, puzzle.kind, puzzle.cycle, perfect);
   check("chain perfect run completes", good.completed && good.errors === 0);
@@ -92,7 +98,7 @@ for (let round = 0; round < ROUNDS; round++) {
     check("intruder exactly one cell changes", differing.length === 1);
     const before = board.cells[answer.cell]!;
     const after = board.after[answer.cell]!;
-    check("intruder change kind stored", ["colour", "shape", "rot"].includes(answer.kind));
+    check("intruder change kind stored", ["colour", "shape"].includes(answer.kind));
     if (answer.kind === "colour") {
       check("intruder colour change is a real change", before.colour !== after.colour);
       check(
@@ -101,10 +107,7 @@ for (let round = 0; round < ROUNDS; round++) {
       );
     }
     if (answer.kind === "shape") check("intruder shape change", before.shape !== after.shape);
-    if (answer.kind === "rot") {
-      check("intruder rotation only on a triangle", before.shape === "triangle");
-      check("intruder rotation changes", before.rot !== after.rot);
-    }
+    check("intruder does not rotate", before.rot === after.rot);
     const position = { row: Math.floor(answer.cell / board.size), col: answer.cell % board.size };
     if (previous) {
       check(
