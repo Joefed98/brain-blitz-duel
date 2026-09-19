@@ -333,4 +333,31 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Faster = more points. Wrong turns cost time.",
   },
+  tubes: {
+    goal: "Sort the balls so every tube is one colour.",
+    how: [
+      { action: "Tap a tube", detail: "to lift its top balls." },
+      { action: "Tap where to pour", detail: "— only onto the same colour or an empty tube." },
+      { action: "Undo or Reset", detail: "if a pour traps you." },
+    ],
+    score: "Fewer moves earns a bonus.",
+  },
+  safe: {
+    goal: "Find the four-digit combination that fits every clue.",
+    how: [
+      { action: "Use the arrows", detail: "to set each dial." },
+      { action: "Tap TRY", detail: "to test — you get three tries." },
+      { action: "Read every clue", detail: "because only one combination fits them all." },
+    ],
+    score: "Fewer tries scores more.",
+  },
+  bomb: {
+    goal: "Follow the rules to defuse the bomb.",
+    how: [
+      { action: "Read the rules in order", detail: "before you touch anything." },
+      { action: "Tap a wire", detail: "to cut it, tap a button to press it." },
+      { action: "Two mistakes", detail: "and it explodes." },
+    ],
+    score: "No mistakes and fast = full points.",
+  },
 };
