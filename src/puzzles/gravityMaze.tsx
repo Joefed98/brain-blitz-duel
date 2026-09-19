@@ -9,12 +9,7 @@ import {
   type GravityBalls,
 } from "@/lib/duel/gravity";
 import { useStageState } from "@/lib/duel/stageState";
-import {
-  GRAV_COLS,
-  GRAV_TIME_MS,
-  type GravityDir,
-  type GravityPuzzleData,
-} from "@/lib/duel/types";
+import { GRAV_COLS, GRAV_TIME_MS, type GravityDir, type GravityPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect } from "@/lib/sound";
 
@@ -161,7 +156,13 @@ function TiltButton({
   );
 }
 
-function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }: PuzzleStageProps) {
+function Stage({
+  puzzle,
+  locked,
+  onSubmit,
+  onDraftAnswer,
+  stateKey = "gravity",
+}: PuzzleStageProps) {
   const data = puzzle.type === "gravity" ? puzzle : null;
   const [tilts, setTilts] = useStageState<GravityDir[]>(stateKey, "gravityTilts", () => []);
   const [lean, setLean] = useStageState<GravityDir | null>(stateKey, "gravityLean", () => null);

@@ -67,12 +67,21 @@ export function generateIntruder(): IntruderPuzzleData {
 
     // A rotation change only reads as a change on a triangle.
     let changed = changeCell(cells[target]!);
-    for (let guard = 0; guard < 10 && changed.kind === "rot" && cells[target]!.shape !== "triangle"; guard++) {
+    for (
+      let guard = 0;
+      guard < 10 && changed.kind === "rot" && cells[target]!.shape !== "triangle";
+      guard++
+    ) {
       changed = changeCell(cells[target]!);
     }
     if (changed.kind === "rot") {
-      cells = cells.map((cell, index) => (index === target ? { ...cell, shape: "triangle" } : cell));
-      changed = { cell: { ...cells[target]!, rot: cells[target]!.rot === 0 ? 180 : 0 }, kind: "rot" };
+      cells = cells.map((cell, index) =>
+        index === target ? { ...cell, shape: "triangle" } : cell,
+      );
+      changed = {
+        cell: { ...cells[target]!, rot: cells[target]!.rot === 0 ? 180 : 0 },
+        kind: "rot",
+      };
     }
 
     const after = cells.map((cell, index) => (index === target ? changed.cell : cell));

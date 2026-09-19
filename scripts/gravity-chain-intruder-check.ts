@@ -50,7 +50,10 @@ for (let round = 0; round < ROUNDS; round++) {
 for (let round = 0; round < ROUNDS; round++) {
   const puzzle = generateChain();
   check("chain node count", puzzle.nodes.length === CHAIN_NODES);
-  check("chain layout fair at every step", chainLayoutIsFair(puzzle.nodes, puzzle.kind, puzzle.cycle));
+  check(
+    "chain layout fair at every step",
+    chainLayoutIsFair(puzzle.nodes, puzzle.kind, puzzle.cycle),
+  );
   for (let step = 0; step < CHAIN_LENGTH; step++) {
     const needed = chainRequired(puzzle.cycle, step);
     const valid = puzzle.nodes.filter((node) => chainValue(node, puzzle.kind) === needed).length;
@@ -66,7 +69,9 @@ for (let round = 0; round < ROUNDS; round++) {
   const good = replayChain(puzzle.nodes, puzzle.kind, puzzle.cycle, perfect);
   check("chain perfect run completes", good.completed && good.errors === 0);
   const bad = replayChain(puzzle.nodes, puzzle.kind, puzzle.cycle, [
-    puzzle.nodes.findIndex((node) => chainValue(node, puzzle.kind) !== chainRequired(puzzle.cycle, 0)),
+    puzzle.nodes.findIndex(
+      (node) => chainValue(node, puzzle.kind) !== chainRequired(puzzle.cycle, 0),
+    ),
   ]);
   check("chain wrong tap counts as an error", bad.errors === 1 && bad.chain.length === 0);
 }
@@ -90,7 +95,10 @@ for (let round = 0; round < ROUNDS; round++) {
     check("intruder change kind stored", ["colour", "shape", "rot"].includes(answer.kind));
     if (answer.kind === "colour") {
       check("intruder colour change is a real change", before.colour !== after.colour);
-      check("intruder avoids close colour pairs", !intruderColoursTooClose(before.colour, after.colour));
+      check(
+        "intruder avoids close colour pairs",
+        !intruderColoursTooClose(before.colour, after.colour),
+      );
     }
     if (answer.kind === "shape") check("intruder shape change", before.shape !== after.shape);
     if (answer.kind === "rot") {

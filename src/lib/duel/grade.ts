@@ -532,13 +532,7 @@ export function gradeSubmission(
       );
       isCorrect = replay.solved;
       correctCount = replay.tilts;
-      score = scoreGravity(
-        replay.solved,
-        replay.tilts,
-        puzzle.minMoves ?? 0,
-        ms,
-        replay.onTarget,
-      );
+      score = scoreGravity(replay.solved, replay.tilts, puzzle.minMoves ?? 0, ms, replay.onTarget);
       extraDetail = {
         solved: replay.solved,
         tilts: replay.tilts,

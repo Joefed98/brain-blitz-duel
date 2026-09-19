@@ -121,13 +121,7 @@ export function generateGravity(): GravityPuzzleData {
     if (soloMinimum(walls, startB, targetB) < GRAV_SOLO_MIN_TILTS) continue;
 
     // The shortest solution has to use the balls blocking each other.
-    const replay = replayGravity(
-      walls,
-      { a: startA, b: startB },
-      targetA,
-      targetB,
-      found.solution,
-    );
+    const replay = replayGravity(walls, { a: startA, b: startB }, targetA, targetB, found.solution);
     if (!replay.solved || !replay.usedBlock) continue;
 
     return {

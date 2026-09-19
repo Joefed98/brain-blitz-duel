@@ -27,7 +27,9 @@ function CellGlyph({ cell, size }: { cell: IntruderCell; size: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <g transform={`rotate(${cell.rot} 12 12)`}>
         {cell.shape === "circle" && <circle cx="12" cy="12" r="9.5" fill={fill} />}
-        {cell.shape === "square" && <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />}
+        {cell.shape === "square" && (
+          <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />
+        )}
         {cell.shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill={fill} />}
         {cell.shape === "star" && <polygon points={STAR} fill={fill} />}
       </g>
@@ -61,7 +63,6 @@ function Grid({
       className="grid aspect-square max-h-full w-full gap-[3px]"
       style={{ ...style, gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
     >
-
       {Array.from({ length: size * size }, (_, index) => {
         const cell = cells?.[index];
         return (
@@ -124,7 +125,11 @@ function changedCell(board: IntruderBoard): number {
   for (let index = 0; index < board.cells.length; index++) {
     const before = board.cells[index]!;
     const after = board.after[index]!;
-    if (before.shape !== after.shape || before.colour !== after.colour || before.rot !== after.rot) {
+    if (
+      before.shape !== after.shape ||
+      before.colour !== after.colour ||
+      before.rot !== after.rot
+    ) {
       return index;
     }
   }

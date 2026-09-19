@@ -42,7 +42,6 @@ export type PuzzleType =
   | "chain"
   | "intruder";
 
-
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
 
@@ -381,7 +380,6 @@ export type PuzzleData =
   | GravityPuzzleData
   | ChainPuzzleData
   | IntruderPuzzleData;
-
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";

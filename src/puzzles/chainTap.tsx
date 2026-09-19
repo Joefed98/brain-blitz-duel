@@ -29,7 +29,9 @@ function NodeGlyph({ node, size }: { node: ChainNode; size: number }) {
   return (
     <svg width={inner} height={inner} viewBox="0 0 24 24" aria-hidden="true">
       {node.shape === "circle" && <circle cx="12" cy="12" r="9.5" fill={fill} />}
-      {node.shape === "square" && <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />}
+      {node.shape === "square" && (
+        <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />
+      )}
       {node.shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill={fill} />}
     </svg>
   );
@@ -224,7 +226,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
 
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "chain") return null;
-  const replay = replayChain(puzzle.nodes, puzzle.kind, puzzle.cycle, decodeChainTaps(myAnswer ?? ""));
+  const replay = replayChain(
+    puzzle.nodes,
+    puzzle.kind,
+    puzzle.cycle,
+    decodeChainTaps(myAnswer ?? ""),
+  );
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((CHAIN_TIME_MS - myMsRemaining) / 100) / 10;
   const chainSet = new Set(replay.chain);

@@ -747,7 +747,9 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
   if (result.is_correct) {
     return {
       summary: `Solved · ${tilts} tilts (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
-      detail: [tilts <= min ? "Solved in the fewest tilts" : `${tilts - min} more than the minimum`],
+      detail: [
+        tilts <= min ? "Solved in the fewest tilts" : `${tilts - min} more than the minimum`,
+      ],
     };
   }
   return {
