@@ -791,12 +791,10 @@ export const rematchFn = createServerFn({ method: "POST" })
     const host = players.find((p) => p.user_id === context.userId);
     const rest = players.filter((p) => p.user_id !== context.userId);
 
-    const fresh = await createRoomRow(
-      client,
-      context.userId,
-      host?.display_name ?? "Player",
-      { addMaths: room.add_maths === true, addMemory: room.add_memory === true },
-    );
+    const fresh = await createRoomRow(client, context.userId, host?.display_name ?? "Player", {
+      addMaths: room.add_maths === true,
+      addMemory: room.add_memory === true,
+    });
     let slot = 2;
     for (const player of rest) {
       if (slot > MAX_PLAYERS) break;
