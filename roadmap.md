@@ -1,10 +1,8 @@
-# Room chat and emoji reactions
+# Three new logic games
 
-- [x] Messages and reports tables, host-mute and reaction-time columns
-- [x] Server functions: send, react, report, host mute (participant + rate limits + profanity mask)
-- [x] Chat bar with text field, Send, six emoji; message sheet at 60% height
-- [x] Live messages, unread badge, blip on incoming when the sheet is closed
-- [x] Floating reaction bubbles with sender name, fading over 1.5s
-- [x] Long-press mute (this device) and report; host mute-for-everyone in the lobby
-- [x] Present on every room screen except the puzzle phase
-- [x] Types, lint, and build validated
+- [x] Sort the Tubes: reverse-generated boards, BFS minimum stored, server replay of pours
+- [x] Safe Cracker: unique combination with all four clues proven necessary, tries checked server-side
+- [x] Bomb Defusal: rule bank of 23 rules, 2–4 step sequences, at least three effective rules, server strike replay
+- [x] Registry entries (core, not retired), 60s / 75s / 60s limits, 8s reveals
+- [x] Secrets split, grading, scoring, standings summaries, intros, compact timer rings
+- [x] Generator proofs in scripts/tubes-safe-bomb-check.ts; types, lint and formatting clean

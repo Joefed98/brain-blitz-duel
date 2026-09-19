@@ -50,6 +50,7 @@ import {
   SPIN_TIME_MS,
   type StroopItem,
 } from "./types";
+import { BOMB_TIME_MS, SAFE_DIALS, SAFE_TIME_MS, TUBES_COLOURS, TUBES_TIME_MS } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
 type SummaryBuilder = (result: RoundResultRow, puzzle: PuzzleData) => BuiltDetail;
@@ -111,7 +112,13 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
                                                         ? UNBLOCK_TIME_MS
                                                         : puzzle.type === "blockparty"
                                                           ? BLOCK_TIME_MS
-                                                          : ROUND_MS;
+                                                          : puzzle.type === "tubes"
+                                                            ? TUBES_TIME_MS
+                                                            : puzzle.type === "safe"
+                                                              ? SAFE_TIME_MS
+                                                              : puzzle.type === "bomb"
+                                                                ? BOMB_TIME_MS
+                                                                : ROUND_MS;
   return Math.max(0, limit - result.ms_remaining);
 }
 
@@ -663,6 +670,62 @@ const mazeSummary: SummaryBuilder = (result, puzzle) => {
   return { summary: `${progress}%`, detail: [`${progress}% of the way to the exit`] };
 };
 
+const tubesSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "tubes") return { summary: "—", detail: [] };
+  const moves = Number(result.extra?.["moves"] ?? 0);
+  const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
+  const sorted = Number(result.extra?.["sorted"] ?? 0);
+  if (result.is_correct) {
+    return {
+      summary: `Solved · ${moves} moves (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: [
+        moves <= min ? "Sorted in the fewest pours" : `${moves - min} more than the minimum`,
+      ],
+    };
+  }
+  return {
+    summary: `${sorted} / ${TUBES_COLOURS} tubes`,
+    detail: [`${moves} pour${moves === 1 ? "" : "s"} made`],
+  };
+};
+
+const safeSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "safe") return { summary: "—", detail: [] };
+  const openedOn = Number(result.extra?.["openedOn"] ?? 0);
+  const right = Number(result.extra?.["dialsRight"] ?? 0);
+  if (result.is_correct) {
+    return {
+      summary: `Opened · ${ordinalTry(openedOn)} try · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: [openedOn === 1 ? "Opened first time" : `${openedOn} tries used`],
+    };
+  }
+  return {
+    summary: `Locked · ${right} / ${SAFE_DIALS} dials`,
+    detail: [`${Number(result.extra?.["tries"] ?? 0)} tries used`],
+  };
+};
+
+const bombSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "bomb") return { summary: "—", detail: [] };
+  const strikes = Number(result.extra?.["strikes"] ?? 0);
+  const steps = Number(result.extra?.["steps"] ?? 0);
+  const exploded = Boolean(result.extra?.["exploded"]);
+  if (result.is_correct) {
+    return {
+      summary: `Defused · ${strikes} strike${strikes === 1 ? "" : "s"} · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: [strikes === 0 ? "No mistakes" : "One mistake made"],
+    };
+  }
+  return {
+    summary: exploded ? `Exploded · step ${steps + 1}` : `${steps} / ${puzzle.stepCount} steps`,
+    detail: [`${steps} correct step${steps === 1 ? "" : "s"}`],
+  };
+};
+
+function ordinalTry(value: number): string {
+  return value === 1 ? "1st" : value === 2 ? "2nd" : value === 3 ? "3rd" : `${value}th`;
+}
+
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
   groups: groupsSummary,
@@ -700,6 +763,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   laser: laserSummary,
   tower: towerSummary,
   maze: mazeSummary,
+  tubes: tubesSummary,
+  safe: safeSummary,
+  bomb: bombSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -746,4 +812,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   laser: () => null,
   tower: (p) => (p.type === "tower" ? `${p.minMoves} moves` : null),
   maze: () => null,
+  tubes: (p) => (p.type === "tubes" && p.minMoves ? `${p.minMoves} pours` : null),
+  safe: (p) => (p.type === "safe" && p.combination ? p.combination.join("") : null),
+  bomb: () => null,
 };

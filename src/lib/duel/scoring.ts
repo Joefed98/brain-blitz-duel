@@ -55,6 +55,19 @@ import {
   type PlayerStatus,
   type RoundResultRow,
 } from "./types";
+import {
+  BOMB_ONE_STRIKE_POINTS,
+  BOMB_PARTIAL_POINTS,
+  BOMB_STEP_POINTS,
+  BOMB_TIME_MS,
+  SAFE_DIAL_POINTS,
+  SAFE_TIME_MS,
+  SAFE_TRY_POINTS,
+  TUBES_COLOURS,
+  TUBES_MIN_MOVE_BONUS,
+  TUBES_PARTIAL_POINTS,
+  TUBES_TIME_MS,
+} from "./types";
 
 export const BASE_POINTS = 100;
 /** Speed bonus on top of the base — a correct answer always scores 100–150. */
@@ -584,4 +597,46 @@ export function scoreTower(
 export function scoreMaze(solved: boolean, progress: number, msRemaining: number): number {
   if (solved) return BASE_POINTS + speedBonus(msRemaining, MAZE_TIME_MS);
   return clamp(Math.round(MAZE_PARTIAL_POINTS * clamp(progress, 0, 1)), 0, MAZE_PARTIAL_POINTS);
+}
+
+/** Sort the Tubes: solved scores the standard points, +20 for the minimum. */
+export function scoreTubes(
+  solved: boolean,
+  moves: number,
+  minMoves: number,
+  msRemaining: number,
+  sortedTubes: number,
+): number {
+  if (solved) {
+    const bonus = minMoves > 0 && moves <= minMoves ? TUBES_MIN_MOVE_BONUS : 0;
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, TUBES_TIME_MS) + bonus);
+  }
+  return clamp(
+    Math.round((TUBES_PARTIAL_POINTS * sortedTubes) / TUBES_COLOURS),
+    0,
+    TUBES_PARTIAL_POINTS,
+  );
+}
+
+/** Safe Cracker: the first try scores most, the third least. */
+export function scoreSafe(openedOn: number, msRemaining: number, dialsRight: number): number {
+  if (openedOn >= 1 && openedOn <= SAFE_TRY_POINTS.length) {
+    const base = SAFE_TRY_POINTS[openedOn - 1]!;
+    return Math.min(MAX_ROUND_SCORE, base + speedBonus(msRemaining, SAFE_TIME_MS));
+  }
+  return clamp(SAFE_DIAL_POINTS * dialsRight, 0, SAFE_DIAL_POINTS * 4);
+}
+
+/** Bomb Defusal: a clean defusal scores full marks, one strike costs 20. */
+export function scoreBomb(
+  defused: boolean,
+  strikes: number,
+  msRemaining: number,
+  steps: number,
+): number {
+  if (defused) {
+    const base = strikes === 0 ? BASE_POINTS : BOMB_ONE_STRIKE_POINTS;
+    return Math.min(MAX_ROUND_SCORE, base + speedBonus(msRemaining, BOMB_TIME_MS));
+  }
+  return clamp(BOMB_STEP_POINTS * steps, 0, BOMB_PARTIAL_POINTS);
 }

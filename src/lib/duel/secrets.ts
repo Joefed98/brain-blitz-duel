@@ -44,6 +44,9 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   laser: ["solution"],
   tower: ["solution"],
   maze: ["solution"],
+  tubes: ["minMoves", "solution"],
+  safe: ["combination"],
+  bomb: ["sequence"],
 };
 
 type Loose = Record<string, unknown>;

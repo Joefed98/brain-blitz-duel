@@ -9,6 +9,9 @@ import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
 import { decodeLaserAnswer, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
 import { decodeMazePath, verifyMazePath } from "./maze";
+import { decodeTubeMoves, replayTubes } from "./tubes";
+import { dialsCorrect, decodeSafeTries, safeOpenedOn } from "./safe";
+import { decodeBombActions, replayBomb } from "./bomb";
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
 import { countPatternAnswers } from "./pattern";
@@ -44,6 +47,9 @@ import {
   scoreLaser,
   scoreTower,
   scoreMaze,
+  scoreTubes,
+  scoreSafe,
+  scoreBomb,
 } from "./scoring";
 import {
   GONOGO_ITEMS,
@@ -458,6 +464,54 @@ export function gradeSubmission(
         solved: verdict.solved,
         progress: Math.round(verdict.progress * 100),
         wasted: verdict.wasted,
+      };
+      break;
+    }
+    case "tubes": {
+      // Every pour is replayed on the stored board, so illegal pours never count.
+      const replay = replayTubes(puzzle.tubes, decodeTubeMoves(answer));
+      isCorrect = replay.solved;
+      correctCount = replay.moves;
+      score = scoreTubes(replay.solved, replay.moves, puzzle.minMoves ?? 0, ms, replay.sorted);
+      extraDetail = {
+        solved: replay.solved,
+        moves: replay.moves,
+        minMoves: puzzle.minMoves ?? 0,
+        sorted: replay.sorted,
+      };
+      break;
+    }
+    case "safe": {
+      // Each try is checked here against the stored combination.
+      const combination = puzzle.combination ?? [];
+      const tries = decodeSafeTries(answer);
+      const openedOn = safeOpenedOn(tries, combination);
+      const last = tries[tries.length - 1] ?? [];
+      const right = combination.length ? dialsCorrect(last, combination) : 0;
+      isCorrect = openedOn > 0;
+      correctCount = openedOn > 0 ? combination.length : right;
+      score = scoreSafe(openedOn, ms, right);
+      extraDetail = {
+        opened: openedOn > 0,
+        openedOn,
+        tries: tries.length,
+        dialsRight: openedOn > 0 ? combination.length : right,
+      };
+      break;
+    }
+    case "bomb": {
+      // The action list is replayed against the stored sequence, strikes included.
+      const required = decodeBombActions(puzzle.sequence ?? "");
+      const replay = replayBomb(required, decodeBombActions(answer));
+      isCorrect = replay.defused;
+      correctCount = replay.steps;
+      score = scoreBomb(replay.defused, replay.strikes, ms, replay.steps);
+      extraDetail = {
+        defused: replay.defused,
+        exploded: replay.exploded,
+        strikes: replay.strikes,
+        steps: replay.steps,
+        required: required.length,
       };
       break;
     }
