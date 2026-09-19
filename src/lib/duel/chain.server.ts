@@ -66,7 +66,8 @@ export function generateChain(): ChainPuzzleData {
     // Six of each value leaves at least three unused matching choices even on
     // the fourth visit to a rule item.
     const assigned: string[] = [];
-    for (const value of cycle) for (let i = 0; i < CHAIN_NODES / CHAIN_CYCLE; i++) assigned.push(value);
+    for (const value of cycle)
+      for (let i = 0; i < CHAIN_NODES / CHAIN_CYCLE; i++) assigned.push(value);
     const spread = shuffled(assigned);
 
     const nodes: ChainNode[] = points.map((point, index) => {

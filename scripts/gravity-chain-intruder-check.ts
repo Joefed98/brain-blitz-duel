@@ -68,8 +68,7 @@ for (let round = 0; round < ROUNDS; round++) {
     const needed = chainRequired(puzzle.cycle, step);
     perfect.push(
       puzzle.nodes.findIndex(
-        (node, index) =>
-          !perfect.includes(index) && chainValue(node, puzzle.kind) === needed,
+        (node, index) => !perfect.includes(index) && chainValue(node, puzzle.kind) === needed,
       ),
     );
   }
