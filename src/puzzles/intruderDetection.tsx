@@ -41,6 +41,7 @@ function Grid({
   marked,
   wrong,
   onCell,
+  compact = false,
 }: {
   size: number;
   cells: IntruderCell[] | null;
@@ -48,6 +49,7 @@ function Grid({
   marked?: number | null;
   wrong?: number | null;
   onCell?: ((cell: number) => void) | undefined;
+  compact?: boolean;
 }) {
   // Taps go through the shared pointer-to-cell mapping, so a finger always
   // lands on the square underneath it.
@@ -57,12 +59,16 @@ function Grid({
     <div
       ref={ref}
       {...(onCell ? pointer : {})}
-      className="grid aspect-square max-h-full w-full gap-[3px]"
+      className={`grid aspect-square max-h-full w-full ${compact ? "gap-px" : "gap-[3px]"}`}
       style={{
         ...style,
-        minWidth: size * 48 + (size - 1) * 3,
-        minHeight: size * 48 + (size - 1) * 3,
-        gridTemplateColumns: `repeat(${size}, minmax(48px, 1fr))`,
+        ...(compact
+          ? { gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }
+          : {
+              minWidth: size * 56 + (size - 1) * 3,
+              minHeight: size * 56 + (size - 1) * 3,
+              gridTemplateColumns: `repeat(${size}, minmax(56px, 1fr))`,
+            }),
       }}
     >
       {Array.from({ length: size * size }, (_, index) => {
@@ -78,7 +84,12 @@ function Grid({
                   : "border-transparent"
             }`}
           >
-            {cell ? <CellGlyph cell={cell} size={Math.round(280 / size) * 0.7} /> : null}
+            {cell ? (
+              <CellGlyph
+                cell={cell}
+                size={compact ? Math.max(13, 38 / size) : Math.round(280 / size) * 0.7}
+              />
+            ) : null}
           </div>
         );
       })}
@@ -108,11 +119,11 @@ function IntroExample() {
     <div className="flex w-full flex-col items-center gap-2">
       <div className="flex items-center justify-center gap-3">
         <div style={{ width: 92 }}>
-          <Grid size={3} cells={EXAMPLE_BEFORE} />
+          <Grid size={3} cells={EXAMPLE_BEFORE} compact />
         </div>
         <span className="font-mono text-xs text-muted-foreground">→</span>
         <div style={{ width: 92 }}>
-          <Grid size={3} cells={EXAMPLE_AFTER} marked={5} />
+          <Grid size={3} cells={EXAMPLE_AFTER} marked={5} compact />
         </div>
       </div>
       <p className="text-center text-xs text-muted-foreground">
@@ -261,21 +272,13 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
     myMsRemaining === undefined ? null : Math.round((INTRUDER_TIME_MS - myMsRemaining) / 100) / 10;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
-      <p className={`font-mono text-2xl font-bold ${myCorrect ? "text-primary" : "text-warn"}`}>
-        {correct} / {INTRUDER_BOARDS}
-        {elapsed !== null ? (
-          <span className="ml-2 text-xs uppercase tracking-widest text-muted-foreground">
-            {elapsed.toFixed(1)}s
-          </span>
-        ) : null}
-      </p>
-      <div className="grid min-h-0 w-full flex-1 grid-cols-3 items-center gap-2">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+      <div className="grid w-full max-w-[360px] shrink-0 grid-cols-3 items-start gap-1.5">
         {puzzle.boards.map((board, index) => {
           const ok = (taps[index] ?? []).includes(answers[index]!);
           return (
-            <div key={index} className="flex flex-col items-center gap-1">
-              <Grid size={board.size} cells={board.after} marked={answers[index]!} />
+            <div key={index} className="flex min-w-0 flex-col items-center gap-1">
+              <Grid size={board.size} cells={board.after} marked={answers[index]!} compact />
               <span
                 className={`font-display text-lg font-bold ${ok ? "text-primary" : "text-warn"}`}
               >
@@ -285,6 +288,12 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
           );
         })}
       </div>
+      <p
+        className={`shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
+      >
+        {correct} / {INTRUDER_BOARDS}
+        {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
+      </p>
     </div>
   );
 }

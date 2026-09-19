@@ -1336,42 +1336,37 @@ export const CHAIN_CYCLE = 3;
 export const CHAIN_ERROR_PENALTY = 10;
 /** Most an unfinished chain can earn. */
 export const CHAIN_PARTIAL_POINTS = 60;
-/** Every step must offer at least this many right and wrong nodes. */
-export const CHAIN_MIN_VALID = 2;
-export const CHAIN_MIN_INVALID = 4;
+/** Every stored-solution step must retain this many shape-invalid choices. */
+export const CHAIN_MIN_INVALID = 3;
 /** Minimum distance between two nodes, in percent of the play area. */
-export const CHAIN_NODE_GAP = 17;
+export const CHAIN_NODE_GAP = 15;
 
 export const CHAIN_SHAPES = ["circle", "square", "triangle"] as const;
-export const CHAIN_COLOURS = ["RED", "BLUE", "GREEN"] as const;
 
 export type ChainShape = (typeof CHAIN_SHAPES)[number];
-export type ChainColour = (typeof CHAIN_COLOURS)[number];
-export type ChainRuleKind = "shape" | "colour";
 
 export interface ChainNode {
   /** Position in percent of the play area. */
   x: number;
   y: number;
   shape: ChainShape;
-  colour: ChainColour;
 }
 
 export interface ChainPuzzleData {
   type: "chain";
   nodes: ChainNode[];
-  /** Whether the cycle runs on shapes or on colours. */
-  kind: ChainRuleKind;
-  /** The three values, in the order they must be tapped. */
-  cycle: string[];
+  /** The three shapes, in the order they must be tapped. */
+  cycle: ChainShape[];
+  /** Server-side only: one searched non-crossing chain of twelve node ids. */
+  solution?: number[];
 }
 
 /* ========================= Intruder Detection =========================== */
 
 export const INTRUDER_TIME_MS = 30_000;
 export const INTRUDER_BOARDS = 3;
-/** Two approachable boards, then one slightly denser board. */
-export const INTRUDER_BOARD_SIZES = [4, 4, 5] as const;
+/** Two introductory boards, then one slightly denser board. */
+export const INTRUDER_BOARD_SIZES = [3, 3, 4] as const;
 /** How long the grid is on show before it vanishes. */
 export const INTRUDER_SHOW_MS = 4_000;
 export const INTRUDER_HIDE_MS = 500;
