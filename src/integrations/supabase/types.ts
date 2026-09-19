@@ -22,6 +22,7 @@ export type Database = {
           id: string
           intro_ready_round: number
           joined_at: string
+          last_reaction_at: string | null
           last_seen_at: string
           muted_by_host: boolean
           player_slot: number
@@ -36,6 +37,7 @@ export type Database = {
           id?: string
           intro_ready_round?: number
           joined_at?: string
+          last_reaction_at?: string | null
           last_seen_at?: string
           muted_by_host?: boolean
           player_slot: number
@@ -50,6 +52,7 @@ export type Database = {
           id?: string
           intro_ready_round?: number
           joined_at?: string
+          last_reaction_at?: string | null
           last_seen_at?: string
           muted_by_host?: boolean
           player_slot?: number
