@@ -412,6 +412,9 @@ export interface DuelPlayerRow {
   ready_round: number;
   /** The round this player has tapped READY on the intro screen for. */
   intro_ready_round: number;
+  /** Host setting: this player cannot send chat or reactions in this room. */
+  muted_by_host: boolean;
+  last_reaction_at: string | null;
   last_seen_at: string;
   /** inactive = missed two rounds in a row; left = tapped Leave. */
   status: PlayerStatus;
