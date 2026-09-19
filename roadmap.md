@@ -1,9 +1,8 @@
-# Split post-round results
+# Room game rotation restructure
 
-- [x] Add sequential round-results and overall-standings phases
-- [x] Build compact 10-player round-results table with expandable summaries
-- [x] Build compact overall table with position changes and reorder animation
-- [x] Preserve two-player VS presentation across both parts
-- [x] Skip overall standings after the final round
-- [x] Validate focused result-presentation behavior without browser tests
-- [x] Validate types, focused lint, and preview build
+- [x] Core / opt-in category pools on the registry
+- [x] Retired flag on six types; excluded from room draws
+- [x] Add maths / Add memory host toggles, stored on the room and logged
+- [x] Weighted sixth-round draw and no repeated types
+- [x] Practice reads registry flags; retired listed under a collapsed heading
+- [x] Types, lint, and build validated
