@@ -50,7 +50,7 @@ import {
   SPIN_TIME_MS,
   type StroopItem,
 } from "./types";
-import { BOMB_TIME_MS, SAFE_DIALS, SAFE_TIME_MS, TUBE_CAPACITY, TUBES_TIME_MS } from "./types";
+import { BOMB_TIME_MS, SAFE_DIALS, SAFE_TIME_MS, TUBES_COLOURS, TUBES_TIME_MS } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
 type SummaryBuilder = (result: RoundResultRow, puzzle: PuzzleData) => BuiltDetail;
@@ -682,7 +682,7 @@ const tubesSummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: `${sorted} / ${TUBE_CAPACITY} tubes`,
+    summary: `${sorted} / ${TUBES_COLOURS} tubes`,
     detail: [`${moves} pour${moves === 1 ? "" : "s"} made`],
   };
 };

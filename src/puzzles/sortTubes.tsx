@@ -14,7 +14,7 @@ import {
   type TubeState,
 } from "@/lib/duel/tubes";
 import {
-  TUBE_CAPACITY,
+  TUBES_COLOURS,
   TUBES_COUNT,
   TUBES_TIME_MS,
   type TubesPuzzleData,
@@ -238,7 +238,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       <p className="text-center text-xs text-muted-foreground">
         {myCorrect
           ? "Keep one tube empty for as long as you can."
-          : `${mine.sorted} of ${TUBE_CAPACITY} tubes finished.`}
+          : `${mine.sorted} of ${TUBES_COLOURS} tubes finished.`}
       </p>
     </div>
   );
