@@ -76,8 +76,7 @@ const BOMB_RULES: Rule[] = [
     id: "noCutWhiteLast",
     text: "If the last wire is white, do not cut it.",
     apply: () => null,
-    forbid: (p) =>
-      p.wires[p.wires.length - 1] === "WHITE" ? [cutAction(p.wires.length - 1)] : [],
+    forbid: (p) => (p.wires[p.wires.length - 1] === "WHITE" ? [cutAction(p.wires.length - 1)] : []),
   },
   {
     id: "pressBAfterBlue",
@@ -177,7 +176,8 @@ const BOMB_RULES: Rule[] = [
   {
     id: "noWhitePressB",
     text: "If there are no white wires, press button B.",
-    apply: (p) => (count(p, "WHITE") === 0 ? { mode: "append", actions: [pressAction("B")] } : null),
+    apply: (p) =>
+      count(p, "WHITE") === 0 ? { mode: "append", actions: [pressAction("B")] } : null,
   },
   {
     id: "noCutFirstGreen",

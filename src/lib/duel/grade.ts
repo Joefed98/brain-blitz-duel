@@ -472,13 +472,7 @@ export function gradeSubmission(
       const replay = replayTubes(puzzle.tubes, decodeTubeMoves(answer));
       isCorrect = replay.solved;
       correctCount = replay.moves;
-      score = scoreTubes(
-        replay.solved,
-        replay.moves,
-        puzzle.minMoves ?? 0,
-        ms,
-        replay.sorted,
-      );
+      score = scoreTubes(replay.solved, replay.moves, puzzle.minMoves ?? 0, ms, replay.sorted);
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,

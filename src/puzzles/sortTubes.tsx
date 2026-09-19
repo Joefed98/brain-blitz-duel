@@ -13,12 +13,7 @@ import {
   type TubeMove,
   type TubeState,
 } from "@/lib/duel/tubes";
-import {
-  TUBES_COLOURS,
-  TUBES_COUNT,
-  TUBES_TIME_MS,
-  type TubesPuzzleData,
-} from "@/lib/duel/types";
+import { TUBES_COLOURS, TUBES_COUNT, TUBES_TIME_MS, type TubesPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
@@ -97,12 +92,7 @@ function Tubes({
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
-  const tubes: TubeState = [
-    [0, 1, 0],
-    [1, 1],
-    [0],
-    [],
-  ];
+  const tubes: TubeState = [[0, 1, 0], [1, 1], [0], []];
   return (
     <div className="flex flex-col items-center gap-3">
       <div style={{ width: 150, height: 84 }}>
@@ -175,12 +165,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
       </p>
 
       <div className="flex min-h-0 flex-1 items-end justify-center pb-1">
-        <Tubes
-          tubes={replay.tubes}
-          lifted={lifted}
-          shake={shake}
-          onTube={tapTube}
-        />
+        <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} />
       </div>
 
       <div className="flex shrink-0 justify-center gap-2">

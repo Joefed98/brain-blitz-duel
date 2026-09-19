@@ -678,7 +678,9 @@ const tubesSummary: SummaryBuilder = (result, puzzle) => {
   if (result.is_correct) {
     return {
       summary: `Solved · ${moves} moves (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
-      detail: [moves <= min ? "Sorted in the fewest pours" : `${moves - min} more than the minimum`],
+      detail: [
+        moves <= min ? "Sorted in the fewest pours" : `${moves - min} more than the minimum`,
+      ],
     };
   }
   return {
