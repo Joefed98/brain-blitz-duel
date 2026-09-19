@@ -37,6 +37,9 @@ import { mazeDashPuzzle } from "@/puzzles/mazeDash";
 import { sortTubesPuzzle } from "@/puzzles/sortTubes";
 import { safeCrackerPuzzle } from "@/puzzles/safeCracker";
 import { bombDefusalPuzzle } from "@/puzzles/bombDefusal";
+import { gravityMazePuzzle } from "@/puzzles/gravityMaze";
+import { chainTapPuzzle } from "@/puzzles/chainTap";
+import { intruderDetectionPuzzle } from "@/puzzles/intruderDetection";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import {
@@ -136,6 +139,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   tubes: sortTubesPuzzle,
   safe: safeCrackerPuzzle,
   bomb: bombDefusalPuzzle,
+  gravity: gravityMazePuzzle,
+  chain: chainTapPuzzle,
+  intruder: intruderDetectionPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

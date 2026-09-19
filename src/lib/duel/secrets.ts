@@ -47,6 +47,10 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   tubes: ["minMoves", "solution"],
   safe: ["combination"],
   bomb: ["sequence"],
+  gravity: ["minMoves", "solution"],
+  // The rule strip and the nodes are the puzzle — nothing to hide.
+  chain: [],
+  intruder: ["answers"],
 };
 
 type Loose = Record<string, unknown>;
