@@ -48,7 +48,7 @@ import { PUZZLE_INSTRUCTIONS } from "./instructions";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
 type RegisteredPuzzleDefinition = PuzzleDefinition &
-  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions">>;
+  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions" | "retired">>;
 
 const LONG_REVEAL_TYPES = new Set<PuzzleType>([
   "chaincalc",
@@ -64,6 +64,39 @@ const LONG_REVEAL_TYPES = new Set<PuzzleType>([
   "spotdiff",
   "groups",
   "ladder",
+]);
+
+/** Always in the room draw. */
+export const CORE_CATEGORIES: PuzzleCategory[] = [
+  "logic",
+  "pattern",
+  "speed",
+  "attention",
+  "word",
+];
+
+/** Only drawn when the host switches them on in the lobby. */
+export const OPT_IN_CATEGORIES: PuzzleCategory[] = ["number", "memory"];
+
+/** Weighting for a core category filling an extra round. */
+export const CORE_SIXTH_WEIGHTS: Record<PuzzleCategory, number> = {
+  logic: 0.35,
+  pattern: 0.35,
+  speed: 0.15,
+  attention: 0.1,
+  word: 0.05,
+  number: 0,
+  memory: 0,
+};
+
+/** Never drawn in rooms; still playable in practice. */
+const RETIRED_TYPES = new Set<PuzzleType>([
+  "chaincalc",
+  "sequence",
+  "reverse",
+  "spatial",
+  "numclimb",
+  "patcomp",
 ]);
 
 const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> = {
@@ -111,6 +144,7 @@ export const PUZZLE_REGISTRY = Object.fromEntries(
     {
       ...definition,
       instructions: PUZZLE_INSTRUCTIONS[type as PuzzleType],
+      retired: RETIRED_TYPES.has(type as PuzzleType),
       revealMs:
         definition.revealMs ?? (LONG_REVEAL_TYPES.has(type as PuzzleType) ? 8_000 : REVEAL_MS),
       roundSummary: ROUND_SUMMARIES[type as PuzzleType],
@@ -129,12 +163,37 @@ export function puzzleName(type: PuzzleType): string {
   return PUZZLE_REGISTRY[type]?.name ?? type;
 }
 
-export function puzzleCategories(): PuzzleCategory[] {
-  return Array.from(new Set(PUZZLE_TYPES.map((t) => PUZZLE_REGISTRY[t].category)));
+/** True for types kept only for practice. */
+export function isRetired(type: PuzzleType): boolean {
+  return PUZZLE_REGISTRY[type]?.retired === true;
 }
 
+/** Every type still in rotation. */
+export const ACTIVE_PUZZLE_TYPES = PUZZLE_TYPES.filter((t) => !isRetired(t));
+
+export const RETIRED_PUZZLE_TYPES = PUZZLE_TYPES.filter((t) => isRetired(t));
+
+export function puzzleCategories(): PuzzleCategory[] {
+  return Array.from(new Set(ACTIVE_PUZZLE_TYPES.map((t) => PUZZLE_REGISTRY[t].category)));
+}
+
+/** Non-retired types in a category — what every draw and list reads. */
 export function typesInCategory(category: PuzzleCategory): PuzzleType[] {
+  return ACTIVE_PUZZLE_TYPES.filter((t) => PUZZLE_REGISTRY[t].category === category);
+}
+
+/** Includes retired types; for practice listings only. */
+export function allTypesInCategory(category: PuzzleCategory): PuzzleType[] {
   return PUZZLE_TYPES.filter((t) => PUZZLE_REGISTRY[t].category === category);
+}
+
+/** Pool sizes per category, retired types excluded. */
+export function categoryPoolSizes(): Record<PuzzleCategory, number> {
+  const out = {} as Record<PuzzleCategory, number>;
+  for (const category of [...CORE_CATEGORIES, ...OPT_IN_CATEGORIES]) {
+    out[category] = typesInCategory(category).length;
+  }
+  return out;
 }
 
 /** The clock length for a puzzle type (30s unless the type says otherwise). */
