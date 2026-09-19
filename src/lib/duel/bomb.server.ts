@@ -278,6 +278,7 @@ export function generateBomb(): BombPuzzleData {
       light: panel.light,
       serial: panel.serial,
       rules: rules.map((rule) => ({ id: rule.id, text: rule.text })),
+      stepCount: sequence.length,
       sequence: encodeBombActions(sequence),
     };
   }

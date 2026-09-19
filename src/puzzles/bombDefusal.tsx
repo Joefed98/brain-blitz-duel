@@ -182,14 +182,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: P
   const [shake, setShake] = useStageState<boolean>(stateKey, "bombShake", () => false);
   const submitted = useRef(false);
 
-  // The required sequence lives on the server; the phone only tracks taps.
+  // The required sequence lives on the server; the phone only counts taps.
   const steps = useMemo(() => actions.length, [actions]);
+  const needed = isBomb ? puzzle.stepCount : 0;
 
   useEffect(() => {
     onDraftAnswer?.(encodeBombActions(actions));
   }, [actions, onDraftAnswer]);
-
-  const total = isBomb ? puzzle.rules.length : 0;
 
   const act = (action: BombAction) => {
     if (locked || submitted.current) return;
@@ -198,13 +197,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: P
     setActions(next);
   };
 
-  // Once the player has taken as many actions as the panel can need, send them.
+  // The panel locks itself once the player has taken every step the card needs.
   useEffect(() => {
-    if (locked || submitted.current || !isBomb) return;
-    if (steps < 4) return;
+    if (locked || submitted.current || !isBomb || needed <= 0) return;
+    if (steps < needed) return;
     submitted.current = true;
+    playCorrect();
     onSubmit(encodeBombActions(actions));
-  }, [steps, actions, locked, isBomb, onSubmit]);
+  }, [steps, needed, actions, locked, isBomb, onSubmit]);
 
   if (!isBomb) return null;
 
@@ -239,7 +239,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: P
 
       <div className="flex shrink-0 items-center justify-between">
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          steps <span className="text-primary">{steps}</span>
+          steps <span className="text-primary">{steps}</span> / {needed}
         </p>
         <button
           type="button"
@@ -269,7 +269,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: P
         </button>
       </div>
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        {total} rules · tap a wire to cut, tap a button to press
+        Tap a wire to cut it, tap a button to press it
       </p>
     </div>
   );
@@ -341,6 +341,7 @@ export const bombDefusalPuzzle: PuzzleDefinition = {
       light: false,
       serial: "000",
       rules: [],
+      stepCount: 0,
     }) satisfies BombPuzzleData,
   check: () => false,
   revealHeading: "The right moves",

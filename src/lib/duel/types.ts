@@ -1279,6 +1279,8 @@ export interface BombPuzzleData {
   serial: string;
   /** The rule card, in the order it must be read. */
   rules: { id: string; text: string }[];
+  /** How many actions the sequence needs — the "steps 2 / 4" counter. */
+  stepCount: number;
   /** Server-side only: the required actions, as `bA,w2`. */
   sequence?: string;
 }
