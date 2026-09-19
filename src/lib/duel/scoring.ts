@@ -67,6 +67,15 @@ import {
   TUBES_MIN_MOVE_BONUS,
   TUBES_PARTIAL_POINTS,
   TUBES_TIME_MS,
+  GRAV_MIN_MOVE_BONUS,
+  GRAV_PARTIAL_POINTS,
+  GRAV_TIME_MS,
+  CHAIN_ERROR_PENALTY,
+  CHAIN_LENGTH,
+  CHAIN_PARTIAL_POINTS,
+  CHAIN_TIME_MS,
+  INTRUDER_BOARDS,
+  INTRUDER_TIME_MS,
 } from "./types";
 
 export const BASE_POINTS = 100;
@@ -639,4 +648,52 @@ export function scoreBomb(
     return Math.min(MAX_ROUND_SCORE, base + speedBonus(msRemaining, BOMB_TIME_MS));
   }
   return clamp(BOMB_STEP_POINTS * steps, 0, BOMB_PARTIAL_POINTS);
+}
+
+/** Gravity Maze: solved scores the standard points, +20 for the fewest tilts. */
+export function scoreGravity(
+  solved: boolean,
+  tilts: number,
+  minMoves: number,
+  msRemaining: number,
+  onTarget: number,
+): number {
+  if (solved) {
+    const bonus = minMoves > 0 && tilts <= minMoves ? GRAV_MIN_MOVE_BONUS : 0;
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, GRAV_TIME_MS) + bonus);
+  }
+  return onTarget >= 1 ? GRAV_PARTIAL_POINTS : 0;
+}
+
+/** Don't Break the Chain: twelve in a row, less ten a mistake. */
+export function scoreChain(
+  completed: boolean,
+  correct: number,
+  errors: number,
+  msRemaining: number,
+): number {
+  if (completed) {
+    return clamp(
+      BASE_POINTS + speedBonus(msRemaining, CHAIN_TIME_MS) - CHAIN_ERROR_PENALTY * errors,
+      0,
+      MAX_ROUND_SCORE,
+    );
+  }
+  return clamp(
+    Math.round((CHAIN_PARTIAL_POINTS * correct) / CHAIN_LENGTH),
+    0,
+    CHAIN_PARTIAL_POINTS,
+  );
+}
+
+/** Intruder Detection: a share per grid, and the speed bonus only for a clean sweep. */
+export function scoreIntruder(
+  correct: number,
+  allFirstTry: boolean,
+  msRemaining: number,
+): number {
+  const base = Math.round((BASE_POINTS * clamp(correct, 0, INTRUDER_BOARDS)) / INTRUDER_BOARDS);
+  const bonus =
+    correct >= INTRUDER_BOARDS && allFirstTry ? speedBonus(msRemaining, INTRUDER_TIME_MS) : 0;
+  return Math.min(MAX_ROUND_SCORE, base + bonus);
 }

@@ -12,6 +12,9 @@ import { decodeMazePath, verifyMazePath } from "./maze";
 import { decodeTubeMoves, replayTubes } from "./tubes";
 import { dialsCorrect, decodeSafeTries, safeOpenedOn } from "./safe";
 import { decodeBombActions, replayBomb } from "./bomb";
+import { decodeGravityTilts, replayGravity } from "./gravity";
+import { decodeChainTaps, replayChain } from "./chain";
+import { decodeIntruderTaps, replayIntruder } from "./intruder";
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
 import { countPatternAnswers } from "./pattern";
@@ -50,6 +53,9 @@ import {
   scoreTubes,
   scoreSafe,
   scoreBomb,
+  scoreGravity,
+  scoreChain,
+  scoreIntruder,
 } from "./scoring";
 import {
   GONOGO_ITEMS,
@@ -512,6 +518,59 @@ export function gradeSubmission(
         strikes: replay.strikes,
         steps: replay.steps,
         required: required.length,
+      };
+      break;
+    }
+    case "gravity": {
+      // Every tilt is replayed on the stored board, both balls at once.
+      const replay = replayGravity(
+        puzzle.walls,
+        { a: puzzle.startA, b: puzzle.startB },
+        puzzle.targetA,
+        puzzle.targetB,
+        decodeGravityTilts(answer),
+      );
+      isCorrect = replay.solved;
+      correctCount = replay.tilts;
+      score = scoreGravity(
+        replay.solved,
+        replay.tilts,
+        puzzle.minMoves ?? 0,
+        ms,
+        replay.onTarget,
+      );
+      extraDetail = {
+        solved: replay.solved,
+        tilts: replay.tilts,
+        minMoves: puzzle.minMoves ?? 0,
+        onTarget: replay.onTarget,
+      };
+      break;
+    }
+    case "chain": {
+      // The tap list is re-walked against the rule; wrong taps never advance.
+      const replay = replayChain(puzzle.nodes, puzzle.kind, puzzle.cycle, decodeChainTaps(answer));
+      isCorrect = replay.completed;
+      correctCount = replay.chain.length;
+      errors = replay.errors;
+      score = scoreChain(replay.completed, replay.chain.length, replay.errors, ms);
+      extraDetail = {
+        completed: replay.completed,
+        correct: replay.chain.length,
+        errors: replay.errors,
+      };
+      break;
+    }
+    case "intruder": {
+      // Taps are checked against the stored changed cells, never a client verdict.
+      const replay = replayIntruder(puzzle.answers ?? [], decodeIntruderTaps(answer));
+      isCorrect = replay.correct >= (puzzle.answers ?? puzzle.boards).length;
+      correctCount = replay.correct;
+      score = scoreIntruder(replay.correct, replay.allFirstTry, ms);
+      extraDetail = {
+        correct: replay.correct,
+        allFirstTry: replay.allFirstTry,
+        boards: puzzle.boards.length,
       };
       break;
     }
