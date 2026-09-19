@@ -23,6 +23,7 @@ export type Database = {
           intro_ready_round: number
           joined_at: string
           last_seen_at: string
+          muted_by_host: boolean
           player_slot: number
           ready_round: number
           status: string
@@ -36,6 +37,7 @@ export type Database = {
           intro_ready_round?: number
           joined_at?: string
           last_seen_at?: string
+          muted_by_host?: boolean
           player_slot: number
           ready_round?: number
           status?: string
@@ -49,6 +51,7 @@ export type Database = {
           intro_ready_round?: number
           joined_at?: string
           last_seen_at?: string
+          muted_by_host?: boolean
           player_slot?: number
           ready_round?: number
           status?: string
@@ -149,6 +152,80 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      room_messages: {
+        Row: {
+          created_at: string
+          duel_id: string
+          id: string
+          sender_name: string
+          sender_user_id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          duel_id: string
+          id?: string
+          sender_name: string
+          sender_user_id: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          duel_id?: string
+          id?: string
+          sender_name?: string
+          sender_user_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_messages_duel_id_fkey"
+            columns: ["duel_id"]
+            isOneToOne: false
+            referencedRelation: "duels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_reports: {
+        Row: {
+          created_at: string
+          duel_id: string
+          id: string
+          message_id: string | null
+          reporter_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duel_id: string
+          id?: string
+          message_id?: string | null
+          reporter_user_id: string
+        }
+        Update: {
+          created_at?: string
+          duel_id?: string
+          id?: string
+          message_id?: string | null
+          reporter_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_reports_duel_id_fkey"
+            columns: ["duel_id"]
+            isOneToOne: false
+            referencedRelation: "duels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "room_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       round_results: {
         Row: {
