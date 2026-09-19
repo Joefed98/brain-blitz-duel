@@ -51,6 +51,13 @@ import {
   type StroopItem,
 } from "./types";
 import { BOMB_TIME_MS, SAFE_DIALS, SAFE_TIME_MS, TUBES_COLOURS, TUBES_TIME_MS } from "./types";
+import {
+  CHAIN_LENGTH,
+  CHAIN_TIME_MS,
+  GRAV_TIME_MS,
+  INTRUDER_BOARDS,
+  INTRUDER_TIME_MS,
+} from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
 type SummaryBuilder = (result: RoundResultRow, puzzle: PuzzleData) => BuiltDetail;
@@ -118,7 +125,13 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
                                                               ? SAFE_TIME_MS
                                                               : puzzle.type === "bomb"
                                                                 ? BOMB_TIME_MS
-                                                                : ROUND_MS;
+                                                                : puzzle.type === "gravity"
+                                                                  ? GRAV_TIME_MS
+                                                                  : puzzle.type === "chain"
+                                                                    ? CHAIN_TIME_MS
+                                                                    : puzzle.type === "intruder"
+                                                                      ? INTRUDER_TIME_MS
+                                                                      : ROUND_MS;
   return Math.max(0, limit - result.ms_remaining);
 }
 
@@ -726,6 +739,48 @@ function ordinalTry(value: number): string {
   return value === 1 ? "1st" : value === 2 ? "2nd" : value === 3 ? "3rd" : `${value}th`;
 }
 
+const gravitySummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "gravity") return { summary: "—", detail: [] };
+  const tilts = Number(result.extra?.["tilts"] ?? 0);
+  const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
+  const onTarget = Number(result.extra?.["onTarget"] ?? 0);
+  if (result.is_correct) {
+    return {
+      summary: `Solved · ${tilts} tilts (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: [
+        tilts <= min ? "Solved in the fewest tilts" : `${tilts - min} more than the minimum`,
+      ],
+    };
+  }
+  return {
+    summary: "Not solved",
+    detail: [onTarget === 1 ? "One ball on its target" : `${tilts} tilts made`],
+  };
+};
+
+const chainSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "chain") return { summary: "—", detail: [] };
+  const correct = Number(result.extra?.["correct"] ?? 0);
+  const errors = Number(result.extra?.["errors"] ?? 0);
+  return {
+    summary: `${correct} / ${CHAIN_LENGTH} · ${errors} error${errors === 1 ? "" : "s"} · ${seconds(
+      elapsedMs(result, puzzle),
+    )}`,
+    detail: [result.is_correct ? "Chain complete" : "Chain unfinished"],
+  };
+};
+
+const intruderSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "intruder") return { summary: "—", detail: [] };
+  const correct = Number(result.extra?.["correct"] ?? 0);
+  return {
+    summary: `${correct} / ${INTRUDER_BOARDS} · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: [
+      result.extra?.["allFirstTry"] ? "Every grid found first time" : "A second look was needed",
+    ],
+  };
+};
+
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
   groups: groupsSummary,
@@ -766,6 +821,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   tubes: tubesSummary,
   safe: safeSummary,
   bomb: bombSummary,
+  gravity: gravitySummary,
+  chain: chainSummary,
+  intruder: intruderSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -815,4 +873,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   tubes: (p) => (p.type === "tubes" && p.minMoves ? `${p.minMoves} pours` : null),
   safe: (p) => (p.type === "safe" && p.combination ? p.combination.join("") : null),
   bomb: () => null,
+  gravity: (p) => (p.type === "gravity" && p.minMoves ? `${p.minMoves} tilts` : null),
+  chain: () => null,
+  intruder: () => null,
 };

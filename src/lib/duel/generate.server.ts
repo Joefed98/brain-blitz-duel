@@ -24,6 +24,9 @@ import { generateMaze } from "./maze.server";
 import { generateTubes } from "./tubes.server";
 import { generateSafe } from "./safe.server";
 import { generateBomb } from "./bomb.server";
+import { generateGravity } from "./gravity.server";
+import { generateChain } from "./chain.server";
+import { generateIntruder } from "./intruder.server";
 
 export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "wordsmith") return generateWordsmith();
@@ -44,6 +47,9 @@ export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "tubes") return generateTubes();
   if (type === "safe") return generateSafe();
   if (type === "bomb") return generateBomb();
+  if (type === "gravity") return generateGravity();
+  if (type === "chain") return generateChain();
+  if (type === "intruder") return generateIntruder();
   return puzzleDef(type).generate();
 }
 

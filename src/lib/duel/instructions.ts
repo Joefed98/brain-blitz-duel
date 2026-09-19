@@ -360,4 +360,31 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "No mistakes and fast = full points.",
   },
+  gravity: {
+    goal: "Tilt the board so each ball lands on its own colour's target — at the same time.",
+    how: [
+      { action: "Tap an arrow", detail: "and both balls slide until they hit something." },
+      { action: "Use one ball", detail: "to block the other — they stop against each other." },
+      { action: "Undo or Reset", detail: "if a tilt traps you." },
+    ],
+    score: "Fewer tilts earns a bonus.",
+  },
+  chain: {
+    goal: "Tap the nodes in the order the rule says — and keep going.",
+    how: [
+      { action: "Follow the cycle", detail: "because after the last item it starts again." },
+      { action: "Tap twelve in a row", detail: "to finish the chain." },
+      { action: "Avoid wrong taps", detail: "because each one costs points." },
+    ],
+    score: "Twelve in a row, fast.",
+  },
+  intruder: {
+    goal: "One thing changes. Find it.",
+    how: [
+      { action: "Memorise the grid", detail: "before it vanishes." },
+      { action: "Tap the changed cell", detail: "when the grid comes back." },
+      { action: "Three grids", detail: "each bigger than the last." },
+    ],
+    score: "All three right for the speed bonus.",
+  },
 };

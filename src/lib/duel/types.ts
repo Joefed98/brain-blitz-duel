@@ -37,7 +37,10 @@ export type PuzzleType =
   | "maze"
   | "tubes"
   | "safe"
-  | "bomb";
+  | "bomb"
+  | "gravity"
+  | "chain"
+  | "intruder";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
@@ -373,7 +376,10 @@ export type PuzzleData =
   | MazePuzzleData
   | TubesPuzzleData
   | SafePuzzleData
-  | BombPuzzleData;
+  | BombPuzzleData
+  | GravityPuzzleData
+  | ChainPuzzleData
+  | IntruderPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1283,4 +1289,133 @@ export interface BombPuzzleData {
   stepCount: number;
   /** Server-side only: the required actions, as `bA,w2`. */
   sequence?: string;
+}
+
+/* ============================= Gravity Maze ============================= */
+
+export const GRAV_TIME_MS = 60_000;
+export const GRAV_COLS = 8;
+export const GRAV_CELLS = GRAV_COLS * GRAV_COLS;
+export const GRAV_MIN_WALLS = 12;
+export const GRAV_MAX_WALLS = 20;
+/** The searched joint-state minimum has to land in this band. */
+export const GRAV_MIN_TILTS = 6;
+export const GRAV_MAX_TILTS = 10;
+/** Neither ball may reach its own target alone in fewer tilts than this. */
+export const GRAV_SOLO_MIN_TILTS = 3;
+/** Bonus for solving in the fewest possible tilts. */
+export const GRAV_MIN_MOVE_BONUS = 20;
+/** One ball parked on its target when the clock runs out. */
+export const GRAV_PARTIAL_POINTS = 30;
+
+export type GravityDir = "U" | "D" | "L" | "R";
+
+export interface GravityPuzzleData {
+  type: "gravity";
+  /** Dark blocks the balls cannot enter. */
+  walls: number[];
+  startA: number;
+  startB: number;
+  targetA: number;
+  targetB: number;
+  /** Server-side only: the searched minimum number of tilts. */
+  minMoves?: number;
+  /** Server-side only: one shortest tilt list, as `URDL`. */
+  solution?: string;
+}
+
+/* ======================= Don't Break the Chain ========================== */
+
+export const CHAIN_TIME_MS = 30_000;
+export const CHAIN_NODES = 18;
+/** Correct taps needed to finish the chain. */
+export const CHAIN_LENGTH = 12;
+/** The rule is a repeating three-step cycle. */
+export const CHAIN_CYCLE = 3;
+/** Points lost per wrong tap. */
+export const CHAIN_ERROR_PENALTY = 10;
+/** Most an unfinished chain can earn. */
+export const CHAIN_PARTIAL_POINTS = 60;
+/** Every step must offer at least this many right and wrong nodes. */
+export const CHAIN_MIN_VALID = 2;
+export const CHAIN_MIN_INVALID = 4;
+/** Minimum distance between two nodes, in percent of the play area. */
+export const CHAIN_NODE_GAP = 17;
+
+export const CHAIN_SHAPES = ["circle", "square", "triangle"] as const;
+export const CHAIN_COLOURS = ["RED", "BLUE", "GREEN"] as const;
+
+export type ChainShape = (typeof CHAIN_SHAPES)[number];
+export type ChainColour = (typeof CHAIN_COLOURS)[number];
+export type ChainRuleKind = "shape" | "colour";
+
+export interface ChainNode {
+  /** Position in percent of the play area. */
+  x: number;
+  y: number;
+  shape: ChainShape;
+  colour: ChainColour;
+}
+
+export interface ChainPuzzleData {
+  type: "chain";
+  nodes: ChainNode[];
+  /** Whether the cycle runs on shapes or on colours. */
+  kind: ChainRuleKind;
+  /** The three values, in the order they must be tapped. */
+  cycle: string[];
+}
+
+/* ========================= Intruder Detection =========================== */
+
+export const INTRUDER_TIME_MS = 30_000;
+export const INTRUDER_BOARDS = 3;
+/** Each board is bigger than the last. */
+export const INTRUDER_BOARD_SIZES = [4, 5, 6] as const;
+/** How long the grid is on show before it vanishes. */
+export const INTRUDER_SHOW_MS = 3_000;
+export const INTRUDER_HIDE_MS = 800;
+/** Taps allowed per board. */
+export const INTRUDER_ATTEMPTS = 2;
+
+export const INTRUDER_SHAPES = ["circle", "square", "triangle", "star"] as const;
+export const INTRUDER_COLOURS: StroopColour[] = [
+  "RED",
+  "BLUE",
+  "GREEN",
+  "PURPLE",
+  "PINK",
+  "ORANGE",
+  "BROWN",
+  "YELLOW",
+];
+
+export type IntruderShape = (typeof INTRUDER_SHAPES)[number];
+export type IntruderChangeKind = "colour" | "shape" | "rot";
+
+export interface IntruderCell {
+  shape: IntruderShape;
+  colour: StroopColour;
+  /** Only a triangle ever shows a rotation. */
+  rot: 0 | 180;
+}
+
+export interface IntruderBoard {
+  size: number;
+  /** The grid as first shown. */
+  cells: IntruderCell[];
+  /** The grid as shown again, with exactly one cell different. */
+  after: IntruderCell[];
+}
+
+export interface IntruderAnswer {
+  cell: number;
+  kind: IntruderChangeKind;
+}
+
+export interface IntruderPuzzleData {
+  type: "intruder";
+  boards: IntruderBoard[];
+  /** Server-side only: which cell changed on each board, and how. */
+  answers?: IntruderAnswer[];
 }
