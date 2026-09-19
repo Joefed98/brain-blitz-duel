@@ -33,7 +33,7 @@ export function hapticTick(): void {
  */
 export function pointerElementIndex(element: HTMLElement | null): number | null {
   if (!element || element.style.pointerEvents === "none") return null;
-  const raw = element.dataset.pointerIndex;
+  const raw = element.dataset["pointerIndex"];
   if (raw === undefined) return null;
   const index = Number.parseInt(raw, 10);
   return Number.isInteger(index) && index >= 0 ? index : null;
