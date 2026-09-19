@@ -16,6 +16,7 @@ import {
 } from "@/lib/duel/practice.functions";
 import {
   PUZZLE_REGISTRY,
+  RETIRED_PUZZLE_TYPES,
   puzzleCategories,
   puzzleDef,
   puzzleDurationMs,
@@ -212,6 +213,26 @@ function PracticeScreen() {
               </div>
             </div>
           ))}
+
+          {RETIRED_PUZZLE_TYPES.length > 0 && (
+            <details className="flex flex-col gap-2">
+              <summary className="press cursor-pointer font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                Retired ({RETIRED_PUZZLE_TYPES.length})
+              </summary>
+              <div className="mt-2 flex flex-col gap-2">
+                {RETIRED_PUZZLE_TYPES.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => void load(key)}
+                    className="press tap-target w-full rounded-xl border border-border bg-card px-4 text-left font-display text-sm font-semibold text-muted-foreground"
+                  >
+                    {PUZZLE_REGISTRY[key].name}
+                  </button>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       </PhoneShell>
     );
