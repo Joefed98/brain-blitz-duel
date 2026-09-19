@@ -13,7 +13,7 @@ import {
   rematchFn,
   removePlayerFn,
   revealAnswerFn,
-  setNoMathsFn,
+  setRoomModesFn,
   startRoomFn,
   submitAnswerFn,
   type SubmitExtra,
@@ -84,8 +84,11 @@ export async function startRoom(roomId: string): Promise<void> {
   if (!result.ok) throw new DuelError(result.message);
 }
 
-export async function setNoMaths(roomId: string, noMaths: boolean): Promise<void> {
-  const result = await setNoMathsFn({ data: { roomId, noMaths } });
+export async function setRoomModes(
+  roomId: string,
+  modes: { addMaths: boolean; addMemory: boolean },
+): Promise<void> {
+  const result = await setRoomModesFn({ data: { roomId, ...modes } });
   if (!result.ok) throw new DuelError(result.message);
 }
 

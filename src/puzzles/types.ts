@@ -98,6 +98,8 @@ export interface PuzzleDefinition {
   revealHeading?: string;
   /** False for types that are not on a countdown clock. */
   showTimer?: boolean;
+  /** True for a type kept for practice only — never drawn in rooms. */
+  retired?: boolean;
   /** Shared GOAL / HOW / SCORE copy used by the intro and in-round help. */
   instructions?: PuzzleInstructions;
   /** Fixed intro example — identical every single time. */

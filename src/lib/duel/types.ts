@@ -381,8 +381,12 @@ export interface DuelRow {
   max_players: number;
   round_count: number;
   round_order: PuzzleType[];
-  /** Host setting: leave the number category out of the round draw. */
+  /** Host setting: kept for older rooms; no longer used in the draw. */
   no_maths: boolean;
+  /** Host opt-in: include the number category in the round draw. */
+  add_maths: boolean;
+  /** Host opt-in: include the memory category in the round draw. */
+  add_memory: boolean;
   /**
    * Only what each player needs to render the round. Answers live in the
    * server-only `duel_secrets` table and arrive at reveal time.

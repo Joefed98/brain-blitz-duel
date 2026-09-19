@@ -36,7 +36,7 @@ import {
   leaveRoom,
   readyUp,
   removePlayer,
-  setNoMaths,
+  setRoomModes,
   startRoom,
   submitAnswer,
 } from "@/lib/duel/api";
@@ -541,8 +541,9 @@ function DuelScreen() {
             isHost={isHost}
             starting={starting}
             onStart={() => void handleStart()}
-            noMaths={duel.no_maths === true}
-            onNoMathsChange={(value) => void setNoMaths(duel.id, value)}
+            addMaths={duel.add_maths === true}
+            addMemory={duel.add_memory === true}
+            onModesChange={(modes) => void setRoomModes(duel.id, modes)}
             onRemove={(slot) => void removePlayer(duel.id, slot)}
           />
         </div>
