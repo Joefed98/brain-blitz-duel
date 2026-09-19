@@ -347,6 +347,8 @@ export const playTick = () => playCue("tick");
 export const playCorrect = () => playCue("correct");
 export const playWrong = () => playCue("wrong");
 export const playLock = () => playCue("lock");
+/** Incoming chat message: a short blip on the effects channel. */
+export const playBlip = () => playCue("lock");
 export const playPlayerJoined = () => playCue("player_joined");
 export const playRoundStart = () => playCue("round_start");
 export const playRoundWon = () => playCue("round_won");

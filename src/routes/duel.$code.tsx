@@ -10,6 +10,7 @@ import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundPips } from "@/components/duel/RoundPips";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { RoundResultsTable } from "@/components/duel/RoundResultsTable";
+import { RoomChat } from "@/components/duel/RoomChat";
 import { RoomLobby } from "@/components/duel/RoomLobby";
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
 import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
@@ -52,6 +53,7 @@ import {
   totalScoreThrough,
 } from "@/lib/duel/scoring";
 import { useDuel } from "@/lib/duel/useDuel";
+import { setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
 import {
   puzzleDef,
   puzzleDurationMs,
