@@ -50,17 +50,18 @@ function Grid({
   wrong?: number | null;
   onCell?: ((cell: number) => void) | undefined;
 }) {
+  // Taps go through the shared pointer-to-cell mapping, so a finger always
+  // lands on the square underneath it.
   const { ref, handlers } = useGridPointer({ cols: size, rows: size, onCell });
+  const { style, ...pointer } = handlers;
   return (
     <div
       ref={ref}
-      {...(onCell ? handlers : { style: { touchAction: "none" } })}
+      {...(onCell ? pointer : {})}
       className="grid aspect-square max-h-full w-full gap-[3px]"
-      style={{
-        ...(onCell ? handlers.style : { touchAction: "none" }),
-        gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
-      }}
+      style={{ ...style, gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
     >
+
       {Array.from({ length: size * size }, (_, index) => {
         const cell = cells?.[index];
         return (
