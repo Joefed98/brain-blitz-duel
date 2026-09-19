@@ -7,9 +7,11 @@
  */
 
 import { pick, random, shuffled } from "./random";
-import { CHAIN_CYCLE, CHAIN_LENGTH, chainRequired, chainValue } from "./chain";
+import { chainRequired, chainValue } from "./chain";
 import {
   CHAIN_COLOURS,
+  CHAIN_CYCLE,
+  CHAIN_LENGTH,
   CHAIN_MIN_INVALID,
   CHAIN_MIN_VALID,
   CHAIN_NODES,
