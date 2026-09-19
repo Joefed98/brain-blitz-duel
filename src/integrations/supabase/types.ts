@@ -92,6 +92,8 @@ export type Database = {
       }
       duels: {
         Row: {
+          add_maths: boolean
+          add_memory: boolean
           created_at: string
           current_round: number
           host_user_id: string | null
@@ -109,6 +111,8 @@ export type Database = {
           status: string
         }
         Insert: {
+          add_maths?: boolean
+          add_memory?: boolean
           created_at?: string
           current_round?: number
           host_user_id?: string | null
@@ -126,6 +130,8 @@ export type Database = {
           status?: string
         }
         Update: {
+          add_maths?: boolean
+          add_memory?: boolean
           created_at?: string
           current_round?: number
           host_user_id?: string | null
