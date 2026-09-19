@@ -557,7 +557,7 @@ function DuelScreen() {
             onMuteForEveryone={(slot, muted) => void setPlayerMuted(duel.id, slot, muted)}
           />
         </div>
-      <RoomChat chat={chat} myUserId={me.user_id} />
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -576,7 +576,7 @@ function DuelScreen() {
             onPlayAgain={() => void handlePlayAgain()}
             onLeave={() => void handleLeave()}
           />
-        <RoomChat chat={chat} myUserId={me.user_id} />
+          <RoomChat chat={chat} myUserId={me.user_id} />
         </PhoneShell>
       );
     }
@@ -594,7 +594,7 @@ function DuelScreen() {
           onPlayAgain={() => void handlePlayAgain()}
           onHome={() => void navigate({ to: "/" })}
         />
-      <RoomChat chat={chat} myUserId={me.user_id} />
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -618,7 +618,7 @@ function DuelScreen() {
             void readyUp(duel.id, round);
           }}
         />
-      <RoomChat chat={chat} myUserId={me.user_id} />
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -637,7 +637,7 @@ function DuelScreen() {
           startedAt={phaseStart ?? now}
           now={now}
         />
-      <RoomChat chat={chat} myUserId={me.user_id} />
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -660,7 +660,7 @@ function DuelScreen() {
             finalRound={round >= duel.round_count}
             onNext={() => void advancePhase(duel.id, true)}
           />
-        <RoomChat chat={chat} myUserId={me.user_id} />
+          <RoomChat chat={chat} myUserId={me.user_id} />
         </PhoneShell>
       );
     }
@@ -681,7 +681,7 @@ function DuelScreen() {
           isHost={isHost}
           onNext={() => void advancePhase(duel.id, true)}
         />
-      <RoomChat chat={chat} myUserId={me.user_id} />
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -709,7 +709,7 @@ function DuelScreen() {
             onNext={() => void advancePhase(duel.id, true)}
           />
         )}
-      <RoomChat chat={chat} myUserId={me.user_id} />
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }

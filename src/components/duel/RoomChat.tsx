@@ -108,9 +108,7 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
             />
             <ul className="min-h-0 flex-1 overflow-y-auto">
               {chat.messages.length === 0 && (
-                <li className="py-6 text-center text-xs text-muted-foreground">
-                  No messages yet.
-                </li>
+                <li className="py-6 text-center text-xs text-muted-foreground">No messages yet.</li>
               )}
               {chat.messages.map((message) => (
                 <MessageRow
@@ -230,9 +228,7 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
           ))}
         </div>
       </div>
-      {chat.error && (
-        <p className="shrink-0 text-center text-[11px] text-warn">{chat.error}</p>
-      )}
+      {chat.error && <p className="shrink-0 text-center text-[11px] text-warn">{chat.error}</p>}
     </>
   );
 }

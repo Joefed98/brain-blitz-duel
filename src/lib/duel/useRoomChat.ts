@@ -220,9 +220,7 @@ export function useRoomChat(
   const toggleLocalMute = useCallback(
     (userId: string) => {
       setMutedUserIds((prev) => {
-        const next = prev.includes(userId)
-          ? prev.filter((id) => id !== userId)
-          : [...prev, userId];
+        const next = prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId];
         if (roomId) saveMuted(roomId, next);
         return next;
       });
@@ -248,10 +246,6 @@ export function useRoomChat(
 }
 
 /** Host control, used from the lobby player cards. */
-export async function setPlayerMuted(
-  roomId: string,
-  slot: number,
-  muted: boolean,
-): Promise<void> {
+export async function setPlayerMuted(roomId: string, slot: number, muted: boolean): Promise<void> {
   await setPlayerMutedFn({ data: { roomId, slot, muted } });
 }
