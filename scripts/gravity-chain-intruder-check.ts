@@ -6,14 +6,13 @@
 import { generateGravity } from "../src/lib/duel/gravity.server";
 import { decodeGravityTilts, replayGravity } from "../src/lib/duel/gravity";
 import { generateChain } from "../src/lib/duel/chain.server";
-import { chainLayoutIsFair } from "../src/lib/duel/chain.server";
-import { chainRequired, chainValue, replayChain } from "../src/lib/duel/chain";
+import { chainSolutionIsFair } from "../src/lib/duel/chain.server";
+import { chainRequired, chainWouldCross, replayChain } from "../src/lib/duel/chain";
 import { generateIntruder } from "../src/lib/duel/intruder.server";
 import { intruderColoursTooClose } from "../src/lib/duel/intruder";
 import {
   CHAIN_LENGTH,
   CHAIN_MIN_INVALID,
-  CHAIN_MIN_VALID,
   CHAIN_NODES,
   GRAV_MAX_TILTS,
   GRAV_MIN_TILTS,
@@ -49,35 +48,38 @@ for (let round = 0; round < ROUNDS; round++) {
 
 for (let round = 0; round < ROUNDS; round++) {
   const puzzle = generateChain();
+  const solution = puzzle.solution ?? [];
   check("chain node count", puzzle.nodes.length === CHAIN_NODES);
+  check("chain shape-only cycle", puzzle.cycle.length === 3);
   check(
-    "chain layout fair at every step",
-    chainLayoutIsFair(puzzle.nodes, puzzle.kind, puzzle.cycle),
+    "chain searched solution stored",
+    chainSolutionIsFair(puzzle.nodes, puzzle.cycle, solution),
   );
+  const prefix: number[] = [];
   for (let step = 0; step < CHAIN_LENGTH; step++) {
     const needed = chainRequired(puzzle.cycle, step);
-    const usedNeeded = Math.floor(step / 3);
-    const valid =
-      puzzle.nodes.filter((node) => chainValue(node, puzzle.kind) === needed).length - usedNeeded;
-    check("chain two valid choices", valid >= CHAIN_MIN_VALID);
-    check("chain four invalid nodes", puzzle.nodes.length - step - valid >= CHAIN_MIN_INVALID);
-  }
-  // A perfect run of twelve completes; a wrong tap never advances the chain.
-  const perfect: number[] = [];
-  for (let step = 0; step < CHAIN_LENGTH; step++) {
-    const needed = chainRequired(puzzle.cycle, step);
-    perfect.push(
-      puzzle.nodes.findIndex(
-        (node, index) => !perfect.includes(index) && chainValue(node, puzzle.kind) === needed,
-      ),
+    const unused = puzzle.nodes
+      .map((_node, index) => index)
+      .filter((index) => !prefix.includes(index));
+    check(
+      "chain three shape-invalid nodes",
+      unused.filter((index) => puzzle.nodes[index]?.shape !== needed).length >= CHAIN_MIN_INVALID,
     );
+    if (step >= 3)
+      check(
+        "chain crossing decoy exists",
+        unused.some(
+          (index) =>
+            puzzle.nodes[index]?.shape === needed && chainWouldCross(puzzle.nodes, prefix, index),
+        ),
+      );
+    const next = solution[step];
+    if (next !== undefined) prefix.push(next);
   }
-  const good = replayChain(puzzle.nodes, puzzle.kind, puzzle.cycle, perfect);
+  const good = replayChain(puzzle.nodes, puzzle.cycle, solution);
   check("chain perfect run completes", good.completed && good.errors === 0);
-  const bad = replayChain(puzzle.nodes, puzzle.kind, puzzle.cycle, [
-    puzzle.nodes.findIndex(
-      (node) => chainValue(node, puzzle.kind) !== chainRequired(puzzle.cycle, 0),
-    ),
+  const bad = replayChain(puzzle.nodes, puzzle.cycle, [
+    puzzle.nodes.findIndex((node) => node.shape !== chainRequired(puzzle.cycle, 0)),
   ]);
   check("chain wrong tap counts as an error", bad.errors === 1 && bad.chain.length === 0);
 }

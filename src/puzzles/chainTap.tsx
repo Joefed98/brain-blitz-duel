@@ -5,7 +5,7 @@ import { hapticTick, pointerElementIndex } from "@/components/puzzles/GridDrag";
 import { Button } from "@/components/ui/button";
 import {
   chainRequired,
-  chainValue,
+  chainWouldCross,
   decodeChainTaps,
   encodeChainTaps,
   replayChain,
@@ -16,89 +16,95 @@ import {
   CHAIN_TIME_MS,
   type ChainNode,
   type ChainPuzzleData,
-  type ChainRuleKind,
+  type ChainShape,
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** One node: its shape, in its colour, on a dark disc. */
-function NodeGlyph({ node, size }: { node: ChainNode; size: number }) {
-  const fill = GLYPH_COLOURS[node.colour];
-  const inner = Math.round(size * 0.62);
+function NodeGlyph({ shape, size }: { shape: ChainShape; size: number }) {
+  const inner = Math.round(size * 0.58);
   return (
     <svg width={inner} height={inner} viewBox="0 0 24 24" aria-hidden="true">
-      {node.shape === "circle" && <circle cx="12" cy="12" r="9.5" fill={fill} />}
-      {node.shape === "square" && (
-        <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />
+      {shape === "circle" && <circle cx="12" cy="12" r="9.5" fill="currentColor" />}
+      {shape === "square" && (
+        <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill="currentColor" />
       )}
-      {node.shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill={fill} />}
+      {shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill="currentColor" />}
     </svg>
   );
 }
 
-/** The repeating rule, with the item needed next held bright. */
 function RuleStrip({
-  kind,
   cycle,
   step,
   compact,
 }: {
-  kind: ChainRuleKind;
-  cycle: string[];
+  cycle: ChainShape[];
   step: number;
   compact?: boolean;
 }) {
-  const needed = chainRequired(cycle, step);
+  const active = step % cycle.length;
   const size = compact ? 24 : 34;
   return (
-    <div className="flex shrink-0 items-center justify-center gap-1.5">
-      {cycle.map((value, index) => {
-        const active = value === needed;
-        const node: ChainNode = {
-          x: 0,
-          y: 0,
-          shape: (kind === "shape" ? value : "circle") as ChainNode["shape"],
-          colour: (kind === "colour" ? value : "RED") as ChainNode["colour"],
-        };
-        return (
-          <span key={`${value}-${index}`} className="flex items-center gap-1.5">
-            <span
-              className={`flex items-center justify-center rounded-full border-2 ${
-                active ? "border-primary bg-primary/15" : "border-border bg-card"
-              }`}
-              style={{ width: size, height: size }}
-            >
-              <NodeGlyph node={node} size={size} />
-            </span>
-            <span className="font-mono text-xs text-muted-foreground">→</span>
+    <div
+      className="flex shrink-0 items-center justify-center gap-1.5"
+      aria-label="Repeating shape rule"
+    >
+      {cycle.map((shape, index) => (
+        <span key={shape} className="flex items-center gap-1.5">
+          <span
+            className={`flex items-center justify-center rounded-full border-2 ${
+              index === active
+                ? "border-primary bg-primary/15 text-primary"
+                : "border-border bg-card text-foreground"
+            }`}
+            style={{ width: size, height: size }}
+          >
+            <NodeGlyph shape={shape} size={size} />
           </span>
-        );
-      })}
+          <span className="font-mono text-xs text-muted-foreground">→</span>
+        </span>
+      ))}
       <span className="font-mono text-xs text-muted-foreground">…</span>
     </div>
   );
 }
 
-const EXAMPLE_CYCLE = ["triangle", "circle", "square"];
+const EXAMPLE_CYCLE: ChainShape[] = ["circle", "square", "triangle"];
 const EXAMPLE_NODES: ChainNode[] = [
-  { x: 18, y: 60, shape: "triangle", colour: "RED" },
-  { x: 50, y: 30, shape: "circle", colour: "BLUE" },
-  { x: 82, y: 62, shape: "square", colour: "GREEN" },
+  { x: 14, y: 64, shape: "circle" },
+  { x: 38, y: 28, shape: "square" },
+  { x: 68, y: 66, shape: "triangle" },
+  { x: 87, y: 20, shape: "circle" },
 ];
 
-/** Fixed intro example — never randomised. */
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <RuleStrip kind="shape" cycle={EXAMPLE_CYCLE} step={0} compact />
+    <div className="flex w-full flex-col items-center gap-1.5">
+      <RuleStrip cycle={EXAMPLE_CYCLE} step={0} compact />
       <div className="relative h-20 w-full max-w-[220px]">
-        <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
+        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" aria-hidden="true">
           <polyline
-            points="39.6,48 110,24 180.4,49.6"
+            points="14,64 38,28 68,66 87,20"
             fill="none"
             stroke={GLYPH_COLOURS.GOLD}
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          <line
+            x1="14"
+            y1="20"
+            x2="87"
+            y2="70"
+            stroke="var(--color-warn)"
+            strokeWidth="2.5"
+            strokeDasharray="4 3"
+          />
+          <path
+            d="M48 40 L55 47 M55 40 L48 47"
+            stroke="var(--color-warn)"
             strokeWidth="3"
             strokeLinecap="round"
           />
@@ -106,22 +112,45 @@ function IntroExample() {
         {EXAMPLE_NODES.map((node, index) => (
           <span
             key={index}
-            className="absolute flex items-center justify-center rounded-full border-2 border-primary bg-card"
-            style={{
-              width: 38,
-              height: 38,
-              left: `calc(${node.x}% - 19px)`,
-              top: `calc(${node.y}% - 19px)`,
-            }}
+            className="absolute flex size-8 items-center justify-center rounded-full border-2 border-primary bg-card text-primary"
+            style={{ left: `calc(${node.x}% - 16px)`, top: `calc(${node.y}% - 16px)` }}
           >
-            <NodeGlyph node={node} size={38} />
+            <NodeGlyph shape={node.shape} size={32} />
           </span>
         ))}
       </div>
-      <p className="text-center text-xs text-muted-foreground">
-        Triangle, circle, square — then start the cycle again.
-      </p>
     </div>
+  );
+}
+
+function ChainLines({
+  nodes,
+  chain,
+  width = 3,
+}: {
+  nodes: ChainNode[];
+  chain: number[];
+  width?: number;
+}) {
+  return (
+    <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+      {chain.slice(1).map((nodeId, index) => {
+        const from = nodes[chain[index]!];
+        const to = nodes[nodeId];
+        return from && to ? (
+          <line
+            key={`${chain[index]}-${nodeId}`}
+            x1={`${from.x}%`}
+            y1={`${from.y}%`}
+            x2={`${to.x}%`}
+            y2={`${to.y}%`}
+            stroke={GLYPH_COLOURS.GOLD}
+            strokeWidth={width}
+            strokeLinecap="round"
+          />
+        ) : null;
+      })}
+    </svg>
   );
 }
 
@@ -130,16 +159,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
   const [taps, setTaps] = useStageState<number[]>(stateKey, "chainTaps", () => []);
   const [wrong, setWrong] = useStageState<number | null>(stateKey, "chainWrong", () => null);
   const submitted = useRef(false);
-
   const replay = useMemo(
-    () => (data ? replayChain(data.nodes, data.kind, data.cycle, taps) : null),
+    () => (data ? replayChain(data.nodes, data.cycle, taps) : null),
     [data, taps],
   );
 
-  useEffect(() => {
-    onDraftAnswer?.(encodeChainTaps(taps));
-  }, [taps, onDraftAnswer]);
-
+  useEffect(() => onDraftAnswer?.(encodeChainTaps(taps)), [taps, onDraftAnswer]);
   useEffect(() => {
     if (locked || submitted.current || !replay?.completed) return;
     submitted.current = true;
@@ -148,17 +173,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
   }, [replay?.completed, taps, locked, onSubmit]);
 
   if (!data || !replay) return null;
-
   const tap = (nodeId: number) => {
     if (locked || submitted.current || replay.completed) return;
     const node = data.nodes[nodeId];
     if (!node) return;
     const ok =
       !replay.chain.includes(nodeId) &&
-      chainValue(node, data.kind) === chainRequired(replay.rule, replay.index);
-    if (ok) {
-      hapticTick();
-    } else {
+      node.shape === chainRequired(replay.rule, replay.index) &&
+      !chainWouldCross(data.nodes, replay.chain, nodeId);
+    if (ok) hapticTick();
+    else {
       buzz(20);
       playWrong();
       setWrong(nodeId);
@@ -166,43 +190,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
     }
     setTaps((current) => [...current, nodeId]);
   };
-
-  const chainSet = new Set(replay.chain);
+  const used = new Set(replay.chain);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <RuleStrip kind={data.kind} cycle={replay.rule} step={replay.index} />
+      <RuleStrip cycle={replay.rule} step={replay.index} />
       <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        chain{" "}
+        links{" "}
         <span className="text-primary">
           {replay.chain.length} / {CHAIN_LENGTH}
         </span>
       </p>
-
       <div className="relative min-h-0 w-full flex-1">
-        <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
-          {replay.chain.slice(1).map((cell, index) => {
-            const from = data.nodes[replay.chain[index]!]!;
-            const to = data.nodes[cell]!;
-            return (
-              <line
-                key={index}
-                x1={`${from.x}%`}
-                y1={`${from.y}%`}
-                x2={`${to.x}%`}
-                y2={`${to.y}%`}
-                stroke={GLYPH_COLOURS.GOLD}
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-            );
-          })}
-        </svg>
+        <ChainLines nodes={data.nodes} chain={replay.chain} />
         {data.nodes.map((node, index) => (
           <Button
             key={index}
             type="button"
-            disabled={locked}
+            disabled={locked || used.has(index)}
             aria-label={`Node ${index + 1}`}
             data-pointer-index={index}
             onPointerDown={(event) => {
@@ -210,21 +215,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
               const hit = pointerElementIndex(event.currentTarget);
               if (hit !== null) tap(hit);
             }}
-            className={`pointer-events-auto absolute flex items-center justify-center rounded-full border-2 bg-card p-0 ${
-              wrong === index
-                ? "animate-shake border-warn"
-                : chainSet.has(index)
-                  ? "border-primary bg-primary/15"
-                  : "border-border"
-            }`}
-            style={{
-              width: 46,
-              height: 46,
-              left: `calc(${node.x}% - 23px)`,
-              top: `calc(${node.y}% - 23px)`,
-            }}
+            className={`pointer-events-auto absolute flex size-[46px] items-center justify-center rounded-full border-2 p-0 ${wrong === index ? "animate-shake border-warn bg-warn/15 text-warn" : used.has(index) ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-foreground"}`}
+            style={{ left: `calc(${node.x}% - 23px)`, top: `calc(${node.y}% - 23px)` }}
           >
-            <NodeGlyph node={node} size={46} />
+            <NodeGlyph shape={node.shape} size={46} />
           </Button>
         ))}
       </div>
@@ -232,71 +226,47 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "chain") return null;
-  const replay = replayChain(
-    puzzle.nodes,
-    puzzle.kind,
-    puzzle.cycle,
-    decodeChainTaps(myAnswer ?? ""),
-  );
+  const taps = decodeChainTaps(myAnswer ?? "");
+  const replay = replayChain(puzzle.nodes, puzzle.cycle, taps);
+  const errors = taps.filter((_tap, index) => replay.verdicts[index] === false);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((CHAIN_TIME_MS - myMsRemaining) / 100) / 10;
-  const chainSet = new Set(replay.chain);
-
+  const used = new Set(replay.chain);
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
-      <RuleStrip kind={puzzle.kind} cycle={puzzle.cycle} step={replay.chain.length} compact />
-      <div className="relative min-h-0 w-full flex-1">
-        <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
-          {replay.chain.slice(1).map((cell, index) => {
-            const from = puzzle.nodes[replay.chain[index]!]!;
-            const to = puzzle.nodes[cell]!;
-            return (
-              <line
-                key={index}
-                x1={`${from.x}%`}
-                y1={`${from.y}%`}
-                x2={`${to.x}%`}
-                y2={`${to.y}%`}
-                stroke={GLYPH_COLOURS.GOLD}
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            );
-          })}
-        </svg>
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2">
+      <div className="relative h-[min(45vh,300px)] w-full max-w-[300px] shrink">
+        <ChainLines nodes={puzzle.nodes} chain={replay.chain} width={2.5} />
         {puzzle.nodes.map((node, index) => (
           <span
             key={index}
-            className={`absolute flex items-center justify-center rounded-full border-2 bg-card ${
-              chainSet.has(index) ? "border-primary" : "border-border"
-            }`}
-            style={{
-              width: 30,
-              height: 30,
-              left: `calc(${node.x}% - 15px)`,
-              top: `calc(${node.y}% - 15px)`,
-            }}
+            className={`absolute flex size-7 items-center justify-center rounded-full border bg-card ${used.has(index) ? "border-primary text-primary" : "border-border text-foreground"}`}
+            style={{ left: `calc(${node.x}% - 14px)`, top: `calc(${node.y}% - 14px)` }}
           >
-            <NodeGlyph node={node} size={30} />
+            <NodeGlyph shape={node.shape} size={28} />
           </span>
         ))}
+        {errors.map((nodeId, index) => {
+          const node = puzzle.nodes[nodeId];
+          return node ? (
+            <span
+              key={`${nodeId}-${index}`}
+              className="absolute z-10 size-2.5 rounded-full bg-warn ring-2 ring-background"
+              style={{ left: `calc(${node.x}% + 7px)`, top: `calc(${node.y}% - 14px)` }}
+            />
+          ) : null;
+        })}
       </div>
-      <p className="shrink-0 font-display text-xl font-bold">
-        <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {replay.chain.length} / {CHAIN_LENGTH}
-        </span>
-        <span className="ml-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          {replay.errors} error{replay.errors === 1 ? "" : "s"}
-          {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
-        </span>
+      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold">
+        {replay.chain.length} / {CHAIN_LENGTH} · {replay.errors} error
+        {replay.errors === 1 ? "" : "s"}
+        {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
       </p>
     </div>
   );
 }
 
-/** Nodes and the rule come from the server, checked for two right and four wrong at every step. */
 export const chainTapPuzzle: PuzzleDefinition = {
   key: "chain",
   name: "Don't Break the Chain",
@@ -307,8 +277,7 @@ export const chainTapPuzzle: PuzzleDefinition = {
     ({
       type: "chain",
       nodes: [],
-      kind: "shape",
-      cycle: ["triangle", "circle", "square"],
+      cycle: ["circle", "square", "triangle"],
     }) satisfies ChainPuzzleData,
   check: () => false,
   revealHeading: "Your chain",

@@ -370,13 +370,12 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewer tilts earns a bonus.",
   },
   chain: {
-    goal: "Tap the nodes in the order the rule says — and keep going.",
+    goal: "Tap the shapes in the order shown, without crossing your own line.",
     how: [
-      { action: "Follow the cycle", detail: "because after the last item it starts again." },
-      { action: "Tap twelve in a row", detail: "to finish the chain." },
-      { action: "Avoid wrong taps", detail: "because each one costs points." },
+      { action: "Follow the cycle", detail: "— it repeats." },
+      { action: "Keep your chain", detail: "from crossing itself." },
     ],
-    score: "Twelve in a row, fast.",
+    score: "Twelve links, fast, no mistakes.",
   },
   intruder: {
     goal: "One thing changes. Find it.",

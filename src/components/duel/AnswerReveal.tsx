@@ -83,6 +83,7 @@ export function AnswerReveal({
   );
   const def = puzzleDef(puzzle.type);
   const Reveal = def.Reveal;
+  const puzzleOwnsRevealLayout = puzzle.type === "chain" || puzzle.type === "intruder";
   const cued = useRef(0);
 
   useEffect(() => {
@@ -108,10 +109,12 @@ export function AnswerReveal({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
-        <Verdict correct={myCorrect} />
-        <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-          {def.revealHeading ?? "The answer was"}
-        </p>
+        {!puzzleOwnsRevealLayout ? <Verdict correct={myCorrect} /> : null}
+        {!puzzleOwnsRevealLayout ? (
+          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+            {def.revealHeading ?? "The answer was"}
+          </p>
+        ) : null}
         <div className="answer-reveal-content flex min-h-0 w-full flex-col items-center justify-center overflow-hidden animate-rise-settle">
           {answersReady ? (
             <Reveal

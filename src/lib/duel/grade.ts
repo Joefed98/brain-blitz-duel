@@ -543,7 +543,7 @@ export function gradeSubmission(
     }
     case "chain": {
       // The tap list is re-walked against the rule; wrong taps never advance.
-      const replay = replayChain(puzzle.nodes, puzzle.kind, puzzle.cycle, decodeChainTaps(answer));
+      const replay = replayChain(puzzle.nodes, puzzle.cycle, decodeChainTaps(answer));
       isCorrect = replay.completed;
       correctCount = replay.chain.length;
       errors = replay.errors;

@@ -1,18 +1,70 @@
 /**
- * Don't Break the Chain rules. The cycle repeats forever: the value needed at
- * step `n` is `cycle[n % 3]`. The phone draws the chain from the same replay the
- * server uses to grade it.
+ * Don't Break the Chain rules. The shape cycle repeats forever. A correct node
+ * must be unused, match the next shape, and add a segment that does not cross
+ * the existing chain. The phone and server grade through this same replay.
  */
 
-import { CHAIN_CYCLE, CHAIN_LENGTH, type ChainNode, type ChainRuleKind } from "./types";
-
-export function chainValue(node: ChainNode, kind: ChainRuleKind): string {
-  return kind === "shape" ? node.shape : node.colour;
-}
+import { CHAIN_CYCLE, CHAIN_LENGTH, type ChainNode, type ChainShape } from "./types";
 
 /** What the next tap has to be, at any point in the chain. */
-export function chainRequired(cycle: string[], step: number): string {
+export function chainRequired(cycle: ChainShape[], step: number): ChainShape {
   return cycle[step % CHAIN_CYCLE]!;
+}
+
+const EPSILON = 0.0001;
+
+function orientation(a: ChainNode, b: ChainNode, c: ChainNode): number {
+  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+}
+
+function onSegment(a: ChainNode, b: ChainNode, point: ChainNode): boolean {
+  return (
+    point.x >= Math.min(a.x, b.x) - EPSILON &&
+    point.x <= Math.max(a.x, b.x) + EPSILON &&
+    point.y >= Math.min(a.y, b.y) - EPSILON &&
+    point.y <= Math.max(a.y, b.y) + EPSILON
+  );
+}
+
+/** True when two closed line segments touch or cross. */
+export function chainSegmentsIntersect(
+  a: ChainNode,
+  b: ChainNode,
+  c: ChainNode,
+  d: ChainNode,
+): boolean {
+  const abC = orientation(a, b, c);
+  const abD = orientation(a, b, d);
+  const cdA = orientation(c, d, a);
+  const cdB = orientation(c, d, b);
+  if (
+    ((abC > EPSILON && abD < -EPSILON) || (abC < -EPSILON && abD > EPSILON)) &&
+    ((cdA > EPSILON && cdB < -EPSILON) || (cdA < -EPSILON && cdB > EPSILON))
+  ) {
+    return true;
+  }
+  return (
+    (Math.abs(abC) <= EPSILON && onSegment(a, b, c)) ||
+    (Math.abs(abD) <= EPSILON && onSegment(a, b, d)) ||
+    (Math.abs(cdA) <= EPSILON && onSegment(c, d, a)) ||
+    (Math.abs(cdB) <= EPSILON && onSegment(c, d, b))
+  );
+}
+
+/** Would appending `next` cross an existing segment? The shared last endpoint is excluded. */
+export function chainWouldCross(nodes: ChainNode[], chain: number[], next: number): boolean {
+  if (chain.length < 2) return false;
+  const last = chain[chain.length - 1];
+  if (last === undefined) return false;
+  const from = nodes[last];
+  const to = nodes[next];
+  if (!from || !to) return true;
+  for (let index = 1; index < chain.length - 1; index++) {
+    const a = nodes[chain[index - 1]!];
+    const b = nodes[chain[index]!];
+    if (a && b && chainSegmentsIntersect(a, b, from, to)) return true;
+  }
+  return false;
 }
 
 export function encodeChainTaps(taps: number[]): string {
@@ -29,7 +81,7 @@ export function decodeChainTaps(raw: string): number[] {
 
 export interface ChainReplay {
   /** The exact repeating three-item rule used by this round. */
-  rule: string[];
+  rule: ChainShape[];
   /** Number of accepted nodes; also selects rule[index % 3]. */
   index: number;
   /** Correct taps, in order — the gold chain. */
@@ -41,12 +93,7 @@ export interface ChainReplay {
 }
 
 /** The one place a tap list becomes a chain — used on the phone and the server. */
-export function replayChain(
-  nodes: ChainNode[],
-  kind: ChainRuleKind,
-  cycle: string[],
-  taps: number[],
-): ChainReplay {
+export function replayChain(nodes: ChainNode[], cycle: ChainShape[], taps: number[]): ChainReplay {
   const chain: number[] = [];
   const verdicts: boolean[] = [];
   let errors = 0;
@@ -60,7 +107,9 @@ export function replayChain(
       continue;
     }
     const ok =
-      !chain.includes(tap) && chainValue(node, kind) === chainRequired(cycle, chain.length);
+      !chain.includes(tap) &&
+      node.shape === chainRequired(cycle, chain.length) &&
+      !chainWouldCross(nodes, chain, tap);
     verdicts.push(ok);
     if (ok) chain.push(tap);
     else errors++;
