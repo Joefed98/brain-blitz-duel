@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick, useGridPointer } from "@/components/puzzles/GridDrag";
@@ -248,10 +248,7 @@ function Stage({
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "intruder") return null;
   const taps = decodeIntruderTaps(myAnswer ?? "");
-  const answers = useMemo(
-    () => puzzle.boards.map((board) => changedCell(board)),
-    [puzzle.boards],
-  );
+  const answers = puzzle.boards.map((board) => changedCell(board));
   const correct = answers.filter((cell, index) => (taps[index] ?? []).includes(cell)).length;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((INTRUDER_TIME_MS - myMsRemaining) / 100) / 10;

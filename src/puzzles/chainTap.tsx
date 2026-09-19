@@ -22,13 +22,10 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const STAR_FREE_SHAPES = { circle: true, square: true, triangle: true } as const;
-
 /** One node: its shape, in its colour, on a dark disc. */
 function NodeGlyph({ node, size }: { node: ChainNode; size: number }) {
   const fill = GLYPH_COLOURS[node.colour];
   const inner = Math.round(size * 0.62);
-  void STAR_FREE_SHAPES;
   return (
     <svg width={inner} height={inner} viewBox="0 0 24 24" aria-hidden="true">
       {node.shape === "circle" && <circle cx="12" cy="12" r="9.5" fill={fill} />}
