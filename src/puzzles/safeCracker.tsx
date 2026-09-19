@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { hapticTick, useSwipe } from "@/components/puzzles/GridDrag";
 import { clueHolds, dialsCorrect, decodeSafeTries, encodeSafeTries } from "@/lib/duel/safe";
@@ -248,8 +248,3 @@ export const safeCrackerPuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
-
-export const safeCrackerDialsCorrect = dialsCorrect;
-
-/** Keeps the unused-import linter honest about the shared memo helper. */
-export const safeCrackerMemo = useMemo;
