@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { gridCellCentre, hapticTick, useGridMetrics } from "@/components/puzzles/GridDrag";
+import { Button } from "@/components/ui/button";
 import {
   decodeGravityTilts,
   encodeGravityTilts,
@@ -51,9 +52,11 @@ function Board({
 
   return (
     <div
-      className="relative aspect-square max-h-full w-full"
+      className="relative shrink-0"
       style={{
-        maxWidth: size ?? undefined,
+        width: size ?? "100%",
+        height: size ?? "auto",
+        aspectRatio: "1 / 1",
         transform: tiltStyle,
         transition: "transform 200ms ease",
       }}
@@ -144,15 +147,17 @@ function TiltButton({
   disabled: boolean;
 }) {
   return (
-    <button
+    <Button
       type="button"
       disabled={disabled}
       aria-label={`Tilt ${dir}`}
       onClick={() => onPress(dir)}
-      className="tap-target flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card font-display text-xl font-bold text-foreground disabled:opacity-40"
+      variant="outline"
+      size="icon"
+      className="tap-target h-[52px] w-[52px] rounded-xl font-display text-xl font-bold"
     >
       {ARROWS[dir]}
-    </button>
+    </Button>
   );
 }
 
@@ -167,6 +172,8 @@ function Stage({
   const [tilts, setTilts] = useStageState<GravityDir[]>(stateKey, "gravityTilts", () => []);
   const [lean, setLean] = useStageState<GravityDir | null>(stateKey, "gravityLean", () => null);
   const submitted = useRef(false);
+  const boardSpaceRef = useRef<HTMLDivElement | null>(null);
+  const boardSpace = useGridMetrics(boardSpaceRef, 1, 1);
 
   const replay = useMemo(
     () =>
@@ -210,36 +217,48 @@ function Stage({
         tilts <span className="text-primary">{replay.tilts}</span>
       </p>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <Board data={data} balls={replay.balls} lean={lean} />
+      <div ref={boardSpaceRef} className="flex min-h-0 flex-1 items-center justify-center">
+        {boardSpace ? (
+          <Board
+            data={data}
+            balls={replay.balls}
+            lean={lean}
+            size={Math.max(0, Math.floor(Math.min(boardSpace.width, boardSpace.height)))}
+          />
+        ) : null}
       </div>
 
-      <div className="flex shrink-0 items-center justify-center gap-4">
-        <div className="flex flex-col items-center gap-1">
+      <div className="mt-2 flex shrink-0 items-center justify-center gap-4">
+        <div className="grid grid-cols-3 grid-rows-3 gap-3">
+          <span aria-hidden="true" />
           <TiltButton dir="U" onPress={press} disabled={locked} />
-          <div className="flex gap-1">
-            <TiltButton dir="L" onPress={press} disabled={locked} />
-            <TiltButton dir="R" onPress={press} disabled={locked} />
-          </div>
+          <span aria-hidden="true" />
+          <TiltButton dir="L" onPress={press} disabled={locked} />
+          <span aria-hidden="true" />
+          <TiltButton dir="R" onPress={press} disabled={locked} />
+          <span aria-hidden="true" />
           <TiltButton dir="D" onPress={press} disabled={locked} />
+          <span aria-hidden="true" />
         </div>
         <div className="flex flex-col gap-2">
-          <button
+          <Button
             type="button"
+            variant="outline"
             disabled={locked || !tilts.length}
             onClick={() => setTilts((current) => current.slice(0, -1))}
-            className="h-10 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+            className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
           >
             Undo
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
             disabled={locked || !tilts.length}
             onClick={() => setTilts([])}
-            className="h-10 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+            className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
           >
             Reset
-          </button>
+          </Button>
         </div>
       </div>
     </div>
