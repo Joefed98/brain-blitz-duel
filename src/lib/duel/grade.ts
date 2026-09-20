@@ -170,8 +170,15 @@ export function gradeSubmission(
       const shortestLength = puzzle.shortestLength ?? 0;
       isCorrect = verdict.solved;
       correctCount = verdict.validRungs.length;
-      score = scoreWordLadder(isCorrect, correctCount, shortestLength, ms);
-      extraDetail = { rungsUsed: correctCount + 1, shortestLength };
+      // How close the last good rung came: the positions that still differ.
+      const last = verdict.validRungs[verdict.validRungs.length - 1] ?? puzzle.startWord;
+      const target = puzzle.targetWord;
+      const lettersAway =
+        last.length === target.length
+          ? [...target].filter((letter, i) => last[i] !== letter).length
+          : target.length;
+      score = scoreWordLadder(isCorrect, correctCount, shortestLength, ms, lettersAway);
+      extraDetail = { rungsUsed: correctCount + 1, shortestLength, lettersAway };
       break;
     }
     case "numclimb": {
@@ -294,11 +301,13 @@ export function gradeSubmission(
       break;
     }
     case "numhunt": {
-      const reached = Number.parseInt(answer.split(",")[0] ?? "0", 10);
+      const parsed = Number.parseInt(answer.split(",")[0] ?? "0", 10);
+      const reached = Number.isFinite(parsed) ? clamp(parsed, 0, NUMHUNT_COUNT) : 0;
       errors = clamp(extra.errors ?? 0, 0, 99);
-      const finished = Number.isFinite(reached) && reached >= NUMHUNT_COUNT;
+      const finished = reached >= NUMHUNT_COUNT;
       isCorrect = finished;
-      score = scoreNumberHunt(finished, ms, errors);
+      correctCount = reached;
+      score = scoreNumberHunt(finished, ms, errors, reached, NUMHUNT_COUNT);
       break;
     }
     case "target": {
@@ -316,10 +325,20 @@ export function gradeSubmission(
     }
     case "unblock": {
       // The phone sends its slides; every one is replayed on the stored layout.
-      const replay = replayUnblock(puzzle.vehicles, decodeMoves(answer));
+      const played = decodeMoves(answer);
+      const replay = replayUnblock(puzzle.vehicles, played);
       const min = puzzle.minMoves ?? 0;
       isCorrect = replay.solved;
-      score = scoreUnblock(replay.solved, ms, replay.moves, min);
+      let progress = 0;
+      let fewerBlockers = false;
+      if (!replay.solved) {
+        // How much of the solver's distance the player closed.
+        const startDistance = unblockDistance(puzzle.vehicles) ?? min;
+        const left = unblockDistance(replay.vehicles);
+        if (left !== null && startDistance > 0) progress = 1 - left / startDistance;
+        fewerBlockers = blockingCars(replay.vehicles) < blockingCars(puzzle.vehicles);
+      }
+      score = scoreUnblock(replay.solved, ms, replay.moves, min, progress, fewerBlockers);
       extraDetail = { solved: replay.solved, moves: replay.moves, minMoves: min };
       break;
     }
@@ -344,7 +363,14 @@ export function gradeSubmission(
       const min = puzzle.minPresses ?? 0;
       isCorrect = presses.length > 0 && lightsAllOff(finalState);
       correctCount = presses.length;
-      score = scoreLightsOut(isCorrect, presses.length, min, ms, startOn - leftOn, startOn);
+      // A tap counts when it belongs to the stored solution and was made an
+      // odd number of times, so it still stands at the end.
+      const counts = new Map<number, number>();
+      for (const cell of presses) counts.set(cell, (counts.get(cell) ?? 0) + 1);
+      const correctTaps = (puzzle.solution ?? []).filter(
+        (cell) => (counts.get(cell) ?? 0) % 2 === 1,
+      ).length;
+      score = scoreLightsOut(isCorrect, presses.length, min, ms, leftOn, correctTaps);
       extraDetail = {
         presses: presses.length,
         minPresses: min,
@@ -395,12 +421,23 @@ export function gradeSubmission(
       const arrows = puzzle.arrows ?? [];
       const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, moves, arrows);
       const min = puzzle.minMoves ?? 0;
-      const away = replay.solved
-        ? null
-        : slideDistance(puzzle.walls, holes, replay.cell, puzzle.exit, puzzle.start, arrows);
+      const distanceTo = (cell: number) =>
+        slideDistance(puzzle.walls, holes, cell, puzzle.exit, puzzle.start, arrows);
+      const away = replay.solved ? null : distanceTo(replay.cell);
+      // Credit follows the closest square the ball ever reached.
+      let progress = 0;
+      if (!replay.solved) {
+        const startDistance = distanceTo(puzzle.start);
+        const best = replay.visited
+          .map(distanceTo)
+          .filter((value): value is number => value !== null);
+        if (startDistance && startDistance > 0 && best.length > 0) {
+          progress = 1 - Math.min(...best) / startDistance;
+        }
+      }
       isCorrect = replay.solved;
       correctCount = replay.moves;
-      score = scoreIceSlide(replay.solved, replay.moves, min, ms, away);
+      score = scoreIceSlide(replay.solved, replay.moves, min, ms, progress);
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,
