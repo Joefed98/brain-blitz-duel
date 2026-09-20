@@ -154,7 +154,7 @@ function Rings({
         </g>
       )}
       {[1, 2].map((ring) => {
-        const y = centre - (radiusOf(ring) + innerOf(ring)) / 2;
+        const y = centre - (radiusOf(ring) + innerOf(ring + 1)) / 2;
         return (
           <g key={`link-${ring}`} pointerEvents="none">
             <ellipse

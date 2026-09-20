@@ -39,6 +39,10 @@ function check(label: string, ok: boolean) {
 }
 
 check("nonogram bank has forty pictograms", NONO_PICTOGRAMS.length >= 40);
+check(
+  "nonogram bank entries are full 9 by 9 pictures",
+  NONO_PICTOGRAMS.every((picture) => picture.length === NONO_SIZE * NONO_SIZE),
+);
 check("nonogram bank has usable pictograms", nonoUsablePictograms().length >= 10);
 
 for (let round = 0; round < ROUNDS; round++) {

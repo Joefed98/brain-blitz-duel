@@ -23,4 +23,4 @@
 
 - Added three new types: One-Stroke (logic, 45s), Sliding Tiles (pattern, 60s) and Rotating Rings (pattern, 45s) — server generation, private answers, replay-based grading, reveals, summaries and intros. Proof script: scripts/stroke-tiles-rings-check.ts.
 
-- [ ] Nonogram 9×9 full-grid rebuild and four-ring Rotating Rings controls/generation.
+- [x] Nonogram 9×9 full-grid rebuild and four-ring Rotating Rings controls/generation.

@@ -228,12 +228,12 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
       <div className="flex shrink-0 items-start justify-center gap-2">
-        <Board rows={puzzle.rows} cols={puzzle.cols} marks={solutionMarks} cell={15} />
+        <Board rows={puzzle.rows} cols={puzzle.cols} marks={solutionMarks} cell={14} />
         <Board
           rows={puzzle.rows}
           cols={puzzle.cols}
           marks={myMarks}
-          cell={15}
+          cell={14}
           wrongCells={wrongCells}
         />
       </div>
