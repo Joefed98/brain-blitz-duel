@@ -117,46 +117,64 @@ function soloMinimum(walls: Set<number>, from: number, target: number): number {
   return Number.MAX_SAFE_INTEGER;
 }
 
+/** One random draw, kept only when it clears every rule for the given minimum band. */
+function attemptGravity(minTilts: number): GravityPuzzleData | null {
+  const cells = shuffled(Array.from({ length: GRAV_CELLS }, (_, cell) => cell));
+  const startA = cells[0]!;
+  const startB = cells[1]!;
+  const targetA = cells[2]!;
+  const targetB = cells[3]!;
+  const reserved = new Set([startA, startB, targetA, targetB]);
+
+  const walls = new Set<number>();
+  const wallCount = randInt(GRAV_MIN_WALLS, GRAV_MAX_WALLS);
+  let guard = 0;
+  while (walls.size < wallCount && guard++ < 400) {
+    const cell = randomBelow(GRAV_CELLS);
+    if (reserved.has(cell)) continue;
+    walls.add(cell);
+  }
+
+  const found = gravityMinimum(walls, { a: startA, b: startB }, targetA, targetB);
+  if (!found) return null;
+  if (found.minMoves < minTilts || found.minMoves > GRAV_MAX_TILTS) return null;
+
+  // Neither ball may be a trivial solo run.
+  if (soloMinimum(walls, startA, targetA) < GRAV_SOLO_MIN_TILTS) return null;
+  if (soloMinimum(walls, startB, targetB) < GRAV_SOLO_MIN_TILTS) return null;
+
+  // The shortest solution has to use the balls blocking each other, and at
+  // some point swap which of the two sits ahead — otherwise the joint search
+  // isn't really being exercised.
+  const replay = replayGravity(walls, { a: startA, b: startB }, targetA, targetB, found.solution);
+  if (!replay.solved || !replay.usedBlock) return null;
+  if (!solutionSwapsOrder(walls, { a: startA, b: startB }, found.solution)) return null;
+
+  return {
+    type: "gravity",
+    walls: [...walls].sort((x, y) => x - y),
+    startA,
+    startB,
+    targetA,
+    targetB,
+    minMoves: found.minMoves,
+    solution: encodeGravityTilts(found.solution),
+  };
+}
+
 export function generateGravity(): GravityPuzzleData {
-  for (let attempt = 0; attempt < 600; attempt++) {
-    const cells = shuffled(Array.from({ length: GRAV_CELLS }, (_, cell) => cell));
-    const startA = cells[0]!;
-    const startB = cells[1]!;
-    const targetA = cells[2]!;
-    const targetB = cells[3]!;
-    const reserved = new Set([startA, startB, targetA, targetB]);
-
-    const walls = new Set<number>();
-    const wallCount = randInt(GRAV_MIN_WALLS, GRAV_MAX_WALLS);
-    let guard = 0;
-    while (walls.size < wallCount && guard++ < 400) {
-      const cell = randomBelow(GRAV_CELLS);
-      if (reserved.has(cell)) continue;
-      walls.add(cell);
-    }
-
-    const found = gravityMinimum(walls, { a: startA, b: startB }, targetA, targetB);
-    if (!found) continue;
-    if (found.minMoves < GRAV_MIN_TILTS || found.minMoves > GRAV_MAX_TILTS) continue;
-
-    // Neither ball may be a trivial solo run.
-    if (soloMinimum(walls, startA, targetA) < GRAV_SOLO_MIN_TILTS) continue;
-    if (soloMinimum(walls, startB, targetB) < GRAV_SOLO_MIN_TILTS) continue;
-
-    // The shortest solution has to use the balls blocking each other.
-    const replay = replayGravity(walls, { a: startA, b: startB }, targetA, targetB, found.solution);
-    if (!replay.solved || !replay.usedBlock) continue;
-
-    return {
-      type: "gravity",
-      walls: [...walls].sort((x, y) => x - y),
-      startA,
-      startB,
-      targetA,
-      targetB,
-      minMoves: found.minMoves,
-      solution: encodeGravityTilts(found.solution),
-    };
+  for (let attempt = 0; attempt < GRAV_ATTEMPTS; attempt++) {
+    const puzzle = attemptGravity(GRAV_MIN_TILTS);
+    if (puzzle) return puzzle;
+  }
+  // The full band is hard to hit twice in a row: ease the minimum and warn,
+  // rather than falling straight to the hand-checked board.
+  console.warn(
+    `[gravity] no board cleared ${GRAV_MIN_TILTS}-${GRAV_MAX_TILTS} tilts in ${GRAV_ATTEMPTS} attempts, easing minimum to ${GRAV_FALLBACK_MIN_TILTS}`,
+  );
+  for (let attempt = 0; attempt < GRAV_ATTEMPTS; attempt++) {
+    const puzzle = attemptGravity(GRAV_FALLBACK_MIN_TILTS);
+    if (puzzle) return puzzle;
   }
   // Nothing random left to try: keep the room moving with a proven fallback.
   return fallbackBoard();
