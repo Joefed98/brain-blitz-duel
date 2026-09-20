@@ -68,6 +68,24 @@ export function countChainSolutions(
   return count;
 }
 
+function collectChainSolutions(
+  nodes: ChainNode[],
+  cycle: ChainShape[],
+  cap = CHAIN_SOLUTION_CAP,
+): number[][] {
+  const solutions: number[][] = [];
+  const search = (chain: number[]) => {
+    if (solutions.length >= cap) return;
+    if (chain.length >= CHAIN_LENGTH) {
+      solutions.push(chain);
+      return;
+    }
+    for (const choice of validChoices(nodes, cycle, chain)) search([...chain, choice]);
+  };
+  search([]);
+  return solutions;
+}
+
 /** Early shape-valid choices which cannot be extended to twelve links. */
 export function chainTrapNodes(nodes: ChainNode[], cycle: ChainShape[]): number[] {
   const traps = new Set<number>();
@@ -158,8 +176,10 @@ export function generateChain(): ChainPuzzleData {
 
     const solutionCount = countChainSolutions(nodes, cycle);
     if (solutionCount < 1 || solutionCount > 8) continue;
-    const solution = findChainSolution(nodes, cycle);
-    if (!solution || !chainSolutionIsFair(nodes, cycle, solution)) continue;
+    const solution = collectChainSolutions(nodes, cycle, 8).find((candidate) =>
+      chainSolutionIsFair(nodes, cycle, candidate),
+    );
+    if (!solution) continue;
     if (chainTrapNodes(nodes, cycle).length < 2) continue;
     return { type: "chain", nodes, cycle, solution, solutionCount };
   }
