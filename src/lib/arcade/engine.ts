@@ -85,6 +85,8 @@ export interface ArcadeGame<S, I = boolean> {
   isOver: (state: S) => boolean;
   score: (state: S) => number;
   draw: (ctx: CanvasRenderingContext2D, state: S, size: CanvasSize) => void;
+  /** Declared payload ranges, for games that take structured input events. */
+  inputRanges?: readonly InputRange[];
 }
 
 /** The largest input log the server will look at. */
@@ -107,6 +109,107 @@ export function checkInputLog(inputs: number[], runTicks: number): InputLogCheck
     previous = tick;
   }
   return { ok: true };
+}
+
+/* ========================== Structured inputs ========================== */
+
+/**
+ * One input event. Every field is an integer: `t` is the sim tick the client
+ * applied it on, `k` the kind (0 = a plain tap, as the first three games use)
+ * and `a`–`d` the payload. A game module declares the ranges its payload may
+ * take, and the server refuses anything outside them.
+ */
+export interface ArcadeInputEvent {
+  t: number;
+  k: number;
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+}
+
+/** The largest event log the server will look at. */
+export const MAX_INPUT_EVENTS = 2000;
+
+export type InputBound = readonly [number, number];
+
+export interface InputRange {
+  k: number;
+  a: InputBound;
+  b: InputBound;
+  c: InputBound;
+  d: InputBound;
+}
+
+const ZERO: InputBound = [0, 0];
+
+/** Declares one kind of event and the range each payload field may take. */
+export function inputRange(
+  k: number,
+  a: InputBound = ZERO,
+  b: InputBound = ZERO,
+  c: InputBound = ZERO,
+  d: InputBound = ZERO,
+): InputRange {
+  return { k, a, b, c, d };
+}
+
+function withinBound(value: number, bound: InputBound): boolean {
+  return Number.isInteger(value) && value >= bound[0] && value <= bound[1];
+}
+
+/**
+ * Events must be whole ticks inside the run, non-decreasing in tick, of a kind
+ * the game declares, and carry payload values inside that kind's ranges.
+ */
+export function checkInputEvents(
+  events: readonly ArcadeInputEvent[],
+  runTicks: number,
+  ranges: readonly InputRange[],
+): InputLogCheck {
+  if (events.length > MAX_INPUT_EVENTS) return { ok: false, reason: "too many inputs" };
+  let previous = 0;
+  for (const event of events) {
+    if (!Number.isInteger(event.t) || event.t < 1 || event.t > runTicks) {
+      return { ok: false, reason: "input outside the run" };
+    }
+    if (event.t < previous) return { ok: false, reason: "inputs out of order" };
+    previous = event.t;
+    const range = ranges.find((item) => item.k === event.k);
+    if (!range) return { ok: false, reason: "unknown input kind" };
+    if (
+      !withinBound(event.a, range.a) ||
+      !withinBound(event.b, range.b) ||
+      !withinBound(event.c, range.c) ||
+      !withinBound(event.d, range.d)
+    ) {
+      return { ok: false, reason: "input payload out of range" };
+    }
+  }
+  return { ok: true };
+}
+
+export function encodeInputEvents(events: readonly ArcadeInputEvent[]): string {
+  return events
+    .map((event) => [event.t, event.k, event.a, event.b, event.c, event.d].join(":"))
+    .join(",");
+}
+
+export function decodeInputEvents(raw: string): ArcadeInputEvent[] {
+  return String(raw ?? "")
+    .split(",")
+    .filter(Boolean)
+    .slice(0, MAX_INPUT_EVENTS + 1)
+    .map((part) => part.split(":").map((value) => Number.parseInt(value, 10)))
+    .filter((values) => values.length === 6 && values.every(Number.isInteger))
+    .map(([t, k, a, b, c, d]) => ({
+      t: t ?? 0,
+      k: k ?? 0,
+      a: a ?? 0,
+      b: b ?? 0,
+      c: c ?? 0,
+      d: d ?? 0,
+    }));
 }
 
 export interface ReplayOutcome<S> {
