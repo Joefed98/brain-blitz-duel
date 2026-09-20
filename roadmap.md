@@ -29,3 +29,7 @@
 ## Scoring amendments (21 types)
 
 - [x] Wordsmith/Word Hunt score their word points directly; Word Ladder, Word Match, Target, Number Sequence, Equation, Maze Dash, Sort the Tubes, Spot the Difference, Sliding Tiles, Lights Out, Pipes, Number Hunt, Count Up, Unblock, Ice Slide, Gravity Maze, Laser and Symbol Scan rescored with progress-based partial credit; SCORE lines and word reveals updated.
+
+## Hover integrity
+
+- [x] Integer-only shared constants, 300-tick client/server state checksums, first-desync reporting, and 200-run path equivalence proof.
