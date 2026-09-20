@@ -12,7 +12,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   blockparty: ["solution", "solutions"],
   groups: ["groups"],
   target: ["solution"],
-  numseq: ["answer", "rule"],
+  numseq: ["answers"],
   ladder: ["shortestLength", "shortestPath"],
   equation: ["operators"],
   symscan: ["targets"],

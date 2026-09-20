@@ -115,13 +115,26 @@ export interface TargetNumberPuzzleData {
   solution: TargetStep[];
 }
 
-export interface NumberSequencePuzzleData {
-  type: "numseq";
+/** One sequence in the quick-fire run: five terms, four options, one rule. */
+export interface SequenceItem {
+  /** The five terms shown before the blank. */
   numbers: number[];
-  answer: number;
-  /** Plain-English name of the rule, shown on the answer reveal. */
+  /** Four options in their stored order — one correct, three near misses. */
+  options: number[];
+  /** Short rule text ("+5", "×2 then +1"), shown on the answer reveal. */
   rule: string;
 }
+
+export interface NumberSequencePuzzleData {
+  type: "numseq";
+  items: SequenceItem[];
+  /** Server-side only, until the reveal: the correct option index per item. */
+  answers?: number[];
+}
+
+/** Number Sequence: five sequences over 30 seconds. */
+export const NUMSEQ_ITEMS = 5;
+export const NUMSEQ_TIME_MS = 30_000;
 
 export interface SequencePuzzleData {
   type: "sequence" | "reverse";
