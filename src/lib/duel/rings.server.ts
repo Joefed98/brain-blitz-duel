@@ -1,9 +1,9 @@
 /**
  * Server-only generation for Rotating Rings. Each ring starts with the same
  * colour sequence (so every spoke is one colour), then the board is scrambled
- * with legal taps — honouring the middle-to-outer link — and a breadth-first
- * search over the 8 × 8 × 8 offset states proves the exact minimum. Only boards
- * needing 5–9 taps are kept.
+ * with legal turns — honouring both outward links — and a breadth-first search
+ * over the 8⁴ offset states proves the exact minimum. Only boards needing 6–10
+ * turns are kept.
  */
 
 import { pick, randInt, shuffled } from "./random";

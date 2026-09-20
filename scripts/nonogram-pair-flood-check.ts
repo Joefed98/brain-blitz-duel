@@ -39,6 +39,10 @@ function check(label: string, ok: boolean) {
 }
 
 check("nonogram bank has forty pictograms", NONO_PICTOGRAMS.length >= 40);
+check(
+  "nonogram bank entries are full 9 by 9 pictures",
+  NONO_PICTOGRAMS.every((picture) => picture.length === NONO_SIZE * NONO_SIZE),
+);
 check("nonogram bank has usable pictograms", nonoUsablePictograms().length >= 10);
 
 for (let round = 0; round < ROUNDS; round++) {
@@ -48,6 +52,14 @@ for (let round = 0; round < ROUNDS; round++) {
   const clues = cluesFor(pattern);
   check("nonogram picture is stored", pattern.length === NONO_SIZE * NONO_SIZE);
   check("nonogram filled count in band", filled >= NONO_MIN_FILLED && filled <= NONO_MAX_FILLED);
+  check(
+    "nonogram every row is used",
+    clues.rows.every((clue) => clue.length > 0),
+  );
+  check(
+    "nonogram every column is used",
+    clues.cols.every((clue) => clue.length > 0),
+  );
   check(
     "nonogram clues describe the picture",
     JSON.stringify(clues) === JSON.stringify({ rows: puzzle.rows, cols: puzzle.cols }),

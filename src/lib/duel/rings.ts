@@ -5,7 +5,7 @@
  * exactly this code.
  */
 
-import { RINGS_COUNT, RINGS_LINKED_FROM, RINGS_LINKED_TO, RINGS_SEGMENTS } from "./types";
+import { RINGS_COUNT, RINGS_LINKS, RINGS_SEGMENTS } from "./types";
 
 /** A tap is packed as ring × 2, plus one for anticlockwise. */
 export function encodeRingTap(ring: number, clockwise: boolean): number {
@@ -26,15 +26,16 @@ export function freshOffsets(): number[] {
   return Array.from({ length: RINGS_COUNT }, () => 0);
 }
 
-/** Applies one tap, honouring the middle-to-outer link. */
+/** Applies one turn, honouring both outward links. */
 export function ringsApply(offsets: number[], tap: number): number[] {
   const ring = ringOfTap(tap);
   if (ring < 0 || ring >= RINGS_COUNT) return offsets;
   const step = tapIsClockwise(tap) ? 1 : RINGS_SEGMENTS - 1;
   const next = [...offsets];
   next[ring] = ((next[ring] ?? 0) + step) % RINGS_SEGMENTS;
-  if (ring === RINGS_LINKED_FROM) {
-    next[RINGS_LINKED_TO] = ((next[RINGS_LINKED_TO] ?? 0) + step) % RINGS_SEGMENTS;
+  for (const [from, to] of RINGS_LINKS) {
+    if (ring !== from) continue;
+    next[to] = ((next[to] ?? 0) + step) % RINGS_SEGMENTS;
   }
   return next;
 }

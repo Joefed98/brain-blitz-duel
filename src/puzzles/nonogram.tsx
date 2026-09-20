@@ -44,7 +44,7 @@ function Board({
 
   return (
     <div
-      className="grid gap-[3px]"
+      className="grid gap-0"
       style={{
         gridTemplateColumns: `auto repeat(${size}, ${cell}px)`,
         gridTemplateRows: `auto repeat(${size}, ${cell}px)`,
@@ -54,7 +54,7 @@ function Board({
       {cols.map((clue, col) => (
         <span
           key={`c${col}`}
-          className={`flex items-end justify-center whitespace-pre pb-0.5 font-mono text-[11px] leading-tight ${
+          className={`flex items-end justify-center whitespace-pre pb-1 font-mono text-[12px] leading-none ${
             lineSatisfied(clue, cellsOf("col", col))
               ? "text-muted-foreground/40"
               : "text-foreground"
@@ -66,13 +66,15 @@ function Board({
       {rows.map((clue, row) => (
         <Fragment key={`r${row}`}>
           <span
-            className={`flex items-center justify-end pr-1 font-mono text-[13px] ${
+            className={`flex max-w-9 items-center justify-end gap-0.5 pr-1 font-mono text-[12px] leading-none ${
               lineSatisfied(clue, cellsOf("row", row))
                 ? "text-muted-foreground/40"
                 : "text-foreground"
             }`}
           >
-            {clueText(clue)}
+            {clue.map((run, index) => (
+              <span key={`${row}-${index}`}>{run}</span>
+            ))}
           </span>
           {Array.from({ length: size }, (_, col) => {
             const index = row * size + col;
@@ -85,7 +87,7 @@ function Board({
                 type="button"
                 aria-label={`Row ${row + 1} column ${col + 1}`}
                 onPointerDown={onCell ? () => onCell(index) : undefined}
-                className={`flex items-center justify-center rounded-[4px] border text-[13px] font-bold ${
+                className={`flex items-center justify-center border text-[13px] font-bold ${
                   wrong
                     ? "border-warn bg-warn/30 text-warn"
                     : gold || mark === 1
@@ -103,18 +105,35 @@ function Board({
   );
 }
 
-const EXAMPLE_PATTERN = [false, true, false, true, true, true, false, true, false];
+const EXAMPLE_PATTERN = [
+  false,
+  true,
+  true,
+  false,
+  true,
+  false,
+  false,
+  true,
+  true,
+  false,
+  false,
+  true,
+  false,
+  true,
+  true,
+  false,
+];
 
-/** Fixed intro example — a 3×3 cross, clues and all. */
+/** Fixed intro example — a 4×4 diamond, clues and all. */
 function IntroExample() {
-  const rows = [[1], [3], [1]];
-  const cols = [[1], [3], [1]];
+  const rows = [[2], [1, 1], [1, 1], [2]];
+  const cols = [[2], [1, 1], [1, 1], [2]];
   const marks = EXAMPLE_PATTERN.map((cell) => (cell ? 1 : 0)) as NonoMarks;
   return (
     <div className="flex w-full flex-col items-center gap-2">
-      <Board rows={rows} cols={cols} marks={marks} size={3} cell={28} />
+      <Board rows={rows} cols={cols} marks={marks} size={4} cell={24} />
       <p className="text-center text-xs text-muted-foreground">
-        The numbers are the run lengths — this one is a cross.
+        The numbers are the run lengths — this one is a diamond.
       </p>
     </div>
   );
@@ -182,7 +201,7 @@ function Stage({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-      <Board rows={data.rows} cols={data.cols} marks={marks} onCell={tap} />
+      <Board rows={data.rows} cols={data.cols} marks={marks} onCell={tap} cell={34} />
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
         Tap to fill, again to mark empty, again to clear.
       </p>
@@ -208,13 +227,13 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
-      <div className="flex shrink-0 items-start justify-center gap-4">
-        <Board rows={puzzle.rows} cols={puzzle.cols} marks={solutionMarks} cell={26} />
+      <div className="flex shrink-0 items-start justify-center gap-2">
+        <Board rows={puzzle.rows} cols={puzzle.cols} marks={solutionMarks} cell={14} />
         <Board
           rows={puzzle.rows}
           cols={puzzle.cols}
           marks={myMarks}
-          cell={26}
+          cell={14}
           wrongCells={wrongCells}
         />
       </div>
