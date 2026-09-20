@@ -65,6 +65,9 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   // The seed is what draws the course, so the phone needs it to play; the run
   // itself is replayed on the server, so nothing is given away.
   hover: [],
+  swerve: [],
+  skyline: [],
+
 };
 
 type Loose = Record<string, unknown>;

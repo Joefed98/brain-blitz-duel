@@ -24,6 +24,9 @@ import { decodeStrokeAttempts, replayStroke } from "./stroke";
 import { decodeTileMoves, replayTiles } from "./tiles";
 import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
+import { decodeSwerveRun, replaySwerveRun } from "./swerve";
+import { decodeSkylineRun, replaySkylineRun } from "./skyline";
+
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
 import { countPatternAnswers } from "./pattern";
@@ -761,6 +764,48 @@ export function gradeSubmission(
       };
       break;
     }
+    case "swerve": {
+      // Same rule as Hover: only the server's replay of the stored seed scores.
+      const run = replaySwerveRun(puzzle.seed, answer);
+      isCorrect = run.survived;
+      correctCount = run.coins;
+      score = run.score;
+      extraDetail = {
+        coins: run.coins,
+        totalCoins: run.totalCoins,
+        survived: run.survived,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeSwerveRun(answer).taps.length,
+        claimedScore: decodeSwerveRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "skyline": {
+      const run = replaySkylineRun(puzzle.seed, answer);
+      isCorrect = run.survived;
+      correctCount = run.blocks;
+      score = run.score;
+      extraDetail = {
+        blocks: run.blocks,
+        perfects: run.perfects,
+        survived: run.survived,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeSkylineRun(answer).inputs.length,
+        claimedScore: decodeSkylineRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+
     case "equation": {
       // A true equation wins outright; otherwise every operator in the right
       // place against the stored solution earns part marks.
