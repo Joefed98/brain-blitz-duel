@@ -52,14 +52,14 @@ function Dial({
       onPointerLeave={stop}
       onPointerCancel={stop}
       aria-label={delta > 0 ? "Up" : "Down"}
-      className="font-mono text-base leading-none text-muted-foreground disabled:opacity-40"
+      className="flex size-[52px] items-center justify-center font-mono text-[21px] leading-none text-muted-foreground disabled:opacity-40"
     >
       {label}
     </button>
   );
 
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center">
       {onStep && arrow("▲", 1)}
       <div
         {...swipe}
@@ -67,9 +67,9 @@ function Dial({
           wrong ? "border-warn text-warn" : gold ? "border-primary text-primary" : "border-border"
         }`}
         style={{
-          width: compact ? 34 : 52,
-          height: compact ? 44 : 66,
-          fontSize: compact ? 22 : 34,
+          width: compact ? 34 : 50,
+          height: compact ? 44 : 56,
+          fontSize: compact ? 22 : 28,
           touchAction: "none",
         }}
       >
@@ -145,16 +145,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="min-h-0 shrink-0 rounded-xl border border-border bg-card p-2">
+      <div className="min-h-0 shrink-0 rounded-xl border border-border bg-card px-2 py-1.5">
         {puzzle.clues.map((clue) => (
-          <p key={clue.text} className="text-center text-[13px] leading-snug">
+          <p key={clue.text} className="text-center text-base leading-[1.45]">
             {clue.text}
           </p>
         ))}
       </div>
 
       <div
-        className={`flex min-h-0 flex-1 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-border bg-card/60 p-2 ${
+        className={`flex min-h-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-border bg-card/60 p-1 ${
           shake ? "animate-shake border-warn" : ""
         }`}
       >

@@ -9,6 +9,8 @@ import { pick, randomBelow } from "./random";
 import { intruderColoursTooClose } from "./intruder";
 import {
   INTRUDER_BOARD_SIZES,
+  INTRUDER_BOARD_COLOUR_COUNTS,
+  INTRUDER_BOARD_SHAPE_COUNTS,
   INTRUDER_COLOURS,
   INTRUDER_SHAPES,
   type IntruderAnswer,
@@ -18,25 +20,29 @@ import {
   type IntruderPuzzleData,
 } from "./types";
 
-function randomCell(): IntruderCell {
-  const shape = pick(INTRUDER_SHAPES);
-  return { shape, colour: pick(INTRUDER_COLOURS), rot: 0 };
+function randomCell(colours: typeof INTRUDER_COLOURS, shapes: readonly IntruderCell["shape"][]): IntruderCell {
+  const shape = pick(shapes);
+  return { shape, colour: pick(colours), rot: 0 };
 }
 
 /** The one changed cell, and which attribute moved. */
-function changeCell(cell: IntruderCell): { cell: IntruderCell; kind: IntruderChangeKind } {
+function changeCell(
+  cell: IntruderCell,
+  colours: typeof INTRUDER_COLOURS,
+  shapes: readonly IntruderCell["shape"][],
+): { cell: IntruderCell; kind: IntruderChangeKind } {
   const kind: IntruderChangeKind = randomBelow(2) === 0 ? "colour" : "shape";
 
   if (kind === "colour") {
     for (let guard = 0; guard < 40; guard++) {
-      const colour = pick(INTRUDER_COLOURS);
+      const colour = pick(colours);
       if (colour === cell.colour) continue;
       if (intruderColoursTooClose(colour, cell.colour)) continue;
       return { cell: { ...cell, colour }, kind };
     }
   }
   for (let guard = 0; guard < 40; guard++) {
-    const shape = pick(INTRUDER_SHAPES);
+    const shape = pick(shapes);
     if (shape !== cell.shape) return { cell: { ...cell, shape }, kind: "shape" };
   }
   return { cell: { ...cell, shape: cell.shape === "circle" ? "square" : "circle" }, kind: "shape" };
@@ -47,9 +53,11 @@ export function generateIntruder(): IntruderPuzzleData {
   const answers: IntruderAnswer[] = [];
   let previous: { row: number; col: number } | null = null;
 
-  for (const size of INTRUDER_BOARD_SIZES) {
+  for (const [boardIndex, size] of INTRUDER_BOARD_SIZES.entries()) {
+    const colours = INTRUDER_COLOURS.slice(0, INTRUDER_BOARD_COLOUR_COUNTS[boardIndex]);
+    const shapes = INTRUDER_SHAPES.slice(0, INTRUDER_BOARD_SHAPE_COUNTS[boardIndex]);
     const count = size * size;
-    const cells = Array.from({ length: count }, randomCell);
+    const cells = Array.from({ length: count }, () => randomCell(colours, shapes));
     let target = randomBelow(count);
 
     // The changed cell never sits in the same row and column twice in a row.
@@ -60,7 +68,7 @@ export function generateIntruder(): IntruderPuzzleData {
       target = randomBelow(count);
     }
 
-    const changed = changeCell(cells[target]!);
+    const changed = changeCell(cells[target]!, colours, shapes);
 
     const after = cells.map((cell, index) => (index === target ? changed.cell : cell));
     boards.push({ size, cells, after });

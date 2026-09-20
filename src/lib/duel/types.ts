@@ -1218,17 +1218,17 @@ export interface MazePuzzleData {
 /* ============================ Sort the Tubes ============================ */
 
 export const TUBES_TIME_MS = 60_000;
-export const TUBES_COUNT = 6;
+export const TUBES_COUNT = 8;
 export const TUBE_CAPACITY = 4;
-export const TUBES_COLOURS = 4;
+export const TUBES_COLOURS = 6;
 /** How many reverse pours scramble the solved board. */
-export const TUBES_MIN_SCRAMBLE = 25;
-export const TUBES_MAX_SCRAMBLE = 40;
+export const TUBES_MIN_SCRAMBLE = 40;
+export const TUBES_MAX_SCRAMBLE = 60;
 /** The searched minimum has to land in this band for the board to be used. */
-export const TUBES_MIN_MIN_MOVES = 8;
-export const TUBES_MAX_MIN_MOVES = 14;
+export const TUBES_MIN_MIN_MOVES = 12;
+export const TUBES_MAX_MIN_MOVES = 20;
 /** The breadth-first search gives up past this many states, and we re-roll. */
-export const TUBES_BFS_CAP = 200_000;
+export const TUBES_BFS_CAP = 500_000;
 /** Bonus for solving in the fewest possible pours. */
 export const TUBES_MIN_MOVE_BONUS = 20;
 /** Most an unsolved board can earn, shared out per finished tube. */
@@ -1236,7 +1236,7 @@ export const TUBES_PARTIAL_POINTS = 60;
 
 export interface TubesPuzzleData {
   type: "tubes";
-  /** One tube per entry, bottom ball first, holding colour indices 0–3. */
+  /** One tube per entry, bottom ball first, holding colour indices 0–5. */
   tubes: number[][];
   /** Server-side only: the searched minimum number of pours. */
   minMoves?: number;
@@ -1265,11 +1265,12 @@ export interface SafePuzzleData {
 
 /* ============================ Bomb Defusal ============================= */
 
-export const BOMB_TIME_MS = 60_000;
-export const BOMB_WIRES = 5;
-export const BOMB_RULE_COUNT = 4;
-export const BOMB_MIN_SEQUENCE = 2;
-export const BOMB_MAX_SEQUENCE = 4;
+export const BOMB_TIME_MS = 75_000;
+export const BOMB_WIRES = 7;
+export const BOMB_RULE_COUNT = 6;
+export const BOMB_MIN_SEQUENCE = 3;
+export const BOMB_MAX_SEQUENCE = 6;
+export const BOMB_MIN_EFFECTIVE_RULES = 4;
 /** Base points for defusing with one strike rather than none. */
 export const BOMB_ONE_STRIKE_POINTS = 80;
 /** Points per correct step when the bomb goes off or the clock runs out. */
@@ -1281,6 +1282,7 @@ export interface BombPuzzleData {
   wires: import("./bomb").WireColour[];
   buttons: import("./bomb").BombButton[];
   light: boolean;
+  switchPosition: import("./bomb").BombSwitch;
   /** Three digits on the plate. */
   serial: string;
   /** The rule card, in the order it must be read. */
@@ -1327,7 +1329,7 @@ export interface GravityPuzzleData {
 /* ======================= Don't Break the Chain ========================== */
 
 export const CHAIN_TIME_MS = 30_000;
-export const CHAIN_NODES = 18;
+export const CHAIN_NODES = 20;
 /** Correct taps needed to finish the chain. */
 export const CHAIN_LENGTH = 12;
 /** The rule is a repeating three-step cycle. */
@@ -1359,22 +1361,26 @@ export interface ChainPuzzleData {
   cycle: ChainShape[];
   /** Server-side only: one searched non-crossing chain of twelve node ids. */
   solution?: number[];
+  /** Server-side only: exact count, capped during generation at 200. */
+  solutionCount?: number;
 }
 
 /* ========================= Intruder Detection =========================== */
 
 export const INTRUDER_TIME_MS = 30_000;
 export const INTRUDER_BOARDS = 3;
-/** Two introductory boards, then one slightly denser board. */
-export const INTRUDER_BOARD_SIZES = [3, 3, 4] as const;
+/** All three boards use the same compact grid; content complexity rises. */
+export const INTRUDER_BOARD_SIZES = [3, 3, 3] as const;
 /** How long the grid is on show before it vanishes. */
 export const INTRUDER_SHOW_MS = 4_000;
 export const INTRUDER_HIDE_MS = 500;
 /** Taps allowed per board. */
 export const INTRUDER_ATTEMPTS = 2;
 
-export const INTRUDER_SHAPES = ["circle", "square", "triangle"] as const;
-export const INTRUDER_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "YELLOW"];
+export const INTRUDER_SHAPES = ["circle", "square", "triangle", "star"] as const;
+export const INTRUDER_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "YELLOW", "ORANGE"];
+export const INTRUDER_BOARD_COLOUR_COUNTS = [3, 4, 5] as const;
+export const INTRUDER_BOARD_SHAPE_COUNTS = [2, 3, 4] as const;
 
 export type IntruderShape = (typeof INTRUDER_SHAPES)[number];
 export type IntruderChangeKind = "colour" | "shape";

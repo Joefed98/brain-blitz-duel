@@ -4,6 +4,7 @@ import { hapticTick } from "@/components/puzzles/GridDrag";
 import {
   actionLabel,
   BOMB_MAX_STRIKES,
+  BOMB_SWITCH_POSITIONS,
   cutAction,
   decodeBombActions,
   encodeBombActions,
@@ -13,6 +14,7 @@ import {
   WIRE_HEX,
   type BombAction,
   type BombButton,
+  type BombSwitch,
   type WireColour,
 } from "@/lib/duel/bomb";
 import { useStageState } from "@/lib/duel/stageState";
@@ -27,6 +29,7 @@ interface PanelProps {
   buttons: BombButton[];
   light: boolean;
   serial: string;
+  switchPosition: BombSwitch;
   cutWires?: number[];
   pressed?: ("A" | "B")[];
   strikes?: number;
@@ -42,6 +45,7 @@ function Panel({
   buttons,
   light,
   serial,
+  switchPosition,
   cutWires = [],
   pressed = [],
   strikes = 0,
@@ -56,7 +60,7 @@ function Panel({
         shake ? "animate-shake border-warn" : ""
       }`}
     >
-      <div className="flex items-center justify-between px-1">
+      <div className="flex items-center justify-between gap-2 px-1">
         <span
           aria-hidden="true"
           className="rounded-full"
@@ -73,6 +77,15 @@ function Panel({
         >
           {serial}
         </span>
+        <span className="flex items-center gap-0.5 rounded border border-border bg-card p-0.5" aria-label={`Switch ${switchPosition}`}>
+          {BOMB_SWITCH_POSITIONS.map((position) => (
+            <span
+              key={position}
+              className={`h-2.5 w-3 rounded-sm ${position === switchPosition ? "bg-primary" : "bg-border"}`}
+              title={position}
+            />
+          ))}
+        </span>
         <span className="flex gap-1">
           {Array.from({ length: BOMB_MAX_STRIKES }, (_, index) => (
             <span
@@ -85,7 +98,7 @@ function Panel({
         </span>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-[6px] py-1">
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-1 py-1">
         {wires.map((colour, index) => {
           const isCutWire = cutWires.includes(index);
           return (
@@ -159,12 +172,13 @@ function Panel({
 function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-3">
-      <div style={{ width: 150, height: 96 }}>
+      <div style={{ width: 150, height: 118 }}>
         <Panel
           wires={["RED", "BLUE"]}
           buttons={[{ label: "A", colour: "WHITE" }]}
           light
           serial="317"
+          switchPosition="MID"
           cutWires={[1]}
           compact
         />
@@ -229,6 +243,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: P
           buttons={puzzle.buttons}
           light={puzzle.light}
           serial={puzzle.serial}
+          switchPosition={puzzle.switchPosition}
           cutWires={cutWires}
           pressed={pressed}
           shake={shake}
@@ -269,7 +284,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: P
         </button>
       </div>
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        Tap a wire to cut it, tap a button to press it
+         Check the switch, then tap wires and buttons in rule order
       </p>
     </div>
   );
@@ -340,6 +355,7 @@ export const bombDefusalPuzzle: PuzzleDefinition = {
       ],
       light: false,
       serial: "000",
+      switchPosition: "MID",
       rules: [],
       stepCount: 0,
     }) satisfies BombPuzzleData,

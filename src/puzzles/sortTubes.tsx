@@ -19,13 +19,13 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const BALL_COLOURS = ["RED", "BLUE", "GREEN", "PURPLE"] as const;
+const BALL_COLOURS = ["RED", "BLUE", "GREEN", "PURPLE", "ORANGE", "YELLOW"] as const;
 
 function ballColour(index: number): string {
   return GLYPH_COLOURS[BALL_COLOURS[index % BALL_COLOURS.length]!];
 }
 
-/** Six tall tubes in one row; the lifted tube wears a gold outline. */
+/** Eight tubes in two rows of four; the lifted tube wears a gold outline. */
 function Tubes({
   tubes,
   lifted,
@@ -39,9 +39,9 @@ function Tubes({
   onTube?: ((tube: number) => void) | undefined;
   compact?: boolean;
 }) {
-  const ballSize = compact ? 13 : 22;
+  const ballSize = compact ? 11 : 21;
   return (
-    <div className="flex h-full w-full items-end justify-center gap-2">
+    <div className="grid h-full w-full grid-cols-4 grid-rows-2 place-items-end justify-center gap-x-2 gap-y-3">
       {tubes.map((tube, index) => {
         const isLifted = lifted === index;
         const group = topGroup(tube);
@@ -53,7 +53,7 @@ function Tubes({
             disabled={!onTube}
             onClick={() => onTube?.(index)}
             aria-label={`Tube ${index + 1}`}
-            className={`flex h-full flex-1 flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${
+            className={`flex h-full w-full flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${
               shake === index ? "animate-shake" : ""
             } ${
               isLifted
@@ -62,7 +62,7 @@ function Tubes({
                   ? "border-ok/60 bg-card"
                   : "border-border bg-card"
             }`}
-            style={{ maxWidth: compact ? 34 : 54 }}
+            style={{ maxWidth: compact ? 32 : 54 }}
           >
             <div className="flex w-full flex-col-reverse items-center justify-start gap-[3px]">
               {tube.map((colour, ball) => {
@@ -95,7 +95,7 @@ function IntroExample() {
   const tubes: TubeState = [[0, 1, 0], [1, 1], [0], []];
   return (
     <div className="flex flex-col items-center gap-3">
-      <div style={{ width: 150, height: 84 }}>
+      <div style={{ width: 150, height: 120 }}>
         <Tubes tubes={tubes} lifted={2} compact />
       </div>
       <p className="text-xs text-muted-foreground">
@@ -208,7 +208,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <div style={{ width: 190, height: 92 }}>
+      <div style={{ width: 190, height: 150 }}>
         <Tubes tubes={mine.tubes} compact />
       </div>
       <p className="font-display text-2xl font-bold">
