@@ -2,9 +2,12 @@
  * Hover — the first arcade game on the shared engine.
  *
  * A gold disc holds the left third of a fixed 390 × 560 world. Gravity pulls it
- * down every tick, a tap shoves it up, and pillars scroll in from the right.
- * Everything here is integer fixed-point (1/256 px), so the phone and the server
- * walk the same run tick for tick.
+ * down every tick, a tap shoves it up, and the whole course scrolls past from
+ * the right. The course is generated in full at init(seed), so the phone and the
+ * server walk the identical run; everything is integer fixed-point (1/256 px).
+ *
+ * The scroll speed rises with every gate passed, so the ramp depends only on the
+ * player's own gate count and stays deterministic.
  */
 
 import {
@@ -23,11 +26,8 @@ import {
 export const HOVER_WORLD_W = 390;
 export const HOVER_WORLD_H = 560;
 
-export const HOVER_RUN_SECONDS = 45;
+export const HOVER_RUN_SECONDS = 60;
 export const HOVER_RUN_TICKS = HOVER_RUN_SECONDS * TICKS_PER_SECOND;
-
-/** Gates that fit in a full run, and the scoring cap. */
-export const HOVER_GATES = 22;
 
 export const HOVER_DISC_X = fp(130);
 export const HOVER_DISC_R = fp(11);
@@ -35,15 +35,16 @@ export const HOVER_DISC_R = fp(11);
 export const HOVER_GRAVITY = fp(0.35);
 export const HOVER_IMPULSE = fp(-6.5);
 export const HOVER_TERMINAL = fp(9);
-export const HOVER_SCROLL = fp(2.6);
+
+/** Scroll speed: starts here, rises per gate, never past the cap. */
+export const HOVER_SCROLL_START = fp(2.6);
+export const HOVER_SCROLL_STEP = fp(0.06);
+export const HOVER_SCROLL_MAX = fp(4.4);
 
 export const HOVER_PILLAR_W = fp(40);
-/**
- * Pillar spacing. A 45-second run travels 2.6 × 2700 = 7020 px, so 22 gates
- * means one pillar every 319 px — the 150 px in the brief would have produced
- * 46 gates in a run.
- */
+/** Pillar spacing in world pixels; the first pillar starts at the right edge. */
 export const HOVER_SPACING = fp(319);
+export const HOVER_FIRST_X = fp(HOVER_WORLD_W);
 
 export const HOVER_GAP_START = 150;
 export const HOVER_GAP_STEP = 2;
@@ -51,17 +52,16 @@ export const HOVER_GAP_MIN = 100;
 /** Keep a gap away from the floor and ceiling by this much. */
 export const HOVER_GAP_MARGIN = 40;
 
-export const HOVER_GATE_POINTS = 5;
+export const HOVER_GATE_POINTS = 110;
 export const HOVER_SURVIVE_BONUS = 40;
 
 /* ================================ State ================================ */
 
 export interface HoverPillar {
-  /** Left edge, fixed-point. */
-  x: number;
+  /** Left edge at the start of the run, fixed-point; never mutated. */
+  x0: number;
   gapTop: number;
   gapH: number;
-  scored: boolean;
 }
 
 export interface HoverState {
@@ -69,9 +69,11 @@ export interface HoverState {
   /** Disc centre, fixed-point. */
   y: number;
   vy: number;
-  rng: number;
-  spawned: number;
+  /** How far the course has scrolled, fixed-point. */
+  distance: number;
   gates: number;
+  /** Gates a player who never crashes passes in a full run. */
+  totalGates: number;
   crashed: boolean;
   /** The tick the run ended on, or 0 while it is still going. */
   endedTick: number;
@@ -83,41 +85,71 @@ function gapPixels(index: number): number {
   return Math.max(HOVER_GAP_MIN, HOVER_GAP_START - HOVER_GAP_STEP * index);
 }
 
-function spawnPillar(state: HoverState, x: number): HoverState {
-  const gapPx = gapPixels(state.spawned);
-  const half = gapPx / 2;
-  const low = half + HOVER_GAP_MARGIN;
-  const high = HOVER_WORLD_H - half - HOVER_GAP_MARGIN;
-  const span = Math.max(1, high - low + 1);
-  const drawn = rngBelow(state.rng, span);
-  const centre = low + drawn.value;
-  return {
-    ...state,
-    rng: drawn.state,
-    spawned: state.spawned + 1,
-    pillars: [...state.pillars, { x, gapTop: fp(centre - half), gapH: fp(gapPx), scored: false }],
-  };
+/** Scroll speed for a player who has passed this many gates. */
+export function hoverScroll(gates: number): number {
+  return Math.min(HOVER_SCROLL_MAX, HOVER_SCROLL_START + HOVER_SCROLL_STEP * gates);
+}
+
+/** Left edge of a pillar right now. */
+export function pillarX(pillar: HoverPillar, distance: number): number {
+  return pillar.x0 - distance;
+}
+
+/** Scrolled distance at which the nth pillar counts as passed. */
+function passedAt(pillar: HoverPillar): number {
+  return pillar.x0 + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R);
+}
+
+/** The whole course, long enough for the fastest possible run. */
+function buildCourse(seed: number): { pillars: HoverPillar[]; rng: number } {
+  const maxTravel = HOVER_SCROLL_MAX * HOVER_RUN_TICKS;
+  const pillars: HoverPillar[] = [];
+  let rng = seed | 0;
+  let x = HOVER_FIRST_X;
+  while (x <= HOVER_FIRST_X + maxTravel + HOVER_SPACING) {
+    const gapPx = gapPixels(pillars.length);
+    const half = gapPx / 2;
+    const low = half + HOVER_GAP_MARGIN;
+    const high = HOVER_WORLD_H - half - HOVER_GAP_MARGIN;
+    const span = Math.max(1, high - low + 1);
+    const drawn = rngBelow(rng, span);
+    rng = drawn.state;
+    const centre = low + drawn.value;
+    pillars.push({ x0: x, gapTop: fp(centre - half), gapH: fp(gapPx) });
+    x += HOVER_SPACING;
+  }
+  return { pillars, rng };
+}
+
+/** Gates a clean run reaches, walked tick by tick exactly as `step` does. */
+function countTotalGates(pillars: HoverPillar[]): number {
+  let gates = 0;
+  let distance = 0;
+  for (let tick = 1; tick <= HOVER_RUN_TICKS; tick++) {
+    distance += hoverScroll(gates);
+    while (gates < pillars.length && distance > passedAt(pillars[gates]!)) gates += 1;
+  }
+  return gates;
 }
 
 function init(seed: number): HoverState {
-  const base: HoverState = {
+  const { pillars } = buildCourse(seed);
+  return {
     tick: 0,
     y: fp(HOVER_WORLD_H / 2),
     vy: 0,
-    rng: seed | 0,
-    spawned: 0,
+    distance: 0,
     gates: 0,
+    totalGates: countTotalGates(pillars),
     crashed: false,
     endedTick: 0,
-    pillars: [],
+    pillars,
   };
-  // The first pillar starts just off the right edge.
-  return spawnPillar(base, fp(HOVER_WORLD_W));
 }
 
-function hits(pillar: HoverPillar, y: number): boolean {
-  const left = pillar.x;
-  const right = pillar.x + HOVER_PILLAR_W;
+function hits(pillar: HoverPillar, distance: number, y: number): boolean {
+  const left = pillarX(pillar, distance);
+  const right = left + HOVER_PILLAR_W;
   const overlaps = right > HOVER_DISC_X - HOVER_DISC_R && left < HOVER_DISC_X + HOVER_DISC_R;
   if (!overlaps) return false;
   return y - HOVER_DISC_R < pillar.gapTop || y + HOVER_DISC_R > pillar.gapTop + pillar.gapH;
@@ -134,26 +166,18 @@ function step(state: HoverState, tapped: boolean): HoverState {
   const y = state.y + vy;
   const tick = state.tick + 1;
 
+  // Speed follows the gates already passed, so the ramp is identical for
+  // everyone on the same gate count.
+  const distance = state.distance + hoverScroll(state.gates);
   let gates = state.gates;
-  const pillars: HoverPillar[] = [];
-  for (const pillar of state.pillars) {
-    const x = pillar.x - HOVER_SCROLL;
-    if (x + HOVER_PILLAR_W < 0) continue;
-    const passed = !pillar.scored && x + HOVER_PILLAR_W < HOVER_DISC_X - HOVER_DISC_R;
-    if (passed) gates += 1;
-    pillars.push({ ...pillar, x, scored: pillar.scored || passed });
-  }
+  while (gates < state.pillars.length && distance > passedAt(state.pillars[gates]!)) gates += 1;
 
-  let next: HoverState = { ...state, tick, y, vy, gates, pillars };
-
-  const last = pillars[pillars.length - 1];
-  if (!last || last.x <= fp(HOVER_WORLD_W) - HOVER_SPACING) {
-    next = spawnPillar(next, last ? last.x + HOVER_SPACING : fp(HOVER_WORLD_W));
-  }
+  const next: HoverState = { ...state, tick, y, vy, distance, gates };
 
   const ceiling = y - HOVER_DISC_R <= 0;
   const floor = y + HOVER_DISC_R >= fp(HOVER_WORLD_H);
-  const crashed = ceiling || floor || next.pillars.some((pillar) => hits(pillar, y));
+  const crashed =
+    ceiling || floor || state.pillars.some((pillar) => hits(pillar, distance, y));
   if (crashed) return { ...next, crashed: true, endedTick: tick };
   if (tick >= HOVER_RUN_TICKS) return { ...next, endedTick: tick };
   return next;
@@ -168,9 +192,11 @@ export function hoverSurvived(state: HoverState): boolean {
 }
 
 function score(state: HoverState): number {
-  const gates = HOVER_GATE_POINTS * clampInt(state.gates, 0, HOVER_GATES);
+  const total = Math.max(1, state.totalGates);
+  const gates = clampInt(state.gates, 0, total);
+  const earned = Math.round((HOVER_GATE_POINTS * gates) / total);
   const bonus = hoverSurvived(state) ? HOVER_SURVIVE_BONUS : 0;
-  return clampInt(gates + bonus, 0, 150);
+  return clampInt(earned + bonus, 0, 150);
 }
 
 /* ================================ Drawing ============================== */
@@ -194,8 +220,9 @@ function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize
 
   ctx.fillStyle = HOVER_PILLAR_COLOUR;
   for (const pillar of state.pillars) {
-    const left = px(pillar.x);
+    const left = px(pillarX(pillar, state.distance));
     const width = px(HOVER_PILLAR_W);
+    if (left > HOVER_WORLD_W || left + width < 0) continue;
     const top = px(pillar.gapTop);
     const gap = px(pillar.gapH);
     ctx.fillRect(left, 0, width, Math.max(0, top));
@@ -212,7 +239,7 @@ function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  ctx.fillText(`gates ${state.gates}`, 12, 12);
+  ctx.fillText(`Gates ${state.gates} / ${state.totalGates}`, 12, 12);
   ctx.textAlign = "right";
   ctx.fillText(`${remaining.toFixed(1)}s`, HOVER_WORLD_W - 12, 12);
 
