@@ -69,6 +69,9 @@ import {
   RINGS_SEGMENTS,
   RINGS_TIME_MS,
   HOVER_TIME_MS,
+  SWERVE_TIME_MS,
+  SKYLINE_TIME_MS,
+
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -1012,6 +1015,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   tiles: tilesSummary,
   rings: ringsSummary,
   hover: hoverSummary,
+  swerve: swerveSummary,
+  skyline: skylineSummary,
+
 };
 
 function joinOperators(values: string[]): string {
@@ -1070,5 +1076,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   stroke: (p) => (p.type === "stroke" ? `${p.edges.length} lines, one stroke` : null),
   tiles: (p) => (p.type === "tiles" && p.minMoves ? `${p.minMoves} moves` : null),
   hover: () => null,
+  swerve: () => null,
+  skyline: () => null,
+
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };
