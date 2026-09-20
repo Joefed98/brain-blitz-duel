@@ -76,6 +76,18 @@ import {
   CHAIN_TIME_MS,
   INTRUDER_BOARDS,
   INTRUDER_TIME_MS,
+  NONO_PARTIAL_POINTS,
+  NONO_TIME_MS,
+  NONO_WRONG_PENALTY,
+  PAIR_CLEAN_BONUS,
+  PAIR_CLEAN_FLIPS,
+  PAIR_PAIRS,
+  PAIR_PARTIAL_POINTS,
+  PAIR_TIME_MS,
+  FLOOD_CELLS,
+  FLOOD_PARTIAL_POINTS,
+  FLOOD_PAR_BONUS,
+  FLOOD_TIME_MS,
 } from "./types";
 
 export const BASE_POINTS = 100;
@@ -692,4 +704,56 @@ export function scoreIntruder(correct: number, allFirstTry: boolean, msRemaining
   const bonus =
     correct >= INTRUDER_BOARDS && allFirstTry ? speedBonus(msRemaining, INTRUDER_TIME_MS) : 0;
   return Math.min(MAX_ROUND_SCORE, base + bonus);
+}
+
+/** Nonogram: the whole picture scores; a part-filled grid loses five a mistake. */
+export function scoreNonogram(
+  solved: boolean,
+  correct: number,
+  total: number,
+  wrong: number,
+  msRemaining: number,
+): number {
+  if (solved) {
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, NONO_TIME_MS));
+  }
+  const share = total > 0 ? Math.round((NONO_PARTIAL_POINTS * correct) / total) : 0;
+  return clamp(share - NONO_WRONG_PENALTY * wrong, 0, NONO_PARTIAL_POINTS);
+}
+
+/** Pair Match: all eight pairs score, with a bonus for a tidy, short game. */
+export function scorePairMatch(
+  solved: boolean,
+  pairs: number,
+  tries: number,
+  msRemaining: number,
+): number {
+  if (solved) {
+    const bonus = tries <= PAIR_CLEAN_FLIPS ? PAIR_CLEAN_BONUS : 0;
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, PAIR_TIME_MS) + bonus);
+  }
+  return clamp(
+    Math.round((PAIR_PARTIAL_POINTS * clamp(pairs, 0, PAIR_PAIRS)) / PAIR_PAIRS),
+    0,
+    PAIR_PARTIAL_POINTS,
+  );
+}
+
+/** Colour Flood: flooding the board scores, with a bonus for hitting par. */
+export function scoreFlood(
+  solved: boolean,
+  moves: number,
+  par: number,
+  region: number,
+  msRemaining: number,
+): number {
+  if (solved) {
+    const bonus = par > 0 && moves <= par ? FLOOD_PAR_BONUS : 0;
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, FLOOD_TIME_MS) + bonus);
+  }
+  return clamp(
+    Math.round((FLOOD_PARTIAL_POINTS * clamp(region, 0, FLOOD_CELLS)) / FLOOD_CELLS),
+    0,
+    FLOOD_PARTIAL_POINTS,
+  );
 }

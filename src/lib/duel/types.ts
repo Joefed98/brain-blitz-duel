@@ -40,7 +40,10 @@ export type PuzzleType =
   | "bomb"
   | "gravity"
   | "chain"
-  | "intruder";
+  | "intruder"
+  | "nonogram"
+  | "pairmatch"
+  | "flood";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
@@ -379,7 +382,10 @@ export type PuzzleData =
   | BombPuzzleData
   | GravityPuzzleData
   | ChainPuzzleData
-  | IntruderPuzzleData;
+  | IntruderPuzzleData
+  | NonoPuzzleData
+  | PairPuzzleData
+  | FloodPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1419,4 +1425,75 @@ export interface IntruderPuzzleData {
   boards: IntruderBoard[];
   /** Server-side only: which cell changed on each board, and how. */
   answers?: IntruderAnswer[];
+}
+
+/* ============================== Nonogram ================================ */
+
+export const NONO_TIME_MS = 60_000;
+export const NONO_SIZE = 5;
+/** Filled-cell count band for a generated picture. */
+export const NONO_MIN_FILLED = 9;
+export const NONO_MAX_FILLED = 15;
+/** Partial credit share and the cost of a wrongly filled cell. */
+export const NONO_PARTIAL_POINTS = 60;
+export const NONO_WRONG_PENALTY = 5;
+
+/** A cell the player has filled (1), pencilled as empty (2), or left blank (0). */
+export type NonoMark = 0 | 1 | 2;
+
+export interface NonoPuzzleData {
+  type: "nonogram";
+  /** Run lengths, in order, for each row then each column. */
+  rows: number[][];
+  cols: number[][];
+  /** Server-side only: the one picture these clues describe. */
+  pattern?: boolean[];
+}
+
+/* ============================== Pair Match ============================== */
+
+export const PAIR_TIME_MS = 45_000;
+export const PAIR_PAIRS = 8;
+export const PAIR_CARDS = PAIR_PAIRS * 2;
+export const PAIR_FLIP_BACK_MS = 600;
+export const PAIR_FLIP_MS = 150;
+/** Clearing the board in this many pair-flips or fewer earns the bonus. */
+export const PAIR_CLEAN_FLIPS = 10;
+export const PAIR_CLEAN_BONUS = 20;
+export const PAIR_PARTIAL_POINTS = 60;
+
+export interface PairCard {
+  shape: IntruderShape;
+  colour: StroopColour;
+}
+
+export interface PairPuzzleData {
+  type: "pairmatch";
+  /** The shuffled board — identical on every phone in the room. */
+  cards: PairCard[];
+}
+
+/* ============================= Colour Flood ============================= */
+
+export const FLOOD_TIME_MS = 45_000;
+export const FLOOD_SIZE = 10;
+export const FLOOD_CELLS = FLOOD_SIZE * FLOOD_SIZE;
+export const FLOOD_COLOURS = 5;
+export const FLOOD_MIN_PAR = 8;
+export const FLOOD_MAX_PAR = 12;
+/** After this many failed boards the par band widens, and the miss is logged. */
+export const FLOOD_ATTEMPTS = 400;
+export const FLOOD_FALLBACK_PAR = 14;
+export const FLOOD_SEARCH_CAP = 500_000;
+export const FLOOD_PAR_BONUS = 20;
+export const FLOOD_PARTIAL_POINTS = 60;
+
+export interface FloodPuzzleData {
+  type: "flood";
+  /** Row-major colour indices, 0 … FLOOD_COLOURS - 1. */
+  grid: number[];
+  /** The exact minimum number of taps — shown to the player. */
+  par: number;
+  /** Server-side only: one route that floods the board in par moves. */
+  solution?: number[];
 }

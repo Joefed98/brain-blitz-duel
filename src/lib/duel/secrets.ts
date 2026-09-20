@@ -51,6 +51,12 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   // The rule strip and nodes are public; one searched path stays private.
   chain: ["solution", "solutionCount"],
   intruder: ["answers"],
+  // The clues are public; the picture they describe is not.
+  nonogram: ["pattern"],
+  // The dealt board is needed to render flips; nothing else is hidden.
+  pairmatch: [],
+  // Par is shown to the player; the route that reaches it is not.
+  flood: ["solution"],
 };
 
 type Loose = Record<string, unknown>;
