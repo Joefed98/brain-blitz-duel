@@ -9,50 +9,50 @@ import { cluesFor, countNonoSolutions } from "./nonogram";
 import { randomBelow, shuffled } from "./random";
 import { NONO_MAX_FILLED, NONO_MIN_FILLED, NONO_SIZE, type NonoPuzzleData } from "./types";
 
-/** Forty simple 5×5 pictograms: "#" filled, "." empty. */
+/** Full 9×9 silhouettes: "#" filled, "." empty. Every line is occupied. */
 export const NONO_PICTOGRAMS: string[] = [
-  ".#.#.###########.#...", // heart
-  "..#....###..#####.#..", // arrow up
-  "..#..#####.###..#..#.", // cup
-  "#...#.###..###..#...#", // bow tie
-  ".###.#...##...##...#.", // letter O
-  "#####..#....#....#...", // flag
-  "#...##...######.#...#", // letter H
-  "###..#..#.###.#..#..#", // letter B
-  ".###.#...#####.#...#.", // ring
-  "..#..#####..#...###..", // key
-  "#####.#...#.#####...#", // letter S
-  "#...##...##...#.###..", // cup base
-  "..#....#..#####..#...", // arrow down
-  ".#.#..###.#####.###..", // cat face
-  "#####....#...#....###", // letter Z
-  "..#..###.##...#.###..", // tree
-  "###..#..#.####..#..##", // letter D
-  "#.#.##.#.#.#.#.##.#.#", // chequer
-  "#####.#.#..###..#.#..", // trophy
-  "###...#....#....#.###", // letter I
-  "..#..#####...#...#.#.", // person
-  "#...#.#.#...#...#.#.#", // letter X
-  "#####.###...#...#####", // letter I serif
-  ".#.#.#####.###..#.#..", // crown
-  "#....###..#####..#..#", // letter L
-  "..##...####.##...##..", // slope
-  "#..#.####.#..#.####..", // letter R
-  "#####....#..#..#....#", // letter N
-  ".###.#.#.######.#..#.", // house
-  "#...##.#...#...#.#..#", // letter Y
-  "..#...###.#####.###..", // rocket
-  "####..#..#####..#..##", // letter P
-  "#..#.#..#.####..#..#.", // letter U
-  ".#.#.##.##.#.##.#..#.", // lattice
-  "#####.#...#...#..####", // letter C
-  "#.#.#..#..#####..#..#", // star
-  ".####.#...####..#...#", // letter G
-  "###.#..#.#..####..#.#", // letter K
-  "#..#.#.#.#..#..#.#..#", // letter V
-  ".##.####.#.###..##.#.", // fish
-  "#...##..#..##..#..#.#", // letter W
-  "..#..#.#.######.#.#..", // diamond
+  "......###...####.....#####.#####..........###.....####.###.....###........#####..",
+  "#####.......###......####.....###.....#####.......####.###........####.......####",
+  ".....####.###......####.........####...###........###....###......#####.#####....",
+  ".###.........#####.#####.........###..###........#####...####..###..........###..",
+  ".#####......####......########........#####......###..#####.......####.....####..",
+  ".####.....###..........####....###....#####..###.......####....#####....###......",
+  "......###....#####...#####......###...#####...###...........########.....###.....",
+  "....###.......####...####.......####.####....#####....###.......####.....#####...",
+  ".....####.....###....#####.###...........####.####.......#####.....#####.....####",
+  "...####..###......###.........#####...#####......#####.#####......###.......#####",
+  "....###.....####....###.......####.....####.....####.....####..###...........####",
+  ".#####...#####......#####.......###....####..###............###.###..........####",
+  ".#####.......###...#####......####...####....###.......####........##########....",
+  "..###.........####...####...#####......####....#####..#####........#####....#####",
+  ".###.......###.....####.......####...#####...#####.........#########.....####....",
+  "#####....#####.....###.....###...........####.####....#####.....###.......###....",
+  "...####...#####........####..#####.....#####.#####.......###......###......####..",
+  "......###.###.......###.....###......###..........###..#####......####..#####....",
+  "###.......####......#####.....#####....####........###.###........#####......####",
+  "...####......###...####....###........###.....####.........####..#####..###......",
+  ".....####.#####........###....####.....#####.###......#####........###....#####..",
+  ".#####.......#####.###..........####....###..###......###........###.......###...",
+  ".####.........####..###....#####.....#####......#####..####.......#####...#####..",
+  "...###.......#####..###.......###......#####......#########.......####....#####..",
+  "...####.......####....###..###.........####...####......#####......###..###......",
+  ".####......###......###.....#####....#####......####....###.........#########....",
+  "......###...###....#####...#####.........####....###....###.....####.....#####...",
+  "...####...###...........###..#####.....####.....####....#####....###....###......",
+  "..#####.....####...####.........#########......#####...####.....#####......###...",
+  "...###...###...........####....#####...###....####.........####..#####.....####..",
+  "#####........#####......###......###....#####.####.....###......###..........####",
+  "#####.....####.........####.####.......####......#####.#####...#####.......#####.",
+  "..###....#####.....####.......###....###.........########...........####.####....",
+  "....########.......####.....####.......####...####..........###.####....#####....",
+  "#####......#####.......####.....###.....###.....#####....####......#####....#####",
+  "..###.......####.....###...#####....###.........####..###......###..........#####",
+  ".....#########.......###......###......###....#####...###........#####..#####....",
+  "#####.......###...#####....#####.........####...####.....#####.###.......####....",
+  ".....####.####........#####..#####.....####..###...........###...#####....###....",
+  "...###....####.......###........####.###.....###.........####......#####...####..",
+  ".....#########.......####.....#####.......###.....####....#####...###.......#####",
+  "#####.........####..#####..###.........#####....####.......####.###.....#####....",
 ];
 
 function patternFrom(text: string): boolean[] {
@@ -65,10 +65,27 @@ function inFilledBand(pattern: boolean[]): boolean {
   return count >= NONO_MIN_FILLED && count <= NONO_MAX_FILLED;
 }
 
+function fillsEveryLine(pattern: boolean[]): boolean {
+  const { rows, cols } = cluesFor(pattern);
+  return rows.every((clue) => clue.length > 0) && cols.every((clue) => clue.length > 0);
+}
+
 function randomPattern(): boolean[] {
-  const target = NONO_MIN_FILLED + randomBelow(NONO_MAX_FILLED - NONO_MIN_FILLED + 1);
   const pattern = Array.from({ length: NONO_SIZE * NONO_SIZE }, () => false);
   let filled = 0;
+  for (let row = 0; row < NONO_SIZE; row += 1) {
+    const length = 3 + randomBelow(3);
+    const start = randomBelow(NONO_SIZE - length + 1);
+    for (let col = start; col < start + length; col += 1) {
+      const cell = row * NONO_SIZE + col;
+      if (!pattern[cell]) filled += 1;
+      pattern[cell] = true;
+    }
+  }
+  const target = Math.max(
+    filled,
+    NONO_MIN_FILLED + randomBelow(NONO_MAX_FILLED - NONO_MIN_FILLED + 1),
+  );
   while (filled < target) {
     const cell = randomBelow(pattern.length);
     if (pattern[cell]) continue;
@@ -86,11 +103,17 @@ export function nonoIsUnique(pattern: boolean[]): boolean {
 
 /** Bank pictograms that are both in the filled band and uniquely solvable. */
 export function nonoUsablePictograms(): boolean[][] {
-  return NONO_PICTOGRAMS.map(patternFrom).filter((p) => inFilledBand(p) && nonoIsUnique(p));
+  return NONO_PICTOGRAMS.map(patternFrom).filter(
+    (pattern) => inFilledBand(pattern) && fillsEveryLine(pattern) && nonoIsUnique(pattern),
+  );
 }
 
 export function generateNonogram(): NonoPuzzleData {
-  for (const pattern of shuffled(NONO_PICTOGRAMS.map(patternFrom).filter(inFilledBand))) {
+  for (const pattern of shuffled(
+    NONO_PICTOGRAMS.map(patternFrom).filter(
+      (candidate) => inFilledBand(candidate) && fillsEveryLine(candidate),
+    ),
+  )) {
     if (!nonoIsUnique(pattern)) continue;
     const { rows, cols } = cluesFor(pattern);
     return { type: "nonogram", rows, cols, pattern };
@@ -98,13 +121,14 @@ export function generateNonogram(): NonoPuzzleData {
 
   for (let attempt = 0; attempt < 4_000; attempt++) {
     const pattern = randomPattern();
+    if (!fillsEveryLine(pattern)) continue;
     if (!nonoIsUnique(pattern)) continue;
     const { rows, cols } = cluesFor(pattern);
     return { type: "nonogram", rows, cols, pattern };
   }
 
-  // Unreachable in practice: a simple striped picture is always unique.
-  const pattern = patternFrom("#####.....#####.....#####");
+  // The first validated bank entry is a safe final fallback.
+  const pattern = patternFrom(NONO_PICTOGRAMS[0] ?? "");
   const { rows, cols } = cluesFor(pattern);
   return { type: "nonogram", rows, cols, pattern };
 }
