@@ -46,7 +46,8 @@ export type PuzzleType =
   | "flood"
   | "stroke"
   | "tiles"
-  | "rings";
+  | "rings"
+  | "hover";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
@@ -404,7 +405,8 @@ export type PuzzleData =
   | FloodPuzzleData
   | StrokePuzzleData
   | TilesPuzzleData
-  | RingsPuzzleData;
+  | RingsPuzzleData
+  | HoverPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1593,4 +1595,17 @@ export interface RingsPuzzleData {
   minMoves?: number;
   /** Server-side only: one minimum-length turn order. */
   solution?: number[];
+}
+
+/* ================================= Hover ================================ */
+
+/** The run is a fixed 45 seconds; the round clock adds three seconds of slack. */
+export const HOVER_TIME_MS = 48_000;
+/** How long the crash sits on screen before the run is submitted. */
+export const HOVER_CRASH_FREEZE_MS = 800;
+
+export interface HoverPuzzleData {
+  type: "hover";
+  /** Drives every pillar of the run — identical for everyone in the room. */
+  seed: number;
 }

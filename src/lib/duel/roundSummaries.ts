@@ -68,6 +68,7 @@ import {
   TILES_TIME_MS,
   RINGS_SEGMENTS,
   RINGS_TIME_MS,
+  HOVER_TIME_MS,
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -82,6 +83,7 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   stroke: STROKE_TIME_MS,
   tiles: TILES_TIME_MS,
   rings: RINGS_TIME_MS,
+  hover: HOVER_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -888,6 +890,18 @@ const tilesSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
+const hoverSummary: SummaryBuilder = (result) => {
+  const gates = Number(result.extra?.["gates"] ?? 0);
+  const survived = result.extra?.["survived"] === true;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  return {
+    summary: survived
+      ? `${gates} gates · survived`
+      : `${gates} gates · crashed at ${ended.toFixed(1)}s`,
+    detail: [survived ? "Flew the whole run" : "Run ended early"],
+  };
+};
+
 const ringsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "rings") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);
@@ -954,6 +968,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   stroke: strokeSummary,
   tiles: tilesSummary,
   rings: ringsSummary,
+  hover: hoverSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1011,5 +1026,6 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   flood: (p) => (p.type === "flood" ? `par ${p.par}` : null),
   stroke: (p) => (p.type === "stroke" ? `${p.edges.length} lines, one stroke` : null),
   tiles: (p) => (p.type === "tiles" && p.minMoves ? `${p.minMoves} moves` : null),
+  hover: () => null,
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };
