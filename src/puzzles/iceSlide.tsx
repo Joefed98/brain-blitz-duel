@@ -171,7 +171,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewer moves earns a bonus. You have 45 seconds.
+        Fewer moves earns a bonus. You have 75 seconds.
       </p>
     </div>
   );
