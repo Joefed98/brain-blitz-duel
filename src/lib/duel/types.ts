@@ -1489,8 +1489,8 @@ export const FLOOD_MIN_PAR = 10;
 export const FLOOD_MAX_PAR = 15;
 /** After this many failed boards the par band widens, and the miss is logged. */
 export const FLOOD_ATTEMPTS = 400;
-export const FLOOD_FALLBACK_PAR = 14;
-export const FLOOD_SEARCH_CAP = 1_000_000;
+export const FLOOD_FALLBACK_PAR = 20;
+export const FLOOD_SEARCH_CAP = 2_000_000;
 export const FLOOD_PAR_BONUS = 20;
 export const FLOOD_PARTIAL_POINTS = 60;
 

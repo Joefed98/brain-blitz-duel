@@ -27,7 +27,7 @@ function fillOf(colour: number): string {
 function Board({
   grid,
   size = FLOOD_SIZE,
-  cell = 30,
+  cell = 26,
 }: {
   grid: number[];
   size?: number;
