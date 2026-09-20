@@ -30,6 +30,8 @@ const CHAIN_MAX_ROUTES = 8;
 const CHAIN_MIN_ROUTES = 1;
 /** Route counting stops here while comparing labellings, to stay quick. */
 const CHAIN_ROUTE_SCORE_CAP = 40;
+/** Steps of the stored route that must tempt a crossing of the right shape. */
+const CHAIN_MIN_DECOY_STEPS = 4;
 /** Padding kept clear at the edges so glyphs are never clipped. */
 const EDGE_PADDING = 7;
 /** Minimum distance between two node centres, in percentage points. */
@@ -251,6 +253,31 @@ interface Candidate {
   solution: number[];
   routes: number;
   traps: number;
+  /** Steps of the stored route where a shape-valid node would have crossed. */
+  decoySteps: number;
+}
+
+/** How many steps of a route tempt the player with a crossing of the right shape. */
+export function chainDecoySteps(
+  nodes: ChainNode[],
+  cycle: ChainShape[],
+  solution: number[],
+): number {
+  const chain: number[] = [];
+  let steps = 0;
+  for (const node of solution) {
+    const needed = chainRequired(cycle, chain.length);
+    const tempting = nodes.some(
+      (candidate, index) =>
+        !chain.includes(index) &&
+        index !== node &&
+        candidate.shape === needed &&
+        chainWouldCross(nodes, chain, index),
+    );
+    if (tempting) steps++;
+    chain.push(node);
+  }
+  return steps;
 }
 
 /**
@@ -269,7 +296,14 @@ function evaluate(points: Point[], bag: ChainShape[], cycle: ChainShape[]): Cand
   const solutions = collectChainSolutions(nodes, cycle, 12);
   const solution = solutions.find((candidate) => chainSolutionIsFair(nodes, cycle, candidate));
   if (!solution) return null;
-  return { nodes, cycle, solution, routes, traps: chainTrapNodes(nodes, cycle).length };
+  return {
+    nodes,
+    cycle,
+    solution,
+    routes,
+    traps: chainTrapNodes(nodes, cycle).length,
+    decoySteps: chainDecoySteps(nodes, cycle, solution),
+  };
 }
 
 export function generateChain(): ChainPuzzleData {
@@ -285,7 +319,11 @@ export function generateChain(): ChainPuzzleData {
       const cycle = shuffled([...CHAIN_SHAPES]).slice(0, CHAIN_CYCLE);
       const candidate = evaluate(points, shuffled(shapeBag()), cycle);
       if (!candidate) continue;
-      if (candidate.routes <= CHAIN_MAX_ROUTES && candidate.traps >= 2) {
+      if (
+        candidate.routes <= CHAIN_MAX_ROUTES &&
+        candidate.traps >= 2 &&
+        candidate.decoySteps >= CHAIN_MIN_DECOY_STEPS
+      ) {
         return {
           type: "chain",
           nodes: candidate.nodes,
@@ -295,18 +333,22 @@ export function generateChain(): ChainPuzzleData {
         };
       }
       // Fewest routes wins; traps break a tie.
-      if (
-        !best ||
-        candidate.routes < best.routes ||
-        (candidate.routes === best.routes && candidate.traps > best.traps)
-      ) {
-        best = candidate;
-      }
+      const score = (entry: Candidate) =>
+        (entry.decoySteps >= CHAIN_MIN_DECOY_STEPS ? 1000 : 0) - entry.routes + entry.traps;
+      if (!best || score(candidate) > score(best)) best = candidate;
     }
-    if (best && best.routes <= CHAIN_MAX_ROUTES * 2 && best.traps >= 2) break;
+    if (
+      best &&
+      best.routes <= CHAIN_MAX_ROUTES * 2 &&
+      best.traps >= 2 &&
+      best.decoySteps >= CHAIN_MIN_DECOY_STEPS
+    ) {
+      break;
+    }
   }
 
-  if (!best) throw new Error("Don't Break the Chain generator could not build a spread layout");
+  if (!best || best.decoySteps < CHAIN_MIN_DECOY_STEPS)
+    throw new Error("Don't Break the Chain generator could not build a spread layout");
   // A scatter spread over the whole board leaves far more non-crossing routes
   // than an edge ring did, so the tightest board found is used and reported.
   console.warn(`Chain: spread layout kept with ${best.routes} routes and ${best.traps} traps`);

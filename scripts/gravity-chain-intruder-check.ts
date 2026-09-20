@@ -7,18 +7,13 @@ import { generateGravity, solutionSwapsOrder } from "../src/lib/duel/gravity.ser
 import { decodeGravityTilts, replayGravity } from "../src/lib/duel/gravity";
 import { generateChain } from "../src/lib/duel/chain.server";
 import {
+  chainDecoySteps,
   convexHullSize,
   chainSolutionIsFair,
   chainTrapNodes,
   countChainSolutions,
 } from "../src/lib/duel/chain.server";
-import {
-  CHAIN_RESET,
-  CHAIN_UNDO,
-  chainRequired,
-  chainWouldCross,
-  replayChain,
-} from "../src/lib/duel/chain";
+import { CHAIN_RESET, CHAIN_UNDO, chainRequired, replayChain } from "../src/lib/duel/chain";
 import { generateIntruder } from "../src/lib/duel/intruder.server";
 import { intruderColoursTooClose } from "../src/lib/duel/intruder";
 import {
@@ -106,17 +101,13 @@ for (let round = 0; round < ROUNDS; round++) {
       "chain three shape-invalid nodes",
       unused.filter((index) => puzzle.nodes[index]?.shape !== needed).length >= CHAIN_MIN_INVALID,
     );
-    if (step >= 3)
-      check(
-        "chain crossing decoy exists",
-        unused.some(
-          (index) =>
-            puzzle.nodes[index]?.shape === needed && chainWouldCross(puzzle.nodes, prefix, index),
-        ),
-      );
     const next = solution[step];
     if (next !== undefined) prefix.push(next);
   }
+  check(
+    "chain route is tempted by crossings",
+    chainDecoySteps(puzzle.nodes, puzzle.cycle, solution) >= 4,
+  );
   const good = replayChain(puzzle.nodes, puzzle.cycle, solution);
   check("chain perfect run completes", good.completed && good.errors === 0);
   const bad = replayChain(puzzle.nodes, puzzle.cycle, [
