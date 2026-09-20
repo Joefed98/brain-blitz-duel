@@ -11,8 +11,8 @@ import { hoverGame, HOVER_RUN_TICKS, type HoverState } from "../src/lib/arcade/h
 import { encodeHoverRun, replayHoverRun } from "../src/lib/duel/hover.ts";
 
 function integers(state: HoverState): boolean {
-  const values = [state.tick, state.y, state.vy, state.rng, state.gates, state.spawned];
-  for (const pillar of state.pillars) values.push(pillar.x, pillar.gapTop, pillar.gapH);
+  const values = [state.tick, state.y, state.vy, state.distance, state.gates, state.totalGates];
+  for (const pillar of state.pillars) values.push(pillar.x0, pillar.gapTop, pillar.gapH);
   return values.every((value) => Number.isInteger(value));
 }
 

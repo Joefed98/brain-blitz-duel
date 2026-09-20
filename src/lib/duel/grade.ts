@@ -748,6 +748,7 @@ export function gradeSubmission(
       score = run.score;
       extraDetail = {
         gates: run.gates,
+        totalGates: run.totalGates,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

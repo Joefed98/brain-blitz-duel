@@ -34,6 +34,8 @@ export function decodeHoverRun(raw: string): HoverRun {
 
 export interface HoverResult {
   gates: number;
+  /** Gates a clean run would have reached on this course. */
+  totalGates: number;
   survived: boolean;
   /** Seconds into the run when the disc crashed, or the full run length. */
   endedSeconds: number;
@@ -52,6 +54,7 @@ export function replayHoverRun(seed: number, raw: string): HoverResult {
   const mismatch = run.claimedScore !== outcome.score || run.seed !== seed;
   const result: HoverResult = {
     gates: outcome.state.gates,
+    totalGates: outcome.state.totalGates,
     survived,
     endedSeconds: Math.round((outcome.ticks / TICKS_PER_SECOND) * 10) / 10,
     score: outcome.score,

@@ -17,7 +17,6 @@ import {
   type HoverState,
 } from "@/lib/arcade/hover";
 import { decodeHoverRun, encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
-import { HOVER_GATES } from "@/lib/arcade/hover";
 import { HOVER_CRASH_FREEZE_MS, type HoverPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playWrong } from "@/lib/sound";
@@ -194,7 +193,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
       <div className="flex w-full max-w-[260px] shrink-0 flex-wrap justify-center gap-1">
-        {Array.from({ length: HOVER_GATES }, (_, index) => (
+        {Array.from({ length: Math.max(1, result.totalGates) }, (_, index) => (
           <span
             key={index}
             className="h-3 w-3 rounded-sm"
@@ -211,7 +210,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         ))}
       </div>
       <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
-        {result.gates} gates ·{" "}
+        {result.gates} / {result.totalGates} gates ·{" "}
         {result.survived ? "survived" : `crashed at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
