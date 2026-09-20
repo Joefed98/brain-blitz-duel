@@ -432,6 +432,9 @@ export interface DuelRow {
   add_maths: boolean;
   /** Host opt-in: include the memory category in the round draw. */
   add_memory: boolean;
+  /** Host toggle, on by default: one round is an arcade game. */
+  add_arcade: boolean;
+
   /**
    * Only what each player needs to render the round. Answers live in the
    * server-only `duel_secrets` table and arrive at reveal time.
