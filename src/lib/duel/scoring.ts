@@ -142,14 +142,24 @@ export function scoreGroups(foundGroups: number, msRemaining: number): number {
   return foundGroups === 1 ? 20 : 0;
 }
 
-/** Word Ladder: solved earns standard points, plus 20 for a minimum path, capped at 150. */
+/**
+ * Word Ladder: solved earns standard points, plus 20 for a minimum path.
+ * Otherwise credit is how close the last good rung got to the target word:
+ * one letter away 75, two 50, three 25, further away nothing.
+ */
 export function scoreWordLadder(
   solved: boolean,
   validRungs: number,
   shortestLength: number,
   msRemaining: number,
+  lettersAway = 4,
 ): number {
-  if (!solved) return validRungs >= 2 ? 30 : 0;
+  if (!solved) {
+    if (lettersAway === 1) return 75;
+    if (lettersAway === 2) return 50;
+    if (lettersAway === 3) return 25;
+    return 0;
+  }
   const minimumBonus = validRungs === shortestLength ? 20 : 0;
   return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, 60_000) + minimumBonus);
 }
