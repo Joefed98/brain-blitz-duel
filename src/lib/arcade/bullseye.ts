@@ -298,7 +298,9 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   const { scale, offsetX, offsetY } = bullseyeTransform(size);
   // Mid-flight the target is still the one the arrow was loosed at.
   const shown =
-    state.flightTick > 0 ? Math.max(0, state.arrowIndex - 1) : Math.min(state.arrowIndex, BULLSEYE_ARROWS - 1);
+    state.flightTick > 0
+      ? Math.max(0, state.arrowIndex - 1)
+      : Math.min(state.arrowIndex, BULLSEYE_ARROWS - 1);
 
   ctx.save();
   ctx.fillStyle = BULLSEYE_BG;

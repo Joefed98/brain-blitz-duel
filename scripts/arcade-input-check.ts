@@ -123,7 +123,8 @@ for (let sample = 0; sample < 200; sample++) {
   });
   const replay = replayBinTossRun(seed, encoded);
 
-  if (replay.score !== claimed) fail(`bintoss ${seed}: replay ${replay.score} vs client ${claimed}`);
+  if (replay.score !== claimed)
+    fail(`bintoss ${seed}: replay ${replay.score} vs client ${claimed}`);
   if (replay.baskets !== state.baskets) fail(`bintoss ${seed}: baskets differ`);
   if (replay.flagged) fail(`bintoss ${seed}: flagged (${replay.reason ?? "no reason"})`);
   if (replay.desyncTick !== null) {
@@ -208,10 +209,22 @@ const rejected: [string, ArcadeInputEvent[], readonly typeof BINTOSS_INPUT_RANGE
 const bt = BINTOSS_INPUT_RANGES;
 const be = BULLSEYE_INPUT_RANGES;
 
-rejected.push(["flick vx above the clamp", [{ t: 10, k: 1, a: BINTOSS_VX_MAX + 1, b: -1000, c: 0, d: 0 }], bt]);
-rejected.push(["flick vx below the clamp", [{ t: 10, k: 1, a: -BINTOSS_VX_MAX - 1, b: -1000, c: 0, d: 0 }], bt]);
+rejected.push([
+  "flick vx above the clamp",
+  [{ t: 10, k: 1, a: BINTOSS_VX_MAX + 1, b: -1000, c: 0, d: 0 }],
+  bt,
+]);
+rejected.push([
+  "flick vx below the clamp",
+  [{ t: 10, k: 1, a: -BINTOSS_VX_MAX - 1, b: -1000, c: 0, d: 0 }],
+  bt,
+]);
 rejected.push(["flick vy downwards", [{ t: 10, k: 1, a: 500, b: 1, c: 0, d: 0 }], bt]);
-rejected.push(["flick vy above the clamp", [{ t: 10, k: 1, a: 500, b: -BINTOSS_VY_MAX - 1, c: 0, d: 0 }], bt]);
+rejected.push([
+  "flick vy above the clamp",
+  [{ t: 10, k: 1, a: 500, b: -BINTOSS_VY_MAX - 1, c: 0, d: 0 }],
+  bt,
+]);
 rejected.push(["flick with a payload in c", [{ t: 10, k: 1, a: 500, b: -1000, c: 3, d: 0 }], bt]);
 rejected.push(["flick of an unknown kind", [{ t: 10, k: 7, a: 0, b: 0, c: 0, d: 0 }], bt]);
 rejected.push(["flick before the run", [{ t: 0, k: 1, a: 500, b: -1000, c: 0, d: 0 }], bt]);

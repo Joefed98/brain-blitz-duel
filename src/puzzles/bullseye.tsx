@@ -231,11 +231,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     });
     const divisor = Math.max(scale, 0.0001);
     return {
-      x: clampInt(
-        Math.round((event.clientX - box.left - offsetX) / divisor),
-        0,
-        BULLSEYE_WORLD_W,
-      ),
+      x: clampInt(Math.round((event.clientX - box.left - offsetX) / divisor), 0, BULLSEYE_WORLD_W),
       y: clampInt(Math.round((event.clientY - box.top - offsetY) / divisor), 0, BULLSEYE_WORLD_H),
     };
   };
@@ -289,17 +285,19 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         className="h-auto w-full max-w-[180px] shrink-0"
         aria-hidden="true"
       >
-        {Array.from({ length: BULLSEYE_RINGS }, (_, index) => BULLSEYE_RINGS - index).map((ring) => (
-          <circle
-            key={ring}
-            cx={size / 2}
-            cy={size / 2}
-            r={ring * BULLSEYE_RING_STEP}
-            fill={BULLSEYE_RING_COLOURS[ring - 1]}
-            opacity={ring <= 2 ? 0.9 : 0.3}
-            stroke="#0B0B0FB0"
-          />
-        ))}
+        {Array.from({ length: BULLSEYE_RINGS }, (_, index) => BULLSEYE_RINGS - index).map(
+          (ring) => (
+            <circle
+              key={ring}
+              cx={size / 2}
+              cy={size / 2}
+              r={ring * BULLSEYE_RING_STEP}
+              fill={BULLSEYE_RING_COLOURS[ring - 1]}
+              opacity={ring <= 2 ? 0.9 : 0.3}
+              stroke="#0B0B0FB0"
+            />
+          ),
+        )}
         {result.hits.map((hit, index) => {
           // Each hit is shown where it fell relative to the target it hit, so
           // every arrow is comparable on one full-size ring set.

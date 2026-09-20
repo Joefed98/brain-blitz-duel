@@ -61,9 +61,8 @@ export function encodeBullseyeRun(run: BullseyeRun): string {
 }
 
 export function decodeBullseyeRun(raw: string): BullseyeRun {
-  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] = String(
-    raw ?? "",
-  ).split("|");
+  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
+    String(raw ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
