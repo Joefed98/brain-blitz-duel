@@ -24,7 +24,7 @@ function Board({
   marks,
   size = NONO_SIZE,
   onCell,
-  cell = 48,
+  cell = 40,
   goldCells,
   wrongCells,
 }: {
@@ -201,7 +201,7 @@ function Stage({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-      <Board rows={data.rows} cols={data.cols} marks={marks} onCell={tap} cell={34} />
+      <Board rows={data.rows} cols={data.cols} marks={marks} onCell={tap} cell={40} />
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
         Tap to fill, again to mark empty, again to clear.
       </p>

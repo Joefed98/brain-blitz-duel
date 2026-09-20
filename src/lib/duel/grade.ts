@@ -518,17 +518,17 @@ export function gradeSubmission(
       break;
     }
     case "bomb": {
-      // The action list is replayed against the stored sequence, strikes included.
+      // The ordered action list is checked only when DEFUSE (or timeout) submits it.
       const required = decodeBombActions(puzzle.sequence ?? "");
       const replay = replayBomb(required, decodeBombActions(answer));
       isCorrect = replay.defused;
-      correctCount = replay.steps;
-      score = scoreBomb(replay.defused, replay.strikes, ms, replay.steps);
+      correctCount = replay.correctPrefix;
+      score = scoreBomb(replay.defused, ms, replay.correctPrefix);
       extraDetail = {
         defused: replay.defused,
         exploded: replay.exploded,
-        strikes: replay.strikes,
-        steps: replay.steps,
+        correctPrefix: replay.correctPrefix,
+        firstWrong: replay.firstWrong,
         required: required.length,
       };
       break;

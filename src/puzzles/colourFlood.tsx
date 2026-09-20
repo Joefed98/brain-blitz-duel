@@ -23,11 +23,11 @@ function fillOf(colour: number): string {
   return GLYPH_COLOURS[FLOOD_PALETTE[colour % FLOOD_PALETTE.length]!];
 }
 
-/** The board, with the player's region ringed in faint gold. */
+/** The board, with one white outline around the player's region boundary. */
 function Board({
   grid,
   size = FLOOD_SIZE,
-  cell = 30,
+  cell = 26,
 }: {
   grid: number[];
   size?: number;
@@ -63,11 +63,11 @@ function Board({
               height: cell,
               background: fillOf(colour),
               boxShadow: mine
-                ? `inset 0 ${border[0] ? 2 : 0}px 0 0 ${GLYPH_COLOURS.GOLD}, inset ${
+                ? `inset 0 ${border[0] ? 2 : 0}px 0 0 #FFFFFF, inset ${
                     border[1] ? -2 : 0
-                  }px 0 0 0 ${GLYPH_COLOURS.GOLD}, inset 0 ${border[2] ? -2 : 0}px 0 0 ${
-                    GLYPH_COLOURS.GOLD
-                  }, inset ${border[3] ? 2 : 0}px 0 0 0 ${GLYPH_COLOURS.GOLD}`
+                  }px 0 0 0 #FFFFFF, inset 0 ${border[2] ? -2 : 0}px 0 0 #FFFFFF, inset ${
+                    border[3] ? 2 : 0
+                  }px 0 0 0 #FFFFFF`
                 : undefined,
             }}
           />

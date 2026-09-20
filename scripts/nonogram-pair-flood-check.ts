@@ -20,6 +20,7 @@ import { floodMinMoves, generateFlood } from "../src/lib/duel/flood.server";
 import { floodSolved, replayFlood } from "../src/lib/duel/flood";
 import {
   FLOOD_FALLBACK_PAR,
+  FLOOD_MAX_PAR,
   FLOOD_MIN_PAR,
   NONO_MAX_FILLED,
   NONO_MIN_FILLED,
@@ -40,7 +41,7 @@ function check(label: string, ok: boolean) {
 
 check("nonogram bank has forty pictograms", NONO_PICTOGRAMS.length >= 40);
 check(
-  "nonogram bank entries are full 9 by 9 pictures",
+  "nonogram bank entries are full 7 by 7 pictures",
   NONO_PICTOGRAMS.every((picture) => picture.length === NONO_SIZE * NONO_SIZE),
 );
 check("nonogram bank has usable pictograms", nonoUsablePictograms().length >= 10);
@@ -112,7 +113,10 @@ for (let round = 0; round < 12; round++) {
   const puzzle = generateFlood();
   const solution = puzzle.solution ?? [];
   const replay = replayFlood(puzzle.grid, solution);
-  check("flood par is stored", puzzle.par >= FLOOD_MIN_PAR && puzzle.par <= FLOOD_FALLBACK_PAR);
+  check(
+    "flood par is stored in the 10–15 band",
+    puzzle.par >= FLOOD_MIN_PAR && puzzle.par <= FLOOD_MAX_PAR,
+  );
   check("flood stored route floods the board", replay.solved && floodSolved(replay.grid));
   check("flood stored route is exactly par long", replay.moves === puzzle.par);
   check(

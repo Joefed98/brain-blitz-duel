@@ -250,17 +250,19 @@ function Stage({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-      {/* Sized to leave the timer, counters and hint clear at 375 × 667. */}
-      <Rings
-        segments={data.segments}
-        offsets={replay.offsets}
-        size={248}
-        selectedRing={selectedRing}
-        onSelect={setSelectedRing}
-      />
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-3 pt-3">
+      <div className="aspect-square w-[calc(100%-24px)] max-w-[351px] shrink-0 [&>svg]:h-full [&>svg]:w-full">
+        <Rings
+          segments={data.segments}
+          offsets={replay.offsets}
+          size={351}
+          selectedRing={selectedRing}
+          onSelect={setSelectedRing}
+        />
+      </div>
       <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        turns <span className="text-primary">{replay.moves}</span> · spokes{" "}
+        ring {selectedRing + 1} selected · turns{" "}
+        <span className="text-primary">{replay.moves}</span> · spokes{" "}
         <span className="text-primary">
           {replay.aligned} / {RINGS_SEGMENTS}
         </span>
@@ -285,9 +287,6 @@ function Stage({
           ↻
         </Button>
       </div>
-      <p className="shrink-0 text-center text-xs text-muted-foreground">
-        Select a ring, then turn it with the arrows.
-      </p>
     </div>
   );
 }

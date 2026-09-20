@@ -742,18 +742,19 @@ const safeSummary: SummaryBuilder = (result, puzzle) => {
 
 const bombSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "bomb") return { summary: "—", detail: [] };
-  const strikes = Number(result.extra?.["strikes"] ?? 0);
-  const steps = Number(result.extra?.["steps"] ?? 0);
+  const prefix = Number(result.extra?.["correctPrefix"] ?? 0);
   const exploded = Boolean(result.extra?.["exploded"]);
   if (result.is_correct) {
     return {
-      summary: `Defused · ${strikes} strike${strikes === 1 ? "" : "s"} · ${seconds(elapsedMs(result, puzzle))}`,
-      detail: [strikes === 0 ? "No mistakes" : "One mistake made"],
+      summary: `Defused · ${seconds(elapsedMs(result, puzzle))}`,
+      detail: ["Every action was in the right order"],
     };
   }
   return {
-    summary: exploded ? `Exploded · step ${steps + 1}` : `${steps} / ${puzzle.stepCount} steps`,
-    detail: [`${steps} correct step${steps === 1 ? "" : "s"}`],
+    summary: exploded
+      ? `Exploded · ${prefix} / ${puzzle.stepCount}`
+      : `${prefix} / ${puzzle.stepCount}`,
+    detail: [`${prefix} correct opening step${prefix === 1 ? "" : "s"}`],
   };
 };
 

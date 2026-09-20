@@ -24,6 +24,7 @@ import { decodeBombActions, replayBomb } from "../src/lib/duel/bomb";
 import {
   BOMB_MAX_SEQUENCE,
   BOMB_MIN_EFFECTIVE_RULES,
+  BOMB_MIN_ORDER_RULES,
   BOMB_MIN_SEQUENCE,
   BOMB_RULE_COUNT,
   BOMB_WIRES,
@@ -104,6 +105,8 @@ for (let i = 0; i < ROUNDS; i++) {
   assert(["LEFT", "MID", "RIGHT"].includes(bomb.switchPosition), "invalid switch position");
   assert(!inspected.contradictory, "generated rules contradict each other");
   assert(inspected.effective >= BOMB_MIN_EFFECTIVE_RULES, "too few effective rules");
+  assert(inspected.orderRules >= BOMB_MIN_ORDER_RULES, "too few ordering rules");
+  assert(inspected.lastRuleAffectsFirst, "the final rule does not affect the first action");
   const sequence = decodeBombActions(bomb.sequence!);
   assert(sequence.length === bomb.stepCount, "stepCount does not match the sequence");
   assert(
@@ -111,9 +114,12 @@ for (let i = 0; i < ROUNDS; i++) {
     `sequence length out of band: ${sequence.length}`,
   );
   const clean = replayBomb(sequence, sequence);
-  assert(clean.defused && clean.strikes === 0, "the stored sequence does not defuse the bomb");
+  assert(
+    clean.defused && clean.correctPrefix === sequence.length,
+    "stored sequence did not defuse",
+  );
   const wrong = replayBomb(sequence, ["b" + (sequence[0] === "bA" ? "B" : "A"), ...sequence]);
-  assert(wrong.strikes === 1, "a wrong action did not strike");
+  assert(wrong.exploded && wrong.correctPrefix === 0, "wrong first action did not explode");
 }
 assert(BOMB_RULE_TEMPLATE_COUNT >= 30, "bomb rule bank has fewer than 30 templates");
-console.log(`Bomb Defusal: ${ROUNDS} panels with 3–6 steps, six rules and working strikes`);
+console.log(`Bomb Defusal: ${ROUNDS} panels with unique 3–6 step sequences and deferred checks`);

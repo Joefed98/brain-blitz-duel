@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import {
   actionLabel,
-  BOMB_MAX_STRIKES,
   BOMB_SWITCH_POSITIONS,
   cutAction,
   decodeBombActions,
@@ -19,8 +18,7 @@ import {
 } from "@/lib/duel/bomb";
 import { useStageState } from "@/lib/duel/stageState";
 import { BOMB_TIME_MS, BOMB_WIRES, type BombPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -32,8 +30,6 @@ interface PanelProps {
   switchPosition: BombSwitch;
   cutWires?: number[];
   pressed?: ("A" | "B")[];
-  strikes?: number;
-  shake?: boolean;
   onWire?: ((index: number) => void) | undefined;
   onButton?: ((label: "A" | "B") => void) | undefined;
   compact?: boolean;
@@ -48,18 +44,12 @@ function Panel({
   switchPosition,
   cutWires = [],
   pressed = [],
-  strikes = 0,
-  shake = false,
   onWire,
   onButton,
   compact = false,
 }: PanelProps) {
   return (
-    <div
-      className={`flex h-full w-full flex-col justify-between rounded-2xl border-2 border-border bg-background/70 p-2 ${
-        shake ? "animate-shake border-warn" : ""
-      }`}
-    >
+    <div className="flex h-full w-full flex-col justify-between rounded-2xl border-2 border-border bg-background/70 p-2">
       <div className="flex items-center justify-between gap-2 px-1">
         <span
           aria-hidden="true"
@@ -87,16 +77,6 @@ function Panel({
               className={`h-2.5 w-3 rounded-sm ${position === switchPosition ? "bg-primary" : "bg-border"}`}
               title={position}
             />
-          ))}
-        </span>
-        <span className="flex gap-1">
-          {Array.from({ length: BOMB_MAX_STRIKES }, (_, index) => (
-            <span
-              key={index}
-              className={`font-mono text-xs ${index < strikes ? "text-warn" : "text-border"}`}
-            >
-              ✕
-            </span>
           ))}
         </span>
       </div>
@@ -193,15 +173,18 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: PuzzleStageProps) {
+function Stage({
+  puzzle,
+  phaseStartedAt,
+  now,
+  locked,
+  onSubmit,
+  onDraftAnswer,
+  stateKey = "bomb",
+}: PuzzleStageProps) {
   const isBomb = puzzle.type === "bomb";
   const [actions, setActions] = useStageState<BombAction[]>(stateKey, "bombActions", () => []);
-  const [shake, setShake] = useStageState<boolean>(stateKey, "bombShake", () => false);
   const submitted = useRef(false);
-
-  // The required sequence lives on the server; the phone only counts taps.
-  const steps = useMemo(() => actions.length, [actions]);
-  const needed = isBomb ? puzzle.stepCount : 0;
 
   useEffect(() => {
     onDraftAnswer?.(encodeBombActions(actions));
@@ -214,14 +197,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: P
     setActions(next);
   };
 
-  // The panel locks itself once the player has taken every step the card needs.
   useEffect(() => {
-    if (locked || submitted.current || !isBomb || needed <= 0) return;
-    if (steps < needed) return;
+    if (locked || submitted.current || !isBomb) return;
+    if (now < phaseStartedAt + BOMB_TIME_MS - 400) return;
     submitted.current = true;
-    playCorrect();
     onSubmit(encodeBombActions(actions));
-  }, [steps, needed, actions, locked, isBomb, onSubmit]);
+  }, [now, phaseStartedAt, actions, locked, isBomb, onSubmit]);
 
   if (!isBomb) return null;
 
@@ -249,7 +230,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: P
           switchPosition={puzzle.switchPosition}
           cutWires={cutWires}
           pressed={pressed}
-          shake={shake}
           onWire={(index) => act(cutAction(index))}
           onButton={(label) => act(pressAction(label))}
         />
@@ -257,7 +237,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: P
 
       <div className="flex shrink-0 items-center justify-between">
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          steps <span className="text-primary">{steps}</span> / {needed}
+          actions <span className="text-primary">{actions.length}</span>
         </p>
         <button
           type="button"
@@ -265,29 +245,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: P
           onClick={() => {
             if (locked || submitted.current) return;
             submitted.current = true;
-            playCorrect();
+            playLock();
             onSubmit(encodeBombActions(actions));
           }}
-          className="h-11 rounded-xl bg-primary px-5 font-display text-sm font-bold uppercase tracking-widest text-primary-foreground disabled:opacity-40"
+          className="h-12 flex-1 rounded-xl bg-primary px-5 font-display text-sm font-bold uppercase tracking-widest text-primary-foreground disabled:opacity-40"
         >
-          Done
+          Defuse
         </button>
         <button
           type="button"
           disabled={locked || !actions.length || submitted.current}
           onClick={() => {
-            buzz(15);
-            setShake(true);
-            setTimeout(() => setShake(false), 200);
-            setActions((current) => current.slice(0, -1));
+            setActions([]);
           }}
           className="h-11 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
-          Undo
+          Reset
         </button>
       </div>
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        Check the switch, then tap wires and buttons in rule order
+        Read every rule, act in order, then tap DEFUSE
       </p>
     </div>
   );
@@ -303,33 +280,36 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
 
   return (
     <div className="flex w-full flex-col items-center gap-2">
-      <div className="w-full">
-        {required.map((action, index) => (
-          <p key={`${action}-${index}`} className="text-center text-xs">
-            <span className="font-mono text-primary">{index + 1}.</span>{" "}
-            {actionLabel(action, puzzle.wires)}
-          </p>
-        ))}
-      </div>
-      {mine.length > 0 && (
-        <p className="text-center text-xs text-muted-foreground">
-          {mine.map((action, index) => (
-            <span key={`${action}-${index}`} className="mr-2 whitespace-nowrap">
-              {actionLabel(action, puzzle.wires)}{" "}
-              <span className={replay.verdicts[index] ? "text-ok" : "text-warn"}>
-                {replay.verdicts[index] ? "✓" : "✗"}
-              </span>
-            </span>
+      <div className="grid w-full grid-cols-2 gap-3 text-xs">
+        <div>
+          <p className="mb-1 text-center font-mono uppercase text-primary">Required</p>
+          {required.map((action, index) => (
+            <p key={`${action}-${index}`} className="truncate">
+              <span className="font-mono text-primary">{index + 1}.</span>{" "}
+              {actionLabel(action, puzzle.wires)}
+            </p>
           ))}
-        </p>
-      )}
+        </div>
+        <div>
+          <p className="mb-1 text-center font-mono uppercase text-muted-foreground">Yours</p>
+          {mine.map((action, index) => (
+            <p
+              key={`${action}-${index}`}
+              className={index === replay.firstWrong ? "truncate text-warn" : "truncate"}
+            >
+              <span className="font-mono">{index + 1}.</span> {actionLabel(action, puzzle.wires)}
+              {index === replay.firstWrong ? " ✗" : ""}
+            </p>
+          ))}
+        </div>
+      </div>
       <p className="font-display text-xl font-bold">
         <span className={myCorrect ? "text-primary" : "text-warn"}>
           {replay.exploded
-            ? `Exploded at step ${replay.steps + 1}`
+            ? `Exploded at step ${replay.correctPrefix + 1}`
             : replay.defused
-              ? `Defused · ${replay.strikes} strike${replay.strikes === 1 ? "" : "s"}`
-              : `${replay.steps} / ${required.length} steps`}
+              ? "Defused"
+              : `${replay.correctPrefix} / ${required.length} steps`}
         </span>
         {myCorrect && elapsed !== null && (
           <span className="ml-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">

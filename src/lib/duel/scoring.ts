@@ -56,9 +56,8 @@ import {
   type RoundResultRow,
 } from "./types";
 import {
-  BOMB_ONE_STRIKE_POINTS,
   BOMB_PARTIAL_POINTS,
-  BOMB_STEP_POINTS,
+  BOMB_PREFIX_POINTS,
   BOMB_TIME_MS,
   SAFE_DIAL_POINTS,
   SAFE_TIME_MS,
@@ -659,18 +658,12 @@ export function scoreSafe(openedOn: number, msRemaining: number, dialsRight: num
   return clamp(SAFE_DIAL_POINTS * dialsRight, 0, SAFE_DIAL_POINTS * 4);
 }
 
-/** Bomb Defusal: a clean defusal scores full marks, one strike costs 20. */
-export function scoreBomb(
-  defused: boolean,
-  strikes: number,
-  msRemaining: number,
-  steps: number,
-): number {
+/** Bomb Defusal: exact sequence scores full marks; only its correct prefix scores otherwise. */
+export function scoreBomb(defused: boolean, msRemaining: number, correctPrefix: number): number {
   if (defused) {
-    const base = strikes === 0 ? BASE_POINTS : BOMB_ONE_STRIKE_POINTS;
-    return Math.min(MAX_ROUND_SCORE, base + speedBonus(msRemaining, BOMB_TIME_MS));
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, BOMB_TIME_MS));
   }
-  return clamp(BOMB_STEP_POINTS * steps, 0, BOMB_PARTIAL_POINTS);
+  return clamp(BOMB_PREFIX_POINTS * correctPrefix, 0, BOMB_PARTIAL_POINTS);
 }
 
 /** Gravity Maze: solved scores the standard points, +20 for the fewest tilts. */

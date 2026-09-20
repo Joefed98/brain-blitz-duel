@@ -29,6 +29,7 @@ import { generateTiles, tilesMinMoves } from "../src/lib/duel/tiles.server";
 import {
   alignedSpokes,
   decodeRingTaps,
+  encodeRingTap,
   encodeRingTaps,
   freshOffsets,
   replayRings,
@@ -166,26 +167,28 @@ for (let round = 0; round < ROUNDS; round += 1) {
   check(`rings ${round}: minimum is exact`, proved?.min === minMoves);
 
   // Rings two and three drag the next ring out; inner and outer turn alone.
-  const ringTwo = replayRings(segments, [2]);
+  const ringTwo = replayRings(segments, [encodeRingTap(1, true)]);
   check(
     `rings ${round}: ring two is linked`,
     ringTwo.offsets[0] === 0 &&
-      ringTwo.offsets[1] === 1 &&
-      ringTwo.offsets[2] === 1 &&
+      ringTwo.offsets[1] === 7 &&
+      ringTwo.offsets[2] === 7 &&
       ringTwo.offsets[3] === 0,
   );
-  const ringThree = replayRings(segments, [4]);
+  const ringThree = replayRings(segments, [encodeRingTap(2, true)]);
   check(
     `rings ${round}: ring three is linked`,
     ringThree.offsets[0] === 0 &&
       ringThree.offsets[1] === 0 &&
-      ringThree.offsets[2] === 1 &&
-      ringThree.offsets[3] === 1,
+      ringThree.offsets[2] === 7 &&
+      ringThree.offsets[3] === 7,
   );
   const inner = replayRings(segments, [0]);
   check(`rings ${round}: inner turns alone`, inner.offsets.filter(Boolean).length === 1);
   const outer = replayRings(segments, [6]);
   check(`rings ${round}: outer turns alone`, outer.offsets.filter(Boolean).length === 1);
+  const anticlockwise = replayRings(segments, [encodeRingTap(0, false)]);
+  check(`rings ${round}: anticlockwise direction`, anticlockwise.offsets[0] === 1);
   const decoded = decodeRingTaps(encodeRingTaps(solution ?? []));
   check(`rings ${round}: round-trips`, replayRings(segments, decoded).solved);
   const partial = replayRings(segments, (solution ?? []).slice(0, 2));

@@ -48,6 +48,10 @@ interface RuleOutput {
 interface Rule {
   id: string;
   text: string;
+  /** Changes where an action sits rather than merely deciding whether it exists. */
+  order?: boolean;
+  /** When last on the card, this rule determines the first required action. */
+  affectsFirst?: boolean;
   /** The actions this rule demands, or null when its condition does not hold. */
   apply: (panel: Panel) => RuleOutput | null;
   /** Actions this rule forbids outright. */
@@ -83,6 +87,8 @@ const BOMB_RULES: Rule[] = [
   {
     id: "serialOddPressA",
     text: "If the serial number is odd, press button A before cutting any wire.",
+    order: true,
+    affectsFirst: true,
     apply: (p) => (serialOdd(p) ? { mode: "prepend", actions: [pressAction("A")] } : null),
   },
   {
@@ -94,6 +100,7 @@ const BOMB_RULES: Rule[] = [
   {
     id: "pressBAfterBlue",
     text: "Press button B after cutting the blue wire, if there is one.",
+    order: true,
     apply: (p) =>
       count(p, "BLUE") > 0 ? { mode: "afterBlue", actions: [pressAction("B")] } : null,
   },
@@ -125,12 +132,15 @@ const BOMB_RULES: Rule[] = [
   {
     id: "buttonAWhite",
     text: "If button A is white, press it first.",
+    order: true,
+    affectsFirst: true,
     apply: (p) =>
       buttonColour(p, "A") === "WHITE" ? { mode: "prepend", actions: [pressAction("A")] } : null,
   },
   {
     id: "buttonBRed",
     text: "If button B is red, press it last.",
+    order: true,
     apply: (p) =>
       buttonColour(p, "B") === "RED" ? { mode: "append", actions: [pressAction("B")] } : null,
   },
@@ -201,6 +211,8 @@ const BOMB_RULES: Rule[] = [
   {
     id: "switchLeftPressA",
     text: "If the switch is LEFT, press button A first.",
+    order: true,
+    affectsFirst: true,
     apply: (p) =>
       p.switchPosition === "LEFT" ? { mode: "prepend", actions: [pressAction("A")] } : null,
   },
@@ -212,6 +224,7 @@ const BOMB_RULES: Rule[] = [
   {
     id: "switchRightPressB",
     text: "If the switch is RIGHT, press button B last.",
+    order: true,
     apply: (p) =>
       p.switchPosition === "RIGHT" ? { mode: "append", actions: [pressAction("B")] } : null,
   },
@@ -272,6 +285,26 @@ const BOMB_RULES: Rule[] = [
     text: "If the switch is RIGHT and the serial is odd, cut the second wire from the end.",
     apply: (p) => (p.switchPosition === "RIGHT" && serialOdd(p) ? cut(p.wires.length - 2) : null),
   },
+  {
+    id: "lastWireFirst",
+    text: "Cut the last wire FIRST.",
+    order: true,
+    affectsFirst: true,
+    apply: (p) => ({ mode: "prepend", actions: [cutAction(p.wires.length - 1)] }),
+  },
+  {
+    id: "pressBBeforeWires",
+    text: "Press button B before cutting any wire.",
+    order: true,
+    affectsFirst: true,
+    apply: () => ({ mode: "prepend", actions: [pressAction("B")] }),
+  },
+  {
+    id: "wireThreeLast",
+    text: "Cut wire 3 last.",
+    order: true,
+    apply: () => ({ mode: "append", actions: [cutAction(2)] }),
+  },
 ];
 
 export const BOMB_RULE_TEMPLATE_COUNT = BOMB_RULES.length;
@@ -285,6 +318,8 @@ interface Evaluated {
 export function inspectBombRules(puzzle: BombPuzzleData): {
   effective: number;
   contradictory: boolean;
+  orderRules: number;
+  lastRuleAffectsFirst: boolean;
 } {
   const panel: Panel = {
     wires: puzzle.wires,
@@ -304,7 +339,17 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
     );
     return without.sequence.join(",") !== reference.sequence.join(",");
   }).length;
-  return { effective, contradictory: reference.contradictory };
+  const last = rules[rules.length - 1];
+  const lastOutput = last?.apply(panel);
+  return {
+    effective,
+    contradictory: reference.contradictory,
+    orderRules: rules.filter((rule) => rule.order).length,
+    lastRuleAffectsFirst:
+      Boolean(last?.affectsFirst) &&
+      Boolean(lastOutput?.actions[0]) &&
+      reference.sequence[0] === lastOutput?.actions[0],
+  };
 }
 
 /** Runs the chosen rules over a panel, in card order, into one action list. */
@@ -325,7 +370,7 @@ function evaluate(rules: Rule[], panel: Panel): Evaluated {
       continue;
     }
     applied = true;
-    if (out.mode === "prepend") prepend.push(...out.actions);
+    if (out.mode === "prepend") prepend.unshift(...out.actions);
     else if (out.mode === "afterBlue") afterBlue.push(...out.actions);
     else body.push(...out.actions);
   }
@@ -370,7 +415,21 @@ function randomPanel(): Panel {
 export function generateBomb(): BombPuzzleData {
   for (let attempt = 0; attempt < 20_000; attempt++) {
     const panel = randomPanel();
-    const rules = shuffled(BOMB_RULES).slice(0, BOMB_RULE_COUNT);
+    const lastCandidates = BOMB_RULES.filter(
+      (rule) => rule.affectsFirst && (rule.apply(panel)?.actions.length ?? 0) > 0,
+    );
+    const lastRule = pick(lastCandidates);
+    const otherOrderRules = shuffled(
+      BOMB_RULES.filter((rule) => rule.order && rule.id !== lastRule.id),
+    );
+    const secondOrder = otherOrderRules.find(
+      (rule) => (rule.apply(panel)?.actions.length ?? 0) > 0,
+    );
+    if (!secondOrder) continue;
+    const ordinary = shuffled(
+      BOMB_RULES.filter((rule) => rule.id !== lastRule.id && rule.id !== secondOrder.id),
+    ).slice(0, BOMB_RULE_COUNT - 2);
+    const rules = [...ordinary, secondOrder, lastRule];
     const { sequence, contradictory } = evaluate(rules, panel);
     if (contradictory) continue;
     if (sequence.length < BOMB_MIN_SEQUENCE || sequence.length > BOMB_MAX_SEQUENCE) continue;
@@ -385,6 +444,8 @@ export function generateBomb(): BombPuzzleData {
       return without.sequence.join(",") !== reference;
     }).length;
     if (effective < BOMB_MIN_EFFECTIVE_RULES) continue;
+    const lastAction = lastRule.apply(panel)?.actions[0];
+    if (!lastAction || sequence[0] !== lastAction) continue;
 
     return {
       type: "bomb",

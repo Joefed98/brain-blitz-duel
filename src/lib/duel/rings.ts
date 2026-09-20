@@ -30,7 +30,9 @@ export function freshOffsets(): number[] {
 export function ringsApply(offsets: number[], tap: number): number[] {
   const ring = ringOfTap(tap);
   if (ring < 0 || ring >= RINGS_COUNT) return offsets;
-  const step = tapIsClockwise(tap) ? 1 : RINGS_SEGMENTS - 1;
+  // ringColour samples at spoke + offset, so a clockwise visible movement
+  // requires the previous segment to arrive at the next clockwise spoke.
+  const step = tapIsClockwise(tap) ? RINGS_SEGMENTS - 1 : 1;
   const next = [...offsets];
   next[ring] = ((next[ring] ?? 0) + step) % RINGS_SEGMENTS;
   for (const [from, to] of RINGS_LINKS) {

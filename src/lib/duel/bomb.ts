@@ -1,5 +1,5 @@
 /**
- * Bomb Defusal: the panel shape, the action encoding, and the strike replay.
+ * Bomb Defusal: the panel shape, action encoding, and deferred defuse replay.
  * The rule bank and its evaluator live server-side (`bomb.server.ts`) so the
  * required sequence cannot be worked out from the client bundle — only from the
  * rule card on screen, which is the puzzle.
@@ -17,7 +17,6 @@ export const WIRE_HEX: Record<WireColour, string> = {
   WHITE: "#F2F2F2",
 };
 
-export const BOMB_MAX_STRIKES = 2;
 export const BOMB_SWITCH_POSITIONS = ["LEFT", "MID", "RIGHT"] as const;
 export type BombSwitch = (typeof BOMB_SWITCH_POSITIONS)[number];
 
@@ -66,39 +65,24 @@ export function decodeBombActions(raw: string): BombAction[] {
 }
 
 export interface BombReplay {
-  /** How many required steps were done in the right order. */
-  steps: number;
-  strikes: number;
+  /** Number of leading actions that exactly match the required sequence. */
+  correctPrefix: number;
   exploded: boolean;
   defused: boolean;
-  /** One entry per action the player took: true when it was the next step. */
-  verdicts: boolean[];
+  firstWrong: number | null;
 }
 
-/** The single source of truth for strikes — run on the server at grading time. */
+/** The single source of truth for the final DEFUSE check. */
 export function replayBomb(sequence: BombAction[], actions: BombAction[]): BombReplay {
-  let steps = 0;
-  let strikes = 0;
-  const verdicts: boolean[] = [];
-
-  for (const action of actions) {
-    if (steps >= sequence.length) break;
-    const correct = sequence[steps] === action;
-    verdicts.push(correct);
-    if (correct) steps += 1;
-    else {
-      strikes += 1;
-      if (strikes >= BOMB_MAX_STRIKES) {
-        return { steps, strikes, exploded: true, defused: false, verdicts };
-      }
-    }
+  let correctPrefix = 0;
+  while (
+    correctPrefix < sequence.length &&
+    correctPrefix < actions.length &&
+    sequence[correctPrefix] === actions[correctPrefix]
+  ) {
+    correctPrefix += 1;
   }
-
-  return {
-    steps,
-    strikes,
-    exploded: false,
-    defused: sequence.length > 0 && steps === sequence.length,
-    verdicts,
-  };
+  const defused =
+    sequence.length > 0 && actions.length === sequence.length && correctPrefix === sequence.length;
+  return { correctPrefix, defused, exploded: !defused, firstWrong: defused ? null : correctPrefix };
 }

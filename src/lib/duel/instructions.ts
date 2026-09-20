@@ -355,14 +355,16 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewer tries scores more.",
   },
   bomb: {
-    goal: "Follow the rules to defuse the bomb.",
+    goal: "Carry out every required action in the exact order to defuse the bomb.",
     how: [
-      { action: "Read the rules in order", detail: "before you touch anything." },
-      { action: "Check every panel item", detail: "including the three-position switch." },
-      { action: "Tap a wire or button", detail: "in the required order." },
-      { action: "Two mistakes", detail: "and it explodes." },
+      {
+        action: "Read ALL the rules",
+        detail: "before you touch anything — some rules change the order.",
+      },
+      { action: "Tap wires and buttons", detail: "then tap DEFUSE." },
+      { action: "One wrong step", detail: "and it explodes." },
     ],
-    score: "No mistakes and fast = full points.",
+    score: "Defuse fast; a correct opening sequence earns partial credit.",
   },
   gravity: {
     goal: "Tilt the board so each ball lands on its own colour's target — at the same time.",
