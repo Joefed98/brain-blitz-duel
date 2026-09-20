@@ -11,6 +11,7 @@
 import {
   clampInt,
   inputRange,
+  rngBelow,
   TICKS_PER_SECOND,
   type ArcadeGame,
   type ArcadeInputEvent,
@@ -119,7 +120,7 @@ function init(seed: number): BullseyeState {
   let rng = seed | 0;
   const winds: number[] = [];
   for (let index = 0; index < BULLSEYE_ARROWS; index++) {
-    const drawn = rngBelowLocal(rng);
+    const drawn = rngBelow(rng, BULLSEYE_WIND_MAX * 2 + 1);
     rng = drawn.state;
     winds.push(drawn.value - BULLSEYE_WIND_MAX);
   }
@@ -133,16 +134,6 @@ function init(seed: number): BullseyeState {
     flightTick: 0,
     endedTick: 0,
   };
-}
-
-/** One wind draw, −4 … +4. */
-function rngBelowLocal(state: number): { state: number; value: number } {
-  const next = (state + 0x6d2b79f5) | 0;
-  let t = next | 0;
-  t = Math.imul(t ^ (t >>> 15), t | 1);
-  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-  const value = ((t ^ (t >>> 14)) >>> 0) % (BULLSEYE_WIND_MAX * 2 + 1);
-  return { state: next, value };
 }
 
 function isOver(state: BullseyeState): boolean {
