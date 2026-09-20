@@ -1349,6 +1349,8 @@ export const CHAIN_MIN_INVALID = 3;
 export const CHAIN_NODE_GAP = 15;
 /** Poisson-disc spacing, in node widths, and the spread checks on a layout. */
 export const CHAIN_MIN_SPACING = 1.6;
+/** A node glyph's width, as a share of the board width in percent. */
+export const CHAIN_NODE_WIDTH_PCT = 9;
 export const CHAIN_MIN_CENTRAL = 7;
 export const CHAIN_MAX_HULL_RATIO = 0.6;
 
