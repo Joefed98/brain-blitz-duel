@@ -87,7 +87,6 @@ export interface ArcadeGame<S, I = boolean> {
   draw: (ctx: CanvasRenderingContext2D, state: S, size: CanvasSize) => void;
 }
 
-
 /** The largest input log the server will look at. */
 export const MAX_INPUT_TAPS = 2000;
 
