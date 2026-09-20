@@ -547,7 +547,7 @@ export function scorePipes(solved: boolean, connected: number, msRemaining: numb
   if (joined <= 18) return 2 * joined;
   if (joined >= PIPES_CELLS - 1) return 95;
   if (joined >= PIPES_CELLS - 2) return 90;
-  const steps = Math.ceil((PIPES_CELLS - 2 - joined) / 2);
+  const steps = Math.floor((PIPES_CELLS - 3 - joined) / 2);
   return clamp(85 - 5 * steps, 0, BASE_POINTS);
 }
 
@@ -657,7 +657,8 @@ export function scoreTower(
 /** Maze Dash: reaching the exit scores the standard points, else part marks. */
 export function scoreMaze(solved: boolean, progress: number, msRemaining: number): number {
   if (solved) return BASE_POINTS + speedBonus(msRemaining, MAZE_TIME_MS);
-  return clamp(Math.round(MAZE_PARTIAL_POINTS * clamp(progress, 0, 1)), 0, MAZE_PARTIAL_POINTS);
+  // Unfinished runs score the exact percentage of the route completed.
+  return clamp(Math.round(BASE_POINTS * clamp(progress, 0, 1)), 0, BASE_POINTS);
 }
 
 /** Sort the Tubes: solved scores the standard points, +20 for the minimum. */
