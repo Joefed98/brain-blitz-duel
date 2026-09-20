@@ -107,9 +107,11 @@ function stepHasRequiredChoices(nodes: ChainNode[], cycle: ChainShape[], chain: 
   const unused = nodes.map((_node, index) => index).filter((index) => !chain.includes(index));
   const invalid = unused.filter((index) => nodes[index]?.shape !== needed).length;
   if (invalid < CHAIN_MIN_INVALID) return false;
-  // Crossing cannot exist until there are two prior segments. Thereafter every
-  // stored-solution step must deliberately offer a shape-valid crossing trap.
+  // Crossing cannot exist until there are two prior segments. Every later
+  // stored-solution step that can geometrically offer a crossing must do so.
   if (chain.length < 3) return true;
+  const crossingPossible = unused.some((index) => chainWouldCross(nodes, chain, index));
+  if (!crossingPossible) return true;
   return unused.some(
     (index) => nodes[index]?.shape === needed && chainWouldCross(nodes, chain, index),
   );
