@@ -63,11 +63,11 @@ function Board({
               height: cell,
               background: fillOf(colour),
               boxShadow: mine
-                ? `inset 0 ${border[0] ? 2 : 0}px 0 0 var(--foreground), inset ${
+                ? `inset 0 ${border[0] ? 2 : 0}px 0 0 #FFFFFF, inset ${
                     border[1] ? -2 : 0
-                  }px 0 0 0 var(--foreground), inset 0 ${border[2] ? -2 : 0}px 0 0 var(--foreground), inset ${
+                  }px 0 0 0 #FFFFFF, inset 0 ${border[2] ? -2 : 0}px 0 0 #FFFFFF, inset ${
                     border[3] ? 2 : 0
-                  }px 0 0 0 var(--foreground)`
+                  }px 0 0 0 #FFFFFF`
                 : undefined,
             }}
           />

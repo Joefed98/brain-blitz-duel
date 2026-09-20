@@ -20,6 +20,7 @@ import { floodMinMoves, generateFlood } from "../src/lib/duel/flood.server";
 import { floodSolved, replayFlood } from "../src/lib/duel/flood";
 import {
   FLOOD_FALLBACK_PAR,
+  FLOOD_MAX_PAR,
   FLOOD_MIN_PAR,
   NONO_MAX_FILLED,
   NONO_MIN_FILLED,
@@ -112,7 +113,7 @@ for (let round = 0; round < 12; round++) {
   const puzzle = generateFlood();
   const solution = puzzle.solution ?? [];
   const replay = replayFlood(puzzle.grid, solution);
-  check("flood par is stored", puzzle.par >= FLOOD_MIN_PAR && puzzle.par <= FLOOD_FALLBACK_PAR);
+  check("flood par is stored in the 10–15 band", puzzle.par >= FLOOD_MIN_PAR && puzzle.par <= FLOOD_MAX_PAR);
   check("flood stored route floods the board", replay.solved && floodSolved(replay.grid));
   check("flood stored route is exactly par long", replay.moves === puzzle.par);
   check(
