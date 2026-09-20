@@ -139,5 +139,10 @@ export function generateFlood(): FloodPuzzleData {
   const grid = randomGrid();
   const solved = floodMinMoves(grid, FLOOD_FALLBACK_PAR);
   console.warn("[flood] falling back to an unbanded board");
-  return { type: "flood", grid, par: solved?.par ?? FLOOD_MAX_PAR, solution: solved?.solution };
+  return {
+    type: "flood",
+    grid,
+    par: solved?.par ?? FLOOD_MAX_PAR,
+    ...(solved ? { solution: solved.solution } : {}),
+  };
 }

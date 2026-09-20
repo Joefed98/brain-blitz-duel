@@ -50,7 +50,7 @@ function Board({
   matched: Set<number>;
   cols?: number;
   glyph?: number;
-  onCard?: (index: number) => void;
+  onCard?: ((index: number) => void) | undefined;
   compact?: boolean;
 }) {
   return (
