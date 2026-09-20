@@ -4,6 +4,8 @@ import {
   BLOCK_TIME_MS,
   GONOGO_ITEMS,
   NUMHUNT_ERROR_PENALTY,
+  NUMSEQ_ITEMS,
+  NUMSEQ_TIME_MS,
   PCTSPRINT_ITEMS,
   PCTSPRINT_TIME_MS,
   ROUND_MS,
@@ -262,6 +264,14 @@ export function scorePercentSprint(correctCount: number, msRemaining: number): n
   const correct = clamp(correctCount, 0, PCTSPRINT_ITEMS);
   const accuracy = Math.round((BASE_POINTS * correct) / PCTSPRINT_ITEMS);
   const bonus = correct >= PCTSPRINT_ITEMS ? speedBonus(msRemaining, PCTSPRINT_TIME_MS) : 0;
+  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+}
+
+/** Number Sequence: accuracy out of 100, plus the speed bonus on a flawless run. */
+export function scoreNumberSequence(correctCount: number, msRemaining: number): number {
+  const correct = clamp(correctCount, 0, NUMSEQ_ITEMS);
+  const accuracy = Math.round((BASE_POINTS * correct) / NUMSEQ_ITEMS);
+  const bonus = correct >= NUMSEQ_ITEMS ? speedBonus(msRemaining, NUMSEQ_TIME_MS) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 

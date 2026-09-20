@@ -63,6 +63,7 @@ type RegisteredPuzzleDefinition = PuzzleDefinition &
   Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions" | "retired">>;
 
 const LONG_REVEAL_TYPES = new Set<PuzzleType>([
+  "numseq",
   "chaincalc",
   "target",
   "wordsmith",

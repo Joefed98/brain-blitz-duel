@@ -49,13 +49,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Exact = full points. Closer answers score more.",
   },
   numseq: {
-    goal: "Find the missing next number in the sequence.",
+    goal: "Work out the next number in each sequence.",
     how: [
-      { action: "Study the four terms", detail: "to spot the pattern." },
-      { action: "Type the next number", detail: "in the answer box." },
-      { action: "Press Submit", detail: "to lock your answer." },
+      { action: "Five sequences", detail: "one after the other, getting harder." },
+      { action: "Tap the answer", detail: "you can't go back." },
+      { action: "Finish all five", detail: "before time runs out." },
     ],
-    score: "Correct and faster = more points.",
+    score: "All five right for the speed bonus.",
   },
   equation: {
     goal: "Make the equation equal the target.",

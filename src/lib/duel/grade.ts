@@ -33,6 +33,7 @@ import {
   scoreWordLadder,
   scoreNumberClimb,
   scoreNumberHunt,
+  scoreNumberSequence,
   scorePercentSprint,
   scorePatternCompletion,
   scoreReaction,
@@ -72,6 +73,7 @@ import {
 import {
   GONOGO_ITEMS,
   NUMHUNT_COUNT,
+  NUMSEQ_ITEMS,
   PCTSPRINT_ITEMS,
   REACTION_PENALTY_MS,
   ROUND_MS,
@@ -233,6 +235,14 @@ export function gradeSubmission(
       correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
       isCorrect = correctCount >= WORDMATCH_ITEMS;
       score = scoreWordMatch(correctCount, ms);
+      break;
+    }
+    case "numseq": {
+      // The five correct option indices live server-side only.
+      const picks = answer.split(",").map((v) => Number.parseInt(v, 10));
+      correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
+      isCorrect = correctCount >= NUMSEQ_ITEMS;
+      score = scoreNumberSequence(correctCount, ms);
       break;
     }
     case "pctsprint": {
