@@ -47,10 +47,13 @@ export type PuzzleType =
   | "stroke"
   | "tiles"
   | "rings"
-  | "hover";
+  | "hover"
+  | "swerve"
+  | "skyline";
 
 export type PuzzleCategory =
-  "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
+  "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
+
 
 /** Wordsmith: build as many words as you can from the tiles. */
 export const WORDSMITH_TIME_MS = 60_000;
@@ -406,7 +409,10 @@ export type PuzzleData =
   | StrokePuzzleData
   | TilesPuzzleData
   | RingsPuzzleData
-  | HoverPuzzleData;
+  | HoverPuzzleData
+  | SwervePuzzleData
+  | SkylinePuzzleData;
+
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1609,3 +1615,24 @@ export interface HoverPuzzleData {
   /** Drives every pillar of the run — identical for everyone in the room. */
   seed: number;
 }
+
+/* ============================ Swerve / Skyline =========================== */
+
+/** Both arcade runs are a fixed 60 seconds; the round clock adds three seconds. */
+export const SWERVE_TIME_MS = 63_000;
+export const SKYLINE_TIME_MS = 63_000;
+/** How long a crash or a miss sits on screen before the run is submitted. */
+export const ARCADE_CRASH_FREEZE_MS = 800;
+
+export interface SwervePuzzleData {
+  type: "swerve";
+  /** Drives every row of the course — identical for everyone in the room. */
+  seed: number;
+}
+
+export interface SkylinePuzzleData {
+  type: "skyline";
+  /** Decides which side the first block slides in from. */
+  seed: number;
+}
+
