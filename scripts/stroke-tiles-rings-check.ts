@@ -141,7 +141,7 @@ for (let round = 0; round < ROUNDS; round += 1) {
 for (let round = 0; round < ROUNDS; round += 1) {
   const puzzle = generateRings();
   const { segments, minMoves, solution } = puzzle;
-  check(`rings ${round}: three rings of eight`, segments.length === RINGS_COUNT);
+  check(`rings ${round}: four rings of eight`, segments.length === RINGS_COUNT);
   check(
     `rings ${round}: two of each colour per ring`,
     segments.every((ring) => {
@@ -165,9 +165,21 @@ for (let round = 0; round < ROUNDS; round += 1) {
   const proved = ringsMinMoves(segments);
   check(`rings ${round}: minimum is exact`, proved?.min === minMoves);
 
-  // The middle ring drags the outer ring: one middle tap moves two rings.
-  const one = replayRings(segments, [2]);
-  check(`rings ${round}: middle ring is linked`, one.offsets[1] === one.offsets[2]);
+  // Rings two and three drag the next ring out; inner and outer turn alone.
+  const ringTwo = replayRings(segments, [2]);
+  check(
+    `rings ${round}: ring two is linked`,
+    ringTwo.offsets[0] === 0 && ringTwo.offsets[1] === 1 && ringTwo.offsets[2] === 1 && ringTwo.offsets[3] === 0,
+  );
+  const ringThree = replayRings(segments, [4]);
+  check(
+    `rings ${round}: ring three is linked`,
+    ringThree.offsets[0] === 0 && ringThree.offsets[1] === 0 && ringThree.offsets[2] === 1 && ringThree.offsets[3] === 1,
+  );
+  const inner = replayRings(segments, [0]);
+  check(`rings ${round}: inner turns alone`, inner.offsets.filter(Boolean).length === 1);
+  const outer = replayRings(segments, [6]);
+  check(`rings ${round}: outer turns alone`, outer.offsets.filter(Boolean).length === 1);
   const decoded = decodeRingTaps(encodeRingTaps(solution ?? []));
   check(`rings ${round}: round-trips`, replayRings(segments, decoded).solved);
   const partial = replayRings(segments, (solution ?? []).slice(0, 2));

@@ -439,8 +439,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   rings: {
     goal: "Turn the rings so every spoke is one colour.",
     how: [
-      { action: "Tap a ring's side", detail: "— left turns it back, right turns it on." },
-      { action: "The middle ring", detail: "also turns the outer ring with it." },
+      { action: "Select a ring", detail: "then use the arrow buttons to turn it." },
+      { action: "Rings two and three", detail: "also turn the next ring out." },
       { action: "Watch the rim", detail: "for a gold tick on each finished spoke." },
     ],
     score: "Fewer turns earns a bonus.",

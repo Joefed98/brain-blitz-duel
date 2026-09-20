@@ -1435,11 +1435,11 @@ export interface IntruderPuzzleData {
 
 /* ============================== Nonogram ================================ */
 
-export const NONO_TIME_MS = 60_000;
-export const NONO_SIZE = 5;
+export const NONO_TIME_MS = 90_000;
+export const NONO_SIZE = 9;
 /** Filled-cell count band for a generated picture. */
-export const NONO_MIN_FILLED = 9;
-export const NONO_MAX_FILLED = 15;
+export const NONO_MIN_FILLED = 30;
+export const NONO_MAX_FILLED = 45;
 /** Partial credit share and the cost of a wrongly filled cell. */
 export const NONO_PARTIAL_POINTS = 60;
 export const NONO_WRONG_PENALTY = 5;
@@ -1556,20 +1556,22 @@ export interface TilesPuzzleData {
 /* ============================ Rotating Rings ============================ */
 
 export const RINGS_TIME_MS = 45_000;
-export const RINGS_COUNT = 3;
+export const RINGS_COUNT = 4;
 export const RINGS_SEGMENTS = 8;
 export const RINGS_COLOURS = 4;
-export const RINGS_MIN_SCRAMBLE = 6;
-export const RINGS_MAX_SCRAMBLE = 12;
-export const RINGS_MIN_TURNS = 5;
-export const RINGS_MAX_TURNS = 9;
+export const RINGS_MIN_SCRAMBLE = 8;
+export const RINGS_MAX_SCRAMBLE = 14;
+export const RINGS_MIN_TURNS = 6;
+export const RINGS_MAX_TURNS = 10;
 export const RINGS_MIN_BONUS = 20;
 export const RINGS_PARTIAL_POINTS = 60;
 export const RINGS_TURN_MS = 150;
 export const RINGS_ATTEMPTS = 600;
-/** Ring 0 is the innermost; ring 1 (middle) drags ring 2 (outer) with it. */
-export const RINGS_LINKED_FROM = 1;
-export const RINGS_LINKED_TO = 2;
+/** Ring 0 is innermost. Ring 1 drags 2; ring 2 drags 3. */
+export const RINGS_LINKS: ReadonlyArray<readonly [number, number]> = [
+  [1, 2],
+  [2, 3],
+];
 
 export interface RingsPuzzleData {
   type: "rings";
