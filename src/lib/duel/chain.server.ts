@@ -95,11 +95,6 @@ function stepHasRequiredChoices(nodes: ChainNode[], cycle: ChainShape[], chain: 
   // Crossing cannot exist until there are two prior segments. The generator's
   // searched template supplies crossing decoys throughout the established path.
   if (chain.length < 3) return true;
-  if (chain.length < 4) {
-    return unused.some(
-      (index) => nodes[index]?.shape === needed && chainWouldCross(nodes, chain, index),
-    );
-  }
   return true;
 }
 
