@@ -73,18 +73,20 @@ export interface CanvasSize {
 
 /**
  * One arcade game. Adding a second game means adding one module of this shape
- * and one registry entry — the engine itself never changes.
+ * and one registry entry — the engine itself never changes. `I` is the input a
+ * tick takes: a plain tap for most games, a direction for Swerve.
  */
-export interface ArcadeGame<S> {
+export interface ArcadeGame<S, I = boolean> {
   key: string;
   /** Fixed run length in ticks; there is no timer bonus. */
   runTicks: number;
   init: (seed: number) => S;
-  step: (state: S, tapped: boolean) => S;
+  step: (state: S, input: I) => S;
   isOver: (state: S) => boolean;
   score: (state: S) => number;
   draw: (ctx: CanvasRenderingContext2D, state: S, size: CanvasSize) => void;
 }
+
 
 /** The largest input log the server will look at. */
 export const MAX_INPUT_TAPS = 2000;
