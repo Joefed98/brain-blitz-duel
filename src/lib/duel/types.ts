@@ -43,7 +43,10 @@ export type PuzzleType =
   | "intruder"
   | "nonogram"
   | "pairmatch"
-  | "flood";
+  | "flood"
+  | "stroke"
+  | "tiles"
+  | "rings";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
