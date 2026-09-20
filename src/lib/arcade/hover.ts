@@ -176,8 +176,7 @@ function step(state: HoverState, tapped: boolean): HoverState {
 
   const ceiling = y - HOVER_DISC_R <= 0;
   const floor = y + HOVER_DISC_R >= fp(HOVER_WORLD_H);
-  const crashed =
-    ceiling || floor || state.pillars.some((pillar) => hits(pillar, distance, y));
+  const crashed = ceiling || floor || state.pillars.some((pillar) => hits(pillar, distance, y));
   if (crashed) return { ...next, crashed: true, endedTick: tick };
   if (tick >= HOVER_RUN_TICKS) return { ...next, endedTick: tick };
   return next;
