@@ -181,8 +181,12 @@ export function scoreTargetNumber(
   timeLimitMs: number,
 ): number {
   if (distance === 0) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
-  if (distance <= 5) return TARGET_NEAR_POINTS;
-  if (distance <= 10) return TARGET_FAR_POINTS;
+  if (distance === 1) return 90;
+  if (distance === 2) return 85;
+  if (distance <= 5) return 80;
+  if (distance <= 10) return 70;
+  if (distance <= 20) return 60;
+  if (distance <= 50) return 50;
   return 0;
 }
 
@@ -246,11 +250,7 @@ export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): 
 export function scoreSpotDifference(foundCount: number, msRemaining: number): number {
   const found = clamp(Math.round(foundCount), 0, SPOT_DIFFERENCES);
   if (found >= SPOT_DIFFERENCES) return BASE_POINTS + speedBonus(msRemaining, SPOT_TIME_MS);
-  if (found === 4) return SPOT_FOUR_POINTS;
-  if (found === 3) return SPOT_THREE_POINTS;
-  if (found === 2) return SPOT_TWO_POINTS;
-  if (found === 1) return SPOT_ONE_POINTS;
-  return 0;
+  return 20 * found;
 }
 
 /** Pattern Completion: partial credit per board; speed only rewards a perfect set. */
@@ -264,9 +264,10 @@ export function scorePatternCompletion(correctCount: number, msRemaining: number
 /** Word Match: accuracy out of 100, plus the speed bonus on a flawless run. */
 export function scoreWordMatch(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, WORDMATCH_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / WORDMATCH_ITEMS);
-  const bonus = correct >= WORDMATCH_ITEMS ? speedBonus(msRemaining, WORDMATCH_TIME_MS) : 0;
-  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+  if (correct >= WORDMATCH_ITEMS) {
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, WORDMATCH_TIME_MS));
+  }
+  return 14 * correct;
 }
 
 /** Percent Sprint: accuracy out of 100, plus the speed bonus on a flawless run. */
@@ -280,7 +281,7 @@ export function scorePercentSprint(correctCount: number, msRemaining: number): n
 /** Number Sequence: accuracy out of 100, plus the speed bonus on a flawless run. */
 export function scoreNumberSequence(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, NUMSEQ_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / NUMSEQ_ITEMS);
+  const accuracy = 20 * correct;
   const bonus = correct >= NUMSEQ_ITEMS ? speedBonus(msRemaining, NUMSEQ_TIME_MS) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
@@ -480,10 +481,8 @@ export function playerBreakdown(
 }
 
 /** Word Hunt: the same points-against-par curve Wordsmith uses. */
-export function scoreWordHunt(points: number, par: number): number {
-  if (points <= 0) return 0;
-  const target = par > 0 ? par : 1;
-  return Math.min(MAX_ROUND_SCORE, Math.round((MAX_ROUND_SCORE * points) / target));
+export function scoreWordHunt(points: number): number {
+  return Math.max(0, Math.round(points));
 }
 
 /** Unblock: solved scores 100 plus the speed bonus, plus 20 for a perfect run. */
