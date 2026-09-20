@@ -180,7 +180,7 @@ export function generateChain(): ChainPuzzleData {
     .map((node) => ({ ...node, shape: shapeMap.get(node.shape)! }));
   const cycle = [shapeMap.get("circle")!, shapeMap.get("square")!, shapeMap.get("triangle")!];
   const solutions = collectChainSolutions(nodes, cycle, 8);
-  const solution = solutions[0];
+  const solution = solutions.find((candidate) => chainSolutionIsFair(nodes, cycle, candidate));
   if (!solution || chainTrapNodes(nodes, cycle).length < 2) {
     throw new Error("Don't Break the Chain template failed validation");
   }
