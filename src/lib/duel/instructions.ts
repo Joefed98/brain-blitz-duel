@@ -307,7 +307,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewer pushes and a faster finish = more points.",
   },
   laser: {
-    goal: "Light all three gems with one shot.",
+    goal: "Light all four gems with one shot.",
     how: [
       { action: "Drag mirrors", detail: "onto the grid." },
       { action: "Tap a mirror", detail: "to flip it." },
@@ -337,7 +337,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Sort the balls so every tube is one colour.",
     how: [
       { action: "Tap a tube", detail: "to lift its top balls." },
-      { action: "Tap where to pour", detail: "— only onto the same colour or an empty tube." },
+      {
+        action: "Tap where to pour",
+        detail: "— onto the same colour or an empty tube; as many balls move as fit.",
+      },
       { action: "Undo or Reset", detail: "if a pour traps you." },
     ],
     score: "Fewer moves earns a bonus.",
