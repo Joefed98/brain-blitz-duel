@@ -56,9 +56,18 @@ for (let round = 0; round < ROUNDS; round++) {
   const puzzle = generateChain();
   const solution = puzzle.solution ?? [];
   check("chain node count", puzzle.nodes.length === CHAIN_NODES);
-  check("chain stored solution count", puzzle.solutionCount === countChainSolutions(puzzle.nodes, puzzle.cycle));
-  check("chain has 1–8 routes", (puzzle.solutionCount ?? 0) >= 1 && (puzzle.solutionCount ?? 0) <= 8);
-  check("chain has two early dead-end traps", chainTrapNodes(puzzle.nodes, puzzle.cycle).length >= 2);
+  check(
+    "chain stored solution count",
+    puzzle.solutionCount === countChainSolutions(puzzle.nodes, puzzle.cycle),
+  );
+  check(
+    "chain has 1–8 routes",
+    (puzzle.solutionCount ?? 0) >= 1 && (puzzle.solutionCount ?? 0) <= 8,
+  );
+  check(
+    "chain has two early dead-end traps",
+    chainTrapNodes(puzzle.nodes, puzzle.cycle).length >= 2,
+  );
   check("chain shape-only cycle", puzzle.cycle.length === 3);
   check(
     "chain searched solution stored",

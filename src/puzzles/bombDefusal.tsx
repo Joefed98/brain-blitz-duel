@@ -77,7 +77,10 @@ function Panel({
         >
           {serial}
         </span>
-        <span className="flex items-center gap-0.5 rounded border border-border bg-card p-0.5" aria-label={`Switch ${switchPosition}`}>
+        <span
+          className="flex items-center gap-0.5 rounded border border-border bg-card p-0.5"
+          aria-label={`Switch ${switchPosition}`}
+        >
           {BOMB_SWITCH_POSITIONS.map((position) => (
             <span
               key={position}
@@ -284,7 +287,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "bomb" }: P
         </button>
       </div>
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-         Check the switch, then tap wires and buttons in rule order
+        Check the switch, then tap wires and buttons in rule order
       </p>
     </div>
   );

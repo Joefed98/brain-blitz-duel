@@ -20,7 +20,10 @@ import {
   type IntruderPuzzleData,
 } from "./types";
 
-function randomCell(colours: typeof INTRUDER_COLOURS, shapes: readonly IntruderCell["shape"][]): IntruderCell {
+function randomCell(
+  colours: typeof INTRUDER_COLOURS,
+  shapes: readonly IntruderCell["shape"][],
+): IntruderCell {
   const shape = pick(shapes);
   return { shape, colour: pick(colours), rot: 0 };
 }

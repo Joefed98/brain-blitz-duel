@@ -144,13 +144,26 @@ export function generateChain(): ChainPuzzleData {
   // rooms do not present the same visual orientation. The route count and
   // crossing topology are invariant under these transforms.
   const template: ChainNode[] = [
-    [77.4, 19.2, "circle"], [76, 26, "circle"], [64.8, 14.2, "circle"],
-    [13.9, 40.1, "circle"], [15.3, 72.8, "circle"], [13.5, 65.7, "square"],
-    [89.1, 47, "square"], [14.9, 47.2, "square"], [90.6, 63.2, "square"],
-    [82.4, 71.2, "square"], [37.7, 14.4, "triangle"], [58.2, 85.8, "triangle"],
-    [93.1, 38.3, "triangle"], [28.3, 11.9, "triangle"], [45.6, 8.3, "triangle"],
-    [25.4, 83.4, "triangle"], [40, 93.5, "triangle"], [17.6, 23, "triangle"],
-    [68.5, 82.5, "triangle"], [53.4, 92.8, "triangle"],
+    [77.4, 19.2, "circle"],
+    [76, 26, "circle"],
+    [64.8, 14.2, "circle"],
+    [13.9, 40.1, "circle"],
+    [15.3, 72.8, "circle"],
+    [13.5, 65.7, "square"],
+    [89.1, 47, "square"],
+    [14.9, 47.2, "square"],
+    [90.6, 63.2, "square"],
+    [82.4, 71.2, "square"],
+    [37.7, 14.4, "triangle"],
+    [58.2, 85.8, "triangle"],
+    [93.1, 38.3, "triangle"],
+    [28.3, 11.9, "triangle"],
+    [45.6, 8.3, "triangle"],
+    [25.4, 83.4, "triangle"],
+    [40, 93.5, "triangle"],
+    [17.6, 23, "triangle"],
+    [68.5, 82.5, "triangle"],
+    [53.4, 92.8, "triangle"],
   ].map(([x, y, shape]) => ({ x: x as number, y: y as number, shape: shape as ChainShape }));
   const turns = Math.floor(random() * 4);
   const reflected = random() < 0.5;
@@ -162,7 +175,9 @@ export function generateChain(): ChainPuzzleData {
   };
   const shapeOrder = shuffled([...CHAIN_SHAPES]);
   const shapeMap = new Map(CHAIN_SHAPES.map((shape, index) => [shape, shapeOrder[index]!]));
-  const nodes = template.map(transform).map((node) => ({ ...node, shape: shapeMap.get(node.shape)! }));
+  const nodes = template
+    .map(transform)
+    .map((node) => ({ ...node, shape: shapeMap.get(node.shape)! }));
   const cycle = [shapeMap.get("circle")!, shapeMap.get("square")!, shapeMap.get("triangle")!];
   const solutions = collectChainSolutions(nodes, cycle, 8);
   const solution = solutions[0];
