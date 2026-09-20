@@ -122,7 +122,7 @@ function IntroExample() {
         answer <span className="font-bold text-primary">31</span>
       </p>
       <p className="text-xs text-muted-foreground">
-        Type the number and hit Submit. Faster = more points. You have 30 seconds.
+        Type the number and hit Submit. Faster = more points. You have 20 seconds.
       </p>
     </div>
   );
@@ -211,7 +211,7 @@ export const numberSequencePuzzle: PuzzleDefinition = {
   key: "numseq",
   name: "Number Sequence",
   category: "number",
-  timeLimitMs: 30_000,
+  timeLimitMs: 20_000,
   generate: () => {
     for (let attempt = 0; attempt < 80; attempt++) {
       const built = build(weightedPick(FAMILIES, (family) => FAMILY_WEIGHTS[family]));

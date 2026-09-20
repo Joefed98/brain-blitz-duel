@@ -77,7 +77,14 @@ export function UnblockBoard({
         style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 10, right: -10 }}
         aria-hidden="true"
       />
-      <div className="absolute inset-0 grid grid-cols-6 grid-rows-6" aria-hidden="true">
+      <div
+        className="absolute inset-0 grid"
+        style={{
+          gridTemplateColumns: `repeat(${N}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${N}, minmax(0, 1fr))`,
+        }}
+        aria-hidden="true"
+      >
         {Array.from({ length: N * N }, (_, i) => (
           <div key={i} className="border border-border/30" />
         ))}
@@ -190,7 +197,7 @@ export function UnblockPuzzle({
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           moves <span className="text-primary">{moves.length}</span>
@@ -198,47 +205,59 @@ export function UnblockPuzzle({
         <span>get the gold car out</span>
       </div>
 
-      <div ref={boardRef} className="relative aspect-square w-full">
-        <div className="relative h-full w-full rounded-xl border border-border bg-card/60">
-          <div
-            className="absolute rounded-r-sm border-y-2 border-r-4 border-primary bg-primary/20"
-            style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 10, right: -10 }}
-            aria-hidden="true"
-          />
-          <div className="absolute inset-0 grid grid-cols-6 grid-rows-6" aria-hidden="true">
-            {Array.from({ length: N * N }, (_, i) => (
-              <div key={i} className="border border-border/30" />
-            ))}
-          </div>
-
-          {ghost && (
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div
+          ref={boardRef}
+          className="relative aspect-square h-auto max-h-full w-full min-w-0 max-w-full"
+        >
+          <div className="relative h-full w-full rounded-xl border border-border bg-card/60">
             <div
+              className="absolute rounded-r-sm border-y-2 border-r-4 border-primary bg-primary/20"
+              style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 10, right: -10 }}
               aria-hidden="true"
-              className="pointer-events-none absolute rounded-lg border-2 border-dashed border-primary/70 bg-primary/10"
-              style={{
-                left: pct(ghost.vehicle.axis === "h" ? ghost.to : ghost.vehicle.col),
-                top: pct(ghost.vehicle.axis === "v" ? ghost.to : ghost.vehicle.row),
-                width: pct(ghost.vehicle.axis === "h" ? ghost.vehicle.len : 1),
-                height: pct(ghost.vehicle.axis === "v" ? ghost.vehicle.len : 1),
-              }}
             />
-          )}
+            <div
+              className="absolute inset-0 grid"
+              style={{
+                gridTemplateColumns: `repeat(${N}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${N}, minmax(0, 1fr))`,
+              }}
+              aria-hidden="true"
+            >
+              {Array.from({ length: N * N }, (_, i) => (
+                <div key={i} className="border border-border/30" />
+              ))}
+            </div>
 
-          {vehicles.map((vehicle) => {
-            const dragging = drag.drag?.item === vehicle.id;
-            const dx = dragging && vehicle.axis === "h" ? drag.drag!.dx : 0;
-            const dy = dragging && vehicle.axis === "v" ? drag.drag!.dy : 0;
-            return (
-              <Vehicle
-                key={vehicle.id}
-                vehicle={vehicle}
-                onPointerDown={drag.start(vehicle.id)}
-                shaking={drag.rejected === vehicle.id}
-                escaping={escaping && vehicle.id === 0}
-                {...(dragging ? { style: liftStyle(dx, dy, reduced) } : {})}
+            {ghost && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute rounded-lg border-2 border-dashed border-primary/70 bg-primary/10"
+                style={{
+                  left: pct(ghost.vehicle.axis === "h" ? ghost.to : ghost.vehicle.col),
+                  top: pct(ghost.vehicle.axis === "v" ? ghost.to : ghost.vehicle.row),
+                  width: pct(ghost.vehicle.axis === "h" ? ghost.vehicle.len : 1),
+                  height: pct(ghost.vehicle.axis === "v" ? ghost.vehicle.len : 1),
+                }}
               />
-            );
-          })}
+            )}
+
+            {vehicles.map((vehicle) => {
+              const dragging = drag.drag?.item === vehicle.id;
+              const dx = dragging && vehicle.axis === "h" ? drag.drag!.dx : 0;
+              const dy = dragging && vehicle.axis === "v" ? drag.drag!.dy : 0;
+              return (
+                <Vehicle
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  onPointerDown={drag.start(vehicle.id)}
+                  shaking={drag.rejected === vehicle.id}
+                  escaping={escaping && vehicle.id === 0}
+                  {...(dragging ? { style: liftStyle(dx, dy, reduced) } : {})}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
 

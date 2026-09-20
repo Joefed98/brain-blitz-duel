@@ -138,7 +138,7 @@ export interface SpotShape {
   flip?: boolean;
 }
 
-export type SpotDifferenceKind = "colour" | "turn" | "move" | "remove" | "kind";
+export type SpotDifferenceKind = "colour" | "turn" | "kind";
 
 export interface SpotDifference {
   kind: SpotDifferenceKind;
@@ -556,14 +556,12 @@ export const SYMSCAN_CELLS = SYMSCAN_COLS * SYMSCAN_COLS;
 export const SYMSCAN_MIN_TARGETS = 6;
 export const SYMSCAN_MAX_TARGETS = 10;
 
-/** Spot the Difference: two panels drawn on an invisible 8x5 grid. */
+/** Spot the Difference: two full 8x6 grids — every cell holds a shape. */
 export const SPOT_COLS = 8;
-export const SPOT_ROWS = 5;
+export const SPOT_ROWS = 6;
 export const SPOT_CELLS = SPOT_COLS * SPOT_ROWS;
-export const SPOT_MIN_SHAPES = 12;
-export const SPOT_MAX_SHAPES = 15;
 export const SPOT_DIFFERENCES = 5;
-export const SPOT_TIME_MS = 20_000;
+export const SPOT_TIME_MS = 30_000;
 /** Flat scores for partial finds. */
 export const SPOT_FOUR_POINTS = 70;
 export const SPOT_THREE_POINTS = 50;
@@ -771,7 +769,7 @@ export interface WordHuntPuzzleData {
 /*  Unblock                                                                    */
 /* -------------------------------------------------------------------------- */
 
-export const UNBLOCK_COLS = 6;
+export const UNBLOCK_COLS = 7;
 export const UNBLOCK_TIME_MS = 60_000;
 /** The gold car and the exit gap both sit on this row (0-based). */
 export const UNBLOCK_EXIT_ROW = 2;
@@ -1056,7 +1054,7 @@ export interface PushPuzzleData {
 
 export const LASER_COLS = 10;
 export const LASER_CELLS = LASER_COLS * LASER_COLS;
-export const LASER_TIME_MS = 60_000;
+export const LASER_TIME_MS = 30_000;
 /** Always exactly five mirrors, and the route always bends once per mirror. */
 export const LASER_MIN_MIRRORS = 6;
 export const LASER_MAX_MIRRORS = 6;
@@ -1143,7 +1141,7 @@ export interface LaserPuzzleData {
 /*  Tower                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export const TOWER_TIME_MS = 90_000;
+export const TOWER_TIME_MS = 60_000;
 /** Eight discs across four pegs. */
 export const TOWER_DISCS = 8;
 export const TOWER_PEGS = 4;
@@ -1219,7 +1217,7 @@ export interface MazePuzzleData {
 
 /* ============================ Sort the Tubes ============================ */
 
-export const TUBES_TIME_MS = 60_000;
+export const TUBES_TIME_MS = 75_000;
 export const TUBES_COUNT = 10;
 export const TUBE_CAPACITY = 4;
 export const TUBES_COLOURS = 8;

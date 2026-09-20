@@ -130,7 +130,7 @@ function IntroExample() {
         <Pegs pegs={pegs} discs={8} targetPeg={3} compact />
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewest moves earns a bonus. You have 90 seconds.
+        Fewest moves earns a bonus. You have 60 seconds.
       </p>
     </div>
   );
