@@ -10,7 +10,13 @@
  */
 
 import { shuffled, weightedPick } from "./random";
-import { CORE_CATEGORIES, CORE_SIXTH_WEIGHTS, puzzleDef, typesInCategory } from "./registry";
+import {
+  ARCADE_CATEGORY,
+  CORE_CATEGORIES,
+  CORE_SIXTH_WEIGHTS,
+  puzzleDef,
+  typesInCategory,
+} from "./registry";
 import { TOTAL_ROUNDS, type PuzzleCategory, type PuzzleType } from "./types";
 
 /**
@@ -40,7 +46,10 @@ export interface RoundSelectionOptions {
   addMaths?: boolean;
   /** Host opt-in: the memory category joins the pool. */
   addMemory?: boolean;
+  /** Host toggle, on by default: exactly one round is an arcade game. */
+  addArcade?: boolean;
 }
+
 
 /** One type from a category, avoiding types already drawn and recent rooms. */
 function pickType(
