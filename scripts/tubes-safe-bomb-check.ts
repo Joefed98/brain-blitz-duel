@@ -7,11 +7,18 @@ import { generateTubes } from "../src/lib/duel/tubes.server";
 import { decodeTubeMoves, replayTubes, tubeSorted, colourAlreadyHome } from "../src/lib/duel/tubes";
 import { generateSafe } from "../src/lib/duel/safe.server";
 import { safeSolutions } from "../src/lib/duel/safe";
-import { generateBomb } from "../src/lib/duel/bomb.server";
+import {
+  BOMB_RULE_TEMPLATE_COUNT,
+  generateBomb,
+  inspectBombRules,
+} from "../src/lib/duel/bomb.server";
 import { decodeBombActions, replayBomb } from "../src/lib/duel/bomb";
 import {
   BOMB_MAX_SEQUENCE,
+  BOMB_MIN_EFFECTIVE_RULES,
   BOMB_MIN_SEQUENCE,
+  BOMB_RULE_COUNT,
+  BOMB_WIRES,
   SAFE_CLUE_COUNT,
   TUBES_MAX_MIN_MOVES,
   TUBES_MIN_MIN_MOVES,
@@ -50,6 +57,12 @@ console.log(`Safe Cracker: ${ROUNDS} cards unique with all ${SAFE_CLUE_COUNT} cl
 
 for (let i = 0; i < ROUNDS; i++) {
   const bomb = generateBomb();
+  const inspected = inspectBombRules(bomb);
+  assert(bomb.wires.length === BOMB_WIRES, "wrong wire count");
+  assert(bomb.rules.length === BOMB_RULE_COUNT, "wrong rule count");
+  assert(["LEFT", "MID", "RIGHT"].includes(bomb.switchPosition), "invalid switch position");
+  assert(!inspected.contradictory, "generated rules contradict each other");
+  assert(inspected.effective >= BOMB_MIN_EFFECTIVE_RULES, "too few effective rules");
   const sequence = decodeBombActions(bomb.sequence!);
   assert(sequence.length === bomb.stepCount, "stepCount does not match the sequence");
   assert(
@@ -61,4 +74,5 @@ for (let i = 0; i < ROUNDS; i++) {
   const wrong = replayBomb(sequence, ["b" + (sequence[0] === "bA" ? "B" : "A"), ...sequence]);
   assert(wrong.strikes === 1, "a wrong action did not strike");
 }
-console.log(`Bomb Defusal: ${ROUNDS} panels with 2–4 step sequences and working strikes`);
+assert(BOMB_RULE_TEMPLATE_COUNT >= 30, "bomb rule bank has fewer than 30 templates");
+console.log(`Bomb Defusal: ${ROUNDS} panels with 3–6 steps, six rules and working strikes`);

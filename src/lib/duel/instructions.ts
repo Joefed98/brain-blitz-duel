@@ -355,7 +355,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Follow the rules to defuse the bomb.",
     how: [
       { action: "Read the rules in order", detail: "before you touch anything." },
-      { action: "Tap a wire", detail: "to cut it, tap a button to press it." },
+      { action: "Check every panel item", detail: "including the three-position switch." },
+      { action: "Tap a wire or button", detail: "in the required order." },
       { action: "Two mistakes", detail: "and it explodes." },
     ],
     score: "No mistakes and fast = full points.",
@@ -382,7 +383,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Memorise the grid", detail: "before it vanishes." },
       { action: "Tap the changed cell", detail: "when the grid comes back." },
-      { action: "Three grids", detail: "each bigger than the last." },
+      { action: "Three grids", detail: "with more shapes and colours each time." },
     ],
     score: "All three right for the speed bonus.",
   },

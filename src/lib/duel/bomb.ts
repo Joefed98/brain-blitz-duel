@@ -18,6 +18,8 @@ export const WIRE_HEX: Record<WireColour, string> = {
 };
 
 export const BOMB_MAX_STRIKES = 2;
+export const BOMB_SWITCH_POSITIONS = ["LEFT", "MID", "RIGHT"] as const;
+export type BombSwitch = (typeof BOMB_SWITCH_POSITIONS)[number];
 
 export interface BombButton {
   label: "A" | "B";

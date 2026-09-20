@@ -1,10 +1,10 @@
 /**
  * Server-only generation for Bomb Defusal.
  *
- * Four rules are drawn from the bank and evaluated in order against a random
- * panel. A board is kept only when the required sequence is 2–4 actions long,
- * no rule contradicts another ("cut" versus "do not cut"), and at least three
- * of the four rules actually change the outcome — checked by removing each rule
+ * Six rules are drawn from an expanded bank and evaluated in order against a
+ * random panel. A board is kept only when the required sequence is 3–6 actions long,
+ * no rule contradicts another ("cut" versus "do not cut"), and at least four
+ * of the six rules actually change the outcome — checked by removing each rule
  * in turn and comparing the sequence.
  */
 
@@ -14,12 +14,20 @@ import {
   isCut,
   pressAction,
   WIRE_COLOURS,
+  BOMB_SWITCH_POSITIONS,
   type BombAction,
   type BombButton,
+  type BombSwitch,
   type WireColour,
 } from "./bomb";
 import { pick, randomBelow, shuffled } from "./random";
-import { BOMB_MAX_SEQUENCE, BOMB_MIN_SEQUENCE, BOMB_RULE_COUNT, BOMB_WIRES } from "./types";
+import {
+  BOMB_MAX_SEQUENCE,
+  BOMB_MIN_EFFECTIVE_RULES,
+  BOMB_MIN_SEQUENCE,
+  BOMB_RULE_COUNT,
+  BOMB_WIRES,
+} from "./types";
 import type { BombPuzzleData } from "./types";
 
 interface Panel {
@@ -27,6 +35,7 @@ interface Panel {
   buttons: BombButton[];
   light: boolean;
   serial: string;
+  switchPosition: BombSwitch;
 }
 
 type RuleMode = "prepend" | "append" | "afterBlue" | "fallback";
@@ -54,6 +63,10 @@ const serialOdd = (panel: Panel) => Number.parseInt(panel.serial, 10) % 2 === 1;
 const buttonColour = (panel: Panel, label: "A" | "B") =>
   panel.buttons.find((button) => button.label === label)?.colour;
 const cut = (wire: number): RuleOutput => ({ mode: "append", actions: [cutAction(wire)] });
+const wireAfterFirst = (panel: Panel, colour: WireColour): number => {
+  const first = firstOf(panel, colour);
+  return first >= 0 && first + 1 < panel.wires.length ? first + 1 : -1;
+};
 
 /** The rule bank — every board's card is four of these, in the order drawn. */
 const BOMB_RULES: Rule[] = [
@@ -185,12 +198,113 @@ const BOMB_RULES: Rule[] = [
     apply: () => null,
     forbid: (p) => (p.wires[0] === "GREEN" ? [cutAction(0)] : []),
   },
+  {
+    id: "switchLeftPressA",
+    text: "If the switch is LEFT, press button A first.",
+    apply: (p) =>
+      p.switchPosition === "LEFT" ? { mode: "prepend", actions: [pressAction("A")] } : null,
+  },
+  {
+    id: "switchMidFourth",
+    text: "If the switch is MID, cut the fourth wire.",
+    apply: (p) => (p.switchPosition === "MID" ? cut(3) : null),
+  },
+  {
+    id: "switchRightPressB",
+    text: "If the switch is RIGHT, press button B last.",
+    apply: (p) =>
+      p.switchPosition === "RIGHT" ? { mode: "append", actions: [pressAction("B")] } : null,
+  },
+  {
+    id: "secondFromEndBlue",
+    text: "If the second wire from the end is blue, cut it.",
+    apply: (p) => (p.wires[p.wires.length - 2] === "BLUE" ? cut(p.wires.length - 2) : null),
+  },
+  {
+    id: "thirdFromEndRed",
+    text: "If the third wire from the end is red, cut it.",
+    apply: (p) => (p.wires[p.wires.length - 3] === "RED" ? cut(p.wires.length - 3) : null),
+  },
+  {
+    id: "afterFirstRed",
+    text: "If there is a wire after the first red wire, cut that wire.",
+    apply: (p) => {
+      const wire = wireAfterFirst(p, "RED");
+      return wire >= 0 ? cut(wire) : null;
+    },
+  },
+  {
+    id: "afterFirstBlue",
+    text: "If there is a wire after the first blue wire, cut that wire.",
+    apply: (p) => {
+      const wire = wireAfterFirst(p, "BLUE");
+      return wire >= 0 ? cut(wire) : null;
+    },
+  },
+  {
+    id: "afterFirstGreen",
+    text: "If there is a wire after the first green wire, cut that wire.",
+    apply: (p) => {
+      const wire = wireAfterFirst(p, "GREEN");
+      return wire >= 0 ? cut(wire) : null;
+    },
+  },
+  {
+    id: "threeWarmPressA",
+    text: "If there are at least three red or yellow wires, press button A.",
+    apply: (p) =>
+      count(p, "RED") + count(p, "YELLOW") >= 3
+        ? { mode: "append", actions: [pressAction("A")] }
+        : null,
+  },
+  {
+    id: "twoWhiteSixth",
+    text: "If there are at least two white wires, cut the sixth wire.",
+    apply: (p) => (count(p, "WHITE") >= 2 ? cut(5) : null),
+  },
+  {
+    id: "moreGreenRedSeventh",
+    text: "If there are more green wires than red wires, cut the seventh wire.",
+    apply: (p) => (count(p, "GREEN") > count(p, "RED") ? cut(6) : null),
+  },
+  {
+    id: "switchMatchesSerial",
+    text: "If the switch is RIGHT and the serial is odd, cut the second wire from the end.",
+    apply: (p) => (p.switchPosition === "RIGHT" && serialOdd(p) ? cut(p.wires.length - 2) : null),
+  },
 ];
+
+export const BOMB_RULE_TEMPLATE_COUNT = BOMB_RULES.length;
 
 interface Evaluated {
   sequence: BombAction[];
   /** A rule demanded an action another rule forbids. */
   contradictory: boolean;
+}
+
+export function inspectBombRules(puzzle: BombPuzzleData): {
+  effective: number;
+  contradictory: boolean;
+} {
+  const panel: Panel = {
+    wires: puzzle.wires,
+    buttons: puzzle.buttons,
+    light: puzzle.light,
+    serial: puzzle.serial,
+    switchPosition: puzzle.switchPosition,
+  };
+  const rules = puzzle.rules
+    .map(({ id }) => BOMB_RULES.find((rule) => rule.id === id))
+    .filter((rule): rule is Rule => Boolean(rule));
+  const reference = evaluate(rules, panel);
+  const effective = rules.filter((_, index) => {
+    const without = evaluate(
+      rules.filter((__, other) => other !== index),
+      panel,
+    );
+    return without.sequence.join(",") !== reference.sequence.join(",");
+  }).length;
+  return { effective, contradictory: reference.contradictory };
 }
 
 /** Runs the chosen rules over a panel, in card order, into one action list. */
@@ -249,18 +363,19 @@ function randomPanel(): Panel {
     ],
     light: randomBelow(2) === 1,
     serial: Array.from({ length: 3 }, () => randomBelow(10)).join(""),
+    switchPosition: pick(BOMB_SWITCH_POSITIONS),
   };
 }
 
 export function generateBomb(): BombPuzzleData {
-  for (let attempt = 0; attempt < 3000; attempt++) {
+  for (let attempt = 0; attempt < 20_000; attempt++) {
     const panel = randomPanel();
     const rules = shuffled(BOMB_RULES).slice(0, BOMB_RULE_COUNT);
     const { sequence, contradictory } = evaluate(rules, panel);
     if (contradictory) continue;
     if (sequence.length < BOMB_MIN_SEQUENCE || sequence.length > BOMB_MAX_SEQUENCE) continue;
 
-    // At least three of the four rules must change what the player has to do.
+    // At least four of the six rules must change what the player has to do.
     const reference = sequence.join(",");
     const effective = rules.filter((_, index) => {
       const without = evaluate(
@@ -269,7 +384,7 @@ export function generateBomb(): BombPuzzleData {
       );
       return without.sequence.join(",") !== reference;
     }).length;
-    if (effective < 3) continue;
+    if (effective < BOMB_MIN_EFFECTIVE_RULES) continue;
 
     return {
       type: "bomb",
@@ -277,6 +392,7 @@ export function generateBomb(): BombPuzzleData {
       buttons: panel.buttons,
       light: panel.light,
       serial: panel.serial,
+      switchPosition: panel.switchPosition,
       rules: rules.map((rule) => ({ id: rule.id, text: rule.text })),
       stepCount: sequence.length,
       sequence: encodeBombActions(sequence),

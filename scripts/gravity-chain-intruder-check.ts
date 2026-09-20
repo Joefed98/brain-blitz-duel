@@ -6,7 +6,11 @@
 import { generateGravity } from "../src/lib/duel/gravity.server";
 import { decodeGravityTilts, replayGravity } from "../src/lib/duel/gravity";
 import { generateChain } from "../src/lib/duel/chain.server";
-import { chainSolutionIsFair } from "../src/lib/duel/chain.server";
+import {
+  chainSolutionIsFair,
+  chainTrapNodes,
+  countChainSolutions,
+} from "../src/lib/duel/chain.server";
 import { chainRequired, chainWouldCross, replayChain } from "../src/lib/duel/chain";
 import { generateIntruder } from "../src/lib/duel/intruder.server";
 import { intruderColoursTooClose } from "../src/lib/duel/intruder";
@@ -17,6 +21,8 @@ import {
   GRAV_MAX_TILTS,
   GRAV_MIN_TILTS,
   INTRUDER_BOARD_SIZES,
+  INTRUDER_BOARD_COLOUR_COUNTS,
+  INTRUDER_BOARD_SHAPE_COUNTS,
 } from "../src/lib/duel/types";
 
 const ROUNDS = 40;
@@ -50,6 +56,18 @@ for (let round = 0; round < ROUNDS; round++) {
   const puzzle = generateChain();
   const solution = puzzle.solution ?? [];
   check("chain node count", puzzle.nodes.length === CHAIN_NODES);
+  check(
+    "chain stored solution count",
+    puzzle.solutionCount === countChainSolutions(puzzle.nodes, puzzle.cycle),
+  );
+  check(
+    "chain has 1–8 routes",
+    (puzzle.solutionCount ?? 0) >= 1 && (puzzle.solutionCount ?? 0) <= 8,
+  );
+  check(
+    "chain has two early dead-end traps",
+    chainTrapNodes(puzzle.nodes, puzzle.cycle).length >= 2,
+  );
   check("chain shape-only cycle", puzzle.cycle.length === 3);
   check(
     "chain searched solution stored",
@@ -93,6 +111,14 @@ for (let round = 0; round < ROUNDS; round++) {
   puzzle.boards.forEach((board, index) => {
     const answer = answers[index]!;
     check("intruder size escalates", board.size === INTRUDER_BOARD_SIZES[index]);
+    check(
+      "intruder colour palette escalates",
+      new Set(board.cells.map((cell) => cell.colour)).size <= INTRUDER_BOARD_COLOUR_COUNTS[index]!,
+    );
+    check(
+      "intruder shape palette escalates",
+      new Set(board.cells.map((cell) => cell.shape)).size <= INTRUDER_BOARD_SHAPE_COUNTS[index]!,
+    );
     const differing = board.cells.filter((cell, i) => {
       const after = board.after[i]!;
       return cell.shape !== after.shape || cell.colour !== after.colour || cell.rot !== after.rot;

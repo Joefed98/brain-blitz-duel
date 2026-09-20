@@ -29,6 +29,12 @@ function CellGlyph({ cell, size }: { cell: IntruderCell; size: number }) {
           <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />
         )}
         {cell.shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill={fill} />}
+        {cell.shape === "star" && (
+          <polygon
+            points="12,2 14.9,8.9 22.4,9.5 16.7,14.4 18.5,21.7 12,17.8 5.5,21.7 7.3,14.4 1.6,9.5 9.1,8.9"
+            fill={fill}
+          />
+        )}
       </g>
     </svg>
   );
