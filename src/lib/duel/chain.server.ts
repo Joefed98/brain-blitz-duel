@@ -13,7 +13,6 @@ import {
   CHAIN_LENGTH,
   CHAIN_MIN_INVALID,
   CHAIN_NODES,
-  CHAIN_NODE_GAP,
   CHAIN_SHAPES,
   type ChainNode,
   type ChainPuzzleData,
@@ -21,20 +20,6 @@ import {
 } from "./types";
 
 const CHAIN_SOLUTION_CAP = 200;
-
-/** Nodes are spread across alternating halves to make crossing choices common. */
-function layout(gap: number): { x: number; y: number }[] {
-  const points: { x: number; y: number }[] = [];
-  let guard = 0;
-  while (points.length < CHAIN_NODES && guard++ < 6000) {
-    const band = points.length % 2;
-    const x = band === 0 ? 8 + random() * 38 : 54 + random() * 38;
-    const y = 8 + random() * 84;
-    if (points.some((point) => Math.hypot(point.x - x, point.y - y) < gap)) continue;
-    points.push({ x, y });
-  }
-  return points;
-}
 
 function validChoices(nodes: ChainNode[], cycle: ChainShape[], chain: number[]): number[] {
   const needed = chainRequired(cycle, chain.length);
@@ -185,38 +170,4 @@ export function generateChain(): ChainPuzzleData {
     throw new Error("Don't Break the Chain template failed validation");
   }
   return { type: "chain", nodes, cycle, solution, solutionCount: solutions.length };
-
-  /* istanbul ignore next -- retained as a development re-roll generator. */
-  /*
-
-  for (let attempt = 0; attempt < 30_000; attempt++) {
-    const gap = attempt < 5000 ? CHAIN_NODE_GAP : CHAIN_NODE_GAP - 3;
-    const points = layout(gap);
-    if (points.length < CHAIN_NODES) continue;
-
-    // Twenty nodes: seven choices for the first two cycle positions, six for the last.
-    const assigned: ChainShape[] = cycle.flatMap((value, index) =>
-      new Array(index < 2 ? 7 : 6).fill(value),
-    );
-    const spread = shuffled(assigned);
-
-    const nodes: ChainNode[] = points.map((point, index) => {
-      return {
-        x: Math.round(point.x * 10) / 10,
-        y: Math.round(point.y * 10) / 10,
-        shape: spread[index]!,
-      };
-    });
-
-    const solutionCount = countChainSolutions(nodes, cycle);
-    if (solutionCount < 1 || solutionCount > 8) continue;
-    const solution = collectChainSolutions(nodes, cycle, 8).find((candidate) =>
-      chainSolutionIsFair(nodes, cycle, candidate),
-    );
-    if (!solution) continue;
-    if (chainTrapNodes(nodes, cycle).length < 2) continue;
-    return { type: "chain", nodes, cycle, solution, solutionCount };
-  }
-  throw new Error("Don't Break the Chain generator could not build a fair layout");
-  */
 }
