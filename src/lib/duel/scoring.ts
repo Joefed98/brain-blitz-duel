@@ -673,11 +673,8 @@ export function scoreTubes(
     const bonus = minMoves > 0 && moves <= minMoves ? TUBES_MIN_MOVE_BONUS : 0;
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, TUBES_TIME_MS) + bonus);
   }
-  return clamp(
-    Math.round((TUBES_PARTIAL_POINTS * sortedTubes) / TUBES_COLOURS),
-    0,
-    TUBES_PARTIAL_POINTS,
-  );
+  // Ten points for every tube finished in a single colour.
+  return clamp(10 * Math.round(sortedTubes), 0, BASE_POINTS);
 }
 
 /** Safe Cracker: the first try scores most, the third least. */
@@ -821,11 +818,8 @@ export function scoreTiles(
     const bonus = minMoves > 0 && moves <= minMoves ? TILES_MIN_BONUS : 0;
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, TILES_TIME_MS) + bonus);
   }
-  return clamp(
-    Math.round((TILES_PARTIAL_POINTS * clamp(inPlace, 0, TILES_COUNT)) / TILES_COUNT),
-    0,
-    TILES_PARTIAL_POINTS,
-  );
+  // Fourteen points for every tile sitting in its right place at the end.
+  return clamp(14 * clamp(inPlace, 0, TILES_COUNT), 0, BASE_POINTS);
 }
 
 /** Rotating Rings: lining up the spokes scores, with a bonus for the minimum. */
