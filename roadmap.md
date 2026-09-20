@@ -25,3 +25,7 @@
 
 - [x] Nonogram 9×9 full-grid rebuild and four-ring Rotating Rings controls/generation.
 - [x] Five-type tuning: Nonogram 7×7, Colour Flood 12×12, deferred Bomb DEFUSE, Groups retired, and corrected full-width Rings.
+
+## Scoring amendments (21 types)
+
+- [x] Wordsmith/Word Hunt score their word points directly; Word Ladder, Word Match, Target, Number Sequence, Equation, Maze Dash, Sort the Tubes, Spot the Difference, Sliding Tiles, Lights Out, Pipes, Number Hunt, Count Up, Unblock, Ice Slide, Gravity Maze, Laser and Symbol Scan rescored with progress-based partial credit; SCORE lines and word reveals updated.
