@@ -261,7 +261,8 @@ function Stage({
         />
       </div>
       <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        ring {selectedRing + 1} selected · turns <span className="text-primary">{replay.moves}</span> · spokes{" "}
+        ring {selectedRing + 1} selected · turns{" "}
+        <span className="text-primary">{replay.moves}</span> · spokes{" "}
         <span className="text-primary">
           {replay.aligned} / {RINGS_SEGMENTS}
         </span>

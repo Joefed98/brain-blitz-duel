@@ -82,6 +82,7 @@ export function replayBomb(sequence: BombAction[], actions: BombAction[]): BombR
   ) {
     correctPrefix += 1;
   }
-  const defused = sequence.length > 0 && actions.length === sequence.length && correctPrefix === sequence.length;
+  const defused =
+    sequence.length > 0 && actions.length === sequence.length && correctPrefix === sequence.length;
   return { correctPrefix, defused, exploded: !defused, firstWrong: defused ? null : correctPrefix };
 }

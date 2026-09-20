@@ -49,9 +49,7 @@ function Panel({
   compact = false,
 }: PanelProps) {
   return (
-    <div
-      className="flex h-full w-full flex-col justify-between rounded-2xl border-2 border-border bg-background/70 p-2"
-    >
+    <div className="flex h-full w-full flex-col justify-between rounded-2xl border-2 border-border bg-background/70 p-2">
       <div className="flex items-center justify-between gap-2 px-1">
         <span
           aria-hidden="true"
@@ -287,15 +285,20 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
           <p className="mb-1 text-center font-mono uppercase text-primary">Required</p>
           {required.map((action, index) => (
             <p key={`${action}-${index}`} className="truncate">
-              <span className="font-mono text-primary">{index + 1}.</span> {actionLabel(action, puzzle.wires)}
+              <span className="font-mono text-primary">{index + 1}.</span>{" "}
+              {actionLabel(action, puzzle.wires)}
             </p>
           ))}
         </div>
         <div>
           <p className="mb-1 text-center font-mono uppercase text-muted-foreground">Yours</p>
           {mine.map((action, index) => (
-            <p key={`${action}-${index}`} className={index === replay.firstWrong ? "truncate text-warn" : "truncate"}>
-              <span className="font-mono">{index + 1}.</span> {actionLabel(action, puzzle.wires)}{index === replay.firstWrong ? " ✗" : ""}
+            <p
+              key={`${action}-${index}`}
+              className={index === replay.firstWrong ? "truncate text-warn" : "truncate"}
+            >
+              <span className="font-mono">{index + 1}.</span> {actionLabel(action, puzzle.wires)}
+              {index === replay.firstWrong ? " ✗" : ""}
             </p>
           ))}
         </div>

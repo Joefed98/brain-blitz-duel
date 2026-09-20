@@ -357,7 +357,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   bomb: {
     goal: "Carry out every required action in the exact order to defuse the bomb.",
     how: [
-      { action: "Read ALL the rules", detail: "before you touch anything — some rules change the order." },
+      {
+        action: "Read ALL the rules",
+        detail: "before you touch anything — some rules change the order.",
+      },
       { action: "Tap wires and buttons", detail: "then tap DEFUSE." },
       { action: "One wrong step", detail: "and it explodes." },
     ],

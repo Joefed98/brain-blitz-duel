@@ -751,7 +751,9 @@ const bombSummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: exploded ? `Exploded · ${prefix} / ${puzzle.stepCount}` : `${prefix} / ${puzzle.stepCount}`,
+    summary: exploded
+      ? `Exploded · ${prefix} / ${puzzle.stepCount}`
+      : `${prefix} / ${puzzle.stepCount}`,
     detail: [`${prefix} correct opening step${prefix === 1 ? "" : "s"}`],
   };
 };

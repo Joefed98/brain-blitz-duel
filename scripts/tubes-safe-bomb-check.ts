@@ -114,7 +114,10 @@ for (let i = 0; i < ROUNDS; i++) {
     `sequence length out of band: ${sequence.length}`,
   );
   const clean = replayBomb(sequence, sequence);
-  assert(clean.defused && clean.correctPrefix === sequence.length, "stored sequence did not defuse");
+  assert(
+    clean.defused && clean.correctPrefix === sequence.length,
+    "stored sequence did not defuse",
+  );
   const wrong = replayBomb(sequence, ["b" + (sequence[0] === "bA" ? "B" : "A"), ...sequence]);
   assert(wrong.exploded && wrong.correctPrefix === 0, "wrong first action did not explode");
 }

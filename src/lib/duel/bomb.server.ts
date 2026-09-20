@@ -346,7 +346,9 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
     contradictory: reference.contradictory,
     orderRules: rules.filter((rule) => rule.order).length,
     lastRuleAffectsFirst:
-      Boolean(last?.affectsFirst) && Boolean(lastOutput?.actions[0]) && reference.sequence[0] === lastOutput?.actions[0],
+      Boolean(last?.affectsFirst) &&
+      Boolean(lastOutput?.actions[0]) &&
+      reference.sequence[0] === lastOutput?.actions[0],
   };
 }
 
@@ -420,7 +422,9 @@ export function generateBomb(): BombPuzzleData {
     const otherOrderRules = shuffled(
       BOMB_RULES.filter((rule) => rule.order && rule.id !== lastRule.id),
     );
-    const secondOrder = otherOrderRules.find((rule) => (rule.apply(panel)?.actions.length ?? 0) > 0);
+    const secondOrder = otherOrderRules.find(
+      (rule) => (rule.apply(panel)?.actions.length ?? 0) > 0,
+    );
     if (!secondOrder) continue;
     const ordinary = shuffled(
       BOMB_RULES.filter((rule) => rule.id !== lastRule.id && rule.id !== secondOrder.id),
