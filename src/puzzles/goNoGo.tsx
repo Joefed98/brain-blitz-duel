@@ -75,7 +75,7 @@ function IntroExample() {
         ))}
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Twelve shapes. Tap a wrong one and you lose the speed bonus.
+        Twelve shapes, each on screen for 0.73 s. Tap a wrong one and you lose the speed bonus.
       </p>
     </div>
   );
@@ -189,8 +189,19 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
-/** Shuffled run of twelve, six targets, never more than two targets in a row. */
-export function buildGoNoGo(): GoNoGoPuzzleData {
+/** True when two items are the same shape, colour and role. */
+function sameItem(a: GoNoGoItem | undefined, b: GoNoGoItem | undefined): boolean {
+  if (!a || !b) return false;
+  return a.shape === b.shape && a.colour === b.colour && a.target === b.target;
+}
+
+/**
+ * Shuffled run of twelve, six targets, never more than two targets in a row.
+ * Every slot — the first included — is drawn from the same mix, so the run no
+ * longer opens on a guaranteed gold circle. `previousFirst` is the opening item
+ * of the host's last run; a run that repeats it is rejected.
+ */
+export function buildGoNoGo(previousFirst?: GoNoGoItem | null): GoNoGoPuzzleData {
   const distractors: GoNoGoItem[] = Array.from({ length: GONOGO_ITEMS - GONOGO_TARGETS }, (_, i) =>
     i % 2 === 0
       ? { shape: "circle", colour: pick(DISTRACTOR_COLOURS), target: false }
@@ -202,15 +213,21 @@ export function buildGoNoGo(): GoNoGoPuzzleData {
     target: true,
   }));
 
-  for (let attempt = 0; attempt < 200; attempt++) {
+  let relaxed: GoNoGoItem[] | null = null;
+  for (let attempt = 0; attempt < 400; attempt++) {
     const items = shuffled([...targets, ...distractors]);
     const runOfThree = items.some(
       (item, i) => i >= 2 && item.target && items[i - 1]!.target && items[i - 2]!.target,
     );
     if (runOfThree) continue;
+    // The opening three are never all GO or all no-go.
+    const opening = items.slice(0, 3);
+    if (opening.every((i) => i.target) || opening.every((i) => !i.target)) continue;
+    relaxed ??= items;
+    if (sameItem(items[0], previousFirst ?? undefined)) continue;
     return { type: "gonogo", items };
   }
-  return { type: "gonogo", items: [...targets, ...distractors] };
+  return { type: "gonogo", items: relaxed ?? shuffled([...targets, ...distractors]) };
 }
 
 export const goNoGoPuzzle: PuzzleDefinition = {

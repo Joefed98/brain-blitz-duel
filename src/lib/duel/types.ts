@@ -568,8 +568,8 @@ export function spatialPrepMs(groups: number): number {
 /** Go / No-Go: twelve shapes, six of them gold circles, on a shared timeline. */
 export const GONOGO_ITEMS = 12;
 export const GONOGO_TARGETS = 6;
-export const GONOGO_ITEM_MS = 800;
-export const GONOGO_GAP_MS = 400;
+export const GONOGO_ITEM_MS = 730;
+export const GONOGO_GAP_MS = 360;
 export const GONOGO_SLOT_MS = GONOGO_ITEM_MS + GONOGO_GAP_MS;
 export const GONOGO_RUN_MS = GONOGO_ITEMS * GONOGO_SLOT_MS;
 export const GONOGO_POINTS_PER_ITEM = 10;
