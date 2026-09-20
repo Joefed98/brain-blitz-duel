@@ -217,12 +217,8 @@ function Stage({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-      <Rings
-        segments={data.segments}
-        offsets={replay.offsets}
-        size={Math.min(300, 300)}
-        onTap={turn}
-      />
+      {/* Sized to leave the timer, counters and hint clear at 375 × 667. */}
+      <Rings segments={data.segments} offsets={replay.offsets} size={272} onTap={turn} />
       <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         turns <span className="text-primary">{replay.moves}</span> · spokes{" "}
         <span className="text-primary">
