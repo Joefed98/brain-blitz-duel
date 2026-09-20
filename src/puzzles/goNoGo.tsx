@@ -224,7 +224,10 @@ export function buildGoNoGo(previousFirst?: GoNoGoItem | null): GoNoGoPuzzleData
     const opening = items.slice(0, 3);
     if (opening.every((i) => i.target) || opening.every((i) => !i.target)) continue;
     relaxed ??= items;
-    if (sameItem(items[0], previousFirst ?? undefined)) continue;
+    // Every GO item is the same gold circle, so only a repeated no-go opener can
+    // be avoided without biasing GO out of the first slot.
+    const first = items[0]!;
+    if (!first.target && sameItem(first, previousFirst ?? undefined)) continue;
     return { type: "gonogo", items };
   }
   return { type: "gonogo", items: relaxed ?? shuffled([...targets, ...distractors]) };

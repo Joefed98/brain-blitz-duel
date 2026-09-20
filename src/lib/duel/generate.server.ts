@@ -74,9 +74,7 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
 }
 
 /** Generated ONCE per room so every player receives identical puzzles. */
-export function buildRoomPuzzles(
-  options: RoundSelectionOptions & GenerateContext = {},
-): {
+export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContext = {}): {
   roundOrder: PuzzleType[];
   puzzles: PuzzleData[];
 } {
