@@ -65,6 +65,21 @@ for (let sample = 0; sample < 40; sample++) {
   }
 }
 
+// A phone that lagged: the run is cut at its tick, with no crash invented after
+// its last tap and no survival bonus.
+{
+  const seed = 987_654;
+  const inputs: number[] = [];
+  for (let tick = 10; tick <= 2000; tick += 16) inputs.push(tick);
+  const cut = replayHoverRun(
+    seed,
+    encodeHoverRun({ seed, claimedScore: 0, inputs, endTick: 2000 }),
+  );
+  if (cut.endedSeconds > 2000 / TICKS_PER_SECOND) fail("lagged run ran past the client tick");
+  if (!cut.clientLag || cut.clientTick !== 2000) fail("client lag not flagged");
+  if (cut.survived) fail("lagged run credited with survival");
+}
+
 // Log validation.
 if (checkInputLog([5, 5], HOVER_RUN_TICKS).ok) fail("repeated tick accepted");
 if (checkInputLog([9, 4], HOVER_RUN_TICKS).ok) fail("decreasing ticks accepted");
