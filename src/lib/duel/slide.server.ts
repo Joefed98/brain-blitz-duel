@@ -89,7 +89,7 @@ export function meaningfulSlideArrows(
 }
 
 export function generateIceSlide(): SlidePuzzleData {
-  for (let attempt = 1; attempt <= 40_000; attempt++) {
+  for (let attempt = 1; attempt <= 250_000; attempt++) {
     const cells = shuffled(Array.from({ length: SLIDE_CELLS }, (_, i) => i));
     const exit = cells.find(border)!;
     const wallCount = SLIDE_MIN_WALLS + randomInt(SLIDE_MAX_WALLS - SLIDE_MIN_WALLS + 1);

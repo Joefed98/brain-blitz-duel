@@ -19,13 +19,23 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const BALL_COLOURS = ["RED", "BLUE", "GREEN", "PURPLE", "ORANGE", "YELLOW"] as const;
+// The eight game colours from the shared palette (GOLD is reserved for the lift highlight).
+const BALL_COLOURS = [
+  "RED",
+  "BLUE",
+  "GREEN",
+  "PURPLE",
+  "PINK",
+  "ORANGE",
+  "BROWN",
+  "YELLOW",
+] as const;
 
 function ballColour(index: number): string {
   return GLYPH_COLOURS[BALL_COLOURS[index % BALL_COLOURS.length]!];
 }
 
-/** Eight tubes in two rows of four; the lifted tube wears a gold outline. */
+/** Ten tubes in two rows of five; the lifted tube wears a gold outline. */
 function Tubes({
   tubes,
   lifted,
@@ -39,9 +49,9 @@ function Tubes({
   onTube?: ((tube: number) => void) | undefined;
   compact?: boolean;
 }) {
-  const ballSize = compact ? 11 : 21;
+  const ballSize = compact ? 9 : 15;
   return (
-    <div className="grid h-full w-full grid-cols-4 grid-rows-2 place-items-end justify-center gap-x-2 gap-y-3">
+    <div className="grid h-full w-full grid-cols-5 grid-rows-2 place-items-end justify-center gap-x-1.5 gap-y-2">
       {tubes.map((tube, index) => {
         const isLifted = lifted === index;
         const group = topGroup(tube);
@@ -62,7 +72,7 @@ function Tubes({
                   ? "border-ok/60 bg-card"
                   : "border-border bg-card"
             }`}
-            style={{ maxWidth: compact ? 32 : 54 }}
+            style={{ maxWidth: compact ? 26 : 42 }}
           >
             <div className="flex w-full flex-col-reverse items-center justify-start gap-[3px]">
               {tube.map((colour, ball) => {

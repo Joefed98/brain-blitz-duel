@@ -1,9 +1,10 @@
 /**
  * Server-only generation for Don't Break the Chain.
  *
- * A depth-first search counts non-crossing twelve-node paths, capped at 200.
- * Accepted layouts have 1–8 routes, at least two early dead-end traps, and a
- * shape-valid crossing choice wherever crossing is geometrically possible.
+ * Nodes are scattered across the whole play area by Poisson-disc sampling, so
+ * the board is never a ring around the edge. A depth-first search then counts
+ * the non-crossing twelve-node routes: a layout is only used when it has
+ * between one and eight of them and at least two early dead-end traps.
  */
 
 import { shuffled } from "./random";
@@ -11,8 +12,12 @@ import { chainRequired, chainWouldCross } from "./chain";
 import {
   CHAIN_CYCLE,
   CHAIN_LENGTH,
+  CHAIN_MAX_HULL_RATIO,
+  CHAIN_MIN_CENTRAL,
   CHAIN_MIN_INVALID,
+  CHAIN_MIN_SPACING,
   CHAIN_NODES,
+  CHAIN_NODE_WIDTH_PCT,
   CHAIN_SHAPES,
   type ChainNode,
   type ChainPuzzleData,
@@ -20,6 +25,16 @@ import {
 } from "./types";
 
 const CHAIN_SOLUTION_CAP = 200;
+/** The most routes an accepted board may have, and the least. */
+const CHAIN_MAX_ROUTES = 8;
+const CHAIN_MIN_ROUTES = 1;
+/** Padding kept clear at the edges so glyphs are never clipped. */
+const EDGE_PADDING = 7;
+/** Minimum distance between two node centres, in percentage points. */
+const MIN_DISTANCE = CHAIN_MIN_SPACING * CHAIN_NODE_WIDTH_PCT;
+/** The central third of each axis. */
+const CENTRE_FROM = 100 / 3;
+const CENTRE_TO = 200 / 3;
 
 function validChoices(nodes: ChainNode[], cycle: ChainShape[], chain: number[]): number[] {
   const needed = chainRequired(cycle, chain.length);
@@ -92,10 +107,14 @@ function stepHasRequiredChoices(nodes: ChainNode[], cycle: ChainShape[], chain: 
   const unused = nodes.map((_node, index) => index).filter((index) => !chain.includes(index));
   const invalid = unused.filter((index) => nodes[index]?.shape !== needed).length;
   if (invalid < CHAIN_MIN_INVALID) return false;
-  // Crossing cannot exist until there are two prior segments. The generator's
-  // searched template supplies crossing decoys throughout the established path.
+  // Crossing cannot exist until there are two prior segments; from then on the
+  // step must offer a shape-valid node whose line would cross, when one exists.
   if (chain.length < 3) return true;
-  return true;
+  const crossing = unused.filter(
+    (index) => nodes[index]?.shape === needed && chainWouldCross(nodes, chain, index),
+  ).length;
+  const sameShape = unused.filter((index) => nodes[index]?.shape === needed).length;
+  return crossing > 0 || sameShape === validChoices(nodes, cycle, chain).length;
 }
 
 /** Depth-first search for one valid non-crossing twelve-node chain. */
@@ -103,7 +122,6 @@ export function findChainSolution(nodes: ChainNode[], cycle: ChainShape[]): numb
   const search = (chain: number[]): number[] | null => {
     if (chain.length >= CHAIN_LENGTH) return chain;
     if (!stepHasRequiredChoices(nodes, cycle, chain)) return null;
-    const needed = chainRequired(cycle, chain.length);
     const choices = shuffled(validChoices(nodes, cycle, chain));
     for (const choice of choices) {
       const solved = search([...chain, choice]);
@@ -135,41 +153,104 @@ export function chainSolutionIsFair(
   return true;
 }
 
-export function generateChain(): ChainPuzzleData {
-  // Start from a searched sparse-route template. Shape names are permuted per
-  // room without changing the verified route count or crossing topology.
-  const template: ChainNode[] = [
-    [77.4, 19.2, "circle"],
-    [76, 26, "circle"],
-    [64.8, 14.2, "circle"],
-    [13.9, 40.1, "circle"],
-    [15.3, 72.8, "circle"],
-    [13.5, 65.7, "square"],
-    [89.1, 47, "square"],
-    [14.9, 47.2, "square"],
-    [90.6, 63.2, "square"],
-    [82.4, 71.2, "square"],
-    [37.7, 14.4, "triangle"],
-    [58.2, 85.8, "triangle"],
-    [93.1, 38.3, "triangle"],
-    [28.3, 11.9, "triangle"],
-    [45.6, 8.3, "triangle"],
-    [25.4, 83.4, "triangle"],
-    [40, 93.5, "triangle"],
-    [17.6, 23, "triangle"],
-    [68.5, 82.5, "triangle"],
-    [53.4, 92.8, "triangle"],
-  ].map(([x, y, shape]) => ({ x: x as number, y: y as number, shape: shape as ChainShape }));
-  // This searched cycle is the one with eight routes and two early traps.
-  // Permuting its labels keeps those properties while varying the visible rule.
-  const shapeOrder = shuffled([...CHAIN_SHAPES]);
-  const shapeMap = new Map(CHAIN_SHAPES.map((shape, index) => [shape, shapeOrder[index]!]));
-  const nodes = template.map((node) => ({ ...node, shape: shapeMap.get(node.shape)! }));
-  const cycle = [shapeMap.get("triangle")!, shapeMap.get("square")!, shapeMap.get("circle")!];
-  const solutions = collectChainSolutions(nodes, cycle, 8);
-  const solution = solutions.find((candidate) => chainSolutionIsFair(nodes, cycle, candidate));
-  if (!solution || chainTrapNodes(nodes, cycle).length < 2) {
-    throw new Error("Don't Break the Chain template failed validation");
+/* -------------------------------------------------------------------------- */
+/*  Layout                                                                    */
+/* -------------------------------------------------------------------------- */
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+function distance(a: Point, b: Point): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+/** Dart-thrown Poisson-disc sample: points spread over the whole play area. */
+function samplePoints(): Point[] | null {
+  const points: Point[] = [];
+  const span = 100 - EDGE_PADDING * 2;
+  for (let throws = 0; throws < 6_000 && points.length < CHAIN_NODES; throws++) {
+    const candidate = {
+      x: Math.round((EDGE_PADDING + Math.random() * span) * 10) / 10,
+      y: Math.round((EDGE_PADDING + Math.random() * span) * 10) / 10,
+    };
+    if (points.every((point) => distance(point, candidate) >= MIN_DISTANCE)) {
+      points.push(candidate);
+    }
   }
-  return { type: "chain", nodes, cycle, solution, solutionCount: solutions.length };
+  return points.length === CHAIN_NODES ? points : null;
+}
+
+function inCentralThird(point: Point): boolean {
+  return (
+    point.x >= CENTRE_FROM && point.x <= CENTRE_TO && point.y >= CENTRE_FROM && point.y <= CENTRE_TO
+  );
+}
+
+/** Andrew's monotone chain: the points on the outer boundary of the scatter. */
+export function convexHullSize(points: Point[]): number {
+  if (points.length < 3) return points.length;
+  const sorted = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o: Point, a: Point, b: Point) =>
+    (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const half = (list: Point[]) => {
+    const stack: Point[] = [];
+    for (const point of list) {
+      while (stack.length >= 2 && cross(stack[stack.length - 2]!, stack[stack.length - 1]!, point) <= 0) {
+        stack.pop();
+      }
+      stack.push(point);
+    }
+    return stack;
+  };
+  const lower = half(sorted);
+  const upper = half([...sorted].reverse());
+  return lower.length + upper.length - 2;
+}
+
+/** The scatter must reach the middle of the board and not hug its rim. */
+export function layoutIsSpread(points: Point[]): boolean {
+  if (points.filter(inCentralThird).length < CHAIN_MIN_CENTRAL) return false;
+  return convexHullSize(points) <= Math.floor(points.length * CHAIN_MAX_HULL_RATIO);
+}
+
+/** Four of each shape are needed for a twelve-link chain; the rest are spare. */
+function shapeBag(): ChainShape[] {
+  const bag: ChainShape[] = [];
+  const perShape = Math.floor(CHAIN_NODES / CHAIN_SHAPES.length);
+  for (const shape of CHAIN_SHAPES) for (let i = 0; i < perShape; i++) bag.push(shape);
+  while (bag.length < CHAIN_NODES) bag.push(CHAIN_SHAPES[bag.length % CHAIN_SHAPES.length]!);
+  return bag;
+}
+
+export function generateChain(): ChainPuzzleData {
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const points = samplePoints();
+    if (!points || !layoutIsSpread(points)) continue;
+
+    // Keep the scatter and try shape labellings on it: the routes a board
+    // offers depend far more on which node is which shape than on the spread.
+    for (let labelling = 0; labelling < 40; labelling++) {
+      const bag = shuffled(shapeBag());
+      const nodes: ChainNode[] = points.map((point, index) => ({
+        x: point.x,
+        y: point.y,
+        shape: bag[index]!,
+      }));
+      const cycle = shuffled([...CHAIN_SHAPES]).slice(0, CHAIN_CYCLE);
+
+      // Counting stops one past the limit, so an over-rich board is cheap to reject.
+      const routes = countChainSolutions(nodes, cycle, [], CHAIN_MAX_ROUTES + 1);
+      if (routes < CHAIN_MIN_ROUTES || routes > CHAIN_MAX_ROUTES) continue;
+
+      const solutions = collectChainSolutions(nodes, cycle, CHAIN_MAX_ROUTES);
+      const solution = solutions.find((candidate) => chainSolutionIsFair(nodes, cycle, candidate));
+      if (!solution) continue;
+      if (chainTrapNodes(nodes, cycle).length < 2) continue;
+
+      return { type: "chain", nodes, cycle, solution, solutionCount: routes };
+    }
+  }
+  throw new Error("Don't Break the Chain generator could not build a spread layout");
 }

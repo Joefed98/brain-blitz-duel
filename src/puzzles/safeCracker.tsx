@@ -52,7 +52,7 @@ function Dial({
       onPointerLeave={stop}
       onPointerCancel={stop}
       aria-label={delta > 0 ? "Up" : "Down"}
-      className="flex size-[52px] items-center justify-center font-mono text-[21px] leading-none text-muted-foreground disabled:opacity-40"
+      className="flex size-11 items-center justify-center font-mono text-lg leading-none text-muted-foreground disabled:opacity-40"
     >
       {label}
     </button>
@@ -67,9 +67,9 @@ function Dial({
           wrong ? "border-warn text-warn" : gold ? "border-primary text-primary" : "border-border"
         }`}
         style={{
-          width: compact ? 34 : 50,
-          height: compact ? 44 : 56,
-          fontSize: compact ? 22 : 28,
+          width: compact ? 34 : 46,
+          height: compact ? 44 : 50,
+          fontSize: compact ? 22 : 26,
           touchAction: "none",
         }}
       >

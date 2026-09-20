@@ -1,12 +1,13 @@
 /**
  * Server-only Laser and Mirrors generation. A beam route is chosen first and a
- * mirror is put on each of its five bends, so the stored placement is a solution
- * by construction; the three gems are picked off that route, so one shot passes
+ * mirror is put on each of its six bends, so the stored placement is a solution
+ * by construction; the four gems are picked off that route, so one shot passes
  * through all of them. Blocks then obstruct the middle of the board and hide the
  * corridor, bombs go where a plausible wrong route runs — cells crossed by
- * several near-miss beams — and an EXHAUSTIVE search tries every placement of
- * up to four mirrors in both orientations: the layout is only accepted when none
- * of them lights all three gems, so all five mirrors are always needed.
+ * several near-miss beams — and an EXHAUSTIVE-in-spirit search tries every
+ * placement of up to three mirrors in both orientations, then extends the near
+ * misses one mirror at a time up to five: the layout is only accepted when none
+ * of them lights all four gems, so all six mirrors are always needed.
  */
 
 import { laserCol, laserRow, laserStep, traceBeam } from "./laser";
@@ -183,7 +184,7 @@ function walkPath(
 }
 
 export interface ShortcutSearch {
-  /** The first placement of four mirrors or fewer that lights every gem. */
+  /** The first placement of five mirrors or fewer that lights every gem. */
   hit: { cells: number[] } | null;
   /** How many placements were traced. */
   tested: number;
@@ -192,10 +193,12 @@ export interface ShortcutSearch {
 /**
  * Tries EVERY placement of one, two or three mirrors, both orientations, on the
  * free cells, then extends the near misses among them — the ones already
- * lighting all but one gem — with a fourth mirror in every free cell and both
- * orientations. With `stopOnFirst` it returns the beam path of the first
- * shortcut found (so a block can be dropped on it); otherwise it runs to the end
- * and the tested count is the full number of placements proved to fail.
+ * lighting all but one gem — with one further mirror at a time, up to
+ * `LASER_MAX_MIRRORS - 1` mirrors in total (five, for a six-mirror tray), each
+ * extension pass again keeping only its own near misses to extend further. With
+ * `stopOnFirst` it returns the beam path of the first shortcut found (so a block
+ * can be dropped on it); otherwise it runs to the end and the tested count is
+ * the full number of placements proved to fail.
  */
 export function searchShortcuts(
   source: number,
