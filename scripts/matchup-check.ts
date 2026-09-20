@@ -8,7 +8,11 @@
  *  5. the game sits in the arcade category, is core and is not retired
  */
 
-import { checkInputEvents, MAX_INPUT_EVENTS, type ArcadeInputEvent } from "../src/lib/arcade/engine.ts";
+import {
+  checkInputEvents,
+  MAX_INPUT_EVENTS,
+  type ArcadeInputEvent,
+} from "../src/lib/arcade/engine.ts";
 import {
   matchupCheckpoint,
   matchupFindSwap,
