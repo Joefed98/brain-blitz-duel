@@ -122,7 +122,7 @@ export function replayHoverRun(seed: number, raw: string): HoverResult {
       const serverState = hoverCheckpoint(state);
       serverCheckpoints.push(serverState);
       const clientState = clientCheckpoints.get(state.tick);
-      if (clientState && clientState.checksum !== serverState.checksum && desyncTick === null) {
+      if ((!clientState || clientState.checksum !== serverState.checksum) && desyncTick === null) {
         desyncTick = state.tick;
         console.error("[hover] client/server desync", {
           tick: state.tick,

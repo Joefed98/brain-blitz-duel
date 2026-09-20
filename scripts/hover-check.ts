@@ -72,7 +72,8 @@ for (let sample = 0; sample < 200; sample++) {
     const mismatchIndex = checkpoints.findIndex(
       (checkpoint, index) => checkpoint.checksum !== replayed.checkpoints[index]?.checksum,
     );
-    firstFailingTick = checkpoints[mismatchIndex]?.tick ?? replayed.checkpoints[mismatchIndex]?.tick ?? 0;
+    firstFailingTick =
+      checkpoints[mismatchIndex]?.tick ?? replayed.checkpoints[mismatchIndex]?.tick ?? 0;
     fail(`seed ${seed}: checkpoints differ at tick ${firstFailingTick}`);
   }
   if (replayed.desyncTick !== null) fail(`seed ${seed}: false desync at ${replayed.desyncTick}`);
