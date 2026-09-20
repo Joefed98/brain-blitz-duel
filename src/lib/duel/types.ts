@@ -1436,10 +1436,10 @@ export interface IntruderPuzzleData {
 /* ============================== Nonogram ================================ */
 
 export const NONO_TIME_MS = 90_000;
-export const NONO_SIZE = 9;
+export const NONO_SIZE = 7;
 /** Filled-cell count band for a generated picture. */
-export const NONO_MIN_FILLED = 30;
-export const NONO_MAX_FILLED = 45;
+export const NONO_MIN_FILLED = 15;
+export const NONO_MAX_FILLED = 25;
 /** Partial credit share and the cost of a wrongly filled cell. */
 export const NONO_PARTIAL_POINTS = 60;
 export const NONO_WRONG_PENALTY = 5;
@@ -1482,15 +1482,15 @@ export interface PairPuzzleData {
 /* ============================= Colour Flood ============================= */
 
 export const FLOOD_TIME_MS = 45_000;
-export const FLOOD_SIZE = 10;
+export const FLOOD_SIZE = 12;
 export const FLOOD_CELLS = FLOOD_SIZE * FLOOD_SIZE;
 export const FLOOD_COLOURS = 5;
-export const FLOOD_MIN_PAR = 8;
-export const FLOOD_MAX_PAR = 12;
+export const FLOOD_MIN_PAR = 10;
+export const FLOOD_MAX_PAR = 15;
 /** After this many failed boards the par band widens, and the miss is logged. */
 export const FLOOD_ATTEMPTS = 400;
 export const FLOOD_FALLBACK_PAR = 14;
-export const FLOOD_SEARCH_CAP = 500_000;
+export const FLOOD_SEARCH_CAP = 1_000_000;
 export const FLOOD_PAR_BONUS = 20;
 export const FLOOD_PARTIAL_POINTS = 60;
 
