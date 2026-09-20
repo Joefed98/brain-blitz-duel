@@ -1599,8 +1599,8 @@ export interface RingsPuzzleData {
 
 /* ================================= Hover ================================ */
 
-/** The run is a fixed 45 seconds; the round clock adds three seconds of slack. */
-export const HOVER_TIME_MS = 48_000;
+/** The run is a fixed 60 seconds; the round clock adds three seconds of slack. */
+export const HOVER_TIME_MS = 63_000;
 /** How long the crash sits on screen before the run is submitted. */
 export const HOVER_CRASH_FREEZE_MS = 800;
 

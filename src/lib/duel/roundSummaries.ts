@@ -892,12 +892,13 @@ const tilesSummary: SummaryBuilder = (result, puzzle) => {
 
 const hoverSummary: SummaryBuilder = (result) => {
   const gates = Number(result.extra?.["gates"] ?? 0);
+  const total = Number(result.extra?.["totalGates"] ?? 0);
   const survived = result.extra?.["survived"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived
-      ? `${gates} gates · survived`
-      : `${gates} gates · crashed at ${ended.toFixed(1)}s`,
+      ? `${gates} / ${total} · survived`
+      : `${gates} / ${total} gates · crashed at ${ended.toFixed(1)}s`,
     detail: [survived ? "Flew the whole run" : "Run ended early"],
   };
 };

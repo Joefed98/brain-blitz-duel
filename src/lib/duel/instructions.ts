@@ -452,8 +452,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap anywhere", detail: "to hover up; let go to drop." },
       { action: "Hit anything", detail: "and the run ends." },
-      { action: "Everyone flies", detail: "the same course." },
+      { action: "Everyone flies", detail: "the same course for sixty seconds." },
     ],
-    score: "5 per gate, +40 for surviving the whole run.",
+    score: "Clear the gates for points, +40 for surviving the whole run.",
   },
 };
