@@ -9,7 +9,7 @@
  * rooms in a row come close to twenty-four different games.
  */
 
-import { shuffled, weightedPick } from "./random";
+import { randomBelow, shuffled, weightedPick } from "./random";
 import {
   ARCADE_CATEGORY,
   CORE_CATEGORIES,
@@ -76,6 +76,11 @@ export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[
     order.map((type) => puzzleDef(type)?.category).filter(Boolean),
   ) as PuzzleCategory[][];
 
+  // Arcade is on unless the host turns it off; when it is on it takes exactly
+  // one round, so the rest of the draw fills one round fewer.
+  const wantArcade = options.addArcade !== false && typesInCategory(ARCADE_CATEGORY).length > 0;
+  const slots = wantArcade ? Math.max(1, rounds - 1) : rounds;
+
   const optIns: PuzzleCategory[] = [
     ...(options.addMaths ? (["number"] as const) : []),
     ...(options.addMemory ? (["memory"] as const) : []),
@@ -87,7 +92,7 @@ export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[
   // As many different categories as the pool allows, weighted by recency.
   const remaining = shuffled(pool);
   const categories: PuzzleCategory[] = [];
-  while (categories.length < rounds && remaining.length > 0) {
+  while (categories.length < slots && remaining.length > 0) {
     const chosen = weightedPick(remaining, (category) => recencyWeight(category, recentCategories));
     categories.push(chosen);
     remaining.splice(remaining.indexOf(chosen), 1);
@@ -99,9 +104,9 @@ export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[
     if (type) types.push(type);
   }
 
-  // Not enough categories to fill the room (no opt-ins): the remaining rounds
-  // come from core categories weighted toward logic and pattern.
-  while (types.length < rounds) {
+  // Not enough categories to fill the room: the remaining rounds come from core
+  // categories weighted toward logic and pattern.
+  while (types.length < slots) {
     const candidates = CORE_CATEGORIES.filter((category) =>
       typesInCategory(category).some((type) => !types.includes(type)),
     );
@@ -115,5 +120,12 @@ export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[
     types.push(type);
   }
 
-  return shuffled(types);
+  const order = shuffled(types);
+  if (wantArcade) {
+    const arcade = pickType(ARCADE_CATEGORY, order, recent);
+    // Never round one: the arcade round lands anywhere from round two onwards.
+    if (arcade) order.splice(1 + randomBelow(order.length), 0, arcade);
+  }
+  return order;
+
 }
