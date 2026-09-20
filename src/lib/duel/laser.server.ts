@@ -228,16 +228,20 @@ export function searchShortcuts(
   /** Placements lighting all but one gem, kept as [cell, kind, ...] pairs. */
   const promising: number[][] = [];
 
-  /** Traces the mirrors currently on the board; true when it lights every gem. */
-  const fire = (carry: number[] | null): boolean => {
+  /**
+   * Traces the mirrors currently on the board; true when it lights every gem.
+   * A near miss (lighting all but one gem) is pushed onto `sink` when given
+   * one, so a caller can extend it with a further mirror on the next pass.
+   */
+  const fire = (carry: number[] | null, sink?: number[][]): boolean => {
     tested += 1;
     const lit = walkPath(source, dir, blocked, bomb, gem, mirrors, trail);
     if (lit >= need) {
       hit ??= { cells: [...trail] };
       return true;
     }
-    if (carry && lit >= need - 1 && promising.length < LASER_PROMISING_CAP) {
-      promising.push([...carry]);
+    if (carry && lit >= need - 1 && (sink ?? promising).length < LASER_PROMISING_CAP) {
+      (sink ?? promising).push([...carry]);
     }
     return false;
   };
@@ -295,14 +299,10 @@ export function searchShortcuts(
         for (let kind = 1 as 1 | 2; kind <= 2; kind++) {
           mirrors[cell] = kind;
           const carried = [...carry, cell, kind];
-          if (fire(carried) && stopOnFirst) {
+          if (fire(carried, found) && stopOnFirst) {
             mirrors[cell] = 0;
             for (let index = 0; index < carry.length; index += 2) mirrors[carry[index]!] = 0;
             return { hit, tested };
-          }
-          if (found.length < LASER_PROMISING_CAP) {
-            const lit = walkPath(source, dir, blocked, bomb, gem, mirrors, null);
-            if (lit >= need - 1) found.push(carried);
           }
         }
         mirrors[cell] = 0;
@@ -433,7 +433,7 @@ function shortcutLines(source: number, dir: BeamDir, gems: number[]): Set<number
 export function generateLaser(): LaserPuzzleData {
   for (let attempt = 1; attempt <= 40_000; attempt++) {
     const { cell: source, dir } = shuffled(sources())[0]!;
-    // Always exactly five mirrors, so the route always bends five times.
+    // Always exactly six mirrors, so the route always bends six times.
     const route = randomRoute(source, dir, LASER_MAX_MIRRORS);
     if (!route) continue;
     // Both orientations have to show up, so the tray is never all one way.
@@ -444,7 +444,7 @@ export function generateLaser(): LaserPuzzleData {
       .map((cell, index) => ({ cell, index }))
       .filter((spot) => spot.cell !== source && !bendCells.has(spot.cell));
 
-    // One gem on each of three different straight runs of the route, so no short
+    // One gem on each of four different straight runs of the route, so no short
     // answer can reach them all, and never two gems close together.
     const segmentOf = new Map<number, number>();
     route.segments.forEach((segment, index) => {
@@ -571,7 +571,7 @@ export function generateLaser(): LaserPuzzleData {
     if (!litByRoute()) continue;
 
     // Final proof, run to the end with the blocks and bombs final: NO placement
-    // of four mirrors or fewer lights all three gems, so all five are required.
+    // of five mirrors or fewer lights all four gems, so all six are required.
     const proof = searchShortcuts(source, dir, blocks, bombs, gems, false);
     if (proof.hit) continue;
 

@@ -18,7 +18,9 @@ import {
   type GravityBalls,
 } from "./gravity";
 import {
+  GRAV_ATTEMPTS,
   GRAV_CELLS,
+  GRAV_FALLBACK_MIN_TILTS,
   GRAV_MAX_TILTS,
   GRAV_MAX_WALLS,
   GRAV_MIN_TILTS,
@@ -72,6 +74,27 @@ export function gravityMinimum(
     }
   }
   return null;
+}
+
+/**
+ * True when the stored shortest solution has at least one tilt where the balls
+ * swap relative order — cell index a below b becomes a above b, or vice versa.
+ * A run that never mixes the balls up doesn't really test the joint search.
+ */
+function soloOrder(a: number, b: number): number {
+  return Math.sign(a - b);
+}
+
+function solutionSwapsOrder(walls: Set<number>, start: GravityBalls, solution: GravityDir[]): boolean {
+  let balls = start;
+  let order = soloOrder(balls.a, balls.b);
+  for (const dir of solution) {
+    balls = tilt(walls, balls, dir).balls;
+    const next = soloOrder(balls.a, balls.b);
+    if (next !== 0 && order !== 0 && next !== order) return true;
+    if (next !== 0) order = next;
+  }
+  return false;
 }
 
 /** Fewest tilts for one ball on its own — the other ball is not on the board. */
