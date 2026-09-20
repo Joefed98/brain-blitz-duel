@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
+  clampInt,
   MAX_CATCH_UP_TICKS,
   TICK_MS,
   TICKS_PER_SECOND,
@@ -17,7 +18,6 @@ import {
   BINTOSS_BG,
   BINTOSS_BIN_COLOUR,
   BINTOSS_CHECKPOINT_INTERVAL,
-  BINTOSS_GRAVITY,
   BINTOSS_MISS_COLOUR,
   BINTOSS_RUN_TICKS,
   BINTOSS_THROWS,
@@ -25,7 +25,6 @@ import {
   BINTOSS_VY_MAX,
   type BinTossState,
 } from "@/lib/arcade/binToss";
-import { clampInt } from "@/lib/arcade/engine";
 import { decodeBinTossRun, encodeBinTossRun, replayBinTossRun } from "@/lib/duel/binToss";
 import { ARCADE_CRASH_FREEZE_MS, type BinTossPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -161,7 +160,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
           const before = state.current;
           state.current = binTossGame.step(state.current, applied);
-          if (applied && state.current !== before && state.current.phase !== before.phase) {
+          // Logged only when the flick actually launched a ball.
+          if (applied && before.phase === BINTOSS_AIM && state.current.phase !== BINTOSS_AIM) {
             events.current.push(applied);
           }
           if (state.current.tick % BINTOSS_CHECKPOINT_INTERVAL === 0) {
@@ -363,5 +363,3 @@ export const binTossPuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
-
-export { BINTOSS_GRAVITY };
