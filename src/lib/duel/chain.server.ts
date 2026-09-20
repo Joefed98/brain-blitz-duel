@@ -160,10 +160,12 @@ export function generateChain(): ChainPuzzleData {
     [68.5, 82.5, "triangle"],
     [53.4, 92.8, "triangle"],
   ].map(([x, y, shape]) => ({ x: x as number, y: y as number, shape: shape as ChainShape }));
+  // This searched cycle is the one with eight routes and two early traps.
+  // Permuting its labels keeps those properties while varying the visible rule.
   const shapeOrder = shuffled([...CHAIN_SHAPES]);
   const shapeMap = new Map(CHAIN_SHAPES.map((shape, index) => [shape, shapeOrder[index]!]));
   const nodes = template.map((node) => ({ ...node, shape: shapeMap.get(node.shape)! }));
-  const cycle = [shapeMap.get("circle")!, shapeMap.get("square")!, shapeMap.get("triangle")!];
+  const cycle = [shapeMap.get("triangle")!, shapeMap.get("square")!, shapeMap.get("circle")!];
   const solutions = collectChainSolutions(nodes, cycle, 8);
   const solution = solutions.find((candidate) => chainSolutionIsFair(nodes, cycle, candidate));
   if (!solution || chainTrapNodes(nodes, cycle).length < 2) {
