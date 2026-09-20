@@ -173,7 +173,7 @@ async function createRoomRow(
   client: any,
   userId: string,
   displayName: string,
-  modes: { addMaths?: boolean; addMemory?: boolean } = {},
+  modes: { addMaths?: boolean; addMemory?: boolean; addArcade?: boolean } = {},
 ): Promise<DuelRow> {
   for (let attempt = 0; attempt < 8; attempt++) {
     const { data, error } = await client
@@ -187,6 +187,9 @@ async function createRoomRow(
         round_order: [],
         add_maths: modes.addMaths === true,
         add_memory: modes.addMemory === true,
+        // Arcade is on unless the host has switched it off.
+        add_arcade: modes.addArcade !== false,
+
         puzzles_public: [],
         current_round: 0,
       })
@@ -336,9 +339,22 @@ export const createRoomFn = createServerFn({ method: "POST" })
   .inputValidator((input: { displayName: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    const room = await createRoomRow(client, context.userId, data.displayName);
+    // The host's toggles carry over from their last room; arcade starts on.
+    const { data: previous } = await client
+      .from("duels")
+      .select("add_maths, add_memory, add_arcade")
+      .eq("host_user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const room = await createRoomRow(client, context.userId, data.displayName, {
+      addMaths: previous?.add_maths === true,
+      addMemory: previous?.add_memory === true,
+      addArcade: previous ? previous.add_arcade !== false : true,
+    });
     return { roomId: room.id, roomCode: room.room_code };
   });
+
 
 export const joinRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
