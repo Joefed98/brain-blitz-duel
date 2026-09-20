@@ -526,18 +526,29 @@ export function scoreLightsOut(
     const bonus = minPresses > 0 && presses === minPresses ? LIGHTS_MIN_BONUS : 0;
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, LIGHTS_TIME_MS) + bonus);
   }
-  const start = Math.max(1, lightsAtStart);
-  return clamp(Math.round((LIGHTS_PARTIAL_POINTS * lightsOff) / start), 0, LIGHTS_PARTIAL_POINTS);
+  // One light left earns 85, two 75, three 60, four 50; beyond that it is
+  // five points for every light the player did manage to switch off.
+  const start = Math.max(0, Math.round(lightsAtStart));
+  const off = clamp(Math.round(lightsOff), 0, start);
+  const left = start - off;
+  if (left === 1) return 85;
+  if (left === 2) return 75;
+  if (left === 3) return 60;
+  if (left === 4) return 50;
+  return clamp(5 * off, 0, BASE_POINTS);
 }
 
 /** Pipes: a fully connected network scores the standard points. */
 export function scorePipes(solved: boolean, connected: number, msRemaining: number): number {
   if (solved) return BASE_POINTS + speedBonus(msRemaining, PIPES_TIME_MS);
-  return clamp(
-    Math.round((PIPES_PARTIAL_POINTS * connected) / PIPES_CELLS),
-    0,
-    PIPES_PARTIAL_POINTS,
-  );
+  const joined = clamp(Math.round(connected), 0, PIPES_CELLS);
+  // 35 of 36 earns 95, then five points fewer for every two pipes missed,
+  // down to 19 joined. Below that it is two points per joined pipe.
+  if (joined <= 18) return 2 * joined;
+  if (joined >= PIPES_CELLS - 1) return 95;
+  if (joined >= PIPES_CELLS - 2) return 90;
+  const steps = Math.ceil((PIPES_CELLS - 2 - joined) / 2);
+  return clamp(85 - 5 * steps, 0, BASE_POINTS);
 }
 
 /** Mini Sudoku: a finished, rule-correct grid scores the standard points. */
