@@ -13,11 +13,14 @@ export function chainRequired(cycle: ChainShape[], step: number): ChainShape {
 
 const EPSILON = 0.0001;
 
-function orientation(a: ChainNode, b: ChainNode, c: ChainNode): number {
+/** Any positioned point — chain nodes and One-Stroke dots both qualify. */
+type Point = { x: number; y: number };
+
+function orientation(a: Point, b: Point, c: Point): number {
   return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
-function onSegment(a: ChainNode, b: ChainNode, point: ChainNode): boolean {
+function onSegment(a: Point, b: Point, point: Point): boolean {
   return (
     point.x >= Math.min(a.x, b.x) - EPSILON &&
     point.x <= Math.max(a.x, b.x) + EPSILON &&
@@ -27,12 +30,7 @@ function onSegment(a: ChainNode, b: ChainNode, point: ChainNode): boolean {
 }
 
 /** True when two closed line segments touch or cross. */
-export function chainSegmentsIntersect(
-  a: ChainNode,
-  b: ChainNode,
-  c: ChainNode,
-  d: ChainNode,
-): boolean {
+export function chainSegmentsIntersect(a: Point, b: Point, c: Point, d: Point): boolean {
   const abC = orientation(a, b, c);
   const abD = orientation(a, b, d);
   const cdA = orientation(c, d, a);

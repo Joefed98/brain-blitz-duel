@@ -86,6 +86,17 @@ import {
   PAIR_TIME_MS,
   FLOOD_CELLS,
   FLOOD_PARTIAL_POINTS,
+  STROKE_FIRST_TRY_BONUS,
+  STROKE_PARTIAL_POINTS,
+  STROKE_TIME_MS,
+  TILES_COUNT,
+  TILES_MIN_BONUS,
+  TILES_PARTIAL_POINTS,
+  TILES_TIME_MS,
+  RINGS_MIN_BONUS,
+  RINGS_PARTIAL_POINTS,
+  RINGS_SEGMENTS,
+  RINGS_TIME_MS,
   FLOOD_PAR_BONUS,
   FLOOD_TIME_MS,
 } from "./types";
@@ -755,5 +766,59 @@ export function scoreFlood(
     Math.round((FLOOD_PARTIAL_POINTS * clamp(region, 0, FLOOD_CELLS)) / FLOOD_CELLS),
     0,
     FLOOD_PARTIAL_POINTS,
+  );
+}
+
+/** One-Stroke: finishing scores, with a bonus for getting it first time. */
+export function scoreStroke(
+  solved: boolean,
+  solvedOn: number,
+  best: number,
+  total: number,
+  msRemaining: number,
+): number {
+  if (solved) {
+    const bonus = solvedOn === 1 ? STROKE_FIRST_TRY_BONUS : 0;
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, STROKE_TIME_MS) + bonus);
+  }
+  const share = total > 0 ? Math.round((STROKE_PARTIAL_POINTS * clamp(best, 0, total)) / total) : 0;
+  return clamp(share, 0, STROKE_PARTIAL_POINTS);
+}
+
+/** Sliding Tiles: ordering the frame scores, with a bonus for the minimum. */
+export function scoreTiles(
+  solved: boolean,
+  moves: number,
+  minMoves: number,
+  inPlace: number,
+  msRemaining: number,
+): number {
+  if (solved) {
+    const bonus = minMoves > 0 && moves <= minMoves ? TILES_MIN_BONUS : 0;
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, TILES_TIME_MS) + bonus);
+  }
+  return clamp(
+    Math.round((TILES_PARTIAL_POINTS * clamp(inPlace, 0, TILES_COUNT)) / TILES_COUNT),
+    0,
+    TILES_PARTIAL_POINTS,
+  );
+}
+
+/** Rotating Rings: lining up the spokes scores, with a bonus for the minimum. */
+export function scoreRings(
+  solved: boolean,
+  moves: number,
+  minMoves: number,
+  aligned: number,
+  msRemaining: number,
+): number {
+  if (solved) {
+    const bonus = minMoves > 0 && moves <= minMoves ? RINGS_MIN_BONUS : 0;
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, RINGS_TIME_MS) + bonus);
+  }
+  return clamp(
+    Math.round((RINGS_PARTIAL_POINTS * clamp(aligned, 0, RINGS_SEGMENTS)) / RINGS_SEGMENTS),
+    0,
+    RINGS_PARTIAL_POINTS,
   );
 }

@@ -43,7 +43,10 @@ export type PuzzleType =
   | "intruder"
   | "nonogram"
   | "pairmatch"
-  | "flood";
+  | "flood"
+  | "stroke"
+  | "tiles"
+  | "rings";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic";
@@ -385,7 +388,10 @@ export type PuzzleData =
   | IntruderPuzzleData
   | NonoPuzzleData
   | PairPuzzleData
-  | FloodPuzzleData;
+  | FloodPuzzleData
+  | StrokePuzzleData
+  | TilesPuzzleData
+  | RingsPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1495,5 +1501,82 @@ export interface FloodPuzzleData {
   /** The exact minimum number of taps — shown to the player. */
   par: number;
   /** Server-side only: one route that floods the board in par moves. */
+  solution?: number[];
+}
+
+/* ============================== One-Stroke ============================== */
+
+export const STROKE_TIME_MS = 45_000;
+export const STROKE_MIN_DOTS = 6;
+export const STROKE_MAX_DOTS = 9;
+export const STROKE_MIN_EDGES = 8;
+export const STROKE_MAX_EDGES = 14;
+export const STROKE_FIRST_TRY_BONUS = 20;
+export const STROKE_PARTIAL_POINTS = 60;
+/** Generation gives up on a figure after this many random attempts. */
+export const STROKE_ATTEMPTS = 600;
+
+export interface StrokeDot {
+  /** Percentage coordinates inside the play area. */
+  x: number;
+  y: number;
+}
+
+export interface StrokePuzzleData {
+  type: "stroke";
+  dots: StrokeDot[];
+  /** Each edge joins two dot indices; no two edges cross. */
+  edges: [number, number][];
+  /** Server-side only: one dot order that traces every edge exactly once. */
+  solution?: number[];
+}
+
+/* ============================= Sliding Tiles ============================= */
+
+export const TILES_TIME_MS = 60_000;
+export const TILES_SIZE = 3;
+export const TILES_COUNT = TILES_SIZE * TILES_SIZE - 1;
+export const TILES_MIN_MOVES = 10;
+export const TILES_MAX_MOVES = 16;
+export const TILES_MIN_BONUS = 20;
+export const TILES_PARTIAL_POINTS = 60;
+export const TILES_SLIDE_MS = 120;
+export const TILES_ATTEMPTS = 600;
+
+export interface TilesPuzzleData {
+  type: "tiles";
+  /** Row-major frame: 1 … 8 for the tiles and 0 for the gap. */
+  frame: number[];
+  /** Server-side only: the exact minimum number of slides. */
+  minMoves?: number;
+  /** Server-side only: one minimum-length slide order (tile values). */
+  solution?: number[];
+}
+
+/* ============================ Rotating Rings ============================ */
+
+export const RINGS_TIME_MS = 45_000;
+export const RINGS_COUNT = 3;
+export const RINGS_SEGMENTS = 8;
+export const RINGS_COLOURS = 4;
+export const RINGS_MIN_SCRAMBLE = 6;
+export const RINGS_MAX_SCRAMBLE = 12;
+export const RINGS_MIN_TURNS = 5;
+export const RINGS_MAX_TURNS = 9;
+export const RINGS_MIN_BONUS = 20;
+export const RINGS_PARTIAL_POINTS = 60;
+export const RINGS_TURN_MS = 150;
+export const RINGS_ATTEMPTS = 600;
+/** Ring 0 is the innermost; ring 1 (middle) drags ring 2 (outer) with it. */
+export const RINGS_LINKED_FROM = 1;
+export const RINGS_LINKED_TO = 2;
+
+export interface RingsPuzzleData {
+  type: "rings";
+  /** Colour index per segment, per ring, as the round starts. */
+  segments: number[][];
+  /** Server-side only: the exact minimum number of taps. */
+  minMoves?: number;
+  /** Server-side only: one minimum-length turn order. */
   solution?: number[];
 }

@@ -43,6 +43,9 @@ import { intruderDetectionPuzzle } from "@/puzzles/intruderDetection";
 import { nonogramPuzzle } from "@/puzzles/nonogram";
 import { pairMatchPuzzle } from "@/puzzles/pairMatch";
 import { colourFloodPuzzle } from "@/puzzles/colourFlood";
+import { oneStrokePuzzle } from "@/puzzles/oneStroke";
+import { slidingTilesPuzzle } from "@/puzzles/slidingTiles";
+import { rotatingRingsPuzzle } from "@/puzzles/rotatingRings";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import {
@@ -148,6 +151,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   nonogram: nonogramPuzzle,
   pairmatch: pairMatchPuzzle,
   flood: colourFloodPuzzle,
+  stroke: oneStrokePuzzle,
+  tiles: slidingTilesPuzzle,
+  rings: rotatingRingsPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

@@ -18,6 +18,9 @@ import { decodeIntruderTaps, replayIntruder } from "./intruder";
 import { decodeNonoCells, replayNonogram } from "./nonogram";
 import { decodePairFlips, replayPairs } from "./pairmatch";
 import { decodeFloodMoves, replayFlood } from "./flood";
+import { decodeStrokeAttempts, replayStroke } from "./stroke";
+import { decodeTileMoves, replayTiles } from "./tiles";
+import { decodeRingTaps, replayRings } from "./rings";
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
 import { countPatternAnswers } from "./pattern";
@@ -62,6 +65,9 @@ import {
   scoreNonogram,
   scorePairMatch,
   scoreFlood,
+  scoreStroke,
+  scoreTiles,
+  scoreRings,
 } from "./scoring";
 import {
   GONOGO_ITEMS,
@@ -614,6 +620,49 @@ export function gradeSubmission(
         moves: replay.moves,
         par: puzzle.par,
         region: replay.region,
+      };
+      break;
+    }
+    case "stroke": {
+      // Each attempt is re-walked over the stored figure; no client verdict.
+      const replay = replayStroke(puzzle.edges, decodeStrokeAttempts(answer));
+      isCorrect = replay.solved;
+      correctCount = replay.best;
+      score = scoreStroke(replay.solved, replay.solvedOn, replay.best, replay.total, ms);
+      extraDetail = {
+        solved: replay.solved,
+        solvedOn: replay.solvedOn,
+        attempts: replay.attempts,
+        best: replay.best,
+        total: replay.total,
+      };
+      break;
+    }
+    case "tiles": {
+      // Every tapped tile is replayed on the stored frame, Undo and Reset too.
+      const replay = replayTiles(puzzle.frame, decodeTileMoves(answer));
+      isCorrect = replay.solved;
+      correctCount = replay.inPlace;
+      score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, replay.inPlace, ms);
+      extraDetail = {
+        solved: replay.solved,
+        moves: replay.moves,
+        minMoves: puzzle.minMoves ?? 0,
+        inPlace: replay.inPlace,
+      };
+      break;
+    }
+    case "rings": {
+      // Turns are replayed with the same middle-to-outer link the player saw.
+      const replay = replayRings(puzzle.segments, decodeRingTaps(answer));
+      isCorrect = replay.solved;
+      correctCount = replay.aligned;
+      score = scoreRings(replay.solved, replay.moves, puzzle.minMoves ?? 0, replay.aligned, ms);
+      extraDetail = {
+        solved: replay.solved,
+        moves: replay.moves,
+        minMoves: puzzle.minMoves ?? 0,
+        aligned: replay.aligned,
       };
       break;
     }

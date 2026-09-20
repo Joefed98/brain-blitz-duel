@@ -30,6 +30,9 @@ import { generateIntruder } from "./intruder.server";
 import { generateNonogram } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
 import { generateFlood } from "./flood.server";
+import { generateStroke } from "./stroke.server";
+import { generateTiles } from "./tiles.server";
+import { generateRings } from "./rings.server";
 
 export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "wordsmith") return generateWordsmith();
@@ -56,6 +59,9 @@ export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "nonogram") return generateNonogram();
   if (type === "pairmatch") return generatePairMatch();
   if (type === "flood") return generateFlood();
+  if (type === "stroke") return generateStroke();
+  if (type === "tiles") return generateTiles();
+  if (type === "rings") return generateRings();
   return puzzleDef(type).generate();
 }
 

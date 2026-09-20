@@ -418,4 +418,31 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Fewer moves earns a bonus; par is shown.",
   },
+  stroke: {
+    goal: "Trace every line in one stroke without lifting your finger.",
+    how: [
+      { action: "Start on any dot", detail: "and drag along the lines." },
+      { action: "No line twice", detail: "— you can't go back over one." },
+      { action: "Lift your finger", detail: "to start the figure again." },
+    ],
+    score: "First try earns a bonus.",
+  },
+  tiles: {
+    goal: "Slide the tiles into order, 1 to 8.",
+    how: [
+      { action: "Tap a tile", detail: "next to the gap to slide it in." },
+      { action: "Finish left to right", detail: "with the gap bottom-right." },
+      { action: "Tap Undo or Reset", detail: "to take slides back." },
+    ],
+    score: "Fewer moves earns a bonus.",
+  },
+  rings: {
+    goal: "Turn the rings so every spoke is one colour.",
+    how: [
+      { action: "Tap a ring's side", detail: "— left turns it back, right turns it on." },
+      { action: "The middle ring", detail: "also turns the outer ring with it." },
+      { action: "Watch the rim", detail: "for a gold tick on each finished spoke." },
+    ],
+    score: "Fewer turns earns a bonus.",
+  },
 };

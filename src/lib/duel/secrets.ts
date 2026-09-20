@@ -57,6 +57,11 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   pairmatch: [],
   // Par is shown to the player; the route that reaches it is not.
   flood: ["solution"],
+  // The figure is public; one complete route stays hidden.
+  stroke: ["solution"],
+  // The frame is public; the minimum and a shortest route are not.
+  tiles: ["minMoves", "solution"],
+  rings: ["minMoves", "solution"],
 };
 
 type Loose = Record<string, unknown>;
