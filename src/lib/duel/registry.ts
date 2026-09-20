@@ -51,6 +51,7 @@ import { swervePuzzle } from "@/puzzles/swerve";
 import { skylinePuzzle } from "@/puzzles/skyline";
 import { binTossPuzzle } from "@/puzzles/binToss";
 import { bullseyePuzzle } from "@/puzzles/bullseye";
+import { matchupPuzzle } from "@/puzzles/matchup";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 

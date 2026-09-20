@@ -37,6 +37,7 @@ import { generateHover } from "./hover.server";
 import {
   generateBinToss,
   generateBullseye,
+  generateMatchup,
   generateSkyline,
   generateSwerve,
 } from "./arcade.server";
@@ -83,6 +84,7 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "skyline") return generateSkyline();
   if (type === "bintoss") return generateBinToss();
   if (type === "bullseye") return generateBullseye();
+  if (type === "matchup") return generateMatchup();
 
   return puzzleDef(type).generate();
 }
