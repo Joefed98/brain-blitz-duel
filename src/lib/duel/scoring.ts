@@ -275,7 +275,6 @@ export function scoreNumberSequence(correctCount: number, msRemaining: number): 
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
-
 /** Stop Watch: 150 for a perfect average, down to 100 at 400 ms or worse. */
 export function scoreStopWatch(averageDistanceMs: number): number {
   const bonus = clamp(
