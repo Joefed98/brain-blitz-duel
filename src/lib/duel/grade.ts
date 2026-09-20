@@ -33,6 +33,7 @@ import {
   scoreWordLadder,
   scoreNumberClimb,
   scoreNumberHunt,
+  scoreNumberSequence,
   scorePercentSprint,
   scorePatternCompletion,
   scoreReaction,
@@ -72,6 +73,7 @@ import {
 import {
   GONOGO_ITEMS,
   NUMHUNT_COUNT,
+  NUMSEQ_ITEMS,
   PCTSPRINT_ITEMS,
   REACTION_PENALTY_MS,
   ROUND_MS,
