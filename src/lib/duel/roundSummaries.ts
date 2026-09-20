@@ -57,13 +57,27 @@ import {
   GRAV_TIME_MS,
   INTRUDER_BOARDS,
   INTRUDER_TIME_MS,
+  NONO_TIME_MS,
+  PAIR_PAIRS,
+  PAIR_TIME_MS,
+  FLOOD_CELLS,
+  FLOOD_TIME_MS,
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
 type SummaryBuilder = (result: RoundResultRow, puzzle: PuzzleData) => BuiltDetail;
 type AnswerBuilder = (puzzle: PuzzleData) => string | null;
 
+/** Types added after the ladder below; their limits are looked up directly. */
+const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
+  nonogram: NONO_TIME_MS,
+  pairmatch: PAIR_TIME_MS,
+  flood: FLOOD_TIME_MS,
+};
+
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
+  const direct = DIRECT_LIMITS[puzzle.type];
+  if (direct) return Math.max(0, direct - result.ms_remaining);
   const limit =
     puzzle.type === "wordmatch"
       ? WORDMATCH_TIME_MS
@@ -781,6 +795,42 @@ const intruderSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
+const nonogramSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "nonogram") return { summary: "—", detail: [] };
+  const correct = Number(result.extra?.["correct"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? 0);
+  const wrong = Number(result.extra?.["wrong"] ?? 0);
+  return {
+    summary: result.is_correct
+      ? `Solved · ${seconds(elapsedMs(result, puzzle))}`
+      : `${correct} / ${total} cells`,
+    detail: wrong > 0 ? [`${wrong} cell${wrong === 1 ? "" : "s"} filled wrongly`] : [],
+  };
+};
+
+const pairMatchSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "pairmatch") return { summary: "—", detail: [] };
+  const pairs = Number(result.extra?.["pairs"] ?? 0);
+  const flips = Number(result.extra?.["flips"] ?? 0);
+  return {
+    summary: `${pairs} / ${PAIR_PAIRS} · ${flips} flips · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: [result.is_correct ? "Every pair found" : "Board unfinished"],
+  };
+};
+
+const floodSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "flood") return { summary: "—", detail: [] };
+  const moves = Number(result.extra?.["moves"] ?? 0);
+  const par = Number(result.extra?.["par"] ?? 0);
+  const region = Number(result.extra?.["region"] ?? 0);
+  return {
+    summary: result.is_correct
+      ? `Solved · ${moves} moves (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`
+      : `${region} / ${FLOOD_CELLS} cells`,
+    detail: [result.is_correct && moves <= par ? "Flooded in par" : `${moves} moves made`],
+  };
+};
+
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
   groups: groupsSummary,
@@ -824,6 +874,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   gravity: gravitySummary,
   chain: chainSummary,
   intruder: intruderSummary,
+  nonogram: nonogramSummary,
+  pairmatch: pairMatchSummary,
+  flood: floodSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -876,4 +929,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   gravity: (p) => (p.type === "gravity" && p.minMoves ? `${p.minMoves} tilts` : null),
   chain: () => null,
   intruder: () => null,
+  nonogram: () => "The picture",
+  pairmatch: (p) => (p.type === "pairmatch" ? `${PAIR_PAIRS} pairs` : null),
+  flood: (p) => (p.type === "flood" ? `par ${p.par}` : null),
 };
