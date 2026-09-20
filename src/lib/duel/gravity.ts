@@ -118,13 +118,12 @@ export function replayGravity(
     balls = outcome.balls;
     states.push({ ...balls });
   }
-
-
   return {
     balls,
     tilts: count,
     solved: gravitySolved(balls, targetA, targetB),
     onTarget: gravityOnTarget(balls, targetA, targetB),
     usedBlock,
+    states,
   };
 }
