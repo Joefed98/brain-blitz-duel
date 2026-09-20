@@ -92,7 +92,9 @@ for (let i = 0; i < ROUNDS; i++) {
     assert(safeSolutions(without, 2).length > 1, `clue ${drop + 1} is unnecessary`);
   }
 }
-console.log(`Safe Cracker: ${ROUNDS} cards of ${SAFE_CLUE_COUNT} clues, each unique with all ${SAFE_CLUE_COUNT} clues necessary`);
+console.log(
+  `Safe Cracker: ${ROUNDS} cards of ${SAFE_CLUE_COUNT} clues, each unique with all ${SAFE_CLUE_COUNT} clues necessary`,
+);
 
 for (let i = 0; i < ROUNDS; i++) {
   const bomb = generateBomb();
