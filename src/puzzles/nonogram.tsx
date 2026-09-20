@@ -55,7 +55,9 @@ function Board({
         <span
           key={`c${col}`}
           className={`flex items-end justify-center whitespace-pre pb-0.5 font-mono text-[11px] leading-tight ${
-            lineSatisfied(clue, cellsOf("col", col)) ? "text-muted-foreground/40" : "text-foreground"
+            lineSatisfied(clue, cellsOf("col", col))
+              ? "text-muted-foreground/40"
+              : "text-foreground"
           }`}
         >
           {clueText(clue).split(" ").join("\n")}

@@ -86,11 +86,7 @@ function IntroExample() {
       <div className="flex items-center gap-2">
         <Board grid={EXAMPLE_GRID} size={4} cell={22} />
         <span className="font-mono text-xs text-muted-foreground">→</span>
-        <Board
-          grid={replayFlood(EXAMPLE_GRID, [1, 3], 4).grid}
-          size={4}
-          cell={22}
-        />
+        <Board grid={replayFlood(EXAMPLE_GRID, [1, 3], 4).grid} size={4} cell={22} />
       </div>
       <p className="text-center text-xs text-muted-foreground">
         Two taps, and the top-left region has swallowed its neighbours.

@@ -131,7 +131,9 @@ export function generateFlood(): FloodPuzzleData {
   }
 
   if (fallback) {
-    console.warn(`[flood] no board in the ${FLOOD_MIN_PAR}–${FLOOD_MAX_PAR} band; par ${fallback.par}`);
+    console.warn(
+      `[flood] no board in the ${FLOOD_MIN_PAR}–${FLOOD_MAX_PAR} band; par ${fallback.par}`,
+    );
     return fallback;
   }
 

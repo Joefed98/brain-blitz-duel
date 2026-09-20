@@ -23,7 +23,9 @@ function CardFace({ card, size }: { card: PairCard; size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       {card.shape === "circle" && <circle cx="12" cy="12" r="9.5" fill={fill} />}
-      {card.shape === "square" && <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />}
+      {card.shape === "square" && (
+        <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />
+      )}
       {card.shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill={fill} />}
       {card.shape === "star" && (
         <polygon

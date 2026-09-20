@@ -730,10 +730,7 @@ export function scorePairMatch(
 ): number {
   if (solved) {
     const bonus = tries <= PAIR_CLEAN_FLIPS ? PAIR_CLEAN_BONUS : 0;
-    return Math.min(
-      MAX_ROUND_SCORE,
-      BASE_POINTS + speedBonus(msRemaining, PAIR_TIME_MS) + bonus,
-    );
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, PAIR_TIME_MS) + bonus);
   }
   return clamp(
     Math.round((PAIR_PARTIAL_POINTS * clamp(pairs, 0, PAIR_PAIRS)) / PAIR_PAIRS),
@@ -752,10 +749,7 @@ export function scoreFlood(
 ): number {
   if (solved) {
     const bonus = par > 0 && moves <= par ? FLOOD_PAR_BONUS : 0;
-    return Math.min(
-      MAX_ROUND_SCORE,
-      BASE_POINTS + speedBonus(msRemaining, FLOOD_TIME_MS) + bonus,
-    );
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, FLOOD_TIME_MS) + bonus);
   }
   return clamp(
     Math.round((FLOOD_PARTIAL_POINTS * clamp(region, 0, FLOOD_CELLS)) / FLOOD_CELLS),
