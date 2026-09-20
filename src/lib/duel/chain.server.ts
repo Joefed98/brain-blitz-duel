@@ -215,7 +215,10 @@ export function convexHullSize(points: Point[]): number {
   const half = (list: Point[]) => {
     const stack: Point[] = [];
     for (const point of list) {
-      while (stack.length >= 2 && cross(stack[stack.length - 2]!, stack[stack.length - 1]!, point) <= 0) {
+      while (
+        stack.length >= 2 &&
+        cross(stack[stack.length - 2]!, stack[stack.length - 1]!, point) <= 0
+      ) {
         stack.pop();
       }
       stack.push(point);
@@ -306,9 +309,7 @@ export function generateChain(): ChainPuzzleData {
   if (!best) throw new Error("Don't Break the Chain generator could not build a spread layout");
   // A scatter spread over the whole board leaves far more non-crossing routes
   // than an edge ring did, so the tightest board found is used and reported.
-  console.warn(
-    `Chain: spread layout kept with ${best.routes} routes and ${best.traps} traps`,
-  );
+  console.warn(`Chain: spread layout kept with ${best.routes} routes and ${best.traps} traps`);
   return {
     type: "chain",
     nodes: best.nodes,

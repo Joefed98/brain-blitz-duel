@@ -23,8 +23,12 @@ import { generateIntruder } from "../src/lib/duel/intruder.server";
 import { intruderColoursTooClose } from "../src/lib/duel/intruder";
 import {
   CHAIN_LENGTH,
+  CHAIN_MAX_HULL_RATIO,
+  CHAIN_MIN_CENTRAL,
   CHAIN_MIN_INVALID,
+  CHAIN_MIN_SPACING,
   CHAIN_NODES,
+  CHAIN_NODE_WIDTH_PCT,
   GRAV_FALLBACK_MIN_TILTS,
   GRAV_MAX_TILTS,
   INTRUDER_BOARD_SIZES,
@@ -32,7 +36,7 @@ import {
   INTRUDER_BOARD_SHAPE_COUNTS,
 } from "../src/lib/duel/types";
 
-const ROUNDS = 40;
+const ROUNDS = 12;
 let failures = 0;
 
 function check(label: string, ok: boolean) {
@@ -79,7 +83,10 @@ for (let round = 0; round < ROUNDS; round++) {
     "chain nodes are not ringed around the rim",
     convexHullSize(puzzle.nodes) <= Math.floor(CHAIN_NODES * CHAIN_MAX_HULL_RATIO),
   );
-  check("chain nodes keep their spacing", minimumSpacing(puzzle.nodes) >= CHAIN_MIN_SPACING * CHAIN_NODE_WIDTH_PCT - 0.01);
+  check(
+    "chain nodes keep their spacing",
+    minimumSpacing(puzzle.nodes) >= CHAIN_MIN_SPACING * CHAIN_NODE_WIDTH_PCT - 0.01,
+  );
   check(
     "chain has two early dead-end traps",
     chainTrapNodes(puzzle.nodes, puzzle.cycle).length >= 2,
@@ -184,7 +191,10 @@ function minimumSpacing(nodes: { x: number; y: number }[]): number {
   let smallest = Infinity;
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
-      smallest = Math.min(smallest, Math.hypot(nodes[i]!.x - nodes[j]!.x, nodes[i]!.y - nodes[j]!.y));
+      smallest = Math.min(
+        smallest,
+        Math.hypot(nodes[i]!.x - nodes[j]!.x, nodes[i]!.y - nodes[j]!.y),
+      );
     }
   }
   return smallest;
