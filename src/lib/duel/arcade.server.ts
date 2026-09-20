@@ -8,6 +8,7 @@ import { randomBelow } from "./random";
 import type {
   BinTossPuzzleData,
   BullseyePuzzleData,
+  MatchupPuzzleData,
   SkylinePuzzleData,
   SwervePuzzleData,
 } from "./types";
@@ -31,4 +32,8 @@ export function generateBinToss(): BinTossPuzzleData {
 
 export function generateBullseye(): BullseyePuzzleData {
   return { type: "bullseye", seed: arcadeSeed() };
+}
+
+export function generateMatchup(): MatchupPuzzleData {
+  return { type: "matchup", seed: arcadeSeed() };
 }

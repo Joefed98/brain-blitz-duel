@@ -492,4 +492,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "30 for the centre ring, less for each ring out. Ten bullseyes = 150.",
   },
+  matchup: {
+    goal: "Make lines of three or more matching symbols.",
+    how: [
+      { action: "Swap two neighbours", detail: "by dragging one onto the other." },
+      { action: "Longer lines", detail: "score more, and chain reactions count." },
+      { action: "Sixty seconds", detail: "on the same board for everyone." },
+    ],
+    score: "3 = 10, 4 = 25, 5 = 50, then the total ÷ 4.",
+  },
 };

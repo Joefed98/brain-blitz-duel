@@ -69,6 +69,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   skyline: [],
   bintoss: [],
   bullseye: [],
+  matchup: [],
 
 };
 

@@ -73,6 +73,7 @@ import {
   SKYLINE_TIME_MS,
   BINTOSS_TIME_MS,
   BULLSEYE_TIME_MS,
+  MATCHUP_TIME_MS,
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -92,6 +93,7 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   skyline: SKYLINE_TIME_MS,
   bintoss: BINTOSS_TIME_MS,
   bullseye: BULLSEYE_TIME_MS,
+  matchup: MATCHUP_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -962,6 +964,22 @@ const binTossSummary: SummaryBuilder = (result) => {
   };
 };
 
+const matchupSummary: SummaryBuilder = (result) => {
+  const raw = Number(result.extra?.["raw"] ?? 0);
+  const swaps = Number(result.extra?.["swaps"] ?? 0);
+  const bestLine = Number(result.extra?.["bestLine"] ?? 0);
+  const reshuffles = Number(result.extra?.["reshuffles"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: `${raw.toLocaleString("en-GB")} pts → ${result.score} · ${swaps} swaps · best line ${bestLine || "—"}`,
+    detail: [
+      `${swaps} scoring swap${swaps === 1 ? "" : "s"}`,
+      ...(reshuffles > 0 ? [`${reshuffles} reshuffled`] : []),
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
 const bullseyeSummary: SummaryBuilder = (result) => {
   const inner = Number(result.extra?.["inner"] ?? 0);
   const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
@@ -1045,6 +1063,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   skyline: skylineSummary,
   bintoss: binTossSummary,
   bullseye: bullseyeSummary,
+  matchup: matchupSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1107,6 +1126,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   skyline: () => null,
   bintoss: () => null,
   bullseye: () => null,
+  matchup: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };

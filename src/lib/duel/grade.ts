@@ -28,6 +28,7 @@ import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
+import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
@@ -825,6 +826,29 @@ export function gradeSubmission(
         desyncTick: run.desyncTick,
         inputs: decodeBinTossRun(answer).events.length,
         claimedScore: decodeBinTossRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "matchup": {
+      // As with every arcade game, only the server's own replay scores.
+      const run = replayMatchupRun(puzzle.seed, answer);
+      isCorrect = run.score >= 150;
+      correctCount = run.swaps;
+      score = run.score;
+      extraDetail = {
+        raw: run.raw,
+        swaps: run.swaps,
+        bestLine: run.bestLine,
+        cascades: run.cascades,
+        reshuffles: run.reshuffles,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeMatchupRun(answer).events.length,
+        claimedScore: decodeMatchupRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

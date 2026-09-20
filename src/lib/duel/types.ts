@@ -51,7 +51,8 @@ export type PuzzleType =
   | "swerve"
   | "skyline"
   | "bintoss"
-  | "bullseye";
+  | "bullseye"
+  | "matchup";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -414,7 +415,8 @@ export type PuzzleData =
   | SwervePuzzleData
   | SkylinePuzzleData
   | BinTossPuzzleData
-  | BullseyePuzzleData;
+  | BullseyePuzzleData
+  | MatchupPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1656,5 +1658,16 @@ export interface BinTossPuzzleData {
 export interface BullseyePuzzleData {
   type: "bullseye";
   /** Drives the wind on all ten arrows — identical for everyone in the room. */
+  seed: number;
+}
+
+/* ================================ Matchup ================================ */
+
+/** A fixed 60-second run; the round clock adds three seconds of slack. */
+export const MATCHUP_TIME_MS = 63_000;
+
+export interface MatchupPuzzleData {
+  type: "matchup";
+  /** Draws the board and each column's refill queue — identical for everyone. */
   seed: number;
 }

@@ -43,3 +43,8 @@
 - [x] Generalised input events ({ t, k, a, b, c, d }, declared per-game ranges, 2000 cap)
 - [x] Bin Toss: ten flicked throws, per-throw wind, growing distance, time bonus
 - [x] Bullseye: ten aimed arrows, shrinking target, wind drift, half-total scoring
+
+## Matchup
+- [x] Matchup: 7x7 six-symbol swap game on the shared engine (k = 3 swap events)
+- [x] Fixed per-column refill queues, deterministic reshuffle, cascade scoring, total / 4
+- [x] 200-run client/server identity proof with valid and invalid swaps
