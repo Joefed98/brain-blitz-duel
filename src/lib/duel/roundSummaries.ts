@@ -62,6 +62,11 @@ import {
   PAIR_TIME_MS,
   FLOOD_CELLS,
   FLOOD_TIME_MS,
+  STROKE_TIME_MS,
+  TILES_COUNT,
+  TILES_TIME_MS,
+  RINGS_SEGMENTS,
+  RINGS_TIME_MS,
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -73,6 +78,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   nonogram: NONO_TIME_MS,
   pairmatch: PAIR_TIME_MS,
   flood: FLOOD_TIME_MS,
+  stroke: STROKE_TIME_MS,
+  tiles: TILES_TIME_MS,
+  rings: RINGS_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -831,6 +839,46 @@ const floodSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
+const strokeSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "stroke") return { summary: "—", detail: [] };
+  const solvedOn = Number(result.extra?.["solvedOn"] ?? 0);
+  const best = Number(result.extra?.["best"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? puzzle.edges.length);
+  const ordinal = solvedOn === 1 ? "1st" : solvedOn === 2 ? "2nd" : `${solvedOn}th`;
+  return {
+    summary: result.is_correct
+      ? `Solved · ${ordinal} try · ${seconds(elapsedMs(result, puzzle))}`
+      : `${best} / ${total} lines`,
+    detail: [`${Number(result.extra?.["attempts"] ?? 0)} attempts`],
+  };
+};
+
+const tilesSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "tiles") return { summary: "—", detail: [] };
+  const moves = Number(result.extra?.["moves"] ?? 0);
+  const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
+  const inPlace = Number(result.extra?.["inPlace"] ?? 0);
+  return {
+    summary: result.is_correct
+      ? `Solved · ${moves} moves${min ? ` (min ${min})` : ""} · ${seconds(elapsedMs(result, puzzle))}`
+      : `${inPlace} / ${TILES_COUNT} in place`,
+    detail: [result.is_correct && min > 0 && moves <= min ? "Solved in the minimum" : `${moves} moves made`],
+  };
+};
+
+const ringsSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "rings") return { summary: "—", detail: [] };
+  const moves = Number(result.extra?.["moves"] ?? 0);
+  const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
+  const aligned = Number(result.extra?.["aligned"] ?? 0);
+  return {
+    summary: result.is_correct
+      ? `Solved · ${moves} turns${min ? ` (min ${min})` : ""} · ${seconds(elapsedMs(result, puzzle))}`
+      : `${aligned} / ${RINGS_SEGMENTS} spokes`,
+    detail: [result.is_correct && min > 0 && moves <= min ? "Solved in the minimum" : `${moves} turns made`],
+  };
+};
+
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
   groups: groupsSummary,
@@ -877,6 +925,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   nonogram: nonogramSummary,
   pairmatch: pairMatchSummary,
   flood: floodSummary,
+  stroke: strokeSummary,
+  tiles: tilesSummary,
+  rings: ringsSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -932,4 +983,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   nonogram: () => "The picture",
   pairmatch: (p) => (p.type === "pairmatch" ? `${PAIR_PAIRS} pairs` : null),
   flood: (p) => (p.type === "flood" ? `par ${p.par}` : null),
+  stroke: (p) => (p.type === "stroke" ? `${p.edges.length} lines, one stroke` : null),
+  tiles: (p) => (p.type === "tiles" && p.minMoves ? `${p.minMoves} moves` : null),
+  rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };
