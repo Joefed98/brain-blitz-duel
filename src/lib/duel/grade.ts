@@ -15,6 +15,9 @@ import { decodeBombActions, replayBomb } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { decodeChainTaps, replayChain } from "./chain";
 import { decodeIntruderTaps, replayIntruder } from "./intruder";
+import { decodeNonoCells, replayNonogram } from "./nonogram";
+import { decodePairFlips, replayPairs } from "./pairmatch";
+import { decodeFloodMoves, replayFlood } from "./flood";
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
 import { countPatternAnswers } from "./pattern";
@@ -56,6 +59,9 @@ import {
   scoreGravity,
   scoreChain,
   scoreIntruder,
+  scoreNonogram,
+  scorePairMatch,
+  scoreFlood,
 } from "./scoring";
 import {
   GONOGO_ITEMS,
@@ -565,6 +571,49 @@ export function gradeSubmission(
         correct: replay.correct,
         allFirstTry: replay.allFirstTry,
         boards: puzzle.boards.length,
+      };
+      break;
+    }
+    case "nonogram": {
+      // The submitted cells are checked against the stored picture, never a client verdict.
+      const replay = replayNonogram(puzzle.pattern ?? [], decodeNonoCells(answer));
+      isCorrect = replay.solved;
+      correctCount = replay.correct;
+      errors = replay.wrong;
+      score = scoreNonogram(replay.solved, replay.correct, replay.total, replay.wrong, ms);
+      extraDetail = {
+        solved: replay.solved,
+        correct: replay.correct,
+        wrong: replay.wrong,
+        total: replay.total,
+      };
+      break;
+    }
+    case "pairmatch": {
+      // The flip list is re-walked on the stored board to count the pairs found.
+      const replay = replayPairs(puzzle.cards, decodePairFlips(answer));
+      isCorrect = replay.solved;
+      correctCount = replay.pairs;
+      score = scorePairMatch(replay.solved, replay.pairs, replay.tries, ms);
+      extraDetail = {
+        solved: replay.solved,
+        pairs: replay.pairs,
+        flips: replay.flips,
+        tries: replay.tries,
+      };
+      break;
+    }
+    case "flood": {
+      // Every tapped colour is replayed on the stored grid.
+      const replay = replayFlood(puzzle.grid, decodeFloodMoves(answer));
+      isCorrect = replay.solved;
+      correctCount = replay.region;
+      score = scoreFlood(replay.solved, replay.moves, puzzle.par, replay.region, ms);
+      extraDetail = {
+        solved: replay.solved,
+        moves: replay.moves,
+        par: puzzle.par,
+        region: replay.region,
       };
       break;
     }
