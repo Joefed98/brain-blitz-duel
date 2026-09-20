@@ -465,7 +465,7 @@ export function binTossDrawAim(
   ctx.fillStyle = "rgba(245, 184, 46, 0.45)";
   let x = state.x;
   let y = state.y;
-  let dx = clampInt(Math.round(vx), -BINTOSS_VX_MAX, BINTOSS_VX_MAX);
+  const dx = clampInt(Math.round(vx), -BINTOSS_VX_MAX, BINTOSS_VX_MAX);
   let dy = clampInt(Math.round(vy), -BINTOSS_VY_MAX, 0);
   for (let tick = 0; tick < 180; tick++) {
     dy += BINTOSS_GRAVITY;

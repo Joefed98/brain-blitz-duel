@@ -38,3 +38,8 @@
 
 - [x] New "arcade" category with a host toggle (on by default, remembered per host, one arcade round in rounds 2-6, none when off); Hover moved into it.
 - [x] Added Swerve and Skyline on the shared deterministic engine: seeded integer fixed-point sims, sim-tick input logs, server replay scoring, 300-tick checkpoints, client-lag handling, fixed instructions/reveals/summaries. Proof script: scripts/arcade-check.ts.
+
+## Arcade inputs, Bin Toss and Bullseye
+- [x] Generalised input events ({ t, k, a, b, c, d }, declared per-game ranges, 2000 cap)
+- [x] Bin Toss: ten flicked throws, per-throw wind, growing distance, time bonus
+- [x] Bullseye: ten aimed arrows, shrinking target, wind drift, half-total scoring
