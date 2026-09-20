@@ -109,13 +109,15 @@ function buildCourse(seed: number): { pillars: HoverPillar[]; rng: number } {
   let x = HOVER_FIRST_X;
   while (x <= HOVER_FIRST_X + maxTravel + HOVER_SPACING) {
     const gap = gapUnits(pillars.length);
-    const half = Math.trunc(gap / 2);
-    const low = half + HOVER_GAP_MARGIN;
-    const high = HOVER_WORLD_BOTTOM - half - HOVER_GAP_MARGIN;
+    const half = gap >> 1;
+    // Draw the centre in whole world pixels, as before the constant audit, then
+    // store it in fixed-point. This preserves every existing seeded course.
+    const low = (half + HOVER_GAP_MARGIN) >> 8;
+    const high = (HOVER_WORLD_BOTTOM - half - HOVER_GAP_MARGIN) >> 8;
     const span = Math.max(1, high - low + 1);
     const drawn = rngBelow(rng, span);
     rng = drawn.state;
-    const centre = low + drawn.value;
+    const centre = (low + drawn.value) << 8;
     pillars.push({ x0: x, gapTop: centre - half, gapH: gap });
     x += HOVER_SPACING;
   }

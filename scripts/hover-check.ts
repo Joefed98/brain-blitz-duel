@@ -107,6 +107,37 @@ for (let sample = 0; sample < 200; sample++) {
   if (cut.survived) fail("lagged run credited with survival");
 }
 
+// A changed client state is located at the first affected checkpoint.
+{
+  const seed = 123_456;
+  const inputs = Array.from({ length: 180 }, (_, index) => 10 + index * 17).filter(
+    (tick) => tick <= HOVER_RUN_TICKS,
+  );
+  const taps = new Set(inputs);
+  const checkpoints: HoverCheckpoint[] = [];
+  let state = hoverGame.init(seed);
+  for (let tick = 1; tick <= HOVER_RUN_TICKS; tick++) {
+    state = hoverGame.step(state, taps.has(tick));
+    if (state.tick % HOVER_CHECKPOINT_INTERVAL === 0) checkpoints.push(hoverCheckpoint(state));
+    if (hoverGame.isOver(state)) break;
+  }
+  const altered = checkpoints.map((checkpoint, index) =>
+    index === 0 ? { ...checkpoint, checksum: (checkpoint.checksum ^ 1) >>> 0 } : checkpoint,
+  );
+  const checked = replayHoverRun(
+    seed,
+    encodeHoverRun({
+      seed,
+      claimedScore: hoverGame.score(state),
+      inputs,
+      endTick: state.tick,
+      checkpoints: altered,
+    }),
+  );
+  const expected = checkpoints[0]?.tick ?? null;
+  if (checked.desyncTick !== expected) fail("first changed checkpoint was not detected");
+}
+
 // Log validation.
 if (checkInputLog([5, 5], HOVER_RUN_TICKS).ok) fail("repeated tick accepted");
 if (checkInputLog([9, 4], HOVER_RUN_TICKS).ok) fail("decreasing ticks accepted");
