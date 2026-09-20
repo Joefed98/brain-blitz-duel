@@ -280,9 +280,7 @@ function IntroExample() {
           litGems={trace.gemsLit}
         />
       </div>
-      <p className="text-xs text-muted-foreground">
-        Three shots. Fewer shots scores more.
-      </p>
+      <p className="text-xs text-muted-foreground">Three shots. Fewer shots scores more.</p>
     </div>
   );
 }

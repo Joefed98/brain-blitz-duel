@@ -85,7 +85,11 @@ function soloOrder(a: number, b: number): number {
   return Math.sign(a - b);
 }
 
-export function solutionSwapsOrder(walls: Set<number>, start: GravityBalls, solution: GravityDir[]): boolean {
+export function solutionSwapsOrder(
+  walls: Set<number>,
+  start: GravityBalls,
+  solution: GravityDir[],
+): boolean {
   let balls = start;
   let order = soloOrder(balls.a, balls.b);
   for (const dir of solution) {

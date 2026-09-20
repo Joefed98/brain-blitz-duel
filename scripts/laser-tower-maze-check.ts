@@ -4,7 +4,12 @@
  *   bun scripts/laser-tower-maze-check.ts
  */
 
-import { encodeLaserAnswer, decodeLaserAnswer, traceBeam, verifyLaser } from "../src/lib/duel/laser";
+import {
+  encodeLaserAnswer,
+  decodeLaserAnswer,
+  traceBeam,
+  verifyLaser,
+} from "../src/lib/duel/laser";
 import { generateLaser } from "../src/lib/duel/laser.server";
 import { generateTower } from "../src/lib/duel/tower.server";
 import {
