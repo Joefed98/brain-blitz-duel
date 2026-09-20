@@ -254,6 +254,34 @@ async function markInactivity(client: any, roomId: string, round: number): Promi
 }
 
 /**
+ * The opening Go / No-Go item of the host's most recent room that played the
+ * type, so the next room never opens on the same symbol.
+ */
+async function previousGoNoGoFirst(
+  client: any,
+  room: DuelRow,
+  hostUserId: string | null,
+): Promise<unknown> {
+  if (!hostUserId) return null;
+  const { data } = await client
+    .from("duels")
+    .select("puzzles_public")
+    .eq("host_user_id", hostUserId)
+    .neq("id", room.id)
+    .order("created_at", { ascending: false })
+    .limit(RECENT_ROOMS);
+  for (const row of (data ?? []) as { puzzles_public: unknown }[]) {
+    const puzzles = Array.isArray(row.puzzles_public) ? row.puzzles_public : [];
+    for (const puzzle of puzzles as { type?: string; items?: unknown[] }[]) {
+      if (puzzle?.type === "gonogo" && Array.isArray(puzzle.items) && puzzle.items.length > 0) {
+        return puzzle.items[0] ?? null;
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * The round orders of the host's last few rooms, most recent first — plus the
  * room a rematch came from. Selection uses these to avoid repeats.
  */
@@ -366,6 +394,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
 
     const { buildRoomPuzzles } = await import("./generate.server");
     const recent = await recentRoundOrders(client, room, room.host_user_id);
+    const lastGoNoGoFirst = await previousGoNoGoFirst(client, room, room.host_user_id);
     const addMaths = room.add_maths === true;
     const addMemory = room.add_memory === true;
     const { roundOrder, puzzles } = buildRoomPuzzles({
@@ -373,6 +402,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       recent,
       addMaths,
       addMemory,
+      previousGoNoGoFirst: lastGoNoGoFirst as never,
     });
     console.log(
       `[room-selection] room=${room.room_code} addMaths=${addMaths} addMemory=${addMemory} recentRooms=${recent.length} order=${roundOrder.join(",")}`,

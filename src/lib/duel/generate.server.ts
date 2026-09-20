@@ -9,7 +9,7 @@ import { generateGroups } from "./groups.server";
 import { gradeSubmission, type Graded, type SubmitExtra } from "./grade";
 import { pickRoundOrder, type RoundSelectionOptions } from "./selection";
 import { puzzleDef } from "./registry";
-import { TOTAL_ROUNDS, type PuzzleData, type PuzzleType } from "./types";
+import { TOTAL_ROUNDS, type GoNoGoItem, type PuzzleData, type PuzzleType } from "./types";
 import { generateUnblock } from "./unblock.server";
 import { generateWordHunt, gradeWordHunt } from "./wordHunt.server";
 import { generateWordsmith, gradeWordsmith } from "./wordsmith.server";
@@ -33,8 +33,16 @@ import { generateFlood } from "./flood.server";
 import { generateStroke } from "./stroke.server";
 import { generateTiles } from "./tiles.server";
 import { generateRings } from "./rings.server";
+import { buildGoNoGo } from "@/puzzles/goNoGo";
 
-export function generatePuzzle(type: PuzzleType): PuzzleData {
+/** Room-level context a generator may need beyond its own randomness. */
+export interface GenerateContext {
+  /** The opening item of the host's previous Go / No-Go run, if there was one. */
+  previousGoNoGoFirst?: GoNoGoItem | null;
+}
+
+export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
+  if (type === "gonogo") return buildGoNoGo(context.previousGoNoGoFirst ?? null);
   if (type === "wordsmith") return generateWordsmith();
   if (type === "wordhunt") return generateWordHunt();
   if (type === "unblock") return generateUnblock();
@@ -66,12 +74,17 @@ export function generatePuzzle(type: PuzzleType): PuzzleData {
 }
 
 /** Generated ONCE per room so every player receives identical puzzles. */
-export function buildRoomPuzzles(options: RoundSelectionOptions = {}): {
+export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContext = {}): {
   roundOrder: PuzzleType[];
   puzzles: PuzzleData[];
 } {
   const roundOrder = pickRoundOrder({ rounds: TOTAL_ROUNDS, ...options });
-  return { roundOrder, puzzles: roundOrder.map(generatePuzzle) };
+  return {
+    roundOrder,
+    puzzles: roundOrder.map((type) =>
+      generatePuzzle(type, { previousGoNoGoFirst: options.previousGoNoGoFirst ?? null }),
+    ),
+  };
 }
 
 /** The single place an answer is checked and scored. */
