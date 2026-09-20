@@ -46,6 +46,7 @@ import { colourFloodPuzzle } from "@/puzzles/colourFlood";
 import { oneStrokePuzzle } from "@/puzzles/oneStroke";
 import { slidingTilesPuzzle } from "@/puzzles/slidingTiles";
 import { rotatingRingsPuzzle } from "@/puzzles/rotatingRings";
+import { hoverPuzzle } from "@/puzzles/hover";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import {
@@ -156,6 +157,7 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   stroke: oneStrokePuzzle,
   tiles: slidingTilesPuzzle,
   rings: rotatingRingsPuzzle,
+  hover: hoverPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

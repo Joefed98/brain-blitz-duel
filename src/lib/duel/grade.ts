@@ -23,6 +23,7 @@ import { decodeFloodMoves, replayFlood } from "./flood";
 import { decodeStrokeAttempts, replayStroke } from "./stroke";
 import { decodeTileMoves, replayTiles } from "./tiles";
 import { decodeRingTaps, replayRings } from "./rings";
+import { decodeHoverRun, replayHoverRun } from "./hover";
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
 import { countPatternAnswers } from "./pattern";
@@ -735,6 +736,24 @@ export function gradeSubmission(
         moves: replay.moves,
         minMoves: puzzle.minMoves ?? 0,
         aligned: replay.aligned,
+      };
+      break;
+    }
+    case "hover": {
+      // The run is replayed from the stored seed; the phone's own score is
+      // never trusted, only recorded as a claim on the stored result.
+      const run = replayHoverRun(puzzle.seed, answer);
+      isCorrect = run.survived;
+      correctCount = run.gates;
+      score = run.score;
+      extraDetail = {
+        gates: run.gates,
+        survived: run.survived,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        inputs: decodeHoverRun(answer).inputs,
+        claimedScore: decodeHoverRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
     }

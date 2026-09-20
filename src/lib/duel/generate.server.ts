@@ -33,6 +33,7 @@ import { generateFlood } from "./flood.server";
 import { generateStroke } from "./stroke.server";
 import { generateTiles } from "./tiles.server";
 import { generateRings } from "./rings.server";
+import { generateHover } from "./hover.server";
 import { buildGoNoGo } from "@/puzzles/goNoGo";
 
 /** Room-level context a generator may need beyond its own randomness. */
@@ -70,6 +71,7 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "stroke") return generateStroke();
   if (type === "tiles") return generateTiles();
   if (type === "rings") return generateRings();
+  if (type === "hover") return generateHover();
   return puzzleDef(type).generate();
 }
 

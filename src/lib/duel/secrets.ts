@@ -62,6 +62,9 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   // The frame is public; the minimum and a shortest route are not.
   tiles: ["minMoves", "solution"],
   rings: ["minMoves", "solution"],
+  // The seed is what draws the course, so the phone needs it to play; the run
+  // itself is replayed on the server, so nothing is given away.
+  hover: [],
 };
 
 type Loose = Record<string, unknown>;
