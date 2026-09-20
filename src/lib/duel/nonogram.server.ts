@@ -5,73 +5,62 @@
  * is stored privately.
  */
 
-import { countNonoSolutions, cluesFor } from "./nonogram";
+import { cluesFor, countNonoSolutions } from "./nonogram";
 import { randomBelow, shuffled } from "./random";
-import {
-  NONO_MAX_FILLED,
-  NONO_MIN_FILLED,
-  NONO_SIZE,
-  type NonoPuzzleData,
-} from "./types";
+import { NONO_MAX_FILLED, NONO_MIN_FILLED, NONO_SIZE, type NonoPuzzleData } from "./types";
 
 /** Forty simple 5×5 pictograms: "#" filled, "." empty. */
 export const NONO_PICTOGRAMS: string[] = [
-  ".#.#.##.####.##..#...", // heart
-  ".#.#.", // placeholder replaced below
-].length
-  ? [
-      // hearts, arrows, cups, houses, letters and simple icons
-      ".#.#.###########.#...",
-      "..#....###..#####.#..",
-      "..#..#####.###..#..#.",
-      "#...#.###..###..#...#",
-      ".###.#...##...##...#.",
-      "#####..#....#....#...",
-      "#...##...######.#...#",
-      "###..#..#.###.#..#..#",
-      ".###.#...#####.#...#.",
-      "..#..#####..#...###..",
-      "#####.#...#.#####...#",
-      "#...##...##...#.###..",
-      "..#....#..#####..#...",
-      ".#.#..###.#####.###..",
-      "#####....#...#....###",
-      "..#..###.##...#.###..",
-      "###..#..#.####..#..##",
-      "#.#.##.#.#.#.#.##.#.#",
-      "#####.#.#..###..#.#..",
-      "###...#....#....#.###",
-      "..#..#####...#...#.#.",
-      "#...#.#.#...#...#.#.#",
-      "#####.###...#...#####",
-      ".#.#.#####.###..#.#..",
-      "#....###..#####..#..#",
-      "..##...####.##...##..",
-      "#..#.####.#..#.####..",
-      "#####....#..#..#....#",
-      ".###.#.#.######.#..#.",
-      "#...##.#...#...#.#..#",
-      "..#...###.#####.###..",
-      "####..#..#####..#..##",
-      "#..#.#..#.####..#..#.",
-      ".#.#.##.##.#.##.#..#.",
-      "#####.#...#...#..####",
-      "#.#.#..#..#####..#..#",
-      ".####.#...####..#...#",
-      "###.#..#.#..####..#.#",
-      "#..#.#.#.#..#..#.#..#",
-      ".##.####.#.###..##.#.",
-      "#...##..#..##..#..#.#",
-      "..#..#.#.######.#.#..",
-    ]
-  : [];
+  ".#.#.###########.#...", // heart
+  "..#....###..#####.#..", // arrow up
+  "..#..#####.###..#..#.", // cup
+  "#...#.###..###..#...#", // bow tie
+  ".###.#...##...##...#.", // letter O
+  "#####..#....#....#...", // flag
+  "#...##...######.#...#", // letter H
+  "###..#..#.###.#..#..#", // letter B
+  ".###.#...#####.#...#.", // ring
+  "..#..#####..#...###..", // key
+  "#####.#...#.#####...#", // letter S
+  "#...##...##...#.###..", // cup base
+  "..#....#..#####..#...", // arrow down
+  ".#.#..###.#####.###..", // cat face
+  "#####....#...#....###", // letter Z
+  "..#..###.##...#.###..", // tree
+  "###..#..#.####..#..##", // letter D
+  "#.#.##.#.#.#.#.##.#.#", // chequer
+  "#####.#.#..###..#.#..", // trophy
+  "###...#....#....#.###", // letter I
+  "..#..#####...#...#.#.", // person
+  "#...#.#.#...#...#.#.#", // letter X
+  "#####.###...#...#####", // letter I serif
+  ".#.#.#####.###..#.#..", // crown
+  "#....###..#####..#..#", // letter L
+  "..##...####.##...##..", // slope
+  "#..#.####.#..#.####..", // letter R
+  "#####....#..#..#....#", // letter N
+  ".###.#.#.######.#..#.", // house
+  "#...##.#...#...#.#..#", // letter Y
+  "..#...###.#####.###..", // rocket
+  "####..#..#####..#..##", // letter P
+  "#..#.#..#.####..#..#.", // letter U
+  ".#.#.##.##.#.##.#..#.", // lattice
+  "#####.#...#...#..####", // letter C
+  "#.#.#..#..#####..#..#", // star
+  ".####.#...####..#...#", // letter G
+  "###.#..#.#..####..#.#", // letter K
+  "#..#.#.#.#..#..#.#..#", // letter V
+  ".##.####.#.###..##.#.", // fish
+  "#...##..#..##..#..#.#", // letter W
+  "..#..#.#.######.#.#..", // diamond
+];
 
 function patternFrom(text: string): boolean[] {
   const cells = text.padEnd(NONO_SIZE * NONO_SIZE, ".").slice(0, NONO_SIZE * NONO_SIZE);
   return [...cells].map((glyph) => glyph === "#");
 }
 
-function filledCount(pattern: boolean[]): boolean {
+function inFilledBand(pattern: boolean[]): boolean {
   const count = pattern.filter(Boolean).length;
   return count >= NONO_MIN_FILLED && count <= NONO_MAX_FILLED;
 }
@@ -95,10 +84,13 @@ export function nonoIsUnique(pattern: boolean[]): boolean {
   return countNonoSolutions(rows, cols, 2) === 1;
 }
 
-export function generateNonogram(): NonoPuzzleData {
-  const bank = shuffled(NONO_PICTOGRAMS.map(patternFrom).filter(filledCount));
+/** Bank pictograms that are both in the filled band and uniquely solvable. */
+export function nonoUsablePictograms(): boolean[][] {
+  return NONO_PICTOGRAMS.map(patternFrom).filter((p) => inFilledBand(p) && nonoIsUnique(p));
+}
 
-  for (const pattern of bank) {
+export function generateNonogram(): NonoPuzzleData {
+  for (const pattern of shuffled(NONO_PICTOGRAMS.map(patternFrom).filter(inFilledBand))) {
     if (!nonoIsUnique(pattern)) continue;
     const { rows, cols } = cluesFor(pattern);
     return { type: "nonogram", rows, cols, pattern };
