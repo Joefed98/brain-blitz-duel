@@ -552,6 +552,8 @@ function DuelScreen() {
             onStart={() => void handleStart()}
             addMaths={duel.add_maths === true}
             addMemory={duel.add_memory === true}
+            addArcade={duel.add_arcade !== false}
+
             onModesChange={(modes) => void setRoomModes(duel.id, modes)}
             onRemove={(slot) => void removePlayer(duel.id, slot)}
             onMuteForEveryone={(slot, muted) => void setPlayerMuted(duel.id, slot, muted)}
