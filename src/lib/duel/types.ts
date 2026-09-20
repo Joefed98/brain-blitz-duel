@@ -388,7 +388,10 @@ export type PuzzleData =
   | IntruderPuzzleData
   | NonoPuzzleData
   | PairPuzzleData
-  | FloodPuzzleData;
+  | FloodPuzzleData
+  | StrokePuzzleData
+  | TilesPuzzleData
+  | RingsPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
