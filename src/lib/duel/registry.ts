@@ -97,6 +97,7 @@ export const CORE_SIXTH_WEIGHTS: Record<PuzzleCategory, number> = {
 
 /** Never drawn in rooms; still playable in practice. */
 const RETIRED_TYPES = new Set<PuzzleType>([
+  "groups",
   "chaincalc",
   "sequence",
   "reverse",

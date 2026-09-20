@@ -49,6 +49,7 @@ const COMPACT_TIMER_TYPES = new Set<PuzzleType>([
 ]);
 
 export function timerSlotClass(type: PuzzleType): string {
+  if (type === "rings") return "h-[80px] scale-[0.6]";
   return COMPACT_TIMER_TYPES.has(type)
     ? "h-[94px] scale-[0.7] [@media(max-height:700px)]:h-[80px] [@media(max-height:700px)]:scale-[0.6]"
     : "h-[104px] scale-[0.78] [@media(max-height:700px)]:h-[88px] [@media(max-height:700px)]:scale-[0.66]";

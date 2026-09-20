@@ -1283,10 +1283,9 @@ export const BOMB_RULE_COUNT = 6;
 export const BOMB_MIN_SEQUENCE = 3;
 export const BOMB_MAX_SEQUENCE = 6;
 export const BOMB_MIN_EFFECTIVE_RULES = 4;
-/** Base points for defusing with one strike rather than none. */
-export const BOMB_ONE_STRIKE_POINTS = 80;
-/** Points per correct step when the bomb goes off or the clock runs out. */
-export const BOMB_STEP_POINTS = 20;
+export const BOMB_MIN_ORDER_RULES = 2;
+/** Points per correct leading action when the bomb is not defused. */
+export const BOMB_PREFIX_POINTS = 15;
 export const BOMB_PARTIAL_POINTS = 60;
 
 export interface BombPuzzleData {
@@ -1435,11 +1434,11 @@ export interface IntruderPuzzleData {
 
 /* ============================== Nonogram ================================ */
 
-export const NONO_TIME_MS = 90_000;
+export const NONO_TIME_MS = 60_000;
 export const NONO_SIZE = 7;
 /** Filled-cell count band for a generated picture. */
-export const NONO_MIN_FILLED = 15;
-export const NONO_MAX_FILLED = 25;
+export const NONO_MIN_FILLED = 18;
+export const NONO_MAX_FILLED = 30;
 /** Partial credit share and the cost of a wrongly filled cell. */
 export const NONO_PARTIAL_POINTS = 60;
 export const NONO_WRONG_PENALTY = 5;
