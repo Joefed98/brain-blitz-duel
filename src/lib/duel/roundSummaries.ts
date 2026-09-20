@@ -907,6 +907,41 @@ const hoverSummary: SummaryBuilder = (result) => {
   };
 };
 
+const swerveSummary: SummaryBuilder = (result) => {
+  const coins = Number(result.extra?.["coins"] ?? 0);
+  const total = Number(result.extra?.["totalCoins"] ?? 0);
+  const survived = result.extra?.["survived"] === true;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: survived
+      ? `${coins} / ${total} coins · survived`
+      : `${coins} / ${total} coins · crashed at ${ended.toFixed(1)}s`,
+    detail: [
+      survived ? "Drove the whole run" : "Run ended early",
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
+const skylineSummary: SummaryBuilder = (result) => {
+  const blocks = Number(result.extra?.["blocks"] ?? 0);
+  const perfects = Number(result.extra?.["perfects"] ?? 0);
+  const survived = result.extra?.["survived"] === true;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: survived
+      ? `${blocks} blocks · ${perfects} perfect · survived`
+      : `${blocks} blocks · missed at ${ended.toFixed(1)}s`,
+    detail: [
+      `${perfects} perfect drop${perfects === 1 ? "" : "s"}`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
+
 const ringsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "rings") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);
