@@ -12,7 +12,6 @@
 
 import {
   clampInt,
-  fp,
   px,
   rngBelow,
   TICKS_PER_SECOND,
@@ -29,28 +28,30 @@ export const HOVER_WORLD_H = 560;
 export const HOVER_RUN_SECONDS = 60;
 export const HOVER_RUN_TICKS = HOVER_RUN_SECONDS * TICKS_PER_SECOND;
 
-export const HOVER_DISC_X = fp(130);
-export const HOVER_DISC_R = fp(11);
+/** Every simulation constant below is already in 1/256-pixel units. */
+export const HOVER_DISC_X = 33_280;
+export const HOVER_DISC_R = 2_816;
 
-export const HOVER_GRAVITY = fp(0.35);
-export const HOVER_IMPULSE = fp(-6.5);
-export const HOVER_TERMINAL = fp(9);
+export const HOVER_GRAVITY = 90;
+export const HOVER_IMPULSE = -1_664;
+export const HOVER_TERMINAL = 2_304;
 
 /** Scroll speed: starts here, rises per gate, never past the cap. */
-export const HOVER_SCROLL_START = fp(2.6);
-export const HOVER_SCROLL_STEP = fp(0.06);
-export const HOVER_SCROLL_MAX = fp(4.4);
+export const HOVER_SCROLL_START = 666;
+export const HOVER_SCROLL_STEP = 15;
+export const HOVER_SCROLL_MAX = 1_126;
 
-export const HOVER_PILLAR_W = fp(40);
+export const HOVER_PILLAR_W = 10_240;
 /** Pillar spacing in world pixels; the first pillar starts at the right edge. */
-export const HOVER_SPACING = fp(319);
-export const HOVER_FIRST_X = fp(HOVER_WORLD_W);
+export const HOVER_SPACING = 81_664;
+export const HOVER_FIRST_X = 99_840;
 
-export const HOVER_GAP_START = 150;
-export const HOVER_GAP_STEP = 2;
-export const HOVER_GAP_MIN = 100;
+export const HOVER_GAP_START = 38_400;
+export const HOVER_GAP_STEP = 512;
+export const HOVER_GAP_MIN = 25_600;
 /** Keep a gap away from the floor and ceiling by this much. */
-export const HOVER_GAP_MARGIN = 40;
+export const HOVER_GAP_MARGIN = 10_240;
+export const HOVER_WORLD_BOTTOM = 143_360;
 
 export const HOVER_GATE_POINTS = 110;
 export const HOVER_SURVIVE_BONUS = 40;
@@ -80,8 +81,8 @@ export interface HoverState {
   pillars: HoverPillar[];
 }
 
-/** Gap height in whole pixels for the nth pillar, narrowing as the run goes. */
-function gapPixels(index: number): number {
+/** Gap height in fixed-point units for the nth pillar. */
+function gapUnits(index: number): number {
   return Math.max(HOVER_GAP_MIN, HOVER_GAP_START - HOVER_GAP_STEP * index);
 }
 
@@ -107,15 +108,15 @@ function buildCourse(seed: number): { pillars: HoverPillar[]; rng: number } {
   let rng = seed | 0;
   let x = HOVER_FIRST_X;
   while (x <= HOVER_FIRST_X + maxTravel + HOVER_SPACING) {
-    const gapPx = gapPixels(pillars.length);
-    const half = gapPx / 2;
+    const gap = gapUnits(pillars.length);
+    const half = Math.trunc(gap / 2);
     const low = half + HOVER_GAP_MARGIN;
-    const high = HOVER_WORLD_H - half - HOVER_GAP_MARGIN;
+    const high = HOVER_WORLD_BOTTOM - half - HOVER_GAP_MARGIN;
     const span = Math.max(1, high - low + 1);
     const drawn = rngBelow(rng, span);
     rng = drawn.state;
     const centre = low + drawn.value;
-    pillars.push({ x0: x, gapTop: fp(centre - half), gapH: fp(gapPx) });
+    pillars.push({ x0: x, gapTop: centre - half, gapH: gap });
     x += HOVER_SPACING;
   }
   return { pillars, rng };
@@ -136,7 +137,7 @@ function init(seed: number): HoverState {
   const { pillars } = buildCourse(seed);
   return {
     tick: 0,
-    y: fp(HOVER_WORLD_H / 2),
+    y: 71_680,
     vy: 0,
     distance: 0,
     gates: 0,
@@ -175,11 +176,56 @@ function step(state: HoverState, tapped: boolean): HoverState {
   const next: HoverState = { ...state, tick, y, vy, distance, gates };
 
   const ceiling = y - HOVER_DISC_R <= 0;
-  const floor = y + HOVER_DISC_R >= fp(HOVER_WORLD_H);
+  const floor = y + HOVER_DISC_R >= HOVER_WORLD_BOTTOM;
   const crashed = ceiling || floor || state.pillars.some((pillar) => hits(pillar, distance, y));
   if (crashed) return { ...next, crashed: true, endedTick: tick };
   if (tick >= HOVER_RUN_TICKS) return { ...next, endedTick: tick };
   return next;
+}
+
+/* =========================== Integrity checks ========================== */
+
+export const HOVER_CHECKPOINT_INTERVAL = 300;
+
+export interface HoverCheckpointState {
+  tick: number;
+  y: number;
+  vy: number;
+  speed: number;
+  gates: number;
+  nextPillarX: number;
+  nextGapTop: number;
+  nextGapH: number;
+}
+
+export interface HoverCheckpoint extends HoverCheckpointState {
+  checksum: number;
+}
+
+/** The exact integer state used for permanent client/server integrity checks. */
+export function hoverCheckpointState(state: HoverState): HoverCheckpointState {
+  const next = state.pillars[state.gates];
+  return {
+    tick: state.tick,
+    y: state.y,
+    vy: state.vy,
+    speed: hoverScroll(state.gates),
+    gates: state.gates,
+    nextPillarX: next ? pillarX(next, state.distance) : 0,
+    nextGapTop: next?.gapTop ?? 0,
+    nextGapH: next?.gapH ?? 0,
+  };
+}
+
+/** 32-bit FNV-1a over the integer snapshot, with an xor before each multiply. */
+export function hoverCheckpoint(state: HoverState): HoverCheckpoint {
+  const snapshot = hoverCheckpointState(state);
+  let checksum = 0x811c9dc5;
+  for (const value of Object.values(snapshot)) {
+    checksum ^= value | 0;
+    checksum = Math.imul(checksum, 0x01000193) >>> 0;
+  }
+  return { ...snapshot, checksum };
 }
 
 function isOver(state: HoverState): boolean {

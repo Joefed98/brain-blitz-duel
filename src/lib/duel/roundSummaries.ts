@@ -895,11 +895,15 @@ const hoverSummary: SummaryBuilder = (result) => {
   const total = Number(result.extra?.["totalGates"] ?? 0);
   const survived = result.extra?.["survived"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: survived
       ? `${gates} / ${total} · survived`
       : `${gates} / ${total} gates · crashed at ${ended.toFixed(1)}s`,
-    detail: [survived ? "Flew the whole run" : "Run ended early"],
+    detail: [
+      survived ? "Flew the whole run" : "Run ended early",
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
   };
 };
 

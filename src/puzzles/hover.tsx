@@ -8,9 +8,11 @@ import {
 } from "@/lib/arcade/engine";
 import {
   hoverGame,
+  hoverCheckpoint,
   hoverSurvived,
   HOVER_BG,
   HOVER_CRASH_COLOUR,
+  HOVER_CHECKPOINT_INTERVAL,
   HOVER_DISC_COLOUR,
   HOVER_PILLAR_COLOUR,
   HOVER_RUN_TICKS,
@@ -55,6 +57,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const state = useRef<HoverState>(hoverGame.init(seed));
   const inputs = useRef<number[]>([]);
+  const checkpoints = useRef<ReturnType<typeof hoverCheckpoint>[]>([]);
   const pending = useRef(0);
   const submitted = useRef(false);
   const crashedAt = useRef<number | null>(null);
@@ -77,12 +80,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       inputs: inputs.current,
       // The tick the sim actually reached: the server ends the run here.
       endTick: state.current.tick,
+      checkpoints: checkpoints.current,
     });
 
   // One run per seed: a room update mid-round must not restart the sim.
   useEffect(() => {
     state.current = hoverGame.init(seed);
     inputs.current = [];
+    checkpoints.current = [];
     pending.current = 0;
     submitted.current = false;
     crashedAt.current = null;
@@ -124,6 +129,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (tapped) pending.current -= 1;
           if (tapped) inputs.current.push(state.current.tick + 1);
           state.current = hoverGame.step(state.current, tapped);
+          if (state.current.tick % HOVER_CHECKPOINT_INTERVAL === 0) {
+            checkpoints.current.push(hoverCheckpoint(state.current));
+          }
           ticksThisSecond += 1;
           if (hoverGame.isOver(state.current)) break;
         }
@@ -242,6 +250,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {taps} tap{taps === 1 ? "" : "s"} · same course for everyone
       </p>
+      {result.desyncTick !== null && (
+        <p className="shrink-0 font-mono text-xs font-bold text-destructive">
+          desync at tick {result.desyncTick}
+        </p>
+      )}
     </div>
   );
 }
