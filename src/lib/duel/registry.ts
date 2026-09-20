@@ -49,6 +49,8 @@ import { rotatingRingsPuzzle } from "@/puzzles/rotatingRings";
 import { hoverPuzzle } from "@/puzzles/hover";
 import { swervePuzzle } from "@/puzzles/swerve";
 import { skylinePuzzle } from "@/puzzles/skyline";
+import { binTossPuzzle } from "@/puzzles/binToss";
+import { bullseyePuzzle } from "@/puzzles/bullseye";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -167,6 +169,8 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   hover: hoverPuzzle,
   swerve: swervePuzzle,
   skyline: skylinePuzzle,
+  bintoss: binTossPuzzle,
+  bullseye: bullseyePuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

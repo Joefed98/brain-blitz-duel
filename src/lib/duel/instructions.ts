@@ -474,4 +474,22 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Each block scores, perfect drops score extra, +40 for lasting the run.",
   },
+  bintoss: {
+    goal: "Flick the ball into the bin — ten throws.",
+    how: [
+      { action: "Drag back from the ball", detail: "and let go to throw." },
+      { action: "Watch the wind", detail: "it pushes the ball sideways." },
+      { action: "The bin moves", detail: "further away every throw." },
+    ],
+    score: "10 per basket; all ten for the time bonus.",
+  },
+  bullseye: {
+    goal: "Hit the centre — ten arrows.",
+    how: [
+      { action: "Drag to aim", detail: "then let go to fire." },
+      { action: "The wind", detail: "pushes the arrow sideways, more at longer range." },
+      { action: "The target", detail: "gets further away each shot." },
+    ],
+    score: "30 for the centre ring, less for each ring out. Ten bullseyes = 150.",
+  },
 };

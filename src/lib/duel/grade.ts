@@ -26,6 +26,8 @@ import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
+import { decodeBinTossRun, replayBinTossRun } from "./binToss";
+import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";
@@ -801,6 +803,49 @@ export function gradeSubmission(
         desyncTick: run.desyncTick,
         inputs: decodeSkylineRun(answer).inputs.length,
         claimedScore: decodeSkylineRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "bintoss": {
+      // Same rule as the other arcade games: only the server's replay scores.
+      const run = replayBinTossRun(puzzle.seed, answer);
+      isCorrect = run.perfect;
+      correctCount = run.baskets;
+      score = run.score;
+      extraDetail = {
+        baskets: run.baskets,
+        throws: run.throws,
+        results: run.results,
+        perfect: run.perfect,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBinTossRun(answer).events.length,
+        claimedScore: decodeBinTossRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "bullseye": {
+      const run = replayBullseyeRun(puzzle.seed, answer);
+      isCorrect = run.inner >= run.arrows;
+      correctCount = run.inner;
+      score = run.score;
+      extraDetail = {
+        total: run.total,
+        inner: run.inner,
+        arrows: run.arrows,
+        finished: run.finished,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBullseyeRun(answer).events.length,
+        claimedScore: decodeBullseyeRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

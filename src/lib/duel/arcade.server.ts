@@ -5,7 +5,12 @@
  */
 
 import { randomBelow } from "./random";
-import type { SkylinePuzzleData, SwervePuzzleData } from "./types";
+import type {
+  BinTossPuzzleData,
+  BullseyePuzzleData,
+  SkylinePuzzleData,
+  SwervePuzzleData,
+} from "./types";
 
 /** A fresh 32-bit seed from the platform CSPRNG. */
 export function arcadeSeed(): number {
@@ -18,4 +23,12 @@ export function generateSwerve(): SwervePuzzleData {
 
 export function generateSkyline(): SkylinePuzzleData {
   return { type: "skyline", seed: arcadeSeed() };
+}
+
+export function generateBinToss(): BinTossPuzzleData {
+  return { type: "bintoss", seed: arcadeSeed() };
+}
+
+export function generateBullseye(): BullseyePuzzleData {
+  return { type: "bullseye", seed: arcadeSeed() };
 }
