@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef } from "react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import {
-  cluesFor,
   decodeNonoCells,
   encodeNonoCells,
   lineSatisfied,
@@ -63,9 +62,8 @@ function Board({
         </span>
       ))}
       {rows.map((clue, row) => (
-        <>
+        <Fragment key={`r${row}`}>
           <span
-            key={`r${row}`}
             className={`flex items-center justify-end pr-1 font-mono text-[13px] ${
               lineSatisfied(clue, cellsOf("row", row))
                 ? "text-muted-foreground/40"
@@ -97,32 +95,13 @@ function Board({
               </button>
             );
           })}
-        </>
+        </Fragment>
       ))}
     </div>
   );
 }
 
 const EXAMPLE_PATTERN = [false, true, false, true, true, true, false, true, false];
-const EXAMPLE = cluesFor([
-  ...EXAMPLE_PATTERN.slice(0, 3),
-  false,
-  false,
-  ...EXAMPLE_PATTERN.slice(3, 6),
-  false,
-  false,
-  ...EXAMPLE_PATTERN.slice(6, 9),
-  false,
-  false,
-  false,
-  false,
-  false,
-  false,
-  false,
-  false,
-  false,
-  false,
-]);
 
 /** Fixed intro example — a 3×3 cross, clues and all. */
 function IntroExample() {
@@ -139,12 +118,18 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+function Stage({
+  puzzle,
+  phaseStartedAt,
+  now,
+  locked,
+  onSubmit,
+  onDraftAnswer,
+  stateKey = "nonogram",
+}: PuzzleStageProps) {
   const data: NonoPuzzleData | null = puzzle.type === "nonogram" ? puzzle : null;
-  const stateKey = arguments.length ? undefined : undefined;
-  void stateKey;
   const [marks, setMarks] = useStageState<NonoMarks>(
-    (puzzle as { type: string }).type,
+    stateKey,
     "nonoMarks",
     () => Array.from({ length: NONO_SIZE * NONO_SIZE }, () => 0) as NonoMarks,
   );
@@ -256,5 +241,3 @@ export const nonogramPuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
-
-void EXAMPLE;
