@@ -72,9 +72,9 @@ function Board({
                 : "text-foreground"
             }`}
           >
-              {clue.map((run, index) => (
-                <span key={`${row}-${index}`}>{run}</span>
-              ))}
+            {clue.map((run, index) => (
+              <span key={`${row}-${index}`}>{run}</span>
+            ))}
           </span>
           {Array.from({ length: size }, (_, col) => {
             const index = row * size + col;

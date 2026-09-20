@@ -135,16 +135,46 @@ function Rings({
       })}
       {selectedRing === undefined ? null : (
         <g pointerEvents="none">
-          <circle cx={centre} cy={centre} r={radiusOf(selectedRing) - 1} fill="none" stroke={GLYPH_COLOURS.GOLD} strokeWidth={3} />
-          <circle cx={centre} cy={centre} r={innerOf(selectedRing) + 1} fill="none" stroke={GLYPH_COLOURS.GOLD} strokeWidth={3} />
+          <circle
+            cx={centre}
+            cy={centre}
+            r={radiusOf(selectedRing) - 1}
+            fill="none"
+            stroke={GLYPH_COLOURS.GOLD}
+            strokeWidth={3}
+          />
+          <circle
+            cx={centre}
+            cy={centre}
+            r={innerOf(selectedRing) + 1}
+            fill="none"
+            stroke={GLYPH_COLOURS.GOLD}
+            strokeWidth={3}
+          />
         </g>
       )}
       {[1, 2].map((ring) => {
         const y = centre - (radiusOf(ring) + innerOf(ring)) / 2;
         return (
           <g key={`link-${ring}`} pointerEvents="none">
-            <ellipse cx={centre - 4} cy={y} rx={5} ry={3.5} fill="var(--color-card)" stroke={GLYPH_COLOURS.GOLD} strokeWidth={1.5} />
-            <ellipse cx={centre + 4} cy={y} rx={5} ry={3.5} fill="var(--color-card)" stroke={GLYPH_COLOURS.GOLD} strokeWidth={1.5} />
+            <ellipse
+              cx={centre - 4}
+              cy={y}
+              rx={5}
+              ry={3.5}
+              fill="var(--color-card)"
+              stroke={GLYPH_COLOURS.GOLD}
+              strokeWidth={1.5}
+            />
+            <ellipse
+              cx={centre + 4}
+              cy={y}
+              rx={5}
+              ry={3.5}
+              fill="var(--color-card)"
+              stroke={GLYPH_COLOURS.GOLD}
+              strokeWidth={1.5}
+            />
           </g>
         );
       })}

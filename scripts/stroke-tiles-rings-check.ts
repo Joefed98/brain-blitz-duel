@@ -169,12 +169,18 @@ for (let round = 0; round < ROUNDS; round += 1) {
   const ringTwo = replayRings(segments, [2]);
   check(
     `rings ${round}: ring two is linked`,
-    ringTwo.offsets[0] === 0 && ringTwo.offsets[1] === 1 && ringTwo.offsets[2] === 1 && ringTwo.offsets[3] === 0,
+    ringTwo.offsets[0] === 0 &&
+      ringTwo.offsets[1] === 1 &&
+      ringTwo.offsets[2] === 1 &&
+      ringTwo.offsets[3] === 0,
   );
   const ringThree = replayRings(segments, [4]);
   check(
     `rings ${round}: ring three is linked`,
-    ringThree.offsets[0] === 0 && ringThree.offsets[1] === 0 && ringThree.offsets[2] === 1 && ringThree.offsets[3] === 1,
+    ringThree.offsets[0] === 0 &&
+      ringThree.offsets[1] === 0 &&
+      ringThree.offsets[2] === 1 &&
+      ringThree.offsets[3] === 1,
   );
   const inner = replayRings(segments, [0]);
   check(`rings ${round}: inner turns alone`, inner.offsets.filter(Boolean).length === 1);
