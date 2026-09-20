@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick } from "@/components/puzzles/GridDrag";
+import { Button } from "@/components/ui/button";
 import {
   alignedSpokes,
   decodeRingTaps,
@@ -32,8 +33,8 @@ function colourOf(index: number): string {
 }
 
 /** Radii, from the outer rim inwards, as a share of the board. */
-const RADII = [0.98, 0.72, 0.46];
-const INNER_HOLE = 0.2;
+const RADII = [0.98, 0.78, 0.58, 0.38];
+const INNER_HOLE = 0.15;
 
 function arc(cx: number, cy: number, outer: number, inner: number, from: number, to: number) {
   const point = (radius: number, angle: number) => [
@@ -51,12 +52,14 @@ function Rings({
   segments,
   offsets,
   size,
-  onTap,
+  selectedRing,
+  onSelect,
 }: {
   segments: number[][];
   offsets: number[];
   size: number;
-  onTap?: ((ring: number, clockwise: boolean) => void) | undefined;
+  selectedRing?: number | undefined;
+  onSelect?: ((ring: number) => void) | undefined;
 }) {
   const centre = size / 2;
   const half = size / 2;
@@ -74,7 +77,7 @@ function Rings({
       className="shrink-0 touch-none"
       aria-label="Rotating Rings board"
       onPointerDown={(event) => {
-        if (!onTap) return;
+        if (!onSelect) return;
         event.preventDefault();
         const box = event.currentTarget.getBoundingClientRect();
         const x = event.clientX - box.left - centre;
@@ -85,7 +88,7 @@ function Rings({
           if (distance <= radiusOf(candidate) && distance >= innerOf(candidate)) ring = candidate;
         }
         if (ring === null) return;
-        onTap(ring, x >= 0);
+        onSelect(ring);
       }}
     >
       {Array.from({ length: RINGS_COUNT }, (_v, ring) =>
@@ -130,22 +133,21 @@ function Rings({
           </g>
         );
       })}
-      {/* The link between the middle and outer rings. */}
-      <g>
-        <circle
-          cx={centre}
-          cy={centre - (half * (RADII[0]! + RADII[1]!)) / 2}
-          r={8}
-          fill="var(--color-card)"
-          stroke={GLYPH_COLOURS.GOLD}
-          strokeWidth={1.5}
-        />
-        <path
-          d={`M ${centre - 3.5} ${centre - (half * (RADII[0]! + RADII[1]!)) / 2} h 7`}
-          stroke={GLYPH_COLOURS.GOLD}
-          strokeWidth={2}
-        />
-      </g>
+      {selectedRing === undefined ? null : (
+        <g pointerEvents="none">
+          <circle cx={centre} cy={centre} r={radiusOf(selectedRing) - 1} fill="none" stroke={GLYPH_COLOURS.GOLD} strokeWidth={3} />
+          <circle cx={centre} cy={centre} r={innerOf(selectedRing) + 1} fill="none" stroke={GLYPH_COLOURS.GOLD} strokeWidth={3} />
+        </g>
+      )}
+      {[1, 2].map((ring) => {
+        const y = centre - (radiusOf(ring) + innerOf(ring)) / 2;
+        return (
+          <g key={`link-${ring}`} pointerEvents="none">
+            <ellipse cx={centre - 4} cy={y} rx={5} ry={3.5} fill="var(--color-card)" stroke={GLYPH_COLOURS.GOLD} strokeWidth={1.5} />
+            <ellipse cx={centre + 4} cy={y} rx={5} ry={3.5} fill="var(--color-card)" stroke={GLYPH_COLOURS.GOLD} strokeWidth={1.5} />
+          </g>
+        );
+      })}
       <circle cx={centre} cy={centre} r={half * INNER_HOLE} fill="var(--color-card)" />
     </svg>
   );
@@ -155,6 +157,7 @@ const EXAMPLE_SEGMENTS = [
   [0, 1, 2, 3, 0, 1, 2, 3],
   [1, 2, 3, 0, 1, 2, 3, 0],
   [1, 2, 3, 0, 1, 2, 3, 0],
+  [1, 2, 3, 0, 1, 2, 3, 0],
 ];
 
 /** Fixed intro example — one turn brings the rings into line. */
@@ -162,9 +165,9 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <div className="flex items-center gap-3">
-        <Rings segments={EXAMPLE_SEGMENTS} offsets={[0, 0, 0]} size={82} />
+        <Rings segments={EXAMPLE_SEGMENTS} offsets={[0, 0, 0, 0]} size={82} />
         <span className="font-mono text-xs text-muted-foreground">→</span>
-        <Rings segments={EXAMPLE_SEGMENTS} offsets={[1, 0, 0]} size={82} />
+        <Rings segments={EXAMPLE_SEGMENTS} offsets={[1, 0, 0, 0]} size={82} />
       </div>
       <p className="text-center text-xs text-muted-foreground">
         One turn of the inner ring and every spoke is a single colour.
@@ -184,6 +187,7 @@ function Stage({
 }: PuzzleStageProps) {
   const data: RingsPuzzleData | null = puzzle.type === "rings" ? puzzle : null;
   const [taps, setTaps] = useStageState<number[]>(stateKey, "ringTaps", () => []);
+  const [selectedRing, setSelectedRing] = useState(0);
   const submitted = useRef(false);
   const replay = useMemo(() => (data ? replayRings(data.segments, taps) : null), [data, taps]);
 
@@ -218,15 +222,41 @@ function Stage({
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
       {/* Sized to leave the timer, counters and hint clear at 375 × 667. */}
-      <Rings segments={data.segments} offsets={replay.offsets} size={272} onTap={turn} />
+      <Rings
+        segments={data.segments}
+        offsets={replay.offsets}
+        size={248}
+        selectedRing={selectedRing}
+        onSelect={setSelectedRing}
+      />
       <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         turns <span className="text-primary">{replay.moves}</span> · spokes{" "}
         <span className="text-primary">
           {replay.aligned} / {RINGS_SEGMENTS}
         </span>
       </p>
+      <div className="grid w-full max-w-64 shrink-0 grid-cols-2 gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          aria-label="Rotate selected ring anticlockwise"
+          className="h-14 text-3xl"
+          onClick={() => turn(selectedRing, false)}
+        >
+          ↺
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          aria-label="Rotate selected ring clockwise"
+          className="h-14 text-3xl"
+          onClick={() => turn(selectedRing, true)}
+        >
+          ↻
+        </Button>
+      </div>
       <p className="shrink-0 text-center text-xs text-muted-foreground">
-        Tap a ring&apos;s left side to turn it anticlockwise, its right side clockwise.
+        Select a ring, then turn it with the arrows.
       </p>
     </div>
   );
