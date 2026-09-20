@@ -11,13 +11,11 @@ import {
   matchupCellAt,
   matchupCheckpoint,
   matchupDrawSelection,
-  matchupDrawSymbol,
   matchupGame,
   MATCHUP_BG,
   MATCHUP_CHECKPOINT_INTERVAL,
   MATCHUP_COLOURS,
   MATCHUP_RUN_TICKS,
-  MATCHUP_SIZE,
   type MatchupState,
 } from "@/lib/arcade/matchup";
 import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
@@ -323,6 +321,3 @@ export const matchupPuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
-
-// Kept so the symbol drawing helper is reachable from one place only.
-export { matchupDrawSymbol, MATCHUP_SIZE };
