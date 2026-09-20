@@ -31,7 +31,7 @@ import {
   INTRUDER_BOARD_SHAPE_COUNTS,
 } from "../src/lib/duel/types";
 
-const ROUNDS = 12;
+const ROUNDS = 40;
 let failures = 0;
 
 function check(label: string, ok: boolean) {
