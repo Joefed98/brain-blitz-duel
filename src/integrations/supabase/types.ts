@@ -98,6 +98,7 @@ export type Database = {
       }
       duels: {
         Row: {
+          add_arcade: boolean
           add_maths: boolean
           add_memory: boolean
           created_at: string
@@ -117,6 +118,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          add_arcade?: boolean
           add_maths?: boolean
           add_memory?: boolean
           created_at?: string
@@ -136,6 +138,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          add_arcade?: boolean
           add_maths?: boolean
           add_memory?: boolean
           created_at?: string
