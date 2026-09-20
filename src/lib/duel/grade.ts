@@ -28,6 +28,7 @@ import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
+import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";

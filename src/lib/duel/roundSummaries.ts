@@ -73,6 +73,7 @@ import {
   SKYLINE_TIME_MS,
   BINTOSS_TIME_MS,
   BULLSEYE_TIME_MS,
+  MATCHUP_TIME_MS,
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -92,6 +93,7 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   skyline: SKYLINE_TIME_MS,
   bintoss: BINTOSS_TIME_MS,
   bullseye: BULLSEYE_TIME_MS,
+  matchup: MATCHUP_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {

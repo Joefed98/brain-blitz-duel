@@ -172,6 +172,7 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   skyline: skylinePuzzle,
   bintoss: binTossPuzzle,
   bullseye: bullseyePuzzle,
+  matchup: matchupPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(
