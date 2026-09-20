@@ -34,7 +34,12 @@ import { generateStroke } from "./stroke.server";
 import { generateTiles } from "./tiles.server";
 import { generateRings } from "./rings.server";
 import { generateHover } from "./hover.server";
-import { generateSkyline, generateSwerve } from "./arcade.server";
+import {
+  generateBinToss,
+  generateBullseye,
+  generateSkyline,
+  generateSwerve,
+} from "./arcade.server";
 
 import { buildGoNoGo } from "@/puzzles/goNoGo";
 
@@ -76,6 +81,8 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "hover") return generateHover();
   if (type === "swerve") return generateSwerve();
   if (type === "skyline") return generateSkyline();
+  if (type === "bintoss") return generateBinToss();
+  if (type === "bullseye") return generateBullseye();
 
   return puzzleDef(type).generate();
 }

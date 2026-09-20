@@ -26,6 +26,8 @@ import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
+import { decodeBinTossRun, replayBinTossRun } from "./binToss";
+import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 
 import { validateLadder } from "./wordLadder.server";
 import { checkAnswer } from "./puzzles";

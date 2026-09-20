@@ -71,6 +71,8 @@ import {
   HOVER_TIME_MS,
   SWERVE_TIME_MS,
   SKYLINE_TIME_MS,
+  BINTOSS_TIME_MS,
+  BULLSEYE_TIME_MS,
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -88,6 +90,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   hover: HOVER_TIME_MS,
   swerve: SWERVE_TIME_MS,
   skyline: SKYLINE_TIME_MS,
+  bintoss: BINTOSS_TIME_MS,
+  bullseye: BULLSEYE_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -945,6 +949,31 @@ const skylineSummary: SummaryBuilder = (result) => {
   };
 };
 
+const binTossSummary: SummaryBuilder = (result) => {
+  const baskets = Number(result.extra?.["baskets"] ?? 0);
+  const total = Number(result.extra?.["throws"] ?? 10);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: `${baskets} / ${total} in`,
+    detail: [
+      baskets >= total ? "Every throw in" : `${total - baskets} missed`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
+const bullseyeSummary: SummaryBuilder = (result) => {
+  const inner = Number(result.extra?.["inner"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: `${result.score} · ${inner} in the gold/red`,
+    detail: [
+      `${Number(result.extra?.["total"] ?? 0)} ring points`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
 const ringsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "rings") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);
@@ -1014,6 +1043,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   hover: hoverSummary,
   swerve: swerveSummary,
   skyline: skylineSummary,
+  bintoss: binTossSummary,
+  bullseye: bullseyeSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1074,6 +1105,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   hover: () => null,
   swerve: () => null,
   skyline: () => null,
+  bintoss: () => null,
+  bullseye: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };

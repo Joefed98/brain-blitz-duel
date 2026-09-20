@@ -49,7 +49,9 @@ export type PuzzleType =
   | "rings"
   | "hover"
   | "swerve"
-  | "skyline";
+  | "skyline"
+  | "bintoss"
+  | "bullseye";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -410,7 +412,9 @@ export type PuzzleData =
   | RingsPuzzleData
   | HoverPuzzleData
   | SwervePuzzleData
-  | SkylinePuzzleData;
+  | SkylinePuzzleData
+  | BinTossPuzzleData
+  | BullseyePuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1634,5 +1638,23 @@ export interface SwervePuzzleData {
 export interface SkylinePuzzleData {
   type: "skyline";
   /** Decides which side the first block slides in from. */
+  seed: number;
+}
+
+/* =========================== Bin Toss / Bullseye ========================= */
+
+/** Both runs are capped at 60 seconds; the round clock adds three of slack. */
+export const BINTOSS_TIME_MS = 63_000;
+export const BULLSEYE_TIME_MS = 63_000;
+
+export interface BinTossPuzzleData {
+  type: "bintoss";
+  /** Drives the wind on all ten throws — identical for everyone in the room. */
+  seed: number;
+}
+
+export interface BullseyePuzzleData {
+  type: "bullseye";
+  /** Drives the wind on all ten arrows — identical for everyone in the room. */
   seed: number;
 }
