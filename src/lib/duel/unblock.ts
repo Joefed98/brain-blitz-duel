@@ -96,6 +96,8 @@ export interface UnblockReplay {
   solved: boolean;
   /** Legal moves actually played. */
   moves: number;
+  /** The layout as it stood when the player stopped. */
+  vehicles: UnblockVehicle[];
 }
 
 /** Replays the phone's moves on the stored layout; illegal moves are dropped. */
@@ -109,7 +111,7 @@ export function replayUnblock(start: UnblockVehicle[], moves: UnblockMove[]): Un
     played += 1;
     if (isSolved(state)) break;
   }
-  return { solved: isSolved(state), moves: played };
+  return { solved: isSolved(state), moves: played, vehicles: state };
 }
 
 export function serialiseLayout(vehicles: UnblockVehicle[]): string {

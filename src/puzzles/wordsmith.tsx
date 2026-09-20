@@ -62,14 +62,12 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     .map((word) => word.trim().toUpperCase())
     .filter((word) => word.length > 0);
   const points = mine.reduce((sum, word) => sum + wordsmithPoints(word), 0);
-  const par = puzzle.par ?? 0;
   const missed = (puzzle.words ?? []).filter((entry) => !mine.includes(entry.word)).slice(0, 5);
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
-        {mine.length} words · <span className="text-primary">{points} pts</span>
-        {par > 0 ? ` · par ${par}` : ""}
+        <span className="text-primary">{points} points</span> · {mine.length} words
       </p>
 
       {mine.length > 0 && (

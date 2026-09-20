@@ -89,6 +89,8 @@ export interface SlideReplay {
   solved: boolean;
   /** How many times a hole sent it home. */
   falls: number;
+  /** Every cell the ball came to rest on, the start included. */
+  visited: number[];
 }
 
 /** Replays a move list from the stored start. Moves that change nothing are dropped. */
@@ -106,17 +108,19 @@ export function replaySlide(
   let cell = start;
   let count = 0;
   let falls = 0;
+  const visited = [start];
   for (const dir of moves) {
     if (cell === exit) break;
     const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
     // A slide into a hole still costs a move, even though the ball ends at home.
     if (!outcome.path.length) continue;
     cell = outcome.cell;
+    visited.push(cell);
     count += 1;
     if (outcome.fell) falls += 1;
     if (cell === exit) break;
   }
-  return { cell, moves: count, solved: cell === exit, falls };
+  return { cell, moves: count, solved: cell === exit, falls, visited };
 }
 
 /**

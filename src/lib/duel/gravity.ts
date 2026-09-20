@@ -92,6 +92,8 @@ export interface GravityReplay {
   onTarget: number;
   /** True for at least one tilt where a ball was stopped by the other. */
   usedBlock: boolean;
+  /** Every joint position the balls passed through, the start included. */
+  states: GravityBalls[];
 }
 
 /** The one place a tilt list is turned into an outcome. */
@@ -106,6 +108,7 @@ export function replayGravity(
   let balls: GravityBalls = { ...start };
   let count = 0;
   let usedBlock = false;
+  const states: GravityBalls[] = [{ ...balls }];
 
   for (const dir of tilts) {
     if (gravitySolved(balls, targetA, targetB)) break;
@@ -113,13 +116,14 @@ export function replayGravity(
     count++;
     if (outcome.blockedByOther) usedBlock = true;
     balls = outcome.balls;
+    states.push({ ...balls });
   }
-
   return {
     balls,
     tilts: count,
     solved: gravitySolved(balls, targetA, targetB),
     onTarget: gravityOnTarget(balls, targetA, targetB),
     usedBlock,
+    states,
   };
 }
