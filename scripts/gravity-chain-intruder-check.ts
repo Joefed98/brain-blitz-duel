@@ -3,7 +3,7 @@
  * Run with: bun scripts/gravity-chain-intruder-check.ts
  */
 
-import { generateGravity } from "../src/lib/duel/gravity.server";
+import { generateGravity, solutionSwapsOrder } from "../src/lib/duel/gravity.server";
 import { decodeGravityTilts, replayGravity } from "../src/lib/duel/gravity";
 import { generateChain } from "../src/lib/duel/chain.server";
 import {
@@ -18,8 +18,8 @@ import {
   CHAIN_LENGTH,
   CHAIN_MIN_INVALID,
   CHAIN_NODES,
+  GRAV_FALLBACK_MIN_TILTS,
   GRAV_MAX_TILTS,
-  GRAV_MIN_TILTS,
   INTRUDER_BOARD_SIZES,
   INTRUDER_BOARD_COLOUR_COUNTS,
   INTRUDER_BOARD_SHAPE_COUNTS,
@@ -45,11 +45,17 @@ for (let round = 0; round < ROUNDS; round++) {
     puzzle.targetB,
     solution,
   );
-  check("gravity minimum stored", (puzzle.minMoves ?? 0) >= GRAV_MIN_TILTS);
+  // The generator eases its minimum to GRAV_FALLBACK_MIN_TILTS after 200
+  // failed attempts, so the wanted band is the wider one, not GRAV_MIN_TILTS.
+  check("gravity minimum stored", (puzzle.minMoves ?? 0) >= GRAV_FALLBACK_MIN_TILTS);
   check("gravity minimum in band", (puzzle.minMoves ?? 0) <= GRAV_MAX_TILTS);
   check("gravity solution solves the joint state", replay.solved);
   check("gravity solution length equals the minimum", replay.tilts === puzzle.minMoves);
   check("gravity shortest route uses ball-blocks-ball", replay.usedBlock);
+  check(
+    "gravity shortest route swaps the balls' relative order",
+    solutionSwapsOrder(new Set(puzzle.walls), { a: puzzle.startA, b: puzzle.startB }, solution),
+  );
 }
 
 for (let round = 0; round < ROUNDS; round++) {

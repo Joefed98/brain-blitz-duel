@@ -28,6 +28,8 @@ const CHAIN_SOLUTION_CAP = 200;
 /** The most routes an accepted board may have, and the least. */
 const CHAIN_MAX_ROUTES = 8;
 const CHAIN_MIN_ROUTES = 1;
+/** Route counting stops here while comparing labellings, to stay quick. */
+const CHAIN_ROUTE_SCORE_CAP = 40;
 /** Padding kept clear at the edges so glyphs are never clipped. */
 const EDGE_PADDING = 7;
 /** Minimum distance between two node centres, in percentage points. */
@@ -258,9 +260,10 @@ function evaluate(points: Point[], bag: ChainShape[], cycle: ChainShape[]): Cand
     y: point.y,
     shape: bag[index]!,
   }));
-  const routes = countChainSolutions(nodes, cycle, [], CHAIN_SOLUTION_CAP);
+  // Counting stops at the scoring cap: past it, one board is as rich as another.
+  const routes = countChainSolutions(nodes, cycle, [], CHAIN_ROUTE_SCORE_CAP);
   if (routes < CHAIN_MIN_ROUTES) return null;
-  const solutions = collectChainSolutions(nodes, cycle, 40);
+  const solutions = collectChainSolutions(nodes, cycle, 12);
   const solution = solutions.find((candidate) => chainSolutionIsFair(nodes, cycle, candidate));
   if (!solution) return null;
   return { nodes, cycle, solution, routes, traps: chainTrapNodes(nodes, cycle).length };
@@ -269,13 +272,13 @@ function evaluate(points: Point[], bag: ChainShape[], cycle: ChainShape[]): Cand
 export function generateChain(): ChainPuzzleData {
   let best: Candidate | null = null;
 
-  for (let attempt = 0; attempt < 60; attempt++) {
+  for (let attempt = 0; attempt < 24; attempt++) {
     const points = samplePoints();
     if (!points || !layoutIsSpread(points)) continue;
 
     // Keep the scatter and try shape labellings on it: how many routes a board
     // offers depends far more on which node is which shape than on the spread.
-    for (let labelling = 0; labelling < 12; labelling++) {
+    for (let labelling = 0; labelling < 8; labelling++) {
       const cycle = shuffled([...CHAIN_SHAPES]).slice(0, CHAIN_CYCLE);
       const candidate = evaluate(points, shuffled(shapeBag()), cycle);
       if (!candidate) continue;

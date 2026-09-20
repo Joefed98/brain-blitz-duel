@@ -85,7 +85,7 @@ function soloOrder(a: number, b: number): number {
   return Math.sign(a - b);
 }
 
-function solutionSwapsOrder(walls: Set<number>, start: GravityBalls, solution: GravityDir[]): boolean {
+export function solutionSwapsOrder(walls: Set<number>, start: GravityBalls, solution: GravityDir[]): boolean {
   let balls = start;
   let order = soloOrder(balls.a, balls.b);
   for (const dir of solution) {
@@ -180,12 +180,20 @@ export function generateGravity(): GravityPuzzleData {
   return fallbackBoard();
 }
 
-/** A hand-checked board, only ever used if 600 random draws all fail. */
+/**
+ * A hand-checked 10x10 board, only ever used if 400 random draws all fail.
+ * Verified by script: joint minimum is 18 tilts (within the wanted band),
+ * the shortest route uses ball-blocks-ball, and the two balls swap relative
+ * order along the way.
+ */
 function fallbackBoard(): GravityPuzzleData {
-  const walls = [2, 10, 18, 21, 27, 29, 34, 36, 43, 45, 50, 52, 58, 60];
-  const start = { a: 0, b: 7 };
-  const targetA = 56;
-  const targetB = 63;
+  const walls = [
+    8, 11, 15, 20, 24, 26, 27, 28, 30, 39, 40, 43, 48, 56, 59, 65, 67, 68, 69, 73, 81, 84, 89, 90,
+    92, 96,
+  ];
+  const start = { a: 60, b: 62 };
+  const targetA = 10;
+  const targetB = 29;
   const found = gravityMinimum(new Set(walls), start, targetA, targetB);
   return {
     type: "gravity",
