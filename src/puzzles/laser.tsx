@@ -252,7 +252,8 @@ function LaserBoard({
 /** Fixed intro example — never randomised. */
 function IntroExample() {
   // A 4x4 example: the beam runs right, turns down, turns left, and passes
-  // through all three gems on the way.
+  // through all the gems on the way (the real board uses four; this fixed
+  // example only needs three to make the idea clear).
   const gems = [2, 7, 14];
   const bombs = [9];
   const solution: MirrorPlacement[] = [
@@ -263,7 +264,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Place all five mirrors so one shot lights all three gems — and never touches a bomb.
+        Place all the mirrors so one shot lights every gem — and never touches a bomb.
       </p>
       <div style={{ width: 132 }}>
         <LaserBoard
@@ -280,7 +281,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Three shots. Fewer shots scores more. You have 45 seconds.
+        Three shots. Fewer shots scores more.
       </p>
     </div>
   );
