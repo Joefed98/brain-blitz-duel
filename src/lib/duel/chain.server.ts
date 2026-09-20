@@ -6,7 +6,7 @@
  * shape-valid crossing choice wherever crossing is geometrically possible.
  */
 
-import { random, shuffled } from "./random";
+import { shuffled } from "./random";
 import { chainRequired, chainWouldCross } from "./chain";
 import {
   CHAIN_CYCLE,
@@ -136,9 +136,8 @@ export function chainSolutionIsFair(
 }
 
 export function generateChain(): ChainPuzzleData {
-  // Start from a searched sparse-route template, then rotate/reflect it so
-  // rooms do not present the same visual orientation. The route count and
-  // crossing topology are invariant under these transforms.
+  // Start from a searched sparse-route template. Shape names are permuted per
+  // room without changing the verified route count or crossing topology.
   const template: ChainNode[] = [
     [77.4, 19.2, "circle"],
     [76, 26, "circle"],
@@ -161,19 +160,9 @@ export function generateChain(): ChainPuzzleData {
     [68.5, 82.5, "triangle"],
     [53.4, 92.8, "triangle"],
   ].map(([x, y, shape]) => ({ x: x as number, y: y as number, shape: shape as ChainShape }));
-  const turns = Math.floor(random() * 4);
-  const reflected = random() < 0.5;
-  const transform = (node: ChainNode): ChainNode => {
-    let x = reflected ? 100 - node.x : node.x;
-    let y = node.y;
-    for (let turn = 0; turn < turns; turn++) [x, y] = [100 - y, x];
-    return { ...node, x, y };
-  };
   const shapeOrder = shuffled([...CHAIN_SHAPES]);
   const shapeMap = new Map(CHAIN_SHAPES.map((shape, index) => [shape, shapeOrder[index]!]));
-  const nodes = template
-    .map(transform)
-    .map((node) => ({ ...node, shape: shapeMap.get(node.shape)! }));
+  const nodes = template.map((node) => ({ ...node, shape: shapeMap.get(node.shape)! }));
   const cycle = [shapeMap.get("circle")!, shapeMap.get("square")!, shapeMap.get("triangle")!];
   const solutions = collectChainSolutions(nodes, cycle, 8);
   const solution = solutions.find((candidate) => chainSolutionIsFair(nodes, cycle, candidate));
