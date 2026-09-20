@@ -378,6 +378,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Follow the cycle", detail: "— it repeats." },
       { action: "Keep your chain", detail: "from crossing itself." },
+      { action: "Tap Undo or Reset", detail: "to take links back — mistakes still count." },
     ],
     score: "Twelve links, fast, no mistakes.",
   },
