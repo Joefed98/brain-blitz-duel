@@ -862,7 +862,11 @@ const tilesSummary: SummaryBuilder = (result, puzzle) => {
     summary: result.is_correct
       ? `Solved · ${moves} moves${min ? ` (min ${min})` : ""} · ${seconds(elapsedMs(result, puzzle))}`
       : `${inPlace} / ${TILES_COUNT} in place`,
-    detail: [result.is_correct && min > 0 && moves <= min ? "Solved in the minimum" : `${moves} moves made`],
+    detail: [
+      result.is_correct && min > 0 && moves <= min
+        ? "Solved in the minimum"
+        : `${moves} moves made`,
+    ],
   };
 };
 
@@ -875,7 +879,11 @@ const ringsSummary: SummaryBuilder = (result, puzzle) => {
     summary: result.is_correct
       ? `Solved · ${moves} turns${min ? ` (min ${min})` : ""} · ${seconds(elapsedMs(result, puzzle))}`
       : `${aligned} / ${RINGS_SEGMENTS} spokes`,
-    detail: [result.is_correct && min > 0 && moves <= min ? "Solved in the minimum" : `${moves} turns made`],
+    detail: [
+      result.is_correct && min > 0 && moves <= min
+        ? "Solved in the minimum"
+        : `${moves} turns made`,
+    ],
   };
 };
 

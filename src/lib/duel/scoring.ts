@@ -779,10 +779,7 @@ export function scoreStroke(
 ): number {
   if (solved) {
     const bonus = solvedOn === 1 ? STROKE_FIRST_TRY_BONUS : 0;
-    return Math.min(
-      MAX_ROUND_SCORE,
-      BASE_POINTS + speedBonus(msRemaining, STROKE_TIME_MS) + bonus,
-    );
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, STROKE_TIME_MS) + bonus);
   }
   const share = total > 0 ? Math.round((STROKE_PARTIAL_POINTS * clamp(best, 0, total)) / total) : 0;
   return clamp(share, 0, STROKE_PARTIAL_POINTS);

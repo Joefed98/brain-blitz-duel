@@ -73,7 +73,10 @@ for (let round = 0; round < ROUNDS; round += 1) {
   );
   check(`stroke ${round}: connected`, strokeConnected(dots, edges));
   check(`stroke ${round}: euler parity`, [0, 2].includes(oddDots(dots, edges).length));
-  check(`stroke ${round}: a busy dot`, strokeDegrees(dots, edges).some((d) => d >= 4));
+  check(
+    `stroke ${round}: a busy dot`,
+    strokeDegrees(dots, edges).some((d) => d >= 4),
+  );
   check(`stroke ${round}: has a trap dot`, strokeTrapDots(dots, edges).length > 0);
 
   // No two edges cross, except where they share a dot.
@@ -148,7 +151,10 @@ for (let round = 0; round < ROUNDS; round += 1) {
       return counts.size === RINGS_COLOURS && [...counts.values()].every((n) => n === 2);
     }),
   );
-  check(`rings ${round}: starts unsolved`, alignedSpokes(segments, freshOffsets()).length < RINGS_SEGMENTS);
+  check(
+    `rings ${round}: starts unsolved`,
+    alignedSpokes(segments, freshOffsets()).length < RINGS_SEGMENTS,
+  );
   check(
     `rings ${round}: minimum in band`,
     (minMoves ?? 0) >= RINGS_MIN_TURNS && (minMoves ?? 0) <= RINGS_MAX_TURNS,
@@ -172,4 +178,6 @@ if (failures > 0) {
   console.error(`${failures} check(s) failed`);
   process.exit(1);
 }
-console.log(`All One-Stroke, Sliding Tiles and Rotating Rings checks passed (${ROUNDS} rounds each).`);
+console.log(
+  `All One-Stroke, Sliding Tiles and Rotating Rings checks passed (${ROUNDS} rounds each).`,
+);

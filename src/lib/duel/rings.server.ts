@@ -52,7 +52,12 @@ function buildBoard(): RingsPuzzleData | null {
 
   // Bake the scramble into the stored segments; the player always starts at 0.
   const segments = offsets.map((offset) => rotated(sequence, offset));
-  if (alignedSpokes(segments, Array.from({ length: RINGS_COUNT }, () => 0)).length >= RINGS_SEGMENTS) {
+  if (
+    alignedSpokes(
+      segments,
+      Array.from({ length: RINGS_COUNT }, () => 0),
+    ).length >= RINGS_SEGMENTS
+  ) {
     return null;
   }
 

@@ -83,9 +83,7 @@ function Figure({
         <span
           key={index}
           className={`absolute rounded-full border-2 ${
-            current === index
-              ? "animate-pulse border-primary bg-primary"
-              : "border-border bg-card"
+            current === index ? "animate-pulse border-primary bg-primary" : "border-border bg-card"
           }`}
           style={{
             width: dotSize,
@@ -147,10 +145,7 @@ function Stage({
   const [path, setPath] = useState<number[]>([]);
   const board = useRef<HTMLDivElement | null>(null);
   const submitted = useRef(false);
-  const live = useMemo(
-    () => (data ? replayStrokeAttempt(data.edges, path) : null),
-    [data, path],
-  );
+  const live = useMemo(() => (data ? replayStrokeAttempt(data.edges, path) : null), [data, path]);
 
   useEffect(() => {
     onDraftAnswer?.(encodeStrokeAttempts(attempts));
@@ -280,7 +275,8 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   const route = puzzle.solution ?? [];
   const walked = replayStrokeAttempt(puzzle.edges, route);
   walked.traced.forEach((edge, index) => numbers.set(edge, index + 1));
-  const ordinal = replay.solvedOn === 1 ? "1st" : replay.solvedOn === 2 ? "2nd" : `${replay.solvedOn}th`;
+  const ordinal =
+    replay.solvedOn === 1 ? "1st" : replay.solvedOn === 2 ? "2nd" : `${replay.solvedOn}th`;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">

@@ -113,10 +113,7 @@ export interface StrokeAttemptReplay {
 }
 
 /** Walks one attempt: a step only counts along an untraced, existing edge. */
-export function replayStrokeAttempt(
-  edges: StrokeEdge[],
-  attempt: number[],
-): StrokeAttemptReplay {
+export function replayStrokeAttempt(edges: StrokeEdge[], attempt: number[]): StrokeAttemptReplay {
   const used = new Set<number>();
   const traced: number[] = [];
   let at = attempt[0];

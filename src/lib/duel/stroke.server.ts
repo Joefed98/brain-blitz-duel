@@ -52,8 +52,7 @@ function crosses(dots: StrokeDot[], edges: StrokeEdge[], a: number, b: number): 
   // A third dot sitting on the line would look like a mis-drawn edge.
   return dots.some((dot, index) => {
     if (index === a || index === b) return false;
-    const cross =
-      (dot.x - from.x) * (to.y - from.y) - (dot.y - from.y) * (to.x - from.x);
+    const cross = (dot.x - from.x) * (to.y - from.y) - (dot.y - from.y) * (to.x - from.x);
     if (Math.abs(cross) > 1.5) return false;
     return (
       dot.x >= Math.min(from.x, to.x) - 0.5 &&

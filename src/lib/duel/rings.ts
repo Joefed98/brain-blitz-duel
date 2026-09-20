@@ -5,12 +5,7 @@
  * exactly this code.
  */
 
-import {
-  RINGS_COUNT,
-  RINGS_LINKED_FROM,
-  RINGS_LINKED_TO,
-  RINGS_SEGMENTS,
-} from "./types";
+import { RINGS_COUNT, RINGS_LINKED_FROM, RINGS_LINKED_TO, RINGS_SEGMENTS } from "./types";
 
 /** A tap is packed as ring × 2, plus one for anticlockwise. */
 export function encodeRingTap(ring: number, clockwise: boolean): number {
