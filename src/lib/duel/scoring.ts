@@ -142,24 +142,14 @@ export function scoreGroups(foundGroups: number, msRemaining: number): number {
   return foundGroups === 1 ? 20 : 0;
 }
 
-/**
- * Word Ladder: solved earns standard points, plus 20 for a minimum path. An
- * unfinished ladder scores on how close the last valid rung came to the end
- * word — one letter away 75, two 50, three 25, anything further nothing.
- */
+/** Word Ladder: solved earns standard points, plus 20 for a minimum path, capped at 150. */
 export function scoreWordLadder(
   solved: boolean,
   validRungs: number,
   shortestLength: number,
   msRemaining: number,
-  lettersAway: number,
 ): number {
-  if (!solved) {
-    if (lettersAway === 1) return 75;
-    if (lettersAway === 2) return 50;
-    if (lettersAway === 3) return 25;
-    return 0;
-  }
+  if (!solved) return validRungs >= 2 ? 30 : 0;
   const minimumBonus = validRungs === shortestLength ? 20 : 0;
   return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, 60_000) + minimumBonus);
 }
@@ -172,9 +162,8 @@ export function scoreNumberClimb(span: number, msRemaining: number): number {
 }
 
 /**
- * Target Number: an exact hit scores the standard 100 plus the speed bonus.
- * Anything else scores on how far from the target the expression landed, with
- * no speed bonus.
+ * Target Number: an exact hit scores the standard 100 plus the speed bonus,
+ * a near miss scores a flat amount, anything further away scores nothing.
  */
 export function scoreTargetNumber(
   distance: number,
@@ -182,27 +171,9 @@ export function scoreTargetNumber(
   timeLimitMs: number,
 ): number {
   if (distance === 0) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
-  if (distance === 1) return 90;
-  if (distance === 2) return 85;
-  if (distance <= 5) return 80;
-  if (distance <= 10) return 70;
-  if (distance <= 20) return 60;
-  if (distance <= 50) return 50;
+  if (distance <= 5) return TARGET_NEAR_POINTS;
+  if (distance <= 10) return TARGET_FAR_POINTS;
   return 0;
-}
-
-/**
- * Equation Balancing: the right operators score the standard points; otherwise
- * 30 a slot that matches the stored solution in the same position.
- */
-export function scoreEquation(
-  isCorrect: boolean,
-  matchingSlots: number,
-  msRemaining: number,
-  timeLimitMs: number,
-): number {
-  if (isCorrect) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
-  return clamp(30 * Math.max(0, Math.round(matchingSlots)), 0, 90);
 }
 
 /** Reaction Time only: a run is never wrong, so it always scores at least 100. */
@@ -259,13 +230,17 @@ export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): 
 }
 
 /**
- * Spot the Difference: all five found scores 100 plus the speed bonus; every
- * difference found short of that is worth 20.
+ * Spot the Difference: all three found scores 100 plus the speed bonus; a
+ * partial find is worth a flat 60 or 30.
  */
 export function scoreSpotDifference(foundCount: number, msRemaining: number): number {
   const found = clamp(Math.round(foundCount), 0, SPOT_DIFFERENCES);
   if (found >= SPOT_DIFFERENCES) return BASE_POINTS + speedBonus(msRemaining, SPOT_TIME_MS);
-  return 20 * found;
+  if (found === 4) return SPOT_FOUR_POINTS;
+  if (found === 3) return SPOT_THREE_POINTS;
+  if (found === 2) return SPOT_TWO_POINTS;
+  if (found === 1) return SPOT_ONE_POINTS;
+  return 0;
 }
 
 /** Pattern Completion: partial credit per board; speed only rewards a perfect set. */
@@ -276,13 +251,12 @@ export function scorePatternCompletion(correctCount: number, msRemaining: number
   );
 }
 
-/** Word Match: all eight score 100 plus the speed bonus, otherwise 14 each. */
+/** Word Match: accuracy out of 100, plus the speed bonus on a flawless run. */
 export function scoreWordMatch(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, WORDMATCH_ITEMS);
-  if (correct >= WORDMATCH_ITEMS) {
-    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, WORDMATCH_TIME_MS));
-  }
-  return 14 * correct;
+  const accuracy = Math.round((BASE_POINTS * correct) / WORDMATCH_ITEMS);
+  const bonus = correct >= WORDMATCH_ITEMS ? speedBonus(msRemaining, WORDMATCH_TIME_MS) : 0;
+  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
 /** Percent Sprint: accuracy out of 100, plus the speed bonus on a flawless run. */
@@ -293,10 +267,10 @@ export function scorePercentSprint(correctCount: number, msRemaining: number): n
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
-/** Number Sequence: 20 a sequence, plus the speed bonus for all five. */
+/** Number Sequence: accuracy out of 100, plus the speed bonus on a flawless run. */
 export function scoreNumberSequence(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, NUMSEQ_ITEMS);
-  const accuracy = 20 * correct;
+  const accuracy = Math.round((BASE_POINTS * correct) / NUMSEQ_ITEMS);
   const bonus = correct >= NUMSEQ_ITEMS ? speedBonus(msRemaining, NUMSEQ_TIME_MS) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
@@ -495,9 +469,11 @@ export function playerBreakdown(
   });
 }
 
-/** Wordsmith and Word Hunt: exactly the word points earned, capped at 150. */
-export function scoreWordPoints(points: number): number {
-  return clamp(Math.round(points), 0, MAX_ROUND_SCORE);
+/** Word Hunt: the same points-against-par curve Wordsmith uses. */
+export function scoreWordHunt(points: number, par: number): number {
+  if (points <= 0) return 0;
+  const target = par > 0 ? par : 1;
+  return Math.min(MAX_ROUND_SCORE, Math.round((MAX_ROUND_SCORE * points) / target));
 }
 
 /** Unblock: solved scores 100 plus the speed bonus, plus 20 for a perfect run. */
@@ -528,44 +504,31 @@ export function scoreBlockParty(solved: boolean, msRemaining: number, covered: n
 /*  Logic types                                                                */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Lights Out: clearing the board scores the standard points, +20 for the
- * minimum. Otherwise a handful of lights left on still scores well; a board
- * further out only earns credit for taps that belong to the stored solution.
- */
+/** Lights Out: clearing the board scores the standard points, +20 for the minimum. */
 export function scoreLightsOut(
   solved: boolean,
-  presses: number[],
+  presses: number,
   minPresses: number,
   msRemaining: number,
-  lightsLeftOn: number,
-  solution: number[],
+  lightsOff: number,
+  lightsAtStart: number,
 ): number {
   if (solved) {
-    const bonus = minPresses > 0 && presses.length === minPresses ? LIGHTS_MIN_BONUS : 0;
+    const bonus = minPresses > 0 && presses === minPresses ? LIGHTS_MIN_BONUS : 0;
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, LIGHTS_TIME_MS) + bonus);
   }
-  if (lightsLeftOn === 1) return 85;
-  if (lightsLeftOn === 2) return 75;
-  if (lightsLeftOn === 3) return 60;
-  if (lightsLeftOn === 4) return 50;
-  const counts = new Map<number, number>();
-  for (const cell of presses) counts.set(cell, (counts.get(cell) ?? 0) + 1);
-  const correctTaps = new Set(solution).size
-    ? [...new Set(solution)].filter((cell) => (counts.get(cell) ?? 0) % 2 === 1).length
-    : 0;
-  return clamp(5 * correctTaps, 0, 45);
+  const start = Math.max(1, lightsAtStart);
+  return clamp(Math.round((LIGHTS_PARTIAL_POINTS * lightsOff) / start), 0, LIGHTS_PARTIAL_POINTS);
 }
 
-/** Pipes: a fully connected network scores the standard points, else by how many joined. */
+/** Pipes: a fully connected network scores the standard points. */
 export function scorePipes(solved: boolean, connected: number, msRemaining: number): number {
   if (solved) return BASE_POINTS + speedBonus(msRemaining, PIPES_TIME_MS);
-  const joined = clamp(Math.round(connected), 0, PIPES_CELLS);
-  if (joined >= PIPES_CELLS) return BASE_POINTS;
-  if (joined === 35) return 95;
-  if (joined === 34) return 90;
-  if (joined >= 19) return 85 - 5 * Math.floor((33 - joined) / 2);
-  return 2 * joined;
+  return clamp(
+    Math.round((PIPES_PARTIAL_POINTS * connected) / PIPES_CELLS),
+    0,
+    PIPES_PARTIAL_POINTS,
+  );
 }
 
 /** Mini Sudoku: a finished, rule-correct grid scores the standard points. */
