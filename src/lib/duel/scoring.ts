@@ -840,3 +840,17 @@ export function scoreRings(
     RINGS_PARTIAL_POINTS,
   );
 }
+
+/**
+ * Equation Balance: the right equation scores the standard points; otherwise
+ * thirty points for every symbol placed in the right slot.
+ */
+export function scoreEquation(
+  solved: boolean,
+  correctSymbols: number,
+  msRemaining: number,
+  timeLimitMs: number,
+): number {
+  if (solved) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
+  return clamp(30 * Math.max(0, Math.round(correctSymbols)), 0, BASE_POINTS);
+}
