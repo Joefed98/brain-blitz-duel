@@ -456,4 +456,22 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Clear the gates for points, +40 for surviving the whole run.",
   },
+  swerve: {
+    goal: "Collect coins while dodging the blocks.",
+    how: [
+      { action: "Tap left or right", detail: "to swerve one lane that way." },
+      { action: "Hit a block", detail: "and the run ends." },
+      { action: "Everyone drives", detail: "the same course for sixty seconds." },
+    ],
+    score: "Coins earn points, +40 for surviving the whole run.",
+  },
+  skyline: {
+    goal: "Stack the blocks as high as you can.",
+    how: [
+      { action: "Tap to drop", detail: "the sliding block onto the tower." },
+      { action: "Overhang is cut", detail: "so the next block is narrower." },
+      { action: "Line it up exactly", detail: "and the block grows back a little." },
+    ],
+    score: "Each block scores, perfect drops score extra, +40 for lasting the run.",
+  },
 };

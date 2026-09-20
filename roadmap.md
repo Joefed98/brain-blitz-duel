@@ -33,3 +33,8 @@
 ## Hover integrity
 
 - [x] Integer-only shared constants, 300-tick client/server state checksums, first-desync reporting, and 200-run path equivalence proof.
+
+## Arcade category
+
+- [x] New "arcade" category with a host toggle (on by default, remembered per host, one arcade round in rounds 2-6, none when off); Hover moved into it.
+- [x] Added Swerve and Skyline on the shared deterministic engine: seeded integer fixed-point sims, sim-tick input logs, server replay scoring, 300-tick checkpoints, client-lag handling, fixed instructions/reveals/summaries. Proof script: scripts/arcade-check.ts.

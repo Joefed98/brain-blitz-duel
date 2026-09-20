@@ -263,7 +263,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 export const hoverPuzzle: PuzzleDefinition = {
   key: "hover",
   name: "Hover",
-  category: "speed",
+  category: "arcade",
   timeLimitMs: (HOVER_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
   generate: () => ({ type: "hover", seed: 1 }) satisfies HoverPuzzleData,

@@ -47,6 +47,9 @@ import { oneStrokePuzzle } from "@/puzzles/oneStroke";
 import { slidingTilesPuzzle } from "@/puzzles/slidingTiles";
 import { rotatingRingsPuzzle } from "@/puzzles/rotatingRings";
 import { hoverPuzzle } from "@/puzzles/hover";
+import { swervePuzzle } from "@/puzzles/swerve";
+import { skylinePuzzle } from "@/puzzles/skyline";
+
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import {
@@ -86,6 +89,9 @@ export const CORE_CATEGORIES: PuzzleCategory[] = ["logic", "pattern", "speed", "
 /** Only drawn when the host switches them on in the lobby. */
 export const OPT_IN_CATEGORIES: PuzzleCategory[] = ["number", "memory"];
 
+/** The arcade pool: one round at most, and only when the host toggle is on. */
+export const ARCADE_CATEGORY: PuzzleCategory = "arcade";
+
 /** Weighting for a core category filling an extra round. */
 export const CORE_SIXTH_WEIGHTS: Record<PuzzleCategory, number> = {
   logic: 0.35,
@@ -95,6 +101,7 @@ export const CORE_SIXTH_WEIGHTS: Record<PuzzleCategory, number> = {
   word: 0.05,
   number: 0,
   memory: 0,
+  arcade: 0,
 };
 
 /** Never drawn in rooms; still playable in practice. */
@@ -158,6 +165,8 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   tiles: slidingTilesPuzzle,
   rings: rotatingRingsPuzzle,
   hover: hoverPuzzle,
+  swerve: swervePuzzle,
+  skyline: skylinePuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

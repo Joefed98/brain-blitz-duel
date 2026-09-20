@@ -69,6 +69,8 @@ import {
   RINGS_SEGMENTS,
   RINGS_TIME_MS,
   HOVER_TIME_MS,
+  SWERVE_TIME_MS,
+  SKYLINE_TIME_MS,
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -84,6 +86,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   tiles: TILES_TIME_MS,
   rings: RINGS_TIME_MS,
   hover: HOVER_TIME_MS,
+  swerve: SWERVE_TIME_MS,
+  skyline: SKYLINE_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -907,6 +911,40 @@ const hoverSummary: SummaryBuilder = (result) => {
   };
 };
 
+const swerveSummary: SummaryBuilder = (result) => {
+  const coins = Number(result.extra?.["coins"] ?? 0);
+  const total = Number(result.extra?.["totalCoins"] ?? 0);
+  const survived = result.extra?.["survived"] === true;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: survived
+      ? `${coins} / ${total} coins · survived`
+      : `${coins} / ${total} coins · crashed at ${ended.toFixed(1)}s`,
+    detail: [
+      survived ? "Drove the whole run" : "Run ended early",
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
+const skylineSummary: SummaryBuilder = (result) => {
+  const blocks = Number(result.extra?.["blocks"] ?? 0);
+  const perfects = Number(result.extra?.["perfects"] ?? 0);
+  const survived = result.extra?.["survived"] === true;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: survived
+      ? `${blocks} blocks · ${perfects} perfect · survived`
+      : `${blocks} blocks · missed at ${ended.toFixed(1)}s`,
+    detail: [
+      `${perfects} perfect drop${perfects === 1 ? "" : "s"}`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
 const ringsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "rings") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);
@@ -974,6 +1012,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   tiles: tilesSummary,
   rings: ringsSummary,
   hover: hoverSummary,
+  swerve: swerveSummary,
+  skyline: skylineSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1032,5 +1072,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   stroke: (p) => (p.type === "stroke" ? `${p.edges.length} lines, one stroke` : null),
   tiles: (p) => (p.type === "tiles" && p.minMoves ? `${p.minMoves} moves` : null),
   hover: () => null,
+  swerve: () => null,
+  skyline: () => null,
+
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };

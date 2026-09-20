@@ -173,7 +173,7 @@ async function createRoomRow(
   client: any,
   userId: string,
   displayName: string,
-  modes: { addMaths?: boolean; addMemory?: boolean } = {},
+  modes: { addMaths?: boolean; addMemory?: boolean; addArcade?: boolean } = {},
 ): Promise<DuelRow> {
   for (let attempt = 0; attempt < 8; attempt++) {
     const { data, error } = await client
@@ -187,6 +187,9 @@ async function createRoomRow(
         round_order: [],
         add_maths: modes.addMaths === true,
         add_memory: modes.addMemory === true,
+        // Arcade is on unless the host has switched it off.
+        add_arcade: modes.addArcade !== false,
+
         puzzles_public: [],
         current_round: 0,
       })
@@ -336,7 +339,19 @@ export const createRoomFn = createServerFn({ method: "POST" })
   .inputValidator((input: { displayName: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    const room = await createRoomRow(client, context.userId, data.displayName);
+    // The host's toggles carry over from their last room; arcade starts on.
+    const { data: previous } = await client
+      .from("duels")
+      .select("add_maths, add_memory, add_arcade")
+      .eq("host_user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const room = await createRoomRow(client, context.userId, data.displayName, {
+      addMaths: previous?.add_maths === true,
+      addMemory: previous?.add_memory === true,
+      addArcade: previous ? previous.add_arcade !== false : true,
+    });
     return { roomId: room.id, roomCode: room.room_code };
   });
 
@@ -397,16 +412,19 @@ export const startRoomFn = createServerFn({ method: "POST" })
     const lastGoNoGoFirst = await previousGoNoGoFirst(client, room, room.host_user_id);
     const addMaths = room.add_maths === true;
     const addMemory = room.add_memory === true;
+    const addArcade = room.add_arcade !== false;
     const { roundOrder, puzzles } = buildRoomPuzzles({
       rounds: room.round_count ?? TOTAL_ROUNDS,
       recent,
       addMaths,
       addMemory,
+      addArcade,
       previousGoNoGoFirst: lastGoNoGoFirst as never,
     });
     console.log(
-      `[room-selection] room=${room.room_code} addMaths=${addMaths} addMemory=${addMemory} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
+      `[room-selection] room=${room.room_code} addMaths=${addMaths} addMemory=${addMemory} addArcade=${addArcade} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
     );
+
     const split = puzzles.map(splitPuzzle);
     const startedAt = nowIso();
 
@@ -439,7 +457,9 @@ export const startRoomFn = createServerFn({ method: "POST" })
 /** Host only, in the lobby: turns the "Add maths" / "Add memory" pools on or off. */
 export const setRoomModesFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; addMaths: boolean; addMemory: boolean }) => input)
+  .inputValidator(
+    (input: { roomId: string; addMaths: boolean; addMemory: boolean; addArcade: boolean }) => input,
+  )
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
@@ -452,14 +472,16 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
     }
     const addMaths = data.addMaths === true;
     const addMemory = data.addMemory === true;
+    const addArcade = data.addArcade === true;
     await client
       .from("duels")
-      .update({ add_maths: addMaths, add_memory: addMemory })
+      .update({ add_maths: addMaths, add_memory: addMemory, add_arcade: addArcade })
       .eq("id", room.id)
       .eq("status", "waiting");
     console.log(
-      `[room-selection] room=${room.room_code} modes addMaths=${addMaths} addMemory=${addMemory}`,
+      `[room-selection] room=${room.room_code} modes addMaths=${addMaths} addMemory=${addMemory} addArcade=${addArcade}`,
     );
+
     return { ok: true as const };
   });
 
@@ -824,6 +846,7 @@ export const rematchFn = createServerFn({ method: "POST" })
     const fresh = await createRoomRow(client, context.userId, host?.display_name ?? "Player", {
       addMaths: room.add_maths === true,
       addMemory: room.add_memory === true,
+      addArcade: room.add_arcade !== false,
     });
     let slot = 2;
     for (const player of rest) {

@@ -1,0 +1,1 @@
+ALTER TABLE public.duels ADD COLUMN IF NOT EXISTS add_arcade boolean NOT NULL DEFAULT true;

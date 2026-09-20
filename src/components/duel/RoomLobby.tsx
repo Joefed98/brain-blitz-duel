@@ -18,7 +18,9 @@ function Crown() {
 interface RoomLobbyProps {
   addMaths: boolean;
   addMemory: boolean;
-  onModesChange: (modes: { addMaths: boolean; addMemory: boolean }) => void;
+  addArcade: boolean;
+  onModesChange: (modes: { addMaths: boolean; addMemory: boolean; addArcade: boolean }) => void;
+
   players: DuelPlayerRow[];
   hostUserId: string | null;
   meUserId: string;
@@ -35,6 +37,8 @@ export function RoomLobby({
   players,
   addMaths,
   addMemory,
+  addArcade,
+
   onModesChange,
   hostUserId,
   meUserId,
@@ -105,6 +109,7 @@ export function RoomLobby({
           {[
             { label: "Add maths", value: addMaths, key: "addMaths" as const },
             { label: "Add memory", value: addMemory, key: "addMemory" as const },
+            { label: "Add arcade", value: addArcade, key: "addArcade" as const },
           ].map((mode) => (
             <button
               key={mode.key}
@@ -115,6 +120,7 @@ export function RoomLobby({
                 onModesChange({
                   addMaths: mode.key === "addMaths" ? !addMaths : addMaths,
                   addMemory: mode.key === "addMemory" ? !addMemory : addMemory,
+                  addArcade: mode.key === "addArcade" ? !addArcade : addArcade,
                 })
               }
               className="press tap-target flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3"
@@ -136,7 +142,7 @@ export function RoomLobby({
         </div>
       ) : null}
 
-      {(addMaths || addMemory) && (
+      {(addMaths || addMemory || addArcade) && (
         <div className="flex flex-wrap justify-center gap-2">
           {addMaths && (
             <span className="rounded-full border border-border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -146,6 +152,11 @@ export function RoomLobby({
           {addMemory && (
             <span className="rounded-full border border-border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               + memory
+            </span>
+          )}
+          {addArcade && (
+            <span className="rounded-full border border-border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              + arcade
             </span>
           )}
         </div>
