@@ -142,14 +142,24 @@ export function scoreGroups(foundGroups: number, msRemaining: number): number {
   return foundGroups === 1 ? 20 : 0;
 }
 
-/** Word Ladder: solved earns standard points, plus 20 for a minimum path, capped at 150. */
+/**
+ * Word Ladder: solved earns standard points, plus 20 for a minimum path.
+ * Otherwise credit is how close the last good rung got to the target word:
+ * one letter away 75, two 50, three 25, further away nothing.
+ */
 export function scoreWordLadder(
   solved: boolean,
   validRungs: number,
   shortestLength: number,
   msRemaining: number,
+  lettersAway = 4,
 ): number {
-  if (!solved) return validRungs >= 2 ? 30 : 0;
+  if (!solved) {
+    if (lettersAway === 1) return 75;
+    if (lettersAway === 2) return 50;
+    if (lettersAway === 3) return 25;
+    return 0;
+  }
   const minimumBonus = validRungs === shortestLength ? 20 : 0;
   return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, 60_000) + minimumBonus);
 }
@@ -171,8 +181,12 @@ export function scoreTargetNumber(
   timeLimitMs: number,
 ): number {
   if (distance === 0) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
-  if (distance <= 5) return TARGET_NEAR_POINTS;
-  if (distance <= 10) return TARGET_FAR_POINTS;
+  if (distance === 1) return 90;
+  if (distance === 2) return 85;
+  if (distance <= 5) return 80;
+  if (distance <= 10) return 70;
+  if (distance <= 20) return 60;
+  if (distance <= 50) return 50;
   return 0;
 }
 
@@ -236,11 +250,7 @@ export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): 
 export function scoreSpotDifference(foundCount: number, msRemaining: number): number {
   const found = clamp(Math.round(foundCount), 0, SPOT_DIFFERENCES);
   if (found >= SPOT_DIFFERENCES) return BASE_POINTS + speedBonus(msRemaining, SPOT_TIME_MS);
-  if (found === 4) return SPOT_FOUR_POINTS;
-  if (found === 3) return SPOT_THREE_POINTS;
-  if (found === 2) return SPOT_TWO_POINTS;
-  if (found === 1) return SPOT_ONE_POINTS;
-  return 0;
+  return 20 * found;
 }
 
 /** Pattern Completion: partial credit per board; speed only rewards a perfect set. */
@@ -254,9 +264,10 @@ export function scorePatternCompletion(correctCount: number, msRemaining: number
 /** Word Match: accuracy out of 100, plus the speed bonus on a flawless run. */
 export function scoreWordMatch(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, WORDMATCH_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / WORDMATCH_ITEMS);
-  const bonus = correct >= WORDMATCH_ITEMS ? speedBonus(msRemaining, WORDMATCH_TIME_MS) : 0;
-  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+  if (correct >= WORDMATCH_ITEMS) {
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, WORDMATCH_TIME_MS));
+  }
+  return 14 * correct;
 }
 
 /** Percent Sprint: accuracy out of 100, plus the speed bonus on a flawless run. */
@@ -270,7 +281,7 @@ export function scorePercentSprint(correctCount: number, msRemaining: number): n
 /** Number Sequence: accuracy out of 100, plus the speed bonus on a flawless run. */
 export function scoreNumberSequence(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, NUMSEQ_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / NUMSEQ_ITEMS);
+  const accuracy = 20 * correct;
   const bonus = correct >= NUMSEQ_ITEMS ? speedBonus(msRemaining, NUMSEQ_TIME_MS) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
@@ -470,10 +481,8 @@ export function playerBreakdown(
 }
 
 /** Word Hunt: the same points-against-par curve Wordsmith uses. */
-export function scoreWordHunt(points: number, par: number): number {
-  if (points <= 0) return 0;
-  const target = par > 0 ? par : 1;
-  return Math.min(MAX_ROUND_SCORE, Math.round((MAX_ROUND_SCORE * points) / target));
+export function scoreWordHunt(points: number): number {
+  return Math.max(0, Math.round(points));
 }
 
 /** Unblock: solved scores 100 plus the speed bonus, plus 20 for a perfect run. */
@@ -517,18 +526,29 @@ export function scoreLightsOut(
     const bonus = minPresses > 0 && presses === minPresses ? LIGHTS_MIN_BONUS : 0;
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, LIGHTS_TIME_MS) + bonus);
   }
-  const start = Math.max(1, lightsAtStart);
-  return clamp(Math.round((LIGHTS_PARTIAL_POINTS * lightsOff) / start), 0, LIGHTS_PARTIAL_POINTS);
+  // One light left earns 85, two 75, three 60, four 50; beyond that it is
+  // five points for every light the player did manage to switch off.
+  const start = Math.max(0, Math.round(lightsAtStart));
+  const off = clamp(Math.round(lightsOff), 0, start);
+  const left = start - off;
+  if (left === 1) return 85;
+  if (left === 2) return 75;
+  if (left === 3) return 60;
+  if (left === 4) return 50;
+  return clamp(5 * off, 0, BASE_POINTS);
 }
 
 /** Pipes: a fully connected network scores the standard points. */
 export function scorePipes(solved: boolean, connected: number, msRemaining: number): number {
   if (solved) return BASE_POINTS + speedBonus(msRemaining, PIPES_TIME_MS);
-  return clamp(
-    Math.round((PIPES_PARTIAL_POINTS * connected) / PIPES_CELLS),
-    0,
-    PIPES_PARTIAL_POINTS,
-  );
+  const joined = clamp(Math.round(connected), 0, PIPES_CELLS);
+  // 35 of 36 earns 95, then five points fewer for every two pipes missed,
+  // down to 19 joined. Below that it is two points per joined pipe.
+  if (joined <= 18) return 2 * joined;
+  if (joined >= PIPES_CELLS - 1) return 95;
+  if (joined >= PIPES_CELLS - 2) return 90;
+  const steps = Math.floor((PIPES_CELLS - 3 - joined) / 2);
+  return clamp(85 - 5 * steps, 0, BASE_POINTS);
 }
 
 /** Mini Sudoku: a finished, rule-correct grid scores the standard points. */
@@ -637,7 +657,8 @@ export function scoreTower(
 /** Maze Dash: reaching the exit scores the standard points, else part marks. */
 export function scoreMaze(solved: boolean, progress: number, msRemaining: number): number {
   if (solved) return BASE_POINTS + speedBonus(msRemaining, MAZE_TIME_MS);
-  return clamp(Math.round(MAZE_PARTIAL_POINTS * clamp(progress, 0, 1)), 0, MAZE_PARTIAL_POINTS);
+  // Unfinished runs score the exact percentage of the route completed.
+  return clamp(Math.round(BASE_POINTS * clamp(progress, 0, 1)), 0, BASE_POINTS);
 }
 
 /** Sort the Tubes: solved scores the standard points, +20 for the minimum. */
@@ -652,11 +673,8 @@ export function scoreTubes(
     const bonus = minMoves > 0 && moves <= minMoves ? TUBES_MIN_MOVE_BONUS : 0;
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, TUBES_TIME_MS) + bonus);
   }
-  return clamp(
-    Math.round((TUBES_PARTIAL_POINTS * sortedTubes) / TUBES_COLOURS),
-    0,
-    TUBES_PARTIAL_POINTS,
-  );
+  // Ten points for every tube finished in a single colour.
+  return clamp(10 * Math.round(sortedTubes), 0, BASE_POINTS);
 }
 
 /** Safe Cracker: the first try scores most, the third least. */
@@ -800,11 +818,8 @@ export function scoreTiles(
     const bonus = minMoves > 0 && moves <= minMoves ? TILES_MIN_BONUS : 0;
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, TILES_TIME_MS) + bonus);
   }
-  return clamp(
-    Math.round((TILES_PARTIAL_POINTS * clamp(inPlace, 0, TILES_COUNT)) / TILES_COUNT),
-    0,
-    TILES_PARTIAL_POINTS,
-  );
+  // Fourteen points for every tile sitting in its right place at the end.
+  return clamp(14 * clamp(inPlace, 0, TILES_COUNT), 0, BASE_POINTS);
 }
 
 /** Rotating Rings: lining up the spokes scores, with a bonus for the minimum. */
@@ -824,4 +839,18 @@ export function scoreRings(
     0,
     RINGS_PARTIAL_POINTS,
   );
+}
+
+/**
+ * Equation Balance: the right equation scores the standard points; otherwise
+ * thirty points for every symbol placed in the right slot.
+ */
+export function scoreEquation(
+  solved: boolean,
+  correctSymbols: number,
+  msRemaining: number,
+  timeLimitMs: number,
+): number {
+  if (solved) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
+  return clamp(30 * Math.max(0, Math.round(correctSymbols)), 0, BASE_POINTS);
 }
