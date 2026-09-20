@@ -752,6 +752,8 @@ export function gradeSubmission(
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
         inputs: decodeHoverRun(answer).inputs,
         claimedScore: decodeHoverRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),

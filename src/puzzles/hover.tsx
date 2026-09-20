@@ -60,6 +60,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const crashedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
 
+  // Callbacks and the lock live in refs so the loop is never torn down and
+  // restarted mid-run: a restart used to reset the accumulator and drop the
+  // elapsed time with it, which is how the sim fell behind the wall clock.
+  const lockedRef = useRef(locked);
+  const submitRef = useRef(onSubmit);
+  const draftRef = useRef(onDraftAnswer);
+  lockedRef.current = locked;
+  submitRef.current = onSubmit;
+  draftRef.current = onDraftAnswer;
+
+  const encode = (): string =>
+    encodeHoverRun({
+      seed,
+      claimedScore: hoverGame.score(state.current),
+      inputs: inputs.current,
+      // The tick the sim actually reached: the server ends the run here.
+      endTick: state.current.tick,
+    });
+
   // One run per seed: a room update mid-round must not restart the sim.
   useEffect(() => {
     state.current = hoverGame.init(seed);
@@ -75,21 +94,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let frame = 0;
     let last = performance.now();
     let accumulator = 0;
+    let draftAt = 0;
+    // Dev-only tick-rate probe.
+    let secondAt = last;
+    let ticksThisSecond = 0;
 
     const finish = () => {
       if (submitted.current) return;
       submitted.current = true;
-      const run = {
-        seed,
-        claimedScore: hoverGame.score(state.current),
-        inputs: inputs.current,
-      };
-      onSubmit(encodeHoverRun(run));
-    };
-
-    const render = () => {
-      const size = sizeCanvas();
-      if (size) hoverGame.draw(canvasContext()!, state.current, size);
+      submitRef.current(encode());
     };
 
     const loop = (time: number) => {
@@ -97,24 +110,43 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const delta = time - last;
       last = time;
 
-      if (!hoverGame.isOver(state.current) && !locked) {
+      if (!hoverGame.isOver(state.current) && !lockedRef.current) {
         accumulator += delta;
-        // Whole ticks only, capped so a stall cannot run away with the sim.
         let ticks = Math.floor(accumulator / TICK_MS);
-        accumulator -= ticks * TICK_MS;
+        // Capped per frame, but the time above the cap stays in the accumulator
+        // and is spent on the following frames.
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
+        accumulator -= ticks * TICK_MS;
         for (let i = 0; i < ticks; i++) {
-          // A tap between ticks applies on the next tick.
+          // A tap between ticks applies on the next tick, logged as that sim
+          // tick — never a wall-clock reading.
           const tapped = pending.current > 0;
           if (tapped) pending.current -= 1;
-          const next = state.current.tick + 1;
-          if (tapped) inputs.current.push(next);
+          if (tapped) inputs.current.push(state.current.tick + 1);
           state.current = hoverGame.step(state.current, tapped);
+          ticksThisSecond += 1;
           if (hoverGame.isOver(state.current)) break;
         }
       }
 
-      render();
+      const size = sizeCanvas();
+      if (size) hoverGame.draw(canvasContext()!, state.current, size);
+
+      if (import.meta.env.DEV && time - secondAt >= 1000) {
+        const rate = (ticksThisSecond * 1000) / (time - secondAt);
+        console.log(
+          `[hover] ${rate.toFixed(1)} sim ticks/s · tick ${state.current.tick}/${HOVER_RUN_TICKS}`,
+        );
+        secondAt = time;
+        ticksThisSecond = 0;
+      }
+
+      // Keep a draft on the server side twice a second, so a phase timeout
+      // submits the taps and the tick reached so far.
+      if (!submitted.current && time - draftAt >= 500) {
+        draftAt = time;
+        draftRef.current?.(encode());
+      }
 
       if (hoverGame.isOver(state.current) && !submitted.current) {
         if (state.current.crashed) {
@@ -126,6 +158,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             finish();
           }
         } else {
+          // The sim reached tick 3600: submit at once, whatever the clock says.
           finish();
         }
       }
@@ -133,17 +166,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
     frame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frame);
-  }, [data, seed, locked, onSubmit]);
-
-  useEffect(() => {
-    onDraftAnswer?.(
-      encodeHoverRun({
-        seed,
-        claimedScore: hoverGame.score(state.current),
-        inputs: inputs.current,
-      }),
-    );
-  }, [onDraftAnswer, seed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, seed]);
 
   const canvasContext = () => canvas.current?.getContext("2d") ?? null;
 
@@ -151,7 +175,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const node = canvas.current;
     const box = wrap.current?.getBoundingClientRect();
     if (!node || !box || box.width < 1 || box.height < 1) return null;
-    const ratio = Math.min(window.devicePixelRatio || 1, 3);
+    // Capped at 2: a 3× buffer on a tall phone is over two million pixels a
+    // frame and starves the sim loop.
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
     const width = Math.round(box.width);
     const height = Math.round(box.height);
     if (node.width !== width * ratio || node.height !== height * ratio) {

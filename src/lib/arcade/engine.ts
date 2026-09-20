@@ -18,8 +18,11 @@ export const TICK_MS = 1000 / TICKS_PER_SECOND;
 /** Fixed-point unit: one pixel is 256 units. */
 export const FP_ONE = 256;
 
-/** At most six ticks of catch-up per drawn frame, so a stall cannot spiral. */
-export const MAX_CATCH_UP_TICKS = 6;
+/**
+ * At most twelve ticks of catch-up per drawn frame, so a stall cannot spiral.
+ * Time above the cap is carried forward by the caller, never discarded.
+ */
+export const MAX_CATCH_UP_TICKS = 12;
 
 /** Pixels (whole or with a fixed fraction) to fixed-point units. */
 export function fp(pixels: number): number {
@@ -122,13 +125,17 @@ export function replayArcadeRun<S>(
   game: ArcadeGame<S>,
   seed: number,
   inputs: number[],
+  /** Stop here instead of the full run — used when a phone lagged behind. */
+  untilTick?: number,
 ): ReplayOutcome<S> {
   const check = checkInputLog(inputs, game.runTicks);
   const taps = check.ok ? new Set(inputs) : new Set<number>();
+  const lastTick =
+    untilTick && untilTick > 0 ? Math.min(game.runTicks, Math.floor(untilTick)) : game.runTicks;
   let state = game.init(seed);
   let ticks = 0;
 
-  for (let tick = 1; tick <= game.runTicks; tick++) {
+  for (let tick = 1; tick <= lastTick; tick++) {
     state = game.step(state, taps.has(tick));
     ticks = tick;
     if (game.isOver(state)) break;
