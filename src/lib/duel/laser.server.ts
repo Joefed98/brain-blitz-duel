@@ -278,23 +278,38 @@ export function searchShortcuts(
     mirrors[free[a]!] = 0;
   }
 
-  // Four mirrors: every near miss found above, extended by one more mirror.
-  for (const carry of promising) {
-    for (let index = 0; index < carry.length; index += 2)
-      mirrors[carry[index]!] = carry[index + 1]!;
-    for (const cell of free) {
-      if (mirrors[cell]) continue;
-      for (let kind = 1 as 1 | 2; kind <= 2; kind++) {
-        mirrors[cell] = kind;
-        if (fire(null) && stopOnFirst) {
-          mirrors[cell] = 0;
-          for (let index = 0; index < carry.length; index += 2) mirrors[carry[index]!] = 0;
-          return { hit, tested };
+  // Four mirrors, then five, then however many more the tray allows: each pass
+  // extends last pass's near misses by one more mirror, and keeps its own near
+  // misses (lighting all but one gem) so the next pass can extend those in turn.
+  // This is not literally exhaustive above three mirrors, but a shot that only
+  // needs one more mirror to light every gem almost always already lights all
+  // but one, so nothing plausible slips through.
+  let extending = promising;
+  for (let level = 4; level <= LASER_MAX_MIRRORS - 1; level++) {
+    const found: number[][] = [];
+    for (const carry of extending) {
+      for (let index = 0; index < carry.length; index += 2)
+        mirrors[carry[index]!] = carry[index + 1]!;
+      for (const cell of free) {
+        if (mirrors[cell]) continue;
+        for (let kind = 1 as 1 | 2; kind <= 2; kind++) {
+          mirrors[cell] = kind;
+          const carried = [...carry, cell, kind];
+          if (fire(carried) && stopOnFirst) {
+            mirrors[cell] = 0;
+            for (let index = 0; index < carry.length; index += 2) mirrors[carry[index]!] = 0;
+            return { hit, tested };
+          }
+          if (found.length < LASER_PROMISING_CAP) {
+            const lit = walkPath(source, dir, blocked, bomb, gem, mirrors, null);
+            if (lit >= need - 1) found.push(carried);
+          }
         }
+        mirrors[cell] = 0;
       }
-      mirrors[cell] = 0;
+      for (let index = 0; index < carry.length; index += 2) mirrors[carry[index]!] = 0;
     }
-    for (let index = 0; index < carry.length; index += 2) mirrors[carry[index]!] = 0;
+    extending = found;
   }
 
   return { hit, tested };
