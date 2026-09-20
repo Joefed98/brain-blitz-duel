@@ -807,6 +807,49 @@ export function gradeSubmission(
       };
       break;
     }
+    case "bintoss": {
+      // Same rule as the other arcade games: only the server's replay scores.
+      const run = replayBinTossRun(puzzle.seed, answer);
+      isCorrect = run.perfect;
+      correctCount = run.baskets;
+      score = run.score;
+      extraDetail = {
+        baskets: run.baskets,
+        throws: run.throws,
+        results: run.results,
+        perfect: run.perfect,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBinTossRun(answer).events.length,
+        claimedScore: decodeBinTossRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "bullseye": {
+      const run = replayBullseyeRun(puzzle.seed, answer);
+      isCorrect = run.inner >= run.arrows;
+      correctCount = run.inner;
+      score = run.score;
+      extraDetail = {
+        total: run.total,
+        inner: run.inner,
+        arrows: run.arrows,
+        finished: run.finished,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBullseyeRun(answer).events.length,
+        claimedScore: decodeBullseyeRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
 
     case "equation": {
       // A true equation wins outright; otherwise every operator in the right
