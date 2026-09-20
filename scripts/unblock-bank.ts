@@ -12,7 +12,9 @@ const N = 7;
 const EXIT_ROW = 2;
 const MIN_MOVES = 15;
 const MAX_MOVES = 22;
-const WANTED = 120;
+const WANTED = Number(process.env["UNBLOCK_WANT"] ?? 120);
+/** Set by the parallel driver: write raw lines here instead of the bank file. */
+const RAW_OUT = process.env["UNBLOCK_OUT"];
 /** Abandon a layout whose search grows past this — it is too open to be tight. */
 const NODE_CAP = 200_000;
 
@@ -197,6 +199,12 @@ while (out.length < WANTED && tried < 2_000_000) {
   if (result.min < MIN_MOVES || result.min > MAX_MOVES) continue;
   out.push(`${line}|${result.min}|${encode(result.moves)}`);
   if (out.length % 5 === 0) console.log(`${out.length} layouts after ${tried} tries`);
+}
+
+if (RAW_OUT) {
+  writeFileSync(RAW_OUT, out.join("\n"));
+  console.log(`wrote ${out.length} layouts after ${tried} tries`);
+  process.exit(0);
 }
 
 const body = `/**
