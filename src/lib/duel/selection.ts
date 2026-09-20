@@ -50,7 +50,6 @@ export interface RoundSelectionOptions {
   addArcade?: boolean;
 }
 
-
 /** One type from a category, avoiding types already drawn and recent rooms. */
 function pickType(
   category: PuzzleCategory,
@@ -127,5 +126,4 @@ export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[
     if (arcade) order.splice(1 + randomBelow(order.length), 0, arcade);
   }
   return order;
-
 }

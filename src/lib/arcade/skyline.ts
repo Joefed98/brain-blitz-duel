@@ -70,7 +70,10 @@ export function skylineSpeed(placed: number): number {
 }
 
 function init(seed: number): SkylineState {
-  const base: SkylineBlock = { x: (SKYLINE_WORLD_RIGHT - SKYLINE_START_W) >> 1, w: SKYLINE_START_W };
+  const base: SkylineBlock = {
+    x: (SKYLINE_WORLD_RIGHT - SKYLINE_START_W) >> 1,
+    w: SKYLINE_START_W,
+  };
   // The seed decides which side the first block comes in from.
   const drawn = rngBelow(seed | 0, 2);
   const dir = drawn.value === 0 ? 1 : -1;
@@ -254,7 +257,12 @@ function draw(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSi
 
   if (state.perfectTick > 0 && state.tick - state.perfectTick < 12) {
     ctx.fillStyle = SKYLINE_FLASH;
-    ctx.fillRect(0, SKYLINE_WORLD_H - state.blocks.length * blockH + scroll - 2, SKYLINE_WORLD_W, 2);
+    ctx.fillRect(
+      0,
+      SKYLINE_WORLD_H - state.blocks.length * blockH + scroll - 2,
+      SKYLINE_WORLD_W,
+      2,
+    );
   }
 
   const remaining = Math.max(0, SKYLINE_RUN_TICKS - state.tick) / TICKS_PER_SECOND;

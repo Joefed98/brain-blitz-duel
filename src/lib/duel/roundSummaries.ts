@@ -71,7 +71,6 @@ import {
   HOVER_TIME_MS,
   SWERVE_TIME_MS,
   SKYLINE_TIME_MS,
-
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -89,7 +88,6 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   hover: HOVER_TIME_MS,
   swerve: SWERVE_TIME_MS,
   skyline: SKYLINE_TIME_MS,
-
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -947,7 +945,6 @@ const skylineSummary: SummaryBuilder = (result) => {
   };
 };
 
-
 const ringsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "rings") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);
@@ -1017,7 +1014,6 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   hover: hoverSummary,
   swerve: swerveSummary,
   skyline: skylineSummary,
-
 };
 
 function joinOperators(values: string[]): string {

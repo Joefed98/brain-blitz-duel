@@ -104,7 +104,6 @@ export const CORE_SIXTH_WEIGHTS: Record<PuzzleCategory, number> = {
   arcade: 0,
 };
 
-
 /** Never drawn in rooms; still playable in practice. */
 const RETIRED_TYPES = new Set<PuzzleType>([
   "groups",
@@ -168,7 +167,6 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   hover: hoverPuzzle,
   swerve: swervePuzzle,
   skyline: skylinePuzzle,
-
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

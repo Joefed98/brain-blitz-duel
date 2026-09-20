@@ -208,7 +208,11 @@ function step(state: SwerveState, input: SwerveInput): SwerveState {
   if (isOver(state)) return state;
 
   const tick = state.tick + 1;
-  const lane = clampInt(state.lane + (input === -1 ? -1 : input === 1 ? 1 : 0), 0, SWERVE_LANES - 1);
+  const lane = clampInt(
+    state.lane + (input === -1 ? -1 : input === 1 ? 1 : 0),
+    0,
+    SWERVE_LANES - 1,
+  );
   const target = SWERVE_LANE_X[lane]!;
   const x =
     state.x < target
@@ -245,8 +249,7 @@ function step(state: SwerveState, input: SwerveInput): SwerveState {
     if (row.coinLane >= 0 && index > lastCoinRow) {
       const centreY = top + (SWERVE_ROW_H >> 1);
       const nearY = Math.abs(centreY - SWERVE_CHEV_Y) < SWERVE_CHEV_HALF_H + SWERVE_COIN_R;
-      const nearX =
-        Math.abs(x - SWERVE_LANE_X[row.coinLane]!) < SWERVE_COIN_R + SWERVE_CHEV_HALF_W;
+      const nearX = Math.abs(x - SWERVE_LANE_X[row.coinLane]!) < SWERVE_COIN_R + SWERVE_CHEV_HALF_W;
       if (nearY && nearX) {
         coins += 1;
         lastCoinRow = index;

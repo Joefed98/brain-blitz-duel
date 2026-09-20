@@ -475,4 +475,3 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Each block scores, perfect drops score extra, +40 for lasting the run.",
   },
 };
-

@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-import { MAX_CATCH_UP_TICKS, TICK_MS, TICKS_PER_SECOND, type CanvasSize } from "@/lib/arcade/engine";
+import {
+  MAX_CATCH_UP_TICKS,
+  TICK_MS,
+  TICKS_PER_SECOND,
+  type CanvasSize,
+} from "@/lib/arcade/engine";
 import {
   skylineCheckpoint,
   skylineGame,

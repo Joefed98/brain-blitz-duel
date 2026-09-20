@@ -19,11 +19,7 @@ interface RoomLobbyProps {
   addMaths: boolean;
   addMemory: boolean;
   addArcade: boolean;
-  onModesChange: (modes: {
-    addMaths: boolean;
-    addMemory: boolean;
-    addArcade: boolean;
-  }) => void;
+  onModesChange: (modes: { addMaths: boolean; addMemory: boolean; addArcade: boolean }) => void;
 
   players: DuelPlayerRow[];
   hostUserId: string | null;
@@ -165,7 +161,6 @@ export function RoomLobby({
           )}
         </div>
       )}
-
 
       {isHost ? (
         <button

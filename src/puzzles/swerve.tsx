@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-import { MAX_CATCH_UP_TICKS, TICK_MS, TICKS_PER_SECOND, type CanvasSize } from "@/lib/arcade/engine";
+import {
+  MAX_CATCH_UP_TICKS,
+  TICK_MS,
+  TICKS_PER_SECOND,
+  type CanvasSize,
+} from "@/lib/arcade/engine";
 import {
   swerveCheckpoint,
   swerveGame,
@@ -14,7 +19,12 @@ import {
   type SwerveInput,
   type SwerveState,
 } from "@/lib/arcade/swerve";
-import { decodeSwerveRun, encodeSwerveRun, replaySwerveRun, type SwerveTap } from "@/lib/duel/swerve";
+import {
+  decodeSwerveRun,
+  encodeSwerveRun,
+  replaySwerveRun,
+  type SwerveTap,
+} from "@/lib/duel/swerve";
 import { ARCADE_CRASH_FREEZE_MS, type SwervePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playWrong } from "@/lib/sound";

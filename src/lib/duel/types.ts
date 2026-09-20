@@ -54,7 +54,6 @@ export type PuzzleType =
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
 
-
 /** Wordsmith: build as many words as you can from the tiles. */
 export const WORDSMITH_TIME_MS = 60_000;
 export const WORDSMITH_MIN_LENGTH = 4;
@@ -412,7 +411,6 @@ export type PuzzleData =
   | HoverPuzzleData
   | SwervePuzzleData
   | SkylinePuzzleData;
-
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1638,4 +1636,3 @@ export interface SkylinePuzzleData {
   /** Decides which side the first block slides in from. */
   seed: number;
 }
-

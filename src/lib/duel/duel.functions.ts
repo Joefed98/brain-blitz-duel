@@ -355,7 +355,6 @@ export const createRoomFn = createServerFn({ method: "POST" })
     return { roomId: room.id, roomCode: room.room_code };
   });
 
-
 export const joinRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomCode: string; displayName: string }) => input)
@@ -848,7 +847,6 @@ export const rematchFn = createServerFn({ method: "POST" })
       addMaths: room.add_maths === true,
       addMemory: room.add_memory === true,
       addArcade: room.add_arcade !== false,
-
     });
     let slot = 2;
     for (const player of rest) {
