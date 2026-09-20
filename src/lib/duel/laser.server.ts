@@ -575,6 +575,24 @@ export function generateLaser(): LaserPuzzleData {
     const proof = searchShortcuts(source, dir, blocks, bombs, gems, false);
     if (proof.hit) continue;
 
+    // Cheap fully-exhaustive gate: the heuristic above extends near-miss
+    // placements one mirror at a time and can miss a subset of the chosen
+    // solution's own six mirrors (dropping a mirror can turn a placement that
+    // was not a near miss under the extension order into one that still lights
+    // every gem). With only six mirrors there are just 64 subsets, so check
+    // every proper subset (one to five mirrors) of the solution itself
+    // directly and reject the board if any of them already lights all four
+    // gems.
+    let subsetEscape = false;
+    for (let mask = 1; mask < 63; mask++) {
+      const subset = route.bends.filter((_, index) => (mask & (1 << index)) !== 0);
+      if (traceBeam(source, dir, subset, blocks, bombs, gems).litAll) {
+        subsetEscape = true;
+        break;
+      }
+    }
+    if (subsetEscape) continue;
+
     const solutionTrace = traceBeam(source, dir, route.bends, blocks, bombs, gems);
     if (!solutionTrace.litAll || solutionTrace.hitBomb) continue;
 
