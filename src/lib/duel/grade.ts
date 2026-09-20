@@ -13,6 +13,8 @@ import { decodeTubeMoves, replayTubes } from "./tubes";
 import { dialsCorrect, decodeSafeTries, safeOpenedOn } from "./safe";
 import { decodeBombActions, replayBomb } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
+import { gravityDistance } from "./gravity.server";
+import { blockingCars, unblockDistance } from "./unblock.server";
 import { decodeChainTaps, replayChain } from "./chain";
 import { decodeIntruderTaps, replayIntruder } from "./intruder";
 import { decodeNonoCells, replayNonogram } from "./nonogram";
@@ -30,6 +32,8 @@ import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import {
   scoreGoNoGo,
   scoreGroups,
+  scoreEquation,
+  scoreCountUp,
   scoreWordLadder,
   scoreNumberClimb,
   scoreNumberHunt,
@@ -732,6 +736,29 @@ export function gradeSubmission(
         minMoves: puzzle.minMoves ?? 0,
         aligned: replay.aligned,
       };
+      break;
+    }
+    case "equation": {
+      // A true equation wins outright; otherwise every operator in the right
+      // place against the stored solution earns part marks.
+      const given = answer
+        .split(",")
+        .map((part) => part.trim())
+        .filter((part) => part.length > 0);
+      isCorrect = answer.length > 0 && checkAnswer(puzzle, answer);
+      const inPlace = puzzle.operators.filter((op, i) => given[i] === op).length;
+      correctCount = inPlace;
+      score = scoreEquation(isCorrect, inPlace, ms, timeLimitMs);
+      break;
+    }
+    case "countup": {
+      // The stored count decides everything; a near miss still scores.
+      const given = Number.parseInt(answer.trim(), 10);
+      const answered = Number.isFinite(given);
+      const total = puzzle.count ?? 0;
+      isCorrect = answered && given === total;
+      score = scoreCountUp(answered, answered ? given : 0, total, ms, timeLimitMs);
+      extraDetail = { away: answered ? Math.abs(given - total) : null };
       break;
     }
     default: {
