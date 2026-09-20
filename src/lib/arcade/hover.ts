@@ -95,10 +95,7 @@ function spawnPillar(state: HoverState, x: number): HoverState {
     ...state,
     rng: drawn.state,
     spawned: state.spawned + 1,
-    pillars: [
-      ...state.pillars,
-      { x, gapTop: fp(centre - half), gapH: fp(gapPx), scored: false },
-    ],
+    pillars: [...state.pillars, { x, gapTop: fp(centre - half), gapH: fp(gapPx), scored: false }],
   };
 }
 
@@ -129,7 +126,11 @@ function hits(pillar: HoverPillar, y: number): boolean {
 function step(state: HoverState, tapped: boolean): HoverState {
   if (isOver(state)) return state;
 
-  const vy = clampInt(tapped ? HOVER_IMPULSE : state.vy + HOVER_GRAVITY, -HOVER_TERMINAL, HOVER_TERMINAL);
+  const vy = clampInt(
+    tapped ? HOVER_IMPULSE : state.vy + HOVER_GRAVITY,
+    -HOVER_TERMINAL,
+    HOVER_TERMINAL,
+  );
   const y = state.y + vy;
   const tick = state.tick + 1;
 

@@ -87,7 +87,7 @@ export interface ArcadeGame<S> {
 export const MAX_INPUT_TAPS = 2000;
 
 export interface InputLogCheck {
-  ok: boolean
+  ok: boolean;
   reason?: string;
 }
 

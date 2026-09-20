@@ -69,7 +69,12 @@ for (let sample = 0; sample < 40; sample++) {
 if (checkInputLog([5, 5], HOVER_RUN_TICKS).ok) fail("repeated tick accepted");
 if (checkInputLog([9, 4], HOVER_RUN_TICKS).ok) fail("decreasing ticks accepted");
 if (checkInputLog([HOVER_RUN_TICKS + 1], HOVER_RUN_TICKS).ok) fail("tick past the run accepted");
-if (checkInputLog(Array.from({ length: 2001 }, (_, i) => i + 1), HOVER_RUN_TICKS).ok) {
+if (
+  checkInputLog(
+    Array.from({ length: 2001 }, (_, i) => i + 1),
+    HOVER_RUN_TICKS,
+  ).ok
+) {
   fail("over-long log accepted");
 }
 

@@ -138,7 +138,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   useEffect(() => {
     onDraftAnswer?.(
-      encodeHoverRun({ seed, claimedScore: hoverGame.score(state.current), inputs: inputs.current }),
+      encodeHoverRun({
+        seed,
+        claimedScore: hoverGame.score(state.current),
+        inputs: inputs.current,
+      }),
     );
   }, [onDraftAnswer, seed]);
 
