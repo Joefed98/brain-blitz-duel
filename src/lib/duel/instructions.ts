@@ -391,4 +391,31 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "All three right for the speed bonus.",
   },
+  nonogram: {
+    goal: "Fill the grid so every row and column matches its numbers.",
+    how: [
+      { action: "Tap to fill", detail: "a cell, tap again to mark it empty." },
+      { action: "Read the numbers", detail: "as the lengths of the filled runs, in order." },
+      { action: "A line dims", detail: "once it matches its numbers." },
+    ],
+    score: "Finish fast for the bonus.",
+  },
+  pairmatch: {
+    goal: "Find all eight matching pairs.",
+    how: [
+      { action: "Tap two cards", detail: "to turn them over." },
+      { action: "A match stays up", detail: "— a miss flips back." },
+      { action: "Remember", detail: "where everything was." },
+    ],
+    score: "Fewer flips earns a bonus.",
+  },
+  flood: {
+    goal: "Flood the whole board with one colour.",
+    how: [
+      { action: "Tap a colour", detail: "to change your region." },
+      { action: "Your region grows", detail: "into every touching cell of that colour." },
+      { action: "Start from the top-left", detail: "— that cell is always yours." },
+    ],
+    score: "Fewer moves earns a bonus; par is shown.",
+  },
 };

@@ -40,6 +40,9 @@ import { bombDefusalPuzzle } from "@/puzzles/bombDefusal";
 import { gravityMazePuzzle } from "@/puzzles/gravityMaze";
 import { chainTapPuzzle } from "@/puzzles/chainTap";
 import { intruderDetectionPuzzle } from "@/puzzles/intruderDetection";
+import { nonogramPuzzle } from "@/puzzles/nonogram";
+import { pairMatchPuzzle } from "@/puzzles/pairMatch";
+import { colourFloodPuzzle } from "@/puzzles/colourFlood";
 import type { PuzzleDefinition } from "@/puzzles/types";
 
 import {
@@ -142,6 +145,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   gravity: gravityMazePuzzle,
   chain: chainTapPuzzle,
   intruder: intruderDetectionPuzzle,
+  nonogram: nonogramPuzzle,
+  pairmatch: pairMatchPuzzle,
+  flood: colourFloodPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

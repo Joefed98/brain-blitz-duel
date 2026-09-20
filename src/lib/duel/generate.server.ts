@@ -27,6 +27,9 @@ import { generateBomb } from "./bomb.server";
 import { generateGravity } from "./gravity.server";
 import { generateChain } from "./chain.server";
 import { generateIntruder } from "./intruder.server";
+import { generateNonogram } from "./nonogram.server";
+import { generatePairMatch } from "./pairmatch.server";
+import { generateFlood } from "./flood.server";
 
 export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "wordsmith") return generateWordsmith();
@@ -50,6 +53,9 @@ export function generatePuzzle(type: PuzzleType): PuzzleData {
   if (type === "gravity") return generateGravity();
   if (type === "chain") return generateChain();
   if (type === "intruder") return generateIntruder();
+  if (type === "nonogram") return generateNonogram();
+  if (type === "pairmatch") return generatePairMatch();
+  if (type === "flood") return generateFlood();
   return puzzleDef(type).generate();
 }
 
