@@ -447,4 +447,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Fewer turns earns a bonus.",
   },
+  hover: {
+    goal: "Fly through as many gaps as you can.",
+    how: [
+      { action: "Tap anywhere", detail: "to hover up; let go to drop." },
+      { action: "Hit anything", detail: "and the run ends." },
+      { action: "Everyone flies", detail: "the same course." },
+    ],
+    score: "5 per gate, +40 for surviving the whole run.",
+  },
 };

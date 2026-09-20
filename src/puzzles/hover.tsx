@@ -17,7 +17,8 @@ import {
   type HoverState,
 } from "@/lib/arcade/hover";
 import { decodeHoverRun, encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
-import { HOVER_CRASH_FREEZE_MS, HOVER_GATES, type HoverPuzzleData } from "@/lib/duel/types";
+import { HOVER_GATES } from "@/lib/arcade/hover";
+import { HOVER_CRASH_FREEZE_MS, type HoverPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playWrong } from "@/lib/sound";
 
