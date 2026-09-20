@@ -4,9 +4,9 @@
  */
 
 import { pick } from "./random";
-import { parseLayout } from "./unblock";
+import { applyMove, isSolved, occupancy, parseLayout, serialiseLayout, slideRange } from "./unblock";
 import { UNBLOCK_BANK } from "./unblockBank.server";
-import type { UnblockPuzzleData, UnblockVehicle } from "./types";
+import { UNBLOCK_COLS, type UnblockPuzzleData, type UnblockVehicle } from "./types";
 
 /** Draws one verified layout, its minimum and its stored shortest solution. */
 export function generateUnblock(): UnblockPuzzleData {
