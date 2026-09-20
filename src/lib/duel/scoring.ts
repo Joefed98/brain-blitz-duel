@@ -142,14 +142,24 @@ export function scoreGroups(foundGroups: number, msRemaining: number): number {
   return foundGroups === 1 ? 20 : 0;
 }
 
-/** Word Ladder: solved earns standard points, plus 20 for a minimum path, capped at 150. */
+/**
+ * Word Ladder: solved earns standard points, plus 20 for a minimum path. An
+ * unfinished ladder scores by how close the last valid rung came to the end
+ * word — one letter away 75, two 50, three 25.
+ */
 export function scoreWordLadder(
   solved: boolean,
   validRungs: number,
   shortestLength: number,
   msRemaining: number,
+  lettersAway: number,
 ): number {
-  if (!solved) return validRungs >= 2 ? 30 : 0;
+  if (!solved) {
+    if (lettersAway === 1) return 75;
+    if (lettersAway === 2) return 50;
+    if (lettersAway === 3) return 25;
+    return 0;
+  }
   const minimumBonus = validRungs === shortestLength ? 20 : 0;
   return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, 60_000) + minimumBonus);
 }
@@ -162,8 +172,8 @@ export function scoreNumberClimb(span: number, msRemaining: number): number {
 }
 
 /**
- * Target Number: an exact hit scores the standard 100 plus the speed bonus,
- * a near miss scores a flat amount, anything further away scores nothing.
+ * Target Number: an exact hit scores the standard 100 plus the speed bonus;
+ * anything else scores by how far from the target it landed, with no bonus.
  */
 export function scoreTargetNumber(
   distance: number,
@@ -171,8 +181,12 @@ export function scoreTargetNumber(
   timeLimitMs: number,
 ): number {
   if (distance === 0) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
-  if (distance <= 5) return TARGET_NEAR_POINTS;
-  if (distance <= 10) return TARGET_FAR_POINTS;
+  if (distance === 1) return 90;
+  if (distance === 2) return 85;
+  if (distance <= 5) return 80;
+  if (distance <= 10) return 70;
+  if (distance <= 20) return 60;
+  if (distance <= 50) return 50;
   return 0;
 }
 
@@ -189,7 +203,7 @@ export function scoreStroop(correctCount: number, msRemaining: number): number {
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
-/** Symbol Scan: proportional credit, with a penalty for every incorrect selection. */
+/** Symbol Scan: proportional credit, less five points for every wrong tap. */
 export function scoreSymbolScan(
   foundTargets: number,
   totalTargets: number,
@@ -199,7 +213,9 @@ export function scoreSymbolScan(
   const total = Math.max(1, totalTargets);
   const found = clamp(Math.round(foundTargets), 0, total);
   const wrong = Math.max(0, Math.round(wrongSelections));
-  const accuracy = clamp(Math.round((BASE_POINTS * found) / total) - 15 * wrong, 0, BASE_POINTS);
+  const raw = Math.round((BASE_POINTS * found) / total) - 5 * wrong;
+  const floor = found >= 1 ? 5 : 0;
+  const accuracy = clamp(Math.max(raw, floor), 0, BASE_POINTS);
   const bonus = found === total && wrong === 0 ? speedBonus(msRemaining, 45_000) : 0;
   return accuracy + bonus;
 }
@@ -230,17 +246,13 @@ export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): 
 }
 
 /**
- * Spot the Difference: all three found scores 100 plus the speed bonus; a
- * partial find is worth a flat 60 or 30.
+ * Spot the Difference: all five found scores 100 plus the speed bonus; every
+ * difference found on its own is worth 20.
  */
 export function scoreSpotDifference(foundCount: number, msRemaining: number): number {
   const found = clamp(Math.round(foundCount), 0, SPOT_DIFFERENCES);
   if (found >= SPOT_DIFFERENCES) return BASE_POINTS + speedBonus(msRemaining, SPOT_TIME_MS);
-  if (found === 4) return SPOT_FOUR_POINTS;
-  if (found === 3) return SPOT_THREE_POINTS;
-  if (found === 2) return SPOT_TWO_POINTS;
-  if (found === 1) return SPOT_ONE_POINTS;
-  return 0;
+  return 20 * found;
 }
 
 /** Pattern Completion: partial credit per board; speed only rewards a perfect set. */
@@ -251,12 +263,13 @@ export function scorePatternCompletion(correctCount: number, msRemaining: number
   );
 }
 
-/** Word Match: accuracy out of 100, plus the speed bonus on a flawless run. */
+/** Word Match: all eight scores 100 plus the speed bonus, else 14 a pair. */
 export function scoreWordMatch(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, WORDMATCH_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / WORDMATCH_ITEMS);
-  const bonus = correct >= WORDMATCH_ITEMS ? speedBonus(msRemaining, WORDMATCH_TIME_MS) : 0;
-  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+  if (correct >= WORDMATCH_ITEMS) {
+    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, WORDMATCH_TIME_MS));
+  }
+  return Math.min(98, 14 * correct);
 }
 
 /** Percent Sprint: accuracy out of 100, plus the speed bonus on a flawless run. */
@@ -267,12 +280,46 @@ export function scorePercentSprint(correctCount: number, msRemaining: number): n
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
-/** Number Sequence: accuracy out of 100, plus the speed bonus on a flawless run. */
+/** Number Sequence: 20 a sequence, plus the speed bonus for all five. */
 export function scoreNumberSequence(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, NUMSEQ_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / NUMSEQ_ITEMS);
+  const accuracy = 20 * correct;
   const bonus = correct >= NUMSEQ_ITEMS ? speedBonus(msRemaining, NUMSEQ_TIME_MS) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+}
+
+/**
+ * Equation Balancing: a true equation scores the standard points; otherwise
+ * every operator in the right place is worth 30, up to 90.
+ */
+export function scoreEquation(
+  correct: boolean,
+  symbolsInPlace: number,
+  msRemaining: number,
+  timeLimitMs: number,
+): number {
+  if (correct) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
+  return clamp(30 * Math.max(0, Math.round(symbolsInPlace)), 0, 90);
+}
+
+/**
+ * Count Up: the exact total scores the standard points; a near miss scores by
+ * how far out it was, and a rough guess within a tenth still counts.
+ */
+export function scoreCountUp(
+  answered: boolean,
+  given: number,
+  trueCount: number,
+  msRemaining: number,
+  timeLimitMs: number,
+): number {
+  if (!answered) return 0;
+  const away = Math.abs(Math.round(given) - Math.round(trueCount));
+  if (away === 0) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
+  if (away === 1) return 70;
+  if (away === 2) return 50;
+  if (away === 3) return 30;
+  return away <= Math.max(1, trueCount) * 0.1 ? 15 : 0;
 }
 
 /** Stop Watch: 150 for a perfect average, down to 100 at 400 ms or worse. */
@@ -285,11 +332,25 @@ export function scoreStopWatch(averageDistanceMs: number): number {
   return BASE_POINTS + bonus;
 }
 
-/** Number Hunt: a standard round score, less 5 points per wrong tap. */
-export function scoreNumberHunt(finished: boolean, msRemaining: number, errors: number): number {
-  if (!finished) return 0;
-  const raw = BASE_POINTS + speedBonus(msRemaining) - NUMHUNT_ERROR_PENALTY * errors;
-  return Math.round(clamp(raw, 0, MAX_ROUND_SCORE));
+/**
+ * Number Hunt: a standard round score, less 5 points per wrong tap. An
+ * unfinished run scores by how far up the order the player got.
+ */
+export function scoreNumberHunt(
+  finished: boolean,
+  msRemaining: number,
+  errors: number,
+  reached = 0,
+  total = 1,
+): number {
+  if (finished) {
+    const raw = BASE_POINTS + speedBonus(msRemaining) - NUMHUNT_ERROR_PENALTY * errors;
+    return Math.round(clamp(raw, 0, MAX_ROUND_SCORE));
+  }
+  const count = clamp(Math.round(reached), 0, Math.max(1, total));
+  if (count < 1) return 0;
+  const raw = Math.round((90 * count) / Math.max(1, total)) - NUMHUNT_ERROR_PENALTY * errors;
+  return clamp(Math.max(raw, 5), 0, 90);
 }
 
 export function resultFor(
