@@ -86,7 +86,7 @@ export async function startRoom(roomId: string): Promise<void> {
 
 export async function setRoomModes(
   roomId: string,
-  modes: { addMaths: boolean; addMemory: boolean },
+  modes: { addMaths: boolean; addMemory: boolean; addArcade: boolean },
 ): Promise<void> {
   const result = await setRoomModesFn({ data: { roomId, ...modes } });
   if (!result.ok) throw new DuelError(result.message);
