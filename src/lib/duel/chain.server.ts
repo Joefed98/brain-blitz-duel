@@ -224,33 +224,77 @@ function shapeBag(): ChainShape[] {
   return bag;
 }
 
+interface Candidate {
+  nodes: ChainNode[];
+  cycle: ChainShape[];
+  solution: number[];
+  routes: number;
+  traps: number;
+}
+
+/**
+ * Scores one shape labelling of a scatter: a board is better when it offers
+ * fewer complete routes and more early dead ends.
+ */
+function evaluate(points: Point[], bag: ChainShape[], cycle: ChainShape[]): Candidate | null {
+  const nodes: ChainNode[] = points.map((point, index) => ({
+    x: point.x,
+    y: point.y,
+    shape: bag[index]!,
+  }));
+  const routes = countChainSolutions(nodes, cycle, [], CHAIN_SOLUTION_CAP);
+  if (routes < CHAIN_MIN_ROUTES) return null;
+  const solutions = collectChainSolutions(nodes, cycle, 40);
+  const solution = solutions.find((candidate) => chainSolutionIsFair(nodes, cycle, candidate));
+  if (!solution) return null;
+  return { nodes, cycle, solution, routes, traps: chainTrapNodes(nodes, cycle).length };
+}
+
 export function generateChain(): ChainPuzzleData {
-  for (let attempt = 0; attempt < 400; attempt++) {
+  let best: Candidate | null = null;
+
+  for (let attempt = 0; attempt < 60; attempt++) {
     const points = samplePoints();
     if (!points || !layoutIsSpread(points)) continue;
 
-    // Keep the scatter and try shape labellings on it: the routes a board
-    // offers depend far more on which node is which shape than on the spread.
-    for (let labelling = 0; labelling < 40; labelling++) {
-      const bag = shuffled(shapeBag());
-      const nodes: ChainNode[] = points.map((point, index) => ({
-        x: point.x,
-        y: point.y,
-        shape: bag[index]!,
-      }));
+    // Keep the scatter and try shape labellings on it: how many routes a board
+    // offers depends far more on which node is which shape than on the spread.
+    for (let labelling = 0; labelling < 12; labelling++) {
       const cycle = shuffled([...CHAIN_SHAPES]).slice(0, CHAIN_CYCLE);
-
-      // Counting stops one past the limit, so an over-rich board is cheap to reject.
-      const routes = countChainSolutions(nodes, cycle, [], CHAIN_MAX_ROUTES + 1);
-      if (routes < CHAIN_MIN_ROUTES || routes > CHAIN_MAX_ROUTES) continue;
-
-      const solutions = collectChainSolutions(nodes, cycle, CHAIN_MAX_ROUTES);
-      const solution = solutions.find((candidate) => chainSolutionIsFair(nodes, cycle, candidate));
-      if (!solution) continue;
-      if (chainTrapNodes(nodes, cycle).length < 2) continue;
-
-      return { type: "chain", nodes, cycle, solution, solutionCount: routes };
+      const candidate = evaluate(points, shuffled(shapeBag()), cycle);
+      if (!candidate) continue;
+      if (candidate.routes <= CHAIN_MAX_ROUTES && candidate.traps >= 2) {
+        return {
+          type: "chain",
+          nodes: candidate.nodes,
+          cycle: candidate.cycle,
+          solution: candidate.solution,
+          solutionCount: candidate.routes,
+        };
+      }
+      // Fewest routes wins; traps break a tie.
+      if (
+        !best ||
+        candidate.routes < best.routes ||
+        (candidate.routes === best.routes && candidate.traps > best.traps)
+      ) {
+        best = candidate;
+      }
     }
+    if (best && best.routes <= CHAIN_MAX_ROUTES * 2 && best.traps >= 2) break;
   }
-  throw new Error("Don't Break the Chain generator could not build a spread layout");
+
+  if (!best) throw new Error("Don't Break the Chain generator could not build a spread layout");
+  // A scatter spread over the whole board leaves far more non-crossing routes
+  // than an edge ring did, so the tightest board found is used and reported.
+  console.warn(
+    `Chain: spread layout kept with ${best.routes} routes and ${best.traps} traps`,
+  );
+  return {
+    type: "chain",
+    nodes: best.nodes,
+    cycle: best.cycle,
+    solution: best.solution,
+    solutionCount: best.routes,
+  };
 }
