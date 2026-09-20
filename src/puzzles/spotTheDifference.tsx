@@ -1,13 +1,11 @@
 import { playCorrect, playWrong } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { pick, randInt, shuffled } from "@/lib/duel/random";
+import { pick, shuffled } from "@/lib/duel/random";
 import {
   SPOT_CELLS,
   SPOT_COLS,
   SPOT_DIFFERENCES,
-  SPOT_MAX_SHAPES,
-  SPOT_MIN_SHAPES,
   SPOT_ROWS,
   SPOT_TIME_MS,
   type SpotDifference,
@@ -43,9 +41,13 @@ const KINDS: SpotShapeKind[] = ["circle", "square", "triangle", "star", "hexagon
 /** Shapes whose turn or mirror is unmistakable. */
 const TURNABLE: SpotShapeKind[] = ["triangle", "arrow"];
 /** A shape's kind can only change into its listed partner. */
-const KIND_SWAP: Partial<Record<SpotShapeKind, SpotShapeKind>> = {
+const KIND_SWAP: Record<SpotShapeKind, SpotShapeKind> = {
   circle: "hexagon",
+  hexagon: "circle",
   square: "star",
+  star: "square",
+  triangle: "arrow",
+  arrow: "triangle",
 };
 
 /* -------------------------------------------------------------------------- */
@@ -57,29 +59,12 @@ const CELL_W = 48;
 const CELL_H = 48;
 const PANEL_W = SPOT_COLS * CELL_W;
 const PANEL_H = SPOT_ROWS * CELL_H;
-const SHAPE = 34;
+const SHAPE = 36;
 
 function cellCentre(cell: number): { x: number; y: number } {
   const col = cell % SPOT_COLS;
   const row = Math.floor(cell / SPOT_COLS);
   return { x: col * CELL_W + CELL_W / 2, y: row * CELL_H + CELL_H / 2 };
-}
-
-function neighbours(cell: number): number[] {
-  const col = cell % SPOT_COLS;
-  const row = Math.floor(cell / SPOT_COLS);
-  const out: number[] = [];
-  for (const [dc, dr] of [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1],
-  ] as const) {
-    const c = col + dc;
-    const r = row + dr;
-    if (c >= 0 && c < SPOT_COLS && r >= 0 && r < SPOT_ROWS) out.push(r * SPOT_COLS + c);
-  }
-  return out;
 }
 
 /** Chebyshev distance in cells — used to keep the differences apart. */
@@ -228,31 +213,14 @@ function sameShape(a: SpotShape, b: SpotShape): boolean {
   );
 }
 
-/** Groups of cells, one group per difference between the panels. */
+/** Groups of cells, one group per difference between the panels. Both panels
+ *  are full grids, so every difference is a single changed cell. */
 export function differenceGroups(top: SpotShape[], bottom: SpotShape[]): number[][] {
-  const byTop = new Map(top.map((s) => [s.cell, s]));
   const byBottom = new Map(bottom.map((s) => [s.cell, s]));
   const groups: number[][] = [];
-  const usedBottom = new Set<number>();
-
   for (const shape of top) {
     const other = byBottom.get(shape.cell);
-    if (other) {
-      if (!sameShape(shape, other)) groups.push([shape.cell]);
-      continue;
-    }
-    // Gone from this cell: either moved next door, or removed altogether.
-    const moved = neighbours(shape.cell).find((cell) => {
-      if (usedBottom.has(cell) || byTop.has(cell)) return false;
-      const candidate = byBottom.get(cell);
-      return candidate ? sameShape(shape, candidate) : false;
-    });
-    if (moved !== undefined) {
-      usedBottom.add(moved);
-      groups.push([shape.cell, moved]);
-    } else {
-      groups.push([shape.cell]);
-    }
+    if (!other || !sameShape(shape, other)) groups.push([shape.cell]);
   }
   return groups;
 }
@@ -261,18 +229,50 @@ export function differenceGroups(top: SpotShape[], bottom: SpotShape[]): number[
 /*  Intro                                                                     */
 /* -------------------------------------------------------------------------- */
 
-const EXAMPLE_TOP: SpotShape[] = [
-  { cell: 1, kind: "square", colour: "GREEN" },
-  { cell: 4, kind: "circle", colour: "RED" },
-  { cell: 10, kind: "triangle", colour: "BLUE" },
-  { cell: 13, kind: "star", colour: "PURPLE" },
+const EXAMPLE_KINDS: SpotShapeKind[] = [
+  "circle",
+  "square",
+  "triangle",
+  "star",
+  "hexagon",
+  "arrow",
+  "circle",
+  "square",
+  "triangle",
+  "star",
+  "hexagon",
+  "arrow",
+  "square",
+  "circle",
+  "arrow",
+  "triangle",
 ];
-const EXAMPLE_BOTTOM: SpotShape[] = [
-  { cell: 1, kind: "square", colour: "GREEN" },
-  { cell: 4, kind: "circle", colour: "BLUE" },
-  { cell: 10, kind: "triangle", colour: "BLUE" },
-  { cell: 13, kind: "star", colour: "PURPLE" },
+const EXAMPLE_COLOURS: Exclude<StroopColour, "YELLOW">[] = [
+  "RED",
+  "BLUE",
+  "GREEN",
+  "PURPLE",
+  "ORANGE",
+  "BROWN",
+  "PINK",
+  "GREEN",
+  "BLUE",
+  "RED",
+  "PURPLE",
+  "GREEN",
+  "ORANGE",
+  "BLUE",
+  "PINK",
+  "BROWN",
 ];
+const EXAMPLE_TOP: SpotShape[] = EXAMPLE_KINDS.map((kind, cell) => ({
+  cell,
+  kind,
+  colour: EXAMPLE_COLOURS[cell]!,
+}));
+const EXAMPLE_BOTTOM: SpotShape[] = EXAMPLE_TOP.map((shape) =>
+  shape.cell === 4 ? { ...shape, colour: "GREEN" } : shape,
+);
 
 function IntroExample() {
   return (
@@ -280,13 +280,13 @@ function IntroExample() {
       <p className="text-center text-sm text-muted-foreground">
         Find the five differences between the top and bottom pictures.
       </p>
-      <div className="flex w-full flex-col gap-[5.5px] overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex w-full flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card">
         <Panel shapes={EXAMPLE_TOP} found={[4]} rows={2} />
         <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
         <Panel shapes={EXAMPLE_BOTTOM} found={[4]} rows={2} />
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Tap each difference in either picture. You have 20 seconds.
+        Tap each difference in either picture. You have 30 seconds.
       </p>
     </div>
   );
@@ -353,7 +353,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         {foundGroups.length} / {total} found
       </p>
       <div
-        className={`flex min-h-0 w-full flex-1 flex-col gap-[5.5px] overflow-hidden rounded-2xl border border-border bg-card ${
+        className={`flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card ${
           wrong !== null ? "animate-shake" : ""
         }`}
       >
@@ -364,7 +364,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
             wrongCell={wrong}
             onTap={tap}
             fitHeight
-            shapeSize={50}
+            shapeSize={SHAPE}
           />
         </div>
         <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
@@ -375,7 +375,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
             wrongCell={wrong}
             onTap={tap}
             fitHeight
-            shapeSize={50}
+            shapeSize={SHAPE}
           />
         </div>
       </div>
@@ -395,7 +395,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1.5">
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-[5.5px] overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <Panel shapes={puzzle.top} found={cells} fitHeight />
         </div>
@@ -434,9 +434,9 @@ function otherColour(colour: StroopColour): StroopColour {
   return pick(options);
 }
 
-function scatter(count: number): SpotShape[] {
-  const cells = shuffled(Array.from({ length: SPOT_CELLS }, (_, i) => i)).slice(0, count);
-  return cells.map((cell) => {
+/** Fills every cell of the grid — both panels are complete pictures. */
+function fillGrid(): SpotShape[] {
+  return Array.from({ length: SPOT_CELLS }, (_, cell) => {
     const kind = pick(KINDS);
     const shape: SpotShape = { cell, kind, colour: pick(COLOUR_KEYS) };
     if (TURNABLE.includes(kind) && Math.random() < 0.4) shape.rot = 90;
@@ -447,19 +447,13 @@ function scatter(count: number): SpotShape[] {
 function applyDifference(
   kind: SpotDifferenceKind,
   shape: SpotShape,
-  occupied: Set<number>,
-  usedCells: number[],
-): { bottom: SpotShape | null; difference: SpotDifference } | null {
+): { bottom: SpotShape; difference: SpotDifference } | null {
   switch (kind) {
     case "colour": {
       const colour = otherColour(shape.colour);
       return {
         bottom: { ...shape, colour },
-        difference: {
-          kind,
-          cells: [shape.cell],
-          label: `A shape changed colour`,
-        },
+        difference: { kind, cells: [shape.cell], label: `A shape changed colour` },
       };
     }
     case "turn": {
@@ -471,41 +465,11 @@ function applyDifference(
           : { ...shape, flip: !shape.flip };
       return {
         bottom,
-        difference: {
-          kind,
-          cells: [shape.cell],
-          label: `A ${shape.kind} was turned round`,
-        },
-      };
-    }
-    case "move": {
-      const free = neighbours(shape.cell).filter(
-        (cell) =>
-          !occupied.has(cell) &&
-          // The square it moves into must also stay clear of the other two.
-          usedCells.every((used) => cellsApart(used, cell) >= 2),
-      );
-      if (free.length === 0) return null;
-      const cell = pick(free);
-      occupied.add(cell);
-      return {
-        bottom: { ...shape, cell },
-        difference: {
-          kind,
-          cells: [shape.cell, cell],
-          label: `A shape moved one square`,
-        },
-      };
-    }
-    case "remove": {
-      return {
-        bottom: null,
-        difference: { kind, cells: [shape.cell], label: `A shape is missing` },
+        difference: { kind, cells: [shape.cell], label: `A ${shape.kind} was turned round` },
       };
     }
     default: {
       const swap = KIND_SWAP[shape.kind];
-      if (!swap) return null;
       return {
         bottom: { ...shape, kind: swap },
         difference: {
@@ -519,41 +483,33 @@ function applyDifference(
 }
 
 export function buildSpotDifference(): SpotPuzzleData {
-  const ALL: SpotDifferenceKind[] = ["colour", "turn", "move", "remove", "kind"];
+  // Only changes that work on a full grid: a colour, a shape, or a turn.
+  const ALL: SpotDifferenceKind[] = ["colour", "kind", "turn"];
 
   for (let attempt = 0; attempt < 400; attempt++) {
-    const top = scatter(randInt(SPOT_MIN_SHAPES, SPOT_MAX_SHAPES));
-    const occupied = new Set(top.map((s) => s.cell));
-    // Exactly one of each kind, spread across the scene.
-    const wanted = shuffled(ALL).slice(0, SPOT_DIFFERENCES);
+    const top = fillGrid();
     const candidates = shuffled(top);
 
     const bottom = new Map(top.map((s) => [s.cell, { ...s }]));
     const differences: SpotDifference[] = [];
     const usedCells: number[] = [];
 
-    for (const kind of wanted) {
-      const shape = candidates.find(
-        (s) =>
-          !usedCells.includes(s.cell) &&
-          // Keep the differences spread out so they never cluster.
-          usedCells.every((cell) => cellsApart(cell, s.cell) >= 2),
-      );
-      if (!shape) break;
-      const applied = applyDifference(kind, shape, occupied, usedCells);
-      if (!applied) break;
-      bottom.delete(shape.cell);
-      if (applied.bottom) bottom.set(applied.bottom.cell, applied.bottom);
+    for (const shape of candidates) {
+      if (differences.length === SPOT_DIFFERENCES) break;
+      // Differences never sit next to each other.
+      if (usedCells.some((cell) => cellsApart(cell, shape.cell) < 2)) continue;
+      const applied = applyDifference(pick(shuffled(ALL)), shape);
+      if (!applied) continue;
+      bottom.set(applied.bottom.cell, applied.bottom);
       differences.push(applied.difference);
-      usedCells.push(...applied.difference.cells);
+      usedCells.push(shape.cell);
     }
 
     if (differences.length !== SPOT_DIFFERENCES) continue;
 
     const bottomShapes = [...bottom.values()].sort((a, b) => a.cell - b.cell);
-    // The panels must differ in exactly the three stored ways.
-    const groups = differenceGroups(top, bottomShapes);
-    if (groups.length !== SPOT_DIFFERENCES) continue;
+    // The panels must differ in exactly the five stored ways.
+    if (differenceGroups(top, bottomShapes).length !== SPOT_DIFFERENCES) continue;
 
     return {
       type: "spotdiff",
@@ -563,13 +519,14 @@ export function buildSpotDifference(): SpotPuzzleData {
     };
   }
 
-  // Fallback: five separated edits on a fixed-size scene.
-  const top = scatter(SPOT_MIN_SHAPES);
-  const chosen = top.slice(0, SPOT_DIFFERENCES);
-  const bottom = top.map((shape) => {
-    const index = chosen.findIndex((candidate) => candidate.cell === shape.cell);
-    return index >= 0 ? { ...shape, colour: otherColour(shape.colour) } : shape;
-  });
+  // Fallback: five separated colour changes on a full grid.
+  const top = fillGrid();
+  const chosen = top.filter((_, index) => index % 11 === 0).slice(0, SPOT_DIFFERENCES);
+  const bottom = top.map((shape) =>
+    chosen.some((candidate) => candidate.cell === shape.cell)
+      ? { ...shape, colour: otherColour(shape.colour) }
+      : shape,
+  );
   return {
     type: "spotdiff",
     top,
