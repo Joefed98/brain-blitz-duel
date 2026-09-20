@@ -99,9 +99,7 @@ function stepHasRequiredChoices(nodes: ChainNode[], cycle: ChainShape[], chain: 
 
 /** Depth-first search for one valid non-crossing twelve-node chain. */
 export function findChainSolution(nodes: ChainNode[], cycle: ChainShape[]): number[] | null {
-  let visits = 0;
   const search = (chain: number[]): number[] | null => {
-    if (++visits > 120_000) return null;
     if (chain.length >= CHAIN_LENGTH) return chain;
     if (!stepHasRequiredChoices(nodes, cycle, chain)) return null;
     const needed = chainRequired(cycle, chain.length);
@@ -158,10 +156,10 @@ export function generateChain(): ChainPuzzleData {
       };
     });
 
-    const solution = findChainSolution(nodes, cycle);
-    if (!solution || !chainSolutionIsFair(nodes, cycle, solution)) continue;
     const solutionCount = countChainSolutions(nodes, cycle);
     if (solutionCount < 1 || solutionCount > 8) continue;
+    const solution = findChainSolution(nodes, cycle);
+    if (!solution || !chainSolutionIsFair(nodes, cycle, solution)) continue;
     if (chainTrapNodes(nodes, cycle).length < 2) continue;
     return { type: "chain", nodes, cycle, solution, solutionCount };
   }
