@@ -38,7 +38,7 @@ function assert(condition: boolean, message: string): void {
   if (!condition) throw new Error(message);
 }
 
-const ROUNDS = 20;
+const ROUNDS = 40;
 
 let tubesTotalMs = 0;
 for (let i = 0; i < ROUNDS; i++) {
