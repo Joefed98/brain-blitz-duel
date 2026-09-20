@@ -210,3 +210,35 @@ function fallbackBoard(): GravityPuzzleData {
     solution: encodeGravityTilts(found?.solution ?? [pick(GRAVITY_DIRS)]),
   };
 }
+
+/**
+ * Fewest tilts from any joint position to both balls home, over the same
+ * two-ball state space the minimum search uses. Null when it cannot be done.
+ */
+export function gravityDistance(
+  walls: Set<number>,
+  from: GravityBalls,
+  targetA: number,
+  targetB: number,
+): number | null {
+  if (gravitySolved(from, targetA, targetB)) return 0;
+  const seen = new Set<number>([key(from)]);
+  let frontier: GravityBalls[] = [from];
+  for (let depth = 1; depth <= GRAV_CELLS * 4; depth++) {
+    const next: GravityBalls[] = [];
+    for (const balls of frontier) {
+      for (const dir of GRAVITY_DIRS) {
+        const moved = tilt(walls, balls, dir).balls;
+        if (moved.a === balls.a && moved.b === balls.b) continue;
+        const id = key(moved);
+        if (seen.has(id)) continue;
+        if (gravitySolved(moved, targetA, targetB)) return depth;
+        seen.add(id);
+        next.push(moved);
+      }
+    }
+    if (!next.length) return null;
+    frontier = next;
+  }
+  return null;
+}
