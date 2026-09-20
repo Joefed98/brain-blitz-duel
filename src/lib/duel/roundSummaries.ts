@@ -84,6 +84,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   tiles: TILES_TIME_MS,
   rings: RINGS_TIME_MS,
   hover: HOVER_TIME_MS,
+  swerve: SWERVE_TIME_MS,
+  skyline: SKYLINE_TIME_MS,
+
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
