@@ -293,6 +293,23 @@ function percentSprintSummary(result: RoundResultRow, puzzle: PuzzleData): Built
   };
 }
 
+function numberSequenceSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  const count = result.correct_count ?? 0;
+  const picks = (result.answer ?? "").split(",").map((value) => Number.parseInt(value, 10));
+  const detail =
+    puzzle.type === "numseq"
+      ? puzzle.items.map((item, index) => {
+          const chosen = item.options[picks[index] ?? -1] ?? "No answer";
+          const expected = item.options[puzzle.answers?.[index] ?? -1] ?? "—";
+          return `${index + 1}. ${item.numbers.join(", ")}, ? · ${chosen === expected ? `✓ ${chosen}` : `✗ ${chosen} · ${expected}`} (${item.rule})`;
+        })
+      : [];
+  return {
+    summary: `${count} / ${NUMSEQ_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`,
+    detail,
+  };
+}
+
 const MIRROR_WRONG: Record<string, string> = {
   otherAxis: "flip across the other line",
   rotation: "turned, not flipped",
@@ -893,7 +910,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   groups: groupsSummary,
   ladder: ladderSummary,
   target: targetSummary,
-  numseq: rawSingle,
+  numseq: numberSequenceSummary,
   sequence: sequenceSingle,
   reverse: sequenceSingle,
   reaction: averageSummary,
@@ -948,7 +965,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   groups: () => "Four groups of four",
   ladder: (p) => (p.type === "ladder" ? (p.shortestPath ?? []).join(" → ") : null),
   target: (p) => (p.type === "target" ? String(p.target) : null),
-  numseq: (p) => (p.type === "numseq" ? String(p.answer) : null),
+  numseq: () => null,
   sequence: (p) => (p.type === "sequence" ? p.tiles.join(" → ") : null),
   reverse: (p) =>
     p.type === "reverse"

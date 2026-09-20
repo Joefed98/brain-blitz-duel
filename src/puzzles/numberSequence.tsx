@@ -15,7 +15,6 @@ const MIN_TERM = -200;
 const MAX_TERM = 1000;
 
 /** Fixed intro example — never randomised. */
-const EXAMPLE_NUMBERS = [2, 4, 6, 8, 10];
 const EXAMPLE_OPTIONS = [12, 11, 14, 20];
 const EXAMPLE_ANSWER = 12;
 
@@ -425,5 +424,3 @@ export const numberSequencePuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
-
-void EXAMPLE_NUMBERS;
