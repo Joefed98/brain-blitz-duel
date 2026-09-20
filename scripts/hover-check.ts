@@ -3,11 +3,19 @@
  *  1. every value in the sim state stays an integer (no floats in physics)
  *  2. the same seed and tap list always replay to the same score
  *  3. the server replay reproduces the score the phone would have claimed
- *  4. malformed tap logs are rejected
+ *  4. client and server final states/checkpoints match across 200 random logs
+ *  5. malformed tap logs are rejected
  */
 
 import { checkInputLog, replayArcadeRun, TICKS_PER_SECOND } from "../src/lib/arcade/engine.ts";
-import { hoverGame, HOVER_RUN_TICKS, type HoverState } from "../src/lib/arcade/hover.ts";
+import {
+  hoverCheckpoint,
+  hoverGame,
+  HOVER_CHECKPOINT_INTERVAL,
+  HOVER_RUN_TICKS,
+  type HoverCheckpoint,
+  type HoverState,
+} from "../src/lib/arcade/hover.ts";
 import { encodeHoverRun, replayHoverRun } from "../src/lib/duel/hover.ts";
 
 function integers(state: HoverState): boolean {
@@ -22,7 +30,9 @@ const fail = (message: string) => {
   console.log("FAIL", message);
 };
 
-for (let sample = 0; sample < 40; sample++) {
+let firstFailingTick: number | null = null;
+
+for (let sample = 0; sample < 200; sample++) {
   const seed = 1 + Math.floor(Math.random() * 2_000_000_000);
   // A plausible player: tap every 14–22 ticks (outside the sim, as a phone would).
   const inputs: number[] = [];
@@ -33,23 +43,39 @@ for (let sample = 0; sample < 40; sample++) {
   // Play it the way the client does, tick by tick, checking the state stays integral.
   const taps = new Set(inputs);
   let state = hoverGame.init(seed);
+  const checkpoints: HoverCheckpoint[] = [];
   if (!integers(state)) fail(`seed ${seed}: non-integer initial state`);
   let ticks = 0;
   for (let tick = 1; tick <= HOVER_RUN_TICKS; tick++) {
     state = hoverGame.step(state, taps.has(tick));
     ticks = tick;
+    if (state.tick % HOVER_CHECKPOINT_INTERVAL === 0) checkpoints.push(hoverCheckpoint(state));
     if (!integers(state)) fail(`seed ${seed}: non-integer state at tick ${tick}`);
     if (hoverGame.isOver(state)) break;
   }
   const claimed = hoverGame.score(state);
 
   // The server path: replay the encoded log from the stored seed.
-  const replayed = replayHoverRun(seed, encodeHoverRun({ seed, claimedScore: claimed, inputs }));
+  const replayed = replayHoverRun(
+    seed,
+    encodeHoverRun({ seed, claimedScore: claimed, inputs, endTick: ticks, checkpoints }),
+  );
   if (replayed.score !== claimed) {
     fail(`seed ${seed}: replay ${replayed.score} vs claim ${claimed}`);
   }
   if (replayed.flagged) fail(`seed ${seed}: honest run flagged (${replayed.reason})`);
   if (replayed.gates !== state.gates) fail(`seed ${seed}: gate count differs`);
+  if (JSON.stringify(replayed.state) !== JSON.stringify(state)) {
+    fail(`seed ${seed}: final state differs`);
+  }
+  if (JSON.stringify(replayed.checkpoints) !== JSON.stringify(checkpoints)) {
+    const mismatchIndex = checkpoints.findIndex(
+      (checkpoint, index) => checkpoint.checksum !== replayed.checkpoints[index]?.checksum,
+    );
+    firstFailingTick = checkpoints[mismatchIndex]?.tick ?? replayed.checkpoints[mismatchIndex]?.tick ?? 0;
+    fail(`seed ${seed}: checkpoints differ at tick ${firstFailingTick}`);
+  }
+  if (replayed.desyncTick !== null) fail(`seed ${seed}: false desync at ${replayed.desyncTick}`);
   if (replayed.endedSeconds !== Math.round((ticks / TICKS_PER_SECOND) * 10) / 10) {
     fail(`seed ${seed}: end time differs`);
   }
@@ -93,4 +119,8 @@ if (
   fail("over-long log accepted");
 }
 
-console.log(failures === 0 ? "hover checks passed" : `${failures} failures`);
+console.log(
+  failures === 0
+    ? "hover checks passed: 200 client/server paths and checkpoints identical"
+    : `${failures} failures; first failing tick ${firstFailingTick ?? "unknown"}`,
+);

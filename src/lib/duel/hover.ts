@@ -94,6 +94,8 @@ export interface HoverResult {
   /** The tick the phone reached when it lagged. */
   clientTick: number;
   desyncTick: number | null;
+  /** Server-side replay checkpoints, exposed for deterministic proof checks. */
+  checkpoints: HoverCheckpoint[];
   reason?: string;
   state: HoverState;
 }
@@ -112,11 +114,13 @@ export function replayHoverRun(seed: number, raw: string): HoverResult {
   let state = hoverGame.init(seed);
   let ticks = 0;
   let desyncTick: number | null = null;
+  const serverCheckpoints: HoverCheckpoint[] = [];
   for (let tick = 1; tick <= lastTick; tick++) {
     state = hoverGame.step(state, taps.has(tick));
     ticks = tick;
     if (state.tick % HOVER_CHECKPOINT_INTERVAL === 0) {
       const serverState = hoverCheckpoint(state);
+      serverCheckpoints.push(serverState);
       const clientState = clientCheckpoints.get(state.tick);
       if (clientState && clientState.checksum !== serverState.checksum && desyncTick === null) {
         desyncTick = state.tick;
@@ -131,7 +135,7 @@ export function replayHoverRun(seed: number, raw: string): HoverResult {
   }
   const replayScore = hoverGame.score(state);
   const survived = hoverSurvived(state);
-  const mismatch = run.claimedScore !== outcome.score || run.seed !== seed;
+  const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
   const result: HoverResult = {
     gates: state.gates,
     totalGates: state.totalGates,
@@ -142,6 +146,7 @@ export function replayHoverRun(seed: number, raw: string): HoverResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    checkpoints: serverCheckpoints,
     state,
   };
   if (check.reason) result.reason = check.reason;
