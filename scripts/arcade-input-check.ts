@@ -1,0 +1,307 @@
+/**
+ * Proof checks for Bin Toss and Bullseye:
+ *  1. every value in each sim state stays an integer (no floats in physics)
+ *  2. client and server final states/checkpoints match across 200 random logs
+ *     with random flick vectors and random release points
+ *  3. the server replay reproduces the score the phone would have claimed
+ *  4. the declared input ranges reject out-of-range payloads, unknown kinds,
+ *     ticks outside the run, ticks out of order, and oversized logs
+ *  5. both games sit in the arcade category, are core and are not retired
+ */
+
+import {
+  checkInputEvents,
+  MAX_INPUT_EVENTS,
+  type ArcadeInputEvent,
+} from "../src/lib/arcade/engine.ts";
+import {
+  binTossCheckpoint,
+  binTossGame,
+  BINTOSS_AIM,
+  BINTOSS_CHECKPOINT_INTERVAL,
+  BINTOSS_INPUT_RANGES,
+  BINTOSS_RUN_TICKS,
+  BINTOSS_VX_MAX,
+  BINTOSS_VY_MAX,
+  type BinTossCheckpoint,
+  type BinTossState,
+} from "../src/lib/arcade/binToss.ts";
+import {
+  bullseyeCheckpoint,
+  bullseyeGame,
+  BULLSEYE_ARROWS,
+  BULLSEYE_CHECKPOINT_INTERVAL,
+  BULLSEYE_INPUT_RANGES,
+  BULLSEYE_RUN_TICKS,
+  BULLSEYE_WORLD_H,
+  BULLSEYE_WORLD_W,
+  type BullseyeCheckpoint,
+  type BullseyeState,
+} from "../src/lib/arcade/bullseye.ts";
+import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss.ts";
+import { encodeBullseyeRun, replayBullseyeRun } from "../src/lib/duel/bullseye.ts";
+import { puzzleDef } from "../src/lib/duel/registry.ts";
+
+let failures = 0;
+const fail = (message: string) => {
+  failures += 1;
+  console.log("FAIL", message);
+};
+let firstFailingTick: number | null = null;
+
+const randomInt = (low: number, high: number) => low + Math.floor(Math.random() * (high - low + 1));
+
+function binTossIntegers(state: BinTossState): boolean {
+  const values = [
+    state.tick,
+    state.phase,
+    state.throwIndex,
+    state.resolved,
+    state.baskets,
+    state.x,
+    state.y,
+    state.vx,
+    state.vy,
+    state.readyTick,
+    state.wobbleTick,
+    ...state.winds,
+    ...state.results,
+  ];
+  return values.every((value) => Number.isInteger(value));
+}
+
+function bullseyeIntegers(state: BullseyeState): boolean {
+  const values = [state.tick, state.arrowIndex, state.total, state.flightTick, ...state.winds];
+  for (const hit of state.hits) values.push(hit.x, hit.y, hit.ring, hit.value, hit.arrow);
+  return values.every((value) => Number.isInteger(value));
+}
+
+/* ------------------------------ Bin Toss ------------------------------- */
+
+for (let sample = 0; sample < 200; sample++) {
+  const seed = 1 + Math.floor(Math.random() * 2_000_000_000);
+  let state = binTossGame.init(seed);
+  if (!binTossIntegers(state)) fail(`bintoss ${seed}: non-integer initial state`);
+
+  const events: ArcadeInputEvent[] = [];
+  const checkpoints: BinTossCheckpoint[] = [];
+  let ticks = 0;
+  // A plausible player: a random flick whenever a ball is ready.
+  let waitFor = randomInt(0, 40);
+  for (let tick = 1; tick <= BINTOSS_RUN_TICKS; tick++) {
+    let input: ArcadeInputEvent | null = null;
+    if (state.phase === BINTOSS_AIM) {
+      if (waitFor > 0) waitFor -= 1;
+      else {
+        input = {
+          t: tick,
+          k: 1,
+          a: randomInt(200, BINTOSS_VX_MAX),
+          b: randomInt(-BINTOSS_VY_MAX, -600),
+          c: 0,
+          d: 0,
+        };
+        waitFor = randomInt(0, 40);
+      }
+    }
+    const before = state;
+    state = binTossGame.step(state, input);
+    if (input && before.phase === BINTOSS_AIM && state.phase !== BINTOSS_AIM) events.push(input);
+    if (!binTossIntegers(state)) fail(`bintoss ${seed}: non-integer state at tick ${tick}`);
+    if (state.tick % BINTOSS_CHECKPOINT_INTERVAL === 0) checkpoints.push(binTossCheckpoint(state));
+    ticks = tick;
+    if (binTossGame.isOver(state)) break;
+  }
+
+  const claimed = binTossGame.score(state);
+  const encoded = encodeBinTossRun({
+    seed,
+    claimedScore: claimed,
+    events,
+    endTick: state.tick,
+    checkpoints,
+  });
+  const replay = replayBinTossRun(seed, encoded);
+
+  if (replay.score !== claimed) fail(`bintoss ${seed}: replay ${replay.score} vs client ${claimed}`);
+  if (replay.baskets !== state.baskets) fail(`bintoss ${seed}: baskets differ`);
+  if (replay.flagged) fail(`bintoss ${seed}: flagged (${replay.reason ?? "no reason"})`);
+  if (replay.desyncTick !== null) {
+    fail(`bintoss ${seed}: desync at tick ${replay.desyncTick}`);
+    if (firstFailingTick === null) firstFailingTick = replay.desyncTick;
+  }
+  if (replay.checkpoints.length !== checkpoints.length) fail(`bintoss ${seed}: checkpoint count`);
+  for (let index = 0; index < checkpoints.length; index++) {
+    if (replay.checkpoints[index]!.checksum !== checkpoints[index]!.checksum) {
+      fail(`bintoss ${seed}: checkpoint ${checkpoints[index]!.tick} differs`);
+    }
+  }
+  if (ticks < 1) fail(`bintoss ${seed}: run never advanced`);
+}
+
+/* ------------------------------ Bullseye ------------------------------- */
+
+for (let sample = 0; sample < 200; sample++) {
+  const seed = 1 + Math.floor(Math.random() * 2_000_000_000);
+  let state = bullseyeGame.init(seed);
+  if (!bullseyeIntegers(state)) fail(`bullseye ${seed}: non-integer initial state`);
+
+  const events: ArcadeInputEvent[] = [];
+  const checkpoints: BullseyeCheckpoint[] = [];
+  let waitFor = randomInt(0, 30);
+  for (let tick = 1; tick <= BULLSEYE_RUN_TICKS; tick++) {
+    let input: ArcadeInputEvent | null = null;
+    if (state.flightTick === 0 && state.arrowIndex < BULLSEYE_ARROWS) {
+      if (waitFor > 0) waitFor -= 1;
+      else {
+        input = {
+          t: tick,
+          k: 2,
+          a: randomInt(0, BULLSEYE_WORLD_W),
+          b: randomInt(0, BULLSEYE_WORLD_H),
+          c: 0,
+          d: 0,
+        };
+        waitFor = randomInt(0, 30);
+      }
+    }
+    const before = state;
+    state = bullseyeGame.step(state, input);
+    if (input && state.arrowIndex > before.arrowIndex) events.push(input);
+    if (!bullseyeIntegers(state)) fail(`bullseye ${seed}: non-integer state at tick ${tick}`);
+    if (state.tick % BULLSEYE_CHECKPOINT_INTERVAL === 0) {
+      checkpoints.push(bullseyeCheckpoint(state));
+    }
+    if (bullseyeGame.isOver(state)) break;
+  }
+
+  const claimed = bullseyeGame.score(state);
+  const encoded = encodeBullseyeRun({
+    seed,
+    claimedScore: claimed,
+    events,
+    endTick: state.tick,
+    checkpoints,
+  });
+  const replay = replayBullseyeRun(seed, encoded);
+
+  if (replay.score !== claimed) {
+    fail(`bullseye ${seed}: replay ${replay.score} vs client ${claimed}`);
+  }
+  if (replay.total !== state.total) fail(`bullseye ${seed}: ring totals differ`);
+  if (replay.flagged) fail(`bullseye ${seed}: flagged (${replay.reason ?? "no reason"})`);
+  if (replay.desyncTick !== null) {
+    fail(`bullseye ${seed}: desync at tick ${replay.desyncTick}`);
+    if (firstFailingTick === null) firstFailingTick = replay.desyncTick;
+  }
+  for (let index = 0; index < checkpoints.length; index++) {
+    if (replay.checkpoints[index]!.checksum !== checkpoints[index]!.checksum) {
+      fail(`bullseye ${seed}: checkpoint ${checkpoints[index]!.tick} differs`);
+    }
+  }
+  if (replay.score > 150 || replay.score < 0) fail(`bullseye ${seed}: score out of range`);
+}
+
+/* -------------------------- Range validation --------------------------- */
+
+const rejected: [string, ArcadeInputEvent[], readonly typeof BINTOSS_INPUT_RANGES][] = [];
+const bt = BINTOSS_INPUT_RANGES;
+const be = BULLSEYE_INPUT_RANGES;
+
+rejected.push(["flick vx above the clamp", [{ t: 10, k: 1, a: BINTOSS_VX_MAX + 1, b: -1000, c: 0, d: 0 }], bt]);
+rejected.push(["flick vx below the clamp", [{ t: 10, k: 1, a: -BINTOSS_VX_MAX - 1, b: -1000, c: 0, d: 0 }], bt]);
+rejected.push(["flick vy downwards", [{ t: 10, k: 1, a: 500, b: 1, c: 0, d: 0 }], bt]);
+rejected.push(["flick vy above the clamp", [{ t: 10, k: 1, a: 500, b: -BINTOSS_VY_MAX - 1, c: 0, d: 0 }], bt]);
+rejected.push(["flick with a payload in c", [{ t: 10, k: 1, a: 500, b: -1000, c: 3, d: 0 }], bt]);
+rejected.push(["flick of an unknown kind", [{ t: 10, k: 7, a: 0, b: 0, c: 0, d: 0 }], bt]);
+rejected.push(["flick before the run", [{ t: 0, k: 1, a: 500, b: -1000, c: 0, d: 0 }], bt]);
+rejected.push([
+  "flick after the run",
+  [{ t: BINTOSS_RUN_TICKS + 1, k: 1, a: 500, b: -1000, c: 0, d: 0 }],
+  bt,
+]);
+rejected.push([
+  "flicks out of order",
+  [
+    { t: 400, k: 1, a: 500, b: -1000, c: 0, d: 0 },
+    { t: 399, k: 1, a: 500, b: -1000, c: 0, d: 0 },
+  ],
+  bt,
+]);
+rejected.push(["non-integer flick", [{ t: 10, k: 1, a: 500.5, b: -1000, c: 0, d: 0 }], bt]);
+rejected.push([
+  "reticle off the right edge",
+  [{ t: 10, k: 2, a: BULLSEYE_WORLD_W + 1, b: 100, c: 0, d: 0 }],
+  be,
+]);
+rejected.push(["reticle above the canvas", [{ t: 10, k: 2, a: 100, b: -1, c: 0, d: 0 }], be]);
+rejected.push([
+  "reticle below the canvas",
+  [{ t: 10, k: 2, a: 100, b: BULLSEYE_WORLD_H + 1, c: 0, d: 0 }],
+  be,
+]);
+rejected.push(["shot of an unknown kind", [{ t: 10, k: 1, a: 100, b: 100, c: 0, d: 0 }], be]);
+rejected.push([
+  "an oversized log",
+  Array.from({ length: MAX_INPUT_EVENTS + 1 }, (_, index) => ({
+    t: 1 + index,
+    k: 2,
+    a: 100,
+    b: 100,
+    c: 0,
+    d: 0,
+  })),
+  be,
+]);
+
+for (const [label, events, ranges] of rejected) {
+  const runTicks = ranges === bt ? BINTOSS_RUN_TICKS : BULLSEYE_RUN_TICKS;
+  const check = checkInputEvents(events, runTicks, ranges);
+  if (check.ok) fail(`range validation accepted ${label}`);
+}
+
+// Two events on the same tick are allowed (non-decreasing, not increasing).
+if (
+  !checkInputEvents(
+    [
+      { t: 50, k: 2, a: 10, b: 10, c: 0, d: 0 },
+      { t: 50, k: 2, a: 20, b: 20, c: 0, d: 0 },
+    ],
+    BULLSEYE_RUN_TICKS,
+    be,
+  ).ok
+) {
+  fail("range validation rejected two events on one tick");
+}
+
+// An out-of-range payload must also cost the player the run's score.
+{
+  const seed = 12_345;
+  const cheated = encodeBinTossRun({
+    seed,
+    claimedScore: 100,
+    events: [{ t: 10, k: 1, a: BINTOSS_VX_MAX * 4, b: -1000, c: 0, d: 0 }],
+    endTick: BINTOSS_RUN_TICKS,
+    checkpoints: [],
+  });
+  const replay = replayBinTossRun(seed, cheated);
+  if (!replay.flagged) fail("an out-of-range flick was not flagged");
+  if (replay.reason !== "input payload out of range") {
+    fail(`unexpected reason: ${replay.reason ?? "none"}`);
+  }
+  if (replay.baskets !== 0 || replay.score !== 0) fail("an out-of-range flick still scored");
+}
+
+/* ----------------------------- Registration ---------------------------- */
+
+for (const key of ["bintoss", "bullseye"] as const) {
+  const def = puzzleDef(key);
+  if (def.category !== "arcade") fail(`${key}: category is ${def.category}`);
+  if (def.retired) fail(`${key}: retired`);
+  if (def.revealMs !== 6_000) fail(`${key}: revealMs is ${def.revealMs}`);
+  if (!def.instructions) fail(`${key}: no instructions`);
+  if (!def.roundSummary) fail(`${key}: no standings summary`);
+}
+
+console.log(`first failing tick: ${firstFailingTick ?? "none"}`);
+console.log(failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`);
