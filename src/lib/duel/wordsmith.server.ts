@@ -134,8 +134,7 @@ export function gradeWordsmith(
   }
 
   const points = accepted.reduce((sum, entry) => sum + entry.points, 0);
-  // Players keep exactly the points their words earned.
-  const score = Math.max(0, points);
+  const score = points <= 0 ? 0 : Math.min(150, Math.round((150 * points) / par));
   const ms = Math.min(WORDSMITH_TIME_MS, Math.max(0, Math.round(msRemaining)));
 
   return {
