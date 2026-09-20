@@ -591,7 +591,28 @@ export function gradeSubmission(
       );
       isCorrect = replay.solved;
       correctCount = replay.tilts;
-      score = scoreGravity(replay.solved, replay.tilts, puzzle.minMoves ?? 0, ms, replay.onTarget);
+      // Credit follows the closest joint position the balls ever reached.
+      let progress = 0;
+      if (!replay.solved) {
+        const wallSet = new Set(puzzle.walls);
+        const distanceTo = (balls: { a: number; b: number }) =>
+          gravityDistance(wallSet, balls, puzzle.targetA, puzzle.targetB);
+        const startDistance = distanceTo({ a: puzzle.startA, b: puzzle.startB });
+        const best = replay.states
+          .map(distanceTo)
+          .filter((value): value is number => value !== null);
+        if (startDistance && startDistance > 0 && best.length > 0) {
+          progress = 1 - Math.min(...best) / startDistance;
+        }
+      }
+      score = scoreGravity(
+        replay.solved,
+        replay.tilts,
+        puzzle.minMoves ?? 0,
+        ms,
+        replay.onTarget,
+        progress,
+      );
       extraDetail = {
         solved: replay.solved,
         tilts: replay.tilts,
