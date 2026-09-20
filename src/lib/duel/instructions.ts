@@ -19,7 +19,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a used letter", detail: "to return that tile, or use Undo." },
       { action: "Submit words", detail: "with three or more letters." },
     ],
-    score: "Longer words = more points.",
+    score: "Your word points are your score.",
   },
   groups: {
     goal: "Sort all sixteen words into four groups of four.",
@@ -37,7 +37,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Change one letter", detail: "from the word above." },
       { action: "Press Enter", detail: "to add each valid word." },
     ],
-    score: "Finish the ladder faster = more points.",
+    score: "Finish the ladder faster = more points. Getting close still scores.",
   },
   target: {
     goal: "Use the six numbers to reach the target.",
@@ -55,7 +55,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap the answer", detail: "you can't go back." },
       { action: "Finish all five", detail: "before time runs out." },
     ],
-    score: "All five right for the speed bonus.",
+    score: "Twenty a sequence. All five right for the speed bonus.",
   },
   equation: {
     goal: "Make the equation equal the target.",
@@ -64,7 +64,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Work left to right", detail: "in the shown order." },
       { action: "Press Submit", detail: "when the equation is true." },
     ],
-    score: "Correct and faster = more points.",
+    score: "Correct and faster = more points. Operators in the right place still score.",
   },
   chaincalc: {
     goal: "Calculate the final number in the chain.",
@@ -126,7 +126,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Find the smallest", detail: "remaining number." },
       { action: "Tap in order", detail: "until every number is cleared." },
     ],
-    score: "Faster = more points. Wrong taps cost points.",
+    score: "Faster = more points. Wrong taps cost points. How far you got still scores.",
   },
   stroop: {
     goal: "Choose the colour requested in every prompt.",
@@ -144,7 +144,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap every match", detail: "in the grid." },
       { action: "Press Submit", detail: "only when you have them all." },
     ],
-    score: "Every match must be right. Faster = more points.",
+    score: "Every match counts. Wrong taps cost a little. Faster = more points.",
   },
   spotdiff: {
     goal: "Find all five differences between the two pictures.",
@@ -152,7 +152,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Compare both panels", detail: "carefully." },
       { action: "Tap each difference", detail: "in either panel." },
     ],
-    score: "More differences = more points. All five = speed bonus.",
+    score: "Twenty a difference. All five = full points and the speed bonus.",
   },
   patcomp: {
     goal: "Complete all three visual patterns.",
@@ -179,7 +179,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Compare the pair", detail: "for same or opposite meaning." },
       { action: "Tap your answer", detail: "for every pair." },
     ],
-    score: "More correct = more points. Perfect = speed bonus.",
+    score: "All eight = full points and the speed bonus. Each right pair still scores.",
   },
   pctsprint: {
     goal: "Solve all three percentage questions.",
@@ -215,7 +215,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Count matching items", detail: "in the field." },
       { action: "Type the total", detail: "and press Submit." },
     ],
-    score: "Correct and faster = more points.",
+    score: "Exact and faster = more points. Close still scores.",
   },
   mirmatch: {
     goal: "Choose the exact mirror image of each shape.",
@@ -233,7 +233,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Use four or more letters", detail: "without reusing a tile." },
       { action: "Release to submit", detail: "each word." },
     ],
-    score: "Longer words = more points.",
+    score: "Your word points are your score.",
   },
   unblock: {
     goal: "Slide the gold car through the exit.",
@@ -242,7 +242,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Clear a path", detail: "for the gold car." },
       { action: "Slide the gold car", detail: "out through the opening." },
     ],
-    score: "Fewer moves and a faster finish = more points.",
+    score: "Fewer moves and a faster finish = more points. Getting closer still scores.",
   },
   blockparty: {
     goal: "Fill every free board square with all nine pieces.",
@@ -259,7 +259,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a light", detail: "to flip it and its four neighbours." },
       { action: "Plan each press", detail: "because nearby lights also change." },
     ],
-    score: "Fewer presses and a faster finish = more points.",
+    score: "Fewer presses and a faster finish = more points. Fewer lights left = more points.",
   },
   pipes: {
     goal: "Connect every pipe to the source with no leaks.",
@@ -268,7 +268,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Join every opening", detail: "to another pipe or the source." },
       { action: "Leave no leaks", detail: "at the grid edges." },
     ],
-    score: "Complete the network faster = more points.",
+    score: "More tiles connected = more points. Complete it faster for the most.",
   },
   sudoku: {
     goal: "Fill the grid with every row, column, and box valid.",
@@ -295,7 +295,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Follow one-way arrows", detail: "that turn the ball." },
       { action: "Avoid holes", detail: "or restart from the beginning." },
     ],
-    score: "Fewer moves and a faster finish = more points.",
+    score: "Fewer moves and a faster finish = more points. Getting closer still scores.",
   },
   push: {
     goal: "Push every crate onto a target.",
@@ -313,7 +313,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a mirror", detail: "to flip it." },
       { action: "Tap FIRE", detail: "to shoot — you get three shots and must avoid bombs." },
     ],
-    score: "Faster = more points. Fewer shots = bonus.",
+    score: "Faster = more points. Fewer shots = bonus. Gems lit still score.",
   },
   tower: {
     goal: "Move the full tower onto the marked peg.",
@@ -331,7 +331,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Follow the corridors", detail: "without crossing walls." },
       { action: "Reach the exit", detail: "to finish." },
     ],
-    score: "Faster = more points. Wrong turns cost time.",
+    score: "Faster = more points. How far along the route you got still scores.",
   },
   tubes: {
     goal: "Sort the balls so every tube is one colour.",
@@ -343,7 +343,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "Undo or Reset", detail: "if a pour traps you." },
     ],
-    score: "Fewer moves earns a bonus.",
+    score: "Fewer moves and a faster finish = more points. Each sorted tube scores.",
   },
   safe: {
     goal: "Find the four-digit combination that fits every clue.",
@@ -373,7 +373,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Use one ball", detail: "to block the other — they stop against each other." },
       { action: "Undo or Reset", detail: "if a tilt traps you." },
     ],
-    score: "Fewer tilts earns a bonus.",
+    score: "Fewer tilts earns a bonus. Getting closer still scores.",
   },
   chain: {
     goal: "Tap the shapes in the order shown, without crossing your own line.",
@@ -436,7 +436,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Finish left to right", detail: "with the gap bottom-right." },
       { action: "Tap Undo or Reset", detail: "to take slides back." },
     ],
-    score: "Fewer moves earns a bonus.",
+    score: "Each tile in place scores. Fewer moves earns a bonus.",
   },
   rings: {
     goal: "Turn the rings so every spoke is one colour.",
