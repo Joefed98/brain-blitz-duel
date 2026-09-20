@@ -3,23 +3,29 @@
  * Run with: bun scripts/gravity-chain-intruder-check.ts
  */
 
-import { generateGravity } from "../src/lib/duel/gravity.server";
+import { generateGravity, solutionSwapsOrder } from "../src/lib/duel/gravity.server";
 import { decodeGravityTilts, replayGravity } from "../src/lib/duel/gravity";
 import { generateChain } from "../src/lib/duel/chain.server";
 import {
+  chainDecoySteps,
+  convexHullSize,
   chainSolutionIsFair,
   chainTrapNodes,
   countChainSolutions,
 } from "../src/lib/duel/chain.server";
-import { chainRequired, chainWouldCross, replayChain } from "../src/lib/duel/chain";
+import { CHAIN_RESET, CHAIN_UNDO, chainRequired, replayChain } from "../src/lib/duel/chain";
 import { generateIntruder } from "../src/lib/duel/intruder.server";
 import { intruderColoursTooClose } from "../src/lib/duel/intruder";
 import {
   CHAIN_LENGTH,
+  CHAIN_MAX_HULL_RATIO,
+  CHAIN_MIN_CENTRAL,
   CHAIN_MIN_INVALID,
+  CHAIN_MIN_SPACING,
   CHAIN_NODES,
+  CHAIN_NODE_WIDTH_PCT,
+  GRAV_FALLBACK_MIN_TILTS,
   GRAV_MAX_TILTS,
-  GRAV_MIN_TILTS,
   INTRUDER_BOARD_SIZES,
   INTRUDER_BOARD_COLOUR_COUNTS,
   INTRUDER_BOARD_SHAPE_COUNTS,
@@ -45,11 +51,17 @@ for (let round = 0; round < ROUNDS; round++) {
     puzzle.targetB,
     solution,
   );
-  check("gravity minimum stored", (puzzle.minMoves ?? 0) >= GRAV_MIN_TILTS);
+  // The generator eases its minimum to GRAV_FALLBACK_MIN_TILTS after 200
+  // failed attempts, so the wanted band is the wider one, not GRAV_MIN_TILTS.
+  check("gravity minimum stored", (puzzle.minMoves ?? 0) >= GRAV_FALLBACK_MIN_TILTS);
   check("gravity minimum in band", (puzzle.minMoves ?? 0) <= GRAV_MAX_TILTS);
   check("gravity solution solves the joint state", replay.solved);
   check("gravity solution length equals the minimum", replay.tilts === puzzle.minMoves);
   check("gravity shortest route uses ball-blocks-ball", replay.usedBlock);
+  check(
+    "gravity shortest route swaps the balls' relative order",
+    solutionSwapsOrder(new Set(puzzle.walls), { a: puzzle.startA, b: puzzle.startB }, solution),
+  );
 }
 
 for (let round = 0; round < ROUNDS; round++) {
@@ -57,12 +69,18 @@ for (let round = 0; round < ROUNDS; round++) {
   const solution = puzzle.solution ?? [];
   check("chain node count", puzzle.nodes.length === CHAIN_NODES);
   check(
-    "chain stored solution count",
-    puzzle.solutionCount === countChainSolutions(puzzle.nodes, puzzle.cycle),
+    "chain stored route count matches the search",
+    puzzle.solutionCount === countChainSolutions(puzzle.nodes, puzzle.cycle, [], 40),
+  );
+  check("chain has at least one route", (puzzle.solutionCount ?? 0) >= 1);
+  check("chain nodes reach the centre", centralNodes(puzzle.nodes) >= CHAIN_MIN_CENTRAL);
+  check(
+    "chain nodes are not ringed around the rim",
+    convexHullSize(puzzle.nodes) <= Math.floor(CHAIN_NODES * CHAIN_MAX_HULL_RATIO),
   );
   check(
-    "chain has 1–8 routes",
-    (puzzle.solutionCount ?? 0) >= 1 && (puzzle.solutionCount ?? 0) <= 8,
+    "chain nodes keep their spacing",
+    minimumSpacing(puzzle.nodes) >= CHAIN_MIN_SPACING * CHAIN_NODE_WIDTH_PCT - 0.01,
   );
   check(
     "chain has two early dead-end traps",
@@ -83,23 +101,27 @@ for (let round = 0; round < ROUNDS; round++) {
       "chain three shape-invalid nodes",
       unused.filter((index) => puzzle.nodes[index]?.shape !== needed).length >= CHAIN_MIN_INVALID,
     );
-    if (step >= 3)
-      check(
-        "chain crossing decoy exists",
-        unused.some(
-          (index) =>
-            puzzle.nodes[index]?.shape === needed && chainWouldCross(puzzle.nodes, prefix, index),
-        ),
-      );
     const next = solution[step];
     if (next !== undefined) prefix.push(next);
   }
+  check(
+    "chain route is tempted by crossings",
+    chainDecoySteps(puzzle.nodes, puzzle.cycle, solution) >= 4,
+  );
   const good = replayChain(puzzle.nodes, puzzle.cycle, solution);
   check("chain perfect run completes", good.completed && good.errors === 0);
   const bad = replayChain(puzzle.nodes, puzzle.cycle, [
     puzzle.nodes.findIndex((node) => node.shape !== chainRequired(puzzle.cycle, 0)),
   ]);
   check("chain wrong tap counts as an error", bad.errors === 1 && bad.chain.length === 0);
+  const undone = replayChain(puzzle.nodes, puzzle.cycle, [
+    ...solution.slice(0, 3),
+    CHAIN_UNDO,
+    puzzle.nodes.findIndex((node) => node.shape !== chainRequired(puzzle.cycle, 2)),
+    CHAIN_RESET,
+    ...solution,
+  ]);
+  check("chain undo and reset replay, errors kept", undone.completed && undone.errors === 1);
 }
 
 for (let round = 0; round < ROUNDS; round++) {
@@ -149,3 +171,22 @@ for (let round = 0; round < ROUNDS; round++) {
 
 console.log(failures === 0 ? `All checks passed (${ROUNDS} rounds each)` : `${failures} failures`);
 process.exit(failures === 0 ? 0 : 1);
+
+function centralNodes(nodes: { x: number; y: number }[]): number {
+  return nodes.filter(
+    (node) => node.x >= 100 / 3 && node.x <= 200 / 3 && node.y >= 100 / 3 && node.y <= 200 / 3,
+  ).length;
+}
+
+function minimumSpacing(nodes: { x: number; y: number }[]): number {
+  let smallest = Infinity;
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      smallest = Math.min(
+        smallest,
+        Math.hypot(nodes[i]!.x - nodes[j]!.x, nodes[i]!.y - nodes[j]!.y),
+      );
+    }
+  }
+  return smallest;
+}

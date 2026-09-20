@@ -20,6 +20,8 @@ import { mazeExitInSight, mazeFalseTrailLengths, mazeJunctions } from "../src/li
 import {
   LASER_MAX_BLOCKS,
   LASER_MAX_MIRRORS,
+  LASER_MIN_BENDS,
+  LASER_MAX_BENDS,
   LASER_MIN_BLOCKS,
   LASER_GEMS,
   LASER_MAX_BOMBS,
@@ -44,12 +46,15 @@ function fail(message: string): never {
 
 /* ------------------------------- Laser ---------------------------------- */
 
-for (let index = 0; index < 3; index++) {
+for (let index = 0; index < 20; index++) {
   const puzzle = generateLaser();
   const stats = puzzle.stats;
   if (!stats) fail("laser shipped no generator stats");
   if (!stats.necessityPass) fail("laser necessity proof did not pass");
   if (stats.subsetsTested < 1000) fail("laser necessity proof barely tested anything");
+  if (stats.bends < LASER_MIN_BENDS || stats.bends > LASER_MAX_BENDS) {
+    fail(`laser bend count ${stats.bends}`);
+  }
   if (stats.blocks !== puzzle.blocks.length) fail("laser stats block count disagrees");
   if (puzzle.blocks.length < LASER_MIN_BLOCKS || puzzle.blocks.length > LASER_MAX_BLOCKS) {
     fail(`laser block count ${puzzle.blocks.length}`);
@@ -78,7 +83,7 @@ for (let index = 0; index < 3; index++) {
   );
   if (solved.endCell !== solved.gemsLit[solved.gemsLit.length - 1])
     fail("the beam does not stop on the gem that completes the set");
-  if (!solved.litAll) fail("stored placement does not light all three gems");
+  if (!solved.litAll) fail("stored placement does not light all four gems");
   if (solved.hitBomb) fail("stored placement touches a bomb");
 
   const empty = traceBeam(puzzle.source, puzzle.dir, [], puzzle.blocks, puzzle.bombs, puzzle.gems);
@@ -99,7 +104,10 @@ for (let index = 0; index < 3; index++) {
     if (mirror.cell === puzzle.source) fail("mirror on the source");
   }
 
-  // Every mirror must be needed: drop any one and the shot fails.
+  // Every mirror must be needed: drop any one and the shot fails — this only
+  // proves the six placed mirrors are each necessary given the other five, not
+  // the exhaustive one-to-five-mirror proof, which lives in generateLaser's
+  // own necessityPass check above.
   for (let drop = 0; drop < solution.length; drop++) {
     const fewer = solution.filter((_, index) => index !== drop);
     if (
@@ -112,7 +120,7 @@ for (let index = 0; index < 3; index++) {
   if (orientations.size !== 2) fail("the solution uses only one mirror orientation");
 }
 console.log(
-  "Laser: 3 layouts — three gems, bombs, five necessary mirrors, beam stops on the last gem",
+  "Laser: 20 layouts — four gems, bombs, six necessary mirrors (proved against every 1-5 mirror placement), beam stops on the last gem",
 );
 
 /* -------------------------------- Tower ---------------------------------- */
@@ -143,7 +151,7 @@ for (let index = 0; index < 12; index++) {
   if (replay.moves !== puzzle.minMoves) fail("stored solution is not the minimum");
 }
 console.log(
-  "Tower: 12 puzzles — eight discs, four pegs, legal spreads, BFS minimum ≥ 25, 120s clock",
+  "Tower: 12 puzzles — eight discs, four pegs, legal spreads, BFS minimum ≥ 25, 90s clock",
 );
 
 /* ------------------------------ Maze Dash -------------------------------- */

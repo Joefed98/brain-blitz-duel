@@ -67,16 +67,25 @@ export function chainWouldCross(nodes: ChainNode[], chain: number[], next: numbe
   return false;
 }
 
+/** Undo and Reset travel in the tap list, so the server replays them too. */
+export const CHAIN_UNDO = -1;
+export const CHAIN_RESET = -2;
+
 export function encodeChainTaps(taps: number[]): string {
-  return taps.join(",");
+  return taps.map((tap) => (tap === CHAIN_UNDO ? "u" : tap === CHAIN_RESET ? "r" : tap)).join(",");
 }
 
 export function decodeChainTaps(raw: string): number[] {
   return String(raw ?? "")
     .split(",")
-    .map((part) => Number.parseInt(part, 10))
-    .filter((value) => Number.isInteger(value) && value >= 0)
-    .slice(0, 200);
+    .map((part) => {
+      const token = part.trim();
+      if (token === "u") return CHAIN_UNDO;
+      if (token === "r") return CHAIN_RESET;
+      return Number.parseInt(token, 10);
+    })
+    .filter((value) => Number.isInteger(value) && value >= CHAIN_RESET)
+    .slice(0, 400);
 }
 
 export interface ChainReplay {
@@ -100,6 +109,18 @@ export function replayChain(nodes: ChainNode[], cycle: ChainShape[], taps: numbe
 
   for (const tap of taps) {
     if (chain.length >= CHAIN_LENGTH) break;
+    // Undo drops the last link and Reset clears the chain; neither forgives an
+    // error already logged.
+    if (tap === CHAIN_UNDO) {
+      chain.pop();
+      verdicts.push(true);
+      continue;
+    }
+    if (tap === CHAIN_RESET) {
+      chain.length = 0;
+      verdicts.push(true);
+      continue;
+    }
     const node = nodes[tap];
     if (!node) {
       verdicts.push(false);

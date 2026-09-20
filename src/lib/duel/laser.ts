@@ -2,7 +2,8 @@
  * Laser and Mirrors rules. One beam tracer, used by the phone (to animate a
  * fired shot) and by the server (to re-trace whatever placement a phone sends).
  * The beam passes THROUGH gems and lights them; it stops dead on a bomb, on a
- * block, at the edge, or on the gem that completes the set. Pure logic: no generator and no stored answers.
+ * block, at the edge, or on the gem that completes the set (all four of them).
+ * Pure logic: no generator and no stored answers.
  */
 
 import {

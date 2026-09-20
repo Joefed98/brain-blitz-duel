@@ -45,7 +45,7 @@ const DIRS: SlideDir[] = ["U", "D", "L", "R"];
 
 /**
  * How many walls the shortest route actually depends on: take one away and the
- * minimum changes. A layout needs at least four such stoppers.
+ * minimum changes. A layout needs at least five such stoppers.
  */
 function stoppers(
   walls: number[],
@@ -89,7 +89,7 @@ export function meaningfulSlideArrows(
 }
 
 export function generateIceSlide(): SlidePuzzleData {
-  for (let attempt = 1; attempt <= 40_000; attempt++) {
+  for (let attempt = 1; attempt <= 250_000; attempt++) {
     const cells = shuffled(Array.from({ length: SLIDE_CELLS }, (_, i) => i));
     const exit = cells.find(border)!;
     const wallCount = SLIDE_MIN_WALLS + randomInt(SLIDE_MAX_WALLS - SLIDE_MIN_WALLS + 1);
@@ -111,10 +111,10 @@ export function generateIceSlide(): SlidePuzzleData {
     }));
 
     const min = slideDistance(walls, holes, start, exit, start, arrows);
-    // At least eleven slides, so the exit is never six moves or fewer away.
+    // Twenty to twenty-six slides, so the exit is never eight moves or fewer away.
     if (min === null || min < SLIDE_MIN_MOVES || min > SLIDE_MAX_MOVES) continue;
     if (!meaningfulSlideArrows(walls, holes, arrows, start, exit)) continue;
-    // And at least four walls the shortest route genuinely depends on.
+    // And at least five walls the shortest route genuinely depends on.
     const stopperCount = stoppers(walls, holes, arrows, start, exit, min);
     if (stopperCount < SLIDE_MIN_STOPPERS) continue;
 

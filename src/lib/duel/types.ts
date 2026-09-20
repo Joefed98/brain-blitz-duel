@@ -940,15 +940,15 @@ export interface FlowPuzzleData {
 /*  Ice Slide                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const SLIDE_COLS = 10;
+export const SLIDE_COLS = 12;
 export const SLIDE_CELLS = SLIDE_COLS * SLIDE_COLS;
-export const SLIDE_TIME_MS = 45_000;
-export const SLIDE_MIN_WALLS = 22;
-export const SLIDE_MAX_WALLS = 30;
-export const SLIDE_MIN_MOVES = 11;
-export const SLIDE_MAX_MOVES = 16;
+export const SLIDE_TIME_MS = 75_000;
+export const SLIDE_MIN_WALLS = 30;
+export const SLIDE_MAX_WALLS = 44;
+export const SLIDE_MIN_MOVES = 20;
+export const SLIDE_MAX_MOVES = 26;
 /** The exit may not be within this many slides of the start. */
-export const SLIDE_EASY_MOVES = 6;
+export const SLIDE_EASY_MOVES = 8;
 /** Holes the ball must slide around: falling in sends it back to the start. */
 export const SLIDE_MIN_HOLES = 2;
 export const SLIDE_MAX_HOLES = 4;
@@ -956,7 +956,7 @@ export const SLIDE_MAX_HOLES = 4;
 export const SLIDE_MIN_ARROWS = 1;
 export const SLIDE_MAX_ARROWS = 3;
 /** At least this many walls must be stoppers the shortest route depends on. */
-export const SLIDE_MIN_STOPPERS = 4;
+export const SLIDE_MIN_STOPPERS = 5;
 /** Bonus for reaching the exit in the fewest possible slides. */
 export const SLIDE_MIN_MOVE_BONUS = 20;
 /** Consolation for stopping within two slides of the exit. */
@@ -1056,14 +1056,14 @@ export interface PushPuzzleData {
 
 export const LASER_COLS = 10;
 export const LASER_CELLS = LASER_COLS * LASER_COLS;
-export const LASER_TIME_MS = 45_000;
+export const LASER_TIME_MS = 60_000;
 /** Always exactly five mirrors, and the route always bends once per mirror. */
-export const LASER_MIN_MIRRORS = 5;
-export const LASER_MAX_MIRRORS = 5;
+export const LASER_MIN_MIRRORS = 6;
+export const LASER_MAX_MIRRORS = 6;
 export const LASER_MIN_BLOCKS = 20;
 export const LASER_MAX_BLOCKS = 26;
 /** Three gems the beam must pass through, and three or four bombs it must miss. */
-export const LASER_GEMS = 3;
+export const LASER_GEMS = 4;
 export const LASER_MIN_BOMBS = 3;
 export const LASER_MAX_BOMBS = 4;
 /** Blocks closing off the straight and single-bend shortcuts. */
@@ -1078,7 +1078,9 @@ export const LASER_CENTRAL_TO = 7;
 /** A bomb must lie on this many different near-miss beams. */
 export const LASER_MIN_BOMB_CROSSINGS = 2;
 /** The beam route always turns at least this many times. */
-export const LASER_MIN_BENDS = 5;
+export const LASER_MIN_BENDS = 6;
+/** And never more: the route bends exactly once per mirror. */
+export const LASER_MAX_BENDS = 6;
 /** Three shots per round. */
 export const LASER_MAX_FIRES = 3;
 /** Base points by the shot that lit all three gems: first, second, third. */
@@ -1141,7 +1143,7 @@ export interface LaserPuzzleData {
 /*  Tower                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export const TOWER_TIME_MS = 120_000;
+export const TOWER_TIME_MS = 90_000;
 /** Eight discs across four pegs. */
 export const TOWER_DISCS = 8;
 export const TOWER_PEGS = 4;
@@ -1218,17 +1220,17 @@ export interface MazePuzzleData {
 /* ============================ Sort the Tubes ============================ */
 
 export const TUBES_TIME_MS = 60_000;
-export const TUBES_COUNT = 8;
+export const TUBES_COUNT = 10;
 export const TUBE_CAPACITY = 4;
-export const TUBES_COLOURS = 6;
+export const TUBES_COLOURS = 8;
 /** How many reverse pours scramble the solved board. */
-export const TUBES_MIN_SCRAMBLE = 40;
-export const TUBES_MAX_SCRAMBLE = 60;
+export const TUBES_MIN_SCRAMBLE = 60;
+export const TUBES_MAX_SCRAMBLE = 90;
 /** The searched minimum has to land in this band for the board to be used. */
-export const TUBES_MIN_MIN_MOVES = 12;
-export const TUBES_MAX_MIN_MOVES = 20;
+export const TUBES_MIN_MIN_MOVES = 16;
+export const TUBES_MAX_MIN_MOVES = 26;
 /** The breadth-first search gives up past this many states, and we re-roll. */
-export const TUBES_BFS_CAP = 500_000;
+export const TUBES_BFS_CAP = 1_000_000;
 /** Bonus for solving in the fewest possible pours. */
 export const TUBES_MIN_MOVE_BONUS = 20;
 /** Most an unsolved board can earn, shared out per finished tube. */
@@ -1236,7 +1238,7 @@ export const TUBES_PARTIAL_POINTS = 60;
 
 export interface TubesPuzzleData {
   type: "tubes";
-  /** One tube per entry, bottom ball first, holding colour indices 0–5. */
+  /** One tube per entry, bottom ball first, holding colour indices 0–7. */
   tubes: number[][];
   /** Server-side only: the searched minimum number of pours. */
   minMoves?: number;
@@ -1248,7 +1250,7 @@ export interface TubesPuzzleData {
 
 export const SAFE_TIME_MS = 75_000;
 export const SAFE_DIALS = 4;
-export const SAFE_CLUE_COUNT = 4;
+export const SAFE_CLUE_COUNT = 5;
 export const SAFE_TRIES = 3;
 /** Base points by the try that opened the safe: first, second, third. */
 export const SAFE_TRY_POINTS = [100, 85, 70];
@@ -1295,14 +1297,17 @@ export interface BombPuzzleData {
 
 /* ============================= Gravity Maze ============================= */
 
-export const GRAV_TIME_MS = 60_000;
-export const GRAV_COLS = 8;
+export const GRAV_TIME_MS = 90_000;
+export const GRAV_COLS = 10;
 export const GRAV_CELLS = GRAV_COLS * GRAV_COLS;
-export const GRAV_MIN_WALLS = 12;
-export const GRAV_MAX_WALLS = 20;
+export const GRAV_MIN_WALLS = 20;
+export const GRAV_MAX_WALLS = 32;
 /** The searched joint-state minimum has to land in this band. */
-export const GRAV_MIN_TILTS = 6;
-export const GRAV_MAX_TILTS = 10;
+export const GRAV_MIN_TILTS = 20;
+export const GRAV_MAX_TILTS = 26;
+/** Attempts before the generator eases the minimum and logs the fallback. */
+export const GRAV_ATTEMPTS = 200;
+export const GRAV_FALLBACK_MIN_TILTS = 16;
 /** Neither ball may reach its own target alone in fewer tilts than this. */
 export const GRAV_SOLO_MIN_TILTS = 3;
 /** Bonus for solving in the fewest possible tilts. */
@@ -1342,6 +1347,12 @@ export const CHAIN_PARTIAL_POINTS = 60;
 export const CHAIN_MIN_INVALID = 3;
 /** Minimum distance between two nodes, in percent of the play area. */
 export const CHAIN_NODE_GAP = 15;
+/** Poisson-disc spacing, in node widths, and the spread checks on a layout. */
+export const CHAIN_MIN_SPACING = 1.6;
+/** A node glyph's width, as a share of the taller board axis in percent. */
+export const CHAIN_NODE_WIDTH_PCT = 7;
+export const CHAIN_MIN_CENTRAL = 7;
+export const CHAIN_MAX_HULL_RATIO = 0.6;
 
 export const CHAIN_SHAPES = ["circle", "square", "triangle"] as const;
 

@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import {
   chainRequired,
   chainWouldCross,
+  CHAIN_RESET,
+  CHAIN_UNDO,
   decodeChainTaps,
   encodeChainTaps,
   replayChain,
@@ -190,6 +192,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
     }
     setTaps((current) => [...current, nodeId]);
   };
+  // Undo and Reset are logged in the tap list, so mistakes already made stay counted.
+  const undo = () => {
+    if (locked || submitted.current || replay.completed || replay.chain.length === 0) return;
+    hapticTick();
+    setTaps((current) => [...current, CHAIN_UNDO]);
+  };
+  const reset = () => {
+    if (locked || submitted.current || replay.completed || replay.chain.length === 0) return;
+    hapticTick();
+    setTaps((current) => [...current, CHAIN_RESET]);
+  };
   const used = new Set(replay.chain);
 
   return (
@@ -221,6 +234,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
             <NodeGlyph shape={node.shape} size={46} />
           </Button>
         ))}
+      </div>
+      <div className="flex shrink-0 gap-2">
+        <button
+          type="button"
+          onClick={undo}
+          disabled={locked || replay.completed || replay.chain.length === 0}
+          className="h-11 flex-1 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+        >
+          Undo
+        </button>
+        <button
+          type="button"
+          onClick={reset}
+          disabled={locked || replay.completed || replay.chain.length === 0}
+          className="h-11 flex-1 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+        >
+          Reset
+        </button>
       </div>
     </div>
   );
