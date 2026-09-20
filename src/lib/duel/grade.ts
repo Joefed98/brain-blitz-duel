@@ -235,6 +235,14 @@ export function gradeSubmission(
       score = scoreWordMatch(correctCount, ms);
       break;
     }
+    case "numseq": {
+      // The five correct option indices live server-side only.
+      const picks = answer.split(",").map((v) => Number.parseInt(v, 10));
+      correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
+      isCorrect = correctCount >= NUMSEQ_ITEMS;
+      score = scoreNumberSequence(correctCount, ms);
+      break;
+    }
     case "pctsprint": {
       // Same again: the three correct option indices live server-side only.
       const picks = answer.split(",").map((v) => Number.parseInt(v, 10));

@@ -267,6 +267,15 @@ export function scorePercentSprint(correctCount: number, msRemaining: number): n
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
+/** Number Sequence: accuracy out of 100, plus the speed bonus on a flawless run. */
+export function scoreNumberSequence(correctCount: number, msRemaining: number): number {
+  const correct = clamp(correctCount, 0, NUMSEQ_ITEMS);
+  const accuracy = Math.round((BASE_POINTS * correct) / NUMSEQ_ITEMS);
+  const bonus = correct >= NUMSEQ_ITEMS ? speedBonus(msRemaining, NUMSEQ_TIME_MS) : 0;
+  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
+}
+
+
 /** Stop Watch: 150 for a perfect average, down to 100 at 400 ms or worse. */
 export function scoreStopWatch(averageDistanceMs: number): number {
   const bonus = clamp(
