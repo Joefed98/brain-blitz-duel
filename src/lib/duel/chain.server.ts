@@ -166,18 +166,34 @@ function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-/** Dart-thrown Poisson-disc sample: points spread over the whole play area. */
+/**
+ * Dart-thrown Poisson-disc sample over the whole play area. The middle of the
+ * board is filled first, so the scatter reaches the centre instead of ringing
+ * the rim, and every pair of nodes keeps the minimum spacing.
+ */
 function samplePoints(): Point[] | null {
   const points: Point[] = [];
   const span = 100 - EDGE_PADDING * 2;
-  for (let throws = 0; throws < 6_000 && points.length < CHAIN_NODES; throws++) {
+  const round = (value: number) => Math.round(value * 10) / 10;
+  const fits = (candidate: Point) =>
+    points.every((point) => distance(point, candidate) >= MIN_DISTANCE);
+
+  for (let throws = 0; throws < 8_000 && points.length < CHAIN_MIN_CENTRAL; throws++) {
+    const middle = CENTRE_TO - CENTRE_FROM;
     const candidate = {
-      x: Math.round((EDGE_PADDING + Math.random() * span) * 10) / 10,
-      y: Math.round((EDGE_PADDING + Math.random() * span) * 10) / 10,
+      x: round(CENTRE_FROM + Math.random() * middle),
+      y: round(CENTRE_FROM + Math.random() * middle),
     };
-    if (points.every((point) => distance(point, candidate) >= MIN_DISTANCE)) {
-      points.push(candidate);
-    }
+    if (fits(candidate)) points.push(candidate);
+  }
+  if (points.length < CHAIN_MIN_CENTRAL) return null;
+
+  for (let throws = 0; throws < 12_000 && points.length < CHAIN_NODES; throws++) {
+    const candidate = {
+      x: round(EDGE_PADDING + Math.random() * span),
+      y: round(EDGE_PADDING + Math.random() * span),
+    };
+    if (fits(candidate)) points.push(candidate);
   }
   return points.length === CHAIN_NODES ? points : null;
 }
