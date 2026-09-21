@@ -12,6 +12,7 @@ import {
   clampInt,
   inputRange,
   rngBelow,
+  TICK_MS,
   TICKS_PER_SECOND,
   type ArcadeGame,
   type ArcadeInputEvent,
@@ -71,6 +72,32 @@ export const BULLSEYE_INPUT_RANGES: readonly InputRange[] = [
  */
 export const BULLSEYE_FLIGHT_NUM = BULLSEYE_BOW_Y - BULLSEYE_CY;
 export const BULLSEYE_FLIGHT_DEN = 1_920;
+
+/** A swipe shorter than this is ignored. */
+export const BULLSEYE_FLICK_MIN_PX = 30;
+/** Swipe speed to launch speed: a 300 px/s swipe is a medium shot (1,920). */
+export const BULLSEYE_FLICK_NUM = 32;
+export const BULLSEYE_FLICK_DEN = 5;
+
+/**
+ * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
+ * are world pixels moved over `dtMs` milliseconds; upwards is negative `dy`.
+ */
+export function bullseyeFlick(
+  dx: number,
+  dy: number,
+  dtMs: number,
+): { vx: number; vy: number } | null {
+  if (dx * dx + dy * dy < BULLSEYE_FLICK_MIN_PX * BULLSEYE_FLICK_MIN_PX) return null;
+  if (dy >= 0) return null;
+  const dt = Math.max(TICK_MS, dtMs);
+  const scale = (value: number) =>
+    Math.round((((value * 1000) / dt) * BULLSEYE_FLICK_NUM) / BULLSEYE_FLICK_DEN);
+  return {
+    vx: clampInt(scale(dx), -BULLSEYE_V_MAX, BULLSEYE_V_MAX),
+    vy: clampInt(scale(dy), -BULLSEYE_V_MAX, -1),
+  };
+}
 
 /** Where a flick lands on the target plane, before the wind drift. */
 export function bullseyeLanding(vx: number, vy: number): { x: number; y: number } {
