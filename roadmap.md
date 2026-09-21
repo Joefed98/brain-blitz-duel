@@ -64,3 +64,9 @@
 - [x] Matchup: strip aligned to the board columns, score = raw ÷ 8
 - [x] Bin Toss: flick launch from the last 80 ms, no preview arc, flight trail
 - [x] Bullseye: ring values 10…5, score × 1.5, flick from the bow, no reticle
+
+## Flick recalibration (done)
+- [x] Reference swipe 1000 px/s, clamped 250–2200 px/s, square-root response from a shared integer table
+- [x] Bin Toss: 1000 px/s at 60° lands in the bin on throw five (launch 1481 units/tick)
+- [x] Bullseye: 1000 px/s straight up lands on the centre at arrow one (flight 282/1920)
+- [x] ?dev=1 readout of swipe speed, angle and landing point in both games
