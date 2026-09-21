@@ -70,6 +70,43 @@ export const BINTOSS_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BINTOSS_INPUT_FLICK, [-BINTOSS_VX_MAX, BINTOSS_VX_MAX], [-BINTOSS_VY_MAX, 0]),
 ];
 
+/** A swipe shorter than this is ignored. */
+export const BINTOSS_FLICK_MIN_PX = 30;
+/**
+ * Swipe speed to launch speed: 32/5 units a tick per pixel a second, so a
+ * 300 px/s swipe is a medium throw (1,920 units — half the upward clamp).
+ */
+export const BINTOSS_FLICK_NUM = 32;
+export const BINTOSS_FLICK_DEN = 5;
+
+/**
+ * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
+ * are world pixels moved over `dtMs` milliseconds; upwards is negative `dy`.
+ * Returns null for a short swipe or one that is not going upwards.
+ */
+export function binTossFlick(
+  dx: number,
+  dy: number,
+  dtMs: number,
+): { vx: number; vy: number } | null {
+  if (dx * dx + dy * dy < BINTOSS_FLICK_MIN_PX * BINTOSS_FLICK_MIN_PX) return null;
+  if (dy >= 0) return null;
+  const dt = Math.max(TICK_MS, dtMs);
+  const perSecX = (dx * 1000) / dt;
+  const perSecY = (dy * 1000) / dt;
+  const vx = clampInt(
+    Math.round((perSecX * BINTOSS_FLICK_NUM) / BINTOSS_FLICK_DEN),
+    -BINTOSS_VX_MAX,
+    BINTOSS_VX_MAX,
+  );
+  const vy = clampInt(
+    Math.round((perSecY * BINTOSS_FLICK_NUM) / BINTOSS_FLICK_DEN),
+    -BINTOSS_VY_MAX,
+    -1,
+  );
+  return { vx, vy };
+}
+
 /** The bin's centre for a throw. */
 export function binTossDistance(index: number): number {
   return BINTOSS_FIRST_DIST + BINTOSS_DIST_STEP * clampInt(index, 0, BINTOSS_THROWS - 1);
