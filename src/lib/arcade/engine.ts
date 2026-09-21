@@ -297,7 +297,7 @@ export function flickWindow(
  * 1000 px/s: each game states the launch speed that swipe produces and every
  * other swipe is scaled from it.
  */
-export const FLICK_REF_PXS = 1_000;
+export const FLICK_REF_PXS = 1_300;
 /** Swipe speed is clamped to this band; below the floor the gesture is ignored. */
 export const FLICK_MIN_PXS = 250;
 export const FLICK_MAX_PXS = 2_200;
@@ -307,14 +307,14 @@ export const FLICK_MIN_PX = 30;
 /** One table entry per {@link FLICK_TABLE_STEP} px/s of swipe speed. */
 export const FLICK_TABLE_STEP = 50;
 /**
- * round(256 × sqrt(speed ÷ 1000)) at every table step, so launch speed grows
+ * round(256 × sqrt(speed ÷ 1300)) at every table step, so launch speed grows
  * with the square root of swipe speed: twice as fast a flick throws about 1.4×
  * as hard. Integer-only, so client and server agree exactly.
  */
 export const FLICK_SQRT_256: readonly number[] = [
-  0, 57, 81, 99, 114, 128, 140, 151, 162, 172, 181, 190, 198, 206, 214, 222, 229, 236, 243, 250,
-  256, 262, 268, 275, 280, 286, 292, 297, 303, 308, 314, 319, 324, 329, 334, 339, 343, 348, 353,
-  357, 362, 367, 371, 375, 380,
+  0, 50, 71, 87, 100, 112, 123, 133, 142, 151, 159, 167, 174, 181, 188, 194, 201, 207, 213,
+  219, 225, 230, 235, 241, 246, 251, 256, 261, 266, 270, 275, 280, 284, 288, 293, 297, 301,
+  305, 309, 314, 318, 321, 325, 329, 333,
 ];
 
 /** The launch scale for a swipe speed, in 256ths: 256 at the reference speed. */
@@ -340,7 +340,7 @@ export interface FlickLaunch {
 /**
  * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
  * are world pixels moved over `dtMs` milliseconds; upwards is negative `dy`.
- * `refSpeed` is the launch speed the reference 1000 px/s swipe produces.
+ * `refSpeed` is the launch speed the reference 1300 px/s swipe produces.
  * Returns null for a short, slow or downward swipe.
  */
 export function flickLaunch(

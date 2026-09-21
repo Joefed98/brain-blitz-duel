@@ -66,7 +66,13 @@
 - [x] Bullseye: ring values 10…5, score × 1.5, flick from the bow, no reticle
 
 ## Flick recalibration (done)
-- [x] Reference swipe 1000 px/s, clamped 250–2200 px/s, square-root response from a shared integer table
-- [x] Bin Toss: 1000 px/s at 60° lands in the bin on throw five (launch 1481 units/tick)
-- [x] Bullseye: 1000 px/s straight up lands on the centre at arrow one (flight 282/1920)
+- [x] Reference swipe 1300 px/s, clamped 250–2200 px/s, square-root response from a shared integer table
+- [x] Bin Toss: 1300 px/s at 60° lands in the bin on throw five (launch 1243 units/tick)
+- [x] Bullseye: 1300 px/s straight up lands on the centre at arrow one (flight 282/1920)
 - [x] ?dev=1 readout of swipe speed, angle and landing point in both games
+
+## Achievable arcade scoring (done)
+- [x] 1300 px/s reference flick with the deterministic square-root response and existing clamp
+- [x] Bin Toss: half wind, wider forgiving bin, 110–245 px distances, floatier gravity, previous-arc ghost
+- [x] Bullseye: half wind, 170 px target, gentler shrinking/drift, previous-hit ghost
+- [x] Re-run the 200-run client/server identity proof and arcade regressions
