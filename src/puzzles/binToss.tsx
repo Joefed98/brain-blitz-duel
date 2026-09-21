@@ -179,7 +179,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         binTossGame.draw(ctx, state.current, size);
         const current = drag.current;
         if (current && state.current.phase === BINTOSS_AIM) {
-          const velocity = flickVelocity(current, time);
+          const velocity = flickVelocity(current);
           binTossDrawAim(ctx, state.current, size, velocity.vx, velocity.vy);
         }
       }
@@ -236,11 +236,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { width, height };
   };
 
-  /** Drag vector ÷ drag duration, in whole 1/256-px-a-tick units. */
-  const flickVelocity = (current: DragState, time: number): { vx: number; vy: number } => {
-    const ticks = Math.max(1, (time - current.startTime) / TICK_MS);
-    const vx = Math.round(((current.startX - current.x) * 256) / ticks);
-    const vy = Math.round(((current.startY - current.y) * 256) / ticks);
+  /**
+   * A touchscreen flick: the ball flies the way the finger travelled, and the
+   * longer the flick the harder the throw. Fixed divisor, so the dotted preview
+   * matches the throw exactly.
+   */
+  const flickVelocity = (current: DragState): { vx: number; vy: number } => {
+    const ticks = 24;
+    const vx = Math.round(((current.x - current.startX) * 256) / ticks);
+    const vy = Math.round(((current.y - current.startY) * 256) / ticks);
     return {
       vx: clampInt(vx, -BINTOSS_VX_MAX, BINTOSS_VX_MAX),
       vy: clampInt(vy, -BINTOSS_VY_MAX, 0),
@@ -273,11 +277,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           event.preventDefault();
           if (locked || submitted.current || binTossGame.isOver(state.current)) return;
           if (state.current.phase !== BINTOSS_AIM) return;
+          // Flick anywhere on the canvas — no need to find the ball first.
           const point = worldPoint(event);
-          const dx = point.x * 256 - state.current.x;
-          const dy = point.y * 256 - state.current.y;
-          const hitRadius = BINTOSS_BALL_R * 2.2;
-          if (dx * dx + dy * dy > hitRadius * hitRadius) return;
           drag.current = {
             startX: point.x,
             startY: point.y,
@@ -300,7 +301,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           }
           if (!current || locked || submitted.current) return;
           if (state.current.phase !== BINTOSS_AIM) return;
-          const { vx, vy } = flickVelocity(current, performance.now());
+          const { vx, vy } = flickVelocity(current);
           if (vy === 0 && vx === 0) return;
           pending.current.push({ t: 0, k: 1, a: vx, b: vy, c: 0, d: 0 });
         }}
