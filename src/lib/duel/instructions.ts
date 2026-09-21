@@ -502,5 +502,4 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "3 = 10, 4 = 25, 5 = 50, then the total ÷ 8.",
   },
-
 };

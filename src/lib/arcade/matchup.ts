@@ -366,7 +366,8 @@ function expandSpecials(
   let gained = 0;
   const detonated: number[] = [];
   const queue = [...initial];
-  for (const index of gone) if (isSpecial(cells[index] ?? -1) && !queue.includes(index)) queue.push(index);
+  for (const index of gone)
+    if (isSpecial(cells[index] ?? -1) && !queue.includes(index)) queue.push(index);
   for (let cursor = 0; cursor < queue.length; cursor++) {
     const index = queue[cursor] ?? -1;
     if (detonated.includes(index)) continue;
@@ -375,7 +376,11 @@ function expandSpecials(
     detonated.push(index);
     gained += addBlast(index, kind, gone);
     for (const target of gone) {
-      if (isSpecial(cells[target] ?? -1) && !detonated.includes(target) && !queue.includes(target)) {
+      if (
+        isSpecial(cells[target] ?? -1) &&
+        !detonated.includes(target) &&
+        !queue.includes(target)
+      ) {
         queue.push(target);
       }
     }
@@ -404,7 +409,8 @@ function fallAndRefill(
         const item = kept[depth];
         if (!item) continue;
         cells[target] = item.kind;
-        if (item.row !== row) moves.push({ kind: item.kind, fromRow: item.row, fromCol: col, toRow: row, toCol: col });
+        if (item.row !== row)
+          moves.push({ kind: item.kind, fromRow: item.row, fromCol: col, toRow: row, toCol: col });
       } else {
         const head = heads[col] ?? 0;
         const slot = head % MATCHUP_QUEUE_LEN;
@@ -688,7 +694,14 @@ export const MATCHUP_CLEAR_MS = 200;
 export const MATCHUP_DROP_MS = 120;
 export const MATCHUP_DETONATE_MS = 250;
 
-function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+function roundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
@@ -721,7 +734,12 @@ export function matchupDrawSymbol(
     ctx.strokeStyle = MATCHUP_GOLD;
     ctx.beginPath();
     ctx.moveTo(cx + radius * 0.38, cy - radius * 0.58);
-    ctx.quadraticCurveTo(cx + radius * 0.72, cy - radius * 0.95, cx + radius * 0.2, cy - radius * 1.1);
+    ctx.quadraticCurveTo(
+      cx + radius * 0.72,
+      cy - radius * 0.95,
+      cx + radius * 0.2,
+      cy - radius * 1.1,
+    );
     ctx.stroke();
     ctx.fillStyle = MATCHUP_GOLD;
     ctx.beginPath();
@@ -852,7 +870,11 @@ export function matchupAnimationDuration(steps: readonly MatchupAnimStep[]): num
   );
 }
 
-function drawDetonations(ctx: CanvasRenderingContext2D, step: MatchupAnimStep, progress: number): void {
+function drawDetonations(
+  ctx: CanvasRenderingContext2D,
+  step: MatchupAnimStep,
+  progress: number,
+): void {
   for (const index of step.detonated) {
     const kind = step.before[index] ?? -1;
     const row = Math.trunc(index / MATCHUP_SIZE);
