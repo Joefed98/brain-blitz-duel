@@ -174,8 +174,11 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
   if (input && input.k === BULLSEYE_INPUT_SHOT && canFire) {
     const arrow = state.arrowIndex;
     const wind = state.winds[arrow] ?? 0;
-    const x = clampInt(input.a, 0, BULLSEYE_WORLD_W) + wind * bullseyeDriftPx(arrow);
-    const y = clampInt(input.b, 0, BULLSEYE_WORLD_H);
+    const vx = clampInt(input.a, -BULLSEYE_V_MAX, BULLSEYE_V_MAX);
+    const vy = clampInt(input.b, -BULLSEYE_V_MAX, 0);
+    const landing = bullseyeLanding(vx, vy);
+    const x = landing.x + wind * bullseyeDriftPx(arrow);
+    const y = landing.y;
     const ring = bullseyeRingAt(x, y, bullseyeScalePct(arrow));
     const value = bullseyeRingValue(ring);
     const next: BullseyeState = {
@@ -195,8 +198,9 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
   return next;
 }
 
+/** Ten centres (100) make the 150 cap. */
 function score(state: BullseyeState): number {
-  return clampInt(Math.round(state.total / 2), 0, 150);
+  return clampInt(Math.round((state.total * 3) / 2), 0, 150);
 }
 
 /** Arrows in the gold or red rings — the headline for the standings summary. */
