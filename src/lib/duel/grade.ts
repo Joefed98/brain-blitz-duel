@@ -11,7 +11,7 @@ import { decodeTowerMoves, replayTower } from "./tower";
 import { decodeMazePath, verifyMazePath } from "./maze";
 import { decodeTubeMoves, replayTubes } from "./tubes";
 import { dialsCorrect, decodeSafeTries, safeOpenedOn } from "./safe";
-import { decodeBombActions, replayBomb } from "./bomb";
+import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { gravityDistance } from "./gravity.server";
 import { blockingCars, unblockDistance } from "./unblock.server";
@@ -576,9 +576,11 @@ export function gradeSubmission(
       break;
     }
     case "bomb": {
-      // The ordered action list is checked only when DEFUSE (or timeout) submits it.
-      const required = decodeBombActions(puzzle.sequence ?? "");
-      const replay = replayBomb(required, decodeBombActions(answer));
+      // Any order that carries out the required actions and respects every
+      // ordering constraint defuses the bomb.
+      const required = decodeBombActions(puzzle.required ?? puzzle.sequence ?? "");
+      const constraints = decodeBombConstraints(puzzle.constraints ?? "");
+      const replay = checkBombPlan(required, constraints, decodeBombActions(answer));
       isCorrect = replay.defused;
       correctCount = replay.correctPrefix;
       score = scoreBomb(replay.defused, ms, replay.correctPrefix);
