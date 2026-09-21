@@ -31,7 +31,7 @@ import { playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: three lanes, one block, one coin and the chevron. */
+/** Fixed intro still: five lanes, two blocks, one coin and the chevron. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -42,11 +42,13 @@ function IntroExample() {
         aria-hidden="true"
         style={{ background: SWERVE_BG, borderRadius: 10 }}
       >
-        <line x1="65" y1="0" x2="65" y2="110" stroke="#F7F7F822" />
-        <line x1="130" y1="0" x2="130" y2="110" stroke="#F7F7F822" />
-        <rect x="68" y="18" width="59" height="20" fill={SWERVE_BLOCK_COLOUR} />
-        <circle cx="163" cy="28" r="6" fill={SWERVE_COIN_COLOUR} />
-        <polygon points="163,80 173,94 163,90 153,94" fill={SWERVE_CHEV_COLOUR} />
+        {[39, 78, 117, 156].map((x) => (
+          <line key={x} x1={x} y1="0" x2={x} y2="110" stroke="#F7F7F822" />
+        ))}
+        <rect x="40" y="18" width="37" height="20" fill={SWERVE_BLOCK_COLOUR} />
+        <rect x="118" y="18" width="37" height="20" fill={SWERVE_BLOCK_COLOUR} />
+        <circle cx="97" cy="28" r="6" fill={SWERVE_COIN_COLOUR} />
+        <polygon points="58,80 68,94 58,90 48,94" fill={SWERVE_CHEV_COLOUR} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
         Tap the right side to swerve into the coin lane.
