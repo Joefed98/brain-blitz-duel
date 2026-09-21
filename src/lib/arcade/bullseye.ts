@@ -55,6 +55,12 @@ export const BULLSEYE_SCALE_PCT = [100, 92, 85, 78, 72, 66, 60, 55, 50, 46] as c
 export const BULLSEYE_DRIFT_PX = [10, 11, 13, 14, 15, 17, 18, 19, 21, 22] as const;
 
 export const BULLSEYE_WIND_MAX = 4;
+/**
+ * A flick is multiplied by this to reach the target plane, so a short upward
+ * flick from anywhere on the screen can cover the range.
+ */
+export const BULLSEYE_AIM_GAIN = 3;
+
 /** The arrow's flight is render-only; the landing is worked out on release. */
 export const BULLSEYE_FLIGHT_TICKS = 20;
 
