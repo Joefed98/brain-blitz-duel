@@ -41,15 +41,15 @@ export const BINTOSS_BALL_X = 10_240;
 export const BINTOSS_BALL_R = 1_792;
 export const BINTOSS_BALL_Y = 126_208;
 
-/** The bin: an 84 px opening, 70 px tall, standing on the floor. */
-export const BINTOSS_BIN_HALF = 10_752;
+/** The bin: a 100 px opening, 70 px tall, standing on the floor. */
+export const BINTOSS_BIN_HALF = 12_800;
 /** The ball centre must cross at least 10 px inside either rim edge. */
 export const BINTOSS_RIM_INSET = 2_560;
 export const BINTOSS_BIN_H = 17_920;
 export const BINTOSS_RIM_Y = 110_080;
 
 /** Downward acceleration each tick. */
-export const BINTOSS_GRAVITY = 24;
+export const BINTOSS_GRAVITY = 22;
 /** One wind unit of sideways acceleration each tick. */
 export const BINTOSS_WIND_UNIT = 8;
 export const BINTOSS_WIND_MAX = 2;
@@ -61,8 +61,8 @@ export const BINTOSS_VY_MAX = 3_840;
 /** The next ball appears this many ticks after the last one finished. */
 export const BINTOSS_NEXT_DELAY = 20;
 
-/** Bin distances from the ball: 110 px growing by 15 px a throw. */
-export const BINTOSS_FIRST_DIST = 28_160;
+/** Bin distances from the ball: 100 px growing by 15 px a throw, up to 235 px. */
+export const BINTOSS_FIRST_DIST = 25_600;
 export const BINTOSS_DIST_STEP = 3_840;
 
 export const BINTOSS_BASKET_POINTS = 10;
@@ -77,9 +77,9 @@ export const BINTOSS_INPUT_RANGES: readonly InputRange[] = [
 /**
  * The launch speed a reference 1300 px/s flick produces, in 1/256 px a tick.
  * Solved from this sim's gravity so that a 1300 px/s flick at 60° lands in the
- * bin on throw five (170 px away) with no wind.
+ * bin on throw five (160 px away) with no wind.
  */
-export const BINTOSS_REF_V = 1_243;
+export const BINTOSS_REF_V = 1_169;
 
 /**
  * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
@@ -96,7 +96,7 @@ export function binTossFlick(dx: number, dy: number, dtMs: number): FlickLaunch 
   };
 }
 
-/** Where a launch would cross the bin's rim line, in world pixels — dev only. */
+/** Where a launch would cross the bin's rim line, in world pixels. Render only. */
 export function binTossPredict(vx: number, vy: number, wind: number): { x: number; y: number } {
   let x = BINTOSS_BALL_X;
   let y = BINTOSS_BALL_Y;
@@ -526,11 +526,12 @@ export interface BinTossGhost {
   wind: number;
 }
 
-/** Draws the completed attempt's trajectory without changing simulation state. */
+/** Draws a trajectory as a dotted arc without changing simulation state. */
 export function binTossDrawGhost(
   ctx: CanvasRenderingContext2D,
   size: CanvasSize,
   ghost: BinTossGhost,
+  alpha = 0.22,
 ): void {
   const { scale, offsetX, offsetY } = binTossTransform(size);
   let x = BINTOSS_BALL_X;
@@ -541,7 +542,7 @@ export function binTossDrawGhost(
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
   ctx.strokeStyle = BINTOSS_BALL_COLOUR;
-  ctx.globalAlpha = 0.22;
+  ctx.globalAlpha = alpha;
   ctx.lineWidth = 2;
   ctx.setLineDash([3, 5]);
   ctx.beginPath();
@@ -558,6 +559,18 @@ export function binTossDrawGhost(
   }
   ctx.stroke();
   ctx.restore();
+}
+
+/**
+ * The path the ball would take if the finger were released right now. Render
+ * only — the sim never sees it.
+ */
+export function binTossDrawAim(
+  ctx: CanvasRenderingContext2D,
+  size: CanvasSize,
+  aim: BinTossGhost,
+): void {
+  binTossDrawGhost(ctx, size, aim, 0.5);
 }
 
 export const binTossGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = {
