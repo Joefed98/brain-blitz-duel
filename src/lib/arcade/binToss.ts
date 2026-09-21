@@ -12,6 +12,7 @@ import {
   inputRange,
   px,
   rngBelow,
+  TICK_MS,
   TICKS_PER_SECOND,
   type ArcadeGame,
   type ArcadeInputEvent,
