@@ -239,7 +239,7 @@ function step(state: SwerveState, input: SwerveInput): SwerveState {
     state.x < target
       ? Math.min(target, state.x + SWERVE_SLIDE)
       : Math.max(target, state.x - SWERVE_SLIDE);
-  const distance = state.distance + swerveSpeed(state.tick);
+  const distance = state.distance + swerveSpeed(state.coins);
 
   let cursor = state.cursor;
   while (
