@@ -55,7 +55,7 @@ function FlowBoard({
     <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none">
       <div
         ref={pointer.ref}
-        className="grid h-full w-full touch-none"
+        className="puzzle-board grid h-full w-full touch-none"
         style={{
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,

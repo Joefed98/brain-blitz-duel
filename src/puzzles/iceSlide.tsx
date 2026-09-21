@@ -78,7 +78,7 @@ function Board({
   return (
     <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full">
       <div
-        className="grid h-full w-full"
+        className="puzzle-board grid h-full w-full"
         style={{
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,

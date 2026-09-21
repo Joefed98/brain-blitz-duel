@@ -249,7 +249,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <canvas
         ref={canvas}
         className="block h-full w-full rounded-xl"
-        style={{ touchAction: "none", background: MATCHUP_BG }}
+        className="puzzle-board"
+        style={{ background: MATCHUP_BG }}
         aria-label="Matchup"
         onPointerDown={(event) => {
           event.preventDefault();

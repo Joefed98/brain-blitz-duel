@@ -190,7 +190,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <canvas
         ref={canvas}
         className="block h-full w-full rounded-xl"
-        style={{ touchAction: "none", background: SKYLINE_BG }}
+        className="puzzle-board"
+        style={{ background: SKYLINE_BG }}
         aria-label="Skyline"
         onPointerDown={(event) => {
           event.preventDefault();

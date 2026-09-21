@@ -90,7 +90,7 @@ export function WordHuntBoard({
       <div
         ref={gridRef}
         className="grid h-full w-full grid-cols-4 gap-2"
-        style={{ touchAction: "none" }}
+        className="puzzle-board"
       >
         {grid.map((letter, cell) => {
           const lit = path.includes(cell);

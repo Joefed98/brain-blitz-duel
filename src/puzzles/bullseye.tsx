@@ -244,7 +244,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <canvas
         ref={canvas}
         className="block h-full w-full rounded-xl"
-        style={{ touchAction: "none", background: BULLSEYE_BG }}
+        className="puzzle-board"
+        style={{ background: BULLSEYE_BG }}
         aria-label="Bullseye"
         onPointerDown={(event) => {
           event.preventDefault();

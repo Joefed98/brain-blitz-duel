@@ -207,7 +207,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <canvas
         ref={canvas}
         className="block h-full w-full rounded-xl"
-        style={{ touchAction: "none", background: HOVER_BG }}
+        className="puzzle-board"
+        style={{ background: HOVER_BG }}
         aria-label="Hover"
         onPointerDown={(event) => {
           event.preventDefault();

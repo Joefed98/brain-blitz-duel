@@ -261,7 +261,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <canvas
         ref={canvas}
         className="block h-full w-full rounded-xl"
-        style={{ touchAction: "none", background: BINTOSS_BG }}
+        className="puzzle-board"
+        style={{ background: BINTOSS_BG }}
         aria-label="Bin Toss"
         onPointerDown={(event) => {
           event.preventDefault();

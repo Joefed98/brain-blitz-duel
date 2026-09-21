@@ -39,7 +39,7 @@ function Board({
 
   return (
     <div
-      className="grid gap-0"
+      className="puzzle-board grid gap-0"
       style={{ gridTemplateColumns: `repeat(${size}, ${cell}px)` }}
       aria-label="Colour Flood board"
     >

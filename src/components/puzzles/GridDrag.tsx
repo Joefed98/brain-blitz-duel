@@ -320,7 +320,7 @@ export function useGridPointer(options: {
   return {
     ref,
     handlers: {
-      style: { touchAction: "none" },
+      style: { touchAction: "none", overscrollBehavior: "none" },
       onPointerDown: (event) => {
         if (!onCell) return;
         event.preventDefault();
@@ -453,6 +453,7 @@ export function liftStyle(dx: number, dy: number, reducedMotion: boolean): React
     boxShadow: reducedMotion ? undefined : "0 12px 22px rgba(0,0,0,0.45)",
     zIndex: 40,
     touchAction: "none",
+    overscrollBehavior: "none",
     pointerEvents: "none",
   };
 }
