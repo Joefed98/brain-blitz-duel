@@ -374,21 +374,22 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
     ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
     ctx.fill();
   }
-  // In flight: the arrow shrinks in towards its landing point.
+  // In flight: the arrow travels from the bow to its landing point, shrinking
+  // as it goes down the range. Render only.
   if (last && state.flightTick > 0) {
     const progress = (BULLSEYE_FLIGHT_TICKS - state.flightTick) / BULLSEYE_FLIGHT_TICKS;
+    const x = BULLSEYE_BOW_X + (last.x - BULLSEYE_BOW_X) * progress;
+    const y = BULLSEYE_BOW_Y + (last.y - BULLSEYE_BOW_Y) * progress;
     ctx.fillStyle = BULLSEYE_GOLD;
+    ctx.globalAlpha = 0.45 + 0.55 * progress;
     ctx.beginPath();
-    ctx.arc(last.x, last.y, 3 + 14 * (1 - progress), 0, Math.PI * 2);
-    ctx.globalAlpha = 0.35 + 0.65 * progress;
+    ctx.arc(x, y, 3 + 7 * (1 - progress), 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
 
   if (state.arrowIndex < BULLSEYE_ARROWS) drawWind(ctx, state.winds[state.arrowIndex] ?? 0);
-  if (state.arrowIndex < BULLSEYE_ARROWS && state.flightTick === 0) {
-    drawBow(ctx, BULLSEYE_CX, BULLSEYE_CY);
-  }
+  if (state.arrowIndex < BULLSEYE_ARROWS && state.flightTick === 0) drawBow(ctx);
 
   const remaining = Math.max(0, BULLSEYE_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 15px 'JetBrains Mono', ui-monospace, monospace";
@@ -403,41 +404,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   ctx.restore();
 }
 
-/** The gold aim line, bow and crosshair, drawn while a drag is in progress. Render only. */
-export function bullseyeDrawAim(
-  ctx: CanvasRenderingContext2D,
-  size: CanvasSize,
-  x: number,
-  y: number,
-): void {
-  const { scale, offsetX, offsetY } = bullseyeTransform(size);
-  ctx.save();
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
-  ctx.strokeStyle = "rgba(245, 184, 46, 0.35)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(BULLSEYE_BOW_X, BULLSEYE_BOW_Y);
-  ctx.lineTo(x, y);
-  ctx.stroke();
-  drawBow(ctx, x, y);
-  ctx.strokeStyle = BULLSEYE_GOLD;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x - 14, y);
-  ctx.lineTo(x - 4, y);
-  ctx.moveTo(x + 4, y);
-  ctx.lineTo(x + 14, y);
-  ctx.moveTo(x, y - 14);
-  ctx.lineTo(x, y - 4);
-  ctx.moveTo(x, y + 4);
-  ctx.lineTo(x, y + 14);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(x, y, 9, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
-}
 
 export const bullseyeGame: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = {
   key: "bullseye",
