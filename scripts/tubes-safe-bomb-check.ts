@@ -20,7 +20,12 @@ import {
   generateBomb,
   inspectBombRules,
 } from "../src/lib/duel/bomb.server";
-import { decodeBombActions, replayBomb } from "../src/lib/duel/bomb";
+import {
+  checkBombPlan,
+  decodeBombActions,
+  decodeBombConstraints,
+  type BombConstraint,
+} from "../src/lib/duel/bomb";
 import {
   BOMB_MAX_SEQUENCE,
   BOMB_MIN_EFFECTIVE_RULES,
