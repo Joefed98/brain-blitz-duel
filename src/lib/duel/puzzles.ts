@@ -6,7 +6,6 @@ export function checkAnswer(puzzle: PuzzleData, answer: string): boolean {
   return puzzleDef(puzzle.type).check(answer, puzzle);
 }
 
-
 const CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // no I or O
 
 export function generateRoomCode(): string {

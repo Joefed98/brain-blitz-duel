@@ -171,7 +171,10 @@ export function towerShortest(
   const goal = stateKey(new Array<number>(discs).fill(targetPeg));
   if (stateKey(from) === goal) return { minMoves: 0, solution: [] };
 
-  const seen = new Map<string, { state: TowerState; move: TowerMove | null; parent: string | null }>();
+  const seen = new Map<
+    string,
+    { state: TowerState; move: TowerMove | null; parent: string | null }
+  >();
   seen.set(stateKey(from), { state: from, move: null, parent: null });
   let frontier = [stateKey(from)];
 

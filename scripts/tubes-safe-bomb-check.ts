@@ -127,8 +127,8 @@ for (let i = 0; i < ROUNDS; i++) {
   // The stored order defuses, and so does EVERY order the constraints allow.
   const stored = decodeBombActions(bomb.sequence!);
   assert(checkBombPlan(required, constraints, stored).defused, "stored plan did not defuse");
-  const orders = permutations(required).filter((order) =>
-    checkBombPlan(required, constraints, order).defused,
+  const orders = permutations(required).filter(
+    (order) => checkBombPlan(required, constraints, order).defused,
   );
   assert(orders.length >= 1, "no order of the required actions defuses the bomb");
   for (const order of orders) {

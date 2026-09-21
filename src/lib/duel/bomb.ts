@@ -210,8 +210,7 @@ export function checkBombPlan(
     correctPrefix += 1;
   }
 
-  const defused =
-    required.length > 0 && firstWrong === null && done.length === required.length;
+  const defused = required.length > 0 && firstWrong === null && done.length === required.length;
   return {
     correctPrefix,
     defused,

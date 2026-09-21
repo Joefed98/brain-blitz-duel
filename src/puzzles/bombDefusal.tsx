@@ -275,7 +275,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   if (puzzle.type !== "bomb") return null;
   const required = decodeBombActions(puzzle.required ?? puzzle.sequence ?? "");
   const constraints = decodeBombConstraints(puzzle.constraints ?? "");
-  const shown = decodeBombActions(puzzle.sequence ?? "") ;
+  const shown = decodeBombActions(puzzle.sequence ?? "");
   const mine = decodeBombActions(myAnswer ?? "");
   const replay = checkBombPlan(required, constraints, mine);
   const elapsed =

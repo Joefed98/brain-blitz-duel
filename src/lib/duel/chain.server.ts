@@ -174,10 +174,7 @@ interface Point {
 
 /** Gap between two node centres in pixels, on the smallest supported board. */
 function distancePx(a: Point, b: Point): number {
-  return Math.hypot(
-    ((a.x - b.x) / 100) * CHAIN_BOARD_W_PX,
-    ((a.y - b.y) / 100) * CHAIN_BOARD_H_PX,
-  );
+  return Math.hypot(((a.x - b.x) / 100) * CHAIN_BOARD_W_PX, ((a.y - b.y) / 100) * CHAIN_BOARD_H_PX);
 }
 
 /**

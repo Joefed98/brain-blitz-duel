@@ -13,7 +13,6 @@ export const GLYPH_COLOURS: Record<GlyphColour, string> = {
   GOLD: "#F5B82E",
 };
 
-
 const STAR_POINTS =
   "12,2 14.9,8.9 22.4,9.5 16.7,14.4 18.5,21.7 12,17.8 5.5,21.7 7.3,14.4 1.6,9.5 9.1,8.9";
 

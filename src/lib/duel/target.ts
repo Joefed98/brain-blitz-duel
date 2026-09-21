@@ -200,10 +200,7 @@ export function solveWithAtLeastFiveTiles(tiles: number[], target: number): Targ
 }
 
 /** A target only counts as good when it needs five or six tiles and cannot be shortcut with four or fewer. */
-function findFiveTileTarget(
-  tiles: number[],
-  target: number,
-): TargetStep[] | null {
+function findFiveTileTarget(tiles: number[], target: number): TargetStep[] | null {
   if (hasSolutionWithAtMostFourTiles(tiles, target)) return null;
   return solveWithAtLeastFiveTiles(tiles, target);
 }
