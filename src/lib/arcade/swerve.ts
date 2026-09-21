@@ -36,7 +36,7 @@ export const SWERVE_SLIDE = 3_072;
 
 /** Scroll speed: starts here, steps up with every coin taken, never past the cap. */
 export const SWERVE_SPEED_START = 768;
-export const SWERVE_SPEED_STEP = 24;
+export const SWERVE_SPEED_STEP = 15;
 export const SWERVE_SPEED_MAX = 1_536;
 
 /** A row of blocks every 200 world pixels of scroll. */
