@@ -1104,14 +1104,14 @@ export interface PushPuzzleData {
 
 export const LASER_COLS = 10;
 export const LASER_CELLS = LASER_COLS * LASER_COLS;
-export const LASER_TIME_MS = 30_000;
-/** Always exactly five mirrors, and the route always bends once per mirror. */
-export const LASER_MIN_MIRRORS = 6;
-export const LASER_MAX_MIRRORS = 6;
-export const LASER_MIN_BLOCKS = 20;
+export const LASER_TIME_MS = 40_000;
+/** Always exactly nine mirrors, and the route always bends once per mirror. */
+export const LASER_MIN_MIRRORS = 9;
+export const LASER_MAX_MIRRORS = 9;
+export const LASER_MIN_BLOCKS = 18;
 export const LASER_MAX_BLOCKS = 26;
-/** Three gems the beam must pass through, and three or four bombs it must miss. */
-export const LASER_GEMS = 4;
+/** Six gems the beam must pass through, and three or four bombs it must miss. */
+export const LASER_GEMS = 6;
 export const LASER_MIN_BOMBS = 3;
 export const LASER_MAX_BOMBS = 4;
 /** Blocks closing off the straight and single-bend shortcuts. */
@@ -1119,23 +1119,22 @@ export const LASER_MIN_SHORTCUT_BLOCKS = 3;
 /** Blocks touching the beam route without sitting on it, hiding the corridor. */
 export const LASER_MIN_ADJACENT_BLOCKS = 3;
 /** Blocks that must sit in the middle 6x6, so the centre is genuinely obstructed. */
-export const LASER_MIN_CENTRAL_BLOCKS = 10;
+export const LASER_MIN_CENTRAL_BLOCKS = 7;
 /** The middle 6x6 area, as inclusive row/column indices on the 10x10 grid. */
 export const LASER_CENTRAL_FROM = 2;
 export const LASER_CENTRAL_TO = 7;
 /** A bomb must lie on this many different near-miss beams. */
 export const LASER_MIN_BOMB_CROSSINGS = 2;
 /** The beam route always turns at least this many times. */
-export const LASER_MIN_BENDS = 6;
+export const LASER_MIN_BENDS = 9;
 /** And never more: the route bends exactly once per mirror. */
-export const LASER_MAX_BENDS = 6;
+export const LASER_MAX_BENDS = 9;
 /** Three shots per round. */
 export const LASER_MAX_FIRES = 3;
-/** Base points by the shot that lit all three gems: first, second, third. */
+/** Base points by the shot that lit every gem: first, second, third. */
 export const LASER_FIRE_BASE = [100, 85, 70];
-/** Consolation for finishing with two gems lit, or with just one. */
-export const LASER_TWO_GEM_POINTS = 40;
-export const LASER_ONE_GEM_POINTS = 20;
+/** A shot that missed scores in proportion to the gems it did light. */
+export const LASER_PARTIAL_POINTS = 70;
 /** How many near-miss placements the necessity search may carry forward. */
 export const LASER_PROMISING_CAP = 20_000;
 /** How long the beam takes to draw itself, and how long it lingers after a miss. */
@@ -1398,7 +1397,16 @@ export const CHAIN_NODE_GAP = 15;
 export const CHAIN_MIN_SPACING = 1.6;
 /** A node glyph's width, as a share of the taller board axis in percent. */
 export const CHAIN_NODE_WIDTH_PCT = 7;
-export const CHAIN_MIN_CENTRAL = 7;
+/** A node glyph, and the clear space kept between two glyph edges, in pixels. */
+export const CHAIN_NODE_PX = 46;
+export const CHAIN_NODE_GAP_PX = 14;
+/**
+ * Conservative size of the chain board on the smallest supported phone, used to
+ * turn the pixel spacing rule into the percentage space node positions live in.
+ */
+export const CHAIN_BOARD_W_PX = 343;
+export const CHAIN_BOARD_H_PX = 400;
+export const CHAIN_MIN_CENTRAL = 6;
 export const CHAIN_MAX_HULL_RATIO = 0.6;
 
 export const CHAIN_SHAPES = ["circle", "square", "triangle"] as const;
