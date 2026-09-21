@@ -168,10 +168,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           } else {
             matchupGame.draw(ctx, state.current, size);
           }
-        }
-        const pick = selected.current;
-        if (pick && !matchupGame.isOver(state.current) && time >= animUntil.current) {
-          matchupDrawSelection(ctx, size, pick.row, pick.col);
+          const pick = selected.current;
+          if (pick && !matchupGame.isOver(state.current) && time >= animUntil.current) {
+            matchupDrawSelection(ctx, size, pick.row, pick.col);
+          }
         }
       }
 
