@@ -56,3 +56,11 @@
 - [x] Bullseye HUD/ring labels/bow aiming render
 - [x] Matchup next strip, animation semantics, specials
 - [x] Re-run deterministic proof scripts
+
+## Six-game tuning (done)
+- [x] Number Sequence: 45-second limit, speed bonus and text scaled to it
+- [x] Hover: 666 start, +31 per gate, cap 1331; total gates recomputed
+- [x] Swerve: five lanes, 14 px/tick slide, 1–3 blocked lanes, ≤2-step passability, speed +20 per coin
+- [x] Matchup: strip aligned to the board columns, score = raw ÷ 8
+- [x] Bin Toss: flick launch from the last 80 ms, no preview arc, flight trail
+- [x] Bullseye: ring values 10…5, score × 1.5, flick from the bow, no reticle

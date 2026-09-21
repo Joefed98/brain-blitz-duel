@@ -33,8 +33,7 @@ import {
   BULLSEYE_CHECKPOINT_INTERVAL,
   BULLSEYE_INPUT_RANGES,
   BULLSEYE_RUN_TICKS,
-  BULLSEYE_WORLD_H,
-  BULLSEYE_WORLD_W,
+  BULLSEYE_V_MAX,
   type BullseyeCheckpoint,
   type BullseyeState,
 } from "../src/lib/arcade/bullseye.ts";
@@ -158,8 +157,8 @@ for (let sample = 0; sample < 200; sample++) {
         input = {
           t: tick,
           k: 2,
-          a: randomInt(0, BULLSEYE_WORLD_W),
-          b: randomInt(0, BULLSEYE_WORLD_H),
+          a: randomInt(-BULLSEYE_V_MAX, BULLSEYE_V_MAX),
+          b: randomInt(-BULLSEYE_V_MAX, -200),
           c: 0,
           d: 0,
         };
@@ -243,24 +242,30 @@ rejected.push([
 ]);
 rejected.push(["non-integer flick", [{ t: 10, k: 1, a: 500.5, b: -1000, c: 0, d: 0 }], bt]);
 rejected.push([
-  "reticle off the right edge",
-  [{ t: 10, k: 2, a: BULLSEYE_WORLD_W + 1, b: 100, c: 0, d: 0 }],
+  "shot vx above the clamp",
+  [{ t: 10, k: 2, a: BULLSEYE_V_MAX + 1, b: -1000, c: 0, d: 0 }],
   be,
 ]);
-rejected.push(["reticle above the canvas", [{ t: 10, k: 2, a: 100, b: -1, c: 0, d: 0 }], be]);
 rejected.push([
-  "reticle below the canvas",
-  [{ t: 10, k: 2, a: 100, b: BULLSEYE_WORLD_H + 1, c: 0, d: 0 }],
+  "shot vx below the clamp",
+  [{ t: 10, k: 2, a: -BULLSEYE_V_MAX - 1, b: -1000, c: 0, d: 0 }],
   be,
 ]);
-rejected.push(["shot of an unknown kind", [{ t: 10, k: 1, a: 100, b: 100, c: 0, d: 0 }], be]);
+rejected.push(["shot vy downwards", [{ t: 10, k: 2, a: 100, b: 1, c: 0, d: 0 }], be]);
+rejected.push([
+  "shot vy above the clamp",
+  [{ t: 10, k: 2, a: 100, b: -BULLSEYE_V_MAX - 1, c: 0, d: 0 }],
+  be,
+]);
+rejected.push(["shot with a payload in d", [{ t: 10, k: 2, a: 100, b: -1000, c: 0, d: 5 }], be]);
+rejected.push(["shot of an unknown kind", [{ t: 10, k: 1, a: 100, b: -100, c: 0, d: 0 }], be]);
 rejected.push([
   "an oversized log",
   Array.from({ length: MAX_INPUT_EVENTS + 1 }, (_, index) => ({
     t: 1 + index,
     k: 2,
     a: 100,
-    b: 100,
+    b: -1000,
     c: 0,
     d: 0,
   })),
@@ -277,8 +282,8 @@ for (const [label, events, ranges] of rejected) {
 if (
   !checkInputEvents(
     [
-      { t: 50, k: 2, a: 10, b: 10, c: 0, d: 0 },
-      { t: 50, k: 2, a: 20, b: 20, c: 0, d: 0 },
+      { t: 50, k: 2, a: 10, b: -10, c: 0, d: 0 },
+      { t: 50, k: 2, a: 20, b: -20, c: 0, d: 0 },
     ],
     BULLSEYE_RUN_TICKS,
     be,

@@ -171,7 +171,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const size = sizeCanvas();
       if (size) bullseyeGame.draw(canvas.current!.getContext("2d")!, state.current, size);
 
-
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);
         console.log(

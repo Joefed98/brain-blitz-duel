@@ -431,7 +431,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   ctx.restore();
 }
 
-
 export const bullseyeGame: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = {
   key: "bullseye",
   runTicks: BULLSEYE_RUN_TICKS,

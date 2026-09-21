@@ -515,7 +515,6 @@ function drawTrail(ctx: CanvasRenderingContext2D, state: BinTossState): void {
   ctx.restore();
 }
 
-
 export const binTossGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = {
   key: "bintoss",
   runTicks: BINTOSS_RUN_TICKS,
