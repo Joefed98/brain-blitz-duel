@@ -91,14 +91,23 @@ export interface SwerveState {
   rows: SwerveRow[];
 }
 
-/** Scroll speed at this tick — a function of the tick alone, so it is shared. */
-export function swerveSpeed(tick: number): number {
-  const steps = Math.trunc(tick / SWERVE_SPEED_EVERY);
-  return Math.min(SWERVE_SPEED_MAX, SWERVE_SPEED_START + SWERVE_SPEED_STEP * steps);
+/** Scroll speed for a player who has taken this many coins. */
+export function swerveSpeed(coins: number): number {
+  return Math.min(SWERVE_SPEED_MAX, SWERVE_SPEED_START + SWERVE_SPEED_STEP * Math.max(0, coins));
 }
 
-/** Every way one or two of three lanes can be blocked. */
-const BLOCK_SETS: number[][] = [[0], [1], [2], [0, 1], [0, 2], [1, 2]];
+/** Every way one, two or three of the five lanes can be blocked — never more. */
+const BLOCK_SETS: number[][] = (() => {
+  const sets: number[][] = [];
+  for (let bits = 1; bits < 1 << SWERVE_LANES; bits++) {
+    const lanes: number[] = [];
+    for (let lane = 0; lane < SWERVE_LANES; lane++) {
+      if (bits & (1 << lane)) lanes.push(lane);
+    }
+    if (lanes.length >= 1 && lanes.length <= 3) sets.push(lanes);
+  }
+  return sets;
+})();
 
 function openLanes(blocked: number[]): number[] {
   const open: number[] = [];
@@ -109,13 +118,13 @@ function openLanes(blocked: number[]): number[] {
 }
 
 /**
- * Passable means the open lanes of consecutive rows share a lane, or sit one
- * lane step apart — so a single tap always gets the chevron through.
+ * Passable means the open lanes of consecutive rows share a lane, or sit at
+ * most two lane steps apart — so the chevron can always reach an open lane.
  */
 function passable(previousOpen: number[], nextOpen: number[]): boolean {
   for (const a of previousOpen) {
     for (const b of nextOpen) {
-      if (a === b || Math.abs(a - b) === 1) return true;
+      if (Math.abs(a - b) <= 2) return true;
     }
   }
   return false;
