@@ -22,6 +22,8 @@ import {
   binTossPredict,
   BINTOSS_BALL_R,
   BINTOSS_BIN_HALF,
+  BINTOSS_FIRST_DIST,
+  BINTOSS_DIST_STEP,
   BINTOSS_AIM,
   BINTOSS_CHECKPOINT_INTERVAL,
   BINTOSS_INPUT_RANGES,
@@ -43,6 +45,9 @@ import {
   BULLSEYE_INPUT_RANGES,
   BULLSEYE_RUN_TICKS,
   BULLSEYE_V_MAX,
+  BULLSEYE_DRIFT_PX,
+  BULLSEYE_OUTER_R,
+  BULLSEYE_SCALE_PCT,
   type BullseyeCheckpoint,
   type BullseyeState,
 } from "../src/lib/arcade/bullseye.ts";
@@ -336,24 +341,24 @@ if (
 
 /* ---------------------------- Calibration ------------------------------ */
 
-// A natural 1000 px/s flick at 60° must land in the bin on throw five (220 px).
+// A natural 1300 px/s flick at 60° must land in the bin on throw five (170 px).
 {
-  const swipe = swipeAt(1_000, 60);
+  const swipe = swipeAt(1_300, 60);
   const launch = binTossFlick(swipe.dx, swipe.dy, swipe.dtMs);
   if (!launch) fail("the reference bin toss flick was ignored");
   else {
     const landing = binTossPredict(launch.vx, launch.vy, 0);
     const centre = Math.round(binTossBinCentre(4) / 256);
-    const tolerance = Math.round((BINTOSS_BIN_HALF - BINTOSS_BALL_R) / 256);
+    const tolerance = Math.round((BINTOSS_BIN_HALF - 2_560) / 256);
     if (Math.abs(landing.x - centre) > tolerance) {
       fail(`reference flick landed at ${landing.x}, bin centre ${centre}`);
     }
   }
 }
 
-// A 1000 px/s straight-up flick must land exactly on the centre at arrow one.
+// A 1300 px/s straight-up flick must land exactly on the centre at arrow one.
 {
-  const swipe = swipeAt(1_000, 90);
+  const swipe = swipeAt(1_300, 90);
   const launch = bullseyeFlick(swipe.dx, swipe.dy, swipe.dtMs);
   if (!launch) fail("the reference bullseye flick was ignored");
   else {
@@ -362,6 +367,25 @@ if (
       fail(`reference shot landed at ${landing.x},${landing.y}`);
     }
   }
+}
+
+if (BINTOSS_FIRST_DIST !== 110 * 256 || BINTOSS_DIST_STEP !== 15 * 256) {
+  fail("bin toss distances are not 110–245 px");
+}
+if (BINTOSS_BIN_HALF !== 42 * 256) fail("bin toss opening is not 84 px");
+if (BULLSEYE_OUTER_R !== 170) fail("bullseye outer radius is not 170 px");
+if (BULLSEYE_SCALE_PCT.join(",") !== "100,95,90,85,80,76,72,68,64,60") {
+  fail("bullseye shrink factors differ");
+}
+if (BULLSEYE_DRIFT_PX.join(",") !== "6,7,8,9,10,10,11,12,13,14") {
+  fail("bullseye wind drift differs");
+}
+
+for (let seed = 1; seed <= 200; seed++) {
+  const bin = binTossGame.init(seed);
+  const bull = bullseyeGame.init(seed);
+  if (bin.winds.some((wind) => wind < -2 || wind > 2)) fail(`bintoss ${seed}: wind out of range`);
+  if (bull.winds.some((wind) => wind < -2 || wind > 2)) fail(`bullseye ${seed}: wind out of range`);
 }
 
 // Square-root response: twice the swipe speed is about 1.4× the launch speed.

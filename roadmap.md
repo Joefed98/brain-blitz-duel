@@ -70,3 +70,9 @@
 - [x] Bin Toss: 1000 px/s at 60° lands in the bin on throw five (launch 1481 units/tick)
 - [x] Bullseye: 1000 px/s straight up lands on the centre at arrow one (flight 282/1920)
 - [x] ?dev=1 readout of swipe speed, angle and landing point in both games
+
+## Achievable arcade scoring (done)
+- [x] 1300 px/s reference flick with the deterministic square-root response and existing clamp
+- [x] Bin Toss: half wind, wider forgiving bin, 110–245 px distances, floatier gravity, previous-arc ghost
+- [x] Bullseye: half wind, 170 px target, gentler shrinking/drift, previous-hit ghost
+- [x] Re-run the 200-run client/server identity proof and arcade regressions

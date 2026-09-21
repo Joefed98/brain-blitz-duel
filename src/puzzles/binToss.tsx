@@ -11,6 +11,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   binTossCheckpoint,
+  binTossDrawGhost,
   binTossFlick,
   binTossPredict,
   binTossGame,
@@ -24,6 +25,7 @@ import {
   BINTOSS_RUN_TICKS,
   BINTOSS_THROWS,
   type BinTossState,
+  type BinTossGhost,
 } from "@/lib/arcade/binToss";
 import { decodeBinTossRun, encodeBinTossRun, replayBinTossRun } from "@/lib/duel/binToss";
 import { ARCADE_CRASH_FREEZE_MS, type BinTossPuzzleData } from "@/lib/duel/types";
@@ -83,6 +85,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof binTossCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
+  const activeLaunch = useRef<BinTossGhost | null>(null);
+  const lastGhost = useRef<BinTossGhost | null>(null);
   /** The live swipe, sampled so the launch comes from its last 80 ms. */
   const swipe = useRef<FlickSample[] | null>(null);
   const submitted = useRef(false);
@@ -118,6 +122,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     events.current = [];
     checkpoints.current = [];
     pending.current = [];
+    activeLaunch.current = null;
+    lastGhost.current = null;
     swipe.current = null;
     submitted.current = false;
     endedAt.current = null;
@@ -157,6 +163,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
           const before = state.current;
           state.current = binTossGame.step(state.current, applied);
+          if (before.phase !== state.current.phase && state.current.phase === 2) {
+            lastGhost.current = activeLaunch.current;
+            activeLaunch.current = null;
+          }
           // Logged only when the flick actually launched a ball.
           if (applied && before.phase === BINTOSS_AIM && state.current.phase !== BINTOSS_AIM) {
             events.current.push(applied);
@@ -170,7 +180,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       const size = sizeCanvas();
-      if (size) binTossGame.draw(canvas.current!.getContext("2d")!, state.current, size);
+      if (size) {
+        const context = canvas.current?.getContext("2d");
+        if (context) {
+          binTossGame.draw(context, state.current, size);
+          if (lastGhost.current) binTossDrawGhost(context, size, lastGhost.current);
+        }
+      }
 
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);
@@ -279,6 +295,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (!window) return;
           const launch = binTossFlick(window.dx, window.dy, window.dtMs);
           if (!launch) return;
+          lastGhost.current = null;
+          activeLaunch.current = {
+            vx: launch.vx,
+            vy: launch.vy,
+            wind: state.current.winds[state.current.throwIndex] ?? 0,
+          };
           pending.current.push({ t: 0, k: 1, a: launch.vx, b: launch.vy, c: 0, d: 0 });
           if (devOn) {
             const wind = state.current.winds[state.current.throwIndex] ?? 0;

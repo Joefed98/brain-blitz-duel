@@ -41,16 +41,18 @@ export const BINTOSS_BALL_X = 10_240;
 export const BINTOSS_BALL_R = 1_792;
 export const BINTOSS_BALL_Y = 126_208;
 
-/** The bin: a 56 px opening, 70 px tall, standing on the floor. */
-export const BINTOSS_BIN_HALF = 7_168;
+/** The bin: an 84 px opening, 70 px tall, standing on the floor. */
+export const BINTOSS_BIN_HALF = 10_752;
+/** The ball centre must cross at least 10 px inside either rim edge. */
+export const BINTOSS_RIM_INSET = 2_560;
 export const BINTOSS_BIN_H = 17_920;
 export const BINTOSS_RIM_Y = 110_080;
 
 /** Downward acceleration each tick. */
-export const BINTOSS_GRAVITY = 28;
+export const BINTOSS_GRAVITY = 24;
 /** One wind unit of sideways acceleration each tick. */
 export const BINTOSS_WIND_UNIT = 8;
-export const BINTOSS_WIND_MAX = 5;
+export const BINTOSS_WIND_MAX = 2;
 
 /** Launch clamps: 10 px a tick sideways, 15 px a tick upwards. */
 export const BINTOSS_VX_MAX = 2_560;
@@ -59,9 +61,9 @@ export const BINTOSS_VY_MAX = 3_840;
 /** The next ball appears this many ticks after the last one finished. */
 export const BINTOSS_NEXT_DELAY = 20;
 
-/** Bin distances from the ball: 140 px growing by 20 px a throw. */
-export const BINTOSS_FIRST_DIST = 35_840;
-export const BINTOSS_DIST_STEP = 5_120;
+/** Bin distances from the ball: 110 px growing by 15 px a throw. */
+export const BINTOSS_FIRST_DIST = 28_160;
+export const BINTOSS_DIST_STEP = 3_840;
 
 export const BINTOSS_BASKET_POINTS = 10;
 export const BINTOSS_TIME_BONUS = 50;
@@ -73,11 +75,11 @@ export const BINTOSS_INPUT_RANGES: readonly InputRange[] = [
 ];
 
 /**
- * The launch speed a reference 1000 px/s flick produces, in 1/256 px a tick.
- * Solved from this sim's gravity so that a 1000 px/s flick at 60° lands in the
- * bin on throw five (220 px away) with no wind.
+ * The launch speed a reference 1300 px/s flick produces, in 1/256 px a tick.
+ * Solved from this sim's gravity so that a 1300 px/s flick at 60° lands in the
+ * bin on throw five (170 px away) with no wind.
  */
-export const BINTOSS_REF_V = 1_481;
+export const BINTOSS_REF_V = 1_243;
 
 /**
  * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
@@ -133,7 +135,7 @@ export interface BinTossState {
   throwIndex: number;
   resolved: number;
   baskets: number;
-  /** Wind for each of the ten throws, −5 … +5. Same for everyone. */
+  /** Wind for each of the ten throws, −2 … +2. Same for everyone. */
   winds: number[];
   /** 1 for a basket, 0 for a miss, in throw order. */
   results: number[];
@@ -248,7 +250,7 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
   // Crossing the rim line on the way down decides the throw.
   if (vy > 0 && state.y < BINTOSS_RIM_Y && ny >= BINTOSS_RIM_Y) {
     const offset = Math.abs(nx - centre);
-    if (offset <= BINTOSS_BIN_HALF - BINTOSS_BALL_R) {
+    if (offset <= BINTOSS_BIN_HALF - BINTOSS_RIM_INSET) {
       return resolve({ ...state, x: nx, y: ny, wobbleTick }, tick, true);
     }
     if (offset <= BINTOSS_BIN_HALF + BINTOSS_BALL_R) {
@@ -515,6 +517,46 @@ function drawTrail(ctx: CanvasRenderingContext2D, state: BinTossState): void {
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+export interface BinTossGhost {
+  vx: number;
+  vy: number;
+  wind: number;
+}
+
+/** Draws the completed attempt's trajectory without changing simulation state. */
+export function binTossDrawGhost(
+  ctx: CanvasRenderingContext2D,
+  size: CanvasSize,
+  ghost: BinTossGhost,
+): void {
+  const { scale, offsetX, offsetY } = binTossTransform(size);
+  let x = BINTOSS_BALL_X;
+  let y = BINTOSS_BALL_Y;
+  let vx = ghost.vx;
+  let vy = ghost.vy;
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = BINTOSS_BALL_COLOUR;
+  ctx.globalAlpha = 0.22;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 5]);
+  ctx.beginPath();
+  ctx.moveTo(px(x), px(y));
+  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
+    vx += ghost.wind * BINTOSS_WIND_UNIT;
+    vy += BINTOSS_GRAVITY;
+    x += vx;
+    y += vy;
+    ctx.lineTo(px(x), px(y));
+    if (vy > 0 && y >= BINTOSS_RIM_Y) break;
+    if (y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
+    if (x < -BINTOSS_BALL_R || x > BINTOSS_WORLD_RIGHT + BINTOSS_BALL_R) break;
+  }
+  ctx.stroke();
   ctx.restore();
 }
 

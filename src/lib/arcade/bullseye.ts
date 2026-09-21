@@ -36,9 +36,9 @@ export const BULLSEYE_CY = 250;
 export const BULLSEYE_BOW_X = 195;
 export const BULLSEYE_BOW_Y = 532;
 /** Outer radius at full size; each ring is a sixth of it. */
-export const BULLSEYE_OUTER_R = 150;
+export const BULLSEYE_OUTER_R = 170;
 export const BULLSEYE_RINGS = 6;
-export const BULLSEYE_RING_STEP = 25;
+export const BULLSEYE_RING_STEP = BULLSEYE_OUTER_R / BULLSEYE_RINGS;
 
 /** Centre outwards. */
 export const BULLSEYE_RING_VALUES = [10, 9, 8, 7, 6, 5] as const;
@@ -52,11 +52,11 @@ export const BULLSEYE_RING_COLOURS = [
 ] as const;
 
 /** Ring scale per arrow, in hundredths — the range grows each shot. */
-export const BULLSEYE_SCALE_PCT = [100, 92, 85, 78, 72, 66, 60, 55, 50, 46] as const;
+export const BULLSEYE_SCALE_PCT = [100, 95, 90, 85, 80, 76, 72, 68, 64, 60] as const;
 /** Pixels of sideways drift per wind unit, per arrow. */
-export const BULLSEYE_DRIFT_PX = [10, 11, 13, 14, 15, 17, 18, 19, 21, 22] as const;
+export const BULLSEYE_DRIFT_PX = [6, 7, 8, 9, 10, 10, 11, 12, 13, 14] as const;
 
-export const BULLSEYE_WIND_MAX = 4;
+export const BULLSEYE_WIND_MAX = 2;
 /** The arrow's flight is render-only; the landing is worked out on release. */
 export const BULLSEYE_FLIGHT_TICKS = 20;
 
@@ -68,8 +68,8 @@ export const BULLSEYE_INPUT_RANGES: readonly InputRange[] = [
 ];
 
 /**
- * The launch speed a reference 1000 px/s flick produces, in 1/256 px a tick,
- * and the flight constant taken from it: a 1000 px/s straight-up flick carries
+ * The launch speed a reference 1300 px/s flick produces, in 1/256 px a tick,
+ * and the flight constant taken from it: a 1300 px/s straight-up flick carries
  * the arrow exactly the 282 px from the bow to the centre on arrow one.
  */
 export const BULLSEYE_REF_V = 1_920;
@@ -142,7 +142,7 @@ export interface BullseyeHit {
 export interface BullseyeState {
   tick: number;
   rng: number;
-  /** Wind for each arrow, −4 … +4. Same for everyone. */
+  /** Wind for each arrow, −2 … +2. Same for everyone. */
   winds: number[];
   /** Arrows fired so far; also the index of the arrow now on the string. */
   arrowIndex: number;
@@ -384,13 +384,15 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
 
   bullseyeDrawTarget(ctx, bullseyeScalePct(shown));
 
-  // The last landed arrow stays as a small gold dot until the next one flies.
+  // The last landed arrow stays as a faint correction dot until the next release.
   const last = state.hits[state.hits.length - 1];
   if (last && state.flightTick === 0) {
     ctx.fillStyle = BULLSEYE_GOLD;
+    ctx.globalAlpha = 0.35;
     ctx.beginPath();
     ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalAlpha = 1;
   }
   // In flight: the arrow travels from the bow to its landing point, shrinking
   // as it goes down the range. Render only.
