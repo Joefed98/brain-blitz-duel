@@ -11,6 +11,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   bullseyeCheckpoint,
+  bullseyeDrawAim,
   bullseyeFlick,
   bullseyeGame,
   bullseyeLanding,
@@ -90,17 +91,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof bullseyeCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
-  /** The live swipe, sampled so the shot comes from its last 80 ms. */
+  /** The live swipe, sampled so the shot comes from its last stretch. */
   const swipe = useRef<FlickSample[] | null>(null);
+  /** Where a release right now would land. Render only. */
+  const aim = useRef<{ x: number; y: number } | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
-  /** ?dev=1 shows the last swipe's speed, angle and landing point. */
-  const [devLine, setDevLine] = useState<string | null>(null);
-  const [devOn, setDevOn] = useState(false);
-  useEffect(() => {
-    setDevOn(new URLSearchParams(window.location.search).get("dev") === "1");
-  }, []);
 
   // Callbacks and the lock live in refs so the loop is never torn down and
   // restarted mid-run, which would lose the accumulator and drop sim ticks.
@@ -126,6 +123,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     checkpoints.current = [];
     pending.current = [];
     swipe.current = null;
+    aim.current = null;
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
@@ -176,7 +174,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       const size = sizeCanvas();
-      if (size) bullseyeGame.draw(canvas.current!.getContext("2d")!, state.current, size);
+      if (size) {
+        const context = canvas.current!.getContext("2d")!;
+        bullseyeGame.draw(context, state.current, size);
+        if (aim.current && state.current.flightTick === 0) {
+          bullseyeDrawAim(context, size, aim.current);
+        }
+      }
 
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);
@@ -257,12 +261,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const samples = swipe.current;
           if (!samples) return;
           const point = worldPoint(event);
-          samples.push({ x: point.x, y: point.y, time: performance.now() });
+          const now = performance.now();
+          samples.push({ x: point.x, y: point.y, time: now });
           if (samples.length > 24) samples.splice(0, samples.length - 24);
+          // Predict the release from the same window the release itself uses.
+          const live = flickWindow(samples, now);
+          const preview = live ? bullseyeFlick(live.dx, live.dy, live.dtMs) : null;
+          aim.current = preview ? bullseyeLanding(preview.vx, preview.vy) : null;
         }}
         onPointerUp={(event) => {
           const samples = swipe.current;
           swipe.current = null;
+          aim.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
@@ -275,25 +285,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const launch = bullseyeFlick(window.dx, window.dy, window.dtMs);
           if (!launch) return;
           pending.current.push({ t: 0, k: 2, a: launch.vx, b: launch.vy, c: 0, d: 0 });
-          if (devOn) {
-            const landing = bullseyeLanding(launch.vx, launch.vy);
-            setDevLine(
-              `${launch.speedPxS} px/s · ${launch.angleDeg}° · land ${landing.x},${landing.y}`,
-            );
-          }
         }}
         onPointerCancel={(event) => {
           swipe.current = null;
+          aim.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
         }}
       />
-      {devOn && devLine && (
-        <p className="pointer-events-none absolute left-2 top-2 rounded bg-black/60 px-2 py-1 font-mono text-[10px] text-white">
-          {devLine}
-        </p>
-      )}
     </div>
   );
 }

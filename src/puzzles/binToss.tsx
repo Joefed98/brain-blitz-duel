@@ -11,9 +11,9 @@ import {
 } from "@/lib/arcade/engine";
 import {
   binTossCheckpoint,
+  binTossDrawAim,
   binTossDrawGhost,
   binTossFlick,
-  binTossPredict,
   binTossGame,
   binTossTransform,
   BINTOSS_AIM,
@@ -88,17 +88,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pending = useRef<ArcadeInputEvent[]>([]);
   const activeLaunch = useRef<BinTossGhost | null>(null);
   const lastGhost = useRef<BinTossGhost | null>(null);
-  /** The live swipe, sampled so the launch comes from its last 80 ms. */
+  /** The live swipe, sampled so the launch comes from its last stretch. */
   const swipe = useRef<FlickSample[] | null>(null);
+  /** The arc a release right now would produce. Render only. */
+  const aim = useRef<BinTossGhost | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
-  /** ?dev=1 shows the last swipe's speed, angle and landing point. */
-  const [devLine, setDevLine] = useState<string | null>(null);
-  const [devOn, setDevOn] = useState(false);
-  useEffect(() => {
-    setDevOn(new URLSearchParams(window.location.search).get("dev") === "1");
-  }, []);
 
   // Callbacks and the lock live in refs so the loop is never torn down and
   // restarted mid-run, which would lose the accumulator and drop sim ticks.
@@ -126,6 +122,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     activeLaunch.current = null;
     lastGhost.current = null;
     swipe.current = null;
+    aim.current = null;
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
@@ -186,6 +183,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (context) {
           binTossGame.draw(context, state.current, size);
           if (lastGhost.current) binTossDrawGhost(context, size, lastGhost.current);
+          if (aim.current && state.current.phase === BINTOSS_AIM) {
+            binTossDrawAim(context, size, aim.current);
+          }
         }
       }
 
@@ -277,13 +277,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const samples = swipe.current;
           if (!samples) return;
           const point = worldPoint(event);
-          samples.push({ x: point.x, y: point.y, time: performance.now() });
+          const now = performance.now();
+          samples.push({ x: point.x, y: point.y, time: now });
           // Only the last stretch matters; keep the list short.
           if (samples.length > 24) samples.splice(0, samples.length - 24);
+          // Predict the release from the same window the release itself uses.
+          const live = flickWindow(samples, now);
+          const preview = live ? binTossFlick(live.dx, live.dy, live.dtMs) : null;
+          aim.current = preview
+            ? {
+                vx: preview.vx,
+                vy: preview.vy,
+                wind: state.current.winds[state.current.throwIndex] ?? 0,
+              }
+            : null;
         }}
         onPointerUp={(event) => {
           const samples = swipe.current;
           swipe.current = null;
+          aim.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
@@ -303,26 +315,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             wind: state.current.winds[state.current.throwIndex] ?? 0,
           };
           pending.current.push({ t: 0, k: 1, a: launch.vx, b: launch.vy, c: 0, d: 0 });
-          if (devOn) {
-            const wind = state.current.winds[state.current.throwIndex] ?? 0;
-            const landing = binTossPredict(launch.vx, launch.vy, wind);
-            setDevLine(
-              `${launch.speedPxS} px/s · ${launch.angleDeg}° · land ${landing.x},${landing.y}`,
-            );
-          }
         }}
         onPointerCancel={(event) => {
           swipe.current = null;
+          aim.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
         }}
       />
-      {devOn && devLine && (
-        <p className="pointer-events-none absolute left-2 top-2 rounded bg-black/60 px-2 py-1 font-mono text-[10px] text-white">
-          {devLine}
-        </p>
-      )}
     </div>
   );
 }

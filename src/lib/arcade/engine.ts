@@ -264,8 +264,11 @@ export interface FlickSample {
   time: number;
 }
 
-/** The movement window a flick is measured over: the last 80 ms of the swipe. */
-export const FLICK_WINDOW_MS = 80;
+/**
+ * The movement window a flick is measured over: the last 120 ms of the swipe,
+ * long enough that the live aim path reads steadily.
+ */
+export const FLICK_WINDOW_MS = 120;
 
 /**
  * The finger's movement over the last {@link FLICK_WINDOW_MS} of a swipe, taken
@@ -332,7 +335,7 @@ export interface FlickLaunch {
   /** Launch velocity in 1/256 px a tick; upwards is negative `vy`. */
   vx: number;
   vy: number;
-  /** The swipe itself, for the dev readout. */
+  /** The swipe itself, for the aim readout. */
   speedPxS: number;
   angleDeg: number;
 }

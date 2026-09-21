@@ -341,7 +341,7 @@ if (
 
 /* ---------------------------- Calibration ------------------------------ */
 
-// A natural 1300 px/s flick at 60° must land in the bin on throw five (170 px).
+// A natural 1300 px/s flick at 60° must land in the bin on throw five (160 px).
 {
   const swipe = swipeAt(1_300, 60);
   const launch = binTossFlick(swipe.dx, swipe.dy, swipe.dtMs);
@@ -369,12 +369,12 @@ if (
   }
 }
 
-if (BINTOSS_FIRST_DIST !== 110 * 256 || BINTOSS_DIST_STEP !== 15 * 256) {
-  fail("bin toss distances are not 110–245 px");
+if (BINTOSS_FIRST_DIST !== 100 * 256 || BINTOSS_DIST_STEP !== 15 * 256) {
+  fail("bin toss distances are not 100–235 px");
 }
-if (BINTOSS_BIN_HALF !== 42 * 256) fail("bin toss opening is not 84 px");
-if (BULLSEYE_OUTER_R !== 170) fail("bullseye outer radius is not 170 px");
-if (BULLSEYE_SCALE_PCT.join(",") !== "100,95,90,85,80,76,72,68,64,60") {
+if (BINTOSS_BIN_HALF !== 50 * 256) fail("bin toss opening is not 100 px");
+if (BULLSEYE_OUTER_R !== 190) fail("bullseye outer radius is not 190 px");
+if (BULLSEYE_SCALE_PCT.join(",") !== "100,96,92,88,84,80,77,74,71,68") {
   fail("bullseye shrink factors differ");
 }
 if (BULLSEYE_DRIFT_PX.join(",") !== "6,7,8,9,10,10,11,12,13,14") {

@@ -36,7 +36,7 @@ export const BULLSEYE_CY = 250;
 export const BULLSEYE_BOW_X = 195;
 export const BULLSEYE_BOW_Y = 532;
 /** Outer radius at full size; each ring is a sixth of it. */
-export const BULLSEYE_OUTER_R = 170;
+export const BULLSEYE_OUTER_R = 190;
 export const BULLSEYE_RINGS = 6;
 export const BULLSEYE_RING_STEP = BULLSEYE_OUTER_R / BULLSEYE_RINGS;
 
@@ -52,7 +52,7 @@ export const BULLSEYE_RING_COLOURS = [
 ] as const;
 
 /** Ring scale per arrow, in hundredths — the range grows each shot. */
-export const BULLSEYE_SCALE_PCT = [100, 95, 90, 85, 80, 76, 72, 68, 64, 60] as const;
+export const BULLSEYE_SCALE_PCT = [100, 96, 92, 88, 84, 80, 77, 74, 71, 68] as const;
 /** Pixels of sideways drift per wind unit, per arrow. */
 export const BULLSEYE_DRIFT_PX = [6, 7, 8, 9, 10, 10, 11, 12, 13, 14] as const;
 
@@ -425,6 +425,36 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   ctx.textAlign = "right";
   ctx.fillText(`${remaining.toFixed(1)}s`, BULLSEYE_WORLD_W - 12, 12);
 
+  ctx.restore();
+}
+
+/**
+ * The aim line the shot would take if the finger were released right now: a
+ * dotted line from the bow to the predicted landing point, with a small ring
+ * there. Render only — the sim never sees it.
+ */
+export function bullseyeDrawAim(
+  ctx: CanvasRenderingContext2D,
+  size: CanvasSize,
+  landing: { x: number; y: number },
+): void {
+  const { scale, offsetX, offsetY } = bullseyeTransform(size);
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = BULLSEYE_GOLD;
+  ctx.globalAlpha = 0.55;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 6]);
+  ctx.beginPath();
+  ctx.moveTo(BULLSEYE_BOW_X, BULLSEYE_BOW_Y - 26);
+  ctx.lineTo(landing.x, landing.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.arc(landing.x, landing.y, 8, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
   ctx.restore();
 }
 
