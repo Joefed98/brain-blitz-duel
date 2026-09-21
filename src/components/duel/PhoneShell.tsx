@@ -16,7 +16,7 @@ export function PhoneShell({ children, bare = false, constrained = false }: Phon
   return (
     <div
       className={`relative w-full bg-background ${
-        constrained ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
+        constrained ? "no-overscroll h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
       }`}
     >
       {/* Depth: one soft warm glow top-centre, one cool glow bottom, faint grid. */}
@@ -39,7 +39,7 @@ export function PhoneShell({ children, bare = false, constrained = false }: Phon
       />
       <div
         className={`relative mx-auto flex min-h-0 w-full max-w-[430px] flex-col pad-safe ${
-          constrained ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
+          constrained ? "no-overscroll h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
         }`}
       >
         {!bare && (
