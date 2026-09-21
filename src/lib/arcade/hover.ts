@@ -38,8 +38,9 @@ export const HOVER_TERMINAL = 2_304;
 
 /** Scroll speed: starts here, rises per gate, never past the cap. */
 export const HOVER_SCROLL_START = 666;
-export const HOVER_SCROLL_STEP = 15;
-export const HOVER_SCROLL_MAX = 1_126;
+export const HOVER_SCROLL_STEP = 32;
+export const HOVER_SCROLL_MAX = 1_408;
+
 
 export const HOVER_PILLAR_W = 10_240;
 /** Pillar spacing in world pixels; the first pillar starts at the right edge. */
