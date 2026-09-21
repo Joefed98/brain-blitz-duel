@@ -282,8 +282,8 @@ for (const [label, events, ranges] of rejected) {
 if (
   !checkInputEvents(
     [
-      { t: 50, k: 2, a: 10, b: 10, c: 0, d: 0 },
-      { t: 50, k: 2, a: 20, b: 20, c: 0, d: 0 },
+      { t: 50, k: 2, a: 10, b: -10, c: 0, d: 0 },
+      { t: 50, k: 2, a: 20, b: -20, c: 0, d: 0 },
     ],
     BULLSEYE_RUN_TICKS,
     be,
