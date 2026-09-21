@@ -327,25 +327,25 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   ctx.restore();
 }
 
-function drawBow(ctx: CanvasRenderingContext2D, targetX: number, targetY: number): void {
-  const angle = Math.atan2(targetY - BULLSEYE_BOW_Y, targetX - BULLSEYE_BOW_X);
+/** The bow with a nocked arrow, sitting at bottom-centre. Render only. */
+function drawBow(ctx: CanvasRenderingContext2D): void {
   ctx.save();
   ctx.translate(BULLSEYE_BOW_X, BULLSEYE_BOW_Y);
-  ctx.rotate(angle);
-  ctx.strokeStyle = BULLSEYE_GOLD;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(0, -30);
-  ctx.stroke();
   ctx.strokeStyle = "rgba(247, 247, 248, 0.65)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(0, -10, 22, -Math.PI / 2, Math.PI / 2);
+  ctx.arc(0, 10, 22, Math.PI, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = BULLSEYE_GOLD;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, 12);
+  ctx.lineTo(0, -26);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(0, -32);
-  ctx.lineTo(0, 12);
+  ctx.moveTo(-5, -18);
+  ctx.lineTo(0, -28);
+  ctx.lineTo(5, -18);
   ctx.stroke();
   ctx.restore();
 }
