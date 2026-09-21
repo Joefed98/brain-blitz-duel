@@ -24,6 +24,7 @@ import {
   BINTOSS_MISS_COLOUR,
   BINTOSS_RUN_TICKS,
   BINTOSS_THROWS,
+  BINTOSS_WAIT,
   type BinTossState,
   type BinTossGhost,
 } from "@/lib/arcade/binToss";
@@ -163,7 +164,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
           const before = state.current;
           state.current = binTossGame.step(state.current, applied);
-          if (before.phase !== state.current.phase && state.current.phase === 2) {
+          if (before.phase !== state.current.phase && state.current.phase === BINTOSS_WAIT) {
             lastGhost.current = activeLaunch.current;
             activeLaunch.current = null;
           }

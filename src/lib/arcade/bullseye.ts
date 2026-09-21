@@ -116,8 +116,12 @@ export function bullseyeRingAt(x: number, y: number, scalePct: number): number {
   const dy = y - BULLSEYE_CY;
   const distance2 = dx * dx + dy * dy;
   for (let ring = 1; ring <= BULLSEYE_RINGS; ring++) {
-    const radius = BULLSEYE_RING_STEP * ring * scalePct;
-    if (distance2 * 10_000 <= radius * radius) return ring - 1;
+    // Keep authoritative geometry integer-only: radius is
+    // OUTER_R × ring ÷ RINGS × scalePct ÷ 100.
+    const radiusNumerator = BULLSEYE_OUTER_R * ring * scalePct;
+    if (distance2 * BULLSEYE_RINGS * BULLSEYE_RINGS * 10_000 <= radiusNumerator ** 2) {
+      return ring - 1;
+    }
   }
   return -1;
 }
