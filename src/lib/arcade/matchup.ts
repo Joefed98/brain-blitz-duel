@@ -246,7 +246,7 @@ export interface MatchupState {
   heads: number[];
   /** Scoring swaps made. */
   swaps: number;
-  /** Raw points earned; the round score is this divided by four. */
+  /** Raw points earned; the round score is this divided by eight. */
   raw: number;
   /** The longest line cleared so far. */
   bestLine: number;
