@@ -293,7 +293,7 @@ function IntroExample() {
       <OptionGrid options={EXAMPLE_OPTIONS} highlight={EXAMPLE_ANSWER} />
       <p className="text-center text-xs text-muted-foreground">
         Five sequences, getting harder. Tap the answer — you can&apos;t go back. All five right
-        earns the speed bonus. You have 30 seconds.
+        earns the speed bonus. You have 45 seconds.
       </p>
     </div>
   );
