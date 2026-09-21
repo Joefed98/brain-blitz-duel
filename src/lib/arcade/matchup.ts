@@ -313,7 +313,7 @@ function init(seed: number): MatchupState {
 }
 
 function middleCell(run: MatchupRun): number {
-  return run.cells[Math.trunc(run.cells.length / 2)] ?? run.cells[0] ?? 0;
+  return run.cells[run.cells.length >> 1] ?? run.cells[0] ?? 0;
 }
 
 function lineSpecialIndex(run: MatchupRun, preferred: number | null): number {
@@ -418,14 +418,13 @@ function resolveBoard(
   const animation: MatchupAnimStep[] = [];
 
   for (;;) {
+    const activeDetonations = steps === 0 ? detonations : [];
     const runs = matchupRuns(cells);
-    if (runs.length === 0 && detonations.length === 0) break;
+    if (runs.length === 0 && activeDetonations.length === 0) break;
 
     const before = [...cells];
     const gone = new Set<number>();
     const created = new Map<number, number>();
-
-    if (steps === 0) for (const index of detonations) gone.add(index);
 
     for (const run of runs) {
       gain += run.points;
@@ -445,7 +444,7 @@ function resolveBoard(
 
     for (const [index, kind] of created) cells[index] = kind;
 
-    const special = expandSpecials(cells, gone, steps === 0 ? detonations : []);
+    const special = expandSpecials(cells, gone, activeDetonations);
     gain += special.gained;
     for (const index of special.detonated) gone.add(index);
 
