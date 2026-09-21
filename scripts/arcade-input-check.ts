@@ -33,8 +33,7 @@ import {
   BULLSEYE_CHECKPOINT_INTERVAL,
   BULLSEYE_INPUT_RANGES,
   BULLSEYE_RUN_TICKS,
-  BULLSEYE_WORLD_H,
-  BULLSEYE_WORLD_W,
+  BULLSEYE_V_MAX,
   type BullseyeCheckpoint,
   type BullseyeState,
 } from "../src/lib/arcade/bullseye.ts";
@@ -158,8 +157,8 @@ for (let sample = 0; sample < 200; sample++) {
         input = {
           t: tick,
           k: 2,
-          a: randomInt(0, BULLSEYE_WORLD_W),
-          b: randomInt(0, BULLSEYE_WORLD_H),
+          a: randomInt(-BULLSEYE_V_MAX, BULLSEYE_V_MAX),
+          b: randomInt(-BULLSEYE_V_MAX, -200),
           c: 0,
           d: 0,
         };
