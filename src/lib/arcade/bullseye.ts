@@ -31,6 +31,8 @@ export const BULLSEYE_ARROWS = 10;
 /** Target centre, in whole world pixels. */
 export const BULLSEYE_CX = 195;
 export const BULLSEYE_CY = 250;
+export const BULLSEYE_BOW_X = 195;
+export const BULLSEYE_BOW_Y = 532;
 /** Outer radius at full size; each ring is a sixth of it. */
 export const BULLSEYE_OUTER_R = 150;
 export const BULLSEYE_RINGS = 6;
@@ -264,11 +266,21 @@ export function bullseyeDrawTarget(ctx: CanvasRenderingContext2D, scalePct: numb
     ctx.lineWidth = 1;
     ctx.stroke();
   }
+  ctx.font = "700 9px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (let index = 0; index < BULLSEYE_RINGS; index++) {
+    const outer = (BULLSEYE_RING_STEP * (index + 1) * scalePct) / 100;
+    const inner = index === 0 ? 0 : (BULLSEYE_RING_STEP * index * scalePct) / 100;
+    const y = BULLSEYE_CY - Math.max(8, (outer + inner) / 2);
+    ctx.fillStyle = index === 0 || index >= 4 ? "#0B0B0F" : BULLSEYE_TEXT;
+    ctx.fillText(String(BULLSEYE_RING_VALUES[index] ?? 0), BULLSEYE_CX, y);
+  }
 }
 
 function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   const centreX = BULLSEYE_WORLD_W / 2;
-  const y = 40;
+  const y = 66;
   ctx.save();
   ctx.strokeStyle = wind === 0 ? "#F7F7F855" : BULLSEYE_GOLD;
   ctx.lineWidth = 2;
@@ -291,6 +303,29 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
     centreX,
     y - 12,
   );
+  ctx.restore();
+}
+
+function drawBow(ctx: CanvasRenderingContext2D, targetX: number, targetY: number): void {
+  const angle = Math.atan2(targetY - BULLSEYE_BOW_Y, targetX - BULLSEYE_BOW_X);
+  ctx.save();
+  ctx.translate(BULLSEYE_BOW_X, BULLSEYE_BOW_Y);
+  ctx.rotate(angle);
+  ctx.strokeStyle = BULLSEYE_GOLD;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, -30);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(247, 247, 248, 0.65)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, -10, 22, -Math.PI / 2, Math.PI / 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, -32);
+  ctx.lineTo(0, 12);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -330,6 +365,9 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   }
 
   if (state.arrowIndex < BULLSEYE_ARROWS) drawWind(ctx, state.winds[state.arrowIndex] ?? 0);
+  if (state.arrowIndex < BULLSEYE_ARROWS && state.flightTick === 0) {
+    drawBow(ctx, BULLSEYE_CX, BULLSEYE_CY);
+  }
 
   const remaining = Math.max(0, BULLSEYE_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 15px 'JetBrains Mono', ui-monospace, monospace";
@@ -344,8 +382,8 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   ctx.restore();
 }
 
-/** The gold crosshair, drawn while a drag is in progress. Render only. */
-export function bullseyeDrawReticle(
+/** The gold aim line, bow and crosshair, drawn while a drag is in progress. Render only. */
+export function bullseyeDrawAim(
   ctx: CanvasRenderingContext2D,
   size: CanvasSize,
   x: number,
@@ -355,6 +393,13 @@ export function bullseyeDrawReticle(
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
+  ctx.strokeStyle = "rgba(245, 184, 46, 0.35)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(BULLSEYE_BOW_X, BULLSEYE_BOW_Y);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+  drawBow(ctx, x, y);
   ctx.strokeStyle = BULLSEYE_GOLD;
   ctx.lineWidth = 2;
   ctx.beginPath();

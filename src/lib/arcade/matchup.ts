@@ -34,6 +34,8 @@ export const MATCHUP_RUN_TICKS = MATCHUP_RUN_SECONDS * TICKS_PER_SECOND;
 export const MATCHUP_SIZE = 7;
 export const MATCHUP_CELLS = MATCHUP_SIZE * MATCHUP_SIZE;
 export const MATCHUP_KINDS = 6;
+export const MATCHUP_BOMB = 6;
+export const MATCHUP_CROSS = 7;
 
 /** Cells are 50 px; symbols are drawn at 70% of the cell. */
 export const MATCHUP_CELL_PX = 50;
@@ -41,6 +43,8 @@ export const MATCHUP_SYMBOL_PCT = 70;
 export const MATCHUP_BOARD_W = MATCHUP_SIZE * MATCHUP_CELL_PX;
 export const MATCHUP_BOARD_X = Math.round((MATCHUP_WORLD_W - MATCHUP_BOARD_W) / 2);
 export const MATCHUP_BOARD_Y = 100;
+export const MATCHUP_NEXT_Y = 54;
+export const MATCHUP_NEXT_H = 34;
 
 /** Fixed refill queue per column, built once at init. */
 export const MATCHUP_QUEUE_LEN = 60;
@@ -77,6 +81,14 @@ export const MATCHUP_SHAPES = [
   "hexagon",
 ] as const;
 export type MatchupShape = (typeof MATCHUP_SHAPES)[number];
+
+function isNormal(kind: number): boolean {
+  return kind >= 0 && kind < MATCHUP_KINDS;
+}
+
+function isSpecial(kind: number): boolean {
+  return kind === MATCHUP_BOMB || kind === MATCHUP_CROSS;
+}
 
 /** One game colour per symbol kind. */
 export const MATCHUP_COLOURS = [
@@ -120,10 +132,10 @@ export function matchupRuns(cells: readonly number[]): MatchupRun[] {
     for (let col = 0; col < MATCHUP_SIZE; col++) {
       const index = matchupIndex(row, col);
       const previous = group.length > 0 ? cells[group[group.length - 1]!] : -1;
-      if (cells[index] === previous) group.push(index);
+      if (isNormal(cells[index] ?? -1) && cells[index] === previous) group.push(index);
       else {
         push(group);
-        group = [index];
+        group = isNormal(cells[index] ?? -1) ? [index] : [];
       }
     }
     push(group);
@@ -133,10 +145,10 @@ export function matchupRuns(cells: readonly number[]): MatchupRun[] {
     for (let row = 0; row < MATCHUP_SIZE; row++) {
       const index = matchupIndex(row, col);
       const previous = group.length > 0 ? cells[group[group.length - 1]!] : -1;
-      if (cells[index] === previous) group.push(index);
+      if (isNormal(cells[index] ?? -1) && cells[index] === previous) group.push(index);
       else {
         push(group);
-        group = [index];
+        group = isNormal(cells[index] ?? -1) ? [index] : [];
       }
     }
     push(group);
@@ -165,6 +177,7 @@ export function matchupFindSwap(cells: readonly number[]): MatchupSwap | null {
   const test = (row1: number, col1: number, row2: number, col2: number): MatchupSwap | null => {
     const a = matchupIndex(row1, col1);
     const b = matchupIndex(row2, col2);
+    if (isSpecial(board[a] ?? -1) || isSpecial(board[b] ?? -1)) return { row1, col1, row2, col2 };
     if (board[a] === board[b]) return null;
     [board[a], board[b]] = [board[b]!, board[a]!];
     const made = matchupHasLine(board);
@@ -187,6 +200,25 @@ export function matchupFindSwap(cells: readonly number[]): MatchupSwap | null {
 }
 
 /* ================================ State ================================ */
+
+export interface MatchupAnimMove {
+  kind: number;
+  fromRow: number;
+  fromCol: number;
+  toRow: number;
+  toCol: number;
+}
+
+export interface MatchupAnimStep {
+  before: number[];
+  after: number[];
+  cleared: number[];
+  detonated: number[];
+  specialIndex: number;
+  specialKind: number;
+  moves: MatchupAnimMove[];
+  ticks: number;
+}
 
 export interface MatchupState {
   tick: number;
@@ -213,6 +245,8 @@ export interface MatchupState {
   lastGain: number;
   lastSteps: number;
   lastCleared: number[];
+  lastAnimation: MatchupAnimStep[];
+  lastAnimTicks: number;
   /** A swap that made no line, so it swaps back. Render only. */
   lastInvalidA: number;
   lastInvalidB: number;
@@ -269,6 +303,8 @@ function init(seed: number): MatchupState {
     lastGain: 0,
     lastSteps: 0,
     lastCleared: [],
+    lastAnimation: [],
+    lastAnimTicks: 0,
     lastInvalidA: -1,
     lastInvalidB: -1,
     lastInvalidTick: 0,
@@ -276,49 +312,167 @@ function init(seed: number): MatchupState {
   };
 }
 
+function middleCell(run: MatchupRun): number {
+  return run.cells[Math.trunc(run.cells.length / 2)] ?? run.cells[0] ?? 0;
+}
+
+function lineSpecialIndex(run: MatchupRun, preferred: number | null): number {
+  return preferred !== null && run.cells.includes(preferred) ? preferred : middleCell(run);
+}
+
+function addBlast(index: number, kind: number, gone: Set<number>): number {
+  let gained = 0;
+  const row = Math.trunc(index / MATCHUP_SIZE);
+  const col = index % MATCHUP_SIZE;
+  const add = (target: number) => {
+    if (!gone.has(target)) {
+      gone.add(target);
+      gained += 10;
+    }
+  };
+  if (kind === MATCHUP_BOMB) {
+    for (let r = Math.max(0, row - 1); r <= Math.min(MATCHUP_SIZE - 1, row + 1); r++) {
+      for (let c = Math.max(0, col - 1); c <= Math.min(MATCHUP_SIZE - 1, col + 1); c++) {
+        add(matchupIndex(r, c));
+      }
+    }
+  } else if (kind === MATCHUP_CROSS) {
+    for (let c = 0; c < MATCHUP_SIZE; c++) add(matchupIndex(row, c));
+    for (let r = 0; r < MATCHUP_SIZE; r++) add(matchupIndex(r, col));
+  }
+  return gained;
+}
+
+function expandSpecials(
+  cells: readonly number[],
+  gone: Set<number>,
+  initial: readonly number[],
+): { gained: number; detonated: number[] } {
+  let gained = 0;
+  const detonated: number[] = [];
+  const queue = [...initial];
+  for (const index of gone) if (isSpecial(cells[index] ?? -1) && !queue.includes(index)) queue.push(index);
+  for (let cursor = 0; cursor < queue.length; cursor++) {
+    const index = queue[cursor]!;
+    if (detonated.includes(index)) continue;
+    const kind = cells[index] ?? -1;
+    if (!isSpecial(kind)) continue;
+    detonated.push(index);
+    gained += addBlast(index, kind, gone);
+    for (const target of gone) {
+      if (isSpecial(cells[target] ?? -1) && !detonated.includes(target) && !queue.includes(target)) {
+        queue.push(target);
+      }
+    }
+  }
+  return { gained, detonated };
+}
+
+function fallAndRefill(
+  cells: number[],
+  queues: readonly number[][],
+  heads: number[],
+  gone: Set<number>,
+): { moves: MatchupAnimMove[] } {
+  const moves: MatchupAnimMove[] = [];
+  for (let col = 0; col < MATCHUP_SIZE; col++) {
+    const kept: { kind: number; row: number }[] = [];
+    for (let row = MATCHUP_SIZE - 1; row >= 0; row--) {
+      const index = matchupIndex(row, col);
+      if (!gone.has(index)) kept.push({ kind: cells[index]!, row });
+    }
+    const queue = queues[col]!;
+    for (let row = MATCHUP_SIZE - 1; row >= 0; row--) {
+      const depth = MATCHUP_SIZE - 1 - row;
+      const target = matchupIndex(row, col);
+      if (depth < kept.length) {
+        const item = kept[depth]!;
+        cells[target] = item.kind;
+        if (item.row !== row) moves.push({ kind: item.kind, fromRow: item.row, fromCol: col, toRow: row, toCol: col });
+      } else {
+        const slot = heads[col]! % MATCHUP_QUEUE_LEN;
+        heads[col] = heads[col]! + 1;
+        const kind = queue[slot]!;
+        const fromRow = -(depth - kept.length + 1);
+        cells[target] = kind;
+        moves.push({ kind, fromRow, fromCol: col, toRow: row, toCol: col });
+      }
+    }
+  }
+  return { moves };
+}
+
 /** Clears, falls and refills until nothing more lines up. Mutates its inputs. */
 function resolveBoard(
   cells: number[],
   queues: readonly number[][],
   heads: number[],
-): { gain: number; steps: number; best: number; cleared: number[] } {
+  preferredSpecial: number | null,
+  detonations: readonly number[] = [],
+): { gain: number; steps: number; best: number; cleared: number[]; animation: MatchupAnimStep[] } {
   let gain = 0;
   let steps = 0;
   let best = 0;
+  let preferred = preferredSpecial;
   const cleared: number[] = [];
+  const animation: MatchupAnimStep[] = [];
+
   for (;;) {
     const runs = matchupRuns(cells);
-    if (runs.length === 0) break;
+    if (runs.length === 0 && detonations.length === 0) break;
+
+    const before = [...cells];
     const gone = new Set<number>();
+    const created = new Map<number, number>();
+
+    if (steps === 0) for (const index of detonations) gone.add(index);
+
     for (const run of runs) {
       gain += run.points;
       if (run.length > best) best = run.length;
-      for (const index of run.cells) gone.add(index);
-    }
-    for (const index of gone) cleared.push(index);
-    // Everything above a cleared cell falls; the gaps take the column's queue.
-    for (let col = 0; col < MATCHUP_SIZE; col++) {
-      const kept: number[] = [];
-      for (let row = MATCHUP_SIZE - 1; row >= 0; row--) {
-        const index = matchupIndex(row, col);
-        if (!gone.has(index)) kept.push(cells[index]!);
+      let specialIndex = -1;
+      let specialKind = -1;
+      if (run.length === 4) {
+        specialIndex = lineSpecialIndex(run, preferred);
+        specialKind = MATCHUP_BOMB;
+      } else if (run.length >= 5) {
+        specialIndex = lineSpecialIndex(run, preferred);
+        specialKind = MATCHUP_CROSS;
       }
-      const queue = queues[col]!;
-      for (let row = MATCHUP_SIZE - 1; row >= 0; row--) {
-        const depth = MATCHUP_SIZE - 1 - row;
-        if (depth < kept.length) {
-          cells[matchupIndex(row, col)] = kept[depth]!;
-        } else {
-          const slot = heads[col]! % MATCHUP_QUEUE_LEN;
-          heads[col] = heads[col]! + 1;
-          cells[matchupIndex(row, col)] = queue[slot]!;
-        }
-      }
+      if (specialIndex >= 0) created.set(specialIndex, specialKind);
+      for (const index of run.cells) if (index !== specialIndex) gone.add(index);
     }
+
+    for (const [index, kind] of created) cells[index] = kind;
+
+    const special = expandSpecials(cells, gone, steps === 0 ? detonations : []);
+    gain += special.gained;
+    for (const index of special.detonated) gone.add(index);
+
+    if (gone.size === 0) break;
+    const stepCleared = [...gone].sort((a, b) => a - b);
+    for (const index of stepCleared) cleared.push(index);
+
+    const { moves } = fallAndRefill(cells, queues, heads, gone);
+    const maxDrop = moves.reduce((max, move) => Math.max(max, move.toRow - move.fromRow), 1);
+    const specialEntry = [...created.entries()][0];
+    animation.push({
+      before,
+      after: [...cells],
+      cleared: stepCleared,
+      detonated: special.detonated,
+      specialIndex: specialEntry?.[0] ?? -1,
+      specialKind: specialEntry?.[1] ?? -1,
+      moves,
+      ticks: maxDrop,
+    });
+
     steps += 1;
+    preferred = null;
     if (steps > 64) break;
   }
-  return { gain, steps, best, cleared };
+
+  return { gain, steps, best, cleared, animation };
 }
 
 /** A board with no valid swap is reshuffled with the state's own PRNG. */
@@ -353,9 +507,11 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
     if (adjacent(row1, col1, row2, col2)) {
       const a = matchupIndex(row1, col1);
       const b = matchupIndex(row2, col2);
+      const movedIndex = b;
       const cells = [...state.cells];
       [cells[a], cells[b]] = [cells[b]!, cells[a]!];
-      if (!matchupHasLine(cells)) {
+      const specialSeeds = [a, b].filter((index) => isSpecial(cells[index] ?? -1));
+      if (!matchupHasLine(cells) && specialSeeds.length === 0) {
         // No line: it swaps back (the client animates it) and costs nothing.
         const next: MatchupState = {
           ...state,
@@ -366,11 +522,13 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
           lastGain: 0,
           lastSteps: 0,
           lastCleared: [],
+          lastAnimation: [],
+          lastAnimTicks: 0,
         };
         return isOver(next) ? { ...next, endedTick: tick } : next;
       }
       const heads = [...state.heads];
-      const resolved = resolveBoard(cells, state.queues, heads);
+      const resolved = resolveBoard(cells, state.queues, heads, movedIndex, specialSeeds);
       let rng = state.rng;
       let board = cells;
       let reshuffles = state.reshuffles;
@@ -395,6 +553,11 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
         lastGain: resolved.gain,
         lastSteps: resolved.steps,
         lastCleared: resolved.cleared,
+        lastAnimation: resolved.animation,
+        lastAnimTicks: resolved.animation.reduce(
+          (total, item) => total + 12 + Math.max(1, item.ticks) * 7 + 15,
+          0,
+        ),
         lastInvalidA: -1,
         lastInvalidB: -1,
       };
@@ -497,6 +660,23 @@ export function matchupCellAt(
   return { row, col };
 }
 
+export const MATCHUP_CLEAR_MS = 200;
+export const MATCHUP_DROP_MS = 120;
+export const MATCHUP_DETONATE_MS = 250;
+
+function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+}
+
 /** One symbol, centred on (cx, cy), at the given radius. */
 export function matchupDrawSymbol(
   ctx: CanvasRenderingContext2D,
@@ -505,6 +685,48 @@ export function matchupDrawSymbol(
   cy: number,
   radius: number,
 ): void {
+  if (kind === MATCHUP_BOMB) {
+    ctx.save();
+    ctx.fillStyle = "#15151C";
+    ctx.strokeStyle = MATCHUP_GOLD;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy + radius * 0.08, radius * 0.78, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = MATCHUP_GOLD;
+    ctx.beginPath();
+    ctx.moveTo(cx + radius * 0.38, cy - radius * 0.58);
+    ctx.quadraticCurveTo(cx + radius * 0.72, cy - radius * 0.95, cx + radius * 0.2, cy - radius * 1.1);
+    ctx.stroke();
+    ctx.fillStyle = MATCHUP_GOLD;
+    ctx.beginPath();
+    ctx.arc(cx + radius * 0.12, cy - radius * 1.08, radius * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (kind === MATCHUP_CROSS) {
+    ctx.save();
+    ctx.fillStyle = MATCHUP_GOLD;
+    ctx.strokeStyle = "#0B0B0F";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let point = 0; point < 8; point++) {
+      const r = point % 2 === 0 ? radius : radius * 0.38;
+      const angle = (Math.PI / 4) * point - Math.PI / 2;
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r;
+      if (point === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
   const shape = MATCHUP_SHAPES[kind] ?? "circle";
   ctx.fillStyle = MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD;
   ctx.beginPath();
@@ -527,26 +749,181 @@ export function matchupDrawSymbol(
     for (let point = 0; point < 10; point++) {
       const r = point % 2 === 0 ? radius : radius * 0.45;
       const angle = (Math.PI / 5) * point - Math.PI / 2;
-      const px = cx + Math.cos(angle) * r;
-      const py = cy + Math.sin(angle) * r;
-      if (point === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r;
+      if (point === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
     ctx.closePath();
   } else {
     for (let point = 0; point < 6; point++) {
       const angle = (Math.PI / 3) * point - Math.PI / 2;
-      const px = cx + Math.cos(angle) * radius;
-      const py = cy + Math.sin(angle) * radius;
-      if (point === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
+      const x = cx + Math.cos(angle) * radius;
+      const y = cy + Math.sin(angle) * radius;
+      if (point === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
     ctx.closePath();
   }
   ctx.fill();
 }
 
-function draw(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize): void {
+function cellCentre(row: number, col: number): { x: number; y: number } {
+  return {
+    x: MATCHUP_BOARD_X + col * MATCHUP_CELL_PX + MATCHUP_CELL_PX / 2,
+    y: MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX + MATCHUP_CELL_PX / 2,
+  };
+}
+
+function drawGrid(ctx: CanvasRenderingContext2D): void {
+  for (let row = 0; row < MATCHUP_SIZE; row++) {
+    for (let col = 0; col < MATCHUP_SIZE; col++) {
+      const x = MATCHUP_BOARD_X + col * MATCHUP_CELL_PX;
+      const y = MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX;
+      ctx.fillStyle = (row + col) % 2 === 0 ? "#15151C" : "#101017";
+      ctx.fillRect(x, y, MATCHUP_CELL_PX, MATCHUP_CELL_PX);
+    }
+  }
+}
+
+function drawNextStrip(ctx: CanvasRenderingContext2D, state: MatchupState): void {
+  roundedRect(ctx, MATCHUP_BOARD_X, MATCHUP_NEXT_Y, MATCHUP_BOARD_W, MATCHUP_NEXT_H, 12);
+  ctx.fillStyle = "rgba(247, 247, 248, 0.08)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(247, 247, 248, 0.14)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.font = "700 9px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = "rgba(247, 247, 248, 0.70)";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("NEXT", MATCHUP_BOARD_X + 8, MATCHUP_NEXT_Y + MATCHUP_NEXT_H / 2);
+  const slotW = (MATCHUP_BOARD_W - 52) / MATCHUP_SIZE;
+  for (let col = 0; col < MATCHUP_SIZE; col++) {
+    const cx = MATCHUP_BOARD_X + 52 + col * slotW + slotW / 2;
+    const cy = MATCHUP_NEXT_Y + MATCHUP_NEXT_H / 2;
+    ctx.strokeStyle = "rgba(247, 247, 248, 0.12)";
+    ctx.strokeRect(cx - 12, cy - 12, 24, 24);
+    const queue = state.queues[col]!;
+    const kind = queue[state.heads[col]! % MATCHUP_QUEUE_LEN] ?? 0;
+    matchupDrawSymbol(ctx, kind, cx, cy, 8);
+  }
+}
+
+function drawSettledBoard(ctx: CanvasRenderingContext2D, cells: readonly number[]): void {
+  const radius = (MATCHUP_CELL_PX * MATCHUP_SYMBOL_PCT) / 200;
+  drawGrid(ctx);
+  for (let row = 0; row < MATCHUP_SIZE; row++) {
+    for (let col = 0; col < MATCHUP_SIZE; col++) {
+      const index = matchupIndex(row, col);
+      const { x, y } = cellCentre(row, col);
+      matchupDrawSymbol(ctx, cells[index] ?? 0, x, y, radius);
+    }
+  }
+}
+
+export function matchupAnimationDuration(steps: readonly MatchupAnimStep[]): number {
+  return steps.reduce(
+    (total, item) => total + MATCHUP_CLEAR_MS + Math.max(1, item.ticks) * MATCHUP_DROP_MS,
+    0,
+  );
+}
+
+function drawDetonations(ctx: CanvasRenderingContext2D, step: MatchupAnimStep, progress: number): void {
+  for (const index of step.detonated) {
+    const kind = step.before[index] ?? -1;
+    const row = Math.trunc(index / MATCHUP_SIZE);
+    const col = index % MATCHUP_SIZE;
+    const { x, y } = cellCentre(row, col);
+    ctx.save();
+    ctx.globalAlpha = 1 - progress * 0.7;
+    ctx.strokeStyle = MATCHUP_GOLD;
+    ctx.lineWidth = 2;
+    if (kind === MATCHUP_CROSS) {
+      const spread = MATCHUP_CELL_PX * (0.5 + progress * MATCHUP_SIZE);
+      ctx.fillStyle = "rgba(245, 184, 46, 0.18)";
+      ctx.fillRect(MATCHUP_BOARD_X, y - 3, MATCHUP_BOARD_W, 6);
+      ctx.fillRect(x - 3, MATCHUP_BOARD_Y, 6, MATCHUP_BOARD_W);
+      ctx.beginPath();
+      ctx.moveTo(x - spread, y);
+      ctx.lineTo(x + spread, y);
+      ctx.moveTo(x, y - spread);
+      ctx.lineTo(x, y + spread);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(x, y, 8 + progress * MATCHUP_CELL_PX * 1.8, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+function drawAnimatedBoard(
+  ctx: CanvasRenderingContext2D,
+  state: MatchupState,
+  elapsedMs: number,
+): void {
+  let remaining = elapsedMs;
+  const radius = (MATCHUP_CELL_PX * MATCHUP_SYMBOL_PCT) / 200;
+  for (const step of state.lastAnimation) {
+    const dropMs = Math.max(1, step.ticks) * MATCHUP_DROP_MS;
+    const total = MATCHUP_CLEAR_MS + dropMs;
+    if (remaining >= total) {
+      remaining -= total;
+      continue;
+    }
+
+    drawGrid(ctx);
+    const cleared = new Set(step.cleared);
+    if (remaining < MATCHUP_CLEAR_MS) {
+      const p = remaining / MATCHUP_CLEAR_MS;
+      for (let row = 0; row < MATCHUP_SIZE; row++) {
+        for (let col = 0; col < MATCHUP_SIZE; col++) {
+          const index = matchupIndex(row, col);
+          const { x, y } = cellCentre(row, col);
+          if (cleared.has(index)) {
+            ctx.save();
+            ctx.globalAlpha = 1 - p;
+            matchupDrawSymbol(ctx, step.before[index] ?? 0, x, y, radius * (1 - p * 0.65));
+            ctx.restore();
+          } else {
+            matchupDrawSymbol(ctx, step.before[index] ?? 0, x, y, radius);
+          }
+        }
+      }
+      drawDetonations(ctx, step, Math.min(1, remaining / MATCHUP_DETONATE_MS));
+      return;
+    }
+
+    const p = Math.min(1, (remaining - MATCHUP_CLEAR_MS) / dropMs);
+    for (let row = 0; row < MATCHUP_SIZE; row++) {
+      for (let col = 0; col < MATCHUP_SIZE; col++) {
+        const index = matchupIndex(row, col);
+        if (cleared.has(index)) continue;
+        if (step.moves.some((move) => move.fromRow === row && move.fromCol === col)) continue;
+        const { x, y } = cellCentre(row, col);
+        matchupDrawSymbol(ctx, step.before[index] ?? 0, x, y, radius);
+      }
+    }
+    for (const move of step.moves) {
+      const from = cellCentre(move.fromRow, move.fromCol);
+      const to = cellCentre(move.toRow, move.toCol);
+      const x = from.x + (to.x - from.x) * p;
+      const y = from.y + (to.y - from.y) * p;
+      matchupDrawSymbol(ctx, move.kind, x, y, radius);
+    }
+    return;
+  }
+  drawSettledBoard(ctx, state.cells);
+}
+
+function drawScene(
+  ctx: CanvasRenderingContext2D,
+  state: MatchupState,
+  size: CanvasSize,
+  animationElapsedMs: number | null,
+): void {
   const { scale, offsetX, offsetY } = matchupTransform(size);
   ctx.save();
   ctx.fillStyle = MATCHUP_BG;
@@ -554,28 +931,15 @@ function draw(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSi
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
-  const radius = (MATCHUP_CELL_PX * MATCHUP_SYMBOL_PCT) / 200;
-  const popped = new Set(state.tick - state.lastScoreTick <= 12 ? state.lastCleared : []);
-  for (let row = 0; row < MATCHUP_SIZE; row++) {
-    for (let col = 0; col < MATCHUP_SIZE; col++) {
-      const x = MATCHUP_BOARD_X + col * MATCHUP_CELL_PX;
-      const y = MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX;
-      ctx.fillStyle = (row + col) % 2 === 0 ? "#15151C" : "#101017";
-      ctx.fillRect(x, y, MATCHUP_CELL_PX, MATCHUP_CELL_PX);
-      const index = matchupIndex(row, col);
-      const pop = popped.has(index) ? 1.18 : 1;
-      matchupDrawSymbol(
-        ctx,
-        state.cells[index] ?? 0,
-        x + MATCHUP_CELL_PX / 2,
-        y + MATCHUP_CELL_PX / 2,
-        radius * pop,
-      );
-    }
+  drawNextStrip(ctx, state);
+  if (animationElapsedMs !== null && state.lastAnimation.length > 0) {
+    drawAnimatedBoard(ctx, state, animationElapsedMs);
+  } else {
+    drawSettledBoard(ctx, state.cells);
   }
 
   // A subtle hint after five seconds without a scoring swap.
-  if (matchupShowHint(state)) {
+  if (matchupShowHint(state) && animationElapsedMs === null) {
     const hint = matchupFindSwap(state.cells);
     if (hint) {
       ctx.strokeStyle = MATCHUP_GOLD;
@@ -605,6 +969,19 @@ function draw(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSi
   ctx.textAlign = "right";
   ctx.fillText(`${remaining.toFixed(1)}s`, MATCHUP_WORLD_W - 12, 12);
   ctx.restore();
+}
+
+function draw(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize): void {
+  drawScene(ctx, state, size, null);
+}
+
+export function matchupDrawAnimated(
+  ctx: CanvasRenderingContext2D,
+  state: MatchupState,
+  size: CanvasSize,
+  elapsedMs: number,
+): void {
+  drawScene(ctx, state, size, elapsedMs);
 }
 
 /** The selected cell's outline, drawn while a swap is being made. Render only. */

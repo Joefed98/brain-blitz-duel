@@ -15,6 +15,7 @@ import {
   binTossTransform,
   BINTOSS_AIM,
   BINTOSS_BALL_COLOUR,
+  BINTOSS_BALL_R,
   BINTOSS_BG,
   BINTOSS_BIN_COLOUR,
   BINTOSS_CHECKPOINT_INTERVAL,
@@ -271,7 +272,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || binTossGame.isOver(state.current)) return;
+          if (state.current.phase !== BINTOSS_AIM) return;
           const point = worldPoint(event);
+          const dx = point.x * 256 - state.current.x;
+          const dy = point.y * 256 - state.current.y;
+          const hitRadius = BINTOSS_BALL_R * 2.2;
+          if (dx * dx + dy * dy > hitRadius * hitRadius) return;
           drag.current = {
             startX: point.x,
             startY: point.y,
@@ -289,17 +295,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerUp={(event) => {
           const current = drag.current;
           drag.current = null;
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
           if (!current || locked || submitted.current) return;
           if (state.current.phase !== BINTOSS_AIM) return;
           const { vx, vy } = flickVelocity(current, performance.now());
           if (vy === 0 && vx === 0) return;
           pending.current.push({ t: 0, k: 1, a: vx, b: vy, c: 0, d: 0 });
+        }}
+        onPointerCancel={(event) => {
+          drag.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
-        }}
-        onPointerCancel={() => {
-          drag.current = null;
         }}
       />
     </div>

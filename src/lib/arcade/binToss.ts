@@ -324,7 +324,7 @@ export function binTossTransform(size: CanvasSize): BinTossTransform {
 
 function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   const centreX = BINTOSS_WORLD_W / 2;
-  const y = 44;
+  const y = 66;
   const strength = Math.abs(wind);
   ctx.save();
   ctx.strokeStyle = wind === 0 ? "#F7F7F855" : BINTOSS_BIN_COLOUR;
