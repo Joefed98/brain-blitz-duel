@@ -4,12 +4,13 @@ import { hapticTick } from "@/components/puzzles/GridDrag";
 import {
   actionLabel,
   BOMB_SWITCH_POSITIONS,
+  checkBombPlan,
   cutAction,
   decodeBombActions,
+  decodeBombConstraints,
   encodeBombActions,
   isCut,
   pressAction,
-  replayBomb,
   WIRE_HEX,
   type BombAction,
   type BombButton,
@@ -285,7 +286,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       <div className="grid w-full grid-cols-2 gap-3 text-xs">
         <div>
           <p className="mb-1 text-center font-mono uppercase text-primary">One valid plan</p>
-          {required.map((action, index) => (
+          {shown.map((action, index) => (
             <p key={`${action}-${index}`} className="truncate">
               <span className="font-mono text-primary">{index + 1}.</span>{" "}
               {actionLabel(action, puzzle.wires)}
