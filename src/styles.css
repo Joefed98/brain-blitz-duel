@@ -532,3 +532,19 @@
 .animate-reaction-float {
   animation: reaction-float 1500ms ease-out forwards;
 }
+
+/**
+ * Every puzzle board that takes drag input: the page must never pan, zoom or
+ * rubber-band while a finger is on the board.
+ */
+.puzzle-board {
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/** The in-game screen itself never bounces. */
+.no-overscroll {
+  overscroll-behavior: none;
+}

@@ -63,7 +63,7 @@ function Board({
     >
       <div
         ref={gridRef}
-        className="grid h-full w-full gap-[2px]"
+        className="puzzle-board grid h-full w-full gap-[2px]"
         style={{ gridTemplateColumns: `repeat(${GRAV_COLS}, minmax(0, 1fr))` }}
       >
         {Array.from({ length: GRAV_COLS * GRAV_COLS }, (_, cell) => {

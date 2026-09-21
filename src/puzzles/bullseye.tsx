@@ -243,8 +243,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div ref={wrap} className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl">
       <canvas
         ref={canvas}
-        className="block h-full w-full rounded-xl"
-        style={{ touchAction: "none", background: BULLSEYE_BG }}
+        className="puzzle-board block h-full w-full rounded-xl"
+        style={{ background: BULLSEYE_BG }}
         aria-label="Bullseye"
         onPointerDown={(event) => {
           event.preventDefault();

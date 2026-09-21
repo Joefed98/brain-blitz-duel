@@ -20,7 +20,12 @@ import {
   generateBomb,
   inspectBombRules,
 } from "../src/lib/duel/bomb.server";
-import { decodeBombActions, replayBomb } from "../src/lib/duel/bomb";
+import {
+  checkBombPlan,
+  decodeBombActions,
+  decodeBombConstraints,
+  type BombConstraint,
+} from "../src/lib/duel/bomb";
 import {
   BOMB_MAX_SEQUENCE,
   BOMB_MIN_EFFECTIVE_RULES,
@@ -104,22 +109,75 @@ for (let i = 0; i < ROUNDS; i++) {
   assert(bomb.rules.length === BOMB_RULE_COUNT, "wrong rule count");
   assert(["LEFT", "MID", "RIGHT"].includes(bomb.switchPosition), "invalid switch position");
   assert(!inspected.contradictory, "generated rules contradict each other");
+  assert(inspected.consistent, "ordering constraints contain a cycle");
+  assert(inspected.wordingOk, "a rule uses a wording that could be read two ways");
   assert(inspected.effective >= BOMB_MIN_EFFECTIVE_RULES, "too few effective rules");
-  assert(inspected.orderRules >= BOMB_MIN_ORDER_RULES, "too few ordering rules");
-  assert(inspected.lastRuleAffectsFirst, "the final rule does not affect the first action");
-  const sequence = decodeBombActions(bomb.sequence!);
-  assert(sequence.length === bomb.stepCount, "stepCount does not match the sequence");
+  assert(inspected.orderRules >= BOMB_MIN_ORDER_RULES, "too few ordering constraints");
+
+  const required = decodeBombActions(bomb.required!);
+  const constraints = decodeBombConstraints(bomb.constraints!);
+  assert(required.length === bomb.stepCount, "stepCount does not match the required actions");
+  assert(new Set(required).size === required.length, "an action is required twice");
   assert(
-    sequence.length >= BOMB_MIN_SEQUENCE && sequence.length <= BOMB_MAX_SEQUENCE,
-    `sequence length out of band: ${sequence.length}`,
+    required.length >= BOMB_MIN_SEQUENCE && required.length <= BOMB_MAX_SEQUENCE,
+    `required action count out of band: ${required.length}`,
   );
-  const clean = replayBomb(sequence, sequence);
+  assert(inspected.required === required.length, "inspection disagrees on the required actions");
+
+  // The stored order defuses, and so does EVERY order the constraints allow.
+  const stored = decodeBombActions(bomb.sequence!);
+  assert(checkBombPlan(required, constraints, stored).defused, "stored plan did not defuse");
+  const orders = permutations(required).filter(
+    (order) => checkBombPlan(required, constraints, order).defused,
+  );
+  assert(orders.length >= 1, "no order of the required actions defuses the bomb");
+  for (const order of orders) {
+    assert(satisfies(order, constraints), "an accepted order breaks a constraint");
+  }
+  for (const order of permutations(required)) {
+    const accepted = checkBombPlan(required, constraints, order).defused;
+    assert(accepted === satisfies(order, constraints), "grading disagrees with the constraints");
+  }
+
+  // Anything other than the required set explodes.
+  const spare = stored[0] === "bA" ? "bB" : "bA";
   assert(
-    clean.defused && clean.correctPrefix === sequence.length,
-    "stored sequence did not defuse",
+    checkBombPlan(required, constraints, [spare, ...stored]).exploded ||
+      required.includes(spare as string),
+    "an extra action did not explode",
   );
-  const wrong = replayBomb(sequence, ["b" + (sequence[0] === "bA" ? "B" : "A"), ...sequence]);
-  assert(wrong.exploded && wrong.correctPrefix === 0, "wrong first action did not explode");
+  assert(
+    !checkBombPlan(required, constraints, stored.slice(0, -1)).defused,
+    "a short plan counted as defused",
+  );
 }
 assert(BOMB_RULE_TEMPLATE_COUNT >= 30, "bomb rule bank has fewer than 30 templates");
-console.log(`Bomb Defusal: ${ROUNDS} panels with unique 3–6 step sequences and deferred checks`);
+console.log(
+  `Bomb Defusal: ${ROUNDS} panels, each with one unambiguous plan of 3–6 actions and order-independent grading`,
+);
+
+/** Every order of the required actions — at most 6! = 720 of them. */
+function permutations(actions: string[]): string[][] {
+  if (actions.length <= 1) return [actions];
+  const out: string[][] = [];
+  actions.forEach((action, index) => {
+    const rest = [...actions.slice(0, index), ...actions.slice(index + 1)];
+    for (const tail of permutations(rest)) out.push([action, ...tail]);
+  });
+  return out;
+}
+
+/** Does this order respect every ordering constraint? */
+function satisfies(order: string[], constraints: BombConstraint[]): boolean {
+  const at = (action: string) => order.indexOf(action);
+  return constraints.every((constraint) => {
+    if (constraint.kind === "before") {
+      const a = at(constraint.a);
+      const b = at(constraint.b);
+      return a < 0 || b < 0 || a < b;
+    }
+    const index = at(constraint.a);
+    if (index < 0) return true;
+    return constraint.kind === "first" ? index === 0 : index === order.length - 1;
+  });
+}

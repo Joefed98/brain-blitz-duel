@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick, pointerElementIndex } from "@/components/puzzles/GridDrag";
+import { useNoTouchScroll } from "@/components/puzzles/noScroll";
 import {
   decodeTileMoves,
   encodeTileMoves,
@@ -48,9 +49,12 @@ function Frame({
   cell: number;
   onTile?: ((tile: number) => void) | undefined;
 }) {
+  const board = useRef<HTMLDivElement | null>(null);
+  useNoTouchScroll(board);
   return (
     <div
-      className="grid gap-1.5 rounded-xl border-2 border-border bg-card p-1.5"
+      ref={board}
+      className="puzzle-board grid gap-1.5 rounded-xl border-2 border-border bg-card p-1.5"
       style={{ gridTemplateColumns: `repeat(${TILES_SIZE}, ${cell}px)` }}
       aria-label="Sliding Tiles frame"
     >

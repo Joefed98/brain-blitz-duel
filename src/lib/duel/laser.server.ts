@@ -433,7 +433,7 @@ function shortcutLines(source: number, dir: BeamDir, gems: number[]): Set<number
 export function generateLaser(): LaserPuzzleData {
   for (let attempt = 1; attempt <= 40_000; attempt++) {
     const { cell: source, dir } = shuffled(sources())[0]!;
-    // Always exactly six mirrors, so the route always bends six times.
+    // Always exactly nine mirrors, so the route always bends nine times.
     const route = randomRoute(source, dir, LASER_MAX_MIRRORS);
     if (!route) continue;
     // Both orientations have to show up, so the tray is never all one way.
@@ -444,7 +444,7 @@ export function generateLaser(): LaserPuzzleData {
       .map((cell, index) => ({ cell, index }))
       .filter((spot) => spot.cell !== source && !bendCells.has(spot.cell));
 
-    // One gem on each of four different straight runs of the route, so no short
+    // One gem on each of six different straight runs of the route, so no short
     // answer can reach them all, and never two gems close together.
     const segmentOf = new Map<number, number>();
     route.segments.forEach((segment, index) => {
@@ -571,20 +571,18 @@ export function generateLaser(): LaserPuzzleData {
     if (!litByRoute()) continue;
 
     // Final proof, run to the end with the blocks and bombs final: NO placement
-    // of five mirrors or fewer lights all four gems, so all six are required.
+    // of eight mirrors or fewer lights all six gems, so all nine are required.
     const proof = searchShortcuts(source, dir, blocks, bombs, gems, false);
     if (proof.hit) continue;
 
     // Cheap fully-exhaustive gate: the heuristic above extends near-miss
     // placements one mirror at a time and can miss a subset of the chosen
-    // solution's own six mirrors (dropping a mirror can turn a placement that
-    // was not a near miss under the extension order into one that still lights
-    // every gem). With only six mirrors there are just 64 subsets, so check
-    // every proper subset (one to five mirrors) of the solution itself
-    // directly and reject the board if any of them already lights all four
-    // gems.
+    // solution's own mirrors. There are only 2^mirrors subsets, so check every
+    // proper subset of the solution itself directly and reject the board if any
+    // of them already lights every gem.
+    const fullMask = (1 << route.bends.length) - 1;
     let subsetEscape = false;
-    for (let mask = 1; mask < 63; mask++) {
+    for (let mask = 1; mask < fullMask; mask++) {
       const subset = route.bends.filter((_, index) => (mask & (1 << index)) !== 0);
       if (traceBeam(source, dir, subset, blocks, bombs, gems).litAll) {
         subsetEscape = true;

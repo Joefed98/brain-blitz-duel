@@ -7,9 +7,8 @@
  * Web Crypto.
  */
 
-const CRYPTO: Crypto | undefined = typeof globalThis.crypto?.getRandomValues === "function"
-  ? globalThis.crypto
-  : undefined;
+const CRYPTO: Crypto | undefined =
+  typeof globalThis.crypto?.getRandomValues === "function" ? globalThis.crypto : undefined;
 
 /** A fresh float in [0, 1) from the CSPRNG. */
 export function random(): number {

@@ -8,9 +8,13 @@ interface NumberEntryProps {
   locked: boolean;
   maxLength?: number;
   placeholder?: string;
+  /** Use the on-screen keypad instead of the phone keyboard. */
+  keypad?: boolean;
   onSubmit: (value: string) => void;
   children: ReactNode;
 }
+
+const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "ENTER"];
 
 /** Shared numeric answer field used by the typed puzzle types. */
 export function NumberEntry({
@@ -19,6 +23,7 @@ export function NumberEntry({
   locked,
   maxLength = 4,
   placeholder = "Answer",
+  keypad = false,
   onSubmit,
   children,
 }: NumberEntryProps) {
@@ -27,8 +32,8 @@ export function NumberEntry({
 
   useEffect(() => {
     setValue("");
-    inputRef.current?.focus();
-  }, [resetKey]);
+    if (!keypad) inputRef.current?.focus();
+  }, [resetKey, keypad]);
 
   const submit = () => {
     if (locked || value.trim().length === 0) return;
@@ -42,12 +47,13 @@ export function NumberEntry({
         {children}
       </div>
 
-      <div className="flex shrink-0 flex-col gap-2">
+      <div className="flex shrink-0 flex-col gap-2" style={{ touchAction: "manipulation" }}>
         <input
           ref={inputRef}
           value={value}
           disabled={locked}
-          inputMode="numeric"
+          readOnly={keypad}
+          inputMode={keypad ? "none" : "numeric"}
           pattern="[0-9]*"
           maxLength={maxLength}
           placeholder={placeholder}
@@ -57,14 +63,47 @@ export function NumberEntry({
           }}
           className="tap-target w-full rounded-xl border border-border bg-card px-4 py-3 text-center font-mono text-2xl tabular-nums text-foreground placeholder:font-sans placeholder:text-base placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
         />
-        <button
-          type="button"
-          onClick={submit}
-          disabled={locked || value.trim().length === 0}
-          className="tap-target w-full rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
-        >
-          Submit
-        </button>
+
+        {keypad ? (
+          <div className="grid grid-cols-3 gap-1.5">
+            {KEYS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                disabled={locked || (key === "ENTER" && value.length === 0)}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  if (locked) return;
+                  if (key === "ENTER") {
+                    submit();
+                    return;
+                  }
+                  if (key === "⌫") {
+                    setValue((prev) => prev.slice(0, -1));
+                    return;
+                  }
+                  setValue((prev) => (prev.length >= maxLength ? prev : prev + key));
+                }}
+                className={`h-12 rounded-xl font-display text-lg font-bold uppercase tracking-wide disabled:opacity-40 ${
+                  key === "ENTER"
+                    ? "bg-primary text-sm text-primary-foreground"
+                    : "border border-border bg-card text-foreground"
+                }`}
+              >
+                {key}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={submit}
+            disabled={locked || value.trim().length === 0}
+            className="tap-target w-full rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
+          >
+            Submit
+          </button>
+        )}
       </div>
     </div>
   );

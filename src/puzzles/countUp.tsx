@@ -3,6 +3,7 @@ import { NumberEntry } from "@/components/puzzles/NumberEntry";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
 import {
   COUNTUP_COLS,
+  COUNTUP_TIME_MS,
   COUNTUP_MAX_COUNT,
   COUNTUP_MAX_SHAPES,
   COUNTUP_MIN_COUNT,
@@ -108,7 +109,7 @@ function IntroExample() {
         answer <span className="font-bold text-primary">3</span>
       </p>
       <p className="text-xs text-muted-foreground">
-        Type the number and hit Submit. You have 15 seconds.
+        Type the number on the keypad and hit ENTER. You have 20 seconds.
       </p>
     </div>
   );
@@ -123,10 +124,11 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       locked={locked}
       maxLength={2}
       placeholder="How many?"
+      keypad
       onSubmit={onSubmit}
     >
       <div className="flex min-h-0 w-full flex-1">
-        <Field shapes={puzzle.shapes} />
+        <Field shapes={puzzle.shapes} size={20} />
       </div>
     </NumberEntry>
   );
@@ -213,7 +215,7 @@ export const countUpPuzzle: PuzzleDefinition = {
   key: "countup",
   name: "Count Up",
   category: "attention",
-  timeLimitMs: 15_000,
+  timeLimitMs: COUNTUP_TIME_MS,
   generate: buildCountUp,
   check: (answer, puzzle) => {
     if (puzzle.type !== "countup") return false;

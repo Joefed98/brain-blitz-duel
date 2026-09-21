@@ -67,7 +67,7 @@ function IntroExample() {
       <p className="font-mono text-3xl font-bold">{EXAMPLE_QUESTION}</p>
       <OptionGrid options={EXAMPLE_OPTIONS} highlight={EXAMPLE_ANSWER} />
       <p className="text-center text-xs text-muted-foreground">
-        Three questions. Tap the answer. Get all three right to earn the speed bonus. You have 45
+        Five questions. Tap the answer. Get all five right to earn the speed bonus. You have 45
         seconds.
       </p>
     </div>
@@ -319,7 +319,7 @@ export const percentSprintPuzzle: PuzzleDefinition = {
   category: "number",
   timeLimitMs: PCTSPRINT_TIME_MS,
   generate: buildPercentSprint,
-  // Scored on the server from how many of the three questions were right.
+  // Scored on the server from how many of the five questions were right.
   check: () => true,
   revealHeading: "The answers were",
   IntroExample,

@@ -76,3 +76,12 @@
 - [x] Bin Toss: half wind, wider forgiving bin, 110–245 px distances, floatier gravity, previous-arc ghost
 - [x] Bullseye: half wind, 170 px target, gentler shrinking/drift, previous-hit ghost
 - [x] Re-run the 200-run client/server identity proof and arcade regressions
+
+## Nine-type tuning (2026-09-21)
+- [x] Bomb Defusal: required-action set + ordering constraints, contradiction/cycle/ambiguity rejection, order-independent grading.
+- [x] Stop Watch: sweep speeds 1.0x / 1.3x / 1.6x per try.
+- [x] Laser: 6 gems, 9 mirrors, 40s, proportional partial score.
+- [x] Count Up: full 8x6 field, 20s, on-screen keypad.
+- [x] Percent Sprint: five items. Number Hunt: sixteen numbers.
+- [x] Chain: nodes never touch (diameter + 14px minimum).
+- [x] Sliding Tiles and every drag board: no page scroll while dragging.

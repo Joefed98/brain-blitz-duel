@@ -46,7 +46,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   maze: ["solution"],
   tubes: ["minMoves", "solution"],
   safe: ["combination"],
-  bomb: ["sequence"],
+  bomb: ["sequence", "required", "constraints"],
   gravity: ["minMoves", "solution"],
   // The rule strip and nodes are public; one searched path stays private.
   chain: ["solution", "solutionCount"],
@@ -70,7 +70,6 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   bintoss: [],
   bullseye: [],
   matchup: [],
-
 };
 
 type Loose = Record<string, unknown>;

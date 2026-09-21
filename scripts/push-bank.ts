@@ -336,7 +336,9 @@ while (bank.length < PUSH_BANK_SIZE && guard < 200_000) {
       solution: solution.map((move) => `${move.cell}:${move.dir}`).join(","),
     });
     if (bank.length % 10 === 0) {
-      console.log(`  ${bank.length} / ${PUSH_BANK_SIZE}  (${Math.round((Date.now() - startedAt) / 1000)}s)`);
+      console.log(
+        `  ${bank.length} / ${PUSH_BANK_SIZE}  (${Math.round((Date.now() - startedAt) / 1000)}s)`,
+      );
     }
     // Two entries per layout at most, so the bank stays varied.
     if (bank.filter((entry) => entry.walls.join(".") === wallList.join(".")).length >= 2) break;

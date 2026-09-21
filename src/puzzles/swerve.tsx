@@ -202,8 +202,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div ref={wrap} className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
       <canvas
         ref={canvas}
-        className="block h-full w-full rounded-xl"
-        style={{ touchAction: "none", background: SWERVE_BG }}
+        className="puzzle-board block h-full w-full rounded-xl"
+        style={{ background: SWERVE_BG }}
         aria-label="Swerve"
         onPointerDown={(event) => {
           event.preventDefault();

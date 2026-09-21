@@ -776,14 +776,14 @@ const bombSummary: SummaryBuilder = (result, puzzle) => {
   if (result.is_correct) {
     return {
       summary: `Defused · ${seconds(elapsedMs(result, puzzle))}`,
-      detail: ["Every action was in the right order"],
+      detail: ["Every required action, in an order the rules allow"],
     };
   }
   return {
     summary: exploded
       ? `Exploded · ${prefix} / ${puzzle.stepCount}`
       : `${prefix} / ${puzzle.stepCount}`,
-    detail: [`${prefix} correct opening step${prefix === 1 ? "" : "s"}`],
+    detail: [`${prefix} action${prefix === 1 ? "" : "s"} carried out correctly`],
   };
 };
 

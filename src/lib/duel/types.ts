@@ -612,8 +612,8 @@ export const SPOT_ONE_POINTS = 15;
 /** Rotation Match: shapes drawn as filled cells of a 5x5 grid. */
 export const ROTATION_COLS = 5;
 
-/** Number Hunt: fourteen circles tapped in ascending order. */
-export const NUMHUNT_COUNT = 14;
+/** Number Hunt: sixteen circles tapped in ascending order. */
+export const NUMHUNT_COUNT = 16;
 export const NUMHUNT_CIRCLE_PX = 56;
 export const NUMHUNT_ERROR_PENALTY = 10;
 export const NUMHUNT_FLASH_MS = 200;
@@ -661,8 +661,8 @@ export interface PercentPuzzleData {
   answers?: number[];
 }
 
-/** Percent Sprint: three questions over 45 seconds. */
-export const PCTSPRINT_ITEMS = 3;
+/** Percent Sprint: five questions over 45 seconds. */
+export const PCTSPRINT_ITEMS = 5;
 export const PCTSPRINT_TIME_MS = 45_000;
 
 /* -------------------------------------------------------------------------- */
@@ -695,6 +695,13 @@ export interface StopWatchPuzzleData {
 export const STOPWATCH_ATTEMPTS = 3;
 /** One full sweep of the bar; the marker then bounces back. */
 export const STOPWATCH_SWEEP_MS = 1_100;
+/** The sweep speeds up every round: 1.0x, then 1.3x, then 1.6x. */
+export const STOPWATCH_SPEED_PCT = [100, 130, 160];
+/** The sweep time of one attempt, at that attempt's speed. */
+export function stopWatchSweepMs(attempt: number): number {
+  const pct = STOPWATCH_SPEED_PCT[Math.min(Math.max(attempt, 0), STOPWATCH_SPEED_PCT.length - 1)]!;
+  return Math.round((STOPWATCH_SWEEP_MS * 100) / pct);
+}
 export const STOPWATCH_TIMEOUT_MS = 6_000;
 export const STOPWATCH_FEEDBACK_MS = 1_000;
 export const STOPWATCH_SLOT_MS = STOPWATCH_TIMEOUT_MS + STOPWATCH_FEEDBACK_MS;
@@ -726,10 +733,12 @@ export interface CountUpPuzzleData {
   count?: number;
 }
 
-export const COUNTUP_COLS = 6;
-export const COUNTUP_ROWS = 10;
-export const COUNTUP_MIN_SHAPES = 40;
-export const COUNTUP_MAX_SHAPES = 56;
+/** The field fills the whole play area: an 8 x 6 grid of cells, one shape each. */
+export const COUNTUP_COLS = 8;
+export const COUNTUP_ROWS = 6;
+export const COUNTUP_TIME_MS = 20_000;
+export const COUNTUP_MIN_SHAPES = 36;
+export const COUNTUP_MAX_SHAPES = 46;
 export const COUNTUP_MIN_COUNT = 6;
 export const COUNTUP_MAX_COUNT = 12;
 
@@ -1095,14 +1104,14 @@ export interface PushPuzzleData {
 
 export const LASER_COLS = 10;
 export const LASER_CELLS = LASER_COLS * LASER_COLS;
-export const LASER_TIME_MS = 30_000;
-/** Always exactly five mirrors, and the route always bends once per mirror. */
-export const LASER_MIN_MIRRORS = 6;
-export const LASER_MAX_MIRRORS = 6;
-export const LASER_MIN_BLOCKS = 20;
+export const LASER_TIME_MS = 40_000;
+/** Always exactly nine mirrors, and the route always bends once per mirror. */
+export const LASER_MIN_MIRRORS = 9;
+export const LASER_MAX_MIRRORS = 9;
+export const LASER_MIN_BLOCKS = 18;
 export const LASER_MAX_BLOCKS = 26;
-/** Three gems the beam must pass through, and three or four bombs it must miss. */
-export const LASER_GEMS = 4;
+/** Six gems the beam must pass through, and three or four bombs it must miss. */
+export const LASER_GEMS = 6;
 export const LASER_MIN_BOMBS = 3;
 export const LASER_MAX_BOMBS = 4;
 /** Blocks closing off the straight and single-bend shortcuts. */
@@ -1110,23 +1119,22 @@ export const LASER_MIN_SHORTCUT_BLOCKS = 3;
 /** Blocks touching the beam route without sitting on it, hiding the corridor. */
 export const LASER_MIN_ADJACENT_BLOCKS = 3;
 /** Blocks that must sit in the middle 6x6, so the centre is genuinely obstructed. */
-export const LASER_MIN_CENTRAL_BLOCKS = 10;
+export const LASER_MIN_CENTRAL_BLOCKS = 7;
 /** The middle 6x6 area, as inclusive row/column indices on the 10x10 grid. */
 export const LASER_CENTRAL_FROM = 2;
 export const LASER_CENTRAL_TO = 7;
 /** A bomb must lie on this many different near-miss beams. */
 export const LASER_MIN_BOMB_CROSSINGS = 2;
 /** The beam route always turns at least this many times. */
-export const LASER_MIN_BENDS = 6;
+export const LASER_MIN_BENDS = 9;
 /** And never more: the route bends exactly once per mirror. */
-export const LASER_MAX_BENDS = 6;
+export const LASER_MAX_BENDS = 9;
 /** Three shots per round. */
 export const LASER_MAX_FIRES = 3;
-/** Base points by the shot that lit all three gems: first, second, third. */
+/** Base points by the shot that lit every gem: first, second, third. */
 export const LASER_FIRE_BASE = [100, 85, 70];
-/** Consolation for finishing with two gems lit, or with just one. */
-export const LASER_TWO_GEM_POINTS = 40;
-export const LASER_ONE_GEM_POINTS = 20;
+/** A shot that missed scores in proportion to the gems it did light. */
+export const LASER_PARTIAL_POINTS = 70;
 /** How many near-miss placements the necessity search may carry forward. */
 export const LASER_PROMISING_CAP = 20_000;
 /** How long the beam takes to draw itself, and how long it lingers after a miss. */
@@ -1327,9 +1335,13 @@ export interface BombPuzzleData {
   serial: string;
   /** The rule card, in the order it must be read. */
   rules: { id: string; text: string }[];
-  /** How many actions the sequence needs — the "steps 2 / 4" counter. */
+  /** How many actions the plan needs — the "actions 2 / 4" counter. */
   stepCount: number;
   /** Server-side only: the required actions, as `bA,w2`. */
+  required?: string;
+  /** Server-side only: the ordering the rules impose, as `bA<w2;last:w6`. */
+  constraints?: string;
+  /** Server-side only: one order that satisfies every constraint. */
   sequence?: string;
 }
 
@@ -1389,7 +1401,16 @@ export const CHAIN_NODE_GAP = 15;
 export const CHAIN_MIN_SPACING = 1.6;
 /** A node glyph's width, as a share of the taller board axis in percent. */
 export const CHAIN_NODE_WIDTH_PCT = 7;
-export const CHAIN_MIN_CENTRAL = 7;
+/** A node glyph, and the clear space kept between two glyph edges, in pixels. */
+export const CHAIN_NODE_PX = 46;
+export const CHAIN_NODE_GAP_PX = 14;
+/**
+ * Conservative size of the chain board on the smallest supported phone, used to
+ * turn the pixel spacing rule into the percentage space node positions live in.
+ */
+export const CHAIN_BOARD_W_PX = 343;
+export const CHAIN_BOARD_H_PX = 400;
+export const CHAIN_MIN_CENTRAL = 6;
 export const CHAIN_MAX_HULL_RATIO = 0.6;
 
 export const CHAIN_SHAPES = ["circle", "square", "triangle"] as const;
