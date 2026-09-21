@@ -50,9 +50,9 @@
 - [x] 200-run client/server identity proof with valid and invalid swaps
 
 ## Five-game tuning
-- [ ] Pair Match 5x4 layout/scoring/text
-- [ ] Swerve speed ramp and coin collection rendering
-- [ ] Bin Toss drag capture and wind layout
-- [ ] Bullseye HUD/ring labels/bow aiming render
-- [ ] Matchup next strip, animation semantics, specials
-- [ ] Re-run deterministic proof scripts
+- [x] Pair Match 5x4 layout/scoring/text
+- [x] Swerve speed ramp and coin collection rendering
+- [x] Bin Toss drag capture and wind layout
+- [x] Bullseye HUD/ring labels/bow aiming render
+- [x] Matchup next strip, animation semantics, specials
+- [x] Re-run deterministic proof scripts
