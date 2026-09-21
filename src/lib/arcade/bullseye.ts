@@ -39,7 +39,7 @@ export const BULLSEYE_RINGS = 6;
 export const BULLSEYE_RING_STEP = 25;
 
 /** Centre outwards. */
-export const BULLSEYE_RING_VALUES = [30, 25, 20, 15, 10, 5] as const;
+export const BULLSEYE_RING_VALUES = [10, 9, 8, 7, 6, 5] as const;
 export const BULLSEYE_RING_COLOURS = [
   "#F5B82E",
   "#FF4D4D",
@@ -179,7 +179,8 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
 }
 
 function score(state: BullseyeState): number {
-  return clampInt(Math.round(state.total / 2), 0, 150);
+  // Ten centre hits = 100 raw points = the 150 cap.
+  return clampInt(Math.round((state.total * 3) / 2), 0, 150);
 }
 
 /** Arrows in the gold or red rings — the headline for the standings summary. */
