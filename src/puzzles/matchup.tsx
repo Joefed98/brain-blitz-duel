@@ -160,11 +160,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       const size = sizeCanvas();
       if (size) {
-        const ctx = canvas.current!.getContext("2d")!;
-        if (time < animUntil.current) {
-          matchupDrawAnimated(ctx, state.current, size, time - animStart.current);
-        } else {
-          matchupGame.draw(ctx, state.current, size);
+        const node = canvas.current;
+        const ctx = node?.getContext("2d");
+        if (ctx) {
+          if (time < animUntil.current) {
+            matchupDrawAnimated(ctx, state.current, size, time - animStart.current);
+          } else {
+            matchupGame.draw(ctx, state.current, size);
+          }
         }
         const pick = selected.current;
         if (pick && !matchupGame.isOver(state.current) && time >= animUntil.current) {
