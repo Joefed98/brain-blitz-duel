@@ -305,26 +305,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           event.preventDefault();
           if (locked || submitted.current || binTossGame.isOver(state.current)) return;
           if (state.current.phase !== BINTOSS_AIM) return;
+          // A flick starts anywhere on the screen, not only on the ball.
           const point = worldPoint(event);
-          const dx = point.x * 256 - state.current.x;
-          const dy = point.y * 256 - state.current.y;
-          const hitRadius = BINTOSS_BALL_R * 2.2;
-          if (dx * dx + dy * dy > hitRadius * hitRadius) return;
-          drag.current = {
-            startX: point.x,
-            startY: point.y,
-            x: point.x,
-            y: point.y,
-            startTime: performance.now(),
-          };
+          drag.current = { samples: [{ x: point.x, y: point.y, time: performance.now() }] };
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
           if (!drag.current) return;
-          const point = worldPoint(event);
-          drag.current = { ...drag.current, x: point.x, y: point.y };
+          pushSample(worldPoint(event), performance.now());
         }}
         onPointerUp={(event) => {
+          const now = performance.now();
+          if (drag.current) pushSample(worldPoint(event), now);
           const current = drag.current;
           drag.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -332,8 +324,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           }
           if (!current || locked || submitted.current) return;
           if (state.current.phase !== BINTOSS_AIM) return;
-          const { vx, vy } = flickVelocity(current, performance.now());
-          if (vy === 0 && vx === 0) return;
+          const { vx, vy } = flickVelocity(current, now);
+          // A slow drag or a downward flick is not a throw.
+          if (-vy < FLICK_MIN_UNITS) return;
           pending.current.push({ t: 0, k: 1, a: vx, b: vy, c: 0, d: 0 });
         }}
         onPointerCancel={(event) => {
@@ -342,6 +335,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
         }}
+
       />
     </div>
   );
