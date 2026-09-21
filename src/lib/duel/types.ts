@@ -1335,9 +1335,13 @@ export interface BombPuzzleData {
   serial: string;
   /** The rule card, in the order it must be read. */
   rules: { id: string; text: string }[];
-  /** How many actions the sequence needs — the "steps 2 / 4" counter. */
+  /** How many actions the plan needs — the "actions 2 / 4" counter. */
   stepCount: number;
   /** Server-side only: the required actions, as `bA,w2`. */
+  required?: string;
+  /** Server-side only: the ordering the rules impose, as `bA<w2;last:w6`. */
+  constraints?: string;
+  /** Server-side only: one order that satisfies every constraint. */
   sequence?: string;
 }
 
