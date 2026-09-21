@@ -121,7 +121,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "More correct choices = more points. Perfect = speed bonus.",
   },
   numhunt: {
-    goal: "Tap all fourteen numbers from smallest to largest.",
+    goal: "Tap all sixteen numbers from smallest to largest.",
     how: [
       { action: "Find the smallest", detail: "remaining number." },
       { action: "Tap in order", detail: "until every number is cleared." },
@@ -182,13 +182,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "All eight = full points and the speed bonus. Each right pair still scores.",
   },
   pctsprint: {
-    goal: "Solve all three percentage questions.",
+    goal: "Solve all five percentage questions.",
     how: [
       { action: "Work out the percentage", detail: "shown in the question." },
       { action: "Tap the answer", detail: "from the choices." },
-      { action: "Solve all three", detail: "before time runs out." },
+      { action: "Solve all five", detail: "in the 45 seconds." },
     ],
-    score: "More correct = more points. All three = speed bonus.",
+    score: "More correct = more points. All five = speed bonus.",
   },
   numclimb: {
     goal: "Recall all twelve digits in the exact order.",
@@ -202,9 +202,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   stopwatch: {
     goal: "Stop the marker inside the gold zone three times.",
     how: [
-      { action: "Watch the marker", detail: "sweep around the track." },
+      { action: "Watch the marker", detail: "sweep across the bar." },
       { action: "Tap once", detail: "when it reaches the gold zone." },
-      { action: "Repeat three times", detail: "as accurately as possible." },
+      { action: "Each try is faster", detail: "than the one before it." },
     ],
     score: "Closer average stops = more points.",
   },
@@ -212,8 +212,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Count every shape that matches the question.",
     how: [
       { action: "Read the question", detail: "for the required shape and colour." },
-      { action: "Count matching items", detail: "in the field." },
-      { action: "Type the total", detail: "and press Submit." },
+      { action: "Count matching items", detail: "in the field — you have 20 seconds." },
+      { action: "Use the keypad", detail: "to type the total, then press ENTER." },
     ],
     score: "Exact and faster = more points. Close still scores.",
   },
@@ -307,13 +307,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewer pushes and a faster finish = more points.",
   },
   laser: {
-    goal: "Light all four gems with one shot.",
+    goal: "Light all six gems with one shot.",
     how: [
-      { action: "Drag mirrors", detail: "onto the grid." },
+      { action: "Drag mirrors", detail: "onto the grid — all nine are needed." },
       { action: "Tap a mirror", detail: "to flip it." },
       { action: "Tap FIRE", detail: "to shoot — you get three shots and must avoid bombs." },
     ],
-    score: "Faster = more points. Fewer shots = bonus. Gems lit still score.",
+    score: "Faster = more points. Fewer shots = bonus. Each gem lit still scores.",
   },
   tower: {
     goal: "Move the full tower onto the marked peg.",
@@ -355,16 +355,16 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewer tries scores more.",
   },
   bomb: {
-    goal: "Carry out every required action in the exact order to defuse the bomb.",
+    goal: "Carry out exactly the actions the rules require, in an order they allow.",
     how: [
       {
         action: "Read ALL the rules",
-        detail: "before you touch anything — some rules change the order.",
+        detail: "in order — some of them set what must come first or last.",
       },
       { action: "Tap wires and buttons", detail: "then tap DEFUSE." },
       { action: "One wrong step", detail: "and it explodes." },
     ],
-    score: "Defuse fast; a correct opening sequence earns partial credit.",
+    score: "Defuse fast; a correct opening earns partial credit.",
   },
   gravity: {
     goal: "Tilt the board so each ball lands on its own colour's target — at the same time.",
