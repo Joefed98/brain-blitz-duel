@@ -245,16 +245,39 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { width, height };
   };
 
-  /** Drag vector ÷ drag duration, in whole 1/256-px-a-tick units. */
+  /**
+   * The flick: the movement over the last ~120 ms, in 1/256 px a tick, pointing
+   * where the finger was travelling. A flick up the screen throws the ball up.
+   */
   const flickVelocity = (current: DragState, time: number): { vx: number; vy: number } => {
-    const ticks = Math.max(1, (time - current.startTime) / TICK_MS);
-    const vx = Math.round(((current.startX - current.x) * 256) / ticks);
-    const vy = Math.round(((current.startY - current.y) * 256) / ticks);
+    const samples = current.samples;
+    const latest = samples[samples.length - 1];
+    if (!latest) return { vx: 0, vy: 0 };
+    let first = latest;
+    for (const sample of samples) {
+      if (time - sample.time <= FLICK_WINDOW_MS) {
+        first = sample;
+        break;
+      }
+    }
+    const ticks = Math.max(1, (latest.time - first.time) / TICK_MS);
+    const vx = Math.round(((latest.x - first.x) * 256) / ticks);
+    const vy = Math.round(((latest.y - first.y) * 256) / ticks);
     return {
       vx: clampInt(vx, -BINTOSS_VX_MAX, BINTOSS_VX_MAX),
       vy: clampInt(vy, -BINTOSS_VY_MAX, 0),
     };
   };
+
+  const pushSample = (point: { x: number; y: number }, time: number) => {
+    const current = drag.current;
+    if (!current) return;
+    const samples = [...current.samples, { x: point.x, y: point.y, time }].filter(
+      (sample, index, all) => time - sample.time <= FLICK_WINDOW_MS * 2 || index === all.length - 1,
+    );
+    drag.current = { samples };
+  };
+
 
   /** Canvas coordinates to world pixels, using the sim's own mapping. */
   const worldPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
