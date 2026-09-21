@@ -660,6 +660,23 @@ export function matchupCellAt(
   return { row, col };
 }
 
+export const MATCHUP_CLEAR_MS = 200;
+export const MATCHUP_DROP_MS = 120;
+export const MATCHUP_DETONATE_MS = 250;
+
+function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+}
+
 /** One symbol, centred on (cx, cy), at the given radius. */
 export function matchupDrawSymbol(
   ctx: CanvasRenderingContext2D,
@@ -668,6 +685,48 @@ export function matchupDrawSymbol(
   cy: number,
   radius: number,
 ): void {
+  if (kind === MATCHUP_BOMB) {
+    ctx.save();
+    ctx.fillStyle = "#15151C";
+    ctx.strokeStyle = MATCHUP_GOLD;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy + radius * 0.08, radius * 0.78, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = MATCHUP_GOLD;
+    ctx.beginPath();
+    ctx.moveTo(cx + radius * 0.38, cy - radius * 0.58);
+    ctx.quadraticCurveTo(cx + radius * 0.72, cy - radius * 0.95, cx + radius * 0.2, cy - radius * 1.1);
+    ctx.stroke();
+    ctx.fillStyle = MATCHUP_GOLD;
+    ctx.beginPath();
+    ctx.arc(cx + radius * 0.12, cy - radius * 1.08, radius * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  if (kind === MATCHUP_CROSS) {
+    ctx.save();
+    ctx.fillStyle = MATCHUP_GOLD;
+    ctx.strokeStyle = "#0B0B0F";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let point = 0; point < 8; point++) {
+      const r = point % 2 === 0 ? radius : radius * 0.38;
+      const angle = (Math.PI / 4) * point - Math.PI / 2;
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r;
+      if (point === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
   const shape = MATCHUP_SHAPES[kind] ?? "circle";
   ctx.fillStyle = MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD;
   ctx.beginPath();
@@ -690,26 +749,181 @@ export function matchupDrawSymbol(
     for (let point = 0; point < 10; point++) {
       const r = point % 2 === 0 ? radius : radius * 0.45;
       const angle = (Math.PI / 5) * point - Math.PI / 2;
-      const px = cx + Math.cos(angle) * r;
-      const py = cy + Math.sin(angle) * r;
-      if (point === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r;
+      if (point === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
     ctx.closePath();
   } else {
     for (let point = 0; point < 6; point++) {
       const angle = (Math.PI / 3) * point - Math.PI / 2;
-      const px = cx + Math.cos(angle) * radius;
-      const py = cy + Math.sin(angle) * radius;
-      if (point === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
+      const x = cx + Math.cos(angle) * radius;
+      const y = cy + Math.sin(angle) * radius;
+      if (point === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
     ctx.closePath();
   }
   ctx.fill();
 }
 
-function draw(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize): void {
+function cellCentre(row: number, col: number): { x: number; y: number } {
+  return {
+    x: MATCHUP_BOARD_X + col * MATCHUP_CELL_PX + MATCHUP_CELL_PX / 2,
+    y: MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX + MATCHUP_CELL_PX / 2,
+  };
+}
+
+function drawGrid(ctx: CanvasRenderingContext2D): void {
+  for (let row = 0; row < MATCHUP_SIZE; row++) {
+    for (let col = 0; col < MATCHUP_SIZE; col++) {
+      const x = MATCHUP_BOARD_X + col * MATCHUP_CELL_PX;
+      const y = MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX;
+      ctx.fillStyle = (row + col) % 2 === 0 ? "#15151C" : "#101017";
+      ctx.fillRect(x, y, MATCHUP_CELL_PX, MATCHUP_CELL_PX);
+    }
+  }
+}
+
+function drawNextStrip(ctx: CanvasRenderingContext2D, state: MatchupState): void {
+  roundedRect(ctx, MATCHUP_BOARD_X, MATCHUP_NEXT_Y, MATCHUP_BOARD_W, MATCHUP_NEXT_H, 12);
+  ctx.fillStyle = "rgba(247, 247, 248, 0.08)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(247, 247, 248, 0.14)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.font = "700 9px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = "rgba(247, 247, 248, 0.70)";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("NEXT", MATCHUP_BOARD_X + 8, MATCHUP_NEXT_Y + MATCHUP_NEXT_H / 2);
+  const slotW = (MATCHUP_BOARD_W - 52) / MATCHUP_SIZE;
+  for (let col = 0; col < MATCHUP_SIZE; col++) {
+    const cx = MATCHUP_BOARD_X + 52 + col * slotW + slotW / 2;
+    const cy = MATCHUP_NEXT_Y + MATCHUP_NEXT_H / 2;
+    ctx.strokeStyle = "rgba(247, 247, 248, 0.12)";
+    ctx.strokeRect(cx - 12, cy - 12, 24, 24);
+    const queue = state.queues[col]!;
+    const kind = queue[state.heads[col]! % MATCHUP_QUEUE_LEN] ?? 0;
+    matchupDrawSymbol(ctx, kind, cx, cy, 8);
+  }
+}
+
+function drawSettledBoard(ctx: CanvasRenderingContext2D, cells: readonly number[]): void {
+  const radius = (MATCHUP_CELL_PX * MATCHUP_SYMBOL_PCT) / 200;
+  drawGrid(ctx);
+  for (let row = 0; row < MATCHUP_SIZE; row++) {
+    for (let col = 0; col < MATCHUP_SIZE; col++) {
+      const index = matchupIndex(row, col);
+      const { x, y } = cellCentre(row, col);
+      matchupDrawSymbol(ctx, cells[index] ?? 0, x, y, radius);
+    }
+  }
+}
+
+export function matchupAnimationDuration(steps: readonly MatchupAnimStep[]): number {
+  return steps.reduce(
+    (total, item) => total + MATCHUP_CLEAR_MS + Math.max(1, item.ticks) * MATCHUP_DROP_MS,
+    0,
+  );
+}
+
+function drawDetonations(ctx: CanvasRenderingContext2D, step: MatchupAnimStep, progress: number): void {
+  for (const index of step.detonated) {
+    const kind = step.before[index] ?? -1;
+    const row = Math.trunc(index / MATCHUP_SIZE);
+    const col = index % MATCHUP_SIZE;
+    const { x, y } = cellCentre(row, col);
+    ctx.save();
+    ctx.globalAlpha = 1 - progress * 0.7;
+    ctx.strokeStyle = MATCHUP_GOLD;
+    ctx.lineWidth = 2;
+    if (kind === MATCHUP_CROSS) {
+      const spread = MATCHUP_CELL_PX * (0.5 + progress * MATCHUP_SIZE);
+      ctx.fillStyle = "rgba(245, 184, 46, 0.18)";
+      ctx.fillRect(MATCHUP_BOARD_X, y - 3, MATCHUP_BOARD_W, 6);
+      ctx.fillRect(x - 3, MATCHUP_BOARD_Y, 6, MATCHUP_BOARD_W);
+      ctx.beginPath();
+      ctx.moveTo(x - spread, y);
+      ctx.lineTo(x + spread, y);
+      ctx.moveTo(x, y - spread);
+      ctx.lineTo(x, y + spread);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(x, y, 8 + progress * MATCHUP_CELL_PX * 1.8, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+function drawAnimatedBoard(
+  ctx: CanvasRenderingContext2D,
+  state: MatchupState,
+  elapsedMs: number,
+): void {
+  let remaining = elapsedMs;
+  const radius = (MATCHUP_CELL_PX * MATCHUP_SYMBOL_PCT) / 200;
+  for (const step of state.lastAnimation) {
+    const dropMs = Math.max(1, step.ticks) * MATCHUP_DROP_MS;
+    const total = MATCHUP_CLEAR_MS + dropMs;
+    if (remaining >= total) {
+      remaining -= total;
+      continue;
+    }
+
+    drawGrid(ctx);
+    const cleared = new Set(step.cleared);
+    if (remaining < MATCHUP_CLEAR_MS) {
+      const p = remaining / MATCHUP_CLEAR_MS;
+      for (let row = 0; row < MATCHUP_SIZE; row++) {
+        for (let col = 0; col < MATCHUP_SIZE; col++) {
+          const index = matchupIndex(row, col);
+          const { x, y } = cellCentre(row, col);
+          if (cleared.has(index)) {
+            ctx.save();
+            ctx.globalAlpha = 1 - p;
+            matchupDrawSymbol(ctx, step.before[index] ?? 0, x, y, radius * (1 - p * 0.65));
+            ctx.restore();
+          } else {
+            matchupDrawSymbol(ctx, step.before[index] ?? 0, x, y, radius);
+          }
+        }
+      }
+      drawDetonations(ctx, step, Math.min(1, remaining / MATCHUP_DETONATE_MS));
+      return;
+    }
+
+    const p = Math.min(1, (remaining - MATCHUP_CLEAR_MS) / dropMs);
+    for (let row = 0; row < MATCHUP_SIZE; row++) {
+      for (let col = 0; col < MATCHUP_SIZE; col++) {
+        const index = matchupIndex(row, col);
+        if (cleared.has(index)) continue;
+        if (step.moves.some((move) => move.fromRow === row && move.fromCol === col)) continue;
+        const { x, y } = cellCentre(row, col);
+        matchupDrawSymbol(ctx, step.before[index] ?? 0, x, y, radius);
+      }
+    }
+    for (const move of step.moves) {
+      const from = cellCentre(move.fromRow, move.fromCol);
+      const to = cellCentre(move.toRow, move.toCol);
+      const x = from.x + (to.x - from.x) * p;
+      const y = from.y + (to.y - from.y) * p;
+      matchupDrawSymbol(ctx, move.kind, x, y, radius);
+    }
+    return;
+  }
+  drawSettledBoard(ctx, state.cells);
+}
+
+function drawScene(
+  ctx: CanvasRenderingContext2D,
+  state: MatchupState,
+  size: CanvasSize,
+  animationElapsedMs: number | null,
+): void {
   const { scale, offsetX, offsetY } = matchupTransform(size);
   ctx.save();
   ctx.fillStyle = MATCHUP_BG;
@@ -717,28 +931,15 @@ function draw(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSi
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
-  const radius = (MATCHUP_CELL_PX * MATCHUP_SYMBOL_PCT) / 200;
-  const popped = new Set(state.tick - state.lastScoreTick <= 12 ? state.lastCleared : []);
-  for (let row = 0; row < MATCHUP_SIZE; row++) {
-    for (let col = 0; col < MATCHUP_SIZE; col++) {
-      const x = MATCHUP_BOARD_X + col * MATCHUP_CELL_PX;
-      const y = MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX;
-      ctx.fillStyle = (row + col) % 2 === 0 ? "#15151C" : "#101017";
-      ctx.fillRect(x, y, MATCHUP_CELL_PX, MATCHUP_CELL_PX);
-      const index = matchupIndex(row, col);
-      const pop = popped.has(index) ? 1.18 : 1;
-      matchupDrawSymbol(
-        ctx,
-        state.cells[index] ?? 0,
-        x + MATCHUP_CELL_PX / 2,
-        y + MATCHUP_CELL_PX / 2,
-        radius * pop,
-      );
-    }
+  drawNextStrip(ctx, state);
+  if (animationElapsedMs !== null && state.lastAnimation.length > 0) {
+    drawAnimatedBoard(ctx, state, animationElapsedMs);
+  } else {
+    drawSettledBoard(ctx, state.cells);
   }
 
   // A subtle hint after five seconds without a scoring swap.
-  if (matchupShowHint(state)) {
+  if (matchupShowHint(state) && animationElapsedMs === null) {
     const hint = matchupFindSwap(state.cells);
     if (hint) {
       ctx.strokeStyle = MATCHUP_GOLD;
@@ -768,6 +969,19 @@ function draw(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSi
   ctx.textAlign = "right";
   ctx.fillText(`${remaining.toFixed(1)}s`, MATCHUP_WORLD_W - 12, 12);
   ctx.restore();
+}
+
+function draw(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize): void {
+  drawScene(ctx, state, size, null);
+}
+
+export function matchupDrawAnimated(
+  ctx: CanvasRenderingContext2D,
+  state: MatchupState,
+  size: CanvasSize,
+  elapsedMs: number,
+): void {
+  drawScene(ctx, state, size, elapsedMs);
 }
 
 /** The selected cell's outline, drawn while a swap is being made. Render only. */
