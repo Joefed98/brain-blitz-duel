@@ -1,29 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
-  clampInt,
+  flickWindow,
   MAX_CATCH_UP_TICKS,
   TICK_MS,
   TICKS_PER_SECOND,
   type ArcadeInputEvent,
   type CanvasSize,
+  type FlickSample,
 } from "@/lib/arcade/engine";
 import {
   binTossCheckpoint,
-  binTossDrawAim,
+  binTossFlick,
   binTossGame,
   binTossTransform,
   BINTOSS_AIM,
   BINTOSS_BALL_COLOUR,
-  BINTOSS_BALL_R,
   BINTOSS_BG,
   BINTOSS_BIN_COLOUR,
   BINTOSS_CHECKPOINT_INTERVAL,
   BINTOSS_MISS_COLOUR,
   BINTOSS_RUN_TICKS,
   BINTOSS_THROWS,
-  BINTOSS_VX_MAX,
-  BINTOSS_VY_MAX,
   type BinTossState,
 } from "@/lib/arcade/binToss";
 import { decodeBinTossRun, encodeBinTossRun, replayBinTossRun } from "@/lib/duel/binToss";
@@ -33,12 +31,8 @@ import { playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: the ball, the bin, the wind arrow and a dotted arc. */
+/** Fixed intro still: the ball, the bin, the wind arrow and a flick gesture. */
 function IntroExample() {
-  const dots = Array.from({ length: 9 }, (_, index) => {
-    const t = index / 8;
-    return { x: 24 + t * 130, y: 84 - 120 * t * (1 - t) - 6 * t };
-  });
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <svg
@@ -50,9 +44,11 @@ function IntroExample() {
       >
         <line x1="0" y1="92" x2="195" y2="92" stroke="#F7F7F828" strokeWidth="2" />
         <circle cx="24" cy="84" r="6" fill={BINTOSS_BALL_COLOUR} />
-        {dots.map((dot, index) => (
-          <circle key={index} cx={dot.x} cy={dot.y} r="1.6" fill="#F5B82E77" />
-        ))}
+        <g stroke="#F5B82E99" strokeWidth="2" fill="none">
+          <line x1="30" y1="86" x2="62" y2="46" />
+          <line x1="62" y1="46" x2="54" y2="50" />
+          <line x1="62" y1="46" x2="60" y2="56" />
+        </g>
         <path
           d="M142 62 L145 92 L171 92 L174 62"
           fill="none"
@@ -70,18 +66,10 @@ function IntroExample() {
         </text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        The dotted arc ignores the wind — judge the wind yourself.
+        Flick upward to throw — harder flicks go further.
       </p>
     </div>
   );
-}
-
-interface DragState {
-  startX: number;
-  startY: number;
-  x: number;
-  y: number;
-  startTime: number;
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
@@ -94,7 +82,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof binTossCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
-  const drag = useRef<DragState | null>(null);
+  /** The live swipe, sampled so the launch comes from its last 80 ms. */
+  const swipe = useRef<FlickSample[] | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
@@ -122,7 +111,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     events.current = [];
     checkpoints.current = [];
     pending.current = [];
-    drag.current = null;
+    swipe.current = null;
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
@@ -174,15 +163,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       const size = sizeCanvas();
-      if (size) {
-        const ctx = canvas.current!.getContext("2d")!;
-        binTossGame.draw(ctx, state.current, size);
-        const current = drag.current;
-        if (current && state.current.phase === BINTOSS_AIM) {
-          const velocity = flickVelocity(current, time);
-          binTossDrawAim(ctx, state.current, size, velocity.vx, velocity.vy);
-        }
-      }
+      if (size) binTossGame.draw(canvas.current!.getContext("2d")!, state.current, size);
+
 
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);
@@ -236,16 +218,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { width, height };
   };
 
-  /** Drag vector ÷ drag duration, in whole 1/256-px-a-tick units. */
-  const flickVelocity = (current: DragState, time: number): { vx: number; vy: number } => {
-    const ticks = Math.max(1, (time - current.startTime) / TICK_MS);
-    const vx = Math.round(((current.startX - current.x) * 256) / ticks);
-    const vy = Math.round(((current.startY - current.y) * 256) / ticks);
-    return {
-      vx: clampInt(vx, -BINTOSS_VX_MAX, BINTOSS_VX_MAX),
-      vy: clampInt(vy, -BINTOSS_VY_MAX, 0),
-    };
-  };
 
   /** Canvas coordinates to world pixels, using the sim's own mapping. */
   const worldPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -273,39 +245,39 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           event.preventDefault();
           if (locked || submitted.current || binTossGame.isOver(state.current)) return;
           if (state.current.phase !== BINTOSS_AIM) return;
+          // A flick starts anywhere on the canvas; the pointer is captured so
+          // the swipe stays alive wherever the finger travels.
           const point = worldPoint(event);
-          const dx = point.x * 256 - state.current.x;
-          const dy = point.y * 256 - state.current.y;
-          const hitRadius = BINTOSS_BALL_R * 2.2;
-          if (dx * dx + dy * dy > hitRadius * hitRadius) return;
-          drag.current = {
-            startX: point.x,
-            startY: point.y,
-            x: point.x,
-            y: point.y,
-            startTime: performance.now(),
-          };
+          swipe.current = [{ x: point.x, y: point.y, time: performance.now() }];
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
-          if (!drag.current) return;
+          const samples = swipe.current;
+          if (!samples) return;
           const point = worldPoint(event);
-          drag.current = { ...drag.current, x: point.x, y: point.y };
+          samples.push({ x: point.x, y: point.y, time: performance.now() });
+          // Only the last stretch matters; keep the list short.
+          if (samples.length > 24) samples.splice(0, samples.length - 24);
         }}
         onPointerUp={(event) => {
-          const current = drag.current;
-          drag.current = null;
+          const samples = swipe.current;
+          swipe.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
-          if (!current || locked || submitted.current) return;
+          if (!samples || locked || submitted.current) return;
           if (state.current.phase !== BINTOSS_AIM) return;
-          const { vx, vy } = flickVelocity(current, performance.now());
-          if (vy === 0 && vx === 0) return;
-          pending.current.push({ t: 0, k: 1, a: vx, b: vy, c: 0, d: 0 });
+          const point = worldPoint(event);
+          const now = performance.now();
+          samples.push({ x: point.x, y: point.y, time: now });
+          const window = flickWindow(samples, now);
+          if (!window) return;
+          const launch = binTossFlick(window.dx, window.dy, window.dtMs);
+          if (!launch) return;
+          pending.current.push({ t: 0, k: 1, a: launch.vx, b: launch.vy, c: 0, d: 0 });
         }}
         onPointerCancel={(event) => {
-          drag.current = null;
+          swipe.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }

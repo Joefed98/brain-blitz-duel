@@ -36,10 +36,10 @@ export const HOVER_GRAVITY = 90;
 export const HOVER_IMPULSE = -1_664;
 export const HOVER_TERMINAL = 2_304;
 
-/** Scroll speed: starts here, rises per gate, never past the cap. */
+/** Scroll speed: 2.6 px/tick, +0.12 px/tick per gate passed, capped at 5.2. */
 export const HOVER_SCROLL_START = 666;
-export const HOVER_SCROLL_STEP = 15;
-export const HOVER_SCROLL_MAX = 1_126;
+export const HOVER_SCROLL_STEP = 31;
+export const HOVER_SCROLL_MAX = 1_331;
 
 export const HOVER_PILLAR_W = 10_240;
 /** Pillar spacing in world pixels; the first pillar starts at the right edge. */

@@ -53,7 +53,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Five sequences", detail: "one after the other, getting harder." },
       { action: "Tap the answer", detail: "you can't go back." },
-      { action: "Finish all five", detail: "before time runs out." },
+      { action: "Finish all five", detail: "inside forty-five seconds." },
     ],
     score: "Twenty a sequence. All five right for the speed bonus.",
   },
@@ -459,9 +459,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   swerve: {
     goal: "Collect coins while dodging the blocks.",
     how: [
-      { action: "Tap left or right", detail: "to swerve one lane that way." },
+      { action: "Tap left or right", detail: "to swerve one lane across five lanes." },
       { action: "Hit a block", detail: "and the run ends." },
-      { action: "Everyone drives", detail: "the same course for sixty seconds." },
+      { action: "Every coin", detail: "speeds the course up a little." },
     ],
     score: "Coins earn points, +40 for surviving the whole run.",
   },
@@ -477,7 +477,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   bintoss: {
     goal: "Flick the ball into the bin — ten throws.",
     how: [
-      { action: "Drag back from the ball", detail: "and let go to throw." },
+      { action: "Flick upward to throw", detail: "harder flicks go further." },
       { action: "Watch the wind", detail: "it pushes the ball sideways." },
       { action: "The bin moves", detail: "further away every throw." },
     ],
@@ -486,11 +486,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   bullseye: {
     goal: "Hit the centre — ten arrows.",
     how: [
-      { action: "Drag to aim", detail: "then let go to fire." },
+      { action: "Flick to shoot", detail: "harder flicks land higher." },
       { action: "The wind", detail: "pushes the arrow sideways, more at longer range." },
       { action: "The target", detail: "gets further away each shot." },
     ],
-    score: "30 for the centre ring, less for each ring out. Ten bullseyes = 150.",
+    score: "10 for the centre, down to 5 on the outer ring. Ten centres = 150.",
   },
   matchup: {
     goal: "Make lines of three or more matching symbols.",
@@ -500,6 +500,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Trigger specials", detail: "to clear nearby symbols and start chain reactions." },
       { action: "Sixty seconds", detail: "on the same board for everyone." },
     ],
-    score: "3 = 10, 4 = 25, 5 = 50, then the total ÷ 4.",
+    score: "3 = 10, 4 = 25, 5 = 50, then the total ÷ 8.",
   },
+
 };

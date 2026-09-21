@@ -2,16 +2,17 @@
  * Bullseye — an arcade game on the shared engine.
  *
  * Front view down the range: six rings, ten arrows, the target shrinking with
- * every shot as the range grows. A drag moves the reticle, release fires, and
- * the arrow lands at the reticle plus that arrow's sideways wind drift. Target
- * geometry is in whole pixels (the reticle is a pixel position); every value in
- * the state is an integer.
+ * every shot as the range grows. A flick from the bow at the bottom fires the
+ * arrow; harder flicks land higher, and each arrow takes that shot's sideways
+ * wind drift. Target geometry is in whole pixels; every value in the state is
+ * an integer.
  */
 
 import {
   clampInt,
   inputRange,
   rngBelow,
+  TICK_MS,
   TICKS_PER_SECOND,
   type ArcadeGame,
   type ArcadeInputEvent,
@@ -39,7 +40,7 @@ export const BULLSEYE_RINGS = 6;
 export const BULLSEYE_RING_STEP = 25;
 
 /** Centre outwards. */
-export const BULLSEYE_RING_VALUES = [30, 25, 20, 15, 10, 5] as const;
+export const BULLSEYE_RING_VALUES = [10, 9, 8, 7, 6, 5] as const;
 export const BULLSEYE_RING_COLOURS = [
   "#F5B82E",
   "#FF4D4D",
@@ -58,11 +59,54 @@ export const BULLSEYE_WIND_MAX = 4;
 /** The arrow's flight is render-only; the landing is worked out on release. */
 export const BULLSEYE_FLIGHT_TICKS = 20;
 
-/** An aimed shot: a = reticle x, b = reticle y, in whole world pixels. */
+/** A flick: a = launch vx, b = launch vy, in 1/256 px a tick, upwards negative. */
 export const BULLSEYE_INPUT_SHOT = 2;
+export const BULLSEYE_V_MAX = 3_840;
 export const BULLSEYE_INPUT_RANGES: readonly InputRange[] = [
-  inputRange(BULLSEYE_INPUT_SHOT, [0, BULLSEYE_WORLD_W], [0, BULLSEYE_WORLD_H]),
+  inputRange(BULLSEYE_INPUT_SHOT, [-BULLSEYE_V_MAX, BULLSEYE_V_MAX], [-BULLSEYE_V_MAX, 0]),
 ];
+
+/**
+ * Flight constant, as a fraction: a medium upward flick (1,920 units a tick,
+ * a 300 px/s swipe) carries the arrow the 282 px from the bow to the centre.
+ */
+export const BULLSEYE_FLIGHT_NUM = BULLSEYE_BOW_Y - BULLSEYE_CY;
+export const BULLSEYE_FLIGHT_DEN = 1_920;
+
+/** A swipe shorter than this is ignored. */
+export const BULLSEYE_FLICK_MIN_PX = 30;
+/** Swipe speed to launch speed: a 300 px/s swipe is a medium shot (1,920). */
+export const BULLSEYE_FLICK_NUM = 32;
+export const BULLSEYE_FLICK_DEN = 5;
+
+/**
+ * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
+ * are world pixels moved over `dtMs` milliseconds; upwards is negative `dy`.
+ */
+export function bullseyeFlick(
+  dx: number,
+  dy: number,
+  dtMs: number,
+): { vx: number; vy: number } | null {
+  if (dx * dx + dy * dy < BULLSEYE_FLICK_MIN_PX * BULLSEYE_FLICK_MIN_PX) return null;
+  if (dy >= 0) return null;
+  const dt = Math.max(TICK_MS, dtMs);
+  const scale = (value: number) =>
+    Math.round((((value * 1000) / dt) * BULLSEYE_FLICK_NUM) / BULLSEYE_FLICK_DEN);
+  return {
+    vx: clampInt(scale(dx), -BULLSEYE_V_MAX, BULLSEYE_V_MAX),
+    vy: clampInt(scale(dy), -BULLSEYE_V_MAX, -1),
+  };
+}
+
+/** Where a flick lands on the target plane, before the wind drift. */
+export function bullseyeLanding(vx: number, vy: number): { x: number; y: number } {
+  const reach = (value: number) => Math.round((value * BULLSEYE_FLIGHT_NUM) / BULLSEYE_FLIGHT_DEN);
+  return {
+    x: clampInt(BULLSEYE_BOW_X + reach(vx), -400, BULLSEYE_WORLD_W + 400),
+    y: clampInt(BULLSEYE_BOW_Y - reach(-vy), -400, BULLSEYE_WORLD_H + 400),
+  };
+}
 
 export function bullseyeScalePct(index: number): number {
   return BULLSEYE_SCALE_PCT[clampInt(index, 0, BULLSEYE_ARROWS - 1)]!;
@@ -157,8 +201,11 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
   if (input && input.k === BULLSEYE_INPUT_SHOT && canFire) {
     const arrow = state.arrowIndex;
     const wind = state.winds[arrow] ?? 0;
-    const x = clampInt(input.a, 0, BULLSEYE_WORLD_W) + wind * bullseyeDriftPx(arrow);
-    const y = clampInt(input.b, 0, BULLSEYE_WORLD_H);
+    const vx = clampInt(input.a, -BULLSEYE_V_MAX, BULLSEYE_V_MAX);
+    const vy = clampInt(input.b, -BULLSEYE_V_MAX, 0);
+    const landing = bullseyeLanding(vx, vy);
+    const x = landing.x + wind * bullseyeDriftPx(arrow);
+    const y = landing.y;
     const ring = bullseyeRingAt(x, y, bullseyeScalePct(arrow));
     const value = bullseyeRingValue(ring);
     const next: BullseyeState = {
@@ -178,8 +225,9 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
   return next;
 }
 
+/** Ten centres (100) make the 150 cap. */
 function score(state: BullseyeState): number {
-  return clampInt(Math.round(state.total / 2), 0, 150);
+  return clampInt(Math.round((state.total * 3) / 2), 0, 150);
 }
 
 /** Arrows in the gold or red rings — the headline for the standings summary. */
@@ -306,25 +354,25 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   ctx.restore();
 }
 
-function drawBow(ctx: CanvasRenderingContext2D, targetX: number, targetY: number): void {
-  const angle = Math.atan2(targetY - BULLSEYE_BOW_Y, targetX - BULLSEYE_BOW_X);
+/** The bow with a nocked arrow, sitting at bottom-centre. Render only. */
+function drawBow(ctx: CanvasRenderingContext2D): void {
   ctx.save();
   ctx.translate(BULLSEYE_BOW_X, BULLSEYE_BOW_Y);
-  ctx.rotate(angle);
-  ctx.strokeStyle = BULLSEYE_GOLD;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(0, -30);
-  ctx.stroke();
   ctx.strokeStyle = "rgba(247, 247, 248, 0.65)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(0, -10, 22, -Math.PI / 2, Math.PI / 2);
+  ctx.arc(0, 10, 22, Math.PI, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = BULLSEYE_GOLD;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, 12);
+  ctx.lineTo(0, -26);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(0, -32);
-  ctx.lineTo(0, 12);
+  ctx.moveTo(-5, -18);
+  ctx.lineTo(0, -28);
+  ctx.lineTo(5, -18);
   ctx.stroke();
   ctx.restore();
 }
@@ -353,21 +401,22 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
     ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
     ctx.fill();
   }
-  // In flight: the arrow shrinks in towards its landing point.
+  // In flight: the arrow travels from the bow to its landing point, shrinking
+  // as it goes down the range. Render only.
   if (last && state.flightTick > 0) {
     const progress = (BULLSEYE_FLIGHT_TICKS - state.flightTick) / BULLSEYE_FLIGHT_TICKS;
+    const x = BULLSEYE_BOW_X + (last.x - BULLSEYE_BOW_X) * progress;
+    const y = BULLSEYE_BOW_Y + (last.y - BULLSEYE_BOW_Y) * progress;
     ctx.fillStyle = BULLSEYE_GOLD;
+    ctx.globalAlpha = 0.45 + 0.55 * progress;
     ctx.beginPath();
-    ctx.arc(last.x, last.y, 3 + 14 * (1 - progress), 0, Math.PI * 2);
-    ctx.globalAlpha = 0.35 + 0.65 * progress;
+    ctx.arc(x, y, 3 + 7 * (1 - progress), 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
 
   if (state.arrowIndex < BULLSEYE_ARROWS) drawWind(ctx, state.winds[state.arrowIndex] ?? 0);
-  if (state.arrowIndex < BULLSEYE_ARROWS && state.flightTick === 0) {
-    drawBow(ctx, BULLSEYE_CX, BULLSEYE_CY);
-  }
+  if (state.arrowIndex < BULLSEYE_ARROWS && state.flightTick === 0) drawBow(ctx);
 
   const remaining = Math.max(0, BULLSEYE_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 15px 'JetBrains Mono', ui-monospace, monospace";
@@ -382,41 +431,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   ctx.restore();
 }
 
-/** The gold aim line, bow and crosshair, drawn while a drag is in progress. Render only. */
-export function bullseyeDrawAim(
-  ctx: CanvasRenderingContext2D,
-  size: CanvasSize,
-  x: number,
-  y: number,
-): void {
-  const { scale, offsetX, offsetY } = bullseyeTransform(size);
-  ctx.save();
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
-  ctx.strokeStyle = "rgba(245, 184, 46, 0.35)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(BULLSEYE_BOW_X, BULLSEYE_BOW_Y);
-  ctx.lineTo(x, y);
-  ctx.stroke();
-  drawBow(ctx, x, y);
-  ctx.strokeStyle = BULLSEYE_GOLD;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x - 14, y);
-  ctx.lineTo(x - 4, y);
-  ctx.moveTo(x + 4, y);
-  ctx.lineTo(x + 14, y);
-  ctx.moveTo(x, y - 14);
-  ctx.lineTo(x, y - 4);
-  ctx.moveTo(x, y + 4);
-  ctx.lineTo(x, y + 14);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(x, y, 9, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
-}
 
 export const bullseyeGame: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = {
   key: "bullseye",

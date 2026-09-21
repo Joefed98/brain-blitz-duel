@@ -254,3 +254,38 @@ export function replayArcadeRun<S>(
   if (check.reason) outcome.reason = check.reason;
   return outcome;
 }
+
+/* ============================= Flick gestures ============================ */
+
+/** One sampled pointer position, in world pixels, with its wall-clock reading. */
+export interface FlickSample {
+  x: number;
+  y: number;
+  time: number;
+}
+
+/** The movement window a flick is measured over: the last 80 ms of the swipe. */
+export const FLICK_WINDOW_MS = 80;
+
+/**
+ * The finger's movement over the last {@link FLICK_WINDOW_MS} of a swipe, taken
+ * from the earliest sample still inside the window — never from the start point.
+ */
+export function flickWindow(
+  samples: readonly FlickSample[],
+  endTime: number,
+): { dx: number; dy: number; dtMs: number } | null {
+  const last = samples[samples.length - 1];
+  if (!last || samples.length < 2) return null;
+  let first = samples[0]!;
+  for (const sample of samples) {
+    if (endTime - sample.time <= FLICK_WINDOW_MS) {
+      first = sample;
+      break;
+    }
+    first = sample;
+  }
+  const dtMs = last.time - first.time;
+  if (dtMs <= 0) return null;
+  return { dx: last.x - first.x, dy: last.y - first.y, dtMs };
+}

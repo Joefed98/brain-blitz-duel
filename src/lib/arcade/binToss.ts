@@ -12,6 +12,7 @@ import {
   inputRange,
   px,
   rngBelow,
+  TICK_MS,
   TICKS_PER_SECOND,
   type ArcadeGame,
   type ArcadeInputEvent,
@@ -69,6 +70,43 @@ export const BINTOSS_INPUT_FLICK = 1;
 export const BINTOSS_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BINTOSS_INPUT_FLICK, [-BINTOSS_VX_MAX, BINTOSS_VX_MAX], [-BINTOSS_VY_MAX, 0]),
 ];
+
+/** A swipe shorter than this is ignored. */
+export const BINTOSS_FLICK_MIN_PX = 30;
+/**
+ * Swipe speed to launch speed: 32/5 units a tick per pixel a second, so a
+ * 300 px/s swipe is a medium throw (1,920 units — half the upward clamp).
+ */
+export const BINTOSS_FLICK_NUM = 32;
+export const BINTOSS_FLICK_DEN = 5;
+
+/**
+ * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
+ * are world pixels moved over `dtMs` milliseconds; upwards is negative `dy`.
+ * Returns null for a short swipe or one that is not going upwards.
+ */
+export function binTossFlick(
+  dx: number,
+  dy: number,
+  dtMs: number,
+): { vx: number; vy: number } | null {
+  if (dx * dx + dy * dy < BINTOSS_FLICK_MIN_PX * BINTOSS_FLICK_MIN_PX) return null;
+  if (dy >= 0) return null;
+  const dt = Math.max(TICK_MS, dtMs);
+  const perSecX = (dx * 1000) / dt;
+  const perSecY = (dy * 1000) / dt;
+  const vx = clampInt(
+    Math.round((perSecX * BINTOSS_FLICK_NUM) / BINTOSS_FLICK_DEN),
+    -BINTOSS_VX_MAX,
+    BINTOSS_VX_MAX,
+  );
+  const vy = clampInt(
+    Math.round((perSecY * BINTOSS_FLICK_NUM) / BINTOSS_FLICK_DEN),
+    -BINTOSS_VY_MAX,
+    -1,
+  );
+  return { vx, vy };
+}
 
 /** The bin's centre for a throw. */
 export function binTossDistance(index: number): number {
@@ -419,7 +457,10 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
 
   drawBin(ctx, state);
   if (state.throwIndex < BINTOSS_THROWS) drawWind(ctx, state.winds[state.throwIndex] ?? 0);
-  if (state.resolved < BINTOSS_THROWS) drawBall(ctx, state);
+  if (state.resolved < BINTOSS_THROWS) {
+    drawTrail(ctx, state);
+    drawBall(ctx, state);
+  }
 
   // HUD.
   const remaining = Math.max(0, BINTOSS_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
@@ -446,40 +487,34 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
 }
 
 /**
- * The dotted preview arc, drawn while a drag is in progress. It deliberately
- * ignores the wind, so judging the wind is the skill. Render only — the sim
- * never sees it.
+ * A short fading trail behind the ball in flight. Worked out by walking the
+ * flight backwards from the current velocity, so it is render only and the sim
+ * never stores it.
  */
-export function binTossDrawAim(
-  ctx: CanvasRenderingContext2D,
-  state: BinTossState,
-  size: CanvasSize,
-  vx: number,
-  vy: number,
-): void {
-  if (state.phase !== BINTOSS_AIM) return;
-  const { scale, offsetX, offsetY } = binTossTransform(size);
-  ctx.save();
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
-  ctx.fillStyle = "rgba(245, 184, 46, 0.45)";
+function drawTrail(ctx: CanvasRenderingContext2D, state: BinTossState): void {
+  if (state.phase !== BINTOSS_FLY) return;
+  const wind = (state.winds[state.throwIndex] ?? 0) * BINTOSS_WIND_UNIT;
   let x = state.x;
   let y = state.y;
-  const dx = clampInt(Math.round(vx), -BINTOSS_VX_MAX, BINTOSS_VX_MAX);
-  let dy = clampInt(Math.round(vy), -BINTOSS_VY_MAX, 0);
-  for (let tick = 0; tick < 180; tick++) {
-    dy += BINTOSS_GRAVITY;
-    x += dx;
-    y += dy;
-    if (y >= BINTOSS_FLOOR_Y || x > BINTOSS_WORLD_RIGHT) break;
-    if (tick % 6 === 0) {
-      ctx.beginPath();
-      ctx.arc(px(x), px(y), 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
+  let vx = state.vx;
+  let vy = state.vy;
+  ctx.save();
+  for (let step = 1; step <= 10; step++) {
+    x -= vx;
+    y -= vy;
+    vx -= wind;
+    vy -= BINTOSS_GRAVITY;
+    if (y > BINTOSS_FLOOR_Y || x < 0) break;
+    ctx.globalAlpha = 0.34 * (1 - step / 11);
+    ctx.fillStyle = BINTOSS_BALL_COLOUR;
+    ctx.beginPath();
+    ctx.arc(px(x), px(y), px(BINTOSS_BALL_R) * (1 - step / 14), 0, Math.PI * 2);
+    ctx.fill();
   }
+  ctx.globalAlpha = 1;
   ctx.restore();
 }
+
 
 export const binTossGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = {
   key: "bintoss",
