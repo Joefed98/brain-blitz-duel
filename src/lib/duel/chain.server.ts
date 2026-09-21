@@ -34,8 +34,12 @@ const CHAIN_ROUTE_SCORE_CAP = 40;
 const CHAIN_MIN_DECOY_STEPS = 4;
 /** Padding kept clear at the edges so glyphs are never clipped. */
 const EDGE_PADDING = 7;
-/** Minimum distance between two node centres, in percentage points. */
-const MIN_DISTANCE = CHAIN_MIN_SPACING * CHAIN_NODE_WIDTH_PCT;
+/**
+ * Nodes must never touch: centres stay at least one node diameter plus 14px
+ * apart, measured in real pixels on the smallest supported board and applied to
+ * the percentage space the positions live in.
+ */
+const MIN_DISTANCE_PX = CHAIN_NODE_PX + CHAIN_NODE_GAP_PX;
 /** The central third of each axis. */
 const CENTRE_FROM = 100 / 3;
 const CENTRE_TO = 200 / 3;
