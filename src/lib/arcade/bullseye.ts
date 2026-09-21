@@ -2,10 +2,10 @@
  * Bullseye — an arcade game on the shared engine.
  *
  * Front view down the range: six rings, ten arrows, the target shrinking with
- * every shot as the range grows. A drag moves the reticle, release fires, and
- * the arrow lands at the reticle plus that arrow's sideways wind drift. Target
- * geometry is in whole pixels (the reticle is a pixel position); every value in
- * the state is an integer.
+ * every shot as the range grows. A flick from the bow at the bottom fires the
+ * arrow; harder flicks land higher, and each arrow takes that shot's sideways
+ * wind drift. Target geometry is in whole pixels; every value in the state is
+ * an integer.
  */
 
 import {
