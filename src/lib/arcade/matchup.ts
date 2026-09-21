@@ -201,6 +201,25 @@ export function matchupFindSwap(cells: readonly number[]): MatchupSwap | null {
 
 /* ================================ State ================================ */
 
+export interface MatchupAnimMove {
+  kind: number;
+  fromRow: number;
+  fromCol: number;
+  toRow: number;
+  toCol: number;
+}
+
+export interface MatchupAnimStep {
+  before: number[];
+  after: number[];
+  cleared: number[];
+  detonated: number[];
+  specialIndex: number;
+  specialKind: number;
+  moves: MatchupAnimMove[];
+  ticks: number;
+}
+
 export interface MatchupState {
   tick: number;
   rng: number;
@@ -226,6 +245,8 @@ export interface MatchupState {
   lastGain: number;
   lastSteps: number;
   lastCleared: number[];
+  lastAnimation: MatchupAnimStep[];
+  lastAnimTicks: number;
   /** A swap that made no line, so it swaps back. Render only. */
   lastInvalidA: number;
   lastInvalidB: number;
@@ -282,6 +303,8 @@ function init(seed: number): MatchupState {
     lastGain: 0,
     lastSteps: 0,
     lastCleared: [],
+    lastAnimation: [],
+    lastAnimTicks: 0,
     lastInvalidA: -1,
     lastInvalidB: -1,
     lastInvalidTick: 0,
