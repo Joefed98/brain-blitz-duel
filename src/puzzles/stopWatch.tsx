@@ -6,7 +6,7 @@ import {
   STOPWATCH_ATTEMPTS,
   STOPWATCH_MISS_MS,
   STOPWATCH_SLOT_MS,
-  STOPWATCH_SWEEP_MS,
+  stopWatchSweepMs,
   STOPWATCH_TIMEOUT_MS,
   STOPWATCH_ZONE,
   type StopWatchPuzzleData,
@@ -18,11 +18,11 @@ export function stopWatchDurationMs(): number {
   return STOPWATCH_ATTEMPTS * STOPWATCH_SLOT_MS;
 }
 
-/** Where the marker sits (0–1) this many ms into an attempt. */
-export function markerAt(elapsed: number): number {
-  const cycle =
-    ((elapsed % (STOPWATCH_SWEEP_MS * 2)) + STOPWATCH_SWEEP_MS * 2) % (STOPWATCH_SWEEP_MS * 2);
-  const phase = cycle / STOPWATCH_SWEEP_MS;
+/** Where the marker sits (0–1) this far into an attempt, at that try's speed. */
+export function markerAt(elapsed: number, attempt = 0): number {
+  const sweep = stopWatchSweepMs(attempt);
+  const cycle = ((elapsed % (sweep * 2)) + sweep * 2) % (sweep * 2);
+  const phase = cycle / sweep;
   return phase <= 1 ? phase : 2 - phase;
 }
 
@@ -147,7 +147,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
       const el = markerRef.current;
       if (bar && el) {
         const width = bar.clientWidth;
-        const pos = markerAt(Math.max(0, serverNow() - attemptStart));
+        const pos = markerAt(Math.max(0, serverNow() - attemptStart), index);
         el.style.transform = `translate3d(${pos * width - MARKER_W / 2}px, 0, 0)`;
       }
       raf = requestAnimationFrame(frame);
@@ -162,7 +162,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     if (locked || !live) return;
     const at = Math.max(0, serverNow() - phaseStartedAt - index * STOPWATCH_SLOT_MS);
     if (at >= STOPWATCH_TIMEOUT_MS) return;
-    const distance = Math.round(Math.abs(markerAt(at) - target) * STOPWATCH_SWEEP_MS);
+    const distance = Math.round(Math.abs(markerAt(at, index) - target) * stopWatchSweepMs(index));
     setDistances((prev) => {
       if (prev[index] !== null) return prev;
       const next = [...prev];
