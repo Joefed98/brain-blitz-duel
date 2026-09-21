@@ -507,9 +507,11 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
     if (adjacent(row1, col1, row2, col2)) {
       const a = matchupIndex(row1, col1);
       const b = matchupIndex(row2, col2);
+      const movedIndex = b;
       const cells = [...state.cells];
       [cells[a], cells[b]] = [cells[b]!, cells[a]!];
-      if (!matchupHasLine(cells)) {
+      const specialSeeds = [a, b].filter((index) => isSpecial(cells[index] ?? -1));
+      if (!matchupHasLine(cells) && specialSeeds.length === 0) {
         // No line: it swaps back (the client animates it) and costs nothing.
         const next: MatchupState = {
           ...state,
@@ -520,11 +522,13 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
           lastGain: 0,
           lastSteps: 0,
           lastCleared: [],
+          lastAnimation: [],
+          lastAnimTicks: 0,
         };
         return isOver(next) ? { ...next, endedTick: tick } : next;
       }
       const heads = [...state.heads];
-      const resolved = resolveBoard(cells, state.queues, heads);
+      const resolved = resolveBoard(cells, state.queues, heads, movedIndex, specialSeeds);
       let rng = state.rng;
       let board = cells;
       let reshuffles = state.reshuffles;
@@ -549,6 +553,11 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
         lastGain: resolved.gain,
         lastSteps: resolved.steps,
         lastCleared: resolved.cleared,
+        lastAnimation: resolved.animation,
+        lastAnimTicks: resolved.animation.reduce(
+          (total, item) => total + 12 + Math.max(1, item.ticks) * 7 + 15,
+          0,
+        ),
         lastInvalidA: -1,
         lastInvalidB: -1,
       };
