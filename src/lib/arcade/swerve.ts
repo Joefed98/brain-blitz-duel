@@ -134,7 +134,7 @@ function buildCourse(seed: number): { rows: SwerveRow[]; rng: number } {
   const maxTravel = SWERVE_SPEED_MAX * SWERVE_RUN_TICKS;
   const rows: SwerveRow[] = [];
   let rng = seed | 0;
-  let previousOpen = [0, 1, 2];
+  let previousOpen = [0, 1, 2, 3, 4];
   let index = 0;
   while (index * SWERVE_ROW_SPACING <= maxTravel + SWERVE_ROW_SPACING * 2) {
     let blocked: number[] | null = null;
@@ -176,24 +176,31 @@ function buildCourse(seed: number): { rows: SwerveRow[]; rng: number } {
   return { rows, rng };
 }
 
-/** Coins a clean run could reach, walked tick by tick exactly as `step` does. */
+/**
+ * Coins a clean run could reach, walked tick by tick exactly as `step` does —
+ * the speed ramp follows the coins taken, so the walk collects as it goes.
+ */
 function countTotalCoins(rows: SwerveRow[]): number {
   let distance = 0;
-  for (let tick = 0; tick < SWERVE_RUN_TICKS; tick++) distance += swerveSpeed(tick);
-  let total = 0;
-  for (const row of rows) {
-    if (row.y0 + distance < SWERVE_CHEV_Y) break;
-    if (row.coinLane >= 0) total += 1;
+  let coins = 0;
+  let cursor = 0;
+  for (let tick = 0; tick < SWERVE_RUN_TICKS; tick++) {
+    distance += swerveSpeed(coins);
+    while (cursor < rows.length && rows[cursor]!.y0 + distance >= SWERVE_CHEV_Y) {
+      if (rows[cursor]!.coinLane >= 0) coins += 1;
+      cursor += 1;
+    }
   }
-  return total;
+  return coins;
 }
 
 function init(seed: number): SwerveState {
   const { rows } = buildCourse(seed);
   return {
     tick: 0,
-    x: SWERVE_LANE_X[1],
-    lane: 1,
+    x: SWERVE_LANE_X[2],
+    lane: 2,
+
     distance: 0,
     coins: 0,
     totalCoins: countTotalCoins(rows),
