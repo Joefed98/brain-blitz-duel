@@ -319,7 +319,7 @@ export const percentSprintPuzzle: PuzzleDefinition = {
   category: "number",
   timeLimitMs: PCTSPRINT_TIME_MS,
   generate: buildPercentSprint,
-  // Scored on the server from how many of the three questions were right.
+  // Scored on the server from how many of the five questions were right.
   check: () => true,
   revealHeading: "The answers were",
   IntroExample,

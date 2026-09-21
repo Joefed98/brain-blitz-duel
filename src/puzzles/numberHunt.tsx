@@ -249,7 +249,7 @@ export function buildNumberHunt(): NumberHuntPuzzleData {
     }
     if (ok) return { type: "numhunt", spots };
   }
-  // Fallback staggered grid — fourteen circles with safe spacing at 390×700.
+  // Fallback staggered grid — sixteen circles with safe spacing at 390×700.
   return {
     type: "numhunt",
     spots: Array.from({ length: NUMHUNT_COUNT }, (_, i) => ({
