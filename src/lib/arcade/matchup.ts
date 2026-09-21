@@ -43,8 +43,9 @@ export const MATCHUP_SYMBOL_PCT = 70;
 export const MATCHUP_BOARD_W = MATCHUP_SIZE * MATCHUP_CELL_PX;
 export const MATCHUP_BOARD_X = Math.round((MATCHUP_WORLD_W - MATCHUP_BOARD_W) / 2);
 export const MATCHUP_BOARD_Y = 100;
-export const MATCHUP_NEXT_Y = 54;
+/** The next-symbol strip: the board's width, 6 px above the board. */
 export const MATCHUP_NEXT_H = 34;
+export const MATCHUP_NEXT_Y = MATCHUP_BOARD_Y - 6 - MATCHUP_NEXT_H;
 
 /** Fixed refill queue per column, built once at init. */
 export const MATCHUP_QUEUE_LEN = 60;
@@ -593,7 +594,7 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
 }
 
 function score(state: MatchupState): number {
-  return clampInt(Math.round(state.raw / 4), 0, 150);
+  return clampInt(Math.round(state.raw / 8), 0, 150);
 }
 
 /** True once the hint should be shown. Derived from the sim, so it is shared. */
@@ -816,21 +817,14 @@ function drawNextStrip(ctx: CanvasRenderingContext2D, state: MatchupState): void
   ctx.strokeStyle = "rgba(247, 247, 248, 0.14)";
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.font = "700 9px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = "rgba(247, 247, 248, 0.70)";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.fillText("NEXT", MATCHUP_BOARD_X + 8, MATCHUP_NEXT_Y + MATCHUP_NEXT_H / 2);
-  const slotW = (MATCHUP_BOARD_W - 52) / MATCHUP_SIZE;
+  // One slot per column, exactly as wide as the column it feeds.
   for (let col = 0; col < MATCHUP_SIZE; col++) {
-    const cx = MATCHUP_BOARD_X + 52 + col * slotW + slotW / 2;
+    const cx = MATCHUP_BOARD_X + col * MATCHUP_CELL_PX + MATCHUP_CELL_PX / 2;
     const cy = MATCHUP_NEXT_Y + MATCHUP_NEXT_H / 2;
-    ctx.strokeStyle = "rgba(247, 247, 248, 0.12)";
-    ctx.strokeRect(cx - 12, cy - 12, 24, 24);
     const queue = state.queues[col] ?? [];
     const head = state.heads[col] ?? 0;
     const kind = queue[head % MATCHUP_QUEUE_LEN] ?? 0;
-    matchupDrawSymbol(ctx, kind, cx, cy, 8);
+    matchupDrawSymbol(ctx, kind, cx, cy, 9);
   }
 }
 

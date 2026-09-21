@@ -139,8 +139,9 @@ export interface NumberSequencePuzzleData {
 }
 
 /** Number Sequence: five sequences over 30 seconds. */
+/** Number Sequence: five sequences over 45 seconds. */
 export const NUMSEQ_ITEMS = 5;
-export const NUMSEQ_TIME_MS = 30_000;
+export const NUMSEQ_TIME_MS = 45_000;
 
 export interface SequencePuzzleData {
   type: "sequence" | "reverse";
