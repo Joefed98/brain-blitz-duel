@@ -460,8 +460,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Collect coins while dodging the blocks.",
     how: [
       { action: "Tap left or right", detail: "to swerve one lane that way." },
+      { action: "Every coin speeds you up", detail: "so it gets harder as you go." },
       { action: "Hit a block", detail: "and the run ends." },
-      { action: "Everyone drives", detail: "the same course for sixty seconds." },
+      { action: "Five lanes", detail: "the same course for everyone, sixty seconds." },
     ],
     score: "Coins earn points, +40 for surviving the whole run.",
   },
