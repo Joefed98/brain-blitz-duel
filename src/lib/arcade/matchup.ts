@@ -34,6 +34,8 @@ export const MATCHUP_RUN_TICKS = MATCHUP_RUN_SECONDS * TICKS_PER_SECOND;
 export const MATCHUP_SIZE = 7;
 export const MATCHUP_CELLS = MATCHUP_SIZE * MATCHUP_SIZE;
 export const MATCHUP_KINDS = 6;
+export const MATCHUP_BOMB = 6;
+export const MATCHUP_CROSS = 7;
 
 /** Cells are 50 px; symbols are drawn at 70% of the cell. */
 export const MATCHUP_CELL_PX = 50;
@@ -41,6 +43,8 @@ export const MATCHUP_SYMBOL_PCT = 70;
 export const MATCHUP_BOARD_W = MATCHUP_SIZE * MATCHUP_CELL_PX;
 export const MATCHUP_BOARD_X = Math.round((MATCHUP_WORLD_W - MATCHUP_BOARD_W) / 2);
 export const MATCHUP_BOARD_Y = 100;
+export const MATCHUP_NEXT_Y = 54;
+export const MATCHUP_NEXT_H = 34;
 
 /** Fixed refill queue per column, built once at init. */
 export const MATCHUP_QUEUE_LEN = 60;
@@ -77,6 +81,14 @@ export const MATCHUP_SHAPES = [
   "hexagon",
 ] as const;
 export type MatchupShape = (typeof MATCHUP_SHAPES)[number];
+
+function isNormal(kind: number): boolean {
+  return kind >= 0 && kind < MATCHUP_KINDS;
+}
+
+function isSpecial(kind: number): boolean {
+  return kind === MATCHUP_BOMB || kind === MATCHUP_CROSS;
+}
 
 /** One game colour per symbol kind. */
 export const MATCHUP_COLOURS = [
@@ -120,10 +132,10 @@ export function matchupRuns(cells: readonly number[]): MatchupRun[] {
     for (let col = 0; col < MATCHUP_SIZE; col++) {
       const index = matchupIndex(row, col);
       const previous = group.length > 0 ? cells[group[group.length - 1]!] : -1;
-      if (cells[index] === previous) group.push(index);
+      if (isNormal(cells[index] ?? -1) && cells[index] === previous) group.push(index);
       else {
         push(group);
-        group = [index];
+        group = isNormal(cells[index] ?? -1) ? [index] : [];
       }
     }
     push(group);
@@ -133,10 +145,10 @@ export function matchupRuns(cells: readonly number[]): MatchupRun[] {
     for (let row = 0; row < MATCHUP_SIZE; row++) {
       const index = matchupIndex(row, col);
       const previous = group.length > 0 ? cells[group[group.length - 1]!] : -1;
-      if (cells[index] === previous) group.push(index);
+      if (isNormal(cells[index] ?? -1) && cells[index] === previous) group.push(index);
       else {
         push(group);
-        group = [index];
+        group = isNormal(cells[index] ?? -1) ? [index] : [];
       }
     }
     push(group);
@@ -165,6 +177,7 @@ export function matchupFindSwap(cells: readonly number[]): MatchupSwap | null {
   const test = (row1: number, col1: number, row2: number, col2: number): MatchupSwap | null => {
     const a = matchupIndex(row1, col1);
     const b = matchupIndex(row2, col2);
+    if (isSpecial(board[a] ?? -1) || isSpecial(board[b] ?? -1)) return { row1, col1, row2, col2 };
     if (board[a] === board[b]) return null;
     [board[a], board[b]] = [board[b]!, board[a]!];
     const made = matchupHasLine(board);

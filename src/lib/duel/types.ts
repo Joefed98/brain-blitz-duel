@@ -1486,12 +1486,12 @@ export interface NonoPuzzleData {
 /* ============================== Pair Match ============================== */
 
 export const PAIR_TIME_MS = 45_000;
-export const PAIR_PAIRS = 8;
+export const PAIR_PAIRS = 10;
 export const PAIR_CARDS = PAIR_PAIRS * 2;
 export const PAIR_FLIP_BACK_MS = 600;
 export const PAIR_FLIP_MS = 150;
 /** Clearing the board in this many pair-flips or fewer earns the bonus. */
-export const PAIR_CLEAN_FLIPS = 10;
+export const PAIR_CLEAN_FLIPS = 12;
 export const PAIR_CLEAN_BONUS = 20;
 export const PAIR_PARTIAL_POINTS = 60;
 

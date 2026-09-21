@@ -804,7 +804,7 @@ export function scoreNonogram(
   return clamp(share - NONO_WRONG_PENALTY * wrong, 0, NONO_PARTIAL_POINTS);
 }
 
-/** Pair Match: all eight pairs score, with a bonus for a tidy, short game. */
+/** Pair Match: all ten pairs score, with a bonus for a tidy, short game. */
 export function scorePairMatch(
   solved: boolean,
   pairs: number,

@@ -403,13 +403,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Finish fast for the bonus.",
   },
   pairmatch: {
-    goal: "Find all eight matching pairs.",
+    goal: "Find all ten matching pairs.",
     how: [
       { action: "Tap two cards", detail: "to turn them over." },
       { action: "A match stays up", detail: "— a miss flips back." },
       { action: "Remember", detail: "where everything was." },
     ],
-    score: "Fewer flips earns a bonus.",
+    score: "Solve for 100 plus speed. Twelve flip-pairs or fewer adds 20; found pairs still score.",
   },
   flood: {
     goal: "Flood the whole board with one colour.",
@@ -496,7 +496,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Make lines of three or more matching symbols.",
     how: [
       { action: "Swap two neighbours", detail: "by dragging one onto the other." },
-      { action: "Longer lines", detail: "score more, and chain reactions count." },
+      { action: "Make four or five", detail: "to create bombs and crosses." },
+      { action: "Trigger specials", detail: "to clear nearby symbols and start chain reactions." },
       { action: "Sixty seconds", detail: "on the same board for everyone." },
     ],
     score: "3 = 10, 4 = 25, 5 = 50, then the total ÷ 4.",

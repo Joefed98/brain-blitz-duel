@@ -9,8 +9,8 @@ import {
   type CanvasSize,
 } from "@/lib/arcade/engine";
 import {
+  bullseyeDrawAim,
   bullseyeCheckpoint,
-  bullseyeDrawReticle,
   bullseyeGame,
   bullseyeScalePct,
   bullseyeTransform,
@@ -173,7 +173,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         bullseyeGame.draw(ctx, state.current, size);
         const aim = reticle.current;
         if (aim && !bullseyeGame.isOver(state.current)) {
-          bullseyeDrawReticle(ctx, size, aim.x, aim.y);
+          bullseyeDrawAim(ctx, size, aim.x, aim.y);
         }
       }
 

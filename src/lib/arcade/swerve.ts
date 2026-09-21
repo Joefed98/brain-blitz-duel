@@ -36,9 +36,9 @@ export const SWERVE_SLIDE = 3_072;
 
 /** Scroll speed: starts here, steps up every 600 ticks, never past the cap. */
 export const SWERVE_SPEED_START = 768;
-export const SWERVE_SPEED_STEP = 64;
+export const SWERVE_SPEED_STEP = 128;
 export const SWERVE_SPEED_EVERY = 600;
-export const SWERVE_SPEED_MAX = 1_280;
+export const SWERVE_SPEED_MAX = 1_536;
 
 /** A row of blocks every 200 world pixels of scroll. */
 export const SWERVE_ROW_SPACING = 51_200;
@@ -65,6 +65,8 @@ export interface SwerveRow {
   blocked: number[];
   /** The lane holding this row's coin, or -1 for no coin. */
   coinLane: number;
+  /** A collected coin is removed from the board on the tick it is taken. */
+  coinCollected: boolean;
 }
 
 export interface SwerveState {
@@ -80,6 +82,8 @@ export interface SwerveState {
   totalCoins: number;
   /** The last row whose coin was taken; rows resolve in order. */
   lastCoinRow: number;
+  /** Tick of the most recent collection, for the render-only pop. */
+  lastCoinTick: number;
   /** The first row not yet past the chevron. */
   cursor: number;
   crashed: boolean;
@@ -156,6 +160,7 @@ function buildCourse(seed: number): { rows: SwerveRow[]; rng: number } {
       y0: SWERVE_FIRST_ROW_Y - index * SWERVE_ROW_SPACING,
       blocked,
       coinLane,
+      coinCollected: false,
     });
     previousOpen = open;
     index += 1;
@@ -185,6 +190,7 @@ function init(seed: number): SwerveState {
     coins: 0,
     totalCoins: countTotalCoins(rows),
     lastCoinRow: -1,
+    lastCoinTick: 0,
     cursor: 0,
     crashed: false,
     endedTick: 0,
@@ -230,6 +236,8 @@ function step(state: SwerveState, input: SwerveInput): SwerveState {
 
   let coins = state.coins;
   let lastCoinRow = state.lastCoinRow;
+  let lastCoinTick = state.lastCoinTick;
+  let rows = state.rows;
   let crashed = false;
 
   for (let index = cursor; index < Math.min(cursor + 3, state.rows.length); index++) {
@@ -246,18 +254,32 @@ function step(state: SwerveState, input: SwerveInput): SwerveState {
       }
     }
 
-    if (row.coinLane >= 0 && index > lastCoinRow) {
+    if (row.coinLane >= 0 && !row.coinCollected) {
       const centreY = top + (SWERVE_ROW_H >> 1);
       const nearY = Math.abs(centreY - SWERVE_CHEV_Y) < SWERVE_CHEV_HALF_H + SWERVE_COIN_R;
       const nearX = Math.abs(x - SWERVE_LANE_X[row.coinLane]!) < SWERVE_COIN_R + SWERVE_CHEV_HALF_W;
       if (nearY && nearX) {
         coins += 1;
         lastCoinRow = index;
+        lastCoinTick = tick;
+        rows = rows === state.rows ? [...state.rows] : rows;
+        rows[index] = { ...row, coinCollected: true };
       }
     }
   }
 
-  const next: SwerveState = { ...state, tick, x, lane, distance, coins, lastCoinRow, cursor };
+  const next: SwerveState = {
+    ...state,
+    tick,
+    x,
+    lane,
+    distance,
+    coins,
+    lastCoinRow,
+    lastCoinTick,
+    cursor,
+    rows,
+  };
   if (crashed) return { ...next, crashed: true, endedTick: tick };
   if (tick >= SWERVE_RUN_TICKS) return { ...next, endedTick: tick };
   return next;
@@ -285,6 +307,7 @@ export interface SwerveCheckpointState {
   nextRowY: number;
   nextRowMask: number;
   nextCoinLane: number;
+  nextCoinCollected: number;
 }
 
 export interface SwerveCheckpoint extends SwerveCheckpointState {
@@ -310,6 +333,7 @@ export function swerveCheckpointState(state: SwerveState): SwerveCheckpointState
     nextRowY: next ? next.y0 + state.distance : 0,
     nextRowMask: next ? mask(next.blocked) : 0,
     nextCoinLane: next ? next.coinLane : -1,
+    nextCoinCollected: next?.coinCollected ? 1 : 0,
   };
 }
 
@@ -356,7 +380,8 @@ function draw(ctx: CanvasRenderingContext2D, state: SwerveState, size: CanvasSiz
     ctx.stroke();
   }
 
-  for (const row of state.rows) {
+  for (let index = 0; index < state.rows.length; index++) {
+    const row = state.rows[index]!;
     const top = px(row.y0 + state.distance);
     if (top > SWERVE_WORLD_H || top + px(SWERVE_ROW_H) < 0) continue;
     for (const blocked of row.blocked) {
@@ -368,7 +393,7 @@ function draw(ctx: CanvasRenderingContext2D, state: SwerveState, size: CanvasSiz
       ctx.lineWidth = 2;
       ctx.strokeRect(left + 1, top + 1, width - 2, px(SWERVE_ROW_H) - 2);
     }
-    if (row.coinLane >= 0) {
+    if (row.coinLane >= 0 && !row.coinCollected) {
       ctx.beginPath();
       ctx.fillStyle = SWERVE_COIN_COLOUR;
       ctx.arc(
@@ -379,6 +404,23 @@ function draw(ctx: CanvasRenderingContext2D, state: SwerveState, size: CanvasSiz
         Math.PI * 2,
       );
       ctx.fill();
+    } else if (row.coinLane >= 0 && state.lastCoinRow === index) {
+      const age = state.tick - state.lastCoinTick;
+      if (age >= 0 && age < 12) {
+        ctx.beginPath();
+        ctx.strokeStyle = SWERVE_COIN_COLOUR;
+        ctx.globalAlpha = 1 - age / 12;
+        ctx.lineWidth = 2;
+        ctx.arc(
+          px(SWERVE_LANE_X[row.coinLane]!),
+          top + px(SWERVE_ROW_H) / 2,
+          px(SWERVE_COIN_R) + age * 0.8,
+          0,
+          Math.PI * 2,
+        );
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
     }
   }
 

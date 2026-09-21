@@ -79,16 +79,16 @@ for (let round = 0; round < ROUNDS; round++) {
 
 for (let round = 0; round < ROUNDS; round++) {
   const puzzle = generatePairMatch();
-  check("pair board has sixteen cards", puzzle.cards.length === PAIR_CARDS);
+  check("pair board has twenty cards", puzzle.cards.length === PAIR_CARDS);
   const keys = puzzle.cards.map((card) => `${card.shape}:${card.colour}`);
   const unique = new Set(keys);
-  check("pair board has eight distinct pairs", unique.size === PAIR_PAIRS);
+  check("pair board has ten distinct pairs", unique.size === PAIR_PAIRS);
   check(
     "each pair appears exactly twice",
     [...unique].every((key) => keys.filter((other) => other === key).length === 2),
   );
 
-  // A perfect game: turn over each pair back to back, sixteen flips in eight tries.
+  // A perfect game: turn over each pair back to back, twenty flips in ten tries.
   const order: number[] = [];
   for (const key of unique) {
     const [a, b] = keys.map((other, index) => (other === key ? index : -1)).filter((i) => i >= 0);

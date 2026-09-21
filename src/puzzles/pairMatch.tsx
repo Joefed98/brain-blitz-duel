@@ -37,12 +37,12 @@ function CardFace({ card, size }: { card: PairCard; size: number }) {
   );
 }
 
-/** A 4×4 board (or a small example board) of face-down cards. */
+/** A 5×4 board (or a small example board) of face-down cards. */
 function Board({
   cards,
   faceUp,
   matched,
-  cols = 4,
+  cols = 5,
   glyph = 34,
   onCard,
   compact = false,
@@ -57,7 +57,7 @@ function Board({
 }) {
   return (
     <div
-      className={`grid w-full ${compact ? "gap-1" : "gap-1.5"}`}
+      className={`grid w-full ${compact ? "gap-1" : "gap-2"}`}
       style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
     >
       {cards.map((card, index) => {
@@ -110,9 +110,7 @@ function IntroExample() {
           compact
         />
       </div>
-      <p className="text-center text-xs text-muted-foreground">
-        The two red circles match, so they stay up.
-      </p>
+      <p className="text-center text-xs text-muted-foreground">Match all ten pairs.</p>
     </div>
   );
 }
@@ -178,7 +176,7 @@ function Stage({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-      <div className="w-full max-w-[300px]">
+      <div className="w-full max-w-[340px]">
         <Board
           cards={data.cards}
           faceUp={new Set(open)}

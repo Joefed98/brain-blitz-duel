@@ -46,6 +46,7 @@ export function encodeSwerveRun(run: SwerveRun): string {
         item.nextRowY,
         item.nextRowMask,
         item.nextCoinLane,
+        item.nextCoinCollected,
         item.checksum,
       ].join(":"),
     )
@@ -69,18 +70,21 @@ export function decodeSwerveRun(raw: string): SwerveRun {
     .filter(Boolean)
     .slice(0, Math.ceil(SWERVE_RUN_TICKS / SWERVE_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
-    .filter((values) => values.length === 10 && values.every(Number.isInteger))
-    .map(([tick, x, lane, distance, coins, cursor, nextRowY, nextRowMask, nextCoinLane, sum]) => ({
-      tick: tick ?? 0,
-      x: x ?? 0,
-      lane: lane ?? 0,
-      distance: distance ?? 0,
-      coins: coins ?? 0,
-      cursor: cursor ?? 0,
-      nextRowY: nextRowY ?? 0,
-      nextRowMask: nextRowMask ?? 0,
-      nextCoinLane: nextCoinLane ?? -1,
-      checksum: (sum ?? 0) >>> 0,
+    .filter(
+      (values) => (values.length === 11 || values.length === 10) && values.every(Number.isInteger),
+    )
+    .map((values) => ({
+      tick: values[0] ?? 0,
+      x: values[1] ?? 0,
+      lane: values[2] ?? 0,
+      distance: values[3] ?? 0,
+      coins: values[4] ?? 0,
+      cursor: values[5] ?? 0,
+      nextRowY: values[6] ?? 0,
+      nextRowMask: values[7] ?? 0,
+      nextCoinLane: values[8] ?? -1,
+      nextCoinCollected: values.length === 11 ? (values[9] ?? 0) : 0,
+      checksum: (values[values.length - 1] ?? 0) >>> 0,
     }));
   return {
     seed: Number.parseInt(seedPart, 10) || 0,

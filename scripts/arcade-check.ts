@@ -50,6 +50,7 @@ function swerveIntegers(state: SwerveState): boolean {
     state.cursor,
   ];
   for (const row of state.rows) values.push(row.y0, row.coinLane, ...row.blocked);
+  for (const row of state.rows) values.push(row.coinCollected ? 1 : 0);
   return values.every((value) => Number.isInteger(value));
 }
 
