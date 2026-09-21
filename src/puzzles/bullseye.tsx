@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
-  clampInt,
+  flickWindow,
   MAX_CATCH_UP_TICKS,
   TICK_MS,
   TICKS_PER_SECOND,
   type ArcadeInputEvent,
   type CanvasSize,
+  type FlickSample,
 } from "@/lib/arcade/engine";
 import {
-  bullseyeDrawAim,
   bullseyeCheckpoint,
+  bullseyeFlick,
   bullseyeGame,
   bullseyeScalePct,
   bullseyeTransform,
@@ -25,8 +26,6 @@ import {
   BULLSEYE_RING_STEP,
   BULLSEYE_RINGS,
   BULLSEYE_RUN_TICKS,
-  BULLSEYE_WORLD_H,
-  BULLSEYE_WORLD_W,
   type BullseyeState,
 } from "@/lib/arcade/bullseye";
 import { decodeBullseyeRun, encodeBullseyeRun, replayBullseyeRun } from "@/lib/duel/bullseye";
@@ -34,7 +33,7 @@ import { ARCADE_CRASH_FREEZE_MS, type BullseyePuzzleData } from "@/lib/duel/type
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: the target, a wind arrow and a reticle offset into it. */
+/** Fixed intro still: the target, a wind arrow and a flick from the bow. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -49,31 +48,32 @@ function IntroExample() {
           <circle
             key={ring}
             cx="98"
-            cy="62"
-            r={ring * 7}
+            cy="46"
+            r={ring * 6}
             fill={BULLSEYE_RING_COLOURS[ring - 1]}
             opacity={ring <= 2 ? 0.9 : 0.35}
             stroke="#0B0B0FB0"
           />
         ))}
         <g stroke={BULLSEYE_GOLD} strokeWidth="2">
-          <line x1="60" y1="16" x2="36" y2="16" />
-          <line x1="36" y1="16" x2="43" y2="11" />
-          <line x1="36" y1="16" x2="43" y2="21" />
+          <line x1="52" y1="14" x2="28" y2="14" />
+          <line x1="28" y1="14" x2="35" y2="9" />
+          <line x1="28" y1="14" x2="35" y2="19" />
         </g>
-        <text x="66" y="20" fill="#F7F7F8" fontSize="11" fontFamily="monospace">
+        <text x="58" y="18" fill="#F7F7F8" fontSize="11" fontFamily="monospace">
           2
         </text>
-        <g stroke={BULLSEYE_GOLD} strokeWidth="1.8" fill="none">
-          <circle cx="118" cy="62" r="7" />
-          <line x1="106" y1="62" x2="113" y2="62" />
-          <line x1="123" y1="62" x2="130" y2="62" />
-          <line x1="118" y1="50" x2="118" y2="57" />
-          <line x1="118" y1="67" x2="118" y2="74" />
+        <g stroke="#F7F7F8A0" strokeWidth="2" fill="none">
+          <path d="M84 104 A 16 16 0 0 1 112 104" />
+        </g>
+        <g stroke={BULLSEYE_GOLD} strokeWidth="2" fill="none">
+          <line x1="98" y1="104" x2="98" y2="72" />
+          <line x1="93" y1="80" x2="98" y2="70" />
+          <line x1="103" y1="80" x2="98" y2="70" />
         </g>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Aim into the wind — a left wind pushes the arrow left.
+        Flick to shoot — harder flicks land higher. Aim into the wind.
       </p>
     </div>
   );
@@ -89,7 +89,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof bullseyeCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
-  const reticle = useRef<{ x: number; y: number } | null>(null);
+  /** The live swipe, sampled so the shot comes from its last 80 ms. */
+  const swipe = useRef<FlickSample[] | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
@@ -117,7 +118,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     events.current = [];
     checkpoints.current = [];
     pending.current = [];
-    reticle.current = null;
+    swipe.current = null;
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
@@ -168,14 +169,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       const size = sizeCanvas();
-      if (size) {
-        const ctx = canvas.current!.getContext("2d")!;
-        bullseyeGame.draw(ctx, state.current, size);
-        const aim = reticle.current;
-        if (aim && !bullseyeGame.isOver(state.current)) {
-          bullseyeDrawAim(ctx, size, aim.x, aim.y);
-        }
-      }
+      if (size) bullseyeGame.draw(canvas.current!.getContext("2d")!, state.current, size);
+
 
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);
@@ -231,8 +226,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     });
     const divisor = Math.max(scale, 0.0001);
     return {
-      x: clampInt(Math.round((event.clientX - box.left - offsetX) / divisor), 0, BULLSEYE_WORLD_W),
-      y: clampInt(Math.round((event.clientY - box.top - offsetY) / divisor), 0, BULLSEYE_WORLD_H),
+      x: (event.clientX - box.left - offsetX) / divisor,
+      y: (event.clientY - box.top - offsetY) / divisor,
     };
   };
 
@@ -248,24 +243,38 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || bullseyeGame.isOver(state.current)) return;
-          reticle.current = worldPoint(event);
+          const point = worldPoint(event);
+          swipe.current = [{ x: point.x, y: point.y, time: performance.now() }];
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
-          if (!reticle.current) return;
-          reticle.current = worldPoint(event);
+          const samples = swipe.current;
+          if (!samples) return;
+          const point = worldPoint(event);
+          samples.push({ x: point.x, y: point.y, time: performance.now() });
+          if (samples.length > 24) samples.splice(0, samples.length - 24);
         }}
         onPointerUp={(event) => {
-          const aim = reticle.current;
-          reticle.current = null;
-          if (!aim || locked || submitted.current) return;
-          pending.current.push({ t: 0, k: 2, a: aim.x, b: aim.y, c: 0, d: 0 });
+          const samples = swipe.current;
+          swipe.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
+          if (!samples || locked || submitted.current) return;
+          const point = worldPoint(event);
+          const now = performance.now();
+          samples.push({ x: point.x, y: point.y, time: now });
+          const window = flickWindow(samples, now);
+          if (!window) return;
+          const launch = bullseyeFlick(window.dx, window.dy, window.dtMs);
+          if (!launch) return;
+          pending.current.push({ t: 0, k: 2, a: launch.vx, b: launch.vy, c: 0, d: 0 });
         }}
-        onPointerCancel={() => {
-          reticle.current = null;
+        onPointerCancel={(event) => {
+          swipe.current = null;
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
         }}
       />
     </div>
