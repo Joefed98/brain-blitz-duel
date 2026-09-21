@@ -612,8 +612,8 @@ export const SPOT_ONE_POINTS = 15;
 /** Rotation Match: shapes drawn as filled cells of a 5x5 grid. */
 export const ROTATION_COLS = 5;
 
-/** Number Hunt: fourteen circles tapped in ascending order. */
-export const NUMHUNT_COUNT = 14;
+/** Number Hunt: sixteen circles tapped in ascending order. */
+export const NUMHUNT_COUNT = 16;
 export const NUMHUNT_CIRCLE_PX = 56;
 export const NUMHUNT_ERROR_PENALTY = 10;
 export const NUMHUNT_FLASH_MS = 200;
@@ -661,8 +661,8 @@ export interface PercentPuzzleData {
   answers?: number[];
 }
 
-/** Percent Sprint: three questions over 45 seconds. */
-export const PCTSPRINT_ITEMS = 3;
+/** Percent Sprint: five questions over 45 seconds. */
+export const PCTSPRINT_ITEMS = 5;
 export const PCTSPRINT_TIME_MS = 45_000;
 
 /* -------------------------------------------------------------------------- */
@@ -695,6 +695,13 @@ export interface StopWatchPuzzleData {
 export const STOPWATCH_ATTEMPTS = 3;
 /** One full sweep of the bar; the marker then bounces back. */
 export const STOPWATCH_SWEEP_MS = 1_100;
+/** The sweep speeds up every round: 1.0x, then 1.3x, then 1.6x. */
+export const STOPWATCH_SPEED_PCT = [100, 130, 160];
+/** The sweep time of one attempt, at that attempt's speed. */
+export function stopWatchSweepMs(attempt: number): number {
+  const pct = STOPWATCH_SPEED_PCT[Math.min(Math.max(attempt, 0), STOPWATCH_SPEED_PCT.length - 1)]!;
+  return Math.round((STOPWATCH_SWEEP_MS * 100) / pct);
+}
 export const STOPWATCH_TIMEOUT_MS = 6_000;
 export const STOPWATCH_FEEDBACK_MS = 1_000;
 export const STOPWATCH_SLOT_MS = STOPWATCH_TIMEOUT_MS + STOPWATCH_FEEDBACK_MS;
@@ -726,10 +733,12 @@ export interface CountUpPuzzleData {
   count?: number;
 }
 
-export const COUNTUP_COLS = 6;
-export const COUNTUP_ROWS = 10;
-export const COUNTUP_MIN_SHAPES = 40;
-export const COUNTUP_MAX_SHAPES = 56;
+/** The field fills the whole play area: an 8 x 6 grid of cells, one shape each. */
+export const COUNTUP_COLS = 8;
+export const COUNTUP_ROWS = 6;
+export const COUNTUP_TIME_MS = 20_000;
+export const COUNTUP_MIN_SHAPES = 36;
+export const COUNTUP_MAX_SHAPES = 46;
 export const COUNTUP_MIN_COUNT = 6;
 export const COUNTUP_MAX_COUNT = 12;
 
