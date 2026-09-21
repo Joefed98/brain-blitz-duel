@@ -243,24 +243,30 @@ rejected.push([
 ]);
 rejected.push(["non-integer flick", [{ t: 10, k: 1, a: 500.5, b: -1000, c: 0, d: 0 }], bt]);
 rejected.push([
-  "reticle off the right edge",
-  [{ t: 10, k: 2, a: BULLSEYE_WORLD_W + 1, b: 100, c: 0, d: 0 }],
+  "shot vx above the clamp",
+  [{ t: 10, k: 2, a: BULLSEYE_V_MAX + 1, b: -1000, c: 0, d: 0 }],
   be,
 ]);
-rejected.push(["reticle above the canvas", [{ t: 10, k: 2, a: 100, b: -1, c: 0, d: 0 }], be]);
 rejected.push([
-  "reticle below the canvas",
-  [{ t: 10, k: 2, a: 100, b: BULLSEYE_WORLD_H + 1, c: 0, d: 0 }],
+  "shot vx below the clamp",
+  [{ t: 10, k: 2, a: -BULLSEYE_V_MAX - 1, b: -1000, c: 0, d: 0 }],
   be,
 ]);
-rejected.push(["shot of an unknown kind", [{ t: 10, k: 1, a: 100, b: 100, c: 0, d: 0 }], be]);
+rejected.push(["shot vy downwards", [{ t: 10, k: 2, a: 100, b: 1, c: 0, d: 0 }], be]);
+rejected.push([
+  "shot vy above the clamp",
+  [{ t: 10, k: 2, a: 100, b: -BULLSEYE_V_MAX - 1, c: 0, d: 0 }],
+  be,
+]);
+rejected.push(["shot with a payload in d", [{ t: 10, k: 2, a: 100, b: -1000, c: 0, d: 5 }], be]);
+rejected.push(["shot of an unknown kind", [{ t: 10, k: 1, a: 100, b: -100, c: 0, d: 0 }], be]);
 rejected.push([
   "an oversized log",
   Array.from({ length: MAX_INPUT_EVENTS + 1 }, (_, index) => ({
     t: 1 + index,
     k: 2,
     a: 100,
-    b: 100,
+    b: -1000,
     c: 0,
     d: 0,
   })),
