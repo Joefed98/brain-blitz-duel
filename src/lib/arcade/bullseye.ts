@@ -10,13 +10,14 @@
 
 import {
   clampInt,
+  flickLaunch,
   inputRange,
   rngBelow,
-  TICK_MS,
   TICKS_PER_SECOND,
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
+  type FlickLaunch,
   type InputRange,
 } from "./engine";
 
@@ -67,35 +68,25 @@ export const BULLSEYE_INPUT_RANGES: readonly InputRange[] = [
 ];
 
 /**
- * Flight constant, as a fraction: a medium upward flick (1,920 units a tick,
- * a 300 px/s swipe) carries the arrow the 282 px from the bow to the centre.
+ * The launch speed a reference 1000 px/s flick produces, in 1/256 px a tick,
+ * and the flight constant taken from it: a 1000 px/s straight-up flick carries
+ * the arrow exactly the 282 px from the bow to the centre on arrow one.
  */
+export const BULLSEYE_REF_V = 1_920;
 export const BULLSEYE_FLIGHT_NUM = BULLSEYE_BOW_Y - BULLSEYE_CY;
-export const BULLSEYE_FLIGHT_DEN = 1_920;
-
-/** A swipe shorter than this is ignored. */
-export const BULLSEYE_FLICK_MIN_PX = 30;
-/** Swipe speed to launch speed: a 300 px/s swipe is a medium shot (1,920). */
-export const BULLSEYE_FLICK_NUM = 32;
-export const BULLSEYE_FLICK_DEN = 5;
+export const BULLSEYE_FLIGHT_DEN = BULLSEYE_REF_V;
 
 /**
  * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
  * are world pixels moved over `dtMs` milliseconds; upwards is negative `dy`.
  */
-export function bullseyeFlick(
-  dx: number,
-  dy: number,
-  dtMs: number,
-): { vx: number; vy: number } | null {
-  if (dx * dx + dy * dy < BULLSEYE_FLICK_MIN_PX * BULLSEYE_FLICK_MIN_PX) return null;
-  if (dy >= 0) return null;
-  const dt = Math.max(TICK_MS, dtMs);
-  const scale = (value: number) =>
-    Math.round((((value * 1000) / dt) * BULLSEYE_FLICK_NUM) / BULLSEYE_FLICK_DEN);
+export function bullseyeFlick(dx: number, dy: number, dtMs: number): FlickLaunch | null {
+  const launch = flickLaunch(dx, dy, dtMs, BULLSEYE_REF_V);
+  if (!launch) return null;
   return {
-    vx: clampInt(scale(dx), -BULLSEYE_V_MAX, BULLSEYE_V_MAX),
-    vy: clampInt(scale(dy), -BULLSEYE_V_MAX, -1),
+    ...launch,
+    vx: clampInt(launch.vx, -BULLSEYE_V_MAX, BULLSEYE_V_MAX),
+    vy: clampInt(launch.vy, -BULLSEYE_V_MAX, -1),
   };
 }
 

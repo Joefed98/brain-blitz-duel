@@ -289,3 +289,78 @@ export function flickWindow(
   if (dtMs <= 0) return null;
   return { dx: last.x - first.x, dy: last.y - first.y, dtMs };
 }
+
+/* --------------------------- Flick calibration -------------------------- */
+
+/**
+ * A real phone flick runs at roughly 800–1500 px/s, so the reference swipe is
+ * 1000 px/s: each game states the launch speed that swipe produces and every
+ * other swipe is scaled from it.
+ */
+export const FLICK_REF_PXS = 1_000;
+/** Swipe speed is clamped to this band; below the floor the gesture is ignored. */
+export const FLICK_MIN_PXS = 250;
+export const FLICK_MAX_PXS = 2_200;
+/** A swipe shorter than this many pixels is ignored. */
+export const FLICK_MIN_PX = 30;
+
+/** One table entry per {@link FLICK_TABLE_STEP} px/s of swipe speed. */
+export const FLICK_TABLE_STEP = 50;
+/**
+ * round(256 × sqrt(speed ÷ 1000)) at every table step, so launch speed grows
+ * with the square root of swipe speed: twice as fast a flick throws about 1.4×
+ * as hard. Integer-only, so client and server agree exactly.
+ */
+export const FLICK_SQRT_256: readonly number[] = [
+  0, 57, 81, 99, 114, 128, 140, 151, 162, 172, 181, 190, 198, 206, 214, 222, 229, 236, 243, 250,
+  256, 262, 268, 275, 280, 286, 292, 297, 303, 308, 314, 319, 324, 329, 334, 339, 343, 348, 353,
+  357, 362, 367, 371, 375, 380,
+];
+
+/** The launch scale for a swipe speed, in 256ths: 256 at the reference speed. */
+export function flickScale256(speedPxS: number): number {
+  const speed = clampInt(Math.round(speedPxS), FLICK_MIN_PXS, FLICK_MAX_PXS);
+  const index = Math.floor(speed / FLICK_TABLE_STEP);
+  const last = FLICK_SQRT_256.length - 1;
+  const low = FLICK_SQRT_256[Math.min(index, last)]!;
+  const high = FLICK_SQRT_256[Math.min(index + 1, last)]!;
+  const fraction = speed - index * FLICK_TABLE_STEP;
+  return low + Math.floor(((high - low) * fraction) / FLICK_TABLE_STEP);
+}
+
+export interface FlickLaunch {
+  /** Launch velocity in 1/256 px a tick; upwards is negative `vy`. */
+  vx: number;
+  vy: number;
+  /** The swipe itself, for the dev readout. */
+  speedPxS: number;
+  angleDeg: number;
+}
+
+/**
+ * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
+ * are world pixels moved over `dtMs` milliseconds; upwards is negative `dy`.
+ * `refSpeed` is the launch speed the reference 1000 px/s swipe produces.
+ * Returns null for a short, slow or downward swipe.
+ */
+export function flickLaunch(
+  dx: number,
+  dy: number,
+  dtMs: number,
+  refSpeed: number,
+): FlickLaunch | null {
+  const length = Math.sqrt(dx * dx + dy * dy);
+  if (length < FLICK_MIN_PX) return null;
+  if (dy >= 0) return null;
+  const dt = Math.max(TICK_MS, dtMs);
+  const speedPxS = Math.round((length * 1000) / dt);
+  if (speedPxS < FLICK_MIN_PXS) return null;
+  const speed = Math.round((refSpeed * flickScale256(speedPxS)) / 256);
+  const angleDeg = Math.round((Math.atan2(-dy, dx) * 180) / Math.PI);
+  return {
+    vx: Math.round((speed * dx) / length),
+    vy: Math.round((speed * dy) / length),
+    speedPxS,
+    angleDeg,
+  };
+}

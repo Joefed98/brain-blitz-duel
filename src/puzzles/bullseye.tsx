@@ -13,6 +13,7 @@ import {
   bullseyeCheckpoint,
   bullseyeFlick,
   bullseyeGame,
+  bullseyeLanding,
   bullseyeScalePct,
   bullseyeTransform,
   BULLSEYE_ARROWS,
@@ -94,6 +95,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
+  /** ?dev=1 shows the last swipe's speed, angle and landing point. */
+  const [devLine, setDevLine] = useState<string | null>(null);
+  const [devOn, setDevOn] = useState(false);
+  useEffect(() => {
+    setDevOn(new URLSearchParams(window.location.search).get("dev") === "1");
+  }, []);
 
   // Callbacks and the lock live in refs so the loop is never torn down and
   // restarted mid-run, which would lose the accumulator and drop sim ticks.
@@ -233,7 +240,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div ref={wrap} className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
+    <div ref={wrap} className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl">
       <canvas
         ref={canvas}
         className="block h-full w-full rounded-xl"
@@ -268,6 +275,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const launch = bullseyeFlick(window.dx, window.dy, window.dtMs);
           if (!launch) return;
           pending.current.push({ t: 0, k: 2, a: launch.vx, b: launch.vy, c: 0, d: 0 });
+          if (devOn) {
+            const landing = bullseyeLanding(launch.vx, launch.vy);
+            setDevLine(
+              `${launch.speedPxS} px/s · ${launch.angleDeg}° · land ${landing.x},${landing.y}`,
+            );
+          }
         }}
         onPointerCancel={(event) => {
           swipe.current = null;
@@ -276,6 +289,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           }
         }}
       />
+      {devOn && devLine && (
+        <p className="pointer-events-none absolute left-2 top-2 rounded bg-black/60 px-2 py-1 font-mono text-[10px] text-white">
+          {devLine}
+        </p>
+      )}
     </div>
   );
 }
