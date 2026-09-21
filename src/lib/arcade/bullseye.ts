@@ -39,7 +39,7 @@ export const BULLSEYE_RINGS = 6;
 export const BULLSEYE_RING_STEP = 25;
 
 /** Centre outwards. */
-export const BULLSEYE_RING_VALUES = [30, 25, 20, 15, 10, 5] as const;
+export const BULLSEYE_RING_VALUES = [10, 9, 8, 7, 6, 5] as const;
 export const BULLSEYE_RING_COLOURS = [
   "#F5B82E",
   "#FF4D4D",
@@ -58,11 +58,28 @@ export const BULLSEYE_WIND_MAX = 4;
 /** The arrow's flight is render-only; the landing is worked out on release. */
 export const BULLSEYE_FLIGHT_TICKS = 20;
 
-/** An aimed shot: a = reticle x, b = reticle y, in whole world pixels. */
+/** A flick: a = launch vx, b = launch vy, in 1/256 px a tick, upwards negative. */
 export const BULLSEYE_INPUT_SHOT = 2;
+export const BULLSEYE_V_MAX = 3_840;
 export const BULLSEYE_INPUT_RANGES: readonly InputRange[] = [
-  inputRange(BULLSEYE_INPUT_SHOT, [0, BULLSEYE_WORLD_W], [0, BULLSEYE_WORLD_H]),
+  inputRange(BULLSEYE_INPUT_SHOT, [-BULLSEYE_V_MAX, BULLSEYE_V_MAX], [-BULLSEYE_V_MAX, 0]),
 ];
+
+/**
+ * Flight constant, as a fraction: a medium upward flick (1,920 units a tick,
+ * a 300 px/s swipe) carries the arrow the 282 px from the bow to the centre.
+ */
+export const BULLSEYE_FLIGHT_NUM = BULLSEYE_BOW_Y - BULLSEYE_CY;
+export const BULLSEYE_FLIGHT_DEN = 1_920;
+
+/** Where a flick lands on the target plane, before the wind drift. */
+export function bullseyeLanding(vx: number, vy: number): { x: number; y: number } {
+  const reach = (value: number) => Math.round((value * BULLSEYE_FLIGHT_NUM) / BULLSEYE_FLIGHT_DEN);
+  return {
+    x: clampInt(BULLSEYE_BOW_X + reach(vx), -400, BULLSEYE_WORLD_W + 400),
+    y: clampInt(BULLSEYE_BOW_Y - reach(-vy), -400, BULLSEYE_WORLD_H + 400),
+  };
+}
 
 export function bullseyeScalePct(index: number): number {
   return BULLSEYE_SCALE_PCT[clampInt(index, 0, BULLSEYE_ARROWS - 1)]!;
