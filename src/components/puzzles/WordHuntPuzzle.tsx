@@ -89,8 +89,7 @@ export function WordHuntBoard({
       </svg>
       <div
         ref={gridRef}
-        className="grid h-full w-full grid-cols-4 gap-2"
-        className="puzzle-board"
+        className="puzzle-board grid h-full w-full grid-cols-4 gap-2"
       >
         {grid.map((letter, cell) => {
           const lit = path.includes(cell);

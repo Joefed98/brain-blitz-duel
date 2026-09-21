@@ -206,8 +206,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div ref={wrap} className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
       <canvas
         ref={canvas}
-        className="block h-full w-full rounded-xl"
-        className="puzzle-board"
+        className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: HOVER_BG }}
         aria-label="Hover"
         onPointerDown={(event) => {
