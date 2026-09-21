@@ -9,7 +9,9 @@ import {
 } from "@/lib/arcade/engine";
 import {
   matchupCellAt,
+  matchupAnimationDuration,
   matchupCheckpoint,
+  matchupDrawAnimated,
   matchupDrawSelection,
   matchupGame,
   MATCHUP_BG,
@@ -22,9 +24,6 @@ import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
-
-/** 250 ms of animation per cascade step; input is ignored until it is done. */
-const ANIM_MS_PER_STEP = 250;
 
 /** Fixed intro still: a 4×4 board with one swap making a line of three. */
 function IntroExample() {
@@ -77,6 +76,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof matchupCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const selected = useRef<{ row: number; col: number } | null>(null);
+  const animStart = useRef(0);
   const animUntil = useRef(0);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
@@ -106,6 +106,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     checkpoints.current = [];
     pending.current = [];
     selected.current = null;
+    animStart.current = 0;
     animUntil.current = 0;
     submitted.current = false;
     endedAt.current = null;
@@ -145,7 +146,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           state.current = matchupGame.step(state.current, applied);
           if (applied && state.current.swaps > before.swaps) {
             events.current.push(applied);
-            animUntil.current = time + ANIM_MS_PER_STEP * Math.max(1, state.current.lastSteps);
+            const duration = matchupAnimationDuration(state.current.lastAnimation);
+            animStart.current = time;
+            animUntil.current = time + duration;
           }
           if (state.current.tick % MATCHUP_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(matchupCheckpoint(state.current));
@@ -158,9 +161,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const size = sizeCanvas();
       if (size) {
         const ctx = canvas.current!.getContext("2d")!;
-        matchupGame.draw(ctx, state.current, size);
+        if (time < animUntil.current) {
+          matchupDrawAnimated(ctx, state.current, size, time - animStart.current);
+        } else {
+          matchupGame.draw(ctx, state.current, size);
+        }
         const pick = selected.current;
-        if (pick && !matchupGame.isOver(state.current)) {
+        if (pick && !matchupGame.isOver(state.current) && time >= animUntil.current) {
           matchupDrawSelection(ctx, size, pick.row, pick.col);
         }
       }
