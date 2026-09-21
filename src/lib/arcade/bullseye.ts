@@ -39,7 +39,7 @@ export const BULLSEYE_RINGS = 6;
 export const BULLSEYE_RING_STEP = 25;
 
 /** Centre outwards. */
-export const BULLSEYE_RING_VALUES = [30, 25, 20, 15, 10, 5] as const;
+export const BULLSEYE_RING_VALUES = [10, 9, 8, 7, 6, 5] as const;
 export const BULLSEYE_RING_COLOURS = [
   "#F5B82E",
   "#FF4D4D",
@@ -55,6 +55,12 @@ export const BULLSEYE_SCALE_PCT = [100, 92, 85, 78, 72, 66, 60, 55, 50, 46] as c
 export const BULLSEYE_DRIFT_PX = [10, 11, 13, 14, 15, 17, 18, 19, 21, 22] as const;
 
 export const BULLSEYE_WIND_MAX = 4;
+/**
+ * A flick is multiplied by this to reach the target plane, so a short upward
+ * flick from anywhere on the screen can cover the range.
+ */
+export const BULLSEYE_AIM_GAIN = 3;
+
 /** The arrow's flight is render-only; the landing is worked out on release. */
 export const BULLSEYE_FLIGHT_TICKS = 20;
 
@@ -179,7 +185,8 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
 }
 
 function score(state: BullseyeState): number {
-  return clampInt(Math.round(state.total / 2), 0, 150);
+  // Ten centre hits = 100 raw points = the 150 cap.
+  return clampInt(Math.round((state.total * 3) / 2), 0, 150);
 }
 
 /** Arrows in the gold or red rings — the headline for the standings summary. */

@@ -14,8 +14,11 @@ import {
   bullseyeGame,
   bullseyeScalePct,
   bullseyeTransform,
+  BULLSEYE_AIM_GAIN,
   BULLSEYE_ARROWS,
   BULLSEYE_BG,
+  BULLSEYE_BOW_X,
+  BULLSEYE_BOW_Y,
   BULLSEYE_CX,
   BULLSEYE_CY,
   BULLSEYE_GOLD,
@@ -90,6 +93,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof bullseyeCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const reticle = useRef<{ x: number; y: number } | null>(null);
+  const drag = useRef<{ x: number; y: number } | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
@@ -118,6 +122,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     checkpoints.current = [];
     pending.current = [];
     reticle.current = null;
+    drag.current = null;
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
@@ -222,6 +227,27 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { width, height };
   };
 
+  /**
+   * Where the flick points on the target plane: the bow plus the drag vector,
+   * multiplied up so a short flick covers the range. Whole pixels, as the sim
+   * input demands.
+   */
+  const aimPoint = (
+    start: { x: number; y: number },
+    current: { x: number; y: number },
+  ): { x: number; y: number } => ({
+    x: clampInt(
+      Math.round(BULLSEYE_BOW_X + (current.x - start.x) * BULLSEYE_AIM_GAIN),
+      0,
+      BULLSEYE_WORLD_W,
+    ),
+    y: clampInt(
+      Math.round(BULLSEYE_BOW_Y + (current.y - start.y) * BULLSEYE_AIM_GAIN),
+      0,
+      BULLSEYE_WORLD_H,
+    ),
+  });
+
   /** Canvas coordinates to world pixels, using the sim's own mapping. */
   const worldPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
@@ -248,24 +274,29 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || bullseyeGame.isOver(state.current)) return;
-          reticle.current = worldPoint(event);
+          // Flick anywhere: the arrow follows the direction the finger travels.
+          drag.current = worldPoint(event);
+          reticle.current = aimPoint(drag.current, drag.current);
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
-          if (!reticle.current) return;
-          reticle.current = worldPoint(event);
+          const start = drag.current;
+          if (!start) return;
+          reticle.current = aimPoint(start, worldPoint(event));
         }}
         onPointerUp={(event) => {
           const aim = reticle.current;
           reticle.current = null;
-          if (!aim || locked || submitted.current) return;
-          pending.current.push({ t: 0, k: 2, a: aim.x, b: aim.y, c: 0, d: 0 });
+          drag.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
+          if (!aim || locked || submitted.current) return;
+          pending.current.push({ t: 0, k: 2, a: aim.x, b: aim.y, c: 0, d: 0 });
         }}
         onPointerCancel={() => {
           reticle.current = null;
+          drag.current = null;
         }}
       />
     </div>
