@@ -15,7 +15,6 @@ import {
   binTossTransform,
   BINTOSS_AIM,
   BINTOSS_BALL_COLOUR,
-  BINTOSS_BALL_R,
   BINTOSS_BG,
   BINTOSS_BIN_COLOUR,
   BINTOSS_CHECKPOINT_INTERVAL,
@@ -70,7 +69,7 @@ function IntroExample() {
         </text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        The dotted arc ignores the wind — judge the wind yourself.
+        Flick up the screen to throw — the dotted arc ignores the wind.
       </p>
     </div>
   );
