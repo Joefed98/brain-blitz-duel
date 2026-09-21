@@ -668,9 +668,7 @@ export function scoreLaser(
   }
   if (fires < 1) return 0;
   const lit = Math.max(0, Math.round(gemsLit));
-  if (lit >= 3) return 60;
-  if (lit === 2) return 40;
-  return lit === 1 ? 20 : 0;
+  return clamp(Math.round((LASER_PARTIAL_POINTS * lit) / LASER_GEMS), 0, LASER_PARTIAL_POINTS);
 }
 
 /** Tower: the whole stack home scores the standard points, +20 for the minimum. */
