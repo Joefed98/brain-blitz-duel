@@ -23,22 +23,22 @@ export const SWERVE_RUN_TICKS = SWERVE_RUN_SECONDS * TICKS_PER_SECOND;
 export const SWERVE_WORLD_RIGHT = 99_840;
 export const SWERVE_WORLD_BOTTOM = 143_360;
 
-export const SWERVE_LANES = 3;
-export const SWERVE_LANE_W = 33_280;
+export const SWERVE_LANES = 5;
+export const SWERVE_LANE_W = 19_968;
 /** Lane centres, left to right. */
-export const SWERVE_LANE_X = [16_640, 49_920, 83_200] as const;
+export const SWERVE_LANE_X = [9_984, 29_952, 49_920, 69_888, 89_856] as const;
 
 export const SWERVE_CHEV_Y = 120_320;
-export const SWERVE_CHEV_HALF_W = 3_584;
+export const SWERVE_CHEV_HALF_W = 3_072;
 export const SWERVE_CHEV_HALF_H = 3_584;
 /** How far the chevron slides towards its lane centre each tick. */
 export const SWERVE_SLIDE = 3_072;
 
-/** Scroll speed: starts here, steps up every 600 ticks, never past the cap. */
+/** Scroll speed: starts here, steps up with every coin, never past the cap. */
 export const SWERVE_SPEED_START = 768;
-export const SWERVE_SPEED_STEP = 128;
-export const SWERVE_SPEED_EVERY = 600;
+export const SWERVE_SPEED_STEP = 16;
 export const SWERVE_SPEED_MAX = 1_536;
+
 
 /** A row of blocks every 200 world pixels of scroll. */
 export const SWERVE_ROW_SPACING = 51_200;
