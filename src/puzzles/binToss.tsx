@@ -76,13 +76,22 @@ function IntroExample() {
   );
 }
 
-interface DragState {
-  startX: number;
-  startY: number;
+interface FlickSample {
   x: number;
   y: number;
-  startTime: number;
+  time: number;
 }
+
+interface DragState {
+  /** Recent pointer positions in world pixels; the flick is read off the tail. */
+  samples: FlickSample[];
+}
+
+/** How long a window of movement the flick speed is read from. */
+const FLICK_WINDOW_MS = 120;
+/** A flick slower than this does not throw. */
+const FLICK_MIN_UNITS = 200;
+
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BinTossPuzzleData | null = puzzle.type === "bintoss" ? puzzle : null;
