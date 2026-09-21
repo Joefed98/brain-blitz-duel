@@ -217,11 +217,17 @@ export interface MatchupAnimMove {
   toCol: number;
 }
 
+export interface MatchupAnimSpecial {
+  index: number;
+  kind: number;
+}
+
 export interface MatchupAnimStep {
   before: number[];
   after: number[];
   cleared: number[];
   detonated: number[];
+  created: MatchupAnimSpecial[];
   specialIndex: number;
   specialKind: number;
   moves: MatchupAnimMove[];
@@ -453,6 +459,7 @@ function resolveBoard(
     }
 
     for (const [index, kind] of created) cells[index] = kind;
+    for (const index of created.keys()) gone.delete(index);
 
     const special = expandSpecials(cells, gone, activeDetonations);
     gain += special.gained;
@@ -470,6 +477,7 @@ function resolveBoard(
       after: [...cells],
       cleared: stepCleared,
       detonated: special.detonated,
+      created: [...created.entries()].map(([index, kind]) => ({ index, kind })),
       specialIndex: specialEntry?.[0] ?? -1,
       specialKind: specialEntry?.[1] ?? -1,
       moves,
@@ -838,6 +846,11 @@ function drawSettledBoard(ctx: CanvasRenderingContext2D, cells: readonly number[
   }
 }
 
+function animatedKind(step: MatchupAnimStep, index: number): number {
+  const created = step.created.find((item) => item.index === index);
+  return created?.kind ?? step.before[index] ?? 0;
+}
+
 export function matchupAnimationDuration(steps: readonly MatchupAnimStep[]): number {
   return steps.reduce(
     (total, item) => total + MATCHUP_CLEAR_MS + Math.max(1, item.ticks) * MATCHUP_DROP_MS,
@@ -901,10 +914,10 @@ function drawAnimatedBoard(
           if (cleared.has(index)) {
             ctx.save();
             ctx.globalAlpha = 1 - p;
-            matchupDrawSymbol(ctx, step.before[index] ?? 0, x, y, radius * (1 - p * 0.65));
+            matchupDrawSymbol(ctx, animatedKind(step, index), x, y, radius * (1 - p * 0.65));
             ctx.restore();
           } else {
-            matchupDrawSymbol(ctx, step.before[index] ?? 0, x, y, radius);
+            matchupDrawSymbol(ctx, animatedKind(step, index), x, y, radius);
           }
         }
       }
@@ -919,7 +932,7 @@ function drawAnimatedBoard(
         if (cleared.has(index)) continue;
         if (step.moves.some((move) => move.fromRow === row && move.fromCol === col)) continue;
         const { x, y } = cellCentre(row, col);
-        matchupDrawSymbol(ctx, step.before[index] ?? 0, x, y, radius);
+        matchupDrawSymbol(ctx, animatedKind(step, index), x, y, radius);
       }
     }
     for (const move of step.moves) {
