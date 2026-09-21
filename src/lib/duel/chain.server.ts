@@ -192,7 +192,7 @@ function samplePoints(): Point[] | null {
   const fits = (candidate: Point) =>
     points.every((point) => distancePx(point, candidate) >= MIN_DISTANCE_PX);
 
-  for (let throws = 0; throws < 8_000 && points.length < CHAIN_MIN_CENTRAL; throws++) {
+  for (let throws = 0; throws < 20_000 && points.length < CHAIN_MIN_CENTRAL; throws++) {
     const middle = CENTRE_TO - CENTRE_FROM;
     const candidate = {
       x: round(CENTRE_FROM + Math.random() * middle),
@@ -202,7 +202,7 @@ function samplePoints(): Point[] | null {
   }
   if (points.length < CHAIN_MIN_CENTRAL) return null;
 
-  for (let throws = 0; throws < 12_000 && points.length < CHAIN_NODES; throws++) {
+  for (let throws = 0; throws < 60_000 && points.length < CHAIN_NODES; throws++) {
     const candidate = {
       x: round(EDGE_PADDING + Math.random() * span),
       y: round(EDGE_PADDING + Math.random() * span),
@@ -319,7 +319,7 @@ function evaluate(points: Point[], bag: ChainShape[], cycle: ChainShape[]): Cand
 export function generateChain(): ChainPuzzleData {
   let best: Candidate | null = null;
 
-  for (let attempt = 0; attempt < 24; attempt++) {
+  for (let attempt = 0; attempt < 400; attempt++) {
     const points = samplePoints();
     if (!points || !layoutIsSpread(points)) continue;
 
