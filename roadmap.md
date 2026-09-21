@@ -56,3 +56,6 @@
 - [x] Bullseye HUD/ring labels/bow aiming render
 - [x] Matchup next strip, animation semantics, specials
 - [x] Re-run deterministic proof scripts
+
+## Latest tuning (2026-09-21)
+- Number Sequence 45 s; Hover faster per gate; Swerve 5 lanes + per-coin speed; Matchup next strip aligned and score /9; Bin Toss + Bullseye flick aiming; Bullseye rings 10..5.
