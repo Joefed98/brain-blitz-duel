@@ -170,21 +170,25 @@ interface Point {
   y: number;
 }
 
-function distance(a: Point, b: Point): number {
-  return Math.hypot(a.x - b.x, a.y - b.y);
+/** Gap between two node centres in pixels, on the smallest supported board. */
+function distancePx(a: Point, b: Point): number {
+  return Math.hypot(
+    ((a.x - b.x) / 100) * CHAIN_BOARD_W_PX,
+    ((a.y - b.y) / 100) * CHAIN_BOARD_H_PX,
+  );
 }
 
 /**
  * Dart-thrown Poisson-disc sample over the whole play area. The middle of the
  * board is filled first, so the scatter reaches the centre instead of ringing
- * the rim, and every pair of nodes keeps the minimum spacing.
+ * the rim, and no two glyphs ever touch or overlap.
  */
 function samplePoints(): Point[] | null {
   const points: Point[] = [];
   const span = 100 - EDGE_PADDING * 2;
   const round = (value: number) => Math.round(value * 10) / 10;
   const fits = (candidate: Point) =>
-    points.every((point) => distance(point, candidate) >= MIN_DISTANCE);
+    points.every((point) => distancePx(point, candidate) >= MIN_DISTANCE_PX);
 
   for (let throws = 0; throws < 8_000 && points.length < CHAIN_MIN_CENTRAL; throws++) {
     const middle = CENTRE_TO - CENTRE_FROM;
