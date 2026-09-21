@@ -91,12 +91,14 @@ for (let round = 0; round < ROUNDS; round++) {
   // A perfect game: turn over each pair back to back, twenty flips in ten tries.
   const order: number[] = [];
   for (const key of unique) {
-    const [a, b] = keys.map((other, index) => (other === key ? index : -1)).filter((i) => i >= 0);
-    order.push(a!, b!);
+    const matches = keys.map((other, index) => (other === key ? index : -1)).filter((i) => i >= 0);
+    const a = matches[0] ?? -1;
+    const b = matches[1] ?? -1;
+    if (a >= 0 && b >= 0) order.push(a, b);
   }
   const replay = replayPairs(puzzle.cards, order);
   check("pair perfect game replays as solved", replay.solved && replay.pairs === PAIR_PAIRS);
-  check("pair perfect game counts eight tries", replay.tries === PAIR_PAIRS);
+  check("pair perfect game counts ten tries", replay.tries === PAIR_PAIRS);
   check(
     "pair partial game counts one pair",
     replayPairs(puzzle.cards, order.slice(0, 2)).pairs === 1,
