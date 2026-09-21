@@ -33,12 +33,8 @@ import { playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: the ball, the bin, the wind arrow and a dotted arc. */
+/** Fixed intro still: the ball, the bin, the wind arrow and a flick gesture. */
 function IntroExample() {
-  const dots = Array.from({ length: 9 }, (_, index) => {
-    const t = index / 8;
-    return { x: 24 + t * 130, y: 84 - 120 * t * (1 - t) - 6 * t };
-  });
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <svg
@@ -50,9 +46,11 @@ function IntroExample() {
       >
         <line x1="0" y1="92" x2="195" y2="92" stroke="#F7F7F828" strokeWidth="2" />
         <circle cx="24" cy="84" r="6" fill={BINTOSS_BALL_COLOUR} />
-        {dots.map((dot, index) => (
-          <circle key={index} cx={dot.x} cy={dot.y} r="1.6" fill="#F5B82E77" />
-        ))}
+        <g stroke="#F5B82E99" strokeWidth="2" fill="none">
+          <line x1="30" y1="86" x2="62" y2="46" />
+          <line x1="62" y1="46" x2="54" y2="50" />
+          <line x1="62" y1="46" x2="60" y2="56" />
+        </g>
         <path
           d="M142 62 L145 92 L171 92 L174 62"
           fill="none"
@@ -70,7 +68,7 @@ function IntroExample() {
         </text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        The dotted arc ignores the wind — judge the wind yourself.
+        Flick upward to throw — harder flicks go further.
       </p>
     </div>
   );
