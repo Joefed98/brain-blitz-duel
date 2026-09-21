@@ -79,6 +79,21 @@ function IntroExample() {
   );
 }
 
+interface FlickSample {
+  x: number;
+  y: number;
+  time: number;
+}
+
+/** The movement window a flick is read from. */
+const FLICK_WINDOW_MS = 120;
+/** Slower than this (world px a tick) is not a shot. */
+const FLICK_MIN_SPEED = 0.5;
+/** World pixels of range per px-a-tick of flick. */
+const FLICK_GAIN = 34;
+const FLICK_MIN_RANGE = 30;
+const FLICK_MAX_RANGE = 560;
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BullseyePuzzleData | null = puzzle.type === "bullseye" ? puzzle : null;
   const seed = data?.seed ?? 1;
@@ -89,10 +104,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof bullseyeCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
-  const reticle = useRef<{ x: number; y: number } | null>(null);
+  const drag = useRef<FlickSample[] | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
+
 
   // Callbacks and the lock live in refs so the loop is never torn down and
   // restarted mid-run, which would lose the accumulator and drop sim ticks.
