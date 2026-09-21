@@ -9,14 +9,15 @@
 
 import {
   clampInt,
+  flickLaunch,
   inputRange,
   px,
   rngBelow,
-  TICK_MS,
   TICKS_PER_SECOND,
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
+  type FlickLaunch,
   type InputRange,
 } from "./engine";
 
@@ -71,41 +72,43 @@ export const BINTOSS_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BINTOSS_INPUT_FLICK, [-BINTOSS_VX_MAX, BINTOSS_VX_MAX], [-BINTOSS_VY_MAX, 0]),
 ];
 
-/** A swipe shorter than this is ignored. */
-export const BINTOSS_FLICK_MIN_PX = 30;
 /**
- * Swipe speed to launch speed: 32/5 units a tick per pixel a second, so a
- * 300 px/s swipe is a medium throw (1,920 units — half the upward clamp).
+ * The launch speed a reference 1000 px/s flick produces, in 1/256 px a tick.
+ * Solved from this sim's gravity so that a 1000 px/s flick at 60° lands in the
+ * bin on throw five (220 px away) with no wind.
  */
-export const BINTOSS_FLICK_NUM = 32;
-export const BINTOSS_FLICK_DEN = 5;
+export const BINTOSS_REF_V = 1_481;
 
 /**
  * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
  * are world pixels moved over `dtMs` milliseconds; upwards is negative `dy`.
- * Returns null for a short swipe or one that is not going upwards.
+ * Returns null for a short, slow or downward swipe.
  */
-export function binTossFlick(
-  dx: number,
-  dy: number,
-  dtMs: number,
-): { vx: number; vy: number } | null {
-  if (dx * dx + dy * dy < BINTOSS_FLICK_MIN_PX * BINTOSS_FLICK_MIN_PX) return null;
-  if (dy >= 0) return null;
-  const dt = Math.max(TICK_MS, dtMs);
-  const perSecX = (dx * 1000) / dt;
-  const perSecY = (dy * 1000) / dt;
-  const vx = clampInt(
-    Math.round((perSecX * BINTOSS_FLICK_NUM) / BINTOSS_FLICK_DEN),
-    -BINTOSS_VX_MAX,
-    BINTOSS_VX_MAX,
-  );
-  const vy = clampInt(
-    Math.round((perSecY * BINTOSS_FLICK_NUM) / BINTOSS_FLICK_DEN),
-    -BINTOSS_VY_MAX,
-    -1,
-  );
-  return { vx, vy };
+export function binTossFlick(dx: number, dy: number, dtMs: number): FlickLaunch | null {
+  const launch = flickLaunch(dx, dy, dtMs, BINTOSS_REF_V);
+  if (!launch) return null;
+  return {
+    ...launch,
+    vx: clampInt(launch.vx, -BINTOSS_VX_MAX, BINTOSS_VX_MAX),
+    vy: clampInt(launch.vy, -BINTOSS_VY_MAX, -1),
+  };
+}
+
+/** Where a launch would cross the bin's rim line, in world pixels — dev only. */
+export function binTossPredict(vx: number, vy: number, wind: number): { x: number; y: number } {
+  let x = BINTOSS_BALL_X;
+  let y = BINTOSS_BALL_Y;
+  let dx = vx;
+  let dy = vy;
+  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
+    dx += wind * BINTOSS_WIND_UNIT;
+    dy += BINTOSS_GRAVITY;
+    x += dx;
+    y += dy;
+    if (dy > 0 && y >= BINTOSS_RIM_Y) break;
+    if (y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
+  }
+  return { x: Math.round(px(x)), y: Math.round(px(y)) };
 }
 
 /** The bin's centre for a throw. */

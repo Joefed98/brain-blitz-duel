@@ -15,8 +15,13 @@ import {
   type ArcadeInputEvent,
 } from "../src/lib/arcade/engine.ts";
 import {
+  binTossBinCentre,
   binTossCheckpoint,
+  binTossFlick,
   binTossGame,
+  binTossPredict,
+  BINTOSS_BALL_R,
+  BINTOSS_BIN_HALF,
   BINTOSS_AIM,
   BINTOSS_CHECKPOINT_INTERVAL,
   BINTOSS_INPUT_RANGES,
@@ -28,7 +33,11 @@ import {
 } from "../src/lib/arcade/binToss.ts";
 import {
   bullseyeCheckpoint,
+  bullseyeFlick,
   bullseyeGame,
+  bullseyeLanding,
+  BULLSEYE_CX,
+  BULLSEYE_CY,
   BULLSEYE_ARROWS,
   BULLSEYE_CHECKPOINT_INTERVAL,
   BULLSEYE_INPUT_RANGES,
@@ -49,6 +58,26 @@ const fail = (message: string) => {
 let firstFailingTick: number | null = null;
 
 const randomInt = (low: number, high: number) => low + Math.floor(Math.random() * (high - low + 1));
+
+/**
+ * A random upward swipe: 200–2600 px/s (so some are below the 250 px/s floor
+ * and ignored) at any upward angle, measured over 30–90 ms.
+ */
+function randomSwipe(): { dx: number; dy: number; dtMs: number } {
+  const dtMs = randomInt(30, 90);
+  const speed = randomInt(200, 2_600);
+  const angle = (randomInt(20, 160) * Math.PI) / 180;
+  const length = (speed * dtMs) / 1000;
+  return { dx: Math.cos(angle) * length, dy: -Math.sin(angle) * length, dtMs };
+}
+
+/** A swipe of an exact speed and angle, for the calibration checks. */
+function swipeAt(speedPxS: number, angleDeg: number) {
+  const dtMs = 80;
+  const length = (speedPxS * dtMs) / 1000;
+  const angle = (angleDeg * Math.PI) / 180;
+  return { dx: Math.cos(angle) * length, dy: -Math.sin(angle) * length, dtMs };
+}
 
 function binTossIntegers(state: BinTossState): boolean {
   const values = [
@@ -92,15 +121,13 @@ for (let sample = 0; sample < 200; sample++) {
     if (state.phase === BINTOSS_AIM) {
       if (waitFor > 0) waitFor -= 1;
       else {
-        input = {
-          t: tick,
-          k: 1,
-          a: randomInt(200, BINTOSS_VX_MAX),
-          b: randomInt(-BINTOSS_VY_MAX, -600),
-          c: 0,
-          d: 0,
-        };
-        waitFor = randomInt(0, 40);
+        // A random swipe, mapped through the game's own flick calibration.
+        const swipe = randomSwipe();
+        const launch = binTossFlick(swipe.dx, swipe.dy, swipe.dtMs);
+        if (launch) {
+          input = { t: tick, k: 1, a: launch.vx, b: launch.vy, c: 0, d: 0 };
+          waitFor = randomInt(0, 40);
+        }
       }
     }
     const before = state;
@@ -154,15 +181,12 @@ for (let sample = 0; sample < 200; sample++) {
     if (state.flightTick === 0 && state.arrowIndex < BULLSEYE_ARROWS) {
       if (waitFor > 0) waitFor -= 1;
       else {
-        input = {
-          t: tick,
-          k: 2,
-          a: randomInt(-BULLSEYE_V_MAX, BULLSEYE_V_MAX),
-          b: randomInt(-BULLSEYE_V_MAX, -200),
-          c: 0,
-          d: 0,
-        };
-        waitFor = randomInt(0, 30);
+        const swipe = randomSwipe();
+        const launch = bullseyeFlick(swipe.dx, swipe.dy, swipe.dtMs);
+        if (launch) {
+          input = { t: tick, k: 2, a: launch.vx, b: launch.vy, c: 0, d: 0 };
+          waitFor = randomInt(0, 30);
+        }
       }
     }
     const before = state;
@@ -308,6 +332,53 @@ if (
     fail(`unexpected reason: ${replay.reason ?? "none"}`);
   }
   if (replay.baskets !== 0 || replay.score !== 0) fail("an out-of-range flick still scored");
+}
+
+/* ---------------------------- Calibration ------------------------------ */
+
+// A natural 1000 px/s flick at 60° must land in the bin on throw five (220 px).
+{
+  const swipe = swipeAt(1_000, 60);
+  const launch = binTossFlick(swipe.dx, swipe.dy, swipe.dtMs);
+  if (!launch) fail("the reference bin toss flick was ignored");
+  else {
+    const landing = binTossPredict(launch.vx, launch.vy, 0);
+    const centre = Math.round(binTossBinCentre(4) / 256);
+    const tolerance = Math.round((BINTOSS_BIN_HALF - BINTOSS_BALL_R) / 256);
+    if (Math.abs(landing.x - centre) > tolerance) {
+      fail(`reference flick landed at ${landing.x}, bin centre ${centre}`);
+    }
+  }
+}
+
+// A 1000 px/s straight-up flick must land exactly on the centre at arrow one.
+{
+  const swipe = swipeAt(1_000, 90);
+  const launch = bullseyeFlick(swipe.dx, swipe.dy, swipe.dtMs);
+  if (!launch) fail("the reference bullseye flick was ignored");
+  else {
+    const landing = bullseyeLanding(launch.vx, launch.vy);
+    if (landing.x !== BULLSEYE_CX || landing.y !== BULLSEYE_CY) {
+      fail(`reference shot landed at ${landing.x},${landing.y}`);
+    }
+  }
+}
+
+// Square-root response: twice the swipe speed is about 1.4× the launch speed.
+{
+  const slowSwipe = swipeAt(600, 90);
+  const fastSwipe = swipeAt(1_200, 90);
+  const a = bullseyeFlick(slowSwipe.dx, slowSwipe.dy, slowSwipe.dtMs)!;
+  const b = bullseyeFlick(fastSwipe.dx, fastSwipe.dy, fastSwipe.dtMs)!;
+  const ratio = Math.abs(b.vy) / Math.abs(a.vy);
+  if (ratio < 1.38 || ratio > 1.44) fail(`doubling the swipe scaled the launch by ${ratio}`);
+}
+
+// Below the 250 px/s floor the gesture is ignored.
+{
+  const swipe = swipeAt(200, 90);
+  if (binTossFlick(swipe.dx, swipe.dy, swipe.dtMs)) fail("a 200 px/s swipe threw a ball");
+  if (bullseyeFlick(swipe.dx, swipe.dy, swipe.dtMs)) fail("a 200 px/s swipe fired an arrow");
 }
 
 /* ----------------------------- Registration ---------------------------- */
