@@ -23,22 +23,22 @@ export const SWERVE_RUN_TICKS = SWERVE_RUN_SECONDS * TICKS_PER_SECOND;
 export const SWERVE_WORLD_RIGHT = 99_840;
 export const SWERVE_WORLD_BOTTOM = 143_360;
 
-export const SWERVE_LANES = 5;
-export const SWERVE_LANE_W = 19_968;
+export const SWERVE_LANES = 3;
+export const SWERVE_LANE_W = 33_280;
 /** Lane centres, left to right. */
-export const SWERVE_LANE_X = [9_984, 29_952, 49_920, 69_888, 89_856] as const;
+export const SWERVE_LANE_X = [16_640, 49_920, 83_200] as const;
 
 export const SWERVE_CHEV_Y = 120_320;
-export const SWERVE_CHEV_HALF_W = 3_072;
+export const SWERVE_CHEV_HALF_W = 3_584;
 export const SWERVE_CHEV_HALF_H = 3_584;
 /** How far the chevron slides towards its lane centre each tick. */
 export const SWERVE_SLIDE = 3_072;
 
-/** Scroll speed: starts here, steps up with every coin, never past the cap. */
+/** Scroll speed: starts here, steps up every 600 ticks, never past the cap. */
 export const SWERVE_SPEED_START = 768;
-export const SWERVE_SPEED_STEP = 16;
+export const SWERVE_SPEED_STEP = 128;
+export const SWERVE_SPEED_EVERY = 600;
 export const SWERVE_SPEED_MAX = 1_536;
-
 
 /** A row of blocks every 200 world pixels of scroll. */
 export const SWERVE_ROW_SPACING = 51_200;
@@ -91,22 +91,14 @@ export interface SwerveState {
   rows: SwerveRow[];
 }
 
-/** Scroll speed for a player who has taken this many coins — shared by both sides. */
-export function swerveSpeed(coins: number): number {
-  return Math.min(SWERVE_SPEED_MAX, SWERVE_SPEED_START + SWERVE_SPEED_STEP * Math.max(0, coins));
+/** Scroll speed at this tick — a function of the tick alone, so it is shared. */
+export function swerveSpeed(tick: number): number {
+  const steps = Math.trunc(tick / SWERVE_SPEED_EVERY);
+  return Math.min(SWERVE_SPEED_MAX, SWERVE_SPEED_START + SWERVE_SPEED_STEP * steps);
 }
 
-/** Every way two or three of the five lanes can be blocked, in a fixed order. */
-const BLOCK_SETS: number[][] = (() => {
-  const sets: number[][] = [];
-  for (let bits = 1; bits < 1 << 5; bits++) {
-    const lanes: number[] = [];
-    for (let lane = 0; lane < 5; lane++) if (bits & (1 << lane)) lanes.push(lane);
-    if (lanes.length >= 2 && lanes.length <= 3) sets.push(lanes);
-  }
-  return sets;
-})();
-
+/** Every way one or two of three lanes can be blocked. */
+const BLOCK_SETS: number[][] = [[0], [1], [2], [0, 1], [0, 2], [1, 2]];
 
 function openLanes(blocked: number[]): number[] {
   const open: number[] = [];
@@ -134,7 +126,7 @@ function buildCourse(seed: number): { rows: SwerveRow[]; rng: number } {
   const maxTravel = SWERVE_SPEED_MAX * SWERVE_RUN_TICKS;
   const rows: SwerveRow[] = [];
   let rng = seed | 0;
-  let previousOpen = [0, 1, 2, 3, 4];
+  let previousOpen = [0, 1, 2];
   let index = 0;
   while (index * SWERVE_ROW_SPACING <= maxTravel + SWERVE_ROW_SPACING * 2) {
     let blocked: number[] | null = null;
@@ -176,31 +168,24 @@ function buildCourse(seed: number): { rows: SwerveRow[]; rng: number } {
   return { rows, rng };
 }
 
-/**
- * Coins a clean run could reach, walked tick by tick exactly as `step` does —
- * the speed ramp follows the coins taken, so the walk collects as it goes.
- */
+/** Coins a clean run could reach, walked tick by tick exactly as `step` does. */
 function countTotalCoins(rows: SwerveRow[]): number {
   let distance = 0;
-  let coins = 0;
-  let cursor = 0;
-  for (let tick = 0; tick < SWERVE_RUN_TICKS; tick++) {
-    distance += swerveSpeed(coins);
-    while (cursor < rows.length && rows[cursor]!.y0 + distance >= SWERVE_CHEV_Y) {
-      if (rows[cursor]!.coinLane >= 0) coins += 1;
-      cursor += 1;
-    }
+  for (let tick = 0; tick < SWERVE_RUN_TICKS; tick++) distance += swerveSpeed(tick);
+  let total = 0;
+  for (const row of rows) {
+    if (row.y0 + distance < SWERVE_CHEV_Y) break;
+    if (row.coinLane >= 0) total += 1;
   }
-  return coins;
+  return total;
 }
 
 function init(seed: number): SwerveState {
   const { rows } = buildCourse(seed);
   return {
     tick: 0,
-    x: SWERVE_LANE_X[2],
-    lane: 2,
-
+    x: SWERVE_LANE_X[1],
+    lane: 1,
     distance: 0,
     coins: 0,
     totalCoins: countTotalCoins(rows),
@@ -239,7 +224,7 @@ function step(state: SwerveState, input: SwerveInput): SwerveState {
     state.x < target
       ? Math.min(target, state.x + SWERVE_SLIDE)
       : Math.max(target, state.x - SWERVE_SLIDE);
-  const distance = state.distance + swerveSpeed(state.coins);
+  const distance = state.distance + swerveSpeed(state.tick);
 
   let cursor = state.cursor;
   while (

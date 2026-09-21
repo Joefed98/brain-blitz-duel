@@ -56,8 +56,3 @@
 - [x] Bullseye HUD/ring labels/bow aiming render
 - [x] Matchup next strip, animation semantics, specials
 - [x] Re-run deterministic proof scripts
-
-## Arcade + puzzle tuning pass (complete)
-- Number Sequence 45s; Hover speeds up per gate; Swerve 5 lanes + per-coin ramp.
-- Matchup next strip aligned to columns, scoring raw/10.
-- Bin Toss and Bullseye use touchscreen flick aiming; Bullseye rings 10 down to 5.

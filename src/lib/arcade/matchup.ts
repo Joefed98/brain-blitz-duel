@@ -593,9 +593,8 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
 }
 
 function score(state: MatchupState): number {
-  return clampInt(Math.round(state.raw / 10), 0, 150);
+  return clampInt(Math.round(state.raw / 4), 0, 150);
 }
-
 
 /** True once the hint should be shown. Derived from the sim, so it is shared. */
 export function matchupShowHint(state: MatchupState): boolean {
@@ -817,17 +816,23 @@ function drawNextStrip(ctx: CanvasRenderingContext2D, state: MatchupState): void
   ctx.strokeStyle = "rgba(247, 247, 248, 0.14)";
   ctx.lineWidth = 1;
   ctx.stroke();
-  // One slot per column, sitting directly above that column.
+  ctx.font = "700 9px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = "rgba(247, 247, 248, 0.70)";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("NEXT", MATCHUP_BOARD_X + 8, MATCHUP_NEXT_Y + MATCHUP_NEXT_H / 2);
+  const slotW = (MATCHUP_BOARD_W - 52) / MATCHUP_SIZE;
   for (let col = 0; col < MATCHUP_SIZE; col++) {
-    const cx = MATCHUP_BOARD_X + col * MATCHUP_CELL_PX + MATCHUP_CELL_PX / 2;
+    const cx = MATCHUP_BOARD_X + 52 + col * slotW + slotW / 2;
     const cy = MATCHUP_NEXT_Y + MATCHUP_NEXT_H / 2;
+    ctx.strokeStyle = "rgba(247, 247, 248, 0.12)";
+    ctx.strokeRect(cx - 12, cy - 12, 24, 24);
     const queue = state.queues[col] ?? [];
     const head = state.heads[col] ?? 0;
     const kind = queue[head % MATCHUP_QUEUE_LEN] ?? 0;
-    matchupDrawSymbol(ctx, kind, cx, cy, 9);
+    matchupDrawSymbol(ctx, kind, cx, cy, 8);
   }
 }
-
 
 function drawSettledBoard(ctx: CanvasRenderingContext2D, cells: readonly number[]): void {
   const radius = (MATCHUP_CELL_PX * MATCHUP_SYMBOL_PCT) / 200;

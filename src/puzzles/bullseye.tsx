@@ -16,8 +16,6 @@ import {
   bullseyeTransform,
   BULLSEYE_ARROWS,
   BULLSEYE_BG,
-  BULLSEYE_BOW_X,
-  BULLSEYE_BOW_Y,
   BULLSEYE_CX,
   BULLSEYE_CY,
   BULLSEYE_GOLD,
@@ -75,26 +73,11 @@ function IntroExample() {
         </g>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Flick up the screen to shoot — aim into the wind.
+        Aim into the wind — a left wind pushes the arrow left.
       </p>
     </div>
   );
 }
-
-interface FlickSample {
-  x: number;
-  y: number;
-  time: number;
-}
-
-/** The movement window a flick is read from. */
-const FLICK_WINDOW_MS = 120;
-/** Slower than this (world px a tick) is not a shot. */
-const FLICK_MIN_SPEED = 0.5;
-/** World pixels of range per px-a-tick of flick. */
-const FLICK_GAIN = 34;
-const FLICK_MIN_RANGE = 30;
-const FLICK_MAX_RANGE = 560;
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BullseyePuzzleData | null = puzzle.type === "bullseye" ? puzzle : null;
@@ -106,11 +89,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof bullseyeCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
-  const drag = useRef<FlickSample[] | null>(null);
+  const reticle = useRef<{ x: number; y: number } | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
-
 
   // Callbacks and the lock live in refs so the loop is never torn down and
   // restarted mid-run, which would lose the accumulator and drop sim ticks.
@@ -135,7 +117,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     events.current = [];
     checkpoints.current = [];
     pending.current = [];
-    drag.current = null;
+    reticle.current = null;
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
@@ -187,17 +169,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       const size = sizeCanvas();
       if (size) {
-        const ctx = canvas.current?.getContext("2d");
-        if (ctx) {
-          bullseyeGame.draw(ctx, state.current, size);
-          const samples = drag.current;
-          const aim = samples ? flickReticle(samples, time) : null;
-          if (aim && !bullseyeGame.isOver(state.current)) {
-            bullseyeDrawAim(ctx, size, aim.x, aim.y);
-          }
+        const ctx = canvas.current!.getContext("2d")!;
+        bullseyeGame.draw(ctx, state.current, size);
+        const aim = reticle.current;
+        if (aim && !bullseyeGame.isOver(state.current)) {
+          bullseyeDrawAim(ctx, size, aim.x, aim.y);
         }
       }
-
 
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);
@@ -258,46 +236,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
   };
 
-  const pushSample = (point: { x: number; y: number }, time: number) => {
-    const samples = drag.current;
-    if (!samples) return;
-    drag.current = [...samples, { ...point, time }].filter(
-      (sample, index, all) => time - sample.time <= FLICK_WINDOW_MS * 2 || index === all.length - 1,
-    );
-  };
-
-  /**
-   * The flick towards the target: its direction points the arrow and its speed
-   * sets the range, so the reticle is where that shot would land. Render and
-   * input only — the sim is handed the reticle, exactly as before.
-   */
-  const flickReticle = (
-    samples: readonly FlickSample[],
-    time: number,
-  ): { x: number; y: number } | null => {
-    const latest = samples[samples.length - 1];
-    if (!latest) return null;
-    let first = latest;
-    for (const sample of samples) {
-      if (time - sample.time <= FLICK_WINDOW_MS) {
-        first = sample;
-        break;
-      }
-    }
-    const ticks = Math.max(1, (latest.time - first.time) / TICK_MS);
-    const dx = (latest.x - first.x) / ticks;
-    const dy = (latest.y - first.y) / ticks;
-    const speed = Math.hypot(dx, dy);
-    // Only a flick up the screen looses an arrow.
-    if (speed < FLICK_MIN_SPEED || dy >= 0) return null;
-    const range = Math.min(FLICK_MAX_RANGE, Math.max(FLICK_MIN_RANGE, speed * FLICK_GAIN));
-    return {
-      x: clampInt(Math.round(BULLSEYE_BOW_X + (dx / speed) * range), 0, BULLSEYE_WORLD_W),
-      y: clampInt(Math.round(BULLSEYE_BOW_Y + (dy / speed) * range), 0, BULLSEYE_WORLD_H),
-    };
-  };
-
-
   if (!data) return null;
 
   return (
@@ -310,31 +248,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || bullseyeGame.isOver(state.current)) return;
-          const point = worldPoint(event);
-          drag.current = [{ ...point, time: performance.now() }];
+          reticle.current = worldPoint(event);
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
-          if (!drag.current) return;
-          pushSample(worldPoint(event), performance.now());
+          if (!reticle.current) return;
+          reticle.current = worldPoint(event);
         }}
         onPointerUp={(event) => {
-          const now = performance.now();
-          if (drag.current) pushSample(worldPoint(event), now);
-          const samples = drag.current;
-          drag.current = null;
+          const aim = reticle.current;
+          reticle.current = null;
+          if (!aim || locked || submitted.current) return;
+          pending.current.push({ t: 0, k: 2, a: aim.x, b: aim.y, c: 0, d: 0 });
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
-          if (!samples || locked || submitted.current) return;
-          const aim = flickReticle(samples, now);
-          if (!aim) return;
-          pending.current.push({ t: 0, k: 2, a: aim.x, b: aim.y, c: 0, d: 0 });
         }}
         onPointerCancel={() => {
-          drag.current = null;
+          reticle.current = null;
         }}
-
       />
     </div>
   );
