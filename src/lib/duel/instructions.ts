@@ -460,9 +460,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Collect coins while dodging the blocks.",
     how: [
       { action: "Tap left or right", detail: "to swerve one lane that way." },
-      { action: "Every coin speeds you up", detail: "so it gets harder as you go." },
       { action: "Hit a block", detail: "and the run ends." },
-      { action: "Five lanes", detail: "the same course for everyone, sixty seconds." },
+      { action: "Everyone drives", detail: "the same course for sixty seconds." },
     ],
     score: "Coins earn points, +40 for surviving the whole run.",
   },
@@ -478,7 +477,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   bintoss: {
     goal: "Flick the ball into the bin — ten throws.",
     how: [
-      { action: "Flick anywhere", detail: "in the direction you want the ball to fly." },
+      { action: "Drag back from the ball", detail: "and let go to throw." },
       { action: "Watch the wind", detail: "it pushes the ball sideways." },
       { action: "The bin moves", detail: "further away every throw." },
     ],
@@ -487,11 +486,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   bullseye: {
     goal: "Hit the centre — ten arrows.",
     how: [
-      { action: "Flick towards the target", detail: "to aim the arrow, and let go to fire." },
+      { action: "Drag to aim", detail: "then let go to fire." },
       { action: "The wind", detail: "pushes the arrow sideways, more at longer range." },
       { action: "The target", detail: "gets further away each shot." },
     ],
-    score: "10 for the centre ring, one less each ring out. Ten bullseyes = 150.",
+    score: "30 for the centre ring, less for each ring out. Ten bullseyes = 150.",
   },
   matchup: {
     goal: "Make lines of three or more matching symbols.",
@@ -501,6 +500,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Trigger specials", detail: "to clear nearby symbols and start chain reactions." },
       { action: "Sixty seconds", detail: "on the same board for everyone." },
     ],
-    score: "3 = 10, 4 = 25, 5 = 50, then the total ÷ 9.",
+    score: "3 = 10, 4 = 25, 5 = 50, then the total ÷ 4.",
   },
 };

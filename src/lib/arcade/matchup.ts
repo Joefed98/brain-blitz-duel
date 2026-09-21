@@ -49,9 +49,6 @@ export const MATCHUP_NEXT_H = 34;
 /** Fixed refill queue per column, built once at init. */
 export const MATCHUP_QUEUE_LEN = 60;
 
-/** Raw points are divided by this for the round score; higher = harder to cap. */
-export const MATCHUP_SCORE_DIVISOR = 9;
-
 /** Line length to points: 3 = 10, 4 = 25, 5 or more = 50. */
 export function matchupLinePoints(length: number): number {
   if (length >= 5) return 50;
@@ -248,7 +245,7 @@ export interface MatchupState {
   heads: number[];
   /** Scoring swaps made. */
   swaps: number;
-  /** Raw points earned; the round score is this divided by MATCHUP_SCORE_DIVISOR. */
+  /** Raw points earned; the round score is this divided by four. */
   raw: number;
   /** The longest line cleared so far. */
   bestLine: number;
@@ -368,8 +365,7 @@ function expandSpecials(
   let gained = 0;
   const detonated: number[] = [];
   const queue = [...initial];
-  for (const index of gone)
-    if (isSpecial(cells[index] ?? -1) && !queue.includes(index)) queue.push(index);
+  for (const index of gone) if (isSpecial(cells[index] ?? -1) && !queue.includes(index)) queue.push(index);
   for (let cursor = 0; cursor < queue.length; cursor++) {
     const index = queue[cursor] ?? -1;
     if (detonated.includes(index)) continue;
@@ -378,11 +374,7 @@ function expandSpecials(
     detonated.push(index);
     gained += addBlast(index, kind, gone);
     for (const target of gone) {
-      if (
-        isSpecial(cells[target] ?? -1) &&
-        !detonated.includes(target) &&
-        !queue.includes(target)
-      ) {
+      if (isSpecial(cells[target] ?? -1) && !detonated.includes(target) && !queue.includes(target)) {
         queue.push(target);
       }
     }
@@ -411,8 +403,7 @@ function fallAndRefill(
         const item = kept[depth];
         if (!item) continue;
         cells[target] = item.kind;
-        if (item.row !== row)
-          moves.push({ kind: item.kind, fromRow: item.row, fromCol: col, toRow: row, toCol: col });
+        if (item.row !== row) moves.push({ kind: item.kind, fromRow: item.row, fromCol: col, toRow: row, toCol: col });
       } else {
         const head = heads[col] ?? 0;
         const slot = head % MATCHUP_QUEUE_LEN;
@@ -602,7 +593,7 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
 }
 
 function score(state: MatchupState): number {
-  return clampInt(Math.round(state.raw / MATCHUP_SCORE_DIVISOR), 0, 150);
+  return clampInt(Math.round(state.raw / 4), 0, 150);
 }
 
 /** True once the hint should be shown. Derived from the sim, so it is shared. */
@@ -696,14 +687,7 @@ export const MATCHUP_CLEAR_MS = 200;
 export const MATCHUP_DROP_MS = 120;
 export const MATCHUP_DETONATE_MS = 250;
 
-function roundedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-): void {
+function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
@@ -736,12 +720,7 @@ export function matchupDrawSymbol(
     ctx.strokeStyle = MATCHUP_GOLD;
     ctx.beginPath();
     ctx.moveTo(cx + radius * 0.38, cy - radius * 0.58);
-    ctx.quadraticCurveTo(
-      cx + radius * 0.72,
-      cy - radius * 0.95,
-      cx + radius * 0.2,
-      cy - radius * 1.1,
-    );
+    ctx.quadraticCurveTo(cx + radius * 0.72, cy - radius * 0.95, cx + radius * 0.2, cy - radius * 1.1);
     ctx.stroke();
     ctx.fillStyle = MATCHUP_GOLD;
     ctx.beginPath();
@@ -837,9 +816,14 @@ function drawNextStrip(ctx: CanvasRenderingContext2D, state: MatchupState): void
   ctx.strokeStyle = "rgba(247, 247, 248, 0.14)";
   ctx.lineWidth = 1;
   ctx.stroke();
-  // One slot per column, centred on the column it feeds.
+  ctx.font = "700 9px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = "rgba(247, 247, 248, 0.70)";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("NEXT", MATCHUP_BOARD_X + 8, MATCHUP_NEXT_Y + MATCHUP_NEXT_H / 2);
+  const slotW = (MATCHUP_BOARD_W - 52) / MATCHUP_SIZE;
   for (let col = 0; col < MATCHUP_SIZE; col++) {
-    const cx = MATCHUP_BOARD_X + col * MATCHUP_CELL_PX + MATCHUP_CELL_PX / 2;
+    const cx = MATCHUP_BOARD_X + 52 + col * slotW + slotW / 2;
     const cy = MATCHUP_NEXT_Y + MATCHUP_NEXT_H / 2;
     ctx.strokeStyle = "rgba(247, 247, 248, 0.12)";
     ctx.strokeRect(cx - 12, cy - 12, 24, 24);
@@ -874,11 +858,7 @@ export function matchupAnimationDuration(steps: readonly MatchupAnimStep[]): num
   );
 }
 
-function drawDetonations(
-  ctx: CanvasRenderingContext2D,
-  step: MatchupAnimStep,
-  progress: number,
-): void {
+function drawDetonations(ctx: CanvasRenderingContext2D, step: MatchupAnimStep, progress: number): void {
   for (const index of step.detonated) {
     const kind = step.before[index] ?? -1;
     const row = Math.trunc(index / MATCHUP_SIZE);
