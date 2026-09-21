@@ -16,6 +16,8 @@ import {
   bullseyeTransform,
   BULLSEYE_ARROWS,
   BULLSEYE_BG,
+  BULLSEYE_BOW_X,
+  BULLSEYE_BOW_Y,
   BULLSEYE_CX,
   BULLSEYE_CY,
   BULLSEYE_GOLD,
@@ -73,7 +75,7 @@ function IntroExample() {
         </g>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Aim into the wind — a left wind pushes the arrow left.
+        Flick up the screen to shoot — aim into the wind.
       </p>
     </div>
   );
@@ -133,7 +135,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     events.current = [];
     checkpoints.current = [];
     pending.current = [];
-    reticle.current = null;
+    drag.current = null;
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
