@@ -272,9 +272,11 @@ function Stage({
 
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "bomb") return null;
-  const required = decodeBombActions(puzzle.sequence ?? "");
+  const required = decodeBombActions(puzzle.required ?? puzzle.sequence ?? "");
+  const constraints = decodeBombConstraints(puzzle.constraints ?? "");
+  const shown = decodeBombActions(puzzle.sequence ?? "") ;
   const mine = decodeBombActions(myAnswer ?? "");
-  const replay = replayBomb(required, mine);
+  const replay = checkBombPlan(required, constraints, mine);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((BOMB_TIME_MS - myMsRemaining) / 100) / 10;
 
@@ -282,7 +284,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
     <div className="flex w-full flex-col items-center gap-2">
       <div className="grid w-full grid-cols-2 gap-3 text-xs">
         <div>
-          <p className="mb-1 text-center font-mono uppercase text-primary">Required</p>
+          <p className="mb-1 text-center font-mono uppercase text-primary">One valid plan</p>
           {required.map((action, index) => (
             <p key={`${action}-${index}`} className="truncate">
               <span className="font-mono text-primary">{index + 1}.</span>{" "}
