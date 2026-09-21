@@ -312,49 +312,167 @@ function init(seed: number): MatchupState {
   };
 }
 
+function middleCell(run: MatchupRun): number {
+  return run.cells[Math.trunc(run.cells.length / 2)] ?? run.cells[0] ?? 0;
+}
+
+function lineSpecialIndex(run: MatchupRun, preferred: number | null): number {
+  return preferred !== null && run.cells.includes(preferred) ? preferred : middleCell(run);
+}
+
+function addBlast(index: number, kind: number, gone: Set<number>): number {
+  let gained = 0;
+  const row = Math.trunc(index / MATCHUP_SIZE);
+  const col = index % MATCHUP_SIZE;
+  const add = (target: number) => {
+    if (!gone.has(target)) {
+      gone.add(target);
+      gained += 10;
+    }
+  };
+  if (kind === MATCHUP_BOMB) {
+    for (let r = Math.max(0, row - 1); r <= Math.min(MATCHUP_SIZE - 1, row + 1); r++) {
+      for (let c = Math.max(0, col - 1); c <= Math.min(MATCHUP_SIZE - 1, col + 1); c++) {
+        add(matchupIndex(r, c));
+      }
+    }
+  } else if (kind === MATCHUP_CROSS) {
+    for (let c = 0; c < MATCHUP_SIZE; c++) add(matchupIndex(row, c));
+    for (let r = 0; r < MATCHUP_SIZE; r++) add(matchupIndex(r, col));
+  }
+  return gained;
+}
+
+function expandSpecials(
+  cells: readonly number[],
+  gone: Set<number>,
+  initial: readonly number[],
+): { gained: number; detonated: number[] } {
+  let gained = 0;
+  const detonated: number[] = [];
+  const queue = [...initial];
+  for (const index of gone) if (isSpecial(cells[index] ?? -1) && !queue.includes(index)) queue.push(index);
+  for (let cursor = 0; cursor < queue.length; cursor++) {
+    const index = queue[cursor]!;
+    if (detonated.includes(index)) continue;
+    const kind = cells[index] ?? -1;
+    if (!isSpecial(kind)) continue;
+    detonated.push(index);
+    gained += addBlast(index, kind, gone);
+    for (const target of gone) {
+      if (isSpecial(cells[target] ?? -1) && !detonated.includes(target) && !queue.includes(target)) {
+        queue.push(target);
+      }
+    }
+  }
+  return { gained, detonated };
+}
+
+function fallAndRefill(
+  cells: number[],
+  queues: readonly number[][],
+  heads: number[],
+  gone: Set<number>,
+): { moves: MatchupAnimMove[] } {
+  const moves: MatchupAnimMove[] = [];
+  for (let col = 0; col < MATCHUP_SIZE; col++) {
+    const kept: { kind: number; row: number }[] = [];
+    for (let row = MATCHUP_SIZE - 1; row >= 0; row--) {
+      const index = matchupIndex(row, col);
+      if (!gone.has(index)) kept.push({ kind: cells[index]!, row });
+    }
+    const queue = queues[col]!;
+    for (let row = MATCHUP_SIZE - 1; row >= 0; row--) {
+      const depth = MATCHUP_SIZE - 1 - row;
+      const target = matchupIndex(row, col);
+      if (depth < kept.length) {
+        const item = kept[depth]!;
+        cells[target] = item.kind;
+        if (item.row !== row) moves.push({ kind: item.kind, fromRow: item.row, fromCol: col, toRow: row, toCol: col });
+      } else {
+        const slot = heads[col]! % MATCHUP_QUEUE_LEN;
+        heads[col] = heads[col]! + 1;
+        const kind = queue[slot]!;
+        const fromRow = -(depth - kept.length + 1);
+        cells[target] = kind;
+        moves.push({ kind, fromRow, fromCol: col, toRow: row, toCol: col });
+      }
+    }
+  }
+  return { moves };
+}
+
 /** Clears, falls and refills until nothing more lines up. Mutates its inputs. */
 function resolveBoard(
   cells: number[],
   queues: readonly number[][],
   heads: number[],
-): { gain: number; steps: number; best: number; cleared: number[] } {
+  preferredSpecial: number | null,
+  detonations: readonly number[] = [],
+): { gain: number; steps: number; best: number; cleared: number[]; animation: MatchupAnimStep[] } {
   let gain = 0;
   let steps = 0;
   let best = 0;
+  let preferred = preferredSpecial;
   const cleared: number[] = [];
+  const animation: MatchupAnimStep[] = [];
+
   for (;;) {
     const runs = matchupRuns(cells);
-    if (runs.length === 0) break;
+    if (runs.length === 0 && detonations.length === 0) break;
+
+    const before = [...cells];
     const gone = new Set<number>();
+    const created = new Map<number, number>();
+
+    if (steps === 0) for (const index of detonations) gone.add(index);
+
     for (const run of runs) {
       gain += run.points;
       if (run.length > best) best = run.length;
-      for (const index of run.cells) gone.add(index);
-    }
-    for (const index of gone) cleared.push(index);
-    // Everything above a cleared cell falls; the gaps take the column's queue.
-    for (let col = 0; col < MATCHUP_SIZE; col++) {
-      const kept: number[] = [];
-      for (let row = MATCHUP_SIZE - 1; row >= 0; row--) {
-        const index = matchupIndex(row, col);
-        if (!gone.has(index)) kept.push(cells[index]!);
+      let specialIndex = -1;
+      let specialKind = -1;
+      if (run.length === 4) {
+        specialIndex = lineSpecialIndex(run, preferred);
+        specialKind = MATCHUP_BOMB;
+      } else if (run.length >= 5) {
+        specialIndex = lineSpecialIndex(run, preferred);
+        specialKind = MATCHUP_CROSS;
       }
-      const queue = queues[col]!;
-      for (let row = MATCHUP_SIZE - 1; row >= 0; row--) {
-        const depth = MATCHUP_SIZE - 1 - row;
-        if (depth < kept.length) {
-          cells[matchupIndex(row, col)] = kept[depth]!;
-        } else {
-          const slot = heads[col]! % MATCHUP_QUEUE_LEN;
-          heads[col] = heads[col]! + 1;
-          cells[matchupIndex(row, col)] = queue[slot]!;
-        }
-      }
+      if (specialIndex >= 0) created.set(specialIndex, specialKind);
+      for (const index of run.cells) if (index !== specialIndex) gone.add(index);
     }
+
+    for (const [index, kind] of created) cells[index] = kind;
+
+    const special = expandSpecials(cells, gone, steps === 0 ? detonations : []);
+    gain += special.gained;
+    for (const index of special.detonated) gone.add(index);
+
+    if (gone.size === 0) break;
+    const stepCleared = [...gone].sort((a, b) => a - b);
+    for (const index of stepCleared) cleared.push(index);
+
+    const { moves } = fallAndRefill(cells, queues, heads, gone);
+    const maxDrop = moves.reduce((max, move) => Math.max(max, move.toRow - move.fromRow), 1);
+    const specialEntry = [...created.entries()][0];
+    animation.push({
+      before,
+      after: [...cells],
+      cleared: stepCleared,
+      detonated: special.detonated,
+      specialIndex: specialEntry?.[0] ?? -1,
+      specialKind: specialEntry?.[1] ?? -1,
+      moves,
+      ticks: maxDrop,
+    });
+
     steps += 1;
+    preferred = null;
     if (steps > 64) break;
   }
-  return { gain, steps, best, cleared };
+
+  return { gain, steps, best, cleared, animation };
 }
 
 /** A board with no valid swap is reshuffled with the state's own PRNG. */
