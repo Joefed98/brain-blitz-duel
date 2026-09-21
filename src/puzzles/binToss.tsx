@@ -74,14 +74,6 @@ function IntroExample() {
   );
 }
 
-interface DragState {
-  startX: number;
-  startY: number;
-  x: number;
-  y: number;
-  startTime: number;
-}
-
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BinTossPuzzleData | null = puzzle.type === "bintoss" ? puzzle : null;
   const seed = data?.seed ?? 1;
@@ -92,7 +84,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof binTossCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
-  const drag = useRef<DragState | null>(null);
+  /** The live swipe, sampled so the launch comes from its last 80 ms. */
+  const swipe = useRef<FlickSample[] | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
