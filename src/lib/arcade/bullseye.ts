@@ -167,8 +167,6 @@ export function bullseyeAimPoint(
   return { x: landing.x + sway.dx, y: landing.y + sway.dy };
 }
 
-
-
 /**
  * Which ring a landing point falls in, as an index, or −1 for a miss. Compared
  * with scaled integers so there is never a floating-point radius.
