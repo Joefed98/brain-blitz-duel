@@ -51,9 +51,19 @@ export const BINTOSS_RIM_Y = 110_080;
 
 /** Downward acceleration each tick. */
 export const BINTOSS_GRAVITY = 22;
-/** One wind unit of sideways acceleration each tick. */
-export const BINTOSS_WIND_UNIT = 8;
-export const BINTOSS_WIND_MAX = 2;
+/** Wind runs −3 … +3, drawn from the seeded PRNG so it is the same for everyone. */
+export const BINTOSS_WIND_MAX = 3;
+/**
+ * Wind is a constant sideways acceleration, carried in 1/65536-px units so the
+ * total drift can be pinned exactly. It is calibrated on the flight length of a
+ * throw that lands on the bin (70 ticks): over that flight one wind point moves
+ * the ball sideways by exactly half the bin opening, 50 px.
+ */
+export const BINTOSS_WIND_TICKS = 70;
+export const BINTOSS_WIND_SUB = 256;
+export const BINTOSS_WIND_ACC = Math.round(
+  (2 * BINTOSS_BIN_HALF * BINTOSS_WIND_SUB) / (BINTOSS_WIND_TICKS * (BINTOSS_WIND_TICKS + 1)),
+);
 
 /** Launch clamps: 10 px a tick sideways, 15 px a tick upwards. */
 export const BINTOSS_VX_MAX = 2_560;
