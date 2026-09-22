@@ -119,7 +119,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     pending.current = [];
     activeLaunch.current = null;
     lastGhost.current = null;
-    swipe.current = null;
+    anchor.current = null;
     aim.current = null;
     submitted.current = false;
     endedAt.current = null;
