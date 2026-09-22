@@ -324,6 +324,13 @@ export function dragLaunch(dx: number, dy: number, refSpeed: number): DragLaunch
  */
 export const ARCADE_INPUT_DRAG = 7;
 
+/**
+ * Kind 10: an on-screen power-up button press, `a` naming which button. The
+ * press is recorded on the sim tick it applied on; what it does lives in the
+ * game module, so the server sees exactly the same effect.
+ */
+export const ARCADE_INPUT_BUTTON = 10;
+
 /** Integer square root — used by the ball games so no float enters the sim. */
 export function isqrt(value: number): number {
   if (value <= 0) return 0;
