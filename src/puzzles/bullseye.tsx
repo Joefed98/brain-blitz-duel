@@ -13,7 +13,7 @@ import {
   bullseyeDrawAim,
   bullseyeGame,
   bullseyeInit,
-  bullseyeLanding,
+  bullseyeAimPoint,
   bullseyeScalePct,
   bullseyeTransform,
   BULLSEYE_ARROWS,
@@ -92,8 +92,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pending = useRef<ArcadeInputEvent[]>([]);
   /** Where the finger went down; the aim vector is measured from here. */
   const anchor = useRef<{ x: number; y: number } | null>(null);
-  /** Where a release right now would land. Render only. */
-  const aim = useRef<{ x: number; y: number } | null>(null);
+  /** The launch a release right now would make. Render only. */
+  const aim = useRef<{ vx: number; vy: number } | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
@@ -177,7 +177,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const context = canvas.current!.getContext("2d")!;
         bullseyeGame.draw(context, state.current, size);
         if (aim.current && state.current.flightTick === 0) {
-          bullseyeDrawAim(context, size, aim.current);
+          // The dotted path and landing ring include the sway at the tick a
+          // release would land on, so the player can time it.
+          bullseyeDrawAim(
+            context,
+            size,
+            bullseyeAimPoint(
+              state.current.arrowIndex,
+              state.current.tick + 1,
+              aim.current.vx,
+              aim.current.vy,
+            ),
+          );
         }
       }
 
@@ -263,7 +274,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (!start) return;
           const point = worldPoint(event);
           const preview = bullseyeDrag(point.x - start.x, point.y - start.y);
-          aim.current = preview ? bullseyeLanding(preview.vx, preview.vy) : null;
+          aim.current = preview ? { vx: preview.vx, vy: preview.vy } : null;
         }}
         onPointerUp={(event) => {
           const start = anchor.current;

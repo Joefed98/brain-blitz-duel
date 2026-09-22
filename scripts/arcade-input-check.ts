@@ -42,7 +42,9 @@ import {
   bullseyeDrag,
   bullseyeGame,
   bullseyeInit,
+  bullseyeAimPoint,
   bullseyeLanding,
+  bullseyeSway,
   bullseyeWindShiftPx,
   bullseyeWinds,
   BULLSEYE_CX,
@@ -54,6 +56,7 @@ import {
   BULLSEYE_V_MAX,
   BULLSEYE_OUTER_R,
   BULLSEYE_SCALE_PCT,
+  BULLSEYE_SWAY_PERIOD,
   type BullseyeCheckpoint,
   type BullseyeState,
 } from "../src/lib/arcade/bullseye.ts";
@@ -395,7 +398,8 @@ if (BULLSEYE_SCALE_PCT.join(",") !== "100,96,92,88,84,80,77,74,71,68") {
   fail("bullseye shrink factors differ");
 }
 
-// One wind point must drift the ball half a bin opening (50 px) over the flight
+// One wind point must drift the ball a quarter of the bin opening (25 px) over
+// the flight
 // of a throw that lands on the bin, and the aim path must ignore the wind.
 {
   const drag = dragAt(REFERENCE_DRAG_PX, 60);
@@ -406,7 +410,7 @@ if (BULLSEYE_SCALE_PCT.join(",") !== "100,96,92,88,84,80,77,74,71,68") {
     for (let wind = -BINTOSS_WIND_MAX; wind <= BINTOSS_WIND_MAX; wind++) {
       const blown = binTossPredict(launch.vx, launch.vy, wind);
       const drift = blown.x - still.x;
-      const expected = wind * 50;
+      const expected = wind * 25;
       if (Math.abs(drift - expected) > 1) {
         fail(`wind ${wind} drifted ${drift} px, expected ${expected} px`);
       }
@@ -428,6 +432,43 @@ for (let seed = 1; seed <= 200; seed++) {
     );
     if (bullseyeWindShiftPx(arrow, wind) !== expectedShift) {
       fail(`bullseye ${seed}: arrow ${arrow + 1} wind shift differs`);
+    }
+  }
+}
+
+// The aim sway: one full circle every 120 ticks, radius 0.6 of a ring width at
+// that arrow's scale, from the fixed table — no randomness, tick only.
+for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) {
+  const ringWidth = (BULLSEYE_OUTER_R * BULLSEYE_SCALE_PCT[arrow]!) / (6 * 100);
+  const radius = 0.6 * ringWidth;
+  for (let tick = 1; tick <= BULLSEYE_SWAY_PERIOD; tick++) {
+    const sway = bullseyeSway(arrow, tick);
+    if (!Number.isInteger(sway.dx) || !Number.isInteger(sway.dy)) {
+      fail(`bullseye sway is not integer at arrow ${arrow + 1}, tick ${tick}`);
+    }
+    const length = Math.hypot(sway.dx, sway.dy);
+    if (Math.abs(length - radius) > 1) {
+      fail(`bullseye sway radius ${length.toFixed(2)} px, expected ${radius.toFixed(2)} px`);
+    }
+    const wrapped = bullseyeSway(arrow, tick + BULLSEYE_SWAY_PERIOD);
+    if (wrapped.dx !== sway.dx || wrapped.dy !== sway.dy) {
+      fail(`bullseye sway does not repeat every ${BULLSEYE_SWAY_PERIOD} ticks`);
+    }
+  }
+  if (bullseyeSway(arrow, 30).dx === bullseyeSway(arrow, 0).dx) {
+    fail("bullseye sway does not move with the tick");
+  }
+}
+
+// The aim point carries the sway and never the wind.
+{
+  const drag = dragAt(REFERENCE_DRAG_PX, 90);
+  const launch = bullseyeDrag(drag.dx, drag.dy)!;
+  for (const tick of [1, 17, 44, 90, 119]) {
+    const point = bullseyeAimPoint(0, tick, launch.vx, launch.vy);
+    const sway = bullseyeSway(0, tick);
+    if (point.x !== BULLSEYE_CX + sway.dx || point.y !== BULLSEYE_CY + sway.dy) {
+      fail(`bullseye aim point ignored the sway at tick ${tick}`);
     }
   }
 }

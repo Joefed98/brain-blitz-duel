@@ -118,3 +118,9 @@
 - Bomb Defusal: plan chosen first, then four template rules true of it, then a
   proof over all 3,024 ordered four-action sequences (exactly one survives, and
   every rule is necessary). ~39 panel rolls on average, ~36 ms a panel.
+
+## 2026-09-22 — six-rule bombs, swaying bullseye, softer wind, gentler hover
+- Bomb Defusal: six rules per panel (a necessary core of four plus two confirming rules), distinct action pairs, 14 px rule lines; ~33 panel rolls per card.
+- Bullseye: deterministic tick-based aim sway (120-tick circle, 0.6 ring width) from a fixed integer table; aim path and landing ring include it.
+- Bin Toss: one wind point now drifts a quarter of the bin opening (25 px).
+- Hover: scroll step 20 (+0.08 px/tick per gate); a clean run is now 45 gates.

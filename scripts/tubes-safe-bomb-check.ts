@@ -24,6 +24,7 @@ import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "../src/
 import {
   BOMB_MAX_SEQUENCE,
   BOMB_MIN_SEQUENCE,
+  BOMB_NECESSARY_RULES,
   BOMB_RULE_COUNT,
   BOMB_WIRES,
   SAFE_CLUE_COUNT,
@@ -109,7 +110,13 @@ for (let i = 0; i < BOMB_PANELS; i++) {
   assert(inspected.wordingOk, "a rule does not use its template's exact wording");
   assert(inspected.solutions === 1, `rules allow ${inspected.solutions} sequences, not one`);
   assert(inspected.unique, "the one satisfying sequence is not the stored plan");
-  assert(inspected.necessary, "a rule could be dropped without adding a solution");
+  assert(inspected.necessary, "fewer than four rules were individually necessary");
+  assert(inspected.pairsDistinct, "two rules concern the same action pair");
+  assert(
+    inspected.necessaryRules >= BOMB_NECESSARY_RULES,
+    `only ${inspected.necessaryRules} rules were necessary`,
+  );
+  assert(new Set(bomb.rules.map((rule) => rule.id)).size === bomb.rules.length, "a rule repeats");
 
   const required = decodeBombActions(bomb.required!);
   const constraints = decodeBombConstraints(bomb.constraints!);

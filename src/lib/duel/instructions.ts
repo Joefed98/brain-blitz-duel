@@ -355,11 +355,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewer tries scores more.",
   },
   bomb: {
-    goal: "Read all four rules, work out the four steps, then do them in order.",
+    goal: "Read all six rules, work out the four steps, then do them in order.",
     how: [
       {
         action: "Only one order fits",
-        detail: "the four rules together allow exactly one sequence.",
+        detail: "the six rules together allow exactly one sequence.",
       },
       { action: "Four steps exactly", detail: "tap wires and buttons, then tap DEFUSE." },
       { action: "One wrong step", detail: "and it explodes." },
@@ -479,8 +479,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Touch and drag to aim", detail: "the dotted path shows where it will go." },
       {
-        action: "The wind pushes the ball — each wind point moves it half a bin width.",
-        detail: "Wind 2 to the left? Aim a full bin width to the right.",
+        action: "Each wind point moves the ball a quarter of a bin width.",
+        detail: "Wind 2 to the left? Aim half a bin width to the right.",
       },
       { action: "The bin moves", detail: "further away every throw." },
     ],
@@ -490,6 +490,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Hit the centre — ten arrows.",
     how: [
       { action: "Touch and drag to aim", detail: "the dotted path shows where it will go." },
+      {
+        action: "Your aim sways — watch the ring and release at the right moment.",
+        detail: "The ring circles once every two seconds.",
+      },
       {
         action: "The wind moves your arrow by that many rings.",
         detail: "Wind 2 to the right? Aim two rings to the left.",

@@ -37,7 +37,7 @@ import {
   type WireColour,
 } from "./bomb";
 import { pick, randomBelow, shuffled } from "./random";
-import { BOMB_MAX_SEQUENCE, BOMB_RULE_COUNT, BOMB_WIRES } from "./types";
+import { BOMB_MAX_SEQUENCE, BOMB_NECESSARY_RULES, BOMB_RULE_COUNT, BOMB_WIRES } from "./types";
 import type { BombPuzzleData } from "./types";
 
 interface Panel {
@@ -329,23 +329,52 @@ function solutions(masks: Uint32Array[], limit = Number.MAX_SAFE_INTEGER): numbe
   return out;
 }
 
-/** Dropping any single rule must leave more than one sequence standing. */
-function isNecessary(masks: Uint32Array[]): boolean {
+/** How many of a set's rules are individually necessary. */
+function necessaryCount(masks: Uint32Array[]): number {
+  let necessary = 0;
   for (let drop = 0; drop < masks.length; drop++) {
     let bits = ALL_BITS;
     for (let index = 0; index < masks.length; index++) {
       if (index !== drop) bits = intersect(bits, masks[index]!);
     }
-    if (countBits(bits, 2) < 2) return false;
+    if (countBits(bits, 2) >= 2) necessary += 1;
+  }
+  return necessary;
+}
+
+/** Dropping any single rule must leave more than one sequence standing. */
+function isNecessary(masks: Uint32Array[]): boolean {
+  return necessaryCount(masks) === masks.length;
+}
+
+/**
+ * The action pair a rule speaks about, if any — an ordering rule between two
+ * actions. Two rules on the same pair would read as the same idea twice, so a
+ * card never carries more than one of them.
+ */
+export function rulePairKey(id: string): string | null {
+  if (!id.startsWith("before:")) return null;
+  const [a = "", b = ""] = id.slice("before:".length).split(">");
+  return [a, b].sort().join("|");
+}
+
+/** No two rules may concern exactly the same action pair in the same way. */
+function pairsDistinct(ids: string[]): boolean {
+  const seen = new Set<string>();
+  for (const id of ids) {
+    const key = rulePairKey(id);
+    if (!key) continue;
+    if (seen.has(key)) return false;
+    seen.add(key);
   }
   return true;
 }
 
 /**
- * Searches the pool for four rules that between them allow exactly the chosen
- * plan and nothing else, with every rule pulling its weight. Depth-first over
- * combinations: three rules must still leave room for more than one sequence,
- * the fourth must close it down to the plan alone.
+ * Searches the pool for a core of four rules that between them allow exactly the
+ * chosen plan and nothing else, with every core rule pulling its weight. Depth
+ * first over combinations: three rules must still leave room for more than one
+ * sequence, the fourth must close it down to the plan alone.
  */
 function chooseRules(masks: Uint32Array[], planIndex: number): number[] | null {
   const order = shuffled(masks.map((_, index) => index));
@@ -356,8 +385,8 @@ function chooseRules(masks: Uint32Array[], planIndex: number): number[] | null {
       const index = order[position]!;
       const next = intersect(bits, masks[index]!);
       const depth = picked.length + 1;
-      const count = countBits(next, depth === BOMB_RULE_COUNT ? 2 : 2);
-      if (depth === BOMB_RULE_COUNT) {
+      const count = countBits(next, 2);
+      if (depth === BOMB_NECESSARY_RULES) {
         if (count !== 1 || firstBit(next) !== planIndex) continue;
         picked.push(index);
         const chosen = [...picked];
@@ -375,6 +404,38 @@ function chooseRules(masks: Uint32Array[], planIndex: number): number[] | null {
   };
 
   return walk(0, ALL_BITS);
+}
+
+/**
+ * Pads a necessary core out to six rules with confirming rules: each one is true
+ * of the plan, says something no other rule says, speaks about no action pair
+ * another rule already covers, and leaves at least four of the six individually
+ * necessary.
+ */
+function addConfirmingRules(
+  pool: RuleInstance[],
+  masks: Uint32Array[],
+  core: number[],
+): number[] | null {
+  const extras = shuffled(masks.map((_, index) => index).filter((index) => !core.includes(index)));
+  const needed = BOMB_RULE_COUNT - core.length;
+  if (needed <= 0) return core.slice(0, BOMB_RULE_COUNT);
+
+  const walk = (start: number, chosen: number[]): number[] | null => {
+    if (chosen.length === needed) {
+      const all = [...core, ...chosen];
+      if (!pairsDistinct(all.map((index) => pool[index]!.id))) return null;
+      if (necessaryCount(all.map((index) => masks[index]!)) < BOMB_NECESSARY_RULES) return null;
+      return all;
+    }
+    for (let position = start; position < Math.min(extras.length, start + 30); position++) {
+      const found = walk(position + 1, [...chosen, extras[position]!]);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  return walk(0, []);
 }
 
 function randomPanel(): Panel {
@@ -420,7 +481,9 @@ export function generateBombPanel(): BombGeneration {
     if (pool.length < BOMB_RULE_COUNT) continue;
     const masks = pool.map(maskOf);
 
-    const picked = chooseRules(masks, planIndex);
+    const core = chooseRules(masks, planIndex);
+    if (!core) continue;
+    const picked = addConfirmingRules(pool, masks, core);
     if (!picked) continue;
 
     // The plan must be the one surviving sequence, not merely one of them.
@@ -471,8 +534,12 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
   solutions: number;
   /** Exactly one, and it is the stored plan. */
   unique: boolean;
-  /** Dropping any single rule leaves more than one sequence. */
+  /** At least four rules are individually necessary. */
   necessary: boolean;
+  /** How many of the rules are individually necessary. */
+  necessaryRules: number;
+  /** No two rules concern the same action pair. */
+  pairsDistinct: boolean;
   /** Every rule's wording is exactly its template's. */
   wordingOk: boolean;
   /** Rules whose template instance could not be rebuilt. */
@@ -491,15 +558,14 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
   const masks = known.map(maskOf);
   const found = solutions(masks, 3);
   const plan = puzzle.sequence ?? puzzle.required ?? "";
-  const necessary =
-    known.length === puzzle.rules.length &&
-    known.every(
-      (_, drop) =>
-        solutions(
-          masks.filter((__, index) => index !== drop),
-          2,
-        ).length >= 2,
-    );
+  const necessaryRules = known.filter(
+    (_, drop) =>
+      solutions(
+        masks.filter((__, index) => index !== drop),
+        2,
+      ).length >= 2,
+  ).length;
+  const necessary = known.length === puzzle.rules.length && necessaryRules >= BOMB_NECESSARY_RULES;
 
   return {
     solutions: found.length,
@@ -508,6 +574,8 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
       known.length === puzzle.rules.length &&
       ALL_SEQUENCES[found[0]!]!.join(",") === plan.split(",").join(","),
     necessary,
+    necessaryRules,
+    pairsDistinct: pairsDistinct(puzzle.rules.map((rule) => rule.id)),
     wordingOk: puzzle.rules.every(
       (rule, index) => rebuilt[index]?.text === rule.text && rebuilt[index]?.id === rule.id,
     ),
