@@ -107,29 +107,28 @@ export const CROSS_SEARCH_TICKS = 900;
  * only accepted when the goal kerb can be reached from the start kerb.
  */
 export function crossPassable(course: CrossCourse): boolean {
-  // Key: lane * 7 * 7 + col * 7 + hopLeft.
+  // Key: (lane * columns + column) * 7 + ticks left in the hop.
   const key = (lane: number, col: number, hop: number) => (lane * CROSS_COLS + col) * 7 + hop;
   let frontier = new Set<number>([key(0, CROSS_COLS >> 1, 0)]);
-  const seen = new Set<number>(frontier);
   for (let rel = 1; rel <= CROSS_SEARCH_TICKS && frontier.size > 0; rel++) {
     const next = new Set<number>();
+    let arrived = false;
     const consider = (lane: number, col: number, hop: number) => {
-      if (lane >= CROSS_LANES + 1) return;
-      if (hop === 0 && lane >= 1 && lane <= CROSS_LANES) {
+      if (lane > CROSS_LANES) {
+        arrived = true;
+        return;
+      }
+      if (hop === 0 && lane >= 1) {
         const laneDef = course.lanes[lane - 1];
         if (laneDef && crossBlocked(laneDef, crossColumnCentreFp(col), rel)) return;
       }
-      const id = key(lane, col, hop);
-      if (seen.has(id) && hop === 0) return;
-      next.add(id);
-      if (hop === 0) seen.add(id);
+      next.add(key(lane, col, hop));
     };
     for (const id of frontier) {
       const hop = id % 7;
       const rest = Math.trunc(id / 7);
       const col = rest % CROSS_COLS;
       const lane = Math.trunc(rest / CROSS_COLS);
-      if (lane >= CROSS_LANES + 1) return true;
       if (hop > 0) {
         const left = hop - 1;
         if (left === 0) consider(lane + 1, col, 0);
@@ -141,11 +140,7 @@ export function crossPassable(course: CrossCourse): boolean {
       if (col < CROSS_COLS - 1) consider(lane, col + 1, 0);
       consider(lane, col, CROSS_HOP_TICKS);
     }
-    for (const id of next) {
-      const hop = id % 7;
-      const lane = Math.trunc(Math.trunc(id / 7) / CROSS_COLS);
-      if (hop === 0 && lane >= CROSS_LANES + 1) return true;
-    }
+    if (arrived) return true;
     frontier = next;
   }
   return false;
