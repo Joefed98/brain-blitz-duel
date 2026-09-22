@@ -61,29 +61,30 @@ export function encodeSnakeRun(run: SnakeRun): string {
 }
 
 export function decodeSnakeRun(raw: string): SnakeRun {
-  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] = String(
-    raw ?? "",
-  ).split("|");
+  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
+    String(raw ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
     .slice(0, Math.ceil(SNAKE_RUN_TICKS / SNAKE_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
     .filter((values) => values.length === 12 && values.every(Number.isInteger))
-    .map(([tick, head, tail, length, dir, nextDir, eaten, pellet, cursor, sinceMove, steps, sum]) => ({
-      tick: tick ?? 0,
-      head: head ?? 0,
-      tail: tail ?? 0,
-      length: length ?? 0,
-      dir: dir ?? 0,
-      nextDir: nextDir ?? 0,
-      eaten: eaten ?? 0,
-      pellet: pellet ?? 0,
-      cursor: cursor ?? 0,
-      sinceMove: sinceMove ?? 0,
-      stepTicks: steps ?? 0,
-      checksum: (sum ?? 0) >>> 0,
-    }));
+    .map(
+      ([tick, head, tail, length, dir, nextDir, eaten, pellet, cursor, sinceMove, steps, sum]) => ({
+        tick: tick ?? 0,
+        head: head ?? 0,
+        tail: tail ?? 0,
+        length: length ?? 0,
+        dir: dir ?? 0,
+        nextDir: nextDir ?? 0,
+        eaten: eaten ?? 0,
+        pellet: pellet ?? 0,
+        cursor: cursor ?? 0,
+        sinceMove: sinceMove ?? 0,
+        stepTicks: steps ?? 0,
+        checksum: (sum ?? 0) >>> 0,
+      }),
+    );
   return {
     seed: Number.parseInt(seedPart, 10) || 0,
     claimedScore: Number.parseInt(scorePart, 10) || 0,

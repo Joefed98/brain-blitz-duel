@@ -280,7 +280,18 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
     const course = crossCourse({ ...state, crossings });
     const laneDef = course.lanes[lane - 1];
     if (laneDef && crossBlocked(laneDef, crossColumnCentreFp(col), tick - crossStart)) {
-      return { ...state, tick, lane, col, hop, reached, crossings, crossStart, dead: true, endedTick: tick };
+      return {
+        ...state,
+        tick,
+        lane,
+        col,
+        hop,
+        reached,
+        crossings,
+        crossStart,
+        dead: true,
+        endedTick: tick,
+      };
     }
   }
 

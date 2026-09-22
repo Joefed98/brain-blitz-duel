@@ -301,7 +301,6 @@ function draw(ctx: CanvasRenderingContext2D, state: RicoState, size: CanvasSize)
   }
 
   // The ball: while in flight it travels across the shaft with its climb.
-  const span = RICO_SHAFT_RIGHT - RICO_SHAFT_LEFT - 2 * RICO_BALL_R;
   const fromX = state.wall === 0 ? RICO_SHAFT_RIGHT - RICO_BALL_R : RICO_SHAFT_LEFT + RICO_BALL_R;
   const toX = state.wall === 0 ? RICO_SHAFT_LEFT + RICO_BALL_R : RICO_SHAFT_RIGHT - RICO_BALL_R;
   const done = state.flight > 0 ? (RICO_LEAP_TICKS - state.flight) / RICO_LEAP_TICKS : 1;
@@ -310,7 +309,6 @@ function draw(ctx: CanvasRenderingContext2D, state: RicoState, size: CanvasSize)
   ctx.beginPath();
   ctx.arc(ballX, screenOf(ballWorldY), RICO_BALL_R, 0, Math.PI * 2);
   ctx.fill();
-  void span;
 
   const remaining = Math.max(0, RICO_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";

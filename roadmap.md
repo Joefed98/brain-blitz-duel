@@ -124,3 +124,16 @@
 - Bullseye: deterministic tick-based aim sway (120-tick circle, 0.6 ring width) from a fixed integer table; aim path and landing ring include it.
 - Bin Toss: one wind point now drifts a quarter of the bin opening (25 px).
 - Hover: scroll step 20 (+0.08 px/tick per gate); a clean run is now 45 gates.
+
+## 2026-09-22 — four new arcade games: Snake, Cross, Dual, Ricochet
+- Shared sims in src/lib/arcade/{snake,cross,dual,ricochet}.ts; 60 ticks/s, integer
+  1/256-px constants, seeded mulberry32 in state, whole course built at init.
+- Inputs: snake k=4 (swipe direction), cross k=5 (hop/left/right), dual k=6 (side),
+  ricochet k=0 (tap); per-game declared ranges, 300-tick checkpoints, clientLag.
+- Server replay and practice grading in src/lib/duel/{snake,cross,dual,ricochet}.ts;
+  registry, help cards, reveals and standings summaries added.
+- Cross proves every crossing passable with a (lane, column, tick) search; Dual
+  keeps 20/12-tick separation across sides; Ricochet spikes are 90 px apart on a
+  wall and never facing.
+- scripts/arcade-four-check.ts: 200-run client/server identity per game, payload
+  range rejection, lag handling — all passing.
