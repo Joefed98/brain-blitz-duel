@@ -52,7 +52,11 @@ export type PuzzleType =
   | "skyline"
   | "bintoss"
   | "bullseye"
-  | "matchup";
+  | "matchup"
+  | "snake"
+  | "cross"
+  | "dual"
+  | "ricochet";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -417,7 +421,11 @@ export type PuzzleData =
   | SkylinePuzzleData
   | BinTossPuzzleData
   | BullseyePuzzleData
-  | MatchupPuzzleData;
+  | MatchupPuzzleData
+  | SnakePuzzleData
+  | CrossPuzzleData
+  | DualPuzzleData
+  | RicoPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1695,5 +1703,37 @@ export const MATCHUP_TIME_MS = 63_000;
 export interface MatchupPuzzleData {
   type: "matchup";
   /** Draws the board and each column's refill queue — identical for everyone. */
+  seed: number;
+}
+
+/* ================= Snake / Cross / Dual / Ricochet ======================= */
+
+/** Each run is a fixed 60 seconds; the round clock adds three of slack. */
+export const SNAKE_TIME_MS = 63_000;
+export const CROSS_TIME_MS = 63_000;
+export const DUAL_TIME_MS = 63_000;
+export const RICO_TIME_MS = 63_000;
+
+export interface SnakePuzzleData {
+  type: "snake";
+  /** Draws the whole pellet queue — identical for everyone in the room. */
+  seed: number;
+}
+
+export interface CrossPuzzleData {
+  type: "cross";
+  /** Draws every crossing's traffic — identical for everyone in the room. */
+  seed: number;
+}
+
+export interface DualPuzzleData {
+  type: "dual";
+  /** Draws both obstacle schedules — identical for everyone in the room. */
+  seed: number;
+}
+
+export interface RicoPuzzleData {
+  type: "ricochet";
+  /** Lays out the whole shaft of spikes — identical for everyone. */
   seed: number;
 }

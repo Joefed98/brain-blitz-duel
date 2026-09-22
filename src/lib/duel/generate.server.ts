@@ -38,7 +38,11 @@ import {
   generateBinToss,
   generateBullseye,
   generateMatchup,
+  generateCross,
+  generateDual,
+  generateRicochet,
   generateSkyline,
+  generateSnake,
   generateSwerve,
 } from "./arcade.server";
 
@@ -85,6 +89,10 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "bintoss") return generateBinToss();
   if (type === "bullseye") return generateBullseye();
   if (type === "matchup") return generateMatchup();
+  if (type === "snake") return generateSnake();
+  if (type === "cross") return generateCross();
+  if (type === "dual") return generateDual();
+  if (type === "ricochet") return generateRicochet();
 
   return puzzleDef(type).generate();
 }

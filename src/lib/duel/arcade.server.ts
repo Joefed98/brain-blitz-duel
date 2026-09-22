@@ -10,7 +10,11 @@ import type {
   BinTossPuzzleData,
   BullseyePuzzleData,
   MatchupPuzzleData,
+  CrossPuzzleData,
+  DualPuzzleData,
+  RicoPuzzleData,
   SkylinePuzzleData,
+  SnakePuzzleData,
   SwervePuzzleData,
 } from "./types";
 
@@ -38,4 +42,20 @@ export function generateBullseye(): BullseyePuzzleData {
 
 export function generateMatchup(): MatchupPuzzleData {
   return { type: "matchup", seed: arcadeSeed() };
+}
+
+export function generateSnake(): SnakePuzzleData {
+  return { type: "snake", seed: arcadeSeed() };
+}
+
+export function generateCross(): CrossPuzzleData {
+  return { type: "cross", seed: arcadeSeed() };
+}
+
+export function generateDual(): DualPuzzleData {
+  return { type: "dual", seed: arcadeSeed() };
+}
+
+export function generateRicochet(): RicoPuzzleData {
+  return { type: "ricochet", seed: arcadeSeed() };
 }
