@@ -48,7 +48,7 @@ function IntroExample() {
         <circle cx="86" cy="96" r="10" fill={CROSS_PLAYER} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Hop into the gaps until you reach the far kerb.
+        Swipe up into the gaps until you reach the far kerb.
       </p>
     </div>
   );
@@ -64,6 +64,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof crossCheckpoint>[]>([]);
   const pending = useRef<number[]>([]);
+  /** Where the finger went down, so a swipe direction can be read off. */
+  const from = useRef<{ x: number; y: number } | null>(null);
   const submitted = useRef(false);
   const deadAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
