@@ -40,8 +40,10 @@ export function encodeCrossRun(run: CrossRun): string {
         item.lane,
         item.col,
         item.hop,
+        item.hopDir,
         item.reached,
         item.crossStart,
+        item.pauseUntil,
         item.laneSpeed,
         item.checksum,
       ].join(":"),
@@ -64,18 +66,34 @@ export function decodeCrossRun(raw: string): CrossRun {
     .filter(Boolean)
     .slice(0, Math.ceil(CROSS_RUN_TICKS / CROSS_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
-    .filter((values) => values.length === 9 && values.every(Number.isInteger))
-    .map(([tick, crossings, lane, col, hop, reached, crossStart, laneSpeed, sum]) => ({
-      tick: tick ?? 0,
-      crossings: crossings ?? 0,
-      lane: lane ?? 0,
-      col: col ?? 0,
-      hop: hop ?? 0,
-      reached: reached ?? 0,
-      crossStart: crossStart ?? 0,
-      laneSpeed: laneSpeed ?? 0,
-      checksum: (sum ?? 0) >>> 0,
-    }));
+    .filter((values) => values.length === 11 && values.every(Number.isInteger))
+    .map(
+      ([
+        tick,
+        crossings,
+        lane,
+        col,
+        hop,
+        hopDir,
+        reached,
+        crossStart,
+        pauseUntil,
+        laneSpeed,
+        sum,
+      ]) => ({
+        tick: tick ?? 0,
+        crossings: crossings ?? 0,
+        lane: lane ?? 0,
+        col: col ?? 0,
+        hop: hop ?? 0,
+        hopDir: hopDir ?? 1,
+        reached: reached ?? 0,
+        crossStart: crossStart ?? 0,
+        pauseUntil: pauseUntil ?? 0,
+        laneSpeed: laneSpeed ?? 0,
+        checksum: (sum ?? 0) >>> 0,
+      }),
+    );
   return {
     seed: Number.parseInt(seedPart, 10) || 0,
     claimedScore: Number.parseInt(scorePart, 10) || 0,
