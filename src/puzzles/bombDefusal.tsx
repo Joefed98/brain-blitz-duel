@@ -238,7 +238,7 @@ function Stage({
 
       <div className="flex shrink-0 items-center justify-between">
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          actions <span className="text-primary">{actions.length}</span>
+          steps <span className="text-primary">{actions.length}</span> / {BOMB_MAX_SEQUENCE}
         </p>
         <button
           type="button"
