@@ -428,7 +428,10 @@ export type PuzzleData =
   | SnakePuzzleData
   | CrossPuzzleData
   | DualPuzzleData
-  | RicoPuzzleData;
+  | RicoPuzzleData
+  | BreakerPuzzleData
+  | RallyPuzzleData
+  | SteadyPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
