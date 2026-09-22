@@ -107,4 +107,4 @@
 - [x] Count Up: all 48 cells contain either the target or a valid distractor.
 - [x] Bin Toss: scored-ball settle animation, delayed visible counter, and 72px drag-to-cancel zone.
 - [x] Bullseye: stored seeded wind −3…+3, exact scaled-ring displacement, and per-arrow reveal details.
-- [ ] Re-run the 200-run Bullseye identity proof and focused static checks.
+- [x] Re-ran the 200-run Bullseye identity proof and focused static checks.
