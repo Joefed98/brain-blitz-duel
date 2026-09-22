@@ -85,7 +85,8 @@ export const BINTOSS_REF_V = 1_169;
  * The wind is a constant sideways acceleration, carried in 1/65536-px units so
  * that its total drift can be pinned exactly. It is calibrated on the flight of
  * the reference throw — the one that lands on the bin: over exactly that many
- * ticks one wind point moves the ball sideways by half the bin opening, 50 px.
+ * ticks one wind point moves the ball sideways by a quarter of the bin opening,
+ * 25 px.
  */
 function referenceRimTicks(): number {
   // The 60° reference launch, rising and then falling back to rim height.
@@ -102,7 +103,7 @@ function referenceRimTicks(): number {
 export const BINTOSS_WIND_TICKS = referenceRimTicks();
 export const BINTOSS_WIND_SUB = 256;
 export const BINTOSS_WIND_ACC = Math.round(
-  (2 * BINTOSS_BIN_HALF * BINTOSS_WIND_SUB) / (BINTOSS_WIND_TICKS * (BINTOSS_WIND_TICKS + 1)),
+  (BINTOSS_BIN_HALF * BINTOSS_WIND_SUB) / (BINTOSS_WIND_TICKS * (BINTOSS_WIND_TICKS + 1)),
 );
 
 /**
