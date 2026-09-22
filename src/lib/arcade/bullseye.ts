@@ -277,9 +277,11 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
     const wind = state.winds[arrow] ?? 0;
     const vx = clampInt(input.a, -BULLSEYE_V_MAX, BULLSEYE_V_MAX);
     const vy = clampInt(input.b, -BULLSEYE_V_MAX, 0);
-    const landing = bullseyeLanding(vx, vy);
-    const x = landing.x + bullseyeWindShiftPx(arrow, wind);
-    const y = landing.y;
+    // The landing is the aim point on the release tick — sway included — then
+    // shifted sideways by this arrow's wind.
+    const aimed = bullseyeAimPoint(arrow, tick, vx, vy);
+    const x = aimed.x + bullseyeWindShiftPx(arrow, wind);
+    const y = aimed.y;
     const ring = bullseyeRingAt(x, y, bullseyeScalePct(arrow));
     const value = bullseyeRingValue(ring);
     const next: BullseyeState = {
