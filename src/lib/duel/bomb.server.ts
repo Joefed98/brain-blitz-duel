@@ -318,11 +318,17 @@ export interface BombGeneration {
   attempts: number;
 }
 
+/** Rules considered per attempt — a random slice, to keep the proof cheap. */
+const POOL_SAMPLE = 26;
+
 export function generateBombPanel(): BombGeneration {
   for (let attempt = 1; attempt <= 20_000; attempt++) {
     const panel = randomPanel();
     const plan = shuffled(BOMB_ACTIONS).slice(0, PLAN_LENGTH);
-    const pool = candidateRules(panel).filter((rule) => rule.test(plan));
+    const pool = shuffled(candidateRules(panel).filter((rule) => rule.test(plan))).slice(
+      0,
+      POOL_SAMPLE,
+    );
     if (pool.length < BOMB_RULE_COUNT) continue;
     const masks = pool.map(maskOf);
 
