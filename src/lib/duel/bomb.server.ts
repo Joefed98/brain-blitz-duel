@@ -1,27 +1,32 @@
 /**
  * Server-only generation for Bomb Defusal.
  *
- * Six rules are drawn from a bank and evaluated against a random panel. The
- * rules yield one unambiguous PLAN: the set of actions that must be carried out,
- * plus the ordering constraints the rules impose. A panel is only kept when
+ * The panel is built so that ambiguity and contradiction are impossible BY
+ * CONSTRUCTION, in this order:
  *
- *  - the required actions number exactly four,
- *  - no rule forbids an action another rule requires,
- *  - the ordering constraints contain no cycle and no opposite pair,
- *  - at least two constraints actually bite,
- *  - at least three of the six rules change the plan, and
- *  - every rule's wording is one of the permitted forms, so no rule can be read
- *    two ways.
+ *  1. randomise the panel (seven wires, two buttons, the light, the serial),
+ *  2. CHOOSE the four-action plan first — four distinct actions, in order,
+ *     drawn from the nine the panel offers (seven cuts, two presses),
+ *  3. generate four rules that are TRUE of that panel and that plan, each one
+ *     an instance of a fixed template that is a testable predicate,
+ *  4. enumerate all 9 × 8 × 7 × 6 = 3,024 ordered four-action sequences and
+ *     keep the panel only when EXACTLY ONE of them satisfies all four rules —
+ *     and it is the chosen one,
+ *  5. check necessity: dropping any single rule must leave more than one
+ *     satisfying sequence, otherwise the panel is re-rolled.
  *
- * Where the rules leave two actions unordered, either order defuses the bomb —
- * see `checkBombPlan` in `bomb.ts`, which both the server and the reveal use.
+ * Zero solutions (a contradiction) and several solutions (an ambiguity) are
+ * therefore both rejected before the panel ever reaches a player. The server
+ * stores the unique sequence, and a player's answer is right exactly when it
+ * equals it.
  */
 
 import {
-  canonicalBombOrder,
   cutAction,
+  cutIndex,
   encodeBombActions,
   encodeBombConstraints,
+  isCut,
   pressAction,
   WIRE_COLOURS,
   BOMB_SWITCH_POSITIONS,
@@ -32,14 +37,7 @@ import {
   type WireColour,
 } from "./bomb";
 import { pick, randomBelow, shuffled } from "./random";
-import {
-  BOMB_MAX_SEQUENCE,
-  BOMB_MIN_EFFECTIVE_RULES,
-  BOMB_MIN_ORDER_RULES,
-  BOMB_MIN_SEQUENCE,
-  BOMB_RULE_COUNT,
-  BOMB_WIRES,
-} from "./types";
+import { BOMB_MAX_SEQUENCE, BOMB_RULE_COUNT, BOMB_WIRES } from "./types";
 import type { BombPuzzleData } from "./types";
 
 interface Panel {
@@ -50,386 +48,333 @@ interface Panel {
   switchPosition: BombSwitch;
 }
 
-interface Rule {
+/** A rule on the card: its template instance id, its wording, its predicate. */
+interface RuleInstance {
   id: string;
   text: string;
-  /** Only applies when no other rule required anything. */
-  fallback?: boolean;
-  /** Does the rule's condition hold on this panel? */
-  when: (panel: Panel) => boolean;
-  /** Actions the rule requires when its condition holds. */
-  actions?: (panel: Panel) => BombAction[];
-  /** Actions the rule forbids when its condition holds. */
-  forbid?: (panel: Panel) => BombAction[];
-  /** Ordering the rule imposes when its condition holds. */
-  order?: (panel: Panel) => BombConstraint[];
+  /**
+   * The predicate's own identity, independent of the panel and the wording —
+   * "Cut wire 3" and "If the light is on, cut wire 3" share one. Sequence masks
+   * are cached against it, so the proof never re-evaluates the same predicate.
+   */
+  key: string;
+  test: (sequence: BombAction[]) => boolean;
+}
+
+/** The plan is always this long. */
+const PLAN_LENGTH = BOMB_MAX_SEQUENCE;
+
+/** The nine actions any panel offers. */
+export const BOMB_ACTIONS: BombAction[] = [
+  ...Array.from({ length: BOMB_WIRES }, (_, index) => cutAction(index)),
+  pressAction("A"),
+  pressAction("B"),
+];
+
+/** Every ordered choice of four distinct actions — 3,024 of them. */
+const ALL_SEQUENCES: BombAction[][] = (() => {
+  const out: BombAction[][] = [];
+  const walk = (prefix: BombAction[]) => {
+    if (prefix.length === PLAN_LENGTH) {
+      out.push(prefix);
+      return;
+    }
+    for (const action of BOMB_ACTIONS) {
+      if (prefix.includes(action)) continue;
+      walk([...prefix, action]);
+    }
+  };
+  walk([]);
+  return out;
+})();
+
+/* -------------------------------------------------------------------------- */
+/*  Wording                                                                   */
+/* -------------------------------------------------------------------------- */
+
+const colourWord = (colour: WireColour) => colour.charAt(0) + colour.slice(1).toLowerCase();
+const NUMBER_WORDS = ["zero", "one", "two", "three", "four"] as const;
+
+/** "Cut wire 3" / "Press button A" — the only way an action is ever named. */
+function phrase(action: BombAction): string {
+  return isCut(action) ? `Cut wire ${cutIndex(action) + 1}` : `Press button ${action.slice(1)}`;
+}
+
+/** The same action as the object of a "before" clause. */
+function gerund(action: BombAction): string {
+  return isCut(action)
+    ? `cutting wire ${cutIndex(action) + 1}`
+    : `pressing button ${action.slice(1)}`;
 }
 
 const count = (panel: Panel, colour: WireColour) =>
   panel.wires.filter((wire) => wire === colour).length;
-const firstOf = (panel: Panel, colour: WireColour) => panel.wires.indexOf(colour);
-const lastOf = (panel: Panel, colour: WireColour) => panel.wires.lastIndexOf(colour);
 const serialOdd = (panel: Panel) => Number.parseInt(panel.serial, 10) % 2 === 1;
-const lastDigit = (panel: Panel) => Number.parseInt(panel.serial.slice(-1), 10);
-const buttonColour = (panel: Panel, label: "A" | "B") =>
-  panel.buttons.find((button) => button.label === label)?.colour;
 
-const cut = (wire: number): BombAction[] => (wire >= 0 ? [cutAction(wire)] : []);
-const press = (label: "A" | "B"): BombAction[] => [pressAction(label)];
+/** Panel conditions an "If …, …" rule may test. */
+interface PanelCondition {
+  id: string;
+  text: string;
+  holds: (panel: Panel) => boolean;
+}
 
-/* -------------------------------------------------------------------------- */
-/*  Permitted wordings                                                        */
-/* -------------------------------------------------------------------------- */
-
-const COLOUR_WORDS = "red|blue|green|yellow|white";
-
-/** The only action phrasings a rule may use, so no rule can be read two ways. */
-const ACTION_FORMS: RegExp[] = [
-  new RegExp(`^cut wire [1-9]( first| last)?$`),
-  new RegExp(`^cut the (first|last) (${COLOUR_WORDS}) wire$`),
-  new RegExp(`^press button [ab]( first| last)?$`),
-  new RegExp(`^press button [ab] before pressing button [ab]$`),
-  new RegExp(`^press button [ab] before cutting wire [1-9]$`),
-  new RegExp(`^press button [ab] after cutting wire [1-9]$`),
-  new RegExp(`^do not cut wire [1-9]$`),
+const CONDITIONS: PanelCondition[] = [
+  { id: "lightOn", text: "the light is on", holds: (p) => p.light },
+  { id: "lightOff", text: "the light is off", holds: (p) => !p.light },
+  { id: "serialOdd", text: "the serial number is odd", holds: serialOdd },
+  { id: "serialEven", text: "the serial number is even", holds: (p) => !serialOdd(p) },
+  ...WIRE_COLOURS.map((colour) => ({
+    id: `many:${colour}`,
+    text: `there is more than one ${colourWord(colour)} wire`,
+    holds: (p: Panel) => count(p, colour) > 1,
+  })),
+  ...WIRE_COLOURS.map((colour) => ({
+    id: `none:${colour}`,
+    text: `there is no ${colourWord(colour)} wire`,
+    holds: (p: Panel) => count(p, colour) === 0,
+  })),
 ];
 
-/** True when every clause of a rule uses one of the permitted forms. */
-export function bombWordingIsAllowed(text: string): boolean {
-  const trimmed = text.trim().replace(/\.$/, "");
-  const body = /^if [^,]+, /i.test(trimmed) ? trimmed.slice(trimmed.indexOf(", ") + 2) : trimmed;
-  const action = body.toLowerCase();
-  return ACTION_FORMS.some((form) => form.test(action));
-}
-
 /* -------------------------------------------------------------------------- */
-/*  Rule bank                                                                 */
+/*  Templates                                                                 */
 /* -------------------------------------------------------------------------- */
 
-const BOMB_RULES: Rule[] = [
-  {
-    id: "lastRed",
-    text: "If there is more than one red wire, cut the last red wire.",
-    when: (p) => count(p, "RED") > 1,
-    actions: (p) => cut(lastOf(p, "RED")),
-  },
-  {
-    id: "lightSecond",
-    text: "If the light is on, cut wire 2.",
-    when: (p) => p.light,
-    actions: () => cut(1),
-  },
-  {
-    id: "serialOddPressAFirst",
-    text: "If the serial number is odd, press button A first.",
-    when: serialOdd,
-    actions: () => press("A"),
-    order: () => [{ kind: "first", a: pressAction("A") }],
-  },
-  {
-    id: "noCutLastWhite",
-    text: "If wire 7 is white, do not cut wire 7.",
-    when: (p) => p.wires[BOMB_WIRES - 1] === "WHITE",
-    forbid: () => cut(BOMB_WIRES - 1),
-  },
-  {
-    id: "blueSoPressBLast",
-    text: "If there is a blue wire, press button B last.",
-    when: (p) => count(p, "BLUE") > 0,
-    actions: () => press("B"),
-    order: () => [{ kind: "last", a: pressAction("B") }],
-  },
-  {
-    id: "fallbackFirstWire",
-    text: "If no rule applied, cut wire 1.",
-    fallback: true,
-    when: () => true,
-    actions: () => cut(0),
-  },
-  {
-    id: "noRedThird",
-    text: "If there is no red wire, cut wire 3.",
-    when: (p) => count(p, "RED") === 0,
-    actions: () => cut(2),
-  },
-  {
-    id: "threeBlue",
-    text: "If there are three or more blue wires, cut the last blue wire.",
-    when: (p) => count(p, "BLUE") >= 3,
-    actions: (p) => cut(lastOf(p, "BLUE")),
-  },
-  {
-    id: "lightOffSerialEven",
-    text: "If the light is off and the serial number is even, cut wire 1.",
-    when: (p) => !p.light && !serialOdd(p),
-    actions: () => cut(0),
-  },
-  {
-    id: "firstYellow",
-    text: "If there is a yellow wire, cut the first yellow wire.",
-    when: (p) => count(p, "YELLOW") > 0,
-    actions: (p) => cut(firstOf(p, "YELLOW")),
-  },
-  {
-    id: "buttonAWhite",
-    text: "If button A is white, press button A.",
-    when: (p) => buttonColour(p, "A") === "WHITE",
-    actions: () => press("A"),
-  },
-  {
-    id: "buttonBRedLast",
-    text: "If button B is red, press button B last.",
-    when: (p) => buttonColour(p, "B") === "RED",
-    actions: () => press("B"),
-    order: () => [{ kind: "last", a: pressAction("B") }],
-  },
-  {
-    id: "oneGreen",
-    text: "If there is exactly one green wire, cut the first green wire.",
-    when: (p) => count(p, "GREEN") === 1,
-    actions: (p) => cut(firstOf(p, "GREEN")),
-  },
-  {
-    id: "twoGreen",
-    text: "If there are exactly two green wires, cut the last green wire.",
-    when: (p) => count(p, "GREEN") === 2,
-    actions: (p) => cut(lastOf(p, "GREEN")),
-  },
-  {
-    id: "noYellowLast",
-    text: "If there is no yellow wire, cut wire 7.",
-    when: (p) => count(p, "YELLOW") === 0,
-    actions: () => cut(BOMB_WIRES - 1),
-  },
-  {
-    id: "firstRedFourth",
-    text: "If wire 1 is red, cut wire 4.",
-    when: (p) => p.wires[0] === "RED",
-    actions: () => cut(3),
-  },
-  {
-    id: "serialHighFifth",
-    text: "If the last digit of the serial number is more than 5, cut wire 5.",
-    when: (p) => lastDigit(p) > 5,
-    actions: () => cut(4),
-  },
-  {
-    id: "whiteOverBlue",
-    text: "If there are more white wires than blue wires, cut the first white wire.",
-    when: (p) => count(p, "WHITE") > count(p, "BLUE") && count(p, "WHITE") > 0,
-    actions: (p) => cut(firstOf(p, "WHITE")),
-  },
-  {
-    id: "switchLeftPressAFirst",
-    text: "If the switch is LEFT, press button A first.",
-    when: (p) => p.switchPosition === "LEFT",
-    actions: () => press("A"),
-    order: () => [{ kind: "first", a: pressAction("A") }],
-  },
-  {
-    id: "switchMidFourth",
-    text: "If the switch is MID, cut wire 4.",
-    when: (p) => p.switchPosition === "MID",
-    actions: () => cut(3),
-  },
-  {
-    id: "switchRightPressBLast",
-    text: "If the switch is RIGHT, press button B last.",
-    when: (p) => p.switchPosition === "RIGHT",
-    actions: () => press("B"),
-    order: () => [{ kind: "last", a: pressAction("B") }],
-  },
-  {
-    id: "twoWhiteSixth",
-    text: "If there are at least two white wires, cut wire 6.",
-    when: (p) => count(p, "WHITE") >= 2,
-    actions: () => cut(5),
-  },
-  {
-    id: "moreGreenRedSeventh",
-    text: "If there are more green wires than red wires, cut wire 7.",
-    when: (p) => count(p, "GREEN") > count(p, "RED"),
-    actions: () => cut(BOMB_WIRES - 1),
-  },
-  {
-    id: "noCutFirstGreen",
-    text: "If wire 1 is green, do not cut wire 1.",
-    when: (p) => p.wires[0] === "GREEN",
-    forbid: () => cut(0),
-  },
-  {
-    id: "pressABeforeB",
-    text: "Press button A before pressing button B.",
-    when: () => true,
-    order: () => [{ kind: "before", a: pressAction("A"), b: pressAction("B") }],
-  },
-  {
-    id: "greenWireThirdLast",
-    text: "If there is a green wire, cut wire 3 last.",
-    when: (p) => count(p, "GREEN") > 0,
-    actions: () => cut(2),
-    order: () => [{ kind: "last", a: cutAction(2) }],
-  },
-  {
-    id: "lightOffSecondFirst",
-    text: "If the light is off, cut wire 2 first.",
-    when: (p) => !p.light,
-    actions: () => cut(1),
-    order: () => [{ kind: "first", a: cutAction(1) }],
-  },
-  {
-    id: "serialEvenPressB",
-    text: "If the serial number is even, press button B.",
-    when: (p) => !serialOdd(p),
-    actions: () => press("B"),
-  },
-  {
-    id: "fifthRed",
-    text: "If wire 5 is red, cut wire 5.",
-    when: (p) => p.wires[4] === "RED",
-    actions: () => cut(4),
-  },
-  {
-    id: "seventhBlue",
-    text: "If wire 7 is blue, cut wire 7.",
-    when: (p) => p.wires[BOMB_WIRES - 1] === "BLUE",
-    actions: () => cut(BOMB_WIRES - 1),
-  },
-  {
-    id: "threeWarmPressA",
-    text: "If there are at least three red or yellow wires, press button A.",
-    when: (p) => count(p, "RED") + count(p, "YELLOW") >= 3,
-    actions: () => press("A"),
-  },
-  {
-    id: "noWhitePressB",
-    text: "If there are no white wires, press button B.",
-    when: (p) => count(p, "WHITE") === 0,
-    actions: () => press("B"),
-  },
-  {
-    id: "pressBAfterSecond",
-    text: "Press button B after cutting wire 2.",
-    when: () => true,
-    order: () => [{ kind: "before", a: cutAction(1), b: pressAction("B") }],
-  },
-  {
-    id: "buttonsSamePressAFirst",
-    text: "If both buttons are the same colour, press button A first.",
-    when: (p) => buttonColour(p, "A") === buttonColour(p, "B"),
-    actions: () => press("A"),
-    order: () => [{ kind: "first", a: pressAction("A") }],
-  },
-];
+const at = (sequence: BombAction[], action: BombAction) => sequence.indexOf(action);
+const has = (sequence: BombAction[], action: BombAction) => sequence.includes(action);
 
-export const BOMB_RULE_TEMPLATE_COUNT = BOMB_RULES.length;
+/**
+ * Every rule the panel could carry, as a template instance with its predicate.
+ * Rebuilding this list from a panel is how the uniqueness proof and the
+ * inspection re-derive a stored card's rules.
+ */
+function candidateRules(panel: Panel): RuleInstance[] {
+  const out: RuleInstance[] = [];
+  const add = (id: string, text: string, key: string, test: (sequence: BombAction[]) => boolean) =>
+    out.push({ id, text, key, test });
 
-/* -------------------------------------------------------------------------- */
-/*  Evaluation                                                                */
-/* -------------------------------------------------------------------------- */
-
-interface Plan {
-  required: BombAction[];
-  constraints: BombConstraint[];
-  /** Constraints both of whose endpoints are required, so they actually bite. */
-  liveConstraints: BombConstraint[];
-  forbidden: BombAction[];
-  /** A rule demands an action another rule forbids. */
-  contradictory: boolean;
-  /** The constraints can all be met at once. */
-  consistent: boolean;
-  /** One valid order, or null when the constraints contradict each other. */
-  order: BombAction[] | null;
-}
-
-function evaluate(rules: Rule[], panel: Panel): Plan {
-  const required: BombAction[] = [];
-  const constraints: BombConstraint[] = [];
-  const forbidden: BombAction[] = [];
-
-  const addActions = (rule: Rule) => {
-    for (const action of rule.actions?.(panel) ?? []) {
-      if (!required.includes(action)) required.push(action);
-    }
-  };
-
-  for (const rule of rules) {
-    if (rule.fallback || !rule.when(panel)) continue;
-    addActions(rule);
-    for (const action of rule.forbid?.(panel) ?? []) {
-      if (!forbidden.includes(action)) forbidden.push(action);
-    }
-    for (const constraint of rule.order?.(panel) ?? []) constraints.push(constraint);
-  }
-
-  if (required.length === 0) {
-    for (const rule of rules) if (rule.fallback && rule.when(panel)) addActions(rule);
-  }
-
-  const need = new Set(required);
-  const liveConstraints = constraints.filter((constraint) =>
-    constraint.kind === "before"
-      ? need.has(constraint.a) && need.has(constraint.b)
-      : need.has(constraint.a) && required.length > 1,
-  );
-  const order = canonicalBombOrder(required, constraints);
-
-  return {
-    required,
-    constraints,
-    liveConstraints,
-    forbidden,
-    contradictory: required.some((action) => forbidden.includes(action)),
-    consistent: order !== null,
-    order,
-  };
-}
-
-/** Signature of a plan, used to tell whether dropping a rule changes anything. */
-function planKey(plan: Plan): string {
-  return `${[...plan.required].sort().join(",")}|${encodeBombConstraints(
-    [...plan.liveConstraints].sort((a, b) =>
-      encodeBombConstraints([a]).localeCompare(encodeBombConstraints([b])),
-    ),
-  )}|${[...plan.forbidden].sort().join(",")}`;
-}
-
-export function inspectBombRules(puzzle: BombPuzzleData): {
-  effective: number;
-  contradictory: boolean;
-  consistent: boolean;
-  orderRules: number;
-  wordingOk: boolean;
-  required: number;
-} {
-  const panel: Panel = {
-    wires: puzzle.wires,
-    buttons: puzzle.buttons,
-    light: puzzle.light,
-    serial: puzzle.serial,
-    switchPosition: puzzle.switchPosition,
-  };
-  const rules = puzzle.rules
-    .map(({ id }) => BOMB_RULES.find((rule) => rule.id === id))
-    .filter((rule): rule is Rule => Boolean(rule));
-  const reference = evaluate(rules, panel);
-  const key = planKey(reference);
-  const effective = rules.filter((_, index) => {
-    const without = evaluate(
-      rules.filter((__, other) => other !== index),
-      panel,
+  // "Cut wire N" and "Do not cut wire N"
+  for (let wire = 0; wire < BOMB_WIRES; wire++) {
+    const action = cutAction(wire);
+    add(`cut:${wire}`, `Cut wire ${wire + 1}.`, `has:${action}`, (sequence) =>
+      has(sequence, action),
     );
-    return planKey(without) !== key;
-  }).length;
+    add(
+      `nocut:${wire}`,
+      `Do not cut wire ${wire + 1}.`,
+      `nohas:${action}`,
+      (sequence) => !has(sequence, action),
+    );
+  }
 
-  return {
-    effective,
-    contradictory: reference.contradictory,
-    consistent: reference.consistent,
-    orderRules: reference.liveConstraints.length,
-    wordingOk: puzzle.rules.every((rule) => bombWordingIsAllowed(rule.text)),
-    required: reference.required.length,
+  // "Cut the first/last <colour> wire"
+  for (const colour of WIRE_COLOURS) {
+    if (count(panel, colour) === 0) continue;
+    const first = panel.wires.indexOf(colour);
+    const last = panel.wires.lastIndexOf(colour);
+    add(
+      `colour:first:${colour}`,
+      `Cut the first ${colourWord(colour)} wire.`,
+      `has:${cutAction(first)}`,
+      (sequence) => has(sequence, cutAction(first)),
+    );
+    add(
+      `colour:last:${colour}`,
+      `Cut the last ${colourWord(colour)} wire.`,
+      `has:${cutAction(last)}`,
+      (sequence) => has(sequence, cutAction(last)),
+    );
+  }
+
+  // "Press button A/B"
+  for (const label of ["A", "B"] as const) {
+    const action = pressAction(label);
+    add(`press:${label}`, `Press button ${label}.`, `has:${action}`, (sequence) =>
+      has(sequence, action),
+    );
+    add(
+      `pressfirstcut:${label}`,
+      `Press button ${label} before cutting any wire.`,
+      `pressfirstcut:${label}`,
+      (sequence) => {
+        const index = at(sequence, action);
+        if (index < 0) return false;
+        return sequence.every((step, position) => !isCut(step) || position > index);
+      },
+    );
+  }
+
+  // Ordering: "<action> before <action>", "<action> first", "<action> last"
+  for (const action of BOMB_ACTIONS) {
+    add(
+      `first:${action}`,
+      `${phrase(action)} first.`,
+      `first:${action}`,
+      (sequence) => sequence[0] === action,
+    );
+    add(
+      `last:${action}`,
+      `${phrase(action)} last.`,
+      `last:${action}`,
+      (sequence) => sequence[sequence.length - 1] === action,
+    );
+    for (const other of BOMB_ACTIONS) {
+      if (other === action) continue;
+      add(
+        `before:${action}>${other}`,
+        `${phrase(action)} before ${gerund(other)}.`,
+        `before:${action}>${other}`,
+        (sequence) => {
+          const a = at(sequence, action);
+          const b = at(sequence, other);
+          return a >= 0 && b >= 0 && a < b;
+        },
+      );
+    }
+  }
+
+  // "Cut exactly N wires"
+  for (const wires of [1, 2, 3]) {
+    add(
+      `exactcuts:${wires}`,
+      `Cut exactly ${NUMBER_WORDS[wires]} wire${wires === 1 ? "" : "s"}.`,
+      `exactcuts:${wires}`,
+      (sequence) => sequence.filter(isCut).length === wires,
+    );
+  }
+
+  // "If <panel condition>, <action>" — only for conditions this panel meets.
+  for (const condition of CONDITIONS) {
+    if (!condition.holds(panel)) continue;
+    for (const action of BOMB_ACTIONS) {
+      const body = phrase(action);
+      add(
+        `if:${condition.id}:${action}`,
+        `If ${condition.text}, ${body.charAt(0).toLowerCase()}${body.slice(1)}.`,
+        `has:${action}`,
+        (sequence) => has(sequence, action),
+      );
+    }
+  }
+
+  return out;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Uniqueness                                                                */
+/* -------------------------------------------------------------------------- */
+
+/** Bit per sequence, so intersecting rule sets is a handful of word ANDs. */
+const MASK_WORDS = Math.ceil(ALL_SEQUENCES.length / 32);
+
+const MASK_CACHE = new Map<string, Uint32Array>();
+
+/** Which of the 3,024 sequences a rule allows, cached by predicate. */
+function maskOf(rule: RuleInstance): Uint32Array {
+  const cached = MASK_CACHE.get(rule.key);
+  if (cached) return cached;
+  const mask = new Uint32Array(MASK_WORDS);
+  for (let index = 0; index < ALL_SEQUENCES.length; index++) {
+    if (rule.test(ALL_SEQUENCES[index]!)) mask[index >> 5]! |= 1 << (index & 31);
+  }
+  MASK_CACHE.set(rule.key, mask);
+  return mask;
+}
+
+function everything(): Uint32Array {
+  const bits = new Uint32Array(MASK_WORDS).fill(0xffff_ffff);
+  for (let index = ALL_SEQUENCES.length; index < MASK_WORDS * 32; index++) {
+    bits[index >> 5]! &= ~(1 << (index & 31));
+  }
+  return bits;
+}
+
+const ALL_BITS = everything();
+
+function intersect(a: Uint32Array, b: Uint32Array): Uint32Array {
+  const out = new Uint32Array(MASK_WORDS);
+  for (let word = 0; word < MASK_WORDS; word++) out[word] = a[word]! & b[word]!;
+  return out;
+}
+
+/** How many sequences survive, counted no further than `limit`. */
+function countBits(bits: Uint32Array, limit = Number.MAX_SAFE_INTEGER): number {
+  let total = 0;
+  for (let word = 0; word < MASK_WORDS; word++) {
+    let value = bits[word]!;
+    while (value !== 0) {
+      value &= value - 1;
+      total += 1;
+      if (total >= limit) return total;
+    }
+  }
+  return total;
+}
+
+function firstBit(bits: Uint32Array): number {
+  for (let word = 0; word < MASK_WORDS; word++) {
+    const value = bits[word]!;
+    if (value !== 0) return word * 32 + 31 - Math.clz32(value & -value);
+  }
+  return -1;
+}
+
+/** Every sequence all the rules allow, capped so the count stays cheap. */
+function solutions(masks: Uint32Array[], limit = Number.MAX_SAFE_INTEGER): number[] {
+  let bits = ALL_BITS;
+  for (const mask of masks) bits = intersect(bits, mask);
+  const out: number[] = [];
+  for (let index = 0; index < ALL_SEQUENCES.length && out.length < limit; index++) {
+    if ((bits[index >> 5]! >>> (index & 31)) & 1) out.push(index);
+  }
+  return out;
+}
+
+/** Dropping any single rule must leave more than one sequence standing. */
+function isNecessary(masks: Uint32Array[]): boolean {
+  for (let drop = 0; drop < masks.length; drop++) {
+    let bits = ALL_BITS;
+    for (let index = 0; index < masks.length; index++) {
+      if (index !== drop) bits = intersect(bits, masks[index]!);
+    }
+    if (countBits(bits, 2) < 2) return false;
+  }
+  return true;
+}
+
+/**
+ * Searches the pool for four rules that between them allow exactly the chosen
+ * plan and nothing else, with every rule pulling its weight. Depth-first over
+ * combinations: three rules must still leave room for more than one sequence,
+ * the fourth must close it down to the plan alone.
+ */
+function chooseRules(masks: Uint32Array[], planIndex: number): number[] | null {
+  const order = shuffled(masks.map((_, index) => index));
+  const picked: number[] = [];
+
+  const walk = (start: number, bits: Uint32Array): number[] | null => {
+    for (let position = start; position < order.length; position++) {
+      const index = order[position]!;
+      const next = intersect(bits, masks[index]!);
+      const depth = picked.length + 1;
+      const count = countBits(next, depth === BOMB_RULE_COUNT ? 2 : 2);
+      if (depth === BOMB_RULE_COUNT) {
+        if (count !== 1 || firstBit(next) !== planIndex) continue;
+        picked.push(index);
+        const chosen = [...picked];
+        picked.pop();
+        if (isNecessary(chosen.map((rule) => masks[rule]!))) return chosen;
+        continue;
+      }
+      if (count < 2) continue;
+      picked.push(index);
+      const found = walk(position + 1, next);
+      picked.pop();
+      if (found) return found;
+    }
+    return null;
   };
+
+  return walk(0, ALL_BITS);
 }
 
 function randomPanel(): Panel {
@@ -445,46 +390,127 @@ function randomPanel(): Panel {
   };
 }
 
-export function generateBomb(): BombPuzzleData {
+export const BOMB_RULE_TEMPLATE_COUNT = 10;
+
+export interface BombGeneration {
+  puzzle: BombPuzzleData;
+  /** How many panels were rolled before one passed the proof. */
+  attempts: number;
+}
+
+const planKey = (sequence: readonly string[]) => sequence.join(",");
+
+/** Sequence text to its index, so a plan's slot is a lookup not a scan. */
+const SEQUENCE_INDEX = new Map<string, number>(
+  ALL_SEQUENCES.map((sequence, index) => [planKey(sequence), index]),
+);
+
+export function generateBombPanel(): BombGeneration {
   for (let attempt = 1; attempt <= 20_000; attempt++) {
     const panel = randomPanel();
-    const rules = shuffled(BOMB_RULES).slice(0, BOMB_RULE_COUNT);
-    if (!rules.every((rule) => bombWordingIsAllowed(rule.text))) continue;
+    const plan = shuffled(BOMB_ACTIONS).slice(0, PLAN_LENGTH);
+    const planIndex = SEQUENCE_INDEX.get(planKey(plan))!;
 
-    const plan = evaluate(rules, panel);
-    if (plan.contradictory || !plan.consistent || !plan.order) continue;
-    if (plan.required.length < BOMB_MIN_SEQUENCE || plan.required.length > BOMB_MAX_SEQUENCE) {
-      continue;
-    }
-    if (plan.liveConstraints.length < BOMB_MIN_ORDER_RULES) continue;
-
-    // At least three of the six rules must change the plan.
-    const key = planKey(plan);
-    const effective = rules.filter((_, index) => {
-      const without = evaluate(
-        rules.filter((__, other) => other !== index),
-        panel,
-      );
-      return planKey(without) !== key;
-    }).length;
-    if (effective < BOMB_MIN_EFFECTIVE_RULES) continue;
-
-    console.log(
-      `[bomb] panel accepted after ${attempt} attempt(s): ${plan.required.length} required actions, ${plan.liveConstraints.length} live ordering constraints, ${effective} effective rules`,
+    // Only rules true of this plan, one per distinct predicate — two rules that
+    // say the same thing could never both be necessary.
+    const seen = new Set<string>();
+    const pool = shuffled(candidateRules(panel).filter((rule) => rule.test(plan))).filter(
+      (rule) => !seen.has(rule.key) && seen.add(rule.key) !== undefined,
     );
+    if (pool.length < BOMB_RULE_COUNT) continue;
+    const masks = pool.map(maskOf);
+
+    const picked = chooseRules(masks, planIndex);
+    if (!picked) continue;
+
+    // The plan must be the one surviving sequence, not merely one of them.
+    const unique = solutions(picked.map((index) => masks[index]!));
+    if (unique.length !== 1 || planKey(ALL_SEQUENCES[unique[0]!]!) !== planKey(plan)) continue;
+
+    const rules = shuffled(picked.map((index) => pool[index]!)).map((rule) => ({
+      id: rule.id,
+      text: rule.text,
+    }));
+    // The stored ordering is the plan itself, chained, so only that exact
+    // sequence defuses while a correct opening still earns partial credit.
+    const constraints: BombConstraint[] = plan
+      .slice(0, -1)
+      .map((action, index) => ({ kind: "before", a: action, b: plan[index + 1]! }) as const);
+
     return {
-      type: "bomb",
-      wires: panel.wires,
-      buttons: panel.buttons,
-      light: panel.light,
-      serial: panel.serial,
-      switchPosition: panel.switchPosition,
-      rules: rules.map((rule) => ({ id: rule.id, text: rule.text })),
-      stepCount: plan.required.length,
-      required: encodeBombActions(plan.required),
-      constraints: encodeBombConstraints(plan.constraints),
-      sequence: encodeBombActions(plan.order),
+      attempts: attempt,
+      puzzle: {
+        type: "bomb",
+        wires: panel.wires,
+        buttons: panel.buttons,
+        light: panel.light,
+        serial: panel.serial,
+        switchPosition: panel.switchPosition,
+        rules,
+        stepCount: PLAN_LENGTH,
+        required: encodeBombActions(plan),
+        constraints: encodeBombConstraints(constraints),
+        sequence: encodeBombActions(plan),
+      },
     };
   }
   throw new Error("Bomb Defusal generator could not build an unambiguous panel");
+}
+
+export function generateBomb(): BombPuzzleData {
+  const generated = generateBombPanel();
+  console.log(
+    `[bomb] panel accepted after ${generated.attempts} attempt(s): one unique four-action plan from ${BOMB_RULE_COUNT} rules`,
+  );
+  return generated.puzzle;
+}
+
+/** Re-derives a stored card's rules and re-runs the proof on them. */
+export function inspectBombRules(puzzle: BombPuzzleData): {
+  /** How many of the 3,024 sequences satisfy every rule. */
+  solutions: number;
+  /** Exactly one, and it is the stored plan. */
+  unique: boolean;
+  /** Dropping any single rule leaves more than one sequence. */
+  necessary: boolean;
+  /** Every rule's wording is exactly its template's. */
+  wordingOk: boolean;
+  /** Rules whose template instance could not be rebuilt. */
+  unknownRules: number;
+} {
+  const panel: Panel = {
+    wires: puzzle.wires,
+    buttons: puzzle.buttons,
+    light: puzzle.light,
+    serial: puzzle.serial,
+    switchPosition: puzzle.switchPosition,
+  };
+  const candidates = candidateRules(panel);
+  const rebuilt = puzzle.rules.map(({ id }) => candidates.find((rule) => rule.id === id));
+  const known = rebuilt.filter((rule): rule is RuleInstance => Boolean(rule));
+  const masks = known.map(maskOf);
+  const found = solutions(masks, 3);
+  const plan = puzzle.sequence ?? puzzle.required ?? "";
+  const necessary =
+    known.length === puzzle.rules.length &&
+    known.every(
+      (_, drop) =>
+        solutions(
+          masks.filter((__, index) => index !== drop),
+          2,
+        ).length >= 2,
+    );
+
+  return {
+    solutions: found.length,
+    unique:
+      found.length === 1 &&
+      known.length === puzzle.rules.length &&
+      ALL_SEQUENCES[found[0]!]!.join(",") === plan.split(",").join(","),
+    necessary,
+    wordingOk: puzzle.rules.every(
+      (rule, index) => rebuilt[index]?.text === rule.text && rebuilt[index]?.id === rule.id,
+    ),
+    unknownRules: puzzle.rules.length - known.length,
+  };
 }

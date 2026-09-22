@@ -355,11 +355,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewer tries scores more.",
   },
   bomb: {
-    goal: "Carry out exactly the actions the rules require, in an order they allow.",
+    goal: "Read all four rules, work out the four steps, then do them in order.",
     how: [
       {
-        action: "Read ALL the rules",
-        detail: "in order — some of them set what must come first or last.",
+        action: "Only one order fits",
+        detail: "the four rules together allow exactly one sequence.",
       },
       { action: "Four steps exactly", detail: "tap wires and buttons, then tap DEFUSE." },
       { action: "One wrong step", detail: "and it explodes." },
@@ -478,7 +478,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Throw the ball into the bin — ten throws.",
     how: [
       { action: "Touch and drag to aim", detail: "the dotted path shows where it will go." },
-      { action: "Watch the wind", detail: "it pushes the ball sideways." },
+      {
+        action: "The wind pushes the ball — each wind point moves it half a bin width.",
+        detail: "Wind 2 to the left? Aim a full bin width to the right.",
+      },
       { action: "The bin moves", detail: "further away every throw." },
     ],
     score: "10 per basket; all ten for the time bonus.",

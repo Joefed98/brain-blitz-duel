@@ -30,13 +30,16 @@ export const BULLSEYE_RUN_SECONDS = 60;
 export const BULLSEYE_RUN_TICKS = BULLSEYE_RUN_SECONDS * TICKS_PER_SECOND;
 export const BULLSEYE_ARROWS = 10;
 
-/** Target centre, in whole world pixels. */
+/**
+ * Target centre, in whole world pixels — sat 40% down the play area so the
+ * target reads as further off down the range.
+ */
 export const BULLSEYE_CX = 195;
-export const BULLSEYE_CY = 250;
+export const BULLSEYE_CY = Math.round(BULLSEYE_WORLD_H * 0.4);
 export const BULLSEYE_BOW_X = 195;
 export const BULLSEYE_BOW_Y = 532;
 /** Outer radius at full size; each ring is a sixth of it. */
-export const BULLSEYE_OUTER_R = 190;
+export const BULLSEYE_OUTER_R = 114;
 export const BULLSEYE_RINGS = 6;
 export const BULLSEYE_RING_STEP = BULLSEYE_OUTER_R / BULLSEYE_RINGS;
 

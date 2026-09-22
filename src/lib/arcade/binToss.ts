@@ -51,9 +51,8 @@ export const BINTOSS_RIM_Y = 110_080;
 
 /** Downward acceleration each tick. */
 export const BINTOSS_GRAVITY = 22;
-/** One wind unit of sideways acceleration each tick. */
-export const BINTOSS_WIND_UNIT = 8;
-export const BINTOSS_WIND_MAX = 2;
+/** Wind runs −3 … +3, drawn from the seeded PRNG so it is the same for everyone. */
+export const BINTOSS_WIND_MAX = 3;
 
 /** Launch clamps: 10 px a tick sideways, 15 px a tick upwards. */
 export const BINTOSS_VX_MAX = 2_560;
@@ -83,6 +82,30 @@ export const BINTOSS_INPUT_RANGES: readonly InputRange[] = [
 export const BINTOSS_REF_V = 1_169;
 
 /**
+ * The wind is a constant sideways acceleration, carried in 1/65536-px units so
+ * that its total drift can be pinned exactly. It is calibrated on the flight of
+ * the reference throw — the one that lands on the bin: over exactly that many
+ * ticks one wind point moves the ball sideways by half the bin opening, 50 px.
+ */
+function referenceRimTicks(): number {
+  // The 60° reference launch, rising and then falling back to rim height.
+  let speed = -Math.round((BINTOSS_REF_V * 866) / 1_000);
+  let y = BINTOSS_BALL_Y;
+  for (let tick = 1; tick <= 1_000; tick++) {
+    speed += BINTOSS_GRAVITY;
+    y += speed;
+    if (speed > 0 && y >= BINTOSS_RIM_Y) return tick;
+  }
+  return 70;
+}
+
+export const BINTOSS_WIND_TICKS = referenceRimTicks();
+export const BINTOSS_WIND_SUB = 256;
+export const BINTOSS_WIND_ACC = Math.round(
+  (2 * BINTOSS_BIN_HALF * BINTOSS_WIND_SUB) / (BINTOSS_WIND_TICKS * (BINTOSS_WIND_TICKS + 1)),
+);
+
+/**
  * Turns the aim vector (finger position minus the anchor, in world pixels) into
  * a launch velocity. Upwards is negative `dy`; a downward vector is clamped to
  * horizontal. Returns null for a drag under the cancel distance.
@@ -97,21 +120,69 @@ export function binTossDrag(dx: number, dy: number): DragLaunch | null {
   };
 }
 
+/** A ball in flight: launch velocity plus the wind's own integration. */
+export interface BinTossFlight {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  /** Sideways speed the wind has built up, in 1/65536 px a tick. */
+  windV: number;
+  /** Sideways distance the wind has carried, in 1/65536 px. */
+  windPos: number;
+}
+
+/** One tick of free flight. The single place gravity and wind are integrated. */
+export function binTossAdvance(flight: BinTossFlight, wind: number): BinTossFlight {
+  const windV = flight.windV + wind * BINTOSS_WIND_ACC;
+  const windPos = flight.windPos + windV;
+  const drift =
+    Math.trunc(windPos / BINTOSS_WIND_SUB) - Math.trunc(flight.windPos / BINTOSS_WIND_SUB);
+  const vy = flight.vy + BINTOSS_GRAVITY;
+  return {
+    x: flight.x + flight.vx + drift,
+    y: flight.y + vy,
+    vx: flight.vx,
+    vy,
+    windV,
+    windPos,
+  };
+}
+
+/**
+ * Walks a whole flight without touching the simulation — same gravity and same
+ * wind integration, so a drawn path matches what the sim will do. Render only.
+ */
+export function binTossPath(
+  vx: number,
+  vy: number,
+  wind: number,
+  stopAtRim: boolean,
+): { x: number; y: number }[] {
+  let flight: BinTossFlight = {
+    x: BINTOSS_BALL_X,
+    y: BINTOSS_BALL_Y,
+    vx,
+    vy,
+    windV: 0,
+    windPos: 0,
+  };
+  const points = [{ x: px(flight.x), y: px(flight.y) }];
+  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
+    flight = binTossAdvance(flight, wind);
+    points.push({ x: px(flight.x), y: px(flight.y) });
+    if (stopAtRim && flight.vy > 0 && flight.y >= BINTOSS_RIM_Y) break;
+    if (flight.y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
+    if (flight.x < -BINTOSS_BALL_R || flight.x > BINTOSS_WORLD_RIGHT + BINTOSS_BALL_R) break;
+  }
+  return points;
+}
+
 /** Where a launch would cross the bin's rim line, in world pixels. Render only. */
 export function binTossPredict(vx: number, vy: number, wind: number): { x: number; y: number } {
-  let x = BINTOSS_BALL_X;
-  let y = BINTOSS_BALL_Y;
-  let dx = vx;
-  let dy = vy;
-  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
-    dx += wind * BINTOSS_WIND_UNIT;
-    dy += BINTOSS_GRAVITY;
-    x += dx;
-    y += dy;
-    if (dy > 0 && y >= BINTOSS_RIM_Y) break;
-    if (y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
-  }
-  return { x: Math.round(px(x)), y: Math.round(px(y)) };
+  const path = binTossPath(vx, vy, wind, true);
+  const last = path[path.length - 1]!;
+  return { x: Math.round(last.x), y: Math.round(last.y) };
 }
 
 /** The bin's centre for a throw. */
@@ -136,7 +207,7 @@ export interface BinTossState {
   throwIndex: number;
   resolved: number;
   baskets: number;
-  /** Wind for each of the ten throws, −2 … +2. Same for everyone. */
+  /** Wind for each of the ten throws, −3 … +3. Same for everyone. */
   winds: number[];
   /** 1 for a basket, 0 for a miss, in throw order. */
   results: number[];
@@ -145,6 +216,9 @@ export interface BinTossState {
   y: number;
   vx: number;
   vy: number;
+  /** The wind's own integration for the throw in flight. */
+  windV: number;
+  windPos: number;
   /** When the next ball appears, during the wait phase. */
   readyTick: number;
   /** Last rim hit, for the render-only bin wobble. */
@@ -173,6 +247,8 @@ function init(seed: number): BinTossState {
     y: BINTOSS_BALL_Y,
     vx: 0,
     vy: 0,
+    windV: 0,
+    windPos: 0,
     readyTick: 0,
     wobbleTick: 0,
     endedTick: 0,
@@ -201,6 +277,8 @@ function resolve(state: BinTossState, tick: number, scored: boolean): BinTossSta
     readyTick: tick + BINTOSS_NEXT_DELAY,
     vx: 0,
     vy: 0,
+    windV: 0,
+    windPos: 0,
   };
 }
 
@@ -219,6 +297,8 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
         y: BINTOSS_BALL_Y,
         vx: 0,
         vy: 0,
+        windV: 0,
+        windPos: 0,
       };
     }
     return { ...state, tick };
@@ -233,17 +313,32 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
         phase: BINTOSS_FLY,
         vx: clampInt(input.a, -BINTOSS_VX_MAX, BINTOSS_VX_MAX),
         vy: clampInt(input.b, -BINTOSS_VY_MAX, 0),
+        windV: 0,
+        windPos: 0,
       };
     }
     return { ...state, tick };
   }
 
-  // In flight.
+  // In flight: gravity plus the wind's own exact sideways drift.
   const wind = state.winds[state.throwIndex] ?? 0;
-  let vx = state.vx + wind * BINTOSS_WIND_UNIT;
-  let vy = state.vy + BINTOSS_GRAVITY;
-  let nx = state.x + vx;
-  let ny = state.y + vy;
+  const advanced = binTossAdvance(
+    {
+      x: state.x,
+      y: state.y,
+      vx: state.vx,
+      vy: state.vy,
+      windV: state.windV,
+      windPos: state.windPos,
+    },
+    wind,
+  );
+  let vx = advanced.vx;
+  let vy = advanced.vy;
+  let nx = advanced.x;
+  let ny = advanced.y;
+  const windV = advanced.windV;
+  const windPos = advanced.windPos;
   let wobbleTick = state.wobbleTick;
 
   const centre = binTossBinCentre(state.throwIndex);
@@ -274,7 +369,7 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
         : centre + BINTOSS_BIN_HALF + BINTOSS_BALL_R;
   }
 
-  const next: BinTossState = { ...state, tick, vx, vy, x: nx, y: ny, wobbleTick };
+  const next: BinTossState = { ...state, tick, vx, vy, windV, windPos, x: nx, y: ny, wobbleTick };
 
   // Landing on the floor or leaving the canvas is a miss.
   if (ny >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) return resolve(next, tick, false);
@@ -499,16 +594,14 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
  */
 function drawTrail(ctx: CanvasRenderingContext2D, state: BinTossState): void {
   if (state.phase !== BINTOSS_FLY) return;
-  const wind = (state.winds[state.throwIndex] ?? 0) * BINTOSS_WIND_UNIT;
   let x = state.x;
   let y = state.y;
-  let vx = state.vx;
+  const vx = state.vx;
   let vy = state.vy;
   ctx.save();
   for (let step = 1; step <= 10; step++) {
     x -= vx;
     y -= vy;
-    vx -= wind;
     vy -= BINTOSS_GRAVITY;
     if (y > BINTOSS_FLOOR_Y || x < 0) break;
     ctx.globalAlpha = 0.34 * (1 - step / 11);
@@ -533,44 +626,51 @@ export interface BinTossLandingPresentation {
   binIndex: number;
 }
 
-/** Draws a trajectory as a dotted arc without changing simulation state. */
+/** Draws a walked flight as a dotted arc. Never touches simulation state. */
+function drawPath(
+  ctx: CanvasRenderingContext2D,
+  size: CanvasSize,
+  points: { x: number; y: number }[],
+  colour: string,
+  alpha: number,
+): void {
+  const { scale, offsetX, offsetY } = binTossTransform(size);
+  const first = points[0];
+  if (!first) return;
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = colour;
+  ctx.globalAlpha = alpha;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 5]);
+  ctx.beginPath();
+  ctx.moveTo(first.x, first.y);
+  for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** The arc a finished throw took, kept faint until the next release. */
 export function binTossDrawGhost(
   ctx: CanvasRenderingContext2D,
   size: CanvasSize,
   ghost: BinTossGhost,
   alpha = 0.22,
 ): void {
-  const { scale, offsetX, offsetY } = binTossTransform(size);
-  let x = BINTOSS_BALL_X;
-  let y = BINTOSS_BALL_Y;
-  let vx = ghost.vx;
-  let vy = ghost.vy;
-  ctx.save();
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
-  ctx.strokeStyle = BINTOSS_BALL_COLOUR;
-  ctx.globalAlpha = alpha;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([3, 5]);
-  ctx.beginPath();
-  ctx.moveTo(px(x), px(y));
-  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
-    vx += ghost.wind * BINTOSS_WIND_UNIT;
-    vy += BINTOSS_GRAVITY;
-    x += vx;
-    y += vy;
-    ctx.lineTo(px(x), px(y));
-    if (vy > 0 && y >= BINTOSS_RIM_Y) break;
-    if (y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
-    if (x < -BINTOSS_BALL_R || x > BINTOSS_WORLD_RIGHT + BINTOSS_BALL_R) break;
-  }
-  ctx.stroke();
-  ctx.restore();
+  drawPath(
+    ctx,
+    size,
+    binTossPath(ghost.vx, ghost.vy, ghost.wind, true),
+    BINTOSS_BALL_COLOUR,
+    alpha,
+  );
 }
 
 /**
- * The path the ball would take if the finger were released right now. Render
- * only — the sim never sees it.
+ * The aim path: always the NO-WIND arc for the current drag, drawn its full
+ * length down to the floor whatever the wind is. Render only — the sim never
+ * sees it, and the wind is what the player has to allow for themselves.
  */
 export function binTossDrawAim(
   ctx: CanvasRenderingContext2D,
@@ -578,34 +678,9 @@ export function binTossDrawAim(
   aim: BinTossGhost,
   cancelled = false,
 ): void {
-  if (!cancelled) {
-    binTossDrawGhost(ctx, size, aim, 0.5);
-    return;
-  }
-  const { scale, offsetX, offsetY } = binTossTransform(size);
-  let x = BINTOSS_BALL_X;
-  let y = BINTOSS_BALL_Y;
-  let vx = aim.vx;
-  let vy = aim.vy;
-  ctx.save();
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
-  ctx.strokeStyle = BINTOSS_TEXT;
-  ctx.globalAlpha = 0.28;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([3, 5]);
-  ctx.beginPath();
-  ctx.moveTo(px(x), px(y));
-  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
-    vx += aim.wind * BINTOSS_WIND_UNIT;
-    vy += BINTOSS_GRAVITY;
-    x += vx;
-    y += vy;
-    ctx.lineTo(px(x), px(y));
-    if ((vy > 0 && y >= BINTOSS_RIM_Y) || y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
-  }
-  ctx.stroke();
-  ctx.restore();
+  const points = binTossPath(aim.vx, aim.vy, 0, false);
+  if (cancelled) drawPath(ctx, size, points, BINTOSS_TEXT, 0.28);
+  else drawPath(ctx, size, points, BINTOSS_BALL_COLOUR, 0.5);
 }
 
 /** Client-only scored-ball animation layered over the deterministic board. */
