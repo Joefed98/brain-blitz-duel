@@ -75,7 +75,7 @@ function IntroExample() {
         </g>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Flick to shoot — harder flicks land higher. Aim into the wind.
+        Touch and drag to aim — the dotted path shows where it will go.
       </p>
     </div>
   );

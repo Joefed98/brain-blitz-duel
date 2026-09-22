@@ -68,7 +68,7 @@ function IntroExample() {
         </text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Flick upward to throw — harder flicks go further.
+        Touch and drag to aim — the dotted path shows where it will go.
       </p>
     </div>
   );
