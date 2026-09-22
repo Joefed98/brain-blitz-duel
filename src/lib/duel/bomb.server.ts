@@ -52,6 +52,12 @@ interface Panel {
 interface RuleInstance {
   id: string;
   text: string;
+  /**
+   * The predicate's own identity, independent of the panel and the wording —
+   * "Cut wire 3" and "If the light is on, cut wire 3" share one. Sequence masks
+   * are cached against it, so the proof never re-evaluates the same predicate.
+   */
+  key: string;
   test: (sequence: BombAction[]) => boolean;
 }
 
