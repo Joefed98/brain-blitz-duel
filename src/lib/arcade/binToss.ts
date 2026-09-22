@@ -264,6 +264,8 @@ function resolve(state: BinTossState, tick: number, scored: boolean): BinTossSta
     readyTick: tick + BINTOSS_NEXT_DELAY,
     vx: 0,
     vy: 0,
+    windV: 0,
+    windPos: 0,
   };
 }
 
