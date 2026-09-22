@@ -284,6 +284,8 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
         y: BINTOSS_BALL_Y,
         vx: 0,
         vy: 0,
+        windV: 0,
+        windPos: 0,
       };
     }
     return { ...state, tick };
@@ -298,17 +300,32 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
         phase: BINTOSS_FLY,
         vx: clampInt(input.a, -BINTOSS_VX_MAX, BINTOSS_VX_MAX),
         vy: clampInt(input.b, -BINTOSS_VY_MAX, 0),
+        windV: 0,
+        windPos: 0,
       };
     }
     return { ...state, tick };
   }
 
-  // In flight.
+  // In flight: gravity plus the wind's own exact sideways drift.
   const wind = state.winds[state.throwIndex] ?? 0;
-  let vx = state.vx + wind * BINTOSS_WIND_UNIT;
-  let vy = state.vy + BINTOSS_GRAVITY;
-  let nx = state.x + vx;
-  let ny = state.y + vy;
+  const advanced = binTossAdvance(
+    {
+      x: state.x,
+      y: state.y,
+      vx: state.vx,
+      vy: state.vy,
+      windV: state.windV,
+      windPos: state.windPos,
+    },
+    wind,
+  );
+  let vx = advanced.vx;
+  let vy = advanced.vy;
+  let nx = advanced.x;
+  let ny = advanced.y;
+  const windV = advanced.windV;
+  const windPos = advanced.windPos;
   let wobbleTick = state.wobbleTick;
 
   const centre = binTossBinCentre(state.throwIndex);
