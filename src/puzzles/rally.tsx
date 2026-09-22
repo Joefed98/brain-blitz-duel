@@ -44,7 +44,7 @@ function IntroExample() {
         <rect x={96} y={100} width={50} height={8} rx={3} fill={RALLY_GOLD} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Every return shrinks the paddle a little.
+        Gold balls join every ten seconds and score double.
       </p>
     </div>
   );
@@ -243,7 +243,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         />
       </div>
       <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
-        {result.hits} hit{result.hits === 1 ? "" : "s"} ·{" "}
+        {result.hits} hit{result.hits === 1 ? "" : "s"} · {result.goldHits} gold hit
+        {result.goldHits === 1 ? "" : "s"} ·{" "}
         {result.survived ? "survived" : `lost at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
