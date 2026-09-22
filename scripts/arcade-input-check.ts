@@ -395,7 +395,8 @@ if (BULLSEYE_SCALE_PCT.join(",") !== "100,96,92,88,84,80,77,74,71,68") {
   fail("bullseye shrink factors differ");
 }
 
-// One wind point must drift the ball half a bin opening (50 px) over the flight
+// One wind point must drift the ball a quarter of the bin opening (25 px) over
+// the flight
 // of a throw that lands on the bin, and the aim path must ignore the wind.
 {
   const drag = dragAt(REFERENCE_DRAG_PX, 60);
@@ -406,7 +407,7 @@ if (BULLSEYE_SCALE_PCT.join(",") !== "100,96,92,88,84,80,77,74,71,68") {
     for (let wind = -BINTOSS_WIND_MAX; wind <= BINTOSS_WIND_MAX; wind++) {
       const blown = binTossPredict(launch.vx, launch.vy, wind);
       const drift = blown.x - still.x;
-      const expected = wind * 50;
+      const expected = wind * 25;
       if (Math.abs(drift - expected) > 1) {
         fail(`wind ${wind} drifted ${drift} px, expected ${expected} px`);
       }

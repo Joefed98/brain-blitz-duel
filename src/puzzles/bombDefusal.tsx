@@ -216,7 +216,7 @@ function Stage({
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="shrink-0 rounded-xl border border-border bg-card p-2">
         {puzzle.rules.map((rule, index) => (
-          <p key={rule.id} className="text-[12px] leading-snug">
+          <p key={rule.id} className="text-[14px] leading-snug">
             <span className="font-mono text-primary">{index + 1}.</span> {rule.text}
           </p>
         ))}
