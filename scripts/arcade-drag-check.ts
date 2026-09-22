@@ -293,7 +293,7 @@ for (let sample = 0; sample < SAMPLES; sample++) {
     encodeBreakerRun({
       seed,
       claimedScore: 100,
-      events: [...events, { t: 3000, k: ARCADE_INPUT_DRAG, a: -4, b: 0, c: 0, d: 0 }],
+      events: [...events, { t: BRK_RUN_TICKS, k: ARCADE_INPUT_DRAG, a: -4, b: 0, c: 0, d: 0 }],
     }),
   );
   if (!refused.flagged || refused.reason !== "input payload out of range") {
