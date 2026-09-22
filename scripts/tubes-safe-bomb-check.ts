@@ -153,7 +153,7 @@ for (let i = 0; i < ROUNDS; i++) {
 }
 assert(BOMB_RULE_TEMPLATE_COUNT >= 30, "bomb rule bank has fewer than 30 templates");
 console.log(
-  `Bomb Defusal: ${ROUNDS} panels, each with one unambiguous plan of 3–6 actions and order-independent grading`,
+  `Bomb Defusal: ${ROUNDS} panels, each with one unambiguous four-action plan and order-independent grading`,
 );
 
 /** Every order of the required actions — at most 6! = 720 of them. */
