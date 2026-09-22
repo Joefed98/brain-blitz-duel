@@ -500,7 +500,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "The target", detail: "gets further away each shot." },
     ],
-    score: "10 for the centre, down to 5 on the outer ring. Ten centres = 150.",
+    score: "Ten centres = 150; every point dropped costs ten.",
   },
   matchup: {
     goal: "Make lines of three or more matching symbols.",
@@ -524,9 +524,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   cross: {
     goal: "Get across the traffic as many times as you can.",
     how: [
-      { action: "Tap up to hop", detail: "one lane forward." },
-      { action: "Tap the bottom corners", detail: "to move sideways." },
-      { action: "Each crossing", detail: "is faster than the last." },
+      { action: "Swipe up to hop", detail: "one lane forward; swipe down to step back." },
+      { action: "Swipe left or right", detail: "to move sideways." },
+      { action: "After each crossing", detail: "you get a second on the kerb before the next one." },
     ],
     score: "15 per crossing, +40 for surviving the minute.",
   },
