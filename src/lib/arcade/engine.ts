@@ -335,11 +335,7 @@ export function isqrt(value: number): number {
 }
 
 /** Rescales a vector to the given length, in the same fixed-point units. */
-export function setLength(
-  vx: number,
-  vy: number,
-  length: number,
-): { vx: number; vy: number } {
+export function setLength(vx: number, vy: number, length: number): { vx: number; vy: number } {
   const current = isqrt(vx * vx + vy * vy);
   if (current <= 0) return { vx: 0, vy: -length };
   return {

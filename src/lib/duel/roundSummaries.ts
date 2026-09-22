@@ -1096,9 +1096,7 @@ const rallySummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
-    summary: survived
-      ? `${hits} hits · survived`
-      : `${hits} hits · lost at ${ended.toFixed(1)}s`,
+    summary: survived ? `${hits} hits · survived` : `${hits} hits · lost at ${ended.toFixed(1)}s`,
     detail: [
       `paddle down to ${Number(result.extra?.["paddleWidth"] ?? 0)} px`,
       ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),

@@ -232,10 +232,7 @@ export function stdClean(state: StdState): boolean {
 }
 
 function score(state: StdState): number {
-  const distance = Math.min(
-    STD_POINTS_CAP,
-    Math.trunc(stdDistancePx(state) / STD_PX_PER_POINT),
-  );
+  const distance = Math.min(STD_POINTS_CAP, Math.trunc(stdDistancePx(state) / STD_PX_PER_POINT));
   const afterTouches = Math.max(0, distance - STD_TOUCH_PENALTY * state.touches);
   return clampInt(afterTouches + (stdClean(state) ? STD_CLEAN_BONUS : 0), 0, 150);
 }

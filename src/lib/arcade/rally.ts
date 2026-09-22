@@ -142,10 +142,7 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
 
     x += sx;
     if (x - RALLY_BALL_R_FP < leftWall || x + RALLY_BALL_R_FP > rightWall) {
-      x =
-        x - RALLY_BALL_R_FP < leftWall
-          ? leftWall + RALLY_BALL_R_FP
-          : rightWall - RALLY_BALL_R_FP;
+      x = x - RALLY_BALL_R_FP < leftWall ? leftWall + RALLY_BALL_R_FP : rightWall - RALLY_BALL_R_FP;
       const turned = nudge({ ...next, rng, speed }, -vx, vy);
       rng = turned.rng;
       vx = turned.vx;
