@@ -395,20 +395,24 @@ export interface BombGeneration {
   attempts: number;
 }
 
-/** Rules considered per attempt — a random slice, to keep the search cheap. */
-const POOL_SAMPLE = 40;
+const planKey = (sequence: readonly string[]) => sequence.join(",");
+
+/** Sequence text to its index, so a plan's slot is a lookup not a scan. */
+const SEQUENCE_INDEX = new Map<string, number>(
+  ALL_SEQUENCES.map((sequence, index) => [planKey(sequence), index]),
+);
 
 export function generateBombPanel(): BombGeneration {
-  const planKey = (sequence: readonly string[]) => sequence.join(",");
   for (let attempt = 1; attempt <= 20_000; attempt++) {
     const panel = randomPanel();
     const plan = shuffled(BOMB_ACTIONS).slice(0, PLAN_LENGTH);
-    const planIndex = ALL_SEQUENCES.findIndex(
-      (sequence) => planKey(sequence) === planKey(plan),
-    );
-    const pool = shuffled(candidateRules(panel).filter((rule) => rule.test(plan))).slice(
-      0,
-      POOL_SAMPLE,
+    const planIndex = SEQUENCE_INDEX.get(planKey(plan))!;
+
+    // Only rules true of this plan, one per distinct predicate — two rules that
+    // say the same thing could never both be necessary.
+    const seen = new Set<string>();
+    const pool = shuffled(candidateRules(panel).filter((rule) => rule.test(plan))).filter(
+      (rule) => !seen.has(rule.key) && seen.add(rule.key) !== undefined,
     );
     if (pool.length < BOMB_RULE_COUNT) continue;
     const masks = pool.map(maskOf);
