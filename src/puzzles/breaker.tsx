@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
+  ARCADE_INPUT_BUTTON,
   ARCADE_INPUT_DRAG,
   MAX_CATCH_UP_TICKS,
   TICK_MS,
@@ -9,13 +10,16 @@ import {
   type CanvasSize,
 } from "@/lib/arcade/engine";
 import {
+  brkButtonHit,
   brkCheckpoint,
   breakerGame,
   BRK_BG,
   BRK_CHECKPOINT_INTERVAL,
   BRK_GOLD,
+  BRK_POWER_SPAM,
   BRK_RUN_TICKS,
   BRK_TEAL,
+  BRK_WORLD_H,
   BRK_WORLD_W,
   type BrkState,
 } from "@/lib/arcade/breaker";
@@ -25,7 +29,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: a paddle under a wall of bricks. */
+/** Fixed intro still: a paddle under a wall with a gold brick and a capsule. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -44,15 +48,16 @@ function IntroExample() {
               y={14 + row * 14}
               width={22}
               height={10}
-              fill={BRK_TEAL[row % BRK_TEAL.length]}
+              fill={row === 1 && col === 3 ? BRK_GOLD : BRK_TEAL[row % BRK_TEAL.length]}
             />
           )),
         )}
-        <circle cx={84} cy={88} r={4} fill="#F7F7F8" />
+        <rect x={92} y={62} width={12} height={8} rx={2} fill={BRK_GOLD} />
+        <circle cx={64} cy={88} r={4} fill="#F7F7F8" />
         <rect x={62} y={102} width={44} height={7} rx={2} fill={BRK_GOLD} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Drag the paddle; the ball clears the wall.
+        Catch the capsule a gold brick drops.
       </p>
     </div>
   );
@@ -70,6 +75,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   /** The latest finger position, and the last one the sim was told about. */
   const wanted = useRef<number | null>(null);
   const sent = useRef<number>(state.current.aimX);
+  /** Button presses waiting for a tick, and the pointer holding the button. */
+  const presses = useRef<number[]>([]);
+  const buttonPointer = useRef<number | null>(null);
   const submitted = useRef(false);
   const [, forceRedraw] = useState(0);
   useNoTouchScroll(wrap);
@@ -96,6 +104,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     checkpoints.current = [];
     wanted.current = null;
     sent.current = state.current.aimX;
+    presses.current = [];
+    buttonPointer.current = null;
     submitted.current = false;
     forceRedraw((n) => n + 1);
   }, [seed]);
@@ -124,20 +134,34 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
         accumulator -= ticks * TICK_MS;
         for (let i = 0; i < ticks; i++) {
-          // One drag event a tick, and only when the position has changed.
-          const target = wanted.current;
+          // One event a tick: a waiting button press first, otherwise a drag,
+          // and only when the position has changed.
           let applied: ArcadeInputEvent | null = null;
-          if (target !== null && target !== sent.current) {
+          const press = presses.current.shift();
+          if (press !== undefined) {
             applied = {
               t: state.current.tick + 1,
-              k: ARCADE_INPUT_DRAG,
-              a: target,
+              k: ARCADE_INPUT_BUTTON,
+              a: press,
               b: 0,
               c: 0,
               d: 0,
             };
-            sent.current = target;
             events.current.push(applied);
+          } else {
+            const target = wanted.current;
+            if (target !== null && target !== sent.current) {
+              applied = {
+                t: state.current.tick + 1,
+                k: ARCADE_INPUT_DRAG,
+                a: target,
+                b: 0,
+                c: 0,
+                d: 0,
+              };
+              sent.current = target;
+              events.current.push(applied);
+            }
           }
           state.current = breakerGame.step(state.current, applied);
           if (state.current.tick % BRK_CHECKPOINT_INTERVAL === 0) {
@@ -182,20 +206,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { width, height };
   };
 
-  /** Screen x to world x, matching the canvas letterboxing. */
-  const worldX = (clientX: number): number => {
+  /** Screen point to world point, matching the canvas letterboxing. */
+  const worldPoint = (clientX: number, clientY: number): { x: number; y: number } => {
     const box = wrap.current?.getBoundingClientRect();
-    if (!box || box.width < 1) return Math.round(BRK_WORLD_W / 2);
-    const scale = Math.min(box.width / BRK_WORLD_W, box.height / 620);
+    if (!box || box.width < 1) return { x: Math.round(BRK_WORLD_W / 2), y: BRK_WORLD_H / 2 };
+    const scale = Math.min(box.width / BRK_WORLD_W, box.height / BRK_WORLD_H);
     const left = box.left + (box.width - BRK_WORLD_W * scale) / 2;
-    return Math.max(0, Math.min(BRK_WORLD_W, Math.round((clientX - left) / scale)));
+    const top = box.top + (box.height - BRK_WORLD_H * scale) / 2;
+    return {
+      x: Math.max(0, Math.min(BRK_WORLD_W, Math.round((clientX - left) / scale))),
+      y: Math.max(0, Math.min(BRK_WORLD_H, Math.round((clientY - top) / scale))),
+    };
   };
 
   if (!data) return null;
 
   const track = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (locked || submitted.current || breakerGame.isOver(state.current)) return;
-    wanted.current = worldX(event.clientX);
+    if (buttonPointer.current === event.pointerId) return;
+    wanted.current = worldPoint(event.clientX, event.clientY).x;
   };
 
   return (
@@ -212,10 +241,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerDown={(event) => {
           event.preventDefault();
           event.currentTarget.setPointerCapture(event.pointerId);
+          const point = worldPoint(event.clientX, event.clientY);
+          const held = state.current.held;
+          if (held > 0 && brkButtonHit(point.x, point.y)) {
+            buttonPointer.current = event.pointerId;
+            presses.current.push(held === BRK_POWER_SPAM ? 0 : 1);
+            return;
+          }
           track(event);
         }}
         onPointerMove={track}
         onPointerUp={(event) => {
+          if (buttonPointer.current === event.pointerId) buttonPointer.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
@@ -244,7 +281,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
         {result.cleared
           ? `Cleared at ${result.endedSeconds.toFixed(1)}s`
-          : `${result.hits} hits · ${result.bricksLeft} brick${result.bricksLeft === 1 ? "" : "s"} left`}
+          : `${result.hits} hits · ${result.bricksLeft} brick${result.bricksLeft === 1 ? "" : "s"} left · ${result.powerUps} power-up${result.powerUps === 1 ? "" : "s"}`}
       </p>
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {result.losses} relaunch{result.losses === 1 ? "" : "es"} · {drags} paddle moves
