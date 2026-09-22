@@ -194,7 +194,7 @@ export interface BinTossState {
   throwIndex: number;
   resolved: number;
   baskets: number;
-  /** Wind for each of the ten throws, −2 … +2. Same for everyone. */
+  /** Wind for each of the ten throws, −3 … +3. Same for everyone. */
   winds: number[];
   /** 1 for a basket, 0 for a miss, in throw order. */
   results: number[];
@@ -203,6 +203,9 @@ export interface BinTossState {
   y: number;
   vx: number;
   vy: number;
+  /** The wind's own integration for the throw in flight. */
+  windV: number;
+  windPos: number;
   /** When the next ball appears, during the wait phase. */
   readyTick: number;
   /** Last rim hit, for the render-only bin wobble. */
