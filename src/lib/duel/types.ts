@@ -1316,8 +1316,10 @@ export interface SafePuzzleData {
 
 export const BOMB_TIME_MS = 75_000;
 export const BOMB_WIRES = 7;
-/** Four rules, and between them exactly one four-action plan. */
-export const BOMB_RULE_COUNT = 4;
+/** Six rules, and between them exactly one four-action plan. */
+export const BOMB_RULE_COUNT = 6;
+/** At least this many of the six must be individually necessary. */
+export const BOMB_NECESSARY_RULES = 4;
 /** Every panel requires exactly four actions. */
 export const BOMB_MIN_SEQUENCE = 4;
 export const BOMB_MAX_SEQUENCE = 4;
