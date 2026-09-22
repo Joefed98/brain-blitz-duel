@@ -3,7 +3,7 @@
  *
  * Nodes are scattered across the whole play area by Poisson-disc sampling, so
  * the board is never a ring around the edge. A depth-first search then counts
- * the non-crossing twelve-node routes: a layout is only used when it has
+ * the non-crossing fifteen-node routes: a layout is only used when it has
  * between one and eight of them and at least two early dead-end traps.
  */
 
@@ -96,7 +96,7 @@ function collectChainSolutions(
   return solutions;
 }
 
-/** Early shape-valid choices which cannot be extended to twelve links. */
+/** Early shape-valid choices which cannot be extended to fifteen links. */
 export function chainTrapNodes(nodes: ChainNode[], cycle: ChainShape[]): number[] {
   const traps = new Set<number>();
   const searchPrefixes = (chain: number[]) => {
@@ -127,7 +127,7 @@ function stepHasRequiredChoices(nodes: ChainNode[], cycle: ChainShape[], chain: 
   return crossing > 0 || sameShape === validChoices(nodes, cycle, chain).length;
 }
 
-/** Depth-first search for one valid non-crossing twelve-node chain. */
+/** Depth-first search for one valid non-crossing fifteen-node chain. */
 export function findChainSolution(nodes: ChainNode[], cycle: ChainShape[]): number[] | null {
   const search = (chain: number[]): number[] | null => {
     if (chain.length >= CHAIN_LENGTH) return chain;
@@ -245,7 +245,7 @@ export function layoutIsSpread(points: Point[]): boolean {
   return convexHullSize(points) <= Math.floor(points.length * CHAIN_MAX_HULL_RATIO);
 }
 
-/** Four of each shape are needed for a twelve-link chain; the rest are spare. */
+/** Five of each shape are needed for a fifteen-link chain; the rest are spare. */
 function shapeBag(): ChainShape[] {
   const bag: ChainShape[] = [];
   const perShape = Math.floor(CHAIN_NODES / CHAIN_SHAPES.length);
