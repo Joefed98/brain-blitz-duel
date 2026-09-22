@@ -14,7 +14,8 @@ interface NumberEntryProps {
   children: ReactNode;
 }
 
-const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "ENTER"];
+/** One compact row: the digits then backspace. ENTER is its own bar beneath. */
+const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "⌫"];
 
 /** Shared numeric answer field used by the typed puzzle types. */
 export function NumberEntry({
