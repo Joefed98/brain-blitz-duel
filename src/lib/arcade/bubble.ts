@@ -542,10 +542,13 @@ function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize):
     for (let col = 0; col < bubRowCols(row); col++) {
       const value = state.grid[cellIndex(row, col)]!;
       if (!value) continue;
+      const cx = bubCellX(row, col);
+      const cy = bubCellY(row, state.descents);
       ctx.beginPath();
-      ctx.arc(bubCellX(row, col), bubCellY(row, state.descents), BUB_R - 1, 0, Math.PI * 2);
+      ctx.arc(cx, cy, BUB_R - 1, 0, Math.PI * 2);
       ctx.fillStyle = bubColour(value);
       ctx.fill();
+      bubDrawSymbol(ctx, value, cx, cy, BUB_R - 1);
     }
   }
 
@@ -558,13 +561,17 @@ function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize):
     ctx.arc(BUB_SHOOTER_X, BUB_SHOOTER_Y, BUB_R - 1, 0, Math.PI * 2);
     ctx.fillStyle = bubColour(holding);
     ctx.fill();
+    bubDrawSymbol(ctx, holding, BUB_SHOOTER_X, BUB_SHOOTER_Y, BUB_R - 1);
   }
 
   if (state.flightColour) {
+    const cx = state.x / 256;
+    const cy = state.y / 256;
     ctx.beginPath();
-    ctx.arc(state.x / 256, state.y / 256, BUB_R - 1, 0, Math.PI * 2);
+    ctx.arc(cx, cy, BUB_R - 1, 0, Math.PI * 2);
     ctx.fillStyle = bubColour(state.flightColour);
     ctx.fill();
+    bubDrawSymbol(ctx, state.flightColour, cx, cy, BUB_R - 1);
   }
 
   ctx.fillStyle = BUB_BG;
