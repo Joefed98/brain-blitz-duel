@@ -81,6 +81,9 @@ import {
   BREAKER_TIME_MS,
   RALLY_TIME_MS,
   STEADY_TIME_MS,
+  SLICE_TIME_MS,
+  BUBBLE_TIME_MS,
+  BEAT_TIME_MS,
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -108,6 +111,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   breaker: BREAKER_TIME_MS,
   rally: RALLY_TIME_MS,
   steady: STEADY_TIME_MS,
+  slice: SLICE_TIME_MS,
+  bubble: BUBBLE_TIME_MS,
+  beat: BEAT_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -1118,6 +1124,52 @@ const steadySummary: SummaryBuilder = (result) => {
   };
 };
 
+const sliceSummary: SummaryBuilder = (result) => {
+  const slices = Number(result.extra?.["slices"] ?? 0);
+  const total = Number(result.extra?.["totalDiscs"] ?? 0);
+  const bombs = Number(result.extra?.["bombsHit"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: `${slices} / ${total} sliced · ${bombs} bomb${bombs === 1 ? "" : "s"}`,
+    detail: [
+      `${Number(result.extra?.["bonuses"] ?? 0)} multi-slice bonuses`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
+const bubbleSummary: SummaryBuilder = (result) => {
+  const popped = Number(result.extra?.["popped"] ?? 0);
+  const dropped = Number(result.extra?.["dropped"] ?? 0);
+  const cleared = result.extra?.["cleared"] === true;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: cleared
+      ? `Cleared at ${ended.toFixed(1)}s`
+      : `Popped ${popped} · dropped ${dropped}`,
+    detail: [
+      `${Number(result.extra?.["shots"] ?? 0)} shots`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
+const beatSummary: SummaryBuilder = (result) => {
+  const hits = Number(result.extra?.["hits"] ?? 0);
+  const notes = Number(result.extra?.["noteCount"] ?? 0);
+  const perfect = Number(result.extra?.["perfect"] ?? 0);
+  const misses = Number(result.extra?.["misses"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: `${hits} / ${notes} · ${perfect} perfect · ${misses} miss${misses === 1 ? "" : "es"}`,
+    detail: [
+      `best combo ${Number(result.extra?.["maxCombo"] ?? 0)}`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
 const ringsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "rings") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);
@@ -1197,6 +1249,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   breaker: breakerSummary,
   rally: rallySummary,
   steady: steadySummary,
+  slice: sliceSummary,
+  bubble: bubbleSummary,
+  beat: beatSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1267,6 +1322,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   breaker: () => null,
   rally: () => null,
   steady: () => null,
+  slice: () => null,
+  bubble: () => null,
+  beat: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };

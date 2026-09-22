@@ -566,6 +566,33 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Distance for points, −4 per touch, +40 for a clean minute (3 touches or fewer).",
   },
+  slice: {
+    goal: "Slice the flying discs. Don't hit the bombs.",
+    how: [
+      { action: "Swipe through the discs", detail: "to slice them in half." },
+      { action: "Slice several with one swipe", detail: "for a bonus." },
+      { action: "Never touch the dark bombs", detail: "— each one costs ten points." },
+    ],
+    score: "2 per disc, bonus for 3 in one swipe, −10 per bomb.",
+  },
+  bubble: {
+    goal: "Pop the bubbles by matching three of a colour.",
+    how: [
+      { action: "Drag to aim, release to shoot", detail: "— bounce off the walls." },
+      { action: "Three of a colour pop", detail: "when they touch." },
+      { action: "Bubbles left hanging", detail: "fall and count double." },
+    ],
+    score: "1 per pop, 2 per drop, +40 for clearing the field.",
+  },
+  beat: {
+    goal: "Tap the notes in time.",
+    how: [
+      { action: "Tap a lane", detail: "as its note reaches the line." },
+      { action: "Closer is better", detail: "— perfect, good, or just OK." },
+      { action: "A tap with no note", detail: "costs nothing." },
+    ],
+    score: "Accuracy for points, +40 for a run with no misses.",
+  },
   ricochet: {
     goal: "Climb the shaft by leaping wall to wall.",
     how: [

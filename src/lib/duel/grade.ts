@@ -30,6 +30,9 @@ import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
 import { decodeRallyRun, replayRallyRun } from "./rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
+import { decodeSliceRun, replaySliceRun } from "./slice";
+import { decodeBubbleRun, replayBubbleRun } from "./bubble";
+import { decodeBeatRun, replayBeatRun } from "./beat";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeRicoRun, replayRicoRun } from "./ricochet";
@@ -962,6 +965,78 @@ export function gradeSubmission(
         desyncTick: run.desyncTick,
         inputs: decodeSteadyRun(answer).events.length,
         claimedScore: decodeSteadyRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "slice": {
+      const run = replaySliceRun(puzzle.seed, answer);
+      isCorrect = run.bombsHit === 0;
+      correctCount = run.slices;
+      score = run.score;
+      extraDetail = {
+        slices: run.slices,
+        totalDiscs: run.totalDiscs,
+        bonuses: run.bonuses,
+        bombsHit: run.bombsHit,
+        finished: run.finished,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeSliceRun(answer).events.length,
+        claimedScore: decodeSliceRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "bubble": {
+      const run = replayBubbleRun(puzzle.seed, answer);
+      isCorrect = run.cleared;
+      correctCount = run.popped + run.dropped;
+      score = run.score;
+      extraDetail = {
+        popped: run.popped,
+        dropped: run.dropped,
+        shots: run.shots,
+        bubblesLeft: run.bubblesLeft,
+        cleared: run.cleared,
+        survived: run.survived,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBubbleRun(answer).events.length,
+        claimedScore: decodeBubbleRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "beat": {
+      const run = replayBeatRun(puzzle.seed, answer);
+      isCorrect = run.clean;
+      correctCount = run.hits;
+      score = run.score;
+      extraDetail = {
+        hits: run.hits,
+        noteCount: run.noteCount,
+        perfect: run.perfect,
+        good: run.good,
+        ok: run.ok,
+        misses: run.misses,
+        strays: run.strays,
+        maxCombo: run.maxCombo,
+        clean: run.clean,
+        finished: run.finished,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBeatRun(answer).events.length,
+        claimedScore: decodeBeatRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
