@@ -5,6 +5,7 @@
  */
 
 import { randomBelow } from "./random";
+import { bullseyeWinds } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
   BullseyePuzzleData,
@@ -31,7 +32,8 @@ export function generateBinToss(): BinTossPuzzleData {
 }
 
 export function generateBullseye(): BullseyePuzzleData {
-  return { type: "bullseye", seed: arcadeSeed() };
+  const seed = arcadeSeed();
+  return { type: "bullseye", seed, winds: bullseyeWinds(seed) };
 }
 
 export function generateMatchup(): MatchupPuzzleData {

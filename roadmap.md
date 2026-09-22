@@ -40,16 +40,19 @@
 - [x] Added Swerve and Skyline on the shared deterministic engine: seeded integer fixed-point sims, sim-tick input logs, server replay scoring, 300-tick checkpoints, client-lag handling, fixed instructions/reveals/summaries. Proof script: scripts/arcade-check.ts.
 
 ## Arcade inputs, Bin Toss and Bullseye
+
 - [x] Generalised input events ({ t, k, a, b, c, d }, declared per-game ranges, 2000 cap)
 - [x] Bin Toss: ten flicked throws, per-throw wind, growing distance, time bonus
 - [x] Bullseye: ten aimed arrows, shrinking target, wind drift, half-total scoring
 
 ## Matchup
+
 - [x] Matchup: 7x7 six-symbol swap game on the shared engine (k = 3 swap events)
 - [x] Fixed per-column refill queues, deterministic reshuffle, cascade scoring, total / 4
 - [x] 200-run client/server identity proof with valid and invalid swaps
 
 ## Five-game tuning
+
 - [x] Pair Match 5x4 layout/scoring/text
 - [x] Swerve speed ramp and coin collection rendering
 - [x] Bin Toss drag capture and wind layout
@@ -58,6 +61,7 @@
 - [x] Re-run deterministic proof scripts
 
 ## Six-game tuning (done)
+
 - [x] Number Sequence: 45-second limit, speed bonus and text scaled to it
 - [x] Hover: 666 start, +31 per gate, cap 1331; total gates recomputed
 - [x] Swerve: five lanes, 14 px/tick slide, 1–3 blocked lanes, ≤2-step passability, speed +20 per coin
@@ -66,18 +70,21 @@
 - [x] Bullseye: ring values 10…5, score × 1.5, flick from the bow, no reticle
 
 ## Flick recalibration (done)
+
 - [x] Reference swipe 1300 px/s, clamped 250–2200 px/s, square-root response from a shared integer table
 - [x] Bin Toss: 1300 px/s at 60° lands in the bin on throw five (launch 1243 units/tick)
 - [x] Bullseye: 1300 px/s straight up lands on the centre at arrow one (flight 282/1920)
 - [x] ?dev=1 readout of swipe speed, angle and landing point in both games
 
 ## Achievable arcade scoring (done)
+
 - [x] 1300 px/s reference flick with the deterministic square-root response and existing clamp
 - [x] Bin Toss: half wind, wider forgiving bin, 110–245 px distances, floatier gravity, previous-arc ghost
 - [x] Bullseye: half wind, 170 px target, gentler shrinking/drift, previous-hit ghost
 - [x] Re-run the 200-run client/server identity proof and arcade regressions
 
 ## Nine-type tuning (2026-09-21)
+
 - [x] Bomb Defusal: required-action set + ordering constraints, contradiction/cycle/ambiguity rejection, order-independent grading.
 - [x] Stop Watch: sweep speeds 1.0x / 1.3x / 1.6x per try.
 - [x] Laser: 6 gems, 9 mirrors, 40s, proportional partial score.
@@ -87,9 +94,17 @@
 - [x] Sliding Tiles and every drag board: no page scroll while dragging.
 
 ## Drag aiming and four-step bombs (2026-09-21)
+
 - [x] Nonogram: 90s limit, speed bonus and help text rescaled.
 - [x] Count Up: compact one-row keypad plus ENTER bar (~90px), grid gets the space.
 - [x] Bomb Defusal: exactly four required actions, "steps x / 4", consistency and necessity checks kept.
 - [x] Bin Toss and Bullseye: drag-position aiming (anchor to finger, 20-220px strength, 20px cancel), live dotted prediction, no velocity measurement.
 - [x] Chain: 15 links, at least four invalid nodes per step, scoring and counters updated.
 - [x] Re-ran the arcade drag identity proof plus bomb, chain, nonogram and arcade regressions.
+
+## Filled Count Up and arcade polish (2026-09-22)
+
+- [x] Count Up: all 48 cells contain either the target or a valid distractor.
+- [x] Bin Toss: scored-ball settle animation, delayed visible counter, and 72px drag-to-cancel zone.
+- [x] Bullseye: stored seeded wind −3…+3, exact scaled-ring displacement, and per-arrow reveal details.
+- [x] Re-ran the 200-run Bullseye identity proof and focused static checks.

@@ -5,9 +5,7 @@ import {
   COUNTUP_COLS,
   COUNTUP_TIME_MS,
   COUNTUP_MAX_COUNT,
-  COUNTUP_MAX_SHAPES,
   COUNTUP_MIN_COUNT,
-  COUNTUP_MIN_SHAPES,
   COUNTUP_ROWS,
   type CountUpPuzzleData,
   type CountUpShape,
@@ -175,10 +173,7 @@ export function buildCountUp(): CountUpPuzzleData {
   for (let i = 0; i < nearA; i++) slots.push({ shape: otherShape, colour: targetColour });
   for (let i = 0; i < nearB; i++) slots.push({ shape: targetShape, colour: otherColour });
 
-  const total = Math.max(
-    slots.length,
-    randInt(Math.max(COUNTUP_MIN_SHAPES, slots.length), COUNTUP_MAX_SHAPES),
-  );
+  const total = COUNTUP_COLS * COUNTUP_ROWS;
   while (slots.length < total) {
     const shape = pick(SHAPES);
     const colour = pick(COLOURS);

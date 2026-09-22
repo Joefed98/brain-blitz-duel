@@ -527,6 +527,12 @@ export interface BinTossGhost {
   wind: number;
 }
 
+export interface BinTossLandingPresentation {
+  progress: number;
+  binCentre: number;
+  binIndex: number;
+}
+
 /** Draws a trajectory as a dotted arc without changing simulation state. */
 export function binTossDrawGhost(
   ctx: CanvasRenderingContext2D,
@@ -570,8 +576,83 @@ export function binTossDrawAim(
   ctx: CanvasRenderingContext2D,
   size: CanvasSize,
   aim: BinTossGhost,
+  cancelled = false,
 ): void {
-  binTossDrawGhost(ctx, size, aim, 0.5);
+  if (!cancelled) {
+    binTossDrawGhost(ctx, size, aim, 0.5);
+    return;
+  }
+  const { scale, offsetX, offsetY } = binTossTransform(size);
+  let x = BINTOSS_BALL_X;
+  let y = BINTOSS_BALL_Y;
+  let vx = aim.vx;
+  let vy = aim.vy;
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = BINTOSS_TEXT;
+  ctx.globalAlpha = 0.28;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 5]);
+  ctx.beginPath();
+  ctx.moveTo(px(x), px(y));
+  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
+    vx += aim.wind * BINTOSS_WIND_UNIT;
+    vy += BINTOSS_GRAVITY;
+    x += vx;
+    y += vy;
+    ctx.lineTo(px(x), px(y));
+    if ((vy > 0 && y >= BINTOSS_RIM_Y) || y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Client-only scored-ball animation layered over the deterministic board. */
+export function binTossDrawLanding(
+  ctx: CanvasRenderingContext2D,
+  size: CanvasSize,
+  landing: BinTossLandingPresentation,
+): void {
+  const { scale, offsetX, offsetY } = binTossTransform(size);
+  const p = Math.max(0, Math.min(1, landing.progress));
+  const centre = px(landing.binCentre);
+  const half = px(BINTOSS_BIN_HALF);
+  const rim = px(BINTOSS_RIM_Y);
+  const floor = px(BINTOSS_FLOOR_Y);
+  const radius = px(BINTOSS_BALL_R);
+  let x = centre;
+  let y = rim + radius;
+  if (p < 0.48) {
+    const local = p / 0.48;
+    x = centre + half * 0.42 * local;
+    y = rim + radius + (floor - rim - radius * 2) * local;
+  } else if (p < 0.76) {
+    const local = (p - 0.48) / 0.28;
+    x = centre + half * 0.42 * (1 - local * 1.55);
+    y = floor - radius - Math.sin(local * Math.PI) * 12;
+  } else {
+    const local = (p - 0.76) / 0.24;
+    x = centre - half * 0.23 + half * 0.1 * local;
+    y = floor - radius;
+  }
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = BINTOSS_BALL_COLOUR;
+  ctx.globalAlpha = 0.35 + 0.5 * Math.sin(Math.min(1, p * 1.5) * Math.PI);
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.ellipse(centre, rim, half, 4, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.translate(x, y);
+  ctx.rotate(p * Math.PI * 3);
+  ctx.fillStyle = BINTOSS_BALL_COLOUR;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 export const binTossGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = {
