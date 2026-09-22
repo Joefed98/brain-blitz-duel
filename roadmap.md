@@ -148,3 +148,9 @@
 - [x] Arcade additions: Slice (swipe segments), Bubble Pop (drag-aim shots) and Beat (lane taps) on the shared deterministic engine, with server replay, 300-tick checkpoints and a 200-run identity proof (`scripts/arcade-slice-bubble-beat-check.ts`).
 
 - Chat panel closes by button/outside tap/swipe; Nonogram 120s; Intruder 5s/1s/3s one-tap boards; Equation five numbers; One-Stroke 30s; arcade reveals show game stats only (metres, seconds) with desync logged but hidden.
+
+## Arcade rework (Breaker / Rally / Steady)
+- Breaker: 8x8 wall, speed +26 per brick and +51 per 10s (cap 1920), 3 seeded gold bricks dropping MULTI/SPAM/LASER capsules, multi-ball (cap 8), gold power-up button (k=10).
+- Rally: +3% per hit (cap 2.2x), paddle -5 px to 40 min, seeded gold ball every 10s scoring 6.
+- Steady: ball on a fixed line, x-only drag, track 44 -> 18 px (1 px per 4s), scroll 1.2 -> 3.0 px/tick (+0.15 per 5s), reveal in metres.
+- 200-run identity proof re-run for all three; all other arcade proofs and the build pass.
