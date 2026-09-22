@@ -149,14 +149,18 @@ const has = (sequence: BombAction[], action: BombAction) => sequence.includes(ac
  */
 function candidateRules(panel: Panel): RuleInstance[] {
   const out: RuleInstance[] = [];
-  const add = (id: string, text: string, test: (sequence: BombAction[]) => boolean) =>
-    out.push({ id, text, test });
+  const add = (
+    id: string,
+    text: string,
+    key: string,
+    test: (sequence: BombAction[]) => boolean,
+  ) => out.push({ id, text, key, test });
 
   // "Cut wire N" and "Do not cut wire N"
   for (let wire = 0; wire < BOMB_WIRES; wire++) {
     const action = cutAction(wire);
-    add(`cut:${wire}`, `Cut wire ${wire + 1}.`, (sequence) => has(sequence, action));
-    add(`nocut:${wire}`, `Do not cut wire ${wire + 1}.`, (sequence) => !has(sequence, action));
+    add(`cut:${wire}`, `Cut wire ${wire + 1}.`, `has:${action}`, (sequence) => has(sequence, action));
+    add(`nocut:${wire}`, `Do not cut wire ${wire + 1}.`, `nohas:${action}`, (sequence) => !has(sequence, action));
   }
 
   // "Cut the first/last <colour> wire"
@@ -167,11 +171,13 @@ function candidateRules(panel: Panel): RuleInstance[] {
     add(
       `colour:first:${colour}`,
       `Cut the first ${colourWord(colour)} wire.`,
+      `has:${cutAction(first)}`,
       (sequence) => has(sequence, cutAction(first)),
     );
     add(
       `colour:last:${colour}`,
       `Cut the last ${colourWord(colour)} wire.`,
+      `has:${cutAction(last)}`,
       (sequence) => has(sequence, cutAction(last)),
     );
   }
@@ -179,10 +185,13 @@ function candidateRules(panel: Panel): RuleInstance[] {
   // "Press button A/B"
   for (const label of ["A", "B"] as const) {
     const action = pressAction(label);
-    add(`press:${label}`, `Press button ${label}.`, (sequence) => has(sequence, action));
+    add(`press:${label}`, `Press button ${label}.`, `has:${action}`, (sequence) =>
+      has(sequence, action),
+    );
     add(
       `pressfirstcut:${label}`,
       `Press button ${label} before cutting any wire.`,
+      `pressfirstcut:${label}`,
       (sequence) => {
         const index = at(sequence, action);
         if (index < 0) return false;
@@ -193,19 +202,30 @@ function candidateRules(panel: Panel): RuleInstance[] {
 
   // Ordering: "<action> before <action>", "<action> first", "<action> last"
   for (const action of BOMB_ACTIONS) {
-    add(`first:${action}`, `${phrase(action)} first.`, (sequence) => sequence[0] === action);
+    add(
+      `first:${action}`,
+      `${phrase(action)} first.`,
+      `first:${action}`,
+      (sequence) => sequence[0] === action,
+    );
     add(
       `last:${action}`,
       `${phrase(action)} last.`,
+      `last:${action}`,
       (sequence) => sequence[sequence.length - 1] === action,
     );
     for (const other of BOMB_ACTIONS) {
       if (other === action) continue;
-      add(`before:${action}>${other}`, `${phrase(action)} before ${gerund(other)}.`, (sequence) => {
-        const a = at(sequence, action);
-        const b = at(sequence, other);
-        return a >= 0 && b >= 0 && a < b;
-      });
+      add(
+        `before:${action}>${other}`,
+        `${phrase(action)} before ${gerund(other)}.`,
+        `before:${action}>${other}`,
+        (sequence) => {
+          const a = at(sequence, action);
+          const b = at(sequence, other);
+          return a >= 0 && b >= 0 && a < b;
+        },
+      );
     }
   }
 
@@ -214,6 +234,7 @@ function candidateRules(panel: Panel): RuleInstance[] {
     add(
       `exactcuts:${wires}`,
       `Cut exactly ${NUMBER_WORDS[wires]} wire${wires === 1 ? "" : "s"}.`,
+      `exactcuts:${wires}`,
       (sequence) => sequence.filter(isCut).length === wires,
     );
   }
@@ -226,6 +247,7 @@ function candidateRules(panel: Panel): RuleInstance[] {
       add(
         `if:${condition.id}:${action}`,
         `If ${condition.text}, ${body.charAt(0).toLowerCase()}${body.slice(1)}.`,
+        `has:${action}`,
         (sequence) => has(sequence, action),
       );
     }
