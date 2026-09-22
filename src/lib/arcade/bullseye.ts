@@ -2,22 +2,22 @@
  * Bullseye — an arcade game on the shared engine.
  *
  * Front view down the range: six rings, ten arrows, the target shrinking with
- * every shot as the range grows. A flick from the bow at the bottom fires the
- * arrow; harder flicks land higher, and each arrow takes that shot's sideways
- * wind drift. Target geometry is in whole pixels; every value in the state is
- * an integer.
+ * every shot as the range grows. A drag aims from the bow at the bottom and
+ * letting go fires the arrow; longer drags land higher, and each arrow takes
+ * that shot's sideways wind drift. Target geometry is in whole pixels; every
+ * value in the state is an integer.
  */
 
 import {
   clampInt,
-  flickLaunch,
+  dragLaunch,
   inputRange,
   rngBelow,
   TICKS_PER_SECOND,
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
-  type FlickLaunch,
+  type DragLaunch,
   type InputRange,
 } from "./engine";
 
@@ -60,7 +60,7 @@ export const BULLSEYE_WIND_MAX = 2;
 /** The arrow's flight is render-only; the landing is worked out on release. */
 export const BULLSEYE_FLIGHT_TICKS = 20;
 
-/** A flick: a = launch vx, b = launch vy, in 1/256 px a tick, upwards negative. */
+/** A release: a = launch vx, b = launch vy, in 1/256 px a tick, upwards negative. */
 export const BULLSEYE_INPUT_SHOT = 2;
 export const BULLSEYE_V_MAX = 3_840;
 export const BULLSEYE_INPUT_RANGES: readonly InputRange[] = [
@@ -68,20 +68,21 @@ export const BULLSEYE_INPUT_RANGES: readonly InputRange[] = [
 ];
 
 /**
- * The launch speed a reference 1300 px/s flick produces, in 1/256 px a tick,
- * and the flight constant taken from it: a 1300 px/s straight-up flick carries
- * the arrow exactly the 282 px from the bow to the centre on arrow one.
+ * The launch speed the reference aim vector produces, in 1/256 px a tick, and
+ * the flight constant taken from it: a reference-strength straight-up aim
+ * carries the arrow exactly the 282 px from the bow to the centre on arrow one.
  */
 export const BULLSEYE_REF_V = 1_920;
 export const BULLSEYE_FLIGHT_NUM = BULLSEYE_BOW_Y - BULLSEYE_CY;
 export const BULLSEYE_FLIGHT_DEN = BULLSEYE_REF_V;
 
 /**
- * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
- * are world pixels moved over `dtMs` milliseconds; upwards is negative `dy`.
+ * Turns the aim vector (finger position minus the anchor, in world pixels) into
+ * a launch velocity. Upwards is negative `dy`; a downward vector is clamped to
+ * horizontal.
  */
-export function bullseyeFlick(dx: number, dy: number, dtMs: number): FlickLaunch | null {
-  const launch = flickLaunch(dx, dy, dtMs, BULLSEYE_REF_V);
+export function bullseyeDrag(dx: number, dy: number): DragLaunch | null {
+  const launch = dragLaunch(dx, dy, BULLSEYE_REF_V);
   if (!launch) return null;
   return {
     ...launch,
