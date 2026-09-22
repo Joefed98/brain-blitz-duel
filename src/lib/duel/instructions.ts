@@ -512,4 +512,40 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "3 = 10, 4 = 25, 5 = 50, then the total ÷ 8.",
   },
+  snake: {
+    goal: "Eat the pellets and don't hit anything.",
+    how: [
+      { action: "Swipe to turn", detail: "up, down, left or right." },
+      { action: "You grow with every pellet", detail: "and you speed up." },
+      { action: "Everyone gets", detail: "the same food in the same order." },
+    ],
+    score: "4 per pellet, +40 for surviving the minute.",
+  },
+  cross: {
+    goal: "Get across the traffic as many times as you can.",
+    how: [
+      { action: "Tap up to hop", detail: "one lane forward." },
+      { action: "Tap the bottom corners", detail: "to move sideways." },
+      { action: "Each crossing", detail: "is faster than the last." },
+    ],
+    score: "15 per crossing, +40 for surviving the minute.",
+  },
+  dual: {
+    goal: "Keep both runners alive.",
+    how: [
+      { action: "Left thumb jumps", detail: "the left runner." },
+      { action: "Right thumb jumps", detail: "the right runner." },
+      { action: "Same course", detail: "for everyone." },
+    ],
+    score: "2 per obstacle, +40 for surviving the minute.",
+  },
+  ricochet: {
+    goal: "Climb the shaft by leaping wall to wall.",
+    how: [
+      { action: "Tap to jump across", detail: "to the opposite wall." },
+      { action: "Don't land on the spikes", detail: "or the run ends." },
+      { action: "Don't slide", detail: "all the way back to the bottom." },
+    ],
+    score: "1 per 40 px climbed, +40 for surviving the minute.",
+  },
 };
