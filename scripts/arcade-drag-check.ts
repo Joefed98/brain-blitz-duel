@@ -9,6 +9,7 @@
  */
 
 import {
+  ARCADE_INPUT_BUTTON,
   ARCADE_INPUT_DRAG,
   checkInputEvents,
   MAX_INPUT_EVENTS,
@@ -38,7 +39,6 @@ import {
   steadyGame,
   STD_CHECKPOINT_INTERVAL,
   STD_RUN_TICKS,
-  STD_WORLD_H,
   STD_WORLD_W,
   type StdCheckpoint,
   type StdState,
@@ -71,6 +71,26 @@ function dragTrace(runTicks: number, maxX: number, maxY: number | null): ArcadeI
   return events;
 }
 
+/** Sprinkles power-up button presses through a drag trace, one event a tick. */
+function withButtonPresses(events: ArcadeInputEvent[]): ArcadeInputEvent[] {
+  const used = new Set(events.map((event) => event.t));
+  const presses: ArcadeInputEvent[] = [];
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const tick = 1 + Math.floor(Math.random() * (BRK_RUN_TICKS - 1));
+    if (used.has(tick)) continue;
+    used.add(tick);
+    presses.push({
+      t: tick,
+      k: ARCADE_INPUT_BUTTON,
+      a: Math.random() < 0.5 ? 0 : 1,
+      b: 0,
+      c: 0,
+      d: 0,
+    });
+  }
+  return [...events, ...presses].sort((left, right) => left.t - right.t);
+}
+
 function integers(values: readonly number[], label: string, tick: number): void {
   if (!values.every((value) => Number.isInteger(value))) {
     fail(`${label}: non-integer state at tick ${tick}`);
@@ -80,17 +100,20 @@ function integers(values: readonly number[], label: string, tick: number): void 
 function brkValues(state: BrkState): number[] {
   return [
     state.tick,
-    state.x,
-    state.y,
-    state.vx,
-    state.vy,
     state.speed,
     state.paddleX,
     state.aimX,
     state.hits,
     state.losses,
+    state.powerUps,
+    state.held,
+    state.charges,
+    state.beam,
     state.pause,
     ...state.bricks,
+    ...state.gold,
+    ...state.balls.flatMap((ball) => [ball.x, ball.y, ball.vx, ball.vy, ball.spam]),
+    ...state.capsules.flatMap((capsule) => [capsule.x, capsule.y, capsule.kind]),
   ];
 }
 
@@ -105,7 +128,10 @@ function rallyValues(state: RallyState): number[] {
     state.paddleX,
     state.aimX,
     state.hits,
+    state.goldHits,
     state.rng,
+    ...state.entries.flatMap((entry) => [entry.tick, entry.x, entry.vx, entry.vy]),
+    ...state.golds.flatMap((ball) => [ball.x, ball.y, ball.vx, ball.vy]),
   ];
 }
 
@@ -113,10 +139,8 @@ function stdValues(state: StdState): number[] {
   return [
     state.tick,
     state.dx,
-    state.dy,
     state.travelled,
     state.aimX,
-    state.aimY,
     state.touches,
     state.sinceTouch,
     state.flash,
@@ -128,7 +152,7 @@ function stdValues(state: StdState): number[] {
 
 for (let sample = 0; sample < SAMPLES; sample++) {
   const seed = 1 + Math.floor(Math.random() * 2_000_000_000);
-  const events = dragTrace(BRK_RUN_TICKS, BRK_WORLD_W, null);
+  const events = withButtonPresses(dragTrace(BRK_RUN_TICKS, BRK_WORLD_W, null));
   const byTick = new Map(events.map((event) => [event.t, event]));
 
   let state = breakerGame.init(seed);
@@ -224,7 +248,7 @@ for (let sample = 0; sample < SAMPLES; sample++) {
 
 for (let sample = 0; sample < SAMPLES; sample++) {
   const seed = 1 + Math.floor(Math.random() * 2_000_000_000);
-  const events = dragTrace(STD_RUN_TICKS, STD_WORLD_W, STD_WORLD_H);
+  const events = dragTrace(STD_RUN_TICKS, STD_WORLD_W, null);
   const byTick = new Map(events.map((event) => [event.t, event]));
 
   let state = steadyGame.init(seed);
@@ -322,7 +346,7 @@ for (let sample = 0; sample < SAMPLES; sample++) {
     encodeSteadyRun({
       seed,
       claimedScore: 0,
-      events: dragTrace(1500, STD_WORLD_W, STD_WORLD_H),
+      events: dragTrace(1500, STD_WORLD_W, null),
       endTick: 1500,
     }),
   );
