@@ -117,7 +117,7 @@ function sliceValues(state: SliceState): number[] {
     state.bombsHit,
     state.flash,
     ...state.slicedAt,
-    ...state.objects.flatMap((object) => [object.tick, object.x, object.vx, object.vy]),
+    ...state.objects.flatMap((object) => [object.launchTick, object.lastTick, object.x, object.vx, object.vy]),
   ];
 }
 
