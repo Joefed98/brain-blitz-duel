@@ -186,7 +186,15 @@ function buildFrenzyPayload(rng: number): { rng: number; payload: SliceObject[] 
     const colourDraw = rngBelow(state, SLICE_COLOURS.length);
     state = colourDraw.state;
     payload.push(
-      plainObject(offset, flight.startPx, flight.vx, flight.vy, flight.flightTicks, false, colourDraw.value),
+      plainObject(
+        offset,
+        flight.startPx,
+        flight.vx,
+        flight.vy,
+        flight.flightTicks,
+        false,
+        colourDraw.value,
+      ),
     );
   }
   return { rng: state, payload };
@@ -529,23 +537,12 @@ export const SLICE_RAINBOW = ["#FF4D4D", "#FFE600", "#3DDC84", "#4D8CFF", "#B26B
 export const SLICE_BOMB = "#1B1B24";
 
 /** A multicoloured disc with a star (frenzy) or a bar (line). Render only. */
-function drawSpecial(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  special: number,
-): void {
+function drawSpecial(ctx: CanvasRenderingContext2D, cx: number, cy: number, special: number): void {
   const wedges = SLICE_RAINBOW.length;
   for (let index = 0; index < wedges; index++) {
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.arc(
-      cx,
-      cy,
-      SLICE_R,
-      (index * Math.PI * 2) / wedges,
-      ((index + 1) * Math.PI * 2) / wedges,
-    );
+    ctx.arc(cx, cy, SLICE_R, (index * Math.PI * 2) / wedges, ((index + 1) * Math.PI * 2) / wedges);
     ctx.closePath();
     ctx.fillStyle = SLICE_RAINBOW[index]!;
     ctx.fill();

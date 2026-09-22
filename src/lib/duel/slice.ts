@@ -64,19 +64,17 @@ export function decodeSliceRun(raw: string): SliceRun {
     .slice(0, Math.ceil(SLICE_RUN_TICKS / SLICE_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
     .filter((values) => values.length === 9 && values.every(Number.isInteger))
-    .map(
-      ([tick, slices, bonuses, bombsHit, airborne, slicedFold, objectCount, frenzies, sum]) => ({
-        tick: tick ?? 0,
-        slices: slices ?? 0,
-        bonuses: bonuses ?? 0,
-        bombsHit: bombsHit ?? 0,
-        airborne: airborne ?? 0,
-        slicedFold: slicedFold ?? 0,
-        objectCount: objectCount ?? 0,
-        frenzies: frenzies ?? 0,
-        checksum: (sum ?? 0) >>> 0,
-      }),
-    );
+    .map(([tick, slices, bonuses, bombsHit, airborne, slicedFold, objectCount, frenzies, sum]) => ({
+      tick: tick ?? 0,
+      slices: slices ?? 0,
+      bonuses: bonuses ?? 0,
+      bombsHit: bombsHit ?? 0,
+      airborne: airborne ?? 0,
+      slicedFold: slicedFold ?? 0,
+      objectCount: objectCount ?? 0,
+      frenzies: frenzies ?? 0,
+      checksum: (sum ?? 0) >>> 0,
+    }));
   return {
     seed: Number.parseInt(seedPart, 10) || 0,
     claimedScore: Number.parseInt(scorePart, 10) || 0,

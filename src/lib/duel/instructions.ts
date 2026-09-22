@@ -526,7 +526,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Swipe up to hop", detail: "one lane forward; swipe down to step back." },
       { action: "Swipe left or right", detail: "to move sideways." },
-      { action: "After each crossing", detail: "you get a second on the kerb before the next one." },
+      {
+        action: "After each crossing",
+        detail: "you get a second on the kerb before the next one.",
+      },
     ],
     score: "15 per crossing, +40 for surviving the minute.",
   },
