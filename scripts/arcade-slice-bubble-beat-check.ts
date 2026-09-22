@@ -16,9 +16,13 @@ import {
 import {
   sliceCheckpoint,
   sliceGame,
+  sliceObjectAt,
+  sliceSuppressed,
   SLICE_CHECKPOINT_INTERVAL,
+  SLICE_FRENZY_COUNT,
   SLICE_INPUT_RANGES,
   SLICE_INPUT_SWIPE,
+  SLICE_LINE_COUNT,
   SLICE_RUN_TICKS,
   SLICE_WORLD_H,
   SLICE_WORLD_W,
@@ -211,6 +215,87 @@ for (let sample = 0; sample < SAMPLES; sample++) {
   );
   if (claimed !== 149 && (!lied.flagged || lied.score !== claimed)) {
     fail(`slice ${seed}: inflated claim not caught`);
+  }
+}
+
+/* ------------------- Slice: the two multicoloured specials ---------------- */
+
+for (let sample = 0; sample < 40; sample++) {
+  const seed = 1 + Math.floor(Math.random() * 2_000_000_000);
+  const start = sliceGame.init(seed);
+  const specials = start.objects
+    .map((object, index) => ({ object, index }))
+    .filter((entry) => entry.object.special !== 0);
+  if (specials.length < 2) fail(`slice ${seed}: fewer than two specials scheduled`);
+  for (const entry of specials) {
+    if (entry.object.launchTick < 10 * 60) fail(`slice ${seed}: a special lands in the first 10 s`);
+  }
+
+  // One swipe straight through each special, on a tick it is airborne.
+  const events = [];
+  for (const entry of specials) {
+    for (let age = 4; age < 40; age++) {
+      const tick = entry.object.launchTick + age;
+      const at = sliceObjectAt(entry.object, tick);
+      if (!at) break;
+      const cx = Math.trunc(at.x / 256);
+      const cy = Math.trunc(at.y / 256);
+      if (cy < 60 || cy > 560 || cx < 40 || cx > 350) continue;
+      if (events.some((event) => event.t === tick)) continue;
+      events.push({ t: tick, k: 8, a: cx - 30, b: cy, c: cx + 30, d: cy });
+      break;
+    }
+  }
+  events.sort((a, b) => a.t - b.t);
+  const byTick = new Map(events.map((event) => [event.t, event]));
+
+  let state = start;
+  const checkpoints: SliceCheckpoint[] = [];
+  let ticks = 0;
+  for (let tick = 1; tick <= SLICE_RUN_TICKS; tick++) {
+    state = sliceGame.step(state, byTick.get(tick) ?? null);
+    ticks = tick;
+    if (state.tick % SLICE_CHECKPOINT_INTERVAL === 0) checkpoints.push(sliceCheckpoint(state));
+    if (tick % 149 === 0) integers(sliceValues(state), `slice specials ${seed}`, tick);
+    if (sliceGame.isOver(state)) break;
+  }
+
+  const frenzyCut = specials.filter(
+    (entry) => entry.object.special === 1 && state.slicedAt[entry.index],
+  ).length;
+  const lineCut = specials.filter(
+    (entry) => entry.object.special === 2 && state.slicedAt[entry.index],
+  ).length;
+  if (frenzyCut === 0 || lineCut === 0) fail(`slice ${seed}: specials were not sliced`);
+  if (state.frenzyFrom.length !== frenzyCut) fail(`slice ${seed}: frenzy windows not recorded`);
+  const expected =
+    start.objects.length + frenzyCut * SLICE_FRENZY_COUNT + lineCut * SLICE_LINE_COUNT;
+  if (state.objects.length !== expected) {
+    fail(`slice ${seed}: spawned ${state.objects.length - start.objects.length}, expected extra`);
+  }
+  // No bomb may reach the board inside a frenzy.
+  for (const object of state.objects) {
+    if (!object.bomb) continue;
+    const inside = state.frenzyFrom.some(
+      (from) => object.launchTick >= from && object.launchTick < from + 300,
+    );
+    if (inside && !sliceSuppressed(state, object)) {
+      fail(`slice ${seed}: a bomb survived a frenzy`);
+    }
+  }
+
+  const claimed = sliceGame.score(state);
+  const replayed = replaySliceRun(
+    seed,
+    encodeSliceRun({ seed, claimedScore: claimed, events, endTick: ticks, checkpoints }),
+  );
+  if (replayed.score !== claimed) fail(`slice specials ${seed}: replay score differs`);
+  if (replayed.flagged) fail(`slice specials ${seed}: honest run flagged (${replayed.reason})`);
+  if (JSON.stringify(replayed.state) !== JSON.stringify(state)) {
+    fail(`slice specials ${seed}: final state differs`);
+  }
+  if (JSON.stringify(replayed.checkpoints) !== JSON.stringify(checkpoints)) {
+    fail(`slice specials ${seed}: checkpoints differ`);
   }
 }
 

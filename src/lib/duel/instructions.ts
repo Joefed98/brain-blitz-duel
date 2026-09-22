@@ -500,7 +500,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "The target", detail: "gets further away each shot." },
     ],
-    score: "10 for the centre, down to 5 on the outer ring. Ten centres = 150.",
+    score: "Ten centres = 150; every point dropped costs ten.",
   },
   matchup: {
     goal: "Make lines of three or more matching symbols.",
@@ -524,9 +524,12 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   cross: {
     goal: "Get across the traffic as many times as you can.",
     how: [
-      { action: "Tap up to hop", detail: "one lane forward." },
-      { action: "Tap the bottom corners", detail: "to move sideways." },
-      { action: "Each crossing", detail: "is faster than the last." },
+      { action: "Swipe up to hop", detail: "one lane forward; swipe down to step back." },
+      { action: "Swipe left or right", detail: "to move sideways." },
+      {
+        action: "After each crossing",
+        detail: "you get a second on the kerb before the next one.",
+      },
     ],
     score: "15 per crossing, +40 for surviving the minute.",
   },
@@ -576,6 +579,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Swipe through the discs", detail: "to slice them in half." },
       { action: "Slice several with one swipe", detail: "for a bonus." },
       { action: "Never touch the dark bombs", detail: "— each one costs ten points." },
+      {
+        action: "Two rainbow discs",
+        detail: "— the star opens five bomb-free seconds, the bar hangs a row of six.",
+      },
     ],
     score: "2 per disc, bonus for 3 in one swipe, −10 per bomb.",
   },
@@ -585,6 +592,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag to aim, release to shoot", detail: "— bounce off the walls." },
       { action: "Three of a colour pop", detail: "when they touch." },
       { action: "Bubbles left hanging", detail: "fall and count double." },
+      { action: "Ninety seconds", detail: "on the same field for everyone." },
     ],
     score: "1 per pop, 2 per drop, +40 for clearing the field.",
   },

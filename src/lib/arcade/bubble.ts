@@ -25,7 +25,7 @@ export const BUB_WORLD_W = 390;
 export const BUB_WORLD_H = 620;
 export const BUB_HUD_H = 64;
 
-export const BUB_RUN_SECONDS = 60;
+export const BUB_RUN_SECONDS = 90;
 export const BUB_RUN_TICKS = BUB_RUN_SECONDS * TICKS_PER_SECOND;
 
 /** The same drag-aim release kind Bullseye uses. */
@@ -445,10 +445,69 @@ export function bubCheckpoint(state: BubState): BubCheckpoint {
 
 export const BUB_BG = "#0B0B0F";
 export const BUB_GOLD = "#F5B82E";
-export const BUB_PALETTE = ["#2ED3B7", "#F5B82E", "#8B7BF7", "#F2734C", "#5AA9FF"];
+/** Five clearly distinct colours, each with its own inner symbol. */
+export const BUB_PALETTE = ["#FF4D4D", "#FFE600", "#3DDC84", "#4D8CFF", "#B26BFF"];
+export const BUB_SYMBOLS = ["dot", "ring", "square", "triangle", "star"] as const;
 
 export function bubColour(value: number): string {
   return BUB_PALETTE[(value - 1) % BUB_PALETTE.length] ?? BUB_GOLD;
+}
+
+export function bubSymbol(value: number): (typeof BUB_SYMBOLS)[number] {
+  return BUB_SYMBOLS[(value - 1) % BUB_SYMBOLS.length] ?? "dot";
+}
+
+/** Draws the colour's symbol inside a bubble. Render only. */
+export function bubDrawSymbol(
+  ctx: CanvasRenderingContext2D,
+  value: number,
+  cx: number,
+  cy: number,
+  radius: number,
+): void {
+  const ink = "rgba(11, 11, 15, 0.78)";
+  ctx.save();
+  ctx.fillStyle = ink;
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = Math.max(1.5, radius * 0.18);
+  const r = radius * 0.52;
+  switch (bubSymbol(value)) {
+    case "dot":
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.62, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "ring":
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.78, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    case "square":
+      ctx.fillRect(cx - r * 0.7, cy - r * 0.7, r * 1.4, r * 1.4);
+      break;
+    case "triangle":
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r * 0.9, cy + r * 0.7);
+      ctx.lineTo(cx - r * 0.9, cy + r * 0.7);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    case "star":
+      ctx.beginPath();
+      for (let point = 0; point < 10; point++) {
+        const reach = point % 2 === 0 ? r : r * 0.45;
+        const angle = -Math.PI / 2 + (point * Math.PI) / 5;
+        const x = cx + Math.cos(angle) * reach;
+        const y = cy + Math.sin(angle) * reach;
+        if (point === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      break;
+  }
+  ctx.restore();
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize): void {
@@ -483,10 +542,13 @@ function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize):
     for (let col = 0; col < bubRowCols(row); col++) {
       const value = state.grid[cellIndex(row, col)]!;
       if (!value) continue;
+      const cx = bubCellX(row, col);
+      const cy = bubCellY(row, state.descents);
       ctx.beginPath();
-      ctx.arc(bubCellX(row, col), bubCellY(row, state.descents), BUB_R - 1, 0, Math.PI * 2);
+      ctx.arc(cx, cy, BUB_R - 1, 0, Math.PI * 2);
       ctx.fillStyle = bubColour(value);
       ctx.fill();
+      bubDrawSymbol(ctx, value, cx, cy, BUB_R - 1);
     }
   }
 
@@ -499,13 +561,17 @@ function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize):
     ctx.arc(BUB_SHOOTER_X, BUB_SHOOTER_Y, BUB_R - 1, 0, Math.PI * 2);
     ctx.fillStyle = bubColour(holding);
     ctx.fill();
+    bubDrawSymbol(ctx, holding, BUB_SHOOTER_X, BUB_SHOOTER_Y, BUB_R - 1);
   }
 
   if (state.flightColour) {
+    const cx = state.x / 256;
+    const cy = state.y / 256;
     ctx.beginPath();
-    ctx.arc(state.x / 256, state.y / 256, BUB_R - 1, 0, Math.PI * 2);
+    ctx.arc(cx, cy, BUB_R - 1, 0, Math.PI * 2);
     ctx.fillStyle = bubColour(state.flightColour);
     ctx.fill();
+    bubDrawSymbol(ctx, state.flightColour, cx, cy, BUB_R - 1);
   }
 
   ctx.fillStyle = BUB_BG;
@@ -532,6 +598,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize):
     ctx.arc(52 + ahead * 22, 50, 8, 0, Math.PI * 2);
     ctx.fillStyle = bubColour(value);
     ctx.fill();
+    bubDrawSymbol(ctx, value, 52 + ahead * 22, 50, 8);
   }
   ctx.restore();
 }

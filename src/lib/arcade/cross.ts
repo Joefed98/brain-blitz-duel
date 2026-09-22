@@ -62,9 +62,15 @@ export const CROSS_LANE_POINTS = 1;
 export const CROSS_POINTS_CAP = 110;
 export const CROSS_SURVIVE_BONUS = 40;
 
-/** A move: a = 0 hop up, 1 left, 2 right. */
+/** A move: a = 0 up, 1 down, 2 left, 3 right — each from a swipe. */
 export const CROSS_INPUT_MOVE = 5;
-export const CROSS_INPUT_RANGES: readonly InputRange[] = [inputRange(CROSS_INPUT_MOVE, [0, 2])];
+export const CROSS_INPUT_RANGES: readonly InputRange[] = [inputRange(CROSS_INPUT_MOVE, [0, 3])];
+
+/** Swipes shorter than this, in screen pixels, are not a move. */
+export const CROSS_SWIPE_PX = 24;
+
+/** The breather on the kerb between one crossing and the next. */
+export const CROSS_PAUSE_TICKS = TICKS_PER_SECOND;
 
 /* ============================== Course ================================= */
 
@@ -204,10 +210,14 @@ export interface CrossState {
   col: number;
   /** Ticks left in the hop; 0 means standing. */
   hop: number;
+  /** Which way the hop under way is going: +1 forward, −1 back. */
+  hopDir: number;
   /** The highest lane reached in the crossing under way. */
   reached: number;
   /** The tick the current crossing began, so traffic is timed from it. */
   crossStart: number;
+  /** While the tick is at or below this, the disc waits on the kerb. */
+  pauseUntil: number;
   dead: boolean;
   endedTick: number;
 }
@@ -228,11 +238,18 @@ function init(seed: number): CrossState {
     lane: 0,
     col: CROSS_COLS >> 1,
     hop: 0,
+    hopDir: 1,
     reached: 0,
     crossStart: 0,
+    pauseUntil: 0,
     dead: false,
     endedTick: 0,
   };
+}
+
+/** True while the disc is parked on the kerb between crossings. */
+export function crossPaused(state: CrossState): boolean {
+  return state.tick < state.pauseUntil;
 }
 
 export function crossCourse(state: CrossState): CrossCourse {
@@ -251,27 +268,41 @@ export function crossSurvived(state: CrossState): boolean {
 function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
-  let { lane, col, hop, reached, crossings, crossStart } = state;
+  let { lane, col, hop, hopDir, reached, crossings, crossStart, pauseUntil } = state;
+  // Everything sent while the disc waits on the kerb is dropped, so a swipe at
+  // the end of one crossing can never carry into the next.
+  const paused = tick < pauseUntil;
 
-  if (hop === 0 && input && input.k === CROSS_INPUT_MOVE) {
-    const move = clampInt(input.a, 0, 2);
-    if (move === 0) hop = CROSS_HOP_TICKS;
-    else if (move === 1) col = Math.max(0, col - 1);
+  if (!paused && hop === 0 && input && input.k === CROSS_INPUT_MOVE) {
+    const move = clampInt(input.a, 0, 3);
+    if (move === 0) {
+      hop = CROSS_HOP_TICKS;
+      hopDir = 1;
+    } else if (move === 1) {
+      if (lane > 0) {
+        hop = CROSS_HOP_TICKS;
+        hopDir = -1;
+      }
+    } else if (move === 2) col = Math.max(0, col - 1);
     else col = Math.min(CROSS_COLS - 1, col + 1);
   }
 
   if (hop > 0) {
     hop -= 1;
     if (hop === 0) {
-      lane += 1;
+      lane += hopDir;
+      if (lane < 0) lane = 0;
       if (lane > reached) reached = lane;
       if (lane > CROSS_LANES) {
-        // The goal kerb: bank the crossing and start the next one at once.
+        // The goal kerb: bank the crossing, then a second on the start kerb
+        // while the traffic of the next crossing keeps rolling.
         crossings += 1;
         lane = 0;
         col = CROSS_COLS >> 1;
         reached = 0;
-        crossStart = tick;
+        hopDir = 1;
+        pauseUntil = tick + CROSS_PAUSE_TICKS;
+        crossStart = pauseUntil;
       }
     }
   }
@@ -286,16 +317,29 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
         lane,
         col,
         hop,
+        hopDir,
         reached,
         crossings,
         crossStart,
+        pauseUntil,
         dead: true,
         endedTick: tick,
       };
     }
   }
 
-  const next: CrossState = { ...state, tick, lane, col, hop, reached, crossings, crossStart };
+  const next: CrossState = {
+    ...state,
+    tick,
+    lane,
+    col,
+    hop,
+    hopDir,
+    reached,
+    crossings,
+    crossStart,
+    pauseUntil,
+  };
   if (tick >= CROSS_RUN_TICKS) return { ...next, endedTick: tick };
   return next;
 }
@@ -318,8 +362,10 @@ export interface CrossCheckpointState {
   lane: number;
   col: number;
   hop: number;
+  hopDir: number;
   reached: number;
   crossStart: number;
+  pauseUntil: number;
   laneSpeed: number;
 }
 
@@ -335,8 +381,10 @@ export function crossCheckpointState(state: CrossState): CrossCheckpointState {
     lane: state.lane,
     col: state.col,
     hop: state.hop,
+    hopDir: state.hopDir,
     reached: state.reached,
     crossStart: state.crossStart,
+    pauseUntil: state.pauseUntil,
     laneSpeed: course.lanes[0]?.speed ?? 0,
   };
 }
@@ -422,7 +470,7 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
   );
 
   const from = crossLaneCentre(state.lane);
-  const to = crossLaneCentre(state.lane + 1);
+  const to = crossLaneCentre(state.lane + state.hopDir);
   const done = state.hop > 0 ? (CROSS_HOP_TICKS - state.hop) / CROSS_HOP_TICKS : 0;
   const cy = state.hop > 0 ? from + (to - from) * done : from;
   ctx.fillStyle = CROSS_PLAYER;
@@ -438,6 +486,17 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
   ctx.fillText(`Crossings ${state.crossings}`, 14, 10);
   ctx.textAlign = "right";
   ctx.fillText(`${remaining.toFixed(1)}s`, CROSS_WORLD_W - 14, 10);
+
+  // The breather between crossings, announced over the board.
+  if (crossPaused(state)) {
+    ctx.fillStyle = "rgba(11, 11, 15, 0.55)";
+    ctx.fillRect(CROSS_BOARD_X, CROSS_WORLD_H / 2 - 30, CROSS_BOARD_W, 60);
+    ctx.fillStyle = CROSS_PLAYER;
+    ctx.font = "700 24px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`Crossing ${state.crossings + 1}`, CROSS_WORLD_W / 2, CROSS_WORLD_H / 2);
+  }
 
   if (state.dead) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";

@@ -154,3 +154,12 @@
 - Rally: +3% per hit (cap 2.2x), paddle -5 px to 40 min, seeded gold ball every 10s scoring 6.
 - Steady: ball on a fixed line, x-only drag, track 44 -> 18 px (1 px per 4s), scroll 1.2 -> 3.0 px/tick (+0.15 per 5s), reveal in metres.
 - 200-run identity proof re-run for all three; all other arcade proofs and the build pass.
+
+## Six arcade tunings (done)
+- Slice: launch rate ramps 1 → 4 per 1.5 s; seeded FRENZY (5 s bomb-free burst) and LINE (row of six, 2 s hang) specials, 1–2 each, never in the first 10 s; totals count specials and their spawns.
+- Bubble Pop: 90 s run, five distinct colours with per-colour symbols.
+- Snake renamed "Eat and Grow" (mechanics unchanged).
+- Cross: four-way swipe input, one-second kerb pause between crossings with inputs dropped and unlogged, "Crossing N" banner.
+- Dual: scroll 2.0 → 4.4 px/tick, +0.3 every 10 s.
+- Bullseye: outer ring 91 px, new scoring curve (ten centres = 150, −10 per point dropped above 90, T × 0.55 below).
+- Proofs: all arcade checks pass, incl. a new Slice specials check (payload spawn counts, no bombs in a frenzy, client/server identity).

@@ -39,7 +39,7 @@ export const BULLSEYE_CY = Math.round(BULLSEYE_WORLD_H * 0.4);
 export const BULLSEYE_BOW_X = 195;
 export const BULLSEYE_BOW_Y = 532;
 /** Outer radius at full size; each ring is a sixth of it. */
-export const BULLSEYE_OUTER_R = 114;
+export const BULLSEYE_OUTER_R = 91;
 export const BULLSEYE_RINGS = 6;
 export const BULLSEYE_RING_STEP = BULLSEYE_OUTER_R / BULLSEYE_RINGS;
 
@@ -299,9 +299,18 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
   return next;
 }
 
-/** Ten centres (100) make the 150 cap. */
+/**
+ * Ten centres (100 ring points) make the 150 cap, and every point dropped from
+ * there costs ten; below 90 the curve flattens out to a little over a half.
+ */
+export function bullseyeScoreFor(total: number): number {
+  const points = clampInt(total, 0, BULLSEYE_ARROWS * 10);
+  const earned = points >= 90 ? 150 - 10 * (100 - points) : Math.round((points * 55) / 100);
+  return clampInt(earned, 0, 150);
+}
+
 function score(state: BullseyeState): number {
-  return clampInt(Math.round((state.total * 3) / 2), 0, 150);
+  return bullseyeScoreFor(state.total);
 }
 
 /** Arrows in the gold or red rings — the headline for the standings summary. */

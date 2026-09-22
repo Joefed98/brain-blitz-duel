@@ -5,6 +5,12 @@
  * seed, so everyone gets the same objects at the same ticks. The finger's swipe
  * is sent as a segment per tick (kind 8) and tested against every airborne
  * object, so the phone and the server reach the same result from the same log.
+ *
+ * Two multicoloured specials sit in that same schedule: slicing FRENZY opens a
+ * five-second burst of bomb-free discs, and slicing LINE hangs a row of six
+ * across the screen. Both of their spawns are worked out at init from the seed
+ * and simply timed off the tick they were sliced on, so nothing random is ever
+ * drawn during play.
  */
 
 import {
@@ -45,9 +51,36 @@ export const SLICE_VX_MAX = 620;
 /** A launch window is 1.5 s; the number of objects in it grows over the run. */
 export const SLICE_WINDOW_TICKS = 90;
 export const SLICE_WINDOWS = SLICE_RUN_TICKS / SLICE_WINDOW_TICKS;
+/** One object a window at the start, four a window by the end. */
+export const SLICE_PER_WINDOW_START = 1;
+export const SLICE_PER_WINDOW_END = 4;
 
 /** Bombs are 12% of launches, and never two in the air at once. */
 export const SLICE_BOMB_PERCENT = 12;
+
+/* ------------------------------- Specials ------------------------------ */
+
+export const SLICE_SPECIAL_NONE = 0;
+export const SLICE_SPECIAL_FRENZY = 1;
+export const SLICE_SPECIAL_LINE = 2;
+
+/** No special appears in the first ten seconds. */
+export const SLICE_SPECIAL_EARLIEST = 10 * TICKS_PER_SECOND;
+/** A frenzy runs five seconds at eight objects a window, with no bombs. */
+export const SLICE_FRENZY_TICKS = 5 * TICKS_PER_SECOND;
+export const SLICE_FRENZY_PER_WINDOW = 8;
+export const SLICE_FRENZY_COUNT = Math.trunc(
+  (SLICE_FRENZY_TICKS * SLICE_FRENZY_PER_WINDOW) / SLICE_WINDOW_TICKS,
+);
+/** A line is six discs that rise together and hang for two seconds. */
+export const SLICE_LINE_COUNT = 6;
+export const SLICE_LINE_RISE_TICKS = 36;
+export const SLICE_LINE_HANG_TICKS = 2 * TICKS_PER_SECOND;
+export const SLICE_LINE_Y = 250;
+export const SLICE_LINE_FIRST_X = 45;
+export const SLICE_LINE_GAP_X = 60;
+/** Spawns start a few ticks after the special is cut. */
+export const SLICE_SPAWN_DELAY = 6;
 
 export const SLICE_SLICE_POINTS = 2;
 export const SLICE_MULTI_BONUS = 3;
@@ -80,6 +113,115 @@ export interface SliceObject {
   lastTick: number;
   bomb: boolean;
   colour: number;
+  /** 0 normal, 1 frenzy, 2 line. */
+  special: number;
+  /** 1 for a disc that rises to a fixed line and hangs there. */
+  hang: number;
+  /** The line a hanging disc holds, in 1/256 px. */
+  targetY: number;
+  /** What slicing this object launches; launch ticks are offsets. */
+  payload: SliceObject[];
+}
+
+/** One throw's spot and velocity, drawn from the seed. */
+function rollFlight(rng: number): {
+  rng: number;
+  startPx: number;
+  vx: number;
+  vy: number;
+  flightTicks: number;
+} {
+  let state = rng;
+  const spotDraw = rngBelow(state, SLICE_WORLD_W - 120);
+  state = spotDraw.state;
+  const startPx = 60 + spotDraw.value;
+
+  const vyDraw = rngBelow(state, SLICE_VY_MAX - SLICE_VY_MIN + 1);
+  state = vyDraw.state;
+  const vy = -(SLICE_VY_MIN + vyDraw.value);
+
+  const vxDraw = rngBelow(state, 2 * SLICE_VX_MAX + 1);
+  state = vxDraw.state;
+  // Objects thrown from the edges lean back towards the middle.
+  const lean = startPx < SLICE_WORLD_W / 2 ? 1 : -1;
+  const vx = Math.trunc((vxDraw.value - SLICE_VX_MAX) / 2) + lean * 180;
+
+  const flightTicks = Math.trunc((2 * -vy) / SLICE_GRAV) + 6;
+  return { rng: state, startPx, vx, vy, flightTicks };
+}
+
+function plainObject(
+  launchTick: number,
+  startPx: number,
+  vx: number,
+  vy: number,
+  flightTicks: number,
+  bomb: boolean,
+  colour: number,
+): SliceObject {
+  return {
+    launchTick,
+    x: startPx * 256,
+    vx,
+    vy,
+    lastTick: launchTick + flightTicks,
+    bomb,
+    colour,
+    special: SLICE_SPECIAL_NONE,
+    hang: 0,
+    targetY: 0,
+    payload: [],
+  };
+}
+
+/** The bomb-free burst a frenzy releases, with launch ticks as offsets. */
+function buildFrenzyPayload(rng: number): { rng: number; payload: SliceObject[] } {
+  let state = rng;
+  const payload: SliceObject[] = [];
+  for (let index = 0; index < SLICE_FRENZY_COUNT; index++) {
+    const offset =
+      SLICE_SPAWN_DELAY + Math.trunc((index * SLICE_FRENZY_TICKS) / SLICE_FRENZY_COUNT);
+    const flight = rollFlight(state);
+    state = flight.rng;
+    const colourDraw = rngBelow(state, SLICE_COLOURS.length);
+    state = colourDraw.state;
+    payload.push(
+      plainObject(
+        offset,
+        flight.startPx,
+        flight.vx,
+        flight.vy,
+        flight.flightTicks,
+        false,
+        colourDraw.value,
+      ),
+    );
+  }
+  return { rng: state, payload };
+}
+
+/** The six discs a line releases: they rise together, then hang for two seconds. */
+function buildLinePayload(rng: number): { rng: number; payload: SliceObject[] } {
+  let state = rng;
+  const payload: SliceObject[] = [];
+  for (let index = 0; index < SLICE_LINE_COUNT; index++) {
+    const colourDraw = rngBelow(state, SLICE_COLOURS.length);
+    state = colourDraw.state;
+    payload.push({
+      launchTick: SLICE_SPAWN_DELAY,
+      x: (SLICE_LINE_FIRST_X + index * SLICE_LINE_GAP_X) * 256,
+      vx: 0,
+      vy: 0,
+      lastTick: SLICE_SPAWN_DELAY + SLICE_LINE_RISE_TICKS + SLICE_LINE_HANG_TICKS,
+      bomb: false,
+      colour: colourDraw.value,
+      special: SLICE_SPECIAL_NONE,
+      hang: 1,
+      targetY: SLICE_LINE_Y * 256,
+      payload: [],
+    });
+  }
+  return { rng: state, payload };
 }
 
 /** Everything about the throw schedule comes from the seed, once, at init. */
@@ -89,48 +231,72 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
   let bombFreeFrom = 0;
 
   for (let window = 0; window < SLICE_WINDOWS; window++) {
-    const count = 1 + Math.floor((2 * window) / (SLICE_WINDOWS - 1));
+    const span = SLICE_PER_WINDOW_END - SLICE_PER_WINDOW_START;
+    const count = SLICE_PER_WINDOW_START + Math.floor((span * window) / (SLICE_WINDOWS - 1));
     for (let index = 0; index < count; index++) {
       const slot = rngBelow(rng, SLICE_WINDOW_TICKS - 8);
       rng = slot.state;
       const launchTick = window * SLICE_WINDOW_TICKS + 1 + slot.value;
 
-      const spotDraw = rngBelow(rng, SLICE_WORLD_W - 120);
-      rng = spotDraw.state;
-      const startPx = 60 + spotDraw.value;
-
-      const vyDraw = rngBelow(rng, SLICE_VY_MAX - SLICE_VY_MIN + 1);
-      rng = vyDraw.state;
-      const vy = -(SLICE_VY_MIN + vyDraw.value);
-
-      const vxDraw = rngBelow(rng, 2 * SLICE_VX_MAX + 1);
-      rng = vxDraw.state;
-      // Objects thrown from the edges lean back towards the middle.
-      const lean = startPx < SLICE_WORLD_W / 2 ? 1 : -1;
-      const vx = Math.trunc((vxDraw.value - SLICE_VX_MAX) / 2) + lean * 180;
+      const flight = rollFlight(rng);
+      rng = flight.rng;
 
       const bombDraw = rngBelow(rng, 100);
       rng = bombDraw.state;
-      const flightTicks = Math.trunc((2 * -vy) / SLICE_GRAV) + 6;
       const bomb = bombDraw.value < SLICE_BOMB_PERCENT && launchTick >= bombFreeFrom;
-      if (bomb) bombFreeFrom = launchTick + flightTicks + 1;
+      if (bomb) bombFreeFrom = launchTick + flight.flightTicks + 1;
 
       const colourDraw = rngBelow(rng, SLICE_COLOURS.length);
       rng = colourDraw.state;
 
-      objects.push({
-        launchTick,
-        x: startPx * 256,
-        vx,
-        vy,
-        lastTick: launchTick + flightTicks,
-        bomb,
-        colour: colourDraw.value,
-      });
+      objects.push(
+        plainObject(
+          launchTick,
+          flight.startPx,
+          flight.vx,
+          flight.vy,
+          flight.flightTicks,
+          bomb,
+          colourDraw.value,
+        ),
+      );
     }
   }
 
-  objects.sort((a, b) => a.launchTick - b.launchTick || a.x - b.x);
+  // The two specials, once or twice each, never in the first ten seconds.
+  for (const special of [SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_LINE]) {
+    const countDraw = rngBelow(rng, 2);
+    rng = countDraw.state;
+    const count = 1 + countDraw.value;
+    for (let index = 0; index < count; index++) {
+      const span = SLICE_RUN_TICKS - SLICE_SPECIAL_EARLIEST - 240;
+      const tickDraw = rngBelow(rng, span);
+      rng = tickDraw.state;
+      const launchTick = SLICE_SPECIAL_EARLIEST + tickDraw.value;
+
+      const flight = rollFlight(rng);
+      rng = flight.rng;
+
+      const built =
+        special === SLICE_SPECIAL_FRENZY ? buildFrenzyPayload(rng) : buildLinePayload(rng);
+      rng = built.rng;
+
+      const object = plainObject(
+        launchTick,
+        flight.startPx,
+        flight.vx,
+        flight.vy,
+        flight.flightTicks,
+        false,
+        0,
+      );
+      object.special = special;
+      object.payload = built.payload;
+      objects.push(object);
+    }
+  }
+
+  objects.sort((a, b) => a.launchTick - b.launchTick || a.x - b.x || a.special - b.special);
   return { rng, objects };
 }
 
@@ -138,10 +304,28 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
 export function sliceObjectAt(object: SliceObject, tick: number): { x: number; y: number } | null {
   const age = tick - object.launchTick;
   if (age < 0 || tick > object.lastTick) return null;
+  if (object.hang) {
+    const start = (SLICE_WORLD_H + SLICE_R) * 256;
+    const y =
+      age >= SLICE_LINE_RISE_TICKS
+        ? object.targetY
+        : start + Math.trunc(((object.targetY - start) * age) / SLICE_LINE_RISE_TICKS);
+    return { x: object.x, y };
+  }
   const drop = Math.trunc((SLICE_GRAV * age * (age + 1)) / 2);
   return {
     x: object.x + object.vx * age,
     y: (SLICE_WORLD_H + SLICE_R) * 256 + object.vy * age + drop,
+  };
+}
+
+/** A payload object, timed off the tick its special was sliced on. */
+function spawned(object: SliceObject, tick: number): SliceObject {
+  return {
+    ...object,
+    launchTick: tick + object.launchTick,
+    lastTick: tick + object.lastTick,
+    payload: [],
   };
 }
 
@@ -156,6 +340,8 @@ export interface SliceState {
   slices: number;
   bonuses: number;
   bombsHit: number;
+  /** The tick each frenzy started on; during one, scheduled bombs stay away. */
+  frenzyFrom: number[];
   flash: number;
   /** Render only: the last swipe segment, in px. */
   swipe: readonly [number, number, number, number] | null;
@@ -171,6 +357,7 @@ function init(seed: number): SliceState {
     slices: 0,
     bonuses: 0,
     bombsHit: 0,
+    frenzyFrom: [],
     flash: 0,
     swipe: null,
   };
@@ -178,6 +365,19 @@ function init(seed: number): SliceState {
 
 function isOver(state: SliceState): boolean {
   return state.tick >= SLICE_RUN_TICKS;
+}
+
+/** True while a frenzy is running. */
+export function sliceFrenzyOn(state: SliceState, tick: number): boolean {
+  return state.frenzyFrom.some((from) => tick >= from && tick < from + SLICE_FRENZY_TICKS);
+}
+
+/** A bomb launched inside a frenzy never appears at all. */
+export function sliceSuppressed(state: SliceState, object: SliceObject): boolean {
+  if (!object.bomb) return false;
+  return state.frenzyFrom.some(
+    (from) => object.launchTick >= from && object.launchTick < from + SLICE_FRENZY_TICKS,
+  );
 }
 
 /** Total discs in the schedule — bombs are not something to slice. */
@@ -227,10 +427,13 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
     let cut = 0;
     let bombs = 0;
     let slicedAt: number[] | null = null;
+    const added: SliceObject[] = [];
+    const frenzies: number[] = [];
 
     for (let index = 0; index < state.objects.length; index++) {
       if (state.slicedAt[index]) continue;
       const object = state.objects[index]!;
+      if (sliceSuppressed(state, object)) continue;
       const at = sliceObjectAt(object, tick);
       if (!at) continue;
       const cx = Math.trunc(at.x / 256);
@@ -241,9 +444,16 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
       slicedAt[index] = tick;
       if (object.bomb) bombs += 1;
       else cut += 1;
+      if (object.special === SLICE_SPECIAL_FRENZY) frenzies.push(tick);
+      for (const item of object.payload) added.push(spawned(item, tick));
     }
 
     if (slicedAt) next.slicedAt = slicedAt;
+    if (frenzies.length > 0) next.frenzyFrom = [...state.frenzyFrom, ...frenzies];
+    if (added.length > 0) {
+      next.objects = [...state.objects, ...added];
+      next.slicedAt = [...(slicedAt ?? state.slicedAt), ...added.map(() => 0)];
+    }
     if (cut > 0) next.slices = state.slices + cut;
     if (cut >= SLICE_MULTI_NEEDED) next.bonuses = state.bonuses + 1;
     if (bombs > 0) {
@@ -275,6 +485,9 @@ export interface SliceCheckpointState {
   airborne: number;
   /** A fold of which objects have been sliced, so a drift shows up at once. */
   slicedFold: number;
+  /** How many objects are in the schedule, specials' spawns included. */
+  objectCount: number;
+  frenzies: number;
 }
 
 export interface SliceCheckpoint extends SliceCheckpointState {
@@ -289,7 +502,9 @@ export function sliceCheckpointState(state: SliceState): SliceCheckpointState {
       slicedFold = (slicedFold + (index + 1) * state.slicedAt[index]!) | 0;
       continue;
     }
-    if (sliceObjectAt(state.objects[index]!, state.tick)) airborne += 1;
+    const object = state.objects[index]!;
+    if (sliceSuppressed(state, object)) continue;
+    if (sliceObjectAt(object, state.tick)) airborne += 1;
   }
   return {
     tick: state.tick,
@@ -298,6 +513,8 @@ export function sliceCheckpointState(state: SliceState): SliceCheckpointState {
     bombsHit: state.bombsHit,
     airborne,
     slicedFold,
+    objectCount: state.objects.length,
+    frenzies: state.frenzyFrom.length,
   };
 }
 
@@ -316,7 +533,37 @@ export function sliceCheckpoint(state: SliceState): SliceCheckpoint {
 export const SLICE_BG = "#0B0B0F";
 export const SLICE_GOLD = "#F5B82E";
 export const SLICE_COLOURS = ["#2ED3B7", "#F5B82E", "#8B7BF7", "#F2734C"];
+export const SLICE_RAINBOW = ["#FF4D4D", "#FFE600", "#3DDC84", "#4D8CFF", "#B26BFF"];
 export const SLICE_BOMB = "#1B1B24";
+
+/** A multicoloured disc with a star (frenzy) or a bar (line). Render only. */
+function drawSpecial(ctx: CanvasRenderingContext2D, cx: number, cy: number, special: number): void {
+  const wedges = SLICE_RAINBOW.length;
+  for (let index = 0; index < wedges; index++) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, SLICE_R, (index * Math.PI * 2) / wedges, ((index + 1) * Math.PI * 2) / wedges);
+    ctx.closePath();
+    ctx.fillStyle = SLICE_RAINBOW[index]!;
+    ctx.fill();
+  }
+  ctx.fillStyle = "#0B0B0F";
+  if (special === SLICE_SPECIAL_LINE) {
+    ctx.fillRect(cx - 11, cy - 3, 22, 6);
+    return;
+  }
+  ctx.beginPath();
+  for (let point = 0; point < 10; point++) {
+    const reach = point % 2 === 0 ? 11 : 5;
+    const angle = -Math.PI / 2 + (point * Math.PI) / 5;
+    const x = cx + Math.cos(angle) * reach;
+    const y = cy + Math.sin(angle) * reach;
+    if (point === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
 
 function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize): void {
   const scale = Math.min(size.width / SLICE_WORLD_W, size.height / SLICE_WORLD_H);
@@ -331,6 +578,7 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
 
   for (let index = 0; index < state.objects.length; index++) {
     const object = state.objects[index]!;
+    if (sliceSuppressed(state, object)) continue;
     const slicedAt = state.slicedAt[index]!;
     if (slicedAt) {
       const age = state.tick - slicedAt;
@@ -344,7 +592,9 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
       ctx.globalAlpha = Math.max(0, 1 - age / SLICE_HALVES_TICKS);
       ctx.fillStyle = object.bomb
         ? SLICE_BOMB
-        : SLICE_COLOURS[object.colour % SLICE_COLOURS.length]!;
+        : object.special !== SLICE_SPECIAL_NONE
+          ? SLICE_RAINBOW[0]!
+          : SLICE_COLOURS[object.colour % SLICE_COLOURS.length]!;
       ctx.beginPath();
       ctx.arc(cx - spread, cy, SLICE_R, Math.PI / 2, (3 * Math.PI) / 2);
       ctx.fill();
@@ -360,6 +610,10 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
     const cx = at.x / 256;
     const cy = at.y / 256;
     if (cy - SLICE_R > SLICE_WORLD_H) continue;
+    if (object.special !== SLICE_SPECIAL_NONE) {
+      drawSpecial(ctx, cx, cy, object.special);
+      continue;
+    }
     ctx.beginPath();
     ctx.arc(cx, cy, SLICE_R, 0, Math.PI * 2);
     if (object.bomb) {
@@ -402,6 +656,11 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
   ctx.fillText(`Sliced ${state.slices}`, 14, SLICE_HUD_H / 2);
+  ctx.textAlign = "center";
+  if (sliceFrenzyOn(state, state.tick)) {
+    ctx.fillStyle = SLICE_RAINBOW[2]!;
+    ctx.fillText("FRENZY", SLICE_WORLD_W / 2, SLICE_HUD_H / 2);
+  }
   ctx.textAlign = "right";
   ctx.fillStyle = "rgba(255,255,255,0.7)";
   const left = Math.max(0, SLICE_RUN_TICKS - state.tick);
