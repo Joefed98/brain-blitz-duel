@@ -146,3 +146,5 @@
 - [x] Proof `scripts/arcade-drag-check.ts` — 200 random drag traces per game: identical states/checkpoints/scores, inflated claims caught, out-of-range payloads refused, lag handled
 
 - [x] Arcade additions: Slice (swipe segments), Bubble Pop (drag-aim shots) and Beat (lane taps) on the shared deterministic engine, with server replay, 300-tick checkpoints and a 200-run identity proof (`scripts/arcade-slice-bubble-beat-check.ts`).
+
+- Chat panel closes by button/outside tap/swipe; Nonogram 120s; Intruder 5s/1s/3s one-tap boards; Equation five numbers; One-Stroke 30s; arcade reveals show game stats only (metres, seconds) with desync logged but hidden.
