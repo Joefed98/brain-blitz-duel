@@ -5,11 +5,11 @@
  * rules yield one unambiguous PLAN: the set of actions that must be carried out,
  * plus the ordering constraints the rules impose. A panel is only kept when
  *
- *  - the required actions are 3 to 6 in number,
+ *  - the required actions number exactly four,
  *  - no rule forbids an action another rule requires,
  *  - the ordering constraints contain no cycle and no opposite pair,
  *  - at least two constraints actually bite,
- *  - at least four of the six rules change the plan, and
+ *  - at least three of the six rules change the plan, and
  *  - every rule's wording is one of the permitted forms, so no rule can be read
  *    two ways.
  *
@@ -458,7 +458,7 @@ export function generateBomb(): BombPuzzleData {
     }
     if (plan.liveConstraints.length < BOMB_MIN_ORDER_RULES) continue;
 
-    // At least four of the six rules must change the plan.
+    // At least three of the six rules must change the plan.
     const key = planKey(plan);
     const effective = rules.filter((_, index) => {
       const without = evaluate(
