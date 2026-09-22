@@ -16,9 +16,13 @@ import {
 import {
   sliceCheckpoint,
   sliceGame,
+  sliceObjectAt,
+  sliceSuppressed,
   SLICE_CHECKPOINT_INTERVAL,
+  SLICE_FRENZY_COUNT,
   SLICE_INPUT_RANGES,
   SLICE_INPUT_SWIPE,
+  SLICE_LINE_COUNT,
   SLICE_RUN_TICKS,
   SLICE_WORLD_H,
   SLICE_WORLD_W,
