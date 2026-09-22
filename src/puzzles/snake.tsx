@@ -28,7 +28,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: a short snake about to reach the pellet. */
+/** Fixed intro still: a short trail about to reach the pellet. */
 function IntroExample() {
   const body = [
     [3, 2],
@@ -216,7 +216,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: SNAKE_BG }}
-        aria-label="Snake"
+        aria-label="Eat and Grow"
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || snakeGame.isOver(state.current)) return;
@@ -278,7 +278,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const snakePuzzle: PuzzleDefinition = {
   key: "snake",
-  name: "Snake",
+  name: "Eat and Grow",
   category: "arcade",
   timeLimitMs: (SNAKE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
