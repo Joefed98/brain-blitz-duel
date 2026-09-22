@@ -251,41 +251,34 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || bullseyeGame.isOver(state.current)) return;
-          const point = worldPoint(event);
-          swipe.current = [{ x: point.x, y: point.y, time: performance.now() }];
+          // The anchor is wherever the finger went down; the aim is the drag from
+          // it, so the predicted landing holds still when the finger does.
+          anchor.current = worldPoint(event);
+          aim.current = null;
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
-          const samples = swipe.current;
-          if (!samples) return;
+          const start = anchor.current;
+          if (!start) return;
           const point = worldPoint(event);
-          const now = performance.now();
-          samples.push({ x: point.x, y: point.y, time: now });
-          if (samples.length > 24) samples.splice(0, samples.length - 24);
-          // Predict the release from the same window the release itself uses.
-          const live = flickWindow(samples, now);
-          const preview = live ? bullseyeFlick(live.dx, live.dy, live.dtMs) : null;
+          const preview = bullseyeDrag(point.x - start.x, point.y - start.y);
           aim.current = preview ? bullseyeLanding(preview.vx, preview.vy) : null;
         }}
         onPointerUp={(event) => {
-          const samples = swipe.current;
-          swipe.current = null;
+          const start = anchor.current;
+          anchor.current = null;
           aim.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
-          if (!samples || locked || submitted.current) return;
+          if (!start || locked || submitted.current) return;
           const point = worldPoint(event);
-          const now = performance.now();
-          samples.push({ x: point.x, y: point.y, time: now });
-          const window = flickWindow(samples, now);
-          if (!window) return;
-          const launch = bullseyeFlick(window.dx, window.dy, window.dtMs);
+          const launch = bullseyeDrag(point.x - start.x, point.y - start.y);
           if (!launch) return;
           pending.current.push({ t: 0, k: 2, a: launch.vx, b: launch.vy, c: 0, d: 0 });
         }}
         onPointerCancel={(event) => {
-          swipe.current = null;
+          anchor.current = null;
           aim.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
