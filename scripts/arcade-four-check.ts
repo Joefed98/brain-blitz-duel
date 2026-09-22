@@ -96,7 +96,14 @@ for (let sample = 0; sample < SAMPLES; sample++) {
   const seed = seedOf();
   const events: ArcadeInputEvent[] = [];
   for (let tick = 10; tick <= SNAKE_RUN_TICKS; tick += 12 + Math.floor(Math.random() * 40)) {
-    events.push({ t: tick, k: SNAKE_INPUT_TURN, a: Math.floor(Math.random() * 4), b: 0, c: 0, d: 0 });
+    events.push({
+      t: tick,
+      k: SNAKE_INPUT_TURN,
+      a: Math.floor(Math.random() * 4),
+      b: 0,
+      c: 0,
+      d: 0,
+    });
   }
   const byTick = new Map(events.map((event) => [event.t, event]));
 
@@ -158,7 +165,14 @@ for (let sample = 0; sample < SAMPLES; sample++) {
   const seed = seedOf();
   const events: ArcadeInputEvent[] = [];
   for (let tick = 10; tick <= CROSS_RUN_TICKS; tick += 8 + Math.floor(Math.random() * 20)) {
-    events.push({ t: tick, k: CROSS_INPUT_MOVE, a: Math.floor(Math.random() * 3), b: 0, c: 0, d: 0 });
+    events.push({
+      t: tick,
+      k: CROSS_INPUT_MOVE,
+      a: Math.floor(Math.random() * 3),
+      b: 0,
+      c: 0,
+      d: 0,
+    });
   }
   const byTick = new Map(events.map((event) => [event.t, event]));
 
@@ -214,7 +228,14 @@ for (let sample = 0; sample < SAMPLES; sample++) {
   const seed = seedOf();
   const events: ArcadeInputEvent[] = [];
   for (let tick = 10; tick <= DUAL_RUN_TICKS; tick += 6 + Math.floor(Math.random() * 30)) {
-    events.push({ t: tick, k: DUAL_INPUT_JUMP, a: Math.floor(Math.random() * 2), b: 0, c: 0, d: 0 });
+    events.push({
+      t: tick,
+      k: DUAL_INPUT_JUMP,
+      a: Math.floor(Math.random() * 2),
+      b: 0,
+      c: 0,
+      d: 0,
+    });
   }
   const byTick = new Map(events.map((event) => [event.t, event]));
 
@@ -321,7 +342,10 @@ for (let sample = 0; sample < SAMPLES; sample++) {
   for (let tick = 10; tick <= 1500; tick += 40) {
     events.push({ t: tick, k: SNAKE_INPUT_TURN, a: tick % 4, b: 0, c: 0, d: 0 });
   }
-  const cut = replaySnakeRun(4242, encodeSnakeRun({ seed: 4242, claimedScore: 0, events, endTick: 1500 }));
+  const cut = replaySnakeRun(
+    4242,
+    encodeSnakeRun({ seed: 4242, claimedScore: 0, events, endTick: 1500 }),
+  );
   if (!cut.clientLag || cut.clientTick !== 1500) fail("snake client lag not flagged");
   if (cut.survived) fail("snake lagged run credited with survival");
 

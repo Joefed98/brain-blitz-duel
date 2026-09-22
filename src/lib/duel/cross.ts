@@ -57,9 +57,8 @@ export function encodeCrossRun(run: CrossRun): string {
 }
 
 export function decodeCrossRun(raw: string): CrossRun {
-  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] = String(
-    raw ?? "",
-  ).split("|");
+  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
+    String(raw ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)

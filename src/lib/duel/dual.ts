@@ -57,9 +57,8 @@ export function encodeDualRun(run: DualRun): string {
 }
 
 export function decodeDualRun(raw: string): DualRun {
-  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] = String(
-    raw ?? "",
-  ).split("|");
+  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
+    String(raw ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
