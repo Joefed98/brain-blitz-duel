@@ -234,6 +234,8 @@ function init(seed: number): BinTossState {
     y: BINTOSS_BALL_Y,
     vx: 0,
     vy: 0,
+    windV: 0,
+    windPos: 0,
     readyTick: 0,
     wobbleTick: 0,
     endedTick: 0,
