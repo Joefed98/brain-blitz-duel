@@ -9,6 +9,7 @@ import {
   rallyGame,
   rallyPaddleW,
   rallySurvived,
+  rallyTotalHits,
   RALLY_CHECKPOINT_INTERVAL,
   RALLY_INPUT_RANGES,
   RALLY_RUN_TICKS,
@@ -43,6 +44,8 @@ export function encodeRallyRun(run: RallyRun): string {
         item.speed,
         item.paddleX,
         item.hits,
+        item.goldHits,
+        item.golds,
         item.width,
         item.checksum,
       ].join(":"),
@@ -65,8 +68,8 @@ export function decodeRallyRun(raw: string): RallyRun {
     .filter(Boolean)
     .slice(0, Math.ceil(RALLY_RUN_TICKS / RALLY_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
-    .filter((values) => values.length === 10 && values.every(Number.isInteger))
-    .map(([tick, x, y, vx, vy, speed, paddleX, hits, width, sum]) => ({
+    .filter((values) => values.length === 12 && values.every(Number.isInteger))
+    .map(([tick, x, y, vx, vy, speed, paddleX, hits, goldHits, golds, width, sum]) => ({
       tick: tick ?? 0,
       x: x ?? 0,
       y: y ?? 0,
@@ -75,6 +78,8 @@ export function decodeRallyRun(raw: string): RallyRun {
       speed: speed ?? 0,
       paddleX: paddleX ?? 0,
       hits: hits ?? 0,
+      goldHits: goldHits ?? 0,
+      golds: golds ?? 0,
       width: width ?? 0,
       checksum: (sum ?? 0) >>> 0,
     }));
@@ -89,6 +94,7 @@ export function decodeRallyRun(raw: string): RallyRun {
 
 export interface RallyResult {
   hits: number;
+  goldHits: number;
   paddleWidth: number;
   survived: boolean;
   endedSeconds: number;
@@ -140,7 +146,8 @@ export function replayRallyRun(seed: number, raw: string): RallyResult {
   const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
   const result: RallyResult = {
     hits: state.hits,
-    paddleWidth: rallyPaddleW(state.hits),
+    goldHits: state.goldHits,
+    paddleWidth: rallyPaddleW(rallyTotalHits(state)),
     survived: rallySurvived(state),
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,

@@ -914,6 +914,7 @@ export function gradeSubmission(
         bricksLeft: run.bricksLeft,
         totalHits: run.totalHits,
         losses: run.losses,
+        powerUps: run.powerUps,
         cleared: run.cleared,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -933,6 +934,7 @@ export function gradeSubmission(
       score = run.score;
       extraDetail = {
         hits: run.hits,
+        goldHits: run.goldHits,
         paddleWidth: run.paddleWidth,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
@@ -953,6 +955,7 @@ export function gradeSubmission(
       score = run.score;
       extraDetail = {
         distance: run.distance,
+        metres: run.metres,
         points: run.points,
         touches: run.touches,
         width: run.width,

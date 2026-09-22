@@ -1,8 +1,8 @@
 /**
  * Breaker round plumbing. The phone sends the seed it played, the drag positions
- * with the sim tick each applied on, the tick it reached and the score it
- * believes it earned; the server replays with the STORED seed, validates every
- * payload, and keeps its own score.
+ * and button presses with the sim tick each applied on, the tick it reached and
+ * the score it believes it earned; the server replays with the STORED seed,
+ * validates every payload, and keeps its own score.
  */
 
 import {
@@ -47,6 +47,11 @@ export function encodeBreakerRun(run: BreakerRun): string {
         item.left,
         item.losses,
         item.pause,
+        item.balls,
+        item.capsules,
+        item.held,
+        item.charges,
+        item.powerUps,
         item.checksum,
       ].join(":"),
     )
@@ -68,21 +73,46 @@ export function decodeBreakerRun(raw: string): BreakerRun {
     .filter(Boolean)
     .slice(0, Math.ceil(BRK_RUN_TICKS / BRK_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
-    .filter((values) => values.length === 12 && values.every(Number.isInteger))
-    .map(([tick, x, y, vx, vy, speed, paddleX, hits, left, losses, pause, sum]) => ({
-      tick: tick ?? 0,
-      x: x ?? 0,
-      y: y ?? 0,
-      vx: vx ?? 0,
-      vy: vy ?? 0,
-      speed: speed ?? 0,
-      paddleX: paddleX ?? 0,
-      hits: hits ?? 0,
-      left: left ?? 0,
-      losses: losses ?? 0,
-      pause: pause ?? 0,
-      checksum: (sum ?? 0) >>> 0,
-    }));
+    .filter((values) => values.length === 17 && values.every(Number.isInteger))
+    .map(
+      ([
+        tick,
+        x,
+        y,
+        vx,
+        vy,
+        speed,
+        paddleX,
+        hits,
+        left,
+        losses,
+        pause,
+        balls,
+        capsules,
+        held,
+        charges,
+        powerUps,
+        sum,
+      ]) => ({
+        tick: tick ?? 0,
+        x: x ?? 0,
+        y: y ?? 0,
+        vx: vx ?? 0,
+        vy: vy ?? 0,
+        speed: speed ?? 0,
+        paddleX: paddleX ?? 0,
+        hits: hits ?? 0,
+        left: left ?? 0,
+        losses: losses ?? 0,
+        pause: pause ?? 0,
+        balls: balls ?? 0,
+        capsules: capsules ?? 0,
+        held: held ?? 0,
+        charges: charges ?? 0,
+        powerUps: powerUps ?? 0,
+        checksum: (sum ?? 0) >>> 0,
+      }),
+    );
   return {
     seed: Number.parseInt(seedPart, 10) || 0,
     claimedScore: Number.parseInt(scorePart, 10) || 0,
@@ -97,6 +127,7 @@ export interface BreakerResult {
   bricksLeft: number;
   totalHits: number;
   losses: number;
+  powerUps: number;
   cleared: boolean;
   endedSeconds: number;
   score: number;
@@ -150,6 +181,7 @@ export function replayBreakerRun(seed: number, raw: string): BreakerResult {
     bricksLeft: brkBricksLeft(state),
     totalHits: BRK_TOTAL_HITS,
     losses: state.losses,
+    powerUps: state.powerUps,
     cleared: state.cleared,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,

@@ -543,8 +543,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Clear the wall.",
     how: [
       { action: "Drag to move the paddle", detail: "anywhere on the board." },
-      { action: "Keep the ball up", detail: "— it gets faster with every brick." },
-      { action: "Pale bricks take two hits", detail: "and losing the ball costs three seconds." },
+      { action: "Keep the ball up", detail: "— it gets faster with bricks and with time." },
+      { action: "Three gold bricks", detail: "drop a capsule: catch it for a power-up." },
+      { action: "Extra balls come free", detail: "— spam and beam use the gold button." },
     ],
     score: "2 per brick, +40 for clearing the wall.",
   },
@@ -553,15 +554,18 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag to move the paddle", detail: "along the bottom." },
       { action: "Every hit", detail: "makes the paddle smaller and the ball faster." },
-      { action: "Miss once", detail: "and the run is over." },
+      { action: "A gold ball drops in", detail: "every ten seconds and scores double." },
+      { action: "Miss the white ball", detail: "and the run is over." },
     ],
-    score: "3 per hit, +40 for surviving the minute.",
+    score: "3 per hit, 6 per gold hit, +40 for surviving the minute.",
   },
   steady: {
-    goal: "Trace the track without touching the edges.",
+    goal: "Stay inside the track.",
     how: [
-      { action: "Drag the dot", detail: "and keep it inside the winding track." },
-      { action: "It narrows and speeds up", detail: "as the minute goes on." },
+      {
+        action: "Slide the ball left and right",
+        detail: "to stay inside the track. It gets narrower and faster.",
+      },
       { action: "A touch costs points", detail: "but never ends the run." },
     ],
     score: "Distance for points, −4 per touch, +40 for a clean minute (3 touches or fewer).",

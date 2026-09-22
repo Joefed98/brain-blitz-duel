@@ -26,7 +26,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: the dot inside a winding track. */
+/** Fixed intro still: the ball on its line inside a winding track. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -49,10 +49,10 @@ function IntroExample() {
           strokeWidth={2}
           fill="none"
         />
-        <circle cx={92} cy={70} r={6} fill={STD_DOT} />
+        <circle cx={77} cy={104} r={7} fill={STD_DOT} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Keep the dot between the gold edges.
+        Slide the ball left and right to stay inside.
       </p>
     </div>
   );
@@ -67,11 +67,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const state = useRef<StdState>(steadyGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof stdCheckpoint>[]>([]);
-  const wanted = useRef<{ x: number; y: number } | null>(null);
-  const sent = useRef<{ x: number; y: number }>({
-    x: state.current.aimX,
-    y: state.current.aimY,
-  });
+  const wanted = useRef<number | null>(null);
+  const sent = useRef<number>(state.current.aimX);
   const submitted = useRef(false);
   const [, forceRedraw] = useState(0);
   useNoTouchScroll(wrap);
@@ -97,7 +94,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     events.current = [];
     checkpoints.current = [];
     wanted.current = null;
-    sent.current = { x: state.current.aimX, y: state.current.aimY };
+    sent.current = state.current.aimX;
     submitted.current = false;
     forceRedraw((n) => n + 1);
   }, [seed]);
@@ -129,16 +126,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // One drag event a tick, and only when the position has changed.
           const target = wanted.current;
           let applied: ArcadeInputEvent | null = null;
-          if (target && (target.x !== sent.current.x || target.y !== sent.current.y)) {
+          if (target !== null && target !== sent.current) {
             applied = {
               t: state.current.tick + 1,
               k: ARCADE_INPUT_DRAG,
-              a: target.x,
-              b: target.y,
+              a: target,
+              b: 0,
               c: 0,
               d: 0,
             };
-            sent.current = { x: target.x, y: target.y };
+            sent.current = target;
             events.current.push(applied);
           }
           state.current = steadyGame.step(state.current, applied);
@@ -184,24 +181,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { width, height };
   };
 
-  /** Screen point to world point, matching the canvas letterboxing. */
-  const worldPoint = (clientX: number, clientY: number): { x: number; y: number } => {
+  /** Screen x to world x, matching the canvas letterboxing. */
+  const worldX = (clientX: number): number => {
     const box = wrap.current?.getBoundingClientRect();
-    if (!box || box.width < 1) return { x: Math.round(STD_WORLD_W / 2), y: STD_WORLD_H / 2 };
+    if (!box || box.width < 1) return Math.round(STD_WORLD_W / 2);
     const scale = Math.min(box.width / STD_WORLD_W, box.height / STD_WORLD_H);
     const left = box.left + (box.width - STD_WORLD_W * scale) / 2;
-    const top = box.top + (box.height - STD_WORLD_H * scale) / 2;
-    return {
-      x: Math.max(0, Math.min(STD_WORLD_W, Math.round((clientX - left) / scale))),
-      y: Math.max(0, Math.min(STD_WORLD_H, Math.round((clientY - top) / scale))),
-    };
+    return Math.max(0, Math.min(STD_WORLD_W, Math.round((clientX - left) / scale)));
   };
 
   if (!data) return null;
 
   const track = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (locked || submitted.current || steadyGame.isOver(state.current)) return;
-    wanted.current = worldPoint(event.clientX, event.clientY);
+    wanted.current = worldX(event.clientX);
   };
 
   return (
@@ -244,7 +237,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         <span className="h-8 w-1 rounded" style={{ background: STD_GOLD }} />
       </div>
       <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
-        {result.points} distance · {result.touches} touch{result.touches === 1 ? "" : "es"}
+        {result.metres} m · {result.touches} touch{result.touches === 1 ? "" : "es"}
       </p>
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {drags} moves · same track for everyone

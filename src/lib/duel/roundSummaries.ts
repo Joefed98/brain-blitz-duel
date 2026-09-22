@@ -1044,32 +1044,37 @@ const ricoSummary: SummaryBuilder = (result) => {
 const breakerSummary: SummaryBuilder = (result) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const left = Number(result.extra?.["bricksLeft"] ?? 0);
+  const powerUps = Number(result.extra?.["powerUps"] ?? 0);
   const cleared = result.extra?.["cleared"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
-      : `${hits} hits · ${left} brick${left === 1 ? "" : "s"} left`,
+      : `${hits} hits · ${left} brick${left === 1 ? "" : "s"} left · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
     detail: [`${Number(result.extra?.["losses"] ?? 0)} relaunches`],
   };
 };
 
 const rallySummary: SummaryBuilder = (result) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
+  const goldHits = Number(result.extra?.["goldHits"] ?? 0);
   const survived = result.extra?.["survived"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const gold = `${goldHits} gold hit${goldHits === 1 ? "" : "s"}`;
   return {
-    summary: survived ? `${hits} hits · survived` : `${hits} hits · lost at ${ended.toFixed(1)}s`,
+    summary: survived
+      ? `${hits} hits · ${gold} · survived`
+      : `${hits} hits · ${gold} · lost at ${ended.toFixed(1)}s`,
     detail: [survived ? "Kept the rally alive" : "Lost the ball"],
   };
 };
 
 const steadySummary: SummaryBuilder = (result) => {
-  const points = Number(result.extra?.["points"] ?? 0);
+  const metres = Number(result.extra?.["metres"] ?? 0);
   const touches = Number(result.extra?.["touches"] ?? 0);
   const clean = result.extra?.["clean"] === true;
   return {
-    summary: `${points} distance · ${touches} touch${touches === 1 ? "" : "es"}`,
+    summary: `${metres} m · ${touches} touch${touches === 1 ? "" : "es"}`,
     detail: [clean ? "Clean minute" : `${touches} edge touch${touches === 1 ? "" : "es"}`],
   };
 };
