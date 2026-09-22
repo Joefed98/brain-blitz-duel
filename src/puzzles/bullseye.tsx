@@ -335,7 +335,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         <div className="grid max-w-[280px] grid-cols-2 gap-x-4 gap-y-1 font-mono text-[10px] text-muted-foreground">
           {result.hits.map((hit) => (
             <span key={hit.arrow}>
-              {hit.arrow + 1}: {hit.wind === 0 ? "wind 0" : `${hit.wind < 0 ? "←" : "→"} ${Math.abs(hit.wind)}`} · {hit.x},{hit.y}
+              {hit.arrow + 1}:{" "}
+              {hit.wind === 0 ? "wind 0" : `${hit.wind < 0 ? "←" : "→"} ${Math.abs(hit.wind)}`} ·{" "}
+              {hit.x},{hit.y}
             </span>
           ))}
         </div>
@@ -356,7 +358,12 @@ export const bullseyePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (BULLSEYE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "bullseye", seed: 1, winds: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }) satisfies BullseyePuzzleData,
+  generate: () =>
+    ({
+      type: "bullseye",
+      seed: 1,
+      winds: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    }) satisfies BullseyePuzzleData,
   check: () => false,
   revealHeading: "Your arrows",
   IntroExample,

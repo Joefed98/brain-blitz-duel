@@ -109,7 +109,11 @@ export interface BullseyeResult {
 }
 
 /** The single place a Bullseye score is worked out. */
-export function replayBullseyeRun(seed: number, raw: string, winds?: readonly number[]): BullseyeResult {
+export function replayBullseyeRun(
+  seed: number,
+  raw: string,
+  winds?: readonly number[],
+): BullseyeResult {
   const run = decodeBullseyeRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BULLSEYE_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < BULLSEYE_RUN_TICKS;

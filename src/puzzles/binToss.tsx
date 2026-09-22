@@ -301,7 +301,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div ref={wrap} className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl bg-card">
+    <div
+      ref={wrap}
+      className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl bg-card"
+    >
       <canvas
         ref={canvas}
         className="puzzle-board block min-h-0 w-full flex-1 rounded-t-xl"
