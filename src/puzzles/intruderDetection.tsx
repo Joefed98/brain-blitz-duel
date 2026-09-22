@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick, useGridPointer } from "@/components/puzzles/GridDrag";
@@ -8,6 +8,7 @@ import {
   INTRUDER_ATTEMPTS,
   INTRUDER_BOARDS,
   INTRUDER_HIDE_MS,
+  INTRUDER_PLAY_MS,
   INTRUDER_SHOW_MS,
   INTRUDER_TIME_MS,
   type IntruderBoard,
@@ -157,6 +158,39 @@ function changedCell(board: IntruderBoard): number {
 
 type Phase = "show" | "hide" | "play";
 
+/**
+ * The draining timer bar. It empties from the left for the memorise phase and
+ * from the right for the three seconds the player has to tap.
+ */
+function DrainBar({
+  ms,
+  className,
+  from,
+}: {
+  ms: number;
+  className: string;
+  from: "left" | "right";
+}) {
+  const [running, setRunning] = useState(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setRunning(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  return (
+    <div className="flex h-1 w-full shrink-0 overflow-hidden rounded-full bg-border">
+      <span
+        className={`block h-full ${className}`}
+        style={{
+          width: running ? "0%" : "100%",
+          marginLeft: from === "left" ? "auto" : undefined,
+          marginRight: from === "right" ? "auto" : undefined,
+          transition: `width ${ms}ms linear`,
+        }}
+      />
+    </div>
+  );
+}
+
 function Stage({
   puzzle,
   phaseStartedAt,
@@ -283,7 +317,11 @@ function Stage({
       </div>
 
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        {showing ? "Memorise the grid" : phase === "hide" ? "…" : "Tap the cell that changed"}
+        {showing
+          ? "Memorise the grid"
+          : phase === "hide"
+            ? "…"
+            : "One tap — the cell that changed"}
       </p>
     </div>
   );
