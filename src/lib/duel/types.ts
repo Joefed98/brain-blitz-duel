@@ -1317,9 +1317,10 @@ export interface SafePuzzleData {
 export const BOMB_TIME_MS = 75_000;
 export const BOMB_WIRES = 7;
 export const BOMB_RULE_COUNT = 6;
-export const BOMB_MIN_SEQUENCE = 3;
-export const BOMB_MAX_SEQUENCE = 6;
-export const BOMB_MIN_EFFECTIVE_RULES = 4;
+/** Every panel requires exactly four actions. */
+export const BOMB_MIN_SEQUENCE = 4;
+export const BOMB_MAX_SEQUENCE = 4;
+export const BOMB_MIN_EFFECTIVE_RULES = 3;
 export const BOMB_MIN_ORDER_RULES = 2;
 /** Points per correct leading action when the bomb is not defused. */
 export const BOMB_PREFIX_POINTS = 15;
@@ -1386,7 +1387,7 @@ export interface GravityPuzzleData {
 export const CHAIN_TIME_MS = 30_000;
 export const CHAIN_NODES = 20;
 /** Correct taps needed to finish the chain. */
-export const CHAIN_LENGTH = 12;
+export const CHAIN_LENGTH = 15;
 /** The rule is a repeating three-step cycle. */
 export const CHAIN_CYCLE = 3;
 /** Points lost per wrong tap. */
@@ -1394,7 +1395,7 @@ export const CHAIN_ERROR_PENALTY = 10;
 /** Most an unfinished chain can earn. */
 export const CHAIN_PARTIAL_POINTS = 60;
 /** Every stored-solution step must retain this many shape-invalid choices. */
-export const CHAIN_MIN_INVALID = 3;
+export const CHAIN_MIN_INVALID = 4;
 /** Minimum distance between two nodes, in percent of the play area. */
 export const CHAIN_NODE_GAP = 15;
 /** Poisson-disc spacing, in node widths, and the spread checks on a layout. */
@@ -1484,7 +1485,7 @@ export interface IntruderPuzzleData {
 
 /* ============================== Nonogram ================================ */
 
-export const NONO_TIME_MS = 60_000;
+export const NONO_TIME_MS = 90_000;
 export const NONO_SIZE = 7;
 /** Filled-cell count band for a generated picture. */
 export const NONO_MIN_FILLED = 18;
