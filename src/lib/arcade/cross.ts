@@ -62,9 +62,15 @@ export const CROSS_LANE_POINTS = 1;
 export const CROSS_POINTS_CAP = 110;
 export const CROSS_SURVIVE_BONUS = 40;
 
-/** A move: a = 0 hop up, 1 left, 2 right. */
+/** A move: a = 0 up, 1 down, 2 left, 3 right — each from a swipe. */
 export const CROSS_INPUT_MOVE = 5;
-export const CROSS_INPUT_RANGES: readonly InputRange[] = [inputRange(CROSS_INPUT_MOVE, [0, 2])];
+export const CROSS_INPUT_RANGES: readonly InputRange[] = [inputRange(CROSS_INPUT_MOVE, [0, 3])];
+
+/** Swipes shorter than this, in screen pixels, are not a move. */
+export const CROSS_SWIPE_PX = 24;
+
+/** The breather on the kerb between one crossing and the next. */
+export const CROSS_PAUSE_TICKS = TICKS_PER_SECOND;
 
 /* ============================== Course ================================= */
 
