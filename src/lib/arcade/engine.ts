@@ -313,3 +313,33 @@ export function dragLaunch(dx: number, dy: number, refSpeed: number): DragLaunch
     angleDeg: Math.round((Math.atan2(-up, dx) * 180) / Math.PI),
   };
 }
+
+/* =========================== Drag position input ======================== */
+
+/**
+ * Kind 7: a drag POSITION, `a` = x and (where the game says so) `b` = y, in
+ * whole world pixels. The phone records one event only on the ticks where the
+ * position changes; the simulation holds the last value in between, so a still
+ * finger costs nothing and the log stays small.
+ */
+export const ARCADE_INPUT_DRAG = 7;
+
+/** Integer square root — used by the ball games so no float enters the sim. */
+export function isqrt(value: number): number {
+  if (value <= 0) return 0;
+  let guess = Math.floor(Math.sqrt(value));
+  // Correct the float estimate with integer steps so every device agrees.
+  while (guess > 0 && guess * guess > value) guess -= 1;
+  while ((guess + 1) * (guess + 1) <= value) guess += 1;
+  return guess;
+}
+
+/** Rescales a vector to the given length, in the same fixed-point units. */
+export function setLength(vx: number, vy: number, length: number): { vx: number; vy: number } {
+  const current = isqrt(vx * vx + vy * vy);
+  if (current <= 0) return { vx: 0, vy: -length };
+  return {
+    vx: Math.trunc((vx * length) / current),
+    vy: Math.trunc((vy * length) / current),
+  };
+}

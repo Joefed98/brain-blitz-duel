@@ -41,6 +41,9 @@ import {
   generateCross,
   generateDual,
   generateRicochet,
+  generateBreaker,
+  generateRally,
+  generateSteady,
   generateSkyline,
   generateSnake,
   generateSwerve,
@@ -93,6 +96,9 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "cross") return generateCross();
   if (type === "dual") return generateDual();
   if (type === "ricochet") return generateRicochet();
+  if (type === "breaker") return generateBreaker();
+  if (type === "rally") return generateRally();
+  if (type === "steady") return generateSteady();
 
   return puzzleDef(type).generate();
 }

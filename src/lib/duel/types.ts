@@ -56,7 +56,10 @@ export type PuzzleType =
   | "snake"
   | "cross"
   | "dual"
-  | "ricochet";
+  | "ricochet"
+  | "breaker"
+  | "rally"
+  | "steady";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -425,7 +428,10 @@ export type PuzzleData =
   | SnakePuzzleData
   | CrossPuzzleData
   | DualPuzzleData
-  | RicoPuzzleData;
+  | RicoPuzzleData
+  | BreakerPuzzleData
+  | RallyPuzzleData
+  | SteadyPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1735,5 +1741,30 @@ export interface DualPuzzleData {
 export interface RicoPuzzleData {
   type: "ricochet";
   /** Lays out the whole shaft of spikes — identical for everyone. */
+  seed: number;
+}
+
+/* =================== Breaker / Rally / Steady ============================ */
+
+/** Each run is a fixed 60 seconds; the round clock adds three of slack. */
+export const BREAKER_TIME_MS = 63_000;
+export const RALLY_TIME_MS = 63_000;
+export const STEADY_TIME_MS = 63_000;
+
+export interface BreakerPuzzleData {
+  type: "breaker";
+  /** Draws the wall and which bricks are solid — identical for everyone. */
+  seed: number;
+}
+
+export interface RallyPuzzleData {
+  type: "rally";
+  /** Draws the opening angle and every bounce nudge — identical for everyone. */
+  seed: number;
+}
+
+export interface SteadyPuzzleData {
+  type: "steady";
+  /** Draws the whole winding track — identical for everyone. */
   seed: number;
 }

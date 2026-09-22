@@ -539,6 +539,33 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "2 per obstacle, +40 for surviving the minute.",
   },
+  breaker: {
+    goal: "Clear the wall.",
+    how: [
+      { action: "Drag to move the paddle", detail: "anywhere on the board." },
+      { action: "Keep the ball up", detail: "— it gets faster with every brick." },
+      { action: "Pale bricks take two hits", detail: "and losing the ball costs three seconds." },
+    ],
+    score: "2 per brick, +40 for clearing the wall.",
+  },
+  rally: {
+    goal: "Keep the rally going.",
+    how: [
+      { action: "Drag to move the paddle", detail: "along the bottom." },
+      { action: "Every hit", detail: "makes the paddle smaller and the ball faster." },
+      { action: "Miss once", detail: "and the run is over." },
+    ],
+    score: "3 per hit, +40 for surviving the minute.",
+  },
+  steady: {
+    goal: "Trace the track without touching the edges.",
+    how: [
+      { action: "Drag the dot", detail: "and keep it inside the winding track." },
+      { action: "It narrows and speeds up", detail: "as the minute goes on." },
+      { action: "A touch costs points", detail: "but never ends the run." },
+    ],
+    score: "Distance for points, −4 per touch, +40 for a clean minute (3 touches or fewer).",
+  },
   ricochet: {
     goal: "Climb the shaft by leaping wall to wall.",
     how: [

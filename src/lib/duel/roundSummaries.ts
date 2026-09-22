@@ -78,6 +78,9 @@ import {
   CROSS_TIME_MS,
   DUAL_TIME_MS,
   RICO_TIME_MS,
+  BREAKER_TIME_MS,
+  RALLY_TIME_MS,
+  STEADY_TIME_MS,
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -102,6 +105,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   cross: CROSS_TIME_MS,
   dual: DUAL_TIME_MS,
   ricochet: RICO_TIME_MS,
+  breaker: BREAKER_TIME_MS,
+  rally: RALLY_TIME_MS,
+  steady: STEADY_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -1067,6 +1073,51 @@ const ricoSummary: SummaryBuilder = (result) => {
   };
 };
 
+const breakerSummary: SummaryBuilder = (result) => {
+  const hits = Number(result.extra?.["hits"] ?? 0);
+  const left = Number(result.extra?.["bricksLeft"] ?? 0);
+  const cleared = result.extra?.["cleared"] === true;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: cleared
+      ? `Cleared at ${ended.toFixed(1)}s`
+      : `${hits} hits · ${left} brick${left === 1 ? "" : "s"} left`,
+    detail: [
+      `${Number(result.extra?.["losses"] ?? 0)} relaunches`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
+const rallySummary: SummaryBuilder = (result) => {
+  const hits = Number(result.extra?.["hits"] ?? 0);
+  const survived = result.extra?.["survived"] === true;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: survived ? `${hits} hits · survived` : `${hits} hits · lost at ${ended.toFixed(1)}s`,
+    detail: [
+      `paddle down to ${Number(result.extra?.["paddleWidth"] ?? 0)} px`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
+const steadySummary: SummaryBuilder = (result) => {
+  const points = Number(result.extra?.["points"] ?? 0);
+  const touches = Number(result.extra?.["touches"] ?? 0);
+  const clean = result.extra?.["clean"] === true;
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: `${points} distance · ${touches} touch${touches === 1 ? "" : "es"}`,
+    detail: [
+      clean ? "Clean minute" : `Track down to ${Number(result.extra?.["width"] ?? 0)} px`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
 const ringsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "rings") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);
@@ -1143,6 +1194,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   cross: crossSummary,
   dual: dualSummary,
   ricochet: ricoSummary,
+  breaker: breakerSummary,
+  rally: rallySummary,
+  steady: steadySummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1210,6 +1264,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   cross: () => null,
   dual: () => null,
   ricochet: () => null,
+  breaker: () => null,
+  rally: () => null,
+  steady: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };

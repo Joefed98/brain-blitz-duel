@@ -16,6 +16,9 @@ import type {
   SkylinePuzzleData,
   SnakePuzzleData,
   SwervePuzzleData,
+  BreakerPuzzleData,
+  RallyPuzzleData,
+  SteadyPuzzleData,
 } from "./types";
 
 /** A fresh 32-bit seed from the platform CSPRNG. */
@@ -58,4 +61,16 @@ export function generateDual(): DualPuzzleData {
 
 export function generateRicochet(): RicoPuzzleData {
   return { type: "ricochet", seed: arcadeSeed() };
+}
+
+export function generateBreaker(): BreakerPuzzleData {
+  return { type: "breaker", seed: arcadeSeed() };
+}
+
+export function generateRally(): RallyPuzzleData {
+  return { type: "rally", seed: arcadeSeed() };
+}
+
+export function generateSteady(): SteadyPuzzleData {
+  return { type: "steady", seed: arcadeSeed() };
 }

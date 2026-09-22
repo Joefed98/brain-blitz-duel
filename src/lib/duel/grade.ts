@@ -27,6 +27,9 @@ import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
+import { decodeBreakerRun, replayBreakerRun } from "./breaker";
+import { decodeRallyRun, replayRallyRun } from "./rally";
+import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeRicoRun, replayRicoRun } from "./ricochet";
@@ -893,6 +896,72 @@ export function gradeSubmission(
         desyncTick: run.desyncTick,
         inputs: decodeRicoRun(answer).inputs.length,
         claimedScore: decodeRicoRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "breaker": {
+      // As with every arcade game, only the server's own replay scores.
+      const run = replayBreakerRun(puzzle.seed, answer);
+      isCorrect = run.cleared;
+      correctCount = run.hits;
+      score = run.score;
+      extraDetail = {
+        hits: run.hits,
+        bricksLeft: run.bricksLeft,
+        totalHits: run.totalHits,
+        losses: run.losses,
+        cleared: run.cleared,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBreakerRun(answer).events.length,
+        claimedScore: decodeBreakerRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "rally": {
+      const run = replayRallyRun(puzzle.seed, answer);
+      isCorrect = run.survived;
+      correctCount = run.hits;
+      score = run.score;
+      extraDetail = {
+        hits: run.hits,
+        paddleWidth: run.paddleWidth,
+        survived: run.survived,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeRallyRun(answer).events.length,
+        claimedScore: decodeRallyRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "steady": {
+      const run = replaySteadyRun(puzzle.seed, answer);
+      isCorrect = run.clean;
+      correctCount = run.points;
+      score = run.score;
+      extraDetail = {
+        distance: run.distance,
+        points: run.points,
+        touches: run.touches,
+        width: run.width,
+        clean: run.clean,
+        finished: run.finished,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeSteadyRun(answer).events.length,
+        claimedScore: decodeSteadyRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
