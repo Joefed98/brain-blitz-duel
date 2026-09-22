@@ -66,34 +66,40 @@ export function NumberEntry({
         />
 
         {keypad ? (
-          <div className="grid grid-cols-3 gap-1.5">
-            {KEYS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                disabled={locked || (key === "ENTER" && value.length === 0)}
-                onPointerDown={(event) => {
-                  event.preventDefault();
-                  if (locked) return;
-                  if (key === "ENTER") {
-                    submit();
-                    return;
-                  }
-                  if (key === "⌫") {
-                    setValue((prev) => prev.slice(0, -1));
-                    return;
-                  }
-                  setValue((prev) => (prev.length >= maxLength ? prev : prev + key));
-                }}
-                className={`h-12 rounded-xl font-display text-lg font-bold uppercase tracking-wide disabled:opacity-40 ${
-                  key === "ENTER"
-                    ? "bg-primary text-sm text-primary-foreground"
-                    : "border border-border bg-card text-foreground"
-                }`}
-              >
-                {key}
-              </button>
-            ))}
+          <div className="flex flex-col gap-1.5">
+            <div className="grid grid-cols-11 gap-1">
+              {KEYS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={locked}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    if (locked) return;
+                    if (key === "⌫") {
+                      setValue((prev) => prev.slice(0, -1));
+                      return;
+                    }
+                    setValue((prev) => (prev.length >= maxLength ? prev : prev + key));
+                  }}
+                  className="h-10 rounded-lg border border-border bg-card font-display text-base font-bold text-foreground disabled:opacity-40"
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              disabled={locked || value.length === 0}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                if (locked) return;
+                submit();
+              }}
+              className="h-10 w-full rounded-lg bg-primary font-display text-sm font-bold uppercase tracking-widest text-primary-foreground disabled:opacity-40"
+            >
+              Enter
+            </button>
           </div>
         ) : (
           <button
