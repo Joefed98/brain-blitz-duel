@@ -411,8 +411,10 @@ for (let seed = 1; seed <= 200; seed++) {
     previous = strength;
   }
   // Past full power the launch stops growing, so the aim cannot be overdriven.
-  const full = bullseyeDrag(...(({ dx, dy }) => [dx, dy] as const)(dragAt(DRAG_FULL_PX, 90)))!;
-  const beyond = bullseyeDrag(...(({ dx, dy }) => [dx, dy] as const)(dragAt(400, 90)))!;
+  const fullDrag = dragAt(DRAG_FULL_PX, 90);
+  const beyondDrag = dragAt(400, 90);
+  const full = bullseyeDrag(fullDrag.dx, fullDrag.dy)!;
+  const beyond = bullseyeDrag(beyondDrag.dx, beyondDrag.dy)!;
   if (full.vy !== beyond.vy) fail("a drag past full power kept growing");
 }
 
