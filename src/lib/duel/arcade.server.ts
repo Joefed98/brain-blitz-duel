@@ -74,3 +74,15 @@ export function generateRally(): RallyPuzzleData {
 export function generateSteady(): SteadyPuzzleData {
   return { type: "steady", seed: arcadeSeed() };
 }
+
+export function generateSlice(): SlicePuzzleData {
+  return { type: "slice", seed: arcadeSeed() };
+}
+
+export function generateBubble(): BubblePuzzleData {
+  return { type: "bubble", seed: arcadeSeed() };
+}
+
+export function generateBeat(): BeatPuzzleData {
+  return { type: "beat", seed: arcadeSeed() };
+}

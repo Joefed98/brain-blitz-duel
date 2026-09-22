@@ -59,7 +59,10 @@ export type PuzzleType =
   | "ricochet"
   | "breaker"
   | "rally"
-  | "steady";
+  | "steady"
+  | "slice"
+  | "bubble"
+  | "beat";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -431,7 +434,10 @@ export type PuzzleData =
   | RicoPuzzleData
   | BreakerPuzzleData
   | RallyPuzzleData
-  | SteadyPuzzleData;
+  | SteadyPuzzleData
+  | SlicePuzzleData
+  | BubblePuzzleData
+  | BeatPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1766,5 +1772,30 @@ export interface RallyPuzzleData {
 export interface SteadyPuzzleData {
   type: "steady";
   /** Draws the whole winding track — identical for everyone. */
+  seed: number;
+}
+
+/* =================== Slice / Bubble Pop / Beat ============================ */
+
+/** Each run is a fixed 60 seconds; the round clock adds three of slack. */
+export const SLICE_TIME_MS = 63_000;
+export const BUBBLE_TIME_MS = 63_000;
+export const BEAT_TIME_MS = 63_000;
+
+export interface SlicePuzzleData {
+  type: "slice";
+  /** Draws the whole launch schedule, bombs included — identical for everyone. */
+  seed: number;
+}
+
+export interface BubblePuzzleData {
+  type: "bubble";
+  /** Draws the starting field and the whole bubble queue — identical for everyone. */
+  seed: number;
+}
+
+export interface BeatPuzzleData {
+  type: "beat";
+  /** Draws the whole chart — identical for everyone. */
   seed: number;
 }

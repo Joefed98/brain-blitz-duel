@@ -99,6 +99,9 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "breaker") return generateBreaker();
   if (type === "rally") return generateRally();
   if (type === "steady") return generateSteady();
+  if (type === "slice") return generateSlice();
+  if (type === "bubble") return generateBubble();
+  if (type === "beat") return generateBeat();
 
   return puzzleDef(type).generate();
 }

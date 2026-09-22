@@ -55,6 +55,9 @@ import { matchupPuzzle } from "@/puzzles/matchup";
 import { breakerPuzzle } from "@/puzzles/breaker";
 import { rallyPuzzle } from "@/puzzles/rally";
 import { steadyPuzzle } from "@/puzzles/steady";
+import { slicePuzzle } from "@/puzzles/slice";
+import { bubblePuzzle } from "@/puzzles/bubble";
+import { beatPuzzle } from "@/puzzles/beat";
 import { snakePuzzle } from "@/puzzles/snake";
 import { crossPuzzle } from "@/puzzles/cross";
 import { dualPuzzle } from "@/puzzles/dual";
@@ -183,6 +186,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   breaker: breakerPuzzle,
   rally: rallyPuzzle,
   steady: steadyPuzzle,
+  slice: slicePuzzle,
+  bubble: bubblePuzzle,
+  beat: beatPuzzle,
   snake: snakePuzzle,
   cross: crossPuzzle,
   dual: dualPuzzle,
