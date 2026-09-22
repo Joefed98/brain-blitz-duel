@@ -127,11 +127,8 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
   let aimX = state.aimX;
   if (input && input.k === ARCADE_INPUT_DRAG) aimX = clampInt(input.a, 0, RALLY_WORLD_W);
   const width = rallyPaddleW(state.hits);
-  const paddleX = clampInt(
-    aimX,
-    RALLY_WALL + width / 2,
-    RALLY_WORLD_W - RALLY_WALL - width / 2,
-  );
+  const half = Math.trunc(width / 2);
+  const paddleX = clampInt(aimX, RALLY_WALL + half, RALLY_WORLD_W - RALLY_WALL - half);
 
   const next: RallyState = { ...state, tick, aimX, paddleX };
   let { x, y, vx, vy, speed, hits, rng } = next;
@@ -165,14 +162,14 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
     }
 
     if (vy > 0 && y + RALLY_BALL_R_FP >= RALLY_PADDLE_Y_FP && y < RALLY_PADDLE_Y_FP + 4 * 256) {
-      const offset = px(x) - (paddleX - width / 2);
+      const offset = px(x) - (paddleX - half);
       if (offset >= -RALLY_BALL_R && offset <= width + RALLY_BALL_R) {
         hits += 1;
         speed = Math.min(RALLY_SPEED_CAP, Math.trunc((speed * 102) / 100));
         // Where it lands on the paddle steers the return.
-        const fromCentre = Math.round(offset - width / 2);
+        const fromCentre = Math.round(offset - half);
         const steered = setLength(
-          Math.trunc((fromCentre * 256) / Math.max(1, Math.trunc(width / 2))) + Math.trunc(vx / 4),
+          Math.trunc((fromCentre * 256) / Math.max(1, half)) + Math.trunc(vx / 4),
           -Math.max(RALLY_MIN_VY, Math.abs(vy)),
           speed,
         );
