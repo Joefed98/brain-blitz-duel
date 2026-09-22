@@ -416,11 +416,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {throws} throw{throws === 1 ? "" : "s"} taken · same winds for everyone
       </p>
-      {result.desyncTick !== null && (
-        <p className="shrink-0 font-mono text-xs font-bold text-destructive">
-          desync at tick {result.desyncTick}
-        </p>
-      )}
     </div>
   );
 }

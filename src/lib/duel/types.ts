@@ -1464,10 +1464,12 @@ export const INTRUDER_BOARDS = 3;
 /** All three boards use the same compact grid; content complexity rises. */
 export const INTRUDER_BOARD_SIZES = [3, 3, 3] as const;
 /** How long the grid is on show before it vanishes. */
-export const INTRUDER_SHOW_MS = 4_000;
-export const INTRUDER_HIDE_MS = 500;
+export const INTRUDER_SHOW_MS = 5_000;
+export const INTRUDER_HIDE_MS = 1_000;
+/** The changed grid is on screen for this long, and the player has one tap. */
+export const INTRUDER_PLAY_MS = 3_000;
 /** Taps allowed per board. */
-export const INTRUDER_ATTEMPTS = 2;
+export const INTRUDER_ATTEMPTS = 1;
 
 export const INTRUDER_SHAPES = ["circle", "square", "triangle", "star"] as const;
 export const INTRUDER_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "YELLOW", "ORANGE"];
@@ -1506,7 +1508,7 @@ export interface IntruderPuzzleData {
 
 /* ============================== Nonogram ================================ */
 
-export const NONO_TIME_MS = 90_000;
+export const NONO_TIME_MS = 120_000;
 export const NONO_SIZE = 7;
 /** Filled-cell count band for a generated picture. */
 export const NONO_MIN_FILLED = 18;
@@ -1577,7 +1579,7 @@ export interface FloodPuzzleData {
 
 /* ============================== One-Stroke ============================== */
 
-export const STROKE_TIME_MS = 45_000;
+export const STROKE_TIME_MS = 30_000;
 export const STROKE_MIN_DOTS = 6;
 export const STROKE_MAX_DOTS = 9;
 export const STROKE_MIN_EDGES = 8;

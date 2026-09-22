@@ -7,8 +7,8 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 export const OPERATORS: Operator[] = ["+", "-", "×", "÷"];
 
-/** Four numbers, three operator slots. */
-export const EQUATION_NUMBERS = 4;
+/** Five numbers, four operator slots. */
+export const EQUATION_NUMBERS = 5;
 const SLOTS = EQUATION_NUMBERS - 1;
 
 /** Strict left-to-right evaluation. Returns null on a non-whole or negative step. */
@@ -29,11 +29,12 @@ export function evaluateLeftToRight(numbers: number[], ops: Operator[]): number 
   return value;
 }
 
-/** All 64 operator combinations for three slots. */
+/** All 256 operator combinations for four slots. */
 export function allCombos(): Operator[][] {
   const combos: Operator[][] = [];
   for (const a of OPERATORS)
-    for (const b of OPERATORS) for (const c of OPERATORS) combos.push([a, b, c]);
+    for (const b of OPERATORS)
+      for (const c of OPERATORS) for (const d of OPERATORS) combos.push([a, b, c, d]);
   return combos;
 }
 
@@ -54,7 +55,12 @@ export function buildEquation(): EquationPuzzleData {
     if (!chosen) continue;
     return { type: "equation", numbers, target: chosen.value, operators: chosen.ops };
   }
-  return { type: "equation", numbers: [9, 3, 4, 2], target: 26, operators: ["-", "×", "+"] };
+  return {
+    type: "equation",
+    numbers: [9, 3, 4, 2, 5],
+    target: 31,
+    operators: ["-", "×", "+", "+"],
+  };
 }
 
 function OperatorSlot({ value, onClick }: { value: Operator | null; onClick?: () => void }) {
@@ -88,10 +94,12 @@ function IntroExample() {
         <span>4</span>
         <OperatorSlot value={null} />
         <span>2</span>
-        <span>= 26</span>
+        <OperatorSlot value={null} />
+        <span>5</span>
+        <span>= 31</span>
       </div>
       <p className="font-mono text-sm text-muted-foreground">
-        answer <span className="font-bold text-primary">9 − 3 × 4 + 2 = 26</span>
+        answer <span className="font-bold text-primary">9 − 3 × 4 + 2 + 5 = 31</span>
       </p>
       <p className="text-xs text-muted-foreground">
         Tap the operators, then hit Submit. Faster = more points.

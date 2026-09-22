@@ -387,8 +387,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   intruder: {
     goal: "One thing changes. Find it.",
     how: [
-      { action: "Memorise the grid", detail: "before it vanishes." },
-      { action: "Tap the changed cell", detail: "when the grid comes back." },
+      { action: "Memorise the grid", detail: "in the five seconds it is shown." },
+      { action: "One tap only", detail: "on the changed cell, within three seconds." },
       { action: "Three grids", detail: "with more shapes and colours each time." },
     ],
     score: "All three right for the speed bonus.",
@@ -400,7 +400,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Read the numbers", detail: "as the lengths of the filled runs, in order." },
       { action: "A line dims", detail: "once it matches its numbers." },
     ],
-    score: "Finish inside 90 seconds; faster finishes score more.",
+    score: "Finish inside 120 seconds; faster finishes score more.",
   },
   pairmatch: {
     goal: "Find all ten matching pairs.",

@@ -315,7 +315,7 @@ function draw(ctx: CanvasRenderingContext2D, state: RicoState, size: CanvasSize)
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  ctx.fillText(`Height ${ricoHeightPx(state).toLocaleString("en-GB")}`, 14, 14);
+  ctx.fillText(`Height ${Math.trunc(ricoHeightPx(state) / 40).toLocaleString("en-GB")} m`, 14, 14);
   ctx.textAlign = "right";
   ctx.fillText(`${remaining.toFixed(1)}s`, RICO_WORLD_W - 14, 14);
 

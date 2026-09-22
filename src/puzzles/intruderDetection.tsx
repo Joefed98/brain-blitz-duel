@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick, useGridPointer } from "@/components/puzzles/GridDrag";
@@ -8,6 +8,7 @@ import {
   INTRUDER_ATTEMPTS,
   INTRUDER_BOARDS,
   INTRUDER_HIDE_MS,
+  INTRUDER_PLAY_MS,
   INTRUDER_SHOW_MS,
   INTRUDER_TIME_MS,
   type IntruderBoard,
@@ -157,6 +158,39 @@ function changedCell(board: IntruderBoard): number {
 
 type Phase = "show" | "hide" | "play";
 
+/**
+ * The draining timer bar. It empties from the left for the memorise phase and
+ * from the right for the three seconds the player has to tap.
+ */
+function DrainBar({
+  ms,
+  className,
+  from,
+}: {
+  ms: number;
+  className: string;
+  from: "left" | "right";
+}) {
+  const [running, setRunning] = useState(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setRunning(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  return (
+    <div className="flex h-1 w-full shrink-0 overflow-hidden rounded-full bg-border">
+      <span
+        className={`block h-full ${className}`}
+        style={{
+          width: running ? "0%" : "100%",
+          marginLeft: from === "left" ? "auto" : undefined,
+          marginRight: from === "right" ? "auto" : undefined,
+          transition: `width ${ms}ms linear`,
+        }}
+      />
+    </div>
+  );
+}
+
 function Stage({
   puzzle,
   phaseStartedAt,
@@ -182,13 +216,29 @@ function Stage({
     onDraftAnswer?.(encodeIntruderTaps(taps));
   }, [taps, onDraftAnswer]);
 
-  // Memorise, then a blank grid, then the changed grid to tap.
+  // Memorise for five seconds, one blank second, then three seconds to tap.
   useEffect(() => {
     if (phase === "play") return;
     const wait = phase === "show" ? INTRUDER_SHOW_MS : INTRUDER_HIDE_MS;
     const timer = setTimeout(() => setPhase(phase === "show" ? "hide" : "play"), wait);
     return () => clearTimeout(timer);
   }, [phase, index, setPhase]);
+
+  // No tap inside the three seconds counts as a miss and moves on.
+  useEffect(() => {
+    if (phase !== "play" || locked || submitted.current) return;
+    const timer = setTimeout(() => {
+      if (submitted.current) return;
+      if (index >= INTRUDER_BOARDS - 1) {
+        submitted.current = true;
+        onSubmit(encodeIntruderTaps(taps));
+        return;
+      }
+      setIndex(index + 1);
+      setPhase("show");
+    }, INTRUDER_PLAY_MS);
+    return () => clearTimeout(timer);
+  }, [phase, index, locked, taps, onSubmit, setIndex, setPhase]);
 
   // Whatever has been tapped goes up as the clock runs out.
   useEffect(() => {
@@ -230,7 +280,6 @@ function Stage({
   };
 
   const showing = phase === "show";
-  const drain = showing ? 1 : 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -243,15 +292,13 @@ function Stage({
         ))}
       </div>
 
-      <div className="h-1 w-full shrink-0 overflow-hidden rounded-full bg-border">
-        <span
-          className="block h-full bg-primary"
-          style={{
-            width: `${drain * 100}%`,
-            transition: showing ? `width ${INTRUDER_SHOW_MS}ms linear` : "none",
-          }}
-        />
-      </div>
+      {phase === "play" ? (
+        <DrainBar key={`play-${index}`} ms={INTRUDER_PLAY_MS} className="bg-warn" from="right" />
+      ) : showing ? (
+        <DrainBar key={`show-${index}`} ms={INTRUDER_SHOW_MS} className="bg-primary" from="left" />
+      ) : (
+        <div className="h-1 w-full shrink-0 rounded-full bg-border" />
+      )}
 
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <Grid
@@ -263,7 +310,7 @@ function Stage({
       </div>
 
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        {showing ? "Memorise the grid" : phase === "hide" ? "…" : "Tap the cell that changed"}
+        {showing ? "Memorise the grid" : phase === "hide" ? "…" : "One tap — the cell that changed"}
       </p>
     </div>
   );

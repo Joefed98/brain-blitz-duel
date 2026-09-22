@@ -219,7 +219,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         <circle cx="94" cy="20" r="7" fill={RICO_BALL} />
       </svg>
       <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
-        {result.heightPx.toLocaleString("en-GB")} px ·{" "}
+        {Math.round(result.heightPx / 40).toLocaleString("en-GB")} m ·{" "}
         {result.survived
           ? "survived"
           : result.spiked
@@ -229,11 +229,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {leaps} leap{leaps === 1 ? "" : "s"} · same shaft for everyone
       </p>
-      {result.desyncTick !== null && (
-        <p className="shrink-0 font-mono text-xs font-bold text-destructive">
-          desync at tick {result.desyncTick}
-        </p>
-      )}
     </div>
   );
 }
