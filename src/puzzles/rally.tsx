@@ -247,13 +247,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.survived ? "survived" : `lost at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
-        paddle down to {result.paddleWidth} px · {drags} paddle moves
+        {drags} paddle moves · same ball for everyone
       </p>
-      {result.desyncTick !== null && (
-        <p className="shrink-0 font-mono text-xs font-bold text-destructive">
-          desync at tick {result.desyncTick}
-        </p>
-      )}
     </div>
   );
 }

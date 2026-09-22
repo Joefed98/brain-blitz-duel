@@ -247,14 +247,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.points} distance · {result.touches} touch{result.touches === 1 ? "" : "es"}
       </p>
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
-        track down to {result.width} px · {drags} moves
+        {drags} moves · same track for everyone
         {result.clean ? " · clean minute" : ""}
       </p>
-      {result.desyncTick !== null && (
-        <p className="shrink-0 font-mono text-xs font-bold text-destructive">
-          desync at tick {result.desyncTick}
-        </p>
-      )}
     </div>
   );
 }

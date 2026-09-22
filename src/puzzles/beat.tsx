@@ -260,11 +260,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         best combo {result.maxCombo} · {taps} tap{taps === 1 ? "" : "s"}
         {result.strays > 0 ? ` · ${result.strays} stray` : ""}
       </p>
-      {result.desyncTick !== null && (
-        <p className="shrink-0 font-mono text-xs font-bold text-destructive">
-          desync at tick {result.desyncTick}
-        </p>
-      )}
       <p className="shrink-0 font-mono text-xs" style={{ color: BEAT_GOLD }}>
         {result.score} points
       </p>

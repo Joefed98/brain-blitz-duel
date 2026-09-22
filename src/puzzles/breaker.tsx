@@ -249,11 +249,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {result.losses} relaunch{result.losses === 1 ? "" : "es"} · {drags} paddle moves
       </p>
-      {result.desyncTick !== null && (
-        <p className="shrink-0 font-mono text-xs font-bold text-destructive">
-          desync at tick {result.desyncTick}
-        </p>
-      )}
     </div>
   );
 }

@@ -329,11 +329,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           ? ` · reached the line at ${result.endedSeconds.toFixed(1)}s`
           : ""}
       </p>
-      {result.desyncTick !== null && (
-        <p className="shrink-0 font-mono text-xs font-bold text-destructive">
-          desync at tick {result.desyncTick}
-        </p>
-      )}
       <p className="shrink-0 font-mono text-xs" style={{ color: BUB_GOLD }}>
         {result.score} points
       </p>

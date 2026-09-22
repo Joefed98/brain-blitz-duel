@@ -925,14 +925,12 @@ const hoverSummary: SummaryBuilder = (result) => {
   const total = Number(result.extra?.["totalGates"] ?? 0);
   const survived = result.extra?.["survived"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: survived
       ? `${gates} / ${total} · survived`
       : `${gates} / ${total} gates · crashed at ${ended.toFixed(1)}s`,
     detail: [
       survived ? "Flew the whole run" : "Run ended early",
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
@@ -942,14 +940,12 @@ const swerveSummary: SummaryBuilder = (result) => {
   const total = Number(result.extra?.["totalCoins"] ?? 0);
   const survived = result.extra?.["survived"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: survived
       ? `${coins} / ${total} coins · survived`
       : `${coins} / ${total} coins · crashed at ${ended.toFixed(1)}s`,
     detail: [
       survived ? "Drove the whole run" : "Run ended early",
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
@@ -959,14 +955,12 @@ const skylineSummary: SummaryBuilder = (result) => {
   const perfects = Number(result.extra?.["perfects"] ?? 0);
   const survived = result.extra?.["survived"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: survived
       ? `${blocks} blocks · ${perfects} perfect · survived`
       : `${blocks} blocks · missed at ${ended.toFixed(1)}s`,
     detail: [
       `${perfects} perfect drop${perfects === 1 ? "" : "s"}`,
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
@@ -974,12 +968,10 @@ const skylineSummary: SummaryBuilder = (result) => {
 const binTossSummary: SummaryBuilder = (result) => {
   const baskets = Number(result.extra?.["baskets"] ?? 0);
   const total = Number(result.extra?.["throws"] ?? 10);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: `${baskets} / ${total} in`,
     detail: [
       baskets >= total ? "Every throw in" : `${total - baskets} missed`,
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
@@ -989,25 +981,21 @@ const matchupSummary: SummaryBuilder = (result) => {
   const swaps = Number(result.extra?.["swaps"] ?? 0);
   const bestLine = Number(result.extra?.["bestLine"] ?? 0);
   const reshuffles = Number(result.extra?.["reshuffles"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: `${raw.toLocaleString("en-GB")} pts → ${result.score} · ${swaps} swaps · best line ${bestLine || "—"}`,
     detail: [
       `${swaps} scoring swap${swaps === 1 ? "" : "s"}`,
       ...(reshuffles > 0 ? [`${reshuffles} reshuffled`] : []),
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
 
 const bullseyeSummary: SummaryBuilder = (result) => {
   const inner = Number(result.extra?.["inner"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: `${result.score} · ${inner} in the gold/red`,
     detail: [
       `${Number(result.extra?.["total"] ?? 0)} ring points`,
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
@@ -1016,14 +1004,12 @@ const snakeSummary: SummaryBuilder = (result) => {
   const pellets = Number(result.extra?.["pellets"] ?? 0);
   const survived = result.extra?.["survived"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: survived
       ? `${pellets} pellets · survived`
       : `${pellets} pellets · crashed at ${ended.toFixed(1)}s`,
     detail: [
       survived ? "Lasted the whole minute" : "Run ended early",
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
@@ -1033,14 +1019,12 @@ const crossSummary: SummaryBuilder = (result) => {
   const lanes = Number(result.extra?.["lanes"] ?? 0);
   const survived = result.extra?.["survived"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: survived
       ? `${crossings} crossings · survived`
       : `${crossings} crossings · ${lanes} lanes · crashed at ${ended.toFixed(1)}s`,
     detail: [
       `${lanes} lane${lanes === 1 ? "" : "s"} into the last crossing`,
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
@@ -1050,31 +1034,27 @@ const dualSummary: SummaryBuilder = (result) => {
   const survived = result.extra?.["survived"] === true;
   const side = Number(result.extra?.["crashedSide"] ?? -1);
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: survived
       ? `${passed} passed · survived`
       : `${passed} passed · crashed at ${ended.toFixed(1)}s (${side === 0 ? "left" : "right"})`,
     detail: [
       survived ? "Both runners lasted the minute" : "One runner hit a block",
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
 
 const ricoSummary: SummaryBuilder = (result) => {
-  const height = Number(result.extra?.["heightPx"] ?? 0);
+  const metres = Math.round(Number(result.extra?.["heightPx"] ?? 0) / 40);
   const survived = result.extra?.["survived"] === true;
   const spiked = result.extra?.["spiked"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: survived
-      ? `${height.toLocaleString("en-GB")} px · survived`
-      : `${height.toLocaleString("en-GB")} px · ${spiked ? "hit a spike" : "slid down"} at ${ended.toFixed(1)}s`,
+      ? `${metres.toLocaleString("en-GB")} m climbed · survived`
+      : `${metres.toLocaleString("en-GB")} m climbed · ${spiked ? "hit a spike" : "slid down"} at ${ended.toFixed(1)}s`,
     detail: [
       `${Number(result.extra?.["leaps"] ?? 0)} leaps`,
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
@@ -1084,14 +1064,12 @@ const breakerSummary: SummaryBuilder = (result) => {
   const left = Number(result.extra?.["bricksLeft"] ?? 0);
   const cleared = result.extra?.["cleared"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
       : `${hits} hits · ${left} brick${left === 1 ? "" : "s"} left`,
     detail: [
       `${Number(result.extra?.["losses"] ?? 0)} relaunches`,
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
@@ -1100,12 +1078,10 @@ const rallySummary: SummaryBuilder = (result) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const survived = result.extra?.["survived"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: survived ? `${hits} hits · survived` : `${hits} hits · lost at ${ended.toFixed(1)}s`,
     detail: [
-      `paddle down to ${Number(result.extra?.["paddleWidth"] ?? 0)} px`,
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+      survived ? "Kept the rally alive" : "Lost the ball",
     ],
   };
 };
@@ -1114,12 +1090,10 @@ const steadySummary: SummaryBuilder = (result) => {
   const points = Number(result.extra?.["points"] ?? 0);
   const touches = Number(result.extra?.["touches"] ?? 0);
   const clean = result.extra?.["clean"] === true;
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: `${points} distance · ${touches} touch${touches === 1 ? "" : "es"}`,
     detail: [
-      clean ? "Clean minute" : `Track down to ${Number(result.extra?.["width"] ?? 0)} px`,
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+      clean ? "Clean minute" : `${touches} edge touch${touches === 1 ? "" : "es"}`,
     ],
   };
 };
@@ -1128,12 +1102,10 @@ const sliceSummary: SummaryBuilder = (result) => {
   const slices = Number(result.extra?.["slices"] ?? 0);
   const total = Number(result.extra?.["totalDiscs"] ?? 0);
   const bombs = Number(result.extra?.["bombsHit"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: `${slices} / ${total} sliced · ${bombs} bomb${bombs === 1 ? "" : "s"}`,
     detail: [
       `${Number(result.extra?.["bonuses"] ?? 0)} multi-slice bonuses`,
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
@@ -1143,12 +1115,10 @@ const bubbleSummary: SummaryBuilder = (result) => {
   const dropped = Number(result.extra?.["dropped"] ?? 0);
   const cleared = result.extra?.["cleared"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: cleared ? `Cleared at ${ended.toFixed(1)}s` : `Popped ${popped} · dropped ${dropped}`,
     detail: [
       `${Number(result.extra?.["shots"] ?? 0)} shots`,
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };
@@ -1158,12 +1128,10 @@ const beatSummary: SummaryBuilder = (result) => {
   const notes = Number(result.extra?.["noteCount"] ?? 0);
   const perfect = Number(result.extra?.["perfect"] ?? 0);
   const misses = Number(result.extra?.["misses"] ?? 0);
-  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
     summary: `${hits} / ${notes} · ${perfect} perfect · ${misses} miss${misses === 1 ? "" : "es"}`,
     detail: [
       `best combo ${Number(result.extra?.["maxCombo"] ?? 0)}`,
-      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
     ],
   };
 };

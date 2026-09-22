@@ -259,11 +259,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {result.bonuses} multi-slice bonus{result.bonuses === 1 ? "" : "es"} · {swipes} swipe ticks
       </p>
-      {result.desyncTick !== null && (
-        <p className="shrink-0 font-mono text-xs font-bold text-destructive">
-          desync at tick {result.desyncTick}
-        </p>
-      )}
       <p className="shrink-0 font-mono text-xs" style={{ color: SLICE_GOLD }}>
         {result.score} points
       </p>
