@@ -356,7 +356,7 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
         : centre + BINTOSS_BIN_HALF + BINTOSS_BALL_R;
   }
 
-  const next: BinTossState = { ...state, tick, vx, vy, x: nx, y: ny, wobbleTick };
+  const next: BinTossState = { ...state, tick, vx, vy, windV, windPos, x: nx, y: ny, wobbleTick };
 
   // Landing on the floor or leaving the canvas is a miss.
   if (ny >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) return resolve(next, tick, false);
