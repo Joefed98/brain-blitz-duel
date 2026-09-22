@@ -576,6 +576,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Swipe through the discs", detail: "to slice them in half." },
       { action: "Slice several with one swipe", detail: "for a bonus." },
       { action: "Never touch the dark bombs", detail: "— each one costs ten points." },
+      {
+        action: "Two rainbow discs",
+        detail: "— the star opens five bomb-free seconds, the bar hangs a row of six.",
+      },
     ],
     score: "2 per disc, bonus for 3 in one swipe, −10 per bomb.",
   },
@@ -585,6 +589,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag to aim, release to shoot", detail: "— bounce off the walls." },
       { action: "Three of a colour pop", detail: "when they touch." },
       { action: "Bubbles left hanging", detail: "fall and count double." },
+      { action: "Ninety seconds", detail: "on the same field for everyone." },
     ],
     score: "1 per pop, 2 per drop, +40 for clearing the field.",
   },
