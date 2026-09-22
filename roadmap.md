@@ -108,3 +108,13 @@
 - [x] Bin Toss: scored-ball settle animation, delayed visible counter, and 72px drag-to-cancel zone.
 - [x] Bullseye: stored seeded wind −3…+3, exact scaled-ring displacement, and per-arrow reveal details.
 - [x] Re-ran the 200-run Bullseye identity proof and focused static checks.
+
+## 2026-09-22 — Bin Toss wind, harder Bullseye, Bomb Defusal by construction
+
+- Bin Toss: wind is a constant sideways acceleration calibrated so one wind point
+  drifts the ball exactly half a bin opening (50 px) at rim height; the dotted aim
+  path always shows the no-wind arc; wind −3 … +3 shown below the HUD.
+- Bullseye: outer ring 114 px at arrow 1, target centre 40% down the play area.
+- Bomb Defusal: plan chosen first, then four template rules true of it, then a
+  proof over all 3,024 ordered four-action sequences (exactly one survives, and
+  every rule is necessary). ~39 panel rolls on average, ~36 ms a panel.
