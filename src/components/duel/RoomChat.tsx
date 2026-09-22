@@ -78,6 +78,7 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
   const [menuFor, setMenuFor] = useState<RoomMessageRow | null>(null);
   const listEnd = useRef<HTMLDivElement | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const sheetTouchY = useRef<number | null>(null);
 
   useEffect(() => {
     if (chat.sheetOpen) listEnd.current?.scrollIntoView({ block: "end" });
@@ -200,7 +201,7 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
       )}
 
       <div
-        className="mt-2 flex shrink-0 items-center gap-1.5"
+        className="relative z-[55] mt-2 flex shrink-0 items-center gap-1.5 bg-background"
         style={{ height: CHAT_BAR_HEIGHT }}
         onTouchStart={(event) => {
           touchStartY.current = event.touches[0]?.clientY ?? null;
