@@ -268,27 +268,41 @@ export function crossSurvived(state: CrossState): boolean {
 function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
-  let { lane, col, hop, reached, crossings, crossStart } = state;
+  let { lane, col, hop, hopDir, reached, crossings, crossStart, pauseUntil } = state;
+  // Everything sent while the disc waits on the kerb is dropped, so a swipe at
+  // the end of one crossing can never carry into the next.
+  const paused = tick < pauseUntil;
 
-  if (hop === 0 && input && input.k === CROSS_INPUT_MOVE) {
-    const move = clampInt(input.a, 0, 2);
-    if (move === 0) hop = CROSS_HOP_TICKS;
-    else if (move === 1) col = Math.max(0, col - 1);
+  if (!paused && hop === 0 && input && input.k === CROSS_INPUT_MOVE) {
+    const move = clampInt(input.a, 0, 3);
+    if (move === 0) {
+      hop = CROSS_HOP_TICKS;
+      hopDir = 1;
+    } else if (move === 1) {
+      if (lane > 0) {
+        hop = CROSS_HOP_TICKS;
+        hopDir = -1;
+      }
+    } else if (move === 2) col = Math.max(0, col - 1);
     else col = Math.min(CROSS_COLS - 1, col + 1);
   }
 
   if (hop > 0) {
     hop -= 1;
     if (hop === 0) {
-      lane += 1;
+      lane += hopDir;
+      if (lane < 0) lane = 0;
       if (lane > reached) reached = lane;
       if (lane > CROSS_LANES) {
-        // The goal kerb: bank the crossing and start the next one at once.
+        // The goal kerb: bank the crossing, then a second on the start kerb
+        // while the traffic of the next crossing keeps rolling.
         crossings += 1;
         lane = 0;
         col = CROSS_COLS >> 1;
         reached = 0;
-        crossStart = tick;
+        hopDir = 1;
+        pauseUntil = tick + CROSS_PAUSE_TICKS;
+        crossStart = pauseUntil;
       }
     }
   }
@@ -303,16 +317,29 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
         lane,
         col,
         hop,
+        hopDir,
         reached,
         crossings,
         crossStart,
+        pauseUntil,
         dead: true,
         endedTick: tick,
       };
     }
   }
 
-  const next: CrossState = { ...state, tick, lane, col, hop, reached, crossings, crossStart };
+  const next: CrossState = {
+    ...state,
+    tick,
+    lane,
+    col,
+    hop,
+    hopDir,
+    reached,
+    crossings,
+    crossStart,
+    pauseUntil,
+  };
   if (tick >= CROSS_RUN_TICKS) return { ...next, endedTick: tick };
   return next;
 }
