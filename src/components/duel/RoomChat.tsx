@@ -160,7 +160,6 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
         </>
       )}
 
-
       {menuFor && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-background/70 p-4">
           <div className="w-full max-w-[400px] rounded-2xl border border-border bg-card p-2">

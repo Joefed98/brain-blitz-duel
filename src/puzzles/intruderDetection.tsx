@@ -240,7 +240,6 @@ function Stage({
     return () => clearTimeout(timer);
   }, [phase, index, locked, taps, onSubmit, setIndex, setPhase]);
 
-
   // Whatever has been tapped goes up as the clock runs out.
   useEffect(() => {
     if (!data || locked || submitted.current) return;
@@ -294,18 +293,12 @@ function Stage({
       </div>
 
       {phase === "play" ? (
-        <DrainBar
-          key={`play-${index}`}
-          ms={INTRUDER_PLAY_MS}
-          className="bg-warn"
-          from="right"
-        />
+        <DrainBar key={`play-${index}`} ms={INTRUDER_PLAY_MS} className="bg-warn" from="right" />
       ) : showing ? (
         <DrainBar key={`show-${index}`} ms={INTRUDER_SHOW_MS} className="bg-primary" from="left" />
       ) : (
         <div className="h-1 w-full shrink-0 rounded-full bg-border" />
       )}
-
 
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <Grid
@@ -317,11 +310,7 @@ function Stage({
       </div>
 
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        {showing
-          ? "Memorise the grid"
-          : phase === "hide"
-            ? "…"
-            : "One tap — the cell that changed"}
+        {showing ? "Memorise the grid" : phase === "hide" ? "…" : "One tap — the cell that changed"}
       </p>
     </div>
   );

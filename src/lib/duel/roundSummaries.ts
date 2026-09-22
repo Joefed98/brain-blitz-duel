@@ -929,9 +929,7 @@ const hoverSummary: SummaryBuilder = (result) => {
     summary: survived
       ? `${gates} / ${total} · survived`
       : `${gates} / ${total} gates · crashed at ${ended.toFixed(1)}s`,
-    detail: [
-      survived ? "Flew the whole run" : "Run ended early",
-    ],
+    detail: [survived ? "Flew the whole run" : "Run ended early"],
   };
 };
 
@@ -944,9 +942,7 @@ const swerveSummary: SummaryBuilder = (result) => {
     summary: survived
       ? `${coins} / ${total} coins · survived`
       : `${coins} / ${total} coins · crashed at ${ended.toFixed(1)}s`,
-    detail: [
-      survived ? "Drove the whole run" : "Run ended early",
-    ],
+    detail: [survived ? "Drove the whole run" : "Run ended early"],
   };
 };
 
@@ -959,9 +955,7 @@ const skylineSummary: SummaryBuilder = (result) => {
     summary: survived
       ? `${blocks} blocks · ${perfects} perfect · survived`
       : `${blocks} blocks · missed at ${ended.toFixed(1)}s`,
-    detail: [
-      `${perfects} perfect drop${perfects === 1 ? "" : "s"}`,
-    ],
+    detail: [`${perfects} perfect drop${perfects === 1 ? "" : "s"}`],
   };
 };
 
@@ -970,9 +964,7 @@ const binTossSummary: SummaryBuilder = (result) => {
   const total = Number(result.extra?.["throws"] ?? 10);
   return {
     summary: `${baskets} / ${total} in`,
-    detail: [
-      baskets >= total ? "Every throw in" : `${total - baskets} missed`,
-    ],
+    detail: [baskets >= total ? "Every throw in" : `${total - baskets} missed`],
   };
 };
 
@@ -994,9 +986,7 @@ const bullseyeSummary: SummaryBuilder = (result) => {
   const inner = Number(result.extra?.["inner"] ?? 0);
   return {
     summary: `${result.score} · ${inner} in the gold/red`,
-    detail: [
-      `${Number(result.extra?.["total"] ?? 0)} ring points`,
-    ],
+    detail: [`${Number(result.extra?.["total"] ?? 0)} ring points`],
   };
 };
 
@@ -1008,9 +998,7 @@ const snakeSummary: SummaryBuilder = (result) => {
     summary: survived
       ? `${pellets} pellets · survived`
       : `${pellets} pellets · crashed at ${ended.toFixed(1)}s`,
-    detail: [
-      survived ? "Lasted the whole minute" : "Run ended early",
-    ],
+    detail: [survived ? "Lasted the whole minute" : "Run ended early"],
   };
 };
 
@@ -1023,9 +1011,7 @@ const crossSummary: SummaryBuilder = (result) => {
     summary: survived
       ? `${crossings} crossings · survived`
       : `${crossings} crossings · ${lanes} lanes · crashed at ${ended.toFixed(1)}s`,
-    detail: [
-      `${lanes} lane${lanes === 1 ? "" : "s"} into the last crossing`,
-    ],
+    detail: [`${lanes} lane${lanes === 1 ? "" : "s"} into the last crossing`],
   };
 };
 
@@ -1038,9 +1024,7 @@ const dualSummary: SummaryBuilder = (result) => {
     summary: survived
       ? `${passed} passed · survived`
       : `${passed} passed · crashed at ${ended.toFixed(1)}s (${side === 0 ? "left" : "right"})`,
-    detail: [
-      survived ? "Both runners lasted the minute" : "One runner hit a block",
-    ],
+    detail: [survived ? "Both runners lasted the minute" : "One runner hit a block"],
   };
 };
 
@@ -1053,9 +1037,7 @@ const ricoSummary: SummaryBuilder = (result) => {
     summary: survived
       ? `${metres.toLocaleString("en-GB")} m climbed · survived`
       : `${metres.toLocaleString("en-GB")} m climbed · ${spiked ? "hit a spike" : "slid down"} at ${ended.toFixed(1)}s`,
-    detail: [
-      `${Number(result.extra?.["leaps"] ?? 0)} leaps`,
-    ],
+    detail: [`${Number(result.extra?.["leaps"] ?? 0)} leaps`],
   };
 };
 
@@ -1068,9 +1050,7 @@ const breakerSummary: SummaryBuilder = (result) => {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
       : `${hits} hits · ${left} brick${left === 1 ? "" : "s"} left`,
-    detail: [
-      `${Number(result.extra?.["losses"] ?? 0)} relaunches`,
-    ],
+    detail: [`${Number(result.extra?.["losses"] ?? 0)} relaunches`],
   };
 };
 
@@ -1080,9 +1060,7 @@ const rallySummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived ? `${hits} hits · survived` : `${hits} hits · lost at ${ended.toFixed(1)}s`,
-    detail: [
-      survived ? "Kept the rally alive" : "Lost the ball",
-    ],
+    detail: [survived ? "Kept the rally alive" : "Lost the ball"],
   };
 };
 
@@ -1092,9 +1070,7 @@ const steadySummary: SummaryBuilder = (result) => {
   const clean = result.extra?.["clean"] === true;
   return {
     summary: `${points} distance · ${touches} touch${touches === 1 ? "" : "es"}`,
-    detail: [
-      clean ? "Clean minute" : `${touches} edge touch${touches === 1 ? "" : "es"}`,
-    ],
+    detail: [clean ? "Clean minute" : `${touches} edge touch${touches === 1 ? "" : "es"}`],
   };
 };
 
@@ -1104,9 +1080,7 @@ const sliceSummary: SummaryBuilder = (result) => {
   const bombs = Number(result.extra?.["bombsHit"] ?? 0);
   return {
     summary: `${slices} / ${total} sliced · ${bombs} bomb${bombs === 1 ? "" : "s"}`,
-    detail: [
-      `${Number(result.extra?.["bonuses"] ?? 0)} multi-slice bonuses`,
-    ],
+    detail: [`${Number(result.extra?.["bonuses"] ?? 0)} multi-slice bonuses`],
   };
 };
 
@@ -1117,9 +1091,7 @@ const bubbleSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: cleared ? `Cleared at ${ended.toFixed(1)}s` : `Popped ${popped} · dropped ${dropped}`,
-    detail: [
-      `${Number(result.extra?.["shots"] ?? 0)} shots`,
-    ],
+    detail: [`${Number(result.extra?.["shots"] ?? 0)} shots`],
   };
 };
 
@@ -1130,9 +1102,7 @@ const beatSummary: SummaryBuilder = (result) => {
   const misses = Number(result.extra?.["misses"] ?? 0);
   return {
     summary: `${hits} / ${notes} · ${perfect} perfect · ${misses} miss${misses === 1 ? "" : "es"}`,
-    detail: [
-      `best combo ${Number(result.extra?.["maxCombo"] ?? 0)}`,
-    ],
+    detail: [`best combo ${Number(result.extra?.["maxCombo"] ?? 0)}`],
   };
 };
 
