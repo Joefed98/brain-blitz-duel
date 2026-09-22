@@ -183,12 +183,7 @@ function neighbours(row: number, col: number): Array<[number, number]> {
         [row + 1, col - 1],
         [row + 1, col],
       ] as Array<[number, number]>);
-  return [
-    [row, col - 1],
-    [row, col + 1],
-    ...up,
-    ...down,
-  ];
+  return [[row, col - 1], [row, col + 1], ...up, ...down];
 }
 
 function inGrid(row: number, col: number): boolean {
@@ -210,9 +205,7 @@ function landingCell(
       if (grid[index]) continue;
       const supported =
         row === 0 ||
-        neighbours(row, col).some(
-          ([nr, nc]) => inGrid(nr, nc) && grid[cellIndex(nr, nc)]! > 0,
-        );
+        neighbours(row, col).some(([nr, nc]) => inGrid(nr, nc) && grid[cellIndex(nr, nc)]! > 0);
       if (!supported) continue;
       const dx = bubCellX(row, col) - xPx;
       const dy = bubCellY(row, descents) - yPx;

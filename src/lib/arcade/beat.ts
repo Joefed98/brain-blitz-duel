@@ -235,7 +235,11 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
     const lane = clampInt(input.a, 0, BEAT_LANES - 1);
     let bestIndex = -1;
     let bestDistance = BEAT_OK_TICKS + 1;
-    for (let index = cursor; index < ticks.length && ticks[index]! - tick <= BEAT_OK_TICKS; index++) {
+    for (
+      let index = cursor;
+      index < ticks.length && ticks[index]! - tick <= BEAT_OK_TICKS;
+      index++
+    ) {
       if (state.chart.lanes[index] !== lane) continue;
       if ((judged ?? state.judged)[index] !== BEAT_JUDGE_NONE) continue;
       const distance = Math.abs(ticks[index]! - tick);
