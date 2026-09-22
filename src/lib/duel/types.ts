@@ -1316,12 +1316,11 @@ export interface SafePuzzleData {
 
 export const BOMB_TIME_MS = 75_000;
 export const BOMB_WIRES = 7;
-export const BOMB_RULE_COUNT = 6;
+/** Four rules, and between them exactly one four-action plan. */
+export const BOMB_RULE_COUNT = 4;
 /** Every panel requires exactly four actions. */
 export const BOMB_MIN_SEQUENCE = 4;
 export const BOMB_MAX_SEQUENCE = 4;
-export const BOMB_MIN_EFFECTIVE_RULES = 3;
-export const BOMB_MIN_ORDER_RULES = 2;
 /** Points per correct leading action when the bomb is not defused. */
 export const BOMB_PREFIX_POINTS = 15;
 export const BOMB_PARTIAL_POINTS = 60;
