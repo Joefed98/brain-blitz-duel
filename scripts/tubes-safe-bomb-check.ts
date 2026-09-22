@@ -17,19 +17,12 @@ import { generateSafe } from "../src/lib/duel/safe.server";
 import { safeSolutions } from "../src/lib/duel/safe";
 import {
   BOMB_RULE_TEMPLATE_COUNT,
-  generateBomb,
+  generateBombPanel,
   inspectBombRules,
 } from "../src/lib/duel/bomb.server";
-import {
-  checkBombPlan,
-  decodeBombActions,
-  decodeBombConstraints,
-  type BombConstraint,
-} from "../src/lib/duel/bomb";
+import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "../src/lib/duel/bomb";
 import {
   BOMB_MAX_SEQUENCE,
-  BOMB_MIN_EFFECTIVE_RULES,
-  BOMB_MIN_ORDER_RULES,
   BOMB_MIN_SEQUENCE,
   BOMB_RULE_COUNT,
   BOMB_WIRES,
