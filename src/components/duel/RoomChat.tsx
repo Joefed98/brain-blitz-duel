@@ -95,37 +95,70 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
       <ReactionLayer chat={chat} />
 
       {chat.sheetOpen && (
-        <div
-          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] flex-col"
-          style={{ height: "60dvh" }}
-        >
-          <div className="mx-2 flex min-h-0 flex-1 flex-col rounded-t-2xl border border-border bg-card/95 p-3 backdrop-blur">
-            <button
-              type="button"
-              onClick={() => chat.setSheetOpen(false)}
-              className="press mx-auto mb-2 h-1.5 w-12 shrink-0 rounded-full bg-muted"
-              aria-label="Close messages"
-            />
-            <ul className="min-h-0 flex-1 overflow-y-auto">
-              {chat.messages.length === 0 && (
-                <li className="py-6 text-center text-xs text-muted-foreground">No messages yet.</li>
+        <>
+          {/* Tapping anywhere outside the panel closes it. */}
+          <button
+            type="button"
+            aria-label="Close messages"
+            onClick={() => chat.setSheetOpen(false)}
+            className="fixed inset-0 z-40 bg-background/40"
+          />
+          <div
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] flex-col"
+            style={{ height: "60dvh" }}
+            onTouchStart={(event) => {
+              sheetTouchY.current = event.touches[0]?.clientY ?? null;
+            }}
+            onTouchEnd={(event) => {
+              const start = sheetTouchY.current;
+              const end = event.changedTouches[0]?.clientY ?? null;
+              if (start !== null && end !== null && end - start > 40) chat.setSheetOpen(false);
+              sheetTouchY.current = null;
+            }}
+          >
+            <div className="mx-2 flex min-h-0 flex-1 flex-col rounded-t-2xl border border-border bg-card/95 p-3 backdrop-blur">
+              <div className="mb-2 flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => chat.setSheetOpen(false)}
+                  className="press h-8 flex-1 rounded-full"
+                  aria-label="Close messages"
+                >
+                  <span className="mx-auto block h-1.5 w-12 rounded-full bg-muted" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => chat.setSheetOpen(false)}
+                  aria-label="Close messages"
+                  className="press flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border font-display text-base font-bold text-muted-foreground"
+                >
+                  ✕
+                </button>
+              </div>
+              <ul className="min-h-0 flex-1 overflow-y-auto">
+                {chat.messages.length === 0 && (
+                  <li className="py-6 text-center text-xs text-muted-foreground">
+                    No messages yet.
+                  </li>
+                )}
+                {chat.messages.map((message) => (
+                  <MessageRow
+                    key={message.id}
+                    message={message}
+                    mine={message.sender_user_id === myUserId}
+                    onLongPress={() => setMenuFor(message)}
+                  />
+                ))}
+                <div ref={listEnd} />
+              </ul>
+              {chat.notice && (
+                <p className="pt-1 text-center text-[11px] text-muted-foreground">{chat.notice}</p>
               )}
-              {chat.messages.map((message) => (
-                <MessageRow
-                  key={message.id}
-                  message={message}
-                  mine={message.sender_user_id === myUserId}
-                  onLongPress={() => setMenuFor(message)}
-                />
-              ))}
-              <div ref={listEnd} />
-            </ul>
-            {chat.notice && (
-              <p className="pt-1 text-center text-[11px] text-muted-foreground">{chat.notice}</p>
-            )}
+            </div>
           </div>
-        </div>
+        </>
       )}
+
 
       {menuFor && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-background/70 p-4">

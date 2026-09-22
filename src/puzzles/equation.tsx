@@ -94,10 +94,12 @@ function IntroExample() {
         <span>4</span>
         <OperatorSlot value={null} />
         <span>2</span>
-        <span>= 26</span>
+        <OperatorSlot value={null} />
+        <span>5</span>
+        <span>= 31</span>
       </div>
       <p className="font-mono text-sm text-muted-foreground">
-        answer <span className="font-bold text-primary">9 − 3 × 4 + 2 = 26</span>
+        answer <span className="font-bold text-primary">9 − 3 × 4 + 2 + 5 = 31</span>
       </p>
       <p className="text-xs text-muted-foreground">
         Tap the operators, then hit Submit. Faster = more points.
