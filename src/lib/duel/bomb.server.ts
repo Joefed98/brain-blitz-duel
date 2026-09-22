@@ -37,7 +37,7 @@ import {
   type WireColour,
 } from "./bomb";
 import { pick, randomBelow, shuffled } from "./random";
-import { BOMB_MAX_SEQUENCE, BOMB_RULE_COUNT, BOMB_WIRES } from "./types";
+import { BOMB_MAX_SEQUENCE, BOMB_NECESSARY_RULES, BOMB_RULE_COUNT, BOMB_WIRES } from "./types";
 import type { BombPuzzleData } from "./types";
 
 interface Panel {
@@ -481,7 +481,9 @@ export function generateBombPanel(): BombGeneration {
     if (pool.length < BOMB_RULE_COUNT) continue;
     const masks = pool.map(maskOf);
 
-    const picked = chooseRules(masks, planIndex);
+    const core = chooseRules(masks, planIndex);
+    if (!core) continue;
+    const picked = addConfirmingRules(pool, masks, core);
     if (!picked) continue;
 
     // The plan must be the one surviving sequence, not merely one of them.
@@ -532,8 +534,12 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
   solutions: number;
   /** Exactly one, and it is the stored plan. */
   unique: boolean;
-  /** Dropping any single rule leaves more than one sequence. */
+  /** At least four rules are individually necessary. */
   necessary: boolean;
+  /** How many of the rules are individually necessary. */
+  necessaryRules: number;
+  /** No two rules concern the same action pair. */
+  pairsDistinct: boolean;
   /** Every rule's wording is exactly its template's. */
   wordingOk: boolean;
   /** Rules whose template instance could not be rebuilt. */
@@ -552,15 +558,14 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
   const masks = known.map(maskOf);
   const found = solutions(masks, 3);
   const plan = puzzle.sequence ?? puzzle.required ?? "";
-  const necessary =
-    known.length === puzzle.rules.length &&
-    known.every(
-      (_, drop) =>
-        solutions(
-          masks.filter((__, index) => index !== drop),
-          2,
-        ).length >= 2,
-    );
+  const necessaryRules = known.filter(
+    (_, drop) =>
+      solutions(
+        masks.filter((__, index) => index !== drop),
+        2,
+      ).length >= 2,
+  ).length;
+  const necessary = known.length === puzzle.rules.length && necessaryRules >= BOMB_NECESSARY_RULES;
 
   return {
     solutions: found.length,
@@ -569,6 +574,8 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
       known.length === puzzle.rules.length &&
       ALL_SEQUENCES[found[0]!]!.join(",") === plan.split(",").join(","),
     necessary,
+    necessaryRules,
+    pairsDistinct: pairsDistinct(puzzle.rules.map((rule) => rule.id)),
     wordingOk: puzzle.rules.every(
       (rule, index) => rebuilt[index]?.text === rule.text && rebuilt[index]?.id === rule.id,
     ),
