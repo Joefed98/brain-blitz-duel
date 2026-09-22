@@ -229,6 +229,11 @@ for (let sample = 0; sample < 200; sample++) {
     fail(`bullseye ${seed}: replay ${replay.score} vs client ${claimed}`);
   }
   if (replay.total !== state.total) fail(`bullseye ${seed}: ring totals differ`);
+  for (let index = 0; index < replay.hits.length; index++) {
+    if (replay.hits[index]?.wind !== storedWinds[replay.hits[index]?.arrow ?? index]) {
+      fail(`bullseye ${seed}: hit ${index + 1} did not retain its stored wind`);
+    }
+  }
   if (replay.flagged) fail(`bullseye ${seed}: flagged (${replay.reason ?? "no reason"})`);
   if (replay.desyncTick !== null) {
     fail(`bullseye ${seed}: desync at tick ${replay.desyncTick}`);

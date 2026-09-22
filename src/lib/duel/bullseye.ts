@@ -9,6 +9,7 @@ import {
   bullseyeCheckpoint,
   bullseyeFinished,
   bullseyeGame,
+  bullseyeInit,
   bullseyeInner,
   BULLSEYE_ARROWS,
   BULLSEYE_CHECKPOINT_INTERVAL,
@@ -118,7 +119,7 @@ export function replayBullseyeRun(seed: number, raw: string, winds?: readonly nu
   const lastTick = clientLag ? endTick : BULLSEYE_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
-  let state = bullseyeGame.init(seed, winds);
+  let state = bullseyeInit(seed, winds);
   let reached = 0;
   let desyncTick: number | null = null;
   const serverCheckpoints: BullseyeCheckpoint[] = [];

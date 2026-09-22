@@ -9,6 +9,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   binTossCheckpoint,
+  binTossBinCentre,
   binTossDrag,
   binTossDrawAim,
   binTossDrawGhost,
@@ -176,6 +177,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                 startedAt: time,
                 progress: 0,
                 binCentre: binTossBinCentre(before.throwIndex),
+                binIndex: before.throwIndex,
               };
             }
           }
@@ -204,7 +206,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           binTossGame.draw(
             context,
             hideNewBasket
-              ? { ...state.current, baskets: Math.max(0, state.current.baskets - 1), x: -100_000 }
+              ? {
+                  ...state.current,
+                  baskets: Math.max(0, state.current.baskets - 1),
+                  throwIndex: activeLanding.binIndex,
+                  x: -100_000,
+                }
               : state.current,
             size,
           );
@@ -250,7 +257,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const sizeCanvas = (): CanvasSize | null => {
     const node = canvas.current;
-    const box = wrap.current?.getBoundingClientRect();
+    const box = node?.getBoundingClientRect();
     if (!node || !box || box.width < 1 || box.height < 1) return null;
     // Capped at 2: a 3× buffer on a tall phone starves the sim loop.
     const ratio = Math.min(window.devicePixelRatio || 1, 2);

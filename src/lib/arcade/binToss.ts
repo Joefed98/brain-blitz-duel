@@ -530,11 +530,7 @@ export interface BinTossGhost {
 export interface BinTossLandingPresentation {
   progress: number;
   binCentre: number;
-}
-
-export interface BinTossDrawOptions {
-  landing?: BinTossLandingPresentation | null;
-  displayedBaskets?: number;
+  binIndex: number;
 }
 
 /** Draws a trajectory as a dotted arc without changing simulation state. */
