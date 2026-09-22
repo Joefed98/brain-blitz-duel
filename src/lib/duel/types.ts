@@ -1781,7 +1781,7 @@ export interface SteadyPuzzleData {
 
 /** Each run is a fixed 60 seconds; the round clock adds three of slack. */
 export const SLICE_TIME_MS = 63_000;
-export const BUBBLE_TIME_MS = 63_000;
+export const BUBBLE_TIME_MS = 93_000;
 export const BEAT_TIME_MS = 63_000;
 
 export interface SlicePuzzleData {

@@ -598,6 +598,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize):
     ctx.arc(52 + ahead * 22, 50, 8, 0, Math.PI * 2);
     ctx.fillStyle = bubColour(value);
     ctx.fill();
+    bubDrawSymbol(ctx, value, 52 + ahead * 22, 50, 8);
   }
   ctx.restore();
 }
