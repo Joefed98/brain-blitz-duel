@@ -8,7 +8,11 @@
  *  5. a lagged phone stops the replay at the tick it reached
  */
 
-import { checkInputEvents, MAX_INPUT_EVENTS, type ArcadeInputEvent } from "../src/lib/arcade/engine.ts";
+import {
+  checkInputEvents,
+  MAX_INPUT_EVENTS,
+  type ArcadeInputEvent,
+} from "../src/lib/arcade/engine.ts";
 import {
   sliceCheckpoint,
   sliceGame,
@@ -117,7 +121,13 @@ function sliceValues(state: SliceState): number[] {
     state.bombsHit,
     state.flash,
     ...state.slicedAt,
-    ...state.objects.flatMap((object) => [object.launchTick, object.lastTick, object.x, object.vx, object.vy]),
+    ...state.objects.flatMap((object) => [
+      object.launchTick,
+      object.lastTick,
+      object.x,
+      object.vx,
+      object.vy,
+    ]),
   ];
 }
 

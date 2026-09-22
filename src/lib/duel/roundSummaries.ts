@@ -1145,9 +1145,7 @@ const bubbleSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
   return {
-    summary: cleared
-      ? `Cleared at ${ended.toFixed(1)}s`
-      : `Popped ${popped} · dropped ${dropped}`,
+    summary: cleared ? `Cleared at ${ended.toFixed(1)}s` : `Popped ${popped} · dropped ${dropped}`,
     detail: [
       `${Number(result.extra?.["shots"] ?? 0)} shots`,
       ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),

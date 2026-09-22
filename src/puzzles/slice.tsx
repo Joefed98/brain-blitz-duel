@@ -44,9 +44,7 @@ function IntroExample() {
         <circle cx={124} cy={72} r={13} fill={SLICE_COLOURS[2]} />
         <path d="M24 92 L146 40" stroke="rgba(255,255,255,0.8)" strokeWidth={3} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        Three in one swipe earns a bonus.
-      </p>
+      <p className="text-center text-xs text-muted-foreground">Three in one swipe earns a bonus.</p>
     </div>
   );
 }

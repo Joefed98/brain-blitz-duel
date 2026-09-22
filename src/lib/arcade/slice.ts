@@ -135,10 +135,7 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
 }
 
 /** Position of an object at a tick, in 1/256 px. Pure integer arithmetic. */
-export function sliceObjectAt(
-  object: SliceObject,
-  tick: number,
-): { x: number; y: number } | null {
+export function sliceObjectAt(object: SliceObject, tick: number): { x: number; y: number } | null {
   const age = tick - object.launchTick;
   if (age < 0 || tick > object.lastTick) return null;
   const drop = Math.trunc((SLICE_GRAV * age * (age + 1)) / 2);
@@ -345,7 +342,9 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
       const cy = at.y / 256 + (age * age) / 20;
       const spread = 3 + age;
       ctx.globalAlpha = Math.max(0, 1 - age / SLICE_HALVES_TICKS);
-      ctx.fillStyle = object.bomb ? SLICE_BOMB : SLICE_COLOURS[object.colour % SLICE_COLOURS.length]!;
+      ctx.fillStyle = object.bomb
+        ? SLICE_BOMB
+        : SLICE_COLOURS[object.colour % SLICE_COLOURS.length]!;
       ctx.beginPath();
       ctx.arc(cx - spread, cy, SLICE_R, Math.PI / 2, (3 * Math.PI) / 2);
       ctx.fill();

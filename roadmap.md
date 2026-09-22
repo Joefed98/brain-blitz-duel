@@ -144,3 +144,5 @@
 - [x] Screens `src/puzzles/{breaker,rally,steady}.tsx` (pointer capture, DPR<=2, no-scroll 390x700 and 375x667)
 - [x] Wiring: types, secrets, generators, registry, instructions, grading, round summaries
 - [x] Proof `scripts/arcade-drag-check.ts` — 200 random drag traces per game: identical states/checkpoints/scores, inflated claims caught, out-of-range payloads refused, lag handled
+
+- [x] Arcade additions: Slice (swipe segments), Bubble Pop (drag-aim shots) and Beat (lane taps) on the shared deterministic engine, with server replay, 300-tick checkpoints and a 200-run identity proof (`scripts/arcade-slice-bubble-beat-check.ts`).
