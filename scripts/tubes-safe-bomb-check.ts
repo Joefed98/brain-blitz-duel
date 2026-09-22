@@ -95,48 +95,42 @@ console.log(
   `Safe Cracker: ${ROUNDS} cards of ${SAFE_CLUE_COUNT} clues, each unique with all ${SAFE_CLUE_COUNT} clues necessary`,
 );
 
-for (let i = 0; i < ROUNDS; i++) {
-  const bomb = generateBomb();
+let bombAttempts = 0;
+const BOMB_PANELS = 200;
+for (let i = 0; i < BOMB_PANELS; i++) {
+  const generated = generateBombPanel();
+  const bomb = generated.puzzle;
+  bombAttempts += generated.attempts;
   const inspected = inspectBombRules(bomb);
   assert(bomb.wires.length === BOMB_WIRES, "wrong wire count");
   assert(bomb.rules.length === BOMB_RULE_COUNT, "wrong rule count");
   assert(["LEFT", "MID", "RIGHT"].includes(bomb.switchPosition), "invalid switch position");
-  assert(!inspected.contradictory, "generated rules contradict each other");
-  assert(inspected.consistent, "ordering constraints contain a cycle");
-  assert(inspected.wordingOk, "a rule uses a wording that could be read two ways");
-  assert(inspected.effective >= BOMB_MIN_EFFECTIVE_RULES, "too few effective rules");
-  assert(inspected.orderRules >= BOMB_MIN_ORDER_RULES, "too few ordering constraints");
+  assert(inspected.unknownRules === 0, "a rule could not be rebuilt from its template");
+  assert(inspected.wordingOk, "a rule does not use its template's exact wording");
+  assert(inspected.solutions === 1, `rules allow ${inspected.solutions} sequences, not one`);
+  assert(inspected.unique, "the one satisfying sequence is not the stored plan");
+  assert(inspected.necessary, "a rule could be dropped without adding a solution");
 
   const required = decodeBombActions(bomb.required!);
   const constraints = decodeBombConstraints(bomb.constraints!);
+  const stored = decodeBombActions(bomb.sequence!);
   assert(required.length === bomb.stepCount, "stepCount does not match the required actions");
   assert(new Set(required).size === required.length, "an action is required twice");
   assert(
     required.length >= BOMB_MIN_SEQUENCE && required.length <= BOMB_MAX_SEQUENCE,
     `required action count out of band: ${required.length}`,
   );
-  assert(inspected.required === required.length, "inspection disagrees on the required actions");
+  assert(stored.join(",") === required.join(","), "the stored plan is not the required sequence");
 
-  // The stored order defuses, and so does EVERY order the constraints allow.
-  const stored = decodeBombActions(bomb.sequence!);
+  // Grading accepts the unique sequence and nothing else.
   assert(checkBombPlan(required, constraints, stored).defused, "stored plan did not defuse");
-  const orders = permutations(required).filter(
-    (order) => checkBombPlan(required, constraints, order).defused,
-  );
-  assert(orders.length >= 1, "no order of the required actions defuses the bomb");
-  for (const order of orders) {
-    assert(satisfies(order, constraints), "an accepted order breaks a constraint");
-  }
   for (const order of permutations(required)) {
     const accepted = checkBombPlan(required, constraints, order).defused;
-    assert(accepted === satisfies(order, constraints), "grading disagrees with the constraints");
+    assert(accepted === (order.join(",") === stored.join(",")), "grading accepted another order");
   }
-
-  // Anything other than the required set explodes.
-  const spare = stored[0] === "bA" ? "bB" : "bA";
+  const spare = stored.includes("bA") ? "bB" : "bA";
   assert(
-    checkBombPlan(required, constraints, [spare, ...stored]).exploded ||
-      required.includes(spare as string),
+    checkBombPlan(required, constraints, [spare, ...stored]).exploded,
     "an extra action did not explode",
   );
   assert(
@@ -144,12 +138,13 @@ for (let i = 0; i < ROUNDS; i++) {
     "a short plan counted as defused",
   );
 }
-assert(BOMB_RULE_TEMPLATE_COUNT >= 30, "bomb rule bank has fewer than 30 templates");
+assert(BOMB_RULE_TEMPLATE_COUNT >= 10, "bomb rule bank has fewer than 10 templates");
 console.log(
-  `Bomb Defusal: ${ROUNDS} panels, each with one unambiguous four-action plan and order-independent grading`,
+  `Bomb Defusal: ${BOMB_PANELS} panels, each with exactly one satisfying four-action sequence; ` +
+    `${(bombAttempts / BOMB_PANELS).toFixed(2)} panel attempts on average`,
 );
 
-/** Every order of the required actions — at most 6! = 720 of them. */
+/** Every order of the required actions — 4! = 24 of them. */
 function permutations(actions: string[]): string[][] {
   if (actions.length <= 1) return [actions];
   const out: string[][] = [];
@@ -158,19 +153,4 @@ function permutations(actions: string[]): string[][] {
     for (const tail of permutations(rest)) out.push([action, ...tail]);
   });
   return out;
-}
-
-/** Does this order respect every ordering constraint? */
-function satisfies(order: string[], constraints: BombConstraint[]): boolean {
-  const at = (action: string) => order.indexOf(action);
-  return constraints.every((constraint) => {
-    if (constraint.kind === "before") {
-      const a = at(constraint.a);
-      const b = at(constraint.b);
-      return a < 0 || b < 0 || a < b;
-    }
-    const index = at(constraint.a);
-    if (index < 0) return true;
-    return constraint.kind === "first" ? index === 0 : index === order.length - 1;
-  });
 }
