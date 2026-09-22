@@ -107,21 +107,69 @@ export function binTossDrag(dx: number, dy: number): DragLaunch | null {
   };
 }
 
+/** A ball in flight: launch velocity plus the wind's own integration. */
+export interface BinTossFlight {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  /** Sideways speed the wind has built up, in 1/65536 px a tick. */
+  windV: number;
+  /** Sideways distance the wind has carried, in 1/65536 px. */
+  windPos: number;
+}
+
+/** One tick of free flight. The single place gravity and wind are integrated. */
+export function binTossAdvance(flight: BinTossFlight, wind: number): BinTossFlight {
+  const windV = flight.windV + wind * BINTOSS_WIND_ACC;
+  const windPos = flight.windPos + windV;
+  const drift =
+    Math.trunc(windPos / BINTOSS_WIND_SUB) - Math.trunc(flight.windPos / BINTOSS_WIND_SUB);
+  const vy = flight.vy + BINTOSS_GRAVITY;
+  return {
+    x: flight.x + flight.vx + drift,
+    y: flight.y + vy,
+    vx: flight.vx,
+    vy,
+    windV,
+    windPos,
+  };
+}
+
+/**
+ * Walks a whole flight without touching the simulation — same gravity and same
+ * wind integration, so a drawn path matches what the sim will do. Render only.
+ */
+export function binTossPath(
+  vx: number,
+  vy: number,
+  wind: number,
+  stopAtRim: boolean,
+): { x: number; y: number }[] {
+  let flight: BinTossFlight = {
+    x: BINTOSS_BALL_X,
+    y: BINTOSS_BALL_Y,
+    vx,
+    vy,
+    windV: 0,
+    windPos: 0,
+  };
+  const points = [{ x: px(flight.x), y: px(flight.y) }];
+  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
+    flight = binTossAdvance(flight, wind);
+    points.push({ x: px(flight.x), y: px(flight.y) });
+    if (stopAtRim && flight.vy > 0 && flight.y >= BINTOSS_RIM_Y) break;
+    if (flight.y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
+    if (flight.x < -BINTOSS_BALL_R || flight.x > BINTOSS_WORLD_RIGHT + BINTOSS_BALL_R) break;
+  }
+  return points;
+}
+
 /** Where a launch would cross the bin's rim line, in world pixels. Render only. */
 export function binTossPredict(vx: number, vy: number, wind: number): { x: number; y: number } {
-  let x = BINTOSS_BALL_X;
-  let y = BINTOSS_BALL_Y;
-  let dx = vx;
-  let dy = vy;
-  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
-    dx += wind * BINTOSS_WIND_UNIT;
-    dy += BINTOSS_GRAVITY;
-    x += dx;
-    y += dy;
-    if (dy > 0 && y >= BINTOSS_RIM_Y) break;
-    if (y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
-  }
-  return { x: Math.round(px(x)), y: Math.round(px(y)) };
+  const path = binTossPath(vx, vy, wind, true);
+  const last = path[path.length - 1]!;
+  return { x: Math.round(last.x), y: Math.round(last.y) };
 }
 
 /** The bin's centre for a throw. */
