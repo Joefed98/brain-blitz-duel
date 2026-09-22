@@ -2,7 +2,7 @@
  * Proof checks for Bin Toss and Bullseye:
  *  1. every value in each sim state stays an integer (no floats in physics)
  *  2. client and server final states/checkpoints match across 200 random logs
- *     with random flick vectors and random release points
+ *     with random aim vectors and random release points
  *  3. the server replay reproduces the score the phone would have claimed
  *  4. the declared input ranges reject out-of-range payloads, unknown kinds,
  *     ticks outside the run, ticks out of order, and oversized logs
@@ -11,13 +11,16 @@
 
 import {
   checkInputEvents,
+  dragScale256,
+  DRAG_FULL_PX,
+  DRAG_MIN_PX,
   MAX_INPUT_EVENTS,
   type ArcadeInputEvent,
 } from "../src/lib/arcade/engine.ts";
 import {
   binTossBinCentre,
   binTossCheckpoint,
-  binTossFlick,
+  binTossDrag,
   binTossGame,
   binTossPredict,
   BINTOSS_BALL_R,
@@ -35,7 +38,7 @@ import {
 } from "../src/lib/arcade/binToss.ts";
 import {
   bullseyeCheckpoint,
-  bullseyeFlick,
+  bullseyeDrag,
   bullseyeGame,
   bullseyeLanding,
   BULLSEYE_CX,
@@ -65,24 +68,29 @@ let firstFailingTick: number | null = null;
 const randomInt = (low: number, high: number) => low + Math.floor(Math.random() * (high - low + 1));
 
 /**
- * A random upward swipe: 200–2600 px/s (so some are below the 250 px/s floor
- * and ignored) at any upward angle, measured over 30–90 ms.
+ * A random aim vector: 10–260 px of drag (so some are under the 20 px cancel
+ * distance, and some past full power) at any angle, including downward ones,
+ * which the mapping clamps to horizontal.
  */
-function randomSwipe(): { dx: number; dy: number; dtMs: number } {
-  const dtMs = randomInt(30, 90);
-  const speed = randomInt(200, 2_600);
-  const angle = (randomInt(20, 160) * Math.PI) / 180;
-  const length = (speed * dtMs) / 1000;
-  return { dx: Math.cos(angle) * length, dy: -Math.sin(angle) * length, dtMs };
+function randomDrag(): { dx: number; dy: number } {
+  const length = randomInt(10, 260);
+  const angle = (randomInt(0, 359) * Math.PI) / 180;
+  return { dx: Math.cos(angle) * length, dy: Math.sin(angle) * length };
 }
 
-/** A swipe of an exact speed and angle, for the calibration checks. */
-function swipeAt(speedPxS: number, angleDeg: number) {
-  const dtMs = 80;
-  const length = (speedPxS * dtMs) / 1000;
+/** An aim vector of an exact length and angle, for the calibration checks. */
+function dragAt(lengthPx: number, angleDeg: number) {
   const angle = (angleDeg * Math.PI) / 180;
-  return { dx: Math.cos(angle) * length, dy: -Math.sin(angle) * length, dtMs };
+  return { dx: Math.cos(angle) * lengthPx, dy: -Math.sin(angle) * lengthPx };
 }
+
+/** The drag length that produces the reference launch (scale 256). */
+const REFERENCE_DRAG_PX = (() => {
+  for (let length = DRAG_MIN_PX; length <= DRAG_FULL_PX; length++) {
+    if (dragScale256(length) === 256) return length;
+  }
+  return DRAG_FULL_PX;
+})();
 
 function binTossIntegers(state: BinTossState): boolean {
   const values = [
@@ -119,16 +127,16 @@ for (let sample = 0; sample < 200; sample++) {
   const events: ArcadeInputEvent[] = [];
   const checkpoints: BinTossCheckpoint[] = [];
   let ticks = 0;
-  // A plausible player: a random flick whenever a ball is ready.
+  // A plausible player: a random aim vector whenever a ball is ready.
   let waitFor = randomInt(0, 40);
   for (let tick = 1; tick <= BINTOSS_RUN_TICKS; tick++) {
     let input: ArcadeInputEvent | null = null;
     if (state.phase === BINTOSS_AIM) {
       if (waitFor > 0) waitFor -= 1;
       else {
-        // A random swipe, mapped through the game's own flick calibration.
-        const swipe = randomSwipe();
-        const launch = binTossFlick(swipe.dx, swipe.dy, swipe.dtMs);
+        // A random drag, mapped through the game's own aim calibration.
+        const drag = randomDrag();
+        const launch = binTossDrag(drag.dx, drag.dy);
         if (launch) {
           input = { t: tick, k: 1, a: launch.vx, b: launch.vy, c: 0, d: 0 };
           waitFor = randomInt(0, 40);
@@ -186,8 +194,8 @@ for (let sample = 0; sample < 200; sample++) {
     if (state.flightTick === 0 && state.arrowIndex < BULLSEYE_ARROWS) {
       if (waitFor > 0) waitFor -= 1;
       else {
-        const swipe = randomSwipe();
-        const launch = bullseyeFlick(swipe.dx, swipe.dy, swipe.dtMs);
+        const drag = randomDrag();
+        const launch = bullseyeDrag(drag.dx, drag.dy);
         if (launch) {
           input = { t: tick, k: 2, a: launch.vx, b: launch.vy, c: 0, d: 0 };
           waitFor = randomInt(0, 30);
@@ -341,26 +349,26 @@ if (
 
 /* ---------------------------- Calibration ------------------------------ */
 
-// A natural 1300 px/s flick at 60° must land in the bin on throw five (160 px).
+// A reference-strength aim at 60° must land in the bin on throw five (160 px).
 {
-  const swipe = swipeAt(1_300, 60);
-  const launch = binTossFlick(swipe.dx, swipe.dy, swipe.dtMs);
-  if (!launch) fail("the reference bin toss flick was ignored");
+  const drag = dragAt(REFERENCE_DRAG_PX, 60);
+  const launch = binTossDrag(drag.dx, drag.dy);
+  if (!launch) fail("the reference bin toss aim was ignored");
   else {
     const landing = binTossPredict(launch.vx, launch.vy, 0);
     const centre = Math.round(binTossBinCentre(4) / 256);
     const tolerance = Math.round((BINTOSS_BIN_HALF - 2_560) / 256);
     if (Math.abs(landing.x - centre) > tolerance) {
-      fail(`reference flick landed at ${landing.x}, bin centre ${centre}`);
+      fail(`reference aim landed at ${landing.x}, bin centre ${centre}`);
     }
   }
 }
 
-// A 1300 px/s straight-up flick must land exactly on the centre at arrow one.
+// A reference-strength straight-up aim must land on the centre at arrow one.
 {
-  const swipe = swipeAt(1_300, 90);
-  const launch = bullseyeFlick(swipe.dx, swipe.dy, swipe.dtMs);
-  if (!launch) fail("the reference bullseye flick was ignored");
+  const drag = dragAt(REFERENCE_DRAG_PX, 90);
+  const launch = bullseyeDrag(drag.dx, drag.dy);
+  if (!launch) fail("the reference bullseye aim was ignored");
   else {
     const landing = bullseyeLanding(launch.vx, launch.vy);
     if (landing.x !== BULLSEYE_CX || landing.y !== BULLSEYE_CY) {
@@ -388,21 +396,41 @@ for (let seed = 1; seed <= 200; seed++) {
   if (bull.winds.some((wind) => wind < -2 || wind > 2)) fail(`bullseye ${seed}: wind out of range`);
 }
 
-// Square-root response: twice the swipe speed is about 1.4× the launch speed.
+// Strength comes from the drag LENGTH: a longer drag always launches harder.
 {
-  const slowSwipe = swipeAt(600, 90);
-  const fastSwipe = swipeAt(1_200, 90);
-  const a = bullseyeFlick(slowSwipe.dx, slowSwipe.dy, slowSwipe.dtMs)!;
-  const b = bullseyeFlick(fastSwipe.dx, fastSwipe.dy, fastSwipe.dtMs)!;
-  const ratio = Math.abs(b.vy) / Math.abs(a.vy);
-  if (ratio < 1.38 || ratio > 1.44) fail(`doubling the swipe scaled the launch by ${ratio}`);
+  let previous = 0;
+  for (let length = DRAG_MIN_PX; length <= DRAG_FULL_PX; length += 10) {
+    const drag = dragAt(length, 90);
+    const launch = bullseyeDrag(drag.dx, drag.dy);
+    if (!launch) {
+      fail(`a ${length} px drag was ignored`);
+      break;
+    }
+    const strength = Math.abs(launch.vy);
+    if (strength < previous) fail(`a longer drag launched softer at ${length} px`);
+    previous = strength;
+  }
+  // Past full power the launch stops growing, so the aim cannot be overdriven.
+  const full = bullseyeDrag(...(({ dx, dy }) => [dx, dy] as const)(dragAt(DRAG_FULL_PX, 90)))!;
+  const beyond = bullseyeDrag(...(({ dx, dy }) => [dx, dy] as const)(dragAt(400, 90)))!;
+  if (full.vy !== beyond.vy) fail("a drag past full power kept growing");
 }
 
-// Below the 250 px/s floor the gesture is ignored.
+// Under the 20 px cancel distance nothing is thrown or shot.
 {
-  const swipe = swipeAt(200, 90);
-  if (binTossFlick(swipe.dx, swipe.dy, swipe.dtMs)) fail("a 200 px/s swipe threw a ball");
-  if (bullseyeFlick(swipe.dx, swipe.dy, swipe.dtMs)) fail("a 200 px/s swipe fired an arrow");
+  const drag = dragAt(15, 90);
+  if (binTossDrag(drag.dx, drag.dy)) fail("a 15 px drag threw a ball");
+  if (bullseyeDrag(drag.dx, drag.dy)) fail("a 15 px drag fired an arrow");
+}
+
+// A downward-pointing vector is clamped to horizontal.
+{
+  const drag = dragAt(120, -60);
+  const launch = bullseyeDrag(drag.dx, drag.dy);
+  if (!launch) fail("a downward drag was ignored");
+  else if (launch.vy < -1) fail(`a downward drag still launched upwards (${launch.vy})`);
+  const bin = binTossDrag(drag.dx, drag.dy);
+  if (bin && bin.vy < -1) fail(`a downward bin toss drag still launched upwards (${bin.vy})`);
 }
 
 /* ----------------------------- Registration ---------------------------- */
