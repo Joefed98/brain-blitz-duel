@@ -263,12 +263,17 @@ function candidateRules(panel: Panel): RuleInstance[] {
 /** Bit per sequence, so intersecting rule sets is a handful of word ANDs. */
 const MASK_WORDS = Math.ceil(ALL_SEQUENCES.length / 32);
 
-/** Which of the 3,024 sequences a rule allows. */
+const MASK_CACHE = new Map<string, Uint32Array>();
+
+/** Which of the 3,024 sequences a rule allows, cached by predicate. */
 function maskOf(rule: RuleInstance): Uint32Array {
+  const cached = MASK_CACHE.get(rule.key);
+  if (cached) return cached;
   const mask = new Uint32Array(MASK_WORDS);
   for (let index = 0; index < ALL_SEQUENCES.length; index++) {
     if (rule.test(ALL_SEQUENCES[index]!)) mask[index >> 5]! |= 1 << (index & 31);
   }
+  MASK_CACHE.set(rule.key, mask);
   return mask;
 }
 
