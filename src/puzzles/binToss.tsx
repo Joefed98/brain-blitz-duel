@@ -86,8 +86,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pending = useRef<ArcadeInputEvent[]>([]);
   const activeLaunch = useRef<BinTossGhost | null>(null);
   const lastGhost = useRef<BinTossGhost | null>(null);
-  /** The live swipe, sampled so the launch comes from its last stretch. */
-  const swipe = useRef<FlickSample[] | null>(null);
+  /** Where the finger went down; the aim vector is measured from here. */
+  const anchor = useRef<{ x: number; y: number } | null>(null);
   /** The arc a release right now would produce. Render only. */
   const aim = useRef<BinTossGhost | null>(null);
   const submitted = useRef(false);
