@@ -362,8 +362,10 @@ export interface CrossCheckpointState {
   lane: number;
   col: number;
   hop: number;
+  hopDir: number;
   reached: number;
   crossStart: number;
+  pauseUntil: number;
   laneSpeed: number;
 }
 
