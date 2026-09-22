@@ -325,7 +325,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </p>
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {shots} shot{shots === 1 ? "" : "s"} · {result.bubblesLeft} left
-        {result.dead ? ` · reached the line at ${result.endedSeconds.toFixed(1)}s` : ""}
+        {!result.survived && !result.cleared
+          ? ` · reached the line at ${result.endedSeconds.toFixed(1)}s`
+          : ""}
       </p>
       {result.desyncTick !== null && (
         <p className="shrink-0 font-mono text-xs font-bold text-destructive">
