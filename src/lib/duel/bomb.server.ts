@@ -362,13 +362,17 @@ export interface BombGeneration {
   attempts: number;
 }
 
-/** Rules considered per attempt — a random slice, to keep the proof cheap. */
-const POOL_SAMPLE = 26;
+/** Rules considered per attempt — a random slice, to keep the search cheap. */
+const POOL_SAMPLE = 40;
 
 export function generateBombPanel(): BombGeneration {
+  const planKey = (sequence: readonly string[]) => sequence.join(",");
   for (let attempt = 1; attempt <= 20_000; attempt++) {
     const panel = randomPanel();
     const plan = shuffled(BOMB_ACTIONS).slice(0, PLAN_LENGTH);
+    const planIndex = ALL_SEQUENCES.findIndex(
+      (sequence) => planKey(sequence) === planKey(plan),
+    );
     const pool = shuffled(candidateRules(panel).filter((rule) => rule.test(plan))).slice(
       0,
       POOL_SAMPLE,
@@ -376,15 +380,12 @@ export function generateBombPanel(): BombGeneration {
     if (pool.length < BOMB_RULE_COUNT) continue;
     const masks = pool.map(maskOf);
 
-    let picked: number[] | null = null;
-    for (let restart = 0; restart < CHOICE_RESTARTS && !picked; restart++) {
-      picked = chooseRules(pool, masks);
-    }
+    const picked = chooseRules(masks, planIndex);
     if (!picked) continue;
 
     // The plan must be the one surviving sequence, not merely one of them.
     const unique = solutions(picked.map((index) => masks[index]!));
-    if (unique.length !== 1 || ALL_SEQUENCES[unique[0]!]!.join(",") !== plan.join(",")) continue;
+    if (unique.length !== 1 || planKey(ALL_SEQUENCES[unique[0]!]!) !== planKey(plan)) continue;
 
     const rules = shuffled(picked.map((index) => pool[index]!)).map((rule) => ({
       id: rule.id,
