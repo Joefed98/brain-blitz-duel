@@ -344,13 +344,10 @@ export function generateChain(): ChainPuzzleData {
         (entry.decoySteps >= CHAIN_MIN_DECOY_STEPS ? 1000 : 0) - entry.routes + entry.traps;
       if (!best || score(candidate) > score(best)) best = candidate;
     }
-    if (
-      best &&
-      best.routes <= CHAIN_MAX_ROUTES * 2 &&
-      best.traps >= 2 &&
-      best.decoySteps >= CHAIN_MIN_DECOY_STEPS
-    ) {
-      break;
+    // A fifteen-link board rarely reaches the tight route count, so a fair
+    // fallback is accepted early rather than burning the whole attempt budget.
+    if (best && best.traps >= 2 && best.decoySteps >= CHAIN_MIN_DECOY_STEPS) {
+      if (best.routes <= CHAIN_MAX_ROUTES * 2 || attempt >= 24) break;
     }
   }
 
