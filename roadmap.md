@@ -85,3 +85,11 @@
 - [x] Percent Sprint: five items. Number Hunt: sixteen numbers.
 - [x] Chain: nodes never touch (diameter + 14px minimum).
 - [x] Sliding Tiles and every drag board: no page scroll while dragging.
+
+## Drag aiming and four-step bombs (2026-09-21)
+- [x] Nonogram: 90s limit, speed bonus and help text rescaled.
+- [x] Count Up: compact one-row keypad plus ENTER bar (~90px), grid gets the space.
+- [x] Bomb Defusal: exactly four required actions, "steps x / 4", consistency and necessity checks kept.
+- [x] Bin Toss and Bullseye: drag-position aiming (anchor to finger, 20-220px strength, 20px cancel), live dotted prediction, no velocity measurement.
+- [x] Chain: 15 links, at least four invalid nodes per step, scoring and counters updated.
+- [x] Re-ran the arcade drag identity proof plus bomb, chain, nonogram and arcade regressions.

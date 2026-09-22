@@ -18,7 +18,7 @@ import {
   type WireColour,
 } from "@/lib/duel/bomb";
 import { useStageState } from "@/lib/duel/stageState";
-import { BOMB_TIME_MS, BOMB_WIRES, type BombPuzzleData } from "@/lib/duel/types";
+import { BOMB_MAX_SEQUENCE, BOMB_TIME_MS, BOMB_WIRES, type BombPuzzleData } from "@/lib/duel/types";
 import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -238,7 +238,7 @@ function Stage({
 
       <div className="flex shrink-0 items-center justify-between">
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          actions <span className="text-primary">{actions.length}</span>
+          steps <span className="text-primary">{actions.length}</span> / {BOMB_MAX_SEQUENCE}
         </p>
         <button
           type="button"

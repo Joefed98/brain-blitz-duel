@@ -361,7 +361,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         action: "Read ALL the rules",
         detail: "in order — some of them set what must come first or last.",
       },
-      { action: "Tap wires and buttons", detail: "then tap DEFUSE." },
+      { action: "Four steps exactly", detail: "tap wires and buttons, then tap DEFUSE." },
       { action: "One wrong step", detail: "and it explodes." },
     ],
     score: "Defuse fast; a correct opening earns partial credit.",
@@ -382,7 +382,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Keep your chain", detail: "from crossing itself." },
       { action: "Tap Undo or Reset", detail: "to take links back — mistakes still count." },
     ],
-    score: "Twelve links, fast, no mistakes.",
+    score: "Fifteen links, fast, no mistakes. Part-built chains still score.",
   },
   intruder: {
     goal: "One thing changes. Find it.",
@@ -400,7 +400,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Read the numbers", detail: "as the lengths of the filled runs, in order." },
       { action: "A line dims", detail: "once it matches its numbers." },
     ],
-    score: "Finish fast for the bonus.",
+    score: "Finish inside 90 seconds; faster finishes score more.",
   },
   pairmatch: {
     goal: "Find all ten matching pairs.",
@@ -475,9 +475,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Each block scores, perfect drops score extra, +40 for lasting the run.",
   },
   bintoss: {
-    goal: "Flick the ball into the bin — ten throws.",
+    goal: "Throw the ball into the bin — ten throws.",
     how: [
-      { action: "Flick upward to throw", detail: "harder flicks go further." },
+      { action: "Touch and drag to aim", detail: "the dotted path shows where it will go." },
       { action: "Watch the wind", detail: "it pushes the ball sideways." },
       { action: "The bin moves", detail: "further away every throw." },
     ],
@@ -486,7 +486,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   bullseye: {
     goal: "Hit the centre — ten arrows.",
     how: [
-      { action: "Flick to shoot", detail: "harder flicks land higher." },
+      { action: "Touch and drag to aim", detail: "the dotted path shows where it will go." },
       { action: "The wind", detail: "pushes the arrow sideways, more at longer range." },
       { action: "The target", detail: "gets further away each shot." },
     ],

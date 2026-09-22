@@ -255,115 +255,61 @@ export function replayArcadeRun<S>(
   return outcome;
 }
 
-/* ============================= Flick gestures ============================ */
+/* ============================= Drag aiming ============================== */
 
-/** One sampled pointer position, in world pixels, with its wall-clock reading. */
-export interface FlickSample {
-  x: number;
-  y: number;
-  time: number;
+/**
+ * Aiming is by drag POSITION, never by finger speed: the aim vector is the
+ * current finger position minus the anchor taken on touch-down. Its direction
+ * is the launch direction and its length is the strength, so the predicted path
+ * stays exactly where the finger holds it — including when the finger is still.
+ */
+
+/** A drag shorter than this many pixels is cancelled without a shot. */
+export const DRAG_MIN_PX = 20;
+/** Full power: this much drag, in pixels. */
+export const DRAG_FULL_PX = 220;
+
+/** Launch scale in 256ths at the shortest and the fullest drag. */
+export const DRAG_MIN_SCALE_256 = 112;
+export const DRAG_MAX_SCALE_256 = 333;
+
+/** The launch scale for a drag length, in 256ths: 256 is the reference launch. */
+export function dragScale256(lengthPx: number): number {
+  const length = clampInt(Math.round(lengthPx), DRAG_MIN_PX, DRAG_FULL_PX);
+  const span = DRAG_FULL_PX - DRAG_MIN_PX;
+  return (
+    DRAG_MIN_SCALE_256 +
+    Math.floor(((DRAG_MAX_SCALE_256 - DRAG_MIN_SCALE_256) * (length - DRAG_MIN_PX)) / span)
+  );
 }
 
-/**
- * The movement window a flick is measured over: the last 120 ms of the swipe,
- * long enough that the live aim path reads steadily.
- */
-export const FLICK_WINDOW_MS = 120;
-
-/**
- * The finger's movement over the last {@link FLICK_WINDOW_MS} of a swipe, taken
- * from the earliest sample still inside the window — never from the start point.
- */
-export function flickWindow(
-  samples: readonly FlickSample[],
-  endTime: number,
-): { dx: number; dy: number; dtMs: number } | null {
-  const last = samples[samples.length - 1];
-  if (!last || samples.length < 2) return null;
-  let first = samples[0]!;
-  for (const sample of samples) {
-    if (endTime - sample.time <= FLICK_WINDOW_MS) {
-      first = sample;
-      break;
-    }
-    first = sample;
-  }
-  const dtMs = last.time - first.time;
-  if (dtMs <= 0) return null;
-  return { dx: last.x - first.x, dy: last.y - first.y, dtMs };
-}
-
-/* --------------------------- Flick calibration -------------------------- */
-
-/**
- * A real phone flick runs at roughly 800–1500 px/s, so the reference swipe is
- * 1000 px/s: each game states the launch speed that swipe produces and every
- * other swipe is scaled from it.
- */
-export const FLICK_REF_PXS = 1_300;
-/** Swipe speed is clamped to this band; below the floor the gesture is ignored. */
-export const FLICK_MIN_PXS = 250;
-export const FLICK_MAX_PXS = 2_200;
-/** A swipe shorter than this many pixels is ignored. */
-export const FLICK_MIN_PX = 30;
-
-/** One table entry per {@link FLICK_TABLE_STEP} px/s of swipe speed. */
-export const FLICK_TABLE_STEP = 50;
-/**
- * round(256 × sqrt(speed ÷ 1300)) at every table step, so launch speed grows
- * with the square root of swipe speed: twice as fast a flick throws about 1.4×
- * as hard. Integer-only, so client and server agree exactly.
- */
-export const FLICK_SQRT_256: readonly number[] = [
-  0, 50, 71, 87, 100, 112, 123, 133, 142, 151, 159, 167, 174, 181, 188, 194, 201, 207, 213, 219,
-  225, 230, 235, 241, 246, 251, 256, 261, 266, 270, 275, 280, 284, 288, 293, 297, 301, 305, 309,
-  314, 318, 321, 325, 329, 333,
-];
-
-/** The launch scale for a swipe speed, in 256ths: 256 at the reference speed. */
-export function flickScale256(speedPxS: number): number {
-  const speed = clampInt(Math.round(speedPxS), FLICK_MIN_PXS, FLICK_MAX_PXS);
-  const index = Math.floor(speed / FLICK_TABLE_STEP);
-  const last = FLICK_SQRT_256.length - 1;
-  const low = FLICK_SQRT_256[Math.min(index, last)]!;
-  const high = FLICK_SQRT_256[Math.min(index + 1, last)]!;
-  const fraction = speed - index * FLICK_TABLE_STEP;
-  return low + Math.floor(((high - low) * fraction) / FLICK_TABLE_STEP);
-}
-
-export interface FlickLaunch {
+export interface DragLaunch {
   /** Launch velocity in 1/256 px a tick; upwards is negative `vy`. */
   vx: number;
   vy: number;
-  /** The swipe itself, for the aim readout. */
-  speedPxS: number;
+  /** The drag itself, for the aim path. */
+  lengthPx: number;
   angleDeg: number;
 }
 
 /**
- * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
- * are world pixels moved over `dtMs` milliseconds; upwards is negative `dy`.
- * `refSpeed` is the launch speed the reference 1300 px/s swipe produces.
- * Returns null for a short, slow or downward swipe.
+ * Turns an aim vector into a launch velocity. `dx`/`dy` are the world pixels
+ * from the anchor to the finger; upwards is negative `dy`, and a downward
+ * vector is clamped to horizontal. Returns null for a drag under
+ * {@link DRAG_MIN_PX}.
  */
-export function flickLaunch(
-  dx: number,
-  dy: number,
-  dtMs: number,
-  refSpeed: number,
-): FlickLaunch | null {
-  const length = Math.sqrt(dx * dx + dy * dy);
-  if (length < FLICK_MIN_PX) return null;
-  if (dy >= 0) return null;
-  const dt = Math.max(TICK_MS, dtMs);
-  const speedPxS = Math.round((length * 1000) / dt);
-  if (speedPxS < FLICK_MIN_PXS) return null;
-  const speed = Math.round((refSpeed * flickScale256(speedPxS)) / 256);
-  const angleDeg = Math.round((Math.atan2(-dy, dx) * 180) / Math.PI);
+export function dragLaunch(dx: number, dy: number, refSpeed: number): DragLaunch | null {
+  const lengthPx = Math.sqrt(dx * dx + dy * dy);
+  if (lengthPx < DRAG_MIN_PX) return null;
+  // A downward-pointing vector is clamped to horizontal.
+  const up = dy < 0 ? dy : 0;
+  const dirLen = Math.sqrt(dx * dx + up * up);
+  if (dirLen <= 0) return null;
+  const speed = Math.round((refSpeed * dragScale256(lengthPx)) / 256);
   return {
-    vx: Math.round((speed * dx) / length),
-    vy: Math.round((speed * dy) / length),
-    speedPxS,
-    angleDeg,
+    vx: Math.round((speed * dx) / dirLen),
+    vy: Math.round((speed * up) / dirLen),
+    lengthPx: Math.round(lengthPx),
+    angleDeg: Math.round((Math.atan2(-up, dx) * 180) / Math.PI),
   };
 }

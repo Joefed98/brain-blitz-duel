@@ -2,14 +2,15 @@
  * Bin Toss — an arcade game on the shared engine.
  *
  * Side view: a crumpled ball at the bottom-left, a bin standing on the floor to
- * the right. A flick launches the ball; gravity plus a per-throw sideways wind
- * decide where it lands. Ten throws, the bin further away each time. Everything
- * is integer fixed-point (1/256 px) and every constant below is written once.
+ * the right. A drag aims the throw and letting go launches the ball; gravity
+ * plus a per-throw sideways wind decide where it lands. Ten throws, the bin
+ * further away each time. Everything is integer fixed-point (1/256 px) and
+ * every constant below is written once.
  */
 
 import {
   clampInt,
-  flickLaunch,
+  dragLaunch,
   inputRange,
   px,
   rngBelow,
@@ -17,7 +18,7 @@ import {
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
-  type FlickLaunch,
+  type DragLaunch,
   type InputRange,
 } from "./engine";
 
@@ -68,26 +69,26 @@ export const BINTOSS_DIST_STEP = 3_840;
 export const BINTOSS_BASKET_POINTS = 10;
 export const BINTOSS_TIME_BONUS = 50;
 
-/** A flick: a = launch vx, b = launch vy, both in 1/256 px a tick. */
+/** A release: a = launch vx, b = launch vy, both in 1/256 px a tick. */
 export const BINTOSS_INPUT_FLICK = 1;
 export const BINTOSS_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BINTOSS_INPUT_FLICK, [-BINTOSS_VX_MAX, BINTOSS_VX_MAX], [-BINTOSS_VY_MAX, 0]),
 ];
 
 /**
- * The launch speed a reference 1300 px/s flick produces, in 1/256 px a tick.
- * Solved from this sim's gravity so that a 1300 px/s flick at 60° lands in the
- * bin on throw five (160 px away) with no wind.
+ * The launch speed the reference aim vector produces, in 1/256 px a tick.
+ * Solved from this sim's gravity so that a reference-strength aim at 60° lands
+ * in the bin on throw five (160 px away) with no wind.
  */
 export const BINTOSS_REF_V = 1_169;
 
 /**
- * Turns the last stretch of finger movement into a launch velocity. `dx`/`dy`
- * are world pixels moved over `dtMs` milliseconds; upwards is negative `dy`.
- * Returns null for a short, slow or downward swipe.
+ * Turns the aim vector (finger position minus the anchor, in world pixels) into
+ * a launch velocity. Upwards is negative `dy`; a downward vector is clamped to
+ * horizontal. Returns null for a drag under the cancel distance.
  */
-export function binTossFlick(dx: number, dy: number, dtMs: number): FlickLaunch | null {
-  const launch = flickLaunch(dx, dy, dtMs, BINTOSS_REF_V);
+export function binTossDrag(dx: number, dy: number): DragLaunch | null {
+  const launch = dragLaunch(dx, dy, BINTOSS_REF_V);
   if (!launch) return null;
   return {
     ...launch,

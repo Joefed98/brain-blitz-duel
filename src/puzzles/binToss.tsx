@@ -1,19 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
-  flickWindow,
   MAX_CATCH_UP_TICKS,
   TICK_MS,
   TICKS_PER_SECOND,
   type ArcadeInputEvent,
   type CanvasSize,
-  type FlickSample,
 } from "@/lib/arcade/engine";
 import {
   binTossCheckpoint,
+  binTossDrag,
   binTossDrawAim,
   binTossDrawGhost,
-  binTossFlick,
   binTossGame,
   binTossTransform,
   BINTOSS_AIM,
@@ -70,7 +68,7 @@ function IntroExample() {
         </text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Flick upward to throw — harder flicks go further.
+        Touch and drag to aim — the dotted path shows where it will go.
       </p>
     </div>
   );
@@ -88,8 +86,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pending = useRef<ArcadeInputEvent[]>([]);
   const activeLaunch = useRef<BinTossGhost | null>(null);
   const lastGhost = useRef<BinTossGhost | null>(null);
-  /** The live swipe, sampled so the launch comes from its last stretch. */
-  const swipe = useRef<FlickSample[] | null>(null);
+  /** Where the finger went down; the aim vector is measured from here. */
+  const anchor = useRef<{ x: number; y: number } | null>(null);
   /** The arc a release right now would produce. Render only. */
   const aim = useRef<BinTossGhost | null>(null);
   const submitted = useRef(false);
@@ -121,7 +119,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     pending.current = [];
     activeLaunch.current = null;
     lastGhost.current = null;
-    swipe.current = null;
+    anchor.current = null;
     aim.current = null;
     submitted.current = false;
     endedAt.current = null;
@@ -267,23 +265,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           event.preventDefault();
           if (locked || submitted.current || binTossGame.isOver(state.current)) return;
           if (state.current.phase !== BINTOSS_AIM) return;
-          // A flick starts anywhere on the canvas; the pointer is captured so
-          // the swipe stays alive wherever the finger travels.
-          const point = worldPoint(event);
-          swipe.current = [{ x: point.x, y: point.y, time: performance.now() }];
+          // The anchor is wherever the finger went down; the pointer is captured
+          // so the drag stays alive wherever the finger travels.
+          anchor.current = worldPoint(event);
+          aim.current = null;
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
-          const samples = swipe.current;
-          if (!samples) return;
+          const start = anchor.current;
+          if (!start) return;
           const point = worldPoint(event);
-          const now = performance.now();
-          samples.push({ x: point.x, y: point.y, time: now });
-          // Only the last stretch matters; keep the list short.
-          if (samples.length > 24) samples.splice(0, samples.length - 24);
-          // Predict the release from the same window the release itself uses.
-          const live = flickWindow(samples, now);
-          const preview = live ? binTossFlick(live.dx, live.dy, live.dtMs) : null;
+          // The aim is the drag vector itself, so the path holds still when the
+          // finger does.
+          const preview = binTossDrag(point.x - start.x, point.y - start.y);
           aim.current = preview
             ? {
                 vx: preview.vx,
@@ -293,20 +287,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             : null;
         }}
         onPointerUp={(event) => {
-          const samples = swipe.current;
-          swipe.current = null;
+          const start = anchor.current;
+          anchor.current = null;
           aim.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
-          if (!samples || locked || submitted.current) return;
+          if (!start || locked || submitted.current) return;
           if (state.current.phase !== BINTOSS_AIM) return;
           const point = worldPoint(event);
-          const now = performance.now();
-          samples.push({ x: point.x, y: point.y, time: now });
-          const window = flickWindow(samples, now);
-          if (!window) return;
-          const launch = binTossFlick(window.dx, window.dy, window.dtMs);
+          const launch = binTossDrag(point.x - start.x, point.y - start.y);
           if (!launch) return;
           lastGhost.current = null;
           activeLaunch.current = {
@@ -317,7 +307,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           pending.current.push({ t: 0, k: 1, a: launch.vx, b: launch.vy, c: 0, d: 0 });
         }}
         onPointerCancel={(event) => {
-          swipe.current = null;
+          anchor.current = null;
           aim.current = null;
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
