@@ -10,6 +10,7 @@ import {
 import {
   crossCheckpoint,
   crossGame,
+  crossPaused,
   CROSS_BG,
   CROSS_BLOCK,
   CROSS_CHECKPOINT_INTERVAL,
@@ -17,6 +18,7 @@ import {
   CROSS_INPUT_MOVE,
   CROSS_PLAYER,
   CROSS_RUN_TICKS,
+  CROSS_SWIPE_PX,
   type CrossState,
 } from "@/lib/arcade/cross";
 import { decodeCrossRun, encodeCrossRun, replayCrossRun } from "@/lib/duel/cross";
@@ -194,11 +196,30 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || crossGame.isOver(state.current)) return;
-          const box = event.currentTarget.getBoundingClientRect();
-          const x = event.clientX - box.left;
-          const y = event.clientY - box.top;
-          if (y < box.height / 2) pending.current.push(0);
-          else pending.current.push(x < box.width / 2 ? 1 : 2);
+          from.current = { x: event.clientX, y: event.clientY };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerUp={(event) => {
+          const start = from.current;
+          from.current = null;
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
+          if (!start || locked || submitted.current || crossGame.isOver(state.current)) return;
+          // Nothing swiped on the kerb is kept, so it cannot spill into the
+          // crossing that follows.
+          if (crossPaused(state.current)) return;
+          const dx = event.clientX - start.x;
+          const dy = event.clientY - start.y;
+          if (Math.abs(dx) < CROSS_SWIPE_PX && Math.abs(dy) < CROSS_SWIPE_PX) return;
+          if (Math.abs(dy) >= Math.abs(dx)) pending.current.push(dy < 0 ? 0 : 1);
+          else pending.current.push(dx < 0 ? 2 : 3);
+        }}
+        onPointerCancel={(event) => {
+          from.current = null;
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
         }}
       />
     </div>
