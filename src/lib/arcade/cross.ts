@@ -210,10 +210,14 @@ export interface CrossState {
   col: number;
   /** Ticks left in the hop; 0 means standing. */
   hop: number;
+  /** Which way the hop under way is going: +1 forward, −1 back. */
+  hopDir: number;
   /** The highest lane reached in the crossing under way. */
   reached: number;
   /** The tick the current crossing began, so traffic is timed from it. */
   crossStart: number;
+  /** While the tick is at or below this, the disc waits on the kerb. */
+  pauseUntil: number;
   dead: boolean;
   endedTick: number;
 }
@@ -234,11 +238,18 @@ function init(seed: number): CrossState {
     lane: 0,
     col: CROSS_COLS >> 1,
     hop: 0,
+    hopDir: 1,
     reached: 0,
     crossStart: 0,
+    pauseUntil: 0,
     dead: false,
     endedTick: 0,
   };
+}
+
+/** True while the disc is parked on the kerb between crossings. */
+export function crossPaused(state: CrossState): boolean {
+  return state.tick < state.pauseUntil;
 }
 
 export function crossCourse(state: CrossState): CrossCourse {
