@@ -247,7 +247,6 @@ function Stage({
   };
 
   const showing = phase === "show";
-  const drain = showing ? 1 : 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -260,15 +259,19 @@ function Stage({
         ))}
       </div>
 
-      <div className="h-1 w-full shrink-0 overflow-hidden rounded-full bg-border">
-        <span
-          className="block h-full bg-primary"
-          style={{
-            width: `${drain * 100}%`,
-            transition: showing ? `width ${INTRUDER_SHOW_MS}ms linear` : "none",
-          }}
+      {phase === "play" ? (
+        <DrainBar
+          key={`play-${index}`}
+          ms={INTRUDER_PLAY_MS}
+          className="bg-warn"
+          from="right"
         />
-      </div>
+      ) : showing ? (
+        <DrainBar key={`show-${index}`} ms={INTRUDER_SHOW_MS} className="bg-primary" from="left" />
+      ) : (
+        <div className="h-1 w-full shrink-0 rounded-full bg-border" />
+      )}
+
 
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <Grid
