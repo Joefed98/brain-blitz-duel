@@ -581,16 +581,14 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
  */
 function drawTrail(ctx: CanvasRenderingContext2D, state: BinTossState): void {
   if (state.phase !== BINTOSS_FLY) return;
-  const wind = (state.winds[state.throwIndex] ?? 0) * BINTOSS_WIND_UNIT;
   let x = state.x;
   let y = state.y;
-  let vx = state.vx;
+  const vx = state.vx;
   let vy = state.vy;
   ctx.save();
   for (let step = 1; step <= 10; step++) {
     x -= vx;
     y -= vy;
-    vx -= wind;
     vy -= BINTOSS_GRAVITY;
     if (y > BINTOSS_FLOOR_Y || x < 0) break;
     ctx.globalAlpha = 0.34 * (1 - step / 11);
@@ -615,44 +613,51 @@ export interface BinTossLandingPresentation {
   binIndex: number;
 }
 
-/** Draws a trajectory as a dotted arc without changing simulation state. */
+/** Draws a walked flight as a dotted arc. Never touches simulation state. */
+function drawPath(
+  ctx: CanvasRenderingContext2D,
+  size: CanvasSize,
+  points: { x: number; y: number }[],
+  colour: string,
+  alpha: number,
+): void {
+  const { scale, offsetX, offsetY } = binTossTransform(size);
+  const first = points[0];
+  if (!first) return;
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = colour;
+  ctx.globalAlpha = alpha;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 5]);
+  ctx.beginPath();
+  ctx.moveTo(first.x, first.y);
+  for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** The arc a finished throw took, kept faint until the next release. */
 export function binTossDrawGhost(
   ctx: CanvasRenderingContext2D,
   size: CanvasSize,
   ghost: BinTossGhost,
   alpha = 0.22,
 ): void {
-  const { scale, offsetX, offsetY } = binTossTransform(size);
-  let x = BINTOSS_BALL_X;
-  let y = BINTOSS_BALL_Y;
-  let vx = ghost.vx;
-  let vy = ghost.vy;
-  ctx.save();
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
-  ctx.strokeStyle = BINTOSS_BALL_COLOUR;
-  ctx.globalAlpha = alpha;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([3, 5]);
-  ctx.beginPath();
-  ctx.moveTo(px(x), px(y));
-  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
-    vx += ghost.wind * BINTOSS_WIND_UNIT;
-    vy += BINTOSS_GRAVITY;
-    x += vx;
-    y += vy;
-    ctx.lineTo(px(x), px(y));
-    if (vy > 0 && y >= BINTOSS_RIM_Y) break;
-    if (y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
-    if (x < -BINTOSS_BALL_R || x > BINTOSS_WORLD_RIGHT + BINTOSS_BALL_R) break;
-  }
-  ctx.stroke();
-  ctx.restore();
+  drawPath(
+    ctx,
+    size,
+    binTossPath(ghost.vx, ghost.vy, ghost.wind, true),
+    BINTOSS_BALL_COLOUR,
+    alpha,
+  );
 }
 
 /**
- * The path the ball would take if the finger were released right now. Render
- * only — the sim never sees it.
+ * The aim path: always the NO-WIND arc for the current drag, drawn its full
+ * length down to the floor whatever the wind is. Render only — the sim never
+ * sees it, and the wind is what the player has to allow for themselves.
  */
 export function binTossDrawAim(
   ctx: CanvasRenderingContext2D,
@@ -660,34 +665,9 @@ export function binTossDrawAim(
   aim: BinTossGhost,
   cancelled = false,
 ): void {
-  if (!cancelled) {
-    binTossDrawGhost(ctx, size, aim, 0.5);
-    return;
-  }
-  const { scale, offsetX, offsetY } = binTossTransform(size);
-  let x = BINTOSS_BALL_X;
-  let y = BINTOSS_BALL_Y;
-  let vx = aim.vx;
-  let vy = aim.vy;
-  ctx.save();
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
-  ctx.strokeStyle = BINTOSS_TEXT;
-  ctx.globalAlpha = 0.28;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([3, 5]);
-  ctx.beginPath();
-  ctx.moveTo(px(x), px(y));
-  for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
-    vx += aim.wind * BINTOSS_WIND_UNIT;
-    vy += BINTOSS_GRAVITY;
-    x += vx;
-    y += vy;
-    ctx.lineTo(px(x), px(y));
-    if ((vy > 0 && y >= BINTOSS_RIM_Y) || y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
-  }
-  ctx.stroke();
-  ctx.restore();
+  const points = binTossPath(aim.vx, aim.vy, 0, false);
+  if (cancelled) drawPath(ctx, size, points, BINTOSS_TEXT, 0.28);
+  else drawPath(ctx, size, points, BINTOSS_BALL_COLOUR, 0.5);
 }
 
 /** Client-only scored-ball animation layered over the deterministic board. */
