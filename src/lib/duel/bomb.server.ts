@@ -149,18 +149,21 @@ const has = (sequence: BombAction[], action: BombAction) => sequence.includes(ac
  */
 function candidateRules(panel: Panel): RuleInstance[] {
   const out: RuleInstance[] = [];
-  const add = (
-    id: string,
-    text: string,
-    key: string,
-    test: (sequence: BombAction[]) => boolean,
-  ) => out.push({ id, text, key, test });
+  const add = (id: string, text: string, key: string, test: (sequence: BombAction[]) => boolean) =>
+    out.push({ id, text, key, test });
 
   // "Cut wire N" and "Do not cut wire N"
   for (let wire = 0; wire < BOMB_WIRES; wire++) {
     const action = cutAction(wire);
-    add(`cut:${wire}`, `Cut wire ${wire + 1}.`, `has:${action}`, (sequence) => has(sequence, action));
-    add(`nocut:${wire}`, `Do not cut wire ${wire + 1}.`, `nohas:${action}`, (sequence) => !has(sequence, action));
+    add(`cut:${wire}`, `Cut wire ${wire + 1}.`, `has:${action}`, (sequence) =>
+      has(sequence, action),
+    );
+    add(
+      `nocut:${wire}`,
+      `Do not cut wire ${wire + 1}.`,
+      `nohas:${action}`,
+      (sequence) => !has(sequence, action),
+    );
   }
 
   // "Cut the first/last <colour> wire"
@@ -490,7 +493,13 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
   const plan = puzzle.sequence ?? puzzle.required ?? "";
   const necessary =
     known.length === puzzle.rules.length &&
-    known.every((_, drop) => solutions(masks.filter((__, index) => index !== drop), 2).length >= 2);
+    known.every(
+      (_, drop) =>
+        solutions(
+          masks.filter((__, index) => index !== drop),
+          2,
+        ).length >= 2,
+    );
 
   return {
     solutions: found.length,
