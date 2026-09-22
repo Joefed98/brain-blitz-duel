@@ -478,7 +478,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Throw the ball into the bin — ten throws.",
     how: [
       { action: "Touch and drag to aim", detail: "the dotted path shows where it will go." },
-      { action: "Watch the wind", detail: "it pushes the ball sideways." },
+      {
+        action: "The wind pushes the ball — each wind point moves it half a bin width.",
+        detail: "Wind 2 to the left? Aim a full bin width to the right.",
+      },
       { action: "The bin moves", detail: "further away every throw." },
     ],
     score: "10 per basket; all ten for the time bonus.",
