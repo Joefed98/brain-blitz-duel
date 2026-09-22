@@ -33,7 +33,7 @@ import { ARCADE_CRASH_FREEZE_MS, type BullseyePuzzleData } from "@/lib/duel/type
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: the target, a wind arrow and a flick from the bow. */
+/** Fixed intro still: the target, a wind arrow and a shot from the bow. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -89,8 +89,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof bullseyeCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
-  /** The live swipe, sampled so the shot comes from its last stretch. */
-  const swipe = useRef<FlickSample[] | null>(null);
+  /** Where the finger went down; the aim vector is measured from here. */
+  const anchor = useRef<{ x: number; y: number } | null>(null);
   /** Where a release right now would land. Render only. */
   const aim = useRef<{ x: number; y: number } | null>(null);
   const submitted = useRef(false);
@@ -120,7 +120,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     events.current = [];
     checkpoints.current = [];
     pending.current = [];
-    swipe.current = null;
+    anchor.current = null;
     aim.current = null;
     submitted.current = false;
     endedAt.current = null;
