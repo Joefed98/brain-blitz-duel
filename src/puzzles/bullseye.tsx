@@ -1,18 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
-  flickWindow,
   MAX_CATCH_UP_TICKS,
   TICK_MS,
   TICKS_PER_SECOND,
   type ArcadeInputEvent,
   type CanvasSize,
-  type FlickSample,
 } from "@/lib/arcade/engine";
 import {
   bullseyeCheckpoint,
+  bullseyeDrag,
   bullseyeDrawAim,
-  bullseyeFlick,
   bullseyeGame,
   bullseyeLanding,
   bullseyeScalePct,
