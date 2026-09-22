@@ -74,6 +74,10 @@ import {
   BINTOSS_TIME_MS,
   BULLSEYE_TIME_MS,
   MATCHUP_TIME_MS,
+  SNAKE_TIME_MS,
+  CROSS_TIME_MS,
+  DUAL_TIME_MS,
+  RICO_TIME_MS,
 } from "./types";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -94,6 +98,10 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   bintoss: BINTOSS_TIME_MS,
   bullseye: BULLSEYE_TIME_MS,
   matchup: MATCHUP_TIME_MS,
+  snake: SNAKE_TIME_MS,
+  cross: CROSS_TIME_MS,
+  dual: DUAL_TIME_MS,
+  ricochet: RICO_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -992,6 +1000,73 @@ const bullseyeSummary: SummaryBuilder = (result) => {
   };
 };
 
+const snakeSummary: SummaryBuilder = (result) => {
+  const pellets = Number(result.extra?.["pellets"] ?? 0);
+  const survived = result.extra?.["survived"] === true;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: survived
+      ? `${pellets} pellets · survived`
+      : `${pellets} pellets · crashed at ${ended.toFixed(1)}s`,
+    detail: [
+      survived ? "Lasted the whole minute" : "Run ended early",
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
+const crossSummary: SummaryBuilder = (result) => {
+  const crossings = Number(result.extra?.["crossings"] ?? 0);
+  const lanes = Number(result.extra?.["lanes"] ?? 0);
+  const survived = result.extra?.["survived"] === true;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: survived
+      ? `${crossings} crossings · survived`
+      : `${crossings} crossings · ${lanes} lanes · crashed at ${ended.toFixed(1)}s`,
+    detail: [
+      `${lanes} lane${lanes === 1 ? "" : "s"} into the last crossing`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
+const dualSummary: SummaryBuilder = (result) => {
+  const passed = Number(result.extra?.["passed"] ?? 0);
+  const survived = result.extra?.["survived"] === true;
+  const side = Number(result.extra?.["crashedSide"] ?? -1);
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: survived
+      ? `${passed} passed · survived`
+      : `${passed} passed · crashed at ${ended.toFixed(1)}s (${side === 0 ? "left" : "right"})`,
+    detail: [
+      survived ? "Both runners lasted the minute" : "One runner hit a block",
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
+const ricoSummary: SummaryBuilder = (result) => {
+  const height = Number(result.extra?.["heightPx"] ?? 0);
+  const survived = result.extra?.["survived"] === true;
+  const spiked = result.extra?.["spiked"] === true;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const desyncTick = Number(result.extra?.["desyncTick"] ?? 0);
+  return {
+    summary: survived
+      ? `${height.toLocaleString("en-GB")} px · survived`
+      : `${height.toLocaleString("en-GB")} px · ${spiked ? "hit a spike" : "slid down"} at ${ended.toFixed(1)}s`,
+    detail: [
+      `${Number(result.extra?.["leaps"] ?? 0)} leaps`,
+      ...(desyncTick > 0 ? [`desync at tick ${desyncTick}`] : []),
+    ],
+  };
+};
+
 const ringsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "rings") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);
@@ -1064,6 +1139,10 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   bintoss: binTossSummary,
   bullseye: bullseyeSummary,
   matchup: matchupSummary,
+  snake: snakeSummary,
+  cross: crossSummary,
+  dual: dualSummary,
+  ricochet: ricoSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1127,6 +1206,10 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   bintoss: () => null,
   bullseye: () => null,
   matchup: () => null,
+  snake: () => null,
+  cross: () => null,
+  dual: () => null,
+  ricochet: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };

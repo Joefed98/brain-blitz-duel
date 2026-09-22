@@ -52,6 +52,10 @@ import { skylinePuzzle } from "@/puzzles/skyline";
 import { binTossPuzzle } from "@/puzzles/binToss";
 import { bullseyePuzzle } from "@/puzzles/bullseye";
 import { matchupPuzzle } from "@/puzzles/matchup";
+import { snakePuzzle } from "@/puzzles/snake";
+import { crossPuzzle } from "@/puzzles/cross";
+import { dualPuzzle } from "@/puzzles/dual";
+import { ricochetPuzzle } from "@/puzzles/ricochet";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -173,6 +177,10 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   bintoss: binTossPuzzle,
   bullseye: bullseyePuzzle,
   matchup: matchupPuzzle,
+  snake: snakePuzzle,
+  cross: crossPuzzle,
+  dual: dualPuzzle,
+  ricochet: ricochetPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(
