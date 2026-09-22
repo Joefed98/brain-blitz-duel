@@ -400,7 +400,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Read the numbers", detail: "as the lengths of the filled runs, in order." },
       { action: "A line dims", detail: "once it matches its numbers." },
     ],
-    score: "Finish fast for the bonus.",
+    score: "Finish inside 90 seconds; faster finishes score more.",
   },
   pairmatch: {
     goal: "Find all ten matching pairs.",
