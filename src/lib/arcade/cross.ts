@@ -381,8 +381,10 @@ export function crossCheckpointState(state: CrossState): CrossCheckpointState {
     lane: state.lane,
     col: state.col,
     hop: state.hop,
+    hopDir: state.hopDir,
     reached: state.reached,
     crossStart: state.crossStart,
+    pauseUntil: state.pauseUntil,
     laneSpeed: course.lanes[0]?.speed ?? 0,
   };
 }
