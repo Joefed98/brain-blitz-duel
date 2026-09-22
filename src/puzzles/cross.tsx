@@ -121,7 +121,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
         accumulator -= ticks * TICK_MS;
         for (let i = 0; i < ticks; i++) {
-          const move = pending.current.shift();
+          // Anything queued while the disc waits on the kerb is thrown away and
+          // never written to the run log.
+          if (crossPaused(state.current)) pending.current = [];
+          const move = crossPaused(state.current) ? undefined : pending.current.shift();
           const applied: ArcadeInputEvent | null =
             move === undefined
               ? null
