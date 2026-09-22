@@ -182,13 +182,30 @@ function Stage({
     onDraftAnswer?.(encodeIntruderTaps(taps));
   }, [taps, onDraftAnswer]);
 
-  // Memorise, then a blank grid, then the changed grid to tap.
+  // Memorise for five seconds, one blank second, then three seconds to tap.
   useEffect(() => {
     if (phase === "play") return;
     const wait = phase === "show" ? INTRUDER_SHOW_MS : INTRUDER_HIDE_MS;
     const timer = setTimeout(() => setPhase(phase === "show" ? "hide" : "play"), wait);
     return () => clearTimeout(timer);
   }, [phase, index, setPhase]);
+
+  // No tap inside the three seconds counts as a miss and moves on.
+  useEffect(() => {
+    if (phase !== "play" || locked || submitted.current) return;
+    const timer = setTimeout(() => {
+      if (submitted.current) return;
+      if (index >= INTRUDER_BOARDS - 1) {
+        submitted.current = true;
+        onSubmit(encodeIntruderTaps(taps));
+        return;
+      }
+      setIndex(index + 1);
+      setPhase("show");
+    }, INTRUDER_PLAY_MS);
+    return () => clearTimeout(timer);
+  }, [phase, index, locked, taps, onSubmit, setIndex, setPhase]);
+
 
   // Whatever has been tapped goes up as the clock runs out.
   useEffect(() => {
