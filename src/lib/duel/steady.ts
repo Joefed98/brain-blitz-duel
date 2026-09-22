@@ -8,10 +8,12 @@ import {
   stdCheckpoint,
   stdClean,
   stdDistancePx,
+  stdMetres,
   steadyGame,
   stdTrackWidth,
   STD_CHECKPOINT_INTERVAL,
   STD_INPUT_RANGES,
+  STD_PX_PER_POINT,
   STD_RUN_TICKS,
   type StdCheckpoint,
   type StdState,
@@ -38,7 +40,6 @@ export function encodeSteadyRun(run: SteadyRun): string {
       [
         item.tick,
         item.dx,
-        item.dy,
         item.travelled,
         item.touches,
         item.width,
@@ -65,11 +66,10 @@ export function decodeSteadyRun(raw: string): SteadyRun {
     .filter(Boolean)
     .slice(0, Math.ceil(STD_RUN_TICKS / STD_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
-    .filter((values) => values.length === 9 && values.every(Number.isInteger))
-    .map(([tick, dx, dy, travelled, touches, width, centre, onEdge, sum]) => ({
+    .filter((values) => values.length === 8 && values.every(Number.isInteger))
+    .map(([tick, dx, travelled, touches, width, centre, onEdge, sum]) => ({
       tick: tick ?? 0,
       dx: dx ?? 0,
-      dy: dy ?? 0,
       travelled: travelled ?? 0,
       touches: touches ?? 0,
       width: width ?? 0,
@@ -88,6 +88,7 @@ export function decodeSteadyRun(raw: string): SteadyRun {
 
 export interface SteadyResult {
   distance: number;
+  metres: number;
   points: number;
   touches: number;
   width: number;
@@ -142,7 +143,8 @@ export function replaySteadyRun(seed: number, raw: string): SteadyResult {
   const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
   const result: SteadyResult = {
     distance: stdDistancePx(state),
-    points: Math.trunc(stdDistancePx(state) / 30),
+    metres: stdMetres(state),
+    points: Math.trunc(stdDistancePx(state) / STD_PX_PER_POINT),
     touches: state.touches,
     width: stdTrackWidth(state.tick),
     clean: stdClean(state),

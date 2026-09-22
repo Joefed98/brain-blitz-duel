@@ -1,9 +1,10 @@
 /**
  * Steady — an arcade game on the shared engine.
  *
- * A winding track scrolls down the screen and the player drags a dot along it.
- * The whole path is built at init from the seed, so everyone traces the same
- * track. Positions are integer 1/256-pixel units and nothing is drawn from the
+ * A winding track scrolls down into a ball that sits on a fixed line near the
+ * bottom; the player slides the ball left and right to stay inside. The whole
+ * path is built at init from the seed, so everyone traces the same track.
+ * Positions are integer 1/256-pixel units and nothing is drawn from the
  * generator during play.
  */
 
@@ -29,17 +30,20 @@ export const STD_HUD_H = 44;
 export const STD_RUN_SECONDS = 60;
 export const STD_RUN_TICKS = STD_RUN_SECONDS * TICKS_PER_SECOND;
 
-/** The track: 26 px wide, 1 px narrower every 8 seconds, never under 16. */
-export const STD_WIDTH_START = 26;
-export const STD_WIDTH_MIN = 16;
-export const STD_NARROW_TICKS = 8 * TICKS_PER_SECOND;
+/** The track: 44 px wide, 1 px narrower every 4 seconds, never under 18. */
+export const STD_WIDTH_START = 44;
+export const STD_WIDTH_MIN = 18;
+export const STD_NARROW_TICKS = 4 * TICKS_PER_SECOND;
 
-/** Scroll speed 1.6 px a tick rising to 2.4 over the minute. */
-export const STD_SCROLL_START_FP = 410;
-export const STD_SCROLL_END_FP = 614;
+/** Scroll speed 1.2 px a tick, +0.15 every 5 seconds, capped at 3.0. */
+export const STD_SCROLL_START_FP = 307;
+export const STD_SCROLL_STEP_FP = 38;
+export const STD_SCROLL_STEP_TICKS = 5 * TICKS_PER_SECOND;
+export const STD_SCROLL_CAP_FP = 768;
 
-/** The dot chases the finger at no more than 4 px a tick. */
-export const STD_DOT_R = 8;
+/** The ball sits on this line and chases the finger at 4 px a tick. */
+export const STD_BALL_Y = 540;
+export const STD_DOT_R = 9;
 export const STD_DOT_LAG_FP = 1_024;
 
 /** The path is sampled every four pixels of travel. */
@@ -51,13 +55,14 @@ export const STD_EDGE_MARGIN = 46;
 export const STD_TOUCH_COOLDOWN = 12;
 
 export const STD_PX_PER_POINT = 30;
+export const STD_PX_PER_METRE = 40;
 export const STD_POINTS_CAP = 110;
 export const STD_TOUCH_PENALTY = 4;
 export const STD_CLEAN_TOUCHES = 3;
 export const STD_CLEAN_BONUS = 40;
 
 export const STD_INPUT_RANGES: readonly InputRange[] = [
-  inputRange(ARCADE_INPUT_DRAG, [0, STD_WORLD_W], [0, STD_WORLD_H]),
+  inputRange(ARCADE_INPUT_DRAG, [0, STD_WORLD_W]),
 ];
 
 export function stdTrackWidth(tick: number): number {
@@ -66,8 +71,8 @@ export function stdTrackWidth(tick: number): number {
 }
 
 export function stdScrollFp(tick: number): number {
-  const span = STD_SCROLL_END_FP - STD_SCROLL_START_FP;
-  return STD_SCROLL_START_FP + Math.trunc((span * Math.min(tick, STD_RUN_TICKS)) / STD_RUN_TICKS);
+  const faster = Math.trunc(tick / STD_SCROLL_STEP_TICKS);
+  return Math.min(STD_SCROLL_CAP_FP, STD_SCROLL_START_FP + STD_SCROLL_STEP_FP * faster);
 }
 
 /* ================================ State ================================ */
@@ -81,10 +86,8 @@ export interface StdState {
   travelled: number;
   /** Where the finger is, in whole pixels; held between events. */
   aimX: number;
-  aimY: number;
-  /** The dot, in 1/256 px. */
+  /** The ball's x, in 1/256 px; its y is fixed. */
   dx: number;
-  dy: number;
   touches: number;
   /** Ticks since the last counted touch, and whether it is still on the edge. */
   sinceTouch: number;
@@ -138,17 +141,14 @@ function buildPath(seed: number): { rng: number; path: number[] } {
 
 function init(seed: number): StdState {
   const built = buildPath(seed);
-  const startX = built.path[Math.trunc((STD_WORLD_H - STD_HUD_H) / 2 / STD_SAMPLE_PX)] ?? 0;
-  const startY = Math.round((STD_HUD_H + STD_WORLD_H) / 2);
+  const startX = built.path[Math.trunc((STD_WORLD_H - STD_BALL_Y) / STD_SAMPLE_PX)] ?? 0;
   return {
     tick: 0,
     rng: built.rng,
     path: built.path,
     travelled: 0,
     aimX: Math.round(px(startX)),
-    aimY: startY,
     dx: startX,
-    dy: startY * 256,
     touches: 0,
     sinceTouch: STD_TOUCH_COOLDOWN,
     onEdge: false,
@@ -173,45 +173,43 @@ export function stdDistancePx(state: StdState): number {
   return Math.trunc(state.travelled / 256);
 }
 
+export function stdMetres(state: StdState): number {
+  return Math.trunc(stdDistancePx(state) / STD_PX_PER_METRE);
+}
+
 function step(state: StdState, input: ArcadeInputEvent | null): StdState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
 
   let aimX = state.aimX;
-  let aimY = state.aimY;
-  if (input && input.k === ARCADE_INPUT_DRAG) {
-    aimX = clampInt(input.a, 0, STD_WORLD_W);
-    aimY = clampInt(input.b, 0, STD_WORLD_H);
-  }
+  if (input && input.k === ARCADE_INPUT_DRAG) aimX = clampInt(input.a, 0, STD_WORLD_W);
 
-  // The dot chases the finger, four pixels a tick at most on each axis.
-  const chase = (from: number, to: number): number => {
-    const target = to * 256;
-    const gap = target - from;
-    if (gap > STD_DOT_LAG_FP) return from + STD_DOT_LAG_FP;
-    if (gap < -STD_DOT_LAG_FP) return from - STD_DOT_LAG_FP;
-    return target;
-  };
+  // The ball chases the finger, four pixels a tick at most.
+  const target = aimX * 256;
+  const gap = target - state.dx;
+  const dx =
+    gap > STD_DOT_LAG_FP
+      ? state.dx + STD_DOT_LAG_FP
+      : gap < -STD_DOT_LAG_FP
+        ? state.dx - STD_DOT_LAG_FP
+        : target;
 
   const next: StdState = {
     ...state,
     tick,
     aimX,
-    aimY,
-    dx: chase(state.dx, aimX),
-    dy: chase(state.dy, aimY),
+    dx,
     travelled: state.travelled + stdScrollFp(tick),
     sinceTouch: state.sinceTouch + 1,
     flash: Math.max(0, state.flash - 1),
   };
-  next.dy = clampInt(next.dy, (STD_HUD_H + STD_DOT_R) * 256, (STD_WORLD_H - STD_DOT_R) * 256);
 
   const halfWidth = Math.trunc((stdTrackWidth(tick) * 256) / 2);
-  const centre = stdCentreAt(next, px(next.dy));
+  const centre = stdCentreAt(next, STD_BALL_Y);
   const offset = next.dx - centre;
   const limit = halfWidth - STD_DOT_R * 256;
   if (Math.abs(offset) > limit) {
-    // Nudge the dot back inside and count a touch, once per contact.
+    // Nudge the ball back inside and count a touch, once per contact.
     next.dx = centre + (offset > 0 ? limit : -limit);
     if (!state.onEdge && next.sinceTouch >= STD_TOUCH_COOLDOWN) {
       next.touches = state.touches + 1;
@@ -244,7 +242,6 @@ export const STD_CHECKPOINT_INTERVAL = 300;
 export interface StdCheckpointState {
   tick: number;
   dx: number;
-  dy: number;
   travelled: number;
   touches: number;
   width: number;
@@ -260,11 +257,10 @@ export function stdCheckpointState(state: StdState): StdCheckpointState {
   return {
     tick: state.tick,
     dx: state.dx,
-    dy: state.dy,
     travelled: state.travelled,
     touches: state.touches,
     width: stdTrackWidth(state.tick),
-    centre: stdCentreAt(state, px(state.dy)),
+    centre: stdCentreAt(state, STD_BALL_Y),
     onEdge: state.onEdge ? 1 : 0,
   };
 }
@@ -327,7 +323,7 @@ function draw(ctx: CanvasRenderingContext2D, state: StdState, size: CanvasSize):
   }
 
   ctx.beginPath();
-  ctx.arc(px(state.dx), px(state.dy), STD_DOT_R, 0, Math.PI * 2);
+  ctx.arc(px(state.dx), STD_BALL_Y, STD_DOT_R, 0, Math.PI * 2);
   ctx.fillStyle = state.flash > 0 ? "#FF4D4D" : STD_DOT;
   ctx.fill();
 
@@ -336,7 +332,7 @@ function draw(ctx: CanvasRenderingContext2D, state: StdState, size: CanvasSize):
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  ctx.fillText(`Touches ${state.touches}`, 14, 14);
+  ctx.fillText(`${stdMetres(state)} m · ${state.touches} touches`, 14, 14);
   ctx.textAlign = "right";
   ctx.fillText(`${remaining.toFixed(1)}s`, STD_WORLD_W - 14, 14);
 
