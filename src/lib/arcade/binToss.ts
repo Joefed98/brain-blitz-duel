@@ -82,6 +82,30 @@ export const BINTOSS_INPUT_RANGES: readonly InputRange[] = [
 export const BINTOSS_REF_V = 1_169;
 
 /**
+ * The wind is a constant sideways acceleration, carried in 1/65536-px units so
+ * that its total drift can be pinned exactly. It is calibrated on the flight of
+ * the reference throw — the one that lands on the bin: over exactly that many
+ * ticks one wind point moves the ball sideways by half the bin opening, 50 px.
+ */
+function referenceRimTicks(): number {
+  // The 60° reference launch, rising and then falling back to rim height.
+  let speed = -Math.round((BINTOSS_REF_V * 866) / 1_000);
+  let y = BINTOSS_BALL_Y;
+  for (let tick = 1; tick <= 1_000; tick++) {
+    speed += BINTOSS_GRAVITY;
+    y += speed;
+    if (speed > 0 && y >= BINTOSS_RIM_Y) return tick;
+  }
+  return 70;
+}
+
+export const BINTOSS_WIND_TICKS = referenceRimTicks();
+export const BINTOSS_WIND_SUB = 256;
+export const BINTOSS_WIND_ACC = Math.round(
+  (2 * BINTOSS_BIN_HALF * BINTOSS_WIND_SUB) / (BINTOSS_WIND_TICKS * (BINTOSS_WIND_TICKS + 1)),
+);
+
+/**
  * Turns the aim vector (finger position minus the anchor, in world pixels) into
  * a launch velocity. Upwards is negative `dy`; a downward vector is clamped to
  * horizontal. Returns null for a drag under the cancel distance.
