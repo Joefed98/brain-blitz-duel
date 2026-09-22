@@ -737,8 +737,8 @@ export interface CountUpPuzzleData {
 export const COUNTUP_COLS = 8;
 export const COUNTUP_ROWS = 6;
 export const COUNTUP_TIME_MS = 20_000;
-export const COUNTUP_MIN_SHAPES = 36;
-export const COUNTUP_MAX_SHAPES = 46;
+export const COUNTUP_MIN_SHAPES = COUNTUP_COLS * COUNTUP_ROWS;
+export const COUNTUP_MAX_SHAPES = COUNTUP_COLS * COUNTUP_ROWS;
 export const COUNTUP_MIN_COUNT = 6;
 export const COUNTUP_MAX_COUNT = 12;
 
@@ -1682,6 +1682,8 @@ export interface BullseyePuzzleData {
   type: "bullseye";
   /** Drives the wind on all ten arrows — identical for everyone in the room. */
   seed: number;
+  /** Persisted with the round so every player and the server use the same winds. */
+  winds: number[];
 }
 
 /* ================================ Matchup ================================ */

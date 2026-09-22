@@ -108,7 +108,7 @@ export interface BullseyeResult {
 }
 
 /** The single place a Bullseye score is worked out. */
-export function replayBullseyeRun(seed: number, raw: string): BullseyeResult {
+export function replayBullseyeRun(seed: number, raw: string, winds?: readonly number[]): BullseyeResult {
   const run = decodeBullseyeRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BULLSEYE_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < BULLSEYE_RUN_TICKS;
@@ -118,7 +118,7 @@ export function replayBullseyeRun(seed: number, raw: string): BullseyeResult {
   const lastTick = clientLag ? endTick : BULLSEYE_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
-  let state = bullseyeGame.init(seed);
+  let state = bullseyeGame.init(seed, winds);
   let reached = 0;
   let desyncTick: number | null = null;
   const serverCheckpoints: BullseyeCheckpoint[] = [];

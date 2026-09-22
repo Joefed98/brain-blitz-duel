@@ -53,10 +53,7 @@ export const BULLSEYE_RING_COLOURS = [
 
 /** Ring scale per arrow, in hundredths — the range grows each shot. */
 export const BULLSEYE_SCALE_PCT = [100, 96, 92, 88, 84, 80, 77, 74, 71, 68] as const;
-/** Pixels of sideways drift per wind unit, per arrow. */
-export const BULLSEYE_DRIFT_PX = [6, 7, 8, 9, 10, 10, 11, 12, 13, 14] as const;
-
-export const BULLSEYE_WIND_MAX = 2;
+export const BULLSEYE_WIND_MAX = 3;
 /** The arrow's flight is render-only; the landing is worked out on release. */
 export const BULLSEYE_FLIGHT_TICKS = 20;
 
@@ -104,8 +101,10 @@ export function bullseyeScalePct(index: number): number {
   return BULLSEYE_SCALE_PCT[clampInt(index, 0, BULLSEYE_ARROWS - 1)]!;
 }
 
-export function bullseyeDriftPx(index: number): number {
-  return BULLSEYE_DRIFT_PX[clampInt(index, 0, BULLSEYE_ARROWS - 1)]!;
+/** One wind unit moves one ring width at this arrow's target scale. */
+export function bullseyeWindShiftPx(index: number, wind: number): number {
+  const scalePct = bullseyeScalePct(index);
+  return Math.round((wind * BULLSEYE_OUTER_R * scalePct) / (BULLSEYE_RINGS * 100));
 }
 
 /**
@@ -142,12 +141,14 @@ export interface BullseyeHit {
   value: number;
   /** Which arrow it was, so drawing knows the target size it hit. */
   arrow: number;
+  /** The persisted wind applied to this arrow. */
+  wind: number;
 }
 
 export interface BullseyeState {
   tick: number;
   rng: number;
-  /** Wind for each arrow, −2 … +2. Same for everyone. */
+  /** Wind for each arrow, −3 … +3. Same for everyone. */
   winds: number[];
   /** Arrows fired so far; also the index of the arrow now on the string. */
   arrowIndex: number;
@@ -158,7 +159,7 @@ export interface BullseyeState {
   endedTick: number;
 }
 
-function init(seed: number): BullseyeState {
+export function bullseyeWinds(seed: number): number[] {
   let rng = seed | 0;
   const winds: number[] = [];
   for (let index = 0; index < BULLSEYE_ARROWS; index++) {
@@ -166,6 +167,21 @@ function init(seed: number): BullseyeState {
     rng = drawn.state;
     winds.push(drawn.value - BULLSEYE_WIND_MAX);
   }
+  return winds;
+}
+
+export function bullseyeInit(seed: number, storedWinds?: readonly number[]): BullseyeState {
+  let rng = seed | 0;
+  for (let index = 0; index < BULLSEYE_ARROWS; index++) {
+    rng = rngBelow(rng, BULLSEYE_WIND_MAX * 2 + 1).state;
+  }
+  const generated = bullseyeWinds(seed);
+  const validStored =
+    storedWinds?.length === BULLSEYE_ARROWS &&
+    storedWinds.every(
+      (wind) => Number.isInteger(wind) && wind >= -BULLSEYE_WIND_MAX && wind <= BULLSEYE_WIND_MAX,
+    );
+  const winds = validStored ? [...storedWinds] : generated;
   return {
     tick: 0,
     rng,
@@ -200,7 +216,7 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
     const vx = clampInt(input.a, -BULLSEYE_V_MAX, BULLSEYE_V_MAX);
     const vy = clampInt(input.b, -BULLSEYE_V_MAX, 0);
     const landing = bullseyeLanding(vx, vy);
-    const x = landing.x + wind * bullseyeDriftPx(arrow);
+    const x = landing.x + bullseyeWindShiftPx(arrow, wind);
     const y = landing.y;
     const ring = bullseyeRingAt(x, y, bullseyeScalePct(arrow));
     const value = bullseyeRingValue(ring);
@@ -209,7 +225,7 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
       tick,
       flightTick: BULLSEYE_FLIGHT_TICKS,
       arrowIndex: arrow + 1,
-      hits: [...state.hits, { x, y, ring, value, arrow }],
+      hits: [...state.hits, { x, y, ring, value, arrow, wind }],
       total: state.total + value,
     };
     if (isOver(next)) return { ...next, endedTick: tick };
@@ -462,7 +478,7 @@ export function bullseyeDrawAim(
 export const bullseyeGame: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = {
   key: "bullseye",
   runTicks: BULLSEYE_RUN_TICKS,
-  init,
+  init: bullseyeInit,
   step,
   isOver,
   score,

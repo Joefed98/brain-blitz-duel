@@ -93,3 +93,9 @@
 - [x] Bin Toss and Bullseye: drag-position aiming (anchor to finger, 20-220px strength, 20px cancel), live dotted prediction, no velocity measurement.
 - [x] Chain: 15 links, at least four invalid nodes per step, scoring and counters updated.
 - [x] Re-ran the arcade drag identity proof plus bomb, chain, nonogram and arcade regressions.
+
+## Filled Count Up and arcade polish (2026-09-22)
+- [x] Count Up: all 48 cells contain either the target or a valid distractor.
+- [x] Bin Toss: scored-ball settle animation, delayed visible counter, and 72px drag-to-cancel zone.
+- [x] Bullseye: stored seeded wind −3…+3, exact scaled-ring displacement, and per-arrow reveal details.
+- [ ] Re-run the 200-run Bullseye identity proof and focused static checks.

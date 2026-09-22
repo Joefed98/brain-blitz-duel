@@ -487,7 +487,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Hit the centre — ten arrows.",
     how: [
       { action: "Touch and drag to aim", detail: "the dotted path shows where it will go." },
-      { action: "The wind", detail: "pushes the arrow sideways, more at longer range." },
+      {
+        action: "The wind moves your arrow by that many rings.",
+        detail: "Wind 2 to the right? Aim two rings to the left.",
+      },
       { action: "The target", detail: "gets further away each shot." },
     ],
     score: "10 for the centre, down to 5 on the outer ring. Ten centres = 150.",

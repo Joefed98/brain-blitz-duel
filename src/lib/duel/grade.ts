@@ -856,7 +856,7 @@ export function gradeSubmission(
       break;
     }
     case "bullseye": {
-      const run = replayBullseyeRun(puzzle.seed, answer);
+      const run = replayBullseyeRun(puzzle.seed, answer, puzzle.winds);
       isCorrect = run.inner >= run.arrows;
       correctCount = run.inner;
       score = run.score;

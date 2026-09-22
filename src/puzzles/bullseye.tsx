@@ -12,6 +12,7 @@ import {
   bullseyeDrag,
   bullseyeDrawAim,
   bullseyeGame,
+  bullseyeInit,
   bullseyeLanding,
   bullseyeScalePct,
   bullseyeTransform,
@@ -85,7 +86,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
-  const state = useRef<BullseyeState>(bullseyeGame.init(seed));
+  const state = useRef<BullseyeState>(bullseyeInit(seed, data?.winds));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof bullseyeCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
@@ -116,7 +117,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     });
 
   useEffect(() => {
-    state.current = bullseyeGame.init(seed);
+    state.current = bullseyeInit(seed, data?.winds);
     events.current = [];
     checkpoints.current = [];
     pending.current = [];
@@ -125,7 +126,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
-  }, [seed]);
+  }, [data?.winds, seed]);
 
   useEffect(() => {
     if (!data) return;
@@ -291,7 +292,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "bullseye") return null;
-  const result = replayBullseyeRun(puzzle.seed, myAnswer ?? "");
+  const result = replayBullseyeRun(puzzle.seed, myAnswer ?? "", puzzle.winds);
   const shots = decodeBullseyeRun(myAnswer ?? "").events.length;
   const size = BULLSEYE_OUTER_R * 2 + 12;
 
@@ -330,6 +331,15 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {shots} of {BULLSEYE_ARROWS} arrows · {result.inner} in the gold/red
       </p>
+      {result.hits.length > 0 && (
+        <div className="grid max-w-[280px] grid-cols-2 gap-x-4 gap-y-1 font-mono text-[10px] text-muted-foreground">
+          {result.hits.map((hit) => (
+            <span key={hit.arrow}>
+              {hit.arrow + 1}: {hit.wind === 0 ? "wind 0" : `${hit.wind < 0 ? "←" : "→"} ${Math.abs(hit.wind)}`} · {hit.x},{hit.y}
+            </span>
+          ))}
+        </div>
+      )}
       {result.desyncTick !== null && (
         <p className="shrink-0 font-mono text-xs font-bold text-destructive">
           desync at tick {result.desyncTick}
@@ -346,7 +356,7 @@ export const bullseyePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (BULLSEYE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "bullseye", seed: 1 }) satisfies BullseyePuzzleData,
+  generate: () => ({ type: "bullseye", seed: 1, winds: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }) satisfies BullseyePuzzleData,
   check: () => false,
   revealHeading: "Your arrows",
   IntroExample,

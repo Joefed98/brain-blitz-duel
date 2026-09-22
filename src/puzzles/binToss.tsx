@@ -12,6 +12,7 @@ import {
   binTossDrag,
   binTossDrawAim,
   binTossDrawGhost,
+  binTossDrawLanding,
   binTossGame,
   binTossTransform,
   BINTOSS_AIM,
@@ -25,6 +26,7 @@ import {
   BINTOSS_WAIT,
   type BinTossState,
   type BinTossGhost,
+  type BinTossLandingPresentation,
 } from "@/lib/arcade/binToss";
 import { decodeBinTossRun, encodeBinTossRun, replayBinTossRun } from "@/lib/duel/binToss";
 import { ARCADE_CRASH_FREEZE_MS, type BinTossPuzzleData } from "@/lib/duel/types";
@@ -80,6 +82,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const cancelZone = useRef<HTMLDivElement | null>(null);
   const state = useRef<BinTossState>(binTossGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof binTossCheckpoint>[]>([]);
@@ -90,6 +93,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const anchor = useRef<{ x: number; y: number } | null>(null);
   /** The arc a release right now would produce. Render only. */
   const aim = useRef<BinTossGhost | null>(null);
+  const cancelActive = useRef(false);
+  const [cancelHighlighted, setCancelHighlighted] = useState(false);
+  const landing = useRef<(BinTossLandingPresentation & { startedAt: number }) | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
@@ -121,6 +127,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     lastGhost.current = null;
     anchor.current = null;
     aim.current = null;
+    cancelActive.current = false;
+    setCancelHighlighted(false);
+    landing.current = null;
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
@@ -162,6 +171,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (before.phase !== state.current.phase && state.current.phase === BINTOSS_WAIT) {
             lastGhost.current = activeLaunch.current;
             activeLaunch.current = null;
+            if (state.current.results[state.current.results.length - 1] === 1) {
+              landing.current = {
+                startedAt: time,
+                progress: 0,
+                binCentre: binTossBinCentre(before.throwIndex),
+              };
+            }
           }
           // Logged only when the flick actually launched a ball.
           if (applied && before.phase === BINTOSS_AIM && state.current.phase !== BINTOSS_AIM) {
@@ -179,11 +195,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if (size) {
         const context = canvas.current?.getContext("2d");
         if (context) {
-          binTossGame.draw(context, state.current, size);
+          const activeLanding = landing.current;
+          if (activeLanding) {
+            activeLanding.progress = Math.min(1, (time - activeLanding.startedAt) / 350);
+            if (activeLanding.progress >= 1) landing.current = null;
+          }
+          const hideNewBasket = activeLanding && activeLanding.progress < 1;
+          binTossGame.draw(
+            context,
+            hideNewBasket
+              ? { ...state.current, baskets: Math.max(0, state.current.baskets - 1), x: -100_000 }
+              : state.current,
+            size,
+          );
           if (lastGhost.current) binTossDrawGhost(context, size, lastGhost.current);
           if (aim.current && state.current.phase === BINTOSS_AIM) {
-            binTossDrawAim(context, size, aim.current);
+            binTossDrawAim(context, size, aim.current, cancelActive.current);
           }
+          if (activeLanding) binTossDrawLanding(context, size, activeLanding);
         }
       }
 
@@ -252,13 +281,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
   };
 
+  const inCancelZone = (clientY: number): boolean => {
+    const box = cancelZone.current?.getBoundingClientRect();
+    return Boolean(box && clientY >= box.top && clientY <= box.bottom);
+  };
+
+  const setCancelled = (cancelled: boolean) => {
+    cancelActive.current = cancelled;
+    setCancelHighlighted((current) => (current === cancelled ? current : cancelled));
+  };
+
   if (!data) return null;
 
   return (
-    <div ref={wrap} className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl">
+    <div ref={wrap} className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl bg-card">
       <canvas
         ref={canvas}
-        className="puzzle-board block h-full w-full rounded-xl"
+        className="puzzle-board block min-h-0 w-full flex-1 rounded-t-xl"
         style={{ background: BINTOSS_BG }}
         aria-label="Bin Toss"
         onPointerDown={(event) => {
@@ -269,12 +308,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // so the drag stays alive wherever the finger travels.
           anchor.current = worldPoint(event);
           aim.current = null;
+          setCancelled(false);
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
           const start = anchor.current;
           if (!start) return;
           const point = worldPoint(event);
+          setCancelled(inCancelZone(event.clientY));
           // The aim is the drag vector itself, so the path holds still when the
           // finger does.
           const preview = binTossDrag(point.x - start.x, point.y - start.y);
@@ -288,12 +329,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }}
         onPointerUp={(event) => {
           const start = anchor.current;
+          const cancelled = inCancelZone(event.clientY);
           anchor.current = null;
           aim.current = null;
+          setCancelled(false);
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
-          if (!start || locked || submitted.current) return;
+          if (!start || locked || submitted.current || cancelled) return;
           if (state.current.phase !== BINTOSS_AIM) return;
           const point = worldPoint(event);
           const launch = binTossDrag(point.x - start.x, point.y - start.y);
@@ -309,11 +352,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerCancel={(event) => {
           anchor.current = null;
           aim.current = null;
+          setCancelled(false);
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
         }}
       />
+      <div
+        ref={cancelZone}
+        className={`flex h-[72px] shrink-0 items-center justify-center border-t text-center font-mono text-xs transition-colors ${
+          cancelHighlighted
+            ? "border-foreground/35 bg-muted text-foreground"
+            : "border-border/50 bg-muted/30 text-muted-foreground/55"
+        }`}
+      >
+        drag here to cancel
+      </div>
     </div>
   );
 }

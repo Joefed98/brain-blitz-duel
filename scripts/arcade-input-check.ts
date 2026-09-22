@@ -40,7 +40,10 @@ import {
   bullseyeCheckpoint,
   bullseyeDrag,
   bullseyeGame,
+  bullseyeInit,
   bullseyeLanding,
+  bullseyeWindShiftPx,
+  bullseyeWinds,
   BULLSEYE_CX,
   BULLSEYE_CY,
   BULLSEYE_ARROWS,
@@ -48,7 +51,6 @@ import {
   BULLSEYE_INPUT_RANGES,
   BULLSEYE_RUN_TICKS,
   BULLSEYE_V_MAX,
-  BULLSEYE_DRIFT_PX,
   BULLSEYE_OUTER_R,
   BULLSEYE_SCALE_PCT,
   type BullseyeCheckpoint,
@@ -183,7 +185,8 @@ for (let sample = 0; sample < 200; sample++) {
 
 for (let sample = 0; sample < 200; sample++) {
   const seed = 1 + Math.floor(Math.random() * 2_000_000_000);
-  let state = bullseyeGame.init(seed);
+  const storedWinds = bullseyeWinds(seed);
+  let state = bullseyeInit(seed, storedWinds);
   if (!bullseyeIntegers(state)) fail(`bullseye ${seed}: non-integer initial state`);
 
   const events: ArcadeInputEvent[] = [];
@@ -220,7 +223,7 @@ for (let sample = 0; sample < 200; sample++) {
     endTick: state.tick,
     checkpoints,
   });
-  const replay = replayBullseyeRun(seed, encoded);
+  const replay = replayBullseyeRun(seed, encoded, storedWinds);
 
   if (replay.score !== claimed) {
     fail(`bullseye ${seed}: replay ${replay.score} vs client ${claimed}`);
@@ -385,15 +388,23 @@ if (BULLSEYE_OUTER_R !== 190) fail("bullseye outer radius is not 190 px");
 if (BULLSEYE_SCALE_PCT.join(",") !== "100,96,92,88,84,80,77,74,71,68") {
   fail("bullseye shrink factors differ");
 }
-if (BULLSEYE_DRIFT_PX.join(",") !== "6,7,8,9,10,10,11,12,13,14") {
-  fail("bullseye wind drift differs");
-}
 
 for (let seed = 1; seed <= 200; seed++) {
   const bin = binTossGame.init(seed);
-  const bull = bullseyeGame.init(seed);
+  const expected = bullseyeWinds(seed);
+  const bull = bullseyeInit(seed, expected);
   if (bin.winds.some((wind) => wind < -2 || wind > 2)) fail(`bintoss ${seed}: wind out of range`);
-  if (bull.winds.some((wind) => wind < -2 || wind > 2)) fail(`bullseye ${seed}: wind out of range`);
+  if (bull.winds.some((wind) => wind < -3 || wind > 3)) fail(`bullseye ${seed}: wind out of range`);
+  if (bull.winds.join(",") !== expected.join(",")) fail(`bullseye ${seed}: stored winds differ`);
+  for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) {
+    const wind = bull.winds[arrow] ?? 0;
+    const expectedShift = Math.round(
+      (wind * BULLSEYE_OUTER_R * BULLSEYE_SCALE_PCT[arrow]!) / (6 * 100),
+    );
+    if (bullseyeWindShiftPx(arrow, wind) !== expectedShift) {
+      fail(`bullseye ${seed}: arrow ${arrow + 1} wind shift differs`);
+    }
+  }
 }
 
 // Strength comes from the drag LENGTH: a longer drag always launches harder.
