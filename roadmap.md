@@ -137,3 +137,10 @@
   wall and never facing.
 - scripts/arcade-four-check.ts: 200-run client/server identity per game, payload
   range rejection, lag handling — all passing.
+
+## Drag arcade games (Breaker, Rally, Steady)
+- [x] Shared deterministic sims `src/lib/arcade/{breaker,rally,steady}.ts` (60 ticks/s, integer 1/256-px constants, seeded mulberry32, new drag input k=7)
+- [x] Server replays `src/lib/duel/{breaker,rally,steady}.ts` with 300-tick checkpoints, desync logging and clientLag handling
+- [x] Screens `src/puzzles/{breaker,rally,steady}.tsx` (pointer capture, DPR<=2, no-scroll 390x700 and 375x667)
+- [x] Wiring: types, secrets, generators, registry, instructions, grading, round summaries
+- [x] Proof `scripts/arcade-drag-check.ts` — 200 random drag traces per game: identical states/checkpoints/scores, inflated claims caught, out-of-range payloads refused, lag handled
