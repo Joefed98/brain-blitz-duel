@@ -760,7 +760,7 @@ export function scoreGravity(
   return clamp(Math.max(partial, onTarget >= 1 ? 40 : 0), 0, 70);
 }
 
-/** Don't Break the Chain: twelve in a row, less ten a mistake. */
+/** Don't Break the Chain: fifteen in a row, less ten a mistake. */
 export function scoreChain(
   completed: boolean,
   correct: number,
