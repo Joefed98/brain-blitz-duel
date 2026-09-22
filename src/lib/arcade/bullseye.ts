@@ -110,6 +110,65 @@ export function bullseyeWindShiftPx(index: number, wind: number): number {
   return Math.round((wind * BULLSEYE_OUTER_R * scalePct) / (BULLSEYE_RINGS * 100));
 }
 
+/* ------------------------------- Aim sway ------------------------------ */
+
+/**
+ * The aim sways in a small circle: one full turn every 120 ticks (two seconds),
+ * radius 0.6 of a ring width at that arrow's scale. The phase depends only on
+ * the sim tick, so it is identical for every player and for the server replay.
+ * Cosine and sine come from a fixed 120-entry table in 1/1024 units, so no
+ * floating-point trigonometry is ever involved.
+ */
+export const BULLSEYE_SWAY_PERIOD = 120;
+export const BULLSEYE_SWAY_UNIT = 1_024;
+/** Radius as a tenth: 6/10 of a ring width. */
+export const BULLSEYE_SWAY_TENTHS = 6;
+
+export const BULLSEYE_SWAY_COS: readonly number[] = [
+  1024, 1023, 1018, 1011, 1002, 989, 974, 956, 935, 912, 887, 859, 828, 796, 761, 724, 685, 644,
+  602, 558, 512, 465, 416, 367, 316, 265, 213, 160, 107, 54, 0, -54, -107, -160, -213, -265, -316,
+  -367, -416, -465, -512, -558, -602, -644, -685, -724, -761, -796, -828, -859, -887, -912, -935,
+  -956, -974, -989, -1002, -1011, -1018, -1023, -1024, -1023, -1018, -1011, -1002, -989, -974, -956,
+  -935, -912, -887, -859, -828, -796, -761, -724, -685, -644, -602, -558, -512, -465, -416, -367,
+  -316, -265, -213, -160, -107, -54, 0, 54, 107, 160, 213, 265, 316, 367, 416, 465, 512, 558, 602,
+  644, 685, 724, 761, 796, 828, 859, 887, 912, 935, 956, 974, 989, 1002, 1011, 1018, 1023,
+];
+
+export const BULLSEYE_SWAY_SIN: readonly number[] = [
+  0, 54, 107, 160, 213, 265, 316, 367, 416, 465, 512, 558, 602, 644, 685, 724, 761, 796, 828, 859,
+  887, 912, 935, 956, 974, 989, 1002, 1011, 1018, 1023, 1024, 1023, 1018, 1011, 1002, 989, 974, 956,
+  935, 912, 887, 859, 828, 796, 761, 724, 685, 644, 602, 558, 512, 465, 416, 367, 316, 265, 213,
+  160, 107, 54, 0, -54, -107, -160, -213, -265, -316, -367, -416, -465, -512, -558, -602, -644,
+  -685, -724, -761, -796, -828, -859, -887, -912, -935, -956, -974, -989, -1002, -1011, -1018,
+  -1023, -1024, -1023, -1018, -1011, -1002, -989, -974, -956, -935, -912, -887, -859, -828, -796,
+  -761, -724, -685, -644, -602, -558, -512, -465, -416, -367, -316, -265, -213, -160, -107, -54,
+];
+
+/** The sway offset, in whole world pixels, for this arrow at this sim tick. */
+export function bullseyeSway(index: number, tick: number): { dx: number; dy: number } {
+  const phase = ((tick % BULLSEYE_SWAY_PERIOD) + BULLSEYE_SWAY_PERIOD) % BULLSEYE_SWAY_PERIOD;
+  const radius = BULLSEYE_SWAY_TENTHS * BULLSEYE_OUTER_R * bullseyeScalePct(index);
+  const divisor = 10 * BULLSEYE_RINGS * 100 * BULLSEYE_SWAY_UNIT;
+  return {
+    dx: Math.round((radius * BULLSEYE_SWAY_COS[phase]!) / divisor),
+    dy: Math.round((radius * BULLSEYE_SWAY_SIN[phase]!) / divisor),
+  };
+}
+
+/** Where a shot released on this tick would land, sway included, wind excluded. */
+export function bullseyeAimPoint(
+  index: number,
+  tick: number,
+  vx: number,
+  vy: number,
+): { x: number; y: number } {
+  const landing = bullseyeLanding(vx, vy);
+  const sway = bullseyeSway(index, tick);
+  return { x: landing.x + sway.dx, y: landing.y + sway.dy };
+}
+
+
+
 /**
  * Which ring a landing point falls in, as an index, or −1 for a miss. Compared
  * with scaled integers so there is never a floating-point radius.

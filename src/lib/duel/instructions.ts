@@ -355,11 +355,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewer tries scores more.",
   },
   bomb: {
-    goal: "Read all four rules, work out the four steps, then do them in order.",
+    goal: "Read all six rules, work out the four steps, then do them in order.",
     how: [
       {
         action: "Only one order fits",
-        detail: "the four rules together allow exactly one sequence.",
+        detail: "the six rules together allow exactly one sequence.",
       },
       { action: "Four steps exactly", detail: "tap wires and buttons, then tap DEFUSE." },
       { action: "One wrong step", detail: "and it explodes." },
