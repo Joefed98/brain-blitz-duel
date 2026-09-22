@@ -232,70 +232,114 @@ function candidateRules(panel: Panel): RuleInstance[] {
 /*  Uniqueness                                                                */
 /* -------------------------------------------------------------------------- */
 
+/** Bit per sequence, so intersecting rule sets is a handful of word ANDs. */
+const MASK_WORDS = Math.ceil(ALL_SEQUENCES.length / 32);
+
 /** Which of the 3,024 sequences a rule allows. */
-function maskOf(rule: RuleInstance): Uint8Array {
-  const mask = new Uint8Array(ALL_SEQUENCES.length);
+function maskOf(rule: RuleInstance): Uint32Array {
+  const mask = new Uint32Array(MASK_WORDS);
   for (let index = 0; index < ALL_SEQUENCES.length; index++) {
-    mask[index] = rule.test(ALL_SEQUENCES[index]!) ? 1 : 0;
+    if (rule.test(ALL_SEQUENCES[index]!)) mask[index >> 5]! |= 1 << (index & 31);
   }
   return mask;
 }
 
-/** Every sequence all the rules allow, capped so the count stays cheap. */
-function solutions(masks: Uint8Array[], limit = Number.MAX_SAFE_INTEGER): number[] {
-  const out: number[] = [];
-  for (let index = 0; index < ALL_SEQUENCES.length; index++) {
-    if (masks.every((mask) => mask[index] === 1)) {
-      out.push(index);
-      if (out.length >= limit) break;
+function everything(): Uint32Array {
+  const bits = new Uint32Array(MASK_WORDS).fill(0xffff_ffff);
+  for (let index = ALL_SEQUENCES.length; index < MASK_WORDS * 32; index++) {
+    bits[index >> 5]! &= ~(1 << (index & 31));
+  }
+  return bits;
+}
+
+const ALL_BITS = everything();
+
+function intersect(a: Uint32Array, b: Uint32Array): Uint32Array {
+  const out = new Uint32Array(MASK_WORDS);
+  for (let word = 0; word < MASK_WORDS; word++) out[word] = a[word]! & b[word]!;
+  return out;
+}
+
+/** How many sequences survive, counted no further than `limit`. */
+function countBits(bits: Uint32Array, limit = Number.MAX_SAFE_INTEGER): number {
+  let total = 0;
+  for (let word = 0; word < MASK_WORDS; word++) {
+    let value = bits[word]!;
+    while (value !== 0) {
+      value &= value - 1;
+      total += 1;
+      if (total >= limit) return total;
     }
+  }
+  return total;
+}
+
+function firstBit(bits: Uint32Array): number {
+  for (let word = 0; word < MASK_WORDS; word++) {
+    const value = bits[word]!;
+    if (value !== 0) return word * 32 + 31 - Math.clz32(value & -value);
+  }
+  return -1;
+}
+
+/** Every sequence all the rules allow, capped so the count stays cheap. */
+function solutions(masks: Uint32Array[], limit = Number.MAX_SAFE_INTEGER): number[] {
+  let bits = ALL_BITS;
+  for (const mask of masks) bits = intersect(bits, mask);
+  const out: number[] = [];
+  for (let index = 0; index < ALL_SEQUENCES.length && out.length < limit; index++) {
+    if ((bits[index >> 5]! >>> (index & 31)) & 1) out.push(index);
   }
   return out;
 }
 
-/**
- * Picks four rules that pin the plan down. Rules are added one at a time, each
- * time the one that cuts the most sequences while still leaving more than one —
- * so every rule earns its place — and the last one must leave exactly one.
- */
-function chooseRules(pool: RuleInstance[], masks: Uint8Array[]): number[] | null {
-  const picked: number[] = [];
-  let live = ALL_SEQUENCES.map((_, index) => index);
-
-  for (let step = 0; step < BOMB_RULE_COUNT; step++) {
-    const last = step === BOMB_RULE_COUNT - 1;
-    let best = -1;
-    let bestCount = -1;
-    let bestLive: number[] = [];
-    for (const index of shuffled(pool.map((_, position) => position))) {
-      if (picked.includes(index)) continue;
-      const mask = masks[index]!;
-      const next = live.filter((sequence) => mask[sequence] === 1);
-      if (last ? next.length !== 1 : next.length < 2) continue;
-      if (best === -1 || next.length < bestCount) {
-        best = index;
-        bestCount = next.length;
-        bestLive = next;
-      }
-      if (last) break;
+/** Dropping any single rule must leave more than one sequence standing. */
+function isNecessary(masks: Uint32Array[]): boolean {
+  for (let drop = 0; drop < masks.length; drop++) {
+    let bits = ALL_BITS;
+    for (let index = 0; index < masks.length; index++) {
+      if (index !== drop) bits = intersect(bits, masks[index]!);
     }
-    if (best === -1) return null;
-    picked.push(best);
-    live = bestLive;
+    if (countBits(bits, 2) < 2) return false;
   }
-
-  if (live.length !== 1) return null;
-
-  // Necessity: without any one rule, more than one sequence must survive.
-  for (let drop = 0; drop < picked.length; drop++) {
-    const others = picked.filter((_, position) => position !== drop).map((index) => masks[index]!);
-    if (solutions(others, 2).length < 2) return null;
-  }
-  return picked;
+  return true;
 }
 
-/** Restarts so the greedy walk sees a different order of the pool each time. */
-const CHOICE_RESTARTS = 6;
+/**
+ * Searches the pool for four rules that between them allow exactly the chosen
+ * plan and nothing else, with every rule pulling its weight. Depth-first over
+ * combinations: three rules must still leave room for more than one sequence,
+ * the fourth must close it down to the plan alone.
+ */
+function chooseRules(masks: Uint32Array[], planIndex: number): number[] | null {
+  const order = shuffled(masks.map((_, index) => index));
+  const picked: number[] = [];
+
+  const walk = (start: number, bits: Uint32Array): number[] | null => {
+    for (let position = start; position < order.length; position++) {
+      const index = order[position]!;
+      const next = intersect(bits, masks[index]!);
+      const depth = picked.length + 1;
+      const count = countBits(next, depth === BOMB_RULE_COUNT ? 2 : 2);
+      if (depth === BOMB_RULE_COUNT) {
+        if (count !== 1 || firstBit(next) !== planIndex) continue;
+        picked.push(index);
+        const chosen = [...picked];
+        picked.pop();
+        if (isNecessary(chosen.map((rule) => masks[rule]!))) return chosen;
+        continue;
+      }
+      if (count < 2) continue;
+      picked.push(index);
+      const found = walk(position + 1, next);
+      picked.pop();
+      if (found) return found;
+    }
+    return null;
+  };
+
+  return walk(0, ALL_BITS);
+}
 
 function randomPanel(): Panel {
   return {
