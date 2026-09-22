@@ -42,8 +42,10 @@ export const DUAL_JUMP_PEAK = 92;
 /** An obstacle is in front of the runner for this many ticks. */
 export const DUAL_HIT_TICKS = 6;
 
-/** The scroll speed used for drawing: 5.2 px a tick, +5% every ten seconds. */
-export const DUAL_SCROLL_START_FP = 1_331;
+/** The scroll speed used for drawing: 2.0 px a tick, +0.3 every ten seconds, cap 4.4. */
+export const DUAL_SCROLL_START_FP = 512;
+export const DUAL_SCROLL_STEP_FP = 77;
+export const DUAL_SCROLL_CAP_FP = 1_126;
 export const DUAL_SCROLL_PERIOD_TICKS = 10 * TICKS_PER_SECOND;
 
 /** The first obstacle, and the gap band between consecutive obstacles. */
@@ -72,9 +74,8 @@ export function dualSeparation(tick: number): number {
 /** The scroll speed in 1/256 px a tick at this tick. */
 export function dualScroll(tick: number): number {
   const steps = Math.trunc(tick / DUAL_SCROLL_PERIOD_TICKS);
-  let speed = DUAL_SCROLL_START_FP;
-  for (let i = 0; i < steps; i++) speed = Math.trunc((speed * 21) / 20);
-  return speed;
+  const speed = DUAL_SCROLL_START_FP + steps * DUAL_SCROLL_STEP_FP;
+  return Math.min(DUAL_SCROLL_CAP_FP, speed);
 }
 
 /* ================================ State ================================ */
