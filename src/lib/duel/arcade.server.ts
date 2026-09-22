@@ -19,6 +19,9 @@ import type {
   BreakerPuzzleData,
   RallyPuzzleData,
   SteadyPuzzleData,
+  SlicePuzzleData,
+  BubblePuzzleData,
+  BeatPuzzleData,
 } from "./types";
 
 /** A fresh 32-bit seed from the platform CSPRNG. */
