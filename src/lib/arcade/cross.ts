@@ -470,7 +470,7 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
   );
 
   const from = crossLaneCentre(state.lane);
-  const to = crossLaneCentre(state.lane + 1);
+  const to = crossLaneCentre(state.lane + state.hopDir);
   const done = state.hop > 0 ? (CROSS_HOP_TICKS - state.hop) / CROSS_HOP_TICKS : 0;
   const cy = state.hop > 0 ? from + (to - from) * done : from;
   ctx.fillStyle = CROSS_PLAYER;
@@ -486,6 +486,17 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
   ctx.fillText(`Crossings ${state.crossings}`, 14, 10);
   ctx.textAlign = "right";
   ctx.fillText(`${remaining.toFixed(1)}s`, CROSS_WORLD_W - 14, 10);
+
+  // The breather between crossings, announced over the board.
+  if (crossPaused(state)) {
+    ctx.fillStyle = "rgba(11, 11, 15, 0.55)";
+    ctx.fillRect(CROSS_BOARD_X, CROSS_WORLD_H / 2 - 30, CROSS_BOARD_W, 60);
+    ctx.fillStyle = CROSS_PLAYER;
+    ctx.font = "700 24px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`Crossing ${state.crossings + 1}`, CROSS_WORLD_W / 2, CROSS_WORLD_H / 2);
+  }
 
   if (state.dead) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";
