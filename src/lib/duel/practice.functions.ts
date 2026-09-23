@@ -65,7 +65,13 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const type = validType(data.type);
     const { generatePuzzle } = await import("./generate.server");
-    const { pub, priv } = splitPuzzle(generatePuzzle(type));
+    let unblockRow = null;
+    if (type === "unblock") {
+      const { drawUnblockRow } = await import("./unblock.server");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      unblockRow = await drawUnblockRow(supabaseAdmin);
+    }
+    const { pub, priv } = splitPuzzle(generatePuzzle(type, { unblockRow }));
     return { puzzle: pub, sealed: await seal(priv) };
   });
 

@@ -8,6 +8,7 @@ import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructio
 
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { TimerRing, timerSlotClass } from "@/components/duel/TimerRing";
+import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import {
   practiceCheckWordFn,
   practiceCheckGroupFn,
@@ -25,6 +26,7 @@ import {
   puzzleRevealMs,
   puzzleShowsTimer,
   puzzleTimeLimitMs,
+  puzzleRunMs,
   typesInCategory,
 } from "@/lib/duel/registry";
 import { clearStageState } from "@/lib/duel/stageState";
@@ -115,6 +117,7 @@ function PracticeScreen() {
   const timeLimitMs = puzzleTimeLimitMs(puzzle ?? undefined);
   const clockDeadline = clockStart === null ? null : clockStart + timeLimitMs;
   const msRemaining = clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - now);
+  const runMs = stage === "puzzle" ? puzzleRunMs(puzzle ?? undefined) : null;
 
   const grade = useCallback(
     async (answer: string, meta?: SubmitMeta) => {
@@ -344,7 +347,11 @@ function PracticeScreen() {
           <div
             className={`flex shrink-0 items-center justify-center ${timerSlotClass(puzzle.type)}`}
           >
-            <TimerRing msRemaining={msRemaining} totalMs={timeLimitMs} active={clockActive} />
+            <TimerRing
+              msRemaining={runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
+              totalMs={runMs ?? timeLimitMs}
+              active={clockActive}
+            />
           </div>
         )}
 

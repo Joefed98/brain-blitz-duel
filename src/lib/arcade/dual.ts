@@ -16,8 +16,7 @@ import {
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
-  type InputRange,
-} from "./engine";
+  type InputRange, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
 
 /* ============================== Constants ============================== */
 
@@ -32,15 +31,16 @@ export const DUAL_HUD_H = 40;
 export const DUAL_GROUND_Y = 430;
 export const DUAL_RUNNER_X = 62;
 export const DUAL_RUNNER_R = 15;
-export const DUAL_BLOCK_W = 26;
-export const DUAL_BLOCK_H = 34;
+/** Blocks are 70% of their original 26 x 34 px. */
+export const DUAL_BLOCK_W = 18;
+export const DUAL_BLOCK_H = 24;
 
-/** A jump is a fixed 30-tick arc, 92 px at the top. */
+/** A jump is a fixed 30-tick arc, 115 px at the top (92 px + 25%). */
 export const DUAL_JUMP_TICKS = 30;
-export const DUAL_JUMP_PEAK = 92;
+export const DUAL_JUMP_PEAK = 115;
 
-/** An obstacle is in front of the runner for this many ticks. */
-export const DUAL_HIT_TICKS = 6;
+/** An obstacle is in front of the runner for this many ticks (narrower blocks: 5, was 6). */
+export const DUAL_HIT_TICKS = 5;
 
 /** The scroll speed used for drawing: 2.0 px a tick, +0.3 every ten seconds, cap 4.4. */
 export const DUAL_SCROLL_START_FP = 512;
@@ -58,6 +58,8 @@ export const DUAL_SEP_EARLY = 20;
 export const DUAL_SEP_LATE = 12;
 export const DUAL_SEP_SWITCH_TICK = 20 * TICKS_PER_SECOND;
 
+/** Par: fifty obstacles passed. */
+export const DUAL_PAR = 50;
 export const DUAL_OBSTACLE_POINTS = 2;
 export const DUAL_POINTS_CAP = 110;
 export const DUAL_SURVIVE_BONUS = 40;
@@ -78,6 +80,18 @@ export function dualScroll(tick: number): number {
   return Math.min(DUAL_SCROLL_CAP_FP, speed);
 }
 
+/**
+ * Integer height of a runner in px: an arc of {@link DUAL_JUMP_PEAK} over the
+ * jump, starting from `base` (non-zero after a mid-air jump) and easing it out.
+ */
+export function dualJumpHeight(start: number, base: number, until: number, tick: number): number {
+  if (tick >= until) return 0;
+  const u = tick - start;
+  const t = DUAL_JUMP_TICKS;
+  const arc = Math.trunc((4 * DUAL_JUMP_PEAK * u * (t - u)) / (t * t));
+  return arc + Math.trunc((base * (t - u)) / t);
+}
+
 /* ================================ State ================================ */
 
 export interface DualState {
@@ -89,6 +103,14 @@ export interface DualState {
   /** The tick each runner is airborne until (0 means grounded). */
   leftUntil: number;
   rightUntil: number;
+  /** Whether each runner has used its one mid-air jump (reset on landing). */
+  leftDouble: boolean;
+  rightDouble: boolean;
+  /** Drawing only: the tick the current arc started and the height it started from. */
+  leftStart: number;
+  rightStart: number;
+  leftBase: number;
+  rightBase: number;
   passed: number;
   jumps: number;
   dead: boolean;
@@ -127,6 +149,12 @@ function init(seed: number): DualState {
     right: built.right,
     leftUntil: 0,
     rightUntil: 0,
+    leftDouble: false,
+    rightDouble: false,
+    leftStart: 0,
+    rightStart: 0,
+    leftBase: 0,
+    rightBase: 0,
     passed: 0,
     jumps: 0,
     dead: false,
@@ -165,15 +193,25 @@ export function dualPassedOn(schedule: readonly number[], tick: number): number 
 function step(state: DualState, input: ArcadeInputEvent | null): DualState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
-  let { leftUntil, rightUntil, jumps } = state;
+  let { leftUntil, rightUntil, jumps, leftDouble, rightDouble } = state;
+  let { leftStart, rightStart, leftBase, rightBase } = state;
+  // Landing gives the mid-air jump back.
+  if (tick >= leftUntil) leftDouble = false;
+  if (tick >= rightUntil) rightDouble = false;
 
   if (input && input.k === DUAL_INPUT_JUMP) {
     const side = clampInt(input.a, 0, 1);
-    // A tap while that runner is in the air does nothing.
-    if (side === 0 && tick >= leftUntil) {
+    // Grounded: a jump. In the air: one extra jump, then nothing until landing.
+    if (side === 0 && (tick >= leftUntil || !leftDouble)) {
+      if (tick < leftUntil) leftDouble = true;
+      leftBase = dualJumpHeight(leftStart, leftBase, leftUntil, tick);
+      leftStart = tick;
       leftUntil = tick + DUAL_JUMP_TICKS;
       jumps += 1;
-    } else if (side === 1 && tick >= rightUntil) {
+    } else if (side === 1 && (tick >= rightUntil || !rightDouble)) {
+      if (tick < rightUntil) rightDouble = true;
+      rightBase = dualJumpHeight(rightStart, rightBase, rightUntil, tick);
+      rightStart = tick;
       rightUntil = tick + DUAL_JUMP_TICKS;
       jumps += 1;
     }
@@ -187,6 +225,12 @@ function step(state: DualState, input: ArcadeInputEvent | null): DualState {
       tick,
       leftUntil,
       rightUntil,
+      leftDouble,
+      rightDouble,
+      leftStart,
+      rightStart,
+      leftBase,
+      rightBase,
       jumps,
       dead: true,
       deadSide: leftHit ? 0 : 1,
@@ -195,14 +239,27 @@ function step(state: DualState, input: ArcadeInputEvent | null): DualState {
   }
 
   const passed = dualPassedOn(state.left, tick) + dualPassedOn(state.right, tick);
-  const next: DualState = { ...state, tick, leftUntil, rightUntil, jumps, passed };
+  const next: DualState = {
+    ...state,
+    tick,
+    leftUntil,
+    rightUntil,
+    leftDouble,
+    rightDouble,
+    leftStart,
+    rightStart,
+    leftBase,
+    rightBase,
+    jumps,
+    passed,
+  };
   if (tick >= DUAL_RUN_TICKS) return { ...next, endedTick: tick };
   return next;
 }
 
 function score(state: DualState): number {
-  const earned = Math.min(DUAL_POINTS_CAP, DUAL_OBSTACLE_POINTS * state.passed);
-  return clampInt(earned + (dualSurvived(state) ? DUAL_SURVIVE_BONUS : 0), 0, 150);
+  const earned = parPoints(state.passed, DUAL_PAR);
+  return clampInt(earned + (dualSurvived(state) ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
 }
 
 /* =========================== Integrity checks ========================== */
@@ -255,21 +312,14 @@ export const DUAL_RUNNER = "#F5B82E";
 export const DUAL_BLOCK = "#FF4D4D";
 export const DUAL_GROUND = "#2A2A33";
 
-/** Height above the ground for a runner airborne until this tick. */
-function jumpHeight(until: number, tick: number): number {
-  if (tick >= until) return 0;
-  const left = until - tick;
-  const done = DUAL_JUMP_TICKS - left;
-  // A symmetrical arc: 4h·p·(1−p).
-  const p = done / DUAL_JUMP_TICKS;
-  return DUAL_JUMP_PEAK * 4 * p * (1 - p);
-}
 
 function drawSide(
   ctx: CanvasRenderingContext2D,
   state: DualState,
   schedule: readonly number[],
   until: number,
+  start: number,
+  base: number,
   originX: number,
 ): void {
   const speed = dualScroll(state.tick) / 256;
@@ -289,7 +339,7 @@ function drawSide(
     ctx.fillRect(x - DUAL_BLOCK_W / 2, DUAL_GROUND_Y - DUAL_BLOCK_H, DUAL_BLOCK_W, DUAL_BLOCK_H);
   }
 
-  const height = jumpHeight(until, state.tick);
+  const height = dualJumpHeight(start, base, until, state.tick);
   ctx.fillStyle = DUAL_RUNNER;
   ctx.beginPath();
   ctx.arc(
@@ -314,8 +364,16 @@ function draw(ctx: CanvasRenderingContext2D, state: DualState, size: CanvasSize)
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
-  drawSide(ctx, state, state.left, state.leftUntil, 0);
-  drawSide(ctx, state, state.right, state.rightUntil, DUAL_PANEL_W);
+  drawSide(ctx, state, state.left, state.leftUntil, state.leftStart, state.leftBase, 0);
+  drawSide(
+    ctx,
+    state,
+    state.right,
+    state.rightUntil,
+    state.rightStart,
+    state.rightBase,
+    DUAL_PANEL_W,
+  );
 
   ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
   ctx.lineWidth = 1;

@@ -18,6 +18,7 @@ import { Standings } from "@/components/duel/Standings";
 import { DuelOverall } from "@/components/duel/DuelOverall";
 import { Podium } from "@/components/duel/Podium";
 import { TimerRing, timerSlotClass } from "@/components/duel/TimerRing";
+import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import { buzz } from "@/lib/motion";
 import {
   playLock,
@@ -62,6 +63,7 @@ import {
   puzzleRevealMs,
   puzzleShowsTimer,
   puzzleTimeLimitMs,
+  puzzleRunMs,
 } from "@/lib/duel/registry";
 import {
   INTRO_MS,
@@ -233,6 +235,8 @@ function DuelScreen() {
   const timeLimitMs = puzzleTimeLimitMs(puzzle);
   const clockDeadline = clockStart === null ? null : clockStart + timeLimitMs;
   const msRemaining = clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - now);
+  // Arcade rounds show the run itself, driven by the sim, not the phase slack.
+  const runMs = phase === "puzzle" ? puzzleRunMs(puzzle) : null;
 
   const mySlot = me?.player_slot ?? 0;
   const opponentSlot = opponent?.player_slot ?? (mySlot === 1 ? 2 : 1);
@@ -741,8 +745,10 @@ function DuelScreen() {
             }`}
           >
             <TimerRing
-              msRemaining={myResult ? 0 : msRemaining}
-              totalMs={timeLimitMs}
+              msRemaining={
+                myResult ? 0 : runMs !== null ? arcadeMsRemaining(runMs) : msRemaining
+              }
+              totalMs={runMs ?? timeLimitMs}
               active={clockActive && !myResult}
             />
           </div>

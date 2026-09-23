@@ -1050,7 +1050,7 @@ const breakerSummary: SummaryBuilder = (result) => {
   return {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
-      : `${hits} hits · ${left} brick${left === 1 ? "" : "s"} left · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
+      : `${Number(result.extra?.["destroyed"] ?? 64 - left)} / 64 bricks · ${hits} hits · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
     detail: [`${Number(result.extra?.["losses"] ?? 0)} relaunches`],
   };
 };

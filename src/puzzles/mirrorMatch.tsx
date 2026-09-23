@@ -130,7 +130,7 @@ function IntroExample() {
         </span>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Three shapes — get them all to earn the speed bonus. You have 30 seconds.
+        Five shapes — get them all to earn the speed bonus. You have 60 seconds.
       </p>
     </div>
   );
@@ -150,7 +150,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     setPicks([]);
   }, [key]);
 
-  // The run is sent once all three are answered, or just before time is up.
+  // The run is sent once all five are answered, or just before time is up.
   useEffect(() => {
     if (items.length === 0 || locked || submitted.current === key) return;
     const timeUp = now >= phaseStartedAt + MIRMATCH_TIME_MS - 400;

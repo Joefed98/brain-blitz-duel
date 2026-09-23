@@ -4,20 +4,23 @@
  */
 
 import { pick } from "./random";
-import {
-  applyMove,
-  isSolved,
-  occupancy,
-  parseLayout,
-  serialiseLayout,
-  slideRange,
-} from "./unblock";
+import { occupancy, parseLayout } from "./unblock";
 import { UNBLOCK_BANK } from "./unblockBank.server";
 import { UNBLOCK_COLS, type UnblockPuzzleData, type UnblockVehicle } from "./types";
 
-/** Draws one verified layout, its minimum and its stored shortest solution. */
-export function generateUnblock(): UnblockPuzzleData {
-  const entry = pick(UNBLOCK_BANK);
+export interface UnblockBankRow {
+  layout: string;
+  min_moves: number;
+  solution: string;
+}
+
+/**
+ * Builds a round from one bank entry. The layouts are solved ahead of time by
+ * scripts/unblock-bank.ts — no solver ever runs while a room is live. With no
+ * row (the bank could not be reached) the built-in verified list is used.
+ */
+export function generateUnblock(row?: UnblockBankRow | null): UnblockPuzzleData {
+  const entry = row ? `${row.layout}|${row.min_moves}|${row.solution}` : pick(UNBLOCK_BANK);
   const [layout, min, solution] = entry.split("|");
   const vehicles = parseLayout(layout ?? "");
   const minMoves = Number.parseInt(min ?? "", 10);
@@ -30,32 +33,32 @@ export function generateUnblock(): UnblockPuzzleData {
   };
 }
 
-/** Fewest slides from this position to the exit, or null if it is stuck. */
-export function unblockDistance(vehicles: UnblockVehicle[], cap = 200_000): number | null {
-  if (isSolved(vehicles)) return 0;
-  const seen = new Set<string>([serialiseLayout(vehicles)]);
-  let frontier: UnblockVehicle[][] = [vehicles];
-  for (let depth = 1; depth <= 60; depth++) {
-    const next: UnblockVehicle[][] = [];
-    for (const state of frontier) {
-      for (const v of state) {
-        const { min, max } = slideRange(state, v.id);
-        for (let to = min; to <= max; to++) {
-          const moved = applyMove(state, { id: v.id, to });
-          if (!moved) continue;
-          const id = serialiseLayout(moved);
-          if (seen.has(id)) continue;
-          if (isSolved(moved)) return depth;
-          seen.add(id);
-          next.push(moved);
-          if (seen.size > cap) return null;
-        }
-      }
-    }
-    if (!next.length) return null;
-    frontier = next;
+/** How many of the least recently used layouts a draw chooses from. */
+const UNBLOCK_DRAW_POOL = 100;
+
+/**
+ * Picks a layout from the stored bank, avoiding recent ones: only the 100
+ * least recently used are candidates, and the pick is stamped as used.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function drawUnblockRow(client: any): Promise<UnblockBankRow | null> {
+  try {
+    const { data, error } = await client
+      .from("unblock_bank")
+      .select("id, layout, min_moves, solution")
+      .order("last_used_at", { ascending: true, nullsFirst: true })
+      .limit(UNBLOCK_DRAW_POOL);
+    if (error || !data?.length) return null;
+    const row = pick(data as (UnblockBankRow & { id: number })[]);
+    await client
+      .from("unblock_bank")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("id", row.id);
+    return row;
+  } catch (err) {
+    console.error("[unblock] bank draw failed", err);
+    return null;
   }
-  return null;
 }
 
 /** Cars standing between the gold car's nose and the exit gap. */

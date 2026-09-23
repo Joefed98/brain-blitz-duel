@@ -163,3 +163,13 @@
 - Dual: scroll 2.0 → 4.4 px/tick, +0.3 every 10 s.
 - Bullseye: outer ring 91 px, new scoring curve (ten centres = 150, −10 per point dropped above 90, T × 0.55 below).
 - Proofs: all arcade checks pass, incl. a new Slice specials check (payload spawn counts, no bombs in a frenzy, client/server identity).
+
+## Fixes and tuning (Sep 23)
+- [x] Unblock: no solver in rooms; 400-layout bank in the database with recent avoidance; guarded reveal.
+- [x] Arcade clock shows the run (sim-driven), 0.0 when the sim ends.
+- [x] Arcade reveal mismatch: 2,000-event cap made the server replay with no inputs; cap now 6,000.
+- [x] One par-based arcade scoring formula; SCORE lines updated.
+- [x] Mirror Match five shapes, 60 s.
+- [x] Dual smaller blocks, double jump, +25% jump.
+- [x] Ricochet 85% spikes, 60 px clear gap, slide keyed to height.
+- [x] Breaker power-up button is its own target.

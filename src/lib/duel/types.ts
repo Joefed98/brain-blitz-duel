@@ -767,8 +767,8 @@ export const COUNTUP_MAX_COUNT = 12;
 /* -------------------------------------------------------------------------- */
 
 /** A run of three flips in one round. */
-export const MIRMATCH_ITEMS = 3;
-export const MIRMATCH_TIME_MS = 30_000;
+export const MIRMATCH_ITEMS = 5;
+export const MIRMATCH_TIME_MS = 60_000;
 
 /** Which dashed line the target is flipped across. */
 export type MirrorAxis = "vertical" | "horizontal";

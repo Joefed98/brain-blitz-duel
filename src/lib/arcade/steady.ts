@@ -18,8 +18,7 @@ import {
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
-  type InputRange,
-} from "./engine";
+  type InputRange, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
 
 /* ============================== Constants ============================== */
 
@@ -55,6 +54,8 @@ export const STD_EDGE_MARGIN = 46;
 export const STD_TOUCH_COOLDOWN = 12;
 
 export const STD_PX_PER_POINT = 30;
+/** Par: 100 m (40 px = 1 m). */
+export const STD_PAR_PX = 4000;
 export const STD_PX_PER_METRE = 40;
 export const STD_POINTS_CAP = 110;
 export const STD_TOUCH_PENALTY = 4;
@@ -230,9 +231,9 @@ export function stdClean(state: StdState): boolean {
 }
 
 function score(state: StdState): number {
-  const distance = Math.min(STD_POINTS_CAP, Math.trunc(stdDistancePx(state) / STD_PX_PER_POINT));
+  const distance = parPoints(stdDistancePx(state), STD_PAR_PX);
   const afterTouches = Math.max(0, distance - STD_TOUCH_PENALTY * state.touches);
-  return clampInt(afterTouches + (stdClean(state) ? STD_CLEAN_BONUS : 0), 0, 150);
+  return clampInt(afterTouches + (stdClean(state) ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */

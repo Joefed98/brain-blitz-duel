@@ -287,6 +287,17 @@ export function puzzleDurationMs(puzzle: PuzzleData | undefined): number {
   return def.durationMs?.(puzzle) ?? puzzlePrepMs(puzzle) + puzzleTimeLimitMs(puzzle);
 }
 
+/** Slack added to every arcade phase beyond its run; never shown to players. */
+export const ARCADE_PHASE_SLACK_MS = 3000;
+
+/** For arcade rounds, the run length the clock shows; null for everything else. */
+export function puzzleRunMs(puzzle: PuzzleData | undefined): number | null {
+  if (!puzzle) return null;
+  const def = puzzleDef(puzzle.type);
+  if (def.category !== "arcade") return null;
+  return def.timeLimitMs - ARCADE_PHASE_SLACK_MS;
+}
+
 export function puzzleShowsTimer(puzzle: PuzzleData | undefined): boolean {
   if (!puzzle) return true;
   return puzzleDef(puzzle.type).showTimer !== false;

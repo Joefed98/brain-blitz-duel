@@ -7,7 +7,7 @@
  * every constant below is written once, in units.
  */
 
-import { clampInt, px, rngBelow, TICKS_PER_SECOND, type CanvasSize } from "./engine";
+import { clampInt, px, rngBelow, TICKS_PER_SECOND, type CanvasSize, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
 import type { ArcadeGame } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -33,6 +33,8 @@ export const SKYLINE_SPEED_MAX = 1_536;
 export const SKYLINE_PERFECT_TOL = 768;
 export const SKYLINE_PERFECT_GROW = 1_536;
 
+/** Par: 36 blocks placed. */
+export const SKYLINE_PAR = 36;
 export const SKYLINE_BLOCK_POINTS = 3;
 export const SKYLINE_PERFECT_POINTS = 1;
 export const SKYLINE_POINTS_CAP = 110;
@@ -151,11 +153,8 @@ function step(state: SkylineState, tapped: boolean): SkylineState {
 }
 
 function score(state: SkylineState): number {
-  const earned = Math.min(
-    SKYLINE_POINTS_CAP,
-    SKYLINE_BLOCK_POINTS * state.placed + SKYLINE_PERFECT_POINTS * state.perfects,
-  );
-  const bonus = skylineSurvived(state) ? SKYLINE_SURVIVE_BONUS : 0;
+  const earned = parPoints(state.placed, SKYLINE_PAR);
+  const bonus = skylineSurvived(state) ? ARCADE_COMPLETION_BONUS : 0;
   return clampInt(earned + bonus, 0, 150);
 }
 

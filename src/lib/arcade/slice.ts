@@ -21,8 +21,7 @@ import {
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
-  type InputRange,
-} from "./engine";
+  type InputRange, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
 
 /* ============================== Constants ============================== */
 
@@ -466,11 +465,12 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
 }
 
 function score(state: SliceState): number {
+  // Bonus: the full minute with no bomb sliced.
   const earned =
-    SLICE_SLICE_POINTS * state.slices +
-    SLICE_MULTI_BONUS * state.bonuses -
+    parPoints(state.slices, Math.max(1, sliceTotalDiscs(state))) -
     SLICE_BOMB_PENALTY * state.bombsHit;
-  return clampInt(earned, 0, 150);
+  const bonus = state.tick >= SLICE_RUN_TICKS && state.bombsHit === 0 ? ARCADE_COMPLETION_BONUS : 0;
+  return clampInt(earned + bonus, 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */

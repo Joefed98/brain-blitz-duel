@@ -14,7 +14,7 @@ import { dialsCorrect, decodeSafeTries, safeOpenedOn } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { gravityDistance } from "./gravity.server";
-import { blockingCars, unblockDistance } from "./unblock.server";
+import { blockingCars } from "./unblock.server";
 import { decodeChainTaps, replayChain } from "./chain";
 import { decodeIntruderTaps, replayIntruder } from "./intruder";
 import { decodeNonoCells, replayNonogram } from "./nonogram";
@@ -353,11 +353,12 @@ export function gradeSubmission(
       let progress = 0;
       let fewerBlockers = false;
       if (!replay.solved) {
-        // How much of the solver's distance the player closed.
-        const startDistance = unblockDistance(puzzle.vehicles) ?? min;
-        const left = unblockDistance(replay.vehicles);
-        if (left !== null && startDistance > 0) progress = 1 - left / startDistance;
-        fewerBlockers = blockingCars(replay.vehicles) < blockingCars(puzzle.vehicles);
+        // Progress is the share of the gold car's blockers cleared from its
+        // lane — a cheap count, so no solver ever runs during a room.
+        const before = blockingCars(puzzle.vehicles);
+        const after = blockingCars(replay.vehicles);
+        if (before > 0) progress = Math.max(0, (before - after) / before) * 0.9;
+        fewerBlockers = after < before;
       }
       score = scoreUnblock(replay.solved, ms, replay.moves, min, progress, fewerBlockers);
       extraDetail = { solved: replay.solved, moves: replay.moves, minMoves: min };
@@ -912,6 +913,7 @@ export function gradeSubmission(
       extraDetail = {
         hits: run.hits,
         bricksLeft: run.bricksLeft,
+        destroyed: run.destroyed,
         totalHits: run.totalHits,
         losses: run.losses,
         powerUps: run.powerUps,
