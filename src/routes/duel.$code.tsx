@@ -217,8 +217,9 @@ function DuelScreen() {
 
   useEffect(() => {
     draftAnswer.current = "";
+    setRevealed(null);
     // The previous round's inputs are no longer needed once a new round opens.
-    if (duel && round > 1) clearStageState(`${duel.id}-${round - 1}`);
+    if (round > 1) clearStageState(`${tournamentKey}-${round - 1}`);
   }, [tournamentKey, round]); // eslint-disable-line react-hooks/exhaustive-deps
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
@@ -350,15 +351,15 @@ function DuelScreen() {
   useEffect(() => {
     if (!duel || round < 1 || (phase !== "reveal" && phase !== "result" && phase !== "standings"))
       return;
-    if (revealed?.round === round) return;
+    if (revealed?.round === round && revealed.tournamentKey === tournamentKey) return;
     let cancelled = false;
     void fetchRevealPuzzle(duel.id, round).then((found) => {
-      if (found && !cancelled) setRevealed({ round, data: found });
+      if (found && !cancelled) setRevealed({ round, tournamentKey, data: found });
     });
     return () => {
       cancelled = true;
     };
-  }, [duel?.id, phase, round, revealed?.round]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tournamentKey, phase, round, revealed?.round, revealed?.tournamentKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * The lobby bed plays from the waiting room through the first round's intro,
