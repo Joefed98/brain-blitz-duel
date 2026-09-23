@@ -4,6 +4,8 @@
  * server replays with the STORED seed and keeps its own score.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   skylineCheckpoint,
   skylineGame,
@@ -45,9 +47,7 @@ export function encodeSkylineRun(run: SkylineRun): string {
 }
 
 export function decodeSkylineRun(raw: string): SkylineRun {
-  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = String(
-    raw ?? "",
-  ).split("|");
+  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = (String(raw ?? "").split("~")[0] ?? "").split("|");
   const inputs = tapPart
     .split(",")
     .map((part) => Number.parseInt(part, 10))
@@ -91,6 +91,8 @@ export interface SkylineResult {
   clientLag: boolean;
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   checkpoints: SkylineCheckpoint[];
   reason?: string;
   state: SkylineState;
@@ -102,7 +104,7 @@ export function replaySkylineRun(seed: number, raw: string): SkylineResult {
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, SKYLINE_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < SKYLINE_RUN_TICKS;
   const check = checkInputLog(run.inputs, SKYLINE_RUN_TICKS);
-  const taps = check.ok ? new Set(run.inputs) : new Set<number>();
+  const taps = new Set(check.ticks);
   const lastTick = clientLag ? endTick : SKYLINE_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
@@ -142,6 +144,8 @@ export function replaySkylineRun(seed: number, raw: string): SkylineResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };

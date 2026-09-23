@@ -5,6 +5,8 @@
  * against the game's declared ranges, and keeps its own score.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   snakeCheckpoint,
   snakeGame,
@@ -62,7 +64,7 @@ export function encodeSnakeRun(run: SnakeRun): string {
 
 export function decodeSnakeRun(raw: string): SnakeRun {
   const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
-    String(raw ?? "").split("|");
+    (String(raw ?? "").split("~")[0] ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
@@ -104,6 +106,8 @@ export interface SnakeResult {
   clientLag: boolean;
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   checkpoints: SnakeCheckpoint[];
   reason?: string;
   state: SnakeState;
@@ -116,7 +120,7 @@ export function replaySnakeRun(seed: number, raw: string): SnakeResult {
   const clientLag = endTick > 0 && endTick < SNAKE_RUN_TICKS;
   const check = checkInputEvents(run.events, SNAKE_RUN_TICKS, SNAKE_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
-  if (check.ok) for (const event of run.events) events.set(event.t, event);
+  for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : SNAKE_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
@@ -155,6 +159,8 @@ export function replaySnakeRun(seed: number, raw: string): SnakeResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };

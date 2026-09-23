@@ -4,6 +4,8 @@
  * earned; the server replays with the STORED seed and keeps its own score.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   swerveCheckpoint,
   swerveGame,
@@ -55,9 +57,7 @@ export function encodeSwerveRun(run: SwerveRun): string {
 }
 
 export function decodeSwerveRun(raw: string): SwerveRun {
-  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = String(
-    raw ?? "",
-  ).split("|");
+  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = (String(raw ?? "").split("~")[0] ?? "").split("|");
   const taps = tapPart
     .split(",")
     .filter(Boolean)
@@ -106,6 +106,8 @@ export interface SwerveResult {
   clientLag: boolean;
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   checkpoints: SwerveCheckpoint[];
   reason?: string;
   state: SwerveState;
@@ -159,6 +161,8 @@ export function replaySwerveRun(seed: number, raw: string): SwerveResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };

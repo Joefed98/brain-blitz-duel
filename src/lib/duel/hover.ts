@@ -5,6 +5,8 @@
  * STORED seed and keeps its own score, flagging any disagreement.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   hoverCheckpoint,
   hoverGame,
@@ -45,9 +47,7 @@ export function encodeHoverRun(run: HoverRun): string {
 }
 
 export function decodeHoverRun(raw: string): HoverRun {
-  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = String(
-    raw ?? "",
-  ).split("|");
+  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = (String(raw ?? "").split("~")[0] ?? "").split("|");
   const inputs = tapPart
     .split(",")
     .map((part) => Number.parseInt(part, 10))
@@ -94,6 +94,8 @@ export interface HoverResult {
   /** The tick the phone reached when it lagged. */
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   /** Server-side replay checkpoints, exposed for deterministic proof checks. */
   checkpoints: HoverCheckpoint[];
   reason?: string;
@@ -108,7 +110,7 @@ export function replayHoverRun(seed: number, raw: string): HoverResult {
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, HOVER_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < HOVER_RUN_TICKS;
   const check = checkInputLog(run.inputs, HOVER_RUN_TICKS);
-  const taps = check.ok ? new Set(run.inputs) : new Set<number>();
+  const taps = new Set(check.ticks);
   const lastTick = clientLag ? endTick : HOVER_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
   let state = hoverGame.init(seed);
@@ -146,6 +148,8 @@ export function replayHoverRun(seed: number, raw: string): HoverResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };

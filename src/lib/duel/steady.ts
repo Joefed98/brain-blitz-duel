@@ -4,6 +4,8 @@
  * the server replays with the STORED seed and keeps its own score.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   stdCheckpoint,
   stdClean,
@@ -60,7 +62,7 @@ export function encodeSteadyRun(run: SteadyRun): string {
 
 export function decodeSteadyRun(raw: string): SteadyRun {
   const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
-    String(raw ?? "").split("|");
+    (String(raw ?? "").split("~")[0] ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
@@ -100,6 +102,8 @@ export interface SteadyResult {
   clientLag: boolean;
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   checkpoints: StdCheckpoint[];
   reason?: string;
   state: StdState;
@@ -112,7 +116,7 @@ export function replaySteadyRun(seed: number, raw: string): SteadyResult {
   const clientLag = endTick > 0 && endTick < STD_RUN_TICKS;
   const check = checkInputEvents(run.events, STD_RUN_TICKS, STD_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
-  if (check.ok) for (const event of run.events) events.set(event.t, event);
+  for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : STD_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
@@ -155,6 +159,8 @@ export function replaySteadyRun(seed: number, raw: string): SteadyResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };

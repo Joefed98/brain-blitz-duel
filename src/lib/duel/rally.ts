@@ -4,6 +4,8 @@
  * the server replays with the STORED seed and keeps its own score.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   rallyCheckpoint,
   rallyGame,
@@ -62,7 +64,7 @@ export function encodeRallyRun(run: RallyRun): string {
 
 export function decodeRallyRun(raw: string): RallyRun {
   const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
-    String(raw ?? "").split("|");
+    (String(raw ?? "").split("~")[0] ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
@@ -103,6 +105,8 @@ export interface RallyResult {
   clientLag: boolean;
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   checkpoints: RallyCheckpoint[];
   reason?: string;
   state: RallyState;
@@ -115,7 +119,7 @@ export function replayRallyRun(seed: number, raw: string): RallyResult {
   const clientLag = endTick > 0 && endTick < RALLY_RUN_TICKS;
   const check = checkInputEvents(run.events, RALLY_RUN_TICKS, RALLY_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
-  if (check.ok) for (const event of run.events) events.set(event.t, event);
+  for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : RALLY_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
@@ -155,6 +159,8 @@ export function replayRallyRun(seed: number, raw: string): RallyResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };
