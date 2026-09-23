@@ -151,16 +151,16 @@ export function useDuel(roomCode: string): DuelState {
     return () => window.clearInterval(id);
   }, [load, userId]);
 
+  const opponentDisconnected =
+    !!opponent &&
+    duel?.status === "in_progress" &&
+    now - new Date(opponent.last_seen_at).getTime() > DISCONNECT_MS;
+
   useEffect(() => {
     if (!duel || duel.status !== "waiting" || !me || isHost) return;
     const id = window.setInterval(() => void checkHostPresence(duel.id), 8000);
     return () => window.clearInterval(id);
   }, [duel?.id, duel?.status, me?.id, isHost]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const opponentDisconnected =
-    !!opponent &&
-    duel?.status === "in_progress" &&
-    now - new Date(opponent.last_seen_at).getTime() > DISCONNECT_MS;
 
   return {
     loading,

@@ -205,7 +205,8 @@ function DuelScreen() {
    * keeps the puzzle object identical while a round is live, so a realtime
    * update cannot re-mount or reset the puzzle a player is working on.
    */
-  const stateKey = duel && round > 0 ? `${duel.id}-${duel.phase_started_at ?? ""}-${round}` : "";
+  const tournamentKey = duel ? `${duel.id}-${duel.tournament_history?.length ?? 0}` : "";
+  const stateKey = duel && round > 0 ? `${tournamentKey}-${round}` : "";
   const incoming = duel && round > 0 ? duel.puzzles_public[round - 1] : undefined;
   const heldPuzzle = useRef<{ key: string; value: PuzzleData | undefined }>({
     key: "",
@@ -218,7 +219,7 @@ function DuelScreen() {
     draftAnswer.current = "";
     // The previous round's inputs are no longer needed once a new round opens.
     if (duel && round > 1) clearStageState(`${duel.id}-${round - 1}`);
-  }, [duel?.id, round]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tournamentKey, round]); // eslint-disable-line react-hooks/exhaustive-deps
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
   // Chat and reactions are live on every screen except an active puzzle.
