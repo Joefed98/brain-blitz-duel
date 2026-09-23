@@ -149,7 +149,7 @@ export function replayHoverRun(seed: number, raw: string): HoverResult {
     clientTick: endTick,
     desyncTick,
     inputDiag: check.diag,
-    replayTick: reached,
+    replayTick: ticks,
     checkpoints: serverCheckpoints,
     state,
   };
