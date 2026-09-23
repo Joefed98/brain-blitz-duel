@@ -365,6 +365,8 @@ export const joinRoomFn = createServerFn({ method: "POST" })
 
     if (mine) {
       if (mine.status === "left") {
+        if (room.status !== "waiting")
+          return { ok: false as const, message: "Game already started." };
         await client.from("duel_players").update({ status: "active" }).eq("id", mine.id);
       }
       return { ok: true as const, roomId: room.id, roomCode: room.room_code };
@@ -404,6 +406,8 @@ export const startRoomFn = createServerFn({ method: "POST" })
     const recent = await recentRoundOrders(client, room, room.host_user_id);
     const lastGoNoGoFirst = await previousGoNoGoFirst(client, room, room.host_user_id);
     const categories = normaliseCategories(room.selected_categories);
+    if (categories.reduce((total, category) => total + typesInCategory(category).length, 0) < (room.round_count ?? TOTAL_ROUNDS))
+      return { ok: false as const, message: "These categories need at least six active games. Choose another category." };
     const { roundOrder, puzzles } = buildRoomPuzzles({
       rounds: room.round_count ?? TOTAL_ROUNDS,
       recent,

@@ -20,6 +20,7 @@ interface FinalResultProps {
   roundOrder: PuzzleType[];
   busy: boolean;
   onPlayAgain: () => void;
+  isHost: boolean;
   onHome: () => void;
 }
 
@@ -33,6 +34,7 @@ export function FinalResult({
   roundOrder,
   busy,
   onPlayAgain,
+  isHost,
   onHome,
 }: FinalResultProps) {
   const headline = outcome === "win" ? "WIN" : outcome === "loss" ? "LOSS" : "DRAW";
@@ -109,7 +111,7 @@ export function FinalResult({
       </div>
 
       <div className="flex flex-col gap-3">
-        <button
+        {isHost ? <button
           type="button"
           onClick={onPlayAgain}
           disabled={busy}
@@ -123,7 +125,7 @@ export function FinalResult({
           ) : (
             "Play again"
           )}
-        </button>
+        </button> : <p className="text-center text-sm text-muted-foreground">Waiting for the host to play again</p>}
         <button
           type="button"
           onClick={onHome}

@@ -606,6 +606,7 @@ function DuelScreen() {
           breakdown={roundBreakdown(results, mySlot, opponentSlot)}
           roundOrder={duel.round_order}
           busy={rematchBusy}
+          isHost={isHost}
           onPlayAgain={() => void handlePlayAgain()}
           onHome={() => void handleLeave()}
         />
