@@ -1,3 +1,5 @@
+import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
+import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
@@ -80,6 +82,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
+    appendClientCounters(encodeRaw(), arcadeCounters("cross", state.current, crossGame.score(state.current)));
+  const encodeRaw = (): string =>
     encodeCrossRun({
       seed,
       claimedScore: crossGame.score(state.current),
@@ -131,8 +135,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             move === undefined
               ? null
               : { t: state.current.tick + 1, k: CROSS_INPUT_MOVE, a: move, b: 0, c: 0, d: 0 };
-          if (applied) events.current.push(applied);
-          state.current = crossGame.step(state.current, applied);
+          recordInput(events.current, applied, crossGame.inputRanges);
+          state.current = crossGame.step(state.current, inputAt(events.current, state.current.tick + 1));
           if (state.current.tick % CROSS_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(crossCheckpoint(state.current));
           }

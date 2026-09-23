@@ -5,6 +5,8 @@
  * against the game's declared ranges, and keeps its own score.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   dualCheckpoint,
   dualGame,
@@ -58,7 +60,7 @@ export function encodeDualRun(run: DualRun): string {
 
 export function decodeDualRun(raw: string): DualRun {
   const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
-    String(raw ?? "").split("|");
+    (String(raw ?? "").split("~")[0] ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
@@ -97,6 +99,8 @@ export interface DualResult {
   clientLag: boolean;
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   checkpoints: DualCheckpoint[];
   reason?: string;
   state: DualState;
@@ -109,7 +113,7 @@ export function replayDualRun(seed: number, raw: string): DualResult {
   const clientLag = endTick > 0 && endTick < DUAL_RUN_TICKS;
   const check = checkInputEvents(run.events, DUAL_RUN_TICKS, DUAL_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
-  if (check.ok) for (const event of run.events) events.set(event.t, event);
+  for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : DUAL_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
@@ -149,6 +153,8 @@ export function replayDualRun(seed: number, raw: string): DualResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };

@@ -4,6 +4,8 @@
  * server replays with the STORED seed and keeps its own score.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   beatCheckpoint,
   beatGame,
@@ -58,7 +60,7 @@ export function encodeBeatRun(run: BeatRun): string {
 
 export function decodeBeatRun(raw: string): BeatRun {
   const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
-    String(raw ?? "").split("|");
+    (String(raw ?? "").split("~")[0] ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
@@ -103,6 +105,8 @@ export interface BeatResult {
   clientLag: boolean;
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   checkpoints: BeatCheckpoint[];
   reason?: string;
   state: BeatState;
@@ -115,7 +119,7 @@ export function replayBeatRun(seed: number, raw: string): BeatResult {
   const clientLag = endTick > 0 && endTick < BEAT_RUN_TICKS;
   const check = checkInputEvents(run.events, BEAT_RUN_TICKS, BEAT_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
-  if (check.ok) for (const event of run.events) events.set(event.t, event);
+  for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : BEAT_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
@@ -161,6 +165,8 @@ export function replayBeatRun(seed: number, raw: string): BeatResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };

@@ -4,6 +4,8 @@
  * the server replays with the STORED seed and keeps its own score.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   sliceCheckpoint,
   sliceGame,
@@ -57,7 +59,7 @@ export function encodeSliceRun(run: SliceRun): string {
 
 export function decodeSliceRun(raw: string): SliceRun {
   const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
-    String(raw ?? "").split("|");
+    (String(raw ?? "").split("~")[0] ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
@@ -96,6 +98,8 @@ export interface SliceResult {
   clientLag: boolean;
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   checkpoints: SliceCheckpoint[];
   reason?: string;
   state: SliceState;
@@ -108,7 +112,7 @@ export function replaySliceRun(seed: number, raw: string): SliceResult {
   const clientLag = endTick > 0 && endTick < SLICE_RUN_TICKS;
   const check = checkInputEvents(run.events, SLICE_RUN_TICKS, SLICE_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
-  if (check.ok) for (const event of run.events) events.set(event.t, event);
+  for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : SLICE_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
@@ -149,6 +153,8 @@ export function replaySliceRun(seed: number, raw: string): SliceResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };

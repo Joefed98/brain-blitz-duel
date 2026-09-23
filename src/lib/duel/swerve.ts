@@ -4,6 +4,8 @@
  * earned; the server replays with the STORED seed and keeps its own score.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   swerveCheckpoint,
   swerveGame,
@@ -55,9 +57,7 @@ export function encodeSwerveRun(run: SwerveRun): string {
 }
 
 export function decodeSwerveRun(raw: string): SwerveRun {
-  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = String(
-    raw ?? "",
-  ).split("|");
+  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = (String(raw ?? "").split("~")[0] ?? "").split("|");
   const taps = tapPart
     .split(",")
     .filter(Boolean)
@@ -106,6 +106,8 @@ export interface SwerveResult {
   clientLag: boolean;
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   checkpoints: SwerveCheckpoint[];
   reason?: string;
   state: SwerveState;
@@ -119,7 +121,11 @@ export function replaySwerveRun(seed: number, raw: string): SwerveResult {
   const ticks = run.taps.map((tap) => tap.tick);
   const check = checkInputLog(ticks, SWERVE_RUN_TICKS);
   const moves = new Map<number, SwerveInput>();
-  if (check.ok) for (const tap of run.taps) moves.set(tap.tick, tap.dir);
+  // Repairs only ever drop from the tail, so the repaired ticks line up with the taps.
+  check.ticks.forEach((tick, index) => {
+    const tap = run.taps[index];
+    if (tap) moves.set(tick, tap.dir);
+  });
   const lastTick = clientLag ? endTick : SWERVE_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
@@ -159,6 +165,8 @@ export function replaySwerveRun(seed: number, raw: string): SwerveResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };

@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
+import { useEffect, useRef, useState } from "react";
 
 import { WaitingLine } from "@/components/duel/Dots";
 
@@ -15,10 +16,45 @@ interface AnswerRevealProps {
   myCorrect: boolean;
   myReactionAvgMs: number | null;
   myMsRemaining?: number;
+  /** The stored result detail; arcade runs carry dev diagnostics under `diag`. */
+  myExtra?: Record<string, unknown> | null;
   /** False until the round's answers have arrived from the server. */
   answersReady: boolean;
   startedAt: number;
   now: number;
+}
+
+/** Dev-only (?dev=1): what the server did with this arcade run. */
+function DevDiagnostics({ extra }: { extra: Record<string, unknown> | null }) {
+  const [on, setOn] = useState(false);
+  useEffect(() => setOn(devDiagnosticsOn()), []);
+  const diag = extra?.["diag"] as ArcadeDiag | undefined;
+  if (!on || !diag) return null;
+  const names = Array.from(
+    new Set([...Object.keys(diag.server ?? {}), ...Object.keys(diag.client ?? {})]),
+  ).filter((name) => name !== "tick");
+  const differs = names.filter((name) => diag.client?.[name] !== diag.server?.[name]);
+  const first = diag.first
+    ? `#${diag.first.index} t${diag.first.t} k${diag.first.k} [${diag.first.a},${diag.first.b},${diag.first.c},${diag.first.d}] ${diag.first.reason}`
+    : "none";
+  return (
+    <div className="shrink-0 break-all font-mono text-[10px] leading-tight text-muted-foreground opacity-70">
+      <div>
+        events {diag.received} · clamped {diag.clamped} · dropped {diag.dropped} · end t
+        {diag.replayEndTick} · desync {diag.desyncTick ?? "none"} · {diag.replayMs}ms
+      </div>
+      <div>first fix: {first}</div>
+      <div>
+        {diag.client
+          ? differs.length === 0
+            ? "client = server"
+            : differs
+                .map((name) => `${name} c${diag.client?.[name] ?? "-"}/s${diag.server?.[name] ?? "-"}`)
+                .join(" · ")
+          : "no client counters"}
+      </div>
+    </div>
+  );
 }
 
 function Verdict({ correct }: { correct: boolean }) {
@@ -73,6 +109,7 @@ export function AnswerReveal({
   myCorrect,
   myReactionAvgMs,
   myMsRemaining,
+  myExtra,
   answersReady,
   startedAt,
   now,
@@ -131,6 +168,7 @@ export function AnswerReveal({
           )}
         </div>
       </div>
+      <DevDiagnostics extra={myExtra ?? null} />
     </div>
   );
 }

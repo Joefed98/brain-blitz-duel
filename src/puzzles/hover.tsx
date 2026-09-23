@@ -1,3 +1,5 @@
+import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
+import { recordTap, tapAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
@@ -75,6 +77,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
+    appendClientCounters(encodeRaw(), arcadeCounters("hover", state.current, hoverGame.score(state.current)));
+  const encodeRaw = (): string =>
     encodeHoverRun({
       seed,
       claimedScore: hoverGame.score(state.current),
@@ -129,8 +133,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // tick — never a wall-clock reading.
           const tapped = pending.current > 0;
           if (tapped) pending.current -= 1;
-          if (tapped) inputs.current.push(state.current.tick + 1);
-          state.current = hoverGame.step(state.current, tapped);
+          if (tapped) recordTap(inputs.current, state.current.tick + 1);
+          state.current = hoverGame.step(state.current, tapAt(inputs.current, state.current.tick + 1));
           if (state.current.tick % HOVER_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(hoverCheckpoint(state.current));
           }

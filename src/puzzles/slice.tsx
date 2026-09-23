@@ -1,3 +1,5 @@
+import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
+import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
@@ -74,6 +76,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
+    appendClientCounters(encodeRaw(), arcadeCounters("slice", state.current, sliceGame.score(state.current)));
+  const encodeRaw = (): string =>
     encodeSliceRun({
       seed,
       claimedScore: sliceGame.score(state.current),
@@ -133,9 +137,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               d: point.y,
             };
             from.current = point;
-            events.current.push(applied);
+            recordInput(events.current, applied, sliceGame.inputRanges);
           }
-          state.current = sliceGame.step(state.current, applied);
+          state.current = sliceGame.step(state.current, inputAt(events.current, state.current.tick + 1));
           if (state.current.tick % SLICE_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(sliceCheckpoint(state.current));
           }

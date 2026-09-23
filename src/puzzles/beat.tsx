@@ -1,3 +1,5 @@
+import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
+import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
@@ -86,6 +88,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
+    appendClientCounters(encodeRaw(), arcadeCounters("beat", state.current, beatGame.score(state.current)));
+  const encodeRaw = (): string =>
     encodeBeatRun({
       seed,
       claimedScore: beatGame.score(state.current),
@@ -133,8 +137,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // A tap between ticks applies on the next sim tick, logged as that tick.
           const queued = pending.current.shift() ?? null;
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
-          if (applied) events.current.push(applied);
-          state.current = beatGame.step(state.current, applied);
+          recordInput(events.current, applied, beatGame.inputRanges);
+          state.current = beatGame.step(state.current, inputAt(events.current, state.current.tick + 1));
           if (state.current.tick % BEAT_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(beatCheckpoint(state.current));
           }

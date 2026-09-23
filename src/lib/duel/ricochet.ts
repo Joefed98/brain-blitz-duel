@@ -4,6 +4,8 @@
  * server replays with the STORED seed and keeps its own score.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   ricoCheckpoint,
   ricoGame,
@@ -45,9 +47,7 @@ export function encodeRicoRun(run: RicoRun): string {
 }
 
 export function decodeRicoRun(raw: string): RicoRun {
-  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = String(
-    raw ?? "",
-  ).split("|");
+  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = (String(raw ?? "").split("~")[0] ?? "").split("|");
   const inputs = tapPart
     .split(",")
     .map((part) => Number.parseInt(part, 10))
@@ -92,6 +92,8 @@ export interface RicoResult {
   clientLag: boolean;
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   checkpoints: RicoCheckpoint[];
   reason?: string;
   state: RicoState;
@@ -103,7 +105,7 @@ export function replayRicoRun(seed: number, raw: string): RicoResult {
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, RICO_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < RICO_RUN_TICKS;
   const check = checkInputLog(run.inputs, RICO_RUN_TICKS);
-  const taps = check.ok ? new Set(run.inputs) : new Set<number>();
+  const taps = new Set(check.ticks);
   const lastTick = clientLag ? endTick : RICO_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
@@ -143,6 +145,8 @@ export function replayRicoRun(seed: number, raw: string): RicoResult {
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };

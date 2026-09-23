@@ -1,3 +1,5 @@
+import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
+import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
@@ -98,6 +100,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
+    appendClientCounters(encodeRaw(), arcadeCounters("breaker", state.current, breakerGame.score(state.current)));
+  const encodeRaw = (): string =>
     encodeBreakerRun({
       seed,
       claimedScore: breakerGame.score(state.current),
@@ -157,7 +161,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               c: 0,
               d: 0,
             };
-            events.current.push(applied);
+            recordInput(events.current, applied, breakerGame.inputRanges);
           } else {
             const target = wanted.current;
             if (target !== null && target !== sent.current) {
@@ -170,10 +174,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                 d: 0,
               };
               sent.current = target;
-              events.current.push(applied);
+              recordInput(events.current, applied, breakerGame.inputRanges);
             }
           }
-          state.current = breakerGame.step(state.current, applied);
+          state.current = breakerGame.step(state.current, inputAt(events.current, state.current.tick + 1));
           if (state.current.tick % BRK_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(brkCheckpoint(state.current));
           }

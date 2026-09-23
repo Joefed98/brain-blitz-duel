@@ -1,3 +1,4 @@
+import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
@@ -82,6 +83,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
+    appendClientCounters(encodeRaw(), arcadeCounters("swerve", state.current, swerveGame.score(state.current)));
+  const encodeRaw = (): string =>
     encodeSwerveRun({
       seed,
       claimedScore: swerveGame.score(state.current),
@@ -131,8 +134,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // A tap between ticks applies on the next tick, logged as that sim
           // tick — never a wall-clock reading.
           const queued = pending.current.shift() ?? 0;
-          if (queued !== 0) taps.current.push({ tick: state.current.tick + 1, dir: queued });
-          state.current = swerveGame.step(state.current, queued);
+          const lastTap = taps.current[taps.current.length - 1];
+          if (queued !== 0 && (!lastTap || lastTap.tick < state.current.tick + 1)) {
+            taps.current.push({ tick: state.current.tick + 1, dir: queued });
+          }
+          // The sim reads its move from the recorded log only.
+          const logged = taps.current[taps.current.length - 1];
+          const move = logged && logged.tick === state.current.tick + 1 ? logged.dir : 0;
+          state.current = swerveGame.step(state.current, move);
           if (state.current.tick % SWERVE_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(swerveCheckpoint(state.current));
           }

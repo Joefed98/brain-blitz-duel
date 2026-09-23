@@ -5,6 +5,8 @@
  * payload against the game's declared ranges, and keeps its own score.
  */
 
+import type { InputDiag } from "@/lib/arcade/engine";
+
 import {
   bullseyeCheckpoint,
   bullseyeFinished,
@@ -63,7 +65,7 @@ export function encodeBullseyeRun(run: BullseyeRun): string {
 
 export function decodeBullseyeRun(raw: string): BullseyeRun {
   const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
-    String(raw ?? "").split("|");
+    (String(raw ?? "").split("~")[0] ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
@@ -103,6 +105,8 @@ export interface BullseyeResult {
   clientLag: boolean;
   clientTick: number;
   desyncTick: number | null;
+  inputDiag: InputDiag;
+  replayTick: number;
   checkpoints: BullseyeCheckpoint[];
   reason?: string;
   state: BullseyeState;
@@ -119,7 +123,7 @@ export function replayBullseyeRun(
   const clientLag = endTick > 0 && endTick < BULLSEYE_RUN_TICKS;
   const check = checkInputEvents(run.events, BULLSEYE_RUN_TICKS, BULLSEYE_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
-  if (check.ok) for (const event of run.events) events.set(event.t, event);
+  for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : BULLSEYE_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
@@ -160,6 +164,8 @@ export function replayBullseyeRun(
     clientLag,
     clientTick: endTick,
     desyncTick,
+    inputDiag: check.diag,
+    replayTick: reached,
     checkpoints: serverCheckpoints,
     state,
   };

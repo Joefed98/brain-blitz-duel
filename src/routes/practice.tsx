@@ -64,6 +64,7 @@ interface Graded {
   msRemaining: number;
   reactionAvgMs: number | null;
   answer: string;
+  extra?: Record<string, unknown> | null;
 }
 
 function useTicker(active: boolean): number {
@@ -140,7 +141,14 @@ function PracticeScreen() {
           },
         },
       });
-      setGraded(result as Graded);
+      const { extraJson, ...rest } = result as typeof result & { extraJson?: string | null };
+      let extra: Record<string, unknown> | null = null;
+      try {
+        extra = extraJson ? (JSON.parse(extraJson) as Record<string, unknown>) : null;
+      } catch {
+        extra = null;
+      }
+      setGraded({ ...(rest as Graded), extra });
       setStartedAt(Date.now());
       setStage("reveal");
     },
@@ -282,6 +290,7 @@ function PracticeScreen() {
           myCorrect={graded.isCorrect}
           myReactionAvgMs={graded.reactionAvgMs}
           myMsRemaining={graded.msRemaining}
+          myExtra={graded.extra ?? null}
           startedAt={startedAt}
           now={now}
         />

@@ -102,26 +102,89 @@ export interface ArcadeGame<S, I = boolean> {
   inputRanges?: readonly InputRange[];
 }
 
-/** The largest input log the server will look at. */
-export const MAX_INPUT_TAPS = 2000;
+/** The largest tap log the server will look at. */
+export const MAX_INPUT_TAPS = 6000;
 
-export interface InputLogCheck {
-  ok: boolean;
-  reason?: string;
+/** The first input the server had to repair, for diagnostics. */
+export interface InputIssue {
+  index: number;
+  t: number;
+  k: number;
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  reason: string;
 }
 
-/** Taps must be whole ticks, inside the run, and strictly increasing. */
-export function checkInputLog(inputs: number[], runTicks: number): InputLogCheck {
-  if (inputs.length > MAX_INPUT_TAPS) return { ok: false, reason: "too many taps" };
-  let previous = -1;
-  for (const tick of inputs) {
-    if (!Number.isInteger(tick) || tick < 1 || tick > runTicks) {
-      return { ok: false, reason: "tap outside the run" };
+/** What the server did to a submitted log before replaying it. */
+export interface InputDiag {
+  received: number;
+  /** Events repaired (clamped tick or payload) and replayed. */
+  clamped: number;
+  /** Events that could not be replayed at all (unknown kind, beyond the cap). */
+  dropped: number;
+  first: InputIssue | null;
+}
+
+export interface InputLogCheck {
+  /** True when every event was already clean; repaired logs still replay. */
+  ok: boolean;
+  reason?: string;
+  diag: InputDiag;
+}
+
+function toInt(value: number): number {
+  return Number.isFinite(value) ? Math.trunc(value) : 0;
+}
+
+function logIssues(label: string, diag: InputDiag): void {
+  if (diag.clamped === 0 && diag.dropped === 0) return;
+  console.warn(`[arcade] ${label}: repaired input log`, diag);
+}
+
+/**
+ * Taps are repaired, never rejected: ticks are clamped into the run and made
+ * strictly increasing; one that cannot fit is dropped. Every repair is counted.
+ */
+export function sanitizeTaps(
+  inputs: readonly number[],
+  runTicks: number,
+): InputLogCheck & { ticks: number[] } {
+  const diag: InputDiag = { received: inputs.length, clamped: 0, dropped: 0, first: null };
+  const ticks: number[] = [];
+  let previous = 0;
+  inputs.forEach((raw, index) => {
+    const issue = (reason: string) => {
+      if (!diag.first) diag.first = { index, t: raw, k: 0, a: 0, b: 0, c: 0, d: 0, reason };
+    };
+    if (index >= MAX_INPUT_TAPS) {
+      diag.dropped += 1;
+      issue("beyond the input cap");
+      return;
     }
-    if (tick <= previous) return { ok: false, reason: "taps out of order" };
+    let tick = clampInt(toInt(raw), 1, runTicks);
+    if (tick <= previous) tick = previous + 1;
+    if (tick > runTicks) {
+      diag.dropped += 1;
+      issue("tap after the run");
+      return;
+    }
+    if (tick !== raw) {
+      diag.clamped += 1;
+      issue(raw < previous + 1 ? "tap out of order" : "tap outside the run");
+    }
+    ticks.push(tick);
     previous = tick;
-  }
-  return { ok: true };
+  });
+  logIssues("taps", diag);
+  const ok = diag.clamped === 0 && diag.dropped === 0;
+  return { ok, ...(ok ? {} : { reason: "input log repaired" }), diag, ticks };
+}
+
+/** Back-compatible name: the repaired tap list is on `ticks`. */
+export function checkInputLog(inputs: number[], runTicks: number) {
+  return sanitizeTaps(inputs, runTicks);
 }
 
 /* ========================== Structured inputs ========================== */
@@ -167,39 +230,108 @@ export function inputRange(
   return { k, a, b, c, d };
 }
 
-function withinBound(value: number, bound: InputBound): boolean {
-  return Number.isInteger(value) && value >= bound[0] && value <= bound[1];
+function clampToRange(event: ArcadeInputEvent, range: InputRange): ArcadeInputEvent {
+  return {
+    t: event.t,
+    k: event.k,
+    a: clampInt(toInt(event.a), range.a[0], range.a[1]),
+    b: clampInt(toInt(event.b), range.b[0], range.b[1]),
+    c: clampInt(toInt(event.c), range.c[0], range.c[1]),
+    d: clampInt(toInt(event.d), range.d[0], range.d[1]),
+  };
 }
 
 /**
- * Events must be whole ticks inside the run, non-decreasing in tick, of a kind
- * the game declares, and carry payload values inside that kind's ranges.
+ * The client's only way to give the sim an input: the event is quantised and
+ * clamped to the game's declared ranges, then appended to the run log — at most
+ * one per tick. Returns the event as recorded, or null when nothing was.
+ */
+export function recordInput(
+  log: ArcadeInputEvent[],
+  event: ArcadeInputEvent | null,
+  ranges: readonly InputRange[] | undefined,
+): ArcadeInputEvent | null {
+  if (!event) return null;
+  const range = (ranges ?? []).find((item) => item.k === event.k);
+  if (!range) return null;
+  const last = log[log.length - 1];
+  if (last && last.t >= event.t) return null;
+  if (log.length >= MAX_INPUT_EVENTS) return null;
+  const recorded = clampToRange({ ...event, t: toInt(event.t) }, range);
+  log.push(recorded);
+  return recorded;
+}
+
+/** The sim reads its input for a tick from the recorded log, nowhere else. */
+export function inputAt(log: readonly ArcadeInputEvent[], tick: number): ArcadeInputEvent | null {
+  const last = log[log.length - 1];
+  return last && last.t === tick ? last : null;
+}
+
+/** Tap games: record a tap on a tick (once), and read it back. */
+export function recordTap(log: number[], tick: number): void {
+  const last = log[log.length - 1];
+  if (last !== undefined && last >= tick) return;
+  if (log.length >= MAX_INPUT_TAPS) return;
+  log.push(tick);
+}
+
+export function tapAt(log: readonly number[], tick: number): boolean {
+  return log[log.length - 1] === tick;
+}
+
+/**
+ * The server's repair pass. A bad event never aborts or silently truncates the
+ * replay: ticks are clamped into the run and made non-decreasing, payloads are
+ * clamped to the declared ranges, and only events of an unknown kind (or beyond
+ * the cap) are dropped. Every repair is counted, and the first is kept.
  */
 export function checkInputEvents(
   events: readonly ArcadeInputEvent[],
   runTicks: number,
   ranges: readonly InputRange[],
-): InputLogCheck {
-  if (events.length > MAX_INPUT_EVENTS) return { ok: false, reason: "too many inputs" };
-  let previous = 0;
-  for (const event of events) {
-    if (!Number.isInteger(event.t) || event.t < 1 || event.t > runTicks) {
-      return { ok: false, reason: "input outside the run" };
+): InputLogCheck & { events: ArcadeInputEvent[] } {
+  const diag: InputDiag = { received: events.length, clamped: 0, dropped: 0, first: null };
+  const out: ArcadeInputEvent[] = [];
+  let previous = 1;
+  events.forEach((event, index) => {
+    const issue = (reason: string) => {
+      if (!diag.first) diag.first = { index, ...event, reason };
+    };
+    if (index >= MAX_INPUT_EVENTS) {
+      diag.dropped += 1;
+      issue("beyond the input cap");
+      return;
     }
-    if (event.t < previous) return { ok: false, reason: "inputs out of order" };
-    previous = event.t;
     const range = ranges.find((item) => item.k === event.k);
-    if (!range) return { ok: false, reason: "unknown input kind" };
-    if (
-      !withinBound(event.a, range.a) ||
-      !withinBound(event.b, range.b) ||
-      !withinBound(event.c, range.c) ||
-      !withinBound(event.d, range.d)
-    ) {
-      return { ok: false, reason: "input payload out of range" };
+    if (!range) {
+      diag.dropped += 1;
+      issue("unknown input kind");
+      return;
     }
-  }
-  return { ok: true };
+    let t = clampInt(toInt(event.t), 1, runTicks);
+    let reason = t !== event.t ? "input outside the run" : "";
+    if (t < previous) {
+      t = previous;
+      reason = "input out of order";
+    }
+    const fixed = clampToRange({ ...event, t }, range);
+    if (
+      !reason &&
+      (fixed.a !== event.a || fixed.b !== event.b || fixed.c !== event.c || fixed.d !== event.d)
+    ) {
+      reason = "input payload out of range";
+    }
+    if (reason) {
+      diag.clamped += 1;
+      issue(reason);
+    }
+    out.push(fixed);
+    previous = t;
+  });
+  logIssues("events", diag);
+  const ok = diag.clamped === 0 && diag.dropped === 0;
+  return { ok, ...(ok ? {} : { reason: "input log repaired" }), diag, events: out };
 }
 
 export function encodeInputEvents(events: readonly ArcadeInputEvent[]): string {
@@ -246,7 +378,7 @@ export function replayArcadeRun<S>(
   untilTick?: number,
 ): ReplayOutcome<S> {
   const check = checkInputLog(inputs, game.runTicks);
-  const taps = check.ok ? new Set(inputs) : new Set<number>();
+  const taps = new Set(check.ticks);
   const lastTick =
     untilTick && untilTick > 0 ? Math.min(game.runTicks, Math.floor(untilTick)) : game.runTicks;
   let state = game.init(seed);
