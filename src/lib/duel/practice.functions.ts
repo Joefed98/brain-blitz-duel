@@ -99,7 +99,8 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
       msRemaining: graded.storedMs,
       reactionAvgMs: graded.reactionAvgMs,
       answer: graded.answer,
-      extra: graded.extra as Record<string, unknown> | null,
+      // Serialised as JSON text so the RPC boundary sees a plain string.
+      extraJson: graded.extra ? JSON.stringify(graded.extra) : null,
     };
   });
 
