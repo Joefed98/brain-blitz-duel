@@ -41,11 +41,6 @@ export const SLICE_R_FP = SLICE_R * 256;
 
 /** Gravity, in 1/256 px a tick a tick. */
 export const SLICE_GRAV = 16;
-/** Launch speed upwards, in 1/256 px a tick. */
-export const SLICE_VY_MIN = 1380;
-export const SLICE_VY_MAX = 1760;
-/** Sideways drift, in 1/256 px a tick. */
-export const SLICE_VX_MAX = 620;
 
 /** Base launch speed (1/256 px a tick), varied 85–115% per object. */
 export const SLICE_LAUNCH_SPEED = 1570;
