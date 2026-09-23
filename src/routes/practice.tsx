@@ -141,7 +141,14 @@ function PracticeScreen() {
           },
         },
       });
-      setGraded(result as Graded);
+      const { extraJson, ...rest } = result as typeof result & { extraJson?: string | null };
+      let extra: Record<string, unknown> | null = null;
+      try {
+        extra = extraJson ? (JSON.parse(extraJson) as Record<string, unknown>) : null;
+      } catch {
+        extra = null;
+      }
+      setGraded({ ...(rest as Graded), extra });
       setStartedAt(Date.now());
       setStage("reveal");
     },
