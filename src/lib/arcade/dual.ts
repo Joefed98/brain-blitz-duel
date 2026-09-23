@@ -16,7 +16,10 @@ import {
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
-  type InputRange, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
+  type InputRange,
+  parPoints,
+  ARCADE_COMPLETION_BONUS,
+} from "./engine";
 
 /* ============================== Constants ============================== */
 
@@ -311,7 +314,6 @@ export const DUAL_BG = "#0B0B0F";
 export const DUAL_RUNNER = "#F5B82E";
 export const DUAL_BLOCK = "#FF4D4D";
 export const DUAL_GROUND = "#2A2A33";
-
 
 function drawSide(
   ctx: CanvasRenderingContext2D,

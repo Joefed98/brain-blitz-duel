@@ -63,8 +63,9 @@ export function encodeBinTossRun(run: BinTossRun): string {
 }
 
 export function decodeBinTossRun(raw: string): BinTossRun {
-  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
-    (String(raw ?? "").split("~")[0] ?? "").split("|");
+  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] = (
+    String(raw ?? "").split("~")[0] ?? ""
+  ).split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)

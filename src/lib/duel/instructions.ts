@@ -537,7 +537,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Keep both runners alive.",
     how: [
       { action: "Left thumb jumps", detail: "the left runner." },
-      { action: "Right thumb jumps", detail: "the right runner. Tap again in the air to double jump." },
+      {
+        action: "Right thumb jumps",
+        detail: "the right runner. Tap again in the air to double jump.",
+      },
       { action: "Same course", detail: "for everyone." },
     ],
     score: "50 obstacles = 110, fewer in proportion, +40 for surviving the minute.",

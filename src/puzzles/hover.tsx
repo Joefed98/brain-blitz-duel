@@ -77,7 +77,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("hover", state.current, hoverGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("hover", state.current, hoverGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeHoverRun({
       seed,
@@ -134,7 +137,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const tapped = pending.current > 0;
           if (tapped) pending.current -= 1;
           if (tapped) recordTap(inputs.current, state.current.tick + 1);
-          state.current = hoverGame.step(state.current, tapAt(inputs.current, state.current.tick + 1));
+          state.current = hoverGame.step(
+            state.current,
+            tapAt(inputs.current, state.current.tick + 1),
+          );
           if (state.current.tick % HOVER_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(hoverCheckpoint(state.current));
           }

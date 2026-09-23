@@ -72,7 +72,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("skyline", state.current, skylineGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("skyline", state.current, skylineGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeSkylineRun({
       seed,
@@ -124,7 +127,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             pending.current -= 1;
             recordTap(inputs.current, state.current.tick + 1);
           }
-          state.current = skylineGame.step(state.current, tapAt(inputs.current, state.current.tick + 1));
+          state.current = skylineGame.step(
+            state.current,
+            tapAt(inputs.current, state.current.tick + 1),
+          );
           if (state.current.tick % SKYLINE_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(skylineCheckpoint(state.current));
           }

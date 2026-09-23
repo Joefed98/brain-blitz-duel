@@ -22,7 +22,12 @@ import { beatCheckpoint, beatGame } from "@/lib/arcade/beat";
 import { binTossCheckpoint, binTossGame } from "@/lib/arcade/binToss";
 import { brkCheckpoint, breakerGame } from "@/lib/arcade/breaker";
 import { bubCheckpoint, bubbleGame } from "@/lib/arcade/bubble";
-import { bullseyeCheckpoint, bullseyeGame, bullseyeInit, bullseyeWinds } from "@/lib/arcade/bullseye";
+import {
+  bullseyeCheckpoint,
+  bullseyeGame,
+  bullseyeInit,
+  bullseyeWinds,
+} from "@/lib/arcade/bullseye";
 import { crossCheckpoint, crossGame } from "@/lib/arcade/cross";
 import { dualCheckpoint, dualGame } from "@/lib/arcade/dual";
 import { hoverCheckpoint, hoverGame } from "@/lib/arcade/hover";
@@ -75,11 +80,51 @@ interface Game {
 }
 
 const GAMES: Game[] = [
-  { key: "hover", game: hoverGame, checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: replayHoverRun },
-  { key: "swerve", game: swerveGame, checkpoint: swerveCheckpoint, mode: "swerve", rate: 40, encode: encodeSwerveRun, replay: replaySwerveRun },
-  { key: "skyline", game: skylineGame, checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: replaySkylineRun },
-  { key: "ricochet", game: ricoGame, checkpoint: ricoCheckpoint, mode: "taps", rate: 30, encode: encodeRicoRun, replay: replayRicoRun },
-  { key: "bintoss", game: binTossGame, checkpoint: binTossCheckpoint, mode: "events", rate: 20, encode: encodeBinTossRun, replay: replayBinTossRun },
+  {
+    key: "hover",
+    game: hoverGame,
+    checkpoint: hoverCheckpoint,
+    mode: "taps",
+    rate: 60,
+    encode: encodeHoverRun,
+    replay: replayHoverRun,
+  },
+  {
+    key: "swerve",
+    game: swerveGame,
+    checkpoint: swerveCheckpoint,
+    mode: "swerve",
+    rate: 40,
+    encode: encodeSwerveRun,
+    replay: replaySwerveRun,
+  },
+  {
+    key: "skyline",
+    game: skylineGame,
+    checkpoint: skylineCheckpoint,
+    mode: "taps",
+    rate: 15,
+    encode: encodeSkylineRun,
+    replay: replaySkylineRun,
+  },
+  {
+    key: "ricochet",
+    game: ricoGame,
+    checkpoint: ricoCheckpoint,
+    mode: "taps",
+    rate: 30,
+    encode: encodeRicoRun,
+    replay: replayRicoRun,
+  },
+  {
+    key: "bintoss",
+    game: binTossGame,
+    checkpoint: binTossCheckpoint,
+    mode: "events",
+    rate: 20,
+    encode: encodeBinTossRun,
+    replay: replayBinTossRun,
+  },
   {
     key: "bullseye",
     game: bullseyeGame,
@@ -90,16 +135,96 @@ const GAMES: Game[] = [
     encode: encodeBullseyeRun,
     replay: (seed, raw) => replayBullseyeRun(seed, raw, bullseyeWinds(seed)),
   },
-  { key: "matchup", game: matchupGame, checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: replayMatchupRun },
-  { key: "snake", game: snakeGame, checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: replaySnakeRun },
-  { key: "cross", game: crossGame, checkpoint: crossCheckpoint, mode: "events", rate: 40, encode: encodeCrossRun, replay: replayCrossRun },
-  { key: "dual", game: dualGame, checkpoint: dualCheckpoint, mode: "events", rate: 50, encode: encodeDualRun, replay: replayDualRun },
-  { key: "breaker", game: breakerGame, checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: replayBreakerRun },
-  { key: "rally", game: rallyGame, checkpoint: rallyCheckpoint, mode: "events", rate: 900, encode: encodeRallyRun, replay: replayRallyRun },
-  { key: "steady", game: steadyGame, checkpoint: stdCheckpoint, mode: "events", rate: 900, encode: encodeSteadyRun, replay: replaySteadyRun },
-  { key: "slice", game: sliceGame, checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: replaySliceRun },
-  { key: "bubble", game: bubbleGame, checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: replayBubbleRun },
-  { key: "beat", game: beatGame, checkpoint: beatCheckpoint, mode: "events", rate: 80, encode: encodeBeatRun, replay: replayBeatRun },
+  {
+    key: "matchup",
+    game: matchupGame,
+    checkpoint: matchupCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeMatchupRun,
+    replay: replayMatchupRun,
+  },
+  {
+    key: "snake",
+    game: snakeGame,
+    checkpoint: snakeCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeSnakeRun,
+    replay: replaySnakeRun,
+  },
+  {
+    key: "cross",
+    game: crossGame,
+    checkpoint: crossCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeCrossRun,
+    replay: replayCrossRun,
+  },
+  {
+    key: "dual",
+    game: dualGame,
+    checkpoint: dualCheckpoint,
+    mode: "events",
+    rate: 50,
+    encode: encodeDualRun,
+    replay: replayDualRun,
+  },
+  {
+    key: "breaker",
+    game: breakerGame,
+    checkpoint: brkCheckpoint,
+    mode: "events",
+    rate: 950,
+    encode: encodeBreakerRun,
+    replay: replayBreakerRun,
+  },
+  {
+    key: "rally",
+    game: rallyGame,
+    checkpoint: rallyCheckpoint,
+    mode: "events",
+    rate: 900,
+    encode: encodeRallyRun,
+    replay: replayRallyRun,
+  },
+  {
+    key: "steady",
+    game: steadyGame,
+    checkpoint: stdCheckpoint,
+    mode: "events",
+    rate: 900,
+    encode: encodeSteadyRun,
+    replay: replaySteadyRun,
+  },
+  {
+    key: "slice",
+    game: sliceGame,
+    checkpoint: sliceCheckpoint,
+    mode: "events",
+    rate: 1000,
+    encode: encodeSliceRun,
+    replay: replaySliceRun,
+  },
+  {
+    key: "bubble",
+    game: bubbleGame,
+    checkpoint: bubCheckpoint,
+    mode: "events",
+    rate: 15,
+    encode: encodeBubbleRun,
+    replay: replayBubbleRun,
+  },
+  {
+    key: "beat",
+    game: beatGame,
+    checkpoint: beatCheckpoint,
+    mode: "events",
+    rate: 80,
+    encode: encodeBeatRun,
+    replay: replayBeatRun,
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -167,7 +292,8 @@ for (const spec of GAMES) {
     if (result.score !== score) problems.push(`score ${score} vs ${result.score}`);
     if (!same(spec.checkpoint(result.state), spec.checkpoint(state))) problems.push("final state");
     if (result.desyncTick !== null) problems.push(`checkpoint desync at ${result.desyncTick}`);
-    if (result.inputDiag.clamped || result.inputDiag.dropped) problems.push("server repaired a clean log");
+    if (result.inputDiag.clamped || result.inputDiag.dropped)
+      problems.push("server repaired a clean log");
     if (result.flagged) problems.push(`flagged ${result.reason ?? ""}`);
     if (problems.length) {
       failed += 1;
@@ -195,7 +321,9 @@ for (const spec of GAMES) {
     failures += 1;
     console.log("repair: FAIL", result.inputDiag);
   } else {
-    console.log(`repair: 2 of 3 events clamped, first #${first.index} at tick ${first.t} (${first.reason}); replay ran to tick ${result.replayTick}`);
+    console.log(
+      `repair: 2 of 3 events clamped, first #${first.index} at tick ${first.t} (${first.reason}); replay ran to tick ${result.replayTick}`,
+    );
   }
 }
 

@@ -331,7 +331,12 @@ export function checkInputEvents(
   });
   logIssues("events", diag);
   const ok = diag.clamped === 0 && diag.dropped === 0;
-  return { ok, ...(ok ? {} : { reason: diag.first?.reason ?? "input log repaired" }), diag, events: out };
+  return {
+    ok,
+    ...(ok ? {} : { reason: diag.first?.reason ?? "input log repaired" }),
+    diag,
+    events: out,
+  };
 }
 
 export function encodeInputEvents(events: readonly ArcadeInputEvent[]): string {

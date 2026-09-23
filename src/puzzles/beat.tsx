@@ -88,7 +88,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("beat", state.current, beatGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("beat", state.current, beatGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeBeatRun({
       seed,
@@ -138,7 +141,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const queued = pending.current.shift() ?? null;
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
           recordInput(events.current, applied, beatGame.inputRanges);
-          state.current = beatGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          state.current = beatGame.step(
+            state.current,
+            inputAt(events.current, state.current.tick + 1),
+          );
           if (state.current.tick % BEAT_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(beatCheckpoint(state.current));
           }

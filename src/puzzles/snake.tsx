@@ -103,7 +103,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("snake", state.current, snakeGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("snake", state.current, snakeGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeSnakeRun({
       seed,
@@ -155,7 +158,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               ? null
               : { t: state.current.tick + 1, k: SNAKE_INPUT_TURN, a: turn, b: 0, c: 0, d: 0 };
           recordInput(events.current, applied, snakeGame.inputRanges);
-          state.current = snakeGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          state.current = snakeGame.step(
+            state.current,
+            inputAt(events.current, state.current.tick + 1),
+          );
           if (state.current.tick % SNAKE_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(snakeCheckpoint(state.current));
           }

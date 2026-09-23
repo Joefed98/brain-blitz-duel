@@ -63,8 +63,9 @@ export function encodeRallyRun(run: RallyRun): string {
 }
 
 export function decodeRallyRun(raw: string): RallyRun {
-  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
-    (String(raw ?? "").split("~")[0] ?? "").split("|");
+  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] = (
+    String(raw ?? "").split("~")[0] ?? ""
+  ).split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)

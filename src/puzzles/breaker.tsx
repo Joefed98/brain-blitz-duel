@@ -100,7 +100,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("breaker", state.current, breakerGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("breaker", state.current, breakerGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeBreakerRun({
       seed,
@@ -177,7 +180,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               recordInput(events.current, applied, breakerGame.inputRanges);
             }
           }
-          state.current = breakerGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          state.current = breakerGame.step(
+            state.current,
+            inputAt(events.current, state.current.tick + 1),
+          );
           if (state.current.tick % BRK_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(brkCheckpoint(state.current));
           }

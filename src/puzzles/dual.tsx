@@ -79,7 +79,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("dual", state.current, dualGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("dual", state.current, dualGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeDualRun({
       seed,
@@ -130,7 +133,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               ? null
               : { t: state.current.tick + 1, k: DUAL_INPUT_JUMP, a: side, b: 0, c: 0, d: 0 };
           recordInput(events.current, applied, dualGame.inputRanges);
-          state.current = dualGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          state.current = dualGame.step(
+            state.current,
+            inputAt(events.current, state.current.tick + 1),
+          );
           if (state.current.tick % DUAL_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(dualCheckpoint(state.current));
           }

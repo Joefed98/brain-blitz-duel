@@ -95,7 +95,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("matchup", state.current, matchupGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("matchup", state.current, matchupGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeMatchupRun({
       seed,
@@ -150,7 +153,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
           const before = state.current;
           recordInput(events.current, applied, matchupGame.inputRanges);
-          state.current = matchupGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          state.current = matchupGame.step(
+            state.current,
+            inputAt(events.current, state.current.tick + 1),
+          );
           if (applied && state.current.swaps > before.swaps) {
             const duration = matchupAnimationDuration(state.current.lastAnimation);
             animStart.current = time;
