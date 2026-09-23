@@ -47,6 +47,14 @@ export const SLICE_VY_MAX = 1760;
 /** Sideways drift, in 1/256 px a tick. */
 export const SLICE_VX_MAX = 620;
 
+/** Base launch speed (1/256 px a tick), varied 85–115% per object. */
+export const SLICE_LAUNCH_SPEED = 1570;
+export const SLICE_SPEED_PCT_MIN = 85;
+export const SLICE_SPEED_PCT_MAX = 115;
+/** cos / sin of 70°..110° in 1/1024 steps — fixed tables, no runtime trig. */
+const SLICE_ANGLE_COS: readonly number[] = [350, 333, 316, 299, 282, 265, 248, 230, 213, 195, 178, 160, 143, 125, 107, 89, 71, 54, 36, 18, 0, -18, -36, -54, -71, -89, -107, -125, -143, -160, -178, -195, -213, -230, -248, -265, -282, -299, -316, -333, -350];
+const SLICE_ANGLE_SIN: readonly number[] = [962, 968, 974, 979, 984, 989, 994, 998, 1002, 1005, 1008, 1011, 1014, 1016, 1018, 1020, 1022, 1023, 1023, 1024, 1024, 1024, 1023, 1023, 1022, 1020, 1018, 1016, 1014, 1011, 1008, 1005, 1002, 998, 994, 989, 984, 979, 974, 968, 962];
+
 /** A launch window is 1.5 s; the number of objects in it grows over the run. */
 export const SLICE_WINDOW_TICKS = 90;
 export const SLICE_WINDOWS = SLICE_RUN_TICKS / SLICE_WINDOW_TICKS;
@@ -135,15 +143,17 @@ function rollFlight(rng: number): {
   state = spotDraw.state;
   const startPx = 60 + spotDraw.value;
 
-  const vyDraw = rngBelow(state, SLICE_VY_MAX - SLICE_VY_MIN + 1);
-  state = vyDraw.state;
-  const vy = -(SLICE_VY_MIN + vyDraw.value);
-
-  const vxDraw = rngBelow(state, 2 * SLICE_VX_MAX + 1);
-  state = vxDraw.state;
-  // Objects thrown from the edges lean back towards the middle.
-  const lean = startPx < SLICE_WORLD_W / 2 ? 1 : -1;
-  const vx = Math.trunc((vxDraw.value - SLICE_VX_MAX) / 2) + lean * 180;
+  // Speed 85–115% of the base and angle 70°–110°, both from the seed, so discs
+  // peak at different heights and drift sideways. Integer table maths only.
+  const speedDraw = rngBelow(state, SLICE_SPEED_PCT_MAX - SLICE_SPEED_PCT_MIN + 1);
+  state = speedDraw.state;
+  const speed = Math.trunc((SLICE_LAUNCH_SPEED * (SLICE_SPEED_PCT_MIN + speedDraw.value)) / 100);
+  const angleDraw = rngBelow(state, SLICE_ANGLE_COS.length);
+  state = angleDraw.state;
+  let vx = Math.trunc((speed * (SLICE_ANGLE_COS[angleDraw.value] ?? 0)) / 1024);
+  const vy = -Math.trunc((speed * (SLICE_ANGLE_SIN[angleDraw.value] ?? 1024)) / 1024);
+  // Objects thrown right at an edge never head straight out of it.
+  if ((startPx < 120 && vx < 0) || (startPx > SLICE_WORLD_W - 120 && vx > 0)) vx = -vx;
 
   const flightTicks = Math.trunc((2 * -vy) / SLICE_GRAV) + 6;
   return { rng: state, startPx, vx, vy, flightTicks };
