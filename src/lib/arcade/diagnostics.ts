@@ -72,7 +72,10 @@ export function splitClientCounters(raw: string): { run: string; counters: Arcad
   const at = text.indexOf("~");
   if (at < 0) return { run: text, counters: null };
   const counters: ArcadeCounters = {};
-  for (const pair of text.slice(at + 1).split(";").slice(0, 40)) {
+  for (const pair of text
+    .slice(at + 1)
+    .split(";")
+    .slice(0, 40)) {
     const [name, value] = pair.split("=");
     const number = Number.parseInt(value ?? "", 10);
     if (name && /^[a-zA-Z]{1,24}$/.test(name) && Number.isInteger(number)) counters[name] = number;

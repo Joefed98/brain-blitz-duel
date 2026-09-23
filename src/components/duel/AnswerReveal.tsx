@@ -49,7 +49,9 @@ function DevDiagnostics({ extra }: { extra: Record<string, unknown> | null }) {
           ? differs.length === 0
             ? "client = server"
             : differs
-                .map((name) => `${name} c${diag.client?.[name] ?? "-"}/s${diag.server?.[name] ?? "-"}`)
+                .map(
+                  (name) => `${name} c${diag.client?.[name] ?? "-"}/s${diag.server?.[name] ?? "-"}`,
+                )
                 .join(" · ")
           : "no client counters"}
       </div>

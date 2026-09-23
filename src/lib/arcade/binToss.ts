@@ -19,7 +19,10 @@ import {
   type ArcadeInputEvent,
   type CanvasSize,
   type DragLaunch,
-  type InputRange, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
+  type InputRange,
+  parPoints,
+  ARCADE_COMPLETION_BONUS,
+} from "./engine";
 
 /* ============================== Constants ============================== */
 

@@ -84,7 +84,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("steady", state.current, steadyGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("steady", state.current, steadyGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeSteadyRun({
       seed,
@@ -144,7 +147,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             sent.current = target;
             recordInput(events.current, applied, steadyGame.inputRanges);
           }
-          state.current = steadyGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          state.current = steadyGame.step(
+            state.current,
+            inputAt(events.current, state.current.tick + 1),
+          );
           if (state.current.tick % STD_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(stdCheckpoint(state.current));
           }

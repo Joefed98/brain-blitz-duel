@@ -58,8 +58,9 @@ export function encodeSliceRun(run: SliceRun): string {
 }
 
 export function decodeSliceRun(raw: string): SliceRun {
-  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] =
-    (String(raw ?? "").split("~")[0] ?? "").split("|");
+  const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] = (
+    String(raw ?? "").split("~")[0] ?? ""
+  ).split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)

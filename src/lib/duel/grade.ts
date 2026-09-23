@@ -769,7 +769,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replayHoverRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.gates;
       score = run.score;
@@ -793,7 +794,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replaySwerveRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.coins;
       score = run.score;
@@ -816,7 +818,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replaySkylineRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.blocks;
       score = run.score;
@@ -840,7 +843,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replaySnakeRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.pellets;
       score = run.score;
@@ -863,7 +867,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replayCrossRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.crossings;
       score = run.score;
@@ -886,7 +891,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replayDualRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.passed;
       score = run.score;
@@ -910,7 +916,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replayRicoRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.heightPx;
       score = run.score;
@@ -935,7 +942,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replayBreakerRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.cleared;
       correctCount = run.hits;
       score = run.score;
@@ -962,7 +970,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replayRallyRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.hits;
       score = run.score;
@@ -986,7 +995,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replaySteadyRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.clean;
       correctCount = run.points;
       score = run.score;
@@ -1013,7 +1023,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replaySliceRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.bombsHit === 0;
       correctCount = run.slices;
       score = run.score;
@@ -1038,7 +1049,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replayBubbleRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.cleared;
       correctCount = run.popped + run.dropped;
       score = run.score;
@@ -1064,7 +1076,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replayBeatRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.clean;
       correctCount = run.hits;
       score = run.score;
@@ -1095,7 +1108,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replayBinTossRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.perfect;
       correctCount = run.baskets;
       score = run.score;
@@ -1120,7 +1134,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replayMatchupRun(puzzle.seed, answer);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.score >= 150;
       correctCount = run.swaps;
       score = run.score;
@@ -1145,7 +1160,8 @@ export function gradeSubmission(
       const replayStart = performance.now();
       const run = replayBullseyeRun(puzzle.seed, answer, puzzle.winds);
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.inner >= run.arrows;
       correctCount = run.inner;
       score = run.score;

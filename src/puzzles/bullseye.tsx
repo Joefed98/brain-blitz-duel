@@ -111,7 +111,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("bullseye", state.current, bullseyeGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("bullseye", state.current, bullseyeGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeBullseyeRun({
       seed,
@@ -167,7 +170,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
           const before = state.current;
           recordInput(events.current, applied, bullseyeGame.inputRanges);
-          state.current = bullseyeGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          state.current = bullseyeGame.step(
+            state.current,
+            inputAt(events.current, state.current.tick + 1),
+          );
           if (state.current.tick % BULLSEYE_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(bullseyeCheckpoint(state.current));
           }

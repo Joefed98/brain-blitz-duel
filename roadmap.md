@@ -173,3 +173,10 @@
 - [x] Dual smaller blocks, double jump, +25% jump.
 - [x] Ricochet 85% spikes, 60 px clear gap, slide keyed to height.
 - [x] Breaker power-up button is its own target.
+
+## Arcade client/server agreement
+- [x] Arcade answers no longer cut at 4,000 chars (root cause)
+- [x] Sim reads only the recorded log, all 16 games
+- [x] Server clamps and counts bad inputs
+- [x] Dev diagnostics (?dev=1)
+- [x] Slice launch speed/angle variation

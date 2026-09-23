@@ -77,7 +77,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("rally", state.current, rallyGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("rally", state.current, rallyGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeRallyRun({
       seed,
@@ -137,7 +140,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             sent.current = target;
             recordInput(events.current, applied, rallyGame.inputRanges);
           }
-          state.current = rallyGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          state.current = rallyGame.step(
+            state.current,
+            inputAt(events.current, state.current.tick + 1),
+          );
           if (state.current.tick % RALLY_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(rallyCheckpoint(state.current));
           }

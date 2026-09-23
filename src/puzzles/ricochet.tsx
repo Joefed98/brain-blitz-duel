@@ -83,7 +83,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("ricochet", state.current, ricoGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("ricochet", state.current, ricoGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeRicoRun({
       seed,
@@ -133,7 +136,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             pending.current -= 1;
             recordTap(inputs.current, state.current.tick + 1);
           }
-          state.current = ricoGame.step(state.current, tapAt(inputs.current, state.current.tick + 1));
+          state.current = ricoGame.step(
+            state.current,
+            tapAt(inputs.current, state.current.tick + 1),
+          );
           if (state.current.tick % RICO_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(ricoCheckpoint(state.current));
           }

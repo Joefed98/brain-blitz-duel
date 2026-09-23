@@ -21,7 +21,10 @@ import {
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
-  type InputRange, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
+  type InputRange,
+  parPoints,
+  ARCADE_COMPLETION_BONUS,
+} from "./engine";
 
 /* ============================== Constants ============================== */
 
@@ -47,8 +50,16 @@ export const SLICE_LAUNCH_SPEED = 1570;
 export const SLICE_SPEED_PCT_MIN = 85;
 export const SLICE_SPEED_PCT_MAX = 115;
 /** cos / sin of 70°..110° in 1/1024 steps — fixed tables, no runtime trig. */
-const SLICE_ANGLE_COS: readonly number[] = [350, 333, 316, 299, 282, 265, 248, 230, 213, 195, 178, 160, 143, 125, 107, 89, 71, 54, 36, 18, 0, -18, -36, -54, -71, -89, -107, -125, -143, -160, -178, -195, -213, -230, -248, -265, -282, -299, -316, -333, -350];
-const SLICE_ANGLE_SIN: readonly number[] = [962, 968, 974, 979, 984, 989, 994, 998, 1002, 1005, 1008, 1011, 1014, 1016, 1018, 1020, 1022, 1023, 1023, 1024, 1024, 1024, 1023, 1023, 1022, 1020, 1018, 1016, 1014, 1011, 1008, 1005, 1002, 998, 994, 989, 984, 979, 974, 968, 962];
+const SLICE_ANGLE_COS: readonly number[] = [
+  350, 333, 316, 299, 282, 265, 248, 230, 213, 195, 178, 160, 143, 125, 107, 89, 71, 54, 36, 18, 0,
+  -18, -36, -54, -71, -89, -107, -125, -143, -160, -178, -195, -213, -230, -248, -265, -282, -299,
+  -316, -333, -350,
+];
+const SLICE_ANGLE_SIN: readonly number[] = [
+  962, 968, 974, 979, 984, 989, 994, 998, 1002, 1005, 1008, 1011, 1014, 1016, 1018, 1020, 1022,
+  1023, 1023, 1024, 1024, 1024, 1023, 1023, 1022, 1020, 1018, 1016, 1014, 1011, 1008, 1005, 1002,
+  998, 994, 989, 984, 979, 974, 968, 962,
+];
 
 /** A launch window is 1.5 s; the number of objects in it grows over the run. */
 export const SLICE_WINDOW_TICKS = 90;

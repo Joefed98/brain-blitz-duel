@@ -82,7 +82,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("cross", state.current, crossGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("cross", state.current, crossGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeCrossRun({
       seed,
@@ -136,7 +139,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               ? null
               : { t: state.current.tick + 1, k: CROSS_INPUT_MOVE, a: move, b: 0, c: 0, d: 0 };
           recordInput(events.current, applied, crossGame.inputRanges);
-          state.current = crossGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          state.current = crossGame.step(
+            state.current,
+            inputAt(events.current, state.current.tick + 1),
+          );
           if (state.current.tick % CROSS_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(crossCheckpoint(state.current));
           }

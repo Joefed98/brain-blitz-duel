@@ -57,7 +57,9 @@ export function encodeSwerveRun(run: SwerveRun): string {
 }
 
 export function decodeSwerveRun(raw: string): SwerveRun {
-  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = (String(raw ?? "").split("~")[0] ?? "").split("|");
+  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = (
+    String(raw ?? "").split("~")[0] ?? ""
+  ).split("|");
   const taps = tapPart
     .split(",")
     .filter(Boolean)

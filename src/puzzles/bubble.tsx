@@ -92,7 +92,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("bubble", state.current, bubbleGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("bubble", state.current, bubbleGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeBubbleRun({
       seed,
@@ -144,7 +147,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const queued = pending.current.shift() ?? null;
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
           recordInput(events.current, applied, bubbleGame.inputRanges);
-          state.current = bubbleGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          state.current = bubbleGame.step(
+            state.current,
+            inputAt(events.current, state.current.tick + 1),
+          );
           if (state.current.tick % BUB_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(bubCheckpoint(state.current));
           }

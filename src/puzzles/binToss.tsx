@@ -114,7 +114,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("bintoss", state.current, binTossGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("bintoss", state.current, binTossGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeBinTossRun({
       seed,
@@ -175,7 +178,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
           const before = state.current;
           recordInput(events.current, applied, binTossGame.inputRanges);
-          state.current = binTossGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          state.current = binTossGame.step(
+            state.current,
+            inputAt(events.current, state.current.tick + 1),
+          );
           if (before.phase !== state.current.phase && state.current.phase === BINTOSS_WAIT) {
             lastGhost.current = activeLaunch.current;
             activeLaunch.current = null;

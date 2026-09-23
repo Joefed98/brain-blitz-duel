@@ -47,7 +47,9 @@ export function encodeRicoRun(run: RicoRun): string {
 }
 
 export function decodeRicoRun(raw: string): RicoRun {
-  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = (String(raw ?? "").split("~")[0] ?? "").split("|");
+  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = (
+    String(raw ?? "").split("~")[0] ?? ""
+  ).split("|");
   const inputs = tapPart
     .split(",")
     .map((part) => Number.parseInt(part, 10))

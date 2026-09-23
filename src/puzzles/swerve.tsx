@@ -83,7 +83,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
-    appendClientCounters(encodeRaw(), arcadeCounters("swerve", state.current, swerveGame.score(state.current)));
+    appendClientCounters(
+      encodeRaw(),
+      arcadeCounters("swerve", state.current, swerveGame.score(state.current)),
+    );
   const encodeRaw = (): string =>
     encodeSwerveRun({
       seed,

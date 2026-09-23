@@ -47,7 +47,9 @@ export function encodeHoverRun(run: HoverRun): string {
 }
 
 export function decodeHoverRun(raw: string): HoverRun {
-  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = (String(raw ?? "").split("~")[0] ?? "").split("|");
+  const [seedPart = "", scorePart = "", tapPart = "", tickPart = "", checkpointPart = ""] = (
+    String(raw ?? "").split("~")[0] ?? ""
+  ).split("|");
   const inputs = tapPart
     .split(",")
     .map((part) => Number.parseInt(part, 10))

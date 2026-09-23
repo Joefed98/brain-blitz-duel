@@ -7,7 +7,15 @@
  * every constant below is written once, in units.
  */
 
-import { clampInt, px, rngBelow, TICKS_PER_SECOND, type CanvasSize, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
+import {
+  clampInt,
+  px,
+  rngBelow,
+  TICKS_PER_SECOND,
+  type CanvasSize,
+  parPoints,
+  ARCADE_COMPLETION_BONUS,
+} from "./engine";
 import type { ArcadeGame } from "./engine";
 
 /* ============================== Constants ============================== */
