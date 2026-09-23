@@ -14,7 +14,7 @@ import {
   dualCheckpoint,
   dualGame,
   DUAL_BG,
-  DUAL_BLOCK,
+  DUAL_SPIKE,
   DUAL_CHECKPOINT_INTERVAL,
   DUAL_GROUND,
   DUAL_INPUT_JUMP,
@@ -43,8 +43,7 @@ function IntroExample() {
       >
         <rect x="8" y="70" width="74" height="4" fill={DUAL_GROUND} />
         <rect x="98" y="70" width="74" height="4" fill={DUAL_GROUND} />
-        <rect x="46" y="54" width="14" height="16" fill={DUAL_BLOCK} />
-        <rect x="150" y="54" width="14" height="16" fill={DUAL_BLOCK} />
+        <path d="M52 69 L41 27 L45 36 L56 69 Z M156 69 L145 27 L149 36 L160 69 Z" fill={DUAL_SPIKE} />
         <circle cx="30" cy="62" r="9" fill={DUAL_RUNNER} />
         <circle cx="120" cy="40" r="9" fill={DUAL_RUNNER} />
         <line x1="90" y1="10" x2="90" y2="86" stroke="rgba(255,255,255,0.14)" />
@@ -228,8 +227,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <svg viewBox="0 0 170 40" className="h-auto w-full max-w-[190px] shrink-0" aria-hidden="true">
         <rect x="4" y="30" width="72" height="4" fill={DUAL_GROUND} />
         <rect x="94" y="30" width="72" height="4" fill={DUAL_GROUND} />
-        <rect x="52" y="18" width="12" height="12" fill={DUAL_BLOCK} />
-        <rect x="142" y="18" width="12" height="12" fill={DUAL_BLOCK} />
+        <path d="M58 30 L49 7 L52 13 L62 30 Z M148 30 L139 7 L142 13 L152 30 Z" fill={DUAL_SPIKE} />
         <circle cx="20" cy="24" r="7" fill={DUAL_RUNNER} />
         <circle cx="110" cy="14" r="7" fill={DUAL_RUNNER} />
       </svg>

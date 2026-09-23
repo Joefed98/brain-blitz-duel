@@ -101,7 +101,8 @@ export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[
       const type = pickType(category, used, recent);
       if (type) used.push(type);
     }
-    return shuffled(used);
+    return pool.length >= rounds && CORE_CATEGORIES.every((category) => pool.includes(category))
+      ? used : shuffled(used);
   }
 
   // Arcade is on unless the host turns it off; when it is on it takes exactly

@@ -194,7 +194,7 @@ function buildFrenzyPayload(rng: number): { rng: number; payload: SliceObject[] 
   for (let index = 0; index < SLICE_FRENZY_COUNT; index++) {
     const offset =
       SLICE_SPAWN_DELAY + Math.trunc((index * SLICE_FRENZY_TICKS) / SLICE_FRENZY_COUNT);
-    const flight = rollFlight(state, SLICE_SPEED_CLASSES[index % SLICE_SPEED_CLASSES.length]);
+    const flight = rollFlight(state, SLICE_SPEED_CLASSES[index % SLICE_SPEED_CLASSES.length]!);
     state = flight.rng;
     const colourDraw = rngBelow(state, SLICE_COLOURS.length);
     state = colourDraw.state;
@@ -261,7 +261,7 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
           [speedClasses[i], speedClasses[pick.value]] = [speedClasses[pick.value]!, speedClasses[i]!];
         }
       }
-      const flight = rollFlight(rng, SLICE_SPEED_CLASSES[speedClasses[ordinaryIndex % 3] ?? 1]);
+      const flight = rollFlight(rng, SLICE_SPEED_CLASSES[speedClasses[ordinaryIndex % 3] ?? 1]!);
       ordinaryIndex++;
       rng = flight.rng;
 

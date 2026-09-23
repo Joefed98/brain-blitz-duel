@@ -134,7 +134,7 @@ export function RoomLobby({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Categories: {categories.map((category) => category[0].toUpperCase() + category.slice(1)).join(" · ")}</p>
+          <p className="text-sm text-muted-foreground">Categories: {categories.map((category) => category.charAt(0).toUpperCase() + category.slice(1)).join(" · ")}</p>
         )}
       </div>
 
