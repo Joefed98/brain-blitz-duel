@@ -115,9 +115,16 @@ export function RoomLobby({
               { label: "Arcade only", values: ["arcade"] as PuzzleCategory[] },
               { label: "Puzzles only", values: PUZZLE_CATEGORIES },
             ].map(({ label, values }) => (
-              <button key={label} type="button" onClick={() => onCategoriesChange([...values])}
-                aria-pressed={categories.length === values.length && categories.every((category) => values.includes(category))}
-                className="press rounded-md border border-border bg-card px-3 py-2 font-display text-xs text-foreground aria-pressed:border-primary aria-pressed:text-primary">
+              <button
+                key={label}
+                type="button"
+                onClick={() => onCategoriesChange([...values])}
+                aria-pressed={
+                  categories.length === values.length &&
+                  categories.every((category) => values.includes(category))
+                }
+                className="press rounded-md border border-border bg-card px-3 py-2 font-display text-xs text-foreground aria-pressed:border-primary aria-pressed:text-primary"
+              >
                 {label}
               </button>
             ))}
@@ -126,52 +133,85 @@ export function RoomLobby({
         {isHost ? (
           <div className="flex flex-wrap gap-2">
             {CATEGORY_ORDER.map((category) => (
-              <button key={category} type="button" aria-pressed={categories.includes(category)}
-                title={typesInCategory(category).length ? undefined : "No active games in this category yet"}
-                disabled={(!typesInCategory(category).length && !categories.includes(category)) || (categories.length === 1 && categories.includes(category))}
-                onClick={() => onCategoriesChange(categories.includes(category)
-                  ? categories.filter((item) => item !== category)
-                  : CATEGORY_ORDER.filter((item) => categories.includes(item) || item === category))}
-                className="press rounded-md border border-border bg-card px-3 py-2 font-display text-xs capitalize text-muted-foreground aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary disabled:opacity-70">
+              <button
+                key={category}
+                type="button"
+                aria-pressed={categories.includes(category)}
+                title={
+                  typesInCategory(category).length
+                    ? undefined
+                    : "No active games in this category yet"
+                }
+                disabled={
+                  (!typesInCategory(category).length && !categories.includes(category)) ||
+                  (categories.length === 1 && categories.includes(category))
+                }
+                onClick={() =>
+                  onCategoriesChange(
+                    categories.includes(category)
+                      ? categories.filter((item) => item !== category)
+                      : CATEGORY_ORDER.filter(
+                          (item) => categories.includes(item) || item === category,
+                        ),
+                  )
+                }
+                className="press rounded-md border border-border bg-card px-3 py-2 font-display text-xs capitalize text-muted-foreground aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary disabled:opacity-70"
+              >
                 {category}
               </button>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Categories: {categories.map((category) => category.charAt(0).toUpperCase() + category.slice(1)).join(" · ")}</p>
+          <p className="text-sm text-muted-foreground">
+            Categories:{" "}
+            {categories
+              .map((category) => category.charAt(0).toUpperCase() + category.slice(1))
+              .join(" · ")}
+          </p>
         )}
       </div>
 
       {tournamentHistory.length > 0 && (
         <div className="space-y-1 border-t border-border pt-3">
           <p className="font-display text-xs text-muted-foreground">Previous tournaments</p>
-          {tournamentHistory.slice(-3).reverse().map((entry, index) => (
-            <p key={`${entry.date}-${index}`} className="text-xs text-muted-foreground">
-              {entry.winner} won · {new Date(entry.date).toLocaleDateString()}
-            </p>
-          ))}
+          {tournamentHistory
+            .slice(-3)
+            .reverse()
+            .map((entry, index) => (
+              <p key={`${entry.date}-${index}`} className="text-xs text-muted-foreground">
+                {entry.winner} won · {new Date(entry.date).toLocaleDateString()}
+              </p>
+            ))}
         </div>
       )}
 
       {isHost ? (
-        <><button
-          type="button"
-          onClick={onStart}
-          disabled={!canStart || starting}
-          className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
-        >
-          {starting ? (
-            <>
-              <span>Starting</span>
-              <Dots className="bg-primary-foreground" />
-            </>
-          ) : canStart ? (
-            "Start game"
-          ) : (
-            "Need 2 players"
-          )}
-        </button>
-        <button type="button" onClick={onDisband} className="press text-sm text-muted-foreground underline decoration-border underline-offset-4">Disband room</button></>
+        <>
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={!canStart || starting}
+            className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
+          >
+            {starting ? (
+              <>
+                <span>Starting</span>
+                <Dots className="bg-primary-foreground" />
+              </>
+            ) : canStart ? (
+              "Start game"
+            ) : (
+              "Need 2 players"
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onDisband}
+            className="press text-sm text-muted-foreground underline decoration-border underline-offset-4"
+          >
+            Disband room
+          </button>
+        </>
       ) : (
         <WaitingLine label="Waiting for host to start" />
       )}

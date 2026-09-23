@@ -182,8 +182,10 @@ function touchesSpike(x: number, runnerY: number): boolean {
   const baseY = DUAL_GROUND_Y - 4;
   const dx = x - tipX;
   const dy = baseY - tipY;
-  const projection = Math.max(0, Math.min(dx * dx + dy * dy,
-    (DUAL_RUNNER_X - tipX) * dx + (runnerY - tipY) * dy));
+  const projection = Math.max(
+    0,
+    Math.min(dx * dx + dy * dy, (DUAL_RUNNER_X - tipX) * dx + (runnerY - tipY) * dy),
+  );
   const nearX = tipX + (projection * dx) / (dx * dx + dy * dy);
   const nearY = tipY + (projection * dy) / (dx * dx + dy * dy);
   const distanceX = DUAL_RUNNER_X - nearX;
@@ -242,7 +244,11 @@ function step(state: DualState, input: ArcadeInputEvent | null): DualState {
   }
 
   const leftHit = atRunner(state.left, tick, dualJumpHeight(leftStart, leftBase, leftUntil, tick));
-  const rightHit = atRunner(state.right, tick, dualJumpHeight(rightStart, rightBase, rightUntil, tick));
+  const rightHit = atRunner(
+    state.right,
+    tick,
+    dualJumpHeight(rightStart, rightBase, rightUntil, tick),
+  );
   if (leftHit || rightHit) {
     return {
       ...state,

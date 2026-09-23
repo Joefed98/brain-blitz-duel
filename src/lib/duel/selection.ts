@@ -77,21 +77,26 @@ export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[
   ) as PuzzleCategory[][];
 
   if (options.categories) {
-    const pool = normaliseCategories(options.categories).filter((category) => typesInCategory(category).length);
+    const pool = normaliseCategories(options.categories).filter(
+      (category) => typesInCategory(category).length,
+    );
     const counts = new Map<PuzzleCategory, number>(pool.map((category) => [category, 0]));
     const selected: PuzzleCategory[] = [];
     while (selected.length < rounds) {
-      const eligible = pool.filter((category) =>
-        typesInCategory(category).length > (counts.get(category) ?? 0),
+      const eligible = pool.filter(
+        (category) => typesInCategory(category).length > (counts.get(category) ?? 0),
       );
       if (!eligible.length) break;
       const min = Math.min(...eligible.map((category) => counts.get(category) ?? 0));
       const tied = eligible.filter((category) => (counts.get(category) ?? 0) === min);
       // With all five core categories present, give them the first five draws.
-      const core = CORE_CATEGORIES.every((category) => pool.includes(category)) && selected.length < 5
-        ? tied.filter((category) => CORE_CATEGORIES.includes(category)) : tied;
-      const category = weightedPick(shuffled(core.length ? core : tied),
-        (candidate) => recencyWeight(candidate, recentCategories));
+      const core =
+        CORE_CATEGORIES.every((category) => pool.includes(category)) && selected.length < 5
+          ? tied.filter((category) => CORE_CATEGORIES.includes(category))
+          : tied;
+      const category = weightedPick(shuffled(core.length ? core : tied), (candidate) =>
+        recencyWeight(candidate, recentCategories),
+      );
       selected.push(category);
       counts.set(category, (counts.get(category) ?? 0) + 1);
     }
@@ -101,7 +106,8 @@ export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[
       if (type) used.push(type);
     }
     return pool.length >= rounds && CORE_CATEGORIES.every((category) => pool.includes(category))
-      ? used : shuffled(used);
+      ? used
+      : shuffled(used);
   }
 
   // Arcade is on unless the host turns it off; when it is on it takes exactly

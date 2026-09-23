@@ -305,7 +305,8 @@ async function recentRoundOrders(
       if (row.status === "finished" && row.round_order?.length && !row.disbanded_at)
         tournaments.push({ date: row.phase_started_at ?? row.created_at, order: row.round_order });
       for (const entry of row.tournament_history ?? [])
-        if (entry.round_order?.length) tournaments.push({ date: entry.date, order: entry.round_order });
+        if (entry.round_order?.length)
+          tournaments.push({ date: entry.date, order: entry.round_order });
     }
     tournaments.sort((a, b) => b.date.localeCompare(a.date));
     orders.push(...tournaments.map((entry) => entry.order));
@@ -340,8 +341,12 @@ export const createRoomFn = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const room = await createRoomRow(client, context.userId, data.displayName,
-      normaliseCategories(previous?.selected_categories));
+    const room = await createRoomRow(
+      client,
+      context.userId,
+      data.displayName,
+      normaliseCategories(previous?.selected_categories),
+    );
     return { roomId: room.id, roomCode: room.room_code };
   });
 
@@ -406,8 +411,14 @@ export const startRoomFn = createServerFn({ method: "POST" })
     const recent = await recentRoundOrders(client, room, room.host_user_id);
     const lastGoNoGoFirst = await previousGoNoGoFirst(client, room, room.host_user_id);
     const categories = normaliseCategories(room.selected_categories);
-    if (categories.reduce((total, category) => total + typesInCategory(category).length, 0) < (room.round_count ?? TOTAL_ROUNDS))
-      return { ok: false as const, message: "These categories need at least six active games. Choose another category." };
+    if (
+      categories.reduce((total, category) => total + typesInCategory(category).length, 0) <
+      (room.round_count ?? TOTAL_ROUNDS)
+    )
+      return {
+        ok: false as const,
+        message: "These categories need at least six active games. Choose another category.",
+      };
     const { roundOrder, puzzles } = buildRoomPuzzles({
       rounds: room.round_count ?? TOTAL_ROUNDS,
       recent,
@@ -462,8 +473,11 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
     if (room.status !== "waiting") {
       return { ok: false as const, message: "The game has already started." };
     }
-    if (!Array.isArray(data.categories) || data.categories.length === 0 ||
-      normaliseCategories(data.categories).length !== new Set(data.categories).size)
+    if (
+      !Array.isArray(data.categories) ||
+      data.categories.length === 0 ||
+      normaliseCategories(data.categories).length !== new Set(data.categories).size
+    )
       return { ok: false as const, message: "Choose at least one valid category." };
     const categories = normaliseCategories(data.categories);
     await client
@@ -512,7 +526,10 @@ export const leaveRoomFn = createServerFn({ method: "POST" })
       .eq("user_id", context.userId);
 
     if (room.host_user_id === context.userId)
-      await client.from("duels").update({ disbanded_at: nowIso(), status: "finished" }).eq("id", room.id);
+      await client
+        .from("duels")
+        .update({ disbanded_at: nowIso(), status: "finished" })
+        .eq("id", room.id);
     return { ok: true as const };
   });
 
@@ -522,8 +539,12 @@ export const disbandRoomFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const client = await db();
     const room = await getRoom(client, data.roomId);
-    if (room.host_user_id !== context.userId) return { ok: false as const, message: "Only the host can disband this room." };
-    await client.from("duels").update({ disbanded_at: nowIso(), status: "finished" }).eq("id", room.id);
+    if (room.host_user_id !== context.userId)
+      return { ok: false as const, message: "Only the host can disband this room." };
+    await client
+      .from("duels")
+      .update({ disbanded_at: nowIso(), status: "finished" })
+      .eq("id", room.id);
     return { ok: true as const };
   });
 
@@ -848,7 +869,8 @@ export const rematchFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: "Waiting for the host to play again." };
     }
     const { data: restarted, error } = await client.rpc("restart_duel_room", {
-      p_room_id: room.id, p_host_id: context.userId,
+      p_room_id: room.id,
+      p_host_id: context.userId,
     });
     if (error || !restarted) return { ok: false as const, message: "Could not play again yet." };
     return { ok: true as const, roomId: room.id, roomCode: room.room_code };

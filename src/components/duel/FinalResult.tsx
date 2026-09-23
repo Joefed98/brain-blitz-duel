@@ -111,21 +111,27 @@ export function FinalResult({
       </div>
 
       <div className="flex flex-col gap-3">
-        {isHost ? <button
-          type="button"
-          onClick={onPlayAgain}
-          disabled={busy}
-          className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground"
-        >
-          {busy ? (
-            <>
-              <span>Setting up</span>
-              <Dots className="bg-primary-foreground" />
-            </>
-          ) : (
-            "Play again"
-          )}
-        </button> : <p className="text-center text-sm text-muted-foreground">Waiting for the host to play again</p>}
+        {isHost ? (
+          <button
+            type="button"
+            onClick={onPlayAgain}
+            disabled={busy}
+            className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground"
+          >
+            {busy ? (
+              <>
+                <span>Setting up</span>
+                <Dots className="bg-primary-foreground" />
+              </>
+            ) : (
+              "Play again"
+            )}
+          </button>
+        ) : (
+          <p className="text-center text-sm text-muted-foreground">
+            Waiting for the host to play again
+          </p>
+        )}
         <button
           type="button"
           onClick={onHome}

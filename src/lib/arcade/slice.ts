@@ -138,7 +138,10 @@ export interface SliceObject {
 }
 
 /** One throw's spot and velocity, drawn from the seed. */
-function rollFlight(rng: number, speedPercent: number): {
+function rollFlight(
+  rng: number,
+  speedPercent: number,
+): {
   rng: number;
   startPx: number;
   vx: number;
@@ -258,7 +261,10 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
         for (let i = 2; i > 0; i--) {
           const pick = rngBelow(rng, i + 1);
           rng = pick.state;
-          [speedClasses[i], speedClasses[pick.value]] = [speedClasses[pick.value]!, speedClasses[i]!];
+          [speedClasses[i], speedClasses[pick.value]] = [
+            speedClasses[pick.value]!,
+            speedClasses[i]!,
+          ];
         }
       }
       const flight = rollFlight(rng, SLICE_SPEED_CLASSES[speedClasses[ordinaryIndex % 3] ?? 1]!);
@@ -569,7 +575,13 @@ function drawSpecial(ctx: CanvasRenderingContext2D, cx: number, cy: number, spec
   for (let index = 0; index < wedges; index++) {
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, SLICE_SPECIAL_R, (index * Math.PI * 2) / wedges, ((index + 1) * Math.PI * 2) / wedges);
+    ctx.arc(
+      cx,
+      cy,
+      SLICE_SPECIAL_R,
+      (index * Math.PI * 2) / wedges,
+      ((index + 1) * Math.PI * 2) / wedges,
+    );
     ctx.closePath();
     ctx.fillStyle = SLICE_RAINBOW[index]!;
     ctx.fill();

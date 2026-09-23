@@ -185,7 +185,11 @@ function DuelScreen() {
   const draftAnswer = useRef("");
   const lastAdvance = useRef(0);
   const dueSince = useRef(0);
-  const [revealed, setRevealed] = useState<{ round: number; tournamentKey: string; data: RoundRevealData } | null>(null);
+  const [revealed, setRevealed] = useState<{
+    round: number;
+    tournamentKey: string;
+    data: RoundRevealData;
+  } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
 
   // Reset button state when a new tournament opens in this room.
@@ -214,7 +218,8 @@ function DuelScreen() {
   });
   if (heldPuzzle.current.key !== stateKey) heldPuzzle.current = { key: stateKey, value: incoming };
   const puzzle = heldPuzzle.current.value;
-  const currentReveal = revealed?.round === round && revealed.tournamentKey === tournamentKey ? revealed.data : null;
+  const currentReveal =
+    revealed?.round === round && revealed.tournamentKey === tournamentKey ? revealed.data : null;
 
   useEffect(() => {
     draftAnswer.current = "";
@@ -266,10 +271,7 @@ function DuelScreen() {
   ).length;
   const answeredThisRound = results.filter((r) => r.round_number === round).length;
   const roundDetails = new Map(
-    (currentReveal ? currentReveal.players : []).map((detail) => [
-      detail.playerSlot,
-      detail,
-    ]),
+    (currentReveal ? currentReveal.players : []).map((detail) => [detail.playerSlot, detail]),
   );
   const table = standings(roomPlayers, results, scoredThrough, roundDetails);
   const myStanding = table.find((r) => r.slot === mySlot);
@@ -521,8 +523,13 @@ function DuelScreen() {
   }
 
   if (duel.disbanded_at) {
-    return <Centered><h1 className="font-display text-2xl">Room disbanded</h1>
-      <p className="text-sm text-muted-foreground">The host closed this room.</p><HomeButton /></Centered>;
+    return (
+      <Centered>
+        <h1 className="font-display text-2xl">Room disbanded</h1>
+        <p className="text-sm text-muted-foreground">The host closed this room.</p>
+        <HomeButton />
+      </Centered>
+    );
   }
 
   if (state.opponentDisconnected) {
@@ -564,16 +571,36 @@ function DuelScreen() {
             onRemove={(slot) => void removePlayer(duel.id, slot)}
             onMuteForEveryone={(slot, muted) => void setPlayerMuted(duel.id, slot, muted)}
           />
-          {confirmDisband && <div role="alertdialog" aria-label="Disband room" className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-6">
-            <div className="w-full max-w-sm space-y-4 rounded-md border border-border bg-card p-5 text-center">
-              <p className="font-display text-lg">Disband this room?</p>
-              <p className="text-sm text-muted-foreground">The code will no longer work for anyone.</p>
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setConfirmDisband(false)} className="tap-target flex-1 rounded-md border border-border">Cancel</button>
-                <button type="button" onClick={() => void handleDisband()} className="tap-target flex-1 rounded-md bg-primary text-primary-foreground">Disband</button>
+          {confirmDisband && (
+            <div
+              role="alertdialog"
+              aria-label="Disband room"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-6"
+            >
+              <div className="w-full max-w-sm space-y-4 rounded-md border border-border bg-card p-5 text-center">
+                <p className="font-display text-lg">Disband this room?</p>
+                <p className="text-sm text-muted-foreground">
+                  The code will no longer work for anyone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDisband(false)}
+                    className="tap-target flex-1 rounded-md border border-border"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDisband()}
+                    className="tap-target flex-1 rounded-md bg-primary text-primary-foreground"
+                  >
+                    Disband
+                  </button>
+                </div>
               </div>
             </div>
-          </div>}
+          )}
         </div>
         <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>

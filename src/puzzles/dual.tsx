@@ -43,7 +43,10 @@ function IntroExample() {
       >
         <rect x="8" y="70" width="74" height="4" fill={DUAL_GROUND} />
         <rect x="98" y="70" width="74" height="4" fill={DUAL_GROUND} />
-        <path d="M52 69 L41 27 L45 36 L56 69 Z M156 69 L145 27 L149 36 L160 69 Z" fill={DUAL_SPIKE} />
+        <path
+          d="M52 69 L41 27 L45 36 L56 69 Z M156 69 L145 27 L149 36 L160 69 Z"
+          fill={DUAL_SPIKE}
+        />
         <circle cx="30" cy="62" r="9" fill={DUAL_RUNNER} />
         <circle cx="120" cy="40" r="9" fill={DUAL_RUNNER} />
         <line x1="90" y1="10" x2="90" y2="86" stroke="rgba(255,255,255,0.14)" />
