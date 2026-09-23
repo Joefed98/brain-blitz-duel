@@ -312,16 +312,8 @@ async function recentRoundOrders(
     orders.push(...tournaments.map((entry) => entry.order));
   }
 
-  // De-duplicate while keeping "most recent first" order.
-  const seen = new Set<string>();
-  const unique: PuzzleType[][] = [];
-  for (const order of orders) {
-    const key = order.join(",");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    unique.push(order);
-  }
-  return unique.slice(0, RECENT_ROOMS);
+  // Repeated orders represent separate tournaments and still count toward recency.
+  return orders.slice(0, RECENT_ROOMS);
 }
 
 /* -------------------------------------------------------------------------- */

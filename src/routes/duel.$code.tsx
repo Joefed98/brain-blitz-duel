@@ -226,7 +226,7 @@ function DuelScreen() {
     setRevealed(null);
     // The previous round's inputs are no longer needed once a new round opens.
     if (round > 1) clearStageState(`${tournamentKey}-${round - 1}`);
-  }, [tournamentKey, round]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tournamentKey, round]);
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
   // Chat and reactions are live on every screen except an active puzzle.
