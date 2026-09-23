@@ -185,7 +185,7 @@ function DuelScreen() {
   const draftAnswer = useRef("");
   const lastAdvance = useRef(0);
   const dueSince = useRef(0);
-  const [revealed, setRevealed] = useState<{ round: number; data: RoundRevealData } | null>(null);
+  const [revealed, setRevealed] = useState<{ round: number; tournamentKey: string; data: RoundRevealData } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
 
   // Reset button state when a new tournament opens in this room.
@@ -214,6 +214,7 @@ function DuelScreen() {
   });
   if (heldPuzzle.current.key !== stateKey) heldPuzzle.current = { key: stateKey, value: incoming };
   const puzzle = heldPuzzle.current.value;
+  const currentReveal = revealed?.round === round && revealed.tournamentKey === tournamentKey ? revealed.data : null;
 
   useEffect(() => {
     draftAnswer.current = "";
@@ -265,7 +266,7 @@ function DuelScreen() {
   ).length;
   const answeredThisRound = results.filter((r) => r.round_number === round).length;
   const roundDetails = new Map(
-    (revealed?.round === round ? revealed.data.players : []).map((detail) => [
+    (currentReveal ? currentReveal.players : []).map((detail) => [
       detail.playerSlot,
       detail,
     ]),
@@ -274,7 +275,7 @@ function DuelScreen() {
   const myStanding = table.find((r) => r.slot === mySlot);
   const opponentStanding = table.find((r) => r.slot === opponentSlot);
   const roundTitle = puzzle
-    ? `Round ${round} · ${puzzleName(puzzle.type)}${revealed?.round === round && revealed.data.correctAnswer ? ` · ${revealed.data.correctAnswer}` : ""}`
+    ? `Round ${round} · ${puzzleName(puzzle.type)}${currentReveal?.correctAnswer ? ` · ${currentReveal.correctAnswer}` : ""}`
     : `Round ${round}`;
   /** Only the host drives the standings screen on; timers do the rest. */
   const leads = isHost;
@@ -646,8 +647,8 @@ function DuelScreen() {
       <PhoneShell constrained>
         <AnswerReveal
           round={round}
-          puzzle={revealed?.round === round ? revealed.data.puzzle : puzzle}
-          answersReady={revealed?.round === round}
+          puzzle={currentReveal?.puzzle ?? puzzle}
+          answersReady={!!currentReveal}
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
           myReactionAvgMs={myResult?.reaction_avg_ms ?? null}
