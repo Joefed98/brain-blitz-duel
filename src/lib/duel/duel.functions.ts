@@ -302,8 +302,8 @@ async function recentRoundOrders(
       .limit(15);
     const tournaments: { date: string; order: PuzzleType[] }[] = [];
     for (const row of (data ?? []) as DuelRow[]) {
-      if (row.status === "finished" && row.id !== room.id && row.round_order?.length)
-        tournaments.push({ date: row.created_at, order: row.round_order });
+      if (row.status === "finished" && row.round_order?.length && !row.disbanded_at)
+        tournaments.push({ date: row.phase_started_at ?? row.created_at, order: row.round_order });
       for (const entry of row.tournament_history ?? [])
         if (entry.round_order?.length) tournaments.push({ date: entry.date, order: entry.round_order });
     }
