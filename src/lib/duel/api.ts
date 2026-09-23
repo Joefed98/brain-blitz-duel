@@ -14,12 +14,15 @@ import {
   removePlayerFn,
   revealAnswerFn,
   setRoomModesFn,
+  disbandRoomFn,
+  checkHostPresenceFn,
   startRoomFn,
   submitAnswerFn,
   type SubmitExtra,
 } from "./duel.functions";
 import { ensureSession } from "./session";
 import type { DuelPlayerRow, DuelRow, RoundResultRow, RoundRevealData } from "./types";
+import type { PuzzleCategory } from "./types";
 
 export class DuelError extends Error {}
 
@@ -86,10 +89,19 @@ export async function startRoom(roomId: string): Promise<void> {
 
 export async function setRoomModes(
   roomId: string,
-  modes: { addMaths: boolean; addMemory: boolean; addArcade: boolean },
+  categories: PuzzleCategory[],
 ): Promise<void> {
-  const result = await setRoomModesFn({ data: { roomId, ...modes } });
+  const result = await setRoomModesFn({ data: { roomId, categories } });
   if (!result.ok) throw new DuelError(result.message);
+}
+
+export async function disbandRoom(roomId: string): Promise<void> {
+  const result = await disbandRoomFn({ data: { roomId } });
+  if (!result.ok) throw new DuelError(result.message);
+}
+
+export async function checkHostPresence(roomId: string): Promise<void> {
+  await checkHostPresenceFn({ data: { roomId } });
 }
 
 export async function removePlayer(roomId: string, slot: number): Promise<void> {
@@ -167,7 +179,7 @@ export async function checkGroup(
   return checkGroupFn({ data: { roomId: duelId, roundNumber, indices } });
 }
 
-/** Host only: makes the next room and brings everyone along. */
+/** Host only: resets this room for another tournament. */
 export async function ensureRematch(roomId: string): Promise<{ roomCode: string }> {
   const result = await rematchFn({ data: { roomId } });
   if (!result.ok) throw new DuelError(result.message);
