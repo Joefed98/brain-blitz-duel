@@ -746,9 +746,7 @@ function DuelScreen() {
             }`}
           >
             <TimerRing
-              msRemaining={
-                myResult ? 0 : runMs !== null ? arcadeMsRemaining(runMs) : msRemaining
-              }
+              msRemaining={myResult ? 0 : runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
               totalMs={runMs ?? timeLimitMs}
               active={clockActive && !myResult}
             />
