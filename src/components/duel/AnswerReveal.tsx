@@ -1,5 +1,5 @@
 import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { WaitingLine } from "@/components/duel/Dots";
 

@@ -64,6 +64,7 @@ interface Graded {
   msRemaining: number;
   reactionAvgMs: number | null;
   answer: string;
+  extra?: Record<string, unknown> | null;
 }
 
 function useTicker(active: boolean): number {
@@ -282,6 +283,7 @@ function PracticeScreen() {
           myCorrect={graded.isCorrect}
           myReactionAvgMs={graded.reactionAvgMs}
           myMsRemaining={graded.msRemaining}
+          myExtra={graded.extra ?? null}
           startedAt={startedAt}
           now={now}
         />
