@@ -1,4 +1,6 @@
 import { MAX_PLAYERS, MIN_PLAYERS, type DuelPlayerRow } from "@/lib/duel/types";
+import type { PuzzleCategory } from "@/lib/duel/types";
+import { CATEGORY_ORDER, PUZZLE_CATEGORIES, STANDARD_CATEGORIES } from "@/lib/duel/categories";
 
 import { Dots, WaitingLine } from "./Dots";
 
@@ -16,10 +18,8 @@ function Crown() {
 }
 
 interface RoomLobbyProps {
-  addMaths: boolean;
-  addMemory: boolean;
-  addArcade: boolean;
-  onModesChange: (modes: { addMaths: boolean; addMemory: boolean; addArcade: boolean }) => void;
+  categories: PuzzleCategory[];
+  onCategoriesChange: (categories: PuzzleCategory[]) => void;
 
   players: DuelPlayerRow[];
   hostUserId: string | null;
@@ -30,16 +30,14 @@ interface RoomLobbyProps {
   onRemove: (slot: number) => void;
   /** Host only: mute or unmute a player's chat and reactions for everyone. */
   onMuteForEveryone: (slot: number, muted: boolean) => void;
+  onDisband: () => void;
 }
 
 /** The waiting room for two to ten players. */
 export function RoomLobby({
   players,
-  addMaths,
-  addMemory,
-  addArcade,
-
-  onModesChange,
+  categories,
+  onCategoriesChange,
   hostUserId,
   meUserId,
   isHost,
@@ -47,6 +45,7 @@ export function RoomLobby({
   onStart,
   onRemove,
   onMuteForEveryone,
+  onDisband,
 }: RoomLobbyProps) {
   const canStart = players.length >= MIN_PLAYERS;
 
@@ -104,66 +103,43 @@ export function RoomLobby({
         })}
       </ul>
 
-      {isHost ? (
-        <div className="flex flex-col gap-2">
-          {[
-            { label: "Add maths", value: addMaths, key: "addMaths" as const },
-            { label: "Add memory", value: addMemory, key: "addMemory" as const },
-            { label: "Add arcade", value: addArcade, key: "addArcade" as const },
-          ].map((mode) => (
-            <button
-              key={mode.key}
-              type="button"
-              role="switch"
-              aria-checked={mode.value}
-              onClick={() =>
-                onModesChange({
-                  addMaths: mode.key === "addMaths" ? !addMaths : addMaths,
-                  addMemory: mode.key === "addMemory" ? !addMemory : addMemory,
-                  addArcade: mode.key === "addArcade" ? !addArcade : addArcade,
-                })
-              }
-              className="press tap-target flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3"
-            >
-              <span className="font-display text-sm text-foreground">{mode.label}</span>
-              <span
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                  mode.value ? "bg-primary" : "bg-muted"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-background transition-all ${
-                    mode.value ? "left-[22px]" : "left-0.5"
-                  }`}
-                />
-              </span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {(addMaths || addMemory || addArcade) && (
-        <div className="flex flex-wrap justify-center gap-2">
-          {addMaths && (
-            <span className="rounded-full border border-border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              + maths
-            </span>
-          )}
-          {addMemory && (
-            <span className="rounded-full border border-border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              + memory
-            </span>
-          )}
-          {addArcade && (
-            <span className="rounded-full border border-border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              + arcade
-            </span>
-          )}
-        </div>
-      )}
+      <div className="w-full space-y-3 text-left">
+        <p className="font-display text-sm font-semibold text-foreground">Categories</p>
+        {isHost && (
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Standard", values: STANDARD_CATEGORIES },
+              { label: "Arcade only", values: ["arcade"] as PuzzleCategory[] },
+              { label: "Puzzles only", values: PUZZLE_CATEGORIES },
+            ].map(({ label, values }) => (
+              <button key={label} type="button" onClick={() => onCategoriesChange([...values])}
+                aria-pressed={categories.length === values.length && categories.every((category) => values.includes(category))}
+                className="press rounded-md border border-border bg-card px-3 py-2 font-display text-xs text-foreground aria-pressed:border-primary aria-pressed:text-primary">
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        {isHost ? (
+          <div className="flex flex-wrap gap-2">
+            {CATEGORY_ORDER.map((category) => (
+              <button key={category} type="button" aria-pressed={categories.includes(category)}
+                disabled={categories.length === 1 && categories.includes(category)}
+                onClick={() => onCategoriesChange(categories.includes(category)
+                  ? categories.filter((item) => item !== category)
+                  : CATEGORY_ORDER.filter((item) => categories.includes(item) || item === category))}
+                className="press rounded-md border border-border bg-card px-3 py-2 font-display text-xs capitalize text-muted-foreground aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary disabled:opacity-70">
+                {category}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Categories: {categories.map((category) => category[0].toUpperCase() + category.slice(1)).join(" · ")}</p>
+        )}
+      </div>
 
       {isHost ? (
-        <button
+        <><button
           type="button"
           onClick={onStart}
           disabled={!canStart || starting}
@@ -180,6 +156,7 @@ export function RoomLobby({
             "Need 2 players"
           )}
         </button>
+        <button type="button" onClick={onDisband} className="press text-sm text-muted-foreground underline decoration-border underline-offset-4">Disband room</button></>
       ) : (
         <WaitingLine label="Waiting for host to start" />
       )}
