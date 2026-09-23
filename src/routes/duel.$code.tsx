@@ -33,9 +33,9 @@ import {
   checkGroup,
   checkWord,
   ensureRematch,
-  fetchDuelById,
   fetchRevealPuzzle,
   leaveRoom,
+  disbandRoom,
   readyUp,
   removePlayer,
   setRoomModes,
@@ -54,6 +54,7 @@ import {
   totalScoreThrough,
 } from "@/lib/duel/scoring";
 import { useDuel } from "@/lib/duel/useDuel";
+import { normaliseCategories } from "@/lib/duel/categories";
 import { setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
 import {
   puzzleDef,
@@ -179,6 +180,7 @@ function DuelScreen() {
 
   const [rematchBusy, setRematchBusy] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [confirmDisband, setConfirmDisband] = useState(false);
   const timeoutSubmitted = useRef<string>("");
   const draftAnswer = useRef("");
   const lastAdvance = useRef(0);
@@ -186,11 +188,11 @@ function DuelScreen() {
   const [revealed, setRevealed] = useState<{ round: number; data: RoundRevealData } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
 
-  // A new room (after Play again) starts with fresh button state.
+  // Reset button state when a new tournament opens in this room.
   useEffect(() => {
     setStarting(false);
     setRematchBusy(false);
-  }, [duel?.id]);
+  }, [duel?.id, duel?.status]);
 
   const round = duel?.current_round ?? 0;
   const phase = duel?.phase ?? "intro";
@@ -203,7 +205,7 @@ function DuelScreen() {
    * keeps the puzzle object identical while a round is live, so a realtime
    * update cannot re-mount or reset the puzzle a player is working on.
    */
-  const stateKey = duel && round > 0 ? `${duel.id}-${round}` : "";
+  const stateKey = duel && round > 0 ? `${duel.id}-${duel.phase_started_at ?? ""}-${round}` : "";
   const incoming = duel && round > 0 ? duel.puzzles_public[round - 1] : undefined;
   const heldPuzzle = useRef<{ key: string; value: PuzzleData | undefined }>({
     key: "",
@@ -401,19 +403,6 @@ function DuelScreen() {
   }, [phase, round, now, phaseStart]);
 
   // Every phone follows the host into the new room as soon as it exists.
-  useEffect(() => {
-    const nextId = duel?.next_duel_id;
-    if (!nextId || !me) return;
-    let cancelled = false;
-    void (async () => {
-      const next = await fetchDuelById(nextId);
-      if (next && !cancelled)
-        await navigate({ to: "/duel/$code", params: { code: next.room_code } });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [duel?.next_duel_id, me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * The callbacks handed to a puzzle keep the same identity for the whole round
@@ -471,7 +460,7 @@ function DuelScreen() {
     setRematchBusy(true);
     try {
       const next = await ensureRematch(duel.id);
-      await navigate({ to: "/duel/$code", params: { code: next.roomCode } });
+      if (next.roomCode === duel.room_code) await state.refresh();
     } catch {
       setRematchBusy(false);
     }
@@ -491,6 +480,12 @@ function DuelScreen() {
 
   const handleLeave = async () => {
     if (duel) await leaveRoom(duel.id);
+    await navigate({ to: "/" });
+  };
+
+  const handleDisband = async () => {
+    if (!duel) return;
+    await disbandRoom(duel.id);
     await navigate({ to: "/" });
   };
 
@@ -520,6 +515,11 @@ function DuelScreen() {
         <HomeButton />
       </Centered>
     );
+  }
+
+  if (duel.disbanded_at) {
+    return <Centered><h1 className="font-display text-2xl">Room disbanded</h1>
+      <p className="text-sm text-muted-foreground">The host closed this room.</p><HomeButton /></Centered>;
   }
 
   if (state.opponentDisconnected) {
@@ -554,14 +554,22 @@ function DuelScreen() {
             isHost={isHost}
             starting={starting}
             onStart={() => void handleStart()}
-            addMaths={duel.add_maths === true}
-            addMemory={duel.add_memory === true}
-            addArcade={duel.add_arcade !== false}
-
-            onModesChange={(modes) => void setRoomModes(duel.id, modes)}
+            categories={normaliseCategories(duel.selected_categories)}
+            onCategoriesChange={(categories) => void setRoomModes(duel.id, categories)}
+            onDisband={() => setConfirmDisband(true)}
             onRemove={(slot) => void removePlayer(duel.id, slot)}
             onMuteForEveryone={(slot, muted) => void setPlayerMuted(duel.id, slot, muted)}
           />
+          {confirmDisband && <div role="alertdialog" aria-label="Disband room" className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-6">
+            <div className="w-full max-w-sm space-y-4 rounded-md border border-border bg-card p-5 text-center">
+              <p className="font-display text-lg">Disband this room?</p>
+              <p className="text-sm text-muted-foreground">The code will no longer work for anyone.</p>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setConfirmDisband(false)} className="tap-target flex-1 rounded-md border border-border">Cancel</button>
+                <button type="button" onClick={() => void handleDisband()} className="tap-target flex-1 rounded-md bg-primary text-primary-foreground">Disband</button>
+              </div>
+            </div>
+          </div>}
         </div>
         <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
@@ -598,7 +606,7 @@ function DuelScreen() {
           roundOrder={duel.round_order}
           busy={rematchBusy}
           onPlayAgain={() => void handlePlayAgain()}
-          onHome={() => void navigate({ to: "/" })}
+          onHome={() => void handleLeave()}
         />
         <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
