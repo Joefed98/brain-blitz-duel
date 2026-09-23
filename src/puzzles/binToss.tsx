@@ -1,3 +1,5 @@
+import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
+import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
@@ -112,6 +114,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
+    appendClientCounters(encodeRaw(), arcadeCounters("bintoss", state.current, binTossGame.score(state.current)));
+  const encodeRaw = (): string =>
     encodeBinTossRun({
       seed,
       claimedScore: binTossGame.score(state.current),
@@ -170,7 +174,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const queued = pending.current.shift() ?? null;
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
           const before = state.current;
-          state.current = binTossGame.step(state.current, applied);
+          recordInput(events.current, applied, binTossGame.inputRanges);
+          state.current = binTossGame.step(state.current, inputAt(events.current, state.current.tick + 1));
           if (before.phase !== state.current.phase && state.current.phase === BINTOSS_WAIT) {
             lastGhost.current = activeLaunch.current;
             activeLaunch.current = null;
@@ -182,10 +187,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                 binIndex: before.throwIndex,
               };
             }
-          }
-          // Logged only when the flick actually launched a ball.
-          if (applied && before.phase === BINTOSS_AIM && state.current.phase !== BINTOSS_AIM) {
-            events.current.push(applied);
           }
           if (state.current.tick % BINTOSS_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(binTossCheckpoint(state.current));

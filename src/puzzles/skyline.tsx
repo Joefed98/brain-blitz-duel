@@ -1,3 +1,5 @@
+import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
+import { recordTap, tapAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
@@ -70,6 +72,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   draftRef.current = onDraftAnswer;
 
   const encode = (): string =>
+    appendClientCounters(encodeRaw(), arcadeCounters("skyline", state.current, skylineGame.score(state.current)));
+  const encodeRaw = (): string =>
     encodeSkylineRun({
       seed,
       claimedScore: skylineGame.score(state.current),
@@ -118,9 +122,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const tapped = pending.current > 0;
           if (tapped) {
             pending.current -= 1;
-            inputs.current.push(state.current.tick + 1);
+            recordTap(inputs.current, state.current.tick + 1);
           }
-          state.current = skylineGame.step(state.current, tapped);
+          state.current = skylineGame.step(state.current, tapAt(inputs.current, state.current.tick + 1));
           if (state.current.tick % SKYLINE_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(skylineCheckpoint(state.current));
           }
