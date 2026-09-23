@@ -1,6 +1,7 @@
 import { MAX_PLAYERS, MIN_PLAYERS, type DuelPlayerRow } from "@/lib/duel/types";
 import type { PuzzleCategory } from "@/lib/duel/types";
 import { CATEGORY_ORDER, PUZZLE_CATEGORIES, STANDARD_CATEGORIES } from "@/lib/duel/categories";
+import { typesInCategory } from "@/lib/duel/registry";
 
 import { Dots, WaitingLine } from "./Dots";
 
@@ -124,7 +125,8 @@ export function RoomLobby({
           <div className="flex flex-wrap gap-2">
             {CATEGORY_ORDER.map((category) => (
               <button key={category} type="button" aria-pressed={categories.includes(category)}
-                disabled={categories.length === 1 && categories.includes(category)}
+                title={typesInCategory(category).length ? undefined : "No active games in this category yet"}
+                disabled={(!typesInCategory(category).length && !categories.includes(category)) || (categories.length === 1 && categories.includes(category))}
                 onClick={() => onCategoriesChange(categories.includes(category)
                   ? categories.filter((item) => item !== category)
                   : CATEGORY_ORDER.filter((item) => categories.includes(item) || item === category))}
