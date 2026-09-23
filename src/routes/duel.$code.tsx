@@ -556,6 +556,7 @@ function DuelScreen() {
             starting={starting}
             onStart={() => void handleStart()}
             categories={normaliseCategories(duel.selected_categories)}
+            tournamentHistory={duel.tournament_history ?? []}
             onCategoriesChange={(categories) => void setRoomModes(duel.id, categories)}
             onDisband={() => setConfirmDisband(true)}
             onRemove={(slot) => void removePlayer(duel.id, slot)}

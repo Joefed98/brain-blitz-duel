@@ -32,6 +32,7 @@ interface RoomLobbyProps {
   /** Host only: mute or unmute a player's chat and reactions for everyone. */
   onMuteForEveryone: (slot: number, muted: boolean) => void;
   onDisband: () => void;
+  tournamentHistory: { winner: string; date: string }[];
 }
 
 /** The waiting room for two to ten players. */
@@ -47,6 +48,7 @@ export function RoomLobby({
   onRemove,
   onMuteForEveryone,
   onDisband,
+  tournamentHistory,
 }: RoomLobbyProps) {
   const canStart = players.length >= MIN_PLAYERS;
 
@@ -139,6 +141,17 @@ export function RoomLobby({
           <p className="text-sm text-muted-foreground">Categories: {categories.map((category) => category.charAt(0).toUpperCase() + category.slice(1)).join(" · ")}</p>
         )}
       </div>
+
+      {tournamentHistory.length > 0 && (
+        <div className="space-y-1 border-t border-border pt-3">
+          <p className="font-display text-xs text-muted-foreground">Previous tournaments</p>
+          {tournamentHistory.slice(-3).reverse().map((entry, index) => (
+            <p key={`${entry.date}-${index}`} className="text-xs text-muted-foreground">
+              {entry.winner} won · {new Date(entry.date).toLocaleDateString()}
+            </p>
+          ))}
+        </div>
+      )}
 
       {isHost ? (
         <><button

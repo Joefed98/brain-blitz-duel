@@ -1,9 +1,8 @@
 /**
  * Round selection for a room.
  *
- * Categories split into a CORE pool that is always drawn from and an OPT-IN
- * pool (number, memory) the host switches on in the lobby. Retired types are
- * never drawn. A room's six rounds are always six different types.
+ * Categories are host-selected in the lobby. Retired types are never drawn.
+ * A room's six rounds are always six different types.
  *
  * The draw is weighted against what the host's group has just played, so four
  * rooms in a row come close to twenty-four different games.
