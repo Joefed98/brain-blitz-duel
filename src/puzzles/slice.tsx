@@ -1,3 +1,4 @@
+import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -94,6 +95,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   useEffect(() => {
     if (!data) return;
     let frame = 0;
+    resetArcadeClock();
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
@@ -149,6 +151,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         slices = state.current.slices;
         playBlip();
       }
+
+      reportArcadeTick(state.current.tick, sliceGame.isOver(state.current));
 
       const size = sizeCanvas();
       if (size) sliceGame.draw(canvas.current!.getContext("2d")!, state.current, size);

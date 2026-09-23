@@ -7,6 +7,7 @@
 
 import {
   brkBricksLeft,
+  brkDestroyed,
   brkCheckpoint,
   breakerGame,
   BRK_CHECKPOINT_INTERVAL,
@@ -125,6 +126,7 @@ export function decodeBreakerRun(raw: string): BreakerRun {
 export interface BreakerResult {
   hits: number;
   bricksLeft: number;
+  destroyed: number;
   totalHits: number;
   losses: number;
   powerUps: number;
@@ -179,6 +181,7 @@ export function replayBreakerRun(seed: number, raw: string): BreakerResult {
   const result: BreakerResult = {
     hits: state.hits,
     bricksLeft: brkBricksLeft(state),
+    destroyed: brkDestroyed(state),
     totalHits: BRK_TOTAL_HITS,
     losses: state.losses,
     powerUps: state.powerUps,

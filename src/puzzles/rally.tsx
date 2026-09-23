@@ -1,3 +1,4 @@
+import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -96,6 +97,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   useEffect(() => {
     if (!data) return;
     let frame = 0;
+    resetArcadeClock();
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
@@ -138,6 +140,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (rallyGame.isOver(state.current)) break;
         }
       }
+
+      reportArcadeTick(state.current.tick, rallyGame.isOver(state.current));
 
       const size = sizeCanvas();
       if (size) rallyGame.draw(canvas.current!.getContext("2d")!, state.current, size);

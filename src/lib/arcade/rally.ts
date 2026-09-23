@@ -20,8 +20,7 @@ import {
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
-  type InputRange,
-} from "./engine";
+  type InputRange, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
 
 /* ============================== Constants ============================== */
 
@@ -56,6 +55,8 @@ export const RALLY_JITTER = 28;
 /** The ball never travels flatter than this, so a rally cannot stall. */
 export const RALLY_MIN_VY = 120;
 
+/** Par: thirty hits (gold hits count double). */
+export const RALLY_PAR = 30;
 export const RALLY_HIT_POINTS = 3;
 export const RALLY_GOLD_POINTS = 6;
 export const RALLY_POINTS_CAP = 110;
@@ -277,11 +278,8 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
 }
 
 function score(state: RallyState): number {
-  const earned = Math.min(
-    RALLY_POINTS_CAP,
-    RALLY_HIT_POINTS * state.hits + RALLY_GOLD_POINTS * state.goldHits,
-  );
-  return clampInt(earned + (rallySurvived(state) ? RALLY_SURVIVE_BONUS : 0), 0, 150);
+  const earned = parPoints(state.hits + 2 * state.goldHits, RALLY_PAR);
+  return clampInt(earned + (rallySurvived(state) ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */

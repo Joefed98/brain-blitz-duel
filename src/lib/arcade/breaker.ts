@@ -22,8 +22,7 @@ import {
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
-  type InputRange,
-} from "./engine";
+  type InputRange, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
 
 /* ============================== Constants ============================== */
 
@@ -90,6 +89,11 @@ export const BRK_BTN_H = 56;
 export const BRK_RELAUNCH_TICKS = 3 * TICKS_PER_SECOND;
 
 export const BRK_HIT_POINTS = 2;
+/** Par: every brick destroyed. */
+export const BRK_PAR = 64;
+export function brkDestroyed(state: { bricks: number[] }): number {
+  return state.bricks.reduce((n, left) => (left <= 0 ? n + 1 : n), 0);
+}
 export const BRK_POINTS_CAP = 110;
 export const BRK_CLEAR_BONUS = 40;
 
@@ -483,8 +487,9 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
 }
 
 function score(state: BrkState): number {
-  const earned = Math.min(BRK_POINTS_CAP, BRK_HIT_POINTS * state.hits);
-  return clampInt(earned + (state.cleared ? BRK_CLEAR_BONUS : 0), 0, 150);
+  const destroyed = state.bricks.reduce((n, left) => (left <= 0 ? n + 1 : n), 0);
+  const earned = parPoints(destroyed, BRK_PAR);
+  return clampInt(earned + (state.cleared ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -665,7 +670,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  ctx.fillText(`Bricks ${brkBricksLeft(state)} / ${state.hits} hits`, 14, 14);
+  ctx.fillText(`Bricks ${brkDestroyed(state)} / ${BRK_PAR}`, 14, 14);
   ctx.textAlign = "right";
   ctx.fillText(`${remaining.toFixed(1)}s`, BRK_WORLD_W - 14, 14);
 

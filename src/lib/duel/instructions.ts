@@ -222,9 +222,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Flip the shape", detail: "across the dashed line in your head." },
       { action: "Match every colour", detail: "as well as the outline." },
-      { action: "Tap the result", detail: "for all three shapes." },
+      { action: "Tap the result", detail: "for all five shapes." },
     ],
-    score: "More correct = more points. All three = speed bonus.",
+    score: "More correct = more points. All five = speed bonus.",
   },
   wordhunt: {
     goal: "Find as many valid words as you can.",
@@ -454,7 +454,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hit anything", detail: "and the run ends." },
       { action: "Everyone flies", detail: "the same course for sixty seconds." },
     ],
-    score: "Clear the gates for points, +40 for surviving the whole run.",
+    score: "Every gate in the run = 110, +40 for surviving the whole run.",
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",
@@ -463,7 +463,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hit a block", detail: "and the run ends." },
       { action: "Every coin", detail: "speeds the course up a little." },
     ],
-    score: "Coins earn points, +40 for surviving the whole run.",
+    score: "Every coin in the run = 110, +40 for surviving the whole run.",
   },
   skyline: {
     goal: "Stack the blocks as high as you can.",
@@ -472,7 +472,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Overhang is cut", detail: "so the next block is narrower." },
       { action: "Line it up exactly", detail: "and the block grows back a little." },
     ],
-    score: "Each block scores, perfect drops score extra, +40 for lasting the run.",
+    score: "36 blocks = 110, fewer scores in proportion, +40 for lasting the run.",
   },
   bintoss: {
     goal: "Throw the ball into the bin — ten throws.",
@@ -484,7 +484,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "The bin moves", detail: "further away every throw." },
     ],
-    score: "10 per basket; all ten for the time bonus.",
+    score: "11 per basket (10 = 110); all ten earn the time bonus.",
   },
   bullseye: {
     goal: "Hit the centre — ten arrows.",
@@ -519,7 +519,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "You grow with every pellet", detail: "and you speed up." },
       { action: "Everyone gets", detail: "the same food in the same order." },
     ],
-    score: "4 per pellet, +40 for surviving the minute.",
+    score: "28 pellets = 110, fewer in proportion, +40 for surviving the minute.",
   },
   cross: {
     goal: "Get across the traffic as many times as you can.",
@@ -531,16 +531,16 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         detail: "you get a second on the kerb before the next one.",
       },
     ],
-    score: "15 per crossing, +40 for surviving the minute.",
+    score: "6 crossings = 110, each lane counts a ninth, +40 for surviving the minute.",
   },
   dual: {
     goal: "Keep both runners alive.",
     how: [
       { action: "Left thumb jumps", detail: "the left runner." },
-      { action: "Right thumb jumps", detail: "the right runner." },
+      { action: "Right thumb jumps", detail: "the right runner. Tap again in the air to double jump." },
       { action: "Same course", detail: "for everyone." },
     ],
-    score: "2 per obstacle, +40 for surviving the minute.",
+    score: "50 obstacles = 110, fewer in proportion, +40 for surviving the minute.",
   },
   breaker: {
     goal: "Clear the wall.",
@@ -550,7 +550,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Three gold bricks", detail: "drop a capsule: catch it for a power-up." },
       { action: "Extra balls come free", detail: "— spam and beam use the gold button." },
     ],
-    score: "2 per brick, +40 for clearing the wall.",
+    score: "All 64 bricks = 110, fewer in proportion, +40 for clearing the wall.",
   },
   rally: {
     goal: "Keep the rally going.",
@@ -560,7 +560,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A gold ball drops in", detail: "every ten seconds and scores double." },
       { action: "Miss the white ball", detail: "and the run is over." },
     ],
-    score: "3 per hit, 6 per gold hit, +40 for surviving the minute.",
+    score: "30 hits = 110 (gold hits count double), +40 for surviving the minute.",
   },
   steady: {
     goal: "Stay inside the track.",
@@ -571,7 +571,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "A touch costs points", detail: "but never ends the run." },
     ],
-    score: "Distance for points, −4 per touch, +40 for a clean minute (3 touches or fewer).",
+    score: "100 m = 110, −4 per touch, +40 for a clean minute (3 touches or fewer).",
   },
   slice: {
     goal: "Slice the flying discs. Don't hit the bombs.",
@@ -584,7 +584,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         detail: "— the star opens five bomb-free seconds, the bar hangs a row of six.",
       },
     ],
-    score: "2 per disc, bonus for 3 in one swipe, −10 per bomb.",
+    score: "Every disc sliced = 110, −10 per bomb, +40 for a minute with no bombs.",
   },
   bubble: {
     goal: "Pop the bubbles by matching three of a colour.",
@@ -594,7 +594,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Bubbles left hanging", detail: "fall and count double." },
       { action: "Ninety seconds", detail: "on the same field for everyone." },
     ],
-    score: "1 per pop, 2 per drop, +40 for clearing the field.",
+    score: "90 = 110 (pops count 1, drops 2), +40 for clearing the field.",
   },
   beat: {
     goal: "Tap the notes in time.",
@@ -612,6 +612,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Don't land on the spikes", detail: "or the run ends." },
       { action: "Don't slide", detail: "all the way back to the bottom." },
     ],
-    score: "1 per 40 px climbed, +40 for surviving the minute.",
+    score: "40 m = 110, lower in proportion, +40 for surviving the minute.",
   },
 };

@@ -13,8 +13,7 @@ import {
   rngBelow,
   TICKS_PER_SECOND,
   type ArcadeGame,
-  type CanvasSize,
-} from "./engine";
+  type CanvasSize, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
 
 /* ============================== Constants ============================== */
 
@@ -35,17 +34,24 @@ export const RICO_BALL_R_FP = 3_072;
 export const RICO_LEAP_TICKS = 18;
 export const RICO_LEAP_CLIMB_FP = 30_720;
 
-/** Cling slide: 0.6 px a tick, 10% faster every ten seconds. */
+/** Cling slide: 0.6 px a tick, 10% faster for every 15 m (600 px) climbed. */
 export const RICO_SLIDE_START_FP = 154;
-export const RICO_SLIDE_PERIOD_TICKS = 10 * TICKS_PER_SECOND;
+export const RICO_SLIDE_PERIOD_PX = 600;
 
 /** The ball starts this high, and dies if it slides back to the floor. */
 export const RICO_START_FP = 15_360;
 
-/** Spikes: 18 px tall, at least 90 px apart on one wall, never facing. */
-export const RICO_SPIKE_H = 18;
-export const RICO_SPIKE_H_FP = 4_608;
-export const RICO_SPIKE_MIN_GAP_FP = 23_040;
+/** Spikes: 15 px tall and 12 px deep (85% of 18 x 14), never facing. */
+export const RICO_SPIKE_H = 15;
+export const RICO_SPIKE_H_FP = 3_840;
+export const RICO_SPIKE_DEPTH = 12;
+/**
+ * Two spikes on one wall keep at least 2.5 ball diameters (60 px) of clear
+ * wall between them, edge to edge, so there is always a landing zone. The
+ * bottom-to-bottom gap is kept at 90 px, which leaves 75 px clear.
+ */
+export const RICO_SPIKE_MIN_EDGE_GAP_FP = (5 * RICO_BALL_R_FP * 2) / 2;
+export const RICO_SPIKE_MIN_GAP_FP = Math.max(23_040, RICO_SPIKE_H_FP + RICO_SPIKE_MIN_EDGE_GAP_FP);
 export const RICO_SPIKE_FIRST_FP = 76_800;
 export const RICO_SPIKE_COUNT = 240;
 /** Global rise between consecutive spikes: 40 px plus up to 60 px. */
@@ -54,12 +60,14 @@ export const RICO_SPIKE_JITTER_FP = 15_360;
 
 /** One point per 40 px climbed. */
 export const RICO_PX_PER_POINT = 40;
+/** Par: 40 m climbed (40 px = 1 m). */
+export const RICO_PAR_PX = 1600;
 export const RICO_POINTS_CAP = 110;
 export const RICO_SURVIVE_BONUS = 40;
 
-/** The slide speed after this many ticks. */
-export function ricoSlide(tick: number): number {
-  const steps = Math.trunc(tick / RICO_SLIDE_PERIOD_TICKS);
+/** The slide speed once the ball has climbed this many whole pixels. */
+export function ricoSlide(climbedPx: number): number {
+  const steps = Math.trunc(Math.max(0, climbedPx) / RICO_SLIDE_PERIOD_PX);
   let rate = RICO_SLIDE_START_FP;
   for (let i = 0; i < steps; i++) rate = Math.trunc((rate * 11) / 10);
   return rate;
@@ -186,7 +194,7 @@ function step(state: RicoState, tapped: boolean): RicoState {
     leaps += 1;
     y = fromY + Math.trunc((toY - fromY) / RICO_LEAP_TICKS);
   } else {
-    y -= ricoSlide(state.tick);
+    y -= ricoSlide(ricoHeightPx(state));
     if (y <= 0) {
       return { ...state, tick, y: 0, flight, dead: true, spiked: false, endedTick: tick };
     }
@@ -202,8 +210,8 @@ function step(state: RicoState, tapped: boolean): RicoState {
 }
 
 function score(state: RicoState): number {
-  const earned = Math.min(RICO_POINTS_CAP, Math.trunc(ricoHeightPx(state) / RICO_PX_PER_POINT));
-  return clampInt(earned + (ricoSurvived(state) ? RICO_SURVIVE_BONUS : 0), 0, 150);
+  const earned = parPoints(ricoHeightPx(state), RICO_PAR_PX);
+  return clampInt(earned + (ricoSurvived(state) ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
 }
 
 /* =========================== Integrity checks ========================== */
@@ -236,7 +244,7 @@ export function ricoCheckpointState(state: RicoState): RicoCheckpointState {
     fromY: state.fromY,
     toY: state.toY,
     leaps: state.leaps,
-    slide: ricoSlide(state.tick),
+    slide: ricoSlide(ricoHeightPx(state)),
   };
 }
 
@@ -291,7 +299,7 @@ function draw(ctx: CanvasRenderingContext2D, state: RicoState, size: CanvasSize)
     if (top > RICO_WORLD_H + 40) continue;
     if (top < -40) break;
     const inner = spike.wall === 0 ? RICO_SHAFT_LEFT : RICO_SHAFT_RIGHT;
-    const tip = spike.wall === 0 ? inner + 14 : inner - 14;
+    const tip = spike.wall === 0 ? inner + RICO_SPIKE_DEPTH : inner - RICO_SPIKE_DEPTH;
     ctx.beginPath();
     ctx.moveTo(inner, top);
     ctx.lineTo(tip, top + RICO_SPIKE_H / 2);

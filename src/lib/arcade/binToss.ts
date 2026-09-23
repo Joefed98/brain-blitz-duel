@@ -19,8 +19,7 @@ import {
   type ArcadeInputEvent,
   type CanvasSize,
   type DragLaunch,
-  type InputRange,
-} from "./engine";
+  type InputRange, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
 
 /* ============================== Constants ============================== */
 
@@ -65,7 +64,9 @@ export const BINTOSS_NEXT_DELAY = 20;
 export const BINTOSS_FIRST_DIST = 25_600;
 export const BINTOSS_DIST_STEP = 3_840;
 
-export const BINTOSS_BASKET_POINTS = 10;
+export const BINTOSS_BASKET_POINTS = 11;
+/** Par: ten baskets = 110. */
+export const BINTOSS_PAR = 10;
 export const BINTOSS_TIME_BONUS = 50;
 
 /** A release: a = launch vx, b = launch vy, both in 1/256 px a tick. */
@@ -383,7 +384,7 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
 
 function score(state: BinTossState): number {
   const baskets = clampInt(state.baskets, 0, BINTOSS_THROWS);
-  let points = baskets * BINTOSS_BASKET_POINTS;
+  let points = parPoints(baskets, BINTOSS_PAR);
   if (baskets >= BINTOSS_THROWS) {
     const remaining = Math.max(0, BINTOSS_RUN_TICKS - state.tick);
     points += Math.round((BINTOSS_TIME_BONUS * remaining) / BINTOSS_RUN_TICKS);

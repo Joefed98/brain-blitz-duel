@@ -79,9 +79,20 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
 
   if (puzzle.type !== "unblock") return null;
 
-  let vehicles = puzzle.vehicles.map((vehicle) => ({ ...vehicle }));
-  for (const move of solution.slice(0, step)) {
-    vehicles = applyMove(vehicles, move) ?? vehicles;
+  // Guarded: a missing or unreadable solution must never break the round.
+  let vehicles = (puzzle.vehicles ?? []).map((vehicle) => ({ ...vehicle }));
+  let available = solution.length > 0 && vehicles.length > 0;
+  try {
+    for (const move of solution.slice(0, step)) {
+      const next = applyMove(vehicles, move);
+      if (!next) {
+        available = false;
+        break;
+      }
+      vehicles = next;
+    }
+  } catch {
+    available = false;
   }
 
   const mine = decodeMoves(myAnswer ?? "").length;
@@ -89,9 +100,16 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
-      <div style={{ width: 220 }}>
-        <UnblockBoard vehicles={vehicles} size={220} />
-      </div>
+      {vehicles.length > 0 && (
+        <div style={{ width: 220 }}>
+          <UnblockBoard vehicles={vehicles} size={220} />
+        </div>
+      )}
+      {!available && (
+        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          Solution unavailable
+        </p>
+      )}
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
         {myCorrect ? "✓" : "✗"} your moves: <span className="text-primary">{mine}</span>
         {min > 0 ? ` · min ${min}` : ""}

@@ -34,6 +34,19 @@ export function px(units: number): number {
   return units / FP_ONE;
 }
 
+/**
+ * The one arcade scoring rule: round(110 x achieved / par), capped at 110.
+ * Integer maths only, so the phone and the server can never round differently.
+ */
+export const ARCADE_PAR_POINTS = 110;
+export const ARCADE_COMPLETION_BONUS = 40;
+export function parPoints(achieved: number, par: number): number {
+  if (par <= 0 || achieved <= 0) return 0;
+  const a = Math.trunc(achieved);
+  const p = Math.trunc(par);
+  return Math.min(ARCADE_PAR_POINTS, Math.floor((2 * ARCADE_PAR_POINTS * a + p) / (2 * p)));
+}
+
 export function clampInt(value: number, low: number, high: number): number {
   return value < low ? low : value > high ? high : value;
 }
@@ -128,8 +141,8 @@ export interface ArcadeInputEvent {
   d: number;
 }
 
-/** The largest event log the server will look at. */
-export const MAX_INPUT_EVENTS = 2000;
+/** The largest event log the server will look at — one event per tick of the longest run (Bubble Pop, 5400). */
+export const MAX_INPUT_EVENTS = 6000;
 
 export type InputBound = readonly [number, number];
 

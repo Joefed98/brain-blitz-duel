@@ -289,6 +289,33 @@ export type Database = {
           },
         ]
       }
+      unblock_bank: {
+        Row: {
+          created_at: string
+          id: number
+          last_used_at: string | null
+          layout: string
+          min_moves: number
+          solution: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          last_used_at?: string | null
+          layout: string
+          min_moves: number
+          solution: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          last_used_at?: string | null
+          layout?: string
+          min_moves?: number
+          solution?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

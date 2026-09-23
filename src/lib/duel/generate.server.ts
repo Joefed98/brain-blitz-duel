@@ -10,7 +10,7 @@ import { gradeSubmission, type Graded, type SubmitExtra } from "./grade";
 import { pickRoundOrder, type RoundSelectionOptions } from "./selection";
 import { puzzleDef } from "./registry";
 import { TOTAL_ROUNDS, type GoNoGoItem, type PuzzleData, type PuzzleType } from "./types";
-import { generateUnblock } from "./unblock.server";
+import { generateUnblock, type UnblockBankRow } from "./unblock.server";
 import { generateWordHunt, gradeWordHunt } from "./wordHunt.server";
 import { generateWordsmith, gradeWordsmith } from "./wordsmith.server";
 import { generateWordLadder } from "./wordLadder.server";
@@ -58,13 +58,15 @@ import { buildGoNoGo } from "@/puzzles/goNoGo";
 export interface GenerateContext {
   /** The opening item of the host's previous Go / No-Go run, if there was one. */
   previousGoNoGoFirst?: GoNoGoItem | null;
+  /** A pre-drawn Unblock bank row, so building a room never runs a solver. */
+  unblockRow?: UnblockBankRow | null;
 }
 
 export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
   if (type === "gonogo") return buildGoNoGo(context.previousGoNoGoFirst ?? null);
   if (type === "wordsmith") return generateWordsmith();
   if (type === "wordhunt") return generateWordHunt();
-  if (type === "unblock") return generateUnblock();
+  if (type === "unblock") return generateUnblock(context.unblockRow);
   if (type === "blockparty") return generateBlockParty();
   if (type === "groups") return generateGroups();
   if (type === "ladder") return generateWordLadder();
@@ -118,7 +120,10 @@ export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContex
   return {
     roundOrder,
     puzzles: roundOrder.map((type) =>
-      generatePuzzle(type, { previousGoNoGoFirst: options.previousGoNoGoFirst ?? null }),
+      generatePuzzle(type, {
+        previousGoNoGoFirst: options.previousGoNoGoFirst ?? null,
+        unblockRow: options.unblockRow ?? null,
+      }),
     ),
   };
 }

@@ -16,8 +16,7 @@ import {
   type ArcadeGame,
   type ArcadeInputEvent,
   type CanvasSize,
-  type InputRange,
-} from "./engine";
+  type InputRange, parPoints, ARCADE_COMPLETION_BONUS } from "./engine";
 
 /* ============================== Constants ============================== */
 
@@ -57,6 +56,8 @@ export const BUB_QUEUE = 120;
 export const BUB_DESCEND_EVERY = 8;
 export const BUB_MIN_GROUP = 3;
 
+/** Par: popped + 2 x dropped = 90. */
+export const BUB_PAR = 90;
 export const BUB_POP_POINTS = 1;
 export const BUB_DROP_POINTS = 2;
 export const BUB_POINTS_CAP = 110;
@@ -384,11 +385,8 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
 }
 
 function score(state: BubState): number {
-  const earned = Math.min(
-    BUB_POINTS_CAP,
-    BUB_POP_POINTS * state.popped + BUB_DROP_POINTS * state.dropped,
-  );
-  return clampInt(earned + (state.cleared ? BUB_CLEAR_BONUS : 0), 0, 150);
+  const earned = parPoints(state.popped + 2 * state.dropped, BUB_PAR);
+  return clampInt(earned + (state.cleared ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */

@@ -408,6 +408,8 @@ export const startRoomFn = createServerFn({ method: "POST" })
     }
 
     const { buildRoomPuzzles } = await import("./generate.server");
+    const { drawUnblockRow } = await import("./unblock.server");
+    const unblockRow = await drawUnblockRow(client);
     const recent = await recentRoundOrders(client, room, room.host_user_id);
     const lastGoNoGoFirst = await previousGoNoGoFirst(client, room, room.host_user_id);
     const addMaths = room.add_maths === true;
@@ -420,6 +422,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       addMemory,
       addArcade,
       previousGoNoGoFirst: lastGoNoGoFirst as never,
+      unblockRow,
     });
     console.log(
       `[room-selection] room=${room.room_code} addMaths=${addMaths} addMemory=${addMemory} addArcade=${addArcade} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
@@ -803,15 +806,26 @@ export const revealAnswerFn = createServerFn({ method: "POST" })
       .eq("round_number", data.roundNumber)
       .order("player_slot");
     if (error) throw new Error(error.message);
-    const players = ((resultRows ?? []) as RoundResultRow[]).map((result) => ({
-      playerSlot: result.player_slot,
-      ...definition.roundSummary(result, puzzle),
-    }));
+    // A reveal must never break the round: a summary that throws falls back.
+    const players = ((resultRows ?? []) as RoundResultRow[]).map((result) => {
+      try {
+        return { playerSlot: result.player_slot, ...definition.roundSummary(result, puzzle) };
+      } catch (err) {
+        console.error(`[reveal] summary failed for ${puzzle.type}`, err);
+        return { playerSlot: result.player_slot, summary: "—", detail: [] as string[] };
+      }
+    });
+    let correctAnswer: ReturnType<typeof definition.correctAnswer> = null as never;
+    try {
+      correctAnswer = definition.correctAnswer(puzzle);
+    } catch (err) {
+      console.error(`[reveal] answer failed for ${puzzle.type}`, err);
+    }
     return {
       ok: true as const,
       data: {
         puzzle,
-        correctAnswer: definition.correctAnswer(puzzle),
+        correctAnswer,
         players,
       },
     };
