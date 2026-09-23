@@ -103,6 +103,7 @@ export type Database = {
           add_memory: boolean
           created_at: string
           current_round: number
+          disbanded_at: string | null
           host_user_id: string | null
           id: string
           max_players: number
@@ -115,7 +116,9 @@ export type Database = {
           round_count: number
           round_order: Json
           round_started_at: string | null
+          selected_categories: Json
           status: string
+          tournament_history: Json
         }
         Insert: {
           add_arcade?: boolean
@@ -123,6 +126,7 @@ export type Database = {
           add_memory?: boolean
           created_at?: string
           current_round?: number
+          disbanded_at?: string | null
           host_user_id?: string | null
           id?: string
           max_players?: number
@@ -135,7 +139,9 @@ export type Database = {
           round_count?: number
           round_order: Json
           round_started_at?: string | null
+          selected_categories?: Json
           status?: string
+          tournament_history?: Json
         }
         Update: {
           add_arcade?: boolean
@@ -143,6 +149,7 @@ export type Database = {
           add_memory?: boolean
           created_at?: string
           current_round?: number
+          disbanded_at?: string | null
           host_user_id?: string | null
           id?: string
           max_players?: number
@@ -155,7 +162,9 @@ export type Database = {
           round_count?: number
           round_order?: Json
           round_started_at?: string | null
+          selected_categories?: Json
           status?: string
+          tournament_history?: Json
         }
         Relationships: []
       }
@@ -321,12 +330,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
       duel_round_ended: {
         Args: { _duel_id: string; _round: number }
         Returns: boolean
       }
       is_duel_participant: { Args: { _duel_id: string }; Returns: boolean }
       my_duel_slot: { Args: { _duel_id: string }; Returns: number }
+      restart_duel_room: {
+        Args: { p_host_id: string; p_room_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

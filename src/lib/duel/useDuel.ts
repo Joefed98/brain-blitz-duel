@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 
-import { fetchDuelByCode, fetchPlayers, fetchResults, heartbeat } from "./api";
+import { checkHostPresence, fetchDuelByCode, fetchPlayers, fetchResults, heartbeat } from "./api";
 import { calibrateServerClock, initServerClock, serverNow } from "./clock";
 import { ensureSession } from "./session";
 import { DISCONNECT_MS, type DuelPlayerRow, type DuelRow, type RoundResultRow } from "./types";
@@ -155,6 +155,12 @@ export function useDuel(roomCode: string): DuelState {
     !!opponent &&
     duel?.status === "in_progress" &&
     now - new Date(opponent.last_seen_at).getTime() > DISCONNECT_MS;
+
+  useEffect(() => {
+    if (!duel || duel.status !== "waiting" || !me || isHost) return;
+    const id = window.setInterval(() => void checkHostPresence(duel.id), 8000);
+    return () => window.clearInterval(id);
+  }, [duel?.id, duel?.status, me?.id, isHost]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     loading,

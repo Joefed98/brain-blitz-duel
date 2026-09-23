@@ -1,9 +1,8 @@
 /**
  * Round selection for a room.
  *
- * Categories split into a CORE pool that is always drawn from and an OPT-IN
- * pool (number, memory) the host switches on in the lobby. Retired types are
- * never drawn. A room's six rounds are always six different types.
+ * Categories are host-selected in the lobby. Retired types are never drawn.
+ * A room's six rounds are always six different types.
  *
  * The draw is weighted against what the host's group has just played, so four
  * rooms in a row come close to twenty-four different games.
@@ -18,6 +17,7 @@ import {
   typesInCategory,
 } from "./registry";
 import { TOTAL_ROUNDS, type PuzzleCategory, type PuzzleType } from "./types";
+import { normaliseCategories } from "./categories";
 
 /**
  * How much a category or type is down-weighted by how recently it was seen:
@@ -40,6 +40,7 @@ function recencyWeight<T>(value: T, seen: readonly (readonly T[])[]): number {
 
 export interface RoundSelectionOptions {
   rounds?: number;
+  categories?: readonly PuzzleCategory[];
   /** Round orders of the host's last rooms, most recent first. */
   recent?: RecentRounds;
   /** Host opt-in: the number category joins the pool. */
@@ -74,6 +75,40 @@ export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[
   const recentCategories = recent.map((order) =>
     order.map((type) => puzzleDef(type)?.category).filter(Boolean),
   ) as PuzzleCategory[][];
+
+  if (options.categories) {
+    const pool = normaliseCategories(options.categories).filter(
+      (category) => typesInCategory(category).length,
+    );
+    const counts = new Map<PuzzleCategory, number>(pool.map((category) => [category, 0]));
+    const selected: PuzzleCategory[] = [];
+    while (selected.length < rounds) {
+      const eligible = pool.filter(
+        (category) => typesInCategory(category).length > (counts.get(category) ?? 0),
+      );
+      if (!eligible.length) break;
+      const min = Math.min(...eligible.map((category) => counts.get(category) ?? 0));
+      const tied = eligible.filter((category) => (counts.get(category) ?? 0) === min);
+      // With all five core categories present, give them the first five draws.
+      const core =
+        CORE_CATEGORIES.every((category) => pool.includes(category)) && selected.length < 5
+          ? tied.filter((category) => CORE_CATEGORIES.includes(category))
+          : tied;
+      const category = weightedPick(shuffled(core.length ? core : tied), (candidate) =>
+        recencyWeight(candidate, recentCategories),
+      );
+      selected.push(category);
+      counts.set(category, (counts.get(category) ?? 0) + 1);
+    }
+    const used: PuzzleType[] = [];
+    for (const category of selected) {
+      const type = pickType(category, used, recent);
+      if (type) used.push(type);
+    }
+    return pool.length >= rounds && CORE_CATEGORIES.every((category) => pool.includes(category))
+      ? used
+      : shuffled(used);
+  }
 
   // Arcade is on unless the host turns it off; when it is on it takes exactly
   // one round, so the rest of the draw fills one round fewer.

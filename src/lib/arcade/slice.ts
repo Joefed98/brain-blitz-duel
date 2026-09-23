@@ -45,10 +45,11 @@ export const SLICE_R_FP = SLICE_R * 256;
 /** Gravity, in 1/256 px a tick a tick. */
 export const SLICE_GRAV = 16;
 
-/** Base launch speed (1/256 px a tick), varied 85–115% per object. */
+/** Base launch speed (1/256 px a tick), with three seeded classes. */
 export const SLICE_LAUNCH_SPEED = 1570;
-export const SLICE_SPEED_PCT_MIN = 85;
-export const SLICE_SPEED_PCT_MAX = 115;
+export const SLICE_SPEED_CLASSES = [75, 100, 140] as const;
+export const SLICE_SPECIAL_SPEED_PERCENT = 160;
+export const SLICE_SPECIAL_R = 16;
 /** cos / sin of 70°..110° in 1/1024 steps — fixed tables, no runtime trig. */
 const SLICE_ANGLE_COS: readonly number[] = [
   350, 333, 316, 299, 282, 265, 248, 230, 213, 195, 178, 160, 143, 125, 107, 89, 71, 54, 36, 18, 0,
@@ -87,8 +88,8 @@ export const SLICE_FRENZY_COUNT = Math.trunc(
 );
 /** A line is six discs that rise together and hang for two seconds. */
 export const SLICE_LINE_COUNT = 6;
-export const SLICE_LINE_RISE_TICKS = 36;
-export const SLICE_LINE_HANG_TICKS = 2 * TICKS_PER_SECOND;
+export const SLICE_LINE_RISE_TICKS = 24;
+export const SLICE_LINE_HANG_TICKS = 72;
 export const SLICE_LINE_Y = 250;
 export const SLICE_LINE_FIRST_X = 45;
 export const SLICE_LINE_GAP_X = 60;
@@ -137,7 +138,10 @@ export interface SliceObject {
 }
 
 /** One throw's spot and velocity, drawn from the seed. */
-function rollFlight(rng: number): {
+function rollFlight(
+  rng: number,
+  speedPercent: number,
+): {
   rng: number;
   startPx: number;
   vx: number;
@@ -149,11 +153,8 @@ function rollFlight(rng: number): {
   state = spotDraw.state;
   const startPx = 60 + spotDraw.value;
 
-  // Speed 85–115% of the base and angle 70°–110°, both from the seed, so discs
-  // peak at different heights and drift sideways. Integer table maths only.
-  const speedDraw = rngBelow(state, SLICE_SPEED_PCT_MAX - SLICE_SPEED_PCT_MIN + 1);
-  state = speedDraw.state;
-  const speed = Math.trunc((SLICE_LAUNCH_SPEED * (SLICE_SPEED_PCT_MIN + speedDraw.value)) / 100);
+  // Speed class and angle are determined at init. Integer table maths only.
+  const speed = Math.trunc((SLICE_LAUNCH_SPEED * speedPercent) / 100);
   const angleDraw = rngBelow(state, SLICE_ANGLE_COS.length);
   state = angleDraw.state;
   let vx = Math.trunc((speed * (SLICE_ANGLE_COS[angleDraw.value] ?? 0)) / 1024);
@@ -196,7 +197,7 @@ function buildFrenzyPayload(rng: number): { rng: number; payload: SliceObject[] 
   for (let index = 0; index < SLICE_FRENZY_COUNT; index++) {
     const offset =
       SLICE_SPAWN_DELAY + Math.trunc((index * SLICE_FRENZY_TICKS) / SLICE_FRENZY_COUNT);
-    const flight = rollFlight(state);
+    const flight = rollFlight(state, SLICE_SPEED_CLASSES[index % SLICE_SPEED_CLASSES.length]!);
     state = flight.rng;
     const colourDraw = rngBelow(state, SLICE_COLOURS.length);
     state = colourDraw.state;
@@ -244,6 +245,8 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
   let rng = seed | 0;
   const objects: SliceObject[] = [];
   let bombFreeFrom = 0;
+  let ordinaryIndex = 0;
+  let speedClasses = [0, 1, 2];
 
   for (let window = 0; window < SLICE_WINDOWS; window++) {
     const span = SLICE_PER_WINDOW_END - SLICE_PER_WINDOW_START;
@@ -253,7 +256,19 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
       rng = slot.state;
       const launchTick = window * SLICE_WINDOW_TICKS + 1 + slot.value;
 
-      const flight = rollFlight(rng);
+      if (ordinaryIndex % 3 === 0) {
+        speedClasses = [0, 1, 2];
+        for (let i = 2; i > 0; i--) {
+          const pick = rngBelow(rng, i + 1);
+          rng = pick.state;
+          [speedClasses[i], speedClasses[pick.value]] = [
+            speedClasses[pick.value]!,
+            speedClasses[i]!,
+          ];
+        }
+      }
+      const flight = rollFlight(rng, SLICE_SPEED_CLASSES[speedClasses[ordinaryIndex % 3] ?? 1]!);
+      ordinaryIndex++;
       rng = flight.rng;
 
       const bombDraw = rngBelow(rng, 100);
@@ -289,7 +304,7 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
       rng = tickDraw.state;
       const launchTick = SLICE_SPECIAL_EARLIEST + tickDraw.value;
 
-      const flight = rollFlight(rng);
+      const flight = rollFlight(rng, SLICE_SPECIAL_SPEED_PERCENT);
       rng = flight.rng;
 
       const built =
@@ -408,8 +423,9 @@ function segmentHits(
   y2: number,
   cx: number,
   cy: number,
+  radius: number,
 ): boolean {
-  const r2 = SLICE_R * SLICE_R;
+  const r2 = radius * radius;
   const dx = x2 - x1;
   const dy = y2 - y1;
   const fx = cx - x1;
@@ -453,8 +469,9 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
       if (!at) continue;
       const cx = Math.trunc(at.x / 256);
       const cy = Math.trunc(at.y / 256);
-      if (cy - SLICE_R > SLICE_WORLD_H || cy + SLICE_R < SLICE_HUD_H) continue;
-      if (!segmentHits(input.a, input.b, input.c, input.d, cx, cy)) continue;
+      const radius = object.special ? SLICE_SPECIAL_R : SLICE_R;
+      if (cy - radius > SLICE_WORLD_H || cy + radius < SLICE_HUD_H) continue;
+      if (!segmentHits(input.a, input.b, input.c, input.d, cx, cy, radius)) continue;
       slicedAt ??= [...state.slicedAt];
       slicedAt[index] = tick;
       if (object.bomb) bombs += 1;
@@ -558,14 +575,20 @@ function drawSpecial(ctx: CanvasRenderingContext2D, cx: number, cy: number, spec
   for (let index = 0; index < wedges; index++) {
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, SLICE_R, (index * Math.PI * 2) / wedges, ((index + 1) * Math.PI * 2) / wedges);
+    ctx.arc(
+      cx,
+      cy,
+      SLICE_SPECIAL_R,
+      (index * Math.PI * 2) / wedges,
+      ((index + 1) * Math.PI * 2) / wedges,
+    );
     ctx.closePath();
     ctx.fillStyle = SLICE_RAINBOW[index]!;
     ctx.fill();
   }
   ctx.fillStyle = "#0B0B0F";
   if (special === SLICE_SPECIAL_LINE) {
-    ctx.fillRect(cx - 11, cy - 3, 22, 6);
+    ctx.fillRect(cx - 9, cy - 2, 18, 4);
     return;
   }
   ctx.beginPath();
@@ -605,6 +628,7 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
       const cx = at.x / 256;
       const cy = at.y / 256 + (age * age) / 20;
       const spread = 3 + age;
+      const radius = object.special ? SLICE_SPECIAL_R : SLICE_R;
       ctx.globalAlpha = Math.max(0, 1 - age / SLICE_HALVES_TICKS);
       ctx.fillStyle = object.bomb
         ? SLICE_BOMB
@@ -612,10 +636,10 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
           ? SLICE_RAINBOW[0]!
           : SLICE_COLOURS[object.colour % SLICE_COLOURS.length]!;
       ctx.beginPath();
-      ctx.arc(cx - spread, cy, SLICE_R, Math.PI / 2, (3 * Math.PI) / 2);
+      ctx.arc(cx - spread, cy, radius, Math.PI / 2, (3 * Math.PI) / 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(cx + spread, cy, SLICE_R, (3 * Math.PI) / 2, Math.PI / 2);
+      ctx.arc(cx + spread, cy, radius, (3 * Math.PI) / 2, Math.PI / 2);
       ctx.fill();
       ctx.globalAlpha = 1;
       continue;

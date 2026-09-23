@@ -33,9 +33,9 @@ import {
   checkGroup,
   checkWord,
   ensureRematch,
-  fetchDuelById,
   fetchRevealPuzzle,
   leaveRoom,
+  disbandRoom,
   readyUp,
   removePlayer,
   setRoomModes,
@@ -54,6 +54,7 @@ import {
   totalScoreThrough,
 } from "@/lib/duel/scoring";
 import { useDuel } from "@/lib/duel/useDuel";
+import { normaliseCategories } from "@/lib/duel/categories";
 import { setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
 import {
   puzzleDef,
@@ -179,18 +180,23 @@ function DuelScreen() {
 
   const [rematchBusy, setRematchBusy] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [confirmDisband, setConfirmDisband] = useState(false);
   const timeoutSubmitted = useRef<string>("");
   const draftAnswer = useRef("");
   const lastAdvance = useRef(0);
   const dueSince = useRef(0);
-  const [revealed, setRevealed] = useState<{ round: number; data: RoundRevealData } | null>(null);
+  const [revealed, setRevealed] = useState<{
+    round: number;
+    tournamentKey: string;
+    data: RoundRevealData;
+  } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
 
-  // A new room (after Play again) starts with fresh button state.
+  // Reset button state when a new tournament opens in this room.
   useEffect(() => {
     setStarting(false);
     setRematchBusy(false);
-  }, [duel?.id]);
+  }, [duel?.id, duel?.status]);
 
   const round = duel?.current_round ?? 0;
   const phase = duel?.phase ?? "intro";
@@ -203,7 +209,8 @@ function DuelScreen() {
    * keeps the puzzle object identical while a round is live, so a realtime
    * update cannot re-mount or reset the puzzle a player is working on.
    */
-  const stateKey = duel && round > 0 ? `${duel.id}-${round}` : "";
+  const tournamentKey = duel ? `${duel.id}-${duel.tournament_history?.length ?? 0}` : "";
+  const stateKey = duel && round > 0 ? `${tournamentKey}-${round}` : "";
   const incoming = duel && round > 0 ? duel.puzzles_public[round - 1] : undefined;
   const heldPuzzle = useRef<{ key: string; value: PuzzleData | undefined }>({
     key: "",
@@ -211,12 +218,15 @@ function DuelScreen() {
   });
   if (heldPuzzle.current.key !== stateKey) heldPuzzle.current = { key: stateKey, value: incoming };
   const puzzle = heldPuzzle.current.value;
+  const currentReveal =
+    revealed?.round === round && revealed.tournamentKey === tournamentKey ? revealed.data : null;
 
   useEffect(() => {
     draftAnswer.current = "";
+    setRevealed(null);
     // The previous round's inputs are no longer needed once a new round opens.
-    if (duel && round > 1) clearStageState(`${duel.id}-${round - 1}`);
-  }, [duel?.id, round]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (round > 1) clearStageState(`${tournamentKey}-${round - 1}`);
+  }, [tournamentKey, round]);
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
   // Chat and reactions are live on every screen except an active puzzle.
@@ -261,16 +271,13 @@ function DuelScreen() {
   ).length;
   const answeredThisRound = results.filter((r) => r.round_number === round).length;
   const roundDetails = new Map(
-    (revealed?.round === round ? revealed.data.players : []).map((detail) => [
-      detail.playerSlot,
-      detail,
-    ]),
+    (currentReveal ? currentReveal.players : []).map((detail) => [detail.playerSlot, detail]),
   );
   const table = standings(roomPlayers, results, scoredThrough, roundDetails);
   const myStanding = table.find((r) => r.slot === mySlot);
   const opponentStanding = table.find((r) => r.slot === opponentSlot);
   const roundTitle = puzzle
-    ? `Round ${round} · ${puzzleName(puzzle.type)}${revealed?.round === round && revealed.data.correctAnswer ? ` · ${revealed.data.correctAnswer}` : ""}`
+    ? `Round ${round} · ${puzzleName(puzzle.type)}${currentReveal?.correctAnswer ? ` · ${currentReveal.correctAnswer}` : ""}`
     : `Round ${round}`;
   /** Only the host drives the standings screen on; timers do the rest. */
   const leads = isHost;
@@ -347,15 +354,15 @@ function DuelScreen() {
   useEffect(() => {
     if (!duel || round < 1 || (phase !== "reveal" && phase !== "result" && phase !== "standings"))
       return;
-    if (revealed?.round === round) return;
+    if (revealed?.round === round && revealed.tournamentKey === tournamentKey) return;
     let cancelled = false;
     void fetchRevealPuzzle(duel.id, round).then((found) => {
-      if (found && !cancelled) setRevealed({ round, data: found });
+      if (found && !cancelled) setRevealed({ round, tournamentKey, data: found });
     });
     return () => {
       cancelled = true;
     };
-  }, [duel?.id, phase, round, revealed?.round]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tournamentKey, phase, round, revealed?.round, revealed?.tournamentKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * The lobby bed plays from the waiting room through the first round's intro,
@@ -401,19 +408,6 @@ function DuelScreen() {
   }, [phase, round, now, phaseStart]);
 
   // Every phone follows the host into the new room as soon as it exists.
-  useEffect(() => {
-    const nextId = duel?.next_duel_id;
-    if (!nextId || !me) return;
-    let cancelled = false;
-    void (async () => {
-      const next = await fetchDuelById(nextId);
-      if (next && !cancelled)
-        await navigate({ to: "/duel/$code", params: { code: next.room_code } });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [duel?.next_duel_id, me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * The callbacks handed to a puzzle keep the same identity for the whole round
@@ -471,7 +465,7 @@ function DuelScreen() {
     setRematchBusy(true);
     try {
       const next = await ensureRematch(duel.id);
-      await navigate({ to: "/duel/$code", params: { code: next.roomCode } });
+      if (next.roomCode === duel.room_code) await state.refresh();
     } catch {
       setRematchBusy(false);
     }
@@ -491,6 +485,12 @@ function DuelScreen() {
 
   const handleLeave = async () => {
     if (duel) await leaveRoom(duel.id);
+    await navigate({ to: "/" });
+  };
+
+  const handleDisband = async () => {
+    if (!duel) return;
+    await disbandRoom(duel.id);
     await navigate({ to: "/" });
   };
 
@@ -517,6 +517,16 @@ function DuelScreen() {
       <Centered>
         <h1 className="font-display text-2xl">You're not in this room</h1>
         <p className="text-sm text-muted-foreground">Head back home and join with the room code.</p>
+        <HomeButton />
+      </Centered>
+    );
+  }
+
+  if (duel.disbanded_at) {
+    return (
+      <Centered>
+        <h1 className="font-display text-2xl">Room disbanded</h1>
+        <p className="text-sm text-muted-foreground">The host closed this room.</p>
         <HomeButton />
       </Centered>
     );
@@ -554,14 +564,43 @@ function DuelScreen() {
             isHost={isHost}
             starting={starting}
             onStart={() => void handleStart()}
-            addMaths={duel.add_maths === true}
-            addMemory={duel.add_memory === true}
-            addArcade={duel.add_arcade !== false}
-
-            onModesChange={(modes) => void setRoomModes(duel.id, modes)}
+            categories={normaliseCategories(duel.selected_categories)}
+            tournamentHistory={duel.tournament_history ?? []}
+            onCategoriesChange={(categories) => void setRoomModes(duel.id, categories)}
+            onDisband={() => setConfirmDisband(true)}
             onRemove={(slot) => void removePlayer(duel.id, slot)}
             onMuteForEveryone={(slot, muted) => void setPlayerMuted(duel.id, slot, muted)}
           />
+          {confirmDisband && (
+            <div
+              role="alertdialog"
+              aria-label="Disband room"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-6"
+            >
+              <div className="w-full max-w-sm space-y-4 rounded-md border border-border bg-card p-5 text-center">
+                <p className="font-display text-lg">Disband this room?</p>
+                <p className="text-sm text-muted-foreground">
+                  The code will no longer work for anyone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDisband(false)}
+                    className="tap-target flex-1 rounded-md border border-border"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDisband()}
+                    className="tap-target flex-1 rounded-md bg-primary text-primary-foreground"
+                  >
+                    Disband
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
@@ -597,8 +636,9 @@ function DuelScreen() {
           breakdown={roundBreakdown(results, mySlot, opponentSlot)}
           roundOrder={duel.round_order}
           busy={rematchBusy}
+          isHost={isHost}
           onPlayAgain={() => void handlePlayAgain()}
-          onHome={() => void navigate({ to: "/" })}
+          onHome={() => void handleLeave()}
         />
         <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
@@ -634,8 +674,8 @@ function DuelScreen() {
       <PhoneShell constrained>
         <AnswerReveal
           round={round}
-          puzzle={revealed?.round === round ? revealed.data.puzzle : puzzle}
-          answersReady={revealed?.round === round}
+          puzzle={currentReveal?.puzzle ?? puzzle}
+          answersReady={!!currentReveal}
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
           myReactionAvgMs={myResult?.reaction_avg_ms ?? null}

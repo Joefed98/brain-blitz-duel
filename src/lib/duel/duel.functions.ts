@@ -3,7 +3,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { type SubmitExtra } from "./grade";
-import { puzzleDef, puzzleDurationMs, puzzleRevealMs } from "./registry";
+import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
+import { puzzleDef, puzzleDurationMs, puzzleRevealMs, typesInCategory } from "./registry";
 import { generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import {
@@ -20,6 +21,7 @@ import {
   type DuelRow,
   type PuzzleData,
   type PuzzleType,
+  type PuzzleCategory,
   type RoundResultRow,
 } from "./types";
 
@@ -173,7 +175,7 @@ async function createRoomRow(
   client: any,
   userId: string,
   displayName: string,
-  modes: { addMaths?: boolean; addMemory?: boolean; addArcade?: boolean } = {},
+  categories: readonly PuzzleCategory[] = STANDARD_CATEGORIES,
 ): Promise<DuelRow> {
   for (let attempt = 0; attempt < 8; attempt++) {
     const { data, error } = await client
@@ -185,10 +187,7 @@ async function createRoomRow(
         max_players: MAX_PLAYERS,
         round_count: TOTAL_ROUNDS,
         round_order: [],
-        add_maths: modes.addMaths === true,
-        add_memory: modes.addMemory === true,
-        // Arcade is on unless the host has switched it off.
-        add_arcade: modes.addArcade !== false,
+        selected_categories: categories,
 
         puzzles_public: [],
         current_round: 0,
@@ -285,8 +284,7 @@ async function previousGoNoGoFirst(
 }
 
 /**
- * The round orders of the host's last few rooms, most recent first — plus the
- * room a rematch came from. Selection uses these to avoid repeats.
+ * The round orders of the host's last three tournaments, including this room.
  */
 async function recentRoundOrders(
   client: any,
@@ -295,39 +293,27 @@ async function recentRoundOrders(
 ): Promise<PuzzleType[][]> {
   const orders: PuzzleType[][] = [];
 
-  const { data: source } = await client
-    .from("duels")
-    .select("round_order")
-    .eq("next_duel_id", room.id)
-    .maybeSingle();
-  const fromRematch = (source?.round_order ?? []) as PuzzleType[];
-  if (fromRematch.length > 0) orders.push(fromRematch);
-
   if (hostUserId) {
     const { data } = await client
       .from("duels")
-      .select("round_order")
+      .select("round_order, tournament_history, status, id, created_at")
       .eq("host_user_id", hostUserId)
-      .eq("status", "finished")
-      .neq("id", room.id)
       .order("created_at", { ascending: false })
-      .limit(RECENT_ROOMS);
-    for (const row of (data ?? []) as { round_order: PuzzleType[] }[]) {
-      const order = row.round_order ?? [];
-      if (order.length > 0) orders.push(order);
+      .limit(15);
+    const tournaments: { date: string; order: PuzzleType[] }[] = [];
+    for (const row of (data ?? []) as DuelRow[]) {
+      if (row.status === "finished" && row.round_order?.length && !row.disbanded_at)
+        tournaments.push({ date: row.phase_started_at ?? row.created_at, order: row.round_order });
+      for (const entry of row.tournament_history ?? [])
+        if (entry.round_order?.length)
+          tournaments.push({ date: entry.date, order: entry.round_order });
     }
+    tournaments.sort((a, b) => b.date.localeCompare(a.date));
+    orders.push(...tournaments.map((entry) => entry.order));
   }
 
-  // De-duplicate while keeping "most recent first" order.
-  const seen = new Set<string>();
-  const unique: PuzzleType[][] = [];
-  for (const order of orders) {
-    const key = order.join(",");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    unique.push(order);
-  }
-  return unique.slice(0, RECENT_ROOMS);
+  // Repeated orders represent separate tournaments and still count toward recency.
+  return orders.slice(0, RECENT_ROOMS);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -339,19 +325,20 @@ export const createRoomFn = createServerFn({ method: "POST" })
   .inputValidator((input: { displayName: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    // The host's toggles carry over from their last room; arcade starts on.
+    // Remember the host's category choices from their last room.
     const { data: previous } = await client
       .from("duels")
-      .select("add_maths, add_memory, add_arcade")
+      .select("selected_categories")
       .eq("host_user_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const room = await createRoomRow(client, context.userId, data.displayName, {
-      addMaths: previous?.add_maths === true,
-      addMemory: previous?.add_memory === true,
-      addArcade: previous ? previous.add_arcade !== false : true,
-    });
+    const room = await createRoomRow(
+      client,
+      context.userId,
+      data.displayName,
+      normaliseCategories(previous?.selected_categories),
+    );
     return { roomId: room.id, roomCode: room.room_code };
   });
 
@@ -369,11 +356,14 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     if (!found) return { ok: false as const, message: "No room found with that code." };
 
     const room = found as DuelRow;
+    if (room.disbanded_at) return { ok: false as const, message: "This room has been disbanded." };
     const players = await getPlayers(client, room.id);
     const mine = players.find((p) => p.user_id === context.userId);
 
     if (mine) {
       if (mine.status === "left") {
+        if (room.status !== "waiting")
+          return { ok: false as const, message: "Game already started." };
         await client.from("duel_players").update({ status: "active" }).eq("id", mine.id);
       }
       return { ok: true as const, roomId: room.id, roomCode: room.room_code };
@@ -412,20 +402,24 @@ export const startRoomFn = createServerFn({ method: "POST" })
     const unblockRow = await drawUnblockRow(client);
     const recent = await recentRoundOrders(client, room, room.host_user_id);
     const lastGoNoGoFirst = await previousGoNoGoFirst(client, room, room.host_user_id);
-    const addMaths = room.add_maths === true;
-    const addMemory = room.add_memory === true;
-    const addArcade = room.add_arcade !== false;
+    const categories = normaliseCategories(room.selected_categories);
+    if (
+      categories.reduce((total, category) => total + typesInCategory(category).length, 0) <
+      (room.round_count ?? TOTAL_ROUNDS)
+    )
+      return {
+        ok: false as const,
+        message: "These categories need at least six active games. Choose another category.",
+      };
     const { roundOrder, puzzles } = buildRoomPuzzles({
       rounds: room.round_count ?? TOTAL_ROUNDS,
       recent,
-      addMaths,
-      addMemory,
-      addArcade,
+      categories,
       previousGoNoGoFirst: lastGoNoGoFirst as never,
       unblockRow,
     });
     console.log(
-      `[room-selection] room=${room.room_code} addMaths=${addMaths} addMemory=${addMemory} addArcade=${addArcade} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
+      `[room-selection] room=${room.room_code} categories=${categories.join(",")} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
     );
 
     const split = puzzles.map(splitPuzzle);
@@ -457,12 +451,10 @@ export const startRoomFn = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** Host only, in the lobby: turns the "Add maths" / "Add memory" pools on or off. */
+/** Host only, in the lobby: chooses the round categories. */
 export const setRoomModesFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: { roomId: string; addMaths: boolean; addMemory: boolean; addArcade: boolean }) => input,
-  )
+  .inputValidator((input: { roomId: string; categories: PuzzleCategory[] }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
@@ -473,17 +465,19 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
     if (room.status !== "waiting") {
       return { ok: false as const, message: "The game has already started." };
     }
-    const addMaths = data.addMaths === true;
-    const addMemory = data.addMemory === true;
-    const addArcade = data.addArcade === true;
+    if (
+      !Array.isArray(data.categories) ||
+      data.categories.length === 0 ||
+      normaliseCategories(data.categories).length !== new Set(data.categories).size
+    )
+      return { ok: false as const, message: "Choose at least one valid category." };
+    const categories = normaliseCategories(data.categories);
     await client
       .from("duels")
-      .update({ add_maths: addMaths, add_memory: addMemory, add_arcade: addArcade })
+      .update({ selected_categories: categories })
       .eq("id", room.id)
       .eq("status", "waiting");
-    console.log(
-      `[room-selection] room=${room.room_code} modes addMaths=${addMaths} addMemory=${addMemory} addArcade=${addArcade}`,
-    );
+    console.log(`[room-selection] room=${room.room_code} categories=${categories.join(",")}`);
 
     return { ok: true as const };
   });
@@ -510,7 +504,7 @@ export const removePlayerFn = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** Leaving the room. A host who leaves the lobby hands over to the next player. */
+/** Leaving the room. A departing host closes the room. */
 export const leaveRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string }) => input)
@@ -523,15 +517,36 @@ export const leaveRoomFn = createServerFn({ method: "POST" })
       .eq("duel_id", room.id)
       .eq("user_id", context.userId);
 
-    if (room.host_user_id === context.userId && room.status === "waiting") {
-      const remaining = present(await getPlayers(client, room.id)).sort((a, b) =>
-        a.joined_at < b.joined_at ? -1 : 1,
-      );
-      const next = remaining[0];
-      if (next) {
-        await client.from("duels").update({ host_user_id: next.user_id }).eq("id", room.id);
-      }
-    }
+    if (room.host_user_id === context.userId)
+      await client
+        .from("duels")
+        .update({ disbanded_at: nowIso(), status: "finished" })
+        .eq("id", room.id);
+    return { ok: true as const };
+  });
+
+export const disbandRoomFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    const room = await getRoom(client, data.roomId);
+    if (room.host_user_id !== context.userId)
+      return { ok: false as const, message: "Only the host can disband this room." };
+    await client
+      .from("duels")
+      .update({ disbanded_at: nowIso(), status: "finished" })
+      .eq("id", room.id);
+    return { ok: true as const };
+  });
+
+export const checkHostPresenceFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    await requireParticipant(client, data.roomId, context.userId);
+    await client.rpc("disband_stale_room", { p_room_id: data.roomId });
     return { ok: true as const };
   });
 
@@ -832,8 +847,7 @@ export const revealAnswerFn = createServerFn({ method: "POST" })
   });
 
 /**
- * "Play again": the host makes a fresh room and brings everyone still in this
- * one along. Every other phone follows `next_duel_id` automatically.
+ * "Play again": atomically reset this room; keep the code and archive its winner.
  */
 export const rematchFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -843,51 +857,15 @@ export const rematchFn = createServerFn({ method: "POST" })
     await requireParticipant(client, data.roomId, context.userId);
     const room = await getRoom(client, data.roomId);
 
-    if (room.next_duel_id) {
-      const next = await getRoom(client, room.next_duel_id);
-      return { ok: true as const, roomId: next.id, roomCode: next.room_code };
-    }
     if (room.host_user_id !== context.userId) {
-      return { ok: false as const, message: "Waiting for the host to start a new room." };
+      return { ok: false as const, message: "Waiting for the host to play again." };
     }
-
-    const players = present(await getPlayers(client, room.id)).sort(
-      (a, b) => a.player_slot - b.player_slot,
-    );
-    const host = players.find((p) => p.user_id === context.userId);
-    const rest = players.filter((p) => p.user_id !== context.userId);
-
-    const fresh = await createRoomRow(client, context.userId, host?.display_name ?? "Player", {
-      addMaths: room.add_maths === true,
-      addMemory: room.add_memory === true,
-      addArcade: room.add_arcade !== false,
+    const { data: restarted, error } = await client.rpc("restart_duel_room", {
+      p_room_id: room.id,
+      p_host_id: context.userId,
     });
-    let slot = 2;
-    for (const player of rest) {
-      if (slot > MAX_PLAYERS) break;
-      await insertPlayer(client, fresh.id, slot, player.user_id, player.display_name);
-      slot++;
-    }
-
-    const { data: claimed } = await client
-      .from("duels")
-      .update({ next_duel_id: fresh.id })
-      .eq("id", room.id)
-      .is("next_duel_id", null)
-      .select("id")
-      .maybeSingle();
-
-    if (!claimed) {
-      await client.from("duels").delete().eq("id", fresh.id);
-      const current = await getRoom(client, room.id);
-      if (!current.next_duel_id) {
-        return { ok: false as const, message: "Could not start a new room." };
-      }
-      const next = await getRoom(client, current.next_duel_id);
-      return { ok: true as const, roomId: next.id, roomCode: next.room_code };
-    }
-
-    return { ok: true as const, roomId: fresh.id, roomCode: fresh.room_code };
+    if (error || !restarted) return { ok: false as const, message: "Could not play again yet." };
+    return { ok: true as const, roomId: room.id, roomCode: room.room_code };
   });
 
 /**
