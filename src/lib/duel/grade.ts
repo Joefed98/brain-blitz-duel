@@ -1,3 +1,4 @@
+import { ARCADE_DIAG_KEYS, buildArcadeDiag, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
 import { decodeGroupsAnswer, matchGroupsSelection } from "./groups.server";
 import { decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
@@ -161,7 +162,11 @@ export function gradeSubmission(
   rawExtra?: SubmitExtra,
 ): Graded {
   const extra = rawExtra ?? {};
-  const answer = typeof rawAnswer === "string" ? rawAnswer.slice(0, 4_000) : "";
+  // Arcade runs carry a full input log (one event a tick at most), so they get a
+  // far larger allowance; cutting a log short silently changes the replay.
+  const answerCap = ARCADE_DIAG_KEYS.has(puzzle.type) ? 400_000 : 4_000;
+  const answer = typeof rawAnswer === "string" ? rawAnswer.slice(0, answerCap) : "";
+  let arcadeDiag: ArcadeDiag | null = null;
   const timeLimitMs = puzzleTimeLimitMs(puzzle);
   const ms = clamp(msRemaining, 0, timeLimitMs);
 
@@ -761,7 +766,10 @@ export function gradeSubmission(
     case "hover": {
       // The run is replayed from the stored seed; the phone's own score is
       // never trusted, only recorded as a claim on the stored result.
+      const replayStart = performance.now();
       const run = replayHoverRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.gates;
       score = run.score;
@@ -782,7 +790,10 @@ export function gradeSubmission(
     }
     case "swerve": {
       // Same rule as Hover: only the server's replay of the stored seed scores.
+      const replayStart = performance.now();
       const run = replaySwerveRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.coins;
       score = run.score;
@@ -802,7 +813,10 @@ export function gradeSubmission(
       break;
     }
     case "skyline": {
+      const replayStart = performance.now();
       const run = replaySkylineRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.blocks;
       score = run.score;
@@ -823,7 +837,10 @@ export function gradeSubmission(
     }
     case "snake": {
       // As with every arcade game, only the server's own replay scores.
+      const replayStart = performance.now();
       const run = replaySnakeRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.pellets;
       score = run.score;
@@ -843,7 +860,10 @@ export function gradeSubmission(
       break;
     }
     case "cross": {
+      const replayStart = performance.now();
       const run = replayCrossRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.crossings;
       score = run.score;
@@ -863,7 +883,10 @@ export function gradeSubmission(
       break;
     }
     case "dual": {
+      const replayStart = performance.now();
       const run = replayDualRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.passed;
       score = run.score;
@@ -884,7 +907,10 @@ export function gradeSubmission(
       break;
     }
     case "ricochet": {
+      const replayStart = performance.now();
       const run = replayRicoRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.heightPx;
       score = run.score;
@@ -906,7 +932,10 @@ export function gradeSubmission(
     }
     case "breaker": {
       // As with every arcade game, only the server's own replay scores.
+      const replayStart = performance.now();
       const run = replayBreakerRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.cleared;
       correctCount = run.hits;
       score = run.score;
@@ -930,7 +959,10 @@ export function gradeSubmission(
       break;
     }
     case "rally": {
+      const replayStart = performance.now();
       const run = replayRallyRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.survived;
       correctCount = run.hits;
       score = run.score;
@@ -951,7 +983,10 @@ export function gradeSubmission(
       break;
     }
     case "steady": {
+      const replayStart = performance.now();
       const run = replaySteadyRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.clean;
       correctCount = run.points;
       score = run.score;
@@ -975,7 +1010,10 @@ export function gradeSubmission(
       break;
     }
     case "slice": {
+      const replayStart = performance.now();
       const run = replaySliceRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.bombsHit === 0;
       correctCount = run.slices;
       score = run.score;
@@ -997,7 +1035,10 @@ export function gradeSubmission(
       break;
     }
     case "bubble": {
+      const replayStart = performance.now();
       const run = replayBubbleRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.cleared;
       correctCount = run.popped + run.dropped;
       score = run.score;
@@ -1020,7 +1061,10 @@ export function gradeSubmission(
       break;
     }
     case "beat": {
+      const replayStart = performance.now();
       const run = replayBeatRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.clean;
       correctCount = run.hits;
       score = run.score;
@@ -1048,7 +1092,10 @@ export function gradeSubmission(
     }
     case "bintoss": {
       // Same rule as the other arcade games: only the server's replay scores.
+      const replayStart = performance.now();
       const run = replayBinTossRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.perfect;
       correctCount = run.baskets;
       score = run.score;
@@ -1070,7 +1117,10 @@ export function gradeSubmission(
     }
     case "matchup": {
       // As with every arcade game, only the server's own replay scores.
+      const replayStart = performance.now();
       const run = replayMatchupRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.score >= 150;
       correctCount = run.swaps;
       score = run.score;
@@ -1092,7 +1142,10 @@ export function gradeSubmission(
       break;
     }
     case "bullseye": {
+      const replayStart = performance.now();
       const run = replayBullseyeRun(puzzle.seed, answer, puzzle.winds);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500) console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.inner >= run.arrows;
       correctCount = run.inner;
       score = run.score;
@@ -1142,6 +1195,7 @@ export function gradeSubmission(
     }
   }
 
+  if (arcadeDiag) extraDetail = { ...(extraDetail ?? {}), diag: arcadeDiag };
   return {
     answer,
     isCorrect,
