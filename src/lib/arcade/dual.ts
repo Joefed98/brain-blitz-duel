@@ -34,16 +34,17 @@ export const DUAL_HUD_H = 40;
 export const DUAL_GROUND_Y = 430;
 export const DUAL_RUNNER_X = 62;
 export const DUAL_RUNNER_R = 15;
-/** Blocks are 70% of their original 26 x 34 px. */
-export const DUAL_BLOCK_W = 18;
-export const DUAL_BLOCK_H = 24;
+/** A thin javelin leaning toward the runner. */
+export const DUAL_SPIKE_W = 8;
+export const DUAL_SPIKE_H = 44;
+export const DUAL_SPIKE_LEAN = 16;
 
 /** A jump is a fixed 30-tick arc, 115 px at the top (92 px + 25%). */
 export const DUAL_JUMP_TICKS = 30;
 export const DUAL_JUMP_PEAK = 115;
 
-/** An obstacle is in front of the runner for this many ticks (narrower blocks: 5, was 6). */
-export const DUAL_HIT_TICKS = 5;
+/** Time after arrival before a spike is fully behind the runner. */
+export const DUAL_HIT_TICKS = 8;
 
 /** The scroll speed used for drawing: 2.0 px a tick, +0.3 every ten seconds, cap 4.4. */
 export const DUAL_SCROLL_START_FP = 512;
@@ -174,11 +175,31 @@ export function dualSurvived(state: DualState): boolean {
   return !state.dead && state.tick >= DUAL_RUN_TICKS;
 }
 
-/** True when an obstacle on this side is in front of the runner at this tick. */
-function atRunner(schedule: readonly number[], tick: number): boolean {
+/** Circle vs the javelin shaft and point, in world coordinates. */
+function touchesSpike(x: number, runnerY: number): boolean {
+  const tipX = x - DUAL_SPIKE_LEAN;
+  const tipY = DUAL_GROUND_Y - DUAL_SPIKE_H;
+  const baseY = DUAL_GROUND_Y - 4;
+  const dx = x - tipX;
+  const dy = baseY - tipY;
+  const projection = Math.max(0, Math.min(dx * dx + dy * dy,
+    (DUAL_RUNNER_X - tipX) * dx + (runnerY - tipY) * dy));
+  const nearX = tipX + (projection * dx) / (dx * dx + dy * dy);
+  const nearY = tipY + (projection * dy) / (dx * dx + dy * dy);
+  const distanceX = DUAL_RUNNER_X - nearX;
+  const distanceY = runnerY - nearY;
+  const reach = DUAL_RUNNER_R + DUAL_SPIKE_W / 2;
+  return distanceX * distanceX + distanceY * distanceY <= reach * reach;
+}
+
+function atRunner(schedule: readonly number[], tick: number, height: number): boolean {
+  const speed = dualScroll(tick) / 256;
+  const runnerY = DUAL_GROUND_Y - DUAL_RUNNER_R - height;
   for (const arrival of schedule) {
-    if (arrival > tick) return false;
-    if (tick < arrival + DUAL_HIT_TICKS) return true;
+    const x = DUAL_RUNNER_X + (arrival - tick) * speed;
+    if (x > DUAL_RUNNER_X + DUAL_RUNNER_R + DUAL_SPIKE_LEAN + DUAL_SPIKE_W) return false;
+    if (x < DUAL_RUNNER_X - DUAL_RUNNER_R - DUAL_SPIKE_W) continue;
+    if (touchesSpike(x, runnerY)) return true;
   }
   return false;
 }
@@ -220,8 +241,8 @@ function step(state: DualState, input: ArcadeInputEvent | null): DualState {
     }
   }
 
-  const leftHit = tick >= leftUntil && atRunner(state.left, tick);
-  const rightHit = tick >= rightUntil && atRunner(state.right, tick);
+  const leftHit = atRunner(state.left, tick, dualJumpHeight(leftStart, leftBase, leftUntil, tick));
+  const rightHit = atRunner(state.right, tick, dualJumpHeight(rightStart, rightBase, rightUntil, tick));
   if (leftHit || rightHit) {
     return {
       ...state,
@@ -312,7 +333,7 @@ export function dualCheckpoint(state: DualState): DualCheckpoint {
 
 export const DUAL_BG = "#0B0B0F";
 export const DUAL_RUNNER = "#F5B82E";
-export const DUAL_BLOCK = "#FF4D4D";
+export const DUAL_SPIKE = "#FF4D4D";
 export const DUAL_GROUND = "#2A2A33";
 
 function drawSide(
@@ -333,12 +354,19 @@ function drawSide(
   ctx.fillStyle = DUAL_GROUND;
   ctx.fillRect(originX + 4, DUAL_GROUND_Y, DUAL_PANEL_W - 8, 6);
 
-  ctx.fillStyle = DUAL_BLOCK;
+  ctx.fillStyle = DUAL_SPIKE;
   for (const arrival of schedule) {
     const x = originX + DUAL_RUNNER_X + (arrival - state.tick) * speed;
     if (x < originX - 60) continue;
     if (x > originX + DUAL_PANEL_W + 60) break;
-    ctx.fillRect(x - DUAL_BLOCK_W / 2, DUAL_GROUND_Y - DUAL_BLOCK_H, DUAL_BLOCK_W, DUAL_BLOCK_H);
+    ctx.beginPath();
+    ctx.moveTo(x - DUAL_SPIKE_LEAN, DUAL_GROUND_Y - DUAL_SPIKE_H);
+    ctx.lineTo(x - DUAL_SPIKE_LEAN + 4, DUAL_GROUND_Y - DUAL_SPIKE_H + 9);
+    ctx.lineTo(x + DUAL_SPIKE_W / 2, DUAL_GROUND_Y - 4);
+    ctx.lineTo(x - DUAL_SPIKE_W / 2, DUAL_GROUND_Y - 4);
+    ctx.lineTo(x - DUAL_SPIKE_LEAN - 4, DUAL_GROUND_Y - DUAL_SPIKE_H + 9);
+    ctx.closePath();
+    ctx.fill();
   }
 
   const height = dualJumpHeight(start, base, until, state.tick);
