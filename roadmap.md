@@ -182,7 +182,7 @@
 - [x] Slice launch speed/angle variation
 
 ## Categories, persistent rooms, Slice and Dual (Sep 23)
-- [ ] Eight-category host picker, presets, persisted selection and even six-round draw without repeated types.
-- [ ] Reuse room/code on play again; retain tournament history, disband and host-disconnect handling.
-- [ ] Slice seeded speed classes and smaller faster specials; identity proof.
-- [ ] Dual thin javelin spikes with matching collision; identity proof.
+- [x] Eight-category host picker, presets, persisted selection and even six-round draw without repeated types. Memory is displayed but unavailable while every memory type remains retired.
+- [x] Reuse room/code on play again; retain tournament history, disband and host-disconnect handling.
+- [x] Slice seeded speed classes and smaller faster specials; identity proof (200/200).
+- [x] Dual thin javelin spikes with matching collision; identity proof (200/200).
