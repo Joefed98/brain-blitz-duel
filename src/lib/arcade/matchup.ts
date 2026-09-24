@@ -451,6 +451,7 @@ function resolveBoard(
   heads: number[],
   preferredSpecial: number | null,
   detonations: readonly number[] = [],
+  otherSwapped: number | null = null,
 ): { gain: number; steps: number; best: number; cleared: number[]; animation: MatchupAnimStep[] } {
   let gain = 0;
   let steps = 0;
@@ -471,14 +472,17 @@ function resolveBoard(
     // A swap that makes two lines crossing at one cell (a T or an L) turns
     // the swapped cell into a STAR instead of a bomb or cross.
     const starRuns = new Set<MatchupRun>();
-    if (steps === 0 && preferred !== null) {
-      const through = runs.filter((run) => run.cells.includes(preferred!));
-      const horizontal = through.find((run) => isHorizontal(run));
-      const vertical = through.find((run) => !isHorizontal(run));
-      if (horizontal && vertical) {
-        starRuns.add(horizontal);
-        starRuns.add(vertical);
-        created.set(preferred, MATCHUP_STAR);
+    if (steps === 0) {
+      for (const cell of [preferred, otherSwapped]) {
+        if (cell === null || created.size > 0) continue;
+        const through = runs.filter((run) => run.cells.includes(cell));
+        const horizontal = through.find((run) => isHorizontal(run));
+        const vertical = through.find((run) => !isHorizontal(run));
+        if (horizontal && vertical) {
+          starRuns.add(horizontal);
+          starRuns.add(vertical);
+          created.set(cell, MATCHUP_STAR);
+        }
       }
     }
 
@@ -596,7 +600,7 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
         return isOver(next) ? { ...next, endedTick: tick } : next;
       }
       const heads = [...state.heads];
-      const resolved = resolveBoard(cells, state.queues, heads, movedIndex, specialSeeds);
+      const resolved = resolveBoard(cells, state.queues, heads, movedIndex, specialSeeds, a);
       let rng = state.rng;
       let board = cells;
       let reshuffles = state.reshuffles;
