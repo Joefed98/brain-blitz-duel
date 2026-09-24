@@ -1,3 +1,5 @@
+import { solvedMovesText } from "@/lib/duel/scoring";
+import { UNBLOCK_TIME_MS } from "@/lib/duel/types";
 import { useEffect, useState } from "react";
 
 import { UnblockBoard, UnblockPuzzle } from "@/components/puzzles/UnblockPuzzle";
@@ -114,6 +116,11 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
         {myCorrect ? "✓" : "✗"} your moves: <span className="text-primary">{mine}</span>
         {min > 0 ? ` · min ${min}` : ""}
       </p>
+      {myCorrect ? (
+        <p className="font-mono text-xs text-primary">
+          {solvedMovesText(mine, min, myMsRemaining, UNBLOCK_TIME_MS)}
+        </p>
+      ) : null}
     </div>
   );
 }

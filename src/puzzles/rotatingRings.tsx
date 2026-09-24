@@ -1,3 +1,4 @@
+import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
@@ -312,9 +313,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         className={`shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
         {replay.solved
-          ? `Solved · ${replay.moves} turns${min ? ` (min ${min})` : ""}${
-              elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""
-            }`
+          ? solvedMovesText(replay.moves, min, myMsRemaining, RINGS_TIME_MS)
           : `${replay.aligned} / ${RINGS_SEGMENTS} spokes`}
       </p>
     </div>

@@ -1,3 +1,4 @@
+import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
@@ -292,9 +293,13 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         </span>
         <span className="ml-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
           tilts{puzzle.minMoves ? ` · min ${puzzle.minMoves}` : ""}
-          {myCorrect && elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
         </span>
       </p>
+      {myCorrect ? (
+        <p className="font-mono text-xs text-primary">
+          {solvedMovesText(mine.tilts, puzzle.minMoves ?? 0, myMsRemaining, GRAV_TIME_MS)}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { solvedMovesText } from "@/lib/duel/scoring";
+import { LIGHTS_TIME_MS } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -181,6 +183,11 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
         {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · min{" "}
         {min}
       </p>
+      {myCorrect ? (
+        <p className="font-mono text-xs text-primary">
+          {solvedMovesText(mine, min, myMsRemaining, LIGHTS_TIME_MS)}
+        </p>
+      ) : null}
     </div>
   );
 }

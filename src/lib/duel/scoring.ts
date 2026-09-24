@@ -527,6 +527,13 @@ export function scoreSolvedMoves(moves: number, minMoves: number, msRemaining: n
   return Math.min(MAX_ROUND_SCORE, BASE_POINTS + moveBonus(moves, minMoves) + moveSpeedBonus(msRemaining, limitMs));
 }
 
+/** Reveal line for a solved move puzzle. */
+export function solvedMovesText(moves: number, minMoves: number, msRemaining: number | undefined, limitMs: number): string {
+  const mb = moveBonus(moves, minMoves);
+  const sb = moveSpeedBonus(msRemaining ?? 0, limitMs);
+  return `Solved · ${moves} moves${minMoves > 0 ? ` (min ${minMoves})` : ""} · +${mb} move bonus · +${sb} speed`;
+}
+
 /** Word rounds: raw word points stay on the play counter; each is worth three round points. */
 export function scoreWordHunt(points: number): number {
   return clamp(3 * Math.round(points), 0, MAX_ROUND_SCORE);
