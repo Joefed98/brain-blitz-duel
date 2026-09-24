@@ -373,6 +373,8 @@ export interface SliceState {
   flash: number;
   /** Render only: the last swipe segment, in px. */
   swipe: readonly [number, number, number, number] | null;
+  /** Fixed at init: every disc the schedule could offer, specials' batches included. */
+  available: number;
 }
 
 function init(seed: number): SliceState {
