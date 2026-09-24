@@ -44,8 +44,8 @@ export const BINTOSS_BALL_X = 10_240;
 export const BINTOSS_BALL_R = 1_792;
 export const BINTOSS_BALL_Y = 126_208;
 
-/** The bin: a 100 px opening, 70 px tall, standing on the floor. */
-export const BINTOSS_BIN_HALF = 12_800;
+/** The bin: an 80 px opening, 70 px tall, standing on the floor. */
+export const BINTOSS_BIN_HALF = 10_240;
 /** The ball centre must cross at least 10 px inside either rim edge. */
 export const BINTOSS_RIM_INSET = 2_560;
 export const BINTOSS_BIN_H = 17_920;
@@ -53,8 +53,8 @@ export const BINTOSS_RIM_Y = 110_080;
 
 /** Downward acceleration each tick. */
 export const BINTOSS_GRAVITY = 22;
-/** Wind runs −3 … +3, drawn from the seeded PRNG so it is the same for everyone. */
-export const BINTOSS_WIND_MAX = 3;
+/** Wind is ±1 … ±4 (never 0), drawn from the seeded PRNG so it is the same for everyone. */
+export const BINTOSS_WIND_MAX = 4;
 
 /** Launch clamps: 10 px a tick sideways, 15 px a tick upwards. */
 export const BINTOSS_VX_MAX = 2_560;
@@ -67,7 +67,7 @@ export const BINTOSS_NEXT_DELAY = 20;
 export const BINTOSS_FIRST_DIST = 25_600;
 export const BINTOSS_DIST_STEP = 3_840;
 
-export const BINTOSS_BASKET_POINTS = 11;
+export const BINTOSS_BASKET_POINTS = 10;
 /** Par: ten baskets = 110. */
 export const BINTOSS_PAR = 10;
 export const BINTOSS_TIME_BONUS = 50;
@@ -235,9 +235,10 @@ function init(seed: number): BinTossState {
   let rng = seed | 0;
   const winds: number[] = [];
   for (let index = 0; index < BINTOSS_THROWS; index++) {
-    const drawn = rngBelow(rng, BINTOSS_WIND_MAX * 2 + 1);
+    const drawn = rngBelow(rng, BINTOSS_WIND_MAX * 2);
     rng = drawn.state;
-    winds.push(drawn.value - BINTOSS_WIND_MAX);
+    // 0..3 → −4..−1, 4..7 → +1..+4: never still air.
+    winds.push(drawn.value < BINTOSS_WIND_MAX ? drawn.value - BINTOSS_WIND_MAX : drawn.value - BINTOSS_WIND_MAX + 1);
   }
   return {
     tick: 0,
@@ -387,10 +388,11 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
 
 function score(state: BinTossState): number {
   const baskets = clampInt(state.baskets, 0, BINTOSS_THROWS);
-  let points = parPoints(baskets, BINTOSS_PAR);
+  // 10 per basket; a perfect 10/10 adds the whole seconds left on the clock.
+  let points = BINTOSS_BASKET_POINTS * baskets;
   if (baskets >= BINTOSS_THROWS) {
     const remaining = Math.max(0, BINTOSS_RUN_TICKS - state.tick);
-    points += Math.round((BINTOSS_TIME_BONUS * remaining) / BINTOSS_RUN_TICKS);
+    points += Math.floor(remaining / TICKS_PER_SECOND);
   }
   return clampInt(points, 0, 150);
 }
