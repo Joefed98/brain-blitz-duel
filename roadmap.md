@@ -186,3 +186,11 @@
 - [x] Reuse room/code on play again; retain tournament history, disband and host-disconnect handling.
 - [x] Slice seeded speed classes and smaller faster specials; identity proof (200/200).
 - [x] Dual thin javelin spikes with matching collision; identity proof (200/200).
+
+## Arcade scoring and tuning (Sep 24)
+- [x] Intro shows run length (60/90 s), not phase slack.
+- [x] Ricochet: 1 pt/m, 75% ball, seeded tightening spike gaps, cross-wall offset, reachability search.
+- [x] Dual: 50% spikes, ×1.3 jump, 150 × (s/60)² scoring.
+- [x] Cross 4/lane +4/crossing; Eat and Grow 5/pellet; Beat 1/0.75/0.25/−2.
+- [x] Bubble Pop 150 − 3 per bubble left; Slice 150 × sliced ÷ all available (specials' batches included).
+- [x] Steady: centred ball, no nudge, repeating edge/lift touches, 150 − 5/touch.
