@@ -43,8 +43,6 @@ export const SKYLINE_PERFECT_GROW = 1_536;
 export const SKYLINE_PAR = 36;
 export const SKYLINE_BLOCK_POINTS = 3;
 export const SKYLINE_PERFECT_POINTS = 2;
-export const SKYLINE_BLOCK_POINTS = 3;
-export const SKYLINE_PERFECT_POINTS = 1;
 export const SKYLINE_POINTS_CAP = 110;
 export const SKYLINE_SURVIVE_BONUS = 40;
 
