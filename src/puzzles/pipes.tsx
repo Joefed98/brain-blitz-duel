@@ -13,6 +13,7 @@ import {
   PIPE_W,
 } from "@/lib/duel/logic";
 import { useStageState } from "@/lib/duel/stageState";
+import { scorePipes } from "@/lib/duel/scoring";
 import {
   PIPES_CELLS,
   PIPES_COLS,
@@ -153,7 +154,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Every pipe must be connected. You have 90 seconds.
+        All 36 = 100 + speed. 35 = 90, 34 = 85, 32–33 = 80. You have 90 seconds.
       </p>
     </div>
   );
@@ -253,6 +254,9 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         {myCorrect
           ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `✗ ${mineState.connected.size} / ${PIPES_CELLS} connected`}
+      </p>
+      <p className="font-mono text-xs text-muted-foreground">
+        {scorePipes(Boolean(myCorrect), mineState.connected.size, myMsRemaining ?? 0)} points
       </p>
     </div>
   );

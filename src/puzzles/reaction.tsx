@@ -68,7 +68,7 @@ function IntroExample() {
         </span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Tap too early and that try counts against you.
+        Tap too early and that try counts as 1,000 ms. Score: 50 at 650 ms average, up to 150 at 50 ms.
       </p>
     </div>
   );
@@ -221,6 +221,11 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs }: PuzzleRevealProps) {
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">
           {myReactionAvgMs ?? "—"} ms
         </p>
+        {myReactionAvgMs !== undefined && myReactionAvgMs !== null && (
+          <p className="font-mono text-sm text-muted-foreground">
+            50 + {Math.max(0, Math.min(100, Math.round((650 - myReactionAvgMs) / 6)))} = {50 + Math.max(0, Math.min(100, Math.round((650 - myReactionAvgMs) / 6)))} points
+          </p>
+        )}
       </div>
     </>
   );
