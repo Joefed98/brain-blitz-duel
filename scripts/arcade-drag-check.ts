@@ -142,7 +142,8 @@ function stdValues(state: StdState): number[] {
     state.travelled,
     state.aimX,
     state.touches,
-    state.sinceTouch,
+    state.edgeTicks,
+    state.liftTicks,
     state.flash,
     ...state.path,
   ];
