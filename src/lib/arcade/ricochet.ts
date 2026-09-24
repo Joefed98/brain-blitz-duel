@@ -68,8 +68,8 @@ export const RICO_SPIKE_TOP_FP =
 const RICO_REACH_MARGIN_FP = 512;
 const RICO_MAX_ROLLS = 64;
 
-/** Score: one point per whole metre (40 px) climbed, capped at 150. */
-export const RICO_PX_PER_POINT = 40;
+/** Two points per metre (40 px), including partial metres, capped at 150. */
+export const RICO_PX_PER_METRE = 40;
 
 /** The slide speed once the ball has climbed this many whole pixels. */
 export function ricoSlide(climbedPx: number): number {
@@ -292,7 +292,7 @@ function step(state: RicoState, tapped: boolean): RicoState {
 }
 
 function score(state: RicoState): number {
-  return clampInt(Math.trunc(ricoHeightPx(state) / RICO_PX_PER_POINT), 0, 150);
+  return clampInt(Math.trunc((2 * ricoHeightPx(state)) / RICO_PX_PER_METRE), 0, 150);
 }
 
 /* =========================== Integrity checks ========================== */
