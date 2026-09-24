@@ -17,8 +17,6 @@ import {
   type ArcadeInputEvent,
   type CanvasSize,
   type InputRange,
-  parPoints,
-  ARCADE_COMPLETION_BONUS,
 } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -35,13 +33,18 @@ export const DUAL_GROUND_Y = 430;
 export const DUAL_RUNNER_X = 62;
 export const DUAL_RUNNER_R = 15;
 /** A thin javelin leaning toward the runner. */
-export const DUAL_SPIKE_W = 8;
-export const DUAL_SPIKE_H = 44;
-export const DUAL_SPIKE_LEAN = 16;
+/** Half the earlier 8 × 44 javelin. */
+export const DUAL_SPIKE_W = 4;
+export const DUAL_SPIKE_H = 22;
+export const DUAL_SPIKE_LEAN = 8;
 
-/** A jump is a fixed 30-tick arc, 115 px at the top (92 px + 25%). */
+/**
+ * A jump is a fixed 30-tick arc, 150 px at the top (115 px × 1.3). The arc
+ * length is unchanged, so the cross-side separation (a tap is always free on
+ * the other side) still holds; the higher arc only widens each clearance.
+ */
 export const DUAL_JUMP_TICKS = 30;
-export const DUAL_JUMP_PEAK = 115;
+export const DUAL_JUMP_PEAK = 150;
 
 /** Time after arrival before a spike is fully behind the runner. */
 export const DUAL_HIT_TICKS = 8;
@@ -62,11 +65,11 @@ export const DUAL_SEP_EARLY = 20;
 export const DUAL_SEP_LATE = 12;
 export const DUAL_SEP_SWITCH_TICK = 20 * TICKS_PER_SECOND;
 
-/** Par: fifty obstacles passed. */
-export const DUAL_PAR = 50;
-export const DUAL_OBSTACLE_POINTS = 2;
-export const DUAL_POINTS_CAP = 110;
-export const DUAL_SURVIVE_BONUS = 40;
+/** Score: floor(150 × (seconds survived ÷ 60)²). */
+export function dualScoreForTicks(ticks: number): number {
+  const t = clampInt(ticks, 0, DUAL_RUN_TICKS);
+  return Math.trunc((150 * t * t) / (DUAL_RUN_TICKS * DUAL_RUN_TICKS));
+}
 
 /** A jump: a = 0 left runner, 1 right runner. */
 export const DUAL_INPUT_JUMP = 6;
@@ -288,8 +291,7 @@ function step(state: DualState, input: ArcadeInputEvent | null): DualState {
 }
 
 function score(state: DualState): number {
-  const earned = parPoints(state.passed, DUAL_PAR);
-  return clampInt(earned + (dualSurvived(state) ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
+  return clampInt(dualScoreForTicks(state.tick), 0, 150);
 }
 
 /* =========================== Integrity checks ========================== */
