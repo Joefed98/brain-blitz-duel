@@ -13,8 +13,6 @@ import {
   rngBelow,
   TICKS_PER_SECOND,
   type CanvasSize,
-  parPoints,
-  ARCADE_COMPLETION_BONUS,
 } from "./engine";
 import type { ArcadeGame } from "./engine";
 

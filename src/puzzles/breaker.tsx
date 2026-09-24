@@ -14,6 +14,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   brkButtonHit,
+  BRK_DRAG_ZONE_TOP,
   BRK_BTN_H,
   BRK_BTN_W,
   BRK_BTN_X,
@@ -309,10 +310,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || breakerGame.isOver(state.current)) return;
-          // Drags only count when they start inside the play area and away
-          // from the button's corner.
+          // Drags only count when they start in the bottom quarter of the
+          // play area, and never on the button.
           if (!inPlayArea(event.clientX, event.clientY)) return;
           const point = worldPoint(event.clientX, event.clientY);
+          if (point.y < BRK_DRAG_ZONE_TOP) return;
           if (brkButtonHit(point.x, point.y)) return;
           if (dragPointer.current !== null) return;
           dragPointer.current = event.pointerId;

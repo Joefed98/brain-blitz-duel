@@ -21,8 +21,6 @@ import {
   type ArcadeInputEvent,
   type CanvasSize,
   type InputRange,
-  parPoints,
-  ARCADE_COMPLETION_BONUS,
 } from "./engine";
 
 /* ============================== Constants ============================== */
