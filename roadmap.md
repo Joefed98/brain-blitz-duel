@@ -194,3 +194,12 @@
 - [x] Cross 4/lane +4/crossing; Eat and Grow 5/pellet; Beat 1/0.75/0.25/−2.
 - [x] Bubble Pop 150 − 3 per bubble left; Slice 150 × sliced ÷ all available (specials' batches included).
 - [x] Steady: centred ball, no nudge, repeating edge/lift touches, 150 − 5/touch.
+
+## Arcade scoring and tuning, part 2 (Sep 24)
+- [x] Rally: blue ball, 3 per gold hit
+- [x] Breaker: bottom-quarter drag zone, 9×8 wall, 4 starred gold bricks, 2 per brick / all 72 = 150
+- [x] Matchup: T/L STAR clears both diagonals; floor(150 × raw ÷ 2000)
+- [x] Bullseye: 45 s, 100 = 150 else 146 − 3 per point short
+- [x] Skyline 3/block + 2/perfect; Swerve exactly 75 coins, 2 each; Hover exactly 45 gates, 2 each, all = 100
+- [x] Bin Toss: wind ±1..±4, 80 px bin, 10/basket + whole seconds left on 10/10
+- [x] Verified: 200/200 self-replay for all 16 games, typecheck and build OK
