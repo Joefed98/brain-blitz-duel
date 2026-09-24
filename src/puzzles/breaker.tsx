@@ -366,7 +366,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
         {result.cleared
           ? `Cleared at ${result.endedSeconds.toFixed(1)}s`
-          : `${result.destroyed} / 64 bricks · ${result.hits} hits · ${result.powerUps} power-up${result.powerUps === 1 ? "" : "s"}`}
+          : `${result.destroyed} / 72 bricks · ${result.hits} hits · ${result.powerUps} power-up${result.powerUps === 1 ? "" : "s"}`}
       </p>
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {result.losses} relaunch{result.losses === 1 ? "" : "es"} · {drags} paddle moves
