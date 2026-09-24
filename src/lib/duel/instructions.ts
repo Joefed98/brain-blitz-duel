@@ -17,7 +17,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap letters", detail: "to build a word." },
       { action: "Tap a used letter", detail: "to return that tile, or use Undo." },
-      { action: "Submit words", detail: "with three or more letters." },
+      { action: "Submit words", detail: "with four or more letters." },
     ],
     score: "Round score = 3 × word points, up to 150. The counter shows word points.",
   },
