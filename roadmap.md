@@ -5,7 +5,7 @@
 - [x] Ricochet scores floor(2 × metres), capped at 150; help and reveals reflect it.
 - [x] Dual javelins enlarged 1.2× with matching collision geometry and recomputed passability spacing.
 - [x] Home game-count copy updated to 40+ puzzle types and 15 arcade games.
-- [ ] Re-run Dual's client/server identity proof without browser tests.
+- [x] Dual client/server identity proof passed 200/200 runs with matching checkpoints and scores; no browser tests.
 
 ## Puzzle scoring balance
 
