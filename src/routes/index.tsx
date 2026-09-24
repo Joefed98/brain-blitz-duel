@@ -100,7 +100,7 @@ function Home() {
           </p>
           <div className="mt-6 h-px w-16 bg-border" />
           <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-            40+ puzzle types and 15 arcade games
+             40+ PUZZLE TYPES & 15 ARCADE GAMES
           </p>
         </div>
 
