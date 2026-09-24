@@ -422,7 +422,7 @@ for (let seed = 1; seed <= 200; seed++) {
   const bin = binTossGame.init(seed);
   const expected = bullseyeWinds(seed);
   const bull = bullseyeInit(seed, expected);
-  if (bin.winds.some((wind) => wind < -3 || wind > 3)) fail(`bintoss ${seed}: wind out of range`);
+  if (bin.winds.some((wind) => wind === 0 || wind < -4 || wind > 4)) fail(`bintoss ${seed}: wind out of range`);
   if (bull.winds.some((wind) => wind < -3 || wind > 3)) fail(`bullseye ${seed}: wind out of range`);
   if (bull.winds.join(",") !== expected.join(",")) fail(`bullseye ${seed}: stored winds differ`);
   for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) {
