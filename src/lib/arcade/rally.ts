@@ -335,7 +335,7 @@ export function rallyCheckpoint(state: RallyState): RallyCheckpoint {
 
 export const RALLY_BG = "#0B0B0F";
 export const RALLY_GOLD = "#F5B82E";
-export const RALLY_BALL = "#2ED3B7";
+export const RALLY_BALL = "#4D8CFF";
 
 function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
   const scale = Math.min(size.width / RALLY_WORLD_W, size.height / RALLY_WORLD_H);
@@ -383,7 +383,7 @@ function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize
   ctx.fillText(`Rally ${state.hits}`, 14, 14);
   ctx.textAlign = "center";
   ctx.fillStyle = RALLY_GOLD;
-  ctx.fillText(`gold ${state.goldHits}`, RALLY_WORLD_W / 2, 14);
+  ctx.fillText(`gold ${state.goldHits} · ${RALLY_GOLD_POINTS * state.goldHits} pts`, RALLY_WORLD_W / 2, 14);
   ctx.fillStyle = "#F7F7F8";
   ctx.textAlign = "right";
   ctx.fillText(`${remaining.toFixed(1)}s`, RALLY_WORLD_W - 14, 14);
