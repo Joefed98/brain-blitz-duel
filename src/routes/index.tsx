@@ -21,10 +21,13 @@ export const Route = createFileRoute("/")({
           "Duelz is a live puzzle room: up to ten players solve the same six timed puzzles at the same moment. Share a room code and see who wins.",
       },
       { property: "og:title", content: "Duelz — Live Puzzle Rooms for 2–10 Players" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Up to 10 players. Six rounds. Fastest brain wins.",
       },
+      { name: "twitter:description", content: "Up to 10 players. Six rounds. Fastest brain wins." },
     ],
   }),
   component: Home,
