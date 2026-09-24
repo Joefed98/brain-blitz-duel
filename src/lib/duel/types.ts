@@ -79,7 +79,7 @@ export const WORDSMITH_MAX_PAR = 40;
 const WORDSMITH_POINTS: Record<number, number> = { 4: 1, 5: 2, 6: 4, 7: 7, 8: 11 };
 
 export function wordsmithPoints(word: string): number {
-  return WORDSMITH_POINTS[word.trim().length] ?? 0;
+  return WORDSMITH_POINTS[Math.min(8, word.trim().length)] ?? 0;
 }
 
 export interface WordsmithWord {
