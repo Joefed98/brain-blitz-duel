@@ -18,11 +18,9 @@ import {
   SPIN_TIME_MS,
   STROOP_ITEMS,
   TOTAL_ROUNDS,
-  UNBLOCK_MIN_MOVE_BONUS,
   UNBLOCK_TIME_MS,
   WORDMATCH_ITEMS,
   WORDMATCH_TIME_MS,
-  LIGHTS_MIN_BONUS,
   LIGHTS_TIME_MS,
   PIPES_CELLS,
   PIPES_TIME_MS,
@@ -34,7 +32,6 @@ import {
   PUSH_MIN_PUSH_BONUS,
   PUSH_PARTIAL_POINTS,
   PUSH_TIME_MS,
-  SLIDE_MIN_MOVE_BONUS,
   SLIDE_TIME_MS,
   LASER_FIRE_BASE,
   LASER_GEMS,
@@ -56,7 +53,6 @@ import {
   SAFE_TRY_POINTS,
   TUBES_MIN_MOVE_BONUS,
   TUBES_TIME_MS,
-  GRAV_MIN_MOVE_BONUS,
   GRAV_TIME_MS,
   CHAIN_ERROR_PENALTY,
   CHAIN_LENGTH,
@@ -78,13 +74,10 @@ import {
   STROKE_PARTIAL_POINTS,
   STROKE_TIME_MS,
   TILES_COUNT,
-  TILES_MIN_BONUS,
   TILES_TIME_MS,
-  RINGS_MIN_BONUS,
   RINGS_PARTIAL_POINTS,
   RINGS_SEGMENTS,
   RINGS_TIME_MS,
-  FLOOD_PAR_BONUS,
   FLOOD_TIME_MS,
 } from "./types";
 
@@ -517,6 +510,30 @@ export function playerBreakdown(
   });
 }
 
+/** Move-based puzzles: +40 at the minimum, sliding to 0 at twice the minimum. */
+export function moveBonus(moves: number, minMoves: number): number {
+  if (minMoves <= 0) return 0;
+  return Math.round(40 * clamp(1 - (moves - minMoves) / minMoves, 0, 1));
+}
+
+/** Move-based puzzles: a small speed extra, up to 10. */
+export function moveSpeedBonus(msRemaining: number, limitMs: number): number {
+  if (limitMs <= 0) return 0;
+  return Math.round(10 * clamp(msRemaining, 0, limitMs) / limitMs);
+}
+
+/** Move-based puzzles, solved: 100 + move bonus + speed bonus, cap 150. */
+export function scoreSolvedMoves(moves: number, minMoves: number, msRemaining: number, limitMs: number): number {
+  return Math.min(MAX_ROUND_SCORE, BASE_POINTS + moveBonus(moves, minMoves) + moveSpeedBonus(msRemaining, limitMs));
+}
+
+/** Reveal line for a solved move puzzle. */
+export function solvedMovesText(moves: number, minMoves: number, msRemaining: number | undefined, limitMs: number): string {
+  const mb = moveBonus(moves, minMoves);
+  const sb = moveSpeedBonus(msRemaining ?? 0, limitMs);
+  return `Solved · ${moves} moves${minMoves > 0 ? ` (min ${minMoves})` : ""} · +${mb} move bonus · +${sb} speed`;
+}
+
 /** Word rounds: raw word points stay on the play counter; each is worth three round points. */
 export function scoreWordHunt(points: number): number {
   return clamp(3 * Math.round(points), 0, MAX_ROUND_SCORE);
@@ -535,11 +552,7 @@ export function scoreUnblock(
   fewerBlockers = false,
 ): number {
   if (solved) {
-    const perfect = minMoves > 0 && moves <= minMoves ? UNBLOCK_MIN_MOVE_BONUS : 0;
-    return Math.min(
-      MAX_ROUND_SCORE,
-      BASE_POINTS + speedBonus(msRemaining, UNBLOCK_TIME_MS) + perfect,
-    );
+    return scoreSolvedMoves(moves, minMoves, msRemaining, UNBLOCK_TIME_MS);
   }
   const partial = Math.round(70 * clamp(progress, 0, 1));
   return clamp(Math.max(partial, fewerBlockers ? 10 : 0), 0, 70);
@@ -572,8 +585,7 @@ export function scoreLightsOut(
   correctTaps: number,
 ): number {
   if (solved) {
-    const bonus = minPresses > 0 && presses === minPresses ? LIGHTS_MIN_BONUS : 0;
-    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, LIGHTS_TIME_MS) + bonus);
+    return scoreSolvedMoves(presses, minPresses, msRemaining, LIGHTS_TIME_MS);
   }
   const left = Math.max(0, Math.round(lightsLeftOn));
   if (left === 1) return 85;
@@ -632,8 +644,7 @@ export function scoreIceSlide(
   progress: number,
 ): number {
   if (solved) {
-    const bonus = minMoves > 0 && moves <= minMoves ? SLIDE_MIN_MOVE_BONUS : 0;
-    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, SLIDE_TIME_MS) + bonus);
+    return scoreSolvedMoves(moves, minMoves, msRemaining, SLIDE_TIME_MS);
   }
   return clamp(Math.round(70 * clamp(progress, 0, 1)), 0, 70);
 }
@@ -755,8 +766,7 @@ export function scoreGravity(
   progress = 0,
 ): number {
   if (solved) {
-    const bonus = minMoves > 0 && tilts <= minMoves ? GRAV_MIN_MOVE_BONUS : 0;
-    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, GRAV_TIME_MS) + bonus);
+    return scoreSolvedMoves(tilts, minMoves, msRemaining, GRAV_TIME_MS);
   }
   const partial = Math.round(70 * clamp(progress, 0, 1));
   return clamp(Math.max(partial, onTarget >= 1 ? 40 : 0), 0, 70);
@@ -834,8 +844,7 @@ export function scoreFlood(
   msRemaining: number,
 ): number {
   if (solved) {
-    const bonus = par > 0 && moves <= par ? FLOOD_PAR_BONUS : 0;
-    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, FLOOD_TIME_MS) + bonus);
+    return scoreSolvedMoves(moves, par, msRemaining, FLOOD_TIME_MS);
   }
   return clamp(
     Math.round((FLOOD_PARTIAL_POINTS * clamp(region, 0, FLOOD_CELLS)) / FLOOD_CELLS),
@@ -872,8 +881,7 @@ export function scoreTiles(
   msRemaining: number,
 ): number {
   if (solved) {
-    const bonus = minMoves > 0 && moves <= minMoves ? TILES_MIN_BONUS : 0;
-    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, TILES_TIME_MS) + bonus);
+    return scoreSolvedMoves(moves, minMoves, msRemaining, TILES_TIME_MS);
   }
   return clamp(14 * clamp(Math.round(inPlace), 0, TILES_COUNT), 0, 90);
 }
@@ -887,8 +895,7 @@ export function scoreRings(
   msRemaining: number,
 ): number {
   if (solved) {
-    const bonus = minMoves > 0 && moves <= minMoves ? RINGS_MIN_BONUS : 0;
-    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, RINGS_TIME_MS) + bonus);
+    return scoreSolvedMoves(moves, minMoves, msRemaining, RINGS_TIME_MS);
   }
   return clamp(
     Math.round((RINGS_PARTIAL_POINTS * clamp(aligned, 0, RINGS_SEGMENTS)) / RINGS_SEGMENTS),

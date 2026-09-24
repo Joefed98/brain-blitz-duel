@@ -1,3 +1,4 @@
+import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowPad, useSwipe } from "@/components/puzzles/GridDrag";
@@ -345,7 +346,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       </p>
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
         {myCorrect
-          ? `✓ ${replay.moves} move${replay.moves === 1 ? "" : "s"}${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
+          ? `✓ ${solvedMovesText(replay.moves, min, myMsRemaining, SLIDE_TIME_MS)}`
           : "✗ Not solved"}
       </p>
     </div>

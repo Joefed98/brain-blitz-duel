@@ -50,17 +50,17 @@ export const RICO_SPIKE_H_FP = 3_840;
 export const RICO_SPIKE_DEPTH = 12;
 /**
  * Spacing, in quarter ball-diameters. On one wall the clear gap between two
- * spikes (edge to edge) starts at 3.5 diameters and tightens by 0.25 every
- * 20 m (800 px) of height, never below 2.0. Each gap is drawn from the seed
+ * spikes (edge to edge) starts at 6 diameters and tightens by 0.5 every
+ * 20 m (800 px) of height, never below 2.0. The first 10 m have no spikes. Each gap is drawn from the seed
  * between that minimum and 1.5 diameters more. Spikes on opposite walls keep
  * at least 1.5 diameters (edge to edge) of height between them.
  */
-export const RICO_GAP_START_Q = 14;
+export const RICO_GAP_START_Q = 24;
 export const RICO_GAP_MIN_Q = 8;
 export const RICO_GAP_BAND_Q = 6;
 export const RICO_GAP_STEP_PX = 800;
 export const RICO_CROSS_GAP_FP = (RICO_BALL_D_FP * 3) / 2;
-export const RICO_SPIKE_FIRST_FP = 76_800;
+export const RICO_SPIKE_FIRST_FP = 102_400;
 /** Spikes are laid out beyond the highest climb possible in the run. */
 export const RICO_SPIKE_TOP_FP =
   (RICO_RUN_TICKS / RICO_LEAP_TICKS) * RICO_LEAP_CLIMB_FP + RICO_START_FP + 51_200;
@@ -114,7 +114,7 @@ export interface RicoState {
 /** Minimum clear gap on one wall at this height, fixed-point. */
 export function ricoMinGapFp(yFp: number): number {
   const steps = Math.trunc(Math.max(0, yFp) / 256 / RICO_GAP_STEP_PX);
-  const quarters = Math.max(RICO_GAP_MIN_Q, RICO_GAP_START_Q - steps);
+  const quarters = Math.max(RICO_GAP_MIN_Q, RICO_GAP_START_Q - 2 * steps);
   return (RICO_BALL_D_FP * quarters) / 4;
 }
 

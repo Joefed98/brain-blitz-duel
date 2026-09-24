@@ -1,3 +1,4 @@
+import { solvedMovesText } from "@/lib/duel/scoring";
 import { playCorrect } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -162,7 +163,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "lightsout") return null;
   const solution = puzzle.solution ?? [];
   const numbers: Record<number, number> = {};
@@ -181,6 +182,11 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
         {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · min{" "}
         {min}
       </p>
+      {myCorrect ? (
+        <p className="font-mono text-xs text-primary">
+          {solvedMovesText(mine, min, myMsRemaining, LIGHTS_TIME_MS)}
+        </p>
+      ) : null}
     </div>
   );
 }

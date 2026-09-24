@@ -55,10 +55,22 @@ export const DUAL_SCROLL_STEP_FP = 77;
 export const DUAL_SCROLL_CAP_FP = 1_126;
 export const DUAL_SCROLL_PERIOD_TICKS = 10 * TICKS_PER_SECOND;
 
-/** The first obstacle, and the gap band between consecutive obstacles. */
-export const DUAL_FIRST_TICK = 120;
-export const DUAL_GAP_EXTRA = 14;
-export const DUAL_GAP_SPAN = 46;
+/**
+ * No spikes in the first 5 s. On one side, consecutive spikes are at least
+ * 3.0 s apart, 0.25 s less every 10 s, never below 1.0 s; each gap adds up to
+ * DUAL_GAP_SPAN ticks from the seed.
+ */
+export const DUAL_FIRST_TICK = 5 * TICKS_PER_SECOND;
+export const DUAL_SIDE_GAP_START = 180;
+export const DUAL_SIDE_GAP_STEP = 15;
+export const DUAL_SIDE_GAP_MIN = 60;
+export const DUAL_GAP_SPAN = 30;
+
+/** Minimum ticks between two spikes on the same side, at this tick. */
+export function dualSideGap(tick: number): number {
+  const steps = Math.trunc(tick / (10 * TICKS_PER_SECOND));
+  return Math.max(DUAL_SIDE_GAP_MIN, DUAL_SIDE_GAP_START - steps * DUAL_SIDE_GAP_STEP);
+}
 
 /** Cross-side separation: 20 ticks for the first twenty seconds, then 12. */
 export const DUAL_SEP_EARLY = 20;
@@ -134,15 +146,22 @@ function buildSchedule(seed: number): { rng: number; left: number[]; right: numb
   let rng = seed | 0;
   const left: number[] = [];
   const right: number[] = [];
-  let tick = DUAL_FIRST_TICK;
-  while (tick <= DUAL_RUN_TICKS) {
-    const pick = rngBelow(rng, 2);
-    rng = pick.state;
-    if (pick.value === 0) left.push(tick);
-    else right.push(tick);
+  const next = [0, 0];
+  for (let side = 0; side < 2; side++) {
     const jitter = rngBelow(rng, DUAL_GAP_SPAN);
     rng = jitter.state;
-    tick += dualSeparation(tick) + DUAL_GAP_EXTRA + jitter.value;
+    next[side] = DUAL_FIRST_TICK + jitter.value;
+  }
+  let last = -1_000;
+  for (;;) {
+    const side = next[0]! <= next[1]! ? 0 : 1;
+    const tick = Math.max(next[side]!, last + dualSeparation(last));
+    if (tick > DUAL_RUN_TICKS) break;
+    (side === 0 ? left : right).push(tick);
+    last = tick;
+    const jitter = rngBelow(rng, DUAL_GAP_SPAN);
+    rng = jitter.state;
+    next[side] = tick + dualSideGap(tick) + jitter.value;
   }
   return { rng, left, right };
 }

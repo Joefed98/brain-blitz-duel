@@ -242,7 +242,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Clear a path", detail: "for the gold car." },
       { action: "Slide the gold car", detail: "out through the opening." },
     ],
-    score: "Fewer moves and a faster finish = more points. Getting closer still scores.",
+    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
   },
   blockparty: {
     goal: "Fill every free board square with all nine pieces.",
@@ -259,7 +259,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a light", detail: "to flip it and its four neighbours." },
       { action: "Plan each press", detail: "because nearby lights also change." },
     ],
-    score: "Fewer presses and a faster finish = more points. Fewer lights left = more points.",
+    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
   },
   pipes: {
     goal: "Connect every pipe to the source with no leaks.",
@@ -295,7 +295,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Follow one-way arrows", detail: "that turn the ball." },
       { action: "Avoid holes", detail: "or restart from the beginning." },
     ],
-    score: "Fewer moves and a faster finish = more points. Getting closer still scores.",
+    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
   },
   push: {
     goal: "Push every crate onto a target.",
@@ -373,7 +373,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Use one ball", detail: "to block the other — they stop against each other." },
       { action: "Undo or Reset", detail: "if a tilt traps you." },
     ],
-    score: "Fewer tilts earns a bonus. Getting closer still scores.",
+    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
   },
   chain: {
     goal: "Tap the shapes in the order shown, without crossing your own line.",
@@ -418,7 +418,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Your region grows", detail: "into every touching cell of that colour." },
       { action: "Start from the top-left", detail: "— that cell is always yours." },
     ],
-    score: "Fewer moves earns a bonus; par is shown.",
+    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
   },
   stroke: {
     goal: "Trace every line in one stroke without lifting your finger.",
@@ -436,7 +436,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Finish left to right", detail: "with the gap bottom-right." },
       { action: "Tap Undo or Reset", detail: "to take slides back." },
     ],
-    score: "Each tile in place scores. Fewer moves earns a bonus.",
+    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
   },
   rings: {
     goal: "Turn the rings so every spoke is one colour.",
@@ -445,7 +445,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Rings two and three", detail: "also turn the next ring out." },
       { action: "Watch the rim", detail: "for a gold tick on each finished spoke." },
     ],
-    score: "Fewer turns earns a bonus.",
+    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
   },
   hover: {
     goal: "Fly through as many gaps as you can.",
