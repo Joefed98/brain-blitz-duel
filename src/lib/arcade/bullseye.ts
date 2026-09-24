@@ -26,7 +26,7 @@ import {
 export const BULLSEYE_WORLD_W = 390;
 export const BULLSEYE_WORLD_H = 560;
 
-export const BULLSEYE_RUN_SECONDS = 60;
+export const BULLSEYE_RUN_SECONDS = 45;
 export const BULLSEYE_RUN_TICKS = BULLSEYE_RUN_SECONDS * TICKS_PER_SECOND;
 export const BULLSEYE_ARROWS = 10;
 
@@ -300,12 +300,12 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
 }
 
 /**
- * Ten centres (100 ring points) make the 150 cap, and every point dropped from
- * there costs ten; below 90 the curve flattens out to a little over a half.
+ * A perfect 100 scores 150; otherwise 146 − 3 per point short of 100, min 0.
+ * Arrows still unfired when the clock ends add nothing.
  */
 export function bullseyeScoreFor(total: number): number {
   const points = clampInt(total, 0, BULLSEYE_ARROWS * 10);
-  const earned = points >= 90 ? 150 - 10 * (100 - points) : Math.round((points * 55) / 100);
+  const earned = points >= 100 ? 150 : 146 - 3 * (100 - points);
   return clampInt(earned, 0, 150);
 }
 

@@ -392,7 +392,7 @@ if (
 if (BINTOSS_FIRST_DIST !== 100 * 256 || BINTOSS_DIST_STEP !== 15 * 256) {
   fail("bin toss distances are not 100–235 px");
 }
-if (BINTOSS_BIN_HALF !== 50 * 256) fail("bin toss opening is not 100 px");
+if (BINTOSS_BIN_HALF !== 40 * 256) fail("bin toss opening is not 80 px");
 if (BULLSEYE_OUTER_R !== 91) fail("bullseye outer radius is not 91 px");
 if (BULLSEYE_SCALE_PCT.join(",") !== "100,96,92,88,84,80,77,74,71,68") {
   fail("bullseye shrink factors differ");
@@ -410,7 +410,7 @@ if (BULLSEYE_SCALE_PCT.join(",") !== "100,96,92,88,84,80,77,74,71,68") {
     for (let wind = -BINTOSS_WIND_MAX; wind <= BINTOSS_WIND_MAX; wind++) {
       const blown = binTossPredict(launch.vx, launch.vy, wind);
       const drift = blown.x - still.x;
-      const expected = wind * 25;
+      const expected = wind * 20;
       if (Math.abs(drift - expected) > 1) {
         fail(`wind ${wind} drifted ${drift} px, expected ${expected} px`);
       }
@@ -422,7 +422,7 @@ for (let seed = 1; seed <= 200; seed++) {
   const bin = binTossGame.init(seed);
   const expected = bullseyeWinds(seed);
   const bull = bullseyeInit(seed, expected);
-  if (bin.winds.some((wind) => wind < -3 || wind > 3)) fail(`bintoss ${seed}: wind out of range`);
+  if (bin.winds.some((wind) => wind === 0 || wind < -4 || wind > 4)) fail(`bintoss ${seed}: wind out of range`);
   if (bull.winds.some((wind) => wind < -3 || wind > 3)) fail(`bullseye ${seed}: wind out of range`);
   if (bull.winds.join(",") !== expected.join(",")) fail(`bullseye ${seed}: stored winds differ`);
   for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) {

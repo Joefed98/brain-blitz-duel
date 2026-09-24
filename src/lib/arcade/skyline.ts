@@ -13,8 +13,6 @@ import {
   rngBelow,
   TICKS_PER_SECOND,
   type CanvasSize,
-  parPoints,
-  ARCADE_COMPLETION_BONUS,
 } from "./engine";
 import type { ArcadeGame } from "./engine";
 
@@ -44,7 +42,7 @@ export const SKYLINE_PERFECT_GROW = 1_536;
 /** Par: 36 blocks placed. */
 export const SKYLINE_PAR = 36;
 export const SKYLINE_BLOCK_POINTS = 3;
-export const SKYLINE_PERFECT_POINTS = 1;
+export const SKYLINE_PERFECT_POINTS = 2;
 export const SKYLINE_POINTS_CAP = 110;
 export const SKYLINE_SURVIVE_BONUS = 40;
 
@@ -161,9 +159,7 @@ function step(state: SkylineState, tapped: boolean): SkylineState {
 }
 
 function score(state: SkylineState): number {
-  const earned = parPoints(state.placed, SKYLINE_PAR);
-  const bonus = skylineSurvived(state) ? ARCADE_COMPLETION_BONUS : 0;
-  return clampInt(earned + bonus, 0, 150);
+  return clampInt(SKYLINE_BLOCK_POINTS * state.placed + SKYLINE_PERFECT_POINTS * state.perfects, 0, 150);
 }
 
 /* =========================== Integrity checks ========================== */

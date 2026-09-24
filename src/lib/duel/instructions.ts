@@ -454,7 +454,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hit anything", detail: "and the run ends." },
       { action: "Everyone flies", detail: "the same course for sixty seconds." },
     ],
-    score: "Every gate in the run = 110, +40 for surviving the whole run.",
+    score: "45 gates in the run; 2 per gate, and all 45 = 100.",
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",
@@ -463,7 +463,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hit a block", detail: "and the run ends." },
       { action: "Every coin", detail: "speeds the course up a little." },
     ],
-    score: "Every coin in the run = 110, +40 for surviving the whole run.",
+    score: "75 coins in the run; 2 per coin, so all 75 = 150.",
   },
   skyline: {
     goal: "Stack the blocks as high as you can.",
@@ -472,7 +472,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Overhang is cut", detail: "so the next block is narrower." },
       { action: "Line it up exactly", detail: "and the block grows back a little." },
     ],
-    score: "36 blocks = 110, fewer scores in proportion, +40 for lasting the run.",
+    score: "3 per block stacked + 2 per perfect drop, up to 150.",
   },
   bintoss: {
     goal: "Throw the ball into the bin — ten throws.",
@@ -484,7 +484,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "The bin moves", detail: "further away every throw." },
     ],
-    score: "11 per basket (10 = 110); all ten earn the time bonus.",
+    score: "10 per basket; all ten add the whole seconds left on the clock.",
   },
   bullseye: {
     goal: "Hit the centre — ten arrows.",
@@ -500,17 +500,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "The target", detail: "gets further away each shot." },
     ],
-    score: "Ten centres = 150; every point dropped costs ten.",
+    score: "100 = 150; otherwise 146 − 3 per point short of 100. Unfired arrows score 0.",
   },
   matchup: {
     goal: "Make lines of three or more matching symbols.",
     how: [
       { action: "Swap two neighbours", detail: "by dragging one onto the other." },
-      { action: "Make four or five", detail: "to create bombs and crosses." },
+      { action: "Make four, five, or a T / L", detail: "to create bombs, crosses and stars (stars clear both diagonals)." },
       { action: "Trigger specials", detail: "to clear nearby symbols and start chain reactions." },
       { action: "Sixty seconds", detail: "on the same board for everyone." },
     ],
-    score: "3 = 10, 4 = 25, 5 = 50, then the total ÷ 8.",
+    score: "3 = 10, 4 = 25, 5 = 50; 2,000 points = 150, fewer in proportion.",
   },
   snake: {
     goal: "Eat the pellets and don't hit anything.",
@@ -550,20 +550,20 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag to move the paddle", detail: "anywhere on the board." },
       { action: "Keep the ball up", detail: "— it gets faster with bricks and with time." },
-      { action: "Three gold bricks", detail: "drop a capsule: catch it for a power-up." },
-      { action: "Extra balls come free", detail: "— spam and beam use the gold button." },
+      { action: "Four gold ★ bricks", detail: "drop a capsule: catch it for a power-up. MULTI doubles your balls." },
+      { action: "Drag in the bottom quarter", detail: "to move the paddle — ×5 and laser use the gold button." },
     ],
-    score: "All 64 bricks = 110, fewer in proportion, +40 for clearing the wall.",
+    score: "2 per brick destroyed; all 72 bricks = 150.",
   },
   rally: {
     goal: "Keep the rally going.",
     how: [
       { action: "Drag to move the paddle", detail: "along the bottom." },
       { action: "Every hit", detail: "makes the paddle smaller and the ball faster." },
-      { action: "A gold ball drops in", detail: "every ten seconds and scores double." },
-      { action: "Miss the white ball", detail: "and the run is over." },
+      { action: "A gold ball drops in", detail: "every ten seconds — only gold hits score." },
+      { action: "Miss the blue ball", detail: "and the run is over." },
     ],
-    score: "30 hits = 110 (gold hits count double), +40 for surviving the minute.",
+    score: "3 per gold-ball hit, up to 150. The blue ball scores nothing.",
   },
   steady: {
     goal: "Stay inside the track.",

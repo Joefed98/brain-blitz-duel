@@ -36,6 +36,10 @@ export const MATCHUP_CELLS = MATCHUP_SIZE * MATCHUP_SIZE;
 export const MATCHUP_KINDS = 6;
 export const MATCHUP_BOMB = 6;
 export const MATCHUP_CROSS = 7;
+/** Made by a T or L swap (two lines at once); clears both diagonals. */
+export const MATCHUP_STAR = 8;
+/** Raw points for a perfect-feeling run: 2000 raw = 150. Tune here. */
+export const MATCHUP_PAR_RAW = 2000;
 
 /** Cells are 50 px; symbols are drawn at 70% of the cell. */
 export const MATCHUP_CELL_PX = 50;
@@ -88,7 +92,7 @@ function isNormal(kind: number): boolean {
 }
 
 function isSpecial(kind: number): boolean {
-  return kind === MATCHUP_BOMB || kind === MATCHUP_CROSS;
+  return kind === MATCHUP_BOMB || kind === MATCHUP_CROSS || kind === MATCHUP_STAR;
 }
 
 /** One game colour per symbol kind. */
@@ -327,6 +331,12 @@ function init(seed: number): MatchupState {
   };
 }
 
+function isHorizontal(run: MatchupRun): boolean {
+  const first = run.cells[0] ?? 0;
+  const second = run.cells[1] ?? first;
+  return second - first === 1;
+}
+
 function middleCell(run: MatchupRun): number {
   return run.cells[run.cells.length >> 1] ?? run.cells[0] ?? 0;
 }
@@ -354,6 +364,15 @@ function addBlast(index: number, kind: number, gone: Set<number>): number {
   } else if (kind === MATCHUP_CROSS) {
     for (let c = 0; c < MATCHUP_SIZE; c++) add(matchupIndex(row, c));
     for (let r = 0; r < MATCHUP_SIZE; r++) add(matchupIndex(r, col));
+  } else if (kind === MATCHUP_STAR) {
+    for (let d = -(MATCHUP_SIZE - 1); d <= MATCHUP_SIZE - 1; d++) {
+      const r1 = row + d;
+      const c1 = col + d;
+      const c2 = col - d;
+      if (r1 < 0 || r1 >= MATCHUP_SIZE) continue;
+      if (c1 >= 0 && c1 < MATCHUP_SIZE) add(matchupIndex(r1, c1));
+      if (c2 >= 0 && c2 < MATCHUP_SIZE) add(matchupIndex(r1, c2));
+    }
   }
   return gained;
 }
@@ -432,6 +451,7 @@ function resolveBoard(
   heads: number[],
   preferredSpecial: number | null,
   detonations: readonly number[] = [],
+  otherSwapped: number | null = null,
 ): { gain: number; steps: number; best: number; cleared: number[]; animation: MatchupAnimStep[] } {
   let gain = 0;
   let steps = 0;
@@ -449,8 +469,30 @@ function resolveBoard(
     const gone = new Set<number>();
     const created = new Map<number, number>();
 
+    // A swap that makes two lines crossing at one cell (a T or an L) turns
+    // the swapped cell into a STAR instead of a bomb or cross.
+    const starRuns = new Set<MatchupRun>();
+    if (steps === 0) {
+      for (const cell of [preferred, otherSwapped]) {
+        if (cell === null || created.size > 0) continue;
+        const through = runs.filter((run) => run.cells.includes(cell));
+        const horizontal = through.find((run) => isHorizontal(run));
+        const vertical = through.find((run) => !isHorizontal(run));
+        if (horizontal && vertical) {
+          starRuns.add(horizontal);
+          starRuns.add(vertical);
+          created.set(cell, MATCHUP_STAR);
+        }
+      }
+    }
+
     for (const run of runs) {
       gain += run.points;
+      if (starRuns.has(run)) {
+        if (run.length > best) best = run.length;
+        for (const index of run.cells) if (!created.has(index)) gone.add(index);
+        continue;
+      }
       if (run.length > best) best = run.length;
       let specialIndex = -1;
       let specialKind = -1;
@@ -461,7 +503,7 @@ function resolveBoard(
         specialIndex = lineSpecialIndex(run, preferred);
         specialKind = MATCHUP_CROSS;
       }
-      if (specialIndex >= 0) created.set(specialIndex, specialKind);
+      if (specialIndex >= 0 && !created.has(specialIndex)) created.set(specialIndex, specialKind);
       for (const index of run.cells) if (index !== specialIndex) gone.add(index);
     }
 
@@ -558,7 +600,7 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
         return isOver(next) ? { ...next, endedTick: tick } : next;
       }
       const heads = [...state.heads];
-      const resolved = resolveBoard(cells, state.queues, heads, movedIndex, specialSeeds);
+      const resolved = resolveBoard(cells, state.queues, heads, movedIndex, specialSeeds, a);
       let rng = state.rng;
       let board = cells;
       let reshuffles = state.reshuffles;
@@ -600,7 +642,7 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
 }
 
 function score(state: MatchupState): number {
-  return clampInt(Math.round(state.raw / 8), 0, 150);
+  return clampInt(Math.floor((150 * state.raw) / MATCHUP_PAR_RAW), 0, 150);
 }
 
 /** True once the hint should be shown. Derived from the sim, so it is shared. */
@@ -748,6 +790,26 @@ export function matchupDrawSymbol(
     ctx.restore();
     return;
   }
+  if (kind === MATCHUP_STAR) {
+    ctx.save();
+    ctx.fillStyle = "#F7F7F8";
+    ctx.strokeStyle = MATCHUP_GOLD;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let point = 0; point < 12; point++) {
+      const r = point % 2 === 0 ? radius : radius * 0.42;
+      const angle = (Math.PI / 6) * point - Math.PI / 2;
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r;
+      if (point === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
   if (kind === MATCHUP_CROSS) {
     ctx.save();
     ctx.fillStyle = MATCHUP_GOLD;
@@ -884,7 +946,21 @@ function drawDetonations(
     ctx.globalAlpha = 1 - progress * 0.7;
     ctx.strokeStyle = MATCHUP_GOLD;
     ctx.lineWidth = 2;
-    if (kind === MATCHUP_CROSS) {
+    if (kind === MATCHUP_STAR) {
+      // Render-only burst along both diagonals.
+      const spread = MATCHUP_CELL_PX * (0.5 + progress * MATCHUP_SIZE);
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(x - spread, y - spread);
+      ctx.lineTo(x + spread, y + spread);
+      ctx.moveTo(x + spread, y - spread);
+      ctx.lineTo(x - spread, y + spread);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(247, 247, 248, 0.5)";
+      ctx.beginPath();
+      ctx.arc(x, y, 6 + progress * MATCHUP_CELL_PX, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === MATCHUP_CROSS) {
       const spread = MATCHUP_CELL_PX * (0.5 + progress * MATCHUP_SIZE);
       ctx.fillStyle = "rgba(245, 184, 46, 0.18)";
       ctx.fillRect(MATCHUP_BOARD_X, y - 3, MATCHUP_BOARD_W, 6);

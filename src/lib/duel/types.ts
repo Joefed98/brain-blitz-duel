@@ -1696,7 +1696,7 @@ export interface SkylinePuzzleData {
 
 /** Both runs are capped at 60 seconds; the round clock adds three of slack. */
 export const BINTOSS_TIME_MS = 63_000;
-export const BULLSEYE_TIME_MS = 63_000;
+export const BULLSEYE_TIME_MS = 48_000;
 
 export interface BinTossPuzzleData {
   type: "bintoss";

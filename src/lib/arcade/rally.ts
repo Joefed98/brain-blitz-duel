@@ -21,8 +21,6 @@ import {
   type ArcadeInputEvent,
   type CanvasSize,
   type InputRange,
-  parPoints,
-  ARCADE_COMPLETION_BONUS,
 } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -61,7 +59,7 @@ export const RALLY_MIN_VY = 120;
 /** Par: thirty hits (gold hits count double). */
 export const RALLY_PAR = 30;
 export const RALLY_HIT_POINTS = 3;
-export const RALLY_GOLD_POINTS = 6;
+export const RALLY_GOLD_POINTS = 3;
 export const RALLY_POINTS_CAP = 110;
 export const RALLY_SURVIVE_BONUS = 40;
 
@@ -281,8 +279,8 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
 }
 
 function score(state: RallyState): number {
-  const earned = parPoints(state.hits + 2 * state.goldHits, RALLY_PAR);
-  return clampInt(earned + (rallySurvived(state) ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
+  // Only gold-ball hits score; the blue ball scores nothing but losing it ends the run.
+  return clampInt(RALLY_GOLD_POINTS * state.goldHits, 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -337,7 +335,7 @@ export function rallyCheckpoint(state: RallyState): RallyCheckpoint {
 
 export const RALLY_BG = "#0B0B0F";
 export const RALLY_GOLD = "#F5B82E";
-export const RALLY_BALL = "#2ED3B7";
+export const RALLY_BALL = "#4D8CFF";
 
 function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
   const scale = Math.min(size.width / RALLY_WORLD_W, size.height / RALLY_WORLD_H);
@@ -385,7 +383,7 @@ function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize
   ctx.fillText(`Rally ${state.hits}`, 14, 14);
   ctx.textAlign = "center";
   ctx.fillStyle = RALLY_GOLD;
-  ctx.fillText(`gold ${state.goldHits}`, RALLY_WORLD_W / 2, 14);
+  ctx.fillText(`gold ${state.goldHits} · ${RALLY_GOLD_POINTS * state.goldHits} pts`, RALLY_WORLD_W / 2, 14);
   ctx.fillStyle = "#F7F7F8";
   ctx.textAlign = "right";
   ctx.fillText(`${remaining.toFixed(1)}s`, RALLY_WORLD_W - 14, 14);

@@ -43,7 +43,9 @@ export const HOVER_SCROLL_MAX = 1_331;
 
 export const HOVER_PILLAR_W = 10_240;
 /** Pillar spacing in world pixels; the first pillar starts at the right edge. */
-export const HOVER_SPACING = 81_664;
+export const HOVER_SPACING = 80_896;
+/** Every course holds exactly this many gates; a clean run passes them all. */
+export const HOVER_GATE_COUNT = 45;
 export const HOVER_FIRST_X = 99_840;
 
 export const HOVER_GAP_START = 38_400;
@@ -53,8 +55,9 @@ export const HOVER_GAP_MIN = 25_600;
 export const HOVER_GAP_MARGIN = 10_240;
 export const HOVER_WORLD_BOTTOM = 143_360;
 
-export const HOVER_GATE_POINTS = 110;
-export const HOVER_SURVIVE_BONUS = 40;
+/** 2 per gate; passing all 45 scores 100 (this game's maximum). */
+export const HOVER_GATE_POINTS = 2;
+export const HOVER_ALL_GATES_SCORE = 100;
 
 /* ================================ State ================================ */
 
@@ -107,7 +110,8 @@ function buildCourse(seed: number): { pillars: HoverPillar[]; rng: number } {
   const pillars: HoverPillar[] = [];
   let rng = seed | 0;
   let x = HOVER_FIRST_X;
-  while (x <= HOVER_FIRST_X + maxTravel + HOVER_SPACING) {
+  void maxTravel;
+  while (pillars.length < HOVER_GATE_COUNT) {
     const gap = gapUnits(pillars.length);
     const half = gap >> 1;
     // Draw the centre in whole world pixels, as before the constant audit, then
@@ -239,11 +243,9 @@ export function hoverSurvived(state: HoverState): boolean {
 }
 
 function score(state: HoverState): number {
-  const total = Math.max(1, state.totalGates);
-  const gates = clampInt(state.gates, 0, total);
-  const earned = Math.round((HOVER_GATE_POINTS * gates) / total);
-  const bonus = hoverSurvived(state) ? HOVER_SURVIVE_BONUS : 0;
-  return clampInt(earned + bonus, 0, 150);
+  const gates = clampInt(state.gates, 0, HOVER_GATE_COUNT);
+  if (gates >= HOVER_GATE_COUNT) return HOVER_ALL_GATES_SCORE;
+  return clampInt(HOVER_GATE_POINTS * gates, 0, HOVER_ALL_GATES_SCORE);
 }
 
 /* ================================ Drawing ============================== */

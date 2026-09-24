@@ -50,8 +50,10 @@ export const SWERVE_COIN_R = 1_536;
 /** Rows carrying a coin, out of ten. */
 export const SWERVE_COIN_CHANCE = 7;
 
-export const SWERVE_COIN_POINTS = 110;
-export const SWERVE_SURVIVE_BONUS = 40;
+/** Every course holds exactly this many coins a clean run can collect. */
+export const SWERVE_COIN_COUNT = 75;
+/** 2 per coin, so all 75 = 150. */
+export const SWERVE_COIN_POINTS = 2;
 
 /* ================================ State ================================ */
 
@@ -174,7 +176,64 @@ function buildCourse(seed: number): { rows: SwerveRow[]; rng: number } {
     previousOpen = open;
     index += 1;
   }
+  rng = fitCoinCount(rows, rng);
   return { rows, rng };
+}
+
+/**
+ * Adjust the seeded coin placement so a clean run meets exactly
+ * SWERVE_COIN_COUNT coins: add coins (on an open lane) to the earliest
+ * coinless rows the run reaches, or remove the last reached coins, until the
+ * count matches; coins past the clean-run horizon are then cleared.
+ */
+function fitCoinCount(rows: SwerveRow[], seedRng: number): number {
+  let rng = seedRng;
+  for (let pass = 0; pass < 400; pass++) {
+    const { coins, reached } = walkCleanRun(rows);
+    if (coins === SWERVE_COIN_COUNT) {
+      for (let index = reached; index < rows.length; index++) rows[index]!.coinLane = -1;
+      return rng;
+    }
+    if (coins < SWERVE_COIN_COUNT) {
+      let added = false;
+      for (let index = 0; index < rows.length && !added; index++) {
+        const row = rows[index]!;
+        if (row.coinLane >= 0) continue;
+        const open = openLanes(row.blocked);
+        const pick = rngBelow(rng, open.length);
+        rng = pick.state;
+        row.coinLane = open[pick.value]!;
+        added = true;
+      }
+      if (!added) break;
+    } else {
+      for (let index = reached - 1; index >= 0; index--) {
+        if (rows[index]!.coinLane >= 0) {
+          rows[index]!.coinLane = -1;
+          break;
+        }
+      }
+    }
+  }
+  return rng;
+}
+
+/** A clean run's coin count and the number of rows it passes. */
+function walkCleanRun(rows: SwerveRow[]): { coins: number; reached: number } {
+  let distance = 0;
+  let coins = 0;
+  let cursor = 0;
+  for (let tick = 0; tick < SWERVE_RUN_TICKS; tick++) {
+    distance += swerveSpeed(coins);
+    while (
+      cursor < rows.length &&
+      rows[cursor]!.y0 + distance - SWERVE_ROW_H > SWERVE_CHEV_Y + SWERVE_CHEV_HALF_H
+    ) {
+      if (rows[cursor]!.coinLane >= 0) coins += 1;
+      cursor += 1;
+    }
+  }
+  return { coins, reached: cursor };
 }
 
 /**
@@ -304,11 +363,7 @@ function step(state: SwerveState, input: SwerveInput): SwerveState {
 }
 
 function score(state: SwerveState): number {
-  const total = Math.max(1, state.totalCoins);
-  const coins = clampInt(state.coins, 0, total);
-  const earned = Math.round((SWERVE_COIN_POINTS * coins) / total);
-  const bonus = swerveSurvived(state) ? SWERVE_SURVIVE_BONUS : 0;
-  return clampInt(earned + bonus, 0, 150);
+  return clampInt(SWERVE_COIN_POINTS * state.coins, 0, 150);
 }
 
 /* =========================== Integrity checks ========================== */

@@ -1050,7 +1050,7 @@ const breakerSummary: SummaryBuilder = (result) => {
   return {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
-      : `${Number(result.extra?.["destroyed"] ?? 64 - left)} / 64 bricks · ${hits} hits · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
+      : `${Number(result.extra?.["destroyed"] ?? 72 - left)} / 72 bricks · ${hits} hits · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
     detail: [`${Number(result.extra?.["losses"] ?? 0)} relaunches`],
   };
 };
@@ -1063,8 +1063,8 @@ const rallySummary: SummaryBuilder = (result) => {
   const gold = `${goldHits} gold hit${goldHits === 1 ? "" : "s"}`;
   return {
     summary: survived
-      ? `${hits} hits · ${gold} · survived`
-      : `${hits} hits · ${gold} · lost at ${ended.toFixed(1)}s`,
+      ? `${gold} (3 each) · ${hits} blue returns · survived`
+      : `${gold} (3 each) · ${hits} blue returns · lost at ${ended.toFixed(1)}s`,
     detail: [survived ? "Kept the rally alive" : "Lost the ball"],
   };
 };
