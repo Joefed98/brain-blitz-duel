@@ -330,6 +330,7 @@ export function scoreNumberHunt(
   total = 1,
 ): number {
   if (finished) {
+    if (errors > 0) return clamp(BASE_POINTS - NUMHUNT_ERROR_PENALTY * errors, 0, 90);
     const raw = BASE_POINTS + speedBonus(msRemaining) - NUMHUNT_ERROR_PENALTY * errors;
     return Math.round(clamp(raw, 0, MAX_ROUND_SCORE));
   }
@@ -769,6 +770,7 @@ export function scoreChain(
   msRemaining: number,
 ): number {
   if (completed) {
+    if (errors > 0) return clamp(BASE_POINTS - CHAIN_ERROR_PENALTY * errors, 0, 90);
     return clamp(
       BASE_POINTS + speedBonus(msRemaining, CHAIN_TIME_MS) - CHAIN_ERROR_PENALTY * errors,
       0,
