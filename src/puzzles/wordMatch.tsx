@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { pick, shuffled } from "@/lib/duel/random";
+import { scoreWordMatch } from "@/lib/duel/scoring";
 import {
   WORDMATCH_ITEMS,
   WORDMATCH_TIME_MS,
@@ -46,7 +47,7 @@ function IntroExample() {
         ))}
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Eight words. Get them all right to earn the speed bonus.
+        Eight words. All right = 100 + speed; otherwise 13 each, up to 90.
       </p>
     </div>
   );
@@ -109,7 +110,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "wordmatch") return null;
   // The answers only reach the phone once the round has ended.
   const answers = puzzle.answers;
@@ -124,6 +125,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     <div className="flex w-full flex-col gap-2">
       <p className="text-center font-mono text-3xl font-bold tabular-nums text-primary">
         {correct} / {puzzle.items.length} correct
+      </p>
+      <p className="text-center font-mono text-sm text-muted-foreground">
+        {correct === puzzle.items.length ? "100 + speed" : `${correct} × 13 (max 90)`} = {scoreWordMatch(correct, myMsRemaining ?? 0)} points
       </p>
       <div className="grid w-full grid-cols-2 gap-x-3 gap-y-1">
         {puzzle.items.map((item, index) => {

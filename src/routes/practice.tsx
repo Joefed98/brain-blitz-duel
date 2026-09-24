@@ -45,10 +45,13 @@ export const Route = createFileRoute("/practice")({
         content: "Play any single Duelz puzzle type on your own. Nothing is scored or saved.",
       },
       { property: "og:title", content: "Duelz practice — try any puzzle type" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Practise one puzzle type at a time. Nothing counts anywhere.",
       },
+      { name: "twitter:description", content: "Practise one puzzle type at a time. Nothing counts anywhere." },
       { name: "robots", content: "noindex" },
     ],
   }),

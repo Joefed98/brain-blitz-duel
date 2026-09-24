@@ -86,7 +86,7 @@ function IntroExample() {
         Stop the marker inside the gold zone. Three tries, closest average wins.
       </p>
       <Bar target={0.62} marker={0.56} />
-      <p className="text-xs text-muted-foreground">Tap once per try.</p>
+      <p className="text-center text-xs text-muted-foreground">Tap once per try. Score: 50 at 400 ms average error, up to 150 for perfect stops.</p>
     </div>
   );
 }
@@ -249,6 +249,11 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs }: PuzzleRevealProps) {
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">
           {myReactionAvgMs ?? "—"} ms
         </p>
+        {myReactionAvgMs !== undefined && myReactionAvgMs !== null && (
+          <p className="font-mono text-sm text-muted-foreground">
+            50 + {Math.max(0, Math.min(100, Math.round(100 * (1 - myReactionAvgMs / 400))))} = {50 + Math.max(0, Math.min(100, Math.round(100 * (1 - myReactionAvgMs / 400))))} points
+          </p>
+        )}
       </div>
     </>
   );

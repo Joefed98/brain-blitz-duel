@@ -1,5 +1,12 @@
 # Roadmap
 
+## Puzzle scoring balance
+
+- [x] Triple raw Wordsmith and Word Hunt points for the capped round score; retain raw in-game counters and show conversion in reveals.
+- [x] Rebalance Reaction Time and Stop Watch to 50–150 with missed attempts counted at their worst value.
+- [x] Word Match, Pipes, and all other unfinished/imperfect puzzle partial scores capped at 90; align score instructions and reveals.
+- [x] Verify focused scoring formulas and preview build diagnostics without browser tests.
+
 ## Gravity Maze, Don't Break the Chain, Intruder Detection
 
 - [x] Shared rules: `gravity.ts` (both balls tilt together, each stops on a wall, the edge or the other ball), `chain.ts` (three-step cycle, replay), `intruder.ts` (tap grading, close colour pairs)

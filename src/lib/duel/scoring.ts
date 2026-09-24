@@ -154,7 +154,7 @@ export function scoreWordLadder(
 export function scoreNumberClimb(span: number, msRemaining: number): number {
   const correct = clamp(Math.round(span), 0, 12);
   if (correct === 12) return BASE_POINTS + speedBonus(msRemaining, 20_000);
-  return Math.round((BASE_POINTS * correct) / 12);
+  return Math.min(90, Math.round((BASE_POINTS * correct) / 12));
 }
 
 /**
@@ -176,15 +176,15 @@ export function scoreTargetNumber(
   return 0;
 }
 
-/** Reaction Time only: a run is never wrong, so it always scores at least 100. */
+/** Reaction Time: 50 at 650 ms or slower, up to 150 at 50 ms. */
 export function scoreReaction(averageMs: number): number {
-  return BASE_POINTS + reactionBonus(averageMs);
+  return 50 + clamp(Math.round((650 - averageMs) / 6), 0, 100);
 }
 
 /** Colour Clash: accuracy out of 100, plus the speed bonus on a flawless run. */
 export function scoreStroop(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, STROOP_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / STROOP_ITEMS);
+  const accuracy = Math.min(correct >= STROOP_ITEMS ? BASE_POINTS : 90, Math.round((BASE_POINTS * correct) / STROOP_ITEMS));
   const bonus = correct >= STROOP_ITEMS ? speedBonus(msRemaining) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
@@ -201,7 +201,7 @@ export function scoreSymbolScan(
   const wrong = Math.max(0, Math.round(wrongSelections));
   const raw = Math.round((BASE_POINTS * found) / total) - 5 * wrong;
   const floor = found >= 1 ? 5 : 0;
-  const accuracy = clamp(Math.max(raw, floor), 0, BASE_POINTS);
+  const accuracy = clamp(Math.max(raw, floor), 0, found === total && wrong === 0 ? BASE_POINTS : 90);
   const bonus = found === total && wrong === 0 ? speedBonus(msRemaining, 45_000) : 0;
   return accuracy + bonus;
 }
@@ -225,7 +225,7 @@ export function scoreSpin(correctCount: number, msRemaining: number): number {
 /** Go / No-Go: accuracy out of 100, plus a reaction bonus on a flawless run. */
 export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): number {
   const correct = clamp(correctCount, 0, GONOGO_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / GONOGO_ITEMS);
+  const accuracy = Math.min(correct >= GONOGO_ITEMS ? BASE_POINTS : 90, Math.round((BASE_POINTS * correct) / GONOGO_ITEMS));
   const perfect = correct >= GONOGO_ITEMS && averageHitMs !== null;
   const bonus = perfect ? reactionBonus(averageHitMs!) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
@@ -249,13 +249,13 @@ export function scorePatternCompletion(correctCount: number, msRemaining: number
   );
 }
 
-/** Word Match: all eight scores 100 plus the speed bonus, else 14 a pair. */
+/** Word Match: all eight score 100 plus speed; partial pairs earn 13, capped at 90. */
 export function scoreWordMatch(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, WORDMATCH_ITEMS);
   if (correct >= WORDMATCH_ITEMS) {
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, WORDMATCH_TIME_MS));
   }
-  return Math.min(98, 14 * correct);
+  return Math.min(90, 13 * correct);
 }
 
 /** Percent Sprint: accuracy out of 100, plus the speed bonus on a flawless run. */
@@ -308,14 +308,14 @@ export function scoreCountUp(
   return away <= Math.max(1, trueCount) * 0.1 ? 15 : 0;
 }
 
-/** Stop Watch: 150 for a perfect average, down to 100 at 400 ms or worse. */
+/** Stop Watch: 150 for a perfect average, down to 50 at 400 ms or worse. */
 export function scoreStopWatch(averageDistanceMs: number): number {
   const bonus = clamp(
-    Math.round(MAX_SPEED_BONUS * (1 - averageDistanceMs / STOPWATCH_MAX_DIST_MS)),
+    Math.round(100 * (1 - averageDistanceMs / STOPWATCH_MAX_DIST_MS)),
     0,
-    MAX_SPEED_BONUS,
+    100,
   );
-  return BASE_POINTS + bonus;
+  return 50 + bonus;
 }
 
 /**
@@ -330,6 +330,7 @@ export function scoreNumberHunt(
   total = 1,
 ): number {
   if (finished) {
+    if (errors > 0) return clamp(BASE_POINTS - NUMHUNT_ERROR_PENALTY * errors, 0, 90);
     const raw = BASE_POINTS + speedBonus(msRemaining) - NUMHUNT_ERROR_PENALTY * errors;
     return Math.round(clamp(raw, 0, MAX_ROUND_SCORE));
   }
@@ -516,9 +517,9 @@ export function playerBreakdown(
   });
 }
 
-/** Word Hunt: the word points earned in the round, exactly as shown on screen. */
+/** Word rounds: raw word points stay on the play counter; each is worth three round points. */
 export function scoreWordHunt(points: number): number {
-  return clamp(Math.round(points), 0, MAX_ROUND_SCORE);
+  return clamp(3 * Math.round(points), 0, MAX_ROUND_SCORE);
 }
 
 /**
@@ -586,9 +587,10 @@ export function scoreLightsOut(
 export function scorePipes(solved: boolean, connected: number, msRemaining: number): number {
   if (solved) return BASE_POINTS + speedBonus(msRemaining, PIPES_TIME_MS);
   const joined = clamp(Math.round(connected), 0, PIPES_CELLS);
-  if (joined >= PIPES_CELLS - 1) return 95;
-  if (joined >= PIPES_CELLS - 2) return 90;
-  if (joined >= 19) return 85 - 5 * Math.floor((PIPES_CELLS - 3 - joined) / 2);
+  if (joined >= PIPES_CELLS - 1) return 90;
+  if (joined >= PIPES_CELLS - 2) return 85;
+  if (joined >= PIPES_CELLS - 4) return 80;
+  if (joined >= 19) return 80 - 5 * Math.ceil((PIPES_CELLS - 4 - joined) / 2);
   return 2 * joined;
 }
 
@@ -701,7 +703,7 @@ export function scoreTower(
  */
 export function scoreMaze(solved: boolean, progress: number, msRemaining: number): number {
   if (solved) return BASE_POINTS + speedBonus(msRemaining, MAZE_TIME_MS);
-  return clamp(Math.round(100 * clamp(progress, 0, 1)), 0, 99);
+  return clamp(Math.round(100 * clamp(progress, 0, 1)), 0, 90);
 }
 
 /**
@@ -719,7 +721,7 @@ export function scoreTubes(
     const bonus = minMoves > 0 && moves <= minMoves ? TUBES_MIN_MOVE_BONUS : 0;
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, TUBES_TIME_MS) + bonus);
   }
-  return clamp(10 * Math.max(0, Math.round(sortedTubes)), 0, 99);
+  return clamp(10 * Math.max(0, Math.round(sortedTubes)), 0, 90);
 }
 
 /** Safe Cracker: the first try scores most, the third least. */
@@ -768,6 +770,7 @@ export function scoreChain(
   msRemaining: number,
 ): number {
   if (completed) {
+    if (errors > 0) return clamp(BASE_POINTS - CHAIN_ERROR_PENALTY * errors, 0, 90);
     return clamp(
       BASE_POINTS + speedBonus(msRemaining, CHAIN_TIME_MS) - CHAIN_ERROR_PENALTY * errors,
       0,
@@ -786,7 +789,7 @@ export function scoreIntruder(correct: number, allFirstTry: boolean, msRemaining
   const base = Math.round((BASE_POINTS * clamp(correct, 0, INTRUDER_BOARDS)) / INTRUDER_BOARDS);
   const bonus =
     correct >= INTRUDER_BOARDS && allFirstTry ? speedBonus(msRemaining, INTRUDER_TIME_MS) : 0;
-  return Math.min(MAX_ROUND_SCORE, base + bonus);
+  return Math.min(allFirstTry && correct >= INTRUDER_BOARDS ? MAX_ROUND_SCORE : 90, base + bonus);
 }
 
 /** Nonogram: the whole picture scores; a part-filled grid loses five a mistake. */
@@ -872,7 +875,7 @@ export function scoreTiles(
     const bonus = minMoves > 0 && moves <= minMoves ? TILES_MIN_BONUS : 0;
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, TILES_TIME_MS) + bonus);
   }
-  return clamp(14 * clamp(Math.round(inPlace), 0, TILES_COUNT), 0, 98);
+  return clamp(14 * clamp(Math.round(inPlace), 0, TILES_COUNT), 0, 90);
 }
 
 /** Rotating Rings: lining up the spokes scores, with a bonus for the minimum. */

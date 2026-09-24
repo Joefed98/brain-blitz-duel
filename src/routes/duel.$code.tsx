@@ -88,10 +88,13 @@ export const Route = createFileRoute("/duel/$code")({
           "Up to ten players solve the same six timed puzzles at the same moment. Highest total wins.",
       },
       { property: "og:title", content: "Duelz room — six timed puzzle rounds" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Six rounds. Two to ten players. Fastest brain wins.",
       },
+      { name: "twitter:description", content: "Six rounds. Two to ten players. Fastest brain wins." },
     ],
   }),
   component: DuelScreen,
