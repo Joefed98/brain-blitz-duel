@@ -39,7 +39,10 @@ export function RoundIntro({
   const secondsLeft = Math.max(1, Math.ceil(remaining / 1000));
   const autoSeconds = Math.max(0, Math.ceil((remaining - INTRO_COUNTDOWN_MS) / 1000));
   const Example = puzzleDef(type).IntroExample;
-  const seconds = Math.round(typeTimeLimitMs(type) / 1000);
+  // Arcade phases carry 3 s of invisible slack; show the run length only.
+  const seconds = Math.round(
+    (typeTimeLimitMs(type) - (puzzleDef(type).category === "arcade" ? 3000 : 0)) / 1000,
+  );
   const twoPlayer = activeCount === 2;
 
   return (
