@@ -14,8 +14,6 @@ import {
   TICKS_PER_SECOND,
   type ArcadeGame,
   type CanvasSize,
-  parPoints,
-  ARCADE_COMPLETION_BONUS,
 } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -30,8 +28,10 @@ export const RICO_RUN_TICKS = RICO_RUN_SECONDS * TICKS_PER_SECOND;
 export const RICO_WALL_THICK = 14;
 export const RICO_SHAFT_LEFT = 55;
 export const RICO_SHAFT_RIGHT = 335;
-export const RICO_BALL_R = 12;
-export const RICO_BALL_R_FP = 3_072;
+export const RICO_BALL_R = 9;
+export const RICO_BALL_R_FP = 2_304;
+/** One ball diameter, fixed-point (18 px). */
+export const RICO_BALL_D_FP = RICO_BALL_R_FP * 2;
 
 /** A leap: 18 ticks across the shaft, climbing this far. */
 export const RICO_LEAP_TICKS = 18;
@@ -44,29 +44,32 @@ export const RICO_SLIDE_PERIOD_PX = 600;
 /** The ball starts this high, and dies if it slides back to the floor. */
 export const RICO_START_FP = 15_360;
 
-/** Spikes: 15 px tall and 12 px deep (85% of 18 x 14), never facing. */
+/** Spikes: 15 px tall and 12 px deep, never facing. */
 export const RICO_SPIKE_H = 15;
 export const RICO_SPIKE_H_FP = 3_840;
 export const RICO_SPIKE_DEPTH = 12;
 /**
- * Two spikes on one wall keep at least 2.5 ball diameters (60 px) of clear
- * wall between them, edge to edge, so there is always a landing zone. The
- * bottom-to-bottom gap is kept at 90 px, which leaves 75 px clear.
+ * Spacing, in quarter ball-diameters. On one wall the clear gap between two
+ * spikes (edge to edge) starts at 3.5 diameters and tightens by 0.25 every
+ * 20 m (800 px) of height, never below 2.0. Each gap is drawn from the seed
+ * between that minimum and 1.5 diameters more. Spikes on opposite walls keep
+ * at least 1.5 diameters (edge to edge) of height between them.
  */
-export const RICO_SPIKE_MIN_EDGE_GAP_FP = (5 * RICO_BALL_R_FP * 2) / 2;
-export const RICO_SPIKE_MIN_GAP_FP = Math.max(23_040, RICO_SPIKE_H_FP + RICO_SPIKE_MIN_EDGE_GAP_FP);
+export const RICO_GAP_START_Q = 14;
+export const RICO_GAP_MIN_Q = 8;
+export const RICO_GAP_BAND_Q = 6;
+export const RICO_GAP_STEP_PX = 800;
+export const RICO_CROSS_GAP_FP = (RICO_BALL_D_FP * 3) / 2;
 export const RICO_SPIKE_FIRST_FP = 76_800;
-export const RICO_SPIKE_COUNT = 240;
-/** Global rise between consecutive spikes: 40 px plus up to 60 px. */
-export const RICO_SPIKE_RISE_FP = 10_240;
-export const RICO_SPIKE_JITTER_FP = 15_360;
+/** Spikes are laid out beyond the highest climb possible in the run. */
+export const RICO_SPIKE_TOP_FP =
+  (RICO_RUN_TICKS / RICO_LEAP_TICKS) * RICO_LEAP_CLIMB_FP + RICO_START_FP + 51_200;
+/** Reachability margin: a landing zone must be at least this deep. */
+const RICO_REACH_MARGIN_FP = 512;
+const RICO_MAX_ROLLS = 64;
 
-/** One point per 40 px climbed. */
+/** Score: one point per whole metre (40 px) climbed, capped at 150. */
 export const RICO_PX_PER_POINT = 40;
-/** Par: 40 m climbed (40 px = 1 m). */
-export const RICO_PAR_PX = 1600;
-export const RICO_POINTS_CAP = 110;
-export const RICO_SURVIVE_BONUS = 40;
 
 /** The slide speed once the ball has climbed this many whole pixels. */
 export function ricoSlide(climbedPx: number): number {
@@ -108,27 +111,103 @@ export interface RicoState {
   endedTick: number;
 }
 
+/** Minimum clear gap on one wall at this height, fixed-point. */
+export function ricoMinGapFp(yFp: number): number {
+  const steps = Math.trunc(Math.max(0, yFp) / 256 / RICO_GAP_STEP_PX);
+  const quarters = Math.max(RICO_GAP_MIN_Q, RICO_GAP_START_Q - steps);
+  return (RICO_BALL_D_FP * quarters) / 4;
+}
+
+function rollSpikes(rngIn: number): { rng: number; spikes: RicoSpike[] } {
+  let rng = rngIn;
+  const walls: RicoSpike[][] = [[], []];
+  for (let wall = 0; wall < 2; wall++) {
+    const offset = rngBelow(rng, RICO_BALL_D_FP * 4);
+    rng = offset.state;
+    let y = RICO_SPIKE_FIRST_FP + (wall === 1 ? RICO_CROSS_GAP_FP + RICO_SPIKE_H_FP : 0) + offset.value;
+    const other = walls[0]!;
+    let cursor = 0;
+    while (y < RICO_SPIKE_TOP_FP) {
+      // Push clear of the other wall's spikes (edge to edge).
+      if (wall === 1) {
+        let moved = true;
+        while (moved) {
+          moved = false;
+          while (cursor < other.length && other[cursor]!.y + RICO_SPIKE_H_FP + RICO_CROSS_GAP_FP <= y) cursor++;
+          const near = other[cursor];
+          if (near && near.y < y + RICO_SPIKE_H_FP + RICO_CROSS_GAP_FP) {
+            y = near.y + RICO_SPIKE_H_FP + RICO_CROSS_GAP_FP;
+            moved = true;
+          }
+        }
+      }
+      walls[wall]!.push({ wall, y });
+      const band = rngBelow(rng, (RICO_BALL_D_FP * RICO_GAP_BAND_Q) / 4 + 1);
+      rng = band.state;
+      y += RICO_SPIKE_H_FP + ricoMinGapFp(y) + band.value;
+    }
+  }
+  const spikes = [...walls[0]!, ...walls[1]!].sort((a, b) => a.y - b.y || a.wall - b.wall);
+  return { rng, spikes };
+}
+
+/**
+ * Search: can the ball keep climbing to the top of the laid-out shaft without
+ * ever resting on or landing on a spike? Clinging zones are the stretches of
+ * wall clear of every spike; from a zone the ball can slide to any lower point
+ * in it and leap exactly one climb up to the other wall.
+ */
+export function ricoShaftReachable(spikes: RicoSpike[]): boolean {
+  const zones: { low: number; high: number }[][] = [[], []];
+  for (let wall = 0; wall < 2; wall++) {
+    let low = 0;
+    for (const spike of spikes) {
+      if (spike.wall !== wall) continue;
+      const high = spike.y - RICO_BALL_R_FP - 1;
+      if (high > low) zones[wall]!.push({ low, high });
+      low = spike.y + RICO_SPIKE_H_FP + RICO_BALL_R_FP + 1;
+    }
+    zones[wall]!.push({ low, high: RICO_SPIKE_TOP_FP * 2 });
+  }
+  const best: number[][] = [zones[0]!.map(() => -1), zones[1]!.map(() => -1)];
+  const start = zones[0]!.findIndex((z) => z.low <= RICO_START_FP && RICO_START_FP <= z.high);
+  if (start < 0) return false;
+  best[0]![start] = RICO_START_FP;
+  const work: [number, number][] = [[0, start]];
+  let top = RICO_START_FP;
+  while (work.length > 0) {
+    const [wall, index] = work.pop()!;
+    const zone = zones[wall]![index]!;
+    const reached = best[wall]![index]!;
+    const from = Math.max(zone.low, 1) + RICO_LEAP_CLIMB_FP;
+    const to = reached + RICO_LEAP_CLIMB_FP;
+    const otherWall = 1 - wall;
+    const others = zones[otherWall]!;
+    for (let j = 0; j < others.length; j++) {
+      const target = others[j]!;
+      if (target.low > to) break;
+      if (target.high < from) continue;
+      const lo = Math.max(target.low, from);
+      const hi = Math.min(target.high, to);
+      if (hi - lo < RICO_REACH_MARGIN_FP) continue;
+      if (hi > best[otherWall]![j]!) {
+        best[otherWall]![j] = hi;
+        if (hi > top) top = hi;
+        work.push([otherWall, j]);
+      }
+    }
+  }
+  return top >= RICO_SPIKE_TOP_FP - 25_600;
+}
+
 function buildSpikes(seed: number): { rng: number; spikes: RicoSpike[] } {
   let rng = seed | 0;
-  const spikes: RicoSpike[] = [];
-  const lastOnWall = [-RICO_SPIKE_MIN_GAP_FP * 4, -RICO_SPIKE_MIN_GAP_FP * 4];
-  let y = RICO_SPIKE_FIRST_FP;
-  for (let index = 0; index < RICO_SPIKE_COUNT; index++) {
-    const pick = rngBelow(rng, 2);
-    rng = pick.state;
-    let wall = pick.value;
-    // Keep 90 px between spikes on the same wall; the other wall takes it
-    // instead, and if neither can, the height moves on.
-    if (y - (lastOnWall[wall] ?? 0) < RICO_SPIKE_MIN_GAP_FP) wall = 1 - wall;
-    if (y - (lastOnWall[wall] ?? 0) >= RICO_SPIKE_MIN_GAP_FP) {
-      spikes.push({ wall, y });
-      lastOnWall[wall] = y;
-    }
-    const jump = rngBelow(rng, RICO_SPIKE_JITTER_FP);
-    rng = jump.state;
-    y += RICO_SPIKE_RISE_FP + jump.value;
+  let built = rollSpikes(rng);
+  for (let roll = 1; roll < RICO_MAX_ROLLS && !ricoShaftReachable(built.spikes); roll++) {
+    rng = built.rng;
+    built = rollSpikes(rng);
   }
-  return { rng, spikes };
+  return built;
 }
 
 function init(seed: number): RicoState {
@@ -213,8 +292,7 @@ function step(state: RicoState, tapped: boolean): RicoState {
 }
 
 function score(state: RicoState): number {
-  const earned = parPoints(ricoHeightPx(state), RICO_PAR_PX);
-  return clampInt(earned + (ricoSurvived(state) ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
+  return clampInt(Math.trunc(ricoHeightPx(state) / RICO_PX_PER_POINT), 0, 150);
 }
 
 /* =========================== Integrity checks ========================== */
