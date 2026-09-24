@@ -1022,14 +1022,14 @@ const dualSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived
-      ? `${passed} passed · survived`
-      : `${passed} passed · crashed at ${ended.toFixed(1)}s (${side === 0 ? "left" : "right"})`,
-    detail: [survived ? "Both runners lasted the minute" : "One runner hit a block"],
+      ? `Survived 60.0s · ${passed} passed`
+      : `Survived ${ended.toFixed(1)}s · ${passed} passed (${side === 0 ? "left" : "right"} crashed)`,
+    detail: [survived ? "Both runners lasted the minute" : "One runner hit a spike"],
   };
 };
 
 const ricoSummary: SummaryBuilder = (result) => {
-  const metres = Math.round(Number(result.extra?.["heightPx"] ?? 0) / 40);
+  const metres = Math.trunc(Number(result.extra?.["heightPx"] ?? 0) / 40);
   const survived = result.extra?.["survived"] === true;
   const spiked = result.extra?.["spiked"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
@@ -1075,7 +1075,7 @@ const steadySummary: SummaryBuilder = (result) => {
   const clean = result.extra?.["clean"] === true;
   return {
     summary: `${metres} m · ${touches} touch${touches === 1 ? "" : "es"}`,
-    detail: [clean ? "Clean minute" : `${touches} edge touch${touches === 1 ? "" : "es"}`],
+    detail: [clean ? "No touches" : `${touches} touch${touches === 1 ? "" : "es"} (−5 each)`],
   };
 };
 
@@ -1095,7 +1095,9 @@ const bubbleSummary: SummaryBuilder = (result) => {
   const cleared = result.extra?.["cleared"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
-    summary: cleared ? `Cleared at ${ended.toFixed(1)}s` : `Popped ${popped} · dropped ${dropped}`,
+    summary: cleared
+      ? `Cleared at ${ended.toFixed(1)}s`
+      : `${Number(result.extra?.["bubblesLeft"] ?? 0)} bubbles left · popped ${popped} · dropped ${dropped}`,
     detail: [`${Number(result.extra?.["shots"] ?? 0)} shots`],
   };
 };

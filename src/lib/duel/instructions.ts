@@ -519,7 +519,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "You grow with every pellet", detail: "and you speed up." },
       { action: "Everyone gets", detail: "the same food in the same order." },
     ],
-    score: "28 pellets = 110, fewer in proportion, +40 for surviving the minute.",
+    score: "5 points per pellet eaten, up to 150.",
   },
   cross: {
     goal: "Get across the traffic as many times as you can.",
@@ -531,7 +531,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         detail: "you get a second on the kerb before the next one.",
       },
     ],
-    score: "6 crossings = 110, each lane counts a ninth, +40 for surviving the minute.",
+    score: "4 per lane advanced, +4 per crossing completed (a full crossing = 40), up to 150.",
   },
   dual: {
     goal: "Keep both runners alive.",
@@ -543,7 +543,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "Same course", detail: "for everyone." },
     ],
-    score: "50 obstacles = 110, fewer in proportion, +40 for surviving the minute.",
+    score: "The longer both survive, the more you score: all 60 seconds = 150, 45 s ≈ 84, 30 s ≈ 37.",
   },
   breaker: {
     goal: "Clear the wall.",
@@ -572,32 +572,32 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         action: "Slide the ball left and right",
         detail: "to stay inside the track. It gets narrower and faster.",
       },
-      { action: "A touch costs points", detail: "but never ends the run." },
+      { action: "Touching an edge", detail: "costs a touch every half second until you're back inside." },
+      { action: "Keep your finger down", detail: "— lifting it for more than half a second costs touches too." },
     ],
-    score: "100 m = 110, −4 per touch, +40 for a clean minute (3 touches or fewer).",
+    score: "150 − 5 per touch.",
   },
   slice: {
     goal: "Slice the flying discs. Don't hit the bombs.",
     how: [
       { action: "Swipe through the discs", detail: "to slice them in half." },
-      { action: "Slice several with one swipe", detail: "for a bonus." },
       { action: "Never touch the dark bombs", detail: "— each one costs ten points." },
       {
         action: "Two rainbow discs",
         detail: "— the star opens five bomb-free seconds, the bar hangs a row of six.",
       },
     ],
-    score: "Every disc sliced = 110, −10 per bomb, +40 for a minute with no bombs.",
+    score: "150 × discs sliced ÷ discs available (a missed rainbow costs its whole batch), −10 per bomb.",
   },
   bubble: {
     goal: "Pop the bubbles by matching three of a colour.",
     how: [
       { action: "Drag to aim, release to shoot", detail: "— bounce off the walls." },
       { action: "Three of a colour pop", detail: "when they touch." },
-      { action: "Bubbles left hanging", detail: "fall and count double." },
+      { action: "Bubbles left hanging", detail: "fall off the field." },
       { action: "Ninety seconds", detail: "on the same field for everyone." },
     ],
-    score: "90 = 110 (pops count 1, drops 2), +40 for clearing the field.",
+    score: "Clear the field = 150; otherwise 150 − 3 per bubble left.",
   },
   beat: {
     goal: "Tap the notes in time.",
@@ -606,7 +606,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Closer is better", detail: "— perfect, good, or just OK." },
       { action: "A tap with no note", detail: "costs nothing." },
     ],
-    score: "Accuracy for points, +40 for a run with no misses.",
+    score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150.",
   },
   ricochet: {
     goal: "Climb the shaft by leaping wall to wall.",
@@ -615,6 +615,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Don't land on the spikes", detail: "or the run ends." },
       { action: "Don't slide", detail: "all the way back to the bottom." },
     ],
-    score: "40 m = 110, lower in proportion, +40 for surviving the minute.",
+    score: "1 point per metre climbed, up to 150.",
   },
 };
