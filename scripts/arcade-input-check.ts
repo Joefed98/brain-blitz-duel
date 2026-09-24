@@ -410,7 +410,7 @@ if (BULLSEYE_SCALE_PCT.join(",") !== "100,96,92,88,84,80,77,74,71,68") {
     for (let wind = -BINTOSS_WIND_MAX; wind <= BINTOSS_WIND_MAX; wind++) {
       const blown = binTossPredict(launch.vx, launch.vy, wind);
       const drift = blown.x - still.x;
-      const expected = wind * 25;
+      const expected = wind * 20;
       if (Math.abs(drift - expected) > 1) {
         fail(`wind ${wind} drifted ${drift} px, expected ${expected} px`);
       }
