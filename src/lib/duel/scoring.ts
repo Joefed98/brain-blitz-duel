@@ -154,7 +154,7 @@ export function scoreWordLadder(
 export function scoreNumberClimb(span: number, msRemaining: number): number {
   const correct = clamp(Math.round(span), 0, 12);
   if (correct === 12) return BASE_POINTS + speedBonus(msRemaining, 20_000);
-  return Math.round((BASE_POINTS * correct) / 12);
+  return Math.min(90, Math.round((BASE_POINTS * correct) / 12));
 }
 
 /**
@@ -184,7 +184,7 @@ export function scoreReaction(averageMs: number): number {
 /** Colour Clash: accuracy out of 100, plus the speed bonus on a flawless run. */
 export function scoreStroop(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, STROOP_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / STROOP_ITEMS);
+  const accuracy = Math.min(correct >= STROOP_ITEMS ? BASE_POINTS : 90, Math.round((BASE_POINTS * correct) / STROOP_ITEMS));
   const bonus = correct >= STROOP_ITEMS ? speedBonus(msRemaining) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
@@ -225,7 +225,7 @@ export function scoreSpin(correctCount: number, msRemaining: number): number {
 /** Go / No-Go: accuracy out of 100, plus a reaction bonus on a flawless run. */
 export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): number {
   const correct = clamp(correctCount, 0, GONOGO_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / GONOGO_ITEMS);
+  const accuracy = Math.min(correct >= GONOGO_ITEMS ? BASE_POINTS : 90, Math.round((BASE_POINTS * correct) / GONOGO_ITEMS));
   const perfect = correct >= GONOGO_ITEMS && averageHitMs !== null;
   const bonus = perfect ? reactionBonus(averageHitMs!) : 0;
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
