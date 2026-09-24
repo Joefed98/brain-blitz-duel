@@ -38,20 +38,20 @@ export const BRK_RUN_SECONDS = 60;
 export const BRK_RUN_TICKS = BRK_RUN_SECONDS * TICKS_PER_SECOND;
 
 export const BRK_COLS = 8;
-export const BRK_ROWS = 8;
+export const BRK_ROWS = 9;
 export const BRK_BRICKS = BRK_COLS * BRK_ROWS;
 export const BRK_BRICK_W = 44;
 export const BRK_BRICK_H = 20;
 export const BRK_ROW_PITCH = 24;
 export const BRK_WALL_X = 19;
 export const BRK_WALL_Y = 70;
-/** Eight of the sixty-four bricks take two hits. */
+/** Eight of the seventy-two bricks take two hits. */
 export const BRK_SOLID = 8;
 /** Hits needed to clear the whole wall. */
 export const BRK_TOTAL_HITS = BRK_BRICKS + BRK_SOLID;
 
-/** Three gold bricks, never in the bottom row, each carrying one power-up. */
-export const BRK_GOLD_BRICKS = 3;
+/** Four gold bricks (two MULTI, one SPAM, one LASER), never in the bottom row. */
+export const BRK_GOLD_BRICKS = 4;
 export const BRK_POWER_MULTI = 0;
 export const BRK_POWER_SPAM = 1;
 export const BRK_POWER_LASER = 2;
@@ -82,9 +82,9 @@ export const BRK_CAPSULE_H = 10;
 /** Spam fires five balls; laser fires once. */
 export const BRK_SPAM_SHOTS = 5;
 
-/** The power-up button, on the right-hand middle edge. */
+/** The power-up button, on the right edge just above the paddle drag zone. */
 export const BRK_BTN_X = 336;
-export const BRK_BTN_Y = 298;
+export const BRK_BTN_Y = 392;
 export const BRK_BTN_W = 44;
 export const BRK_BTN_H = 56;
 
@@ -92,8 +92,11 @@ export const BRK_BTN_H = 56;
 export const BRK_RELAUNCH_TICKS = 3 * TICKS_PER_SECOND;
 
 export const BRK_HIT_POINTS = 2;
-/** Par: every brick destroyed. */
-export const BRK_PAR = 64;
+/** Paddle drags only start in the bottom quarter of the play area. */
+export const BRK_DRAG_ZONE_TOP = Math.round((BRK_WORLD_H * 3) / 4);
+/** Every brick destroyed; clearing all 72 scores 150. */
+export const BRK_PAR = BRK_BRICKS;
+export const BRK_ALL_CLEAR_SCORE = 150;
 export function brkDestroyed(state: { bricks: number[] }): number {
   return state.bricks.reduce((n, left) => (left <= 0 ? n + 1 : n), 0);
 }
@@ -210,8 +213,8 @@ function init(seed: number): BrkState {
   const bricks = new Array<number>(BRK_BRICKS).fill(1);
   const gold = new Array<number>(BRK_BRICKS).fill(0);
 
-  // The three power-ups, in a seeded order.
-  const powers = [BRK_POWER_MULTI, BRK_POWER_SPAM, BRK_POWER_LASER];
+  // The four power-ups, in a seeded order.
+  const powers = [BRK_POWER_MULTI, BRK_POWER_MULTI, BRK_POWER_SPAM, BRK_POWER_LASER];
   for (let index = powers.length - 1; index > 0; index--) {
     const draw = rngBelow(rng, index + 1);
     rng = draw.state;
@@ -491,8 +494,8 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
 
 function score(state: BrkState): number {
   const destroyed = state.bricks.reduce((n, left) => (left <= 0 ? n + 1 : n), 0);
-  const earned = parPoints(destroyed, BRK_PAR);
-  return clampInt(earned + (state.cleared ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
+  if (destroyed >= BRK_BRICKS) return BRK_ALL_CLEAR_SCORE;
+  return clampInt(BRK_HIT_POINTS * destroyed, 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -570,6 +573,22 @@ export function brkButtonHit(xPx: number, yPx: number): boolean {
   );
 }
 
+/** A black five-point star, marking a gold (power-up) brick. */
+function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number): void {
+  ctx.fillStyle = "#0B0B0F";
+  ctx.beginPath();
+  for (let point = 0; point < 10; point++) {
+    const radius = point % 2 === 0 ? r : r * 0.45;
+    const angle = -Math.PI / 2 + (point * Math.PI) / 5;
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    if (point === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
 function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize): void {
   const scale = Math.min(size.width / BRK_WORLD_W, size.height / BRK_WORLD_H);
   const offsetX = (size.width - BRK_WORLD_W * scale) / 2;
@@ -605,6 +624,14 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
         BRK_WALL_Y + row * BRK_ROW_PITCH + 1.5,
         BRK_BRICK_W - 5,
         BRK_BRICK_H - 3,
+      );
+    }
+    if (isGold) {
+      drawStar(
+        ctx,
+        BRK_WALL_X + col * BRK_BRICK_W + BRK_BRICK_W / 2,
+        BRK_WALL_Y + row * BRK_ROW_PITCH + BRK_BRICK_H / 2,
+        7,
       );
     }
   });
