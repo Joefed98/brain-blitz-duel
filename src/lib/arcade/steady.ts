@@ -19,8 +19,6 @@ import {
   type ArcadeInputEvent,
   type CanvasSize,
   type InputRange,
-  parPoints,
-  ARCADE_COMPLETION_BONUS,
 } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -43,8 +41,8 @@ export const STD_SCROLL_STEP_FP = 38;
 export const STD_SCROLL_STEP_TICKS = 5 * TICKS_PER_SECOND;
 export const STD_SCROLL_CAP_FP = 768;
 
-/** The ball sits on this line and chases the finger at 4 px a tick. */
-export const STD_BALL_Y = 540;
+/** The ball sits in the vertical middle of the play area and chases the finger at 4 px a tick. */
+export const STD_BALL_Y = Math.trunc((STD_HUD_H + STD_WORLD_H) / 2);
 export const STD_DOT_R = 9;
 export const STD_DOT_LAG_FP = 1_024;
 
@@ -53,20 +51,21 @@ export const STD_SAMPLE_PX = 4;
 export const STD_SAMPLES = 2_400;
 export const STD_EDGE_MARGIN = 46;
 
-/** A touch is only counted again after this many ticks. */
-export const STD_TOUCH_COOLDOWN = 12;
+/**
+ * Touches: while any part of the ball overlaps an edge, one on contact and one
+ * every 30 ticks until it is back inside; with no finger down for more than 30
+ * ticks, one every 30 ticks until the finger returns.
+ */
+export const STD_TOUCH_EVERY = 30;
 
 export const STD_PX_PER_POINT = 30;
-/** Par: 100 m (40 px = 1 m). */
-export const STD_PAR_PX = 4000;
 export const STD_PX_PER_METRE = 40;
-export const STD_POINTS_CAP = 110;
-export const STD_TOUCH_PENALTY = 4;
-export const STD_CLEAN_TOUCHES = 3;
-export const STD_CLEAN_BONUS = 40;
+/** Score: 150 − 5 per touch, min 0. */
+export const STD_TOUCH_PENALTY = 5;
 
+/** Drag: a = x, b = 1 finger down / 0 finger lifted. */
 export const STD_INPUT_RANGES: readonly InputRange[] = [
-  inputRange(ARCADE_INPUT_DRAG, [0, STD_WORLD_W]),
+  inputRange(ARCADE_INPUT_DRAG, [0, STD_WORLD_W], [0, 1]),
 ];
 
 export function stdTrackWidth(tick: number): number {
@@ -93,9 +92,12 @@ export interface StdState {
   /** The ball's x, in 1/256 px; its y is fixed. */
   dx: number;
   touches: number;
-  /** Ticks since the last counted touch, and whether it is still on the edge. */
-  sinceTouch: number;
+  /** Ticks the ball has been overlapping an edge (0 when inside). */
+  edgeTicks: number;
   onEdge: boolean;
+  /** Whether a finger is down, and ticks since it lifted. */
+  down: boolean;
+  liftTicks: number;
   flash: number;
   endedTick: number;
 }
@@ -154,8 +156,10 @@ function init(seed: number): StdState {
     aimX: Math.round(px(startX)),
     dx: startX,
     touches: 0,
-    sinceTouch: STD_TOUCH_COOLDOWN,
+    edgeTicks: 0,
     onEdge: false,
+    down: false,
+    liftTicks: 0,
     flash: 0,
     endedTick: 0,
   };
@@ -186,13 +190,18 @@ function step(state: StdState, input: ArcadeInputEvent | null): StdState {
   const tick = state.tick + 1;
 
   let aimX = state.aimX;
-  if (input && input.k === ARCADE_INPUT_DRAG) aimX = clampInt(input.a, 0, STD_WORLD_W);
+  let down = state.down;
+  if (input && input.k === ARCADE_INPUT_DRAG) {
+    aimX = clampInt(input.a, 0, STD_WORLD_W);
+    down = clampInt(input.b, 0, 1) === 1;
+  }
 
-  // The ball chases the finger, four pixels a tick at most.
+  // The ball only moves while dragged, chasing the finger four pixels a tick at most.
   const target = aimX * 256;
   const gap = target - state.dx;
-  const dx =
-    gap > STD_DOT_LAG_FP
+  const dx = !down
+    ? state.dx
+    : gap > STD_DOT_LAG_FP
       ? state.dx + STD_DOT_LAG_FP
       : gap < -STD_DOT_LAG_FP
         ? state.dx - STD_DOT_LAG_FP
@@ -204,25 +213,31 @@ function step(state: StdState, input: ArcadeInputEvent | null): StdState {
     aimX,
     dx,
     travelled: state.travelled + stdScrollFp(tick),
-    sinceTouch: state.sinceTouch + 1,
+    down,
+    liftTicks: down ? 0 : state.liftTicks + 1,
     flash: Math.max(0, state.flash - 1),
   };
+  let touches = state.touches;
 
   const halfWidth = Math.trunc((stdTrackWidth(tick) * 256) / 2);
   const centre = stdCentreAt(next, STD_BALL_Y);
   const offset = next.dx - centre;
   const limit = halfWidth - STD_DOT_R * 256;
   if (Math.abs(offset) > limit) {
-    // Nudge the ball back inside and count a touch, once per contact.
-    next.dx = centre + (offset > 0 ? limit : -limit);
-    if (!state.onEdge && next.sinceTouch >= STD_TOUCH_COOLDOWN) {
-      next.touches = state.touches + 1;
-      next.sinceTouch = 0;
-      next.flash = 10;
-    }
+    // No nudge: the ball stays where it is and keeps costing touches.
+    next.edgeTicks = state.edgeTicks + 1;
     next.onEdge = true;
+    if ((next.edgeTicks - 1) % STD_TOUCH_EVERY === 0) touches += 1;
   } else {
+    next.edgeTicks = 0;
     next.onEdge = false;
+  }
+  if (next.liftTicks > STD_TOUCH_EVERY && (next.liftTicks - 1) % STD_TOUCH_EVERY === 0) {
+    touches += 1;
+  }
+  if (touches !== state.touches) {
+    next.touches = touches;
+    next.flash = 10;
   }
 
   if (tick >= STD_RUN_TICKS) next.endedTick = tick;
@@ -230,13 +245,11 @@ function step(state: StdState, input: ArcadeInputEvent | null): StdState {
 }
 
 export function stdClean(state: StdState): boolean {
-  return state.tick >= STD_RUN_TICKS && state.touches <= STD_CLEAN_TOUCHES;
+  return state.tick >= STD_RUN_TICKS && state.touches === 0;
 }
 
 function score(state: StdState): number {
-  const distance = parPoints(stdDistancePx(state), STD_PAR_PX);
-  const afterTouches = Math.max(0, distance - STD_TOUCH_PENALTY * state.touches);
-  return clampInt(afterTouches + (stdClean(state) ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
+  return clampInt(150 - STD_TOUCH_PENALTY * state.touches, 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -265,7 +278,7 @@ export function stdCheckpointState(state: StdState): StdCheckpointState {
     touches: state.touches,
     width: stdTrackWidth(state.tick),
     centre: stdCentreAt(state, STD_BALL_Y),
-    onEdge: state.onEdge ? 1 : 0,
+    onEdge: (state.onEdge ? 1 : 0) + (state.down ? 2 : 0),
   };
 }
 
