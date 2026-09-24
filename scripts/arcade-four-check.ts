@@ -43,7 +43,10 @@ import {
   ricoGame,
   RICO_CHECKPOINT_INTERVAL,
   RICO_RUN_TICKS,
-  RICO_SPIKE_MIN_GAP_FP,
+  RICO_SPIKE_H_FP as RICO_SPIKE_H_FP_4,
+  RICO_CROSS_GAP_FP,
+  ricoMinGapFp,
+  ricoShaftReachable,
   type RicoCheckpoint,
 } from "../src/lib/arcade/ricochet.ts";
 import { encodeSnakeRun, replaySnakeRun } from "../src/lib/duel/snake.ts";
@@ -296,15 +299,26 @@ for (let sample = 0; sample < SAMPLES; sample++) {
     if (!Number.isInteger(spike.y) || !Number.isInteger(spike.wall)) {
       fail(`ricochet ${seed}: non-integer spike`);
     }
-    if (spike.y - (lastOnWall[spike.wall] ?? 0) < RICO_SPIKE_MIN_GAP_FP) {
+    const previous = lastOnWall[spike.wall] ?? 0;
+    if (
+      Number.isFinite(previous) &&
+      spike.y - (previous + RICO_SPIKE_H_FP_4) < ricoMinGapFp(previous)
+    ) {
       fail(`ricochet ${seed}: spikes too close on one wall`);
     }
-    if (state.spikes.some((other) => other !== spike && other.y === spike.y)) {
+    if (
+      state.spikes.some(
+        (other) =>
+          other.wall !== spike.wall &&
+          Math.abs(other.y - spike.y) < RICO_SPIKE_H_FP_4 + RICO_CROSS_GAP_FP,
+      )
+    ) {
       fail(`ricochet ${seed}: spikes face each other`);
     }
     lastOnWall[spike.wall] = spike.y;
   }
 
+  if (!ricoShaftReachable(state.spikes)) fail(`ricochet ${seed}: shaft not climbable`);
   const checkpoints: RicoCheckpoint[] = [];
   let ticks = 0;
   for (let tick = 1; tick <= RICO_RUN_TICKS; tick++) {

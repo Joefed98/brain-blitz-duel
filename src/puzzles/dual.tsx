@@ -235,8 +235,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         <circle cx="110" cy="14" r="7" fill={DUAL_RUNNER} />
       </svg>
       <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
-        {result.passed} passed ·{" "}
-        {result.survived ? "survived" : `crashed at ${result.endedSeconds.toFixed(1)}s (${side})`}
+        {result.survived
+          ? "Survived 60.0s"
+          : `Survived ${result.endedSeconds.toFixed(1)}s (${side} crashed)`}{" "}
+        · {result.passed} passed
       </p>
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {taps} jump{taps === 1 ? "" : "s"} · same course for everyone

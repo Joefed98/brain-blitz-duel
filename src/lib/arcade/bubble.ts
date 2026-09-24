@@ -17,8 +17,6 @@ import {
   type ArcadeInputEvent,
   type CanvasSize,
   type InputRange,
-  parPoints,
-  ARCADE_COMPLETION_BONUS,
 } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -60,11 +58,8 @@ export const BUB_DESCEND_EVERY = 8;
 export const BUB_MIN_GROUP = 3;
 
 /** Par: popped + 2 x dropped = 90. */
-export const BUB_PAR = 90;
-export const BUB_POP_POINTS = 1;
-export const BUB_DROP_POINTS = 2;
-export const BUB_POINTS_CAP = 110;
-export const BUB_CLEAR_BONUS = 40;
+/** Cleared = 150; otherwise 150 − 3 per bubble left on the field. */
+export const BUB_REMAINING_PENALTY = 3;
 
 export const BUB_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BUB_INPUT_SHOT, [-BUB_V_MAX, BUB_V_MAX], [-BUB_V_MAX, 0]),
@@ -388,8 +383,15 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
 }
 
 function score(state: BubState): number {
-  const earned = parPoints(state.popped + 2 * state.dropped, BUB_PAR);
-  return clampInt(earned + (state.cleared ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
+  if (state.cleared) return 150;
+  return clampInt(150 - BUB_REMAINING_PENALTY * bubRemaining(state), 0, 150);
+}
+
+/** Bubbles still on the field. */
+export function bubRemaining(state: BubState): number {
+  let count = 0;
+  for (const cell of state.grid) if (cell !== 0) count += 1;
+  return count;
 }
 
 /* ============================= Checkpoints ============================= */

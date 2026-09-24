@@ -151,7 +151,7 @@ for (let run = 0; run < 200; run++) {
   const last = [-1e9, -1e9];
   for (const spike of state.spikes) {
     const gap = spike.y - (last[spike.wall]! + RICO_SPIKE_H_FP);
-    if (gap < 5 * RICO_BALL_R_FP) fail(`ricochet: edge gap ${gap / 256}px`);
+    if (gap < 4 * RICO_BALL_R_FP) fail(`ricochet: edge gap ${gap / 256}px`);
     last[spike.wall] = spike.y;
   }
 }

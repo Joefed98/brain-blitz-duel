@@ -70,8 +70,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const state = useRef<StdState>(steadyGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof stdCheckpoint>[]>([]);
-  const wanted = useRef<number | null>(null);
-  const sent = useRef<number>(state.current.aimX);
+  const wanted = useRef<{ x: number; down: boolean } | null>(null);
+  const sent = useRef<{ x: number; down: boolean }>({ x: state.current.aimX, down: false });
   const submitted = useRef(false);
   const [, forceRedraw] = useState(0);
   useNoTouchScroll(wrap);
@@ -102,7 +102,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     events.current = [];
     checkpoints.current = [];
     wanted.current = null;
-    sent.current = state.current.aimX;
+    sent.current = { x: state.current.aimX, down: false };
     submitted.current = false;
     forceRedraw((n) => n + 1);
   }, [seed]);
@@ -135,12 +135,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // One drag event a tick, and only when the position has changed.
           const target = wanted.current;
           let applied: ArcadeInputEvent | null = null;
-          if (target !== null && target !== sent.current) {
+          if (
+            target !== null &&
+            (target.x !== sent.current.x || target.down !== sent.current.down)
+          ) {
             applied = {
               t: state.current.tick + 1,
               k: ARCADE_INPUT_DRAG,
-              a: target,
-              b: 0,
+              a: target.x,
+              b: target.down ? 1 : 0,
               c: 0,
               d: 0,
             };
@@ -208,7 +211,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const track = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (locked || submitted.current || steadyGame.isOver(state.current)) return;
-    wanted.current = worldX(event.clientX);
+    wanted.current = { x: worldX(event.clientX), down: true };
+  };
+  const lift = () => {
+    if (wanted.current) wanted.current = { ...wanted.current, down: false };
   };
 
   return (
@@ -227,8 +233,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           event.currentTarget.setPointerCapture(event.pointerId);
           track(event);
         }}
-        onPointerMove={track}
+        onPointerMove={(event) => {
+          if (event.buttons !== 0 || event.pointerType !== "mouse") track(event);
+        }}
+        onPointerCancel={lift}
         onPointerUp={(event) => {
+          lift();
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
@@ -255,7 +265,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </p>
       <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         {drags} moves · same track for everyone
-        {result.clean ? " · clean minute" : ""}
+        {result.clean ? " · no touches" : ""}
       </p>
     </div>
   );

@@ -50,8 +50,11 @@ export const BEAT_PERFECT_TENTHS = 10;
 export const BEAT_GOOD_TENTHS = 7;
 export const BEAT_OK_TENTHS = 4;
 
-export const BEAT_POINTS_CAP = 110;
-export const BEAT_CLEAN_BONUS = 40;
+/** Score in quarter points: perfect 1, good 0.75, OK 0.25, miss −2. */
+export const BEAT_PERFECT_Q = 4;
+export const BEAT_GOOD_Q = 3;
+export const BEAT_OK_Q = 1;
+export const BEAT_MISS_Q = -8;
 
 /** Never two notes in the same lane closer than this. */
 export const BEAT_LANE_GAP = 12;
@@ -279,15 +282,12 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
 }
 
 function score(state: BeatState): number {
-  const count = beatNoteCount(state);
-  if (count === 0) return 0;
-  // round(110 × total ÷ notes), in whole integers: totals are in tenths.
-  const earned = Math.min(
-    BEAT_POINTS_CAP,
-    Math.floor((2 * BEAT_POINTS_CAP * state.tenths + 10 * count) / (20 * count)),
-  );
-  const clean = state.misses === 0 && state.tick >= BEAT_RUN_TICKS;
-  return clampInt(earned + (clean ? BEAT_CLEAN_BONUS : 0), 0, 150);
+  const quarters =
+    BEAT_PERFECT_Q * state.perfect +
+    BEAT_GOOD_Q * state.good +
+    BEAT_OK_Q * state.ok +
+    BEAT_MISS_Q * state.misses;
+  return clampInt(Math.floor(quarters / 4), 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */
