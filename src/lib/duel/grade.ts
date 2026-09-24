@@ -217,7 +217,14 @@ export function gradeSubmission(
       break;
     }
     case "reaction": {
-      reactionAvgMs = clamp(extra.reactionAvgMs ?? REACTION_PENALTY_MS, 0, 5_000);
+      const attempts = answer.split(",").slice(0, 3).map((value) => Number.parseInt(value, 10));
+      const total = Array.from({ length: 3 }, (_, index) => {
+        const attempt = attempts[index];
+        return attempt === undefined || !Number.isFinite(attempt)
+          ? REACTION_PENALTY_MS
+          : clamp(attempt, 0, REACTION_PENALTY_MS);
+      });
+      reactionAvgMs = Math.round(total.reduce((sum, attempt) => sum + attempt, 0) / 3);
       isCorrect = true;
       score = scoreReaction(reactionAvgMs);
       storedMs = 0;
@@ -313,14 +320,14 @@ export function gradeSubmission(
       break;
     }
     case "stopwatch": {
-      const distances = answer
-        .split(",")
-        .map((v) => Number.parseInt(v, 10))
-        .filter((v) => Number.isFinite(v))
-        .map((v) => clamp(v, 0, STOPWATCH_MISS_MS));
-      reactionAvgMs = distances.length
-        ? Math.round(distances.reduce((a, b) => a + b, 0) / distances.length)
-        : STOPWATCH_MISS_MS;
+      const distances = answer.split(",").slice(0, 3).map((v) => Number.parseInt(v, 10));
+      const total = Array.from({ length: 3 }, (_, index) => {
+        const distance = distances[index];
+        return distance === undefined || !Number.isFinite(distance)
+          ? STOPWATCH_MISS_MS
+          : clamp(distance, 0, STOPWATCH_MISS_MS);
+      });
+      reactionAvgMs = Math.round(total.reduce((a, b) => a + b, 0) / 3);
       isCorrect = true;
       score = scoreStopWatch(reactionAvgMs);
       storedMs = 0;

@@ -1,5 +1,6 @@
 import { WordsmithPuzzle } from "@/components/puzzles/WordsmithPuzzle";
 import { wordsmithPoints, type WordsmithPuzzleData } from "@/lib/duel/types";
+import { scoreWordHunt } from "@/lib/duel/scoring";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -36,7 +37,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">Longer words score more. You have 60 seconds.</p>
+      <p className="text-xs text-muted-foreground">Word points × 3 = round score (max 150). You have 60 seconds.</p>
     </div>
   );
 }
@@ -67,7 +68,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
-        <span className="text-primary">{points} points</span> · {mine.length} words
+        <span className="text-primary">{points} points × 3 = {scoreWordHunt(points)}</span> · {mine.length} words
       </p>
 
       {mine.length > 0 && (

@@ -19,7 +19,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a used letter", detail: "to return that tile, or use Undo." },
       { action: "Submit words", detail: "with three or more letters." },
     ],
-    score: "Your word points are your score.",
+    score: "Round score = 3 × word points, up to 150. The counter shows word points.",
   },
   groups: {
     goal: "Sort all sixteen words into four groups of four.",
@@ -109,7 +109,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap immediately", detail: "when the signal appears." },
       { action: "Avoid early taps", detail: "because they count against you." },
     ],
-    score: "Lower average reaction time = more points.",
+    score: "50 + up to 100 for speed: 650 ms average = 50, 50 ms = 150. Misses count as 1,000 ms.",
   },
   gonogo: {
     goal: "Tap every gold circle and ignore every other shape.",
@@ -179,7 +179,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Compare the pair", detail: "for same or opposite meaning." },
       { action: "Tap your answer", detail: "for every pair." },
     ],
-    score: "All eight = full points and the speed bonus. Each right pair still scores.",
+    score: "All eight = 100 plus speed. Otherwise 13 per correct pair, up to 90.",
   },
   pctsprint: {
     goal: "Solve all five percentage questions.",
@@ -206,7 +206,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap once", detail: "when it reaches the gold zone." },
       { action: "Each try is faster", detail: "than the one before it." },
     ],
-    score: "Closer average stops = more points.",
+    score: "50 + up to 100 for accuracy: 400 ms average error = 50, perfect = 150. Misses count as 800 ms.",
   },
   countup: {
     goal: "Count every shape that matches the question.",
@@ -233,7 +233,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Use four or more letters", detail: "without reusing a tile." },
       { action: "Release to submit", detail: "each word." },
     ],
-    score: "Your word points are your score.",
+    score: "Round score = 3 × word points, up to 150. The counter shows word points.",
   },
   unblock: {
     goal: "Slide the gold car through the exit.",
@@ -268,7 +268,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Join every opening", detail: "to another pipe or the source." },
       { action: "Leave no leaks", detail: "at the grid edges." },
     ],
-    score: "More tiles connected = more points. Complete it faster for the most.",
+    score: "All 36 = 100 plus speed. 35 = 90, 34 = 85, 32–33 = 80; fewer still score.",
   },
   sudoku: {
     goal: "Fill the grid with every row, column, and box valid.",

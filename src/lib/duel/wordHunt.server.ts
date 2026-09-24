@@ -5,6 +5,7 @@
 
 import { commonWords, isCommonPrefix, isWord } from "./dictionary.server";
 import type { Graded } from "./grade";
+import { scoreWordHunt } from "./scoring";
 import { pick, randInt, shuffled } from "./random";
 import {
   WORDHUNT_CELLS,
@@ -221,8 +222,7 @@ export function gradeWordHunt(
   }
 
   const points = accepted.reduce((sum, entry) => sum + entry.points, 0);
-  // The round score is the word points earned, exactly as shown during play.
-  const score = Math.max(0, Math.min(150, Math.round(points)));
+  const score = scoreWordHunt(points);
   const ms = Math.min(WORDHUNT_TIME_MS, Math.max(0, Math.round(msRemaining)));
 
   return {
