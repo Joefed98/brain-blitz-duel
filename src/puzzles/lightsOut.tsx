@@ -1,5 +1,4 @@
 import { solvedMovesText } from "@/lib/duel/scoring";
-import { LIGHTS_TIME_MS } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -164,7 +163,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "lightsout") return null;
   const solution = puzzle.solution ?? [];
   const numbers: Record<number, number> = {};
