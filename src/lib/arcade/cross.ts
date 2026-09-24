@@ -18,8 +18,6 @@ import {
   type ArcadeInputEvent,
   type CanvasSize,
   type InputRange,
-  parPoints,
-  ARCADE_COMPLETION_BONUS,
 } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -60,11 +58,9 @@ export const CROSS_GAP_MIN_FP = 28_672;
 export const CROSS_GAP_SPAN_FP = 23_040;
 
 /** Par: six full crossings. */
-export const CROSS_PAR = 6;
-export const CROSS_CROSSING_POINTS = 15;
-export const CROSS_LANE_POINTS = 1;
-export const CROSS_POINTS_CAP = 110;
-export const CROSS_SURVIVE_BONUS = 40;
+/** 4 per lane advanced, +4 per completed crossing (a full crossing = 40). */
+export const CROSS_LANE_POINTS = 4;
+export const CROSS_CROSSING_POINTS = 4;
 
 /** A move: a = 0 up, 1 down, 2 left, 3 right — each from a swipe. */
 export const CROSS_INPUT_MOVE = 5;
@@ -351,8 +347,11 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
 function score(state: CrossState): number {
   // Each lane is a ninth of a crossing, so progress counts in lanes.
   const lanes = state.crossings * CROSS_LANES + clampInt(state.reached, 0, CROSS_LANES);
-  const earned = parPoints(lanes, CROSS_PAR * CROSS_LANES);
-  return clampInt(earned + (crossSurvived(state) ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
+  return clampInt(
+    CROSS_LANE_POINTS * lanes + CROSS_CROSSING_POINTS * state.crossings,
+    0,
+    150,
+  );
 }
 
 /* =========================== Integrity checks ========================== */

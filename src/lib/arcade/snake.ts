@@ -16,8 +16,6 @@ import {
   type ArcadeInputEvent,
   type CanvasSize,
   type InputRange,
-  parPoints,
-  ARCADE_COMPLETION_BONUS,
 } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -49,10 +47,8 @@ export const SNAKE_PELLETS_PER_STEP = 5;
 export const SNAKE_QUEUE_LEN = 200;
 
 /** Par: 28 pellets. */
-export const SNAKE_PAR = 28;
-export const SNAKE_PELLET_POINTS = 4;
-export const SNAKE_POINTS_CAP = 110;
-export const SNAKE_SURVIVE_BONUS = 40;
+/** 5 per pellet eaten, cap 150. */
+export const SNAKE_PELLET_POINTS = 5;
 
 /** A turn: a = 0 up, 1 right, 2 down, 3 left. */
 export const SNAKE_INPUT_TURN = 4;
@@ -210,8 +206,7 @@ function step(state: SnakeState, input: ArcadeInputEvent | null): SnakeState {
 }
 
 function score(state: SnakeState): number {
-  const earned = parPoints(state.eaten, SNAKE_PAR);
-  return clampInt(earned + (snakeSurvived(state) ? ARCADE_COMPLETION_BONUS : 0), 0, 150);
+  return clampInt(SNAKE_PELLET_POINTS * state.eaten, 0, 150);
 }
 
 /* =========================== Integrity checks ========================== */

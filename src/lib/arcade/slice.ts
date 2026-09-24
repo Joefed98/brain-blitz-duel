@@ -22,8 +22,6 @@ import {
   type ArcadeInputEvent,
   type CanvasSize,
   type InputRange,
-  parPoints,
-  ARCADE_COMPLETION_BONUS,
 } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -390,7 +388,22 @@ function init(seed: number): SliceState {
     frenzyFrom: [],
     flash: 0,
     swipe: null,
+    available: scheduleAvailable(schedule.objects),
   };
+}
+
+/**
+ * Every disc the run could offer: each non-bomb in the schedule (specials
+ * included) plus every disc a special would release, sliced or not.
+ */
+function scheduleAvailable(objects: readonly SliceObject[]): number {
+  let total = 0;
+  for (const object of objects) {
+    if (object.bomb) continue;
+    total += 1;
+    for (const item of object.payload) if (!item.bomb) total += 1;
+  }
+  return total;
 }
 
 function isOver(state: SliceState): boolean {
@@ -412,7 +425,7 @@ export function sliceSuppressed(state: SliceState, object: SliceObject): boolean
 
 /** Total discs in the schedule — bombs are not something to slice. */
 export function sliceTotalDiscs(state: SliceState): number {
-  return state.objects.reduce((total, object) => total + (object.bomb ? 0 : 1), 0);
+  return state.available;
 }
 
 /** Whether the segment comes within an object's radius. Integer maths only. */
@@ -498,12 +511,9 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
 }
 
 function score(state: SliceState): number {
-  // Bonus: the full minute with no bomb sliced.
-  const earned =
-    parPoints(state.slices, Math.max(1, sliceTotalDiscs(state))) -
-    SLICE_BOMB_PENALTY * state.bombsHit;
-  const bonus = state.tick >= SLICE_RUN_TICKS && state.bombsHit === 0 ? ARCADE_COMPLETION_BONUS : 0;
-  return clampInt(earned + bonus, 0, 150);
+  const total = Math.max(1, sliceTotalDiscs(state));
+  const earned = Math.floor((150 * Math.min(state.slices, total)) / total);
+  return clampInt(earned - SLICE_BOMB_PENALTY * state.bombsHit, 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */
