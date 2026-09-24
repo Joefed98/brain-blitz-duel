@@ -1035,8 +1035,8 @@ const ricoSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived
-      ? `${metres.toLocaleString("en-GB")} m climbed · survived`
-      : `${metres.toLocaleString("en-GB")} m climbed · ${spiked ? "hit a spike" : "slid down"} at ${ended.toFixed(1)}s`,
+      ? `${metres.toLocaleString("en-GB")} m climbed · ${result.score} points · survived`
+      : `${metres.toLocaleString("en-GB")} m climbed · ${result.score} points · ${spiked ? "hit a spike" : "slid down"} at ${ended.toFixed(1)}s`,
     detail: [`${Number(result.extra?.["leaps"] ?? 0)} leaps`],
   };
 };

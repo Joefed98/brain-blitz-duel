@@ -233,7 +233,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         <circle cx="94" cy="20" r="7" fill={RICO_BALL} />
       </svg>
       <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
-        {Math.trunc(result.heightPx / 40).toLocaleString("en-GB")} m ·{" "}
+        {Math.trunc(result.heightPx / 40).toLocaleString("en-GB")} m · {result.score} points ·{" "}
         {result.survived
           ? "survived"
           : result.spiked

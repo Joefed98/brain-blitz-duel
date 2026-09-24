@@ -615,6 +615,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Don't land on the spikes", detail: "or the run ends." },
       { action: "Don't slide", detail: "all the way back to the bottom." },
     ],
-    score: "1 point per metre climbed, up to 150.",
+    score: "2 points per metre climbed, up to 150.",
   },
 };

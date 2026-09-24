@@ -6,7 +6,6 @@ import { PhoneShell } from "@/components/duel/PhoneShell";
 import { Wordmark } from "@/components/duel/Wordmark";
 import { MuteToggle } from "@/components/duel/MuteToggle";
 import { createRoom, joinRoomByCode } from "@/lib/duel/api";
-import { PUZZLE_TYPES } from "@/lib/duel/registry";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { unlockAudio } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
@@ -101,7 +100,7 @@ function Home() {
           </p>
           <div className="mt-6 h-px w-16 bg-border" />
           <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-            {PUZZLE_TYPES.length} puzzle types · 6 rounds · 2–10 players
+            40+ puzzle types and 15 arcade games
           </p>
         </div>
 

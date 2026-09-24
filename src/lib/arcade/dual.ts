@@ -32,11 +32,10 @@ export const DUAL_HUD_H = 40;
 export const DUAL_GROUND_Y = 430;
 export const DUAL_RUNNER_X = 62;
 export const DUAL_RUNNER_R = 15;
-/** A thin javelin leaning toward the runner. */
-/** Half the earlier 8 × 44 javelin. */
-export const DUAL_SPIKE_W = 4;
-export const DUAL_SPIKE_H = 22;
-export const DUAL_SPIKE_LEAN = 8;
+/** The thin javelin, enlarged 1.2× in both dimensions. */
+export const DUAL_SPIKE_W = 4.8;
+export const DUAL_SPIKE_H = 26.4;
+export const DUAL_SPIKE_LEAN = 9.6;
 
 /**
  * A jump is a fixed 30-tick arc, 150 px at the top (115 px × 1.3). The arc
@@ -72,7 +71,7 @@ export function dualSideGap(tick: number): number {
   return Math.max(DUAL_SIDE_GAP_MIN, DUAL_SIDE_GAP_START - steps * DUAL_SIDE_GAP_STEP);
 }
 
-/** Cross-side separation: 20 ticks for the first twenty seconds, then 12. */
+/** Baseline cross-side separation, before accounting for the spike's collision width. */
 export const DUAL_SEP_EARLY = 20;
 export const DUAL_SEP_LATE = 12;
 export const DUAL_SEP_SWITCH_TICK = 20 * TICKS_PER_SECOND;
@@ -89,7 +88,10 @@ export const DUAL_INPUT_RANGES: readonly InputRange[] = [inputRange(DUAL_INPUT_J
 
 /** The minimum ticks between any two obstacles, either side, at this tick. */
 export function dualSeparation(tick: number): number {
-  return tick < DUAL_SEP_SWITCH_TICK ? DUAL_SEP_EARLY : DUAL_SEP_LATE;
+  const baseline = tick < DUAL_SEP_SWITCH_TICK ? DUAL_SEP_EARLY : DUAL_SEP_LATE;
+  // Allow the whole enlarged javelin to clear one runner before the next arrives.
+  const collisionWidth = 2 * DUAL_RUNNER_R + DUAL_SPIKE_LEAN + DUAL_SPIKE_W;
+  return Math.max(baseline, Math.ceil((collisionWidth * 256) / dualScroll(tick)) + 1);
 }
 
 /** The scroll speed in 1/256 px a tick at this tick. */
@@ -155,7 +157,7 @@ function buildSchedule(seed: number): { rng: number; left: number[]; right: numb
   let last = -1_000;
   for (;;) {
     const side = next[0]! <= next[1]! ? 0 : 1;
-    const tick = Math.max(next[side]!, last + dualSeparation(last));
+    const tick = Math.max(next[side]!, last + dualSeparation(Math.max(last, 0)));
     if (tick > DUAL_RUN_TICKS) break;
     (side === 0 ? left : right).push(tick);
     last = tick;
@@ -388,10 +390,10 @@ function drawSide(
     if (x > originX + DUAL_PANEL_W + 60) break;
     ctx.beginPath();
     ctx.moveTo(x - DUAL_SPIKE_LEAN, DUAL_GROUND_Y - DUAL_SPIKE_H);
-    ctx.lineTo(x - DUAL_SPIKE_LEAN + 4, DUAL_GROUND_Y - DUAL_SPIKE_H + 9);
+    ctx.lineTo(x - DUAL_SPIKE_LEAN + DUAL_SPIKE_W, DUAL_GROUND_Y - DUAL_SPIKE_H + DUAL_SPIKE_H * (9 / 22));
     ctx.lineTo(x + DUAL_SPIKE_W / 2, DUAL_GROUND_Y - 4);
     ctx.lineTo(x - DUAL_SPIKE_W / 2, DUAL_GROUND_Y - 4);
-    ctx.lineTo(x - DUAL_SPIKE_LEAN - 4, DUAL_GROUND_Y - DUAL_SPIKE_H + 9);
+    ctx.lineTo(x - DUAL_SPIKE_LEAN - DUAL_SPIKE_W, DUAL_GROUND_Y - DUAL_SPIKE_H + DUAL_SPIKE_H * (9 / 22));
     ctx.closePath();
     ctx.fill();
   }
