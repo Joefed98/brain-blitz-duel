@@ -195,7 +195,7 @@ export function WordsmithPuzzle({
         placeholder="type here"
         aria-label="Word entry; tap to submit a word"
         onPointerDown={(event) => {
-          if (word.length > 0 && document.activeElement !== event.currentTarget) {
+          if (word.length > 0) {
             event.preventDefault();
             void trySubmit();
           }
