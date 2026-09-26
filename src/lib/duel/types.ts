@@ -756,9 +756,9 @@ export interface CountUpPuzzleData {
   count?: number;
 }
 
-/** The field fills the whole play area: a 9 x 8 grid of cells, one shape each. */
-export const COUNTUP_COLS = 9;
-export const COUNTUP_ROWS = 8;
+/** The field fills a short phone's measured play area without cropping its edges. */
+export const COUNTUP_COLS = 8;
+export const COUNTUP_ROWS = 6;
 export const COUNTUP_TIME_MS = 20_000;
 export const COUNTUP_MIN_SHAPES = COUNTUP_COLS * COUNTUP_ROWS;
 export const COUNTUP_MAX_SHAPES = COUNTUP_COLS * COUNTUP_ROWS;

@@ -468,7 +468,8 @@ export function binTossTransform(size: CanvasSize): BinTossTransform {
 
 function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   const centreX = BINTOSS_WORLD_W / 2;
-  const y = 66;
+   // Separate wind line below the 19.5px HUD; its top clears the HUD by 12px.
+   const y = 84;
   const strength = Math.abs(wind);
   ctx.save();
   ctx.strokeStyle = wind === 0 ? "#F7F7F855" : BINTOSS_BIN_COLOUR;
