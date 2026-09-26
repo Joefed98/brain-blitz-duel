@@ -2,7 +2,7 @@ import { solvedMovesText } from "@/lib/duel/scoring";
 import { playCorrect } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { activeLightPresses, decodePresses, encodePresses, lightsAllOff, replayLights } from "@/lib/duel/logic";
+import { decodePresses, encodePresses, lightsAllOff, replayLights } from "@/lib/duel/logic";
 import {
   LIGHTS_COLS,
   LIGHTS_CELLS,
@@ -117,7 +117,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   useEffect(() => {
     if (locked || submitted.current) return;
-    if (presses.length === 0 || !lightsAllOff(lights)) return;
+    if (!presses.some((cell) => cell >= 0) || !lightsAllOff(lights)) return;
     submitted.current = true;
     playCorrect();
     onSubmit(encodePresses(presses));
