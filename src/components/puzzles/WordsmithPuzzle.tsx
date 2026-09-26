@@ -228,7 +228,7 @@ export function WordsmithPuzzle({
       />
       {message && <p className="text-center font-mono text-xs text-warn">{message}</p>}
 
-       <div className="flex gap-2">
+       <div className="mt-auto flex gap-2">
          <Button
           type="button"
            variant="outline"
