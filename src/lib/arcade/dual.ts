@@ -441,14 +441,12 @@ function draw(ctx: CanvasRenderingContext2D, state: DualState, size: CanvasSize)
   ctx.lineTo(DUAL_PANEL_W + 0.5, DUAL_WORLD_H);
   ctx.stroke();
 
-  const remaining = Math.max(0, DUAL_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`Passed ${state.passed}`, 14, 12);
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, DUAL_WORLD_W - 14, 12);
 
   if (state.dead) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";

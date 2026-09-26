@@ -411,8 +411,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize)
   ctx.fillText(`Combo ${state.combo}`, 14, BEAT_HUD_H / 2);
   ctx.textAlign = "right";
   ctx.fillStyle = "rgba(255,255,255,0.7)";
-  const left = Math.max(0, BEAT_RUN_TICKS - state.tick);
-  ctx.fillText(`${Math.ceil(left / TICKS_PER_SECOND)}s`, BEAT_WORLD_W - 14, BEAT_HUD_H / 2);
   ctx.restore();
 }
 

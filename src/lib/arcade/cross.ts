@@ -480,14 +480,12 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
   ctx.arc(px(crossColumnCentreFp(state.col)), cy, CROSS_PLAYER_R, 0, Math.PI * 2);
   ctx.fill();
 
-  const remaining = Math.max(0, CROSS_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`Crossings ${state.crossings}`, 14, 10);
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, CROSS_WORLD_W - 14, 10);
 
   // The breather between crossings, announced over the board.
   if (crossPaused(state)) {

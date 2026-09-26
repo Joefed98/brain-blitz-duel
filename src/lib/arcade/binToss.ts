@@ -569,7 +569,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
   }
 
   // HUD.
-  const remaining = Math.max(0, BINTOSS_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 15px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = BINTOSS_TEXT;
   ctx.textBaseline = "top";
@@ -577,7 +576,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
   const shown = Math.min(BINTOSS_THROWS, state.throwIndex + 1);
   ctx.fillText(`Throw ${shown} / ${BINTOSS_THROWS} · ${state.baskets} in`, 12, 12);
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, BINTOSS_WORLD_W - 12, 12);
 
   // A pip per throw taken.
   for (let index = 0; index < BINTOSS_THROWS; index++) {
