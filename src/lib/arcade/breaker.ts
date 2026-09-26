@@ -43,10 +43,10 @@ export const BRK_BRICK_H = 20;
 export const BRK_ROW_PITCH = 24;
 export const BRK_WALL_X = 19;
 export const BRK_WALL_Y = 70;
-/** Eight of the seventy-two bricks take two hits. */
-export const BRK_SOLID = 8;
+/** Six of the seventy-two bricks take three hits. */
+export const BRK_SOLID = 6;
 /** Hits needed to clear the whole wall. */
-export const BRK_TOTAL_HITS = BRK_BRICKS + BRK_SOLID;
+export const BRK_TOTAL_HITS = BRK_BRICKS + 2 * BRK_SOLID;
 
 /** Four gold bricks (two MULTI, one SPAM, one LASER), never in the bottom row. */
 export const BRK_GOLD_BRICKS = 4;
@@ -145,8 +145,9 @@ export interface BrkCapsule {
 export interface BrkState {
   tick: number;
   rng: number;
-  /** Hits left in each brick: 0 gone, 1 plain, 2 solid. */
+  /** Hits left in each brick: 0 gone, 1 plain, 3 reinforced. */
   bricks: number[];
+  reinforced: boolean[];
   /** 0 for a plain brick, otherwise the power-up it carries plus one. */
   gold: number[];
   hits: number;
@@ -209,6 +210,7 @@ function brickCentre(index: number): { x: number; y: number } {
 function init(seed: number): BrkState {
   let rng = seed | 0;
   const bricks = new Array<number>(BRK_BRICKS).fill(1);
+  const reinforced = new Array<boolean>(BRK_BRICKS).fill(false);
   const gold = new Array<number>(BRK_BRICKS).fill(0);
 
   // The four power-ups, in a seeded order.
@@ -239,7 +241,8 @@ function init(seed: number): BrkState {
     const draw = rngBelow(rng, BRK_BRICKS);
     rng = draw.state;
     if (bricks[draw.value] === 1 && gold[draw.value] === 0) {
-      bricks[draw.value] = 2;
+      bricks[draw.value] = 3;
+      reinforced[draw.value] = true;
       placedSolid += 1;
     }
   }
@@ -253,6 +256,7 @@ function init(seed: number): BrkState {
     tick: 0,
     rng: first.rng,
     bricks,
+    reinforced,
     gold,
     hits: 0,
     losses: 0,
@@ -605,7 +609,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
     const isGold = (state.gold[index] ?? 0) > 0;
     ctx.fillStyle = isGold
       ? BRK_GOLD
-      : left > 1
+      : state.reinforced[index]
         ? "#0F766E"
         : (BRK_TEAL[row % BRK_TEAL.length] ?? BRK_TEAL[0]!);
     ctx.fillRect(
@@ -614,7 +618,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
       BRK_BRICK_W - 2,
       BRK_BRICK_H,
     );
-    if (left > 1) {
+    if (state.reinforced[index]) {
       ctx.strokeStyle = "rgba(255,255,255,0.45)";
       ctx.lineWidth = 1;
       ctx.strokeRect(
@@ -623,6 +627,20 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
         BRK_BRICK_W - 5,
         BRK_BRICK_H - 3,
       );
+      if (left < 3) {
+        const x = BRK_WALL_X + col * BRK_BRICK_W;
+        const y = BRK_WALL_Y + row * BRK_ROW_PITCH;
+        ctx.beginPath();
+        ctx.moveTo(x + 12, y + 2);
+        ctx.lineTo(x + 19, y + 9);
+        ctx.lineTo(x + 15, y + 17);
+        if (left === 1) {
+          ctx.moveTo(x + 19, y + 9);
+          ctx.lineTo(x + 30, y + 5);
+          ctx.lineTo(x + 35, y + 17);
+        }
+        ctx.stroke();
+      }
     }
     if (isGold) {
       drawStar(

@@ -236,33 +236,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "hover") return null;
   const result = replayHoverRun(puzzle.seed, myAnswer ?? "");
-  const taps = decodeHoverRun(myAnswer ?? "").inputs.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <div className="flex w-full max-w-[260px] shrink-0 flex-wrap justify-center gap-1">
-        {Array.from({ length: Math.max(1, result.totalGates) }, (_, index) => (
-          <span
-            key={index}
-            className="h-3 w-3 rounded-sm"
-            style={{
-              background:
-                index < result.gates
-                  ? HOVER_PILLAR_COLOUR
-                  : result.survived
-                    ? "transparent"
-                    : HOVER_CRASH_COLOUR + "33",
-              border: `1px solid ${HOVER_PILLAR_COLOUR}55`,
-            }}
-          />
-        ))}
-      </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.gates} / {result.totalGates} gates ·{" "}
-        {result.survived ? "survived" : `crashed at ${result.endedSeconds.toFixed(1)}s`}
+        {result.survived ? "Survived" : `Crashed at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {taps} tap{taps === 1 ? "" : "s"} · same course for everyone
+        Same course for everyone
       </p>
     </div>
   );

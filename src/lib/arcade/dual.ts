@@ -56,8 +56,9 @@ export const DUAL_SCROLL_PERIOD_TICKS = 10 * TICKS_PER_SECOND;
 
 /**
  * No spikes in the first 5 s. On one side, consecutive spikes are at least
- * 3.0 s apart, 0.25 s less every 10 s, never below 1.0 s; each gap adds up to
- * DUAL_GAP_SPAN ticks from the seed.
+ * 3.0 s apart, 0.25 s less every 10 s; in the final 20 seconds the gap
+ * shrinks by 1.2×, never below 1.0 s. Each gap adds up to DUAL_GAP_SPAN
+ * ticks from the seed.
  */
 export const DUAL_FIRST_TICK = 5 * TICKS_PER_SECOND;
 export const DUAL_SIDE_GAP_START = 180;
@@ -68,7 +69,8 @@ export const DUAL_GAP_SPAN = 30;
 /** Minimum ticks between two spikes on the same side, at this tick. */
 export function dualSideGap(tick: number): number {
   const steps = Math.trunc(tick / (10 * TICKS_PER_SECOND));
-  return Math.max(DUAL_SIDE_GAP_MIN, DUAL_SIDE_GAP_START - steps * DUAL_SIDE_GAP_STEP);
+  const normal = DUAL_SIDE_GAP_START - steps * DUAL_SIDE_GAP_STEP;
+  return Math.max(DUAL_SIDE_GAP_MIN, tick >= DUAL_RUN_TICKS - 20 * TICKS_PER_SECOND ? Math.floor(normal / 1.2) : normal);
 }
 
 /** Baseline cross-side separation, before accounting for the spike's collision width. */

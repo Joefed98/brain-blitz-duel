@@ -299,7 +299,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div
       ref={wrap}
-      className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl"
+      className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl border-2 border-arcade-frame"
       style={NO_SCROLL_STYLE}
     >
       <canvas
@@ -350,7 +350,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "breaker") return null;
   const result = replayBreakerRun(puzzle.seed, myAnswer ?? "");
-  const drags = decodeBreakerRun(myAnswer ?? "").events.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -369,7 +368,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           : `${result.destroyed} / 72 bricks · ${result.hits} hits · ${result.powerUps} power-up${result.powerUps === 1 ? "" : "s"}`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {result.losses} relaunch{result.losses === 1 ? "" : "es"} · {drags} paddle moves
+        {result.losses} relaunch{result.losses === 1 ? "" : "es"}
       </p>
     </div>
   );

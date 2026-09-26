@@ -236,28 +236,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "swerve") return null;
   const result = replaySwerveRun(puzzle.seed, myAnswer ?? "");
-  const moves = decodeSwerveRun(myAnswer ?? "").taps.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <div className="flex w-full max-w-[260px] shrink-0 flex-wrap justify-center gap-1">
-        {Array.from({ length: Math.max(1, Math.min(result.totalCoins, 60)) }, (_, index) => (
-          <span
-            key={index}
-            className="h-3 w-3 rounded-full"
-            style={{
-              background: index < result.coins ? SWERVE_COIN_COLOUR : "transparent",
-              border: `1px solid ${result.survived ? SWERVE_COIN_COLOUR : SWERVE_CRASH_COLOUR}55`,
-            }}
-          />
-        ))}
-      </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.coins} / {result.totalCoins} coins ·{" "}
-        {result.survived ? "survived" : `crashed at ${result.endedSeconds.toFixed(1)}s`}
+        {result.survived ? "Survived" : `Crashed at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {moves} lane change{moves === 1 ? "" : "s"} · same course for everyone
+        Same course for everyone
       </p>
     </div>
   );

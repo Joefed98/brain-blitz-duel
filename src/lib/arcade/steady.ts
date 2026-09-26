@@ -54,7 +54,7 @@ export const STD_EDGE_MARGIN = 46;
 /**
  * Touches: while any part of the ball overlaps an edge, one on contact and one
  * every 30 ticks until it is back inside; with no finger down for more than 30
- * ticks, one every 30 ticks until the finger returns.
+ * ticks after the first five seconds, one every 30 ticks until the finger returns.
  */
 export const STD_TOUCH_EVERY = 30;
 
@@ -232,7 +232,8 @@ function step(state: StdState, input: ArcadeInputEvent | null): StdState {
     next.edgeTicks = 0;
     next.onEdge = false;
   }
-  if (next.liftTicks > STD_TOUCH_EVERY && (next.liftTicks - 1) % STD_TOUCH_EVERY === 0) {
+  const eligibleLiftTicks = Math.min(next.liftTicks, Math.max(0, tick - 5 * TICKS_PER_SECOND));
+  if (!down && eligibleLiftTicks > STD_TOUCH_EVERY && (eligibleLiftTicks - 1) % STD_TOUCH_EVERY === 0) {
     touches += 1;
   }
   if (touches !== state.touches) {

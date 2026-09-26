@@ -219,7 +219,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "skyline") return null;
   const result = replaySkylineRun(puzzle.seed, myAnswer ?? "");
-  const drops = decodeSkylineRun(myAnswer ?? "").inputs.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -240,7 +239,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.survived ? "survived" : `missed at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {drops} drop{drops === 1 ? "" : "s"} · same tower for everyone
+        Same tower for everyone
       </p>
     </div>
   );

@@ -569,7 +569,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
   }
 
   // HUD.
-  ctx.font = "600 15px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.font = "600 19.5px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = BINTOSS_TEXT;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";

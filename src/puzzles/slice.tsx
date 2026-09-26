@@ -215,7 +215,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div
       ref={wrap}
-      className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
+      className="min-h-0 w-full flex-1 overflow-hidden rounded-xl border-2 border-arcade-frame"
       style={NO_SCROLL_STYLE}
     >
       <canvas
@@ -257,7 +257,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "slice") return null;
   const result = replaySliceRun(puzzle.seed, myAnswer ?? "");
-  const swipes = decodeSliceRun(myAnswer ?? "").events.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -271,7 +270,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.bombsHit === 1 ? "1 bomb" : `${result.bombsHit} bombs`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {result.bonuses} multi-slice bonus{result.bonuses === 1 ? "" : "es"} · {swipes} swipe ticks
+        {result.bonuses} multi-slice bonus{result.bonuses === 1 ? "" : "es"}
       </p>
       <p className="shrink-0 font-mono text-base" style={{ color: SLICE_GOLD }}>
         {result.score} points
