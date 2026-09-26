@@ -330,7 +330,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
                <span className="font-mono text-base text-muted-foreground">Board {index + 1} · original</span>
                <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.cells} compact /></div>
                <span aria-hidden="true" className="text-lg leading-none text-primary">↓</span>
-               <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.after} marked={answers[index]} wrong={tap !== answers[index] ? tap : null} compact /></div>
+               <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.after} marked={answers[index] ?? null} wrong={tap !== answers[index] ? (tap ?? null) : null} compact /></div>
                <span className={`font-mono text-base ${ok ? "text-primary" : "text-warn"}`}>
                  {tap === undefined ? "No tap" : ok ? "Your tap ✓" : "Your tap ✗"}
                </span>

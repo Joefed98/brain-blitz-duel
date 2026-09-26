@@ -267,7 +267,7 @@ function Stage({
           ball={replay.cell}
         />
       </div>
-       <ArrowPad onPress={slide} disabled={locked || replay.solved} size={200} buttonSize={60} />
+       <ArrowPad onPress={slide} disabled={locked || replay.solved} size={204} buttonSize={60} />
       <div className="flex shrink-0 justify-center gap-2">
         <button
           type="button"

@@ -252,7 +252,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
           onPress={step}
           disabled={locked || solved}
           repeatMs={120}
-           size={188}
+           size={192}
           buttonSize={56}
         />
         <button
