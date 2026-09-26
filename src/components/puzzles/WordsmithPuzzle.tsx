@@ -41,6 +41,7 @@ export function WordsmithPuzzle({
   const wheelRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const dragged = useRef(false);
+  const suppressClick = useRef(false);
   const selectedRef = useRef<number[]>([]);
   const submitted = useRef(false);
   const foundRef = useRef<Found[]>([]);
@@ -194,9 +195,10 @@ export function WordsmithPuzzle({
                 wheelRef.current?.setPointerCapture(event.pointerId);
                 dragging.current = true;
                 dragged.current = false;
+                suppressClick.current = true;
                 addDraggedTile(index);
               }}
-              onClick={() => { if (!dragged.current) tapTile(index); dragged.current = false; }}
+              onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } tapTile(index); }}
               style={{ left: `${50 + 37 * Math.cos(angle)}%`, top: `${50 + 37 * Math.sin(angle)}%` }}
               className={`absolute flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border font-display text-xl font-bold transition-colors duration-150 ${
                 spent
