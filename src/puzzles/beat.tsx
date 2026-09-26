@@ -271,7 +271,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         best combo {result.maxCombo}
-        {result.strays > 0 ? ` · ${result.strays} stray` : ""}
       </p>
       <p className="shrink-0 font-mono text-base" style={{ color: BEAT_GOLD }}>
         {result.score} points

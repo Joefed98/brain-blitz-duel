@@ -389,13 +389,13 @@ for (let sample = 0; sample < SAMPLES; sample++) {
       ),
     },
     {
-      label: "cross move 3",
+      label: "cross move 4",
       run: replayCrossRun(
         99,
         encodeCrossRun({
           seed: 99,
           claimedScore: 0,
-          events: [{ t: 20, k: CROSS_INPUT_MOVE, a: 3, b: 0, c: 0, d: 0 }],
+          events: [{ t: 20, k: CROSS_INPUT_MOVE, a: 4, b: 0, c: 0, d: 0 }],
         }),
       ),
     },

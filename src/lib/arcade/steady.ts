@@ -232,7 +232,8 @@ function step(state: StdState, input: ArcadeInputEvent | null): StdState {
     next.edgeTicks = 0;
     next.onEdge = false;
   }
-  if (tick > 5 * TICKS_PER_SECOND && !down && (tick - 5 * TICKS_PER_SECOND) % STD_TOUCH_EVERY === 1) {
+  const eligibleLiftTicks = Math.min(next.liftTicks, Math.max(0, tick - 5 * TICKS_PER_SECOND));
+  if (!down && eligibleLiftTicks > STD_TOUCH_EVERY && (eligibleLiftTicks - 1) % STD_TOUCH_EVERY === 0) {
     touches += 1;
   }
   if (touches !== state.touches) {
