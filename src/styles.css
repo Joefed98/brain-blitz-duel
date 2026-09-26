@@ -254,7 +254,6 @@
 .answer-reveal-content p,
 .answer-reveal-content li,
 .answer-reveal-content span {
-  font-size: max(1rem, 1em);
   overflow-wrap: anywhere;
 }
 
