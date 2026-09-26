@@ -19,6 +19,7 @@ const CIRC = 2 * Math.PI * R;
 /** Dense stages reserve a smaller, collision-safe timer slot on short phones. */
 const COMPACT_TIMER_TYPES = new Set<PuzzleType>([
   "target",
+  "countup",
   "blockparty",
   "chaincalc",
   "wordsmith",
