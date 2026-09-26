@@ -147,14 +147,14 @@ export function AnswerReveal({
         <span className="font-mono text-xs text-muted-foreground">{secondsLeft}s</span>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col items-center gap-2">
         {!puzzleOwnsRevealLayout ? <Verdict correct={myCorrect} /> : null}
         {!puzzleOwnsRevealLayout ? (
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
             {def.revealHeading ?? "The answer was"}
           </p>
         ) : null}
-        <div className="answer-reveal-content flex w-full min-h-0 flex-col items-center justify-start overflow-y-auto text-base animate-rise-settle">
+        <div className="answer-reveal-content flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           {answersReady ? (
             <Reveal
               puzzle={puzzle}

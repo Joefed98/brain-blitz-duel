@@ -113,7 +113,7 @@ export function WordsmithPuzzle({
   const tileAt = (x: number, y: number) => {
     const element = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-wordsmith-tile]");
     if (!element || !wheelRef.current?.contains(element)) return null;
-    const index = Number(element.dataset.wordsmithTile);
+    const index = Number(element.dataset["wordsmithTile"]);
     return Number.isInteger(index) ? index : null;
   };
 
