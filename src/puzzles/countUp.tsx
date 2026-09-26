@@ -46,16 +46,18 @@ function Field({
   highlight,
   height,
   size = 22,
+  play = false,
 }: {
   shapes: CountUpShape[];
   highlight?: { shape: GlyphShape; colour: GlyphColour };
   height?: number;
   size?: number;
+  play?: boolean;
 }) {
   return (
     <div
-      className={`grid w-full min-h-0 overflow-hidden rounded-lg border border-border bg-card ${height ? "" : "h-full"}`}
-      style={{ height: height ?? undefined, gridTemplateColumns: `repeat(${COUNTUP_COLS}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${COUNTUP_ROWS}, minmax(0, 1fr))`, gap: 4 }}
+      className={`${play ? "grid h-full min-h-0" : "relative"} w-full overflow-hidden rounded-lg border border-border bg-card`}
+      style={play ? { gridTemplateColumns: `repeat(${COUNTUP_COLS}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${COUNTUP_ROWS}, minmax(0, 1fr))`, gap: 4 } : { height }}
     >
       {shapes.map((item, index) => {
         const lit =
@@ -65,10 +67,12 @@ function Field({
         return (
           <span
             key={index}
-            className="flex min-h-0 min-w-0 items-center justify-center rounded-full"
+            className={`${play ? "flex min-h-0 min-w-0 items-center justify-center" : "absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"} rounded-full`}
             style={{
-              gridColumn: Math.min(COUNTUP_COLS, Math.floor(item.x * COUNTUP_COLS / 100) + 1),
-              gridRow: Math.min(COUNTUP_ROWS, Math.floor(item.y * COUNTUP_ROWS / 100) + 1),
+              ...(play ? {
+                gridColumn: Math.min(COUNTUP_COLS, Math.floor(item.x * COUNTUP_COLS / 100) + 1),
+                gridRow: Math.min(COUNTUP_ROWS, Math.floor(item.y * COUNTUP_ROWS / 100) + 1),
+              } : { left: `${item.x}%`, top: `${item.y}%` }),
               padding: lit ? 3 : 0,
               boxShadow: lit ? `0 0 0 2px ${GLYPH_COLOURS.GOLD}` : undefined,
             }}
@@ -125,7 +129,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       onSubmit={onSubmit}
     >
        <div className="flex min-h-0 w-full flex-1 items-stretch justify-center">
-          <Field shapes={puzzle.shapes} size={24} />
+          <Field shapes={puzzle.shapes} size={24} play />
       </div>
     </NumberEntry>
   );
