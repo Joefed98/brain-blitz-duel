@@ -433,7 +433,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
               >
                 {ok ? "✓" : "✗"}
               </span>
-              <span className="text-center text-[10px] text-muted-foreground">
+              <span className="text-center text-base text-muted-foreground">
                 {!mine
                   ? "Skipped"
                   : wrong.length

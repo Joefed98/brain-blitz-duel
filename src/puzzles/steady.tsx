@@ -254,16 +254,16 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const drags = decodeSteadyRun(myAnswer ?? "").events.length;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex shrink-0 items-center gap-2">
         <span className="h-8 w-1 rounded" style={{ background: STD_GOLD }} />
         <span className="h-3 w-3 rounded-full" style={{ background: STD_DOT }} />
         <span className="h-8 w-1 rounded" style={{ background: STD_GOLD }} />
       </div>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.metres} m · {result.touches} touch{result.touches === 1 ? "" : "es"}
       </p>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {drags} moves · same track for everyone
         {result.clean ? " · no touches" : ""}
       </p>

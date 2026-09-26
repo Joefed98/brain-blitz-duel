@@ -268,7 +268,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       <div style={{ width: 190 }}>
         <SudokuGrid values={values} tones={tones} />
       </div>
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed}s`}`
           : `✗ ${correct} / ${blanks} correct`}

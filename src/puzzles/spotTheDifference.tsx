@@ -408,7 +408,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {differences.map((difference, index) => {
           const got = found.includes(difference);
           return (
-            <div key={index} className="flex items-center justify-between text-sm">
+            <div key={index} className="flex items-center justify-between text-base">
               <span className="text-muted-foreground">{difference.label}</span>
               <span className={`font-display font-bold ${got ? "text-primary" : "text-warn"}`}>
                 {got ? "✓" : "✗"}

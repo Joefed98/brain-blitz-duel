@@ -186,7 +186,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
       <button
         type="button"
         title={`Intermediate values: ${puzzle.intermediates.join(" · ")}`}
-        className="w-full truncate font-mono text-[11px] text-muted-foreground"
+        className="w-full break-words font-mono text-base text-muted-foreground"
       >
         {expression}
       </button>

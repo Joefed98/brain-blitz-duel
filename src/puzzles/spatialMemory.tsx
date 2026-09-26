@@ -170,7 +170,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
     <>
       <SequenceGrid order={puzzle.tiles} cols={COLS} numbered={false} wrong={wrong} />
       <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your answer</p>
+        <p className="text-base uppercase tracking-[0.2em] text-muted-foreground">Your answer</p>
         {taps.length === 0 ? (
           <p className="font-display text-2xl font-bold text-warn">No answer</p>
         ) : (

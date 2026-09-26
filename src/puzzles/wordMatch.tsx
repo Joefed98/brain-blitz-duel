@@ -126,7 +126,7 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
       <p className="text-center font-mono text-3xl font-bold tabular-nums text-primary">
         {correct} / {puzzle.items.length} correct
       </p>
-      <p className="text-center font-mono text-sm text-muted-foreground">
+      <p className="text-center font-mono text-base text-muted-foreground">
         {correct === puzzle.items.length ? "100 + speed" : `${correct} × 13 (max 90)`} = {scoreWordMatch(correct, myMsRemaining ?? 0)} points
       </p>
       <div className="flex w-full flex-col gap-1">

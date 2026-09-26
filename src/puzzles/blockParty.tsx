@@ -49,18 +49,18 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
       <div className="flex items-start justify-center gap-3">
         <div className="flex flex-col items-center gap-1">
           <BlockBoard blockers={puzzle.blockers} placements={puzzle.solution ?? []} size={140} />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             one solution
           </span>
         </div>
         <div className="flex flex-col items-center gap-1">
           <BlockBoard blockers={puzzle.blockers} placements={mine} size={140} />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             your board
           </span>
         </div>
       </div>
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect ? (
           <span className="text-primary">Solved</span>
         ) : (

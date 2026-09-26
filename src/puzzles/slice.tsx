@@ -260,20 +260,20 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const swipes = decodeSliceRun(myAnswer ?? "").events.length;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex shrink-0 items-center gap-2">
         {SLICE_COLOURS.slice(0, 3).map((colour) => (
           <span key={colour} className="h-4 w-4 rounded-full" style={{ background: colour }} />
         ))}
       </div>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.slices} / {result.totalDiscs} sliced ·{" "}
         {result.bombsHit === 1 ? "1 bomb" : `${result.bombsHit} bombs`}
       </p>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.bonuses} multi-slice bonus{result.bonuses === 1 ? "" : "es"} · {swipes} swipe ticks
       </p>
-      <p className="shrink-0 font-mono text-xs" style={{ color: SLICE_GOLD }}>
+      <p className="shrink-0 font-mono text-base" style={{ color: SLICE_GOLD }}>
         {result.score} points
       </p>
     </div>

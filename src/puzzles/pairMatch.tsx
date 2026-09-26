@@ -199,12 +199,12 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   const everything = new Set(Array.from({ length: PAIR_CARDS }, (_, index) => index));
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="w-full max-w-[240px] shrink-0">
         <Board cards={puzzle.cards} faceUp={everything} matched={new Set()} glyph={22} compact />
       </div>
       <p
-        className={`shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
+        className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
         {replay.pairs} / {PAIR_PAIRS} · {replay.flips} flips
         {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}

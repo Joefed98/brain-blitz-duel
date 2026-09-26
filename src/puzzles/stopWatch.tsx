@@ -245,12 +245,12 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs }: PuzzleRevealProps) {
         )}
       </div>
       <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
+        <p className="text-base uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">
           {myReactionAvgMs ?? "—"} ms
         </p>
         {myReactionAvgMs !== undefined && myReactionAvgMs !== null && (
-          <p className="font-mono text-sm text-muted-foreground">
+          <p className="font-mono text-base text-muted-foreground">
             50 + {Math.max(0, Math.min(100, Math.round(100 * (1 - myReactionAvgMs / 400))))} = {50 + Math.max(0, Math.min(100, Math.round(100 * (1 - myReactionAvgMs / 400))))} points
           </p>
         )}

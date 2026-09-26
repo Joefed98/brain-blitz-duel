@@ -320,7 +320,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const size = BULLSEYE_OUTER_R * 2 + 12;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <svg
         viewBox={`0 0 ${size} ${size}`}
         className="h-auto w-full max-w-[180px] shrink-0"
@@ -348,14 +348,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           return <circle key={index} cx={x} cy={y} r={5} fill={BULLSEYE_GOLD} stroke="#0B0B0F" />;
         })}
       </svg>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.total} / 100 rings → {result.score} pts
       </p>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {shots} of {BULLSEYE_ARROWS} arrows · {result.inner} in the gold/red
       </p>
       {result.hits.length > 0 && (
-        <div className="grid max-w-[280px] grid-cols-2 gap-x-4 gap-y-1 font-mono text-[10px] text-muted-foreground">
+        <div className="grid max-w-[280px] grid-cols-2 gap-x-4 gap-y-1 font-mono text-base text-muted-foreground">
           {result.hits.map((hit) => (
             <span key={hit.arrow}>
               {hit.arrow + 1}:{" "}

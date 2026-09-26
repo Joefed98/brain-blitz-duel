@@ -304,18 +304,18 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       <div className="flex items-start justify-center gap-3">
         <div className="flex flex-col items-center gap-1" style={{ width: 138 }}>
           <FlowBoard pairs={puzzle.pairs} paths={solution} />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             solved
           </span>
         </div>
         <div className="flex flex-col items-center gap-1" style={{ width: 138 }}>
           <FlowBoard pairs={puzzle.pairs} paths={mine} />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             yours
           </span>
         </div>
       </div>
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `✗ ${verdict.pairsJoined} / ${puzzle.pairs.length} pairs`}

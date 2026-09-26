@@ -291,12 +291,12 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         <span className={myCorrect ? "text-primary" : "text-warn"}>
           {mine.tilts} {myCorrect ? "✓" : "✗"}
         </span>
-        <span className="ml-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
           tilts{puzzle.minMoves ? ` · min ${puzzle.minMoves}` : ""}
         </span>
       </p>
       {myCorrect ? (
-        <p className="font-mono text-xs text-primary">
+        <p className="font-mono text-base text-primary">
           {solvedMovesText(mine.tilts, puzzle.minMoves ?? 0, myMsRemaining, GRAV_TIME_MS)}
         </p>
       ) : null}

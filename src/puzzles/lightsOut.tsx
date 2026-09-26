@@ -178,12 +178,12 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       <div style={{ width: 190 }}>
         <LightsGrid lights={puzzle.lights} numbers={numbers} gap={8} />
       </div>
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · min{" "}
         {min}
       </p>
       {myCorrect ? (
-        <p className="font-mono text-xs text-primary">
+        <p className="font-mono text-base text-primary">
           {solvedMovesText(mine, min, myMsRemaining, LIGHTS_TIME_MS)}
         </p>
       ) : null}

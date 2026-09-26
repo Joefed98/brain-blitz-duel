@@ -341,10 +341,10 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
           route={route}
         />
       </div>
-      <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         shortest route · {min} move{min === 1 ? "" : "s"}
       </p>
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `✓ ${solvedMovesText(replay.moves, min, myMsRemaining, SLIDE_TIME_MS)}`
           : "✗ Not solved"}

@@ -304,21 +304,21 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const sent = decodeMatchupRun(myAnswer ?? "").events.length;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <svg viewBox="0 0 150 30" className="h-auto w-full max-w-[180px] shrink-0" aria-hidden="true">
         {MATCHUP_COLOURS.map((colour, index) => (
           <circle key={colour} cx={15 + index * 24} cy={15} r={9} fill={colour} />
         ))}
       </svg>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.raw.toLocaleString("en-GB")} pts → {result.score}
       </p>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.swaps} swap{result.swaps === 1 ? "" : "s"} · best line {result.bestLine || "—"}
         {result.reshuffles > 0 ? ` · ${result.reshuffles} reshuffled` : ""}
       </p>
       {sent > result.swaps && (
-        <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           {sent} swaps tried
         </p>
       )}

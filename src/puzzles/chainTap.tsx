@@ -289,7 +289,7 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
           ) : null;
         })}
       </div>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold">
         {replay.chain.length} / {CHAIN_LENGTH} · {replay.errors} error
         {replay.errors === 1 ? "" : "s"}
         {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}

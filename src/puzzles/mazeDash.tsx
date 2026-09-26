@@ -295,7 +295,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
           ghost={puzzle.solution ?? []}
         />
       </div>
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `${Math.round(verdict.progress * 100)}% of the way`}

@@ -60,7 +60,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         <span className="text-primary">{points} points × 3 = {scoreWordHunt(points)}</span> · {mine.length} words
       </p>
 

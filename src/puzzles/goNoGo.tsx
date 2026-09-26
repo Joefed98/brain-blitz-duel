@@ -174,7 +174,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             <div key={index} className="flex items-center justify-center gap-2">
               <ShapeGlyph shape={item.shape} colour={item.colour} size={20} />
               <span
-                className={`font-display text-xs font-bold ${ok ? "text-primary" : "text-warn"}`}
+                className={`font-display text-base font-bold ${ok ? "text-primary" : "text-warn"}`}
               >
                 {ok ? "✓" : "✗"}
               </span>
@@ -183,7 +183,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         })}
       </div>
       {averageHitMs !== null && (
-        <p className="text-center font-mono text-xs text-muted-foreground">avg {averageHitMs} ms</p>
+        <p className="text-center font-mono text-base text-muted-foreground">avg {averageHitMs} ms</p>
       )}
     </div>
   );

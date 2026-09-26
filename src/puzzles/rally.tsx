@@ -248,7 +248,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const drags = decodeRallyRun(myAnswer ?? "").events.length;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex shrink-0 flex-col items-center gap-2">
         <span className="h-3 w-3 rounded-full" style={{ background: RALLY_BALL }} />
         <span
@@ -256,11 +256,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           style={{ background: RALLY_GOLD, width: result.paddleWidth }}
         />
       </div>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.goldHits} gold hit{result.goldHits === 1 ? "" : "s"} × 3 ·{" "}
         {result.survived ? "survived" : `lost at ${result.endedSeconds.toFixed(1)}s`}
       </p>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {drags} paddle moves · same ball for everyone
       </p>
     </div>

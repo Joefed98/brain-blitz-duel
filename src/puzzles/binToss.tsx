@@ -399,14 +399,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const throws = decodeBinTossRun(myAnswer ?? "").events.length;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex shrink-0 justify-center gap-1.5">
         {Array.from({ length: BINTOSS_THROWS }, (_, index) => {
           const scored = result.results[index];
           return (
             <span
               key={index}
-              className="font-mono text-sm font-bold"
+              className="font-mono text-base font-bold"
               style={{
                 color:
                   scored === true
@@ -421,10 +421,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           );
         })}
       </div>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.baskets} / {result.throws} in
       </p>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {throws} throw{throws === 1 ? "" : "s"} taken · same winds for everyone
       </p>
     </div>
