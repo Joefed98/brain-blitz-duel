@@ -138,7 +138,7 @@ export function BlockBoard({
           }}
           aria-hidden="true"
         >
-          <span className="block h-2.5 w-2.5 rounded-full border-2 border-primary bg-background" />
+           <span className="block h-5 w-5 max-h-[80%] max-w-[80%] rounded-full border-2 border-primary bg-background" />
         </div>
       ))}
 

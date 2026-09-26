@@ -183,7 +183,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         ) : live ? (
           <span className="font-display text-4xl font-bold text-primary-foreground">TAP!</span>
         ) : waiting ? (
-          <span className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+           <span className="font-mono text-[21px] uppercase tracking-widest text-muted-foreground">
             Wait for gold…
           </span>
         ) : null}

@@ -172,7 +172,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
           pusher={replay.state.pusher}
         />
       </div>
-      <ArrowPad onPress={step} disabled={locked || replay.solved} />
+       <ArrowPad onPress={step} disabled={locked || replay.solved} size={204} buttonSize={60} />
       <div className="flex shrink-0 justify-center gap-2">
         <button
           type="button"
