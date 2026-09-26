@@ -83,13 +83,7 @@ function Grid({
         return (
           <div
             key={index}
-            className={`flex items-center justify-center rounded-md border-2 bg-card ${
-              marked === index
-                ? "border-primary"
-                : wrong === index
-                  ? "animate-shake border-warn"
-                  : "border-transparent"
-            }`}
+             className={`relative flex items-center justify-center rounded-md border-2 bg-card ${wrong === index ? "animate-shake border-warn" : "border-transparent"}`}
           >
             {cell ? (
               <CellGlyph
@@ -97,6 +91,7 @@ function Grid({
                 size={compact ? Math.max(13, 38 / size) : Math.round(280 / size) * 0.7}
               />
             ) : null}
+             {marked === index && <span className="pointer-events-none absolute inset-[4%] rounded-full border-2 border-primary" aria-label="Changed cell" />}
           </div>
         );
       })}
@@ -326,17 +321,19 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <div className="grid w-full max-w-[360px] shrink-0 grid-cols-3 items-start gap-1.5">
+       <div className="grid w-full max-w-[480px] shrink-0 grid-cols-1 items-start gap-2 min-[375px]:grid-cols-3">
         {puzzle.boards.map((board, index) => {
-          const ok = (taps[index] ?? []).includes(answers[index]!);
+           const tap = taps[index]?.[0];
+           const ok = tap === answers[index];
           return (
-            <div key={index} className="flex min-w-0 flex-col items-center gap-1">
-              <Grid size={board.size} cells={board.after} marked={answers[index]!} compact />
-              <span
-                className={`font-display text-lg font-bold ${ok ? "text-primary" : "text-warn"}`}
-              >
-                {ok ? "✓" : "✗"}
-              </span>
+             <div key={index} className="flex min-w-0 flex-col items-center gap-0.5">
+               <span className="font-mono text-base text-muted-foreground">Board {index + 1} · original</span>
+               <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.cells} compact /></div>
+               <span aria-hidden="true" className="text-lg leading-none text-primary">↓</span>
+               <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.after} marked={answers[index]} wrong={tap !== answers[index] ? tap : null} compact /></div>
+               <span className={`font-mono text-base ${ok ? "text-primary" : "text-warn"}`}>
+                 {tap === undefined ? "No tap" : ok ? "Your tap ✓" : "Your tap ✗"}
+               </span>
             </div>
           );
         })}

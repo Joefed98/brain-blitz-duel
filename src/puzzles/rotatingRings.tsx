@@ -309,6 +309,13 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         offsets={puzzle.solution || replay.solved ? solvedOffsets : freshOffsets()}
         size={200}
       />
+       <p className="font-mono text-base text-muted-foreground">Solved rings</p>
+       {!replay.solved && (
+         <>
+           <Rings segments={puzzle.segments} offsets={replay.offsets} size={160} />
+           <p className="font-mono text-base text-muted-foreground">Your result</p>
+         </>
+       )}
       <p
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
@@ -316,6 +323,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
           ? solvedMovesText(replay.moves, min, myMsRemaining, RINGS_TIME_MS)
           : `${replay.aligned} / ${RINGS_SEGMENTS} spokes`}
       </p>
+       {!replay.solved && <p className="font-mono text-base text-muted-foreground">{replay.moves} moves · min {min}</p>}
     </div>
   );
 }

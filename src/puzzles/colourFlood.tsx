@@ -180,11 +180,12 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <Board grid={replay.grid} cell={20} />
+       <p className="text-center font-mono text-base text-muted-foreground">{replay.moves} moves · par {puzzle.par}</p>
       <p
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
-        {replay.solved
-          ? solvedMovesText(replay.moves, puzzle.par, myMsRemaining, FLOOD_TIME_MS)
+         {replay.solved
+           ? `Solved · ${solvedMovesText(replay.moves, puzzle.par, myMsRemaining, FLOOD_TIME_MS)}`
           : `${replay.region} / ${FLOOD_CELLS} cells`}
       </p>
     </div>
