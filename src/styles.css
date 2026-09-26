@@ -257,6 +257,10 @@
   overflow-wrap: anywhere;
 }
 
+.answer-reveal-content :is(.text-xs, .text-sm) {
+  font-size: 1rem;
+}
+
 .answer-reveal-content > * {
   flex-shrink: 0;
   max-width: 100%;
