@@ -222,7 +222,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "ricochet") return null;
   const result = replayRicoRun(puzzle.seed, myAnswer ?? "");
-  const leaps = decodeRicoRun(myAnswer ?? "").inputs.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -241,7 +240,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             : `slid down at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {leaps} leap{leaps === 1 ? "" : "s"} · same shaft for everyone
+        Same shaft for everyone
       </p>
     </div>
   );

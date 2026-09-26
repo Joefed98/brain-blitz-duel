@@ -251,7 +251,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "steady") return null;
   const result = replaySteadyRun(puzzle.seed, myAnswer ?? "");
-  const drags = decodeSteadyRun(myAnswer ?? "").events.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -264,7 +263,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.metres} m · {result.touches} touch{result.touches === 1 ? "" : "es"}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {drags} moves · same track for everyone
+        Same track for everyone
         {result.clean ? " · no touches" : ""}
       </p>
     </div>

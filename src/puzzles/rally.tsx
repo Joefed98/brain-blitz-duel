@@ -245,7 +245,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "rally") return null;
   const result = replayRallyRun(puzzle.seed, myAnswer ?? "");
-  const drags = decodeRallyRun(myAnswer ?? "").events.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -261,7 +260,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.survived ? "survived" : `lost at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {drags} paddle moves · same ball for everyone
+        Same ball for everyone
       </p>
     </div>
   );

@@ -222,7 +222,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "dual") return null;
   const result = replayDualRun(puzzle.seed, myAnswer ?? "");
-  const taps = decodeDualRun(myAnswer ?? "").events.length;
   const side = result.crashedSide === 0 ? "left" : "right";
 
   return (
@@ -241,7 +240,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         · {result.passed} passed
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {taps} jump{taps === 1 ? "" : "s"} · same course for everyone
+        Same course for everyone
       </p>
     </div>
   );

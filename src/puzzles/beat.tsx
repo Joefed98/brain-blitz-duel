@@ -253,7 +253,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "beat") return null;
   const result = replayBeatRun(puzzle.seed, myAnswer ?? "");
-  const taps = decodeBeatRun(myAnswer ?? "").events.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -271,7 +270,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.misses === 1 ? "" : "es"}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        best combo {result.maxCombo} · {taps} tap{taps === 1 ? "" : "s"}
+        best combo {result.maxCombo}
         {result.strays > 0 ? ` · ${result.strays} stray` : ""}
       </p>
       <p className="shrink-0 font-mono text-base" style={{ color: BEAT_GOLD }}>

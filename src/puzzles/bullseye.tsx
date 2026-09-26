@@ -352,19 +352,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.total} / 100 rings → {result.score} pts
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {shots} of {BULLSEYE_ARROWS} arrows · {result.inner} in the gold/red
+        {shots} of {BULLSEYE_ARROWS} arrows
       </p>
-      {result.hits.length > 0 && (
-        <div className="grid max-w-[280px] grid-cols-2 gap-x-4 gap-y-1 font-mono text-base text-muted-foreground">
-          {result.hits.map((hit) => (
-            <span key={hit.arrow}>
-              {hit.arrow + 1}:{" "}
-              {hit.wind === 0 ? "wind 0" : `${hit.wind < 0 ? "←" : "→"} ${Math.abs(hit.wind)}`} ·{" "}
-              {hit.x},{hit.y}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

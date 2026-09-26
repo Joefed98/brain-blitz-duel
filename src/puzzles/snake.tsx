@@ -264,7 +264,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "snake") return null;
   const result = replaySnakeRun(puzzle.seed, myAnswer ?? "");
-  const turns = decodeSnakeRun(myAnswer ?? "").events.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -276,14 +275,13 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             style={{ background: index === 0 ? SNAKE_HEAD : SNAKE_BODY }}
           />
         ))}
-        <span className="ml-1 h-3 w-3 rounded-full" style={{ background: SNAKE_PELLET }} />
       </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.pellets} pellet{result.pellets === 1 ? "" : "s"} ·{" "}
         {result.survived ? "survived" : `crashed at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {turns} turn{turns === 1 ? "" : "s"} · same food for everyone
+        Same food for everyone
       </p>
     </div>
   );
