@@ -27,6 +27,7 @@ import {
   BRK_POWER_SPAM,
   BRK_RUN_TICKS,
   BRK_TEAL,
+  BRK_WALL,
   BRK_WORLD_H,
   BRK_WORLD_W,
   type BrkState,
@@ -299,7 +300,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div
       ref={wrap}
-      className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl border-2 border-arcade-frame"
+      className="relative min-h-0 w-full flex-1 overflow-hidden"
       style={NO_SCROLL_STYLE}
     >
       <canvas
@@ -324,6 +325,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerMove={track}
         onPointerUp={release}
         onPointerCancel={release}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute rounded-sm border-2 border-arcade-frame"
+        style={{
+          left: `calc(50% + ${(BRK_WALL - BRK_WORLD_W / 2) / BRK_WORLD_W} * min(100%, ${BRK_WORLD_W / BRK_WORLD_H} * 100%))`,
+          right: `calc(50% + ${(BRK_WALL - BRK_WORLD_W / 2) / BRK_WORLD_W} * min(100%, ${BRK_WORLD_W / BRK_WORLD_H} * 100%))`,
+          top: `calc(50% - ${(BRK_WORLD_H / 2 - BRK_WALL) / BRK_WORLD_H} * min(100%, ${BRK_WORLD_H / BRK_WORLD_W} * 100%))`,
+          bottom: `calc(50% - ${(BRK_WORLD_H / 2 - BRK_WALL) / BRK_WORLD_H} * min(100%, ${BRK_WORLD_H / BRK_WORLD_W} * 100%))`,
+        }}
       />
       {heldView > 0 && buttonStyle && (
         <button
