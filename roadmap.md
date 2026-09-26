@@ -1,5 +1,12 @@
 # Roadmap
 
+## Presentation and tuning (Sep 26)
+
+- [x] Reaction waiting text enlarged; Count Up filled 8×7 board with unchanged answer range.
+- [x] Maze Dash, Ice Slide and Push arrow pads enlarged with non-overlapping diamond spacing; Spin answer boxes enlarged; Block Party pegs doubled.
+- [x] Intruder before/after comparison with marked change and tap; Rings and Colour Flood reveals stacked vertically.
+- [x] Validate code and preview build without browser tests.
+
 ## Ricochet, Dual and home copy (Sep 24)
 
 - [x] Ricochet scores floor(2 × metres), capped at 150; help and reveals reflect it.

@@ -54,7 +54,7 @@ function Field({
 }) {
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-lg border border-border bg-card ${height ? "" : "aspect-[8/7] max-h-full"}`}
+      className={`relative w-full overflow-hidden rounded-lg border border-border bg-card ${height ? "" : "aspect-[8/7] min-h-[280px] shrink-0"}`}
       style={height ? { height } : undefined}
     >
       {shapes.map((item, index) => {
@@ -125,7 +125,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       keypad
       onSubmit={onSubmit}
     >
-        <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+       <div className="flex min-h-0 w-full flex-1 items-start justify-center overflow-y-auto">
          <Field shapes={puzzle.shapes} size={27} />
       </div>
     </NumberEntry>
