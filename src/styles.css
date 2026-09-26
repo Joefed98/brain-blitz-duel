@@ -251,6 +251,18 @@
   }
 }
 
+.answer-reveal-content p,
+.answer-reveal-content li,
+.answer-reveal-content span {
+  font-size: max(1rem, 1em);
+  overflow-wrap: anywhere;
+}
+
+.answer-reveal-content > * {
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
 @keyframes draw-stroke {
   0% {
     stroke-dashoffset: var(--draw-length, 60);
