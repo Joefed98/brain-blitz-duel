@@ -81,7 +81,7 @@ export function NumberEntry({
 
         {keypad ? (
           <div className="flex flex-col gap-1.5">
-            <div className="grid grid-cols-11 gap-1">
+            <div className={compactKeypad ? "grid grid-cols-11 gap-0.5" : "grid grid-cols-11 gap-1"}>
               {KEYS.map((key) => (
                 <button
                   key={key}
@@ -96,7 +96,7 @@ export function NumberEntry({
                     }
                     setValue((prev) => (prev.length >= maxLength ? prev : prev + key));
                   }}
-                  className="h-10 rounded-lg border border-border bg-card font-display text-base font-bold text-foreground disabled:opacity-40"
+                  className={`${compactKeypad ? "h-9" : "h-10"} rounded-lg border border-border bg-card font-display text-base font-bold text-foreground disabled:opacity-40`}
                 >
                   {key}
                 </button>
