@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { GLYPH_COLOURS, ShapeGlyph } from "@/components/duel/ShapeGlyph";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
@@ -47,12 +48,14 @@ function Field({
   height,
   size = 22,
   play = false,
+  cellSize,
 }: {
   shapes: CountUpShape[];
   highlight?: { shape: GlyphShape; colour: GlyphColour };
   height?: number;
   size?: number;
   play?: boolean;
+  cellSize?: number;
 }) {
   return (
     <div
@@ -77,7 +80,7 @@ function Field({
               boxShadow: lit ? `0 0 0 2px ${GLYPH_COLOURS.GOLD}` : undefined,
             }}
           >
-            <ShapeGlyph shape={item.shape} colour={item.colour} size={size} />
+            <ShapeGlyph shape={item.shape} colour={item.colour} size={cellSize ? Math.min(size, cellSize - 8) : size} />
           </span>
         );
       })}
@@ -117,7 +120,21 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
+  const spaceRef = useRef<HTMLDivElement>(null);
+  const [space, setSpace] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const node = spaceRef.current;
+    if (!node) return;
+    const measure = () => setSpace({ width: node.clientWidth, height: node.clientHeight });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   if (puzzle.type !== "countup") return null;
+  const columns = COUNTUP_COLS;
+  const rows = COUNTUP_ROWS;
+  const cellSize = Math.min((space.width - 2 - (columns - 1) * 4) / columns, (space.height - 2 - (rows - 1) * 4) / rows);
   return (
     <NumberEntry
       label={countUpQuestion(puzzle.targetColour, puzzle.targetShape)}
@@ -128,8 +145,8 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       keypad
       onSubmit={onSubmit}
     >
-       <div className="flex min-h-0 w-full flex-1 items-stretch justify-center">
-          <Field shapes={puzzle.shapes} size={24} play />
+       <div ref={spaceRef} className="flex min-h-0 w-full flex-1 items-stretch justify-center">
+          <Field shapes={puzzle.shapes} size={Math.max(18, Math.min(28, cellSize - 8))} cellSize={cellSize} play />
       </div>
     </NumberEntry>
   );
