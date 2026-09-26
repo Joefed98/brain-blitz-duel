@@ -132,9 +132,12 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
     return () => observer.disconnect();
   }, []);
   if (puzzle.type !== "countup") return null;
-  const columns = COUNTUP_COLS;
-  const rows = COUNTUP_ROWS;
-  const cellSize = Math.min((space.width - 2 - (columns - 1) * 4) / columns, (space.height - 2 - (rows - 1) * 4) / rows);
+  // Measured between the question and keypad. Keep the eight rows visible
+  // even when the timer/score strip or phone safe areas change the height.
+  const cellSize = Math.min(
+    (space.width - 2 - (COUNTUP_COLS - 1) * 4) / COUNTUP_COLS,
+    (space.height - 2 - (COUNTUP_ROWS - 1) * 4) / COUNTUP_ROWS,
+  );
   return (
     <NumberEntry
       label={countUpQuestion(puzzle.targetColour, puzzle.targetShape)}
@@ -145,7 +148,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       keypad
       onSubmit={onSubmit}
     >
-       <div ref={spaceRef} className="flex min-h-0 w-full flex-1 items-stretch justify-center">
+      <div ref={spaceRef} className="flex min-h-0 w-full flex-1 items-stretch justify-center">
           <Field shapes={puzzle.shapes} size={Math.max(18, Math.min(28, cellSize - 8))} cellSize={cellSize} play />
       </div>
     </NumberEntry>
