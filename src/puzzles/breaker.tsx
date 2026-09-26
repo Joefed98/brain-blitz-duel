@@ -326,16 +326,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerUp={release}
         onPointerCancel={release}
       />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute rounded-sm border-2 border-arcade-frame"
-        style={{
-          left: `calc(50% + ${(BRK_WALL - BRK_WORLD_W / 2) / BRK_WORLD_W} * min(100%, ${BRK_WORLD_W / BRK_WORLD_H} * 100%))`,
-          right: `calc(50% + ${(BRK_WALL - BRK_WORLD_W / 2) / BRK_WORLD_W} * min(100%, ${BRK_WORLD_W / BRK_WORLD_H} * 100%))`,
-          top: `calc(50% - ${(BRK_WORLD_H / 2 - BRK_WALL) / BRK_WORLD_H} * min(100%, ${BRK_WORLD_H / BRK_WORLD_W} * 100%))`,
-          bottom: `calc(50% - ${(BRK_WORLD_H / 2 - BRK_WALL) / BRK_WORLD_H} * min(100%, ${BRK_WORLD_H / BRK_WORLD_W} * 100%))`,
-        }}
-      />
       {heldView > 0 && buttonStyle && (
         <button
           type="button"
