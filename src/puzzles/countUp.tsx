@@ -54,8 +54,8 @@ function Field({
 }) {
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-lg border border-border bg-card ${height ? "" : "aspect-[8/7] min-h-[280px] shrink-0"}`}
-      style={height ? { height } : undefined}
+      className={`grid w-full min-h-0 overflow-hidden rounded-lg border border-border bg-card ${height ? "" : "h-full"}`}
+      style={{ height: height ?? undefined, gridTemplateColumns: `repeat(${COUNTUP_COLS}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${COUNTUP_ROWS}, minmax(0, 1fr))`, gap: 4 }}
     >
       {shapes.map((item, index) => {
         const lit =
@@ -65,11 +65,10 @@ function Field({
         return (
           <span
             key={index}
-            className="absolute flex items-center justify-center rounded-full"
+            className="flex min-h-0 min-w-0 items-center justify-center rounded-full"
             style={{
-              left: `${item.x}%`,
-              top: `${item.y}%`,
-              transform: "translate(-50%, -50%)",
+              gridColumn: Math.min(COUNTUP_COLS, Math.floor(item.x * COUNTUP_COLS / 100) + 1),
+              gridRow: Math.min(COUNTUP_ROWS, Math.floor(item.y * COUNTUP_ROWS / 100) + 1),
               padding: lit ? 3 : 0,
               boxShadow: lit ? `0 0 0 2px ${GLYPH_COLOURS.GOLD}` : undefined,
             }}
@@ -125,8 +124,8 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       keypad
       onSubmit={onSubmit}
     >
-       <div className="flex min-h-0 w-full flex-1 items-start justify-center overflow-y-auto">
-         <Field shapes={puzzle.shapes} size={27} />
+       <div className="flex min-h-0 w-full flex-1 items-stretch justify-center">
+          <Field shapes={puzzle.shapes} size={24} />
       </div>
     </NumberEntry>
   );
