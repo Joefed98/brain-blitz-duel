@@ -15,6 +15,7 @@ export interface GravityBalls {
 }
 
 export function gravityStep(cell: number, dir: GravityDir): number | null {
+  if (dir === "X" || dir === "Y") return null;
   const row = Math.floor(cell / N);
   const col = cell % N;
   if (dir === "U") return row > 0 ? cell - N : null;

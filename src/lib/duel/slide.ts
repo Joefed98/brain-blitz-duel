@@ -10,6 +10,7 @@ import { SLIDE_CELLS, SLIDE_COLS as N, type SlideArrow, type SlideDir } from "./
 export const SLIDE_DIRS: SlideDir[] = ["U", "D", "L", "R"];
 
 export function slideStep(cell: number, dir: SlideDir): number | null {
+  if (dir === "X" || dir === "Y") return null;
   const row = Math.floor(cell / N);
   const col = cell % N;
   if (dir === "U") return row > 0 ? cell - N : null;

@@ -272,7 +272,7 @@ function Stage({
         <button
           type="button"
           disabled={locked || !moves.length}
-          onClick={() => setMoves((current) => [...current, "X" as SlideDir])}
+          onClick={() => setMoves((current) => [...current, "X"])}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Undo
@@ -280,7 +280,7 @@ function Stage({
         <button
           type="button"
           disabled={locked || !moves.length}
-          onClick={() => setMoves((current) => [...current, "Y" as SlideDir])}
+          onClick={() => setMoves((current) => [...current, "Y"])}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset
