@@ -155,8 +155,10 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   );
 }
 
-export function buildWordMatch(): WordMatchPuzzleData {
-  const entries = shuffled(WORD_PAIRS).slice(0, WORDMATCH_ITEMS);
+export function buildWordMatch(recentWords: string[] = []): WordMatchPuzzleData {
+  const excluded = new Set(recentWords.map((word) => word.toLowerCase()));
+  const eligible = WORD_PAIRS.filter(([head]) => !excluded.has(head.toLowerCase()));
+  const entries = shuffled(eligible.length >= WORDMATCH_ITEMS ? eligible : WORD_PAIRS).slice(0, WORDMATCH_ITEMS);
   const items: WordMatchItem[] = [];
   const answers: number[] = [];
 
