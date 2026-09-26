@@ -1,5 +1,11 @@
 # Roadmap
 
+## Three presentation fixes (Sep 26)
+
+- [x] Add a gold Wordsmith Submit control beside Undo and Shuffle without removing box-tap or Enter submission.
+- [x] Fit Count Up's filled board within the measured phone width and height with visible side gutters.
+- [x] Move Bin Toss and Bullseye wind displays onto a clear line below their headings, above the bin and target.
+
 ## Phone presentation fixes (Sep 26)
 
 - [x] Replace the four-direction pads with a compact 56 × 44 px row, 16 px gaps, beneath Push, Maze Dash, Ice Slide and Gravity Maze boards.

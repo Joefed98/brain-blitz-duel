@@ -411,7 +411,8 @@ export function bullseyeDrawTarget(ctx: CanvasRenderingContext2D, scalePct: numb
 
 function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   const centreX = BULLSEYE_WORLD_W / 2;
-  const y = 66;
+   // Separate wind line below the 19.5px HUD, still above the target's top.
+   const y = 84;
   ctx.save();
   ctx.strokeStyle = wind === 0 ? "#F7F7F855" : BULLSEYE_GOLD;
   ctx.lineWidth = 2.8;

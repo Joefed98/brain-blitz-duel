@@ -1,5 +1,6 @@
 import { playCorrect, playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 import {
   WORDSMITH_MIN_LENGTH,
@@ -227,27 +228,37 @@ export function WordsmithPuzzle({
       />
       {message && <p className="text-center font-mono text-xs text-warn">{message}</p>}
 
-      <div className="flex gap-2">
-        <button
+       <div className="flex gap-2">
+         <Button
           type="button"
+           variant="outline"
           onClick={() => setSelectedTiles((current) => current.slice(0, -1))}
           disabled={locked || word.length === 0}
-          className="press tap-target rounded-xl border border-border bg-card px-3 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground disabled:opacity-35"
+           className="press tap-target h-11 rounded-xl border-border bg-card px-3 font-display text-xs font-semibold uppercase text-muted-foreground disabled:opacity-35"
         >
           Undo
-        </button>
-        <button
+         </Button>
+         <Button
           type="button"
+           variant="outline"
           onClick={() => {
             setSelectedTiles([]);
             setOrder((current) => [...current].sort(() => Math.random() - 0.5));
             inputRef.current?.blur();
           }}
           disabled={locked}
-          className="press tap-target rounded-xl border border-border bg-card px-4 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+           className="press tap-target h-11 rounded-xl border-border bg-card px-4 font-display text-xs font-semibold uppercase text-muted-foreground"
         >
           Shuffle
-        </button>
+         </Button>
+         <Button
+           type="button"
+           onClick={() => void trySubmit()}
+           disabled={locked || busy || word.length === 0}
+           className="press tap-target ml-auto h-11 rounded-xl px-4 font-display text-xs font-semibold uppercase disabled:opacity-35"
+         >
+           Submit
+         </Button>
       </div>
     </div>
   );

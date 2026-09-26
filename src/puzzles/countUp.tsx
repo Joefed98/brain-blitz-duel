@@ -59,8 +59,8 @@ function Field({
 }) {
   return (
     <div
-      className={`${play ? "grid h-full min-h-0" : "relative"} w-full overflow-hidden rounded-lg border border-border bg-card`}
-      style={play ? { gridTemplateColumns: `repeat(${COUNTUP_COLS}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${COUNTUP_ROWS}, minmax(0, 1fr))`, gap: 4 } : { height }}
+       className={`${play ? "grid shrink-0" : "relative w-full"} overflow-hidden rounded-lg border border-border bg-card`}
+       style={play ? { width: (cellSize ?? 0) * COUNTUP_COLS + 4 * (COUNTUP_COLS - 1) + 2, height: (cellSize ?? 0) * COUNTUP_ROWS + 4 * (COUNTUP_ROWS - 1) + 2, gridTemplateColumns: `repeat(${COUNTUP_COLS}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${COUNTUP_ROWS}, minmax(0, 1fr))`, gap: 4 } : { height }}
     >
       {shapes.map((item, index) => {
         const lit =
@@ -132,12 +132,12 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
     return () => observer.disconnect();
   }, []);
   if (puzzle.type !== "countup") return null;
-  // Measured between the question and keypad. Keep the eight rows visible
-  // even when the timer/score strip or phone safe areas change the height.
-  const cellSize = Math.min(
-    (space.width - 2 - (COUNTUP_COLS - 1) * 4) / COUNTUP_COLS,
-    (space.height - 2 - (COUNTUP_ROWS - 1) * 4) / COUNTUP_ROWS,
-  );
+   // The board is sized from the visible slot, not from the padded screen width.
+   // At 343px usable, eight 36px+ cells with 4px gaps fit without cropping.
+   const cellSize = Math.max(0, Math.floor(Math.min(
+     (space.width - 2 - (COUNTUP_COLS - 1) * 4) / COUNTUP_COLS,
+     (space.height - 2 - (COUNTUP_ROWS - 1) * 4) / COUNTUP_ROWS,
+   )));
   return (
     <NumberEntry
       label={countUpQuestion(puzzle.targetColour, puzzle.targetShape)}
@@ -149,8 +149,8 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       compactKeypad
       onSubmit={onSubmit}
     >
-      <div ref={spaceRef} className="-mx-5 flex min-h-0 w-[calc(100%+2.5rem)] flex-1 items-stretch justify-center">
-          <Field shapes={puzzle.shapes} size={Math.max(18, Math.min(28, cellSize - 8))} cellSize={cellSize} play />
+       <div ref={spaceRef} className="-mx-1 flex min-h-0 w-[calc(100%+0.5rem)] flex-1 items-center justify-center overflow-hidden">
+         {cellSize > 0 && <Field shapes={puzzle.shapes} size={Math.min(28, cellSize - 8)} cellSize={cellSize} play />}
       </div>
     </NumberEntry>
   );
