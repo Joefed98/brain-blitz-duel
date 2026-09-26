@@ -139,7 +139,7 @@ export function AnswerReveal({
   }, [round, myCorrect]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
       <div className="flex items-baseline justify-between">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           Round {round} of {TOTAL_ROUNDS}
@@ -147,14 +147,14 @@ export function AnswerReveal({
         <span className="font-mono text-xs text-muted-foreground">{secondsLeft}s</span>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
+      <div className="flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto">
         {!puzzleOwnsRevealLayout ? <Verdict correct={myCorrect} /> : null}
         {!puzzleOwnsRevealLayout ? (
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
             {def.revealHeading ?? "The answer was"}
           </p>
         ) : null}
-        <div className="answer-reveal-content flex min-h-0 w-full flex-col items-center justify-center overflow-hidden animate-rise-settle">
+        <div className="answer-reveal-content flex w-full min-h-0 flex-col items-center justify-start overflow-y-auto text-base animate-rise-settle">
           {answersReady ? (
             <Reveal
               puzzle={puzzle}

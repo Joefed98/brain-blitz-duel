@@ -139,7 +139,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="text-center font-mono text-3xl font-bold tabular-nums text-primary">
         {correct} / {puzzle.items.length} correct
       </p>
-      <div className="grid w-full grid-cols-2 gap-x-3 gap-y-1">
+      <div className="flex w-full flex-col gap-2">
         {puzzle.items.map((item, index) => {
           const answerIndex = answers[index] ?? -1;
           const tap = taps[index];
@@ -147,13 +147,13 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           return (
             <div
               key={index}
-              className="flex min-w-0 items-center justify-between gap-1 text-[11px]"
+              className="flex min-w-0 flex-col items-center gap-0.5 border-b border-border pb-1 text-center font-mono text-base"
             >
-              <span className="truncate font-mono tabular-nums">{item.question}</span>
-              <span className="flex items-center gap-1 font-mono tabular-nums">
+              <span className="w-full break-words tabular-nums">{item.question}</span>
+              <span className="flex flex-wrap items-center justify-center gap-1 tabular-nums">
                 <span className="text-primary">{item.options[answerIndex] ?? "—"}</span>
                 {tap === undefined ? (
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="text-muted-foreground">—</span>
                 ) : (
                   <span className={`font-display font-bold ${got ? "text-primary" : "text-warn"}`}>
                     {got ? "✓" : `✗ ${item.options[tap] ?? ""}`}

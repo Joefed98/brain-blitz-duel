@@ -129,18 +129,18 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
       <p className="text-center font-mono text-sm text-muted-foreground">
         {correct === puzzle.items.length ? "100 + speed" : `${correct} × 13 (max 90)`} = {scoreWordMatch(correct, myMsRemaining ?? 0)} points
       </p>
-      <div className="grid w-full grid-cols-2 gap-x-3 gap-y-1">
+      <div className="flex w-full flex-col gap-1">
         {puzzle.items.map((item, index) => {
           const answerIndex = answers[index] ?? -1;
           const tap = taps[index];
           const got = tap === answerIndex;
           return (
-            <div key={index} className="flex min-w-0 items-center justify-between gap-1 text-xs">
-              <span className="truncate font-display font-bold uppercase">{item.prompt}</span>
-              <span className="flex min-w-0 items-center gap-1">
+            <div key={index} className="flex min-w-0 flex-wrap items-center justify-between gap-1 border-b border-border py-1 text-base">
+              <span className="font-display font-bold uppercase">{item.prompt}</span>
+              <span className="flex min-w-0 flex-wrap items-center gap-1">
                 <span className="text-primary">{item.options[answerIndex] ?? "—"}</span>
                 {tap === undefined ? (
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="text-muted-foreground">—</span>
                 ) : (
                   <span className={`font-display font-bold ${got ? "text-primary" : "text-warn"}`}>
                     {got ? "✓" : `✗ ${item.options[tap] ?? ""}`}
