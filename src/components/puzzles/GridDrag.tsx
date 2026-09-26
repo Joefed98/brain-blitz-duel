@@ -530,8 +530,8 @@ export function ArrowPad({
   onPress,
   disabled = false,
   repeatMs,
-  size = 132,
-  buttonSize = 44,
+  size = 200,
+  buttonSize = 60,
 }: {
   onPress: (dir: "U" | "D" | "L" | "R") => void;
   disabled?: boolean;

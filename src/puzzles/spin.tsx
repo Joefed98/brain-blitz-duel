@@ -170,34 +170,34 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   const item = puzzle.items[index];
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
+     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <RunProgress total={puzzle.items.length} done={picks.length} />
       {item ? (
-        <div className="flex flex-1 flex-col items-center justify-between gap-5">
-          <div className="flex flex-col items-center gap-3">
+         <div className="flex min-h-0 flex-1 flex-col items-center justify-between gap-3">
+           <div className="flex min-h-0 flex-col items-center gap-2">
             <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
               {index + 1} of {puzzle.items.length}
             </p>
-            <div className="flex items-end justify-center gap-3">
+             <div className="flex min-h-0 items-end justify-center gap-3 [&_svg]:max-h-full">
               {(() => {
                 const box = Math.max(boxSize(item.target), boxSize(item.shown));
                 return (
                   <>
-                    <ColourShape shape={item.target} size={150} box={box} />
-                    <ColourShape shape={item.shown} size={150} box={box} />
+                     <ColourShape shape={item.target} size={150} box={box} />
+                     <ColourShape shape={item.shown} size={150} box={box} />
                   </>
                 );
               })()}
             </div>
           </div>
-          <div className="grid w-full grid-cols-2 gap-3">
+           <div className="grid w-full shrink-0 grid-cols-2 gap-3">
             {SPIN_TRANSFORMS.map((t) => (
               <button
                 key={t}
                 type="button"
                 disabled={locked}
                 onClick={() => setPicks((prev) => [...prev, t])}
-                className="min-h-[56px] rounded-2xl bg-card font-mono text-base font-bold text-foreground active:scale-95"
+                 className="min-h-[73px] rounded-lg bg-card font-mono text-xl font-bold text-foreground active:scale-95"
               >
                 <SpinLabel transform={t} />
               </button>
