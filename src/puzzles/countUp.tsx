@@ -148,7 +148,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       keypad
       onSubmit={onSubmit}
     >
-      <div ref={spaceRef} className="flex min-h-0 w-full flex-1 items-stretch justify-center">
+      <div ref={spaceRef} className="-mx-5 flex min-h-0 w-[calc(100%+2.5rem)] flex-1 items-stretch justify-center">
           <Field shapes={puzzle.shapes} size={Math.max(18, Math.min(28, cellSize - 8))} cellSize={cellSize} play />
       </div>
     </NumberEntry>
