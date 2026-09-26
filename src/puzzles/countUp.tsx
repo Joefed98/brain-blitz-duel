@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { GLYPH_COLOURS, ShapeGlyph } from "@/components/duel/ShapeGlyph";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
@@ -46,16 +47,20 @@ function Field({
   highlight,
   height,
   size = 22,
+  play = false,
+  cellSize,
 }: {
   shapes: CountUpShape[];
   highlight?: { shape: GlyphShape; colour: GlyphColour };
   height?: number;
   size?: number;
+  play?: boolean;
+  cellSize?: number;
 }) {
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-lg border border-border bg-card ${height ? "" : "aspect-[8/7] min-h-[280px] shrink-0"}`}
-      style={height ? { height } : undefined}
+      className={`${play ? "grid h-full min-h-0" : "relative"} w-full overflow-hidden rounded-lg border border-border bg-card`}
+      style={play ? { gridTemplateColumns: `repeat(${COUNTUP_COLS}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${COUNTUP_ROWS}, minmax(0, 1fr))`, gap: 4 } : { height }}
     >
       {shapes.map((item, index) => {
         const lit =
@@ -65,16 +70,17 @@ function Field({
         return (
           <span
             key={index}
-            className="absolute flex items-center justify-center rounded-full"
+            className={`${play ? "flex min-h-0 min-w-0 items-center justify-center" : "absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"} rounded-full`}
             style={{
-              left: `${item.x}%`,
-              top: `${item.y}%`,
-              transform: "translate(-50%, -50%)",
+              ...(play ? {
+                gridColumn: Math.min(COUNTUP_COLS, Math.floor(item.x * COUNTUP_COLS / 100) + 1),
+                gridRow: Math.min(COUNTUP_ROWS, Math.floor(item.y * COUNTUP_ROWS / 100) + 1),
+              } : { left: `${item.x}%`, top: `${item.y}%` }),
               padding: lit ? 3 : 0,
-              boxShadow: lit ? `0 0 0 2px ${GLYPH_COLOURS.GOLD}` : undefined,
+              boxShadow: lit ? `inset 0 0 0 2px ${GLYPH_COLOURS.GOLD}` : undefined,
             }}
           >
-            <ShapeGlyph shape={item.shape} colour={item.colour} size={size} />
+            <ShapeGlyph shape={item.shape} colour={item.colour} size={cellSize ? Math.min(size, cellSize - 8) : size} />
           </span>
         );
       })}
@@ -114,7 +120,24 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
+  const spaceRef = useRef<HTMLDivElement>(null);
+  const [space, setSpace] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const node = spaceRef.current;
+    if (!node) return;
+    const measure = () => setSpace({ width: node.clientWidth, height: node.clientHeight });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   if (puzzle.type !== "countup") return null;
+  // Measured between the question and keypad. Keep the eight rows visible
+  // even when the timer/score strip or phone safe areas change the height.
+  const cellSize = Math.min(
+    (space.width - 2 - (COUNTUP_COLS - 1) * 4) / COUNTUP_COLS,
+    (space.height - 2 - (COUNTUP_ROWS - 1) * 4) / COUNTUP_ROWS,
+  );
   return (
     <NumberEntry
       label={countUpQuestion(puzzle.targetColour, puzzle.targetShape)}
@@ -123,10 +146,11 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       maxLength={2}
       placeholder="How many?"
       keypad
+      compactKeypad
       onSubmit={onSubmit}
     >
-       <div className="flex min-h-0 w-full flex-1 items-start justify-center overflow-y-auto">
-         <Field shapes={puzzle.shapes} size={27} />
+      <div ref={spaceRef} className="-mx-5 flex min-h-0 w-[calc(100%+2.5rem)] flex-1 items-stretch justify-center">
+          <Field shapes={puzzle.shapes} size={Math.max(18, Math.min(28, cellSize - 8))} cellSize={cellSize} play />
       </div>
     </NumberEntry>
   );

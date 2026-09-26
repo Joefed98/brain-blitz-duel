@@ -523,21 +523,17 @@ export function useSwipe(
 }
 
 /**
- * The four arrow buttons in a diamond, within thumb reach. With `repeatMs` the
+ * The four arrow buttons in a compact row, within thumb reach. With `repeatMs` the
  * direction keeps firing while the button is held down.
  */
 export function ArrowPad({
   onPress,
   disabled = false,
   repeatMs,
-  size = 204,
-  buttonSize = 60,
 }: {
   onPress: (dir: "U" | "D" | "L" | "R") => void;
   disabled?: boolean;
   repeatMs?: number | undefined;
-  size?: number;
-  buttonSize?: number;
 }) {
   const press = useRef(onPress);
   press.current = onPress;
@@ -563,7 +559,7 @@ export function ArrowPad({
     [disabled, repeatMs, stop],
   );
 
-  const button = (dir: "U" | "D" | "L" | "R", glyph: string, label: string, className: string) => (
+  const button = (dir: "U" | "D" | "L" | "R", glyph: string, label: string) => (
     <button
       key={dir}
       type="button"
@@ -576,18 +572,17 @@ export function ArrowPad({
       onPointerLeave={stop}
       onPointerCancel={stop}
       aria-label={label}
-      style={{ width: buttonSize, height: buttonSize }}
-      className={`absolute flex items-center justify-center rounded-xl border border-border bg-card text-xl text-foreground transition-colors select-none touch-none active:bg-primary/20 disabled:opacity-40 ${className}`}
+      className="flex h-11 w-14 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl text-foreground transition-colors select-none touch-none active:bg-primary/20 disabled:opacity-40"
     >
       {glyph}
     </button>
   );
   return (
-    <div className="relative mx-auto shrink-0" style={{ height: size, width: size }}>
-      {button("U", "▲", "Up", "left-1/2 top-0 -translate-x-1/2")}
-      {button("L", "◀", "Left", "left-0 top-1/2 -translate-y-1/2")}
-      {button("R", "▶", "Right", "right-0 top-1/2 -translate-y-1/2")}
-      {button("D", "▼", "Down", "bottom-0 left-1/2 -translate-x-1/2")}
+    <div className="mx-auto flex h-[52px] shrink-0 items-center justify-center gap-4">
+      {button("L", "◀", "Left")}
+      {button("U", "▲", "Up")}
+      {button("D", "▼", "Down")}
+      {button("R", "▶", "Right")}
     </div>
   );
 }

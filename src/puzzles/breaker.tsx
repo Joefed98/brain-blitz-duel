@@ -299,7 +299,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div
       ref={wrap}
-      className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl border-2 border-arcade-frame"
+      className="relative min-h-0 w-full flex-1 overflow-hidden"
       style={NO_SCROLL_STYLE}
     >
       <canvas

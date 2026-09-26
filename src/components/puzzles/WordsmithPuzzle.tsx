@@ -131,41 +131,10 @@ export function WordsmithPuzzle({
         <span>words: {found.length}</span>
       </div>
 
-      {/* The word being built. */}
-      <div
-        key={shake}
-        role="button"
-        tabIndex={0}
-        aria-label="Submit word"
-        onClick={() => void trySubmit()}
-        onKeyDown={(event) => { if (event.key === "Enter") void trySubmit(); }}
-        className={`flex min-h-14 items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 ${
-          message ? "border-warn animate-shake" : ""
-        }`}
-      >
-        {word.length === 0 ? (
-          <span className="font-mono text-base text-muted-foreground">{message ?? ""}</span>
-        ) : (
-          selectedTiles.map((tileIndex, position) => (
-            <button
-              key={tileIndex}
-              type="button"
-              onClick={(event) => { event.stopPropagation(); removeAt(position); }}
-              className="font-mono text-[1.2rem] font-bold uppercase text-primary"
-            >
-              {letters[tileIndex]}
-            </button>
-          ))
-        )}
-      </div>
-      {message && word.length > 0 && (
-        <p className="text-center font-mono text-xs text-warn">{message}</p>
-      )}
-
       {/* The wheel uses fixed-size tiles, with pointer capture for continuous tracing. */}
       <div
         ref={wheelRef}
-        className="relative mx-auto aspect-square w-[min(100%,260px)] shrink-0 select-none touch-none"
+        className="relative mx-auto aspect-square w-[min(100%,300px)] shrink-0 select-none touch-none"
         onPointerMove={(event) => {
           if (!dragging.current) return;
           const index = tileAt(event.clientX, event.clientY);
@@ -200,7 +169,7 @@ export function WordsmithPuzzle({
               }}
               onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } tapTile(index); }}
               style={{ left: `${50 + 37 * Math.cos(angle)}%`, top: `${50 + 37 * Math.sin(angle)}%` }}
-              className={`absolute flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border font-display text-xl font-bold transition-colors duration-150 ${
+              className={`absolute flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border font-display text-xl font-bold transition-colors duration-150 ${
                 spent
                   ? "-translate-y-1 border-primary bg-primary/10 text-primary"
                   : "border-border bg-card text-foreground"
@@ -224,6 +193,13 @@ export function WordsmithPuzzle({
         spellCheck={false}
         maxLength={letters.length}
         placeholder="type here"
+        aria-label="Word entry; tap to submit a word"
+        onPointerDown={(event) => {
+          if (word.length > 0) {
+            event.preventDefault();
+            void trySubmit();
+          }
+        }}
         onChange={(event) => {
           const next = event.target.value.toUpperCase().replace(/[^A-Z]/g, "");
           if (next === word.slice(0, -1)) {
@@ -241,10 +217,15 @@ export function WordsmithPuzzle({
           setSelectedTiles((current) => [...current, tileIndex]);
         }}
         onKeyDown={(event) => {
-          if (event.key === "Enter") void trySubmit();
+          if (event.key === "Enter") {
+            event.preventDefault();
+            void trySubmit();
+          }
         }}
-        className="tap-target w-full rounded-xl border border-border bg-card px-4 text-center font-mono text-base uppercase tracking-[0.2em] text-foreground placeholder:tracking-normal placeholder:text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+        key={shake}
+        className={`tap-target w-full rounded-xl border bg-card px-4 text-center font-mono text-base uppercase tracking-[0.2em] text-foreground placeholder:tracking-normal placeholder:text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50 ${message ? "border-warn animate-shake" : "border-border"}`}
       />
+      {message && <p className="text-center font-mono text-xs text-warn">{message}</p>}
 
       <div className="flex gap-2">
         <button
