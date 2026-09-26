@@ -232,7 +232,7 @@ function step(state: StdState, input: ArcadeInputEvent | null): StdState {
     next.edgeTicks = 0;
     next.onEdge = false;
   }
-  if (next.liftTicks > STD_TOUCH_EVERY && (next.liftTicks - 1) % STD_TOUCH_EVERY === 0) {
+  if (tick > 5 * TICKS_PER_SECOND && !down && (tick - 5 * TICKS_PER_SECOND) % STD_TOUCH_EVERY === 1) {
     touches += 1;
   }
   if (touches !== state.touches) {

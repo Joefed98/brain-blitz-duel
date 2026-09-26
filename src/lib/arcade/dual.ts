@@ -68,7 +68,8 @@ export const DUAL_GAP_SPAN = 30;
 /** Minimum ticks between two spikes on the same side, at this tick. */
 export function dualSideGap(tick: number): number {
   const steps = Math.trunc(tick / (10 * TICKS_PER_SECOND));
-  return Math.max(DUAL_SIDE_GAP_MIN, DUAL_SIDE_GAP_START - steps * DUAL_SIDE_GAP_STEP);
+  const normal = DUAL_SIDE_GAP_START - steps * DUAL_SIDE_GAP_STEP;
+  return Math.max(DUAL_SIDE_GAP_MIN, tick >= DUAL_RUN_TICKS - 20 * TICKS_PER_SECOND ? Math.floor(normal / 1.2) : normal);
 }
 
 /** Baseline cross-side separation, before accounting for the spike's collision width. */

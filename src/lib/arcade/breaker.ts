@@ -147,6 +147,7 @@ export interface BrkState {
   rng: number;
   /** Hits left in each brick: 0 gone, 1 plain, 3 reinforced. */
   bricks: number[];
+  reinforced: boolean[];
   /** 0 for a plain brick, otherwise the power-up it carries plus one. */
   gold: number[];
   hits: number;
@@ -209,6 +210,7 @@ function brickCentre(index: number): { x: number; y: number } {
 function init(seed: number): BrkState {
   let rng = seed | 0;
   const bricks = new Array<number>(BRK_BRICKS).fill(1);
+  const reinforced = new Array<boolean>(BRK_BRICKS).fill(false);
   const gold = new Array<number>(BRK_BRICKS).fill(0);
 
   // The four power-ups, in a seeded order.
@@ -240,6 +242,7 @@ function init(seed: number): BrkState {
     rng = draw.state;
     if (bricks[draw.value] === 1 && gold[draw.value] === 0) {
       bricks[draw.value] = 3;
+      reinforced[draw.value] = true;
       placedSolid += 1;
     }
   }
@@ -253,6 +256,7 @@ function init(seed: number): BrkState {
     tick: 0,
     rng: first.rng,
     bricks,
+    reinforced,
     gold,
     hits: 0,
     losses: 0,
@@ -605,10 +609,8 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
     const isGold = (state.gold[index] ?? 0) > 0;
     ctx.fillStyle = isGold
       ? BRK_GOLD
-      : left > 1
+      : state.reinforced[index]
         ? "#0F766E"
-        : (state.gold[index] ?? 0) === 0 && state.bricks[index] === 1 && false
-          ? "#0F766E"
         : (BRK_TEAL[row % BRK_TEAL.length] ?? BRK_TEAL[0]!);
     ctx.fillRect(
       BRK_WALL_X + col * BRK_BRICK_W + 1,
@@ -616,7 +618,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
       BRK_BRICK_W - 2,
       BRK_BRICK_H,
     );
-    if (left > 1) {
+    if (state.reinforced[index]) {
       ctx.strokeStyle = "rgba(255,255,255,0.45)";
       ctx.lineWidth = 1;
       ctx.strokeRect(
@@ -625,6 +627,20 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
         BRK_BRICK_W - 5,
         BRK_BRICK_H - 3,
       );
+      if (left < 3) {
+        const x = BRK_WALL_X + col * BRK_BRICK_W;
+        const y = BRK_WALL_Y + row * BRK_ROW_PITCH;
+        ctx.beginPath();
+        ctx.moveTo(x + 12, y + 2);
+        ctx.lineTo(x + 19, y + 9);
+        ctx.lineTo(x + 15, y + 17);
+        if (left === 1) {
+          ctx.moveTo(x + 19, y + 9);
+          ctx.lineTo(x + 30, y + 5);
+          ctx.lineTo(x + 35, y + 17);
+        }
+        ctx.stroke();
+      }
     }
     if (isGold) {
       drawStar(
