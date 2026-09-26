@@ -77,7 +77,7 @@ function Field({
                 gridRow: Math.min(COUNTUP_ROWS, Math.floor(item.y * COUNTUP_ROWS / 100) + 1),
               } : { left: `${item.x}%`, top: `${item.y}%` }),
               padding: lit ? 3 : 0,
-              boxShadow: lit ? `0 0 0 2px ${GLYPH_COLOURS.GOLD}` : undefined,
+              boxShadow: lit ? `inset 0 0 0 2px ${GLYPH_COLOURS.GOLD}` : undefined,
             }}
           >
             <ShapeGlyph shape={item.shape} colour={item.colour} size={cellSize ? Math.min(size, cellSize - 8) : size} />
