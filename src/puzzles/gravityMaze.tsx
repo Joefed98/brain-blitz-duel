@@ -20,7 +20,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 const TEAL = "#2FD4C4";
 const GOLD = GLYPH_COLOURS.GOLD;
 
-const ARROWS: Record<GravityDir, string> = { U: "↑", D: "↓", L: "←", R: "→" };
+const ARROWS: Record<GravityDir, string> = { U: "↑", D: "↓", L: "←", R: "→", X: "", Y: "" };
 
 /** The board itself: dark blocks, two target rings, and the two balls. */
 function Board({

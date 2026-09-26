@@ -242,6 +242,7 @@ export function slideRouteAvoidsHoles(
   const turns = arrowMap(arrows);
   let cell = start;
   for (const dir of moves) {
+    if (dir === "X" || dir === "Y") continue;
     const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
     if (outcome.fell) return false;
     if (!outcome.path.length) continue;

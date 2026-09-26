@@ -447,7 +447,7 @@ export interface DuelRow {
   room_code: string;
   status: "waiting" | "countdown" | "in_progress" | "finished";
   selected_categories: PuzzleCategory[];
-  tournament_history: { winner: string; date: string; score: number; round_order: PuzzleType[] }[];
+  tournament_history: { winner: string; date: string; score: number; round_order: PuzzleType[]; word_match_words?: string[] }[];
   disbanded_at: string | null;
   /** The player who created the room; only they can start it or remove players. */
   host_user_id: string | null;
