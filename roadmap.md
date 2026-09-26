@@ -4,7 +4,7 @@
 
 - [x] Replace the four-direction pads with a compact 56 × 44 px row, 16 px gaps, beneath Push, Maze Dash, Ice Slide and Gravity Maze boards.
 - [x] Remove Wordsmith's upper box, enlarge its wheel and submit from the word-entry box while retaining keyboard Enter.
-- [x] Fill Count Up's measured space with a 9 × 8 grid and a compact timer slot; enlarge Bin Toss and Bullseye wind displays and Bullseye play text.
+- [x] Fill Count Up's measured space with a 9 × 8 grid, compact timer slot and keypad; enlarge Bin Toss and Bullseye wind displays and Bullseye play text.
 - [x] Draw Breaker and Slice frames directly in their simulations' world coordinates so letterboxing cannot shift the borders. Validate without browser tests.
 
 ## Arcade presentation and tuning (Sep 26)

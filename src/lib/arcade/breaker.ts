@@ -736,7 +736,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
     BRK_WALL - 1,
     BRK_HUD_H + BRK_WALL - 1,
     BRK_WORLD_W - 2 * BRK_WALL + 2,
-    BRK_WORLD_H - BRK_HUD_H - BRK_WALL + 1,
+    BRK_WORLD_H - BRK_HUD_H - BRK_WALL + 2,
   );
 
   ctx.restore();
