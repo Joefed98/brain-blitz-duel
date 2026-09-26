@@ -316,27 +316,13 @@ function TargetReveal({
     [puzzle.tiles, puzzle.target, myAnswer],
   );
   const away = replay.distance;
-  const tag = myCorrect || away === 0 ? "✓" : away !== null && away <= 10 ? `${away} away` : "✗";
-
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <p className="w-full truncate text-center font-mono text-2xl font-bold text-primary tabular-nums">
-        {puzzle.target} · <span className="text-foreground">you reached {replay.value ?? "—"}</span>{" "}
-        <span className={myCorrect ? "text-primary" : "text-warn"}>{tag}</span>
-      </p>
-      <p
-        className="w-full truncate text-center font-mono text-[11px] text-muted-foreground"
-        title={replay.steps.map(formatStep).join(" · ")}
-      >
-        {replay.steps.length ? replay.steps.map(formatStep).join(" · ") : "No steps"}
-      </p>
+    <div className="flex w-full flex-col items-center gap-3 text-center font-mono text-base">
+      <p className="text-muted-foreground">Target {puzzle.target}</p>
+      <p className="text-5xl font-bold text-primary tabular-nums">{replay.value ?? "—"}</p>
+      <p className="font-bold text-foreground">{myCorrect || away === 0 ? "Target Number Achieved" : away === null ? "No number locked" : `${away} away from the target`}</p>
       {(puzzle.solution ?? []).length > 0 && (
-        <p
-          className="w-full truncate text-center font-mono text-[11px] text-muted-foreground/70"
-          title={puzzle.solution.map(formatStep).join(" · ")}
-        >
-          <span className="uppercase">One way:</span> {puzzle.solution.map(formatStep).join(" · ")}
-        </p>
+        <div className="flex flex-col gap-1 text-muted-foreground"><p>One way:</p>{puzzle.solution.map((step, index) => <p key={index}>{formatStep(step)}</p>)}</div>
       )}
     </div>
   );

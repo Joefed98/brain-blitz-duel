@@ -189,13 +189,13 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             <div key={index} className="flex min-w-0 items-center justify-between gap-1">
               <InstructionPill instruction={item.instruction} small />
               <span
-                className="truncate font-display text-xs font-bold"
+                className="break-words font-display text-base font-bold"
                 style={{ color: hexFor(item.ink) }}
               >
                 {item.word}
               </span>
               <span
-                className={`font-display text-sm font-bold ${ok ? "text-primary" : "text-warn"}`}
+                className={`font-display text-base font-bold ${ok ? "text-primary" : "text-warn"}`}
               >
                 {ok ? "✓" : "✗"}
               </span>

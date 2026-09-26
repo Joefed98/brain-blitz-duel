@@ -503,7 +503,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   if (state.arrowIndex < BULLSEYE_ARROWS) drawWind(ctx, state.winds[state.arrowIndex] ?? 0);
   if (state.arrowIndex < BULLSEYE_ARROWS && state.flightTick === 0) drawBow(ctx);
 
-  const remaining = Math.max(0, BULLSEYE_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 15px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = BULLSEYE_TEXT;
   ctx.textBaseline = "top";
@@ -511,7 +510,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   const shownArrow = Math.min(BULLSEYE_ARROWS, state.arrowIndex + 1);
   ctx.fillText(`Arrow ${shownArrow} / ${BULLSEYE_ARROWS} · ${state.total} pts`, 12, 12);
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, BULLSEYE_WORLD_W - 12, 12);
 
   ctx.restore();
 }

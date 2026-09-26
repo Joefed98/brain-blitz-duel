@@ -399,14 +399,12 @@ function draw(ctx: CanvasRenderingContext2D, state: RicoState, size: CanvasSize)
   ctx.arc(ballX, screenOf(ballWorldY), RICO_BALL_R, 0, Math.PI * 2);
   ctx.fill();
 
-  const remaining = Math.max(0, RICO_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`Height ${Math.trunc(ricoHeightPx(state) / 40).toLocaleString("en-GB")} m`, 14, 14);
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, RICO_WORLD_W - 14, 14);
 
   if (state.dead) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";

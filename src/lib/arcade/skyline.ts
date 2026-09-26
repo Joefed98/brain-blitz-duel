@@ -268,14 +268,12 @@ function draw(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSi
     );
   }
 
-  const remaining = Math.max(0, SKYLINE_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`Blocks ${state.placed}`, 12, 12);
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, SKYLINE_WORLD_W - 12, 12);
 
   if (state.missed) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";

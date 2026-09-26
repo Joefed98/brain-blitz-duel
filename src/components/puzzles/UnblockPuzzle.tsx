@@ -117,7 +117,7 @@ export function UnblockPuzzle({
   const [vehicles, setVehicles] = useState<UnblockVehicle[]>(() =>
     puzzle.vehicles.map((v) => ({ ...v })),
   );
-  const [history, setHistory] = useState<{ state: UnblockVehicle[]; moves: UnblockMove[] }[]>([]);
+  const [history, setHistory] = useState<UnblockVehicle[][]>([]);
   const [moves, setMoves] = useState<UnblockMove[]>([]);
   const [escaping, setEscaping] = useState(false);
   const [ghost, setGhost] = useState<{ vehicle: UnblockVehicle; to: number } | null>(null);
@@ -170,7 +170,7 @@ export function UnblockPuzzle({
           : entry,
       );
       const nextMoves = [...moves, { id: vehicle.id, to }];
-      setHistory((current) => [...current, { state: vehicles, moves }]);
+      setHistory((current) => [...current, vehicles]);
       setVehicles(next);
       setMoves(nextMoves);
       if (isSolved(next)) {
@@ -184,15 +184,15 @@ export function UnblockPuzzle({
   const undo = () => {
     const last = history[history.length - 1];
     if (!last || escaping) return;
-    setVehicles(last.state);
-    setMoves(last.moves);
+    setVehicles(last);
+    setMoves((current) => [...current, { id: -1, to: 0 }]);
     setHistory((current) => current.slice(0, -1));
   };
 
   const reset = () => {
     if (escaping) return;
     setVehicles(puzzle.vehicles.map((v) => ({ ...v })));
-    setMoves([]);
+    setMoves((current) => [...current, { id: -2, to: 0 }]);
     setHistory([]);
   };
 
@@ -200,7 +200,7 @@ export function UnblockPuzzle({
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
-          moves <span className="text-primary">{moves.length}</span>
+          moves <span className="text-primary">{moves.filter((move) => move.id >= 0).length}</span>
         </span>
         <span>get the gold car out</span>
       </div>

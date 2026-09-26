@@ -217,7 +217,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         <p className={`font-display text-lg font-bold ${myCorrect ? "text-primary" : "text-warn"}`}>
           {myCorrect ? "✓" : "✗"} {label}
         </p>
-        <p className="font-mono text-xs text-muted-foreground">{elapsed}s</p>
+        <p className="font-mono text-base text-muted-foreground">{elapsed}s</p>
       </div>
     </div>
   );

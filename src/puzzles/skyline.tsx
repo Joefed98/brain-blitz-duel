@@ -222,7 +222,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const drops = decodeSkylineRun(myAnswer ?? "").inputs.length;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex w-full max-w-[200px] shrink-0 flex-col-reverse items-center gap-[2px]">
         {result.state.blocks.slice(-14).map((block, index) => (
           <span
@@ -235,11 +235,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           />
         ))}
       </div>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.blocks} blocks · {result.perfects} perfect ·{" "}
         {result.survived ? "survived" : `missed at ${result.endedSeconds.toFixed(1)}s`}
       </p>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {drops} drop{drops === 1 ? "" : "s"} · same tower for everyone
       </p>
     </div>

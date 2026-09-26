@@ -126,21 +126,21 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
       <p className="text-center font-mono text-3xl font-bold tabular-nums text-primary">
         {correct} / {puzzle.items.length} correct
       </p>
-      <p className="text-center font-mono text-sm text-muted-foreground">
+      <p className="text-center font-mono text-base text-muted-foreground">
         {correct === puzzle.items.length ? "100 + speed" : `${correct} × 13 (max 90)`} = {scoreWordMatch(correct, myMsRemaining ?? 0)} points
       </p>
-      <div className="grid w-full grid-cols-2 gap-x-3 gap-y-1">
+      <div className="flex w-full flex-col gap-1">
         {puzzle.items.map((item, index) => {
           const answerIndex = answers[index] ?? -1;
           const tap = taps[index];
           const got = tap === answerIndex;
           return (
-            <div key={index} className="flex min-w-0 items-center justify-between gap-1 text-xs">
-              <span className="truncate font-display font-bold uppercase">{item.prompt}</span>
-              <span className="flex min-w-0 items-center gap-1">
+            <div key={index} className="flex min-w-0 flex-wrap items-center justify-between gap-1 border-b border-border py-1 text-base">
+              <span className="font-display font-bold uppercase">{item.prompt}</span>
+              <span className="flex min-w-0 flex-wrap items-center gap-1">
                 <span className="text-primary">{item.options[answerIndex] ?? "—"}</span>
                 {tap === undefined ? (
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="text-muted-foreground">—</span>
                 ) : (
                   <span className={`font-display font-bold ${got ? "text-primary" : "text-warn"}`}>
                     {got ? "✓" : `✗ ${item.options[tap] ?? ""}`}
@@ -155,8 +155,10 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   );
 }
 
-export function buildWordMatch(): WordMatchPuzzleData {
-  const entries = shuffled(WORD_PAIRS).slice(0, WORDMATCH_ITEMS);
+export function buildWordMatch(recentWords: string[] = []): WordMatchPuzzleData {
+  const excluded = new Set(recentWords.map((word) => word.toLowerCase()));
+  const eligible = WORD_PAIRS.filter(([head]) => !excluded.has(head.toLowerCase()));
+  const entries = shuffled(eligible.length >= WORDMATCH_ITEMS ? eligible : WORD_PAIRS).slice(0, WORDMATCH_ITEMS);
   const items: WordMatchItem[] = [];
   const answers: number[] = [];
 

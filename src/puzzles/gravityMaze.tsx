@@ -20,7 +20,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 const TEAL = "#2FD4C4";
 const GOLD = GLYPH_COLOURS.GOLD;
 
-const ARROWS: Record<GravityDir, string> = { U: "↑", D: "↓", L: "←", R: "→" };
+const ARROWS: Record<GravityDir, string> = { U: "↑", D: "↓", L: "←", R: "→", X: "", Y: "" };
 
 /** The board itself: dark blocks, two target rings, and the two balls. */
 function Board({
@@ -246,7 +246,7 @@ function Stage({
             type="button"
             variant="outline"
             disabled={locked || !tilts.length}
-            onClick={() => setTilts((current) => current.slice(0, -1))}
+            onClick={() => setTilts((current) => [...current, "X"])}
             className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
           >
             Undo
@@ -255,7 +255,7 @@ function Stage({
             type="button"
             variant="outline"
             disabled={locked || !tilts.length}
-            onClick={() => setTilts([])}
+            onClick={() => setTilts((current) => [...current, "Y"])}
             className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
           >
             Reset
@@ -291,12 +291,12 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         <span className={myCorrect ? "text-primary" : "text-warn"}>
           {mine.tilts} {myCorrect ? "✓" : "✗"}
         </span>
-        <span className="ml-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
           tilts{puzzle.minMoves ? ` · min ${puzzle.minMoves}` : ""}
         </span>
       </p>
       {myCorrect ? (
-        <p className="font-mono text-xs text-primary">
+        <p className="font-mono text-base text-primary">
           {solvedMovesText(mine.tilts, puzzle.minMoves ?? 0, myMsRemaining, GRAV_TIME_MS)}
         </p>
       ) : null}

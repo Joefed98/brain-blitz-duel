@@ -661,7 +661,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
               litGems={solutionTrace.gemsLit}
             />
           </div>
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             solution
           </span>
         </div>
@@ -679,12 +679,12 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
               bombFlash={myTrace.hitBomb}
             />
           </div>
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             yours
           </span>
         </div>
       </div>
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">{result}</p>
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">{result}</p>
     </div>
   );
 }

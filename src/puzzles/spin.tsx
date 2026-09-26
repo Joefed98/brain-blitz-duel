@@ -237,10 +237,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             <div key={i} className="flex min-w-0 items-center gap-1 rounded-lg bg-card px-1.5 py-1">
               <ColourShape shape={item.target} size={25} />
               <ColourShape shape={item.shown} size={25} />
-              <span className="font-mono text-[9px] text-primary">
+              <span className="font-mono text-base text-primary">
                 {answer ? SPIN_LABELS[answer] : "—"}
               </span>
-              <span className="ml-auto truncate font-mono text-[9px] text-muted-foreground">
+              <span className="ml-auto break-words font-mono text-base text-muted-foreground">
                 {mine ? SPIN_LABELS[mine] : "no answer"}
               </span>
               <span className={`text-lg ${ok ? "text-primary" : "text-destructive"}`}>

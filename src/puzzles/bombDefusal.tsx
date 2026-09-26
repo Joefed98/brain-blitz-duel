@@ -283,11 +283,11 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
 
   return (
     <div className="flex w-full flex-col items-center gap-2">
-      <div className="grid w-full grid-cols-2 gap-3 text-xs">
+      <div className="grid w-full grid-cols-2 gap-3 text-base">
         <div>
           <p className="mb-1 text-center font-mono uppercase text-primary">One valid plan</p>
           {shown.map((action, index) => (
-            <p key={`${action}-${index}`} className="truncate">
+            <p key={`${action}-${index}`} className="break-words">
               <span className="font-mono text-primary">{index + 1}.</span>{" "}
               {actionLabel(action, puzzle.wires)}
             </p>
@@ -298,7 +298,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
           {mine.map((action, index) => (
             <p
               key={`${action}-${index}`}
-              className={index === replay.firstWrong ? "truncate text-warn" : "truncate"}
+              className={index === replay.firstWrong ? "break-words text-warn" : "break-words"}
             >
               <span className="font-mono">{index + 1}.</span> {actionLabel(action, puzzle.wires)}
               {index === replay.firstWrong ? " ✗" : ""}
@@ -315,7 +315,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
               : `${replay.correctPrefix} / ${required.length} steps`}
         </span>
         {myCorrect && elapsed !== null && (
-          <span className="ml-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
             {elapsed.toFixed(1)}s
           </span>
         )}

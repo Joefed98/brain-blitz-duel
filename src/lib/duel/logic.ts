@@ -56,15 +56,31 @@ export function decodePresses(raw: string): number[] {
   return String(raw ?? "")
     .split(",")
     .map((value) => Number.parseInt(value, 10))
-    .filter((value) => Number.isInteger(value) && value >= 0 && value < LIGHTS_CELLS)
+    .filter((value) => Number.isInteger(value) && value >= -2 && value < LIGHTS_CELLS)
     .slice(0, 400);
 }
 
 /** Replays a phone's presses on the stored pattern. */
 export function replayLights(start: boolean[], presses: number[]): boolean[] {
   let state = [...start];
-  for (const cell of presses) state = pressLights(state, cell);
+  const history = [state];
+  for (const cell of presses) {
+    if (cell === -1) { if (history.length > 1) history.pop(); state = history[history.length - 1]!; }
+    else if (cell === -2) { history.length = 1; state = history[0]!; }
+    else { state = pressLights(state, cell); history.push(state); }
+  }
   return state;
+}
+
+/** The cells still active after undo/reset actions. */
+export function activeLightPresses(presses: number[]): number[] {
+  const active: number[] = [];
+  for (const cell of presses) {
+    if (cell === -1) active.pop();
+    else if (cell === -2) active.length = 0;
+    else active.push(cell);
+  }
+  return active;
 }
 
 /* -------------------------------------------------------------------------- */

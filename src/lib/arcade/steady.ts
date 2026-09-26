@@ -344,14 +344,12 @@ function draw(ctx: CanvasRenderingContext2D, state: StdState, size: CanvasSize):
   ctx.fillStyle = state.flash > 0 ? "#FF4D4D" : STD_DOT;
   ctx.fill();
 
-  const remaining = Math.max(0, STD_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`${stdMetres(state)} m · ${state.touches} touches`, 14, 14);
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, STD_WORLD_W - 14, 14);
 
   ctx.restore();
 }

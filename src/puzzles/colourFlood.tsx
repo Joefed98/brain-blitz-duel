@@ -161,7 +161,7 @@ function Stage({
         </span>
         <button
           type="button"
-          onPointerDown={() => (moves.length ? setMoves(moves.slice(0, -1)) : undefined)}
+          onPointerDown={() => (moves.length && replay.moves ? setMoves([...moves, -1]) : undefined)}
           className="rounded-md border border-border px-3 py-1 font-display text-xs uppercase tracking-wide text-muted-foreground"
         >
           Undo
@@ -178,10 +178,10 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
     myMsRemaining === undefined ? null : Math.round((FLOOD_TIME_MS - myMsRemaining) / 100) / 10;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <Board grid={replay.grid} cell={20} />
       <p
-        className={`shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
+        className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
         {replay.solved
           ? solvedMovesText(replay.moves, puzzle.par, myMsRemaining, FLOOD_TIME_MS)

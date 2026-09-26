@@ -233,7 +233,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
             connected={new Set(solved.map((_, index) => index))}
             gap={4}
           />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             solved
           </span>
         </div>
@@ -245,17 +245,17 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
             leaks={mineState.leaks}
             gap={4}
           />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             yours
           </span>
         </div>
       </div>
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `✗ ${mineState.connected.size} / ${PIPES_CELLS} connected`}
       </p>
-      <p className="font-mono text-xs text-muted-foreground">
+      <p className="font-mono text-base text-muted-foreground">
         {scorePipes(Boolean(myCorrect), mineState.connected.size, myMsRemaining ?? 0)} points
       </p>
     </div>

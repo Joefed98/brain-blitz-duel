@@ -226,7 +226,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const side = result.crashedSide === 0 ? "left" : "right";
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <svg viewBox="0 0 170 40" className="h-auto w-full max-w-[190px] shrink-0" aria-hidden="true">
         <rect x="4" y="30" width="72" height="4" fill={DUAL_GROUND} />
         <rect x="94" y="30" width="72" height="4" fill={DUAL_GROUND} />
@@ -234,13 +234,13 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         <circle cx="20" cy="24" r="7" fill={DUAL_RUNNER} />
         <circle cx="110" cy="14" r="7" fill={DUAL_RUNNER} />
       </svg>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.survived
           ? "Survived 60.0s"
           : `Survived ${result.endedSeconds.toFixed(1)}s (${side} crashed)`}{" "}
         · {result.passed} passed
       </p>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {taps} jump{taps === 1 ? "" : "s"} · same course for everyone
       </p>
     </div>

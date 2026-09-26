@@ -117,7 +117,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   useEffect(() => {
     if (locked || submitted.current) return;
-    if (presses.length === 0 || !lightsAllOff(lights)) return;
+    if (!presses.some((cell) => cell >= 0) || !lightsAllOff(lights)) return;
     submitted.current = true;
     playCorrect();
     onSubmit(encodePresses(presses));
@@ -136,7 +136,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        presses <span className="text-primary">{presses.length}</span>
+        presses <span className="text-primary">{presses.filter((cell) => cell >= 0).length}</span>
       </p>
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <LightsGrid lights={lights} flash={flash} onPress={locked ? undefined : press} />
@@ -144,7 +144,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <div className="flex shrink-0 items-center justify-center gap-6">
         <button
           type="button"
-          onClick={() => setPresses((current) => current.slice(0, -1))}
+          onClick={() => setPresses((current) => [...current, -1])}
           disabled={locked || presses.length === 0}
           className="press font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
@@ -152,7 +152,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         </button>
         <button
           type="button"
-          onClick={() => setPresses([])}
+          onClick={() => setPresses((current) => [...current, -2])}
           disabled={locked || presses.length === 0}
           className="press font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
@@ -170,7 +170,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   solution.forEach((cell, index) => {
     numbers[cell] = index + 1;
   });
-  const mine = decodePresses(myAnswer ?? "").length;
+  const mine = decodePresses(myAnswer ?? "").filter((cell) => cell >= 0).length;
   const min = puzzle.minPresses ?? solution.length;
 
   return (
@@ -178,12 +178,12 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       <div style={{ width: 190 }}>
         <LightsGrid lights={puzzle.lights} numbers={numbers} gap={8} />
       </div>
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · min{" "}
         {min}
       </p>
       {myCorrect ? (
-        <p className="font-mono text-xs text-primary">
+        <p className="font-mono text-base text-primary">
           {solvedMovesText(mine, min, myMsRemaining, LIGHTS_TIME_MS)}
         </p>
       ) : null}

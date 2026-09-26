@@ -225,12 +225,12 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         <span className={myCorrect ? "text-primary" : "text-warn"}>
           {mine.moves} {myCorrect ? "✓" : "✗"}
         </span>
-        <span className="ml-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
           moves{puzzle.minMoves ? ` · min ${puzzle.minMoves}` : ""}
           {myCorrect && elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
         </span>
       </p>
-      <p className="text-center text-xs text-muted-foreground">
+      <p className="text-center text-base text-muted-foreground">
         {myCorrect
           ? "Keep one tube empty for as long as you can."
           : `${mine.sorted} of ${TUBES_COLOURS} tubes finished.`}

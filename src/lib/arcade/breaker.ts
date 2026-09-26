@@ -693,14 +693,12 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
     }
   }
 
-  const remaining = Math.max(0, BRK_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`Bricks ${brkDestroyed(state)} / ${BRK_PAR}`, 14, 14);
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, BRK_WORLD_W - 14, 14);
 
   if (state.pause > 0) {
     ctx.textAlign = "center";

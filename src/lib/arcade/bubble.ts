@@ -586,8 +586,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize):
   ctx.fillText(`Popped ${state.popped}`, 14, 22);
   ctx.textAlign = "right";
   ctx.fillStyle = "rgba(255,255,255,0.7)";
-  const left = Math.max(0, BUB_RUN_TICKS - state.tick);
-  ctx.fillText(`${Math.ceil(left / TICKS_PER_SECOND)}s`, BUB_WORLD_W - 14, 22);
 
   // Next three, as a strip.
   ctx.textAlign = "left";

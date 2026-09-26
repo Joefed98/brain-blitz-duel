@@ -56,18 +56,18 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     .map((word) => word.trim().toUpperCase())
     .filter((word) => word.length > 0);
   const points = mine.reduce((sum, word) => sum + wordHuntPoints(word), 0);
-  const missed = (puzzle.words ?? []).filter((entry) => !mine.includes(entry.word)).slice(0, 5);
+  const missed = (puzzle.words ?? []).filter((entry) => !mine.includes(entry.word)).sort((a, b) => b.word.length - a.word.length || b.points - a.points).slice(0, 5);
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         <span className="text-primary">{points} points × 3 = {scoreWordHunt(points)}</span> · {mine.length} words
       </p>
 
       {mine.length > 0 && (
-        <ul className="flex w-full flex-wrap justify-center gap-x-3 gap-y-1">
+        <ul className="flex w-full flex-col items-center gap-1">
           {mine.map((word) => (
-            <li key={word} className="font-mono text-[10px] uppercase text-foreground">
+            <li key={word} className="font-mono text-base uppercase text-foreground">
               <span>{word}</span>
               <span className="ml-1 text-primary">{wordHuntPoints(word)}</span>
             </li>
@@ -76,9 +76,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       )}
 
       {missed.length > 0 && (
-        <p className="w-full truncate text-center font-mono text-[10px] text-muted-foreground">
-          Missed: {missed.map((entry) => `${entry.word} (${entry.points})`).join(" · ")}
-        </p>
+        <div className="w-full text-center font-mono text-base text-muted-foreground">
+          <p>Missed:</p>
+          <ul className="flex flex-col gap-1">{missed.map((entry) => <li key={entry.word}>{entry.word} ({entry.points})</li>)}</ul>
+        </div>
       )}
     </div>
   );

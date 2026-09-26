@@ -62,10 +62,6 @@ function Stage({
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!locked) inputRef.current?.focus();
-  }, [locked, puzzle.type]);
-
   if (puzzle.type !== "ladder") return null;
 
   const submit = async () => {
@@ -85,7 +81,6 @@ function Stage({
     setValue("");
     onDraftAnswer?.(next.join(","));
     if (verdict.word === puzzle.targetWord) onSubmit(next.join(","));
-    else inputRef.current?.focus();
   };
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -124,7 +119,6 @@ function Stage({
         value={value}
         aria-label="Next rung"
         autoCapitalize="characters"
-        autoFocus
         autoComplete="off"
         autoCorrect="off"
         spellCheck={false}
@@ -167,11 +161,11 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   const player = [puzzle.startWord, ...rungs];
   return (
     <div className="flex w-full flex-col gap-3 text-center">
-      <p className="break-words font-mono text-sm font-bold text-foreground">
+      <p className="break-words font-mono text-base font-bold text-foreground">
         {player.join(" → ")} {myCorrect ? "✓" : "✗"} · {player.length} rungs, shortest{" "}
         {puzzle.shortestLength ?? "—"}
       </p>
-      <p className="font-mono text-xs text-muted-foreground">
+      <p className="font-mono text-base text-muted-foreground">
         {(puzzle.shortestPath ?? []).join(" → ")}
       </p>
     </div>

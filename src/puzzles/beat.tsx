@@ -256,7 +256,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const taps = decodeBeatRun(myAnswer ?? "").events.length;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex shrink-0 items-end gap-1">
         {BEAT_LANE_COLOURS.map((colour, lane) => (
           <span
@@ -266,15 +266,15 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           />
         ))}
       </div>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.hits} / {result.noteCount} · {result.perfect} perfect · {result.misses} miss
         {result.misses === 1 ? "" : "es"}
       </p>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         best combo {result.maxCombo} · {taps} tap{taps === 1 ? "" : "s"}
         {result.strays > 0 ? ` · ${result.strays} stray` : ""}
       </p>
-      <p className="shrink-0 font-mono text-xs" style={{ color: BEAT_GOLD }}>
+      <p className="shrink-0 font-mono text-base" style={{ color: BEAT_GOLD }}>
         {result.score} points
       </p>
     </div>

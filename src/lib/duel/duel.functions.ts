@@ -316,6 +316,27 @@ async function recentRoundOrders(
   return orders.slice(0, RECENT_ROOMS);
 }
 
+/** Keep the last ten Word Match draws across rooms and rematches, keyed to the host. */
+async function recentWordMatchWords(client: any, hostUserId: string | null): Promise<string[]> {
+  if (!hostUserId) return [];
+  const { data } = await client.from("duels")
+    .select("puzzles_public, tournament_history, status, phase_started_at, created_at")
+    .eq("host_user_id", hostUserId)
+    .order("created_at", { ascending: false }).limit(30);
+  const runs: { date: string; words: string[] }[] = [];
+  for (const row of data ?? []) {
+    const prompts = (puzzles: unknown) => Array.isArray(puzzles)
+      ? puzzles.flatMap((p: { type?: string; items?: { prompt?: string }[] }) =>
+          p?.type === "wordmatch" && Array.isArray(p.items)
+            ? p.items.map((item) => item.prompt).filter((word): word is string => typeof word === "string") : [])
+      : [];
+    if (row.status !== "waiting") runs.push({ date: row.phase_started_at ?? row.created_at, words: prompts(row.puzzles_public) });
+    for (const entry of row.tournament_history ?? [])
+      runs.push({ date: entry.date, words: Array.isArray(entry.word_match_words) ? entry.word_match_words : [] });
+  }
+  return runs.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).flatMap((run) => run.words);
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Server functions — the only way any of the tables is written               */
 /* -------------------------------------------------------------------------- */
@@ -401,6 +422,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
     const { drawUnblockRow } = await import("./unblock.server");
     const unblockRow = await drawUnblockRow(client);
     const recent = await recentRoundOrders(client, room, room.host_user_id);
+    const recentWords = await recentWordMatchWords(client, room.host_user_id);
     const lastGoNoGoFirst = await previousGoNoGoFirst(client, room, room.host_user_id);
     const categories = normaliseCategories(room.selected_categories);
     if (
@@ -417,6 +439,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       categories,
       previousGoNoGoFirst: lastGoNoGoFirst as never,
       unblockRow,
+      recentWordMatchWords: recentWords,
     });
     console.log(
       `[room-selection] room=${room.room_code} categories=${categories.join(",")} recentRooms=${recent.length} order=${roundOrder.join(",")}`,

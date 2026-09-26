@@ -10,6 +10,7 @@ import { SLIDE_CELLS, SLIDE_COLS as N, type SlideArrow, type SlideDir } from "./
 export const SLIDE_DIRS: SlideDir[] = ["U", "D", "L", "R"];
 
 export function slideStep(cell: number, dir: SlideDir): number | null {
+  if (dir === "X" || dir === "Y") return null;
   const row = Math.floor(cell / N);
   const col = cell % N;
   if (dir === "U") return row > 0 ? cell - N : null;
@@ -73,7 +74,7 @@ export function decodeSlideMoves(raw: string): SlideDir[] {
   return String(raw ?? "")
     .toUpperCase()
     .split("")
-    .filter((char): char is SlideDir => (SLIDE_DIRS as string[]).includes(char))
+    .filter((char): char is SlideDir => (SLIDE_DIRS as string[]).includes(char) || char === "X" || char === "Y")
     .slice(0, 200);
 }
 
@@ -109,12 +110,16 @@ export function replaySlide(
   let count = 0;
   let falls = 0;
   const visited = [start];
+  const history = [start];
   for (const dir of moves) {
+    if (dir === "X") { if (history.length > 1) history.pop(); cell = history[history.length - 1]!; continue; }
+    if (dir === "Y") { history.length = 1; cell = start; continue; }
     if (cell === exit) break;
     const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
     // A slide into a hole still costs a move, even though the ball ends at home.
     if (!outcome.path.length) continue;
     cell = outcome.cell;
+    history.push(cell);
     visited.push(cell);
     count += 1;
     if (outcome.fell) falls += 1;
@@ -237,6 +242,7 @@ export function slideRouteAvoidsHoles(
   const turns = arrowMap(arrows);
   let cell = start;
   for (const dir of moves) {
+    if (dir === "X" || dir === "Y") continue;
     const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
     if (outcome.fell) return false;
     if (!outcome.path.length) continue;

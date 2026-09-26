@@ -1082,14 +1082,12 @@ function drawScene(
     }
   }
 
-  const remaining = Math.max(0, MATCHUP_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 15px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = MATCHUP_TEXT;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`${state.raw} pts`, 12, 12);
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, MATCHUP_WORLD_W - 12, 12);
   ctx.restore();
 }
 

@@ -107,16 +107,16 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         </div>
       )}
       {!available && (
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
           Solution unavailable
         </p>
       )}
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect ? "✓" : "✗"} your moves: <span className="text-primary">{mine}</span>
         {min > 0 ? ` · min ${min}` : ""}
       </p>
       {myCorrect ? (
-        <p className="font-mono text-xs text-primary">
+        <p className="font-mono text-base text-primary">
           {solvedMovesText(mine, min, myMsRemaining, UNBLOCK_TIME_MS)}
         </p>
       ) : null}

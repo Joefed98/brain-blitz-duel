@@ -236,10 +236,10 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       <div style={{ width: 176 }}>
         <Board walls={puzzle.walls} targets={puzzle.targets} crates={crates} pusher={pusherCell} />
       </div>
-      <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         minimum · {min} push{min === 1 ? "" : "es"}
       </p>
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `✓ ${mine.pushes} push${mine.pushes === 1 ? "" : "es"}${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `✗ ${cratesOnTargets(mine.state.crates, puzzle.targets)} / ${puzzle.targets.length} crates home`}

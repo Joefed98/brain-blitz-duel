@@ -375,7 +375,6 @@ function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize
   ctx.fillStyle = RALLY_BALL;
   ctx.fill();
 
-  const remaining = Math.max(0, RALLY_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
@@ -386,7 +385,6 @@ function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize
   ctx.fillText(`gold ${state.goldHits} · ${RALLY_GOLD_POINTS * state.goldHits} pts`, RALLY_WORLD_W / 2, 14);
   ctx.fillStyle = "#F7F7F8";
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, RALLY_WORLD_W - 14, 14);
 
   if (state.dead) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";

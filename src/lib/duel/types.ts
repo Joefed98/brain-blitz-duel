@@ -447,7 +447,7 @@ export interface DuelRow {
   room_code: string;
   status: "waiting" | "countdown" | "in_progress" | "finished";
   selected_categories: PuzzleCategory[];
-  tournament_history: { winner: string; date: string; score: number; round_order: PuzzleType[] }[];
+  tournament_history: { winner: string; date: string; score: number; round_order: PuzzleType[]; word_match_words?: string[] }[];
   disbanded_at: string | null;
   /** The player who created the room; only they can start it or remove players. */
   host_user_id: string | null;
@@ -1035,7 +1035,7 @@ export const SLIDE_NEAR_POINTS = 30;
 export const SLIDE_NEAR_MOVES = 2;
 
 /** Up, down, left, right — the only four directions a slide can take. */
-export type SlideDir = "U" | "D" | "L" | "R";
+export type SlideDir = "U" | "D" | "L" | "R" | "X" | "Y";
 
 /** A one-way cell: whatever enters it leaves in this direction. */
 export interface SlideArrow {
@@ -1390,7 +1390,7 @@ export const GRAV_MIN_MOVE_BONUS = 20;
 /** One ball parked on its target when the clock runs out. */
 export const GRAV_PARTIAL_POINTS = 30;
 
-export type GravityDir = "U" | "D" | "L" | "R";
+export type GravityDir = "U" | "D" | "L" | "R" | "X" | "Y";
 
 export interface GravityPuzzleData {
   type: "gravity";

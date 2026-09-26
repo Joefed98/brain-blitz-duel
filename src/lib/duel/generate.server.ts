@@ -53,6 +53,7 @@ import {
 } from "./arcade.server";
 
 import { buildGoNoGo } from "@/puzzles/goNoGo";
+import { buildWordMatch } from "@/puzzles/wordMatch";
 
 /** Room-level context a generator may need beyond its own randomness. */
 export interface GenerateContext {
@@ -60,10 +61,13 @@ export interface GenerateContext {
   previousGoNoGoFirst?: GoNoGoItem | null;
   /** A pre-drawn Unblock bank row, so building a room never runs a solver. */
   unblockRow?: UnblockBankRow | null;
+  /** Word Match prompts from the host's last ten tournaments. */
+  recentWordMatchWords?: string[];
 }
 
 export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
   if (type === "gonogo") return buildGoNoGo(context.previousGoNoGoFirst ?? null);
+  if (type === "wordmatch") return buildWordMatch(context.recentWordMatchWords ?? []);
   if (type === "wordsmith") return generateWordsmith();
   if (type === "wordhunt") return generateWordHunt();
   if (type === "unblock") return generateUnblock(context.unblockRow);
@@ -123,6 +127,7 @@ export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContex
       generatePuzzle(type, {
         previousGoNoGoFirst: options.previousGoNoGoFirst ?? null,
         unblockRow: options.unblockRow ?? null,
+        recentWordMatchWords: options.recentWordMatchWords ?? [],
       }),
     ),
   };

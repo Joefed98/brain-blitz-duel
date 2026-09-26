@@ -318,14 +318,12 @@ function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize
     );
   });
 
-  const remaining = Math.max(0, SNAKE_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`Pellets ${state.eaten}`, 14, 14);
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, SNAKE_WORLD_W - 14, 14);
 
   if (state.dead) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";

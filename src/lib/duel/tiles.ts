@@ -73,6 +73,7 @@ export interface TilesReplay {
 /** The one place a move list is replayed — used for scoring, Undo and Reset. */
 export function replayTiles(start: number[], moves: number[]): TilesReplay {
   const history: number[][] = [[...start]];
+  let totalMoves = 0;
   for (const move of moves) {
     const frame = history[history.length - 1]!;
     if (tilesSolved(frame)) break;
@@ -85,13 +86,13 @@ export function replayTiles(start: number[], moves: number[]): TilesReplay {
       continue;
     }
     const next = tilesSlide(frame, move);
-    if (next) history.push(next);
+    if (next) { history.push(next); totalMoves++; }
   }
   const frame = history[history.length - 1]!;
   return {
     frame,
     solved: tilesSolved(frame),
-    moves: history.length - 1,
+    moves: totalMoves,
     inPlace: tilesInPlace(frame),
   };
 }

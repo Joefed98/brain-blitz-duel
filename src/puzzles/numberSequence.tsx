@@ -386,19 +386,19 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           return (
             <div key={index} className="flex min-w-0 items-center justify-between gap-2">
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-mono text-[13px] tabular-nums">
+                <span className="block break-words font-mono text-[13px] tabular-nums">
                   {item.numbers.join(", ")},{" "}
                   <span className="font-bold text-primary">{answerValue ?? "—"}</span>
                 </span>
-                <span className="block truncate text-[10px] text-muted-foreground">
+                <span className="block break-words text-base text-muted-foreground">
                   {item.rule}
                 </span>
               </span>
               {tap === undefined ? (
-                <span className="text-xs text-muted-foreground">—</span>
+                <span className="text-base text-muted-foreground">—</span>
               ) : (
                 <span
-                  className={`font-mono text-xs font-bold tabular-nums ${got ? "text-primary" : "text-warn"}`}
+                  className={`font-mono text-base font-bold tabular-nums ${got ? "text-primary" : "text-warn"}`}
                 >
                   {got ? "✓" : `✗ ${item.options[tap] ?? ""}`}
                 </span>

@@ -325,7 +325,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
     myMsRemaining === undefined ? null : Math.round((INTRUDER_TIME_MS - myMsRemaining) / 100) / 10;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="grid w-full max-w-[360px] shrink-0 grid-cols-3 items-start gap-1.5">
         {puzzle.boards.map((board, index) => {
           const ok = (taps[index] ?? []).includes(answers[index]!);
@@ -342,7 +342,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         })}
       </div>
       <p
-        className={`shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
+        className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
         {correct} / {INTRUDER_BOARDS}
         {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}

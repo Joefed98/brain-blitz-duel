@@ -218,7 +218,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <p className="text-center font-mono text-sm text-muted-foreground">
+      <p className="text-center font-mono text-base text-muted-foreground">
         {correctCount} / {puzzle.items.length} correct
       </p>
       {puzzle.items.map((item, i) => {
@@ -230,7 +230,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           <div key={i} className="flex flex-col gap-1 rounded-xl bg-card px-3 py-2">
             <div className="flex items-center gap-3">
               <ColourShape shape={item.target} size={52} axis={item.axis} />
-              <span className="font-mono text-xs text-muted-foreground">→</span>
+              <span className="font-mono text-base text-muted-foreground">→</span>
               {item.candidates.map((candidate, c) => (
                 <span
                   key={c}
@@ -246,7 +246,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
               </span>
             </div>
             {!ok && kind && kind !== "correct" && (
-              <p className="text-[11px] text-muted-foreground">{WRONG_TEXT[kind]}</p>
+              <p className="text-base text-muted-foreground">{WRONG_TEXT[kind]}</p>
             )}
           </div>
         );

@@ -225,14 +225,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const leaps = decodeRicoRun(myAnswer ?? "").inputs.length;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <svg viewBox="0 0 120 60" className="h-auto w-full max-w-[150px] shrink-0" aria-hidden="true">
         <rect x="14" y="0" width="8" height="60" fill={RICO_WALL} />
         <rect x="98" y="0" width="8" height="60" fill={RICO_WALL} />
         <polygon points="22,34 32,39 22,44" fill={RICO_SPIKE} />
         <circle cx="94" cy="20" r="7" fill={RICO_BALL} />
       </svg>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {Math.trunc(result.heightPx / 40).toLocaleString("en-GB")} m · {result.score} points ·{" "}
         {result.survived
           ? "survived"
@@ -240,7 +240,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             ? `hit a spike at ${result.endedSeconds.toFixed(1)}s`
             : `slid down at ${result.endedSeconds.toFixed(1)}s`}
       </p>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {leaps} leap{leaps === 1 ? "" : "s"} · same shaft for everyone
       </p>
     </div>

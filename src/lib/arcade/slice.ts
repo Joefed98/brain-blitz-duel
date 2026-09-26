@@ -715,8 +715,6 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
   }
   ctx.textAlign = "right";
   ctx.fillStyle = "rgba(255,255,255,0.7)";
-  const left = Math.max(0, SLICE_RUN_TICKS - state.tick);
-  ctx.fillText(`${Math.ceil(left / TICKS_PER_SECOND)}s`, SLICE_WORLD_W - 14, SLICE_HUD_H / 2);
   ctx.restore();
 }
 

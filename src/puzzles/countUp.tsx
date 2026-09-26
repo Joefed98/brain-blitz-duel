@@ -136,7 +136,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "countup") return null;
   return (
     <>
-      <p className="font-display text-sm font-bold">
+      <p className="font-display text-base font-bold">
         {countUpQuestion(puzzle.targetColour, puzzle.targetShape)}
       </p>
       <Field

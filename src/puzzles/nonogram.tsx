@@ -226,7 +226,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   const wrongCells = new Set(filled.filter((cell) => !pattern[cell]));
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex shrink-0 items-start justify-center gap-2">
         <Board rows={puzzle.rows} cols={puzzle.cols} marks={solutionMarks} cell={14} />
         <Board
@@ -238,7 +238,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         />
       </div>
       <p
-        className={`shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
+        className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
         {myCorrect
           ? `Solved${elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}`

@@ -239,7 +239,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const moves = decodeSwerveRun(myAnswer ?? "").taps.length;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 overflow-hidden">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex w-full max-w-[260px] shrink-0 flex-wrap justify-center gap-1">
         {Array.from({ length: Math.max(1, Math.min(result.totalCoins, 60)) }, (_, index) => (
           <span
@@ -252,11 +252,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           />
         ))}
       </div>
-      <p className="shrink-0 whitespace-nowrap text-center font-mono text-sm font-bold text-foreground">
+      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.coins} / {result.totalCoins} coins ·{" "}
         {result.survived ? "survived" : `crashed at ${result.endedSeconds.toFixed(1)}s`}
       </p>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {moves} lane change{moves === 1 ? "" : "s"} · same course for everyone
       </p>
     </div>

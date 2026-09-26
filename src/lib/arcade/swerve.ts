@@ -510,14 +510,12 @@ function draw(ctx: CanvasRenderingContext2D, state: SwerveState, size: CanvasSiz
   ctx.closePath();
   ctx.fill();
 
-  const remaining = Math.max(0, SWERVE_RUN_TICKS - state.tick) / TICKS_PER_SECOND;
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`Coins ${state.coins} / ${state.totalCoins}`, 12, 12);
   ctx.textAlign = "right";
-  ctx.fillText(`${remaining.toFixed(1)}s`, SWERVE_WORLD_W - 12, 12);
 
   if (state.crashed) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";

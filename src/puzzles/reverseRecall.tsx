@@ -67,7 +67,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
       <div className="flex items-start gap-3">
         <div className="flex flex-col items-center gap-2">
           <SequenceGrid order={correctOrder} cols={SEQUENCE_COLS} size="xs" />
-          <span className="font-mono text-[10px] uppercase text-muted-foreground">Correct</span>
+          <span className="font-mono text-base uppercase text-muted-foreground">Correct</span>
         </div>
         <div className="flex flex-col items-center gap-2">
           <SequenceGrid
@@ -77,7 +77,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
             size="xs"
           />
           <span
-            className={`font-mono text-[10px] uppercase ${myCorrect ? "text-primary" : "text-warn"}`}
+            className={`font-mono text-base uppercase ${myCorrect ? "text-primary" : "text-warn"}`}
           >
             {myAnswer ? `Yours ${myCorrect ? "✓" : "✗"}` : "No answer"}
           </span>

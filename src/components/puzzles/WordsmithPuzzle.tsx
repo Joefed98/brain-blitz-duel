@@ -38,10 +38,16 @@ export function WordsmithPuzzle({
   const [shake, setShake] = useState(0);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const wheelRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const dragged = useRef(false);
+  const suppressClick = useRef(false);
+  const selectedRef = useRef<number[]>([]);
   const submitted = useRef(false);
   const foundRef = useRef<Found[]>([]);
   foundRef.current = found;
 
+  selectedRef.current = selectedTiles;
   const word = selectedTiles.map((index) => letters[index] ?? "").join("");
   const points = found.reduce((sum, entry) => sum + entry.points, 0);
 
@@ -59,9 +65,9 @@ export function WordsmithPuzzle({
     if (remaining <= 600) lockIn();
   }, [locked, now, phaseStartedAt, lockIn]);
 
-  const trySubmit = async () => {
+  const trySubmit = async (indices = selectedRef.current) => {
     if (locked || busy) return;
-    const candidate = word.trim().toUpperCase();
+    const candidate = indices.map((index) => letters[index] ?? "").join("").trim().toUpperCase();
     if (candidate.length < WORDSMITH_MIN_LENGTH) {
       setMessage(`${WORDSMITH_MIN_LENGTH} letters or more`);
       setShake((n) => n + 1);
@@ -97,6 +103,20 @@ export function WordsmithPuzzle({
     setSelectedTiles((current) => [...current, index]);
   };
 
+  const addDraggedTile = (index: number) => {
+    if (selectedRef.current.includes(index)) return;
+    selectedRef.current = [...selectedRef.current, index];
+    setSelectedTiles(selectedRef.current);
+    setMessage(null);
+  };
+
+  const tileAt = (x: number, y: number) => {
+    const element = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-wordsmith-tile]");
+    if (!element || !wheelRef.current?.contains(element)) return null;
+    const index = Number(element.dataset["wordsmithTile"]);
+    return Number.isInteger(index) ? index : null;
+  };
+
   const removeAt = (position: number) => {
     if (locked) return;
     setSelectedTiles((current) => current.filter((_, index) => index !== position));
@@ -114,21 +134,24 @@ export function WordsmithPuzzle({
       {/* The word being built. */}
       <div
         key={shake}
+        role="button"
+        tabIndex={0}
+        aria-label="Submit word"
+        onClick={() => void trySubmit()}
+        onKeyDown={(event) => { if (event.key === "Enter") void trySubmit(); }}
         className={`flex min-h-14 items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 ${
           message ? "border-warn animate-shake" : ""
         }`}
       >
         {word.length === 0 ? (
-          <span className="font-mono text-sm text-muted-foreground">
-            {message ?? "Tap or type letters"}
-          </span>
+          <span className="font-mono text-base text-muted-foreground">{message ?? ""}</span>
         ) : (
           selectedTiles.map((tileIndex, position) => (
             <button
               key={tileIndex}
               type="button"
-              onClick={() => removeAt(position)}
-              className="font-mono text-2xl font-bold uppercase tracking-[0.15em] text-primary"
+              onClick={(event) => { event.stopPropagation(); removeAt(position); }}
+              className="font-mono text-[1.2rem] font-bold uppercase text-primary"
             >
               {letters[tileIndex]}
             </button>
@@ -139,20 +162,45 @@ export function WordsmithPuzzle({
         <p className="text-center font-mono text-xs text-warn">{message}</p>
       )}
 
-      {/* Tiles — always one row, sized to fit however many letters there are. */}
+      {/* The wheel uses fixed-size tiles, with pointer capture for continuous tracing. */}
       <div
-        className="grid w-full gap-1"
-        style={{ gridTemplateColumns: `repeat(${letters.length || 1}, minmax(0, 1fr))` }}
+        ref={wheelRef}
+        className="relative mx-auto aspect-square w-[min(100%,260px)] shrink-0 select-none touch-none"
+        onPointerMove={(event) => {
+          if (!dragging.current) return;
+          const index = tileAt(event.clientX, event.clientY);
+          if (index !== null && !selectedRef.current.includes(index)) {
+            dragged.current = true;
+            addDraggedTile(index);
+          }
+        }}
+        onPointerUp={() => {
+          if (!dragging.current) return;
+          dragging.current = false;
+          if (dragged.current) void trySubmit(selectedRef.current);
+        }}
+        onPointerCancel={() => { dragging.current = false; }}
       >
-        {order.map((index) => {
+        {order.map((index, position) => {
           const spent = selectedTiles.includes(index);
+          const angle = -Math.PI / 2 + (position * 2 * Math.PI) / order.length;
           return (
             <button
               key={index}
               type="button"
+              data-wordsmith-tile={index}
               disabled={locked}
-              onClick={() => tapTile(index)}
-              className={`flex h-12 w-full items-center justify-center rounded-xl border font-display text-lg font-bold transition-transform duration-150 ${
+              onPointerDown={(event) => {
+                event.preventDefault();
+                wheelRef.current?.setPointerCapture(event.pointerId);
+                dragging.current = true;
+                dragged.current = false;
+                suppressClick.current = true;
+                addDraggedTile(index);
+              }}
+              onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } tapTile(index); }}
+              style={{ left: `${50 + 37 * Math.cos(angle)}%`, top: `${50 + 37 * Math.sin(angle)}%` }}
+              className={`absolute flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border font-display text-xl font-bold transition-colors duration-150 ${
                 spent
                   ? "-translate-y-1 border-primary bg-primary/10 text-primary"
                   : "border-border bg-card text-foreground"
@@ -209,14 +257,6 @@ export function WordsmithPuzzle({
         </button>
         <button
           type="button"
-          onClick={() => void trySubmit()}
-          disabled={locked || busy}
-          className="press tap-target flex-1 rounded-xl bg-primary font-display text-sm font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
-        >
-          Submit
-        </button>
-        <button
-          type="button"
           onClick={() => {
             setSelectedTiles([]);
             setOrder((current) => [...current].sort(() => Math.random() - 0.5));
@@ -226,14 +266,6 @@ export function WordsmithPuzzle({
           className="press tap-target rounded-xl border border-border bg-card px-4 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
         >
           Shuffle
-        </button>
-        <button
-          type="button"
-          onClick={lockIn}
-          disabled={locked}
-          className="press tap-target rounded-xl border border-border bg-card px-4 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
-        >
-          Done
         </button>
       </div>
     </div>

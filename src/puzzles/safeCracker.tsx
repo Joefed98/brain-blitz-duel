@@ -202,14 +202,14 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       </div>
       <div className="w-full">
         {puzzle.clues.map((clue) => (
-          <p key={clue.text} className="text-center text-xs text-muted-foreground">
+          <p key={clue.text} className="text-center text-base text-muted-foreground">
             <span className="text-ok">✓</span> {clue.text}
           </p>
         ))}
       </div>
       {last && (
         <div className="flex flex-col items-center gap-1">
-          <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+          <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             your last try
           </p>
           <div className="flex gap-2">
@@ -225,7 +225,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
           </div>
         </div>
       )}
-      <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `opened on try ${tries.length}${elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}`
           : `locked · ${last ? dialsCorrect(last, combination) : 0} / ${SAFE_DIALS} dials`}
