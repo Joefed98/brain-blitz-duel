@@ -67,7 +67,16 @@ export function NumberEntry({
           }}
           className={`${compactKeypad ? "h-10 min-w-0 flex-1 py-1" : "tap-target w-full py-3"} rounded-xl border border-border bg-card px-4 text-center font-mono text-2xl tabular-nums text-foreground placeholder:font-sans placeholder:text-base placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50`}
         />
-        {keypad && compactKeypad && <button type="button" disabled={locked || value.length === 0} onPointerDown={(event) => { event.preventDefault(); submit(); }} className="h-10 rounded-lg bg-primary px-4 font-display text-sm font-bold uppercase text-primary-foreground disabled:opacity-40">Enter</button>}
+        {keypad && compactKeypad && (
+          <button
+            type="button"
+            disabled={locked || value.length === 0}
+            onPointerDown={(event) => { event.preventDefault(); submit(); }}
+            className="h-10 rounded-lg bg-primary px-4 font-display text-sm font-bold uppercase text-primary-foreground disabled:opacity-40"
+          >
+            Enter
+          </button>
+        )}
         </div>
 
         {keypad ? (
