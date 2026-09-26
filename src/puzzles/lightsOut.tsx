@@ -2,7 +2,7 @@ import { solvedMovesText } from "@/lib/duel/scoring";
 import { playCorrect } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { decodePresses, encodePresses, lightsAllOff, replayLights } from "@/lib/duel/logic";
+import { activeLightPresses, decodePresses, encodePresses, lightsAllOff, replayLights } from "@/lib/duel/logic";
 import {
   LIGHTS_COLS,
   LIGHTS_CELLS,

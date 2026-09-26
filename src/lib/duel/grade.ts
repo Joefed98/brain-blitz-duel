@@ -1,7 +1,7 @@
 import { ARCADE_DIAG_KEYS, buildArcadeDiag, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
 import { decodeGroupsAnswer, matchGroupsSelection } from "./groups.server";
-import { decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
+import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
 import { numberClimbSpan } from "./numberClimb";
 import { decodeFlowPaths, verifyFlow } from "./flow";
@@ -390,8 +390,9 @@ export function gradeSubmission(
     }
     case "lightsout": {
       // The phone sends its presses; they are replayed on the stored pattern.
-      const presses = decodePresses(answer);
-      const finalState = replayLights(puzzle.lights, presses);
+      const actions = decodePresses(answer);
+      const presses = activeLightPresses(actions);
+      const finalState = replayLights(puzzle.lights, actions);
       const startOn = lightsOnCount(puzzle.lights);
       const leftOn = lightsOnCount(finalState);
       const min = puzzle.minPresses ?? 0;
@@ -404,9 +405,9 @@ export function gradeSubmission(
       const correctTaps = (puzzle.solution ?? []).filter(
         (cell) => (counts.get(cell) ?? 0) % 2 === 1,
       ).length;
-      score = scoreLightsOut(isCorrect, presses.length, min, ms, leftOn, correctTaps);
+      score = scoreLightsOut(isCorrect, actions.filter((cell) => cell >= 0).length, min, ms, leftOn, correctTaps);
       extraDetail = {
-        presses: presses.length,
+        presses: actions.filter((cell) => cell >= 0).length,
         minPresses: min,
         lightsLeft: leftOn,
         lightsAtStart: startOn,

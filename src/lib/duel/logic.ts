@@ -72,6 +72,17 @@ export function replayLights(start: boolean[], presses: number[]): boolean[] {
   return state;
 }
 
+/** The cells still active after undo/reset actions. */
+export function activeLightPresses(presses: number[]): number[] {
+  const active: number[] = [];
+  for (const cell of presses) {
+    if (cell === -1) active.pop();
+    else if (cell === -2) active.length = 0;
+    else active.push(cell);
+  }
+  return active;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Pipes                                                                      */
 /* -------------------------------------------------------------------------- */
