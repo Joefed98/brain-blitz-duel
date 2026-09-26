@@ -2,7 +2,7 @@ import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
-import { gridCellCentre, hapticTick, useGridMetrics } from "@/components/puzzles/GridDrag";
+import { ArrowPad, gridCellCentre, hapticTick, useGridMetrics } from "@/components/puzzles/GridDrag";
 import { Button } from "@/components/ui/button";
 import {
   decodeGravityTilts,
@@ -20,7 +20,6 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 const TEAL = "#2FD4C4";
 const GOLD = GLYPH_COLOURS.GOLD;
 
-const ARROWS: Record<GravityDir, string> = { U: "↑", D: "↓", L: "←", R: "→", X: "", Y: "" };
 
 /** The board itself: dark blocks, two target rings, and the two balls. */
 function Board({
@@ -138,30 +137,6 @@ function IntroExample() {
   );
 }
 
-function TiltButton({
-  dir,
-  onPress,
-  disabled,
-}: {
-  dir: GravityDir;
-  onPress: (dir: GravityDir) => void;
-  disabled: boolean;
-}) {
-  return (
-    <Button
-      type="button"
-      disabled={disabled}
-      aria-label={`Tilt ${dir}`}
-      onClick={() => onPress(dir)}
-      variant="outline"
-      size="icon"
-      className="tap-target h-[52px] w-[52px] rounded-xl font-display text-xl font-bold"
-    >
-      {ARROWS[dir]}
-    </Button>
-  );
-}
-
 function Stage({
   puzzle,
   locked,
@@ -229,19 +204,9 @@ function Stage({
         ) : null}
       </div>
 
-      <div className="mt-4 flex shrink-0 items-center justify-center gap-4">
-        <div className="grid grid-cols-3 grid-rows-3 gap-3">
-          <span aria-hidden="true" />
-          <TiltButton dir="U" onPress={press} disabled={locked} />
-          <span aria-hidden="true" />
-          <TiltButton dir="L" onPress={press} disabled={locked} />
-          <span aria-hidden="true" />
-          <TiltButton dir="R" onPress={press} disabled={locked} />
-          <span aria-hidden="true" />
-          <TiltButton dir="D" onPress={press} disabled={locked} />
-          <span aria-hidden="true" />
-        </div>
-        <div className="flex flex-col gap-2">
+       <div className="flex shrink-0 flex-col items-center gap-1">
+         <ArrowPad onPress={press} disabled={locked || replay.solved} />
+         <div className="flex gap-2">
           <Button
             type="button"
             variant="outline"

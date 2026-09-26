@@ -414,25 +414,25 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   const y = 66;
   ctx.save();
   ctx.strokeStyle = wind === 0 ? "#F7F7F855" : BULLSEYE_GOLD;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.8;
   if (wind !== 0) {
     const dir = wind < 0 ? -1 : 1;
     ctx.beginPath();
-    ctx.moveTo(centreX - 24 * dir, y);
-    ctx.lineTo(centreX + 24 * dir, y);
-    ctx.lineTo(centreX + 16 * dir, y - 6);
-    ctx.moveTo(centreX + 24 * dir, y);
-    ctx.lineTo(centreX + 16 * dir, y + 6);
+    ctx.moveTo(centreX - 33.6 * dir, y);
+    ctx.lineTo(centreX + 33.6 * dir, y);
+    ctx.lineTo(centreX + 22.4 * dir, y - 8.4);
+    ctx.moveTo(centreX + 33.6 * dir, y);
+    ctx.lineTo(centreX + 22.4 * dir, y + 8.4);
     ctx.stroke();
   }
-  ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.font = "600 18.2px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = BULLSEYE_TEXT;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(
     wind === 0 ? "no wind" : `${wind < 0 ? "←" : "→"} ${Math.abs(wind)}`,
     centreX,
-    y - 12,
+    y - 18,
   );
   ctx.restore();
 }
@@ -503,7 +503,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   if (state.arrowIndex < BULLSEYE_ARROWS) drawWind(ctx, state.winds[state.arrowIndex] ?? 0);
   if (state.arrowIndex < BULLSEYE_ARROWS && state.flightTick === 0) drawBow(ctx);
 
-  ctx.font = "600 15px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.font = "600 19.5px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = BULLSEYE_TEXT;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";

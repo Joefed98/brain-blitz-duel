@@ -472,15 +472,15 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   const strength = Math.abs(wind);
   ctx.save();
   ctx.strokeStyle = wind === 0 ? "#F7F7F855" : BINTOSS_BIN_COLOUR;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.8;
   if (wind !== 0) {
     const dir = wind < 0 ? -1 : 1;
     ctx.beginPath();
-    ctx.moveTo(centreX - 26 * dir, y);
-    ctx.lineTo(centreX + 26 * dir, y);
-    ctx.lineTo(centreX + 18 * dir, y - 6);
-    ctx.moveTo(centreX + 26 * dir, y);
-    ctx.lineTo(centreX + 18 * dir, y + 6);
+    ctx.moveTo(centreX - 36.4 * dir, y);
+    ctx.lineTo(centreX + 36.4 * dir, y);
+    ctx.lineTo(centreX + 25.2 * dir, y - 8.4);
+    ctx.moveTo(centreX + 36.4 * dir, y);
+    ctx.lineTo(centreX + 25.2 * dir, y + 8.4);
     ctx.stroke();
   }
   // Strength bars under the arrow.
@@ -488,11 +488,11 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
     ctx.fillStyle = bar < strength ? BINTOSS_BIN_COLOUR : "#F7F7F822";
     ctx.fillRect(centreX - 26 + bar * 11, y + 10, 8, 4);
   }
-  ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.font = "600 18.2px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = BINTOSS_TEXT;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(wind === 0 ? "no wind" : `${wind < 0 ? "←" : "→"} ${strength}`, centreX, y - 14);
+  ctx.fillText(wind === 0 ? "no wind" : `${wind < 0 ? "←" : "→"} ${strength}`, centreX, y - 19);
   ctx.restore();
 }
 
