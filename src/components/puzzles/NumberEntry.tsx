@@ -10,6 +10,7 @@ interface NumberEntryProps {
   placeholder?: string;
   /** Use the on-screen keypad instead of the phone keyboard. */
   keypad?: boolean;
+  compactKeypad?: boolean;
   onSubmit: (value: string) => void;
   children: ReactNode;
 }
@@ -25,6 +26,7 @@ export function NumberEntry({
   maxLength = 4,
   placeholder = "Answer",
   keypad = false,
+  compactKeypad = false,
   onSubmit,
   children,
 }: NumberEntryProps) {
@@ -49,6 +51,7 @@ export function NumberEntry({
       </div>
 
       <div className="flex shrink-0 flex-col gap-2" style={{ touchAction: "manipulation" }}>
+        <div className={compactKeypad ? "flex gap-2" : "contents"}>
         <input
           ref={inputRef}
           value={value}
@@ -62,8 +65,10 @@ export function NumberEntry({
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
           }}
-          className="tap-target w-full rounded-xl border border-border bg-card px-4 py-3 text-center font-mono text-2xl tabular-nums text-foreground placeholder:font-sans placeholder:text-base placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+          className={`${compactKeypad ? "h-10 min-w-0 flex-1 py-1" : "tap-target w-full py-3"} rounded-xl border border-border bg-card px-4 text-center font-mono text-2xl tabular-nums text-foreground placeholder:font-sans placeholder:text-base placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50`}
         />
+        {keypad && compactKeypad && <button type="button" disabled={locked || value.length === 0} onPointerDown={(event) => { event.preventDefault(); submit(); }} className="h-10 rounded-lg bg-primary px-4 font-display text-sm font-bold uppercase text-primary-foreground disabled:opacity-40">Enter</button>}
+        </div>
 
         {keypad ? (
           <div className="flex flex-col gap-1.5">
@@ -88,7 +93,7 @@ export function NumberEntry({
                 </button>
               ))}
             </div>
-            <button
+            {!compactKeypad && <button
               type="button"
               disabled={locked || value.length === 0}
               onPointerDown={(event) => {
@@ -99,7 +104,7 @@ export function NumberEntry({
               className="h-10 w-full rounded-lg bg-primary font-display text-sm font-bold uppercase tracking-widest text-primary-foreground disabled:opacity-40"
             >
               Enter
-            </button>
+            </button>}
           </div>
         ) : (
           <button

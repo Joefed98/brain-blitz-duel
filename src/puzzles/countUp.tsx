@@ -146,6 +146,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       maxLength={2}
       placeholder="How many?"
       keypad
+      compactKeypad
       onSubmit={onSubmit}
     >
       <div ref={spaceRef} className="-mx-5 flex min-h-0 w-[calc(100%+2.5rem)] flex-1 items-stretch justify-center">
