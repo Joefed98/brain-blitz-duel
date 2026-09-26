@@ -81,7 +81,6 @@ function Stage({
     setValue("");
     onDraftAnswer?.(next.join(","));
     if (verdict.word === puzzle.targetWord) onSubmit(next.join(","));
-    else inputRef.current?.focus();
   };
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
