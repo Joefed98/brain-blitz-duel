@@ -153,10 +153,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
               <span className="flex flex-wrap items-center justify-center gap-1 tabular-nums">
                 <span className="text-primary">{item.options[answerIndex] ?? "—"}</span>
                 {tap === undefined ? (
-                  <span className="text-muted-foreground">—</span>
+                  <span className="text-muted-foreground">You: — ✗</span>
                 ) : (
                   <span className={`font-display font-bold ${got ? "text-primary" : "text-warn"}`}>
-                    {got ? "✓" : `✗ ${item.options[tap] ?? ""}`}
+                    {`You: ${item.options[tap] ?? "—"} ${got ? "✓" : "✗"}`}
                   </span>
                 )}
               </span>

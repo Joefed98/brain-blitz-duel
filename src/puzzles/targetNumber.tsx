@@ -321,7 +321,6 @@ function TargetReveal({
       <p className="text-muted-foreground">Target {puzzle.target}</p>
       <p className="text-5xl font-bold text-primary tabular-nums">{replay.value ?? "—"}</p>
       <p className="font-bold text-foreground">{myCorrect || away === 0 ? "Target Number Achieved" : away === null ? "No number locked" : `${away} away from the target`}</p>
-      {replay.steps.length > 0 && <div className="flex flex-col gap-1 text-muted-foreground"><p>Your steps:</p>{replay.steps.map((step, index) => <p key={index}>{formatStep(step)}</p>)}</div>}
       {(puzzle.solution ?? []).length > 0 && (
         <div className="flex flex-col gap-1 text-muted-foreground"><p>One way:</p>{puzzle.solution.map((step, index) => <p key={index}>{formatStep(step)}</p>)}</div>
       )}
