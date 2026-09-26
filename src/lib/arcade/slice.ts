@@ -715,6 +715,11 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
   }
   ctx.textAlign = "right";
   ctx.fillStyle = "rgba(255,255,255,0.7)";
+  // The frame uses the same world bounds as swipe input, not the outer
+  // letterboxed canvas. It is drawn on the canvas so it cannot eat pointer input.
+  ctx.strokeStyle = getComputedStyle(ctx.canvas).getPropertyValue("--arcade-frame").trim();
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, SLICE_WORLD_W - 2, SLICE_WORLD_H - 2);
   ctx.restore();
 }
 

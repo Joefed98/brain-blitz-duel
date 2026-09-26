@@ -27,7 +27,6 @@ import {
   BRK_POWER_SPAM,
   BRK_RUN_TICKS,
   BRK_TEAL,
-  BRK_WALL,
   BRK_WORLD_H,
   BRK_WORLD_W,
   type BrkState,

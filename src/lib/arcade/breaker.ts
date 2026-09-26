@@ -728,6 +728,17 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
     );
   }
 
+  // Draw in world coordinates: the inner side walls are exactly where the
+  // paddle stops, independent of the canvas's letterboxing or screen size.
+  ctx.strokeStyle = getComputedStyle(ctx.canvas).getPropertyValue("--arcade-frame").trim();
+  ctx.lineWidth = 2;
+  ctx.strokeRect(
+    BRK_WALL - 1,
+    BRK_HUD_H + BRK_WALL - 1,
+    BRK_WORLD_W - 2 * BRK_WALL + 2,
+    BRK_WORLD_H - BRK_HUD_H - 2 * BRK_WALL + 2,
+  );
+
   ctx.restore();
 }
 
