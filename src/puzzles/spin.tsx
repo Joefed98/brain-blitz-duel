@@ -178,13 +178,13 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
             <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
               {index + 1} of {puzzle.items.length}
             </p>
-             <div className="flex min-h-0 items-end justify-center gap-3 [&_svg]:max-h-full">
+             <div className="flex min-h-0 items-end justify-center gap-3">
               {(() => {
                 const box = Math.max(boxSize(item.target), boxSize(item.shown));
                 return (
                   <>
-                     <ColourShape shape={item.target} size={150} box={box} />
-                     <ColourShape shape={item.shown} size={150} box={box} />
+                     <ColourShape shape={item.target} size={120} box={box} />
+                     <ColourShape shape={item.shown} size={120} box={box} />
                   </>
                 );
               })()}
