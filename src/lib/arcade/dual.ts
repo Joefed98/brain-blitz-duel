@@ -56,8 +56,9 @@ export const DUAL_SCROLL_PERIOD_TICKS = 10 * TICKS_PER_SECOND;
 
 /**
  * No spikes in the first 5 s. On one side, consecutive spikes are at least
- * 3.0 s apart, 0.25 s less every 10 s, never below 1.0 s; each gap adds up to
- * DUAL_GAP_SPAN ticks from the seed.
+ * 3.0 s apart, 0.25 s less every 10 s; in the final 20 seconds the gap
+ * shrinks by 1.2×, never below 1.0 s. Each gap adds up to DUAL_GAP_SPAN
+ * ticks from the seed.
  */
 export const DUAL_FIRST_TICK = 5 * TICKS_PER_SECOND;
 export const DUAL_SIDE_GAP_START = 180;

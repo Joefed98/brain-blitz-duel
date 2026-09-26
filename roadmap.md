@@ -1,5 +1,12 @@
 # Roadmap
 
+## Arcade presentation and tuning (Sep 26)
+
+- [x] Simplify the requested arcade reveals: no gate/coin/pellet dots, input counts or per-arrow detail.
+- [x] Enlarge Bin Toss play text; frame Breaker and Slice; add six seeded three-hit Breaker bricks with hit cracks and unchanged per-destroyed-brick score.
+- [x] Delay Steady's lifted-finger penalty five seconds, cycle Cross traffic colours, and tighten Dual's final-20-second side gaps while retaining passability.
+- [x] Re-run 200-run Breaker, Steady, Cross and Dual client/server identity proofs. No browser tests.
+
 ## Presentation and tuning (Sep 26)
 
 - [x] Reaction waiting text enlarged; Count Up filled 8×7 board with unchanged answer range.

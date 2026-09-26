@@ -455,7 +455,7 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
     if (!laneDef) continue;
     const start = mod(laneDef.dir * laneDef.speed * rel + laneDef.phase, laneDef.period);
     const count = Math.ceil((CROSS_BOARD_W * 256) / laneDef.period) + 2;
-    ctx.fillStyle = CROSS_BLOCK_COLOURS[state.crossings % CROSS_BLOCK_COLOURS.length];
+    ctx.fillStyle = CROSS_BLOCK_COLOURS[state.crossings % CROSS_BLOCK_COLOURS.length] ?? CROSS_BLOCK;
     for (let index = -1; index <= count; index++) {
       const x = px(start + index * laneDef.period);
       ctx.fillRect(x, top + 6, px(laneDef.blockW), CROSS_LANE_H - 12);

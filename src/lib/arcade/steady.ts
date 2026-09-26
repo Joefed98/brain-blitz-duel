@@ -54,7 +54,7 @@ export const STD_EDGE_MARGIN = 46;
 /**
  * Touches: while any part of the ball overlaps an edge, one on contact and one
  * every 30 ticks until it is back inside; with no finger down for more than 30
- * ticks, one every 30 ticks until the finger returns.
+ * ticks after the first five seconds, one every 30 ticks until the finger returns.
  */
 export const STD_TOUCH_EVERY = 30;
 
