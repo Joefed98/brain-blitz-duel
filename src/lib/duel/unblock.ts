@@ -104,10 +104,14 @@ export interface UnblockReplay {
 export function replayUnblock(start: UnblockVehicle[], moves: UnblockMove[]): UnblockReplay {
   let state = start.map((v) => ({ ...v }));
   let played = 0;
+  const history = [state];
   for (const move of moves) {
+    if (move.id === -1 && move.to === 0) { if (history.length > 1) history.pop(); state = history[history.length - 1]!; continue; }
+    if (move.id === -2 && move.to === 0) { history.length = 1; state = history[0]!; continue; }
     const next = applyMove(state, move);
     if (!next) continue;
     state = next;
+    history.push(state);
     played += 1;
     if (isSolved(state)) break;
   }

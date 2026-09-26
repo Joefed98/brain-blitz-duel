@@ -57,7 +57,7 @@ export function decodeFloodMoves(raw: string): number[] {
   return String(raw ?? "")
     .split(",")
     .map((part) => Number.parseInt(part, 10))
-    .filter((value) => Number.isInteger(value) && value >= 0 && value < FLOOD_COLOURS);
+    .filter((value) => Number.isInteger(value) && value >= -1 && value < FLOOD_COLOURS);
 }
 
 export interface FloodReplay {
@@ -73,15 +73,18 @@ export function replayFlood(
   moves: number[],
   size: number = FLOOD_SIZE,
 ): FloodReplay {
-  let grid = [...start];
+  const history = [[...start]];
   let made = 0;
   for (const colour of moves) {
+    if (colour === -1) { if (history.length > 1) history.pop(); continue; }
+    const grid = history[history.length - 1]!;
     if (floodSolved(grid)) break;
     const next = floodApply(grid, colour, size);
     if (next === grid) continue;
-    grid = next;
+    history.push(next);
     made += 1;
   }
+  const grid = history[history.length - 1]!;
   return {
     grid,
     solved: floodSolved(grid),

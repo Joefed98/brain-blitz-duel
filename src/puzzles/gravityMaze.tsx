@@ -246,7 +246,7 @@ function Stage({
             type="button"
             variant="outline"
             disabled={locked || !tilts.length}
-            onClick={() => setTilts((current) => current.slice(0, -1))}
+          onClick={() => setTilts((current) => [...current, "X" as GravityDir])}
             className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
           >
             Undo
@@ -255,7 +255,7 @@ function Stage({
             type="button"
             variant="outline"
             disabled={locked || !tilts.length}
-            onClick={() => setTilts([])}
+          onClick={() => setTilts((current) => [...current, "Y" as GravityDir])}
             className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
           >
             Reset

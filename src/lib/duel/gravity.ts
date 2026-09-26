@@ -81,7 +81,7 @@ export function decodeGravityTilts(raw: string): GravityDir[] {
   return String(raw ?? "")
     .toUpperCase()
     .split("")
-    .filter((char): char is GravityDir => (GRAVITY_DIRS as string[]).includes(char))
+    .filter((char): char is GravityDir => (GRAVITY_DIRS as string[]).includes(char) || char === "X" || char === "Y")
     .slice(0, 200);
 }
 
@@ -111,6 +111,8 @@ export function replayGravity(
   const states: GravityBalls[] = [{ ...balls }];
 
   for (const dir of tilts) {
+    if (dir === "X") { if (states.length > 1) states.pop(); balls = { ...states[states.length - 1]! }; continue; }
+    if (dir === "Y") { states.length = 1; balls = { ...start }; continue; }
     if (gravitySolved(balls, targetA, targetB)) break;
     const outcome = tilt(wallSet, balls, dir);
     count++;

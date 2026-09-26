@@ -185,14 +185,14 @@ export function UnblockPuzzle({
     const last = history[history.length - 1];
     if (!last || escaping) return;
     setVehicles(last.state);
-    setMoves(last.moves);
+    setMoves((current) => [...current, { id: -1, to: 0 }]);
     setHistory((current) => current.slice(0, -1));
   };
 
   const reset = () => {
     if (escaping) return;
     setVehicles(puzzle.vehicles.map((v) => ({ ...v })));
-    setMoves([]);
+    setMoves((current) => [...current, { id: -2, to: 0 }]);
     setHistory([]);
   };
 
@@ -200,7 +200,7 @@ export function UnblockPuzzle({
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
-          moves <span className="text-primary">{moves.length}</span>
+          moves <span className="text-primary">{moves.filter((move) => move.id >= 0).length}</span>
         </span>
         <span>get the gold car out</span>
       </div>

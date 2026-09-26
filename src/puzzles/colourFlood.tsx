@@ -161,7 +161,7 @@ function Stage({
         </span>
         <button
           type="button"
-          onPointerDown={() => (moves.length ? setMoves(moves.slice(0, -1)) : undefined)}
+          onPointerDown={() => (moves.length && replay.moves ? setMoves([...moves, -1]) : undefined)}
           className="rounded-md border border-border px-3 py-1 font-display text-xs uppercase tracking-wide text-muted-foreground"
         >
           Undo

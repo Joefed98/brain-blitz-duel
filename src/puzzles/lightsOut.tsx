@@ -136,7 +136,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        presses <span className="text-primary">{presses.length}</span>
+        presses <span className="text-primary">{presses.filter((cell) => cell >= 0).length}</span>
       </p>
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <LightsGrid lights={lights} flash={flash} onPress={locked ? undefined : press} />
@@ -144,7 +144,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <div className="flex shrink-0 items-center justify-center gap-6">
         <button
           type="button"
-          onClick={() => setPresses((current) => current.slice(0, -1))}
+          onClick={() => setPresses((current) => [...current, -1])}
           disabled={locked || presses.length === 0}
           className="press font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
@@ -152,7 +152,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         </button>
         <button
           type="button"
-          onClick={() => setPresses([])}
+          onClick={() => setPresses((current) => [...current, -2])}
           disabled={locked || presses.length === 0}
           className="press font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
@@ -170,7 +170,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   solution.forEach((cell, index) => {
     numbers[cell] = index + 1;
   });
-  const mine = decodePresses(myAnswer ?? "").length;
+  const mine = decodePresses(myAnswer ?? "").filter((cell) => cell >= 0).length;
   const min = puzzle.minPresses ?? solution.length;
 
   return (

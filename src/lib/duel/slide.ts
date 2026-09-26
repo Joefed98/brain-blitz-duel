@@ -73,7 +73,7 @@ export function decodeSlideMoves(raw: string): SlideDir[] {
   return String(raw ?? "")
     .toUpperCase()
     .split("")
-    .filter((char): char is SlideDir => (SLIDE_DIRS as string[]).includes(char))
+    .filter((char): char is SlideDir => (SLIDE_DIRS as string[]).includes(char) || char === "X" || char === "Y")
     .slice(0, 200);
 }
 
@@ -109,12 +109,16 @@ export function replaySlide(
   let count = 0;
   let falls = 0;
   const visited = [start];
+  const history = [start];
   for (const dir of moves) {
+    if (dir === "X") { if (history.length > 1) history.pop(); cell = history[history.length - 1]!; continue; }
+    if (dir === "Y") { history.length = 1; cell = start; continue; }
     if (cell === exit) break;
     const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
     // A slide into a hole still costs a move, even though the ball ends at home.
     if (!outcome.path.length) continue;
     cell = outcome.cell;
+    history.push(cell);
     visited.push(cell);
     count += 1;
     if (outcome.fell) falls += 1;
