@@ -162,6 +162,7 @@ export function AnswerReveal({
               myCorrect={myCorrect}
               myReactionAvgMs={myReactionAvgMs}
               myMsRemaining={myMsRemaining}
+              validRows={Array.isArray(myExtra?.["validRows"]) ? (myExtra["validRows"] as number[]) : undefined}
             />
           ) : (
             <div className="flex justify-center">

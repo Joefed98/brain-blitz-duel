@@ -219,11 +219,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, validRows }: PuzzleRevealProps) {
   if (puzzle.type !== "wordslide") return null;
   const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(myAnswer ?? ""));
   const words = puzzle.words ?? [];
-  const good = new Set<number>(WS_MARKED_ROWS.filter((r) => myCorrect || puzzle.validRows?.includes(r)));
+  const good = new Set<number>(WS_MARKED_ROWS.filter((r) => myCorrect || validRows?.includes(r)));
   const elapsed = myMsRemaining === undefined ? null : ((WS_TIME_MS - myMsRemaining) / 1000).toFixed(1);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
