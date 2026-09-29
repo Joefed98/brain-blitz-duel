@@ -86,13 +86,13 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const down = (event: React.PointerEvent) => {
     if (frozen) return;
     event.preventDefault();
+    const cell = gridCellAt(board.current, event.clientX, event.clientY, SH_SIZE, SH_SIZE);
+    if (cell === null) return;
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
       // Capture is a nicety.
     }
-    const cell = gridCellAt(board.current, event.clientX, event.clientY, SH_SIZE, SH_SIZE);
-    if (cell === null) return;
     hapticTick();
     start.current = { x: event.clientX, y: event.clientY };
     dragging.current = false;
