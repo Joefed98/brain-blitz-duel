@@ -60,6 +60,8 @@ import {
   generateSortRush,
   generateFlip,
   generateParry,
+  generateJunction,
+  generateInkBridge,
 } from "./arcade.server";
 import { generateTents } from "./tents.server";
 
@@ -133,6 +135,8 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "sortrush") return generateSortRush();
   if (type === "flip") return generateFlip();
   if (type === "parry") return generateParry();
+  if (type === "junction") return generateJunction();
+  if (type === "inkbridge") return generateInkBridge();
   if (type === "tents") return generateTents();
 
   return puzzleDef(type).generate();

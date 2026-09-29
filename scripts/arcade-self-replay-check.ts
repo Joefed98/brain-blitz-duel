@@ -67,6 +67,10 @@ import { flipCheckpoint, flipGame } from "@/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "@/lib/duel/flip";
 import { parryCheckpoint, parryGame } from "@/lib/arcade/parry";
 import { encodeParryRun, replayParryRun } from "@/lib/duel/parry";
+import { juncCheckpoint, junctionGame } from "@/lib/arcade/junction";
+import { encodeJunctionRun, replayJunctionRun } from "@/lib/duel/junction";
+import { inkBridgeGame, inkCheckpoint } from "@/lib/arcade/inkBridge";
+import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const RUNS = Number(process.argv[2] ?? 40);
@@ -267,6 +271,8 @@ const GAMES: Game[] = [
   { key: "sortrush", game: sortRushGame, checkpoint: sortCheckpoint, mode: "events", rate: 60, encode: encodeSortRushRun, replay: replaySortRushRun },
   { key: "flip", game: flipGame, checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: replayFlipRun },
   { key: "parry", game: parryGame, checkpoint: parryCheckpoint, mode: "events", rate: 120, encode: encodeParryRun, replay: replayParryRun },
+  { key: "junction", game: junctionGame, checkpoint: juncCheckpoint, mode: "events", rate: 15, encode: encodeJunctionRun, replay: replayJunctionRun },
+  { key: "inkbridge", game: inkBridgeGame, checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: replayInkBridgeRun },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

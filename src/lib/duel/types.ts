@@ -74,7 +74,9 @@ export type PuzzleType =
   | "rooftop"
   | "sortrush"
   | "flip"
-  | "parry";
+  | "parry"
+  | "junction"
+  | "inkbridge";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -475,7 +477,9 @@ export type PuzzleData =
   | RooftopPuzzleData
   | SortRushPuzzleData
   | FlipPuzzleData
-  | ParryPuzzleData;
+  | ParryPuzzleData
+  | JunctionPuzzleData
+  | InkBridgePuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1972,5 +1976,21 @@ export interface FlipPuzzleData {
 export interface ParryPuzzleData {
   type: "parry";
   /** Draws every arrow — identical for everyone. */
+  seed: number;
+}
+
+/** Junction and Ink Bridge: fixed 60-second runs; the round clock adds three of slack. */
+export const JUNCTION_TIME_MS = 63_000;
+export const INKBRIDGE_TIME_MS = 63_000;
+
+export interface JunctionPuzzleData {
+  type: "junction";
+  /** Draws every car arrival — identical for everyone. */
+  seed: number;
+}
+
+export interface InkBridgePuzzleData {
+  type: "inkbridge";
+  /** Draws the drops and bucket moves — identical for everyone. */
   seed: number;
 }

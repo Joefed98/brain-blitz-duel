@@ -93,6 +93,8 @@ import {
   SORTRUSH_TIME_MS,
   FLIP_TIME_MS,
   PARRY_TIME_MS,
+  JUNCTION_TIME_MS,
+  INKBRIDGE_TIME_MS,
 } from "./types";
 
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
@@ -140,6 +142,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   sortrush: SORTRUSH_TIME_MS,
   flip: FLIP_TIME_MS,
   parry: PARRY_TIME_MS,
+  junction: JUNCTION_TIME_MS,
+  inkbridge: INKBRIDGE_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -1262,6 +1266,24 @@ const parrySummary: SummaryBuilder = (result) => {
   };
 };
 
+const junctionSummary: SummaryBuilder = (result) => {
+  const cleared = Number(result.extra?.["cleared"] ?? 0);
+  const gaveUp = Number(result.extra?.["gaveUp"] ?? 0);
+  const survived = result.extra?.["survived"] !== false;
+  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
+  const head = `${cleared} cleared · ${gaveUp} drove off`;
+  return {
+    summary: survived ? `${head} · survived` : `${head} · crash at ${ended.toFixed(1)}s`,
+    detail: ["Same traffic for everyone"],
+  };
+};
+
+const inkBridgeSummary: SummaryBuilder = (result) => {
+  const caught = Number(result.extra?.["caught"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? 0);
+  return { summary: `${caught} / ${total} caught`, detail: ["Same drops for everyone"] };
+};
+
 const tentsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tents") return { summary: "—", detail: [] };
   const correct = Number(result.extra?.["correct"] ?? 0);
@@ -1369,6 +1391,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   sortrush: sortRushSummary,
   flip: flipSummary,
   parry: parrySummary,
+  junction: junctionSummary,
+  inkbridge: inkBridgeSummary,
   tents: tentsSummary,
 };
 
@@ -1454,6 +1478,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   sortrush: () => null,
   flip: () => null,
   parry: () => null,
+  junction: () => null,
+  inkbridge: () => null,
   tents: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
