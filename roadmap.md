@@ -311,3 +311,4 @@
 - [x] Rooftop Run
 
 - [x] Sort Rush, Flip and Parry arcade games (200-run identity proofs passed)
+- [x] Junction and Ink Bridge arcade games (200-run identity proofs passed)
