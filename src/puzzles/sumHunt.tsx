@@ -62,6 +62,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const previousStage = useRef(1);
   const targetRef = useRef<HTMLSpanElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
+  const animatedStage = useRef(1);
   useNoTouchScroll(root);
   const metrics = useGridMetrics(board, SH_SIZE, SH_SIZE);
 
@@ -71,6 +72,16 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   useEffect(() => {
     onDraftAnswer?.(encoded);
   }, [encoded, onDraftAnswer]);
+
+  useEffect(() => {
+    const stage = state?.stage;
+    if (!stage || stage === animatedStage.current) return;
+    animatedStage.current = stage;
+    board.current?.animate(
+      [{ transform: "translateX(22px)", opacity: 0 }, { transform: "translateX(0)", opacity: 1 }],
+      { duration: 180, easing: "ease-out" },
+    );
+  }, [state?.stage]);
 
   useEffect(() => {
     if (!data || locked || submitted.current) return;
@@ -85,7 +96,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   }, [now, phaseStartedAt, locked, data, encoded, onSubmit, state?.stage]);
 
   if (!data || !state) return null;
-  if (state.stage !== previousStage.current) previousStage.current = state.stage;
   const frozen = locked || submitted.current;
   const sum = pathSum(state.board, path);
 
@@ -106,10 +116,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       targetRef.current?.animate(
         [{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }],
         { duration: 320, easing: "ease-out" },
-      );
-      board.current?.animate(
-        [{ transform: "translateX(22px)", opacity: 0 }, { transform: "translateX(0)", opacity: 1 }],
-        { duration: 180, easing: "ease-out" },
       );
     } else {
       rejectPath();

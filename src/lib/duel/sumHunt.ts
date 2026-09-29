@@ -147,6 +147,15 @@ export function sumHuntBoard(seed: number, stage: number, target: number): numbe
   throw new Error(`Unable to generate Sum Hunt stage ${stage}`);
 }
 
+/** Stage nine only needs a fresh deterministic board; its total becomes the target. */
+function finalBoard(seed: number): number[] {
+  const rng = { value: (seed ^ Math.imul(SH_STAGES + 1, 0x51ed270b)) | 0 };
+  return shuffle([
+    ...Array.from({ length: SH_TWO_DIGIT_CELLS }, () => drawInt(rng, 10, 20)),
+    ...Array.from({ length: SH_CELLS - SH_TWO_DIGIT_CELLS }, () => drawInt(rng, 1, 9)),
+  ], rng);
+}
+
 export function initSumHunt(seed: number, target: number): SumHuntState {
   const firstTarget = sumHuntTargets(seed)[0] ?? target;
   return { board: sumHuntBoard(seed, 1, firstTarget), stage: 1, paths: 0, reshuffles: 0, target: firstTarget };
@@ -169,9 +178,13 @@ export function applySumPath(state: SumHuntState, target: number, path: number[]
   }
   const nextStage = state.stage + 1;
   const targets = sumHuntTargets(seed);
-  const provisionalTarget = targets[nextStage - 1]!;
-  const board = sumHuntBoard(seed, nextStage, provisionalTarget);
-  const nextTarget = nextStage === SH_STAGES ? board.reduce((sum, value) => sum + value, 0) : provisionalTarget;
+  const provisionalTarget = targets[nextStage - 1];
+  const board = nextStage === SH_STAGES
+    ? finalBoard(seed)
+    : sumHuntBoard(seed, nextStage, provisionalTarget ?? state.target);
+  const nextTarget = nextStage === SH_STAGES
+    ? board.reduce((sum, value) => sum + value, 0)
+    : provisionalTarget ?? state.target;
   return { ...state, board, stage: nextStage, paths: state.paths + 1, target: nextTarget };
 }
 
