@@ -14,6 +14,9 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   target: ["solution"],
   numseq: ["answers"],
   ladder: ["shortestLength", "shortestPath"],
+  tilegrid: ["solution"],
+  // Par is shown on the move counter; the intended words are not.
+  wordslide: ["words"],
   equation: ["operators"],
   symscan: ["targets"],
   patcomp: ["puzzles"],

@@ -24,6 +24,8 @@ export type PuzzleType =
   | "countup"
   | "mirmatch"
   | "wordhunt"
+  | "tilegrid"
+  | "wordslide"
   | "unblock"
   | "blockparty"
   | "lightsout"
@@ -399,6 +401,8 @@ export type PuzzleData =
   | CountUpPuzzleData
   | MirrorPuzzleData
   | WordHuntPuzzleData
+  | TileGridPuzzleData
+  | WordSlidePuzzleData
   | UnblockPuzzleData
   | BlockPartyPuzzleData
   | LightsOutPuzzleData
@@ -1803,4 +1807,26 @@ export interface BeatPuzzleData {
   type: "beat";
   /** Draws the whole chart — identical for everyone. */
   seed: number;
+}
+
+/* ============================== Tile Grid =============================== */
+
+export interface TileGridPuzzleData {
+  type: "tilegrid";
+  /** The twelve shuffled letter tiles — identical for everyone. */
+  tray: string[];
+  /** Server-side only until reveal: one reference grid, 49 cells, "" for empty. */
+  solution?: string[];
+}
+
+/* ============================== Word Slide ============================== */
+
+export interface WordSlidePuzzleData {
+  type: "wordslide";
+  /** The scrambled 5×5 grid, row-major. */
+  grid: string[];
+  /** The number of scramble shifts — shown to the player as par. */
+  par: number;
+  /** Server-side only until reveal: the three intended words for rows 1, 3, 5. */
+  words?: string[];
 }

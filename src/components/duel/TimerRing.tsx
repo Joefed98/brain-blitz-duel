@@ -47,6 +47,8 @@ const COMPACT_TIMER_TYPES = new Set<PuzzleType>([
   "stroke",
   "tiles",
   "rings",
+  "tilegrid",
+  "wordslide",
 ]);
 
 export function timerSlotClass(type: PuzzleType): string {

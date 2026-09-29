@@ -922,6 +922,14 @@ export const checkWordFn = createServerFn({ method: "POST" })
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
       return checkWordHuntPath(pub.grid, path, found);
     }
+    if (pub?.type === "tilegrid") {
+      const { checkTileGridWord } = await import("./tileGrid.server");
+      return checkTileGridWord(String(data.word ?? ""));
+    }
+    if (pub?.type === "wordslide") {
+      const { checkWordSlideRow } = await import("./wordSlide.server");
+      return checkWordSlideRow(String(data.word ?? ""));
+    }
     if (pub?.type === "ladder") {
       const { checkLadderRung } = await import("./wordLadder.server");
       const previous = found.at(-1) ?? pub.startWord;

@@ -244,3 +244,7 @@
 - [x] Skyline 3/block + 2/perfect; Swerve exactly 75 coins, 2 each; Hover exactly 45 gates, 2 each, all = 100
 - [x] Bin Toss: wind ±1..±4, 80 px bin, 10/basket + whole seconds left on 10/10
 - [x] Verified: 200/200 self-replay for all 16 games, typecheck and build OK
+
+## Two new word rounds (Sep 29)
+- [x] Tile Grid (60 s, reveal 8 s)
+- [x] Word Slide (60 s, reveal 6 s)

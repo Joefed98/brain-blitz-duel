@@ -14,6 +14,8 @@ import { generateUnblock, type UnblockBankRow } from "./unblock.server";
 import { generateWordHunt, gradeWordHunt } from "./wordHunt.server";
 import { generateWordsmith, gradeWordsmith } from "./wordsmith.server";
 import { generateWordLadder } from "./wordLadder.server";
+import { generateTileGrid } from "./tileGrid.server";
+import { generateWordSlide } from "./wordSlide.server";
 import { generateLightsOut, generatePipes, generateSudoku } from "./logic.server";
 import { generateFlow } from "./flow.server";
 import { generateIceSlide } from "./slide.server";
@@ -74,6 +76,8 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "blockparty") return generateBlockParty();
   if (type === "groups") return generateGroups();
   if (type === "ladder") return generateWordLadder();
+  if (type === "tilegrid") return generateTileGrid();
+  if (type === "wordslide") return generateWordSlide();
   if (type === "lightsout") return generateLightsOut();
   if (type === "pipes") return generatePipes();
   if (type === "sudoku") return generateSudoku();
