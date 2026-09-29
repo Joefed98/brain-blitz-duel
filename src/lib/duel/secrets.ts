@@ -92,6 +92,9 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   wavefront: [],
   bastion: [],
   rooftop: [],
+  sortrush: [],
+  flip: [],
+  parry: [],
 };
 
 type Loose = Record<string, unknown>;

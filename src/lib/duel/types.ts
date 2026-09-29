@@ -71,7 +71,10 @@ export type PuzzleType =
   | "tents"
   | "wavefront"
   | "bastion"
-  | "rooftop";
+  | "rooftop"
+  | "sortrush"
+  | "flip"
+  | "parry";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -469,7 +472,10 @@ export type PuzzleData =
   | TentsPuzzleData
   | WavefrontPuzzleData
   | BastionPuzzleData
-  | RooftopPuzzleData;
+  | RooftopPuzzleData
+  | SortRushPuzzleData
+  | FlipPuzzleData
+  | ParryPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1943,5 +1949,28 @@ export const ROOFTOP_TIME_MS = 63_000;
 export interface RooftopPuzzleData {
   type: "rooftop";
   /** Draws the whole course — identical for everyone. */
+  seed: number;
+}
+
+/** Sort Rush, Flip and Parry: fixed 60-second runs; the round clock adds three of slack. */
+export const SORTRUSH_TIME_MS = 63_000;
+export const FLIP_TIME_MS = 63_000;
+export const PARRY_TIME_MS = 63_000;
+
+export interface SortRushPuzzleData {
+  type: "sortrush";
+  /** Draws the shape stream and gate swaps — identical for everyone. */
+  seed: number;
+}
+
+export interface FlipPuzzleData {
+  type: "flip";
+  /** Draws the whole corridor — identical for everyone. */
+  seed: number;
+}
+
+export interface ParryPuzzleData {
+  type: "parry";
+  /** Draws every arrow — identical for everyone. */
   seed: number;
 }

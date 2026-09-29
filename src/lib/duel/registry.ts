@@ -71,6 +71,9 @@ import { tentsPuzzle } from "@/puzzles/tents";
 import { wavefrontPuzzle } from "@/puzzles/wavefront";
 import { bastionPuzzle } from "@/puzzles/bastion";
 import { rooftopPuzzle } from "@/puzzles/rooftop";
+import { sortRushPuzzle } from "@/puzzles/sortRush";
+import { flipPuzzle } from "@/puzzles/flip";
+import { parryPuzzle } from "@/puzzles/parry";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -213,6 +216,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   wavefront: wavefrontPuzzle,
   bastion: bastionPuzzle,
   rooftop: rooftopPuzzle,
+  sortrush: sortRushPuzzle,
+  flip: flipPuzzle,
+  parry: parryPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

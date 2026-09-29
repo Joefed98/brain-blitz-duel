@@ -26,6 +26,9 @@ import { whackCheckpoint } from "./whack";
 import { wavCheckpoint } from "./wavefront";
 import { basCheckpoint } from "./bastion";
 import { roofCheckpoint } from "./rooftop";
+import { sortCheckpoint } from "./sortRush";
+import { flipCheckpoint } from "./flip";
+import { parryCheckpoint } from "./parry";
 import type { InputDiag } from "./engine";
 
 export type ArcadeCounters = Record<string, number>;
@@ -52,6 +55,9 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   wavefront: wavCheckpoint,
   bastion: basCheckpoint,
   rooftop: roofCheckpoint,
+  sortrush: sortCheckpoint,
+  flip: flipCheckpoint,
+  parry: parryCheckpoint,
 };
 
 export const ARCADE_DIAG_KEYS: ReadonlySet<string> = new Set(Object.keys(SNAPSHOTS));

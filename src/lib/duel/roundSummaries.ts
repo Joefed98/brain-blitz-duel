@@ -90,6 +90,9 @@ import {
   WAVEFRONT_TIME_MS,
   BASTION_TIME_MS,
   ROOFTOP_TIME_MS,
+  SORTRUSH_TIME_MS,
+  FLIP_TIME_MS,
+  PARRY_TIME_MS,
 } from "./types";
 
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
@@ -134,6 +137,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   wavefront: WAVEFRONT_TIME_MS,
   bastion: BASTION_TIME_MS,
   rooftop: ROOFTOP_TIME_MS,
+  sortrush: SORTRUSH_TIME_MS,
+  flip: FLIP_TIME_MS,
+  parry: PARRY_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -1221,6 +1227,41 @@ const rooftopSummary: SummaryBuilder = (result) => {
   };
 };
 
+const sortRushSummary: SummaryBuilder = (result) => {
+  const sorted = Number(result.extra?.["sorted"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? 0);
+  const wrong = Number(result.extra?.["wrong"] ?? 0);
+  const survived = result.extra?.["survived"] !== false;
+  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
+  const head = `${sorted} / ${total} sorted · ${wrong} wrong`;
+  return {
+    summary: survived ? `${head} · survived` : `${head} · missed at ${ended.toFixed(1)}s`,
+    detail: ["Same shapes for everyone"],
+  };
+};
+
+const flipSummary: SummaryBuilder = (result) => {
+  const survived = result.extra?.["survived"] !== false;
+  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
+  return {
+    summary: survived ? "Survived the minute" : `Survived ${ended.toFixed(1)}s`,
+    detail: ["Same corridor for everyone"],
+  };
+};
+
+const parrySummary: SummaryBuilder = (result) => {
+  const deflected = Number(result.extra?.["deflected"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? 0);
+  const hits = Number(result.extra?.["hits"] ?? 0);
+  const survived = result.extra?.["survived"] !== false;
+  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
+  const head = `${deflected} / ${total} deflected · ${hits} ${hits === 1 ? "hit" : "hits"}`;
+  return {
+    summary: survived ? `${head} · survived` : `${head} · fell at ${ended.toFixed(1)}s`,
+    detail: ["Same arrows for everyone"],
+  };
+};
+
 const tentsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tents") return { summary: "—", detail: [] };
   const correct = Number(result.extra?.["correct"] ?? 0);
@@ -1325,6 +1366,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wavefront: wavefrontSummary,
   bastion: bastionSummary,
   rooftop: rooftopSummary,
+  sortrush: sortRushSummary,
+  flip: flipSummary,
+  parry: parrySummary,
   tents: tentsSummary,
 };
 
@@ -1407,6 +1451,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   wavefront: () => null,
   bastion: () => null,
   rooftop: () => null,
+  sortrush: () => null,
+  flip: () => null,
+  parry: () => null,
   tents: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
