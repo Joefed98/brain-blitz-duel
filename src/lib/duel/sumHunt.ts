@@ -124,40 +124,16 @@ function targetParts(target: number, length: number, rng: { value: number }): nu
 export function sumHuntBoard(seed: number, stage: number, target: number): number[] {
   const rng = { value: (seed ^ Math.imul(stage + 1, 0x51ed270b)) | 0 };
   for (let attempt = 0; attempt < 100_000; attempt++) {
-    const minLength = Math.max(3, Math.ceil(target / 20));
-    const length = drawInt(rng, minLength, 6);
-    const path = randomPath(length, rng);
-    const parts = targetParts(target, length, rng);
-    if (!path || !parts) continue;
-    const twoDigitsInPath = parts.filter((value) => value >= 10).length;
-    const twoDigitsLeft = SH_TWO_DIGIT_CELLS - twoDigitsInPath;
-    if (twoDigitsLeft < 0 || twoDigitsLeft > SH_CELLS - length) continue;
-    const fillers = [
-      ...Array.from({ length: twoDigitsLeft }, () => drawInt(rng, 10, 20)),
-      ...Array.from({ length: SH_CELLS - length - twoDigitsLeft }, () => drawInt(rng, 1, 9)),
-    ];
-    shuffle(fillers, rng);
-    const board = Array<number>(SH_CELLS).fill(0);
-    path.forEach((cell, index) => { board[cell] = parts[index]!; });
-    let filler = 0;
-    for (let cell = 0; cell < SH_CELLS; cell++) if (board[cell] === 0) board[cell] = fillers[filler++]!;
+    const lowMin = Math.max(1, Math.min(9, Math.floor(target / 6)));
+    const highMin = Math.max(10, Math.min(20, Math.floor(target / 6)));
+    const board = shuffle([
+      ...Array.from({ length: SH_TWO_DIGIT_CELLS }, () => drawInt(rng, highMin, 20)),
+      ...Array.from({ length: SH_CELLS - SH_TWO_DIGIT_CELLS }, () => drawInt(rng, lowMin, 9)),
+    ], rng);
     const count = countValidPaths(board, target, 4);
     if (count >= 1 && count <= 3) return board;
   }
-  // Guaranteed fallback: a Hamiltonian snake contains one isolated 3–6-cell
-  // target segment. Values outside it are chosen so no other combination fits.
-  const length = Math.max(3, Math.min(6, Math.ceil(target / 20)));
-  const snake = Array.from({ length: SH_CELLS }, (_, index) => {
-    const row = Math.floor(index / SH_SIZE);
-    const col = index % SH_SIZE;
-    return row * SH_SIZE + (row % 2 === 0 ? col : SH_SIZE - 1 - col);
-  });
-  const offset = drawInt(rng, 0, SH_CELLS - length);
-  const path = snake.slice(offset, offset + length);
-  const parts = targetParts(target, length, rng) ?? Array(length).fill(1);
-  const board = Array<number>(SH_CELLS).fill(20);
-  path.forEach((cell, index) => { board[cell] = parts[index]!; });
-  return board;
+  throw new Error(`Unable to generate Sum Hunt stage ${stage}`);
 }
 
 /** Stage nine only needs a fresh deterministic board; its total becomes the target. */
