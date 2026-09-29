@@ -138,13 +138,15 @@ export function buildRoofCourse(seed: number): { rows: RoofRow[]; totalCoins: nu
 
     const coins = [0, 0, 0];
     if (draw(10) < 6) {
-      const want = draw(10) < 7 ? 2 : 1;
-      for (let n = 0; n < want; n++) {
+      const want = draw(10) < 8 ? 2 : 1;
+      let placed = 0;
+      for (let attempt = 0; attempt < 8 && placed < want; attempt++) {
         const lane = draw(3);
         const kind = kinds[lane]!;
         if (kind === ROOF_WALL || kind === ROOF_HIGH || coins[lane] !== 0) continue;
         coins[lane] = kind === ROOF_LOW || draw(10) < 3 ? ROOF_COIN_AIR : ROOF_COIN_GROUND;
         totalCoins += 1;
+        placed += 1;
       }
     }
     rows.push({ z, kinds, coins });
