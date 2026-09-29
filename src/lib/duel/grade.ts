@@ -48,6 +48,7 @@ import { decodeBeatRun, replayBeatRun } from "./beat";
 import { decodeWhackRun, replayWhackRun } from "./whack";
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
 import { decodeBastionRun, replayBastionRun } from "./bastion";
+import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
@@ -1244,6 +1245,30 @@ export function gradeSubmission(
         desyncTick: run.desyncTick,
         inputs: decodeBastionRun(answer).events.length,
         claimedScore: decodeBastionRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "rooftop": {
+      const replayStart = performance.now();
+      const run = replayRooftopRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.state.ended === 1;
+      correctCount = run.coins;
+      score = run.score;
+      extraDetail = {
+        coins: run.coins,
+        totalCoins: run.totalCoins,
+        survived: run.survived,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeRooftopRun(answer).events.length,
+        claimedScore: decodeRooftopRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

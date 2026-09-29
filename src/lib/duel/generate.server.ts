@@ -56,6 +56,7 @@ import {
   generateWhack,
   generateWavefront,
   generateBastion,
+  generateRooftop,
 } from "./arcade.server";
 import { generateTents } from "./tents.server";
 
@@ -125,6 +126,7 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "whack") return generateWhack();
   if (type === "wavefront") return generateWavefront();
   if (type === "bastion") return generateBastion();
+  if (type === "rooftop") return generateRooftop();
   if (type === "tents") return generateTents();
 
   return puzzleDef(type).generate();

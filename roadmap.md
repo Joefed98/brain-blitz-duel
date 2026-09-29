@@ -308,3 +308,4 @@
 ## New arcade games (Sep 29)
 - [x] Wavefront
 - [x] Bastion
+- [x] Rooftop Run

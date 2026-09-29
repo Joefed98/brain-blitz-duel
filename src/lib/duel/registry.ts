@@ -70,6 +70,7 @@ import { whackPuzzle } from "@/puzzles/whack";
 import { tentsPuzzle } from "@/puzzles/tents";
 import { wavefrontPuzzle } from "@/puzzles/wavefront";
 import { bastionPuzzle } from "@/puzzles/bastion";
+import { rooftopPuzzle } from "@/puzzles/rooftop";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -210,6 +211,7 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   tents: tentsPuzzle,
   wavefront: wavefrontPuzzle,
   bastion: bastionPuzzle,
+  rooftop: rooftopPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

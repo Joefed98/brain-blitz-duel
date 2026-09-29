@@ -25,6 +25,7 @@ import type {
   WhackPuzzleData,
   WavefrontPuzzleData,
   BastionPuzzleData,
+  RooftopPuzzleData,
 } from "./types";
 
 /** A fresh 32-bit seed from the platform CSPRNG. */
@@ -103,4 +104,8 @@ export function generateWavefront(): WavefrontPuzzleData {
 
 export function generateBastion(): BastionPuzzleData {
   return { type: "bastion", seed: arcadeSeed() };
+}
+
+export function generateRooftop(): RooftopPuzzleData {
+  return { type: "rooftop", seed: arcadeSeed() };
 }

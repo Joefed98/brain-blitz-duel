@@ -70,7 +70,8 @@ export type PuzzleType =
   | "whack"
   | "tents"
   | "wavefront"
-  | "bastion";
+  | "bastion"
+  | "rooftop";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -467,7 +468,8 @@ export type PuzzleData =
   | WhackPuzzleData
   | TentsPuzzleData
   | WavefrontPuzzleData
-  | BastionPuzzleData;
+  | BastionPuzzleData
+  | RooftopPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1932,5 +1934,14 @@ export interface WavefrontPuzzleData {
 export interface BastionPuzzleData {
   type: "bastion";
   /** Draws the whole spawn schedule — identical for everyone. */
+  seed: number;
+}
+
+/** Rooftop Run: a fixed 60-second run; the round clock adds three of slack. */
+export const ROOFTOP_TIME_MS = 63_000;
+
+export interface RooftopPuzzleData {
+  type: "rooftop";
+  /** Draws the whole course — identical for everyone. */
   seed: number;
 }

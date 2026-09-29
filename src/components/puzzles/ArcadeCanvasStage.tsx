@@ -43,6 +43,10 @@ interface Props<S, C> {
    * Maps a pointer event (world coordinates) to the k = 7 payload the sim should
    * receive. Returning null on "down" ignores that pointer altogether.
    */
+  /** Event kind recorded (default 7, a drag). */
+  inputKind?: number;
+  /** Discrete gestures: every payload is queued and sent once, one per tick. */
+  discrete?: boolean;
   pointer: (kind: "down" | "move" | "up", x: number, y: number) => PointerPayload | null;
   onSubmit: (answer: string) => void;
   onDraftAnswer?: ((answer: string) => void) | undefined;
@@ -61,6 +65,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<C[]>([]);
   const wanted = useRef<PointerPayload | null>(null);
+  const queue = useRef<PointerPayload[]>([]);
   const sent = useRef<string>("");
   const pointerId = useRef<number | null>(null);
   const submitted = useRef(false);
@@ -89,6 +94,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     events.current = [];
     checkpoints.current = [];
     wanted.current = null;
+    queue.current = [];
     sent.current = "";
     pointerId.current = null;
     submitted.current = false;
@@ -120,7 +126,17 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
         accumulator -= ticks * TICK_MS;
         for (let i = 0; i < ticks; i++) {
-          const target = wanted.current;
+          if (propsRef.current.discrete) {
+            const next = queue.current.shift();
+            if (next) {
+              recordInput(
+                events.current,
+                { t: tickOf() + 1, k: propsRef.current.inputKind ?? ARCADE_INPUT_DRAG, a: next.a, b: next.b, c: next.c, d: 0 },
+                game.inputRanges,
+              );
+            }
+          }
+          const target = propsRef.current.discrete ? null : wanted.current;
           if (target) {
             const key = `${target.a},${target.b},${target.c}`;
             if (key !== sent.current) {
@@ -186,6 +202,12 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     return { x: Math.max(0, Math.min(worldW, x)), y: Math.max(0, Math.min(worldH, y)) };
   };
 
+  const push = (payload: PointerPayload) => {
+    if (props.discrete) {
+      if (queue.current.length < 4) queue.current.push(payload);
+    } else wanted.current = payload;
+  };
+
   const blocked = () => props.locked || submitted.current || game.isOver(state.current);
 
   const release = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -194,7 +216,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     const point = worldPoint(event.clientX, event.clientY, true);
     if (point && !blocked()) {
       const payload = props.pointer("up", point.x, point.y);
-      if (payload) wanted.current = payload;
+      if (payload) push(payload);
     }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -218,17 +240,17 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
           const point = worldPoint(event.clientX, event.clientY, false);
           if (!point) return;
           const payload = props.pointer("down", point.x, point.y);
-          if (!payload) return;
+          if (!payload && !props.discrete) return;
           pointerId.current = event.pointerId;
           event.currentTarget.setPointerCapture(event.pointerId);
-          wanted.current = payload;
+          if (payload) push(payload);
         }}
         onPointerMove={(event) => {
           if (blocked() || pointerId.current !== event.pointerId) return;
           const point = worldPoint(event.clientX, event.clientY, true);
           if (!point) return;
           const payload = props.pointer("move", point.x, point.y);
-          if (payload) wanted.current = payload;
+          if (payload) push(payload);
         }}
         onPointerUp={release}
         onPointerCancel={release}
