@@ -87,6 +87,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const [verdicts, setVerdicts] = useState<Record<string, boolean>>({});
   const [flash, setFlash] = useState<Set<number>>(new Set());
   const [drag, setDrag] = useState<Drag | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [highlight, setHighlight] = useState<number | null>(null);
   const [checking, setChecking] = useState(false);
   const submitted = useRef(false);
   const board = useRef<HTMLDivElement | null>(null);
@@ -154,6 +156,19 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const frozen = locked || submitted.current;
   const inTray = tray.map((_, i) => i).filter((i) => !placed.includes(i));
 
+
+  const place = (tile: number, hit: number) => {
+    const from = placed.indexOf(tile);
+    if (from === hit) return;
+    const next = [...placed];
+    const other = next[hit];
+    if (from >= 0) next[from] = other;
+    else if (other !== null) return;
+    next[hit] = tile;
+    hapticTick();
+    setPlaced(next);
+    setSelected(null);
+  };
   const begin = (event: React.PointerEvent, tile: number, from: number | null) => {
     if (frozen) return;
     event.preventDefault();
@@ -167,31 +182,20 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const move = (event: React.PointerEvent) => {
     if (!drag) return;
     const moved = drag.moved || Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 6;
+    setHighlight(moved ? nearestGridCellAt(board.current, event.clientX, event.clientY, TG_SIZE, TG_SIZE) : null);
     setDrag({ ...drag, x: event.clientX, y: event.clientY, moved });
   };
   const end = (event: React.PointerEvent) => {
     if (!drag) return;
     const d = drag;
     setDrag(null);
-    const next = [...placed];
+    setHighlight(null);
     if (!d.moved) {
-      // A tap on a placed tile returns it to the tray.
-      if (d.from !== null) {
-        next[d.from] = null;
-        hapticTick();
-        setPlaced(next);
-      }
+      setSelected((current) => current === d.tile ? null : d.tile);
       return;
     }
     const hit = nearestGridCellAt(board.current, event.clientX, event.clientY, TG_SIZE, TG_SIZE);
-    if (hit !== null) {
-      if (d.from !== null) next[d.from] = null;
-      const other = next[hit] ?? null;
-      next[hit] = d.tile;
-      if (other !== null && d.from !== null) next[d.from] = other;
-      hapticTick();
-      setPlaced(next);
-    }
+    if (hit !== null) place(d.tile, hit);
   };
 
   const done = async () => {
@@ -223,7 +227,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       style={NO_SCROLL_STYLE}
       onPointerMove={move}
       onPointerUp={end}
-      onPointerCancel={() => setDrag(null)}
+      onPointerCancel={() => { setDrag(null); setHighlight(null); }}
     >
       <div ref={boardSpace} className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
       <div
@@ -239,13 +243,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
             <span
               key={i}
               onPointerDown={tile !== null ? (e) => begin(e, tile, i) : undefined}
+              onClick={tile === null && selected !== null ? () => place(selected, i) : undefined}
               className={`flex items-center justify-center rounded-md font-display text-xl font-bold transition-colors ${
-                letter && !dragging
+                highlight === i ? "bg-primary/35 text-primary" : letter && !dragging
                   ? flash.has(i)
                     ? "bg-warn text-foreground"
                     : "bg-primary text-primary-foreground"
                   : "bg-background/40"
-              }`}
+              } ${selected === tile && tile !== null ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
               style={{
                 height: cellSize,
                 boxShadow: letter && !dragging && goodCells.has(i) ? "inset 0 -3px 0 var(--opponent)" : undefined,
@@ -257,12 +262,17 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         })}
       </div>
       </div>
-      <div className="flex h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5 [@media(max-height:700px)]:h-[102px]">
+      <div onClick={(event) => {
+        if (event.target !== event.currentTarget || selected === null) return;
+        const from = placed.indexOf(selected);
+        if (from < 0) return;
+        const next = [...placed]; next[from] = null; setPlaced(next); setSelected(null); hapticTick();
+      }} className="flex h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5 [@media(max-height:700px)]:h-[102px]">
         {inTray.map((tile) => (
           <span
             key={tile}
             onPointerDown={(e) => begin(e, tile, null)}
-            className={`flex items-center justify-center rounded-lg bg-primary font-display text-2xl font-bold text-primary-foreground ${drag?.tile === tile && drag.moved ? "opacity-30" : ""}`}
+            className={`flex items-center justify-center rounded-lg bg-primary font-display text-2xl font-bold text-primary-foreground ${drag?.tile === tile && drag.moved ? "opacity-30" : ""} ${selected === tile ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
             style={{ width: TRAY_TILE, height: TRAY_TILE, ...NO_SCROLL_STYLE }}
           >
             {tray[tile]}
