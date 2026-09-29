@@ -68,6 +68,8 @@ import { dualPuzzle } from "@/puzzles/dual";
 import { ricochetPuzzle } from "@/puzzles/ricochet";
 import { whackPuzzle } from "@/puzzles/whack";
 import { tentsPuzzle } from "@/puzzles/tents";
+import { shikakuPuzzle } from "@/puzzles/shikaku";
+import { lightUpPuzzle } from "@/puzzles/lightUp";
 import { wavefrontPuzzle } from "@/puzzles/wavefront";
 import { bastionPuzzle } from "@/puzzles/bastion";
 import { rooftopPuzzle } from "@/puzzles/rooftop";
@@ -220,6 +222,8 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   ricochet: ricochetPuzzle,
   whack: whackPuzzle,
   tents: tentsPuzzle,
+  shikaku: shikakuPuzzle,
+  lightup: lightUpPuzzle,
   wavefront: wavefrontPuzzle,
   bastion: bastionPuzzle,
   rooftop: rooftopPuzzle,

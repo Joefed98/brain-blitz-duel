@@ -768,6 +768,23 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "2 per pickup, +30 for surviving the minute.",
   },
+  shikaku: {
+    goal: "Cut the grid into rectangles, one number each.",
+    how: [
+      { action: "Drag from corner to corner", detail: "to draw a rectangle." },
+      { action: "Each rectangle must hold exactly one number,", detail: "and that number is its size in squares." },
+      { action: "Cover every square.", detail: "" },
+    ],
+    score: "Solve it fast for the bonus.",
+  },
+  lightup: {
+    goal: "Light every square.",
+    how: [
+      { action: "Tap to place a bulb", detail: "— it lights its row and column up to a wall." },
+      { action: "Bulbs can't shine on each other,", detail: "and a numbered wall needs that many bulbs beside it." },
+    ],
+    score: "Solve it fast for the bonus.",
+  },
   tents: {
     goal: "Pitch one tent beside every tree.",
     how: [
