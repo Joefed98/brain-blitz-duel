@@ -309,3 +309,5 @@
 - [x] Wavefront
 - [x] Bastion
 - [x] Rooftop Run
+
+- [x] Sort Rush, Flip and Parry arcade games (200-run identity proofs passed)
