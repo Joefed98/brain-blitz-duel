@@ -15,8 +15,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   wordsmith: {
     goal: "Make as many valid words as you can.",
     how: [
-      { action: "Tap letters", detail: "to build a word." },
-      { action: "Tap a used letter", detail: "to return that tile, or use Undo." },
+      { action: "Tap or drag through letters", detail: "to build a word." },
+      { action: "Tap a used letter", detail: "to remove it and every letter after it, or use Undo." },
       { action: "Submit words", detail: "with four or more letters." },
     ],
     score: "Round score = 3 × word points, up to 150. The counter shows word points.",
@@ -43,7 +43,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Clear paths of digits that add up to the target — it rises every time.",
     how: [
       { action: "Swipe or tap touching cells", detail: "Move up, down, left or right; matching the target submits automatically." },
-      { action: "New digits drop in", detail: "after each of the first eight clears; finish by chaining the whole grid." },
+      { action: "A new board slides in", detail: "after each of the first eight clears; finish by chaining the whole grid." },
     ],
     score: "10 per stage; clear the whole grid to finish for the time bonus.",
   },

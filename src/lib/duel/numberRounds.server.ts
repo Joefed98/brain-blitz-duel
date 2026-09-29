@@ -4,10 +4,11 @@ import { countValidPaths, initSumHunt, sumHuntTargets } from "./sumHunt";
 import type { BalancePuzzleData, BalanceScale, SumHuntPuzzleData } from "./types";
 
 export function generateSumHunt(): SumHuntPuzzleData {
-  for (let attempt = 0; attempt < 200; attempt++) {
+  for (let attempt = 0; attempt < 20; attempt++) {
     const seed = randInt(1, 2_000_000_000);
     const target = sumHuntTargets(seed)[0]!;
-    if (countValidPaths(initSumHunt(seed, target).board, target, 3) >= 3) {
+    const paths = countValidPaths(initSumHunt(seed, target).board, target, 4);
+    if (paths >= 1 && paths <= 3) {
       return { type: "sumhunt", seed, target };
     }
   }

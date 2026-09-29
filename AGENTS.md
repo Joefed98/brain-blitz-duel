@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Tile Grid is tap-only: rack tile, then empty cell; placed tile, then empty cell or rack.
+- Sum Hunt boards are derived from the round seed plus stage, with 1–3 orthogonal target paths of 3–6 cells; server replay regenerates them.
