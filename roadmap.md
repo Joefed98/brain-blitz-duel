@@ -1,5 +1,13 @@
 # Roadmap
 
+## Four round refinements (Sep 29)
+
+- [x] Tile Grid tap selection, tap-to-place and live nearest-cell drag highlight.
+- [x] Word Slide 90-second limit and speed scaling.
+- [x] Sum Hunt seeded nine-stage progression, final full-grid clear, 90-second timing and stage scoring.
+- [x] Balance full-width progress bar, tap-to-place, double-tap return and live peg drop highlight.
+- [x] Run code-level checks only; do not run browser tests.
+
 ## Four new round tunings (Sep 29)
 
 - [x] Tile Grid: fit seven rows between HUD and tray; centre drag ghosts and snap by nearest cell centre.

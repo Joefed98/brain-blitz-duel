@@ -1,17 +1,17 @@
 import { randInt, randomBelow, shuffled } from "./random";
 import { BAL_PEGS, scaleSolved, type Placement } from "./balance";
-import { countValidPaths, initSumHunt } from "./sumHunt";
+import { countValidPaths, initSumHunt, sumHuntTargets } from "./sumHunt";
 import type { BalancePuzzleData, BalanceScale, SumHuntPuzzleData } from "./types";
 
 export function generateSumHunt(): SumHuntPuzzleData {
   for (let attempt = 0; attempt < 200; attempt++) {
     const seed = randInt(1, 2_000_000_000);
-    const target = 10;
+    const target = sumHuntTargets(seed)[0]!;
     if (countValidPaths(initSumHunt(seed, target).board, target, 3) >= 3) {
       return { type: "sumhunt", seed, target };
     }
   }
-  return { type: "sumhunt", seed: 12345, target: 10 };
+  return { type: "sumhunt", seed: 12345, target: sumHuntTargets(12345)[0]! };
 }
 
 /** Every placement of the tray onto empty pegs; true if any balances. */

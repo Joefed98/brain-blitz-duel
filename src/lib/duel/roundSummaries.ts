@@ -88,7 +88,7 @@ import {
 
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
 import { WS_TIME_MS } from "./wordSlide";
-import { SH_TIME_MS, sumHuntRoundScore } from "./sumHunt";
+import { SH_TIME_MS, SH_STAGES } from "./sumHunt";
 import { BAL_SCALES, BAL_TIME_MS } from "./balance";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -569,11 +569,10 @@ const groupsSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
-const sumHuntSummary: SummaryBuilder = (result) => {
-  const raw = Number(result.extra?.["raw"] ?? 0);
+const sumHuntSummary: SummaryBuilder = (result, puzzle) => {
+  const stage = Number(result.extra?.["stage"] ?? 1);
   const paths = Number(result.extra?.["paths"] ?? 0);
-  const longest = Number(result.extra?.["longest"] ?? 0);
-  return { summary: `Raw ${raw} → ${sumHuntRoundScore(raw)} · ${paths} paths · longest ${longest}`, detail: [] };
+  return { summary: stage > SH_STAGES ? `Cleared the grid · ${seconds(elapsedMs(result, puzzle))}` : `Stage ${stage} of ${SH_STAGES} · ${paths} paths`, detail: [] };
 };
 
 const balanceSummary: SummaryBuilder = (result, puzzle) => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { gridGeometry, hapticTick } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
@@ -41,12 +42,18 @@ function Beam({
   placement,
   spacing,
   onPegDown,
+  onPegTap,
+  highlighted,
+  selected,
   pegsRef,
 }: {
   scale: BalanceScale;
   placement: Placement;
   spacing: number;
   onPegDown?: (event: React.PointerEvent, trayIndex: number) => void;
+  onPegTap?: (peg: number) => void;
+  highlighted?: number | null;
+  selected?: number | null;
   pegsRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const tilt = balanceTilt(scale, placement);
@@ -68,9 +75,10 @@ function Beam({
             const peg = pegOfSlot(slot);
             const item = peg === null ? undefined : onPeg.get(peg);
             return (
-              <span key={slot} className="flex justify-center" style={{ touchAction: "none" }}>
+              <span key={slot} className={`flex justify-center ${peg !== null && highlighted === peg ? "bg-[#FFE600]/35" : ""}`} style={{ touchAction: "none" }}
+                onClick={peg !== null && !item ? () => onPegTap?.(peg) : undefined}>
                 {item && (
-                  <span
+                  <span className={item.tray === selected && !item.fixed ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}
                     onPointerDown={!item.fixed && onPegDown ? (e) => onPegDown(e, item.tray!) : undefined}
                   >
                     <Disc value={item.w} fixed={item.fixed} size={disc} />
@@ -127,6 +135,20 @@ interface Drag {
   moved: boolean;
 }
 
+/** The same live measured peg zone decides both the preview and the released drop. */
+function pegAt(element: HTMLDivElement | null, x: number, y: number, spacing: number, available: number[]): number | null {
+  const geometry = gridGeometry(element, x, y, SLOTS, 1);
+  if (!geometry) return null;
+  const beamY = Math.min(40, spacing - 2) + 4;
+  const candidates = available.map((peg) => {
+    const centre = (slotOfPeg(peg) + 0.5) * spacing;
+    return { peg, horizontal: Math.abs(geometry.x - centre), distance: Math.hypot(geometry.x - centre, geometry.y - beamY) };
+  }).sort((a, b) => a.distance - b.distance);
+  const inZone = geometry.y >= beamY - 40 && geometry.y <= beamY + 20;
+  return candidates.find((c) => inZone && c.horizontal <= spacing / 2 + 12)?.peg
+    ?? candidates.find((c) => c.distance <= 30)?.peg ?? null;
+}
+
 function useSpacing(ref: React.RefObject<HTMLDivElement | null>): number {
   const [spacing, setSpacing] = useState(38);
   useEffect(() => {
@@ -148,14 +170,28 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     scales.map((s) => s.tray.map(() => null)),
   );
   const [drag, setDrag] = useState<Drag | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [highlight, setHighlight] = useState<number | null>(null);
+  const [progressTarget, setProgressTarget] = useState<HTMLElement | null>(null);
+  const lastTap = useRef<{ tray: number; time: number } | null>(null);
   const submitted = useRef(false);
   const root = useRef<HTMLDivElement | null>(null);
   const pegs = useRef<HTMLDivElement | null>(null);
   useNoTouchScroll(root);
   const spacing = useSpacing(root);
 
+  useEffect(() => {
+    setProgressTarget(document.getElementById(`balance-progress-${stateKey}`));
+  }, [stateKey]);
+
   const solved = balanceSolvedCount(scales, placements);
   const encoded = encodeBalance(placements);
+
+  useEffect(() => {
+    setSelected(null);
+    setHighlight(null);
+    lastTap.current = null;
+  }, [solved]);
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -186,6 +222,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     if (scaleSolved(scale, next)) playCorrect();
   };
 
+
+  const available = (tray: number) => Array.from({ length: BAL_PEGS }, (_, peg) => peg).filter((peg) =>
+    !scale.fixed.some((f) => f.peg === peg) && !placement.some((p, i) => i !== tray && p === peg));
+  const hang = (tray: number, peg: number) => {
+    if (!available(tray).includes(peg)) return;
+    const next = [...placement]; next[tray] = peg;
+    setSelected(null); hapticTick(); setCurrent(next);
+  };
   const begin = (event: React.PointerEvent, tray: number) => {
     if (frozen) return;
     event.preventDefault();
@@ -199,41 +243,29 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const move = (event: React.PointerEvent) => {
     if (!drag) return;
     const moved = drag.moved || Math.hypot(event.clientX - drag.sx, event.clientY - drag.sy) > 6;
+    setHighlight(moved ? pegAt(pegs.current, event.clientX, event.clientY, spacing, available(drag.tray)) : null);
     setDrag({ ...drag, x: event.clientX, y: event.clientY, moved });
   };
   const end = (event: React.PointerEvent) => {
     if (!drag) return;
     const d = drag;
     setDrag(null);
-    const next = [...placement];
+    setHighlight(null);
     if (!d.moved) {
-      if (next[d.tray] !== null) {
-        next[d.tray] = null;
-        hapticTick();
-        setCurrent(next);
+      const previous = lastTap.current;
+      const isDouble = placement[d.tray] !== null && previous?.tray === d.tray && Date.now() - previous.time < 350;
+      lastTap.current = isDouble ? null : { tray: d.tray, time: Date.now() };
+      if (isDouble) {
+        const next = [...placement]; next[d.tray] = null;
+        setSelected(null); hapticTick(); setCurrent(next);
+      } else {
+        setSelected((current) => current === d.tray ? null : d.tray);
       }
       return;
     }
-    const geometry = gridGeometry(pegs.current, event.clientX, event.clientY, SLOTS, 1);
-    if (!geometry) return;
-    const available = Array.from({ length: BAL_PEGS }, (_, peg) => peg).filter((peg) =>
-      !scale.fixed.some((f) => f.peg === peg) && !next.some((p, i) => i !== d.tray && p === peg));
-    const candidates = available.map((peg) => {
-      const centre = (slotOfPeg(peg) + 0.5) * spacing;
-      return { peg, horizontal: Math.abs(geometry.x - centre), distance: Math.hypot(geometry.x - centre, geometry.y - (Math.min(40, spacing - 2) + 4)) };
-    }).sort((a, b) => a.distance - b.distance);
-    const beamY = Math.min(40, spacing - 2) + 4;
-    const inZone = geometry.y >= beamY - 40 && geometry.y <= beamY + 20;
-    const zone = candidates.find(({ horizontal }) => inZone && horizontal <= spacing / 2 + 12);
-    const near = candidates.find(({ distance }) => distance <= 30);
-    const peg = zone?.peg ?? near?.peg;
-    if (peg === undefined) {
-      if (next[d.tray] !== null) { next[d.tray] = null; setCurrent(next); }
-      return;
-    }
-    next[d.tray] = peg;
-    hapticTick();
-    setCurrent(next);
+    const peg = pegAt(pegs.current, event.clientX, event.clientY, spacing, available(d.tray));
+    if (peg === null) return;
+    hang(d.tray, peg);
   };
 
   const trayLeft = scale.tray.map((_, i) => i).filter((i) => placement[i] === null);
@@ -242,24 +274,27 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   return (
     <div
       ref={root}
-      className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-5"
+      className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-5"
       style={NO_SCROLL_STYLE}
       onPointerMove={move}
       onPointerUp={end}
-      onPointerCancel={() => setDrag(null)}
+      onPointerCancel={() => { setDrag(null); setHighlight(null); }}
     >
-      <div className="flex w-48 shrink-0 gap-1.5">
-        {Array.from({ length: BAL_SCALES }, (_, i) => (
-          <span key={i} className={`h-2 flex-1 rounded-full ${i < solved ? "bg-primary" : i === current ? "bg-primary/35" : "bg-border"}`} />
-        ))}
-      </div>
-      <Beam scale={scale} placement={placement} spacing={spacing} onPegDown={begin} pegsRef={pegs} />
+      {progressTarget && createPortal(
+        <div className="flex h-3 w-full shrink-0 gap-1.5 px-4" aria-label={`${solved} of ${BAL_SCALES} scales balanced`}>
+          {Array.from({ length: BAL_SCALES }, (_, i) => (
+            <span key={i} className={`h-3 flex-1 rounded-full ${i < solved ? "bg-primary" : i === current ? "bg-primary/35" : "bg-border"}`} />
+          ))}
+        </div>, progressTarget,
+      )}
+      <Beam scale={scale} placement={placement} spacing={spacing} onPegDown={begin} pegsRef={pegs}
+        selected={selected} highlighted={highlight} onPegTap={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }} />
       <div className="flex min-h-[48px] shrink-0 flex-wrap justify-center gap-3">
         {trayLeft.map((i) => (
           <span
             key={i}
             onPointerDown={(e) => begin(e, i)}
-            className={drag?.tray === i && drag.moved ? "opacity-30" : ""}
+            className={`${drag?.tray === i && drag.moved ? "opacity-30" : ""} ${selected === i ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
             style={{ touchAction: "none" }}
           >
             <Disc value={scale.tray[i]!} fixed={false} size={44} />

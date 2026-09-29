@@ -6,10 +6,9 @@
 
 export const SH_SIZE = 5;
 export const SH_CELLS = SH_SIZE * SH_SIZE;
-export const SH_TIME_MS = 45_000;
+export const SH_TIME_MS = 90_000;
 export const SH_REVEAL_MS = 6_000;
-/** Raw points that earn the full 150. */
-export const SH_PAR = 250;
+export const SH_STAGES = 9;
 
 export interface SumHuntState {
   board: number[];
@@ -17,9 +16,8 @@ export interface SumHuntState {
   cols: number[];
   /** PRNG state for reshuffles. */
   rng: number;
-  raw: number;
+  stage: number;
   paths: number;
-  longest: number;
   reshuffles: number;
   target: number;
 }
@@ -36,16 +34,22 @@ function digit(state: number): { state: number; value: number } {
   return { state: r.state, value: 1 + Math.floor(r.value * 9) };
 }
 
-export function pathPoints(length: number): number {
-  if (length < 2) return 0;
-  if (length === 2) return 5;
-  if (length === 3) return 10;
-  if (length === 4) return 20;
-  return 35;
+export function sumHuntRoundScore(stage: number, msRemaining: number): number {
+  return stage > SH_STAGES
+    ? 100 + Math.round(50 * Math.max(0, Math.min(SH_TIME_MS, msRemaining)) / SH_TIME_MS)
+    : Math.min(80, 10 * Math.max(0, stage - 1));
 }
 
-export function sumHuntRoundScore(raw: number): number {
-  return Math.min(150, Math.floor((150 * Math.max(0, raw)) / SH_PAR));
+/** Independent seed stream: the same rising targets for both players regardless of their clears. */
+export function sumHuntTargets(seed: number): number[] {
+  let rng = (seed ^ 0x3a951d07) | 0;
+  let draw = step(rng); rng = draw.state;
+  const targets = [10 + Math.floor(draw.value * 3)];
+  for (let i = 1; i < SH_STAGES - 1; i++) {
+    draw = step(rng); rng = draw.state;
+    targets.push(targets[i - 1]! + 4 + Math.floor(draw.value * 4));
+  }
+  return targets;
 }
 
 function neighbours(cell: number): number[] {
@@ -63,7 +67,7 @@ function neighbours(cell: number): number[] {
 export function countValidPaths(board: number[], target: number, limit = 3): number {
   let count = 0;
   const used = new Set<number>();
-  const walk = (cell: number, sum: number, start: number, length: number): void => {
+  const walk = (cell: number, sum: number, length: number): void => {
     if (count >= limit * 2) return;
     if (sum === target && length >= 2) count++;
     if (sum >= target) return;
@@ -72,13 +76,13 @@ export function countValidPaths(board: number[], target: number, limit = 3): num
       const value = board[n]!;
       if (sum + value > target) continue;
       used.add(n);
-      walk(n, sum + value, start, length + 1);
+      walk(n, sum + value, length + 1);
       used.delete(n);
     }
   };
   for (let cell = 0; cell < SH_CELLS && count < limit * 2; cell++) {
     used.add(cell);
-    walk(cell, board[cell]!, cell, 1);
+    walk(cell, board[cell]!, 1);
     used.delete(cell);
   }
   return Math.floor(count / 2);
@@ -119,7 +123,7 @@ export function initSumHunt(seed: number, target: number): SumHuntState {
     }
   }
   return reshuffleIfStuck(
-    { board, cols, rng: (seed ^ 0x51ed270b) | 0, raw: 0, paths: 0, longest: 0, reshuffles: 0, target },
+    { board, cols, rng: (seed ^ 0x51ed270b) | 0, stage: 1, paths: 0, reshuffles: 0, target },
     target,
   );
 }
@@ -134,8 +138,11 @@ export function pathShapeValid(path: number[]): boolean {
 }
 
 /** Clears a correct path, drops digits, fills from the column queues. Null if the path doesn't count. */
-export function applySumPath(state: SumHuntState, target: number, path: number[]): SumHuntState | null {
-  if (!pathShapeValid(path) || pathSum(state.board, path) !== target) return null;
+export function applySumPath(state: SumHuntState, target: number, path: number[], seed: number): SumHuntState | null {
+  if (state.stage > SH_STAGES || target !== state.target || !pathShapeValid(path) || pathSum(state.board, path) !== target) return null;
+  if (state.stage === SH_STAGES) {
+    return path.length === SH_CELLS ? { ...state, board: Array(SH_CELLS).fill(0), stage: SH_STAGES + 1, paths: state.paths + 1 } : null;
+  }
   const cleared = new Set(path);
   const board = [...state.board];
   const cols = [...state.cols];
@@ -154,17 +161,22 @@ export function applySumPath(state: SumHuntState, target: number, path: number[]
       }
     }
   }
-  const nextTarget = Math.min(20, target + 1);
+  const nextStage = state.stage + 1;
+  const nextTarget = nextStage === SH_STAGES
+    ? board.reduce((sum, digit) => sum + digit, 0)
+    : sumHuntTargets(seed)[nextStage - 1]!;
+  const next = {
+    ...state,
+    board,
+    cols,
+    paths: state.paths + 1,
+    stage: nextStage,
+    target: nextTarget,
+  };
+  // On the last stage a full-grid snake always exists; reshuffling would change the displayed total.
+  if (nextStage === SH_STAGES) return next;
   return reshuffleIfStuck(
-    {
-      ...state,
-      board,
-      cols,
-      raw: state.raw + pathPoints(path.length),
-      paths: state.paths + 1,
-      longest: Math.max(state.longest, path.length),
-      target: nextTarget,
-    },
+    next,
     nextTarget,
   );
 }
@@ -183,11 +195,11 @@ export function decodeSumPaths(raw: string): number[][] {
 }
 
 export function replaySumHunt(seed: number, target: number, paths: number[][]): SumHuntState {
-  let state = initSumHunt(seed, target);
-  for (const path of paths) state = applySumPath(state, state.target, path) ?? state;
+  let state = initSumHunt(seed, sumHuntTargets(seed)[0] ?? target);
+  for (const path of paths) state = applySumPath(state, state.target, path, seed) ?? state;
   return state;
 }
 
 export function sumHuntText(state: SumHuntState): string {
-  return `Raw ${state.raw} → ${sumHuntRoundScore(state.raw)} · ${state.paths} paths · longest ${state.longest}`;
+  return state.stage > SH_STAGES ? "Cleared the grid" : `Stage ${state.stage} of ${SH_STAGES} · ${state.paths} paths`;
 }

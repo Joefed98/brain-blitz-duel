@@ -33,25 +33,25 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   tilegrid: {
     goal: "Build a mini crossword from your tiles.",
     how: [
-      { action: "Drag tiles onto the grid.", detail: "Every row and column of touching letters must be a real word, and everything must connect." },
-      { action: "Tap a placed tile", detail: "to send it back to the tray." },
+      { action: "Tap a tile, then a cell, or drag it.", detail: "Every touching run must be a real word, and everything must connect." },
+      { action: "Tap a placed tile, then the rack", detail: "to return it." },
       { action: "Tap Done", detail: "to check — red runs need fixing." },
     ],
     score: "More tiles placed scores more; all twelve for the time bonus.",
   },
   sumhunt: {
-    goal: "Draw paths of digits that add up to the target.",
+    goal: "Clear paths of digits that add up to the target — it rises every time.",
     how: [
       { action: "Swipe or tap touching cells", detail: "including diagonals; release, repeat the last cell, or tap the sum to submit." },
-      { action: "New digits drop in", detail: "after every clear." },
+      { action: "New digits drop in", detail: "after each of the first eight clears; finish by chaining the whole grid." },
     ],
-    score: "Points per path; longer is better.",
+    score: "10 per stage; clear the whole grid to finish for the time bonus.",
   },
   balance: {
     goal: "Balance the scale.",
     how: [
-      { action: "Drag every weight onto a peg.", detail: "Further from the middle counts more — a 2 on peg 3 equals a 3 on peg 2." },
-      { action: "Tap a placed weight", detail: "to return it to the tray." },
+      { action: "Drag or tap a weight, then a peg.", detail: "Further from the middle counts more — a 2 on peg 3 equals a 3 on peg 2." },
+      { action: "Double-tap a placed weight", detail: "to return it to the tray." },
     ],
     score: "One point-third per scale; all three for the time bonus.",
   },
