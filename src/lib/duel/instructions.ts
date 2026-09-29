@@ -736,6 +736,22 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Points per hit, 15 per wave cleared.",
   },
+  orbit: {
+    goal: "Hop from planet to planet.",
+    how: [
+      { action: "You orbit automatically.", detail: "Tap to let go — you fly straight until the next orbit catches you." },
+      { action: "Miss and you drift away.", detail: "Avoid the red arcs." },
+    ],
+    score: "Points for the share of planets you reach.",
+  },
+  swing: {
+    goal: "Swing through the cavern as far as you can.",
+    how: [
+      { action: "Hold to grab the next anchor and swing,", detail: "let go to fly." },
+      { action: "Time the release for distance.", detail: "Don't touch the spikes." },
+    ],
+    score: "2 per metre.",
+  },
   tents: {
     goal: "Pitch one tent beside every tree.",
     how: [

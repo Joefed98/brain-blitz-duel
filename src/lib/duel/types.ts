@@ -77,7 +77,9 @@ export type PuzzleType =
   | "parry"
   | "junction"
   | "inkbridge"
-  | "burst";
+  | "burst"
+  | "orbit"
+  | "swing";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -481,7 +483,9 @@ export type PuzzleData =
   | ParryPuzzleData
   | JunctionPuzzleData
   | InkBridgePuzzleData
-  | BurstPuzzleData;
+  | BurstPuzzleData
+  | OrbitPuzzleData
+  | SwingPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -2003,5 +2007,21 @@ export const BURST_TIME_MS = 63_000;
 export interface BurstPuzzleData {
   type: "burst";
   /** Draws every wave — identical for everyone. */
+  seed: number;
+}
+
+/** Orbit and Swing: fixed 60-second runs; the round clock adds three of slack. */
+export const ORBIT_TIME_MS = 63_000;
+export const SWING_TIME_MS = 63_000;
+
+export interface OrbitPuzzleData {
+  type: "orbit";
+  /** Draws the planet course — identical for everyone. */
+  seed: number;
+}
+
+export interface SwingPuzzleData {
+  type: "swing";
+  /** Draws the cavern — identical for everyone. */
   seed: number;
 }

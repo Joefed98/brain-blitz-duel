@@ -96,6 +96,8 @@ import {
   JUNCTION_TIME_MS,
   INKBRIDGE_TIME_MS,
   BURST_TIME_MS,
+  ORBIT_TIME_MS,
+  SWING_TIME_MS,
 } from "./types";
 
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
@@ -146,6 +148,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   junction: JUNCTION_TIME_MS,
   inkbridge: INKBRIDGE_TIME_MS,
   burst: BURST_TIME_MS,
+  orbit: ORBIT_TIME_MS,
+  swing: SWING_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -1286,6 +1290,28 @@ const inkBridgeSummary: SummaryBuilder = (result) => {
   return { summary: `${caught} / ${total} caught`, detail: ["Same drops for everyone"] };
 };
 
+const orbitSummary: SummaryBuilder = (result) => {
+  const captured = Number(result.extra?.["captured"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? 0);
+  const survived = result.extra?.["survived"] !== false;
+  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
+  const head = `${captured} / ${total} planets`;
+  return {
+    summary: survived ? `${head} · survived` : `${head} · lost at ${ended.toFixed(1)}s`,
+    detail: ["Same planets for everyone"],
+  };
+};
+
+const swingSummary: SummaryBuilder = (result) => {
+  const metres = Number(result.extra?.["metres"] ?? 0);
+  const survived = result.extra?.["survived"] !== false;
+  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
+  return {
+    summary: survived ? `${metres} m · survived` : `${metres} m · fell at ${ended.toFixed(1)}s`,
+    detail: ["Same cavern for everyone"],
+  };
+};
+
 const burstSummary: SummaryBuilder = (result) => {
   const wave = Math.max(1, Number(result.extra?.["wave"] ?? 1));
   const lives = Number(result.extra?.["lives"] ?? 0);
@@ -1408,6 +1434,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   junction: junctionSummary,
   inkbridge: inkBridgeSummary,
   burst: burstSummary,
+  orbit: orbitSummary,
+  swing: swingSummary,
   tents: tentsSummary,
 };
 
@@ -1496,6 +1524,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   junction: () => null,
   inkbridge: () => null,
   burst: () => null,
+  orbit: () => null,
+  swing: () => null,
   tents: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
