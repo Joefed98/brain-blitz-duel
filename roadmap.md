@@ -295,3 +295,8 @@
 - [x] Word Slide (60 s, reveal 6 s)
 - [x] Sum Hunt (number, 45 s, reveal 6 s)
 - [x] Balance (number, 60 s, reveal 8 s)
+
+## Three-stage rounds (Sep 29)
+- [x] Equation Balancing: 3/4/5-number stages, 60 s, 30/40/50 + time bonus
+- [x] Symbol Scan: 5×5/6×6/7×7, 45 s, 30/35/35 − 3 per wrong tap + bonus
+- [x] Count Up: 5×4/7×6/full grid, 45 s, exact/near-miss weights + bonus
