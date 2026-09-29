@@ -1,5 +1,5 @@
 /**
- * Self-replay proof for all 16 arcade games. Each run drives the sim exactly the
+ * Self-replay proof for all 18 arcade games. Each run drives the sim exactly the
  * way the phone does — random candidate inputs (many deliberately out of range)
  * go through recordInput/recordTap, and the sim reads its input for each tick
  * from the recorded log only. The submitted string is that log, unmodified.
@@ -264,7 +264,8 @@ function same(a: unknown, b: unknown): boolean {
 }
 
 let failures = 0;
-for (const spec of GAMES) {
+const ONLY = process.argv[3]?.split(",");
+for (const spec of GAMES.filter((g) => !ONLY || ONLY.includes(g.key))) {
   let worstMs = 0;
   let maxEvents = 0;
   let failed = 0;
