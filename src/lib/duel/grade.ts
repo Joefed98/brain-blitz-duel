@@ -57,6 +57,8 @@ import {
   scoreEquation,
   scoreCountUp,
   scoreWordLadder,
+  scoreSolvedMoves,
+  speedBonus,
   scoreNumberClimb,
   scoreNumberHunt,
   scoreNumberSequence,
