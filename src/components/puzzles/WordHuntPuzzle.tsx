@@ -142,6 +142,8 @@ export function WordHuntPuzzle({
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const tracing = useRef(false);
+  const dragging = useRef(false);
+  const pointerStart = useRef<{ cell: number; x: number; y: number } | null>(null);
   const livePath = useRef<number[]>([]);
   const foundRef = useRef<Found[]>([]);
   const submitted = useRef(false);
@@ -223,16 +225,42 @@ export function WordHuntPuzzle({
       // Capture is a nicety; the window listeners still follow the finger.
     }
     tracing.current = true;
-    livePath.current = [cell];
-    setPath([cell]);
+    dragging.current = false;
+    pointerStart.current = { cell, x: event.clientX, y: event.clientY };
     setPointer(centre(cell));
     setMessage(null);
-    hapticTick();
   };
+
+  const tapCell = useCallback((cell: number) => {
+    const current = livePath.current;
+    const last = current[current.length - 1];
+    if (last === cell) {
+      void finish();
+      return;
+    }
+    const existing = current.indexOf(cell);
+    const next = existing >= 0
+      ? current.slice(0, existing + 1)
+      : last !== undefined && adjacent(last, cell)
+        ? [...current, cell]
+        : [cell];
+    livePath.current = next;
+    setPath(next);
+    setPointer(centre(cell));
+    hapticTick();
+  }, [finish]);
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
       if (!tracing.current) return;
+      const origin = pointerStart.current;
+      if (!dragging.current) {
+        if (!origin || Math.hypot(event.clientX - origin.x, event.clientY - origin.y) < 8) return;
+        dragging.current = true;
+        livePath.current = [origin.cell];
+        setPath([origin.cell]);
+        hapticTick();
+      }
       const current = livePath.current;
       const last = current[current.length - 1];
       if (last === undefined) return;
@@ -262,7 +290,15 @@ export function WordHuntPuzzle({
     };
     const up = () => {
       if (!tracing.current) return;
-      void finish();
+      const origin = pointerStart.current;
+      tracing.current = false;
+      pointerStart.current = null;
+      if (dragging.current) {
+        dragging.current = false;
+        void finish();
+      } else if (origin) {
+        tapCell(origin.cell);
+      }
     };
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerup", up);
@@ -272,7 +308,7 @@ export function WordHuntPuzzle({
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
     };
-  }, [finish]);
+  }, [finish, tapCell]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -304,11 +340,11 @@ export function WordHuntPuzzle({
 
       <button
         type="button"
-        onClick={lockIn}
-        disabled={locked}
+        onClick={() => void finish()}
+        disabled={locked || path.length === 0}
         className="press tap-target rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
       >
-        Done
+        Submit
       </button>
     </div>
   );

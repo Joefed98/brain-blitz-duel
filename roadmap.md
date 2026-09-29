@@ -1,5 +1,13 @@
 # Roadmap
 
+## Four control and layout tunings (Sep 29)
+
+- [x] Make Balance tap-only with weights above the beam, selected-only peg markers, measured targets and spaced stacked reveals.
+- [x] Convert Sum Hunt to deterministic 4×4 boards with a 16-cell final clear.
+- [x] Add persistent tap-built words and a Submit control to Word Hunt while preserving drag tracing.
+- [x] Add a remembered shared joystick mode with step locks and 180 ms Maze Dash repeat.
+- [x] Run code-level checks only; do not run browser tests.
+
 ## Three type tunings (Sep 29)
 
 - [x] Replace Balance peg squares with hanging gold lines while retaining measured targets.

@@ -26,16 +26,16 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const CELL = 56;
+const CELL = 64;
 const GAP = 4;
 
 function IntroExample() {
-  const digits = [5, 1, 8, 4, 3, 2, 7, 6, 9];
-  const path = new Set([0, 3, 4]);
+  const digits = [5, 1, 8, 11, 4, 3, 2, 7, 6, 9, 12, 2, 10, 8, 4, 15];
+  const path = new Set([0, 4, 5]);
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <span className="font-mono text-lg font-bold text-primary">12</span>
-      <div className="grid gap-1 rounded-lg border-2 border-border bg-card p-1" style={{ gridTemplateColumns: "repeat(3, 30px)" }}>
+      <div className="grid gap-1 rounded-lg border-2 border-border bg-card p-1" style={{ gridTemplateColumns: "repeat(4, 30px)" }}>
         {digits.map((d, i) => (
           <span
             key={i}

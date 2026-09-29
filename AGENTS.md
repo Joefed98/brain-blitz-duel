@@ -10,4 +10,5 @@
 <!-- LOVABLE:END -->
 
 - Tile Grid is tap-only: rack tile, then empty cell; placed tile, then empty cell or rack.
-- Sum Hunt boards are derived from the round seed plus stage, with 1–3 orthogonal target paths of 3–6 cells; server replay regenerates them.
+- Sum Hunt uses deterministic 4×4 stage boards with 1–3 orthogonal target paths of 3–6 cells; server replay regenerates them.
+- ArrowPad owns the device-local arrows/joystick preference so every arrow-controlled puzzle behaves consistently.

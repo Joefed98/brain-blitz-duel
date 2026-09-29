@@ -3,12 +3,12 @@
  * only from the round seed and stage number, so both players see identical play.
  */
 
-export const SH_SIZE = 5;
+export const SH_SIZE = 4;
 export const SH_CELLS = SH_SIZE * SH_SIZE;
 export const SH_TIME_MS = 90_000;
 export const SH_REVEAL_MS = 6_000;
 export const SH_STAGES = 9;
-export const SH_TWO_DIGIT_CELLS = 10;
+export const SH_TWO_DIGIT_CELLS = 6;
 
 export interface SumHuntState {
   board: number[];
