@@ -159,6 +159,19 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     const next = [...placed]; next[from] = null;
     setPlaced(next); setSelected(null); hapticTick();
   };
+  const clearAll = () => {
+    if (frozen) return;
+    setPlaced(Array.from({ length: TG_CELLS }, () => null));
+    setSelected(null);
+    hapticTick();
+  };
+  const tapPlaced = (tile: number) => {
+    const previous = lastTap.current;
+    const isDouble = previous?.tile === tile && Date.now() - previous.time < 350;
+    lastTap.current = isDouble ? null : { tile, time: Date.now() };
+    if (isDouble) returnToTray(tile);
+    else setSelected((current) => current === tile ? null : tile);
+  };
   const done = async () => {
     if (frozen || checking) return;
     setChecking(true);
