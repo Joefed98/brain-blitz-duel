@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep Tile Grid's nearest-centre release hit test in the shared grid helper so measured cell bounds and drag snapping agree.
