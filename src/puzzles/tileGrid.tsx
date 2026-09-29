@@ -257,7 +257,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         })}
       </div>
       </div>
-      <div className="flex min-h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5">
+      <div className="flex min-h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5 [@media(max-height:700px)]:min-h-[84px]">
         {inTray.map((tile) => (
           <span
             key={tile}
