@@ -157,6 +157,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   if (!data || !replay) return null;
   const frozen = locked || submitted.current;
   const good = new Set(WS_MARKED_ROWS.filter((r, i) => verdicts[rowWords[i]!] === true));
+  const canUndo = tokens.reduce((depth, token) => token === "X" ? 0 : token === "U" ? Math.max(0, depth - 1) : depth + 1, 0) > 0;
 
   const push = (token: string) => {
     if (frozen) return;
@@ -199,7 +200,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       <div className="flex shrink-0 gap-2">
         <Button
           type="button"
-          disabled={frozen || replay.moves === 0}
+          disabled={frozen || !canUndo}
           onPointerDown={() => push("U")}
           className="h-11 w-24 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
@@ -207,7 +208,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         </Button>
         <Button
           type="button"
-          disabled={frozen || replay.moves === 0}
+          disabled={frozen || !canUndo}
           onPointerDown={() => push("X")}
           className="h-11 w-24 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >

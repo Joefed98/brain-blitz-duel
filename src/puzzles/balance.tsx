@@ -188,6 +188,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const encoded = encodeBalance(placements);
 
   useEffect(() => {
+    setSelected(null);
+    setHighlight(null);
+    lastTap.current = null;
+  }, [solved]);
+
+  useEffect(() => {
     onDraftAnswer?.(encoded);
   }, [encoded, onDraftAnswer]);
 

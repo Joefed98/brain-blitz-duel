@@ -277,7 +277,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       </div>
       </div>
       <div data-tile-rack="true" onClick={(event) => {
-        if (event.target !== event.currentTarget || selected === null) return;
+        if (selected === null || (event.target !== event.currentTarget && placed.indexOf(selected) < 0)) return;
         returnToTray(selected);
       }} className="flex h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5 [@media(max-height:700px)]:h-[102px]">
         {inTray.map((tile) => (
