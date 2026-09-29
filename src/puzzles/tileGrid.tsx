@@ -184,7 +184,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     <div className="flex min-h-0 flex-1 flex-col items-center gap-1">
       <div ref={boardSpace} className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
       <div
-        className="puzzle-board grid shrink-0 rounded-xl border-2 border-border bg-card p-1"
+        className="grid shrink-0 rounded-xl border-2 border-border bg-card p-1"
         style={{ gridTemplateColumns: `repeat(${TG_SIZE}, ${cellSize}px)`, gap: GAP }}
         aria-label="Tile Grid board"
       >
