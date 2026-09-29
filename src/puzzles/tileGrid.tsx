@@ -278,7 +278,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         })}
       </div>
       </div>
-      <div ref={rack} onClick={(event) => {
+      <div ref={rack} onPointerDownCapture={(event) => {
+        if (selected === null || placed.indexOf(selected) < 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        returnToTray(selected);
+      }} onClick={(event) => {
         if (selected === null || event.target !== event.currentTarget) return;
         returnToTray(selected);
       }} className="flex h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5 [@media(max-height:700px)]:h-[102px]">
