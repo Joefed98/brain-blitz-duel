@@ -239,7 +239,7 @@ export interface EquationPuzzleData {
   operators?: Operator[][];
 }
 
-export const EQUATION_TIME_MS = 60_000;
+export const EQUATION_TIME_MS = 90_000;
 export const EQUATION_STAGE_POINTS = [30, 40, 50] as const;
 
 export type StroopColour =
@@ -642,7 +642,7 @@ export const SYMSCAN_CELLS = SYMSCAN_COLS * SYMSCAN_COLS;
 export const SYMSCAN_MIN_TARGETS = 5;
 export const SYMSCAN_MAX_TARGETS = 9;
 export const SYMSCAN_STAGE_COLS = [5, 6, 7] as const;
-export const SYMSCAN_TIME_MS = 45_000;
+export const SYMSCAN_TIME_MS = 30_000;
 
 /** Spot the Difference: two full 8x6 grids — every cell holds a shape. */
 export const SPOT_COLS = 8;
@@ -793,7 +793,7 @@ export const STAGE_WEIGHTS_3 = [30, 35, 35] as const;
 /** The field fills a short phone's measured play area without cropping its edges. */
 export const COUNTUP_COLS = 8;
 export const COUNTUP_ROWS = 6;
-export const COUNTUP_TIME_MS = 45_000;
+export const COUNTUP_TIME_MS = 20_000;
 export const COUNTUP_MIN_SHAPES = COUNTUP_COLS * COUNTUP_ROWS;
 export const COUNTUP_MAX_SHAPES = COUNTUP_COLS * COUNTUP_ROWS;
 export const COUNTUP_MIN_COUNT = 6;

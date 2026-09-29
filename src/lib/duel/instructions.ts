@@ -95,7 +95,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap each gap", detail: "to choose an operator, worked left to right." },
       { action: "A true equation", detail: "moves on by itself." },
-      { action: "Press Next", detail: "to skip ahead — 60 seconds for all three." },
+      { action: "Press Next", detail: "to skip ahead — 90 seconds for all three." },
     ],
     score: "30, 40 and 50 for the three equations; all three for the time bonus.",
   },
@@ -175,7 +175,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap every match", detail: "of each grid's target arrow." },
       { action: "Finding them all", detail: "moves on by itself." },
-      { action: "Press Next", detail: "to move on early — 45 seconds for all three." },
+      { action: "Press Next", detail: "to move on early — 30 seconds for all three." },
     ],
     score: "Points for every arrow found; wrong taps cost a little; all three grids perfect for the time bonus.",
   },
@@ -246,7 +246,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Read the question", detail: "— each field asks for a new shape and colour." },
       { action: "Type the total", detail: "on the keypad; ENTER moves to the next field." },
-      { action: "Three fields", detail: "share 45 seconds." },
+      { action: "Three fields", detail: "share 20 seconds." },
     ],
     score: "Exact counts score most, near misses score some; all three exact for the time bonus.",
   },
