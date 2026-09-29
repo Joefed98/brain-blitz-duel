@@ -74,6 +74,8 @@ import { rooftopPuzzle } from "@/puzzles/rooftop";
 import { sortRushPuzzle } from "@/puzzles/sortRush";
 import { flipPuzzle } from "@/puzzles/flip";
 import { parryPuzzle } from "@/puzzles/parry";
+import { junctionPuzzle } from "@/puzzles/junction";
+import { inkBridgePuzzle } from "@/puzzles/inkBridge";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -219,6 +221,8 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   sortrush: sortRushPuzzle,
   flip: flipPuzzle,
   parry: parryPuzzle,
+  junction: junctionPuzzle,
+  inkbridge: inkBridgePuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

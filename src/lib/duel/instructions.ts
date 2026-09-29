@@ -711,6 +711,23 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Points for the share you deflect.",
   },
+  junction: {
+    goal: "Keep the traffic moving without a crash.",
+    how: [
+      { action: "Tap a road", detail: "to switch its light." },
+      { action: "Cars on red queue up", detail: "— and they don't wait forever." },
+      { action: "Later,", detail: "some cars turn." },
+    ],
+    score: "1 per car through, −1 per car that gives up, +30 for surviving the minute.",
+  },
+  inkbridge: {
+    goal: "Guide the falling balls into the bucket.",
+    how: [
+      { action: "Draw lines", detail: "— the balls roll along them." },
+      { action: "Lines fade, ink is limited and refills,", detail: "and the bucket moves." },
+    ],
+    score: "Points for the share of balls you catch.",
+  },
   tents: {
     goal: "Pitch one tent beside every tree.",
     how: [

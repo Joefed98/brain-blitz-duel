@@ -52,6 +52,8 @@ import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
 import { decodeSortRushRun, replaySortRushRun } from "./sortRush";
 import { decodeFlipRun, replayFlipRun } from "./flip";
 import { decodeParryRun, replayParryRun } from "./parry";
+import { decodeJunctionRun, replayJunctionRun } from "./junction";
+import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
@@ -1346,6 +1348,55 @@ export function gradeSubmission(
         desyncTick: run.desyncTick,
         inputs: decodeParryRun(answer).events.length,
         claimedScore: decodeParryRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "junction": {
+      const replayStart = performance.now();
+      const run = replayJunctionRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.state.ended === 1;
+      correctCount = run.cleared;
+      score = run.score;
+      extraDetail = {
+        cleared: run.cleared,
+        gaveUp: run.gaveUp,
+        total: run.total,
+        survived: run.survived,
+        survivedSeconds: run.survivedSeconds,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeJunctionRun(answer).events.length,
+        claimedScore: decodeJunctionRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "inkbridge": {
+      const replayStart = performance.now();
+      const run = replayInkBridgeRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.caught === run.total;
+      correctCount = run.caught;
+      score = run.score;
+      extraDetail = {
+        caught: run.caught,
+        total: run.total,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeInkBridgeRun(answer).events.length,
+        claimedScore: decodeInkBridgeRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
