@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { gridGeometry, hapticTick } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
@@ -171,12 +172,17 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const [drag, setDrag] = useState<Drag | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [highlight, setHighlight] = useState<number | null>(null);
+  const [progressTarget, setProgressTarget] = useState<HTMLElement | null>(null);
   const lastTap = useRef<{ tray: number; time: number } | null>(null);
   const submitted = useRef(false);
   const root = useRef<HTMLDivElement | null>(null);
   const pegs = useRef<HTMLDivElement | null>(null);
   useNoTouchScroll(root);
   const spacing = useSpacing(root);
+
+  useEffect(() => {
+    setProgressTarget(document.getElementById(`balance-progress-${stateKey}`));
+  }, [stateKey]);
 
   const solved = balanceSolvedCount(scales, placements);
   const encoded = encodeBalance(placements);
@@ -271,11 +277,13 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       onPointerUp={end}
       onPointerCancel={() => { setDrag(null); setHighlight(null); }}
     >
-      <div className="flex h-3 w-full shrink-0 gap-1.5 px-4">
-        {Array.from({ length: BAL_SCALES }, (_, i) => (
-          <span key={i} className={`h-3 flex-1 rounded-full ${i < solved ? "bg-primary" : i === current ? "bg-primary/35" : "bg-border"}`} />
-        ))}
-      </div>
+      {progressTarget && createPortal(
+        <div className="flex h-3 w-full shrink-0 gap-1.5 px-4" aria-label={`${solved} of ${BAL_SCALES} scales balanced`}>
+          {Array.from({ length: BAL_SCALES }, (_, i) => (
+            <span key={i} className={`h-3 flex-1 rounded-full ${i < solved ? "bg-primary" : i === current ? "bg-primary/35" : "bg-border"}`} />
+          ))}
+        </div>, progressTarget,
+      )}
       <Beam scale={scale} placement={placement} spacing={spacing} onPegDown={begin} pegsRef={pegs}
         selected={selected} highlighted={highlight} onPegTap={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }} />
       <div className="flex min-h-[48px] shrink-0 flex-wrap justify-center gap-3">

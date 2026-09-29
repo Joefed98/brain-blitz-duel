@@ -796,6 +796,8 @@ function DuelScreen() {
           </div>
         )}
 
+        {puzzle?.type === "balance" && <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" />}
+
         {puzzle?.type !== "spotdiff" &&
           puzzle?.type !== "blockparty" &&
           (isMulti ? (
