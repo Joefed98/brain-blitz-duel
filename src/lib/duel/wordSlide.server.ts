@@ -47,10 +47,19 @@ export function generateWordSlide(): WordSlidePuzzleData {
     if (markedRowsSolved(current) === WS_MARKED_ROWS.length) continue;
     return { type: "wordslide", grid: current, par: count, words: chosen };
   }
+  const base = [..."HOUSEATRENSTONEPILAGLIGHT"];
+  const shifts: SlideShift[] = [
+    { axis: "r", index: 0, dir: 1 },
+    { axis: "c", index: 2, dir: 1 },
+    { axis: "r", index: 4, dir: -1 },
+    { axis: "c", index: 0, dir: -1 },
+    { axis: "r", index: 2, dir: 1 },
+    { axis: "c", index: 4, dir: 1 },
+  ];
   return {
     type: "wordslide",
-    grid: [..."HOUSEATRENSTONEPILAGLIGHT"].map((l, i) => l),
-    par: 6,
+    grid: shifts.reduce(applyShift, base),
+    par: shifts.length,
     words: ["HOUSE", "STONE", "LIGHT"],
   };
 }
