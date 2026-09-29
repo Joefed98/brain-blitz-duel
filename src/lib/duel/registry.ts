@@ -136,6 +136,7 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "spatial",
   "numclimb",
   "patcomp",
+  "rooftop",
 ]);
 
 const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> = {
