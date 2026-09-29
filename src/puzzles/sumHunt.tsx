@@ -102,6 +102,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     if (repeatLast.current) return;
     if (last === undefined || !touching(last, cell)) setPath([cell]);
     else if (!path.includes(cell)) setPath([...path, cell]);
+    else { start.current = null; return; }
     setFinger({ x: event.clientX, y: event.clientY });
   };
   const touching = (a: number, b: number) =>

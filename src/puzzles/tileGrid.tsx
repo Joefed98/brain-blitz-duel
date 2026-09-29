@@ -92,7 +92,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const board = useRef<HTMLDivElement | null>(null);
   const boardSpace = useRef<HTMLDivElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
-  const [cellSize, setCellSize] = useState(44);
+  const [cellSize, setCellSize] = useState(40);
   useNoTouchScroll(root);
 
   useEffect(() => {
