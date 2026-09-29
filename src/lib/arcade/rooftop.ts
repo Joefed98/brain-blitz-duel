@@ -133,6 +133,12 @@ const unpackRunner = (code: number): Runner => ({
 
 /* ================================ Course =============================== */
 
+/**
+ * The course check lets its runner swipe only on every third tick. That player
+ * is strictly weaker than a real one, so a course it survives is survivable.
+ */
+const SOLVER_EVERY = 3;
+
 export interface RoofRow {
   z: number;
   kinds: number[];
@@ -144,7 +150,7 @@ export function roofPassable(kind: number): boolean {
 
 /**
  * Rows are drawn one at a time. After each row, every runner state reachable
- * with perfect play is advanced tick by tick through that row; a row that
+ * (swiping on every third tick) is advanced tick by tick through that row; a row that
  * leaves no survivor is re-rolled (an empty row is the last resort), so every
  * course can be run to the end at every speed.
  */
@@ -177,7 +183,7 @@ export function buildRoofCourse(seed: number): { rows: RoofRow[]; rng: number } 
       let n = 0;
       for (let k = 0; k < set.length; k++) {
         const code = set[k]!;
-        for (let dir = -1; dir <= 3; dir++) {
+        for (let dir = -1; dir <= (t % SOLVER_EVERY === 0 ? 3 : -1); dir++) {
           r.laneFrom = code & 3;
           r.laneTo = (code >> 2) & 3;
           r.laneT = (code >> 4) & 15;
