@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { randInt, shuffled } from "@/lib/duel/random";
 import { useStageState } from "@/lib/duel/stageState";
@@ -41,7 +43,7 @@ function buildStage(count: number): { stage: EquationStage; ops: Operator[] } {
     if (chosen) return { stage: { numbers, target: chosen.value }, ops: chosen.ops };
   }
   const fallback: Record<number, { stage: EquationStage; ops: Operator[] }> = {
-    3: { stage: { numbers: [7, 3, 2], target: 20 }, ops: ["×", "-"] },
+    3: { stage: { numbers: [7, 3, 2], target: 20 }, ops: ["+", "×"] },
     4: { stage: { numbers: [8, 2, 5, 3], target: 17 }, ops: ["÷", "×", "-"] },
     5: { stage: { numbers: [9, 3, 4, 2, 5], target: 31 }, ops: ["-", "×", "+", "+"] },
   };
@@ -82,7 +84,7 @@ function IntroExample() {
         <span>= 20</span>
       </div>
       <p className="font-mono text-sm text-muted-foreground">
-        answer <span className="font-bold text-primary">7 × 3 − 1 → no; 7 × 3 − 2 = 19 → no; 7 × 3 − 1… </span>
+        answer <span className="font-bold text-primary">7 + 3 × 2 = 20</span>
       </p>
     </div>
   );
