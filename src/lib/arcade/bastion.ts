@@ -1,7 +1,7 @@
 /**
  * Bastion — an arcade game on the shared engine.
  *
- * A turret at the bottom centre aims at the finger and fires while it is held.
+ * A turret at the bottom centre follows the aim point and fires all run long.
  * Shapes descend from the top and sides on a seeded schedule toward the base
  * line. The barrel angle is one of 65 fixed directions from an integer lookup
  * table, so no trigonometry runs in the sim; all positions are 1/256 px.
@@ -375,6 +375,7 @@ export interface BasCheckpoint {
   aimY: number;
   held: number;
   angle: number;
+  angleFp: number;
   fireIn: number;
   spawnIn: number;
   shapes: number;
@@ -394,6 +395,7 @@ export function basCheckpoint(state: BasState): BasCheckpoint {
     aimY: state.aimY,
     held: state.held,
     angle: state.angle,
+    angleFp: state.angleFp,
     fireIn: state.fireIn,
     spawnIn: state.spawnIn,
     shapes: state.shapes.length,
