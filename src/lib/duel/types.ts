@@ -68,7 +68,9 @@ export type PuzzleType =
   | "bubble"
   | "beat"
   | "whack"
-  | "tents";
+  | "tents"
+  | "wavefront"
+  | "bastion";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -463,7 +465,9 @@ export type PuzzleData =
   | BubblePuzzleData
   | BeatPuzzleData
   | WhackPuzzleData
-  | TentsPuzzleData;
+  | TentsPuzzleData
+  | WavefrontPuzzleData
+  | BastionPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1911,4 +1915,22 @@ export interface BalancePuzzleData {
   scales: BalanceScale[];
   /** Server-side only until reveal: one balanced peg per tray weight, per scale. */
   solutions?: number[][];
+}
+
+/* ========================== Wavefront / Bastion ========================== */
+
+/** Each run is a fixed 60 seconds; the round clock adds three of slack. */
+export const WAVEFRONT_TIME_MS = 63_000;
+export const BASTION_TIME_MS = 63_000;
+
+export interface WavefrontPuzzleData {
+  type: "wavefront";
+  /** Draws every wave and enemy shot — identical for everyone. */
+  seed: number;
+}
+
+export interface BastionPuzzleData {
+  type: "bastion";
+  /** Draws the whole spawn schedule — identical for everyone. */
+  seed: number;
 }

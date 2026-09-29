@@ -68,6 +68,8 @@ import { dualPuzzle } from "@/puzzles/dual";
 import { ricochetPuzzle } from "@/puzzles/ricochet";
 import { whackPuzzle } from "@/puzzles/whack";
 import { tentsPuzzle } from "@/puzzles/tents";
+import { wavefrontPuzzle } from "@/puzzles/wavefront";
+import { bastionPuzzle } from "@/puzzles/bastion";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -206,6 +208,8 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   ricochet: ricochetPuzzle,
   whack: whackPuzzle,
   tents: tentsPuzzle,
+  wavefront: wavefrontPuzzle,
+  bastion: bastionPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

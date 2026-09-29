@@ -55,6 +55,10 @@ import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import { encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
 import { encodeSteadyRun, replaySteadyRun } from "@/lib/duel/steady";
 import { encodeSwerveRun, replaySwerveRun } from "@/lib/duel/swerve";
+import { wavCheckpoint, wavefrontGame } from "@/lib/arcade/wavefront";
+import { basCheckpoint, bastionGame } from "@/lib/arcade/bastion";
+import { encodeWavefrontRun, replayWavefrontRun } from "@/lib/duel/wavefront";
+import { encodeBastionRun, replayBastionRun } from "@/lib/duel/bastion";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const RUNS = Number(process.argv[2] ?? 40);
@@ -224,6 +228,24 @@ const GAMES: Game[] = [
     rate: 80,
     encode: encodeBeatRun,
     replay: replayBeatRun,
+  },
+  {
+    key: "wavefront",
+    game: wavefrontGame,
+    checkpoint: wavCheckpoint,
+    mode: "events",
+    rate: 300,
+    encode: encodeWavefrontRun,
+    replay: replayWavefrontRun,
+  },
+  {
+    key: "bastion",
+    game: bastionGame,
+    checkpoint: basCheckpoint,
+    mode: "events",
+    rate: 300,
+    encode: encodeBastionRun,
+    replay: replayBastionRun,
   },
 ];
 

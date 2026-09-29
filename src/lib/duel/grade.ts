@@ -46,6 +46,8 @@ import { decodeSliceRun, replaySliceRun } from "./slice";
 import { decodeBubbleRun, replayBubbleRun } from "./bubble";
 import { decodeBeatRun, replayBeatRun } from "./beat";
 import { decodeWhackRun, replayWhackRun } from "./whack";
+import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
+import { decodeBastionRun, replayBastionRun } from "./bastion";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
@@ -1191,6 +1193,57 @@ export function gradeSubmission(
         desyncTick: run.desyncTick,
         inputs: decodeWhackRun(answer).events.length,
         claimedScore: decodeWhackRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "wavefront": {
+      const replayStart = performance.now();
+      const run = replayWavefrontRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.state.ended === 1;
+      correctCount = run.shapesDown;
+      score = run.score;
+      extraDetail = {
+        wave: run.wave,
+        shapesDown: run.shapesDown,
+        saucers: run.saucers,
+        wavesCleared: run.wavesCleared,
+        lives: run.lives,
+        survived: run.survived,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeWavefrontRun(answer).events.length,
+        claimedScore: decodeWavefrontRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "bastion": {
+      const replayStart = performance.now();
+      const run = replayBastionRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.state.ended === 1;
+      correctCount = run.destroyed;
+      score = run.score;
+      extraDetail = {
+        destroyed: run.destroyed,
+        health: run.health,
+        survived: run.survived,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBastionRun(answer).events.length,
+        claimedScore: decodeBastionRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
