@@ -162,7 +162,7 @@ export function buildRoofCourse(seed: number): { rows: RoofRow[]; rng: number } 
     return r.value;
   };
   const rows: RoofRow[] = [];
-  let frontier = Int32Array.of(packRunner({ laneFrom: 1, laneTo: 1, laneT: 0, jumpT: 0, slideT: 0, lean: 0 }));
+  let frontier: Int32Array = Int32Array.of(packRunner({ laneFrom: 1, laneTo: 1, laneT: 0, jumpT: 0, slideT: 0, lean: 0 }));
   const seen = new Int32Array(1 << 19);
   const scratch = new Int32Array(1 << 19);
   let stamp = 0;
@@ -173,7 +173,7 @@ export function buildRoofCourse(seed: number): { rows: RoofRow[]; rng: number } 
 
   /** Advance the frontier through the ticks up to zEnd, dying on this row's kinds. */
   const advance = (from: Int32Array, fromTick: number, kinds: readonly number[], zStart: number, zEnd: number) => {
-    let set = from;
+    let set: Int32Array = from;
     let t = fromTick;
     const r: Runner = { laneFrom: 0, laneTo: 0, laneT: 0, jumpT: 0, slideT: 0, lean: 0 };
     while (t < ROOF_RUN_TICKS && Z_AT[t + 1]! <= zEnd) {
