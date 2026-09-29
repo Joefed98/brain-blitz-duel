@@ -86,23 +86,26 @@ function Beam({
               </span>
             );
           })}
-          {Array.from({ length: BAL_PEGS }, (_, peg) => (
-            <span
-              key={`target-${peg}`}
-              ref={(element) => { if (pegRefs) pegRefs.current[peg] = element; }}
-              onPointerUp={(event) => onPegTap?.(event, peg)}
-              className={`absolute rounded-md transition-colors ${item ? "z-0" : "z-20"} ${highlighted === peg || (selected !== null && !item) ? "bg-primary/35" : ""}`}
-              style={{
-                width: Math.max(44, spacing + 24),
-                height: 64,
-                left: (slotOfPeg(peg) + 0.5) * spacing,
-                bottom: -20,
-                transform: "translateX(-50%)",
-                pointerEvents: onPegTap && !item ? "auto" : "none",
-              }}
-              aria-label={`Peg ${peg + 1}`}
-            />
-          ))}
+          {Array.from({ length: BAL_PEGS }, (_, peg) => {
+            const item = onPeg.get(peg);
+            return (
+              <span
+                key={`target-${peg}`}
+                ref={(element) => { if (pegRefs) pegRefs.current[peg] = element; }}
+                onPointerUp={(event) => onPegTap?.(event, peg)}
+                className={`absolute rounded-md transition-colors ${item ? "z-0" : "z-20"} ${highlighted === peg || (selected !== null && !item) ? "bg-primary/35" : ""}`}
+                style={{
+                  width: Math.max(44, spacing + 24),
+                  height: 64,
+                  left: (slotOfPeg(peg) + 0.5) * spacing,
+                  bottom: -20,
+                  transform: "translateX(-50%)",
+                  pointerEvents: onPegTap && !item ? "auto" : "none",
+                }}
+                aria-label={`Peg ${peg + 1}`}
+              />
+            );
+          })}
         </div>
         <div className="h-1.5 rounded-full bg-foreground/70" style={{ width: spacing * SLOTS - 8 }} />
         <div className="grid" style={{ gridTemplateColumns: `repeat(${SLOTS}, ${spacing}px)` }}>
