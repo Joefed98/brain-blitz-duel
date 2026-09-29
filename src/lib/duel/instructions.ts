@@ -672,19 +672,19 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   bastion: {
     goal: "Defend the base.",
     how: [
-      { action: "Hold your finger where you want to shoot", detail: "— the turret follows it and fires while you hold." },
+      { action: "Touch where you want to aim", detail: "— the turret follows and fires all the time." },
+      { action: "Prefer buttons?", detail: "Turn on Arrows and hold ◀ ▶ to turn the barrel." },
       { action: "Squares take two hits;", detail: "triangles split." },
     ],
     score: "1 per shape; keep the base alive for the bonus.",
   },
   rooftop: {
-    goal: "Run the rooftops — dodge, jump, slide, and grab the coins.",
+    goal: "Survive the rooftops as long as you can.",
     how: [
-      { action: "Swipe left or right", detail: "to change lane." },
-      { action: "Swipe up to jump", detail: "a low barrier, down to slide under a high one." },
-      { action: "Everyone runs", detail: "the same course." },
+      { action: "Swipe left or right", detail: "to change lane, up to jump, down to slide." },
+      { action: "It keeps getting faster.", detail: "" },
     ],
-    score: "2 per coin, +30 for surviving the minute.",
+    score: "The longer you last, the more you score — the full minute is 150.",
   },
   tents: {
     goal: "Pitch one tent beside every tree.",
