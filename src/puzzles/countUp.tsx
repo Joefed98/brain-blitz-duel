@@ -2,19 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { GLYPH_COLOURS, ShapeGlyph } from "@/components/duel/ShapeGlyph";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
+import { StageProgress } from "@/components/puzzles/StageProgress";
+import { useStageState } from "@/lib/duel/stageState";
+import { STAGE_COUNT, countStagePoints, joinStages, parseCount, splitStages } from "@/lib/duel/stagedRounds";
 import {
-  COUNTUP_COLS,
+  COUNTUP_STAGE_SIZES,
   COUNTUP_TIME_MS,
-  COUNTUP_MAX_COUNT,
-  COUNTUP_MIN_COUNT,
-  COUNTUP_ROWS,
   type CountUpPuzzleData,
+  type CountUpStage,
   type CountUpShape,
   type GlyphColour,
   type GlyphShape,
 } from "@/lib/duel/types";
 
-import { MyAnswerLine } from "@/components/puzzles/MyAnswerLine";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const SHAPES: GlyphShape[] = ["circle", "square", "triangle", "star"];
@@ -49,7 +49,11 @@ function Field({
   size = 22,
   play = false,
   cellSize,
+  cols,
+  rows,
 }: {
+  cols: number;
+  rows: number;
   shapes: CountUpShape[];
   highlight?: { shape: GlyphShape; colour: GlyphColour };
   height?: number;
@@ -60,7 +64,7 @@ function Field({
   return (
     <div
        className={`${play ? "grid shrink-0" : "relative w-full"} overflow-hidden rounded-lg border border-border bg-card`}
-       style={play ? { width: (cellSize ?? 0) * COUNTUP_COLS + 4 * (COUNTUP_COLS - 1) + 2, height: (cellSize ?? 0) * COUNTUP_ROWS + 4 * (COUNTUP_ROWS - 1) + 2, gridTemplateColumns: `repeat(${COUNTUP_COLS}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${COUNTUP_ROWS}, minmax(0, 1fr))`, gap: 4 } : { height }}
+       style={play ? { width: (cellSize ?? 0) * cols + 4 * (cols - 1) + 2, height: (cellSize ?? 0) * rows + 4 * (rows - 1) + 2, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`, gap: 4 } : { height }}
     >
       {shapes.map((item, index) => {
         const lit =
@@ -73,8 +77,8 @@ function Field({
             className={`${play ? "flex min-h-0 min-w-0 items-center justify-center" : "absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"} rounded-full`}
             style={{
               ...(play ? {
-                gridColumn: Math.min(COUNTUP_COLS, Math.floor(item.x * COUNTUP_COLS / 100) + 1),
-                gridRow: Math.min(COUNTUP_ROWS, Math.floor(item.y * COUNTUP_ROWS / 100) + 1),
+                gridColumn: Math.min(cols, Math.floor(item.x * cols / 100) + 1),
+                gridRow: Math.min(rows, Math.floor(item.y * rows / 100) + 1),
               } : { left: `${item.x}%`, top: `${item.y}%` }),
               padding: lit ? 3 : 0,
               boxShadow: lit ? `inset 0 0 0 2px ${GLYPH_COLOURS.GOLD}` : undefined,
@@ -104,22 +108,20 @@ const EXAMPLE_SHAPES: CountUpShape[] = [
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <p className="text-center text-sm text-muted-foreground">
-        Count the shapes that match the question.
-      </p>
       <p className="font-display text-base font-bold">How many gold stars?</p>
-      <Field shapes={EXAMPLE_SHAPES} height={140} size={20} />
+      <Field shapes={EXAMPLE_SHAPES} height={140} size={20} cols={8} rows={6} />
       <p className="font-mono text-sm text-muted-foreground">
         answer <span className="font-bold text-primary">3</span>
-      </p>
-      <p className="text-xs text-muted-foreground">
-        Type the number on the keypad and hit ENTER. You have 20 seconds.
       </p>
     </div>
   );
 }
 
-function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
+function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }: PuzzleStageProps) {
+  const data = puzzle.type === "countup" ? puzzle : null;
+  const [stage, setStage] = useStageState<number>(stateKey, "countStage", () => 0);
+  const [answers, setAnswers] = useStageState<string[]>(stateKey, "countAnswers", () => ["", "", ""]);
+  const done = useRef(false);
   const spaceRef = useRef<HTMLDivElement>(null);
   const [space, setSpace] = useState({ width: 0, height: 0 });
   useEffect(() => {
@@ -131,47 +133,86 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
-  if (puzzle.type !== "countup") return null;
-   // The board is sized from the visible slot, not from the padded screen width.
-   // At 343px usable, eight 36px+ cells with 4px gaps fit without cropping.
-   const cellSize = Math.max(0, Math.floor(Math.min(
-     (space.width - 2 - (COUNTUP_COLS - 1) * 4) / COUNTUP_COLS,
-     (space.height - 2 - (COUNTUP_ROWS - 1) * 4) / COUNTUP_ROWS,
-   )));
+  const draft = joinStages(answers);
+  useEffect(() => {
+    onDraftAnswer?.(draft);
+  }, [draft, onDraftAnswer]);
+
+  const current = data?.stages[Math.min(stage, STAGE_COUNT - 1)];
+  if (!data || !current) return null;
+  const { cols, rows } = current;
+  // The board is sized from the visible slot, capped so small grids stay readable.
+  const cellSize = Math.max(0, Math.min(64, Math.floor(Math.min(
+    (space.width - 2 - (cols - 1) * 4) / cols,
+    (space.height - 2 - (rows - 1) * 4) / rows,
+  ))));
+
+  const submitStage = (value: string) => {
+    if (done.current) return;
+    const next = answers.map((a, i) => (i === stage ? value : a));
+    setAnswers(next);
+    if (stage >= STAGE_COUNT - 1) {
+      done.current = true;
+      onSubmit(joinStages(next));
+    } else {
+      setStage(stage + 1);
+    }
+  };
+
   return (
-    <NumberEntry
-      label={countUpQuestion(puzzle.targetColour, puzzle.targetShape)}
-      resetKey={`${puzzle.targetColour}-${puzzle.targetShape}-${puzzle.shapes.length}`}
-      locked={locked}
-      maxLength={2}
-      placeholder="How many?"
-      keypad
-      compactKeypad
-      onSubmit={onSubmit}
-    >
-       <div ref={spaceRef} className="-mx-1 flex min-h-0 w-[calc(100%+0.5rem)] flex-1 items-center justify-center overflow-hidden">
-         {cellSize > 0 && <Field shapes={puzzle.shapes} size={Math.min(28, cellSize - 8)} cellSize={cellSize} play />}
-      </div>
-    </NumberEntry>
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <StageProgress stage={stage} />
+      <NumberEntry
+        label={`${stage + 1} / 3 · ${countUpQuestion(current.targetColour, current.targetShape)}`}
+        resetKey={`stage-${stage}`}
+        locked={locked || done.current}
+        maxLength={2}
+        placeholder="How many?"
+        keypad
+        compactKeypad
+        onSubmit={submitStage}
+      >
+        <div ref={spaceRef} className="-mx-1 flex min-h-0 w-[calc(100%+0.5rem)] flex-1 items-center justify-center overflow-hidden">
+          {cellSize > 0 && (
+            <Field key={stage} shapes={current.shapes} cols={cols} rows={rows} size={Math.min(28, cellSize - 8)} cellSize={cellSize} play />
+          )}
+        </div>
+      </NumberEntry>
+    </div>
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "countup") return null;
+  const parts = splitStages(myAnswer);
   return (
-    <>
-      <p className="font-display text-base font-bold">
-        {countUpQuestion(puzzle.targetColour, puzzle.targetShape)}
-      </p>
-      <Field
-        shapes={puzzle.shapes}
-        highlight={{ shape: puzzle.targetShape, colour: puzzle.targetColour }}
-        height={260}
-        size={18}
-      />
-      <p className="font-mono text-5xl font-bold text-primary">{puzzle.count ?? "—"}</p>
-      <MyAnswerLine myAnswer={myAnswer} myCorrect={myCorrect} />
-    </>
+    <div className="flex w-full flex-col gap-4">
+      {puzzle.stages.map((stage, i) => {
+        const truth = puzzle.counts?.[i] ?? null;
+        const given = parseCount(parts[i] ?? "");
+        const exact = truth !== null && given === truth;
+        const near = truth !== null && !exact && countStagePoints(i, given, truth) > 0;
+        return (
+          <div key={i} className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-3 py-3">
+            <p className="font-display text-base font-bold">{countUpQuestion(stage.targetColour, stage.targetShape)}</p>
+            <Field
+              shapes={stage.shapes}
+              cols={stage.cols}
+              rows={stage.rows}
+              highlight={{ shape: stage.targetShape, colour: stage.targetColour }}
+              height={Math.round(28 * stage.rows)}
+              size={16}
+            />
+            <p className="font-mono text-base font-bold">
+              <span className="text-primary">Answer {truth ?? "—"}</span>
+              <span className={exact ? "text-primary" : near ? "text-foreground" : "text-warn"}>
+                {" · "}you {given ?? "—"} {exact ? "✓" : near ? "~" : "✗"}
+              </span>
+            </p>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -180,15 +221,18 @@ interface Slot {
   colour: GlyphColour;
 }
 
-export function buildCountUp(): CountUpPuzzleData {
+/** Target count range per stage, scaled to the field's size. */
+const STAGE_COUNTS: [number, number][] = [[3, 5], [5, 9], [6, 12]];
+
+function buildStage(cols: number, rows: number, [min, max]: [number, number]): { stage: CountUpStage; count: number } {
   const targetShape = pick(SHAPES);
   const targetColour = pick(COLOURS);
-  const count = randInt(COUNTUP_MIN_COUNT, COUNTUP_MAX_COUNT);
+  const count = randInt(min, max);
 
   // Two near-miss populations with similar counts, so a rough impression fails.
   const otherShape = pick(SHAPES.filter((s) => s !== targetShape));
   const otherColour = pick(COLOURS.filter((c) => c !== targetColour && !tooClose(c, targetColour)));
-  const near = () => Math.max(3, count + pick([-2, -1, 1, 2]));
+  const near = () => Math.max(2, count + pick([-2, -1, 1, 2]));
   const nearA = near();
   const nearB = near();
 
@@ -197,37 +241,37 @@ export function buildCountUp(): CountUpPuzzleData {
   for (let i = 0; i < nearA; i++) slots.push({ shape: otherShape, colour: targetColour });
   for (let i = 0; i < nearB; i++) slots.push({ shape: targetShape, colour: otherColour });
 
-  const total = COUNTUP_COLS * COUNTUP_ROWS;
+  const total = cols * rows;
   while (slots.length < total) {
     const shape = pick(SHAPES);
     const colour = pick(COLOURS);
     if (shape === targetShape && colour === targetColour) continue; // never inflate the answer
-    // A near-identical colour on the target shape would make counting a guess.
     if (shape === targetShape && tooClose(colour, targetColour)) continue;
     slots.push({ shape, colour });
   }
 
   // One shape per grid cell, jittered inside it, so nothing ever overlaps.
-  const cells = shuffled(Array.from({ length: COUNTUP_COLS * COUNTUP_ROWS }, (_, i) => i)).slice(
-    0,
-    slots.length,
-  );
-
-  const shapes: CountUpShape[] = shuffled(slots).map((slot, index) => {
+  const cells = shuffled(Array.from({ length: total }, (_, i) => i));
+  const shapes: CountUpShape[] = shuffled(slots.slice(0, total)).map((slot, index) => {
     const cell = cells[index]!;
-    const col = cell % COUNTUP_COLS;
-    const row = Math.floor(cell / COUNTUP_COLS);
-    const jitterX = (randInt(-16, 16) / 100) * (100 / COUNTUP_COLS);
-    const jitterY = (randInt(-16, 16) / 100) * (100 / COUNTUP_ROWS);
+    const col = cell % cols;
+    const row = Math.floor(cell / cols);
+    const jitterX = (randInt(-16, 16) / 100) * (100 / cols);
+    const jitterY = (randInt(-16, 16) / 100) * (100 / rows);
     return {
       shape: slot.shape,
       colour: slot.colour,
-      x: Number((((col + 0.5) * 100) / COUNTUP_COLS + jitterX).toFixed(2)),
-      y: Number((((row + 0.5) * 100) / COUNTUP_ROWS + jitterY).toFixed(2)),
+      x: Number((((col + 0.5) * 100) / cols + jitterX).toFixed(2)),
+      y: Number((((row + 0.5) * 100) / rows + jitterY).toFixed(2)),
     };
   });
 
-  return { type: "countup", shapes, targetShape, targetColour, count };
+  return { stage: { cols, rows, shapes, targetShape, targetColour }, count };
+}
+
+export function buildCountUp(): CountUpPuzzleData {
+  const built = COUNTUP_STAGE_SIZES.map(([cols, rows], i) => buildStage(cols, rows, STAGE_COUNTS[i]!));
+  return { type: "countup", stages: built.map((b) => b.stage), counts: built.map((b) => b.count) };
 }
 
 export const countUpPuzzle: PuzzleDefinition = {
@@ -238,8 +282,9 @@ export const countUpPuzzle: PuzzleDefinition = {
   generate: buildCountUp,
   check: (answer, puzzle) => {
     if (puzzle.type !== "countup") return false;
-    const parsed = Number.parseInt(answer.trim(), 10);
-    return Number.isFinite(parsed) && parsed === puzzle.count;
+    const parts = splitStages(answer);
+    const counts = puzzle.counts ?? [];
+    return counts.length === STAGE_COUNT && counts.every((c, i) => parseCount(parts[i] ?? "") === c);
   },
   IntroExample,
   Stage,

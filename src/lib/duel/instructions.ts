@@ -91,13 +91,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Twenty a sequence. All five right for the speed bonus.",
   },
   equation: {
-    goal: "Make the equation equal the target.",
+    goal: "Make three growing equations equal their targets.",
     how: [
-      { action: "Tap each gap", detail: "to choose an operator." },
-      { action: "Work left to right", detail: "in the shown order." },
-      { action: "Press Submit", detail: "when the equation is true." },
+      { action: "Tap each gap", detail: "to choose an operator, worked left to right." },
+      { action: "A true equation", detail: "moves on by itself." },
+      { action: "Press Next", detail: "to skip ahead — 60 seconds for all three." },
     ],
-    score: "Correct and faster = more points. Operators in the right place still score.",
+    score: "30, 40 and 50 for the three equations; all three for the time bonus.",
   },
   chaincalc: {
     goal: "Calculate the final number in the chain.",
@@ -171,13 +171,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "More correct = more points. Perfect = speed bonus.",
   },
   symscan: {
-    goal: "Find every arrow that exactly matches the target.",
+    goal: "Find every matching arrow in three growing grids.",
     how: [
-      { action: "Study the target", detail: "shape and direction." },
-      { action: "Tap every match", detail: "in the grid." },
-      { action: "Press Submit", detail: "only when you have them all." },
+      { action: "Tap every match", detail: "of each grid's target arrow." },
+      { action: "Finding them all", detail: "moves on by itself." },
+      { action: "Press Next", detail: "to move on early — 45 seconds for all three." },
     ],
-    score: "Every match counts. Wrong taps cost a little. Faster = more points.",
+    score: "Points for every arrow found; wrong taps cost a little; all three grids perfect for the time bonus.",
   },
   spotdiff: {
     goal: "Find all five differences between the two pictures.",
@@ -242,13 +242,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "50 + up to 100 for accuracy: 400 ms average error = 50, perfect = 150. Misses count as 800 ms.",
   },
   countup: {
-    goal: "Count every shape that matches the question.",
+    goal: "Count the matching shapes in three growing fields.",
     how: [
-      { action: "Read the question", detail: "for the required shape and colour." },
-      { action: "Count matching items", detail: "in the field — you have 20 seconds." },
-      { action: "Use the keypad", detail: "to type the total, then press ENTER." },
+      { action: "Read the question", detail: "— each field asks for a new shape and colour." },
+      { action: "Type the total", detail: "on the keypad; ENTER moves to the next field." },
+      { action: "Three fields", detail: "share 45 seconds." },
     ],
-    score: "Exact and faster = more points. Close still scores.",
+    score: "Exact counts score most, near misses score some; all three exact for the time bonus.",
   },
   mirmatch: {
     goal: "Choose the exact mirror image of each shape.",
