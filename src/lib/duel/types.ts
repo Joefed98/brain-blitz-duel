@@ -24,6 +24,8 @@ export type PuzzleType =
   | "countup"
   | "mirmatch"
   | "wordhunt"
+  | "sumhunt"
+  | "balance"
   | "tilegrid"
   | "wordslide"
   | "unblock"
@@ -401,6 +403,8 @@ export type PuzzleData =
   | CountUpPuzzleData
   | MirrorPuzzleData
   | WordHuntPuzzleData
+  | SumHuntPuzzleData
+  | BalancePuzzleData
   | TileGridPuzzleData
   | WordSlidePuzzleData
   | UnblockPuzzleData
@@ -1829,4 +1833,30 @@ export interface WordSlidePuzzleData {
   par: number;
   /** Server-side only until reveal: the three intended words for rows 1, 3, 5. */
   words?: string[];
+}
+
+/* =============================== Sum Hunt =============================== */
+
+export interface SumHuntPuzzleData {
+  type: "sumhunt";
+  /** Draws the starting board and every column's falling digits. */
+  seed: number;
+  /** The sum every path must hit, 10–15. */
+  target: number;
+}
+
+/* ================================ Balance =============================== */
+
+export interface BalanceScale {
+  /** Fixed grey weights: peg 0–3 are left 4…1, peg 4–7 are right 1…4. */
+  fixed: { peg: number; w: number }[];
+  /** Loose gold weights the player must place. */
+  tray: number[];
+}
+
+export interface BalancePuzzleData {
+  type: "balance";
+  scales: BalanceScale[];
+  /** Server-side only until reveal: one balanced peg per tray weight, per scale. */
+  solutions?: number[][];
 }
