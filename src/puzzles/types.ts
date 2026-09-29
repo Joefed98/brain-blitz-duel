@@ -66,7 +66,7 @@ export interface PuzzleRevealProps {
   myReactionAvgMs: number | null;
   myMsRemaining?: number | undefined;
   /** Server-checked row indices for the Word Slide reveal. */
-  validRows?: number[];
+  validRows?: number[] | undefined;
 }
 
 /**
