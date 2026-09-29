@@ -26,6 +26,7 @@ const FILLS = ["var(--primary)", "var(--me)"];
 
 function Board({
   size,
+  rows = size,
   clues,
   rects,
   preview,
@@ -33,6 +34,7 @@ function Board({
   pointer,
 }: {
   size: number;
+  rows?: number;
   clues: readonly ShikakuClue[];
   rects: readonly ShikakuRect[];
   preview?: ShikakuRect | null;
@@ -52,11 +54,11 @@ function Board({
       style={{
         ...(pointer?.handlers.style ?? {}),
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(${size}, auto)`,
+        gridTemplateRows: `repeat(${rows}, auto)`,
         gap: small ? 1 : 2,
       }}
     >
-      {Array.from({ length: size * size }, (_, cell) => (
+      {Array.from({ length: size * rows }, (_, cell) => (
         <div
           key={cell}
           className="flex aspect-square items-center justify-center rounded-sm border border-border bg-card"
@@ -97,8 +99,9 @@ function Board({
 }
 
 function IntroExample() {
+  // A 4 × 3 grid: two 2 × 3 rectangles, each holding a 6.
   const clues = [
-    { cell: 5, n: 6 },
+    { cell: 4, n: 6 },
     { cell: 2, n: 6 },
   ];
   const rects = [
@@ -107,7 +110,7 @@ function IntroExample() {
   ];
   return (
     <div style={{ width: 150 }}>
-      <Board size={4} clues={clues.map((c) => ({ cell: Math.floor(c.cell / 4) * 4 + (c.cell % 4), n: c.n }))} rects={rects} />
+      <Board size={4} rows={3} clues={clues} rects={rects} />
     </div>
   );
 }

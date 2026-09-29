@@ -318,3 +318,4 @@
 - [ ] Swing: confirm scroll speed vs 2-per-metre cap (cap reached ~25 s at spec speed)
 - [x] Tilt and Hot Floor arcade games (200/200 identity proof)
 - [ ] Hot Floor: confirm pickup count (~30-38 per run vs ~60 spec)
+- [x] Shikaku and Light Up logic rounds (50/50 unique each)
