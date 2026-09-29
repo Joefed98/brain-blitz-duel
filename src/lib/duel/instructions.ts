@@ -660,6 +660,23 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Points for the share of targets you hit; every wrong tap costs 10.",
   },
+  wavefront: {
+    goal: "Shoot down the formation before it reaches you.",
+    how: [
+      { action: "Drag to move", detail: "— you fire automatically." },
+      { action: "Dodge the red bolts.", detail: "Three hits and you're out." },
+      { action: "The formation speeds up", detail: "as it thins." },
+    ],
+    score: "1 per shape, 15 per wave, 5 for the saucer.",
+  },
+  bastion: {
+    goal: "Defend the base.",
+    how: [
+      { action: "Hold your finger where you want to shoot", detail: "— the turret follows it and fires while you hold." },
+      { action: "Squares take two hits;", detail: "triangles split." },
+    ],
+    score: "1 per shape; keep the base alive for the bonus.",
+  },
   tents: {
     goal: "Pitch one tent beside every tree.",
     how: [

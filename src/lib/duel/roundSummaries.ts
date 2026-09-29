@@ -87,6 +87,8 @@ import {
   BEAT_TIME_MS,
   WHACK_TIME_MS,
   TENTS_TIME_MS,
+  WAVEFRONT_TIME_MS,
+  BASTION_TIME_MS,
 } from "./types";
 
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
@@ -128,6 +130,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   beat: BEAT_TIME_MS,
   whack: WHACK_TIME_MS,
   tents: TENTS_TIME_MS,
+  wavefront: WAVEFRONT_TIME_MS,
+  bastion: BASTION_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -1181,6 +1185,31 @@ const whackSummary: SummaryBuilder = (result) => {
   };
 };
 
+const wavefrontSummary: SummaryBuilder = (result) => {
+  const wave = Number(result.extra?.["wave"] ?? 1);
+  const shapes = Number(result.extra?.["shapesDown"] ?? 0);
+  const saucers = Number(result.extra?.["saucers"] ?? 0);
+  const survived = result.extra?.["survived"] !== false;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const head = `Wave ${wave} · ${shapes} shape${shapes === 1 ? "" : "s"} · ${saucers} saucer${saucers === 1 ? "" : "s"}`;
+  return {
+    summary: survived ? `${head} · survived` : `${head} · destroyed at ${ended.toFixed(1)}s`,
+    detail: [`${Number(result.extra?.["wavesCleared"] ?? 0)} waves cleared`],
+  };
+};
+
+const bastionSummary: SummaryBuilder = (result) => {
+  const destroyed = Number(result.extra?.["destroyed"] ?? 0);
+  const health = Number(result.extra?.["health"] ?? 0);
+  const survived = result.extra?.["survived"] !== false;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const head = `${destroyed} destroyed · base ${health} / 5`;
+  return {
+    summary: survived ? `${head} · survived` : `${head} · base fell at ${ended.toFixed(1)}s`,
+    detail: ["Same waves for everyone"],
+  };
+};
+
 const tentsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tents") return { summary: "—", detail: [] };
   const correct = Number(result.extra?.["correct"] ?? 0);
@@ -1282,6 +1311,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   bubble: bubbleSummary,
   beat: beatSummary,
   whack: whackSummary,
+  wavefront: wavefrontSummary,
+  bastion: bastionSummary,
   tents: tentsSummary,
 };
 
@@ -1361,6 +1392,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   bubble: () => null,
   beat: () => null,
   whack: () => null,
+  wavefront: () => null,
+  bastion: () => null,
   tents: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),

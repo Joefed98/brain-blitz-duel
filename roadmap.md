@@ -304,3 +304,7 @@
 ## New rounds (Sep 29)
 - [x] Whack-a-Target (attention, arcade engine, 30 s)
 - [x] Tents and Trees (logic, 7×7, 90 s, unique solution)
+
+## New arcade games (Sep 29)
+- [x] Wavefront
+- [x] Bastion

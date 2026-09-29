@@ -1,0 +1,238 @@
+import { useEffect, useRef, useState } from "react";
+
+import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
+import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
+import {
+  inputAt,
+  recordInput,
+  ARCADE_INPUT_DRAG,
+  MAX_CATCH_UP_TICKS,
+  TICK_MS,
+  type ArcadeGame,
+  type ArcadeInputEvent,
+  type CanvasSize,
+} from "@/lib/arcade/engine";
+import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
+
+export interface PointerPayload {
+  a: number;
+  b: number;
+  c: number;
+}
+
+interface Props<S, C> {
+  diagKey: string;
+  label: string;
+  background: string;
+  seed: number;
+  enabled: boolean;
+  locked: boolean;
+  worldW: number;
+  worldH: number;
+  game: ArcadeGame<S, ArcadeInputEvent | null>;
+  checkpoint: (state: S) => C;
+  interval: number;
+  encodeRun: (run: {
+    seed: number;
+    claimedScore: number;
+    events: ArcadeInputEvent[];
+    endTick: number;
+    checkpoints: C[];
+  }) => string;
+  /**
+   * Maps a pointer event (world coordinates) to the k = 7 payload the sim should
+   * receive. Returning null on "down" ignores that pointer altogether.
+   */
+  pointer: (kind: "down" | "move" | "up", x: number, y: number) => PointerPayload | null;
+  onSubmit: (answer: string) => void;
+  onDraftAnswer?: ((answer: string) => void) | undefined;
+}
+
+/**
+ * The canvas loop shared by the finger-driven arcade games: fixed 60 Hz ticks,
+ * at most one k = 7 event a tick (only when the payload changes), checkpoints,
+ * drafts every 500 ms and an automatic submit when the sim says it is over.
+ */
+export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
+  const { game, seed, enabled } = props;
+  const wrap = useRef<HTMLDivElement | null>(null);
+  const canvas = useRef<HTMLCanvasElement | null>(null);
+  const state = useRef<S>(game.init(seed));
+  const events = useRef<ArcadeInputEvent[]>([]);
+  const checkpoints = useRef<C[]>([]);
+  const wanted = useRef<PointerPayload | null>(null);
+  const sent = useRef<string>("");
+  const pointerId = useRef<number | null>(null);
+  const submitted = useRef(false);
+  const [, forceRedraw] = useState(0);
+  useNoTouchScroll(wrap);
+
+  const propsRef = useRef(props);
+  propsRef.current = props;
+
+  const encode = (): string => {
+    const score = game.score(state.current);
+    return appendClientCounters(
+      propsRef.current.encodeRun({
+        seed,
+        claimedScore: score,
+        events: events.current,
+        endTick: (state.current as { tick: number }).tick,
+        checkpoints: checkpoints.current,
+      }),
+      arcadeCounters(props.diagKey, state.current, score),
+    );
+  };
+
+  useEffect(() => {
+    state.current = game.init(seed);
+    events.current = [];
+    checkpoints.current = [];
+    wanted.current = null;
+    sent.current = "";
+    pointerId.current = null;
+    submitted.current = false;
+    forceRedraw((n) => n + 1);
+  }, [game, seed]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let frame = 0;
+    resetArcadeClock();
+    let last = performance.now();
+    let accumulator = 0;
+    let draftAt = 0;
+    const tickOf = () => (state.current as { tick: number }).tick;
+
+    const finish = () => {
+      if (submitted.current) return;
+      submitted.current = true;
+      propsRef.current.onSubmit(encode());
+    };
+
+    const loop = (time: number) => {
+      frame = requestAnimationFrame(loop);
+      const delta = time - last;
+      last = time;
+      if (!game.isOver(state.current) && !propsRef.current.locked) {
+        accumulator += delta;
+        let ticks = Math.floor(accumulator / TICK_MS);
+        if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
+        accumulator -= ticks * TICK_MS;
+        for (let i = 0; i < ticks; i++) {
+          const target = wanted.current;
+          if (target) {
+            const key = `${target.a},${target.b},${target.c}`;
+            if (key !== sent.current) {
+              sent.current = key;
+              recordInput(
+                events.current,
+                { t: tickOf() + 1, k: ARCADE_INPUT_DRAG, a: target.a, b: target.b, c: target.c, d: 0 },
+                game.inputRanges,
+              );
+            }
+          }
+          state.current = game.step(state.current, inputAt(events.current, tickOf() + 1));
+          if (tickOf() % propsRef.current.interval === 0) {
+            checkpoints.current.push(propsRef.current.checkpoint(state.current));
+          }
+          if (game.isOver(state.current)) break;
+        }
+      }
+      reportArcadeTick(tickOf(), game.isOver(state.current));
+      const size = sizeCanvas();
+      if (size) game.draw(canvas.current!.getContext("2d")!, state.current, size);
+      if (!submitted.current && time - draftAt >= 500) {
+        draftAt = time;
+        propsRef.current.onDraftAnswer?.(encode());
+      }
+      if (game.isOver(state.current)) finish();
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, game, seed]);
+
+  const sizeCanvas = (): CanvasSize | null => {
+    const node = canvas.current;
+    const box = wrap.current?.getBoundingClientRect();
+    if (!node || !box || box.width < 1 || box.height < 1) return null;
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.round(box.width);
+    const height = Math.round(box.height);
+    if (node.width !== Math.round(width * ratio) || node.height !== Math.round(height * ratio)) {
+      node.width = Math.round(width * ratio);
+      node.height = Math.round(height * ratio);
+      node.style.width = `${width}px`;
+      node.style.height = `${height}px`;
+    }
+    const ctx = node.getContext("2d");
+    if (!ctx) return null;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    return { width, height };
+  };
+
+  /** Screen point to world point, or null outside the drawn play area. */
+  const worldPoint = (clientX: number, clientY: number, clamp: boolean) => {
+    const box = wrap.current?.getBoundingClientRect();
+    if (!box || box.width < 1) return null;
+    const { worldW, worldH } = propsRef.current;
+    const scale = Math.min(box.width / worldW, box.height / worldH);
+    const left = box.left + (box.width - worldW * scale) / 2;
+    const top = box.top + (box.height - worldH * scale) / 2;
+    const x = Math.round((clientX - left) / scale);
+    const y = Math.round((clientY - top) / scale);
+    if (!clamp && (x < 0 || x > worldW || y < 0 || y > worldH)) return null;
+    return { x: Math.max(0, Math.min(worldW, x)), y: Math.max(0, Math.min(worldH, y)) };
+  };
+
+  const blocked = () => props.locked || submitted.current || game.isOver(state.current);
+
+  const release = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (pointerId.current !== event.pointerId) return;
+    pointerId.current = null;
+    const point = worldPoint(event.clientX, event.clientY, true);
+    if (point && !blocked()) {
+      const payload = props.pointer("up", point.x, point.y);
+      if (payload) wanted.current = payload;
+    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  return (
+    <div
+      ref={wrap}
+      className="relative min-h-0 w-full flex-1 overflow-hidden"
+      style={NO_SCROLL_STYLE}
+    >
+      <canvas
+        ref={canvas}
+        className="puzzle-board block h-full w-full rounded-xl"
+        style={{ background: props.background, touchAction: "none" }}
+        aria-label={props.label}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          if (blocked() || pointerId.current !== null) return;
+          const point = worldPoint(event.clientX, event.clientY, false);
+          if (!point) return;
+          const payload = props.pointer("down", point.x, point.y);
+          if (!payload) return;
+          pointerId.current = event.pointerId;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          wanted.current = payload;
+        }}
+        onPointerMove={(event) => {
+          if (blocked() || pointerId.current !== event.pointerId) return;
+          const point = worldPoint(event.clientX, event.clientY, true);
+          if (!point) return;
+          const payload = props.pointer("move", point.x, point.y);
+          if (payload) wanted.current = payload;
+        }}
+        onPointerUp={release}
+        onPointerCancel={release}
+      />
+    </div>
+  );
+}

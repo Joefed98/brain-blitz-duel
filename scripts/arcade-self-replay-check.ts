@@ -1,5 +1,5 @@
 /**
- * Self-replay proof for all 16 arcade games. Each run drives the sim exactly the
+ * Self-replay proof for all 18 arcade games. Each run drives the sim exactly the
  * way the phone does — random candidate inputs (many deliberately out of range)
  * go through recordInput/recordTap, and the sim reads its input for each tick
  * from the recorded log only. The submitted string is that log, unmodified.
@@ -55,6 +55,10 @@ import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import { encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
 import { encodeSteadyRun, replaySteadyRun } from "@/lib/duel/steady";
 import { encodeSwerveRun, replaySwerveRun } from "@/lib/duel/swerve";
+import { wavCheckpoint, wavefrontGame } from "@/lib/arcade/wavefront";
+import { basCheckpoint, bastionGame } from "@/lib/arcade/bastion";
+import { encodeWavefrontRun, replayWavefrontRun } from "@/lib/duel/wavefront";
+import { encodeBastionRun, replayBastionRun } from "@/lib/duel/bastion";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const RUNS = Number(process.argv[2] ?? 40);
@@ -225,6 +229,24 @@ const GAMES: Game[] = [
     encode: encodeBeatRun,
     replay: replayBeatRun,
   },
+  {
+    key: "wavefront",
+    game: wavefrontGame,
+    checkpoint: wavCheckpoint,
+    mode: "events",
+    rate: 300,
+    encode: encodeWavefrontRun,
+    replay: replayWavefrontRun,
+  },
+  {
+    key: "bastion",
+    game: bastionGame,
+    checkpoint: basCheckpoint,
+    mode: "events",
+    rate: 300,
+    encode: encodeBastionRun,
+    replay: replayBastionRun,
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -242,7 +264,8 @@ function same(a: unknown, b: unknown): boolean {
 }
 
 let failures = 0;
-for (const spec of GAMES) {
+const ONLY = process.argv[3]?.split(",");
+for (const spec of GAMES.filter((g) => !ONLY || ONLY.includes(g.key))) {
   let worstMs = 0;
   let maxEvents = 0;
   let failed = 0;
