@@ -19,9 +19,8 @@ const run = makeArcadeRun<RoofState, RoofCheckpoint>({
 });
 
 export interface RooftopResult extends FlatReplay<RoofState, RoofCheckpoint> {
-  coins: number;
-  totalCoins: number;
   survived: boolean;
+  survivedSeconds: number;
 }
 
 export const encodeRooftopRun = run.encode;
@@ -31,5 +30,5 @@ export const decodeRooftopRun = run.decode;
 export function replayRooftopRun(seed: number, raw: string): RooftopResult {
   const result = run.replay(seed, raw);
   const s = result.state;
-  return { ...result, coins: s.coins, totalCoins: s.totalCoins, survived: s.ended !== 2 };
+  return { ...result, survived: s.ended !== 2, survivedSeconds: s.tick / 60 };
 }

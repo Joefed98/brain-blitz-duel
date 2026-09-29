@@ -23,7 +23,7 @@ import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: three lanes with a low barrier, a high bar and an air coin. */
+/** Fixed intro still: three lanes with a low barrier and a high bar. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -42,9 +42,10 @@ function IntroExample() {
         <rect x={108} y={52} width={38} height={10} fill={ROOF_TEAL} />
         <rect x={108} y={52} width={2} height={36} fill={ROOF_TEAL} opacity={0.5} />
         <rect x={144} y={52} width={2} height={36} fill={ROOF_TEAL} opacity={0.5} />
-        <circle cx={41} cy={58} r={6} fill={ROOF_GOLD} />
         <circle cx={84} cy={98} r={5} fill={ROOF_GOLD} />
         <rect x={79} y={104} width={10} height={16} rx={3} fill={ROOF_GOLD} />
+        <line x1={79} y1={107} x2={73} y2={116} stroke={ROOF_GOLD} strokeWidth={3} strokeLinecap="round" />
+        <line x1={89} y1={107} x2={95} y2={98} stroke={ROOF_GOLD} strokeWidth={3} strokeLinecap="round" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
         Jump the low barrier, slide the high bar.
@@ -99,14 +100,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function rooftopLine(r: {
-  coins: number;
-  totalCoins: number;
-  survived: boolean;
-  endedSeconds: number;
-}): string {
-  const head = `${r.coins} / ${r.totalCoins} coins`;
-  return r.survived ? `${head} · survived` : `${head} · crashed at ${r.endedSeconds.toFixed(1)}s`;
+export function rooftopLine(r: { survived: boolean; survivedSeconds: number }): string {
+  return r.survived ? "Survived the minute" : `Survived ${r.survivedSeconds.toFixed(1)}s`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

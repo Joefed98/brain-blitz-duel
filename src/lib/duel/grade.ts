@@ -1256,11 +1256,10 @@ export function gradeSubmission(
       if (arcadeDiag.replayMs > 500)
         console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
       isCorrect = run.state.ended === 1;
-      correctCount = run.coins;
+      correctCount = Math.floor(run.survivedSeconds);
       score = run.score;
       extraDetail = {
-        coins: run.coins,
-        totalCoins: run.totalCoins,
+        survivedSeconds: run.survivedSeconds,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

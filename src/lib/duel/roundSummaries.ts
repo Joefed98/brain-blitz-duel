@@ -1213,13 +1213,10 @@ const bastionSummary: SummaryBuilder = (result) => {
 };
 
 const rooftopSummary: SummaryBuilder = (result) => {
-  const coins = Number(result.extra?.["coins"] ?? 0);
-  const total = Number(result.extra?.["totalCoins"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
-  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const head = `${coins} / ${total} coins`;
+  const ended = Number(result.extra?.["survivedSeconds"] ?? result.extra?.["endedSeconds"] ?? 0);
   return {
-    summary: survived ? `${head} · survived` : `${head} · crashed at ${ended.toFixed(1)}s`,
+    summary: survived ? "Survived the minute" : `Survived ${ended.toFixed(1)}s`,
     detail: ["Same course for everyone"],
   };
 };

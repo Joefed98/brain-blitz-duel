@@ -1,7 +1,7 @@
 /**
  * Rooftop Run — a three-lane runner on the shared engine.
  *
- * The sim is a flat three-lane track: every row of obstacles and coins has a z
+ * The sim is a flat three-lane track: every row of obstacles has a z
  * position in 1/256 units and the whole course is generated at init from the
  * seed. Perspective is render only. Swipes arrive as k = 5 events.
  */
@@ -577,11 +577,6 @@ function draw(ctx: CanvasRenderingContext2D, state: RoofState, size: CanvasSize)
     state.tick,
   );
 
-  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = "#F7F7F8";
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-  ctx.fillText(`${(state.tick / TICKS_PER_SECOND).toFixed(1)}s`, 14, 14);
   ctx.restore();
 }
 
