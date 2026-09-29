@@ -59,7 +59,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const [shake, setShake] = useState(false);
   const submitted = useRef(false);
   const board = useRef<HTMLDivElement | null>(null);
-  const previousStage = useRef(1);
   const targetRef = useRef<HTMLSpanElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
   const animatedStage = useRef(1);

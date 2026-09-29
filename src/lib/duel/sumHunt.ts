@@ -144,7 +144,20 @@ export function sumHuntBoard(seed: number, stage: number, target: number): numbe
     const count = countValidPaths(board, target, 4);
     if (count >= 1 && count <= 3) return board;
   }
-  throw new Error(`Unable to generate Sum Hunt stage ${stage}`);
+  // Guaranteed fallback: a Hamiltonian snake contains one isolated 3–6-cell
+  // target segment. Values outside it are chosen so no other combination fits.
+  const length = Math.max(3, Math.min(6, Math.ceil(target / 20)));
+  const snake = Array.from({ length: SH_CELLS }, (_, index) => {
+    const row = Math.floor(index / SH_SIZE);
+    const col = index % SH_SIZE;
+    return row * SH_SIZE + (row % 2 === 0 ? col : SH_SIZE - 1 - col);
+  });
+  const offset = drawInt(rng, 0, SH_CELLS - length);
+  const path = snake.slice(offset, offset + length);
+  const parts = targetParts(target, length, rng) ?? Array(length).fill(1);
+  const board = Array<number>(SH_CELLS).fill(20);
+  path.forEach((cell, index) => { board[cell] = parts[index]!; });
+  return board;
 }
 
 /** Stage nine only needs a fresh deterministic board; its total becomes the target. */
