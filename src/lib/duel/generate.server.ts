@@ -53,7 +53,9 @@ import {
   generateSkyline,
   generateSnake,
   generateSwerve,
+  generateWhack,
 } from "./arcade.server";
+import { generateTents } from "./tents.server";
 
 import { buildGoNoGo } from "@/puzzles/goNoGo";
 import { buildWordMatch } from "@/puzzles/wordMatch";
@@ -118,6 +120,8 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "slice") return generateSlice();
   if (type === "bubble") return generateBubble();
   if (type === "beat") return generateBeat();
+  if (type === "whack") return generateWhack();
+  if (type === "tents") return generateTents();
 
   return puzzleDef(type).generate();
 }

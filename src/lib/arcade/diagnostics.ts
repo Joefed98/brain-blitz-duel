@@ -22,6 +22,7 @@ import { sliceCheckpoint } from "./slice";
 import { snakeCheckpoint } from "./snake";
 import { stdCheckpoint } from "./steady";
 import { swerveCheckpoint } from "./swerve";
+import { whackCheckpoint } from "./whack";
 import type { InputDiag } from "./engine";
 
 export type ArcadeCounters = Record<string, number>;
@@ -44,6 +45,7 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   snake: snakeCheckpoint,
   steady: stdCheckpoint,
   swerve: swerveCheckpoint,
+  whack: whackCheckpoint,
 };
 
 export const ARCADE_DIAG_KEYS: ReadonlySet<string> = new Set(Object.keys(SNAPSHOTS));

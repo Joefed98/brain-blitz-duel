@@ -1,4 +1,4 @@
-import { puzzleDef, puzzleName, typeTimeLimitMs } from "@/lib/duel/registry";
+import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/registry";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 
@@ -41,7 +41,7 @@ export function RoundIntro({
   const Example = puzzleDef(type).IntroExample;
   // Arcade phases carry 3 s of invisible slack; show the run length only.
   const seconds = Math.round(
-    (typeTimeLimitMs(type) - (puzzleDef(type).category === "arcade" ? 3000 : 0)) / 1000,
+    (typeTimeLimitMs(type) - (usesArcadeClock(type) ? 3000 : 0)) / 1000,
   );
   const twoPlayer = activeCount === 2;
 

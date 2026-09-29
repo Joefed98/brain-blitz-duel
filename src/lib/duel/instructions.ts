@@ -650,4 +650,22 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "2 points per metre climbed, up to 150.",
   },
+  whack: {
+    goal: "Tap the targets the banner tells you to.",
+    how: [
+      { action: "Targets pop up", detail: "and vanish fast." },
+      { action: "The rule flips partway through", detail: "— watch the banner." },
+      { action: "Bombs and wrong colours", detail: "cost you." },
+    ],
+    score: "Points per hit; wrong taps cost 10; a perfect run earns a bonus.",
+  },
+  tents: {
+    goal: "Pitch one tent beside every tree.",
+    how: [
+      { action: "Tap a cell", detail: "for a tent, again for grass, again to clear." },
+      { action: "Tents can't touch,", detail: "even diagonally." },
+      { action: "The numbers", detail: "say how many tents are in each row and column." },
+    ],
+    score: "Solve it fast for the bonus.",
+  },
 };

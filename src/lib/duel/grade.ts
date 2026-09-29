@@ -45,6 +45,8 @@ import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeSliceRun, replaySliceRun } from "./slice";
 import { decodeBubbleRun, replayBubbleRun } from "./bubble";
 import { decodeBeatRun, replayBeatRun } from "./beat";
+import { decodeWhackRun, replayWhackRun } from "./whack";
+import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeRicoRun, replayRicoRun } from "./ricochet";
@@ -1163,6 +1165,49 @@ export function gradeSubmission(
         claimedScore: decodeBeatRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
+      break;
+    }
+    case "whack": {
+      const replayStart = performance.now();
+      const run = replayWhackRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.perfect;
+      correctCount = run.hits;
+      errors = run.wrong;
+      score = run.score;
+      extraDetail = {
+        hits: run.hits,
+        totalTargets: run.totalTargets,
+        wrong: run.wrong,
+        taps: run.taps,
+        perfect: run.perfect,
+        finished: run.finished,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeWhackRun(answer).events.length,
+        claimedScore: decodeWhackRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "tents": {
+      // The layout is re-checked against the rules and the stored solution.
+      const treeSet = new Set(puzzle.trees);
+      const tents = decodeTents(answer, puzzle.size).filter((cell) => !treeSet.has(cell));
+      const solution = new Set(puzzle.solution ?? []);
+      const solved = tentsLayoutValid(puzzle, tents);
+      const correct = tents.filter((cell) => solution.has(cell)).length;
+      const wrong = tents.length - correct;
+      isCorrect = solved;
+      correctCount = correct;
+      errors = wrong;
+      score = scoreTents(solved, ms, timeLimitMs, correct, wrong, puzzle.trees.length);
+      extraDetail = { solved, correct, wrong, trees: puzzle.trees.length };
       break;
     }
     case "bintoss": {

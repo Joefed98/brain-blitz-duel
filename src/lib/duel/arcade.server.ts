@@ -22,6 +22,7 @@ import type {
   SlicePuzzleData,
   BubblePuzzleData,
   BeatPuzzleData,
+  WhackPuzzleData,
 } from "./types";
 
 /** A fresh 32-bit seed from the platform CSPRNG. */
@@ -88,4 +89,8 @@ export function generateBubble(): BubblePuzzleData {
 
 export function generateBeat(): BeatPuzzleData {
   return { type: "beat", seed: arcadeSeed() };
+}
+
+export function generateWhack(): WhackPuzzleData {
+  return { type: "whack", seed: arcadeSeed() };
 }

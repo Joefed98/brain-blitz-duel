@@ -86,6 +86,9 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   slice: [],
   bubble: [],
   beat: [],
+  // The seed draws the pop schedule; the run is replayed on the server.
+  whack: [],
+  tents: ["solution"],
 };
 
 type Loose = Record<string, unknown>;

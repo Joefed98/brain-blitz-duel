@@ -66,6 +66,8 @@ import { snakePuzzle } from "@/puzzles/snake";
 import { crossPuzzle } from "@/puzzles/cross";
 import { dualPuzzle } from "@/puzzles/dual";
 import { ricochetPuzzle } from "@/puzzles/ricochet";
+import { whackPuzzle } from "@/puzzles/whack";
+import { tentsPuzzle } from "@/puzzles/tents";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -202,6 +204,8 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   cross: crossPuzzle,
   dual: dualPuzzle,
   ricochet: ricochetPuzzle,
+  whack: whackPuzzle,
+  tents: tentsPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(
@@ -299,11 +303,17 @@ export function puzzleDurationMs(puzzle: PuzzleData | undefined): number {
 /** Slack added to every arcade phase beyond its run; never shown to players. */
 export const ARCADE_PHASE_SLACK_MS = 3000;
 
+/** Arcade-category games plus any other type built on the arcade engine. */
+export function usesArcadeClock(type: PuzzleType): boolean {
+  const def = puzzleDef(type);
+  return def.category === "arcade" || def.arcadeRun === true;
+}
+
 /** For arcade rounds, the run length the clock shows; null for everything else. */
 export function puzzleRunMs(puzzle: PuzzleData | undefined): number | null {
   if (!puzzle) return null;
   const def = puzzleDef(puzzle.type);
-  if (def.category !== "arcade") return null;
+  if (!usesArcadeClock(puzzle.type)) return null;
   return def.timeLimitMs - ARCADE_PHASE_SLACK_MS;
 }
 
