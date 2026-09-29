@@ -44,7 +44,7 @@ import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 import { validateLadder } from "./wordLadder.server";
 import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
-import { decodeSumPaths, replaySumHunt, sumHuntRoundScore } from "./sumHunt";
+import { decodeSumPaths, replaySumHunt, sumHuntRoundScore, SH_STAGES } from "./sumHunt";
 import { balanceRoundScore, balanceSolvedCount, BAL_SCALES, decodeBalance } from "./balance";
 import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
 import { checkWordSlideRow, markedRowsSolved } from "./wordSlide.server";
@@ -212,9 +212,9 @@ export function gradeSubmission(
       // Every path is replayed on the seeded board; wrong sums never count.
       const replay = replaySumHunt(puzzle.seed, puzzle.target, decodeSumPaths(answer));
       correctCount = replay.paths;
-      score = sumHuntRoundScore(replay.raw);
-      isCorrect = score >= 100;
-      extraDetail = { raw: replay.raw, paths: replay.paths, longest: replay.longest, reshuffles: replay.reshuffles };
+      score = sumHuntRoundScore(replay.stage, ms);
+      isCorrect = replay.stage > SH_STAGES;
+      extraDetail = { stage: replay.stage, paths: replay.paths, reshuffles: replay.reshuffles };
       break;
     }
     case "balance": {
