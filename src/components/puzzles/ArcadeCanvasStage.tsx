@@ -15,6 +15,8 @@ import {
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 export interface PointerPayload {
+  /** Event kind for the pointer/tick path (default 7, a drag); discrete games use inputKind. */
+  k?: number;
   a: number;
   b: number;
   c: number;
@@ -144,12 +146,13 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
           if (fromTick) wanted.current = fromTick;
           const target = propsRef.current.discrete ? null : wanted.current;
           if (target) {
-            const key = `${target.a},${target.b},${target.c}`;
+            const kind = target.k ?? ARCADE_INPUT_DRAG;
+            const key = `${kind},${target.a},${target.b},${target.c}`;
             if (key !== sent.current) {
               sent.current = key;
               recordInput(
                 events.current,
-                { t: tickOf() + 1, k: ARCADE_INPUT_DRAG, a: target.a, b: target.b, c: target.c, d: 0 },
+                { t: tickOf() + 1, k: kind, a: target.a, b: target.b, c: target.c, d: 0 },
                 game.inputRanges,
               );
             }

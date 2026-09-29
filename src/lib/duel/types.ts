@@ -76,7 +76,8 @@ export type PuzzleType =
   | "flip"
   | "parry"
   | "junction"
-  | "inkbridge";
+  | "inkbridge"
+  | "burst";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -479,7 +480,8 @@ export type PuzzleData =
   | FlipPuzzleData
   | ParryPuzzleData
   | JunctionPuzzleData
-  | InkBridgePuzzleData;
+  | InkBridgePuzzleData
+  | BurstPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1992,5 +1994,14 @@ export interface JunctionPuzzleData {
 export interface InkBridgePuzzleData {
   type: "inkbridge";
   /** Draws the drops and bucket moves — identical for everyone. */
+  seed: number;
+}
+
+/** Burst: a fixed 60-second run; the round clock adds three of slack. */
+export const BURST_TIME_MS = 63_000;
+
+export interface BurstPuzzleData {
+  type: "burst";
+  /** Draws every wave — identical for everyone. */
   seed: number;
 }

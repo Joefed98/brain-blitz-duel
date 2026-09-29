@@ -54,6 +54,7 @@ import { decodeFlipRun, replayFlipRun } from "./flip";
 import { decodeParryRun, replayParryRun } from "./parry";
 import { decodeJunctionRun, replayJunctionRun } from "./junction";
 import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
+import { decodeBurstRun, replayBurstRun } from "./burst";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
@@ -1397,6 +1398,33 @@ export function gradeSubmission(
         desyncTick: run.desyncTick,
         inputs: decodeInkBridgeRun(answer).events.length,
         claimedScore: decodeInkBridgeRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "burst": {
+      const replayStart = performance.now();
+      const run = replayBurstRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.state.ended === 1;
+      correctCount = run.cleared;
+      score = run.score;
+      extraDetail = {
+        wave: run.wave,
+        points: run.points,
+        cleared: run.cleared,
+        lives: run.lives,
+        survived: run.survived,
+        survivedSeconds: run.survivedSeconds,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBurstRun(answer).events.length,
+        claimedScore: decodeBurstRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

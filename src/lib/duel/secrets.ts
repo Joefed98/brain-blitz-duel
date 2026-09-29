@@ -97,6 +97,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   parry: [],
   junction: [],
   inkbridge: [],
+  burst: [],
 };
 
 type Loose = Record<string, unknown>;

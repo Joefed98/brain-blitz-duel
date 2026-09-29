@@ -31,6 +31,7 @@ import type {
   ParryPuzzleData,
   JunctionPuzzleData,
   InkBridgePuzzleData,
+  BurstPuzzleData,
 } from "./types";
 
 /** A fresh 32-bit seed from the platform CSPRNG. */
@@ -133,4 +134,8 @@ export function generateJunction(): JunctionPuzzleData {
 
 export function generateInkBridge(): InkBridgePuzzleData {
   return { type: "inkbridge", seed: arcadeSeed() };
+}
+
+export function generateBurst(): BurstPuzzleData {
+  return { type: "burst", seed: arcadeSeed() };
 }

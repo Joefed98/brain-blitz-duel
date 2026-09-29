@@ -728,6 +728,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Points for the share of balls you catch.",
   },
+  burst: {
+    goal: "Pop every ball — big ones split into smaller ones.",
+    how: [
+      { action: "Drag (or use the arrows) to move,", detail: "tap to fire straight up." },
+      { action: "Don't let a ball touch you", detail: "— three touches and you're out." },
+    ],
+    score: "Points per hit, 15 per wave cleared.",
+  },
   tents: {
     goal: "Pitch one tent beside every tree.",
     how: [
