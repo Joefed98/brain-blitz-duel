@@ -686,6 +686,31 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "The longer you last, the more you score — the full minute is 150.",
   },
+  sortrush: {
+    goal: "Sort every shape into the gate of its colour.",
+    how: [
+      { action: "Swipe left or right", detail: "— from 20 seconds there's a middle gate too (swipe down)." },
+      { action: "The gate colours swap;", detail: "watch for the flash." },
+    ],
+    score: "Points for the share you sort; wrong gates cost 2.",
+  },
+  flip: {
+    goal: "Run the corridor — flip to the other side to dodge.",
+    how: [
+      { action: "Tap to flip gravity.", detail: "" },
+      { action: "Spikes and gaps on one side", detail: "mean run on the other." },
+    ],
+    score: "The longer you last, the more you score — the full minute is 150.",
+  },
+  parry: {
+    goal: "Deflect every arrow.",
+    how: [
+      { action: "Swipe toward an arrow", detail: "just before it lands." },
+      { action: "Later they come in pairs", detail: "and some swerve at the last moment." },
+      { action: "Three hits", detail: "and you're out." },
+    ],
+    score: "Points for the share you deflect.",
+  },
   tents: {
     goal: "Pitch one tent beside every tree.",
     how: [

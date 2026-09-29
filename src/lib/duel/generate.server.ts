@@ -57,6 +57,9 @@ import {
   generateWavefront,
   generateBastion,
   generateRooftop,
+  generateSortRush,
+  generateFlip,
+  generateParry,
 } from "./arcade.server";
 import { generateTents } from "./tents.server";
 
@@ -127,6 +130,9 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "wavefront") return generateWavefront();
   if (type === "bastion") return generateBastion();
   if (type === "rooftop") return generateRooftop();
+  if (type === "sortrush") return generateSortRush();
+  if (type === "flip") return generateFlip();
+  if (type === "parry") return generateParry();
   if (type === "tents") return generateTents();
 
   return puzzleDef(type).generate();

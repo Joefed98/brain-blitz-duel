@@ -26,6 +26,9 @@ import type {
   WavefrontPuzzleData,
   BastionPuzzleData,
   RooftopPuzzleData,
+  SortRushPuzzleData,
+  FlipPuzzleData,
+  ParryPuzzleData,
 } from "./types";
 
 /** A fresh 32-bit seed from the platform CSPRNG. */
@@ -108,4 +111,16 @@ export function generateBastion(): BastionPuzzleData {
 
 export function generateRooftop(): RooftopPuzzleData {
   return { type: "rooftop", seed: arcadeSeed() };
+}
+
+export function generateSortRush(): SortRushPuzzleData {
+  return { type: "sortrush", seed: arcadeSeed() };
+}
+
+export function generateFlip(): FlipPuzzleData {
+  return { type: "flip", seed: arcadeSeed() };
+}
+
+export function generateParry(): ParryPuzzleData {
+  return { type: "parry", seed: arcadeSeed() };
 }
