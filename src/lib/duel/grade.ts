@@ -44,6 +44,8 @@ import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 import { validateLadder } from "./wordLadder.server";
 import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
+import { decodeSumPaths, replaySumHunt, sumHuntRoundScore } from "./sumHunt";
+import { balanceRoundScore, balanceSolvedCount, BAL_SCALES, decodeBalance } from "./balance";
 import { decodeSlideTokens, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
 import { markedRowsSolved } from "./wordSlide.server";
 import { checkAnswer } from "./puzzles";
@@ -204,6 +206,24 @@ export function gradeSubmission(
       correctCount = verdict.placed;
       score = scoreTileGrid(verdict.valid, verdict.placed, speedBonus(ms, timeLimitMs));
       extraDetail = { placed: verdict.placed, valid: verdict.valid };
+      break;
+    }
+    case "sumhunt": {
+      // Every path is replayed on the seeded board; wrong sums never count.
+      const replay = replaySumHunt(puzzle.seed, puzzle.target, decodeSumPaths(answer));
+      correctCount = replay.paths;
+      score = sumHuntRoundScore(replay.raw);
+      isCorrect = score >= 100;
+      extraDetail = { raw: replay.raw, paths: replay.paths, longest: replay.longest, reshuffles: replay.reshuffles };
+      break;
+    }
+    case "balance": {
+      // The server recomputes every torque; any balanced arrangement counts.
+      const solved = balanceSolvedCount(puzzle.scales, decodeBalance(answer, puzzle.scales));
+      correctCount = solved;
+      isCorrect = solved === BAL_SCALES;
+      score = balanceRoundScore(solved, speedBonus(ms, timeLimitMs));
+      extraDetail = { solved };
       break;
     }
     case "wordslide": {

@@ -53,7 +53,7 @@ function buildScale(loose: number, fixedCount: number): { scale: BalanceScale; s
     };
   }
   return {
-    scale: { fixed: [{ peg: 1, w: 2 }], tray: [3, randomBelow(1) + 1] },
+    scale: { fixed: [{ peg: 1, w: 2 }], tray: [1, 4 + randomBelow(1)] },
     solution: [5, 4],
   };
 }

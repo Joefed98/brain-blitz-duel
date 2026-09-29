@@ -16,6 +16,7 @@ import { generateWordsmith, gradeWordsmith } from "./wordsmith.server";
 import { generateWordLadder } from "./wordLadder.server";
 import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
+import { generateBalance, generateSumHunt } from "./numberRounds.server";
 import { generateLightsOut, generatePipes, generateSudoku } from "./logic.server";
 import { generateFlow } from "./flow.server";
 import { generateIceSlide } from "./slide.server";
@@ -78,6 +79,8 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "ladder") return generateWordLadder();
   if (type === "tilegrid") return generateTileGrid();
   if (type === "wordslide") return generateWordSlide();
+  if (type === "sumhunt") return generateSumHunt();
+  if (type === "balance") return generateBalance();
   if (type === "lightsout") return generateLightsOut();
   if (type === "pipes") return generatePipes();
   if (type === "sudoku") return generateSudoku();
