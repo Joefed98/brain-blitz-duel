@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
+import { Button } from "@/components/ui/button";
 import {
   BAL_PEGS,
   BAL_REVEAL_MS,
@@ -21,10 +22,9 @@ import { playCorrect, playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Nine slots: pegs 0–3, the pivot, pegs 4–7. */
-const SLOTS = 9;
-const slotOfPeg = (peg: number) => (peg < 4 ? peg : peg + 1);
-const pegOfSlot = (slot: number) => (slot === 4 ? null : slot < 4 ? slot : slot - 1);
+const PEG_GAP = 4;
+const MIN_PEG_WIDTH = 40;
+const pegDistanceLabel = (peg: number) => (peg < 4 ? 4 - peg : peg - 3);
 
 function Disc({ value, fixed, size }: { value: number; fixed: boolean; size: number }) {
   return (
@@ -41,76 +41,54 @@ function Beam({
   scale,
   placement,
   spacing,
-  onPegTap,
+  onWeightTap,
+  onPlace,
   selected,
-  pegRefs,
+  showControls = false,
 }: {
   scale: BalanceScale;
   placement: Placement;
   spacing: number;
-  onPegTap?: (event: React.PointerEvent, peg: number) => void;
+  onWeightTap?: (tray: number) => void;
+  onPlace?: (peg: number) => void;
   selected?: number | null;
-  pegRefs?: React.MutableRefObject<(HTMLSpanElement | null)[]>;
+  showControls?: boolean;
 }) {
   const tilt = balanceTilt(scale, placement);
   const balanced = scaleSolved(scale, placement);
   const disc = Math.min(40, spacing - 2);
+  const width = spacing * BAL_PEGS + PEG_GAP * (BAL_PEGS - 1);
   const onPeg = new Map<number, { w: number; fixed: boolean; tray?: number }>();
   scale.fixed.forEach((f) => onPeg.set(f.peg, { w: f.w, fixed: true }));
   placement.forEach((peg, i) => {
     if (peg !== null) onPeg.set(peg, { w: scale.tray[i]!, fixed: false, tray: i });
   });
   return (
-    <div className="relative h-[82px]" style={{ width: spacing * SLOTS }}>
+    <div className="relative" style={{ width, height: showControls ? 92 : 68 }}>
+      {/* Decorative layer only: it may tilt, but number buttons never do. */}
       <div
         className="absolute left-0 top-0 h-[68px] w-full"
         style={{ transform: `rotate(${tilt}deg)`, transformOrigin: "50% 42px", transition: "transform 150ms ease-out" }}
       >
-        <div className="absolute left-1 top-10 h-1.5 rounded-full bg-foreground/70" style={{ width: spacing * SLOTS - 8 }} />
-        <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${SLOTS}, ${spacing}px)` }}>
-          {Array.from({ length: SLOTS }, (_, slot) => {
-            const peg = pegOfSlot(slot);
-            const item = peg === null ? undefined : onPeg.get(peg);
-            return (
-              <span key={slot} className="relative z-30 flex items-start justify-center">
-                {item && (
-                  <span
-                    className={`mt-0.5 ${item.tray === selected && !item.fixed ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
-                    onPointerUp={!item.fixed && item.tray !== undefined ? (event) => onPegTap?.(event, peg ?? -1) : undefined}
-                  >
-                    <Disc value={item.w} fixed={item.fixed} size={disc} />
-                  </span>
-                )}
-              </span>
-            );
-          })}
+        <div className="absolute left-1 top-10 h-1.5 rounded-full bg-foreground/70" style={{ width: width - 8 }} />
+        <div className="absolute inset-x-0 top-0 flex" style={{ gap: PEG_GAP }}>
           {Array.from({ length: BAL_PEGS }, (_, peg) => {
             const item = onPeg.get(peg);
             const available = selected !== null && !item;
             return (
-              <span key={`peg-${peg}`}>
-                {available && <span className="pointer-events-none absolute top-6 z-0 h-4 w-0.5 bg-primary" style={{ left: (slotOfPeg(peg) + 0.5) * spacing, transform: "translateX(-50%)" }} />}
-                <span
-                  ref={(element) => { if (pegRefs) pegRefs.current[peg] = element; }}
-                  onPointerUp={(event) => onPegTap?.(event, peg)}
-                  className={`absolute top-1 z-20 ${available ? "cursor-pointer" : ""}`}
-                  style={{
-                    width: 44,
-                    height: 56,
-                    left: (slotOfPeg(peg) + 0.5) * spacing,
-                    transform: "translateX(-50%)",
-                    pointerEvents: onPegTap && available ? "auto" : "none",
-                  }}
-                  aria-label={`Peg ${peg + 1}`}
-                />
+              <span key={peg} className="relative z-30 flex justify-center" style={{ width: spacing }}>
+                {item && (
+                  <span
+                    className={`mt-0.5 ${item.tray === selected && !item.fixed ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
+                    onClick={!item.fixed && item.tray !== undefined ? () => onWeightTap?.(item.tray ?? -1) : undefined}
+                  >
+                    <Disc value={item.w} fixed={item.fixed} size={disc} />
+                  </span>
+                )}
+                {available && <span className="pointer-events-none absolute top-6 h-4 w-0.5 bg-primary" />}
               </span>
             );
           })}
-          {Array.from({ length: SLOTS }, (_, slot) => (
-            <span key={`number-${slot}`} className="absolute top-12 text-center font-mono text-[10px] text-muted-foreground" style={{ left: slot * spacing, width: spacing }}>
-              {slot === 4 ? "" : slot < 4 ? 4 - slot : slot - 4}
-            </span>
-          ))}
         </div>
       </div>
       <span
@@ -120,6 +98,28 @@ function Beam({
           filter: balanced ? "drop-shadow(0 0 8px var(--primary))" : undefined,
         }}
       />
+      {showControls && (
+        <div className="absolute inset-x-0 top-12 flex" style={{ gap: PEG_GAP }}>
+          {Array.from({ length: BAL_PEGS }, (_, peg) => {
+            const occupied = onPeg.has(peg);
+            const available = selected !== null && !occupied;
+            return (
+              <Button
+                key={peg}
+                type="button"
+                variant="ghost"
+                onClick={() => { if (available) onPlace?.(peg); }}
+                aria-label={`Place at distance ${pegDistanceLabel(peg)} on the ${peg < 4 ? "left" : "right"}`}
+                aria-disabled={!available}
+                className={`h-11 min-w-10 flex-1 px-0 font-mono text-sm ${available ? "bg-primary/20 text-primary ring-1 ring-primary/70 hover:bg-primary/30" : "text-muted-foreground hover:bg-transparent"}`}
+                style={{ width: spacing, minWidth: MIN_PEG_WIDTH }}
+              >
+                {pegDistanceLabel(peg)}
+              </Button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -128,24 +128,10 @@ function IntroExample() {
   const scale: BalanceScale = { fixed: [{ peg: 1, w: 2 }], tray: [3] };
   return (
     <div className="flex w-full flex-col items-center gap-2">
-      <Beam scale={scale} placement={[5]} spacing={28} />
+      <Beam scale={scale} placement={[5]} spacing={40} showControls />
       <p className="text-center text-xs text-muted-foreground">2 × 3 on the left equals 3 × 2 on the right.</p>
     </div>
   );
-}
-
-/** Measures the visible, transformed peg targets at the moment of a tap. */
-function pegAt(elements: (HTMLSpanElement | null)[], x: number, y: number, available: number[]): number | null {
-  const candidates = available.flatMap((peg) => {
-    const rect = elements[peg]?.getBoundingClientRect();
-    if (!rect) return [];
-    return [{
-      peg,
-      contains: x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom,
-      distance: Math.hypot(x - (rect.left + rect.right) / 2, y - (rect.top + rect.bottom) / 2),
-    }];
-  }).sort((a, b) => a.distance - b.distance);
-  return candidates.find((candidate) => candidate.contains)?.peg ?? null;
 }
 
 function useSpacing(ref: React.RefObject<HTMLDivElement | null>): number {
@@ -153,7 +139,7 @@ function useSpacing(ref: React.RefObject<HTMLDivElement | null>): number {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const measure = () => setSpacing(Math.max(28, Math.min(44, Math.floor(el.clientWidth / SLOTS))));
+    const measure = () => setSpacing(Math.max(MIN_PEG_WIDTH, Math.min(44, Math.floor((el.clientWidth - PEG_GAP * (BAL_PEGS - 1)) / BAL_PEGS))));
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
@@ -173,7 +159,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const lastTap = useRef<{ tray: number; time: number } | null>(null);
   const submitted = useRef(false);
   const root = useRef<HTMLDivElement | null>(null);
-  const pegs = useRef<(HTMLSpanElement | null)[]>([]);
   useNoTouchScroll(root);
   const spacing = useSpacing(root);
 
@@ -223,6 +208,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     !scale.fixed.some((f) => f.peg === peg) && !placement.some((p, i) => i !== tray && p === peg));
   const hang = (tray: number, peg: number) => {
     if (!available(tray).includes(peg)) return;
+    // Button taps update the same placement array encoded for server torque validation.
     const next = [...placement]; next[tray] = peg;
     setSelected(null); hapticTick(); setCurrent(next);
   };
@@ -256,30 +242,31 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
         </div>, progressTarget,
       )}
       <div className="relative min-h-0 w-full flex-1">
-        <div className="absolute left-1/2 top-1/2" style={{ transform: `translate(-50%, -${disc + 4}px)` }}>
-        <Beam scale={scale} placement={placement} spacing={spacing} pegRefs={pegs}
-          selected={selected} onPegTap={(event, peg) => {
-            const tray = placement.findIndex((placed) => placed === peg);
-            if (tray >= 0) { tapWeight(tray); return; }
-            if (selected === null || frozen) return;
-            const measured = pegAt(pegs.current, event.clientX, event.clientY, available(selected));
-            if (measured !== null) hang(selected, measured);
-          }} />
+        <div className="absolute left-1/2" style={{ top: "calc(50% - 50px)", transform: "translate(-50%, -42px)" }}>
+          <Beam
+            scale={scale}
+            placement={placement}
+            spacing={spacing}
+            selected={selected}
+            showControls
+            onWeightTap={tapWeight}
+            onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
+          />
         </div>
-      </div>
-      <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        scale {current + 1} / {BAL_SCALES}
-      </p>
-      <div className="flex min-h-[48px] shrink-0 flex-wrap justify-center gap-3">
-        {trayLeft.map((i) => (
-          <span
-            key={i}
-            onPointerUp={() => tapWeight(i)}
-            className={selected === i ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}
-          >
-            <Disc value={scale.tray[i]!} fixed={false} size={44} />
-          </span>
-        ))}
+        <p className="absolute inset-x-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" style={{ bottom: "calc(56px + env(safe-area-inset-bottom) + 52px)" }}>
+          scale {current + 1} / {BAL_SCALES}
+        </p>
+        <div className="absolute inset-x-0 flex min-h-[48px] flex-wrap justify-center gap-3" style={{ bottom: "calc(56px + env(safe-area-inset-bottom))" }}>
+          {trayLeft.map((i) => (
+            <span
+              key={i}
+              onClick={() => tapWeight(i)}
+              className={selected === i ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}
+            >
+              <Disc value={scale.tray[i]!} fixed={false} size={44} />
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
