@@ -9,7 +9,7 @@ import {
   BAS_WORLD_H,
   BAS_WORLD_W,
 } from "@/lib/arcade/bastion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 
 import { BAS_TURRET_X, BAS_TURRET_Y, BAS_STEP_DEG_X256, type BasState } from "@/lib/arcade/bastion";
 import { encodeBastionRun, replayBastionRun } from "@/lib/duel/bastion";
@@ -87,7 +87,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   const hold = (dir: -1 | 1) => ({
-    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+    onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.currentTarget.setPointerCapture(e.pointerId);
       holding.current = dir;
