@@ -220,12 +220,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       !scale.fixed.some((f) => f.peg === peg) && !next.some((p, i) => i !== d.tray && p === peg));
     const candidates = available.map((peg) => {
       const centre = (slotOfPeg(peg) + 0.5) * spacing;
-      return { peg, distance: Math.abs(geometry.x - centre) };
+      return { peg, horizontal: Math.abs(geometry.x - centre), distance: Math.hypot(geometry.x - centre, geometry.y - (Math.min(40, spacing - 2) + 4)) };
     }).sort((a, b) => a.distance - b.distance);
     const beamY = Math.min(40, spacing - 2) + 4;
     const inZone = geometry.y >= beamY - 40 && geometry.y <= beamY + 20;
-    const zone = candidates.find(({ distance }) => inZone && distance <= spacing / 2 + 12);
-    const near = candidates.find(({ distance }) => distance <= 30 && geometry.y >= beamY - 70 && geometry.y <= beamY + 50);
+    const zone = candidates.find(({ horizontal }) => inZone && horizontal <= spacing / 2 + 12);
+    const near = candidates.find(({ distance }) => distance <= 30);
     const peg = zone?.peg ?? near?.peg;
     if (peg === undefined) {
       if (next[d.tray] !== null) { next[d.tray] = null; setCurrent(next); }

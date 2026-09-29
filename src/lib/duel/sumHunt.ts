@@ -88,7 +88,7 @@ function reshuffleIfStuck(state: SumHuntState, target: number): SumHuntState {
   if (countValidPaths(state.board, target, 1) > 0) return state;
   let board = [...state.board];
   let rng = state.rng;
-  for (let attempt = 0; attempt < 30; attempt++) {
+  for (let attempt = 0; attempt < 100; attempt++) {
     for (let i = board.length - 1; i > 0; i--) {
       const r = step(rng);
       rng = r.state;
@@ -96,8 +96,8 @@ function reshuffleIfStuck(state: SumHuntState, target: number): SumHuntState {
       [board[i], board[j]] = [board[j]!, board[i]!];
     }
     if (countValidPaths(board, target, 1) > 0) break;
-    if (attempt === 29) {
-      // Still stuck: redraw every digit from the same PRNG.
+    if (attempt > 0 && attempt % 30 === 0) {
+      // Still stuck: redraw from the deterministic PRNG and keep searching.
       board = board.map(() => {
         const d = digit(rng);
         rng = d.state;
