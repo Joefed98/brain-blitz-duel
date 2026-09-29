@@ -156,31 +156,43 @@ export function buildRoofCourse(seed: number): { rows: RoofRow[]; rng: number } 
     return r.value;
   };
   const rows: RoofRow[] = [];
-  let frontier = new Set<number>([packRunner({ laneFrom: 1, laneTo: 1, laneT: 0, jumpT: 0, slideT: 0, lean: 0 })]);
+  let frontier = Int32Array.of(packRunner({ laneFrom: 1, laneTo: 1, laneT: 0, jumpT: 0, slideT: 0, lean: 0 }));
+  const seen = new Int32Array(1 << 19);
+  const scratch = new Int32Array(1 << 19);
+  let stamp = 0;
   let tick = 0;
   let prevPass = [true, true, true];
   let sinceObstacle = 2;
   const NONE = [ROOF_NONE, ROOF_NONE, ROOF_NONE];
 
   /** Advance the frontier through the ticks up to zEnd, dying on this row's kinds. */
-  const advance = (from: Set<number>, fromTick: number, kinds: readonly number[], zStart: number, zEnd: number) => {
+  const advance = (from: Int32Array, fromTick: number, kinds: readonly number[], zStart: number, zEnd: number) => {
     let set = from;
     let t = fromTick;
+    const r: Runner = { laneFrom: 0, laneTo: 0, laneT: 0, jumpT: 0, slideT: 0, lean: 0 };
     while (t < ROOF_RUN_TICKS && Z_AT[t + 1]! <= zEnd) {
       t += 1;
-      const z = Z_AT[t]!;
-      const check = z >= zStart;
-      const next = new Set<number>();
-      for (const code of set) {
+      const check = Z_AT[t]! >= zStart;
+      stamp += 1;
+      let n = 0;
+      for (let k = 0; k < set.length; k++) {
+        const code = set[k]!;
         for (let dir = -1; dir <= 3; dir++) {
-          const r = unpackRunner(code);
+          r.laneFrom = code & 3;
+          r.laneTo = (code >> 2) & 3;
+          r.laneT = (code >> 4) & 15;
+          r.jumpT = (code >> 8) & 63;
+          r.slideT = (code >> 14) & 31;
           moveRunner(r, dir);
           if (check && hits(r, kinds)) continue;
-          next.add(packRunner(r));
+          const next = packRunner(r);
+          if (seen[next] === stamp) continue;
+          seen[next] = stamp;
+          scratch[n++] = next;
         }
       }
-      set = next;
-      if (set.size === 0) break;
+      set = scratch.slice(0, n);
+      if (n === 0) break;
     }
     return { set, tick: t };
   };
@@ -188,7 +200,7 @@ export function buildRoofCourse(seed: number): { rows: RoofRow[]; rng: number } 
   for (let i = 1; i * ROOF_ROW_GAP <= RUN_DISTANCE; i++) {
     const z = i * ROOF_ROW_GAP;
     let kinds = NONE;
-    let result: { set: Set<number>; tick: number } | null = null;
+    let result: { set: Int32Array; tick: number } | null = null;
     if (z > CLEAR_DISTANCE) {
       const reach = sinceObstacle >= 2 ? 2 : 1;
       for (let attempt = 0; attempt < 20; attempt++) {
@@ -204,7 +216,7 @@ export function buildRoofCourse(seed: number): { rows: RoofRow[]; rng: number } 
         }
         if (!ok) continue;
         const tried = advance(frontier, tick, trial, z, z + DEPTH);
-        if (tried.set.size > 0) {
+        if (tried.set.length > 0) {
           kinds = trial;
           result = tried;
           break;
