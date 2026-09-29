@@ -442,8 +442,8 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
   const cs = m.cs / FP;
   const o = (m.n * cs) / 2;
   ctx.translate(CX, CY);
-  // Screen = rotate(-angle) · maze, so gravity (down) in the maze frame is rotated by +angle.
-  ctx.rotate((-state.angle / 65536) * Math.PI * 2);
+  // Screen = rotate(angle) · maze; the sim turns gravity into the maze frame by the same angle.
+  ctx.rotate((state.angle / 65536) * Math.PI * 2);
   ctx.fillStyle = "#11111B";
   ctx.beginPath();
   ctx.arc(0, 0, TILT_DISC_R, 0, Math.PI * 2);
