@@ -1839,9 +1839,9 @@ export interface WordSlidePuzzleData {
 
 export interface SumHuntPuzzleData {
   type: "sumhunt";
-  /** Draws the starting board and every column's falling digits. */
+  /** Draws the same stage-indexed boards for both players. */
   seed: number;
-  /** Initial sum every path must hit, starting at 10. */
+  /** Initial sum every path must hit, starting from 20–25. */
   target: number;
 }
 

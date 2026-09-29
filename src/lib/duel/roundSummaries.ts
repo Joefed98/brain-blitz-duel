@@ -571,8 +571,7 @@ const groupsSummary: SummaryBuilder = (result, puzzle) => {
 
 const sumHuntSummary: SummaryBuilder = (result, puzzle) => {
   const stage = Number(result.extra?.["stage"] ?? 1);
-  const paths = Number(result.extra?.["paths"] ?? 0);
-  return { summary: stage > SH_STAGES ? `Cleared the grid · ${seconds(elapsedMs(result, puzzle))}` : `Stage ${stage} of ${SH_STAGES} · ${paths} paths`, detail: [] };
+  return { summary: stage > SH_STAGES ? `Cleared the grid · ${seconds(elapsedMs(result, puzzle))}` : `Stage ${stage} of ${SH_STAGES}`, detail: [] };
 };
 
 const balanceSummary: SummaryBuilder = (result, puzzle) => {
