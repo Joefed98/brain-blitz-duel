@@ -194,16 +194,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       </p>
       {finger && path.length > 0 && (
         <span
-          className={`pointer-events-none fixed z-50 rounded-full px-3 py-1 font-mono text-base font-bold shadow-lg ${sum === state.target ? "bg-opponent text-background" : "bg-card text-foreground"}`}
+          onClick={() => { if (!dragging.current) submit(path); }}
+          className={`fixed z-50 rounded-full px-3 py-1 font-mono text-base font-bold shadow-lg ${sum === state.target ? "bg-opponent text-background" : "bg-card text-foreground"}`}
           style={{ left: finger.x + 18, top: finger.y - 52 }}
         >
           {sum}
         </span>
-      )}
-      {path.length > 0 && !dragging.current && (
-        <button type="button" onClick={() => submit(path)} className={`shrink-0 rounded-full px-4 py-1 font-mono text-base font-bold ${sum === state.target ? "bg-opponent text-background" : "bg-card text-foreground"}`}>
-          {sum}
-        </button>
       )}
     </div>
   );

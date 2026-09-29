@@ -23,7 +23,6 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const CELL = 56;
 const GAP = 4;
-const MARKED = new Set<number>(WS_MARKED_ROWS);
 
 function Board({
   grid,
@@ -48,8 +47,7 @@ function Board({
     >
       {grid.map((letter, i) => {
         const row = Math.floor(i / WS_SIZE);
-        const marked = MARKED.has(row);
-        const tone = good.has(row) ? "border-opponent bg-opponent/15" : marked ? "border-primary bg-primary/10" : "border-transparent bg-background/40";
+        const tone = good.has(row) ? "border-opponent bg-opponent/15" : "border-transparent bg-background/40";
         return (
           <span
             key={i}
