@@ -34,6 +34,8 @@ import type {
   BurstPuzzleData,
   OrbitPuzzleData,
   SwingPuzzleData,
+  TiltPuzzleData,
+  HotFloorPuzzleData,
 } from "./types";
 
 /** A fresh 32-bit seed from the platform CSPRNG. */
@@ -148,4 +150,12 @@ export function generateOrbit(): OrbitPuzzleData {
 
 export function generateSwing(): SwingPuzzleData {
   return { type: "swing", seed: arcadeSeed() };
+}
+
+export function generateTilt(): TiltPuzzleData {
+  return { type: "tilt", seed: arcadeSeed() };
+}
+
+export function generateHotFloor(): HotFloorPuzzleData {
+  return { type: "hotfloor", seed: arcadeSeed() };
 }

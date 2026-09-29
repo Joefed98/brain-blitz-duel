@@ -98,6 +98,8 @@ import {
   BURST_TIME_MS,
   ORBIT_TIME_MS,
   SWING_TIME_MS,
+  TILT_TIME_MS,
+  HOTFLOOR_TIME_MS,
 } from "./types";
 
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
@@ -150,6 +152,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   burst: BURST_TIME_MS,
   orbit: ORBIT_TIME_MS,
   swing: SWING_TIME_MS,
+  tilt: TILT_TIME_MS,
+  hotfloor: HOTFLOOR_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -1312,6 +1316,29 @@ const swingSummary: SummaryBuilder = (result) => {
   };
 };
 
+const tiltSummary: SummaryBuilder = (result) => {
+  const mazes = Number(result.extra?.["mazes"] ?? 0);
+  const survived = result.extra?.["survived"] !== false;
+  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
+  const head = `${mazes} ${mazes === 1 ? "maze" : "mazes"}`;
+  return {
+    summary: survived ? `${head} · survived` : `${head} · pit at ${ended.toFixed(1)}s`,
+    detail: ["Same mazes for everyone"],
+  };
+};
+
+const hotFloorSummary: SummaryBuilder = (result) => {
+  const pickups = Number(result.extra?.["pickups"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? 0);
+  const survived = result.extra?.["survived"] !== false;
+  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
+  const head = `${pickups} / ${total}`;
+  return {
+    summary: survived ? `${head} · survived` : `${head} · fell at ${ended.toFixed(1)}s`,
+    detail: ["Same floor for everyone"],
+  };
+};
+
 const burstSummary: SummaryBuilder = (result) => {
   const wave = Math.max(1, Number(result.extra?.["wave"] ?? 1));
   const lives = Number(result.extra?.["lives"] ?? 0);
@@ -1436,6 +1463,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   burst: burstSummary,
   orbit: orbitSummary,
   swing: swingSummary,
+  tilt: tiltSummary,
+  hotfloor: hotFloorSummary,
   tents: tentsSummary,
 };
 
@@ -1526,6 +1555,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   burst: () => null,
   orbit: () => null,
   swing: () => null,
+  tilt: () => null,
+  hotfloor: () => null,
   tents: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),

@@ -752,6 +752,22 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "2 per metre.",
   },
+  tilt: {
+    goal: "Roll the ball out of the maze.",
+    how: [
+      { action: "Drag left or right to spin the maze", detail: "— the ball always rolls down." },
+      { action: "Each escape brings a harder maze.", detail: "Red pits end the run." },
+    ],
+    score: "15 per maze.",
+  },
+  hotfloor: {
+    goal: "Keep climbing — the floor is falling away.",
+    how: [
+      { action: "Swipe to hop between tiles.", detail: "A tile crumbles soon after you leave it, and teal tiles crumble as soon as you land." },
+      { action: "Stay off the bottom row.", detail: "" },
+    ],
+    score: "2 per pickup, +30 for surviving the minute.",
+  },
   tents: {
     goal: "Pitch one tent beside every tree.",
     how: [

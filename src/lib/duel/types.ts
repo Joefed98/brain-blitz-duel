@@ -79,7 +79,9 @@ export type PuzzleType =
   | "inkbridge"
   | "burst"
   | "orbit"
-  | "swing";
+  | "swing"
+  | "tilt"
+  | "hotfloor";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -485,7 +487,9 @@ export type PuzzleData =
   | InkBridgePuzzleData
   | BurstPuzzleData
   | OrbitPuzzleData
-  | SwingPuzzleData;
+  | SwingPuzzleData
+  | TiltPuzzleData
+  | HotFloorPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -2023,5 +2027,21 @@ export interface OrbitPuzzleData {
 export interface SwingPuzzleData {
   type: "swing";
   /** Draws the cavern — identical for everyone. */
+  seed: number;
+}
+
+/** Tilt and Hot Floor: fixed 60-second runs; the round clock adds three of slack. */
+export const TILT_TIME_MS = 63_000;
+export const HOTFLOOR_TIME_MS = 63_000;
+
+export interface TiltPuzzleData {
+  type: "tilt";
+  /** Draws every maze — identical for everyone. */
+  seed: number;
+}
+
+export interface HotFloorPuzzleData {
+  type: "hotfloor";
+  /** Draws the floor rows — identical for everyone. */
   seed: number;
 }
