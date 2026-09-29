@@ -88,6 +88,8 @@ import {
 
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
 import { WS_TIME_MS } from "./wordSlide";
+import { SH_TIME_MS, sumHuntRoundScore } from "./sumHunt";
+import { BAL_SCALES, BAL_TIME_MS } from "./balance";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
 type SummaryBuilder = (result: RoundResultRow, puzzle: PuzzleData) => BuiltDetail;
@@ -101,6 +103,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   stroke: STROKE_TIME_MS,
   tiles: TILES_TIME_MS,
   tilegrid: TG_TIME_MS,
+  sumhunt: SH_TIME_MS,
+  balance: BAL_TIME_MS,
   wordslide: WS_TIME_MS,
   rings: RINGS_TIME_MS,
   hover: HOVER_TIME_MS,
@@ -562,6 +566,21 @@ const groupsSummary: SummaryBuilder = (result, puzzle) => {
   return {
     summary: `${found} / 4 groups`,
     detail: (puzzle.groups ?? []).map((group) => `${group.theme}: ${group.words.join(", ")}`),
+  };
+};
+
+const sumHuntSummary: SummaryBuilder = (result) => {
+  const raw = Number(result.extra?.["raw"] ?? 0);
+  const paths = Number(result.extra?.["paths"] ?? 0);
+  const longest = Number(result.extra?.["longest"] ?? 0);
+  return { summary: `Raw ${raw} → ${sumHuntRoundScore(raw)} · ${paths} paths · longest ${longest}`, detail: [] };
+};
+
+const balanceSummary: SummaryBuilder = (result, puzzle) => {
+  const solved = Number(result.extra?.["solved"] ?? result.correct_count ?? 0);
+  return {
+    summary: solved === BAL_SCALES ? `3 / 3 · ${seconds(elapsedMs(result, puzzle))}` : `${solved} / 3`,
+    detail: [],
   };
 };
 
@@ -1161,6 +1180,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   groups: groupsSummary,
   ladder: ladderSummary,
   tilegrid: tileGridSummary,
+  sumhunt: sumHuntSummary,
+  balance: balanceSummary,
   wordslide: wordSlideSummary,
   target: targetSummary,
   numseq: numberSequenceSummary,
@@ -1233,6 +1254,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   wordsmith: () => null,
   groups: () => "Four groups of four",
   tilegrid: () => null,
+  sumhunt: () => null,
+  balance: () => null,
   wordslide: (p) => (p.type === "wordslide" && p.words ? p.words.join(" · ") : null),
   ladder: (p) => (p.type === "ladder" ? (p.shortestPath ?? []).join(" → ") : null),
   target: (p) => (p.type === "target" ? String(p.target) : null),

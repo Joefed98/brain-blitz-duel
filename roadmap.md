@@ -248,3 +248,5 @@
 ## Two new word rounds (Sep 29)
 - [x] Tile Grid (60 s, reveal 8 s)
 - [x] Word Slide (60 s, reveal 6 s)
+- [x] Sum Hunt (number, 45 s, reveal 6 s)
+- [x] Balance (number, 60 s, reveal 8 s)

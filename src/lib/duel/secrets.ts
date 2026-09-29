@@ -15,6 +15,9 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   numseq: ["answers"],
   ladder: ["shortestLength", "shortestPath"],
   tilegrid: ["solution"],
+  // The seed draws the board the player sees; the paths are theirs to find.
+  sumhunt: [],
+  balance: ["solutions"],
   // Par is shown on the move counter; the intended words are not.
   wordslide: ["words"],
   equation: ["operators"],

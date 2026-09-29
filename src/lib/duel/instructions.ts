@@ -39,6 +39,22 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "More tiles placed scores more; all twelve for the time bonus.",
   },
+  sumhunt: {
+    goal: "Draw paths of digits that add up to the target.",
+    how: [
+      { action: "Swipe through touching cells and let go.", detail: "Longer paths score more." },
+      { action: "New digits drop in", detail: "after every clear." },
+    ],
+    score: "Points per path; longer is better.",
+  },
+  balance: {
+    goal: "Balance the scale.",
+    how: [
+      { action: "Drag every weight onto a peg.", detail: "Further from the middle counts more — a 2 on peg 3 equals a 3 on peg 2." },
+      { action: "Tap a placed weight", detail: "to return it to the tray." },
+    ],
+    score: "One point-third per scale; all three for the time bonus.",
+  },
   wordslide: {
     goal: "Slide rows and columns until the three marked rows are words.",
     how: [

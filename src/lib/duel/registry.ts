@@ -10,6 +10,8 @@ import { mirrorMatchPuzzle } from "@/puzzles/mirrorMatch";
 import { wordLadderPuzzle } from "@/puzzles/wordLadder";
 import { tileGridPuzzle } from "@/puzzles/tileGrid";
 import { wordSlidePuzzle } from "@/puzzles/wordSlide";
+import { sumHuntPuzzle } from "@/puzzles/sumHunt";
+import { balancePuzzle } from "@/puzzles/balance";
 import { numberClimbPuzzle } from "@/puzzles/numberClimb";
 import { numberHuntPuzzle } from "@/puzzles/numberHunt";
 import { numberSequencePuzzle } from "@/puzzles/numberSequence";
@@ -137,6 +139,8 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   ladder: wordLadderPuzzle,
   tilegrid: tileGridPuzzle,
   wordslide: wordSlidePuzzle,
+  sumhunt: sumHuntPuzzle,
+  balance: balancePuzzle,
   target: targetNumberPuzzle,
   numseq: numberSequencePuzzle,
   equation: equationPuzzle,
