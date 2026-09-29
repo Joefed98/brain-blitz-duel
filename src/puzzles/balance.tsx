@@ -91,14 +91,14 @@ function Beam({
               key={`target-${peg}`}
               ref={(element) => { if (pegRefs) pegRefs.current[peg] = element; }}
               onPointerUp={(event) => onPegTap?.(event, peg)}
-              className={`absolute z-0 rounded-md transition-colors ${highlighted === peg || (selected !== null && !item) ? "bg-primary/35" : ""}`}
+              className={`absolute rounded-md transition-colors ${item ? "z-0" : "z-20"} ${highlighted === peg || (selected !== null && !item) ? "bg-primary/35" : ""}`}
               style={{
                 width: Math.max(44, spacing + 24),
                 height: 64,
                 left: (slotOfPeg(peg) + 0.5) * spacing,
                 bottom: -20,
                 transform: "translateX(-50%)",
-                pointerEvents: onPegTap ? "auto" : "none",
+                pointerEvents: onPegTap && !item ? "auto" : "none",
               }}
               aria-label={`Peg ${peg + 1}`}
             />
@@ -300,9 +300,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       <div className="relative min-h-0 w-full flex-1">
         <div className="absolute left-1/2 top-1/2" style={{ transform: `translate(-50%, -${disc + 4}px)` }}>
         <Beam scale={scale} placement={placement} spacing={spacing} onPegDown={begin} pegRefs={pegs}
-          selected={selected} highlighted={highlight} onPegTap={(peg) => {
+          selected={selected} highlighted={highlight} onPegTap={(event) => {
             if (selected === null || frozen) return;
-            const measured = pegAt(pegs.current, peg.clientX, peg.clientY, available(selected));
+            const measured = pegAt(pegs.current, event.clientX, event.clientY, available(selected));
             if (measured !== null) hang(selected, measured);
           }} />
         </div>
