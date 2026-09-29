@@ -55,6 +55,7 @@ const COMPACT_TIMER_TYPES = new Set<PuzzleType>([
 
 export function timerSlotClass(type: PuzzleType): string {
   if (type === "rings") return "h-[80px] scale-[0.6]";
+  if (type === "tilegrid") return "h-[72px] scale-[0.54] [@media(max-height:700px)]:h-[60px] [@media(max-height:700px)]:scale-[0.45]";
   if (type === "countup") return "h-[72px] scale-[0.54] [@media(max-height:700px)]:h-[60px] [@media(max-height:700px)]:scale-[0.45]";
   return COMPACT_TIMER_TYPES.has(type)
     ? "h-[94px] scale-[0.7] [@media(max-height:700px)]:h-[80px] [@media(max-height:700px)]:scale-[0.6]"

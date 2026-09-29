@@ -5,7 +5,7 @@
  */
 
 export const WS_SIZE = 5;
-export const WS_MARKED_ROWS = [0, 2, 4] as const;
+export const WS_MARKED_ROWS = [0, 1, 2, 3, 4] as const;
 export const WS_TIME_MS = 60_000;
 export const WS_REVEAL_MS = 6_000;
 export const WS_SHIFT_MS = 120;

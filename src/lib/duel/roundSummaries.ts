@@ -600,7 +600,7 @@ const wordSlideSummary: SummaryBuilder = (result, puzzle) => {
   return {
     summary: result.is_correct
       ? `Solved · ${moves} moves (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`
-      : `${rows} / 3 rows`,
+      : `${rows} / 5 rows`,
     detail: [],
   };
 };

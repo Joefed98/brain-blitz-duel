@@ -196,6 +196,30 @@ export function gridCellCentre(
   };
 }
 
+/** Nearest cell centre at release, measured from the live grid; never snaps beyond half a cell. */
+export function nearestGridCellAt(
+  element: HTMLElement | null,
+  clientX: number,
+  clientY: number,
+  cols: number,
+  rows: number,
+): number | null {
+  const g = gridGeometry(element, clientX, clientY, cols, rows);
+  if (!g) return null;
+  let nearest: number | null = null;
+  let best = Infinity;
+  for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
+    const dx = g.x - (col * (g.cellW + g.gapX) + g.cellW / 2);
+    const dy = g.y - (row * (g.cellH + g.gapY) + g.cellH / 2);
+    const distance = Math.hypot(dx, dy);
+    if (Math.abs(dx) <= g.cellW / 2 && Math.abs(dy) <= g.cellH / 2 && distance < best) {
+      nearest = row * cols + col;
+      best = distance;
+    }
+  }
+  return nearest;
+}
+
 /** Which track the position falls in: the containing cell, or the nearer one when in a gap. */
 function trackAt(position: number, cell: number, gap: number, count: number): number | null {
   const pitch = cell + gap;

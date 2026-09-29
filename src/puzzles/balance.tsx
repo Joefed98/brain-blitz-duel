@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { gridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
+import { gridGeometry, hapticTick } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import {
   BAL_PEGS,
@@ -68,7 +68,7 @@ function Beam({
             const peg = pegOfSlot(slot);
             const item = peg === null ? undefined : onPeg.get(peg);
             return (
-              <span key={slot} className="flex justify-center">
+              <span key={slot} className="flex justify-center" style={{ touchAction: "none" }}>
                 {item && (
                   <span
                     onPointerDown={!item.fixed && onPegDown ? (e) => onPegDown(e, item.tray!) : undefined}
@@ -96,12 +96,12 @@ function Beam({
           filter: balanced ? "drop-shadow(0 0 8px var(--primary))" : undefined,
         }}
       />
-      {/* Unrotated drop row: the shared hit-test maps the finger to a peg here. */}
+      {/* Unrotated peg centres: a generous vertical zone surrounds each peg above the beam. */}
       {pegsRef && (
         <div
           ref={pegsRef}
           className="pointer-events-none absolute left-0 top-0 grid"
-          style={{ gridTemplateColumns: `repeat(${SLOTS}, ${spacing}px)`, height: disc + 30 }}
+          style={{ gridTemplateColumns: `repeat(${SLOTS}, ${spacing}px)`, height: disc + 6 }}
         />
       )}
     </div>
@@ -214,12 +214,23 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       }
       return;
     }
-    const slot = gridCellAt(pegs.current, event.clientX, event.clientY, SLOTS, 1);
-    const peg = slot === null ? null : pegOfSlot(slot);
-    if (peg === null || peg >= BAL_PEGS) return;
-    if (scale.fixed.some((f) => f.peg === peg)) return;
-    const other = next.findIndex((p, i) => p === peg && i !== d.tray);
-    if (other >= 0) next[other] = next[d.tray] ?? null;
+    const geometry = gridGeometry(pegs.current, event.clientX, event.clientY, SLOTS, 1);
+    if (!geometry) return;
+    const available = Array.from({ length: BAL_PEGS }, (_, peg) => peg).filter((peg) =>
+      !scale.fixed.some((f) => f.peg === peg) && !next.some((p, i) => i !== d.tray && p === peg));
+    const candidates = available.map((peg) => {
+      const centre = (slotOfPeg(peg) + 0.5) * spacing;
+      return { peg, horizontal: Math.abs(geometry.x - centre), distance: Math.hypot(geometry.x - centre, geometry.y - (Math.min(40, spacing - 2) + 4)) };
+    }).sort((a, b) => a.distance - b.distance);
+    const beamY = Math.min(40, spacing - 2) + 4;
+    const inZone = geometry.y >= beamY - 40 && geometry.y <= beamY + 20;
+    const zone = candidates.find(({ horizontal }) => inZone && horizontal <= spacing / 2 + 12);
+    const near = candidates.find(({ distance }) => distance <= 30);
+    const peg = zone?.peg ?? near?.peg;
+    if (peg === undefined) {
+      if (next[d.tray] !== null) { next[d.tray] = null; setCurrent(next); }
+      return;
+    }
     next[d.tray] = peg;
     hapticTick();
     setCurrent(next);
@@ -249,6 +260,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
             key={i}
             onPointerDown={(e) => begin(e, i)}
             className={drag?.tray === i && drag.moved ? "opacity-30" : ""}
+            style={{ touchAction: "none" }}
           >
             <Disc value={scale.tray[i]!} fixed={false} size={44} />
           </span>

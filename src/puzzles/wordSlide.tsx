@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { gridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
+import { Button } from "@/components/ui/button";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useStageState } from "@/lib/duel/stageState";
 import type { WordSlidePuzzleData } from "@/lib/duel/types";
@@ -23,7 +24,6 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const CELL = 56;
 const GAP = 4;
-const MARKED = new Set<number>(WS_MARKED_ROWS);
 
 function Board({
   grid,
@@ -48,8 +48,7 @@ function Board({
     >
       {grid.map((letter, i) => {
         const row = Math.floor(i / WS_SIZE);
-        const marked = MARKED.has(row);
-        const tone = good.has(row) ? "border-opponent bg-opponent/15" : marked ? "border-primary bg-primary/10" : "border-transparent bg-background/40";
+        const tone = good.has(row) ? "border-opponent bg-opponent/15" : "border-transparent bg-background/40";
         return (
           <span
             key={i}
@@ -112,7 +111,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const rowWords = replay ? WS_MARKED_ROWS.map((r) => markedRowWord(replay.grid, r)) : [];
   const rowKey = rowWords.join("|");
 
-  // Check the three marked rows on the server; lock the moment all read as words.
+  // Check all five rows on the server; lock the moment all read as words.
   useEffect(() => {
     if (!checkWord) return;
     for (const word of rowWords) {
@@ -198,33 +197,32 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         Moves <span className="text-primary">{replay.moves}</span> (par {data.par})
       </p>
       <div className="flex shrink-0 gap-2">
-        <button
+        <Button
           type="button"
           disabled={frozen || replay.moves === 0}
           onPointerDown={() => push("U")}
           className="h-11 w-24 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
           Undo
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           disabled={frozen || replay.moves === 0}
           onPointerDown={() => push("X")}
           className="h-11 w-24 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
           Reset
-        </button>
+        </Button>
       </div>
     </div>
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, validRows }: PuzzleRevealProps) {
   if (puzzle.type !== "wordslide") return null;
   const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(myAnswer ?? ""));
   const words = puzzle.words ?? [];
-  const matched = WS_MARKED_ROWS.filter((r, i) => markedRowWord(replay.grid, r) === words[i]);
-  const good = new Set<number>(myCorrect ? WS_MARKED_ROWS : matched);
+  const good = new Set<number>(WS_MARKED_ROWS.filter((r) => myCorrect || validRows?.includes(r)));
   const elapsed = myMsRemaining === undefined ? null : ((WS_TIME_MS - myMsRemaining) / 1000).toFixed(1);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -239,7 +237,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       <p className={`text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
         {myCorrect
           ? `Solved · ${replay.moves} moves (par ${puzzle.par})${elapsed ? ` · ${elapsed}s` : ""}`
-          : `${good.size} / 3 rows`}
+           : `${good.size} / 5 rows`}
       </p>
     </div>
   );
@@ -252,7 +250,7 @@ export const wordSlidePuzzle: PuzzleDefinition = {
   timeLimitMs: WS_TIME_MS,
   revealMs: WS_REVEAL_MS,
   generate: () =>
-    ({ type: "wordslide", grid: [..."HOUSEATRENSTONEPILAGLIGHT"], par: 6 }) satisfies WordSlidePuzzleData,
+     ({ type: "wordslide", grid: [..."HOUSEWATERSTONEPLANTLIGHT"], par: 6 }) satisfies WordSlidePuzzleData,
   check: () => false,
   revealHeading: "Your grid",
   IntroExample,

@@ -46,8 +46,8 @@ import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
 import { decodeSumPaths, replaySumHunt, sumHuntRoundScore } from "./sumHunt";
 import { balanceRoundScore, balanceSolvedCount, BAL_SCALES, decodeBalance } from "./balance";
-import { decodeSlideTokens, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
-import { markedRowsSolved } from "./wordSlide.server";
+import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
+import { checkWordSlideRow, markedRowsSolved } from "./wordSlide.server";
 import { checkAnswer } from "./puzzles";
 import { countPatternAnswers } from "./pattern";
 import { decodeMoves, replayUnblock } from "./unblock";
@@ -234,8 +234,9 @@ export function gradeSubmission(
       correctCount = rows;
       score = isCorrect
         ? scoreSolvedMoves(replay.moves, puzzle.par, ms, timeLimitMs)
-        : Math.min(60, 30 * rows);
-      extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows };
+        : Math.min(80, 20 * rows);
+      extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows,
+        validRows: WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid) };
       break;
     }
     case "ladder": {
