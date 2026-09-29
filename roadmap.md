@@ -1,5 +1,12 @@
 # Roadmap
 
+## Balance fixed placement controls (Sep 29)
+
+- [x] Replace tilted measured peg targets with a fixed row of eight number buttons.
+- [x] Keep the beam decorative except for placed-weight selection and double-tap return.
+- [x] Raise the rack 56 px above the safe-area inset and centre the pivot in the remaining play area.
+- [x] Preserve the placement encoding validated by the server; run code-level checks only.
+
 ## Four control and layout tunings (Sep 29)
 
 - [x] Make Balance tap-only with weights above the beam, selected-only peg markers, measured targets and spaced stacked reveals.
