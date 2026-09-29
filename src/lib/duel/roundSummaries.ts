@@ -4,6 +4,7 @@ import {
   patternAttributeLabel,
   patternMistakes,
 } from "./pattern";
+import { equationStageCorrect, parseCount, parseSelection, scanStageResult, splitStages } from "./stagedRounds";
 import {
   BLOCK_FREE_CELLS,
   BLOCK_TIME_MS,
@@ -137,12 +138,14 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
           ? PATCOMP_TIME_MS
           : puzzle.type === "target"
             ? TARGET_TIME_MS
-            : puzzle.type === "equation" || puzzle.type === "chaincalc"
+            : puzzle.type === "equation"
+              ? 60_000
+              : puzzle.type === "chaincalc"
               ? 45_000
               : puzzle.type === "symscan"
-                ? 20_000
+                ? 45_000
                 : puzzle.type === "countup"
-                  ? 15_000
+                  ? 45_000
                   : puzzle.type === "numseq"
                     ? 30_000
                     : puzzle.type === "mirmatch"
@@ -236,27 +239,35 @@ function sequenceAnswer(result: RoundResultRow, puzzle: PuzzleData): string | nu
   return indices.map((index) => puzzle.tiles[index] ?? index + 1).join(" → ");
 }
 
-function equationAnswer(result: RoundResultRow): string | null {
-  const answer = rawAnswer(result);
-  return answer ? joinOperators(answer.split(",")) : null;
-}
-
 function symbolScanSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   if (puzzle.type !== "symscan") return { summary: "No answer", detail: [] };
-  const selected = new Set((result.answer ?? "").split(",").map(Number).filter(Number.isFinite));
-  const found = puzzle.targets.filter((target) => selected.has(target)).length;
-  const wrong = [...selected].filter((index) => !puzzle.targets.includes(index)).length;
+  const parts = splitStages(result.answer);
+  const results = puzzle.stages.map((_, i) => scanStageResult(i, parseSelection(parts[i] ?? ""), puzzle.targets?.[i] ?? []));
+  const perfect = results.filter((r) => r.perfect).length;
   return {
-    summary: `${found} / ${puzzle.targets.length} targets · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: wrong > 0 ? [`${wrong} wrong selection${wrong === 1 ? "" : "s"}`] : [],
+    summary: `${perfect} / 3 grids perfect · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: results.map((r, i) => `Grid ${i + 1}: ${r.found} / ${r.targets} found${r.wrong ? ` · ${r.wrong} wrong` : ""}`),
   };
 }
 
 function equationSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
-  const answer = equationAnswer(result);
+  if (puzzle.type !== "equation") return { summary: "No answer", detail: [] };
+  const parts = splitStages(result.answer);
+  const correct = puzzle.stages.map((st, i) => equationStageCorrect(st.numbers, st.target, parts[i] ?? ""));
   return {
-    summary: `${answer ?? "No answer"} · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: [],
+    summary: `${correct.filter(Boolean).length} / 3 equations · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: correct.map((ok, i) => `Equation ${i + 1}: ${parts[i] ? joinOperators(parts[i]!.split(",")) : "skipped"} ${ok ? "✓" : "✗"}`),
+  };
+}
+
+function countUpSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  if (puzzle.type !== "countup") return { summary: "No answer", detail: [] };
+  const parts = splitStages(result.answer);
+  const counts = puzzle.counts ?? [];
+  const exact = counts.filter((c, i) => parseCount(parts[i] ?? "") === c).length;
+  return {
+    summary: `${exact} / 3 exact · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: counts.map((c, i) => `Count ${i + 1}: ${parts[i] || "—"} (answer ${c})`),
   };
 }
 
@@ -1200,7 +1211,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   pctsprint: percentSprintSummary,
   numclimb: numberClimbSummary,
   stopwatch: averageSummary,
-  countup: rawSingle,
+  countup: countUpSummary,
   mirmatch: mirrorSummary,
   wordhunt: wordHuntSummary,
   unblock: unblockSummary,
@@ -1264,12 +1275,12 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
       ? (p.answerOrder ?? [...p.tiles].reverse()).map((i) => p.tiles[i] ?? i + 1).join(" → ")
       : null,
   reaction: () => null,
-  equation: (p) => (p.type === "equation" ? joinOperators(p.operators) : null),
+  equation: (p) => (p.type === "equation" && p.operators ? p.operators.map((ops) => joinOperators(ops)).join(" · ") : null),
   stroop: () => null,
   spatial: (p) => (p.type === "spatial" ? `Cells ${p.tiles.map((i) => i + 1).join(", ")}` : null),
   gonogo: () => null,
   patcomp: (p) => (p.type === "patcomp" ? "See the three grids" : null),
-  symscan: (p) => (p.type === "symscan" ? `${p.targets.length} arrows` : null),
+  symscan: (p) => (p.type === "symscan" && p.targets ? p.targets.map((t) => t.length).join(" · ") + " arrows" : null),
   spin: () => null,
   numhunt: () => null,
   spotdiff: (p) => (p.type === "spotdiff" ? `${(p.differences ?? []).length} differences` : null),
@@ -1278,7 +1289,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   pctsprint: () => null,
   numclimb: (p) => (p.type === "numclimb" ? (p.answerDigits ?? p.digits) : null),
   stopwatch: () => null,
-  countup: (p) => (p.type === "countup" ? String(p.count) : null),
+  countup: (p) => (p.type === "countup" && p.counts ? p.counts.join(" · ") : null),
   mirmatch: () => null,
   wordhunt: () => null,
   unblock: (p) => (p.type === "unblock" && p.minMoves ? `${p.minMoves} moves` : null),

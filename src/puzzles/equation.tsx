@@ -1,66 +1,58 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
+import { StageProgress } from "@/components/puzzles/StageProgress";
 import { randInt, shuffled } from "@/lib/duel/random";
-import type { EquationPuzzleData, Operator } from "@/lib/duel/types";
+import { useStageState } from "@/lib/duel/stageState";
+import {
+  STAGE_COUNT,
+  equationStageCorrect,
+  evaluateLeftToRight,
+  joinStages,
+  parseOperators,
+  splitStages,
+} from "@/lib/duel/stagedRounds";
+import { EQUATION_TIME_MS, type EquationPuzzleData, type EquationStage, type Operator } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
+export { evaluateLeftToRight };
+
 export const OPERATORS: Operator[] = ["+", "-", "×", "÷"];
 
-/** Five numbers, four operator slots. */
-export const EQUATION_NUMBERS = 5;
-const SLOTS = EQUATION_NUMBERS - 1;
+/** Numbers per stage: three, four, then five. */
+export const EQUATION_STAGE_NUMBERS = [3, 4, 5] as const;
 
-/** Strict left-to-right evaluation. Returns null on a non-whole or negative step. */
-export function evaluateLeftToRight(numbers: number[], ops: Operator[]): number | null {
-  let value = numbers[0]!;
-  for (let i = 0; i < ops.length; i++) {
-    const next = numbers[i + 1]!;
-    const op = ops[i]!;
-    if (op === "+") value += next;
-    else if (op === "-") value -= next;
-    else if (op === "×") value *= next;
-    else {
-      if (next === 0 || value % next !== 0) return null;
-      value /= next;
-    }
-    if (value < 0 || !Number.isInteger(value)) return null;
-  }
-  return value;
-}
-
-/** All 256 operator combinations for four slots. */
-export function allCombos(): Operator[][] {
-  const combos: Operator[][] = [];
-  for (const a of OPERATORS)
-    for (const b of OPERATORS)
-      for (const c of OPERATORS) for (const d of OPERATORS) combos.push([a, b, c, d]);
+/** Every operator combination for the given number of slots. */
+export function allCombos(slots: number): Operator[][] {
+  let combos: Operator[][] = [[]];
+  for (let i = 0; i < slots; i++) combos = combos.flatMap((c) => OPERATORS.map((op) => [...c, op]));
   return combos;
 }
 
-export function buildEquation(): EquationPuzzleData {
+/** Answer-first: pick numbers, keep a target reached by exactly one operator set. */
+function buildStage(count: number): { stage: EquationStage; ops: Operator[] } {
+  const combos = allCombos(count - 1);
   for (let attempt = 0; attempt < 900; attempt++) {
-    const numbers = Array.from({ length: EQUATION_NUMBERS }, () => randInt(2, 15));
-    const solutions = allCombos()
+    const numbers = Array.from({ length: count }, () => randInt(2, count === 3 ? 12 : 15));
+    const solutions = combos
       .map((ops) => ({ ops, value: evaluateLeftToRight(numbers, ops) }))
-      .filter((r) => r.value !== null) as { ops: Operator[]; value: number }[];
-
-    const candidates = shuffled(solutions).filter(
-      (candidate) =>
-        candidate.value >= 0 &&
-        candidate.value <= 400 &&
-        solutions.filter((other) => other.value === candidate.value).length === 1,
+      .filter((r): r is { ops: Operator[]; value: number } => r.value !== null);
+    const chosen = shuffled(solutions).find(
+      (c) => c.value <= 400 && solutions.filter((o) => o.value === c.value).length === 1,
     );
-    const chosen = candidates[0];
-    if (!chosen) continue;
-    return { type: "equation", numbers, target: chosen.value, operators: chosen.ops };
+    if (chosen) return { stage: { numbers, target: chosen.value }, ops: chosen.ops };
   }
-  return {
-    type: "equation",
-    numbers: [9, 3, 4, 2, 5],
-    target: 31,
-    operators: ["-", "×", "+", "+"],
+  const fallback: Record<number, { stage: EquationStage; ops: Operator[] }> = {
+    3: { stage: { numbers: [7, 3, 2], target: 20 }, ops: ["+", "×"] },
+    4: { stage: { numbers: [8, 2, 5, 3], target: 17 }, ops: ["÷", "×", "-"] },
+    5: { stage: { numbers: [9, 3, 4, 2, 5], target: 31 }, ops: ["-", "×", "+", "+"] },
   };
+  return fallback[count]!;
+}
+
+export function buildEquation(): EquationPuzzleData {
+  const built = EQUATION_STAGE_NUMBERS.map((n) => buildStage(n));
+  return { type: "equation", stages: built.map((b) => b.stage), operators: built.map((b) => b.ops) };
 }
 
 function OperatorSlot({ value, onClick }: { value: Operator | null; onClick?: () => void }) {
@@ -82,80 +74,93 @@ function OperatorSlot({ value, onClick }: { value: Operator | null; onClick?: ()
 
 function IntroExample() {
   return (
-    <div className="flex flex-col items-center gap-4">
-      <p className="text-center text-sm text-muted-foreground">
-        Pick the operators that make the equation true. Work it out left to right.
-      </p>
+    <div className="flex flex-col items-center gap-3">
       <div className="flex items-center gap-1.5 font-mono text-xl font-bold tabular-nums">
-        <span>9</span>
+        <span>7</span>
         <OperatorSlot value={null} />
         <span>3</span>
         <OperatorSlot value={null} />
-        <span>4</span>
-        <OperatorSlot value={null} />
         <span>2</span>
-        <OperatorSlot value={null} />
-        <span>5</span>
-        <span>= 31</span>
+        <span>= 20</span>
       </div>
       <p className="font-mono text-sm text-muted-foreground">
-        answer <span className="font-bold text-primary">9 − 3 × 4 + 2 + 5 = 31</span>
-      </p>
-      <p className="text-xs text-muted-foreground">
-        Tap the operators, then hit Submit. Faster = more points.
+        answer <span className="font-bold text-primary">7 + 3 × 2 = 20</span>
       </p>
     </div>
   );
 }
 
-function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
-  const [slots, setSlots] = useState<(Operator | null)[]>(Array(SLOTS).fill(null));
-  const key = puzzle.type === "equation" ? `${puzzle.numbers.join(",")}=${puzzle.target}` : "";
+function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" }: PuzzleStageProps) {
+  const data = puzzle.type === "equation" ? puzzle : null;
+  const [stage, setStage] = useStageState<number>(stateKey, "eqStage", () => 0);
+  const [answers, setAnswers] = useStageState<string[]>(stateKey, "eqAnswers", () => ["", "", ""]);
+  const [slots, setSlots] = useStageState<(Operator | null)[]>(stateKey, "eqSlots", () =>
+    Array(Math.max(0, (data?.stages[0]?.numbers.length ?? 1) - 1)).fill(null),
+  );
+  const done = useRef(false);
 
+  const current = data?.stages[Math.min(stage, STAGE_COUNT - 1)];
+  const liveAnswers = answers.map((a, i) => (i === stage ? slots.filter(Boolean).join(",") : a));
+  const draft = joinStages(liveAnswers);
   useEffect(() => {
-    setSlots(Array(SLOTS).fill(null));
-  }, [key]);
+    onDraftAnswer?.(draft);
+  }, [draft, onDraftAnswer]);
 
-  if (puzzle.type !== "equation") return null;
+  if (!data || !current) return null;
+  const frozen = locked || done.current;
+
+  const advance = (filled: (Operator | null)[]) => {
+    const next = [...answers];
+    next[stage] = filled.filter(Boolean).join(",");
+    setAnswers(next);
+    if (stage >= STAGE_COUNT - 1) {
+      done.current = true;
+      onSubmit(joinStages(next));
+      return;
+    }
+    const nextStage = stage + 1;
+    setStage(nextStage);
+    setSlots(Array(data.stages[nextStage]!.numbers.length - 1).fill(null));
+  };
 
   const tapOperator = (op: Operator) => {
-    if (locked) return;
-    setSlots((prev) => {
-      const index = prev.findIndex((s) => s === null);
-      if (index === -1) return prev;
-      const next = [...prev];
-      next[index] = op;
-      return next;
-    });
+    if (frozen) return;
+    const index = slots.findIndex((s) => s === null);
+    if (index === -1) return;
+    const next = [...slots];
+    next[index] = op;
+    setSlots(next);
+    if (next.every((s) => s !== null) && equationStageCorrect(current.numbers, current.target, next.join(","))) {
+      advance(next);
+    }
   };
 
   const clearSlot = (index: number) => {
-    if (locked) return;
-    setSlots((prev) => {
-      const next = [...prev];
-      next[index] = null;
-      return next;
-    });
+    if (frozen) return;
+    const next = [...slots];
+    next[index] = null;
+    setSlots(next);
   };
 
-  const ready = slots.every((s) => s !== null);
+  const last = stage >= STAGE_COUNT - 1;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col justify-between gap-3">
       <div className="flex flex-col items-center gap-3">
+        <StageProgress stage={stage} />
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Left to right — no BODMAS
+          Equation {stage + 1} of 3 · left to right
         </p>
         <div className="flex w-full flex-wrap items-center justify-center gap-1 rounded-2xl bg-card px-2 py-3 font-mono text-lg font-bold tabular-nums min-[390px]:text-xl">
-          {puzzle.numbers.map((n, index) => (
+          {current.numbers.map((n, index) => (
             <span key={index} className="flex items-center gap-1.5">
               <span>{n}</span>
-              {index < SLOTS && (
+              {index < current.numbers.length - 1 && (
                 <OperatorSlot value={slots[index] ?? null} onClick={() => clearSlot(index)} />
               )}
             </span>
           ))}
-          <span className="text-primary">= {puzzle.target}</span>
+          <span className="text-primary">= {current.target}</span>
         </div>
 
         <div className="grid grid-cols-4 gap-2">
@@ -163,7 +168,7 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
             <button
               key={op}
               type="button"
-              disabled={locked}
+              disabled={frozen}
               onClick={() => tapOperator(op)}
               className="tap-target flex h-16 w-16 items-center justify-center rounded-xl border border-border bg-card font-mono text-3xl font-bold text-foreground disabled:opacity-50"
             >
@@ -175,11 +180,11 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
 
       <button
         type="button"
-        onClick={() => ready && !locked && onSubmit(slots.join(","))}
-        disabled={locked || !ready}
+        onClick={() => !frozen && advance(slots)}
+        disabled={frozen}
         className="tap-target w-full rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
       >
-        Submit
+        {last ? "Submit" : "Next"}
       </button>
     </div>
   );
@@ -202,29 +207,31 @@ function Line({ numbers, ops }: { numbers: number[]; ops: string[] }) {
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "equation") return null;
-  const mine = (myAnswer ?? "").split(",").filter((v) => v.length > 0);
+  const parts = splitStages(myAnswer);
   return (
-    <>
-      <p className="w-full text-center font-mono text-xl font-bold tabular-nums text-primary min-[390px]:text-2xl">
-        <Line numbers={puzzle.numbers} ops={puzzle.operators} /> = {puzzle.target}
-      </p>
-      <div className="flex w-full flex-col items-center gap-3 rounded-2xl bg-card px-4 py-5">
-        <p className="text-base uppercase tracking-[0.2em] text-muted-foreground">Your answer</p>
-        {mine.length < SLOTS ? (
-          <p className="font-display text-2xl font-bold text-warn">No answer</p>
-        ) : (
-          <p
-            className={`w-full text-center font-mono text-base font-bold tabular-nums min-[390px]:text-lg ${
-              myCorrect ? "text-primary" : "text-warn"
-            }`}
-          >
-            <Line numbers={puzzle.numbers} ops={mine} /> {myCorrect ? "✓" : "✗"}
-          </p>
-        )}
-      </div>
-    </>
+    <div className="flex w-full flex-col gap-3">
+      {puzzle.stages.map((stage, i) => {
+        const mine = parseOperators(parts[i] ?? "");
+        const ok = equationStageCorrect(stage.numbers, stage.target, parts[i] ?? "");
+        return (
+          <div key={i} className="flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-3 py-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Equation {i + 1}</p>
+            <p className="text-center font-mono text-lg font-bold tabular-nums text-primary">
+              <Line numbers={stage.numbers} ops={puzzle.operators?.[i] ?? []} /> = {stage.target}
+            </p>
+            {mine.length < stage.numbers.length - 1 ? (
+              <p className="font-display text-base font-bold text-warn">{mine.length ? "Incomplete" : "Skipped"} ✗</p>
+            ) : (
+              <p className={`text-center font-mono text-base font-bold tabular-nums ${ok ? "text-primary" : "text-warn"}`}>
+                <Line numbers={stage.numbers} ops={mine} /> {ok ? "✓" : "✗"}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -232,13 +239,12 @@ export const equationPuzzle: PuzzleDefinition = {
   key: "equation",
   name: "Equation Balancing",
   category: "number",
-  timeLimitMs: 45_000,
+  timeLimitMs: EQUATION_TIME_MS,
   generate: buildEquation,
   check: (answer, puzzle) => {
     if (puzzle.type !== "equation") return false;
-    const ops = answer.split(",").filter((v) => v.length > 0) as Operator[];
-    if (ops.length !== SLOTS || ops.some((op) => !OPERATORS.includes(op))) return false;
-    return evaluateLeftToRight(puzzle.numbers, ops) === puzzle.target;
+    const parts = splitStages(answer);
+    return puzzle.stages.every((st, i) => equationStageCorrect(st.numbers, st.target, parts[i] ?? ""));
   },
   IntroExample,
   Stage,

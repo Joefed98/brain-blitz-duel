@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 
+import { StageProgress } from "@/components/puzzles/StageProgress";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
+import { useStageState } from "@/lib/duel/stageState";
+import { STAGE_COUNT, joinStages, parseSelection, scanStageResult, splitStages } from "@/lib/duel/stagedRounds";
 import {
-  SYMSCAN_CELLS,
-  SYMSCAN_COLS,
   SYMSCAN_MAX_TARGETS,
   SYMSCAN_MIN_TARGETS,
+  SYMSCAN_STAGE_COLS,
+  SYMSCAN_TIME_MS,
   type ArrowDir,
   type SymbolScanPuzzleData,
+  type SymbolScanStage,
 } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -92,9 +96,6 @@ const EXAMPLE_MATCHES = [1, 6];
 function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
-      <p className="text-center text-sm text-muted-foreground">
-        Find every arrow that matches the target.
-      </p>
       <div className="flex flex-col items-center gap-1">
         <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
         <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
@@ -111,79 +112,93 @@ function IntroExample() {
           />
         ))}
       </div>
-      <p className="text-center text-xs text-muted-foreground">
-        Tap each match, then hit Submit. Miss one and it&apos;s wrong. You have 20 seconds.
-      </p>
     </div>
   );
 }
 
-function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
-  const key = puzzle.type === "symscan" ? puzzle.cells.join("") : "";
-  const [selected, setSelected] = useState<number[]>([]);
+function matchesOf(stage: SymbolScanStage): number[] {
+  return stage.cells.flatMap((dir, i) => (dir === stage.target ? [i] : []));
+}
+
+function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }: PuzzleStageProps) {
+  const data = puzzle.type === "symscan" ? puzzle : null;
+  const [stage, setStage] = useStageState<number>(stateKey, "scanStage", () => 0);
+  const [selections, setSelections] = useStageState<number[][]>(stateKey, "scanSel", () => [[], [], []]);
+  const done = useRef(false);
   const stageRef = useRef<HTMLDivElement>(null);
-  const targetRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
   const [gridSide, setGridSide] = useState(280);
 
   useEffect(() => {
-    setSelected([]);
-  }, [key]);
-
-  useEffect(() => {
-    const stage = stageRef.current;
-    const target = targetRef.current;
+    const el = stageRef.current;
+    const top = topRef.current;
     const submit = submitRef.current;
-    if (!stage || !target || !submit) return;
+    if (!el || !top || !submit) return;
     const read = () => {
-      const stageRect = stage.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      const submitRect = submit.getBoundingClientRect();
-      const availableHeight = stageRect.height - targetRect.height - submitRect.height - 12;
-      setGridSide(Math.max(0, Math.floor(Math.min(availableHeight, stageRect.width))));
+      const availableHeight = el.clientHeight - top.offsetHeight - submit.offsetHeight - 20;
+      setGridSide(Math.max(0, Math.floor(Math.min(availableHeight, el.clientWidth))));
     };
     read();
     const observer = new ResizeObserver(read);
-    observer.observe(stage);
-    observer.observe(target);
-    observer.observe(submit);
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
-  if (puzzle.type !== "symscan") return null;
+  const draft = joinStages(selections.map((sel) => [...sel].sort((a, b) => a - b).join(",")));
+  useEffect(() => {
+    onDraftAnswer?.(draft);
+  }, [draft, onDraftAnswer]);
+
+  const current = data?.stages[Math.min(stage, STAGE_COUNT - 1)];
+  if (!data || !current) return null;
+  const frozen = locked || done.current;
+  const selected = selections[stage] ?? [];
+
+  const advance = (all: number[][]) => {
+    if (stage >= STAGE_COUNT - 1) {
+      done.current = true;
+      onSubmit(joinStages(all.map((sel) => [...sel].sort((a, b) => a - b).join(","))));
+      return;
+    }
+    setStage(stage + 1);
+  };
 
   const toggle = (index: number) => {
-    if (locked) return;
-    setSelected((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
-    );
+    if (frozen) return;
+    const nextSel = selected.includes(index) ? selected.filter((i) => i !== index) : [...selected, index];
+    const all = selections.map((sel, i) => (i === stage ? nextSel : sel));
+    setSelections(all);
+    const matches = matchesOf(current);
+    if (nextSel.length === matches.length && matches.every((m) => nextSel.includes(m))) advance(all);
   };
 
   return (
     <div ref={stageRef} className="flex min-h-0 flex-1 flex-col items-center">
-      <div ref={targetRef} className="flex shrink-0 flex-col items-center gap-2">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
-        <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
-          <Arrow dir={puzzle.target} size={34} />
+      <div ref={topRef} className="flex w-full shrink-0 flex-col items-center gap-2">
+        <StageProgress stage={stage} />
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Grid {stage + 1} of 3 · target
+          </span>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
+            <Arrow dir={current.target} size={30} />
+          </div>
         </div>
       </div>
 
-      <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden pt-2">
         <div
           className="grid shrink-0 gap-1"
-          style={{
-            width: gridSide,
-            height: gridSide,
-            gridTemplateColumns: `repeat(${SYMSCAN_COLS}, minmax(0, 1fr))`,
-          }}
+          style={{ width: gridSide, height: gridSide, gridTemplateColumns: `repeat(${current.cols}, minmax(0, 1fr))` }}
         >
-          {puzzle.cells.map((dir, index) => (
+          {current.cells.map((dir, index) => (
             <CellBox
-              key={index}
+              key={`${stage}-${index}`}
               dir={dir}
               state={selected.includes(index) ? "selected" : "plain"}
               onClick={() => toggle(index)}
-              disabled={locked}
+              disabled={frozen}
               label={`Cell ${index + 1}`}
             />
           ))}
@@ -193,53 +208,47 @@ function Stage({ puzzle, locked, onSubmit }: PuzzleStageProps) {
       <button
         ref={submitRef}
         type="button"
-        onClick={() => !locked && onSubmit([...selected].sort((a, b) => a - b).join(","))}
-        disabled={locked || selected.length === 0}
+        onClick={() => !frozen && advance(selections)}
+        disabled={frozen}
         className="tap-target mt-3 w-full shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
       >
-        Submit
+        {stage >= STAGE_COUNT - 1 ? "Submit" : "Next"}
       </button>
     </div>
   );
 }
 
-function parseSelection(answer: string): number[] {
-  return answer
-    .split(",")
-    .map((v) => Number.parseInt(v, 10))
-    .filter((v) => Number.isFinite(v));
-}
-
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "symscan") return null;
-  const selected = parseSelection(myAnswer ?? "");
-  const found = puzzle.targets.filter((t) => selected.includes(t)).length;
-
+  const parts = splitStages(myAnswer);
   return (
-    <>
-      <div
-        className="grid gap-1"
-        style={{ gridTemplateColumns: `repeat(${SYMSCAN_COLS}, minmax(0, 1fr))` }}
-      >
-        {puzzle.cells.map((dir, index) => {
-          const isTarget = puzzle.targets.includes(index);
-          const isSelected = selected.includes(index);
-          const state: CellState = isTarget
-            ? isSelected
-              ? "target"
-              : "missed"
-            : isSelected
-              ? "wrong"
-              : "plain";
-          return <CellBox key={index} dir={dir} size={42} state={state} />;
-        })}
-      </div>
-      <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-4">
-        <p className="font-mono text-lg font-bold text-primary">
-          {puzzle.targets.length} targets · you found {found}
-        </p>
-      </div>
-    </>
+    <div className="flex w-full flex-col items-center gap-4">
+      {puzzle.stages.map((stage, s) => {
+        const targets = puzzle.targets?.[s] ?? matchesOf(stage);
+        const selected = parseSelection(parts[s] ?? "");
+        const result = scanStageResult(s, selected, targets);
+        const size = Math.floor(240 / stage.cols);
+        return (
+          <div key={s} className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-3 py-3">
+            <div className="flex items-center gap-2 text-primary">
+              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Grid {s + 1}</span>
+              <Arrow dir={stage.target} size={20} />
+            </div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${stage.cols}, minmax(0, 1fr))` }}>
+              {stage.cells.map((dir, index) => {
+                const isTarget = targets.includes(index);
+                const isSelected = selected.includes(index);
+                const state: CellState = isTarget ? (isSelected ? "target" : "missed") : isSelected ? "wrong" : "plain";
+                return <CellBox key={index} dir={dir} size={size} state={state} />;
+              })}
+            </div>
+            <p className={`font-mono text-base font-bold ${result.perfect ? "text-primary" : "text-warn"}`}>
+              {result.found} / {result.targets} found{result.wrong ? ` · ${result.wrong} wrong` : ""} {result.perfect ? "✓" : "✗"}
+            </p>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -256,30 +265,38 @@ function nonAdjacentDirs(target: ArrowDir): ArrowDir[] {
   return DIRECTIONS.filter((d) => d !== target && !adjacent.includes(d));
 }
 
-export function buildSymbolScan(): SymbolScanPuzzleData {
+function buildStage(cols: number): { stage: SymbolScanStage; targets: number[] } {
+  const cellCount = cols * cols;
   const target = pick(DIRECTIONS);
   const count = randInt(SYMSCAN_MIN_TARGETS, SYMSCAN_MAX_TARGETS);
-  const targets = shuffled(Array.from({ length: SYMSCAN_CELLS }, (_, i) => i))
+  const targets = shuffled(Array.from({ length: cellCount }, (_, i) => i))
     .slice(0, count)
     .sort((a, b) => a - b);
   const near = adjacentDirs(target);
   const far = nonAdjacentDirs(target);
-  const cells = Array.from({ length: SYMSCAN_CELLS }, (_, i) =>
+  const cells = Array.from({ length: cellCount }, (_, i) =>
     targets.includes(i) ? target : Math.random() < ADJACENT_SHARE ? pick(near) : pick(far),
   );
-  return { type: "symscan", target, cells, targets };
+  return { stage: { target, cols, cells }, targets };
+}
+
+export function buildSymbolScan(): SymbolScanPuzzleData {
+  const built = SYMSCAN_STAGE_COLS.map((cols) => buildStage(cols));
+  return { type: "symscan", stages: built.map((b) => b.stage), targets: built.map((b) => b.targets) };
 }
 
 export const symbolScanPuzzle: PuzzleDefinition = {
   key: "symscan",
   name: "Symbol Scan",
   category: "attention",
-  timeLimitMs: 20_000,
+  timeLimitMs: SYMSCAN_TIME_MS,
   generate: buildSymbolScan,
   check: (answer, puzzle) => {
     if (puzzle.type !== "symscan") return false;
-    const selected = new Set(parseSelection(answer));
-    return selected.size === puzzle.targets.length && puzzle.targets.every((t) => selected.has(t));
+    const parts = splitStages(answer);
+    return puzzle.stages.every((stage, i) =>
+      scanStageResult(i, parseSelection(parts[i] ?? ""), puzzle.targets?.[i] ?? matchesOf(stage)).perfect,
+    );
   },
   IntroExample,
   Stage,
