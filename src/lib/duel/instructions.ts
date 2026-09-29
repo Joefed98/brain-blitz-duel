@@ -42,7 +42,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   sumhunt: {
     goal: "Draw paths of digits that add up to the target.",
     how: [
-      { action: "Swipe through touching cells and let go.", detail: "Longer paths score more." },
+      { action: "Swipe or tap touching cells", detail: "including diagonals; release, repeat the last cell, or tap the sum to submit." },
       { action: "New digits drop in", detail: "after every clear." },
     ],
     score: "Points per path; longer is better.",
@@ -56,7 +56,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "One point-third per scale; all three for the time bonus.",
   },
   wordslide: {
-    goal: "Slide rows and columns until the three marked rows are words.",
+    goal: "Slide rows and columns until every row is a word.",
     how: [
       { action: "Swipe a row sideways or a column up and down", detail: "— letters wrap around the edge." },
       { action: "Tap Undo or Reset", detail: "to take shifts back; they still count as moves." },

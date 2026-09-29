@@ -6,12 +6,12 @@ import type { BalancePuzzleData, BalanceScale, SumHuntPuzzleData } from "./types
 export function generateSumHunt(): SumHuntPuzzleData {
   for (let attempt = 0; attempt < 200; attempt++) {
     const seed = randInt(1, 2_000_000_000);
-    const target = randInt(10, 15);
+    const target = 10;
     if (countValidPaths(initSumHunt(seed, target).board, target, 3) >= 3) {
       return { type: "sumhunt", seed, target };
     }
   }
-  return { type: "sumhunt", seed: 12345, target: 12 };
+  return { type: "sumhunt", seed: 12345, target: 10 };
 }
 
 /** Every placement of the tray onto empty pegs; true if any balances. */

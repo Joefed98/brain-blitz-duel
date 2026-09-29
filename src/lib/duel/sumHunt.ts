@@ -4,7 +4,7 @@
  * order). The answer is the list of paths drawn; the server replays it here.
  */
 
-export const SH_SIZE = 6;
+export const SH_SIZE = 5;
 export const SH_CELLS = SH_SIZE * SH_SIZE;
 export const SH_TIME_MS = 45_000;
 export const SH_REVEAL_MS = 6_000;
@@ -21,6 +21,7 @@ export interface SumHuntState {
   paths: number;
   longest: number;
   reshuffles: number;
+  target: number;
 }
 
 function step(state: number): { state: number; value: number } {
@@ -51,10 +52,10 @@ function neighbours(cell: number): number[] {
   const r = Math.floor(cell / SH_SIZE);
   const c = cell % SH_SIZE;
   const out: number[] = [];
-  if (r > 0) out.push(cell - SH_SIZE);
-  if (r < SH_SIZE - 1) out.push(cell + SH_SIZE);
-  if (c > 0) out.push(cell - 1);
-  if (c < SH_SIZE - 1) out.push(cell + 1);
+  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+    if ((dr || dc) && r + dr >= 0 && r + dr < SH_SIZE && c + dc >= 0 && c + dc < SH_SIZE)
+      out.push((r + dr) * SH_SIZE + c + dc);
+  }
   return out;
 }
 
@@ -118,7 +119,7 @@ export function initSumHunt(seed: number, target: number): SumHuntState {
     }
   }
   return reshuffleIfStuck(
-    { board, cols, rng: (seed ^ 0x51ed270b) | 0, raw: 0, paths: 0, longest: 0, reshuffles: 0 },
+    { board, cols, rng: (seed ^ 0x51ed270b) | 0, raw: 0, paths: 0, longest: 0, reshuffles: 0, target },
     target,
   );
 }
@@ -153,6 +154,7 @@ export function applySumPath(state: SumHuntState, target: number, path: number[]
       }
     }
   }
+  const nextTarget = Math.min(20, target + 1);
   return reshuffleIfStuck(
     {
       ...state,
@@ -161,8 +163,9 @@ export function applySumPath(state: SumHuntState, target: number, path: number[]
       raw: state.raw + pathPoints(path.length),
       paths: state.paths + 1,
       longest: Math.max(state.longest, path.length),
+      target: nextTarget,
     },
-    target,
+    nextTarget,
   );
 }
 
@@ -181,7 +184,7 @@ export function decodeSumPaths(raw: string): number[][] {
 
 export function replaySumHunt(seed: number, target: number, paths: number[][]): SumHuntState {
   let state = initSumHunt(seed, target);
-  for (const path of paths) state = applySumPath(state, target, path) ?? state;
+  for (const path of paths) state = applySumPath(state, state.target, path) ?? state;
   return state;
 }
 
