@@ -67,7 +67,7 @@ export function countValidPaths(board: number[], target: number, limit = 4): num
       directed++;
       return;
     }
-    if (sum >= target) return;
+    if (sum >= target || length >= 6) return;
     for (const next of neighbours(cell)) {
       if (used.has(next) || sum + board[next]! > target) continue;
       used.add(next);

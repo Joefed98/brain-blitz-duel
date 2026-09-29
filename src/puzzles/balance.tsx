@@ -70,12 +70,13 @@ function Beam({
         className="flex flex-col items-center"
         style={{ transform: `rotate(${tilt}deg)`, transition: "transform 150ms ease-out" }}
       >
-        <div className="relative grid items-start" style={{ gridTemplateColumns: `repeat(${SLOTS}, ${spacing}px)`, height: disc + 22 }}>
+        <div className="h-1.5 rounded-full bg-foreground/70" style={{ width: spacing * SLOTS - 8 }} />
+        <div className="relative grid items-start" style={{ gridTemplateColumns: `repeat(${SLOTS}, ${spacing}px)`, height: disc + 8 }}>
           {Array.from({ length: SLOTS }, (_, slot) => {
             const peg = pegOfSlot(slot);
             const item = peg === null ? undefined : onPeg.get(peg);
             return (
-              <span key={slot} className="relative z-10 mt-3 flex justify-center" style={{ touchAction: "none" }}>
+              <span key={slot} className="relative z-10 mt-1 flex justify-center" style={{ touchAction: "none" }}>
                 {item && (
                   <span className={item.tray === selected && !item.fixed ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}
                     onPointerDown={!item.fixed && onPegDown ? (e) => onPegDown(e, item.tray!) : undefined}
@@ -93,7 +94,7 @@ function Beam({
               <span key={`peg-${peg}`}>
                 <span
                   className={`pointer-events-none absolute top-0 z-0 bg-primary transition-[width,opacity] ${active ? "w-1 opacity-100" : "w-0.5 opacity-70"}`}
-                  style={{ left: (slotOfPeg(peg) + 0.5) * spacing, height: disc + 30, transform: "translateX(-50%)" }}
+                  style={{ left: (slotOfPeg(peg) + 0.5) * spacing, height: disc + 18, transform: "translateX(-50%)" }}
                 />
                 <span
                   ref={(element) => { if (pegRefs) pegRefs.current[peg] = element; }}
@@ -103,7 +104,7 @@ function Beam({
                     width: Math.max(44, spacing + 24),
                     height: 64,
                     left: (slotOfPeg(peg) + 0.5) * spacing,
-                    top: 0,
+                    top: -40,
                     transform: "translateX(-50%)",
                     pointerEvents: onPegTap && !item ? "auto" : "none",
                   }}
@@ -113,7 +114,6 @@ function Beam({
             );
           })}
         </div>
-        <div className="h-1.5 rounded-full bg-foreground/70" style={{ width: spacing * SLOTS - 8 }} />
         <div className="grid" style={{ gridTemplateColumns: `repeat(${SLOTS}, ${spacing}px)` }}>
           {Array.from({ length: SLOTS }, (_, slot) => (
             <span key={slot} className="text-center font-mono text-[10px] text-muted-foreground">
@@ -123,8 +123,9 @@ function Beam({
         </div>
       </div>
       <span
-        className="-mt-3 h-0 w-0 border-x-[14px] border-b-[22px] border-x-transparent"
+        className="h-0 w-0 border-x-[14px] border-b-[22px] border-x-transparent"
         style={{
+          marginTop: -(disc + 22),
           borderBottomColor: balanced ? "var(--primary)" : "var(--muted-foreground)",
           filter: balanced ? "drop-shadow(0 0 8px var(--primary))" : undefined,
         }}

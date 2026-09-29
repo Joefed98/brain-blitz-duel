@@ -5,7 +5,7 @@
 - [x] Replace Balance peg squares with hanging gold lines while retaining measured targets.
 - [x] Give Sum Hunt deterministic harder stage boards, larger values and tightly controlled path counts.
 - [x] Add sub-8 px wheel taps to Wordsmith while preserving drag-to-connect.
-- [ ] Run code-level checks only; do not run browser tests.
+- [x] Run code-level checks only; do not run browser tests.
 
 ## Three new-round input refinements (Sep 29)
 
