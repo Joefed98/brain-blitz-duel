@@ -214,7 +214,7 @@ export function gradeSubmission(
       correctCount = replay.paths;
       score = sumHuntRoundScore(replay.stage, ms);
       isCorrect = replay.stage > SH_STAGES;
-      extraDetail = { stage: replay.stage, paths: replay.paths, reshuffles: replay.reshuffles };
+      extraDetail = { stage: replay.stage, paths: replay.paths };
       break;
     }
     case "balance": {

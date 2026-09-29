@@ -59,6 +59,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const [shake, setShake] = useState(false);
   const submitted = useRef(false);
   const board = useRef<HTMLDivElement | null>(null);
+  const previousStage = useRef(1);
   const targetRef = useRef<HTMLSpanElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
   useNoTouchScroll(root);
@@ -84,6 +85,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   }, [now, phaseStartedAt, locked, data, encoded, onSubmit, state?.stage]);
 
   if (!data || !state) return null;
+  if (state.stage !== previousStage.current) previousStage.current = state.stage;
   const frozen = locked || submitted.current;
   const sum = pathSum(state.board, path);
 
@@ -105,7 +107,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
         [{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }],
         { duration: 320, easing: "ease-out" },
       );
-      board.current?.animate([{ opacity: 0.6 }, { opacity: 1 }], { duration: 180 });
+      board.current?.animate(
+        [{ transform: "translateX(22px)", opacity: 0 }, { transform: "translateX(0)", opacity: 1 }],
+        { duration: 180, easing: "ease-out" },
+      );
     } else {
       rejectPath();
     }
@@ -205,7 +210,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           </svg>
         )}
       </div>
-      <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">Stage {state.stage} / {SH_STAGES} · {state.paths} paths</p>
+      <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">Stage {state.stage} / {SH_STAGES}</p>
     </div>
   );
 }
@@ -221,11 +226,6 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
           : sumHuntText(state)}
       </p>
       <p className="text-center text-sm text-muted-foreground">Target {state.target}</p>
-      {state.reshuffles > 0 && (
-        <p className="text-center text-sm text-muted-foreground">
-          Board reshuffled {state.reshuffles}× when no path was left
-        </p>
-      )}
     </div>
   );
 }
@@ -236,7 +236,7 @@ export const sumHuntPuzzle: PuzzleDefinition = {
   category: "number",
   timeLimitMs: SH_TIME_MS,
   revealMs: SH_REVEAL_MS,
-  generate: () => ({ type: "sumhunt", seed: 12345, target: 11 }) satisfies SumHuntPuzzleData,
+  generate: () => ({ type: "sumhunt", seed: 12345, target: 22 }) satisfies SumHuntPuzzleData,
   check: () => false,
   revealHeading: "Your hunt",
   IntroExample,
