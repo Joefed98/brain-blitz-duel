@@ -223,8 +223,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   if (puzzle.type !== "wordslide") return null;
   const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(myAnswer ?? ""));
   const words = puzzle.words ?? [];
-  const matched = WS_MARKED_ROWS.filter((r, i) => markedRowWord(replay.grid, r) === words[i]);
-  const good = new Set<number>(myCorrect ? WS_MARKED_ROWS : matched);
+  const good = new Set<number>(WS_MARKED_ROWS.filter((r) => myCorrect || puzzle.validRows?.includes(r)));
   const elapsed = myMsRemaining === undefined ? null : ((WS_TIME_MS - myMsRemaining) / 1000).toFixed(1);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -239,7 +238,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       <p className={`text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
         {myCorrect
           ? `Solved · ${replay.moves} moves (par ${puzzle.par})${elapsed ? ` · ${elapsed}s` : ""}`
-          : `${good.size} / 3 rows`}
+           : `${good.size} / 5 rows`}
       </p>
     </div>
   );
@@ -252,7 +251,7 @@ export const wordSlidePuzzle: PuzzleDefinition = {
   timeLimitMs: WS_TIME_MS,
   revealMs: WS_REVEAL_MS,
   generate: () =>
-    ({ type: "wordslide", grid: [..."HOUSEATRENSTONEPILAGLIGHT"], par: 6 }) satisfies WordSlidePuzzleData,
+     ({ type: "wordslide", grid: [..."HOUSEWATERSTONEPLANTLIGHT"], par: 6 }) satisfies WordSlidePuzzleData,
   check: () => false,
   revealHeading: "Your grid",
   IntroExample,

@@ -234,7 +234,7 @@ export function gradeSubmission(
       correctCount = rows;
       score = isCorrect
         ? scoreSolvedMoves(replay.moves, puzzle.par, ms, timeLimitMs)
-        : Math.min(60, 30 * rows);
+        : Math.min(80, 20 * rows);
       extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows };
       break;
     }
