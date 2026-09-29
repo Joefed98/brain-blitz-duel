@@ -1,4 +1,15 @@
 import { ARCADE_DIAG_KEYS, buildArcadeDiag, type ArcadeDiag } from "@/lib/arcade/diagnostics";
+import {
+  STAGE_COUNT,
+  equationStageCorrect,
+  parseCount,
+  parseSelection,
+  scanStageResult,
+  scoreCountUpStages,
+  scoreEquationStages,
+  scoreSymbolScanStages,
+  splitStages,
+} from "./stagedRounds";
 import { decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
 import { decodeGroupsAnswer, matchGroupsSelection } from "./groups.server";
 import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
@@ -56,8 +67,6 @@ import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import {
   scoreGoNoGo,
   scoreGroups,
-  scoreEquation,
-  scoreCountUp,
   scoreWordLadder,
   scoreSolvedMoves,
   speedBonus,
@@ -73,7 +82,6 @@ import {
   scoreBlockParty,
   scoreMirrorMatch,
   scoreSpin,
-  scoreSymbolScan,
   scoreStroop,
   scoreUnblock,
   scoreTargetNumber,
@@ -355,16 +363,14 @@ export function gradeSubmission(
       break;
     }
     case "symscan": {
-      const selected = new Set(
-        answer
-          .split(",")
-          .map((v) => Number.parseInt(v, 10))
-          .filter(Number.isFinite),
+      const parts = splitStages(answer);
+      const results = puzzle.stages.map((_, i) =>
+        scanStageResult(i, parseSelection(parts[i] ?? ""), puzzle.targets?.[i] ?? []),
       );
-      correctCount = puzzle.targets.filter((target) => selected.has(target)).length;
-      errors = [...selected].filter((index) => !puzzle.targets.includes(index)).length;
-      isCorrect = correctCount === puzzle.targets.length && errors === 0;
-      score = scoreSymbolScan(correctCount, puzzle.targets.length, errors, ms);
+      correctCount = results.filter((r) => r.perfect).length;
+      errors = results.reduce((sum, r) => sum + r.wrong, 0);
+      isCorrect = correctCount === STAGE_COUNT;
+      score = scoreSymbolScanStages(results, ms);
       break;
     }
     case "stopwatch": {
@@ -1239,26 +1245,20 @@ export function gradeSubmission(
     }
 
     case "equation": {
-      // A true equation wins outright; otherwise every operator in the right
-      // place against the stored solution earns part marks.
-      const given = answer
-        .split(",")
-        .map((part) => part.trim())
-        .filter((part) => part.length > 0);
-      isCorrect = answer.length > 0 && checkAnswer(puzzle, answer);
-      const inPlace = puzzle.operators.filter((op, i) => given[i] === op).length;
-      correctCount = inPlace;
-      score = scoreEquation(isCorrect, inPlace, ms, timeLimitMs);
+      const parts = splitStages(answer);
+      const correct = puzzle.stages.map((stage, i) => equationStageCorrect(stage.numbers, stage.target, parts[i] ?? ""));
+      correctCount = correct.filter(Boolean).length;
+      isCorrect = correctCount === STAGE_COUNT;
+      score = scoreEquationStages(correct, ms);
       break;
     }
     case "countup": {
-      // The stored count decides everything; a near miss still scores.
-      const given = Number.parseInt(answer.trim(), 10);
-      const answered = Number.isFinite(given);
-      const total = puzzle.count ?? 0;
-      isCorrect = answered && given === total;
-      score = scoreCountUp(answered, answered ? given : 0, total, ms, timeLimitMs);
-      extraDetail = { away: answered ? Math.abs(given - total) : null };
+      const parts = splitStages(answer);
+      const counts = puzzle.counts ?? [];
+      const given = counts.map((_, i) => parseCount(parts[i] ?? ""));
+      correctCount = counts.filter((truth, i) => given[i] === truth).length;
+      isCorrect = counts.length === STAGE_COUNT && correctCount === STAGE_COUNT;
+      score = scoreCountUpStages(given, counts, ms);
       break;
     }
     default: {

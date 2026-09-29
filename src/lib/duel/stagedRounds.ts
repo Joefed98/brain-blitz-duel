@@ -94,3 +94,26 @@ export function scoreCountUpStages(given: (number | null)[], counts: number[], m
   const bonus = all ? Math.round((50 * clampMs(msRemaining, COUNTUP_TIME_MS)) / COUNTUP_TIME_MS) : 0;
   return Math.min(150, base + bonus);
 }
+
+/** Strict left-to-right evaluation. Returns null on a non-whole or negative step. */
+export function evaluateLeftToRight(numbers: number[], ops: Operator[]): number | null {
+  if (ops.length !== numbers.length - 1) return null;
+  let value = numbers[0]!;
+  for (let i = 0; i < ops.length; i++) {
+    const next = numbers[i + 1]!;
+    const op = ops[i]!;
+    if (op === "+") value += next;
+    else if (op === "-") value -= next;
+    else if (op === "×") value *= next;
+    else if (op === "÷") {
+      if (next === 0 || value % next !== 0) return null;
+      value /= next;
+    } else return null;
+    if (value < 0 || !Number.isInteger(value)) return null;
+  }
+  return value;
+}
+
+export function equationStageCorrect(numbers: number[], target: number, segment: string): boolean {
+  return evaluateLeftToRight(numbers, parseOperators(segment)) === target;
+}

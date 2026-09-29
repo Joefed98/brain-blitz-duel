@@ -29,7 +29,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   chaincalc: ["intermediates", "answer"],
   wordmatch: ["answers"],
   pctsprint: ["answers"],
-  countup: ["count"],
+  countup: ["counts"],
   mirmatch: ["answers", "kinds"],
   // These types show the player everything they need on screen — there is
   // nothing extra to hide (the tiles, items and delays are the puzzle).
