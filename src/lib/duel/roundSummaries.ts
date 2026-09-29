@@ -87,6 +87,8 @@ import {
   BEAT_TIME_MS,
   WHACK_TIME_MS,
   TENTS_TIME_MS,
+  SHIKAKU_TIME_MS,
+  LIGHTUP_TIME_MS,
   WAVEFRONT_TIME_MS,
   BASTION_TIME_MS,
   ROOFTOP_TIME_MS,
@@ -141,6 +143,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   beat: BEAT_TIME_MS,
   whack: WHACK_TIME_MS,
   tents: TENTS_TIME_MS,
+  shikaku: SHIKAKU_TIME_MS,
+  lightup: LIGHTUP_TIME_MS,
   wavefront: WAVEFRONT_TIME_MS,
   bastion: BASTION_TIME_MS,
   rooftop: ROOFTOP_TIME_MS,
@@ -1351,6 +1355,22 @@ const burstSummary: SummaryBuilder = (result) => {
   };
 };
 
+const shikakuSummary: SummaryBuilder = (result, puzzle) => {
+  if (result.is_correct) return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  return { summary: `${Number(result.extra?.["covered"] ?? 0)} / 49 covered`, detail: [] };
+};
+
+const lightUpSummary: SummaryBuilder = (result, puzzle) => {
+  if (result.is_correct) return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  const lit = Number(result.extra?.["lit"] ?? 0);
+  const whites = Number(result.extra?.["whites"] ?? 0);
+  const clashing = Number(result.extra?.["clashing"] ?? 0);
+  return {
+    summary: `${lit} / ${whites} lit`,
+    detail: clashing ? [`${clashing} bulb${clashing === 1 ? "" : "s"} shining on another`] : [],
+  };
+};
+
 const tentsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tents") return { summary: "—", detail: [] };
   const correct = Number(result.extra?.["correct"] ?? 0);
@@ -1466,6 +1486,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   tilt: tiltSummary,
   hotfloor: hotFloorSummary,
   tents: tentsSummary,
+  shikaku: shikakuSummary,
+  lightup: lightUpSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1558,6 +1580,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   tilt: () => null,
   hotfloor: () => null,
   tents: () => null,
+  shikaku: () => null,
+  lightup: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };

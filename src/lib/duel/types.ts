@@ -69,6 +69,8 @@ export type PuzzleType =
   | "beat"
   | "whack"
   | "tents"
+  | "shikaku"
+  | "lightup"
   | "wavefront"
   | "bastion"
   | "rooftop"
@@ -477,6 +479,8 @@ export type PuzzleData =
   | BeatPuzzleData
   | WhackPuzzleData
   | TentsPuzzleData
+  | ShikakuPuzzleData
+  | LightUpPuzzleData
   | WavefrontPuzzleData
   | BastionPuzzleData
   | RooftopPuzzleData
@@ -2044,4 +2048,27 @@ export interface HotFloorPuzzleData {
   type: "hotfloor";
   /** Draws the floor rows — identical for everyone. */
   seed: number;
+}
+
+/* ============================ Shikaku / Light Up ======================== */
+
+export const SHIKAKU_TIME_MS = 90_000;
+export const LIGHTUP_TIME_MS = 90_000;
+
+export interface ShikakuPuzzleData {
+  type: "shikaku";
+  size: number;
+  clues: { cell: number; n: number }[];
+  /** The unique partition — private until the reveal. */
+  solution?: { r0: number; c0: number; r1: number; c1: number }[];
+}
+
+export interface LightUpPuzzleData {
+  type: "lightup";
+  size: number;
+  walls: number[];
+  /** Parallel to walls: the number, or -1 for a plain wall. */
+  wallNumbers: number[];
+  /** The unique bulb layout — private until the reveal. */
+  solution?: number[];
 }

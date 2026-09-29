@@ -60,6 +60,8 @@ import { decodeSwingRun, replaySwingRun } from "./swing";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
+import { decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
+import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeRicoRun, replayRicoRun } from "./ricochet";
@@ -1529,6 +1531,29 @@ export function gradeSubmission(
         claimedScore: decodeHotFloorRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
+      break;
+    }
+    case "shikaku": {
+      // Rectangles are re-checked against the clues; overlaps and wrong areas don't count.
+      const rects = decodeShikaku(answer, puzzle.size);
+      const covered = shikakuCovered(rects, puzzle.clues);
+      const solved = covered === puzzle.size * puzzle.size;
+      isCorrect = solved;
+      correctCount = covered;
+      score = scoreShikaku(solved, ms, timeLimitMs, covered);
+      extraDetail = { solved, covered, rects: rects.length };
+      break;
+    }
+    case "lightup": {
+      // The bulb layout is re-lit against the stored walls and numbers.
+      const bulbs = decodeBulbs(answer, puzzle);
+      const status = lightUpStatus(puzzle, bulbs);
+      const solved = status.clashing.size === 0 && status.numbersOk && status.lit.size === status.whites;
+      isCorrect = solved;
+      correctCount = status.lit.size;
+      errors = status.clashing.size;
+      score = scoreLightUp(solved, ms, timeLimitMs, status.lit.size, status.whites, status.clashing.size);
+      extraDetail = { solved, lit: status.lit.size, whites: status.whites, clashing: status.clashing.size, bulbs: bulbs.length };
       break;
     }
     case "tents": {
