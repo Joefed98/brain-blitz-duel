@@ -79,6 +79,8 @@ import { inkBridgePuzzle } from "@/puzzles/inkBridge";
 import { burstPuzzle } from "@/puzzles/burst";
 import { orbitPuzzle } from "@/puzzles/orbit";
 import { swingPuzzle } from "@/puzzles/swing";
+import { tiltPuzzle } from "@/puzzles/tilt";
+import { hotFloorPuzzle } from "@/puzzles/hotFloor";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -229,6 +231,8 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   burst: burstPuzzle,
   orbit: orbitPuzzle,
   swing: swingPuzzle,
+  tilt: tiltPuzzle,
+  hotfloor: hotFloorPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(
