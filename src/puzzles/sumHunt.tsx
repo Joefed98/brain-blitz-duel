@@ -55,7 +55,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const data: SumHuntPuzzleData | null = puzzle.type === "sumhunt" ? puzzle : null;
   const [paths, setPaths] = useStageState<number[][]>(stateKey, "sumPaths", () => []);
   const [path, setPath] = useState<number[]>([]);
-  const [finger, setFinger] = useState<{ x: number; y: number } | null>(null);
   const dragging = useRef(false);
   const repeatLast = useRef(false);
   const start = useRef<{ x: number; y: number } | null>(null);
@@ -109,7 +108,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     if (last === undefined || !touching(last, cell)) setPath([cell]);
     else if (!path.includes(cell)) setPath([...path, cell]);
     else { start.current = null; return; }
-    setFinger({ x: event.clientX, y: event.clientY });
   };
   const touching = (a: number, b: number) =>
     a !== b && Math.abs(Math.floor(a / SH_SIZE) - Math.floor(b / SH_SIZE)) <= 1 && Math.abs(a % SH_SIZE - b % SH_SIZE) <= 1;
@@ -117,7 +115,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     if (!path.length) return;
     if (start.current && Math.hypot(event.clientX - start.current.x, event.clientY - start.current.y) > 6) dragging.current = true;
     if (!dragging.current) return;
-    setFinger({ x: event.clientX, y: event.clientY });
     const last = path[path.length - 1]!;
     const cell = adjacentGridCellAt(board.current, event.clientX, event.clientY, SH_SIZE, SH_SIZE, last);
     if (cell === null) return;
@@ -131,7 +128,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   };
   const submit = (drawn: number[]) => {
     setPath([]);
-    setFinger(null);
     if (drawn.length < 2 || frozen) return;
     if (applySumPath(state, state.target, drawn, data.seed)) {
       playCorrect();
@@ -174,7 +170,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           onPointerDown={down}
           onPointerMove={move}
           onPointerUp={up}
-          onPointerCancel={() => { dragging.current = false; repeatLast.current = false; start.current = null; setFinger(null); }}
+          onPointerCancel={() => { dragging.current = false; repeatLast.current = false; start.current = null; }}
           className="puzzle-board grid rounded-xl border-2 border-border bg-card p-1"
           style={{ gridTemplateColumns: `repeat(${SH_SIZE}, ${CELL}px)`, gap: GAP, ...NO_SCROLL_STYLE }}
           aria-label="Sum Hunt board"

@@ -161,7 +161,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     const from = placed.indexOf(tile);
     if (from === hit) return;
     const next = [...placed];
-    const other = next[hit];
+    const other = next[hit] ?? null;
     if (from >= 0) next[from] = other;
     else if (other !== null) return;
     next[hit] = tile;
@@ -191,6 +191,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     setDrag(null);
     setHighlight(null);
     if (!d.moved) {
+      if (d.from !== null && selected !== null && selected !== d.tile) {
+        place(selected, d.from);
+        return;
+      }
       setSelected((current) => current === d.tile ? null : d.tile);
       return;
     }

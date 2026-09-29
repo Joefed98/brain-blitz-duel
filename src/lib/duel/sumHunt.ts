@@ -195,7 +195,7 @@ export function decodeSumPaths(raw: string): number[][] {
 }
 
 export function replaySumHunt(seed: number, target: number, paths: number[][]): SumHuntState {
-  let state = initSumHunt(seed, target);
+  let state = initSumHunt(seed, sumHuntTargets(seed)[0] ?? target);
   for (const path of paths) state = applySumPath(state, state.target, path, seed) ?? state;
   return state;
 }
