@@ -1,7 +1,6 @@
 /**
- * Sum Hunt rules, shared by the phone and the server. The seed draws the board
- * and each column's falling digits (everyone gets the same digits in the same
- * order). The answer is the list of paths drawn; the server replays it here.
+ * Sum Hunt rules, shared by the phone and server. Every stage board is derived
+ * only from the round seed and stage number, so both players see identical play.
  */
 
 export const SH_SIZE = 5;
@@ -9,13 +8,10 @@ export const SH_CELLS = SH_SIZE * SH_SIZE;
 export const SH_TIME_MS = 90_000;
 export const SH_REVEAL_MS = 6_000;
 export const SH_STAGES = 9;
+export const SH_TWO_DIGIT_CELLS = 10;
 
 export interface SumHuntState {
   board: number[];
-  /** PRNG state per column queue. */
-  cols: number[];
-  /** PRNG state for reshuffles. */
-  rng: number;
   stage: number;
   paths: number;
   reshuffles: number;
@@ -29,9 +25,10 @@ function step(state: number): { state: number; value: number } {
   return { state: next, value: ((t ^ (t >>> 14)) >>> 0) / 4294967296 };
 }
 
-function digit(state: number): { state: number; value: number } {
-  const r = step(state);
-  return { state: r.state, value: 1 + Math.floor(r.value * 9) };
+function drawInt(rng: { value: number }, min: number, max: number): number {
+  const draw = step(rng.value);
+  rng.value = draw.state;
+  return min + Math.floor(draw.value * (max - min + 1));
 }
 
 export function sumHuntRoundScore(stage: number, msRemaining: number): number {
@@ -40,93 +37,119 @@ export function sumHuntRoundScore(stage: number, msRemaining: number): number {
     : Math.min(80, 10 * Math.max(0, stage - 1));
 }
 
-/** Independent seed stream: the same rising targets for both players regardless of their clears. */
+/** Independent seed stream: the same rising targets for both players. */
 export function sumHuntTargets(seed: number): number[] {
-  let rng = (seed ^ 0x3a951d07) | 0;
-  let draw = step(rng); rng = draw.state;
-  const targets = [10 + Math.floor(draw.value * 3)];
-  for (let i = 1; i < SH_STAGES - 1; i++) {
-    draw = step(rng); rng = draw.state;
-    targets.push(targets[i - 1]! + 4 + Math.floor(draw.value * 4));
-  }
+  const rng = { value: (seed ^ 0x3a951d07) | 0 };
+  const targets = [drawInt(rng, 20, 25)];
+  for (let i = 1; i < SH_STAGES - 1; i++) targets.push(targets[i - 1]! + drawInt(rng, 8, 14));
   return targets;
 }
 
 function neighbours(cell: number): number[] {
-  const r = Math.floor(cell / SH_SIZE);
-  const c = cell % SH_SIZE;
+  const row = Math.floor(cell / SH_SIZE);
+  const col = cell % SH_SIZE;
   const out: number[] = [];
   const directions: Array<[number, number]> = [[-1, 0], [1, 0], [0, -1], [0, 1]];
   for (const [dr, dc] of directions) {
-    if (r + dr >= 0 && r + dr < SH_SIZE && c + dc >= 0 && c + dc < SH_SIZE)
-      out.push((r + dr) * SH_SIZE + c + dc);
+    if (row + dr >= 0 && row + dr < SH_SIZE && col + dc >= 0 && col + dc < SH_SIZE)
+      out.push((row + dr) * SH_SIZE + col + dc);
   }
   return out;
 }
 
-/** Distinct valid paths (each counted once, not in both directions), up to `limit`. */
-export function countValidPaths(board: number[], target: number, limit = 3): number {
-  let count = 0;
+/** Distinct valid paths, treating a path and its reverse as one, capped at `limit`. */
+export function countValidPaths(board: number[], target: number, limit = 4): number {
+  let directed = 0;
   const used = new Set<number>();
   const walk = (cell: number, sum: number, length: number): void => {
-    if (count >= limit * 2) return;
-    if (sum === target && length >= 2) count++;
+    if (directed >= limit * 2) return;
+    if (sum === target && length >= 2) {
+      directed++;
+      return;
+    }
     if (sum >= target) return;
-    for (const n of neighbours(cell)) {
-      if (used.has(n)) continue;
-      const value = board[n]!;
-      if (sum + value > target) continue;
-      used.add(n);
-      walk(n, sum + value, length + 1);
-      used.delete(n);
+    for (const next of neighbours(cell)) {
+      if (used.has(next) || sum + board[next]! > target) continue;
+      used.add(next);
+      walk(next, sum + board[next]!, length + 1);
+      used.delete(next);
     }
   };
-  for (let cell = 0; cell < SH_CELLS && count < limit * 2; cell++) {
+  for (let cell = 0; cell < SH_CELLS && directed < limit * 2; cell++) {
     used.add(cell);
     walk(cell, board[cell]!, 1);
     used.delete(cell);
   }
-  return Math.floor(count / 2);
+  return Math.floor(directed / 2);
 }
 
-function reshuffleIfStuck(state: SumHuntState, target: number): SumHuntState {
-  if (countValidPaths(state.board, target, 1) > 0) return state;
-  let board = [...state.board];
-  let rng = state.rng;
-  for (let attempt = 0; attempt < 100; attempt++) {
-    for (let i = board.length - 1; i > 0; i--) {
-      const r = step(rng);
-      rng = r.state;
-      const j = Math.floor(r.value * (i + 1));
-      [board[i], board[j]] = [board[j]!, board[i]!];
-    }
-    if (countValidPaths(board, target, 1) > 0) break;
-    if (attempt > 0 && attempt % 30 === 0) {
-      // Still stuck: redraw from the deterministic PRNG and keep searching.
-      board = board.map(() => {
-        const d = digit(rng);
-        rng = d.state;
-        return d.value;
-      });
-    }
+function shuffle<T>(items: T[], rng: { value: number }): T[] {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = drawInt(rng, 0, i);
+    [items[i], items[j]] = [items[j]!, items[i]!];
   }
-  return { ...state, board, rng, reshuffles: state.reshuffles + 1 };
+  return items;
+}
+
+function randomPath(length: number, rng: { value: number }): number[] | null {
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const path = [drawInt(rng, 0, SH_CELLS - 1)];
+    while (path.length < length) {
+      const options = neighbours(path[path.length - 1]!).filter((cell) => !path.includes(cell));
+      if (!options.length) break;
+      path.push(options[drawInt(rng, 0, options.length - 1)]!);
+    }
+    if (path.length === length) return path;
+  }
+  return null;
+}
+
+function targetParts(target: number, length: number, rng: { value: number }): number[] | null {
+  const parts: number[] = [];
+  let remaining = target;
+  for (let i = 0; i < length - 1; i++) {
+    const left = length - i - 1;
+    const min = Math.max(1, remaining - 20 * left);
+    const max = Math.min(20, remaining - left);
+    if (min > max) return null;
+    const value = drawInt(rng, min, max);
+    parts.push(value);
+    remaining -= value;
+  }
+  parts.push(remaining);
+  return parts.every((value) => value >= 1 && value <= 20) ? parts : null;
+}
+
+/** A deterministic fresh board with exactly ten two-digit cells and 1–3 solutions. */
+export function sumHuntBoard(seed: number, stage: number, target: number): number[] {
+  const rng = { value: (seed ^ Math.imul(stage + 1, 0x51ed270b)) | 0 };
+  for (let attempt = 0; attempt < 100_000; attempt++) {
+    const minLength = Math.max(3, Math.ceil(target / 20));
+    const length = drawInt(rng, minLength, 6);
+    const path = randomPath(length, rng);
+    const parts = targetParts(target, length, rng);
+    if (!path || !parts) continue;
+    const twoDigitsInPath = parts.filter((value) => value >= 10).length;
+    const twoDigitsLeft = SH_TWO_DIGIT_CELLS - twoDigitsInPath;
+    if (twoDigitsLeft < 0 || twoDigitsLeft > SH_CELLS - length) continue;
+    const fillers = [
+      ...Array.from({ length: twoDigitsLeft }, () => drawInt(rng, 10, 20)),
+      ...Array.from({ length: SH_CELLS - length - twoDigitsLeft }, () => drawInt(rng, 1, 9)),
+    ];
+    shuffle(fillers, rng);
+    const board = Array<number>(SH_CELLS).fill(0);
+    path.forEach((cell, index) => { board[cell] = parts[index]!; });
+    let filler = 0;
+    for (let cell = 0; cell < SH_CELLS; cell++) if (board[cell] === 0) board[cell] = fillers[filler++]!;
+    const count = countValidPaths(board, target, 4);
+    if (count >= 1 && count <= 3) return board;
+  }
+  throw new Error(`Unable to generate Sum Hunt stage ${stage}`);
 }
 
 export function initSumHunt(seed: number, target: number): SumHuntState {
-  const cols = Array.from({ length: SH_SIZE }, (_, c) => (seed ^ Math.imul(c + 1, 0x9e3779b1)) | 0);
-  const board = Array.from({ length: SH_CELLS }, () => 0);
-  for (let c = 0; c < SH_SIZE; c++) {
-    for (let r = SH_SIZE - 1; r >= 0; r--) {
-      const d = digit(cols[c]!);
-      cols[c] = d.state;
-      board[r * SH_SIZE + c] = d.value;
-    }
-  }
-  return reshuffleIfStuck(
-    { board, cols, rng: (seed ^ 0x51ed270b) | 0, stage: 1, paths: 0, reshuffles: 0, target },
-    target,
-  );
+  const firstTarget = sumHuntTargets(seed)[0] ?? target;
+  return { board: sumHuntBoard(seed, 1, firstTarget), stage: 1, paths: 0, reshuffles: 0, target: firstTarget };
 }
 
 export function pathSum(board: number[], path: number[]): number {
@@ -138,69 +161,35 @@ export function pathShapeValid(path: number[]): boolean {
   return path.every((cell, i) => cell >= 0 && cell < SH_CELLS && (i === 0 || neighbours(path[i - 1]!).includes(cell)));
 }
 
-/** Clears a correct path, drops digits, fills from the column queues. Null if the path doesn't count. */
+/** Accepts one stage path and swaps in the next deterministic board. */
 export function applySumPath(state: SumHuntState, target: number, path: number[], seed: number): SumHuntState | null {
   if (state.stage > SH_STAGES || target !== state.target || !pathShapeValid(path) || pathSum(state.board, path) !== target) return null;
   if (state.stage === SH_STAGES) {
     return path.length === SH_CELLS ? { ...state, board: Array(SH_CELLS).fill(0), stage: SH_STAGES + 1, paths: state.paths + 1 } : null;
   }
-  const cleared = new Set(path);
-  const board = [...state.board];
-  const cols = [...state.cols];
-  for (let c = 0; c < SH_SIZE; c++) {
-    const kept: number[] = [];
-    for (let r = SH_SIZE - 1; r >= 0; r--) {
-      const index = r * SH_SIZE + c;
-      if (!cleared.has(index)) kept.push(state.board[index]!);
-    }
-    for (let r = SH_SIZE - 1, k = 0; r >= 0; r--, k++) {
-      if (k < kept.length) board[r * SH_SIZE + c] = kept[k]!;
-      else {
-        const d = digit(cols[c]!);
-        cols[c] = d.state;
-        board[r * SH_SIZE + c] = d.value;
-      }
-    }
-  }
   const nextStage = state.stage + 1;
-  const nextTarget = nextStage === SH_STAGES
-    ? board.reduce((sum, digit) => sum + digit, 0)
-    : sumHuntTargets(seed)[nextStage - 1]!;
-  const next = {
-    ...state,
-    board,
-    cols,
-    paths: state.paths + 1,
-    stage: nextStage,
-    target: nextTarget,
-  };
-  // On the last stage a full-grid snake always exists; reshuffling would change the displayed total.
-  if (nextStage === SH_STAGES) return next;
-  return reshuffleIfStuck(
-    next,
-    nextTarget,
-  );
+  const targets = sumHuntTargets(seed);
+  const provisionalTarget = targets[nextStage - 1]!;
+  const board = sumHuntBoard(seed, nextStage, provisionalTarget);
+  const nextTarget = nextStage === SH_STAGES ? board.reduce((sum, value) => sum + value, 0) : provisionalTarget;
+  return { ...state, board, stage: nextStage, paths: state.paths + 1, target: nextTarget };
 }
 
 export function encodeSumPaths(paths: number[][]): string {
-  return paths.map((p) => p.join(".")).join(";");
+  return paths.map((path) => path.join(".")).join(";");
 }
 
 export function decodeSumPaths(raw: string): number[][] {
   if (typeof raw !== "string" || !raw) return [];
-  return raw
-    .split(";")
-    .slice(0, 300)
-    .map((p) => p.split(".").slice(0, SH_CELLS).map((v) => Number.parseInt(v, 10)))
-    .filter((p) => p.every(Number.isInteger));
+  return raw.split(";").slice(0, SH_STAGES).map((path) => path.split(".").slice(0, SH_CELLS).map((value) => Number.parseInt(value, 10))).filter((path) => path.every(Number.isInteger));
 }
 
 export function replaySumHunt(seed: number, target: number, paths: number[][]): SumHuntState {
-  let state = initSumHunt(seed, sumHuntTargets(seed)[0] ?? target);
+  let state = initSumHunt(seed, target);
   for (const path of paths) state = applySumPath(state, state.target, path, seed) ?? state;
   return state;
 }
 
 export function sumHuntText(state: SumHuntState): string {
-  return state.stage > SH_STAGES ? "Cleared the grid" : `Stage ${state.stage} of ${SH_STAGES} · ${state.paths} paths`;
+  return state.stage > SH_STAGES ? "Cleared the grid" : `Stage ${state.stage} of ${SH_STAGES}`;
 }
