@@ -209,7 +209,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
               key={i}
               onClick={() => {
                 if (frozen) return;
-                if (tile !== null) setSelected((current) => current === tile ? null : tile);
+                if (tile !== null) tapPlaced(tile);
                 else if (selected !== null) place(selected, i);
               }}
               className={`flex items-center justify-center rounded-md font-display text-xl font-bold transition-colors ${
