@@ -55,13 +55,16 @@ const MAX_START_Y = START_Y + 5 * PITCH_Y;
 const STEP_PX = 8;
 const EDGE = 8;
 export const WAV_STEP_START = 30;
-export const WAV_STEP_MIN = 8;
+export const WAV_STEP_MIN = 6;
 const KILLS_PER_TICK = 3;
 
 const RED_START = 90;
-const RED_END = 45;
+const RED_MIN = 20;
 const RED_SPEED_FP = 4 * FP;
-const MAX_RED = 6;
+const RED_SPEED_CAP = Math.trunc((RED_SPEED_FP * 5) / 2);
+const MAX_RED = 10;
+/** From this wave on, some volleys fire from two columns at once (1 in 3). */
+const DOUBLE_FROM_WAVE = 3;
 
 export const WAV_LIVES = 3;
 const INVULN_TICKS = 60;
@@ -113,6 +116,9 @@ export interface WavState {
   invuln: number;
   fireIn: number;
   redIn: number;
+  /** This wave's starting red-bolt interval and bolt speed. */
+  redBase: number;
+  redSpeed: number;
   bolts: WavBolt[];
   reds: WavBolt[];
   /** Saucer centre in FP, or 0 when none; saucerDir 0 when none. */
@@ -164,6 +170,8 @@ function init(seed: number): WavState {
     invuln: 0,
     fireIn: WAV_FIRE_EVERY,
     redIn: RED_START,
+    redBase: RED_START,
+    redSpeed: RED_SPEED_FP,
     bolts: [],
     reds: [],
     saucerX: 0,
@@ -287,34 +295,39 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
   }
   s.bolts = kept;
 
-  // Enemy fire from the bottom shape of a seeded column.
+  // Enemy fire from any shape in the lowest two occupied rows, chosen from the seed.
   s.redIn -= 1;
   if (s.redIn <= 0) {
-    const cols: number[] = [];
-    for (let col = 0; col < WAV_COLS; col++) {
-      for (let row = 0; row < WAV_ROWS; row++) {
-        if ((s.shapes[row * WAV_COLS + col] ?? 0) !== 0) {
-          cols.push(col);
-          break;
-        }
-      }
+    let lowest = -1;
+    s.shapes.forEach((code, i) => {
+      if (code !== 0) lowest = Math.max(lowest, Math.trunc(i / WAV_COLS));
+    });
+    const shooters: number[] = [];
+    s.shapes.forEach((code, i) => {
+      if (code !== 0 && Math.trunc(i / WAV_COLS) >= lowest - 1) shooters.push(i);
+    });
+    let volley = 1;
+    if (s.wave >= DOUBLE_FROM_WAVE) {
+      const roll = rngBelow(s.rng, 3);
+      s.rng = roll.state;
+      if (roll.value === 0) volley = 2;
     }
-    if (cols.length > 0 && s.reds.length < MAX_RED) {
-      const pick = rngBelow(s.rng, cols.length);
+    let usedCol = -1;
+    for (let shot = 0; shot < volley && shooters.length > 0 && s.reds.length < MAX_RED; shot++) {
+      const pool = shooters.filter((i) => i % WAV_COLS !== usedCol);
+      if (pool.length === 0) break;
+      const pick = rngBelow(s.rng, pool.length);
       s.rng = pick.state;
-      const col = cols[pick.value] ?? 0;
-      let bottom = 0;
-      for (let row = 0; row < WAV_ROWS; row++) {
-        if ((s.shapes[row * WAV_COLS + col] ?? 0) !== 0) bottom = row;
-      }
-      const box = wavShapeBox(s, bottom * WAV_COLS + col);
+      const index = pool[pick.value] ?? 0;
+      usedCol = index % WAV_COLS;
+      const box = wavShapeBox(s, index);
       s.reds.push({ x: (box.x + WAV_CELL / 2) * FP, y: (box.y + WAV_CELL) * FP });
     }
-    s.redIn = RED_START - Math.trunc(((RED_START - RED_END) * tick) / WAV_RUN_TICKS);
+    s.redIn = Math.max(RED_MIN, s.redBase - Math.trunc((s.redBase * tick) / (2 * WAV_RUN_TICKS)));
   }
   const redsKept: WavBolt[] = [];
   for (const red of s.reds) {
-    red.y += RED_SPEED_FP;
+    red.y += s.redSpeed;
     if (red.y > WAV_WORLD_H * FP) continue;
     const overlaps =
       Math.abs(red.x - s.shipX * FP) < (WAV_SHIP_W / 2 + 2) * FP &&
@@ -341,7 +354,9 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     s.fx = START_X;
     s.fy = Math.min(MAX_START_Y, START_Y + (s.wave - 1) * PITCH_Y);
     s.dir = 1;
-    s.waveBase = Math.max(WAV_STEP_MIN, Math.trunc((s.waveBase * 9) / 10));
+    s.waveBase = Math.max(WAV_STEP_MIN, Math.trunc((s.waveBase * 85) / 100));
+    s.redBase = Math.max(RED_MIN, Math.trunc((s.redBase * 80) / 100));
+    s.redSpeed = Math.min(RED_SPEED_CAP, Math.trunc((s.redSpeed * 115) / 100));
     s.waveKills = 0;
     s.stepIn = stepEvery(s);
   }
@@ -393,6 +408,8 @@ export const WAV_CHECKPOINT_KEYS = [
   "bolts",
   "reds",
   "saucerX",
+  "redBase",
+  "redSpeed",
   "alive",
   "rng",
   "checksum",
@@ -415,6 +432,8 @@ export interface WavCheckpoint {
   bolts: number;
   reds: number;
   saucerX: number;
+  redBase: number;
+  redSpeed: number;
   alive: number;
   rng: number;
   checksum: number;
@@ -438,6 +457,8 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
     bolts: state.bolts.length,
     reds: state.reds.length,
     saucerX: state.saucerX,
+    redBase: state.redBase,
+    redSpeed: state.redSpeed,
     alive: state.shapes.reduce((n, code) => (code ? n + 1 : n), 0),
     rng: state.rng | 0,
   };
