@@ -86,6 +86,9 @@ import {
   BEAT_TIME_MS,
 } from "./types";
 
+import { TG_TILES, TG_TIME_MS } from "./tileGrid";
+import { WS_TIME_MS } from "./wordSlide";
+
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
 type SummaryBuilder = (result: RoundResultRow, puzzle: PuzzleData) => BuiltDetail;
 type AnswerBuilder = (puzzle: PuzzleData) => string | null;
@@ -97,6 +100,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   flood: FLOOD_TIME_MS,
   stroke: STROKE_TIME_MS,
   tiles: TILES_TIME_MS,
+  tilegrid: TG_TIME_MS,
+  wordslide: WS_TIME_MS,
   rings: RINGS_TIME_MS,
   hover: HOVER_TIME_MS,
   swerve: SWERVE_TIME_MS,
@@ -557,6 +562,27 @@ const groupsSummary: SummaryBuilder = (result, puzzle) => {
   return {
     summary: `${found} / 4 groups`,
     detail: (puzzle.groups ?? []).map((group) => `${group.theme}: ${group.words.join(", ")}`),
+  };
+};
+
+const tileGridSummary: SummaryBuilder = (result) => {
+  const placed = Number(result.extra?.["placed"] ?? result.correct_count ?? 0);
+  const valid = Boolean(result.extra?.["valid"] ?? result.is_correct);
+  return {
+    summary: valid ? `${placed} / ${TG_TILES} tiles · valid` : `${placed} / ${TG_TILES} · invalid at the timer`,
+    detail: [],
+  };
+};
+
+const wordSlideSummary: SummaryBuilder = (result, puzzle) => {
+  const moves = Number(result.extra?.["moves"] ?? 0);
+  const par = Number(result.extra?.["par"] ?? (puzzle.type === "wordslide" ? puzzle.par : 0));
+  const rows = Number(result.extra?.["rows"] ?? result.correct_count ?? 0);
+  return {
+    summary: result.is_correct
+      ? `Solved · ${moves} moves (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`
+      : `${rows} / 3 rows`,
+    detail: [],
   };
 };
 
@@ -1134,6 +1160,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
   groups: groupsSummary,
   ladder: ladderSummary,
+  tilegrid: tileGridSummary,
+  wordslide: wordSlideSummary,
   target: targetSummary,
   numseq: numberSequenceSummary,
   sequence: sequenceSingle,
@@ -1204,6 +1232,8 @@ function joinOperators(values: string[]): string {
 export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   wordsmith: () => null,
   groups: () => "Four groups of four",
+  tilegrid: () => null,
+  wordslide: (p) => (p.type === "wordslide" && p.words ? p.words.join(" · ") : null),
   ladder: (p) => (p.type === "ladder" ? (p.shortestPath ?? []).join(" → ") : null),
   target: (p) => (p.type === "target" ? String(p.target) : null),
   numseq: () => null,

@@ -8,6 +8,8 @@ import { equationPuzzle } from "@/puzzles/equation";
 import { goNoGoPuzzle } from "@/puzzles/goNoGo";
 import { mirrorMatchPuzzle } from "@/puzzles/mirrorMatch";
 import { wordLadderPuzzle } from "@/puzzles/wordLadder";
+import { tileGridPuzzle } from "@/puzzles/tileGrid";
+import { wordSlidePuzzle } from "@/puzzles/wordSlide";
 import { numberClimbPuzzle } from "@/puzzles/numberClimb";
 import { numberHuntPuzzle } from "@/puzzles/numberHunt";
 import { numberSequencePuzzle } from "@/puzzles/numberSequence";
@@ -94,6 +96,7 @@ const LONG_REVEAL_TYPES = new Set<PuzzleType>([
   "spotdiff",
   "groups",
   "ladder",
+  "tilegrid",
 ]);
 
 /** Always in the room draw. */
@@ -132,6 +135,8 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   wordsmith: wordsmithPuzzle,
   groups: groupsPuzzle,
   ladder: wordLadderPuzzle,
+  tilegrid: tileGridPuzzle,
+  wordslide: wordSlidePuzzle,
   target: targetNumberPuzzle,
   numseq: numberSequencePuzzle,
   equation: equationPuzzle,

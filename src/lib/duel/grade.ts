@@ -42,6 +42,10 @@ import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 
 import { validateLadder } from "./wordLadder.server";
+import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
+import { judgeTileGrid } from "./tileGrid.server";
+import { decodeSlideTokens, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
+import { markedRowsSolved } from "./wordSlide.server";
 import { checkAnswer } from "./puzzles";
 import { countPatternAnswers } from "./pattern";
 import { decodeMoves, replayUnblock } from "./unblock";
@@ -189,6 +193,27 @@ export function gradeSubmission(
       isCorrect = correctCount === 4;
       score = scoreGroups(correctCount, ms);
       extraDetail = { foundGroups: correctCount };
+      break;
+    }
+    case "tilegrid": {
+      // The placed grid is re-checked against the tray and the dictionary here.
+      const verdict = judgeTileGrid(decodeTileGrid(answer), puzzle.tray);
+      isCorrect = verdict.valid;
+      correctCount = verdict.placed;
+      score = scoreTileGrid(verdict.valid, verdict.placed, speedBonus(ms, timeLimitMs));
+      extraDetail = { placed: verdict.placed, valid: verdict.valid };
+      break;
+    }
+    case "wordslide": {
+      // Every swipe, Undo and Reset is replayed on the stored grid.
+      const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(answer));
+      const rows = markedRowsSolved(replay.grid);
+      isCorrect = rows === WS_MARKED_ROWS.length;
+      correctCount = rows;
+      score = isCorrect
+        ? scoreSolvedMoves(replay.moves, puzzle.par, ms, timeLimitMs)
+        : Math.min(60, 30 * rows);
+      extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows };
       break;
     }
     case "ladder": {

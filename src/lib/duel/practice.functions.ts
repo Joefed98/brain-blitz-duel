@@ -116,6 +116,14 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
       return checkWordHuntPath(data.puzzle.grid, path, found);
     }
+    if (data.puzzle.type === "tilegrid") {
+      const { checkTileGridWord } = await import("./tileGrid.server");
+      return checkTileGridWord(String(data.word ?? ""));
+    }
+    if (data.puzzle.type === "wordslide") {
+      const { checkWordSlideRow } = await import("./wordSlide.server");
+      return checkWordSlideRow(String(data.word ?? ""));
+    }
     if (data.puzzle.type === "ladder") {
       const { checkLadderRung } = await import("./wordLadder.server");
       const previous = found.at(-1) ?? data.puzzle.startWord;

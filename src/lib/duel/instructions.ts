@@ -30,6 +30,23 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "More groups = more points. All four = speed bonus.",
   },
+  tilegrid: {
+    goal: "Build a mini crossword from your tiles.",
+    how: [
+      { action: "Drag tiles onto the grid.", detail: "Every row and column of touching letters must be a real word, and everything must connect." },
+      { action: "Tap a placed tile", detail: "to send it back to the tray." },
+      { action: "Tap Done", detail: "to check — red runs need fixing." },
+    ],
+    score: "More tiles placed scores more; all twelve for the time bonus.",
+  },
+  wordslide: {
+    goal: "Slide rows and columns until the three marked rows are words.",
+    how: [
+      { action: "Swipe a row sideways or a column up and down", detail: "— letters wrap around the edge." },
+      { action: "Tap Undo or Reset", detail: "to take shifts back; they still count as moves." },
+    ],
+    score: "Fewer moves is what counts; speed is a small extra.",
+  },
   ladder: {
     goal: "Reach the final word by changing one letter at a time.",
     how: [
