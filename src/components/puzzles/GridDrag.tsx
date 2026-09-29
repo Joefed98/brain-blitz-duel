@@ -687,7 +687,7 @@ export function ArrowPad({
           />
         </div>
       ) : (
-        <div className="flex items-center justify-center gap-4">
+        <div className="absolute left-0 flex items-center gap-4">
           {button("L", "◀", "Left")}
           {button("U", "▲", "Up")}
           {button("D", "▼", "Down")}
@@ -699,7 +699,7 @@ export function ArrowPad({
         role="switch"
         aria-checked={joystick}
         onClick={() => setMode(!joystick)}
-        className={`absolute right-0 h-7 rounded-full border px-2 font-mono text-[9px] uppercase ${joystick ? "border-primary bg-primary/20 text-primary" : "border-border bg-card text-muted-foreground"}`}
+        className={`absolute right-0 h-7 rounded-full border px-1.5 font-mono text-[8px] uppercase ${joystick ? "border-primary bg-primary/20 text-primary" : "border-border bg-card text-muted-foreground"}`}
       >
         Joystick
       </button>
