@@ -71,6 +71,8 @@ import { juncCheckpoint, junctionGame } from "@/lib/arcade/junction";
 import { encodeJunctionRun, replayJunctionRun } from "@/lib/duel/junction";
 import { inkBridgeGame, inkCheckpoint } from "@/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
+import { burstCheckpoint, burstGame } from "@/lib/arcade/burst";
+import { encodeBurstRun, replayBurstRun } from "@/lib/duel/burst";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const RUNS = Number(process.argv[2] ?? 40);
@@ -273,6 +275,7 @@ const GAMES: Game[] = [
   { key: "parry", game: parryGame, checkpoint: parryCheckpoint, mode: "events", rate: 120, encode: encodeParryRun, replay: replayParryRun },
   { key: "junction", game: junctionGame, checkpoint: juncCheckpoint, mode: "events", rate: 15, encode: encodeJunctionRun, replay: replayJunctionRun },
   { key: "inkbridge", game: inkBridgeGame, checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: replayInkBridgeRun },
+  { key: "burst", game: burstGame, checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: replayBurstRun },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
