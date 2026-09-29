@@ -312,3 +312,4 @@
 
 - [x] Sort Rush, Flip and Parry arcade games (200-run identity proofs passed)
 - [x] Junction and Ink Bridge arcade games (200-run identity proofs passed)
+- [x] Burst arcade game (200-run identity proof passed)
