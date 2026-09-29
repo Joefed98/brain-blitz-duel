@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -47,6 +47,10 @@ interface Props<S, C> {
   inputKind?: number;
   /** Discrete gestures: every payload is queued and sent once, one per tick. */
   discrete?: boolean;
+  /** Called every tick; a non-null payload replaces the pointer's wanted payload. */
+  tickInput?: (state: S) => PointerPayload | null;
+  /** Controls drawn over the canvas (absolute), never shrinking the play area. */
+  overlay?: ReactNode;
   pointer: (kind: "down" | "move" | "up", x: number, y: number) => PointerPayload | null;
   onSubmit: (answer: string) => void;
   onDraftAnswer?: ((answer: string) => void) | undefined;
@@ -136,6 +140,8 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
               );
             }
           }
+          const fromTick = propsRef.current.tickInput?.(state.current);
+          if (fromTick) wanted.current = fromTick;
           const target = propsRef.current.discrete ? null : wanted.current;
           if (target) {
             const key = `${target.a},${target.b},${target.c}`;
@@ -255,6 +261,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
         onPointerUp={release}
         onPointerCancel={release}
       />
+      {props.overlay}
     </div>
   );
 }

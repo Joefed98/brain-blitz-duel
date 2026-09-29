@@ -1,7 +1,7 @@
 /**
  * Bastion — an arcade game on the shared engine.
  *
- * A turret at the bottom centre aims at the finger and fires while it is held.
+ * A turret at the bottom centre follows the aim point and fires all run long.
  * Shapes descend from the top and sides on a seeded schedule toward the base
  * line. The barrel angle is one of 65 fixed directions from an integer lookup
  * table, so no trigonometry runs in the sim; all positions are 1/256 px.
@@ -36,7 +36,11 @@ export const BAS_TURRET_Y = 566;
 export const BAS_BARREL = 30;
 export const BAS_HEALTH = 5;
 
-export const BAS_FIRE_EVERY = 12;
+export const BAS_FIRE_EVERY = 10;
+/** Barrel angle in 1/256 table steps; one step = 180° / 64 = 2.8125°. */
+export const BAS_STEP_DEG_X256 = 720;
+/** Max barrel follow: 6° a tick. */
+const MAX_TURN_FP = Math.trunc((6 * 256 * 256) / BAS_STEP_DEG_X256);
 const BOLT_SPEED = 7;
 const MAX_BOLTS = 16;
 const BOLT_R = 3;
@@ -109,6 +113,8 @@ export interface BasState {
   aimY: number;
   held: number;
   angle: number;
+  /** Barrel angle ×256 in table steps (the sim's true angle). */
+  angleFp: number;
   fireIn: number;
   spawnIn: number;
   shapes: BasShape[];
@@ -142,6 +148,7 @@ function init(seed: number): BasState {
     aimY: 0,
     held: 0,
     angle: UP,
+    angleFp: UP * 256,
     fireIn: 0,
     spawnIn: 30,
     shapes: [],
@@ -228,11 +235,14 @@ function step(state: BasState, input: ArcadeInputEvent | null): BasState {
     s.aimY = clampInt(input.b, 0, BAS_WORLD_H);
     s.held = clampInt(input.c, 0, 1);
   }
-  if (s.held) s.angle = basAngleFor(s.aimX - BAS_TURRET_X, s.aimY - BAS_TURRET_Y, s.angle);
+  // The barrel follows the aim point at up to 6° a tick; the finger-down flag is ignored.
+  const target = basAngleFor(s.aimX - BAS_TURRET_X, s.aimY - BAS_TURRET_Y, s.angle) * 256;
+  s.angleFp += clampInt(target - s.angleFp, -MAX_TURN_FP, MAX_TURN_FP);
+  s.angle = Math.trunc((s.angleFp + 128) / 256);
 
-  // Fire while held.
+  // Fires continuously.
   if (s.fireIn > 0) s.fireIn -= 1;
-  if (s.held && s.fireIn <= 0 && s.bolts.length < MAX_BOLTS) {
+  if (s.fireIn <= 0 && s.bolts.length < MAX_BOLTS) {
     const dir = BAS_DIRS[s.angle] ?? BAS_DIRS[UP]!;
     s.bolts.push({
       x: BAS_TURRET_X * FP + dir[0] * BAS_BARREL,
@@ -346,6 +356,7 @@ export const BAS_CHECKPOINT_KEYS = [
   "aimY",
   "held",
   "angle",
+  "angleFp",
   "fireIn",
   "spawnIn",
   "shapes",
@@ -364,6 +375,7 @@ export interface BasCheckpoint {
   aimY: number;
   held: number;
   angle: number;
+  angleFp: number;
   fireIn: number;
   spawnIn: number;
   shapes: number;
@@ -383,6 +395,7 @@ export function basCheckpoint(state: BasState): BasCheckpoint {
     aimY: state.aimY,
     held: state.held,
     angle: state.angle,
+    angleFp: state.angleFp,
     fireIn: state.fireIn,
     spawnIn: state.spawnIn,
     shapes: state.shapes.length,

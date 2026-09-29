@@ -1,7 +1,7 @@
 /**
  * Rooftop Run — a three-lane runner on the shared engine.
  *
- * The sim is a flat three-lane track: every row of obstacles and coins has a z
+ * The sim is a flat three-lane track: every row of obstacles has a z
  * position in 1/256 units and the whole course is generated at init from the
  * seed. Perspective is render only. Swipes arrive as k = 5 events.
  */
@@ -43,22 +43,17 @@ const AIR_HEIGHT = 100;
 
 export const ROOF_ROW_GAP = 260 * FP;
 export const ROOF_SPEED_START = 768;
-export const ROOF_SPEED_STEP = 128;
-export const ROOF_SPEED_STEP_TICKS = 10 * TICKS_PER_SECOND;
-export const ROOF_SPEED_CAP = 1664;
+/** +0.25 units a tick every 3 s, no cap. */
+export const ROOF_SPEED_STEP = 64;
+export const ROOF_SPEED_STEP_TICKS = 3 * TICKS_PER_SECOND;
 const CLEAR_TICKS = 3 * TICKS_PER_SECOND;
-/** How deep an obstacle or coin is along the track. */
+/** How deep an obstacle is along the track. */
 const DEPTH = 24 * FP;
 
 export const ROOF_NONE = 0;
 export const ROOF_LOW = 1;
 export const ROOF_HIGH = 2;
 export const ROOF_WALL = 3;
-export const ROOF_COIN_GROUND = 1;
-export const ROOF_COIN_AIR = 2;
-
-export const ROOF_COIN_POINTS = 2;
-export const ROOF_SURVIVE_BONUS = 30;
 
 export const ROOF_INPUT_RANGES: readonly InputRange[] = [
   inputRange(ROOF_INPUT_SWIPE, [0, 3]),
@@ -66,38 +61,100 @@ export const ROOF_INPUT_RANGES: readonly InputRange[] = [
 
 /** Speed on a tick, in 1/256 units a tick. */
 export function roofSpeed(tick: number): number {
-  return Math.min(
-    ROOF_SPEED_CAP,
-    ROOF_SPEED_START + ROOF_SPEED_STEP * Math.trunc(tick / ROOF_SPEED_STEP_TICKS),
-  );
+  return ROOF_SPEED_START + ROOF_SPEED_STEP * Math.trunc(tick / ROOF_SPEED_STEP_TICKS);
 }
 
-/** Total distance the course covers in the full run. */
-function runDistance(): number {
+/** Distance covered after each tick (index = tick). Speed never depends on input. */
+const Z_AT: readonly number[] = (() => {
+  const out = [0];
   let z = 0;
-  for (let tick = 1; tick <= ROOF_RUN_TICKS; tick++) z += roofSpeed(tick);
-  return z;
-}
-const RUN_DISTANCE = runDistance();
-const CLEAR_DISTANCE = (() => {
-  let z = 0;
-  for (let tick = 1; tick <= CLEAR_TICKS; tick++) z += roofSpeed(tick);
-  return z;
+  for (let tick = 1; tick <= ROOF_RUN_TICKS; tick++) {
+    z += roofSpeed(tick);
+    out.push(z);
+  }
+  return out;
 })();
+const RUN_DISTANCE = Z_AT[ROOF_RUN_TICKS]!;
+const CLEAR_DISTANCE = Z_AT[CLEAR_TICKS]!;
+
+/* ============================ Runner motion ============================ */
+
+interface Runner {
+  laneFrom: number;
+  laneTo: number;
+  laneT: number;
+  jumpT: number;
+  slideT: number;
+  lean: number;
+}
+
+/** One tick of runner timers and a swipe (dir −1 for none). Shared by the sim and the course check. */
+function moveRunner(r: Runner, dir: number): void {
+  if (r.laneT > 0) {
+    r.laneT -= 1;
+    if (r.laneT === 0) r.laneFrom = r.laneTo;
+  }
+  if (r.jumpT > 0) r.jumpT -= 1;
+  if (r.slideT > 0) r.slideT -= 1;
+  if (dir < 0) return;
+  if ((dir === ROOF_LEFT || dir === ROOF_RIGHT) && r.laneT === 0) {
+    const to = clampInt(r.laneTo + (dir === ROOF_LEFT ? -1 : 1), 0, ROOF_LANES - 1);
+    if (to !== r.laneTo) {
+      r.laneFrom = r.laneTo;
+      r.laneTo = to;
+      r.laneT = ROOF_LANE_TICKS;
+      r.lean = dir === ROOF_LEFT ? -1 : 1;
+    }
+  } else if (dir === ROOF_UP && r.jumpT === 0) {
+    r.jumpT = ROOF_JUMP_TICKS;
+    r.slideT = 0;
+  } else if (dir === ROOF_DOWN && r.slideT === 0 && r.jumpT === 0) {
+    r.slideT = ROOF_SLIDE_TICKS;
+  }
+}
+
+function hits(r: Runner, kinds: readonly number[]): boolean {
+  const lane = r.laneT > ROOF_LANE_TICKS / 2 ? r.laneFrom : r.laneTo;
+  const kind = kinds[lane]!;
+  const air = roofJumpHeight(r.jumpT) >= AIR_HEIGHT;
+  return kind === ROOF_WALL || (kind === ROOF_LOW && !air) || (kind === ROOF_HIGH && r.slideT === 0);
+}
+
+const packRunner = (r: Runner) =>
+  r.laneFrom | (r.laneTo << 2) | (r.laneT << 4) | (r.jumpT << 8) | (r.slideT << 14);
+const unpackRunner = (code: number): Runner => ({
+  laneFrom: code & 3,
+  laneTo: (code >> 2) & 3,
+  laneT: (code >> 4) & 15,
+  jumpT: (code >> 8) & 63,
+  slideT: (code >> 14) & 31,
+  lean: 0,
+});
 
 /* ================================ Course =============================== */
+
+/**
+ * The course check lets its runner swipe only on every third tick. That player
+ * is strictly weaker than a real one, so a course it survives is survivable.
+ */
+const SOLVER_EVERY = 3;
 
 export interface RoofRow {
   z: number;
   kinds: number[];
-  coins: number[];
 }
 
 export function roofPassable(kind: number): boolean {
   return kind !== ROOF_WALL;
 }
 
-export function buildRoofCourse(seed: number): { rows: RoofRow[]; totalCoins: number; rng: number } {
+/**
+ * Rows are drawn one at a time. After each row, every runner state reachable
+ * (swiping on every third tick) is advanced tick by tick through that row; a row that
+ * leaves no survivor is re-rolled (an empty row is the last resort), so every
+ * course can be run to the end at every speed.
+ */
+export function buildRoofCourse(seed: number): { rows: RoofRow[]; rng: number } {
   let rng = seed | 0;
   const draw = (bound: number) => {
     const r = rngBelow(rng, bound);
@@ -105,12 +162,51 @@ export function buildRoofCourse(seed: number): { rows: RoofRow[]; totalCoins: nu
     return r.value;
   };
   const rows: RoofRow[] = [];
-  let totalCoins = 0;
+  let frontier: Int32Array = Int32Array.of(packRunner({ laneFrom: 1, laneTo: 1, laneT: 0, jumpT: 0, slideT: 0, lean: 0 }));
+  const seen = new Int32Array(1 << 19);
+  const scratch = new Int32Array(1 << 19);
+  let stamp = 0;
+  let tick = 0;
   let prevPass = [true, true, true];
   let sinceObstacle = 2;
+  const NONE = [ROOF_NONE, ROOF_NONE, ROOF_NONE];
+
+  /** Advance the frontier through the ticks up to zEnd, dying on this row's kinds. */
+  const advance = (from: Int32Array, fromTick: number, kinds: readonly number[], zStart: number, zEnd: number) => {
+    let set: Int32Array = from;
+    let t = fromTick;
+    const r: Runner = { laneFrom: 0, laneTo: 0, laneT: 0, jumpT: 0, slideT: 0, lean: 0 };
+    while (t < ROOF_RUN_TICKS && Z_AT[t + 1]! <= zEnd) {
+      t += 1;
+      const check = Z_AT[t]! >= zStart;
+      stamp += 1;
+      let n = 0;
+      for (let k = 0; k < set.length; k++) {
+        const code = set[k]!;
+        for (let dir = -1; dir <= (t % SOLVER_EVERY === 0 ? 3 : -1); dir++) {
+          r.laneFrom = code & 3;
+          r.laneTo = (code >> 2) & 3;
+          r.laneT = (code >> 4) & 15;
+          r.jumpT = (code >> 8) & 63;
+          r.slideT = (code >> 14) & 31;
+          moveRunner(r, dir);
+          if (check && hits(r, kinds)) continue;
+          const next = packRunner(r);
+          if (seen[next] === stamp) continue;
+          seen[next] = stamp;
+          scratch[n++] = next;
+        }
+      }
+      set = scratch.slice(0, n);
+      if (n === 0) break;
+    }
+    return { set, tick: t };
+  };
+
   for (let i = 1; i * ROOF_ROW_GAP <= RUN_DISTANCE; i++) {
     const z = i * ROOF_ROW_GAP;
-    let kinds = [ROOF_NONE, ROOF_NONE, ROOF_NONE];
+    let kinds = NONE;
+    let result: { set: Int32Array; tick: number } | null = null;
     if (z > CLEAR_DISTANCE) {
       const reach = sinceObstacle >= 2 ? 2 : 1;
       for (let attempt = 0; attempt < 20; attempt++) {
@@ -124,34 +220,26 @@ export function buildRoofCourse(seed: number): { rows: RoofRow[]; totalCoins: nu
             if (prevPass[from] && Math.abs(lane - from) <= reach) ok = true;
           }
         }
-        if (ok) {
+        if (!ok) continue;
+        const tried = advance(frontier, tick, trial, z, z + DEPTH);
+        if (tried.set.length > 0) {
           kinds = trial;
+          result = tried;
           break;
         }
       }
     }
+    result ??= advance(frontier, tick, NONE, z, z + DEPTH);
+    frontier = result.set;
+    tick = result.tick;
     const hasObstacle = kinds.some((k) => k !== ROOF_NONE);
     if (hasObstacle) {
       prevPass = kinds.map(roofPassable);
       sinceObstacle = 1;
     } else sinceObstacle += 1;
-
-    const coins = [0, 0, 0];
-    if (draw(10) < 6) {
-      const want = draw(10) < 8 ? 2 : 1;
-      let placed = 0;
-      for (let attempt = 0; attempt < 8 && placed < want; attempt++) {
-        const lane = draw(3);
-        const kind = kinds[lane]!;
-        if (kind === ROOF_WALL || kind === ROOF_HIGH || coins[lane] !== 0) continue;
-        coins[lane] = kind === ROOF_LOW || draw(10) < 3 ? ROOF_COIN_AIR : ROOF_COIN_GROUND;
-        totalCoins += 1;
-        placed += 1;
-      }
-    }
-    rows.push({ z, kinds, coins });
+    rows.push({ z, kinds });
   }
-  return { rows, totalCoins, rng };
+  return { rows, rng };
 }
 
 /* ================================ State ================================ */
@@ -166,21 +254,25 @@ export interface RoofState {
   laneT: number;
   jumpT: number;
   slideT: number;
-  coins: number;
-  /** Bit per lane of each row's coins already taken. */
-  taken: number[];
   cursor: number;
   crashed: number;
   ended: number;
   endedTick: number;
   rows: RoofRow[];
-  totalCoins: number;
   /** Render only: last lane-change direction. */
   lean: number;
 }
 
+/** Course cache: building checks every reachable runner state, so do it once per seed. */
+const courseCache = new Map<number, { rows: RoofRow[]; rng: number }>();
+
 function init(seed: number): RoofState {
-  const course = buildRoofCourse(seed);
+  let course = courseCache.get(seed | 0);
+  if (!course) {
+    course = buildRoofCourse(seed);
+    if (courseCache.size > 16) courseCache.clear();
+    courseCache.set(seed | 0, course);
+  }
   return {
     tick: 0,
     rng: course.rng,
@@ -191,14 +283,11 @@ function init(seed: number): RoofState {
     laneT: 0,
     jumpT: 0,
     slideT: 0,
-    coins: 0,
-    taken: new Array<number>(course.rows.length).fill(0),
     cursor: 0,
     crashed: 0,
     ended: 0,
     endedTick: 0,
     rows: course.rows,
-    totalCoins: course.totalCoins,
     lean: 0,
   };
 }
@@ -217,62 +306,22 @@ function step(state: RoofState, input: ArcadeInputEvent | null): RoofState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
   const s: RoofState = { ...state, tick };
-
-  if (s.laneT > 0) {
-    s.laneT -= 1;
-    if (s.laneT === 0) s.laneFrom = s.laneTo;
-  }
-  if (s.jumpT > 0) s.jumpT -= 1;
-  if (s.slideT > 0) s.slideT -= 1;
-
-  if (input && input.k === ROOF_INPUT_SWIPE) {
-    const dir = clampInt(input.a, 0, 3);
-    if ((dir === ROOF_LEFT || dir === ROOF_RIGHT) && s.laneT === 0) {
-      const to = clampInt(s.laneTo + (dir === ROOF_LEFT ? -1 : 1), 0, ROOF_LANES - 1);
-      if (to !== s.laneTo) {
-        s.laneFrom = s.laneTo;
-        s.laneTo = to;
-        s.laneT = ROOF_LANE_TICKS;
-        s.lean = dir === ROOF_LEFT ? -1 : 1;
-      }
-    } else if (dir === ROOF_UP && s.jumpT === 0) {
-      s.jumpT = ROOF_JUMP_TICKS;
-      s.slideT = 0;
-    } else if (dir === ROOF_DOWN && s.slideT === 0 && s.jumpT === 0) {
-      s.slideT = ROOF_SLIDE_TICKS;
-    }
-  }
+  const dir = input && input.k === ROOF_INPUT_SWIPE ? clampInt(input.a, 0, 3) : -1;
+  moveRunner(s, dir);
 
   s.speed = roofSpeed(tick);
   s.z += s.speed;
 
-  const lane = s.laneT > ROOF_LANE_TICKS / 2 ? s.laneFrom : s.laneTo;
-  const air = roofJumpHeight(s.jumpT) >= AIR_HEIGHT;
-  const sliding = s.slideT > 0;
-  let taken = s.taken;
   let cursor = s.cursor;
   while (cursor < s.rows.length && s.rows[cursor]!.z + DEPTH < s.z) cursor += 1;
   for (let i = cursor; i < s.rows.length; i++) {
     const row = s.rows[i]!;
     if (row.z > s.z) break;
-    const kind = row.kinds[lane]!;
-    const hit =
-      kind === ROOF_WALL || (kind === ROOF_LOW && !air) || (kind === ROOF_HIGH && !sliding);
-    if (hit) {
+    if (hits(s, row.kinds)) {
       s.crashed = 1;
       break;
     }
-    const coin = row.coins[lane]!;
-    const bit = 1 << lane;
-    if (coin !== 0 && (taken[i]! & bit) === 0) {
-      if ((coin === ROOF_COIN_AIR && air) || (coin === ROOF_COIN_GROUND && !air)) {
-        if (taken === s.taken) taken = taken.slice();
-        taken[i] = taken[i]! | bit;
-        s.coins += 1;
-      }
-    }
   }
-  s.taken = taken;
   s.cursor = cursor;
 
   if (s.crashed) {
@@ -285,12 +334,14 @@ function step(state: RoofState, input: ArcadeInputEvent | null): RoofState {
   return s;
 }
 
-export function roofScoreOf(coins: number, survived: boolean): number {
-  return clampInt(ROOF_COIN_POINTS * coins + (survived ? ROOF_SURVIVE_BONUS : 0), 0, 150);
+/** floor(150 × (seconds survived ÷ 60)²), in whole ticks. */
+export function roofScoreOf(ticksSurvived: number): number {
+  const t = clampInt(ticksSurvived, 0, ROOF_RUN_TICKS);
+  return clampInt(Math.trunc((150 * t * t) / (ROOF_RUN_TICKS * ROOF_RUN_TICKS)), 0, 150);
 }
 
 function score(state: RoofState): number {
-  return roofScoreOf(state.coins, state.ended === 1);
+  return roofScoreOf(state.ended === 1 ? ROOF_RUN_TICKS : state.tick);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -306,7 +357,6 @@ export const ROOF_CHECKPOINT_KEYS = [
   "laneT",
   "jumpT",
   "slideT",
-  "coins",
   "cursor",
   "crashed",
   "rng",
@@ -322,7 +372,6 @@ export interface RoofCheckpoint {
   laneT: number;
   jumpT: number;
   slideT: number;
-  coins: number;
   cursor: number;
   crashed: number;
   rng: number;
@@ -339,7 +388,6 @@ export function roofCheckpoint(state: RoofState): RoofCheckpoint {
     laneT: state.laneT,
     jumpT: state.jumpT,
     slideT: state.slideT,
-    coins: state.coins,
     cursor: state.cursor,
     crashed: state.crashed,
     rng: state.rng | 0,
@@ -426,11 +474,11 @@ export function drawRoofObstacle(
   }
 }
 
-export function drawRoofCoin(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number) {
-  ctx.fillStyle = ROOF_GOLD;
+function limb(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, len: number) {
   ctx.beginPath();
-  ctx.arc(cx, cy, Math.max(1.5, 14 * s), 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + Math.sin(angle) * len, y + Math.cos(angle) * len);
+  ctx.stroke();
 }
 
 export function drawRoofRunner(
@@ -440,11 +488,16 @@ export function drawRoofRunner(
   lift: number,
   sliding: boolean,
   lean: number,
+  jumping = false,
+  tick = 0,
 ) {
   ctx.save();
   ctx.translate(cx, ground - lift);
   ctx.rotate(lean * 0.18);
   ctx.fillStyle = ROOF_GOLD;
+  ctx.strokeStyle = ROOF_GOLD;
+  ctx.lineCap = "round";
+  ctx.lineWidth = 5;
   if (sliding) {
     ctx.beginPath();
     ctx.ellipse(0, -14, 26, 12, 0, 0, Math.PI * 2);
@@ -452,6 +505,9 @@ export function drawRoofRunner(
     ctx.beginPath();
     ctx.arc(18, -28, 9, 0, Math.PI * 2);
     ctx.fill();
+    // Arms tucked back along the body.
+    limb(ctx, 10, -20, -1.9, 18);
+    limb(ctx, 4, -16, -1.7, 16);
   } else {
     ctx.beginPath();
     ctx.arc(0, -64, 10, 0, Math.PI * 2);
@@ -461,6 +517,16 @@ export function drawRoofRunner(
     ctx.fill();
     ctx.fillRect(-10, -24, 7, 24);
     ctx.fillRect(3, -24, 7, 24);
+    if (jumping) {
+      // Arms stretched up.
+      limb(ctx, -9, -48, Math.PI - 0.35, 22);
+      limb(ctx, 9, -48, Math.PI + 0.35, 22);
+    } else {
+      // Arms pumping in opposition.
+      const swing = Math.sin(tick * 0.45) * 0.8;
+      limb(ctx, -11, -48, swing, 20);
+      limb(ctx, 11, -48, -swing, 20);
+    }
   }
   ctx.restore();
 }
@@ -511,10 +577,6 @@ function draw(ctx: CanvasRenderingContext2D, state: RoofState, size: CanvasSize)
     for (let lane = 0; lane < ROOF_LANES; lane++) {
       const p = project(lane, Math.max(0, ahead));
       drawRoofObstacle(ctx, row.kinds[lane]!, p.x, p.y, p.s);
-      const coin = row.coins[lane]!;
-      if (coin !== 0 && (state.taken[i]! & (1 << lane)) === 0) {
-        drawRoofCoin(ctx, p.x, p.y - (coin === ROOF_COIN_AIR ? 120 : 22) * p.s, p.s);
-      }
     }
   }
 
@@ -529,13 +591,10 @@ function draw(ctx: CanvasRenderingContext2D, state: RoofState, size: CanvasSize)
     roofJumpHeight(state.jumpT) * 0.3,
     state.slideT > 0,
     state.laneT > 0 ? state.lean : 0,
+    state.jumpT > 0,
+    state.tick,
   );
 
-  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = "#F7F7F8";
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-  ctx.fillText(`Coins ${state.coins} / ${state.totalCoins}`, 14, 14);
   ctx.restore();
 }
 
