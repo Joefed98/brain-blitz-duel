@@ -75,7 +75,7 @@ function Beam({
             const peg = pegOfSlot(slot);
             const item = peg === null ? undefined : onPeg.get(peg);
             return (
-              <span key={slot} className={`flex justify-center ${peg !== null && highlighted === peg ? "bg-primary/35" : ""}`} style={{ touchAction: "none" }}
+              <span key={slot} className={`flex justify-center ${peg !== null && highlighted === peg ? "bg-[#FFE600]/35" : ""}`} style={{ touchAction: "none" }}
                 onClick={peg !== null && !item ? () => onPegTap?.(peg) : undefined}>
                 {item && (
                   <span className={item.tray === selected && !item.fixed ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}
@@ -258,10 +258,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       return;
     }
     const peg = pegAt(pegs.current, event.clientX, event.clientY, spacing, available(d.tray));
-    if (peg === null) {
-      if (placement[d.tray] !== null) { const next = [...placement]; next[d.tray] = null; setCurrent(next); }
-      return;
-    }
+    if (peg === null) return;
     hang(d.tray, peg);
   };
 

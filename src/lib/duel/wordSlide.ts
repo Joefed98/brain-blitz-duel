@@ -54,10 +54,12 @@ export function replayWordSlide(start: string[], tokens: string[]): { grid: stri
     if (!parsed) continue;
     if (parsed === "U") {
       if (history.length > 1) history.pop();
+      moves++;
       continue;
     }
     if (parsed === "X") {
       history.length = 1;
+      moves++;
       continue;
     }
     history.push(applyShift(history[history.length - 1]!, parsed));

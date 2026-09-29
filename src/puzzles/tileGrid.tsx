@@ -169,6 +169,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     setPlaced(next);
     setSelected(null);
   };
+  const returnToTray = (tile: number) => {
+    const from = placed.indexOf(tile);
+    if (from < 0) return;
+    const next = [...placed]; next[from] = null;
+    setPlaced(next); setSelected(null); hapticTick();
+  };
   const begin = (event: React.PointerEvent, tile: number, from: number | null) => {
     if (frozen) return;
     event.preventDefault();
@@ -196,6 +202,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         return;
       }
       setSelected((current) => current === d.tile ? null : d.tile);
+      return;
+    }
+    if (d.from !== null && event.target instanceof Element && event.target.closest('[data-tile-rack="true"]')) {
+      returnToTray(d.tile);
       return;
     }
     const hit = nearestGridCellAt(board.current, event.clientX, event.clientY, TG_SIZE, TG_SIZE);
@@ -249,7 +259,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
               onPointerDown={tile !== null ? (e) => begin(e, tile, i) : undefined}
               onClick={tile === null && selected !== null ? () => place(selected, i) : undefined}
               className={`flex items-center justify-center rounded-md font-display text-xl font-bold transition-colors ${
-                highlight === i ? "bg-primary/35 text-primary" : letter && !dragging
+                highlight === i ? "bg-[#FFE600]/35 text-foreground" : letter && !dragging
                   ? flash.has(i)
                     ? "bg-warn text-foreground"
                     : "bg-primary text-primary-foreground"
@@ -266,11 +276,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         })}
       </div>
       </div>
-      <div onClick={(event) => {
+      <div data-tile-rack="true" onClick={(event) => {
         if (event.target !== event.currentTarget || selected === null) return;
-        const from = placed.indexOf(selected);
-        if (from < 0) return;
-        const next = [...placed]; next[from] = null; setPlaced(next); setSelected(null); hapticTick();
+        returnToTray(selected);
       }} className="flex h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5 [@media(max-height:700px)]:h-[102px]">
         {inTray.map((tile) => (
           <span
