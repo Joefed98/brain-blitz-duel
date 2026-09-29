@@ -6,7 +6,7 @@
 - [x] Convert Sum Hunt to deterministic 4×4 boards with a 16-cell final clear.
 - [x] Add persistent tap-built words and a Submit control to Word Hunt while preserving drag tracing.
 - [x] Add a remembered shared joystick mode with step locks and 180 ms Maze Dash repeat.
-- [ ] Run code-level checks only; do not run browser tests.
+- [x] Run code-level checks only; do not run browser tests.
 
 ## Three type tunings (Sep 29)
 

@@ -50,7 +50,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   balance: {
     goal: "Balance the scale.",
     how: [
-      { action: "Drag or tap a weight, then a peg.", detail: "Further from the middle counts more — a 2 on peg 3 equals a 3 on peg 2." },
+      { action: "Tap a weight, then a gold peg line.", detail: "Further from the middle counts more — a 2 on peg 3 equals a 3 on peg 2." },
       { action: "Double-tap a placed weight", detail: "to return it to the tray." },
     ],
     score: "One point-third per scale; all three for the time bonus.",
@@ -262,9 +262,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   wordhunt: {
     goal: "Find as many valid words as you can.",
     how: [
-      { action: "Drag through letters", detail: "that touch, including diagonally." },
+      { action: "Drag or tap through letters", detail: "that touch, including diagonally." },
       { action: "Use four or more letters", detail: "without reusing a tile." },
-      { action: "Release to submit", detail: "each word." },
+      { action: "Release, tap the last letter again, or tap Submit", detail: "to submit each word." },
     ],
     score: "Round score = 3 × word points, up to 150. The counter shows word points.",
   },

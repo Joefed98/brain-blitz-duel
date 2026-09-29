@@ -674,8 +674,10 @@ export function ArrowPad({
           onPointerDown={(event) => {
             if (disabled) return;
             event.preventDefault();
-            stickOrigin.current = { x: event.clientX, y: event.clientY };
+            const rect = event.currentTarget.getBoundingClientRect();
+            stickOrigin.current = { x: (rect.left + rect.right) / 2, y: (rect.top + rect.bottom) / 2 };
             try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* capture is optional */ }
+            moveStick(event);
           }}
           onPointerMove={moveStick}
           onPointerUp={releaseStick}

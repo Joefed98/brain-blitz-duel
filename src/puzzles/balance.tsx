@@ -72,7 +72,7 @@ function Beam({
             const peg = pegOfSlot(slot);
             const item = peg === null ? undefined : onPeg.get(peg);
             return (
-              <span key={slot} className="relative z-10 flex items-start justify-center">
+              <span key={slot} className="relative z-30 flex items-start justify-center">
                 {item && (
                   <span
                     className={`mt-0.5 ${item.tray === selected && !item.fixed ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
@@ -95,8 +95,8 @@ function Beam({
                   onPointerUp={(event) => onPegTap?.(event, peg)}
                   className={`absolute top-1 z-20 ${available ? "cursor-pointer" : ""}`}
                   style={{
-                    width: Math.max(44, spacing + 24),
-                    height: 64,
+                    width: 44,
+                    height: 56,
                     left: (slotOfPeg(peg) + 0.5) * spacing,
                     transform: "translateX(-50%)",
                     pointerEvents: onPegTap && available ? "auto" : "none",
@@ -108,13 +108,6 @@ function Beam({
           })}
           {Array.from({ length: SLOTS }, (_, slot) => (
             <span key={`number-${slot}`} className="absolute top-12 text-center font-mono text-[10px] text-muted-foreground" style={{ left: slot * spacing, width: spacing }}>
-              {slot === 4 ? "" : slot < 4 ? 4 - slot : slot - 4}
-            </span>
-          ))}
-        </div>
-        <div className="hidden">
-          {Array.from({ length: SLOTS }, (_, slot) => (
-            <span key={slot} className="text-center font-mono text-[10px] text-muted-foreground">
               {slot === 4 ? "" : slot < 4 ? 4 - slot : slot - 4}
             </span>
           ))}
