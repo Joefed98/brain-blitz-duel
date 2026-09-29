@@ -126,7 +126,7 @@ export function pathSum(board: number[], path: number[]): number {
 }
 
 export function pathShapeValid(path: number[]): boolean {
-  if (path.length < 2 || new Set(path).size !== path.length) return false;
+  if (path.length < 2 || path.length > 6 || new Set(path).size !== path.length) return false;
   return path.every((cell, i) => cell >= 0 && cell < SH_CELLS && (i === 0 || neighbours(path[i - 1]!).includes(cell)));
 }
 

@@ -93,15 +93,17 @@ export function WordsmithPuzzle({
     }
   };
 
-  const tapTile = (index: number) => {
+  const tapTile = (index: number, from = selectedRef.current) => {
     if (locked) return;
-    const usedAt = selectedTiles.indexOf(index);
+    const usedAt = from.indexOf(index);
     if (usedAt >= 0) {
-      removeAt(usedAt);
+      selectedRef.current = from.slice(0, usedAt);
+      setSelectedTiles(selectedRef.current);
       return;
     }
     setMessage(null);
-    setSelectedTiles((current) => [...current, index]);
+    selectedRef.current = [...from, index];
+    setSelectedTiles(selectedRef.current);
   };
 
   const addDraggedTile = (index: number) => {
@@ -153,9 +155,7 @@ export function WordsmithPuzzle({
           pointerStart.current = null;
           if (dragged.current) void trySubmit(selectedRef.current);
           else if (origin) {
-            setSelectedTiles(origin.initial);
-            selectedRef.current = origin.initial;
-            tapTile(origin.index);
+            tapTile(origin.index, origin.initial);
           }
         }}
         onPointerCancel={() => {
@@ -180,7 +180,7 @@ export function WordsmithPuzzle({
                 dragging.current = true;
                 dragged.current = false;
                  pointerStart.current = { x: event.clientX, y: event.clientY, index, initial: [...selectedRef.current] };
-                addDraggedTile(index);
+                 if (!selectedRef.current.includes(index)) addDraggedTile(index);
               }}
               style={{ left: `${50 + 37 * Math.cos(angle)}%`, top: `${50 + 37 * Math.sin(angle)}%` }}
               className={`absolute flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border font-display text-xl font-bold transition-colors duration-150 ${
