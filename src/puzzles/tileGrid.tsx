@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { gridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
+import { nearestGridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -20,7 +20,6 @@ import { playLock, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const CELL = 44;
 const GAP = 2;
 const TRAY_TILE = 48;
 
@@ -90,8 +89,23 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const [checking, setChecking] = useState(false);
   const submitted = useRef(false);
   const board = useRef<HTMLDivElement | null>(null);
+  const boardSpace = useRef<HTMLDivElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
+  const [cellSize, setCellSize] = useState(40);
   useNoTouchScroll(root);
+
+  useEffect(() => {
+    const space = boardSpace.current;
+    if (!space) return;
+    const measure = () => setCellSize(Math.max(40, Math.min(44, Math.floor(Math.min(
+      (space.clientWidth - 12 - GAP * (TG_SIZE - 1)) / TG_SIZE,
+      (space.clientHeight - 12 - GAP * (TG_SIZE - 1)) / TG_SIZE,
+    )))));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(space);
+    return () => observer.disconnect();
+  }, []);
 
   const tray = data?.tray ?? [];
   const cells = useMemo(() => placed.map((t) => (t === null ? "" : (tray[t] ?? ""))), [placed, tray]);
@@ -168,15 +182,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       }
       return;
     }
-    const hit = gridCellAt(board.current, event.clientX, event.clientY, TG_SIZE, TG_SIZE);
-    if (d.from !== null) next[d.from] = null;
+    const hit = nearestGridCellAt(board.current, event.clientX, event.clientY, TG_SIZE, TG_SIZE);
     if (hit !== null) {
+      if (d.from !== null) next[d.from] = null;
       const other = next[hit] ?? null;
       next[hit] = d.tile;
       if (other !== null && d.from !== null) next[d.from] = other;
+      hapticTick();
+      setPlaced(next);
     }
-    hapticTick();
-    setPlaced(next);
   };
 
   const done = async () => {
@@ -204,16 +218,17 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   return (
     <div
       ref={root}
-      className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2"
+      className="flex min-h-0 flex-1 flex-col items-center gap-1"
       style={NO_SCROLL_STYLE}
       onPointerMove={move}
       onPointerUp={end}
       onPointerCancel={() => setDrag(null)}
     >
+      <div ref={boardSpace} className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
       <div
         ref={board}
         className="puzzle-board grid shrink-0 rounded-xl border-2 border-border bg-card p-1"
-        style={{ gridTemplateColumns: `repeat(${TG_SIZE}, ${CELL}px)`, gap: GAP }}
+        style={{ gridTemplateColumns: `repeat(${TG_SIZE}, ${cellSize}px)`, gap: GAP, ...NO_SCROLL_STYLE }}
         aria-label="Tile Grid board"
       >
         {placed.map((tile, i) => {
@@ -231,7 +246,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
                   : "bg-background/40"
               }`}
               style={{
-                height: CELL,
+                height: cellSize,
                 boxShadow: letter && !dragging && goodCells.has(i) ? "inset 0 -3px 0 var(--opponent)" : undefined,
               }}
             >
@@ -240,13 +255,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           );
         })}
       </div>
+      </div>
       <div className="flex min-h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5">
         {inTray.map((tile) => (
           <span
             key={tile}
             onPointerDown={(e) => begin(e, tile, null)}
             className={`flex items-center justify-center rounded-lg bg-primary font-display text-2xl font-bold text-primary-foreground ${drag?.tile === tile && drag.moved ? "opacity-30" : ""}`}
-            style={{ width: TRAY_TILE, height: TRAY_TILE }}
+            style={{ width: TRAY_TILE, height: TRAY_TILE, ...NO_SCROLL_STYLE }}
           >
             {tray[tile]}
           </span>
