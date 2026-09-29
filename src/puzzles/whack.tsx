@@ -274,7 +274,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 export const whackPuzzle: PuzzleDefinition = {
   key: "whack",
   name: "Whack-a-Target",
-  category: "attention",
+  category: "speed",
   arcadeRun: true,
   timeLimitMs: WHACK_TIME_MS,
   revealMs: 6_000,

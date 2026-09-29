@@ -60,6 +60,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Swipe a row sideways or a column up and down", detail: "— letters wrap around the edge." },
       { action: "Tap Undo or Reset", detail: "to take shifts back; they still count as moves." },
+      { action: "Lock a finished word with the padlock", detail: "so it stays put — column swipes go around it." },
     ],
     score: "Fewer moves is what counts; speed is a small extra.",
   },
@@ -657,7 +658,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The rule flips partway through", detail: "— watch the banner." },
       { action: "Bombs and wrong colours", detail: "cost you." },
     ],
-    score: "Points per hit; wrong taps cost 10; a perfect run earns a bonus.",
+    score: "Points for the share of targets you hit; every wrong tap costs 10.",
   },
   tents: {
     goal: "Pitch one tent beside every tree.",
