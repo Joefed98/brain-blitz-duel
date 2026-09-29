@@ -85,6 +85,8 @@ import {
   SLICE_TIME_MS,
   BUBBLE_TIME_MS,
   BEAT_TIME_MS,
+  WHACK_TIME_MS,
+  TENTS_TIME_MS,
 } from "./types";
 
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
@@ -124,6 +126,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   slice: SLICE_TIME_MS,
   bubble: BUBBLE_TIME_MS,
   beat: BEAT_TIME_MS,
+  whack: WHACK_TIME_MS,
+  tents: TENTS_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -1167,6 +1171,30 @@ const beatSummary: SummaryBuilder = (result) => {
   };
 };
 
+const whackSummary: SummaryBuilder = (result) => {
+  const hits = Number(result.extra?.["hits"] ?? 0);
+  const total = Number(result.extra?.["totalTargets"] ?? 0);
+  const wrong = Number(result.extra?.["wrong"] ?? 0);
+  return {
+    summary: `${hits} / ${total} hit · ${wrong} wrong`,
+    detail: ["Same targets for everyone"],
+  };
+};
+
+const tentsSummary: SummaryBuilder = (result, puzzle) => {
+  if (puzzle.type !== "tents") return { summary: "—", detail: [] };
+  const correct = Number(result.extra?.["correct"] ?? 0);
+  const wrong = Number(result.extra?.["wrong"] ?? 0);
+  const trees = Number(result.extra?.["trees"] ?? puzzle.trees.length);
+  if (result.is_correct) {
+    return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  }
+  return {
+    summary: `${correct} / ${trees} tents`,
+    detail: wrong ? [`${wrong} tent${wrong === 1 ? "" : "s"} in the wrong place`] : [],
+  };
+};
+
 const ringsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "rings") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);
@@ -1253,6 +1281,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   slice: sliceSummary,
   bubble: bubbleSummary,
   beat: beatSummary,
+  whack: whackSummary,
+  tents: tentsSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1330,6 +1360,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   slice: () => null,
   bubble: () => null,
   beat: () => null,
+  whack: () => null,
+  tents: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };

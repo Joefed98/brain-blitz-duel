@@ -1,4 +1,4 @@
-import { puzzleDef, puzzleName, typeTimeLimitMs } from "@/lib/duel/registry";
+import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/registry";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 
