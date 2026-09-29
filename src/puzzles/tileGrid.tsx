@@ -93,6 +93,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const submitted = useRef(false);
   const board = useRef<HTMLDivElement | null>(null);
   const boardSpace = useRef<HTMLDivElement | null>(null);
+  const rack = useRef<HTMLDivElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
   const [cellSize, setCellSize] = useState(40);
   useNoTouchScroll(root);
@@ -204,7 +205,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       setSelected((current) => current === d.tile ? null : d.tile);
       return;
     }
-    if (d.from !== null && event.target instanceof Element && event.target.closest('[data-tile-rack="true"]')) {
+    const bounds = rack.current?.getBoundingClientRect();
+    if (d.from !== null && bounds && event.clientX >= bounds.left && event.clientX <= bounds.right && event.clientY >= bounds.top && event.clientY <= bounds.bottom) {
       returnToTray(d.tile);
       return;
     }
@@ -276,8 +278,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         })}
       </div>
       </div>
-      <div data-tile-rack="true" onClick={(event) => {
-        if (selected === null || (event.target !== event.currentTarget && placed.indexOf(selected) < 0)) return;
+      <div ref={rack} onClick={(event) => {
+        if (selected === null || event.target !== event.currentTarget) return;
         returnToTray(selected);
       }} className="flex h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5 [@media(max-height:700px)]:h-[102px]">
         {inTray.map((tile) => (
