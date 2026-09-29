@@ -1,5 +1,12 @@
 # Roadmap
 
+## Three new-round input refinements (Sep 29)
+
+- [x] Make Tile Grid tap-only, with selected-tile glow and faint empty-cell targets.
+- [x] Centre Balance vertically and hit-test the actual tilted on-screen peg targets.
+- [x] Centre Sum Hunt's target, auto-resolve matching/overshot paths, and use orthogonal paths throughout.
+- [x] Run code-level checks only; do not run browser tests.
+
 ## Four round refinements (Sep 29)
 
 - [x] Tile Grid tap selection, tap-to-place and live nearest-cell drag highlight.

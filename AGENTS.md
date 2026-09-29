@@ -9,4 +9,4 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- Keep Tile Grid's nearest-centre release hit test in the shared grid helper so measured cell bounds and drag snapping agree.
+- Tile Grid is tap-only: rack tile, then empty cell; placed tile, then empty cell or rack.

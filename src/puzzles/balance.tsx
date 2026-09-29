@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { gridGeometry, hapticTick } from "@/components/puzzles/GridDrag";
+import { hapticTick } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import {
   BAL_PEGS,
@@ -45,16 +45,16 @@ function Beam({
   onPegTap,
   highlighted,
   selected,
-  pegsRef,
+  pegRefs,
 }: {
   scale: BalanceScale;
   placement: Placement;
   spacing: number;
   onPegDown?: (event: React.PointerEvent, trayIndex: number) => void;
-  onPegTap?: (peg: number) => void;
+  onPegTap?: (event: React.PointerEvent, peg: number) => void;
   highlighted?: number | null;
   selected?: number | null;
-  pegsRef?: React.RefObject<HTMLDivElement | null>;
+  pegRefs?: React.MutableRefObject<(HTMLSpanElement | null)[]>;
 }) {
   const tilt = balanceTilt(scale, placement);
   const balanced = scaleSolved(scale, placement);
@@ -70,13 +70,12 @@ function Beam({
         className="flex flex-col items-center"
         style={{ transform: `rotate(${tilt}deg)`, transition: "transform 150ms ease-out" }}
       >
-        <div className="grid items-end" style={{ gridTemplateColumns: `repeat(${SLOTS}, ${spacing}px)`, height: disc + 4 }}>
+        <div className="relative grid items-end" style={{ gridTemplateColumns: `repeat(${SLOTS}, ${spacing}px)`, height: disc + 4 }}>
           {Array.from({ length: SLOTS }, (_, slot) => {
             const peg = pegOfSlot(slot);
             const item = peg === null ? undefined : onPeg.get(peg);
             return (
-              <span key={slot} className={`flex justify-center ${peg !== null && highlighted === peg ? "bg-[#FFE600]/35" : ""}`} style={{ touchAction: "none" }}
-                onClick={peg !== null && !item ? () => onPegTap?.(peg) : undefined}>
+              <span key={slot} className="relative z-10 flex justify-center" style={{ touchAction: "none" }}>
                 {item && (
                   <span className={item.tray === selected && !item.fixed ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}
                     onPointerDown={!item.fixed && onPegDown ? (e) => onPegDown(e, item.tray!) : undefined}
@@ -85,6 +84,26 @@ function Beam({
                   </span>
                 )}
               </span>
+            );
+          })}
+          {Array.from({ length: BAL_PEGS }, (_, peg) => {
+            const item = onPeg.get(peg);
+            return (
+              <span
+                key={`target-${peg}`}
+                ref={(element) => { if (pegRefs) pegRefs.current[peg] = element; }}
+                onPointerUp={(event) => onPegTap?.(event, peg)}
+                className={`absolute rounded-md transition-colors ${item ? "z-0" : "z-20"} ${highlighted === peg || (selected !== null && !item) ? "bg-primary/35" : ""}`}
+                style={{
+                  width: Math.max(44, spacing + 24),
+                  height: 64,
+                  left: (slotOfPeg(peg) + 0.5) * spacing,
+                  bottom: -20,
+                  transform: "translateX(-50%)",
+                  pointerEvents: onPegTap && !item ? "auto" : "none",
+                }}
+                aria-label={`Peg ${peg + 1}`}
+              />
             );
           })}
         </div>
@@ -104,14 +123,6 @@ function Beam({
           filter: balanced ? "drop-shadow(0 0 8px var(--primary))" : undefined,
         }}
       />
-      {/* Unrotated peg centres: a generous vertical zone surrounds each peg above the beam. */}
-      {pegsRef && (
-        <div
-          ref={pegsRef}
-          className="pointer-events-none absolute left-0 top-0 grid"
-          style={{ gridTemplateColumns: `repeat(${SLOTS}, ${spacing}px)`, height: disc + 6 }}
-        />
-      )}
     </div>
   );
 }
@@ -135,18 +146,20 @@ interface Drag {
   moved: boolean;
 }
 
-/** The same live measured peg zone decides both the preview and the released drop. */
-function pegAt(element: HTMLDivElement | null, x: number, y: number, spacing: number, available: number[]): number | null {
-  const geometry = gridGeometry(element, x, y, SLOTS, 1);
-  if (!geometry) return null;
-  const beamY = Math.min(40, spacing - 2) + 4;
-  const candidates = available.map((peg) => {
-    const centre = (slotOfPeg(peg) + 0.5) * spacing;
-    return { peg, horizontal: Math.abs(geometry.x - centre), distance: Math.hypot(geometry.x - centre, geometry.y - beamY) };
+/** Measures the visible, transformed peg targets for every tap and drag event. */
+function pegAt(elements: (HTMLSpanElement | null)[], x: number, y: number, available: number[]): number | null {
+  const candidates = available.flatMap((peg) => {
+    const rect = elements[peg]?.getBoundingClientRect();
+    if (!rect) return [];
+    return [{
+      peg,
+      contains: x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom,
+      distance: Math.hypot(x - (rect.left + rect.right) / 2, y - (rect.top + rect.bottom) / 2),
+    }];
   }).sort((a, b) => a.distance - b.distance);
-  const inZone = geometry.y >= beamY - 40 && geometry.y <= beamY + 20;
-  return candidates.find((c) => inZone && c.horizontal <= spacing / 2 + 12)?.peg
-    ?? candidates.find((c) => c.distance <= 30)?.peg ?? null;
+  return candidates.find((candidate) => candidate.contains)?.peg
+    ?? candidates.find((candidate) => candidate.distance <= 30)?.peg
+    ?? null;
 }
 
 function useSpacing(ref: React.RefObject<HTMLDivElement | null>): number {
@@ -176,7 +189,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const lastTap = useRef<{ tray: number; time: number } | null>(null);
   const submitted = useRef(false);
   const root = useRef<HTMLDivElement | null>(null);
-  const pegs = useRef<HTMLDivElement | null>(null);
+  const pegs = useRef<(HTMLSpanElement | null)[]>([]);
   useNoTouchScroll(root);
   const spacing = useSpacing(root);
 
@@ -243,7 +256,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const move = (event: React.PointerEvent) => {
     if (!drag) return;
     const moved = drag.moved || Math.hypot(event.clientX - drag.sx, event.clientY - drag.sy) > 6;
-    setHighlight(moved ? pegAt(pegs.current, event.clientX, event.clientY, spacing, available(drag.tray)) : null);
+    setHighlight(moved ? pegAt(pegs.current, event.clientX, event.clientY, available(drag.tray)) : null);
     setDrag({ ...drag, x: event.clientX, y: event.clientY, moved });
   };
   const end = (event: React.PointerEvent) => {
@@ -263,7 +276,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       }
       return;
     }
-    const peg = pegAt(pegs.current, event.clientX, event.clientY, spacing, available(d.tray));
+    const peg = pegAt(pegs.current, event.clientX, event.clientY, available(d.tray));
     if (peg === null) return;
     hang(d.tray, peg);
   };
@@ -274,7 +287,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   return (
     <div
       ref={root}
-      className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-5"
+      className="flex min-h-0 w-full flex-1 flex-col items-center gap-3"
       style={NO_SCROLL_STYLE}
       onPointerMove={move}
       onPointerUp={end}
@@ -287,8 +300,19 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           ))}
         </div>, progressTarget,
       )}
-      <Beam scale={scale} placement={placement} spacing={spacing} onPegDown={begin} pegsRef={pegs}
-        selected={selected} highlighted={highlight} onPegTap={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }} />
+      <div className="relative min-h-0 w-full flex-1">
+        <div className="absolute left-1/2 top-1/2" style={{ transform: `translate(-50%, -${disc + 4}px)` }}>
+        <Beam scale={scale} placement={placement} spacing={spacing} onPegDown={begin} pegRefs={pegs}
+          selected={selected} highlighted={highlight} onPegTap={(event) => {
+            if (selected === null || frozen) return;
+            const measured = pegAt(pegs.current, event.clientX, event.clientY, available(selected));
+            if (measured !== null) hang(selected, measured);
+          }} />
+        </div>
+      </div>
+      <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        scale {current + 1} / {BAL_SCALES}
+      </p>
       <div className="flex min-h-[48px] shrink-0 flex-wrap justify-center gap-3">
         {trayLeft.map((i) => (
           <span
@@ -301,9 +325,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           </span>
         ))}
       </div>
-      <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        scale {current + 1} / {BAL_SCALES}
-      </p>
       {drag?.moved && (
         <span className="pointer-events-none fixed z-50" style={{ left: drag.x - disc / 2, top: drag.y - disc / 2 }}>
           <Disc value={scale.tray[drag.tray]!} fixed={false} size={disc} />

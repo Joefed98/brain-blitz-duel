@@ -271,6 +271,7 @@ export function adjacentGridCellAt(
   cols: number,
   rows: number,
   from: number,
+  orthogonalOnly = false,
 ): number | null {
   const geometry = gridGeometry(element, clientX, clientY, cols, rows);
   if (!geometry) return null;
@@ -280,6 +281,7 @@ export function adjacentGridCellAt(
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {
       if (dr === 0 && dc === 0) continue;
+      if (orthogonalOnly && dr !== 0 && dc !== 0) continue;
       const col = fromCol + dc;
       const row = fromRow + dr;
       if (col < 0 || col >= cols || row < 0 || row >= rows) continue;

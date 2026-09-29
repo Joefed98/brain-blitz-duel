@@ -42,7 +42,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   sumhunt: {
     goal: "Clear paths of digits that add up to the target — it rises every time.",
     how: [
-      { action: "Swipe or tap touching cells", detail: "including diagonals; release, repeat the last cell, or tap the sum to submit." },
+      { action: "Swipe or tap touching cells", detail: "Move up, down, left or right; matching the target submits automatically." },
       { action: "New digits drop in", detail: "after each of the first eight clears; finish by chaining the whole grid." },
     ],
     score: "10 per stage; clear the whole grid to finish for the time bonus.",

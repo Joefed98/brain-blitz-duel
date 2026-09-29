@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { nearestGridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
+import { hapticTick } from "@/components/puzzles/GridDrag";
 import { Button } from "@/components/ui/button";
-import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   decodeTileGrid,
@@ -68,16 +67,6 @@ function IntroExample() {
   );
 }
 
-interface Drag {
-  tile: number;
-  from: number | null;
-  x: number;
-  y: number;
-  startX: number;
-  startY: number;
-  moved: boolean;
-}
-
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, checkWord, stateKey = "tilegrid" }: PuzzleStageProps) {
   const data: TileGridPuzzleData | null = puzzle.type === "tilegrid" ? puzzle : null;
   /** Which tray tile sits in each cell, or null. */
@@ -86,17 +75,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   );
   const [verdicts, setVerdicts] = useState<Record<string, boolean>>({});
   const [flash, setFlash] = useState<Set<number>>(new Set());
-  const [drag, setDrag] = useState<Drag | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
-  const [highlight, setHighlight] = useState<number | null>(null);
   const [checking, setChecking] = useState(false);
   const submitted = useRef(false);
-  const board = useRef<HTMLDivElement | null>(null);
   const boardSpace = useRef<HTMLDivElement | null>(null);
-  const rack = useRef<HTMLDivElement | null>(null);
-  const root = useRef<HTMLDivElement | null>(null);
   const [cellSize, setCellSize] = useState(40);
-  useNoTouchScroll(root);
 
   useEffect(() => {
     const space = boardSpace.current;
@@ -159,12 +142,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
 
 
   const place = (tile: number, hit: number) => {
+    if (placed[hit] !== null) return;
     const from = placed.indexOf(tile);
     if (from === hit) return;
     const next = [...placed];
-    const other = next[hit] ?? null;
-    if (from >= 0) next[from] = other;
-    else if (other !== null) return;
+    if (from >= 0) next[from] = null;
     next[hit] = tile;
     hapticTick();
     setPlaced(next);
@@ -176,44 +158,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     const next = [...placed]; next[from] = null;
     setPlaced(next); setSelected(null); hapticTick();
   };
-  const begin = (event: React.PointerEvent, tile: number, from: number | null) => {
-    if (frozen) return;
-    event.preventDefault();
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // Capture is a nicety.
-    }
-    setDrag({ tile, from, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false });
-  };
-  const move = (event: React.PointerEvent) => {
-    if (!drag) return;
-    const moved = drag.moved || Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 6;
-    setHighlight(moved ? nearestGridCellAt(board.current, event.clientX, event.clientY, TG_SIZE, TG_SIZE) : null);
-    setDrag({ ...drag, x: event.clientX, y: event.clientY, moved });
-  };
-  const end = (event: React.PointerEvent) => {
-    if (!drag) return;
-    const d = drag;
-    setDrag(null);
-    setHighlight(null);
-    if (!d.moved) {
-      if (d.from !== null && selected !== null && selected !== d.tile) {
-        place(selected, d.from);
-        return;
-      }
-      setSelected((current) => current === d.tile ? null : d.tile);
-      return;
-    }
-    const bounds = rack.current?.getBoundingClientRect();
-    if (d.from !== null && bounds && event.clientX >= bounds.left && event.clientX <= bounds.right && event.clientY >= bounds.top && event.clientY <= bounds.bottom) {
-      returnToTray(d.tile);
-      return;
-    }
-    const hit = nearestGridCellAt(board.current, event.clientX, event.clientY, TG_SIZE, TG_SIZE);
-    if (hit !== null) place(d.tile, hit);
-  };
-
   const done = async () => {
     if (frozen || checking) return;
     setChecking(true);
@@ -237,62 +181,51 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   };
 
   return (
-    <div
-      ref={root}
-      className="flex min-h-0 flex-1 flex-col items-center gap-1"
-      style={NO_SCROLL_STYLE}
-      onPointerMove={move}
-      onPointerUp={end}
-      onPointerCancel={() => { setDrag(null); setHighlight(null); }}
-    >
+    <div className="flex min-h-0 flex-1 flex-col items-center gap-1">
       <div ref={boardSpace} className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
       <div
-        ref={board}
-        className="puzzle-board grid shrink-0 rounded-xl border-2 border-border bg-card p-1"
-        style={{ gridTemplateColumns: `repeat(${TG_SIZE}, ${cellSize}px)`, gap: GAP, ...NO_SCROLL_STYLE }}
+        className="grid shrink-0 rounded-xl border-2 border-border bg-card p-1"
+        style={{ gridTemplateColumns: `repeat(${TG_SIZE}, ${cellSize}px)`, gap: GAP }}
         aria-label="Tile Grid board"
       >
         {placed.map((tile, i) => {
           const letter = cells[i];
-          const dragging = drag?.moved && drag.from === i;
           return (
             <span
               key={i}
-              onPointerDown={tile !== null ? (e) => begin(e, tile, i) : undefined}
-              onClick={tile === null && selected !== null ? () => place(selected, i) : undefined}
+              onClick={() => {
+                if (frozen) return;
+                if (tile !== null) setSelected((current) => current === tile ? null : tile);
+                else if (selected !== null) place(selected, i);
+              }}
               className={`flex items-center justify-center rounded-md font-display text-xl font-bold transition-colors ${
-                highlight === i ? "bg-[#FFE600]/35 text-foreground" : letter && !dragging
+                letter
                   ? flash.has(i)
                     ? "bg-warn text-foreground"
                     : "bg-primary text-primary-foreground"
-                  : "bg-background/40"
+                  : selected !== null ? "bg-primary/15" : "bg-background/40"
               } ${selected === tile && tile !== null ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
               style={{
                 height: cellSize,
-                boxShadow: letter && !dragging && goodCells.has(i) ? "inset 0 -3px 0 var(--opponent)" : undefined,
+                boxShadow: letter && goodCells.has(i) ? "inset 0 -3px 0 var(--opponent)" : undefined,
               }}
             >
-              {dragging ? "" : letter}
+              {letter}
             </span>
           );
         })}
       </div>
       </div>
-      <div ref={rack} onPointerDownCapture={(event) => {
-        if (selected === null || placed.indexOf(selected) < 0) return;
-        event.preventDefault();
-        event.stopPropagation();
-        returnToTray(selected);
-      }} onClick={(event) => {
-        if (selected === null || event.target !== event.currentTarget) return;
+      <div onClick={(event) => {
+        if (selected === null || event.target !== event.currentTarget || placed.indexOf(selected) < 0) return;
         returnToTray(selected);
       }} className="flex h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5 [@media(max-height:700px)]:h-[102px]">
         {inTray.map((tile) => (
           <span
             key={tile}
-            onPointerDown={(e) => begin(e, tile, null)}
-            className={`flex items-center justify-center rounded-lg bg-primary font-display text-2xl font-bold text-primary-foreground ${drag?.tile === tile && drag.moved ? "opacity-30" : ""} ${selected === tile ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
-            style={{ width: TRAY_TILE, height: TRAY_TILE, ...NO_SCROLL_STYLE }}
+            onClick={() => { if (!frozen) setSelected((current) => current === tile ? null : tile); }}
+            className={`flex items-center justify-center rounded-lg bg-primary font-display text-2xl font-bold text-primary-foreground ${selected === tile ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
+            style={{ width: TRAY_TILE, height: TRAY_TILE }}
           >
             {tray[tile]}
           </span>
@@ -311,14 +244,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           Done
         </Button>
       </div>
-      {drag?.moved && (
-        <span
-          className="pointer-events-none fixed z-50 flex items-center justify-center rounded-lg bg-primary font-display text-2xl font-bold text-primary-foreground shadow-lg"
-          style={{ width: TRAY_TILE, height: TRAY_TILE, left: drag.x - TRAY_TILE / 2, top: drag.y - TRAY_TILE / 2 }}
-        >
-          {tray[drag.tile]}
-        </span>
-      )}
     </div>
   );
 }

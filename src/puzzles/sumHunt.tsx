@@ -7,7 +7,6 @@ import {
   hapticTick,
   useGridMetrics,
 } from "@/components/puzzles/GridDrag";
-import { Button } from "@/components/ui/button";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -56,7 +55,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const [paths, setPaths] = useStageState<number[][]>(stateKey, "sumPaths", () => []);
   const [path, setPath] = useState<number[]>([]);
   const dragging = useRef(false);
-  const repeatLast = useRef(false);
   const start = useRef<{ x: number; y: number } | null>(null);
   const [shake, setShake] = useState(false);
   const submitted = useRef(false);
@@ -89,6 +87,35 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const frozen = locked || submitted.current;
   const sum = pathSum(state.board, path);
 
+  const rejectPath = () => {
+    setPath([]);
+    playWrong();
+    setShake(true);
+    window.setTimeout(() => setShake(false), 380);
+  };
+  const submit = (drawn: number[]) => {
+    setPath([]);
+    dragging.current = false;
+    start.current = null;
+    if (drawn.length < 2 || frozen) return;
+    if (applySumPath(state, state.target, drawn, data.seed)) {
+      playCorrect();
+      setPaths([...paths, drawn]);
+      targetRef.current?.animate(
+        [{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }],
+        { duration: 320, easing: "ease-out" },
+      );
+      board.current?.animate([{ opacity: 0.6 }, { opacity: 1 }], { duration: 180 });
+    } else {
+      rejectPath();
+    }
+  };
+  const selectPath = (next: number[]) => {
+    const nextSum = pathSum(state.board, next);
+    if (next.length >= 2 && nextSum === state.target) submit(next);
+    else if (nextSum > state.target) rejectPath();
+    else setPath(next);
+  };
   const down = (event: React.PointerEvent) => {
     if (frozen) return;
     event.preventDefault();
@@ -103,20 +130,19 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     start.current = { x: event.clientX, y: event.clientY };
     dragging.current = false;
     const last = path[path.length - 1];
-    repeatLast.current = last === cell && path.length > 1;
-    if (repeatLast.current) return;
-    if (last === undefined || !touching(last, cell)) setPath([cell]);
-    else if (!path.includes(cell)) setPath([...path, cell]);
+    if (last === cell) return;
+    if (last === undefined || !touching(last, cell)) selectPath([cell]);
+    else if (!path.includes(cell)) selectPath([...path, cell]);
     else { start.current = null; return; }
   };
   const touching = (a: number, b: number) =>
-    a !== b && Math.abs(Math.floor(a / SH_SIZE) - Math.floor(b / SH_SIZE)) <= 1 && Math.abs(a % SH_SIZE - b % SH_SIZE) <= 1;
+    Math.abs(Math.floor(a / SH_SIZE) - Math.floor(b / SH_SIZE)) + Math.abs(a % SH_SIZE - b % SH_SIZE) === 1;
   const move = (event: React.PointerEvent) => {
     if (!path.length) return;
     if (start.current && Math.hypot(event.clientX - start.current.x, event.clientY - start.current.y) > 6) dragging.current = true;
     if (!dragging.current) return;
     const last = path[path.length - 1]!;
-    const cell = adjacentGridCellAt(board.current, event.clientX, event.clientY, SH_SIZE, SH_SIZE, last);
+    const cell = adjacentGridCellAt(board.current, event.clientX, event.clientY, SH_SIZE, SH_SIZE, last, true);
     if (cell === null) return;
     if (cell === path[path.length - 2]) {
       setPath(path.slice(0, -1));
@@ -124,29 +150,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     }
     if (!touching(last, cell) || path.includes(cell)) return;
     hapticTick();
-    setPath([...path, cell]);
-  };
-  const submit = (drawn: number[]) => {
-    setPath([]);
-    if (drawn.length < 2 || frozen) return;
-    if (applySumPath(state, state.target, drawn, data.seed)) {
-      playCorrect();
-      setPaths([...paths, drawn]);
-      targetRef.current?.animate(
-        [{ transform: "scale(1)" }, { transform: "scale(1.25)" }, { transform: "scale(1)" }],
-        { duration: 320, easing: "ease-out" },
-      );
-      board.current?.animate([{ opacity: 0.6 }, { opacity: 1 }], { duration: 180 });
-    } else {
-      playWrong();
-      setShake(true);
-      window.setTimeout(() => setShake(false), 380);
-    }
+    selectPath([...path, cell]);
   };
   const up = () => {
-    if (dragging.current || repeatLast.current) submit(path);
     dragging.current = false;
-    repeatLast.current = false;
     start.current = null;
   };
 
@@ -155,12 +162,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
 
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2" style={NO_SCROLL_STYLE}>
-      <div className="flex w-[min(100%,304px)] shrink-0 items-center justify-between gap-2 font-mono">
-        <Button type="button" variant="ghost" onClick={() => submit(path)} disabled={path.length < 2 || frozen}
-          className={`h-12 min-w-16 px-2 text-2xl font-bold ${sum === state.target && path.length > 1 ? "text-opponent" : "text-foreground"}`} aria-label="Submit path sum">
+      <div className="relative flex h-12 w-[min(100%,304px)] shrink-0 items-center justify-center font-mono">
+        <span className={`absolute left-2 text-2xl font-bold ${sum === state.target && path.length > 1 ? "text-opponent" : "text-foreground"}`} aria-label={`Running sum ${sum}`}>
           {sum}
-        </Button>
-        <span ref={targetRef} className="text-right text-xl font-bold text-primary" aria-label={`Target ${state.target}`}>
+        </span>
+        <span ref={targetRef} className="text-center text-xl font-bold text-primary" aria-label={`Target ${state.target}`}>
           {state.stage === SH_STAGES ? `Clear the grid: ${state.target}` : state.target}
         </span>
       </div>
@@ -170,7 +176,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           onPointerDown={down}
           onPointerMove={move}
           onPointerUp={up}
-          onPointerCancel={() => { dragging.current = false; repeatLast.current = false; start.current = null; }}
+          onPointerCancel={() => { dragging.current = false; start.current = null; }}
           className="puzzle-board grid rounded-xl border-2 border-border bg-card p-1"
           style={{ gridTemplateColumns: `repeat(${SH_SIZE}, ${CELL}px)`, gap: GAP, ...NO_SCROLL_STYLE }}
           aria-label="Sum Hunt board"
