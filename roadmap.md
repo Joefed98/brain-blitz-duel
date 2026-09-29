@@ -300,3 +300,7 @@
 - [x] Equation Balancing: 3/4/5-number stages, 60 s, 30/40/50 + time bonus
 - [x] Symbol Scan: 5×5/6×6/7×7, 45 s, 30/35/35 − 3 per wrong tap + bonus
 - [x] Count Up: 5×4/7×6/full grid, 45 s, exact/near-miss weights + bonus
+
+## New rounds (Sep 29)
+- [x] Whack-a-Target (attention, arcade engine, 30 s)
+- [x] Tents and Trees (logic, 7×7, 90 s, unique solution)
