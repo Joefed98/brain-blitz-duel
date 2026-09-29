@@ -226,13 +226,21 @@ export interface WordLadderPuzzleData {
 
 export type Operator = "+" | "-" | "×" | "÷";
 
-export interface EquationPuzzleData {
-  type: "equation";
+export interface EquationStage {
   numbers: number[];
   target: number;
-  /** The one operator pair that makes the equation true, left to right. */
-  operators: Operator[];
 }
+
+export interface EquationPuzzleData {
+  type: "equation";
+  /** Three equations of three, four and five numbers. */
+  stages: EquationStage[];
+  /** Server-side only until reveal: the one operator set per stage. */
+  operators?: Operator[][];
+}
+
+export const EQUATION_TIME_MS = 60_000;
+export const EQUATION_STAGE_POINTS = [30, 40, 50] as const;
 
 export type StroopColour =
   "RED" | "BLUE" | "GREEN" | "PURPLE" | "PINK" | "ORANGE" | "BROWN" | "YELLOW";
@@ -327,13 +335,19 @@ export const PATCOMP_TIME_MS = 30_000;
 /** The eight compass directions used by Symbol Scan. */
 export type ArrowDir = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
 
+export interface SymbolScanStage {
+  target: ArrowDir;
+  cols: number;
+  /** cols × cols cells, row-major. */
+  cells: ArrowDir[];
+}
+
 export interface SymbolScanPuzzleData {
   type: "symscan";
-  target: ArrowDir;
-  /** 49 cells, row-major, of a 7x7 grid. */
-  cells: ArrowDir[];
-  /** Indices of the cells matching the target. */
-  targets: number[];
+  /** Three grids: 5×5, 6×6 and 7×7. */
+  stages: SymbolScanStage[];
+  /** Server-side only until reveal: indices matching each stage's target. */
+  targets?: number[][];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -625,8 +639,10 @@ export const GONOGO_MAX_BONUS = 130;
 /** Symbol Scan: a 7x7 grid of arrows with 6-10 matching the target. */
 export const SYMSCAN_COLS = 7;
 export const SYMSCAN_CELLS = SYMSCAN_COLS * SYMSCAN_COLS;
-export const SYMSCAN_MIN_TARGETS = 6;
-export const SYMSCAN_MAX_TARGETS = 10;
+export const SYMSCAN_MIN_TARGETS = 5;
+export const SYMSCAN_MAX_TARGETS = 9;
+export const SYMSCAN_STAGE_COLS = [5, 6, 7] as const;
+export const SYMSCAN_TIME_MS = 45_000;
 
 /** Spot the Difference: two full 8x6 grids — every cell holds a shape. */
 export const SPOT_COLS = 8;
@@ -755,19 +771,29 @@ export interface CountUpShape {
   y: number;
 }
 
-export interface CountUpPuzzleData {
-  type: "countup";
+export interface CountUpStage {
+  cols: number;
+  rows: number;
   shapes: CountUpShape[];
   targetShape: GlyphShape;
   targetColour: GlyphColour;
-  /** Server-side only: how many shapes match the question. */
-  count?: number;
 }
+
+export interface CountUpPuzzleData {
+  type: "countup";
+  /** Three fields: 5×4, 7×6, then the full packed grid. */
+  stages: CountUpStage[];
+  /** Server-side only: how many shapes match each stage's question. */
+  counts?: number[];
+}
+
+export const COUNTUP_STAGE_SIZES: [number, number][] = [[5, 4], [7, 6], [8, 6]];
+export const STAGE_WEIGHTS_3 = [30, 35, 35] as const;
 
 /** The field fills a short phone's measured play area without cropping its edges. */
 export const COUNTUP_COLS = 8;
 export const COUNTUP_ROWS = 6;
-export const COUNTUP_TIME_MS = 20_000;
+export const COUNTUP_TIME_MS = 45_000;
 export const COUNTUP_MIN_SHAPES = COUNTUP_COLS * COUNTUP_ROWS;
 export const COUNTUP_MAX_SHAPES = COUNTUP_COLS * COUNTUP_ROWS;
 export const COUNTUP_MIN_COUNT = 6;
