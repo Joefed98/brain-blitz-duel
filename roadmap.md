@@ -313,3 +313,6 @@
 - [x] Sort Rush, Flip and Parry arcade games (200-run identity proofs passed)
 - [x] Junction and Ink Bridge arcade games (200-run identity proofs passed)
 - [x] Burst arcade game (200-run identity proof passed)
+
+- [x] Orbit and Swing arcade games (200/200 identity proof)
+- [ ] Swing: confirm scroll speed vs 2-per-metre cap (cap reached ~25 s at spec speed)

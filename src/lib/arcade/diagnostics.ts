@@ -32,6 +32,8 @@ import { parryCheckpoint } from "./parry";
 import { juncCheckpoint } from "./junction";
 import { inkCheckpoint } from "./inkBridge";
 import { burstCheckpoint } from "./burst";
+import { orbitCheckpoint } from "./orbit";
+import { swingCheckpoint } from "./swing";
 import type { InputDiag } from "./engine";
 
 export type ArcadeCounters = Record<string, number>;
@@ -64,6 +66,8 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   junction: juncCheckpoint,
   inkbridge: inkCheckpoint,
   burst: burstCheckpoint,
+  orbit: orbitCheckpoint,
+  swing: swingCheckpoint,
 };
 
 export const ARCADE_DIAG_KEYS: ReadonlySet<string> = new Set(Object.keys(SNAPSHOTS));

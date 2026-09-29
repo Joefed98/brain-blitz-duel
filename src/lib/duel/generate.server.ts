@@ -63,6 +63,8 @@ import {
   generateJunction,
   generateInkBridge,
   generateBurst,
+  generateOrbit,
+  generateSwing,
 } from "./arcade.server";
 import { generateTents } from "./tents.server";
 
@@ -139,6 +141,8 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "junction") return generateJunction();
   if (type === "inkbridge") return generateInkBridge();
   if (type === "burst") return generateBurst();
+  if (type === "orbit") return generateOrbit();
+  if (type === "swing") return generateSwing();
   if (type === "tents") return generateTents();
 
   return puzzleDef(type).generate();
