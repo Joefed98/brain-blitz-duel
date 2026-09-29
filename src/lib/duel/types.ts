@@ -66,7 +66,9 @@ export type PuzzleType =
   | "steady"
   | "slice"
   | "bubble"
-  | "beat";
+  | "beat"
+  | "whack"
+  | "tents";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -459,7 +461,9 @@ export type PuzzleData =
   | SteadyPuzzleData
   | SlicePuzzleData
   | BubblePuzzleData
-  | BeatPuzzleData;
+  | BeatPuzzleData
+  | WhackPuzzleData
+  | TentsPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "intro" | "puzzle" | "reveal" | "result" | "standings";
@@ -1820,6 +1824,28 @@ export interface SteadyPuzzleData {
 export const SLICE_TIME_MS = 63_000;
 export const BUBBLE_TIME_MS = 93_000;
 export const BEAT_TIME_MS = 63_000;
+
+/* ======================= Whack-a-Target / Tents ========================= */
+
+/** A fixed 30-second run on the arcade engine; the clock adds three of slack. */
+export const WHACK_TIME_MS = 33_000;
+export const TENTS_TIME_MS = 90_000;
+
+export interface WhackPuzzleData {
+  type: "whack";
+  /** Draws the whole pop schedule — identical for everyone. */
+  seed: number;
+}
+
+export interface TentsPuzzleData {
+  type: "tents";
+  size: number;
+  trees: number[];
+  rowCounts: number[];
+  colCounts: number[];
+  /** The unique tent layout — private until the reveal. */
+  solution?: number[];
+}
 
 export interface SlicePuzzleData {
   type: "slice";

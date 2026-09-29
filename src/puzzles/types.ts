@@ -98,6 +98,8 @@ export interface PuzzleDefinition {
   durationMs?: (puzzle: PuzzleData) => number;
   /** Heading shown above the answer reveal. Defaults to "The answer was". */
   revealHeading?: string;
+  /** True for a non-arcade-category type that runs on the arcade engine. */
+  arcadeRun?: boolean;
   /** False for types that are not on a countdown clock. */
   showTimer?: boolean;
   /** True for a type kept for practice only — never drawn in rooms. */

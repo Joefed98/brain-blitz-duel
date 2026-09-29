@@ -41,7 +41,7 @@ export function RoundIntro({
   const Example = puzzleDef(type).IntroExample;
   // Arcade phases carry 3 s of invisible slack; show the run length only.
   const seconds = Math.round(
-    (typeTimeLimitMs(type) - (puzzleDef(type).category === "arcade" ? 3000 : 0)) / 1000,
+    (typeTimeLimitMs(type) - (usesArcadeClock(type) ? 3000 : 0)) / 1000,
   );
   const twoPlayer = activeCount === 2;
 
