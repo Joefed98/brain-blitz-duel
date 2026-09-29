@@ -1,5 +1,13 @@
 # Roadmap
 
+## Four new round tunings (Sep 29)
+
+- [ ] Tile Grid: fit seven rows between HUD and tray; centre drag ghosts and snap by nearest cell centre.
+- [ ] Word Slide: five dictionary rows, five-to-eight shifts, live checks, scoring and reveal.
+- [ ] Sum Hunt: five-by-five diagonal paths, tap and drag, rising deterministic targets.
+- [ ] Balance: centred ghosts, generous peg zones and hanging weights.
+- [ ] Run code-level checks only; no browser tests.
+
 ## Three presentation fixes (Sep 26)
 
 - [x] Add a gold Wordsmith Submit control beside Undo and Shuffle without removing box-tap or Enter submission.
