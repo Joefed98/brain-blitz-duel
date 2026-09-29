@@ -18,6 +18,7 @@ import {
   replaySumHunt,
   SH_REVEAL_MS,
   SH_SIZE,
+  SH_STAGES,
   SH_TIME_MS,
   sumHuntText,
 } from "@/lib/duel/sumHunt";
@@ -75,10 +76,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
 
   useEffect(() => {
     if (!data || locked || submitted.current) return;
+    if (state?.stage === SH_STAGES + 1) {
+      submitted.current = true;
+      onSubmit(encoded);
+      return;
+    }
     if (now < phaseStartedAt + SH_TIME_MS - 400) return;
     submitted.current = true;
     onSubmit(encoded);
-  }, [now, phaseStartedAt, locked, data, encoded, onSubmit]);
+  }, [now, phaseStartedAt, locked, data, encoded, onSubmit, state?.stage]);
 
   if (!data || !state) return null;
   const frozen = locked || submitted.current;
@@ -127,7 +133,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     setPath([]);
     setFinger(null);
     if (drawn.length < 2 || frozen) return;
-    if (applySumPath(state, state.target, drawn)) {
+    if (applySumPath(state, state.target, drawn, data.seed)) {
       playCorrect();
       setPaths([...paths, drawn]);
       targetRef.current?.animate(
@@ -153,9 +159,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
 
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2" style={NO_SCROLL_STYLE}>
-      <span ref={targetRef} className="shrink-0 font-mono text-5xl font-bold leading-none text-primary">
-        {state.target}
-      </span>
+      <div className="flex w-[min(100%,304px)] shrink-0 items-center justify-between gap-2 font-mono">
+        <Button type="button" variant="ghost" onClick={() => submit(path)} disabled={path.length < 2 || frozen}
+          className={`h-12 min-w-16 px-2 text-2xl font-bold ${sum === state.target && path.length > 1 ? "text-opponent" : "text-foreground"}`} aria-label="Submit path sum">
+          {sum}
+        </Button>
+        <span ref={targetRef} className="text-right text-xl font-bold text-primary" aria-label={`Target ${state.target}`}>
+          {state.stage === SH_STAGES ? `Clear the grid: ${state.target}` : state.target}
+        </span>
+      </div>
       <div className={`relative shrink-0 ${shake ? "animate-shake" : ""}`}>
         <div
           ref={board}
@@ -191,31 +203,20 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           </svg>
         )}
       </div>
-      <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        points <span className="text-primary">{state.raw}</span> · paths {state.paths}
-      </p>
-      {finger && path.length > 0 && (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => { if (!dragging.current) submit(path); }}
-          className={`fixed z-50 rounded-full px-3 py-1 font-mono text-base font-bold shadow-lg ${sum === state.target ? "bg-opponent text-background" : "bg-card text-foreground"}`}
-          style={{ left: finger.x + 18, top: finger.y - 52 }}
-        >
-          {sum}
-        </Button>
-      )}
+      <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">Stage {state.stage} / {SH_STAGES} · {state.paths} paths</p>
     </div>
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "sumhunt") return null;
   const state = replaySumHunt(puzzle.seed, puzzle.target, decodeSumPaths(myAnswer ?? ""));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2">
       <p className={`text-center font-mono text-lg font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
-        {sumHuntText(state)}
+        {state.stage > SH_STAGES && myMsRemaining !== undefined
+          ? `Cleared the grid · ${((SH_TIME_MS - myMsRemaining) / 1000).toFixed(1)}s`
+          : sumHuntText(state)}
       </p>
       <p className="text-center text-sm text-muted-foreground">Target {state.target}</p>
       {state.reshuffles > 0 && (
@@ -233,7 +234,7 @@ export const sumHuntPuzzle: PuzzleDefinition = {
   category: "number",
   timeLimitMs: SH_TIME_MS,
   revealMs: SH_REVEAL_MS,
-  generate: () => ({ type: "sumhunt", seed: 12345, target: 10 }) satisfies SumHuntPuzzleData,
+  generate: () => ({ type: "sumhunt", seed: 12345, target: 11 }) satisfies SumHuntPuzzleData,
   check: () => false,
   revealHeading: "Your hunt",
   IntroExample,
