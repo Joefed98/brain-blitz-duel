@@ -125,14 +125,15 @@ export function pathSum(board: number[], path: number[]): number {
   return path.reduce((sum, cell) => sum + (board[cell] ?? 0), 0);
 }
 
-export function pathShapeValid(path: number[]): boolean {
-  if (path.length < 2 || path.length > 6 || new Set(path).size !== path.length) return false;
+export function pathShapeValid(path: number[], maxLength = 6): boolean {
+  if (path.length < 2 || path.length > maxLength || new Set(path).size !== path.length) return false;
   return path.every((cell, i) => cell >= 0 && cell < SH_CELLS && (i === 0 || neighbours(path[i - 1]!).includes(cell)));
 }
 
 /** Accepts one stage path and swaps in the next deterministic board. */
 export function applySumPath(state: SumHuntState, target: number, path: number[], seed: number): SumHuntState | null {
-  if (state.stage > SH_STAGES || target !== state.target || !pathShapeValid(path) || pathSum(state.board, path) !== target) return null;
+  const maxLength = state.stage === SH_STAGES ? SH_CELLS : 6;
+  if (state.stage > SH_STAGES || target !== state.target || !pathShapeValid(path, maxLength) || pathSum(state.board, path) !== target) return null;
   if (state.stage === SH_STAGES) {
     return path.length === SH_CELLS ? { ...state, board: Array(SH_CELLS).fill(0), stage: SH_STAGES + 1, paths: state.paths + 1 } : null;
   }
