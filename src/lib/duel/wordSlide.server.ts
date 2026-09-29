@@ -51,7 +51,7 @@ export function generateWordSlide(): WordSlidePuzzleData {
   ];
   return {
     type: "wordslide",
-    grid: shifts.reduce(applyShift, base),
+    grid: shifts.reduce((g, s) => applyShift(g, s), base),
     par: shifts.length,
     words: fallbackWords,
   };

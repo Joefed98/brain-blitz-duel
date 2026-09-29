@@ -216,9 +216,8 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
 /** round(100 × hits ÷ targets) − 10 per wrong tap, min 0; +50 perfect; cap 150. */
 export function whackScore(hits: number, total: number, wrong: number): number {
   if (total <= 0) return 0;
-  const base = Math.floor((200 * hits + total) / (2 * total));
-  let points = Math.max(0, base - 10 * wrong);
-  if (hits >= total && wrong === 0) points += 50;
+  const base = Math.round((150 * hits) / total);
+  const points = Math.max(0, base - 10 * wrong);
   return clampInt(points, 0, 150);
 }
 

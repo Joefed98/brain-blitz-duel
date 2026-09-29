@@ -20,8 +20,12 @@ export function shiftToken(shift: SlideShift): string {
   return `${shift.axis}${shift.index}${shift.dir > 0 ? "+" : "-"}`;
 }
 
-export function parseToken(token: string): SlideShift | "U" | "X" | null {
+export type SlideToken = SlideShift | "U" | "X" | { lock: number };
+
+export function parseToken(token: string): SlideToken | null {
   if (token === "U" || token === "X") return token;
+  const lock = /^L([0-4])$/.exec(token);
+  if (lock) return { lock: Number(lock[1]) };
   const match = /^([rc])([0-4])([+-])$/.exec(token);
   if (!match) return null;
   return { axis: match[1] as "r" | "c", index: Number(match[2]), dir: match[3] === "+" ? 1 : -1 };
@@ -35,9 +39,20 @@ export function decodeSlideTokens(raw: string): string[] {
     .filter((t) => parseToken(t) !== null);
 }
 
-/** Shift one row (right = +1) or column (down = +1) by one, with wrap-around. */
-export function applyShift(grid: string[], shift: SlideShift): string[] {
+/** Shift one row (right = +1) or column (down = +1) by one, with wrap-around.
+ * Locked rows never move; a column cycles only its unlocked cells. */
+export function applyShift(grid: string[], shift: SlideShift, locked: ReadonlySet<number> = new Set()): string[] {
   const next = [...grid];
+  if (shift.axis === "r" && locked.has(shift.index)) return next;
+  if (shift.axis === "c" && locked.size) {
+    const rows = Array.from({ length: WS_SIZE }, (_, r) => r).filter((r) => !locked.has(r));
+    const n = rows.length;
+    rows.forEach((r, k) => {
+      const from = rows[(k - shift.dir + n) % n]!;
+      next[r * WS_SIZE + shift.index] = grid[from * WS_SIZE + shift.index]!;
+    });
+    return next;
+  }
   for (let k = 0; k < WS_SIZE; k++) {
     const from = (k - shift.dir + WS_SIZE) % WS_SIZE;
     if (shift.axis === "r") next[shift.index * WS_SIZE + k] = grid[shift.index * WS_SIZE + from]!;
@@ -46,26 +61,43 @@ export function applyShift(grid: string[], shift: SlideShift): string[] {
   return next;
 }
 
-export function replayWordSlide(start: string[], tokens: string[]): { grid: string[]; moves: number } {
+/** "L2" toggles the lock on row 2 (free). Undo/Reset unlock any row whose letters change. */
+export function replayWordSlide(
+  start: string[],
+  tokens: string[],
+): { grid: string[]; moves: number; locked: number[] } {
   const history: string[][] = [start];
+  const locked = new Set<number>();
   let moves = 0;
+  const dropChanged = (before: string[], after: string[]) => {
+    for (const r of [...locked]) if (markedRowWord(before, r) !== markedRowWord(after, r)) locked.delete(r);
+  };
   for (const token of tokens) {
     const parsed = parseToken(token);
     if (!parsed) continue;
+    const current = history[history.length - 1]!;
     if (parsed === "U") {
       if (history.length > 1) history.pop();
+      dropChanged(current, history[history.length - 1]!);
       moves++;
       continue;
     }
     if (parsed === "X") {
       history.length = 1;
+      dropChanged(current, history[0]!);
       moves++;
       continue;
     }
-    history.push(applyShift(history[history.length - 1]!, parsed));
+    if ("lock" in parsed) {
+      if (locked.has(parsed.lock)) locked.delete(parsed.lock);
+      else locked.add(parsed.lock);
+      continue;
+    }
+    if (parsed.axis === "r" && locked.has(parsed.index)) continue;
+    history.push(applyShift(current, parsed, locked));
     moves++;
   }
-  return { grid: history[history.length - 1]!, moves };
+  return { grid: history[history.length - 1]!, moves, locked: [...locked].sort() };
 }
 
 export function markedRowWord(grid: string[], row: number): string {
