@@ -91,35 +91,6 @@ function shuffle<T>(items: T[], rng: { value: number }): T[] {
   return items;
 }
 
-function randomPath(length: number, rng: { value: number }): number[] | null {
-  for (let attempt = 0; attempt < 30; attempt++) {
-    const path = [drawInt(rng, 0, SH_CELLS - 1)];
-    while (path.length < length) {
-      const options = neighbours(path[path.length - 1]!).filter((cell) => !path.includes(cell));
-      if (!options.length) break;
-      path.push(options[drawInt(rng, 0, options.length - 1)]!);
-    }
-    if (path.length === length) return path;
-  }
-  return null;
-}
-
-function targetParts(target: number, length: number, rng: { value: number }): number[] | null {
-  const parts: number[] = [];
-  let remaining = target;
-  for (let i = 0; i < length - 1; i++) {
-    const left = length - i - 1;
-    const min = Math.max(1, remaining - 20 * left);
-    const max = Math.min(20, remaining - left);
-    if (min > max) return null;
-    const value = drawInt(rng, min, max);
-    parts.push(value);
-    remaining -= value;
-  }
-  parts.push(remaining);
-  return parts.every((value) => value >= 1 && value <= 20) ? parts : null;
-}
-
 /** A deterministic fresh board with exactly ten two-digit cells and 1–3 solutions. */
 export function sumHuntBoard(seed: number, stage: number, target: number): number[] {
   const rng = { value: (seed ^ Math.imul(stage + 1, 0x51ed270b)) | 0 };
