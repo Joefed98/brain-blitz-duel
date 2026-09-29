@@ -2,6 +2,8 @@ import {
   applySumPath,
   countValidPaths,
   initSumHunt,
+  SH_CELLS,
+  SH_SIZE,
   SH_STAGES,
   SH_TWO_DIGIT_CELLS,
   sumHuntBoard,
@@ -13,11 +15,11 @@ function fail(message: string): never {
 }
 
 function neighbours(cell: number): number[] {
-  const row = Math.floor(cell / 5);
-  const col = cell % 5;
+  const row = Math.floor(cell / SH_SIZE);
+  const col = cell % SH_SIZE;
   return [[row - 1, col], [row + 1, col], [row, col - 1], [row, col + 1]]
-    .filter(([r, c]) => r !== undefined && c !== undefined && r >= 0 && r < 5 && c >= 0 && c < 5)
-    .map(([r, c]) => (r ?? 0) * 5 + (c ?? 0));
+    .filter(([r, c]) => r !== undefined && c !== undefined && r >= 0 && r < SH_SIZE && c >= 0 && c < SH_SIZE)
+    .map(([r, c]) => (r ?? 0) * SH_SIZE + (c ?? 0));
 }
 
 function findPath(board: number[], target: number): number[] | null {
@@ -51,10 +53,10 @@ for (let seed = 1; seed <= 40; seed++) {
     if (!path) fail(`missing replay path ${seed}/${stage}`);
     state = applySumPath(state, state.target, path, seed) ?? fail(`replay rejected ${seed}/${stage}`);
   }
-  const snake = Array.from({ length: 25 }, (_, index) => {
-    const row = Math.floor(index / 5);
-    const col = index % 5;
-    return row * 5 + (row % 2 === 0 ? col : 4 - col);
+  const snake = Array.from({ length: SH_CELLS }, (_, index) => {
+    const row = Math.floor(index / SH_SIZE);
+    const col = index % SH_SIZE;
+    return row * SH_SIZE + (row % 2 === 0 ? col : SH_SIZE - 1 - col);
   });
   state = applySumPath(state, state.target, snake, seed) ?? fail(`final clear ${seed}`);
   if (state.stage !== SH_STAGES + 1) fail(`completion ${seed}`);

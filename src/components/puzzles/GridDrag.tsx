@@ -564,6 +564,19 @@ export function ArrowPad({
   const press = useRef(onPress);
   press.current = onPress;
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [joystick, setJoystick] = useState(false);
+  const [knob, setKnob] = useState({ x: 0, y: 0 });
+  const stickOrigin = useRef<{ x: number; y: number } | null>(null);
+  const stickLatched = useRef(false);
+  const stickDirection = useRef<"U" | "D" | "L" | "R" | null>(null);
+
+  useEffect(() => {
+    try {
+      setJoystick(window.localStorage.getItem("duelz-arrow-control") === "joystick");
+    } catch {
+      // Storage is optional; arrows remain the safe default.
+    }
+  }, []);
 
   const stop = useCallback(() => {
     if (timer.current !== null) {
@@ -573,6 +586,20 @@ export function ArrowPad({
   }, []);
 
   useEffect(() => stop, [stop]);
+
+  const setMode = useCallback((next: boolean) => {
+    stop();
+    stickOrigin.current = null;
+    stickLatched.current = false;
+    stickDirection.current = null;
+    setKnob({ x: 0, y: 0 });
+    setJoystick(next);
+    try {
+      window.localStorage.setItem("duelz-arrow-control", next ? "joystick" : "arrows");
+    } catch {
+      // The preference simply remains session-only when storage is unavailable.
+    }
+  }, [stop]);
 
   const start = useCallback(
     (dir: "U" | "D" | "L" | "R") => {
@@ -603,12 +630,79 @@ export function ArrowPad({
       {glyph}
     </button>
   );
+
+  const moveStick = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    const origin = stickOrigin.current;
+    if (!origin || disabled) return;
+    const rawX = event.clientX - origin.x;
+    const rawY = event.clientY - origin.y;
+    const distance = Math.hypot(rawX, rawY);
+    const visualScale = distance > 18 ? 18 / distance : 1;
+    setKnob({ x: rawX * visualScale, y: rawY * visualScale });
+    if (distance <= 18) {
+      stickLatched.current = false;
+      stickDirection.current = null;
+      stop();
+      return;
+    }
+    const direction: "U" | "D" | "L" | "R" = Math.abs(rawX) > Math.abs(rawY)
+      ? rawX > 0 ? "R" : "L"
+      : rawY > 0 ? "D" : "U";
+    if (stickLatched.current && (!repeatMs || stickDirection.current === direction)) return;
+    stickLatched.current = true;
+    stickDirection.current = direction;
+    stop();
+    press.current(direction);
+    if (repeatMs) timer.current = setInterval(() => press.current(direction), 180);
+  }, [disabled, repeatMs, stop]);
+
+  const releaseStick = useCallback(() => {
+    stickOrigin.current = null;
+    stickLatched.current = false;
+    stickDirection.current = null;
+    setKnob({ x: 0, y: 0 });
+    stop();
+  }, [stop]);
+
   return (
-    <div className="mx-auto flex h-[52px] shrink-0 items-center justify-center gap-4">
-      {button("L", "◀", "Left")}
-      {button("U", "▲", "Up")}
-      {button("D", "▼", "Down")}
-      {button("R", "▶", "Right")}
+    <div className="relative mx-auto flex h-[60px] w-full max-w-[343px] shrink-0 items-center justify-center">
+      {joystick ? (
+        <div
+          role="application"
+          aria-label="Directional joystick"
+          className="relative h-[60px] w-[60px] touch-none rounded-full border border-border bg-card"
+          onPointerDown={(event) => {
+            if (disabled) return;
+            event.preventDefault();
+            stickOrigin.current = { x: event.clientX, y: event.clientY };
+            try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* capture is optional */ }
+          }}
+          onPointerMove={moveStick}
+          onPointerUp={releaseStick}
+          onPointerCancel={releaseStick}
+        >
+          <span
+            className="pointer-events-none absolute left-1/2 top-1/2 h-6 w-6 rounded-full bg-primary transition-transform duration-75"
+            style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
+          />
+        </div>
+      ) : (
+        <div className="flex items-center justify-center gap-4">
+          {button("L", "◀", "Left")}
+          {button("U", "▲", "Up")}
+          {button("D", "▼", "Down")}
+          {button("R", "▶", "Right")}
+        </div>
+      )}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={joystick}
+        onClick={() => setMode(!joystick)}
+        className={`absolute right-0 h-7 rounded-full border px-2 font-mono text-[9px] uppercase ${joystick ? "border-primary bg-primary/20 text-primary" : "border-border bg-card text-muted-foreground"}`}
+      >
+        Joystick
+      </button>
     </div>
   );
 }

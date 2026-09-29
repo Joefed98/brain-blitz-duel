@@ -26,7 +26,7 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const CELL = 56;
+const CELL = 64;
 const GAP = 4;
 
 function IntroExample() {
