@@ -235,7 +235,8 @@ export function gradeSubmission(
       score = isCorrect
         ? scoreSolvedMoves(replay.moves, puzzle.par, ms, timeLimitMs)
         : Math.min(80, 20 * rows);
-      extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows };
+      extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows,
+        validRows: WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid) };
       break;
     }
     case "ladder": {

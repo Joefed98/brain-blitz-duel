@@ -1831,7 +1831,7 @@ export interface WordSlidePuzzleData {
   grid: string[];
   /** The number of scramble shifts — shown to the player as par. */
   par: number;
-  /** Server-side only until reveal: the three intended words for rows 1, 3, 5. */
+  /** Server-side only until reveal: the five intended words. */
   words?: string[];
 }
 
@@ -1841,7 +1841,7 @@ export interface SumHuntPuzzleData {
   type: "sumhunt";
   /** Draws the starting board and every column's falling digits. */
   seed: number;
-  /** The sum every path must hit, 10–15. */
+  /** Initial sum every path must hit, starting at 10. */
   target: number;
 }
 
