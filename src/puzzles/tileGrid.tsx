@@ -77,6 +77,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const [flash, setFlash] = useState<Set<number>>(new Set());
   const [selected, setSelected] = useState<number | null>(null);
   const [checking, setChecking] = useState(false);
+  const lastTap = useRef<{ tile: number; time: number } | null>(null);
   const submitted = useRef(false);
   const boardSpace = useRef<HTMLDivElement | null>(null);
   const [cellSize, setCellSize] = useState(40);
@@ -158,6 +159,19 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     const next = [...placed]; next[from] = null;
     setPlaced(next); setSelected(null); hapticTick();
   };
+  const clearAll = () => {
+    if (frozen) return;
+    setPlaced(Array.from({ length: TG_CELLS }, () => null));
+    setSelected(null);
+    hapticTick();
+  };
+  const tapPlaced = (tile: number) => {
+    const previous = lastTap.current;
+    const isDouble = previous?.tile === tile && Date.now() - previous.time < 350;
+    lastTap.current = isDouble ? null : { tile, time: Date.now() };
+    if (isDouble) returnToTray(tile);
+    else setSelected((current) => current === tile ? null : tile);
+  };
   const done = async () => {
     if (frozen || checking) return;
     setChecking(true);
@@ -195,7 +209,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
               key={i}
               onClick={() => {
                 if (frozen) return;
-                if (tile !== null) setSelected((current) => current === tile ? null : tile);
+                if (tile !== null) tapPlaced(tile);
                 else if (selected !== null) place(selected, i);
               }}
               className={`flex items-center justify-center rounded-md font-display text-xl font-bold transition-colors ${
@@ -237,9 +251,18 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         </span>
         <Button
           type="button"
+          variant="ghost"
+          disabled={frozen || placedCount(cells) === 0}
+          onClick={clearAll}
+          className="ml-auto h-11 w-24 font-display font-bold uppercase tracking-widest text-muted-foreground"
+        >
+          Clear
+        </Button>
+        <Button
+          type="button"
           disabled={frozen || checking}
           onClick={() => void done()}
-          className="ml-auto h-11 w-28 font-display font-bold uppercase tracking-widest"
+          className="h-11 w-28 font-display font-bold uppercase tracking-widest"
         >
           Done
         </Button>

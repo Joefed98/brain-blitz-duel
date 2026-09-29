@@ -8,7 +8,7 @@ import type { BalanceScale } from "./types";
 
 export const BAL_PEGS = 8;
 export const BAL_SCALES = 3;
-export const BAL_TIME_MS = 60_000;
+export const BAL_TIME_MS = 90_000;
 export const BAL_REVEAL_MS = 8_000;
 export const BAL_MAX_TILT = 12;
 
