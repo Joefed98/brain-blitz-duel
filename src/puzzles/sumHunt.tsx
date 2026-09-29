@@ -7,6 +7,7 @@ import {
   hapticTick,
   useGridMetrics,
 } from "@/components/puzzles/GridDrag";
+import { Button } from "@/components/ui/button";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -193,13 +194,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
         points <span className="text-primary">{state.raw}</span> · paths {state.paths}
       </p>
       {finger && path.length > 0 && (
-        <span
+        <Button
+          type="button"
+          variant="outline"
           onClick={() => { if (!dragging.current) submit(path); }}
           className={`fixed z-50 rounded-full px-3 py-1 font-mono text-base font-bold shadow-lg ${sum === state.target ? "bg-opponent text-background" : "bg-card text-foreground"}`}
           style={{ left: finger.x + 18, top: finger.y - 52 }}
         >
           {sum}
-        </span>
+        </Button>
       )}
     </div>
   );

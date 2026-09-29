@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { nearestGridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
+import { Button } from "@/components/ui/button";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -91,7 +92,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const board = useRef<HTMLDivElement | null>(null);
   const boardSpace = useRef<HTMLDivElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
-  const [cellSize, setCellSize] = useState(40);
+  const [cellSize, setCellSize] = useState(44);
   useNoTouchScroll(root);
 
   useEffect(() => {
@@ -272,14 +273,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           placed <span className="text-primary">{placedCount(cells)}</span> / {TG_TILES}
         </span>
-        <button
+        <Button
           type="button"
           disabled={frozen || checking}
           onClick={() => void done()}
-          className="ml-auto h-11 w-28 rounded-xl bg-primary font-display text-sm font-bold uppercase tracking-widest text-primary-foreground disabled:opacity-40"
+          className="ml-auto h-11 w-28 font-display font-bold uppercase tracking-widest"
         >
           Done
-        </button>
+        </Button>
       </div>
       {drag?.moved && (
         <span

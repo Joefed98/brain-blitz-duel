@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { gridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
+import { Button } from "@/components/ui/button";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useStageState } from "@/lib/duel/stageState";
 import type { WordSlidePuzzleData } from "@/lib/duel/types";
@@ -196,22 +197,22 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         Moves <span className="text-primary">{replay.moves}</span> (par {data.par})
       </p>
       <div className="flex shrink-0 gap-2">
-        <button
+        <Button
           type="button"
           disabled={frozen || replay.moves === 0}
           onPointerDown={() => push("U")}
           className="h-11 w-24 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
           Undo
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           disabled={frozen || replay.moves === 0}
           onPointerDown={() => push("X")}
           className="h-11 w-24 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
           Reset
-        </button>
+        </Button>
       </div>
     </div>
   );
