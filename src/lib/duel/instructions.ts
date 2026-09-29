@@ -33,8 +33,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   tilegrid: {
     goal: "Build a mini crossword from your tiles.",
     how: [
-      { action: "Tap a tile, then a cell, or drag it.", detail: "Every touching run must be a real word, and everything must connect." },
-      { action: "Tap a placed tile, then the rack", detail: "to return it." },
+      { action: "Tap a tile, then a cell.", detail: "Every touching run must be a real word, and everything must connect." },
+      { action: "Double-tap a placed tile", detail: "to take it back. Clear empties the grid." },
       { action: "Tap Done", detail: "to check — red runs need fixing." },
     ],
     score: "More tiles placed scores more; all twelve for the time bonus.",

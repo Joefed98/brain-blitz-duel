@@ -251,9 +251,18 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         </span>
         <Button
           type="button"
+          variant="ghost"
+          disabled={frozen || placedCount(cells) === 0}
+          onClick={clearAll}
+          className="ml-auto h-11 w-24 font-display font-bold uppercase tracking-widest text-muted-foreground"
+        >
+          Clear
+        </Button>
+        <Button
+          type="button"
           disabled={frozen || checking}
           onClick={() => void done()}
-          className="ml-auto h-11 w-28 font-display font-bold uppercase tracking-widest"
+          className="h-11 w-28 font-display font-bold uppercase tracking-widest"
         >
           Done
         </Button>
