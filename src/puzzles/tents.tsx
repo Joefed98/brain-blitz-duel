@@ -25,7 +25,7 @@ function TreeIcon() {
   );
 }
 
-function TentIcon({ colour = "var(--primary)" }: { colour?: string }) {
+function TentIcon({ colour = "var(--primary)" }: { colour?: string | undefined }) {
   return (
     <svg viewBox="0 0 20 20" className="h-3/4 w-3/4" aria-hidden="true">
       <polygon points="10,3 18,17 2,17" fill={colour} />
@@ -52,8 +52,8 @@ function Board({
   rowCounts: readonly number[];
   colCounts: readonly number[];
   marks: readonly Mark[];
-  tentColour?: (cell: number) => string;
-  onTap?: (cell: number) => void;
+  tentColour?: ((cell: number) => string) | undefined;
+  onTap?: ((cell: number) => void) | undefined;
   flash?: number | null;
   countSize?: number;
   gap?: number;
