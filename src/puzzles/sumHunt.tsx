@@ -95,6 +95,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   };
   const submit = (drawn: number[]) => {
     setPath([]);
+    dragging.current = false;
+    start.current = null;
     if (drawn.length < 2 || frozen) return;
     if (applySumPath(state, state.target, drawn, data.seed)) {
       playCorrect();
@@ -140,7 +142,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     if (start.current && Math.hypot(event.clientX - start.current.x, event.clientY - start.current.y) > 6) dragging.current = true;
     if (!dragging.current) return;
     const last = path[path.length - 1]!;
-    const cell = adjacentGridCellAt(board.current, event.clientX, event.clientY, SH_SIZE, SH_SIZE, last);
+    const cell = adjacentGridCellAt(board.current, event.clientX, event.clientY, SH_SIZE, SH_SIZE, last, true);
     if (cell === null) return;
     if (cell === path[path.length - 2]) {
       setPath(path.slice(0, -1));

@@ -51,7 +51,7 @@ function Beam({
   placement: Placement;
   spacing: number;
   onPegDown?: (event: React.PointerEvent, trayIndex: number) => void;
-  onPegTap?: (peg: number) => void;
+  onPegTap?: (event: React.PointerEvent, peg: number) => void;
   highlighted?: number | null;
   selected?: number | null;
   pegRefs?: React.MutableRefObject<(HTMLSpanElement | null)[]>;
@@ -90,8 +90,8 @@ function Beam({
             <span
               key={`target-${peg}`}
               ref={(element) => { if (pegRefs) pegRefs.current[peg] = element; }}
-              onClick={() => onPegTap?.(peg)}
-              className={`absolute z-0 rounded-md transition-colors ${highlighted === peg ? "bg-primary/35" : ""}`}
+              onPointerUp={(event) => onPegTap?.(event, peg)}
+              className={`absolute z-0 rounded-md transition-colors ${highlighted === peg || (selected !== null && !item) ? "bg-primary/35" : ""}`}
               style={{
                 width: Math.max(44, spacing + 24),
                 height: 64,
@@ -297,11 +297,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           ))}
         </div>, progressTarget,
       )}
-      <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+      <div className="relative min-h-0 w-full flex-1">
+        <div className="absolute left-1/2 top-1/2" style={{ transform: `translate(-50%, -${disc + 4}px)` }}>
         <Beam scale={scale} placement={placement} spacing={spacing} onPegDown={begin} pegRefs={pegs}
           selected={selected} highlighted={highlight} onPegTap={(peg) => {
-            if (selected !== null && !frozen && available(selected).includes(peg)) hang(selected, peg);
+            if (selected === null || frozen) return;
+            const measured = pegAt(pegs.current, peg.clientX, peg.clientY, available(selected));
+            if (measured !== null) hang(selected, measured);
           }} />
+        </div>
       </div>
       <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         scale {current + 1} / {BAL_SCALES}

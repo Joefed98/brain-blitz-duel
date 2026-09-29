@@ -56,7 +56,8 @@ function neighbours(cell: number): number[] {
   const r = Math.floor(cell / SH_SIZE);
   const c = cell % SH_SIZE;
   const out: number[] = [];
-  for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+  const directions: Array<[number, number]> = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  for (const [dr, dc] of directions) {
     if (r + dr >= 0 && r + dr < SH_SIZE && c + dc >= 0 && c + dc < SH_SIZE)
       out.push((r + dr) * SH_SIZE + c + dc);
   }
