@@ -677,6 +677,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "1 per shape; keep the base alive for the bonus.",
   },
+  rooftop: {
+    goal: "Run the rooftops — dodge, jump, slide, and grab the coins.",
+    how: [
+      { action: "Swipe left or right", detail: "to change lane." },
+      { action: "Swipe up to jump", detail: "a low barrier, down to slide under a high one." },
+      { action: "Everyone runs", detail: "the same course." },
+    ],
+    score: "2 per coin, +30 for surviving the minute.",
+  },
   tents: {
     goal: "Pitch one tent beside every tree.",
     how: [

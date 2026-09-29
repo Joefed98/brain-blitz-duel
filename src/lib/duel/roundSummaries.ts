@@ -89,6 +89,7 @@ import {
   TENTS_TIME_MS,
   WAVEFRONT_TIME_MS,
   BASTION_TIME_MS,
+  ROOFTOP_TIME_MS,
 } from "./types";
 
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
@@ -132,6 +133,7 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   tents: TENTS_TIME_MS,
   wavefront: WAVEFRONT_TIME_MS,
   bastion: BASTION_TIME_MS,
+  rooftop: ROOFTOP_TIME_MS,
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
@@ -1210,6 +1212,18 @@ const bastionSummary: SummaryBuilder = (result) => {
   };
 };
 
+const rooftopSummary: SummaryBuilder = (result) => {
+  const coins = Number(result.extra?.["coins"] ?? 0);
+  const total = Number(result.extra?.["totalCoins"] ?? 0);
+  const survived = result.extra?.["survived"] !== false;
+  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
+  const head = `${coins} / ${total} coins`;
+  return {
+    summary: survived ? `${head} · survived` : `${head} · crashed at ${ended.toFixed(1)}s`,
+    detail: ["Same course for everyone"],
+  };
+};
+
 const tentsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tents") return { summary: "—", detail: [] };
   const correct = Number(result.extra?.["correct"] ?? 0);
@@ -1313,6 +1327,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   whack: whackSummary,
   wavefront: wavefrontSummary,
   bastion: bastionSummary,
+  rooftop: rooftopSummary,
   tents: tentsSummary,
 };
 
@@ -1394,6 +1409,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   whack: () => null,
   wavefront: () => null,
   bastion: () => null,
+  rooftop: () => null,
   tents: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),

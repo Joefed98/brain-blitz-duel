@@ -1,5 +1,5 @@
 /**
- * Self-replay proof for all 18 arcade games. Each run drives the sim exactly the
+ * Self-replay proof for all 19 arcade games. Each run drives the sim exactly the
  * way the phone does — random candidate inputs (many deliberately out of range)
  * go through recordInput/recordTap, and the sim reads its input for each tick
  * from the recorded log only. The submitted string is that log, unmodified.
@@ -59,6 +59,8 @@ import { wavCheckpoint, wavefrontGame } from "@/lib/arcade/wavefront";
 import { basCheckpoint, bastionGame } from "@/lib/arcade/bastion";
 import { encodeWavefrontRun, replayWavefrontRun } from "@/lib/duel/wavefront";
 import { encodeBastionRun, replayBastionRun } from "@/lib/duel/bastion";
+import { roofCheckpoint, rooftopGame } from "@/lib/arcade/rooftop";
+import { encodeRooftopRun, replayRooftopRun } from "@/lib/duel/rooftop";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const RUNS = Number(process.argv[2] ?? 40);
@@ -246,6 +248,15 @@ const GAMES: Game[] = [
     rate: 300,
     encode: encodeBastionRun,
     replay: replayBastionRun,
+  },
+  {
+    key: "rooftop",
+    game: rooftopGame,
+    checkpoint: roofCheckpoint,
+    mode: "events",
+    rate: 60,
+    encode: encodeRooftopRun,
+    replay: replayRooftopRun,
   },
 ];
 
