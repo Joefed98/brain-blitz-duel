@@ -1,3 +1,4 @@
+import { Lock, LockOpen } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { gridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
@@ -31,14 +32,18 @@ function Board({
   good,
   boardRef,
   onPointerDown,
+  locked,
+  onLock,
 }: {
   grid: string[];
   cell: number;
   good: Set<number>;
   boardRef?: React.RefObject<HTMLDivElement | null>;
   onPointerDown?: (event: React.PointerEvent) => void;
+  locked?: Set<number>;
+  onLock?: (row: number) => void;
 }) {
-  return (
+  const board = (
     <div
       ref={boardRef}
       onPointerDown={onPointerDown}
@@ -48,7 +53,9 @@ function Board({
     >
       {grid.map((letter, i) => {
         const row = Math.floor(i / WS_SIZE);
-        const tone = good.has(row) ? "border-opponent bg-opponent/15" : "border-transparent bg-background/40";
+        const tone = locked?.has(row)
+          ? "border-primary bg-opponent/15"
+          : good.has(row) ? "border-opponent bg-opponent/15" : "border-transparent bg-background/40";
         return (
           <span
             key={i}
@@ -60,6 +67,31 @@ function Board({
           </span>
         );
       })}
+    </div>
+  );
+  if (!onLock) return board;
+  return (
+    <div className="flex shrink-0 items-start gap-1">
+      {board}
+      <div className="flex flex-col p-1.5" style={{ gap: GAP }}>
+        {Array.from({ length: WS_SIZE }, (_, row) => {
+          const isLocked = locked?.has(row) ?? false;
+          const can = isLocked || good.has(row);
+          return (
+            <button
+              key={row}
+              type="button"
+              aria-label={isLocked ? `Unlock row ${row + 1}` : `Lock row ${row + 1}`}
+              disabled={!can}
+              onClick={() => onLock(row)}
+              className={`flex w-9 items-center justify-center rounded-lg ${isLocked ? "bg-primary/20 text-primary" : "text-muted-foreground"} disabled:opacity-25`}
+              style={{ height: cell }}
+            >
+              {isLocked ? <Lock className="h-5 w-5" /> : <LockOpen className="h-5 w-5" />}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -103,6 +135,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
 
   const replay = useMemo(() => (data ? replayWordSlide(data.grid, tokens) : null), [data, tokens]);
   const encoded = tokens.join(",");
+  const lockedRows = new Set(replay?.locked ?? []);
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -147,6 +180,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     if (!shift || !board.current) return;
     const offset = -(CELL + GAP) * shift.dir;
     for (let k = 0; k < WS_SIZE; k++) {
+      if (shift.axis === "c" && lockedRows.has(k)) continue;
       const index = shift.axis === "r" ? shift.index * WS_SIZE + k : k * WS_SIZE + shift.index;
       const el = board.current.querySelector<HTMLElement>(`[data-cell="${index}"]`);
       const from = shift.axis === "r" ? `translateX(${offset}px)` : `translateY(${offset}px)`;
@@ -157,12 +191,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   if (!data || !replay) return null;
   const frozen = locked || submitted.current;
   const good = new Set(WS_MARKED_ROWS.filter((r, i) => verdicts[rowWords[i]!] === true));
-  const canUndo = tokens.reduce((depth, token) => token === "X" ? 0 : token === "U" ? Math.max(0, depth - 1) : depth + 1, 0) > 0;
+  const canUndo = tokens.reduce((depth, token) => token.startsWith("L") ? depth : token === "X" ? 0 : token === "U" ? Math.max(0, depth - 1) : depth + 1, 0) > 0;
 
   const push = (token: string) => {
     if (frozen) return;
     const parsed = parseToken(token);
-    if (parsed && typeof parsed === "object") lastShift.current = parsed;
+    if (parsed && typeof parsed === "object" && !("lock" in parsed)) {
+      if (parsed.axis === "r" && lockedRows.has(parsed.index)) return;
+      lastShift.current = parsed;
+    }
     hapticTick();
     setTokens([...tokens, token]);
   };
@@ -184,6 +221,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         Math.abs(dx) >= Math.abs(dy)
           ? { axis: "r", index: Math.floor(start / WS_SIZE), dir: dx > 0 ? 1 : -1 }
           : { axis: "c", index: start % WS_SIZE, dir: dy > 0 ? 1 : -1 };
+      if (shift.axis === "r" && lockedRows.has(shift.index)) return;
       push(shiftToken(shift));
       playCorrect();
     };
@@ -193,7 +231,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
 
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3" style={NO_SCROLL_STYLE}>
-      <Board grid={replay.grid} cell={CELL} good={good} boardRef={board} onPointerDown={onPointerDown} />
+      <Board grid={replay.grid} cell={CELL} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} onLock={(row) => push(`L${row}`)} />
       <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         Moves <span className="text-primary">{replay.moves}</span> (par {data.par})
       </p>
