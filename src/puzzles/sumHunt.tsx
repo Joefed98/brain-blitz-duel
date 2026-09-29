@@ -55,6 +55,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const [path, setPath] = useState<number[]>([]);
   const [finger, setFinger] = useState<{ x: number; y: number } | null>(null);
   const dragging = useRef(false);
+  const repeatLast = useRef(false);
   const start = useRef<{ x: number; y: number } | null>(null);
   const [shake, setShake] = useState(false);
   const submitted = useRef(false);
@@ -96,10 +97,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     start.current = { x: event.clientX, y: event.clientY };
     dragging.current = false;
     const last = path[path.length - 1];
-    if (last === cell && path.length > 1) {
-      submit(path);
-      return;
-    }
+    repeatLast.current = last === cell && path.length > 1;
+    if (repeatLast.current) return;
     if (last === undefined || !touching(last, cell)) setPath([cell]);
     else if (!path.includes(cell)) setPath([...path, cell]);
     setFinger({ x: event.clientX, y: event.clientY });
@@ -141,8 +140,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     }
   };
   const up = () => {
-    if (dragging.current) submit(path);
+    if (dragging.current || repeatLast.current) submit(path);
     dragging.current = false;
+    repeatLast.current = false;
     start.current = null;
   };
 
@@ -160,7 +160,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           onPointerDown={down}
           onPointerMove={move}
           onPointerUp={up}
-          onPointerCancel={() => { dragging.current = false; start.current = null; setFinger(null); }}
+          onPointerCancel={() => { dragging.current = false; repeatLast.current = false; start.current = null; setFinger(null); }}
           className="puzzle-board grid rounded-xl border-2 border-border bg-card p-1"
           style={{ gridTemplateColumns: `repeat(${SH_SIZE}, ${CELL}px)`, gap: GAP, ...NO_SCROLL_STYLE }}
           aria-label="Sum Hunt board"

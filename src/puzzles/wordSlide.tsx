@@ -110,7 +110,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const rowWords = replay ? WS_MARKED_ROWS.map((r) => markedRowWord(replay.grid, r)) : [];
   const rowKey = rowWords.join("|");
 
-  // Check the three marked rows on the server; lock the moment all read as words.
+  // Check all five rows on the server; lock the moment all read as words.
   useEffect(() => {
     if (!checkWord) return;
     for (const word of rowWords) {
