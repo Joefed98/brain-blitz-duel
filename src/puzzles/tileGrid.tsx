@@ -77,6 +77,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const [flash, setFlash] = useState<Set<number>>(new Set());
   const [selected, setSelected] = useState<number | null>(null);
   const [checking, setChecking] = useState(false);
+  const lastTap = useRef<{ tile: number; time: number } | null>(null);
   const submitted = useRef(false);
   const boardSpace = useRef<HTMLDivElement | null>(null);
   const [cellSize, setCellSize] = useState(40);
