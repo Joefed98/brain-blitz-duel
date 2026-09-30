@@ -1,6 +1,6 @@
 /**
  * Flip — a corridor runner. The runner runs on the floor or the ceiling; a tap
- * (k = 0) flips gravity and it arcs across in 14 ticks. Hazards sit on one
+ * (k = 0) flips gravity and it arcs across in 12 ticks. Hazards sit on one
  * surface at a time; the course is drawn at init and checked for survivability.
  */
 
@@ -22,14 +22,17 @@ export const FLIP_WORLD_W = 390;
 export const FLIP_WORLD_H = 620;
 export const FLIP_RUN_TICKS = 60 * TICKS_PER_SECOND;
 export const FLIP_INPUT_TAP = 0;
-export const FLIP_ARC_TICKS = 14;
+export const FLIP_ARC_TICKS = 12;
 /** The course check only flips after this long on a surface. */
-const SOLVER_LANDED = 20;
+const SOLVER_LANDED = 14;
 
-const SPEED_START = 819;
-const SPEED_STEP = 77;
+const SPEED_START = 1024;
+const SPEED_STEP = 90;
 const SPEED_STEP_TICKS = 3 * TICKS_PER_SECOND;
-const SPEED_CAP = 2048;
+const SPEED_CAP = 2304;
+/** After this, the gap between consecutive hazards never exceeds MAX_GAP_TICKS of travel. */
+const TIGHT_AFTER = 5 * TICKS_PER_SECOND;
+const MAX_GAP_TICKS = 45;
 const CLEAR_TICKS = 3 * TICKS_PER_SECOND;
 
 export const FLIP_FLOOR_Y = 440;
@@ -140,18 +143,24 @@ function buildCourse(seed: number): { segs: FlipSeg[]; rng: number } {
   };
 
   let x = X_AT[CLEAR_TICKS]!;
+  let lastEnd = x;
   while (x < end) {
     const speed = flipSpeed(tick);
     // Spacing scales with speed so flips stay as far apart in time as at the start.
-    const gap = Math.trunc(((33 + draw(88)) * FP * speed) / SPEED_START);
+    const tight = x >= X_AT[TIGHT_AFTER]!;
+    // Budget measured from the last hazard's end, so a skipped slot never widens the gap.
+    const budget = Math.max(speed * 4, speed * MAX_GAP_TICKS - (x - lastEnd) - speed * 2);
+    const gap = tight
+      ? Math.min(budget, speed * (FLIP_ARC_TICKS + SOLVER_LANDED + draw(MAX_GAP_TICKS - FLIP_ARC_TICKS - SOLVER_LANDED + 1)))
+      : Math.trunc(((33 + draw(88)) * FP * speed) / SPEED_START);
     const start = x + gap;
     if (start >= end) break;
     let accepted: FlipSeg[] = [];
     let result: { set: number[]; tick: number } | null = null;
     const afterTen = start >= X_AT[10 * TICKS_PER_SECOND]!;
-    const requireDecision = afterTen && decisionsAfterTen * 100 < (groupsAfterTen + 1) * 40;
-    for (let attempt = 0; attempt < 36 && !result; attempt++) {
-      const pattern = requireDecision ? 3 + draw(3) : draw(6);
+    const requireDecision = afterTen && decisionsAfterTen * 100 < (groupsAfterTen + 1) * 75;
+    for (let attempt = 0; attempt < 48 && !result; attempt++) {
+      const pattern = requireDecision && attempt < 40 ? 3 + draw(3) : draw(6);
       const side = draw(2);
       const len = Math.trunc(((40 + draw(120)) * FP * speed) / SPEED_START);
       let trial: FlipSeg[];
@@ -159,7 +168,7 @@ function buildCourse(seed: number): { segs: FlipSeg[]; rng: number } {
       if (pattern === 3) {
         // Overhang pair: block on one side, then soon after on the other — two quick flips.
         const len1 = (30 + draw(40)) * FP;
-        const between = speed * (FLIP_ARC_TICKS + SOLVER_LANDED + 4 + draw(20));
+        const between = speed * (FLIP_ARC_TICKS + SOLVER_LANDED + 4 + draw(12));
         trial = [
           { x0: start, x1: start + len1, side, kind: FLIP_OVERHANG, group: nextGroup, decision: FLIP_DECISION_OVERHANG },
           { x0: start + len1 + between, x1: start + len1 + between + len1, side: side ^ 1, kind: FLIP_OVERHANG, group: nextGroup, decision: FLIP_DECISION_OVERHANG },
@@ -192,8 +201,10 @@ function buildCourse(seed: number): { segs: FlipSeg[]; rng: number } {
       }
     }
     if (!result) {
-      result = advance(frontier, tick, start, []);
-      x = start;
+      // Nothing fitted: move on only a little so the following gap stays tight.
+      const step = tight ? x + speed * 6 : start;
+      result = advance(frontier, tick, step, []);
+      x = step;
     } else {
       segs.push(...accepted);
       group += 1;
@@ -202,12 +213,31 @@ function buildCourse(seed: number): { segs: FlipSeg[]; rng: number } {
         if (accepted[0]?.decision) decisionsAfterTen += 1;
       }
       x = accepted[accepted.length - 1]!.x1;
+      lastEnd = x;
     }
     frontier = result.set;
     tick = result.tick;
     if (tick >= FLIP_RUN_TICKS) break;
   }
   return { segs, rng };
+}
+
+/** Hazard statistics for reports: decision share after 10 s, hazards in a 10 s window, largest gap after 5 s (ticks). */
+export function flipCourseStats(seed: number) {
+  const course = buildCourse(seed);
+  const at = (sec: number) => X_AT[Math.min(FLIP_RUN_TICKS, sec * TICKS_PER_SECOND)]!;
+  const groupsIn = (a: number, b: number) =>
+    new Set(course.segs.filter((seg) => seg.x0 >= at(a) && seg.x0 < at(b)).map((seg) => seg.group)).size;
+  let maxGapTicks = 0;
+  for (let i = 1; i < course.segs.length; i++) {
+    const prev = course.segs[i - 1]!;
+    const seg = course.segs[i]!;
+    if (prev.x1 < at(5)) continue;
+    const t0 = X_AT.findIndex((v) => v >= prev.x1);
+    const t1 = X_AT.findIndex((v) => v >= seg.x0);
+    if (t0 >= 0 && t1 >= 0) maxGapTicks = Math.max(maxGapTicks, t1 - t0);
+  }
+  return { around30: groupsIn(25, 35), around60: groupsIn(50, 60), maxGapTicks };
 }
 
 export function flipDecisionShare(seed: number): { decisions: number; groups: number; share: number } {

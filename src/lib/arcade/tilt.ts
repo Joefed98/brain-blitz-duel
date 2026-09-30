@@ -36,7 +36,9 @@ const ANG_PER_PX = 91;
 const GRAVITY = 58;
 const SPEED_CAP = Math.trunc(3.6 * FP);
 export const TILT_MAX_MAZES = 10;
-const SIZES = [7, 9, 9, 11, 11, 13, 13, 13, 13, 13];
+/** Grid sizes per level: about 1.5× the wall segments of the previous layout (OLD_SIZES). */
+const SIZES = [9, 11, 11, 13, 13, 16, 16, 16, 16, 16];
+const OLD_SIZES = [7, 9, 9, 11, 11, 13, 13, 13, 13, 13];
 const MAZE_POINTS = 30;
 
 export const TILT_INPUT_RANGES: readonly InputRange[] = [
@@ -61,6 +63,8 @@ export interface Maze {
   start: number;
   exit: number;
   exitDir: number;
+  /** Ball radius in FP: 70% of the previous layout's ball. */
+  br: number;
 }
 
 function buildMaze(level: number, draw: (n: number) => number): Maze {
@@ -151,7 +155,9 @@ function buildMaze(level: number, draw: (n: number) => number): Maze {
     const count = Math.min(ends.length, Math.min(level, 4));
     for (let k = 0; k < count; k++) pits.push(ends.splice(draw(ends.length), 1)[0]!);
   }
-  return { n, cs, inside, wallR, wallD, pits, start, exit: far.c, exitDir: far.d };
+  const oldCs = Math.trunc(INNER / OLD_SIZES[Math.min(level, OLD_SIZES.length - 1)]!) * FP;
+  const br = Math.min(Math.trunc((oldCs * 21) / 100), Math.trunc((cs * 4) / 10));
+  return { n, cs, inside, wallR, wallD, pits, start, exit: far.c, exitDir: far.d, br };
 }
 
 function openNeighbour(n: number, inside: number[], wallR: number[], wallD: number[], c: number, d: number): number {
@@ -258,7 +264,7 @@ function step(state: TiltState, input: ArcadeInputEvent | null): TiltState {
     s.lastA = input.a;
   }
   const m = s.list[s.level]!;
-  const r = Math.trunc((m.cs * 3) / 10);
+  const r = m.br;
   s.vx += Math.trunc((GRAVITY * isin(s.angle)) / TRIG_ONE);
   s.vy += Math.trunc((GRAVITY * icos(s.angle)) / TRIG_ONE);
   s.vx = clampInt(s.vx - Math.trunc(s.vx / 64), -SPEED_CAP, SPEED_CAP);
@@ -448,7 +454,7 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
     ctx.fill();
   }
   ctx.strokeStyle = TILT_GOLD;
-  ctx.lineWidth = 3.6;
+  ctx.lineWidth = 3;
   ctx.lineCap = "round";
   ctx.beginPath();
   for (let c = 0; c < m.n * m.n; c++) {
@@ -474,7 +480,7 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
 
   const bx = state.x / FP - o;
   const by = state.y / FP - o;
-  const r = (m.cs * 3) / 10 / FP;
+  const r = m.br / FP;
   ctx.fillStyle = TILT_GOLD;
   for (let k = 3; k >= 1; k--) {
     ctx.globalAlpha = 0.1 * (4 - k);
