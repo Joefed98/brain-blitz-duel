@@ -1,9 +1,9 @@
 /**
- * Swing — a cavern swinger. The camera scrolls right; holding (k = 12, a = 1)
+ * Swing — a cavern swinger. The camera follows the figure; holding (k = 12, a = 1)
  * shoots a rope to the nearest anchor ahead within 220 px and the figure swings
  * on it as a pendulum (angle + angular velocity, integer maths); letting go
  * (a = 0) flies with the current velocity under gravity. The floor, the red
- * stalactites and being scrolled off the left edge end the run.
+ * stalactites end the run.
  */
 
 import {
@@ -30,15 +30,12 @@ const MAX_FALL = 12 * FP;
 const RADIUS = 10 * FP;
 const REACH = 220 * FP;
 const MIN_ROPE = 24 * FP;
-const SPEED_START = 614;
-const SPEED_STEP = 77;
-const SPEED_STEP_TICKS = 10 * TICKS_PER_SECOND;
 const START_X = 150 * FP;
-/** The camera never lets the figure get further right than this on screen. */
-const LEAD = 260 * FP;
+/** Follow in either direction while showing previously visited anchors. */
+const LEAD = 195 * FP;
 const METRE = 40 * FP;
 const COL = 40 * FP;
-const COURSE_LEN = 18000 * FP;
+const COURSE_LEN = 30000 * FP;
 const COLS = Math.trunc(COURSE_LEN / COL) + 2;
 const SPIKE_HALF = 16 * FP;
 const SPIKE_DEPTH = 56 * FP;
@@ -47,10 +44,6 @@ const SUB = 16;
 const TURN_SUB = 65536 * SUB;
 
 export const SWING_INPUT_RANGES: readonly InputRange[] = [inputRange(SWING_INPUT_HOLD, [0, 1])];
-
-export function swingSpeed(tick: number): number {
-  return SPEED_START + SPEED_STEP * Math.trunc(tick / SPEED_STEP_TICKS);
-}
 
 /* ================================ Course =============================== */
 
@@ -123,7 +116,7 @@ function nearestAhead(anchors: readonly Anchor[], b: Body, from: number): number
   for (let i = Math.max(0, from); i < anchors.length; i++) {
     const a = anchors[i]!;
     if (a.x - b.x > REACH) break;
-    if (a.x <= b.x) continue;
+    if (a.x <= b.x && from !== 0) continue;
     const dx = a.x - b.x;
     const dy = a.y - b.y;
     const d = dx * dx + dy * dy;
@@ -299,9 +292,9 @@ function step(state: SwingState, input: ArcadeInputEvent | null): SwingState {
     } else if (s.rope >= 0) detach(s, s.anchors[s.rope]!);
   }
   const dead = moveBody(s, s);
-  s.camX = Math.max(s.camX + swingSpeed(tick), s.x - LEAD);
+  s.camX = s.x - LEAD;
   if (s.x > s.maxX) s.maxX = s.x;
-  if (dead || s.x < s.camX - RADIUS) {
+  if (dead) {
     s.ended = 2;
     s.endedTick = tick;
   } else if (tick >= SWING_RUN_TICKS) {
@@ -316,9 +309,7 @@ export function swingMetres(s: SwingState): number {
 }
 
 function score(state: SwingState): number {
-  // floor(150 × (seconds survived ÷ 60)²); distance is for the reveal only.
-  const t = Math.min(state.tick, SWING_RUN_TICKS);
-  return clampInt(Math.floor((150 * t * t) / (SWING_RUN_TICKS * SWING_RUN_TICKS)), 0, 150);
+  return clampInt(Math.trunc(swingMetres(state) / 5), 0, 150);
 }
 
 export function swingExtra(s: SwingState) {
@@ -394,7 +385,7 @@ function draw(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize
   ctx.clip();
   const cam = state.camX / FP;
   const sx = (x: number) => x / FP - cam;
-  const first = Math.max(0, Math.trunc(state.camX / COL) - 1);
+  const first = clampInt(Math.trunc(state.camX / COL) - 1, 0, state.ceil.length - 2);
   const last = Math.min(state.ceil.length - 1, first + 12);
 
   // Rock above the ceiling and below the floor, jagged gold edges.
