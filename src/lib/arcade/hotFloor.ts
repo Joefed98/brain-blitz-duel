@@ -1,12 +1,9 @@
 /**
  * Hot Floor — a 6-wide climbing grid, pure survival. Swipes (k = 4, a =
  * direction) hop to the next tile in 8 ticks (one swipe queues during a hop).
- * A tile crumbles 60 ticks after it is left (tightening to 40 by the end);
- * brittle tiles 30 ticks after being stepped on. A new row scrolls in at the
- * top and the bottom row drops away every 90 ticks at the start, tightening to
- * every 48 by 60 s. Every row is built at init and a perfect-play timing check
- * (earliest arrival per tile against the scroll schedule) proves the course
- * survivable.
+ * Tiles crumble after leaving; seeded unstable tiles crack and fall on their
+ * own. Incoming and outgoing rows phase for 60 ticks. A time-expanded search
+ * verifies that a forward path lasts the entire round.
  */
 
 import {
@@ -37,10 +34,10 @@ const HOP_TICKS = 8;
 const CRUMBLE_LEAVE_START = 60;
 const CRUMBLE_LEAVE_END = 40;
 const CRACK_AT = 30;
-const BRITTLE_AFTER = 30;
-const BRITTLE_FROM = 20 * TICKS_PER_SECOND;
-const SCROLL_START = 90;
-const SCROLL_END = 48;
+const BRITTLE_AFTER = 45;
+const PHASE_TICKS = 60;
+const SCROLL_START = 72;
+const SCROLL_END = 36;
 const NEVER = 1 << 30;
 const START_COL = 2;
 const START_ROW = 1;
@@ -70,17 +67,67 @@ const TOTAL_ROWS = SCROLLS.length + HOT_ROWS;
 interface Course {
   dark: number[];
   brittle: number[];
+  unstableAt: number[];
   rng: number;
+  rerolls: number;
 }
 
 /** Tick the row first shows on screen. */
 function rowAppears(r: number): number {
-  return r < HOT_ROWS ? 0 : SCROLLS[r - HOT_ROWS]!;
+  return r < HOT_ROWS ? 0 : Math.max(0, SCROLLS[r - HOT_ROWS]! - PHASE_TICKS);
 }
 
 /** Tick the row drops off the bottom (the player must be off it by then). */
 function rowDrops(r: number): number {
-  return r < SCROLLS.length ? SCROLLS[r]! : NEVER;
+  return r < SCROLLS.length ? SCROLLS[r]! + PHASE_TICKS : NEVER;
+}
+
+function solid(course: Course, r: number, c: number, tick: number): boolean {
+  if (r < 0 || r >= TOTAL_ROWS || c < 0 || c >= HOT_COLS) return false;
+  const i = r * HOT_COLS + c;
+  return !course.dark[i] && tick >= rowAppears(r) && tick < rowDrops(r) && tick < course.unstableAt[i]!;
+}
+
+/** Forward-only time-expanded BFS: waiting, lateral hops and climbing. No tile
+ * is revisited, so every abandoned tile's leave-crumble deadline is respected. */
+function courseReachable(course: Course): boolean {
+  let frontier = new Set<number>([START_ROW * HOT_COLS + START_COL]);
+  const arrivals = new Map<number, Set<number>>();
+  for (let tick = 0; tick <= HOT_RUN_TICKS; tick++) {
+    const next = new Set<number>();
+    for (const i of frontier) {
+      const r = Math.trunc(i / HOT_COLS), c = i % HOT_COLS;
+      if (!solid(course, r, c, tick)) continue;
+      if (tick === HOT_RUN_TICKS) return true;
+      if (solid(course, r, c, tick + 1)) next.add(i);
+      for (const [nr, nc] of [[r + 1, c], [r, c - 1], [r, c + 1]]) {
+        if (!solid(course, nr, nc, tick + HOP_TICKS)) continue;
+        // Leave-crumble cannot catch a forward path; in-flight source remains
+        // available through departure, while the landing tile must be intact.
+        const target = nr * HOT_COLS + nc;
+        const at = tick + HOP_TICKS;
+        if (!arrivals.has(at)) arrivals.set(at, new Set());
+        arrivals.get(at)?.add(target);
+      }
+    }
+    for (const i of arrivals.get(tick + 1) ?? []) next.add(i);
+    arrivals.delete(tick + 1);
+    frontier = next;
+    if (!frontier.size && !arrivals.size) return false;
+  }
+  return false;
+}
+
+function localSafe(course: Course): boolean {
+  for (let r = HOT_ROWS; r < TOTAL_ROWS; r++) {
+    const appears = rowAppears(r);
+    if (appears > HOT_RUN_TICKS) break;
+    for (let c = 0; c < HOT_COLS; c++) {
+      if (!solid(course, r - 1, c, appears)) continue;
+      if (![c - 1, c, c + 1].some((n) => solid(course, r, n, appears + 30))) return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -125,13 +172,17 @@ function buildCourse(seed: number): Course {
     rng = res.state;
     return res.value;
   };
+  let rerolls = 0;
+  for (;;) {
   const dark: number[] = [];
   const brittle: number[] = [];
+  const unstableAt: number[] = [];
   const zeros = () => new Array<number>(HOT_COLS).fill(0);
   // Rows up to the start row are plain; the runner starts on it at tick 0.
   for (let r = 0; r <= START_ROW; r++) {
     dark.push(...zeros());
     brittle.push(...zeros());
+    unstableAt.push(...new Array<number>(HOT_COLS).fill(NEVER));
   }
   let prevArr = new Array<number>(HOT_COLS).fill(NEVER);
   prevArr[START_COL] = 0;
@@ -139,7 +190,7 @@ function buildCourse(seed: number): Course {
   let prevB = zeros();
   for (let r = START_ROW + 1; r < TOTAL_ROWS; r++) {
     const pct = r < 3 ? 0 : 15 + Math.trunc((20 * r) / TOTAL_ROWS);
-    const late = rowAppears(r) >= BRITTLE_FROM;
+    const late = r > START_ROW + 1;
     let row: { d: number[]; b: number[]; arr: number[] } | null = null;
     for (let attempt = 0; attempt < 30 && !row; attempt++) {
       const pctNow = attempt < 20 ? pct : 0;
@@ -156,25 +207,23 @@ function buildCourse(seed: number): Course {
     }
     dark.push(...row.d);
     brittle.push(...row.b);
+    unstableAt.push(...row.b.map((v) => v ? rowAppears(r) + BRITTLE_AFTER + draw(36) : NEVER));
     prevArr = row.arr;
     prevB = row.b;
   }
-  return { dark, brittle, rng };
+  const course = { dark, brittle, unstableAt, rng, rerolls };
+  if ((localSafe(course) && courseReachable(course)) || rerolls >= 30) return course;
+  rerolls++;
+  }
 }
 
 /** Test hook: re-runs the perfect-play timing check over a whole course. */
 export function hotfloorCourseSurvivable(seed: number): boolean {
   const c = buildCourse(seed);
-  let prevArr = new Array<number>(HOT_COLS).fill(NEVER);
-  prevArr[START_COL] = 0;
-  relaxRow(START_ROW, rowAt(c.dark, START_ROW), prevArr);
-  for (let r = START_ROW + 1; r < TOTAL_ROWS; r++) {
-    const b = rowAt(c.brittle, r);
-    prevArr = arrivals(r, rowAt(c.dark, r), prevArr, rowAt(c.brittle, r - 1));
-    if (!prevArr.some((t, k) => t < NEVER && !b[k])) return false;
-  }
-  return true;
+  return localSafe(c) && courseReachable(c);
 }
+
+export function hotfloorCourseRerolls(seed: number): number { return buildCourse(seed).rerolls; }
 
 /* ================================ State ================================ */
 
@@ -229,7 +278,7 @@ function startHop(s: HotFloorState, dir: number): void {
   const dr = dir === HOT_UP ? 1 : dir === HOT_DOWN ? -1 : 0;
   const col = s.col + dc;
   const row = s.row + dr;
-  if (col < 0 || col >= HOT_COLS || row < s.scrolled || row >= s.scrolled + HOT_ROWS || row >= TOTAL_ROWS) return;
+  if (col < 0 || col >= HOT_COLS || !solid(s.course, row, col, s.tick + HOP_TICKS)) return;
   const here = s.row * HOT_COLS + s.col;
   if (s.crumble === undefined) return;
   s.crumble = s.crumble.slice();
@@ -258,11 +307,7 @@ function step(state: HotFloorState, input: ArcadeInputEvent | null): HotFloorSta
     s.hopT -= 1;
     if (s.hopT === 0) {
       const i = s.row * HOT_COLS + s.col;
-      if (s.course.dark[i] || s.crumble[i]! <= tick) return die(), s;
-      if (s.course.brittle[i] && s.crumble[i] === NEVER) {
-        s.crumble = s.crumble.slice();
-        s.crumble[i] = tick + BRITTLE_AFTER;
-      }
+       if (!solid(s.course, s.row, s.col, tick) || s.crumble[i]! <= tick) return die(), s;
       if (s.queued >= 0) {
         const q = s.queued;
         s.queued = -1;
@@ -273,7 +318,7 @@ function step(state: HotFloorState, input: ArcadeInputEvent | null): HotFloorSta
   if (s.scrolled < SCROLLS.length && SCROLLS[s.scrolled] === tick) s.scrolled += 1;
   if (s.hopT === 0) {
     const i = s.row * HOT_COLS + s.col;
-    if (s.crumble[i]! <= tick || s.row < s.scrolled) return die(), s;
+     if (s.crumble[i]! <= tick || !solid(s.course, s.row, s.col, tick)) return die(), s;
   }
   if (tick >= HOT_RUN_TICKS) {
     s.ended = 1;
@@ -358,27 +403,32 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
   const { course } = state;
+  const phase = state.scrolled < SCROLLS.length ? Math.max(0, 1 - (SCROLLS[state.scrolled]! - state.tick) / PHASE_TICKS) : 0;
   const at = (r: number, c: number) => ({
     x: BOARD_X + c * TILE,
-    y: BOARD_Y + (HOT_ROWS - 1 - (r - state.scrolled)) * TILE,
+    y: BOARD_Y + (HOT_ROWS - 1 - (r - state.scrolled) + phase) * TILE,
   });
-  for (let r = state.scrolled; r < Math.min(TOTAL_ROWS, state.scrolled + HOT_ROWS); r++) {
+  for (let r = Math.max(0, state.scrolled - 1); r < Math.min(TOTAL_ROWS, state.scrolled + HOT_ROWS + 1); r++) {
     for (let c = 0; c < HOT_COLS; c++) {
       const i = r * HOT_COLS + c;
       if (course.dark[i]) continue;
-      const left = state.crumble[i]! - state.tick;
+       const left = Math.min(state.crumble[i]!, course.unstableAt[i]!) - state.tick;
       if (left <= 0) continue;
       const { x, y } = at(r, c);
+       if (y < BOARD_Y - TILE || y > BOARD_Y + HOT_ROWS * TILE) continue;
+       const fadeIn = Math.min(1, Math.max(0, (state.tick - rowAppears(r)) / PHASE_TICKS));
+       const fadeOut = Math.min(1, Math.max(0, (rowDrops(r) - state.tick) / PHASE_TICKS));
+       ctx.globalAlpha = Math.min(fadeIn, fadeOut);
       ctx.fillStyle = "#15151F";
       ctx.beginPath();
       ctx.roundRect(x + 3, y + 3, TILE - 6, TILE - 6, 8);
       ctx.fill();
       ctx.strokeStyle = course.brittle[i] ? HOT_TEAL : HOT_GOLD;
       ctx.lineWidth = course.brittle[i] ? 2.5 : 1;
-      ctx.globalAlpha = course.brittle[i] ? 1 : 0.6;
+       ctx.globalAlpha *= course.brittle[i] ? 1 : 0.6;
       ctx.stroke();
       ctx.globalAlpha = 1;
-      if (left <= CRACK_AT || (course.brittle[i] && left <= BRITTLE_AFTER / 2)) {
+       if (left <= CRACK_AT) {
         ctx.strokeStyle = HOT_RED;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
@@ -401,10 +451,6 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
   ctx.roundRect(rx - 10, ry - 15, 20, 30, 10);
   ctx.fill();
 
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "600 16px ui-monospace, monospace";
-  ctx.textAlign = "left";
-  ctx.fillText(`${(Math.min(state.tick, HOT_RUN_TICKS) / TICKS_PER_SECOND).toFixed(1)}s`, 14, 40);
   ctx.restore();
 }
 
