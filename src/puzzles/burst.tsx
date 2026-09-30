@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 
+import { BarOverlay } from "@/components/puzzles/BarOverlay";
+
 import {
   burstCheckpoint,
   burstGame,
+  BURST_BAR_H,
   BURST_BG,
   BURST_CHECKPOINT_INTERVAL,
   BURST_COLOURS,
@@ -86,7 +89,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   const arrowBtn =
-    "absolute bottom-3 flex h-[72px] w-[72px] select-none items-center justify-center rounded-2xl border-2 border-primary/70 bg-background/40 text-3xl text-primary active:bg-primary/30";
+    "flex h-12 w-12 select-none items-center justify-center rounded-xl border-2 border-primary/70 bg-background/40 text-2xl text-primary active:bg-primary/30";
+  /** FIRE presses wait here and go out on the next tick. */
+  const firePending = useRef(false);
+  const tickAll = (state: BurstState): PointerPayload | null => {
+    if (firePending.current) {
+      firePending.current = false;
+      return fire();
+    }
+    return tickInput(state);
+  };
 
   return (
     <ArcadeCanvasStage
@@ -102,7 +114,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       checkpoint={burstCheckpoint}
       interval={BURST_CHECKPOINT_INTERVAL}
       encodeRun={encodeBurstRun}
-      tickInput={tickInput}
+      tickInput={tickAll}
       pointer={(kind, x, y) => {
         if (kind === "down") {
           dragging.current = !arrowsRef.current && y >= BURST_DRAG_TOP;
@@ -125,14 +137,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             Arrows
           </button>
           {arrows && (
-            <>
-              <button type="button" aria-label="Move left" className={`${arrowBtn} left-3`} style={{ touchAction: "none" }} {...hold(-1)}>
+            <BarOverlay worldW={BURST_WORLD_W} worldH={BURST_WORLD_H} barH={BURST_BAR_H}>
+              <button type="button" aria-label="Move left" className={arrowBtn} style={{ touchAction: "none" }} {...hold(-1)}>
                 ◀
               </button>
-              <button type="button" aria-label="Move right" className={`${arrowBtn} right-3`} style={{ touchAction: "none" }} {...hold(1)}>
+              <button
+                type="button"
+                aria-label="Fire"
+                className="flex h-14 w-14 select-none items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground active:opacity-80"
+                style={{ touchAction: "none" }}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  firePending.current = true;
+                }}
+              >
+                FIRE
+              </button>
+              <button type="button" aria-label="Move right" className={arrowBtn} style={{ touchAction: "none" }} {...hold(1)}>
                 ▶
               </button>
-            </>
+            </BarOverlay>
           )}
         </>
       }
@@ -140,9 +164,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function burstLine(r: { wave: number; score: number; lives: number; survived: boolean; survivedSeconds: number }): string {
-  const head = `Wave ${Math.max(1, r.wave)} · ${r.score} points · ${r.lives} ${r.lives === 1 ? "life" : "lives"} left`;
-  return r.survived ? `${head} · survived` : `${head} · caught at ${r.survivedSeconds.toFixed(1)}s`;
+export function burstLine(r: { wave: number; score: number; hits: number; livesLost: number }): string {
+  return `Wave ${Math.max(1, r.wave)} · ${r.hits} popped · ${r.livesLost} ${r.livesLost === 1 ? "life" : "lives"} lost · ${r.score}`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

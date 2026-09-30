@@ -1293,9 +1293,12 @@ const junctionSummary: SummaryBuilder = (result) => {
 };
 
 const inkBridgeSummary: SummaryBuilder = (result) => {
-  const caught = Number(result.extra?.["caught"] ?? 0);
-  const total = Number(result.extra?.["total"] ?? 0);
-  return { summary: `${caught} / ${total} caught`, detail: ["Same drops for everyone"] };
+  const levels = Number(result.extra?.["levels"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? 10);
+  return {
+    summary: levels >= total ? `All ${total} · ${result.score}` : `Level ${levels} · ${result.score} points`,
+    detail: ["Same levels for everyone"],
+  };
 };
 
 const orbitSummary: SummaryBuilder = (result) => {
@@ -1345,12 +1348,10 @@ const hotFloorSummary: SummaryBuilder = (result) => {
 
 const burstSummary: SummaryBuilder = (result) => {
   const wave = Math.max(1, Number(result.extra?.["wave"] ?? 1));
-  const lives = Number(result.extra?.["lives"] ?? 0);
-  const survived = result.extra?.["survived"] !== false;
-  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
-  const head = `Wave ${wave} · ${result.score} points · ${lives} ${lives === 1 ? "life" : "lives"} left`;
+  const hits = Number(result.extra?.["hits"] ?? 0);
+  const lost = Number(result.extra?.["livesLost"] ?? 0);
   return {
-    summary: survived ? `${head} · survived` : `${head} · caught at ${ended.toFixed(1)}s`,
+    summary: `Wave ${wave} · ${hits} popped · ${lost} ${lost === 1 ? "life" : "lives"} lost · ${result.score}`,
     detail: ["Same waves for everyone"],
   };
 };

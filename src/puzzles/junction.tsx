@@ -5,7 +5,7 @@ import {
   JUNC_BG,
   JUNC_CAR_COLOURS,
   JUNC_CHECKPOINT_INTERVAL,
-  JUNC_GOLD,
+  JUNC_GREEN,
   JUNC_INPUT_TAP,
   JUNC_RED,
   JUNC_ROAD,
@@ -28,10 +28,10 @@ function IntroExample() {
         <rect x={72} y={14} width={10} height={18} rx={3} fill={JUNC_CAR_COLOURS[1]} />
         <rect x={34} y={66} width={18} height={10} rx={3} fill={JUNC_CAR_COLOURS[0]} />
         <rect x={12} y={66} width={18} height={10} rx={3} fill={JUNC_CAR_COLOURS[2]} />
-        <circle cx={62} cy={44} r={4} fill={JUNC_GOLD} />
+        <circle cx={62} cy={44} r={4} fill={JUNC_GREEN} />
         <circle cx={58} cy={88} r={4} fill={JUNC_RED} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Tap a road to switch its light.</p>
+      <p className="text-center text-xs text-muted-foreground">Tap the corner beside a road to switch its light.</p>
     </div>
   );
 }
@@ -54,7 +54,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       encodeRun={encodeJunctionRun}
       discrete
       inputKind={JUNC_INPUT_TAP}
-      pointer={(kind, x, y) => (kind === "down" ? { a: juncApproachAt(x, y), b: 0, c: 0 } : null)}
+      pointer={(kind, x, y) => {
+        if (kind !== "down") return null;
+        const ap = juncApproachAt(x, y);
+        return ap < 0 ? null : { a: ap, b: 0, c: 0 };
+      }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />

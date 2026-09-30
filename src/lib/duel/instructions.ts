@@ -714,27 +714,29 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   junction: {
     goal: "Keep the traffic moving without a crash.",
     how: [
-      { action: "Tap a road", detail: "to switch its light." },
+      { action: "Tap the black corner beside a road", detail: "to switch its light between red (stop) and green (go)." },
       { action: "Cars on red queue up", detail: "— and they don't wait forever." },
       { action: "Later,", detail: "some cars turn." },
     ],
-    score: "1 per car through, −1 per car that gives up, +30 for surviving the minute.",
+    score: "3 per car through, −1 per car that gives up, +40 for surviving the minute.",
   },
   inkbridge: {
-    goal: "Guide the falling balls into the bucket.",
+    goal: "Draw a path so the ball rolls into the bucket.",
     how: [
-      { action: "Draw lines", detail: "— the balls roll along them." },
-      { action: "Lines fade, ink is limited and refills,", detail: "and the bucket moves." },
+      { action: "Draw lines around the grey blocks,", detail: "then tap RELEASE." },
+      { action: "Ink is limited", detail: "— more each level." },
+      { action: "Three failed drops", detail: "and you're out." },
     ],
-    score: "Points for the share of balls you catch.",
+    score: "2 points × the level number for each level; finish all ten fast for the bonus.",
   },
   burst: {
     goal: "Pop every ball — big ones split into smaller ones.",
     how: [
-      { action: "Drag (or use the arrows) to move,", detail: "tap to fire straight up." },
+      { action: "Drag along the bottom bar (or use the arrows) to move,", detail: "tap the arena or FIRE to shoot straight up." },
+      { action: "Pop a purple ball and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
       { action: "Don't let a ball touch you", detail: "— three touches and you're out." },
     ],
-    score: "Points per hit, 15 per wave cleared.",
+    score: "3 per ball popped or split, −9 per life lost. Clear four waves without losing a life for 150.",
   },
   orbit: {
     goal: "Hop from planet to planet.",
