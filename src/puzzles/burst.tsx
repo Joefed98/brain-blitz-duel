@@ -8,11 +8,11 @@ import {
   BURST_BG,
   BURST_CHECKPOINT_INTERVAL,
   BURST_COLOURS,
+  BURST_FLOOR_Y,
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
   BURST_TEAL,
-  BURST_WORLD_H,
   BURST_WORLD_W,
   type BurstState,
 } from "@/lib/arcade/burst";
@@ -48,7 +48,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [arrows, setArrows] = useState(false);
   const arrowsRef = useRef(false);
   arrowsRef.current = arrows;
-  const dragging = useRef(false);
   const fireFlip = useRef(0);
   /** Arrow press/release waiting to be sent: −1/1 = head for a wall, 0 = stop here. */
   const arrowEdge = useRef<number | null>(null);
@@ -86,8 +85,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { k: BURST_INPUT_FIRE, a: 0, b: fireFlip.current, c: 0 };
   };
 
-  const arrowBtn =
-    "flex h-12 w-12 select-none items-center justify-center rounded-xl border-2 border-primary/70 bg-background/40 text-2xl text-primary active:bg-primary/30";
   /** FIRE presses wait here and go out on the next tick. */
   const firePending = useRef(false);
   const tickAll = (state: BurstState): PointerPayload | null => {
@@ -123,21 +120,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       enabled={data !== null}
       locked={locked}
       worldW={BURST_WORLD_W}
-      worldH={BURST_WORLD_H}
+      worldH={BURST_FLOOR_Y}
       game={burstGame}
       checkpoint={burstCheckpoint}
       interval={BURST_CHECKPOINT_INTERVAL}
       encodeRun={encodeBurstRun}
       tickInput={tickWithBar}
-      pointer={(kind, x, y) => {
-        if (kind === "down") {
-          dragging.current = false;
-          return fire();
-        }
-        if (!dragging.current) return null;
-        if (kind === "up") dragging.current = false;
-        return { k: BURST_INPUT_MOVE, a: x, b: 0, c: 0 };
-      }}
+      pointer={(kind) => kind === "down" ? fire() : null}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
       overlay={

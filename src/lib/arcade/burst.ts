@@ -435,9 +435,9 @@ export const BURST_TEAL = "#2ED3B7";
 export const BURST_COLOURS = ["#A970FF", "#4DA3FF", "#4BD66B", "#F5B82E"] as const;
 
 function draw(ctx: CanvasRenderingContext2D, state: BurstState, size: CanvasSize): void {
-  const scale = Math.min(size.width / BURST_WORLD_W, size.height / BURST_WORLD_H);
+  const scale = Math.min(size.width / BURST_WORLD_W, size.height / BURST_FLOOR_Y);
   const ox = (size.width - BURST_WORLD_W * scale) / 2;
-  const oy = (size.height - BURST_WORLD_H * scale) / 2;
+  const oy = (size.height - BURST_FLOOR_Y * scale) / 2;
   ctx.save();
   ctx.fillStyle = BURST_BG;
   ctx.fillRect(0, 0, size.width, size.height);

@@ -8,6 +8,9 @@ import {
   INK_GOLD,
   INK_GREY,
   INK_INPUT_RELEASE,
+  INK_INPUT_UNDO,
+  INK_INPUT_RESET,
+  INK_INPUT_DROP_AGAIN,
   INK_INPUT_STROKE,
   INK_STEP_PX,
   INK_TEAL,
@@ -17,6 +20,7 @@ import {
 import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
 import { INKBRIDGE_TIME_MS, type InkBridgePuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
+import { Button } from "@/components/ui/button";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -84,20 +88,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onSubmit={(answer) => onSubmit(answer)}
         onDraftAnswer={onDraftAnswer}
       />
-      <button
-        type="button"
-        disabled={locked}
-        className="h-12 shrink-0 select-none rounded-xl bg-primary text-base font-bold tracking-wide text-primary-foreground active:opacity-80 disabled:opacity-50"
-        style={{ touchAction: "none" }}
-        onPointerDown={(e) => {
-          e.preventDefault();
-          presses.current = (presses.current + 1) % 256;
-          pen.current = null;
-          queue({ k: INK_INPUT_RELEASE, a: presses.current, b: 0, c: 0 });
-        }}
-      >
-        RELEASE
-      </button>
+      <div className="flex h-12 shrink-0 gap-1.5">
+        {([ [INK_INPUT_UNDO, "UNDO"], [INK_INPUT_RESET, "RESET"], [INK_INPUT_RELEASE, "RELEASE"], [INK_INPUT_DROP_AGAIN, "DROP AGAIN"] ] as const).map(([k, label]) => (
+          <Button key={k} type="button" disabled={locked} variant={k === INK_INPUT_RELEASE ? "default" : "outline"} className="h-12 min-w-0 flex-1 px-1 text-xs font-bold" style={{ touchAction: "none" }} onPointerDown={(e) => {
+            e.preventDefault();
+            presses.current = (presses.current + 1) % 256;
+            pen.current = null;
+            queue({ k, a: presses.current, b: 0, c: 0 });
+          }}>{label}</Button>
+        ))}
+      </div>
     </div>
   );
 }
