@@ -100,7 +100,7 @@ function courseReachable(course: Course): boolean {
       if (!solid(course, r, c, tick)) continue;
       if (tick === HOT_RUN_TICKS) return true;
       if (solid(course, r, c, tick + 1)) next.add(i);
-      for (const [nr, nc] of [[r + 1, c], [r, c - 1], [r, c + 1]]) {
+      for (const [nr, nc] of [[r + 1, c], [r, c - 1], [r, c + 1]] as [number, number][]) {
         if (!solid(course, nr, nc, tick + HOP_TICKS)) continue;
         // Leave-crumble cannot catch a forward path; in-flight source remains
         // available through departure, while the landing tile must be intact.
