@@ -122,7 +122,9 @@ export function buildHotFloorStage(seed: number, stageIndex: number, attempt = 0
     rng = result.state;
     return result.value;
   };
-  const startCol = draw(HOT_COLS);
+  // Keep one column free on each side so every stage can show a distinct,
+  // tempting first step that is not part of the stored safe route.
+  const startCol = 1 + draw(HOT_COLS - 2);
   const columns = [startCol];
   for (let row = 1; row < HOT_ROWS; row++) {
     const previous = columns[row - 1]!;
@@ -156,12 +158,13 @@ export function buildHotFloorStage(seed: number, stageIndex: number, attempt = 0
   }
 
   // The direct upward line looks shorter, but one late tile expires just before arrival.
-  const decoyCol = start % HOT_COLS;
-  const decoy = Array.from({ length: HOT_ROWS }, (_, i) => (HOT_ROWS - 1 - i) * HOT_COLS + decoyCol);
+  const safeFirst = route[1]! % HOT_COLS;
+  const decoyCol = safeFirst >= startCol ? startCol - 1 : startCol + 1;
+  const decoy = [start, ...Array.from({ length: HOT_ROWS }, (_, i) => (HOT_ROWS - 1 - i) * HOT_COLS + decoyCol)];
   for (const cell of decoy) if (!routeSet.has(cell)) missing[cell] = 0;
-  const trapIndex = Math.max(2, decoy.findIndex((cell) => !routeSet.has(cell)));
-  const trap = decoy[Math.min(decoy.length - 2, trapIndex)]!;
-  if (!routeSet.has(trap)) deadlines[trap] = Math.max(1, trapIndex * HOP_TICKS - 1);
+  const trapIndex = decoy.findIndex((cell, index) => index > 0 && !routeSet.has(cell));
+  const trap = decoy[trapIndex]!;
+  deadlines[trap] = Math.max(1, trapIndex * HOP_TICKS - 1);
 
   let fingerprint = 0x811c9dc5;
   for (const value of [start, exit, ...missing, ...deadlines]) {
