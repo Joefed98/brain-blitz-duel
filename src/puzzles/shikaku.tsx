@@ -101,18 +101,12 @@ function Board({
 }
 
 function IntroExample() {
-  // A 4 × 3 grid: two 2 × 3 rectangles, each holding a 6.
-  const clues = [
-    { cell: 4, n: 6 },
-    { cell: 2, n: 6 },
-  ];
-  const rects = [
-    { r0: 0, c0: 0, r1: 2, c1: 1 },
-    { r0: 0, c0: 2, r1: 2, c1: 3 },
-  ];
+  // The real 9 × 9 board size, shown with one valid rectangle per row.
+  const clues = Array.from({ length: 9 }, (_, row) => ({ cell: row * 9 + (row % 2 ? 2 : 6), n: 9 }));
+  const rects = Array.from({ length: 9 }, (_, row) => ({ r0: row, c0: 0, r1: row, c1: 8 }));
   return (
-    <div style={{ width: 150 }}>
-      <Board size={4} rows={3} clues={clues} rects={rects} />
+    <div style={{ width: 180 }}>
+      <Board size={9} clues={clues} rects={rects} small />
     </div>
   );
 }
