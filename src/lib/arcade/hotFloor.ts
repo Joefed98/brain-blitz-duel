@@ -88,8 +88,7 @@ function solid(course: Course, r: number, c: number, tick: number): boolean {
   return !course.dark[i] && tick >= rowAppears(r) && tick < rowDrops(r) && tick < course.unstableAt[i]!;
 }
 
-/** Forward-only time-expanded BFS: waiting, lateral hops and climbing. No tile
- * is revisited, so every abandoned tile's leave-crumble deadline is respected. */
+/** Time-expanded reachability search: waiting, lateral hops and climbing. */
 function courseReachable(course: Course): boolean {
   let frontier = new Set<number>([START_ROW * HOT_COLS + START_COL]);
   const arrivals = new Map<number, Set<number>>();
@@ -102,8 +101,7 @@ function courseReachable(course: Course): boolean {
       if (solid(course, r, c, tick + 1)) next.add(i);
       for (const [nr, nc] of [[r + 1, c], [r, c - 1], [r, c + 1]] as [number, number][]) {
         if (!solid(course, nr, nc, tick + HOP_TICKS)) continue;
-        // Leave-crumble cannot catch a forward path; in-flight source remains
-        // available through departure, while the landing tile must be intact.
+        // The landing tile must be intact at arrival.
         const target = nr * HOT_COLS + nc;
         const at = tick + HOP_TICKS;
         if (!arrivals.has(at)) arrivals.set(at, new Set());
