@@ -77,7 +77,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         from.done = true;
         return { a: parrySwipePos(dx, dy), b: 0, c: 0 };
       }}
-      tickInput={() => {
+      tickInput={(state) => {
         const direction = step.current;
         step.current = null;
         if (direction === null) return null;
