@@ -5,7 +5,7 @@
  * 150 ticks without capture ends the run, as does a capture onto a red arc.
  * A release that misses planet n + 1 but is caught by n + 2 skips n + 1 (it
  * counts as passed). Capture rings shrink every ten planets (×0.8, floor 45%);
- * red arcs appear on planets 51–60 only. Reaching planet 60 ends the run with a
+ * red arcs appear on planets 31–40 only. Reaching planet 40 ends the run with a
  * time bonus. The course is built in full at init and every hop is checked to
  * have a safe release window.
  */
@@ -29,13 +29,13 @@ export const ORBIT_WORLD_W = 390;
 export const ORBIT_WORLD_H = 620;
 export const ORBIT_RUN_TICKS = 60 * TICKS_PER_SECOND;
 export const ORBIT_INPUT_TAP = 0;
-export const ORBIT_TOTAL = 60;
+export const ORBIT_TOTAL = 40;
 const SHIP_SPEED = 1152; // 4.5 px/tick
 const FLIGHT_MAX = 150;
 /** The current planet sits this far down the screen. */
 const VIEW_ANCHOR = 440 * FP;
 const VIEW_BELOW = (ORBIT_WORLD_H * FP) - VIEW_ANCHOR;
-const HAZARD_FROM = 51;
+const HAZARD_FROM = 31;
 const HAZARD_SPAN = ANG_QUARTER;
 /** Captures reach one planet past the next — a skip. */
 const LOOKAHEAD = 2;
@@ -62,7 +62,7 @@ export interface Planet {
 }
 
 /** Ring size in % for each band of ten planets (1–10, 11–20 …): ×0.8 per band, floor 45%. */
-const RING_BANDS = [100, 80, 64, 51, 45, 45];
+const RING_BANDS = [100, 80, 64, 51];
 const RING_BASE = 98;
 
 function planetShape(i: number) {
@@ -202,7 +202,7 @@ export interface OrbitState {
   releaseTick: number;
   releaseX: number;
   releaseY: number;
-  /** 1 once planet 60 is reached. */
+  /** 1 once planet 40 is reached. */
   finished: number;
   ended: number;
   endedTick: number;
@@ -305,9 +305,9 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
 }
 
 function score(state: OrbitState): number {
-  // 2 per planet passed (captured or skipped) + round(30 × ms left ÷ 60000) for finishing.
+  // 3 per planet passed (captured or skipped) + round(30 × ms left ÷ 60000) for finishing.
   const bonus = state.finished ? Math.round((30 * Math.max(0, ORBIT_RUN_TICKS - state.tick)) / ORBIT_RUN_TICKS) : 0;
-  return clampInt(2 * state.cur + bonus, 0, 150);
+  return clampInt(3 * state.cur + bonus, 0, 150);
 }
 
 export function orbitExtra(s: OrbitState) {
