@@ -18,7 +18,7 @@ import {
 /* ============================== Constants ============================== */
 
 export const PARRY_WORLD_W = 390;
-export const PARRY_WORLD_H = 620;
+export const PARRY_WORLD_H = 500;
 export const PARRY_RUN_TICKS = 60 * TICKS_PER_SECOND;
 export const PARRY_INPUT_SWIPE = 4;
 /** Sides and swipe directions share numbers: 0 left, 1 right, 2 up, 3 down. */
@@ -290,7 +290,7 @@ const CX = PARRY_WORLD_W / 2;
 const CY = PARRY_WORLD_H / 2;
 const SHIELD_R = 87.36;
 const DISC_R = 26;
-const START_R = 230;
+const START_R = 190;
 /** Angle each side's arrow flies in from (render only). */
 const SIDE_ANGLE = [Math.PI, 0, -Math.PI / 2, Math.PI / 2] as const;
 
