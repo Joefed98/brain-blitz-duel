@@ -204,7 +204,6 @@ function buildCourse(seed: number): Course {
   for (let x = START_X - 2800 * FP; x < START_X; x += 140 * FP) {
     course.anchors.push({ x, y: hangY(x, 110) });
   }
-  const startAnchor = course.anchors.length;
   course.anchors.push({ x: START_X + 70 * FP, y: hangY(START_X + 70 * FP, 110) });
   while (course.anchors[course.anchors.length - 1]!.x < COURSE_LEN - 600 * FP) {
     const prev = course.anchors[course.anchors.length - 1]!;
