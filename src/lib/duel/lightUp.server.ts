@@ -1,8 +1,7 @@
 /**
- * Server-only Light Up generator: 10–14 walls, a random valid bulb layout,
- * wall numbers derived from it, then numbers removed while the solver still
- * finds exactly one layout. Boards that are not unique even fully numbered
- * are re-rolled.
+ * Server-only Light Up generator: a 6×6 board with 8–10 walls, a random
+ * valid bulb layout, and every wall numbered from it. Boards the solver does
+ * not find exactly one layout for are re-rolled.
  */
 
 import { randInt, shuffled } from "./random";
@@ -17,8 +16,8 @@ import type { LightUpPuzzleData } from "./types";
 
 export function generateLightUp(): LightUpPuzzleData {
   const size = LIGHTUP_SIZE;
-  for (let attempt = 0; attempt < 5000; attempt++) {
-    const walls = shuffled([...Array(size * size).keys()]).slice(0, randInt(10, 14));
+  for (let attempt = 0; attempt < 20000; attempt++) {
+    const walls = shuffled([...Array(size * size).keys()]).slice(0, randInt(8, 10));
     const wallSet = new Set(walls);
     const lit = new Set<number>();
     const bulbs: number[] = [];
@@ -31,13 +30,7 @@ export function generateLightUp(): LightUpPuzzleData {
     const full = walls.map((wall) => orth(wall, size).filter((cell) => bulbSet.has(cell)).length);
     const board: LightUpBoard = { size, walls, wallNumbers: full };
     if (countLightUpSolutions(board, 2) !== 1) continue;
-    // Drop numbers while the answer stays unique.
-    const numbers = [...full];
-    for (const i of shuffled([...walls.keys()])) {
-      const saved = numbers[i]!;
-      numbers[i] = -1;
-      if (countLightUpSolutions({ size, walls, wallNumbers: numbers }, 2) !== 1) numbers[i] = saved;
-    }
+    const numbers = full;
     const sorted = walls.map((wall, i) => ({ wall, n: numbers[i]! })).sort((a, b) => a.wall - b.wall);
     return {
       type: "lightup",

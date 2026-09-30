@@ -1,6 +1,7 @@
 /**
- * Server-only Shikaku generator: a random partition into 9–11 rectangles
- * (areas 2–9, at most one 1×1), one clue per rectangle, and the solver must
+ * Server-only Shikaku generator: an 8×8 partition into 12–14 rectangles (at
+ * most one 1×1, at most two of area 2, at least three of area 6+ whose number
+ * sits away from the centre), one clue per rectangle, and the solver must
  * find exactly one partition — otherwise the board is re-rolled.
  */
 
@@ -15,11 +16,14 @@ import {
 } from "./shikaku";
 import type { ShikakuPuzzleData } from "./types";
 
+const MAX_AREA = 12;
+
 function tryPartition(): ShikakuRect[] | null {
   const size = SHIKAKU_SIZE;
   const used = new Array<boolean>(size * size).fill(false);
   const rects: ShikakuRect[] = [];
   let ones = 0;
+  let twos = 0;
   for (;;) {
     const first = used.indexOf(false);
     if (first < 0) break;
@@ -35,26 +39,44 @@ function tryPartition(): ShikakuRect[] | null {
         }
         const rect = { r0, c0, r1, c1 };
         const area = rectArea(rect);
-        if (area <= 9 && (area >= 2 || ones === 0)) options.push(rect);
+        if (area > MAX_AREA) continue;
+        if (area === 1 && ones >= 1) continue;
+        if (area === 2 && twos >= 2) continue;
+        options.push(rect);
       }
       if (maxC < c0) break;
     }
     if (!options.length) return null;
-    // Favour bigger pieces so the count lands in 9–11.
     const big = options.filter((rect) => rectArea(rect) >= 4);
     const rect = big.length && randInt(0, 3) > 0 ? pick(big) : pick(options);
     if (rectArea(rect) === 1) ones += 1;
+    if (rectArea(rect) === 2) twos += 1;
     for (const cell of rectCells(rect)) used[cell] = true;
     rects.push(rect);
   }
   return rects;
 }
 
+/** Clue cell: for area 6+, any cell except the central one(s). */
+function clueCell(rect: ShikakuRect): number {
+  const cells = rectCells(rect);
+  if (rectArea(rect) < 6) return pick(cells);
+  const cr = (rect.r0 + rect.r1) / 2;
+  const cc = (rect.c0 + rect.c1) / 2;
+  const away = cells.filter((cell) => {
+    const r = Math.floor(cell / SHIKAKU_SIZE);
+    const c = cell % SHIKAKU_SIZE;
+    return Math.abs(r - cr) + Math.abs(c - cc) > 1;
+  });
+  return pick(away.length ? away : cells);
+}
+
 export function generateShikaku(): ShikakuPuzzleData {
-  for (let attempt = 0; attempt < 20000; attempt++) {
+  for (let attempt = 0; attempt < 50000; attempt++) {
     const rects = tryPartition();
-    if (!rects || rects.length < 9 || rects.length > 11) continue;
-    const clues: ShikakuClue[] = rects.map((rect) => ({ cell: pick(rectCells(rect)), n: rectArea(rect) }));
+    if (!rects || rects.length < 12 || rects.length > 14) continue;
+    if (rects.filter((rect) => rectArea(rect) >= 6).length < 3) continue;
+    const clues: ShikakuClue[] = rects.map((rect) => ({ cell: clueCell(rect), n: rectArea(rect) }));
     if (countShikakuSolutions(clues, 2) !== 1) continue;
     return {
       type: "shikaku",

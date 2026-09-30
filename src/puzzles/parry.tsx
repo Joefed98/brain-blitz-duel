@@ -5,15 +5,12 @@ import {
   parryGame,
   PARRY_BG,
   PARRY_CHECKPOINT_INTERVAL,
-  PARRY_DOWN,
   PARRY_GOLD,
   PARRY_INPUT_SWIPE,
-  PARRY_LEFT,
   PARRY_RED,
-  PARRY_RIGHT,
   PARRY_SWIPE_PX,
   PARRY_TEAL,
-  PARRY_UP,
+  parrySwipePos,
   PARRY_WORLD_H,
   PARRY_WORLD_W,
 } from "@/lib/arcade/parry";
@@ -28,12 +25,18 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <svg viewBox="0 0 168 130" width={168} height={130} aria-hidden="true" style={{ background: PARRY_BG, borderRadius: 10 }}>
-        <circle cx={84} cy={65} r={20} fill="none" stroke={PARRY_GOLD} strokeWidth={4} />
-        <circle cx={84} cy={65} r={30} fill="none" stroke={PARRY_GOLD} strokeOpacity={0.25} strokeWidth={2} />
-        <line x1={20} y1={65} x2={46} y2={65} stroke={PARRY_TEAL} strokeWidth={3} />
-        <polygon points="54,65 46,60 46,70" fill={PARRY_RED} />
+        <circle cx={84} cy={65} r={26} fill="none" stroke={PARRY_GOLD} strokeOpacity={0.2} strokeWidth={2} />
+        <line x1={84} y1={65} x2={65.6} y2={46.6} stroke={PARRY_GOLD} strokeOpacity={0.6} strokeWidth={2} />
+        <circle cx={84} cy={65} r={3} fill={PARRY_GOLD} />
+        <circle cx={65.6} cy={46.6} r={12} fill={PARRY_GOLD} />
+        <line x1={8} y1={65} x2={36} y2={65} stroke={PARRY_TEAL} strokeWidth={3} />
+        <polygon points="44,65 36,60 36,70" fill={PARRY_RED} />
+        <line x1={84} y1={126} x2={84} y2={104} stroke={PARRY_TEAL} strokeWidth={3} />
+        <polygon points="84,96 79,104 89,104" fill={PARRY_RED} />
+        <line x1={84} y1={4} x2={84} y2={26} stroke={PARRY_TEAL} strokeWidth={3} />
+        <polygon points="84,34 79,26 89,26" fill={PARRY_RED} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Swipe left, just before it lands.</p>
+      <p className="text-center text-xs text-muted-foreground">Swiped up-left: blocks arrows from the left and the top.</p>
     </div>
   );
 }
@@ -68,8 +71,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const dy = y - from.y;
         if (Math.max(Math.abs(dx), Math.abs(dy)) < PARRY_SWIPE_PX) return null;
         from.done = true;
-        const dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? PARRY_LEFT : PARRY_RIGHT) : dy < 0 ? PARRY_UP : PARRY_DOWN;
-        return { a: dir, b: 0, c: 0 };
+        return { a: parrySwipePos(dx, dy), b: 0, c: 0 };
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
@@ -77,9 +79,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function parryLine(r: { deflected: number; total: number; hits: number; survived: boolean; survivedSeconds: number }): string {
-  const head = `${r.deflected} / ${r.total} deflected · ${r.hits} ${r.hits === 1 ? "hit" : "hits"}`;
-  return r.survived ? `${head} · survived` : `${head} · fell at ${r.survivedSeconds.toFixed(1)}s`;
+export function parryLine(r: { hits: number; survived: boolean; survivedSeconds: number; score: number }): string {
+  const head = r.survived ? "Survived the minute" : `Survived ${r.survivedSeconds.toFixed(1)}s`;
+  return `${head} · ${r.hits} ${r.hits === 1 ? "life" : "lives"} lost · ${r.score}`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

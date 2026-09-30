@@ -703,13 +703,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "The longer you last, the more you score — the full minute is 150.",
   },
   parry: {
-    goal: "Deflect every arrow.",
+    goal: "Block every arrow with the gong shield.",
     how: [
-      { action: "Swipe toward an arrow", detail: "just before it lands." },
-      { action: "Later they come in pairs", detail: "and some swerve at the last moment." },
-      { action: "Three hits", detail: "and you're out." },
+      { action: "Swipe in any of eight directions", detail: "to swing the shield there." },
+      { action: "A diagonal blocks both neighbours", detail: "— at 1:30 it covers the top and the right." },
+      { action: "Later they come in pairs", detail: "and some swerve at the last moment. Three hits and you're out." },
     ],
-    score: "Points for the share you deflect.",
+    score: "The longer you last, the more you score; −15 per life lost.",
   },
   junction: {
     goal: "Keep the traffic moving without a crash.",
@@ -781,10 +781,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Solve it fast for the bonus.",
   },
   lightup: {
-    goal: "Light every square.",
+    goal: "Place bulbs so every white square is lit.",
     how: [
-      { action: "Tap to place a bulb", detail: "— it lights its row and column up to a wall." },
-      { action: "Bulbs can't shine on each other,", detail: "and a numbered wall needs that many bulbs beside it." },
+      { action: "A bulb lights everything in its row and column", detail: "until it hits a black wall." },
+      { action: "Bulbs must never shine on each other.", detail: "" },
+      { action: "A number on a wall", detail: "says exactly how many bulbs touch that wall's sides." },
     ],
     score: "Solve it fast for the bonus.",
   },

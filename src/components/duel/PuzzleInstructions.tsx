@@ -45,6 +45,16 @@ export function PuzzleInstructions({ type, overlay = false }: PuzzleInstructions
   );
 }
 
+/** Puzzles whose "?" card repeats the intro's worked example. */
+function HelpExample({ type }: { type: PuzzleType }) {
+  const Example = puzzleDef(type).IntroExample;
+  return (
+    <div className="mt-3 flex justify-center">
+      <Example />
+    </div>
+  );
+}
+
 interface PuzzleHelpProps {
   type: PuzzleType;
   open: boolean;
@@ -76,6 +86,7 @@ export function PuzzleHelp({ type, open, onClose }: PuzzleHelpProps) {
         className="w-full rounded-lg border border-border bg-card p-4 shadow-xl"
       >
         <PuzzleInstructions type={type} overlay />
+        {type === "lightup" && <HelpExample type={type} />}
         <p className="mt-4 text-center font-mono text-[10px] uppercase text-muted-foreground">
           Tap anywhere to close
         </p>
