@@ -191,7 +191,7 @@ function buildCourse(seed: number): Course {
   relaxRow(START_ROW, zeros(), prevArr);
   let prevB = zeros();
   for (let r = START_ROW + 1; r < TOTAL_ROWS; r++) {
-    const pct = r < HOT_ROWS ? 0 : 8;
+    const pct = 0;
     const late = r > START_ROW + 1;
     let row: { d: number[]; b: number[]; arr: number[] } | null = null;
     for (let attempt = 0; attempt < 30 && !row; attempt++) {
@@ -209,7 +209,7 @@ function buildCourse(seed: number): Course {
     }
     dark.push(...row.d);
     brittle.push(...row.b);
-    unstableAt.push(...row.b.map((v) => v ? rowAppears(r) + BRITTLE_AFTER + 50 + draw(50) : NEVER));
+    unstableAt.push(...row.b.map((v) => v ? rowAppears(r) + BRITTLE_AFTER + 260 + draw(50) : NEVER));
     prevArr = row.arr;
     prevB = row.b;
   }
