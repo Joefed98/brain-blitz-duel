@@ -2034,9 +2034,9 @@ export interface SwingPuzzleData {
   seed: number;
 }
 
-/** Tilt: fixed 90-second run; Hot Floor: 60 seconds. The round clock adds three of slack. */
+/** Tilt and Hot Floor: fixed 90-second runs. The round clock adds three seconds of slack. */
 export const TILT_TIME_MS = 93_000;
-export const HOTFLOOR_TIME_MS = 63_000;
+export const HOTFLOOR_TIME_MS = 93_000;
 
 export interface TiltPuzzleData {
   type: "tilt";
@@ -2046,7 +2046,7 @@ export interface TiltPuzzleData {
 
 export interface HotFloorPuzzleData {
   type: "hotfloor";
-  /** Draws the floor rows — identical for everyone. */
+  /** Draws every staged floor route and countdown — identical for everyone. */
   seed: number;
 }
 

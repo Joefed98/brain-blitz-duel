@@ -9,15 +9,22 @@ interface PhoneShellProps {
   bare?: boolean;
   /** Lock active puzzle and reveal layouts to the device viewport. */
   constrained?: boolean;
+  /** Suppress iOS selection/callouts throughout an active round screen. */
+  gameScreen?: boolean;
 }
 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
-export function PhoneShell({ children, bare = false, constrained = false }: PhoneShellProps) {
+export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false }: PhoneShellProps) {
   return (
     <div
-      className={`relative w-full bg-background ${
+      className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""} ${
         constrained ? "no-overscroll h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
       }`}
+      onContextMenu={gameScreen ? (event) => event.preventDefault() : undefined}
+      onTouchStart={gameScreen ? (event) => {
+        const target = event.target;
+        if (target instanceof Element && !target.closest("button, a, input, textarea, select, [role='button']")) event.preventDefault();
+      } : undefined}
     >
       {/* Depth: one soft warm glow top-centre, one cool glow bottom, faint grid. */}
       <div

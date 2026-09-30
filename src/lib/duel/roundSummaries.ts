@@ -1340,10 +1340,11 @@ const tiltSummary: SummaryBuilder = (result) => {
 };
 
 const hotFloorSummary: SummaryBuilder = (result) => {
-  const survived = result.extra?.["survived"] !== false;
-  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
+  const stages = Number(result.extra?.["stages"] ?? 0);
+  const livesLost = Number(result.extra?.["livesLost"] ?? 0);
+  const completed = Number(result.extra?.["completedSeconds"] ?? 0);
   return {
-    summary: survived ? "Survived the minute" : `Survived ${ended.toFixed(1)}s`,
+    summary: stages >= 10 ? `10 stages · ${completed.toFixed(1)}s` : `${stages} stages · ${livesLost} ${livesLost === 1 ? "life" : "lives"} lost`,
     detail: ["Same floor for everyone"],
   };
 };

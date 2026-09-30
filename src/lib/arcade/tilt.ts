@@ -211,7 +211,9 @@ function init(seed: number): TiltState {
       return r.value;
     };
     const list: Maze[] = [];
-    for (let l = 0; l < TILT_MAX_MAZES; l++) list.push(buildMaze(l, draw));
+    // The former level 1 was retired; begin at its level-2 difficulty and
+    // continue the same progression beyond the old tenth maze.
+    for (let l = 0; l < TILT_MAX_MAZES; l++) list.push(buildMaze(l + 1, draw));
     built = { list, rng };
     if (cache.size > 16) cache.clear();
     cache.set(seed | 0, built);

@@ -650,7 +650,7 @@ function DuelScreen() {
 
   if (phase === "intro" && puzzle) {
     return (
-      <PhoneShell>
+      <PhoneShell gameScreen>
         <RoundIntro
           round={round}
           type={puzzle.type}
@@ -674,7 +674,7 @@ function DuelScreen() {
 
   if (phase === "reveal" && puzzle) {
     return (
-      <PhoneShell constrained>
+      <PhoneShell constrained gameScreen>
         <AnswerReveal
           round={round}
           puzzle={currentReveal?.puzzle ?? puzzle}
@@ -767,7 +767,7 @@ function DuelScreen() {
   const clockActive = clockStart !== null && now >= clockStart;
   const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
   return (
-    <PhoneShell constrained>
+    <PhoneShell constrained gameScreen>
       <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">

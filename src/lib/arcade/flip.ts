@@ -40,6 +40,9 @@ const RUNNER_HALF = 12 * FP;
 export const FLIP_SPIKE = 0;
 export const FLIP_GAP = 1;
 export const FLIP_OVERHANG = 2;
+export const FLIP_DECISION_OVERHANG = 1;
+export const FLIP_DECISION_PAIRED_SPIKES = 2;
+export const FLIP_DECISION_FALSE_GAP = 3;
 
 export const FLIP_INPUT_RANGES: readonly InputRange[] = [inputRange(FLIP_INPUT_TAP)];
 
@@ -65,6 +68,10 @@ export interface FlipSeg {
   /** 0 floor, 1 ceiling. */
   side: number;
   kind: number;
+  /** Shared non-zero id for segments belonging to one decision pattern. */
+  group: number;
+  /** Zero for a simple hazard; otherwise one of the decision constants. */
+  decision: number;
 }
 
 /** Runner timers: side is the surface it is on or heading to; flipT > 0 while airborne. */
@@ -98,6 +105,9 @@ function buildCourse(seed: number): { segs: FlipSeg[]; rng: number } {
   let tick = 0;
   const end = X_AT[FLIP_RUN_TICKS]!;
   const segs: FlipSeg[] = [];
+  let group = 0;
+  let groupsAfterTen = 0;
+  let decisionsAfterTen = 0;
 
   /** Advance the frontier until the runner has passed xEnd, dying on `hazards`. */
   const advance = (from: number[], t0: number, xEnd: number, hazards: readonly FlipSeg[]) => {
@@ -138,21 +148,40 @@ function buildCourse(seed: number): { segs: FlipSeg[]; rng: number } {
     if (start >= end) break;
     let accepted: FlipSeg[] = [];
     let result: { set: number[]; tick: number } | null = null;
-    for (let attempt = 0; attempt < 12 && !result; attempt++) {
-      const pattern = draw(4);
+    const afterTen = start >= X_AT[10 * TICKS_PER_SECOND]!;
+    const requireDecision = afterTen && decisionsAfterTen * 100 < (groupsAfterTen + 1) * 40;
+    for (let attempt = 0; attempt < 36 && !result; attempt++) {
+      const pattern = requireDecision ? 3 + draw(3) : draw(6);
       const side = draw(2);
       const len = Math.trunc(((40 + draw(120)) * FP * speed) / SPEED_START);
       let trial: FlipSeg[];
+      const nextGroup = group + 1;
       if (pattern === 3) {
         // Overhang pair: block on one side, then soon after on the other — two quick flips.
         const len1 = (30 + draw(40)) * FP;
         const between = speed * (FLIP_ARC_TICKS + SOLVER_LANDED + 4 + draw(20));
         trial = [
-          { x0: start, x1: start + len1, side, kind: FLIP_OVERHANG },
-          { x0: start + len1 + between, x1: start + len1 + between + len1, side: side ^ 1, kind: FLIP_OVERHANG },
+          { x0: start, x1: start + len1, side, kind: FLIP_OVERHANG, group: nextGroup, decision: FLIP_DECISION_OVERHANG },
+          { x0: start + len1 + between, x1: start + len1 + between + len1, side: side ^ 1, kind: FLIP_OVERHANG, group: nextGroup, decision: FLIP_DECISION_OVERHANG },
+        ];
+      } else if (pattern === 4) {
+        // Offset opposing spikes: the safe surface changes between them.
+        const spikeLen = (32 + draw(34)) * FP;
+        const between = speed * (25 + draw(16));
+        trial = [
+          { x0: start, x1: start + spikeLen, side, kind: FLIP_SPIKE, group: nextGroup, decision: FLIP_DECISION_PAIRED_SPIKES },
+          { x0: start + spikeLen + between, x1: start + spikeLen + between + spikeLen, side: side ^ 1, kind: FLIP_SPIKE, group: nextGroup, decision: FLIP_DECISION_PAIRED_SPIKES },
+        ];
+      } else if (pattern === 5) {
+        // The visible gap invites a flip, then an offset spike on that surface forces the return.
+        const gapLen = (55 + draw(45)) * FP;
+        const offset = speed * (FLIP_ARC_TICKS + 8 + draw(12));
+        trial = [
+          { x0: start, x1: start + gapLen, side, kind: FLIP_GAP, group: nextGroup, decision: FLIP_DECISION_FALSE_GAP },
+          { x0: start + gapLen + offset, x1: start + gapLen + offset + 38 * FP, side: side ^ 1, kind: FLIP_SPIKE, group: nextGroup, decision: FLIP_DECISION_FALSE_GAP },
         ];
       } else {
-        trial = [{ x0: start, x1: start + len, side, kind: pattern === 2 ? FLIP_GAP : FLIP_SPIKE }];
+        trial = [{ x0: start, x1: start + len, side, kind: pattern === 2 ? FLIP_GAP : FLIP_SPIKE, group: nextGroup, decision: 0 }];
       }
       const last = trial[trial.length - 1]!;
       if (last.x1 >= end) continue;
@@ -167,6 +196,11 @@ function buildCourse(seed: number): { segs: FlipSeg[]; rng: number } {
       x = start;
     } else {
       segs.push(...accepted);
+      group += 1;
+      if (afterTen) {
+        groupsAfterTen += 1;
+        if (accepted[0]?.decision) decisionsAfterTen += 1;
+      }
       x = accepted[accepted.length - 1]!.x1;
     }
     frontier = result.set;
@@ -174,6 +208,18 @@ function buildCourse(seed: number): { segs: FlipSeg[]; rng: number } {
     if (tick >= FLIP_RUN_TICKS) break;
   }
   return { segs, rng };
+}
+
+export function flipDecisionShare(seed: number): { decisions: number; groups: number; share: number } {
+  const course = buildCourse(seed);
+  const afterTen = X_AT[10 * TICKS_PER_SECOND]!;
+  const groups = new Map<number, boolean>();
+  for (const seg of course.segs) {
+    if (seg.x0 < afterTen) continue;
+    groups.set(seg.group, seg.decision !== 0);
+  }
+  const decisions = [...groups.values()].filter(Boolean).length;
+  return { decisions, groups: groups.size, share: groups.size ? decisions / groups.size : 0 };
 }
 
 /* ================================ State ================================ */

@@ -765,12 +765,12 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "30 per maze completed (ball out through the exit) — five completed = 150.",
   },
   hotfloor: {
-    goal: "Climb — the floor is falling away beneath you.",
+    goal: "Reach the exit before the floor falls.",
     how: [
-      { action: "Swipe to hop between tiles.", detail: "Some tiles crack and fall on their own; others crumble after you leave." },
-      { action: "Keep climbing", detail: "— new rows slide in as old rows fade away faster and faster." },
+      { action: "Every tile shows how many seconds it has left.", detail: "Swipe to hop." },
+      { action: "Plan a route that holds", detail: "— the obvious one often doesn't." },
     ],
-    score: "The longer you last, the more you score.",
+    score: "15 per stage.",
   },
   shikaku: {
     goal: "Cut the grid into rectangles, one number each.",

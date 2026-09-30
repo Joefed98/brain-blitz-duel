@@ -13,3 +13,4 @@
 - Sum Hunt uses deterministic 4×4 stage boards with 1–3 orthogonal target paths of 3–6 cells; server replay regenerates them.
 - ArrowPad owns the device-local arrows/joystick preference so every arrow-controlled puzzle behaves consistently.
 - Balance placement uses only fixed, non-tilting distance buttons; their peg indices feed the existing server-validated placement encoding.
+- PhoneShell's gameScreen mode owns selection and iOS callout suppression for duel and practice round screens, keeping the behavior consistent across puzzle types.

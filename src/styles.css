@@ -94,6 +94,13 @@
   }
 }
 
+.game-screen,
+.game-screen * {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
 @utility tap-target {
   min-height: 48px;
 }
