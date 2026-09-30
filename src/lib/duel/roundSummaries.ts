@@ -1332,13 +1332,10 @@ const tiltSummary: SummaryBuilder = (result) => {
 };
 
 const hotFloorSummary: SummaryBuilder = (result) => {
-  const pickups = Number(result.extra?.["pickups"] ?? 0);
-  const total = Number(result.extra?.["total"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
-  const head = `${pickups} / ${total}`;
   return {
-    summary: survived ? `${head} · survived` : `${head} · fell at ${ended.toFixed(1)}s`,
+    summary: survived ? "Survived the minute" : `Survived ${ended.toFixed(1)}s`,
     detail: ["Same floor for everyone"],
   };
 };
