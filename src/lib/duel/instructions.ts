@@ -703,13 +703,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "The longer you last, the more you score — the full minute is 150.",
   },
   parry: {
-    goal: "Deflect every arrow.",
+    goal: "Block every arrow with the gong shield.",
     how: [
-      { action: "Swipe toward an arrow", detail: "just before it lands." },
-      { action: "Later they come in pairs", detail: "and some swerve at the last moment." },
-      { action: "Three hits", detail: "and you're out." },
+      { action: "Swipe in any of eight directions", detail: "to swing the shield there." },
+      { action: "A diagonal blocks both neighbours", detail: "— at 1:30 it covers the top and the right." },
+      { action: "Later they come in pairs", detail: "and some swerve at the last moment. Three hits and you're out." },
     ],
-    score: "Points for the share you deflect.",
+    score: "The longer you last, the more you score; −15 per life lost.",
   },
   junction: {
     goal: "Keep the traffic moving without a crash.",
