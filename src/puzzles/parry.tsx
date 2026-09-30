@@ -1,6 +1,6 @@
 import { useRef } from "react";
 
-import { Button } from "@/components/ui/button";
+import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 
 import {
   parryCheckpoint,
@@ -88,8 +88,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       onDraftAnswer={onDraftAnswer}
     />
       <div className="grid h-14 shrink-0 grid-cols-2 gap-4">
-        <Button type="button" aria-label="Move shield anticlockwise" disabled={locked} className="h-14 text-2xl" onPointerDown={(e) => { e.preventDefault(); step.current = -1; }}>⟲</Button>
-        <Button type="button" aria-label="Move shield clockwise" disabled={locked} className="h-14 text-2xl" onPointerDown={(e) => { e.preventDefault(); step.current = 1; }}>⟳</Button>
+        <ArcadeControlButton type="button" aria-label="Move shield anticlockwise" disabled={locked} className="h-14 text-2xl" onPressStart={() => { step.current = -1; }} />
+        <ArcadeControlButton type="button" aria-label="Move shield clockwise" disabled={locked} className="h-14 text-2xl" onPressStart={() => { step.current = 1; }} />
       </div>
     </div>
   );

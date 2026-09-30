@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { hapticTick, useSwipe } from "@/components/puzzles/GridDrag";
+import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import { clueHolds, dialsCorrect, decodeSafeTries, encodeSafeTries } from "@/lib/duel/safe";
 import { useStageState } from "@/lib/duel/stageState";
 import { SAFE_DIALS, SAFE_TIME_MS, SAFE_TRIES, type SafePuzzleData } from "@/lib/duel/types";
@@ -44,18 +45,14 @@ function Dial({
   useEffect(() => stop, []);
 
   const arrow = (label: "▲" | "▼", delta: number) => (
-    <button
+    <ArcadeControlButton
       type="button"
       disabled={disabled || !onStep}
-      onPointerDown={() => hold(delta)}
-      onPointerUp={stop}
-      onPointerLeave={stop}
-      onPointerCancel={stop}
+      onPressStart={() => hold(delta)}
+      onPressEnd={stop}
       aria-label={delta > 0 ? "Up" : "Down"}
       className="flex size-11 items-center justify-center font-mono text-lg leading-none text-muted-foreground disabled:opacity-40"
-    >
-      {label}
-    </button>
+    >{label}</ArcadeControlButton>
   );
 
   return (
