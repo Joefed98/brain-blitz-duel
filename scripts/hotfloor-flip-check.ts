@@ -1,5 +1,6 @@
 import {
   HOT_STAGES,
+  HOT_COLS,
   HOT_DOWN,
   HOT_INPUT_SWIPE,
   HOT_LEFT,
