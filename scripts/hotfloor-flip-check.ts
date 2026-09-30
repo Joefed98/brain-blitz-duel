@@ -6,6 +6,7 @@ import {
   buildHotFloorStage,
   hotFloorGame,
   hotfloorCourseRerolls,
+  hotNeighbours,
   hotRouteFailure,
   hotfloorStageRoute,
   type HotFloorState,
@@ -35,7 +36,7 @@ for (let seed = 1; seed <= 50; seed++) {
     const greedy = [cell];
     const seen = new Set(greedy);
     while (cell !== b.exit && greedy.length - 1 < b.hopBudget) {
-      const options = (await import("@/lib/arcade/hotFloor")).hotNeighbours(cell, b.rows).filter((c) => !b.missing[c] && !seen.has(c));
+      const options = hotNeighbours(cell, b.rows).filter((c) => !b.missing[c] && !seen.has(c));
       if (!options.length) break;
       options.sort((a, z) => b.numbers[z]! - b.numbers[a]! || a - z);
       cell = options[0]!; greedy.push(cell); seen.add(cell);
