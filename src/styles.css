@@ -32,6 +32,7 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-arcade-frame: var(--arcade-frame);
+  --color-arcade-boundary: var(--arcade-boundary);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-me: var(--me);
@@ -60,6 +61,7 @@
   --destructive-foreground: oklch(0.98 0.005 285);
   --border: oklch(0.29 0.015 285);
   --arcade-frame: #3A3A44;
+  --arcade-boundary: #5A5A66;
   --input: oklch(0.29 0.015 285);
   --ring: oklch(0.81 0.155 82);
   --me: oklch(0.81 0.155 82);

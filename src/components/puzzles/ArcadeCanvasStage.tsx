@@ -176,7 +176,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
           const top = (size.height - worldH * scale) / 2;
           if (left > 1 || top > 1) {
             ctx.save();
-            ctx.strokeStyle = "#5A5A66";
+            ctx.strokeStyle = getComputedStyle(canvas.current ?? ctx.canvas).getPropertyValue("--arcade-boundary");
             ctx.lineWidth = 2;
             ctx.strokeRect(left + 1, top + 1, worldW * scale - 2, worldH * scale - 2);
             ctx.restore();

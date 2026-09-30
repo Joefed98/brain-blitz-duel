@@ -422,14 +422,15 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
        if (y < BOARD_Y - TILE || y > BOARD_Y + HOT_ROWS * TILE) continue;
        const fadeIn = Math.min(1, Math.max(0, (state.tick - rowAppears(r)) / PHASE_TICKS));
        const fadeOut = Math.min(1, Math.max(0, (rowDrops(r) - state.tick) / PHASE_TICKS));
-       ctx.globalAlpha = Math.min(fadeIn, fadeOut);
+       const alpha = Math.min(fadeIn, fadeOut);
+       ctx.globalAlpha = alpha;
       ctx.fillStyle = "#15151F";
       ctx.beginPath();
       ctx.roundRect(x + 3, y + 3, TILE - 6, TILE - 6, 8);
       ctx.fill();
       ctx.strokeStyle = course.brittle[i] ? HOT_TEAL : HOT_GOLD;
       ctx.lineWidth = course.brittle[i] ? 2.5 : 1;
-       ctx.globalAlpha *= course.brittle[i] ? 1 : 0.6;
+       ctx.globalAlpha = alpha * (course.brittle[i] ? 1 : 0.6);
       ctx.stroke();
       ctx.globalAlpha = 1;
        if (left <= CRACK_AT) {
