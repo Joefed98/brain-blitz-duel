@@ -8,6 +8,7 @@ import {
   HOT_GOLD,
   HOT_INPUT_SWIPE,
   HOT_LEFT,
+  HOT_RED,
   HOT_RIGHT,
   HOT_SWIPE_PX,
   HOT_TEAL,
