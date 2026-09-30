@@ -1273,11 +1273,9 @@ const parrySummary: SummaryBuilder = (result) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
-  void deflected;
   void total;
-  const head = survived ? "Survived the minute" : `Survived ${ended.toFixed(1)}s`;
   return {
-    summary: `${head} · ${hits} ${hits === 1 ? "life" : "lives"} lost · ${result.score ?? 0}`,
+    summary: `${deflected} deflected · ${hits} ${hits === 1 ? "life" : "lives"} lost · ${result.score ?? 0}`,
     detail: ["Same arrows for everyone"],
   };
 };

@@ -136,7 +136,7 @@ export function basSpeedFp(tick: number): number {
   return speed;
 }
 
-function spawnGap(tick: number): number {
+export function basSpawnGap(tick: number): number {
   const scheduled = SPAWN_START - Math.trunc(((SPAWN_START - SPAWN_END) * tick) / BAS_RUN_TICKS);
   return tick >= 40 * TICKS_PER_SECOND ? Math.max(1, Math.trunc((scheduled * 5) / 6)) : scheduled;
 }
@@ -258,7 +258,7 @@ function step(state: BasState, input: ArcadeInputEvent | null): BasState {
   s.spawnIn -= 1;
   if (s.spawnIn <= 0 && tick < BAS_RUN_TICKS) {
     spawn(s);
-    s.spawnIn = spawnGap(tick);
+    s.spawnIn = basSpawnGap(tick);
   }
 
   // Move shapes; base hits.

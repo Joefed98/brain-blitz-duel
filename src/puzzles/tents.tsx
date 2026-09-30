@@ -189,6 +189,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           marks={marks}
           onTap={locked ? undefined : tap}
           flash={flash}
+          countSize={12}
+          gap={1}
         />
       </div>
     </div>

@@ -46,7 +46,7 @@ export const PARRY_SIDE_POS = [6, 2, 0, 4] as const;
 
 export const PARRY_INPUT_RANGES: readonly InputRange[] = [
   inputRange(PARRY_INPUT_SWIPE, [0, 7]),
-  inputRange(PARRY_INPUT_STEP, [-1, 1]),
+  inputRange(PARRY_INPUT_STEP, [-1, 1], [0, 1]),
 ];
 
 /** Swipe vector → nearest of the eight clock positions. */

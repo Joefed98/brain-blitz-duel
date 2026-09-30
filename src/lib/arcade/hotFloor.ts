@@ -293,7 +293,7 @@ function plan(s: HotFloorState, input: ArcadeInputEvent): void {
     const cell = clampInt(input.a, 0, HOT_COLS * HOT_MAX_ROWS - 1);
     if (cell >= HOT_COLS * s.board.rows) return;
     if (cell === last && s.route.length > 1) s.route = s.route.slice(0, -1);
-    else if (last !== s.board.exit && adjacent(last, cell) && !s.board.missing[cell] && s.route.length <= s.board.hopBudget)
+    else if (last !== s.board.exit && adjacent(last, cell) && !s.board.missing[cell] && s.route.length < MAX_ROUTE)
       s.route = [...s.route, cell];
   }
 }
