@@ -34,8 +34,8 @@ function useRootSelectionLock(active: boolean) {
     if (!active) return;
     const root = document.documentElement;
     const body = document.body;
-    const count = Number(root.dataset.gameLocks ?? "0") + 1;
-    root.dataset.gameLocks = String(count);
+    const count = Number(root.dataset["gameLocks"] ?? "0") + 1;
+    root.dataset["gameLocks"] = String(count);
     root.classList.add("game-lock");
     body.classList.add("game-lock");
     const noSelect = (event: Event) => {
@@ -57,8 +57,8 @@ function useRootSelectionLock(active: boolean) {
       document.removeEventListener("selectstart", noSelect);
       document.removeEventListener("contextmenu", noMenu);
       document.removeEventListener("touchstart", noTouch);
-      const left = Number(root.dataset.gameLocks ?? "1") - 1;
-      root.dataset.gameLocks = String(Math.max(0, left));
+      const left = Number(root.dataset["gameLocks"] ?? "1") - 1;
+      root.dataset["gameLocks"] = String(Math.max(0, left));
       if (left <= 0) {
         root.classList.remove("game-lock");
         body.classList.remove("game-lock");
