@@ -1,4 +1,9 @@
+import { useRef } from "react";
+
 import {
+  SWING_INPUT_REEL,
+  SWING_REEL_DOWN,
+  SWING_REEL_UP,
   swingCheckpoint,
   swingGame,
   SWING_BG,
@@ -36,6 +41,7 @@ function IntroExample() {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SwingPuzzleData | null = puzzle.type === "swing" ? puzzle : null;
+  const start = useRef<{ y: number } | null>(null);
   return (
     <ArcadeCanvasStage
       diagKey="swing"
@@ -52,9 +58,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       encodeRun={encodeSwingRun}
       discrete
       inputKind={SWING_INPUT_HOLD}
-      pointer={(kind) =>
-        kind === "down" ? { a: 1, b: 0, c: 0 } : kind === "up" ? { a: 0, b: 0, c: 0 } : null
-      }
+      pointer={(kind, _x, y) => {
+        if (kind === "down") {
+          start.current = { y };
+          return { a: 1, b: 0, c: 0 };
+        }
+        if (kind === "up") {
+          start.current = null;
+          return { a: 0, b: 0, c: 0 };
+        }
+        // While holding, a vertical swipe of 24 px reels the rope in (up) or out (down).
+        const from = start.current;
+        if (!from || Math.abs(y - from.y) < 24) return null;
+        const dir = y < from.y ? SWING_REEL_UP : SWING_REEL_DOWN;
+        from.y = y;
+        return { k: SWING_INPUT_REEL, a: dir, b: 0, c: 0 };
+      }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />
