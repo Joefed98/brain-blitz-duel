@@ -123,8 +123,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           </button>
           {arrows && (
             <>
-               <ArcadeControlButton type="button" aria-label="Rotate left" className={`${arrowBtn} left-3`} onPressStart={startHold(-1)} onPressEnd={stopHold} />
-               <ArcadeControlButton type="button" aria-label="Rotate right" className={`${arrowBtn} right-3`} onPressStart={startHold(1)} onPressEnd={stopHold} />
+               <ArcadeControlButton type="button" aria-label="Rotate left" className={`${arrowBtn} left-3 before:content-['◀']`} onPressStart={startHold(-1)} onPressEnd={stopHold} />
+               <ArcadeControlButton type="button" aria-label="Rotate right" className={`${arrowBtn} right-3 before:content-['▶']`} onPressStart={startHold(1)} onPressEnd={stopHold} />
             </>
           )}
         </>

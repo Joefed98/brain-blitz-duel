@@ -140,9 +140,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
     />
     <div ref={bar} className="grid h-[72px] shrink-0 touch-none select-none grid-cols-3 items-center gap-3 bg-background/60" onPointerDown={(e) => { if (e.target === e.currentTarget && !locked) { e.currentTarget.setPointerCapture(e.pointerId); dragBar(e); } }} onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId) && !locked) dragBar(e); }}>
-      <ArcadeControlButton type="button" aria-label="Move left" disabled={locked} className="h-14 w-full border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary active:bg-primary/30" onPressStart={holdStart(-1)} onPressEnd={holdEnd} />
-      <ArcadeControlButton type="button" aria-label="Fire" disabled={locked} className="h-14 w-full p-0 text-xs font-bold" onPressStart={() => { firePending.current = true; }} />
-      <ArcadeControlButton type="button" aria-label="Move right" disabled={locked} className="h-14 w-full border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary active:bg-primary/30" onPressStart={holdStart(1)} onPressEnd={holdEnd} />
+      <ArcadeControlButton type="button" aria-label="Move left" disabled={locked} className="h-14 w-full border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary before:content-['◀'] active:bg-primary/30" onPressStart={holdStart(-1)} onPressEnd={holdEnd} />
+      <ArcadeControlButton type="button" aria-label="Fire" disabled={locked} className="h-14 w-full p-0 text-xs font-bold before:content-['FIRE']" onPressStart={() => { firePending.current = true; }} />
+      <ArcadeControlButton type="button" aria-label="Move right" disabled={locked} className="h-14 w-full border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary before:content-['▶'] active:bg-primary/30" onPressStart={holdStart(1)} onPressEnd={holdEnd} />
     </div>
     </div>
   );
