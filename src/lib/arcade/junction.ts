@@ -1,6 +1,6 @@
 /**
- * Junction — a top-down crossroads. Tap an approach (k = 11, a = 0–3) to
- * toggle its light. Cars queue on red, give up when their patience runs out,
+ * Junction — a top-down crossroads. Tap a corner (k = 11, a = 0–3 — the
+ * approach entering beside that corner) to toggle its light, red or green. Cars queue on red, give up when their patience runs out,
  * and two cars from crossing directions in the box at once is a crash.
  * The whole arrival schedule is drawn at init from the seed.
  *
@@ -34,13 +34,20 @@ export const JUNC_RIGHT = 3;
 
 export const JUNC_CX = 195;
 export const JUNC_CY = 310;
-const HALF = 26;
+/** Everything on the road is 1.2× the original size. */
+const HALF = 31;
+const LANE = 16;
+const CAR_W = 24;
+const CAR_PX = 41;
 const BOX = 2 * HALF * FP;
-const CAR_LEN = 34 * FP;
-const CAR_GAP = 2 * FP;
-const TURN_EXTRA = 30 * FP;
+const CAR_LEN = CAR_PX * FP;
+const CAR_GAP = Math.trunc(2.4 * FP);
+const TURN_EXTRA = 36 * FP;
+const SPAWN_OUT = 20;
 /** Front-bumper distance from spawn to the stop line, per approach. */
-const STOP: readonly number[] = [304 * FP, 304 * FP, 189 * FP, 189 * FP];
+const STOP_V = (JUNC_CY - HALF + SPAWN_OUT) * FP;
+const STOP_H = (JUNC_CX - HALF + SPAWN_OUT) * FP;
+const STOP: readonly number[] = [STOP_V, STOP_V, STOP_H, STOP_H];
 
 const ARRIVE_START = 120; // 2.0 s
 const ARRIVE_END = 42; // 0.7 s
@@ -52,7 +59,8 @@ export const JUNC_INDICATE_TICKS = 60;
 /** 2.4 px a tick, +10% every 15 s. */
 const SPEEDS: readonly number[] = [614, 675, 743, 817];
 const SPEED_STEP_TICKS = 15 * TICKS_PER_SECOND;
-const SURVIVE_BONUS = 30;
+const CAR_POINTS = 3;
+const SURVIVE_BONUS = 40;
 
 export const JUNC_INPUT_RANGES: readonly InputRange[] = [inputRange(JUNC_INPUT_TAP, [0, 3])];
 
@@ -231,9 +239,9 @@ function step(state: JuncState, input: ArcadeInputEvent | null): JuncState {
   return s;
 }
 
-/** 1 per car cleared, −1 per car that gave up, +30 for the minute; 0–150. */
+/** 3 per car cleared, −1 per car that gave up, +40 for the minute; 0–150. */
 export function juncScoreOf(cleared: number, gaveUp: number, survived: boolean): number {
-  return clampInt(cleared - gaveUp + (survived ? SURVIVE_BONUS : 0), 0, 150);
+  return clampInt(CAR_POINTS * cleared - gaveUp + (survived ? SURVIVE_BONUS : 0), 0, 150);
 }
 
 function score(state: JuncState): number {
@@ -285,16 +293,17 @@ export function juncCheckpoint(state: JuncState): JuncCheckpoint {
 export const JUNC_BG = "#0B0F0C";
 export const JUNC_ROAD = "#1E2228";
 export const JUNC_GOLD = "#F5B82E";
+export const JUNC_GREEN = "#22C55E";
 export const JUNC_RED = "#FF4D5E";
 export const JUNC_CAR_COLOURS = ["#F5B82E", "#2ED3B7", "#8FA8FF", "#F2F2F2"] as const;
 
 /** Direction each approach drives in, and where its front starts. */
 const DIR: readonly (readonly [number, number])[] = [[0, 1], [0, -1], [1, 0], [-1, 0]];
 const ORIGIN: readonly (readonly [number, number])[] = [
-  [JUNC_CX - 13, -20],
-  [JUNC_CX + 13, 640],
-  [-20, JUNC_CY + 13],
-  [410, JUNC_CY - 13],
+  [JUNC_CX - LANE, -SPAWN_OUT],
+  [JUNC_CX + LANE, JUNC_WORLD_H + SPAWN_OUT],
+  [-SPAWN_OUT, JUNC_CY + LANE],
+  [JUNC_WORLD_W + SPAWN_OUT, JUNC_CY - LANE],
 ];
 
 /** Screen point of a car's front and its heading (render only). */
@@ -312,18 +321,23 @@ export function juncCarPose(car: JuncCar): { x: number; y: number; dx: number; d
 
 /** Screen point of each approach's light. */
 export const JUNC_LIGHT_AT: readonly (readonly [number, number])[] = [
-  [JUNC_CX - 40, JUNC_CY - HALF - 12],
-  [JUNC_CX + 40, JUNC_CY + HALF + 12],
-  [JUNC_CX - HALF - 12, JUNC_CY + 40],
-  [JUNC_CX + HALF + 12, JUNC_CY - 40],
+  [JUNC_CX - HALF - 14, JUNC_CY - HALF - 14],
+  [JUNC_CX + HALF + 14, JUNC_CY + HALF + 14],
+  [JUNC_CX - HALF - 14, JUNC_CY + HALF + 14],
+  [JUNC_CX + HALF + 14, JUNC_CY - HALF - 14],
 ];
 
-/** Which approach a tap at a world point means (the nearest road arm). */
+/**
+ * Which approach a tap means: each black corner quadrant switches the road
+ * entering beside it (bottom-right → bottom, top-right → right, top-left →
+ * top, bottom-left → left). Taps on the roads do nothing (−1).
+ */
 export function juncApproachAt(x: number, y: number): number {
   const dx = x - JUNC_CX;
   const dy = y - JUNC_CY;
-  if (Math.abs(dy) >= Math.abs(dx)) return dy < 0 ? JUNC_TOP : JUNC_BOTTOM;
-  return dx < 0 ? JUNC_LEFT : JUNC_RIGHT;
+  if (Math.abs(dx) <= HALF || Math.abs(dy) <= HALF) return -1;
+  if (dx > 0) return dy > 0 ? JUNC_BOTTOM : JUNC_RIGHT;
+  return dy < 0 ? JUNC_TOP : JUNC_LEFT;
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize): void {
@@ -374,9 +388,9 @@ function draw(ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize)
   for (let ap = 0; ap < 4; ap++) {
     const [lx, ly] = JUNC_LIGHT_AT[ap]!;
     const green = (state.lights >> ap) & 1;
-    ctx.fillStyle = green ? JUNC_GOLD : JUNC_RED;
+    ctx.fillStyle = green ? JUNC_GREEN : JUNC_RED;
     ctx.beginPath();
-    ctx.arc(lx, ly, 8, 0, Math.PI * 2);
+    ctx.arc(lx, ly, 10, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -390,20 +404,20 @@ function draw(ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize)
     ctx.rotate(angle);
     ctx.fillStyle = JUNC_CAR_COLOURS[car.colour]!;
     ctx.beginPath();
-    ctx.roundRect(-34, -10, 34, 20, 5);
+    ctx.roundRect(-CAR_PX, -CAR_W / 2, CAR_PX, CAR_W, 6);
     ctx.fill();
     const toLine = (STOP[car.ap]! - car.s) / juncSpeed(tick);
     if (car.turn && toLine < JUNC_INDICATE_TICKS && toLine > -40 && Math.trunc(tick / 8) % 2 === 0) {
       ctx.fillStyle = "#FF9F1C";
       const side = car.turn === 2 ? 1 : -1;
-      ctx.fillRect(-6, side * 10 - 3, 6, 6);
-      ctx.fillRect(-34, side * 10 - 3, 6, 6);
+      ctx.fillRect(-7, side * (CAR_W / 2) - 4, 7, 7);
+      ctx.fillRect(-CAR_PX, side * (CAR_W / 2) - 4, 7, 7);
     }
     ctx.restore();
     if (car.wait > 0 && car.s <= STOP[car.ap]!) {
       const left = 1 - car.wait / car.patience;
       ctx.fillStyle = left < 0.3 ? JUNC_RED : "rgba(255,255,255,0.7)";
-      ctx.fillRect(pose.x - 17 - pose.dx * 17, pose.y - 20 - pose.dy * 17, 34 * left, 3);
+      ctx.fillRect(pose.x - CAR_PX / 2 - (pose.dx * CAR_PX) / 2, pose.y - 24 - (pose.dy * CAR_PX) / 2, CAR_PX * left, 4);
     }
   }
 
