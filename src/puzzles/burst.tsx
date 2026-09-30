@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 
-import { BarOverlay } from "@/components/puzzles/BarOverlay";
+import { Button } from "@/components/ui/button";
 
 import {
   burstCheckpoint,
   burstGame,
-  BURST_BAR_H,
   BURST_BG,
   BURST_CHECKPOINT_INTERVAL,
   BURST_COLOURS,
-  BURST_DRAG_TOP,
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
@@ -100,7 +98,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return tickInput(state);
   };
 
+  const bar = useRef<HTMLDivElement | null>(null);
+  const dragBar = (e: PointerEvent<HTMLDivElement>) => {
+    const rect = bar.current?.getBoundingClientRect();
+    if (!rect || arrowsRef.current) return;
+    arrowEdge.current = null;
+    const x = Math.max(0, Math.min(BURST_WORLD_W, Math.round(((e.clientX - rect.left) / rect.width) * BURST_WORLD_W)));
+    // The same world-unit movement event used by the arena.
+    barMove.current = { k: BURST_INPUT_MOVE, a: x, b: 0, c: 0 };
+  };
+  const barMove = useRef<PointerPayload | null>(null);
+  const tickWithBar = (state: BurstState) => {
+    const move = barMove.current;
+    barMove.current = null;
+    return tickAll(state) ?? move;
+  };
   return (
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-2">
     <ArcadeCanvasStage
       diagKey="burst"
       label="Burst"
@@ -114,11 +128,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       checkpoint={burstCheckpoint}
       interval={BURST_CHECKPOINT_INTERVAL}
       encodeRun={encodeBurstRun}
-      tickInput={tickAll}
+      tickInput={tickWithBar}
       pointer={(kind, x, y) => {
         if (kind === "down") {
-          dragging.current = !arrowsRef.current && y >= BURST_DRAG_TOP;
-          return dragging.current ? { k: BURST_INPUT_MOVE, a: x, b: 0, c: 0 } : fire();
+          dragging.current = false;
+          return fire();
         }
         if (!dragging.current) return null;
         if (kind === "up") dragging.current = false;
@@ -128,39 +142,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       onDraftAnswer={onDraftAnswer}
       overlay={
         <>
-          <button
+          <Button
             type="button"
             onClick={toggle}
             className={`absolute right-2 top-12 rounded-full border px-3 py-1 text-xs font-semibold ${arrows ? "border-primary bg-primary text-primary-foreground" : "border-primary/60 bg-background/50 text-primary"}`}
             aria-pressed={arrows}
           >
             Arrows
-          </button>
-          {arrows && (
-            <BarOverlay worldW={BURST_WORLD_W} worldH={BURST_WORLD_H} barH={BURST_BAR_H}>
-              <button type="button" aria-label="Move left" className={arrowBtn} style={{ touchAction: "none" }} {...hold(-1)}>
-                ◀
-              </button>
-              <button
-                type="button"
-                aria-label="Fire"
-                className="flex h-14 w-14 select-none items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground active:opacity-80"
-                style={{ touchAction: "none" }}
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  firePending.current = true;
-                }}
-              >
-                FIRE
-              </button>
-              <button type="button" aria-label="Move right" className={arrowBtn} style={{ touchAction: "none" }} {...hold(1)}>
-                ▶
-              </button>
-            </BarOverlay>
-          )}
+          </Button>
         </>
       }
     />
+    <div ref={bar} className="flex h-[60px] shrink-0 touch-none select-none items-center justify-center gap-4 bg-background/60" onPointerDown={(e) => { if (e.target === e.currentTarget && !locked) { e.currentTarget.setPointerCapture(e.pointerId); dragBar(e); } }} onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId) && !locked) dragBar(e); }}>
+      <Button type="button" aria-label="Move left" disabled={locked} className="h-11 w-11 border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary active:bg-primary/30" style={{ touchAction: "none" }} {...hold(-1)}>◀</Button>
+      <Button type="button" aria-label="Fire" disabled={locked} className="h-[52px] w-[52px] rounded-full p-0 text-xs font-bold" style={{ touchAction: "none" }} onPointerDown={(e) => { e.preventDefault(); firePending.current = true; }}>FIRE</Button>
+      <Button type="button" aria-label="Move right" disabled={locked} className="h-11 w-11 border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary active:bg-primary/30" style={{ touchAction: "none" }} {...hold(1)}>▶</Button>
+    </div>
+    </div>
   );
 }
 
