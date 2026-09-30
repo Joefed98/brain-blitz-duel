@@ -1,18 +1,11 @@
-import { useRef } from "react";
-
 import {
   hotfloorCheckpoint,
   hotFloorGame,
+  hotfloorHit,
   HOT_BG,
-  HOT_DOWN,
   HOT_GOLD,
-  HOT_INPUT_SWIPE,
-  HOT_LEFT,
+  HOT_INPUT_TILE,
   HOT_RED,
-  HOT_RIGHT,
-  HOT_SWIPE_PX,
-  HOT_TEAL,
-  HOT_UP,
   HOT_WORLD_H,
   HOT_WORLD_W,
   HOTFLOOR_CHECKPOINT_INTERVAL,
@@ -23,29 +16,41 @@ import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed worked example: the highlighted route outlasts the tempting centre path. */
+/** Fixed worked example: numbers are hops each tile lasts; the gold route holds. */
 function IntroExample() {
-  const values = [8, 1, 7, 6, 2, 6, 5, 4, 5];
-  const safe = new Set([6, 7, 4, 3, 0]);
+  // Row-major 3×3; start bottom-left (6), exit top-right (2).
+  const values: (number | string)[] = [2, 1, "EXIT", 1, 2, 3, "START", 2, 3];
+  const route = [6, 7, 8, 5, 2];
+  const hopOf = new Map(route.map((cell, i) => [cell, i]));
+  const at = (cell: number) => ({ x: 24 + (cell % 3) * 40, y: 24 + Math.trunc(cell / 3) * 40 });
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <svg viewBox="0 0 132 132" width={132} height={132} aria-hidden="true" style={{ background: HOT_BG, borderRadius: 10 }}>
-        {values.map((value, cell) => (
-          <g key={cell}>
-            <rect x={6 + (cell % 3) * 40} y={6 + Math.trunc(cell / 3) * 40} width={36} height={36} rx={6} fill={cell === 0 ? HOT_GOLD : "#15151F"} stroke={safe.has(cell) ? HOT_TEAL : HOT_GOLD} strokeOpacity={safe.has(cell) ? 1 : 0.35} strokeWidth={safe.has(cell) ? 2.5 : 1} />
-            <text x={24 + (cell % 3) * 40} y={29 + Math.trunc(cell / 3) * 40} fill={cell === 0 ? HOT_BG : value < 3 ? HOT_RED : HOT_GOLD} textAnchor="middle" fontFamily="monospace" fontSize="13" fontWeight="700">{cell === 0 ? "EXIT" : value}</text>
+        {values.map((value, cell) => {
+          const p = at(cell);
+          const exit = value === "EXIT";
+          return (
+            <g key={cell}>
+              <rect x={p.x - 18} y={p.y - 18} width={36} height={36} rx={6} fill={exit ? HOT_GOLD : "#1A1A24"} />
+              <text x={p.x} y={p.y + 4} fill={exit ? HOT_BG : value === 1 ? HOT_RED : "#E8E8ED"} textAnchor="middle" fontFamily="monospace" fontSize={typeof value === "string" ? 8 : 13} fontWeight="700">{value}</text>
+            </g>
+          );
+        })}
+        <polyline points={route.map((cell) => `${at(cell).x},${at(cell).y}`).join(" ")} fill="none" stroke={HOT_GOLD} strokeWidth={3} strokeOpacity={0.85} strokeLinejoin="round" />
+        {route.slice(1).map((cell) => (
+          <g key={`h${cell}`}>
+            <circle cx={at(cell).x - 11} cy={at(cell).y - 11} r={6} fill={HOT_GOLD} />
+            <text x={at(cell).x - 11} y={at(cell).y - 8.5} fill={HOT_BG} textAnchor="middle" fontFamily="monospace" fontSize="8" fontWeight="700">{hopOf.get(cell)}</text>
           </g>
         ))}
-        <rect x={18} y={96} width={12} height={20} rx={6} fill={HOT_GOLD} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Follow the route whose tiles last long enough.</p>
+      <p className="text-center text-xs text-muted-foreground">Every tile must last until its hop number. The left route falls at hop 3.</p>
     </div>
   );
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: HotFloorPuzzleData | null = puzzle.type === "hotfloor" ? puzzle : null;
-  const start = useRef<{ x: number; y: number; done: boolean } | null>(null);
   return (
     <ArcadeCanvasStage
       diagKey="hotfloor"
@@ -61,20 +66,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       interval={HOTFLOOR_CHECKPOINT_INTERVAL}
       encodeRun={encodeHotFloorRun}
       discrete
-      inputKind={HOT_INPUT_SWIPE}
+      inputKind={HOT_INPUT_TILE}
       pointer={(kind, x, y) => {
-        if (kind === "down") {
-          start.current = { x, y, done: false };
-          return null;
-        }
-        const from = start.current;
-        if (!from || from.done) return null;
-        const dx = x - from.x;
-        const dy = y - from.y;
-        if (Math.max(Math.abs(dx), Math.abs(dy)) < HOT_SWIPE_PX) return null;
-        from.done = true;
-        const dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? HOT_LEFT : HOT_RIGHT) : dy < 0 ? HOT_UP : HOT_DOWN;
-        return { a: dir, b: 0, c: 0 };
+        if (kind !== "down") return null;
+        const hit = hotfloorHit(x, y);
+        return hit ? { k: hit.k, a: hit.a, b: 0, c: 0 } : null;
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}

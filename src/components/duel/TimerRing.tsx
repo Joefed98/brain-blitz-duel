@@ -130,6 +130,9 @@ export function TimerRing({ msRemaining, totalMs, active }: TimerRingProps) {
         background: "var(--card)",
         boxShadow:
           "0 0 0 1px var(--border), 0 0 18px 2px color-mix(in oklab, var(--primary) 32%, transparent)",
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
       }}
       aria-label="Time remaining"
       role="timer"

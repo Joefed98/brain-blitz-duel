@@ -765,10 +765,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "30 per maze completed (ball out through the exit) — five completed = 150.",
   },
   hotfloor: {
-    goal: "Reach the exit before the floor falls.",
+    goal: "Plan a route to the exit before the floor falls.",
     how: [
-      { action: "Every tile shows how many seconds it has left.", detail: "Swipe to hop." },
-      { action: "Plan a route that holds", detail: "— the obvious one often doesn't." },
+      { action: "Each number is how many hops that tile lasts after you press GO.", detail: "" },
+      { action: "Tap tiles to draw your route, then GO.", detail: "" },
     ],
     score: "15 per stage.",
   },

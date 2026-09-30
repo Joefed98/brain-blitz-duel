@@ -95,10 +95,17 @@
 }
 
 .game-screen,
-.game-screen * {
+.game-screen *,
+html.game-lock,
+body.game-lock {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+}
+
+html.game-lock,
+body.game-lock {
+  touch-action: none;
 }
 
 @utility tap-target {
