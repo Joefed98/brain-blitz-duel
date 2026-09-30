@@ -422,8 +422,8 @@ function plan(s: HotFloorState, input: ArcadeInputEvent): void {
       s.pause = HOT_HOP_TICKS;
     }
   } else if (input.k === HOT_INPUT_TILE) {
-    const cell = clampInt(input.a, 0, HOT_COLS * HOT_MAX_ROWS - 1);
-    if (cell >= HOT_COLS * s.board.rows) return;
+    const cell = hotCellAt(s.board, input.a, input.b);
+    if (cell < 0) return;
     if (cell === last && s.route.length > 1) s.route = s.route.slice(0, -1);
     else if (last !== s.board.exit && adjacent(last, cell) && !s.board.missing[cell] && s.route.length < MAX_ROUTE)
       s.route = [...s.route, cell];
@@ -523,9 +523,9 @@ export const HOT_GOLD = "#F5B82E";
 export const HOT_TEAL = "#2EC4B6";
 export const HOT_RED = "#FF4D5E";
 const HOT_ORANGE = "#F28C28";
-const TILE = 56;
-const BOARD_X = 27;
 const BOARD_Y = 80;
+const BOARD_H = 440;
+const BOARD_W = 336;
 const BTN_Y = 540;
 const BTN_H = 56;
 const CLEAR_X0 = 27;
@@ -533,17 +533,36 @@ const CLEAR_X1 = 183;
 const GO_X0 = 207;
 const GO_X1 = 363;
 
-/** World point to the input it means (tile, CLEAR or GO), or null. */
-export function hotfloorHit(x: number, y: number): { k: number; a: number } | null {
+/** Board geometry for a stage: tiles sized to fit, centred horizontally. */
+export function hotLayout(stage: Pick<HotFloorStage, "rows" | "cols">): { tile: number; x: number; y: number } {
+  const tile = Math.min(56, Math.floor(BOARD_W / stage.cols), Math.floor(BOARD_H / stage.rows));
+  return { tile, x: Math.round((HOT_WORLD_W - tile * stage.cols) / 2), y: BOARD_Y };
+}
+
+/** World point to a board cell, or -1. */
+export function hotCellAt(stage: HotFloorStage, x: number, y: number): number {
+  const { tile, x: ox, y: oy } = hotLayout(stage);
+  const col = Math.floor((x - ox) / tile);
+  const row = Math.floor((y - oy) / tile);
+  if (col < 0 || col >= stage.cols || row < 0 || row >= stage.rows) return -1;
+  return row * HOT_COLS + col;
+}
+
+/** Centre of a cell in world units (as a tile-tap payload). */
+export function hotTilePoint(stage: HotFloorStage, cell: number): { a: number; b: number } {
+  const { tile, x, y } = hotLayout(stage);
+  return { a: x + colOf(cell) * tile + (tile >> 1), b: y + rowOf(cell) * tile + (tile >> 1) };
+}
+
+/** World point to the input it means (tile tap carries the point; the sim resolves the cell). */
+export function hotfloorHit(x: number, y: number): { k: number; a: number; b: number } | null {
   if (y >= BTN_Y && y <= BTN_Y + BTN_H) {
-    if (x >= CLEAR_X0 && x <= CLEAR_X1) return { k: HOT_INPUT_CLEAR, a: 0 };
-    if (x >= GO_X0 && x <= GO_X1) return { k: HOT_INPUT_GO, a: 0 };
+    if (x >= CLEAR_X0 && x <= CLEAR_X1) return { k: HOT_INPUT_CLEAR, a: 0, b: 0 };
+    if (x >= GO_X0 && x <= GO_X1) return { k: HOT_INPUT_GO, a: 0, b: 0 };
     return null;
   }
-  const col = Math.floor((x - BOARD_X) / TILE);
-  const row = Math.floor((y - BOARD_Y) / TILE);
-  if (col < 0 || col >= HOT_COLS || row < 0 || row >= HOT_MAX_ROWS) return null;
-  return { k: HOT_INPUT_TILE, a: row * HOT_COLS + col };
+  if (y < BOARD_Y || y >= BOARD_Y + BOARD_H || x < 0 || x > HOT_WORLD_W) return null;
+  return { k: HOT_INPUT_TILE, a: Math.round(x), b: Math.round(y) };
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasSize): void {
@@ -554,19 +573,21 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
   ctx.translate((size.width - HOT_WORLD_W * scale) / 2, (size.height - HOT_WORLD_H * scale) / 2);
   ctx.scale(scale, scale);
   const board = state.board;
+  const { tile: TILE, x: BOARD_X } = hotLayout(board);
+  const HUD_X = 27;
 
   ctx.font = "700 18px JetBrains Mono, monospace";
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = HOT_GOLD;
-  ctx.fillText(`Stage ${Math.min(HOT_STAGES, state.stage + 1)}`, BOARD_X, 46);
+  ctx.fillText(`Stage ${Math.min(HOT_STAGES, state.stage + 1)}`, HUD_X, 46);
   ctx.font = "700 14px JetBrains Mono, monospace";
   ctx.fillStyle = "#E8E8ED";
-  ctx.fillText(`Max ${board.hopBudget} hops`, BOARD_X + 112, 46);
+  ctx.fillText(`Max ${board.hopBudget} hops`, HUD_X + 112, 46);
   for (let life = 0; life < START_LIVES; life++) {
     ctx.globalAlpha = life < state.lives ? 1 : 0.2;
     ctx.beginPath();
-    ctx.arc(HOT_WORLD_W - BOARD_X - 6 - life * 22, 40, 6, 0, Math.PI * 2);
+    ctx.arc(HOT_WORLD_W - HUD_X - 6 - life * 22, 40, 6, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
@@ -580,6 +601,7 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
   state.route.forEach((cell, i) => { if (i > 0) lastHop.set(cell, i); });
 
   for (let cell = 0; cell < HOT_COLS * board.rows; cell++) {
+    if (colOf(cell) >= board.cols) continue;
     const x = BOARD_X + (cell % HOT_COLS) * TILE;
     const y = BOARD_Y + Math.trunc(cell / HOT_COLS) * TILE;
     const number = board.numbers[cell]!;
@@ -595,8 +617,9 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
         ctx.strokeStyle = HOT_RED;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(x + 12, y + 12); ctx.lineTo(x + 30, y + 29); ctx.lineTo(x + 22, y + 45);
-        ctx.moveTo(x + 30, y + 29); ctx.lineTo(x + 44, y + 18);
+        const u = TILE / 56;
+        ctx.moveTo(x + 12 * u, y + 12 * u); ctx.lineTo(x + 30 * u, y + 29 * u); ctx.lineTo(x + 22 * u, y + 45 * u);
+        ctx.moveTo(x + 30 * u, y + 29 * u); ctx.lineTo(x + 44 * u, y + 18 * u);
         ctx.stroke();
       }
       continue;
@@ -622,7 +645,7 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
       ctx.fillText("START", x + TILE / 2, y + TILE - 12);
     } else {
       ctx.fillStyle = left <= 1 ? HOT_RED : left <= 2 ? HOT_ORANGE : "#E8E8ED";
-      ctx.font = "700 20px JetBrains Mono, monospace";
+      ctx.font = `700 ${Math.round(TILE * 0.36)}px JetBrains Mono, monospace`;
       ctx.fillText(String(Math.max(0, left)), x + TILE / 2, y + TILE / 2);
     }
   }
@@ -646,8 +669,8 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     for (const [cell, hop] of lastHop) {
-      const x = BOARD_X + (cell % HOT_COLS) * TILE + 13;
-      const y = BOARD_Y + Math.trunc(cell / HOT_COLS) * TILE + 13;
+      const x = BOARD_X + (cell % HOT_COLS) * TILE + 12;
+      const y = BOARD_Y + Math.trunc(cell / HOT_COLS) * TILE + 12;
       ctx.fillStyle = HOT_GOLD;
       ctx.beginPath();
       ctx.arc(x, y, 8, 0, Math.PI * 2);
