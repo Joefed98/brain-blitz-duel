@@ -1,5 +1,13 @@
 # Roadmap
 
+## Six-type route, controls, and intro tuning (Sep 30)
+- [ ] Limit Hot Floor to few exhaustive-search viable routes with pinch tiles and three failed alternatives; report 50-stage metrics.
+- [ ] Make Burst and every arrow/joystick control press-safe and non-selectable, with full-width Burst columns.
+- [ ] Let Parry arrows remain catchable inside the ring and cost a life only at the core.
+- [ ] Reduce Bastion arrow rotation to 3° per tick without changing touch aim.
+- [ ] Make every round intro scroll when needed with READY sticky at the bottom; statically verify target phone fits.
+- [ ] Run focused checks and 200-run identity proofs for Hot Floor, Parry, and Bastion; no browser tests.
+
 ## Eight-type difficulty and scoring tuning (Sep 30)
 - [x] Add Hot Floor hop budgets, tighter tile values, choke points, failed alternatives, and naive-strategy metric.
 - [x] Retune Burst, Parry, Bastion, and Wavefront controls/scoring/schedules.
