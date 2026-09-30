@@ -171,18 +171,17 @@ export function countTentSolutions(board: TentsBoard, limit = 2): number {
   return found;
 }
 
-/** Solved = 100 + time bonus; otherwise 70 × right ÷ trees − 5 per wrong tent. */
+/** 10 per correctly placed tent; all correct with no wrong tents adds round(30 × ms_remaining ÷ limit). Cap 150. */
 export function scoreTents(
-  solved: boolean,
+  _solved: boolean,
   msRemaining: number,
   timeLimitMs: number,
   correct: number,
   wrong: number,
   trees: number,
 ): number {
-  if (solved) {
-    return Math.min(150, 100 + Math.round((50 * Math.max(0, msRemaining)) / timeLimitMs));
-  }
-  if (trees <= 0) return 0;
-  return Math.max(0, Math.round((70 * correct) / trees) - 5 * wrong);
+  const base = 10 * Math.max(0, correct);
+  const perfect = trees > 0 && correct === trees && wrong === 0;
+  const bonus = perfect ? Math.round((30 * Math.max(0, msRemaining)) / timeLimitMs) : 0;
+  return Math.min(150, base + bonus);
 }

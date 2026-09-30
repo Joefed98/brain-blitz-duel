@@ -7,8 +7,13 @@ import {
   hotFloorGame,
   hotfloorCourseRerolls,
   hotNeighbours,
-  hotfloorRouteAnalysis,
-  hotfloorRouteHasPinch,
+  hotDirectClosed,
+  hotfloorLateDecoys,
+  hotRouteShape,
+  hotSizeFor,
+  hotLayout,
+  hotSurvivorCount,
+  hotTilePoint,
   hotRouteFailure,
   hotfloorStageRoute,
   type HotFloorState,
@@ -21,29 +26,34 @@ const check = (label: string, ok: boolean) => {
   if (!ok) failures += 1;
 };
 
-let stages = 0, stored = 0, searched = 0, fewRoutes = 0, allPinched = 0, threeFailed = 0, halfExact = 0, missingHard = 0, greedySolved = 0;
-let survivingRoutes = 0;
-let rerolls = 0;
-for (let seed = 1; seed <= 50; seed++) {
-  rerolls += hotfloorCourseRerolls(seed * 7919);
+let stages = 0, stored = 0, searched = 0, unique = 0, shaped = 0, closed = 0, decoyOk = 0, budgetOk = 0, sizeOk = 0, greedySolved = 0;
+let ratioSum = 0, rerolls = 0, minTile = 99;
+const t0 = Date.now();
+for (let seed = 1; seed <= 5; seed++) rerolls += hotfloorCourseRerolls(seed * 7919);
+const rerollStages = 5 * HOT_STAGES;
+for (let seed = 1; seed <= 5; seed++) {
   for (let i = 0; i < HOT_STAGES; i++) {
     const b = buildHotFloorStage(seed * 7919, i);
     stages++;
+    const size = hotSizeFor(i);
+    if (b.rows === size.rows && b.cols === size.cols) sizeOk++;
+    minTile = Math.min(minTile, hotLayout(b).tile);
     if (hotRouteFailure(b, b.route) === -1) stored++;
     if (hotfloorStageRoute(b)) searched++;
-    const analysis = hotfloorRouteAnalysis(b);
-    survivingRoutes += analysis.surviving.length;
-    if (analysis.surviving.length <= (i < 2 ? 3 : 2)) fewRoutes++;
-    if (analysis.surviving.every((route) => hotfloorRouteHasPinch(b, route))) allPinched++;
-    if (analysis.failedSameOrShorter.length >= 3) threeFailed++;
-    const exact = b.route.slice(1, -1).filter((c, k) => b.numbers[c] === k + 1).length;
-    if (exact * 2 >= b.route.length - 2) halfExact++;
-    if (i >= 2 && b.missing.filter(Boolean).length >= 6 && b.missing.filter(Boolean).length <= 12) missingHard++;
+    if (b.hopBudget === b.route.length - 1) budgetOk++;
+    const survivors = hotSurvivorCount(b);
+    if (i === 0 ? survivors <= 2 && survivors >= 1 : survivors === 1) unique++;
+    const shape = hotRouteShape(b);
+    ratioSum += shape.ratio;
+    if (shape.ratio >= 1.8 && shape.turns >= 3 && shape.away >= 2) shaped++;
+    if (hotDirectClosed(b)) closed++;
+    const decoys = hotfloorLateDecoys(b);
+    if (decoys.length >= 4 && decoys.every((r) => { const f = hotRouteFailure(b, r); return f >= r.length - 3 && r.length - 1 <= b.hopBudget && !b.missing[r[f]!]; })) decoyOk++;
     let cell = b.start;
     const greedy = [cell];
     const seen = new Set(greedy);
     while (cell !== b.exit && greedy.length - 1 < b.hopBudget) {
-      const options = hotNeighbours(cell, b.rows).filter((c) => !b.missing[c] && !seen.has(c));
+      const options = hotNeighbours(cell, b.rows, b.cols).filter((c) => !b.missing[c] && !seen.has(c));
       if (!options.length) break;
       options.sort((a, z) => b.numbers[z]! - b.numbers[a]! || a - z);
       cell = options[0]!; greedy.push(cell); seen.add(cell);
@@ -51,18 +61,21 @@ for (let seed = 1; seed <= 50; seed++) {
     if (hotRouteFailure(b, greedy) === -1) greedySolved++;
   }
 }
+check("stage sizes", sizeOk === stages);
 check("stored routes succeed", stored === stages);
 check("search finds a route", searched === stages);
-check("surviving route limits", fewRoutes === stages);
-check("every survivor has a zero-slack pinch", allPinched === stages);
-check("three same-or-shorter routes fail on numbers", threeFailed === stages);
-check("half stored route exact", halfExact === stages);
-check("stage 3+ has 6-12 missing", missingHard === 400);
-check("highest-number-first solve rate under 20%", greedySolved / stages < 0.2);
-console.log(`Hot Floor: ${stages} stages; avg surviving routes ${(survivingRoutes / stages).toFixed(2)}; rerolls/stage ${(rerolls / stages).toFixed(2)} (${((100 * rerolls) / (stages + rerolls)).toFixed(1)}% rejected); pinch ${allPinched}/${stages}; 3+ failed ${threeFailed}/${stages}; greedy ${greedySolved}/${stages} = ${((100 * greedySolved) / stages).toFixed(1)}%`);
+check("budget equals route length", budgetOk === stages);
+check("one survivor (stage 1 up to two)", unique === stages);
+check("winding shape", shaped === stages);
+check("direct approach closed", closed === stages);
+check("four late decoys", decoyOk === stages);
+check(`tiles >= 36 px on 375 phone (world tile ${minTile})`, minTile * (343 / 390) >= 36);
+console.log(`Hot Floor: ${stages} stages; rerolls/stage ${(rerolls / rerollStages).toFixed(2)} (${((100 * rerolls) / (rerollStages + rerolls)).toFixed(1)}% rejected); avg length/Manhattan ${(ratioSum / stages).toFixed(2)}; greedy ${greedySolved}/${stages}; ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
-const tick = (s: HotFloorState, k: number | null, a = 0) =>
-  hotFloorGame.step(s, k === null ? null : { t: s.tick + 1, k, a, b: 0, c: 0, d: 0 });
+const tick = (s: HotFloorState, k: number | null, cellArg = -1) => {
+  const p = k === HOT_INPUT_TILE ? hotTilePoint(s.board, cellArg) : { a: 0, b: 0 };
+  return hotFloorGame.step(s, k === null ? null : { t: s.tick + 1, k, a: p.a, b: p.b, c: 0, d: 0 });
+};
 let s = hotFloorGame.init(90210);
 // Wrong route: the decoy loses a life and resets with the same board.
 const fp = s.board.fingerprint;

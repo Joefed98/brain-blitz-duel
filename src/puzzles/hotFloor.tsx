@@ -70,7 +70,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       pointer={(kind, x, y) => {
         if (kind !== "down") return null;
         const hit = hotfloorHit(x, y);
-        return hit ? { k: hit.k, a: hit.a, b: 0, c: 0 } : null;
+        return hit ? { k: hit.k, a: hit.a, b: hit.b, c: 0 } : null;
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
