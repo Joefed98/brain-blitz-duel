@@ -781,10 +781,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Solve it fast for the bonus.",
   },
   lightup: {
-    goal: "Light every square.",
+    goal: "Place bulbs so every white square is lit.",
     how: [
-      { action: "Tap to place a bulb", detail: "— it lights its row and column up to a wall." },
-      { action: "Bulbs can't shine on each other,", detail: "and a numbered wall needs that many bulbs beside it." },
+      { action: "A bulb lights everything in its row and column", detail: "until it hits a black wall." },
+      { action: "Bulbs must never shine on each other.", detail: "" },
+      { action: "A number on a wall", detail: "says exactly how many bulbs touch that wall's sides." },
     ],
     score: "Solve it fast for the bonus.",
   },

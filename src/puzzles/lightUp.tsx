@@ -7,6 +7,8 @@ import {
   encodeBulbs,
   lightUpStatus,
   lightUpValid,
+  LIGHTUP_SIZE,
+  orth,
   type LightUpBoard,
 } from "@/lib/duel/lightUp";
 import { LIGHTUP_TIME_MS, type LightUpPuzzleData } from "@/lib/duel/types";
@@ -17,6 +19,40 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 /** 0 empty, 1 bulb, 2 dot (a note: no bulb here). */
 type Mark = 0 | 1 | 2;
+
+/** Beam cells per bulb, plus the stretches between two bulbs that see each other. */
+function beams(board: LightUpBoard, bulbs: readonly number[]) {
+  const { size } = board;
+  const wallSet = new Set(board.walls);
+  const bulbSet = new Set(bulbs);
+  const h = new Set<number>();
+  const v = new Set<number>();
+  const redH = new Set<number>();
+  const redV = new Set<number>();
+  for (const bulb of bulbs) {
+    h.add(bulb);
+    v.add(bulb);
+    const r = Math.floor(bulb / size);
+    const c = bulb % size;
+    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const run: number[] = [bulb];
+      let rr = r + dr;
+      let cc = c + dc;
+      while (rr >= 0 && cc >= 0 && rr < size && cc < size && !wallSet.has(rr * size + cc)) {
+        const cell = rr * size + cc;
+        run.push(cell);
+        (dr === 0 ? h : v).add(cell);
+        if (bulbSet.has(cell)) {
+          for (const x of run) (dr === 0 ? redH : redV).add(x);
+          break;
+        }
+        rr += dr;
+        cc += dc;
+      }
+    }
+  }
+  return { h, v, redH, redV };
+}
 
 function Board({
   board,
@@ -34,8 +70,11 @@ function Board({
 }) {
   const { size } = board;
   const bulbs = marks.flatMap((m, cell) => (m === 1 ? [cell] : []));
+  const bulbSet = new Set(bulbs);
   const status = lightUpStatus(board, bulbs);
+  const beam = beams(board, bulbs);
   const wallIndex = new Map(board.walls.map((wall, i) => [wall, i]));
+  const beamW = small ? 2 : 4;
   return (
     <div
       ref={pointer?.ref}
@@ -47,30 +86,52 @@ function Board({
         const wi = wallIndex.get(cell);
         if (wi !== undefined) {
           const n = board.wallNumbers[wi] ?? -1;
+          const touching = orth(cell, size).filter((x) => bulbSet.has(x)).length;
+          const over = n >= 0 && touching > n;
+          const done = n >= 0 && touching === n;
           return (
-            <div key={cell} className="flex aspect-square items-center justify-center rounded-sm bg-background">
+            <div
+              key={cell}
+              className={`relative flex aspect-square items-center justify-center rounded-sm ${over ? "bg-destructive" : "bg-background"}`}
+            >
               {n >= 0 && (
-                <span className={`font-mono font-bold text-foreground ${small ? "text-xs" : "text-lg"}`}>{n}</span>
+                <span className={`font-mono font-bold ${over ? "text-destructive-foreground" : "text-foreground"} ${small ? "text-xs" : "text-lg"}`}>{n}</span>
+              )}
+              {done && (
+                <span className={`absolute right-0.5 top-0 font-bold leading-none text-primary ${small ? "text-[8px]" : "text-xs"}`}>✓</span>
               )}
             </div>
           );
         }
         const mark = marks[cell] ?? 0;
         const bad = status.clashing.has(cell) || wrong?.has(cell);
+        const lit = status.lit.has(cell);
         return (
           <div
             key={cell}
-            className={`flex aspect-square items-center justify-center rounded-sm border border-border ${
-              status.lit.has(cell) ? "bg-primary/20" : "bg-card"
+            className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-sm border ${
+              lit ? "border-transparent bg-primary/15" : "border-dotted border-muted-foreground/50 bg-card"
             }`}
           >
+            {beam.h.has(cell) && (
+              <span
+                className={`absolute inset-x-0 top-1/2 -translate-y-1/2 ${beam.redH.has(cell) ? "bg-destructive" : "bg-primary/60"}`}
+                style={{ height: beamW }}
+              />
+            )}
+            {beam.v.has(cell) && (
+              <span
+                className={`absolute inset-y-0 left-1/2 -translate-x-1/2 ${beam.redV.has(cell) ? "bg-destructive" : "bg-primary/60"}`}
+                style={{ width: beamW }}
+              />
+            )}
             {mark === 1 ? (
               <span
-                className={`block h-1/2 w-1/2 rounded-full ${bad ? "animate-pulse bg-destructive" : "bg-primary"}`}
+                className={`relative block h-1/2 w-1/2 rounded-full ${bad ? "animate-pulse bg-destructive" : "bg-primary"}`}
                 style={{ boxShadow: bad ? undefined : "0 0 10px var(--primary)" }}
               />
             ) : mark === 2 ? (
-              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+              <span className="relative h-1.5 w-1.5 rounded-full bg-muted-foreground" />
             ) : null}
           </div>
         );
@@ -79,21 +140,35 @@ function Board({
   );
 }
 
-function IntroExample() {
-  const board: LightUpBoard = { size: 4, walls: [5, 14], wallNumbers: [1, -1] };
-  const marks: Mark[] = new Array(16).fill(0);
-  marks[4] = 1;
-  marks[11] = 1;
+/** Worked 4×4 example: before (walls, one numbered 1) and after (two bulbs, all lit, the 1 ticked). */
+const EXAMPLE: LightUpBoard = { size: 4, walls: [0, 1, 2, 12, 14], wallNumbers: [-1, 1, -1, -1, -1] };
+
+export function LightUpExample() {
+  const before: Mark[] = new Array(16).fill(0);
+  const after: Mark[] = new Array(16).fill(0);
+  after[5] = 1;
+  after[11] = 1;
   return (
-    <div style={{ width: 150 }}>
-      <Board board={board} marks={marks} />
+    <div className="flex w-full flex-col items-center gap-1">
+      <div className="flex items-end justify-center gap-3">
+        <div className="flex flex-col items-center gap-1" style={{ width: 112 }}>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Before</span>
+          <Board board={EXAMPLE} marks={before} small />
+        </div>
+        <span className="pb-10 text-muted-foreground">→</span>
+        <div className="flex flex-col items-center gap-1" style={{ width: 112 }}>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">After</span>
+          <Board board={EXAMPLE} marks={after} small />
+        </div>
+      </div>
+      <p className="text-center text-xs text-muted-foreground">Two bulbs light every square; the 1 has one bulb beside it.</p>
     </div>
   );
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
   const data: LightUpPuzzleData | null = puzzle.type === "lightup" ? puzzle : null;
-  const size = data?.size ?? 7;
+  const size = data?.size ?? LIGHTUP_SIZE;
   const [marks, setMarks] = useStageState<Mark[]>(stateKey ?? "lightup", "lightUpMarks", () =>
     new Array(size * size).fill(0),
   );
@@ -184,10 +259,10 @@ export const lightUpPuzzle: PuzzleDefinition = {
   category: "logic",
   timeLimitMs: LIGHTUP_TIME_MS,
   revealMs: 8_000,
-  generate: () => ({ type: "lightup", size: 7, walls: [], wallNumbers: [] }) satisfies LightUpPuzzleData,
+  generate: () => ({ type: "lightup", size: LIGHTUP_SIZE, walls: [], wallNumbers: [] }) satisfies LightUpPuzzleData,
   check: (answer, puzzle) => puzzle.type === "lightup" && lightUpValid(puzzle, decodeBulbs(answer, puzzle)),
   revealHeading: "The solution",
-  IntroExample,
+  IntroExample: LightUpExample,
   Stage,
   Reveal,
 };
