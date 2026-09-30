@@ -709,7 +709,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A diagonal blocks both neighbours", detail: "— at 1:30 it covers the top and the right." },
       { action: "Later they come in pairs", detail: "and some swerve at the last moment. Three hits and you're out." },
     ],
-    score: "5 per arrow deflected, −10 per life lost.",
+    score: "4 per arrow deflected, −10 per life lost.",
   },
   junction: {
     goal: "Keep the traffic moving without a crash.",
@@ -797,6 +797,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tents can't touch,", detail: "even diagonally." },
       { action: "The numbers", detail: "say how many tents are in each row and column." },
     ],
-    score: "Solve it fast for the bonus.",
+    score: "10 per tent; all twelve for the time bonus.",
   },
 };

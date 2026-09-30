@@ -1378,11 +1378,12 @@ const tentsSummary: SummaryBuilder = (result, puzzle) => {
   const correct = Number(result.extra?.["correct"] ?? 0);
   const wrong = Number(result.extra?.["wrong"] ?? 0);
   const trees = Number(result.extra?.["trees"] ?? puzzle.trees.length);
-  if (result.is_correct) {
-    return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  const points = result.score ?? 0;
+  if (correct === trees && wrong === 0) {
+    return { summary: `${correct} / ${trees} · ${points}`, detail: [] };
   }
   return {
-    summary: `${correct} / ${trees} tents`,
+    summary: `${correct} / ${trees} tents · ${points}`,
     detail: wrong ? [`${wrong} tent${wrong === 1 ? "" : "s"} in the wrong place`] : [],
   };
 };
