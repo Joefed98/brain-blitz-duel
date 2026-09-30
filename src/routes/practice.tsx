@@ -199,7 +199,7 @@ function PracticeScreen() {
 
   if (stage === "list") {
     return (
-      <PhoneShell gameScreen>
+      <PhoneShell>
         <div className="flex flex-1 flex-col gap-6">
           <div>
             <h1 className="font-display text-2xl font-bold">Practice</h1>
@@ -264,7 +264,7 @@ function PracticeScreen() {
 
   if (stage === "intro") {
     return (
-      <PhoneShell>
+      <PhoneShell gameScreen>
         <RoundIntro
           round={1}
           type={type}

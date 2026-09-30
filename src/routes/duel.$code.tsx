@@ -549,7 +549,7 @@ function DuelScreen() {
 
   if (duel.status === "waiting") {
     return (
-      <PhoneShell gameScreen>
+      <PhoneShell>
         <div className="flex flex-1 flex-col items-center justify-center gap-7 text-center">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Room code</p>
@@ -650,7 +650,7 @@ function DuelScreen() {
 
   if (phase === "intro" && puzzle) {
     return (
-      <PhoneShell>
+      <PhoneShell gameScreen>
         <RoundIntro
           round={round}
           type={puzzle.type}
