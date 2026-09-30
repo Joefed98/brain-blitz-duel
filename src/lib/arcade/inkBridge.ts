@@ -359,9 +359,9 @@ function buildLevels(seed: number): { list: InkLevel[]; rng: number } {
   for (let level = 0; level < INK_LEVELS; level++) {
     const full = BLOCK_COUNTS[level]! + (level === INK_LEVELS - 1 ? draw(2) : 0);
     let made: InkLevel | null = null;
-    for (let attempt = 0; attempt < 40 && !made; attempt++) {
+    for (let attempt = 0; attempt < 60 && !made; attempt++) {
       // After a run of failures, fewer extra blocks.
-      const count = Math.max(1, full - Math.trunc(attempt / 8));
+      const count = Math.max(1, full - Math.trunc(attempt / 20));
       const lvl = layout(level, count, draw);
       if (simulateDrop(lvl, []) === 1) continue;
       const ref = findReference(lvl, inkBudget(level));
