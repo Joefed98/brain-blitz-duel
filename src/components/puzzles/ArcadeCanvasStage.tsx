@@ -166,7 +166,23 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       }
       reportArcadeTick(tickOf(), game.isOver(state.current));
       const size = sizeCanvas();
-      if (size) game.draw(canvas.current!.getContext("2d")!, state.current, size);
+      if (size) {
+        const ctx = canvas.current?.getContext("2d");
+        if (ctx) {
+          game.draw(ctx, state.current, size);
+          const { worldW, worldH } = propsRef.current;
+          const scale = Math.min(size.width / worldW, size.height / worldH);
+          const left = (size.width - worldW * scale) / 2;
+          const top = (size.height - worldH * scale) / 2;
+          if (left > 1 || top > 1) {
+            ctx.save();
+            ctx.strokeStyle = "#5A5A66";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(left + 1, top + 1, worldW * scale - 2, worldH * scale - 2);
+            ctx.restore();
+          }
+        }
+      }
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
         propsRef.current.onDraftAnswer?.(encode());
@@ -235,7 +251,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   return (
     <div
       ref={wrap}
-      className="relative min-h-0 w-full flex-1 overflow-hidden"
+      className="relative mx-[-4px] min-h-0 w-[calc(100%+8px)] flex-1 overflow-hidden"
       style={NO_SCROLL_STYLE}
     >
       <canvas

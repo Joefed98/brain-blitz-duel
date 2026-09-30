@@ -212,7 +212,11 @@ function buildCourse(seed: number): Course {
     prevB = row.b;
   }
   const course = { dark, brittle, unstableAt, rng, rerolls };
-  if ((localSafe(course) && courseReachable(course)) || rerolls >= 30) return course;
+  if (localSafe(course) && courseReachable(course)) return course;
+  if (rerolls >= 30) {
+    // A completely solid fallback keeps every incoming path open.
+    return { dark: new Array(dark.length).fill(0), brittle: new Array(dark.length).fill(0), unstableAt: new Array(dark.length).fill(NEVER), rng, rerolls };
+  }
   rerolls++;
   }
 }
