@@ -30,14 +30,14 @@ export const HOT_UP = 3;
 export const HOT_SWIPE_PX = 24;
 export const HOT_COLS = 6;
 export const HOT_ROWS = 8;
-const HOP_TICKS = 8;
-const CRUMBLE_LEAVE_START = 60;
-const CRUMBLE_LEAVE_END = 40;
-const CRACK_AT = 30;
-const BRITTLE_AFTER = 45;
-const PHASE_TICKS = 60;
-const SCROLL_START = 72;
-const SCROLL_END = 36;
+const HOP_TICKS = 6;
+const CRUMBLE_LEAVE_START = 40;
+const CRUMBLE_LEAVE_END = 27;
+const CRACK_AT = 20;
+const BRITTLE_AFTER = 30;
+const PHASE_TICKS = 40;
+const SCROLL_START = 48;
+const SCROLL_END = 24;
 const NEVER = 1 << 30;
 const START_COL = 2;
 const START_ROW = 1;
@@ -120,10 +120,10 @@ function localSafe(course: Course): boolean {
   for (let r = HOT_ROWS; r < TOTAL_ROWS; r++) {
     const appears = rowAppears(r);
     if (appears > HOT_RUN_TICKS) break;
-    for (let tick = appears; tick < Math.min(rowDrops(r - 1), HOT_RUN_TICKS) - 30; tick++) {
+    for (let tick = appears; tick < Math.min(rowDrops(r - 1), HOT_RUN_TICKS) - 20; tick++) {
       for (let c = 0; c < HOT_COLS; c++) {
         if (!solid(course, r - 1, c, tick)) continue;
-        if (![c - 1, c, c + 1].some((n) => solid(course, r, n, tick + HOP_TICKS) && solid(course, r, n, tick + HOP_TICKS + 30))) return false;
+        if (![c - 1, c, c + 1].some((n) => solid(course, r, n, tick + HOP_TICKS) && solid(course, r, n, tick + HOP_TICKS + 20))) return false;
       }
     }
   }
@@ -207,7 +207,7 @@ function buildCourse(seed: number): Course {
     }
     dark.push(...row.d);
     brittle.push(...row.b);
-    unstableAt.push(...row.b.map((v) => v ? rowAppears(r) + BRITTLE_AFTER + 130 + draw(60) : NEVER));
+    unstableAt.push(...row.b.map((v) => v ? rowAppears(r) + BRITTLE_AFTER + 87 + draw(40) : NEVER));
     prevArr = row.arr;
     prevB = row.b;
   }

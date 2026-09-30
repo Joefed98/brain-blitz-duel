@@ -421,7 +421,7 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`Mazes ${state.mazes}`, 14, 26);
+  ctx.fillText(`Completed ${state.mazes}`, 14, 26);
 
   const m = state.list[Math.min(state.level, state.list.length - 1)]!;
   const cs = m.cs / FP;
