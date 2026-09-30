@@ -332,3 +332,5 @@
 - [x] Tilt and Hot Floor arcade games (200/200 identity proof)
 - [ ] Hot Floor: confirm pickup count (~30-38 per run vs ~60 spec)
 - [x] Shikaku and Light Up logic rounds (50/50 unique each)
+
+- [x] Hot Floor plan-then-go, Tilt harder mazes, root-level iOS selection lock, Flip harder (2026-09-30)
