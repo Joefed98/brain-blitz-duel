@@ -74,10 +74,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.currentTarget.setPointerCapture(e.pointerId);
-      arrowEdge.current = dir;
+      if (arrowsRef.current) arrowEdge.current = dir;
+      else dragBar(e);
     },
-    onPointerUp: () => (arrowEdge.current = 0),
-    onPointerCancel: () => (arrowEdge.current = 0),
+    onPointerMove: (e: PointerEvent<HTMLButtonElement>) => { if (!arrowsRef.current && e.currentTarget.hasPointerCapture(e.pointerId)) dragBar(e); },
+    onPointerUp: () => { if (arrowsRef.current) arrowEdge.current = 0; },
+    onPointerCancel: () => { if (arrowsRef.current) arrowEdge.current = 0; },
   });
 
   const fire = (): PointerPayload => {

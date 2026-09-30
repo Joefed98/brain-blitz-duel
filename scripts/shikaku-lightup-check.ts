@@ -35,7 +35,7 @@ for (let i = 0; i < 50; i++) {
   const p = generateLightUp();
   walls.push(p.walls.length);
   nums.push(p.wallNumbers.filter((n) => n >= 0).length);
-  if (countLightUpSolutions(p, 3) !== 1 || !lightUpValid(p, p.solution!) || p.walls.length < 8 || p.walls.length > 10 || p.wallNumbers.some((n) => n < 0)) f2++;
+  if (p.size !== 7 || countLightUpSolutions(p, 3) !== 1 || !lightUpValid(p, p.solution!) || p.walls.length < 10 || p.walls.length > 13 || p.wallNumbers.filter((n) => n >= 0).length !== Math.round(p.walls.length * 0.7)) f2++;
 }
 console.log(`lightup 50: ${50 - f2} unique · walls ${Math.min(...walls)}-${Math.max(...walls)} · numbered ${Math.min(...nums)}-${Math.max(...nums)} · ${((performance.now() - t) / 50).toFixed(0)}ms each`);
 if (fail || f2) process.exit(1);

@@ -132,7 +132,7 @@ function capsuleContact(x0: number, y0: number, x1: number, y1: number, seg: Ink
     if (t >= 0 && t <= 1) candidates.push(t);
   }
   // Rounded caps: solve the moving-point vs circle quadratic, including vertical lines.
-  for (const [cx, cy] of [[ax, ay], [bx, by]]) {
+  for (const [cx, cy] of [[ax, ay], [bx, by]] as const) {
     const ox = x0 - cx, oy = y0 - cy, a = dx * dx + dy * dy;
     if (a === 0) continue;
     const b = 2 * (ox * dx + oy * dy), c = ox * ox + oy * oy - radius * radius;
