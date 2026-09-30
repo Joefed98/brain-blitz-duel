@@ -30,7 +30,7 @@ const MAX_FALL = 12 * FP;
 const RADIUS = 10 * FP;
 const REACH = 220 * FP;
 const MIN_ROPE = 24 * FP;
-const START_X = 150 * FP;
+const START_X = 3000 * FP;
 /** Follow in either direction while showing previously visited anchors. */
 const LEAD = 195 * FP;
 const METRE = 40 * FP;
@@ -201,6 +201,10 @@ function buildCourse(seed: number): Course {
   }
   const course: Course = { ceil, floor, anchors: [], spikes: [], rng: 0 };
   const hangY = (x: number, depth: number) => lerpAt(ceil, x) + depth * FP;
+  for (let x = START_X - 2800 * FP; x < START_X; x += 140 * FP) {
+    course.anchors.push({ x, y: hangY(x, 110) });
+  }
+  const startAnchor = course.anchors.length;
   course.anchors.push({ x: START_X + 70 * FP, y: hangY(START_X + 70 * FP, 110) });
   while (course.anchors[course.anchors.length - 1]!.x < COURSE_LEN - 600 * FP) {
     const prev = course.anchors[course.anchors.length - 1]!;
@@ -254,8 +258,9 @@ function init(seed: number): SwingState {
     if (cache.size > 16) cache.clear();
     cache.set(seed | 0, course);
   }
-  const a = course.anchors[0]!;
-  const body: Body = { x: 0, y: 0, vx: 0, vy: 0, rope: 0, len: 110 * FP, th: 56000 * SUB, om: 0 };
+  const startAnchor = course.anchors.findIndex((a) => a.x >= START_X);
+  const a = course.anchors[startAnchor]!;
+  const body: Body = { x: 0, y: 0, vx: 0, vy: 0, rope: startAnchor, len: 110 * FP, th: 56000 * SUB, om: 0 };
   ropePos(body, a);
   return {
     ...body,
