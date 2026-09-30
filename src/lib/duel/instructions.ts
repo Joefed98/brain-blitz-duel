@@ -742,7 +742,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "You orbit automatically.", detail: "Tap to let go — you fly straight until the next orbit catches you." },
       { action: "Miss and you drift away.", detail: "Avoid the red arcs." },
     ],
-    score: "Points for the share of planets you reach.",
+    score: "2 per planet; finish all sixty early for the time bonus. Skipping a planet is allowed if you can make the next one.",
   },
   swing: {
     goal: "Swing through the cavern as far as you can.",
@@ -750,23 +750,24 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hold to grab the next anchor and swing,", detail: "let go to fly." },
       { action: "Time the release for distance.", detail: "Don't touch the spikes." },
     ],
-    score: "2 per metre.",
+    score: "The longer you last, the more you score.",
   },
   tilt: {
     goal: "Roll the ball out of the maze.",
     how: [
       { action: "Drag left or right to spin the maze", detail: "— the ball always rolls down." },
       { action: "Each escape brings a harder maze.", detail: "Red pits end the run." },
+      { action: "You have 120 seconds.", detail: "" },
     ],
-    score: "15 per maze.",
+    score: "30 per maze escaped — five mazes = 150.",
   },
   hotfloor: {
-    goal: "Keep climbing — the floor is falling away.",
+    goal: "Climb — the floor is falling away beneath you.",
     how: [
       { action: "Swipe to hop between tiles.", detail: "A tile crumbles soon after you leave it, and teal tiles crumble as soon as you land." },
-      { action: "Stay off the bottom row.", detail: "" },
+      { action: "Stay off the bottom row", detail: "— it drops away faster and faster." },
     ],
-    score: "2 per pickup, +30 for surviving the minute.",
+    score: "The longer you last, the more you score.",
   },
   shikaku: {
     goal: "Cut the grid into rectangles, one number each.",

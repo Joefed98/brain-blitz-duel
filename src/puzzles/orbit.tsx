@@ -59,8 +59,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function orbitLine(r: { captured: number; total: number; survived: boolean; survivedSeconds: number }): string {
-  const head = `${r.captured} / ${r.total} planets`;
+export function orbitLine(r: { passed: number; total: number; survived: boolean; survivedSeconds: number; finished: boolean; secondsLeft: number }): string {
+  if (r.finished) return `${r.passed} / ${r.total} · finished with ${r.secondsLeft.toFixed(1)}s left`;
+  const head = `${r.passed} / ${r.total} planets`;
   return r.survived ? `${head} · survived` : `${head} · lost at ${r.survivedSeconds.toFixed(1)}s`;
 }
 

@@ -2,9 +2,12 @@
  * Orbit — planet hopping. The ship orbits its planet at a constant angular
  * speed; a tap (k = 0) releases it tangentially in a straight line. Crossing a
  * later planet's orbit ring captures it (pure geometry). Leaving the screen or
- * 120 ticks without capture ends the run, as does a capture onto a red arc.
- * The course is built in full at init and every hop is checked to have a
- * safe release window.
+ * 150 ticks without capture ends the run, as does a capture onto a red arc.
+ * A release that misses planet n + 1 but is caught by n + 2 skips n + 1 (it
+ * counts as passed). Capture rings shrink every ten planets (×0.8, floor 45%);
+ * red arcs appear on planets 51–60 only. Reaching planet 60 ends the run with a
+ * time bonus. The course is built in full at init and every hop is checked to
+ * have a safe release window.
  */
 
 import {
@@ -26,15 +29,18 @@ export const ORBIT_WORLD_W = 390;
 export const ORBIT_WORLD_H = 620;
 export const ORBIT_RUN_TICKS = 60 * TICKS_PER_SECOND;
 export const ORBIT_INPUT_TAP = 0;
-export const ORBIT_TOTAL = 30;
+export const ORBIT_TOTAL = 60;
 const SHIP_SPEED = 1152; // 4.5 px/tick
-const FLIGHT_MAX = 120;
+const FLIGHT_MAX = 150;
 /** The current planet sits this far down the screen. */
 const VIEW_ANCHOR = 440 * FP;
 const VIEW_BELOW = (ORBIT_WORLD_H * FP) - VIEW_ANCHOR;
-const HAZARD_FROM = 15;
+const HAZARD_FROM = 51;
 const HAZARD_SPAN = ANG_QUARTER;
-const LOOKAHEAD = 3;
+/** Captures reach one planet past the next — a skip. */
+const LOOKAHEAD = 2;
+/** Off-screen margin above the view a skip may fly through. */
+const ABOVE_VIEW = 160 * FP;
 /** Minimum run of consecutive safe release samples per hop. */
 const SAFE_RUN = 4;
 export const ORBIT_TRAIL_TICKS = 10;
@@ -55,11 +61,16 @@ export interface Planet {
   colour: number;
 }
 
+/** Ring size in % for each band of ten planets (1–10, 11–20 …): ×0.8 per band, floor 45%. */
+const RING_BANDS = [100, 80, 64, 51, 45, 45];
+const RING_BASE = 98;
+
 function planetShape(i: number) {
   const r = (28 - Math.trunc((10 * i) / ORBIT_TOTAL)) * FP;
-  const gap = (70 - Math.trunc((30 * i) / ORBIT_TOTAL)) * FP;
+  const band = i === 0 ? 0 : Math.min(RING_BANDS.length - 1, Math.trunc((i - 1) / 10));
+  const ring = Math.trunc((RING_BASE * RING_BANDS[band]! * FP) / 100);
   const lap = 90 - Math.trunc((30 * i) / ORBIT_TOTAL);
-  return { r, ring: r + gap, omega: Math.trunc(65536 / lap) };
+  return { r, ring, omega: Math.trunc(65536 / lap) };
 }
 
 function onArc(p: Planet, angle: number): boolean {
@@ -81,7 +92,7 @@ function releaseVel(p: Planet, angle: number) {
 }
 
 function outside(from: Planet, x: number, y: number): boolean {
-  return x < 0 || x > ORBIT_WORLD_W * FP || y < from.y - VIEW_ANCHOR || y > from.y + VIEW_BELOW;
+  return x < 0 || x > ORBIT_WORLD_W * FP || y < from.y - VIEW_ANCHOR - ABOVE_VIEW || y > from.y + VIEW_BELOW;
 }
 
 /** First later planet whose ring contains the point, or -1. */
@@ -145,7 +156,8 @@ function buildCourse(seed: number): { planets: Planet[]; rng: number } {
     let placed = false;
     for (let attempt = 0; attempt < 40 && !placed; attempt++) {
       const x = lo + draw(Math.max(1, Math.trunc((hi - lo) / FP))) * FP;
-      const y = prev.y - (150 + draw(81)) * FP;
+      // Spacing is 1.15× the original 150–230 px.
+      const y = prev.y - Math.trunc(((150 + draw(81)) * 115) / 100) * FP;
       const dx = x - prev.x;
       const dy = y - prev.y;
       const min = prev.ring + shape.ring + 24 * FP;
@@ -161,7 +173,7 @@ function buildCourse(seed: number): { planets: Planet[]; rng: number } {
       const side = prev.x - prev.ring >= lo ? -1 : 1;
       planets.push({
         x: clampInt(prev.x + side * prev.ring, lo, hi),
-        y: prev.y - 230 * FP,
+        y: prev.y - 264 * FP,
         ...shape,
         dir: draw(2) ? 1 : -1,
         hazard: -1,
@@ -190,6 +202,8 @@ export interface OrbitState {
   releaseTick: number;
   releaseX: number;
   releaseY: number;
+  /** 1 once planet 60 is reached. */
+  finished: number;
   ended: number;
   endedTick: number;
   planets: Planet[];
@@ -222,6 +236,7 @@ function init(seed: number): OrbitState {
     releaseTick: -100,
     releaseX: 0,
     releaseY: 0,
+    finished: 0,
     ended: 0,
     endedTick: 0,
     planets: course.planets,
@@ -271,9 +286,15 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
       s.flying = 0;
       s.captured += 1;
       if (onArc(to, s.angle)) die();
+      else if (j >= ORBIT_TOTAL) {
+        s.ended = 1;
+        s.endedTick = tick;
+        s.finished = 1;
+      }
     } else if (outside(here, s.x, s.y) || s.flying >= FLIGHT_MAX) die();
     else s.flying += 1;
   }
+  if (s.ended) return s;
   const target = s.planets[s.cur]!.y - VIEW_ANCHOR;
   s.camY += Math.trunc((target - s.camY) / 10);
   if (!s.ended && tick >= ORBIT_RUN_TICKS) {
@@ -284,15 +305,20 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
 }
 
 function score(state: OrbitState): number {
-  return clampInt(Math.round((150 * state.captured) / ORBIT_TOTAL), 0, 150);
+  // 2 per planet passed (captured or skipped) + round(30 × ms left ÷ 60000) for finishing.
+  const bonus = state.finished ? Math.round((30 * Math.max(0, ORBIT_RUN_TICKS - state.tick)) / ORBIT_RUN_TICKS) : 0;
+  return clampInt(2 * state.cur + bonus, 0, 150);
 }
 
 export function orbitExtra(s: OrbitState) {
   return {
+    passed: s.cur,
     captured: s.captured,
     total: ORBIT_TOTAL,
     survived: s.ended !== 2,
     survivedSeconds: s.tick / 60,
+    finished: s.finished === 1,
+    secondsLeft: s.finished ? Math.max(0, ORBIT_RUN_TICKS - s.tick) / 60 : 0,
   };
 }
 
@@ -461,7 +487,7 @@ function draw(ctx: CanvasRenderingContext2D, state: OrbitState, size: CanvasSize
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`Planets ${state.captured}`, 14, 26);
+  ctx.fillText(`Planets ${state.cur} / ${ORBIT_TOTAL}`, 14, 26);
   ctx.restore();
 }
 

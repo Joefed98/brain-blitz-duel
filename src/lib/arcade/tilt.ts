@@ -21,24 +21,24 @@ import { icos, isin, TRIG_ONE } from "./trig";
 /* ============================== Constants ============================== */
 
 const FP = 256;
-export const TILT_WORLD_W = 390;
-export const TILT_WORLD_H = 620;
-export const TILT_RUN_TICKS = 60 * TICKS_PER_SECOND;
+/** Everything is 1.2× the original layout; the world is sized so the disc fills the width with 16 px gutters. */
+export const TILT_WORLD_W = 440;
+export const TILT_WORLD_H = 470;
+export const TILT_RUN_TICKS = 120 * TICKS_PER_SECOND;
 export const TILT_INPUT_DRAG = 7;
-const CX = 195;
-const CY = 300;
-export const TILT_DISC_R = 170;
-const INNER = 300;
-const INSIDE_R = 150;
+const CX = 220;
+const CY = 254;
+export const TILT_DISC_R = 204;
+const INNER = 360;
+const INSIDE_R = 180;
 /** 0.5° in angle units (65536 per turn). */
 const ANG_PER_PX = 91;
-const GRAVITY = 48;
-const SPEED_CAP = 3 * FP;
+const GRAVITY = 58;
+const SPEED_CAP = Math.trunc(3.6 * FP);
 export const TILT_MAX_MAZES = 10;
 const SIZES = [7, 9, 9, 11, 11, 13, 13, 13, 13, 13];
 const FAKE_FROM = 3;
-const MAZE_POINTS = 15;
-const BONUS_FROM = 6;
+const MAZE_POINTS = 30;
 
 export const TILT_INPUT_RANGES: readonly InputRange[] = [
   inputRange(TILT_INPUT_DRAG, [0, TILT_WORLD_W], [0, 0], [0, 255]),
@@ -336,9 +336,7 @@ function step(state: TiltState, input: ArcadeInputEvent | null): TiltState {
 }
 
 function score(state: TiltState): number {
-  let total = MAZE_POINTS * state.mazes;
-  if (state.ended === 1 && state.mazes >= BONUS_FROM) total += Math.trunc((TILT_RUN_TICKS - state.tick) / TICKS_PER_SECOND);
-  return clampInt(total, 0, 150);
+  return clampInt(MAZE_POINTS * state.mazes, 0, 150);
 }
 
 export function tiltExtra(s: TiltState) {
@@ -449,7 +447,7 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
   ctx.arc(0, 0, TILT_DISC_R, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = TILT_GOLD;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.4;
   ctx.globalAlpha = 0.5;
   ctx.stroke();
   ctx.globalAlpha = 1;
@@ -461,7 +459,7 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
     ctx.fill();
   }
   ctx.strokeStyle = TILT_GOLD;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 3.6;
   ctx.lineCap = "round";
   ctx.beginPath();
   for (let c = 0; c < m.n * m.n; c++) {
@@ -480,7 +478,7 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
   }
   ctx.stroke();
   ctx.strokeStyle = TILT_TEAL;
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 6;
   ctx.beginPath();
   edge(ctx, m, m.exit, m.exitDir, o);
   if (m.fake >= 0) edge(ctx, m, m.fake, m.fakeDir, o);

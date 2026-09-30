@@ -22,12 +22,12 @@ import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: a few tiles, a gap, a teal tile and a pickup above the runner. */
+/** Fixed intro still: a few tiles, a gap and a teal tile above the runner. */
 function IntroExample() {
   const tiles = [
     [0, 0, "g"], [1, 0, "g"], [2, 0, "g"],
     [0, 1, "g"], [2, 1, "t"],
-    [0, 2, "g"], [1, 2, "p"], [2, 2, "g"],
+    [0, 2, "g"], [1, 2, "g"], [2, 2, "g"],
   ] as const;
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -35,7 +35,6 @@ function IntroExample() {
         {tiles.map(([c, r, kind]) => (
           <g key={`${c}-${r}`}>
             <rect x={6 + c * 40} y={6 + r * 40} width={36} height={36} rx={6} fill="#15151F" stroke={kind === "t" ? HOT_TEAL : HOT_GOLD} strokeOpacity={kind === "t" ? 1 : 0.6} strokeWidth={kind === "t" ? 2.5 : 1} />
-            {kind === "p" && <circle cx={24 + c * 40} cy={24 + r * 40} r={5} fill={HOT_GOLD} />}
           </g>
         ))}
         <rect x={18} y={92} width={12} height={20} rx={6} fill={HOT_GOLD} />
@@ -84,9 +83,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function hotFloorLine(r: { pickups: number; total: number; survived: boolean; survivedSeconds: number }): string {
-  const head = `${r.pickups} / ${r.total}`;
-  return r.survived ? `${head} · survived` : `${head} · fell at ${r.survivedSeconds.toFixed(1)}s`;
+export function hotFloorLine(r: { survived: boolean; survivedSeconds: number }): string {
+  return r.survived ? "Survived the minute" : `Survived ${r.survivedSeconds.toFixed(1)}s`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

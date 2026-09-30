@@ -316,7 +316,9 @@ export function swingMetres(s: SwingState): number {
 }
 
 function score(state: SwingState): number {
-  return clampInt(2 * swingMetres(state), 0, 150);
+  // floor(150 × (seconds survived ÷ 60)²); distance is for the reveal only.
+  const t = Math.min(state.tick, SWING_RUN_TICKS);
+  return clampInt(Math.floor((150 * t * t) / (SWING_RUN_TICKS * SWING_RUN_TICKS)), 0, 150);
 }
 
 export function swingExtra(s: SwingState) {
