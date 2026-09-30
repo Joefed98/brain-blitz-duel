@@ -1,10 +1,10 @@
 # Roadmap
 
 ## Four arcade and interaction changes (Sep 30)
-- [ ] Rebuild Hot Floor as ten deterministic 6×8 route-planning stages with three lives.
-- [ ] Shift Tilt's starting maze difficulty forward by one level.
-- [ ] Suppress iOS selection and callouts at the shared game-screen wrapper.
-- [ ] Make at least 40% of Flip hazards after 10 seconds solver-checked decision patterns.
+- [x] Rebuild Hot Floor as ten deterministic 6×8 route-planning stages with three lives.
+- [x] Shift Tilt's starting maze difficulty forward by one level.
+- [x] Suppress iOS selection and callouts at the shared game-screen wrapper.
+- [x] Make at least 40% of Flip hazards after 10 seconds solver-checked decision patterns.
 - [ ] Run focused generation checks and 200-run replay identity proofs; no browser tests.
 
 ## Six type tuning (Sep 30)
