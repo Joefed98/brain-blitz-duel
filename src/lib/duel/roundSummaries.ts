@@ -1345,12 +1345,10 @@ const hotFloorSummary: SummaryBuilder = (result) => {
 
 const burstSummary: SummaryBuilder = (result) => {
   const wave = Math.max(1, Number(result.extra?.["wave"] ?? 1));
-  const lives = Number(result.extra?.["lives"] ?? 0);
-  const survived = result.extra?.["survived"] !== false;
-  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
-  const head = `Wave ${wave} · ${result.score} points · ${lives} ${lives === 1 ? "life" : "lives"} left`;
+  const hits = Number(result.extra?.["hits"] ?? 0);
+  const lost = Number(result.extra?.["livesLost"] ?? 0);
   return {
-    summary: survived ? `${head} · survived` : `${head} · caught at ${ended.toFixed(1)}s`,
+    summary: `Wave ${wave} · ${hits} popped · ${lost} ${lost === 1 ? "life" : "lives"} lost · ${result.score}`,
     detail: ["Same waves for everyone"],
   };
 };

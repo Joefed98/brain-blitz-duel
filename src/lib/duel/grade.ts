@@ -1419,9 +1419,10 @@ export function gradeSubmission(
       score = run.score;
       extraDetail = {
         wave: run.wave,
-        points: run.points,
+        hits: run.hits,
         cleared: run.cleared,
         lives: run.lives,
+        livesLost: run.livesLost,
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,
