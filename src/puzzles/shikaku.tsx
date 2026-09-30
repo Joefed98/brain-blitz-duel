@@ -13,10 +13,11 @@ import {
   shikakuCovered,
   shikakuSolved,
   SHIKAKU_CELLS,
+  SHIKAKU_SIZE,
   type ShikakuClue,
   type ShikakuRect,
 } from "@/lib/duel/shikaku";
-import { SHIKAKU_SIZE } from "@/lib/duel/shikaku";
+
 import { SHIKAKU_TIME_MS, type ShikakuPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
