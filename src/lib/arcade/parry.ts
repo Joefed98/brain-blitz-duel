@@ -21,7 +21,6 @@ export const PARRY_WORLD_W = 390;
 export const PARRY_WORLD_H = 620;
 export const PARRY_RUN_TICKS = 60 * TICKS_PER_SECOND;
 export const PARRY_INPUT_SWIPE = 4;
-export const PARRY_INPUT_STEP = 14;
 /** Sides and swipe directions share numbers: 0 left, 1 right, 2 up, 3 down. */
 export const PARRY_LEFT = 0;
 export const PARRY_RIGHT = 1;
@@ -44,10 +43,7 @@ export const PARRY_SWING_TICKS = 6;
 /** Clock position of each side's arrows: left = 9, right = 3, up = 12, down = 6. */
 export const PARRY_SIDE_POS = [6, 2, 0, 4] as const;
 
-export const PARRY_INPUT_RANGES: readonly InputRange[] = [
-  inputRange(PARRY_INPUT_SWIPE, [0, 7]),
-  inputRange(PARRY_INPUT_STEP, [-1, 1], [0, 1]),
-];
+export const PARRY_INPUT_RANGES: readonly InputRange[] = [inputRange(PARRY_INPUT_SWIPE, [0, 7])];
 
 /** Swipe vector → nearest of the eight clock positions. */
 export function parrySwipePos(dx: number, dy: number): number {
@@ -200,10 +196,8 @@ function step(state: ParryState, input: ArcadeInputEvent | null): ParryState {
   };
 
   if (s.swingT > 0) s.swingT -= 1;
-  if (input && (input.k === PARRY_INPUT_SWIPE || input.k === PARRY_INPUT_STEP)) {
-    const target = input.k === PARRY_INPUT_STEP
-      ? (parryShieldPos(s) + (input.a < 0 ? 7 : 1)) % PARRY_POSITIONS
-      : clampInt(input.a, 0, 7);
+  if (input && input.k === PARRY_INPUT_SWIPE) {
+    const target = clampInt(input.a, 0, 7);
     if (target !== s.pos) {
       s.fromPos = parryShieldPos(s);
       s.pos = target;

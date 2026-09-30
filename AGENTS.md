@@ -14,3 +14,5 @@
 - ArrowPad owns the device-local arrows/joystick preference so every arrow-controlled puzzle behaves consistently.
 - Balance placement uses only fixed, non-tilting distance buttons; their peg indices feed the existing server-validated placement encoding.
 - PhoneShell gameScreen owns selection/callout suppression: it locks html/body (game-lock class), cancels selectstart/contextmenu, and cancels touchstart inside [data-play-area] with a non-passive listener (React touch handlers are passive).
+- Hot Floor stages carry a server-replayable hop budget and two verified failing alternatives; generation keeps the highest-number-first solve rate below 20%.
+- Tents uses `-1` for hidden row/column counts; shared solving and validation treat those lines as unconstrained.

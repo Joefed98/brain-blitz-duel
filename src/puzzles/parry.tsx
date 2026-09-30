@@ -9,7 +9,6 @@ import {
   PARRY_CHECKPOINT_INTERVAL,
   PARRY_GOLD,
   PARRY_INPUT_SWIPE,
-  PARRY_INPUT_STEP,
   PARRY_RED,
   PARRY_SWIPE_PX,
   PARRY_TEAL,
@@ -83,7 +82,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         step.current = null;
         if (direction === null) return null;
         stepFlip.current ^= 1;
-        return { k: PARRY_INPUT_STEP, a: direction, b: stepFlip.current, c: 0 };
+        return { k: PARRY_INPUT_SWIPE, a: (state.pos + (direction < 0 ? 7 : 1)) % 8, b: stepFlip.current, c: 0 };
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
