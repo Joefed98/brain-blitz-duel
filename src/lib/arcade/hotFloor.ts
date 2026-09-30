@@ -20,10 +20,11 @@ import {
 
 export const HOT_WORLD_W = 390;
 export const HOT_WORLD_H = 620;
-export const HOT_RUN_TICKS = 90 * TICKS_PER_SECOND;
+export const HOT_RUN_TICKS = 120 * TICKS_PER_SECOND;
 export const HOT_INPUT_TILE = 11;
 export const HOT_INPUT_CLEAR = 12;
 export const HOT_INPUT_GO = 13;
+export const HOT_INPUT_UNDO = 14;
 export const HOT_COLS = 7;
 export const HOT_MAX_ROWS = 9;
 export const HOT_STAGES = 10;
@@ -39,6 +40,7 @@ export const HOT_INPUT_RANGES: readonly InputRange[] = [
   inputRange(HOT_INPUT_TILE, [0, HOT_WORLD_W], [0, HOT_WORLD_H]),
   inputRange(HOT_INPUT_CLEAR),
   inputRange(HOT_INPUT_GO),
+  inputRange(HOT_INPUT_UNDO),
 ];
 
 export interface HotFloorStage {
@@ -415,6 +417,8 @@ function plan(s: HotFloorState, input: ArcadeInputEvent): void {
   const last = s.route[s.route.length - 1]!;
   if (input.k === HOT_INPUT_CLEAR) {
     s.route = [s.board.start];
+  } else if (input.k === HOT_INPUT_UNDO) {
+    if (s.route.length > 1) s.route = s.route.slice(0, -1);
   } else if (input.k === HOT_INPUT_GO) {
     if (last === s.board.exit && s.route.length > 1 && s.route.length - 1 <= s.board.hopBudget) {
       s.phase = 1;
@@ -523,10 +527,12 @@ export const HOT_GOLD = "#F5B82E";
 export const HOT_TEAL = "#2EC4B6";
 export const HOT_RED = "#FF4D5E";
 const HOT_ORANGE = "#F28C28";
-const BOARD_Y = 80;
-const BOARD_H = 440;
+const BOARD_Y = 64;
+const BOARD_H = 432;
 const BOARD_W = 336;
-const BTN_Y = 540;
+const UNDO_Y = 504;
+const UNDO_H = 44;
+const BTN_Y = 556;
 const BTN_H = 56;
 const CLEAR_X0 = 27;
 const CLEAR_X1 = 183;
@@ -556,6 +562,9 @@ export function hotTilePoint(stage: HotFloorStage, cell: number): { a: number; b
 
 /** World point to the input it means (tile tap carries the point; the sim resolves the cell). */
 export function hotfloorHit(x: number, y: number): { k: number; a: number; b: number } | null {
+  if (y >= UNDO_Y && y <= UNDO_Y + UNDO_H) {
+    return x >= CLEAR_X0 && x <= GO_X1 ? { k: HOT_INPUT_UNDO, a: 0, b: 0 } : null;
+  }
   if (y >= BTN_Y && y <= BTN_Y + BTN_H) {
     if (x >= CLEAR_X0 && x <= CLEAR_X1) return { k: HOT_INPUT_CLEAR, a: 0, b: 0 };
     if (x >= GO_X0 && x <= GO_X1) return { k: HOT_INPUT_GO, a: 0, b: 0 };
@@ -706,6 +715,18 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
   // Buttons.
   const canGo = state.phase === 0 && state.route.length > 1 && state.route.length - 1 <= board.hopBudget && state.route[state.route.length - 1] === board.exit;
   ctx.lineWidth = 2;
+  const canUndo = state.phase === 0 && state.route.length > 1;
+  ctx.beginPath();
+  ctx.roundRect(CLEAR_X0, UNDO_Y, GO_X1 - CLEAR_X0, UNDO_H, 12);
+  ctx.fillStyle = "#15151F";
+  ctx.fill();
+  ctx.strokeStyle = canUndo ? "#5A5A66" : "#2A2A33";
+  ctx.stroke();
+  ctx.font = "800 16px JetBrains Mono, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = canUndo ? "#E8E8ED" : "#55555F";
+  ctx.fillText("UNDO", (CLEAR_X0 + GO_X1) / 2, UNDO_Y + UNDO_H / 2);
   ctx.beginPath();
   ctx.roundRect(CLEAR_X0, BTN_Y, CLEAR_X1 - CLEAR_X0, BTN_H, 12);
   ctx.fillStyle = "#15151F";

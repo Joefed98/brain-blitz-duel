@@ -352,3 +352,9 @@ export function puzzleShowsTimer(puzzle: PuzzleData | undefined): boolean {
   if (!puzzle) return true;
   return puzzleDef(puzzle.type).showTimer !== false;
 }
+
+/** Live game counts for marketing lines: non-retired core/opt-in types vs arcade types. */
+export function gameCounts(): { puzzle: number; arcade: number } {
+  const puzzle = [...CORE_CATEGORIES, ...OPT_IN_CATEGORIES].reduce((n, c) => n + typesInCategory(c).length, 0);
+  return { puzzle, arcade: typesInCategory(ARCADE_CATEGORY).length };
+}

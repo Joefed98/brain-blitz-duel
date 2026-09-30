@@ -9,6 +9,9 @@ import { createRoom, joinRoomByCode } from "@/lib/duel/api";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { unlockAudio } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
+import { gameCounts } from "@/lib/duel/registry";
+
+const GAME_COUNTS = gameCounts();
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -100,7 +103,7 @@ function Home() {
           </p>
           <div className="mt-6 h-px w-16 bg-border" />
           <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-             40+ PUZZLE TYPES & 16 ARCADE GAMES
+            {GAME_COUNTS.puzzle} puzzle games · {GAME_COUNTS.arcade} arcade games
           </p>
         </div>
 
