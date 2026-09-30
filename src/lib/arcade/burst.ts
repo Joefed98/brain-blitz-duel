@@ -2,7 +2,9 @@
  * Burst — pop bouncing balls with a vertical shot; big balls split into two
  * smaller ones. Drags set the player's target x (k = 7, a = x); taps fire
  * (k = 0; b alternates so repeated taps stay distinct events). Every wave is
- * drawn at init from the seed.
+ * drawn at init from the seed. Popping an L ball drops a gold icon (2 px/tick);
+ * catching it switches to BURST shots — three short 12 px/tick shots 8 ticks
+ * apart per tap — until a life is lost.
  */
 
 import {
@@ -22,13 +24,13 @@ import {
 const FP = 256;
 export const BURST_WORLD_W = 390;
 export const BURST_WORLD_H = 620;
-export const BURST_RUN_TICKS = 60 * TICKS_PER_SECOND;
+export const BURST_RUN_TICKS = 90 * TICKS_PER_SECOND;
 export const BURST_INPUT_MOVE = 7;
 export const BURST_INPUT_FIRE = 0;
-/** Drags start in the bottom quarter; taps above it fire. */
-export const BURST_DRAG_TOP = Math.trunc((BURST_WORLD_H * 3) / 4);
-
 export const BURST_FLOOR_Y = 560;
+/** The 60 px controls bar under the floor is the drag zone; taps above it fire. */
+export const BURST_DRAG_TOP = BURST_FLOOR_Y;
+export const BURST_BAR_H = BURST_WORLD_H - BURST_FLOOR_Y;
 const CEIL_START = 40;
 const ARENA_H = BURST_FLOOR_Y - CEIL_START;
 const CEIL_STEP = 40;
@@ -41,14 +43,21 @@ const SHOT_SPEED = 9 * FP;
 export const BURST_LIVES = 3;
 const INVULN_TICKS = 60;
 const WAVE_GAP = 45;
-const WAVE_BONUS = 15;
-const MAX_WAVES = 40;
+const MAX_WAVES = 41;
+const HIT_POINTS = 3;
+const LIFE_COST = 9;
+const TOP_UP_WAVES = 4;
+const ICON_FALL = 2 * FP;
+const ICON_HALF = 8;
+const BURST_SHOTS = 3;
+const BURST_GAP = 8;
+const BURST_SPEED = 12 * FP;
+export const BURST_SHORT_LEN = 30;
 
 /** Sizes: 0 L, 1 M, 2 S, 3 XS. */
 export const BURST_RADIUS = [32, 22, 14, 8] as const;
 const APEX_PCT = [75, 60, 45, 30] as const;
 const SPEED_X = [410, 495, 580, 666] as const; // 1.6 → 2.6 px a tick
-const POINTS = [4, 3, 2, 1] as const;
 const GRAVITY = 32; // 0.125 px/tick²
 const KICK = 3 * FP;
 /** Bounce speed that lifts the ball's bottom to its apex height. */
@@ -81,7 +90,9 @@ function buildWaves(seed: number) {
   };
   const waves: BurstSpawn[][] = [];
   const side = draw(2);
-  waves.push([{ size: 0, side, lift: 0 }]);
+  // Wave 1 is a single M; the rest of the list follows one later.
+  waves.push([{ size: 1, side, lift: 0 }]);
+  waves.push([{ size: 0, side: 1 - side, lift: 0 }]);
   waves.push([
     { size: 1, side: 0, lift: 0 },
     { size: 1, side: 1, lift: 0 },
@@ -96,8 +107,8 @@ function buildWaves(seed: number) {
     { size: 0, side: 0, lift: 0 },
     { size: 0, side: 1, lift: 30 },
   ]);
-  for (let w = 5; w <= MAX_WAVES; w++) {
-    const count = Math.min(5, 2 + Math.trunc((w - 5) / 2) + draw(2));
+  for (let w = 6; w <= MAX_WAVES; w++) {
+    const count = Math.min(5, 2 + Math.trunc((w - 6) / 2) + draw(2));
     const wave: BurstSpawn[] = [];
     for (let i = 0; i < count; i++) wave.push({ size: draw(3), side: draw(2), lift: draw(4) * 20 });
     waves.push(wave);
@@ -106,7 +117,7 @@ function buildWaves(seed: number) {
 }
 
 export function burstCeiling(wave: number): number {
-  return Math.min(CEIL_MAX, CEIL_START + CEIL_STEP * Math.max(0, wave - 4));
+  return Math.min(CEIL_MAX, CEIL_START + CEIL_STEP * Math.max(0, wave - 5));
 }
 
 /* ================================ State ================================ */
@@ -119,6 +130,13 @@ export interface BurstBall {
   vy: number;
 }
 
+export interface BurstShot {
+  x: number;
+  top: number;
+  /** 1 for a short BURST shot. */
+  short: number;
+}
+
 export interface BurstState {
   tick: number;
   rng: number;
@@ -129,12 +147,18 @@ export interface BurstState {
   balls: BurstBall[];
   x: number;
   targetX: number;
-  shot: number;
-  shotX: number;
-  shotTop: number;
+  shots: BurstShot[];
+  /** Gold power-up icons falling, x/y in 1/256 px. */
+  icons: { x: number; y: number }[];
+  /** 1 while BURST shots are on. */
+  burst: number;
+  /** BURST shots still to fire from the current tap, and when. */
+  burstLeft: number;
+  burstNext: number;
   lives: number;
   invuln: number;
-  points: number;
+  /** Balls popped or split. */
+  hits: number;
   cleared: number;
   ended: number;
   endedTick: number;
@@ -164,12 +188,14 @@ function init(seed: number): BurstState {
     balls: [],
     x: mid,
     targetX: mid,
-    shot: 0,
-    shotX: 0,
-    shotTop: 0,
+    shots: [],
+    icons: [],
+    burst: 0,
+    burstLeft: 0,
+    burstNext: 0,
     lives: BURST_LIVES,
     invuln: 0,
-    points: 0,
+    hits: 0,
     cleared: 0,
     ended: 0,
     endedTick: 0,
@@ -201,19 +227,33 @@ function touches(ball: BurstBall, px: number): boolean {
 function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
-  const s: BurstState = { ...state, tick, balls: state.balls.map((ball) => ({ ...ball })) };
+  const s: BurstState = {
+    ...state,
+    tick,
+    balls: state.balls.map((ball) => ({ ...ball })),
+    shots: state.shots.map((shot) => ({ ...shot })),
+    icons: state.icons.map((icon) => ({ ...icon })),
+  };
   const minX = PLAYER_HALF_W * FP;
   const maxX = (BURST_WORLD_W - PLAYER_HALF_W) * FP;
 
   if (input && input.k === BURST_INPUT_MOVE) s.targetX = clampInt(input.a * FP, minX, maxX);
-  if (input && input.k === BURST_INPUT_FIRE && !s.shot) {
-    s.shot = 1;
-    s.shotX = s.x;
-    s.shotTop = BURST_FLOOR_Y * FP;
+  if (input && input.k === BURST_INPUT_FIRE) {
+    if (s.burst) {
+      if (s.burstLeft === 0) {
+        s.burstLeft = BURST_SHOTS;
+        s.burstNext = tick;
+      }
+    } else if (s.shots.length === 0) s.shots.push({ x: s.x, top: BURST_FLOOR_Y * FP, short: 0 });
   }
 
   // Player walks toward its target.
   s.x += clampInt(s.targetX - s.x, -PLAYER_SPEED, PLAYER_SPEED);
+  if (s.burst && s.burstLeft > 0 && tick >= s.burstNext) {
+    s.shots.push({ x: s.x, top: (BURST_FLOOR_Y - PLAYER_H) * FP, short: 1 });
+    s.burstLeft -= 1;
+    s.burstNext = tick + BURST_GAP;
+  }
   if (s.invuln > 0) s.invuln -= 1;
 
   // Next wave enters.
@@ -257,21 +297,24 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     }
   }
 
-  // The shot climbs; the first ball it meets splits or pops.
-  if (s.shot) {
-    s.shotTop -= SHOT_SPEED;
+  // Shots climb; the first ball each meets splits or pops.
+  const flying: BurstShot[] = [];
+  for (const shot of s.shots) {
+    shot.top -= shot.short ? BURST_SPEED : SHOT_SPEED;
+    const bottom = shot.short ? shot.top + BURST_SHORT_LEN * FP : BURST_FLOOR_Y * FP;
     let hit = -1;
     for (let i = 0; i < s.balls.length; i++) {
       const ball = s.balls[i]!;
       const r = BURST_RADIUS[ball.size]! * FP;
-      if (Math.abs(ball.x - s.shotX) <= r && ball.y + r >= s.shotTop) {
+      if (Math.abs(ball.x - shot.x) <= r && ball.y + r >= shot.top && ball.y - r <= bottom) {
         hit = i;
         break;
       }
     }
     if (hit >= 0) {
       const ball = s.balls[hit]!;
-      s.points += POINTS[ball.size]!;
+      s.hits += 1;
+      if (ball.size === 0) s.icons.push({ x: ball.x, y: ball.y });
       s.popX = ball.x;
       s.popY = ball.y;
       s.popTick = tick;
@@ -283,14 +326,27 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
           s.balls.push({ size, x: ball.x, y: ball.y, vx: dir * SPEED_X[size]!, vy: -KICK });
         }
       }
-      s.shot = 0;
-    } else if (s.shotTop <= ceil) s.shot = 0;
+    } else if (shot.top > ceil) flying.push(shot);
   }
+  s.shots = flying;
 
-  // Touching the player costs a life.
+  // Power-up icons fall; the player catches them, the floor loses them.
+  const falling: { x: number; y: number }[] = [];
+  for (const icon of s.icons) {
+    icon.y += ICON_FALL;
+    const top = (BURST_FLOOR_Y - PLAYER_H) * FP;
+    const near = Math.abs(icon.x - s.x) <= (PLAYER_HALF_W + ICON_HALF) * FP;
+    if (near && icon.y + ICON_HALF * FP >= top) s.burst = 1;
+    else if (icon.y - ICON_HALF * FP < BURST_FLOOR_Y * FP) falling.push(icon);
+  }
+  s.icons = falling;
+
+  // Touching the player costs a life and the BURST shots.
   if (s.invuln === 0 && s.balls.some((ball) => touches(ball, s.x))) {
     s.lives -= 1;
     s.invuln = INVULN_TICKS;
+    s.burst = 0;
+    s.burstLeft = 0;
   }
 
   if (s.balls.length === 0 && s.wave > 0 && s.nextWaveAt <= state.tick) {
@@ -308,20 +364,21 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
   return s;
 }
 
-/** Hit points + 15 per wave cleared, cap 150. */
-export function burstScoreOf(points: number, cleared: number): number {
-  return clampInt(points + WAVE_BONUS * cleared, 0, 150);
+/** 3 per hit − 9 per life lost (min 0); a finished run with no lives lost and 4+ waves cleared tops up to 150. */
+export function burstScoreOf(hits: number, livesLost: number, cleared: number, ended: boolean): number {
+  if (ended && livesLost === 0 && cleared >= TOP_UP_WAVES) return 150;
+  return clampInt(HIT_POINTS * hits - LIFE_COST * livesLost, 0, 150);
 }
 
 function score(state: BurstState): number {
-  return burstScoreOf(state.points, state.cleared);
+  return burstScoreOf(state.hits, BURST_LIVES - state.lives, state.cleared, state.ended !== 0);
 }
 
 /* ============================= Checkpoints ============================= */
 
 export const BURST_CHECKPOINT_INTERVAL = 300;
 export const BURST_CHECKPOINT_KEYS = [
-  "tick", "wave", "balls", "x", "targetX", "shot", "shotTop", "lives", "invuln", "points", "cleared", "ended", "rng", "checksum",
+  "tick", "wave", "balls", "x", "targetX", "shots", "burst", "lives", "invuln", "hits", "cleared", "ended", "rng", "checksum",
 ] as const;
 
 export interface BurstCheckpoint {
@@ -330,11 +387,11 @@ export interface BurstCheckpoint {
   balls: number;
   x: number;
   targetX: number;
-  shot: number;
-  shotTop: number;
+  shots: number;
+  burst: number;
   lives: number;
   invuln: number;
-  points: number;
+  hits: number;
   cleared: number;
   ended: number;
   rng: number;
@@ -348,17 +405,19 @@ export function burstCheckpoint(state: BurstState): BurstCheckpoint {
     balls: state.balls.length,
     x: state.x,
     targetX: state.targetX,
-    shot: state.shot,
-    shotTop: state.shotTop,
+    shots: state.shots.length,
+    burst: state.burst,
     lives: state.lives,
     invuln: state.invuln,
-    points: state.points,
+    hits: state.hits,
     cleared: state.cleared,
     ended: state.ended,
     rng: state.rng | 0,
   };
-  const values = [...Object.values(snap), state.nextWaveAt, state.shotX];
+  const values = [...Object.values(snap), state.nextWaveAt, state.burstLeft, state.burstNext];
   for (const ball of state.balls) values.push(ball.size, ball.x, ball.y, ball.vx, ball.vy);
+  for (const shot of state.shots) values.push(shot.x, shot.top, shot.short);
+  for (const icon of state.icons) values.push(icon.x, icon.y);
   let checksum = 0x811c9dc5;
   for (const value of values) {
     checksum ^= value | 0;
@@ -400,17 +459,36 @@ function draw(ctx: CanvasRenderingContext2D, state: BurstState, size: CanvasSize
   ctx.lineTo(BURST_WORLD_W, BURST_FLOOR_Y);
   ctx.stroke();
 
-  // Shot with a hook at the tip.
-  if (state.shot) {
-    const x = state.shotX / FP;
-    const top = state.shotTop / FP;
-    ctx.strokeStyle = BURST_GOLD;
-    ctx.lineWidth = 3;
+  // Shots: a long line with a hook, or a short BURST dash.
+  ctx.strokeStyle = BURST_GOLD;
+  ctx.lineWidth = 3;
+  for (const shot of state.shots) {
+    const x = shot.x / FP;
+    const top = shot.top / FP;
     ctx.beginPath();
-    ctx.moveTo(x, BURST_FLOOR_Y);
-    ctx.lineTo(x, top);
-    ctx.lineTo(x + 5, top + 6);
+    if (shot.short) {
+      ctx.moveTo(x, top + BURST_SHORT_LEN);
+      ctx.lineTo(x, top);
+    } else {
+      ctx.moveTo(x, BURST_FLOOR_Y);
+      ctx.lineTo(x, top);
+      ctx.lineTo(x + 5, top + 6);
+    }
     ctx.stroke();
+  }
+
+  // Power-up icons: a small gold diamond.
+  ctx.fillStyle = BURST_GOLD;
+  for (const icon of state.icons) {
+    const x = icon.x / FP;
+    const y = icon.y / FP;
+    ctx.beginPath();
+    ctx.moveTo(x, y - ICON_HALF);
+    ctx.lineTo(x + ICON_HALF, y);
+    ctx.lineTo(x, y + ICON_HALF);
+    ctx.lineTo(x - ICON_HALF, y);
+    ctx.closePath();
+    ctx.fill();
   }
 
   for (const ball of state.balls) {
@@ -447,7 +525,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BurstState, size: CanvasSize
   ctx.fillStyle = BURST_GOLD;
   ctx.font = "bold 18px ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`Wave ${Math.max(1, state.wave)} · ${score(state)}`, 16, 28);
+  ctx.fillText(`Wave ${Math.max(1, state.wave)} · ${score(state)}${state.burst ? " · BURST" : ""}`, 16, 28);
   for (let i = 0; i < BURST_LIVES; i++) {
     ctx.fillStyle = i < state.lives ? BURST_GOLD : "rgba(245,184,46,0.2)";
     ctx.beginPath();

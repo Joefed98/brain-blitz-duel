@@ -2009,8 +2009,8 @@ export interface InkBridgePuzzleData {
   seed: number;
 }
 
-/** Burst: a fixed 60-second run; the round clock adds three of slack. */
-export const BURST_TIME_MS = 63_000;
+/** Burst: a fixed 90-second run; the round clock adds three of slack. */
+export const BURST_TIME_MS = 93_000;
 
 export interface BurstPuzzleData {
   type: "burst";

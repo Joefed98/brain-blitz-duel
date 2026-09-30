@@ -5,6 +5,7 @@ import {
   burstGame,
   BURST_CHECKPOINT_INTERVAL,
   BURST_CHECKPOINT_KEYS,
+  BURST_LIVES,
   type BurstCheckpoint,
   type BurstState,
 } from "@/lib/arcade/burst";
@@ -20,9 +21,10 @@ const run = makeArcadeRun<BurstState, BurstCheckpoint>({
 
 export interface BurstResult extends FlatReplay<BurstState, BurstCheckpoint> {
   wave: number;
-  points: number;
+  hits: number;
   cleared: number;
   lives: number;
+  livesLost: number;
   survived: boolean;
   survivedSeconds: number;
 }
@@ -37,9 +39,10 @@ export function replayBurstRun(seed: number, raw: string): BurstResult {
   return {
     ...result,
     wave: s.wave,
-    points: s.points,
+    hits: s.hits,
     cleared: s.cleared,
     lives: s.lives,
+    livesLost: BURST_LIVES - s.lives,
     survived: s.ended !== 2,
     survivedSeconds: s.tick / 60,
   };
