@@ -762,7 +762,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Each escape brings a harder maze.", detail: "Red pits end the run." },
       { action: "You have 90 seconds.", detail: "" },
     ],
-    score: "30 per maze escaped — five mazes = 150.",
+    score: "30 per maze completed (ball out through the exit) — five completed = 150.",
   },
   hotfloor: {
     goal: "Climb — the floor is falling away beneath you.",
