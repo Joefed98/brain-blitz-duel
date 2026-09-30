@@ -766,8 +766,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   hotfloor: {
     goal: "Climb — the floor is falling away beneath you.",
     how: [
-      { action: "Swipe to hop between tiles.", detail: "A tile crumbles soon after you leave it, and teal tiles crumble as soon as you land." },
-      { action: "Stay off the bottom row", detail: "— it drops away faster and faster." },
+      { action: "Swipe to hop between tiles.", detail: "Some tiles crack and fall on their own; others crumble after you leave." },
+      { action: "Keep climbing", detail: "— new rows slide in as old rows fade away faster and faster." },
     ],
     score: "The longer you last, the more you score.",
   },

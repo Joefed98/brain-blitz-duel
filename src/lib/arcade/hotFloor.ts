@@ -416,7 +416,7 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
       if (left <= 0) continue;
       const { x, y } = at(r, c);
        if (y < BOARD_Y - TILE || y > BOARD_Y + HOT_ROWS * TILE) continue;
-       const fadeIn = Math.min(1, Math.max(0, (state.tick - rowAppears(r)) / PHASE_TICKS));
+       const fadeIn = r < HOT_ROWS ? 1 : Math.min(1, Math.max(0, (state.tick - rowAppears(r) + 1) / PHASE_TICKS));
        const fadeOut = Math.min(1, Math.max(0, (rowDrops(r) - state.tick) / PHASE_TICKS));
        const alpha = Math.min(fadeIn, fadeOut);
        ctx.globalAlpha = alpha;
