@@ -44,7 +44,7 @@ export const BURST_LIVES = 3;
 const INVULN_TICKS = 60;
 const WAVE_GAP = 45;
 const MAX_WAVES = 41;
-const HIT_POINTS = 3;
+const HIT_POINTS = 2;
 const LIFE_COST = 9;
 const TOP_UP_WAVES = 4;
 const ICON_FALL = 2 * FP;
@@ -364,7 +364,7 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
   return s;
 }
 
-/** 3 per hit − 9 per life lost (min 0); a finished run with no lives lost and 4+ waves cleared tops up to 150. */
+/** 2 per hit − 9 per life lost (min 0); a finished run with no lives lost and 4+ waves cleared tops up to 150. */
 export function burstScoreOf(hits: number, livesLost: number, cleared: number, ended: boolean): number {
   if (ended && livesLost === 0 && cleared >= TOP_UP_WAVES) return 150;
   return clampInt(HIT_POINTS * hits - LIFE_COST * livesLost, 0, 150);

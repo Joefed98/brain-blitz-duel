@@ -736,7 +736,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Pop a purple ball and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
       { action: "Don't let a ball touch you", detail: "— three touches and you're out." },
     ],
-    score: "3 per ball popped or split, −9 per life lost. Clear four waves without losing a life for 150.",
+    score: "2 per ball popped or split, −9 per life lost. Clear four waves without losing a life for 150.",
   },
   orbit: {
     goal: "Hop from planet to planet.",
@@ -753,7 +753,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Stuck? Keep swinging", detail: "— every pass gets you higher. Swipe up to shorten the rope for speed." },
       { action: "Don't touch the spikes", detail: "or fall to the floor." },
     ],
-    score: "0.75 points per metre.",
+    score: "Half a point per metre.",
   },
   tilt: {
     goal: "Roll the ball out of the maze.",

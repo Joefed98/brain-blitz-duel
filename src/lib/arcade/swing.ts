@@ -367,7 +367,7 @@ export function swingMetres(s: SwingState): number {
 }
 
 function score(state: SwingState): number {
-  return clampInt(Math.floor((swingMetres(state) * 3) / 4), 0, 150);
+  return clampInt(Math.floor(swingMetres(state) / 2), 0, 150);
 }
 
 export function swingExtra(s: SwingState) {
