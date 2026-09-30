@@ -122,10 +122,10 @@ function localSafe(course: Course): boolean {
   for (let r = HOT_ROWS; r < TOTAL_ROWS; r++) {
     const appears = rowAppears(r);
     if (appears > HOT_RUN_TICKS) break;
-    for (let tick = appears; tick < Math.min(rowDrops(r - 1), HOT_RUN_TICKS); tick++) {
+    for (let tick = appears; tick < Math.min(rowDrops(r - 1), HOT_RUN_TICKS) - 30; tick++) {
       for (let c = 0; c < HOT_COLS; c++) {
         if (!solid(course, r - 1, c, tick)) continue;
-        if (![c - 1, c, c + 1].some((n) => solid(course, r, n, tick) && solid(course, r, n, tick + 30))) return false;
+        if (![c - 1, c, c + 1].some((n) => solid(course, r, n, tick + HOP_TICKS) && solid(course, r, n, tick + HOP_TICKS + 30))) return false;
       }
     }
   }
