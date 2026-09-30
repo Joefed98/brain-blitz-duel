@@ -768,7 +768,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Plan a route to the exit before the floor falls.",
     how: [
       { action: "Each number is how many hops that tile lasts after you press GO.", detail: "" },
-      { action: "Tap tiles to draw your route, then GO.", detail: "" },
+      { action: "Tap tiles to draw your route, then GO.", detail: "Stay within the hop budget." },
     ],
     score: "15 per stage.",
   },

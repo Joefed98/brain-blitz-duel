@@ -1,10 +1,10 @@
 # Roadmap
 
 ## Eight-type difficulty and scoring tuning (Sep 30)
-- [ ] Add Hot Floor hop budgets, tighter tile values, choke points, failed alternatives, and naive-strategy metric.
-- [ ] Retune Burst, Parry, Bastion, and Wavefront controls/scoring/schedules.
-- [ ] Increase Shikaku, Light Up, and Tents board difficulty while preserving unique solutions.
-- [ ] Run four arcade identity proofs and three 50-board uniqueness checks; no browser tests.
+- [x] Add Hot Floor hop budgets, tighter tile values, choke points, failed alternatives, and naive-strategy metric.
+- [x] Retune Burst, Parry, Bastion, and Wavefront controls/scoring/schedules.
+- [x] Increase Shikaku, Light Up, and Tents board difficulty while preserving unique solutions.
+- [x] Run four arcade identity proofs and three 50-board uniqueness checks; no browser tests.
 
 ## Four arcade and interaction changes (Sep 30)
 - [x] Rebuild Hot Floor as ten deterministic 6×8 route-planning stages with three lives.
