@@ -1,6 +1,6 @@
 /**
  * Parry — arrows fly at a central shield from the four edges; swipe toward an
- * arrow inside its parry window to deflect it. The whole volley schedule is
+ * shield (eight clock positions) so it covers the arrow's side when it lands. The whole volley schedule is
  * drawn at init from the seed. Swipes arrive as k = 4 events (a = direction).
  */
 
@@ -37,7 +37,19 @@ const FEINT_FROM = 40 * TICKS_PER_SECOND;
 const PAIR_SPREAD = 8;
 const FIRST_IMPACT = 90;
 
-export const PARRY_INPUT_RANGES: readonly InputRange[] = [inputRange(PARRY_INPUT_SWIPE, [0, 3])];
+/** Shield positions 0–7 clockwise from 12 o'clock (0 = 12, 1 = 1:30, 2 = 3 … 7 = 10:30). */
+export const PARRY_POSITIONS = 8;
+export const PARRY_SWING_TICKS = 6;
+/** Clock position of each side's arrows: left = 9, right = 3, up = 12, down = 6. */
+export const PARRY_SIDE_POS = [6, 2, 0, 4] as const;
+
+export const PARRY_INPUT_RANGES: readonly InputRange[] = [inputRange(PARRY_INPUT_SWIPE, [0, 7])];
+
+/** Swipe vector → nearest of the eight clock positions. */
+export function parrySwipePos(dx: number, dy: number): number {
+  const angle = Math.atan2(dy, dx) + Math.PI / 2;
+  return ((Math.round(angle / (Math.PI / 4)) % 8) + 8) % 8;
+}
 
 /** Clockwise neighbours: left → up → right → down → left. */
 const CLOCKWISE = [PARRY_UP, PARRY_DOWN, PARRY_RIGHT, PARRY_LEFT] as const;
@@ -82,7 +94,8 @@ function buildSchedule(seed: number) {
     if (t >= PAIR_FROM && draw(5) < 2) {
       const second = t + 1 + draw(PAIR_SPREAD);
       if (second <= PARRY_RUN_TICKS) {
-        const other = (side + 1 + draw(3)) % 4;
+        // Always 90° apart, so the diagonal between them blocks both.
+        const other = draw(2) ? CLOCKWISE[side]! : ANTI[side]!;
         add(second, other);
         last = other;
         gap += 30;
@@ -107,6 +120,11 @@ export interface ParryState {
   deflected: number;
   hits: number;
   lastParry: number;
+  /** Shield target position (0–7), the one it swung from, and swing ticks left. */
+  pos: number;
+  fromPos: number;
+  swingT: number;
+  lastSwing: number;
   lastHit: number;
   ended: number;
   endedTick: number;
@@ -132,6 +150,10 @@ function init(seed: number): ParryState {
     deflected: 0,
     hits: 0,
     lastParry: -100,
+    pos: 0,
+    fromPos: 0,
+    swingT: 0,
+    lastSwing: -100,
     lastHit: -100,
     ended: 0,
     endedTick: 0,
@@ -145,6 +167,17 @@ function isOver(state: ParryState): boolean {
 /** The side an arrow is on at a tick (a feint switches FEINT_AT ticks out). */
 export function parrySideAt(arrow: ParryArrow, tick: number): number {
   return arrow.impact - tick > FEINT_AT ? arrow.from : arrow.side;
+}
+
+/** Where the shield counts as being: it switches to the target halfway through a swing. */
+export function parryShieldPos(state: { pos: number; fromPos: number; swingT: number }): number {
+  return state.swingT > PARRY_SWING_TICKS / 2 ? state.fromPos : state.pos;
+}
+
+/** Blocked if the shield sits at the arrow's own position or an adjacent diagonal. */
+export function parryBlocks(shieldPos: number, side: number): boolean {
+  const d = (((shieldPos - PARRY_SIDE_POS[side]!) % 8) + 8) % 8;
+  return d === 0 || d === 1 || d === 7;
 }
 
 function step(state: ParryState, input: ArcadeInputEvent | null): ParryState {
@@ -162,26 +195,30 @@ function step(state: ParryState, input: ArcadeInputEvent | null): ParryState {
     s.doneTick[i] = tick;
   };
 
+  if (s.swingT > 0) s.swingT -= 1;
   if (input && input.k === PARRY_INPUT_SWIPE) {
-    const dir = clampInt(input.a, 0, 3);
-    for (let i = s.cursor; i < s.arrows.length; i++) {
-      const arrow = s.arrows[i]!;
-      if (arrow.impact - tick >= PARRY_WINDOW) break;
-      if (s.status[i] !== 0 || arrow.impact < tick) continue;
-      if (parrySideAt(arrow, tick) !== dir) continue;
-      mark(i, 1);
-      s.deflected += 1;
-      s.lastParry = tick;
-      break;
+    const target = clampInt(input.a, 0, 7);
+    if (target !== s.pos) {
+      s.fromPos = parryShieldPos(s);
+      s.pos = target;
+      s.swingT = PARRY_SWING_TICKS;
+      s.lastSwing = tick;
     }
   }
+  const shield = parryShieldPos(s);
   for (let i = s.cursor; i < s.arrows.length; i++) {
     const arrow = s.arrows[i]!;
     if (arrow.impact > tick) break;
     if (s.status[i] === 0) {
-      mark(i, 2);
-      s.hits += 1;
-      s.lastHit = tick;
+      if (parryBlocks(shield, arrow.side)) {
+        mark(i, 1);
+        s.deflected += 1;
+        s.lastParry = tick;
+      } else {
+        mark(i, 2);
+        s.hits += 1;
+        s.lastHit = tick;
+      }
     }
   }
   let cursor = s.cursor;
@@ -198,20 +235,21 @@ function step(state: ParryState, input: ArcadeInputEvent | null): ParryState {
   return s;
 }
 
-/** round(150 × deflected ÷ total), cap 150. */
-export function parryScoreOf(deflected: number, total: number): number {
-  if (total <= 0) return 0;
-  return clampInt(Math.trunc((300 * deflected + total) / (2 * total)), 0, 150);
+/** floor(150 × (survived ÷ 60 s)²) − 15 per life lost, min 0. */
+export function parryScoreOf(survivedTicks: number, hits: number): number {
+  const t = clampInt(survivedTicks, 0, PARRY_RUN_TICKS);
+  const base = Math.trunc((150 * t * t) / (PARRY_RUN_TICKS * PARRY_RUN_TICKS));
+  return clampInt(base - 15 * hits, 0, 150);
 }
 
 function score(state: ParryState): number {
-  return parryScoreOf(state.deflected, state.arrows.length);
+  return parryScoreOf(state.tick, state.hits);
 }
 
 /* ============================= Checkpoints ============================= */
 
 export const PARRY_CHECKPOINT_INTERVAL = 300;
-export const PARRY_CHECKPOINT_KEYS = ["tick", "cursor", "deflected", "hits", "ended", "rng", "checksum"] as const;
+export const PARRY_CHECKPOINT_KEYS = ["tick", "cursor", "deflected", "hits", "ended", "pos", "swingT", "rng", "checksum"] as const;
 
 export interface ParryCheckpoint {
   tick: number;
@@ -219,6 +257,8 @@ export interface ParryCheckpoint {
   deflected: number;
   hits: number;
   ended: number;
+  pos: number;
+  swingT: number;
   rng: number;
   checksum: number;
 }
@@ -230,6 +270,8 @@ export function parryCheckpoint(state: ParryState): ParryCheckpoint {
     deflected: state.deflected,
     hits: state.hits,
     ended: state.ended,
+    pos: state.pos,
+    swingT: state.swingT,
     rng: state.rng | 0,
   };
   let checksum = 0x811c9dc5;
@@ -248,7 +290,8 @@ export const PARRY_TEAL = "#2ED3B7";
 export const PARRY_RED = "#FF4D5E";
 const CX = PARRY_WORLD_W / 2;
 const CY = PARRY_WORLD_H / 2;
-const SHIELD_R = 40;
+const SHIELD_R = 56;
+const DISC_R = 26;
 const START_R = 230;
 /** Angle each side's arrow flies in from (render only). */
 const SIDE_ANGLE = [Math.PI, 0, -Math.PI / 2, Math.PI / 2] as const;
@@ -275,34 +318,61 @@ function draw(ctx: CanvasRenderingContext2D, state: ParryState, size: CanvasSize
   ctx.scale(scale, scale);
   const tick = state.tick;
 
-  // Parry-window pulse.
-  const inWindow = state.arrows.some(
-    (arrow, i) => state.status[i] === 0 && arrow.impact - tick < PARRY_WINDOW && arrow.impact >= tick,
-  );
-  if (inWindow) {
-    ctx.strokeStyle = "rgba(245,184,46,0.25)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(CX, CY, SHIELD_R + 18 + (tick % 12), 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  // Shield: flashes on a parry, cracks on a hit.
-  const flash = tick - state.lastParry < 8;
-  ctx.strokeStyle = flash ? "#FFFFFF" : PARRY_GOLD;
-  ctx.lineWidth = flash ? 9 : 6;
+  // Hinge ring and the eight stops.
+  ctx.strokeStyle = "rgba(245,184,46,0.18)";
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(CX, CY, SHIELD_R, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.fillStyle = "rgba(245,184,46,0.3)";
+  for (let p = 0; p < 8; p++) {
+    const a = -Math.PI / 2 + (p * Math.PI) / 4;
+    ctx.beginPath();
+    ctx.arc(CX + Math.cos(a) * SHIELD_R, CY + Math.sin(a) * SHIELD_R, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Gong shield: swings along the shortest way, then wobbles (render only).
+  const aFrom = (state.fromPos * Math.PI) / 4;
+  let aTo = (state.pos * Math.PI) / 4;
+  while (aTo - aFrom > Math.PI) aTo -= Math.PI * 2;
+  while (aFrom - aTo > Math.PI) aTo += Math.PI * 2;
+  const f = 1 - state.swingT / PARRY_SWING_TICKS;
+  const ease = 1 - (1 - f) * (1 - f);
+  const since = tick - state.lastSwing;
+  const wobble = since >= 0 && since < 40 ? Math.sin(since * 0.9) * 0.12 * Math.exp(-since / 10) : 0;
+  const sa = -Math.PI / 2 + aFrom + (aTo - aFrom) * ease + wobble;
+  const sx = CX + Math.cos(sa) * SHIELD_R;
+  const sy = CY + Math.sin(sa) * SHIELD_R;
+  ctx.strokeStyle = "rgba(245,184,46,0.6)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(CX, CY);
+  ctx.lineTo(sx, sy);
+  ctx.stroke();
+  ctx.fillStyle = PARRY_GOLD;
+  ctx.beginPath();
+  ctx.arc(CX, CY, 6, 0, Math.PI * 2);
+  ctx.fill();
+  const flash = tick - state.lastParry < 8;
+  const pulse = since >= 0 && since < 20 ? Math.sin(since * 1.3) * 2 * Math.exp(-since / 6) : 0;
+  ctx.fillStyle = flash ? "#FFFFFF" : PARRY_GOLD;
+  ctx.beginPath();
+  ctx.arc(sx, sy, DISC_R + pulse, 0, Math.PI * 2);
+  ctx.fill();
   ctx.strokeStyle = PARRY_BG;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(sx, sy, DISC_R * 0.55, 0, Math.PI * 2);
+  ctx.stroke();
+  // Cracks on the disc, one per life lost.
   ctx.lineWidth = 3;
   const crackAngles = [0.6, 2.7, 4.6];
   for (let c = 0; c < Math.min(state.hits, PARRY_MAX_HITS); c++) {
     const a = crackAngles[c]!;
     ctx.beginPath();
-    ctx.moveTo(CX + Math.cos(a) * (SHIELD_R - 6), CY + Math.sin(a) * (SHIELD_R - 6));
-    ctx.lineTo(CX + Math.cos(a + 0.12) * SHIELD_R, CY + Math.sin(a + 0.12) * SHIELD_R);
-    ctx.lineTo(CX + Math.cos(a - 0.05) * (SHIELD_R + 6), CY + Math.sin(a - 0.05) * (SHIELD_R + 6));
+    ctx.moveTo(sx + Math.cos(a) * 4, sy + Math.sin(a) * 4);
+    ctx.lineTo(sx + Math.cos(a + 0.3) * (DISC_R - 4), sy + Math.sin(a + 0.3) * (DISC_R - 4));
+    ctx.lineTo(sx + Math.cos(a - 0.1) * DISC_R, sy + Math.sin(a - 0.1) * DISC_R);
     ctx.stroke();
   }
 
@@ -315,7 +385,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ParryState, size: CanvasSize
     const angle = arrowAngle(arrow, tick);
     if (status === 0) {
       const f = (tick - spawn) / arrow.flight;
-      const r = START_R + (SHIELD_R - START_R) * f;
+      const r = START_R + (SHIELD_R + DISC_R - START_R) * f;
       const x = CX + Math.cos(angle) * r;
       const y = CY + Math.sin(angle) * r;
       ctx.save();
@@ -351,7 +421,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ParryState, size: CanvasSize
   ctx.fillStyle = PARRY_GOLD;
   ctx.font = "bold 18px ui-monospace, monospace";
   ctx.textAlign = "center";
-  ctx.fillText(`Parried ${state.deflected} · Hits ${state.hits}`, CX, 30);
+  ctx.fillText(`${(state.tick / 60).toFixed(1)}s · Lives ${Math.max(0, PARRY_MAX_HITS - state.hits)}`, CX, 30);
   ctx.restore();
 }
 
