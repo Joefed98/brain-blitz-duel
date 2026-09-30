@@ -26,10 +26,10 @@ export const FLIP_ARC_TICKS = 14;
 /** The course check only flips after this long on a surface. */
 const SOLVER_LANDED = 20;
 
-const SPEED_START = 768;
-const SPEED_STEP = 51;
+const SPEED_START = 819;
+const SPEED_STEP = 77;
 const SPEED_STEP_TICKS = 3 * TICKS_PER_SECOND;
-const SPEED_CAP = 1792;
+const SPEED_CAP = 2048;
 const CLEAR_TICKS = 3 * TICKS_PER_SECOND;
 
 export const FLIP_FLOOR_Y = 440;
@@ -133,7 +133,7 @@ function buildCourse(seed: number): { segs: FlipSeg[]; rng: number } {
   while (x < end) {
     const speed = flipSpeed(tick);
     // Spacing scales with speed so flips stay as far apart in time as at the start.
-    const gap = Math.trunc(((43 + draw(114)) * FP * speed) / SPEED_START);
+    const gap = Math.trunc(((33 + draw(88)) * FP * speed) / SPEED_START);
     const start = x + gap;
     if (start >= end) break;
     let accepted: FlipSeg[] = [];

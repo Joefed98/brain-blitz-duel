@@ -25,6 +25,12 @@ export const SWING_WORLD_W = 390;
 export const SWING_WORLD_H = 620;
 export const SWING_RUN_TICKS = 60 * TICKS_PER_SECOND;
 export const SWING_INPUT_HOLD = 12;
+export const SWING_INPUT_REEL = 4;
+export const SWING_REEL_UP = 0;
+export const SWING_REEL_DOWN = 1;
+const REEL_TICKS = 8;
+const PUMP_MIN_V = 102; // 0.4 px/tick
+const MAX_SPEED = 9 * FP;
 const GRAVITY = 77; // 0.3 px/tick²
 const MAX_FALL = 12 * FP;
 const RADIUS = 10 * FP;
@@ -43,7 +49,7 @@ const SPIKE_DEPTH = 56 * FP;
 const SUB = 16;
 const TURN_SUB = 65536 * SUB;
 
-export const SWING_INPUT_RANGES: readonly InputRange[] = [inputRange(SWING_INPUT_HOLD, [0, 1])];
+export const SWING_INPUT_RANGES: readonly InputRange[] = [inputRange(SWING_INPUT_HOLD, [0, 1]), inputRange(SWING_INPUT_REEL, [0, 1])];
 
 /* ================================ Course =============================== */
 
@@ -82,6 +88,30 @@ interface Body {
   len: number;
   th: number;
   om: number;
+  /** Rope length when grabbed; reel limits are relative to it. */
+  grabLen: number;
+  reelTo: number;
+  reelLeft: number;
+  /** Bottom-of-arc passes on the current rope (pumps). */
+  pumps: number;
+}
+
+const KANG = SUB * ANG_PER_RAD;
+function signedTh(th: number): number {
+  return th >= TURN_SUB / 2 ? th - TURN_SUB : th;
+}
+function capOm(b: Body): void {
+  const max = Math.trunc((MAX_SPEED * KANG) / b.len);
+  b.om = clampInt(b.om, -max, max);
+}
+/** Starts a reel: up shortens by 20% (min 40% of grab), down lengthens by 20% (max grab). */
+function startReel(b: Body, dir: number): void {
+  if (b.rope < 0) return;
+  const to = dir === SWING_REEL_UP
+    ? Math.max(Math.trunc((b.grabLen * 40) / 100), Math.trunc((b.len * 80) / 100))
+    : Math.min(b.grabLen, Math.trunc((b.len * 120) / 100));
+  b.reelTo = Math.max(MIN_ROPE, to);
+  b.reelLeft = REEL_TICKS;
 }
 
 function ropePos(b: Body, a: Anchor): void {
@@ -98,6 +128,9 @@ function attach(b: Body, index: number, a: Anchor): void {
   b.th = t * SUB;
   b.om = Math.trunc(((b.vx * icos(t) - b.vy * isin(t)) * SUB * ANG_PER_RAD) / (TRIG_ONE * b.len));
   b.rope = index;
+  b.grabLen = b.len;
+  b.reelLeft = 0;
+  b.pumps = 0;
   ropePos(b, a);
 }
 
@@ -107,6 +140,7 @@ function detach(b: Body, a: Anchor): void {
   b.vx = Math.trunc((b.len * icos(t) * b.om) / k);
   b.vy = Math.trunc((-b.len * isin(t) * b.om) / k);
   b.rope = -1;
+  b.reelLeft = 0;
   void a;
 }
 
@@ -134,8 +168,25 @@ function moveBody(b: Body, c: { ceil: number[]; floor: number[]; spikes: Spike[]
     const a = c.anchors[b.rope]!;
     const t = b.th >> 4;
     b.om -= Math.trunc((GRAVITY * isin(t) * SUB * ANG_PER_RAD) / (TRIG_ONE * b.len));
+    if (b.reelLeft > 0) {
+      // Conserve angular momentum (len² · ω) while the rope length changes.
+      const old = b.len;
+      b.len = b.len + Math.trunc((b.reelTo - b.len) / b.reelLeft);
+      b.reelLeft -= 1;
+      b.om = Math.trunc((b.om * old * old) / (b.len * b.len));
+    }
     const prevTh = b.th;
     b.th = (b.th + b.om) & (TURN_SUB - 1);
+    const s0 = signedTh(prevTh);
+    const s1 = signedTh(b.th);
+    if (b.om !== 0 && (s0 < 0) !== (s1 < 0) && Math.abs(s0) < TURN_SUB / 4 && Math.abs(s1) < TURN_SUB / 4) {
+      // Pump: +6% angular speed (min 0.4 px/tick) at the bottom of the arc.
+      const minOm = Math.max(1, Math.trunc((PUMP_MIN_V * KANG) / b.len));
+      const add = Math.max(minOm, Math.trunc((Math.abs(b.om) * 6) / 100));
+      b.om += b.om > 0 ? add : -add;
+      b.pumps += 1;
+    }
+    capOm(b);
     const px = b.x;
     const py = b.y;
     ropePos(b, a);
@@ -170,11 +221,12 @@ function reachable(c: Course, i: number): boolean {
   const next = c.anchors[i + 1]!;
   const spikes = c.spikes.filter((s) => s.x > a.x - 400 * FP && s.x < next.x + 400 * FP);
   const view = { ...c, spikes };
-  const start: Body = { x: 0, y: 0, vx: 0, vy: 0, rope: i, len: 130 * FP, th: 55000 * SUB, om: 0 };
+  const start: Body = { x: 0, y: 0, vx: 0, vy: 0, rope: i, len: 130 * FP, th: 55000 * SUB, om: 0, grabLen: 130 * FP, reelTo: 0, reelLeft: 0, pumps: 0 };
   ropePos(start, a);
   const swing = { ...start };
-  for (let r = 0; r < 160; r++) {
+  for (let r = 0; r < 600; r++) {
     if (moveBody(swing, view)) return false;
+    if (swing.pumps > 4) return false;
     if (r % 2) continue;
     const fly = { ...swing };
     detach(fly, a);
@@ -259,7 +311,7 @@ function init(seed: number): SwingState {
   }
   const startAnchor = course.anchors.findIndex((a) => a.x >= START_X);
   const a = course.anchors[startAnchor]!;
-  const body: Body = { x: 0, y: 0, vx: 0, vy: 0, rope: startAnchor, len: 110 * FP, th: 56000 * SUB, om: 0 };
+  const body: Body = { x: 0, y: 0, vx: 0, vy: 0, rope: startAnchor, len: 110 * FP, th: 56000 * SUB, om: 0, grabLen: 110 * FP, reelTo: 0, reelLeft: 0, pumps: 0 };
   ropePos(body, a);
   return {
     ...body,
@@ -294,6 +346,8 @@ function step(state: SwingState, input: ArcadeInputEvent | null): SwingState {
         s.grabTick = tick;
       }
     } else if (s.rope >= 0) detach(s, s.anchors[s.rope]!);
+  } else if (input !== null && input.k === SWING_INPUT_REEL) {
+    startReel(s, clampInt(input.a, 0, 1));
   }
   const dead = moveBody(s, s);
   s.camX = s.x - LEAD;
@@ -313,7 +367,7 @@ export function swingMetres(s: SwingState): number {
 }
 
 function score(state: SwingState): number {
-  return clampInt(Math.trunc(swingMetres(state) / 5), 0, 150);
+  return clampInt(swingMetres(state), 0, 150);
 }
 
 export function swingExtra(s: SwingState) {
