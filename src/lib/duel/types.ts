@@ -2034,8 +2034,8 @@ export interface SwingPuzzleData {
   seed: number;
 }
 
-/** Tilt and Hot Floor: fixed 60-second runs; the round clock adds three of slack. */
-export const TILT_TIME_MS = 63_000;
+/** Tilt: fixed 120-second run; Hot Floor: 60 seconds. The round clock adds three of slack. */
+export const TILT_TIME_MS = 123_000;
 export const HOTFLOOR_TIME_MS = 63_000;
 
 export interface TiltPuzzleData {
