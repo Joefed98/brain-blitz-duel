@@ -46,7 +46,7 @@ export function RoundIntro({
   const twoPlayer = activeCount === 2;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-0.5">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -76,7 +76,7 @@ export function RoundIntro({
         </div>
       ) : (
         <>
-          <div className="round-intro-content flex min-h-0 flex-1 flex-col items-center justify-center gap-2 overflow-hidden">
+          <div className="round-intro-content flex min-h-0 flex-1 flex-col items-center justify-start gap-2 overflow-y-auto overscroll-contain py-1">
             <PuzzleInstructions type={type} />
             <div className="round-intro-example">
               <Example />
@@ -86,7 +86,7 @@ export function RoundIntro({
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-2">
+          <div className="sticky bottom-0 z-10 flex shrink-0 flex-col items-center gap-2 bg-background pt-1">
             <button
               type="button"
               disabled={ready}

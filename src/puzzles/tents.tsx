@@ -120,18 +120,18 @@ function Board({
 }
 
 function IntroExample() {
-  const marks: Mark[] = new Array(16).fill(0);
-  marks[1] = 1;
-  marks[14] = 1;
+  const marks: Mark[] = new Array(64).fill(0);
+  for (const cell of [0, 2, 4, 6, 49, 51, 53, 55]) marks[cell] = 1;
   return (
-    <div style={{ width: 170 }}>
+    <div style={{ width: 190 }}>
       <Board
-        size={4}
-        trees={[5, 10]}
-        rowCounts={[1, 0, 0, 1]}
-        colCounts={[0, 1, 1, 0]}
+        size={8}
+        trees={[8, 10, 12, 14, 41, 43, 45, 47]}
+        rowCounts={[4, 0, 0, 0, -1, 0, 4, 0]}
+        colCounts={[1, 1, -1, 1, 1, 1, 1, 1]}
         marks={marks}
-        countSize={16}
+        countSize={12}
+        gap={1}
       />
     </div>
   );

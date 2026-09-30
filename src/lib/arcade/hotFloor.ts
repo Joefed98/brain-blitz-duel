@@ -113,6 +113,48 @@ export function hotfloorStageRoute(stage: HotFloorStage): number[] | null {
   return null;
 }
 
+export interface HotFloorRouteAnalysis {
+  surviving: number[][];
+  /** Geometric start-to-exit routes no longer than the stored route that fail on a numbered tile. */
+  failedSameOrShorter: number[][];
+}
+
+/** Exhaustive DFS over simple start-to-exit routes, pruned by the hop budget. */
+export function hotfloorRouteAnalysis(stage: HotFloorStage): HotFloorRouteAnalysis {
+  const surviving: number[][] = [];
+  const failedSameOrShorter: number[][] = [];
+  const storedHops = stage.route.length - 1;
+  const path = [stage.start];
+  const seen = new Set<number>(path);
+
+  const walk = (cell: number, failedOnNumber: boolean) => {
+    const hops = path.length - 1;
+    if (cell === stage.exit) {
+      if (!failedOnNumber && hops <= stage.hopBudget) surviving.push([...path]);
+      else if (failedOnNumber && hops <= storedHops) failedSameOrShorter.push([...path]);
+      return;
+    }
+    if (hops >= stage.hopBudget || (failedOnNumber && hops >= storedHops)) return;
+    for (const next of hotNeighbours(cell, stage.rows)) {
+      if (stage.missing[next] || seen.has(next)) continue;
+      const nextHop = hops + 1;
+      const nextFailed = failedOnNumber || (next !== stage.exit && stage.numbers[next]! < nextHop);
+      if (nextFailed && nextHop > storedHops) continue;
+      path.push(next);
+      seen.add(next);
+      walk(next, nextFailed);
+      seen.delete(next);
+      path.pop();
+    }
+  };
+  walk(stage.start, false);
+  return { surviving, failedSameOrShorter };
+}
+
+export function hotfloorRouteHasPinch(stage: HotFloorStage, route: readonly number[]): boolean {
+  return route.slice(1, -1).some((cell, index) => stage.numbers[cell] === index + 1);
+}
+
 function stageSeed(seed: number, stage: number, attempt: number): number {
   return (seed ^ Math.imul(stage + 1, 0x45d9f3b) ^ Math.imul(attempt + 1, 0x27d4eb2d)) | 0;
 }
@@ -173,11 +215,11 @@ function tryStage(seed: number, stageIndex: number, attempt: number): HotFloorSt
     const exact = i % 2 === 1 || draw(4) !== 0;
     numbers[route[i]!] = Math.min(9, i + (exact ? 0 : 1));
   }
-  // Off-route tiles: low values near the exit; high values mainly lure away from it.
+  // Off-route tiles fail early by default; selected decoys get plausible values below.
   for (let cell = 0; cell < total; cell++) {
     if (routeIndex.has(cell)) continue;
     const fromExit = Math.abs(Math.trunc(cell / HOT_COLS)) + Math.abs((cell % HOT_COLS) - exitCol);
-    numbers[cell] = fromExit >= rows - 2 ? 7 + draw(3) : 1 + draw(6);
+    numbers[cell] = fromExit >= rows - 2 ? 4 + draw(4) : 1 + draw(4);
   }
   // Each plausible alternative gets a distinct off-route trap one hop too early.
   for (const candidate of decoys) {
@@ -214,6 +256,11 @@ function tryStage(seed: number, stageIndex: number, attempt: number): HotFloorSt
   if (hotRouteFailure(stage, route) !== -1) return null;
   if (decoys.filter((candidate) => hotRouteFailure(stage, candidate) > 0).length < 2) return null;
   if (!hotfloorStageRoute(stage)) return null;
+  const analysis = hotfloorRouteAnalysis(stage);
+  const survivorLimit = stageIndex < 2 ? 3 : 2;
+  if (analysis.surviving.length < 1 || analysis.surviving.length > survivorLimit) return null;
+  if (!analysis.surviving.every((candidate) => hotfloorRouteHasPinch(stage, candidate))) return null;
+  if (analysis.failedSameOrShorter.length < 3) return null;
   return stage;
 }
 

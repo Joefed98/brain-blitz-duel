@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ArcadeControlButton, usePressSafeElement } from "./ArcadeControlButton";
+
 /**
  * The shared grid drag-and-snap behaviour used by Unblock and Block Party.
  * Pointer events, so a finger and a mouse behave the same; the dragged piece
@@ -567,8 +569,10 @@ export function ArrowPad({
   const [joystick, setJoystick] = useState(false);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const stickOrigin = useRef<{ x: number; y: number } | null>(null);
+  const stickElement = useRef<HTMLDivElement>(null);
   const stickLatched = useRef(false);
   const stickDirection = useRef<"U" | "D" | "L" | "R" | null>(null);
+  usePressSafeElement(stickElement);
 
   useEffect(() => {
     try {
@@ -613,22 +617,15 @@ export function ArrowPad({
   );
 
   const button = (dir: "U" | "D" | "L" | "R", glyph: string, label: string) => (
-    <button
+    <ArcadeControlButton
       key={dir}
       type="button"
       disabled={disabled}
-      onPointerDown={(event) => {
-        event.preventDefault();
-        start(dir);
-      }}
-      onPointerUp={stop}
-      onPointerLeave={stop}
-      onPointerCancel={stop}
+      onPressStart={() => start(dir)}
+      onPressEnd={stop}
       aria-label={label}
       className="flex h-11 w-14 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl text-foreground transition-colors select-none touch-none active:bg-primary/20 disabled:opacity-40"
-    >
-      {glyph}
-    </button>
+    >{glyph}</ArcadeControlButton>
   );
 
   const moveStick = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
@@ -668,9 +665,11 @@ export function ArrowPad({
     <div className="relative mx-auto flex h-[60px] w-full max-w-[343px] shrink-0 items-center justify-center">
       {joystick ? (
         <div
+          ref={stickElement}
           role="application"
           aria-label="Directional joystick"
           className="relative h-[60px] w-[60px] touch-none rounded-full border border-border bg-card"
+          style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
           onPointerDown={(event) => {
             if (disabled) return;
             event.preventDefault();

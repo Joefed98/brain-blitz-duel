@@ -15,6 +15,7 @@ import { BAS_TURRET_X, BAS_TURRET_Y, BAS_STEP_DEG_X256, type BasState } from "@/
 import { encodeBastionRun, replayBastionRun } from "@/lib/duel/bastion";
 import { BASTION_TIME_MS, type BastionPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -45,7 +46,7 @@ function IntroExample() {
 }
 
 const ARROWS_KEY = "duelz-bastion-arrows";
-const ARROW_DEG_PER_TICK = 4;
+export const ARROW_DEG_PER_TICK = 3;
 const AIM_RADIUS = 180;
 
 /** Aim point on a circle round the turret; 0° = left, 90° = up, 180° = right. */
@@ -86,16 +87,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return aimPoint(next);
   };
 
-  const hold = (dir: -1 | 1) => ({
-    onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      e.currentTarget.setPointerCapture(e.pointerId);
-      holding.current = dir;
-    },
-    onPointerUp: () => (holding.current = 0),
-    onPointerCancel: () => (holding.current = 0),
-    onLostPointerCapture: () => (holding.current = 0),
-  });
+  const startHold = (dir: -1 | 1) => (_event: PointerEvent<HTMLButtonElement>) => { holding.current = dir; };
+  const stopHold = () => { holding.current = 0; };
 
   const arrowBtn =
     "absolute bottom-3 flex h-[72px] w-[72px] select-none items-center justify-center rounded-2xl border-2 border-primary/70 bg-background/40 text-3xl text-primary active:bg-primary/30";
@@ -130,12 +123,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           </button>
           {arrows && (
             <>
-              <button type="button" aria-label="Rotate left" className={`${arrowBtn} left-3`} style={{ touchAction: "none" }} {...hold(-1)}>
-                ◀
-              </button>
-              <button type="button" aria-label="Rotate right" className={`${arrowBtn} right-3`} style={{ touchAction: "none" }} {...hold(1)}>
-                ▶
-              </button>
+               <ArcadeControlButton type="button" aria-label="Rotate left" className={`${arrowBtn} left-3 before:content-['◀']`} onPressStart={startHold(-1)} onPressEnd={stopHold} />
+               <ArcadeControlButton type="button" aria-label="Rotate right" className={`${arrowBtn} right-3 before:content-['▶']`} onPressStart={startHold(1)} onPressEnd={stopHold} />
             </>
           )}
         </>

@@ -112,7 +112,7 @@ export interface ParryState {
   tick: number;
   rng: number;
   arrows: ParryArrow[];
-  /** Per arrow: 0 flying, 1 deflected, 2 hit. */
+  /** Per arrow: 0 flying (including inside the ring), 1 deflected, 2 core hit. */
   status: number[];
   /** Per arrow: tick it resolved (render only). */
   doneTick: number[];
@@ -214,7 +214,7 @@ function step(state: ParryState, input: ArcadeInputEvent | null): ParryState {
         mark(i, 1);
         s.deflected += 1;
         s.lastParry = tick;
-      } else {
+      } else if (tick >= arrow.impact + PARRY_WINDOW) {
         mark(i, 2);
         s.hits += 1;
         s.lastHit = tick;
@@ -290,6 +290,7 @@ const CX = PARRY_WORLD_W / 2;
 const CY = PARRY_WORLD_H / 2;
 const SHIELD_R = 87.36;
 const DISC_R = 26;
+export const PARRY_CORE_R = SHIELD_R * 0.2;
 const START_R = 190;
 /** Angle each side's arrow flies in from (render only). */
 const SIDE_ANGLE = [Math.PI, 0, -Math.PI / 2, Math.PI / 2] as const;
@@ -329,6 +330,14 @@ function draw(ctx: CanvasRenderingContext2D, state: ParryState, size: CanvasSize
     ctx.arc(CX + Math.cos(a) * SHIELD_R, CY + Math.sin(a) * SHIELD_R, 4.5, 0, Math.PI * 2);
     ctx.fill();
   }
+  // The core is the only life-loss target; arrows remain catchable inside the ring.
+  ctx.fillStyle = PARRY_BG;
+  ctx.strokeStyle = PARRY_RED;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(CX, CY, PARRY_CORE_R, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
   // Gong shield: swings along the shortest way, then wobbles (render only).
   const aFrom = (state.fromPos * Math.PI) / 4;
   let aTo = (state.pos * Math.PI) / 4;
@@ -382,8 +391,12 @@ function draw(ctx: CanvasRenderingContext2D, state: ParryState, size: CanvasSize
     const status = state.status[i]!;
     const angle = arrowAngle(arrow, tick);
     if (status === 0) {
-      const f = (tick - spawn) / arrow.flight;
-      const r = START_R + (SHIELD_R + DISC_R - START_R) * f;
+      const approach = Math.min(1, (tick - spawn) / arrow.flight);
+      const inner = Math.max(0, tick - arrow.impact) / PARRY_WINDOW;
+      const ringR = SHIELD_R + DISC_R;
+      const r = tick <= arrow.impact
+        ? START_R + (ringR - START_R) * approach
+        : ringR + (PARRY_CORE_R - ringR) * Math.min(1, inner);
       const x = CX + Math.cos(angle) * r;
       const y = CY + Math.sin(angle) * r;
       ctx.save();
