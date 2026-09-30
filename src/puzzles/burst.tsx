@@ -98,7 +98,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   const bar = useRef<HTMLDivElement | null>(null);
-  const dragBar = (e: PointerEvent<HTMLDivElement>) => {
+  const dragBar = (e: PointerEvent<HTMLElement>) => {
     const rect = bar.current?.getBoundingClientRect();
     if (!rect || arrowsRef.current) return;
     arrowEdge.current = null;
