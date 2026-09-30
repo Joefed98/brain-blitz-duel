@@ -81,7 +81,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 }
 
 export function swingLine(r: { metres: number; survived: boolean; survivedSeconds: number }): string {
-  return r.survived ? `${r.metres} m · survived` : `${r.metres} m · fell at ${r.survivedSeconds.toFixed(1)}s`;
+  const pts = Math.min(150, Math.floor((r.metres * 3) / 4));
+  return r.survived ? `${r.metres} m · survived · ${pts}` : `${r.metres} m · fell at ${r.survivedSeconds.toFixed(1)}s · ${pts}`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

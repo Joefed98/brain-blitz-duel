@@ -709,7 +709,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A diagonal blocks both neighbours", detail: "— at 1:30 it covers the top and the right." },
       { action: "Later they come in pairs", detail: "and some swerve at the last moment. Three hits and you're out." },
     ],
-    score: "4 per arrow deflected, −10 per life lost.",
+    score: "2 per arrow deflected, −10 per life lost.",
   },
   junction: {
     goal: "Keep the traffic moving without a crash.",
@@ -753,7 +753,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Stuck? Keep swinging", detail: "— every pass gets you higher. Swipe up to shorten the rope for speed." },
       { action: "Don't touch the spikes", detail: "or fall to the floor." },
     ],
-    score: "1 point per metre.",
+    score: "0.75 points per metre.",
   },
   tilt: {
     goal: "Roll the ball out of the maze.",
@@ -768,7 +768,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Plan a route to the exit before the floor falls.",
     how: [
       { action: "Each number is how many hops that tile lasts after you press GO.", detail: "" },
-      { action: "Tap tiles to draw your route, then GO.", detail: "Stay within the hop budget." },
+      { action: "Tap tiles to draw your route, then GO.", detail: "Stay within the hop budget. UNDO removes the last tile." },
+      { action: "You have 120 seconds.", detail: "" },
     ],
     score: "15 per stage.",
   },

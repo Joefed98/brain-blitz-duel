@@ -1321,7 +1321,7 @@ const swingSummary: SummaryBuilder = (result) => {
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   return {
-    summary: survived ? `${metres} m · survived` : `${metres} m · fell at ${ended.toFixed(1)}s`,
+    summary: survived ? `${metres} m · survived · ${result.score ?? 0}` : `${metres} m · fell at ${ended.toFixed(1)}s · ${result.score ?? 0}`,
     detail: ["Same cavern for everyone"],
   };
 };

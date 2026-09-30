@@ -16,7 +16,7 @@ check("Parry cardinal and diagonal swipes quantize to all eight slots", new Set(
   parrySwipePos(0, -30), parrySwipePos(30, -30), parrySwipePos(30, 0), parrySwipePos(30, 30),
   parrySwipePos(0, 30), parrySwipePos(-30, 30), parrySwipePos(-30, 0), parrySwipePos(-30, -30),
 ]).size === 8);
-check("Parry scores five per deflection minus ten per life", parryScoreOf(31, 1) === 114 && parryScoreOf(2, 2) === 0 && parryScoreOf(40, 0) === 150);
+check("Parry scores five per deflection minus ten per life", parryScoreOf(31, 1) === 52 && parryScoreOf(2, 2) === 0 && parryScoreOf(80, 0) === 150);
 const parryInitial = parryGame.init(71);
 const firstArrow = parryInitial.arrows[0];
 if (firstArrow) {
