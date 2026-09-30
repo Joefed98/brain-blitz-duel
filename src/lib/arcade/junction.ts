@@ -49,8 +49,8 @@ const STOP_V = (JUNC_CY - HALF + SPAWN_OUT) * FP;
 const STOP_H = (JUNC_CX - HALF + SPAWN_OUT) * FP;
 const STOP: readonly number[] = [STOP_V, STOP_V, STOP_H, STOP_H];
 
-const ARRIVE_START = 120; // 2.0 s
-const ARRIVE_END = 42; // 0.7 s
+const ARRIVE_START = 84; // 1.4 s
+const ARRIVE_END = 30; // 0.5 s
 const FIRST_ARRIVAL = 30;
 const PATIENCE_START = 360;
 const PATIENCE_END = 240;
@@ -181,7 +181,7 @@ function step(state: JuncState, input: ArcadeInputEvent | null): JuncState {
     let back: JuncCar | undefined;
     for (const car of s.cars) if (car.ap === a.ap && car.s - CAR_LEN < exitOf(car)) back = car;
     const start = back ? Math.min(0, back.s - CAR_LEN - CAR_GAP) : 0;
-    s.cars.push({ id: s.next, ap: a.ap, turn: a.turn, s: start, wait: 0, patience: a.patience, cleared: 0, colour: a.colour });
+    if (s.cars.length < 10) s.cars.push({ id: s.next, ap: a.ap, turn: a.turn, s: start, wait: 0, patience: a.patience, cleared: 0, colour: a.colour });
     s.next += 1;
   }
 

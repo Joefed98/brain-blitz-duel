@@ -290,7 +290,7 @@ export const PARRY_TEAL = "#2ED3B7";
 export const PARRY_RED = "#FF4D5E";
 const CX = PARRY_WORLD_W / 2;
 const CY = PARRY_WORLD_H / 2;
-const SHIELD_R = 56;
+const SHIELD_R = 67.2;
 const DISC_R = 26;
 const START_R = 230;
 /** Angle each side's arrow flies in from (render only). */
@@ -320,7 +320,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ParryState, size: CanvasSize
 
   // Hinge ring and the eight stops.
   ctx.strokeStyle = "rgba(245,184,46,0.18)";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.arc(CX, CY, SHIELD_R, 0, Math.PI * 2);
   ctx.stroke();
@@ -328,7 +328,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ParryState, size: CanvasSize
   for (let p = 0; p < 8; p++) {
     const a = -Math.PI / 2 + (p * Math.PI) / 4;
     ctx.beginPath();
-    ctx.arc(CX + Math.cos(a) * SHIELD_R, CY + Math.sin(a) * SHIELD_R, 3, 0, Math.PI * 2);
+    ctx.arc(CX + Math.cos(a) * SHIELD_R, CY + Math.sin(a) * SHIELD_R, 4.5, 0, Math.PI * 2);
     ctx.fill();
   }
   // Gong shield: swings along the shortest way, then wobbles (render only).
