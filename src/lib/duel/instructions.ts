@@ -721,12 +721,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "3 per car through, −1 per car that gives up, +40 for surviving the minute.",
   },
   inkbridge: {
-    goal: "Guide the falling balls into the bucket.",
+    goal: "Draw a path so the ball rolls into the bucket.",
     how: [
-      { action: "Draw lines", detail: "— the balls roll along them." },
-      { action: "Lines fade, ink is limited and refills,", detail: "and the bucket moves." },
+      { action: "Draw lines around the grey blocks,", detail: "then tap RELEASE." },
+      { action: "Ink is limited", detail: "— more each level." },
+      { action: "Three failed drops", detail: "and you're out." },
     ],
-    score: "Points for the share of balls you catch.",
+    score: "2 points × the level number for each level; finish all ten fast for the bonus.",
   },
   burst: {
     goal: "Pop every ball — big ones split into smaller ones.",

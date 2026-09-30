@@ -1993,9 +1993,9 @@ export interface ParryPuzzleData {
   seed: number;
 }
 
-/** Junction and Ink Bridge: fixed 60-second runs; the round clock adds three of slack. */
+/** Junction: a fixed 60-second run; Ink Bridge: 120 seconds. The round clock adds three of slack. */
 export const JUNCTION_TIME_MS = 63_000;
-export const INKBRIDGE_TIME_MS = 63_000;
+export const INKBRIDGE_TIME_MS = 123_000;
 
 export interface JunctionPuzzleData {
   type: "junction";

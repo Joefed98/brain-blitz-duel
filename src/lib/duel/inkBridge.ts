@@ -5,6 +5,7 @@ import {
   inkCheckpoint,
   INK_CHECKPOINT_INTERVAL,
   INK_CHECKPOINT_KEYS,
+  INK_LEVELS,
   type InkCheckpoint,
   type InkState,
 } from "@/lib/arcade/inkBridge";
@@ -19,8 +20,9 @@ const run = makeArcadeRun<InkState, InkCheckpoint>({
 });
 
 export interface InkBridgeResult extends FlatReplay<InkState, InkCheckpoint> {
-  caught: number;
+  levels: number;
   total: number;
+  fails: number;
 }
 
 export const encodeInkBridgeRun = run.encode;
@@ -30,5 +32,5 @@ export const decodeInkBridgeRun = run.decode;
 export function replayInkBridgeRun(seed: number, raw: string): InkBridgeResult {
   const result = run.replay(seed, raw);
   const s = result.state;
-  return { ...result, caught: s.caught, total: s.drops.length };
+  return { ...result, levels: s.levels, total: INK_LEVELS, fails: s.fails };
 }

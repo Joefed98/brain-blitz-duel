@@ -1293,9 +1293,12 @@ const junctionSummary: SummaryBuilder = (result) => {
 };
 
 const inkBridgeSummary: SummaryBuilder = (result) => {
-  const caught = Number(result.extra?.["caught"] ?? 0);
-  const total = Number(result.extra?.["total"] ?? 0);
-  return { summary: `${caught} / ${total} caught`, detail: ["Same drops for everyone"] };
+  const levels = Number(result.extra?.["levels"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? 10);
+  return {
+    summary: levels >= total ? `All ${total} · ${result.score}` : `Level ${levels} · ${result.score} points`,
+    detail: ["Same levels for everyone"],
+  };
 };
 
 const orbitSummary: SummaryBuilder = (result) => {
