@@ -750,9 +750,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Swing as far as you can.",
     how: [
       { action: "Hold to grab an anchor and swing,", detail: "let go to fly." },
-      { action: "Swing back to build momentum", detail: "if you need to. Don't touch the spikes." },
+      { action: "Stuck? Keep swinging", detail: "— every pass gets you higher. Swipe up to shorten the rope for speed." },
+      { action: "Don't touch the spikes", detail: "or fall to the floor." },
     ],
-    score: "1 point per 5 metres.",
+    score: "1 point per metre.",
   },
   tilt: {
     goal: "Roll the ball out of the maze.",
