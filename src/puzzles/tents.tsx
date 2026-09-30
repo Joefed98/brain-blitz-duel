@@ -74,20 +74,20 @@ function Board({
         <span
           key={`c${c}`}
           className={`text-center font-mono text-sm font-bold ${
-            cols[c] === count ? "text-muted-foreground opacity-40" : "text-foreground"
+            count >= 0 && cols[c] === count ? "text-muted-foreground opacity-40" : "text-foreground"
           }`}
         >
-          {count}
+          {count < 0 ? "?" : count}
         </span>
       ))}
       {Array.from({ length: size }, (_, r) => [
         <span
           key={`r${r}`}
           className={`flex items-center justify-center font-mono text-sm font-bold ${
-            rows[r] === rowCounts[r] ? "text-muted-foreground opacity-40" : "text-foreground"
+            (rowCounts[r] ?? -1) >= 0 && rows[r] === rowCounts[r] ? "text-muted-foreground opacity-40" : "text-foreground"
           }`}
         >
-          {rowCounts[r]}
+          {(rowCounts[r] ?? -1) < 0 ? "?" : rowCounts[r]}
         </span>,
         ...Array.from({ length: size }, (_, c) => {
           const cell = r * size + c;
@@ -180,7 +180,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
         tents <span className="text-primary">{tents.length}</span> / {data.trees.length}
       </p>
-      <div className="w-full" style={{ maxWidth: 420 }}>
+       <div className="w-full" style={{ width: "min(100%, 338px)" }}>
         <Board
           size={size}
           trees={data.trees}
@@ -256,10 +256,10 @@ export const tentsPuzzle: PuzzleDefinition = {
   generate: () =>
     ({
       type: "tents",
-      size: 7,
+      size: 8,
       trees: [],
-      rowCounts: new Array(7).fill(0),
-      colCounts: new Array(7).fill(0),
+      rowCounts: new Array(8).fill(0),
+      colCounts: new Array(8).fill(0),
     }) satisfies TentsPuzzleData,
   check: (answer, puzzle) =>
     puzzle.type === "tents" && tentsLayoutValid(puzzle, decodeTents(answer, puzzle.size)),

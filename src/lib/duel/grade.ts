@@ -1539,7 +1539,7 @@ export function gradeSubmission(
     case "shikaku": {
       // Rectangles are re-checked against the clues; overlaps and wrong areas don't count.
       const rects = decodeShikaku(answer, puzzle.size);
-      const covered = shikakuCovered(rects, puzzle.clues);
+      const covered = shikakuCovered(rects, puzzle.clues, puzzle.size);
       const solved = covered === puzzle.size * puzzle.size;
       isCorrect = solved;
       correctCount = covered;

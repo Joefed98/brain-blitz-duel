@@ -5,7 +5,7 @@
  * non-overlapping rectangles cover every cell.
  */
 
-export const SHIKAKU_SIZE = 8;
+export const SHIKAKU_SIZE = 9;
 export const SHIKAKU_CELLS = SHIKAKU_SIZE * SHIKAKU_SIZE;
 
 export interface ShikakuClue {
@@ -70,22 +70,22 @@ export function decodeShikaku(raw: string, size = SHIKAKU_SIZE): ShikakuRect[] {
 }
 
 /** Valid rectangles in order, dropping any that overlaps an earlier one. */
-export function acceptedRects(rects: readonly ShikakuRect[], clues: readonly ShikakuClue[]): ShikakuRect[] {
+export function acceptedRects(rects: readonly ShikakuRect[], clues: readonly ShikakuClue[], size = SHIKAKU_SIZE): ShikakuRect[] {
   const out: ShikakuRect[] = [];
   for (const r of rects) {
-    if (!rectValid(r, clues)) continue;
+    if (!rectValid(r, clues, size)) continue;
     if (out.some((other) => rectsOverlap(other, r))) continue;
     out.push(r);
   }
   return out;
 }
 
-export function shikakuCovered(rects: readonly ShikakuRect[], clues: readonly ShikakuClue[]): number {
-  return acceptedRects(rects, clues).reduce((sum, r) => sum + rectArea(r), 0);
+export function shikakuCovered(rects: readonly ShikakuRect[], clues: readonly ShikakuClue[], size = SHIKAKU_SIZE): number {
+  return acceptedRects(rects, clues, size).reduce((sum, r) => sum + rectArea(r), 0);
 }
 
-export function shikakuSolved(rects: readonly ShikakuRect[], clues: readonly ShikakuClue[]): boolean {
-  return shikakuCovered(rects, clues) === SHIKAKU_CELLS;
+export function shikakuSolved(rects: readonly ShikakuRect[], clues: readonly ShikakuClue[], size = SHIKAKU_SIZE): boolean {
+  return shikakuCovered(rects, clues, size) === size * size;
 }
 
 /** Counts partitions up to `limit`: the first free cell is always a rectangle's top-left. */

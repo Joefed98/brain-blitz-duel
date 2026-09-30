@@ -5,7 +5,7 @@
  * the tents can be paired one-to-one with orthogonally adjacent trees.
  */
 
-export const TENTS_SIZE = 7;
+export const TENTS_SIZE = 8;
 export const TENTS_CELLS = TENTS_SIZE * TENTS_SIZE;
 
 export function tentsRowCol(cell: number, size = TENTS_SIZE): { r: number; c: number } {
@@ -102,7 +102,8 @@ export function tentsLayoutValid(board: TentsBoard, tents: readonly number[]): b
   }
   const { rows, cols } = lineCounts(tents, size);
   for (let i = 0; i < size; i++) {
-    if (rows[i] !== board.rowCounts[i] || cols[i] !== board.colCounts[i]) return false;
+    if ((board.rowCounts[i] ?? -1) >= 0 && rows[i] !== board.rowCounts[i]) return false;
+    if ((board.colCounts[i] ?? -1) >= 0 && cols[i] !== board.colCounts[i]) return false;
   }
   return tentsMatchTrees(trees, tents, size);
 }
@@ -132,7 +133,8 @@ export function countTentSolutions(board: TentsBoard, limit = 2): number {
     if (found >= limit) return;
     if (index === candidates.length) {
       for (let i = 0; i < size; i++) {
-        if (rowUsed[i] !== rowCounts[i] || colUsed[i] !== colCounts[i]) return;
+        if ((rowCounts[i] ?? -1) >= 0 && rowUsed[i] !== rowCounts[i]) return;
+        if ((colCounts[i] ?? -1) >= 0 && colUsed[i] !== colCounts[i]) return;
       }
       if (tentsMatchTrees(trees, chosen, size)) found += 1;
       return;
@@ -143,8 +145,8 @@ export function countTentSolutions(board: TentsBoard, limit = 2): number {
     colLeft[c]! -= 1;
     // Place a tent here.
     if (
-      rowUsed[r]! < rowCounts[r]! &&
-      colUsed[c]! < colCounts[c]! &&
+      ((rowCounts[r] ?? -1) < 0 || rowUsed[r]! < rowCounts[r]!) &&
+      ((colCounts[c] ?? -1) < 0 || colUsed[c]! < colCounts[c]!) &&
       !chosen.some((tent) => tentsTouch(tent, cell, size))
     ) {
       rowUsed[r]! += 1;
@@ -156,7 +158,10 @@ export function countTentSolutions(board: TentsBoard, limit = 2): number {
       colUsed[c]! -= 1;
     }
     // Leave it empty — only if the line can still reach its count.
-    if (rowUsed[r]! + rowLeft[r]! >= rowCounts[r]! && colUsed[c]! + colLeft[c]! >= colCounts[c]!) {
+    if (
+      ((rowCounts[r] ?? -1) < 0 || rowUsed[r]! + rowLeft[r]! >= rowCounts[r]!) &&
+      ((colCounts[c] ?? -1) < 0 || colUsed[c]! + colLeft[c]! >= colCounts[c]!)
+    ) {
       walk(index + 1);
     }
     rowLeft[r]! += 1;

@@ -128,7 +128,7 @@ function routedPath(rows: number, startCol: number, exitCol: number, horizontalR
   let horizontal = 0;
   for (let row = rows - 1; row > 0; row--) {
     while (horizontalRows[horizontal] === row && col !== exitCol) {
-      col += target > col ? 1 : -1;
+      col += exitCol > col ? 1 : -1;
       route.push(row * HOT_COLS + col);
       horizontal += 1;
     }
