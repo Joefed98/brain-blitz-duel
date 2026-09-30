@@ -144,10 +144,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         </>
       }
     />
-    <div ref={bar} className="flex h-[60px] shrink-0 touch-none select-none items-center justify-center gap-4 bg-background/60" onPointerDown={(e) => { if (e.target === e.currentTarget && !locked) { e.currentTarget.setPointerCapture(e.pointerId); dragBar(e); } }} onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId) && !locked) dragBar(e); }}>
-      <Button type="button" aria-label="Move left" disabled={locked} className="h-11 w-11 border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary active:bg-primary/30" style={{ touchAction: "none" }} {...hold(-1)}>◀</Button>
-      <Button type="button" aria-label="Fire" disabled={locked} className="h-[52px] w-[52px] rounded-full p-0 text-xs font-bold" style={{ touchAction: "none" }} onPointerDown={(e) => { e.preventDefault(); firePending.current = true; }}>FIRE</Button>
-      <Button type="button" aria-label="Move right" disabled={locked} className="h-11 w-11 border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary active:bg-primary/30" style={{ touchAction: "none" }} {...hold(1)}>▶</Button>
+    <div ref={bar} className="grid h-[72px] shrink-0 touch-none select-none grid-cols-3 items-center bg-background/60" onPointerDown={(e) => { if (e.target === e.currentTarget && !locked) { e.currentTarget.setPointerCapture(e.pointerId); dragBar(e); } }} onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId) && !locked) dragBar(e); }}>
+      <div className="flex h-14 items-center justify-start"><Button type="button" aria-label="Move left" disabled={locked} className="h-14 w-[52px] border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary active:bg-primary/30" style={{ touchAction: "none" }} {...hold(-1)}>◀</Button></div>
+      <div className="flex h-14 items-center justify-center"><Button type="button" aria-label="Fire" disabled={locked} className="h-14 w-16 rounded-full p-0 text-xs font-bold" style={{ touchAction: "none" }} onPointerDown={(e) => { e.preventDefault(); firePending.current = true; }}>FIRE</Button></div>
+      <div className="flex h-14 items-center justify-end"><Button type="button" aria-label="Move right" disabled={locked} className="h-14 w-[52px] border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary active:bg-primary/30" style={{ touchAction: "none" }} {...hold(1)}>▶</Button></div>
     </div>
     </div>
   );

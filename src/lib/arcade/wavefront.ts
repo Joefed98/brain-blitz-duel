@@ -380,7 +380,8 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
 }
 
 export function wavScoreOf(shapesDown: number, saucers: number, waves: number): number {
-  return clampInt(shapesDown + WAV_POINTS_SAUCER * saucers + WAV_POINTS_WAVE * waves, 0, 150);
+  const raw = shapesDown + WAV_POINTS_SAUCER * saucers + WAV_POINTS_WAVE * waves;
+  return clampInt(Math.floor((raw * 3) / 4), 0, 150);
 }
 
 function score(state: WavState): number {

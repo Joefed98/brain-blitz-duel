@@ -134,7 +134,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   }, [encoded, onDraftAnswer]);
 
   useEffect(() => {
-    if (!data || locked || submitted.current || !shikakuSolved(rects, clues)) return;
+    if (!data || locked || submitted.current || !shikakuSolved(rects, clues, size)) return;
     submitted.current = true;
     playCorrect();
     onSubmit(encoded);
@@ -178,14 +178,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   });
 
   if (!data) return null;
-  const uncovered = SHIKAKU_CELLS - shikakuCovered(rects, clues);
+  const uncovered = size * size - shikakuCovered(rects, clues, size);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
       <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
         uncovered <span className="text-primary">{uncovered}</span>
       </p>
-      <div key={shake} className={`w-full ${shake ? "animate-shake" : ""}`} style={{ maxWidth: 380, minWidth: 320 }}>
+      <div key={shake} className={`w-full ${shake ? "animate-shake" : ""}`} style={{ width: "min(100%, 342px)", minWidth: 324 }}>
         <Board size={size} clues={clues} rects={rects} preview={preview} pointer={pointer} />
       </div>
     </div>
@@ -194,7 +194,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "shikaku") return null;
-  const mine = acceptedRects(decodeShikaku(myAnswer ?? "", puzzle.size), puzzle.clues);
+  const mine = acceptedRects(decodeShikaku(myAnswer ?? "", puzzle.size), puzzle.clues, puzzle.size);
   const covered = mine.reduce((sum, r) => sum + (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1), 0);
   const elapsed = Math.max(0, SHIKAKU_TIME_MS - (myMsRemaining ?? 0));
   return (
@@ -224,7 +224,7 @@ export const shikakuPuzzle: PuzzleDefinition = {
   revealMs: 8_000,
   generate: () => ({ type: "shikaku", size: SHIKAKU_SIZE, clues: [] }) satisfies ShikakuPuzzleData,
   check: (answer, puzzle) =>
-    puzzle.type === "shikaku" && shikakuSolved(decodeShikaku(answer, puzzle.size), puzzle.clues),
+    puzzle.type === "shikaku" && shikakuSolved(decodeShikaku(answer, puzzle.size), puzzle.clues, puzzle.size),
   revealHeading: "The solution",
   IntroExample,
   Stage,

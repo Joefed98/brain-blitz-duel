@@ -1,7 +1,7 @@
 /**
- * Server-only Shikaku generator: an 8×8 partition into 12–14 rectangles (at
- * most one 1×1, at most two of area 2, at least three of area 6+ whose number
- * sits away from the centre), one clue per rectangle, and the solver must
+ * Server-only Shikaku generator: a 9×9 partition into 15–18 rectangles (at
+ * most one 1×1, at most two of area 2, at least four of area 6+ whose number
+ * sits away from the centre), with repeated adjacent areas, and the solver must
  * find exactly one partition — otherwise the board is re-rolled.
  */
 
@@ -17,6 +17,20 @@ import {
 import type { ShikakuPuzzleData } from "./types";
 
 const MAX_AREA = 12;
+
+function adjacent(a: ShikakuRect, b: ShikakuRect): boolean {
+  const vertical = (a.r1 + 1 === b.r0 || b.r1 + 1 === a.r0) && Math.max(a.c0, b.c0) <= Math.min(a.c1, b.c1);
+  const horizontal = (a.c1 + 1 === b.c0 || b.c1 + 1 === a.c0) && Math.max(a.r0, b.r0) <= Math.min(a.r1, b.r1);
+  return vertical || horizontal;
+}
+
+export function shikakuEqualAdjacentPairs(rects: readonly ShikakuRect[]): number {
+  let pairs = 0;
+  for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
+    if (rectArea(rects[i]!) === rectArea(rects[j]!) && adjacent(rects[i]!, rects[j]!)) pairs += 1;
+  }
+  return pairs;
+}
 
 function tryPartition(): ShikakuRect[] | null {
   const size = SHIKAKU_SIZE;
@@ -74,8 +88,9 @@ function clueCell(rect: ShikakuRect): number {
 export function generateShikaku(): ShikakuPuzzleData {
   for (let attempt = 0; attempt < 50000; attempt++) {
     const rects = tryPartition();
-    if (!rects || rects.length < 12 || rects.length > 14) continue;
-    if (rects.filter((rect) => rectArea(rect) >= 6).length < 3) continue;
+    if (!rects || rects.length < 15 || rects.length > 18) continue;
+    if (rects.filter((rect) => rectArea(rect) >= 6).length < 4) continue;
+    if (shikakuEqualAdjacentPairs(rects) < 3) continue;
     const clues: ShikakuClue[] = rects.map((rect) => ({ cell: clueCell(rect), n: rectArea(rect) }));
     if (countShikakuSolutions(clues, 2) !== 1) continue;
     return {

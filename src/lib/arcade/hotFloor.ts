@@ -50,8 +50,11 @@ export interface HotFloorStage {
   numbers: number[];
   /** The stored route, verified to succeed. */
   route: number[];
-  /** A shorter-looking route that fails by exactly one hop. */
+  /** Maximum hops accepted by GO. */
+  hopBudget: number;
+  /** The first of at least two plausible routes that fail. */
   decoy: number[];
+  decoys: number[][];
   fingerprint: number;
 }
 
@@ -83,13 +86,13 @@ export function hotRouteFailure(stage: HotFloorStage, route: readonly number[]):
   return route.length;
 }
 
-/** Breadth-first search over (tile, hop): the shortest surviving route, if any. */
+/** Breadth-first search over (tile, hop): the shortest surviving route within budget, if any. */
 export function hotfloorStageRoute(stage: HotFloorStage): number[] | null {
   const key = (cell: number, hop: number) => hop * 64 + cell;
   const parent = new Map<number, number>();
   let layer = [stage.start];
   parent.set(key(stage.start, 0), -1);
-  for (let hop = 1; hop < MAX_ROUTE && layer.length; hop++) {
+  for (let hop = 1; hop <= stage.hopBudget && layer.length; hop++) {
     const next: number[] = [];
     for (const from of layer) {
       for (const cell of hotNeighbours(from, stage.rows)) {
@@ -118,33 +121,22 @@ export function hotRowsFor(stageIndex: number): number {
   return stageIndex < 3 ? 6 : stageIndex < 7 ? 7 : 8;
 }
 
-/** Up the start column to the top row, then along it: the obvious short route. */
-function directRoute(start: number, exit: number): number[] {
-  const out = [start];
-  let cell = start;
-  while (cell >= HOT_COLS) {
-    cell -= HOT_COLS;
-    out.push(cell);
-  }
-  while (cell !== exit) {
-    cell += exit > cell ? 1 : -1;
-    out.push(cell);
-  }
-  return out;
-}
-
-/** A self-avoiding wandering route from bottom to top that is longer than the direct one. */
-function wanderRoute(rows: number, startCol: number, exitCol: number, draw: (n: number) => number): number[] {
+/** A monotone route whose horizontal steps happen on the requested rows. */
+function routedPath(rows: number, startCol: number, exitCol: number, horizontalRows: readonly number[]): number[] {
   const route = [(rows - 1) * HOT_COLS + startCol];
   let col = startCol;
+  let horizontal = 0;
   for (let row = rows - 1; row > 0; row--) {
-    // Pick a column to travel to on this row, then step up.
-    const target = row === 1 ? exitCol : draw(HOT_COLS);
-    while (col !== target) {
-      col += target > col ? 1 : -1;
+    while (horizontalRows[horizontal] === row && col !== exitCol) {
+      col += exitCol > col ? 1 : -1;
       route.push(row * HOT_COLS + col);
+      horizontal += 1;
     }
     route.push((row - 1) * HOT_COLS + col);
+  }
+  while (col !== exitCol) {
+    col += exitCol > col ? 1 : -1;
+    route.push(col);
   }
   return route;
 }
@@ -158,54 +150,53 @@ function tryStage(seed: number, stageIndex: number, attempt: number): HotFloorSt
   };
   const rows = hotRowsFor(stageIndex);
   const total = HOT_COLS * rows;
-  const startCol = draw(HOT_COLS);
-  const exitCol = draw(HOT_COLS);
-  const route = wanderRoute(rows, startCol, exitCol, draw);
+  const left = draw(2) === 0;
+  const startCol = left ? draw(HOT_COLS - 2) : 2 + draw(HOT_COLS - 2);
+  const exitCol = startCol + (left ? 2 : -2);
+  const middleA = Math.max(2, Math.trunc(rows / 2));
+  const middleB = Math.max(1, middleA - 1);
+  const route = routedPath(rows, startCol, exitCol, [middleA, middleB]);
   const start = route[0]!;
   const exit = route[route.length - 1]!;
-  const decoy = directRoute(start, exit);
-  if (route.length <= decoy.length) return null;
+  const decoys = [
+    routedPath(rows, startCol, exitCol, [rows - 1, rows - 1]),
+    routedPath(rows, startCol, exitCol, [1, 1]),
+  ];
+  const decoy = decoys[0]!;
+  const hopBudget = route.length - 1 + (stageIndex < 3 ? 1 : 0);
   const routeIndex = new Map<number, number>();
   route.forEach((cell, i) => routeIndex.set(cell, i));
-  // The trap: the last decoy tile that the stored route does not use (or uses later).
-  let trapAt = -1;
-  for (let i = decoy.length - 2; i >= 2; i--) {
-    const cell = decoy[i]!;
-    if (!routeIndex.has(cell)) {
-      trapAt = i;
-      break;
-    }
-  }
-  if (trapAt < 0) return null;
-
   const numbers = new Array<number>(total).fill(0);
   const missing = new Array<number>(total).fill(0);
-  const tight = Math.min(9, stageIndex);
-  // Stored route: exactly what the route needs, plus seeded slack (zero slack grows with stage).
+  // Stored route: at least half are exact, and all values stay in 1–9.
   for (let i = 1; i < route.length - 1; i++) {
-    const zero = draw(10) < Math.min(7, 1 + tight);
-    const slack = zero ? 0 : 1 + draw(Math.max(1, 5 - Math.trunc(tight / 2)));
-    numbers[route[i]!] = i + slack;
+    const exact = i % 2 === 1 || draw(4) !== 0;
+    numbers[route[i]!] = Math.min(9, i + (exact ? 0 : 1));
   }
-  // Off-route tiles: plausible numbers around the tile's straight-line distance.
-  const startRow = rows - 1;
+  // Off-route tiles: low values near the exit; high values mainly lure away from it.
   for (let cell = 0; cell < total; cell++) {
     if (routeIndex.has(cell)) continue;
-    const dist = Math.abs(Math.trunc(cell / HOT_COLS) - startRow) + Math.abs((cell % HOT_COLS) - startCol);
-    const spread = Math.max(2, 6 - Math.trunc(tight / 2));
-    numbers[cell] = Math.max(1, dist - 1 + draw(spread));
+    const fromExit = Math.abs(Math.trunc(cell / HOT_COLS)) + Math.abs((cell % HOT_COLS) - exitCol);
+    numbers[cell] = fromExit >= rows - 2 ? 7 + draw(3) : 1 + draw(6);
   }
-  // Decoy tiles off the stored route hold for their decoy hop, except the trap: one short.
-  for (let i = 1; i < decoy.length - 1; i++) {
-    const cell = decoy[i]!;
-    if (routeIndex.has(cell)) continue;
-    numbers[cell] = i === trapAt ? i - 1 : Math.max(numbers[cell]!, i);
+  // Each plausible alternative gets a distinct off-route trap one hop too early.
+  for (const candidate of decoys) {
+    let trapAt = -1;
+    for (let i = candidate.length - 2; i >= 2; i--) {
+      if (!routeIndex.has(candidate[i]!)) { trapAt = i; break; }
+    }
+    if (trapAt < 0) return null;
+    for (let i = 1; i < candidate.length - 1; i++) {
+      const cell = candidate[i]!;
+      if (routeIndex.has(cell)) continue;
+      numbers[cell] = i === trapAt ? Math.max(1, i - 1) : Math.min(9, Math.max(numbers[cell]!, i));
+    }
   }
   numbers[start] = HOT_FOREVER;
   numbers[exit] = HOT_FOREVER;
 
-  const missingCount = stageIndex >= 7 ? 8 + draw(3) : 2 + stageIndex;
-  const protectedCells = new Set<number>([...route, ...decoy]);
+  const missingCount = stageIndex < 2 ? 2 + stageIndex : Math.min(12, 6 + stageIndex - 2);
+  const protectedCells = new Set<number>([...route, ...decoys.flat()]);
   const candidates: number[] = [];
   for (let cell = 0; cell < total; cell++) if (!protectedCells.has(cell)) candidates.push(cell);
   for (let n = 0; n < missingCount && candidates.length; n++) {
@@ -219,9 +210,9 @@ function tryStage(seed: number, stageIndex: number, attempt: number): HotFloorSt
     fingerprint ^= value | 0;
     fingerprint = Math.imul(fingerprint, 0x01000193) >>> 0;
   }
-  const stage: HotFloorStage = { rows, start, exit, missing, numbers, route, decoy, fingerprint };
+  const stage: HotFloorStage = { rows, start, exit, missing, numbers, route, hopBudget, decoy, decoys, fingerprint };
   if (hotRouteFailure(stage, route) !== -1) return null;
-  if (hotRouteFailure(stage, decoy) !== trapAt) return null;
+  if (decoys.filter((candidate) => hotRouteFailure(stage, candidate) > 0).length < 2) return null;
   if (!hotfloorStageRoute(stage)) return null;
   return stage;
 }
@@ -293,7 +284,7 @@ function plan(s: HotFloorState, input: ArcadeInputEvent): void {
   if (input.k === HOT_INPUT_CLEAR) {
     s.route = [s.board.start];
   } else if (input.k === HOT_INPUT_GO) {
-    if (last === s.board.exit && s.route.length > 1) {
+    if (last === s.board.exit && s.route.length > 1 && s.route.length - 1 <= s.board.hopBudget) {
       s.phase = 1;
       s.hop = 0;
       s.pause = HOT_HOP_TICKS;
@@ -437,6 +428,9 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = HOT_GOLD;
   ctx.fillText(`Stage ${Math.min(HOT_STAGES, state.stage + 1)}`, BOARD_X, 46);
+  ctx.font = "700 14px JetBrains Mono, monospace";
+  ctx.fillStyle = "#E8E8ED";
+  ctx.fillText(`Max ${board.hopBudget} hops`, BOARD_X + 112, 46);
   for (let life = 0; life < START_LIVES; life++) {
     ctx.globalAlpha = life < state.lives ? 1 : 0.2;
     ctx.beginPath();
@@ -555,7 +549,7 @@ function draw(ctx: CanvasRenderingContext2D, state: HotFloorState, size: CanvasS
   ctx.globalAlpha = 1;
 
   // Buttons.
-  const canGo = state.phase === 0 && state.route.length > 1 && state.route[state.route.length - 1] === board.exit;
+  const canGo = state.phase === 0 && state.route.length > 1 && state.route.length - 1 <= board.hopBudget && state.route[state.route.length - 1] === board.exit;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.roundRect(CLEAR_X0, BTN_Y, CLEAR_X1 - CLEAR_X0, BTN_H, 12);

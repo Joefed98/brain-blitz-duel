@@ -44,7 +44,7 @@ function IntroExample() {
           </g>
         ))}
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Every tile must last until its hop number. The left route falls at hop 3.</p>
+      <p className="text-center text-xs text-muted-foreground">Every tile must last until its hop number, and the route must fit the budget.</p>
     </div>
   );
 }

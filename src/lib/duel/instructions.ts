@@ -667,7 +667,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Dodge the red bolts.", detail: "Three hits and you're out." },
       { action: "The formation speeds up", detail: "as it thins." },
     ],
-    score: "1 per shape, 15 per wave, 5 for the saucer.",
+    score: "Points for shapes, saucers and waves; the total is scaled.",
   },
   bastion: {
     goal: "Defend the base.",
@@ -705,11 +705,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   parry: {
     goal: "Block every arrow with the gong shield.",
     how: [
-      { action: "Swipe in any of eight directions", detail: "to swing the shield there." },
+      { action: "Swipe in any of eight directions", detail: "or use ⟲ ⟳ to move one position." },
       { action: "A diagonal blocks both neighbours", detail: "— at 1:30 it covers the top and the right." },
       { action: "Later they come in pairs", detail: "and some swerve at the last moment. Three hits and you're out." },
     ],
-    score: "The longer you last, the more you score; −15 per life lost.",
+    score: "5 per arrow deflected, −10 per life lost.",
   },
   junction: {
     goal: "Keep the traffic moving without a crash.",
@@ -768,7 +768,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Plan a route to the exit before the floor falls.",
     how: [
       { action: "Each number is how many hops that tile lasts after you press GO.", detail: "" },
-      { action: "Tap tiles to draw your route, then GO.", detail: "" },
+      { action: "Tap tiles to draw your route, then GO.", detail: "Stay within the hop budget." },
     ],
     score: "15 per stage.",
   },

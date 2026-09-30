@@ -1,6 +1,6 @@
 /**
- * Server-only Light Up generator: a 7×7 board with 10–13 walls, a random
- * valid bulb layout, and roughly 70% of walls numbered. Boards the solver does
+ * Server-only Light Up generator: an 8×8 board with 14–18 walls, a random
+ * valid bulb layout, and roughly half of walls numbered. Boards the solver does
  * not find exactly one layout for are re-rolled.
  */
 
@@ -16,8 +16,8 @@ import type { LightUpPuzzleData } from "./types";
 
 export function generateLightUp(): LightUpPuzzleData {
   const size = LIGHTUP_SIZE;
-  for (let attempt = 0; attempt < 20000; attempt++) {
-    const walls = shuffled([...Array(size * size).keys()]).slice(0, randInt(10, 13));
+  for (let attempt = 0; attempt < 100000; attempt++) {
+    const walls = shuffled([...Array(size * size).keys()]).slice(0, randInt(14, 18));
     const wallSet = new Set(walls);
     const lit = new Set<number>();
     const bulbs: number[] = [];
@@ -28,7 +28,13 @@ export function generateLightUp(): LightUpPuzzleData {
     }
     const bulbSet = new Set(bulbs);
     const full = walls.map((wall) => orth(wall, size).filter((cell) => bulbSet.has(cell)).length);
-    const numbered = new Set(shuffled([...walls.keys()]).slice(0, Math.round(walls.length * 0.7)));
+    const zeroes = full.flatMap((n, i) => n === 0 ? [i] : []);
+    const threes = full.flatMap((n, i) => n === 3 ? [i] : []);
+    if (zeroes.length < 2 || threes.length < 1) continue;
+    const numberCount = Math.round(walls.length * 0.5);
+    const required = new Set<number>([...shuffled(zeroes).slice(0, 2), shuffled(threes)[0]!]);
+    const remaining = shuffled([...walls.keys()].filter((i) => !required.has(i)));
+    const numbered = new Set([...required, ...remaining.slice(0, numberCount - required.size)]);
     const numbers = full.map((n, i) => numbered.has(i) ? n : -1);
     const board: LightUpBoard = { size, walls, wallNumbers: numbers };
     if (countLightUpSolutions(board, 2) !== 1) continue;

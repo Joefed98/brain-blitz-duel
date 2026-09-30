@@ -6,6 +6,7 @@ import {
   buildHotFloorStage,
   hotFloorGame,
   hotfloorCourseRerolls,
+  hotNeighbours,
   hotRouteFailure,
   hotfloorStageRoute,
   type HotFloorState,
@@ -18,7 +19,7 @@ const check = (label: string, ok: boolean) => {
   if (!ok) failures += 1;
 };
 
-let stages = 0, stored = 0, searched = 0, decoyShorter = 0, decoyOneShort = 0, zeroSlack = 0, missing8 = 0;
+let stages = 0, stored = 0, searched = 0, twoFailed = 0, halfExact = 0, missingHard = 0, greedySolved = 0;
 let rerolls = 0;
 for (let seed = 1; seed <= 50; seed++) {
   rerolls += hotfloorCourseRerolls(seed * 7919);
@@ -27,19 +28,29 @@ for (let seed = 1; seed <= 50; seed++) {
     stages++;
     if (hotRouteFailure(b, b.route) === -1) stored++;
     if (hotfloorStageRoute(b)) searched++;
-    if (b.decoy.length < b.route.length) decoyShorter++;
-    const f = hotRouteFailure(b, b.decoy);
-    if (f > 0 && b.numbers[b.decoy[f]!] === f - 1) decoyOneShort++;
-    if (b.route.slice(1, -1).some((c, k) => b.numbers[c] === k + 1)) zeroSlack++;
-    if (i >= 7 && b.rows === 8 && b.missing.filter(Boolean).length >= 8) missing8++;
+    if (b.decoys.filter((route) => hotRouteFailure(b, route) > 0).length >= 2) twoFailed++;
+    const exact = b.route.slice(1, -1).filter((c, k) => b.numbers[c] === k + 1).length;
+    if (exact * 2 >= b.route.length - 2) halfExact++;
+    if (i >= 2 && b.missing.filter(Boolean).length >= 6 && b.missing.filter(Boolean).length <= 12) missingHard++;
+    let cell = b.start;
+    const greedy = [cell];
+    const seen = new Set(greedy);
+    while (cell !== b.exit && greedy.length - 1 < b.hopBudget) {
+      const options = hotNeighbours(cell, b.rows).filter((c) => !b.missing[c] && !seen.has(c));
+      if (!options.length) break;
+      options.sort((a, z) => b.numbers[z]! - b.numbers[a]! || a - z);
+      cell = options[0]!; greedy.push(cell); seen.add(cell);
+    }
+    if (hotRouteFailure(b, greedy) === -1) greedySolved++;
   }
 }
 check("stored routes succeed", stored === stages);
 check("search finds a route", searched === stages);
-check("decoy shorter", decoyShorter === stages);
-check("decoy fails by one hop", decoyOneShort === stages);
-check("stage 8+ is 6x8 with 8-10 missing", missing8 === 150);
-console.log(`Hot Floor: ${stages} stages; stored ok ${stored}; search ok ${searched}; decoy shorter+fails by one ${decoyOneShort}; stages with a zero-slack tile ${zeroSlack}; avg rejected attempts per course ${(rerolls / 50).toFixed(1)}`);
+check("two alternatives fail", twoFailed === stages);
+check("half stored route exact", halfExact === stages);
+check("stage 3+ has 6-12 missing", missingHard === 400);
+check("highest-number-first solve rate under 20%", greedySolved / stages < 0.2);
+console.log(`Hot Floor: ${stages} stages; stored/search ok ${stored}/${searched}; two failed alternatives ${twoFailed}; half exact ${halfExact}; greedy ${greedySolved}/${stages} = ${((100 * greedySolved) / stages).toFixed(1)}%; avg rejected attempts per course ${(rerolls / 50).toFixed(1)}`);
 
 const tick = (s: HotFloorState, k: number | null, a = 0) =>
   hotFloorGame.step(s, k === null ? null : { t: s.tick + 1, k, a, b: 0, c: 0, d: 0 });

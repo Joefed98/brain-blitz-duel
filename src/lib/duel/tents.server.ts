@@ -40,25 +40,28 @@ function tryLayout(pairs: number): { trees: number[]; tents: number[] } | null {
 
 export function generateTents(): TentsPuzzleData {
   const size = TENTS_SIZE;
-  for (let attempt = 0; attempt < 4000; attempt++) {
-    const pairs = randInt(8, 9);
+  for (let attempt = 0; attempt < 30000; attempt++) {
+    const pairs = randInt(11, 12);
     const layout = tryLayout(pairs);
     if (!layout) continue;
     const { rows, cols } = lineCounts(layout.tents, size);
-    const board = { size, trees: layout.trees, rowCounts: rows, colCounts: cols };
+    const rowCounts = [...rows];
+    const colCounts = [...cols];
+    const lines = shuffled([...Array(size * 2).keys()]).slice(0, Math.round((size * 2) / 3));
+    for (const line of lines) {
+      if (line < size) rowCounts[line] = -1;
+      else colCounts[line - size] = -1;
+    }
+    const board = { size, trees: layout.trees, rowCounts, colCounts };
     if (countTentSolutions(board, 2) !== 1) continue;
     return {
       type: "tents",
       size,
       trees: [...layout.trees].sort((a, b) => a - b),
-      rowCounts: rows,
-      colCounts: cols,
+      rowCounts,
+      colCounts,
       solution: [...layout.tents].sort((a, b) => a - b),
     };
   }
-  // A fixed, solver-checked fallback.
-  const tents = [0, 9, 18, 27, 36, 45, 4, 20];
-  const trees = [1, 2, 11, 34, 37, 46, 5, 13];
-  const { rows, cols } = lineCounts(tents, size);
-  return { type: "tents", size, trees, rowCounts: rows, colCounts: cols, solution: tents };
+  throw new Error("Tents generation failed");
 }

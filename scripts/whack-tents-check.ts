@@ -62,10 +62,12 @@ for (let i = 0; i < 50; i++) {
   const n = countTentSolutions(p, 5);
   const ok =
     n === 1 &&
-    p.trees.length >= 8 &&
-    p.trees.length <= 9 &&
+    p.size === 8 &&
+    p.trees.length >= 11 &&
+    p.trees.length <= 12 &&
+    p.rowCounts.filter((n) => n < 0).length + p.colCounts.filter((n) => n < 0).length === Math.round((p.size * 2) / 3) &&
     tentsLayoutValid(p, p.solution ?? []) &&
-    JSON.stringify(lineCounts(p.solution ?? []).rows) === JSON.stringify(p.rowCounts);
+    lineCounts(p.solution ?? [], p.size).rows.every((n, i) => p.rowCounts[i] === -1 || p.rowCounts[i] === n);
   if (!ok) {
     tentFails++;
     console.log("tents FAIL", n, p);

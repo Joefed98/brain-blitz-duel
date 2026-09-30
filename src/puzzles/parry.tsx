@@ -1,5 +1,7 @@
 import { useRef } from "react";
 
+import { Button } from "@/components/ui/button";
+
 import {
   parryCheckpoint,
   parryGame,
@@ -44,7 +46,10 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: ParryPuzzleData | null = puzzle.type === "parry" ? puzzle : null;
   const start = useRef<{ x: number; y: number; done: boolean } | null>(null);
+  const stepFlip = useRef(0);
+  const step = useRef<-1 | 1 | null>(null);
   return (
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-2">
     <ArcadeCanvasStage
       diagKey="parry"
       label="Parry"
@@ -58,7 +63,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       checkpoint={parryCheckpoint}
       interval={PARRY_CHECKPOINT_INTERVAL}
       encodeRun={encodeParryRun}
-      discrete
       inputKind={PARRY_INPUT_SWIPE}
       pointer={(kind, x, y) => {
         if (kind === "down") {
@@ -73,15 +77,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         from.done = true;
         return { a: parrySwipePos(dx, dy), b: 0, c: 0 };
       }}
+      tickInput={(state) => {
+        const direction = step.current;
+        step.current = null;
+        if (direction === null) return null;
+        stepFlip.current ^= 1;
+        return { k: PARRY_INPUT_SWIPE, a: (state.pos + (direction < 0 ? 7 : 1)) % 8, b: stepFlip.current, c: 0 };
+      }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />
+      <div className="grid h-14 shrink-0 grid-cols-2 gap-4">
+        <Button type="button" aria-label="Move shield anticlockwise" disabled={locked} className="h-14 text-2xl" onPointerDown={(e) => { e.preventDefault(); step.current = -1; }}>⟲</Button>
+        <Button type="button" aria-label="Move shield clockwise" disabled={locked} className="h-14 text-2xl" onPointerDown={(e) => { e.preventDefault(); step.current = 1; }}>⟳</Button>
+      </div>
+    </div>
   );
 }
 
-export function parryLine(r: { hits: number; survived: boolean; survivedSeconds: number; score: number }): string {
-  const head = r.survived ? "Survived the minute" : `Survived ${r.survivedSeconds.toFixed(1)}s`;
-  return `${head} · ${r.hits} ${r.hits === 1 ? "life" : "lives"} lost · ${r.score}`;
+export function parryLine(r: { deflected: number; hits: number; score: number }): string {
+  return `${r.deflected} deflected · ${r.hits} ${r.hits === 1 ? "life" : "lives"} lost · ${r.score}`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
