@@ -21,6 +21,7 @@ export const PARRY_WORLD_W = 390;
 export const PARRY_WORLD_H = 620;
 export const PARRY_RUN_TICKS = 60 * TICKS_PER_SECOND;
 export const PARRY_INPUT_SWIPE = 4;
+export const PARRY_INPUT_STEP = 14;
 /** Sides and swipe directions share numbers: 0 left, 1 right, 2 up, 3 down. */
 export const PARRY_LEFT = 0;
 export const PARRY_RIGHT = 1;
@@ -43,7 +44,10 @@ export const PARRY_SWING_TICKS = 6;
 /** Clock position of each side's arrows: left = 9, right = 3, up = 12, down = 6. */
 export const PARRY_SIDE_POS = [6, 2, 0, 4] as const;
 
-export const PARRY_INPUT_RANGES: readonly InputRange[] = [inputRange(PARRY_INPUT_SWIPE, [0, 7])];
+export const PARRY_INPUT_RANGES: readonly InputRange[] = [
+  inputRange(PARRY_INPUT_SWIPE, [0, 7]),
+  inputRange(PARRY_INPUT_STEP, [-1, 1]),
+];
 
 /** Swipe vector → nearest of the eight clock positions. */
 export function parrySwipePos(dx: number, dy: number): number {
@@ -196,8 +200,10 @@ function step(state: ParryState, input: ArcadeInputEvent | null): ParryState {
   };
 
   if (s.swingT > 0) s.swingT -= 1;
-  if (input && input.k === PARRY_INPUT_SWIPE) {
-    const target = clampInt(input.a, 0, 7);
+  if (input && (input.k === PARRY_INPUT_SWIPE || input.k === PARRY_INPUT_STEP)) {
+    const target = input.k === PARRY_INPUT_STEP
+      ? (parryShieldPos(s) + (input.a < 0 ? 7 : 1)) % PARRY_POSITIONS
+      : clampInt(input.a, 0, 7);
     if (target !== s.pos) {
       s.fromPos = parryShieldPos(s);
       s.pos = target;
@@ -235,15 +241,13 @@ function step(state: ParryState, input: ArcadeInputEvent | null): ParryState {
   return s;
 }
 
-/** floor(150 × (survived ÷ 60 s)²) − 15 per life lost, min 0. */
-export function parryScoreOf(survivedTicks: number, hits: number): number {
-  const t = clampInt(survivedTicks, 0, PARRY_RUN_TICKS);
-  const base = Math.trunc((150 * t * t) / (PARRY_RUN_TICKS * PARRY_RUN_TICKS));
-  return clampInt(base - 15 * hits, 0, 150);
+/** Five per arrow deflected, minus ten per life lost. */
+export function parryScoreOf(deflected: number, hits: number): number {
+  return clampInt(deflected * 5 - hits * 10, 0, 150);
 }
 
 function score(state: ParryState): number {
-  return parryScoreOf(state.tick, state.hits);
+  return parryScoreOf(state.deflected, state.hits);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -290,7 +294,7 @@ export const PARRY_TEAL = "#2ED3B7";
 export const PARRY_RED = "#FF4D5E";
 const CX = PARRY_WORLD_W / 2;
 const CY = PARRY_WORLD_H / 2;
-const SHIELD_R = 67.2;
+const SHIELD_R = 87.36;
 const DISC_R = 26;
 const START_R = 230;
 /** Angle each side's arrow flies in from (render only). */

@@ -39,8 +39,8 @@ export const BAS_HEALTH = 5;
 export const BAS_FIRE_EVERY = 10;
 /** Barrel angle in 1/256 table steps; one step = 180° / 64 = 2.8125°. */
 export const BAS_STEP_DEG_X256 = 720;
-/** Max barrel follow: 6° a tick. */
-const MAX_TURN_FP = Math.trunc((6 * 256 * 256) / BAS_STEP_DEG_X256);
+/** Max barrel follow: 4° a tick. */
+const MAX_TURN_FP = Math.trunc((4 * 256 * 256) / BAS_STEP_DEG_X256);
 const BOLT_SPEED = 7;
 const MAX_BOLTS = 16;
 const BOLT_R = 3;
@@ -137,7 +137,8 @@ export function basSpeedFp(tick: number): number {
 }
 
 function spawnGap(tick: number): number {
-  return SPAWN_START - Math.trunc(((SPAWN_START - SPAWN_END) * tick) / BAS_RUN_TICKS);
+  const scheduled = SPAWN_START - Math.trunc(((SPAWN_START - SPAWN_END) * tick) / BAS_RUN_TICKS);
+  return tick >= 40 * TICKS_PER_SECOND ? Math.max(1, Math.trunc((scheduled * 5) / 6)) : scheduled;
 }
 
 function init(seed: number): BasState {
@@ -235,7 +236,7 @@ function step(state: BasState, input: ArcadeInputEvent | null): BasState {
     s.aimY = clampInt(input.b, 0, BAS_WORLD_H);
     s.held = clampInt(input.c, 0, 1);
   }
-  // The barrel follows the aim point at up to 6° a tick; the finger-down flag is ignored.
+  // The barrel follows the aim point at up to 4° a tick; the finger-down flag is ignored.
   const target = basAngleFor(s.aimX - BAS_TURRET_X, s.aimY - BAS_TURRET_Y, s.angle) * 256;
   s.angleFp += clampInt(target - s.angleFp, -MAX_TURN_FP, MAX_TURN_FP);
   s.angle = Math.trunc((s.angleFp + 128) / 256);
