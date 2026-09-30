@@ -32,6 +32,9 @@ export const INK_WORLD_H = 620;
 export const INK_RUN_TICKS = 120 * TICKS_PER_SECOND;
 export const INK_INPUT_STROKE = 8;
 export const INK_INPUT_RELEASE = 13;
+export const INK_INPUT_UNDO = 14;
+export const INK_INPUT_RESET = 15;
+export const INK_INPUT_DROP_AGAIN = 16;
 /** Stroke points closer than this to the pen are not sent. */
 export const INK_STEP_PX = 12;
 export const INK_LEVELS = 10;
@@ -46,9 +49,8 @@ const MAX_V = 16 * FP;
 const SPOUT_Y = 50;
 /** A drop that has not finished after this long is a failed attempt. */
 const DROP_MAX = 600;
-/** Rolling slower than this for STALL_TICKS is a stall. */
-const STALL_SPEED = 24;
-const STALL_TICKS = 60;
+const PROGRESS_WINDOW = 90;
+const PROGRESS_DISTANCE = 6 * FP;
 
 export const INK_BUCKET_W = 64;
 export const INK_BUCKET_H = 36;
@@ -58,6 +60,9 @@ const BLOCK_COUNTS = [1, 2, 3, 3, 4, 5, 6, 7, 7, 8];
 export const INK_INPUT_RANGES: readonly InputRange[] = [
   inputRange(INK_INPUT_STROKE, [0, INK_WORLD_W], [0, INK_WORLD_H], [0, 1]),
   inputRange(INK_INPUT_RELEASE, [0, 255]),
+  inputRange(INK_INPUT_UNDO, [0, 255]),
+  inputRange(INK_INPUT_RESET, [0, 255]),
+  inputRange(INK_INPUT_DROP_AGAIN, [0, 255]),
 ];
 
 /** Ink for a level (0-based), px: 500 at level 1 rising to 1,400 at level 10. */
@@ -104,6 +109,41 @@ export interface InkBall {
   u: number;
   sp: number;
   stall: number;
+}
+
+/** Earliest contact of a moving point with a capsule, in continuous sub-tick time. */
+function capsuleContact(x0: number, y0: number, x1: number, y1: number, seg: InkSeg): number | null {
+  const ax = seg.x0 * FP, ay = seg.y0 * FP, bx = seg.x1 * FP, by = seg.y1 * FP;
+  const radius = (BALL_R + 3) * FP;
+  const dx = x1 - x0, dy = y1 - y0, sx = bx - ax, sy = by - ay;
+  const lengthSq = sx * sx + sy * sy;
+  const distanceSq = (t: number) => {
+    const px = x0 + dx * t, py = y0 + dy * t;
+    const u = Math.max(0, Math.min(1, ((px - ax) * sx + (py - ay) * sy) / lengthSq));
+    return (px - ax - u * sx) ** 2 + (py - ay - u * sy) ** 2;
+  };
+  // Already touching this capsule (e.g. just rolled off its end): only new entries collide.
+  if (distanceSq(0) <= radius * radius) return null;
+  const candidates: number[] = [];
+  // Infinite strip: solve the crossing of either parallel offset line.
+  const cross0 = (x0 - ax) * sy - (y0 - ay) * sx;
+  const crossV = dx * sy - dy * sx;
+  if (crossV !== 0) for (const sign of [-1, 1]) {
+    const t = (sign * radius * Math.sqrt(lengthSq) - cross0) / crossV;
+    if (t >= 0 && t <= 1) candidates.push(t);
+  }
+  // Rounded caps: solve the moving-point vs circle quadratic, including vertical lines.
+  for (const [cx, cy] of [[ax, ay], [bx, by]] as const) {
+    const ox = x0 - cx, oy = y0 - cy, a = dx * dx + dy * dy;
+    if (a === 0) continue;
+    const b = 2 * (ox * dx + oy * dy), c = ox * ox + oy * oy - radius * radius;
+    const disc = b * b - 4 * a * c;
+    if (disc >= 0) candidates.push((-b - Math.sqrt(disc)) / (2 * a));
+  }
+  for (const t of candidates.filter((v) => v >= 0 && v <= 1).sort((a, b) => a - b)) {
+    if (distanceSq(Math.min(1, t + 0.00001)) <= radius * radius + 1) return t;
+  }
+  return null;
 }
 
 /* =============================== Physics =============================== */
@@ -167,8 +207,7 @@ function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel): number
     ball.sp -= Math.trunc((ball.sp * FRICTION_256) / 256);
     ball.sp = clampInt(ball.sp, -MAX_V, MAX_V);
     ball.u += ball.sp;
-    ball.stall = Math.abs(ball.sp) < STALL_SPEED ? ball.stall + 1 : 0;
-    if (ball.stall >= STALL_TICKS) return 2;
+    ball.stall = 0;
     if (ball.u < 0 || ball.u > seg.len * FP) {
       const forward = ball.u > 0;
       const j = joined(segs, ball.on, forward);
@@ -192,27 +231,41 @@ function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel): number
     ball.on = -1;
     ball.stall = 0;
     ball.vy = Math.min(MAX_V, ball.vy + GRAVITY);
-    ball.x += ball.vx;
-    ball.y += ball.vy;
+    const steps = Math.max(1, Math.ceil(Math.hypot(ball.vx, ball.vy) / (BALL_R * FP / 2)));
+    for (let sub = 1; sub <= steps; sub++) {
+      const startX = ball.x, startY = ball.y;
+      const endX = px + Math.trunc((ball.vx * sub) / steps);
+      const endY = py + Math.trunc((ball.vy * sub) / steps);
+      let first = 2, firstIndex = -1;
+      for (let i = 0; i < segs.length; i++) {
+        const contact = capsuleContact(startX, startY, endX, endY, segs[i]!);
+        if (contact !== null && contact < first) { first = contact; firstIndex = i; }
+      }
+      ball.x = endX;
+      ball.y = endY;
+      if (firstIndex >= 0) {
+        const line = segs[firstIndex]!;
+        const hitX = startX + Math.trunc((endX - startX) * first);
+        const hitY = startY + Math.trunc((endY - startY) * first);
+        const n = upNormal(line);
+        if (n && relate(line, startX, startY, n).height >= 0 && ball.vy >= 0) {
+          ball.on = firstIndex;
+          ball.u = clampInt(relate(line, hitX, hitY, n).along, 0, line.len * FP);
+          ball.sp = Math.trunc((ball.vx * (line.x1 - line.x0) + ball.vy * (line.y1 - line.y0)) / line.len);
+          placeOn(ball, line);
+        } else {
+          // A vertical wall or underside still stops the ball rather than tunnelling.
+          ball.x = hitX;
+          ball.y = hitY;
+          if (!n) ball.vx = -Math.trunc(ball.vx / 2);
+          else ball.vy = -Math.trunc(ball.vy / 2);
+        }
+        break;
+      }
+    }
     if (ball.x < BALL_R * FP || ball.x > (INK_WORLD_W - BALL_R) * FP) {
       ball.x = clampInt(ball.x, BALL_R * FP, (INK_WORLD_W - BALL_R) * FP);
       ball.vx = 0;
-    }
-    // Land on the first line crossed: it was above it and is now within a radius of it.
-    for (let i = 0; i < segs.length; i++) {
-      const line = segs[i]!;
-      const n = upNormal(line);
-      if (!n) continue;
-      const before = relate(line, px, py, n);
-      const after = relate(line, ball.x, ball.y, n);
-      if (before.height < BALL_R * FP - FP) continue;
-      if (after.height > BALL_R * FP) continue;
-      if (after.along < 0 || after.along > line.len * FP) continue;
-      ball.on = i;
-      ball.u = after.along;
-      ball.sp = Math.trunc((ball.vx * (line.x1 - line.x0) + ball.vy * (line.y1 - line.y0)) / line.len);
-      placeOn(ball, line);
-      break;
     }
   }
   for (const b of lvl.blocks) if (touchesBlock(ball, b)) return 2;
@@ -232,6 +285,7 @@ function spoutBall(lvl: InkLevel): InkBall {
 /** Pen state for stroke building, shared by the sim and the generator. */
 interface Pen {
   segs: InkSeg[];
+  strokeStarts: number[];
   penX: number;
   penY: number;
   penDown: number;
@@ -240,6 +294,7 @@ interface Pen {
 
 function addStroke(p: Pen, x: number, y: number, start: boolean): void {
   if (start) {
+    p.strokeStarts.push(p.segs.length);
     p.penX = x;
     p.penY = y;
     p.penDown = 1;
@@ -278,7 +333,7 @@ function simulateDrop(lvl: InkLevel, segs: readonly InkSeg[]): number {
 }
 
 function strokeSegs(ref: readonly number[][], ink: number): Pen {
-  const pen: Pen = { segs: [], penX: 0, penY: 0, penDown: 0, ink: ink * FP };
+  const pen: Pen = { segs: [], strokeStarts: [], penX: 0, penY: 0, penDown: 0, ink: ink * FP };
   for (const pts of ref) {
     addStroke(pen, pts[0]!, pts[1]!, true);
     for (let i = 2; i < pts.length; i += 2) addStroke(pen, pts[i]!, pts[i + 1]!, false);
@@ -402,17 +457,21 @@ export interface InkState {
   levels: number;
   fails: number;
   segs: InkSeg[];
+  strokeStarts: number[];
   penX: number;
   penY: number;
   penDown: number;
   ink: number;
   dropping: number;
   ball: InkBall;
+  dropTicks: number;
+  positions: { x: number; y: number }[];
   ended: number;
   endedTick: number;
   /** Render only: last drop result (1 bucket, 2 fail) and when. */
   flashKind: number;
   flashTick: number;
+  failedBall: { x: number; y: number } | null;
 }
 
 const cache = new Map<number, ReturnType<typeof buildLevels>>();
@@ -432,16 +491,20 @@ function init(seed: number): InkState {
     levels: 0,
     fails: 0,
     segs: [],
+    strokeStarts: [],
     penX: 0,
     penY: 0,
     penDown: 0,
     ink: inkBudget(0) * FP,
     dropping: 0,
     ball: spoutBall(plan.list[0]!),
+    dropTicks: 0,
+    positions: [],
     ended: 0,
     endedTick: 0,
     flashKind: 0,
     flashTick: -100,
+    failedBall: null,
   };
 }
 
@@ -451,16 +514,19 @@ function isOver(state: InkState): boolean {
 
 function resetLevel(s: InkState): void {
   s.segs = [];
+  s.strokeStarts = [];
   s.penDown = 0;
   s.ink = inkBudget(s.level) * FP;
   s.dropping = 0;
   s.ball = spoutBall(s.list[s.level]!);
+  s.dropTicks = 0;
+  s.positions = [];
 }
 
 function step(state: InkState, input: ArcadeInputEvent | null): InkState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
-  const s: InkState = { ...state, tick, ball: { ...state.ball } };
+  const s: InkState = { ...state, tick, ball: { ...state.ball }, segs: [...state.segs], strokeStarts: [...state.strokeStarts], positions: [...state.positions] };
 
   if (input && !s.dropping) {
     if (input.k === INK_INPUT_STROKE) {
@@ -468,11 +534,24 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
     } else if (input.k === INK_INPUT_RELEASE) {
       s.dropping = 1;
       s.penDown = 0;
+    } else if (input.k === INK_INPUT_UNDO) {
+      const start = s.strokeStarts.pop();
+      if (start !== undefined) {
+        for (const seg of s.segs.splice(start)) s.ink += seg.len * FP;
+        s.penDown = 0;
+      }
+    } else if (input.k === INK_INPUT_RESET) {
+      resetLevel(s);
     }
   }
 
   if (s.dropping) {
-    const result = moveBall(s.ball, s.segs, s.list[s.level]!);
+    s.dropTicks += 1;
+    s.positions.push({ x: s.ball.x, y: s.ball.y });
+    if (s.positions.length > PROGRESS_WINDOW) s.positions.shift();
+    let result = input?.k === INK_INPUT_DROP_AGAIN ? 2 : moveBall(s.ball, s.segs, s.list[s.level]!);
+    const old = s.positions[0];
+    if (!result && (s.dropTicks >= DROP_MAX || (s.positions.length === PROGRESS_WINDOW && old && Math.hypot(s.ball.x - old.x, s.ball.y - old.y) <= PROGRESS_DISTANCE))) result = 2;
     if (result === 1) {
       s.levels += 1;
       s.flashKind = 1;
@@ -489,6 +568,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       s.fails += 1;
       s.flashKind = 2;
       s.flashTick = tick;
+      s.failedBall = { x: s.ball.x, y: s.ball.y };
       if (s.fails >= INK_FAILS) {
         s.ended = 2;
         s.endedTick = tick;
@@ -550,7 +630,8 @@ export function inkCheckpoint(state: InkState): InkCheckpoint {
     rng: state.rng | 0,
   };
   const b = state.ball;
-  const values = [...Object.values(snap), b.x, b.y, b.on, b.sp, b.stall, state.penX, state.penY];
+  const values = [...Object.values(snap), b.x, b.y, b.on, b.sp, b.stall, state.penX, state.penY, state.dropTicks, ...state.strokeStarts];
+  for (const p of state.positions) values.push(p.x, p.y);
   for (const seg of state.segs) values.push(seg.x0, seg.y0, seg.x1, seg.y1);
   let checksum = 0x811c9dc5;
   for (const value of values) {
@@ -621,6 +702,16 @@ function draw(ctx: CanvasRenderingContext2D, state: InkState, size: CanvasSize):
   ctx.beginPath();
   ctx.arc(state.ball.x / FP, state.ball.y / FP, BALL_R, 0, Math.PI * 2);
   ctx.fill();
+
+  if (state.failedBall && tick - state.flashTick < 30 && state.flashKind === 2) {
+    ctx.save();
+    ctx.globalAlpha = 1 - (tick - state.flashTick) / 30;
+    ctx.fillStyle = INK_RED;
+    ctx.beginPath();
+    ctx.arc(state.failedBall.x / FP, state.failedBall.y / FP, BALL_R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
   if (tick - state.flashTick < 30 && state.flashKind === 2) {
     ctx.fillStyle = INK_RED;

@@ -5,7 +5,7 @@
  * every numbered wall has exactly that many bulbs orthogonally beside it.
  */
 
-export const LIGHTUP_SIZE = 6;
+export const LIGHTUP_SIZE = 7;
 
 export interface LightUpBoard {
   size: number;

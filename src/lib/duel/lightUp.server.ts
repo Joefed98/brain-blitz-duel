@@ -1,6 +1,6 @@
 /**
- * Server-only Light Up generator: a 6×6 board with 8–10 walls, a random
- * valid bulb layout, and every wall numbered from it. Boards the solver does
+ * Server-only Light Up generator: a 7×7 board with 10–13 walls, a random
+ * valid bulb layout, and roughly 70% of walls numbered. Boards the solver does
  * not find exactly one layout for are re-rolled.
  */
 
@@ -17,7 +17,7 @@ import type { LightUpPuzzleData } from "./types";
 export function generateLightUp(): LightUpPuzzleData {
   const size = LIGHTUP_SIZE;
   for (let attempt = 0; attempt < 20000; attempt++) {
-    const walls = shuffled([...Array(size * size).keys()]).slice(0, randInt(8, 10));
+    const walls = shuffled([...Array(size * size).keys()]).slice(0, randInt(10, 13));
     const wallSet = new Set(walls);
     const lit = new Set<number>();
     const bulbs: number[] = [];
@@ -28,9 +28,10 @@ export function generateLightUp(): LightUpPuzzleData {
     }
     const bulbSet = new Set(bulbs);
     const full = walls.map((wall) => orth(wall, size).filter((cell) => bulbSet.has(cell)).length);
-    const board: LightUpBoard = { size, walls, wallNumbers: full };
+    const numbered = new Set(shuffled([...walls.keys()]).slice(0, Math.round(walls.length * 0.7)));
+    const numbers = full.map((n, i) => numbered.has(i) ? n : -1);
+    const board: LightUpBoard = { size, walls, wallNumbers: numbers };
     if (countLightUpSolutions(board, 2) !== 1) continue;
-    const numbers = full;
     const sorted = walls.map((wall, i) => ({ wall, n: numbers[i]! })).sort((a, b) => a.wall - b.wall);
     return {
       type: "lightup",

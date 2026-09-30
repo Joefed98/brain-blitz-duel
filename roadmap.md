@@ -1,5 +1,11 @@
 # Roadmap
 
+## Six type tuning (Sep 30)
+- [x] Burst separate control bar in both modes.
+- [x] Ink Bridge stroke controls, swept collision and stuck handling.
+- [x] Junction traffic, Parry ring, Flip pace, Light Up board difficulty and fit.
+- [x] Replay identity and unique-board checks; no browser tests.
+
 ## Balance fixed placement controls (Sep 29)
 
 - [x] Replace tilted measured peg targets with a fixed row of eight number buttons.
