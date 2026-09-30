@@ -722,7 +722,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
     ctx.textAlign = "center";
     ctx.fillStyle = "#F5B82E";
     ctx.fillText(
-      `relaunch in ${(state.pause / TICKS_PER_SECOND).toFixed(1)}s`,
+      "Relaunching",
       BRK_WORLD_W / 2,
       BRK_PADDLE_Y - 34,
     );

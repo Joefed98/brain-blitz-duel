@@ -421,7 +421,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ParryState, size: CanvasSize
   ctx.fillStyle = PARRY_GOLD;
   ctx.font = "bold 18px ui-monospace, monospace";
   ctx.textAlign = "center";
-  ctx.fillText(`${(state.tick / 60).toFixed(1)}s · Lives ${Math.max(0, PARRY_MAX_HITS - state.hits)}`, CX, 30);
+  ctx.fillText(`Lives ${Math.max(0, PARRY_MAX_HITS - state.hits)}`, CX, 30);
   ctx.restore();
 }
 

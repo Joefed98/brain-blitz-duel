@@ -744,22 +744,22 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "You orbit automatically.", detail: "Tap to let go — you fly straight until the next orbit catches you." },
       { action: "Miss and you drift away.", detail: "Avoid the red arcs." },
     ],
-    score: "2 per planet; finish all sixty early for the time bonus. Skipping a planet is allowed if you can make the next one.",
+    score: "3 per planet; finish all forty early for the time bonus. Skipping a planet is allowed if you can make the next one.",
   },
   swing: {
-    goal: "Swing through the cavern as far as you can.",
+    goal: "Swing as far as you can.",
     how: [
-      { action: "Hold to grab the next anchor and swing,", detail: "let go to fly." },
-      { action: "Time the release for distance.", detail: "Don't touch the spikes." },
+      { action: "Hold to grab an anchor and swing,", detail: "let go to fly." },
+      { action: "Swing back to build momentum", detail: "if you need to. Don't touch the spikes." },
     ],
-    score: "The longer you last, the more you score.",
+    score: "1 point per 5 metres.",
   },
   tilt: {
     goal: "Roll the ball out of the maze.",
     how: [
       { action: "Drag left or right to spin the maze", detail: "— the ball always rolls down." },
       { action: "Each escape brings a harder maze.", detail: "Red pits end the run." },
-      { action: "You have 120 seconds.", detail: "" },
+      { action: "You have 90 seconds.", detail: "" },
     ],
     score: "30 per maze escaped — five mazes = 150.",
   },

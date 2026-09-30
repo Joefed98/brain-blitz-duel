@@ -24,7 +24,7 @@ const FP = 256;
 /** Everything is 1.2× the original layout; the world is sized so the disc fills the width with 16 px gutters. */
 export const TILT_WORLD_W = 440;
 export const TILT_WORLD_H = 470;
-export const TILT_RUN_TICKS = 120 * TICKS_PER_SECOND;
+export const TILT_RUN_TICKS = 90 * TICKS_PER_SECOND;
 export const TILT_INPUT_DRAG = 7;
 const CX = 220;
 const CY = 254;
@@ -37,7 +37,6 @@ const GRAVITY = 58;
 const SPEED_CAP = Math.trunc(3.6 * FP);
 export const TILT_MAX_MAZES = 10;
 const SIZES = [7, 9, 9, 11, 11, 13, 13, 13, 13, 13];
-const FAKE_FROM = 3;
 const MAZE_POINTS = 30;
 
 export const TILT_INPUT_RANGES: readonly InputRange[] = [
@@ -62,8 +61,6 @@ export interface Maze {
   start: number;
   exit: number;
   exitDir: number;
-  fake: number;
-  fakeDir: number;
 }
 
 function buildMaze(level: number, draw: (n: number) => number): Maze {
@@ -142,21 +139,11 @@ function buildMaze(level: number, draw: (n: number) => number): Maze {
   for (const r of rim) if (dist[r.c]! > dist[far.c]!) far = r;
   const path = new Set<number>();
   for (let c = far.c; c >= 0; c = parent[c]!) path.add(c);
-  let fake = -1;
-  let fakeDir = 0;
-  if (level >= FAKE_FROM) {
-    const options = rim.filter((r) => !path.has(r.c) && dist[r.c]! > 3);
-    if (options.length) {
-      const pick = options[draw(options.length)]!;
-      fake = pick.c;
-      fakeDir = pick.d;
-    }
-  }
   const pits: number[] = [];
   if (level >= 1) {
     const ends: number[] = [];
     for (let c = 0; c < n * n; c++) {
-      if (!inside[c] || path.has(c) || c === fake || dist[c]! < 3) continue;
+      if (!inside[c] || path.has(c) || dist[c]! < 3) continue;
       let open = 0;
       for (let d = 0; d < 4; d++) if (openNeighbour(n, inside, wallR, wallD, c, d) >= 0) open += 1;
       if (open === 1) ends.push(c);
@@ -164,7 +151,7 @@ function buildMaze(level: number, draw: (n: number) => number): Maze {
     const count = Math.min(ends.length, Math.min(level, 4));
     for (let k = 0; k < count; k++) pits.push(ends.splice(draw(ends.length), 1)[0]!);
   }
-  return { n, cs, inside, wallR, wallD, pits, start, exit: far.c, exitDir: far.d, fake, fakeDir };
+  return { n, cs, inside, wallR, wallD, pits, start, exit: far.c, exitDir: far.d };
 }
 
 function openNeighbour(n: number, inside: number[], wallR: number[], wallD: number[], c: number, d: number): number {
@@ -465,7 +452,7 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
   for (let c = 0; c < m.n * m.n; c++) {
     if (!m.inside[c]) continue;
     for (let d = 0; d < 4; d++) {
-      if ((c === m.exit && d === m.exitDir) || (c === m.fake && d === m.fakeDir)) continue;
+      if (c === m.exit && d === m.exitDir) continue;
       const open = openNeighbour(m.n, m.inside, m.wallR, m.wallD, c, d) >= 0;
       if (open) continue;
       const i = (c % m.n) + DX[d]!;
@@ -481,7 +468,6 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
   ctx.lineWidth = 6;
   ctx.beginPath();
   edge(ctx, m, m.exit, m.exitDir, o);
-  if (m.fake >= 0) edge(ctx, m, m.fake, m.fakeDir, o);
   ctx.stroke();
 
   const bx = state.x / FP - o;
