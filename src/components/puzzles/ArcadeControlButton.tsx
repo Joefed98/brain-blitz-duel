@@ -1,4 +1,4 @@
-import { useEffect, useRef, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, type PointerEvent, type ReactNode, type RefObject } from "react";
 
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,22 @@ type ArcadeControlButtonProps = Omit<ButtonProps, "onPointerDown" | "onPointerUp
   onPressStart?: (event: PointerEvent<HTMLButtonElement>) => void;
   onPressEnd?: (event: PointerEvent<HTMLButtonElement>) => void;
 };
+
+export function usePressSafeElement(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const block = (event: Event) => {
+      if (event.cancelable) event.preventDefault();
+    };
+    element.addEventListener("touchstart", block, { passive: false });
+    element.addEventListener("contextmenu", block);
+    return () => {
+      element.removeEventListener("touchstart", block);
+      element.removeEventListener("contextmenu", block);
+    };
+  }, [ref]);
+}
 
 /** Directional arcade control with native iOS selection/callout suppression. */
 export function ArcadeControlButton({
@@ -19,19 +35,7 @@ export function ArcadeControlButton({
 }: ArcadeControlButtonProps) {
   const ref = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const button = ref.current;
-    if (!button) return;
-    const block = (event: Event) => {
-      if (event.cancelable) event.preventDefault();
-    };
-    button.addEventListener("touchstart", block, { passive: false });
-    button.addEventListener("contextmenu", block);
-    return () => {
-      button.removeEventListener("touchstart", block);
-      button.removeEventListener("contextmenu", block);
-    };
-  }, []);
+  usePressSafeElement(ref);
 
   const finish = (event: PointerEvent<HTMLButtonElement>) => {
     onPressEnd?.(event);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { ArcadeControlButton } from "./ArcadeControlButton";
+import { ArcadeControlButton, usePressSafeElement } from "./ArcadeControlButton";
 
 /**
  * The shared grid drag-and-snap behaviour used by Unblock and Block Party.
@@ -569,8 +569,10 @@ export function ArrowPad({
   const [joystick, setJoystick] = useState(false);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const stickOrigin = useRef<{ x: number; y: number } | null>(null);
+  const stickElement = useRef<HTMLDivElement>(null);
   const stickLatched = useRef(false);
   const stickDirection = useRef<"U" | "D" | "L" | "R" | null>(null);
+  usePressSafeElement(stickElement);
 
   useEffect(() => {
     try {
@@ -663,12 +665,11 @@ export function ArrowPad({
     <div className="relative mx-auto flex h-[60px] w-full max-w-[343px] shrink-0 items-center justify-center">
       {joystick ? (
         <div
+          ref={stickElement}
           role="application"
           aria-label="Directional joystick"
           className="relative h-[60px] w-[60px] touch-none rounded-full border border-border bg-card"
           style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
-          onContextMenu={(event) => event.preventDefault()}
-          onTouchStart={(event) => event.preventDefault()}
           onPointerDown={(event) => {
             if (disabled) return;
             event.preventDefault();

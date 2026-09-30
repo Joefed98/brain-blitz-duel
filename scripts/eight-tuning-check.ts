@@ -20,14 +20,16 @@ check("Parry scores five per deflection minus ten per life", parryScoreOf(31, 1)
 const parryInitial = parryGame.init(71);
 const firstArrow = parryInitial.arrows[0];
 if (firstArrow) {
-  let late = parryInitial;
+  const unguarded = (firstArrow.side + 2) % 4;
+  const unguardedSlot = [6, 2, 0, 4][unguarded] ?? 0;
+  let late = { ...parryInitial, pos: unguardedSlot, fromPos: unguardedSlot };
   while (late.tick < firstArrow.impact) late = parryGame.step(late, null);
   check("Parry miss at ring does not cost a life", late.hits === 0 && late.status[0] === 0);
   const lateSlot = [6, 2, 0, 4][firstArrow.side] ?? 0;
   late = parryGame.step(late, { t: late.tick + 1, k: PARRY_INPUT_SWIPE, a: lateSlot, b: 0, c: 0, d: 0 });
   for (let i = 0; i < 4; i++) late = parryGame.step(late, null);
   check("Parry late swing catches inside ring", late.status[0] === 1 && late.hits === 0);
-  let core = parryGame.init(71);
+  let core = { ...parryGame.init(71), pos: unguardedSlot, fromPos: unguardedSlot };
   while (core.tick < firstArrow.impact + PARRY_WINDOW) core = parryGame.step(core, null);
   check("Parry life is lost at core", core.status[0] === 2 && core.hits === 1);
 }
