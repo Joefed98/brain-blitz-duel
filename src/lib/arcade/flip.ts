@@ -27,9 +27,9 @@ export const FLIP_ARC_TICKS = 14;
 const SOLVER_LANDED = 20;
 
 const SPEED_START = 768;
-const SPEED_STEP = 77;
-const SPEED_STEP_TICKS = 10 * TICKS_PER_SECOND;
-const SPEED_CAP = 1382;
+const SPEED_STEP = 31;
+const SPEED_STEP_TICKS = 3 * TICKS_PER_SECOND;
+const SPEED_CAP = 1536;
 const CLEAR_TICKS = 3 * TICKS_PER_SECOND;
 
 export const FLIP_FLOOR_Y = 440;
@@ -132,7 +132,8 @@ function buildCourse(seed: number): { segs: FlipSeg[]; rng: number } {
   let x = X_AT[CLEAR_TICKS]!;
   while (x < end) {
     const speed = flipSpeed(tick);
-    const gap = (60 + draw(160)) * FP;
+    // Spacing scales with speed so flips stay as far apart in time as at the start.
+    const gap = Math.trunc(((60 + draw(160)) * FP * speed) / SPEED_START);
     const start = x + gap;
     if (start >= end) break;
     let accepted: FlipSeg[] = [];
@@ -140,7 +141,7 @@ function buildCourse(seed: number): { segs: FlipSeg[]; rng: number } {
     for (let attempt = 0; attempt < 12 && !result; attempt++) {
       const pattern = draw(4);
       const side = draw(2);
-      const len = (40 + draw(120)) * FP;
+      const len = Math.trunc(((40 + draw(120)) * FP * speed) / SPEED_START);
       let trial: FlipSeg[];
       if (pattern === 3) {
         // Overhang pair: block on one side, then soon after on the other — two quick flips.
@@ -339,8 +340,35 @@ function draw(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize)
       }
       ctx.fill();
     } else if (seg.kind === FLIP_GAP) {
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(a, seg.side === 0 ? y : 0, b - a, seg.side === 0 ? FLIP_WORLD_H - y : y);
+      // Red jagged void with hazard chevrons at both ends.
+      const depth = 40;
+      ctx.fillStyle = "rgba(255,77,94,0.28)";
+      ctx.beginPath();
+      ctx.moveTo(a, y);
+      let zig = 0;
+      for (let px = a; px < b; px += 10) {
+        zig ^= 1;
+        ctx.lineTo(Math.min(b, px + 10), y - dirY * (zig ? depth : depth - 12));
+      }
+      ctx.lineTo(b, y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = FLIP_RED;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = FLIP_RED;
+      for (const [cx, point] of [[a, 1], [b, -1]] as const) {
+        for (let k = 0; k < 2; k++) {
+          const tip = cx + point * (6 + k * 9);
+          ctx.beginPath();
+          ctx.moveTo(tip - point * 8, y - dirY * 2);
+          ctx.lineTo(tip, y - dirY * 8);
+          ctx.lineTo(tip - point * 8, y - dirY * 14);
+          ctx.lineTo(tip - point * 4, y - dirY * 8);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
     } else {
       ctx.fillStyle = FLIP_RED;
       ctx.globalAlpha = 0.85;
@@ -349,16 +377,8 @@ function draw(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize)
     }
   }
 
-  // Runner with a small trail.
+  // Runner (no trail).
   const y = runnerY(state.side, state.flipT);
-  for (let k = 3; k >= 1; k--) {
-    ctx.globalAlpha = 0.12 * (4 - k);
-    ctx.fillStyle = FLIP_GOLD;
-    ctx.beginPath();
-    ctx.roundRect(RUNNER_X - 12 - k * 10, y - 12, 24, 24, 12);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
   ctx.fillStyle = FLIP_GOLD;
   ctx.beginPath();
   ctx.roundRect(RUNNER_X - 12, y - 14, 24, 28, 12);
