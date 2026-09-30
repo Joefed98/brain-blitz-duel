@@ -209,7 +209,7 @@ function buildCourse(seed: number): Course {
     }
     dark.push(...row.d);
     brittle.push(...row.b);
-    unstableAt.push(...row.b.map((v) => v ? rowAppears(r) + BRITTLE_AFTER + 260 + draw(50) : NEVER));
+    unstableAt.push(...row.b.map((v) => v ? rowAppears(r) + BRITTLE_AFTER + 420 + draw(50) : NEVER));
     prevArr = row.arr;
     prevB = row.b;
   }
