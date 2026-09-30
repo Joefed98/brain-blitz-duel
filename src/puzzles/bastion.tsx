@@ -45,7 +45,7 @@ function IntroExample() {
 }
 
 const ARROWS_KEY = "duelz-bastion-arrows";
-const ARROW_DEG_PER_TICK = 4;
+export const ARROW_DEG_PER_TICK = 3;
 const AIM_RADIUS = 180;
 
 /** Aim point on a circle round the turret; 0° = left, 90° = up, 180° = right. */
