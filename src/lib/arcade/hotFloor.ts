@@ -189,7 +189,7 @@ function buildCourse(seed: number): Course {
   relaxRow(START_ROW, zeros(), prevArr);
   let prevB = zeros();
   for (let r = START_ROW + 1; r < TOTAL_ROWS; r++) {
-    const pct = r < HOT_ROWS ? 0 : 15;
+    const pct = 0;
     const late = r > START_ROW + 1;
     let row: { d: number[]; b: number[]; arr: number[] } | null = null;
     for (let attempt = 0; attempt < 30 && !row; attempt++) {
@@ -207,16 +207,12 @@ function buildCourse(seed: number): Course {
     }
     dark.push(...row.d);
     brittle.push(...row.b);
-    unstableAt.push(...row.b.map((v) => v ? rowAppears(r) + BRITTLE_AFTER + 90 + draw(75) : NEVER));
+    unstableAt.push(...row.b.map((v) => v ? rowAppears(r) + BRITTLE_AFTER + 420 + draw(50) : NEVER));
     prevArr = row.arr;
     prevB = row.b;
   }
   const course = { dark, brittle, unstableAt, rng, rerolls };
   if (localSafe(course) && courseReachable(course)) return course;
-  if (rerolls >= 30) {
-    // A completely solid fallback keeps every incoming path open.
-    return { dark: new Array(dark.length).fill(0), brittle: new Array(dark.length).fill(0), unstableAt: new Array(dark.length).fill(NEVER), rng, rerolls };
-  }
   rerolls++;
   }
 }
