@@ -1360,7 +1360,7 @@ const burstSummary: SummaryBuilder = (result) => {
 
 const shikakuSummary: SummaryBuilder = (result, puzzle) => {
   if (result.is_correct) return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
-  return { summary: `${Number(result.extra?.["covered"] ?? 0)} / 49 covered`, detail: [] };
+  return { summary: `${Number(result.extra?.["covered"] ?? 0)} / 64 covered`, detail: [] };
 };
 
 const lightUpSummary: SummaryBuilder = (result, puzzle) => {

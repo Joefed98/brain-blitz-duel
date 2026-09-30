@@ -16,6 +16,7 @@ import {
   type ShikakuClue,
   type ShikakuRect,
 } from "@/lib/duel/shikaku";
+import { SHIKAKU_SIZE } from "@/lib/duel/shikaku";
 import { SHIKAKU_TIME_MS, type ShikakuPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
@@ -117,7 +118,7 @@ function IntroExample() {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
   const data: ShikakuPuzzleData | null = puzzle.type === "shikaku" ? puzzle : null;
-  const size = data?.size ?? 7;
+  const size = data?.size ?? SHIKAKU_SIZE;
   const clues = data?.clues ?? [];
   const [rects, setRects] = useStageState<ShikakuRect[]>(stateKey ?? "shikaku", "shikakuRects", () => []);
   const [preview, setPreview] = useState<ShikakuRect | null>(null);
@@ -220,7 +221,7 @@ export const shikakuPuzzle: PuzzleDefinition = {
   category: "logic",
   timeLimitMs: SHIKAKU_TIME_MS,
   revealMs: 8_000,
-  generate: () => ({ type: "shikaku", size: 7, clues: [] }) satisfies ShikakuPuzzleData,
+  generate: () => ({ type: "shikaku", size: SHIKAKU_SIZE, clues: [] }) satisfies ShikakuPuzzleData,
   check: (answer, puzzle) =>
     puzzle.type === "shikaku" && shikakuSolved(decodeShikaku(answer, puzzle.size), puzzle.clues),
   revealHeading: "The solution",
