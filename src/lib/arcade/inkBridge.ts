@@ -122,7 +122,8 @@ function capsuleContact(x0: number, y0: number, x1: number, y1: number, seg: Ink
     const u = Math.max(0, Math.min(1, ((px - ax) * sx + (py - ay) * sy) / lengthSq));
     return (px - ax - u * sx) ** 2 + (py - ay - u * sy) ** 2;
   };
-  if (distanceSq(0) <= radius * radius) return 0;
+  // Already touching this capsule (e.g. just rolled off its end): only new entries collide.
+  if (distanceSq(0) <= radius * radius) return null;
   const candidates: number[] = [];
   // Infinite strip: solve the crossing of either parallel offset line.
   const cross0 = (x0 - ax) * sy - (y0 - ay) * sx;
