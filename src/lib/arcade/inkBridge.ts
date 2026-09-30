@@ -471,6 +471,7 @@ export interface InkState {
   /** Render only: last drop result (1 bucket, 2 fail) and when. */
   flashKind: number;
   flashTick: number;
+  failedBall: { x: number; y: number } | null;
 }
 
 const cache = new Map<number, ReturnType<typeof buildLevels>>();
@@ -503,6 +504,7 @@ function init(seed: number): InkState {
     endedTick: 0,
     flashKind: 0,
     flashTick: -100,
+    failedBall: null,
   };
 }
 
@@ -566,6 +568,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       s.fails += 1;
       s.flashKind = 2;
       s.flashTick = tick;
+      s.failedBall = { x: s.ball.x, y: s.ball.y };
       if (s.fails >= INK_FAILS) {
         s.ended = 2;
         s.endedTick = tick;
@@ -699,6 +702,16 @@ function draw(ctx: CanvasRenderingContext2D, state: InkState, size: CanvasSize):
   ctx.beginPath();
   ctx.arc(state.ball.x / FP, state.ball.y / FP, BALL_R, 0, Math.PI * 2);
   ctx.fill();
+
+  if (state.failedBall && tick - state.flashTick < 30 && state.flashKind === 2) {
+    ctx.save();
+    ctx.globalAlpha = 1 - (tick - state.flashTick) / 30;
+    ctx.fillStyle = INK_RED;
+    ctx.beginPath();
+    ctx.arc(state.failedBall.x / FP, state.failedBall.y / FP, BALL_R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
   if (tick - state.flashTick < 30 && state.flashKind === 2) {
     ctx.fillStyle = INK_RED;
