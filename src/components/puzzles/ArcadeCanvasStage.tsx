@@ -137,7 +137,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
             if (next) {
               recordInput(
                 events.current,
-                { t: tickOf() + 1, k: propsRef.current.inputKind ?? ARCADE_INPUT_DRAG, a: next.a, b: next.b, c: next.c, d: 0 },
+                { t: tickOf() + 1, k: next.k ?? propsRef.current.inputKind ?? ARCADE_INPUT_DRAG, a: next.a, b: next.b, c: next.c, d: 0 },
                 game.inputRanges,
               );
             }

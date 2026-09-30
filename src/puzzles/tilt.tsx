@@ -64,7 +64,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 }
 
 export function tiltLine(r: { mazes: number; survived: boolean; survivedSeconds: number }): string {
-  const head = `${r.mazes} ${r.mazes === 1 ? "maze" : "mazes"}`;
+  const head = `${r.mazes} ${r.mazes === 1 ? "maze" : "mazes"} completed`;
   return r.survived ? `${head} · survived` : `${head} · pit at ${r.survivedSeconds.toFixed(1)}s`;
 }
 
