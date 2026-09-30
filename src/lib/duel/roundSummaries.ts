@@ -1299,11 +1299,14 @@ const inkBridgeSummary: SummaryBuilder = (result) => {
 };
 
 const orbitSummary: SummaryBuilder = (result) => {
-  const captured = Number(result.extra?.["captured"] ?? 0);
+  const passed = Number(result.extra?.["passed"] ?? result.extra?.["captured"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
-  const head = `${captured} / ${total} planets`;
+  const left = Number(result.extra?.["secondsLeft"] ?? 0);
+  const head = `${passed} / ${total} planets`;
+  if (result.extra?.["finished"] === true)
+    return { summary: `${passed} / ${total} · finished with ${left.toFixed(1)}s left`, detail: ["Same planets for everyone"] };
   return {
     summary: survived ? `${head} · survived` : `${head} · lost at ${ended.toFixed(1)}s`,
     detail: ["Same planets for everyone"],
