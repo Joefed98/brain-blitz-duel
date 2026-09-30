@@ -133,7 +133,7 @@ export function hotSurvivorCount(stage: HotFloorStage, allow?: (cell: number) =>
       for (const nb of hotNeighbours(cell, stage.rows, stage.cols)) {
         if (stage.missing[nb] || stage.numbers[nb]! < hop) continue;
         if (allow && !allow(nb)) continue;
-        next[nb] += cur[cell]!;
+        next[nb] = next[nb]! + cur[cell]!;
       }
     }
     total += next[stage.exit]!;
