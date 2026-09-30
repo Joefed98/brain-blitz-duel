@@ -91,15 +91,17 @@ function solid(course: Course, r: number, c: number, tick: number): boolean {
 /** Forward-only time-expanded BFS: waiting, lateral hops and climbing. No tile
  * is revisited, so every abandoned tile's leave-crumble deadline is respected. */
 function courseReachable(course: Course): boolean {
-  let frontier = new Set<number>([START_ROW * HOT_COLS + START_COL]);
+  let frontier = new Set<string>([`${START_ROW * HOT_COLS + START_COL}:0`]);
   const arrivals = new Map<number, Set<number>>();
   for (let tick = 0; tick <= HOT_RUN_TICKS; tick++) {
-    const next = new Set<number>();
-    for (const i of frontier) {
+    const next = new Set<string>();
+    for (const key of frontier) {
+      const [tile, leftAt] = key.split(":").map(Number);
+      const i = tile ?? 0;
       const r = Math.trunc(i / HOT_COLS), c = i % HOT_COLS;
       if (!solid(course, r, c, tick)) continue;
       if (tick === HOT_RUN_TICKS) return true;
-      if (solid(course, r, c, tick + 1)) next.add(i);
+      if (solid(course, r, c, tick + 1)) next.add(key);
       for (const [nr, nc] of [[r + 1, c], [r, c - 1], [r, c + 1]] as [number, number][]) {
         if (!solid(course, nr, nc, tick + HOP_TICKS)) continue;
         // Leave-crumble cannot catch a forward path; in-flight source remains
@@ -110,7 +112,7 @@ function courseReachable(course: Course): boolean {
         arrivals.get(at)?.add(target);
       }
     }
-    for (const i of arrivals.get(tick + 1) ?? []) next.add(i);
+    for (const i of arrivals.get(tick + 1) ?? []) next.add(`${i}:${tick + 1}`);
     arrivals.delete(tick + 1);
     frontier = next;
     if (!frontier.size && !arrivals.size) return false;
