@@ -199,7 +199,7 @@ function PracticeScreen() {
 
   if (stage === "list") {
     return (
-      <PhoneShell>
+      <PhoneShell gameScreen>
         <div className="flex flex-1 flex-col gap-6">
           <div>
             <h1 className="font-display text-2xl font-bold">Practice</h1>
@@ -284,7 +284,7 @@ function PracticeScreen() {
 
   if (stage === "reveal" && graded) {
     return (
-      <PhoneShell constrained>
+      <PhoneShell constrained gameScreen>
         <AnswerReveal
           round={1}
           puzzle={graded.puzzle}
@@ -341,7 +341,7 @@ function PracticeScreen() {
   const StageComponent = puzzleDef(puzzle.type).Stage;
   const clockActive = clockStart !== null && now >= clockStart;
   return (
-    <PhoneShell constrained>
+    <PhoneShell constrained gameScreen>
       <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
