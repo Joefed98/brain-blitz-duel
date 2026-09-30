@@ -31,10 +31,11 @@ export const SORT_SWIPE_PX = 24;
 
 /** The middle gate opens at 20 s. */
 export const SORT_MIDDLE_TICK = 20 * TICKS_PER_SECOND;
-const SPAWN_START = 72; // 1.2 s
-const SPAWN_END = 27; // 0.45 s
-const MAX_FALL = 180;
-const MAX_ON_SCREEN = 4;
+const SPAWN_START = 60; // 1.0 s
+const SPAWN_END = 24; // 0.4 s
+/** Fall speed in 1/256 px per tick: 3.0 px/tick at the start, 6.0 by 60 s (linear). */
+const FALL_SPEED_START = 768;
+const FALL_SPEED_END = 1536;
 const SWAP_MIN = 12 * TICKS_PER_SECOND;
 const SWAP_MAX = 15 * TICKS_PER_SECOND;
 export const SORT_FLASH_TICKS = 30;
@@ -97,14 +98,14 @@ function buildSchedule(seed: number) {
   }
   const twoColours = [swaps[0]!.gates[0]!, swaps[0]!.gates[1]!];
 
-  // Spawn ticks, then fall times capped so no more than four are ever on screen.
+  // Spawn ticks; each shape falls at the speed of its spawn moment.
   const spawns: number[] = [];
   for (let t = FIRST_SPAWN; t < SORT_RUN_TICKS; t += spawnGap(t)) spawns.push(t);
   const shapes: SortShape[] = [];
   for (let i = 0; i < spawns.length; i++) {
     const s = spawns[i]!;
-    const ahead = spawns[i + MAX_ON_SCREEN];
-    const fall = Math.min(MAX_FALL, ahead === undefined ? MAX_FALL : ahead - s - 1);
+    const speed = FALL_SPEED_START + Math.trunc(((FALL_SPEED_END - FALL_SPEED_START) * clampInt(s, 0, SORT_RUN_TICKS)) / SORT_RUN_TICKS);
+    const fall = Math.trunc((SORT_GATE_Y - SPAWN_Y + speed - 1) / speed);
     if (s + fall > SORT_RUN_TICKS) break; // every scheduled shape can be sorted in the run
     const colour = s >= SORT_MIDDLE_TICK ? draw(3) : twoColours[draw(2)]!;
     shapes.push({ spawn: s, fall, shape: draw(4), colour });
