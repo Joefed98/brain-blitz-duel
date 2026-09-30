@@ -47,6 +47,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: ParryPuzzleData | null = puzzle.type === "parry" ? puzzle : null;
   const start = useRef<{ x: number; y: number; done: boolean } | null>(null);
+  const stepFlip = useRef(0);
   const step = useRef<-1 | 1 | null>(null);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-2">
@@ -63,7 +64,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       checkpoint={parryCheckpoint}
       interval={PARRY_CHECKPOINT_INTERVAL}
       encodeRun={encodeParryRun}
-      discrete
       inputKind={PARRY_INPUT_SWIPE}
       pointer={(kind, x, y) => {
         if (kind === "down") {
@@ -81,7 +81,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       tickInput={() => {
         const direction = step.current;
         step.current = null;
-        return direction === null ? null : { k: PARRY_INPUT_STEP, a: direction, b: 0, c: 0 };
+        if (direction === null) return null;
+        stepFlip.current ^= 1;
+        return { k: PARRY_INPUT_STEP, a: direction, b: stepFlip.current, c: 0 };
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
