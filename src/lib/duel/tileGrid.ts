@@ -6,7 +6,7 @@
 
 export const TG_SIZE = 7;
 export const TG_CELLS = TG_SIZE * TG_SIZE;
-export const TG_TILES = 12;
+export const TG_TILES = 15;
 export const TG_TIME_MS = 90_000;
 export const TG_REVEAL_MS = 8_000;
 
@@ -86,7 +86,7 @@ export function fitsTray(cells: string[], tray: string[]): boolean {
   return true;
 }
 
-/** Tile Grid score: valid = share of 100 (+ speed with all 12, cap 150); invalid = share of 50. */
+/** Tile Grid score: valid = share of 100 (+ speed with all 15, cap 150); invalid = share of 50. */
 export function scoreTileGrid(valid: boolean, placed: number, speed: number): number {
   const n = Math.max(0, Math.min(TG_TILES, placed));
   if (!valid) return Math.round((50 * n) / TG_TILES);
