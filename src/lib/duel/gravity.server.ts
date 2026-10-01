@@ -1,74 +1,63 @@
 /**
- * Server-only generation for Gravity Maze.
+ * Server-only generation for Gravity Maze (four balls, locking targets).
  *
- * The minimum is searched breadth-first over the JOINT state — ball A's square
- * paired with ball B's square — so it accounts for the balls blocking each
- * other. A board is only kept when that minimum lands in the wanted band,
- * neither ball can reach its own target alone in under three tilts, and at
- * least one tilt of the shortest solution has one ball stopped by the other.
+ * The minimum is found by breadth-first search over the joint state (all four
+ * ball squares; a ball's locked flag is implied by it resting on its target),
+ * capped at GRAV_NODE_CAP states — a board that hits the cap is re-rolled.
+ * Breadth-first rather than A* with the summed per-ball heuristic: one tilt
+ * moves every ball, so that sum over-estimates and could not prove a minimum.
  */
 
-import { pick, randInt, randomBelow, shuffled } from "./random";
+import { randInt, shuffled } from "./random";
 import {
   GRAVITY_DIRS,
   encodeGravityTilts,
+  gravityKey,
   gravitySolved,
-  replayGravity,
   tilt,
   type GravityBalls,
 } from "./gravity";
 import {
-  GRAV_ATTEMPTS,
+  GRAV_BALLS,
   GRAV_CELLS,
-  GRAV_FALLBACK_MIN_TILTS,
   GRAV_MAX_TILTS,
   GRAV_MAX_WALLS,
   GRAV_MIN_TILTS,
   GRAV_MIN_WALLS,
-  GRAV_SOLO_MIN_TILTS,
+  GRAV_NODE_CAP,
   type GravityDir,
   type GravityPuzzleData,
 } from "./types";
 
-function key(balls: GravityBalls): number {
-  return balls.a * GRAV_CELLS + balls.b;
-}
-
-interface Node {
-  balls: GravityBalls;
-  dir: GravityDir | null;
-  parent: number;
-}
-
-/** Fewest tilts over the joint two-ball state, plus one shortest tilt list. */
+/** Fewest tilts to lock every ball, plus one shortest list; null if unsolvable or capped. */
 export function gravityMinimum(
   walls: Set<number>,
   start: GravityBalls,
-  targetA: number,
-  targetB: number,
+  targets: number[],
+  maxDepth = Number.MAX_SAFE_INTEGER,
 ): { minMoves: number; solution: GravityDir[] } | null {
-  if (gravitySolved(start, targetA, targetB)) return null;
-  const nodes: Node[] = [{ balls: start, dir: null, parent: -1 }];
-  const seen = new Set<number>([key(start)]);
-
-  for (let index = 0; index < nodes.length; index++) {
-    const node = nodes[index]!;
+  if (gravitySolved(start, targets)) return null;
+  const states: GravityBalls[] = [start];
+  const parent: number[] = [-1];
+  const via: GravityDir[] = ["X"];
+  const depth: number[] = [0];
+  const seen = new Set<number>([gravityKey(start)]);
+  for (let index = 0; index < states.length; index++) {
+    if (states.length > GRAV_NODE_CAP) return null;
+    if (depth[index]! >= maxDepth) return null;
     for (const dir of GRAVITY_DIRS) {
-      const outcome = tilt(walls, node.balls, dir);
-      const next = outcome.balls;
-      if (next.a === node.balls.a && next.b === node.balls.b) continue;
-      const id = key(next);
+      const out = tilt(walls, states[index]!, targets, dir);
+      if (!out.moved.some(Boolean)) continue;
+      const id = gravityKey(out.balls);
       if (seen.has(id)) continue;
       seen.add(id);
-      const child: Node = { balls: next, dir, parent: index };
-      nodes.push(child);
-      if (gravitySolved(next, targetA, targetB)) {
+      states.push(out.balls);
+      parent.push(index);
+      via.push(dir);
+      depth.push(depth[index]! + 1);
+      if (gravitySolved(out.balls, targets)) {
         const path: GravityDir[] = [];
-        let walk: Node | undefined = child;
-        while (walk && walk.dir) {
-          path.unshift(walk.dir);
-          walk = nodes[walk.parent];
-        }
+        for (let walk = states.length - 1; walk > 0; walk = parent[walk]!) path.unshift(via[walk]!);
         return { minMoves: path.length, solution: path };
       }
     }
@@ -76,169 +65,55 @@ export function gravityMinimum(
   return null;
 }
 
-/**
- * True when the stored shortest solution has at least one tilt where the balls
- * swap relative order — cell index a below b becomes a above b, or vice versa.
- * A run that never mixes the balls up doesn't really test the joint search.
- */
-function soloOrder(a: number, b: number): number {
-  return Math.sign(a - b);
-}
-
-export function solutionSwapsOrder(
+/** Balls (other than the one locking) that moved on a tilt where another ball locked. */
+export function lockInteractions(
   walls: Set<number>,
   start: GravityBalls,
+  targets: number[],
   solution: GravityDir[],
-): boolean {
+): number {
+  const movers = new Set<number>();
   let balls = start;
-  let order = soloOrder(balls.a, balls.b);
   for (const dir of solution) {
-    balls = tilt(walls, balls, dir).balls;
-    const next = soloOrder(balls.a, balls.b);
-    if (next !== 0 && order !== 0 && next !== order) return true;
-    if (next !== 0) order = next;
-  }
-  return false;
-}
-
-/** Fewest tilts for one ball on its own — the other ball is not on the board. */
-function soloMinimum(walls: Set<number>, from: number, target: number): number {
-  if (from === target) return 0;
-  const queue: { cell: number; depth: number }[] = [{ cell: from, depth: 0 }];
-  const seen = new Set<number>([from]);
-  for (let index = 0; index < queue.length; index++) {
-    const node = queue[index]!;
-    for (const dir of GRAVITY_DIRS) {
-      // A lone ball: park the partner off the board by reusing its own square.
-      const outcome = tilt(walls, { a: node.cell, b: node.cell }, dir);
-      const cell = outcome.balls.a;
-      if (cell === node.cell || seen.has(cell)) continue;
-      if (cell === target) return node.depth + 1;
-      seen.add(cell);
-      queue.push({ cell, depth: node.depth + 1 });
+    const out = tilt(walls, balls, targets, dir);
+    if (out.locked.length) {
+      out.moved.forEach((did, i) => {
+        if (did && !(out.locked.length === 1 && out.locked[0] === i)) movers.add(i);
+      });
     }
+    balls = out.balls;
   }
-  return Number.MAX_SAFE_INTEGER;
+  return movers.size;
 }
 
-/** One random draw, kept only when it clears every rule for the given minimum band. */
-function attemptGravity(minTilts: number): GravityPuzzleData | null {
+function attempt(): GravityPuzzleData | null {
   const cells = shuffled(Array.from({ length: GRAV_CELLS }, (_, cell) => cell));
-  const startA = cells[0]!;
-  const startB = cells[1]!;
-  const targetA = cells[2]!;
-  const targetB = cells[3]!;
-  const reserved = new Set([startA, startB, targetA, targetB]);
-
-  const walls = new Set<number>();
+  const starts = cells.slice(0, GRAV_BALLS);
+  const targets = cells.slice(GRAV_BALLS, GRAV_BALLS * 2);
   const wallCount = randInt(GRAV_MIN_WALLS, GRAV_MAX_WALLS);
-  let guard = 0;
-  while (walls.size < wallCount && guard++ < 400) {
-    const cell = randomBelow(GRAV_CELLS);
-    if (reserved.has(cell)) continue;
-    walls.add(cell);
+  const walls = new Set(cells.slice(GRAV_BALLS * 2, GRAV_BALLS * 2 + wallCount));
+
+  // No ball may lock on the very first tilt.
+  for (const dir of GRAVITY_DIRS) {
+    if (tilt(walls, starts, targets, dir).locked.length) return null;
   }
-
-  const found = gravityMinimum(walls, { a: startA, b: startB }, targetA, targetB);
-  if (!found) return null;
-  if (found.minMoves < minTilts || found.minMoves > GRAV_MAX_TILTS) return null;
-
-  // Neither ball may be a trivial solo run.
-  if (soloMinimum(walls, startA, targetA) < GRAV_SOLO_MIN_TILTS) return null;
-  if (soloMinimum(walls, startB, targetB) < GRAV_SOLO_MIN_TILTS) return null;
-
-  // The shortest solution has to use the balls blocking each other, and at
-  // some point swap which of the two sits ahead — otherwise the joint search
-  // isn't really being exercised.
-  const replay = replayGravity(walls, { a: startA, b: startB }, targetA, targetB, found.solution);
-  if (!replay.solved || !replay.usedBlock) return null;
-  if (!solutionSwapsOrder(walls, { a: startA, b: startB }, found.solution)) return null;
-
+  const found = gravityMinimum(walls, starts, targets, GRAV_MAX_TILTS);
+  if (!found || found.minMoves < GRAV_MIN_TILTS || found.minMoves > GRAV_MAX_TILTS) return null;
+  if (lockInteractions(walls, starts, targets, found.solution) < 2) return null;
   return {
     type: "gravity",
     walls: [...walls].sort((x, y) => x - y),
-    startA,
-    startB,
-    targetA,
-    targetB,
+    starts,
+    targets,
     minMoves: found.minMoves,
     solution: encodeGravityTilts(found.solution),
   };
 }
 
 export function generateGravity(): GravityPuzzleData {
-  for (let attempt = 0; attempt < GRAV_ATTEMPTS; attempt++) {
-    const puzzle = attemptGravity(GRAV_MIN_TILTS);
+  for (let tries = 1; ; tries++) {
+    const puzzle = attempt();
     if (puzzle) return puzzle;
+    if (tries % 2000 === 0) console.warn(`[gravity] ${tries} boards rejected so far`);
   }
-  // The full band is hard to hit twice in a row: ease the minimum and warn,
-  // rather than falling straight to the hand-checked board.
-  console.warn(
-    `[gravity] no board cleared ${GRAV_MIN_TILTS}-${GRAV_MAX_TILTS} tilts in ${GRAV_ATTEMPTS} attempts, easing minimum to ${GRAV_FALLBACK_MIN_TILTS}`,
-  );
-  for (let attempt = 0; attempt < GRAV_ATTEMPTS; attempt++) {
-    const puzzle = attemptGravity(GRAV_FALLBACK_MIN_TILTS);
-    if (puzzle) return puzzle;
-  }
-  // Nothing random left to try: keep the room moving with a proven fallback.
-  return fallbackBoard();
-}
-
-/**
- * A hand-checked 10x10 board, only ever used if 400 random draws all fail.
- * Verified by script: joint minimum is 18 tilts (within the wanted band),
- * the shortest route uses ball-blocks-ball, and the two balls swap relative
- * order along the way.
- */
-function fallbackBoard(): GravityPuzzleData {
-  const walls = [
-    8, 11, 15, 20, 24, 26, 27, 28, 30, 39, 40, 43, 48, 56, 59, 65, 67, 68, 69, 73, 81, 84, 89, 90,
-    92, 96,
-  ];
-  const start = { a: 60, b: 62 };
-  const targetA = 10;
-  const targetB = 29;
-  const found = gravityMinimum(new Set(walls), start, targetA, targetB);
-  return {
-    type: "gravity",
-    walls,
-    startA: start.a,
-    startB: start.b,
-    targetA,
-    targetB,
-    minMoves: found?.minMoves ?? 0,
-    solution: encodeGravityTilts(found?.solution ?? [pick(GRAVITY_DIRS)]),
-  };
-}
-
-/**
- * Fewest tilts from any joint position to both balls home, over the same
- * two-ball state space the minimum search uses. Null when it cannot be done.
- */
-export function gravityDistance(
-  walls: Set<number>,
-  from: GravityBalls,
-  targetA: number,
-  targetB: number,
-): number | null {
-  if (gravitySolved(from, targetA, targetB)) return 0;
-  const seen = new Set<number>([key(from)]);
-  let frontier: GravityBalls[] = [from];
-  for (let depth = 1; depth <= GRAV_CELLS * 4; depth++) {
-    const next: GravityBalls[] = [];
-    for (const balls of frontier) {
-      for (const dir of GRAVITY_DIRS) {
-        const moved = tilt(walls, balls, dir).balls;
-        if (moved.a === balls.a && moved.b === balls.b) continue;
-        const id = key(moved);
-        if (seen.has(id)) continue;
-        if (gravitySolved(moved, targetA, targetB)) return depth;
-        seen.add(id);
-        next.push(moved);
-      }
-    }
-    if (!next.length) return null;
-    frontier = next;
-  }
-  return null;
 }
