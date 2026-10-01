@@ -54,7 +54,7 @@ function Crack() {
   return (
     <svg viewBox="0 0 10 10" aria-label="Thin ice" className="block h-[80%] w-[80%]">
       <polyline
-        points="1,2 4,5 3,7 6,9 M4,5 7,4 9,1"
+        points="1,2 4,5 3,7 6,9"
         fill="none"
         stroke="var(--foreground)"
         strokeOpacity={0.75}
