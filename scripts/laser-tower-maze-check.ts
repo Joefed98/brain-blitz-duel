@@ -90,8 +90,9 @@ for (let index = 0; index < 20; index++) {
     puzzle.splitters,
     puzzle.directionalGems,
   );
-  if (solved.endCell !== solved.gemsLit[solved.gemsLit.length - 1])
-    fail("the beam does not stop on the gem that completes the set");
+  if (!solved.litAll || solved.hitBomb) fail("the branching solution does not light every gem safely");
+  const withoutSplitters = traceBeam(puzzle.source, puzzle.dir, solution, puzzle.blocks, puzzle.bombs, puzzle.gems, [], puzzle.directionalGems);
+  if (withoutSplitters.litAll) fail("laser solution does not require a split beam");
   if (!solved.litAll) fail("stored placement does not light all four gems");
   if (solved.hitBomb) fail("stored placement touches a bomb");
 
