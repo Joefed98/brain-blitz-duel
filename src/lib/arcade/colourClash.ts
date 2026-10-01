@@ -25,7 +25,7 @@ const START_Y = 92 * FP;
 const GATE_Y = 454 * FP;
 const BASE_FALL_TICKS = 3 * TICKS_PER_SECOND;
 
-export const CLASH_INPUT_RANGES: readonly InputRange[] = [inputRange(CLASH_INPUT_LANE, [0, 3], [0, 3])];
+export const CLASH_INPUT_RANGES: readonly InputRange[] = [inputRange(CLASH_INPUT_LANE, [0, 3], [0, CLASH_WORLD_W - 1])];
 export const CLASH_NAMES = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE", "BROWN", "YELLOW"] as const;
 export const CLASH_COLOURS = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#B26BFF", "#FF6BD6", "#FF8A3D", "#8B5A2B", "#FFE600"] as const;
 
@@ -133,7 +133,7 @@ function step(state: ClashState, input: ArcadeInputEvent | null): ClashState {
       const action = clampInt(input.a, 0, 3);
       if (action === CLASH_MOVE_LEFT) next.lane = Math.max(0, next.lane - 1);
       else if (action === CLASH_MOVE_RIGHT) next.lane = Math.min(lanes - 1, next.lane + 1);
-      else if (action === CLASH_SET_LANE) next.lane = clampInt(input.b, 0, lanes - 1);
+      else if (action === CLASH_SET_LANE) next.lane = clampInt(Math.floor((input.b * lanes) / CLASH_WORLD_W), 0, lanes - 1);
       else if (action === CLASH_DROP) next.dropping = 1;
     }
     const speed = next.dropping ? 18 * FP : Math.max(1, Math.trunc((GATE_Y - START_Y) / item.fallTicks));

@@ -223,6 +223,51 @@ interface Slot {
 /** Target count range per stage, scaled to the field's size. */
 const STAGE_COUNTS: [number, number][] = [[6, 10], [8, 12], [10, 14]];
 
+const SCENE_W = 343;
+const SCENE_H = 320;
+const VISIBILITY_SAMPLES = 17;
+
+function insideScene(item: CountUpShape): boolean {
+  const radius = item.size / 2;
+  const x = (item.x / 100) * SCENE_W;
+  const y = (item.y / 100) * SCENE_H;
+  return x - radius >= 0 && x + radius <= SCENE_W && y - radius >= 0 && y + radius <= SCENE_H;
+}
+
+/** Conservative circular masks: if this passes, at least half the glyph's footprint is unobscured. */
+export function countUpVisibleShare(item: CountUpShape, shapes: CountUpShape[]): number {
+  const radius = item.size / 2;
+  const cx = (item.x / 100) * SCENE_W;
+  const cy = (item.y / 100) * SCENE_H;
+  const above = shapes.filter((other) => other.layer > item.layer);
+  let total = 0;
+  let visible = 0;
+  for (let row = 0; row < VISIBILITY_SAMPLES; row += 1) {
+    for (let col = 0; col < VISIBILITY_SAMPLES; col += 1) {
+      const dx = ((col + 0.5) / VISIBILITY_SAMPLES * 2 - 1) * radius;
+      const dy = ((row + 0.5) / VISIBILITY_SAMPLES * 2 - 1) * radius;
+      if (dx * dx + dy * dy > radius * radius) continue;
+      total += 1;
+      const px = cx + dx;
+      const py = cy + dy;
+      const covered = above.some((other) => {
+        const ox = (other.x / 100) * SCENE_W;
+        const oy = (other.y / 100) * SCENE_H;
+        const otherRadius = other.size / 2;
+        return (px - ox) ** 2 + (py - oy) ** 2 <= otherRadius ** 2;
+      });
+      if (!covered) visible += 1;
+    }
+  }
+  return total ? visible / total : 0;
+}
+
+export function countUpSceneValid(stage: CountUpStage): boolean {
+  return stage.shapes.every(insideScene) && stage.shapes
+    .filter((item) => item.shape === stage.targetShape && item.colour === stage.targetColour)
+    .every((item) => countUpVisibleShare(item, stage.shapes) >= 0.5);
+}
+
 function buildStage(total: number, [min, max]: [number, number]): { stage: CountUpStage; count: number } {
   const targetShape = pick(SHAPES);
   const targetColour = pick(COLOURS);
@@ -248,22 +293,26 @@ function buildStage(total: number, [min, max]: [number, number]): { stage: Count
     slots.push({ shape, colour });
   }
 
-  // A dense layered scene. Target instances are kept mostly above later distractors.
-  const shapes: CountUpShape[] = shuffled(slots.slice(0, total)).map((slot, index) => {
-    const target = slot.shape === targetShape && slot.colour === targetColour;
-    return {
-      shape: slot.shape,
-      colour: slot.colour,
-      // Counted shapes stay wholly inside the conservative centre bounds and
-      // above distractors, which proves at least 50% remains identifiable.
-      x: randInt(target ? 14 : 5, target ? 86 : 95),
-      y: randInt(target ? 14 : 6, target ? 86 : 94),
-      size: randInt(28, 64), rotation: randInt(0, 359),
-      layer: target ? total + index : index,
-    };
-  });
-
-  return { stage: { cols: 10, rows: 10, shapes, targetShape, targetColour }, count };
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const shapes: CountUpShape[] = shuffled(slots.slice(0, total)).map((slot, index) => {
+      const target = slot.shape === targetShape && slot.colour === targetColour;
+      const size = randInt(28, 64);
+      const xMargin = Math.ceil((size / 2 / SCENE_W) * 100) + 1;
+      const yMargin = Math.ceil((size / 2 / SCENE_H) * 100) + 1;
+      return {
+        shape: slot.shape,
+        colour: slot.colour,
+        x: randInt(xMargin, 100 - xMargin),
+        y: randInt(yMargin, 100 - yMargin),
+        size,
+        rotation: randInt(0, 359),
+        layer: target ? total + index : index,
+      };
+    });
+    const stage = { cols: 10, rows: 10, shapes, targetShape, targetColour } satisfies CountUpStage;
+    if (countUpSceneValid(stage)) return { stage, count };
+  }
+  throw new Error("Count Up scene generation exhausted visibility attempts");
 }
 
 export function buildCountUp(): CountUpPuzzleData {

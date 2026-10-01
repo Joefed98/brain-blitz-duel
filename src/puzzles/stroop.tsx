@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { ArrowPad } from "@/components/puzzles/GridDrag";
 import { CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_MOVE_LEFT, CLASH_MOVE_RIGHT, CLASH_SET_LANE, CLASH_WORLD_H, CLASH_WORLD_W, clashCheckpoint, clashLaneCount, colourClashGame } from "@/lib/arcade/colourClash";
@@ -10,15 +11,14 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const down = useRef<{ x: number; y: number } | null>(null);
   if (puzzle.type !== "stroop") return null;
-  let down: { x: number; y: number } | null = null;
   return <ArcadeCanvasStage diagKey="stroop" label="Colour Clash lane board" background="#07070D" seed={puzzle.seed} enabled locked={locked} worldW={CLASH_WORLD_W} worldH={CLASH_WORLD_H} game={colourClashGame} checkpoint={clashCheckpoint} interval={CLASH_CHECKPOINT_INTERVAL} encodeRun={encodeColourClashRun} inputKind={CLASH_INPUT_LANE} discrete onSubmit={onSubmit} onDraftAnswer={onDraftAnswer} footer={(send) => <ArrowPad directions={["L", "D", "R"]} disabled={locked} onPress={(dir) => send({ k: CLASH_INPUT_LANE, a: dir === "L" ? CLASH_MOVE_LEFT : dir === "R" ? CLASH_MOVE_RIGHT : CLASH_DROP, b: 0, c: 0 })} />} pointer={(kind, x, y) => {
-    if (kind === "down") { down = { x, y }; return null; }
-    if (kind !== "up" || !down) return null;
-    const dy = y - down.y; down = null;
+    if (kind === "down") { down.current = { x, y }; return null; }
+    if (kind !== "up" || !down.current) return null;
+    const dy = y - down.current.y; down.current = null;
     if (dy > 40) return { k: CLASH_INPUT_LANE, a: CLASH_DROP, b: 0, c: 0 };
-    const lanes = clashLaneCount(0);
-    return { k: CLASH_INPUT_LANE, a: CLASH_SET_LANE, b: Math.min(lanes, Math.floor((x / CLASH_WORLD_W) * lanes)), c: 0 };
+    return { k: CLASH_INPUT_LANE, a: CLASH_SET_LANE, b: Math.min(CLASH_WORLD_W - 1, Math.max(0, Math.round(x))), c: 0 };
   }} />;
 }
 
