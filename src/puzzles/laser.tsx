@@ -448,7 +448,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
 
   const fire = useCallback(() => {
     if (locked || submitted.current || firesLeft === 0 || shot) return;
-    const verdict = verifyLaser({ source, dir, gems, bombs, blocks, mirrors: total, splitters: isLaser ? puzzle.splitters : [], directionalGems: isLaser ? puzzle.directionalGems : [] }, placed);
+    const verdict = verifyLaser({ source, dir, gems, bombs, blocks, mirrors: total, splitters, directionalGems }, placed);
     const attempt = fires + 1;
     setFires(attempt);
     clearTimers();
