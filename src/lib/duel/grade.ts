@@ -330,6 +330,7 @@ export function gradeSubmission(
       isCorrect = replay.correct >= replay.total;
       score = replay.score;
       storedMs = 0;
+      extraDetail = { wrong: replay.wrong, missed: replay.missed, total: replay.total };
       break;
     }
     case "mirmatch": {

@@ -329,8 +329,9 @@ function singleAnswer(
 
 function stroopSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   const count = result.correct_count ?? 0;
-  const wrong = Math.max(0, Math.round((Math.round((150 * count) / 36) - result.score) / 2));
-  return { summary: `${count} / 36 · ${wrong} wrong`, detail: [] };
+  const total = Number(result.extra?.["total"] ?? 36);
+  const wrong = Number(result.extra?.["wrong"] ?? 0);
+  return { summary: `${count} / ${total} · ${wrong} wrong`, detail: [] };
 }
 
 function wordMatchSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
