@@ -88,19 +88,21 @@ export type PuzzleType =
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
 
-/** Wordsmith: build as many words as you can from the tiles. */
-export const WORDSMITH_TIME_MS = 60_000;
+/** Wordsmith: nine letters in a 3×3 square; every word uses the centre letter. */
+export const WORDSMITH_TIME_MS = 120_000;
 export const WORDSMITH_MIN_LENGTH = 4;
-export const WORDSMITH_MIN_WORDS = 20;
+export const WORDSMITH_LETTERS = 9;
+/** Index of the centre letter in the 3×3 square. */
+export const WORDSMITH_CENTRE_INDEX = 4;
+/** A centre letter is only used when it allows this many valid words. */
+export const WORDSMITH_MIN_WORDS = 25;
+export const WORDSMITH_MAX_WORDS = 60;
 /** Par is this share of every point available on the board. */
 export const WORDSMITH_PAR_SHARE = 0.35;
-/** Boards are only used when par lands in a fair band. */
-export const WORDSMITH_MIN_PAR = 12;
-export const WORDSMITH_MAX_PAR = 40;
-const WORDSMITH_POINTS: Record<number, number> = { 4: 1, 5: 2, 6: 4, 7: 7, 8: 11 };
+const WORDSMITH_POINTS: Record<number, number> = { 4: 1, 5: 2, 6: 4, 7: 7, 8: 11, 9: 15 };
 
 export function wordsmithPoints(word: string): number {
-  return WORDSMITH_POINTS[Math.min(8, word.trim().length)] ?? 0;
+  return WORDSMITH_POINTS[Math.min(9, word.trim().length)] ?? 0;
 }
 
 export interface WordsmithWord {
@@ -110,12 +112,15 @@ export interface WordsmithWord {
 
 export interface WordsmithPuzzleData {
   type: "wordsmith";
-  /** The seven or eight tiles, in the order every player sees them. */
+  /** Nine letters, row-major 3×3; letters[4] is the centre. */
   letters: string[];
+  /** Public: how many valid words the board allows. */
+  wordCount?: number;
   /** Server-side only until the reveal: every word the board allows. */
   words?: WordsmithWord[];
   totalPoints?: number;
   par?: number;
+  /** The nine-letter word (hidden until the reveal). */
   source?: string;
 }
 

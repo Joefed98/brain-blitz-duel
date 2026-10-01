@@ -1,18 +1,18 @@
 /**
  * Server-only Wordsmith logic: board generation, word checking and scoring.
- * The dictionary and the board's word list never reach a device.
+ * Nine letters in a 3×3 square; every word must use the centre letter. The
+ * dictionary and the board's word list never reach a device.
  */
 
-import { EIGHT_LETTER_WORDS, SEVEN_LETTER_WORDS } from "@/puzzles/words";
-
-import { buildableFrom, isWord, wordsFrom } from "./dictionary.server";
+import { buildableFrom, commonWords, isWord, wordsFrom } from "./dictionary.server";
 import { pick, shuffled } from "./random";
 import type { Graded } from "./grade";
 import { scoreWordHunt } from "./scoring";
 import {
-  WORDSMITH_MAX_PAR,
+  WORDSMITH_CENTRE_INDEX,
+  WORDSMITH_LETTERS,
+  WORDSMITH_MAX_WORDS,
   WORDSMITH_MIN_LENGTH,
-  WORDSMITH_MIN_PAR,
   WORDSMITH_MIN_WORDS,
   WORDSMITH_PAR_SHARE,
   WORDSMITH_TIME_MS,
@@ -20,77 +20,62 @@ import {
   type WordsmithPuzzleData,
 } from "./types";
 
-/** Source words: every seven- and eight-letter word in the shared bank. */
-const SOURCE_BANK = [...SEVEN_LETTER_WORDS, ...EIGHT_LETTER_WORDS];
-
-/** A word and the same word with an -S count once. */
-export function wordKey(word: string): string {
-  const lower = word.toLowerCase();
-  if (lower.endsWith("s") && lower.length - 1 >= WORDSMITH_MIN_LENGTH) {
-    const base = lower.slice(0, -1);
-    if (isWord(base)) return base;
-  }
-  return lower;
+let sources: string[] | null = null;
+/** Everyday nine-letter words with no letter used more than twice. */
+function sourceWords(): string[] {
+  if (sources) return sources;
+  sources = commonWords().filter((word) => {
+    if (word.length !== WORDSMITH_LETTERS) return false;
+    const counts = new Map<string, number>();
+    for (const letter of word) counts.set(letter, (counts.get(letter) ?? 0) + 1);
+    return [...counts.values()].every((n) => n <= 2);
+  });
+  return sources;
 }
 
-function collapse(words: string[]): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const word of words) {
-    const key = wordKey(word);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(word);
-  }
-  return out;
-}
-
-function shuffleLetters(source: string): string[] {
-  for (let attempt = 0; attempt < 30; attempt++) {
-    const letters = shuffled(source.toUpperCase().split(""));
-    if (letters.join("") !== source.toUpperCase()) return letters;
-  }
-  return source.toUpperCase().split("").reverse();
-}
-
-/** Builds a board whose letters yield at least 20 everyday words of 4+ letters. */
-export function generateWordsmith(): WordsmithPuzzleData {
-  for (let attempt = 0; attempt < 200; attempt++) {
-    const source = pick(SOURCE_BANK).toLowerCase();
-    const found = collapse(wordsFrom(source, WORDSMITH_MIN_LENGTH));
-    if (found.length < WORDSMITH_MIN_WORDS) continue;
-    const words = found
-      .map((word) => ({ word: word.toUpperCase(), points: wordsmithPoints(word) }))
-      .sort((a, b) => b.points - a.points || a.word.localeCompare(b.word));
-    const totalPoints = words.reduce((sum, entry) => sum + entry.points, 0);
-    const par = Math.max(1, Math.round(totalPoints * WORDSMITH_PAR_SHARE));
-    // Boards with a wildly high or low par make for unfair rounds; keep the
-    // target reachable but worth working for.
-    if (attempt < 150 && (par < WORDSMITH_MIN_PAR || par > WORDSMITH_MAX_PAR)) continue;
-    return {
-      type: "wordsmith",
-      letters: shuffleLetters(source),
-      words,
-      totalPoints,
-      par,
-      source: source.toUpperCase(),
-    };
-  }
-  // Every bank word is checked above; this is only a safety net.
-  const source = "planets";
-  const words = collapse(wordsFrom(source, WORDSMITH_MIN_LENGTH)).map((word) => ({
-    word: word.toUpperCase(),
-    points: wordsmithPoints(word),
-  }));
+function build(source: string, centre: string, valid: string[]): WordsmithPuzzleData {
+  const upper = source.toUpperCase().split("");
+  const centreAt = upper.indexOf(centre.toUpperCase());
+  const outer = upper.filter((_, i) => i !== centreAt);
+  let ring = shuffled(outer);
+  for (let attempt = 0; attempt < 20 && ring.join("") === outer.join(""); attempt++) ring = shuffled(outer);
+  const letters = [...ring.slice(0, WORDSMITH_CENTRE_INDEX), centre.toUpperCase(), ...ring.slice(WORDSMITH_CENTRE_INDEX)];
+  const words = valid
+    .map((word) => ({ word: word.toUpperCase(), points: wordsmithPoints(word) }))
+    .sort((a, b) => b.word.length - a.word.length || a.word.localeCompare(b.word));
   const totalPoints = words.reduce((sum, entry) => sum + entry.points, 0);
   return {
     type: "wordsmith",
-    letters: shuffleLetters(source),
+    letters,
+    wordCount: words.length,
     words,
     totalPoints,
     par: Math.max(1, Math.round(totalPoints * WORDSMITH_PAR_SHARE)),
     source: source.toUpperCase(),
   };
+}
+
+/** Valid words for one source and centre (whole dictionary, centre letter included). */
+function validWords(source: string, centre: string): string[] {
+  return wordsFrom(source, WORDSMITH_MIN_LENGTH, true).filter((word) => word.includes(centre));
+}
+
+/** Picks a nine-letter word and a centre letter giving 25–60 valid words. */
+export function generateWordsmith(): WordsmithPuzzleData {
+  const bank = sourceWords();
+  for (let attempt = 0; attempt < 200 && bank.length; attempt++) {
+    const source = pick(bank);
+    const all = wordsFrom(source, WORDSMITH_MIN_LENGTH, true);
+    const centres = shuffled([...new Set(source.split(""))]).filter((centre) => {
+      const n = all.filter((word) => word.includes(centre)).length;
+      return n >= WORDSMITH_MIN_WORDS && n <= WORDSMITH_MAX_WORDS;
+    });
+    const centre = centres[0];
+    if (!centre) continue;
+    return build(source, centre, all.filter((word) => word.includes(centre)));
+  }
+  const source = "carpenter";
+  return build(source, "p", validWords(source, "p"));
 }
 
 export interface WordVerdict {
@@ -107,9 +92,10 @@ export function checkWordsmithWord(letters: string[], raw: string, already: stri
   if (!/^[A-Z]+$/.test(word)) return { ...base, reason: "Letters only" };
   if (word.length < WORDSMITH_MIN_LENGTH) return { ...base, reason: "Too short" };
   if (!buildableFrom(word, letters)) return { ...base, reason: "Not on the board" };
-  if (!isWord(word)) return { ...base, reason: "Not a word" };
-  const keys = new Set(already.map((entry) => wordKey(entry)));
-  if (keys.has(wordKey(word))) return { ...base, reason: "Already found" };
+  const centre = letters.length === WORDSMITH_LETTERS ? letters[WORDSMITH_CENTRE_INDEX] : undefined;
+  if (centre && !word.includes(centre.toUpperCase())) return { ...base, reason: "Must use the centre letter" };
+  if (!isWord(word)) return { ...base, reason: "Not in the dictionary" };
+  if (already.some((entry) => entry.toUpperCase() === word)) return { ...base, reason: "Already found" };
   return { valid: true, points: wordsmithPoints(word), word };
 }
 
@@ -122,26 +108,24 @@ export function gradeWordsmith(
   rawAnswer: string,
   msRemaining: number,
 ): Graded {
-  const letters = puzzle.letters;
   const par = puzzle.par ?? 1;
   const accepted: { word: string; points: number }[] = [];
-  const keys = new Set<string>();
+  const seen: string[] = [];
 
-  for (const candidate of rawAnswer.slice(0, 2_000).split(",")) {
-    const verdict = checkWordsmithWord(letters, candidate, [...keys]);
+  for (const candidate of rawAnswer.slice(0, 3_000).split(",")) {
+    const verdict = checkWordsmithWord(puzzle.letters, candidate, seen);
     if (!verdict.valid) continue;
-    keys.add(verdict.word);
+    seen.push(verdict.word);
     accepted.push({ word: verdict.word, points: verdict.points });
   }
 
   const points = accepted.reduce((sum, entry) => sum + entry.points, 0);
-  const score = scoreWordHunt(points);
   const ms = Math.min(WORDSMITH_TIME_MS, Math.max(0, Math.round(msRemaining)));
 
   return {
     answer: accepted.map((entry) => entry.word).join(","),
     isCorrect: points >= par,
-    score,
+    score: scoreWordHunt(points),
     reactionAvgMs: null,
     correctCount: accepted.length,
     errors: null,

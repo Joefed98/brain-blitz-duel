@@ -132,14 +132,15 @@ function fits(word: string, pool: Map<string, number>): boolean {
   return true;
 }
 
-/** Every everyday word that can be built from the given multiset of letters. */
-export function wordsFrom(letters: string, minLength = 4): string[] {
+/** Every everyday word (or, with `whole`, every dictionary word) that can be built from the given multiset of letters. */
+export function wordsFrom(letters: string, minLength = 4, whole = false): string[] {
   const pool = new Map<string, number>();
   for (const letter of letters.toLowerCase()) {
     if (!/^[a-z]$/.test(letter)) continue;
     pool.set(letter, (pool.get(letter) ?? 0) + 1);
   }
-  return dictionary().common.filter(
+  const list = whole ? [...dictionary().all] : dictionary().common;
+  return list.filter(
     (word) => word.length >= minLength && word.length <= letters.length && fits(word, pool),
   );
 }
