@@ -879,7 +879,7 @@ export interface MirrorPuzzleData {
 /*  Word Hunt                                                                  */
 /* -------------------------------------------------------------------------- */
 
-export const WORDHUNT_COLS = 4;
+export const WORDHUNT_COLS = 5;
 export const WORDHUNT_CELLS = WORDHUNT_COLS * WORDHUNT_COLS;
 export const WORDHUNT_TIME_MS = 60_000;
 export const WORDHUNT_MIN_LENGTH = 4;
