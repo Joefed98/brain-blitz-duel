@@ -166,11 +166,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Faster = more points. Wrong taps cost points. How far you got still scores.",
   },
   stroop: {
-    goal: "Sort the words by their ink or by what they say — whichever the banner tells you.",
+    goal: "Steer each falling word into the matching coloured gate.",
     how: [
-      { action: "Swipe left or right", detail: "into the matching gate." },
-      { action: "Watch the banner", detail: "because the rule flips." },
-      { action: "Swipe down later", detail: "when the middle gate appears." },
+      { action: "Use ◀ ▶, the joystick, or tap a lane", detail: "to steer the word." },
+      { action: "Swipe down or press ▼", detail: "to drop it quickly." },
+      { action: "Watch the banner", detail: "— the rule swaps every 15 seconds." },
     ],
     score: "Points for the share you sort right; wrong gates cost 2.",
   },
