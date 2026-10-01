@@ -234,8 +234,8 @@ export interface ReactionPuzzleData {
   type: "reaction";
   /** When each gold flash starts, in ms from the round start (generated once). */
   flashes: number[];
-  /** Decoy pulses between gold flashes: start time and colour. */
-  decoys: { at: number; color: "teal" | "red" }[];
+  /** Seeded decoy pulses before the gold flashes: start time and colour. */
+  decoys: { at: number; color: "teal" | "red" | "blue" }[];
 }
 
 export interface WordLadderPuzzleData {
@@ -785,6 +785,12 @@ export interface StopWatchSpec {
   hidden: boolean;
   /** Starts at the right; the zone only arms on the second pass. */
   reverse: boolean;
+  /** Optional seeded target oscillation around `centre`. */
+  moving?: { amplitude: number; cycleMs: number; phase: number };
+  /** Draw and move this watch vertically instead of horizontally. */
+  vertical?: boolean;
+  /** Optional traversal times, one per pass. */
+  passSweepMs?: number[];
 }
 
 export interface StopWatchPuzzleData {
