@@ -22,3 +22,5 @@
 - Gravity Maze locks a ball when it comes to rest on its own target (locked = sitting on target), and the minimum is a capped breadth-first joint search; why: a summed per-ball heuristic over-estimates when one tilt moves every ball, so it cannot prove a minimum.
 - Ice Slide state is (cell, broken thin-ice bitmask) and every search, replay and undo carries the mask; why: thin ice makes move order matter.
 - Rotating Rings boards store a link-pattern index into the shared bank in rings.ts; why: phone and server must apply identical linked turns.
+- Colour Clash is a deterministic arcade replay, while Count Up truth is recomputed from each stored scene; why: room results must be independently verifiable.
+- Laser beam tracing branches at fixed splitters and enforces directional gem entry in shared phone/server logic; why: generation, animation, and grading must agree.

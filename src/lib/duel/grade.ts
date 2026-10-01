@@ -330,6 +330,7 @@ export function gradeSubmission(
       isCorrect = replay.correct >= replay.total;
       score = replay.score;
       storedMs = 0;
+      extraDetail = { wrong: replay.wrong, missed: replay.missed, total: replay.total };
       break;
     }
     case "mirmatch": {
@@ -1645,7 +1646,9 @@ export function gradeSubmission(
     }
     case "countup": {
       const parts = splitStages(answer);
-      const counts = puzzle.counts ?? [];
+      // Truth is derived from the stored scene, never accepted from a client or
+      // a duplicated hidden count.
+      const counts = puzzle.stages.map((stage) => stage.shapes.filter((shape) => shape.shape === stage.targetShape && shape.colour === stage.targetColour).length);
       const given = counts.map((_, i) => parseCount(parts[i] ?? ""));
       correctCount = counts.filter((truth, i) => given[i] === truth).length;
       isCorrect = counts.length === STAGE_COUNT && correctCount === STAGE_COUNT;

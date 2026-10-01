@@ -2,7 +2,7 @@
  * Laser and Mirrors rules. One beam tracer, used by the phone (to animate a
  * fired shot) and by the server (to re-trace whatever placement a phone sends).
  * The beam passes THROUGH gems and lights them; it stops dead on a bomb, on a
- * block, at the edge, or on the gem that completes the set (all four of them).
+ * block or at the edge. Splitters create two independent right-angle branches.
  * Pure logic: no generator and no stored answers.
  */
 
@@ -193,7 +193,7 @@ export function verifyLaser(
   placements: MirrorPlacement[],
   fires = LASER_MAX_FIRES,
 ): LaserVerdict {
-  const taken = new Set([...puzzle.blocks, ...puzzle.bombs, ...puzzle.gems, puzzle.source]);
+  const taken = new Set([...puzzle.blocks, ...puzzle.bombs, ...puzzle.gems, ...(puzzle.splitters ?? []), puzzle.source]);
   const legal = placements.filter((mirror) => !taken.has(mirror.cell)).slice(0, puzzle.mirrors);
 
   const trace = traceBeam(

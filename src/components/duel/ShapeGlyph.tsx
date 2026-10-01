@@ -31,6 +31,7 @@ export function ShapeGlyph({ shape, colour, size = 28 }: ShapeGlyphProps) {
       {shape === "square" && <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />}
       {shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill={fill} />}
       {shape === "star" && <polygon points={STAR_POINTS} fill={fill} />}
+      {shape === "hexagon" && <polygon points="12,2 20.7,7 20.7,17 12,22 3.3,17 3.3,7" fill={fill} />}
     </svg>
   );
 }

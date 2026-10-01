@@ -31,6 +31,7 @@ import {
   LASER_GEMS,
   LASER_MAX_BOMBS,
   LASER_MIN_BOMBS,
+  LASER_MIN_CENTRAL_BLOCKS,
   MAZE_DEAD_END_LENGTH,
   MAZE_LONG_DEAD_END_LENGTH,
   MAZE_MIN_DEAD_ENDS,
@@ -65,12 +66,14 @@ for (let index = 0; index < 20; index++) {
     fail(`laser block count ${puzzle.blocks.length}`);
   }
   if (puzzle.gems.length !== LASER_GEMS) fail(`laser gem count ${puzzle.gems.length}`);
+  if ((puzzle.splitters?.length ?? 0) < 1 || (puzzle.splitters?.length ?? 0) > 2) fail("laser splitter count");
+  if (puzzle.directionalGems?.length !== 2) fail("laser directional gem count");
   const central = puzzle.blocks.filter((cell) => {
     const row = Math.floor(cell / 10);
     const col = cell % 10;
     return row >= 2 && row <= 7 && col >= 2 && col <= 7;
   }).length;
-  if (central < 10) fail(`only ${central} blocks in the central 6x6`);
+  if (central < LASER_MIN_CENTRAL_BLOCKS) fail(`only ${central} blocks in the central 6x6`);
   if (puzzle.bombs.length < LASER_MIN_BOMBS || puzzle.bombs.length > LASER_MAX_BOMBS) {
     fail(`laser bomb count ${puzzle.bombs.length}`);
   }
@@ -85,9 +88,12 @@ for (let index = 0; index < 20; index++) {
     puzzle.blocks,
     puzzle.bombs,
     puzzle.gems,
+    puzzle.splitters,
+    puzzle.directionalGems,
   );
-  if (solved.endCell !== solved.gemsLit[solved.gemsLit.length - 1])
-    fail("the beam does not stop on the gem that completes the set");
+  if (!solved.litAll || solved.hitBomb) fail("the branching solution does not light every gem safely");
+  const withoutSplitters = traceBeam(puzzle.source, puzzle.dir, solution, puzzle.blocks, puzzle.bombs, puzzle.gems, [], puzzle.directionalGems);
+  if (withoutSplitters.litAll) fail("laser solution does not require a split beam");
   if (!solved.litAll) fail("stored placement does not light all four gems");
   if (solved.hitBomb) fail("stored placement touches a bomb");
 

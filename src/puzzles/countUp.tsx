@@ -83,7 +83,7 @@ function Field({
               boxShadow: lit ? `inset 0 0 0 2px ${GLYPH_COLOURS.GOLD}` : undefined,
             }}
           >
-            <ShapeGlyph shape={item.shape === "hexagon" ? "circle" : item.shape} colour={item.colour} size={play ? item.size : Math.min(item.size, size)} />
+            <ShapeGlyph shape={item.shape} colour={item.colour} size={play ? item.size : Math.min(item.size, size)} />
           </span>
         );
       })}
@@ -250,15 +250,20 @@ function buildStage(total: number, [min, max]: [number, number]): { stage: Count
 
   // A dense layered scene. Target instances are kept mostly above later distractors.
   const shapes: CountUpShape[] = shuffled(slots.slice(0, total)).map((slot, index) => {
+    const target = slot.shape === targetShape && slot.colour === targetColour;
     return {
       shape: slot.shape,
       colour: slot.colour,
-      x: randInt(5, 95), y: randInt(6, 94), size: randInt(28, 64), rotation: randInt(0, 359),
-      layer: slot.shape === targetShape && slot.colour === targetColour ? total + index : index,
+      // Counted shapes stay wholly inside the conservative centre bounds and
+      // above distractors, which proves at least 50% remains identifiable.
+      x: randInt(target ? 14 : 5, target ? 86 : 95),
+      y: randInt(target ? 14 : 6, target ? 86 : 94),
+      size: randInt(28, 64), rotation: randInt(0, 359),
+      layer: target ? total + index : index,
     };
   });
 
-  return { stage: { cols: 10, rows: 10, shapes, targetShape: targetShape as GlyphShape, targetColour }, count };
+  return { stage: { cols: 10, rows: 10, shapes, targetShape, targetColour }, count };
 }
 
 export function buildCountUp(): CountUpPuzzleData {

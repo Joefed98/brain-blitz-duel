@@ -54,7 +54,7 @@ function Grid({
   size: number;
   cells: IntruderCell[] | null;
   /** Circled in gold — the reveal. */
-  marked?: number | null;
+  marked?: number | number[] | null;
   wrong?: number | null;
   onCell?: ((cell: number) => void) | undefined;
   compact?: boolean;
@@ -71,7 +71,7 @@ function Grid({
       className={`grid aspect-square max-h-full w-full ${compact ? "gap-px" : "gap-[3px]"}`}
       style={{
         ...style,
-        transform: offset === "left" ? "translateX(-5%)" : offset === "right" ? "translateX(5%)" : offset === "up" ? "translateY(-5%)" : offset === "down" ? "translateY(5%)" : undefined,
+        transform: offset === "left" ? `translateX(-${50 / size}%)` : offset === "right" ? `translateX(${50 / size}%)` : offset === "up" ? `translateY(-${50 / size}%)` : offset === "down" ? `translateY(${50 / size}%)` : undefined,
         ...(compact
           ? { gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }
           : {
@@ -94,7 +94,7 @@ function Grid({
                 size={compact ? Math.max(13, 38 / size) : Math.round(280 / size) * 0.7}
               />
             ) : null}
-             {marked === index && <span className="pointer-events-none absolute inset-[4%] rounded-full border-2 border-primary" aria-label="Changed cell" />}
+             {(Array.isArray(marked) ? marked.includes(index) : marked === index) && <span className="pointer-events-none absolute inset-[4%] rounded-full border-2 border-primary" aria-label="Changed cell" />}
           </div>
         );
       })}
@@ -336,7 +336,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
                <span className="font-mono text-base text-muted-foreground">Board {index + 1} · original</span>
                <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.cells} compact /></div>
                <span aria-hidden="true" className="text-lg leading-none text-primary">↓</span>
-               <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.after} marked={answers[index]?.[0] ?? null} wrong={boardTaps.find((tap) => !answers[index]!.includes(tap)) ?? null} compact /></div>
+               <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.after} marked={answers[index] ?? []} wrong={boardTaps.find((tap) => !answers[index]!.includes(tap)) ?? null} compact /></div>
                <span className={`font-mono text-base ${ok ? "text-primary" : "text-warn"}`}>
                  {boardTaps.length === 0 ? "No taps" : ok ? "Your taps ✓" : "Your taps ✗"}
                </span>

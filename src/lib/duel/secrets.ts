@@ -29,6 +29,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   chaincalc: ["intermediates", "answer"],
   wordmatch: ["answers"],
   pctsprint: ["answers"],
+  // The server derives each answer directly from the stored scene.
   countup: ["counts"],
   mirmatch: ["answers", "kinds"],
   // These types show the player everything they need on screen — there is

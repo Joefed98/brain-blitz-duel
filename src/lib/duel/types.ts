@@ -294,7 +294,7 @@ export interface SpatialPuzzleData {
   groupSize?: number;
 }
 
-export type GlyphShape = "circle" | "square" | "triangle" | "star";
+export type GlyphShape = "circle" | "square" | "triangle" | "star" | "hexagon";
 /** Go / No-Go and Pattern Completion reuse the Colour Clash palette, plus gold. */
 export type GlyphColour = StroopColour | "GOLD";
 
@@ -1285,6 +1285,9 @@ export interface LaserStats {
   /** How many mirror placements the exhaustive search traced. */
   subsetsTested: number;
   attempts: number;
+  splitters?: number;
+  directionalGems?: number;
+  splitRequired?: boolean;
 }
 
 export interface LaserPuzzleData {
