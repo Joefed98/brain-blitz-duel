@@ -202,7 +202,7 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
           ? "bg-opponent"
           : decoy.color === "red"
             ? "bg-destructive"
-            : "bg-blue-500"
+            : "bg-reaction-blue"
         : "bg-background";
   const showLast = lastShown && t < lastShown.until;
 

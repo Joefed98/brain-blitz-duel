@@ -18,17 +18,28 @@ const LEAD_IN_MS = 800;
 const MARKER_W = 6;
 const HIDE_FROM = 2 / 3;
 
-/** Marker position (0–1), traversal index and direction (+1 rightwards) at `elapsed`. */
-export function markerState(spec: StopWatchSpec, elapsed: number): { pos: number; pass: number; dir: 1 | -1 } {
-  const pass = Math.floor(Math.max(0, elapsed) / spec.sweepMs);
-  const frac = (Math.max(0, elapsed) % spec.sweepMs) / spec.sweepMs;
-  const rightwards = spec.reverse ? pass % 2 === 1 : pass % 2 === 0;
-  return { pos: rightwards ? frac : 1 - frac, pass, dir: rightwards ? 1 : -1 };
+/** Marker position, traversal index, direction and current traversal duration. */
+export function markerState(
+  spec: StopWatchSpec,
+  elapsed: number,
+): { pos: number; pass: number; dir: 1 | -1; sweepMs: number } {
+  const durations = spec.passSweepMs ?? Array.from({ length: STOPWATCH_PASSES }, () => spec.sweepMs);
+  let remaining = Math.max(0, elapsed);
+  let pass = 0;
+  while (pass < STOPWATCH_PASSES && remaining >= (durations[pass] ?? spec.sweepMs)) {
+    remaining -= durations[pass] ?? spec.sweepMs;
+    pass += 1;
+  }
+  const sweepMs = durations[Math.min(pass, STOPWATCH_PASSES - 1)] ?? spec.sweepMs;
+  const frac = pass >= STOPWATCH_PASSES ? 1 : Math.min(1, remaining / sweepMs);
+  const forwards = spec.reverse ? pass % 2 === 1 : pass % 2 === 0;
+  return { pos: forwards ? frac : 1 - frac, pass, dir: forwards ? 1 : -1, sweepMs };
 }
 
-/** The zone of a reversing watch only arms on the second traversal. */
-function armed(spec: StopWatchSpec, pass: number): boolean {
-  return !spec.reverse || pass >= 1;
+export function targetCentre(spec: StopWatchSpec, elapsed: number): number {
+  if (!spec.moving) return spec.centre;
+  const angle = 2 * Math.PI * (elapsed / spec.moving.cycleMs + spec.moving.phase);
+  return spec.centre + Math.sin(angle) * spec.moving.amplitude;
 }
 
 function isHidden(spec: StopWatchSpec, pos: number): boolean {
@@ -43,9 +54,25 @@ export function buildStopWatch(): StopWatchPuzzleData {
     type: "stopwatch",
     watches: [
       { centre: c1, half: 0.08, sweepMs: 1_100, hidden: false, reverse: false },
-      { centre: c2, half: 0.05, sweepMs: 800, hidden: false, reverse: false },
+      {
+        centre: c2,
+        half: 0.05,
+        sweepMs: 800,
+        hidden: false,
+        reverse: false,
+        moving: { amplitude: randInt(12, 20) / 100, cycleMs: 2_400, phase: randInt(0, 99) / 100 },
+      },
       { centre: randInt(72, 88) / 100, half: 0.06, sweepMs: 1_000, hidden: true, reverse: false },
-      { centre: randInt(20, 80) / 100, half: 0.06, sweepMs: 1_000, hidden: false, reverse: true },
+      {
+        centre: randInt(68, 78) / 100,
+        half: 0.06,
+        sweepMs: 1_000,
+        hidden: false,
+        reverse: false,
+        moving: { amplitude: randInt(8, 14) / 100, cycleMs: 2_000, phase: randInt(0, 99) / 100 },
+        vertical: true,
+        passSweepMs: [1_000, 700, 500],
+      },
       { centre: randInt(72, 88) / 100, half: 0.05, sweepMs: 600, hidden: true, reverse: false },
     ],
   };
@@ -61,43 +88,70 @@ function Bar({
   marker,
   barRef,
   markerRef,
+  targetRef,
+  passesLeft,
 }: {
   spec: StopWatchSpec;
   lit: boolean;
   marker: number | null;
   barRef?: React.RefObject<HTMLDivElement | null> | undefined;
   markerRef?: React.RefObject<HTMLSpanElement | null> | undefined;
+  targetRef?: React.RefObject<HTMLSpanElement | null> | undefined;
+  passesLeft: number;
 }) {
+  const vertical = spec.vertical === true;
   return (
-    <div ref={barRef} className="relative h-16 w-full overflow-hidden rounded-2xl border border-border bg-card">
-      {spec.hidden && (
+    <div
+      ref={barRef}
+      className={`relative overflow-hidden rounded-2xl border border-border bg-card ${vertical ? "h-full min-h-72 w-1/2" : "h-16 w-full"}`}
+    >
+      {spec.hidden && !vertical && (
         <span
           className="absolute inset-y-0 right-0 border-l border-dashed border-muted-foreground/50 bg-muted/40"
           style={{ width: `${(1 - HIDE_FROM) * 100}%` }}
         />
       )}
       <span
-        className={`absolute inset-y-0 ${lit ? "bg-primary/45" : "bg-primary/15"}`}
-        style={{ left: `${(spec.centre - spec.half) * 100}%`, width: `${spec.half * 200}%` }}
+        ref={targetRef}
+        className={`absolute ${vertical ? "inset-x-0" : "inset-y-0"} bg-primary/45`}
+        style={
+          vertical
+            ? { bottom: `${(spec.centre - spec.half) * 100}%`, height: `${spec.half * 200}%` }
+            : { left: `${(spec.centre - spec.half) * 100}%`, width: `${spec.half * 200}%` }
+        }
       />
       <span
-        className="absolute inset-y-2 w-[3px] rounded-full bg-primary"
-        style={{ left: `${spec.centre * 100}%`, transform: "translateX(-50%)" }}
+        className={`absolute rounded-full bg-primary ${vertical ? "inset-x-2 h-[3px]" : "inset-y-2 w-[3px]"}`}
+        style={
+          vertical
+            ? { bottom: `${spec.centre * 100}%`, transform: "translateY(50%)" }
+            : { left: `${spec.centre * 100}%`, transform: "translateX(-50%)" }
+        }
       />
       {markerRef ? (
         <span
           ref={markerRef}
-          className="absolute inset-y-0 left-0 rounded-full bg-foreground will-change-transform"
-          style={{ width: MARKER_W }}
+          className={`absolute rounded-full bg-foreground will-change-transform ${vertical ? "inset-x-0 bottom-0" : "inset-y-0 left-0"}`}
+          style={vertical ? { height: MARKER_W } : { width: MARKER_W }}
         />
       ) : (
         marker !== null && (
           <span
-            className="absolute inset-y-0 rounded-full bg-foreground"
-            style={{ width: MARKER_W, left: `${marker * 100}%`, transform: "translateX(-50%)" }}
+            className={`absolute rounded-full bg-foreground ${vertical ? "inset-x-0" : "inset-y-0"}`}
+            style={
+              vertical
+                ? { height: MARKER_W, bottom: `${marker * 100}%`, transform: "translateY(50%)" }
+                : { width: MARKER_W, left: `${marker * 100}%`, transform: "translateX(-50%)" }
+            }
           />
         )
       )}
+      <span
+        aria-label={`${passesLeft} passes left`}
+        className={`absolute right-2 top-2 z-10 font-mono text-sm font-bold tabular-nums ${passesLeft === 1 ? "text-warn" : "text-foreground"}`}
+      >
+        {passesLeft}
+      </span>
     </div>
   );
 }
@@ -108,10 +162,11 @@ function IntroExample() {
       <p className="text-center text-sm text-muted-foreground">
         Five watches, each one trickier. Tap to stop the marker on the zone's centre line.
       </p>
-      <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, reverse: false }} lit marker={0.58} />
+      <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, reverse: false }} marker={0.58} passesLeft={3} />
       <p className="text-center text-xs text-muted-foreground">
-        Watches 3 and 5 hide the marker over the shaded end. Watch 4 runs backwards and only counts once its zone
-        lights up on the second pass. Score: 50 at 400 ms average error, up to 150 for perfect stops.
+        Some targets move — stop when the marker and the target line up. Watches 3 and 5 hide the marker over the
+        shaded end, and Watch 4 is vertical and accelerates. Score: 50 at 400 ms average error, up to 150 for perfect
+        stops.
       </p>
     </div>
   );
@@ -130,10 +185,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
     signed: null,
     shownUntil: 0,
   });
-  const [lit, setLit] = useState(false);
   const submitted = useRef("");
   const barRef = useRef<HTMLDivElement | null>(null);
   const markerRef = useRef<HTMLSpanElement | null>(null);
+  const targetRef = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
     setErrors([]);
@@ -159,7 +214,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
       }
       return;
     }
-    if (now - cursor.startAt >= spec.sweepMs * STOPWATCH_PASSES) record(STOPWATCH_MISS_MS, null);
+    if (markerState(spec, now - cursor.startAt).pass >= STOPWATCH_PASSES) record(STOPWATCH_MISS_MS, null);
   }, [now]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -178,19 +233,22 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   useEffect(() => {
     if (!live || !spec) return;
     let raf = 0;
-    let wasLit = false;
     const frame = () => {
       const bar = barRef.current;
       const el = markerRef.current;
-      const { pos, pass } = markerState(spec, serverNow() - cursor.startAt);
+      const target = targetRef.current;
+      const elapsed = serverNow() - cursor.startAt;
+      const { pos } = markerState(spec, elapsed);
       if (bar && el) {
-        el.style.transform = `translate3d(${pos * bar.clientWidth - MARKER_W / 2}px, 0, 0)`;
+        el.style.transform = spec.vertical
+          ? `translate3d(0, ${-(pos * bar.clientHeight - MARKER_W / 2)}px, 0)`
+          : `translate3d(${pos * bar.clientWidth - MARKER_W / 2}px, 0, 0)`;
         el.style.opacity = isHidden(spec, pos) ? "0" : "1";
       }
-      const nowLit = armed(spec, pass);
-      if (nowLit !== wasLit) {
-        wasLit = nowLit;
-        setLit(nowLit);
+      if (bar && target && spec.moving) {
+        const centre = targetCentre(spec, elapsed);
+        if (spec.vertical) target.style.bottom = `${(centre - spec.half) * 100}%`;
+        else target.style.left = `${(centre - spec.half) * 100}%`;
       }
       raf = requestAnimationFrame(frame);
     };
@@ -204,10 +262,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
     if (locked || !live) return;
     const elapsed = serverNow() - cursor.startAt;
     if (elapsed < 0) return;
-    const { pos, pass, dir } = markerState(spec, elapsed);
+    const { pos, pass, dir, sweepMs } = markerState(spec, elapsed);
     if (pass >= STOPWATCH_PASSES) return;
-    if (!armed(spec, pass)) return;
-    const offset = (pos - spec.centre) * dir * spec.sweepMs;
+    const centre = targetCentre(spec, elapsed);
+    const offset = (pos - centre) * dir * sweepMs;
     const error = Math.min(STOPWATCH_MISS_MS, Math.round(Math.abs(offset)));
     record(error, Math.round(offset));
   };
@@ -220,9 +278,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
         : `${cursor.signed >= 0 ? "+" : "−"}${Math.abs(cursor.signed)} ms`
       : waiting
         ? "Get ready"
-        : spec.reverse && !lit
-          ? "Wait for it to light up"
-          : "Tap to stop";
+        : "Tap to stop";
+  const currentPass = live ? markerState(spec, Math.max(0, now - cursor.startAt)).pass : STOPWATCH_PASSES - 1;
+  const passesLeft = Math.max(1, STOPWATCH_PASSES - currentPass);
 
   return (
     <div
@@ -230,19 +288,22 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
       tabIndex={0}
       aria-label="Stop the marker"
       onPointerDown={handleTap}
-      className="flex flex-1 flex-col items-center justify-center gap-7"
+      className="flex min-h-0 flex-1 flex-col items-center justify-center gap-7"
     >
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
         Watch {Math.min(cursor.index + 1, watches.length)} / {watches.length}
       </p>
-      <Bar
-        key={cursor.index}
-        spec={spec}
-        lit={armed(spec, 0) || lit}
-        marker={null}
-        barRef={live ? barRef : undefined}
-        markerRef={live ? markerRef : undefined}
-      />
+      <div className={`flex min-h-0 w-full ${spec.vertical ? "flex-1 justify-end" : ""}`}>
+        <Bar
+          key={cursor.index}
+          spec={spec}
+          marker={null}
+          barRef={live ? barRef : undefined}
+          markerRef={live ? markerRef : undefined}
+          targetRef={live && spec.moving ? targetRef : undefined}
+          passesLeft={passesLeft}
+        />
+      </div>
       <p
         className={`font-mono text-3xl font-bold tabular-nums ${
           cursor.result !== null ? (cursor.signed === null ? "text-warn" : "text-primary") : "text-muted-foreground"
