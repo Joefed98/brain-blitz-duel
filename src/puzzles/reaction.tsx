@@ -106,8 +106,8 @@ function IntroExample() {
         </span>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Teal or red is a trap: tapping it, or tapping a dark screen, is a false start (+200 ms). Score: 50 at 650 ms
-        average, up to 150 at 50 ms.
+        Teal, red or blue is a trap: tapping it, or tapping a dark screen, is a false start (+200 ms). Score: 50 at
+        650 ms average, up to 150 at 50 ms.
       </p>
     </div>
   );

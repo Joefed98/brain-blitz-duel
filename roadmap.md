@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Reaction and Stop Watch tuning (Oct 1)
-- [ ] Give every Reaction Time flash 1–3 seeded decoys in three colours with irregular spacing.
-- [ ] Give Stop Watch three visible passes, seeded moving targets on Watches 2 and 4, and a vertical accelerating Watch 4.
-- [ ] Run focused timing and scoring checks plus the TypeScript check; no browser tests.
+- [x] Give every Reaction Time flash 1–3 seeded decoys in three colours with irregular spacing.
+- [x] Give Stop Watch three visible passes, seeded moving targets on Watches 2 and 4, and a vertical accelerating Watch 4.
+- [x] Run focused timing and scoring checks plus the TypeScript check; no browser tests.
 
 ## Six-type route, controls, and intro tuning (Sep 30)
 - [x] Limit Hot Floor to few exhaustive-search viable routes with pinch tiles and three failed alternatives; report 50-stage metrics.
