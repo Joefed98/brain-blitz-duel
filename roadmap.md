@@ -1,5 +1,13 @@
 # Roadmap
 
+## Attention and Pattern changes (Oct 1)
+- [ ] Rebuild Colour Clash as a deterministic 45-second attention sorting stream with seeded rules, gates, replay grading, and reveal.
+- [ ] Expand Intruder Detection to five timed boards with two-change and shuffled-grid stages.
+- [ ] Rebuild Count Up as three dense overlapping picture scenes with stored, server-counted targets.
+- [ ] Fit Rotating Rings controls, legend, and board into short phone play areas without scrolling.
+- [ ] Add Laser splitters and directional gems while preserving nine-mirror necessity and three shots.
+- [ ] Run Colour Clash identity proof, named generator checks, TypeScript validation, and preview build diagnostics; no browser tests.
+
 ## Reaction and Stop Watch tuning (Oct 1)
 - [x] Give every Reaction Time flash 1–3 seeded decoys in three colours with irregular spacing.
 - [x] Give Stop Watch three visible passes, seeded moving targets on Watches 2 and 4, and a vertical accelerating Watch 4.
