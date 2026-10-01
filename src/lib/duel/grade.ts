@@ -130,9 +130,12 @@ import {
   NUMHUNT_COUNT,
   NUMSEQ_ITEMS,
   PCTSPRINT_ITEMS,
-  REACTION_PENALTY_MS,
+  REACTION_FALSE_START_MS,
+  REACTION_FLASHES,
+  REACTION_MISS_MS,
   ROUND_MS,
   SPOT_DIFFERENCES,
+  STOPWATCH_ATTEMPTS,
   STOPWATCH_MISS_MS,
   MIRMATCH_ITEMS,
   SPIN_ITEMS,
@@ -290,14 +293,20 @@ export function gradeSubmission(
       break;
     }
     case "reaction": {
-      const attempts = answer.split(",").slice(0, 3).map((value) => Number.parseInt(value, 10));
-      const total = Array.from({ length: 3 }, (_, index) => {
+      const [timesPart = "", falsePart = "0"] = answer.split("|");
+      const attempts = timesPart.split(",").slice(0, REACTION_FLASHES).map((value) => Number.parseInt(value, 10));
+      const total = Array.from({ length: REACTION_FLASHES }, (_, index) => {
         const attempt = attempts[index];
         return attempt === undefined || !Number.isFinite(attempt)
-          ? REACTION_PENALTY_MS
-          : clamp(attempt, 0, REACTION_PENALTY_MS);
+          ? REACTION_MISS_MS
+          : clamp(attempt, 1, REACTION_MISS_MS);
       });
-      reactionAvgMs = Math.round(total.reduce((sum, attempt) => sum + attempt, 0) / 3);
+      const parsedFalse = Number.parseInt(falsePart, 10);
+      const falseStarts = Number.isFinite(parsedFalse) ? clamp(parsedFalse, 0, 99) : 0;
+      reactionAvgMs = Math.round(
+        total.reduce((sum, attempt) => sum + attempt, 0) / REACTION_FLASHES +
+          falseStarts * REACTION_FALSE_START_MS,
+      );
       isCorrect = true;
       score = scoreReaction(reactionAvgMs);
       storedMs = 0;
@@ -391,14 +400,14 @@ export function gradeSubmission(
       break;
     }
     case "stopwatch": {
-      const distances = answer.split(",").slice(0, 3).map((v) => Number.parseInt(v, 10));
-      const total = Array.from({ length: 3 }, (_, index) => {
+      const distances = answer.split(",").slice(0, STOPWATCH_ATTEMPTS).map((v) => Number.parseInt(v, 10));
+      const total = Array.from({ length: STOPWATCH_ATTEMPTS }, (_, index) => {
         const distance = distances[index];
         return distance === undefined || !Number.isFinite(distance)
           ? STOPWATCH_MISS_MS
           : clamp(distance, 0, STOPWATCH_MISS_MS);
       });
-      reactionAvgMs = Math.round(total.reduce((a, b) => a + b, 0) / 3);
+      reactionAvgMs = Math.round(total.reduce((a, b) => a + b, 0) / STOPWATCH_ATTEMPTS);
       isCorrect = true;
       score = scoreStopWatch(reactionAvgMs);
       storedMs = 0;

@@ -141,13 +141,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Find every tile faster = more points.",
   },
   reaction: {
-    goal: "React as quickly as possible on all three tries.",
+    goal: "Tap the instant the screen turns gold — five times.",
     how: [
-      { action: "Wait for gold", detail: "before touching the screen." },
-      { action: "Tap immediately", detail: "when the signal appears." },
-      { action: "Avoid early taps", detail: "because they count against you." },
+      { action: "Wait.", detail: "Don't tap the other colours, or you'll get a false start." },
     ],
-    score: "50 + up to 100 for speed: 650 ms average = 50, 50 ms = 150. Misses count as 1,000 ms.",
+    score: "Faster average scores more; false starts add 200 ms.",
   },
   gonogo: {
     goal: "Tap every gold circle and ignore every other shape.",
@@ -238,13 +236,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Each correct digit in a row increases your span.",
   },
   stopwatch: {
-    goal: "Stop the marker inside the gold zone three times.",
+    goal: "Stop the marker in the gold zone — five times, each one trickier.",
     how: [
-      { action: "Watch the marker", detail: "sweep across the bar." },
-      { action: "Tap once", detail: "when it reaches the gold zone." },
-      { action: "Each try is faster", detail: "than the one before it." },
+      { action: "Tap to stop it.", detail: "Some sweeps hide at the end; one goes backwards and only counts on its second pass." },
     ],
-    score: "50 + up to 100 for accuracy: 400 ms average error = 50, perfect = 150. Misses count as 800 ms.",
+    score: "Closer to the centre scores more.",
   },
   countup: {
     goal: "Count the matching shapes in three growing fields.",
