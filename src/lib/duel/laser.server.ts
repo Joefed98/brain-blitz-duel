@@ -444,6 +444,7 @@ export function generateLaser(): LaserPuzzleData {
     const splitters = splitterMirrors.map((mirror) => mirror.cell);
     const solution = route.bends.filter((mirror) => !splitters.includes(mirror.cell));
     if (solution.length !== LASER_MAX_MIRRORS) continue;
+    if (new Set(solution.map((mirror) => mirror.kind)).size < 2) continue;
     const bendCells = new Set(route.bends.map((mirror) => mirror.cell));
     const gemPool = route.cells
       .map((cell, index) => ({ cell, index }))

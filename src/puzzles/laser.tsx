@@ -671,8 +671,8 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
               gems={puzzle.gems}
               bombs={puzzle.bombs}
               blocks={puzzle.blocks}
-              splitters={puzzle.splitters}
-              directionalGems={puzzle.directionalGems}
+              splitters={puzzle.splitters ?? []}
+              directionalGems={puzzle.directionalGems ?? []}
               placed={solution}
               beam={solutionTrace.paths}
               litGems={solutionTrace.gemsLit}
@@ -690,8 +690,8 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
               gems={puzzle.gems}
               bombs={puzzle.bombs}
               blocks={puzzle.blocks}
-              splitters={puzzle.splitters}
-              directionalGems={puzzle.directionalGems}
+              splitters={puzzle.splitters ?? []}
+              directionalGems={puzzle.directionalGems ?? []}
               placed={mine.mirrors}
               beam={mine.mirrors.length ? myTrace.paths : null}
               litGems={myTrace.gemsLit}
