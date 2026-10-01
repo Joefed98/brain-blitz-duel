@@ -3,7 +3,7 @@
  * Run with: bun scripts/gravity-chain-intruder-check.ts
  */
 
-import { generateGravity, solutionSwapsOrder } from "../src/lib/duel/gravity.server";
+import { generateGravity } from "../src/lib/duel/gravity.server";
 import { decodeGravityTilts, replayGravity } from "../src/lib/duel/gravity";
 import { generateChain } from "../src/lib/duel/chain.server";
 import {
@@ -27,6 +27,7 @@ import {
   GRAV_FALLBACK_MIN_TILTS,
   GRAV_MAX_TILTS,
   INTRUDER_BOARD_SIZES,
+  INTRUDER_CHANGE_COUNTS,
   INTRUDER_BOARD_COLOUR_COUNTS,
   INTRUDER_BOARD_SHAPE_COUNTS,
 } from "../src/lib/duel/types";
@@ -127,12 +128,12 @@ for (let round = 0; round < ROUNDS; round++) {
 for (let round = 0; round < ROUNDS; round++) {
   const puzzle = generateIntruder();
   const answers = puzzle.answers ?? [];
-  check("intruder three boards", puzzle.boards.length === 3);
-  check("intruder three answers", answers.length === 3);
+  check("intruder five boards", puzzle.boards.length === 5);
+  check("intruder five answers", answers.length === 5);
   let previous: { row: number; col: number } | null = null;
   puzzle.boards.forEach((board, index) => {
     const answer = answers[index]!;
-    check("intruder size escalates", board.size === INTRUDER_BOARD_SIZES[index]);
+    check("intruder board is 3x3", board.size === 3 && board.size === INTRUDER_BOARD_SIZES[index]);
     check(
       "intruder colour palette escalates",
       new Set(board.cells.map((cell) => cell.colour)).size <= INTRUDER_BOARD_COLOUR_COUNTS[index]!,
@@ -145,20 +146,24 @@ for (let round = 0; round < ROUNDS; round++) {
       const after = board.after[i]!;
       return cell.shape !== after.shape || cell.colour !== after.colour || cell.rot !== after.rot;
     });
-    check("intruder exactly one cell changes", differing.length === 1);
-    const before = board.cells[answer.cell]!;
-    const after = board.after[answer.cell]!;
-    check("intruder change kind stored", ["colour", "shape"].includes(answer.kind));
-    if (answer.kind === "colour") {
-      check("intruder colour change is a real change", before.colour !== after.colour);
-      check(
-        "intruder avoids close colour pairs",
-        !intruderColoursTooClose(before.colour, after.colour),
-      );
-    }
-    if (answer.kind === "shape") check("intruder shape change", before.shape !== after.shape);
-    check("intruder does not rotate", before.rot === after.rot);
-    const position = { row: Math.floor(answer.cell / board.size), col: answer.cell % board.size };
+    check("intruder exact change count", differing.length === INTRUDER_CHANGE_COUNTS[index]);
+    check("intruder target cells stored", answer.cells.length === INTRUDER_CHANGE_COUNTS[index]);
+    check("intruder shuffle metadata", index >= 3 ? Boolean(board.offset) : !board.offset);
+    answer.cells.forEach((cell, changedIndex) => {
+      check("intruder target in range", cell >= 0 && cell < 9);
+      const before = board.cells[cell]!;
+      const after = board.after[cell]!;
+      const kind = answer.kinds[changedIndex]!;
+      check("intruder change kind stored", ["colour", "shape"].includes(kind));
+      if (kind === "colour") {
+        check("intruder colour change is a real change", before.colour !== after.colour);
+        check("intruder avoids close colour pairs", !intruderColoursTooClose(before.colour, after.colour));
+      }
+      if (kind === "shape") check("intruder shape change", before.shape !== after.shape);
+      check("intruder does not rotate", before.rot === after.rot);
+    });
+    const lastCell = answer.cells.at(-1)!;
+    const position = { row: Math.floor(lastCell / board.size), col: lastCell % board.size };
     if (previous) {
       check(
         "intruder never the same position twice in a row",

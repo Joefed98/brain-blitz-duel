@@ -1565,7 +1565,7 @@ export interface ChainPuzzleData {
 
 export const INTRUDER_TIME_MS = 65_000;
 export const INTRUDER_BOARDS = 5;
-export const INTRUDER_BOARD_SIZES = [4, 5, 5, 6, 6] as const;
+export const INTRUDER_BOARD_SIZES = [3, 3, 3, 3, 3] as const;
 export const INTRUDER_CHANGE_COUNTS = [1, 1, 2, 2, 2] as const;
 export const INTRUDER_SHOW_MS = [5_000, 5_000, 7_000, 7_000, 7_000] as const;
 export const INTRUDER_HIDE_MS = 1_000;

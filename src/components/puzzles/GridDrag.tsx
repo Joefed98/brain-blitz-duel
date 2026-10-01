@@ -558,10 +558,12 @@ export function ArrowPad({
   onPress,
   disabled = false,
   repeatMs,
+  directions = ["L", "U", "D", "R"],
 }: {
   onPress: (dir: "U" | "D" | "L" | "R") => void;
   disabled?: boolean;
   repeatMs?: number | undefined;
+  directions?: readonly ("U" | "D" | "L" | "R")[];
 }) {
   const press = useRef(onPress);
   press.current = onPress;
@@ -689,10 +691,10 @@ export function ArrowPad({
         </div>
       ) : (
         <div className="absolute left-0 flex items-center gap-4">
-          {button("L", "◀", "Left")}
-          {button("U", "▲", "Up")}
-          {button("D", "▼", "Down")}
-          {button("R", "▶", "Right")}
+          {directions.includes("L") ? button("L", "◀", "Left") : null}
+          {directions.includes("U") ? button("U", "▲", "Up") : null}
+          {directions.includes("D") ? button("D", "▼", "Down") : null}
+          {directions.includes("R") ? button("R", "▶", "Right") : null}
         </div>
       )}
       <button

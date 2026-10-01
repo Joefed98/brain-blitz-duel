@@ -1,5 +1,12 @@
 # Roadmap
 
+## Attention and Pattern tuning (Oct 2)
+- [x] Rebuild Colour Clash as a deterministic 60-second falling-word lane game with recorded steering and drops.
+- [x] Make all five Intruder Detection boards 3×3 without changing stages, timings, or scoring.
+- [x] Guarantee and verify Count Up shape containment and counted-shape visibility.
+- [x] Clarify Laser splitter and directional-gem symbols in the intro, game, and reveal.
+- [x] Run the Colour Clash identity proof and focused generator/geometry checks; no browser tests.
+
 ## Attention and Pattern changes (Oct 1)
 - [x] Rebuild Colour Clash as a deterministic 45-second attention sorting stream with seeded rules, gates, replay grading, and reveal.
 - [x] Expand Intruder Detection to five timed boards with two-change and shuffled-grid stages.

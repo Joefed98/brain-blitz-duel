@@ -53,6 +53,8 @@ interface Props<S, C> {
   tickInput?: (state: S) => PointerPayload | null;
   /** Controls drawn over the canvas (absolute), never shrinking the play area. */
   overlay?: ReactNode;
+  /** Controls below the canvas which can enqueue the same recorded inputs as pointer gestures. */
+  footer?: ((send: (payload: PointerPayload) => void) => ReactNode) | undefined;
   pointer: (kind: "down" | "move" | "up", x: number, y: number) => PointerPayload | null;
   onSubmit: (answer: string) => void;
   onDraftAnswer?: ((answer: string) => void) | undefined;
@@ -249,6 +251,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   };
 
   return (
+    <>
     <div
       ref={wrap}
       data-play-area=""
@@ -284,5 +287,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       />
       {props.overlay}
     </div>
+    {props.footer?.(push)}
+    </>
   );
 }

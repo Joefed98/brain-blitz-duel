@@ -63,6 +63,31 @@ function Gem({ lit }: { lit: boolean }) {
   );
 }
 
+export function directionalChevronPoints(dir: BeamDir): string {
+  if (dir === "R") return "6,8 12,12 6,16";
+  if (dir === "L") return "18,8 12,12 18,16";
+  if (dir === "D") return "8,6 12,12 16,6";
+  return "8,18 12,12 16,18";
+}
+
+function DirectionalGem({ lit, from }: { lit: boolean; from?: BeamDir }) {
+  return (
+    <svg viewBox="0 0 24 24" className="h-full w-full overflow-visible" aria-hidden="true">
+      <g transform="translate(6 6) scale(.5)"><Gem lit={lit} /></g>
+      {from ? <polyline points={directionalChevronPoints(from)} fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" /> : null}
+    </svg>
+  );
+}
+
+function Splitter() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-[90%] w-[90%]" aria-hidden="true">
+      <polygon points="12,1.5 22.5,12 12,22.5 1.5,12" fill="#11282B" stroke="#3DDCBE" strokeWidth="1.8" />
+      <path d="M12 18V12M12 12L7 7M12 12L17 7M7 7L5.5 5.5M17 7L18.5 5.5" fill="none" stroke="#3DDCBE" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /** The arrow head on the source cell, drawn from the stored beam direction. */
 function sourceArrowPoints(x: number, y: number, dir: BeamDir, size: number): string {
   const half = size / 2;
@@ -152,17 +177,17 @@ function LaserBoard({
       >
         {Array.from({ length: cols * rows }, (_, cell) => {
           if (wall.has(cell)) return <div key={cell} className="rounded-md bg-foreground/75" />;
-          if (splitters.includes(cell)) return <div key={cell} aria-label="Splitter" className="flex items-center justify-center rounded-md border-2 border-primary font-bold text-primary">Y</div>;
+          if (splitters.includes(cell)) return <div key={cell} aria-label="Splitter" className="flex items-center justify-center"><Splitter /></div>;
           if (gemSet.has(cell)) {
+            const directional = directionalGems.find((gem) => gem.cell === cell);
             return (
               <div
                 key={cell}
                 aria-label={litSet.has(cell) ? "Gem lit" : "Gem"}
                 className="flex items-center justify-center"
               >
-                <div className="h-[70%] w-[70%]">
-                  <Gem lit={litSet.has(cell)} />
-                  {directionalGems.find((gem) => gem.cell === cell) && <span className="absolute text-xs font-bold text-background">{directionalGems.find((gem) => gem.cell === cell)?.from}</span>}
+                <div className="h-full w-full">
+                  <DirectionalGem lit={litSet.has(cell)} {...(directional ? { from: directional.from } : {})} />
                 </div>
               </div>
             );
@@ -258,16 +283,15 @@ function LaserBoard({
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
-  // A 4x4 example: the beam runs right, turns down, turns left, and passes
-  // through all the gems on the way (the real board uses four; this fixed
-  // example only needs three to make the idea clear).
-  const gems = [2, 7, 14];
-  const bombs = [9];
+  // A fixed splitter example: the beam enters cell 5 and branches up/down.
+  const gems = [1, 9];
+  const bombs = [14];
   const solution: MirrorPlacement[] = [
-    { cell: 3, kind: "\\" },
-    { cell: 15, kind: "/" },
+    { cell: 13, kind: "/" },
   ];
-  const trace = traceBeam(0, "R", solution, [], bombs, gems);
+  const splitters = [5];
+  const directionalGems = [{ cell: 1, from: "U" as const }, { cell: 9, from: "D" as const }];
+  const trace = traceBeam(4, "R", solution, [], bombs, gems, splitters, directionalGems);
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
@@ -277,11 +301,13 @@ function IntroExample() {
         <LaserBoard
           cols={4}
           cells={16}
-          source={0}
+          source={4}
           dir="R"
           gems={gems}
           bombs={bombs}
           blocks={[]}
+          splitters={splitters}
+          directionalGems={directionalGems}
           placed={solution}
           beam={trace.paths}
           litGems={trace.gemsLit}
