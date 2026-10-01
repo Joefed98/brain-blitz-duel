@@ -234,7 +234,7 @@ function Stage({
 }: PuzzleStageProps) {
   const data = puzzle.type === "iceslide" ? puzzle : null;
   const board = useMemo(
-    () => slideBoard(data ?? { walls: [], start: 0, exit: 0 }),
+    () => slideBoard(data ?? { walls: [], holes: [], start: 0, exit: 0 }),
     [data],
   );
   const [moves, setMoves] = useStageState<SlideDir[]>(stateKey, "slideMoves", () => []);
