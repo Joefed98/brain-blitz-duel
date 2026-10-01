@@ -67,6 +67,7 @@ import {
   generateSwing,
   generateTilt,
   generateHotFloor,
+  generateColourClash,
 } from "./arcade.server";
 import { generateTents } from "./tents.server";
 import { generateShikaku } from "./shikaku.server";
@@ -86,6 +87,7 @@ export interface GenerateContext {
 }
 
 export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
+  if (type === "stroop") return generateColourClash();
   if (type === "gonogo") return buildGoNoGo(context.previousGoNoGoFirst ?? null);
   if (type === "wordmatch") return buildWordMatch(context.recentWordMatchWords ?? []);
   if (type === "wordsmith") return generateWordsmith();

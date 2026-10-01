@@ -36,6 +36,7 @@ import type {
   SwingPuzzleData,
   TiltPuzzleData,
   HotFloorPuzzleData,
+  StroopPuzzleData,
 } from "./types";
 
 /** A fresh 32-bit seed from the platform CSPRNG. */
@@ -122,6 +123,10 @@ export function generateRooftop(): RooftopPuzzleData {
 
 export function generateSortRush(): SortRushPuzzleData {
   return { type: "sortrush", seed: arcadeSeed() };
+}
+
+export function generateColourClash(): StroopPuzzleData {
+  return { type: "stroop", seed: arcadeSeed() };
 }
 
 export function generateFlip(): FlipPuzzleData {
