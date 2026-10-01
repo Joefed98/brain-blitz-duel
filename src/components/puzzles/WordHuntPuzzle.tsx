@@ -87,7 +87,8 @@ export function WordHuntBoard({
           />
         )}
       </svg>
-      <div ref={gridRef} className="puzzle-board grid h-full w-full grid-cols-4 gap-2">
+      <div ref={gridRef} className="puzzle-board grid h-full w-full gap-1.5"
+        style={{ gridTemplateColumns: `repeat(${N}, minmax(0, 1fr))` }}>
         {grid.map((letter, cell) => {
           const lit = path.includes(cell);
           return (
@@ -103,7 +104,7 @@ export function WordHuntBoard({
                   : "border-border bg-card text-foreground"
               }`}
               style={{
-                fontSize: "max(10px, calc((100cqw - 24px) / 4 * 0.6))",
+                fontSize: `max(10px, calc((100cqw - ${(N - 1) * 6}px) / ${N} * 0.55))`,
                 lineHeight: 1,
                 touchAction: "none",
               }}
@@ -324,7 +325,8 @@ export function WordHuntPuzzle({
           flash === "good" ? "bg-ok/25" : flash === "bad" ? "bg-warn/25" : "bg-transparent"
         }`}
       >
-        <div className="aspect-square h-auto max-h-full w-auto max-w-full flex-1">
+        {/* Cells stay at least 56 px: five cells plus four 6 px gaps. */}
+        <div className="aspect-square h-auto max-h-full w-auto max-w-full flex-1" style={{ minWidth: N * 56 + (N - 1) * 6, minHeight: N * 56 + (N - 1) * 6 }}>
           <WordHuntBoard
             grid={grid}
             path={path}

@@ -115,7 +115,7 @@ function fill(grid: (string | null)[]): string[] {
   return out;
 }
 
-/** Builds a 4x4 board with at least forty findable words. */
+/** Builds a 5×5 board with at least forty findable words. */
 export function generateWordHunt(): WordHuntPuzzleData {
   const seeds = commonWords().filter((word) => word.length >= 6 && word.length <= 8);
 
