@@ -5,8 +5,8 @@ import { scoreWordsmith } from "@/lib/duel/scoring";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Fixed intro example — never randomised. Centre letter is index 4. */
-const EXAMPLE_TILES = ["C", "H", "A", "M", "O", "P", "I", "N", "S"];
-const EXAMPLE_WORDS = ["CHAMPIONS", "PHONICS", "CHOP", "MOAN"];
+const EXAMPLE_TILES = ["C", "A", "R", "E", "P", "N", "T", "E", "R"];
+const EXAMPLE_WORDS = ["CARPENTER", "PARENT", "CARPET", "REPENT"];
 
 function IntroExample() {
   return (
