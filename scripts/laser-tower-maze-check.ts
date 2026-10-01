@@ -44,6 +44,7 @@ import {
   TOWER_PEGS,
   TOWER_TIME_MS,
 } from "../src/lib/duel/types";
+import { directionalChevronPoints } from "../src/puzzles/laser";
 
 function fail(message: string): never {
   console.error(`FAIL: ${message}`);
@@ -51,6 +52,11 @@ function fail(message: string): never {
 }
 
 /* ------------------------------- Laser ---------------------------------- */
+
+for (const dir of ["U", "D", "L", "R"] as const) {
+  const points = directionalChevronPoints(dir).split(" ").flatMap((point) => point.split(",").map(Number));
+  if (points.some((value) => !Number.isFinite(value) || value < 0 || value > 24)) fail(`directional gem ${dir} chevron leaves its cell`);
+}
 
 for (let index = 0; index < 20; index++) {
   const puzzle = generateLaser();
