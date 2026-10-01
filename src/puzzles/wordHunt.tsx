@@ -5,9 +5,9 @@ import { scoreWordHunt } from "@/lib/duel/scoring";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Fixed intro example — never randomised. */
-const EXAMPLE_GRID = "TAPLENSROIDMCKUG".split("");
+const EXAMPLE_GRID = "TAPLENSROIEMCKUGBEAHWYTRS".split("");
 /** P → A → N → E, through touching letters. */
-const EXAMPLE_PATH = [2, 1, 5, 4];
+const EXAMPLE_PATH = [2, 1, 5, 10];
 const EXAMPLE_FOUND = ["PLANE", "SNARE", "TIDE"];
 
 function IntroExample() {
@@ -17,7 +17,7 @@ function IntroExample() {
         Drag through touching letters to make words. Four letters or more.
       </p>
       <div className="flex items-center gap-4">
-        <WordHuntBoard grid={EXAMPLE_GRID} path={EXAMPLE_PATH} size={128} />
+        <WordHuntBoard grid={EXAMPLE_GRID} path={EXAMPLE_PATH} size={150} />
         <ul className="flex flex-col gap-1">
           {EXAMPLE_FOUND.map((word) => (
             <li

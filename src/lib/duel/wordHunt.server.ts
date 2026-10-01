@@ -143,7 +143,7 @@ export function generateWordHunt(): WordHuntPuzzleData {
   }
 
   // Safety net: a board known to be rich in words.
-  const letters = "TAPLENSROIDMCKUG".split("");
+  const letters = "TAPLENSROIEMCKUGBEAHWYTRS".split("");
   const words = solveBoard(letters);
   const totalPoints = words.reduce((sum, entry) => sum + entry.points, 0);
   return {
