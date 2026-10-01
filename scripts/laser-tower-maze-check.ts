@@ -31,6 +31,7 @@ import {
   LASER_GEMS,
   LASER_MAX_BOMBS,
   LASER_MIN_BOMBS,
+  LASER_MIN_CENTRAL_BLOCKS,
   MAZE_DEAD_END_LENGTH,
   MAZE_LONG_DEAD_END_LENGTH,
   MAZE_MIN_DEAD_ENDS,
@@ -72,7 +73,7 @@ for (let index = 0; index < 20; index++) {
     const col = cell % 10;
     return row >= 2 && row <= 7 && col >= 2 && col <= 7;
   }).length;
-  if (central < 10) fail(`only ${central} blocks in the central 6x6`);
+  if (central < LASER_MIN_CENTRAL_BLOCKS) fail(`only ${central} blocks in the central 6x6`);
   if (puzzle.bombs.length < LASER_MIN_BOMBS || puzzle.bombs.length > LASER_MAX_BOMBS) {
     fail(`laser bomb count ${puzzle.bombs.length}`);
   }
