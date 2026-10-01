@@ -60,7 +60,6 @@ function buildGates(seed: number): { gates: ClashGateChange[]; rng: number } {
     const count = clashLaneCount(tick);
     const previous = gates.at(-1)?.gates ?? first;
     const kept = [...previous];
-    if (count === previous.length) kept.splice(draw(kept.length), 1);
     const pool = Array.from({ length: CLASH_NAMES.length }, (_, index) => index).filter((colour) => !kept.includes(colour));
     while (kept.length < count) kept.push(pool.splice(draw(pool.length), 1)[0]!);
     for (let index = kept.length - 1; index > 0; index -= 1) {

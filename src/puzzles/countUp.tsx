@@ -223,12 +223,12 @@ interface Slot {
 /** Target count range per stage, scaled to the field's size. */
 const STAGE_COUNTS: [number, number][] = [[6, 10], [8, 12], [10, 14]];
 
-const SCENE_W = 343;
-const SCENE_H = 320;
+const SCENE_W = 300;
+const SCENE_H = 260;
 const VISIBILITY_SAMPLES = 17;
 
 function insideScene(item: CountUpShape): boolean {
-  const radius = item.size / 2;
+  const radius = Math.ceil(item.size * Math.SQRT1_2);
   const x = (item.x / 100) * SCENE_W;
   const y = (item.y / 100) * SCENE_H;
   return x - radius >= 0 && x + radius <= SCENE_W && y - radius >= 0 && y + radius <= SCENE_H;
