@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
-import { randInt, random } from "@/lib/duel/random";
+import { pick, randInt, shuffled } from "@/lib/duel/random";
 import {
   REACTION_DECOY_MS,
   REACTION_FALSE_START_MS,
@@ -14,34 +14,54 @@ import {
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Five gold flashes (first after 3 s, 5–12 s apart) plus 2–4 decoys between them. */
+const DECOY_COLOURS = ["teal", "red", "blue"] as const;
+
+/** Five gold flashes, each preceded by 1–3 irregularly spaced seeded decoys. */
 export function buildReaction(): ReactionPuzzleData {
   let flashes: number[] = [];
+  let decoys: ReactionPuzzleData["decoys"] = [];
   for (let attempt = 0; attempt < 1_000; attempt++) {
-    const list = [randInt(3_000, 7_000)];
+    const list = [randInt(5_000, 9_000)];
     while (list.length < REACTION_FLASHES) list.push(list[list.length - 1]! + randInt(5_000, 12_000));
-    if (list[list.length - 1]! + REACTION_FLASH_MS <= REACTION_ROUND_MS - 500) {
-      flashes = list;
-      break;
-    }
-  }
-  if (flashes.length === 0) flashes = [4_000, 12_000, 20_000, 29_000, 38_000];
+    if (list[list.length - 1]! + REACTION_FLASH_MS > REACTION_ROUND_MS - 500) continue;
 
-  // Decoys sit in the gaps, at least 1.5 s clear of any gold flash window.
-  const decoyCount = randInt(2, 4);
-  const gaps = Array.from({ length: REACTION_FLASHES - 1 }, (_, i) => i);
-  const decoys: ReactionPuzzleData["decoys"] = [];
-  const order = gaps.sort(() => random() - 0.5);
-  for (let i = 0; i < 200 && decoys.length < decoyCount; i++) {
-    const gap = order[i % order.length]!;
-    const from = flashes[gap]! + REACTION_FLASH_MS + 1_500;
-    const to = flashes[gap + 1]! - 1_500 - REACTION_DECOY_MS;
-    if (to <= from) continue;
-    const at = randInt(from, to);
-    if (decoys.some((d) => Math.abs(d.at - at) < 2_000)) continue;
-    decoys.push({ at, color: random() < 0.5 ? "teal" : "red" });
+    // Begin at two per flash, then vary to a seeded total of 8–12.
+    const counts = Array.from({ length: REACTION_FLASHES }, () => 2);
+    const target = randInt(8, 12);
+    for (const index of shuffled([0, 1, 2, 3, 4])) {
+      if (counts.reduce((sum, count) => sum + count, 0) === target) break;
+      counts[index] = target < 10 ? 1 : 3;
+    }
+
+    const proposed: ReactionPuzzleData["decoys"] = [];
+    let valid = true;
+    for (let flashIndex = 0; flashIndex < list.length; flashIndex++) {
+      const segmentStart = flashIndex === 0 ? 0 : list[flashIndex - 1]! + REACTION_FLASH_MS;
+      let cursor = list[flashIndex]! - randInt(1_000, 5_000);
+      const backwards: ReactionPuzzleData["decoys"] = [];
+      for (let n = 0; n < counts[flashIndex]!; n++) {
+        if (cursor < segmentStart + 250) {
+          valid = false;
+          break;
+        }
+        backwards.push({ at: cursor, color: pick(DECOY_COLOURS) });
+        cursor -= randInt(1_500, 4_000);
+      }
+      proposed.push(...backwards.reverse());
+      if (!valid) break;
+    }
+    if (!valid) continue;
+    flashes = list;
+    decoys = proposed.sort((a, b) => a.at - b.at);
+    break;
   }
-  decoys.sort((a, b) => a.at - b.at);
+  if (flashes.length === 0) {
+    flashes = [7_000, 16_000, 25_000, 34_000, 43_000];
+    decoys = flashes.flatMap((flash, index) => [
+      { at: flash - 4_500, color: DECOY_COLOURS[index % 3]! },
+      { at: flash - 2_000, color: DECOY_COLOURS[(index + 1) % 3]! },
+    ]);
+  }
   return { type: "reaction", flashes, decoys };
 }
 
@@ -180,7 +200,9 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
       : decoy
         ? decoy.color === "teal"
           ? "bg-opponent"
-          : "bg-destructive"
+          : decoy.color === "red"
+            ? "bg-destructive"
+            : "bg-blue-500"
         : "bg-background";
   const showLast = lastShown && t < lastShown.until;
 
