@@ -51,6 +51,8 @@ export function buildStopWatch(): StopWatchPuzzleData {
   let c2 = c1;
   while (Math.abs(c2 - c1) < 0.2) c2 = randInt(15, 85) / 100;
   const movingAmplitude = Math.min(randInt(12, 20) / 100, c2 - 0.07, 0.93 - c2);
+  const verticalCentre = randInt(68, 78) / 100;
+  const verticalAmplitude = Math.min(randInt(8, 14) / 100, verticalCentre - 0.56, 0.94 - verticalCentre);
   return {
     type: "stopwatch",
     watches: [
@@ -65,12 +67,12 @@ export function buildStopWatch(): StopWatchPuzzleData {
       },
       { centre: randInt(72, 88) / 100, half: 0.06, sweepMs: 1_000, hidden: true, reverse: false },
       {
-        centre: randInt(68, 78) / 100,
+        centre: verticalCentre,
         half: 0.06,
         sweepMs: 1_000,
         hidden: false,
         reverse: false,
-        moving: { amplitude: randInt(8, 14) / 100, cycleMs: 2_000, phase: randInt(0, 99) / 100 },
+        moving: { amplitude: verticalAmplitude, cycleMs: 2_000, phase: randInt(0, 99) / 100 },
         vertical: true,
         passSweepMs: [1_000, 700, 500],
       },
