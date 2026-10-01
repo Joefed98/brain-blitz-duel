@@ -17,7 +17,8 @@ import {
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const SHAPES: GlyphShape[] = ["circle", "square", "triangle", "star"];
+type SceneShape = CountUpShape["shape"];
+const SHAPES: SceneShape[] = ["circle", "square", "triangle", "star", "hexagon"];
 const COLOURS: GlyphColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE", "BROWN"];
 
 /** Colours too alike to tell apart at a glance — never the near-miss pair. */
@@ -31,14 +32,15 @@ function tooClose(a: GlyphColour, b: GlyphColour): boolean {
   return TOO_CLOSE.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 }
 
-const PLURAL: Record<GlyphShape, string> = {
+const PLURAL: Record<SceneShape, string> = {
   circle: "circles",
   square: "squares",
   triangle: "triangles",
   star: "stars",
+  hexagon: "hexagons",
 };
 
-export function countUpQuestion(colour: GlyphColour, shape: GlyphShape): string {
+export function countUpQuestion(colour: GlyphColour, shape: SceneShape): string {
   return `How many ${colour.toLowerCase()} ${PLURAL[shape]}?`;
 }
 
@@ -55,7 +57,7 @@ function Field({
   cols: number;
   rows: number;
   shapes: CountUpShape[];
-  highlight?: { shape: GlyphShape; colour: GlyphColour };
+  highlight?: { shape: SceneShape; colour: GlyphColour };
   height?: number;
   size?: number;
   play?: boolean;
@@ -63,8 +65,8 @@ function Field({
 }) {
   return (
     <div
-       className={`${play ? "grid shrink-0" : "relative w-full"} overflow-hidden rounded-lg border border-border bg-card`}
-       style={play ? { width: (cellSize ?? 0) * cols + 4 * (cols - 1) + 2, height: (cellSize ?? 0) * rows + 4 * (rows - 1) + 2, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`, gap: 4 } : { height }}
+       className="relative w-full overflow-hidden rounded-lg border border-border bg-card"
+       style={{ height: play ? "100%" : height }}
     >
       {shapes.map((item, index) => {
         const lit =
@@ -74,17 +76,14 @@ function Field({
         return (
           <span
             key={index}
-            className={`${play ? "flex min-h-0 min-w-0 items-center justify-center" : "absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"} rounded-full`}
+            className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full"
             style={{
-              ...(play ? {
-                gridColumn: Math.min(cols, Math.floor(item.x * cols / 100) + 1),
-                gridRow: Math.min(rows, Math.floor(item.y * rows / 100) + 1),
-              } : { left: `${item.x}%`, top: `${item.y}%` }),
+              left: `${item.x}%`, top: `${item.y}%`, zIndex: item.layer, transform: `translate(-50%,-50%) rotate(${item.rotation}deg)`,
               padding: lit ? 3 : 0,
               boxShadow: lit ? `inset 0 0 0 2px ${GLYPH_COLOURS.GOLD}` : undefined,
             }}
           >
-            <ShapeGlyph shape={item.shape} colour={item.colour} size={cellSize ? Math.min(size, cellSize - 8) : size} />
+            <ShapeGlyph shape={item.shape === "hexagon" ? "circle" : item.shape} colour={item.colour} size={play ? item.size : Math.min(item.size, size)} />
           </span>
         );
       })}

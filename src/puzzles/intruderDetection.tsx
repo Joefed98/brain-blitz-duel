@@ -5,7 +5,7 @@ import { hapticTick, useGridPointer } from "@/components/puzzles/GridDrag";
 import { decodeIntruderTaps, encodeIntruderTaps } from "@/lib/duel/intruder";
 import { useStageState } from "@/lib/duel/stageState";
 import {
-  INTRUDER_ATTEMPTS,
+  INTRUDER_CHANGE_COUNTS,
   INTRUDER_BOARDS,
   INTRUDER_HIDE_MS,
   INTRUDER_PLAY_MS,
@@ -214,7 +214,7 @@ function Stage({
   // Memorise for five seconds, one blank second, then three seconds to tap.
   useEffect(() => {
     if (phase === "play") return;
-    const wait = phase === "show" ? INTRUDER_SHOW_MS : INTRUDER_HIDE_MS;
+    const wait = phase === "show" ? INTRUDER_SHOW_MS[index]! : INTRUDER_HIDE_MS;
     const timer = setTimeout(() => setPhase(phase === "show" ? "hide" : "play"), wait);
     return () => clearTimeout(timer);
   }, [phase, index, setPhase]);
@@ -231,7 +231,7 @@ function Stage({
       }
       setIndex(index + 1);
       setPhase("show");
-    }, INTRUDER_PLAY_MS);
+    }, INTRUDER_PLAY_MS[index]!);
     return () => clearTimeout(timer);
   }, [phase, index, locked, taps, onSubmit, setIndex, setPhase]);
 
@@ -258,7 +258,7 @@ function Stage({
   const tap = (cell: number) => {
     if (locked || submitted.current || phase !== "play") return;
     const mine = taps[index] ?? [];
-    if (mine.length >= INTRUDER_ATTEMPTS) return;
+    if (mine.length >= INTRUDER_CHANGE_COUNTS[index]!) return;
     const next = taps.map((board_, i) => (i === index ? [...board_, cell] : board_));
     setTaps(next);
     if (cell === answer) {
@@ -271,7 +271,7 @@ function Stage({
     playWrong();
     setWrong(cell);
     setTimeout(() => setWrong(null), 300);
-    if (mine.length + 1 >= INTRUDER_ATTEMPTS) advance(next);
+    if (mine.length + 1 >= INTRUDER_CHANGE_COUNTS[index]!) advance(next);
   };
 
   const showing = phase === "show";
@@ -288,9 +288,9 @@ function Stage({
       </div>
 
       {phase === "play" ? (
-        <DrainBar key={`play-${index}`} ms={INTRUDER_PLAY_MS} className="bg-warn" from="right" />
+        <DrainBar key={`play-${index}`} ms={INTRUDER_PLAY_MS[index]!} className="bg-warn" from="right" />
       ) : showing ? (
-        <DrainBar key={`show-${index}`} ms={INTRUDER_SHOW_MS} className="bg-primary" from="left" />
+        <DrainBar key={`show-${index}`} ms={INTRUDER_SHOW_MS[index]!} className="bg-primary" from="left" />
       ) : (
         <div className="h-1 w-full shrink-0 rounded-full bg-border" />
       )}
