@@ -534,6 +534,11 @@ export function solvedMovesText(moves: number, minMoves: number, msRemaining: nu
   return `Solved · ${moves} moves${minMoves > 0 ? ` (min ${minMoves})` : ""} · +${mb} move bonus · +${sb} speed`;
 }
 
+/** Wordsmith: each word point is worth two round points. */
+export function scoreWordsmith(points: number): number {
+  return clamp(2 * Math.round(points), 0, MAX_ROUND_SCORE);
+}
+
 /** Word rounds: raw word points stay on the play counter; each is worth three round points. */
 export function scoreWordHunt(points: number): number {
   return clamp(3 * Math.round(points), 0, MAX_ROUND_SCORE);

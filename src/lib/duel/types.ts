@@ -881,7 +881,7 @@ export interface MirrorPuzzleData {
 
 export const WORDHUNT_COLS = 5;
 export const WORDHUNT_CELLS = WORDHUNT_COLS * WORDHUNT_COLS;
-export const WORDHUNT_TIME_MS = 60_000;
+export const WORDHUNT_TIME_MS = 120_000;
 export const WORDHUNT_MIN_LENGTH = 4;
 /** A board is only used when the dictionary finds at least this many words. */
 export const WORDHUNT_MIN_WORDS = 40;

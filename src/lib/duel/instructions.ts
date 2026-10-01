@@ -16,10 +16,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Make words from the nine letters — every word must use the centre letter.",
     how: [
       { action: "Four letters or more, each letter once.", detail: "There's always a nine-letter word." },
+      { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine." },
       { action: "Tap or drag through letters", detail: "then Submit, tap the word box or press Enter." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
-    score: "Longer words score more; find the nine-letter word for 15.",
+    score: "Longer words score more; find the nine-letter word for 15. Round score = 2 × word points, up to 150.",
   },
   groups: {
     goal: "Sort all sixteen words into four groups of four.",
@@ -267,7 +268,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Find as many valid words as you can.",
     how: [
       { action: "Drag or tap through letters", detail: "that touch, including diagonally." },
-      { action: "Use four or more letters", detail: "without reusing a tile." },
+      { action: "Use four or more letters", detail: "without reusing a tile. Plurals count." },
       { action: "Release, tap the last letter again, or tap Submit", detail: "to submit each word." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],

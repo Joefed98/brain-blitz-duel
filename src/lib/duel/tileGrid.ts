@@ -7,7 +7,7 @@
 export const TG_SIZE = 7;
 export const TG_CELLS = TG_SIZE * TG_SIZE;
 export const TG_TILES = 15;
-export const TG_TIME_MS = 90_000;
+export const TG_TIME_MS = 120_000;
 export const TG_REVEAL_MS = 8_000;
 
 export interface TileRun {

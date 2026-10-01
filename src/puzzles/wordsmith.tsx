@@ -1,12 +1,12 @@
 import { WordsmithPuzzle } from "@/components/puzzles/WordsmithPuzzle";
 import { wordsmithPoints, type WordsmithPuzzleData } from "@/lib/duel/types";
-import { scoreWordHunt } from "@/lib/duel/scoring";
+import { scoreWordsmith } from "@/lib/duel/scoring";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Fixed intro example — never randomised. Centre letter is index 4. */
-const EXAMPLE_TILES = ["C", "H", "A", "M", "O", "P", "I", "N", "S"];
-const EXAMPLE_WORDS = ["CHAMPIONS", "PHONICS", "CHOP", "MOAN"];
+const EXAMPLE_TILES = ["C", "A", "R", "E", "P", "N", "T", "E", "R"];
+const EXAMPLE_WORDS = ["CARPENTER", "PARENT", "CARPET", "REPENT"];
 
 function IntroExample() {
   return (
@@ -36,7 +36,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">Longer words score more; find the nine-letter word for 15. You have 120 seconds.</p>
+      <p className="text-xs text-muted-foreground">No plurals. Longer words score more; find the nine-letter word for 15. Word points × 2 = round score (max 150). You have 120 seconds.</p>
     </div>
   );
 }
@@ -71,7 +71,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        <span className="text-primary">{points} points × 3 = {scoreWordHunt(points)}</span> · {mine.length} words
+        <span className="text-primary">{points} points × 2 = {scoreWordsmith(points)}</span> · {mine.length} words
       </p>
 
       {mine.length > 0 && (

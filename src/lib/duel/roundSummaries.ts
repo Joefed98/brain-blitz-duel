@@ -512,7 +512,7 @@ function wordsmithSummary(result: RoundResultRow): BuiltDetail {
   const points = typeof result.extra?.["points"] === "number" ? result.extra["points"] : 0;
   if (words.length === 0) return { summary: "No words", detail: [] };
   return {
-    summary: `${points} points × 3 = ${result.score} · ${words.length} words`,
+    summary: `${points} points × 2 = ${result.score} · ${words.length} words`,
     detail: words.map((word) => `${word} (${wordsmithPoints(word)})`),
   };
 }

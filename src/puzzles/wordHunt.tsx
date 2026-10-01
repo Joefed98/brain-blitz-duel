@@ -30,7 +30,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">Word points × 3 = round score (max 150). You have 60 seconds.</p>
+      <p className="text-xs text-muted-foreground">Word points × 3 = round score (max 150). Plurals count. You have 120 seconds.</p>
     </div>
   );
 }
