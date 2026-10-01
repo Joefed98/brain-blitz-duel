@@ -334,6 +334,9 @@ function expectedStroop(item: StroopItem): string {
 
 function stroopSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   const count = result.correct_count ?? 0;
+  if (puzzle.type === "stroop" && "seed" in puzzle) {
+    return { summary: `${count} / 36 · ${Math.max(0, Math.round((150 * count) / 36) - result.score) / 2} wrong`, detail: [] };
+  }
   const taps = (result.answer ?? "").split(",").filter(Boolean);
   const detail =
     puzzle.type === "stroop"

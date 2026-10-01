@@ -58,6 +58,7 @@ import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
+import { replayColourClashRun } from "./colourClash";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
@@ -323,9 +324,11 @@ export function gradeSubmission(
       break;
     }
     case "stroop": {
-      correctCount = clamp(extra.correctCount ?? 0, 0, STROOP_ITEMS);
-      isCorrect = correctCount >= STROOP_ITEMS;
-      score = scoreStroop(correctCount, ms);
+      const replay = replayColourClashRun(puzzle.seed, answer);
+      correctCount = replay.correct;
+      isCorrect = replay.correct >= replay.total;
+      score = replay.score;
+      storedMs = 0;
       break;
     }
     case "mirmatch": {
