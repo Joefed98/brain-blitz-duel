@@ -21,7 +21,7 @@ import { playLock, playWrong } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const GAP = 2;
-const TRAY_TILE = 48;
+const TRAY_TILE = 40;
 
 function MiniGrid({ cells, cell = 20 }: { cells: string[]; cell?: number }) {
   return (
@@ -302,7 +302,7 @@ export const tileGridPuzzle: PuzzleDefinition = {
   category: "word",
   timeLimitMs: TG_TIME_MS,
   revealMs: TG_REVEAL_MS,
-  generate: () => ({ type: "tilegrid", tray: [..."STONEBESBAND"] }) satisfies TileGridPuzzleData,
+  generate: () => ({ type: "tilegrid", tray: [..."PLANETSCOMLEXBN"] }) satisfies TileGridPuzzleData,
   check: () => false,
   revealHeading: "Your grid",
   IntroExample,
