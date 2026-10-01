@@ -829,7 +829,7 @@ export interface CountUpStage {
   cols: number;
   rows: number;
   shapes: CountUpShape[];
-  targetShape: GlyphShape;
+  targetShape: GlyphShape | "hexagon";
   targetColour: GlyphColour;
 }
 

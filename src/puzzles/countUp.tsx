@@ -93,15 +93,15 @@ function Field({
 
 /** Fixed intro example — three gold stars among other shapes, every time. */
 const EXAMPLE_SHAPES: CountUpShape[] = [
-  { shape: "star", colour: "GOLD", x: 18, y: 24 },
-  { shape: "circle", colour: "BLUE", x: 42, y: 18 },
-  { shape: "star", colour: "GOLD", x: 68, y: 34 },
-  { shape: "triangle", colour: "GREEN", x: 84, y: 20 },
-  { shape: "square", colour: "PURPLE", x: 30, y: 58 },
-  { shape: "star", colour: "PINK", x: 54, y: 62 },
-  { shape: "star", colour: "GOLD", x: 78, y: 74 },
-  { shape: "circle", colour: "RED", x: 16, y: 80 },
-  { shape: "triangle", colour: "BLUE", x: 46, y: 84 },
+  { shape: "star", colour: "GOLD", x: 18, y: 24, size: 30, rotation: 5, layer: 1 },
+  { shape: "circle", colour: "BLUE", x: 42, y: 18, size: 38, rotation: 0, layer: 2 },
+  { shape: "star", colour: "GOLD", x: 68, y: 34, size: 32, rotation: 20, layer: 3 },
+  { shape: "triangle", colour: "GREEN", x: 84, y: 20, size: 34, rotation: 18, layer: 4 },
+  { shape: "square", colour: "PURPLE", x: 30, y: 58, size: 42, rotation: 32, layer: 5 },
+  { shape: "star", colour: "PINK", x: 54, y: 62, size: 28, rotation: 8, layer: 6 },
+  { shape: "star", colour: "GOLD", x: 78, y: 74, size: 36, rotation: 28, layer: 7 },
+  { shape: "circle", colour: "RED", x: 16, y: 80, size: 40, rotation: 0, layer: 8 },
+  { shape: "triangle", colour: "BLUE", x: 46, y: 84, size: 32, rotation: 14, layer: 9 },
 ];
 
 function IntroExample() {
@@ -216,14 +216,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 }
 
 interface Slot {
-  shape: GlyphShape;
+  shape: SceneShape;
   colour: GlyphColour;
 }
 
 /** Target count range per stage, scaled to the field's size. */
-const STAGE_COUNTS: [number, number][] = [[3, 5], [5, 9], [6, 12]];
+const STAGE_COUNTS: [number, number][] = [[6, 10], [8, 12], [10, 14]];
 
-function buildStage(cols: number, rows: number, [min, max]: [number, number]): { stage: CountUpStage; count: number } {
+function buildStage(total: number, [min, max]: [number, number]): { stage: CountUpStage; count: number } {
   const targetShape = pick(SHAPES);
   const targetColour = pick(COLOURS);
   const count = randInt(min, max);
@@ -240,7 +240,6 @@ function buildStage(cols: number, rows: number, [min, max]: [number, number]): {
   for (let i = 0; i < nearA; i++) slots.push({ shape: otherShape, colour: targetColour });
   for (let i = 0; i < nearB; i++) slots.push({ shape: targetShape, colour: otherColour });
 
-  const total = cols * rows;
   while (slots.length < total) {
     const shape = pick(SHAPES);
     const colour = pick(COLOURS);
@@ -249,27 +248,21 @@ function buildStage(cols: number, rows: number, [min, max]: [number, number]): {
     slots.push({ shape, colour });
   }
 
-  // One shape per grid cell, jittered inside it, so nothing ever overlaps.
-  const cells = shuffled(Array.from({ length: total }, (_, i) => i));
+  // A dense layered scene. Target instances are kept mostly above later distractors.
   const shapes: CountUpShape[] = shuffled(slots.slice(0, total)).map((slot, index) => {
-    const cell = cells[index]!;
-    const col = cell % cols;
-    const row = Math.floor(cell / cols);
-    const jitterX = (randInt(-16, 16) / 100) * (100 / cols);
-    const jitterY = (randInt(-16, 16) / 100) * (100 / rows);
     return {
       shape: slot.shape,
       colour: slot.colour,
-      x: Number((((col + 0.5) * 100) / cols + jitterX).toFixed(2)),
-      y: Number((((row + 0.5) * 100) / rows + jitterY).toFixed(2)),
+      x: randInt(5, 95), y: randInt(6, 94), size: randInt(28, 64), rotation: randInt(0, 359),
+      layer: slot.shape === targetShape && slot.colour === targetColour ? total + index : index,
     };
   });
 
-  return { stage: { cols, rows, shapes, targetShape, targetColour }, count };
+  return { stage: { cols: 10, rows: 10, shapes, targetShape: targetShape as GlyphShape, targetColour }, count };
 }
 
 export function buildCountUp(): CountUpPuzzleData {
-  const built = COUNTUP_STAGE_SIZES.map(([cols, rows], i) => buildStage(cols, rows, STAGE_COUNTS[i]!));
+  const built = COUNTUP_STAGE_SIZES.map((total, i) => buildStage(total, STAGE_COUNTS[i]!));
   return { type: "countup", stages: built.map((b) => b.stage), counts: built.map((b) => b.count) };
 }
 
