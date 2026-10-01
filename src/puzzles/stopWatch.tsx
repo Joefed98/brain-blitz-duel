@@ -117,15 +117,11 @@ function Bar({
             ? { bottom: `${(spec.centre - spec.half) * 100}%`, height: `${spec.half * 200}%` }
             : { left: `${(spec.centre - spec.half) * 100}%`, width: `${spec.half * 200}%` }
         }
-      />
-      <span
-        className={`absolute rounded-full bg-primary ${vertical ? "inset-x-2 h-[3px]" : "inset-y-2 w-[3px]"}`}
-        style={
-          vertical
-            ? { bottom: `${spec.centre * 100}%`, transform: "translateY(50%)" }
-            : { left: `${spec.centre * 100}%`, transform: "translateX(-50%)" }
-        }
-      />
+      >
+        <span
+          className={`absolute rounded-full bg-primary ${vertical ? "inset-x-2 top-1/2 h-[3px] -translate-y-1/2" : "inset-y-2 left-1/2 w-[3px] -translate-x-1/2"}`}
+        />
+      </span>
       {markerRef ? (
         <span
           ref={markerRef}
