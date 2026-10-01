@@ -65,6 +65,8 @@ for (let index = 0; index < 20; index++) {
     fail(`laser block count ${puzzle.blocks.length}`);
   }
   if (puzzle.gems.length !== LASER_GEMS) fail(`laser gem count ${puzzle.gems.length}`);
+  if ((puzzle.splitters?.length ?? 0) < 1 || (puzzle.splitters?.length ?? 0) > 2) fail("laser splitter count");
+  if (puzzle.directionalGems?.length !== 2) fail("laser directional gem count");
   const central = puzzle.blocks.filter((cell) => {
     const row = Math.floor(cell / 10);
     const col = cell % 10;
@@ -85,6 +87,8 @@ for (let index = 0; index < 20; index++) {
     puzzle.blocks,
     puzzle.bombs,
     puzzle.gems,
+    puzzle.splitters,
+    puzzle.directionalGems,
   );
   if (solved.endCell !== solved.gemsLit[solved.gemsLit.length - 1])
     fail("the beam does not stop on the gem that completes the set");

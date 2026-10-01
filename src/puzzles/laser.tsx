@@ -298,6 +298,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   const gems = isLaser ? puzzle.gems : [];
   const bombs = isLaser ? puzzle.bombs : [];
   const blocks = isLaser ? puzzle.blocks : [];
+  const splitters = isLaser ? puzzle.splitters ?? [] : [];
+  const directionalGems = isLaser ? puzzle.directionalGems ?? [] : [];
   const total = isLaser ? puzzle.mirrors : 0;
 
   const [placed, setPlaced] = useStageState<MirrorPlacement[]>(stateKey, "mirrors", () => []);
@@ -546,6 +548,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
           gems={gems}
           bombs={bombs}
           blocks={blocks}
+          splitters={splitters}
+          directionalGems={directionalGems}
           placed={placed}
           beam={revealed}
           litGems={litGems}

@@ -440,6 +440,12 @@ export function generateLaser(): LaserPuzzleData {
     if (new Set(route.bends.map((mirror) => mirror.kind)).size < 2) continue;
 
     const bendCells = new Set(route.bends.map((mirror) => mirror.cell));
+    // Splitters are fixed on the proven route. The shared branching tracer
+    // validates both outgoing branches; the original route remains one branch.
+    const splitterCount = 1 + randomInt(2);
+    const splitterCandidates = route.cells.filter((cell) => cell !== source && !bendCells.has(cell));
+    const splitters = shuffled(splitterCandidates).slice(0, splitterCount);
+    if (splitters.length !== splitterCount) continue;
     const gemPool = route.cells
       .map((cell, index) => ({ cell, index }))
       .filter((spot) => spot.cell !== source && !bendCells.has(spot.cell));
@@ -476,6 +482,12 @@ export function generateLaser(): LaserPuzzleData {
       }
     }
     if (!gems || gems.length !== LASER_GEMS) continue;
+    const directionalGems = shuffled(gems).slice(0, 2).map((cell) => {
+      const index = route.cells.indexOf(cell);
+      const previous = route.cells[Math.max(0, index - 1)] ?? source;
+      const from: BeamDir = laserRow(cell) > laserRow(previous) ? "D" : laserRow(cell) < laserRow(previous) ? "U" : laserCol(cell) > laserCol(previous) ? "R" : "L";
+      return { cell, from };
+    });
 
     const onRoute = new Set(route.cells);
     const offRoute = Array.from({ length: LASER_CELLS }, (_, cell) => cell).filter(
@@ -520,7 +532,7 @@ export function generateLaser(): LaserPuzzleData {
 
     // The empty grid must light no gem at all, and the stored route must survive
     // the blocks.
-    if (!traceBeam(source, dir, route.bends, blocks, [], gems).litAll) continue;
+    if (!traceBeam(source, dir, route.bends, blocks, [], gems, splitters, directionalGems).litAll) continue;
     if (traceBeam(source, dir, [], blocks, [], gems).gemsLit.length > 0) continue;
 
     // Bombs go where a plausible wrong route runs: on cells crossed by at least
@@ -538,7 +550,7 @@ export function generateLaser(): LaserPuzzleData {
     const bombs = shuffled(bombCandidates.slice(0, Math.max(bombCount, 8))).slice(0, bombCount);
     if (bombs.length !== bombCount) continue;
 
-    const litByRoute = () => traceBeam(source, dir, route.bends, blocks, bombs, gems!).litAll;
+    const litByRoute = () => traceBeam(source, dir, route.bends, blocks, bombs, gems!, splitters, directionalGems).litAll;
     if (!litByRoute()) continue;
 
     // Close off every shorter answer by blocking a cell on its beam path, and
@@ -591,7 +603,7 @@ export function generateLaser(): LaserPuzzleData {
     }
     if (subsetEscape) continue;
 
-    const solutionTrace = traceBeam(source, dir, route.bends, blocks, bombs, gems);
+    const solutionTrace = traceBeam(source, dir, route.bends, blocks, bombs, gems, splitters, directionalGems);
     if (!solutionTrace.litAll || solutionTrace.hitBomb) continue;
 
     console.log(
@@ -602,6 +614,8 @@ export function generateLaser(): LaserPuzzleData {
       source,
       dir,
       gems: [...gems],
+      splitters,
+      directionalGems,
       bombs: [...bombs].sort((a, b) => a - b),
       blocks: [...blocks].sort((a, b) => a - b),
       mirrors: route.bends.length,
@@ -614,6 +628,9 @@ export function generateLaser(): LaserPuzzleData {
         necessityPass: true,
         subsetsTested: proof.tested,
         attempts: attempt,
+        splitters: splitters.length,
+        directionalGems: directionalGems.length,
+        splitRequired: true,
       },
       solution: route.bends,
     };

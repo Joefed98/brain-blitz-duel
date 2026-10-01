@@ -1285,6 +1285,9 @@ export interface LaserStats {
   /** How many mirror placements the exhaustive search traced. */
   subsetsTested: number;
   attempts: number;
+  splitters?: number;
+  directionalGems?: number;
+  splitRequired?: boolean;
 }
 
 export interface LaserPuzzleData {
