@@ -297,8 +297,9 @@ function buildStage(total: number, [min, max]: [number, number]): { stage: Count
     const shapes: CountUpShape[] = shuffled(slots.slice(0, total)).map((slot, index) => {
       const target = slot.shape === targetShape && slot.colour === targetColour;
       const size = randInt(28, 64);
-      const xMargin = Math.ceil((size / 2 / SCENE_W) * 100) + 1;
-      const yMargin = Math.ceil((size / 2 / SCENE_H) * 100) + 1;
+      const bound = Math.ceil(size * Math.SQRT1_2);
+      const xMargin = Math.ceil((bound / SCENE_W) * 100) + 1;
+      const yMargin = Math.ceil((bound / SCENE_H) * 100) + 1;
       return {
         shape: slot.shape,
         colour: slot.colour,
