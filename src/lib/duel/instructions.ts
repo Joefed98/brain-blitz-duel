@@ -330,8 +330,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Slide the ball safely to the exit.",
     how: [
       { action: "Swipe a direction", detail: "to slide until something stops you." },
-      { action: "Follow one-way arrows", detail: "that turn the ball." },
-      { action: "Avoid holes", detail: "or restart from the beginning." },
+      { action: "Follow one-way arrows", detail: "that turn the ball; avoid holes or restart." },
+      { action: "Portals carry you across the board.", detail: "Cracked ice breaks after you cross it once." },
     ],
     score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
   },
@@ -405,13 +405,12 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Defuse fast; a correct opening earns partial credit.",
   },
   gravity: {
-    goal: "Tilt the board so each ball lands on its own colour's target — at the same time.",
+    goal: "Tilt the board to park all four balls on their own targets.",
     how: [
-      { action: "Tap an arrow", detail: "and both balls slide until they hit something." },
-      { action: "Use one ball", detail: "to block the other — they stop against each other." },
-      { action: "Undo or Reset", detail: "if a tilt traps you." },
+      { action: "Every ball slides until it hits something.", detail: "" },
+      { action: "A ball on its target locks and becomes a wall", detail: "— which can help or hurt the others." },
     ],
-    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
+    score: "Fewer tilts is what counts.",
   },
   chain: {
     goal: "Tap the shapes in the order shown, without crossing your own line.",
@@ -480,7 +479,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Turn the rings so every spoke is one colour.",
     how: [
       { action: "Select a ring", detail: "then use the arrow buttons to turn it." },
-      { action: "Rings two and three", detail: "also turn the next ring out." },
+      { action: "Check the legend", detail: "— some rings turn others with them, same way or opposite." },
       { action: "Watch the rim", detail: "for a gold tick on each finished spoke." },
     ],
     score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",

@@ -7,39 +7,40 @@ import { Button } from "@/components/ui/button";
 import {
   decodeGravityTilts,
   encodeGravityTilts,
+  gravityLocked,
   replayGravity,
   type GravityBalls,
 } from "@/lib/duel/gravity";
 import { useStageState } from "@/lib/duel/stageState";
 import { GRAV_COLS, GRAV_TIME_MS, type GravityDir, type GravityPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect } from "@/lib/sound";
+import { playCorrect, playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const TEAL = "#2FD4C4";
-const GOLD = GLYPH_COLOURS.GOLD;
+/** Ball colours in fixed order: gold, teal, purple, pink. */
+const BALL_COLOURS = [GLYPH_COLOURS.GOLD, "#2FD4C4", GLYPH_COLOURS.PURPLE, GLYPH_COLOURS.PINK];
 const ARROWS: Record<GravityDir, string> = { U: "▲", D: "▼", L: "◀", R: "▶", X: "↔", Y: "↕" };
 
-
-/** The board itself: dark blocks, two target rings, and the two balls. */
+/** The board: dark blocks, four target rings (closed when locked) and four balls. */
 function Board({
   data,
   balls,
   lean,
   size,
+  cols = GRAV_COLS,
 }: {
-  data: GravityPuzzleData;
+  data: Pick<GravityPuzzleData, "walls" | "targets">;
   balls: GravityBalls;
-  /** The direction the board leans for 200 ms after a tilt. */
   lean?: GravityDir | null;
   size?: number;
+  cols?: number;
 }) {
   const gridRef = useRef<HTMLDivElement | null>(null);
-  const metrics = useGridMetrics(gridRef, GRAV_COLS, GRAV_COLS);
+  const metrics = useGridMetrics(gridRef, cols, cols);
   const walls = useMemo(() => new Set(data.walls), [data.walls]);
-  const ballSize = metrics ? Math.max(6, Math.min(metrics.cellW, metrics.cellH) * 0.74) : 0;
-
+  const locked = gravityLocked(balls, data.targets);
+  const ballSize = metrics ? Math.max(6, Math.min(metrics.cellW, metrics.cellH) * 0.66) : 0;
   const tiltStyle =
     lean === "U"
       ? "rotateX(6deg)"
@@ -65,21 +66,21 @@ function Board({
       <div
         ref={gridRef}
         className="puzzle-board grid h-full w-full gap-[2px]"
-        style={{ gridTemplateColumns: `repeat(${GRAV_COLS}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
       >
-        {Array.from({ length: GRAV_COLS * GRAV_COLS }, (_, cell) => {
-          const isWall = walls.has(cell);
-          const isTargetA = cell === data.targetA;
-          const isTargetB = cell === data.targetB;
+        {Array.from({ length: cols * cols }, (_, cell) => {
+          const target = data.targets.indexOf(cell);
+          const isLocked = target >= 0 && locked[target];
           return (
             <div
               key={cell}
-              className={`rounded-[3px] ${isWall ? "bg-foreground/80" : "bg-card"}`}
+              className={`rounded-[3px] ${walls.has(cell) ? "bg-foreground/80" : "bg-card"}`}
               style={
-                isTargetA || isTargetB
+                target >= 0
                   ? {
-                      boxShadow: `inset 0 0 0 2px ${isTargetA ? GOLD : TEAL}`,
+                      boxShadow: `inset 0 0 0 ${isLocked ? 4 : 2}px ${BALL_COLOURS[target]}`,
                       borderRadius: "999px",
+                      borderStyle: isLocked ? undefined : "dashed",
                     }
                   : undefined
               }
@@ -89,13 +90,9 @@ function Board({
       </div>
 
       {metrics
-        ? (
-            [
-              { cell: balls.a, colour: GOLD },
-              { cell: balls.b, colour: TEAL },
-            ] as const
-          ).map((ball, index) => {
-            const centre = gridCellCentre(metrics, ball.cell, GRAV_COLS);
+        ? balls.map((cell, index) => {
+            const centre = gridCellCentre(metrics, cell, cols);
+            const colour = BALL_COLOURS[index]!;
             return (
               <span
                 key={index}
@@ -106,8 +103,10 @@ function Board({
                   height: ballSize,
                   left: centre.x - ballSize / 2,
                   top: centre.y - ballSize / 2,
-                  backgroundColor: ball.colour,
-                  boxShadow: `0 0 10px ${ball.colour}80`,
+                  backgroundColor: colour,
+                  boxShadow: locked[index]
+                    ? `0 0 0 3px var(--color-background), 0 0 0 5px ${colour}`
+                    : `0 0 10px ${colour}80`,
                   transition: "left 240ms ease, top 240ms ease",
                 }}
               />
@@ -118,57 +117,47 @@ function Board({
   );
 }
 
-/** Fixed intro example — never randomised. */
+/** Fixed intro example — never randomised. A 5×5 board, one tilt down. */
 function IntroExample() {
-  const example: GravityPuzzleData = {
-    type: "gravity",
-    walls: [18, 21, 42, 45],
-    startA: 0,
-    startB: 7,
-    targetA: 56,
-    targetB: 63,
-  };
+  const example = { walls: [12], targets: [20, 21, 7, 24] };
   return (
     <div className="flex flex-col items-center gap-2">
-      <Board data={example} balls={{ a: 8, b: 15 }} size={132} />
+      <div className="flex items-center gap-3">
+        <Board data={example} balls={[0, 1, 2, 4]} size={104} cols={5} />
+        <span className="font-mono text-xs text-muted-foreground">▼</span>
+        <Board data={example} balls={[20, 21, 7, 24]} size={104} cols={5} />
+      </div>
       <p className="text-center text-xs text-muted-foreground">
-        One tilt down — both balls fall together towards their own rings.
+        One tilt down: gold, teal and pink lock on their rings; purple stops on the block — and
+        it's locked too.
       </p>
     </div>
   );
 }
 
-function Stage({
-  puzzle,
-  locked,
-  onSubmit,
-  onDraftAnswer,
-  stateKey = "gravity",
-}: PuzzleStageProps) {
+function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }: PuzzleStageProps) {
   const data = puzzle.type === "gravity" ? puzzle : null;
   const [tilts, setTilts] = useStageState<GravityDir[]>(stateKey, "gravityTilts", () => []);
   const [lean, setLean] = useStageState<GravityDir | null>(stateKey, "gravityLean", () => null);
   const submitted = useRef(false);
+  const lockSeen = useRef(0);
   const boardSpaceRef = useRef<HTMLDivElement | null>(null);
   const boardSpace = useGridMetrics(boardSpaceRef, 1, 1);
 
   const replay = useMemo(
-    () =>
-      data
-        ? replayGravity(
-            data.walls,
-            { a: data.startA, b: data.startB },
-            data.targetA,
-            data.targetB,
-            tilts,
-          )
-        : null,
+    () => (data ? replayGravity(data.walls, data.starts, data.targets, tilts) : null),
     [data, tilts],
   );
 
   useEffect(() => {
     onDraftAnswer?.(encodeGravityTilts(tilts));
   }, [tilts, onDraftAnswer]);
+
+  useEffect(() => {
+    if (!replay) return;
+    if (replay.locked > lockSeen.current && !replay.solved) playLock();
+    lockSeen.current = replay.locked;
+  }, [replay]);
 
   useEffect(() => {
     if (locked || submitted.current || !replay?.solved) return;
@@ -191,7 +180,8 @@ function Stage({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        tilts <span className="text-primary">{replay.tilts}</span>
+        tilts <span className="text-primary">{replay.tilts}</span> · locked{" "}
+        <span className="text-primary">{replay.locked} / 4</span>
       </p>
 
       <div ref={boardSpaceRef} className="flex min-h-0 flex-1 items-center justify-center">
@@ -205,9 +195,9 @@ function Stage({
         ) : null}
       </div>
 
-       <div className="flex shrink-0 flex-col items-center gap-1">
-         <ArrowPad onPress={press} disabled={locked || replay.solved} />
-         <div className="flex gap-2">
+      <div className="flex shrink-0 flex-col items-center gap-1">
+        <ArrowPad onPress={press} disabled={locked || replay.solved} />
+        <div className="flex gap-2">
           <Button
             type="button"
             variant="outline"
@@ -234,22 +224,13 @@ function Stage({
 
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "gravity") return null;
-  const mine = replayGravity(
-    puzzle.walls,
-    { a: puzzle.startA, b: puzzle.startB },
-    puzzle.targetA,
-    puzzle.targetB,
-    decodeGravityTilts(myAnswer ?? ""),
-  );
+  const mine = replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, decodeGravityTilts(myAnswer ?? ""));
   const best = decodeGravityTilts(puzzle.solution ?? "");
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((GRAV_TIME_MS - myMsRemaining) / 100) / 10;
-
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <Board data={puzzle} balls={mine.balls} size={150} />
       {best.length ? (
-        <p className="font-display text-lg font-bold tracking-widest text-primary">
+        <p className="text-center font-display text-lg font-bold tracking-widest text-primary">
           {best.map((dir) => ARROWS[dir]).join(" ")}
         </p>
       ) : null}
@@ -261,6 +242,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
           tilts{puzzle.minMoves ? ` · min ${puzzle.minMoves}` : ""}
         </span>
       </p>
+      <p className="font-mono text-base text-muted-foreground">{mine.locked} / 4 balls locked</p>
       {myCorrect ? (
         <p className="font-mono text-base text-primary">
           {solvedMovesText(mine.tilts, puzzle.minMoves ?? 0, myMsRemaining, GRAV_TIME_MS)}
@@ -278,14 +260,7 @@ export const gravityMazePuzzle: PuzzleDefinition = {
   timeLimitMs: GRAV_TIME_MS,
   revealMs: 8_000,
   generate: () =>
-    ({
-      type: "gravity",
-      walls: [],
-      startA: 0,
-      startB: 7,
-      targetA: 56,
-      targetB: 63,
-    }) satisfies GravityPuzzleData,
+    ({ type: "gravity", walls: [], starts: [0, 8, 72, 80], targets: [40, 41, 39, 31] }) satisfies GravityPuzzleData,
   check: () => false,
   revealHeading: "The shortest route",
   IntroExample,

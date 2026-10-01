@@ -12,6 +12,9 @@ import {
   freshOffsets,
   replayRings,
   ringColour,
+  ringPattern,
+  RING_RESET,
+  RING_UNDO,
 } from "@/lib/duel/rings";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -34,8 +37,8 @@ function colourOf(index: number): string {
 }
 
 /** Radii, from the outer rim inwards, as a share of the board. */
-const RADII = [0.98, 0.78, 0.58, 0.38];
-const INNER_HOLE = 0.15;
+const RADII = [0.98, 0.82, 0.66, 0.5, 0.34];
+const INNER_HOLE = 0.16;
 
 function arc(cx: number, cy: number, outer: number, inner: number, from: number, to: number) {
   const point = (radius: number, angle: number) => [
@@ -154,54 +157,43 @@ function Rings({
           />
         </g>
       )}
-      {[1, 2].map((ring) => {
-        const y = centre - (radiusOf(ring) + innerOf(ring + 1)) / 2;
-        return (
-          <g key={`link-${ring}`} pointerEvents="none">
-            <ellipse
-              cx={centre - 4}
-              cy={y}
-              rx={5}
-              ry={3.5}
-              fill="var(--color-card)"
-              stroke={GLYPH_COLOURS.GOLD}
-              strokeWidth={1.5}
-            />
-            <ellipse
-              cx={centre + 4}
-              cy={y}
-              rx={5}
-              ry={3.5}
-              fill="var(--color-card)"
-              stroke={GLYPH_COLOURS.GOLD}
-              strokeWidth={1.5}
-            />
-          </g>
-        );
-      })}
       <circle cx={centre} cy={centre} r={half * INNER_HOLE} fill="var(--color-card)" />
     </svg>
   );
 }
 
-const EXAMPLE_SEGMENTS = [
-  [0, 1, 2, 3, 0, 1, 2, 3],
-  [1, 2, 3, 0, 1, 2, 3, 0],
-  [1, 2, 3, 0, 1, 2, 3, 0],
-  [1, 2, 3, 0, 1, 2, 3, 0],
-];
+/** The link legend shown beside the rings. */
+function Legend({ pattern }: { pattern: number }) {
+  return (
+    <ul className="flex flex-col gap-0.5 text-center font-mono text-[11px] leading-tight text-muted-foreground">
+      {ringPattern(pattern).legend.map((line) => (
+        <li key={line}>
+          <span className="text-primary">⛓</span> {line}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
-/** Fixed intro example — one turn brings the rings into line. */
+const EXAMPLE_ROW = [0, 1, 2, 3, 0, 1, 2, 3];
+const EXAMPLE_PATTERN = 0;
+/** Ring 2 is a turn behind, so is ring 4 (in the other direction) — one tap on ring 2 fixes both. */
+const EXAMPLE_SEGMENTS = [0, 1, 0, 7, 0].map((offset) =>
+  EXAMPLE_ROW.map((_c, index) => EXAMPLE_ROW[(index + offset) % 8]!),
+);
+
+/** Fixed intro example — one linked turn brings the rings into line. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <div className="flex items-center gap-3">
-        <Rings segments={EXAMPLE_SEGMENTS} offsets={[0, 0, 0, 0]} size={82} />
+        <Rings segments={EXAMPLE_SEGMENTS} offsets={[0, 0, 0, 0, 0]} size={86} />
         <span className="font-mono text-xs text-muted-foreground">→</span>
-        <Rings segments={EXAMPLE_SEGMENTS} offsets={[1, 0, 0, 0]} size={82} />
+        <Rings segments={EXAMPLE_SEGMENTS} offsets={[0, 7, 0, 1, 0]} size={86} />
       </div>
+      <Legend pattern={EXAMPLE_PATTERN} />
       <p className="text-center text-xs text-muted-foreground">
-        One turn of the inner ring and every spoke is a single colour.
+        One turn of ring 2 also turns ring 4 the other way — and every spoke is one colour.
       </p>
     </div>
   );
@@ -220,7 +212,7 @@ function Stage({
   const [taps, setTaps] = useStageState<number[]>(stateKey, "ringTaps", () => []);
   const [selectedRing, setSelectedRing] = useState(0);
   const submitted = useRef(false);
-  const replay = useMemo(() => (data ? replayRings(data.segments, taps) : null), [data, taps]);
+  const replay = useMemo(() => (data ? replayRings(data.segments, data.pattern, taps) : null), [data, taps]);
 
   useEffect(() => {
     onDraftAnswer?.(encodeRingTaps(taps));
@@ -235,12 +227,18 @@ function Stage({
 
   if (!data || !replay) return null;
 
+  const control = (code: number) => {
+    if (locked || submitted.current || replay.solved || !taps.length) return;
+    hapticTick();
+    setTaps([...taps, code]);
+  };
+
   const turn = (ring: number, clockwise: boolean) => {
     if (locked || submitted.current || replay.solved) return;
     hapticTick();
     const next = [...taps, encodeRingTap(ring, clockwise)];
     setTaps(next);
-    const after = replayRings(data.segments, next);
+    const after = replayRings(data.segments, data.pattern, next);
     if (after.solved) {
       submitted.current = true;
       playLock();
@@ -251,8 +249,9 @@ function Stage({
   };
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-3 pt-3">
-      <div className="aspect-square w-[calc(100%-24px)] max-w-[351px] shrink-0 [&>svg]:h-full [&>svg]:w-full">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 pt-1">
+      <Legend pattern={data.pattern} />
+      <div className="aspect-square min-h-0 w-[calc(100%-24px)] max-w-[320px] flex-1 [&>svg]:h-full [&>svg]:w-full" style={{ maxHeight: "min(320px, 100%)" }}>
         <Rings
           segments={data.segments}
           offsets={replay.offsets}
@@ -288,19 +287,39 @@ function Stage({
           ↻
         </Button>
       </div>
+      <div className="flex shrink-0 gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={locked || !taps.length}
+          onClick={() => control(RING_UNDO)}
+          className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
+        >
+          Undo
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={locked || !taps.length}
+          onClick={() => control(RING_RESET)}
+          className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
+        >
+          Reset
+        </Button>
+      </div>
     </div>
   );
 }
 
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "rings") return null;
-  const replay = replayRings(puzzle.segments, decodeRingTaps(myAnswer ?? ""));
+  const replay = replayRings(puzzle.segments, puzzle.pattern, decodeRingTaps(myAnswer ?? ""));
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((RINGS_TIME_MS - myMsRemaining) / 100) / 10;
   const min = puzzle.minMoves ?? 0;
   const solvedOffsets = replay.solved
     ? replay.offsets
-    : replayRings(puzzle.segments, puzzle.solution ?? []).offsets;
+    : replayRings(puzzle.segments, puzzle.pattern, puzzle.solution ?? []).offsets;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -338,6 +357,7 @@ export const rotatingRingsPuzzle: PuzzleDefinition = {
   generate: () =>
     ({
       type: "rings",
+      pattern: 0,
       segments: Array.from({ length: RINGS_COUNT }, () =>
         Array.from({ length: RINGS_SEGMENTS }, (_v, index) => index % RINGS_COLOURS),
       ),

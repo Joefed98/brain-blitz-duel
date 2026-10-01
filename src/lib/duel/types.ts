@@ -1097,10 +1097,10 @@ export interface FlowPuzzleData {
 
 export const SLIDE_COLS = 12;
 export const SLIDE_CELLS = SLIDE_COLS * SLIDE_COLS;
-export const SLIDE_TIME_MS = 75_000;
+export const SLIDE_TIME_MS = 90_000;
 export const SLIDE_MIN_WALLS = 30;
 export const SLIDE_MAX_WALLS = 44;
-export const SLIDE_MIN_MOVES = 20;
+export const SLIDE_MIN_MOVES = 18;
 export const SLIDE_MAX_MOVES = 26;
 /** The exit may not be within this many slides of the start. */
 export const SLIDE_EASY_MOVES = 8;
@@ -1117,6 +1117,12 @@ export const SLIDE_MIN_MOVE_BONUS = 20;
 /** Consolation for stopping within two slides of the exit. */
 export const SLIDE_NEAR_POINTS = 30;
 export const SLIDE_NEAR_MOVES = 2;
+/** Portal pairs: a ball entering one leaves its twin, same heading. */
+export const SLIDE_MIN_PORTALS = 1;
+export const SLIDE_MAX_PORTALS = 2;
+/** Thin ice: crossing one turns it into a hole for every later slide. */
+export const SLIDE_MIN_THIN = 3;
+export const SLIDE_MAX_THIN = 5;
 
 /** Up, down, left, right — the only four directions a slide can take. */
 export type SlideDir = "U" | "D" | "L" | "R" | "X" | "Y";
@@ -1150,6 +1156,10 @@ export interface SlidePuzzleData {
   start: number;
   /** The gold gap in the border. */
   exit: number;
+  /** Portal pairs, each entered from either end. */
+  portals?: [number, number][];
+  /** Thin-ice cells, in bit order for the broken-ice mask. */
+  thin?: number[];
   /** Generator figures for the dev readout. */
   stats?: SlideStats;
   /** Server-side only: the fewest slides the layout needs. */
@@ -1457,22 +1467,18 @@ export interface BombPuzzleData {
 /* ============================= Gravity Maze ============================= */
 
 export const GRAV_TIME_MS = 90_000;
-export const GRAV_COLS = 10;
+export const GRAV_COLS = 9;
 export const GRAV_CELLS = GRAV_COLS * GRAV_COLS;
-export const GRAV_MIN_WALLS = 20;
-export const GRAV_MAX_WALLS = 32;
+export const GRAV_BALLS = 4;
+export const GRAV_MIN_WALLS = 14;
+export const GRAV_MAX_WALLS = 22;
 /** The searched joint-state minimum has to land in this band. */
-export const GRAV_MIN_TILTS = 20;
-export const GRAV_MAX_TILTS = 26;
-/** Attempts before the generator eases the minimum and logs the fallback. */
-export const GRAV_ATTEMPTS = 200;
-export const GRAV_FALLBACK_MIN_TILTS = 16;
-/** Neither ball may reach its own target alone in fewer tilts than this. */
-export const GRAV_SOLO_MIN_TILTS = 3;
-/** Bonus for solving in the fewest possible tilts. */
-export const GRAV_MIN_MOVE_BONUS = 20;
-/** One ball parked on its target when the clock runs out. */
-export const GRAV_PARTIAL_POINTS = 30;
+export const GRAV_MIN_TILTS = 8;
+export const GRAV_MAX_TILTS = 14;
+/** The joint search gives up (and the board is re-rolled) past this many states. */
+export const GRAV_NODE_CAP = 400_000;
+/** Points per locked ball when the board is not finished. */
+export const GRAV_LOCK_POINTS = 25;
 
 export type GravityDir = "U" | "D" | "L" | "R" | "X" | "Y";
 
@@ -1480,10 +1486,10 @@ export interface GravityPuzzleData {
   type: "gravity";
   /** Dark blocks the balls cannot enter. */
   walls: number[];
-  startA: number;
-  startB: number;
-  targetA: number;
-  targetB: number;
+  /** Start square per ball: gold, teal, purple, pink. */
+  starts: number[];
+  /** Target square per ball, same order. */
+  targets: number[];
   /** Server-side only: the searched minimum number of tilts. */
   minMoves?: number;
   /** Server-side only: one shortest tilt list, as `URDL`. */
@@ -1715,26 +1721,23 @@ export interface TilesPuzzleData {
 
 /* ============================ Rotating Rings ============================ */
 
-export const RINGS_TIME_MS = 45_000;
-export const RINGS_COUNT = 4;
+export const RINGS_TIME_MS = 60_000;
+export const RINGS_COUNT = 5;
 export const RINGS_SEGMENTS = 8;
 export const RINGS_COLOURS = 4;
 export const RINGS_MIN_SCRAMBLE = 8;
 export const RINGS_MAX_SCRAMBLE = 14;
-export const RINGS_MIN_TURNS = 6;
-export const RINGS_MAX_TURNS = 10;
+export const RINGS_MIN_TURNS = 7;
+export const RINGS_MAX_TURNS = 12;
 export const RINGS_MIN_BONUS = 20;
 export const RINGS_PARTIAL_POINTS = 60;
 export const RINGS_TURN_MS = 150;
 export const RINGS_ATTEMPTS = 600;
-/** Ring 0 is innermost. Ring 1 drags 2; ring 2 drags 3. */
-export const RINGS_LINKS: ReadonlyArray<readonly [number, number]> = [
-  [1, 2],
-  [2, 3],
-];
 
 export interface RingsPuzzleData {
   type: "rings";
+  /** Index into the shared link-pattern bank (shown as the legend). */
+  pattern: number;
   /** Colour index per segment, per ring, as the round starts. */
   segments: number[][];
   /** Server-side only: the exact minimum number of taps. */

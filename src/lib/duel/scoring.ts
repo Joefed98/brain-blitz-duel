@@ -54,6 +54,7 @@ import {
   TUBES_MIN_MOVE_BONUS,
   TUBES_TIME_MS,
   GRAV_TIME_MS,
+  GRAV_LOCK_POINTS,
   CHAIN_ERROR_PENALTY,
   CHAIN_LENGTH,
   CHAIN_PARTIAL_POINTS,
@@ -767,14 +768,13 @@ export function scoreGravity(
   tilts: number,
   minMoves: number,
   msRemaining: number,
-  onTarget: number,
-  progress = 0,
+  locked: number,
 ): number {
   if (solved) {
     return scoreSolvedMoves(tilts, minMoves, msRemaining, GRAV_TIME_MS);
   }
-  const partial = Math.round(70 * clamp(progress, 0, 1));
-  return clamp(Math.max(partial, onTarget >= 1 ? 40 : 0), 0, 70);
+  // Not finished: 25 per locked ball, so at most 75 with three locked.
+  return clamp(GRAV_LOCK_POINTS * clamp(locked, 0, 3), 0, 3 * GRAV_LOCK_POINTS);
 }
 
 /** Don't Break the Chain: fifteen in a row, less ten a mistake. */
