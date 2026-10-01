@@ -37,6 +37,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   spatial: [],
   reaction: [],
   gonogo: [],
+  // The seed draws the stream; submitted swipes are replayed on the server.
   stroop: [],
   numhunt: [],
   numclimb: ["answerDigits"],

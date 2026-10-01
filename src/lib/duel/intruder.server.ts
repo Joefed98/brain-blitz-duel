@@ -11,6 +11,7 @@ import {
   INTRUDER_BOARD_SIZES,
   INTRUDER_BOARD_COLOUR_COUNTS,
   INTRUDER_BOARD_SHAPE_COUNTS,
+  INTRUDER_CHANGE_COUNTS,
   INTRUDER_COLOURS,
   INTRUDER_SHAPES,
   type IntruderAnswer,
@@ -61,22 +62,19 @@ export function generateIntruder(): IntruderPuzzleData {
     const shapes = INTRUDER_SHAPES.slice(0, INTRUDER_BOARD_SHAPE_COUNTS[boardIndex]);
     const count = size * size;
     const cells = Array.from({ length: count }, () => randomCell(colours, shapes));
-    let target = randomBelow(count);
+    const targets: number[] = [];
 
     // The changed cell never sits in the same row and column twice in a row.
-    for (let guard = 0; guard < 200; guard++) {
-      const row = Math.floor(target / size);
-      const col = target % size;
-      if (!previous || previous.row !== row || previous.col !== col) break;
-      target = randomBelow(count);
+    while (targets.length < INTRUDER_CHANGE_COUNTS[boardIndex]!) {
+      const target = randomBelow(count); const row = Math.floor(target / size); const col = target % size;
+      if (targets.includes(target) || (previous && previous.row === row && previous.col === col)) continue;
+      targets.push(target);
     }
-
-    const changed = changeCell(cells[target]!, colours, shapes);
-
-    const after = cells.map((cell, index) => (index === target ? changed.cell : cell));
-    boards.push({ size, cells, after });
-    answers.push({ cell: target, kind: changed.kind });
-    previous = { row: Math.floor(target / size), col: target % size };
+    const kinds: IntruderChangeKind[] = []; const after = cells.slice();
+    for (const target of targets) { const changed = changeCell(cells[target]!, colours, shapes); after[target] = changed.cell; kinds.push(changed.kind); }
+    const offset = boardIndex >= 3 ? pick(["left", "right", "up", "down"] as const) : undefined;
+    boards.push({ size, cells, after, ...(offset ? { offset } : {}) }); answers.push({ cells: targets, kinds });
+    const last = targets.at(-1)!; previous = { row: Math.floor(last / size), col: last % size };
   }
 
   return { type: "intruder", boards, answers };

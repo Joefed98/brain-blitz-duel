@@ -250,8 +250,8 @@ function Stage({
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 pt-1">
-      <Legend pattern={data.pattern} />
-      <div className="aspect-square min-h-0 w-[calc(100%-24px)] max-w-[320px] flex-1 [&>svg]:h-full [&>svg]:w-full" style={{ maxHeight: "min(320px, 100%)" }}>
+      <div className="flex h-7 shrink-0 items-center justify-center overflow-hidden [&>*]:scale-90"><Legend pattern={data.pattern} /></div>
+      <div className="aspect-square min-h-0 w-[calc(100%-32px)] flex-1 [&>svg]:h-full [&>svg]:w-full" style={{ maxWidth: "min(calc(100vw - 32px), calc(100dvh - 292px))", maxHeight: "min(calc(100vw - 32px), calc(100dvh - 292px))" }}>
         <Rings
           segments={data.segments}
           offsets={replay.offsets}
@@ -267,12 +267,14 @@ function Stage({
           {replay.aligned} / {RINGS_SEGMENTS}
         </span>
       </p>
-      <div className="grid w-full max-w-64 shrink-0 grid-cols-2 gap-3">
+      <div className="grid h-[52px] w-full shrink-0 grid-cols-4 gap-2">
+        <Button type="button" variant="outline" disabled={locked || !taps.length} onClick={() => control(RING_UNDO)} className="h-[52px] rounded-xl px-1 font-mono text-[11px] uppercase">Undo</Button>
+        <Button type="button" variant="outline" disabled={locked || !taps.length} onClick={() => control(RING_RESET)} className="h-[52px] rounded-xl px-1 font-mono text-[11px] uppercase">Reset</Button>
         <Button
           type="button"
           variant="outline"
           aria-label="Rotate selected ring anticlockwise"
-          className="h-14 text-3xl"
+          className="h-[52px] text-2xl"
           onClick={() => turn(selectedRing, false)}
         >
           ↺
@@ -281,30 +283,10 @@ function Stage({
           type="button"
           variant="outline"
           aria-label="Rotate selected ring clockwise"
-          className="h-14 text-3xl"
+          className="h-[52px] text-2xl"
           onClick={() => turn(selectedRing, true)}
         >
           ↻
-        </Button>
-      </div>
-      <div className="flex shrink-0 gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={locked || !taps.length}
-          onClick={() => control(RING_UNDO)}
-          className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
-        >
-          Undo
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={locked || !taps.length}
-          onClick={() => control(RING_RESET)}
-          className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
-        >
-          Reset
         </Button>
       </div>
     </div>

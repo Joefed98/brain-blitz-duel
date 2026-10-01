@@ -81,6 +81,8 @@ import { encodeTiltRun, replayTiltRun } from "@/lib/duel/tilt";
 import { hotfloorCheckpoint, hotFloorGame } from "@/lib/arcade/hotFloor";
 import { encodeHotFloorRun, replayHotFloorRun } from "@/lib/duel/hotFloor";
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
+import { clashCheckpoint, colourClashGame } from "@/lib/arcade/colourClash";
+import { encodeColourClashRun, replayColourClashRun } from "@/lib/duel/colourClash";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const RUNS = Number(process.argv[2] ?? 40);
@@ -288,6 +290,7 @@ const GAMES: Game[] = [
   { key: "swing", game: swingGame, checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: replaySwingRun },
   { key: "tilt", game: tiltGame, checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: replayTiltRun },
   { key: "hotfloor", game: hotFloorGame, checkpoint: hotfloorCheckpoint, mode: "events", rate: 60, encode: encodeHotFloorRun, replay: replayHotFloorRun },
+  { key: "stroop", game: colourClashGame, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: replayColourClashRun },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

@@ -801,10 +801,8 @@ export function scoreChain(
 
 /** Intruder Detection: a share per grid, and the speed bonus only for a clean sweep. */
 export function scoreIntruder(correct: number, allFirstTry: boolean, msRemaining: number): number {
-  const base = Math.round((BASE_POINTS * clamp(correct, 0, INTRUDER_BOARDS)) / INTRUDER_BOARDS);
-  const bonus =
-    correct >= INTRUDER_BOARDS && allFirstTry ? speedBonus(msRemaining, INTRUDER_TIME_MS) : 0;
-  return Math.min(allFirstTry && correct >= INTRUDER_BOARDS ? MAX_ROUND_SCORE : 90, base + bonus);
+  const bonus = allFirstTry ? Math.round(50 * clamp(msRemaining, 0, INTRUDER_TIME_MS) / INTRUDER_TIME_MS) : 0;
+  return Math.min(MAX_ROUND_SCORE, clamp(correct, 0, 100) + bonus);
 }
 
 /** Nonogram: the whole picture scores; a part-filled grid loses five a mistake. */

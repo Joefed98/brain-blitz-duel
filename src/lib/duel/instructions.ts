@@ -166,13 +166,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Faster = more points. Wrong taps cost points. How far you got still scores.",
   },
   stroop: {
-    goal: "Choose the colour requested in every prompt.",
+    goal: "Sort the words by their ink or by what they say — whichever the banner tells you.",
     how: [
-      { action: "Read the instruction", detail: "above the colour word." },
-      { action: "Tap the matching swatch", detail: "not automatically the written word." },
-      { action: "Answer all twelve", detail: "before time runs out." },
+      { action: "Swipe left or right", detail: "into the matching gate." },
+      { action: "Watch the banner", detail: "because the rule flips." },
+      { action: "Swipe down later", detail: "when the middle gate appears." },
     ],
-    score: "More correct = more points. Perfect = speed bonus.",
+    score: "Points for the share you sort right; wrong gates cost 2.",
   },
   symscan: {
     goal: "Find every matching arrow in three growing grids.",
@@ -246,11 +246,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Closer to the centre scores more.",
   },
   countup: {
-    goal: "Count the matching shapes in three growing fields.",
+    goal: "Count the matching shapes in three crowded scenes.",
     how: [
       { action: "Read the question", detail: "— each field asks for a new shape and colour." },
       { action: "Type the total", detail: "on the keypad; ENTER moves to the next field." },
-      { action: "Three fields", detail: "share 20 seconds." },
+      { action: "Three scenes", detail: "share 45 seconds." },
     ],
     score: "Exact counts score most, near misses score some; all three exact for the time bonus.",
   },
@@ -350,6 +350,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag mirrors", detail: "onto the grid — all nine are needed." },
       { action: "Tap a mirror", detail: "to flip it." },
       { action: "Tap FIRE", detail: "to shoot — you get three shots and must avoid bombs." },
+      { action: "Follow special tiles", detail: "— splitters divide the beam. Gems with an arrow only light from that side." },
     ],
     score: "Faster = more points. Fewer shots = bonus. Each gem lit still scores.",
   },
@@ -422,13 +423,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fifteen links, fast, no mistakes. Part-built chains still score.",
   },
   intruder: {
-    goal: "One thing changes. Find it.",
+    goal: "Find everything that changed.",
     how: [
-      { action: "Memorise the grid", detail: "in the five seconds it is shown." },
-      { action: "One tap only", detail: "on the changed cell, within three seconds." },
-      { action: "Three grids", detail: "with more shapes and colours each time." },
+      { action: "Memorise each grid", detail: "before it disappears." },
+      { action: "Tap every change", detail: "— later boards contain two." },
+      { action: "Five grids", detail: "grow and the last two shift position." },
     ],
-    score: "All three right for the speed bonus.",
+    score: "20 per fully solved board; one of two changes earns 10. All five for the speed bonus.",
   },
   nonogram: {
     goal: "Fill the grid so every row and column matches its numbers.",

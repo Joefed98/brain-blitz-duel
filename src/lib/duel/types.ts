@@ -282,7 +282,8 @@ export interface StroopItem {
 
 export interface StroopPuzzleData {
   type: "stroop";
-  items: StroopItem[];
+  /** Draws the full sorting stream — identical for everyone. */
+  seed: number;
 }
 
 export interface SpatialPuzzleData {
@@ -814,18 +815,21 @@ export const STOPWATCH_MAX_DIST_MS = 400;
 /* -------------------------------------------------------------------------- */
 
 export interface CountUpShape {
-  shape: GlyphShape;
+  shape: GlyphShape | "hexagon";
   colour: GlyphColour;
   /** Percentages of the field's width and height. */
   x: number;
   y: number;
+  size: number;
+  rotation: number;
+  layer: number;
 }
 
 export interface CountUpStage {
   cols: number;
   rows: number;
   shapes: CountUpShape[];
-  targetShape: GlyphShape;
+  targetShape: GlyphShape | "hexagon";
   targetColour: GlyphColour;
 }
 
@@ -837,15 +841,15 @@ export interface CountUpPuzzleData {
   counts?: number[];
 }
 
-export const COUNTUP_STAGE_SIZES: [number, number][] = [[5, 4], [7, 6], [8, 6]];
+export const COUNTUP_STAGE_SIZES = [50, 80, 110] as const;
 export const STAGE_WEIGHTS_3 = [30, 35, 35] as const;
 
 /** The field fills a short phone's measured play area without cropping its edges. */
 export const COUNTUP_COLS = 8;
 export const COUNTUP_ROWS = 6;
-export const COUNTUP_TIME_MS = 20_000;
-export const COUNTUP_MIN_SHAPES = COUNTUP_COLS * COUNTUP_ROWS;
-export const COUNTUP_MAX_SHAPES = COUNTUP_COLS * COUNTUP_ROWS;
+export const COUNTUP_TIME_MS = 45_000;
+export const COUNTUP_MIN_SHAPES = 50;
+export const COUNTUP_MAX_SHAPES = 110;
 export const COUNTUP_MIN_COUNT = 6;
 export const COUNTUP_MAX_COUNT = 12;
 
@@ -1291,6 +1295,10 @@ export interface LaserPuzzleData {
   dir: BeamDir;
   /** The three gems one beam must pass through, in any order. */
   gems: number[];
+  /** Two gems only light when entered with this heading. */
+  directionalGems?: { cell: number; from: BeamDir }[];
+  /** Fixed blocks that branch an incoming beam into both perpendicular headings. */
+  splitters?: number[];
   /** Bombs: touching one ends the shot at once. */
   bombs: number[];
   /** Cells the beam cannot pass. */
@@ -1552,22 +1560,18 @@ export interface ChainPuzzleData {
 
 /* ========================= Intruder Detection =========================== */
 
-export const INTRUDER_TIME_MS = 30_000;
-export const INTRUDER_BOARDS = 3;
-/** All three boards use the same compact grid; content complexity rises. */
-export const INTRUDER_BOARD_SIZES = [3, 3, 3] as const;
-/** How long the grid is on show before it vanishes. */
-export const INTRUDER_SHOW_MS = 5_000;
+export const INTRUDER_TIME_MS = 65_000;
+export const INTRUDER_BOARDS = 5;
+export const INTRUDER_BOARD_SIZES = [4, 5, 5, 6, 6] as const;
+export const INTRUDER_CHANGE_COUNTS = [1, 1, 2, 2, 2] as const;
+export const INTRUDER_SHOW_MS = [5_000, 5_000, 7_000, 7_000, 7_000] as const;
 export const INTRUDER_HIDE_MS = 1_000;
-/** The changed grid is on screen for this long, and the player has one tap. */
-export const INTRUDER_PLAY_MS = 3_000;
-/** Taps allowed per board. */
-export const INTRUDER_ATTEMPTS = 1;
+export const INTRUDER_PLAY_MS = [3_000, 3_000, 5_000, 5_000, 5_000] as const;
 
 export const INTRUDER_SHAPES = ["circle", "square", "triangle", "star"] as const;
 export const INTRUDER_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "YELLOW", "ORANGE"];
-export const INTRUDER_BOARD_COLOUR_COUNTS = [3, 4, 5] as const;
-export const INTRUDER_BOARD_SHAPE_COUNTS = [2, 3, 4] as const;
+export const INTRUDER_BOARD_COLOUR_COUNTS = [3, 4, 4, 5, 5] as const;
+export const INTRUDER_BOARD_SHAPE_COUNTS = [2, 3, 4, 4, 4] as const;
 
 export type IntruderShape = (typeof INTRUDER_SHAPES)[number];
 export type IntruderChangeKind = "colour" | "shape";
@@ -1585,11 +1589,13 @@ export interface IntruderBoard {
   cells: IntruderCell[];
   /** The grid as shown again, with exactly one cell different. */
   after: IntruderCell[];
+  /** Half-cell visual shift applied to the second view. */
+  offset?: "left" | "right" | "up" | "down";
 }
 
 export interface IntruderAnswer {
-  cell: number;
-  kind: IntruderChangeKind;
+  cells: number[];
+  kinds: IntruderChangeKind[];
 }
 
 export interface IntruderPuzzleData {

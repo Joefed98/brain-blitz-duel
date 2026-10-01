@@ -1,63 +1,11 @@
-/**
- * Intruder Detection rules: three grids in one round, each shown, hidden, then
- * shown again with exactly one cell different. Which cell changed — and how —
- * lives in the private secrets row, and the same grading runs on the server.
- */
-
-import { INTRUDER_ATTEMPTS, INTRUDER_BOARDS, type IntruderAnswer } from "./types";
-
-/** Colour pairs too close to tell apart in a second, never used as a change. */
-export const INTRUDER_CLOSE_PAIRS: [string, string][] = [
-  ["RED", "ORANGE"],
-  ["ORANGE", "BROWN"],
-  ["BLUE", "PURPLE"],
-];
-
-export function intruderColoursTooClose(a: string, b: string): boolean {
-  return INTRUDER_CLOSE_PAIRS.some(
-    ([one, two]) => (one === a && two === b) || (one === b && two === a),
-  );
-}
-
-/** One entry per board: the cells that board was tapped on, in order. */
-export function encodeIntruderTaps(taps: number[][]): string {
-  return taps.map((board) => board.join(",")).join("|");
-}
-
-export function decodeIntruderTaps(raw: string): number[][] {
-  const boards = String(raw ?? "").split("|");
-  const out: number[][] = [];
-  for (let index = 0; index < INTRUDER_BOARDS; index++) {
-    out.push(
-      (boards[index] ?? "")
-        .split(",")
-        .map((part) => Number.parseInt(part, 10))
-        .filter((value) => Number.isInteger(value) && value >= 0)
-        .slice(0, INTRUDER_ATTEMPTS),
-    );
-  }
-  return out;
-}
-
-export interface IntruderReplay {
-  correct: number;
-  /** True only when every solved board was solved on the first tap. */
-  allFirstTry: boolean;
-  perBoard: { taps: number[]; correct: boolean; firstTry: boolean }[];
-}
-
-/** The one place a tap list is graded against the stored answers. */
+/** Shared answer codec and five-board Intruder grading. */
+import { INTRUDER_BOARDS, INTRUDER_CHANGE_COUNTS, type IntruderAnswer } from "./types";
+export const INTRUDER_CLOSE_PAIRS: [string, string][] = [["RED", "ORANGE"], ["ORANGE", "BROWN"], ["BLUE", "PURPLE"]];
+export function intruderColoursTooClose(a: string, b: string): boolean { return INTRUDER_CLOSE_PAIRS.some(([x, y]) => (x === a && y === b) || (x === b && y === a)); }
+export function encodeIntruderTaps(taps: number[][]): string { return taps.map((board) => board.join(",")).join("|"); }
+export function decodeIntruderTaps(raw: string): number[][] { const boards = String(raw ?? "").split("|"); return Array.from({ length: INTRUDER_BOARDS }, (_, index) => (boards[index] ?? "").split(",").map(Number).filter((value) => Number.isInteger(value) && value >= 0).slice(0, INTRUDER_CHANGE_COUNTS[index] ?? 2)); }
+export interface IntruderReplay { correct: number; points: number; allFirstTry: boolean; perBoard: { taps: number[]; found: number; needed: number; correct: boolean; firstTry: boolean }[] }
 export function replayIntruder(answers: IntruderAnswer[], taps: number[][]): IntruderReplay {
-  const perBoard = answers.slice(0, INTRUDER_BOARDS).map((answer, index) => {
-    const board = (taps[index] ?? []).slice(0, INTRUDER_ATTEMPTS);
-    const correct = board.includes(answer.cell);
-    return { taps: board, correct, firstTry: board[0] === answer.cell };
-  });
-
-  const solved = perBoard.filter((board) => board.correct);
-  return {
-    correct: solved.length,
-    allFirstTry: solved.every((board) => board.firstTry),
-    perBoard,
-  };
+  const perBoard = answers.slice(0, INTRUDER_BOARDS).map((answer, index) => { const board = [...new Set(taps[index] ?? [])].slice(0, answer.cells.length); const found = answer.cells.filter((cell) => board.includes(cell)).length; return { taps: board, found, needed: answer.cells.length, correct: found === answer.cells.length, firstTry: found === answer.cells.length }; });
+  return { correct: perBoard.filter((board) => board.correct).length, points: perBoard.reduce((sum, board) => sum + (board.correct ? 20 : board.needed === 2 && board.found === 1 ? 10 : 0), 0), allFirstTry: perBoard.every((board) => board.correct), perBoard };
 }
