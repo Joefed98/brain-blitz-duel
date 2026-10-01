@@ -903,7 +903,7 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "gravity") return { summary: "—", detail: [] };
   const tilts = Number(result.extra?.["tilts"] ?? 0);
   const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
-  const onTarget = Number(result.extra?.["onTarget"] ?? 0);
+  const locked = Number(result.extra?.["locked"] ?? 0);
   if (result.is_correct) {
     return {
       summary: `Solved · ${tilts} tilts (min ${min}) · ${seconds(elapsedMs(result, puzzle))}`,
@@ -914,7 +914,7 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
   }
   return {
     summary: "Not solved",
-    detail: [onTarget === 1 ? "One ball on its target" : `${tilts} tilts made`],
+    detail: [`${locked} / 4 balls locked · ${tilts} tilts made`],
   };
 };
 

@@ -16,7 +16,7 @@ import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnC
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
 import { numberClimbSpan } from "./numberClimb";
 import { decodeFlowPaths, verifyFlow } from "./flow";
-import { decodeSlideMoves, replaySlide, slideDistance } from "./slide";
+import { decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slide";
 import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
 import { decodeLaserAnswer, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
@@ -25,7 +25,6 @@ import { decodeTubeMoves, replayTubes } from "./tubes";
 import { dialsCorrect, decodeSafeTries, safeOpenedOn } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
-import { gravityDistance } from "./gravity.server";
 import { blockingCars } from "./unblock.server";
 import { decodeChainTaps, replayChain } from "./chain";
 import { decodeIntruderTaps, replayIntruder } from "./intruder";
@@ -530,24 +529,21 @@ export function gradeSubmission(
       break;
     }
     case "iceslide": {
-      // The phone sends its slides; they are replayed on the stored layout.
-      const moves = decodeSlideMoves(answer);
-      const holes = puzzle.holes ?? [];
-      const arrows = puzzle.arrows ?? [];
-      const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, moves, arrows);
+      // The phone sends its slides; they are replayed on the stored layout,
+      // thin ice breaking exactly as it did on the phone.
+      const board = slideBoard(puzzle);
+      const replay = replaySlide(board, decodeSlideMoves(answer));
       const min = puzzle.minMoves ?? 0;
-      const distanceTo = (cell: number) =>
-        slideDistance(puzzle.walls, holes, cell, puzzle.exit, puzzle.start, arrows);
-      const away = replay.solved ? null : distanceTo(replay.cell);
-      // Credit follows the closest square the ball ever reached.
+      const away = replay.solved ? null : slideDistance(board, replay);
+      // Credit follows the closest state the ball ever reached.
       let progress = 0;
       if (!replay.solved) {
-        const startDistance = distanceTo(puzzle.start);
+        const startDistance = slideDistance(board, { cell: puzzle.start, mask: 0 });
         const best = replay.visited
-          .map(distanceTo)
+          .map((state) => slideDistance(board, state))
           .filter((value): value is number => value !== null);
         if (startDistance && startDistance > 0 && best.length > 0) {
-          progress = 1 - Math.min(...best) / startDistance;
+          progress = Math.max(0, 1 - Math.min(...best) / startDistance);
         }
       }
       isCorrect = replay.solved;
@@ -698,43 +694,16 @@ export function gradeSubmission(
       break;
     }
     case "gravity": {
-      // Every tilt is replayed on the stored board, both balls at once.
-      const replay = replayGravity(
-        puzzle.walls,
-        { a: puzzle.startA, b: puzzle.startB },
-        puzzle.targetA,
-        puzzle.targetB,
-        decodeGravityTilts(answer),
-      );
+      // Every tilt is replayed on the stored board, all four balls at once.
+      const replay = replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, decodeGravityTilts(answer));
       isCorrect = replay.solved;
       correctCount = replay.tilts;
-      // Credit follows the closest joint position the balls ever reached.
-      let progress = 0;
-      if (!replay.solved) {
-        const wallSet = new Set(puzzle.walls);
-        const distanceTo = (balls: { a: number; b: number }) =>
-          gravityDistance(wallSet, balls, puzzle.targetA, puzzle.targetB);
-        const startDistance = distanceTo({ a: puzzle.startA, b: puzzle.startB });
-        const best = replay.states
-          .map(distanceTo)
-          .filter((value): value is number => value !== null);
-        if (startDistance && startDistance > 0 && best.length > 0) {
-          progress = 1 - Math.min(...best) / startDistance;
-        }
-      }
-      score = scoreGravity(
-        replay.solved,
-        replay.tilts,
-        puzzle.minMoves ?? 0,
-        ms,
-        replay.onTarget,
-        progress,
-      );
+      score = scoreGravity(replay.solved, replay.tilts, puzzle.minMoves ?? 0, ms, replay.locked);
       extraDetail = {
         solved: replay.solved,
         tilts: replay.tilts,
         minMoves: puzzle.minMoves ?? 0,
-        onTarget: replay.onTarget,
+        locked: replay.locked,
       };
       break;
     }
@@ -839,7 +808,7 @@ export function gradeSubmission(
     }
     case "rings": {
       // Turns are replayed with the same middle-to-outer link the player saw.
-      const replay = replayRings(puzzle.segments, decodeRingTaps(answer));
+      const replay = replayRings(puzzle.segments, puzzle.pattern, decodeRingTaps(answer));
       isCorrect = replay.solved;
       correctCount = replay.aligned;
       score = scoreRings(replay.solved, replay.moves, puzzle.minMoves ?? 0, replay.aligned, ms);
