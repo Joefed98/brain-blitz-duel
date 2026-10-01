@@ -38,7 +38,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap Done", detail: "to check — red runs need fixing." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
-    score: "More tiles placed scores more; all twelve for the time bonus.",
+    score: "More tiles placed scores more; all fifteen for the time bonus.",
   },
   sumhunt: {
     goal: "Clear paths of digits that add up to the target — it rises every time.",
