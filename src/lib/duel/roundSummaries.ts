@@ -50,7 +50,6 @@ import {
   MIRMATCH_TIME_MS,
   SPIN_ITEMS,
   SPIN_TIME_MS,
-  type StroopItem,
 } from "./types";
 import { BOMB_TIME_MS, SAFE_DIALS, SAFE_TIME_MS, TUBES_COLOURS, TUBES_TIME_MS } from "./types";
 import {
@@ -328,25 +327,10 @@ function singleAnswer(
   };
 }
 
-function expectedStroop(item: StroopItem): string {
-  return item.instruction === "ink" ? item.ink : item.word;
-}
-
 function stroopSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   const count = result.correct_count ?? 0;
-  if (puzzle.type === "stroop" && "seed" in puzzle) {
-    return { summary: `${count} / 36 · ${Math.max(0, Math.round((150 * count) / 36) - result.score) / 2} wrong`, detail: [] };
-  }
-  const taps = (result.answer ?? "").split(",").filter(Boolean);
-  const detail =
-    puzzle.type === "stroop"
-      ? puzzle.items.map((item, index) => {
-          const picked = taps[index] ?? "No answer";
-          const expected = expectedStroop(item);
-          return `${index + 1}. TAP THE ${item.instruction.toUpperCase()} · ${item.word} in ${item.ink} · ${picked === expected ? "✓" : `✗ ${picked}`}`;
-        })
-      : [];
-  return { summary: `${count} / ${STROOP_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`, detail };
+  const wrong = Math.max(0, Math.round((Math.round((150 * count) / 36) - result.score) / 2));
+  return { summary: `${count} / 36 · ${wrong} wrong`, detail: [] };
 }
 
 function wordMatchSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {

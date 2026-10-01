@@ -73,7 +73,7 @@ export function generateIntruder(): IntruderPuzzleData {
     const kinds: IntruderChangeKind[] = []; const after = cells.slice();
     for (const target of targets) { const changed = changeCell(cells[target]!, colours, shapes); after[target] = changed.cell; kinds.push(changed.kind); }
     const offset = boardIndex >= 3 ? pick(["left", "right", "up", "down"] as const) : undefined;
-    boards.push({ size, cells, after, offset }); answers.push({ cells: targets, kinds });
+    boards.push({ size, cells, after, ...(offset ? { offset } : {}) }); answers.push({ cells: targets, kinds });
     const last = targets.at(-1)!; previous = { row: Math.floor(last / size), col: last % size };
   }
 

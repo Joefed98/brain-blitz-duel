@@ -49,6 +49,7 @@ function Grid({
   wrong,
   onCell,
   compact = false,
+  offset,
 }: {
   size: number;
   cells: IntruderCell[] | null;
@@ -57,6 +58,7 @@ function Grid({
   wrong?: number | null;
   onCell?: ((cell: number) => void) | undefined;
   compact?: boolean;
+  offset?: IntruderBoard["offset"];
 }) {
   // Taps go through the shared pointer-to-cell mapping, so a finger always
   // lands on the square underneath it.
@@ -69,6 +71,7 @@ function Grid({
       className={`grid aspect-square max-h-full w-full ${compact ? "gap-px" : "gap-[3px]"}`}
       style={{
         ...style,
+        transform: offset === "left" ? "translateX(-5%)" : offset === "right" ? "translateX(5%)" : offset === "up" ? "translateY(-5%)" : offset === "down" ? "translateY(5%)" : undefined,
         ...(compact
           ? { gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }
           : {
@@ -136,7 +139,8 @@ function IntroExample() {
 }
 
 /** Which cell differs between the two grids — the player can see both. */
-function changedCell(board: IntruderBoard): number {
+function changedCells(board: IntruderBoard): number[] {
+  const changed: number[] = [];
   for (let index = 0; index < board.cells.length; index++) {
     const before = board.cells[index]!;
     const after = board.after[index]!;
@@ -145,10 +149,10 @@ function changedCell(board: IntruderBoard): number {
       before.colour !== after.colour ||
       before.rot !== after.rot
     ) {
-      return index;
+      changed.push(index);
     }
   }
-  return -1;
+  return changed;
 }
 
 type Phase = "show" | "hide" | "play";
@@ -205,7 +209,7 @@ function Stage({
   const submitted = useRef(false);
 
   const board = data?.boards[index];
-  const answer = board ? changedCell(board) : -1;
+  const answers = board ? changedCells(board) : [];
 
   useEffect(() => {
     onDraftAnswer?.(encodeIntruderTaps(taps));
@@ -261,10 +265,11 @@ function Stage({
     if (mine.length >= INTRUDER_CHANGE_COUNTS[index]!) return;
     const next = taps.map((board_, i) => (i === index ? [...board_, cell] : board_));
     setTaps(next);
-    if (cell === answer) {
+    const found = [...new Set([...mine, cell])].filter((value) => answers.includes(value)).length;
+    if (answers.includes(cell)) {
       hapticTick();
       playCorrect();
-      advance(next);
+      if (found >= answers.length) advance(next);
       return;
     }
     buzz(20);
@@ -278,7 +283,7 @@ function Stage({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="flex w-full shrink-0 gap-1.5" aria-label={`Grid ${index + 1} of 3`}>
+      <div className="flex w-full shrink-0 gap-1.5" aria-label={`Grid ${index + 1} of 5`}>
         {Array.from({ length: INTRUDER_BOARDS }, (_, i) => (
           <span
             key={i}
@@ -301,11 +306,12 @@ function Stage({
           cells={showing ? board.cells : phase === "hide" ? null : board.after}
           wrong={wrong}
           onCell={phase === "play" ? tap : undefined}
+          offset={phase === "play" ? board.offset : undefined}
         />
       </div>
 
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        {showing ? "Memorise the grid" : phase === "hide" ? "…" : "One tap — the cell that changed"}
+        {showing ? "Memorise the grid" : phase === "hide" ? "…" : `${INTRUDER_CHANGE_COUNTS[index]} change${INTRUDER_CHANGE_COUNTS[index] === 1 ? "" : "s"} — tap each`}
       </p>
     </div>
   );
@@ -314,25 +320,25 @@ function Stage({
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "intruder") return null;
   const taps = decodeIntruderTaps(myAnswer ?? "");
-  const answers = puzzle.boards.map((board) => changedCell(board));
-  const correct = answers.filter((cell, index) => (taps[index] ?? []).includes(cell)).length;
+  const answers = puzzle.boards.map((board) => changedCells(board));
+  const correct = answers.filter((cells, index) => cells.every((cell) => (taps[index] ?? []).includes(cell))).length;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((INTRUDER_TIME_MS - myMsRemaining) / 100) / 10;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-       <div className="grid w-full max-w-[480px] shrink-0 grid-cols-1 items-start gap-2 min-[375px]:grid-cols-3">
+       <div className="flex w-full max-w-[480px] shrink-0 flex-col items-center gap-3">
         {puzzle.boards.map((board, index) => {
-           const tap = taps[index]?.[0];
-           const ok = tap === answers[index];
+           const boardTaps = taps[index] ?? [];
+           const ok = answers[index]!.every((cell) => boardTaps.includes(cell));
           return (
              <div key={index} className="flex min-w-0 flex-col items-center gap-0.5">
                <span className="font-mono text-base text-muted-foreground">Board {index + 1} · original</span>
                <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.cells} compact /></div>
                <span aria-hidden="true" className="text-lg leading-none text-primary">↓</span>
-               <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.after} marked={answers[index] ?? null} wrong={tap !== answers[index] ? (tap ?? null) : null} compact /></div>
+               <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.after} marked={answers[index]?.[0] ?? null} wrong={boardTaps.find((tap) => !answers[index]!.includes(tap)) ?? null} compact /></div>
                <span className={`font-mono text-base ${ok ? "text-primary" : "text-warn"}`}>
-                 {tap === undefined ? "No tap" : ok ? "Your tap ✓" : "Your tap ✗"}
+                 {boardTaps.length === 0 ? "No taps" : ok ? "Your taps ✓" : "Your taps ✗"}
                </span>
             </div>
           );
@@ -357,7 +363,7 @@ export const intruderDetectionPuzzle: PuzzleDefinition = {
   revealMs: 8_000,
   generate: () => ({ type: "intruder", boards: [] }) satisfies IntruderPuzzleData,
   check: () => false,
-  revealHeading: "The three grids",
+  revealHeading: "The five grids",
   IntroExample,
   Stage,
   Reveal,
