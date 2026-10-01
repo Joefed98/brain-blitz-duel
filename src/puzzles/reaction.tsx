@@ -32,7 +32,7 @@ export function buildReaction(): ReactionPuzzleData {
   const gaps = Array.from({ length: REACTION_FLASHES - 1 }, (_, i) => i);
   const decoys: ReactionPuzzleData["decoys"] = [];
   const order = gaps.sort(() => random() - 0.5);
-  for (let i = 0; i < decoyCount; i++) {
+  for (let i = 0; i < 200 && decoys.length < decoyCount; i++) {
     const gap = order[i % order.length]!;
     const from = flashes[gap]! + REACTION_FLASH_MS + 1_500;
     const to = flashes[gap + 1]! - 1_500 - REACTION_DECOY_MS;

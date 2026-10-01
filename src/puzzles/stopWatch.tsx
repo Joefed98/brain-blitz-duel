@@ -65,8 +65,8 @@ function Bar({
   spec: StopWatchSpec;
   lit: boolean;
   marker: number | null;
-  barRef?: React.RefObject<HTMLDivElement | null>;
-  markerRef?: React.RefObject<HTMLSpanElement | null>;
+  barRef?: React.RefObject<HTMLDivElement | null> | undefined;
+  markerRef?: React.RefObject<HTMLSpanElement | null> | undefined;
 }) {
   return (
     <div ref={barRef} className="relative h-16 w-full overflow-hidden rounded-2xl border border-border bg-card">

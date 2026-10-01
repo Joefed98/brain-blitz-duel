@@ -143,7 +143,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   reaction: {
     goal: "Tap the instant the screen turns gold — five times.",
     how: [
-      { action: "Wait.", detail: "Don't tap the other colours, or you'll get a false start." },
+      { action: "Wait.", detail: "" },
+      { action: "Don't tap the other colours,", detail: "or you'll get a false start." },
     ],
     score: "Faster average scores more; false starts add 200 ms.",
   },
@@ -238,7 +239,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   stopwatch: {
     goal: "Stop the marker in the gold zone — five times, each one trickier.",
     how: [
-      { action: "Tap to stop it.", detail: "Some sweeps hide at the end; one goes backwards and only counts on its second pass." },
+      { action: "Tap to stop it.", detail: "" },
+      { action: "Some sweeps hide at the end;", detail: "one goes backwards and only counts on its second pass." },
     ],
     score: "Closer to the centre scores more.",
   },
