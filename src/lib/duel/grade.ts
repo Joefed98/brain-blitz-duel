@@ -729,7 +729,7 @@ export function gradeSubmission(
       const replay = replayIntruder(puzzle.answers ?? [], decodeIntruderTaps(answer));
       isCorrect = replay.correct >= (puzzle.answers ?? puzzle.boards).length;
       correctCount = replay.correct;
-      score = scoreIntruder(replay.correct, replay.allFirstTry, ms);
+      score = scoreIntruder(replay.points, replay.correct >= INTRUDER_BOARDS, ms);
       extraDetail = {
         correct: replay.correct,
         allFirstTry: replay.allFirstTry,
