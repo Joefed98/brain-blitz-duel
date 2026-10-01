@@ -21,7 +21,7 @@ import { playLock, playWrong } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const GAP = 2;
-const TRAY_TILE = 48;
+const TRAY_TILE = 34; // eight per row, so fifteen tiles fit in two rows
 
 function MiniGrid({ cells, cell = 20 }: { cells: string[]; cell?: number }) {
   return (
@@ -238,7 +238,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           <span
             key={tile}
             onClick={() => { if (!frozen) setSelected((current) => current === tile ? null : tile); }}
-            className={`flex items-center justify-center rounded-lg bg-primary font-display text-2xl font-bold text-primary-foreground ${selected === tile ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
+            className={`flex items-center justify-center rounded-lg bg-primary font-display text-xl font-bold text-primary-foreground ${selected === tile ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
             style={{ width: TRAY_TILE, height: TRAY_TILE }}
           >
             {tray[tile]}
@@ -302,7 +302,7 @@ export const tileGridPuzzle: PuzzleDefinition = {
   category: "word",
   timeLimitMs: TG_TIME_MS,
   revealMs: TG_REVEAL_MS,
-  generate: () => ({ type: "tilegrid", tray: [..."STONEBESBAND"] }) satisfies TileGridPuzzleData,
+  generate: () => ({ type: "tilegrid", tray: [..."PLANETSCOMLEXBN"] }) satisfies TileGridPuzzleData,
   check: () => false,
   revealHeading: "Your grid",
   IntroExample,

@@ -13,13 +13,13 @@ export interface PuzzleInstructions {
 
 export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   wordsmith: {
-    goal: "Make as many valid words as you can.",
+    goal: "Make words from the nine letters — every word must use the centre letter.",
     how: [
-      { action: "Tap or drag through letters", detail: "to build a word." },
-      { action: "Tap a used letter", detail: "to remove it and every letter after it, or use Undo." },
-      { action: "Submit words", detail: "with four or more letters." },
+      { action: "Four letters or more, each letter once.", detail: "There's always a nine-letter word." },
+      { action: "Tap or drag through letters", detail: "then Submit, tap the word box or press Enter." },
+      { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
-    score: "Round score = 3 × word points, up to 150. The counter shows word points.",
+    score: "Longer words score more; find the nine-letter word for 15.",
   },
   groups: {
     goal: "Sort all sixteen words into four groups of four.",
@@ -36,8 +36,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a tile, then a cell.", detail: "Every touching run must be a real word, and everything must connect." },
       { action: "Double-tap a placed tile", detail: "to take it back. Clear empties the grid." },
       { action: "Tap Done", detail: "to check — red runs need fixing." },
+      { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
-    score: "More tiles placed scores more; all twelve for the time bonus.",
+    score: "More tiles placed scores more; all fifteen for the time bonus.",
   },
   sumhunt: {
     goal: "Clear paths of digits that add up to the target — it rises every time.",
@@ -61,6 +62,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Swipe a row sideways or a column up and down", detail: "— letters wrap around the edge." },
       { action: "Tap Undo or Reset", detail: "to take shifts back; they still count as moves." },
       { action: "Lock a finished word with the padlock", detail: "so it stays put — column swipes go around it." },
+      { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
     score: "Fewer moves is what counts; speed is a small extra.",
   },
@@ -70,6 +72,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Type a word", detail: "for each rung." },
       { action: "Change one letter", detail: "from the word above." },
       { action: "Press Enter", detail: "to add each valid word." },
+      { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
     score: "Finish the ladder faster = more points. Getting close still scores.",
   },
@@ -266,6 +269,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag or tap through letters", detail: "that touch, including diagonally." },
       { action: "Use four or more letters", detail: "without reusing a tile." },
       { action: "Release, tap the last letter again, or tap Submit", detail: "to submit each word." },
+      { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
     score: "Round score = 3 × word points, up to 150. The counter shows word points.",
   },

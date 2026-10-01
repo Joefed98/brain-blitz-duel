@@ -17,3 +17,4 @@
 - Hot Floor generation exhaustively enumerates simple budgeted survivors; accepted stages have at most two routes (three on stages 1–2), a zero-slack pinch on every survivor, three same-or-shorter number failures, and under 20% highest-number-first solves.
 - Tents uses `-1` for hidden row/column counts; shared solving and validation treat those lines as unconstrained.
 - Directional game controls use the shared press-safe button so pointer holds cannot trigger selection, callouts, or context menus.
+- All word games (Wordsmith, Word Hunt, Word Ladder, Tile Grid, Word Slide) check words through the one server-only SCOWL British English list behind dictionary.server.ts; why: one consistent dictionary that never reaches a device.

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 import {
+  WORDSMITH_CENTRE_INDEX,
   WORDSMITH_MIN_LENGTH,
   WORDSMITH_TIME_MS,
   type WordsmithPuzzleData,
@@ -38,6 +39,7 @@ export function WordsmithPuzzle({
   const [message, setMessage] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const wheelRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
@@ -58,7 +60,7 @@ export function WordsmithPuzzle({
     onSubmit(foundRef.current.map((entry) => entry.word).join(","));
   }, [onSubmit]);
 
-  // The round always runs the full minute; the found words go in just before
+  // The round always runs the full clock; the found words go in just before
   // the clock stops so nothing is lost to the timeout.
   useEffect(() => {
     if (locked) return;
@@ -127,17 +129,48 @@ export function WordsmithPuzzle({
 
   return (
     <div className="flex flex-1 flex-col gap-3">
-      <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
+      <div className="relative flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           points <span className="text-primary">{points}</span>
         </span>
-        <span>words: {found.length}</span>
+        <button
+          type="button"
+          onClick={() => setListOpen((open) => !open)}
+          aria-expanded={listOpen}
+          className="press rounded-full border border-border bg-card px-3 py-1.5 font-mono text-xs uppercase tracking-widest text-foreground"
+        >
+          Words {found.length} / {puzzle.wordCount ?? "?"}
+        </button>
+        {listOpen && (
+          <>
+            <div className="fixed inset-0 z-20" onPointerDown={() => setListOpen(false)} aria-hidden />
+            <div className="absolute right-0 top-full z-30 mt-2 max-h-72 w-60 overflow-y-auto rounded-xl border border-border bg-card p-3 shadow-lg">
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                {found.length} of {puzzle.wordCount ?? "?"} possible words
+              </p>
+              {found.length === 0 ? (
+                <p className="text-sm normal-case tracking-normal text-muted-foreground">No words yet.</p>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {[...found]
+                    .sort((a, b) => b.word.length - a.word.length || a.word.localeCompare(b.word))
+                    .map((entry) => (
+                      <li key={entry.word} className="flex justify-between text-sm text-foreground">
+                        <span>{entry.word}</span>
+                        <span className="text-primary">{entry.points}</span>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* The wheel uses fixed-size tiles, with pointer capture for continuous tracing. */}
+      {/* 3×3 square: eight letters around a gold centre letter every word must use. */}
       <div
         ref={wheelRef}
-        className="relative mx-auto aspect-square w-[min(100%,300px)] shrink-0 select-none touch-none"
+        className="mx-auto grid aspect-square w-[min(100%,288px)] shrink-0 select-none grid-cols-3 gap-2 touch-none"
         onPointerMove={(event) => {
           if (!dragging.current) return;
           const origin = pointerStart.current;
@@ -165,9 +198,9 @@ export function WordsmithPuzzle({
           dragging.current = false;
         }}
       >
-        {order.map((index, position) => {
+        {order.map((index) => {
           const spent = selectedTiles.includes(index);
-          const angle = -Math.PI / 2 + (position * 2 * Math.PI) / order.length;
+          const centre = index === WORDSMITH_CENTRE_INDEX;
           return (
             <button
               key={index}
@@ -179,14 +212,18 @@ export function WordsmithPuzzle({
                 wheelRef.current?.setPointerCapture(event.pointerId);
                 dragging.current = true;
                 dragged.current = false;
-                 pointerStart.current = { x: event.clientX, y: event.clientY, index, initial: [...selectedRef.current] };
-                 if (!selectedRef.current.includes(index)) addDraggedTile(index);
+                pointerStart.current = { x: event.clientX, y: event.clientY, index, initial: [...selectedRef.current] };
+                if (!selectedRef.current.includes(index)) addDraggedTile(index);
               }}
-              style={{ left: `${50 + 37 * Math.cos(angle)}%`, top: `${50 + 37 * Math.sin(angle)}%` }}
-              className={`absolute flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border font-display text-xl font-bold transition-colors duration-150 ${
-                spent
-                  ? "-translate-y-1 border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card text-foreground"
+              aria-label={centre ? `Centre letter ${letters[index]}` : letters[index]}
+              className={`flex items-center justify-center rounded-xl border-2 font-display text-2xl font-bold transition-colors duration-150 ${
+                centre
+                  ? spent
+                    ? "border-primary bg-primary/70 text-primary-foreground"
+                    : "border-primary bg-primary text-primary-foreground"
+                  : spent
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-card text-foreground"
               }`}
             >
               {letters[index]}
@@ -256,7 +293,10 @@ export function WordsmithPuzzle({
            variant="outline"
           onClick={() => {
             setSelectedTiles([]);
-            setOrder((current) => [...current].sort(() => Math.random() - 0.5));
+            setOrder((current) => {
+              const outer = current.filter((i) => i !== WORDSMITH_CENTRE_INDEX).sort(() => Math.random() - 0.5);
+              return [...outer.slice(0, WORDSMITH_CENTRE_INDEX), WORDSMITH_CENTRE_INDEX, ...outer.slice(WORDSMITH_CENTRE_INDEX)];
+            });
             inputRef.current?.blur();
           }}
           disabled={locked}

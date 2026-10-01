@@ -3,7 +3,7 @@
  * stars rather than rejecting the message, so a slip never loses the message.
  */
 
-const BLOCKED = [
+export const PROFANITY_WORDS = [
   "arse",
   "arsehole",
   "ass",
@@ -59,7 +59,7 @@ function normalise(word: string): string {
     .replace(/[^a-z]/g, "");
 }
 
-const BLOCKED_SET = new Set(BLOCKED.map(normalise));
+const BLOCKED_SET = new Set(PROFANITY_WORDS.map(normalise));
 
 /** Replaces every blocked word with stars, keeping the rest of the text. */
 export function censor(text: string): string {

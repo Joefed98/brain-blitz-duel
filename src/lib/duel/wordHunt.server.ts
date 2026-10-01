@@ -115,7 +115,7 @@ function fill(grid: (string | null)[]): string[] {
   return out;
 }
 
-/** Builds a 4x4 board with at least forty findable words. */
+/** Builds a 5×5 board with at least forty findable words. */
 export function generateWordHunt(): WordHuntPuzzleData {
   const seeds = commonWords().filter((word) => word.length >= 6 && word.length <= 8);
 
@@ -143,7 +143,7 @@ export function generateWordHunt(): WordHuntPuzzleData {
   }
 
   // Safety net: a board known to be rich in words.
-  const letters = "TAPLENSROIDMCKUG".split("");
+  const letters = "TAPLENSROIEMCKUGBEAHWYTRS".split("");
   const words = solveBoard(letters);
   const totalPoints = words.reduce((sum, entry) => sum + entry.points, 0);
   return {

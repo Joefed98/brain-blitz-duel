@@ -16,7 +16,7 @@ function wordPool(): string[] {
   if (pool) return pool;
   pool = [
     ...new Set(
-      commonWords().filter((w) => w.length >= 4 && w.length <= 6 && /^[a-z]+$/.test(w) && isWord(w)),
+      commonWords().filter((w) => w.length >= 4 && w.length <= 7 && /^[a-z]+$/.test(w) && isWord(w)),
     ),
   ];
   return pool;
@@ -58,18 +58,18 @@ function layout(parts: Placement[]): string[] | null {
 }
 
 const FALLBACK: Placement[] = [
-  { word: "stone", row: 2, col: 0, horizontal: true },
-  { word: "best", row: 0, col: 0, horizontal: false },
-  { word: "bands", row: 0, col: 3, horizontal: false },
+  { word: "planets", row: 2, col: 0, horizontal: true },
+  { word: "complex", row: 0, col: 0, horizontal: false },
+  { word: "bent", row: 0, col: 3, horizontal: false },
 ];
 
-/** Three words (4–6 letters) in an H: one across, two down through it, twelve letters in all. */
+/** Three interlocking words (4–7 letters) in an H: one across, two down through it, fifteen tiles in all. */
 export function generateTileGrid(): TileGridPuzzleData {
   const words = wordPool();
   for (let attempt = 0; attempt < 3000; attempt++) {
     const across = pick(words);
-    const lengths = shuffled([4, 5, 6]).flatMap((b) => [4, 5, 6].map((c) => [b, c] as const));
-    const fit = lengths.find(([b, c]) => across.length + b + c === 14);
+    const lengths = shuffled([4, 5, 6, 7]).flatMap((b) => [4, 5, 6, 7].map((c) => [b, c] as const));
+    const fit = lengths.find(([b, c]) => across.length + b + c === TG_TILES + 2);
     if (!fit) continue;
     const i = randInt(0, across.length - 1);
     const k = randInt(0, across.length - 1);
