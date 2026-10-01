@@ -55,6 +55,8 @@ export function flipMirror(kind: MirrorKind): MirrorKind {
 export interface BeamTrace {
   /** Every cell the beam passes through, from the source onward. */
   cells: number[];
+  /** Separate branch trails, used by the renderer after a splitter. */
+  paths: number[][];
   /** Where the beam stopped. */
   endCell: number;
   /** Which gems the shot lit, in the order the beam met them. */
@@ -76,6 +78,8 @@ export function traceBeam(
   blocks: number[],
   bombs: number[],
   gems: number[],
+  splitters: number[] = [],
+  directionalGems: { cell: number; from: BeamDir }[] = [],
 ): BeamTrace {
   const mirrorAt = new Map<number, MirrorKind>();
   for (const mirror of mirrors) mirrorAt.set(mirror.cell, mirror.kind);
@@ -84,35 +88,34 @@ export function traceBeam(
   const gemAt = new Set(gems);
 
   const cells: number[] = [source];
+  const paths: number[][] = [];
   const gemsLit: number[] = [];
-  let cell = source;
-  let heading = dir;
   let hitBomb = false;
-
-  if (gemAt.has(source)) gemsLit.push(source);
-
-  for (let guard = 0; guard < LASER_CELLS * 4; guard++) {
-    const mirror = mirrorAt.get(cell);
-    if (mirror && cell !== source) heading = reflect(heading, mirror);
-
-    const next = laserStep(cell, heading);
-    if (next === null || blocked.has(next)) break;
-    cell = next;
-    cells.push(cell);
-    if (bombAt.has(cell)) {
-      hitBomb = true;
-      break;
+  const splitterAt = new Set(splitters);
+  const required = new Map(directionalGems.map((gem) => [gem.cell, gem.from]));
+  const queue: { cell: number; heading: BeamDir; path: number[] }[] = [{ cell: source, heading: dir, path: [source] }];
+  const seen = new Set<string>();
+  while (queue.length) {
+    const beam = queue.shift()!; let cell = beam.cell; let heading = beam.heading; const path = beam.path;
+    for (let guard = 0; guard < LASER_CELLS * 4; guard++) {
+      const key = `${cell}:${heading}`; if (seen.has(key)) break; seen.add(key);
+      const mirror = mirrorAt.get(cell); if (mirror && cell !== source) heading = reflect(heading, mirror);
+      const next = laserStep(cell, heading); if (next === null || blocked.has(next)) break;
+      cell = next; path.push(cell); cells.push(cell);
+      if (bombAt.has(cell)) { hitBomb = true; break; }
+      if (gemAt.has(cell) && !gemsLit.includes(cell) && (!required.has(cell) || required.get(cell) === heading)) gemsLit.push(cell);
+      if (splitterAt.has(cell)) {
+        const turns: BeamDir[] = heading === "U" || heading === "D" ? ["L", "R"] : ["U", "D"];
+        queue.push({ cell, heading: turns[1]!, path: [cell] }); heading = turns[0]!;
+      }
     }
-    if (gemAt.has(cell) && !gemsLit.includes(cell)) {
-      gemsLit.push(cell);
-      // The shot is done the moment the last gem lights: the beam stops there.
-      if (gemsLit.length >= gems.length) break;
-    }
+    paths.push(path);
   }
 
   return {
     cells,
-    endCell: cell,
+    paths,
+    endCell: paths.at(-1)?.at(-1) ?? source,
     gemsLit,
     hitBomb,
     litAll: !hitBomb && gems.length > 0 && gems.every((gem) => gemsLit.includes(gem)),
@@ -183,6 +186,8 @@ export function verifyLaser(
     gems: number[];
     bombs: number[];
     blocks: number[];
+    splitters?: number[];
+    directionalGems?: { cell: number; from: BeamDir }[];
     mirrors: number;
   },
   placements: MirrorPlacement[],
@@ -198,6 +203,8 @@ export function verifyLaser(
     puzzle.blocks,
     puzzle.bombs,
     puzzle.gems,
+    puzzle.splitters,
+    puzzle.directionalGems,
   );
   const shot = Math.max(1, Math.min(LASER_MAX_FIRES, Math.round(fires) || LASER_MAX_FIRES));
   return {

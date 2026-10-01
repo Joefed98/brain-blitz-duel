@@ -87,6 +87,8 @@ function LaserBoard({
   gems,
   bombs,
   blocks,
+  splitters = [],
+  directionalGems = [],
   placed,
   beam = null,
   litGems = [],
@@ -103,6 +105,8 @@ function LaserBoard({
   gems: number[];
   bombs: number[];
   blocks: number[];
+  splitters?: number[];
+  directionalGems?: { cell: number; from: BeamDir }[];
   placed: MirrorPlacement[];
   /** The cells the beam has drawn so far, or null before the first shot. */
   beam?: number[] | null;
@@ -148,6 +152,7 @@ function LaserBoard({
       >
         {Array.from({ length: cols * rows }, (_, cell) => {
           if (wall.has(cell)) return <div key={cell} className="rounded-md bg-foreground/75" />;
+          if (splitters.includes(cell)) return <div key={cell} aria-label="Splitter" className="flex items-center justify-center rounded-md border-2 border-primary font-bold text-primary">Y</div>;
           if (gemSet.has(cell)) {
             return (
               <div
@@ -157,6 +162,7 @@ function LaserBoard({
               >
                 <div className="h-[70%] w-[70%]">
                   <Gem lit={litSet.has(cell)} />
+                  {directionalGems.find((gem) => gem.cell === cell) && <span className="absolute text-xs font-bold text-background">{directionalGems.find((gem) => gem.cell === cell)?.from}</span>}
                 </div>
               </div>
             );
@@ -336,9 +342,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   }, []);
 
   const taken = useCallback(
-    (cell: number) =>
-      cell === source || gems.includes(cell) || bombs.includes(cell) || blocks.includes(cell),
-    [source, gems, bombs, blocks],
+    (cell: number) => cell === source || gems.includes(cell) || bombs.includes(cell) || blocks.includes(cell) || (isLaser && puzzle.splitters?.includes(cell)),
+    [source, gems, bombs, blocks, isLaser, puzzle],
   );
 
   const cellAt = useCallback(
@@ -441,7 +446,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
 
   const fire = useCallback(() => {
     if (locked || submitted.current || firesLeft === 0 || shot) return;
-    const verdict = verifyLaser({ source, dir, gems, bombs, blocks, mirrors: total }, placed);
+    const verdict = verifyLaser({ source, dir, gems, bombs, blocks, mirrors: total, splitters: isLaser ? puzzle.splitters : [], directionalGems: isLaser ? puzzle.directionalGems : [] }, placed);
     const attempt = fires + 1;
     setFires(attempt);
     clearTimers();

@@ -1295,6 +1295,10 @@ export interface LaserPuzzleData {
   dir: BeamDir;
   /** The three gems one beam must pass through, in any order. */
   gems: number[];
+  /** Two gems only light when entered with this heading. */
+  directionalGems?: { cell: number; from: BeamDir }[];
+  /** Fixed blocks that branch an incoming beam into both perpendicular headings. */
+  splitters?: number[];
   /** Bombs: touching one ends the shot at once. */
   bombs: number[];
   /** Cells the beam cannot pass. */
