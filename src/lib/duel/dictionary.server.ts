@@ -1,10 +1,12 @@
 /**
- * Server-only English dictionary. Loaded once per worker and cached in memory.
+ * Server-only British English dictionary (SCOWL size 70, British spellings),
+ * shared by every word game: Wordsmith, Word Hunt, Word Ladder, Tile Grid and
+ * Word Slide. Loaded once per worker and cached in memory.
  * The word data never leaves the server: only the letters of a board and the
  * verdict on a submitted word ever reach a device.
  */
 
-import { ALL_WORDS_RAW, COMMON_WORDS_RAW } from "./wordlist.server";
+import { SCOWL_COMMON_COUNT, SCOWL_WORDS_RAW } from "./wordlist.server";
 
 /** Never accepted, whatever the dictionary says. */
 const BLOCKED = new Set([
@@ -101,17 +103,12 @@ interface Dictionary {
 
 let cached: Dictionary | null = null;
 
-function parse(raw: string): string[] {
-  return raw
-    .split(/\s+/)
-    .map((word) => word.trim().toLowerCase())
-    .filter((word) => /^[a-z]{4,8}$/.test(word) && !BLOCKED.has(word));
-}
-
 function dictionary(): Dictionary {
   if (cached) return cached;
-  const all = new Set(parse(ALL_WORDS_RAW));
-  const common = parse(COMMON_WORDS_RAW).filter((word) => all.has(word));
+  const list = SCOWL_WORDS_RAW.split(/\s+/).filter((word) => /^[a-z]{3,12}$/.test(word));
+  const clean = list.map((word, index) => ({ word, index })).filter(({ word }) => !BLOCKED.has(word));
+  const all = new Set(clean.map((entry) => entry.word));
+  const common = clean.filter((entry) => entry.index < SCOWL_COMMON_COUNT).map((entry) => entry.word);
   cached = { all, common };
   return cached;
 }
