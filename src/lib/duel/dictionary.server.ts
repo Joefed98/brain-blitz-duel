@@ -6,6 +6,7 @@
  * verdict on a submitted word ever reach a device.
  */
 
+import { PROFANITY_WORDS } from "./profanity.server";
 import { SCOWL_COMMON_COUNT, SCOWL_WORDS_RAW } from "./wordlist.server";
 
 /** Never accepted, whatever the dictionary says. */
@@ -94,6 +95,7 @@ const BLOCKED = new Set([
   "wogs",
   "wop",
   "wops",
+  ...PROFANITY_WORDS,
 ]);
 
 interface Dictionary {
