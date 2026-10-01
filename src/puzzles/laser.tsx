@@ -108,8 +108,8 @@ function LaserBoard({
   splitters?: number[];
   directionalGems?: { cell: number; from: BeamDir }[];
   placed: MirrorPlacement[];
-  /** The cells the beam has drawn so far, or null before the first shot. */
-  beam?: number[] | null;
+  /** Separate beam branches, or null before the first shot. */
+  beam?: number[][] | null;
   litGems?: number[];
   bombFlash?: boolean;
   cols?: number;
@@ -203,9 +203,10 @@ function LaserBoard({
               fill={GOLD}
               opacity={0.9}
             />
-            {beam && beam.length > 1 ? (
+            {beam?.map((path, index) => path.length > 1 ? (
               <polyline
-                points={beam.map((cell) => `${at(cell).x},${at(cell).y}`).join(" ")}
+                key={`beam-${index}`}
+                points={path.map((cell) => `${at(cell).x},${at(cell).y}`).join(" ")}
                 fill="none"
                 stroke={bombFlash ? RED : GOLD}
                 strokeWidth={Math.max(1.5, unit * 0.16)}
@@ -217,7 +218,7 @@ function LaserBoard({
                     : "drop-shadow(0 0 3px rgba(245,198,76,0.85))",
                 }}
               />
-            ) : null}
+            ) : null)}
             {placed.map((mirror) => {
               const centre = at(mirror.cell);
               const reach = unit * 0.34;
@@ -282,7 +283,7 @@ function IntroExample() {
           bombs={bombs}
           blocks={[]}
           placed={solution}
-          beam={trace.cells}
+          beam={trace.paths}
           litGems={trace.gemsLit}
         />
       </div>
@@ -330,8 +331,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     onDraftAnswer?.(encodeLaserAnswer(placed, Math.max(1, fires)));
   }, [placed, fires, onDraftAnswer]);
 
-  const revealed = shot ? shot.trace.cells.slice(0, shot.step + 1) : null;
-  const litGems = shot ? shot.trace.gemsLit.filter((gem) => revealed?.includes(gem)) : [];
+  const revealed = shot ? shot.trace.paths.map((path) => path.slice(0, shot.step + 1)) : null;
+  const visibleCells = revealed?.flat() ?? [];
+  const litGems = shot ? shot.trace.gemsLit.filter((gem) => visibleCells.includes(gem)) : [];
   const bombFlash = Boolean(shot?.done && shot.trace.hitBomb);
   const solved = submitted.current;
   const firesLeft = Math.max(0, LASER_MAX_FIRES - fires);
@@ -635,6 +637,8 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
     puzzle.blocks,
     puzzle.bombs,
     puzzle.gems,
+    puzzle.splitters,
+    puzzle.directionalGems,
   );
   const myTrace = traceBeam(
     puzzle.source,
@@ -643,6 +647,8 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
     puzzle.blocks,
     puzzle.bombs,
     puzzle.gems,
+    puzzle.splitters,
+    puzzle.directionalGems,
   );
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((LASER_TIME_MS - myMsRemaining) / 100) / 10;
@@ -665,8 +671,10 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
               gems={puzzle.gems}
               bombs={puzzle.bombs}
               blocks={puzzle.blocks}
+              splitters={puzzle.splitters}
+              directionalGems={puzzle.directionalGems}
               placed={solution}
-              beam={solutionTrace.cells}
+              beam={solutionTrace.paths}
               litGems={solutionTrace.gemsLit}
             />
           </div>
@@ -682,8 +690,10 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
               gems={puzzle.gems}
               bombs={puzzle.bombs}
               blocks={puzzle.blocks}
+              splitters={puzzle.splitters}
+              directionalGems={puzzle.directionalGems}
               placed={mine.mirrors}
-              beam={mine.mirrors.length ? myTrace.cells : null}
+              beam={mine.mirrors.length ? myTrace.paths : null}
               litGems={myTrace.gemsLit}
               bombFlash={myTrace.hitBomb}
             />
