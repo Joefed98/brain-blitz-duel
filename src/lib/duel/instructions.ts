@@ -240,7 +240,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Stop the marker in the gold zone — five times, each one trickier.",
     how: [
       { action: "Tap to stop it.", detail: "" },
-      { action: "Some sweeps hide at the end;", detail: "one goes backwards and only counts on its second pass." },
+      { action: "Some targets move", detail: "— stop when the marker and the target line up." },
+      { action: "Some sweeps hide at the end;", detail: "the vertical watch accelerates on each pass." },
     ],
     score: "Closer to the centre scores more.",
   },
