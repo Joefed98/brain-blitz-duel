@@ -84,7 +84,6 @@ export function stopWatchPoints(avg: number): number {
 
 function Bar({
   spec,
-  lit,
   marker,
   barRef,
   markerRef,
@@ -92,7 +91,6 @@ function Bar({
   passesLeft,
 }: {
   spec: StopWatchSpec;
-  lit: boolean;
   marker: number | null;
   barRef?: React.RefObject<HTMLDivElement | null> | undefined;
   markerRef?: React.RefObject<HTMLSpanElement | null> | undefined;
