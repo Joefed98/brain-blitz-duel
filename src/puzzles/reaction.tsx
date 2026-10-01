@@ -1,231 +1,247 @@
 import { useEffect, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
-import { random } from "@/lib/duel/random";
+import { randInt, random } from "@/lib/duel/random";
 import {
-  REACTION_ATTEMPTS,
-  REACTION_FEEDBACK_MS,
-  REACTION_PENALTY_MS,
-  REACTION_RESPONSE_MS,
+  REACTION_DECOY_MS,
+  REACTION_FALSE_START_MS,
+  REACTION_FLASHES,
+  REACTION_FLASH_MS,
+  REACTION_MISS_MS,
+  REACTION_ROUND_MS,
   type ReactionPuzzleData,
 } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const DELAY_BANDS = [
-  { weight: 0.3, min: 600, max: 1_200 },
-  { weight: 0.4, min: 1_200, max: 3_000 },
-  { weight: 0.3, min: 3_000, max: 5_500 },
-] as const;
-
-function drawDelay(): number {
-  const roll = random();
-  const band =
-    roll < DELAY_BANDS[0].weight ? DELAY_BANDS[0] : roll < 0.7 ? DELAY_BANDS[1] : DELAY_BANDS[2];
-  return Math.round(band.min + random() * (band.max - band.min));
-}
-
-export function buildReactionDelays(): number[] {
+/** Five gold flashes (first after 3 s, 5–12 s apart) plus 2–4 decoys between them. */
+export function buildReaction(): ReactionPuzzleData {
+  let flashes: number[] = [];
   for (let attempt = 0; attempt < 1_000; attempt++) {
-    const delays = Array.from({ length: REACTION_ATTEMPTS }, drawDelay);
-    if (
-      delays.every((delay, index) =>
-        delays.slice(0, index).every((other) => Math.abs(delay - other) >= 400),
-      )
-    ) {
-      return delays;
+    const list = [randInt(3_000, 7_000)];
+    while (list.length < REACTION_FLASHES) list.push(list[list.length - 1]! + randInt(5_000, 12_000));
+    if (list[list.length - 1]! + REACTION_FLASH_MS <= REACTION_ROUND_MS - 500) {
+      flashes = list;
+      break;
     }
   }
-  return [900, 2_100, 4_300];
+  if (flashes.length === 0) flashes = [4_000, 12_000, 20_000, 29_000, 38_000];
+
+  // Decoys sit in the gaps, at least 1.5 s clear of any gold flash window.
+  const decoyCount = randInt(2, 4);
+  const gaps = Array.from({ length: REACTION_FLASHES - 1 }, (_, i) => i);
+  const decoys: ReactionPuzzleData["decoys"] = [];
+  const order = gaps.sort(() => random() - 0.5);
+  for (let i = 0; i < 200 && decoys.length < decoyCount; i++) {
+    const gap = order[i % order.length]!;
+    const from = flashes[gap]! + REACTION_FLASH_MS + 1_500;
+    const to = flashes[gap + 1]! - 1_500 - REACTION_DECOY_MS;
+    if (to <= from) continue;
+    const at = randInt(from, to);
+    if (decoys.some((d) => Math.abs(d.at - at) < 2_000)) continue;
+    decoys.push({ at, color: random() < 0.5 ? "teal" : "red" });
+  }
+  decoys.sort((a, b) => a.at - b.at);
+  return { type: "reaction", flashes, decoys };
 }
 
-/** Each attempt occupies a fixed-length slot so both phones stay in step. */
-function slotLength(delay: number): number {
-  return delay + REACTION_RESPONSE_MS + REACTION_FEEDBACK_MS;
+export function reactionAverage(times: number[], falseStarts: number): number {
+  const filled = Array.from({ length: REACTION_FLASHES }, (_, i) => times[i] ?? REACTION_MISS_MS);
+  return Math.round(filled.reduce((a, b) => a + b, 0) / REACTION_FLASHES + falseStarts * REACTION_FALSE_START_MS);
 }
 
-export function reactionDurationMs(delays: number[]): number {
-  return delays.reduce((sum, d) => sum + slotLength(d), 0);
+export function reactionPoints(avg: number): number {
+  return 50 + Math.max(0, Math.min(100, Math.round((650 - avg) / 6)));
 }
 
-function attemptStart(delays: number[], index: number): number {
-  return delays.slice(0, index).reduce((sum, d) => sum + slotLength(d), 0);
+function encode(times: (number | null)[], falseStarts: number): string {
+  return `${times.map((t) => t ?? REACTION_MISS_MS).join(",")}|${falseStarts}`;
+}
+
+function parseAnswer(answer: string | null): { times: number[]; falseStarts: number } {
+  const [timesPart = "", falsePart = "0"] = (answer ?? "").split("|");
+  const times = timesPart
+    .split(",")
+    .map((v) => Number.parseInt(v, 10))
+    .filter((v) => Number.isFinite(v));
+  const falseStarts = Number.parseInt(falsePart, 10);
+  return { times, falseStarts: Number.isFinite(falseStarts) ? falseStarts : 0 };
 }
 
 function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        When the screen turns gold, tap as fast as you can. Three tries, best average wins.
+        The screen stays dark. Five times it flashes gold — tap the instant it does.
       </p>
-      <div className="flex items-center gap-3">
-        <span className="flex h-16 w-24 items-center justify-center rounded-xl border border-border bg-card font-mono text-xs text-muted-foreground">
+      <div className="flex items-center gap-2">
+        <span className="flex h-16 w-20 items-center justify-center rounded-xl border border-border bg-card font-mono text-xs text-muted-foreground">
           Wait…
         </span>
-        <span className="font-mono text-lg text-muted-foreground">→</span>
-        <span className="flex h-16 w-24 items-center justify-center rounded-xl bg-primary font-display text-sm font-bold text-primary-foreground">
+        <span className="flex h-16 w-20 items-center justify-center rounded-xl bg-opponent font-display text-xs font-bold text-primary-foreground">
+          Don't tap
+        </span>
+        <span className="flex h-16 w-20 items-center justify-center rounded-xl bg-primary font-display text-sm font-bold text-primary-foreground">
           TAP!
         </span>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Tap too early and that try counts as 1,000 ms. Score: 50 at 650 ms average, up to 150 at 50 ms.
+      <p className="text-center text-xs text-muted-foreground">
+        Teal or red is a trap: tapping it, or tapping a dark screen, is a false start (+200 ms). Score: 50 at 650 ms
+        average, up to 150 at 50 ms.
       </p>
     </div>
   );
 }
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
-  const delays = puzzle.type === "reaction" ? puzzle.delays : [];
-  const key = delays.join(",");
-  const [times, setTimes] = useState<(number | null)[]>(() =>
-    Array.from({ length: REACTION_ATTEMPTS }, () => null),
-  );
-  const [early, setEarly] = useState<boolean[]>(() =>
-    Array.from({ length: REACTION_ATTEMPTS }, () => false),
-  );
+function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const flashes = puzzle.type === "reaction" ? puzzle.flashes : [];
+  const decoys = puzzle.type === "reaction" ? puzzle.decoys : [];
+  const key = `${phaseStartedAt}:${flashes.join(",")}`;
+  const [times, setTimes] = useState<(number | null)[]>(() => flashes.map(() => null));
+  const [falseStarts, setFalseStarts] = useState(0);
+  const [lastShown, setLastShown] = useState<{ text: string; until: number; bad: boolean } | null>(null);
+  const [t, setT] = useState(() => serverNow() - phaseStartedAt);
   const submitted = useRef("");
+  const lastFalseAt = useRef(-1_000);
 
   useEffect(() => {
-    setTimes(Array.from({ length: REACTION_ATTEMPTS }, () => null));
-    setEarly(Array.from({ length: REACTION_ATTEMPTS }, () => false));
-  }, [key]);
+    setTimes(flashes.map(() => null));
+    setFalseStarts(0);
+    setLastShown(null);
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Which attempt slot are we in right now?
-  let index = delays.length;
-  for (let i = 0; i < delays.length; i++) {
-    if (now < phaseStartedAt + attemptStart(delays, i) + slotLength(delays[i]!)) {
-      index = i;
-      break;
-    }
-  }
-
-  const flashAt =
-    index < delays.length ? phaseStartedAt + attemptStart(delays, index) + delays[index]! : null;
-  const record = index < delays.length ? times[index] : null;
-
-  // A missed attempt is recorded as the penalty once its window closes.
+  // Frame-accurate local clock so the flash appears the moment it starts.
   useEffect(() => {
-    if (flashAt === null || record !== null) return;
-    if (now < flashAt + REACTION_RESPONSE_MS) return;
+    let raf = 0;
+    const frame = () => {
+      setT(serverNow() - phaseStartedAt);
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [phaseStartedAt]);
+
+  // A gold flash with no tap in 1.5 s records the miss value.
+  useEffect(() => {
+    const missed = flashes.findIndex((f, i) => times[i] === null && t >= f + REACTION_FLASH_MS);
+    if (missed < 0) return;
     setTimes((prev) => {
-      if (prev[index] !== null) return prev;
+      if (prev[missed] !== null) return prev;
       const next = [...prev];
-      next[index] = REACTION_PENALTY_MS;
+      next[missed] = REACTION_MISS_MS;
       return next;
     });
-  }, [now, flashAt, record, index]);
+    setLastShown({ text: "Missed", until: t + 900, bad: true });
+  }, [t, times, flashes]);
 
-  // Submit the average once every slot has finished.
   useEffect(() => {
-    if (delays.length === 0 || locked || submitted.current === key) return;
-    if (times.some((t) => t === null)) return;
-    if (now < phaseStartedAt + reactionDurationMs(delays)) return;
+    if (flashes.length) onDraftAnswer?.(encode(times, falseStarts));
+  }, [times, falseStarts]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (flashes.length === 0 || locked || submitted.current === key) return;
+    if (times.some((v) => v === null)) return;
     submitted.current = key;
     const values = times as number[];
-    const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-    onSubmit(values.join(","), { reactionAvgMs: avg });
-  }, [times, now, locked, key, phaseStartedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+    onSubmit(encode(values, falseStarts), { reactionAvgMs: reactionAverage(values, falseStarts) });
+  }, [times, locked, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (puzzle.type !== "reaction") return null;
 
+  const liveIndex = flashes.findIndex((f, i) => times[i] === null && t >= f && t < f + REACTION_FLASH_MS);
+  const decoy = decoys.find((d) => t >= d.at && t < d.at + REACTION_DECOY_MS) ?? null;
+  const done = times.every((v) => v !== null);
+  const flashNo = Math.min(flashes.length, times.filter((v) => v !== null).length + (done ? 0 : 1));
+
   const handleTap = () => {
-    if (locked || flashAt === null || record !== null) return;
-    const stamp = serverNow();
-    const tooEarly = stamp < flashAt;
-    setTimes((prev) => {
-      if (prev[index] !== null) return prev;
-      const next = [...prev];
-      next[index] = tooEarly ? REACTION_PENALTY_MS : Math.max(1, Math.round(stamp - flashAt));
-      return next;
-    });
-    if (tooEarly) {
-      setEarly((prev) => {
+    if (locked || done) return;
+    const stamp = serverNow() - phaseStartedAt;
+    const index = flashes.findIndex((f, i) => times[i] === null && stamp >= f && stamp < f + REACTION_FLASH_MS);
+    if (index >= 0) {
+      const ms = Math.max(1, Math.round(stamp - flashes[index]!));
+      setTimes((prev) => {
+        if (prev[index] !== null) return prev;
         const next = [...prev];
-        next[index] = true;
+        next[index] = ms;
         return next;
       });
+      setLastShown({ text: `${ms} ms`, until: stamp + 1_000, bad: false });
+      return;
     }
+    if (stamp < 0 || stamp - lastFalseAt.current < 250) return;
+    lastFalseAt.current = stamp;
+    setFalseStarts((n) => n + 1);
+    setLastShown({ text: "False start", until: stamp + 900, bad: true });
   };
 
-  const waiting = flashAt !== null && record === null && now < flashAt;
-  const live = flashAt !== null && record === null && now >= flashAt;
-  const done = index >= delays.length;
+  const surface =
+    liveIndex >= 0
+      ? "bg-primary"
+      : decoy
+        ? decoy.color === "teal"
+          ? "bg-opponent"
+          : "bg-destructive"
+        : "bg-background";
+  const showLast = lastShown && t < lastShown.until;
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6">
-      <div className="flex gap-2">
-        {delays.map((_, i) => (
-          <span
-            key={i}
-            className={`h-2.5 w-2.5 rounded-full ${times[i] !== null ? "bg-primary" : "bg-border"}`}
-          />
-        ))}
+    <div className="flex flex-1 flex-col gap-3">
+      <div className="flex items-center justify-between font-mono text-sm uppercase tracking-widest text-muted-foreground">
+        <span>
+          Flash {flashNo} / {flashes.length}
+        </span>
+        {falseStarts > 0 && <span className="text-warn">{falseStarts} false</span>}
       </div>
-
       <button
         type="button"
         aria-label="Reaction area"
-        onClick={handleTap}
-        className={`flex h-64 w-full items-center justify-center rounded-2xl border transition-colors ${
-          live ? "border-primary bg-primary" : "border-border bg-muted/20"
-        }`}
+        onPointerDown={handleTap}
+        className={`flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
       >
-        {done ? (
-          <span className="text-sm text-muted-foreground">All three done</span>
-        ) : record !== null ? (
-          early[index] ? (
-            <span className="font-display text-2xl font-bold text-warn">Too early!</span>
-          ) : (
-            <span className="font-mono text-4xl font-bold tabular-nums text-primary">
-              {record} ms
-            </span>
-          )
-        ) : live ? (
+        {liveIndex >= 0 ? (
           <span className="font-display text-4xl font-bold text-primary-foreground">TAP!</span>
-        ) : waiting ? (
-           <span className="font-mono text-[21px] uppercase tracking-widest text-muted-foreground">
-            Wait for gold…
+        ) : showLast ? (
+          <span
+            className={`font-mono text-4xl font-bold tabular-nums ${lastShown.bad ? "text-warn" : "text-primary"}`}
+          >
+            {lastShown.text}
           </span>
-        ) : null}
+        ) : done ? (
+          <span className="text-base text-muted-foreground">All five done</span>
+        ) : decoy ? null : (
+          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">Wait for gold…</span>
+        )}
       </button>
-
-      <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        Try {Math.min(index + 1, delays.length)} of {delays.length}
-      </p>
     </div>
   );
 }
 
-function Reveal({ puzzle, myAnswer, myReactionAvgMs }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "reaction") return null;
-  const attempts = (myAnswer ?? "")
-    .split(",")
-    .map((v) => Number.parseInt(v, 10))
-    .filter((v) => Number.isFinite(v));
+  const { times, falseStarts } = parseAnswer(myAnswer);
+  const avg = times.length ? reactionAverage(times, falseStarts) : null;
 
   return (
     <>
       <div className="flex flex-col items-center gap-2">
-        {attempts.length === 0 ? (
+        {times.length === 0 ? (
           <p className="font-display text-2xl font-bold text-warn">No attempts</p>
         ) : (
-          attempts.map((ms, index) => (
+          times.map((ms, index) => (
             <p key={index} className="font-mono text-xl tabular-nums text-foreground">
-              Try {index + 1} — {ms} ms
+              Flash {index + 1} — {ms >= REACTION_MISS_MS ? "missed (1,500 ms)" : `${ms} ms`}
             </p>
           ))
         )}
+        <p className="font-mono text-lg text-muted-foreground">
+          False starts: {falseStarts}
+          {falseStarts > 0 ? ` (+${falseStarts * REACTION_FALSE_START_MS} ms)` : ""}
+        </p>
       </div>
       <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
         <p className="text-base uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
-        <p className="font-mono text-4xl font-bold tabular-nums text-primary">
-          {myReactionAvgMs ?? "—"} ms
-        </p>
-        {myReactionAvgMs !== undefined && myReactionAvgMs !== null && (
-          <p className="font-mono text-base text-muted-foreground">
-            50 + {Math.max(0, Math.min(100, Math.round((650 - myReactionAvgMs) / 6)))} = {50 + Math.max(0, Math.min(100, Math.round((650 - myReactionAvgMs) / 6)))} points
-          </p>
-        )}
+        <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg ?? "—"} ms</p>
+        {avg !== null && <p className="font-mono text-base text-muted-foreground">{reactionPoints(avg)} points</p>}
       </div>
     </>
   );
@@ -235,17 +251,10 @@ export const reactionPuzzle: PuzzleDefinition = {
   key: "reaction",
   name: "Reaction Time",
   category: "speed",
-  timeLimitMs: 30_000,
-  generate: () =>
-    ({
-      type: "reaction",
-      delays: buildReactionDelays(),
-    }) satisfies ReactionPuzzleData,
+  timeLimitMs: REACTION_ROUND_MS,
+  generate: buildReaction,
   // Scored from the average reaction time, not from correctness.
   check: () => true,
-  durationMs: (puzzle) =>
-    puzzle.type === "reaction" ? reactionDurationMs(puzzle.delays) + 1_500 : 0,
-  showTimer: false,
   revealHeading: "Your reactions",
   IntroExample,
   Stage,

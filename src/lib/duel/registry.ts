@@ -153,6 +153,7 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "numseq",
   "pctsprint",
   "sumhunt",
+  "gonogo",
 ]);
 
 const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> = {

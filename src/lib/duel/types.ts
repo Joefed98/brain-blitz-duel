@@ -232,8 +232,10 @@ export interface ChainCalculationPuzzleData {
 
 export interface ReactionPuzzleData {
   type: "reaction";
-  /** Milliseconds before the gold flash of each attempt (generated once). */
-  delays: number[];
+  /** When each gold flash starts, in ms from the round start (generated once). */
+  flashes: number[];
+  /** Decoy pulses between gold flashes: start time and colour. */
+  decoys: { at: number; color: "teal" | "red" }[];
 }
 
 export interface WordLadderPuzzleData {
@@ -633,16 +635,16 @@ export function sequencePlaybackMs(count: number): number {
 
 export const SEQUENCE_PLAYBACK_MS = sequencePlaybackMs(SEQUENCE_LENGTH);
 
-/** Reaction Time: three attempts, each in a fixed-length shared slot. */
-export const REACTION_ATTEMPTS = 3;
-export const REACTION_MIN_DELAY_MS = 1_500;
-export const REACTION_MAX_DELAY_MS = 4_000;
-/** How long a player has to tap after the gold flash. */
-export const REACTION_RESPONSE_MS = 2_000;
-/** How long the attempt's time (or "Too early!") stays on screen. */
-export const REACTION_FEEDBACK_MS = 1_000;
-/** Penalty recorded for a false start or a missed attempt. */
-export const REACTION_PENALTY_MS = 1_000;
+/** Reaction Time: five gold flashes on one shared 50-second timeline. */
+export const REACTION_ROUND_MS = 50_000;
+export const REACTION_FLASHES = 5;
+/** A gold flash lasts until tapped or this long; a miss records this value. */
+export const REACTION_FLASH_MS = 1_500;
+export const REACTION_MISS_MS = 1_500;
+/** Added to the average for every false start. */
+export const REACTION_FALSE_START_MS = 200;
+/** How long a decoy pulse stays on screen. */
+export const REACTION_DECOY_MS = 600;
 
 /** Colour Clash: a run of twelve items across eight colours. */
 export const STROOP_ITEMS = 12;
@@ -772,31 +774,34 @@ export const NUMBER_CLIMB_PREP_MS = 6_000;
 /*  Stop Watch                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export interface StopWatchPuzzleData {
-  type: "stopwatch";
-  /** Target centres of each attempt, as a fraction of the bar (0–1). */
-  targets: number[];
+export interface StopWatchSpec {
+  /** Zone centre as a fraction of the bar (0–1). */
+  centre: number;
+  /** Zone half-width as a fraction of the bar. */
+  half: number;
+  /** One traversal of the bar, in ms. */
+  sweepMs: number;
+  /** The marker vanishes over the final third of the bar. */
+  hidden: boolean;
+  /** Starts at the right; the zone only arms on the second pass. */
+  reverse: boolean;
 }
 
-export const STOPWATCH_ATTEMPTS = 3;
-/** One full sweep of the bar; the marker then bounces back. */
-export const STOPWATCH_SWEEP_MS = 1_100;
-/** The sweep speeds up every round: 1.0x, then 1.3x, then 1.6x. */
-export const STOPWATCH_SPEED_PCT = [100, 130, 160];
-/** The sweep time of one attempt, at that attempt's speed. */
-export function stopWatchSweepMs(attempt: number): number {
-  const pct = STOPWATCH_SPEED_PCT[Math.min(Math.max(attempt, 0), STOPWATCH_SPEED_PCT.length - 1)]!;
-  return Math.round((STOPWATCH_SWEEP_MS * 100) / pct);
+export interface StopWatchPuzzleData {
+  type: "stopwatch";
+  watches: StopWatchSpec[];
 }
-export const STOPWATCH_TIMEOUT_MS = 6_000;
-export const STOPWATCH_FEEDBACK_MS = 1_000;
-export const STOPWATCH_SLOT_MS = STOPWATCH_TIMEOUT_MS + STOPWATCH_FEEDBACK_MS;
-/** Recorded when an attempt is never tapped. */
-export const STOPWATCH_MISS_MS = 800;
+
+export const STOPWATCH_ATTEMPTS = 5;
+export const STOPWATCH_ROUND_MS = 60_000;
+/** A watch not stopped within this many traversals records the miss value. */
+export const STOPWATCH_PASSES = 3;
+/** Pause between one watch's result and the next watch starting. */
+export const STOPWATCH_GAP_MS = 600;
+/** Recorded when a watch is never stopped. */
+export const STOPWATCH_MISS_MS = 400;
 /** Distance at which the accuracy bonus reaches zero. */
 export const STOPWATCH_MAX_DIST_MS = 400;
-/** Half-width of the gold zone, as a fraction of the bar. */
-export const STOPWATCH_ZONE = 0.06;
 
 /* -------------------------------------------------------------------------- */
 /*  Count Up                                                                   */
