@@ -187,7 +187,7 @@ function LaserBoard({
                 className="flex items-center justify-center"
               >
                 <div className="h-full w-full">
-                  <DirectionalGem lit={litSet.has(cell)} from={directional?.from} />
+                  <DirectionalGem lit={litSet.has(cell)} {...(directional ? { from: directional.from } : {})} />
                 </div>
               </div>
             );

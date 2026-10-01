@@ -3,7 +3,7 @@
  * Run with: bun scripts/gravity-chain-intruder-check.ts
  */
 
-import { generateGravity, solutionSwapsOrder } from "../src/lib/duel/gravity.server";
+import { generateGravity } from "../src/lib/duel/gravity.server";
 import { decodeGravityTilts, replayGravity } from "../src/lib/duel/gravity";
 import { generateChain } from "../src/lib/duel/chain.server";
 import {
@@ -27,6 +27,7 @@ import {
   GRAV_FALLBACK_MIN_TILTS,
   GRAV_MAX_TILTS,
   INTRUDER_BOARD_SIZES,
+  INTRUDER_CHANGE_COUNTS,
   INTRUDER_BOARD_COLOUR_COUNTS,
   INTRUDER_BOARD_SHAPE_COUNTS,
 } from "../src/lib/duel/types";
