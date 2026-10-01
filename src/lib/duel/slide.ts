@@ -1,11 +1,19 @@
 /**
  * Ice Slide rules. The same slide function runs on the phone (to animate the
- * ball) and on the server (to replay the moves a phone sends). A hole swallows
- * the ball mid-slide and drops it back on the start; the move still counts. A
- * one-way arrow cell turns a sliding ball in the arrow's direction.
+ * ball) and on the server (to replay the moves a phone sends). The ball keeps
+ * sliding until a wall or the edge stops it. A hole swallows it and drops it
+ * back on the start (the move still counts); an arrow turns it; a portal sends
+ * it out of its twin with the same heading; thin ice it crosses turns into a
+ * hole for every later slide. The board state is (cell, broken-ice bitmask).
  */
 
-import { SLIDE_CELLS, SLIDE_COLS as N, type SlideArrow, type SlideDir } from "./types";
+import {
+  SLIDE_CELLS,
+  SLIDE_COLS as N,
+  type SlideArrow,
+  type SlideDir,
+  type SlidePuzzleData,
+} from "./types";
 
 export const SLIDE_DIRS: SlideDir[] = ["U", "D", "L", "R"];
 
@@ -19,235 +27,194 @@ export function slideStep(cell: number, dir: SlideDir): number | null {
   return col < N - 1 ? cell + 1 : null;
 }
 
-export function arrowMap(arrows: SlideArrow[] | undefined): Map<number, SlideDir> {
-  return new Map((arrows ?? []).map((arrow) => [arrow.cell, arrow.dir]));
+export interface SlideBoard {
+  walls: Set<number>;
+  holes: Set<number>;
+  arrows: Map<number, SlideDir>;
+  portals: Map<number, number>;
+  /** Thin-ice cell → its bit in the broken mask. */
+  thin: Map<number, number>;
+  start: number;
+  exit: number;
+}
+
+export function slideBoard(
+  puzzle: Pick<SlidePuzzleData, "walls" | "holes" | "arrows" | "portals" | "thin" | "start" | "exit">,
+): SlideBoard {
+  const portals = new Map<number, number>();
+  for (const [a, b] of puzzle.portals ?? []) {
+    portals.set(a, b);
+    portals.set(b, a);
+  }
+  return {
+    walls: new Set(puzzle.walls),
+    holes: new Set(puzzle.holes ?? []),
+    arrows: new Map((puzzle.arrows ?? []).map((arrow: SlideArrow) => [arrow.cell, arrow.dir])),
+    portals,
+    thin: new Map((puzzle.thin ?? []).map((cell, bit) => [cell, bit])),
+    start: puzzle.start,
+    exit: puzzle.exit,
+  };
 }
 
 export interface SlideOutcome {
-  /** Cells the ball travels over, in order. */
+  /** Cells the ball travels over, in order (a portal jump lists both ends). */
   path: number[];
   /** Where it comes to rest — the start again when it fell in a hole. */
   cell: number;
-  /** True when a hole swallowed it on the way. */
+  /** Broken-ice mask after the slide. */
+  mask: number;
   fell: boolean;
+  /** True when the slide went through a portal. */
+  portal: boolean;
+  /** True when the slide crossed (and broke) thin ice. */
+  cracked: boolean;
 }
 
-/**
- * One slide: the ball keeps going until a wall or the grid edge stops it. The
- * exit stops it too. A hole ends the slide there and sends the ball home, and
- * an arrow cell turns it and lets it carry on.
- */
-export function slideOutcome(
-  from: number,
-  dir: SlideDir,
-  walls: Set<number>,
-  holes: Set<number>,
-  exit: number,
-  start: number,
-  arrows?: Map<number, SlideDir>,
-): SlideOutcome {
-  const turns = arrows ?? new Map<number, SlideDir>();
+export function slideOutcome(board: SlideBoard, from: number, mask: number, dir: SlideDir): SlideOutcome {
   const path: number[] = [];
   const seen = new Set<string>();
   let cell = from;
   let heading = dir;
+  let broke = 0;
+  let portal = false;
   for (let guard = 0; guard < SLIDE_CELLS * 4; guard++) {
     const next = slideStep(cell, heading);
-    if (next === null || walls.has(next)) break;
+    if (next === null || board.walls.has(next)) break;
     cell = next;
     path.push(cell);
-    if (holes.has(cell)) return { path, cell: start, fell: true };
-    if (cell === exit) break;
-    const turn = turns.get(cell);
-    if (turn) {
-      const id = `${cell}:${turn}`;
-      // An arrow loop would spin forever: the ball simply stops there.
-      if (seen.has(id)) break;
-      seen.add(id);
-      heading = turn;
+    const bit = board.thin.get(cell);
+    if (board.holes.has(cell) || (bit !== undefined && mask & (1 << bit))) {
+      return { path, cell: board.start, mask: mask | broke, fell: true, portal, cracked: broke !== 0 };
     }
+    if (bit !== undefined) broke |= 1 << bit;
+    if (cell === board.exit) break;
+    const id = `${cell}:${heading}`;
+    // A loop of arrows or portals would spin forever: the ball simply stops.
+    if (seen.has(id)) break;
+    seen.add(id);
+    const twin = board.portals.get(cell);
+    if (twin !== undefined) {
+      portal = true;
+      cell = twin;
+      path.push(cell);
+      continue;
+    }
+    const turn = board.arrows.get(cell);
+    if (turn) heading = turn;
   }
-  return { path, cell: path.length ? cell : from, fell: false };
+  return {
+    path,
+    cell: path.length ? cell : from,
+    mask: mask | broke,
+    fell: false,
+    portal,
+    cracked: broke !== 0,
+  };
 }
 
 export function decodeSlideMoves(raw: string): SlideDir[] {
   return String(raw ?? "")
     .toUpperCase()
     .split("")
-    .filter((char): char is SlideDir => (SLIDE_DIRS as string[]).includes(char) || char === "X" || char === "Y")
-    .slice(0, 200);
+    .filter(
+      (char): char is SlideDir =>
+        (SLIDE_DIRS as string[]).includes(char) || char === "X" || char === "Y",
+    )
+    .slice(0, 300);
 }
 
 export function encodeSlideMoves(moves: SlideDir[]): string {
   return moves.join("");
 }
 
-export interface SlideReplay {
-  /** Where the ball ended up. */
+export interface SlideState {
   cell: number;
-  /** Slides that actually moved the ball. */
+  mask: number;
+}
+
+export interface SlideReplay {
+  cell: number;
+  mask: number;
   moves: number;
   solved: boolean;
-  /** How many times a hole sent it home. */
   falls: number;
-  /** Every cell the ball came to rest on, the start included. */
-  visited: number[];
+  /** Every state the ball came to rest in, the start included. */
+  visited: SlideState[];
+  /** Cells crossed by each slide, for drawing. */
+  paths: number[][];
 }
 
-/** Replays a move list from the stored start. Moves that change nothing are dropped. */
-export function replaySlide(
-  walls: number[],
-  holes: number[],
-  start: number,
-  exit: number,
-  moves: SlideDir[],
-  arrows?: SlideArrow[],
-): SlideReplay {
-  const blocked = new Set(walls);
-  const pits = new Set(holes);
-  const turns = arrowMap(arrows);
-  let cell = start;
+/** Replays a move list from the stored start. X = undo, Y = reset; no-op slides are dropped. */
+export function replaySlide(board: SlideBoard, moves: SlideDir[]): SlideReplay {
+  let state: SlideState = { cell: board.start, mask: 0 };
   let count = 0;
   let falls = 0;
-  const visited = [start];
-  const history = [start];
+  const visited: SlideState[] = [state];
+  const history: SlideState[] = [state];
+  const paths: number[][] = [];
   for (const dir of moves) {
-    if (dir === "X") { if (history.length > 1) history.pop(); cell = history[history.length - 1]!; continue; }
-    if (dir === "Y") { history.length = 1; cell = start; continue; }
-    if (cell === exit) break;
-    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
-    // A slide into a hole still costs a move, even though the ball ends at home.
-    if (!outcome.path.length) continue;
-    cell = outcome.cell;
-    history.push(cell);
-    visited.push(cell);
+    if (dir === "X") {
+      if (history.length > 1) history.pop();
+      state = history[history.length - 1]!;
+      continue;
+    }
+    if (dir === "Y") {
+      history.length = 1;
+      state = history[0]!;
+      continue;
+    }
+    if (state.cell === board.exit) break;
+    const out = slideOutcome(board, state.cell, state.mask, dir);
+    if (!out.path.length) continue;
+    state = { cell: out.cell, mask: out.mask };
+    history.push(state);
+    visited.push(state);
+    paths.push(out.path);
     count += 1;
-    if (outcome.fell) falls += 1;
-    if (cell === exit) break;
+    if (out.fell) falls += 1;
+    if (state.cell === board.exit) break;
   }
-  return { cell, moves: count, solved: cell === exit, falls, visited };
+  return { ...state, moves: count, solved: state.cell === board.exit, falls, visited, paths };
 }
 
-/**
- * Fewest slides from a cell to the exit, or null when it cannot be reached.
- * Holes and arrows are both part of the search: a slide over a hole simply
- * lands back on the start, and an arrow turns the ball mid-slide.
- */
-export function slideDistance(
-  walls: number[],
-  holes: number[],
-  from: number,
-  exit: number,
-  start: number,
-  arrows?: SlideArrow[],
-): number | null {
-  const blocked = new Set(walls);
-  const pits = new Set(holes);
-  const turns = arrowMap(arrows);
-  if (from === exit) return 0;
-  const seen = new Set<number>([from]);
-  let frontier = [from];
-  for (let depth = 1; depth <= SLIDE_CELLS * 4; depth++) {
-    const next: number[] = [];
-    for (const cell of frontier) {
-      for (const dir of SLIDE_DIRS) {
-        const landed = slideOutcome(cell, dir, blocked, pits, exit, start, turns).cell;
-        if (landed === cell || seen.has(landed)) continue;
-        if (landed === exit) return depth;
-        seen.add(landed);
-        next.push(landed);
+/** Breadth-first search over (cell, broken mask): fewest slides and one shortest route. */
+export function slideSearch(
+  board: SlideBoard,
+  from: SlideState = { cell: board.start, mask: 0 },
+  maxDepth = SLIDE_CELLS * 4,
+): { min: number; route: SlideDir[] } | null {
+  if (from.cell === board.exit) return { min: 0, route: [] };
+  const key = (s: SlideState) => s.mask * SLIDE_CELLS + s.cell;
+  const states: SlideState[] = [from];
+  const parent: number[] = [-1];
+  const via: SlideDir[] = ["X"];
+  const depth: number[] = [0];
+  const seen = new Set<number>([key(from)]);
+  for (let index = 0; index < states.length; index++) {
+    if (depth[index]! >= maxDepth) return null;
+    const node = states[index]!;
+    for (const dir of SLIDE_DIRS) {
+      const out = slideOutcome(board, node.cell, node.mask, dir);
+      if (!out.path.length) continue;
+      const next = { cell: out.cell, mask: out.mask };
+      const id = key(next);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      states.push(next);
+      parent.push(index);
+      via.push(dir);
+      depth.push(depth[index]! + 1);
+      if (next.cell === board.exit) {
+        const route: SlideDir[] = [];
+        for (let walk = states.length - 1; walk > 0; walk = parent[walk]!) route.unshift(via[walk]!);
+        return { min: route.length, route };
       }
     }
-    if (!next.length) return null;
-    frontier = next;
   }
   return null;
 }
 
-/** Every slide path reachable from the start, including the cells crossed. */
-export function reachableSlidePaths(
-  walls: number[],
-  holes: number[],
-  start: number,
-  exit: number,
-  arrows?: SlideArrow[],
-): { signatures: Set<string>; crossed: Set<number> } {
-  const blocked = new Set(walls);
-  const pits = new Set(holes);
-  const turns = arrowMap(arrows);
-  const seen = new Set<number>([start]);
-  const queue = [start];
-  const signatures = new Set<string>();
-  const crossed = new Set<number>();
-  for (let at = 0; at < queue.length; at++) {
-    const cell = queue[at]!;
-    if (cell === exit) continue;
-    for (const dir of SLIDE_DIRS) {
-      const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
-      if (!outcome.path.length) continue;
-      outcome.path.forEach((pathCell) => crossed.add(pathCell));
-      signatures.add(`${cell}:${dir}:${outcome.path.join(",")}>${outcome.cell}`);
-      if (!seen.has(outcome.cell)) {
-        seen.add(outcome.cell);
-        queue.push(outcome.cell);
-      }
-    }
-  }
-  return { signatures, crossed };
-}
-
-/** One shortest route from the start, as UDLR letters ("" when unreachable). */
-export function shortestSlideRoute(
-  walls: number[],
-  holes: number[],
-  start: number,
-  exit: number,
-  arrows?: SlideArrow[],
-): SlideDir[] {
-  const blocked = new Set(walls);
-  const pits = new Set(holes);
-  const turns = arrowMap(arrows);
-  if (start === exit) return [];
-  const seen = new Set<number>([start]);
-  let frontier: { cell: number; moves: SlideDir[] }[] = [{ cell: start, moves: [] }];
-  for (let depth = 1; depth <= SLIDE_CELLS * 4; depth++) {
-    const next: typeof frontier = [];
-    for (const node of frontier) {
-      for (const dir of SLIDE_DIRS) {
-        const landed = slideOutcome(node.cell, dir, blocked, pits, exit, start, turns).cell;
-        if (landed === node.cell || seen.has(landed)) continue;
-        const moves = [...node.moves, dir];
-        if (landed === exit) return moves;
-        seen.add(landed);
-        next.push({ cell: landed, moves });
-      }
-    }
-    if (!next.length) return [];
-    frontier = next;
-  }
-  return [];
-}
-
-/** True when a route never slides over a hole. */
-export function slideRouteAvoidsHoles(
-  walls: number[],
-  holes: number[],
-  start: number,
-  exit: number,
-  moves: SlideDir[],
-  arrows?: SlideArrow[],
-): boolean {
-  const blocked = new Set(walls);
-  const pits = new Set(holes);
-  const turns = arrowMap(arrows);
-  let cell = start;
-  for (const dir of moves) {
-    if (dir === "X" || dir === "Y") continue;
-    const outcome = slideOutcome(cell, dir, blocked, pits, exit, start, turns);
-    if (outcome.fell) return false;
-    if (!outcome.path.length) continue;
-    cell = outcome.cell;
-    if (cell === exit) break;
-  }
-  return true;
+export function slideDistance(board: SlideBoard, from: SlideState): number | null {
+  return slideSearch(board, from)?.min ?? null;
 }

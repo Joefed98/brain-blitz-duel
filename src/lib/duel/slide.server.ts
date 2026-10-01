@@ -1,18 +1,12 @@
 /**
- * Server-only Ice Slide generation. Every layout is proved reachable by
- * breadth-first search over ball positions — with holes treated as a reset to
- * the start and arrow cells turning the ball mid-slide — and the minimum slide
- * count, the checks behind it and one shortest route are stored with the puzzle.
+ * Server-only Ice Slide generation. Every layout is proved solvable by
+ * breadth-first search over (ball cell, broken thin-ice mask); the minimum must
+ * land in the band, and the stored shortest route must use a portal and cross
+ * thin ice at least once.
  */
 
-import {
-  reachableSlidePaths,
-  shortestSlideRoute,
-  slideDistance,
-  slideRouteAvoidsHoles,
-  slideStep,
-} from "./slide";
-import { shuffled } from "./random";
+import { slideBoard, slideOutcome, slideSearch, slideStep } from "./slide";
+import { randInt, shuffled } from "./random";
 import {
   SLIDE_CELLS,
   SLIDE_COLS as N,
@@ -20,20 +14,19 @@ import {
   SLIDE_MAX_ARROWS,
   SLIDE_MAX_HOLES,
   SLIDE_MAX_MOVES,
+  SLIDE_MAX_PORTALS,
+  SLIDE_MAX_THIN,
   SLIDE_MAX_WALLS,
   SLIDE_MIN_ARROWS,
   SLIDE_MIN_HOLES,
   SLIDE_MIN_MOVES,
-  SLIDE_MIN_STOPPERS,
+  SLIDE_MIN_PORTALS,
+  SLIDE_MIN_THIN,
   SLIDE_MIN_WALLS,
   type SlideArrow,
   type SlideDir,
   type SlidePuzzleData,
 } from "./types";
-
-function randomInt(maxExclusive: number): number {
-  return Math.floor(Math.random() * maxExclusive);
-}
 
 function border(cell: number): boolean {
   const row = Math.floor(cell / N);
@@ -43,105 +36,75 @@ function border(cell: number): boolean {
 
 const DIRS: SlideDir[] = ["U", "D", "L", "R"];
 
-/**
- * How many walls the shortest route actually depends on: take one away and the
- * minimum changes. A layout needs at least five such stoppers.
- */
-function stoppers(
-  walls: number[],
-  holes: number[],
-  arrows: SlideArrow[],
-  start: number,
-  exit: number,
-  min: number,
-): number {
-  let count = 0;
-  for (const wall of walls) {
-    const without = walls.filter((cell) => cell !== wall);
-    if (slideDistance(without, holes, start, exit, start, arrows) !== min) count += 1;
+/** True when the route goes through a portal and over thin ice at least once. */
+export function routeUsesFeatures(
+  puzzle: Pick<SlidePuzzleData, "walls" | "holes" | "arrows" | "portals" | "thin" | "start" | "exit">,
+  route: SlideDir[],
+): { portal: boolean; cracked: boolean } {
+  const board = slideBoard(puzzle);
+  let cell = board.start;
+  let mask = 0;
+  let portal = false;
+  let cracked = false;
+  for (const dir of route) {
+    const out = slideOutcome(board, cell, mask, dir);
+    portal ||= out.portal;
+    cracked ||= out.cracked;
+    cell = out.cell;
+    mask = out.mask;
   }
-  return count;
-}
-
-function samePaths(a: Set<string>, b: Set<string>): boolean {
-  return a.size === b.size && [...a].every((path) => b.has(path));
-}
-
-/** Every arrow is crossed from a reachable stop and changes reachable slide geometry. */
-export function meaningfulSlideArrows(
-  walls: number[],
-  holes: number[],
-  arrows: SlideArrow[],
-  start: number,
-  exit: number,
-): boolean {
-  const blocked = new Set(walls);
-  const full = reachableSlidePaths(walls, holes, start, exit, arrows);
-  return arrows.every((arrow, index) => {
-    const next = slideStep(arrow.cell, arrow.dir);
-    if (next === null || blocked.has(next) || !full.crossed.has(arrow.cell)) return false;
-    const without = arrows.filter((_, arrowIndex) => arrowIndex !== index);
-    return !samePaths(
-      full.signatures,
-      reachableSlidePaths(walls, holes, start, exit, without).signatures,
-    );
-  });
+  return { portal, cracked };
 }
 
 export function generateIceSlide(): SlidePuzzleData {
-  for (let attempt = 1; attempt <= 250_000; attempt++) {
+  for (let attempt = 1; attempt <= 500_000; attempt++) {
     const cells = shuffled(Array.from({ length: SLIDE_CELLS }, (_, i) => i));
     const exit = cells.find(border)!;
-    const wallCount = SLIDE_MIN_WALLS + randomInt(SLIDE_MAX_WALLS - SLIDE_MIN_WALLS + 1);
-    const walls = cells.filter((cell) => cell !== exit).slice(0, wallCount);
-    const rest = cells.filter((cell) => cell !== exit && !walls.includes(cell));
-    const start = rest[0];
-    if (start === undefined) continue;
+    const pool = cells.filter((cell) => cell !== exit);
+    let at = 0;
+    const take = (count: number) => pool.slice(at, (at += count));
+    const walls = take(randInt(SLIDE_MIN_WALLS, SLIDE_MAX_WALLS));
+    const start = take(1)[0]!;
+    const holes = take(randInt(SLIDE_MIN_HOLES, SLIDE_MAX_HOLES));
+    const wallSet = new Set(walls);
+    const arrows: SlideArrow[] = take(randInt(SLIDE_MIN_ARROWS, SLIDE_MAX_ARROWS))
+      .map((cell) => ({ cell, dir: shuffled(DIRS)[0]! }))
+      .filter((arrow) => {
+        const next = slideStep(arrow.cell, arrow.dir);
+        return next !== null && !wallSet.has(next);
+      });
+    if (!arrows.length) continue;
+    const portalCells = take(2 * randInt(SLIDE_MIN_PORTALS, SLIDE_MAX_PORTALS));
+    const portals: [number, number][] = [];
+    for (let i = 0; i < portalCells.length; i += 2) portals.push([portalCells[i]!, portalCells[i + 1]!]);
+    const thin = take(randInt(SLIDE_MIN_THIN, SLIDE_MAX_THIN));
 
-    const holeCount = SLIDE_MIN_HOLES + randomInt(SLIDE_MAX_HOLES - SLIDE_MIN_HOLES + 1);
-    const holes = rest.slice(1, 1 + holeCount);
-    if (holes.length !== holeCount) continue;
+    const puzzle = { walls, holes, arrows, portals, thin, start, exit };
+    const found = slideSearch(slideBoard(puzzle), undefined, SLIDE_MAX_MOVES);
+    if (!found || found.min < SLIDE_MIN_MOVES || found.min > SLIDE_MAX_MOVES) continue;
+    const uses = routeUsesFeatures(puzzle, found.route);
+    if (!uses.portal || !uses.cracked) continue;
 
-    const arrowCount = SLIDE_MIN_ARROWS + randomInt(SLIDE_MAX_ARROWS - SLIDE_MIN_ARROWS + 1);
-    const arrowCells = rest.slice(1 + holeCount, 1 + holeCount + arrowCount);
-    if (arrowCells.length !== arrowCount) continue;
-    const arrows: SlideArrow[] = arrowCells.map((cell) => ({
-      cell,
-      dir: shuffled(DIRS)[0]!,
-    }));
-
-    const min = slideDistance(walls, holes, start, exit, start, arrows);
-    // Twenty to twenty-six slides, so the exit is never eight moves or fewer away.
-    if (min === null || min < SLIDE_MIN_MOVES || min > SLIDE_MAX_MOVES) continue;
-    if (!meaningfulSlideArrows(walls, holes, arrows, start, exit)) continue;
-    // And at least five walls the shortest route genuinely depends on.
-    const stopperCount = stoppers(walls, holes, arrows, start, exit, min);
-    if (stopperCount < SLIDE_MIN_STOPPERS) continue;
-
-    const route = shortestSlideRoute(walls, holes, start, exit, arrows);
-    if (route.length !== min) continue;
-    // The stored route must never slide over a hole.
-    if (!slideRouteAvoidsHoles(walls, holes, start, exit, route, arrows)) continue;
-
-    console.log(`[iceslide] layout accepted after ${attempt} attempt(s), minimum ${min}`);
     return {
       type: "iceslide",
       walls: [...walls].sort((a, b) => a - b),
       holes: [...holes].sort((a, b) => a - b),
       arrows,
+      portals,
+      thin,
       start,
       exit,
-      minMoves: min,
+      minMoves: found.min,
       stats: {
         walls: walls.length,
         holes: holes.length,
         arrows: arrows.length,
-        minMoves: min,
-        easyExit: min <= SLIDE_EASY_MOVES,
-        stoppers: stopperCount,
+        minMoves: found.min,
+        easyExit: found.min <= SLIDE_EASY_MOVES,
+        stoppers: 0,
         attempts: attempt,
       },
-      solution: route.join(""),
+      solution: found.route.join(""),
     };
   }
   throw new Error("Ice Slide generator could not build a reachable layout");
