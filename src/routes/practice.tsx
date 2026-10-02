@@ -364,6 +364,7 @@ function PracticeScreen() {
               msRemaining={runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
               totalMs={runMs ?? timeLimitMs}
               active={clockActive}
+              compact={puzzle.type === "letterwheel"}
             />
           </div>
         )}
