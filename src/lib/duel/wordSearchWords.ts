@@ -81,7 +81,7 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
     "PEELER", "KNIFE", "FORK", "SPOON", "PLATE", "BOWL", "GLASS", "TRAY",
     "TONGS", "TUREEN", "CLEAVER", "TIMER", "SINK", "MORTAR", "PESTLE", "CARAFE",
   ],
-  Clothing: [
+  "Clothing and footwear": [
     "SHIRT", "JUMPER", "SWEATER", "JACKET", "COAT", "TROUSERS", "JEANS", "SHORTS",
     "SKIRT", "DRESS", "BLOUSE", "CARDIGAN", "HOODIE", "SCARF", "GLOVES", "MITTENS",
     "BEANIE", "BERET", "BONNET", "BOOTS", "SANDALS", "SLIPPERS", "TRAINERS", "SOCKS",
@@ -95,7 +95,7 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
     "STOMACH", "THIGH", "CALF", "SHIN", "HEEL", "NECK", "THROAT", "BELLY",
     "NAVEL", "PELVIS", "RIBCAGE",
   ],
-  Weather: [
+  "Weather and climate": [
     "RAIN", "SNOW", "HAIL", "SLEET", "MIST", "DRIZZLE", "THUNDER", "STORM",
     "BREEZE", "GALE", "TORNADO", "CYCLONE", "TYPHOON", "BLIZZARD", "MONSOON", "DROUGHT",
     "FROST", "CLOUD", "SUNSHINE", "RAINBOW", "HUMID", "CHILLY", "FREEZING", "HEATWAVE",
@@ -109,12 +109,12 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
     "TAILOR", "BARBER", "POSTMAN", "CLEANER", "DRIVER", "GARDENER", "MINER", "JANITOR",
     "SURGEON", "CHEMIST", "ENGINEER", "GROCER", "FLORIST", "JOCKEY", "COURIER",
   ],
-  "Music and instruments": [
+  "Musical instruments": [
     "PIANO", "GUITAR", "VIOLIN", "CELLO", "FLUTE", "OBOE", "CLARINET", "TRUMPET",
     "TROMBONE", "TUBA", "HARP", "DRUM", "BANJO", "UKULELE", "ORGAN", "BUGLE",
-    "CORNET", "PICCOLO", "BASSOON", "SITAR", "LUTE", "LYRE", "MELODY", "HARMONY",
-    "RHYTHM", "TEMPO", "CHORD", "CHORUS", "OCTAVE", "LYRICS", "CONCERT", "ANTHEM",
-    "BALLAD", "OPERA", "SYMPHONY",
+    "CORNET", "PICCOLO", "BASSOON", "SITAR", "LUTE", "LYRE", "CYMBALS", "MARACAS",
+    "RECORDER", "MANDOLIN", "BAGPIPES", "OCARINA", "FIDDLE", "BONGOS", "CONGA", "GONG",
+    "KAZOO", "VUVUZELA", "CELESTA",
   ],
   Trees: [
     "BIRCH", "BEECH", "MAPLE", "WILLOW", "CEDAR", "PINE", "SPRUCE", "LARCH",
@@ -129,13 +129,13 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
     "CAMELLIA", "FREESIA", "GARDENIA", "HIBISCUS", "ZINNIA", "CLOVER", "HEATHER", "THISTLE",
     "VERBENA", "ANEMONE",
   ],
-  Tools: [
+  "Tools and equipment": [
     "HAMMER", "SPANNER", "WRENCH", "PLIERS", "CHISEL", "DRILL", "HACKSAW", "MALLET",
     "SANDER", "CLAMP", "VICE", "HATCHET", "SHOVEL", "SPADE", "RAKE", "TROWEL",
     "PICKAXE", "CROWBAR", "RASP", "LADDER", "TORCH", "NAIL", "BOLT", "WASHER",
     "SOLDER", "STAPLER", "GIMLET", "SICKLE", "SCYTHE", "SHEARS", "PRUNERS", "HOSE",
   ],
-  Furniture: [
+  "Furniture and furnishings": [
     "CHAIR", "TABLE", "SOFA", "COUCH", "STOOL", "BENCH", "DESK", "SHELF",
     "CABINET", "DRESSER", "WARDROBE", "BOOKCASE", "BUNK", "CRADLE", "HAMMOCK", "OTTOMAN",
     "FUTON", "CUPBOARD", "LAMP", "MIRROR", "CARPET", "CURTAIN", "CUSHION", "PILLOW",
