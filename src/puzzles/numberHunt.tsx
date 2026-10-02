@@ -129,9 +129,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     return () => clearTimeout(id);
   }, [flash]);
 
-  if (puzzle.type !== "numhunt") return null;
   const layoutIndex = Math.min(3, Math.floor(Math.max(0, now - phaseStartedAt) / NUMHUNT_MOVE_MS));
-  const spots = layouts[layoutIndex] ?? puzzle.spots;
+  const spots = layouts[layoutIndex] ?? (puzzle.type === "numhunt" ? puzzle.spots : []);
 
   useEffect(() => {
     if (layoutIndex === 0) return;
@@ -139,6 +138,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     const id = setTimeout(() => setMoveFlash(-1), NUMHUNT_FLASH_MS);
     return () => clearTimeout(id);
   }, [layoutIndex]);
+
+  if (puzzle.type !== "numhunt") return null;
 
   const handleTap = (index: number) => {
     if (locked || index < next) return;
@@ -260,7 +261,7 @@ function buildLayout(values: number[]): HuntSpot[] {
     }
     if (ok) return spots;
   }
-  // Fallback staggered grid — sixteen circles with safe spacing at 390×700.
+  // Fallback staggered grid — twenty circles with safe spacing at 390×700.
   return Array.from({ length: NUMHUNT_COUNT }, (_, i) => ({
       x: 10 + (i % 4) * 27,
       y: 10 + Math.floor(i / 4) * 20,

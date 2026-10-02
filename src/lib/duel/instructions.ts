@@ -141,7 +141,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Find every tile faster = more points.",
   },
   reaction: {
-    goal: "Tap the instant the screen turns gold — five times.",
+    goal: "Tap the instant the screen turns gold — five to eight times.",
     how: [
       { action: "Wait.", detail: "" },
       { action: "Don't tap the other colours,", detail: "or you'll get a false start." },
@@ -158,10 +158,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "More correct choices = more points. Perfect = speed bonus.",
   },
   numhunt: {
-    goal: "Tap all sixteen numbers from smallest to largest.",
+    goal: "Tap all twenty numbers from smallest to largest.",
     how: [
       { action: "Find the smallest", detail: "remaining number." },
       { action: "Tap in order", detail: "until every number is cleared." },
+      { action: "Keep looking", detail: "— untapped numbers move every 15 seconds." },
     ],
     score: "Faster = more points. Wrong taps cost points. How far you got still scores.",
   },
@@ -237,11 +238,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Each correct digit in a row increases your span.",
   },
   stopwatch: {
-    goal: "Stop the marker in the gold zone — five times, each one trickier.",
+    goal: "Stop the marker in the gold zone — ten times, each one trickier.",
     how: [
       { action: "Tap to stop it.", detail: "" },
       { action: "Some targets move", detail: "— stop when the marker and the target line up." },
-      { action: "Some sweeps hide at the end;", detail: "the vertical watch accelerates on each pass." },
+      { action: "The counter shows full sweeps left", detail: "from one on Watch 1 to ten on Watch 10." },
     ],
     score: "Closer to the centre scores more.",
   },
@@ -416,13 +417,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewer tilts is what counts.",
   },
   chain: {
-    goal: "Tap the shapes in the order shown, without crossing your own line.",
+    goal: "Keep linking shapes for the whole minute without crossing your line.",
     how: [
       { action: "Follow the cycle", detail: "— it repeats." },
       { action: "Keep your chain", detail: "from crossing itself." },
       { action: "Tap Undo or Reset", detail: "to take links back — mistakes still count." },
+      { action: "Clear all 28 nodes", detail: "to start a fresh seeded set." },
     ],
-    score: "Fifteen links, fast, no mistakes. Part-built chains still score.",
+    score: "5 points per correct link; wrong taps cost 10. Maximum 150.",
   },
   intruder: {
     goal: "Find everything that changed.",

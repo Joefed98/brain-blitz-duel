@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick, pointerElementIndex } from "@/components/puzzles/GridDrag";
@@ -20,7 +20,7 @@ import {
   type ChainShape,
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -155,20 +155,17 @@ function ChainLines({
   );
 }
 
-function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: PuzzleStageProps) {
+function Stage({ puzzle, locked, onDraftAnswer, stateKey = "chain" }: PuzzleStageProps) {
   const data: ChainPuzzleData | null = puzzle.type === "chain" ? puzzle : null;
   const [taps, setTaps] = useStageState<number[]>(stateKey, "chainTaps", () => []);
   const [wrong, setWrong] = useStageState<number | null>(stateKey, "chainWrong", () => null);
-  const submitted = useRef(false);
   const replay = useMemo(() => (data ? replayChainRun(data.sets, taps) : null), [data, taps]);
 
   useEffect(() => onDraftAnswer?.(encodeChainTaps(taps)), [taps, onDraftAnswer]);
-  useEffect(() => {
-  }, [replay, taps, locked, onSubmit]);
 
   if (!data || !replay) return null;
   const tap = (nodeId: number) => {
-    if (locked || submitted.current) return;
+    if (locked) return;
     const set = data.sets[replay.setIndex];
     const node = set?.nodes[nodeId];
     if (!node) return;
@@ -187,12 +184,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
   };
   // Undo and Reset are logged in the tap list, so mistakes already made stay counted.
   const undo = () => {
-    if (locked || submitted.current || replay.current.chain.length === 0) return;
+    if (locked || replay.current.chain.length === 0) return;
     hapticTick();
     setTaps((current) => [...current, CHAIN_UNDO]);
   };
   const reset = () => {
-    if (locked || submitted.current || replay.current.chain.length === 0) return;
+    if (locked || replay.current.chain.length === 0) return;
     hapticTick();
     setTaps((current) => [...current, CHAIN_RESET]);
   };
@@ -255,7 +252,6 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   const replay = replayChainRun(puzzle.sets, taps);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((CHAIN_TIME_MS - myMsRemaining) / 100) / 10;
-  const used = new Set(replay.chain);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold">
