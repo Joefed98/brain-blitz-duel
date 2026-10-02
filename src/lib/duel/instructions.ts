@@ -814,6 +814,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Solve it fast for the bonus.",
   },
+  dig: {
+    goal: "Dig a channel so the water reaches the drain.",
+    how: [
+      { action: "Drag across gold sand", detail: "to dig it. Grey rock never moves." },
+      { action: "The water is already flowing", detail: "— where and when you dig matters." },
+      { action: "Red gaps and dead ends", detail: "waste water." },
+    ],
+    score: "Drain 90% for full marks plus a bonus for how fast you hit the target; otherwise points for how much you drained.",
+  },
   numpyramid: {
     goal: "Fill the pyramid: every cell is the sum of the two below it.",
     how: [

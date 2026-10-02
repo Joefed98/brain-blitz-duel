@@ -93,6 +93,7 @@ import {
   LIGHTUP_TIME_MS,
   BALLTRACK_TIME_MS,
   NUMPYRAMID_TIME_MS,
+  DIG_TIME_MS,
   WORDSEARCH_TIME_MS,
   WAVEFRONT_TIME_MS,
   BASTION_TIME_MS,
@@ -154,6 +155,7 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   lightup: LIGHTUP_TIME_MS,
   balltrack: BALLTRACK_TIME_MS,
   numpyramid: NUMPYRAMID_TIME_MS,
+  dig: DIG_TIME_MS,
   wordsearch: WORDSEARCH_TIME_MS,
   wavefront: WAVEFRONT_TIME_MS,
   bastion: BASTION_TIME_MS,
@@ -1407,6 +1409,13 @@ const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {
   return { summary: `${right} / ${empties} placed correctly`, detail: [] };
 };
 
+const digSummary: SummaryBuilder = (result) => {
+  const collected = Number(result.extra?.["collected"] ?? 0);
+  const pool = Number(result.extra?.["pool"] ?? 0);
+  const lost = Number(result.extra?.["lost"] ?? 0);
+  return { summary: `${collected} / ${pool} drained`, detail: lost ? [`${lost} lost`] : [] };
+};
+
 const wordSearchSummary: SummaryBuilder = (result) => {
   const found = Number(result.extra?.["found"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 6);
@@ -1536,6 +1545,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   lightup: lightUpSummary,
   balltrack: ballTrackSummary,
   numpyramid: numberPyramidSummary,
+  dig: digSummary,
   wordsearch: wordSearchSummary,
 };
 
@@ -1635,6 +1645,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   lightup: () => null,
   balltrack: () => null,
   numpyramid: () => null,
+  dig: () => null,
   wordsearch: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),

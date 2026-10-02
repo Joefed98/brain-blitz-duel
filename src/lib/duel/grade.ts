@@ -66,6 +66,7 @@ import { decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { btDecode, btReplay, scoreBallTrack } from "./ballTrack";
 import { npComplete, npDecode, scoreNumberPyramid } from "./numberPyramid";
+import { digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
@@ -1594,6 +1595,17 @@ export function gradeSubmission(
       correctCount = covered;
       score = scoreShikaku(solved, ms, timeLimitMs, covered);
       extraDetail = { solved, covered, rects: rects.length };
+      break;
+    }
+    case "dig": {
+      // The dig log is replayed against the stored board; the water result is the server's own.
+      const run = digReplay(puzzle, digDecode(answer, puzzle.cols * puzzle.rows));
+      const s = run.state;
+      isCorrect = s.collected >= s.full;
+      correctCount = s.collected;
+      errors = s.lost;
+      score = scoreDig(s);
+      extraDetail = { collected: s.collected, lost: s.lost, pool: s.pool, target: s.target, targetStep: s.targetStep, dug: run.dug, steps: s.step };
       break;
     }
     case "numpyramid": {

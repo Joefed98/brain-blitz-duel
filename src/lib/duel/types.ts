@@ -88,7 +88,8 @@ export type PuzzleType =
   | "wordsearch"
   | "tendrop"
   | "clayshoot"
-  | "numpyramid";
+  | "numpyramid"
+  | "dig";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -498,6 +499,7 @@ export type PuzzleData =
   | LightUpPuzzleData
   | BallTrackPuzzleData
   | NumberPyramidPuzzleData
+  | DigPuzzleData
   | WordSearchPuzzleData
   | WavefrontPuzzleData
   | BastionPuzzleData
@@ -2139,6 +2141,21 @@ export interface NumberPyramidPuzzleData {
   tray: number[];
   /** Every cell's value — private until the reveal. */
   solution?: number[];
+}
+
+/** Dig: 60 s of water flowing at 10 steps per second. */
+export const DIG_TIME_MS = 60_000;
+
+export interface DigPuzzleData {
+  type: "dig";
+  cols: number;
+  rows: number;
+  /** One character per cell: # rock, s sand, . empty, D drain, G side gap. */
+  tiles: string;
+  /** Starting water units per cell (0–4), one digit per cell. */
+  water: string;
+  /** The intended dig route — private until the reveal. */
+  route?: number[];
 }
 
 export interface BallTrackPuzzleData {
