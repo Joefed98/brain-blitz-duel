@@ -12,6 +12,7 @@ import {
   type TowerPegs,
 } from "@/lib/duel/tower";
 import { useStageState } from "@/lib/duel/stageState";
+import { towerPegCount } from "@/lib/duel/tower";
 import { TOWER_DISCS, TOWER_PEGS, TOWER_TIME_MS, type TowerPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
@@ -24,7 +25,7 @@ function discColour(size: number): string {
   return GLYPH_COLOURS[DISC_COLOURS[(size - 1) % DISC_COLOURS.length]!];
 }
 
-/** Four pegs on a base; the target peg wears a gold base. */
+/** Three or four pegs on a base; the target peg wears a gold base. */
 function Pegs({
   pegs,
   discs,
@@ -47,7 +48,7 @@ function Pegs({
 
   return (
     <div className="flex h-full w-full items-end justify-center gap-1.5">
-      {Array.from({ length: TOWER_PEGS }, (_, peg) => {
+      {Array.from({ length: Math.max(3, pegs.length) }, (_, peg) => {
         const stack = pegs[peg] ?? [];
         const isLifted = lifted === peg;
         const top = stack.length ? stack[stack.length - 1]! : null;
@@ -120,17 +121,17 @@ function Pegs({
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
-  const pegs: TowerPegs = [[8, 6], [7, 4, 2], [5, 3], [1]];
+  const pegs: TowerPegs = [[9, 8, 6], [7, 4, 2], [5, 3], [1]];
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
         Move every disc to the marked peg, one at a time. Never put a bigger disc on a smaller one.
       </p>
       <div style={{ width: 190, height: 96 }}>
-        <Pegs pegs={pegs} discs={8} targetPeg={3} compact />
+        <Pegs pegs={pegs} discs={9} targetPeg={3} compact />
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewest moves earns a bonus. You have 60 seconds.
+        Nine discs on 3 or 4 pegs — the line below says which. Fewest moves earns a bonus. You have 90 seconds.
       </p>
     </div>
   );
@@ -298,6 +299,8 @@ export const towerPuzzle: PuzzleDefinition = {
     }) satisfies TowerPuzzleData,
   check: () => false,
   revealHeading: "Your tower",
+  introLine: (puzzle) =>
+    puzzle.type === "tower" ? `${towerPegCount(puzzle.start)} pegs` : null,
   IntroExample,
   Stage,
   Reveal,

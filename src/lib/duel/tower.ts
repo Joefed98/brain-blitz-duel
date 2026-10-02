@@ -1,5 +1,5 @@
 /**
- * Tower rules: six discs across four pegs. One replay function, used by the
+ * Tower rules: nine discs across three or four pegs (the stored spread says which). One replay function, used by the
  * phone (to move discs live) and by the server (to replay the move list a phone
  * sends). Nothing here knows how a starting spread is chosen.
  */
@@ -14,9 +14,15 @@ export interface TowerMove {
   to: number;
 }
 
-/** A fresh copy of a stored spread, padded out to the full four pegs. */
+/** How many pegs a stored spread uses: three or four. */
+export function towerPegCount(start: readonly number[][] | undefined): number {
+  const n = start?.length ?? TOWER_PEGS;
+  return n === 3 ? 3 : TOWER_PEGS;
+}
+
+/** A fresh copy of a stored spread, one entry per peg. */
 export function towerPegsFrom(start: number[][]): TowerPegs {
-  return Array.from({ length: TOWER_PEGS }, (_, peg) => [...(start[peg] ?? [])]);
+  return Array.from({ length: towerPegCount(start) }, (_, peg) => [...(start[peg] ?? [])]);
 }
 
 /** True when the top of `from` may sit on `to`. */
@@ -129,7 +135,7 @@ export function replayTower(
 
 /**
  * A state is just which peg each disc sits on: with strictly-decreasing stacks
- * the order on a peg is forced, so the whole game is 4^6 states.
+ * the order on a peg is forced, so the whole game is pegs^discs states.
  */
 export type TowerState = number[];
 
@@ -141,8 +147,12 @@ export function towerStateFromPegs(pegs: number[][], discs: number): TowerState 
   return state;
 }
 
-export function towerPegsFromState(state: TowerState, discs: number): TowerPegs {
-  const pegs: TowerPegs = Array.from({ length: TOWER_PEGS }, () => []);
+export function towerPegsFromState(
+  state: TowerState,
+  discs: number,
+  pegCount: number = TOWER_PEGS,
+): TowerPegs {
+  const pegs: TowerPegs = Array.from({ length: pegCount }, () => []);
   // Largest first, so every peg comes out descending from the bottom.
   for (let disc = discs; disc >= 1; disc--) pegs[state[disc - 1]!]!.push(disc);
   return pegs;
@@ -167,6 +177,7 @@ export function towerShortest(
   targetPeg: number,
   discs: number,
 ): { minMoves: number; solution: TowerMove[] } | null {
+  const pegCount = towerPegCount(start);
   const from = towerStateFromPegs(start, discs);
   const goal = stateKey(new Array<number>(discs).fill(targetPeg));
   if (stateKey(from) === goal) return { minMoves: 0, solution: [] };
@@ -178,14 +189,14 @@ export function towerShortest(
   seen.set(stateKey(from), { state: from, move: null, parent: null });
   let frontier = [stateKey(from)];
 
-  for (let depth = 1; depth <= 4 ** discs; depth++) {
+  for (let depth = 1; depth <= pegCount ** discs; depth++) {
     const next: string[] = [];
     for (const id of frontier) {
       const node = seen.get(id)!;
-      for (let source = 0; source < TOWER_PEGS; source++) {
+      for (let source = 0; source < pegCount; source++) {
         const disc = topDisc(node.state, source);
         if (disc === null) continue;
-        for (let destination = 0; destination < TOWER_PEGS; destination++) {
+        for (let destination = 0; destination < pegCount; destination++) {
           if (destination === source) continue;
           const onTop = topDisc(node.state, destination);
           if (onTop !== null && onTop < disc) continue;

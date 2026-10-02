@@ -1,189 +1,284 @@
 /**
- * Server-only Colour Connect generation. The grid is partitioned into eight non-branching
- * paths by cutting a random Hamiltonian path into segments, so every layout is
- * solvable by construction and the solution is exactly those segments.
+ * Server-only Colour Connect generation. Two to four wall cells are placed,
+ * a random Hamiltonian path over the remaining cells is cut into 10–12
+ * segments (solvable by construction), and an exhaustive solver then proves
+ * the dot layout has exactly one solution before it is used.
  */
 
 import { flowCol, flowNeighbours, flowRow, verifyFlow } from "./flow";
 import { shuffled } from "./random";
 import {
   FLOW_CELLS,
-  FLOW_COLS,
+  FLOW_MAX_PAIRS,
+  FLOW_MAX_WALLS,
+  FLOW_MIN_PAIRS,
   FLOW_MIN_PATH,
-  FLOW_PAIRS,
+  FLOW_MIN_WALLS,
+  type FlowColour,
   type FlowPair,
   type FlowPuzzleData,
-  type StroopColour,
 } from "./types";
 
-/** Colour Connect alone shares Colour Clash's eight-colour palette. */
-const COLOURS: StroopColour[] = [
-  "RED",
-  "BLUE",
-  "GREEN",
-  "PURPLE",
-  "PINK",
-  "ORANGE",
-  "BROWN",
-  "YELLOW",
+const COLOURS: FlowColour[] = [
+  "RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE",
+  "BROWN", "YELLOW", "TEAL", "WHITE", "LIME", "SILVER",
 ];
 
-/** A random Hamiltonian path over the grid, found by randomised backtracking. */
-function hamiltonianPath(): number[] | null {
-  const start = Math.floor(Math.random() * FLOW_CELLS);
-  const path: number[] = [start];
-  const visited = new Array<boolean>(FLOW_CELLS).fill(false);
-  visited[start] = true;
-  let steps = 0;
+const NEIGHBOURS: number[][] = Array.from({ length: FLOW_CELLS }, (_, c) => flowNeighbours(c));
 
-  const search = (): boolean => {
-    if (path.length === FLOW_CELLS) return true;
-    if (steps++ > 400_000) return false;
-    const cell = path[path.length - 1]!;
-    // Warnsdorff-ish: try the most constrained neighbour first.
-    const options = shuffled(flowNeighbours(cell).filter((next) => !visited[next])).sort(
-      (a, b) =>
-        flowNeighbours(a).filter((n) => !visited[n]).length -
-        flowNeighbours(b).filter((n) => !visited[n]).length,
-    );
-    for (const next of options) {
-      visited[next] = true;
-      path.push(next);
-      if (search()) return true;
-      path.pop();
-      visited[next] = false;
-    }
-    return false;
-  };
-
-  return search() ? path : null;
+function randomInt(n: number): number {
+  return Math.floor(Math.random() * n);
 }
 
-/** Random segment lengths that sum to the whole grid, each at least the minimum. */
-function segmentLengths(): number[] {
-  const lengths = new Array<number>(FLOW_PAIRS).fill(FLOW_MIN_PATH);
-  let spare = FLOW_CELLS - FLOW_MIN_PATH * FLOW_PAIRS;
-  while (spare > 0) {
-    const index = Math.floor(Math.random() * FLOW_PAIRS);
-    const take = Math.min(spare, 1 + Math.floor(Math.random() * 3));
-    lengths[index]! += take;
-    spare -= take;
+/** Wall cells, never touching each other and never on a corner. */
+function pickWalls(): number[] {
+  const count = FLOW_MIN_WALLS + randomInt(FLOW_MAX_WALLS - FLOW_MIN_WALLS + 1);
+  const walls: number[] = [];
+  for (const cell of shuffled(Array.from({ length: FLOW_CELLS }, (_, i) => i))) {
+    if (walls.length >= count) break;
+    if (NEIGHBOURS[cell]!.length < 3) continue;
+    if (walls.some((w) => NEIGHBOURS[w]!.includes(cell) || Math.abs(flowRow(w) - flowRow(cell)) + Math.abs(flowCol(w) - flowCol(cell)) < 3)) continue;
+    walls.push(cell);
   }
-  return lengths;
+  return walls;
 }
 
-/** How many times a path changes direction. */
 export function flowBends(path: number[]): number {
   let bends = 0;
   for (let index = 2; index < path.length; index++) {
-    const first = path[index - 1]! - path[index - 2]!;
-    const second = path[index]! - path[index - 1]!;
-    if (first !== second) bends += 1;
+    if (path[index - 1]! - path[index - 2]! !== path[index]! - path[index - 1]!) bends += 1;
   }
   return bends;
 }
 
-/** A path is straight when every cell shares a row or every cell shares a column. */
-function straight(path: number[]): boolean {
-  const rows = new Set(path.map(flowRow));
-  const cols = new Set(path.map(flowCol));
-  return rows.size === 1 || cols.size === 1;
+/**
+ * Counts solutions (stopping at `limit`) by extending one path head at a
+ * time, always the most constrained one, with dead-cell and connectivity
+ * pruning. Returns -1 when the node budget runs out (treated as "not proven").
+ */
+export function countFlowSolutions(
+  pairs: FlowPair[],
+  walls: readonly number[],
+  limit = 2,
+  budget = 60_000,
+): number {
+  const P = pairs.length;
+  // owner: -2 wall, -1 empty, else pair index.
+  const owner = new Int8Array(FLOW_CELLS).fill(-1);
+  for (const w of walls) owner[w] = -2;
+  const head = new Int16Array(P);
+  const target = new Int16Array(P);
+  const done = new Uint8Array(P);
+  pairs.forEach((p, i) => {
+    owner[p.a] = i;
+    owner[p.b] = i;
+    head[i] = p.a;
+    target[i] = p.b;
+  });
+  let found = 0;
+  let nodes = 0;
+  let empty = FLOW_CELLS - walls.length - 2 * P;
+
+  const seen = new Int32Array(FLOW_CELLS);
+  let stamp = 0;
+  const queue = new Int16Array(FLOW_CELLS);
+
+  const feasible = (): boolean => {
+    // Every empty cell needs two usable neighbours (empty, or an open end).
+    for (let c = 0; c < FLOW_CELLS; c++) {
+      if (owner[c] !== -1) continue;
+      let ok = 0;
+      for (const n of NEIGHBOURS[c]!) {
+        const o = owner[n]!;
+        if (o === -1) ok++;
+        else if (o >= 0 && !done[o] && (head[o] === n || target[o] === n)) ok++;
+      }
+      if (ok < 2) return false;
+    }
+    // Each open pair's head must reach its target through empty cells.
+    for (let i = 0; i < P; i++) {
+      if (done[i]) continue;
+      stamp++;
+      let qh = 0;
+      let qt = 0;
+      queue[qt++] = head[i]!;
+      seen[head[i]!] = stamp;
+      let reached = false;
+      while (qh < qt && !reached) {
+        const c = queue[qh++]!;
+        for (const n of NEIGHBOURS[c]!) {
+          if (n === target[i]) { reached = true; break; }
+          if (owner[n] === -1 && seen[n] !== stamp) { seen[n] = stamp; queue[qt++] = n; }
+        }
+      }
+      if (!reached) return false;
+    }
+    // Each empty region must be touched by both ends of some open pair.
+    stamp++;
+    const regionStamp = stamp;
+    for (let c = 0; c < FLOW_CELLS; c++) {
+      if (owner[c] !== -1 || seen[c] === regionStamp) continue;
+      let qh = 0;
+      let qt = 0;
+      queue[qt++] = c;
+      seen[c] = regionStamp;
+      const touchH = new Set<number>();
+      const touchT = new Set<number>();
+      while (qh < qt) {
+        const x = queue[qh++]!;
+        for (const n of NEIGHBOURS[x]!) {
+          const o = owner[n]!;
+          if (o === -1) {
+            if (seen[n] !== regionStamp) { seen[n] = regionStamp; queue[qt++] = n; }
+          } else if (o >= 0 && !done[o]) {
+            if (head[o] === n) touchH.add(o);
+            if (target[o] === n) touchT.add(o);
+          }
+        }
+      }
+      let any = false;
+      for (const o of touchH) if (touchT.has(o)) { any = true; break; }
+      if (!any) return false;
+    }
+    return true;
+  };
+
+  const search = (): void => {
+    if (found >= limit || found < 0) return;
+    if (++nodes > budget) { found = -1; return; }
+    // Pick the open pair with the fewest moves.
+    let best = -1;
+    let bestMoves: number[] = [];
+    let open = 0;
+    for (let i = 0; i < P; i++) {
+      if (done[i]) continue;
+      open++;
+      const moves: number[] = [];
+      for (const n of NEIGHBOURS[head[i]!]!) {
+        if (owner[n] === -1 || n === target[i]) moves.push(n);
+      }
+      if (moves.length === 0) return;
+      if (best === -1 || moves.length < bestMoves.length) { best = i; bestMoves = moves; }
+      if (moves.length === 1) break;
+    }
+    if (open === 0) {
+      if (empty === 0) found++;
+      return;
+    }
+    const i = best;
+    const prev = head[i]!;
+    for (const n of bestMoves) {
+      if (n === target[i]) {
+        done[i] = 1;
+        if (feasible() || (empty === 0 && done.every(Boolean))) search();
+        done[i] = 0;
+      } else {
+        owner[n] = i;
+        head[i] = n;
+        empty--;
+        if (feasible()) search();
+        empty++;
+        head[i] = prev;
+        owner[n] = -1;
+      }
+      if (found >= limit || found < 0) return;
+    }
+  };
+
+  if (feasible()) search();
+  return found;
 }
 
-/** The cells of an L route between two dots, turning at the given corner. */
-function elbow(a: number, b: number, corner: "row" | "col"): number[] {
-  const [ra, ca, rb, cb] = [flowRow(a), flowCol(a), flowRow(b), flowCol(b)];
-  const cells: number[] = [];
-  const step = (from: number, to: number) => (from <= to ? 1 : -1);
-  if (corner === "row") {
-    for (let c = ca; ; c += step(ca, cb)) {
-      cells.push(ra * FLOW_COLS + c);
-      if (c === cb) break;
-    }
-    for (let r = ra + step(ra, rb); ; r += step(ra, rb)) {
-      cells.push(r * FLOW_COLS + cb);
-      if (r === rb) break;
-      if (ra === rb) break;
-    }
-  } else {
-    for (let r = ra; ; r += step(ra, rb)) {
-      cells.push(r * FLOW_COLS + ca);
-      if (r === rb) break;
-    }
-    for (let c = ca + step(ca, cb); ; c += step(ca, cb)) {
-      cells.push(rb * FLOW_COLS + c);
-      if (c === cb) break;
-      if (ca === cb) break;
+/** True when a path runs beside itself — such boards almost always have a reroute. */
+function selfTouching(path: number[]): boolean {
+  const index = new Map(path.map((c, i) => [c, i]));
+  for (let i = 0; i < path.length; i++) {
+    for (const n of NEIGHBOURS[path[i]!]!) {
+      const j = index.get(n);
+      if (j !== undefined && Math.abs(j - i) > 1) return true;
     }
   }
-  return cells;
+  return false;
+}
+
+export interface FlowGenStats {
+  attempts: number;
 }
 
 /**
- * True when the pair could be joined by a straight line or a single bend that
- * misses every other dot — an obvious route we never want to ship.
+ * Partitions the free cells into non-self-touching paths by repeatedly
+ * joining two neighbouring path ends, until the target pair count is reached.
  */
-function joinableTooEasily(a: number, b: number, dots: Set<number>): boolean {
-  if (flowRow(a) === flowRow(b) || flowCol(a) === flowCol(b)) return true;
-  // Both single-bend routes must be blocked by another dot, or the pair reads as obvious.
-  return (["row", "col"] as const).every((corner) =>
-    elbow(a, b, corner).every((cell) => cell === a || cell === b || !dots.has(cell)),
-  );
-}
-
-function acceptable(paths: number[][]): boolean {
-  const dots = new Set(paths.flatMap((path) => [path[0]!, path[path.length - 1]!]));
-  for (const path of paths) {
-    if (path.length < FLOW_MIN_PATH) return false;
-    if (straight(path)) return false;
-    // A straight run or a single L is too easy to see: every pair needs two bends.
-    if (flowBends(path) < 2) return false;
-    const a = path[0]!;
-    const b = path[path.length - 1]!;
-    // Dots side by side make the pair trivial.
-    if (flowNeighbours(a).includes(b)) return false;
-    // No pair may be joinable by a straight or single-bend route either.
-    if (joinableTooEasily(a, b, dots)) return false;
-  }
-  return true;
-}
-
-export function generateFlow(): FlowPuzzleData {
-  for (let attempt = 0; attempt < 400; attempt++) {
-    const hamiltonian = hamiltonianPath();
-    if (!hamiltonian) continue;
-
-    for (let cut = 0; cut < 3000; cut++) {
-      const lengths = segmentLengths();
-      const paths: number[][] = [];
-      let at = 0;
-      for (const length of lengths) {
-        paths.push(hamiltonian.slice(at, at + length));
-        at += length;
-      }
-      if (!acceptable(paths)) continue;
-
-      const colours = shuffled(COLOURS).slice(0, FLOW_PAIRS);
-      const pairs: FlowPair[] = paths.map((path, index) => ({
-        colour: colours[index]!,
-        a: path[0]!,
-        b: path[path.length - 1]!,
-      }));
-
-      // Never ship a layout the stored paths do not actually solve.
-      if (!verifyFlow(pairs, paths).solved) continue;
-
-      return { type: "flow", pairs, solution: paths };
+function mergedPaths(blocked: Set<number>, pairCount: number): number[][] | null {
+  let paths: number[][] = [];
+  for (let c = 0; c < FLOW_CELLS; c++) if (!blocked.has(c)) paths.push([c]);
+  const pathOf = new Int16Array(FLOW_CELLS).fill(-1);
+  const reindex = () => paths.forEach((path, i) => path.forEach((c) => (pathOf[c] = i)));
+  reindex();
+  let stuck = 0;
+  while (paths.length > pairCount && stuck < 4000) {
+    const i = randomInt(paths.length);
+    const path = paths[i]!;
+    const fromEnd = Math.random() < 0.5 ? path[0]! : path[path.length - 1]!;
+    const options = shuffled(NEIGHBOURS[fromEnd]!).filter((n) => {
+      const j = pathOf[n]!;
+      if (j < 0 || j === i) return false;
+      const other = paths[j]!;
+      return other[0] === n || other[other.length - 1] === n;
+    });
+    let merged = false;
+    for (const n of options) {
+      const j = pathOf[n]!;
+      const other = paths[j]!;
+      const left = fromEnd === path[path.length - 1] ? path : [...path].reverse();
+      const right = other[0] === n ? other : [...other].reverse();
+      const joined = [...left, ...right];
+      // Short paths are always welcome; long ones only up to a cap.
+      if (joined.length > 16 || selfTouching(joined)) continue;
+      paths = paths.filter((_, k) => k !== i && k !== j);
+      paths.push(joined);
+      pathOf.fill(-1);
+      reindex();
+      merged = true;
+      break;
     }
+    stuck = merged ? 0 : stuck + 1;
   }
-  throw new Error("Colour Connect generator could not build a proven-solvable board");
+  if (paths.length !== pairCount) return null;
+  if (paths.some((path) => path.length < FLOW_MIN_PATH)) return null;
+  return paths;
+}
+
+export function generateFlow(stats?: FlowGenStats): FlowPuzzleData {
+  let attempts = 0;
+  for (let outer = 0; outer < 3000; outer++) {
+    attempts++;
+    const walls = pickWalls();
+    const pairCount = FLOW_MIN_PAIRS + randomInt(FLOW_MAX_PAIRS - FLOW_MIN_PAIRS + 1);
+    const paths = mergedPaths(new Set(walls), pairCount);
+    if (!paths) continue;
+    // Every path bends at least once, and no two dots sit side by side.
+    if (paths.some((path) => flowBends(path) < 1 || NEIGHBOURS[path[0]!]!.includes(path[path.length - 1]!))) continue;
+    const colours = shuffled(COLOURS).slice(0, pairCount);
+    const pairs: FlowPair[] = paths.map((path, index) => ({
+      colour: colours[index]!,
+      a: path[0]!,
+      b: path[path.length - 1]!,
+    }));
+    if (!verifyFlow(pairs, paths, walls).solved) continue;
+    if (countFlowSolutions(pairs, walls) !== 1) continue;
+    if (stats) stats.attempts = attempts;
+    return { type: "flow", pairs, walls, solution: paths };
+  }
+  throw new Error("Colour Connect generator could not build a unique board");
 }
 
 /** Server-side check of a Colour Connect submission against the rules themselves. */
 export function gradeFlowPaths(
   pairs: FlowPair[],
   paths: number[][],
+  walls: readonly number[] = [],
 ): { solved: boolean; pairsJoined: number; filled: number } {
-  const verdict = verifyFlow(pairs, paths);
+  const verdict = verifyFlow(pairs, paths, walls);
   return { solved: verdict.solved, pairsJoined: verdict.pairsJoined, filled: verdict.filled };
 }

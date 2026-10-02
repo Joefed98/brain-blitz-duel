@@ -607,9 +607,8 @@ export function scorePipes(solved: boolean, connected: number, msRemaining: numb
   const joined = clamp(Math.round(connected), 0, PIPES_CELLS);
   if (joined >= PIPES_CELLS - 1) return 90;
   if (joined >= PIPES_CELLS - 2) return 85;
-  if (joined >= PIPES_CELLS - 4) return 80;
-  if (joined >= 19) return 80 - 5 * Math.ceil((PIPES_CELLS - 4 - joined) / 2);
-  return 2 * joined;
+  if (joined >= 27) return 85 - 5 * Math.floor((PIPES_CELLS - 3 - joined) / 2);
+  return Math.round(1.5 * joined);
 }
 
 /** Mini Sudoku: a finished, rule-correct grid scores the standard points. */
@@ -629,12 +628,18 @@ export function scoreSudoku(
 }
 
 /** Colour Connect: a full board scores the standard points, else part marks per pair joined. */
-export function scoreFlow(solved: boolean, pairsJoined: number, msRemaining: number): number {
+export function scoreFlow(
+  solved: boolean,
+  pairsJoined: number,
+  msRemaining: number,
+  totalPairs: number = FLOW_PAIRS,
+): number {
   if (solved) {
     return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, FLOW_TIME_MS));
   }
-  const pairs = clamp(pairsJoined, 0, FLOW_PAIRS);
-  return Math.round((FLOW_PARTIAL_POINTS * pairs) / FLOW_PAIRS);
+  const total = Math.max(1, Math.round(totalPairs));
+  const pairs = clamp(pairsJoined, 0, total);
+  return Math.round((FLOW_PARTIAL_POINTS * pairs) / total);
 }
 
 /**

@@ -991,12 +991,12 @@ export interface BlockPartyPuzzleData {
 /*  Lights Out                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const LIGHTS_COLS = 5;
+export const LIGHTS_COLS = 6;
 export const LIGHTS_CELLS = LIGHTS_COLS * LIGHTS_COLS;
-export const LIGHTS_TIME_MS = 60_000;
+export const LIGHTS_TIME_MS = 75_000;
 /** Presses used to build a pattern. */
-export const LIGHTS_MIN_BUILD = 5;
-export const LIGHTS_MAX_BUILD = 8;
+export const LIGHTS_MIN_BUILD = 8;
+export const LIGHTS_MAX_BUILD = 12;
 /** Patterns with fewer lights than this are thrown away. */
 export const LIGHTS_MIN_ON = 6;
 /** Bonus for solving in the fewest possible presses. */
@@ -1018,9 +1018,9 @@ export interface LightsOutPuzzleData {
 /*  Pipes                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export const PIPES_COLS = 6;
+export const PIPES_COLS = 7;
 export const PIPES_CELLS = PIPES_COLS * PIPES_COLS;
-export const PIPES_TIME_MS = 90_000;
+export const PIPES_TIME_MS = 120_000;
 export const PIPES_PARTIAL_POINTS = 60;
 
 export type PipeShape = "end" | "straight" | "corner" | "tee" | "cross";
@@ -1070,18 +1070,31 @@ export interface SudokuPuzzleData {
 /*  Colour Connect                                                            */
 /* -------------------------------------------------------------------------- */
 
-export const FLOW_COLS = 8;
+export const FLOW_COLS = 9;
 export const FLOW_CELLS = FLOW_COLS * FLOW_COLS;
-/** Eight pairs, one per game colour. */
-export const FLOW_PAIRS = 8;
-export const FLOW_TIME_MS = 45_000;
+/** Each board has between ten and twelve pairs. */
+export const FLOW_MIN_PAIRS = 10;
+export const FLOW_MAX_PAIRS = 12;
+/** Upper bound used when decoding answers. */
+export const FLOW_PAIRS = FLOW_MAX_PAIRS;
+/** Dark wall cells no path may enter. */
+export const FLOW_MIN_WALLS = 2;
+export const FLOW_MAX_WALLS = 4;
+export const FLOW_TIME_MS = 75_000;
 /** Every path in a layout covers at least this many cells. */
-export const FLOW_MIN_PATH = 4;
+export const FLOW_MIN_PATH = 3;
 /** Most a partly-joined board can earn. */
 export const FLOW_PARTIAL_POINTS = 60;
 
+export type FlowColour =
+  | StroopColour
+  | "TEAL"
+  | "WHITE"
+  | "LIME"
+  | "SILVER";
+
 export interface FlowPair {
-  colour: StroopColour;
+  colour: FlowColour;
   /** The two dot cells; either end may be drawn from. */
   a: number;
   b: number;
@@ -1089,8 +1102,10 @@ export interface FlowPair {
 
 export interface FlowPuzzleData {
   type: "flow";
-  /** Eight pairs in the order every player sees them. */
+  /** Ten to twelve pairs in the order every player sees them. */
   pairs: FlowPair[];
+  /** Dark wall cells: no path may enter, and they need no filling. */
+  walls?: number[];
   /** Server-side only: the cell path of each pair, in pair order. */
   solution?: number[][];
 }
@@ -1318,12 +1333,13 @@ export interface LaserPuzzleData {
 /*  Tower                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export const TOWER_TIME_MS = 60_000;
+export const TOWER_TIME_MS = 90_000;
 /** Eight discs across four pegs. */
-export const TOWER_DISCS = 8;
+export const TOWER_DISCS = 9;
 export const TOWER_PEGS = 4;
 /** A starting spread is only used when it needs at least this many moves. */
-export const TOWER_MIN_MINIMUM = 25;
+export const TOWER_MIN_MINIMUM = 20;
+export const TOWER_MAX_MINIMUM = 40;
 /** Bonus for finishing in the fewest possible moves. */
 export const TOWER_MIN_MOVE_BONUS = 20;
 /** Most a partly-built tower can earn. */
@@ -1394,9 +1410,9 @@ export interface MazePuzzleData {
 
 /* ============================ Sort the Tubes ============================ */
 
-export const TUBES_TIME_MS = 75_000;
+export const TUBES_TIME_MS = 90_000;
 export const TUBES_COUNT = 10;
-export const TUBE_CAPACITY = 4;
+export const TUBE_CAPACITY = 5;
 export const TUBES_COLOURS = 8;
 /** How many reverse pours scramble the solved board. */
 export const TUBES_MIN_SCRAMBLE = 60;

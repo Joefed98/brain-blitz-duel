@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import {
@@ -103,6 +103,7 @@ function Panel({
                     flex: isCutWire ? "0 0 42%" : 1,
                     backgroundColor: WIRE_HEX[colour],
                     opacity: isCutWire ? 0.7 : 1,
+                    boxShadow: colour === "BLACK" ? "0 0 0 1px #6A6A74" : "none",
                   }}
                 />
                 {isCutWire && <span className="flex-1" />}
@@ -114,6 +115,7 @@ function Panel({
                       flex: "0 0 42%",
                       backgroundColor: WIRE_HEX[colour],
                       opacity: 0.7,
+                      boxShadow: colour === "BLACK" ? "0 0 0 1px #6A6A74" : "none",
                     }}
                   />
                 )}
@@ -138,8 +140,8 @@ function Panel({
                 width: compact ? 24 : 40,
                 height: compact ? 24 : 40,
                 backgroundColor: WIRE_HEX[button.colour],
-                borderColor: isDown ? "#F5B82E" : "transparent",
-                color: "#111",
+                borderColor: isDown ? "#F5B82E" : button.colour === "BLACK" ? "#6A6A74" : "transparent",
+                color: button.colour === "BLACK" ? "#F2F2F2" : "#111",
                 boxShadow: isDown ? "0 0 8px rgba(245,184,46,0.8)" : "none",
               }}
             >
@@ -149,6 +151,68 @@ function Panel({
         })}
       </div>
     </div>
+  );
+}
+
+const TOKEN_RE = /(wires \d and \d|wire \d|button [AB]|press [AB]|\b(?:Red|Blue|Green|Yellow|White|Black)\b)/gi;
+
+function tint(hex: string): CSSProperties {
+  // Black ink needs a light halo on the dark card.
+  return hex === WIRE_HEX.BLACK
+    ? { color: "#0B0B0D", textShadow: "0 0 3px #F2F2F2, 0 0 1px #F2F2F2", fontWeight: 700 }
+    : { color: hex, fontWeight: 700 };
+}
+
+/** A rule exactly as templated, with wire, button and colour words in their colour. */
+function RuleText({
+  text,
+  wires,
+  buttons,
+}: {
+  text: string;
+  wires: WireColour[];
+  buttons: { label: "A" | "B"; colour: WireColour }[];
+}) {
+  const parts = text.split(TOKEN_RE);
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (index % 2 === 0) return <span key={index}>{part}</span>;
+        const lower = part.toLowerCase();
+        if (lower.startsWith("wires ")) {
+          const [a, b] = (part.match(/\d/g) ?? []).map(Number);
+          return (
+            <span key={index}>
+              wires <span style={tint(WIRE_HEX[wires[(a ?? 1) - 1] ?? "WHITE"])}>{a}</span> and{" "}
+              <span style={tint(WIRE_HEX[wires[(b ?? 1) - 1] ?? "WHITE"])}>{b}</span>
+            </span>
+          );
+        }
+        if (lower.startsWith("wire ")) {
+          const n = Number(part.slice(5));
+          return (
+            <span key={index} style={tint(WIRE_HEX[wires[n - 1] ?? "WHITE"])}>
+              {part}
+            </span>
+          );
+        }
+        if (lower.startsWith("button ") || lower.startsWith("press ")) {
+          const label = part.slice(-1) as "A" | "B";
+          const colour = buttons.find((b) => b.label === label)?.colour ?? "WHITE";
+          return (
+            <span key={index} style={tint(WIRE_HEX[colour])}>
+              {part}
+            </span>
+          );
+        }
+        const colour = part.toUpperCase() as WireColour;
+        return (
+          <span key={index} style={tint(WIRE_HEX[colour] ?? "#FFFFFF")}>
+            {part}
+          </span>
+        );
+      })}
+    </>
   );
 }
 
@@ -168,7 +232,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Rule: if the light is on, cut the second wire — so wire 2 is cut.
+        Rule: “If the light is ON, cut wire 2.” The light is on, so wire 2 is cut. Read all six rules, work out the four actions and their order, then do them.
       </p>
     </div>
   );
@@ -217,7 +281,8 @@ function Stage({
       <div className="shrink-0 rounded-xl border border-border bg-card p-2">
         {puzzle.rules.map((rule, index) => (
           <p key={rule.id} className="text-[14px] leading-snug">
-            <span className="font-mono text-primary">{index + 1}.</span> {rule.text}
+            <span className="font-mono text-primary">{index + 1}.</span>{" "}
+            <RuleText text={rule.text} wires={puzzle.wires} buttons={puzzle.buttons} />
           </p>
         ))}
       </div>

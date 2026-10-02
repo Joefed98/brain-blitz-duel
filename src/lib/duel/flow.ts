@@ -4,7 +4,23 @@
  * no stored answers.
  */
 
-import { FLOW_CELLS, FLOW_COLS as N, type FlowPair } from "./types";
+import { FLOW_CELLS, FLOW_COLS as N, type FlowColour, type FlowPair } from "./types";
+
+/** Twelve distinct path colours, so up to twelve pairs never share a hue. */
+export const FLOW_COLOUR_HEX: Record<FlowColour, string> = {
+  RED: "#FF4D4D",
+  BLUE: "#4D8CFF",
+  GREEN: "#3DDC84",
+  PURPLE: "#B26BFF",
+  PINK: "#FF6BD6",
+  ORANGE: "#FF8A3D",
+  BROWN: "#A86B32",
+  YELLOW: "#FFE600",
+  TEAL: "#19C9C0",
+  WHITE: "#F2F2F2",
+  LIME: "#A8F03A",
+  SILVER: "#8E98AE",
+};
 
 export function flowRow(cell: number): number {
   return Math.floor(cell / N);
@@ -57,7 +73,7 @@ export interface FlowVerdict {
   joined: boolean[];
   /** How many pairs are joined by legal, non-overlapping paths. */
   pairsJoined: number;
-  /** How many of the 36 cells those paths cover. */
+  /** How many cells those paths cover. */
   filled: number;
   solved: boolean;
 }
@@ -67,7 +83,12 @@ export interface FlowVerdict {
  * dots at the ends, and no cell shared with another pair. Paths that break a
  * rule simply do not count — they never invalidate the rest of the board.
  */
-export function verifyFlow(pairs: FlowPair[], paths: number[][]): FlowVerdict {
+export function verifyFlow(
+  pairs: FlowPair[],
+  paths: number[][],
+  walls: readonly number[] = [],
+): FlowVerdict {
+  const wallSet = new Set(walls);
   const used = new Set<number>();
   const joined: boolean[] = [];
 
@@ -77,7 +98,7 @@ export function verifyFlow(pairs: FlowPair[], paths: number[][]): FlowVerdict {
     const seen = new Set<number>();
     for (let i = 0; i < path.length; i++) {
       const cell = path[i]!;
-      if (seen.has(cell)) return null;
+      if (seen.has(cell) || wallSet.has(cell)) return null;
       seen.add(cell);
       if (i > 0 && !flowAdjacent(path[i - 1]!, cell)) return null;
     }
@@ -111,7 +132,7 @@ export function verifyFlow(pairs: FlowPair[], paths: number[][]): FlowVerdict {
     joined,
     pairsJoined,
     filled: used.size,
-    solved: pairsJoined === pairs.length && used.size === FLOW_CELLS,
+    solved: pairsJoined === pairs.length && used.size === FLOW_CELLS - wallSet.size,
   };
 }
 

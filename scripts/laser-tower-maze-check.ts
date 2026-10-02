@@ -142,17 +142,19 @@ console.log(
 
 /* -------------------------------- Tower ---------------------------------- */
 
+const pegCounts: Record<number, number> = {};
 for (let index = 0; index < 12; index++) {
   const puzzle = generateTower();
   if (puzzle.discs !== TOWER_DISCS) fail(`disc count ${puzzle.discs}`);
   if (puzzle.timeLimitMs !== TOWER_TIME_MS) fail(`tower clock is ${puzzle.timeLimitMs}`);
   const start = puzzle.start ?? [];
-  if (start.length !== TOWER_PEGS) fail("start does not cover all four pegs");
+  if (start.length !== 3 && start.length !== TOWER_PEGS) fail("start must use 3 or 4 pegs");
   if (!towerStacksLegal(towerPegsFrom(start))) fail("start spread is not legal");
   if (start.flat().length !== TOWER_DISCS) fail("start does not hold every disc");
   if (start.filter((peg) => peg.length).length < 2) fail("start uses only one peg");
   if (start.some((peg) => peg.length === TOWER_DISCS)) fail("start is already one sorted stack");
-  if ((puzzle.minMoves ?? 0) < TOWER_MIN_MINIMUM) fail(`minimum ${puzzle.minMoves} is too small`);
+  if ((puzzle.minMoves ?? 0) < TOWER_MIN_MINIMUM || (puzzle.minMoves ?? 0) > 40) fail(`minimum ${puzzle.minMoves} is out of the 20–40 band`);
+  pegCounts[start.length] = (pegCounts[start.length] ?? 0) + 1;
 
   const search = towerShortest(start, puzzle.targetPeg, puzzle.discs);
   if (!search || search.minMoves !== puzzle.minMoves) fail("stored minimum disagrees with the BFS");
@@ -168,7 +170,7 @@ for (let index = 0; index < 12; index++) {
   if (replay.moves !== puzzle.minMoves) fail("stored solution is not the minimum");
 }
 console.log(
-  "Tower: 12 puzzles — eight discs, four pegs, legal spreads, BFS minimum ≥ 25, 90s clock",
+  `Tower: 12 puzzles — nine discs, pegs ${JSON.stringify(pegCounts)}, legal spreads, independent BFS minimum 20–40, 90s clock`,
 );
 
 /* ------------------------------ Maze Dash -------------------------------- */

@@ -155,6 +155,7 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "sumhunt",
   "gonogo",
   "spin",
+  "stroke",
   "mirmatch",
 ]);
 

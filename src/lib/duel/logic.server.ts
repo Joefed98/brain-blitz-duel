@@ -46,28 +46,31 @@ function randomInt(maxExclusive: number): number {
 /* -------------------------------------------------------------------------- */
 
 interface Row {
-  mask: number;
+  mask: bigint;
   rhs: number;
 }
 
-function popcount(value: number): number {
+const ONE = BigInt(1);
+const ZERO = BigInt(0);
+const bit = (i: number) => ONE << BigInt(i);
+
+function popcount(value: bigint): number {
   let count = 0;
   let v = value;
   while (v) {
-    v &= v - 1;
+    v &= v - ONE;
     count += 1;
   }
   return count;
 }
 
 /**
- * Solves the pattern over GF(2): every light is the sum of the presses that
- * touch it. The nullspace (the "quiet patterns") is then enumerated to find a
- * genuinely shortest press set.
+ * Solves the pattern over GF(2) (bigint rows, since a 6x6 board has 36 cells).
+ * The nullspace (the "quiet patterns") is enumerated to find a shortest set.
  */
 export function minimalPressSet(lights: boolean[]): number[] {
   const rows: Row[] = lights.map((on, cell) => ({
-    mask: lightsNeighbourhood(cell).reduce((mask, press) => mask | (1 << press), 0),
+    mask: lightsNeighbourhood(cell).reduce((mask, press) => mask | bit(press), ZERO),
     rhs: on ? 1 : 0,
   }));
 
@@ -76,10 +79,7 @@ export function minimalPressSet(lights: boolean[]): number[] {
   for (let col = 0; col < LIGHTS_CELLS && rank < rows.length; col++) {
     let pivot = -1;
     for (let row = rank; row < rows.length; row++) {
-      if (rows[row]!.mask & (1 << col)) {
-        pivot = row;
-        break;
-      }
+      if (rows[row]!.mask & bit(col)) { pivot = row; break; }
     }
     if (pivot < 0) continue;
     const swap = rows[rank]!;
@@ -87,7 +87,7 @@ export function minimalPressSet(lights: boolean[]): number[] {
     rows[pivot] = swap;
     for (let row = 0; row < rows.length; row++) {
       if (row === rank) continue;
-      if (rows[row]!.mask & (1 << col)) {
+      if (rows[row]!.mask & bit(col)) {
         rows[row]!.mask ^= rows[rank]!.mask;
         rows[row]!.rhs ^= rows[rank]!.rhs;
       }
@@ -96,64 +96,51 @@ export function minimalPressSet(lights: boolean[]): number[] {
     rank += 1;
   }
 
-  // No solution (never happens for patterns built from presses).
-  for (const row of rows) {
-    if (row.mask === 0 && row.rhs === 1) return [];
-  }
+  for (const row of rows) if (row.mask === ZERO && row.rhs === 1) return [];
 
   const freeCols: number[] = [];
   for (let col = 0; col < LIGHTS_CELLS; col++) if (pivotOf[col] === -1) freeCols.push(col);
 
-  const particular = () => {
-    let x = 0;
-    for (let col = 0; col < LIGHTS_CELLS; col++) {
-      const row = pivotOf[col];
-      if (row !== undefined && row >= 0 && rows[row]!.rhs === 1) x |= 1 << col;
-    }
-    return x;
-  };
-
+  let base = ZERO;
+  for (let col = 0; col < LIGHTS_CELLS; col++) {
+    const row = pivotOf[col]!;
+    if (row >= 0 && rows[row]!.rhs === 1) base |= bit(col);
+  }
   const basis = freeCols.map((free) => {
-    let x = 1 << free;
+    let x = bit(free);
     for (let col = 0; col < LIGHTS_CELLS; col++) {
-      const row = pivotOf[col];
-      if (row !== undefined && row >= 0 && rows[row]!.mask & (1 << free)) x |= 1 << col;
+      const row = pivotOf[col]!;
+      if (row >= 0 && rows[row]!.mask & bit(free)) x |= bit(col);
     }
     return x;
   });
 
-  const base = particular();
   let best = base;
-  const combos = 1 << Math.min(basis.length, 8);
+  const combos = 1 << Math.min(basis.length, 12);
   for (let combo = 1; combo < combos; combo++) {
     let candidate = base;
-    for (let bit = 0; bit < basis.length; bit++) {
-      if (combo & (1 << bit)) candidate ^= basis[bit]!;
-    }
+    for (let b = 0; b < basis.length; b++) if (combo & (1 << b)) candidate ^= basis[b]!;
     if (popcount(candidate) < popcount(best)) best = candidate;
   }
 
   const presses: number[] = [];
-  for (let cell = 0; cell < LIGHTS_CELLS; cell++) if (best & (1 << cell)) presses.push(cell);
+  for (let cell = 0; cell < LIGHTS_CELLS; cell++) if (best & bit(cell)) presses.push(cell);
   return presses;
 }
 
+/** 6x6 board whose proven minimum is 8–12 presses. */
 export function generateLightsOut(): LightsOutPuzzleData {
-  for (let attempt = 0; attempt < 200; attempt++) {
+  for (let attempt = 0; attempt < 500; attempt++) {
     const count = LIGHTS_MIN_BUILD + randomInt(LIGHTS_MAX_BUILD - LIGHTS_MIN_BUILD + 1);
     const built = shuffled(Array.from({ length: LIGHTS_CELLS }, (_, i) => i)).slice(0, count);
     let lights = new Array<boolean>(LIGHTS_CELLS).fill(false);
     for (const cell of built) lights = pressLights(lights, cell);
     if (lightsOnCount(lights) < LIGHTS_MIN_ON) continue;
     const solution = minimalPressSet(lights);
-    if (solution.length === 0) continue;
+    if (solution.length < LIGHTS_MIN_BUILD || solution.length > LIGHTS_MAX_BUILD) continue;
     return { type: "lightsout", lights, minPresses: solution.length, solution };
   }
-  // Fallback: a single press in the middle is always solvable.
-  let lights = new Array<boolean>(LIGHTS_CELLS).fill(false);
-  lights = pressLights(lights, 12);
-  const solution = minimalPressSet(lights);
-  return { type: "lightsout", lights, minPresses: solution.length, solution };
+  throw new Error("Lights Out generator could not build an 8–12 press board");
 }
 
 /* -------------------------------------------------------------------------- */

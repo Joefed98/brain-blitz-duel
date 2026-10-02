@@ -31,6 +31,7 @@ import {
   TUBES_COLOURS,
   TUBES_COUNT,
   TUBES_MAX_MIN_MOVES,
+  TUBE_CAPACITY,
   TUBES_MIN_MIN_MOVES,
 } from "../src/lib/duel/types";
 
@@ -62,7 +63,7 @@ for (let i = 0; i < ROUNDS; i++) {
     for (let to = 0; to < tubes.tubes.length; to++) {
       if (to === from) continue;
       const destination = tubes.tubes[to]!;
-      const room = 4 - destination.length;
+      const room = TUBE_CAPACITY - destination.length;
       const target = topGroup(destination);
       const shouldAllow = room > 0 && (!target || target.colour === group.colour);
       if (shouldAllow && group.count > room) {
@@ -112,6 +113,7 @@ for (let i = 0; i < BOMB_PANELS; i++) {
   assert(inspected.unique, "the one satisfying sequence is not the stored plan");
   assert(inspected.necessary, "fewer than four rules were individually necessary");
   assert(inspected.pairsDistinct, "two rules concern the same action pair");
+  assert(inspected.familiesOk, "more than two rules from one family");
   assert(
     inspected.necessaryRules >= BOMB_NECESSARY_RULES,
     `only ${inspected.necessaryRules} rules were necessary`,
@@ -145,7 +147,7 @@ for (let i = 0; i < BOMB_PANELS; i++) {
     "a short plan counted as defused",
   );
 }
-assert(BOMB_RULE_TEMPLATE_COUNT >= 10, "bomb rule bank has fewer than 10 templates");
+assert(BOMB_RULE_TEMPLATE_COUNT === 40, "bomb rule bank is not the 40-template bank");
 console.log(
   `Bomb Defusal: ${BOMB_PANELS} panels, each with exactly one satisfying four-action sequence; ` +
     `${(bombAttempts / BOMB_PANELS).toFixed(2)} panel attempts on average`,

@@ -1,6 +1,7 @@
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/registry";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
+import type { PuzzleData } from "@/lib/duel/types";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -19,6 +20,8 @@ interface RoundIntroProps {
   activeCount?: number;
   onReady?: () => void;
   practice?: boolean;
+  /** This round's public puzzle, for puzzle-specific intro lines. */
+  puzzle?: PuzzleData | null;
 }
 
 export function RoundIntro({
@@ -32,6 +35,7 @@ export function RoundIntro({
   activeCount = 0,
   onReady,
   practice = false,
+  puzzle = null,
 }: RoundIntroProps) {
   const elapsed = Math.max(0, now - startedAt);
   const remaining = Math.max(0, INTRO_MS - elapsed);
@@ -39,6 +43,7 @@ export function RoundIntro({
   const secondsLeft = Math.max(1, Math.ceil(remaining / 1000));
   const autoSeconds = Math.max(0, Math.ceil((remaining - INTRO_COUNTDOWN_MS) / 1000));
   const Example = puzzleDef(type).IntroExample;
+  const introLine = puzzle ? (puzzleDef(type).introLine?.(puzzle) ?? null) : null;
   // Arcade phases carry 3 s of invisible slack; show the run length only.
   const seconds = Math.round(
     (typeTimeLimitMs(type) - (usesArcadeClock(type) ? 3000 : 0)) / 1000,
@@ -81,6 +86,11 @@ export function RoundIntro({
             <div className="round-intro-example">
               <Example />
             </div>
+            {introLine ? (
+              <p className="font-mono text-sm font-bold uppercase tracking-widest text-primary">
+                {introLine}
+              </p>
+            ) : null}
             <p className="round-intro-time text-xs text-muted-foreground">
               You have {seconds} seconds
             </p>

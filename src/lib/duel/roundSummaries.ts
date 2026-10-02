@@ -718,8 +718,8 @@ const flowSummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: `${joined} / ${FLOW_PAIRS} pairs`,
-    detail: [`${filled} / ${FLOW_CELLS} squares filled`],
+    summary: `${joined} / ${puzzle.pairs.length || FLOW_PAIRS} pairs`,
+    detail: [`${filled} / ${FLOW_CELLS - (puzzle.walls?.length ?? 0)} squares filled`],
   };
 };
 

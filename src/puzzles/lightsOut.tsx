@@ -97,7 +97,7 @@ function IntroExample() {
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewer presses earns a bonus. You have 60 seconds.
+        Fewer presses earns a bonus. You have 75 seconds.
       </p>
     </div>
   );

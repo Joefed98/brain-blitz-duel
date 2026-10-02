@@ -654,6 +654,7 @@ function DuelScreen() {
         <RoundIntro
           round={round}
           type={puzzle.type}
+          puzzle={puzzle}
           startedAt={phaseStart ?? now}
           now={now}
           outcomes={outcomes}
