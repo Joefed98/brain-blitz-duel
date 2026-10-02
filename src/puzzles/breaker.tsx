@@ -233,34 +233,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { width, height };
   };
 
-  /** Screen point to world point, matching the canvas letterboxing. */
+  /** Screen point to world point, matching the full-stage canvas mapping. */
   const worldPoint = (clientX: number, clientY: number): { x: number; y: number } => {
     const box = wrap.current?.getBoundingClientRect();
     if (!box || box.width < 1) return { x: Math.round(BRK_WORLD_W / 2), y: BRK_WORLD_H / 2 };
-    const scale = Math.min(box.width / BRK_WORLD_W, box.height / BRK_WORLD_H);
-    const left = box.left + (box.width - BRK_WORLD_W * scale) / 2;
-    const top = box.top + (box.height - BRK_WORLD_H * scale) / 2;
     return {
-      x: Math.max(0, Math.min(BRK_WORLD_W, Math.round((clientX - left) / scale))),
-      y: Math.max(0, Math.min(BRK_WORLD_H, Math.round((clientY - top) / scale))),
+      x: Math.max(0, Math.min(BRK_WORLD_W, Math.round(((clientX - box.left) / box.width) * BRK_WORLD_W))),
+      y: Math.max(0, Math.min(BRK_WORLD_H, Math.round(((clientY - box.top) / box.height) * BRK_WORLD_H))),
     };
   };
 
   if (!data) return null;
 
-  /** True when the point lies inside the drawn play area (not the letterbox). */
+  /** True when the point lies inside the full canvas play area. */
   const inPlayArea = (clientX: number, clientY: number): boolean => {
     const box = wrap.current?.getBoundingClientRect();
     if (!box || box.width < 1) return false;
-    const scale = Math.min(box.width / BRK_WORLD_W, box.height / BRK_WORLD_H);
-    const left = box.left + (box.width - BRK_WORLD_W * scale) / 2;
-    const top = box.top + (box.height - BRK_WORLD_H * scale) / 2;
-    return (
-      clientX >= left &&
-      clientX <= left + BRK_WORLD_W * scale &&
-      clientY >= top &&
-      clientY <= top + BRK_WORLD_H * scale
-    );
+    return clientX >= box.left && clientX <= box.right && clientY >= box.top && clientY <= box.bottom;
   };
 
   const track = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -280,14 +269,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const buttonStyle = (() => {
     const box = wrap.current?.getBoundingClientRect();
     if (!box || box.width < 1) return null;
-    const scale = Math.min(box.width / BRK_WORLD_W, box.height / BRK_WORLD_H);
-    const offX = (box.width - BRK_WORLD_W * scale) / 2;
-    const offY = (box.height - BRK_WORLD_H * scale) / 2;
+    const scaleX = box.width / BRK_WORLD_W;
+    const scaleY = box.height / BRK_WORLD_H;
     return {
-      left: offX + (BRK_BTN_X - 6) * scale,
-      top: offY + (BRK_BTN_Y - 6) * scale,
-      width: (BRK_BTN_W + 12) * scale,
-      height: (BRK_BTN_H + 12) * scale,
+      left: (BRK_BTN_X - 6) * scaleX,
+      top: (BRK_BTN_Y - 6) * scaleY,
+      width: (BRK_BTN_W + 12) * scaleX,
+      height: (BRK_BTN_H + 12) * scaleY,
     };
   })();
 

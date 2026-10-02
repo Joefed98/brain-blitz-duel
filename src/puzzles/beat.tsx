@@ -212,9 +212,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   /** Which lane the finger is in, from the sim's own mapping. */
   const laneAt = (event: React.PointerEvent<HTMLCanvasElement>): number => {
     const box = event.currentTarget.getBoundingClientRect();
-    const scale = Math.min(box.width / BEAT_WORLD_W, box.height / BEAT_WORLD_H);
-    const left = box.left + (box.width - BEAT_WORLD_W * scale) / 2;
-    const x = (event.clientX - left) / Math.max(scale, 0.0001);
+    const x = ((event.clientX - box.left) / box.width) * BEAT_WORLD_W;
     const lane = Math.floor((x / BEAT_WORLD_W) * BEAT_LANES);
     return Math.max(0, Math.min(BEAT_LANES - 1, lane));
   };

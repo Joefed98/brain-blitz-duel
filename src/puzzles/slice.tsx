@@ -201,12 +201,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const worldPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
-    const scale = Math.min(box.width / SLICE_WORLD_W, box.height / SLICE_WORLD_H);
-    const left = box.left + (box.width - SLICE_WORLD_W * scale) / 2;
-    const top = box.top + (box.height - SLICE_WORLD_H * scale) / 2;
     return {
-      x: Math.max(0, Math.min(SLICE_WORLD_W, Math.round((event.clientX - left) / scale))),
-      y: Math.max(0, Math.min(SLICE_WORLD_H, Math.round((event.clientY - top) / scale))),
+      x: Math.max(0, Math.min(SLICE_WORLD_W, Math.round(((event.clientX - box.left) / box.width) * SLICE_WORLD_W))),
+      y: Math.max(0, Math.min(SLICE_WORLD_H, Math.round(((event.clientY - box.top) / box.height) * SLICE_WORLD_H))),
     };
   };
 

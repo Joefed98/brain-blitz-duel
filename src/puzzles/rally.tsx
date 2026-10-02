@@ -203,9 +203,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const worldX = (clientX: number): number => {
     const box = wrap.current?.getBoundingClientRect();
     if (!box || box.width < 1) return Math.round(RALLY_WORLD_W / 2);
-    const scale = Math.min(box.width / RALLY_WORLD_W, box.height / RALLY_WORLD_H);
-    const left = box.left + (box.width - RALLY_WORLD_W * scale) / 2;
-    return Math.max(0, Math.min(RALLY_WORLD_W, Math.round((clientX - left) / scale)));
+    return Math.max(0, Math.min(RALLY_WORLD_W, Math.round(((clientX - box.left) / box.width) * RALLY_WORLD_W)));
   };
 
   if (!data) return null;
