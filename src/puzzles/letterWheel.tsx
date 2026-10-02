@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
-import { lwDecode, lwGrade, lwSlotCells } from "@/lib/duel/letterWheel";
+import { lwDecode, lwGrade, lwSlotCells, scoreLetterWheel } from "@/lib/duel/letterWheel";
 import { useStageState } from "@/lib/duel/stageState";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData, type LetterWheelSlot } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -184,7 +184,7 @@ function Wheel({
   );
 }
 
-/** Fixed example: wheel T E A R, TEA dragged down through RATE. */
+/** Fixed example: wheel T E A R, with TEA selected down through RATE. */
 const EX_SLOTS: LetterWheelSlot[] = [
   { row: 0, col: 0, across: true, len: 4 },
   { row: 0, col: 2, across: false, len: 3 },
@@ -299,7 +299,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       <div className="flex min-h-0 w-full flex-[6] items-center justify-center" style={{ containerType: "size" }}>
         <div
           style={{
-            width: `min(320px, 100cqw, calc(100cqh * ${data.cols / data.rows}))`,
+            width: `min(334px, 100cqw, calc(100cqh * ${data.cols / data.rows}))`,
             aspectRatio: `${data.cols} / ${data.rows}`,
             containerType: "size",
           }}
@@ -307,15 +307,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           <Crossword cols={data.cols} rows={data.rows} slots={data.slots} letters={letterMap(data.cols, data.slots, filled)} />
         </div>
       </div>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         disabled={done || current.length < 3}
         onClick={release}
-        className="h-7 shrink-0 font-mono text-xl font-bold tracking-widest text-primary disabled:opacity-100"
+        className="h-7 shrink-0 px-2 font-mono text-xl font-bold tracking-widest text-primary disabled:opacity-100"
         aria-label={current ? `Submit ${current}` : "Current word"}
       >
         {current || flash || ""}
-      </button>
+      </Button>
       <div className="flex min-h-[138px] w-full flex-[4] items-center justify-center" style={{ containerType: "size" }}>
         <Wheel letters={wheel} path={path} onPath={setPath} onRelease={release} onTap={tapLetter} disabled={done} shake={shake} />
       </div>
@@ -363,6 +364,7 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   const missed = new Map([...all].filter(([c]) => !mine.has(c)));
   const complete = v.totalCells > 0 && v.cells >= v.totalCells;
   const elapsed = Math.max(0, LETTERWHEEL_TIME_MS - (myMsRemaining ?? 0));
+  const score = scoreLetterWheel(v.slots.length, puzzle.slots.length, v.bonus, myMsRemaining ?? 0, LETTERWHEEL_TIME_MS);
   const px = Math.floor(200 / Math.max(puzzle.cols, puzzle.rows));
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -374,6 +376,9 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
           ? `${words.length} / ${words.length} · ${(elapsed / 1000).toFixed(1)}s`
           : `${v.slots.length} / ${words.length} words`}
         {` · ${v.bonus} bonus`}
+      </p>
+      <p className="text-center font-mono text-xs text-muted-foreground">
+        {v.slots.length} × 11 + {v.bonus} × 2{complete ? " + speed" : ""} = <span className="text-primary">{score}</span>
       </p>
       {dev && (
         <div className="text-center font-mono text-[10px] text-muted-foreground">
