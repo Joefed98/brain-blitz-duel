@@ -1,4 +1,10 @@
-# Roadmap
+## Four speed-game changes (Oct 2)
+- [ ] Update Reaction Time to 60 seconds, seeded 5–8 flashes, simplified play UI, and scaled decoys.
+- [ ] Update Number Hunt to 20 non-touching numbers, seeded 15-second relocations, and new scoring.
+- [ ] Expand Stop Watch to ten progressively harder watches and correct full-sweep pass counters.
+- [ ] Rework Don’t Break the Chain for endless seeded 28-node sets, compact timer, and link scoring.
+- [ ] Audit source layouts for 390×700 and 375×667; run focused checks and only applicable changed-game replay proofs, with no browser tests.
+
 
 ## Three number-game changes (Oct 2)
 - [x] Extend Ten Drop to 90 seconds with the new ten-target bands and pace.
