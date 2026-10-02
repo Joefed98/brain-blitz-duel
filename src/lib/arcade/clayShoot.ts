@@ -26,7 +26,7 @@ export const CLAY_CONFIG = {
   runSeconds: 60,
   /** World size in pixels; the canvas letterboxes it. */
   worldW: 360,
-  worldH: 560,
+  worldH: 400,
   clays: 25,
   orangeClays: 22,
   goldClays: 3,
@@ -43,9 +43,9 @@ export const CLAY_CONFIG = {
   pairOffsetSpan: 20,
   /** Launch height ranges, px from the top. */
   launchYMin: 70,
-  launchYSpan: 431,
+  launchYSpan: 280,
   nearTopYMin: 48,
-  nearTopYSpan: 83,
+  nearTopYSpan: 50,
   /** Launch x just off each edge, px. */
   launchInset: 12,
   /** Orange speed in 1/256 px per tick. */

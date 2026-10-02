@@ -66,7 +66,7 @@ for (let run = 0; run < RUNS; run++) {
       retirementChecked = state.status.some((status, i) => status === WHACK_STATUS_RETIRED && state.schedule.kind[i] === WHACK_RED);
     }
   }
-  if (!retirementChecked) fail(`run ${run}: wrong colour did not retreat at two seconds`);
+  if (!retirementChecked) fail(`run ${run}: wrong colour did not retreat at three seconds`);
 
   state = whackGame.init(seed);
   const events: ArcadeInputEvent[] = [];

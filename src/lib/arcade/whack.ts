@@ -37,7 +37,7 @@ export const WHACK_RED = 1;
 /** The rule flips to TAP RED at 10 s and back to TAP GOLD at 20 s. */
 export const WHACK_FLIP_TICKS: readonly number[] = [600, 1200];
 export const WHACK_QUEUE_SIZE = 100;
-export const WHACK_WRONG_RETREAT_TICKS = 2 * TICKS_PER_SECOND;
+export const WHACK_WRONG_RETREAT_TICKS = 3 * TICKS_PER_SECOND;
 const POP_IN_TICKS = 7;
 const FALL_TICKS = 10;
 
