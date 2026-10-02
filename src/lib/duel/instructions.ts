@@ -756,6 +756,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "You orbit automatically.", detail: "Tap to let go — you fly straight until the next orbit catches you." },
       { action: "Miss and you drift away.", detail: "Avoid the red arcs." },
+      { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops — never at the crossing." },
     ],
     score: "3 per planet; finish all forty early for the time bonus. Skipping a planet is allowed if you can make the next one.",
   },
