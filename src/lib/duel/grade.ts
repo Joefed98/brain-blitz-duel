@@ -67,7 +67,7 @@ import { decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { btDecode, btReplay, scoreBallTrack } from "./ballTrack";
 import { scoreTrail, trComplete, trCorrectPrefix, trDecode } from "./trail";
-import { npComplete, npDecode, scoreNumberPyramid } from "./numberPyramid";
+import { npComplete, npCorrectCells, npDecode, npDecodeRound, scoreNumberPyramid } from "./numberPyramid";
 import { digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
 import { lwDecode, lwGrade, scoreLetterWheel } from "./letterWheel";
@@ -1649,19 +1649,22 @@ export function gradeSubmission(
       break;
     }
     case "numpyramid": {
-      // Placements are read against the stored tray and solution; tile values never come from the client.
-      const placements = npDecode(answer, puzzle.givens, puzzle.tray.length);
-      const solution = puzzle.solution ?? [];
-      const emptyCells = puzzle.givens.filter((g) => g == null).length;
-      let correctCells = 0;
-      for (const [cell, tray] of Object.entries(placements)) {
-        if (puzzle.tray[tray] === solution[Number(cell)]) correctCells++;
-      }
-      const complete = npComplete(puzzle.givens, puzzle.tray, placements);
-      isCorrect = complete;
-      correctCount = correctCells;
-      score = scoreNumberPyramid(complete, ms, timeLimitMs, correctCells, emptyCells);
-      extraDetail = { complete, correctCells, emptyCells, placed: Object.keys(placements).length };
+      // Each placement map is checked against its stored tray and private solution.
+      const decoded = npDecodeRound(answer);
+      const boards = puzzle.pyramids.map((board, index) => {
+        const placements = npDecode(decoded.boards[index] ?? "", board.givens, board.tray.length);
+        const solution = puzzle.solutions?.[index] ?? [];
+        const emptyCells = board.givens.filter((g) => g == null).length;
+        const correctCells = npCorrectCells(board.givens, board.tray, solution, placements);
+        const complete = npComplete(board.givens, board.tray, placements, board.rows);
+        return { complete, correctCells, emptyCells, placed: Object.keys(placements).length };
+      });
+      const completed = boards.filter((board) => board.complete).length;
+      const active = boards[decoded.active] ?? boards[0]!;
+      isCorrect = completed === puzzle.pyramids.length;
+      correctCount = boards.reduce((sum, board) => sum + board.correctCells, 0);
+      score = scoreNumberPyramid(completed, isCorrect, ms, active.correctCells, active.emptyCells);
+      extraDetail = { completed, active: decoded.active, boards };
       break;
     }
     case "balltrack": {

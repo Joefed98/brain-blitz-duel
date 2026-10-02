@@ -38,6 +38,8 @@ for (let seed = 1; seed <= 2000; seed++) {
     const t = s.plan.targets[i]!;
     if (t < stage.lo || t > stage.hi) fail(`tendrop seed ${seed} target ${i} out of range ${t}`);
     if (tdGreedy(t, s.plan.queues[i]!) < 0) fail(`tendrop seed ${seed} target ${i} unreachable`);
+    if (i < 3 && t < 19) fail(`tendrop seed ${seed} early target ${i} can be reached too quickly`);
+    if (i >= 6 && !stage.needOp) fail(`tendrop seed ${seed} hard target ${i} does not require an operator`);
     if (s.plan.tries[i]! > TD_CONFIG.maxSegmentTries) fallbacks++;
     else if (!tdSegmentOk(stage, t, s.plan.queues[i]!)) fail(`tendrop seed ${seed} segment ${i} rules`);
     maxTries = Math.max(maxTries, Math.min(s.plan.tries[i]!, TD_CONFIG.maxSegmentTries));

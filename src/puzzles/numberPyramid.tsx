@@ -278,7 +278,7 @@ export const numberPyramidPuzzle: PuzzleDefinition = {
     const decoded = npDecodeRound(answer);
     return puzzle.pyramids.every((board, index) => npComplete(board.givens, board.tray, npDecode(decoded.boards[index] ?? "", board.givens, board.tray.length), board.rows));
   },
-  revealHeading: "The solution",
+  revealHeading: "The solutions",
   IntroExample,
   Stage,
   Reveal,
