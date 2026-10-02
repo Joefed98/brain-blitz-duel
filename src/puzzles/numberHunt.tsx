@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
+import { randInt } from "@/lib/duel/random";
 import {
   NUMHUNT_CIRCLE_PX,
   NUMHUNT_COUNT,
   NUMHUNT_FLASH_MS,
-  ROUND_MS,
+  NUMHUNT_MOVE_MS,
+  NUMHUNT_TIME_MS,
   type HuntSpot,
   type NumberHuntPuzzleData,
 } from "@/lib/duel/types";
@@ -107,11 +109,12 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
-  const spots = puzzle.type === "numhunt" ? puzzle.spots : [];
-  const key = spots.map((s) => `${s.x}:${s.y}`).join("|");
+  const layouts = puzzle.type === "numhunt" ? puzzle.layouts : [];
+  const key = layouts.flat().map((s) => `${s.x}:${s.y}`).join("|");
   const [next, setNext] = useState(0);
   const [errors, setErrors] = useState(0);
   const [flash, setFlash] = useState<number | null>(null);
+  const [moveFlash, setMoveFlash] = useState(-1);
   const submitted = useRef("");
 
   useEffect(() => {
@@ -127,6 +130,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   }, [flash]);
 
   if (puzzle.type !== "numhunt") return null;
+  const layoutIndex = Math.min(3, Math.floor(Math.max(0, now - phaseStartedAt) / NUMHUNT_MOVE_MS));
+  const spots = layouts[layoutIndex] ?? puzzle.spots;
+
+  useEffect(() => {
+    if (layoutIndex === 0) return;
+    setMoveFlash(layoutIndex);
+    const id = setTimeout(() => setMoveFlash(-1), NUMHUNT_FLASH_MS);
+    return () => clearTimeout(id);
+  }, [layoutIndex]);
 
   const handleTap = (index: number) => {
     if (locked || index < next) return;
@@ -139,8 +151,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     setNext(done);
     if (done === spots.length && submitted.current !== key) {
       submitted.current = key;
-      const remaining = Math.max(0, ROUND_MS - (serverNow() - phaseStartedAt));
-      onSubmit(`${done},${errors},${Math.round(ROUND_MS - remaining)}`, { errors });
+      const remaining = Math.max(0, NUMHUNT_TIME_MS - (serverNow() - phaseStartedAt));
+      onSubmit(`${done},${errors},${Math.round(NUMHUNT_TIME_MS - remaining)}`, { errors });
     }
   };
 
@@ -157,7 +169,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         </span>
       </div>
 
-      <div className="relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10">
+      <div className={`relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10 ${moveFlash === layoutIndex ? "animate-pulse" : ""}`}>
         {spots.map((spot, index) => (
           <button
             key={index}
@@ -211,10 +223,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
-/** Fourteen distinct two-digit numbers, ascending. */
+/** Twenty distinct two-digit numbers, ascending. */
 function pickValues(): number[] {
   const pool = new Set<number>();
-  while (pool.size < NUMHUNT_COUNT) pool.add(10 + Math.floor(Math.random() * 90));
+  while (pool.size < NUMHUNT_COUNT) pool.add(randInt(10, 99));
   return [...pool].sort((a, b) => a - b);
 }
 
@@ -222,8 +234,7 @@ function pickValues(): number[] {
  * Positions are stored as percentages, so both phones lay the circles out
  * identically. No two circles touch, and consecutive numbers are never close.
  */
-export function buildNumberHunt(): NumberHuntPuzzleData {
-  const values = pickValues();
+function buildLayout(values: number[]): HuntSpot[] {
   for (let attempt = 0; attempt < 400; attempt++) {
     const spots: HuntSpot[] = [];
     let ok = true;
@@ -231,8 +242,8 @@ export function buildNumberHunt(): NumberHuntPuzzleData {
       let placed = false;
       for (let tries = 0; tries < 300; tries++) {
         const spot: HuntSpot = {
-          x: Math.round(11 + Math.random() * 78),
-          y: Math.round(10 + Math.random() * 80),
+          x: randInt(9, 91),
+          y: randInt(9, 91),
           n: values[i]!,
         };
         if (spots.some((s) => distancePx(s, spot) < MIN_GAP_PX)) continue;
@@ -247,24 +258,27 @@ export function buildNumberHunt(): NumberHuntPuzzleData {
         break;
       }
     }
-    if (ok) return { type: "numhunt", spots };
+    if (ok) return spots;
   }
   // Fallback staggered grid — sixteen circles with safe spacing at 390×700.
-  return {
-    type: "numhunt",
-    spots: Array.from({ length: NUMHUNT_COUNT }, (_, i) => ({
-      x: 11 + (i % 4) * 26,
-      y: 13 + Math.floor(i / 4) * 25,
+  return Array.from({ length: NUMHUNT_COUNT }, (_, i) => ({
+      x: 10 + (i % 4) * 27,
+      y: 10 + Math.floor(i / 4) * 20,
       n: values[i]!,
-    })),
-  };
+    }));
+}
+
+export function buildNumberHunt(): NumberHuntPuzzleData {
+  const values = pickValues();
+  const layouts = Array.from({ length: 4 }, () => buildLayout(values));
+  return { type: "numhunt", spots: layouts[0]!, layouts };
 }
 
 export const numberHuntPuzzle: PuzzleDefinition = {
   key: "numhunt",
   name: "Number Hunt",
   category: "speed",
-  timeLimitMs: 30_000,
+  timeLimitMs: NUMHUNT_TIME_MS,
   generate: buildNumberHunt,
   revealHeading: "Your run",
   check: (answer, puzzle) =>

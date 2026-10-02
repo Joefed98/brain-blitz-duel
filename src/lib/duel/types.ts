@@ -814,6 +814,8 @@ export interface StopWatchSpec {
   vertical?: boolean;
   /** Optional traversal times, one per pass. */
   passSweepMs?: number[];
+  /** Full left-to-right sweeps allowed before this watch is missed. */
+  passes: number;
 }
 
 export interface StopWatchPuzzleData {

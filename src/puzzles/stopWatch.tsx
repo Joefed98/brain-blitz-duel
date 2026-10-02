@@ -5,7 +5,6 @@ import { randInt } from "@/lib/duel/random";
 import {
   STOPWATCH_GAP_MS,
   STOPWATCH_MISS_MS,
-  STOPWATCH_PASSES,
   STOPWATCH_ROUND_MS,
   type StopWatchPuzzleData,
   type StopWatchSpec,
@@ -23,17 +22,16 @@ export function markerState(
   spec: StopWatchSpec,
   elapsed: number,
 ): { pos: number; pass: number; dir: 1 | -1; sweepMs: number } {
-  const durations = spec.passSweepMs ?? Array.from({ length: STOPWATCH_PASSES }, () => spec.sweepMs);
+  const durations = spec.passSweepMs ?? Array.from({ length: spec.passes }, () => spec.sweepMs);
   let remaining = Math.max(0, elapsed);
   let pass = 0;
-  while (pass < STOPWATCH_PASSES && remaining >= (durations[pass] ?? spec.sweepMs)) {
+  while (pass < spec.passes && remaining >= (durations[pass] ?? spec.sweepMs)) {
     remaining -= durations[pass] ?? spec.sweepMs;
     pass += 1;
   }
-  const sweepMs = durations[Math.min(pass, STOPWATCH_PASSES - 1)] ?? spec.sweepMs;
-  const frac = pass >= STOPWATCH_PASSES ? 1 : Math.min(1, remaining / sweepMs);
-  const forwards = spec.reverse ? pass % 2 === 1 : pass % 2 === 0;
-  return { pos: forwards ? frac : 1 - frac, pass, dir: forwards ? 1 : -1, sweepMs };
+  const sweepMs = durations[Math.min(pass, spec.passes - 1)] ?? spec.sweepMs;
+  const frac = pass >= spec.passes ? 1 : Math.min(1, remaining / sweepMs);
+  return { pos: frac, pass, dir: 1, sweepMs };
 }
 
 export function targetCentre(spec: StopWatchSpec, elapsed: number): number {
@@ -47,37 +45,26 @@ function isHidden(spec: StopWatchSpec, pos: number): boolean {
 }
 
 export function buildStopWatch(): StopWatchPuzzleData {
-  const c1 = randInt(30, 70) / 100;
-  let c2 = c1;
-  while (Math.abs(c2 - c1) < 0.2) c2 = randInt(15, 85) / 100;
-  const movingAmplitude = Math.min(randInt(12, 20) / 100, c2 - 0.07, 0.93 - c2);
-  const verticalCentre = randInt(68, 78) / 100;
-  const verticalAmplitude = Math.min(randInt(8, 14) / 100, verticalCentre - 0.56, 0.94 - verticalCentre);
   return {
     type: "stopwatch",
-    watches: [
-      { centre: c1, half: 0.08, sweepMs: 1_100, hidden: false, reverse: false },
-      {
-        centre: c2,
-        half: 0.05,
-        sweepMs: 800,
-        hidden: false,
+    watches: Array.from({ length: 10 }, (_, index) => {
+      const centre = randInt(index < 3 ? 25 : 60, index < 3 ? 75 : 88) / 100;
+      const moving = index === 2 || index === 5 || index === 8;
+      const vertical = index === 4 || index === 7;
+      const accelerating = index >= 6;
+      const sweepMs = Math.max(560, 1_180 - index * 55);
+      return {
+        centre,
+        half: Math.max(0.035, 0.085 - index * 0.005),
+        sweepMs,
+        hidden: index >= 3 && index % 2 === 1,
         reverse: false,
-        moving: { amplitude: movingAmplitude, cycleMs: 2_400, phase: randInt(0, 99) / 100 },
-      },
-      { centre: randInt(72, 88) / 100, half: 0.06, sweepMs: 1_000, hidden: true, reverse: false },
-      {
-        centre: verticalCentre,
-        half: 0.06,
-        sweepMs: 1_000,
-        hidden: false,
-        reverse: false,
-        moving: { amplitude: verticalAmplitude, cycleMs: 2_000, phase: randInt(0, 99) / 100 },
-        vertical: true,
-        passSweepMs: [1_000, 700, 500],
-      },
-      { centre: randInt(72, 88) / 100, half: 0.05, sweepMs: 600, hidden: true, reverse: false },
-    ],
+        passes: index + 1,
+        vertical,
+        moving: moving ? { amplitude: 0.1, cycleMs: 2_200 - index * 70, phase: randInt(0, 99) / 100 } : undefined,
+        passSweepMs: accelerating ? Array.from({ length: index + 1 }, (_, pass) => Math.max(420, sweepMs - pass * 55)) : undefined,
+      };
+    }),
   };
 }
 
@@ -157,12 +144,12 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        Five watches, each one trickier. Tap to stop the marker on the zone's centre line.
+        Ten watches, each one trickier. Tap to stop the marker on the zone's centre line.
       </p>
-      <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, reverse: false }} marker={0.58} passesLeft={3} />
+      <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, reverse: false, passes: 1 }} marker={0.58} passesLeft={1} />
       <p className="text-center text-xs text-muted-foreground">
-        Some targets move — stop when the marker and the target line up. Watches 3 and 5 hide the marker over the
-        shaded end, and Watch 4 is vertical and accelerates. Score: 50 at 400 ms average error, up to 150 for perfect
+        Some targets move, hide, turn vertical or accelerate. The counter gives Watch 1 one full sweep, Watch 2 two,
+        and so on. Score: 50 at 400 ms average error, up to 150 for perfect
         stops.
       </p>
     </div>
@@ -211,7 +198,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
       }
       return;
     }
-    if (markerState(spec, now - cursor.startAt).pass >= STOPWATCH_PASSES) record(STOPWATCH_MISS_MS, null);
+    if (markerState(spec, now - cursor.startAt).pass >= spec.passes) record(STOPWATCH_MISS_MS, null);
   }, [now]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -260,7 +247,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
     const elapsed = serverNow() - cursor.startAt;
     if (elapsed < 0) return;
     const { pos, pass, dir, sweepMs } = markerState(spec, elapsed);
-    if (pass >= STOPWATCH_PASSES) return;
+    if (pass >= spec.passes) return;
     const centre = targetCentre(spec, elapsed);
     const offset = (pos - centre) * dir * sweepMs;
     const error = Math.min(STOPWATCH_MISS_MS, Math.round(Math.abs(offset)));
@@ -276,8 +263,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
       : waiting
         ? "Get ready"
         : "Tap to stop";
-  const currentPass = live ? markerState(spec, Math.max(0, now - cursor.startAt)).pass : STOPWATCH_PASSES - 1;
-  const passesLeft = Math.max(1, STOPWATCH_PASSES - currentPass);
+  const currentPass = live ? markerState(spec, Math.max(0, now - cursor.startAt)).pass : spec.passes;
+  const passesLeft = Math.max(0, spec.passes - currentPass);
 
   return (
     <div
@@ -306,7 +293,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
           cursor.result !== null ? (cursor.signed === null ? "text-warn" : "text-primary") : "text-muted-foreground"
         }`}
       >
-        {done && now >= cursor.shownUntil ? "All five done" : label}
+        {done && now >= cursor.shownUntil ? "All ten done" : label}
       </p>
     </div>
   );
