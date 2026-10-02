@@ -35,8 +35,8 @@ export const CLAY_CONFIG = {
   firstLaunchTick: 75,
   singleGapTicks: 180,
   singleJitterTicks: 24,
-  firstPairTick: 1800,
-  pairGapTicks: 250,
+  firstPairTick: 2020,
+  pairGapTicks: 230,
   pairJitterTicks: 24,
   /** Second clay of a pair leaves 24–43 ticks after the first. */
   pairOffsetMin: 24,
