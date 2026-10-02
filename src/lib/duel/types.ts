@@ -2139,7 +2139,7 @@ export interface HotFloorPuzzleData {
 export const SHIKAKU_TIME_MS = 90_000;
 export const LIGHTUP_TIME_MS = 90_000;
 export const BALLTRACK_TIME_MS = 60_000;
-export const WORDSEARCH_TIME_MS = 90_000;
+export const WORDSEARCH_TIME_MS = 120_000;
 
 /** Number Pyramid: three pyramids in one 120-second round. */
 export const NUMPYRAMID_TIME_MS = 120_000;
@@ -2215,11 +2215,8 @@ export interface LetterWheelPuzzleData {
   /** Wheel letters, in starting order. */
   letters: string;
   slots: LetterWheelSlot[];
-  bonusTotal: number;
   /** Word for each slot — private until the reveal. */
   words?: string[];
-  /** Every other valid word — private until the reveal. */
-  bonus?: string[];
 }
 
 export interface WordSearchPlacement {

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import { lwDecode, lwGrade, lwSlotCells, scoreLetterWheel } from "@/lib/duel/letterWheel";
 import { useStageState } from "@/lib/duel/stageState";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData, type LetterWheelSlot } from "@/lib/duel/types";
@@ -174,7 +173,7 @@ function Wheel({
             className={`pointer-events-none absolute flex items-center justify-center rounded-full font-display font-bold ${
               on ? "bg-primary text-primary-foreground" : "text-foreground"
             }`}
-            style={{ left: `${x - 11}%`, top: `${y - 11}%`, width: "22%", height: "22%", fontSize: "clamp(16px, 9cqmin, 30px)" }}
+            style={{ left: `${x - 12}%`, top: `${y - 12}%`, width: "24%", height: "24%", fontSize: "clamp(18px, 10cqmin, 32px)" }}
           >
             {ch}
           </div>
@@ -210,20 +209,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const data: LetterWheelPuzzleData | null = puzzle.type === "letterwheel" ? puzzle : null;
   const key = stateKey ?? "letterwheel";
   const [filled, setFilled] = useStageState<(string | undefined)[]>(key, "lwFilled", () => []);
-  const [bonus, setBonus] = useStageState<string[]>(key, "lwBonus", () => []);
-  const [order, setOrder] = useStageState<number[]>(key, "lwOrder", () => []);
   const [path, setPath] = useState<number[]>([]);
   const [shake, setShake] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
-  const [dev, setDev] = useState(false);
   const submitted = useRef(false);
-  useEffect(() => setDev(devDiagnosticsOn()), []);
 
-  const base = data?.letters ?? "";
-  const wheel = order.length === base.length ? order.map((i) => base[i]).join("") : base;
+  const wheel = data?.letters ?? "";
   const slotCount = data?.slots.length ?? 0;
   const filledCount = filled.filter(Boolean).length;
-  const words = [...filled.filter((w): w is string => !!w), ...bonus];
+  const words = filled.filter((w): w is string => !!w);
   const encoded = words.join(",");
 
   useEffect(() => {
@@ -271,27 +265,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           next[i] = v.word;
           return next;
         });
-      } else if (v.valid && v.reason === "bonus") {
-        buzz(8);
-        playCorrect();
-        setBonus((b) => (b.includes(v.word) ? b : [...b, v.word]));
-        setFlash(`+ ${v.word}`);
-        setTimeout(() => setFlash(null), 700);
+      } else if (v.reason === "Not in this puzzle") {
+        setFlash("Not in this puzzle");
+        setTimeout(() => setFlash(null), 900);
       } else {
         playWrong();
         setShake(true);
         setTimeout(() => setShake(false), 350);
       }
     });
-  };
-
-  const shuffle = () => {
-    const idx = Array.from({ length: base.length }, (_, i) => i);
-    for (let i = idx.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [idx[i], idx[j]] = [idx[j]!, idx[i]!];
-    }
-    setOrder(idx);
   };
 
   return (
@@ -307,20 +289,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           <Crossword cols={data.cols} rows={data.rows} slots={data.slots} letters={letterMap(data.cols, data.slots, filled)} />
         </div>
       </div>
-      <Button
-        type="button"
-        variant="ghost"
-        disabled={done || current.length < 3}
-        onClick={release}
-        className="h-7 shrink-0 px-2 font-mono text-xl font-bold tracking-widest text-primary disabled:opacity-100"
-        aria-label={current ? `Submit ${current}` : "Current word"}
-      >
+      <p className="flex h-7 shrink-0 items-center justify-center px-2 font-mono text-lg font-bold tracking-widest text-primary" aria-live="polite">
         {current || flash || ""}
-      </Button>
-      <div className="flex min-h-[138px] w-full flex-[4] items-center justify-center" style={{ containerType: "size" }}>
+      </p>
+      <div className="flex min-h-[142px] w-full flex-[4] -translate-y-1 items-center justify-center" style={{ containerType: "size" }}>
         <Wheel letters={wheel} path={path} onPath={setPath} onRelease={release} onTap={tapLetter} disabled={done} shake={shake} />
       </div>
-      <div className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-2">
+      <div className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pt-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           <span className="text-primary">{filledCount}</span> / {slotCount} words
         </span>
@@ -328,43 +303,27 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           type="button"
           onClick={release}
           disabled={done || current.length < 3}
-          size="sm"
-          className="h-8 font-mono uppercase tracking-widest"
+          className="h-11 min-w-28 px-6 font-mono text-base uppercase tracking-widest"
         >
           Submit
         </Button>
-        <span className="text-right font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Bonus <span className="text-primary">{bonus.length}</span>
-        </span>
+        <span aria-hidden="true" />
       </div>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={shuffle}
-        disabled={done}
-        className="h-7 shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground"
-      >
-        Shuffle
-      </Button>
-      {dev && <p className="shrink-0 font-mono text-[10px] text-muted-foreground">dev · bonus words available: {data.bonusTotal}</p>}
     </div>
   );
 }
 
 function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
-  const [dev, setDev] = useState(false);
-  useEffect(() => setDev(devDiagnosticsOn()), []);
   if (puzzle.type !== "letterwheel") return null;
   const words = puzzle.words ?? [];
-  const v = lwGrade(words, puzzle.bonus ?? [], puzzle.slots, puzzle.cols, lwDecode(myAnswer ?? ""));
+  const v = lwGrade(words, puzzle.slots, puzzle.cols, lwDecode(myAnswer ?? ""));
   const got = new Set(v.slots);
   const mine = letterMap(puzzle.cols, puzzle.slots, words.map((w, i) => (got.has(i) ? w : undefined)));
   const all = letterMap(puzzle.cols, puzzle.slots, words);
   const missed = new Map([...all].filter(([c]) => !mine.has(c)));
   const complete = v.totalCells > 0 && v.cells >= v.totalCells;
   const elapsed = Math.max(0, LETTERWHEEL_TIME_MS - (myMsRemaining ?? 0));
-  const score = scoreLetterWheel(v.slots.length, puzzle.slots.length, v.bonus, myMsRemaining ?? 0, LETTERWHEEL_TIME_MS);
+  const score = scoreLetterWheel(v.slots.length, puzzle.slots.length, myMsRemaining ?? 0, LETTERWHEEL_TIME_MS);
   const px = Math.floor(200 / Math.max(puzzle.cols, puzzle.rows));
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -375,17 +334,10 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
         {complete
           ? `${words.length} / ${words.length} · ${(elapsed / 1000).toFixed(1)}s`
           : `${v.slots.length} / ${words.length} words`}
-        {` · ${v.bonus} bonus`}
       </p>
       <p className="text-center font-mono text-xs text-muted-foreground">
-        {v.slots.length} × 11 + {v.bonus} × 2{complete ? " + speed" : ""} = <span className="text-primary">{score}</span>
+        {v.slots.length} × {words.length === 8 ? 15 : 12}{complete ? " + speed" : ""} = <span className="text-primary">{score}</span>
       </p>
-      {dev && (
-        <div className="text-center font-mono text-[10px] text-muted-foreground">
-          <div>dev · crossword: {words.join(", ")}</div>
-          <div>dev · bonus words: {puzzle.bonus?.length ?? 0}</div>
-        </div>
-      )}
     </div>
   );
 }
@@ -403,11 +355,10 @@ export const letterWheelPuzzle: PuzzleDefinition = {
       rows: 3,
       letters: "TEAR",
       slots: EX_SLOTS,
-      bonusTotal: 0,
     }) satisfies LetterWheelPuzzleData,
   check: (answer, puzzle) => {
     if (puzzle.type !== "letterwheel") return false;
-    const v = lwGrade(puzzle.words ?? [], puzzle.bonus ?? [], puzzle.slots, puzzle.cols, lwDecode(answer));
+    const v = lwGrade(puzzle.words ?? [], puzzle.slots, puzzle.cols, lwDecode(answer));
     return v.totalCells > 0 && v.cells >= v.totalCells;
   },
   revealHeading: "The crossword",

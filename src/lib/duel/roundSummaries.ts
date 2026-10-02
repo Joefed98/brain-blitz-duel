@@ -1446,8 +1446,7 @@ const wordSearchSummary: SummaryBuilder = (result) => {
 const letterWheelSummary: SummaryBuilder = (result) => {
   const slots = Number(result.extra?.["slots"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 0);
-  const bonus = Number(result.extra?.["bonus"] ?? 0);
-  return { summary: `${slots} / ${total} words`, detail: bonus ? [`${bonus} bonus word${bonus === 1 ? "" : "s"}`] : [] };
+  return { summary: `${slots} / ${total} words`, detail: [] };
 };
 
 const tentsSummary: SummaryBuilder = (result, puzzle) => {

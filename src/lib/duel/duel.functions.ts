@@ -922,7 +922,9 @@ export const checkWordFn = createServerFn({ method: "POST" })
       const puzzle = mergePuzzle(pub, priv);
       if (puzzle.type !== "letterwheel") return { valid: false as const, points: 0, word: "" };
       const { checkLetterWheelWord } = await import("./letterWheel");
-      return checkLetterWheelWord(puzzle.words ?? [], puzzle.bonus ?? [], String(data.word ?? ""), found);
+      const { isWord } = await import("./dictionary.server");
+      const word = String(data.word ?? "").trim().toLowerCase();
+      return checkLetterWheelWord(puzzle.words ?? [], word, found, word.length >= 3 && isWord(word));
     }
     if (pub?.type === "wordsearch") {
       // Matched against the private placements; only the verdict goes back.

@@ -5,7 +5,7 @@
  *
  * Seed: an everyday 6–7 letter word. Valid words: every SCOWL British word of
  * 3+ letters spellable from the seed's letters, plurals removed with the shared
- * heuristic. Crossword: 6–9 of the most common valid words, including at least
+ * heuristic. Crossword: exactly 8 or 9 of the most common valid words, including at least
  * three words of 4+ letters and no more than three 3-letter words (ranked by the
  * scripts/data/word-frequency.txt list), interlocked in at most 8 × 8 with every
  * crossing consistent and no letters touching except at crossings. Seeds with
@@ -128,7 +128,7 @@ function layout(pool: string[]): Placed[] | null {
       }
     }
   }
-  if (placed.length < 6) return null;
+  if (placed.length < 8) return null;
   const long = placed.filter((p) => p.word.length >= 4).length;
   const short = placed.filter((p) => p.word.length === 3).length;
   return long >= 3 && short <= 3 ? placed : null;
@@ -139,7 +139,7 @@ const seeds = shuffle(
   commonWords().filter((w) => (w.length === 6 || w.length === 7) && rank(w) < 15000 && !isPluralForm(w) && isWord(w)),
 );
 
-interface Entry { cols: number; rows: number; letters: string; slots: LetterWheelSlot[]; words: string[]; bonus: string[] }
+interface Entry { cols: number; rows: number; letters: string; slots: LetterWheelSlot[]; words: string[] }
 const bank: Entry[] = [];
 const usedSets = new Set<string>();
 let rejectedFew = 0;
@@ -169,18 +169,17 @@ for (const seed of seeds) {
   const rows = Math.max(...slots.map((s) => s.row + (s.across ? 1 : s.len)));
   const cols = Math.max(...slots.map((s) => s.col + (s.across ? s.len : 1)));
   const words = result.map((p) => p.word);
-  const bonus = valid.filter((w) => !words.includes(w)).sort();
   let letters = S;
   for (let i = 0; i < 20 && (letters === S || valid.includes(letters)); i++) letters = shuffle([...S]).join("");
   usedSets.add(sorted);
-  bank.push({ cols, rows, letters, slots, words, bonus });
+  bank.push({ cols, rows, letters, slots, words });
 }
 
 // ---- Re-check every entry ----
 const problems: string[] = [];
 for (const [n, e] of bank.entries()) {
   if (e.cols > MAX || e.rows > MAX) problems.push(`#${n} too big`);
-  if (e.words.length < 6 || e.words.length > 9) problems.push(`#${n} ${e.words.length} words`);
+  if (e.words.length !== 8 && e.words.length !== 9) problems.push(`#${n} ${e.words.length} words`);
   if (e.words.filter((w) => w.length >= 4).length < 3) problems.push(`#${n} fewer than three 4+ letter words`);
   if (e.words.filter((w) => w.length === 3).length > 3) problems.push(`#${n} more than three 3-letter words`);
   const grid: (string | null)[] = Array(e.cols * e.rows).fill(null);
@@ -213,11 +212,10 @@ for (const [n, e] of bank.entries()) {
     }
   }
   if (runCount !== e.slots.length) problems.push(`#${n} run count ${runCount}/${e.slots.length}`);
-  const all = lwGrade(e.words, e.bonus, e.slots, e.cols, [...e.words, ...e.bonus.slice(0, 2)]);
+  const all = lwGrade(e.words, e.slots, e.cols, e.words);
   if (all.cells !== all.totalCells) problems.push(`#${n} not complete`);
-  const expected = Math.min(150, e.words.length * 11 + 25);
-  if (scoreLetterWheel(all.slots.length, e.words.length, 0, 60_000, 120_000) !== expected) problems.push(`#${n} score`);
-  if (e.bonus.some((w) => isPluralForm(w) || !isWord(w))) problems.push(`#${n} bad bonus`);
+  const expected = e.words.length === 8 ? 135 : 129;
+  if (scoreLetterWheel(all.slots.length, e.words.length, 60_000, 120_000) !== expected) problems.push(`#${n} score`);
 }
 if (problems.length || bank.length < BANK) {
   console.error(problems.slice(0, 30).join("\n"), `\nbuilt ${bank.length}`);
@@ -228,7 +226,6 @@ const hist = new Map<number, number>();
 for (const e of bank) hist.set(e.words.length, (hist.get(e.words.length) ?? 0) + 1);
 console.log(`bank ${bank.length}; words per board`, Object.fromEntries([...hist].sort()),
   `; rejected: ${rejectedFew} under 8 words, ${rejectedLayout} no layout`,
-  `; bonus min/max ${Math.min(...bank.map((e) => e.bonus.length))}/${Math.max(...bank.map((e) => e.bonus.length))}`,
   `; size max ${Math.max(...bank.map((e) => e.cols))}×${Math.max(...bank.map((e) => e.rows))}`);
 
 writeFileSync(
@@ -244,7 +241,6 @@ export interface LetterWheelBankEntry {
   letters: string;
   slots: LetterWheelSlot[];
   words: string[];
-  bonus: string[];
 }
 
 export const LETTER_WHEEL_BANK: LetterWheelBankEntry[] = ${JSON.stringify(bank)};
