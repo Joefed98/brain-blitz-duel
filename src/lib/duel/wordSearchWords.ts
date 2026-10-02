@@ -11,7 +11,7 @@
  */
 
 export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
-  Animals: [
+  Mammals: [
     "BADGER", "BEAVER", "CAMEL", "CHEETAH", "DONKEY", "ELEPHANT", "FERRET", "GIRAFFE",
     "GORILLA", "HAMSTER", "HEDGEHOG", "HIPPO", "HYENA", "JAGUAR", "KOALA", "LEMUR",
     "LEOPARD", "LLAMA", "MONKEY", "MOOSE", "OTTER", "PANDA", "RABBIT", "RACCOON",
@@ -24,13 +24,13 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
     "PIGEON", "PUFFIN", "RAVEN", "ROBIN", "SPARROW", "STORK", "SWALLOW", "SWAN",
     "THRUSH", "TOUCAN", "VULTURE", "WREN", "DOVE", "HAWK", "GULL", "LARK",
   ],
-  "Sea Life": [
+  "Sea creatures": [
     "SHARK", "WHALE", "DOLPHIN", "OCTOPUS", "SQUID", "CRAB", "LOBSTER", "SHRIMP",
     "PRAWN", "OYSTER", "MUSSEL", "CLAM", "SEAL", "STARFISH", "SALMON", "TUNA",
     "HADDOCK", "HERRING", "SARDINE", "MACKEREL", "TROUT", "PLAICE", "MARLIN", "STINGRAY",
     "URCHIN", "CORAL", "SEAHORSE", "ANCHOVY", "KRILL", "TURTLE", "BARNACLE", "LIMPET",
   ],
-  "Creepy Crawlies": [
+  "Insects and other invertebrates": [
     "BEETLE", "MOTH", "WASP", "HORNET", "LOCUST", "MANTIS", "TERMITE", "FLEA",
     "GNAT", "MIDGE", "APHID", "LADYBIRD", "EARWIG", "WEEVIL", "CICADA", "MAYFLY",
     "SPIDER", "SCORPION", "TICK", "LOUSE", "MOSQUITO", "MAGGOT", "LARVA", "WORM",
@@ -75,7 +75,7 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
     "POLO", "NETBALL", "BASEBALL", "FOOTBALL", "BOWLS", "DARTS", "SNOOKER", "CURLING",
     "LACROSSE", "HURLING", "SAILING", "CANOEING", "KAYAKING", "JAVELIN", "HURDLES", "SWIMMING",
   ],
-  Kitchen: [
+  "Kitchen equipment": [
     "KETTLE", "TOASTER", "OVEN", "FRIDGE", "FREEZER", "SPATULA", "LADLE", "WHISK",
     "GRATER", "COLANDER", "SIEVE", "SAUCEPAN", "SKILLET", "TEAPOT", "BLENDER", "MIXER",
     "PEELER", "KNIFE", "FORK", "SPOON", "PLATE", "BOWL", "GLASS", "TRAY",
@@ -88,7 +88,7 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
     "TIGHTS", "PYJAMAS", "PONCHO", "KIMONO", "OVERALLS", "BLAZER", "CAPE", "CLOAK",
     "TUNIC", "APRON", "VEST",
   ],
-  "Body Parts": [
+  "Human body parts": [
     "HEART", "LIVER", "KIDNEY", "LUNG", "BRAIN", "SKULL", "SPINE", "ELBOW",
     "KNEE", "ANKLE", "WRIST", "SHOULDER", "FINGER", "THUMB", "TOENAIL", "NOSE",
     "MOUTH", "TONGUE", "TOOTH", "CHEEK", "CHIN", "FOREHEAD", "EYEBROW", "EYELASH",
@@ -102,14 +102,14 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
     "SHOWER", "SMOG", "HAZE", "SQUALL", "DELUGE", "FLOOD", "ICICLE", "THAW",
     "SUNNY", "WINDY",
   ],
-  Jobs: [
+  Occupations: [
     "DOCTOR", "NURSE", "TEACHER", "BAKER", "BUTCHER", "FARMER", "PILOT", "SAILOR",
     "SOLDIER", "LAWYER", "JUDGE", "DENTIST", "PLUMBER", "BUILDER", "PAINTER", "WRITER",
     "POET", "ACTOR", "DANCER", "SINGER", "CHEF", "WAITER", "CASHIER", "BANKER",
     "TAILOR", "BARBER", "POSTMAN", "CLEANER", "DRIVER", "GARDENER", "MINER", "JANITOR",
     "SURGEON", "CHEMIST", "ENGINEER", "GROCER", "FLORIST", "JOCKEY", "COURIER",
   ],
-  Music: [
+  "Music and instruments": [
     "PIANO", "GUITAR", "VIOLIN", "CELLO", "FLUTE", "OBOE", "CLARINET", "TRUMPET",
     "TROMBONE", "TUBA", "HARP", "DRUM", "BANJO", "UKULELE", "ORGAN", "BUGLE",
     "CORNET", "PICCOLO", "BASSOON", "SITAR", "LUTE", "LYRE", "MELODY", "HARMONY",
@@ -147,7 +147,7 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
     "BARGE", "AIRSHIP", "GLIDER", "SLEDGE", "CARAVAN", "JEEP", "TRICYCLE", "UNICYCLE",
     "MINIBUS", "GONDOLA", "STEAMER", "AIRLINER", "WAGON", "CHARIOT", "CARRIAGE", "RICKSHAW",
   ],
-  Space: [
+  "Space and astronomy": [
     "PLANET", "COMET", "METEOR", "ASTEROID", "GALAXY", "NEBULA", "ORBIT", "STAR",
     "MOON", "ECLIPSE", "COSMOS", "QUASAR", "PULSAR", "CRATER", "ROVER", "SHUTTLE",
     "GRAVITY", "VACUUM", "SOLAR", "LUNAR", "ZODIAC", "STARDUST", "ALIEN", "CAPSULE",
@@ -161,13 +161,13 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
     "BAKERY", "GARAGE", "SHED", "IGLOO", "PAGODA", "WINDMILL", "FORTRESS", "VILLA",
     "CHALET", "LODGE", "TAVERN", "AIRPORT", "STATION",
   ],
-  Feelings: [
+  Emotions: [
     "HAPPY", "ANGRY", "FEAR", "ANXIOUS", "CALM", "PROUD", "JEALOUS", "LONELY",
     "BORED", "EXCITED", "NERVOUS", "GRATEFUL", "HOPEFUL", "CONTENT", "CHEERFUL", "GLOOMY",
     "GRUMPY", "SCARED", "ASHAMED", "GUILTY", "RELIEVED", "CURIOUS", "CONFUSED", "DELIGHT",
     "ELATED", "FURIOUS", "UPSET", "WORRIED", "AMUSED", "SERENE", "TENSE", "BLISSFUL",
   ],
-  School: [
+  "School life": [
     "PENCIL", "RULER", "ERASER", "RUBBER", "CRAYON", "MARKER", "CHALK", "LESSON",
     "HOMEWORK", "EXAM", "GRADE", "PUPIL", "CLASS", "SUBJECT", "HISTORY", "SCIENCE",
     "MATHS", "SPELLING", "READING", "WRITING", "RECESS", "PLAYTIME", "LUNCHBOX", "BACKPACK",

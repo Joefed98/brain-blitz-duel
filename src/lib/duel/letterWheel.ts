@@ -56,21 +56,22 @@ export function lwGrade(
 }
 
 /**
- * Complete: 100 + round(50 × ms left ÷ limit) + 3 per bonus, cap 150.
- * Unfinished: round(70 × cells filled ÷ cells) + 3 per bonus, cap 90.
+ * 11 per crossword word + 2 per bonus. Completing the crossword adds
+ * round(50 × ms left ÷ limit). The total is capped at 150.
  */
 export function scoreLetterWheel(
-  cells: number,
-  totalCells: number,
+  slots: number,
+  totalSlots: number,
   bonus: number,
   msRemaining: number,
   timeLimitMs: number,
 ): number {
-  if (totalCells > 0 && cells >= totalCells) {
+  const base = 11 * Math.max(0, slots) + 2 * Math.max(0, bonus);
+  if (totalSlots > 0 && slots >= totalSlots) {
     const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
-    return Math.min(150, 100 + Math.round((50 * ms) / timeLimitMs) + 3 * bonus);
+    return Math.min(150, base + Math.round((50 * ms) / timeLimitMs));
   }
-  return Math.min(90, Math.round((70 * cells) / Math.max(1, totalCells)) + 3 * bonus);
+  return Math.min(150, base);
 }
 
 /**
