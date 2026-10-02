@@ -53,17 +53,18 @@ export function buildStopWatch(): StopWatchPuzzleData {
       const vertical = index === 4 || index === 7;
       const accelerating = index >= 6;
       const sweepMs = Math.max(560, 1_180 - index * 55);
-      return {
+      const spec: StopWatchSpec = {
         centre,
         half: Math.max(0.035, 0.085 - index * 0.005),
         sweepMs,
         hidden: index >= 3 && index % 2 === 1,
         reverse: false,
         passes: index + 1,
-        vertical,
-        moving: moving ? { amplitude: 0.1, cycleMs: 2_200 - index * 70, phase: randInt(0, 99) / 100 } : undefined,
-        passSweepMs: accelerating ? Array.from({ length: index + 1 }, (_, pass) => Math.max(420, sweepMs - pass * 55)) : undefined,
       };
+      if (vertical) spec.vertical = true;
+      if (moving) spec.moving = { amplitude: 0.1, cycleMs: 2_200 - index * 70, phase: randInt(0, 99) / 100 };
+      if (accelerating) spec.passSweepMs = Array.from({ length: index + 1 }, (_, pass) => Math.max(420, sweepMs - pass * 55));
+      return spec;
     }),
   };
 }
