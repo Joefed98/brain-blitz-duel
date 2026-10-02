@@ -1,3 +1,9 @@
+## Word Search and Letter Wheel tuning (Oct 2)
+- [ ] Extend Word Search to 120 seconds and rescale its completion bonus.
+- [ ] Remove Letter Wheel shuffle and bonus words, and add neutral valid-word feedback.
+- [ ] Rebuild Letter Wheel as 300 validated eight- or nine-word crosswords with the new scoring.
+- [ ] Adjust Letter Wheel controls for short phones and run focused checks without browser tests.
+
 ## Shared play timer and full-width arenas (Oct 2)
 - [x] Replace all live countdowns with the shared top timer bar.
 - [x] Remove per-game timer slots and reclaim their height.

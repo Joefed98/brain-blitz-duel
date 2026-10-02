@@ -10,8 +10,6 @@ export function generateLetterWheel(): LetterWheelPuzzleData {
     rows: e.rows,
     letters: e.letters,
     slots: e.slots.map((s) => ({ ...s })),
-    bonusTotal: e.bonus.length,
     words: [...e.words],
-    bonus: [...e.bonus],
   };
 }

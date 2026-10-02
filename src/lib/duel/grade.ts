@@ -1699,14 +1699,14 @@ export function gradeSubmission(
       break;
     }
     case "letterwheel": {
-      // Each submitted word is matched against the stored crossword and bonus sets.
+      // Each submitted word is matched against the stored crossword.
       const words = lwDecode(answer);
-      const v = lwGrade(puzzle.words ?? [], puzzle.bonus ?? [], puzzle.slots, puzzle.cols, words);
+      const v = lwGrade(puzzle.words ?? [], puzzle.slots, puzzle.cols, words);
       isCorrect = v.totalCells > 0 && v.cells >= v.totalCells;
       correctCount = v.slots.length;
       errors = v.wrong;
-      score = scoreLetterWheel(v.slots.length, puzzle.slots.length, v.bonus, ms, timeLimitMs);
-      extraDetail = { slots: v.slots.length, total: puzzle.slots.length, cells: v.cells, totalCells: v.totalCells, bonus: v.bonus };
+      score = scoreLetterWheel(v.slots.length, puzzle.slots.length, ms, timeLimitMs);
+      extraDetail = { slots: v.slots.length, total: puzzle.slots.length, cells: v.cells, totalCells: v.totalCells };
       break;
     }
     case "lightup": {

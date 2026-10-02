@@ -876,10 +876,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Fill the crossword using the letters on the wheel.",
     how: [
       { action: "Drag through the letters and let go,", detail: "or tap letters then Submit or the word." },
-      { action: "Crossword words fill gold.", detail: "Other real words count as bonus words." },
-      { action: "Shuffle", detail: "just moves the letters around." },
+      { action: "Crossword words fill gold.", detail: "Other real words are not in this puzzle." },
     ],
-    score: "11 per crossword word, +2 per bonus word; complete it for up to 50 speed points. Maximum 150.",
+    score: "Eight-word puzzles score 15 per word plus up to 30 for speed; nine-word puzzles score 12 per word plus up to 42. Maximum 150.",
   },
   lightup: {
     goal: "Place bulbs so every white square is lit.",
