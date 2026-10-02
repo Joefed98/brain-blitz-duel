@@ -341,7 +341,7 @@ export function BlockPartyPuzzle({
       (traySize.width - 20 - 8) / trayWidthUnits,
     ),
   );
-  const boardSize = layoutSize.width * 0.85;
+  const boardSize = Math.min(layoutSize.width, Math.max(0, layoutSize.height - traySize.height - 28));
   const boardCell = boardSize / N;
   const trayCell = Math.min(boardCell * 0.75, trayCellCapacity);
 
