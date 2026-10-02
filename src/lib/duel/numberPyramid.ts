@@ -90,13 +90,13 @@ export function npDecode(raw: string, givens: readonly (number | null)[], trayLe
 }
 
 export function npEncodeRound(active: number, boards: readonly NpPlacements[]): string {
-  return JSON.stringify({ active: Math.max(0, Math.min(NP_SET_SIZE - 1, active)), boards: boards.map(npEncode) });
+  return JSON.stringify({ active: Math.max(0, Math.min(NP_SET_SIZE, active)), boards: boards.map(npEncode) });
 }
 
 export function npDecodeRound(raw: string): { active: number; boards: string[] } {
   try {
     const parsed = JSON.parse(raw) as { active?: unknown; boards?: unknown };
-    const active = typeof parsed.active === "number" ? Math.max(0, Math.min(NP_SET_SIZE - 1, Math.floor(parsed.active))) : 0;
+    const active = typeof parsed.active === "number" ? Math.max(0, Math.min(NP_SET_SIZE, Math.floor(parsed.active))) : 0;
     const boards = Array.isArray(parsed.boards) ? parsed.boards.slice(0, NP_SET_SIZE).map((v) => String(v ?? "")) : [];
     return { active, boards: Array.from({ length: NP_SET_SIZE }, (_, i) => boards[i] ?? "") };
   } catch {

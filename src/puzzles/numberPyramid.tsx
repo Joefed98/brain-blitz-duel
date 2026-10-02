@@ -151,7 +151,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const advance = (nextPlacements: NpPlacements) => {
     const boards = [...allPlacements]; boards[stage] = nextPlacements; setAllPlacements(boards);
     setSelected(null); setDrag(null);
-    if (stage >= NP_SET_SIZE - 1) { submitted.current = true; onSubmit(npEncodeRound(stage, boards)); return; }
+    if (stage >= NP_SET_SIZE - 1) { submitted.current = true; onSubmit(npEncodeRound(NP_SET_SIZE, boards)); return; }
     setStage(stage + 1);
   };
 

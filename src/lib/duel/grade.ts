@@ -1660,10 +1660,10 @@ export function gradeSubmission(
         return { complete, correctCells, emptyCells, placed: Object.keys(placements).length };
       });
       const completed = boards.filter((board) => board.complete).length;
-      const active = boards[decoded.active] ?? boards[0]!;
+      const active = boards[decoded.active];
       isCorrect = completed === puzzle.pyramids.length;
       correctCount = boards.reduce((sum, board) => sum + board.correctCells, 0);
-      score = scoreNumberPyramid(completed, isCorrect, ms, active.complete ? 0 : active.correctCells, active.emptyCells);
+      score = scoreNumberPyramid(completed, isCorrect, ms, active && !active.complete ? active.correctCells : 0, active?.emptyCells ?? 0);
       extraDetail = { completed, active: decoded.active, boards };
       break;
     }

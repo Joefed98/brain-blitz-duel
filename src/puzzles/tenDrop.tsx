@@ -65,9 +65,9 @@ function Hud({ target, total, cleared, tick, flash }: { target: number; total: n
   );
 }
 
-/** Intro: target 12, tiles 5 · ×2 · 1 · 1, tapped once in order. */
-const EXAMPLE = ["5", "×2", "1", "1"];
-const EXAMPLE_TOTALS = [5, 10, 11, 12];
+/** Intro: target 20, reached with three digit presses. */
+const EXAMPLE = ["7", "6", "7"];
+const EXAMPLE_TOTALS = [7, 13, 20];
 function IntroExample() {
   const [step, setStep] = useState(0);
   useEffect(() => {
@@ -78,7 +78,7 @@ function IntroExample() {
   const total = step === 0 ? 0 : EXAMPLE_TOTALS[step - 1]!;
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className={`rounded-lg px-3 font-mono text-3xl font-bold ${step >= 4 ? "bg-primary text-primary-foreground" : ""}`}>12</div>
+      <div className={`rounded-lg px-3 font-mono text-3xl font-bold ${step >= 3 ? "bg-primary text-primary-foreground" : ""}`}>20</div>
       <div className="font-mono text-xl font-bold text-primary">{total}</div>
       <div className="flex gap-2">
         {EXAMPLE.map((label, i) => (
