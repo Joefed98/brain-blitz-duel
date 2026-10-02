@@ -30,3 +30,5 @@
 - Bomb Defusal masks are recomputed per panel because many rule predicates read the panel; why: caching by rule text across panels gives wrong uniqueness proofs.
 - Skyline's camera zoom is render-only, eased per canvas context; why: the sim and server replay must stay in fixed world units.
 - Slice combo misses are detected in the sim when an unsliced non-bomb passes its lastTick; why: the multiplier feeds the server-replayed score.
+- Ball Track and Word Search draw from script-built, server-only banks (scripts/ball-track-bank.ts, scripts/word-search-bank.ts); why: each board is proven (unique minimal removals / each word exactly once) offline, not at room start.
+- Word Search category lists live in src/lib/duel/wordSearchWords.ts and must be followed by re-running the bank script; why: the bank is derived from them.

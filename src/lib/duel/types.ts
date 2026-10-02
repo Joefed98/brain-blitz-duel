@@ -83,7 +83,9 @@ export type PuzzleType =
   | "orbit"
   | "swing"
   | "tilt"
-  | "hotfloor";
+  | "hotfloor"
+  | "balltrack"
+  | "wordsearch";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -489,6 +491,8 @@ export type PuzzleData =
   | TentsPuzzleData
   | ShikakuPuzzleData
   | LightUpPuzzleData
+  | BallTrackPuzzleData
+  | WordSearchPuzzleData
   | WavefrontPuzzleData
   | BastionPuzzleData
   | RooftopPuzzleData
@@ -2098,6 +2102,39 @@ export interface HotFloorPuzzleData {
 
 export const SHIKAKU_TIME_MS = 90_000;
 export const LIGHTUP_TIME_MS = 90_000;
+export const BALLTRACK_TIME_MS = 60_000;
+export const WORDSEARCH_TIME_MS = 90_000;
+
+export interface BallTrackPuzzleData {
+  type: "balltrack";
+  cols: number;
+  rows: number;
+  /** One character per cell: . empty, # wall, < > fixed ramps, b blocker, l r ramp blockers. */
+  tiles: string;
+  /** Start column (top row) and exit column (bottom row). */
+  start: number;
+  exit: number;
+  /** Fewest removals that reach the exit — private until the reveal. */
+  minRemovals?: number;
+  /** The unique minimal set of blockers to remove — private until the reveal. */
+  solution?: number[];
+}
+
+export interface WordSearchPlacement {
+  word: string;
+  cells: number[];
+}
+
+export interface WordSearchPuzzleData {
+  type: "wordsearch";
+  size: number;
+  /** size × size letters, row by row. */
+  grid: string;
+  category: string;
+  wordCount: number;
+  /** Where each hidden word lies — private until the reveal. */
+  placements?: WordSearchPlacement[];
+}
 
 export interface ShikakuPuzzleData {
   type: "shikaku";

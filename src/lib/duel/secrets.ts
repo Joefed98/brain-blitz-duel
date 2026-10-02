@@ -93,6 +93,8 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   tents: ["solution"],
   shikaku: ["solution"],
   lightup: ["solution"],
+  balltrack: ["minRemovals", "solution"],
+  wordsearch: ["placements"],
   wavefront: [],
   bastion: [],
   rooftop: [],

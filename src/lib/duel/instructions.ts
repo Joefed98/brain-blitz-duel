@@ -796,6 +796,23 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Solve it fast for the bonus.",
   },
+  balltrack: {
+    goal: "Get the ball to the exit.",
+    how: [
+      { action: "Tap a gold blocker", detail: "to remove it. It never comes back." },
+      { action: "Tap GO", detail: "and the ball falls; arrow tiles roll it left or right." },
+      { action: "Clear more and GO again", detail: "as often as you like." },
+    ],
+    score: "Reach the exit fast for the bonus; +20 for the fewest removals. Otherwise, points for how far down it got.",
+  },
+  wordsearch: {
+    goal: "Find the six hidden words from the category.",
+    how: [
+      { action: "Drag in a straight line", detail: "through the letters — any of eight directions, backwards too." },
+      { action: "A hidden word turns gold.", detail: "Only the count shows until you find them." },
+    ],
+    score: "All six fast for the bonus. Otherwise 15 per word, −5 per wrong pick.",
+  },
   lightup: {
     goal: "Place bulbs so every white square is lit.",
     how: [

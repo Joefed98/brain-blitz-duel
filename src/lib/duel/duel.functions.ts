@@ -917,6 +917,15 @@ export const checkWordFn = createServerFn({ method: "POST" })
     const pub = room.puzzles_public[data.roundNumber - 1];
     const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
 
+    if (pub?.type === "wordsearch") {
+      // Matched against the private placements; only the verdict goes back.
+      const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
+      const puzzle = mergePuzzle(pub, priv);
+      if (puzzle.type !== "wordsearch") return { valid: false as const, points: 0, word: "" };
+      const { checkWordSearchPath } = await import("./wordSearch");
+      const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
+      return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found);
+    }
     if (pub?.type === "wordhunt") {
       const { checkWordHuntPath } = await import("./wordHunt.server");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
