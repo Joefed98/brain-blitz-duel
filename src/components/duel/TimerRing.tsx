@@ -2,110 +2,43 @@ import { useEffect, useRef } from "react";
 
 import { useReducedMotion } from "@/lib/motion";
 import { playTick, startMusic, stopMusic } from "@/lib/sound";
-import type { PuzzleType } from "@/lib/duel/types";
 
-interface TimerRingProps {
+interface TimerBarProps {
   msRemaining: number;
   totalMs: number;
-  /** false while a puzzle is still being presented (e.g. sequence playback) */
+  /** false while a puzzle is still being presented (for example sequence playback) */
   active: boolean;
-  /** Dense word layouts can use a short rectangular display instead of the ring. */
-  compact?: boolean;
 }
 
-const SIZE = 132;
-const STROKE = 11;
-const R = (SIZE - STROKE) / 2;
-const CIRC = 2 * Math.PI * R;
-
-/** Dense stages reserve a smaller, collision-safe timer slot on short phones. */
-const COMPACT_TIMER_TYPES = new Set<PuzzleType>([
-  "target",
-  "countup",
-  "blockparty",
-  "chaincalc",
-  "wordsmith",
-  "wordhunt",
-  "spotdiff",
-  "sudoku",
-  "lightsout",
-  "pipes",
-  "patcomp",
-  "flow",
-  "iceslide",
-  "laser",
-  "tower",
-  "maze",
-  "push",
-  "tubes",
-  "safe",
-  "bomb",
-  "gravity",
-  "chain",
-  "intruder",
-  "nonogram",
-  "pairmatch",
-  "flood",
-  "stroke",
-  "tiles",
-  "rings",
-  "tilegrid",
-  "wordslide",
-  "sumhunt",
-  "balance",
-]);
-
-export function timerSlotClass(type: PuzzleType): string {
-  if (type === "letterwheel" || type === "numpyramid" || type === "chain") return "h-[46px]";
-  if (type === "rings") return "h-[80px] scale-[0.6]";
-  if (type === "tilegrid") return "h-[72px] scale-[0.54] [@media(max-height:700px)]:h-[60px] [@media(max-height:700px)]:scale-[0.45]";
-  if (type === "countup") return "h-[72px] scale-[0.54] [@media(max-height:700px)]:h-[60px] [@media(max-height:700px)]:scale-[0.45]";
-  return COMPACT_TIMER_TYPES.has(type)
-    ? "h-[94px] scale-[0.7] [@media(max-height:700px)]:h-[80px] [@media(max-height:700px)]:scale-[0.6]"
-    : "h-[104px] scale-[0.78] [@media(max-height:700px)]:h-[88px] [@media(max-height:700px)]:scale-[0.66]";
-}
-
-function format(ms: number): string {
-  const clamped = Math.max(0, ms);
-  return `${Math.floor(clamped / 1000)}.${Math.floor((clamped % 1000) / 100)}`;
-}
-
-/**
- * Countdown ring: gold, amber with a third of the time left, red with a sixth
- * left — both measured against this puzzle type's own limit. The last three
- * seconds tick.
- */
-export function TimerRing({ msRemaining, totalMs, active, compact = false }: TimerRingProps) {
+/** One shared, low-profile countdown for every live puzzle and arcade round. */
+export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
   const reduced = useReducedMotion();
   const lastTick = useRef(-1);
-  const seconds = msRemaining / 1000;
-  const limit = totalMs > 0 ? totalMs : 1;
-  const danger = active && msRemaining <= limit / 6;
-  const warn = active && !danger && msRemaining <= limit / 3;
+  const limit = Math.max(1, totalMs);
+  const remaining = Math.max(0, msRemaining);
+  const progress = Math.max(0, Math.min(1, remaining / limit));
+  const seconds = Math.ceil(remaining / 1000);
+  const finalTen = active && remaining > 0 && remaining <= 10_000;
+  const finalThird = active && progress <= 1 / 3;
+  const middleThird = active && !finalThird && progress <= 2 / 3;
 
   useEffect(() => {
-    if (!active) return;
-    const whole = Math.ceil(seconds);
-    if (whole > 3 || whole < 1) return;
-    if (lastTick.current === whole) return;
-    lastTick.current = whole;
-    playTick();
-  }, [active, seconds]);
+    if (!finalTen || seconds < 1 || lastTick.current === seconds) return;
+    lastTick.current = seconds;
+    if (seconds <= 3) playTick();
+  }, [finalTen, seconds]);
 
-  // The tension bed rides the last sixth of the round, speeding up as it goes.
   const tensionRemaining = useRef(0);
-  if (danger) tensionRemaining.current = msRemaining;
+  if (finalThird) tensionRemaining.current = remaining;
   useEffect(() => {
-    if (!danger) return;
+    if (!finalThird) return;
     startMusic("tension_loop", {
       rate: 1,
       rampToRate: 1.15,
       rampMs: Math.max(400, tensionRemaining.current),
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [danger]);
+  }, [finalThird]);
 
-  // The instant the round ends — submission, auto-lock or timeout — it stops.
   useEffect(() => {
     if (active) return;
     stopMusic(200);
@@ -113,81 +46,37 @@ export function TimerRing({ msRemaining, totalMs, active, compact = false }: Tim
 
   useEffect(() => () => stopMusic(200), []);
 
-  const stroke = !active
-    ? "var(--muted-foreground)"
-    : danger
-      ? "var(--warn)"
-      : warn
-        ? "var(--primary)"
-        : "var(--me)";
-  const textColor = !active ? "text-muted-foreground" : danger ? "text-warn" : "text-foreground";
-
-  const progress = Math.max(0, Math.min(1, msRemaining / totalMs));
-
-  if (compact) {
-    return (
-      <div
-        className={`relative flex h-10 min-w-28 items-center justify-center overflow-hidden rounded-md border border-border bg-card px-4 ${danger && !reduced ? "animate-timer-pulse-strong" : ""}`}
-        style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
-        aria-label="Time remaining"
-        role="timer"
-      >
-        <div className="absolute inset-x-0 bottom-0 h-1 bg-border">
-          <div className="h-full bg-primary transition-[width] duration-100" style={{ width: `${progress * 100}%` }} />
-        </div>
-        <span className={`font-mono text-2xl font-bold leading-none tabular-nums ${textColor}`}>
-          {format(msRemaining)}
-        </span>
-      </div>
-    );
-  }
+  const fill = !active
+    ? "bg-muted-foreground"
+    : finalThird
+      ? "bg-destructive"
+      : middleThird
+        ? "bg-timer-orange"
+        : "bg-timer-green";
+  const digits = !active
+    ? "text-muted-foreground"
+    : finalThird
+      ? "text-destructive"
+      : middleThird
+        ? "text-timer-orange"
+        : "text-timer-green";
+  const pulse = finalTen && !reduced ? "animate-timer-second-pulse" : "";
 
   return (
     <div
-      className={`relative rounded-full ${danger && !reduced ? "animate-timer-pulse-strong" : ""}`}
-      style={{
-        width: SIZE,
-        height: SIZE,
-        background: "var(--card)",
-        boxShadow:
-          "0 0 0 1px var(--border), 0 0 18px 2px color-mix(in oklab, var(--primary) 32%, transparent)",
-        userSelect: "none",
-        WebkitUserSelect: "none",
-        WebkitTouchCallout: "none",
-      }}
-      aria-label="Time remaining"
+      className={`grid h-5 w-full shrink-0 grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-1 ${pulse}`}
+      aria-label={`${seconds} seconds remaining`}
       role="timer"
     >
-      <svg width={SIZE} height={SIZE} className="-rotate-90">
-        <circle
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={R}
-          fill="none"
-          stroke="var(--border)"
-          strokeWidth={STROKE}
+      <div className="h-1.5 w-full overflow-hidden bg-muted">
+        <div
+          className={`h-full origin-left transition-[width,background-color] duration-100 ease-linear ${fill}`}
+          style={{ width: `${progress * 100}%` }}
         />
-        <circle
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={R}
-          fill="none"
-          stroke={stroke}
-          strokeWidth={STROKE}
-          strokeLinecap="round"
-          strokeDasharray={CIRC}
-          strokeDashoffset={CIRC * (1 - progress)}
-          style={{ transition: "stroke-dashoffset 100ms linear, stroke 200ms ease-out" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span
-          className={`font-mono text-[3rem] font-bold leading-none tabular-nums ${textColor}`}
-          style={active && !danger ? { color: "#FFD166" } : undefined}
-        >
-          {format(msRemaining)}
-        </span>
       </div>
+      <span className={`text-right font-mono text-[11px] font-bold leading-none tabular-nums ${digits}`}>
+        {seconds}
+      </span>
     </div>
   );
 }

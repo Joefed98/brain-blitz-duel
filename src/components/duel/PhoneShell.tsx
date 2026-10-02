@@ -96,7 +96,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
         }}
       />
       <div
-        className={`relative mx-auto flex min-h-0 w-full max-w-[430px] flex-col pad-safe ${
+        className={`relative flex min-h-0 w-full flex-col ${gameScreen ? "pad-game-safe" : "mx-auto max-w-[430px] pad-safe"} ${
           constrained ? "no-overscroll h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
         }`}
       >

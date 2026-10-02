@@ -39,6 +39,8 @@
   --color-opponent: var(--opponent);
   --color-reaction-blue: var(--reaction-blue);
   --color-warn: var(--warn);
+  --color-timer-green: var(--timer-green);
+  --color-timer-orange: var(--timer-orange);
   --font-display: var(--font-display);
   --font-sans: var(--font-body);
   --font-mono: var(--font-mono);
@@ -69,6 +71,8 @@
   --opponent: oklch(0.78 0.13 172);
   --reaction-blue: oklch(0.68 0.16 245);
   --warn: oklch(0.68 0.21 25);
+  --timer-green: oklch(0.72 0.17 145);
+  --timer-orange: oklch(0.75 0.17 55);
   --font-display: "Space Grotesk", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
@@ -168,6 +172,15 @@ body.game-lock {
 
 @utility animate-timer-pulse-strong {
   animation: timer-pulse-strong 0.85s ease-in-out infinite;
+}
+
+@keyframes timer-second-pulse {
+  0%, 100% { opacity: 1; }
+  45% { opacity: 0.42; }
+}
+
+@utility animate-timer-second-pulse {
+  animation: timer-second-pulse 1s ease-in-out infinite;
 }
 
 @keyframes tile-flash {
@@ -523,6 +536,13 @@ body.game-lock {
   padding-bottom: max(2rem, env(safe-area-inset-bottom));
   padding-left: max(1.25rem, env(safe-area-inset-left));
   padding-right: max(1.25rem, env(safe-area-inset-right));
+}
+
+@utility pad-game-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  padding-left: max(0.25rem, env(safe-area-inset-left));
+  padding-right: max(0.25rem, env(safe-area-inset-right));
 }
 
 /* A short sideways shake, used when a placement is refused. */

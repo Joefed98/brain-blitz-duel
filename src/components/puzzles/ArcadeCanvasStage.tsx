@@ -171,18 +171,11 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       if (size) {
         const ctx = canvas.current?.getContext("2d");
         if (ctx) {
-          game.draw(ctx, state.current, size);
           const { worldW, worldH } = propsRef.current;
-          const scale = Math.min(size.width / worldW, size.height / worldH);
-          const left = (size.width - worldW * scale) / 2;
-          const top = (size.height - worldH * scale) / 2;
-          if (left > 1 || top > 1) {
-            ctx.save();
-            ctx.strokeStyle = getComputedStyle(canvas.current ?? ctx.canvas).getPropertyValue("--arcade-boundary");
-            ctx.lineWidth = 2;
-            ctx.strokeRect(left + 1, top + 1, worldW * scale - 2, worldH * scale - 2);
-            ctx.restore();
-          }
+          ctx.save();
+          ctx.scale(size.width / worldW, size.height / worldH);
+          game.draw(ctx, state.current, { width: worldW, height: worldH });
+          ctx.restore();
         }
       }
       if (!submitted.current && time - draftAt >= 500) {
@@ -220,11 +213,8 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     const box = wrap.current?.getBoundingClientRect();
     if (!box || box.width < 1) return null;
     const { worldW, worldH } = propsRef.current;
-    const scale = Math.min(box.width / worldW, box.height / worldH);
-    const left = box.left + (box.width - worldW * scale) / 2;
-    const top = box.top + (box.height - worldH * scale) / 2;
-    const x = Math.round((clientX - left) / scale);
-    const y = Math.round((clientY - top) / scale);
+    const x = Math.round(((clientX - box.left) / box.width) * worldW);
+    const y = Math.round(((clientY - box.top) / box.height) * worldH);
     if (!clamp && (x < 0 || x > worldW || y < 0 || y > worldH)) return null;
     return { x: Math.max(0, Math.min(worldW, x)), y: Math.max(0, Math.min(worldH, y)) };
   };
@@ -255,7 +245,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     <div
       ref={wrap}
       data-play-area=""
-      className="relative mx-[-4px] min-h-0 w-[calc(100%+8px)] flex-1 overflow-hidden"
+      className="relative min-h-0 w-full flex-1 overflow-hidden"
       style={{ ...NO_SCROLL_STYLE, WebkitTouchCallout: "none" }}
       onContextMenu={(event) => event.preventDefault()}
     >
