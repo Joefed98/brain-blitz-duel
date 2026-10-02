@@ -377,3 +377,11 @@
 - [x] Sort the Tubes capacity 5, 90 s
 - [x] One-Stroke retired (practice only)
 - [x] Bomb Defusal 40-template rule bank
+
+## Oct 2 — Arcade changes, part 1
+- [x] Retire Swerve, Dual, Ricochet, Steady, Sort Rush, Parry, Hot Floor (practice only)
+- [x] Ink Bridge collision hardening + 500-drop line check
+- [x] Skyline camera pull-back (render only) + city backdrop
+- [x] Bullseye moving target on arrows 6–10
+- [x] Cross cars/lorries, 3 lives, clean-crossing bonus
+- [x] Slice combo ×1–×3, 25% longer cut, combo meter
