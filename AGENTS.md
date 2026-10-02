@@ -24,3 +24,7 @@
 - Rotating Rings boards store a link-pattern index into the shared bank in rings.ts; why: phone and server must apply identical linked turns.
 - Colour Clash is a deterministic arcade replay, while Count Up truth is recomputed from each stored scene; why: room results must be independently verifiable.
 - Laser beam tracing branches at fixed splitters and enforces directional gem entry in shared phone/server logic; why: generation, animation, and grading must agree.
+- Tower's peg count is the length of the stored `start` (3 or 4) and every rule/replay/search reads it from there; why: the peg count varies per puzzle but must be identical for all players.
+- Colour Connect walls live on the public puzzle and are passed to the shared `verifyFlow`; uniqueness is proven server-side by an exhaustive solver before a board is used; why: phone, grader and generator must agree.
+- Puzzle-specific intro lines come from an optional `introLine(puzzle)` on the puzzle definition, rendered by RoundIntro; why: fixed examples stay fixed while per-puzzle facts (e.g. peg count) still show.
+- Bomb Defusal masks are recomputed per panel because many rule predicates read the panel; why: caching by rule text across panels gives wrong uniqueness proofs.

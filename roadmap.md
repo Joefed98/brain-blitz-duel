@@ -368,3 +368,12 @@
 - [x] Shikaku and Light Up logic rounds (50/50 unique each)
 
 - [x] Hot Floor plan-then-go, Tilt harder mazes, root-level iOS selection lock, Flip harder (2026-09-30)
+
+## Oct 2 — Logic category changes
+- [x] Pipes 7×7, 120 s, new stepped scoring
+- [x] Lights Out 6×6, minimum 8–12, 75 s
+- [x] Colour Connect 9×9, 10–12 pairs, 2–4 walls, unique, 75 s, 60 × joined ÷ pairs
+- [x] Tower 9 discs, 3 or 4 pegs per puzzle, minimum 20–40, 90 s
+- [x] Sort the Tubes capacity 5, 90 s
+- [x] One-Stroke retired (practice only)
+- [x] Bomb Defusal 40-template rule bank
