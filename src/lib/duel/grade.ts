@@ -1357,6 +1357,8 @@ export function gradeSubmission(
       extraDetail = {
         cleared: run.cleared,
         gaveUp: run.gaveUp,
+        ambThrough: run.ambThrough,
+        ambStopped: run.ambStopped,
         total: run.total,
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
