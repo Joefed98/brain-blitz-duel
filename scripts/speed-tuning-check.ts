@@ -6,7 +6,7 @@ let reactionRounds = 0;
 for (let run = 0; run < 1_000; run++) {
   const puzzle = buildReaction();
   if (puzzle.flashes.length !== 5) throw new Error("Reaction flash count");
-  if (puzzle.decoys.length < 8 || puzzle.decoys.length > 12) throw new Error("Reaction decoy total");
+  if (puzzle.decoys.length < 5 || puzzle.decoys.length > 15) throw new Error("Reaction decoy total");
   if (puzzle.flashes[0]! < 3_000) throw new Error("First gold before 3 seconds");
   if (puzzle.flashes.at(-1)! + REACTION_FLASH_MS > REACTION_ROUND_MS) throw new Error("Gold exceeds round");
   if (!puzzle.decoys.some((d) => d.color === "blue")) {

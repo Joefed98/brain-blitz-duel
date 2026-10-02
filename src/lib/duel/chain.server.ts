@@ -7,7 +7,7 @@
  * between one and eight of them and at least two early dead-end traps.
  */
 
-import { shuffled } from "./random";
+import { randInt, shuffled } from "./random";
 import { chainRequired, chainWouldCross } from "./chain";
 import {
   CHAIN_CYCLE,
@@ -182,7 +182,18 @@ function distancePx(a: Point, b: Point): number {
  * board is filled first, so the scatter reaches the centre instead of ringing
  * the rim, and no two glyphs ever touch or overlap.
  */
-function samplePoints(): Point[] | null {
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4_294_967_296;
+  };
+}
+
+function samplePoints(random: () => number): Point[] | null {
   const points: Point[] = [];
   const span = 100 - EDGE_PADDING * 2;
   const round = (value: number) => Math.round(value * 10) / 10;
@@ -192,8 +203,8 @@ function samplePoints(): Point[] | null {
   for (let throws = 0; throws < 20_000 && points.length < CHAIN_MIN_CENTRAL; throws++) {
     const middle = CENTRE_TO - CENTRE_FROM;
     const candidate = {
-      x: round(CENTRE_FROM + Math.random() * middle),
-      y: round(CENTRE_FROM + Math.random() * middle),
+      x: round(CENTRE_FROM + random() * middle),
+      y: round(CENTRE_FROM + random() * middle),
     };
     if (fits(candidate)) points.push(candidate);
   }
@@ -201,8 +212,8 @@ function samplePoints(): Point[] | null {
 
   for (let throws = 0; throws < 60_000 && points.length < CHAIN_NODES; throws++) {
     const candidate = {
-      x: round(EDGE_PADDING + Math.random() * span),
-      y: round(EDGE_PADDING + Math.random() * span),
+      x: round(EDGE_PADDING + random() * span),
+      y: round(EDGE_PADDING + random() * span),
     };
     if (fits(candidate)) points.push(candidate);
   }
@@ -318,8 +329,9 @@ export function generateChain(): ChainPuzzleData {
   // always advance to a fresh stored layout without wrapping.
   const sets = Array.from({ length: 16 }, () => {
     const cycle = shuffled([...CHAIN_SHAPES]).slice(0, CHAIN_CYCLE);
-    let points = samplePoints();
-    while (!points || !layoutIsSpread(points)) points = samplePoints();
+    const random = seededRandom(randInt(0, 0x7fffffff));
+    let points = samplePoints(random);
+    while (!points || !layoutIsSpread(points)) points = samplePoints(random);
     const order = points
       .map((_point, index) => index)
       .sort((a, b) => points[a]!.x - points[b]!.x || points[a]!.y - points[b]!.y);
