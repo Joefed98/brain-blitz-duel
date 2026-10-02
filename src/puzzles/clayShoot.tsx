@@ -68,11 +68,11 @@ function IntroExample() {
 
 function Pips({ status, kind }: { status: number[]; kind: number[] }) {
   return (
-    <div className="flex justify-center gap-1">
+    <div className="flex justify-center gap-0.5">
       {status.map((s, i) => (
         <span
           key={i}
-          className={`h-2 w-2 rounded-full ${s === CLAY_HIT ? "bg-primary" : s === CLAY_MISSED ? "bg-destructive" : kind[i] === CLAY_KIND_GOLD ? "bg-primary/40" : "bg-muted"}`}
+          className={`h-1.5 w-1.5 rounded-full ${s === CLAY_HIT ? "bg-primary" : s === CLAY_MISSED ? "bg-destructive" : "bg-muted"}`}
         />
       ))}
     </div>

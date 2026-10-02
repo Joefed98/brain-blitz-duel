@@ -431,3 +431,10 @@
 - [x] Bullseye moving target on arrows 6–10
 - [x] Cross cars/lorries, 3 lives, clean-crossing bonus
 - [x] Slice combo ×1–×3, 25% longer cut, combo meter
+
+## Stop Watch, Chain, Whack, and Clay update (Oct 2)
+- [ ] Correct Stop Watch bounce/wrap movement and right-edge pass counters from 2–11.
+- [ ] Scatter each 28-node Chain set with enforced non-touching spacing.
+- [ ] Extend Whack-a-Target to 60 seconds with queued pop-ups and universal three-second retreats.
+- [ ] Compact Clay Shoot status, conceal gold lineup discs until resolved, and reclaim arena height.
+- [ ] Run only Whack-a-Target and Clay Shoot self-replay proofs plus focused source checks; no browser tests.
