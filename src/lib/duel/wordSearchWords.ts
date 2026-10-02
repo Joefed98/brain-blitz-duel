@@ -143,7 +143,7 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
   ],
   Vehicles: [
     "TRUCK", "LORRY", "TRAIN", "TRAM", "TAXI", "COACH", "BICYCLE", "SCOOTER",
-    "MOPED", "TRACTOR", "TANKER", "YACHT", "FERRY", "CANOE", "KAYAK", "DINGHY",
+    "MOPED", "TRACTOR", "TANKER", "YACHT", "FERRY", "CANOE", "PUNT", "DINGHY",
     "BARGE", "AIRSHIP", "GLIDER", "SLEDGE", "CARAVAN", "JEEP", "TRICYCLE", "UNICYCLE",
     "MINIBUS", "GONDOLA", "STEAMER", "AIRLINER", "WAGON", "CHARIOT", "CARRIAGE", "RICKSHAW",
   ],
