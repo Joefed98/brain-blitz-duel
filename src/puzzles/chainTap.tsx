@@ -56,10 +56,8 @@ function RuleStrip({
       {cycle.map((shape, index) => (
         <span key={shape} className="flex items-center gap-1.5">
           <span
-            className={`flex items-center justify-center rounded-full border-2 ${
-              index === active
-                ? "border-primary bg-primary/15 text-primary"
-                : "border-border bg-card text-foreground"
+            className={`flex items-center justify-center ${
+              index === active ? "text-primary" : "text-foreground"
             }`}
             style={{ width: size, height: size }}
           >
@@ -113,7 +111,7 @@ function IntroExample() {
         {EXAMPLE_NODES.map((node, index) => (
           <span
             key={index}
-            className="absolute flex size-8 items-center justify-center rounded-full border-2 border-primary bg-card text-primary"
+            className="absolute flex size-8 items-center justify-center text-primary"
             style={{ left: `calc(${node.x}% - 16px)`, top: `calc(${node.y}% - 16px)` }}
           >
             <NodeGlyph shape={node.shape} size={32} />
