@@ -65,8 +65,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function junctionLine(r: { cleared: number; gaveUp: number; survived: boolean; survivedSeconds: number }): string {
-  const head = `${r.cleared} cleared · ${r.gaveUp} drove off`;
+export function junctionLine(r: { cleared: number; gaveUp: number; survived: boolean; survivedSeconds: number; ambThrough?: number; ambStopped?: number }): string {
+  const amb = r.ambThrough !== undefined ? ` · ambulances ${r.ambThrough} through, ${r.ambStopped ?? 0} stopped` : "";
+  const head = `${r.cleared} cleared · ${r.gaveUp} drove off${amb}`;
   return r.survived ? `${head} · survived` : `${head} · crash at ${r.survivedSeconds.toFixed(1)}s`;
 }
 

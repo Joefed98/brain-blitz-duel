@@ -45,6 +45,7 @@ export function encodeBeatRun(run: BeatRun): string {
         item.strays,
         item.tenths,
         item.combo,
+        item.holdFold,
         item.checksum,
       ].join(":"),
     )
@@ -67,8 +68,8 @@ export function decodeBeatRun(raw: string): BeatRun {
     .filter(Boolean)
     .slice(0, Math.ceil(BEAT_RUN_TICKS / BEAT_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
-    .filter((values) => values.length === 10 && values.every(Number.isInteger))
-    .map(([tick, cursor, perfect, good, ok, misses, strays, tenths, combo, sum]) => ({
+    .filter((values) => values.length === 11 && values.every(Number.isInteger))
+    .map(([tick, cursor, perfect, good, ok, misses, strays, tenths, combo, holdFold, sum]) => ({
       tick: tick ?? 0,
       cursor: cursor ?? 0,
       perfect: perfect ?? 0,
@@ -78,6 +79,7 @@ export function decodeBeatRun(raw: string): BeatRun {
       strays: strays ?? 0,
       tenths: tenths ?? 0,
       combo: combo ?? 0,
+      holdFold: holdFold ?? 0,
       checksum: (sum ?? 0) >>> 0,
     }));
   return {
@@ -98,6 +100,8 @@ export interface BeatResult {
   misses: number;
   strays: number;
   maxCombo: number;
+  holds: number;
+  holdsDone: number;
   clean: boolean;
   finished: boolean;
   endedSeconds: number;
@@ -158,6 +162,8 @@ export function replayBeatRun(seed: number, raw: string): BeatResult {
     misses: state.misses,
     strays: state.strays,
     maxCombo: state.maxCombo,
+    holds: state.chart.holds.filter((h) => h > 0).length,
+    holdsDone: state.holdsDone,
     clean: state.misses === 0 && state.tick >= BEAT_RUN_TICKS,
     finished: state.tick >= BEAT_RUN_TICKS,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,

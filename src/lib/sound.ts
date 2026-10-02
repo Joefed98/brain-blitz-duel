@@ -354,6 +354,53 @@ export const playRoundStart = () => playCue("round_start");
 export const playRoundWon = () => playCue("round_won");
 export const playFanfare = () => playCue("podium_fanfare");
 
+/* ------------------------------------------------------------- beat loop */
+
+/** Bass roots per bar of the 4-bar loop (Hz): A, F, C, G. */
+const BEAT_BASS = [55, 43.65, 65.41, 49];
+
+/**
+ * One eighth-note step of Beat's synthesised 120 BPM loop: a closed hat on
+ * every eighth, a plucked bass on beats 1 and 3 (and the "and" of 4), over a
+ * four-bar A–F–C–G progression. `step` counts eighths from the first beat.
+ */
+export function playBeatStep(step: number): void {
+  if (!ready() || !ctx || !musicGain) return;
+  try {
+    const t = ctx.currentTime;
+    const inBar = ((step % 8) + 8) % 8;
+    const bar = Math.floor(step / 8) % 4;
+    // Hat: a short burst of high-passed noise, accented on the off-beat.
+    const length = Math.floor(ctx.sampleRate * 0.04);
+    const noise = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = noise.getChannelData(0);
+    for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+    const hat = ctx.createBufferSource();
+    hat.buffer = noise;
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 7000;
+    const hatGain = ctx.createGain();
+    hatGain.gain.value = inBar % 2 === 1 ? 0.22 : 0.12;
+    hat.connect(hp).connect(hatGain).connect(musicGain);
+    hat.start(t);
+    if (inBar === 0 || inBar === 4 || inBar === 7) {
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.value = BEAT_BASS[bar]! * (inBar === 7 ? 2 : 1);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.5, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      osc.connect(g).connect(musicGain);
+      osc.start(t);
+      osc.stop(t + 0.4);
+    }
+  } catch (error) {
+    warnOnce("beat loop failed", error);
+  }
+}
+
 /* ------------------------------------------------------------------- music */
 
 function fadeOut(track: { source: AudioBufferSourceNode; gain: GainNode }, ms: number): void {

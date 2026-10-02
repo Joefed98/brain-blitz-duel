@@ -13,6 +13,7 @@
 import {
   clampInt,
   inputRange,
+  isqrt,
   rngBelow,
   TICKS_PER_SECOND,
   type ArcadeGame,
@@ -30,7 +31,6 @@ export const ORBIT_WORLD_H = 620;
 export const ORBIT_RUN_TICKS = 60 * TICKS_PER_SECOND;
 export const ORBIT_INPUT_TAP = 0;
 export const ORBIT_TOTAL = 40;
-const SHIP_SPEED = 1152; // 4.5 px/tick
 const FLIGHT_MAX = 150;
 /** The current planet sits this far down the screen. */
 const VIEW_ANCHOR = 440 * FP;
@@ -49,66 +49,196 @@ export const ORBIT_INPUT_RANGES: readonly InputRange[] = [inputRange(ORBIT_INPUT
 
 /* ================================ Course =============================== */
 
+/** Orbit shapes: a circle, an ellipse (from planet 11), a figure-eight round a pair (from planet 21). */
+export const ORBIT_CIRCLE = 0;
+export const ORBIT_ELLIPSE = 1;
+export const ORBIT_EIGHT = 2;
+const ELLIPSE_FROM = 11;
+const EIGHT_FROM = 21;
+/** Ellipse minor axis, % of the major. */
+const ELLIPSE_B_PCT = 60;
+/** Figure-eight: half-width = ring × this %, height = half-width × B %. */
+const EIGHT_A_PCT = 150;
+const EIGHT_B_PCT = 45;
+/** Lobe centres and capture radius, % of the half-width. */
+const LOBE_C_PCT = 55;
+const LOBE_R_PCT = 50;
+/** Releasing within this share of the half-width of the crossing hits the pair. */
+const EIGHT_INNER_PCT = 30;
+/** Lap length (ticks) for each five planets, and the release-flight speed in step. */
+const LAPS = [110, 100, 90, 80, 72, 66, 60, 56];
+const FLIGHT_SLOW = 1024; // 4.0 px/tick
+const FLIGHT_FAST = 1408; // 5.5 px/tick
+
 export interface Planet {
   x: number;
   y: number;
   r: number;
+  /** Circle radius; ellipse major semi-axis; figure-eight half-width base. */
   ring: number;
   omega: number;
   dir: number;
-  /** Hazard arc start angle, or -1. */
+  /** Hazard arc start phase, or -1. */
   hazard: number;
   colour: number;
+  kind: number;
+  /** Ellipse orientation (angle units). */
+  rot: number;
+  /** Release-flight speed, 1/256 px a tick. */
+  speed: number;
 }
 
 /** Ring size in % for each band of ten planets (1–10, 11–20 …): ×0.8 per band, floor 45%. */
 const RING_BANDS = [100, 80, 64, 51];
 const RING_BASE = 98;
 
+function tierOf(i: number): number {
+  return Math.min(LAPS.length - 1, Math.trunc(i / 5));
+}
+
 function planetShape(i: number) {
   const r = (28 - Math.trunc((10 * i) / ORBIT_TOTAL)) * FP;
   const band = i === 0 ? 0 : Math.min(RING_BANDS.length - 1, Math.trunc((i - 1) / 10));
   const ring = Math.trunc((RING_BASE * RING_BANDS[band]! * FP) / 100);
-  const lap = 90 - Math.trunc((30 * i) / ORBIT_TOTAL);
-  return { r, ring, omega: Math.trunc(65536 / lap) };
+  const tier = tierOf(i);
+  return {
+    r,
+    ring,
+    omega: Math.trunc(65536 / LAPS[tier]!),
+    speed: FLIGHT_SLOW + Math.trunc(((FLIGHT_FAST - FLIGHT_SLOW) * tier) / (LAPS.length - 1)),
+  };
+}
+
+const eightA = (p: Planet) => Math.trunc((p.ring * EIGHT_A_PCT) / 100);
+const ellipseB = (p: Planet) => Math.trunc((p.ring * ELLIPSE_B_PCT) / 100);
+
+/** Furthest the path reaches from the planet's centre (for spacing and the screen edge). */
+export function orbitExtent(p: { kind: number; ring: number }): number {
+  return p.kind === ORBIT_EIGHT ? Math.trunc((p.ring * EIGHT_A_PCT) / 100) : p.ring;
 }
 
 function onArc(p: Planet, angle: number): boolean {
   return p.hazard >= 0 && ((angle - p.hazard) & 65535) < HAZARD_SPAN;
 }
 
-function orbitPos(p: Planet, angle: number) {
-  return {
-    x: p.x + Math.trunc((p.ring * icos(angle)) / TRIG_ONE),
-    y: p.y + Math.trunc((p.ring * isin(angle)) / TRIG_ONE),
-  };
+/** Offset of the path point at this phase from the planet centre, 1/256 px. */
+function pathOffset(p: Planet, phase: number): { u: number; v: number } {
+  if (p.kind === ORBIT_ELLIPSE) {
+    const u = Math.trunc((p.ring * icos(phase)) / TRIG_ONE);
+    const v = Math.trunc((ellipseB(p) * isin(phase)) / TRIG_ONE);
+    return {
+      u: Math.trunc((u * icos(p.rot) - v * isin(p.rot)) / TRIG_ONE),
+      v: Math.trunc((u * isin(p.rot) + v * icos(p.rot)) / TRIG_ONE),
+    };
+  }
+  if (p.kind === ORBIT_EIGHT) {
+    const a = eightA(p);
+    return {
+      u: Math.trunc((a * icos(phase)) / TRIG_ONE),
+      v: Math.trunc((Math.trunc((a * EIGHT_B_PCT) / 100) * isin((phase * 2) & 65535)) / TRIG_ONE),
+    };
+  }
+  return { u: Math.trunc((p.ring * icos(phase)) / TRIG_ONE), v: Math.trunc((p.ring * isin(phase)) / TRIG_ONE) };
+}
+
+function orbitPos(p: Planet, phase: number) {
+  const o = pathOffset(p, phase);
+  return { x: p.x + o.u, y: p.y + o.v };
+}
+
+/** Phase advance this tick: constant, except an ellipse is fastest nearest the planet. */
+function phaseRate(p: Planet, phase: number): number {
+  if (p.kind !== ORBIT_ELLIPSE) return p.omega;
+  const o = pathOffset(p, phase);
+  const dist = Math.max(FP, isqrt(Math.trunc(o.u / 16) ** 2 + Math.trunc(o.v / 16) ** 2) * 16);
+  const mean = Math.trunc((p.ring + ellipseB(p)) / 2);
+  return clampInt(Math.trunc((p.omega * mean) / dist), 1, 4 * p.omega);
+}
+
+/** True when a figure-eight release is at the crossing between the pair (unsafe). */
+function innerLobe(p: Planet, phase: number): boolean {
+  if (p.kind !== ORBIT_EIGHT) return false;
+  return Math.abs(pathOffset(p, phase).u) < Math.trunc((eightA(p) * EIGHT_INNER_PCT) / 100);
 }
 
 function releaseVel(p: Planet, angle: number) {
-  return {
-    vx: Math.trunc((-p.dir * SHIP_SPEED * isin(angle)) / TRIG_ONE),
-    vy: Math.trunc((p.dir * SHIP_SPEED * icos(angle)) / TRIG_ONE),
-  };
+  // Tangent of the path at this phase, scaled to the planet's flight speed.
+  const a = pathOffset(p, angle);
+  const b = pathOffset(p, (angle + p.dir * 256) & 65535);
+  const dx = b.u - a.u;
+  const dy = b.v - a.v;
+  const len = Math.max(1, isqrt(dx * dx + dy * dy));
+  return { vx: Math.trunc((dx * p.speed) / len), vy: Math.trunc((dy * p.speed) / len) };
 }
 
 function outside(from: Planet, x: number, y: number): boolean {
   return x < 0 || x > ORBIT_WORLD_W * FP || y < from.y - VIEW_ANCHOR - ABOVE_VIEW || y > from.y + VIEW_BELOW;
 }
 
-/** First later planet whose ring contains the point, or -1. */
+/** Lobe centres of a figure-eight (the pair of planets), as offsets. */
+export function orbitLobes(p: { ring: number }): number {
+  return Math.trunc((Math.trunc((p.ring * EIGHT_A_PCT) / 100) * LOBE_C_PCT) / 100);
+}
+
+/** Is the point inside planet p's capture region (the region the path encloses)? */
+function inside(p: Planet, x: number, y: number): boolean {
+  const dx = x - p.x;
+  const dy = y - p.y;
+  if (p.kind === ORBIT_ELLIPSE) {
+    const u = Math.trunc((dx * icos(p.rot) + dy * isin(p.rot)) / TRIG_ONE / 16);
+    const v = Math.trunc((-dx * isin(p.rot) + dy * icos(p.rot)) / TRIG_ONE / 16);
+    const A = Math.trunc(p.ring / 16);
+    const B = Math.trunc(ellipseB(p) / 16);
+    return u * u * B * B + v * v * A * A <= A * A * B * B;
+  }
+  if (p.kind === ORBIT_EIGHT) {
+    const c = orbitLobes(p);
+    const r = Math.trunc((eightA(p) * LOBE_R_PCT) / 100);
+    const l = (dx + c) ** 2 + dy * dy;
+    const rr = (dx - c) ** 2 + dy * dy;
+    return Math.min(l, rr) <= r * r;
+  }
+  return dx * dx + dy * dy <= p.ring * p.ring;
+}
+
+/** Phase on planet p's path for a captured point. */
+function phaseAt(p: Planet, x: number, y: number): number {
+  const dx = x - p.x;
+  const dy = y - p.y;
+  if (p.kind === ORBIT_ELLIPSE) {
+    const u = Math.trunc((dx * icos(p.rot) + dy * isin(p.rot)) / TRIG_ONE);
+    const v = Math.trunc((-dx * isin(p.rot) + dy * icos(p.rot)) / TRIG_ONE);
+    return iatan2(Math.trunc((v * p.ring) / Math.max(1, ellipseB(p))), u);
+  }
+  if (p.kind === ORBIT_EIGHT) {
+    // Nearest of 64 sample points on the path.
+    let best = 0;
+    let bestD = Infinity;
+    for (let k = 0; k < 64; k++) {
+      const o = pathOffset(p, k * 1024);
+      const d = Math.trunc((o.u - dx) / 16) ** 2 + Math.trunc((o.v - dy) / 16) ** 2;
+      if (d < bestD) {
+        bestD = d;
+        best = k * 1024;
+      }
+    }
+    return best;
+  }
+  return iatan2(dy, dx);
+}
+
+/** First later planet whose capture region contains the point, or -1. */
 function captureAt(planets: readonly Planet[], cur: number, x: number, y: number): number {
   for (let j = cur + 1; j <= cur + LOOKAHEAD && j < planets.length; j++) {
-    const p = planets[j]!;
-    const dx = x - p.x;
-    const dy = y - p.y;
-    if (dx * dx + dy * dy <= p.ring * p.ring) return j;
+    if (inside(planets[j]!, x, y)) return j;
   }
   return -1;
 }
 
-/** Does releasing from planet i at this angle reach planet i + 1 safely? */
+/** Does releasing from planet i at this phase reach planet i + 1 safely? */
 function hopOk(planets: readonly Planet[], i: number, angle: number): boolean {
   const from = planets[i]!;
+  if (innerLobe(from, angle)) return false;
   let { x, y } = orbitPos(from, angle);
   const { vx, vy } = releaseVel(from, angle);
   for (let t = 1; t <= FLIGHT_MAX; t++) {
@@ -119,22 +249,49 @@ function hopOk(planets: readonly Planet[], i: number, angle: number): boolean {
     if (j < 0) continue;
     if (j !== i + 1) return false;
     const to = planets[j]!;
-    return !onArc(to, iatan2(y - to.y, x - to.x));
+    return !onArc(to, phaseAt(to, x, y));
   }
   return false;
 }
 
+/** Every phase the ship actually occupies over one lap, in order. */
+function lapPhases(p: Planet): number[] {
+  const out: number[] = [];
+  let phase = 0;
+  let travelled = 0;
+  while (travelled < 65536 && out.length < 1000) {
+    out.push(phase);
+    const r = phaseRate(p, phase);
+    travelled += r;
+    phase = (phase + p.dir * r) & 65535;
+  }
+  return out;
+}
+
 function hasWindow(planets: readonly Planet[], i: number): boolean {
-  const p = planets[i]!;
-  const samples = Math.trunc(65536 / p.omega) + 1;
-  const good: boolean[] = [];
-  for (let k = 0; k < samples; k++) good.push(hopOk(planets, i, k * p.omega));
+  const good = lapPhases(planets[i]!).map((phase) => hopOk(planets, i, phase));
+  const samples = good.length;
   let run = 0;
   for (let k = 0; k < samples * 2; k++) {
     run = good[k % samples] ? run + 1 : 0;
     if (run >= SAFE_RUN) return true;
   }
   return false;
+}
+
+/** Test hook: shapes in the course and how many hops have a verified safe window. */
+export function orbitCourseCheck(seed: number): { hops: number; safe: number; ellipses: number; eights: number; laps: number[]; speeds: number[] } {
+  const { planets } = buildCourse(seed);
+  let safe = 0;
+  for (let i = 0; i < ORBIT_TOTAL; i++) if (hasWindow(planets, i)) safe++;
+  return {
+    hops: ORBIT_TOTAL,
+    safe,
+    ellipses: planets.filter((p) => p.kind === ORBIT_ELLIPSE).length,
+    eights: planets.filter((p) => p.kind === ORBIT_EIGHT).length,
+    laps: planets.map((p) => Math.round(65536 / p.omega)),
+    speeds: planets.map((p) => p.speed / FP),
+  };
 }
 
 function buildCourse(seed: number): { planets: Planet[]; rng: number } {
@@ -146,39 +303,53 @@ function buildCourse(seed: number): { planets: Planet[]; rng: number } {
   };
   const first = planetShape(0);
   const planets: Planet[] = [
-    { x: 195 * FP, y: 0, ...first, dir: draw(2) ? 1 : -1, hazard: -1, colour: 0 },
+    { x: 195 * FP, y: 0, ...first, dir: draw(2) ? 1 : -1, hazard: -1, colour: 0, kind: ORBIT_CIRCLE, rot: 0 },
   ];
   for (let i = 1; i <= ORBIT_TOTAL; i++) {
     const prev = planets[i - 1]!;
     const shape = planetShape(i);
-    const lo = shape.ring + 8 * FP;
-    const hi = ORBIT_WORLD_W * FP - shape.ring - 8 * FP;
     let placed = false;
-    for (let attempt = 0; attempt < 40 && !placed; attempt++) {
+    for (let attempt = 0; attempt < 160 && !placed; attempt++) {
+      // Shape from the seed: figure-eights from 21 (one in four), ellipses from 11 (one in three).
+      const roll = draw(12);
+      const kind = i >= EIGHT_FROM && roll < 3 ? ORBIT_EIGHT : i >= ELLIPSE_FROM && roll < 7 && roll >= 3 ? ORBIT_ELLIPSE : ORBIT_CIRCLE;
+      const rot = kind === ORBIT_ELLIPSE ? draw(16) * 4096 : 0;
+      const extent = orbitExtent({ kind, ring: shape.ring });
+      const lo = extent + 8 * FP;
+      const hi = ORBIT_WORLD_W * FP - extent - 8 * FP;
       const x = lo + draw(Math.max(1, Math.trunc((hi - lo) / FP))) * FP;
       // Spacing is 1.15× the original 150–230 px.
       const y = prev.y - Math.trunc(((150 + draw(81)) * 115) / 100) * FP;
       const dx = x - prev.x;
       const dy = y - prev.y;
-      const min = prev.ring + shape.ring + 24 * FP;
+      const min = orbitExtent(prev) + extent + 24 * FP;
       if (dx * dx + dy * dy < min * min) continue;
       const hazard = i >= HAZARD_FROM && draw(2) === 1 ? draw(64) * 1024 : -1;
-      const candidate: Planet = { x, y, ...shape, dir: draw(2) ? 1 : -1, hazard, colour: i % 4 };
+      // A figure-eight always runs so its outer tips travel upward (towards the next planet).
+      const spin = draw(2) ? 1 : -1;
+      const candidate: Planet = { x, y, ...shape, dir: kind === ORBIT_EIGHT ? -1 : spin, hazard, colour: i % 4, kind, rot };
       planets.push(candidate);
       if (hasWindow(planets, i - 1)) placed = true;
       else planets.pop();
     }
     if (!placed) {
-      // Fallback: straight above the orbit's side edge — a vertical release always lands.
-      const side = prev.x - prev.ring >= lo ? -1 : 1;
-      planets.push({
-        x: clampInt(prev.x + side * prev.ring, lo, hi),
-        y: prev.y - 264 * FP,
-        ...shape,
-        dir: draw(2) ? 1 : -1,
-        hazard: -1,
-        colour: i % 4,
-      });
+      // Fallback: a plain circle straight above the previous path's side edge.
+      const lo = shape.ring + 8 * FP;
+      const hi = ORBIT_WORLD_W * FP - shape.ring - 8 * FP;
+      const reach = orbitExtent(prev);
+      const dir = draw(2) ? 1 : -1;
+      // Try both sides and a few heights; keep the first one with a proven window.
+      let chosen: Planet | null = null;
+      for (const side of [-1, 1]) {
+        for (const lift of [200, 230, 264, 300]) {
+          const c: Planet = { x: clampInt(prev.x + side * reach, lo, hi), y: prev.y - lift * FP, ...shape, dir, hazard: -1, colour: i % 4, kind: ORBIT_CIRCLE, rot: 0 };
+          planets.push(c);
+          const ok = hasWindow(planets, i - 1);
+          planets.pop();
+          if (ok && !chosen) chosen = c;
+        }
+      }
+      planets.push(chosen ?? { x: clampInt(prev.x + -1 * reach, lo, hi), y: prev.y - 264 * FP, ...shape, dir, hazard: -1, colour: i % 4, kind: ORBIT_CIRCLE, rot: 0 });
     }
   }
   return { planets, rng };
@@ -257,6 +428,11 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
     s.endedTick = tick;
   };
   if (s.flying === 0) {
+    if (input !== null && input.k === ORBIT_INPUT_TAP && innerLobe(here, s.angle)) {
+      // Let go at a figure-eight's crossing: straight into the pair.
+      die();
+      return s;
+    }
     if (input !== null && input.k === ORBIT_INPUT_TAP) {
       const v = releaseVel(here, s.angle);
       s.vx = v.vx;
@@ -266,7 +442,7 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
       s.releaseX = s.x;
       s.releaseY = s.y;
     } else {
-      s.angle = (s.angle + here.dir * here.omega) & 65535;
+      s.angle = (s.angle + here.dir * phaseRate(here, s.angle)) & 65535;
       const pos = orbitPos(here, s.angle);
       s.x = pos.x;
       s.y = pos.y;
@@ -279,7 +455,7 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
     if (j >= 0) {
       const to = s.planets[j]!;
       s.cur = j;
-      s.angle = iatan2(s.y - to.y, s.x - to.x);
+      s.angle = phaseAt(to, s.x, s.y);
       const pos = orbitPos(to, s.angle);
       s.x = pos.x;
       s.y = pos.y;
@@ -414,23 +590,41 @@ function draw(ctx: CanvasRenderingContext2D, state: OrbitState, size: CanvasSize
     if (py < -120) break;
     if (py > ORBIT_WORLD_H + 120) continue;
     const colour = ORBIT_COLOURS[p.colour]!;
+    // The capture ring follows the path the ship will fly.
     ctx.strokeStyle = colour;
-    ctx.globalAlpha = 0.18;
+    ctx.globalAlpha = 0.22;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(px, py, p.ring / FP, 0, Math.PI * 2);
+    for (let k = 0; k <= 64; k++) {
+      const o = pathOffset(p, (k * 1024) & 65535);
+      if (k === 0) ctx.moveTo(px + o.u / FP, py + o.v / FP);
+      else ctx.lineTo(px + o.u / FP, py + o.v / FP);
+    }
     ctx.stroke();
+    if (p.kind === ORBIT_EIGHT) {
+      // The crossing between the pair: never let go here.
+      const inner = (eightA(p) * EIGHT_INNER_PCT) / 100 / FP;
+      ctx.fillStyle = ORBIT_RED;
+      ctx.globalAlpha = 0.12;
+      ctx.fillRect(px - inner, py - (eightA(p) * EIGHT_B_PCT) / 100 / FP - 4, inner * 2, ((eightA(p) * EIGHT_B_PCT) / 100 / FP) * 2 + 8);
+    }
     ctx.globalAlpha = 1;
     ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.arc(px, py, p.r / FP - 3, 0, Math.PI * 2);
-    ctx.stroke();
+    const bodies = p.kind === ORBIT_EIGHT ? [-orbitLobes(p) / FP, orbitLobes(p) / FP] : [0];
+    for (const bx of bodies) {
+      ctx.beginPath();
+      ctx.arc(px + bx, py, (p.kind === ORBIT_EIGHT ? p.r * 0.8 : p.r) / FP - 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     if (p.hazard >= 0) {
-      const a0 = (p.hazard / 65536) * Math.PI * 2;
       ctx.strokeStyle = ORBIT_RED;
       ctx.lineWidth = 5;
       ctx.beginPath();
-      ctx.arc(px, py, p.ring / FP, a0, a0 + Math.PI / 2);
+      for (let k = 0; k <= 16; k++) {
+        const o = pathOffset(p, (p.hazard + Math.trunc((HAZARD_SPAN * k) / 16)) & 65535);
+        if (k === 0) ctx.moveTo(px + o.u / FP, py + o.v / FP);
+        else ctx.lineTo(px + o.u / FP, py + o.v / FP);
+      }
       ctx.stroke();
     }
   }

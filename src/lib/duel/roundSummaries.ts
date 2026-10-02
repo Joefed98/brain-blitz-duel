@@ -1273,9 +1273,11 @@ const junctionSummary: SummaryBuilder = (result) => {
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   const head = `${cleared} cleared · ${gaveUp} drove off`;
+  const through = Number(result.extra?.["ambThrough"] ?? 0);
+  const stopped = Number(result.extra?.["ambStopped"] ?? 0);
   return {
     summary: survived ? `${head} · survived` : `${head} · crash at ${ended.toFixed(1)}s`,
-    detail: ["Same traffic for everyone"],
+    detail: [`Ambulances: ${through} through · ${stopped} stopped`],
   };
 };
 

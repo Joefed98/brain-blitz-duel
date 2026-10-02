@@ -60,6 +60,12 @@ export const JUNC_INDICATE_TICKS = 60;
 const SPEEDS: readonly number[] = [614, 675, 743, 817];
 const SPEED_STEP_TICKS = 15 * TICKS_PER_SECOND;
 const CAR_POINTS = 3;
+/** Ambulances: from 20 s, one every 15 s, 1.3× speed, ±5 points each. */
+export const JUNC_AMB_FROM = 20 * TICKS_PER_SECOND;
+export const JUNC_AMB_EVERY = 15 * TICKS_PER_SECOND;
+const AMB_SPEED_NUM = 13;
+const AMB_SPEED_DEN = 10;
+const AMB_POINTS = 5;
 const SURVIVE_BONUS = 40;
 
 export const JUNC_INPUT_RANGES: readonly InputRange[] = [inputRange(JUNC_INPUT_TAP, [0, 3])];
@@ -77,6 +83,8 @@ export interface JuncArrival {
   turn: number;
   patience: number;
   colour: number;
+  /** 1 for an ambulance. */
+  amb: number;
 }
 
 function buildSchedule(seed: number) {
@@ -95,9 +103,22 @@ function buildSchedule(seed: number) {
       turn,
       patience: PATIENCE_START - Math.trunc(((PATIENCE_START - PATIENCE_END) * t) / JUNC_RUN_TICKS),
       colour: draw(4),
+      amb: 0,
     });
     t += ARRIVE_START - Math.trunc(((ARRIVE_START - ARRIVE_END) * t) / JUNC_RUN_TICKS);
   }
+  // Ambulances come from their own stream off the seed, so the car schedule is untouched.
+  let ambRng = (seed ^ 0x5bd1e995) | 0;
+  const ambDraw = (bound: number) => {
+    const r = rngBelow(ambRng, bound);
+    ambRng = r.state;
+    return r.value;
+  };
+  for (let t = JUNC_AMB_FROM; t < JUNC_RUN_TICKS - 3 * TICKS_PER_SECOND; t += JUNC_AMB_EVERY) {
+    const at = t + ambDraw(TICKS_PER_SECOND);
+    arrivals.push({ tick: at, ap: ambDraw(4), turn: 0, patience: 1 << 30, colour: 0, amb: 1 });
+  }
+  arrivals.sort((a, b) => a.tick - b.tick || a.amb - b.amb);
   return { arrivals, rng };
 }
 
@@ -112,6 +133,9 @@ export interface JuncCar {
   patience: number;
   cleared: number;
   colour: number;
+  amb: number;
+  /** Set once an ambulance has had to stop. */
+  stopped: number;
 }
 
 export interface JuncState {
@@ -124,6 +148,9 @@ export interface JuncState {
   lights: number;
   cleared: number;
   gaveUp: number;
+  /** Ambulances let straight through, and ones made to stop. */
+  ambThrough: number;
+  ambStopped: number;
   ended: number;
   endedTick: number;
   /** Render only. */
@@ -151,6 +178,8 @@ function init(seed: number): JuncState {
     lights: (1 << JUNC_TOP) | (1 << JUNC_BOTTOM),
     cleared: 0,
     gaveUp: 0,
+    ambThrough: 0,
+    ambStopped: 0,
     ended: 0,
     endedTick: 0,
     crashX: 0,
@@ -181,7 +210,7 @@ function step(state: JuncState, input: ArcadeInputEvent | null): JuncState {
     let back: JuncCar | undefined;
     for (const car of s.cars) if (car.ap === a.ap && car.s - CAR_LEN < exitOf(car)) back = car;
     const start = back ? Math.min(0, back.s - CAR_LEN - CAR_GAP) : 0;
-    if (s.cars.length < 10) s.cars.push({ id: s.next, ap: a.ap, turn: a.turn, s: start, wait: 0, patience: a.patience, cleared: 0, colour: a.colour });
+    if (s.cars.length < 10 || a.amb) s.cars.push({ id: s.next, ap: a.ap, turn: a.turn, s: start, wait: 0, patience: a.patience, cleared: 0, colour: a.colour, amb: a.amb, stopped: 0 });
     s.next += 1;
   }
 
@@ -191,14 +220,28 @@ function step(state: JuncState, input: ArcadeInputEvent | null): JuncState {
   const kept: JuncCar[] = [];
   for (const car of s.cars) {
     const stop = STOP[car.ap]!;
-    let target = car.s + speed;
+    const own = car.amb ? Math.trunc((speed * AMB_SPEED_NUM) / AMB_SPEED_DEN) : speed;
+    let target = car.s + own;
     const ahead = leader[car.ap];
     if (ahead && ahead.s - CAR_LEN < exitOf(ahead)) target = Math.min(target, ahead.s - CAR_LEN - CAR_GAP);
     const green = (s.lights >> car.ap) & 1;
     if (!green && car.s <= stop) target = Math.min(target, stop);
     const moved = Math.max(0, target - car.s);
     car.s += moved;
-    if (car.s <= stop && moved * 2 < speed) {
+    if (car.s <= stop && moved * 2 < own) {
+      if (car.amb) {
+        // An ambulance never gives up; being made to stop costs 5, once.
+        if (!car.stopped) {
+          car.stopped = 1;
+          s.ambStopped += 1;
+          s.honkTick = tick;
+          s.honkAp = car.ap;
+        }
+        car.wait += 1;
+        leader[car.ap] = car;
+        kept.push(car);
+        continue;
+      }
       car.wait += 1;
       if (car.wait > car.patience) {
         s.gaveUp += 1;
@@ -209,7 +252,8 @@ function step(state: JuncState, input: ArcadeInputEvent | null): JuncState {
     }
     if (!car.cleared && car.s - CAR_LEN >= exitOf(car)) {
       car.cleared = 1;
-      s.cleared += 1;
+      if (!car.amb) s.cleared += 1;
+      else if (!car.stopped) s.ambThrough += 1;
     }
     leader[car.ap] = car;
     if (car.s < removeOf(car)) kept.push(car);
@@ -217,7 +261,8 @@ function step(state: JuncState, input: ArcadeInputEvent | null): JuncState {
   s.cars = kept;
 
   // Crossing directions (or any turning car) in the box together is a crash.
-  const box = kept.filter(inBox);
+  // Ambulances never collide.
+  const box = kept.filter((car) => !car.amb && inBox(car));
   for (let i = 0; i < box.length && !s.ended; i++) {
     for (let j = i + 1; j < box.length; j++) {
       const a = box[i]!;
@@ -239,13 +284,17 @@ function step(state: JuncState, input: ArcadeInputEvent | null): JuncState {
   return s;
 }
 
-/** 3 per car cleared, −1 per car that gave up, +40 for the minute; 0–150. */
-export function juncScoreOf(cleared: number, gaveUp: number, survived: boolean): number {
-  return clampInt(CAR_POINTS * cleared - gaveUp + (survived ? SURVIVE_BONUS : 0), 0, 150);
+/** 3 per car cleared, −1 per car that gave up, ±5 per ambulance, +40 for the minute; 0–150. */
+export function juncScoreOf(cleared: number, gaveUp: number, survived: boolean, ambThrough = 0, ambStopped = 0): number {
+  return clampInt(
+    CAR_POINTS * cleared - gaveUp + AMB_POINTS * (ambThrough - ambStopped) + (survived ? SURVIVE_BONUS : 0),
+    0,
+    150,
+  );
 }
 
 function score(state: JuncState): number {
-  return juncScoreOf(state.cleared, state.gaveUp, state.ended === 1);
+  return juncScoreOf(state.cleared, state.gaveUp, state.ended === 1, state.ambThrough, state.ambStopped);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -280,7 +329,8 @@ export function juncCheckpoint(state: JuncState): JuncCheckpoint {
   };
   let checksum = 0x811c9dc5;
   const values = [...Object.values(snap)];
-  for (const car of state.cars) values.push(car.id, car.s, car.wait);
+  values.push(state.ambThrough, state.ambStopped);
+  for (const car of state.cars) values.push(car.id, car.s, car.wait, car.stopped);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -402,10 +452,27 @@ function draw(ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize)
     ctx.save();
     ctx.translate(pose.x, pose.y);
     ctx.rotate(angle);
-    ctx.fillStyle = JUNC_CAR_COLOURS[car.colour]!;
+    ctx.fillStyle = car.amb ? "#F7F7F8" : JUNC_CAR_COLOURS[car.colour]!;
     ctx.beginPath();
     ctx.roundRect(-CAR_PX, -CAR_W / 2, CAR_PX, CAR_W, 6);
     ctx.fill();
+    if (car.amb) {
+      // Red cross and a flashing blue light bar.
+      ctx.fillStyle = JUNC_RED;
+      ctx.fillRect(-CAR_PX / 2 - 7, -2, 14, 4);
+      ctx.fillRect(-CAR_PX / 2 - 2, -7, 4, 14);
+      const on = Math.trunc(tick / 6) % 2 === 0;
+      ctx.fillStyle = on ? "#3B82F6" : "#93C5FD";
+      ctx.fillRect(-14, -CAR_W / 2 + 2, 6, CAR_W / 2 - 3);
+      ctx.fillStyle = on ? "#93C5FD" : "#3B82F6";
+      ctx.fillRect(-14, 1, 6, CAR_W / 2 - 3);
+      if (on) {
+        ctx.fillStyle = "rgba(59,130,246,0.25)";
+        ctx.beginPath();
+        ctx.arc(-11, 0, 26, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     const toLine = (STOP[car.ap]! - car.s) / juncSpeed(tick);
     if (car.turn && toLine < JUNC_INDICATE_TICKS && toLine > -40 && Math.trunc(tick / 8) % 2 === 0) {
       ctx.fillStyle = "#FF9F1C";
@@ -414,7 +481,7 @@ function draw(ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize)
       ctx.fillRect(-CAR_PX, side * (CAR_W / 2) - 4, 7, 7);
     }
     ctx.restore();
-    if (car.wait > 0 && car.s <= STOP[car.ap]!) {
+    if (!car.amb && car.wait > 0 && car.s <= STOP[car.ap]!) {
       const left = 1 - car.wait / car.patience;
       ctx.fillStyle = left < 0.3 ? JUNC_RED : "rgba(255,255,255,0.7)";
       ctx.fillRect(pose.x - CAR_PX / 2 - (pose.dx * CAR_PX) / 2, pose.y - 24 - (pose.dy * CAR_PX) / 2, CAR_PX * left, 4);

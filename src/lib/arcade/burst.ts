@@ -53,6 +53,15 @@ const BURST_SHOTS = 3;
 const BURST_GAP = 8;
 const BURST_SPEED = 12 * FP;
 export const BURST_SHORT_LEN = 30;
+/** Popping an M ball drops a SHIELD icon one time in this many (seeded). */
+const SHIELD_ODDS = 4;
+/** Ceiling deflection (±15°) from this wave, when the ball hits faster than this. */
+const DEFLECT_FROM_WAVE = 3;
+const DEFLECT_MIN_VY = 2 * FP;
+const COS15 = 989;
+const SIN15 = 265;
+/** A move event with c = 1 puts the figure exactly at x (1:1 finger follow). */
+export const BURST_MOVE_SNAP = 1;
 
 /** Sizes: 0 L, 1 M, 2 S, 3 XS. */
 export const BURST_RADIUS = [32, 22, 14, 8] as const;
@@ -67,7 +76,7 @@ const BOUNCE_V: readonly number[] = APEX_PCT.map((pct) => {
 });
 
 export const BURST_INPUT_RANGES: readonly InputRange[] = [
-  inputRange(BURST_INPUT_MOVE, [0, BURST_WORLD_W]),
+  inputRange(BURST_INPUT_MOVE, [0, BURST_WORLD_W], [0, 0], [0, 1]),
   inputRange(BURST_INPUT_FIRE, [0, 0], [0, 1]),
 ];
 
@@ -137,6 +146,13 @@ export interface BurstShot {
   short: number;
 }
 
+export interface BurstIcon {
+  x: number;
+  y: number;
+  /** 0 BURST shots (gold), 1 SHIELD (teal). */
+  kind: number;
+}
+
 export interface BurstState {
   tick: number;
   rng: number;
@@ -149,7 +165,9 @@ export interface BurstState {
   targetX: number;
   shots: BurstShot[];
   /** Gold power-up icons falling, x/y in 1/256 px. */
-  icons: { x: number; y: number }[];
+  icons: BurstIcon[];
+  /** 1 while the one-touch shield is up. */
+  shield: number;
   /** 1 while BURST shots are on. */
   burst: number;
   /** BURST shots still to fire from the current tap, and when. */
@@ -190,6 +208,7 @@ function init(seed: number): BurstState {
     targetX: mid,
     shots: [],
     icons: [],
+    shield: 0,
     burst: 0,
     burstLeft: 0,
     burstNext: 0,
@@ -237,7 +256,11 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
   const minX = PLAYER_HALF_W * FP;
   const maxX = (BURST_WORLD_W - PLAYER_HALF_W) * FP;
 
-  if (input && input.k === BURST_INPUT_MOVE) s.targetX = clampInt(input.a * FP, minX, maxX);
+  if (input && input.k === BURST_INPUT_MOVE) {
+    s.targetX = clampInt(input.a * FP, minX, maxX);
+    // Finger in the control strip: the figure sits exactly under it.
+    if (input.c === BURST_MOVE_SNAP) s.x = s.targetX;
+  }
   if (input && input.k === BURST_INPUT_FIRE) {
     if (s.burst) {
       if (s.burstLeft === 0) {
@@ -286,7 +309,22 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     }
     if (ball.y - r < ceil) {
       ball.y = ceil + r;
-      if (ball.vy < 0) ball.vy = -ball.vy;
+      if (ball.vy < 0) {
+        const fast = -ball.vy > DEFLECT_MIN_VY;
+        ball.vy = -ball.vy;
+        if (fast && s.wave >= DEFLECT_FROM_WAVE) {
+          // Deflect off the ceiling by ±15° (side from the seed's stream).
+          const d = rngBelow(s.rng, 2);
+          s.rng = d.state;
+          const sign = d.value === 0 ? -1 : 1;
+          const vx = Math.trunc((ball.vx * COS15 - sign * ball.vy * SIN15) / 1024);
+          const vy = Math.trunc((sign * ball.vx * SIN15 + ball.vy * COS15) / 1024);
+          const base = SPEED_X[ball.size]!;
+          const mag = clampInt(Math.abs(vx), Math.trunc(base / 2), Math.trunc((base * 3) / 2));
+          ball.vx = vx < 0 ? -mag : mag;
+          ball.vy = Math.max(GRAVITY, vy);
+        }
+      }
     }
     if (ball.x - r < 0) {
       ball.x = r;
@@ -314,7 +352,12 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     if (hit >= 0) {
       const ball = s.balls[hit]!;
       s.hits += 1;
-      if (ball.size === 0) s.icons.push({ x: ball.x, y: ball.y });
+      if (ball.size === 0) s.icons.push({ x: ball.x, y: ball.y, kind: 0 });
+      else if (ball.size === 1) {
+        const roll = rngBelow(s.rng, SHIELD_ODDS);
+        s.rng = roll.state;
+        if (roll.value === 0) s.icons.push({ x: ball.x, y: ball.y, kind: 1 });
+      }
       s.popX = ball.x;
       s.popY = ball.y;
       s.popTick = tick;
@@ -331,22 +374,31 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
   s.shots = flying;
 
   // Power-up icons fall; the player catches them, the floor loses them.
-  const falling: { x: number; y: number }[] = [];
+  const falling: BurstIcon[] = [];
   for (const icon of s.icons) {
     icon.y += ICON_FALL;
     const top = (BURST_FLOOR_Y - PLAYER_H) * FP;
     const near = Math.abs(icon.x - s.x) <= (PLAYER_HALF_W + ICON_HALF) * FP;
-    if (near && icon.y + ICON_HALF * FP >= top) s.burst = 1;
+    if (near && icon.y + ICON_HALF * FP >= top) {
+      if (icon.kind === 1) s.shield = 1;
+      else s.burst = 1;
+    }
     else if (icon.y - ICON_HALF * FP < BURST_FLOOR_Y * FP) falling.push(icon);
   }
   s.icons = falling;
 
   // Touching the player costs a life and the BURST shots.
   if (s.invuln === 0 && s.balls.some((ball) => touches(ball, s.x))) {
+    if (s.shield) {
+      // The shield takes the hit and vanishes; no life lost.
+      s.shield = 0;
+      s.invuln = INVULN_TICKS;
+    } else {
     s.lives -= 1;
     s.invuln = INVULN_TICKS;
     s.burst = 0;
     s.burstLeft = 0;
+    }
   }
 
   if (s.balls.length === 0 && s.wave > 0 && s.nextWaveAt <= state.tick) {
@@ -414,10 +466,10 @@ export function burstCheckpoint(state: BurstState): BurstCheckpoint {
     ended: state.ended,
     rng: state.rng | 0,
   };
-  const values = [...Object.values(snap), state.nextWaveAt, state.burstLeft, state.burstNext];
+  const values = [...Object.values(snap), state.nextWaveAt, state.burstLeft, state.burstNext, state.shield];
   for (const ball of state.balls) values.push(ball.size, ball.x, ball.y, ball.vx, ball.vy);
   for (const shot of state.shots) values.push(shot.x, shot.top, shot.short);
-  for (const icon of state.icons) values.push(icon.x, icon.y);
+  for (const icon of state.icons) values.push(icon.x, icon.y, icon.kind);
   let checksum = 0x811c9dc5;
   for (const value of values) {
     checksum ^= value | 0;
@@ -477,11 +529,23 @@ function draw(ctx: CanvasRenderingContext2D, state: BurstState, size: CanvasSize
     ctx.stroke();
   }
 
-  // Power-up icons: a small gold diamond.
-  ctx.fillStyle = BURST_GOLD;
+  // Power-up icons: a gold diamond (BURST) or a teal shield ring.
   for (const icon of state.icons) {
     const x = icon.x / FP;
     const y = icon.y / FP;
+    if (icon.kind === 1) {
+      ctx.strokeStyle = BURST_TEAL;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(x, y, ICON_HALF, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = BURST_TEAL;
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+      continue;
+    }
+    ctx.fillStyle = BURST_GOLD;
     ctx.beginPath();
     ctx.moveTo(x, y - ICON_HALF);
     ctx.lineTo(x + ICON_HALF, y);
@@ -520,6 +584,15 @@ function draw(ctx: CanvasRenderingContext2D, state: BurstState, size: CanvasSize
     ctx.beginPath();
     ctx.arc(px, BURST_FLOOR_Y - 31, 6, 0, Math.PI * 2);
     ctx.fill();
+  }
+  if (state.shield) {
+    ctx.strokeStyle = BURST_TEAL;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.arc(state.x / FP, BURST_FLOOR_Y - 18, 26, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 
   ctx.fillStyle = BURST_GOLD;

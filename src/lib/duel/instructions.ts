@@ -648,8 +648,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a lane", detail: "as its note reaches the line." },
       { action: "Closer is better", detail: "— perfect, good, or just OK." },
       { action: "A tap with no note", detail: "costs nothing." },
+      { action: "Notes with a tail are holds", detail: "— tap the head and keep your finger down to the end; letting go early is Good at best." },
+      { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 — a miss resets it." },
     ],
-    score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150.",
+    score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150. A finished hold counts as its tap.",
   },
   ricochet: {
     goal: "Climb the shaft by leaping wall to wall.",
@@ -725,9 +727,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap the black corner beside a road", detail: "to switch its light between red (stop) and green (go)." },
       { action: "Cars on red queue up", detail: "— and they don't wait forever." },
-      { action: "Later,", detail: "some cars turn." },
+      { action: "Later,", detail: "some cars turn — they flash an indicator a second before the line." },
+      { action: "Ambulances (flashing blue)", detail: "come fast from 20 s — give them green before they reach the line." },
     ],
-    score: "3 per car through, −1 per car that gives up, +40 for surviving the minute.",
+    score: "3 per car through, −1 per car that gives up, +5 per ambulance waved through, −5 if one has to stop, +40 for surviving the minute.",
   },
   inkbridge: {
     goal: "Draw a path so the ball rolls into the bucket.",
@@ -741,8 +744,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   burst: {
     goal: "Pop every ball — big ones split into smaller ones.",
     how: [
-      { action: "Drag along the bottom bar (or use the arrows) to move,", detail: "tap the arena or FIRE to shoot straight up." },
+      { action: "Put your finger on the bottom bar and the figure sits right under it (or use the arrows),", detail: "tap the arena or FIRE to shoot straight up." },
       { action: "Pop a purple ball and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
+      { action: "Blue balls sometimes drop a teal SHIELD", detail: "— it takes the next hit for you." },
       { action: "Don't let a ball touch you", detail: "— three touches and you're out." },
     ],
     score: "2 per ball popped or split, −9 per life lost. Clear four waves without losing a life for 150.",
@@ -752,6 +756,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "You orbit automatically.", detail: "Tap to let go — you fly straight until the next orbit catches you." },
       { action: "Miss and you drift away.", detail: "Avoid the red arcs." },
+      { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops — never at the crossing." },
     ],
     score: "3 per planet; finish all forty early for the time bonus. Skipping a planet is allowed if you can make the next one.",
   },

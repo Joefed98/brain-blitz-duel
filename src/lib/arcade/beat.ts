@@ -29,6 +29,15 @@ export const BEAT_RUN_TICKS = BEAT_RUN_SECONDS * TICKS_PER_SECOND;
 
 /** A lane tap: kind 9, `a` = lane 0…3. */
 export const BEAT_INPUT_TAP = 9;
+/** A finger lifted: kind 10, `a` = lane 0…3 it was pressed in. */
+export const BEAT_INPUT_RELEASE = 10;
+/** Holds appear from this tick (20 s), on about this share of notes. */
+export const BEAT_HOLD_FROM = 1200;
+export const BEAT_HOLD_PERCENT = 20;
+/** Lifting this many ticks or fewer before the tail still completes the hold. */
+export const BEAT_HOLD_GRACE = 6;
+/** Combo tiers that change the lane glow (display only). */
+export const BEAT_COMBO_TIERS = [10, 25, 50] as const;
 
 export const BEAT_LANES = 4;
 export const BEAT_HIT_LINE_Y = BEAT_WORLD_H - 100;
@@ -67,6 +76,7 @@ export const BEAT_JUDGE_MISS = 4;
 
 export const BEAT_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BEAT_INPUT_TAP, [0, BEAT_LANES - 1]),
+  inputRange(BEAT_INPUT_RELEASE, [0, BEAT_LANES - 1]),
 ];
 
 /* ================================ Chart ================================ */
@@ -74,6 +84,8 @@ export const BEAT_INPUT_RANGES: readonly InputRange[] = [
 export interface BeatChart {
   ticks: number[];
   lanes: number[];
+  /** Tail length in ticks for a hold note, 0 for a tap note. */
+  holds: number[];
 }
 
 /** The whole chart, built once from the seed. */
@@ -135,13 +147,28 @@ function buildChart(seed: number): { rng: number; chart: BeatChart } {
   // Sort by tick, keeping the lane alongside.
   const order = ticks.map((_, index) => index);
   order.sort((a, b) => ticks[a]! - ticks[b]! || lanes[a]! - lanes[b]!);
-  return {
-    rng,
-    chart: {
-      ticks: order.map((index) => ticks[index]!),
-      lanes: order.map((index) => lanes[index]!),
-    },
-  };
+  const sortedTicks = order.map((index) => ticks[index]!);
+  const sortedLanes = order.map((index) => lanes[index]!);
+  // Holds: from 20 s, about one note in five grows a one- to two-beat tail,
+  // only when its lane stays clear until the tail has ended.
+  const holds = sortedTicks.map(() => 0);
+  for (let i = 0; i < sortedTicks.length; i++) {
+    const tick = sortedTicks[i]!;
+    if (tick < BEAT_HOLD_FROM) continue;
+    const roll = rngBelow(rng, 100);
+    rng = roll.state;
+    if (roll.value >= BEAT_HOLD_PERCENT) continue;
+    const lenDraw = rngBelow(rng, 3);
+    rng = lenDraw.state;
+    const len = BEAT_BEAT_TICKS + lenDraw.value * BEAT_EIGHTH_TICKS;
+    if (tick + len > lastTick) continue;
+    let clear = true;
+    for (let j = i + 1; j < sortedTicks.length && sortedTicks[j]! <= tick + len + BEAT_LANE_GAP; j++) {
+      if (sortedLanes[j] === sortedLanes[i]) clear = false;
+    }
+    if (clear) holds[i] = len;
+  }
+  return { rng, chart: { ticks: sortedTicks, lanes: sortedLanes, holds } };
 }
 
 /* ================================ State ================================ */
@@ -162,6 +189,10 @@ export interface BeatState {
   misses: number;
   strays: number;
   tenths: number;
+  /** Per lane: the hold note under the finger, or −1. */
+  holding: number[];
+  holdsDone: number;
+  holdsDropped: number;
   /** Render only: the last judgement, and how long it has been shown. */
   lastJudge: number;
   lastLane: number;
@@ -184,6 +215,9 @@ function init(seed: number): BeatState {
     misses: 0,
     strays: 0,
     tenths: 0,
+    holding: [-1, -1, -1, -1],
+    holdsDone: 0,
+    holdsDropped: 0,
     lastJudge: BEAT_JUDGE_NONE,
     lastLane: -1,
     judgeAge: 0,
@@ -234,6 +268,40 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
   }
   next.cursor = cursor;
 
+  // A hold kept down to the end of its tail is complete at its head's judgement.
+  let holding: number[] | null = null;
+  for (let lane = 0; lane < BEAT_LANES; lane++) {
+    const index = state.holding[lane]!;
+    if (index < 0) continue;
+    if (tick >= ticks[index]! + state.chart.holds[index]!) {
+      holding ??= [...state.holding];
+      holding[lane] = -1;
+      next.holdsDone += 1;
+    }
+  }
+
+  if (input && input.k === BEAT_INPUT_RELEASE) {
+    const lane = clampInt(input.a, 0, BEAT_LANES - 1);
+    const index = (holding ?? state.holding)[lane]!;
+    if (index >= 0) {
+      holding ??= [...state.holding];
+      holding[lane] = -1;
+      if (tick >= ticks[index]! + state.chart.holds[index]! - BEAT_HOLD_GRACE) {
+        next.holdsDone += 1;
+      } else {
+        // Let go early: the head only, and Good at best.
+        next.holdsDropped += 1;
+        if ((judged ?? state.judged)[index] === BEAT_JUDGE_PERFECT) {
+          judged ??= [...state.judged];
+          judged[index] = BEAT_JUDGE_GOOD;
+          next.perfect -= 1;
+          next.good += 1;
+          next.tenths += BEAT_GOOD_TENTHS - BEAT_PERFECT_TENTHS;
+        }
+      }
+    }
+  }
+
   if (input && input.k === BEAT_INPUT_TAP) {
     const lane = clampInt(input.a, 0, BEAT_LANES - 1);
     let bestIndex = -1;
@@ -268,6 +336,10 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
       }
       next.combo += 1;
       next.maxCombo = Math.max(next.maxCombo, next.combo);
+      if (state.chart.holds[bestIndex]! > 0) {
+        holding ??= [...state.holding];
+        holding[lane] = bestIndex;
+      }
       next.lastJudge = verdict;
       next.lastLane = lane;
       next.judgeAge = 0;
@@ -278,6 +350,7 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
   }
 
   if (judged) next.judged = judged;
+  if (holding) next.holding = holding;
   return next;
 }
 
@@ -304,6 +377,7 @@ export interface BeatCheckpointState {
   strays: number;
   tenths: number;
   combo: number;
+  holdFold: number;
 }
 
 export interface BeatCheckpoint extends BeatCheckpointState {
@@ -321,6 +395,8 @@ export function beatCheckpointState(state: BeatState): BeatCheckpointState {
     strays: state.strays,
     tenths: state.tenths,
     combo: state.combo,
+    holdFold:
+      state.holdsDone * 7 + state.holdsDropped * 131 + state.holding.reduce((sum, h, lane) => sum + (h + 1) * (lane + 1) * 17, 0),
   };
 }
 
@@ -364,9 +440,23 @@ function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize)
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
+  const tier = BEAT_COMBO_TIERS.filter((t) => state.combo >= t).length;
   for (let lane = 0; lane < BEAT_LANES; lane++) {
     ctx.fillStyle = lane % 2 === 0 ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.06)";
     ctx.fillRect(lane * laneW, BEAT_HUD_H, laneW, BEAT_WORLD_H - BEAT_HUD_H);
+    if (tier > 0) {
+      // Combo glow rising from the hit line, stronger and taller per tier.
+      const glowH = 90 + tier * 70;
+      const grad = ctx.createLinearGradient(0, BEAT_HIT_LINE_Y, 0, BEAT_HIT_LINE_Y - glowH);
+      grad.addColorStop(0, `${BEAT_LANE_COLOURS[lane]!}${["", "33", "55", "88"][tier]}`);
+      grad.addColorStop(1, `${BEAT_LANE_COLOURS[lane]!}00`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(lane * laneW, BEAT_HIT_LINE_Y - glowH, laneW, glowH);
+    }
+    if (state.holding[lane]! >= 0) {
+      ctx.fillStyle = `${BEAT_LANE_COLOURS[lane]!}40`;
+      ctx.fillRect(lane * laneW, BEAT_HIT_LINE_Y - 12, laneW, 24);
+    }
   }
 
   ctx.strokeStyle = BEAT_GOLD;
@@ -377,16 +467,38 @@ function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize)
   ctx.stroke();
 
   const travel = BEAT_HIT_LINE_Y - BEAT_HUD_H;
+  const yAt = (remaining: number) => BEAT_HUD_H + (travel * (BEAT_FALL_TICKS - remaining)) / BEAT_FALL_TICKS;
   for (let index = 0; index < state.chart.ticks.length; index++) {
-    if (state.judged[index] !== BEAT_JUDGE_NONE) continue;
+    const lane = state.chart.lanes[index]!;
+    const hold = state.chart.holds[index]!;
+    const held = state.holding[lane] === index;
+    if (state.judged[index] !== BEAT_JUDGE_NONE && !held) continue;
     const hitTick = state.chart.ticks[index]!;
     const remaining = hitTick - state.tick;
-    if (remaining > BEAT_FALL_TICKS || remaining < -BEAT_OK_TICKS) continue;
-    const progress = (BEAT_FALL_TICKS - remaining) / BEAT_FALL_TICKS;
-    const lane = state.chart.lanes[index]!;
-    const y = BEAT_HUD_H + travel * progress;
-    ctx.fillStyle = BEAT_LANE_COLOURS[lane % BEAT_LANE_COLOURS.length]!;
-    ctx.fillRect(lane * laneW + 10, y - BEAT_NOTE_H / 2, laneW - 20, BEAT_NOTE_H);
+    if (remaining > BEAT_FALL_TICKS || remaining + hold < -BEAT_OK_TICKS) continue;
+    const colour = BEAT_LANE_COLOURS[lane % BEAT_LANE_COLOURS.length]!;
+    if (hold > 0) {
+      // The tail, from the head (pinned to the line while held) up to its end.
+      const headY = held ? BEAT_HIT_LINE_Y : yAt(remaining);
+      const tailY = Math.max(BEAT_HUD_H, yAt(remaining + hold));
+      ctx.fillStyle = `${colour}${held ? "CC" : "66"}`;
+      ctx.fillRect(lane * laneW + laneW / 2 - 9, tailY, 18, Math.max(0, headY - tailY));
+      ctx.fillStyle = colour;
+      ctx.fillRect(lane * laneW + 14, tailY - 4, laneW - 28, 8);
+      if (held) continue;
+    }
+    ctx.fillStyle = colour;
+    ctx.fillRect(lane * laneW + 10, yAt(remaining) - BEAT_NOTE_H / 2, laneW - 20, BEAT_NOTE_H);
+  }
+
+  // Combo counter beside the hit line.
+  if (state.combo > 0) {
+    ctx.fillStyle = tier >= 3 ? BEAT_GOLD : tier === 2 ? BEAT_LANE_COLOURS[2]! : tier === 1 ? BEAT_LANE_COLOURS[0]! : "rgba(255,255,255,0.75)";
+    ctx.font = "bold 22px ui-monospace, monospace";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "top";
+    ctx.fillText(`${state.combo}×`, BEAT_WORLD_W - 8, BEAT_HIT_LINE_Y + 8);
+    ctx.textBaseline = "alphabetic";
   }
 
   if (state.lastJudge !== BEAT_JUDGE_NONE && state.judgeAge < 24) {
