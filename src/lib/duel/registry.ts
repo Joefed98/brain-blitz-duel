@@ -85,6 +85,8 @@ import { tiltPuzzle } from "@/puzzles/tilt";
 import { hotFloorPuzzle } from "@/puzzles/hotFloor";
 import { ballTrackPuzzle } from "@/puzzles/ballTrack";
 import { wordSearchPuzzle } from "@/puzzles/wordSearch";
+import { tenDropPuzzle } from "@/puzzles/tenDrop";
+import { clayShootPuzzle } from "@/puzzles/clayShoot";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -256,6 +258,8 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   hotfloor: hotFloorPuzzle,
   balltrack: ballTrackPuzzle,
   wordsearch: wordSearchPuzzle,
+  tendrop: tenDropPuzzle,
+  clayshoot: clayShootPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

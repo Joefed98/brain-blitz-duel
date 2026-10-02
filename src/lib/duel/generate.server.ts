@@ -54,6 +54,8 @@ import {
   generateSnake,
   generateSwerve,
   generateWhack,
+  generateTenDrop,
+  generateClayShoot,
   generateWavefront,
   generateBastion,
   generateRooftop,
@@ -140,6 +142,8 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "bubble") return generateBubble();
   if (type === "beat") return generateBeat();
   if (type === "whack") return generateWhack();
+  if (type === "tendrop") return generateTenDrop();
+  if (type === "clayshoot") return generateClayShoot();
   if (type === "wavefront") return generateWavefront();
   if (type === "bastion") return generateBastion();
   if (type === "rooftop") return generateRooftop();

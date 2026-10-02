@@ -23,6 +23,8 @@ import type {
   BubblePuzzleData,
   BeatPuzzleData,
   WhackPuzzleData,
+  TenDropPuzzleData,
+  ClayShootPuzzleData,
   WavefrontPuzzleData,
   BastionPuzzleData,
   RooftopPuzzleData,
@@ -103,6 +105,14 @@ export function generateBubble(): BubblePuzzleData {
 
 export function generateBeat(): BeatPuzzleData {
   return { type: "beat", seed: arcadeSeed() };
+}
+
+export function generateTenDrop(): TenDropPuzzleData {
+  return { type: "tendrop", seed: arcadeSeed() };
+}
+
+export function generateClayShoot(): ClayShootPuzzleData {
+  return { type: "clayshoot", seed: arcadeSeed() };
 }
 
 export function generateWhack(): WhackPuzzleData {

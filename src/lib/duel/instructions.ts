@@ -662,6 +662,24 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "2 points per metre climbed, up to 150.",
   },
+  tendrop: {
+    goal: "Make the running total hit the target exactly.",
+    how: [
+      { action: "Tap falling tiles", detail: "— each one applies to the total in tap order." },
+      { action: "×2, ÷2, ÷3 and −N", detail: "work on the total; a ÷ that doesn't divide exactly is refused." },
+      { action: "Go past the target", detail: "and the total drops back to 0." },
+    ],
+    score: "15 per target cleared — all ten is 150.",
+  },
+  clayshoot: {
+    goal: "Shoot the clays out of the sky.",
+    how: [
+      { action: "Tap a clay", detail: "to fire — the shot lands exactly where you tap." },
+      { action: "Unlimited shots,", detail: "no reload." },
+      { action: "Later on, two fly at once", detail: "and they get a little faster." },
+    ],
+    score: "10 per clay — all fifteen is 150.",
+  },
   whack: {
     goal: "Tap the targets the banner tells you to.",
     how: [
