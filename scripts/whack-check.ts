@@ -62,7 +62,7 @@ for (let run = 0; run < RUNS; run++) {
   let retirementChecked = false;
   for (let tick = 1; tick <= WHACK_WRONG_RETREAT_TICKS + 2; tick++) {
     state = whackGame.step(state, null);
-    if (tick === WHACK_WRONG_RETREAT_TICKS) {
+    if (tick === WHACK_WRONG_RETREAT_TICKS + 1) {
       retirementChecked = state.status.some((status, i) => status === WHACK_STATUS_RETIRED && state.schedule.kind[i] === WHACK_RED);
     }
   }

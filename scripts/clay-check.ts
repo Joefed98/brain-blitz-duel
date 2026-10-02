@@ -49,15 +49,23 @@ for (let run = 0; run < RUNS; run++) {
   left += state.schedule.side.filter((side) => side === 0).length;
   right += state.schedule.side.filter((side) => side === 1).length;
 
+  let idle = clayGame.init(seed);
+  let idleGoldOverlap = false;
+  while (!clayGame.isOver(idle)) {
+    idle = clayGame.step(idle, null);
+    const flying = idle.status.map((status, i) => ({ status, i })).filter(({ status }) => status === CLAY_FLYING);
+    const airborneGold = flying.filter(({ i }) => idle.schedule.kind[i] === CLAY_KIND_GOLD).length;
+    if (airborneGold > 1) idleGoldOverlap = true;
+    if (idle.tick < CLAY_CONFIG.runSeconds * 30) maxEarly = Math.max(maxEarly, flying.length);
+    else maxLate = Math.max(maxLate, flying.length);
+  }
+  if (idleGoldOverlap) fail(`run ${run}: gold overlap`);
+  if (idle.missed !== CLAY_COUNT) fail(`run ${run}: idle run resolved ${idle.missed}/${CLAY_COUNT}`);
+
   const events: ArcadeInputEvent[] = [];
   const checkpoints: ReturnType<typeof clayCheckpoint>[] = [];
-  let goldOverlap = false;
   while (!clayGame.isOver(state)) {
     const flying = state.status.map((status, i) => ({ status, i })).filter(({ status }) => status === CLAY_FLYING);
-    const airborneGold = flying.filter(({ i }) => state.schedule.kind[i] === CLAY_KIND_GOLD).length;
-    if (airborneGold > 1) goldOverlap = true;
-    if (state.tick < CLAY_CONFIG.runSeconds * 30) maxEarly = Math.max(maxEarly, flying.length);
-    else maxLate = Math.max(maxLate, flying.length);
 
     let candidate: ArcadeInputEvent | null = null;
     const target = flying[0]?.i;
@@ -72,7 +80,6 @@ for (let run = 0; run < RUNS; run++) {
     state = clayGame.step(state, inputAt(events, state.tick + 1));
     if (state.tick % CLAY_CHECKPOINT_INTERVAL === 0) checkpoints.push(clayCheckpoint(state));
   }
-  if (goldOverlap) fail(`run ${run}: gold overlap`);
   if (state.hits !== CLAY_COUNT || state.goldHits !== CLAY_CONFIG.goldClays) fail(`run ${run}: aiming bot hit ${state.hits}/${CLAY_COUNT}, gold ${state.goldHits}`);
   else {
     perfectRuns += 1;

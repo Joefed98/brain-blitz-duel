@@ -86,7 +86,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof whackCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const submitted = useRef(false);
-  const [hud, setHud] = useState({ hits: 0, wrong: 0, red: false, flash: false });
+  const [hud, setHud] = useState({ hits: 0, wrong: 0, next: WHACK_COLS * WHACK_COLS, red: false, flash: false });
   useNoTouchScroll(wrap);
 
   const lockedRef = useRef(locked);
@@ -128,7 +128,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let hits = state.current.hits;
     let wrong = state.current.wrong;
     let flashUntil = 0;
-    let shown = { hits: -1, wrong: -1, red: false, flash: false };
+    let shown = { hits: -1, wrong: -1, next: -1, red: false, flash: false };
 
     const loop = (time: number) => {
       frame = requestAnimationFrame(loop);
@@ -168,12 +168,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const next = {
         hits,
         wrong,
+        next: state.current.next,
         red: whackRule(Math.max(1, state.current.tick)) === WHACK_RED,
         flash: time < flashUntil,
       };
       if (
         next.hits !== shown.hits ||
         next.wrong !== shown.wrong ||
+        next.next !== shown.next ||
         next.red !== shown.red ||
         next.flash !== shown.flash
       ) {
@@ -214,7 +216,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   }, [seed, data]);
 
   if (!data) return null;
-  const remaining = state.current.schedule.kind.length - state.current.next;
+  const remaining = state.current.schedule.kind.length - hud.next;
 
   return (
     <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col gap-2" style={NO_SCROLL_STYLE}>
