@@ -648,8 +648,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a lane", detail: "as its note reaches the line." },
       { action: "Closer is better", detail: "— perfect, good, or just OK." },
       { action: "A tap with no note", detail: "costs nothing." },
+      { action: "Notes with a tail are holds", detail: "— tap the head and keep your finger down to the end; letting go early is Good at best." },
+      { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 — a miss resets it." },
     ],
-    score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150.",
+    score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150. A finished hold counts as its tap.",
   },
   ricochet: {
     goal: "Climb the shaft by leaping wall to wall.",
