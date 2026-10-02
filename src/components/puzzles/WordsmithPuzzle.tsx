@@ -170,7 +170,7 @@ export function WordsmithPuzzle({
       {/* 3×3 square: eight letters around a gold centre letter every word must use. */}
       <div
         ref={wheelRef}
-        className="mx-auto grid aspect-square w-[min(100%,288px)] shrink-0 select-none grid-cols-3 gap-2 touch-none"
+        className="grid aspect-square w-full shrink-0 select-none grid-cols-3 gap-2 touch-none"
         onPointerMove={(event) => {
           if (!dragging.current) return;
           const origin = pointerStart.current;

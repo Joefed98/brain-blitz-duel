@@ -556,9 +556,8 @@ export const SNIP_SWEET = "#E84A7F";
 export const SNIP_MOUTH = "#5FBF4A";
 export const SNIP_STAR = "#F5C542";
 
-export function snipView(size: CanvasSize): { scale: number; ox: number; oy: number } {
-  const scale = Math.min(size.width / SNIP_W, size.height / SNIP_H);
-  return { scale, ox: (size.width - SNIP_W * scale) / 2, oy: (size.height - SNIP_H * scale) / 2 };
+export function snipView(size: CanvasSize): { scaleX: number; scaleY: number } {
+  return { scaleX: size.width / SNIP_W, scaleY: size.height / SNIP_H };
 }
 
 function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
@@ -578,11 +577,10 @@ export function drawSnip(
   size: CanvasSize,
   trail?: readonly (readonly [number, number])[],
 ): void {
-  const { scale, ox, oy } = snipView(size);
+  const { scaleX, scaleY } = snipView(size);
   ctx.save();
   ctx.clearRect(0, 0, size.width, size.height);
-  ctx.translate(ox, oy);
-  ctx.scale(scale, scale);
+  ctx.scale(scaleX, scaleY);
   ctx.fillStyle = "#1E2433";
   ctx.fillRect(0, 0, SNIP_W, SNIP_H);
   const tpl = SNIP_CONFIG.templates[state.template]!;

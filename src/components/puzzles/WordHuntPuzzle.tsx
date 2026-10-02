@@ -326,7 +326,7 @@ export function WordHuntPuzzle({
         }`}
       >
         {/* Cells stay at least 56 px: five cells plus four 6 px gaps. */}
-        <div className="aspect-square h-auto max-h-full w-auto max-w-full flex-1" style={{ minWidth: N * 56 + (N - 1) * 6, minHeight: N * 56 + (N - 1) * 6 }}>
+        <div className="aspect-square h-auto max-h-full w-full min-w-0 flex-1">
           <WordHuntBoard
             grid={grid}
             path={path}

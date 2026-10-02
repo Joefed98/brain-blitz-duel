@@ -260,9 +260,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (locked || submitted.current || tenDropGame.isOver(state.current)) return;
           const box = board.current?.getBoundingClientRect();
           if (!box) return;
-          const { scale, ox, oy } = tdView({ width: box.width, height: box.height });
-          const wx = (event.clientX - box.left - ox) / scale;
-          const wy = (event.clientY - box.top - oy) / scale;
+          const { scaleX, scaleY } = tdView({ width: box.width, height: box.height });
+          const wx = (event.clientX - box.left) / scaleX;
+          const wy = (event.clientY - box.top) / scaleY;
           if (wx < 0 || wx > TD_W || wy < 0 || wy > TD_H) return;
           const col = Math.min(3, Math.max(0, Math.floor(wx / TD_COL_W)));
           pending.current.push({ t: 0, k: TD_INPUT_TAP, a: col, b: Math.round(wy), c: 0, d: 0 });

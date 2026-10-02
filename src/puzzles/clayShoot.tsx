@@ -226,9 +226,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (locked || submitted.current || clayGame.isOver(state.current)) return;
           const box = board.current?.getBoundingClientRect();
           if (!box) return;
-          const { scale, ox, oy } = clayView({ width: box.width, height: box.height });
-          const wx = Math.round((event.clientX - box.left - ox) / scale);
-          const wy = Math.round((event.clientY - box.top - oy) / scale);
+          const { scaleX, scaleY } = clayView({ width: box.width, height: box.height });
+          const wx = Math.round((event.clientX - box.left) / scaleX);
+          const wy = Math.round((event.clientY - box.top) / scaleY);
           if (wx < 0 || wx > CLAY_W || wy < 0 || wy > CLAY_H) return;
           pending.current.push({ t: 0, k: CLAY_INPUT_SHOT, a: wx, b: wy, c: 0, d: 0 });
         }}

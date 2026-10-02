@@ -251,7 +251,7 @@ function Stage({
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 pt-1">
       <div className="flex h-7 shrink-0 items-center justify-center overflow-hidden [&>*]:scale-90"><Legend pattern={data.pattern} /></div>
-      <div className="aspect-square min-h-0 w-[calc(100%-32px)] flex-1 [&>svg]:h-full [&>svg]:w-full" style={{ maxWidth: "min(calc(100vw - 32px), calc(100dvh - 292px))", maxHeight: "min(calc(100vw - 32px), calc(100dvh - 292px))" }}>
+      <div className="aspect-square min-h-0 w-full flex-1 [&>svg]:h-full [&>svg]:w-full" style={{ maxHeight: "calc(100dvh - 224px)" }}>
         <Rings
           segments={data.segments}
           offsets={replay.offsets}
