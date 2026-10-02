@@ -106,3 +106,22 @@ export function checkWordSearchPath(
   }
   return { valid: true, points: 0, word };
 }
+
+/**
+ * All found: 100 + round(50 × ms left ÷ limit). Fewer: 15 per word − 5 per
+ * selection that was not a hidden word, at least 5 if any were found.
+ */
+export function scoreWordSearch(
+  found: number,
+  total: number,
+  wrong: number,
+  msRemaining: number,
+  timeLimitMs: number,
+): number {
+  if (found >= total && total > 0) {
+    const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
+    return Math.min(150, 100 + Math.round((50 * ms) / timeLimitMs));
+  }
+  if (found <= 0) return 0;
+  return Math.max(5, 15 * found - 5 * wrong);
+}

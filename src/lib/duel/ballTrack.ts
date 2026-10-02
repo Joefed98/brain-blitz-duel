@@ -123,3 +123,24 @@ export function btReplay(board: BtBoard, events: readonly BtEvent[]): BtReplay {
   }
   return { ball, removed: order, exited, maxRow, runs };
 }
+
+/**
+ * Exit reached: 100 + round(50 × ms left ÷ limit), +20 for exactly the minimum
+ * removals, cap 150. Not reached: round(70 × deepest row ÷ 10).
+ */
+export function scoreBallTrack(
+  exited: boolean,
+  msRemaining: number,
+  timeLimitMs: number,
+  removals: number,
+  minRemovals: number | undefined,
+  maxRow: number,
+  rows: number = BT_ROWS,
+): number {
+  if (exited) {
+    const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
+    const bonus = minRemovals !== undefined && removals === minRemovals ? 20 : 0;
+    return Math.min(150, 100 + Math.round((50 * ms) / timeLimitMs) + bonus);
+  }
+  return Math.max(0, Math.round((70 * Math.min(maxRow, rows - 1)) / (rows - 1)));
+}

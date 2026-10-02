@@ -383,7 +383,7 @@ function PracticeScreen() {
               draftAnswer.current = answer;
             }}
             checkWord={(word, found, path) =>
-              practiceCheckWordFn({ data: { puzzle, word, found, path: path ?? [] } })
+              practiceCheckWordFn({ data: { puzzle, word, found, path: path ?? [], sealed } })
             }
             checkGroup={(indices) => practiceCheckGroupFn({ data: { puzzle, sealed, indices } })}
           />

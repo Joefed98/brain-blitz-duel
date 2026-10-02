@@ -107,10 +107,19 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
 /** Word puzzles: checks one word or ladder rung using server-only vocabulary. */
 export const practiceCheckWordFn = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { puzzle: PuzzleData; word: string; found: string[]; path?: number[] }) => input,
+    (input: { puzzle: PuzzleData; word: string; found: string[]; path?: number[]; sealed?: string }) => input,
   )
   .handler(async ({ data }) => {
     const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
+    if (data.puzzle.type === "wordsearch") {
+      const priv = await unseal(String(data.sealed ?? ""));
+      if (priv["type"] !== "wordsearch") throw new Error("Bad practice puzzle.");
+      const puzzle = mergePuzzle(data.puzzle, priv);
+      if (puzzle.type !== "wordsearch") return { valid: false as const, points: 0, word: "" };
+      const { checkWordSearchPath } = await import("./wordSearch");
+      const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
+      return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found);
+    }
     if (data.puzzle.type === "wordhunt") {
       const { checkWordHuntPath } = await import("./wordHunt.server");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];

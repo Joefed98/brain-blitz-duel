@@ -62,6 +62,8 @@ import { replayColourClashRun } from "./colourClash";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
+import { btDecode, btReplay, scoreBallTrack } from "./ballTrack";
+import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeRicoRun, replayRicoRun } from "./ricochet";
@@ -1533,6 +1535,33 @@ export function gradeSubmission(
       correctCount = covered;
       score = scoreShikaku(solved, ms, timeLimitMs, covered);
       extraDetail = { solved, covered, rects: rects.length };
+      break;
+    }
+    case "balltrack": {
+      // The removal / GO log is replayed against the stored board here.
+      const run = btReplay(puzzle, btDecode(answer));
+      isCorrect = run.exited;
+      correctCount = run.removed.length;
+      score = scoreBallTrack(run.exited, ms, timeLimitMs, run.removed.length, puzzle.minRemovals, run.maxRow, puzzle.rows);
+      extraDetail = {
+        exited: run.exited,
+        removals: run.removed.length,
+        minRemovals: puzzle.minRemovals ?? null,
+        maxRow: run.maxRow,
+        gos: run.runs.length,
+      };
+      break;
+    }
+    case "wordsearch": {
+      // Selections are matched against the stored placements; the client's word list is never read.
+      const selections = wsDecode(answer, puzzle.size);
+      const verdict = wsGrade(puzzle.placements ?? [], selections);
+      const total = puzzle.placements?.length ?? puzzle.wordCount;
+      isCorrect = verdict.found.length === total;
+      correctCount = verdict.found.length;
+      errors = verdict.wrong;
+      score = scoreWordSearch(verdict.found.length, total, verdict.wrong, ms, timeLimitMs);
+      extraDetail = { found: verdict.found.length, total, wrong: verdict.wrong };
       break;
     }
     case "lightup": {
