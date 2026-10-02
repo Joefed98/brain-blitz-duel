@@ -847,6 +847,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag a tile", detail: "from the tray into an empty cell." },
       { action: "Drag a placed tile", detail: "back to the tray, or onto another cell to swap." },
       { action: "Two tiles are decoys", detail: "— nothing fills itself in." },
+      { action: "Skip", detail: "moves to the next pyramid without completing this one." },
     ],
     score: "40 per completed pyramid, plus a speed bonus for all three. The current pyramid earns partial points.",
   },

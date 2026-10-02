@@ -18,5 +18,6 @@ for (const set of NUMBER_PYRAMID_BANK) {
 }
 if (scoreNumberPyramid(3, true, 60_000, 0, 0) !== 135) bad++;
 if (scoreNumberPyramid(2, false, 0, 3, 6) !== 100) bad++;
+if (scoreNumberPyramid(2, false, 0, 0, 6) !== 80) bad++;
 console.log(`checked ${NUMBER_PYRAMID_BANK.length} sets / ${seen.size} unique pyramids, problems ${bad}; all at half time ${scoreNumberPyramid(3, true, 60_000, 0, 0)}; two plus 3/6 ${scoreNumberPyramid(2, false, 0, 3, 6)}`);
 if (bad) process.exitCode = 1;

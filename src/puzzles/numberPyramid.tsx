@@ -142,13 +142,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     return () => ro.disconnect();
   }, []);
 
-  if (!data || !board) return null;
-  const complete = npComplete(board.givens, board.tray, placements, board.rows);
+  const complete = board ? npComplete(board.givens, board.tray, placements, board.rows) : false;
   const busy = locked || submitted.current;
-  const placedTray = new Set(Object.values(placements));
-  const filled = npFilled(board.givens, board.tray, placements);
-  const cellW = Math.max(38, Math.min(board.rows === 4 ? 58 : 52, Math.floor((width - 16) / board.rows)));
-  const cellH = Math.round(cellW * 0.72);
 
   const updatePlacements = (next: NpPlacements) => {
     const boards = [...allPlacements]; boards[stage] = next; setAllPlacements(boards);
@@ -161,12 +156,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   };
 
   useEffect(() => {
-    if (!complete || busy) return;
+    if (!complete || busy || !board) return;
     playCorrect();
     const id = window.setTimeout(() => advance(placements), 220);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [complete, locked]);
+
+  if (!data || !board) return null;
+  const placedTray = new Set(Object.values(placements));
+  const filled = npFilled(board.givens, board.tray, placements);
+  const cellW = Math.max(38, Math.min(board.rows === 4 ? 58 : 52, Math.floor((width - 16) / board.rows)));
+  const cellH = Math.round(cellW * 0.72);
 
   const drop = (tray: number, from: number | null, cell: number | null) => {
     const next: NpPlacements = { ...placements };

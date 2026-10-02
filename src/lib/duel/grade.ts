@@ -1663,7 +1663,7 @@ export function gradeSubmission(
       const active = boards[decoded.active] ?? boards[0]!;
       isCorrect = completed === puzzle.pyramids.length;
       correctCount = boards.reduce((sum, board) => sum + board.correctCells, 0);
-      score = scoreNumberPyramid(completed, isCorrect, ms, active.correctCells, active.emptyCells);
+      score = scoreNumberPyramid(completed, isCorrect, ms, active.complete ? 0 : active.correctCells, active.emptyCells);
       extraDetail = { completed, active: decoded.active, boards };
       break;
     }
