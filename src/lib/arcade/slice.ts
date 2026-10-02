@@ -98,6 +98,17 @@ export const SLICE_SLICE_POINTS = 2;
 export const SLICE_MULTI_BONUS = 3;
 export const SLICE_MULTI_NEEDED = 3;
 export const SLICE_BOMB_PENALTY = 10;
+/** Every this many slices in a row raises the multiplier, up to ×3. */
+export const SLICE_COMBO_STEP = 5;
+export const SLICE_COMBO_MAX = 3;
+/** Each recorded segment cuts 25% longer, extended back past its start. */
+export const SLICE_REACH_NUM = 5;
+export const SLICE_REACH_DEN = 4;
+
+/** Multiplier for a streak of this many slices. */
+export function sliceMultiplier(streak: number): number {
+  return Math.min(SLICE_COMBO_MAX, 1 + Math.trunc(streak / SLICE_COMBO_STEP));
+}
 
 /** How long the bomb flash and the falling halves are drawn for. */
 export const SLICE_FLASH_TICKS = 14;
@@ -375,6 +386,11 @@ export interface SliceState {
   swipe: readonly [number, number, number, number] | null;
   /** Fixed at init: every disc the schedule could offer, specials' batches included. */
   available: number;
+  /** Slices in a row without a miss or a bomb; weighted slices; best multiplier. */
+  streak: number;
+  weighted: number;
+  bestMult: number;
+  missed: number;
 }
 
 function init(seed: number): SliceState {
@@ -391,6 +407,10 @@ function init(seed: number): SliceState {
     flash: 0,
     swipe: null,
     available: scheduleAvailable(schedule.objects),
+    streak: 0,
+    weighted: 0,
+    bestMult: 1,
+    missed: 0,
   };
 }
 
@@ -469,7 +489,10 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
   };
 
   if (input && input.k === SLICE_INPUT_SWIPE) {
-    next.swipe = [input.a, input.b, input.c, input.d];
+    // The cut reaches 25% further back along the swipe than the recorded start.
+    const ax = input.c - Math.trunc(((input.c - input.a) * SLICE_REACH_NUM) / SLICE_REACH_DEN);
+    const ay = input.d - Math.trunc(((input.d - input.b) * SLICE_REACH_NUM) / SLICE_REACH_DEN);
+    next.swipe = [ax, ay, input.c, input.d];
     let cut = 0;
     let bombs = 0;
     let slicedAt: number[] | null = null;
@@ -486,11 +509,17 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
       const cy = Math.trunc(at.y / 256);
       const radius = object.special ? SLICE_SPECIAL_R : SLICE_R;
       if (cy - radius > SLICE_WORLD_H || cy + radius < SLICE_HUD_H) continue;
-      if (!segmentHits(input.a, input.b, input.c, input.d, cx, cy, radius)) continue;
+      if (!segmentHits(ax, ay, input.c, input.d, cx, cy, radius)) continue;
       slicedAt ??= [...state.slicedAt];
       slicedAt[index] = tick;
       if (object.bomb) bombs += 1;
-      else cut += 1;
+      else {
+        cut += 1;
+        // Each slice counts at the multiplier it is made on.
+        next.weighted += sliceMultiplier(next.streak);
+        next.streak += 1;
+        next.bestMult = Math.max(next.bestMult, sliceMultiplier(next.streak));
+      }
       if (object.special === SLICE_SPECIAL_FRENZY) frenzies.push(tick);
       for (const item of object.payload) added.push(spawned(item, tick));
     }
@@ -506,7 +535,16 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
     if (bombs > 0) {
       next.bombsHit = state.bombsHit + bombs;
       next.flash = SLICE_FLASH_TICKS;
+      next.streak = 0;
     }
+  }
+
+  // A disc that left the screen unsliced on the previous tick breaks the combo.
+  for (let index = 0; index < next.objects.length; index++) {
+    const object = next.objects[index]!;
+    if (object.bomb || object.lastTick !== tick - 1 || next.slicedAt[index]) continue;
+    next.missed += 1;
+    next.streak = 0;
   }
 
   return next;
@@ -514,7 +552,8 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
 
 function score(state: SliceState): number {
   const total = Math.max(1, sliceTotalDiscs(state));
-  const earned = Math.floor((150 * Math.min(state.slices, total)) / total);
+  // A perfect full-combo run scores 150: every slice weighted ×3.
+  const earned = Math.floor((150 * Math.min(state.weighted, total * SLICE_COMBO_MAX)) / (total * SLICE_COMBO_MAX));
   return clampInt(earned - SLICE_BOMB_PENALTY * state.bombsHit, 0, 150);
 }
 
@@ -533,6 +572,8 @@ export interface SliceCheckpointState {
   /** How many objects are in the schedule, specials' spawns included. */
   objectCount: number;
   frenzies: number;
+  streak: number;
+  weighted: number;
 }
 
 export interface SliceCheckpoint extends SliceCheckpointState {
@@ -560,6 +601,8 @@ export function sliceCheckpointState(state: SliceState): SliceCheckpointState {
     slicedFold,
     objectCount: state.objects.length,
     frenzies: state.frenzyFrom.length,
+    streak: state.streak,
+    weighted: state.weighted,
   };
 }
 
@@ -700,6 +743,20 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
     ctx.fillStyle = `rgba(224,80,60,${(state.flash / SLICE_FLASH_TICKS) * 0.45})`;
     ctx.fillRect(0, 0, SLICE_WORLD_W, SLICE_WORLD_H);
   }
+
+  // Combo meter, left edge: fills toward the next tier.
+  const mult = sliceMultiplier(state.streak);
+  const fill = mult >= SLICE_COMBO_MAX ? 1 : (state.streak % SLICE_COMBO_STEP) / SLICE_COMBO_STEP;
+  const meterTop = SLICE_HUD_H + 40;
+  const meterH = SLICE_WORLD_H - meterTop - 40;
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  ctx.fillRect(6, meterTop, 8, meterH);
+  ctx.fillStyle = mult >= 3 ? SLICE_GOLD : mult === 2 ? SLICE_COLOURS[0]! : "rgba(255,255,255,0.55)";
+  ctx.fillRect(6, meterTop + meterH * (1 - fill), 8, meterH * fill);
+  ctx.font = "bold 16px ui-monospace, monospace";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(`×${mult}`, 4, meterTop - 6);
 
   ctx.fillStyle = SLICE_BG;
   ctx.fillRect(0, 0, SLICE_WORLD_W, SLICE_HUD_H);

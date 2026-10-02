@@ -44,6 +44,8 @@ export function encodeSliceRun(run: SliceRun): string {
         item.slicedFold,
         item.objectCount,
         item.frenzies,
+        item.streak,
+        item.weighted,
         item.checksum,
       ].join(":"),
     )
@@ -66,8 +68,8 @@ export function decodeSliceRun(raw: string): SliceRun {
     .filter(Boolean)
     .slice(0, Math.ceil(SLICE_RUN_TICKS / SLICE_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
-    .filter((values) => values.length === 9 && values.every(Number.isInteger))
-    .map(([tick, slices, bonuses, bombsHit, airborne, slicedFold, objectCount, frenzies, sum]) => ({
+    .filter((values) => values.length === 11 && values.every(Number.isInteger))
+    .map(([tick, slices, bonuses, bombsHit, airborne, slicedFold, objectCount, frenzies, streak, weighted, sum]) => ({
       tick: tick ?? 0,
       slices: slices ?? 0,
       bonuses: bonuses ?? 0,
@@ -76,6 +78,8 @@ export function decodeSliceRun(raw: string): SliceRun {
       slicedFold: slicedFold ?? 0,
       objectCount: objectCount ?? 0,
       frenzies: frenzies ?? 0,
+      streak: streak ?? 0,
+      weighted: weighted ?? 0,
       checksum: (sum ?? 0) >>> 0,
     }));
   return {
@@ -88,6 +92,7 @@ export function decodeSliceRun(raw: string): SliceRun {
 }
 
 export interface SliceResult {
+  bestMult: number;
   slices: number;
   totalDiscs: number;
   bonuses: number;
@@ -146,6 +151,7 @@ export function replaySliceRun(seed: number, raw: string): SliceResult {
     slices: state.slices,
     totalDiscs: sliceTotalDiscs(state),
     bonuses: state.bonuses,
+    bestMult: state.bestMult,
     bombsHit: state.bombsHit,
     finished: state.tick >= SLICE_RUN_TICKS,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,

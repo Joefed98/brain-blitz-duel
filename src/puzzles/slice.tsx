@@ -266,11 +266,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         ))}
       </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.slices} / {result.totalDiscs} sliced ·{" "}
-        {result.bombsHit === 1 ? "1 bomb" : `${result.bombsHit} bombs`}
+        Sliced {result.slices} / {result.totalDiscs} · best combo ×{result.bestMult}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {result.bonuses} multi-slice bonus{result.bonuses === 1 ? "" : "es"}
+        {result.bombsHit === 1 ? "1 bomb" : `${result.bombsHit} bombs`} hit
       </p>
       <p className="shrink-0 font-mono text-base" style={{ color: SLICE_GOLD }}>
         {result.score} points

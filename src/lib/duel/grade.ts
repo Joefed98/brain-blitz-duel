@@ -936,6 +936,8 @@ export function gradeSubmission(
       score = run.score;
       extraDetail = {
         crossings: run.crossings,
+        clean: run.clean,
+        livesLost: run.livesLost,
         lanes: run.lanes,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
@@ -1093,6 +1095,7 @@ export function gradeSubmission(
       extraDetail = {
         slices: run.slices,
         totalDiscs: run.totalDiscs,
+        bestMult: run.bestMult,
         bonuses: run.bonuses,
         bombsHit: run.bombsHit,
         finished: run.finished,

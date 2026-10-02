@@ -47,6 +47,9 @@ export function encodeCrossRun(run: CrossRun): string {
         item.crossStart,
         item.pauseUntil,
         item.laneSpeed,
+        item.lives,
+        item.clean,
+        item.flags,
         item.checksum,
       ].join(":"),
     )
@@ -69,7 +72,7 @@ export function decodeCrossRun(raw: string): CrossRun {
     .filter(Boolean)
     .slice(0, Math.ceil(CROSS_RUN_TICKS / CROSS_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
-    .filter((values) => values.length === 11 && values.every(Number.isInteger))
+    .filter((values) => values.length === 14 && values.every(Number.isInteger))
     .map(
       ([
         tick,
@@ -82,6 +85,9 @@ export function decodeCrossRun(raw: string): CrossRun {
         crossStart,
         pauseUntil,
         laneSpeed,
+        lives,
+        clean,
+        flags,
         sum,
       ]) => ({
         tick: tick ?? 0,
@@ -94,6 +100,9 @@ export function decodeCrossRun(raw: string): CrossRun {
         crossStart: crossStart ?? 0,
         pauseUntil: pauseUntil ?? 0,
         laneSpeed: laneSpeed ?? 0,
+        lives: lives ?? 0,
+        clean: clean ?? 0,
+        flags: flags ?? 0,
         checksum: (sum ?? 0) >>> 0,
       }),
     );
@@ -108,6 +117,8 @@ export function decodeCrossRun(raw: string): CrossRun {
 
 export interface CrossResult {
   crossings: number;
+  clean: number;
+  livesLost: number;
   lanes: number;
   survived: boolean;
   endedSeconds: number;
@@ -161,6 +172,8 @@ export function replayCrossRun(seed: number, raw: string): CrossResult {
   const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
   const result: CrossResult = {
     crossings: state.crossings,
+    clean: state.clean,
+    livesLost: 3 - state.lives,
     lanes: state.reached,
     survived: crossSurvived(state),
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,

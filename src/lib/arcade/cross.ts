@@ -61,6 +61,9 @@ export const CROSS_GAP_SPAN_FP = 23_040;
 /** 4 per lane advanced, +4 per completed crossing (a full crossing = 40). */
 export const CROSS_LANE_POINTS = 4;
 export const CROSS_CROSSING_POINTS = 4;
+/** Bonus for a crossing finished without being hit on any lane. */
+export const CROSS_CLEAN_POINTS = 8;
+export const CROSS_LIVES = 3;
 
 /** A move: a = 0 up, 1 down, 2 left, 3 right — each from a swipe. */
 export const CROSS_INPUT_MOVE = 5;
@@ -220,6 +223,14 @@ export interface CrossState {
   pauseUntil: number;
   dead: boolean;
   endedTick: number;
+  /** Lives left, clean crossings banked, and whether this crossing has been hit. */
+  lives: number;
+  clean: number;
+  hitThisCrossing: boolean;
+  /** After a respawn the disc ignores traffic until its cell is first clear. */
+  ghost: boolean;
+  /** Render only: the tick of the last hit. */
+  hitTick: number;
 }
 
 function init(seed: number): CrossState {
@@ -244,6 +255,11 @@ function init(seed: number): CrossState {
     pauseUntil: 0,
     dead: false,
     endedTick: 0,
+    lives: CROSS_LIVES,
+    clean: 0,
+    hitThisCrossing: false,
+    ghost: false,
+    hitTick: -1000,
   };
 }
 
@@ -268,7 +284,7 @@ export function crossSurvived(state: CrossState): boolean {
 function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
-  let { lane, col, hop, hopDir, reached, crossings, crossStart, pauseUntil } = state;
+  let { lane, col, hop, hopDir, reached, crossings, crossStart, pauseUntil, clean, hitThisCrossing, ghost } = state;
   // Everything sent while the disc waits on the kerb is dropped, so a swipe at
   // the end of one crossing can never carry into the next.
   const paused = tick < pauseUntil;
@@ -297,6 +313,9 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
         // The goal kerb: bank the crossing, then a second on the start kerb
         // while the traffic of the next crossing keeps rolling.
         crossings += 1;
+        if (!hitThisCrossing) clean += 1;
+        hitThisCrossing = false;
+        ghost = false;
         lane = 0;
         col = CROSS_COLS >> 1;
         reached = 0;
@@ -307,24 +326,17 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
     }
   }
 
-  if (hop === 0 && lane >= 1 && lane <= CROSS_LANES) {
+  if (!paused && hop === 0 && lane >= 1 && lane <= CROSS_LANES) {
     const course = crossCourse({ ...state, crossings });
     const laneDef = course.lanes[lane - 1];
-    if (laneDef && crossBlocked(laneDef, crossColumnCentreFp(col), tick - crossStart)) {
-      return {
-        ...state,
-        tick,
-        lane,
-        col,
-        hop,
-        hopDir,
-        reached,
-        crossings,
-        crossStart,
-        pauseUntil,
-        dead: true,
-        endedTick: tick,
-      };
+    const blocked = !!laneDef && crossBlocked(laneDef, crossColumnCentreFp(col), tick - crossStart);
+    if (ghost && !blocked) ghost = false;
+    if (blocked && !ghost) {
+      const lives = state.lives - 1;
+      const base = { ...state, tick, lane, hop: 0, hopDir: 1, reached, crossings, crossStart, clean, lives, hitTick: tick };
+      if (lives <= 0) return { ...base, col, pauseUntil, hitThisCrossing: true, ghost, dead: true, endedTick: tick };
+      // Back to the start column of the lane it died on, after a second's pause.
+      return { ...base, col: CROSS_COLS >> 1, pauseUntil: tick + CROSS_PAUSE_TICKS, hitThisCrossing: true, ghost: true };
     }
   }
 
@@ -339,6 +351,9 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
     crossings,
     crossStart,
     pauseUntil,
+    clean,
+    hitThisCrossing,
+    ghost,
   };
   if (tick >= CROSS_RUN_TICKS) return { ...next, endedTick: tick };
   return next;
@@ -348,7 +363,7 @@ function score(state: CrossState): number {
   // Each lane is a ninth of a crossing, so progress counts in lanes.
   const lanes = state.crossings * CROSS_LANES + clampInt(state.reached, 0, CROSS_LANES);
   return clampInt(
-    CROSS_LANE_POINTS * lanes + CROSS_CROSSING_POINTS * state.crossings,
+    CROSS_LANE_POINTS * lanes + CROSS_CROSSING_POINTS * state.crossings + CROSS_CLEAN_POINTS * state.clean,
     0,
     150,
   );
@@ -369,6 +384,9 @@ export interface CrossCheckpointState {
   crossStart: number;
   pauseUntil: number;
   laneSpeed: number;
+  lives: number;
+  clean: number;
+  flags: number;
 }
 
 export interface CrossCheckpoint extends CrossCheckpointState {
@@ -388,6 +406,9 @@ export function crossCheckpointState(state: CrossState): CrossCheckpointState {
     crossStart: state.crossStart,
     pauseUntil: state.pauseUntil,
     laneSpeed: course.lanes[0]?.speed ?? 0,
+    lives: state.lives,
+    clean: state.clean,
+    flags: (state.hitThisCrossing ? 1 : 0) | (state.ghost ? 2 : 0),
   };
 }
 
@@ -423,6 +444,61 @@ export function crossLaneCentre(lane: number): number {
   return crossLaneTop(lane) + CROSS_LANE_H / 2;
 }
 
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** A car (or a lorry with a cab) filling exactly its collision box. Render only. */
+function drawVehicle(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dir: number, colour: string, lorry: boolean): void {
+  const front = dir > 0 ? x + w : x;
+  const back = dir > 0 ? x : x + w;
+  ctx.fillStyle = colour;
+  if (lorry) {
+    const cab = Math.min(26, w * 0.28);
+    const gap = 3;
+    // Trailer, then cab at the front.
+    roundRect(ctx, dir > 0 ? x : x + cab + gap, y, w - cab - gap, h, 4);
+    ctx.fill();
+    roundRect(ctx, dir > 0 ? x + w - cab : x, y + 2, cab, h - 4, 6);
+    ctx.fill();
+    ctx.fillStyle = "rgba(11, 11, 15, 0.55)";
+    ctx.fillRect(dir > 0 ? x + w - cab * 0.55 : x + cab * 0.2, y + 6, cab * 0.35, h - 12);
+  } else {
+    roundRect(ctx, x, y, w, h, Math.min(12, h / 2));
+    ctx.fill();
+    // Windscreen and rear window.
+    ctx.fillStyle = "rgba(11, 11, 15, 0.5)";
+    const ws = Math.min(14, w * 0.18);
+    ctx.fillRect(dir > 0 ? x + w * 0.62 : x + w * 0.38 - ws, y + 5, ws, h - 10);
+    ctx.fillRect(dir > 0 ? x + w * 0.18 : x + w * 0.82 - ws * 0.7, y + 6, ws * 0.7, h - 12);
+  }
+  // Headlights (white, at the front) and tail lights (red, at the back).
+  ctx.fillStyle = "#FFFFFF";
+  const hx = front - dir * 4;
+  ctx.beginPath();
+  ctx.arc(hx, y + 6, 2.6, 0, Math.PI * 2);
+  ctx.arc(hx, y + h - 6, 2.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+  ctx.beginPath();
+  ctx.moveTo(front, y + 2);
+  ctx.lineTo(front + dir * 18, y - 2);
+  ctx.lineTo(front + dir * 18, y + h + 2);
+  ctx.lineTo(front, y + h - 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#FF3B3B";
+  const tx = back + dir * 2;
+  ctx.fillRect(tx - 1.5, y + 3, 3, 5);
+  ctx.fillRect(tx - 1.5, y + h - 8, 3, 5);
+}
+
 function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize): void {
   const scale = Math.min(size.width / CROSS_WORLD_W, size.height / CROSS_WORLD_H);
   const offsetX = (size.width - CROSS_WORLD_W * scale) / 2;
@@ -455,10 +531,13 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
     if (!laneDef) continue;
     const start = mod(laneDef.dir * laneDef.speed * rel + laneDef.phase, laneDef.period);
     const count = Math.ceil((CROSS_BOARD_W * 256) / laneDef.period) + 2;
-    ctx.fillStyle = CROSS_BLOCK_COLOURS[state.crossings % CROSS_BLOCK_COLOURS.length] ?? CROSS_BLOCK;
+    // Faster lanes (top third of this crossing's speeds) carry lorries.
+    const speeds = course.lanes.map((l) => l.speed).sort((a, b) => a - b);
+    const lorry = laneDef.speed >= (speeds[Math.floor((speeds.length * 2) / 3)] ?? Infinity);
     for (let index = -1; index <= count; index++) {
       const x = px(start + index * laneDef.period);
-      ctx.fillRect(x, top + 6, px(laneDef.blockW), CROSS_LANE_H - 12);
+      const colour = CROSS_BLOCK_COLOURS[(lane + index + 8) % CROSS_BLOCK_COLOURS.length] ?? CROSS_BLOCK;
+      drawVehicle(ctx, x, top + 7, px(laneDef.blockW), CROSS_LANE_H - 14, laneDef.dir, colour, lorry);
     }
   }
 
@@ -477,9 +556,18 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
   const done = state.hop > 0 ? (CROSS_HOP_TICKS - state.hop) / CROSS_HOP_TICKS : 0;
   const cy = state.hop > 0 ? from + (to - from) * done : from;
   ctx.fillStyle = CROSS_PLAYER;
+  ctx.globalAlpha = state.ghost && Math.floor(state.tick / 6) % 2 === 0 ? 0.45 : 1;
   ctx.beginPath();
   ctx.arc(px(crossColumnCentreFp(state.col)), cy, CROSS_PLAYER_R, 0, Math.PI * 2);
   ctx.fill();
+  ctx.globalAlpha = 1;
+  // Lives, top right.
+  for (let i = 0; i < CROSS_LIVES; i++) {
+    ctx.fillStyle = i < state.lives ? CROSS_PLAYER : "rgba(255,255,255,0.18)";
+    ctx.beginPath();
+    ctx.arc(CROSS_WORLD_W - 22 - i * 18, 18, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";
@@ -489,7 +577,11 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
   ctx.textAlign = "right";
 
   // The breather between crossings, announced over the board.
-  if (crossPaused(state)) {
+  if (state.tick - state.hitTick < 20 && !state.dead) {
+    ctx.fillStyle = `rgba(255, 77, 77, ${0.25 * (1 - (state.tick - state.hitTick) / 20)})`;
+    ctx.fillRect(0, 0, CROSS_WORLD_W, CROSS_WORLD_H);
+  }
+  if (crossPaused(state) && state.tick - state.hitTick >= CROSS_PAUSE_TICKS) {
     ctx.fillStyle = "rgba(11, 11, 15, 0.55)";
     ctx.fillRect(CROSS_BOARD_X, CROSS_WORLD_H / 2 - 30, CROSS_BOARD_W, 60);
     ctx.fillStyle = CROSS_PLAYER;

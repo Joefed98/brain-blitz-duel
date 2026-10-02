@@ -167,6 +167,26 @@ export function bullseyeAimPoint(
   return { x: landing.x + sway.dx, y: landing.y + sway.dy };
 }
 
+/* ---------------------------- Moving target ---------------------------- */
+
+/** From this arrow (0-based) the whole target drifts left and right. */
+export const BULLSEYE_DRIFT_FROM = 5;
+/** One full drift cycle, ticks (2.6 s). */
+export const BULLSEYE_DRIFT_PERIOD = 156;
+
+/**
+ * Sideways target offset, whole world px, for this arrow at this sim tick:
+ * 0 before arrow 6, then a sine-table oscillation whose amplitude rises from
+ * 60 px (arrow 6) to 100 px (arrow 10); phase and direction from the seed.
+ */
+export function bullseyeTargetDx(index: number, tick: number, phase: number, dir: number): number {
+  if (index < BULLSEYE_DRIFT_FROM) return 0;
+  const amp = 60 + 10 * Math.min(4, index - BULLSEYE_DRIFT_FROM);
+  const t = (((tick + phase) % BULLSEYE_DRIFT_PERIOD) + BULLSEYE_DRIFT_PERIOD) % BULLSEYE_DRIFT_PERIOD;
+  const slot = Math.trunc((t * BULLSEYE_SWAY_PERIOD) / BULLSEYE_DRIFT_PERIOD);
+  return Math.round((dir * amp * BULLSEYE_SWAY_SIN[slot]!) / BULLSEYE_SWAY_UNIT);
+}
+
 /**
  * Which ring a landing point falls in, as an index, or −1 for a miss. Compared
  * with scaled integers so there is never a floating-point radius.
@@ -203,6 +223,8 @@ export interface BullseyeHit {
   arrow: number;
   /** The persisted wind applied to this arrow. */
   wind: number;
+  /** Target's sideways offset when this arrow landed. */
+  tdx: number;
 }
 
 export interface BullseyeState {
@@ -217,6 +239,9 @@ export interface BullseyeState {
   /** Ticks left of the current arrow's flight animation. */
   flightTick: number;
   endedTick: number;
+  /** Moving-target phase (ticks) and direction (±1), from the seed. */
+  driftPhase: number;
+  driftDir: number;
 }
 
 export function bullseyeWinds(seed: number): number[] {
@@ -242,7 +267,12 @@ export function bullseyeInit(seed: number, storedWinds?: readonly number[]): Bul
       (wind) => Number.isInteger(wind) && wind >= -BULLSEYE_WIND_MAX && wind <= BULLSEYE_WIND_MAX,
     );
   const winds = validStored ? [...storedWinds] : generated;
+  const phaseDraw = rngBelow(rng, BULLSEYE_DRIFT_PERIOD);
+  const dirDraw = rngBelow(phaseDraw.state, 2);
+  rng = dirDraw.state;
   return {
+    driftPhase: phaseDraw.value,
+    driftDir: dirDraw.value === 0 ? -1 : 1,
     tick: 0,
     rng,
     winds,
@@ -280,14 +310,16 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
     const aimed = bullseyeAimPoint(arrow, tick, vx, vy);
     const x = aimed.x + bullseyeWindShiftPx(arrow, wind);
     const y = aimed.y;
-    const ring = bullseyeRingAt(x, y, bullseyeScalePct(arrow));
+    // Scored against where the target is when the arrow lands.
+    const tdx = bullseyeTargetDx(arrow, tick + BULLSEYE_FLIGHT_TICKS, state.driftPhase, state.driftDir);
+    const ring = bullseyeRingAt(x - tdx, y, bullseyeScalePct(arrow));
     const value = bullseyeRingValue(ring);
     const next: BullseyeState = {
       ...state,
       tick,
       flightTick: BULLSEYE_FLIGHT_TICKS,
       arrowIndex: arrow + 1,
-      hits: [...state.hits, { x, y, ring, value, arrow, wind }],
+      hits: [...state.hits, { x, y, ring, value, arrow, wind, tdx }],
       total: state.total + value,
     };
     if (isOver(next)) return { ...next, endedTick: tick };
@@ -331,6 +363,7 @@ export interface BullseyeCheckpointState {
   lastY: number;
   lastRing: number;
   wind: number;
+  lastTdx: number;
 }
 
 export interface BullseyeCheckpoint extends BullseyeCheckpointState {
@@ -348,6 +381,7 @@ export function bullseyeCheckpointState(state: BullseyeState): BullseyeCheckpoin
     lastY: last ? last.y : 0,
     lastRing: last ? last.ring : -1,
     wind: state.winds[Math.min(state.arrowIndex, BULLSEYE_ARROWS - 1)] ?? 0,
+    lastTdx: last ? last.tdx : 0,
   };
 }
 
@@ -384,7 +418,14 @@ export function bullseyeTransform(size: CanvasSize): BullseyeTransform {
 }
 
 /** The six rings at the size this arrow sees them. */
-export function bullseyeDrawTarget(ctx: CanvasRenderingContext2D, scalePct: number): void {
+export function bullseyeDrawTarget(ctx: CanvasRenderingContext2D, scalePct: number, dx = 0): void {
+  ctx.save();
+  ctx.translate(dx, 0);
+  drawRings(ctx, scalePct);
+  ctx.restore();
+}
+
+function drawRings(ctx: CanvasRenderingContext2D, scalePct: number): void {
   for (let ring = BULLSEYE_RINGS; ring >= 1; ring--) {
     const radius = (BULLSEYE_RING_STEP * ring * scalePct) / 100;
     ctx.beginPath();
@@ -475,7 +516,9 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
-  bullseyeDrawTarget(ctx, bullseyeScalePct(shown));
+  // Mid-flight the target keeps moving (it is scored where it is on landing).
+  const shownDx = bullseyeTargetDx(shown, state.tick, state.driftPhase, state.driftDir);
+  bullseyeDrawTarget(ctx, bullseyeScalePct(shown), shownDx);
 
   // The last landed arrow stays as a faint correction dot until the next release.
   const last = state.hits[state.hits.length - 1];
