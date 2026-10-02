@@ -4,6 +4,7 @@ import {
   BLOCK_TIME_MS,
   GONOGO_ITEMS,
   NUMHUNT_ERROR_PENALTY,
+  NUMHUNT_TIME_MS,
   NUMSEQ_ITEMS,
   NUMSEQ_TIME_MS,
   PCTSPRINT_ITEMS,
@@ -313,7 +314,7 @@ export function scoreStopWatch(averageDistanceMs: number): number {
 }
 
 /**
- * Number Hunt: a standard round score, less 5 points per wrong tap. An
+ * Number Hunt: a standard round score, less 10 points per wrong tap. An
  * unfinished run scores by how far up the order the player got.
  */
 export function scoreNumberHunt(
@@ -324,8 +325,7 @@ export function scoreNumberHunt(
   total = 1,
 ): number {
   if (finished) {
-    if (errors > 0) return clamp(BASE_POINTS - NUMHUNT_ERROR_PENALTY * errors, 0, 90);
-    const raw = BASE_POINTS + speedBonus(msRemaining) - NUMHUNT_ERROR_PENALTY * errors;
+    const raw = BASE_POINTS + speedBonus(msRemaining, NUMHUNT_TIME_MS) - 10 * errors;
     return Math.round(clamp(raw, 0, MAX_ROUND_SCORE));
   }
   const count = clamp(Math.round(reached), 0, Math.max(1, total));

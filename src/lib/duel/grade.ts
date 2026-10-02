@@ -304,8 +304,9 @@ export function gradeSubmission(
     }
     case "reaction": {
       const [timesPart = "", falsePart = "0"] = answer.split("|");
-      const attempts = timesPart.split(",").slice(0, REACTION_FLASHES).map((value) => Number.parseInt(value, 10));
-      const total = Array.from({ length: REACTION_FLASHES }, (_, index) => {
+      const flashCount = puzzle.flashes.length;
+      const attempts = timesPart.split(",").slice(0, flashCount).map((value) => Number.parseInt(value, 10));
+      const total = Array.from({ length: flashCount }, (_, index) => {
         const attempt = attempts[index];
         return attempt === undefined || !Number.isFinite(attempt)
           ? REACTION_MISS_MS
@@ -314,7 +315,7 @@ export function gradeSubmission(
       const parsedFalse = Number.parseInt(falsePart, 10);
       const falseStarts = Number.isFinite(parsedFalse) ? clamp(parsedFalse, 0, 99) : 0;
       reactionAvgMs = Math.round(
-        total.reduce((sum, attempt) => sum + attempt, 0) / REACTION_FLASHES +
+        total.reduce((sum, attempt) => sum + attempt, 0) / Math.max(1, flashCount) +
           falseStarts * REACTION_FALSE_START_MS,
       );
       isCorrect = true;
