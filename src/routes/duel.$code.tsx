@@ -17,7 +17,7 @@ import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
 import { Standings } from "@/components/duel/Standings";
 import { DuelOverall } from "@/components/duel/DuelOverall";
 import { Podium } from "@/components/duel/Podium";
-import { TimerBar } from "@/components/duel/TimerRing";
+import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import { buzz } from "@/lib/motion";
 import {

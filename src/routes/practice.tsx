@@ -7,7 +7,7 @@ import { PhoneShell } from "@/components/duel/PhoneShell";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 
 import { RoundIntro } from "@/components/duel/RoundIntro";
-import { TimerBar } from "@/components/duel/TimerRing";
+import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import {
   practiceCheckWordFn,
