@@ -81,6 +81,7 @@ import { inkBridgePuzzle } from "@/puzzles/inkBridge";
 import { burstPuzzle } from "@/puzzles/burst";
 import { orbitPuzzle } from "@/puzzles/orbit";
 import { swingPuzzle } from "@/puzzles/swing";
+import { snipPuzzle } from "@/puzzles/snip";
 import { tiltPuzzle } from "@/puzzles/tilt";
 import { hotFloorPuzzle } from "@/puzzles/hotFloor";
 import { ballTrackPuzzle } from "@/puzzles/ballTrack";
@@ -257,6 +258,7 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   burst: burstPuzzle,
   orbit: orbitPuzzle,
   swing: swingPuzzle,
+  snip: snipPuzzle,
   tilt: tiltPuzzle,
   hotfloor: hotFloorPuzzle,
   balltrack: ballTrackPuzzle,

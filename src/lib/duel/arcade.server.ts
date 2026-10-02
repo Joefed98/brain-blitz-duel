@@ -36,6 +36,7 @@ import type {
   BurstPuzzleData,
   OrbitPuzzleData,
   SwingPuzzleData,
+  SnipPuzzleData,
   TiltPuzzleData,
   HotFloorPuzzleData,
   StroopPuzzleData,
@@ -161,6 +162,10 @@ export function generateBurst(): BurstPuzzleData {
 
 export function generateOrbit(): OrbitPuzzleData {
   return { type: "orbit", seed: arcadeSeed() };
+}
+
+export function generateSnip(): SnipPuzzleData {
+  return { type: "snip", seed: arcadeSeed() };
 }
 
 export function generateSwing(): SwingPuzzleData {

@@ -67,6 +67,7 @@ import {
   generateBurst,
   generateOrbit,
   generateSwing,
+  generateSnip,
   generateTilt,
   generateHotFloor,
   generateColourClash,
@@ -158,6 +159,7 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "burst") return generateBurst();
   if (type === "orbit") return generateOrbit();
   if (type === "swing") return generateSwing();
+  if (type === "snip") return generateSnip();
   if (type === "tilt") return generateTilt();
   if (type === "hotfloor") return generateHotFloor();
   if (type === "tents") return generateTents();

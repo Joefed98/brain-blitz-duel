@@ -111,6 +111,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   burst: [],
   orbit: [],
   swing: [],
+  snip: [],
   tilt: [],
   hotfloor: [],
 };

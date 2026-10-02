@@ -778,6 +778,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "3 per planet; finish all forty early for the time bonus. Skipping a planet is allowed if you can make the next one.",
   },
+  snip: {
+    goal: "Feed the sweet to the mouth.",
+    how: [
+      { action: "Swipe across a rope", detail: "to cut it — time it with the swing." },
+      { action: "Cut the last rope", detail: "and the sweet drops; it can bounce off ledges." },
+      { action: "Grab stars on the way.", detail: "A new level starts straight after each one." },
+    ],
+    score: "10 per sweet fed, +5 per star with it — up to 150.",
+  },
   swing: {
     goal: "Swing as far as you can.",
     how: [

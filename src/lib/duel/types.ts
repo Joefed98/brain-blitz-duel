@@ -90,7 +90,8 @@ export type PuzzleType =
   | "clayshoot"
   | "numpyramid"
   | "dig"
-  | "letterwheel";
+  | "letterwheel"
+  | "snip";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -514,6 +515,7 @@ export type PuzzleData =
   | BurstPuzzleData
   | OrbitPuzzleData
   | SwingPuzzleData
+  | SnipPuzzleData
   | TiltPuzzleData
   | HotFloorPuzzleData;
 
@@ -2096,6 +2098,15 @@ export interface BurstPuzzleData {
 /** Orbit and Swing: fixed 60-second runs; the round clock adds three of slack. */
 export const ORBIT_TIME_MS = 63_000;
 export const SWING_TIME_MS = 63_000;
+
+/** Snip: a fixed 60-second run on the arcade engine. */
+export const SNIP_TIME_MS = 63_000;
+
+export interface SnipPuzzleData {
+  type: "snip";
+  /** Draws the level order and pin wobble — identical for everyone. */
+  seed: number;
+}
 
 export interface OrbitPuzzleData {
   type: "orbit";

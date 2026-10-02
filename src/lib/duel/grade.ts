@@ -58,6 +58,7 @@ import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
+import { decodeSnipRun, replaySnipRun } from "./snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
@@ -1512,6 +1513,32 @@ export function gradeSubmission(
         desyncTick: run.desyncTick,
         inputs: decodeOrbitRun(answer).events.length,
         claimedScore: decodeOrbitRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "snip": {
+      const replayStart = performance.now();
+      const run = replaySnipRun(puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.score >= 150;
+      correctCount = run.eaten;
+      score = run.score;
+      extraDetail = {
+        eaten: run.eaten,
+        stars: run.stars,
+        levels: run.levels,
+        cuts: run.cuts,
+        finished: run.finished,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeSnipRun(answer).events.length,
+        claimedScore: decodeSnipRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
