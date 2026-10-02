@@ -30,13 +30,13 @@ export const CLAY_CONFIG = {
   clays: 25,
   orangeClays: 22,
   goldClays: 3,
-  /** Clays 1–13 fly alone; the final twelve launch as six pairs. */
-  singles: 13,
+  /** Clays 1–11 fly alone; the final fourteen launch as seven pairs. */
+  singles: 11,
   firstLaunchTick: 75,
-  singleGapTicks: 132,
+  singleGapTicks: 180,
   singleJitterTicks: 24,
-  firstPairTick: 1900,
-  pairGapTicks: 270,
+  firstPairTick: 1950,
+  pairGapTicks: 250,
   pairJitterTicks: 24,
   /** Second clay of a pair leaves 24–43 ticks after the first. */
   pairOffsetMin: 24,
