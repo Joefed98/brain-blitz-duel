@@ -727,9 +727,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap the black corner beside a road", detail: "to switch its light between red (stop) and green (go)." },
       { action: "Cars on red queue up", detail: "— and they don't wait forever." },
-      { action: "Later,", detail: "some cars turn." },
+      { action: "Later,", detail: "some cars turn — they flash an indicator a second before the line." },
+      { action: "Ambulances (flashing blue)", detail: "come fast from 20 s — give them green before they reach the line." },
     ],
-    score: "3 per car through, −1 per car that gives up, +40 for surviving the minute.",
+    score: "3 per car through, −1 per car that gives up, +5 per ambulance waved through, −5 if one has to stop, +40 for surviving the minute.",
   },
   inkbridge: {
     goal: "Draw a path so the ball rolls into the bucket.",

@@ -21,6 +21,8 @@ const run = makeArcadeRun<JuncState, JuncCheckpoint>({
 export interface JunctionResult extends FlatReplay<JuncState, JuncCheckpoint> {
   cleared: number;
   gaveUp: number;
+  ambThrough: number;
+  ambStopped: number;
   total: number;
   survived: boolean;
   survivedSeconds: number;
@@ -37,7 +39,9 @@ export function replayJunctionRun(seed: number, raw: string): JunctionResult {
     ...result,
     cleared: s.cleared,
     gaveUp: s.gaveUp,
-    total: s.arrivals.length,
+    ambThrough: s.ambThrough,
+    ambStopped: s.ambStopped,
+    total: s.arrivals.filter((a) => !a.amb).length,
     survived: s.ended !== 2,
     survivedSeconds: s.tick / 60,
   };
