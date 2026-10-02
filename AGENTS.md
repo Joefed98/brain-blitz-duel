@@ -18,7 +18,7 @@
 - Tents uses `-1` for hidden row/column counts; shared solving and validation treat those lines as unconstrained.
 - Directional game controls use the shared press-safe button so pointer holds cannot trigger selection, callouts, or context menus.
 - All word games (Wordsmith, Word Hunt, Word Ladder, Tile Grid, Word Slide) check words through the one server-only SCOWL British English list behind dictionary.server.ts; why: one consistent dictionary that never reaches a device.
-- Stop Watch stores target-motion phase and pass durations in each generated watch; why: every player must see identical moving targets and acceleration.
+- Stop Watch stores target-motion phase, right-edge allowances, wrap mode, and pass durations in each generated watch; why: every player must see identical moving targets and acceleration.
 - Gravity Maze locks a ball when it comes to rest on its own target (locked = sitting on target), and the minimum is a capped breadth-first joint search; why: a summed per-ball heuristic over-estimates when one tilt moves every ball, so it cannot prove a minimum.
 - Ice Slide state is (cell, broken thin-ice bitmask) and every search, replay and undo carries the mask; why: thin ice makes move order matter.
 - Rotating Rings boards store a link-pattern index into the shared bank in rings.ts; why: phone and server must apply identical linked turns.

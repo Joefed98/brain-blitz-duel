@@ -72,7 +72,17 @@ function Pips({ status, kind }: { status: number[]; kind: number[] }) {
       {status.map((s, i) => (
         <span
           key={i}
-          className={`h-1.5 w-1.5 rounded-full ${s === CLAY_HIT ? "bg-primary" : s === CLAY_MISSED ? "bg-destructive" : "bg-muted"}`}
+          className={`h-1.5 w-1.5 rounded-full ${
+            s === CLAY_HIT
+              ? kind[i] === CLAY_KIND_GOLD
+                ? "bg-primary"
+                : "bg-secondary"
+              : s === CLAY_MISSED
+                ? kind[i] === CLAY_KIND_GOLD
+                  ? "bg-primary/40"
+                  : "bg-destructive"
+                : "bg-muted"
+          }`}
         />
       ))}
     </div>
@@ -210,11 +220,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col gap-2 select-none" style={GAME_ROOT_STYLE}>
-      <p className="text-center font-mono text-2xl font-bold text-foreground">
+    <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
+      <p className="shrink-0 text-center font-mono text-xs font-semibold leading-none text-foreground">
         <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold
       </p>
-      <Pips status={hud.status} kind={state.current.schedule.kind} />
+      <div className="shrink-0"><Pips status={hud.status} kind={state.current.schedule.kind} /></div>
       <div
         ref={board}
         data-play-area

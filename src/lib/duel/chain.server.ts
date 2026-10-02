@@ -316,19 +316,11 @@ function evaluate(points: Point[], bag: ChainShape[], cycle: ChainShape[]): Cand
 export function generateChain(): ChainPuzzleData {
   // Sixteen sets exceed the 400-input replay cap, so a one-minute run can
   // always advance to a fresh stored layout without wrapping.
-  const sets = Array.from({ length: 16 }, (_, setIndex) => {
+  const sets = Array.from({ length: 16 }, () => {
     const cycle = shuffled([...CHAIN_SHAPES]).slice(0, CHAIN_CYCLE);
-    const reverse = setIndex % 2 === 1;
-    const nodes = Array.from({ length: CHAIN_NODES }, (_, step) => {
-      const row = Math.floor(step / 4);
-      const along = step % 4;
-      const col = row % 2 === 0 ? along : 3 - along;
-      return {
-        x: (reverse ? 88 : 12) + (reverse ? -1 : 1) * col * (76 / 3),
-        y: 8 + row * (84 / 6),
-        shape: cycle[step % cycle.length]!,
-      };
-    });
+    let points = samplePoints();
+    while (!points || !layoutIsSpread(points)) points = samplePoints();
+    const nodes = points.map((point, step) => ({ ...point, shape: cycle[step % cycle.length]! }));
     return { nodes, cycle };
   });
   return { type: "chain", sets };
