@@ -83,6 +83,8 @@ import { orbitPuzzle } from "@/puzzles/orbit";
 import { swingPuzzle } from "@/puzzles/swing";
 import { tiltPuzzle } from "@/puzzles/tilt";
 import { hotFloorPuzzle } from "@/puzzles/hotFloor";
+import { ballTrackPuzzle } from "@/puzzles/ballTrack";
+import { wordSearchPuzzle } from "@/puzzles/wordSearch";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -252,6 +254,8 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   swing: swingPuzzle,
   tilt: tiltPuzzle,
   hotfloor: hotFloorPuzzle,
+  balltrack: ballTrackPuzzle,
+  wordsearch: wordSearchPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

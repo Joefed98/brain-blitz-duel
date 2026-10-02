@@ -89,6 +89,8 @@ import {
   TENTS_TIME_MS,
   SHIKAKU_TIME_MS,
   LIGHTUP_TIME_MS,
+  BALLTRACK_TIME_MS,
+  WORDSEARCH_TIME_MS,
   WAVEFRONT_TIME_MS,
   BASTION_TIME_MS,
   ROOFTOP_TIME_MS,
@@ -145,6 +147,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   tents: TENTS_TIME_MS,
   shikaku: SHIKAKU_TIME_MS,
   lightup: LIGHTUP_TIME_MS,
+  balltrack: BALLTRACK_TIME_MS,
+  wordsearch: WORDSEARCH_TIME_MS,
   wavefront: WAVEFRONT_TIME_MS,
   bastion: BASTION_TIME_MS,
   rooftop: ROOFTOP_TIME_MS,
@@ -1362,6 +1366,22 @@ const lightUpSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
+const ballTrackSummary: SummaryBuilder = (result, puzzle) => {
+  const removals = Number(result.extra?.["removals"] ?? 0);
+  if (result.is_correct) {
+    return { summary: `Exit · ${seconds(elapsedMs(result, puzzle))}`, detail: [`${removals} removal${removals === 1 ? "" : "s"}`] };
+  }
+  const row = Number(result.extra?.["maxRow"] ?? 0);
+  return { summary: `Reached row ${row} / 10`, detail: [`${removals} removal${removals === 1 ? "" : "s"}`] };
+};
+
+const wordSearchSummary: SummaryBuilder = (result) => {
+  const found = Number(result.extra?.["found"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? 6);
+  const wrong = Number(result.extra?.["wrong"] ?? 0);
+  return { summary: `${found} / ${total} found`, detail: wrong ? [`${wrong} wrong pick${wrong === 1 ? "" : "s"}`] : [] };
+};
+
 const tentsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tents") return { summary: "—", detail: [] };
   const correct = Number(result.extra?.["correct"] ?? 0);
@@ -1480,6 +1500,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   tents: tentsSummary,
   shikaku: shikakuSummary,
   lightup: lightUpSummary,
+  balltrack: ballTrackSummary,
+  wordsearch: wordSearchSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1574,6 +1596,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   tents: () => null,
   shikaku: () => null,
   lightup: () => null,
+  balltrack: () => null,
+  wordsearch: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };
