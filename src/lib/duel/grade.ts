@@ -427,9 +427,11 @@ export function gradeSubmission(
       break;
     }
     case "numhunt": {
-      const parsed = Number.parseInt(answer.split(",")[0] ?? "0", 10);
+      const parts = answer.split(",");
+      const parsed = Number.parseInt(parts[0] ?? "0", 10);
       const reached = Number.isFinite(parsed) ? clamp(parsed, 0, NUMHUNT_COUNT) : 0;
-      errors = clamp(extra.errors ?? 0, 0, 99);
+      const parsedErrors = Number.parseInt(parts[1] ?? "0", 10);
+      errors = Number.isFinite(parsedErrors) ? clamp(parsedErrors, 0, 99) : 0;
       const finished = reached >= NUMHUNT_COUNT;
       isCorrect = finished;
       correctCount = reached;

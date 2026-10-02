@@ -217,7 +217,7 @@ function Stage({ puzzle, locked, onDraftAnswer, stateKey = "chain" }: PuzzleStag
               const hit = pointerElementIndex(event.currentTarget);
               if (hit !== null) tap(hit);
             }}
-            className={`pointer-events-auto absolute flex size-[34px] items-center justify-center border-2 p-0 ${wrong === index ? "animate-shake border-warn bg-warn/15 text-warn" : used.has(index) ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-foreground"}`}
+            className={`pointer-events-auto absolute flex size-[34px] items-center justify-center border-0 bg-transparent p-0 shadow-none ${wrong === index ? "animate-shake text-warn" : used.has(index) ? "text-primary" : "text-foreground"}`}
             style={{ left: `calc(${node.x}% - 17px)`, top: `calc(${node.y}% - 17px)` }}
           >
             <NodeGlyph shape={node.shape} size={34} />

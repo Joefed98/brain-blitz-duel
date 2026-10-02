@@ -311,9 +311,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
   return (
     <>
-      <div className="flex flex-col items-center gap-2">
+      <div className="grid w-full grid-cols-2 gap-x-4 gap-y-1">
         {errors.map((ms, index) => (
-          <p key={index} className="font-mono text-xl tabular-nums text-foreground">
+          <p key={index} className="font-mono text-sm tabular-nums text-foreground">
             Watch {index + 1} — {ms >= STOPWATCH_MISS_MS ? "missed (400 ms)" : `${ms} ms off`}
           </p>
         ))}
