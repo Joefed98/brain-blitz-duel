@@ -157,7 +157,7 @@ for (let seed = 1; seed <= 500; seed++) {
   while (!clayGame.isOver(s)) {
     s = clayGame.step(s, null);
     const flying = s.status.filter((x) => x === CLAY_FLYING).length;
-    if (s.tick < 1350 / 1) maxEarly = Math.max(maxEarly, flying);
+    if (s.tick < 1320) maxEarly = Math.max(maxEarly, flying);
     else maxLate = Math.max(maxLate, flying);
     s.status.forEach((x, i) => {
       if (x === CLAY_FLYING && start[i] === undefined) start[i] = s.tick;
