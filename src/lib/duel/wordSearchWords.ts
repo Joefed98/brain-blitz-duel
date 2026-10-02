@@ -178,6 +178,6 @@ export const WORD_SEARCH_CATEGORIES: Record<string, string[]> = {
     "WATER", "JUICE", "COFFEE", "COCOA", "MILK", "LEMONADE", "COLA", "CIDER",
     "BEER", "WINE", "LAGER", "STOUT", "SHERRY", "BRANDY", "WHISKY", "VODKA",
     "PUNCH", "SMOOTHIE", "ESPRESSO", "LATTE", "MOCHA", "SODA", "TONIC", "CORDIAL",
-    "NECTAR", "BROTH", "KEFIR", "MEAD", "CHAI", "TISANE", "SQUASHY", "SHAKE",
+    "NECTAR", "BROTH", "KEFIR", "MEAD", "CHAI", "TISANE", "PORTER", "SHAKE",
   ],
 };
