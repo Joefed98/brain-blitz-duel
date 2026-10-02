@@ -1,3 +1,9 @@
+## Ten Drop and Number Pyramid update (Oct 2)
+- [x] Simplify Ten Drop to a gold running total on the left and centred target beneath the shared timer.
+- [x] Expand Number Pyramid to four rising-difficulty boards over 150 seconds.
+- [x] Add placed-tile double-tap return and rebalance the short-phone layout.
+- [x] Rebuild and validate 400 unique four-board sets, then run code checks without browser tests.
+
 ## Word Search and Letter Wheel tuning (Oct 2)
 - [x] Extend Word Search to 120 seconds and rescale its completion bonus.
 - [x] Remove Letter Wheel shuffle and bonus words, and add neutral valid-word feedback.

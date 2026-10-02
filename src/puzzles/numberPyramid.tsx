@@ -123,12 +123,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const data: NumberPyramidPuzzleData | null = puzzle.type === "numpyramid" ? puzzle : null;
   const key = stateKey ?? "numpyramid";
   const [stage, setStage] = useStageState<number>(key, "numPyramidStage", () => 0);
-  const [allPlacements, setAllPlacements] = useStageState<NpPlacements[]>(key, "numPyramidPlacements", () => [{}, {}, {}]);
+  const [allPlacements, setAllPlacements] = useStageState<NpPlacements[]>(key, "numPyramidPlacements", () => [{}, {}, {}, {}]);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [selected, setSelected] = useState<{ tray: number; from: number | null } | null>(null);
   const submitted = useRef(false);
+  const lastPlacedTap = useRef<{ cell: number; at: number } | null>(null);
   const box = useRef<HTMLDivElement | null>(null);
-  const [width, setWidth] = useState(340);
+  const [size, setSize] = useState({ width: 340, height: 500 });
   const board = data?.pyramids[Math.min(stage, NP_SET_SIZE - 1)];
   const placements = allPlacements[stage] ?? {};
   const encoded = npEncodeRound(stage, allPlacements);
@@ -137,8 +138,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   useEffect(() => {
     const node = box.current;
     if (!node) return;
-    const ro = new ResizeObserver(() => setWidth(node.clientWidth));
-    ro.observe(node); setWidth(node.clientWidth);
+    const measure = () => setSize({ width: node.clientWidth, height: node.clientHeight });
+    const ro = new ResizeObserver(measure);
+    ro.observe(node); measure();
     return () => ro.disconnect();
   }, []);
 
@@ -166,7 +168,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   if (!data || !board) return null;
   const placedTray = new Set(Object.values(placements));
   const filled = npFilled(board.givens, board.tray, placements);
-  const cellW = Math.max(38, Math.min(board.rows === 4 ? 58 : 52, Math.floor((width - 16) / board.rows)));
+  const heightFit = Math.floor((size.height - 220) / board.rows / 0.72);
+  const cellW = Math.max(38, Math.min(board.rows === 4 ? 62 : 56, Math.floor((size.width - 16) / board.rows), heightFit));
   const cellH = Math.round(cellW * 0.72);
 
   const drop = (tray: number, from: number | null, cell: number | null) => {
@@ -198,6 +201,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (!drag) return;
     const d = drag; setDrag(null);
     if (!d.moved) {
+      if (d.from !== null) {
+        const previous = lastPlacedTap.current;
+        lastPlacedTap.current = { cell: d.from, at: event.timeStamp };
+        if (previous?.cell === d.from && event.timeStamp - previous.at <= 350) {
+          drop(d.tray, d.from, null); setSelected(null); lastPlacedTap.current = null; return;
+        }
+      }
       if (selected && selected.tray !== d.tray && d.from !== null) { drop(selected.tray, selected.from, d.from); setSelected(null); }
       else setSelected(selected?.tray === d.tray ? null : { tray: d.tray, from: d.from });
       return;
@@ -216,21 +226,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const tileClass = (tray: number) => `flex items-center justify-center rounded-md border-2 bg-card font-mono font-bold text-primary ${selected?.tray === tray ? "border-foreground ring-2 ring-primary" : "border-primary"}`;
 
   return (
-    <div ref={box} data-play-area className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2 py-1 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
-      <StageProgress stage={stage} />
-      <div className="flex w-full items-center justify-between">
-        <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of 3</p>
+    <div ref={box} data-play-area className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-0.5 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
+      <StageProgress stage={stage} total={NP_SET_SIZE} />
+      <div className="flex h-8 w-full shrink-0 items-center justify-between">
+        <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {NP_SET_SIZE}</p>
         <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => advance(placements)}>Skip</Button>
       </div>
-      <div className="relative" style={NO_TOUCH}>
-        <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} cellW={cellW} cellH={cellH} />
-        <div className="absolute inset-0 flex flex-col items-center" style={{ gap: 4 }}>
-          {Array.from({ length: board.rows }, (_, r) => <div key={r} className="flex" style={{ gap: 4 }}>
-            {Array.from({ length: r + 1 }, (_, c) => { const cell = npIndex(r, c); const tray = placements[cell]; return <div key={c} data-np-cell={board.givens[cell] == null ? cell : undefined} className={`rounded-md ${tray !== undefined && selected?.tray === tray ? "ring-2 ring-foreground" : ""}`} style={{ width: cellW, height: cellH }} onPointerDown={tray !== undefined ? (e) => start(e, tray, cell) : undefined} />; })}
-          </div>)}
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+        <div className="relative" style={NO_TOUCH}>
+          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} cellW={cellW} cellH={cellH} />
+          <div className="absolute inset-0 flex flex-col items-center" style={{ gap: 4 }}>
+            {Array.from({ length: board.rows }, (_, r) => <div key={r} className="flex" style={{ gap: 4 }}>
+              {Array.from({ length: r + 1 }, (_, c) => { const cell = npIndex(r, c); const tray = placements[cell]; return <div key={c} data-np-cell={board.givens[cell] == null ? cell : undefined} className={`rounded-md ${tray !== undefined && selected?.tray === tray ? "ring-2 ring-foreground" : ""}`} style={{ width: cellW, height: cellH }} onPointerDown={tray !== undefined ? (e) => start(e, tray, cell) : undefined} />; })}
+            </div>)}
+          </div>
         </div>
       </div>
-      <div data-np-tray className="flex w-full max-w-[360px] flex-wrap justify-center gap-1.5 rounded-lg bg-muted/40 p-2" style={{ ...NO_TOUCH, minHeight: cellH * 2 + 20 }}>
+      <div data-np-tray className="mt-auto flex w-full shrink-0 flex-wrap justify-center gap-1.5 rounded-lg bg-muted/40 p-2" style={{ ...NO_TOUCH, minHeight: cellH * 2 + 20 }}>
         {board.tray.map((value, tray) => placedTray.has(tray) ? null : <div key={tray} className={`${tileClass(tray)} ${drag?.tray === tray ? "opacity-30" : ""}`} style={{ width: cellW, height: cellH, fontSize: cellH * 0.42 }} onPointerDown={(e) => start(e, tray, null)}>{value}</div>)}
       </div>
       {drag?.moved && <div className="pointer-events-none fixed z-50 flex items-center justify-center rounded-md border-2 border-primary bg-card font-mono font-bold text-primary shadow-lg" style={{ width: cellW, height: cellH, fontSize: cellH * 0.42, left: drag.x - cellW / 2, top: drag.y - cellH - 12 }}>{board.tray[drag.tray]}</div>}
@@ -260,7 +272,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
       <div className="flex gap-2"><Pyramid rows={board.rows} givens={board.givens} values={solution} cellW={22} cellH={18} /><Pyramid rows={board.rows} givens={board.givens} values={mine} cellW={22} cellH={18} marks={marks} /></div>
     </div>;
   });
-  return <div className="flex w-full flex-col items-center gap-2">{rows}<p className="font-mono text-base text-primary">{myCorrect ? "3 / 3 complete" : `${completed} complete · ${totalRight} / ${totalEmpty} cells right`}</p>{dev && <p className="font-mono text-[10px] text-muted-foreground">dev · all three solutions shown</p>}</div>;
+  return <div className="flex w-full flex-col items-center gap-1.5">{rows}<p className="font-mono text-base text-primary">{myCorrect ? "4 / 4 complete" : `${completed} complete · ${totalRight} / ${totalEmpty} cells right`}</p>{dev && <p className="font-mono text-[10px] text-muted-foreground">dev · all four solutions shown</p>}</div>;
 }
 export const numberPyramidPuzzle: PuzzleDefinition = {
   key: "numpyramid",
@@ -271,6 +283,7 @@ export const numberPyramidPuzzle: PuzzleDefinition = {
   generate: () =>
     ({ type: "numpyramid", pyramids: [
       { rows: 4, givens: new Array(10).fill(1), tray: [] },
+      { rows: 5, givens: new Array(15).fill(1), tray: [] },
       { rows: 5, givens: new Array(15).fill(1), tray: [] },
       { rows: 5, givens: new Array(15).fill(1), tray: [] },
     ] }) satisfies NumberPyramidPuzzleData,

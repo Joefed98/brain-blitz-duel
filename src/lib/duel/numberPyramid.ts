@@ -1,11 +1,12 @@
 /** Number Pyramid rules shared by the phone, grader, and offline bank builder. */
 
-export const NP_SET_SIZE = 3;
+export const NP_SET_SIZE = 4;
 export const NP_DECOYS = 2;
 export const NP_STAGE_CONFIG = [
   { rows: 4, minEmpty: 4, maxEmpty: 5, bottomLo: 1, bottomHi: 6 },
-  { rows: 5, minEmpty: 6, maxEmpty: 8, bottomLo: 1, bottomHi: 9 },
-  { rows: 5, minEmpty: 9, maxEmpty: 11, bottomLo: 3, bottomHi: 15 },
+  { rows: 5, minEmpty: 6, maxEmpty: 7, bottomLo: 1, bottomHi: 9 },
+  { rows: 5, minEmpty: 8, maxEmpty: 10, bottomLo: 2, bottomHi: 12 },
+  { rows: 5, minEmpty: 10, maxEmpty: 12, bottomLo: 4, bottomHi: 16 },
 ] as const;
 
 export function npCells(rows: number): number {
@@ -100,7 +101,7 @@ export function npDecodeRound(raw: string): { active: number; boards: string[] }
     const boards = Array.isArray(parsed.boards) ? parsed.boards.slice(0, NP_SET_SIZE).map((v) => String(v ?? "")) : [];
     return { active, boards: Array.from({ length: NP_SET_SIZE }, (_, i) => boards[i] ?? "") };
   } catch {
-    return { active: 0, boards: [raw, "", ""] };
+    return { active: 0, boards: [raw, "", "", ""] };
   }
 }
 
@@ -120,8 +121,8 @@ export function npCorrectCells(givens: readonly (number | null)[], tray: readonl
 }
 
 export function scoreNumberPyramid(completed: number, allComplete: boolean, msRemaining: number, activeCorrect: number, activeEmpty: number): number {
-  const base = 40 * Math.max(0, Math.min(NP_SET_SIZE, completed));
-  const bonus = allComplete ? Math.round((30 * Math.max(0, Math.min(msRemaining, 120_000))) / 120_000) : 0;
-  const partial = allComplete || activeEmpty <= 0 ? 0 : Math.round((40 * Math.max(0, Math.min(activeCorrect, activeEmpty))) / activeEmpty);
+  const base = 30 * Math.max(0, Math.min(NP_SET_SIZE, completed));
+  const bonus = allComplete ? Math.round((30 * Math.max(0, Math.min(msRemaining, 150_000))) / 150_000) : 0;
+  const partial = allComplete || activeEmpty <= 0 ? 0 : Math.round((30 * Math.max(0, Math.min(activeCorrect, activeEmpty))) / activeEmpty);
   return Math.min(150, base + bonus + partial);
 }
