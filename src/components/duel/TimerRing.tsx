@@ -9,6 +9,8 @@ interface TimerRingProps {
   totalMs: number;
   /** false while a puzzle is still being presented (e.g. sequence playback) */
   active: boolean;
+  /** Dense word layouts can use a short rectangular display instead of the ring. */
+  compact?: boolean;
 }
 
 const SIZE = 132;
@@ -54,6 +56,7 @@ const COMPACT_TIMER_TYPES = new Set<PuzzleType>([
 ]);
 
 export function timerSlotClass(type: PuzzleType): string {
+  if (type === "letterwheel") return "h-[46px]";
   if (type === "rings") return "h-[80px] scale-[0.6]";
   if (type === "tilegrid") return "h-[72px] scale-[0.54] [@media(max-height:700px)]:h-[60px] [@media(max-height:700px)]:scale-[0.45]";
   if (type === "countup") return "h-[72px] scale-[0.54] [@media(max-height:700px)]:h-[60px] [@media(max-height:700px)]:scale-[0.45]";
@@ -72,7 +75,7 @@ function format(ms: number): string {
  * left — both measured against this puzzle type's own limit. The last three
  * seconds tick.
  */
-export function TimerRing({ msRemaining, totalMs, active }: TimerRingProps) {
+export function TimerRing({ msRemaining, totalMs, active, compact = false }: TimerRingProps) {
   const reduced = useReducedMotion();
   const lastTick = useRef(-1);
   const seconds = msRemaining / 1000;
@@ -120,6 +123,24 @@ export function TimerRing({ msRemaining, totalMs, active }: TimerRingProps) {
   const textColor = !active ? "text-muted-foreground" : danger ? "text-warn" : "text-foreground";
 
   const progress = Math.max(0, Math.min(1, msRemaining / totalMs));
+
+  if (compact) {
+    return (
+      <div
+        className={`relative flex h-10 min-w-28 items-center justify-center overflow-hidden rounded-md border border-border bg-card px-4 ${danger && !reduced ? "animate-timer-pulse-strong" : ""}`}
+        style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
+        aria-label="Time remaining"
+        role="timer"
+      >
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-border">
+          <div className="h-full bg-primary transition-[width] duration-100" style={{ width: `${progress * 100}%` }} />
+        </div>
+        <span className={`font-mono text-2xl font-bold leading-none tabular-nums ${textColor}`}>
+          {format(msRemaining)}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div

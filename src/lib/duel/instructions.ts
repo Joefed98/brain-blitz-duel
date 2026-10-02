@@ -20,7 +20,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap or drag through letters", detail: "then Submit, tap the word box or press Enter." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
-    score: "Longer words score more; find the nine-letter word for 15. Round score = 2 × word points, up to 150.",
+    score: "Longer words score more; find the nine-letter word for 15. Round score = floor(2.5 × word points), up to 150.",
   },
   groups: {
     goal: "Sort all sixteen words into four groups of four.",
@@ -865,16 +865,16 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag in a straight line", detail: "through the letters — any of eight directions, backwards too." },
       { action: "A hidden word turns gold.", detail: "Only the count shows until you find them." },
     ],
-    score: "All six fast for the bonus. Otherwise 15 per word, −5 per wrong pick.",
+    score: "20 per word. Find all six for 120 plus up to 30 speed points.",
   },
   letterwheel: {
     goal: "Fill the crossword using the letters on the wheel.",
     how: [
-      { action: "Drag through the letters", detail: "to spell a word, then let go." },
+      { action: "Drag through the letters and let go,", detail: "or tap letters then Submit or the word." },
       { action: "Crossword words fill gold.", detail: "Other real words count as bonus words." },
       { action: "Shuffle", detail: "just moves the letters around." },
     ],
-    score: "Finish fast for the bonus; +3 per bonus word. Otherwise, points for squares filled.",
+    score: "11 per crossword word, +2 per bonus word; complete it for up to 50 speed points. Maximum 150.",
   },
   lightup: {
     goal: "Place bulbs so every white square is lit.",

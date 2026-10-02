@@ -1698,7 +1698,7 @@ export function gradeSubmission(
       isCorrect = v.totalCells > 0 && v.cells >= v.totalCells;
       correctCount = v.slots.length;
       errors = v.wrong;
-      score = scoreLetterWheel(v.cells, v.totalCells, v.bonus, ms, timeLimitMs);
+      score = scoreLetterWheel(v.slots.length, puzzle.slots.length, v.bonus, ms, timeLimitMs);
       extraDetail = { slots: v.slots.length, total: puzzle.slots.length, cells: v.cells, totalCells: v.totalCells, bonus: v.bonus };
       break;
     }

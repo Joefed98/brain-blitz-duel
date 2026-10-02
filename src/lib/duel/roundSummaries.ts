@@ -519,7 +519,7 @@ function wordsmithSummary(result: RoundResultRow): BuiltDetail {
   const points = typeof result.extra?.["points"] === "number" ? result.extra["points"] : 0;
   if (words.length === 0) return { summary: "No words", detail: [] };
   return {
-    summary: `${points} points × 2 = ${result.score} · ${words.length} words`,
+    summary: `floor(2.5 × ${points}) = ${result.score} · ${words.length} words`,
     detail: words.map((word) => `${word} (${wordsmithPoints(word)})`),
   };
 }
@@ -1441,8 +1441,7 @@ const digSummary: SummaryBuilder = (result) => {
 const wordSearchSummary: SummaryBuilder = (result) => {
   const found = Number(result.extra?.["found"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 6);
-  const wrong = Number(result.extra?.["wrong"] ?? 0);
-  return { summary: `${found} / ${total} found`, detail: wrong ? [`${wrong} wrong pick${wrong === 1 ? "" : "s"}`] : [] };
+  return { summary: `${found} / ${total} found`, detail: [] };
 };
 
 const letterWheelSummary: SummaryBuilder = (result) => {

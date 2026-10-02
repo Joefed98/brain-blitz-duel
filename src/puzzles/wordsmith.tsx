@@ -36,7 +36,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">No plurals. Longer words score more; find the nine-letter word for 15. Word points × 2 = round score (max 150). You have 120 seconds.</p>
+      <p className="text-xs text-muted-foreground">No plurals. Longer words score more; find the nine-letter word for 15. Round score = floor(2.5 × word points), up to 150. You have 120 seconds.</p>
     </div>
   );
 }
@@ -71,7 +71,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        <span className="text-primary">{points} points × 2 = {scoreWordsmith(points)}</span> · {mine.length} words
+        <span className="text-primary">floor(2.5 × {points}) = {scoreWordsmith(points)}</span> · {mine.length} words
       </p>
 
       {mine.length > 0 && (

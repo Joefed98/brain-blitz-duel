@@ -233,7 +233,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     <div ref={root} className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3" style={NO_SCROLL_STYLE}>
       <Board grid={replay.grid} cell={CELL} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} onLock={(row) => push(`L${row}`)} />
       <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        Moves <span className="text-primary">{replay.moves}</span> (par {data.par})
+        Moves <span className="text-primary">{replay.moves}</span>
       </p>
       <div className="flex shrink-0 gap-2">
         <Button

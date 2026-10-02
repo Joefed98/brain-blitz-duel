@@ -108,20 +108,19 @@ export function checkWordSearchPath(
 }
 
 /**
- * All found: 100 + round(50 × ms left ÷ limit). Fewer: 15 per word − 5 per
- * selection that was not a hidden word, at least 5 if any were found.
+ * All six found: 120 + round(30 × ms left ÷ limit), capped at 150.
+ * Otherwise: 20 per word. Wrong selections never affect the score.
  */
 export function scoreWordSearch(
   found: number,
   total: number,
-  wrong: number,
+  _wrong: number,
   msRemaining: number,
   timeLimitMs: number,
 ): number {
   if (found >= total && total > 0) {
     const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
-    return Math.min(150, 100 + Math.round((50 * ms) / timeLimitMs));
+    return Math.min(150, 120 + Math.round((30 * ms) / timeLimitMs));
   }
-  if (found <= 0) return 0;
-  return Math.max(5, 15 * found - 5 * wrong);
+  return Math.min(120, 20 * Math.max(0, found));
 }

@@ -5,7 +5,8 @@
  *
  * Seed: an everyday 6–7 letter word. Valid words: every SCOWL British word of
  * 3+ letters spellable from the seed's letters, plurals removed with the shared
- * heuristic. Crossword: 6–9 of the most common valid words (ranked by the
+ * heuristic. Crossword: 6–9 of the most common valid words, including at least
+ * three words of 4+ letters and no more than three 3-letter words (ranked by the
  * scripts/data/word-frequency.txt list), interlocked in at most 8 × 8 with every
  * crossing consistent and no letters touching except at crossings. Seeds with
  * fewer than 8 valid words or no layout are rejected. Every entry is
@@ -127,7 +128,10 @@ function layout(pool: string[]): Placed[] | null {
       }
     }
   }
-  return placed.length >= 6 ? placed : null;
+  if (placed.length < 6) return null;
+  const long = placed.filter((p) => p.word.length >= 4).length;
+  const short = placed.filter((p) => p.word.length === 3).length;
+  return long >= 3 && short <= 3 ? placed : null;
 }
 
 // ---- Seeds ----
@@ -177,6 +181,8 @@ const problems: string[] = [];
 for (const [n, e] of bank.entries()) {
   if (e.cols > MAX || e.rows > MAX) problems.push(`#${n} too big`);
   if (e.words.length < 6 || e.words.length > 9) problems.push(`#${n} ${e.words.length} words`);
+  if (e.words.filter((w) => w.length >= 4).length < 3) problems.push(`#${n} fewer than three 4+ letter words`);
+  if (e.words.filter((w) => w.length === 3).length > 3) problems.push(`#${n} more than three 3-letter words`);
   const grid: (string | null)[] = Array(e.cols * e.rows).fill(null);
   for (const [i, s] of e.slots.entries()) {
     for (const [j, cell] of lwSlotCells(s, e.cols).entries()) {
@@ -209,7 +215,8 @@ for (const [n, e] of bank.entries()) {
   if (runCount !== e.slots.length) problems.push(`#${n} run count ${runCount}/${e.slots.length}`);
   const all = lwGrade(e.words, e.bonus, e.slots, e.cols, [...e.words, ...e.bonus.slice(0, 2)]);
   if (all.cells !== all.totalCells) problems.push(`#${n} not complete`);
-  if (scoreLetterWheel(all.cells, all.totalCells, 0, 60_000, 120_000) !== 125) problems.push(`#${n} score`);
+  const expected = Math.min(150, e.words.length * 11 + 25);
+  if (scoreLetterWheel(all.slots.length, e.words.length, 0, 60_000, 120_000) !== expected) problems.push(`#${n} score`);
   if (e.bonus.some((w) => isPluralForm(w) || !isWord(w))) problems.push(`#${n} bad bonus`);
 }
 if (problems.length || bank.length < BANK) {
