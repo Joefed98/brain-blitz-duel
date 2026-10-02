@@ -63,7 +63,7 @@ function Grid({
 }
 
 /** Fixed 5×5 example: LION found on a diagonal, read backwards. */
-const EXAMPLE_GRID = "NTEKAROSIGBMIUPWELRDCAHYL";
+const EXAMPLE_GRID = "NTEKARNSIGBMOUPWELIDCAHYL";
 const EXAMPLE_CELLS = [24, 18, 12, 6];
 
 function IntroExample() {
