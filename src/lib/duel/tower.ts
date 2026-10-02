@@ -135,7 +135,7 @@ export function replayTower(
 
 /**
  * A state is just which peg each disc sits on: with strictly-decreasing stacks
- * the order on a peg is forced, so the whole game is 4^6 states.
+ * the order on a peg is forced, so the whole game is pegs^discs states.
  */
 export type TowerState = number[];
 
@@ -177,6 +177,7 @@ export function towerShortest(
   targetPeg: number,
   discs: number,
 ): { minMoves: number; solution: TowerMove[] } | null {
+  const pegCount = towerPegCount(start);
   const from = towerStateFromPegs(start, discs);
   const goal = stateKey(new Array<number>(discs).fill(targetPeg));
   if (stateKey(from) === goal) return { minMoves: 0, solution: [] };
@@ -188,14 +189,14 @@ export function towerShortest(
   seen.set(stateKey(from), { state: from, move: null, parent: null });
   let frontier = [stateKey(from)];
 
-  for (let depth = 1; depth <= 4 ** discs; depth++) {
+  for (let depth = 1; depth <= pegCount ** discs; depth++) {
     const next: string[] = [];
     for (const id of frontier) {
       const node = seen.get(id)!;
-      for (let source = 0; source < TOWER_PEGS; source++) {
+      for (let source = 0; source < pegCount; source++) {
         const disc = topDisc(node.state, source);
         if (disc === null) continue;
-        for (let destination = 0; destination < TOWER_PEGS; destination++) {
+        for (let destination = 0; destination < pegCount; destination++) {
           if (destination === source) continue;
           const onTop = topDisc(node.state, destination);
           if (onTop !== null && onTop < disc) continue;
