@@ -1,0 +1,514 @@
+/**
+ * Ten Drop — a number round on the shared arcade engine.
+ *
+ * Tiles fall in four columns; tapping one applies it to a running total. Hit
+ * the target exactly to clear it; going past it resets the total to 0. The
+ * ten targets and each target's tile queue are drawn from the seed at init,
+ * and every queue is proven reachable by a greedy solver before it is used.
+ * A tap is kind 11, `a` = column, `b` = y px; the sim finds the tile itself.
+ */
+
+import {
+  clampInt,
+  inputRange,
+  rngBelow,
+  TICKS_PER_SECOND,
+  type ArcadeGame,
+  type ArcadeInputEvent,
+  type CanvasSize,
+  type InputRange,
+} from "./engine";
+
+/* ============================== Config ============================== */
+
+export interface TenDropStage {
+  lo: number;
+  hi: number;
+  /** Fall speed, 1/256 px per tick. */
+  speed: number;
+  /** Ticks between spawns. */
+  gap: number;
+  /** Tiles in one pass of the queue (it repeats until the target is met). */
+  len: number;
+  digitLo: number;
+  digitHi: number;
+  /** Operator shares, percent of tiles. */
+  mul2: number;
+  div2: number;
+  div3: number;
+  minus: number;
+  minusLo: number;
+  minusHi: number;
+  /** One pass of digits alone must fall short of the target. */
+  needOp: boolean;
+}
+
+const EASY = { digitLo: 1, digitHi: 9, mul2: 0, div2: 0, div3: 0, minus: 0, minusLo: 1, minusHi: 1, needOp: false, len: 12 };
+const MID = { digitLo: 1, digitHi: 9, mul2: 20, div2: 0, div3: 0, minus: 0, minusLo: 1, minusHi: 1, needOp: false, len: 14 };
+const HARD = { digitLo: 1, digitHi: 5, mul2: 18, div2: 8, div3: 7, minus: 10, minusLo: 1, minusHi: 5, needOp: true, len: 16 };
+
+export const TD_CONFIG = {
+  runSeconds: 60,
+  worldW: 360,
+  worldH: 520,
+  cols: 4,
+  tileW: 76,
+  tileH: 64,
+  /** Extra px around a tile that still counts as a tap on it. */
+  tapSlack: 8,
+  /** A new tile never lands in the same column as the last two. */
+  avoidRecentCols: 2,
+  shakeTicks: 18,
+  pointsPerTarget: 15,
+  /** Rejection-sampling attempts per segment before the built-in fallback. */
+  maxSegmentTries: 400,
+  stages: [
+    { lo: 8, hi: 15, speed: 320, gap: 30, ...EASY },
+    { lo: 8, hi: 15, speed: 344, gap: 30, ...EASY },
+    { lo: 8, hi: 15, speed: 368, gap: 30, ...EASY },
+    { lo: 15, hi: 30, speed: 400, gap: 26, ...MID },
+    { lo: 15, hi: 30, speed: 432, gap: 26, ...MID },
+    { lo: 15, hi: 30, speed: 464, gap: 26, ...MID },
+    { lo: 30, hi: 80, speed: 500, gap: 22, ...HARD },
+    { lo: 30, hi: 80, speed: 536, gap: 22, ...HARD },
+    { lo: 30, hi: 80, speed: 572, gap: 22, ...HARD },
+    { lo: 30, hi: 80, speed: 608, gap: 22, ...HARD },
+  ] as readonly TenDropStage[],
+} as const;
+
+export const TD_TARGETS = TD_CONFIG.stages.length;
+export const TD_RUN_TICKS = TD_CONFIG.runSeconds * TICKS_PER_SECOND;
+export const TD_W = TD_CONFIG.worldW;
+export const TD_H = TD_CONFIG.worldH;
+export const TD_COL_W = TD_W / TD_CONFIG.cols;
+
+export const TD_INPUT_TAP = 11;
+export const TD_INPUT_RANGES: readonly InputRange[] = [
+  inputRange(TD_INPUT_TAP, [0, TD_CONFIG.cols - 1], [0, TD_H]),
+];
+
+export const TD_DIGIT = 0;
+export const TD_MUL2 = 1;
+export const TD_DIV2 = 2;
+export const TD_DIV3 = 3;
+export const TD_MINUS = 4;
+
+/** Log codes. */
+export const TD_LOG_APPLIED = 1;
+export const TD_LOG_REFUSED = 2;
+export const TD_LOG_RESET = 3;
+export const TD_LOG_CLEAR = 4;
+export const TD_LOG_EMPTY = 5;
+const LOG_KEEP = 16;
+
+/* =============================== Tiles =============================== */
+
+/** A queued tile packed as kind·16 + value. */
+export function tdKind(tile: number): number {
+  return tile >> 4;
+}
+export function tdValue(tile: number): number {
+  return tile & 15;
+}
+function pack(kind: number, value: number): number {
+  return (kind << 4) | value;
+}
+
+export function tdLabel(tile: number): string {
+  const k = tdKind(tile);
+  if (k === TD_DIGIT) return String(tdValue(tile));
+  if (k === TD_MUL2) return "×2";
+  if (k === TD_DIV2) return "÷2";
+  if (k === TD_DIV3) return "÷3";
+  return `−${tdValue(tile)}`;
+}
+
+/** The new total, or null when the tile is refused (÷ not exact, − below 0). */
+export function tdApply(tile: number, total: number): number | null {
+  const k = tdKind(tile);
+  const v = tdValue(tile);
+  if (k === TD_DIGIT) return total + v;
+  if (k === TD_MUL2) return total * 2;
+  if (k === TD_DIV2) return total % 2 === 0 ? total / 2 : null;
+  if (k === TD_DIV3) return total % 3 === 0 ? total / 3 : null;
+  return total - v >= 0 ? total - v : null;
+}
+
+/**
+ * The proof solver: walk one pass of the queue in order, taking a digit when it
+ * does not overshoot and a ×2 when it does not overshoot. Returns the index of
+ * the tile that hits the target exactly, or -1.
+ */
+export function tdGreedy(target: number, queue: readonly number[]): number {
+  let total = 0;
+  for (let i = 0; i < queue.length; i++) {
+    const tile = queue[i]!;
+    const k = tdKind(tile);
+    if (k !== TD_DIGIT && !(k === TD_MUL2 && total > 0)) continue;
+    const r = tdApply(tile, total);
+    if (r === null || r > target) continue;
+    total = r;
+    if (total === target) return i;
+  }
+  return -1;
+}
+
+export function tdDigitSum(queue: readonly number[]): number {
+  let sum = 0;
+  for (const tile of queue) if (tdKind(tile) === TD_DIGIT) sum += tdValue(tile);
+  return sum;
+}
+
+/** Does this queue satisfy the stage's rules for this target? */
+export function tdSegmentOk(stage: TenDropStage, target: number, queue: readonly number[]): boolean {
+  if (tdGreedy(target, queue) < 0) return false;
+  if (stage.mul2 > 0 && !queue.some((t) => tdKind(t) === TD_MUL2)) return false;
+  if (stage.needOp && tdDigitSum(queue) >= target) return false;
+  return true;
+}
+
+/** A guaranteed queue: digits to half the target, ×2, then the odd 1. */
+function fallbackSegment(stage: TenDropStage, target: number): number[] {
+  const out: number[] = [];
+  if (stage.mul2 === 0) {
+    let left = target;
+    while (left > 0) {
+      const d = Math.min(stage.digitHi, left);
+      out.push(pack(TD_DIGIT, d));
+      left -= d;
+    }
+    return out;
+  }
+  let half = target >> 1;
+  while (half > 0) {
+    const d = Math.min(stage.digitHi, half);
+    out.push(pack(TD_DIGIT, d));
+    half -= d;
+  }
+  out.push(pack(TD_MUL2, 0));
+  if (target % 2 === 1) out.push(pack(TD_DIGIT, 1));
+  return out;
+}
+
+export interface TenDropPlan {
+  targets: number[];
+  queues: number[][];
+  /** Tile index the proof solver hit each target on (diagnostic). */
+  proof: number[];
+  /** Re-seeds each segment needed. */
+  tries: number[];
+}
+
+function buildPlan(seed: number): { rng: number; plan: TenDropPlan } {
+  let rng = seed | 0;
+  const draw = (bound: number): number => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const targets: number[] = [];
+  const queues: number[][] = [];
+  const proof: number[] = [];
+  const tries: number[] = [];
+  for (const stage of TD_CONFIG.stages) {
+    let target = 0;
+    let queue: number[] = [];
+    let attempt = 0;
+    for (; attempt < TD_CONFIG.maxSegmentTries; attempt++) {
+      target = stage.lo + draw(stage.hi - stage.lo + 1);
+      queue = [];
+      for (let i = 0; i < stage.len; i++) {
+        const roll = draw(100);
+        let tile: number;
+        if (roll < stage.mul2) tile = pack(TD_MUL2, 0);
+        else if (roll < stage.mul2 + stage.div2) tile = pack(TD_DIV2, 0);
+        else if (roll < stage.mul2 + stage.div2 + stage.div3) tile = pack(TD_DIV3, 0);
+        else if (roll < stage.mul2 + stage.div2 + stage.div3 + stage.minus)
+          tile = pack(TD_MINUS, stage.minusLo + draw(stage.minusHi - stage.minusLo + 1));
+        else tile = pack(TD_DIGIT, stage.digitLo + draw(stage.digitHi - stage.digitLo + 1));
+        queue.push(tile);
+      }
+      if (tdSegmentOk(stage, target, queue)) break;
+    }
+    if (attempt >= TD_CONFIG.maxSegmentTries) queue = fallbackSegment(stage, target);
+    targets.push(target);
+    queues.push(queue);
+    proof.push(tdGreedy(target, queue));
+    tries.push(attempt + 1);
+  }
+  return { rng, plan: { targets, queues, proof, tries } };
+}
+
+/* ================================ State ================================ */
+
+export interface TenDropTile {
+  id: number;
+  col: number;
+  /** Top edge, 1/256 px. */
+  y: number;
+  tile: number;
+  shakeUntil: number;
+}
+
+export interface TenDropState {
+  tick: number;
+  rng: number;
+  plan: TenDropPlan;
+  stage: number;
+  total: number;
+  /** Position in the current target's queue (keeps counting past one pass). */
+  queueIndex: number;
+  spawnIn: number;
+  nextId: number;
+  recentCols: number[];
+  tiles: TenDropTile[];
+  cleared: number;
+  resets: number;
+  refused: number;
+  taps: number;
+  resetTick: number;
+  clearTick: number;
+  /** Recent events, packed tick·64 + code·8 + extra (0–7). */
+  log: number[];
+}
+
+function init(seed: number): TenDropState {
+  const built = buildPlan(seed);
+  return {
+    tick: 0,
+    rng: built.rng,
+    plan: built.plan,
+    stage: 0,
+    total: 0,
+    queueIndex: 0,
+    spawnIn: 0,
+    nextId: 0,
+    recentCols: [],
+    tiles: [],
+    cleared: 0,
+    resets: 0,
+    refused: 0,
+    taps: 0,
+    resetTick: -100,
+    clearTick: -100,
+    log: [],
+  };
+}
+
+function isOver(state: TenDropState): boolean {
+  return state.tick >= TD_RUN_TICKS || state.cleared >= TD_TARGETS;
+}
+
+function pushLog(log: number[], tick: number, code: number, extra: number): number[] {
+  const out = [...log, tick * 64 + code * 8 + clampInt(extra, 0, 7)];
+  return out.length > LOG_KEEP ? out.slice(out.length - LOG_KEEP) : out;
+}
+
+export function unpackTdLog(entry: number): { tick: number; code: number; extra: number } {
+  return { tick: Math.floor(entry / 64), code: Math.floor(entry / 8) % 8, extra: entry % 8 };
+}
+
+function step(state: TenDropState, input: ArcadeInputEvent | null): TenDropState {
+  if (isOver(state)) return state;
+  const c = TD_CONFIG;
+  const tick = state.tick + 1;
+  const stage = c.stages[state.stage]!;
+  const next: TenDropState = { ...state, tick };
+
+  // Fall, then drop anything past the bottom (no penalty).
+  let tiles = state.tiles
+    .map((t) => ({ ...t, y: t.y + stage.speed }))
+    .filter((t) => t.y < c.worldH * 256);
+
+  // Spawn.
+  let spawnIn = state.spawnIn - 1;
+  if (spawnIn <= 0) {
+    const queue = state.plan.queues[state.stage]!;
+    const tile = queue[state.queueIndex % queue.length]!;
+    const free: number[] = [];
+    for (let col = 0; col < c.cols; col++) if (!state.recentCols.includes(col)) free.push(col);
+    const pick = rngBelow(state.rng, free.length);
+    next.rng = pick.state;
+    const col = free[pick.value]!;
+    tiles = [...tiles, { id: state.nextId, col, y: -c.tileH * 256, tile, shakeUntil: 0 }];
+    next.nextId = state.nextId + 1;
+    next.queueIndex = state.queueIndex + 1;
+    next.recentCols = [...state.recentCols, col].slice(-c.avoidRecentCols);
+    spawnIn = stage.gap;
+  }
+  next.spawnIn = spawnIn;
+  next.tiles = tiles;
+
+  if (input && input.k === TD_INPUT_TAP) {
+    next.taps += 1;
+    const col = clampInt(input.a, 0, c.cols - 1);
+    const ty = clampInt(input.b, 0, c.worldH) * 256;
+    const slack = c.tapSlack * 256;
+    let hit = -1;
+    for (let i = 0; i < tiles.length; i++) {
+      const t = tiles[i]!;
+      if (t.col !== col) continue;
+      if (ty < t.y - slack || ty > t.y + c.tileH * 256 + slack) continue;
+      if (hit < 0 || t.y > tiles[hit]!.y) hit = i;
+    }
+    if (hit < 0) {
+      next.log = pushLog(next.log, tick, TD_LOG_EMPTY, col);
+    } else {
+      const t = tiles[hit]!;
+      const result = tdApply(t.tile, state.total);
+      if (result === null) {
+        next.refused += 1;
+        next.tiles = tiles.map((x, i) => (i === hit ? { ...x, shakeUntil: tick + c.shakeTicks } : x));
+        next.log = pushLog(next.log, tick, TD_LOG_REFUSED, col);
+      } else {
+        next.tiles = tiles.filter((_, i) => i !== hit);
+        const target = state.plan.targets[state.stage]!;
+        if (result > target) {
+          next.total = 0;
+          next.resets += 1;
+          next.resetTick = tick;
+          next.log = pushLog(next.log, tick, TD_LOG_RESET, col);
+        } else if (result === target) {
+          next.cleared += 1;
+          next.clearTick = tick;
+          next.total = 0;
+          next.log = pushLog(next.log, tick, TD_LOG_CLEAR, col);
+          if (next.cleared < TD_TARGETS) {
+            next.stage = state.stage + 1;
+            next.queueIndex = 0;
+            next.tiles = [];
+            next.recentCols = [];
+            next.spawnIn = 1;
+          }
+        } else {
+          next.total = result;
+          next.log = pushLog(next.log, tick, TD_LOG_APPLIED, col);
+        }
+      }
+    }
+  }
+  return next;
+}
+
+export function tenDropScore(cleared: number): number {
+  return clampInt(cleared * TD_CONFIG.pointsPerTarget, 0, TD_TARGETS * TD_CONFIG.pointsPerTarget);
+}
+
+function score(state: TenDropState): number {
+  return tenDropScore(state.cleared);
+}
+
+/* ============================= Checkpoints ============================= */
+
+export const TD_CHECKPOINT_INTERVAL = 300;
+
+export interface TenDropCheckpointState {
+  tick: number;
+  stage: number;
+  total: number;
+  cleared: number;
+  resets: number;
+  taps: number;
+  queueIndex: number;
+  tilesHash: number;
+}
+
+export interface TenDropCheckpoint extends TenDropCheckpointState {
+  checksum: number;
+}
+
+export const TD_CHECKPOINT_FIELDS = [
+  "tick",
+  "stage",
+  "total",
+  "cleared",
+  "resets",
+  "taps",
+  "queueIndex",
+  "tilesHash",
+] as const;
+
+export function tenDropCheckpoint(state: TenDropState): TenDropCheckpoint {
+  let tilesHash = 0;
+  for (const t of state.tiles) {
+    tilesHash = (Math.imul(tilesHash, 31) + t.id * 7 + t.col + Math.imul(t.y, 3) + t.tile) | 0;
+  }
+  const snapshot: TenDropCheckpointState = {
+    tick: state.tick,
+    stage: state.stage,
+    total: state.total,
+    cleared: state.cleared,
+    resets: state.resets,
+    taps: state.taps,
+    queueIndex: state.queueIndex,
+    tilesHash,
+  };
+  let checksum = 0x811c9dc5;
+  for (const value of Object.values(snapshot)) {
+    checksum ^= value | 0;
+    checksum = Math.imul(checksum, 0x01000193) >>> 0;
+  }
+  return { ...snapshot, checksum };
+}
+
+/* =============================== Drawing =============================== */
+
+export const TD_GOLD = "#F5B82E";
+
+export function tdView(size: CanvasSize): { scale: number; ox: number; oy: number } {
+  const scale = Math.min(size.width / TD_W, size.height / TD_H);
+  return { scale, ox: (size.width - TD_W * scale) / 2, oy: (size.height - TD_H * scale) / 2 };
+}
+
+function draw(ctx: CanvasRenderingContext2D, state: TenDropState, size: CanvasSize): void {
+  const c = TD_CONFIG;
+  const { scale, ox, oy } = tdView(size);
+  ctx.save();
+  ctx.clearRect(0, 0, size.width, size.height);
+  ctx.translate(ox, oy);
+  ctx.scale(scale, scale);
+  ctx.beginPath();
+  ctx.rect(0, 0, TD_W, TD_H);
+  ctx.clip();
+  ctx.fillStyle = "#101016";
+  ctx.fillRect(0, 0, TD_W, TD_H);
+  ctx.strokeStyle = "rgba(255,255,255,0.06)";
+  ctx.lineWidth = 1;
+  for (let col = 1; col < c.cols; col++) {
+    ctx.beginPath();
+    ctx.moveTo(col * TD_COL_W, 0);
+    ctx.lineTo(col * TD_COL_W, TD_H);
+    ctx.stroke();
+  }
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "700 28px 'JetBrains Mono', ui-monospace, monospace";
+  for (const t of state.tiles) {
+    const shaking = state.tick < t.shakeUntil;
+    const shake = shaking ? ((state.tick % 4) - 1.5) * 3 : 0;
+    const x = t.col * TD_COL_W + (TD_COL_W - c.tileW) / 2 + shake;
+    const y = t.y / 256;
+    const op = tdKind(t.tile) !== TD_DIGIT;
+    ctx.fillStyle = shaking ? "#4A1E1E" : op ? "#2A2414" : "#22222C";
+    ctx.beginPath();
+    ctx.roundRect(x, y, c.tileW, c.tileH, 12);
+    ctx.fill();
+    ctx.strokeStyle = shaking ? "#E0503C" : op ? TD_GOLD : "rgba(255,255,255,0.18)";
+    ctx.lineWidth = op ? 2.5 : 1.5;
+    ctx.stroke();
+    ctx.fillStyle = op ? TD_GOLD : "#F2F2F2";
+    ctx.fillText(tdLabel(t.tile), x + c.tileW / 2, y + c.tileH / 2 + 1);
+  }
+  ctx.restore();
+}
+
+export const tenDropGame: ArcadeGame<TenDropState, ArcadeInputEvent | null> = {
+  key: "tendrop",
+  runTicks: TD_RUN_TICKS,
+  init,
+  step,
+  isOver,
+  score,
+  draw,
+  inputRanges: TD_INPUT_RANGES,
+};
