@@ -151,7 +151,7 @@ export const SNIP_CONFIG = {
       pins: [[120, 50, 0], [300, 230, 0]],
       platforms: [],
       mouth: [80, 490],
-      stars: [[260, 280], [128, 192]],
+      stars: [[128, 192], [88, 440]],
     },
     {
       name: "Under",
