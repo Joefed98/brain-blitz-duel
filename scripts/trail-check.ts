@@ -9,4 +9,4 @@ for (const e of TRAIL_BANK) {
   if (trCorrectPrefix(e.solution.slice(0, 20), e.solution) !== 20) bad++;
   seen.add(e.solution.join("."));
 }
-console.log(`checked ${TRAIL_BANK.length} trails, distinct ${seen.size}, problems ${bad}; half time = ${scoreTrail(true, 45_000, 90_000, 36)}, 18 right = ${scoreTrail(false, 0, 90_000, 18)}`);
+console.log(`checked ${TRAIL_BANK.length} trails, distinct ${seen.size}, problems ${bad}; half time = ${scoreTrail(true, 60_000, 120_000, 36)}, 18 right = ${scoreTrail(false, 0, 120_000, 18)}`);

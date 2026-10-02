@@ -793,7 +793,7 @@ function DuelScreen() {
               msRemaining={myResult ? 0 : runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
               totalMs={runMs ?? timeLimitMs}
               active={clockActive && !myResult}
-              compact={puzzle?.type === "letterwheel"}
+              compact={puzzle?.type === "letterwheel" || puzzle?.type === "numpyramid"}
             />
           </div>
         )}

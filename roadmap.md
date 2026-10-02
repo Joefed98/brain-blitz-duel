@@ -1,5 +1,12 @@
 # Roadmap
 
+## Three number-game changes (Oct 2)
+- [x] Extend Ten Drop to 90 seconds with the new ten-target bands and pace.
+- [x] Move Ten Drop timing into a compact top bar and reclaim the arena space.
+- [x] Rebuild Number Pyramid as 400 unique three-board sets with sequential play and skipping.
+- [x] Update Number Pyramid and Trail scoring and timing.
+- [x] Run only Ten Drop's replay proof plus focused bank, scoring, and code checks; no browser tests.
+
 ## Four word-game tunings (Oct 2)
 - [x] Update Wordsmith scoring and all displayed conversion text.
 - [x] Remove Word Slide's in-game par label only.

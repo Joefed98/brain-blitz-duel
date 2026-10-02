@@ -1923,8 +1923,8 @@ export const BEAT_TIME_MS = 63_000;
 export const WHACK_TIME_MS = 33_000;
 export const TENTS_TIME_MS = 90_000;
 
-/** Ten Drop: a fixed 60-second run on the arcade engine (number category). */
-export const TENDROP_TIME_MS = 63_000;
+/** Ten Drop: a fixed 90-second run on the arcade engine, plus clock slack. */
+export const TENDROP_TIME_MS = 93_000;
 /** Clay Shoot: a fixed 45-second run on the arcade engine. */
 export const CLAYSHOOT_TIME_MS = 48_000;
 
@@ -2145,21 +2145,24 @@ export const LIGHTUP_TIME_MS = 90_000;
 export const BALLTRACK_TIME_MS = 60_000;
 export const WORDSEARCH_TIME_MS = 90_000;
 
-/** Number Pyramid: five rows, every cell the sum of the two below. */
-export const NUMPYRAMID_TIME_MS = 75_000;
+/** Number Pyramid: three pyramids in one 120-second round. */
+export const NUMPYRAMID_TIME_MS = 120_000;
+
+export interface NumberPyramidBoardData {
+  rows: 4 | 5;
+  givens: (number | null)[];
+  tray: number[];
+}
 
 export interface NumberPyramidPuzzleData {
   type: "numpyramid";
-  /** 15 cells top to bottom; null = empty. */
-  givens: (number | null)[];
-  /** Tiles for the empty cells plus two decoys, shuffled. */
-  tray: number[];
-  /** Every cell's value — private until the reveal. */
-  solution?: number[];
+  pyramids: NumberPyramidBoardData[];
+  /** Every board's values — private until the reveal. */
+  solutions?: number[][];
 }
 
 /** Trail: a 6×6 king-move path from 1 to 36. */
-export const TRAIL_TIME_MS = 90_000;
+export const TRAIL_TIME_MS = 120_000;
 
 export interface TrailPuzzleData {
   type: "trail";

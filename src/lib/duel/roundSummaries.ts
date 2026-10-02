@@ -1419,10 +1419,9 @@ const ballTrackSummary: SummaryBuilder = (result, puzzle) => {
 };
 
 const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {
-  const right = Number(result.extra?.["correctCells"] ?? 0);
-  const empties = Number(result.extra?.["emptyCells"] ?? 0);
-  if (result.is_correct) return { summary: `Complete · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
-  return { summary: `${right} / ${empties} placed correctly`, detail: [] };
+  const completed = Number(result.extra?.["completed"] ?? 0);
+  if (result.is_correct) return { summary: `3 / 3 complete · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  return { summary: `${completed} / 3 pyramids complete`, detail: [] };
 };
 
 const trailSummary: SummaryBuilder = (result, puzzle) => {

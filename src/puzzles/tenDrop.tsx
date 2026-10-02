@@ -36,41 +36,38 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" } as const;
 
-function Dots({ cleared }: { cleared: number }) {
+function Hud({ target, total, cleared, tick, flash }: { target: number; total: number; cleared: number; tick: number; flash: "" | "red" | "gold" }) {
+  const remaining = Math.max(0, tenDropGame.runTicks - tick);
+  const seconds = Math.ceil(remaining / 60);
   return (
-    <div className="flex justify-center gap-1.5" aria-label={`${cleared} of ${TD_TARGETS} targets cleared`}>
-      {Array.from({ length: TD_TARGETS }, (_, i) => (
-        <span key={i} className={`h-2.5 w-2.5 rounded-full ${i < cleared ? "bg-primary" : "bg-muted"}`} />
-      ))}
-    </div>
-  );
-}
-
-function Hud({ target, total, cleared, flash }: { target: number; total: number; cleared: number; flash: "" | "red" | "gold" }) {
-  return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-md border border-border bg-card px-3">
       <div
-        className={`rounded-xl px-5 text-center font-mono text-5xl font-bold leading-tight transition-colors ${
+        className={`justify-self-start rounded-md px-2 text-center font-mono text-3xl font-bold leading-tight transition-colors ${
           flash === "gold" ? "bg-primary text-primary-foreground" : "text-foreground"
         }`}
+        aria-label={`Target ${target}`}
       >
         {target}
       </div>
       <div
-        className={`font-mono text-3xl font-bold transition-colors ${
+        className={`font-mono text-2xl font-bold transition-colors ${
           flash === "red" ? "text-destructive" : "text-primary"
         }`}
+        aria-label={`Running total ${total}`}
       >
         {total}
       </div>
-      <Dots cleared={cleared} />
+      <div className="flex min-w-[76px] flex-col items-end leading-none">
+        <span className="font-mono text-xl font-bold text-foreground">{seconds}</span>
+        <span className="font-mono text-[10px] uppercase text-muted-foreground">{cleared}/{TD_TARGETS}</span>
+      </div>
     </div>
   );
 }
 
-/** Intro: target 12, tiles 5 · ×2 · 1 · 1, tapped once in order. */
-const EXAMPLE = ["5", "×2", "1", "1"];
-const EXAMPLE_TOTALS = [5, 10, 11, 12];
+/** Intro: target 20, reached with three digit presses. */
+const EXAMPLE = ["7", "6", "7"];
+const EXAMPLE_TOTALS = [7, 13, 20];
 function IntroExample() {
   const [step, setStep] = useState(0);
   useEffect(() => {
@@ -81,7 +78,7 @@ function IntroExample() {
   const total = step === 0 ? 0 : EXAMPLE_TOTALS[step - 1]!;
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className={`rounded-lg px-3 font-mono text-3xl font-bold ${step >= 4 ? "bg-primary text-primary-foreground" : ""}`}>12</div>
+      <div className={`rounded-lg px-3 font-mono text-3xl font-bold ${step >= 3 ? "bg-primary text-primary-foreground" : ""}`}>20</div>
       <div className="font-mono text-xl font-bold text-primary">{total}</div>
       <div className="flex gap-2">
         {EXAMPLE.map((label, i) => (
@@ -119,7 +116,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof tenDropCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const submitted = useRef(false);
-  const [hud, setHud] = useState({ target: 0, total: 0, cleared: 0, flash: "" as "" | "red" | "gold" });
+  const [hud, setHud] = useState({ target: 0, total: 0, cleared: 0, tick: 0, flash: "" as "" | "red" | "gold" });
   const [dev, setDev] = useState<string | null>(null);
   useNoTouchScroll(wrap);
 
@@ -199,10 +196,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const flash: "" | "red" | "gold" =
         s.tick - s.clearTick < 24 ? "gold" : s.tick - s.resetTick < 24 ? "red" : "";
       const target = s.plan.targets[Math.min(s.stage, TD_TARGETS - 1)]!;
-      const key = `${target}|${s.total}|${s.cleared}|${flash}`;
+      const key = `${target}|${s.total}|${s.cleared}|${Math.ceil((tenDropGame.runTicks - s.tick) / 60)}|${flash}`;
       if (key !== shownKey) {
         shownKey = key;
-        setHud({ target, total: s.total, cleared: s.cleared, flash });
+        setHud({ target, total: s.total, cleared: s.cleared, tick: s.tick, flash });
       }
       if (devOn && s.tick % 6 === 0) {
         const log = s.log
@@ -299,6 +296,7 @@ export const tenDropPuzzle: PuzzleDefinition = {
   category: "number",
   arcadeRun: true,
   timeLimitMs: TENDROP_TIME_MS,
+  showTimer: false,
   revealMs: 6_000,
   generate: () => ({ type: "tendrop", seed: 1 }) satisfies TenDropPuzzleData,
   check: () => false,
