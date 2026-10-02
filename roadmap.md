@@ -1,11 +1,11 @@
 # Roadmap
 
 ## Four word-game tunings (Oct 2)
-- [ ] Update Wordsmith scoring and all displayed conversion text.
-- [ ] Remove Word Slide's in-game par label only.
-- [ ] Rescore Word Search, clarify category headings, and rebuild its 500-board bank.
-- [ ] Add Letter Wheel tap input, new scoring, larger cells, compact timer, and rebuild its constrained 300-board bank.
-- [ ] Run focused checks, TypeScript validation, and preview diagnostics; no browser tests.
+- [x] Update Wordsmith scoring and all displayed conversion text.
+- [x] Remove Word Slide's in-game par label only.
+- [x] Rescore Word Search, clarify category headings, and rebuild its 500-board bank.
+- [x] Add Letter Wheel tap input, new scoring, larger cells, compact timer, and rebuild its constrained 300-board bank.
+- [x] Run focused checks, TypeScript validation, and preview diagnostics; no browser tests.
 
 ## Attention and Pattern tuning (Oct 2)
 - [x] Rebuild Colour Clash as a deterministic 60-second falling-word lane game with recorded steering and drops.

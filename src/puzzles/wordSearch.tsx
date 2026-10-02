@@ -188,7 +188,7 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
       <p className="font-mono text-base text-primary">
         {all
           ? `6 / 6 · ${(elapsed / 1000).toFixed(1)}s`
-          : `${verdict.found.length} / ${placements.length} found${verdict.wrong ? ` · ${verdict.wrong} wrong` : ""}`}
+          : `${verdict.found.length} / ${placements.length} found`}
       </p>
       {dev && (
         <div className="font-mono text-[10px] text-muted-foreground">
