@@ -51,7 +51,8 @@ function cellsOf(p: Placed): [number, number][] {
 }
 
 /** Crossings made, or -1 if the placement breaks a rule. */
-function fit(grid: Grid, across: Map<string, boolean>, p: Placed, box: number[]): number {
+type Dirs = Map<string, { a: boolean; d: boolean }>;
+function fit(grid: Grid, dirs: Dirs, p: Placed, box: number[]): number {
   const [dr, dc] = p.across ? [0, 1] : [1, 0];
   const before = key(p.r - dr, p.c - dc);
   const after = key(p.r + dr * p.word.length, p.c + dc * p.word.length);
@@ -63,7 +64,8 @@ function fit(grid: Grid, across: Map<string, boolean>, p: Placed, box: number[])
     const k = key(r, c);
     const have = grid.get(k);
     if (have) {
-      if (have !== p.word[i] || across.get(k) === p.across) return -1;
+      const f = dirs.get(k)!;
+      if (have !== p.word[i] || (p.across ? f.a : f.d)) return -1;
       crosses++;
     } else {
       // Side neighbours must be empty, or they would form a new word.
@@ -77,14 +79,15 @@ function fit(grid: Grid, across: Map<string, boolean>, p: Placed, box: number[])
 
 function layout(pool: string[]): Placed[] | null {
   const grid: Grid = new Map();
-  const dirOf = new Map<string, boolean>(); // cell → across (only meaningful for non-crossings)
+  const dirOf: Dirs = new Map();
   const placed: Placed[] = [];
   const box = [0, 0, 0, 0];
   const put = (p: Placed) => {
     for (const [i, [r, c]] of cellsOf(p).entries()) {
       const k = key(r, c);
-      if (grid.has(k)) dirOf.delete(k); // crossing: both directions used
-      else dirOf.set(k, p.across);
+      const f = dirOf.get(k) ?? { a: false, d: false };
+      if (p.across) f.a = true; else f.d = true;
+      dirOf.set(k, f);
       grid.set(k, p.word[i]!);
       box[0] = Math.min(box[0]!, r); box[2] = Math.max(box[2]!, r);
       box[1] = Math.min(box[1]!, c); box[3] = Math.max(box[3]!, c);
@@ -106,10 +109,11 @@ function layout(pool: string[]): Placed[] | null {
         for (let i = 0; i < word.length; i++) {
           if (word[i] !== letter) continue;
           for (const across of [true, false]) {
-            if (!dirOf.has(k) || dirOf.get(k) === across) continue;
+            const f = dirOf.get(k)!;
+            if (across ? f.a : f.d) continue;
             const p: Placed = across ? { word, r, c: c - i, across } : { word, r: r - i, c, across };
             // `fit` treats a crossing as legal only where the existing word runs the other way.
-            const crosses = fit(grid, dirOf as Map<string, boolean>, p, box);
+            const crosses = fit(grid, dirOf, p, box);
             if (crosses < 1) continue;
             const score = crosses * 10 + rnd();
             if (!best || score > best.score) best = { p, score };
