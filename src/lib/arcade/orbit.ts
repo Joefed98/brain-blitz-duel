@@ -309,7 +309,7 @@ function buildCourse(seed: number): { planets: Planet[]; rng: number } {
     const prev = planets[i - 1]!;
     const shape = planetShape(i);
     let placed = false;
-    for (let attempt = 0; attempt < 40 && !placed; attempt++) {
+    for (let attempt = 0; attempt < 160 && !placed; attempt++) {
       // Shape from the seed: figure-eights from 21 (one in four), ellipses from 11 (one in three).
       const roll = draw(12);
       const kind = i >= EIGHT_FROM && roll < 3 ? ORBIT_EIGHT : i >= ELLIPSE_FROM && roll < 7 && roll >= 3 ? ORBIT_ELLIPSE : ORBIT_CIRCLE;
@@ -335,17 +335,19 @@ function buildCourse(seed: number): { planets: Planet[]; rng: number } {
       const lo = shape.ring + 8 * FP;
       const hi = ORBIT_WORLD_W * FP - shape.ring - 8 * FP;
       const reach = orbitExtent(prev);
-      const side = prev.x - reach >= lo ? -1 : 1;
-      planets.push({
-        x: clampInt(prev.x + side * reach, lo, hi),
-        y: prev.y - 264 * FP,
-        ...shape,
-        dir: draw(2) ? 1 : -1,
-        hazard: -1,
-        colour: i % 4,
-        kind: ORBIT_CIRCLE,
-        rot: 0,
-      });
+      const dir = draw(2) ? 1 : -1;
+      // Try both sides and a few heights; keep the first one with a proven window.
+      let chosen: Planet | null = null;
+      for (const side of [-1, 1]) {
+        for (const lift of [200, 230, 264, 300]) {
+          const c: Planet = { x: clampInt(prev.x + side * reach, lo, hi), y: prev.y - lift * FP, ...shape, dir, hazard: -1, colour: i % 4, kind: ORBIT_CIRCLE, rot: 0 };
+          planets.push(c);
+          const ok = hasWindow(planets, i - 1);
+          planets.pop();
+          if (ok && !chosen) chosen = c;
+        }
+      }
+      planets.push(chosen ?? { x: clampInt(prev.x + -1 * reach, lo, hi), y: prev.y - 264 * FP, ...shape, dir, hazard: -1, colour: i % 4, kind: ORBIT_CIRCLE, rot: 0 });
     }
   }
   return { planets, rng };
