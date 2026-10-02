@@ -214,14 +214,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   }, [seed, data]);
 
   if (!data) return null;
-  const total = state.current.schedule.totalTargets;
+  const remaining = state.current.schedule.kind.length - state.current.next;
 
   return (
     <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col gap-2" style={NO_SCROLL_STYLE}>
       <Banner red={hud.red} flash={hud.flash} />
       <p className="text-center font-mono text-sm text-muted-foreground">
-        Hits <span className="text-primary">{hud.hits}</span> / {total} · Wrong{" "}
-        <span className="text-destructive">{hud.wrong}</span>
+        Whacked <span className="text-primary">{hud.hits}</span> · Wrong{" "}
+        <span className="text-destructive">{hud.wrong}</span> · Queue {remaining}
       </p>
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <div
@@ -262,7 +262,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
-        {result.hits} / {result.totalTargets} hit · {result.wrong} wrong
+        {result.hits} whacked · {result.wrong} wrong
       </p>
       <p className="text-center text-base text-muted-foreground">Same targets for everyone</p>
       <p className="font-mono text-base text-primary">{result.score} points</p>

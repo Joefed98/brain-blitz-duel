@@ -674,22 +674,24 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "15 per target cleared — all ten is 150.",
   },
   clayshoot: {
-    goal: "Shoot the clays out of the sky.",
+    goal: "Shoot all 25 clays out of the sky.",
     how: [
       { action: "Tap a clay", detail: "to fire — the shot lands exactly where you tap." },
       { action: "Unlimited shots,", detail: "no reload." },
-      { action: "Later on, two fly at once", detail: "and they get a little faster." },
+      { action: "Gold clays are faster and harder", detail: "and worth twice as much." },
+      { action: "Later on, two fly at once", detail: "— keep watching both edges." },
     ],
-    score: "10 per clay — all fifteen is 150.",
+    score: "5 per orange, 10 per gold, plus 10 for all 25. Maximum 150.",
   },
   whack: {
     goal: "Tap the targets the banner tells you to.",
     how: [
-      { action: "Targets pop up", detail: "and vanish fast." },
+      { action: "Correct-colour balls stay up", detail: "until you tap them." },
+      { action: "Wrong-colour balls retreat", detail: "after two seconds." },
       { action: "The rule flips partway through", detail: "— watch the banner." },
-      { action: "Bombs and wrong colours", detail: "cost you." },
+      { action: "A wrong-colour tap", detail: "clears the hole but costs 5." },
     ],
-    score: "Points for the share of targets you hit; every wrong tap costs 10.",
+    score: "2 per correct ball; wrong-colour taps cost 5. Maximum 150.",
   },
   wavefront: {
     goal: "Shoot down the formation before it reaches you.",
