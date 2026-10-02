@@ -343,7 +343,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           // Each hit is shown where it fell relative to the target it hit, so
           // every arrow is comparable on one full-size ring set.
           const scale = bullseyeScalePct(hit.arrow);
-          const x = size / 2 + ((hit.x - BULLSEYE_CX) * 100) / scale;
+          const x = size / 2 + ((hit.x - (hit.tdx ?? 0) - BULLSEYE_CX) * 100) / scale;
           const y = size / 2 + ((hit.y - BULLSEYE_CY) * 100) / scale;
           return <circle key={index} cx={x} cy={y} r={5} fill={BULLSEYE_GOLD} stroke="#0B0B0F" />;
         })}

@@ -196,6 +196,55 @@ function touchesBlock(ball: InkBall, b: InkBlock): boolean {
   return dx * dx + dy * dy <= r * r;
 }
 
+/**
+ * Pushes a free ball out of any line it has sunk into (closer than its radius,
+ * less a pixel of slack so a ball resting on a line is left alone). Vertical
+ * lines act as walls: horizontal speed is killed and the ball slides down.
+ * Sloped or flat lines approached from above catch the ball. Returns true if
+ * the ball landed on a line.
+ */
+function clampOut(ball: InkBall, segs: readonly InkSeg[], prevX: number): boolean {
+  const r = (BALL_R - 1) * FP;
+  for (let i = 0; i < segs.length; i++) {
+    const seg = segs[i]!;
+    const ax = seg.x0 * FP, ay = seg.y0 * FP, sx = (seg.x1 - seg.x0) * FP, sy = (seg.y1 - seg.y0) * FP;
+    const lenSq = sx * sx + sy * sy;
+    const t = lenSq > 0 ? Math.max(0, Math.min(1, ((ball.x - ax) * sx + (ball.y - ay) * sy) / lenSq)) : 0;
+    const cx = ax + sx * t, cy = ay + sy * t;
+    let dx = ball.x - cx, dy = ball.y - cy;
+    const distSq = dx * dx + dy * dy;
+    if (distSq >= r * r) continue;
+    const n = upNormal(seg);
+    let dist = Math.sqrt(distSq);
+    if (dist < 1) {
+      // Dead centre: push to the side the ball came from (walls) or upward.
+      if (n) { dx = n[0]; dy = n[1]; } else { dx = prevX < ax ? -1 : 1; dy = 0; }
+      dist = Math.hypot(dx, dy);
+    }
+    ball.x = Math.trunc(cx + (dx * BALL_R * FP) / dist);
+    ball.y = Math.trunc(cy + (dy * BALL_R * FP) / dist);
+    if (!n) {
+      ball.vx = 0;
+      continue;
+    }
+    if (relate(seg, ball.x, ball.y, n).height > 0 && ball.vy >= 0 && t > 0 && t < 1) {
+      ball.on = i;
+      ball.u = clampInt(relate(seg, ball.x, ball.y, n).along, 0, seg.len * FP);
+      ball.sp = Math.trunc((ball.vx * (seg.x1 - seg.x0) + ball.vy * (seg.y1 - seg.y0)) / seg.len);
+      placeOn(ball, seg);
+      return true;
+    }
+    // Underside or a cap: lose the speed into the line.
+    const nx = dx / dist, ny = dy / dist;
+    const into = ball.vx * nx + ball.vy * ny;
+    if (into < 0) {
+      ball.vx = Math.trunc(ball.vx - into * nx);
+      ball.vy = Math.trunc(ball.vy - into * ny);
+    }
+  }
+  return false;
+}
+
 /** One tick of the ball: 0 still going, 1 in the bucket, 2 failed. Mutates ball. */
 function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel): number {
   const px = ball.x;
@@ -257,11 +306,14 @@ function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel): number
           // A vertical wall or underside still stops the ball rather than tunnelling.
           ball.x = hitX;
           ball.y = hitY;
-          if (!n) ball.vx = -Math.trunc(ball.vx / 2);
+          // A vertical line is a wall the ball slides down.
+          if (!n) ball.vx = 0;
           else ball.vy = -Math.trunc(ball.vy / 2);
         }
+        if (ball.on < 0) clampOut(ball, segs, startX);
         break;
       }
+      if (clampOut(ball, segs, startX)) break;
     }
     if (ball.x < BALL_R * FP || ball.x > (INK_WORLD_W - BALL_R) * FP) {
       ball.x = clampInt(ball.x, BALL_R * FP, (INK_WORLD_W - BALL_R) * FP);
@@ -431,6 +483,39 @@ function buildLevels(seed: number): { list: InkLevel[]; rng: number } {
     list.push(made);
   }
   return { list, rng };
+}
+
+/**
+ * Test hook: drops a ball from (x, y) onto one line and reports whether its
+ * centre ever crossed from one side of the line's span to the other.
+ */
+export function inkSingleLineDrop(x: number, y: number, vx: number, line: [number, number, number, number]): { crossed: boolean; minDist: number } {
+  const [x0, y0, x1, y1] = line;
+  const len = isqrt((x1 - x0) ** 2 + (y1 - y0) ** 2);
+  const segs: InkSeg[] = [{ x0, y0, x1, y1, len }];
+  const lvl: InkLevel = { spoutX: x, bucketX: -1000, bucketY: 10_000, blocks: [], ref: [] };
+  const ball: InkBall = { x: x * FP, y: y * FP, vx: vx * FP, vy: 0, on: -1, u: 0, sp: 0, stall: 0 };
+  const side = (bx: number, by: number) => Math.sign((x1 - x0) * (by / FP - y0) - (y1 - y0) * (bx / FP - x0));
+  const inSpan = (bx: number, by: number) => {
+    const t = ((bx / FP - x0) * (x1 - x0) + (by / FP - y0) * (y1 - y0)) / (len * len);
+    return t > 0.02 && t < 0.98;
+  };
+  let lastSide = side(ball.x, ball.y);
+  let crossed = false;
+  let minDist = Infinity;
+  for (let t = 0; t < 400; t++) {
+    const px = ball.x, py = ball.y;
+    if (moveBall(ball, segs, lvl)) break;
+    const now = side(ball.x, ball.y);
+    // Crossing counts only when the move went through the line's body, not around an end.
+    if (now !== 0 && lastSide !== 0 && now !== lastSide && (inSpan(px, py) || inSpan(ball.x, ball.y))) crossed = true;
+    if (now !== 0) lastSide = now;
+    if (inSpan(ball.x, ball.y)) {
+      const d = Math.abs((x1 - x0) * (ball.y / FP - y0) - (y1 - y0) * (ball.x / FP - x0)) / len;
+      minDist = Math.min(minDist, d);
+    }
+  }
+  return { crossed, minDist };
 }
 
 /** Test hook: does each level's stored reference solution land in the bucket within its ink? */

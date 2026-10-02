@@ -1,3 +1,4 @@
+import { crossLine } from "@/lib/duel/crossLine";
 import {
   checkPatternAnswer,
   decodePatternAnswers,
@@ -1080,13 +1081,11 @@ const snakeSummary: SummaryBuilder = (result) => {
 
 const crossSummary: SummaryBuilder = (result) => {
   const crossings = Number(result.extra?.["crossings"] ?? 0);
+  const clean = Number(result.extra?.["clean"] ?? 0);
+  const lost = Number(result.extra?.["livesLost"] ?? 0);
   const lanes = Number(result.extra?.["lanes"] ?? 0);
-  const survived = result.extra?.["survived"] === true;
-  const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
-    summary: survived
-      ? `${crossings} crossings · survived`
-      : `${crossings} crossings · ${lanes} lanes · crashed at ${ended.toFixed(1)}s`,
+    summary: crossLine({ crossings, clean, livesLost: lost }),
     detail: [`${lanes} lane${lanes === 1 ? "" : "s"} into the last crossing`],
   };
 };
@@ -1160,8 +1159,8 @@ const sliceSummary: SummaryBuilder = (result) => {
   const total = Number(result.extra?.["totalDiscs"] ?? 0);
   const bombs = Number(result.extra?.["bombsHit"] ?? 0);
   return {
-    summary: `${slices} / ${total} sliced · ${bombs} bomb${bombs === 1 ? "" : "s"}`,
-    detail: [`${Number(result.extra?.["bonuses"] ?? 0)} multi-slice bonuses`],
+    summary: `Sliced ${slices} / ${total} · best combo ×${Number(result.extra?.["bestMult"] ?? 1)}`,
+    detail: [`${bombs} bomb${bombs === 1 ? "" : "s"} hit`],
   };
 };
 

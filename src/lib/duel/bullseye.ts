@@ -50,6 +50,7 @@ export function encodeBullseyeRun(run: BullseyeRun): string {
         item.lastY,
         item.lastRing,
         item.wind,
+        item.lastTdx,
         item.checksum,
       ].join(":"),
     )
@@ -72,8 +73,8 @@ export function decodeBullseyeRun(raw: string): BullseyeRun {
     .filter(Boolean)
     .slice(0, Math.ceil(BULLSEYE_RUN_TICKS / BULLSEYE_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
-    .filter((values) => values.length === 9 && values.every(Number.isInteger))
-    .map(([tick, arrowIndex, flightTick, total, lastX, lastY, lastRing, wind, sum]) => ({
+    .filter((values) => values.length === 10 && values.every(Number.isInteger))
+    .map(([tick, arrowIndex, flightTick, total, lastX, lastY, lastRing, wind, lastTdx, sum]) => ({
       tick: tick ?? 0,
       arrowIndex: arrowIndex ?? 0,
       flightTick: flightTick ?? 0,
@@ -82,6 +83,7 @@ export function decodeBullseyeRun(raw: string): BullseyeRun {
       lastY: lastY ?? 0,
       lastRing: lastRing ?? -1,
       wind: wind ?? 0,
+      lastTdx: lastTdx ?? 0,
       checksum: (sum ?? 0) >>> 0,
     }));
   return {

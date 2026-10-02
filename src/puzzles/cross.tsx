@@ -1,3 +1,4 @@
+import { crossLine } from "@/lib/duel/crossLine";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -259,9 +260,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         <circle cx="78" cy="34" r="6" fill={CROSS_PLAYER} />
       </svg>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.crossings} crossing{result.crossings === 1 ? "" : "s"} · {result.lanes} lane
-        {result.lanes === 1 ? "" : "s"} ·{" "}
-        {result.survived ? "survived" : `crashed at ${result.endedSeconds.toFixed(1)}s`}
+        {crossLine(result)}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {moves} move{moves === 1 ? "" : "s"} · same traffic for everyone

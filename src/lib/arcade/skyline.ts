@@ -224,6 +224,30 @@ export const SKYLINE_COLOURS = [
   "#8B5A2B",
 ];
 
+/** Smallest render zoom as the tower grows. */
+export const SKYLINE_MIN_ZOOM = 0.45;
+const zoomMemo = new WeakMap<CanvasRenderingContext2D, number>();
+
+/** Fixed silhouette: [left, width, height] in world px. */
+const BACKDROP = [
+  [0, 34, 120], [30, 26, 180], [54, 40, 140], [92, 22, 210], [112, 36, 160], [146, 30, 240],
+  [174, 44, 130], [216, 26, 200], [240, 38, 170], [276, 30, 230], [304, 42, 150], [344, 24, 190], [366, 30, 140],
+] as const;
+
+function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: number): void {
+  // Moves a fifth as much as the tower: shrinks a little and sinks a little.
+  const k = 1 - (1 - zoom) * 0.2;
+  ctx.save();
+  ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H + scroll * 0.2 * zoom);
+  ctx.scale(k, k);
+  ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+  for (const [x, w, h] of BACKDROP) ctx.fillRect(x - 40, SKYLINE_WORLD_H - h, w - 2, h);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.035)";
+  for (const [x, w, h] of BACKDROP) ctx.fillRect(x + 15, SKYLINE_WORLD_H - h * 0.6, w - 4, h * 0.6);
+  ctx.restore();
+}
+
 function draw(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize): void {
   const scale = Math.min(size.width / SKYLINE_WORLD_W, size.height / SKYLINE_WORLD_H);
   const offsetX = (size.width - SKYLINE_WORLD_W * scale) / 2;
@@ -236,15 +260,29 @@ function draw(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSi
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
-  // The tower scrolls down once it passes the middle, so the top stays in view.
+  // Camera (render only): once the tower passes the middle the view zooms out
+  // about the bottom centre so the whole tower stays in shot, down to 0.45;
+  // past that it scrolls. The zoom eases toward its target per canvas.
   const towerH = state.blocks.length * blockH;
   const middle = SKYLINE_WORLD_H / 2;
-  const scroll = Math.max(0, towerH - middle);
+  const target = towerH + blockH <= middle ? 1 : Math.max(SKYLINE_MIN_ZOOM, middle / (towerH + blockH));
+  const prev = zoomMemo.get(ctx);
+  const zoom = prev === undefined || state.tick < 2 ? target : prev + (target - prev) * 0.12;
+  zoomMemo.set(ctx, zoom);
+  const visibleH = SKYLINE_WORLD_H / zoom;
+  const camScroll = Math.max(0, towerH + blockH - visibleH * 0.5);
+
+  // Faint city backdrop, parallaxing slower than the tower.
+  drawBackdrop(ctx, zoom, camScroll);
+
+  ctx.save();
+  ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H + camScroll);
 
   state.blocks.forEach((block, index) => {
-    const bottom = SKYLINE_WORLD_H - index * blockH + scroll;
+    const bottom = SKYLINE_WORLD_H - index * blockH;
     const top = bottom - blockH;
-    if (top > SKYLINE_WORLD_H || bottom < 0) return;
     ctx.fillStyle = SKYLINE_COLOURS[index % SKYLINE_COLOURS.length]!;
     ctx.fillRect(px(block.x), top, px(block.w), blockH);
     ctx.strokeStyle = "rgba(0, 0, 0, 0.45)";
@@ -253,20 +291,16 @@ function draw(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSi
   });
 
   if (!state.missed) {
-    const bottom = SKYLINE_WORLD_H - state.blocks.length * blockH + scroll;
+    const bottom = SKYLINE_WORLD_H - state.blocks.length * blockH;
     ctx.fillStyle = SKYLINE_COLOURS[state.blocks.length % SKYLINE_COLOURS.length]!;
     ctx.fillRect(px(state.x), bottom - blockH, px(state.w), blockH);
   }
 
   if (state.perfectTick > 0 && state.tick - state.perfectTick < 12) {
     ctx.fillStyle = SKYLINE_FLASH;
-    ctx.fillRect(
-      0,
-      SKYLINE_WORLD_H - state.blocks.length * blockH + scroll - 2,
-      SKYLINE_WORLD_W,
-      2,
-    );
+    ctx.fillRect(-SKYLINE_WORLD_W, SKYLINE_WORLD_H - state.blocks.length * blockH - 2, SKYLINE_WORLD_W * 3, 2);
   }
+  ctx.restore();
 
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";
