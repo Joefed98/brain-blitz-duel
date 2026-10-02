@@ -283,9 +283,7 @@ function hasWindow(planets: readonly Planet[], i: number): boolean {
 export function orbitCourseCheck(seed: number): { hops: number; safe: number; ellipses: number; eights: number; laps: number[]; speeds: number[] } {
   const { planets } = buildCourse(seed);
   let safe = 0;
-  const bad: string[] = [];
-  for (let i = 0; i < ORBIT_TOTAL; i++) if (hasWindow(planets, i)) safe++; else bad.push(`${i}:${planets[i]!.kind}>${planets[i + 1]!.kind}`);
-  (globalThis as { __orbitBad?: string[] }).__orbitBad = bad;
+  for (let i = 0; i < ORBIT_TOTAL; i++) if (hasWindow(planets, i)) safe++;
   return {
     hops: ORBIT_TOTAL,
     safe,
