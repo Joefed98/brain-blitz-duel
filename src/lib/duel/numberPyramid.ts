@@ -1,71 +1,56 @@
-/**
- * Number Pyramid — shared rules for the phone, the grader and the bank script.
- *
- * Cells are numbered top to bottom, left to right: row r (0–4) holds r+1 cells
- * starting at index r(r+1)/2. Every cell above the bottom row is the sum of the
- * two cells directly below it. The answer is a list of (cell, tray index)
- * placements; the server reads tile values from the stored tray itself.
- */
+/** Number Pyramid rules shared by the phone, grader, and offline bank builder. */
 
-export const NP_ROWS = 5;
-export const NP_CELLS = (NP_ROWS * (NP_ROWS + 1)) / 2;
+export const NP_SET_SIZE = 3;
 export const NP_DECOYS = 2;
-export const NP_MIN_EMPTY = 6;
-export const NP_MAX_EMPTY = 9;
+export const NP_STAGE_CONFIG = [
+  { rows: 4, minEmpty: 4, maxEmpty: 5, bottomLo: 1, bottomHi: 6 },
+  { rows: 5, minEmpty: 6, maxEmpty: 8, bottomLo: 1, bottomHi: 9 },
+  { rows: 5, minEmpty: 9, maxEmpty: 11, bottomLo: 3, bottomHi: 15 },
+] as const;
+
+export function npCells(rows: number): number {
+  return (rows * (rows + 1)) / 2;
+}
 
 export function npIndex(row: number, col: number): number {
   return (row * (row + 1)) / 2 + col;
 }
 
-export function npRowOf(cell: number): { row: number; col: number } {
-  let row = 0;
-  while (npIndex(row + 1, 0) <= cell) row++;
-  return { row, col: cell - npIndex(row, 0) };
-}
-
-/** Every sum rule as [above, below-left, below-right]. */
-export const NP_RULES: readonly (readonly [number, number, number])[] = (() => {
+function npRules(rows: number): [number, number, number][] {
   const out: [number, number, number][] = [];
-  for (let r = 0; r < NP_ROWS - 1; r++)
+  for (let r = 0; r < rows - 1; r++)
     for (let c = 0; c <= r; c++) out.push([npIndex(r, c), npIndex(r + 1, c), npIndex(r + 1, c + 1)]);
   return out;
-})();
+}
 
 export function npBuild(bottom: readonly number[]): number[] {
-  const v = new Array<number>(NP_CELLS).fill(0);
-  for (let c = 0; c < NP_ROWS; c++) v[npIndex(NP_ROWS - 1, c)] = bottom[c]!;
-  for (let r = NP_ROWS - 2; r >= 0; r--)
+  const rows = bottom.length;
+  const v = new Array<number>(npCells(rows)).fill(0);
+  for (let c = 0; c < rows; c++) v[npIndex(rows - 1, c)] = bottom[c] ?? 0;
+  for (let r = rows - 2; r >= 0; r--)
     for (let c = 0; c <= r; c++) v[npIndex(r, c)] = v[npIndex(r + 1, c)]! + v[npIndex(r + 1, c + 1)]!;
   return v;
 }
 
-/** True when every sum rule holds on a fully known pyramid. */
-export function npRulesHold(values: readonly (number | null)[]): boolean {
-  return NP_RULES.every(([a, b, c]) => values[a] != null && values[a] === values[b]! + values[c]!);
+export function npRulesHold(values: readonly (number | null)[], rows: number): boolean {
+  return npRules(rows).every(([a, b, c]) => values[a] != null && values[a] === values[b]! + values[c]!);
 }
 
-/**
- * Counts distinct value fillings of the empty cells using tiles from the tray
- * (each tile at most once) that satisfy every sum rule. Stops at `cap`.
- */
-export function npCountSolutions(givens: readonly (number | null)[], tray: readonly number[], cap = 2): number {
+export function npCountSolutions(givens: readonly (number | null)[], tray: readonly number[], rows: number, cap = 2): number {
   const empties: number[] = [];
-  // Bottom rows first so rules close early.
-  for (let r = NP_ROWS - 1; r >= 0; r--) for (let c = 0; c <= r; c++) if (givens[npIndex(r, c)] == null) empties.push(npIndex(r, c));
+  for (let r = rows - 1; r >= 0; r--) for (let c = 0; c <= r; c++) if (givens[npIndex(r, c)] == null) empties.push(npIndex(r, c));
   const counts = new Map<number, number>();
   for (const t of tray) counts.set(t, (counts.get(t) ?? 0) + 1);
   const values = [...givens];
+  const rules = npRules(rows);
   const rulesOf = new Map<number, (readonly [number, number, number])[]>();
-  for (const rule of NP_RULES) for (const cell of rule) rulesOf.set(cell, [...(rulesOf.get(cell) ?? []), rule]);
+  for (const rule of rules) for (const cell of rule) rulesOf.set(cell, [...(rulesOf.get(cell) ?? []), rule]);
   let found = 0;
   const ok = (cell: number) =>
     (rulesOf.get(cell) ?? []).every(([a, b, c]) => values[a] == null || values[b] == null || values[c] == null || values[a] === values[b]! + values[c]!);
   const walk = (i: number) => {
     if (found >= cap) return;
-    if (i === empties.length) {
-      found++;
-      return;
-    }
+    if (i === empties.length) { found++; return; }
     const cell = empties[i]!;
     for (const [value, n] of counts) {
       if (n <= 0) continue;
@@ -84,45 +69,59 @@ export function npCountSolutions(givens: readonly (number | null)[], tray: reado
 }
 
 export type NpPlacements = Record<number, number>;
+export interface NpRoundAnswer { active: number; boards: NpPlacements[] }
 
-/** "cell:tray,cell:tray" */
 export function npEncode(placements: NpPlacements): string {
-  return Object.entries(placements)
-    .map(([cell, tray]) => `${cell}:${tray}`)
-    .join(",");
+  return Object.entries(placements).map(([cell, tray]) => `${cell}:${tray}`).join(",");
 }
 
-/** Decodes and sanitises: empty cells only, real tray indices, each tile once. */
 export function npDecode(raw: string, givens: readonly (number | null)[], trayLength: number): NpPlacements {
   const out: NpPlacements = {};
   const used = new Set<number>();
-  for (const part of String(raw ?? "").split(",").slice(0, NP_CELLS)) {
+  for (const part of String(raw ?? "").split(",").slice(0, givens.length)) {
     const [a, b] = part.split(":").map((x) => Number.parseInt(x, 10));
-    if (!Number.isInteger(a) || !Number.isInteger(b)) continue;
-    if (a! < 0 || a! >= NP_CELLS || givens[a!] != null || b! < 0 || b! >= trayLength) continue;
-    if (used.has(b!) || out[a!] !== undefined) continue;
-    used.add(b!);
-    out[a!] = b!;
+    if (!Number.isInteger(a) || !Number.isInteger(b) || a === undefined || b === undefined) continue;
+    if (a < 0 || a >= givens.length || givens[a] != null || b < 0 || b >= trayLength) continue;
+    if (used.has(b) || out[a] !== undefined) continue;
+    used.add(b);
+    out[a] = b;
   }
   return out;
 }
 
-/** The pyramid as the player has it filled: givens plus placed tile values. */
-export function npFilled(givens: readonly (number | null)[], tray: readonly number[], placements: NpPlacements): (number | null)[] {
-  return givens.map((g, cell) => (g != null ? g : placements[cell] !== undefined ? tray[placements[cell]!]! : null));
+export function npEncodeRound(active: number, boards: readonly NpPlacements[]): string {
+  return JSON.stringify({ active: Math.max(0, Math.min(NP_SET_SIZE - 1, active)), boards: boards.map(npEncode) });
 }
 
-export function npComplete(givens: readonly (number | null)[], tray: readonly number[], placements: NpPlacements): boolean {
-  const filled = npFilled(givens, tray, placements);
-  return filled.every((v) => v != null) && npRulesHold(filled);
-}
-
-/** Complete: 100 + time bonus up to 50. Otherwise 60 × share of empty cells placed correctly. */
-export function scoreNumberPyramid(complete: boolean, msRemaining: number, timeLimitMs: number, correct: number, empties: number): number {
-  if (complete) {
-    const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
-    return Math.min(150, 100 + Math.round((50 * ms) / timeLimitMs));
+export function npDecodeRound(raw: string): { active: number; boards: string[] } {
+  try {
+    const parsed = JSON.parse(raw) as { active?: unknown; boards?: unknown };
+    const active = typeof parsed.active === "number" ? Math.max(0, Math.min(NP_SET_SIZE - 1, Math.floor(parsed.active))) : 0;
+    const boards = Array.isArray(parsed.boards) ? parsed.boards.slice(0, NP_SET_SIZE).map((v) => String(v ?? "")) : [];
+    return { active, boards: Array.from({ length: NP_SET_SIZE }, (_, i) => boards[i] ?? "") };
+  } catch {
+    return { active: 0, boards: [raw, "", ""] };
   }
-  if (empties <= 0) return 0;
-  return Math.round((60 * Math.max(0, Math.min(correct, empties))) / empties);
+}
+
+export function npFilled(givens: readonly (number | null)[], tray: readonly number[], placements: NpPlacements): (number | null)[] {
+  return givens.map((g, cell) => (g != null ? g : placements[cell] !== undefined ? tray[placements[cell]!] ?? null : null));
+}
+
+export function npComplete(givens: readonly (number | null)[], tray: readonly number[], placements: NpPlacements, rows: number): boolean {
+  const filled = npFilled(givens, tray, placements);
+  return filled.every((v) => v != null) && npRulesHold(filled, rows);
+}
+
+export function npCorrectCells(givens: readonly (number | null)[], tray: readonly number[], solution: readonly number[], placements: NpPlacements): number {
+  let correct = 0;
+  for (const [cell, trayIndex] of Object.entries(placements)) if (tray[trayIndex] === solution[Number(cell)]) correct++;
+  return correct;
+}
+
+export function scoreNumberPyramid(completed: number, allComplete: boolean, msRemaining: number, activeCorrect: number, activeEmpty: number): number {
+  const base = 40 * Math.max(0, Math.min(NP_SET_SIZE, completed));
+  const bonus = allComplete ? Math.round((30 * Math.max(0, Math.min(msRemaining, 120_000))) / 120_000) : 0;
+  const partial = allComplete || activeEmpty <= 0 ? 0 : Math.round((40 * Math.max(0, Math.min(activeCorrect, activeEmpty))) / activeEmpty);
+  return Math.min(150, base + bonus + partial);
 }
