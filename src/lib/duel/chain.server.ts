@@ -1,13 +1,12 @@
 /**
  * Server-only generation for Don't Break the Chain.
  *
- * Nodes are scattered across the whole play area by Poisson-disc sampling, so
- * the board is never a ring around the edge. A depth-first search then counts
- * the non-crossing fifteen-node routes: a layout is only used when it has
- * between one and eight of them and at least two early dead-end traps.
+ * Nodes are scattered across the whole play area by seeded Poisson-disc
+ * sampling, with every generated position stored in the puzzle so both
+ * players receive the same non-touching layout.
  */
 
-import { shuffled } from "./random";
+import { randInt, shuffled } from "./random";
 import { chainRequired, chainWouldCross } from "./chain";
 import {
   CHAIN_CYCLE,
@@ -182,7 +181,18 @@ function distancePx(a: Point, b: Point): number {
  * board is filled first, so the scatter reaches the centre instead of ringing
  * the rim, and no two glyphs ever touch or overlap.
  */
-function samplePoints(): Point[] | null {
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4_294_967_296;
+  };
+}
+
+function samplePoints(random: () => number): Point[] | null {
   const points: Point[] = [];
   const span = 100 - EDGE_PADDING * 2;
   const round = (value: number) => Math.round(value * 10) / 10;
@@ -192,8 +202,8 @@ function samplePoints(): Point[] | null {
   for (let throws = 0; throws < 20_000 && points.length < CHAIN_MIN_CENTRAL; throws++) {
     const middle = CENTRE_TO - CENTRE_FROM;
     const candidate = {
-      x: round(CENTRE_FROM + Math.random() * middle),
-      y: round(CENTRE_FROM + Math.random() * middle),
+      x: round(CENTRE_FROM + random() * middle),
+      y: round(CENTRE_FROM + random() * middle),
     };
     if (fits(candidate)) points.push(candidate);
   }
@@ -201,8 +211,8 @@ function samplePoints(): Point[] | null {
 
   for (let throws = 0; throws < 60_000 && points.length < CHAIN_NODES; throws++) {
     const candidate = {
-      x: round(EDGE_PADDING + Math.random() * span),
-      y: round(EDGE_PADDING + Math.random() * span),
+      x: round(EDGE_PADDING + random() * span),
+      y: round(EDGE_PADDING + random() * span),
     };
     if (fits(candidate)) points.push(candidate);
   }
@@ -316,19 +326,19 @@ function evaluate(points: Point[], bag: ChainShape[], cycle: ChainShape[]): Cand
 export function generateChain(): ChainPuzzleData {
   // Sixteen sets exceed the 400-input replay cap, so a one-minute run can
   // always advance to a fresh stored layout without wrapping.
-  const sets = Array.from({ length: 16 }, (_, setIndex) => {
+  const sets = Array.from({ length: 16 }, () => {
     const cycle = shuffled([...CHAIN_SHAPES]).slice(0, CHAIN_CYCLE);
-    const reverse = setIndex % 2 === 1;
-    const nodes = Array.from({ length: CHAIN_NODES }, (_, step) => {
-      const row = Math.floor(step / 4);
-      const along = step % 4;
-      const col = row % 2 === 0 ? along : 3 - along;
-      return {
-        x: (reverse ? 88 : 12) + (reverse ? -1 : 1) * col * (76 / 3),
-        y: 8 + row * (84 / 6),
-        shape: cycle[step % cycle.length]!,
-      };
+    const random = seededRandom(randInt(0, 0x7fffffff));
+    let points = samplePoints(random);
+    while (!points || !layoutIsSpread(points)) points = samplePoints(random);
+    const order = points
+      .map((_point, index) => index)
+      .sort((a, b) => points[a]!.x - points[b]!.x || points[a]!.y - points[b]!.y);
+    const shapeByNode = new Array<ChainShape>(CHAIN_NODES);
+    order.forEach((node, step) => {
+      shapeByNode[node] = cycle[step % cycle.length]!;
     });
+    const nodes = points.map((point, index) => ({ ...point, shape: shapeByNode[index]! }));
     return { nodes, cycle };
   });
   return { type: "chain", sets };

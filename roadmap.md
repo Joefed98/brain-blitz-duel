@@ -1,3 +1,11 @@
+## Stop Watch, Chain, Whack, and Clay updates (Oct 2)
+
+- [x] Make Stop Watch 1–7 bounce, Watches 8–10 wrap, and count right-edge arrivals from 2 through 11.
+- [x] Scatter all 28 Chain nodes with a guaranteed clear gap and store each generated layout.
+- [x] Run Whack-a-Target for 60 seconds with an initially empty, paced 100-ball queue and universal three-second lifetimes.
+- [x] Compact Clay Shoot's status, conceal gold discs until resolved, and expand the sky area.
+- [x] Run self-replay proofs only for Whack-a-Target and Clay Shoot.
+
 ## Ten Drop and Number Pyramid update (Oct 2)
 - [x] Simplify Ten Drop to a gold running total on the left and centred target beneath the shared timer.
 - [x] Expand Number Pyramid to four rising-difficulty boards over 150 seconds.
@@ -431,3 +439,10 @@
 - [x] Bullseye moving target on arrows 6–10
 - [x] Cross cars/lorries, 3 lives, clean-crossing bonus
 - [x] Slice combo ×1–×3, 25% longer cut, combo meter
+
+## Stop Watch, Chain, Whack, and Clay update (Oct 2)
+- [ ] Correct Stop Watch bounce/wrap movement and right-edge pass counters from 2–11.
+- [ ] Scatter each 28-node Chain set with enforced non-touching spacing.
+- [ ] Extend Whack-a-Target to 60 seconds with queued pop-ups and universal three-second retreats.
+- [ ] Compact Clay Shoot status, conceal gold lineup discs until resolved, and reclaim arena height.
+- [ ] Run only Whack-a-Target and Clay Shoot self-replay proofs plus focused source checks; no browser tests.

@@ -806,15 +806,15 @@ export interface StopWatchSpec {
   sweepMs: number;
   /** The marker vanishes over the final third of the bar. */
   hidden: boolean;
-  /** Starts at the right; the zone only arms on the second pass. */
-  reverse: boolean;
+  /** Wraps from the right boundary to the left instead of bouncing. */
+  wrap: boolean;
   /** Optional seeded target oscillation around `centre`. */
   moving?: { amplitude: number; cycleMs: number; phase: number };
   /** Draw and move this watch vertically instead of horizontally. */
   vertical?: boolean;
   /** Optional traversal times, one per pass. */
   passSweepMs?: number[];
-  /** Full left-to-right sweeps allowed before this watch is missed. */
+  /** Right-boundary arrivals allowed before this watch is missed. */
   passes: number;
 }
 
@@ -1915,8 +1915,8 @@ export const BEAT_TIME_MS = 63_000;
 
 /* ======================= Whack-a-Target / Tents ========================= */
 
-/** A fixed 30-second run on the arcade engine; the clock adds three of slack. */
-export const WHACK_TIME_MS = 33_000;
+/** A fixed 60-second run on the arcade engine; the clock adds three of slack. */
+export const WHACK_TIME_MS = 63_000;
 export const TENTS_TIME_MS = 90_000;
 
 /** Ten Drop: a fixed 90-second run on the arcade engine, plus clock slack. */

@@ -242,7 +242,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap to stop it.", detail: "" },
       { action: "Some targets move", detail: "— stop when the marker and the target line up." },
-      { action: "The counter shows full sweeps left", detail: "from one on Watch 1 to ten on Watch 10." },
+      { action: "The counter drops at the right edge", detail: "from 2 on Watch 1 to 11 on Watch 10." },
+      { action: "Watches 8–10 wrap", detail: "from the right edge back to the left." },
     ],
     score: "Closer to the centre scores more.",
   },
@@ -686,8 +687,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   whack: {
     goal: "Tap the targets the banner tells you to.",
     how: [
-      { action: "Correct-colour balls stay up", detail: "until you tap them." },
-      { action: "Wrong-colour balls retreat", detail: "after two seconds." },
+      { action: "Balls pop up from the queue", detail: "and stay for three seconds or until tapped." },
       { action: "The rule flips partway through", detail: "— watch the banner." },
       { action: "A wrong-colour tap", detail: "clears the hole but costs 5." },
     ],

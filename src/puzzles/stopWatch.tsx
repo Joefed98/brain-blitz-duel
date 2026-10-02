@@ -17,7 +17,7 @@ const LEAD_IN_MS = 800;
 const MARKER_W = 6;
 const HIDE_FROM = 2 / 3;
 
-/** Marker position, traversal index, direction and current traversal duration. */
+/** Marker position, completed right-edge count, direction and current traversal duration. */
 export function markerState(
   spec: StopWatchSpec,
   elapsed: number,
@@ -25,13 +25,25 @@ export function markerState(
   const durations = spec.passSweepMs ?? Array.from({ length: spec.passes }, () => spec.sweepMs);
   let remaining = Math.max(0, elapsed);
   let pass = 0;
-  while (pass < spec.passes && remaining >= (durations[pass] ?? spec.sweepMs)) {
-    remaining -= durations[pass] ?? spec.sweepMs;
-    pass += 1;
+  if (spec.wrap) {
+    while (pass < spec.passes && remaining >= (durations[pass] ?? spec.sweepMs)) {
+      remaining -= durations[pass] ?? spec.sweepMs;
+      pass += 1;
+    }
+    const sweepMs = durations[Math.min(pass, spec.passes - 1)] ?? spec.sweepMs;
+    const frac = pass >= spec.passes ? 1 : Math.min(1, remaining / sweepMs);
+    return { pos: frac, pass, dir: 1, sweepMs };
   }
-  const sweepMs = durations[Math.min(pass, spec.passes - 1)] ?? spec.sweepMs;
-  const frac = pass >= spec.passes ? 1 : Math.min(1, remaining / sweepMs);
-  return { pos: frac, pass, dir: 1, sweepMs };
+  while (pass < spec.passes) {
+    const sweepMs = durations[pass] ?? spec.sweepMs;
+    if (remaining < sweepMs) return { pos: remaining / sweepMs, pass, dir: 1, sweepMs };
+    remaining -= sweepMs;
+    pass += 1;
+    if (pass >= spec.passes) return { pos: 1, pass, dir: 1, sweepMs };
+    if (remaining < sweepMs) return { pos: 1 - remaining / sweepMs, pass, dir: -1, sweepMs };
+    remaining -= sweepMs;
+  }
+  return { pos: 1, pass, dir: 1, sweepMs: durations.at(-1) ?? spec.sweepMs };
 }
 
 export function targetCentre(spec: StopWatchSpec, elapsed: number): number {
@@ -58,12 +70,12 @@ export function buildStopWatch(): StopWatchPuzzleData {
         half: Math.max(0.035, 0.085 - index * 0.005),
         sweepMs,
         hidden: index >= 3 && index % 2 === 1,
-        reverse: false,
-        passes: index + 1,
+        wrap: index >= 7,
+        passes: index + 2,
       };
       if (vertical) spec.vertical = true;
       if (moving) spec.moving = { amplitude: 0.1, cycleMs: 2_200 - index * 70, phase: randInt(0, 99) / 100 };
-      if (accelerating) spec.passSweepMs = Array.from({ length: index + 1 }, (_, pass) => Math.max(420, sweepMs - pass * 55));
+      if (accelerating) spec.passSweepMs = Array.from({ length: index + 2 }, (_, pass) => Math.max(420, sweepMs - pass * 55));
       return spec;
     }),
   };
@@ -147,11 +159,10 @@ function IntroExample() {
       <p className="text-center text-sm text-muted-foreground">
         Ten watches, each one trickier. Tap to stop the marker on the zone's centre line.
       </p>
-      <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, reverse: false, passes: 1 }} marker={0.58} passesLeft={1} />
+      <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, wrap: false, passes: 2 }} marker={0.58} passesLeft={2} />
       <p className="text-center text-xs text-muted-foreground">
-        Some targets move, hide, turn vertical or accelerate. The counter gives Watch 1 one full sweep, Watch 2 two,
-        and so on. Score: 50 at 400 ms average error, up to 150 for perfect
-        stops.
+        Some targets move, hide, turn vertical or accelerate. The counter starts at 2 on Watch 1 and reaches 11 on
+        Watch 10. Watches 8–10 wrap from right to left. Score: 50 at 400 ms average error, up to 150 for perfect stops.
       </p>
     </div>
   );

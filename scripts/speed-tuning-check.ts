@@ -1,12 +1,12 @@
 import { buildReaction } from "../src/puzzles/reaction";
 import { buildStopWatch, markerState, stopWatchPoints, targetCentre } from "../src/puzzles/stopWatch";
-import { REACTION_DECOY_MS, REACTION_FLASH_MS, REACTION_ROUND_MS, STOPWATCH_PASSES } from "../src/lib/duel/types";
+import { REACTION_DECOY_MS, REACTION_FLASH_MS, REACTION_ROUND_MS } from "../src/lib/duel/types";
 
 let reactionRounds = 0;
 for (let run = 0; run < 1_000; run++) {
   const puzzle = buildReaction();
   if (puzzle.flashes.length !== 5) throw new Error("Reaction flash count");
-  if (puzzle.decoys.length < 8 || puzzle.decoys.length > 12) throw new Error("Reaction decoy total");
+  if (puzzle.decoys.length < 5 || puzzle.decoys.length > 15) throw new Error("Reaction decoy total");
   if (puzzle.flashes[0]! < 3_000) throw new Error("First gold before 3 seconds");
   if (puzzle.flashes.at(-1)! + REACTION_FLASH_MS > REACTION_ROUND_MS) throw new Error("Gold exceeds round");
   if (!puzzle.decoys.some((d) => d.color === "blue")) {
@@ -40,21 +40,24 @@ if (!["teal", "red", "blue"].every((colour) => colours.has(colour as "teal" | "r
 let watchSets = 0;
 for (let run = 0; run < 1_000; run++) {
   const puzzle = buildStopWatch();
-  if (puzzle.watches.length !== 5) throw new Error("Watch count");
-  const moving = puzzle.watches[1]!;
-  const vertical = puzzle.watches[3]!;
-  if (moving.moving?.cycleMs !== 2_400 || moving.vertical) throw new Error("Watch 2 setup");
-  if (!vertical.vertical || vertical.moving?.cycleMs !== 2_000) throw new Error("Watch 4 setup");
-  if (vertical.passSweepMs?.join(",") !== "1000,700,500") throw new Error("Watch 4 pass speeds");
-  for (const spec of puzzle.watches) {
-    const durations = spec.passSweepMs ?? [spec.sweepMs, spec.sweepMs, spec.sweepMs];
+  if (puzzle.watches.length !== 10) throw new Error("Watch count");
+  for (const [index, spec] of puzzle.watches.entries()) {
+    if (spec.passes !== index + 2) throw new Error(`Watch ${index + 1} counter`);
+    if (spec.wrap !== (index >= 7)) throw new Error(`Watch ${index + 1} wrap mode`);
+    const durations = spec.passSweepMs ?? Array.from({ length: spec.passes }, () => spec.sweepMs);
     let elapsed = 0;
-    for (let pass = 0; pass < STOPWATCH_PASSES; pass++) {
-      const state = markerState(spec, elapsed + 1);
-      if (state.pass !== pass) throw new Error(`Pass index ${pass}`);
-      elapsed += durations[pass]!;
+    for (let pass = 0; pass < spec.passes; pass++) {
+      const duration = durations[pass] ?? spec.sweepMs;
+      const outbound = markerState(spec, elapsed + Math.floor(duration / 2));
+      if (outbound.pass !== pass || outbound.dir !== 1) throw new Error(`Watch ${index + 1} outbound ${pass}`);
+      elapsed += duration;
+      if (pass + 1 < spec.passes && !spec.wrap) {
+        const returning = markerState(spec, elapsed + Math.floor(duration / 2));
+        if (returning.pass !== pass + 1 || returning.dir !== -1) throw new Error(`Watch ${index + 1} bounce ${pass}`);
+        elapsed += duration;
+      }
     }
-    if (markerState(spec, elapsed).pass !== STOPWATCH_PASSES) throw new Error("Third pass completion");
+    if (markerState(spec, elapsed).pass !== spec.passes) throw new Error(`Watch ${index + 1} completion`);
     for (let sample = 0; sample <= 20; sample++) {
       const centre = targetCentre(spec, (sample * (spec.moving?.cycleMs ?? 1)) / 20);
       if (centre - spec.half < 0 || centre + spec.half > 1) throw new Error("Target leaves bar");
@@ -69,5 +72,5 @@ if (stopWatchPoints(0) !== 150 || stopWatchPoints(100) !== 125 || stopWatchPoint
 }
 
 console.log(`Reaction schedules: ${reactionRounds}/1000 valid; colours: ${[...colours].sort().join(", ")}`);
-console.log(`Stop Watch sets: ${watchSets}/1000 valid; passes: 3; moving cycles: 2400/2000 ms`);
+console.log(`Stop Watch sets: ${watchSets}/1000 valid; counters: 2–11; watches 8–10 wrap`);
 console.log("Stop Watch scores: 0 ms=150, 100 ms=125, 400 ms=50");

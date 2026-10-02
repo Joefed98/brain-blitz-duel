@@ -1,10 +1,9 @@
 /**
  * Whack-a-Target — an attention round built on the shared arcade engine.
  *
- * A seeded queue of 100 coloured balls feeds free holes. Correct-colour balls
- * stay up until tapped; wrong-colour balls retreat after two seconds. Since
- * queue advancement is driven by the replayed taps, phone and server still
- * see exactly the same run.
+ * A seeded queue of 100 coloured balls feeds free holes. Balls pop up from the
+ * queue, remain for three seconds or until tapped, then free the hole. Queue
+ * advancement is part of the fixed-tick replay, so phone and server agree.
  */
 
 import {
@@ -20,7 +19,7 @@ import {
 
 /* ============================== Constants ============================== */
 
-export const WHACK_RUN_SECONDS = 30;
+export const WHACK_RUN_SECONDS = 60;
 export const WHACK_RUN_TICKS = WHACK_RUN_SECONDS * TICKS_PER_SECOND;
 
 /** A hole tap: kind 11, `a` = hole 0…15. */
@@ -37,7 +36,9 @@ export const WHACK_RED = 1;
 /** The rule flips to TAP RED at 10 s and back to TAP GOLD at 20 s. */
 export const WHACK_FLIP_TICKS: readonly number[] = [600, 1200];
 export const WHACK_QUEUE_SIZE = 100;
-export const WHACK_WRONG_RETREAT_TICKS = 2 * TICKS_PER_SECOND;
+export const WHACK_POP_LIFETIME_TICKS = 3 * TICKS_PER_SECOND;
+/** Feed at most one queued ball every three fifths of a second. */
+export const WHACK_FEED_INTERVAL_TICKS = 36;
 const POP_IN_TICKS = 7;
 const FALL_TICKS = 10;
 
@@ -84,8 +85,6 @@ export interface WhackState {
   spawn: number[];
   hole: number[];
   status: number[];
-  /** Tick the ball first became wrong under the current rule. */
-  wrongSince: number[];
   /** Tick each pop was resolved by a tap (0 while unresolved). */
   doneTick: number[];
   hits: number;
@@ -94,7 +93,7 @@ export interface WhackState {
   next: number;
 }
 
-function fillFreeHoles(state: WhackState, tick: number): WhackState {
+function feedNextBall(state: WhackState, tick: number): WhackState {
   const spawn = [...state.spawn];
   const hole = [...state.hole];
   const status = [...state.status];
@@ -106,11 +105,11 @@ function fillFreeHoles(state: WhackState, tick: number): WhackState {
   for (let h = 0; h < WHACK_HOLES; h++) if (!occupied.has(h)) free.push(h);
   let rng = state.rng;
   let next = state.next;
-  while (free.length > 0 && next < WHACK_QUEUE_SIZE) {
+  if (free.length > 0 && next < WHACK_QUEUE_SIZE) {
     const draw = rngBelow(rng, free.length);
     rng = draw.state;
     const h = free.splice(draw.value, 1)[0];
-    if (h === undefined) break;
+    if (h === undefined) return state;
     spawn[next] = tick;
     hole[next] = h;
     status[next] = WHACK_STATUS_UP;
@@ -121,20 +120,19 @@ function fillFreeHoles(state: WhackState, tick: number): WhackState {
 
 function init(seed: number): WhackState {
   const built = buildSchedule(seed);
-  return fillFreeHoles({
+  return {
     tick: 0,
     rng: built.rng,
     schedule: built.schedule,
     spawn: new Array(WHACK_QUEUE_SIZE).fill(-1),
     hole: new Array(WHACK_QUEUE_SIZE).fill(-1),
     status: new Array(WHACK_QUEUE_SIZE).fill(WHACK_STATUS_WAITING),
-    wrongSince: new Array(WHACK_QUEUE_SIZE).fill(0),
     doneTick: new Array(WHACK_QUEUE_SIZE).fill(0),
     hits: 0,
     wrong: 0,
     taps: 0,
     next: 0,
-  }, 0);
+  };
 }
 
 function isOver(state: WhackState): boolean {
@@ -155,13 +153,9 @@ export function whackPopAt(state: WhackState, hole: number, tick: number): numbe
 function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
-  let next: WhackState = { ...state, tick, wrongSince: [...state.wrongSince] };
+  let next: WhackState = { ...state, tick };
   const rule = whackRule(tick);
-  for (let i = 0; i < next.next; i++) {
-    if (next.status[i] !== WHACK_STATUS_UP) continue;
-    if (next.schedule.kind[i] === rule) next.wrongSince[i] = 0;
-    else if (next.wrongSince[i] === 0) next.wrongSince[i] = tick;
-  }
+  let resolved = false;
   if (input && input.k === WHACK_INPUT_TAP) {
     const hole = clampInt(input.a, 0, WHACK_HOLES - 1);
     next.taps += 1;
@@ -180,6 +174,7 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
       doneTick[index] = tick;
       next.status = status;
       next.doneTick = doneTick;
+      resolved = true;
     }
   }
   const expiredStatus = [...next.status];
@@ -188,8 +183,7 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
   for (let i = 0; i < next.next; i++) {
     if (
       expiredStatus[i] === WHACK_STATUS_UP &&
-      next.wrongSince[i]! > 0 &&
-      tick - next.wrongSince[i]! >= WHACK_WRONG_RETREAT_TICKS
+      tick - next.spawn[i]! >= WHACK_POP_LIFETIME_TICKS
     ) {
       expiredStatus[i] = WHACK_STATUS_RETIRED;
       expiredDone[i] = tick;
@@ -197,7 +191,12 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
     }
   }
   if (retired) next = { ...next, status: expiredStatus, doneTick: expiredDone };
-  if (retired || (input && input.k === WHACK_INPUT_TAP)) next = fillFreeHoles(next, tick);
+  if (
+    (retired || resolved || (tick - 1) % WHACK_FEED_INTERVAL_TICKS === 0) &&
+    next.next < WHACK_QUEUE_SIZE
+  ) {
+    next = feedNextBall(next, tick);
+  }
   return next;
 }
 
@@ -230,7 +229,7 @@ export interface WhackCheckpoint extends WhackCheckpointState {
 export function whackCheckpointState(state: WhackState): WhackCheckpointState {
   let statusHash = 0;
   for (let i = 0; i < state.status.length; i++) {
-    statusHash = (Math.imul(statusHash, 31) + state.status[i]! * 7 + state.doneTick[i]! + state.hole[i]! * 3 + state.wrongSince[i]!) | 0;
+    statusHash = (Math.imul(statusHash, 31) + state.status[i]! * 7 + state.doneTick[i]! + state.hole[i]! * 3 + state.spawn[i]!) | 0;
   }
   return {
     tick: state.tick,
