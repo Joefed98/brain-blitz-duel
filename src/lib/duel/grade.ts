@@ -26,7 +26,7 @@ import { dialsCorrect, decodeSafeTries, safeOpenedOn } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { blockingCars } from "./unblock.server";
-import { decodeChainTaps, replayChain } from "./chain";
+import { decodeChainTaps, replayChainRun } from "./chain";
 import { decodeIntruderTaps, replayIntruder } from "./intruder";
 import { decodeNonoCells, replayNonogram } from "./nonogram";
 import { decodePairFlips, replayPairs } from "./pairmatch";
@@ -140,7 +140,6 @@ import {
   NUMSEQ_ITEMS,
   PCTSPRINT_ITEMS,
   REACTION_FALSE_START_MS,
-  REACTION_FLASHES,
   REACTION_MISS_MS,
   ROUND_MS,
   SPOT_DIFFERENCES,
@@ -724,14 +723,14 @@ export function gradeSubmission(
     }
     case "chain": {
       // The tap list is re-walked against the rule; wrong taps never advance.
-      const replay = replayChain(puzzle.nodes, puzzle.cycle, decodeChainTaps(answer));
-      isCorrect = replay.completed;
-      correctCount = replay.chain.length;
+      const replay = replayChainRun(puzzle.sets, decodeChainTaps(answer));
+      isCorrect = replay.completedSets > 0;
+      correctCount = replay.correct;
       errors = replay.errors;
-      score = scoreChain(replay.completed, replay.chain.length, replay.errors, ms);
+      score = scoreChain(false, replay.correct, replay.errors, ms);
       extraDetail = {
-        completed: replay.completed,
-        correct: replay.chain.length,
+        completed: replay.completedSets,
+        correct: replay.correct,
         errors: replay.errors,
       };
       break;

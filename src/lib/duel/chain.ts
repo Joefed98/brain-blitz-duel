@@ -4,7 +4,7 @@
  * the existing chain. The phone and server grade through this same replay.
  */
 
-import { CHAIN_CYCLE, CHAIN_LENGTH, type ChainNode, type ChainShape } from "./types";
+import { CHAIN_CYCLE, CHAIN_LENGTH, type ChainNode, type ChainPuzzleData, type ChainShape } from "./types";
 
 /** What the next tap has to be, at any point in the chain. */
 export function chainRequired(cycle: ChainShape[], step: number): ChainShape {
@@ -142,4 +142,39 @@ export function replayChain(nodes: ChainNode[], cycle: ChainShape[], taps: numbe
     completed: chain.length >= CHAIN_LENGTH,
     verdicts,
   };
+}
+
+export interface ChainRunReplay {
+  setIndex: number;
+  current: ChainReplay;
+  correct: number;
+  errors: number;
+  completedSets: number;
+}
+
+/** Replays a continuous run, automatically advancing after all 28 nodes. */
+export function replayChainRun(sets: ChainPuzzleData["sets"], taps: number[]): ChainRunReplay {
+  let setIndex = 0;
+  let setTaps: number[] = [];
+  let correct = 0;
+  let errors = 0;
+  let completedSets = 0;
+  let current = replayChain(sets[0]?.nodes ?? [], sets[0]?.cycle ?? [], []);
+  for (const tap of taps) {
+    const set = sets[setIndex];
+    if (!set) break;
+    const before = replayChain(set.nodes, set.cycle, setTaps);
+    setTaps.push(tap);
+    current = replayChain(set.nodes, set.cycle, setTaps);
+    if (current.errors > before.errors) errors++;
+    if (current.chain.length > before.chain.length) correct++;
+    if (current.completed) {
+      completedSets++;
+      setIndex++;
+      setTaps = [];
+      const next = sets[setIndex] ?? set;
+      current = replayChain(next.nodes, next.cycle, []);
+    }
+  }
+  return { setIndex, current, correct, errors, completedSets };
 }

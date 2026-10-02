@@ -1549,6 +1549,7 @@ export interface GravityPuzzleData {
 
 export const CHAIN_TIME_MS = 60_000;
 export const CHAIN_NODES = 28;
+export const CHAIN_LENGTH = CHAIN_NODES;
 /** The rule is a repeating three-step cycle. */
 export const CHAIN_CYCLE = 3;
 /** Points lost per wrong tap. */
@@ -1562,8 +1563,8 @@ export const CHAIN_MIN_SPACING = 1.6;
 /** A node glyph's width, as a share of the taller board axis in percent. */
 export const CHAIN_NODE_WIDTH_PCT = 7;
 /** A node glyph, and the clear space kept between two glyph edges, in pixels. */
-export const CHAIN_NODE_PX = 46;
-export const CHAIN_NODE_GAP_PX = 14;
+export const CHAIN_NODE_PX = 34;
+export const CHAIN_NODE_GAP_PX = 10;
 /**
  * Conservative size of the chain board on the smallest supported phone, used to
  * turn the pixel spacing rule into the percentage space node positions live in.
