@@ -9,11 +9,9 @@ import {
   snipView,
   unpackSnipCut,
   SNIP_CHECKPOINT_INTERVAL,
-  SNIP_H,
   SNIP_INPUT_CUT,
   SNIP_MOUTH,
   SNIP_SWEET,
-  SNIP_W,
   type SnipState,
 } from "@/lib/arcade/snip";
 import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
@@ -253,9 +251,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     </div>
   );
 }
-
-void SNIP_W;
-void SNIP_H;
 
 /** Levels come from the round's seed; the run is replayed on the server. */
 export const snipPuzzle: PuzzleDefinition = {
