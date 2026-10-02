@@ -89,7 +89,8 @@ export type PuzzleType =
   | "tendrop"
   | "clayshoot"
   | "numpyramid"
-  | "dig";
+  | "dig"
+  | "letterwheel";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -501,6 +502,7 @@ export type PuzzleData =
   | NumberPyramidPuzzleData
   | DigPuzzleData
   | WordSearchPuzzleData
+  | LetterWheelPuzzleData
   | WavefrontPuzzleData
   | BastionPuzzleData
   | RooftopPuzzleData
@@ -2171,6 +2173,30 @@ export interface BallTrackPuzzleData {
   minRemovals?: number;
   /** The unique minimal set of blockers to remove — private until the reveal. */
   solution?: number[];
+}
+
+/** Letter Wheel: 120 s to fill a small crossword from a wheel of letters. */
+export const LETTERWHEEL_TIME_MS = 120_000;
+
+export interface LetterWheelSlot {
+  row: number;
+  col: number;
+  across: boolean;
+  len: number;
+}
+
+export interface LetterWheelPuzzleData {
+  type: "letterwheel";
+  cols: number;
+  rows: number;
+  /** Wheel letters, in starting order. */
+  letters: string;
+  slots: LetterWheelSlot[];
+  bonusTotal: number;
+  /** Word for each slot — private until the reveal. */
+  words?: string[];
+  /** Every other valid word — private until the reveal. */
+  bonus?: string[];
 }
 
 export interface WordSearchPlacement {

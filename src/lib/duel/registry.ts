@@ -85,6 +85,7 @@ import { tiltPuzzle } from "@/puzzles/tilt";
 import { hotFloorPuzzle } from "@/puzzles/hotFloor";
 import { ballTrackPuzzle } from "@/puzzles/ballTrack";
 import { wordSearchPuzzle } from "@/puzzles/wordSearch";
+import { letterWheelPuzzle } from "@/puzzles/letterWheel";
 import { tenDropPuzzle } from "@/puzzles/tenDrop";
 import { clayShootPuzzle } from "@/puzzles/clayShoot";
 import { numberPyramidPuzzle } from "@/puzzles/numberPyramid";
@@ -260,6 +261,7 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   hotfloor: hotFloorPuzzle,
   balltrack: ballTrackPuzzle,
   wordsearch: wordSearchPuzzle,
+  letterwheel: letterWheelPuzzle,
   tendrop: tenDropPuzzle,
   clayshoot: clayShootPuzzle,
   numpyramid: numberPyramidPuzzle,
