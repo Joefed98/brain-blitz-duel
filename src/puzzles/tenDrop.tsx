@@ -36,30 +36,24 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" } as const;
 
-function Hud({ target, total, cleared, tick, flash }: { target: number; total: number; cleared: number; tick: number; flash: "" | "red" | "gold" }) {
-  const remaining = Math.max(0, tenDropGame.runTicks - tick);
-  const seconds = Math.ceil(remaining / 60);
+function Hud({ target, total, flash }: { target: number; total: number; flash: "" | "red" | "gold" }) {
   return (
-    <div className="grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-md border border-border bg-card px-3">
+    <div className="relative h-10 w-full shrink-0 font-mono font-bold leading-none">
       <div
-        className={`justify-self-start rounded-md px-2 text-center font-mono text-3xl font-bold leading-tight transition-colors ${
-          flash === "gold" ? "bg-primary text-primary-foreground" : "text-foreground"
-        }`}
-        aria-label={`Target ${target}`}
-      >
-        {target}
-      </div>
-      <div
-        className={`font-mono text-2xl font-bold transition-colors ${
+        className={`absolute left-2 top-1/2 -translate-y-1/2 text-2xl text-primary transition-colors ${
           flash === "red" ? "text-destructive" : "text-primary"
         }`}
         aria-label={`Running total ${total}`}
       >
         {total}
       </div>
-      <div className="flex min-w-[76px] flex-col items-end leading-none">
-        <span className="font-mono text-xl font-bold text-foreground">{seconds}</span>
-        <span className="font-mono text-[10px] uppercase text-muted-foreground">{cleared}/{TD_TARGETS}</span>
+      <div
+        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md px-2 text-3xl transition-colors ${
+          flash === "gold" ? "bg-primary text-primary-foreground" : "text-foreground"
+        }`}
+        aria-label={`Target ${target}`}
+      >
+        {target}
       </div>
     </div>
   );
@@ -247,7 +241,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col gap-2 select-none" style={GAME_ROOT_STYLE}>
+    <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
       <Hud {...hud} />
       <div
         ref={board}
@@ -296,7 +290,6 @@ export const tenDropPuzzle: PuzzleDefinition = {
   category: "number",
   arcadeRun: true,
   timeLimitMs: TENDROP_TIME_MS,
-  showTimer: false,
   revealMs: 6_000,
   generate: () => ({ type: "tendrop", seed: 1 }) satisfies TenDropPuzzleData,
   check: () => false,

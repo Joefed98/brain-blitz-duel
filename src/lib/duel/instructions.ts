@@ -846,14 +846,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Finish fast for the bonus. Otherwise, points for how far your path is right from 1.",
   },
   numpyramid: {
-    goal: "Complete three pyramids: every cell is the sum of the two below it.",
+    goal: "Complete four pyramids: every cell is the sum of the two below it.",
     how: [
       { action: "Drag a tile", detail: "from the tray into an empty cell." },
-      { action: "Drag a placed tile", detail: "back to the tray, or onto another cell to swap." },
+      { action: "Double-tap a placed tile", detail: "to return it to the tray; drag it onto another cell to swap." },
       { action: "Two tiles are decoys", detail: "— nothing fills itself in." },
       { action: "Skip", detail: "moves to the next pyramid without completing this one." },
     ],
-    score: "40 per completed pyramid, plus a speed bonus for all three. The current pyramid earns partial points.",
+    score: "30 per completed pyramid, plus up to 30 for finishing all four early. The current pyramid earns proportional partial points.",
   },
   balltrack: {
     goal: "Get the ball to the exit.",

@@ -1420,8 +1420,8 @@ const ballTrackSummary: SummaryBuilder = (result, puzzle) => {
 
 const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {
   const completed = Number(result.extra?.["completed"] ?? 0);
-  if (result.is_correct) return { summary: `3 / 3 complete · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
-  return { summary: `${completed} / 3 pyramids complete`, detail: [] };
+  if (result.is_correct) return { summary: `4 / 4 complete · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  return { summary: `${completed} / 4 pyramids complete`, detail: [] };
 };
 
 const trailSummary: SummaryBuilder = (result, puzzle) => {
