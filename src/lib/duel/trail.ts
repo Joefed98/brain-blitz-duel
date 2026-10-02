@@ -84,7 +84,7 @@ export function trComplete(givens: readonly (number | null)[], path: readonly nu
 }
 
 export function scoreTrail(complete: boolean, msRemaining: number, timeLimitMs: number, prefix: number, cells = TR_CELLS): number {
-  if (complete) return 100 + Math.round((50 * Math.max(0, msRemaining)) / timeLimitMs);
+  if (complete) return 100 + Math.round((50 * Math.max(0, Math.min(msRemaining, 120_000))) / 120_000);
   return Math.round((70 * Math.max(0, prefix)) / cells);
 }
 

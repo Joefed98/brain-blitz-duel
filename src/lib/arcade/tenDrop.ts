@@ -48,7 +48,7 @@ const MID = { digitLo: 1, digitHi: 9, mul2: 20, div2: 0, div3: 0, minus: 0, minu
 const HARD = { digitLo: 1, digitHi: 5, mul2: 18, div2: 8, div3: 7, minus: 10, minusLo: 1, minusHi: 5, needOp: true, len: 16 };
 
 export const TD_CONFIG = {
-  runSeconds: 60,
+  runSeconds: 90,
   worldW: 360,
   worldH: 520,
   cols: 4,
@@ -63,16 +63,16 @@ export const TD_CONFIG = {
   /** Rejection-sampling attempts per segment before the built-in fallback. */
   maxSegmentTries: 400,
   stages: [
-    { lo: 8, hi: 15, speed: 320, gap: 30, ...EASY },
-    { lo: 8, hi: 15, speed: 344, gap: 30, ...EASY },
-    { lo: 8, hi: 15, speed: 368, gap: 30, ...EASY },
-    { lo: 15, hi: 30, speed: 400, gap: 26, ...MID },
-    { lo: 15, hi: 30, speed: 432, gap: 26, ...MID },
-    { lo: 15, hi: 30, speed: 464, gap: 26, ...MID },
-    { lo: 30, hi: 80, speed: 500, gap: 22, ...HARD },
-    { lo: 30, hi: 80, speed: 536, gap: 22, ...HARD },
-    { lo: 30, hi: 80, speed: 572, gap: 22, ...HARD },
-    { lo: 30, hi: 80, speed: 608, gap: 22, ...HARD },
+    { lo: 19, hi: 25, speed: 288, gap: 34, ...EASY },
+    { lo: 19, hi: 25, speed: 312, gap: 34, ...EASY },
+    { lo: 19, hi: 25, speed: 336, gap: 34, ...EASY },
+    { lo: 26, hi: 45, speed: 360, gap: 31, ...MID },
+    { lo: 26, hi: 45, speed: 384, gap: 31, ...MID },
+    { lo: 26, hi: 45, speed: 408, gap: 31, ...MID },
+    { lo: 46, hi: 80, speed: 432, gap: 28, ...HARD },
+    { lo: 46, hi: 80, speed: 456, gap: 28, ...HARD },
+    { lo: 80, hi: 140, speed: 480, gap: 25, ...HARD },
+    { lo: 80, hi: 140, speed: 504, gap: 25, ...HARD },
   ] as readonly TenDropStage[],
 } as const;
 
