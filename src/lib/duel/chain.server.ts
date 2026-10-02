@@ -320,7 +320,14 @@ export function generateChain(): ChainPuzzleData {
     const cycle = shuffled([...CHAIN_SHAPES]).slice(0, CHAIN_CYCLE);
     let points = samplePoints();
     while (!points || !layoutIsSpread(points)) points = samplePoints();
-    const nodes = points.map((point, step) => ({ ...point, shape: cycle[step % cycle.length]! }));
+    const order = points
+      .map((_point, index) => index)
+      .sort((a, b) => points[a]!.x - points[b]!.x || points[a]!.y - points[b]!.y);
+    const shapeByNode = new Array<ChainShape>(CHAIN_NODES);
+    order.forEach((node, step) => {
+      shapeByNode[node] = cycle[step % cycle.length]!;
+    });
+    const nodes = points.map((point, index) => ({ ...point, shape: shapeByNode[index]! }));
     return { nodes, cycle };
   });
   return { type: "chain", sets };

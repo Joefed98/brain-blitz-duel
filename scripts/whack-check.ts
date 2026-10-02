@@ -51,16 +51,18 @@ for (let run = 0; run < RUNS; run++) {
   if (state.schedule.kind.some((kind) => kind !== WHACK_GOLD && kind !== WHACK_RED)) fail(`run ${run}: invalid colour`);
 
   if (state.next !== 0 || state.status.some((status) => status === WHACK_STATUS_UP)) fail(`run ${run}: balls started up`);
-  for (let tick = 1; tick < WHACK_FEED_INTERVAL_TICKS; tick++) state = whackGame.step(state, null);
-  if (state.next !== 0) fail(`run ${run}: queue fed too early`);
   state = whackGame.step(state, null);
   if (state.next !== 1 || !state.status.some((status) => status === WHACK_STATUS_UP)) fail(`run ${run}: first ball did not pop`);
+  for (let tick = 2; tick <= WHACK_FEED_INTERVAL_TICKS; tick++) state = whackGame.step(state, null);
+  if (state.next !== 1) fail(`run ${run}: queue fed too early`);
+  state = whackGame.step(state, null);
+  if (state.next !== 2) fail(`run ${run}: second ball did not pop on schedule`);
 
   state = whackGame.init(seed);
   let retirementChecked = false;
-  for (let tick = 1; tick <= WHACK_FEED_INTERVAL_TICKS + WHACK_POP_LIFETIME_TICKS; tick++) {
+  for (let tick = 1; tick <= 1 + WHACK_POP_LIFETIME_TICKS; tick++) {
     state = whackGame.step(state, null);
-    if (tick === WHACK_FEED_INTERVAL_TICKS + WHACK_POP_LIFETIME_TICKS) {
+    if (tick === 1 + WHACK_POP_LIFETIME_TICKS) {
       retirementChecked = state.status[0] === WHACK_STATUS_RETIRED;
     }
   }

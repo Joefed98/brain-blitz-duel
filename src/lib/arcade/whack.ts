@@ -38,7 +38,7 @@ export const WHACK_FLIP_TICKS: readonly number[] = [600, 1200];
 export const WHACK_QUEUE_SIZE = 100;
 export const WHACK_POP_LIFETIME_TICKS = 3 * TICKS_PER_SECOND;
 /** Feed at most one queued ball every fifth of a second. */
-export const WHACK_FEED_INTERVAL_TICKS = 12;
+export const WHACK_FEED_INTERVAL_TICKS = 36;
 const POP_IN_TICKS = 7;
 const FALL_TICKS = 10;
 
@@ -190,7 +190,7 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
   }
   if (retired) next = { ...next, status: expiredStatus, doneTick: expiredDone };
   if (
-    (retired || (input && input.k === WHACK_INPUT_TAP) || tick % WHACK_FEED_INTERVAL_TICKS === 0) &&
+    (retired || (input && input.k === WHACK_INPUT_TAP) || (tick - 1) % WHACK_FEED_INTERVAL_TICKS === 0) &&
     next.next < WHACK_QUEUE_SIZE
   ) {
     next = feedNextBall(next, tick);
