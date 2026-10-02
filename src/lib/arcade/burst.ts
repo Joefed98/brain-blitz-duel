@@ -585,6 +585,15 @@ function draw(ctx: CanvasRenderingContext2D, state: BurstState, size: CanvasSize
     ctx.arc(px, BURST_FLOOR_Y - 31, 6, 0, Math.PI * 2);
     ctx.fill();
   }
+  if (state.shield) {
+    ctx.strokeStyle = BURST_TEAL;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.arc(state.x / FP, BURST_FLOOR_Y - 18, 26, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 
   ctx.fillStyle = BURST_GOLD;
   ctx.font = "bold 18px ui-monospace, monospace";

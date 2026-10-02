@@ -13,6 +13,7 @@ import {
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
+  BURST_MOVE_SNAP,
   BURST_TEAL,
   BURST_WORLD_W,
   type BurstState,
@@ -99,7 +100,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     arrowEdge.current = null;
     const x = Math.max(0, Math.min(BURST_WORLD_W, Math.round(((e.clientX - rect.left) / rect.width) * BURST_WORLD_W)));
     // The same world-unit movement event used by the arena.
-    barMove.current = { k: BURST_INPUT_MOVE, a: x, b: 0, c: 0 };
+    // c = 1: the figure sits exactly under the finger (1:1 follow).
+    barMove.current = { k: BURST_INPUT_MOVE, a: x, b: 0, c: BURST_MOVE_SNAP };
   };
   const barMove = useRef<PointerPayload | null>(null);
   const tickWithBar = (state: BurstState) => {
