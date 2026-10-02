@@ -36,7 +36,7 @@ export const CLAY_CONFIG = {
   singleGapTicks: 180,
   singleJitterTicks: 24,
   firstPairTick: 1950,
-  pairGapTicks: 250,
+  pairGapTicks: 220,
   pairJitterTicks: 24,
   /** Second clay of a pair leaves 24–43 ticks after the first. */
   pairOffsetMin: 24,
@@ -51,9 +51,9 @@ export const CLAY_CONFIG = {
   /** Orange speed in 1/256 px per tick. */
   orangeSpeedMin: 1650,
   orangeSpeedSpan: 451,
-  /** Orange launch angle above horizontal, 65536 units per turn (20°–68°). */
+  /** Orange launch angle above horizontal, 65536 units per turn (20°–58°). */
   orangeAngleMin: 3641,
-  orangeAngleSpan: 8739,
+  orangeAngleSpan: 6918,
   /** Gold speed and two hard trajectory bands: near-horizontal or steep. */
   goldSpeedMin: 2200,
   goldSpeedSpan: 401,
