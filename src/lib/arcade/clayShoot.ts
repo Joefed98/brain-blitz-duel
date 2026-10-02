@@ -36,7 +36,7 @@ export const CLAY_CONFIG = {
   singleGapTicks: 180,
   singleJitterTicks: 24,
   firstPairTick: 1800,
-  pairGapTicks: 290,
+  pairGapTicks: 250,
   pairJitterTicks: 24,
   /** Second clay of a pair leaves 24–43 ticks after the first. */
   pairOffsetMin: 24,
@@ -59,7 +59,7 @@ export const CLAY_CONFIG = {
   goldSpeedSpan: 401,
   goldFlatAngleMin: 1456,
   goldFlatAngleSpan: 1821,
-  goldSteepAngleMin: 11833,
+  goldSteepAngleMin: 9102,
   goldSteepAngleSpan: 1457,
   /** Gravity, 1/256 px per tick². */
   gravity: 20,
