@@ -33,7 +33,7 @@ export interface WhackRun {
 export function encodeWhackRun(run: WhackRun): string {
   const checkpoints = (run.checkpoints ?? [])
     .map((item) =>
-      [item.tick, item.hits, item.wrong, item.taps, item.statusHash, item.checksum].join(":"),
+      [item.tick, item.hits, item.wrong, item.taps, item.next, item.statusHash, item.checksum].join(":"),
     )
     .join(",");
   return [
@@ -54,12 +54,13 @@ export function decodeWhackRun(raw: string): WhackRun {
     .filter(Boolean)
     .slice(0, Math.ceil(WHACK_RUN_TICKS / WHACK_CHECKPOINT_INTERVAL))
     .map((encoded) => encoded.split(":").map((part) => Number.parseInt(part, 10)))
-    .filter((values) => values.length === 6 && values.every(Number.isInteger))
-    .map(([tick, hits, wrong, taps, statusHash, sum]) => ({
+    .filter((values) => values.length === 7 && values.every(Number.isInteger))
+    .map(([tick, hits, wrong, taps, next, statusHash, sum]) => ({
       tick: tick ?? 0,
       hits: hits ?? 0,
       wrong: wrong ?? 0,
       taps: taps ?? 0,
+      next: next ?? 0,
       statusHash: statusHash ?? 0,
       checksum: (sum ?? 0) >>> 0,
     }));
@@ -128,13 +129,13 @@ export function replayWhackRun(seed: number, raw: string): WhackResult {
 
   const replayScore = whackGame.score(state);
   const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
-  const total = state.schedule.totalTargets;
+  const total = state.schedule.kind.length;
   const result: WhackResult = {
     hits: state.hits,
     totalTargets: total,
     wrong: state.wrong,
     taps: state.taps,
-    perfect: state.hits >= total && state.wrong === 0 && total > 0,
+    perfect: replayScore >= 150,
     finished: state.tick >= WHACK_RUN_TICKS,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,

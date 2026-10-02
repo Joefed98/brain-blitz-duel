@@ -1,7 +1,8 @@
 /**
  * Clay Shoot — a speed round on the shared arcade engine.
  *
- * Fifteen clays fly a parabola across a side-on sky on a schedule drawn
+ * Twenty-five clays fly seeded trajectories across a side-on sky. Twenty-two
+ * are orange and three harder clays are gold. The schedule is drawn
  * entirely from the seed at init. A tap is a shot (kind 11, `a` = x px,
  * `b` = y px in world pixels) judged against the clays' positions on the tick
  * it was recorded. Physics is integer 1/256-pixel units; no floats in the sim.
@@ -22,41 +23,55 @@ import { icos, isin } from "./trig";
 /* ============================== Config ============================== */
 
 export const CLAY_CONFIG = {
-  runSeconds: 45,
+  runSeconds: 60,
   /** World size in pixels; the canvas letterboxes it. */
   worldW: 360,
   worldH: 560,
-  clays: 15,
-  /** Clays 1–7 fly alone; 8–15 come in pairs. */
-  singles: 7,
-  firstLaunchTick: 60,
+  clays: 25,
+  orangeClays: 22,
+  goldClays: 3,
+  /** Clays 1–11 fly alone; the final fourteen launch as seven pairs. */
+  singles: 11,
+  firstLaunchTick: 75,
   singleGapTicks: 180,
-  singleJitterTicks: 30,
-  firstPairTick: 1320,
-  pairGapTicks: 300,
-  pairJitterTicks: 30,
-  /** Second clay of a pair leaves 20–50 ticks after the first. */
-  pairOffsetMin: 20,
-  pairOffsetSpan: 31,
-  /** Launch height, px from the top. */
-  launchY: 500,
+  singleJitterTicks: 24,
+  firstPairTick: 2020,
+  pairGapTicks: 230,
+  pairJitterTicks: 24,
+  /** Second clay of a pair leaves 24–43 ticks after the first. */
+  pairOffsetMin: 24,
+  pairOffsetSpan: 20,
+  /** Launch height ranges, px from the top. */
+  launchYMin: 70,
+  launchYSpan: 431,
+  nearTopYMin: 48,
+  nearTopYSpan: 83,
   /** Launch x just off each edge, px. */
   launchInset: 12,
-  /** Launch speed in 1/256 px per tick: base + seeded spread + rise per clay. */
-  speedBase: 1840,
-  speedSpread: 121,
-  speedRisePerClay: 16,
-  /** Launch angle above horizontal, 65536 units per turn (58°–70°). */
-  angleMin: 10559,
-  angleSpan: 2185,
+  /** Orange speed in 1/256 px per tick. */
+  orangeSpeedMin: 1650,
+  orangeSpeedSpan: 451,
+  /** Orange launch angle above horizontal, 65536 units per turn (20°–58°). */
+  orangeAngleMin: 3641,
+  orangeAngleSpan: 6918,
+  /** Gold speed and two hard trajectory bands: near-horizontal or steep. */
+  goldSpeedMin: 2200,
+  goldSpeedSpan: 401,
+  goldFlatAngleMin: 1456,
+  goldFlatAngleSpan: 1821,
+  goldSteepAngleMin: 9102,
+  goldSteepAngleSpan: 1457,
   /** Gravity, 1/256 px per tick². */
   gravity: 20,
-  /** Shot hit radius and drawn clay radius, px. */
-  hitRadius: 30,
+  /** Shot radii and drawn clay radius, px. */
+  orangeHitRadius: 30,
+  goldHitRadius: 24,
   clayRadius: 13,
   /** A clay this far past an edge (px) has left the arena. */
   exitMargin: 20,
-  pointsPerHit: 10,
+  orangePoints: 5,
+  goldPoints: 10,
+  perfectBonus: 10,
 } as const;
 
 export const CLAY_RUN_TICKS = CLAY_CONFIG.runSeconds * TICKS_PER_SECOND;
@@ -79,6 +94,8 @@ export const CLAY_MISSED = 3;
 export const CLAY_LOG_HIT = 1;
 export const CLAY_LOG_MISS_SHOT = 2;
 export const CLAY_LOG_ESCAPED = 3;
+export const CLAY_KIND_ORANGE = 0;
+export const CLAY_KIND_GOLD = 1;
 const LOG_KEEP = 16;
 
 /* ============================== Schedule ============================== */
@@ -87,6 +104,8 @@ export interface ClaySchedule {
   launch: number[];
   /** 0 = from the left, 1 = from the right. */
   side: number[];
+  kind: number[];
+  launchY: number[];
   vx: number[];
   vy: number[];
 }
@@ -115,16 +134,29 @@ function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
       side.push(1 - s);
     }
   }
+  const kind = new Array<number>(c.clays).fill(CLAY_KIND_ORANGE);
+  const goldBands: readonly [number, number][] = [[4, 8], [12, 17], [19, 24]];
+  for (const [lo, hi] of goldBands) kind[lo + draw(hi - lo + 1)] = CLAY_KIND_GOLD;
+  const launchY: number[] = [];
   const vx: number[] = [];
   const vy: number[] = [];
   for (let i = 0; i < c.clays; i++) {
-    const speed = c.speedBase + draw(c.speedSpread) + i * c.speedRisePerClay;
-    const angle = c.angleMin + draw(c.angleSpan);
+    const gold = kind[i] === CLAY_KIND_GOLD;
+    const hardFlat = gold && draw(2) === 0;
+    const speed = gold
+      ? c.goldSpeedMin + draw(c.goldSpeedSpan)
+      : c.orangeSpeedMin + draw(c.orangeSpeedSpan);
+    const angle = hardFlat
+      ? c.goldFlatAngleMin + draw(c.goldFlatAngleSpan)
+      : gold
+        ? c.goldSteepAngleMin + draw(c.goldSteepAngleSpan)
+        : c.orangeAngleMin + draw(c.orangeAngleSpan);
+    launchY.push(hardFlat ? c.nearTopYMin + draw(c.nearTopYSpan) : c.launchYMin + draw(c.launchYSpan));
     const h = (speed * icos(angle)) >> 14;
     vx.push(side[i] === 0 ? h : -h);
     vy.push(-((speed * isin(angle)) >> 14));
   }
-  return { rng, schedule: { launch, side, vx, vy } };
+  return { rng, schedule: { launch, side, kind, launchY, vx, vy } };
 }
 
 /* ================================ State ================================ */
@@ -141,6 +173,8 @@ export interface ClayState {
   /** Next clay in the launch queue. */
   next: number;
   hits: number;
+  orangeHits: number;
+  goldHits: number;
   missed: number;
   shots: number;
   shotX: number;
@@ -165,6 +199,8 @@ function init(seed: number): ClayState {
     doneTick: new Array(n).fill(0),
     next: 0,
     hits: 0,
+    orangeHits: 0,
+    goldHits: 0,
     missed: 0,
     shots: 0,
     shotX: 0,
@@ -204,7 +240,7 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
     const i = next.next;
     status[i] = CLAY_FLYING;
     x[i] = (side[i] === 0 ? -c.launchInset : c.worldW + c.launchInset) * 256;
-    y[i] = c.launchY * 256;
+    y[i] = state.schedule.launchY[i]! * 256;
     vy[i] = state.schedule.vy[i]!;
     next.next = i + 1;
   }
@@ -223,15 +259,15 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
     next.shotX = sx;
     next.shotY = sy;
     next.shotTick = tick;
-    const r = c.hitRadius * 256;
     let best = -1;
-    let bestD = r * r + 1;
+    let bestD = Number.MAX_SAFE_INTEGER;
     for (let i = 0; i < c.clays; i++) {
       if (status[i] !== CLAY_FLYING) continue;
+      const radius = (state.schedule.kind[i] === CLAY_KIND_GOLD ? c.goldHitRadius : c.orangeHitRadius) * 256;
       const dx = x[i]! - sx;
       const dy = y[i]! - sy;
       const d = dx * dx + dy * dy;
-      if (d < bestD) {
+      if (d <= radius * radius && d < bestD) {
         bestD = d;
         best = i;
       }
@@ -240,6 +276,8 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
       status[best] = CLAY_HIT;
       doneTick[best] = tick;
       next.hits += 1;
+      if (state.schedule.kind[best] === CLAY_KIND_GOLD) next.goldHits += 1;
+      else next.orangeHits += 1;
       next.shotHit = 1;
       next.log = pushLog(next.log, tick, CLAY_LOG_HIT, best);
     } else {
@@ -265,12 +303,17 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
   return next;
 }
 
-export function clayScore(hits: number): number {
-  return clampInt(hits * CLAY_CONFIG.pointsPerHit, 0, CLAY_CONFIG.clays * CLAY_CONFIG.pointsPerHit);
+export function clayScore(orangeHits: number, goldHits: number): number {
+  const all = orangeHits === CLAY_CONFIG.orangeClays && goldHits === CLAY_CONFIG.goldClays;
+  return clampInt(
+    orangeHits * CLAY_CONFIG.orangePoints + goldHits * CLAY_CONFIG.goldPoints + (all ? CLAY_CONFIG.perfectBonus : 0),
+    0,
+    150,
+  );
 }
 
 function score(state: ClayState): number {
-  return clayScore(state.hits);
+  return clayScore(state.orangeHits, state.goldHits);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -280,6 +323,8 @@ export const CLAY_CHECKPOINT_INTERVAL = 300;
 export interface ClayCheckpointState {
   tick: number;
   hits: number;
+  orangeHits: number;
+  goldHits: number;
   missed: number;
   shots: number;
   next: number;
@@ -290,7 +335,7 @@ export interface ClayCheckpoint extends ClayCheckpointState {
   checksum: number;
 }
 
-export const CLAY_CHECKPOINT_FIELDS = ["tick", "hits", "missed", "shots", "next", "posHash"] as const;
+export const CLAY_CHECKPOINT_FIELDS = ["tick", "hits", "orangeHits", "goldHits", "missed", "shots", "next", "posHash"] as const;
 
 export function clayCheckpoint(state: ClayState): ClayCheckpoint {
   let posHash = 0;
@@ -301,6 +346,8 @@ export function clayCheckpoint(state: ClayState): ClayCheckpoint {
   const snapshot: ClayCheckpointState = {
     tick: state.tick,
     hits: state.hits,
+    orangeHits: state.orangeHits,
+    goldHits: state.goldHits,
     missed: state.missed,
     shots: state.shots,
     next: state.next,
@@ -317,6 +364,7 @@ export function clayCheckpoint(state: ClayState): ClayCheckpoint {
 /* =============================== Drawing =============================== */
 
 export const CLAY_ORANGE = "#E8762C";
+export const CLAY_GOLD = "#F5B82E";
 
 /** Letterbox mapping shared by drawing and tap conversion. */
 export function clayView(size: CanvasSize): { scale: number; ox: number; oy: number } {
@@ -336,7 +384,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ClayState, size: CanvasSize)
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, CLAY_W, CLAY_H);
   ctx.fillStyle = "#2F4A2A";
-  ctx.fillRect(0, CLAY_CONFIG.launchY + 18, CLAY_W, CLAY_H);
+  ctx.fillRect(0, CLAY_H - 42, CLAY_W, 42);
 
   const r = CLAY_CONFIG.clayRadius;
   const tick = state.tick;
@@ -344,7 +392,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ClayState, size: CanvasSize)
     const px = state.x[i]! / 256;
     const py = state.y[i]! / 256;
     if (state.status[i] === CLAY_FLYING) {
-      ctx.fillStyle = CLAY_ORANGE;
+      ctx.fillStyle = state.schedule.kind[i] === CLAY_KIND_GOLD ? CLAY_GOLD : CLAY_ORANGE;
       ctx.beginPath();
       ctx.ellipse(px, py, r, r * 0.55, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -356,7 +404,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ClayState, size: CanvasSize)
       const age = tick - state.doneTick[i]!;
       if (age < 20) {
         ctx.globalAlpha = 1 - age / 20;
-        ctx.fillStyle = CLAY_ORANGE;
+        ctx.fillStyle = state.schedule.kind[i] === CLAY_KIND_GOLD ? CLAY_GOLD : CLAY_ORANGE;
         for (let k = 0; k < 6; k++) {
           const a = (k * Math.PI) / 3 + i;
           const d = 4 + age * 2.2;

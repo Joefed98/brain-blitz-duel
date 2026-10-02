@@ -1921,8 +1921,8 @@ export const TENTS_TIME_MS = 90_000;
 
 /** Ten Drop: a fixed 90-second run on the arcade engine, plus clock slack. */
 export const TENDROP_TIME_MS = 93_000;
-/** Clay Shoot: a fixed 45-second run on the arcade engine. */
-export const CLAYSHOOT_TIME_MS = 48_000;
+/** Clay Shoot: a fixed 60-second run on the arcade engine, plus clock slack. */
+export const CLAYSHOOT_TIME_MS = 63_000;
 
 export interface TenDropPuzzleData {
   type: "tendrop";

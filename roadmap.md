@@ -1,3 +1,10 @@
+## Two speed-game changes (Oct 2)
+- [x] Rework Whack-a-Target as a paced 100-ball queue with persistent correct balls and two-second wrong-colour retreats.
+- [x] Update Whack-a-Target scoring, HUD, instructions, reveal, and server-graded details.
+- [x] Expand Clay Shoot to 60 seconds with 22 orange and 3 harder gold clays across 25 seeded trajectories.
+- [x] Update Clay Shoot hit radii, scoring, colour counters, instructions, reveal, and server-graded details.
+- [x] Run only Whack-a-Target and Clay Shoot identity proofs plus focused schedule, aiming-bot, and score checks; no browser tests.
+
 ## Four speed-game changes (Oct 2)
 - [x] Update Reaction Time to 60 seconds, seeded 5–8 flashes, simplified play UI, and scaled decoys.
 - [x] Update Number Hunt to 20 non-touching numbers, seeded 15-second relocations, and new scoring.

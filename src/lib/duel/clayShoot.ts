@@ -67,6 +67,8 @@ export function decodeClayRun(raw: string): ClayRun {
 
 export interface ClayResult {
   hits: number;
+  orangeHits: number;
+  goldHits: number;
   missed: number;
   shots: number;
   total: number;
@@ -119,6 +121,8 @@ export function replayClayRun(seed: number, raw: string): ClayResult {
   const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
   const result: ClayResult = {
     hits: state.hits,
+    orangeHits: state.orangeHits,
+    goldHits: state.goldHits,
     missed: state.missed,
     shots: state.shots,
     total: CLAY_COUNT,
