@@ -26,7 +26,7 @@ import { dialsCorrect, decodeSafeTries, safeOpenedOn } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { blockingCars } from "./unblock.server";
-import { decodeChainTaps, replayChain } from "./chain";
+import { decodeChainTaps, replayChainRun } from "./chain";
 import { decodeIntruderTaps, replayIntruder } from "./intruder";
 import { decodeNonoCells, replayNonogram } from "./nonogram";
 import { decodePairFlips, replayPairs } from "./pairmatch";
@@ -140,7 +140,6 @@ import {
   NUMSEQ_ITEMS,
   PCTSPRINT_ITEMS,
   REACTION_FALSE_START_MS,
-  REACTION_FLASHES,
   REACTION_MISS_MS,
   ROUND_MS,
   SPOT_DIFFERENCES,
@@ -304,8 +303,9 @@ export function gradeSubmission(
     }
     case "reaction": {
       const [timesPart = "", falsePart = "0"] = answer.split("|");
-      const attempts = timesPart.split(",").slice(0, REACTION_FLASHES).map((value) => Number.parseInt(value, 10));
-      const total = Array.from({ length: REACTION_FLASHES }, (_, index) => {
+      const flashCount = puzzle.flashes.length;
+      const attempts = timesPart.split(",").slice(0, flashCount).map((value) => Number.parseInt(value, 10));
+      const total = Array.from({ length: flashCount }, (_, index) => {
         const attempt = attempts[index];
         return attempt === undefined || !Number.isFinite(attempt)
           ? REACTION_MISS_MS
@@ -314,7 +314,7 @@ export function gradeSubmission(
       const parsedFalse = Number.parseInt(falsePart, 10);
       const falseStarts = Number.isFinite(parsedFalse) ? clamp(parsedFalse, 0, 99) : 0;
       reactionAvgMs = Math.round(
-        total.reduce((sum, attempt) => sum + attempt, 0) / REACTION_FLASHES +
+        total.reduce((sum, attempt) => sum + attempt, 0) / Math.max(1, flashCount) +
           falseStarts * REACTION_FALSE_START_MS,
       );
       isCorrect = true;
@@ -427,9 +427,11 @@ export function gradeSubmission(
       break;
     }
     case "numhunt": {
-      const parsed = Number.parseInt(answer.split(",")[0] ?? "0", 10);
+      const parts = answer.split(",");
+      const parsed = Number.parseInt(parts[0] ?? "0", 10);
       const reached = Number.isFinite(parsed) ? clamp(parsed, 0, NUMHUNT_COUNT) : 0;
-      errors = clamp(extra.errors ?? 0, 0, 99);
+      const parsedErrors = Number.parseInt(parts[1] ?? "0", 10);
+      errors = Number.isFinite(parsedErrors) ? clamp(parsedErrors, 0, 99) : 0;
       const finished = reached >= NUMHUNT_COUNT;
       isCorrect = finished;
       correctCount = reached;
@@ -723,14 +725,14 @@ export function gradeSubmission(
     }
     case "chain": {
       // The tap list is re-walked against the rule; wrong taps never advance.
-      const replay = replayChain(puzzle.nodes, puzzle.cycle, decodeChainTaps(answer));
-      isCorrect = replay.completed;
-      correctCount = replay.chain.length;
+      const replay = replayChainRun(puzzle.sets, decodeChainTaps(answer));
+      isCorrect = replay.completedSets > 0;
+      correctCount = replay.correct;
       errors = replay.errors;
-      score = scoreChain(replay.completed, replay.chain.length, replay.errors, ms);
+      score = scoreChain(false, replay.correct, replay.errors, ms);
       extraDetail = {
-        completed: replay.completed,
-        correct: replay.chain.length,
+        completed: replay.completedSets,
+        correct: replay.correct,
         errors: replay.errors,
       };
       break;

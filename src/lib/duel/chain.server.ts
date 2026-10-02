@@ -314,53 +314,22 @@ function evaluate(points: Point[], bag: ChainShape[], cycle: ChainShape[]): Cand
 }
 
 export function generateChain(): ChainPuzzleData {
-  let best: Candidate | null = null;
-
-  for (let attempt = 0; attempt < 400; attempt++) {
-    const points = samplePoints();
-    if (!points || !layoutIsSpread(points)) continue;
-
-    // Keep the scatter and try shape labellings on it: how many routes a board
-    // offers depends far more on which node is which shape than on the spread.
-    for (let labelling = 0; labelling < 8; labelling++) {
-      const cycle = shuffled([...CHAIN_SHAPES]).slice(0, CHAIN_CYCLE);
-      const candidate = evaluate(points, shuffled(shapeBag()), cycle);
-      if (!candidate) continue;
-      if (
-        candidate.routes <= CHAIN_MAX_ROUTES &&
-        candidate.traps >= 2 &&
-        candidate.decoySteps >= CHAIN_MIN_DECOY_STEPS
-      ) {
-        return {
-          type: "chain",
-          nodes: candidate.nodes,
-          cycle: candidate.cycle,
-          solution: candidate.solution,
-          solutionCount: candidate.routes,
-        };
-      }
-      // Fewest routes wins; traps break a tie.
-      const score = (entry: Candidate) =>
-        (entry.decoySteps >= CHAIN_MIN_DECOY_STEPS ? 1000 : 0) - entry.routes + entry.traps;
-      if (!best || score(candidate) > score(best)) best = candidate;
-    }
-    // A fifteen-link board rarely reaches the tight route count, so a fair
-    // fallback is accepted early rather than burning the whole attempt budget.
-    if (best && best.traps >= 2 && best.decoySteps >= CHAIN_MIN_DECOY_STEPS) {
-      if (best.routes <= CHAIN_MAX_ROUTES * 2 || attempt >= 24) break;
-    }
-  }
-
-  if (!best || best.decoySteps < CHAIN_MIN_DECOY_STEPS)
-    throw new Error("Don't Break the Chain generator could not build a spread layout");
-  // A scatter spread over the whole board leaves far more non-crossing routes
-  // than an edge ring did, so the tightest board found is used and reported.
-  console.warn(`Chain: spread layout kept with ${best.routes} routes and ${best.traps} traps`);
-  return {
-    type: "chain",
-    nodes: best.nodes,
-    cycle: best.cycle,
-    solution: best.solution,
-    solutionCount: best.routes,
-  };
+  // Sixteen sets exceed the 400-input replay cap, so a one-minute run can
+  // always advance to a fresh stored layout without wrapping.
+  const sets = Array.from({ length: 16 }, (_, setIndex) => {
+    const cycle = shuffled([...CHAIN_SHAPES]).slice(0, CHAIN_CYCLE);
+    const reverse = setIndex % 2 === 1;
+    const nodes = Array.from({ length: CHAIN_NODES }, (_, step) => {
+      const row = Math.floor(step / 4);
+      const along = step % 4;
+      const col = row % 2 === 0 ? along : 3 - along;
+      return {
+        x: (reverse ? 88 : 12) + (reverse ? -1 : 1) * col * (76 / 3),
+        y: 8 + row * (84 / 6),
+        shape: cycle[step % cycle.length]!,
+      };
+    });
+    return { nodes, cycle };
+  });
+  return { type: "chain", sets };
 }

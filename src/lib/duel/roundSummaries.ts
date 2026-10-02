@@ -54,7 +54,6 @@ import {
 } from "./types";
 import { BOMB_TIME_MS, SAFE_DIALS, SAFE_TIME_MS, TUBES_COLOURS, TUBES_TIME_MS } from "./types";
 import {
-  CHAIN_LENGTH,
   CHAIN_TIME_MS,
   GRAV_TIME_MS,
   INTRUDER_BOARDS,
@@ -930,10 +929,10 @@ const chainSummary: SummaryBuilder = (result, puzzle) => {
   const correct = Number(result.extra?.["correct"] ?? 0);
   const errors = Number(result.extra?.["errors"] ?? 0);
   return {
-    summary: `${correct} / ${CHAIN_LENGTH} · ${errors} error${errors === 1 ? "" : "s"} · ${seconds(
+    summary: `${correct} links · ${errors} error${errors === 1 ? "" : "s"} · ${seconds(
       elapsedMs(result, puzzle),
     )}`,
-    detail: [result.is_correct ? "Chain complete" : "Chain unfinished"],
+    detail: [`${Number(result.extra?.["completed"] ?? 0)} complete sets`],
   };
 };
 

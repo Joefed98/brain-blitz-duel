@@ -422,8 +422,9 @@ export interface HuntSpot {
 
 export interface NumberHuntPuzzleData {
   type: "numhunt";
-  /** Fourteen positions in ascending value order; index 0 is the smallest number. */
+  /** Initial positions plus the seeded positions used at 15, 30 and 45 seconds. */
   spots: HuntSpot[];
+  layouts: HuntSpot[][];
 }
 
 export type PuzzleData =
@@ -654,9 +655,10 @@ export function sequencePlaybackMs(count: number): number {
 
 export const SEQUENCE_PLAYBACK_MS = sequencePlaybackMs(SEQUENCE_LENGTH);
 
-/** Reaction Time: five gold flashes on one shared 50-second timeline. */
-export const REACTION_ROUND_MS = 50_000;
-export const REACTION_FLASHES = 5;
+/** Reaction Time: 5–8 stored gold flashes on one shared 60-second timeline. */
+export const REACTION_ROUND_MS = 60_000;
+export const REACTION_MIN_FLASHES = 5;
+export const REACTION_MAX_FLASHES = 8;
 /** A gold flash lasts until tapped or this long; a miss records this value. */
 export const REACTION_FLASH_MS = 1_500;
 export const REACTION_MISS_MS = 1_500;
@@ -719,11 +721,13 @@ export const SPOT_ONE_POINTS = 15;
 /** Rotation Match: shapes drawn as filled cells of a 5x5 grid. */
 export const ROTATION_COLS = 5;
 
-/** Number Hunt: sixteen circles tapped in ascending order. */
-export const NUMHUNT_COUNT = 16;
-export const NUMHUNT_CIRCLE_PX = 56;
-export const NUMHUNT_ERROR_PENALTY = 10;
+/** Number Hunt: twenty two-digit numbers over one minute. */
+export const NUMHUNT_COUNT = 20;
+export const NUMHUNT_TIME_MS = 60_000;
+export const NUMHUNT_CIRCLE_PX = 46;
+export const NUMHUNT_ERROR_PENALTY = 5;
 export const NUMHUNT_FLASH_MS = 200;
+export const NUMHUNT_MOVE_MS = 15_000;
 
 /* -------------------------------------------------------------------------- */
 /*  Word Match                                                                 */
@@ -810,6 +814,8 @@ export interface StopWatchSpec {
   vertical?: boolean;
   /** Optional traversal times, one per pass. */
   passSweepMs?: number[];
+  /** Full left-to-right sweeps allowed before this watch is missed. */
+  passes: number;
 }
 
 export interface StopWatchPuzzleData {
@@ -817,10 +823,8 @@ export interface StopWatchPuzzleData {
   watches: StopWatchSpec[];
 }
 
-export const STOPWATCH_ATTEMPTS = 5;
+export const STOPWATCH_ATTEMPTS = 10;
 export const STOPWATCH_ROUND_MS = 60_000;
-/** A watch not stopped within this many traversals records the miss value. */
-export const STOPWATCH_PASSES = 3;
 /** Pause between one watch's result and the next watch starting. */
 export const STOPWATCH_GAP_MS = 600;
 /** Recorded when a watch is never stopped. */
@@ -1543,16 +1547,13 @@ export interface GravityPuzzleData {
 
 /* ======================= Don't Break the Chain ========================== */
 
-export const CHAIN_TIME_MS = 30_000;
-export const CHAIN_NODES = 20;
-/** Correct taps needed to finish the chain. */
-export const CHAIN_LENGTH = 15;
+export const CHAIN_TIME_MS = 60_000;
+export const CHAIN_NODES = 28;
+export const CHAIN_LENGTH = CHAIN_NODES;
 /** The rule is a repeating three-step cycle. */
 export const CHAIN_CYCLE = 3;
 /** Points lost per wrong tap. */
 export const CHAIN_ERROR_PENALTY = 10;
-/** Most an unfinished chain can earn. */
-export const CHAIN_PARTIAL_POINTS = 60;
 /** Every stored-solution step must retain this many shape-invalid choices. */
 export const CHAIN_MIN_INVALID = 4;
 /** Minimum distance between two nodes, in percent of the play area. */
@@ -1562,8 +1563,8 @@ export const CHAIN_MIN_SPACING = 1.6;
 /** A node glyph's width, as a share of the taller board axis in percent. */
 export const CHAIN_NODE_WIDTH_PCT = 7;
 /** A node glyph, and the clear space kept between two glyph edges, in pixels. */
-export const CHAIN_NODE_PX = 46;
-export const CHAIN_NODE_GAP_PX = 14;
+export const CHAIN_NODE_PX = 34;
+export const CHAIN_NODE_GAP_PX = 10;
 /**
  * Conservative size of the chain board on the smallest supported phone, used to
  * turn the pixel spacing rule into the percentage space node positions live in.
@@ -1586,13 +1587,8 @@ export interface ChainNode {
 
 export interface ChainPuzzleData {
   type: "chain";
-  nodes: ChainNode[];
-  /** The three shapes, in the order they must be tapped. */
-  cycle: ChainShape[];
-  /** Server-side only: one searched non-crossing chain of twelve node ids. */
-  solution?: number[];
-  /** Server-side only: exact count, capped during generation at 200. */
-  solutionCount?: number;
+  /** Stored seeded sets shown in sequence during the run. */
+  sets: { nodes: ChainNode[]; cycle: ChainShape[] }[];
 }
 
 /* ========================= Intruder Detection =========================== */

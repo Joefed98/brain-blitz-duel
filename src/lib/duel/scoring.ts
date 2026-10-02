@@ -4,6 +4,7 @@ import {
   BLOCK_TIME_MS,
   GONOGO_ITEMS,
   NUMHUNT_ERROR_PENALTY,
+  NUMHUNT_TIME_MS,
   NUMSEQ_ITEMS,
   NUMSEQ_TIME_MS,
   PCTSPRINT_ITEMS,
@@ -56,9 +57,6 @@ import {
   GRAV_TIME_MS,
   GRAV_LOCK_POINTS,
   CHAIN_ERROR_PENALTY,
-  CHAIN_LENGTH,
-  CHAIN_PARTIAL_POINTS,
-  CHAIN_TIME_MS,
   INTRUDER_BOARDS,
   INTRUDER_TIME_MS,
   NONO_PARTIAL_POINTS,
@@ -313,7 +311,7 @@ export function scoreStopWatch(averageDistanceMs: number): number {
 }
 
 /**
- * Number Hunt: a standard round score, less 5 points per wrong tap. An
+ * Number Hunt: a standard round score, less 10 points per wrong tap. An
  * unfinished run scores by how far up the order the player got.
  */
 export function scoreNumberHunt(
@@ -324,8 +322,7 @@ export function scoreNumberHunt(
   total = 1,
 ): number {
   if (finished) {
-    if (errors > 0) return clamp(BASE_POINTS - NUMHUNT_ERROR_PENALTY * errors, 0, 90);
-    const raw = BASE_POINTS + speedBonus(msRemaining) - NUMHUNT_ERROR_PENALTY * errors;
+    const raw = BASE_POINTS + speedBonus(msRemaining, NUMHUNT_TIME_MS) - 10 * errors;
     return Math.round(clamp(raw, 0, MAX_ROUND_SCORE));
   }
   const count = clamp(Math.round(reached), 0, Math.max(1, total));
@@ -782,26 +779,14 @@ export function scoreGravity(
   return clamp(GRAV_LOCK_POINTS * clamp(locked, 0, 3), 0, 3 * GRAV_LOCK_POINTS);
 }
 
-/** Don't Break the Chain: fifteen in a row, less ten a mistake. */
+/** Don't Break the Chain: five per correct link, less ten per mistake. */
 export function scoreChain(
-  completed: boolean,
+  _completed: boolean,
   correct: number,
   errors: number,
-  msRemaining: number,
+  _msRemaining: number,
 ): number {
-  if (completed) {
-    if (errors > 0) return clamp(BASE_POINTS - CHAIN_ERROR_PENALTY * errors, 0, 90);
-    return clamp(
-      BASE_POINTS + speedBonus(msRemaining, CHAIN_TIME_MS) - CHAIN_ERROR_PENALTY * errors,
-      0,
-      MAX_ROUND_SCORE,
-    );
-  }
-  return clamp(
-    Math.round((CHAIN_PARTIAL_POINTS * correct) / CHAIN_LENGTH),
-    0,
-    CHAIN_PARTIAL_POINTS,
-  );
+  return clamp(5 * correct - CHAIN_ERROR_PENALTY * errors, 0, MAX_ROUND_SCORE);
 }
 
 /** Intruder Detection: a share per grid, and the speed bonus only for a clean sweep. */

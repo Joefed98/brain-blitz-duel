@@ -57,7 +57,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   bomb: ["sequence", "required", "constraints"],
   gravity: ["minMoves", "solution"],
   // The rule strip and nodes are public; one searched path stays private.
-  chain: ["solution", "solutionCount"],
+  chain: [],
   intruder: ["answers"],
   // The clues are public; the picture they describe is not.
   nonogram: ["pattern"],

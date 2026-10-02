@@ -5,7 +5,8 @@ import { pick, randInt, shuffled } from "@/lib/duel/random";
 import {
   REACTION_DECOY_MS,
   REACTION_FALSE_START_MS,
-  REACTION_FLASHES,
+  REACTION_MAX_FLASHES,
+  REACTION_MIN_FLASHES,
   REACTION_FLASH_MS,
   REACTION_MISS_MS,
   REACTION_ROUND_MS,
@@ -16,22 +17,18 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const DECOY_COLOURS = ["teal", "red", "blue"] as const;
 
-/** Five gold flashes, each preceded by 1–3 irregularly spaced seeded decoys. */
+/** 5–8 gold flashes, each preceded by proportionally spaced seeded decoys. */
 export function buildReaction(): ReactionPuzzleData {
+  const flashCount = randInt(REACTION_MIN_FLASHES, REACTION_MAX_FLASHES);
   let flashes: number[] = [];
   let decoys: ReactionPuzzleData["decoys"] = [];
   for (let attempt = 0; attempt < 1_000; attempt++) {
-    const list = [randInt(5_000, 9_000)];
-    while (list.length < REACTION_FLASHES) list.push(list[list.length - 1]! + randInt(5_000, 12_000));
+    const list = [randInt(4_000, 7_000)];
+    while (list.length < flashCount) list.push(list[list.length - 1]! + randInt(5_000, 8_000));
     if (list[list.length - 1]! + REACTION_FLASH_MS > REACTION_ROUND_MS - 500) continue;
 
     // Begin at two per flash, then vary to a seeded total of 8–12.
-    const counts = Array.from({ length: REACTION_FLASHES }, () => 2);
-    const target = randInt(8, 12);
-    for (const index of shuffled([0, 1, 2, 3, 4])) {
-      if (counts.reduce((sum, count) => sum + count, 0) === target) break;
-      counts[index] = target < 10 ? 1 : 3;
-    }
+    const counts = Array.from({ length: flashCount }, () => randInt(1, 3));
 
     const proposed: ReactionPuzzleData["decoys"] = [];
     let valid = true;
@@ -56,7 +53,7 @@ export function buildReaction(): ReactionPuzzleData {
     break;
   }
   if (flashes.length === 0) {
-    flashes = [7_000, 16_000, 25_000, 34_000, 43_000];
+    flashes = Array.from({ length: flashCount }, (_, index) => 6_000 + index * 7_000);
     decoys = flashes.flatMap((flash, index) => [
       { at: flash - 4_500, color: DECOY_COLOURS[index % 3]! },
       { at: flash - 2_000, color: DECOY_COLOURS[(index + 1) % 3]! },
@@ -65,9 +62,10 @@ export function buildReaction(): ReactionPuzzleData {
   return { type: "reaction", flashes, decoys };
 }
 
-export function reactionAverage(times: number[], falseStarts: number): number {
-  const filled = Array.from({ length: REACTION_FLASHES }, (_, i) => times[i] ?? REACTION_MISS_MS);
-  return Math.round(filled.reduce((a, b) => a + b, 0) / REACTION_FLASHES + falseStarts * REACTION_FALSE_START_MS);
+export function reactionAverage(times: number[], falseStarts: number, flashCount = times.length): number {
+  const count = Math.max(1, flashCount);
+  const filled = Array.from({ length: count }, (_, i) => times[i] ?? REACTION_MISS_MS);
+  return Math.round(filled.reduce((a, b) => a + b, 0) / count + falseStarts * REACTION_FALSE_START_MS);
 }
 
 export function reactionPoints(avg: number): number {
@@ -92,7 +90,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        The screen stays dark. Five times it flashes gold — tap the instant it does.
+        The screen stays dark. It flashes gold five to eight times — tap the instant it does.
       </p>
       <div className="flex items-center gap-2">
         <span className="flex h-16 w-20 items-center justify-center rounded-xl border border-border bg-card font-mono text-xs text-muted-foreground">
@@ -102,7 +100,7 @@ function IntroExample() {
           Don't tap
         </span>
         <span className="flex h-16 w-20 items-center justify-center rounded-xl bg-primary font-display text-sm font-bold text-primary-foreground">
-          TAP!
+          Gold
         </span>
       </div>
       <p className="text-center text-xs text-muted-foreground">
@@ -163,7 +161,7 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
     if (times.some((v) => v === null)) return;
     submitted.current = key;
     const values = times as number[];
-    onSubmit(encode(values, falseStarts), { reactionAvgMs: reactionAverage(values, falseStarts) });
+    onSubmit(encode(values, falseStarts), { reactionAvgMs: reactionAverage(values, falseStarts, flashes.length) });
   }, [times, locked, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (puzzle.type !== "reaction") return null;
@@ -171,7 +169,6 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
   const liveIndex = flashes.findIndex((f, i) => times[i] === null && t >= f && t < f + REACTION_FLASH_MS);
   const decoy = decoys.find((d) => t >= d.at && t < d.at + REACTION_DECOY_MS) ?? null;
   const done = times.every((v) => v !== null);
-  const flashNo = Math.min(flashes.length, times.filter((v) => v !== null).length + (done ? 0 : 1));
 
   const handleTap = () => {
     if (locked || done) return;
@@ -208,10 +205,7 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
 
   return (
     <div className="flex flex-1 flex-col gap-3">
-      <div className="flex items-center justify-between font-mono text-sm uppercase tracking-widest text-muted-foreground">
-        <span>
-          Flash {flashNo} / {flashes.length}
-        </span>
+      <div className="flex items-center justify-end font-mono text-sm uppercase tracking-widest text-muted-foreground">
         {falseStarts > 0 && <span className="text-warn">{falseStarts} false</span>}
       </div>
       <button
@@ -220,16 +214,14 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
         onPointerDown={handleTap}
         className={`flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
       >
-        {liveIndex >= 0 ? (
-          <span className="font-display text-4xl font-bold text-primary-foreground">TAP!</span>
-        ) : showLast ? (
+        {liveIndex >= 0 ? null : showLast ? (
           <span
             className={`font-mono text-4xl font-bold tabular-nums ${lastShown.bad ? "text-warn" : "text-primary"}`}
           >
             {lastShown.text}
           </span>
         ) : done ? (
-          <span className="text-base text-muted-foreground">All five done</span>
+          <span className="text-base text-muted-foreground">All flashes done</span>
         ) : decoy ? null : (
           <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">Wait for gold…</span>
         )}
@@ -241,7 +233,7 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "reaction") return null;
   const { times, falseStarts } = parseAnswer(myAnswer);
-  const avg = times.length ? reactionAverage(times, falseStarts) : null;
+  const avg = times.length ? reactionAverage(times, falseStarts, puzzle.flashes.length) : null;
 
   return (
     <>
