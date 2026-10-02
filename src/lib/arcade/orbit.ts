@@ -327,7 +327,9 @@ function buildCourse(seed: number): { planets: Planet[]; rng: number } {
       const min = orbitExtent(prev) + extent + 24 * FP;
       if (dx * dx + dy * dy < min * min) continue;
       const hazard = i >= HAZARD_FROM && draw(2) === 1 ? draw(64) * 1024 : -1;
-      const candidate: Planet = { x, y, ...shape, dir: draw(2) ? 1 : -1, hazard, colour: i % 4, kind, rot };
+      // A figure-eight always runs so its outer tips travel upward (towards the next planet).
+      const spin = draw(2) ? 1 : -1;
+      const candidate: Planet = { x, y, ...shape, dir: kind === ORBIT_EIGHT ? -1 : spin, hazard, colour: i % 4, kind, rot };
       planets.push(candidate);
       if (hasWindow(planets, i - 1)) placed = true;
       else planets.pop();
