@@ -814,6 +814,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Solve it fast for the bonus.",
   },
+  numpyramid: {
+    goal: "Fill the pyramid: every cell is the sum of the two below it.",
+    how: [
+      { action: "Drag a tile", detail: "from the tray into an empty cell." },
+      { action: "Drag a placed tile", detail: "back to the tray, or onto another cell to swap." },
+      { action: "Two tiles are decoys", detail: "— nothing fills itself in." },
+    ],
+    score: "Complete it fast for the bonus. Otherwise, points for each tile in the right place.",
+  },
   balltrack: {
     goal: "Get the ball to the exit.",
     how: [

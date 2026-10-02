@@ -65,6 +65,7 @@ import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { btDecode, btReplay, scoreBallTrack } from "./ballTrack";
+import { npComplete, npDecode, scoreNumberPyramid } from "./numberPyramid";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
@@ -1593,6 +1594,22 @@ export function gradeSubmission(
       correctCount = covered;
       score = scoreShikaku(solved, ms, timeLimitMs, covered);
       extraDetail = { solved, covered, rects: rects.length };
+      break;
+    }
+    case "numpyramid": {
+      // Placements are read against the stored tray and solution; tile values never come from the client.
+      const placements = npDecode(answer, puzzle.givens, puzzle.tray.length);
+      const solution = puzzle.solution ?? [];
+      const emptyCells = puzzle.givens.filter((g) => g == null).length;
+      let correctCells = 0;
+      for (const [cell, tray] of Object.entries(placements)) {
+        if (puzzle.tray[tray] === solution[Number(cell)]) correctCells++;
+      }
+      const complete = npComplete(puzzle.givens, puzzle.tray, placements);
+      isCorrect = complete;
+      correctCount = correctCells;
+      score = scoreNumberPyramid(complete, ms, timeLimitMs, correctCells, emptyCells);
+      extraDetail = { complete, correctCells, emptyCells, placed: Object.keys(placements).length };
       break;
     }
     case "balltrack": {
