@@ -90,6 +90,7 @@ import { letterWheelPuzzle } from "@/puzzles/letterWheel";
 import { tenDropPuzzle } from "@/puzzles/tenDrop";
 import { clayShootPuzzle } from "@/puzzles/clayShoot";
 import { numberPyramidPuzzle } from "@/puzzles/numberPyramid";
+import { trailPuzzle } from "@/puzzles/trail";
 import { digPuzzle } from "@/puzzles/dig";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
@@ -268,6 +269,7 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   clayshoot: clayShootPuzzle,
   numpyramid: numberPyramidPuzzle,
   dig: digPuzzle,
+  trail: trailPuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries(

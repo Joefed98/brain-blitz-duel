@@ -832,6 +832,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Drain 90% for full marks plus a bonus for how fast you hit the target; otherwise points for how much you drained.",
   },
+  trail: {
+    goal: "Draw one path from 1 to 36 through every square.",
+    how: [
+      { action: "Drag from the end of the path", detail: "to any touching square — sideways, up, down or diagonal." },
+      { action: "Dark numbers are fixed", detail: "— the path must reach each one at exactly that step." },
+      { action: "Drag back along the path", detail: "to undo. Lift and carry on from the end." },
+    ],
+    score: "Finish fast for the bonus. Otherwise, points for how far your path is right from 1.",
+  },
   numpyramid: {
     goal: "Fill the pyramid: every cell is the sum of the two below it.",
     how: [

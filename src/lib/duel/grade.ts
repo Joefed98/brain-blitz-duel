@@ -66,6 +66,7 @@ import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { btDecode, btReplay, scoreBallTrack } from "./ballTrack";
+import { scoreTrail, trComplete, trCorrectPrefix, trDecode } from "./trail";
 import { npComplete, npDecode, scoreNumberPyramid } from "./numberPyramid";
 import { digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
@@ -1634,6 +1635,17 @@ export function gradeSubmission(
       errors = s.lost;
       score = scoreDig(s);
       extraDetail = { collected: s.collected, lost: s.lost, pool: s.pool, target: s.target, targetStep: s.targetStep, dug: run.dug, steps: s.step };
+      break;
+    }
+    case "trail": {
+      // The path is checked against the stored givens and solution; no score comes from the client.
+      const path = trDecode(answer, puzzle.givens.length);
+      const prefix = trCorrectPrefix(path, puzzle.solution ?? []);
+      const complete = trComplete(puzzle.givens, path) && prefix === puzzle.givens.length;
+      isCorrect = complete;
+      correctCount = prefix;
+      score = scoreTrail(complete, ms, timeLimitMs, prefix, puzzle.givens.length);
+      extraDetail = { complete, prefix, drawn: path.length };
       break;
     }
     case "numpyramid": {
