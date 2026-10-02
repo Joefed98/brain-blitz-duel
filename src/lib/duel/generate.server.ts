@@ -77,6 +77,7 @@ import { generateShikaku } from "./shikaku.server";
 import { generateLightUp } from "./lightUp.server";
 import { generateBallTrack } from "./ballTrack.server";
 import { generateNumberPyramid } from "./numberPyramid.server";
+import { generateTrail } from "./trail.server";
 import { generateDig } from "./dig.server";
 import { generateWordSearch } from "./wordSearch.server";
 import { generateLetterWheel } from "./letterWheel.server";
@@ -167,6 +168,7 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "lightup") return generateLightUp();
   if (type === "balltrack") return generateBallTrack();
   if (type === "numpyramid") return generateNumberPyramid();
+  if (type === "trail") return generateTrail();
   if (type === "dig") return generateDig();
   if (type === "wordsearch") return generateWordSearch();
   if (type === "letterwheel") return generateLetterWheel();

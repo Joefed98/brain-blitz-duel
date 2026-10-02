@@ -89,6 +89,7 @@ export type PuzzleType =
   | "tendrop"
   | "clayshoot"
   | "numpyramid"
+  | "trail"
   | "dig"
   | "letterwheel"
   | "snip";
@@ -501,6 +502,7 @@ export type PuzzleData =
   | LightUpPuzzleData
   | BallTrackPuzzleData
   | NumberPyramidPuzzleData
+  | TrailPuzzleData
   | DigPuzzleData
   | WordSearchPuzzleData
   | LetterWheelPuzzleData
@@ -2153,6 +2155,17 @@ export interface NumberPyramidPuzzleData {
   /** Tiles for the empty cells plus two decoys, shuffled. */
   tray: number[];
   /** Every cell's value — private until the reveal. */
+  solution?: number[];
+}
+
+/** Trail: a 6×6 king-move path from 1 to 36. */
+export const TRAIL_TIME_MS = 90_000;
+
+export interface TrailPuzzleData {
+  type: "trail";
+  /** 36 cells row by row; the step number for given cells, else null. */
+  givens: (number | null)[];
+  /** Cell index for each step 1–36 — private until the reveal. */
   solution?: number[];
 }
 
