@@ -4,20 +4,19 @@ import { inputAt, recordInput, rngBelow, type ArcadeInputEvent } from "@/lib/arc
 import {
   whackCheckpoint,
   whackGame,
-  whackPopAt,
   whackRule,
   whackScore,
   WHACK_CHECKPOINT_INTERVAL,
+  WHACK_FEED_INTERVAL_TICKS,
   WHACK_FLIP_TICKS,
   WHACK_GOLD,
   WHACK_HOLES,
   WHACK_INPUT_TAP,
   WHACK_QUEUE_SIZE,
   WHACK_RED,
-  WHACK_RUN_TICKS,
+  WHACK_POP_LIFETIME_TICKS,
   WHACK_STATUS_RETIRED,
   WHACK_STATUS_UP,
-  WHACK_WRONG_RETREAT_TICKS,
 } from "@/lib/arcade/whack";
 import { encodeWhackRun, replayWhackRun } from "@/lib/duel/whack";
 import { gradeAnswer } from "@/lib/duel/generate.server";
@@ -51,22 +50,21 @@ for (let run = 0; run < RUNS; run++) {
   if (!same(state.schedule, sameSeed.schedule)) fail(`run ${run}: queue not deterministic`);
   if (state.schedule.kind.some((kind) => kind !== WHACK_GOLD && kind !== WHACK_RED)) fail(`run ${run}: invalid colour`);
 
-  const initialCorrect = state.status.findIndex((status, i) => status === WHACK_STATUS_UP && state.schedule.kind[i] === WHACK_GOLD);
-  if (initialCorrect >= 0) {
-    const initialHole = state.hole[initialCorrect] ?? -1;
-    for (let tick = 1; tick < WHACK_FLIP_TICKS[0]; tick++) state = whackGame.step(state, null);
-    if (whackPopAt(state, initialHole, state.tick) !== initialCorrect) fail(`run ${run}: correct ball did not persist`);
-  }
+  if (state.next !== 0 || state.status.some((status) => status === WHACK_STATUS_UP)) fail(`run ${run}: balls started up`);
+  for (let tick = 1; tick < WHACK_FEED_INTERVAL_TICKS; tick++) state = whackGame.step(state, null);
+  if (state.next !== 0) fail(`run ${run}: queue fed too early`);
+  state = whackGame.step(state, null);
+  if (state.next !== 1 || !state.status.some((status) => status === WHACK_STATUS_UP)) fail(`run ${run}: first ball did not pop`);
 
   state = whackGame.init(seed);
   let retirementChecked = false;
-  for (let tick = 1; tick <= WHACK_WRONG_RETREAT_TICKS + 2; tick++) {
+  for (let tick = 1; tick <= WHACK_FEED_INTERVAL_TICKS + WHACK_POP_LIFETIME_TICKS; tick++) {
     state = whackGame.step(state, null);
-    if (tick === WHACK_WRONG_RETREAT_TICKS + 1) {
-      retirementChecked = state.status.some((status, i) => status === WHACK_STATUS_RETIRED && state.schedule.kind[i] === WHACK_RED);
+    if (tick === WHACK_FEED_INTERVAL_TICKS + WHACK_POP_LIFETIME_TICKS) {
+      retirementChecked = state.status[0] === WHACK_STATUS_RETIRED;
     }
   }
-  if (!retirementChecked) fail(`run ${run}: wrong colour did not retreat at three seconds`);
+  if (!retirementChecked) fail(`run ${run}: ball did not retreat after three seconds`);
 
   state = whackGame.init(seed);
   const events: ArcadeInputEvent[] = [];
