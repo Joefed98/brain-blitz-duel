@@ -1,0 +1,105 @@
+/** Whack-a-Target queue checks and client/server identity proof only. */
+import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
+import { inputAt, recordInput, rngBelow, type ArcadeInputEvent } from "@/lib/arcade/engine";
+import {
+  whackCheckpoint,
+  whackGame,
+  whackPopAt,
+  whackRule,
+  whackScore,
+  WHACK_CHECKPOINT_INTERVAL,
+  WHACK_FLIP_TICKS,
+  WHACK_GOLD,
+  WHACK_HOLES,
+  WHACK_INPUT_TAP,
+  WHACK_QUEUE_SIZE,
+  WHACK_RED,
+  WHACK_RUN_TICKS,
+  WHACK_STATUS_RETIRED,
+  WHACK_STATUS_UP,
+  WHACK_WRONG_RETREAT_TICKS,
+} from "@/lib/arcade/whack";
+import { encodeWhackRun, replayWhackRun } from "@/lib/duel/whack";
+import { gradeAnswer } from "@/lib/duel/generate.server";
+
+const RUNS = Number(process.argv[2] ?? 200);
+let failures = 0;
+const fail = (message: string) => {
+  failures += 1;
+  console.error("FAIL", message);
+};
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+if (whackRule(WHACK_FLIP_TICKS[0] - 1) !== WHACK_GOLD) fail("rule before first flip");
+if (whackRule(WHACK_FLIP_TICKS[0]) !== WHACK_RED) fail("rule at first flip");
+if (whackRule(WHACK_FLIP_TICKS[1]) !== WHACK_GOLD) fail("rule at second flip");
+if (whackScore(75, 0) !== 150 || whackScore(75, 1) !== 145 || whackScore(0, 1) !== 0) fail("score boundaries");
+
+let slowest = 0;
+let maxFed = 0;
+for (let run = 0; run < RUNS; run++) {
+  const seed = (run * 2654435761 + 97) | 0;
+  let rng = seed ^ 0x4f1bbcdc;
+  const draw = (bound: number) => {
+    const result = rngBelow(rng, bound);
+    rng = result.state;
+    return result.value;
+  };
+  let state = whackGame.init(seed);
+  const sameSeed = whackGame.init(seed);
+  if (state.schedule.kind.length !== WHACK_QUEUE_SIZE) fail(`run ${run}: queue length`);
+  if (!same(state.schedule, sameSeed.schedule)) fail(`run ${run}: queue not deterministic`);
+  if (state.schedule.kind.some((kind) => kind !== WHACK_GOLD && kind !== WHACK_RED)) fail(`run ${run}: invalid colour`);
+
+  const initialCorrect = state.status.findIndex((status, i) => status === WHACK_STATUS_UP && state.schedule.kind[i] === WHACK_GOLD);
+  if (initialCorrect >= 0) {
+    const initialHole = state.hole[initialCorrect] ?? -1;
+    for (let tick = 1; tick < WHACK_FLIP_TICKS[0]; tick++) state = whackGame.step(state, null);
+    if (whackPopAt(state, initialHole, state.tick) !== initialCorrect) fail(`run ${run}: correct ball did not persist`);
+  }
+
+  state = whackGame.init(seed);
+  let retirementChecked = false;
+  for (let tick = 1; tick <= WHACK_WRONG_RETREAT_TICKS + 2; tick++) {
+    state = whackGame.step(state, null);
+    if (tick === WHACK_WRONG_RETREAT_TICKS) {
+      retirementChecked = state.status.some((status, i) => status === WHACK_STATUS_RETIRED && state.schedule.kind[i] === WHACK_RED);
+    }
+  }
+  if (!retirementChecked) fail(`run ${run}: wrong colour did not retreat at two seconds`);
+
+  state = whackGame.init(seed);
+  const events: ArcadeInputEvent[] = [];
+  const checkpoints: ReturnType<typeof whackCheckpoint>[] = [];
+  while (!whackGame.isOver(state)) {
+    const t = state.tick + 1;
+    let candidate: ArcadeInputEvent | null = null;
+    if (draw(100) < 36) {
+      const live = state.status
+        .map((status, i) => ({ status, i }))
+        .filter(({ status }) => status === WHACK_STATUS_UP);
+      const chosen = live.length > 0 && draw(100) < 85 ? live[draw(live.length)]?.i : undefined;
+      const hole = chosen === undefined ? draw(WHACK_HOLES) : state.hole[chosen] ?? 0;
+      candidate = { t, k: WHACK_INPUT_TAP, a: hole, b: 0, c: 0, d: 0 };
+    }
+    recordInput(events, candidate, whackGame.inputRanges);
+    state = whackGame.step(state, inputAt(events, t));
+    if (state.tick % WHACK_CHECKPOINT_INTERVAL === 0) checkpoints.push(whackCheckpoint(state));
+  }
+  maxFed = Math.max(maxFed, state.next);
+  const score = whackGame.score(state);
+  const raw = appendClientCounters(
+    encodeWhackRun({ seed, claimedScore: score, events, endTick: state.tick, checkpoints }),
+    arcadeCounters("whack", state, score),
+  );
+  const started = performance.now();
+  const replay = replayWhackRun(seed, raw);
+  slowest = Math.max(slowest, performance.now() - started);
+  const graded = gradeAnswer({ type: "whack", seed }, raw, 0);
+  if (!same(replay.state, state) || replay.score !== score || graded.score !== score || replay.flagged || replay.desyncTick !== null) {
+    fail(`run ${run}: replay mismatch ${replay.reason ?? ""}`);
+  }
+}
+console.log(`whack self-replay ${RUNS}/${RUNS}; queue ${WHACK_QUEUE_SIZE}; max fed ${maxFed}; slowest ${slowest.toFixed(1)}ms`);
+console.log(failures ? `${failures} FAILURES` : "ALL OK");
+process.exit(failures ? 1 : 0);
