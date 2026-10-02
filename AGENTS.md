@@ -32,3 +32,4 @@
 - Slice combo misses are detected in the sim when an unsliced non-bomb passes its lastTick; why: the multiplier feeds the server-replayed score.
 - Ball Track and Word Search draw from script-built, server-only banks (scripts/ball-track-bank.ts, scripts/word-search-bank.ts); why: each board is proven (unique minimal removals / each word exactly once) offline, not at room start.
 - Word Search category lists live in src/lib/duel/wordSearchWords.ts and must be followed by re-running the bank script; why: the bank is derived from them.
+- Ten Drop (number) and Clay Shoot (speed) run on the arcade engine but draw from their own categories via `arcadeRun`; Ten Drop proves each target's seeded tile queue with the shared greedy solver at init; why: every player and the server replay must face the same provably reachable targets.
