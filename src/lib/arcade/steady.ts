@@ -300,15 +300,13 @@ export const STD_GOLD = "#F5B82E";
 export const STD_DOT = "#2ED3B7";
 
 function draw(ctx: CanvasRenderingContext2D, state: StdState, size: CanvasSize): void {
-  const scale = Math.min(size.width / STD_WORLD_W, size.height / STD_WORLD_H);
-  const offsetX = (size.width - STD_WORLD_W * scale) / 2;
-  const offsetY = (size.height - STD_WORLD_H * scale) / 2;
+  const scaleX = size.width / STD_WORLD_W;
+  const scaleY = size.height / STD_WORLD_H;
 
   ctx.save();
   ctx.fillStyle = STD_BG;
   ctx.fillRect(0, 0, size.width, size.height);
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
+  ctx.scale(scaleX, scaleY);
 
   const half = stdTrackWidth(state.tick) / 2;
   const points: { x: number; y: number }[] = [];

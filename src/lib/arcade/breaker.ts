@@ -592,15 +592,13 @@ function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: numb
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize): void {
-  const scale = Math.min(size.width / BRK_WORLD_W, size.height / BRK_WORLD_H);
-  const offsetX = (size.width - BRK_WORLD_W * scale) / 2;
-  const offsetY = (size.height - BRK_WORLD_H * scale) / 2;
+  const scaleX = size.width / BRK_WORLD_W;
+  const scaleY = size.height / BRK_WORLD_H;
 
   ctx.save();
   ctx.fillStyle = BRK_BG;
   ctx.fillRect(0, 0, size.width, size.height);
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
+  ctx.scale(scaleX, scaleY);
 
   state.bricks.forEach((left, index) => {
     if (left <= 0) return;

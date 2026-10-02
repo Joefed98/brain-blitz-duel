@@ -338,15 +338,13 @@ export const RALLY_GOLD = "#F5B82E";
 export const RALLY_BALL = "#4D8CFF";
 
 function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
-  const scale = Math.min(size.width / RALLY_WORLD_W, size.height / RALLY_WORLD_H);
-  const offsetX = (size.width - RALLY_WORLD_W * scale) / 2;
-  const offsetY = (size.height - RALLY_WORLD_H * scale) / 2;
+  const scaleX = size.width / RALLY_WORLD_W;
+  const scaleY = size.height / RALLY_WORLD_H;
 
   ctx.save();
   ctx.fillStyle = RALLY_BG;
   ctx.fillRect(0, 0, size.width, size.height);
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
+  ctx.scale(scaleX, scaleY);
 
   ctx.strokeStyle = "rgba(255,255,255,0.14)";
   ctx.lineWidth = 2;

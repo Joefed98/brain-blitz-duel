@@ -514,15 +514,13 @@ export function bubDrawSymbol(
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize): void {
-  const scale = Math.min(size.width / BUB_WORLD_W, size.height / BUB_WORLD_H);
-  const offsetX = (size.width - BUB_WORLD_W * scale) / 2;
-  const offsetY = (size.height - BUB_WORLD_H * scale) / 2;
+  const scaleX = size.width / BUB_WORLD_W;
+  const scaleY = size.height / BUB_WORLD_H;
 
   ctx.save();
   ctx.fillStyle = BUB_BG;
   ctx.fillRect(0, 0, size.width, size.height);
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
+  ctx.scale(scaleX, scaleY);
 
   ctx.strokeStyle = "rgba(255,255,255,0.10)";
   ctx.lineWidth = 2;
