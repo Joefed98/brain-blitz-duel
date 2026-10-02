@@ -7,7 +7,7 @@ import { PhoneShell } from "@/components/duel/PhoneShell";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 
 import { RoundIntro } from "@/components/duel/RoundIntro";
-import { TimerRing, timerSlotClass } from "@/components/duel/TimerRing";
+import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import {
   practiceCheckWordFn,
@@ -357,16 +357,11 @@ function PracticeScreen() {
         </div>
 
         {puzzleShowsTimer(puzzle) && (
-          <div
-            className={`flex shrink-0 items-center justify-center ${timerSlotClass(puzzle.type)}`}
-          >
-            <TimerRing
-              msRemaining={runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
-              totalMs={runMs ?? timeLimitMs}
-              active={clockActive}
-              compact={puzzle.type === "letterwheel" || puzzle.type === "numpyramid" || puzzle.type === "chain"}
-            />
-          </div>
+          <TimerBar
+            msRemaining={runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
+            totalMs={runMs ?? timeLimitMs}
+            active={clockActive}
+          />
         )}
 
         {puzzle.type === "balance" && <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" />}

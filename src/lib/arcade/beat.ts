@@ -429,16 +429,14 @@ export function beatLaneX(lane: number): number {
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize): void {
-  const scale = Math.min(size.width / BEAT_WORLD_W, size.height / BEAT_WORLD_H);
-  const offsetX = (size.width - BEAT_WORLD_W * scale) / 2;
-  const offsetY = (size.height - BEAT_WORLD_H * scale) / 2;
+  const scaleX = size.width / BEAT_WORLD_W;
+  const scaleY = size.height / BEAT_WORLD_H;
   const laneW = BEAT_WORLD_W / BEAT_LANES;
 
   ctx.save();
   ctx.fillStyle = BEAT_BG;
   ctx.fillRect(0, 0, size.width, size.height);
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
+  ctx.scale(scaleX, scaleY);
 
   const tier = BEAT_COMBO_TIERS.filter((t) => state.combo >= t).length;
   for (let lane = 0; lane < BEAT_LANES; lane++) {

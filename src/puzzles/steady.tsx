@@ -198,13 +198,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { width, height };
   };
 
-  /** Screen x to world x, matching the canvas letterboxing. */
+  /** Screen x to world x, matching the full-stage canvas mapping. */
   const worldX = (clientX: number): number => {
     const box = wrap.current?.getBoundingClientRect();
     if (!box || box.width < 1) return Math.round(STD_WORLD_W / 2);
-    const scale = Math.min(box.width / STD_WORLD_W, box.height / STD_WORLD_H);
-    const left = box.left + (box.width - STD_WORLD_W * scale) / 2;
-    return Math.max(0, Math.min(STD_WORLD_W, Math.round((clientX - left) / scale)));
+    return Math.max(0, Math.min(STD_WORLD_W, Math.round(((clientX - box.left) / box.width) * STD_WORLD_W)));
   };
 
   if (!data) return null;

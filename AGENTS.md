@@ -28,5 +28,5 @@
 - Colour Connect walls live on the public puzzle and are passed to the shared `verifyFlow`; uniqueness is proven server-side by an exhaustive solver before a board is used; why: phone, grader and generator must agree.
 - Puzzle-specific intro lines come from an optional `introLine(puzzle)` on the puzzle definition, rendered by RoundIntro; why: fixed examples stay fixed while per-puzzle facts (e.g. peg count) still show.
 - Bomb Defusal masks are recomputed per panel because many rule predicates read the panel; why: caching by rule text across panels gives wrong uniqueness proofs.
-- TimerRing owns the optional compact timer presentation used by dense rounds; why: room and practice layouts must reserve identical space.
+- TimerBar is the only live-round countdown and PhoneShell owns the 4px game-screen safe margin; why: duel/practice timing and arena width must stay identical without per-game timer slots.
 - Number Pyramid stores one bank entry as three public boards plus private solutions and submits all three placement maps with the active index; why: skipped boards and current-board partial credit must grade identically on the server.

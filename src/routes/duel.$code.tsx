@@ -17,7 +17,7 @@ import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
 import { Standings } from "@/components/duel/Standings";
 import { DuelOverall } from "@/components/duel/DuelOverall";
 import { Podium } from "@/components/duel/Podium";
-import { TimerRing, timerSlotClass } from "@/components/duel/TimerRing";
+import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import { buzz } from "@/lib/motion";
 import {
@@ -784,18 +784,11 @@ function DuelScreen() {
         </div>
 
         {showTimer && (
-          <div
-            className={`flex shrink-0 items-center justify-center ${
-              puzzle ? timerSlotClass(puzzle.type) : "h-[88px] scale-[0.66]"
-            }`}
-          >
-            <TimerRing
-              msRemaining={myResult ? 0 : runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
-              totalMs={runMs ?? timeLimitMs}
-              active={clockActive && !myResult}
-              compact={puzzle?.type === "letterwheel" || puzzle?.type === "numpyramid" || puzzle?.type === "chain"}
-            />
-          </div>
+          <TimerBar
+            msRemaining={myResult ? 0 : runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
+            totalMs={runMs ?? timeLimitMs}
+            active={clockActive && !myResult}
+          />
         )}
 
         {puzzle?.type === "balance" && <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" />}

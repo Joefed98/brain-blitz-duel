@@ -220,15 +220,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const drawAim = (ctx: CanvasRenderingContext2D, size: CanvasSize) => {
     const shot = aim.current;
     if (!shot || state.current.flightColour !== 0) return;
-    const scale = Math.min(size.width / BUB_WORLD_W, size.height / BUB_WORLD_H);
-    const offsetX = (size.width - BUB_WORLD_W * scale) / 2;
-    const offsetY = (size.height - BUB_WORLD_H * scale) / 2;
+    const scaleX = size.width / BUB_WORLD_W;
+    const scaleY = size.height / BUB_WORLD_H;
     const left = BUB_WALL + BUB_R;
     const right = BUB_WORLD_W - BUB_WALL - BUB_R;
 
     ctx.save();
-    ctx.translate(offsetX, offsetY);
-    ctx.scale(scale, scale);
+    ctx.scale(scaleX, scaleY);
     ctx.strokeStyle = "rgba(255,255,255,0.4)";
     ctx.setLineDash([5, 6]);
     ctx.lineWidth = 2;
@@ -257,12 +255,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const worldPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
-    const scale = Math.min(box.width / BUB_WORLD_W, box.height / BUB_WORLD_H);
-    const left = box.left + (box.width - BUB_WORLD_W * scale) / 2;
-    const top = box.top + (box.height - BUB_WORLD_H * scale) / 2;
     return {
-      x: (event.clientX - left) / Math.max(scale, 0.0001),
-      y: (event.clientY - top) / Math.max(scale, 0.0001),
+      x: ((event.clientX - box.left) / box.width) * BUB_WORLD_W,
+      y: ((event.clientY - box.top) / box.height) * BUB_WORLD_H,
     };
   };
 

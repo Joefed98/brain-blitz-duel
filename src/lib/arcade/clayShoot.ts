@@ -366,18 +366,16 @@ export function clayCheckpoint(state: ClayState): ClayCheckpoint {
 export const CLAY_ORANGE = "#E8762C";
 export const CLAY_GOLD = "#F5B82E";
 
-/** Letterbox mapping shared by drawing and tap conversion. */
-export function clayView(size: CanvasSize): { scale: number; ox: number; oy: number } {
-  const scale = Math.min(size.width / CLAY_W, size.height / CLAY_H);
-  return { scale, ox: (size.width - CLAY_W * scale) / 2, oy: (size.height - CLAY_H * scale) / 2 };
+/** Full-stage mapping shared by drawing and tap conversion. */
+export function clayView(size: CanvasSize): { scaleX: number; scaleY: number } {
+  return { scaleX: size.width / CLAY_W, scaleY: size.height / CLAY_H };
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: ClayState, size: CanvasSize): void {
-  const { scale, ox, oy } = clayView(size);
+  const { scaleX, scaleY } = clayView(size);
   ctx.save();
   ctx.clearRect(0, 0, size.width, size.height);
-  ctx.translate(ox, oy);
-  ctx.scale(scale, scale);
+  ctx.scale(scaleX, scaleY);
   const sky = ctx.createLinearGradient(0, 0, 0, CLAY_H);
   sky.addColorStop(0, "#1D3B5C");
   sky.addColorStop(1, "#6F9BC0");

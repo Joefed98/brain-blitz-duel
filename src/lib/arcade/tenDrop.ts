@@ -455,18 +455,16 @@ export function tenDropCheckpoint(state: TenDropState): TenDropCheckpoint {
 
 export const TD_GOLD = "#F5B82E";
 
-export function tdView(size: CanvasSize): { scale: number; ox: number; oy: number } {
-  const scale = Math.min(size.width / TD_W, size.height / TD_H);
-  return { scale, ox: (size.width - TD_W * scale) / 2, oy: (size.height - TD_H * scale) / 2 };
+export function tdView(size: CanvasSize): { scaleX: number; scaleY: number } {
+  return { scaleX: size.width / TD_W, scaleY: size.height / TD_H };
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: TenDropState, size: CanvasSize): void {
   const c = TD_CONFIG;
-  const { scale, ox, oy } = tdView(size);
+  const { scaleX, scaleY } = tdView(size);
   ctx.save();
   ctx.clearRect(0, 0, size.width, size.height);
-  ctx.translate(ox, oy);
-  ctx.scale(scale, scale);
+  ctx.scale(scaleX, scaleY);
   ctx.beginPath();
   ctx.rect(0, 0, TD_W, TD_H);
   ctx.clip();

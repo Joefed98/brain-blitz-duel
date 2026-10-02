@@ -1,3 +1,10 @@
+## Shared play timer and full-width arenas (Oct 2)
+- [x] Replace all live countdowns with the shared top timer bar.
+- [x] Remove per-game timer slots and reclaim their height.
+- [x] Make game screens use the viewport width minus an 8 px safe margin.
+- [x] Remove height-driven narrowing from shared arcade canvases and capped puzzle arenas.
+- [x] Audit 390×700 and 375×667 layouts from source and verify checks without browser tests.
+
 ## Two speed-game changes (Oct 2)
 - [x] Rework Whack-a-Target as a paced 100-ball queue with persistent correct balls and two-second wrong-colour retreats.
 - [x] Update Whack-a-Target scoring, HUD, instructions, reveal, and server-graded details.

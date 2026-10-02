@@ -228,13 +228,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <div
           ref={board}
-          className="puzzle-board relative grid aspect-square max-h-full w-full max-w-full"
+          className="puzzle-board relative grid aspect-square max-h-full w-full"
           style={{
             gridTemplateColumns: `repeat(${WHACK_COLS}, minmax(0, 1fr))`,
             gridTemplateRows: `repeat(${WHACK_COLS}, minmax(0, 1fr))`,
             gap: WHACK_GAP_PX,
             minWidth: 4 * 72 + 3 * WHACK_GAP_PX,
-            maxWidth: "min(100%, 440px)",
           }}
           aria-label="Whack-a-Target board"
           onPointerDown={(event) => {

@@ -660,15 +660,13 @@ function drawSpecial(ctx: CanvasRenderingContext2D, cx: number, cy: number, spec
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize): void {
-  const scale = Math.min(size.width / SLICE_WORLD_W, size.height / SLICE_WORLD_H);
-  const offsetX = (size.width - SLICE_WORLD_W * scale) / 2;
-  const offsetY = (size.height - SLICE_WORLD_H * scale) / 2;
+  const scaleX = size.width / SLICE_WORLD_W;
+  const scaleY = size.height / SLICE_WORLD_H;
 
   ctx.save();
   ctx.fillStyle = SLICE_BG;
   ctx.fillRect(0, 0, size.width, size.height);
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
+  ctx.scale(scaleX, scaleY);
 
   for (let index = 0; index < state.objects.length; index++) {
     const object = state.objects[index]!;

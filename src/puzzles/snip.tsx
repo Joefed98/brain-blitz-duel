@@ -191,8 +191,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const toWorld = (clientX: number, clientY: number) => {
     const box = board.current?.getBoundingClientRect();
     if (!box) return null;
-    const { scale, ox, oy } = snipView({ width: box.width, height: box.height });
-    return { x: Math.round((clientX - box.left - ox) / scale), y: Math.round((clientY - box.top - oy) / scale) };
+    const { scaleX, scaleY } = snipView({ width: box.width, height: box.height });
+    return { x: Math.round((clientX - box.left) / scaleX), y: Math.round((clientY - box.top) / scaleY) };
   };
   const active = () => !locked && !submitted.current && !snipGame.isOver(state.current);
 
