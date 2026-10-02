@@ -1,0 +1,4 @@
+- Skyline's camera zoom is render-only, eased per canvas context; why: the sim and server replay must stay in fixed world units.
+- Slice combo misses are detected in the sim when an unsliced non-bomb passes its lastTick; why: the multiplier feeds the server-replayed score.
+- Ten Drop (number) and Clay Shoot (speed) run on the arcade engine but draw from their own categories via `arcadeRun`; Ten Drop proves each target's seeded tile queue with the shared greedy solver at init; why: every player and the server replay must face the same provably reachable targets.
+- Snip is a verlet-rope arcade sim in src/lib/arcade/snip.ts whose 12 level templates live in its config block; scripts/snip-check.ts proves every template winnable at the pin-wobble extremes and runs the self-replay proof; why: template edits must stay solvable and replay-identical.
