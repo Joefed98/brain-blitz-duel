@@ -72,6 +72,8 @@ import {
 import { generateTents } from "./tents.server";
 import { generateShikaku } from "./shikaku.server";
 import { generateLightUp } from "./lightUp.server";
+import { generateBallTrack } from "./ballTrack.server";
+import { generateWordSearch } from "./wordSearch.server";
 
 import { buildGoNoGo } from "@/puzzles/goNoGo";
 import { buildWordMatch } from "@/puzzles/wordMatch";
@@ -154,6 +156,8 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "tents") return generateTents();
   if (type === "shikaku") return generateShikaku();
   if (type === "lightup") return generateLightUp();
+  if (type === "balltrack") return generateBallTrack();
+  if (type === "wordsearch") return generateWordSearch();
 
   return puzzleDef(type).generate();
 }
