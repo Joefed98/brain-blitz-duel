@@ -107,6 +107,7 @@ import {
   BURST_TIME_MS,
   ORBIT_TIME_MS,
   SWING_TIME_MS,
+  SNIP_TIME_MS,
   TILT_TIME_MS,
   HOTFLOOR_TIME_MS,
 } from "./types";
@@ -170,6 +171,7 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   burst: BURST_TIME_MS,
   orbit: ORBIT_TIME_MS,
   swing: SWING_TIME_MS,
+  snip: SNIP_TIME_MS,
   tilt: TILT_TIME_MS,
   hotfloor: HOTFLOOR_TIME_MS,
 };
@@ -1338,6 +1340,16 @@ const orbitSummary: SummaryBuilder = (result) => {
   };
 };
 
+const snipSummary: SummaryBuilder = (result) => {
+  const eaten = Number(result.extra?.["eaten"] ?? 0);
+  const stars = Number(result.extra?.["stars"] ?? 0);
+  const levels = Number(result.extra?.["levels"] ?? 0);
+  return {
+    summary: `${eaten} sweet${eaten === 1 ? "" : "s"} · ${stars}★ · ${result.score ?? 0}`,
+    detail: [`${levels} level${levels === 1 ? "" : "s"} played`],
+  };
+};
+
 const swingSummary: SummaryBuilder = (result) => {
   const metres = Number(result.extra?.["metres"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
@@ -1547,6 +1559,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   burst: burstSummary,
   orbit: orbitSummary,
   swing: swingSummary,
+  snip: snipSummary,
   tilt: tiltSummary,
   hotfloor: hotFloorSummary,
   tents: tentsSummary,
@@ -1648,6 +1661,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   burst: () => null,
   orbit: () => null,
   swing: () => null,
+  snip: () => null,
   tilt: () => null,
   hotfloor: () => null,
   tents: () => null,
