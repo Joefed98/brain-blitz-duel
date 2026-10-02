@@ -1,3 +1,11 @@
+## Stop Watch, Chain, Whack, and Clay updates (Oct 2)
+
+- [x] Make Stop Watch 1–7 bounce, Watches 8–10 wrap, and count right-edge arrivals from 2 through 11.
+- [x] Scatter all 28 Chain nodes with a guaranteed clear gap and store each generated layout.
+- [x] Run Whack-a-Target for 60 seconds with an initially empty, paced 100-ball queue and universal three-second lifetimes.
+- [x] Compact Clay Shoot's status, conceal gold discs until resolved, and expand the sky area.
+- [x] Run self-replay proofs only for Whack-a-Target and Clay Shoot.
+
 ## Ten Drop and Number Pyramid update (Oct 2)
 - [x] Simplify Ten Drop to a gold running total on the left and centred target beneath the shared timer.
 - [x] Expand Number Pyramid to four rising-difficulty boards over 150 seconds.

@@ -1,10 +1,9 @@
 /**
  * Server-only generation for Don't Break the Chain.
  *
- * Nodes are scattered across the whole play area by Poisson-disc sampling, so
- * the board is never a ring around the edge. A depth-first search then counts
- * the non-crossing fifteen-node routes: a layout is only used when it has
- * between one and eight of them and at least two early dead-end traps.
+ * Nodes are scattered across the whole play area by seeded Poisson-disc
+ * sampling, with every generated position stored in the puzzle so both
+ * players receive the same non-touching layout.
  */
 
 import { randInt, shuffled } from "./random";
