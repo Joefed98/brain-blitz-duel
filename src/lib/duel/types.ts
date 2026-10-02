@@ -85,7 +85,9 @@ export type PuzzleType =
   | "tilt"
   | "hotfloor"
   | "balltrack"
-  | "wordsearch";
+  | "wordsearch"
+  | "tendrop"
+  | "clayshoot";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -488,6 +490,8 @@ export type PuzzleData =
   | BubblePuzzleData
   | BeatPuzzleData
   | WhackPuzzleData
+  | TenDropPuzzleData
+  | ClayShootPuzzleData
   | TentsPuzzleData
   | ShikakuPuzzleData
   | LightUpPuzzleData
@@ -1908,6 +1912,23 @@ export const BEAT_TIME_MS = 63_000;
 /** A fixed 30-second run on the arcade engine; the clock adds three of slack. */
 export const WHACK_TIME_MS = 33_000;
 export const TENTS_TIME_MS = 90_000;
+
+/** Ten Drop: a fixed 60-second run on the arcade engine (number category). */
+export const TENDROP_TIME_MS = 63_000;
+/** Clay Shoot: a fixed 45-second run on the arcade engine. */
+export const CLAYSHOOT_TIME_MS = 48_000;
+
+export interface TenDropPuzzleData {
+  type: "tendrop";
+  /** Draws every target and tile queue — identical for everyone. */
+  seed: number;
+}
+
+export interface ClayShootPuzzleData {
+  type: "clayshoot";
+  /** Draws the whole launch schedule — identical for everyone. */
+  seed: number;
+}
 
 export interface WhackPuzzleData {
   type: "whack";

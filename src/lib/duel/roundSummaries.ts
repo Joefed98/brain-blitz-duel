@@ -86,6 +86,8 @@ import {
   BUBBLE_TIME_MS,
   BEAT_TIME_MS,
   WHACK_TIME_MS,
+  TENDROP_TIME_MS,
+  CLAYSHOOT_TIME_MS,
   TENTS_TIME_MS,
   SHIKAKU_TIME_MS,
   LIGHTUP_TIME_MS,
@@ -144,6 +146,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   bubble: BUBBLE_TIME_MS,
   beat: BEAT_TIME_MS,
   whack: WHACK_TIME_MS,
+  tendrop: TENDROP_TIME_MS,
+  clayshoot: CLAYSHOOT_TIME_MS,
   tents: TENTS_TIME_MS,
   shikaku: SHIKAKU_TIME_MS,
   lightup: LIGHTUP_TIME_MS,
@@ -1202,6 +1206,25 @@ const whackSummary: SummaryBuilder = (result) => {
   };
 };
 
+const tenDropSummary: SummaryBuilder = (result) => {
+  const cleared = Number(result.extra?.["cleared"] ?? 0);
+  const resets = Number(result.extra?.["resets"] ?? 0);
+  return {
+    summary: `${cleared} / 10 targets`,
+    detail: [`${resets} reset${resets === 1 ? "" : "s"}`],
+  };
+};
+
+const clayShootSummary: SummaryBuilder = (result) => {
+  const hits = Number(result.extra?.["hits"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? 15);
+  const shots = Number(result.extra?.["shots"] ?? 0);
+  return {
+    summary: `${hits} / ${total} clays`,
+    detail: [`${shots} shot${shots === 1 ? "" : "s"} fired`],
+  };
+};
+
 const wavefrontSummary: SummaryBuilder = (result) => {
   const wave = Number(result.extra?.["wave"] ?? 1);
   const shapes = Number(result.extra?.["shapesDown"] ?? 0);
@@ -1484,6 +1507,8 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   bubble: bubbleSummary,
   beat: beatSummary,
   whack: whackSummary,
+  tendrop: tenDropSummary,
+  clayshoot: clayShootSummary,
   wavefront: wavefrontSummary,
   bastion: bastionSummary,
   rooftop: rooftopSummary,
@@ -1580,6 +1605,8 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   bubble: () => null,
   beat: () => null,
   whack: () => null,
+  tendrop: () => null,
+  clayshoot: () => null,
   wavefront: () => null,
   bastion: () => null,
   rooftop: () => null,

@@ -90,6 +90,8 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   beat: [],
   // The seed draws the pop schedule; the run is replayed on the server.
   whack: [],
+  tendrop: [],
+  clayshoot: [],
   tents: ["solution"],
   shikaku: ["solution"],
   lightup: ["solution"],
