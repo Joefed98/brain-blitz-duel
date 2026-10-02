@@ -1247,6 +1247,8 @@ export function gradeSubmission(
       score = run.score;
       extraDetail = {
         hits: run.hits,
+        orangeHits: run.orangeHits,
+        goldHits: run.goldHits,
         missed: run.missed,
         shots: run.shots,
         total: run.total,

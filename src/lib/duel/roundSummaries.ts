@@ -1207,11 +1207,10 @@ const beatSummary: SummaryBuilder = (result) => {
 
 const whackSummary: SummaryBuilder = (result) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
-  const total = Number(result.extra?.["totalTargets"] ?? 0);
   const wrong = Number(result.extra?.["wrong"] ?? 0);
   return {
-    summary: `${hits} / ${total} hit · ${wrong} wrong`,
-    detail: ["Same targets for everyone"],
+    summary: `${hits} whacked · ${wrong} wrong`,
+    detail: ["2 per hit · −5 per wrong colour"],
   };
 };
 
@@ -1226,11 +1225,13 @@ const tenDropSummary: SummaryBuilder = (result) => {
 
 const clayShootSummary: SummaryBuilder = (result) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
-  const total = Number(result.extra?.["total"] ?? 15);
+  const total = Number(result.extra?.["total"] ?? 25);
+  const orange = Number(result.extra?.["orangeHits"] ?? 0);
+  const gold = Number(result.extra?.["goldHits"] ?? 0);
   const shots = Number(result.extra?.["shots"] ?? 0);
   return {
     summary: `${hits} / ${total} clays`,
-    detail: [`${shots} shot${shots === 1 ? "" : "s"} fired`],
+    detail: [`${orange} orange · ${gold} gold · ${shots} shot${shots === 1 ? "" : "s"}`],
   };
 };
 

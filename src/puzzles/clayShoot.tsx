@@ -17,6 +17,7 @@ import {
   CLAY_CHECKPOINT_INTERVAL,
   CLAY_COUNT,
   CLAY_H,
+  CLAY_KIND_GOLD,
   CLAY_HIT,
   CLAY_INPUT_SHOT,
   CLAY_LOG_ESCAPED,
@@ -65,13 +66,13 @@ function IntroExample() {
   );
 }
 
-function Pips({ status }: { status: number[] }) {
+function Pips({ status, kind }: { status: number[]; kind: number[] }) {
   return (
     <div className="flex justify-center gap-1">
       {status.map((s, i) => (
         <span
           key={i}
-          className={`h-2 w-2 rounded-full ${s === CLAY_HIT ? "bg-primary" : s === CLAY_MISSED ? "bg-destructive" : "bg-muted"}`}
+          className={`h-2 w-2 rounded-full ${s === CLAY_HIT ? "bg-primary" : s === CLAY_MISSED ? "bg-destructive" : kind[i] === CLAY_KIND_GOLD ? "bg-primary/40" : "bg-muted"}`}
         />
       ))}
     </div>
@@ -90,7 +91,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof clayCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const submitted = useRef(false);
-  const [hud, setHud] = useState({ hits: 0, status: new Array<number>(CLAY_COUNT).fill(0) });
+  const [hud, setHud] = useState({ hits: 0, orangeHits: 0, goldHits: 0, status: new Array<number>(CLAY_COUNT).fill(0) });
   const [dev, setDev] = useState<string | null>(null);
   useNoTouchScroll(wrap);
 
@@ -160,7 +161,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const key = s.status.join("");
       if (key !== shownKey) {
         shownKey = key;
-        setHud({ hits: s.hits, status: [...s.status] });
+        setHud({ hits: s.hits, orangeHits: s.orangeHits, goldHits: s.goldHits, status: [...s.status] });
       }
       if (devOn && s.tick % 6 === 0) {
         const log = s.log
@@ -211,9 +212,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col gap-2 select-none" style={GAME_ROOT_STYLE}>
       <p className="text-center font-mono text-2xl font-bold text-foreground">
-        <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT}
+        <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold
       </p>
-      <Pips status={hud.status} />
+      <Pips status={hud.status} kind={state.current.schedule.kind} />
       <div
         ref={board}
         data-play-area
@@ -245,9 +246,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
-        {result.hits} / {result.total} clays · {result.shots} shot{result.shots === 1 ? "" : "s"}
+        {result.hits} / {result.total} clays · {result.orangeHits} orange · {result.goldHits} gold
       </p>
-      <p className="text-center text-base text-muted-foreground">Same clays for everyone</p>
+      <p className="text-center text-base text-muted-foreground">{result.shots} shot{result.shots === 1 ? "" : "s"} · Same clays for everyone</p>
       <p className="font-mono text-base text-primary">{result.score} points</p>
     </div>
   );
