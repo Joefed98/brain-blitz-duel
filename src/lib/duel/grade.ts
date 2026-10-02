@@ -68,6 +68,7 @@ import { btDecode, btReplay, scoreBallTrack } from "./ballTrack";
 import { npComplete, npDecode, scoreNumberPyramid } from "./numberPyramid";
 import { digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
+import { lwDecode, lwGrade, scoreLetterWheel } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeRicoRun, replayRicoRun } from "./ricochet";
@@ -1649,6 +1650,17 @@ export function gradeSubmission(
       errors = verdict.wrong;
       score = scoreWordSearch(verdict.found.length, total, verdict.wrong, ms, timeLimitMs);
       extraDetail = { found: verdict.found.length, total, wrong: verdict.wrong };
+      break;
+    }
+    case "letterwheel": {
+      // Each submitted word is matched against the stored crossword and bonus sets.
+      const words = lwDecode(answer);
+      const v = lwGrade(puzzle.words ?? [], puzzle.bonus ?? [], puzzle.slots, puzzle.cols, words);
+      isCorrect = v.totalCells > 0 && v.cells >= v.totalCells;
+      correctCount = v.slots.length;
+      errors = v.wrong;
+      score = scoreLetterWheel(v.cells, v.totalCells, v.bonus, ms, timeLimitMs);
+      extraDetail = { slots: v.slots.length, total: puzzle.slots.length, cells: v.cells, totalCells: v.totalCells, bonus: v.bonus };
       break;
     }
     case "lightup": {

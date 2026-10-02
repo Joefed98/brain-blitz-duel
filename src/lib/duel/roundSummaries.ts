@@ -95,6 +95,7 @@ import {
   NUMPYRAMID_TIME_MS,
   DIG_TIME_MS,
   WORDSEARCH_TIME_MS,
+  LETTERWHEEL_TIME_MS,
   WAVEFRONT_TIME_MS,
   BASTION_TIME_MS,
   ROOFTOP_TIME_MS,
@@ -157,6 +158,7 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   numpyramid: NUMPYRAMID_TIME_MS,
   dig: DIG_TIME_MS,
   wordsearch: WORDSEARCH_TIME_MS,
+  letterwheel: LETTERWHEEL_TIME_MS,
   wavefront: WAVEFRONT_TIME_MS,
   bastion: BASTION_TIME_MS,
   rooftop: ROOFTOP_TIME_MS,
@@ -1423,6 +1425,13 @@ const wordSearchSummary: SummaryBuilder = (result) => {
   return { summary: `${found} / ${total} found`, detail: wrong ? [`${wrong} wrong pick${wrong === 1 ? "" : "s"}`] : [] };
 };
 
+const letterWheelSummary: SummaryBuilder = (result) => {
+  const slots = Number(result.extra?.["slots"] ?? 0);
+  const total = Number(result.extra?.["total"] ?? 0);
+  const bonus = Number(result.extra?.["bonus"] ?? 0);
+  return { summary: `${slots} / ${total} words`, detail: bonus ? [`${bonus} bonus word${bonus === 1 ? "" : "s"}`] : [] };
+};
+
 const tentsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tents") return { summary: "—", detail: [] };
   const correct = Number(result.extra?.["correct"] ?? 0);
@@ -1547,6 +1556,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   numpyramid: numberPyramidSummary,
   dig: digSummary,
   wordsearch: wordSearchSummary,
+  letterwheel: letterWheelSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1647,6 +1657,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   numpyramid: () => null,
   dig: () => null,
   wordsearch: () => null,
+  letterwheel: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };

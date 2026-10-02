@@ -917,6 +917,13 @@ export const checkWordFn = createServerFn({ method: "POST" })
     const pub = room.puzzles_public[data.roundNumber - 1];
     const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
 
+    if (pub?.type === "letterwheel") {
+      const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
+      const puzzle = mergePuzzle(pub, priv);
+      if (puzzle.type !== "letterwheel") return { valid: false as const, points: 0, word: "" };
+      const { checkLetterWheelWord } = await import("./letterWheel");
+      return checkLetterWheelWord(puzzle.words ?? [], puzzle.bonus ?? [], String(data.word ?? ""), found);
+    }
     if (pub?.type === "wordsearch") {
       // Matched against the private placements; only the verdict goes back.
       const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];

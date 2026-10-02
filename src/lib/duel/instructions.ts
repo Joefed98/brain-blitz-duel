@@ -849,6 +849,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "All six fast for the bonus. Otherwise 15 per word, −5 per wrong pick.",
   },
+  letterwheel: {
+    goal: "Fill the crossword using the letters on the wheel.",
+    how: [
+      { action: "Drag through the letters", detail: "to spell a word, then let go." },
+      { action: "Crossword words fill gold.", detail: "Other real words count as bonus words." },
+      { action: "Shuffle", detail: "just moves the letters around." },
+    ],
+    score: "Finish fast for the bonus; +3 per bonus word. Otherwise, points for squares filled.",
+  },
   lightup: {
     goal: "Place bulbs so every white square is lit.",
     how: [

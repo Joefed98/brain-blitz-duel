@@ -78,6 +78,7 @@ import { generateBallTrack } from "./ballTrack.server";
 import { generateNumberPyramid } from "./numberPyramid.server";
 import { generateDig } from "./dig.server";
 import { generateWordSearch } from "./wordSearch.server";
+import { generateLetterWheel } from "./letterWheel.server";
 
 import { buildGoNoGo } from "@/puzzles/goNoGo";
 import { buildWordMatch } from "@/puzzles/wordMatch";
@@ -166,6 +167,7 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
   if (type === "numpyramid") return generateNumberPyramid();
   if (type === "dig") return generateDig();
   if (type === "wordsearch") return generateWordSearch();
+  if (type === "letterwheel") return generateLetterWheel();
 
   return puzzleDef(type).generate();
 }

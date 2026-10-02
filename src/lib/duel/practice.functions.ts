@@ -111,6 +111,14 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const found = Array.isArray(data.found) ? data.found.slice(0, 200).map(String) : [];
+    if (data.puzzle.type === "letterwheel") {
+      const priv = await unseal(String(data.sealed ?? ""));
+      if (priv["type"] !== "letterwheel") throw new Error("Bad practice puzzle.");
+      const puzzle = mergePuzzle(data.puzzle, priv);
+      if (puzzle.type !== "letterwheel") return { valid: false as const, points: 0, word: "" };
+      const { checkLetterWheelWord } = await import("./letterWheel");
+      return checkLetterWheelWord(puzzle.words ?? [], puzzle.bonus ?? [], String(data.word ?? ""), found);
+    }
     if (data.puzzle.type === "wordsearch") {
       const priv = await unseal(String(data.sealed ?? ""));
       if (priv["type"] !== "wordsearch") throw new Error("Bad practice puzzle.");
