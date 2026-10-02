@@ -56,7 +56,7 @@ const COMPACT_TIMER_TYPES = new Set<PuzzleType>([
 ]);
 
 export function timerSlotClass(type: PuzzleType): string {
-  if (type === "letterwheel" || type === "numpyramid") return "h-[46px]";
+  if (type === "letterwheel" || type === "numpyramid" || type === "chain") return "h-[46px]";
   if (type === "rings") return "h-[80px] scale-[0.6]";
   if (type === "tilegrid") return "h-[72px] scale-[0.54] [@media(max-height:700px)]:h-[60px] [@media(max-height:700px)]:scale-[0.45]";
   if (type === "countup") return "h-[72px] scale-[0.54] [@media(max-height:700px)]:h-[60px] [@media(max-height:700px)]:scale-[0.45]";
