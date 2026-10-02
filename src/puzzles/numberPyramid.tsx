@@ -291,7 +291,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   useEffect(() => setDev(devDiagnosticsOn()), []);
   if (puzzle.type !== "numpyramid") return null;
   const solution = puzzle.solution ?? [];
-  const placements = npDecode(myAnswer ?? "", puzzle.givens, puzzle.tray);
+  const placements = npDecode(myAnswer ?? "", puzzle.givens, puzzle.tray.length);
   const mine = npFilled(puzzle.givens, puzzle.tray, placements);
   const empties = puzzle.givens.filter((g) => g == null).length;
   const marks: Record<number, boolean> = {};

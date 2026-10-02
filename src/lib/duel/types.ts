@@ -87,7 +87,8 @@ export type PuzzleType =
   | "balltrack"
   | "wordsearch"
   | "tendrop"
-  | "clayshoot";
+  | "clayshoot"
+  | "numpyramid";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -496,6 +497,7 @@ export type PuzzleData =
   | ShikakuPuzzleData
   | LightUpPuzzleData
   | BallTrackPuzzleData
+  | NumberPyramidPuzzleData
   | WordSearchPuzzleData
   | WavefrontPuzzleData
   | BastionPuzzleData
@@ -2125,6 +2127,19 @@ export const SHIKAKU_TIME_MS = 90_000;
 export const LIGHTUP_TIME_MS = 90_000;
 export const BALLTRACK_TIME_MS = 60_000;
 export const WORDSEARCH_TIME_MS = 90_000;
+
+/** Number Pyramid: five rows, every cell the sum of the two below. */
+export const NUMPYRAMID_TIME_MS = 75_000;
+
+export interface NumberPyramidPuzzleData {
+  type: "numpyramid";
+  /** 15 cells top to bottom; null = empty. */
+  givens: (number | null)[];
+  /** Tiles for the empty cells plus two decoys, shuffled. */
+  tray: number[];
+  /** Every cell's value — private until the reveal. */
+  solution?: number[];
+}
 
 export interface BallTrackPuzzleData {
   type: "balltrack";
