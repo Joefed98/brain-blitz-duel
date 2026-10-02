@@ -40,9 +40,7 @@ function Hud({ target, total, flash }: { target: number; total: number; flash: "
   return (
     <div className="relative h-10 w-full shrink-0 font-mono font-bold leading-none">
       <div
-        className={`absolute left-2 top-1/2 -translate-y-1/2 text-2xl text-primary transition-colors ${
-          flash === "red" ? "text-destructive" : "text-primary"
-        }`}
+        className="absolute left-2 top-1/2 -translate-y-1/2 text-2xl text-primary"
         aria-label={`Running total ${total}`}
       >
         {total}

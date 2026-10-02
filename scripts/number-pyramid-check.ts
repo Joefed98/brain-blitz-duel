@@ -10,6 +10,8 @@ for (const set of NUMBER_PYRAMID_BANK) {
     const key = JSON.stringify(e.givens) + JSON.stringify([...e.tray].sort((a, b) => a - b));
     if (seen.has(key)) bad++; seen.add(key);
     if (e.rows !== config.rows || empties.length < config.minEmpty || empties.length > config.maxEmpty || e.tray.length !== empties.length + 2) bad++;
+    const bottom = e.solution.slice(e.solution.length - e.rows);
+    if (bottom.some((value) => value < config.bottomLo || value > config.bottomHi)) bad++;
     if (!npRulesHold(e.solution, e.rows) || npCountSolutions(e.givens, e.tray, e.rows, 3) !== 1) bad++;
     const used = new Set<number>(); const p: Record<number, number> = {};
     for (const c of empties) { const t = e.tray.findIndex((v, i) => v === e.solution[c] && !used.has(i)); if (t < 0) { bad++; continue; } used.add(t); p[c] = t; }
