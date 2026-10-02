@@ -45,6 +45,7 @@ export function encodeBeatRun(run: BeatRun): string {
         item.strays,
         item.tenths,
         item.combo,
+        item.holdFold,
         item.checksum,
       ].join(":"),
     )
