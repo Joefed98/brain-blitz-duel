@@ -744,8 +744,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   burst: {
     goal: "Pop every ball — big ones split into smaller ones.",
     how: [
-      { action: "Drag along the bottom bar (or use the arrows) to move,", detail: "tap the arena or FIRE to shoot straight up." },
+      { action: "Put your finger on the bottom bar and the figure sits right under it (or use the arrows),", detail: "tap the arena or FIRE to shoot straight up." },
       { action: "Pop a purple ball and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
+      { action: "Blue balls sometimes drop a teal SHIELD", detail: "— it takes the next hit for you." },
       { action: "Don't let a ball touch you", detail: "— three touches and you're out." },
     ],
     score: "2 per ball popped or split, −9 per life lost. Clear four waves without losing a life for 150.",
