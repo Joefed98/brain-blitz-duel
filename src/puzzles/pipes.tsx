@@ -154,7 +154,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        All 36 = 100 + speed. 35 = 90, 34 = 85, 32–33 = 80. You have 90 seconds.
+        All 49 = 100 + speed. 48 = 90, 47 = 85, then 5 less per 2 tiles. You have 120 seconds.
       </p>
     </div>
   );

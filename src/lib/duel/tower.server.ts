@@ -1,21 +1,16 @@
 /**
- * Server-only Tower setup: eight discs spread legally across four pegs, with the
- * exact minimum move count and one shortest solution. Distances to the solved
- * position are found once by breadth-first search over all 4^8 states, and the
- * spread is then drawn from the states that need at least twenty-five moves.
+ * Server-only Tower setup: nine discs spread legally across three or four pegs
+ * (chosen per puzzle). Distances to the solved tower are found by one
+ * breadth-first search over all pegs^9 placements; the spread is drawn from
+ * states whose exact minimum is 20–40 moves, and a shortest solution is read
+ * off by walking those distances downhill.
  */
 
-import {
-  encodeTowerMoves,
-  towerPegsFromState,
-  towerShortest,
-  towerStacksLegal,
-  type TowerState,
-} from "./tower";
+import { encodeTowerMoves, towerPegsFromState, towerStacksLegal, type TowerMove, type TowerState } from "./tower";
 import {
   TOWER_DISCS,
+  TOWER_MAX_MINIMUM,
   TOWER_MIN_MINIMUM,
-  TOWER_PEGS,
   TOWER_TIME_MS,
   type TowerPuzzleData,
 } from "./types";
@@ -24,103 +19,107 @@ function randomInt(maxExclusive: number): number {
   return Math.floor(Math.random() * maxExclusive);
 }
 
-/** A state is which peg each disc sits on, packed as a base-four number. */
-function decodeState(code: number, discs: number): TowerState {
+function decodeState(code: number, discs: number, pegs: number): TowerState {
   const state: TowerState = [];
   let rest = code;
   for (let disc = 0; disc < discs; disc++) {
-    state.push(rest % TOWER_PEGS);
-    rest = Math.floor(rest / TOWER_PEGS);
+    state.push(rest % pegs);
+    rest = Math.floor(rest / pegs);
   }
   return state;
 }
 
-function encodeState(state: TowerState): number {
+function encodeState(state: TowerState, pegs: number): number {
   let code = 0;
-  for (let disc = state.length - 1; disc >= 0; disc--) code = code * TOWER_PEGS + state[disc]!;
+  for (let disc = state.length - 1; disc >= 0; disc--) code = code * pegs + state[disc]!;
   return code;
 }
 
-/** The smallest disc on a peg — the only one that can be lifted. */
 function topDisc(state: TowerState, peg: number): number | null {
   for (let disc = 1; disc <= state.length; disc++) if (state[disc - 1] === peg) return disc;
   return null;
 }
 
-/**
- * How many moves every state is from the solved tower. Moves are reversible, so
- * one breadth-first search out of the goal answers it for all 4^8 states.
- */
-function distancesToGoal(targetPeg: number, discs: number): Int16Array {
-  const total = TOWER_PEGS ** discs;
-  const dist = new Int16Array(total).fill(-1);
-  const goal = encodeState(new Array<number>(discs).fill(targetPeg));
+function* neighbours(state: TowerState, pegs: number): Generator<{ move: TowerMove; next: TowerState }> {
+  for (let from = 0; from < pegs; from++) {
+    const disc = topDisc(state, from);
+    if (disc === null) continue;
+    for (let to = 0; to < pegs; to++) {
+      if (to === from) continue;
+      const onTop = topDisc(state, to);
+      if (onTop !== null && onTop < disc) continue;
+      const next = [...state];
+      next[disc - 1] = to;
+      yield { move: { from, to }, next };
+    }
+  }
+}
+
+/** Moves are reversible, so one search out of the goal answers every state. */
+export function towerDistances(targetPeg: number, discs: number, pegs: number): Int16Array {
+  const dist = new Int16Array(pegs ** discs).fill(-1);
+  const goal = encodeState(new Array<number>(discs).fill(targetPeg), pegs);
   dist[goal] = 0;
   let frontier = [goal];
   let depth = 0;
   while (frontier.length) {
     depth += 1;
-    const next: number[] = [];
+    const nextFrontier: number[] = [];
     for (const code of frontier) {
-      const state = decodeState(code, discs);
-      for (let from = 0; from < TOWER_PEGS; from++) {
-        const disc = topDisc(state, from);
-        if (disc === null) continue;
-        for (let to = 0; to < TOWER_PEGS; to++) {
-          if (to === from) continue;
-          const onTop = topDisc(state, to);
-          if (onTop !== null && onTop < disc) continue;
-          const moved = [...state];
-          moved[disc - 1] = to;
-          const id = encodeState(moved);
-          if (dist[id] !== -1) continue;
-          dist[id] = depth;
-          next.push(id);
-        }
+      for (const { next } of neighbours(decodeState(code, discs, pegs), pegs)) {
+        const id = encodeState(next, pegs);
+        if (dist[id] !== -1) continue;
+        dist[id] = depth;
+        nextFrontier.push(id);
       }
     }
-    frontier = next;
+    frontier = nextFrontier;
   }
   return dist;
 }
 
 export function generateTower(): TowerPuzzleData {
+  const pegs = Math.random() < 0.5 ? 3 : 4;
   for (let attempt = 1; attempt <= 40; attempt++) {
-    const targetPeg = randomInt(TOWER_PEGS);
-    const dist = distancesToGoal(targetPeg, TOWER_DISCS);
-    const hard: number[] = [];
+    const targetPeg = randomInt(pegs);
+    const dist = towerDistances(targetPeg, TOWER_DISCS, pegs);
+    const band: number[] = [];
     for (let code = 0; code < dist.length; code++) {
-      if (dist[code]! >= TOWER_MIN_MINIMUM) hard.push(code);
+      const d = dist[code]!;
+      if (d >= TOWER_MIN_MINIMUM && d <= TOWER_MAX_MINIMUM) band.push(code);
     }
-    if (!hard.length) continue;
+    if (!band.length) continue;
+    const code = band[randomInt(band.length)]!;
+    let state = decodeState(code, TOWER_DISCS, pegs);
+    const start = towerPegsFromState(state, TOWER_DISCS, pegs);
+    if (!towerStacksLegal(start)) continue;
 
-    const code = hard[randomInt(hard.length)]!;
-    const state = decodeState(code, TOWER_DISCS);
-    const pegs = towerPegsFromState(state, TOWER_DISCS);
-    if (!towerStacksLegal(pegs)) continue;
+    const minMoves = dist[code]!;
+    const solution: TowerMove[] = [];
+    for (let left = minMoves; left > 0; left--) {
+      let stepped = false;
+      for (const { move, next } of neighbours(state, pegs)) {
+        if (dist[encodeState(next, pegs)] === left - 1) {
+          solution.push(move);
+          state = next;
+          stepped = true;
+          break;
+        }
+      }
+      if (!stepped) break;
+    }
+    if (solution.length !== minMoves) continue;
 
-    const shortest = towerShortest(pegs, targetPeg, TOWER_DISCS);
-    if (!shortest) continue;
-    if (shortest.minMoves < TOWER_MIN_MINIMUM) continue;
-
-    console.log(
-      `[tower] spread accepted after ${attempt} attempt(s): minimum ${shortest.minMoves} moves`,
-    );
     return {
       type: "tower",
       discs: TOWER_DISCS,
-      start: pegs,
+      start,
       targetPeg,
-      minMoves: shortest.minMoves,
+      minMoves,
       timeLimitMs: TOWER_TIME_MS,
-      stats: {
-        discs: TOWER_DISCS,
-        pegs: TOWER_PEGS,
-        minMoves: shortest.minMoves,
-        attempts: attempt,
-      },
-      solution: encodeTowerMoves(shortest.solution),
+      stats: { discs: TOWER_DISCS, pegs, minMoves, attempts: attempt },
+      solution: encodeTowerMoves(solution),
     };
   }
-  throw new Error("Tower generator could not build a hard enough spread");
+  throw new Error("Tower generator could not build a spread in the 20–40 move band");
 }

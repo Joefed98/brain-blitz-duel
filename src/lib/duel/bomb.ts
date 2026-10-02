@@ -12,9 +12,9 @@
  * screen, which is the puzzle.
  */
 
-export type WireColour = "RED" | "BLUE" | "GREEN" | "YELLOW" | "WHITE";
+export type WireColour = "RED" | "BLUE" | "GREEN" | "YELLOW" | "WHITE" | "BLACK";
 
-export const WIRE_COLOURS: WireColour[] = ["RED", "BLUE", "GREEN", "YELLOW", "WHITE"];
+export const WIRE_COLOURS: WireColour[] = ["RED", "BLUE", "GREEN", "YELLOW", "WHITE", "BLACK"];
 
 export const WIRE_HEX: Record<WireColour, string> = {
   RED: "#FF4D4D",
@@ -22,6 +22,7 @@ export const WIRE_HEX: Record<WireColour, string> = {
   GREEN: "#3DDC84",
   YELLOW: "#FFE600",
   WHITE: "#F2F2F2",
+  BLACK: "#16161A",
 };
 
 export const BOMB_SWITCH_POSITIONS = ["LEFT", "MID", "RIGHT"] as const;

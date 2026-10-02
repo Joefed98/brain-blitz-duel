@@ -1,5 +1,5 @@
 /**
- * Tower rules: six discs across four pegs. One replay function, used by the
+ * Tower rules: nine discs across three or four pegs (the stored spread says which). One replay function, used by the
  * phone (to move discs live) and by the server (to replay the move list a phone
  * sends). Nothing here knows how a starting spread is chosen.
  */
@@ -14,9 +14,15 @@ export interface TowerMove {
   to: number;
 }
 
-/** A fresh copy of a stored spread, padded out to the full four pegs. */
+/** How many pegs a stored spread uses: three or four. */
+export function towerPegCount(start: readonly number[][] | undefined): number {
+  const n = start?.length ?? TOWER_PEGS;
+  return n === 3 ? 3 : TOWER_PEGS;
+}
+
+/** A fresh copy of a stored spread, one entry per peg. */
 export function towerPegsFrom(start: number[][]): TowerPegs {
-  return Array.from({ length: TOWER_PEGS }, (_, peg) => [...(start[peg] ?? [])]);
+  return Array.from({ length: towerPegCount(start) }, (_, peg) => [...(start[peg] ?? [])]);
 }
 
 /** True when the top of `from` may sit on `to`. */
@@ -141,8 +147,12 @@ export function towerStateFromPegs(pegs: number[][], discs: number): TowerState 
   return state;
 }
 
-export function towerPegsFromState(state: TowerState, discs: number): TowerPegs {
-  const pegs: TowerPegs = Array.from({ length: TOWER_PEGS }, () => []);
+export function towerPegsFromState(
+  state: TowerState,
+  discs: number,
+  pegCount: number = TOWER_PEGS,
+): TowerPegs {
+  const pegs: TowerPegs = Array.from({ length: pegCount }, () => []);
   // Largest first, so every peg comes out descending from the bottom.
   for (let disc = discs; disc >= 1; disc--) pegs[state[disc - 1]!]!.push(disc);
   return pegs;

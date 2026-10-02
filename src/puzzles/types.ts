@@ -108,6 +108,8 @@ export interface PuzzleDefinition {
   instructions?: PuzzleInstructions;
   /** Fixed intro example — identical every single time. */
   IntroExample: ComponentType;
+  /** Optional puzzle-specific intro line (e.g. "4 pegs"), same for every player. */
+  introLine?: (puzzle: PuzzleData) => string | null;
   Stage: ComponentType<PuzzleStageProps>;
   Reveal: ComponentType<PuzzleRevealProps>;
 }

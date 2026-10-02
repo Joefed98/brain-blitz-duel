@@ -521,10 +521,10 @@ export function gradeSubmission(
       // Every path the phone sends is re-walked here: contiguous, ending on the
       // right dots, and sharing no cell with another colour.
       const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS);
-      const verdict = verifyFlow(puzzle.pairs, paths);
+      const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []);
       isCorrect = verdict.solved;
       correctCount = verdict.pairsJoined;
-      score = scoreFlow(verdict.solved, verdict.pairsJoined, ms);
+      score = scoreFlow(verdict.solved, verdict.pairsJoined, ms, puzzle.pairs.length);
       extraDetail = {
         solved: verdict.solved,
         pairsJoined: verdict.pairsJoined,

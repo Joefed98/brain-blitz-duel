@@ -306,7 +306,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Join every opening", detail: "to another pipe or the source." },
       { action: "Leave no leaks", detail: "at the grid edges." },
     ],
-    score: "All 36 = 100 plus speed. 35 = 90, 34 = 85, 32–33 = 80; fewer still score.",
+    score: "All 49 = 100 plus speed. 48 = 90, 47–45 = 85, then 5 less per two tiles down to 40 at 27; fewer score 1.5 each.",
   },
   sudoku: {
     goal: "Fill the grid with every row, column, and box valid.",
@@ -318,13 +318,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Complete the grid faster = more points.",
   },
   flow: {
-    goal: "Connect all eight colour pairs and fill every square.",
+    goal: "Connect every colour pair and fill every square.",
     how: [
       { action: "Drag from a dot", detail: "to its matching partner." },
+      { action: "Avoid dark walls", detail: "— no path can enter them." },
       { action: "Fill every square", detail: "with a coloured path." },
       { action: "Keep paths separate", detail: "because they cannot cross." },
     ],
-    score: "Complete the grid faster = more points.",
+    score: "Complete the grid faster = more points. Otherwise 60 × pairs joined ÷ pairs.",
   },
   iceslide: {
     goal: "Slide the ball safely to the exit.",
@@ -360,6 +361,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a peg", detail: "to pick up its top disc." },
       { action: "Tap another peg", detail: "to place that disc." },
       { action: "Keep smaller discs above", detail: "larger discs at all times." },
+      { action: "Count the pegs", detail: "— each puzzle has 3 or 4." },
     ],
     score: "Fewer moves and a faster finish = more points.",
   },
@@ -378,7 +380,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a tube", detail: "to lift its top balls." },
       {
         action: "Tap where to pour",
-        detail: "— onto the same colour or an empty tube; as many balls move as fit.",
+        detail: "— onto the same colour or an empty tube; as many balls move as fit (5 per tube).",
       },
       { action: "Undo or Reset", detail: "if a pour traps you." },
     ],
@@ -394,11 +396,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewer tries scores more.",
   },
   bomb: {
-    goal: "Read all six rules, work out the four steps, then do them in order.",
+    goal: "Read all six rules, work out the four actions and their order, then do them.",
     how: [
       {
-        action: "Only one order fits",
-        detail: "the six rules together allow exactly one sequence.",
+        action: "Only one plan fits",
+        detail: "the six rules together allow exactly one four-action sequence. Wires are numbered 1–7 from the left.",
       },
       { action: "Four steps exactly", detail: "tap wires and buttons, then tap DEFUSE." },
       { action: "One wrong step", detail: "and it explodes." },

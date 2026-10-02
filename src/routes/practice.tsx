@@ -272,6 +272,7 @@ function PracticeScreen() {
           now={now}
           outcomes={[]}
           practice
+          puzzle={puzzle}
           onReady={() => {
             playLock();
             setStartedAt(Date.now());

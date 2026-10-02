@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
-import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";
-import { encodeFlowPaths, flowAdjacent, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
+import { FLOW_COLOUR_HEX as GLYPH_COLOURS, encodeFlowPaths, flowAdjacent, flowFilledCells, verifyFlow } from "@/lib/duel/flow";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   FLOW_CELLS,
@@ -25,6 +24,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 function FlowBoard({
   pairs,
   paths,
+  walls = [],
   cols = FLOW_COLS,
   cells = FLOW_CELLS,
   onCell,
@@ -32,6 +32,7 @@ function FlowBoard({
 }: {
   pairs: FlowPair[];
   paths: number[][];
+  walls?: readonly number[];
   cols?: number;
   cells?: number;
   onCell?: ((cell: number) => void) | undefined;
@@ -70,6 +71,15 @@ function FlowBoard({
         {Array.from({ length: total }, (_, cell) => {
           const tint = filled.get(cell);
           const dot = pairs.find((pair) => pair.a === cell || pair.b === cell);
+          if (walls.includes(cell)) {
+            return (
+              <div
+                key={cell}
+                className="rounded-[3px] border border-foreground/30 bg-[repeating-linear-gradient(45deg,var(--background),var(--background)_3px,var(--muted)_3px,var(--muted)_6px)]"
+                aria-label="Wall"
+              />
+            );
+          }
           return (
             <div
               key={cell}
@@ -132,8 +142,9 @@ function IntroExample() {
   const pairs: FlowPair[] = [
     { colour: "RED", a: 0, b: 6 },
     { colour: "BLUE", a: 3, b: 15 },
-    { colour: "ORANGE", a: 8, b: 11 },
+    { colour: "ORANGE", a: 8, b: 14 },
   ];
+  const walls = [10];
   const paths = [[0, 1, 5, 6], [3, 7, 11, 15], []];
   return (
     <div className="flex flex-col items-center gap-4">
@@ -141,10 +152,10 @@ function IntroExample() {
         Join each pair of dots with a path. Paths can&apos;t cross, and every square must be filled.
       </p>
       <div style={{ width: 148 }}>
-        <FlowBoard pairs={pairs} paths={paths} cols={4} cells={16} />
+        <FlowBoard pairs={pairs} paths={paths} walls={walls} cols={4} cells={16} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Drag from a dot to its partner. You have 45 seconds.
+        Striped squares are walls — no path can enter them. Drag from a dot to its partner. You have 75 seconds.
       </p>
     </div>
   );
@@ -163,7 +174,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   const holding = useRef(false);
   const submitted = useRef(false);
 
-  const verdict = useMemo(() => verifyFlow(pairs, paths), [pairs, paths]);
+  const walls = puzzle.type === "flow" ? (puzzle.walls ?? []) : [];
+  const verdict = useMemo(() => verifyFlow(pairs, paths, walls), [pairs, paths, walls]);
   const filled = flowFilledCells(paths);
 
   useEffect(() => {
@@ -222,7 +234,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
           return current.map((value, index) => (index === active ? path.slice(0, -1) : value));
         }
         if (!flowAdjacent(last, cell)) return current;
-        if (path.includes(cell)) return current;
+        if (path.includes(cell) || walls.includes(cell)) return current;
 
         const pair = pairs[active]!;
         // Its own partner dot is welcome; any other colour's dot is refused.
@@ -247,7 +259,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
       if (completed) playCorrect();
       buzz(4);
     },
-    [dotPair, locked, pairs, paths, setPaths],
+    [dotPair, locked, pairs, paths, setPaths, walls],
   );
 
   /** Lifting the finger without moving, on a dot, clears that colour. */
@@ -266,13 +278,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        cells filled <span className="text-primary">{filled}</span> / {FLOW_CELLS} ·{" "}
+        cells filled <span className="text-primary">{filled}</span> / {FLOW_CELLS - walls.length} ·{" "}
         {verdict.pairsJoined} / {pairs.length} pairs
       </p>
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <FlowBoard
           pairs={pairs}
           paths={paths}
+          walls={walls}
           onCell={locked ? undefined : touch}
           onRelease={release}
         />
@@ -295,7 +308,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
           .filter((cell) => Number.isInteger(cell)),
       )
     : puzzle.pairs.map(() => []);
-  const verdict = verifyFlow(puzzle.pairs, mine);
+  const verdict = verifyFlow(puzzle.pairs, mine, puzzle.walls ?? []);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((FLOW_TIME_MS - myMsRemaining) / 100) / 10;
 
@@ -303,13 +316,13 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
     <div className="flex w-full flex-col items-center gap-3">
       <div className="flex items-start justify-center gap-3">
         <div className="flex flex-col items-center gap-1" style={{ width: 138 }}>
-          <FlowBoard pairs={puzzle.pairs} paths={solution} />
+          <FlowBoard pairs={puzzle.pairs} paths={solution} walls={puzzle.walls ?? []} />
           <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             solved
           </span>
         </div>
         <div className="flex flex-col items-center gap-1" style={{ width: 138 }}>
-          <FlowBoard pairs={puzzle.pairs} paths={mine} />
+          <FlowBoard pairs={puzzle.pairs} paths={mine} walls={puzzle.walls ?? []} />
           <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             yours
           </span>

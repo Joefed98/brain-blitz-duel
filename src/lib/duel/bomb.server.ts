@@ -59,6 +59,10 @@ interface RuleInstance {
    */
   key: string;
   test: (sequence: BombAction[]) => boolean;
+  /** Which of the four template families it comes from. */
+  family: Family;
+  /** Ordering rules on the same action pair in the same way share this. */
+  pair?: string | undefined;
 }
 
 /** The plan is always this long. */
@@ -89,172 +93,252 @@ const ALL_SEQUENCES: BombAction[][] = (() => {
 })();
 
 /* -------------------------------------------------------------------------- */
-/*  Wording                                                                   */
+/*  The 40-template rule bank                                                 */
 /* -------------------------------------------------------------------------- */
 
+type Family = "conditional" | "ordering" | "counting" | "colour";
+
 const colourWord = (colour: WireColour) => colour.charAt(0) + colour.slice(1).toLowerCase();
-const NUMBER_WORDS = ["zero", "one", "two", "three", "four"] as const;
-
-/** "Cut wire 3" / "Press button A" — the only way an action is ever named. */
-function phrase(action: BombAction): string {
-  return isCut(action) ? `Cut wire ${cutIndex(action) + 1}` : `Press button ${action.slice(1)}`;
-}
-
-/** The same action as the object of a "before" clause. */
-function gerund(action: BombAction): string {
-  return isCut(action)
-    ? `cutting wire ${cutIndex(action) + 1}`
-    : `pressing button ${action.slice(1)}`;
-}
+/** "cut wire 3" / "press A" — the {X}/{Y} wording. */
+const act = (action: BombAction) =>
+  isCut(action) ? `cut wire ${cutIndex(action) + 1}` : `press ${action.slice(1)}`;
+const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 const count = (panel: Panel, colour: WireColour) =>
   panel.wires.filter((wire) => wire === colour).length;
-const serialOdd = (panel: Panel) => Number.parseInt(panel.serial, 10) % 2 === 1;
-
-/** Panel conditions an "If …, …" rule may test. */
-interface PanelCondition {
-  id: string;
-  text: string;
-  holds: (panel: Panel) => boolean;
-}
-
-const CONDITIONS: PanelCondition[] = [
-  { id: "lightOn", text: "the light is on", holds: (p) => p.light },
-  { id: "lightOff", text: "the light is off", holds: (p) => !p.light },
-  { id: "serialOdd", text: "the serial number is odd", holds: serialOdd },
-  { id: "serialEven", text: "the serial number is even", holds: (p) => !serialOdd(p) },
-  ...WIRE_COLOURS.map((colour) => ({
-    id: `many:${colour}`,
-    text: `there is more than one ${colourWord(colour)} wire`,
-    holds: (p: Panel) => count(p, colour) > 1,
-  })),
-  ...WIRE_COLOURS.map((colour) => ({
-    id: `none:${colour}`,
-    text: `there is no ${colourWord(colour)} wire`,
-    holds: (p: Panel) => count(p, colour) === 0,
-  })),
-];
-
-/* -------------------------------------------------------------------------- */
-/*  Templates                                                                 */
-/* -------------------------------------------------------------------------- */
-
 const at = (sequence: BombAction[], action: BombAction) => sequence.indexOf(action);
 const has = (sequence: BombAction[], action: BombAction) => sequence.includes(action);
+const cutsOf = (sequence: BombAction[]) => sequence.filter(isCut).map(cutIndex);
+const pressesOf = (sequence: BombAction[]) => sequence.filter((step) => !isCut(step));
+const LABELS = ["A", "B"] as const;
+const WIRES = Array.from({ length: BOMB_WIRES }, (_, index) => index);
+
+/** The family of each template number, 1–40. */
+function familyOf(template: number): Family {
+  if (template <= 14) return "conditional";
+  if (template <= 26) return "ordering";
+  if (template <= 34) return "counting";
+  return "colour";
+}
+
+export const BOMB_RULE_TEMPLATE_COUNT = 40;
 
 /**
- * Every rule the panel could carry, as a template instance with its predicate.
- * Rebuilding this list from a panel is how the uniqueness proof and the
- * inspection re-derive a stored card's rules.
+ * Every rule instance the panel could carry. Conditional templates are only
+ * instanced when their condition holds on this panel, so each one really asks
+ * for something. The id starts with the template number.
  */
 function candidateRules(panel: Panel): RuleInstance[] {
   const out: RuleInstance[] = [];
-  const add = (id: string, text: string, key: string, test: (sequence: BombAction[]) => boolean) =>
-    out.push({ id, text, key, test });
+  const add = (
+    template: number,
+    detail: string,
+    text: string,
+    key: string,
+    test: (sequence: BombAction[]) => boolean,
+    pair?: string,
+  ) =>
+    out.push({ id: `t${template}:${detail}`, text, key, test, family: familyOf(template), pair });
 
-  // "Cut wire N" and "Do not cut wire N"
-  for (let wire = 0; wire < BOMB_WIRES; wire++) {
-    const action = cutAction(wire);
-    add(`cut:${wire}`, `Cut wire ${wire + 1}.`, `has:${action}`, (sequence) =>
-      has(sequence, action),
-    );
-    add(
-      `nocut:${wire}`,
-      `Do not cut wire ${wire + 1}.`,
-      `nohas:${action}`,
-      (sequence) => !has(sequence, action),
-    );
+  const lastDigit = Number(panel.serial.at(-1));
+  const digits = panel.serial.split("").map(Number);
+  const digitSum = digits.reduce((a, b) => a + b, 0);
+  const buttonColour = (label: "A" | "B") => panel.buttons.find((b) => b.label === label)!.colour;
+  const present = WIRE_COLOURS.filter((colour) => count(panel, colour) > 0);
+
+  const hasCut = (wire: number) => (sequence: BombAction[]) => has(sequence, cutAction(wire));
+  const pressBeforeCuts = (label: "A" | "B") => (sequence: BombAction[]) => {
+    const index = at(sequence, pressAction(label));
+    return index >= 0 && sequence.every((step, position) => !isCut(step) || position > index);
+  };
+
+  // 1. If the light is ON, cut wire {N}.
+  if (panel.light) {
+    for (const wire of WIRES) add(1, `${wire}`, `If the light is ON, cut wire ${wire + 1}.`, `has:w${wire}`, hasCut(wire));
+  }
+  // 2. If the light is OFF, press button {A/B} at some point.
+  if (!panel.light) {
+    for (const label of LABELS) {
+      add(2, label, `If the light is OFF, press button ${label} at some point.`, `has:b${label}`, (s) => has(s, pressAction(label)));
+    }
+  }
+  // 3. Odd serial → press {A/B} before cutting any wire.
+  if (lastDigit % 2 === 1) {
+    for (const label of LABELS) {
+      add(3, label, `If the serial ends in an odd digit, press button ${label} before cutting any wire.`, `pressfirst:${label}`, pressBeforeCuts(label));
+    }
+  }
+  // 4. Even serial → cut wire {N} before pressing any button.
+  if (lastDigit % 2 === 0) {
+    for (const wire of WIRES) {
+      add(4, `${wire}`, `If the serial ends in an even digit, cut wire ${wire + 1} before pressing any button.`, `cutfirst:${wire}`, (s) => {
+        const index = at(s, cutAction(wire));
+        return index >= 0 && s.every((step, position) => isCut(step) || position > index);
+      });
+    }
+  }
+  // 5. Serial contains {D} → cut the last {C} wire.
+  for (const digit of new Set(digits)) {
+    for (const colour of present) {
+      const last = panel.wires.lastIndexOf(colour);
+      add(5, `${digit}:${colour}`, `If the serial contains the digit ${digit}, cut the last ${colourWord(colour)} wire.`, `has:w${last}`, hasCut(last));
+    }
+  }
+  // 6. More {C} than {C2} → cut the first {C} wire.
+  for (const colour of present) {
+    for (const other of WIRE_COLOURS) {
+      if (other === colour || count(panel, colour) <= count(panel, other)) continue;
+      const first = panel.wires.indexOf(colour);
+      add(6, `${colour}:${other}`, `If there are more ${colourWord(colour)} wires than ${colourWord(other)} wires, cut the first ${colourWord(colour)} wire.`, `has:w${first}`, hasCut(first));
+    }
+  }
+  // 7. If button A is {C}, press it first.
+  add(7, buttonColour("A"), `If button A is ${colourWord(buttonColour("A"))}, press it first.`, "first:bA", (s) => s[0] === "bA");
+  // 8. If button B is {C}, press it last.
+  add(8, buttonColour("B"), `If button B is ${colourWord(buttonColour("B"))}, press it last.`, "last:bB", (s) => s[s.length - 1] === "bB");
+  // 9. If wires {N} and {N2} are the same colour, cut neither.
+  for (const a of WIRES) {
+    for (const b of WIRES) {
+      if (b <= a || panel.wires[a] !== panel.wires[b]) continue;
+      add(9, `${a}:${b}`, `If wires ${a + 1} and ${b + 1} are the same colour, cut neither.`, `neither:${a}:${b}`, (s) => !has(s, cutAction(a)) && !has(s, cutAction(b)));
+    }
+  }
+  // 10. If no wire is {C}, cut wire {N}.
+  for (const colour of WIRE_COLOURS) {
+    if (count(panel, colour) > 0) continue;
+    for (const wire of WIRES) add(10, `${colour}:${wire}`, `If no wire is ${colourWord(colour)}, cut wire ${wire + 1}.`, `has:w${wire}`, hasCut(wire));
+  }
+  // 11. If exactly one wire is {C}, cut it.
+  for (const colour of present) {
+    if (count(panel, colour) !== 1) continue;
+    const wire = panel.wires.indexOf(colour);
+    add(11, colour, `If exactly one wire is ${colourWord(colour)}, cut it.`, `has:w${wire}`, hasCut(wire));
+  }
+  // 12. If the first and last wires match, press both buttons.
+  if (panel.wires[0] === panel.wires[BOMB_WIRES - 1]) {
+    add(12, "", "If the first and last wires match, press both buttons.", "both", (s) => has(s, "bA") && has(s, "bB"));
+  }
+  // 13. If the digit sum is more than {K}, cut the middle wire (wire 4).
+  for (let k = Math.max(0, digitSum - 6); k < digitSum; k++) {
+    add(13, `${k}`, `If the serial's digits add to more than ${k}, cut the middle wire (wire 4).`, "has:w3", hasCut(3));
+  }
+  // 14. If the light is ON and button A is {C}, do not press A.
+  if (panel.light) {
+    add(14, buttonColour("A"), `If the light is ON and button A is ${colourWord(buttonColour("A"))}, do not press A.`, "no:bA", (s) => !has(s, "bA"));
   }
 
-  // "Cut the first/last <colour> wire"
+  // 15–18. Ordering between named actions.
+  for (const x of BOMB_ACTIONS) {
+    add(17, x, `${cap(act(x))} is the first action.`, `first:${x}`, (s) => s[0] === x);
+    add(18, x, `${cap(act(x))} is the last action.`, `last:${x}`, (s) => s[s.length - 1] === x);
+    for (const y of BOMB_ACTIONS) {
+      if (x === y) continue;
+      const pair = [x, y].sort().join("|");
+      add(15, `${x}>${y}`, `${cap(act(x))} before ${act(y)}.`, `before:${x}>${y}`, (s) => {
+        const a = at(s, x);
+        const b = at(s, y);
+        return a >= 0 && b >= 0 && a < b;
+      }, `before:${pair}`);
+      add(16, `${x}>${y}`, `${cap(act(x))} immediately after ${act(y)}.`, `after:${x}>${y}`, (s) => {
+        const a = at(s, x);
+        const b = at(s, y);
+        return a >= 0 && b >= 0 && a === b + 1;
+      }, `after:${pair}`);
+    }
+  }
+  // 19. Press button {A/B} before cutting any wire.
+  for (const label of LABELS) {
+    add(19, label, `Press button ${label} before cutting any wire.`, `pressfirst:${label}`, pressBeforeCuts(label));
+  }
+  // 20. Cut at least one wire before pressing any button.
+  add(20, "", "Cut at least one wire before pressing any button.", "cutopens", (s) => isCut(s[0]!));
+  // 21. The two button presses are not consecutive.
+  add(21, "", "The two button presses are not consecutive.", "presses:apart", (s) => {
+    const a = at(s, "bA");
+    const b = at(s, "bB");
+    return a >= 0 && b >= 0 && Math.abs(a - b) > 1;
+  });
+  // 22 / 23. Cut order.
+  add(22, "", "Cut wires in left-to-right order (every cut wire has a higher number than the previous cut).", "cuts:asc", (s) => {
+    const cuts = cutsOf(s);
+    return cuts.every((wire, index) => index === 0 || wire > cuts[index - 1]!);
+  });
+  add(23, "", "Cut wires in right-to-left order.", "cuts:desc", (s) => {
+    const cuts = cutsOf(s);
+    return cuts.every((wire, index) => index === 0 || wire < cuts[index - 1]!);
+  });
+  // 24. The first wire you cut is {C}.
+  for (const colour of present) {
+    add(24, colour, `The first wire you cut is ${colourWord(colour)}.`, `firstcut:${colour}`, (s) => {
+      const cuts = cutsOf(s);
+      return cuts.length > 0 && panel.wires[cuts[0]!] === colour;
+    });
+  }
+  // 25. The last wire you cut is to the right of the first wire you cut.
+  add(25, "", "The last wire you cut is to the right of the first wire you cut.", "cuts:rightwards", (s) => {
+    const cuts = cutsOf(s);
+    return cuts.length >= 2 && cuts[cuts.length - 1]! > cuts[0]!;
+  });
+  // 26. Never cut two wires of the same colour in a row.
+  add(26, "", "Never cut two wires of the same colour in a row.", "cuts:norepeat", (s) => {
+    for (let index = 1; index < s.length; index++) {
+      const a = s[index - 1]!;
+      const b = s[index]!;
+      if (isCut(a) && isCut(b) && panel.wires[cutIndex(a)] === panel.wires[cutIndex(b)]) return false;
+    }
+    return true;
+  });
+
+  // 27–34. Counting.
+  for (const k of [2, 3, 4]) {
+    add(27, `${k}`, `Cut exactly ${k} wires.`, `ncuts:${k}`, (s) => cutsOf(s).length === k);
+  }
+  for (const k of [0, 1, 2]) {
+    add(28, `${k}`, `Press exactly ${k} button${k === 1 ? "" : "s"}.`, `npress:${k}`, (s) => pressesOf(s).length === k);
+  }
+  for (const colour of present) {
+    for (let k = 0; k <= Math.min(4, count(panel, colour)); k++) {
+      add(29, `${colour}:${k}`, `Cut exactly ${k} ${colourWord(colour)} wire${k === 1 ? "" : "s"}.`, `ncol:${colour}:${k}`, (s) => cutsOf(s).filter((w) => panel.wires[w] === colour).length === k);
+    }
+    for (const other of present) {
+      if (other === colour) continue;
+      add(30, `${colour}:${other}`, `Cut more ${colourWord(colour)} wires than ${colourWord(other)} wires.`, `more:${colour}:${other}`, (s) => {
+        const cuts = cutsOf(s);
+        return cuts.filter((w) => panel.wires[w] === colour).length > cuts.filter((w) => panel.wires[w] === other).length;
+      });
+    }
+  }
+  add(31, "", "Cut an odd number of wires.", "cuts:odd", (s) => cutsOf(s).length % 2 === 1);
+  for (let k = 3; k <= 22; k++) {
+    add(32, `${k}`, `The wire numbers you cut add up to ${k}.`, `sum:${k}`, (s) => cutsOf(s).reduce((a, w) => a + w + 1, 0) === k);
+  }
+  add(33, "", "Cut no two wires that are next to each other.", "cuts:spaced", (s) => {
+    const cuts = cutsOf(s);
+    return cuts.every((a) => cuts.every((b) => Math.abs(a - b) !== 1));
+  });
+  for (const k of [2, 3, 4]) {
+    add(34, `${k}`, `Cut wires from at least ${k} different colours.`, `colours:${k}`, (s) => new Set(cutsOf(s).map((w) => panel.wires[w])).size >= k);
+  }
+
+  // 35–40. Colour logic.
   for (const colour of WIRE_COLOURS) {
-    if (count(panel, colour) === 0) continue;
+    add(35, colour, `Do not cut any ${colourWord(colour)} wire.`, `nocol:${colour}`, (s) => cutsOf(s).every((w) => panel.wires[w] !== colour));
+  }
+  for (const colour of present) {
+    const all = WIRES.filter((w) => panel.wires[w] === colour);
+    add(36, colour, `Cut every ${colourWord(colour)} wire.`, `every:${colour}`, (s) => all.every((w) => has(s, cutAction(w))));
     const first = panel.wires.indexOf(colour);
     const last = panel.wires.lastIndexOf(colour);
-    add(
-      `colour:first:${colour}`,
-      `Cut the first ${colourWord(colour)} wire.`,
-      `has:${cutAction(first)}`,
-      (sequence) => has(sequence, cutAction(first)),
-    );
-    add(
-      `colour:last:${colour}`,
-      `Cut the last ${colourWord(colour)} wire.`,
-      `has:${cutAction(last)}`,
-      (sequence) => has(sequence, cutAction(last)),
-    );
+    add(37, colour, `Cut the ${colourWord(colour)} wire that is furthest left.`, `has:w${first}`, hasCut(first));
+    add(38, colour, `Cut the ${colourWord(colour)} wire that is furthest right.`, `has:w${last}`, hasCut(last));
   }
-
-  // "Press button A/B"
-  for (const label of ["A", "B"] as const) {
-    const action = pressAction(label);
-    add(`press:${label}`, `Press button ${label}.`, `has:${action}`, (sequence) =>
-      has(sequence, action),
-    );
-    add(
-      `pressfirstcut:${label}`,
-      `Press button ${label} before cutting any wire.`,
-      `pressfirstcut:${label}`,
-      (sequence) => {
-        const index = at(sequence, action);
-        if (index < 0) return false;
-        return sequence.every((step, position) => !isCut(step) || position > index);
-      },
-    );
+  for (const label of LABELS) {
+    const colour = buttonColour(label);
+    add(39, label, `Cut a wire of the same colour as button ${label}.`, `samecol:${colour}`, (s) => cutsOf(s).some((w) => panel.wires[w] === colour));
   }
-
-  // Ordering: "<action> before <action>", "<action> first", "<action> last"
-  for (const action of BOMB_ACTIONS) {
-    add(
-      `first:${action}`,
-      `${phrase(action)} first.`,
-      `first:${action}`,
-      (sequence) => sequence[0] === action,
-    );
-    add(
-      `last:${action}`,
-      `${phrase(action)} last.`,
-      `last:${action}`,
-      (sequence) => sequence[sequence.length - 1] === action,
-    );
-    for (const other of BOMB_ACTIONS) {
-      if (other === action) continue;
-      add(
-        `before:${action}>${other}`,
-        `${phrase(action)} before ${gerund(other)}.`,
-        `before:${action}>${other}`,
-        (sequence) => {
-          const a = at(sequence, action);
-          const b = at(sequence, other);
-          return a >= 0 && b >= 0 && a < b;
-        },
-      );
-    }
-  }
-
-  // "Cut exactly N wires"
-  for (const wires of [1, 2, 3]) {
-    add(
-      `exactcuts:${wires}`,
-      `Cut exactly ${NUMBER_WORDS[wires]} wire${wires === 1 ? "" : "s"}.`,
-      `exactcuts:${wires}`,
-      (sequence) => sequence.filter(isCut).length === wires,
-    );
-  }
-
-  // "If <panel condition>, <action>" — only for conditions this panel meets.
-  for (const condition of CONDITIONS) {
-    if (!condition.holds(panel)) continue;
-    for (const action of BOMB_ACTIONS) {
-      const body = phrase(action);
-      add(
-        `if:${condition.id}:${action}`,
-        `If ${condition.text}, ${body.charAt(0).toLowerCase()}${body.slice(1)}.`,
-        `has:${action}`,
-        (sequence) => has(sequence, action),
-      );
-    }
-  }
+  add(40, "", "Cut a wire whose colour is NOT the colour of either button.", "notbuttons", (s) =>
+    cutsOf(s).some((w) => panel.wires[w] !== buttonColour("A") && panel.wires[w] !== buttonColour("B")),
+  );
 
   return out;
 }
@@ -347,95 +431,70 @@ function isNecessary(masks: Uint32Array[]): boolean {
   return necessaryCount(masks) === masks.length;
 }
 
-/**
- * The action pair a rule speaks about, if any — an ordering rule between two
- * actions. Two rules on the same pair would read as the same idea twice, so a
- * card never carries more than one of them.
- */
-export function rulePairKey(id: string): string | null {
-  if (!id.startsWith("before:")) return null;
-  const [a = "", b = ""] = id.slice("before:".length).split(">");
-  return [a, b].sort().join("|");
-}
+/** At most two rules from any one family. */
+const FAMILY_CAP = 2;
 
 /** No two rules may concern exactly the same action pair in the same way. */
-function pairsDistinct(ids: string[]): boolean {
+function pairsDistinct(rules: (RuleInstance | undefined)[]): boolean {
   const seen = new Set<string>();
-  for (const id of ids) {
-    const key = rulePairKey(id);
-    if (!key) continue;
-    if (seen.has(key)) return false;
-    seen.add(key);
+  for (const rule of rules) {
+    if (!rule?.pair) continue;
+    if (seen.has(rule.pair)) return false;
+    seen.add(rule.pair);
+  }
+  return true;
+}
+
+function familiesOk(rules: RuleInstance[]): boolean {
+  const counts = new Map<Family, number>();
+  for (const rule of rules) {
+    const next = (counts.get(rule.family) ?? 0) + 1;
+    if (next > FAMILY_CAP) return false;
+    counts.set(rule.family, next);
   }
   return true;
 }
 
 /**
- * Searches the pool for a core of four rules that between them allow exactly the
- * chosen plan and nothing else, with every core rule pulling its weight. Depth
- * first over combinations: three rules must still leave room for more than one
- * sequence, the fourth must close it down to the plan alone.
+ * Picks six rules (two per family at most, distinct pairs), always true of the
+ * plan, so that exactly one sequence survives and at least four are necessary.
+ * Depth-first: at each level the candidates that cut the survivors most are
+ * tried first, a few at a time.
  */
-function chooseRules(masks: Uint32Array[], planIndex: number): number[] | null {
-  const order = shuffled(masks.map((_, index) => index));
+function chooseRules(pool: RuleInstance[], masks: Uint32Array[], planIndex: number): number[] | null {
   const picked: number[] = [];
-
-  const walk = (start: number, bits: Uint32Array): number[] | null => {
-    for (let position = start; position < order.length; position++) {
-      const index = order[position]!;
+  let budget = 3000;
+  const walk = (bits: Uint32Array): number[] | null => {
+    if (budget-- <= 0) return null;
+    if (picked.length === BOMB_RULE_COUNT) {
+      if (countBits(bits, 2) !== 1 || firstBit(bits) !== planIndex) return null;
+      if (necessaryCount(picked.map((index) => masks[index]!)) < BOMB_NECESSARY_RULES) return null;
+      return [...picked];
+    }
+    const chosen = picked.map((index) => pool[index]!);
+    const options: { index: number; next: Uint32Array; left: number }[] = [];
+    for (const index of shuffled(pool.map((_, i) => i)).slice(0, 80)) {
+      if (picked.includes(index)) continue;
+      const rule = pool[index]!;
+      if (!familiesOk([...chosen, rule]) || !pairsDistinct([...chosen, rule])) continue;
       const next = intersect(bits, masks[index]!);
-      const depth = picked.length + 1;
-      const count = countBits(next, 2);
-      if (depth === BOMB_NECESSARY_RULES) {
-        if (count !== 1 || firstBit(next) !== planIndex) continue;
-        picked.push(index);
-        const chosen = [...picked];
-        picked.pop();
-        if (isNecessary(chosen.map((rule) => masks[rule]!))) return chosen;
-        continue;
-      }
-      if (count < 2) continue;
-      picked.push(index);
-      const found = walk(position + 1, next);
+      const left = countBits(next);
+      // A rule that removes nothing can never be necessary at this point.
+      if (left === countBits(bits)) continue;
+      options.push({ index, next, left });
+    }
+    options.sort((a, b) => a.left - b.left);
+    // Don't always take the sharpest cut — that leaves later rules redundant.
+    const tries = shuffled(options.slice(0, 8)).slice(0, 3);
+    for (const option of tries) {
+      picked.push(option.index);
+      const found = walk(option.next);
       picked.pop();
       if (found) return found;
     }
     return null;
   };
-
-  return walk(0, ALL_BITS);
-}
-
-/**
- * Pads a necessary core out to six rules with confirming rules: each one is true
- * of the plan, says something no other rule says, speaks about no action pair
- * another rule already covers, and leaves at least four of the six individually
- * necessary.
- */
-function addConfirmingRules(
-  pool: RuleInstance[],
-  masks: Uint32Array[],
-  core: number[],
-): number[] | null {
-  const extras = shuffled(masks.map((_, index) => index).filter((index) => !core.includes(index)));
-  const needed = BOMB_RULE_COUNT - core.length;
-  if (needed <= 0) return core.slice(0, BOMB_RULE_COUNT);
-
-  const walk = (start: number, chosen: number[]): number[] | null => {
-    if (chosen.length === needed) {
-      const all = [...core, ...chosen];
-      if (!pairsDistinct(all.map((index) => pool[index]!.id))) return null;
-      if (necessaryCount(all.map((index) => masks[index]!)) < BOMB_NECESSARY_RULES) return null;
-      return all;
-    }
-    for (let position = start; position < Math.min(extras.length, start + 30); position++) {
-      const found = walk(position + 1, [...chosen, extras[position]!]);
-      if (found) return found;
-    }
-    return null;
-  };
-
-  return walk(0, []);
+  return walk(ALL_BITS);
 }
 
 function randomPanel(): Panel {
@@ -451,7 +510,6 @@ function randomPanel(): Panel {
   };
 }
 
-export const BOMB_RULE_TEMPLATE_COUNT = 10;
 
 export interface BombGeneration {
   puzzle: BombPuzzleData;
@@ -469,6 +527,8 @@ const SEQUENCE_INDEX = new Map<string, number>(
 export function generateBombPanel(): BombGeneration {
   for (let attempt = 1; attempt <= 20_000; attempt++) {
     const panel = randomPanel();
+    // Several predicates read the panel, so masks never carry across panels.
+    MASK_CACHE.clear();
     const plan = shuffled(BOMB_ACTIONS).slice(0, PLAN_LENGTH);
     const planIndex = SEQUENCE_INDEX.get(planKey(plan))!;
 
@@ -481,9 +541,7 @@ export function generateBombPanel(): BombGeneration {
     if (pool.length < BOMB_RULE_COUNT) continue;
     const masks = pool.map(maskOf);
 
-    const core = chooseRules(masks, planIndex);
-    if (!core) continue;
-    const picked = addConfirmingRules(pool, masks, core);
+    const picked = chooseRules(pool, masks, planIndex);
     if (!picked) continue;
 
     // The plan must be the one surviving sequence, not merely one of them.
@@ -538,12 +596,14 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
   necessary: boolean;
   /** How many of the rules are individually necessary. */
   necessaryRules: number;
-  /** No two rules concern the same action pair. */
+  /** No two rules concern the same action pair in the same way. */
   pairsDistinct: boolean;
   /** Every rule's wording is exactly its template's. */
   wordingOk: boolean;
   /** Rules whose template instance could not be rebuilt. */
   unknownRules: number;
+  /** No family contributes more than two rules. */
+  familiesOk: boolean;
 } {
   const panel: Panel = {
     wires: puzzle.wires,
@@ -552,6 +612,7 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
     serial: puzzle.serial,
     switchPosition: puzzle.switchPosition,
   };
+  MASK_CACHE.clear();
   const candidates = candidateRules(panel);
   const rebuilt = puzzle.rules.map(({ id }) => candidates.find((rule) => rule.id === id));
   const known = rebuilt.filter((rule): rule is RuleInstance => Boolean(rule));
@@ -575,10 +636,11 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
       ALL_SEQUENCES[found[0]!]!.join(",") === plan.split(",").join(","),
     necessary,
     necessaryRules,
-    pairsDistinct: pairsDistinct(puzzle.rules.map((rule) => rule.id)),
+    pairsDistinct: pairsDistinct(rebuilt),
     wordingOk: puzzle.rules.every(
       (rule, index) => rebuilt[index]?.text === rule.text && rebuilt[index]?.id === rule.id,
     ),
     unknownRules: puzzle.rules.length - known.length,
+    familiesOk: familiesOk(known),
   };
 }
