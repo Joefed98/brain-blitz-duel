@@ -10,11 +10,10 @@ import {
   CHAIN_UNDO,
   decodeChainTaps,
   encodeChainTaps,
-  replayChain,
+  replayChainRun,
 } from "@/lib/duel/chain";
 import { useStageState } from "@/lib/duel/stageState";
 import {
-  CHAIN_LENGTH,
   CHAIN_TIME_MS,
   type ChainNode,
   type ChainPuzzleData,
@@ -161,28 +160,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
   const [taps, setTaps] = useStageState<number[]>(stateKey, "chainTaps", () => []);
   const [wrong, setWrong] = useStageState<number | null>(stateKey, "chainWrong", () => null);
   const submitted = useRef(false);
-  const replay = useMemo(
-    () => (data ? replayChain(data.nodes, data.cycle, taps) : null),
-    [data, taps],
-  );
+  const replay = useMemo(() => (data ? replayChainRun(data.sets, taps) : null), [data, taps]);
 
   useEffect(() => onDraftAnswer?.(encodeChainTaps(taps)), [taps, onDraftAnswer]);
   useEffect(() => {
-    if (locked || submitted.current || !replay?.completed) return;
-    submitted.current = true;
-    playCorrect();
-    onSubmit(encodeChainTaps(taps));
-  }, [replay?.completed, taps, locked, onSubmit]);
+  }, [replay, taps, locked, onSubmit]);
 
   if (!data || !replay) return null;
   const tap = (nodeId: number) => {
-    if (locked || submitted.current || replay.completed) return;
-    const node = data.nodes[nodeId];
+    if (locked || submitted.current) return;
+    const set = data.sets[replay.setIndex];
+    const node = set?.nodes[nodeId];
     if (!node) return;
     const ok =
-      !replay.chain.includes(nodeId) &&
-      node.shape === chainRequired(replay.rule, replay.index) &&
-      !chainWouldCross(data.nodes, replay.chain, nodeId);
+      !replay.current.chain.includes(nodeId) &&
+      node.shape === chainRequired(replay.current.rule, replay.current.index) &&
+      !chainWouldCross(set.nodes, replay.current.chain, nodeId);
     if (ok) hapticTick();
     else {
       buzz(20);
@@ -194,29 +187,28 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
   };
   // Undo and Reset are logged in the tap list, so mistakes already made stay counted.
   const undo = () => {
-    if (locked || submitted.current || replay.completed || replay.chain.length === 0) return;
+    if (locked || submitted.current || replay.current.chain.length === 0) return;
     hapticTick();
     setTaps((current) => [...current, CHAIN_UNDO]);
   };
   const reset = () => {
-    if (locked || submitted.current || replay.completed || replay.chain.length === 0) return;
+    if (locked || submitted.current || replay.current.chain.length === 0) return;
     hapticTick();
     setTaps((current) => [...current, CHAIN_RESET]);
   };
-  const used = new Set(replay.chain);
+  const set = data.sets[replay.setIndex] ?? data.sets[data.sets.length - 1];
+  if (!set) return null;
+  const used = new Set(replay.current.chain);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <RuleStrip cycle={replay.rule} step={replay.index} />
+      <RuleStrip cycle={replay.current.rule} step={replay.current.index} />
       <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        links{" "}
-        <span className="text-primary">
-          {replay.chain.length} / {CHAIN_LENGTH}
-        </span>
+        <span className="text-primary">{replay.correct}</span> links · set {replay.setIndex + 1}
       </p>
       <div className="relative min-h-0 w-full flex-1">
-        <ChainLines nodes={data.nodes} chain={replay.chain} />
-        {data.nodes.map((node, index) => (
+        <ChainLines nodes={set.nodes} chain={replay.current.chain} />
+        {set.nodes.map((node, index) => (
           <Button
             key={index}
             type="button"
@@ -228,10 +220,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
               const hit = pointerElementIndex(event.currentTarget);
               if (hit !== null) tap(hit);
             }}
-            className={`pointer-events-auto absolute flex size-[46px] items-center justify-center rounded-full border-2 p-0 ${wrong === index ? "animate-shake border-warn bg-warn/15 text-warn" : used.has(index) ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-foreground"}`}
-            style={{ left: `calc(${node.x}% - 23px)`, top: `calc(${node.y}% - 23px)` }}
+            className={`pointer-events-auto absolute flex size-[34px] items-center justify-center border-2 p-0 ${wrong === index ? "animate-shake border-warn bg-warn/15 text-warn" : used.has(index) ? "border-primary bg-primary/15 text-primary" : "border-border bg-card text-foreground"}`}
+            style={{ left: `calc(${node.x}% - 17px)`, top: `calc(${node.y}% - 17px)` }}
           >
-            <NodeGlyph shape={node.shape} size={46} />
+            <NodeGlyph shape={node.shape} size={34} />
           </Button>
         ))}
       </div>
@@ -239,7 +231,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
         <button
           type="button"
           onClick={undo}
-          disabled={locked || replay.completed || replay.chain.length === 0}
+          disabled={locked || replay.current.chain.length === 0}
           className="h-11 flex-1 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
           Undo
@@ -247,7 +239,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
         <button
           type="button"
           onClick={reset}
-          disabled={locked || replay.completed || replay.chain.length === 0}
+          disabled={locked || replay.current.chain.length === 0}
           className="h-11 flex-1 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
           Reset
@@ -260,37 +252,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: 
 function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "chain") return null;
   const taps = decodeChainTaps(myAnswer ?? "");
-  const replay = replayChain(puzzle.nodes, puzzle.cycle, taps);
-  const errors = taps.filter((_tap, index) => replay.verdicts[index] === false);
+  const replay = replayChainRun(puzzle.sets, taps);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((CHAIN_TIME_MS - myMsRemaining) / 100) / 10;
   const used = new Set(replay.chain);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2">
-      <div className="relative h-[min(45vh,300px)] w-full max-w-[300px] shrink">
-        <ChainLines nodes={puzzle.nodes} chain={replay.chain} width={2.5} />
-        {puzzle.nodes.map((node, index) => (
-          <span
-            key={index}
-            className={`absolute flex size-7 items-center justify-center rounded-full border bg-card ${used.has(index) ? "border-primary text-primary" : "border-border text-foreground"}`}
-            style={{ left: `calc(${node.x}% - 14px)`, top: `calc(${node.y}% - 14px)` }}
-          >
-            <NodeGlyph shape={node.shape} size={28} />
-          </span>
-        ))}
-        {errors.map((nodeId, index) => {
-          const node = puzzle.nodes[nodeId];
-          return node ? (
-            <span
-              key={`${nodeId}-${index}`}
-              className="absolute z-10 size-2.5 rounded-full bg-warn ring-2 ring-background"
-              style={{ left: `calc(${node.x}% + 7px)`, top: `calc(${node.y}% - 14px)` }}
-            />
-          ) : null;
-        })}
-      </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold">
-        {replay.chain.length} / {CHAIN_LENGTH} · {replay.errors} error
+        {replay.correct} correct links · {replay.errors} error
         {replay.errors === 1 ? "" : "s"}
         {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
       </p>
@@ -307,8 +276,7 @@ export const chainTapPuzzle: PuzzleDefinition = {
   generate: () =>
     ({
       type: "chain",
-      nodes: [],
-      cycle: ["circle", "square", "triangle"],
+      sets: [],
     }) satisfies ChainPuzzleData,
   check: () => false,
   revealHeading: "Your chain",
