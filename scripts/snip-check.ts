@@ -3,7 +3,7 @@
  * extremes and centre) proves the mouth is reachable and finds the most stars;
  * then the self-replay proof for Snip only.
  *
- *   bun scripts/snip-check.ts [runs] [templateIndexOnly]
+ *   bun scripts/snip-check.ts [runs] [templateIndex | replay]
  */
 import { inputAt, recordInput, rngBelow, type ArcadeInputEvent } from "@/lib/arcade/engine";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -68,7 +68,7 @@ const PERMS: Record<number, number[][]> = {
   3: [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]],
 };
 for (let t = 0; t < SNIP_CONFIG.templates.length; t++) {
-  if (ONLY && String(t) !== ONLY) continue;
+  if (ONLY === "replay" || (ONLY && String(t) !== ONLY)) continue;
   const tpl = SNIP_CONFIG.templates[t]!;
   const n = tpl.pins.length;
   const step = n === 1 ? 2 : n === 2 ? 5 : 12;
@@ -102,7 +102,7 @@ for (let t = 0; t < SNIP_CONFIG.templates.length; t++) {
   if (worstStars < tpl.stars.length) console.log(`  note: ${tpl.name} not every star proven reachable`);
   console.log(`${t} ${tpl.name}: ${line.join(" · ")}`);
 }
-if (ONLY) process.exit(failures ? 1 : 0);
+if (ONLY && ONLY !== "replay") process.exit(failures ? 1 : 0);
 
 /* ------------------------------ Self-replay ------------------------------ */
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
