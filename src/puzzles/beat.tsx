@@ -13,11 +13,12 @@ import {
 import {
   beatCheckpoint,
   beatGame,
-  BEAT_BEAT_TICKS,
+  BEAT_EIGHTH_TICKS,
   BEAT_BG,
   BEAT_CHECKPOINT_INTERVAL,
   BEAT_FIRST_BEAT,
   BEAT_GOLD,
+  BEAT_INPUT_RELEASE,
   BEAT_INPUT_TAP,
   BEAT_LANES,
   BEAT_LANE_COLOURS,
@@ -28,7 +29,7 @@ import {
 } from "@/lib/arcade/beat";
 import { decodeBeatRun, encodeBeatRun, replayBeatRun } from "@/lib/duel/beat";
 import type { BeatPuzzleData } from "@/lib/duel/types";
-import { playBlip, playTick, playWrong } from "@/lib/sound";
+import { playBeatStep, playBlip, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -76,6 +77,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof beatCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
+  /** Which lane each finger went down in, so its release is sent for that lane. */
+  const fingers = useRef(new Map<number, number>());
   const submitted = useRef(false);
   const [, forceRedraw] = useState(0);
   useNoTouchScroll(wrap);
@@ -148,12 +151,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (state.current.tick % BEAT_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(beatCheckpoint(state.current));
           }
-          // Sound is feedback only: a click on the beat, never required to play.
+          // Sound is feedback only: a synthesised bass + hat loop, never required to play.
           if (
             state.current.tick >= BEAT_FIRST_BEAT &&
-            (state.current.tick - BEAT_FIRST_BEAT) % BEAT_BEAT_TICKS === 0
+            (state.current.tick - BEAT_FIRST_BEAT) % BEAT_EIGHTH_TICKS === 0
           ) {
-            playTick();
+            playBeatStep((state.current.tick - BEAT_FIRST_BEAT) / BEAT_EIGHTH_TICKS);
           }
           if (beatGame.isOver(state.current)) break;
         }
@@ -216,6 +219,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return Math.max(0, Math.min(BEAT_LANES - 1, lane));
   };
 
+  const liftFinger = (pointerId: number) => {
+    const lane = fingers.current.get(pointerId);
+    fingers.current.delete(pointerId);
+    if (lane === undefined || submitted.current) return;
+    pending.current.push({ t: 0, k: BEAT_INPUT_RELEASE, a: lane, b: 0, c: 0, d: 0 });
+  };
+
   if (!data) return null;
 
   return (
@@ -233,17 +243,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           event.preventDefault();
           if (locked || submitted.current || beatGame.isOver(state.current)) return;
           event.currentTarget.setPointerCapture(event.pointerId);
-          pending.current.push({ t: 0, k: BEAT_INPUT_TAP, a: laneAt(event), b: 0, c: 0, d: 0 });
+          const lane = laneAt(event);
+          fingers.current.set(event.pointerId, lane);
+          pending.current.push({ t: 0, k: BEAT_INPUT_TAP, a: lane, b: 0, c: 0, d: 0 });
         }}
         onPointerUp={(event) => {
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
+          liftFinger(event.pointerId);
         }}
         onPointerCancel={(event) => {
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
             event.currentTarget.releasePointerCapture(event.pointerId);
           }
+          liftFinger(event.pointerId);
         }}
       />
     </div>
@@ -270,7 +284,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.misses === 1 ? "" : "es"}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        best combo {result.maxCombo}
+        best combo {result.maxCombo} · {result.holdsDone} / {result.holds} holds
       </p>
       <p className="shrink-0 font-mono text-base" style={{ color: BEAT_GOLD }}>
         {result.score} points
