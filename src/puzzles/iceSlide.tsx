@@ -1,7 +1,7 @@
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ArrowPad, useSwipe } from "@/components/puzzles/GridDrag";
+import { ArrowPad, usePrefersReducedMotion, useSwipe } from "@/components/puzzles/GridDrag";
 import {
   encodeSlideMoves,
   replaySlide,
@@ -241,6 +241,12 @@ function Stage({
   const submitted = useRef(false);
   const [flash, setFlash] = useState(false);
   const fallsSeen = useRef(0);
+  const reducedMotion = usePrefersReducedMotion();
+  const [animating, setAnimating] = useState(false);
+  const [visualBall, setVisualBall] = useState<{ cell: number; jump: boolean } | null>(null);
+  const slideTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => () => slideTimers.current.forEach(clearTimeout), []);
 
   const replay = useMemo(() => replaySlide(board, moves), [board, moves]);
 
@@ -263,20 +269,35 @@ function Stage({
   }, [replay.falls]);
 
   useEffect(() => {
-    if (locked || submitted.current || !replay.solved) return;
+    if (locked || submitted.current || !replay.solved || animating) return;
     submitted.current = true;
     playCorrect();
     onSubmit(encodeSlideMoves(moves));
-  }, [replay.solved, moves, locked, onSubmit]);
+  }, [replay.solved, moves, locked, animating, onSubmit]);
 
   const slide = (dir: SlideDir) => {
-    if (locked || submitted.current || replay.solved) return;
+    if (locked || submitted.current || replay.solved || animating) return;
     const outcome = slideOutcome(board, replay.cell, replay.mask, dir);
     if (!outcome.path.length) return;
+    setVisualBall({ cell: replay.cell, jump: true });
+    setAnimating(true);
+    let elapsed = 20;
+    let previous = replay.cell;
+    for (const cell of outcome.path) {
+      const jump = board.portals.get(previous) === cell;
+      slideTimers.current.push(setTimeout(() => setVisualBall({ cell, jump }), elapsed));
+      elapsed += jump ? 32 : reducedMotion ? 45 : 100;
+      previous = cell;
+    }
+    slideTimers.current.push(setTimeout(() => {
+      setVisualBall(null);
+      setAnimating(false);
+      slideTimers.current = [];
+    }, elapsed));
     setMoves((current) => [...current, dir]);
   };
 
-  const swipe = useSwipe(slide, { disabled: locked || replay.solved });
+  const swipe = useSwipe(slide, { disabled: locked || replay.solved || animating });
 
   if (!data) return null;
 
@@ -294,23 +315,39 @@ function Stage({
         }}
         {...swipe}
       >
-        <Board
-          walls={data.walls}
-          holes={data.holes ?? []}
-          arrows={data.arrows ?? []}
-          portals={data.portals ?? []}
-          thin={data.thin ?? []}
-          broken={replay.mask}
-          start={data.start}
-          exit={data.exit}
-          ball={replay.cell}
-        />
+        <div className="relative aspect-square h-full max-h-full w-full max-w-full">
+          <Board
+            walls={data.walls}
+            holes={data.holes ?? []}
+            arrows={data.arrows ?? []}
+            portals={data.portals ?? []}
+            thin={data.thin ?? []}
+            broken={replay.mask}
+            start={data.start}
+            exit={data.exit}
+            ball={animating ? -1 : replay.cell}
+          />
+          {visualBall && (
+            <span
+              aria-label="Ball"
+              className="pointer-events-none absolute z-10 block rounded-full bg-primary"
+              style={{
+                width: "calc((100% - 22px) / 12 * .8)",
+                height: "calc((100% - 22px) / 12 * .8)",
+                left: `calc((100% - 22px) / 12 * ${(visualBall.cell % SLIDE_COLS) + 0.5} + ${(visualBall.cell % SLIDE_COLS) * 2}px)`,
+                top: `calc((100% - 22px) / 12 * ${Math.floor(visualBall.cell / SLIDE_COLS) + 0.5} + ${Math.floor(visualBall.cell / SLIDE_COLS) * 2}px)`,
+                transform: "translate(-50%, -50%)",
+                transition: visualBall.jump || reducedMotion ? "none" : "left 90ms linear, top 90ms linear",
+              }}
+            />
+          )}
+        </div>
       </div>
-        <ArrowPad onPress={slide} disabled={locked || replay.solved} />
+        <ArrowPad onPress={slide} disabled={locked || replay.solved || animating} />
       <div className="flex shrink-0 justify-center gap-2">
         <button
           type="button"
-          disabled={locked || !moves.length}
+          disabled={locked || animating || !moves.length}
           onClick={() => setMoves((current) => [...current, "X"])}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
@@ -318,7 +355,7 @@ function Stage({
         </button>
         <button
           type="button"
-          disabled={locked || !moves.length}
+          disabled={locked || animating || !moves.length}
           onClick={() => setMoves((current) => [...current, "Y"])}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
