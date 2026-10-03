@@ -22,6 +22,9 @@ export const PUZZLE_CATEGORIES = STANDARD_CATEGORIES.filter((category) => catego
 
 export function normaliseCategories(value: unknown): PuzzleCategory[] {
   if (!Array.isArray(value)) return [...STANDARD_CATEGORIES];
-  const chosen = CATEGORY_ORDER.filter((category) => value.includes(category));
+  // Memory is practice-only: rooms never draw it, even from older settings.
+  const chosen = CATEGORY_ORDER.filter(
+    (category) => category !== "memory" && value.includes(category),
+  );
   return chosen.length ? chosen : [...STANDARD_CATEGORIES];
 }
