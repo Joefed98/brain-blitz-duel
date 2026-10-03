@@ -332,10 +332,10 @@ function Stage({
               aria-label="Ball"
               className="pointer-events-none absolute z-10 block rounded-full bg-primary"
               style={{
-                width: "calc((100% - 22px) / 12 * .8)",
-                height: "calc((100% - 22px) / 12 * .8)",
-                left: `calc((100% - 22px) / 12 * ${(visualBall.cell % SLIDE_COLS) + 0.5} + ${(visualBall.cell % SLIDE_COLS) * 2}px)`,
-                top: `calc((100% - 22px) / 12 * ${Math.floor(visualBall.cell / SLIDE_COLS) + 0.5} + ${Math.floor(visualBall.cell / SLIDE_COLS) * 2}px)`,
+                width: "calc((100% - 22px) * 0.066666667)",
+                height: "calc((100% - 22px) * 0.066666667)",
+                left: `calc((100% - 22px) * ${((visualBall.cell % SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${(visualBall.cell % SLIDE_COLS) * 2}px)`,
+                top: `calc((100% - 22px) * ${(Math.floor(visualBall.cell / SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${Math.floor(visualBall.cell / SLIDE_COLS) * 2}px)`,
                 transform: "translate(-50%, -50%)",
                 transition: visualBall.jump || reducedMotion ? "none" : "left 90ms linear, top 90ms linear",
               }}
@@ -343,7 +343,7 @@ function Stage({
           )}
         </div>
       </div>
-        <ArrowPad onPress={slide} disabled={locked || replay.solved || animating} />
+      <ArrowPad onPress={slide} disabled={locked || replay.solved || animating} />
       <div className="flex shrink-0 justify-center gap-2">
         <button
           type="button"
