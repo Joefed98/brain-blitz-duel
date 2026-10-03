@@ -1595,9 +1595,9 @@ export interface ChainPuzzleData {
 
 /** Per board: 1 s round card, 5 s memorise, 1 s blank, 3 s pick, 1 s hold. */
 export const INTRUDER_CARD_MS = 1_000;
-export const INTRUDER_SHOW_MS = 5_000;
+export const INTRUDER_SHOW_MS = 7_000;
 export const INTRUDER_HIDE_MS = 1_000;
-export const INTRUDER_PLAY_MS = 3_000;
+export const INTRUDER_PLAY_MS = 5_000;
 export const INTRUDER_HOLD_MS = 1_000;
 export const INTRUDER_BOARD_MS = INTRUDER_CARD_MS + INTRUDER_SHOW_MS + INTRUDER_HIDE_MS + INTRUDER_PLAY_MS + INTRUDER_HOLD_MS;
 export const INTRUDER_TIME_MS = 5 * INTRUDER_BOARD_MS;
@@ -1670,7 +1670,7 @@ export interface NonoPuzzleData {
 
 /* ============================== Pair Match ============================== */
 
-export const PAIR_TIME_MS = 60_000;
+export const PAIR_TIME_MS = 90_000;
 export const PAIR_PAIRS = 15;
 export const PAIR_CARDS = PAIR_PAIRS * 2;
 export const PAIR_FLIP_BACK_MS = 600;
