@@ -35,7 +35,7 @@ function PipeBoard({ board, tiles, dropped, active, onRotate, onDrop, small = fa
       </div>
       <div className="grid w-full gap-px" style={{ gridTemplateColumns: `repeat(${board.cols}, minmax(0, 1fr))` }}>
         {Array.from({ length: board.rows * board.cols }, (_, cell) => (
-          <Button key={cell} type="button" variant="outline" disabled={!onRotate} aria-label={`Rotate pipe row ${Math.floor(cell / board.cols) + 1}, column ${cell % board.cols + 1}`} onClick={() => onRotate?.(cell)} className="min-w-0 rounded-sm border-border bg-card p-0 text-foreground disabled:opacity-100" style={{ aspectRatio: "1 / 1" }}>
+          <Button key={cell} type="button" variant="outline" disabled={!onRotate} aria-label={`Rotate pipe row ${Math.floor(cell / board.cols) + 1}, column ${cell % board.cols + 1}`} onClick={() => onRotate?.(cell)} className="h-auto w-full min-w-0 rounded-sm border-border bg-card p-0 text-foreground disabled:opacity-100" style={{ aspectRatio: "1 / 1" }}>
             <span className={`${small ? "text-sm" : "text-[27px]"} font-medium leading-none`}>{pipe[Number(tiles[cell]) % 3] ?? "│"}</span>
           </Button>
         ))}
