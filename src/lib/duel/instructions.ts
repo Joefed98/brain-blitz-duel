@@ -158,7 +158,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "More correct choices = more points. Perfect = speed bonus.",
   },
   numhunt: {
-    goal: "Tap all twenty numbers from smallest to largest.",
+    goal: "Tap all 24 numbers from smallest to largest.",
     how: [
       { action: "Find the smallest", detail: "remaining number." },
       { action: "Tap in order", detail: "until every number is cleared." },
