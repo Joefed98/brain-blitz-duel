@@ -38,7 +38,7 @@ const MAX_ROUTE = 25; // a routed ball lands before the next one drops
 let seed = 0x5eed_ba11;
 const rnd = (n: number) => {
   seed = (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x6d2b79f5) >>> 0;
-  return (seed ^ (seed >>> 13)) % n;
+  return ((seed ^ (seed >>> 13)) >>> 0) % n;
 };
 const shuffle = <T,>(list: T[]) => {
   for (let i = list.length - 1; i > 0; i--) {
