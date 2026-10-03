@@ -2142,7 +2142,7 @@ export const BALLTRACK_TIME_MS = 60_000;
 export const WORDSEARCH_TIME_MS = 120_000;
 
 /** Number Pyramid: four rising-difficulty pyramids in one 150-second round. */
-export const NUMPYRAMID_TIME_MS = 150_000;
+export const NUMPYRAMID_TIME_MS = 120_000;
 
 export interface NumberPyramidBoardData {
   rows: 4 | 5;
