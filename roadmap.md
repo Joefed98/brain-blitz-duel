@@ -521,5 +521,5 @@
 - [x] Fixed snaking track, toggle straights to drop, 8 balls at 15 ticks/tile, 400-course bank; Ball Track-only proof; no browser tests.
 
 ## Ball Track pace and tube tuning (Oct 4)
-- [ ] Plain grey rotatable tubes, black fixed tubes, small piece gaps; ten balanced balls at five-second drops over 60 seconds, updated scoring and instructions.
-- [ ] Regenerate 400 courses and verify Ball Track-only replay identity; no browser tests.
+- [x] Plain grey rotatable tubes, black fixed tubes, small piece gaps; ten balanced balls at five-second drops over 60 seconds, updated scoring and instructions.
+- [x] Regenerate 400 courses: all playbooks route 10/10 home, replay identity 200/200, drop schedule and scoring checks passed; no browser tests.
