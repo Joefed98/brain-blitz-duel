@@ -18,8 +18,8 @@ function PipeBoard({ board, tiles, dropped, active, onRotate, onDrop, small = fa
   tiles: string;
   dropped: readonly number[];
   active?: { ball: number; row: number; column: number } | null;
-  onRotate?: (cell: number) => void;
-  onDrop?: (ball: number) => void;
+  onRotate?: ((cell: number) => void) | undefined;
+  onDrop?: ((ball: number) => void) | undefined;
   small?: boolean;
 }) {
   const pipe = ["│", "╲", "╱"];
