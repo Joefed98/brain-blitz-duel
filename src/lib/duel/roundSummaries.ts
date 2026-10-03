@@ -1411,12 +1411,8 @@ const lightUpSummary: SummaryBuilder = (result, puzzle) => {
 };
 
 const ballTrackSummary: SummaryBuilder = (result, puzzle) => {
-  const removals = Number(result.extra?.["removals"] ?? 0);
-  if (result.is_correct) {
-    return { summary: `Exit · ${seconds(elapsedMs(result, puzzle))}`, detail: [`${removals} removal${removals === 1 ? "" : "s"}`] };
-  }
-  const row = Number(result.extra?.["maxRow"] ?? 0);
-  return { summary: `Reached row ${row} / 10`, detail: [`${removals} removal${removals === 1 ? "" : "s"}`] };
+  const home = Number(result.extra?.["home"] ?? 0);
+  return { summary: `${home} / 8 home`, detail: ["Same puzzle for everyone"] };
 };
 
 const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {

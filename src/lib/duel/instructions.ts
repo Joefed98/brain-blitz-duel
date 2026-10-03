@@ -856,13 +856,12 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "30 per completed pyramid, plus up to 30 for finishing all four early. The current pyramid earns proportional partial points.",
   },
   balltrack: {
-    goal: "Get the ball to the exit.",
+    goal: "Drop every ball into its matching bucket.",
     how: [
-      { action: "Tap a gold blocker", detail: "to remove it. It never comes back." },
-      { action: "Tap GO", detail: "and the ball falls; arrow tiles roll it left or right." },
-      { action: "Clear more and GO again", detail: "as often as you like." },
+      { action: "Tap pipes to rotate them", detail: "until their lines point the way." },
+      { action: "Then tap a ball to drop it.", detail: "The ball follows the line." },
     ],
-    score: "Reach the exit fast for the bonus; +20 for the fewest removals. Otherwise, points for how far down it got.",
+    score: "All eight home scores big; the fewest rotations earns a bonus.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",

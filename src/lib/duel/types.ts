@@ -2145,7 +2145,7 @@ export interface HotFloorPuzzleData {
 
 export const SHIKAKU_TIME_MS = 90_000;
 export const LIGHTUP_TIME_MS = 90_000;
-export const BALLTRACK_TIME_MS = 60_000;
+export const BALLTRACK_TIME_MS = 90_000;
 export const WORDSEARCH_TIME_MS = 120_000;
 
 /** Number Pyramid: four rising-difficulty pyramids in one 120-second round. */
@@ -2194,15 +2194,13 @@ export interface BallTrackPuzzleData {
   type: "balltrack";
   cols: number;
   rows: number;
-  /** One character per cell: . empty, # wall, < > fixed ramps, b blocker, l r ramp blockers. */
+  /** Row-major orientations: 0 vertical, 1 down-right, 2 down-left. */
   tiles: string;
-  /** Start column (top row) and exit column (bottom row). */
-  start: number;
-  exit: number;
-  /** Fewest removals that reach the exit — private until the reveal. */
-  minRemovals?: number;
-  /** The unique minimal set of blockers to remove — private until the reveal. */
-  solution?: number[];
+  /** Bucket colours indexed by column; a derangement of the eight balls. */
+  buckets: number[];
+  /** Proven minimum for simultaneous routing; private until reveal. */
+  minRotations?: number;
+  solution?: string;
 }
 
 /** Letter Wheel: 120 s to fill a small crossword from a wheel of letters. */

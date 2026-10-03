@@ -1,146 +1,77 @@
-/**
- * Ball Track rules, shared by the phone (animation), the server (replay and
- * grading) and the bank script (search). Gravity is deterministic: each step
- * the ball falls if the cell below is empty; if the cell below is a ramp tile
- * it rolls one cell the way the arrow points (if that cell is empty); otherwise
- * it stops. Removed blockers become empty cells and never come back.
- */
-
-export const BT_COLS = 7;
-export const BT_ROWS = 11;
-/** Steps a single GO may take before the ball is treated as stopped. */
-const MAX_STEPS = 200;
-const MAX_EVENTS = 200;
+/** Shared, deterministic pipe rules. 0 = |, 1 = \\, 2 = /. */
+export const BT_COLS = 8;
+export const BT_ROWS = 6;
+const MAX_EVENTS = 400;
 
 export interface BtBoard {
   cols: number;
   rows: number;
   tiles: string;
-  start: number;
-  exit: number;
+  /** bucket column -> ball colour index */
+  buckets: number[];
 }
 
-export function btIsBlockerTile(t: string | undefined): boolean {
-  return t === "b" || t === "l" || t === "r";
-}
-
-/** -1 left, 1 right, 0 none. */
-export function btRampDir(t: string | undefined): number {
-  if (t === "<" || t === "l") return -1;
-  if (t === ">" || t === "r") return 1;
-  return 0;
-}
-
-function tileAt(board: BtBoard, removed: ReadonlySet<number>, cell: number): string {
-  const t = board.tiles[cell] ?? "#";
-  return btIsBlockerTile(t) && removed.has(cell) ? "." : t;
-}
-
-export function btExitCell(board: BtBoard): number {
-  return (board.rows - 1) * board.cols + board.exit;
-}
-
-/** Runs the ball from `from` until it stops or exits. `path` starts with `from`. */
-export function btRun(
-  board: BtBoard,
-  removed: ReadonlySet<number>,
-  from: number,
-): { path: number[]; exited: boolean } {
-  const { cols, rows } = board;
-  const exitCell = btExitCell(board);
-  const path = [from];
-  let cell = from;
-  for (let i = 0; i < MAX_STEPS && cell !== exitCell; i++) {
-    const r = Math.floor(cell / cols);
-    const c = cell % cols;
-    if (r >= rows - 1) break;
-    const below = cell + cols;
-    const t = tileAt(board, removed, below);
-    if (t === ".") {
-      cell = below;
-      path.push(cell);
-      continue;
-    }
-    const d = btRampDir(t);
-    const nc = c + d;
-    if (d !== 0 && nc >= 0 && nc < cols && tileAt(board, removed, cell + d) === ".") {
-      cell += d;
-      path.push(cell);
-      continue;
-    }
-    break;
-  }
-  return { path, exited: cell === exitCell };
-}
-
-export type BtEvent = { k: "r"; cell: number } | { k: "g" };
+export type BtEvent = { k: "r"; cell: number } | { k: "d"; ball: number };
 
 export function btEncode(events: readonly BtEvent[]): string {
-  return events.map((e) => (e.k === "g" ? "g" : `r${e.cell}`)).join(",");
+  return events.map((e) => e.k === "r" ? `r${e.cell}` : `d${e.ball}`).join(",");
 }
 
 export function btDecode(answer: string): BtEvent[] {
-  const out: BtEvent[] = [];
+  const events: BtEvent[] = [];
   for (const part of String(answer ?? "").split(",").slice(0, MAX_EVENTS)) {
-    if (part === "g") out.push({ k: "g" });
-    else if (/^r\d{1,3}$/.test(part)) out.push({ k: "r", cell: Number(part.slice(1)) });
+    if (/^r\d{1,2}$/.test(part)) events.push({ k: "r", cell: Number(part.slice(1)) });
+    else if (/^d[0-7]$/.test(part)) events.push({ k: "d", ball: Number(part.slice(1)) });
   }
-  return out;
+  return events;
+}
+
+/** Each path begins above its source column and ends in a bucket, or outside a side. */
+export function btRun(board: BtBoard, tiles: string, ball: number): { path: number[]; bucket: number | null; home: boolean } {
+  let column = ball;
+  const path: number[] = [];
+  for (let row = 0; row < board.rows; row++) {
+    path.push(row * board.cols + column);
+    const orientation = tiles[row * board.cols + column];
+    column += orientation === "1" ? 1 : orientation === "2" ? -1 : 0;
+    if (column < 0 || column >= board.cols) return { path, bucket: null, home: false };
+  }
+  return { path, bucket: column, home: board.buckets[column] === ball };
 }
 
 export interface BtReplay {
-  ball: number;
-  removed: number[];
-  exited: boolean;
-  /** Deepest row the ball has been on (0 = top). */
-  maxRow: number;
-  /** The path of each GO, in order. */
-  runs: number[][];
+  tiles: string;
+  dropped: number[];
+  home: number;
+  rotations: number;
+  runs: { ball: number; path: number[]; bucket: number | null; home: boolean }[];
 }
 
-/** Replays removals and GOs against the stored board. Invalid events are ignored. */
+/** Replays only legal taps and drops, ignoring extra or malformed actions. */
 export function btReplay(board: BtBoard, events: readonly BtEvent[]): BtReplay {
-  const removed = new Set<number>();
-  const order: number[] = [];
-  let ball = board.start;
-  let exited = false;
-  let maxRow = 0;
-  const runs: number[][] = [];
-  for (const e of events) {
-    if (exited) break;
-    if (e.k === "r") {
-      if (btIsBlockerTile(board.tiles[e.cell]) && !removed.has(e.cell)) {
-        removed.add(e.cell);
-        order.push(e.cell);
-      }
-      continue;
+  const tiles = board.tiles.split("");
+  const dropped = new Set<number>();
+  const runs: BtReplay["runs"] = [];
+  let home = 0;
+  let rotations = 0;
+  for (const event of events.slice(0, MAX_EVENTS)) {
+    if (dropped.size === board.cols) break;
+    if (event.k === "r") {
+      if (!Number.isInteger(event.cell) || event.cell < 0 || event.cell >= board.cols * board.rows) continue;
+      tiles[event.cell] = String((Number(tiles[event.cell]) + 1) % 3);
+      rotations++;
+    } else if (Number.isInteger(event.ball) && event.ball >= 0 && event.ball < board.cols && !dropped.has(event.ball)) {
+      const run = btRun(board, tiles.join(""), event.ball);
+      runs.push({ ball: event.ball, ...run });
+      dropped.add(event.ball);
+      if (run.home) home++;
     }
-    const run = btRun(board, removed, ball);
-    runs.push(run.path);
-    ball = run.path[run.path.length - 1]!;
-    for (const cell of run.path) maxRow = Math.max(maxRow, Math.floor(cell / board.cols));
-    exited = run.exited;
   }
-  return { ball, removed: order, exited, maxRow, runs };
+  return { tiles: tiles.join(""), dropped: [...dropped], home, rotations, runs };
 }
 
-/**
- * Exit reached: 100 + round(50 × ms left ÷ limit), +20 for exactly the minimum
- * removals, cap 150. Not reached: round(70 × deepest row ÷ 10).
- */
-export function scoreBallTrack(
-  exited: boolean,
-  msRemaining: number,
-  timeLimitMs: number,
-  removals: number,
-  minRemovals: number | undefined,
-  maxRow: number,
-  rows: number = BT_ROWS,
-): number {
-  if (exited) {
-    const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
-    const bonus = minRemovals !== undefined && removals === minRemovals ? 20 : 0;
-    return Math.min(150, 100 + Math.round((50 * ms) / timeLimitMs) + bonus);
-  }
-  return Math.max(0, Math.round((70 * Math.min(maxRow, rows - 1)) / (rows - 1)));
+export function scoreBallTrack(home: number, msRemaining: number, timeLimitMs: number, rotations: number, minimum?: number): number {
+  if (home < BT_COLS) return Math.round(70 * Math.max(0, home) / BT_COLS);
+  const speed = Math.round(30 * Math.max(0, Math.min(msRemaining, timeLimitMs)) / timeLimitMs);
+  return Math.min(150, 100 + speed + (minimum !== undefined && rotations <= minimum ? 20 : 0));
 }

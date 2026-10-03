@@ -476,3 +476,8 @@
 - [x] Laser direction chevron shrunk, splitter branches animated only after the beam reaches them, beam travel slowed ~25%.
 - [x] Rotating Rings chain images removed from both legends; links and legends otherwise unchanged.
 - [x] Source checks and typecheck; no browser tests.
+
+## Ball Track rework (Oct 3)
+- [x] Replace old blocker/GO rules with 8×6 rotating pipes, eight colour-matched balls/buckets, sequential animated drops and replay grading.
+- [x] Rebuild 400 answer-first boards with proven 10–16 simultaneous-configuration minimum rotations and server-only solutions.
+- [x] Update intro, reveal, scoring, instructions and round summaries; source-check narrow layouts and replay without browser tests.

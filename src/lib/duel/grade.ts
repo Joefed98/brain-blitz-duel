@@ -1672,17 +1672,15 @@ export function gradeSubmission(
       break;
     }
     case "balltrack": {
-      // The removal / GO log is replayed against the stored board here.
+      // The rotation / drop log is replayed against the stored board here.
       const run = btReplay(puzzle, btDecode(answer));
-      isCorrect = run.exited;
-      correctCount = run.removed.length;
-      score = scoreBallTrack(run.exited, ms, timeLimitMs, run.removed.length, puzzle.minRemovals, run.maxRow, puzzle.rows);
+      isCorrect = run.home === puzzle.cols;
+      correctCount = run.home;
+      score = scoreBallTrack(run.home, ms, timeLimitMs, run.rotations, puzzle.minRotations);
       extraDetail = {
-        exited: run.exited,
-        removals: run.removed.length,
-        minRemovals: puzzle.minRemovals ?? null,
-        maxRow: run.maxRow,
-        gos: run.runs.length,
+        home: run.home,
+        rotations: run.rotations,
+        minRotations: puzzle.minRotations ?? null,
       };
       break;
     }
