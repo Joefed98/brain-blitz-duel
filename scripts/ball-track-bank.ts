@@ -1,211 +1,260 @@
 /**
- * Builds 400 Ball Track courses. Each course is laid out, then a playbook bot
- * plans piece states ball by ball (DFS over the pieces each path touches) and
- * plays the real sim; only courses where all 15 balls land home are kept.
- * Starting piece states are scrambled; par = the playbook's piece actions.
+ * Ball Track bank: 400 answer-first courses.
  *   bun scripts/ball-track-bank.ts
+ * Builds a snaking tube tree from the entry above column 4 with branches at
+ * rotatable tiles, puts the five trays under five exit columns, then proves
+ * every ball can be routed home from the previous ball's state in at most four
+ * rotations, and plays that playbook through the real sim (8/8 home).
  */
 import { writeFileSync } from "node:fs";
 import { encodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
-  btExit, makeBallTrackGame, sliderPos, BT_BALLS, BT_COLOURS, BT_COLS, BT_HOPPER_COL, BT_ROWS,
-  BT_K_FLIP, BT_K_RELEASE, BT_K_ROTATE, BT_K_SLIDE, BT_K_WHEEL, BT_RUN_TICKS, N,
-  type BtCourse, type BtGame, type BtState,
+  btRoute,
+  exitSide,
+  makeBallTrackGame,
+  opposite,
+  rotMask,
+  stepFrom,
+  BT_BALLS,
+  BT_COLOURS,
+  BT_COLS,
+  BT_DROP_TICKS,
+  BT_HOPPER_COL,
+  BT_K_ROTATE,
+  BT_PIPE_MASKS,
+  BT_ROWS,
+  N,
+  E,
+  S,
+  W,
+  type BtCourse,
+  type BtTile,
 } from "../src/lib/arcade/ballTrack";
 
-let seed = 0x5a17c3;
-const rnd = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
-const pick = (n: number) => Math.floor(rnd() * n);
-const shuffle = <T,>(xs: T[]) => { for (let i = xs.length - 1; i > 0; i--) { const j = pick(i + 1); [xs[i], xs[j]] = [xs[j]!, xs[i]!]; } return xs; };
+const TARGET = 400;
+const MAX_TAPS = 4;
+const MAX_ROUTE = 25; // a routed ball lands before the next one drops
 
-function makeCourse(tier: number): BtCourse | null {
-  const pits = shuffle([0, 1, 2, 3, 4, 5, 6]).slice(0, 2);
-  const colours = shuffle([0, 1, 2, 3, 4]);
-  let k = 0;
-  const trays = [0, 1, 2, 3, 4, 5, 6].map((c) => (pits.includes(c) ? -1 : colours[k++]!));
-  let balls: number[] = [];
-  for (let tries = 0; tries < 50; tries++) {
-    balls = shuffle([0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4]);
-    if (!balls.some((b, i) => i >= 2 && balls[i - 1] === b && balls[i - 2] === b)) break;
-    balls = [];
+let seed = 0x5eed_ba11;
+const rnd = (n: number) => {
+  seed = (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x6d2b79f5) >>> 0;
+  return (seed ^ (seed >>> 13)) % n;
+};
+const shuffle = <T,>(list: T[]) => {
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = rnd(i + 1);
+    [list[i], list[j]] = [list[j]!, list[i]!];
   }
-  if (!balls.length) return null;
-  const total = [8, 11, 14][tier]! + pick(3);
-  const wheelsN = tier === 0 ? pick(2) : tier === 1 ? 1 : 2;
-  const slidersN = tier === 0 ? 1 : tier === 1 ? 1 + pick(2) : 2 + pick(2);
-  const used = new Set<number>();
-  const wheels: BtCourse["wheels"] = [];
-  for (let g = 0; wheels.length < wheelsN && g < 200; g++) {
-    const r = 1 + pick(4), c = pick(6), cell = r * BT_COLS + c;
-    const cells = [cell, cell + 1, cell + BT_COLS, cell + BT_COLS + 1];
-    if (cells.some((x) => used.has(x))) continue;
-    cells.forEach((x) => used.add(x));
-    wheels.push({ cell, pocket: pick(4) });
+  return list;
+};
+const CELLS = BT_COLS * BT_ROWS;
+const rowOf = (c: number) => Math.floor(c / BT_COLS);
+
+interface Node { parent: number; children: number[] } // sides
+/** A downward-ish walk from `start` (entered via `inlet`) to the bottom edge avoiding `used`; no upward moves. */
+function walk(start: number, inlet: number, used: Map<number, Node>, exits: Set<number>): Map<number, Node> | null {
+  const path = new Map<number, Node>();
+  let cell = start, entry = inlet;
+  for (let guard = 0; guard < 40; guard++) {
+    if (used.has(cell) || path.has(cell)) return null;
+    const node: Node = { parent: entry, children: [] };
+    path.set(cell, node);
+    const r = rowOf(cell), c = cell % BT_COLS;
+    const options: number[] = [];
+    if (r === BT_ROWS - 1) {
+      if (!exits.has(c)) options.push(S, S, S);
+    } else options.push(S, S);
+    if (entry !== E && c < BT_COLS - 1 && !used.has(cell + 1) && !path.has(cell + 1)) options.push(E, E);
+    if (entry !== W && c > 0 && !used.has(cell - 1) && !path.has(cell - 1)) options.push(W, W);
+    if (!options.length) return null;
+    const out = options[rnd(options.length)]!;
+    node.children.push(out);
+    const next = stepFrom(cell, out);
+    if (next >= 100) return path;
+    if (next < 0) return null;
+    cell = next;
+    entry = opposite(out);
   }
-  const sliders: BtCourse["sliders"] = [];
-  for (let g = 0; sliders.length < slidersN && g < 200; g++) {
-    const row = 1 + pick(5), len = 3 + pick(2), col = pick(BT_COLS - len + 1);
-    const cells = Array.from({ length: len }, (_, i) => row * BT_COLS + col + i);
-    if (cells.some((x) => used.has(x)) || sliders.some((s) => s.row === row)) continue;
-    cells.forEach((x) => used.add(x));
-    sliders.push({ row, col, len, slot: pick(2), pos: pick(len - 1) });
-  }
-  if (wheels.length < wheelsN || sliders.length < slidersN) return null;
-  const rest = total - wheelsN - slidersN;
-  const free = shuffle(Array.from({ length: BT_COLS * BT_ROWS }, (_, i) => i).filter((x) => !used.has(x)));
-  const flippers: BtCourse["flippers"] = [];
-  const pipes: BtCourse["pipes"] = [];
-  const nFlip = Math.ceil(rest * 0.55);
-  // Bias one flipper near the top of the hopper column so balls can spread.
-  const entryCells = [BT_HOPPER_COL, BT_COLS + BT_HOPPER_COL].filter((x) => !used.has(x));
-  const first = entryCells[pick(entryCells.length)];
-  const order = first === undefined ? free : [first, ...free.filter((x) => x !== first)];
-  for (const cell of order.slice(0, rest)) {
-    if (flippers.length < nFlip) flippers.push({ cell, dir: pick(2) });
-    else pipes.push({ cell, shape: pick(3), rot: pick(4) });
-  }
-  return { trays, balls, pipes, flippers, sliders, wheels };
+  return null;
 }
 
-/** Desired piece states for one ball, or null. */
-interface Plan { pipe: Map<number, number>; flip: Map<number, number>; slide: Map<number, number>; wheelIn: Map<number, number>; wheelOut: Map<number, number> }
-
-function planBall(game: BtGame, state: BtState, colour: number): Plan | null {
-  const { course, map } = game;
-  const best: { plan: Plan | null; cost: number } = { plan: null, cost: 1e9 };
-  const work: BtState = { ...state, pipeRot: [...state.pipeRot], flip: [...state.flip], slFrom: [...state.slFrom], slTo: [...state.slTo], slUntil: state.slUntil.map(() => 0) };
-  for (let i = 0; i < course.sliders.length; i++) { const p = sliderPos(state, i); work.slFrom[i] = p; work.slTo[i] = p; }
-  const plan: Plan = { pipe: new Map(), flip: new Map(), slide: new Map(), wheelIn: new Map(), wheelOut: new Map() };
-  const clone = (): Plan => ({ pipe: new Map(plan.pipe), flip: new Map(plan.flip), slide: new Map(plan.slide), wheelIn: new Map(plan.wheelIn), wheelOut: new Map(plan.wheelOut) });
-  const visit = (target: number, entry: number, cost: number, depth: number) => {
-    if (cost >= best.cost || depth > 30) return;
-    if (target === -2) return;
-    if (target >= 100) { if (course.trays[target - 100] === colour) { best.cost = cost; best.plan = clone(); } return; }
-    const info = map[target]!;
-    if (info.kind === 4) {
-      if (entry !== N || info.sub > 1 || plan.wheelIn.has(info.idx)) return;
-      const q0 = state.whPocket[info.idx]!;
-      const inCost = (info.sub - q0 + 4) % 4;
-      plan.wheelIn.set(info.idx, info.sub);
-      for (const out of [2, 3]) {
-        const wc = course.wheels[info.idx]!.cell;
-        const below = wc + 2 * BT_COLS + (out === 2 ? 1 : 0);
-        plan.wheelOut.set(info.idx, out);
-        visit(below >= BT_COLS * BT_ROWS ? 100 + (below % BT_COLS) : below, N, cost + inCost + (out - info.sub + 4) % 4, depth + 1);
-      }
-      plan.wheelIn.delete(info.idx); plan.wheelOut.delete(info.idx);
-      return;
+/** Shapes whose rotations connect `parent` to every child (by the sim's exit rule). */
+function shapesFor(parent: number, children: number[]) {
+  const ok: number[] = [];
+  for (let shape = 0; shape < 3; shape++) {
+    const reach = new Set<number>();
+    for (let rot = 0; rot < 4; rot++) reach.add(exitSide(rotMask(BT_PIPE_MASKS[shape]!, rot), parent));
+    if (children.every((c) => reach.has(c))) ok.push(shape);
+  }
+  return ok;
+}
+const fixedTile = (parent: number, child: number): BtTile => {
+  for (let shape = 0; shape < 2; shape++)
+    for (let rot = 0; rot < 4; rot++) {
+      const m = rotMask(BT_PIPE_MASKS[shape]!, rot);
+      if (m === (parent | child)) return { shape, rot };
     }
-    const step = (extra: number) => { const e = btExit(course, map, work, target, entry); visit(e.target, e.entry, cost + extra, depth + 1); };
-    if (info.kind === 1) {
-      const cur = state.pipeRot[info.idx]!;
-      if (plan.pipe.has(info.idx)) return step(0);
-      for (let d = 0; d < 4; d++) { work.pipeRot[info.idx] = (cur + d) & 3; plan.pipe.set(info.idx, (cur + d) & 3); step(d); }
-      work.pipeRot[info.idx] = cur; plan.pipe.delete(info.idx);
-    } else if (info.kind === 2) {
-      const cur = state.flip[info.idx]!;
-      if (plan.flip.has(info.idx)) return step(0);
-      for (const d of [0, 1]) { work.flip[info.idx] = cur ^ d; plan.flip.set(info.idx, cur ^ d); step(d); }
-      work.flip[info.idx] = cur; plan.flip.delete(info.idx);
-    } else if (info.kind === 3) {
-      const cur = work.slTo[info.idx]!;
-      if (plan.slide.has(info.idx)) return step(0);
-      const len = course.sliders[info.idx]!.len;
-      for (let p = 0; p < len - 1; p++) { work.slFrom[info.idx] = p; work.slTo[info.idx] = p; plan.slide.set(info.idx, p); step(p === cur ? 0 : 1); }
-      work.slFrom[info.idx] = cur; work.slTo[info.idx] = cur; plan.slide.delete(info.idx);
-    } else step(0);
+  throw Error("no tile");
+};
+
+function buildTree() {
+  const tree = new Map<number, Node>();
+  const exits = new Set<number>();
+  const exitOf = (p: Map<number, Node>) => {
+    for (const [cell, n] of p) if (rowOf(cell) === BT_ROWS - 1 && n.children.includes(S)) return cell % BT_COLS;
+    return -1;
   };
-  visit(BT_HOPPER_COL, N, 0, 0);
-  return best.plan;
+  const main = walk(BT_HOPPER_COL, N, tree, exits);
+  if (!main) return null;
+  // The main track should snake: at least 14 tiles.
+  if (main.size < 14) return null;
+  for (const [k, v] of main) tree.set(k, v);
+  exits.add(exitOf(main));
+  const rotatable = new Set<number>();
+  for (let r = 0; r < BT_ROWS - 1; r++) rotatable.add(r * BT_COLS + BT_HOPPER_COL);
+  let extras = 0;
+  const extraCap = 4 + rnd(3);
+  for (let attempt = 0; attempt < 400 && exits.size < 5; attempt++) {
+    const cells = [...tree.keys()].filter((c) => rowOf(c) < BT_ROWS - 1);
+    const at = cells[rnd(cells.length)]!;
+    const isExtra = !rotatable.has(at);
+    if (isExtra && extras >= extraCap) continue;
+    const node = tree.get(at)!;
+    const side = [E, W, S][rnd(3)]!;
+    if (side === node.parent || node.children.includes(side)) continue;
+    if (!shapesFor(node.parent, [...node.children, side]).length) continue;
+    const next = stepFrom(at, side);
+    if (next < 0 || next >= 100) continue;
+    const branch = walk(next, opposite(side), tree, exits);
+    if (!branch) continue;
+    const col = exitOf(branch);
+    if (col < 0 || exits.has(col)) continue;
+    for (const [k, v] of branch) tree.set(k, v);
+    node.children.push(side);
+    exits.add(col);
+    if (isExtra) { rotatable.add(at); extras++; }
+  }
+  if (exits.size < 5) return null;
+  // Pad to 4–6 off-centre rotatables with tree tiles on rows 1–6 (indices 0–5).
+  const pad = shuffle([...tree.keys()].filter((c) => rowOf(c) < BT_ROWS - 1 && !rotatable.has(c)));
+  while (extras < 4 && pad.length) { rotatable.add(pad.pop()!); extras++; }
+  if (extras < 4 || extras > 6) return null;
+  return { tree, exits, rotatable };
 }
 
-/** Plays the course with the bot; returns the event log and final state. */
-export function playbook(game: BtGame): { events: ArcadeInputEvent[]; state: BtState } | null {
+function makeCourse(): BtCourse | null {
+  const built = buildTree();
+  if (!built) return null;
+  const { tree, exits, rotatable } = built;
+  const tiles: BtTile[] = [];
+  for (let cell = 0; cell < CELLS; cell++) {
+    const node = tree.get(cell);
+    if (!node) tiles.push({ shape: rnd(3), rot: rnd(4) });
+    else if (rotatable.has(cell)) {
+      const shapes = shapesFor(node.parent, node.children);
+      if (!shapes.length) return null;
+      tiles.push({ shape: shapes[rnd(shapes.length)]!, rot: 0 });
+    } else tiles.push(fixedTile(node.parent, node.children[0]!));
+  }
+  const trayCols = shuffle([...exits]).slice(0, 5);
+  const colours = shuffle([0, 1, 2, 3, 4]);
+  const trays = Array.from({ length: BT_COLS }, () => -1);
+  trayCols.forEach((c, i) => (trays[c] = colours[i]!));
+  const balls: number[] = [];
+  while (balls.length < BT_BALLS) {
+    const c = rnd(BT_COLOURS);
+    const n = balls.length;
+    if (n >= 2 && balls[n - 1] === c && balls[n - 2] === c) continue;
+    balls.push(c);
+  }
+  for (const cell of rotatable) tiles[cell]!.rot = rnd(4); // scramble
+  return { trays, balls, tiles, rotatable: [...rotatable].sort((a, b) => a - b) };
+}
+
+/** Fewest taps (≤ MAX_TAPS) from `rots` that route a ball into column `col`. */
+function solveBall(course: BtCourse, rots: number[], col: number): { rots: number[]; taps: number[] } | null {
+  const R = course.rotatable;
+  const key = (r: number[]) => R.map((c) => r[c]).join("");
+  let frontier = [{ rots, taps: [] as number[] }];
+  const seen = new Set([key(rots)]);
+  for (let depth = 0; depth <= MAX_TAPS; depth++) {
+    for (const f of frontier) {
+      const route = btRoute(course, f.rots);
+      if (route.col === col && route.steps <= MAX_ROUTE) return f;
+    }
+    if (depth === MAX_TAPS) break;
+    const next: typeof frontier = [];
+    for (const f of frontier)
+      for (const cell of R) {
+        const r = [...f.rots];
+        r[cell] = (r[cell]! + 1) & 3;
+        const k = key(r);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        next.push({ rots: r, taps: [...f.taps, cell] });
+      }
+    frontier = next;
+  }
+  return null;
+}
+
+function prove(course: BtCourse) {
+  let rots = course.tiles.map((t) => t.rot);
+  const plan: number[][] = [];
+  for (const colour of course.balls) {
+    const col = course.trays.indexOf(colour);
+    const step = solveBall(course, rots, col);
+    if (!step) return null;
+    plan.push(step.taps);
+    rots = step.rots;
+  }
+  return plan;
+}
+
+/** Plays the plan through the real sim: ball i's taps go in right after ball i−1 lands. */
+export function playPlan(course: BtCourse, plan: number[][]) {
+  const game = makeBallTrackGame(course);
   let state = game.init(1);
-  const events: ArcadeInputEvent[] = [];
-  const queue: Omit<ArcadeInputEvent, "t">[] = [];
-  let plan: Plan | null = null;
-  let waitUntil = 0;
+  const log: ArcadeInputEvent[] = [];
+  let ball = 0, queue = [...plan[0]!], resolved = 0;
   while (!game.isOver(state)) {
-    if (!queue.length && state.balls.length === 0 && state.next < BT_BALLS && state.tick >= waitUntil) {
-      plan = planBall(game, state, game.course.balls[state.next]!);
-      if (!plan) return null;
-      for (const [i, rot] of plan.pipe) for (let d = (rot - state.pipeRot[i]! + 4) % 4; d > 0; d--) queue.push({ k: BT_K_ROTATE, a: game.course.pipes[i]!.cell, b: 0, c: 0, d: 0 });
-      for (const [i, f] of plan.flip) if (f !== state.flip[i]) queue.push({ k: BT_K_FLIP, a: game.course.flippers[i]!.cell, b: 0, c: 0, d: 0 });
-      for (const [i, p] of plan.slide) if (p !== sliderPos(state, i)) queue.push({ k: BT_K_SLIDE, a: i, b: p, c: 0, d: 0 });
-      for (const [w, q] of plan.wheelIn) for (let d = (q - state.whPocket[w]! + 4) % 4; d > 0; d--) queue.push({ k: BT_K_WHEEL, a: w, b: 1, c: 0, d: 0 });
-      queue.push({ k: BT_K_RELEASE, a: 0, b: 0, c: 0, d: 0 });
+    const t = state.tick + 1;
+    const done = state.home + state.wrong + state.lost;
+    if (done > resolved) {
+      resolved = done;
+      ball++;
+      queue = [...(plan[ball] ?? [])];
     }
-    let next: ArcadeInputEvent | null = null;
-    const head = queue[0];
-    const settled = state.slUntil.every((u) => state.tick + 1 >= u) && state.whUntil.every((u) => state.tick + 1 >= u);
-    if (head && (head.k !== BT_K_WHEEL || state.tick + 1 >= state.whUntil[head.a]!) && (head.k !== BT_K_RELEASE || settled)) {
-      next = { t: state.tick + 1, ...head };
+    const cell = queue[0];
+    if (cell !== undefined && ball >= 0) {
       queue.shift();
-    } else if (!head && plan) {
-      const held = state.balls.find((b) => b.held >= 0);
-      if (held && state.tick + 1 >= state.whUntil[held.held]! && state.whPocket[held.held] !== plan.wheelOut.get(held.held)) {
-        next = { t: state.tick + 1, k: BT_K_WHEEL, a: held.held, b: 1, c: 0, d: 0 };
-      }
+      recordInput(log, { k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0, t }, game.inputRanges);
     }
-    if (next) recordInput(events, next, game.inputRanges);
-    state = game.step(state, inputAt(events, state.tick + 1));
-    if (state.lost || state.wrong) return null;
+    state = game.step(state, inputAt(log, t));
   }
-  return state.home === BT_BALLS ? { events, state } : null;
-}
-
-/** Removing slides must break this exact proven playbook, not merely change its action count. */
-export function dependsOnSlide(game: BtGame, events: ArcadeInputEvent[]): boolean {
-  if (!game.course.sliders.length) return true;
-  if (!events.some((e) => e.k === BT_K_SLIDE)) return false;
-  let full = game.init(1), deflected = false;
-  while (!game.isOver(full)) {
-    const before = full;
-    full = game.step(full, inputAt(events, full.tick + 1));
-    for (const ball of full.balls) {
-      if (!before.balls.some((b) => b.id === ball.id && b.cell !== ball.cell)) continue;
-      const info = game.map[ball.cell];
-      if (info?.kind === 3 && ball.target >= 0) {
-        const col = ball.target >= 100 ? ball.target - 100 : ball.target % BT_COLS;
-        if (col !== ball.cell % BT_COLS) deflected = true;
-      }
-    }
-  }
-  if (!deflected) return false;
-  const without = events.filter((e) => e.k !== BT_K_SLIDE);
-  let state = game.init(1);
-  while (!game.isOver(state)) state = game.step(state, inputAt(without, state.tick + 1));
-  return state.home < BT_BALLS;
+  return { state, log };
 }
 
 if (import.meta.main) {
   const entries: { course: BtCourse; tier: number; par: number; endTick: number; playbook: string }[] = [];
-  const seen = new Set<string>();
-  const tierCount = [0, 0, 0];
-  let attempts = 0;
-  while (entries.length < 400 && attempts++ < 200000) {
-    const tier = entries.length % 3;
-    const course = makeCourse(tier);
+  let tries = 0;
+  while (entries.length < TARGET) {
+    tries++;
+    const course = makeCourse();
     if (!course) continue;
-    const game = makeBallTrackGame(course);
-    const run = playbook(game);
-    if (!run || run.state.lastLand > BT_RUN_TICKS - 900) continue;
-    if (!dependsOnSlide(game, run.events)) continue;
-    const par = run.state.actions;
-    if (par < 12) continue;
-    const key = JSON.stringify(course);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    tierCount[tier]!++;
-    entries.push({ course, tier, par, endTick: run.state.lastLand, playbook: encodeInputEvents(run.events) });
+    const plan = prove(course);
+    if (!plan) continue;
+    const par = plan.reduce((n, p) => n + p.length, 0);
+    if (par < 8 || plan[0]!.length === 0) continue; // scrambled start must need work
+    const run = playPlan(course, plan);
+    if (run.state.home !== BT_BALLS || run.state.actions !== par) continue;
+    if (run.log.some((e) => e.t >= BT_DROP_TICKS * BT_BALLS)) continue;
+    entries.push({ course, tier: par < 12 ? 1 : par < 16 ? 2 : 3, par, endTick: run.state.lastLand, playbook: encodeInputEvents(run.log) });
   }
-  if (entries.length !== 400) throw Error(`Only built ${entries.length} courses after ${attempts} attempts`);
-  void BT_COLOURS; void BT_ROWS;
   writeFileSync(
     "src/lib/duel/ballTrackBank.server.ts",
     `/** Generated by scripts/ball-track-bank.ts; do not hand-edit. */\nimport type { BtCourse } from "@/lib/arcade/ballTrack";\nexport interface BallTrackBankEntry { course: BtCourse; tier: number; par: number; endTick: number; playbook: string }\nexport const BALL_TRACK_BANK: BallTrackBankEntry[] = ${JSON.stringify(entries)};\n`,
   );
-  const pars = entries.map((e) => e.par), ends = entries.map((e) => e.endTick);
-  console.log(`Ball Track: ${entries.length} courses in ${attempts} attempts; tiers ${tierCount.join("/")}; par ${Math.min(...pars)}–${Math.max(...pars)}; last landing ${Math.min(...ends)}–${Math.max(...ends)} ticks`);
+  const tiers = [1, 2, 3].map((t) => entries.filter((e) => e.tier === t).length);
+  console.log(`ball track bank: ${entries.length} courses from ${tries} tries · tiers ${tiers.join("/")}`);
 }
