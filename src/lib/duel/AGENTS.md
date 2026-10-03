@@ -1,4 +1,4 @@
-- Ball Track and Word Search draw from script-built, server-only banks (scripts/ball-track-bank.ts, scripts/word-search-bank.ts); why: Ball Track solution event plans and each word's placement are checked offline, not at room start.
+- Word Search draws from a script-built, server-only bank (scripts/word-search-bank.ts); why: each word's placement is checked offline, not at room start.
 - Word Search category lists live in src/lib/duel/wordSearchWords.ts and must be followed by re-running the bank script; why: the bank is derived from them.
 - Number Pyramid draws four rising-difficulty boards from a script-built, server-only bank (scripts/number-pyramid-bank.ts); answers are (cell, tray index) pairs graded against the stored tray and solution; why: uniqueness is proven offline and tile values never come from the device.
 - Dig is a shared integer water sim in src/lib/duel/dig.ts replayed on the server from the (step, cell) dig log, over boards from the script-built, server-only bank (scripts/dig-bank.ts); why: phone, grader and generator must flow water identically, and the intended route never reaches a device.
