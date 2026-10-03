@@ -10,7 +10,7 @@ import { buzz } from "@/lib/motion";
 import { playCorrect } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const BALL_COLOURS = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#B26BFF", "#FF6BD6", "#FF8A3D", "#8B5A2B", "#FFE600"];
+const BALL_COLOURS = ["var(--color-ball-red)", "var(--color-ball-blue)", "var(--color-ball-green)", "var(--color-ball-purple)", "var(--color-ball-pink)", "var(--color-ball-orange)", "var(--color-ball-brown)", "var(--color-ball-yellow)"];
 const STEP_MS = 130;
 
 function PipeBoard({ board, tiles, dropped, active, onRotate, onDrop, small = false }: {
