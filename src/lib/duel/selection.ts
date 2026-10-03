@@ -45,8 +45,6 @@ export interface RoundSelectionOptions {
   recent?: RecentRounds;
   /** Host opt-in: the number category joins the pool. */
   addMaths?: boolean;
-  /** Host opt-in: the memory category joins the pool. */
-  addMemory?: boolean;
   /** Host toggle, on by default: exactly one round is an arcade game. */
   addArcade?: boolean;
 }
@@ -117,7 +115,6 @@ export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[
 
   const optIns: PuzzleCategory[] = [
     ...(options.addMaths ? (["number"] as const) : []),
-    ...(options.addMemory ? (["memory"] as const) : []),
   ];
   const pool = [...CORE_CATEGORIES, ...optIns].filter(
     (category) => typesInCategory(category).length > 0,
