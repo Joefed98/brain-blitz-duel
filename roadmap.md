@@ -516,3 +516,6 @@
 
 ## Ball Track tube rework (Oct 3)
 - [x] 7×7 tube track, rotatable gold tiles, 8 auto-dropped balls, 400-course bank; Ball Track-only proof; no browser tests.
+
+## Ball Track serpentine rework (Oct 4)
+- [x] Fixed snaking track, toggle straights to drop, 8 balls at 15 ticks/tile, 400-course bank; Ball Track-only proof; no browser tests.

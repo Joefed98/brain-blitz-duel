@@ -1,8 +1,7 @@
 /**
- * Ball Track: a deterministic 60-tick sim. A 7×7 grid of tube tiles forms one
- * snaking track from the entry above column 4 down to five trays and two pits.
- * Balls drop every 10 s and move one tile per BT_STEP_TICKS; the player taps
- * gold-outlined tiles to rotate them. The server replays the tap log.
+ * Ball Track: a deterministic 60-tick sim. A fixed 7×7 serpentine of straights
+ * and corners; tapping a gold straight toggles it vertical so balls drop through
+ * to the next row (or the tray below on row 7). Balls drop every 10 s. The server replays the tap log.
  */
 
 import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
@@ -13,83 +12,72 @@ export const BT_COLS = 7;
 export const BT_ROWS = 7;
 export const BT_BALLS = 8;
 export const BT_COLOURS = 5;
-export const BT_STEP_TICKS = 20;
+export const BT_STEP_TICKS = 15;
 export const BT_DROP_TICKS = 600; // a ball every 10 s
 export const BT_RUN_TICKS = 5400; // 90 s
 export const BT_HOPPER_COL = 3;
-export const BT_MAX_STEPS = 60;
 export const BT_CHECKPOINT_INTERVAL = 300;
 
 export const BT_K_ROTATE = 12;
 
 /** Side bits. */
 export const N = 1, E = 2, S = 4, W = 8;
-/** Tube shapes at rotation 0: straight, corner, T. */
-export const BT_PIPE_MASKS = [N | S, N | E, E | S | W] as const;
 
 /** Game palette: RED, BLUE, GREEN, PURPLE, YELLOW. */
 export const BT_PALETTE = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#B26BFF", "#FFE600"] as const;
 export const BT_COLOUR_NAMES = ["Red", "Blue", "Green", "Purple", "Yellow"] as const;
 
+/* ================================ Track ================================= */
+
+/** Row direction: row 1 runs right, row 2 left, and so on. */
+export const rowDir = (row: number) => (row % 2 === 0 ? 1 : -1);
+/** Tile kind per cell: 0 empty, 1 straight, 2 corner. Fixed serpentine. */
+export const BT_KIND: number[] = [];
+/** Corner side masks (0 for non-corners). */
+export const BT_CORNER: number[] = [];
+for (let r = 0; r < BT_ROWS; r++)
+  for (let c = 0; c < BT_COLS; c++) {
+    const d = rowDir(r);
+    const start = r === 0 ? BT_HOPPER_COL : d > 0 ? 0 : BT_COLS - 1;
+    const end = d > 0 ? BT_COLS - 1 : 0;
+    const onRow = d > 0 ? c >= start : c <= start;
+    let kind = onRow ? 1 : 0, mask = 0;
+    if (onRow && c === start) { kind = 2; mask = N | (d > 0 ? E : W); }
+    else if (onRow && c === end && r < BT_ROWS - 1) { kind = 2; mask = S | (d > 0 ? W : E); }
+    BT_KIND.push(kind);
+    BT_CORNER.push(mask);
+  }
+/** Straights fixed in every course: column 4, rows 1–6. */
+export const BT_ALWAYS_FIXED = Array.from({ length: BT_ROWS - 1 }, (_, r) => r * BT_COLS + BT_HOPPER_COL).filter((c) => BT_KIND[c] === 1);
+
 /* ================================ Course ================================ */
 
-export interface BtTile { shape: number; rot: number }
 export interface BtCourse {
   /** Colour per bottom column (7), -1 = pit. */
   trays: number[];
   /** Ball colours in drop order. */
   balls: number[];
-  /** 49 tiles, row-major; rot is the starting (scrambled) rotation. */
-  tiles: BtTile[];
-  /** Rotatable cell indices (sorted). */
-  rotatable: number[];
+  /** Seeded extra fixed straights (never row 7, never column 4). */
+  fixed: number[];
 }
 
-export const rotMask = (mask: number, rot: number) => {
-  let m = mask;
-  for (let i = 0; i < (rot & 3); i++) m = ((m << 1) | (m >> 3)) & 15;
-  return m;
-};
-export const opposite = (side: number) => (side === N ? S : side === S ? N : side === E ? W : E);
-
-/** Side a ball leaves through after entering via `inlet`: gravity first, then straight on, then E, W, N. -1 = not connected. */
-export function exitSide(mask: number, inlet: number): number {
-  if (!(mask & inlet)) return -1;
-  const rest = mask & ~inlet;
-  if (rest & S) return S;
-  const opp = opposite(inlet);
-  if (rest & opp) return opp;
-  for (const side of [E, W, N]) if (rest & side) return side;
-  return -1;
+/** Rotatable straights: every straight not in column 4 rows 1–6 and not a seeded fixed tile. */
+export function btRotatable(course: BtCourse): number[] {
+  const fixed = new Set([...BT_ALWAYS_FIXED, ...course.fixed]);
+  return BT_KIND.flatMap((k, cell) => (k === 1 && !fixed.has(cell) ? [cell] : []));
 }
 
-const LOST = -2;
+const PIT = -2;
 const SLOT = 100;
 
-/** Next step from `cell` leaving via `side`: neighbour cell, SLOT + column, or LOST. */
-export function stepFrom(cell: number, side: number): number {
+/** Next cell for a ball in `cell` (arrived from above if `fromAbove`): neighbour, SLOT + column, or PIT. */
+export function btNext(cell: number, fromAbove: boolean, vertical: boolean): { cell: number; fromAbove: boolean } {
   const r = Math.floor(cell / BT_COLS), c = cell % BT_COLS;
-  if (side === S) return r === BT_ROWS - 1 ? SLOT + c : cell + BT_COLS;
-  if (side === N) return r === 0 ? LOST : cell - BT_COLS;
-  if (side === E) return c === BT_COLS - 1 ? LOST : cell + 1;
-  if (side === W) return c === 0 ? LOST : cell - 1;
-  return LOST;
-}
-
-/** Static route with the given rotations (indexed per cell): column landed in, or -1 lost. */
-export function btRoute(course: BtCourse, rots: number[]): { col: number; steps: number } {
-  let cell = BT_HOPPER_COL, inlet = N;
-  for (let steps = 1; steps <= BT_MAX_STEPS; steps++) {
-    const t = course.tiles[cell]!;
-    const out = exitSide(rotMask(BT_PIPE_MASKS[t.shape]!, rots[cell]!), inlet);
-    if (out < 0) return { col: -1, steps };
-    const next = stepFrom(cell, out);
-    if (next === LOST) return { col: -1, steps };
-    if (next >= SLOT) return { col: next - SLOT, steps };
-    cell = next;
-    inlet = opposite(out);
-  }
-  return { col: -1, steps: BT_MAX_STEPS };
+  const down = BT_KIND[cell] === 2 ? !fromAbove : vertical;
+  if (down) return r === BT_ROWS - 1 ? { cell: SLOT + c, fromAbove: true } : { cell: cell + BT_COLS, fromAbove: true };
+  const nc = c + rowDir(r);
+  if (nc < 0 || nc >= BT_COLS) return { cell: PIT, fromAbove: false };
+  return { cell: cell + rowDir(r), fromAbove: false };
 }
 
 /* ================================ State ================================ */
@@ -100,20 +88,20 @@ export interface BtBall {
   /** -1 = hopper, 0..48 cell, 100+col = dropping into a tray. */
   cell: number;
   from: number;
-  inlet: number;
+  /** 1 = entered its tile from above. */
+  above: number;
   arrived: number;
   /** Earliest tick the ball may move on. */
   at: number;
   steps: number;
-  /** 1 = reached a tile that doesn't connect; it is lost there. */
-  dead: number;
 }
 
 export interface BtMark { cell: number; colour: number; tick: number; ok: number }
 
 export interface BtState {
   tick: number;
-  rot: number[];
+  /** Per cell: 1 = straight turned vertical. */
+  vert: number[];
   balls: BtBall[];
   next: number;
   home: number;
@@ -125,13 +113,10 @@ export interface BtState {
   falls: BtMark[];
 }
 
-export const btMask = (course: BtCourse, s: BtState, cell: number) =>
-  rotMask(BT_PIPE_MASKS[course.tiles[cell]!.shape]!, s.rot[cell]!);
-
-export function btInit(course: BtCourse): BtState {
+export function btInit(_course: BtCourse): BtState {
   return {
     tick: 0,
-    rot: course.tiles.map((t) => t.rot & 3),
+    vert: BT_KIND.map(() => 0),
     balls: [],
     next: 0,
     home: 0,
@@ -147,29 +132,22 @@ export function btInit(course: BtCourse): BtState {
 const keep = <T,>(list: T[], item: T) => [...list.slice(-11), item];
 
 export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, input: ArcadeInputEvent | null): BtState {
-  const s: BtState = { ...prev, tick: prev.tick + 1, rot: [...prev.rot], balls: prev.balls.map((b) => ({ ...b })) };
+  const s: BtState = { ...prev, tick: prev.tick + 1, vert: [...prev.vert], balls: prev.balls.map((b) => ({ ...b })) };
   const t = s.tick;
 
   if (input && input.k === BT_K_ROTATE && rotatable.has(input.a) && !s.balls.some((b) => b.cell === input.a)) {
-    s.rot[input.a] = (s.rot[input.a]! + 1) & 3;
+    s.vert[input.a] = s.vert[input.a] ? 0 : 1;
     s.actions++;
   }
 
   if (s.next < BT_BALLS && (t - 1) % BT_DROP_TICKS === 0) {
-    s.balls.push({ id: s.next, colour: course.balls[s.next]!, cell: -1, from: -1, inlet: N, arrived: t, at: t + BT_STEP_TICKS, steps: 0, dead: 0 });
+    s.balls.push({ id: s.next, colour: course.balls[s.next]!, cell: -1, from: -1, above: 1, arrived: t, at: t + BT_STEP_TICKS, steps: 0 });
     s.next++;
   }
 
   const removed = new Set<number>();
-  const lose = (ball: BtBall, cell: number) => {
-    s.falls = keep(s.falls, { cell, colour: ball.colour, tick: t, ok: 0 });
-    s.lost++;
-    s.lastLand = t;
-    removed.add(ball.id);
-  };
   for (const ball of s.balls) {
     if (t < ball.at) continue;
-    if (ball.dead) { lose(ball, ball.cell); continue; }
     if (ball.cell >= SLOT) {
       const col = ball.cell - SLOT;
       const tray = course.trays[col]!;
@@ -181,22 +159,21 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
       removed.add(ball.id);
       continue;
     }
-    let target: number, entry = N;
-    if (ball.cell < 0) target = BT_HOPPER_COL;
-    else {
-      const out = exitSide(btMask(course, s, ball.cell), ball.inlet);
-      target = out < 0 ? LOST : stepFrom(ball.cell, out);
-      entry = out < 0 ? N : opposite(out);
+    const next = ball.cell < 0 ? { cell: BT_HOPPER_COL, fromAbove: true } : btNext(ball.cell, ball.above === 1, s.vert[ball.cell] === 1);
+    if (next.cell === PIT) {
+      s.falls = keep(s.falls, { cell: ball.cell, colour: ball.colour, tick: t, ok: 0 });
+      s.lost++;
+      s.lastLand = t;
+      removed.add(ball.id);
+      continue;
     }
-    if (target === LOST || ball.steps >= BT_MAX_STEPS) { lose(ball, ball.cell); continue; }
-    if (target < SLOT && s.balls.some((b) => b.id !== ball.id && !removed.has(b.id) && b.cell === target)) continue; // waits behind
+    if (next.cell < SLOT && s.balls.some((b) => b.id !== ball.id && !removed.has(b.id) && b.cell === next.cell)) continue; // waits behind
     ball.from = ball.cell;
-    ball.cell = target;
-    ball.inlet = entry;
+    ball.cell = next.cell;
+    ball.above = next.fromAbove ? 1 : 0;
     ball.arrived = t;
     ball.at = t + BT_STEP_TICKS;
     ball.steps++;
-    if (target < SLOT && !(btMask(course, s, target) & entry)) ball.dead = 1;
   }
   if (removed.size) s.balls = s.balls.filter((b) => !removed.has(b.id));
   return s;
@@ -225,8 +202,8 @@ export interface BtCheckpoint {
 
 export function btCheckpoint(s: BtState): BtCheckpoint {
   const snap = { tick: s.tick, next: s.next, home: s.home, wrong: s.wrong, lost: s.lost, flying: s.balls.length };
-  const values: number[] = [...Object.values(snap), s.actions, s.lastLand, ...s.rot];
-  for (const b of s.balls) values.push(b.id, b.cell, b.at, b.inlet, b.steps, b.dead);
+  const values: number[] = [...Object.values(snap), s.actions, s.lastLand, ...s.vert];
+  for (const b of s.balls) values.push(b.id, b.cell, b.at, b.above, b.steps);
   let checksum = 0x811c9dc5;
   for (const v of values) {
     checksum ^= v | 0;
@@ -244,7 +221,8 @@ export const BT_W = BT_COLS * BT_TILE;
 export const BT_H = BT_HOPPER_H + BT_ROWS * BT_TILE + BT_TRAY_H;
 const BALL_R = 20;
 const BG = "#12161C";
-const TUBE = "#5A6270";
+const TUBE = "#6A7280";
+const TUBE_FIXED = "#3E4550";
 const GOLD = "#F5B82E";
 
 const cellCentre = (cell: number) => ({
@@ -285,24 +263,27 @@ function tubePath(ctx: CanvasRenderingContext2D, cell: number, mask: number) {
   }
 }
 
-export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtState) {
+export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtState, rotatable?: Set<number>) {
   const gridY = BT_HOPPER_H;
+  const rot = rotatable ?? new Set(btRotatable(course));
   ctx.fillStyle = BG;
   ctx.fillRect(0, gridY, BT_W, BT_ROWS * BT_TILE);
-  // Tubes: a wide grey stroke with a background stroke inside leaves two parallel lines.
+  const maskOf = (cell: number) => (BT_KIND[cell] === 2 ? BT_CORNER[cell]! : s.vert[cell] ? N | S : E | W);
+  // Tubes: a wide grey stroke with a background stroke inside leaves two parallel lines; fixed tiles darker.
   ctx.lineCap = "butt";
   ctx.lineJoin = "round";
-  for (const [width, colour] of [[BALL_R * 3 + 6, TUBE], [BALL_R * 3, BG]] as const) {
-    ctx.strokeStyle = colour;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    for (let cell = 0; cell < course.tiles.length; cell++) tubePath(ctx, cell, btMask(course, s, cell));
-    ctx.stroke();
+  for (const movable of [false, true]) {
+    for (const [width, colour] of [[BALL_R * 3 + 6, movable ? TUBE : TUBE_FIXED], [BALL_R * 3, BG]] as const) {
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      for (let cell = 0; cell < BT_KIND.length; cell++) if (BT_KIND[cell] && rot.has(cell) === movable) tubePath(ctx, cell, maskOf(cell));
+      ctx.stroke();
+    }
   }
-  // Rotatable tiles.
   ctx.strokeStyle = GOLD;
   ctx.lineWidth = 3;
-  for (const cell of course.rotatable) {
+  for (const cell of rot) {
     const x = (cell % BT_COLS) * BT_TILE, y = gridY + Math.floor(cell / BT_COLS) * BT_TILE;
     ctx.strokeRect(x + 3, y + 3, BT_TILE - 6, BT_TILE - 6);
   }
@@ -373,7 +354,7 @@ export type BtGame = ArcadeGame<BtState, ArcadeInputEvent | null> & { course: Bt
 
 /** One game per stored course; the seed is unused because the course is the content. */
 export function makeBallTrackGame(course: BtCourse): BtGame {
-  const rotatable = new Set(course.rotatable);
+  const rotatable = new Set(btRotatable(course));
   return {
     key: "balltrack",
     runTicks: BT_RUN_TICKS,
@@ -383,7 +364,7 @@ export function makeBallTrackGame(course: BtCourse): BtGame {
     step: (state, input) => btStep(course, rotatable, state, input),
     isOver: btOver,
     score: btScore,
-    draw: (ctx, state) => btDraw(ctx, course, state),
+    draw: (ctx, state) => btDraw(ctx, course, state, rotatable),
     inputRanges: BT_INPUT_RANGES,
   };
 }

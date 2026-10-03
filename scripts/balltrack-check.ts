@@ -6,7 +6,7 @@
 import { BALL_TRACK_BANK } from "../src/lib/duel/ballTrackBank.server";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { decodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { btCheckpoint, makeBallTrackGame, BT_BALLS, BT_CHECKPOINT_INTERVAL, BT_COLS, BT_K_ROTATE, type BtCheckpoint } from "../src/lib/arcade/ballTrack";
+import { btCheckpoint, makeBallTrackGame, BT_BALLS, BT_CHECKPOINT_INTERVAL, BT_COLS, BT_KIND, BT_K_ROTATE, type BtCheckpoint } from "../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
 
 let fails = 0;
@@ -34,9 +34,8 @@ function play(index: number, choose: (tick: number) => Omit<ArcadeInputEvent, "t
 let solved = 0;
 BALL_TRACK_BANK.forEach((entry, i) => {
   const c = entry.course;
-  const centre = Array.from({ length: 6 }, (_, r) => r * BT_COLS + 3);
-  const extras = c.rotatable.filter((x) => x % BT_COLS !== 3).length;
-  if (!centre.every((x) => c.rotatable.includes(x)) || extras < 4 || extras > 6 || c.rotatable.some((x) => x >= 42)) fail(`course ${i}: rotatable set`);
+  const extra = c.fixed.length;
+  if (extra < 3 || extra > 5 || c.fixed.some((x) => x >= 42 || x % BT_COLS === 3 || BT_KIND[x] !== 1)) fail(`course ${i}: fixed set`);
   if (c.trays.filter((t) => t >= 0).length !== 5 || c.balls.length !== BT_BALLS) fail(`course ${i}: trays/balls`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);
