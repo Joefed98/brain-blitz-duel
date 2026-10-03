@@ -1,39 +1,29 @@
 /**
- * Ball Track bank: 400 answer-first courses.
+ * Ball Track bank: 400 courses over the fixed serpentine.
  *   bun scripts/ball-track-bank.ts
- * Builds a snaking tube tree from the entry above column 4 with branches at
- * rotatable tiles, puts the five trays under five exit columns, then proves
- * every ball can be routed home from the previous ball's state in at most four
- * rotations, and plays that playbook through the real sim (8/8 home).
+ * Seeds only tray order, ball order and 3–5 extra fixed straights. Every tray
+ * must be reachable from the all-horizontal start, and a just-in-time playbook
+ * (each tile set for the next ball due through it) must route all 8 home in the
+ * real sim; seeds that fail are rerolled.
  */
 import { writeFileSync } from "node:fs";
 import { encodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
-  btRoute,
-  exitSide,
+  btNext,
+  btRotatable,
   makeBallTrackGame,
-  opposite,
-  rotMask,
-  stepFrom,
+  BT_ALWAYS_FIXED,
   BT_BALLS,
   BT_COLOURS,
   BT_COLS,
-  BT_DROP_TICKS,
   BT_HOPPER_COL,
+  BT_KIND,
   BT_K_ROTATE,
-  BT_PIPE_MASKS,
   BT_ROWS,
-  N,
-  E,
-  S,
-  W,
   type BtCourse,
-  type BtTile,
 } from "../src/lib/arcade/ballTrack";
 
 const TARGET = 400;
-const MAX_TAPS = 4;
-const MAX_ROUTE = 25; // a routed ball lands before the next one drops
 
 let seed = 0x5eed_ba11;
 const rnd = (n: number) => {
@@ -47,119 +37,35 @@ const shuffle = <T,>(list: T[]) => {
   }
   return list;
 };
-const CELLS = BT_COLS * BT_ROWS;
-const rowOf = (c: number) => Math.floor(c / BT_COLS);
 
-interface Node { parent: number; children: number[] } // sides
-/** A downward-ish walk from `start` (entered via `inlet`) to the bottom edge avoiding `used`; no upward moves. */
-function walk(start: number, inlet: number, used: Map<number, Node>, exits: Set<number>): Map<number, Node> | null {
-  const path = new Map<number, Node>();
-  let cell = start, entry = inlet;
-  for (let guard = 0; guard < 40; guard++) {
-    if (used.has(cell) || path.has(cell)) return null;
-    const node: Node = { parent: entry, children: [] };
-    path.set(cell, node);
-    const r = rowOf(cell), c = cell % BT_COLS;
-    const options: number[] = [];
-    if (r === BT_ROWS - 1) {
-      if (!exits.has(c)) options.push(S, S, S);
-    } else options.push(S, S);
-    if (entry !== E && c < BT_COLS - 1 && !used.has(cell + 1) && !path.has(cell + 1)) options.push(E, E);
-    if (entry !== W && c > 0 && !used.has(cell - 1) && !path.has(cell - 1)) options.push(W, W);
-    if (!options.length) return null;
-    const out = options[rnd(options.length)]!;
-    node.children.push(out);
-    const next = stepFrom(cell, out);
-    if (next >= 100) return path;
-    if (next < 0) return null;
-    cell = next;
-    entry = opposite(out);
+/** Shortest route into column `col`: visited cells with the vertical state each needs (-1 for corners). */
+export function routeTo(course: BtCourse, col: number): { cell: number; vert: number }[] | null {
+  const rot = new Set(btRotatable(course));
+  type Q = { cell: number; above: boolean; path: { cell: number; vert: number }[] };
+  const queue: Q[] = [{ cell: BT_HOPPER_COL, above: true, path: [] }];
+  const seen = new Set<string>();
+  while (queue.length) {
+    const q = queue.shift()!;
+    const key = `${q.cell}|${q.above}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const options = BT_KIND[q.cell] === 2 ? [-1] : rot.has(q.cell) ? [0, 1] : [0];
+    for (const v of options) {
+      const next = btNext(q.cell, q.above, v === 1);
+      const path = [...q.path, { cell: q.cell, vert: v }];
+      if (next.cell >= 100) { if (next.cell - 100 === col) return path; continue; }
+      if (next.cell < 0) continue;
+      queue.push({ cell: next.cell, above: next.fromAbove, path });
+    }
   }
   return null;
 }
 
-/** Shapes whose rotations connect `parent` to every child (by the sim's exit rule). */
-function shapesFor(parent: number, children: number[]) {
-  const ok: number[] = [];
-  for (let shape = 0; shape < 3; shape++) {
-    const reach = new Set<number>();
-    for (let rot = 0; rot < 4; rot++) reach.add(exitSide(rotMask(BT_PIPE_MASKS[shape]!, rot), parent));
-    if (children.every((c) => reach.has(c))) ok.push(shape);
-  }
-  return ok;
-}
-const fixedTile = (parent: number, child: number): BtTile => {
-  for (let shape = 0; shape < 2; shape++)
-    for (let rot = 0; rot < 4; rot++) {
-      const m = rotMask(BT_PIPE_MASKS[shape]!, rot);
-      if (m === (parent | child)) return { shape, rot };
-    }
-  throw Error(`no tile ${parent} ${child}`);
-};
-
-function buildTree() {
-  const tree = new Map<number, Node>();
-  const exits = new Set<number>();
-  const exitOf = (p: Map<number, Node>) => {
-    for (const [cell, n] of p) if (rowOf(cell) === BT_ROWS - 1 && n.children.includes(S)) return cell % BT_COLS;
-    return -1;
-  };
-  const main = walk(BT_HOPPER_COL, N, tree, exits);
-  if (!main) return null;
-  // The main track should snake: at least 14 tiles.
-  if (main.size < 14) return null;
-  for (const [k, v] of main) tree.set(k, v);
-  exits.add(exitOf(main));
-  const rotatable = new Set<number>();
-  for (let r = 0; r < BT_ROWS - 1; r++) rotatable.add(r * BT_COLS + BT_HOPPER_COL);
-  let extras = 0;
-  const extraCap = 4 + rnd(3);
-  for (let attempt = 0; attempt < 400 && exits.size < 5; attempt++) {
-    const cells = [...tree.keys()].filter((c) => rowOf(c) < BT_ROWS - 1);
-    const at = cells[rnd(cells.length)]!;
-    const isExtra = !rotatable.has(at);
-    if (isExtra && extras >= extraCap) continue;
-    const node = tree.get(at)!;
-    const side = [E, W, S][rnd(3)]!;
-    if (side === node.parent || node.children.includes(side)) continue;
-    if (!shapesFor(node.parent, [...node.children, side]).length) continue;
-    const next = stepFrom(at, side);
-    if (next < 0 || next >= 100) continue;
-    const branch = walk(next, opposite(side), tree, exits);
-    if (!branch) continue;
-    const col = exitOf(branch);
-    if (col < 0 || exits.has(col)) continue;
-    for (const [k, v] of branch) tree.set(k, v);
-    node.children.push(side);
-    exits.add(col);
-    if (isExtra) { rotatable.add(at); extras++; }
-  }
-  if (exits.size < 5) return null;
-  // Pad to 4–6 off-centre rotatables with tree tiles on rows 1–6 (indices 0–5).
-  const pad = shuffle([...tree.keys()].filter((c) => rowOf(c) < BT_ROWS - 1 && !rotatable.has(c)));
-  while (extras < 4 && pad.length) { rotatable.add(pad.pop()!); extras++; }
-  if (extras < 4 || extras > 6) return null;
-  return { tree, exits, rotatable };
-}
-
-function makeCourse(): BtCourse | null {
-  const built = buildTree();
-  if (!built) return null;
-  const { tree, exits, rotatable } = built;
-  const tiles: BtTile[] = [];
-  for (let cell = 0; cell < CELLS; cell++) {
-    const node = tree.get(cell);
-    if (!node) tiles.push({ shape: rnd(3), rot: rnd(4) });
-    else if (rotatable.has(cell)) {
-      const shapes = shapesFor(node.parent, node.children);
-      if (!shapes.length) return null;
-      tiles.push({ shape: shapes[rnd(shapes.length)]!, rot: 0 });
-    } else tiles.push(fixedTile(node.parent, node.children[0]!));
-  }
-  const trayCols = shuffle([...exits]).slice(0, 5);
+function makeCourse(): BtCourse {
+  const cols = shuffle([0, 1, 2, 3, 4, 5, 6]);
   const colours = shuffle([0, 1, 2, 3, 4]);
   const trays = Array.from({ length: BT_COLS }, () => -1);
-  trayCols.forEach((c, i) => (trays[c] = colours[i]!));
+  colours.forEach((c, i) => (trays[cols[i]!] = c));
   const balls: number[] = [];
   while (balls.length < BT_BALLS) {
     const c = rnd(BT_COLOURS);
@@ -167,69 +73,40 @@ function makeCourse(): BtCourse | null {
     if (n >= 2 && balls[n - 1] === c && balls[n - 2] === c) continue;
     balls.push(c);
   }
-  for (const cell of rotatable) tiles[cell]!.rot = rnd(4); // scramble
-  return { trays, balls, tiles, rotatable: [...rotatable].sort((a, b) => a - b) };
+  const pool = shuffle(BT_KIND.flatMap((k, cell) => (k === 1 && cell < (BT_ROWS - 1) * BT_COLS && !BT_ALWAYS_FIXED.includes(cell) ? [cell] : [])));
+  const fixed = pool.slice(0, 3 + rnd(3)).sort((a, b) => a - b);
+  return { trays, balls, fixed };
 }
 
-/** Fewest taps (≤ MAX_TAPS) from `rots` that route a ball into column `col`. */
-function solveBall(course: BtCourse, rots: number[], col: number): { rots: number[]; taps: number[] } | null {
-  const R = course.rotatable;
-  const key = (r: number[]) => R.map((c) => r[c]).join("");
-  let frontier = [{ rots, taps: [] as number[] }];
-  const seen = new Set([key(rots)]);
-  for (let depth = 0; depth <= MAX_TAPS; depth++) {
-    for (const f of frontier) {
-      const route = btRoute(course, f.rots);
-      if (route.col === col && route.steps <= MAX_ROUTE) return f;
-    }
-    if (depth === MAX_TAPS) break;
-    const next: typeof frontier = [];
-    for (const f of frontier)
-      for (const cell of R) {
-        const r = [...f.rots];
-        r[cell] = (r[cell]! + 1) & 3;
-        const k = key(r);
-        if (seen.has(k)) continue;
-        seen.add(k);
-        next.push({ rots: r, taps: [...f.taps, cell] });
-      }
-    frontier = next;
-  }
-  return null;
-}
-
-function prove(course: BtCourse) {
-  let rots = course.tiles.map((t) => t.rot);
-  const plan: number[][] = [];
-  for (const colour of course.balls) {
-    const col = course.trays.indexOf(colour);
-    const step = solveBall(course, rots, col);
-    if (!step) return null;
-    plan.push(step.taps);
-    rots = step.rots;
-  }
-  return plan;
-}
-
-/** Plays the plan through the real sim: ball i's taps go in right after ball i−1 lands. */
-export function playPlan(course: BtCourse, plan: number[][]) {
+/** Just-in-time playbook: each tick toggle the mismatched tile whose next ball is closest to it. */
+export function playRoutes(course: BtCourse, routes: { cell: number; vert: number }[][]) {
   const game = makeBallTrackGame(course);
   let state = game.init(1);
   const log: ArcadeInputEvent[] = [];
-  let ball = 0, queue = [...plan[0]!], resolved = 0;
   while (!game.isOver(state)) {
     const t = state.tick + 1;
-    const done = state.home + state.wrong + state.lost;
-    if (done > resolved) {
-      resolved = done;
-      ball++;
-      queue = [...(plan[ball] ?? [])];
+    // Progress of each ball along its route (index of the tile it's in; -1 hopper/undropped).
+    const progress = routes.map((_, id) => {
+      const b = state.balls.find((x) => x.id === id);
+      if (b) return b.cell >= 100 ? Infinity : b.steps - 1;
+      return id < state.next ? Infinity : -1;
+    });
+    let best: { cell: number; dist: number } | null = null;
+    const claimed = new Set<number>();
+    for (let id = 0; id < routes.length; id++) {
+      const route = routes[id]!;
+      for (let i = Math.max(0, progress[id]! + 1); i < route.length; i++) {
+        const step = route[i]!;
+        if (step.vert < 0 || claimed.has(step.cell)) continue;
+        claimed.add(step.cell);
+        if (state.vert[step.cell] === step.vert || state.balls.some((b) => b.cell === step.cell)) continue;
+        const dist = (id - state.next) * 1000 + i - progress[id]!;
+        if (!best || dist < best.dist) best = { cell: step.cell, dist };
+      }
+      // A tile whose state was already used by this ball's earlier steps is still claimed by it.
+      for (let i = 0; i <= progress[id]! && i < route.length; i++) if (state.balls.some((b) => b.id === id && b.cell === route[i]!.cell)) claimed.add(route[i]!.cell);
     }
-    const cell = queue[0];
-    if (cell !== undefined && ball >= 0) {
-      queue.shift();
-      recordInput(log, { k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0, t }, game.inputRanges);
-    }
+    if (best) recordInput(log, { k: BT_K_ROTATE, a: best.cell, b: 0, c: 0, d: 0, t }, game.inputRanges);
     state = game.step(state, inputAt(log, t));
   }
   return { state, log };
@@ -241,15 +118,12 @@ if (import.meta.main) {
   while (entries.length < TARGET) {
     tries++;
     const course = makeCourse();
-    if (!course) continue;
-    const plan = prove(course);
-    if (!plan) continue;
-    const par = plan.reduce((n, p) => n + p.length, 0);
-    if (par < 8 || plan[0]!.length === 0) continue; // scrambled start must need work
-    const run = playPlan(course, plan);
-    if (run.state.home !== BT_BALLS || run.state.actions !== par) continue;
-    if (run.log.some((e) => e.t >= BT_DROP_TICKS * BT_BALLS)) continue;
-    entries.push({ course, tier: par < 12 ? 1 : par < 16 ? 2 : 3, par, endTick: run.state.lastLand, playbook: encodeInputEvents(run.log) });
+    if (!course.trays.every((tray, col) => tray < 0 || routeTo(course, col))) continue;
+    const routes = course.balls.map((c) => routeTo(course, course.trays.indexOf(c))!);
+    const run = playRoutes(course, routes);
+    if (run.state.home !== BT_BALLS) continue;
+    const par = run.state.actions;
+    entries.push({ course, tier: par < 20 ? 1 : par < 30 ? 2 : 3, par, endTick: run.state.lastLand, playbook: encodeInputEvents(run.log) });
   }
   writeFileSync(
     "src/lib/duel/ballTrackBank.server.ts",
