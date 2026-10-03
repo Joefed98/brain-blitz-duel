@@ -29,7 +29,7 @@ import { btDraw } from "@/lib/arcade/ballTrack";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Practice fallback course (the first bank course). */
-const PRACTICE_COURSE: BtCourse = {"trays": [-1, 3, 1, 2, 0, -1, 4], "balls": [2, 0, 0, 3, 0, 4, 1, 3], "fixed": [8, 16, 18, 39]};
+const PRACTICE_COURSE: BtCourse = {"trays": [-1, 3, 1, 2, 0, -1, 4], "balls": [1, 3, 3, 4, 4, 1, 0, 2, 0, 2], "fixed": [9, 16, 22]};
 
 /* ------------------------------ Intro example ------------------------------ */
 
@@ -43,24 +43,22 @@ function IntroExample() {
   const ball = [{ x: 50, y: -10 }, { x: 50, y: 50 }, { x: 150, y: 50 }, { x: 150, y: 150 }, { x: 50, y: 150 }, { x: 50, y: 150 }][step]!;
   const tube = (d: string, key: string, dark = false) => (
     <g key={key}>
-      <path d={d} fill="none" stroke={dark ? "#3E4550" : "#6A7280"} strokeWidth="46" />
+      <path d={d} fill="none" stroke={dark ? "#000000" : "#6A7280"} strokeWidth="46" />
       <path d={d} fill="none" stroke="#12161C" strokeWidth="40" />
     </g>
   );
   return (
     <svg viewBox="0 -20 300 340" className="h-40 w-auto" aria-hidden="true">
       <rect x="0" y="0" width="300" height="300" fill="#12161C" />
-      {tube("M50 0Q50 50 100 50", "a", true)}
-      {tube("M150 0V100", "b")}
-      {tube("M200 50Q250 50 250 100", "c", true)}
-      {tube("M300 150Q250 150 250 100", "d", true)}
-      {tube("M200 150H100", "e")}
-      {tube("M100 150Q50 150 50 200", "f", true)}
-      {tube("M50 200Q50 250 100 250", "g", true)}
-      {tube("M100 250H300", "h")}
-      <rect x="103" y="3" width="94" height="94" fill="none" stroke="#F5B82E" strokeWidth="3" />
-      <rect x="103" y="103" width="94" height="94" fill="none" stroke="#F5B82E" strokeWidth="3" />
-      <rect x="103" y="203" width="94" height="94" fill="none" stroke="#F5B82E" strokeWidth="3" />
+      {tube("M50 2Q50 50 98 50", "a", true)}
+      {tube("M150 2V98", "b")}
+      {tube("M202 50Q250 50 250 98", "c", true)}
+      {tube("M298 150Q250 150 250 102", "d", true)}
+      {tube("M198 150H102", "e")}
+      {tube("M98 150Q50 150 50 198", "f", true)}
+      {tube("M50 202Q50 250 98 250", "g", true)}
+      {tube("M102 250H198", "h")}
+      {tube("M202 250H298", "i")}
       <circle cx={ball.x} cy={ball.y} r="15" fill="#FF4D4D" style={{ transition: "cx .55s linear, cy .55s linear" }} />
     </svg>
   );

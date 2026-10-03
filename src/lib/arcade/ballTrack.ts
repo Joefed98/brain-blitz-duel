@@ -1,7 +1,7 @@
 /**
  * Ball Track: a deterministic 60-tick sim. A fixed 7×7 serpentine of straights
- * and corners; tapping a gold straight toggles it vertical so balls drop through
- * to the next row (or the tray below on row 7). Balls drop every 10 s. The server replays the tap log.
+ * and corners; tapping a grey straight toggles it vertical so balls drop through
+ * to the next row (or the tray below on row 7). Balls drop every 5 s. The server replays the tap log.
  */
 
 import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
@@ -10,11 +10,11 @@ import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 
 export const BT_COLS = 7;
 export const BT_ROWS = 7;
-export const BT_BALLS = 8;
+export const BT_BALLS = 10;
 export const BT_COLOURS = 5;
 export const BT_STEP_TICKS = 15;
-export const BT_DROP_TICKS = 600; // a ball every 10 s
-export const BT_RUN_TICKS = 5400; // 90 s
+export const BT_DROP_TICKS = 300; // a ball every 5 s
+export const BT_RUN_TICKS = 3600; // 60 s
 export const BT_HOPPER_COL = 3;
 export const BT_CHECKPOINT_INTERVAL = 300;
 
@@ -183,7 +183,7 @@ export function btOver(s: BtState): boolean {
   return s.tick >= BT_RUN_TICKS || (s.next >= BT_BALLS && s.balls.length === 0);
 }
 
-/** round(150 × home ÷ 8) − 5 per wrong tray, 0–150. */
+/** round(150 × home ÷ ball count) − 5 per wrong tray, 0–150. */
 export function btScoreOf(home: number, wrong: number): number {
   const base = Math.floor((300 * home + BT_BALLS) / (2 * BT_BALLS));
   return Math.max(0, Math.min(150, base - 5 * wrong));
@@ -222,8 +222,7 @@ export const BT_H = BT_HOPPER_H + BT_ROWS * BT_TILE + BT_TRAY_H;
 const BALL_R = 20;
 const BG = "#12161C";
 const TUBE = "#6A7280";
-const TUBE_FIXED = "#3E4550";
-const GOLD = "#F5B82E";
+const TUBE_FIXED = "#000000";
 
 const cellCentre = (cell: number) => ({
   x: (cell % BT_COLS) * BT_TILE + BT_TILE / 2,
@@ -243,7 +242,7 @@ export function btBallPoint(s: BtState, b: BtBall) {
 
 function tubePath(ctx: CanvasRenderingContext2D, cell: number, mask: number) {
   const { x, y } = cellCentre(cell);
-  const h = BT_TILE / 2;
+  const h = BT_TILE / 2 - 2; // paired insets give about a 2 px gap at phone scale
   const end = (side: number) => ({ x: x + (side === E ? h : side === W ? -h : 0), y: y + (side === S ? h : side === N ? -h : 0) });
   const sides = [N, E, S, W].filter((side) => mask & side);
   if (sides.length === 2 && !(mask === (N | S) || mask === (E | W))) {
@@ -281,12 +280,6 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
       ctx.stroke();
     }
   }
-  ctx.strokeStyle = GOLD;
-  ctx.lineWidth = 3;
-  for (const cell of rot) {
-    const x = (cell % BT_COLS) * BT_TILE, y = gridY + Math.floor(cell / BT_COLS) * BT_TILE;
-    ctx.strokeRect(x + 3, y + 3, BT_TILE - 6, BT_TILE - 6);
-  }
   // Trays and pits.
   const trayY = gridY + BT_ROWS * BT_TILE + 6;
   course.trays.forEach((tray, col) => {
@@ -320,8 +313,9 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
   }
   // Hopper: the next ball above column 4, the rest queued to its left.
   const hy = BT_HOPPER_H / 2;
+  const queueGap = Math.min(50, (BT_HOPPER_COL * BT_TILE + BT_TILE / 2 - 20 - BALL_R * 0.7) / (BT_BALLS - 1));
   for (let i = s.next; i < BT_BALLS; i++) {
-    const x = BT_HOPPER_COL * BT_TILE + BT_TILE / 2 - (i - s.next) * 50 - (i > s.next ? 20 : 0);
+    const x = BT_HOPPER_COL * BT_TILE + BT_TILE / 2 - (i - s.next) * queueGap - (i > s.next ? 20 : 0);
     ctx.fillStyle = BT_PALETTE[course.balls[i]!]!;
     ctx.globalAlpha = i === s.next ? 1 : 0.55;
     ctx.beginPath();
