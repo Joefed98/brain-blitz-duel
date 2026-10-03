@@ -21,9 +21,11 @@
 - Stop Watch stores target-motion phase, right-edge allowances, wrap mode, and pass durations in each generated watch; why: every player must see identical moving targets and acceleration.
 - Gravity Maze locks a ball when it comes to rest on its own target (locked = sitting on target), and the minimum is a capped breadth-first joint search; why: a summed per-ball heuristic over-estimates when one tilt moves every ball, so it cannot prove a minimum.
 - Ice Slide state is (cell, broken thin-ice bitmask) and every search, replay and undo carries the mask; why: thin ice makes move order matter.
+- Ice Slide animates the transient ball along `slideOutcome.path`, including entry/exit portal cells and arrow turns, while only the original move array is submitted; why: visual interpolation must not alter deterministic grading.
 - Rotating Rings boards store a link-pattern index into the shared bank in rings.ts; why: phone and server must apply identical linked turns.
 - Colour Clash is a deterministic arcade replay, while Count Up truth is recomputed from each stored scene; why: room results must be independently verifiable.
 - Laser beam tracing branches at fixed splitters and enforces directional gem entry in shared phone/server logic; why: generation, animation, and grading must agree.
+- Laser's visual fork offsets are derived from the tracer's paths so a splitter branch is not revealed before the incoming beam reaches it; why: the splitter is not an independent light source.
 - Tower's peg count is the length of the stored `start` (3 or 4) and every rule/replay/search reads it from there; why: the peg count varies per puzzle but must be identical for all players.
 - Colour Connect walls live on the public puzzle and are passed to the shared `verifyFlow`; uniqueness is proven server-side by an exhaustive solver before a board is used; why: phone, grader and generator must agree.
 - Puzzle-specific intro lines come from an optional `introLine(puzzle)` on the puzzle definition, rendered by RoundIntro; why: fixed examples stay fixed while per-puzzle facts (e.g. peg count) still show.
