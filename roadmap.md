@@ -505,3 +505,9 @@
 - [x] Arcade sim: 7×7 course, hopper, 5 trays + 2 pits, pipes/flippers/sliders/wheels, 15 balls
 - [x] 400-course bank with playbook proof (3 tiers), server replay grading, new scoring
 - [x] Intro, reveal, summaries; identity proof 200/200
+
+## Ball Track piece tuning (Oct 3)
+- [ ] Centre hopper queue on column 4; flat wider pipes and half-tile balls.
+- [ ] Bidirectional pocket wheel, larger gold flippers, effective one-column slider deflection and drag preview.
+- [ ] Add piece legend; rebuild 400 courses with demonstrated slide dependence.
+- [ ] Ball Track-only bank, mechanics and 200-run replay checks; no browser tests.
