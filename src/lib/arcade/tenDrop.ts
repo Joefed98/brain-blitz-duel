@@ -66,7 +66,7 @@ export const TD_CONFIG = {
   shakeTicks: 18,
   pointsPerTarget: 15,
   /** Rejection-sampling attempts per segment before the built-in fallback. */
-  maxSegmentTries: 400,
+  maxSegmentTries: 1000,
   stages: [
     { lo: 19, hi: 25, speed: 288, gap: 34, ...EASY },
     { lo: 19, hi: 25, speed: 312, gap: 34, ...EASY },
