@@ -30,7 +30,7 @@ for (let attempt = 0; entries.length < 400 && attempt < 400_000; attempt++) {
   let rotations = 0;
   let lower = 0;
   for (const row of answer) {
-    const start = [...row].map((digit) => String((Number(digit) + (pick(8) < 3 ? 1 : 0)) % 3)).join('');
+    const start = [...row].map((digit) => String((Number(digit) + (pick(8) < 3 ? 2 : 0)) % 3)).join('');
     scrambled.push(start);
     rotations += cost(start, row);
     lower += Math.min(...matchings.map((matching) => cost(start, matching)));
