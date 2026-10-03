@@ -115,7 +115,9 @@ function makeCourse(): BtCourse {
   const colours = shuffle([0, 1, 2, 3, 4]);
   const trays = Array.from({ length: BT_COLS }, () => -1);
   colours.forEach((c, i) => (trays[cols[i]!] = c));
-  const balls = shuffle(Array.from({ length: BT_BALLS }, (_, i) => i % BT_COLOURS));
+  // Seed which colour has two balls; the other four have three each.
+  const shortColour = rnd(BT_COLOURS);
+  const balls = shuffle(Array.from({ length: BT_BALLS }, (_, i) => (i + shortColour + 1) % BT_COLOURS));
   const fixed = seededFixed();
   return { trays, balls, fixed };
 }
@@ -160,6 +162,7 @@ if (import.meta.main) {
   while (entries.length < TARGET) {
     tries++;
     const course = makeCourse();
+    if (course.balls.some((b, i) => i >= 2 && b === course.balls[i - 1] && b === course.balls[i - 2])) continue;
     if (!course.trays.every((tray, col) => tray < 0 || routeTo(course, col))) continue;
     const routes = course.balls.map((c) => routeTo(course, course.trays.indexOf(c))!);
     const run = playRoutes(course, routes);

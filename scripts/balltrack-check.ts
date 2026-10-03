@@ -6,7 +6,7 @@
 import { BALL_TRACK_BANK } from "../src/lib/duel/ballTrackBank.server";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { decodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { btCheckpoint, btRotatable, makeBallTrackGame, BT_BALLS, BT_CHECKPOINT_INTERVAL, BT_COLS, BT_ROWS, BT_KIND, BT_K_ROTATE, BT_DROP_TICKS, BT_STEP_TICKS, BT_RUN_TICKS, type BtCheckpoint } from "../src/lib/arcade/ballTrack";
+import { btCheckpoint, btRotatable, btScoreOf, makeBallTrackGame, BT_BALLS, BT_CHECKPOINT_INTERVAL, BT_COLS, BT_ROWS, BT_KIND, BT_K_ROTATE, BT_DROP_TICKS, BT_STEP_TICKS, BT_RUN_TICKS, type BtCheckpoint } from "../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
 
 let fails = 0;
@@ -32,7 +32,10 @@ function play(index: number, choose: (tick: number) => Omit<ArcadeInputEvent, "t
 }
 
 let solved = 0;
-if (BT_DROP_TICKS !== 240 || BT_STEP_TICKS !== 12 || BT_RUN_TICKS !== 3600) fail("Pace constants");
+if (BT_BALLS !== 14 || BT_DROP_TICKS !== 240 || BT_STEP_TICKS !== 12 || BT_RUN_TICKS !== 3600) fail("Pace constants");
+for (let home = 0; home <= BT_BALLS; home++) for (let wrong = 0; wrong <= BT_BALLS - home; wrong++) {
+  if (btScoreOf(home, wrong) !== Math.max(0, Math.min(150, Math.round(150 * home / BT_BALLS) - 5 * wrong))) fail("Scoring formula");
+}
 BALL_TRACK_BANK.forEach((entry, i) => {
   const c = entry.course;
   const extra = c.fixed.length;
@@ -49,7 +52,8 @@ BALL_TRACK_BANK.forEach((entry, i) => {
   }
   if (triples !== 1) fail(`course ${i}: expected the minimum one triple stack, got ${triples}`);
   if (c.trays.filter((t) => t >= 0).length !== 5 || c.balls.length !== BT_BALLS) fail(`course ${i}: trays/balls`);
-  for (let colour = 0; colour < 5; colour++) if (c.balls.filter((b) => b === colour).length !== 2) fail(`course ${i}: colour balance`);
+  const counts = Array.from({ length: 5 }, (_, colour) => c.balls.filter((b) => b === colour).length).sort();
+  if (counts.join(",") !== "2,3,3,3,3") fail(`course ${i}: colour balance`);
   if (c.balls.some((b, j) => j >= 2 && b === c.balls[j - 1] && b === c.balls[j - 2])) fail(`course ${i}: three consecutive colours`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);
