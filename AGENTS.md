@@ -32,4 +32,4 @@
 - Bomb Defusal masks are recomputed per panel because many rule predicates read the panel; why: caching by rule text across panels gives wrong uniqueness proofs.
 - TimerBar is the only live-round countdown and PhoneShell owns the 4px game-screen safe margin; why: duel/practice timing and arena width must stay identical without per-game timer slots.
 - Number Pyramid stores one bank entry as four public boards plus private solutions and submits all four placement maps with the active index; why: skipped boards and current-board partial credit must grade identically on the server.
-- Ball Track uses shared three-orientation replay with synchronous paired drops and persistent seeded bomb-neighbour damage; animation consumes its paths/blast steps and boards come from a server-only bank; why: damage, rotations and grading must agree on phone and server.
+- Ball Track runs on the arcade engine with each stored course building its own game (makeBallTrackGame); the server replays the input log against the stored course; why: phone and server must route every ball identically.
