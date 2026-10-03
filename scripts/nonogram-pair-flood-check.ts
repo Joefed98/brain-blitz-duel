@@ -79,10 +79,10 @@ for (let round = 0; round < ROUNDS; round++) {
 
 for (let round = 0; round < ROUNDS; round++) {
   const puzzle = generatePairMatch();
-  check("pair board has twenty cards", puzzle.cards.length === PAIR_CARDS);
+  check("pair board has thirty cards", puzzle.cards.length === PAIR_CARDS);
   const keys = puzzle.cards.map((card) => `${card.shape}:${card.colour}`);
   const unique = new Set(keys);
-  check("pair board has ten distinct pairs", unique.size === PAIR_PAIRS);
+  check("pair board has fifteen distinct pairs", unique.size === PAIR_PAIRS);
   check(
     "each pair appears exactly twice",
     [...unique].every((key) => keys.filter((other) => other === key).length === 2),
@@ -98,7 +98,7 @@ for (let round = 0; round < ROUNDS; round++) {
   }
   const replay = replayPairs(puzzle.cards, order);
   check("pair perfect game replays as solved", replay.solved && replay.pairs === PAIR_PAIRS);
-  check("pair perfect game counts ten tries", replay.tries === PAIR_PAIRS);
+  check("pair perfect game counts fifteen tries", replay.tries === PAIR_PAIRS);
   check(
     "pair partial game counts one pair",
     replayPairs(puzzle.cards, order.slice(0, 2)).pairs === 1,

@@ -278,7 +278,7 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center text-sm text-muted-foreground">
-        Find the five differences between the top and bottom pictures.
+        Find the six differences between the top and bottom pictures.
       </p>
       <div className="flex w-full flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card">
         <Panel shapes={EXAMPLE_TOP} found={[4]} rows={2} />
@@ -315,7 +315,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   const foundCells = foundGroups.flat();
   const total = Math.min(SPOT_DIFFERENCES, groups.length) || SPOT_DIFFERENCES;
 
-  // All five found lock the round in; otherwise the taps so far go up just
+  // All six found lock the round in; otherwise the taps so far go up just
   // before the clock runs out. The server re-checks every tap either way.
   useEffect(() => {
     if (groups.length === 0 || locked || submitted.current === key) return;
@@ -508,7 +508,7 @@ export function buildSpotDifference(): SpotPuzzleData {
     if (differences.length !== SPOT_DIFFERENCES) continue;
 
     const bottomShapes = [...bottom.values()].sort((a, b) => a.cell - b.cell);
-    // The panels must differ in exactly the five stored ways.
+    // The panels must differ in exactly the six stored ways.
     if (differenceGroups(top, bottomShapes).length !== SPOT_DIFFERENCES) continue;
 
     return {
@@ -519,7 +519,7 @@ export function buildSpotDifference(): SpotPuzzleData {
     };
   }
 
-  // Fallback: five separated colour changes on a full grid.
+  // Fallback: six separated colour changes on a full grid.
   const top = fillGrid();
   const FALLBACK_CELLS = [0, 3, 6, 25, 28, 47];
   const chosen = top.filter((shape) => FALLBACK_CELLS.includes(shape.cell)).slice(0, SPOT_DIFFERENCES);
@@ -546,9 +546,9 @@ export const spotDifferencePuzzle: PuzzleDefinition = {
   category: "attention",
   timeLimitMs: SPOT_TIME_MS,
   generate: buildSpotDifference,
-  // Scored from how many of the five stored differences were tapped.
+  // Scored from how many of the six stored differences were tapped.
   check: () => true,
-  revealHeading: "The five differences",
+  revealHeading: "The six differences",
   IntroExample,
   Stage,
   Reveal,
