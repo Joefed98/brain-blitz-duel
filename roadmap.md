@@ -1,7 +1,7 @@
 ## Ball Track 20-ball tuning
 - [x] Thicken gold and grey tube outlines by 1.5× without changing tile gaps.
 - [x] Use 20 balanced seeded balls dropping every 2 seconds, with existing replay and count-based scoring.
-- [ ] Regenerate 400 courses, sync the practice fallback, and run only Ball Track proofs; no browser tests.
+- [x] Regenerate 400 courses and sync the practice fallback: 400/400 solve 20/20, Ball Track identity 200/200; schedule/scoring checks pass; no browser tests.
 
 ## Ball Track 14-ball tuning and memory settings removal (Oct 4)
 - [x] Swap rotatable/fixed tube colours and update Ball Track to 14 balanced seeded balls.
