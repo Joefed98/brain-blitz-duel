@@ -2194,12 +2194,14 @@ export interface BallTrackPuzzleData {
   type: "balltrack";
   cols: number;
   rows: number;
-  /** Row-major orientations: 0 vertical, 1 down-right, 2 shallow-right, 3 down-left, 4 shallow-left. */
+  /** Row-major orientations: 0 vertical, 1 down-right, 2 down-left. */
   tiles: string;
   /** Bucket colours indexed by column; a derangement of the eight balls. */
   buckets: number[];
-  /** Solid cells that reject both rotations and balls. */
-  blocks: number[];
+  /** Legacy room compatibility; new boards use bombs. */
+  blocks?: number[];
+  /** Seeded bomb locations and their orthogonal damage targets. */
+  bombs?: { cell: number; neighbour: number }[];
   /** Two linked pairs; either member starts both balls. */
   pairs: [number, number][];
   /** Rotating pipe cells restricted to one ball colour. */
