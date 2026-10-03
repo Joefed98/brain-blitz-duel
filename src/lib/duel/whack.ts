@@ -10,7 +10,6 @@ import {
   WHACK_CHECKPOINT_INTERVAL,
   WHACK_INPUT_RANGES,
   WHACK_RUN_TICKS,
-  WHACK_TARGETS,
   type WhackCheckpoint,
   type WhackState,
 } from "@/lib/arcade/whack";
@@ -130,13 +129,13 @@ export function replayWhackRun(seed: number, raw: string): WhackResult {
 
   const replayScore = whackGame.score(state);
   const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
-  const total = WHACK_TARGETS;
+  const total = state.schedule.total;
   const result: WhackResult = {
     hits: state.hits,
     totalTargets: total,
     wrong: state.wrong,
     taps: state.taps,
-    perfect: replayScore >= 150,
+    perfect: total > 0 && state.hits >= total && state.wrong === 0,
     finished: state.tick >= WHACK_RUN_TICKS,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,

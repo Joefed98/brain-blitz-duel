@@ -1208,9 +1208,10 @@ const beatSummary: SummaryBuilder = (result) => {
 const whackSummary: SummaryBuilder = (result) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const wrong = Number(result.extra?.["wrong"] ?? 0);
+  const total = Number(result.extra?.["totalTargets"] ?? 0);
   return {
-    summary: `${hits} whacked · ${wrong} wrong`,
-    detail: ["3 per hit · −5 per decoy · +15 for all 45 clean"],
+    summary: `Hits ${hits} / ${total} · Wrong ${wrong}`,
+    detail: ["135 × share hit · −5 per wrong tap · +15 for all clean"],
   };
 };
 
