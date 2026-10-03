@@ -67,6 +67,7 @@ for (let run = 0; run < RUNS; run++) {
   }
   for (let i = 0; i < WHACK_QUEUE_SIZE; i++) {
     if (idle.spawn[i] !== idle.schedule.at[i]) { fail(`run ${run}: ball ${i} popped late`); break; }
+    if (idle.status[i] === WHACK_STATUS_UP && idle.spawn[i]! + WHACK_POP_LIFETIME_TICKS > idle.tick) continue;
     const life = idle.doneTick[i]! - idle.spawn[i]!;
     const target = idle.schedule.kind[i] === whackRule(idle.spawn[i]!);
     const cutAtFlip = target && WHACK_FLIP_TICKS.includes(idle.doneTick[i]!) && life >= WHACK_DECOY_LIFETIME_TICKS && life < WHACK_POP_LIFETIME_TICKS;
