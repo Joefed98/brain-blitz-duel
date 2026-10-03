@@ -10,9 +10,8 @@ export function generateBallTrack(): BallTrackPuzzleData {
     cols: BT_COLS,
     rows: BT_ROWS,
     tiles: entry.tiles,
-    start: entry.start,
-    exit: entry.exit,
-    minRemovals: entry.min,
-    solution: [...entry.solution],
+    buckets: [...entry.buckets],
+    minRotations: entry.min,
+    solution: entry.solution,
   };
 }
