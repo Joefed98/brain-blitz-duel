@@ -131,7 +131,7 @@ const LONG_REVEAL_TYPES = new Set<PuzzleType>([
 export const CORE_CATEGORIES: PuzzleCategory[] = ["logic", "pattern", "speed", "attention", "word"];
 
 /** Only drawn when the host switches them on in the lobby. */
-export const OPT_IN_CATEGORIES: PuzzleCategory[] = ["number", "memory"];
+export const OPT_IN_CATEGORIES: PuzzleCategory[] = ["number"];
 
 /** The arcade pool: one round at most, and only when the host toggle is on. */
 export const ARCADE_CATEGORY: PuzzleCategory = "arcade";
@@ -313,6 +313,7 @@ export function puzzleCategories(): PuzzleCategory[] {
 
 /** Non-retired types in a category — what every draw and list reads. */
 export function typesInCategory(category: PuzzleCategory): PuzzleType[] {
+  if (category === "memory") return [];
   return ACTIVE_PUZZLE_TYPES.filter((t) => PUZZLE_REGISTRY[t].category === category);
 }
 
