@@ -1593,13 +1593,17 @@ export interface ChainPuzzleData {
 
 /* ========================= Intruder Detection =========================== */
 
-export const INTRUDER_TIME_MS = 65_000;
+/** Per board: 1 s round card, 5 s memorise, 1 s blank, 3 s pick, 1 s hold. */
+export const INTRUDER_CARD_MS = 1_000;
+export const INTRUDER_SHOW_MS = 5_000;
+export const INTRUDER_HIDE_MS = 1_000;
+export const INTRUDER_PLAY_MS = 3_000;
+export const INTRUDER_HOLD_MS = 1_000;
+export const INTRUDER_BOARD_MS = INTRUDER_CARD_MS + INTRUDER_SHOW_MS + INTRUDER_HIDE_MS + INTRUDER_PLAY_MS + INTRUDER_HOLD_MS;
+export const INTRUDER_TIME_MS = 5 * INTRUDER_BOARD_MS;
 export const INTRUDER_BOARDS = 5;
 export const INTRUDER_BOARD_SIZES = [3, 3, 3, 3, 3] as const;
 export const INTRUDER_CHANGE_COUNTS = [1, 1, 2, 2, 2] as const;
-export const INTRUDER_SHOW_MS = [5_000, 5_000, 7_000, 7_000, 7_000] as const;
-export const INTRUDER_HIDE_MS = 1_000;
-export const INTRUDER_PLAY_MS = [3_000, 3_000, 5_000, 5_000, 5_000] as const;
 
 export const INTRUDER_SHAPES = ["circle", "square", "triangle", "star"] as const;
 export const INTRUDER_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "YELLOW", "ORANGE"];
@@ -1622,8 +1626,11 @@ export interface IntruderBoard {
   cells: IntruderCell[];
   /** The grid as shown again, with exactly one cell different. */
   after: IntruderCell[];
-  /** Half-cell visual shift applied to the second view. */
-  offset?: "left" | "right" | "up" | "down";
+  /**
+   * Boards 4–5: the symbols move inside the fixed grid for the second view.
+   * after[i] is derived from cells[perm[i]]; the grid itself never moves.
+   */
+  perm?: number[];
 }
 
 export interface IntruderAnswer {

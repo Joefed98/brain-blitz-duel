@@ -52,6 +52,15 @@ function changeCell(
   return { cell: { ...cell, shape: cell.shape === "circle" ? "square" : "circle" }, kind: "shape" };
 }
 
+/** perm[i] = the original cell whose symbol now sits at cell i. */
+function shiftPerm(size: number, dir: "left" | "right" | "up" | "down"): number[] {
+  return Array.from({ length: size * size }, (_, index) => {
+    const row = Math.floor(index / size); const col = index % size;
+    const [r, c] = dir === "left" ? [row, (col + 1) % size] : dir === "right" ? [row, (col + size - 1) % size] : dir === "up" ? [(row + 1) % size, col] : [(row + size - 1) % size, col];
+    return r * size + c;
+  });
+}
+
 export function generateIntruder(): IntruderPuzzleData {
   const boards: IntruderBoard[] = [];
   const answers: IntruderAnswer[] = [];
@@ -70,10 +79,13 @@ export function generateIntruder(): IntruderPuzzleData {
       if (targets.includes(target) || (previous && previous.row === row && previous.col === col)) continue;
       targets.push(target);
     }
-    const kinds: IntruderChangeKind[] = []; const after = cells.slice();
-    for (const target of targets) { const changed = changeCell(cells[target]!, colours, shapes); after[target] = changed.cell; kinds.push(changed.kind); }
-    const offset = boardIndex >= 3 ? pick(["left", "right", "up", "down"] as const) : undefined;
-    boards.push({ size, cells, after, ...(offset ? { offset } : {}) }); answers.push({ cells: targets, kinds });
+    const kinds: IntruderChangeKind[] = []; const changedAt = cells.slice();
+    for (const target of targets) { const changed = changeCell(cells[target]!, colours, shapes); changedAt[target] = changed.cell; kinds.push(changed.kind); }
+    // Boards 4–5 slide every symbol one cell (wrapping) inside the fixed grid.
+    const perm = boardIndex >= 3 ? shiftPerm(size, pick(["left", "right", "up", "down"] as const)) : null;
+    const after = perm ? perm.map((source) => changedAt[source]!) : changedAt;
+    const shown = perm ? targets.map((target) => perm.indexOf(target)) : targets;
+    boards.push({ size, cells, after, ...(perm ? { perm } : {}) }); answers.push({ cells: shown, kinds });
     const last = targets.at(-1)!; previous = { row: Math.floor(last / size), col: last % size };
   }
 

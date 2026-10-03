@@ -148,7 +148,7 @@ for (let round = 0; round < ROUNDS; round++) {
     });
     check("intruder exact change count", differing.length === INTRUDER_CHANGE_COUNTS[index]);
     check("intruder target cells stored", answer.cells.length === INTRUDER_CHANGE_COUNTS[index]);
-    check("intruder shuffle metadata", index >= 3 ? Boolean(board.offset) : !board.offset);
+    check("intruder shuffle metadata", index >= 3 ? Boolean(board.perm) : !board.perm);
     answer.cells.forEach((cell, changedIndex) => {
       check("intruder target in range", cell >= 0 && cell < 9);
       const before = board.cells[cell]!;
