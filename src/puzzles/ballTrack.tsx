@@ -103,8 +103,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   let active: { ball: number; row: number; column: number } | null = null;
   if (anim) {
     const row = anim.step;
-    const column = row < 0 ? anim.ball : row >= anim.path.length ? anim.bucket ?? (anim.path.at(-1) ?? anim.ball) % data.cols + (replay.tiles[anim.path.at(-1) ?? 0] === "1" ? 1 : -1) : anim.path[row]! % data.cols;
-    active = { ball: anim.ball, row, column };
+    const lastCell = anim.path.at(-1) ?? anim.ball;
+    const column = row < 0 ? anim.ball : row >= anim.path.length ? anim.bucket ?? lastCell % data.cols + (replay.tiles[lastCell] === "1" ? 1 : -1) : anim.path[row]! % data.cols;
+    active = { ball: anim.ball, row: row >= anim.path.length && anim.bucket === null ? anim.path.length - 1 : row, column };
   }
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-1 pt-1">
