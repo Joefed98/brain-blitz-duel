@@ -69,8 +69,10 @@ export const CLAY_CONFIG = {
   /** Every path covers ⅔ of the width (px) and stays ≥ 1 s on screen. */
   minCoverage: 240,
   minOnScreenTicks: 60,
-  rerollTries: 64,
+  rerollTries: 256,
   rerollAngleStep: 256,
+  rerollSpeedStep: 32,
+  rerollSpeedFloor: 900,
   /** Gravity, 1/256 px per tick². */
   gravity: 20,
   /** Shot radii and drawn clay radius, px. */
@@ -200,8 +202,9 @@ function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
     // Seeded reroll until the path covers ⅔ of the width and stays ≥ 1 s on screen;
     // after rerollTries the angle is lowered step by step so it always terminates.
     let lower = 0;
+    let slow = 0;
     for (let tries = 0; ; tries++) {
-      const speed = gold
+      const drawn = gold
         ? c.goldSpeedMin + draw(c.goldSpeedSpan)
         : c.orangeSpeedMin + draw(c.orangeSpeedSpan);
       const base = hardFlat
@@ -209,13 +212,17 @@ function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
         : gold
           ? c.goldSteepAngleMin + draw(c.goldSteepAngleSpan)
           : c.orangeAngleMin + draw(c.orangeAngleSpan);
-      if (tries >= c.rerollTries) lower += c.rerollAngleStep;
+      if (tries >= c.rerollTries) {
+        if (tries & 1) lower += c.rerollAngleStep;
+        else slow += c.rerollSpeedStep;
+      }
       const angle = Math.max(0, base - lower);
+      const speed = Math.max(c.rerollSpeedFloor, drawn - slow);
       const h = (speed * icos(angle)) >> 14;
       const hx = side[i] === 0 ? h : -h;
       const hy = -((speed * isin(angle)) >> 14);
       const f = clayFlight(side[i]!, y0, hx, hy);
-      if ((f.coverage >= c.minCoverage && f.ticks >= c.minOnScreenTicks) || angle === 0) {
+      if ((f.coverage >= c.minCoverage && f.ticks >= c.minOnScreenTicks) || (angle === 0 && speed === c.rerollSpeedFloor)) {
         vx.push(hx);
         vy.push(hy);
         break;
