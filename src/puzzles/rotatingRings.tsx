@@ -168,7 +168,7 @@ function Legend({ pattern }: { pattern: number }) {
     <ul className="flex flex-col gap-0.5 text-center font-mono text-[11px] leading-tight text-muted-foreground">
       {ringPattern(pattern).legend.map((line) => (
         <li key={line}>
-          <span className="text-primary">⛓</span> {line}
+          {line}
         </li>
       ))}
     </ul>

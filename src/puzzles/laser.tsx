@@ -64,17 +64,17 @@ function Gem({ lit }: { lit: boolean }) {
 }
 
 export function directionalChevronPoints(dir: BeamDir): string {
-  if (dir === "R") return "6,8 12,12 6,16";
-  if (dir === "L") return "18,8 12,12 18,16";
-  if (dir === "D") return "8,6 12,12 16,6";
-  return "8,18 12,12 16,18";
+  if (dir === "R") return "3,10 6,12 3,14";
+  if (dir === "L") return "21,10 18,12 21,14";
+  if (dir === "D") return "10,3 12,6 14,3";
+  return "10,21 12,18 14,21";
 }
 
 function DirectionalGem({ lit, from }: { lit: boolean; from?: BeamDir }) {
   return (
     <svg viewBox="0 0 24 24" className="h-full w-full overflow-visible" aria-hidden="true">
       <g transform="translate(6 6) scale(.5)"><Gem lit={lit} /></g>
-      {from ? <polyline points={directionalChevronPoints(from)} fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" /> : null}
+      {from ? <polyline points={directionalChevronPoints(from)} fill="none" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /> : null}
     </svg>
   );
 }
@@ -95,6 +95,20 @@ function sourceArrowPoints(x: number, y: number, dir: BeamDir, size: number): st
   if (dir === "L") return `${x + half},${y - half} ${x - half},${y} ${x + half},${y + half}`;
   if (dir === "D") return `${x - half},${y - half} ${x},${y + half} ${x + half},${y - half}`;
   return `${x - half},${y + half} ${x},${y - half} ${x + half},${y + half}`;
+}
+
+/** Each fork starts when the travelling beam reaches its parent splitter. */
+export function beamBranchOffsets(paths: number[][]): number[] {
+  const offsets: number[] = [];
+  paths.forEach((path, index) => {
+    if (index === 0) { offsets.push(0); return; }
+    for (let parent = index - 1; parent >= 0; parent--) {
+      const position = paths[parent]?.indexOf(path[0]!) ?? -1;
+      if (position >= 0) { offsets.push(offsets[parent]! + position); return; }
+    }
+    offsets.push(Number.POSITIVE_INFINITY);
+  });
+  return offsets;
 }
 
 interface BoardPointer {
@@ -357,7 +371,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     onDraftAnswer?.(encodeLaserAnswer(placed, Math.max(1, fires)));
   }, [placed, fires, onDraftAnswer]);
 
-  const revealed = shot ? shot.trace.paths.map((path) => path.slice(0, shot.step + 1)) : null;
+  const offsets = shot ? beamBranchOffsets(shot.trace.paths) : [];
+  const revealed = shot ? shot.trace.paths.map((path, index) =>
+    path.slice(0, Math.max(0, shot.step - offsets[index]! + 1))) : null;
   const visibleCells = revealed?.flat() ?? [];
   const litGems = shot ? shot.trace.gemsLit.filter((gem) => visibleCells.includes(gem)) : [];
   const bombFlash = Boolean(shot?.done && shot.trace.hitBomb);
@@ -482,9 +498,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     clearTimers();
     setShot({ trace: verdict.trace, step: 0, done: false });
 
-    const cells = verdict.trace.cells.length;
-    const per = Math.max(24, Math.round(LASER_BEAM_MS / Math.max(1, cells - 1)));
-    for (let step = 1; step < cells; step++) {
+    const offsets = beamBranchOffsets(verdict.trace.paths);
+    const lastStep = Math.max(0, ...verdict.trace.paths.map((path, index) => offsets[index]! + path.length - 1));
+    const per = Math.max(30, Math.round((LASER_BEAM_MS * 1.25) / Math.max(1, lastStep)));
+    for (let step = 1; step < lastStep; step++) {
       timers.current.push(
         window.setTimeout(
           () => setShot((current) => (current ? { ...current, step } : current)),
@@ -495,7 +512,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     timers.current.push(
       window.setTimeout(
         () => {
-          setShot((current) => (current ? { ...current, step: cells - 1, done: true } : current));
+          setShot((current) => (current ? { ...current, step: lastStep, done: true } : current));
           if (verdict.solved) {
             if (submitted.current) return;
             submitted.current = true;
@@ -507,7 +524,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
           playWrong();
           timers.current.push(window.setTimeout(() => setShot(null), LASER_FADE_MS));
         },
-        per * Math.max(1, cells - 1),
+        per * Math.max(1, lastStep),
       ),
     );
   }, [

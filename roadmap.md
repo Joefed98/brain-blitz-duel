@@ -469,3 +469,10 @@
 - [x] Intruder Detection: per board 1 s card → 7 s memorise → 1 s blank → 5 s pick → 1 s hold; round 75 s, shared timer bar follows INTRUDER_TIME_MS.
 - [x] Pair Match: 90 s; complete rounds pay 100 + round(50 × ms_remaining ÷ 90,000) plus the ≤18 flip-pairs +20; partial scoring unchanged.
 - [x] Typecheck clean; no timing-proof scripts exist for either game; no browser tests.
+
+## Pattern tuning (Oct 3)
+- [x] Block Party's nine pieces use nine distinct fills, matched between tray and board; pegs and scoring unchanged.
+- [x] Ice Slide displays each move along its full slide path, including portal arrival/departure and arrow turns, without changing submitted moves.
+- [x] Laser direction chevron shrunk, splitter branches animated only after the beam reaches them, beam travel slowed ~25%.
+- [x] Rotating Rings chain images removed from both legends; links and legends otherwise unchanged.
+- [x] Source checks and typecheck; no browser tests.
