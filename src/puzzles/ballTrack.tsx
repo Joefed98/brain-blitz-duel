@@ -29,41 +29,39 @@ import { btDraw } from "@/lib/arcade/ballTrack";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Practice fallback course (the first bank course). */
-const PRACTICE_COURSE: BtCourse = {"trays": [3, 0, 4, 1, -1, -1, 2], "balls": [3, 3, 0, 0, 3, 0, 3, 0], "tiles": [{"shape": 2, "rot": 2}, {"shape": 1, "rot": 1}, {"shape": 0, "rot": 1}, {"shape": 1, "rot": 0}, {"shape": 2, "rot": 1}, {"shape": 2, "rot": 3}, {"shape": 0, "rot": 1}, {"shape": 1, "rot": 1}, {"shape": 1, "rot": 3}, {"shape": 2, "rot": 2}, {"shape": 1, "rot": 0}, {"shape": 2, "rot": 1}, {"shape": 2, "rot": 2}, {"shape": 0, "rot": 3}, {"shape": 1, "rot": 0}, {"shape": 0, "rot": 1}, {"shape": 2, "rot": 1}, {"shape": 2, "rot": 0}, {"shape": 2, "rot": 3}, {"shape": 2, "rot": 3}, {"shape": 2, "rot": 2}, {"shape": 1, "rot": 2}, {"shape": 0, "rot": 2}, {"shape": 0, "rot": 0}, {"shape": 2, "rot": 0}, {"shape": 0, "rot": 2}, {"shape": 1, "rot": 3}, {"shape": 1, "rot": 0}, {"shape": 1, "rot": 1}, {"shape": 2, "rot": 1}, {"shape": 1, "rot": 3}, {"shape": 1, "rot": 3}, {"shape": 0, "rot": 1}, {"shape": 2, "rot": 1}, {"shape": 1, "rot": 2}, {"shape": 0, "rot": 0}, {"shape": 2, "rot": 3}, {"shape": 1, "rot": 2}, {"shape": 0, "rot": 2}, {"shape": 1, "rot": 1}, {"shape": 1, "rot": 3}, {"shape": 0, "rot": 0}, {"shape": 0, "rot": 0}, {"shape": 0, "rot": 0}, {"shape": 0, "rot": 0}, {"shape": 1, "rot": 1}, {"shape": 1, "rot": 3}, {"shape": 0, "rot": 3}, {"shape": 0, "rot": 0}], "rotatable": [3, 10, 16, 17, 24, 29, 31, 33, 36, 38]};
+const PRACTICE_COURSE: BtCourse = {"trays": [-1, 3, 1, 2, 0, -1, 4], "balls": [2, 0, 0, 3, 0, 4, 1, 3], "fixed": [8, 16, 18, 39]};
 
 /* ------------------------------ Intro example ------------------------------ */
 
-/** 3×3 track: one gold tile in the middle switches the ball between two trays. */
+/** 3×3 serpentine: the middle of row 1 is turned vertical and the ball falls through it. */
 function IntroExample() {
   const [step, setStep] = useState(0);
   useEffect(() => {
-    const id = window.setInterval(() => setStep((s) => (s + 1) % 8), 650);
+    const id = window.setInterval(() => setStep((s) => (s + 1) % 6), 600);
     return () => window.clearInterval(id);
   }, []);
-  const right = step >= 4;
-  const k = step % 4;
-  const ball = right
-    ? [{ x: 150, y: 10 }, { x: 150, y: 150 }, { x: 250, y: 150 }, { x: 250, y: 335 }][k]!
-    : [{ x: 150, y: 10 }, { x: 150, y: 150 }, { x: 50, y: 150 }, { x: 50, y: 335 }][k]!;
-  const tube = (d: string, key: string) => (
+  const ball = [{ x: 50, y: -10 }, { x: 50, y: 50 }, { x: 150, y: 50 }, { x: 150, y: 150 }, { x: 50, y: 150 }, { x: 50, y: 150 }][step]!;
+  const tube = (d: string, key: string, dark = false) => (
     <g key={key}>
-      <path d={d} fill="none" stroke="#5A6270" strokeWidth="46" />
+      <path d={d} fill="none" stroke={dark ? "#3E4550" : "#6A7280"} strokeWidth="46" />
       <path d={d} fill="none" stroke="#12161C" strokeWidth="40" />
     </g>
   );
   return (
-    <svg viewBox="0 0 300 370" className="h-40 w-auto" aria-hidden="true">
+    <svg viewBox="0 -20 300 340" className="h-40 w-auto" aria-hidden="true">
       <rect x="0" y="0" width="300" height="300" fill="#12161C" />
-      {tube("M150 0V100", "a")}
-      {tube(right ? "M150 100Q150 150 200 150" : "M150 100Q150 150 100 150", "b")}
-      {tube("M100 150Q50 150 50 200", "c")}
-      {tube("M200 150Q250 150 250 200", "d")}
-      {tube("M50 200V300", "e")}
-      {tube("M250 200V300", "f")}
+      {tube("M50 0Q50 50 100 50", "a", true)}
+      {tube("M150 0V100", "b")}
+      {tube("M200 50Q250 50 250 100", "c", true)}
+      {tube("M300 150Q250 150 250 100", "d", true)}
+      {tube("M200 150H100", "e")}
+      {tube("M100 150Q50 150 50 200", "f", true)}
+      {tube("M50 200Q50 250 100 250", "g", true)}
+      {tube("M100 250H300", "h")}
+      <rect x="103" y="3" width="94" height="94" fill="none" stroke="#F5B82E" strokeWidth="3" />
       <rect x="103" y="103" width="94" height="94" fill="none" stroke="#F5B82E" strokeWidth="3" />
-      <rect x="8" y="305" width="84" height="58" fill="#4D8CFF" opacity=".25" stroke="#4D8CFF" strokeWidth="4" />
-      <rect x="208" y="305" width="84" height="58" fill="#FF4D4D" opacity=".25" stroke="#FF4D4D" strokeWidth="4" />
-      <circle cx={ball.x} cy={ball.y} r="15" fill={right ? "#FF4D4D" : "#4D8CFF"} style={{ transition: "cx .6s linear, cy .6s linear" }} />
+      <rect x="103" y="203" width="94" height="94" fill="none" stroke="#F5B82E" strokeWidth="3" />
+      <circle cx={ball.x} cy={ball.y} r="15" fill="#FF4D4D" style={{ transition: "cx .55s linear, cy .55s linear" }} />
     </svg>
   );
 }
