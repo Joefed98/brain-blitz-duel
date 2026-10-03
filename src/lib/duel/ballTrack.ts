@@ -48,6 +48,6 @@ export function replayBallTrackRun(course: BtCourse, seed: number, raw: string):
     lost: s.lost,
     released: s.next,
     actions: s.actions,
-    perfect: s.home === 15,
+    perfect: s.home === 8,
   };
 }

@@ -11,11 +11,7 @@ import {
   BT_COLS,
   BT_H,
   BT_HOPPER_H,
-  BT_K_FLIP,
-  BT_K_RELEASE,
   BT_K_ROTATE,
-  BT_K_SLIDE,
-  BT_K_WHEEL,
   BT_PALETTE,
   BT_ROWS,
   BT_TILE,
@@ -28,69 +24,46 @@ import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { BALLTRACK_TIME_MS, type BallTrackPuzzleData } from "@/lib/duel/types";
 import { playBlip, playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
-import { Button } from "@/components/ui/button";
 import { btDraw } from "@/lib/arcade/ballTrack";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Practice fallback course (a tier-2 bank course). */
-const PRACTICE_COURSE: BtCourse = {
-  trays: [-1, 2, 4, 0, 3, 1, -1],
-  balls: [1, 2, 4, 3, 2, 1, 4, 3, 0, 4, 2, 1, 0, 3, 0],
-  pipes: [
-    { cell: 27, shape: 0, rot: 0 },
-    { cell: 12, shape: 1, rot: 2 },
-    { cell: 2, shape: 0, rot: 2 },
-  ],
-  flippers: [
-    { cell: 3, dir: 0 },
-    { cell: 8, dir: 0 },
-    { cell: 5, dir: 1 },
-    { cell: 10, dir: 1 },
-    { cell: 11, dir: 1 },
-  ],
-  sliders: [
-    { row: 5, col: 0, len: 3, slot: 0, pos: 0 },
-    { row: 4, col: 1, len: 3, slot: 1, pos: 0 },
-  ],
-  wheels: [{ cell: 18, pocket: 0 }],
-};
+/** Practice fallback course (the first bank course). */
+const PRACTICE_COURSE: BtCourse = {"trays": [3, 0, 4, 1, -1, -1, 2], "balls": [3, 3, 0, 0, 3, 0, 3, 0], "tiles": [{"shape": 2, "rot": 2}, {"shape": 1, "rot": 1}, {"shape": 0, "rot": 1}, {"shape": 1, "rot": 0}, {"shape": 2, "rot": 1}, {"shape": 2, "rot": 3}, {"shape": 0, "rot": 1}, {"shape": 1, "rot": 1}, {"shape": 1, "rot": 3}, {"shape": 2, "rot": 2}, {"shape": 1, "rot": 0}, {"shape": 2, "rot": 1}, {"shape": 2, "rot": 2}, {"shape": 0, "rot": 3}, {"shape": 1, "rot": 0}, {"shape": 0, "rot": 1}, {"shape": 2, "rot": 1}, {"shape": 2, "rot": 0}, {"shape": 2, "rot": 3}, {"shape": 2, "rot": 3}, {"shape": 2, "rot": 2}, {"shape": 1, "rot": 2}, {"shape": 0, "rot": 2}, {"shape": 0, "rot": 0}, {"shape": 2, "rot": 0}, {"shape": 0, "rot": 2}, {"shape": 1, "rot": 3}, {"shape": 1, "rot": 0}, {"shape": 1, "rot": 1}, {"shape": 2, "rot": 1}, {"shape": 1, "rot": 3}, {"shape": 1, "rot": 3}, {"shape": 0, "rot": 1}, {"shape": 2, "rot": 1}, {"shape": 1, "rot": 2}, {"shape": 0, "rot": 0}, {"shape": 2, "rot": 3}, {"shape": 1, "rot": 2}, {"shape": 0, "rot": 2}, {"shape": 1, "rot": 1}, {"shape": 1, "rot": 3}, {"shape": 0, "rot": 0}, {"shape": 0, "rot": 0}, {"shape": 0, "rot": 0}, {"shape": 0, "rot": 0}, {"shape": 1, "rot": 1}, {"shape": 1, "rot": 3}, {"shape": 0, "rot": 3}, {"shape": 0, "rot": 0}], "rotatable": [3, 10, 16, 17, 24, 29, 31, 33, 36, 38]};
 
 /* ------------------------------ Intro example ------------------------------ */
 
-/** 3×3: a flipper in the middle, two trays below, one ball mid-fall. */
+/** 3×3 track: one gold tile in the middle switches the ball between two trays. */
 function IntroExample() {
   const [step, setStep] = useState(0);
   useEffect(() => {
-    const id = window.setInterval(() => setStep((s) => (s + 1) % 6), 650);
+    const id = window.setInterval(() => setStep((s) => (s + 1) % 8), 650);
     return () => window.clearInterval(id);
   }, []);
-  const flapRight = step >= 2;
-  const ball = [
-    { x: 150, y: 20 },
-    { x: 150, y: 50 },
-    { x: 150, y: 150 },
-    { x: 250, y: 250 },
-    { x: 250, y: 335 },
-    { x: 250, y: 335 },
-  ][step]!;
+  const right = step >= 4;
+  const k = step % 4;
+  const ball = right
+    ? [{ x: 150, y: 10 }, { x: 150, y: 150 }, { x: 250, y: 150 }, { x: 250, y: 335 }][k]!
+    : [{ x: 150, y: 10 }, { x: 150, y: 150 }, { x: 50, y: 150 }, { x: 50, y: 335 }][k]!;
+  const tube = (d: string, key: string) => (
+    <g key={key}>
+      <path d={d} fill="none" stroke="#5A6270" strokeWidth="46" />
+      <path d={d} fill="none" stroke="#12161C" strokeWidth="40" />
+    </g>
+  );
   return (
     <svg viewBox="0 0 300 370" className="h-40 w-auto" aria-hidden="true">
-      <rect x="0" y="0" width="300" height="300" rx="10" fill="#12161C" />
-      {[0, 1, 2].map((r) =>
-        [0, 1, 2].map((c) =>
-          r === 1 && c === 1 ? null : (
-            <line key={`${r}${c}`} x1={c * 100 + 50} y1={r * 100 + 12} x2={c * 100 + 50} y2={r * 100 + 88} stroke="#2A313C" strokeWidth="4" strokeDasharray="8 10" />
-          ),
-        ),
-      )}
-      <rect x="108" y="108" width="84" height="84" rx="6" fill="none" stroke="#3A414D" strokeWidth="4" />
-      <line x1="150" y1="132" x2={flapRight ? 180 : 120} y2="176" stroke="#F5B82E" strokeWidth="12" strokeLinecap="round" />
-      <rect x="8" y="305" width="84" height="58" fill="#4D8CFF" opacity=".25" />
-      <path d="M10 305 V361 H90 V305" fill="none" stroke="#4D8CFF" strokeWidth="5" />
-      <rect x="208" y="305" width="84" height="58" fill="#FF4D4D" opacity={step >= 4 ? 0.6 : 0.25} />
-      <path d="M210 305 V361 H290 V305" fill="none" stroke="#FF4D4D" strokeWidth="5" />
-      <circle cx={ball.x} cy={ball.y} r="18" fill="#FF4D4D" style={{ transition: "cx .6s linear, cy .6s linear" }} />
+      <rect x="0" y="0" width="300" height="300" fill="#12161C" />
+      {tube("M150 0V100", "a")}
+      {tube(right ? "M150 100Q150 150 200 150" : "M150 100Q150 150 100 150", "b")}
+      {tube("M100 150Q50 150 50 200", "c")}
+      {tube("M200 150Q250 150 250 200", "d")}
+      {tube("M50 200V300", "e")}
+      {tube("M250 200V300", "f")}
+      <rect x="103" y="103" width="94" height="94" fill="none" stroke="#F5B82E" strokeWidth="3" />
+      <rect x="8" y="305" width="84" height="58" fill="#4D8CFF" opacity=".25" stroke="#4D8CFF" strokeWidth="4" />
+      <rect x="208" y="305" width="84" height="58" fill="#FF4D4D" opacity=".25" stroke="#FF4D4D" strokeWidth="4" />
+      <circle cx={ball.x} cy={ball.y} r="15" fill={right ? "#FF4D4D" : "#4D8CFF"} style={{ transition: "cx .6s linear, cy .6s linear" }} />
     </svg>
   );
 }
@@ -117,9 +90,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<BtCheckpoint[]>([]);
   const queue = useRef<Omit<ArcadeInputEvent, "t">[]>([]);
-  const drag = useRef<{ id: number; slider: number; grab: number; last: number } | null>(null);
-  const submitted = useRef(false);
-  const [hud, setHud] = useState({ home: 0, wrong: 0, left: BT_BALLS, hopperBusy: false });
+    const submitted = useRef(false);
+  const [hud, setHud] = useState({ home: 0, wrong: 0, left: BT_BALLS });
   useNoTouchScroll(wrap);
 
   const lockedRef = useRef(locked);
@@ -184,11 +156,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         seenBad = s.wrong + s.lost;
         playWrong();
       }
-      const hopperBusy = s.balls.some((b) => b.cell === -1);
-      const key = `${s.home}|${s.wrong}|${s.next}|${hopperBusy}`;
+      const key = `${s.home}|${s.wrong}|${s.next}`;
       if (key !== shown) {
         shown = key;
-        setHud({ home: s.home, wrong: s.wrong, left: BT_BALLS - s.next, hopperBusy });
+        setHud({ home: s.home, wrong: s.wrong, left: BT_BALLS - s.next });
       }
       reportArcadeTick(s.tick, game.isOver(s));
       const node = canvas.current;
@@ -207,8 +178,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           ctx.clearRect(0, 0, w, h);
           ctx.translate(v.ox, v.oy);
           ctx.scale(v.scale, v.scale);
-           const d = drag.current;
-           btDraw(ctx, course, game.map, s, d ? { slider: d.slider, pos: d.last } : undefined);
+          btDraw(ctx, course, s);
         }
       }
       if (!submitted.current && time - draftAt >= 500) {
@@ -227,7 +197,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const blocked = () => locked || submitted.current || game.isOver(state.current);
   const push = (event: Omit<ArcadeInputEvent, "t">) => {
-    if (event.k === BT_K_SLIDE) queue.current = queue.current.filter((e) => !(e.k === BT_K_SLIDE && e.a === event.a));
     if (queue.current.length < 6) queue.current.push(event);
   };
   const world = (clientX: number, clientY: number) => {
@@ -256,69 +225,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const col = Math.floor(p.x / BT_TILE), row = Math.floor((p.y - BT_HOPPER_H) / BT_TILE);
           if (col < 0 || col >= BT_COLS || row < 0 || row >= BT_ROWS) return;
           const cell = row * BT_COLS + col;
-          const info = game.map[cell]!;
-          if (info.kind === 1) push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
-          else if (info.kind === 2) push({ k: BT_K_FLIP, a: cell, b: 0, c: 0, d: 0 });
-          else if (info.kind === 4) {
-            const wheel = course.wheels[info.idx];
-            if (!wheel) return;
-            const middle = (wheel.cell % BT_COLS + 1) * BT_TILE;
-            push({ k: BT_K_WHEEL, a: info.idx, b: p.x < middle ? 0 : 1, c: 0, d: 0 });
-          }
-          else if (info.kind === 3) {
-            const slider = course.sliders[info.idx]!;
-            const pos = state.current.slTo[info.idx]!;
-            const grab = (p.x - slider.col * BT_TILE) / BT_TILE - pos;
-            drag.current = { id: event.pointerId, slider: info.idx, grab, last: pos };
-            event.currentTarget.setPointerCapture(event.pointerId);
-          }
-          if (info.kind !== 3 && info.kind !== 0) playTick();
+          if (!game.rotatable.has(cell)) return;
+          push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
+          playTick();
         }}
-        onPointerMove={(event) => {
-          const d = drag.current;
-          if (!d || d.id !== event.pointerId || blocked()) return;
-          const p = world(event.clientX, event.clientY);
-          if (!p) return;
-          const slider = course.sliders[d.slider]!;
-          const pos = Math.max(0, Math.min(slider.len - 2, Math.round((p.x - slider.col * BT_TILE) / BT_TILE - d.grab)));
-          if (pos !== d.last) {
-            d.last = pos;
-            push({ k: BT_K_SLIDE, a: d.slider, b: pos, c: 0, d: 0 });
-            playTick();
-          }
-        }}
-        onPointerUp={(event) => {
-          if (drag.current?.id === event.pointerId) drag.current = null;
-        }}
-        onPointerCancel={() => (drag.current = null)}
       >
         <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
       </div>
-      <div className="flex h-7 shrink-0 items-center justify-evenly gap-1 text-[10px] text-muted-foreground" aria-label="Piece legend">
-        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 0V24M19 0V24" fill="none" stroke="currentColor" strokeWidth="2" /></svg>Pipes</span>
-        <span className="flex items-center gap-1"><svg className="size-4 text-primary" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3L19 20" stroke="currentColor" strokeWidth="5" /></svg>Flipper</span>
-        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" /><path d="M12 2V22M2 12H22" stroke="currentColor" /><circle cx="16" cy="7" r="3" fill="none" stroke="currentColor" /></svg>Wheel</span>
-        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 21H23" stroke="currentColor" /><rect x="2" y="5" width="20" height="12" fill="none" stroke="currentColor" /><path d="M4 8L8 11L4 14" fill="none" stroke="currentColor" /><circle cx="17" cy="11" r="4" fill="none" stroke="currentColor" /></svg>Slider</span>
+      <div className="flex h-7 w-full shrink-0 items-center justify-between px-1 font-mono text-xs text-muted-foreground">
+        <span>{hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}</span>
+        <span>{hud.left} to drop</span>
       </div>
-      <div className="flex h-14 w-full shrink-0 items-center justify-between gap-2 px-1 pt-1">
-        <span className="w-20 font-mono text-xs text-muted-foreground">
-          {hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}
-        </span>
-        <Button
-          type="button"
-          className="h-12 min-w-36 px-6 font-display text-lg font-bold"
-          style={{ touchAction: "manipulation" }}
-          disabled={locked || hud.left === 0 || hud.hopperBusy}
-          onPointerDown={(e) => {
-            e.preventDefault();
-            if (!blocked()) push({ k: BT_K_RELEASE, a: 0, b: 0, c: 0, d: 0 });
-          }}
-        >
-          Release
-        </Button>
-        <span className="w-20 text-right font-mono text-xs text-muted-foreground">{hud.left} left</span>
-      </div>
-
     </div>
   );
 }
@@ -342,7 +259,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           />
         ))}
       </div>
-      <p className="text-center text-base text-muted-foreground">Same course for everyone</p>
+      <p className="text-center text-base text-muted-foreground">Same track for everyone</p>
       <p className="font-mono text-base text-primary">{result.score} points</p>
     </div>
   );
