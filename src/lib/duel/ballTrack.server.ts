@@ -4,14 +4,15 @@ import type { BallTrackPuzzleData } from "./types";
 
 /** Draws one pre-proven board from the bank (built by scripts/ball-track-bank.ts). */
 export function generateBallTrack(): BallTrackPuzzleData {
-  const entry = BALL_TRACK_BANK[Math.floor(Math.random() * BALL_TRACK_BANK.length)]!;
+  const entry = BALL_TRACK_BANK[Math.floor(Math.random() * BALL_TRACK_BANK.length)];
+  if (!entry) throw new Error("Ball Track bank is empty");
   return {
     type: "balltrack",
     cols: BT_COLS,
     rows: BT_ROWS,
     tiles: entry.tiles,
     buckets: [...entry.buckets],
-    blocks: [...entry.blocks],
+    bombs: entry.bombs.map((bomb) => ({ ...bomb })),
     pairs: entry.pairs.map((pair) => [...pair] as [number, number]),
     gates: entry.gates.map((gate) => ({ ...gate })),
     minRotations: entry.min,
