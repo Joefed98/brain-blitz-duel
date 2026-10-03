@@ -28,6 +28,8 @@ import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { BALLTRACK_TIME_MS, type BallTrackPuzzleData } from "@/lib/duel/types";
 import { playBlip, playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
+import { Button } from "@/components/ui/button";
+import { btDraw } from "@/lib/arcade/ballTrack";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -205,7 +207,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           ctx.clearRect(0, 0, w, h);
           ctx.translate(v.ox, v.oy);
           ctx.scale(v.scale, v.scale);
-          game.draw(ctx, s, { width: BT_W, height: BT_H });
+           const d = drag.current;
+           btDraw(ctx, course, game.map, s, d ? { slider: d.slider, pos: d.last } : undefined);
         }
       }
       if (!submitted.current && time - draftAt >= 500) {
@@ -256,7 +259,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const info = game.map[cell]!;
           if (info.kind === 1) push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
           else if (info.kind === 2) push({ k: BT_K_FLIP, a: cell, b: 0, c: 0, d: 0 });
-          else if (info.kind === 4) push({ k: BT_K_WHEEL, a: info.idx, b: 0, c: 0, d: 0 });
+          else if (info.kind === 4) {
+            const wheel = course.wheels[info.idx];
+            if (!wheel) return;
+            const middle = (wheel.cell % BT_COLS + 1) * BT_TILE;
+            push({ k: BT_K_WHEEL, a: info.idx, b: p.x < middle ? 0 : 1, c: 0, d: 0 });
+          }
           else if (info.kind === 3) {
             const slider = course.sliders[info.idx]!;
             const pos = state.current.slTo[info.idx]!;
@@ -290,9 +298,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         <span className="w-20 font-mono text-xs text-muted-foreground">
           {hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}
         </span>
-        <button
+        <Button
           type="button"
-          className="h-12 min-w-36 rounded-xl bg-primary px-6 font-display text-lg font-bold text-primary-foreground shadow disabled:opacity-40"
+          className="h-12 min-w-36 px-6 font-display text-lg font-bold"
           style={{ touchAction: "manipulation" }}
           disabled={locked || hud.left === 0 || hud.hopperBusy}
           onPointerDown={(e) => {
@@ -301,8 +309,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           }}
         >
           Release
-        </button>
+        </Button>
         <span className="w-20 text-right font-mono text-xs text-muted-foreground">{hud.left} left</span>
+      </div>
+      <div className="flex h-7 shrink-0 items-center justify-evenly gap-1 text-[10px] text-muted-foreground" aria-label="Piece legend">
+        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 0V24M19 0V24" fill="none" stroke="currentColor" strokeWidth="2" /></svg>Pipes</span>
+        <span className="flex items-center gap-1"><svg className="size-4 text-primary" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3L19 20" stroke="currentColor" strokeWidth="5" /></svg>Flipper</span>
+        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" /><path d="M12 2V22M2 12H22" stroke="currentColor" /><circle cx="16" cy="7" r="3" fill="none" stroke="currentColor" /></svg>Wheel</span>
+        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 21H23" stroke="currentColor" /><rect x="2" y="5" width="20" height="12" fill="none" stroke="currentColor" /><path d="M4 8L8 11L4 14" fill="none" stroke="currentColor" /><circle cx="17" cy="11" r="4" fill="none" stroke="currentColor" /></svg>Slider</span>
       </div>
     </div>
   );

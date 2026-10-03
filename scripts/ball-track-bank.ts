@@ -133,7 +133,7 @@ export function playbook(game: BtGame): { events: ArcadeInputEvent[]; state: BtS
       for (const [i, rot] of plan.pipe) for (let d = (rot - state.pipeRot[i]! + 4) % 4; d > 0; d--) queue.push({ k: BT_K_ROTATE, a: game.course.pipes[i]!.cell, b: 0, c: 0, d: 0 });
       for (const [i, f] of plan.flip) if (f !== state.flip[i]) queue.push({ k: BT_K_FLIP, a: game.course.flippers[i]!.cell, b: 0, c: 0, d: 0 });
       for (const [i, p] of plan.slide) if (p !== sliderPos(state, i)) queue.push({ k: BT_K_SLIDE, a: i, b: p, c: 0, d: 0 });
-      for (const [w, q] of plan.wheelIn) for (let d = (q - state.whPocket[w]! + 4) % 4; d > 0; d--) queue.push({ k: BT_K_WHEEL, a: w, b: 0, c: 0, d: 0 });
+      for (const [w, q] of plan.wheelIn) for (let d = (q - state.whPocket[w]! + 4) % 4; d > 0; d--) queue.push({ k: BT_K_WHEEL, a: w, b: 1, c: 0, d: 0 });
       queue.push({ k: BT_K_RELEASE, a: 0, b: 0, c: 0, d: 0 });
     }
     let next: ArcadeInputEvent | null = null;
@@ -145,7 +145,7 @@ export function playbook(game: BtGame): { events: ArcadeInputEvent[]; state: BtS
     } else if (!head && plan) {
       const held = state.balls.find((b) => b.held >= 0);
       if (held && state.tick + 1 >= state.whUntil[held.held]! && state.whPocket[held.held] !== plan.wheelOut.get(held.held)) {
-        next = { t: state.tick + 1, k: BT_K_WHEEL, a: held.held, b: 0, c: 0, d: 0 };
+        next = { t: state.tick + 1, k: BT_K_WHEEL, a: held.held, b: 1, c: 0, d: 0 };
       }
     }
     if (next) recordInput(events, next, game.inputRanges);
@@ -153,6 +153,16 @@ export function playbook(game: BtGame): { events: ArcadeInputEvent[]; state: BtS
     if (state.lost || state.wrong) return null;
   }
   return state.home === BT_BALLS ? { events, state } : null;
+}
+
+/** Removing slides must break this exact proven playbook, not merely change its action count. */
+export function dependsOnSlide(game: BtGame, events: ArcadeInputEvent[]): boolean {
+  if (!game.course.sliders.length) return true;
+  if (!events.some((e) => e.k === BT_K_SLIDE)) return false;
+  const without = events.filter((e) => e.k !== BT_K_SLIDE);
+  let state = game.init(1);
+  while (!game.isOver(state)) state = game.step(state, inputAt(without, state.tick + 1));
+  return state.home < BT_BALLS;
 }
 
 if (import.meta.main) {
@@ -167,6 +177,7 @@ if (import.meta.main) {
     const game = makeBallTrackGame(course);
     const run = playbook(game);
     if (!run || run.state.lastLand > BT_RUN_TICKS - 900) continue;
+    if (!dependsOnSlide(game, run.events)) continue;
     const par = run.state.actions;
     if (par < 12) continue;
     const key = JSON.stringify(course);
