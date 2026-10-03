@@ -116,7 +116,7 @@ function MazeBoard({
             x2={wall.x2}
             y2={wall.y2}
             stroke="var(--muted-foreground)"
-            strokeWidth={0.075}
+            strokeWidth={0.045}
             opacity={0.85}
             strokeLinecap="square"
           />
@@ -251,7 +251,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
         <ArrowPad
           onPress={step}
           disabled={locked || solved}
-          repeatMs={120}
+          repeatMs={240}
         />
         <button
           type="button"

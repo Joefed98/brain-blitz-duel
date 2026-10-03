@@ -1397,13 +1397,13 @@ export interface TowerPuzzleData {
 /*  Maze Dash                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export const MAZE_COLS = 15;
+export const MAZE_COLS = 19;
 export const MAZE_CELLS = MAZE_COLS * MAZE_COLS;
 export const MAZE_TIME_MS = 60_000;
 /** The route from start to exit is never shorter than this. */
 export const MAZE_MIN_PATH = 70;
-/** And never straighter than this. */
-export const MAZE_MIN_TURNS = 14;
+/** And never straighter than this: 1.5× the median turns of the old 15×15 route (48). */
+export const MAZE_MIN_TURNS = 72;
 /** False trails: dead-end branches leaving the route, and how long each runs. */
 export const MAZE_MIN_DEAD_ENDS = 8;
 export const MAZE_DEAD_END_LENGTH = 5;
