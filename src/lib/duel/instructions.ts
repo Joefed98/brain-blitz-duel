@@ -856,12 +856,12 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "30 per completed pyramid, plus up to 30 for finishing all four early. The current pyramid earns proportional partial points.",
   },
   balltrack: {
-    goal: "Get every ball into the tray of its colour.",
+    goal: "Steer every ball into the tray of its colour.",
     how: [
-      { action: "Tap pipes and flippers, drag sliders, turn wheels", detail: "— while the balls are falling." },
-      { action: "Tap Release", detail: "to drop the next ball whenever you're ready." },
+      { action: "A ball drops every 10 seconds.", detail: "" },
+      { action: "Tap the gold-outlined tubes", detail: "to rotate them and send each ball down the right branch." },
     ],
-    score: "Every ball home scores big and fast finishes earn a bonus; wrong trays cost you.",
+    score: "Points per ball home; wrong trays cost you.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",

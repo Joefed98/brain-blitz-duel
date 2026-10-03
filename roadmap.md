@@ -513,3 +513,6 @@
 - [x] Ball Track-only bank, mechanics and 200-run replay checks; no browser tests.
 
 - Validation: 400/400 courses solved and fail with slides removed; all demonstrate slot deflection; replay identity 200/200, focused piece checks passed. No browser tests.
+
+## Ball Track tube rework (Oct 3)
+- [x] 7×7 tube track, rotatable gold tiles, 8 auto-dropped balls, 400-course bank; Ball Track-only proof; no browser tests.
