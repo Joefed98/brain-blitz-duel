@@ -688,12 +688,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   whack: {
     goal: "Tap the targets the banner tells you to.",
     how: [
-      { action: "Right-colour balls stay up", detail: "for three seconds or until tapped." },
-      { action: "Wrong-colour decoys", detail: "drop after 1.5 seconds." },
-      { action: "The rule flips partway through", detail: "— watch the banner." },
-      { action: "A wrong-colour tap", detail: "clears the hole but costs 5." },
+      { action: "Balls pop up briefly", detail: "— the window shrinks as the run goes on." },
+      { action: "The rule flips 3–5 times", detail: "at unpredictable moments — watch the banner." },
+      { action: "Never tap a bomb", detail: "or a wrong-colour ball — each costs 5." },
     ],
-    score: "3 per correct ball (45 in all); decoy taps cost 5. +15 for all 45 with no wrong taps. Maximum 150.",
+    score: "Up to 135 for the share of targets hit, −5 per wrong tap, +15 for every target with no wrong taps. Maximum 150.",
   },
   wavefront: {
     goal: "Shoot down the formation before it reaches you.",

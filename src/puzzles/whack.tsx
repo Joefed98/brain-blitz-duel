@@ -15,7 +15,6 @@ import {
   whackRule,
   WHACK_CHECKPOINT_INTERVAL,
   WHACK_COLS,
-  WHACK_FLIP_TICKS,
   WHACK_GAP_PX,
   WHACK_GOLD_HEX,
   WHACK_HOLE,
@@ -86,7 +85,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof whackCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const submitted = useRef(false);
-  const [hud, setHud] = useState({ hits: 0, wrong: 0, next: WHACK_COLS * WHACK_COLS, red: false, flash: false });
+  const [hud, setHud] = useState({ hits: 0, wrong: 0, next: 0, red: false, flash: false });
   useNoTouchScroll(wrap);
 
   const lockedRef = useRef(locked);
@@ -150,7 +149,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (state.current.tick % WHACK_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(whackCheckpoint(state.current));
           }
-          if (WHACK_FLIP_TICKS.includes(state.current.tick)) {
+          if (state.current.schedule.flips.includes(state.current.tick)) {
             playTick();
             flashUntil = time + 400;
           }
@@ -169,7 +168,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         hits,
         wrong,
         next: state.current.next,
-        red: whackRule(Math.max(1, state.current.tick)) === WHACK_RED,
+        red: whackRule(state.current.schedule.flips, state.current.tick) === WHACK_RED,
         flash: time < flashUntil,
       };
       if (
@@ -216,14 +215,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   }, [seed, data]);
 
   if (!data) return null;
-  const remaining = state.current.schedule.kind.length - hud.next;
+  const total = state.current.schedule.total;
 
   return (
     <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col gap-2" style={NO_SCROLL_STYLE}>
       <Banner red={hud.red} flash={hud.flash} />
       <p className="text-center font-mono text-sm text-muted-foreground">
-        Whacked <span className="text-primary">{hud.hits}</span> · Wrong{" "}
-        <span className="text-destructive">{hud.wrong}</span> · Queue {remaining}
+        Hits <span className="text-primary">{hud.hits}</span> / {total} · Wrong{" "}
+        <span className="text-destructive">{hud.wrong}</span>
       </p>
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <div
@@ -263,7 +262,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
-        {result.hits} whacked · {result.wrong} wrong
+        Hits {result.hits} / {result.totalTargets} · Wrong {result.wrong}
       </p>
       <p className="text-center text-base text-muted-foreground">Same targets for everyone</p>
       <p className="font-mono text-base text-primary">{result.score} points</p>
