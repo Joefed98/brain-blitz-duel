@@ -108,7 +108,7 @@ console.log(`clay self-replay ${RUNS}/${RUNS}; aiming bot ${perfectRuns}/${RUNS}
 console.log(`clay airborne max ${maxEarly}/${maxLate}; upper-middle ${nearTop}; edges ${left}/${right}`);
 console.log(failures ? `${failures} FAILURES` : "ALL OK");
 
-// Trajectory guard: every clay covers ⅔ width and stays ≥ 1 s on screen.
+// Trajectory guard: every clay covers ⅔ width and stays ≥ 0.6 s on screen.
 {
   const { clayGame: g, clayFlight: fl, CLAY_CONFIG: cc } = await import("@/lib/arcade/clayShoot");
   let bad = 0, minCov = 1e9, minT = 1e9;

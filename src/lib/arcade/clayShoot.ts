@@ -66,9 +66,9 @@ export const CLAY_CONFIG = {
   goldFlatAngleSpan: 1821,
   goldSteepAngleMin: 9102,
   goldSteepAngleSpan: 1457,
-  /** Every path covers ⅔ of the width (px) and stays ≥ 1 s on screen. */
+  /** Every path covers ⅔ of the width (px) and stays ≥ 0.6 s on screen. */
   minCoverage: 240,
-  minOnScreenTicks: 60,
+  minOnScreenTicks: 36,
   rerollTries: 64,
   scanAngleMin: 1024,
   scanAngleCount: 40,
@@ -201,7 +201,7 @@ function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
     const hardFlat = gold && draw(2) === 0;
     const y0 = middle[i] ? c.middleYMin + draw(c.middleYSpan) : c.lowerYMin + draw(c.lowerYSpan);
     launchY.push(y0);
-    // Seeded reroll until the path covers ⅔ of the width and stays ≥ 1 s on screen;
+    // Seeded reroll until the path covers ⅔ of the width and stays ≥ 0.6 s on screen;
     // after rerollTries the angle is lowered step by step so it always terminates.
     const fits = (speed: number, angle: number): [number, number] | null => {
       const h = (speed * icos(angle)) >> 14;

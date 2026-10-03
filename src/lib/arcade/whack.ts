@@ -39,10 +39,11 @@ export const WHACK_BOMB = 2;
 /** Up-window: 54 ticks (900 ms) at the start shrinking to 27 (450 ms) at the end. */
 export const WHACK_LIFE_START_TICKS = 54;
 export const WHACK_LIFE_END_TICKS = 27;
-/** Gap between pops: 42 ticks at the start to 30 at the end, plus 0…11 jitter. */
+/** Gap between pops: 42 ticks at the start ramping to 10 at the end, plus 0…5 jitter,
+ *  so the final third regularly has two or three balls up together (cap 3). */
 const POP_GAP_START = 42;
-const POP_GAP_END = 30;
-const POP_GAP_JITTER = 12;
+const POP_GAP_END = 10;
+const POP_GAP_JITTER = 6;
 const FIRST_POP_TICK = 30;
 export const WHACK_MAX_UP = 3;
 export const WHACK_BOMB_PERCENT = 10;

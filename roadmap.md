@@ -459,3 +459,8 @@
 - [x] Whack-a-Target: every ball (target and decoy) drops after 1 s if not whacked; scoring unchanged.
 - [x] Rooms never draw memory: addMemory option removed from the draw, memory filtered from saved category settings; memory games stay in practice.
 - [x] Whack-only self-replay proof (200/200) and typecheck; no browser tests.
+
+## Clay and Whack tuning follow-up (Oct 3)
+- [x] Clay Shoot minimum on-screen time lowered from 1.2 s to 0.6 s; ⅔-width coverage rule unchanged.
+- [x] Whack-a-Target pop gap ramps 42→10 ticks so the final third regularly has 2–3 balls up (cap 3, never same hole twice); 900→450 ms lifetimes unchanged.
+- [x] Identity proofs run only for Clay Shoot and Whack-a-Target (200/200 each); no browser tests.
