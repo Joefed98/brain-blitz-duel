@@ -1,4 +1,4 @@
-/** Shared, deterministic pipe rules. 0 = |, 1 = \\, 2 = /. */
+/** Shared pipe rules. 0 = |, 1 = \\, 2 = shallow-right, 3 = /, 4 = shallow-left. */
 export const BT_COLS = 8;
 export const BT_ROWS = 8;
 const MAX_EVENTS = 400;
@@ -19,6 +19,13 @@ export interface BtBoard {
 
 export type BtEvent = { k: "r"; cell: number } | { k: "d"; ball: number };
 
+export interface BtPathPoint {
+  /** Coordinates in tile units from the grid's top-left corner. */
+  x: number;
+  y: number;
+  angle: number;
+}
+
 export function btEncode(events: readonly BtEvent[]): string {
   return events.map((e) => e.k === "r" ? `r${e.cell}` : `d${e.ball}`).join(",");
 }
@@ -33,20 +40,44 @@ export function btDecode(answer: string): BtEvent[] {
 }
 
 /** Each path begins above its source column and ends in a bucket, or outside a side. */
-export function btRun(board: BtBoard, tiles: string, ball: number): { path: number[]; bucket: number | null; home: boolean } {
+export function btRun(board: BtBoard, tiles: string, ball: number): { path: number[]; points: BtPathPoint[]; bucket: number | null; home: boolean } {
   let column = ball;
   const path: number[] = [];
-  for (let row = 0; row < board.rows; row++) {
-    path.push(row * board.cols + column);
+  const points: BtPathPoint[] = [{ x: ball + 0.5, y: -0.15, angle: 0 }];
+  const blocks = new Set(board.blocks ?? []);
+  const gates = new Map((board.gates ?? []).map((gate) => [gate.cell, gate.colour]));
+  const visited = new Set<string>();
+  for (let row = 0, steps = 0; row < board.rows && steps < board.rows * board.cols; steps++) {
     const cell = row * board.cols + column;
-    if (board.blocks?.includes(cell)) return { path, bucket: null, home: false };
-    const gate = board.gates?.find((candidate) => candidate.cell === cell);
-    if (gate && gate.colour !== ball) return { path, bucket: null, home: false };
-    const orientation = tiles[cell];
-    column += orientation === "1" ? 1 : orientation === "2" ? -1 : 0;
-    if (column < 0 || column >= board.cols) return { path, bucket: null, home: false };
+    const stateKey = `${cell}:${tiles[cell]}`;
+    if (visited.has(stateKey)) return { path, points, bucket: null, home: false };
+    visited.add(stateKey);
+    path.push(cell);
+    if (blocks.has(cell) || (gates.has(cell) && gates.get(cell) !== ball)) return { path, points, bucket: null, home: false };
+    const orientation = Number(tiles[cell]);
+    if (orientation === 2 || orientation === 4) {
+      const direction = orientation === 2 ? 1 : -1;
+      points.push({ x: column + 0.5, y: row + 0.32, angle: direction * 25 });
+      points.push({ x: column + 0.5 + direction, y: row + 0.68, angle: direction * 105 });
+      const nextColumn = column + direction;
+      if (nextColumn < 0 || nextColumn >= board.cols) return { path, points, bucket: null, home: false };
+      const nextCell = row * board.cols + nextColumn;
+      if (blocks.has(nextCell) || (gates.has(nextCell) && gates.get(nextCell) !== ball)) return { path, points, bucket: null, home: false };
+      const nextOrientation = Number(tiles[nextCell]);
+      if (nextOrientation === (direction === 1 ? 4 : 2)) return { path, points, bucket: null, home: false };
+      column = nextColumn;
+      continue;
+    }
+    const direction = orientation === 1 ? 1 : orientation === 3 ? -1 : 0;
+    points.push({ x: column + 0.5, y: row, angle: direction * 15 });
+    column += direction;
+    points.push({ x: column + 0.5, y: row + 1, angle: direction * 105 });
+    row++;
+    if (column < 0 || column >= board.cols) return { path, points, bucket: null, home: false };
   }
-  return { path, bucket: column, home: board.buckets[column] === ball };
+  if (points.at(-1)?.y !== board.rows) return { path, points, bucket: null, home: false };
+  points.push({ x: column + 0.5, y: board.rows + 0.28, angle: 145 });
+  return { path, points, bucket: column, home: board.buckets[column] === ball };
 }
 
 export interface BtReplay {
@@ -54,7 +85,7 @@ export interface BtReplay {
   dropped: number[];
   home: number;
   rotations: number;
-  runs: { ball: number; path: number[]; bucket: number | null; home: boolean }[];
+  runs: { ball: number; path: number[]; points: BtPathPoint[]; bucket: number | null; home: boolean }[];
 }
 
 /** Replays only legal taps and drops, ignoring extra or malformed actions. */
@@ -68,8 +99,8 @@ export function btReplay(board: BtBoard, events: readonly BtEvent[]): BtReplay {
     if (dropped.size === board.cols) break;
     if (event.k === "r") {
       if (!Number.isInteger(event.cell) || event.cell < 0 || event.cell >= board.cols * board.rows) continue;
-      if (board.blocks?.includes(event.cell)) continue;
-      tiles[event.cell] = String((Number(tiles[event.cell]) + 1) % 3);
+      if (event.cell < board.cols || board.blocks?.includes(event.cell)) continue;
+      tiles[event.cell] = String((Number(tiles[event.cell]) + 1) % 5);
       rotations++;
     } else if (Number.isInteger(event.ball) && event.ball >= 0 && event.ball < board.cols && !dropped.has(event.ball)) {
       const pair = board.pairs?.find(([a, b]) => a === event.ball || b === event.ball);

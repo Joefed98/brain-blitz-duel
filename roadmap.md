@@ -487,3 +487,9 @@
 - [x] Add 4–6 blocks, two linked pairs, and two colour gates to shared replay and UI.
 - [x] Rebuild 400 boards with 12–20 stored minimum rotations and validate constraints.
 - [x] Update intro and verify narrow-layout calculations, types, and build without browser tests.
+
+## Ball Track tuning pass 3 (Oct 3)
+- [x] Add deterministic shallow-right and shallow-left runs to replay and bank generation.
+- [x] Fix row 1 as dim vertical pipes and rebuild 400 boards at 12–20 rotations with non-crossing pairs.
+- [x] Add smaller rolling balls, doubled edge-to-edge tubes, near-wall occlusion, and heavier nested pair links.
+- [x] Add the requested top clearance and validate source, bank, replay, types, and narrow-layout geometry without browser tests.

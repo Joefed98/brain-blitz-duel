@@ -2194,7 +2194,7 @@ export interface BallTrackPuzzleData {
   type: "balltrack";
   cols: number;
   rows: number;
-  /** Row-major orientations: 0 vertical, 1 down-right, 2 down-left. */
+  /** Row-major orientations: 0 vertical, 1 down-right, 2 shallow-right, 3 down-left, 4 shallow-left. */
   tiles: string;
   /** Bucket colours indexed by column; a derangement of the eight balls. */
   buckets: number[];

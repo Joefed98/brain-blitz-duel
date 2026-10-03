@@ -12,9 +12,13 @@ for (const e of BALL_TRACK_BANK) {
   const replay = btReplay(p, btDecode(e.solutionEvents));
   if (g.isCorrect && g.score === 135 && replay.rotations === e.min) ok++;
   const blockOk = e.blocks.length >= 4 && e.blocks.length <= 6 && new Set(e.blocks).size === e.blocks.length;
-  const pairOk = e.pairs.length === 2 && new Set(e.pairs.flat()).size === 4;
+  const spans = e.pairs.map(([a, b]) => [Math.min(a, b), Math.max(a, b)] as const);
+  const crossing = spans[0] && spans[1] && ((spans[0][0] < spans[1][0] && spans[1][0] < spans[0][1] && spans[0][1] < spans[1][1]) || (spans[1][0] < spans[0][0] && spans[0][0] < spans[1][1] && spans[1][1] < spans[0][1]));
+  const pairOk = e.pairs.length === 2 && new Set(e.pairs.flat()).size === 4 && !crossing;
   const gateOk = e.gates.length === 2 && e.gates.every((gate) => !e.blocks.includes(gate.cell));
-  if (blockOk && pairOk && gateOk && replay.home === 8 && replay.dropped.length === 8) proof++;
+  const fixedTopOk = e.tiles.slice(0, 8) === "0".repeat(8) && e.solution.slice(0, 8) === "0".repeat(8) && e.blocks.every((cell) => cell >= 8);
+  const shallowOk = replay.runs.some((run) => run.path.length > 8);
+  if (blockOk && pairOk && gateOk && fixedTopOk && shallowOk && replay.home === 8 && replay.dropped.length === 8) proof++;
   if (scoreBallTrack(6, 0, 90_000, 200, e.min) === 53) partial++;
 }
 console.log(`ball track: ${ok}/${BALL_TRACK_BANK.length} solution scores 135 at 45s left · ${proof} constraint proofs · ${partial} partial scores`);
