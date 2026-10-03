@@ -107,7 +107,6 @@ if (nearTop === 0 || Math.abs(left - right) > RUNS || left === 0 || right === 0)
 console.log(`clay self-replay ${RUNS}/${RUNS}; aiming bot ${perfectRuns}/${RUNS}; gold ${goldHits}/${RUNS * CLAY_CONFIG.goldClays}; slowest ${slowest.toFixed(1)}ms`);
 console.log(`clay airborne max ${maxEarly}/${maxLate}; upper-middle ${nearTop}; edges ${left}/${right}`);
 console.log(failures ? `${failures} FAILURES` : "ALL OK");
-process.exit(failures ? 1 : 0);
 
 // Trajectory guard: every clay covers ⅔ width and stays ≥ 1 s on screen.
 {
@@ -124,3 +123,4 @@ process.exit(failures ? 1 : 0);
   console.log(`trajectory guard 2000 seeds: ${bad} failing clays; min coverage ${minCov}px/${cc.worldW}; min on-screen ${minT} ticks`);
   if (bad) process.exitCode = 1;
 }
+process.exit(failures || process.exitCode ? 1 : 0);
