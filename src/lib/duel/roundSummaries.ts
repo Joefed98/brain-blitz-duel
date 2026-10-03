@@ -1410,9 +1410,10 @@ const lightUpSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
-const ballTrackSummary: SummaryBuilder = (result, puzzle) => {
+const ballTrackSummary: SummaryBuilder = (result) => {
   const home = Number(result.extra?.["home"] ?? 0);
-  return { summary: `${home} / 8 home`, detail: ["Same puzzle for everyone"] };
+  const wrong = Number(result.extra?.["wrong"] ?? 0);
+  return { summary: `${home} / 15 home · ${wrong} wrong`, detail: ["Same course for everyone"] };
 };
 
 const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {

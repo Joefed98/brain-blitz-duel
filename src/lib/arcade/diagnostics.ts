@@ -39,6 +39,7 @@ import { swingCheckpoint } from "./swing";
 import { tiltCheckpoint } from "./tilt";
 import { hotfloorCheckpoint } from "./hotFloor";
 import { snipCheckpoint } from "./snip";
+import { btCheckpoint } from "./ballTrack";
 import type { InputDiag } from "./engine";
 
 export type ArcadeCounters = Record<string, number>;
@@ -78,6 +79,7 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   tilt: tiltCheckpoint,
   hotfloor: hotfloorCheckpoint,
   snip: snipCheckpoint,
+  balltrack: btCheckpoint,
 };
 
 export const ARCADE_DIAG_KEYS: ReadonlySet<string> = new Set(Object.keys(SNAPSHOTS));
