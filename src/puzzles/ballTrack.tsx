@@ -49,7 +49,7 @@ function PipeBoard({ board, tiles, dropped, active, onRotate, onDrop, small = fa
           </div>
         ))}
       </div>
-      {active && <span aria-hidden="true" className={`pointer-events-none absolute z-10 rounded-full border border-foreground/40 shadow-md ${small ? "size-4" : "size-7"}`} style={{ left: `${(active.column + .5) * 100 / board.cols}%`, top: `${(active.row + 1.5) * 100 / (board.rows + 2)}%`, transform: "translate(-50%, -50%)", backgroundColor: BALL_COLOURS[active.ball % 8], transition: `left ${STEP_MS}ms linear, top ${STEP_MS}ms linear` }} />}
+      {active && <span aria-hidden="true" className={`pointer-events-none absolute z-10 rounded-full border border-foreground/40 shadow-md ${small ? "size-4" : "size-7"}`} style={{ left: `${(active.column + .5) * 100 / board.cols}%`, top: active.row < 0 ? (small ? "12px" : "22px") : active.row >= board.rows ? `calc(100% - ${small ? 12 : 22}px)` : `calc(${small ? 24 : 44}px + (100% - ${small ? 48 : 88}px) * ${(active.row + .5) / board.rows})`, transform: "translate(-50%, -50%)", backgroundColor: BALL_COLOURS[active.ball % 8], transition: `left ${STEP_MS}ms linear, top ${STEP_MS}ms linear` }} />}
     </div>
   );
 }
