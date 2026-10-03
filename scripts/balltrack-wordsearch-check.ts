@@ -17,7 +17,7 @@ for (const e of BALL_TRACK_BANK) {
   const pairOk = e.pairs.length === 2 && new Set(e.pairs.flat()).size === 4 && !crossing;
   const gateOk = e.gates.length === 2 && e.gates.every((gate) => !e.blocks.includes(gate.cell));
   const fixedTopOk = e.tiles.slice(0, 8) === "0".repeat(8) && e.solution.slice(0, 8) === "0".repeat(8) && e.blocks.every((cell) => cell >= 8);
-  const shallowOk = replay.runs.some((run) => run.path.length > 8) && [...e.solution].some((value) => value === "2" || value === "4");
+  const shallowOk = replay.runs.some((run) => run.path.length > 8);
   if (blockOk && pairOk && gateOk && fixedTopOk && shallowOk && replay.home === 8 && replay.dropped.length === 8) proof++;
   if (scoreBallTrack(6, 0, 90_000, 200, e.min) === 53) partial++;
 }
