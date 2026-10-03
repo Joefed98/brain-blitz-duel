@@ -80,7 +80,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (!anim) return;
     const delay = reduced ? 50 : STEP_MS;
     const timer = setTimeout(() => {
-      if (anim.step < anim.path.length + 1) setAnim({ ...anim, step: anim.step + 1 });
+      if (anim.step < anim.path.length) setAnim({ ...anim, step: anim.step + 1 });
       else setAnim(null);
     }, delay);
     return () => clearTimeout(timer);
@@ -109,7 +109,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-1 pt-1">
       <p className="shrink-0 font-mono text-xs text-muted-foreground">{replay.home} / 8 home · {replay.dropped.length} / 8 dropped · {replay.rotations} turns</p>
-      <div className="w-full max-w-[540px]">
+      <div className="w-full">
         <PipeBoard board={data} tiles={replay.tiles} dropped={replay.dropped} active={active} onRotate={busy ? undefined : (cell) => { buzz(8); setEvents((current) => [...current, { k: "r", cell }]); }} onDrop={busy ? undefined : drop} />
       </div>
     </div>

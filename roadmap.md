@@ -478,6 +478,6 @@
 - [x] Source checks and typecheck; no browser tests.
 
 ## Ball Track rework (Oct 3)
-- [ ] Replace old blocker/GO rules with 8×6 rotating pipes, eight colour-matched balls/buckets, sequential animated drops and replay grading.
-- [ ] Rebuild 400 answer-first boards with proven 10–16 minimum rotations and server-only solutions.
-- [ ] Update intro, reveal, scoring, instructions and round summaries; source-check narrow layouts and replay without browser tests.
+- [x] Replace old blocker/GO rules with 8×6 rotating pipes, eight colour-matched balls/buckets, sequential animated drops and replay grading.
+- [x] Rebuild 400 answer-first boards with proven 10–16 simultaneous-configuration minimum rotations and server-only solutions.
+- [x] Update intro, reveal, scoring, instructions and round summaries; source-check narrow layouts and replay without browser tests.
