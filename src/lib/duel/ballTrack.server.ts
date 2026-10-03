@@ -1,22 +1,17 @@
 import { BALL_TRACK_BANK } from "./ballTrackBank.server";
-import { BT_COLS, BT_ROWS } from "./ballTrack";
 import type { BallTrackPuzzleData } from "./types";
 
-/** Draws one pre-proven board from the bank (built by scripts/ball-track-bank.ts). */
+/** Draws one pre-proven course from the bank (built by scripts/ball-track-bank.ts). */
 export function generateBallTrack(): BallTrackPuzzleData {
-  const entry = BALL_TRACK_BANK[Math.floor(Math.random() * BALL_TRACK_BANK.length)];
+  const index = Math.floor(Math.random() * BALL_TRACK_BANK.length);
+  const entry = BALL_TRACK_BANK[index];
   if (!entry) throw new Error("Ball Track bank is empty");
   return {
     type: "balltrack",
-    cols: BT_COLS,
-    rows: BT_ROWS,
-    tiles: entry.tiles,
-    buckets: [...entry.buckets],
-    bombs: entry.bombs.map((bomb) => ({ ...bomb })),
-    pairs: entry.pairs.map((pair) => [...pair] as [number, number]),
-    gates: entry.gates.map((gate) => ({ ...gate })),
-    minRotations: entry.min,
-    solution: entry.solution,
-    solutionEvents: entry.solutionEvents,
+    seed: index + 1,
+    course: structuredClone(entry.course),
+    tier: entry.tier,
+    par: entry.par,
+    playbook: entry.playbook,
   };
 }

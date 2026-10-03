@@ -1,203 +1,349 @@
-import { useEffect, useRef, useState } from "react";
-import { Bomb, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
-import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
-import { btDecode, btEncode, btReplay, btDrop, BT_COLS, BT_ROWS, type BtBoard, type BtEvent, type BtPathPoint, type BtRun } from "@/lib/duel/ballTrack";
-import { useStageState } from "@/lib/duel/stageState";
+import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
+import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
+import { inputAt, MAX_CATCH_UP_TICKS, recordInput, TICK_MS, type ArcadeInputEvent } from "@/lib/arcade/engine";
+import {
+  btCheckpoint,
+  makeBallTrackGame,
+  BT_BALLS,
+  BT_CHECKPOINT_INTERVAL,
+  BT_COLS,
+  BT_H,
+  BT_HOPPER_H,
+  BT_K_FLIP,
+  BT_K_RELEASE,
+  BT_K_ROTATE,
+  BT_K_SLIDE,
+  BT_K_WHEEL,
+  BT_PALETTE,
+  BT_ROWS,
+  BT_TILE,
+  BT_W,
+  type BtCheckpoint,
+  type BtCourse,
+  type BtState,
+} from "@/lib/arcade/ballTrack";
+import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { BALLTRACK_TIME_MS, type BallTrackPuzzleData } from "@/lib/duel/types";
-import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playBlip, playTick, playWrong } from "@/lib/sound";
+import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
+
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const BALL_COLOURS = ["var(--color-ball-red)", "var(--color-ball-blue)", "var(--color-ball-green)", "var(--color-ball-purple)", "var(--color-ball-pink)", "var(--color-ball-orange)", "var(--color-ball-brown)", "var(--color-ball-yellow)"];
-const STEP_MS = 130;
-const BALL_NAMES = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow"];
+/** Practice fallback course (a tier-2 bank course). */
+const PRACTICE_COURSE: BtCourse = {
+  trays: [-1, 2, 4, 0, 3, 1, -1],
+  balls: [1, 2, 4, 3, 2, 1, 4, 3, 0, 4, 2, 1, 0, 3, 0],
+  pipes: [
+    { cell: 27, shape: 0, rot: 0 },
+    { cell: 12, shape: 1, rot: 2 },
+    { cell: 2, shape: 0, rot: 2 },
+  ],
+  flippers: [
+    { cell: 3, dir: 0 },
+    { cell: 8, dir: 0 },
+    { cell: 5, dir: 1 },
+    { cell: 10, dir: 1 },
+    { cell: 11, dir: 1 },
+  ],
+  sliders: [
+    { row: 5, col: 0, len: 3, slot: 0, pos: 0 },
+    { row: 4, col: 1, len: 3, slot: 1, pos: 0 },
+  ],
+  wheels: [{ cell: 18, pocket: 0 }],
+};
 
-function Tube({ board, tiles, blocked }: { board: BtBoard; tiles: string; blocked: Set<number> }) {
-  // Ball diameter is 33% of a tile; inner pipe width 41.25% (ball = 80%).
-  return <svg viewBox={`0 0 ${board.cols * 100} ${board.rows * 100}`} aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1] size-full overflow-hidden">
-    {Array.from({ length: board.cols * board.rows }, (_, cell) => {
-      if (blocked.has(cell) || board.bombs?.some(b => b.cell === cell)) return null;
-      const row = Math.floor(cell / board.cols), col = cell % board.cols;
-      const direction = Number(tiles[cell]) === 1 ? 1 : Number(tiles[cell]) === 2 ? -1 : 0;
-      const offset = direction ? 29.17 : 20.625;
-      return [-1, 1].map(side => <line key={`${cell}-${side}`} x1={col * 100 + 50 + offset * side} y1={row * 100} x2={(col + direction) * 100 + 50 + offset * side} y2={(row + 1) * 100} stroke="var(--color-foreground)" strokeOpacity={row === 0 ? '.4' : '.7'} strokeWidth={3} />);
-    })}
-  </svg>;
-}
+/* ------------------------------ Intro example ------------------------------ */
 
-function LinkMarks({ pairs, small }: { pairs: readonly [number, number][]; small: boolean }) {
-  const sorted = [...pairs].sort((a, b) => Math.abs(b[1] - b[0]) - Math.abs(a[1] - a[0]));
-  return sorted.map(([a, b], index) => {
-    const left = (Math.min(a, b) + .5) * 12.5;
-    const right = (Math.max(a, b) + .5) * 12.5;
-    const nested = sorted.some(([x, y], outer) => outer < index && Math.min(x, y) < Math.min(a, b) && Math.max(x, y) > Math.max(a, b));
-    const colour = index === 0 ? "var(--color-opponent)" : "var(--color-primary)";
-    return <span key={`${a}-${b}`} aria-hidden="true" className="pointer-events-none absolute z-30 border-x-[3px] border-t-[3px] rounded-t-full" style={{ left: `${left}%`, width: `${right - left}%`, top: nested ? (small ? 7 : 12) : 1, height: nested ? (small ? 8 : 12) : (small ? 12 : 19), borderColor: colour }}><span className="absolute -bottom-1 -left-1.5 size-2 rounded-full border-2" style={{ borderColor: colour }} /><span className="absolute -bottom-1 -right-1.5 size-2 rounded-full border-2" style={{ borderColor: colour }} /></span>;
-  });
-}
-
-function PipeBoard({ board, tiles, dropped, active, destroyed = [], exploded = [], flashing = [], onRotate, onDrop, small = false }: {
-  board: BtBoard;
-  tiles: string;
-  dropped: readonly number[];
-  active?: readonly { ball: number; point: BtPathPoint }[];
-  onRotate?: ((cell: number) => void) | undefined;
-  onDrop?: ((ball: number) => void) | undefined;
-  small?: boolean;
-  destroyed?: readonly number[];
-  exploded?: readonly number[];
-  flashing?: readonly number[];
-}) {
-  const blocks = new Set([...(board.blocks ?? []), ...destroyed]);
-  const bombs = new Set((board.bombs ?? []).map(b => b.cell));
-  const gateMap = new Map((board.gates ?? []).map((gate) => [gate.cell, gate.colour]));
-  const activeBalls = new Set(active?.map((item) => item.ball) ?? []);
-  return (
-    <div className="relative w-full select-none" data-play-area>
-      <div className={`relative grid w-full ${small ? "pt-3" : "pt-6"}`} style={{ gridTemplateColumns: `repeat(${board.cols}, minmax(0, 1fr))` }}>
-        <LinkMarks pairs={board.pairs ?? []} small={small} />
-        {Array.from({ length: board.cols }, (_, ball) => (
-          <Button key={ball} type="button" variant="ghost" aria-label={`Drop ${BALL_NAMES[ball] ?? `ball ${ball + 1}`}`} disabled={!onDrop || dropped.includes(ball) || activeBalls.size > 0} onClick={() => onDrop?.(ball)} className={`${small ? "h-5" : "h-7"} min-w-0 rounded-none p-0 disabled:opacity-30`}>
-            {!dropped.includes(ball) && !activeBalls.has(ball) && <span className={`${small ? "size-1.5" : "w-[33%] max-w-none"} block aspect-square rounded-full border border-foreground/30 shadow-sm`} style={{ backgroundColor: BALL_COLOURS[ball % 8] }} />}
-          </Button>
-        ))}
-      </div>
-      <div className="relative grid w-full" style={{ gridTemplateColumns: `repeat(${board.cols}, minmax(0, 1fr))` }}>
-        {Array.from({ length: board.rows * board.cols }, (_, cell) => {
-          const blocked = blocks.has(cell);
-          const bomb = bombs.has(cell) && !exploded.includes(cell) && !blocked;
-          const gate = gateMap.get(cell);
-          return (
-            <Button key={cell} type="button" variant="outline" disabled={!onRotate || blocked || bomb || cell < board.cols} aria-label={bomb ? `Bomb row ${Math.floor(cell / board.cols) + 1}, column ${cell % board.cols + 1}` : blocked ? `Broken tile row ${Math.floor(cell / board.cols) + 1}, column ${cell % board.cols + 1}` : `Rotate pipe row ${Math.floor(cell / board.cols) + 1}, column ${cell % board.cols + 1}`} onClick={() => onRotate?.(cell)} className={`relative h-auto w-full min-w-0 overflow-hidden rounded-none border-0 p-0 shadow-none disabled:opacity-100 [&_svg]:size-[55%] ${flashing.includes(cell) ? "z-20 bg-ball-red animate-tile-flash" : blocked ? "z-[2] bg-background" : bomb ? "z-[2] bg-card" : "bg-card"}`} style={{ aspectRatio: "1 / 1" }}>
-              {bomb && <Bomb aria-hidden="true" className="size-[55%] text-ball-red" />}
-              {blocked && <X aria-hidden="true" className="size-[45%] text-muted-foreground/40" />}
-              {gate !== undefined && !blocked && !bomb && <span aria-hidden="true" className="absolute inset-[14%] z-[2] rounded-full border-[3px]" style={{ borderColor: BALL_COLOURS[gate % 8] }} />}
-            </Button>
-          );
-        })}
-        <Tube board={board} tiles={tiles} blocked={blocks} />
-      </div>
-      <div className="grid w-full" style={{ gridTemplateColumns: `repeat(${board.cols}, minmax(0, 1fr))` }}>
-        {board.buckets.map((colour, column) => (
-          <div key={column} className={`flex items-center justify-center ${small ? "h-5" : "h-7"}`} aria-label={`Bucket ${column + 1}`}>
-            <span className={`flex items-center justify-center rounded-b-md border-x-2 border-b-2 ${small ? "h-3 w-4" : "h-5 w-[70%]"}`} style={{ borderColor: BALL_COLOURS[colour % 8] }}><span className={`${small ? "size-1" : "size-1.5"} rounded-full`} style={{ backgroundColor: BALL_COLOURS[colour % 8] }} /></span>
-          </div>
-        ))}
-      </div>
-      {active?.map((item) => <span key={item.ball} aria-hidden="true" className={`${small ? "size-1.5" : "w-[4.125%] max-w-none"} pointer-events-none absolute z-10 aspect-square rounded-full border border-foreground/50 `} style={{ left: `${item.point.x * 100 / board.cols}%`, top: `calc(${small ? 32 : 51}px + (100% - ${small ? 52 : 79}px) * ${item.point.y / board.rows})`, transform: `translate(-50%, -50%) rotate(${item.point.angle}deg)`, backgroundColor: BALL_COLOURS[item.ball % 8], transition: `left ${STEP_MS}ms linear, top ${STEP_MS}ms linear, transform ${STEP_MS}ms linear` }}><span className="absolute left-1/2 top-[8%] h-[30%] w-px bg-foreground/80" /></span>)}
-    </div>
-  );
-}
-const EXAMPLE: BtBoard = { cols: 3, rows: 3, tiles: "000100000", buckets: [2, 0, 1], bombs: [{ cell: 5, neighbour: 8 }], pairs: [], gates: [{ cell: 7, colour: 0 }] };
-
+/** 3×3: a flipper in the middle, two trays below, one ball mid-fall. */
 function IntroExample() {
   const [step, setStep] = useState(0);
-  const points = btDrop(EXAMPLE, EXAMPLE.tiles, [0]).runs[0]?.points ?? [];
   useEffect(() => {
-    const timer = setInterval(() => setStep(current => (current + 1) % 8), STEP_MS * 2);
-    return () => clearInterval(timer);
+    const id = window.setInterval(() => setStep((s) => (s + 1) % 6), 650);
+    return () => window.clearInterval(id);
   }, []);
-  const point = points[step];
-  return <div className="mx-auto w-[150px]"><PipeBoard board={EXAMPLE} tiles={EXAMPLE.tiles} dropped={[1, 2]} active={point ? [{ ball: 0, point }] : []} small /></div>;
+  const flapRight = step >= 2;
+  const ball = [
+    { x: 150, y: 20 },
+    { x: 150, y: 50 },
+    { x: 150, y: 150 },
+    { x: 250, y: 250 },
+    { x: 250, y: 335 },
+    { x: 250, y: 335 },
+  ][step]!;
+  return (
+    <svg viewBox="0 0 300 370" className="h-40 w-auto" aria-hidden="true">
+      <rect x="0" y="0" width="300" height="300" rx="10" fill="#12161C" />
+      {[0, 1, 2].map((r) =>
+        [0, 1, 2].map((c) =>
+          r === 1 && c === 1 ? null : (
+            <line key={`${r}${c}`} x1={c * 100 + 50} y1={r * 100 + 12} x2={c * 100 + 50} y2={r * 100 + 88} stroke="#2A313C" strokeWidth="4" strokeDasharray="8 10" />
+          ),
+        ),
+      )}
+      <rect x="108" y="108" width="84" height="84" rx="6" fill="none" stroke="#3A414D" strokeWidth="4" />
+      <line x1="150" y1="132" x2={flapRight ? 180 : 120} y2="176" stroke="#F5B82E" strokeWidth="12" strokeLinecap="round" />
+      <rect x="8" y="305" width="84" height="58" fill="#4D8CFF" opacity=".25" />
+      <path d="M10 305 V361 H90 V305" fill="none" stroke="#4D8CFF" strokeWidth="5" />
+      <rect x="208" y="305" width="84" height="58" fill="#FF4D4D" opacity={step >= 4 ? 0.6 : 0.25} />
+      <path d="M210 305 V361 H290 V305" fill="none" stroke="#FF4D4D" strokeWidth="5" />
+      <circle cx={ball.x} cy={ball.y} r="18" fill="#FF4D4D" style={{ transition: "cx .6s linear, cy .6s linear" }} />
+    </svg>
+  );
 }
 
-function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
-  const data = puzzle.type === "balltrack" ? puzzle : null;
-  const [events, setEvents] = useStageState<BtEvent[]>(stateKey ?? "balltrack", "ballTrackEvents", () => []);
-  const [anim, setAnim] = useState<{ runs: BtRun[]; step: number; beforeDestroyed: number[]; beforeExploded: number[] } | null>(null);
-  const [flashing, setFlashing] = useState<number[]>([]);
-  const sounded = useRef(new Set<number>());
-  const reduced = usePrefersReducedMotion();
+/* ---------------------------------- Stage ---------------------------------- */
+
+const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, userSelect: "none", WebkitUserSelect: "none" } as const;
+
+function view(width: number, height: number) {
+  const scale = Math.min(width / BT_W, height / BT_H);
+  return { scale, ox: (width - BT_W * scale) / 2, oy: (height - BT_H * scale) / 2 };
+}
+
+function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const data: BallTrackPuzzleData | null = puzzle.type === "balltrack" ? puzzle : null;
+  const course = data?.course ?? PRACTICE_COURSE;
+  const seed = data?.seed ?? 1;
+  const game = useMemo(() => makeBallTrackGame(course), [course]);
+
+  const wrap = useRef<HTMLDivElement | null>(null);
+  const board = useRef<HTMLDivElement | null>(null);
+  const canvas = useRef<HTMLCanvasElement | null>(null);
+  const state = useRef<BtState>(game.init(seed));
+  const events = useRef<ArcadeInputEvent[]>([]);
+  const checkpoints = useRef<BtCheckpoint[]>([]);
+  const queue = useRef<Omit<ArcadeInputEvent, "t">[]>([]);
+  const drag = useRef<{ id: number; slider: number; grab: number; last: number } | null>(null);
   const submitted = useRef(false);
-  const encoded = btEncode(events);
-  const replay = data ? btReplay(data, events) : null;
+  const [hud, setHud] = useState({ home: 0, wrong: 0, left: BT_BALLS, hopperBusy: false });
+  useNoTouchScroll(wrap);
 
-  useEffect(() => { onDraftAnswer?.(encoded); }, [encoded, onDraftAnswer]);
-  useEffect(() => {
-    if (!anim) return;
-    const blasts = anim.runs.flatMap(run => run.explosions).filter(blast => blast.step < anim.step && !sounded.current.has(blast.cell));
-    if (!blasts.length) return;
-    for (const blast of blasts) sounded.current.add(blast.cell);
-    setFlashing(blasts.flatMap(blast => [blast.cell, blast.neighbour]));
-    playWrong(); buzz([35, 20, 65]);
-  }, [anim?.step]);
-  useEffect(() => {
-    if (!flashing.length) return;
-    const timer = setTimeout(() => setFlashing([]), 320);
-    return () => clearTimeout(timer);
-  }, [flashing]);
-  useEffect(() => {
-    if (!anim) return;
-    const delay = reduced ? 50 : STEP_MS;
-    const timer = setTimeout(() => {
-      if (anim.step < Math.max(...anim.runs.map((run) => run.points.length - 1))) setAnim({ ...anim, step: anim.step + 1 });
-      else setAnim(null);
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [anim, reduced]);
-  useEffect(() => {
-    if (!replay || anim || locked || submitted.current || replay.dropped.length !== BT_COLS) return;
-    submitted.current = true;
-    if (replay.home === BT_COLS) playCorrect();
-    onSubmit(encoded);
-  }, [replay, anim, locked, encoded, onSubmit]);
+  const lockedRef = useRef(locked);
+  const submitRef = useRef(onSubmit);
+  const draftRef = useRef(onDraftAnswer);
+  lockedRef.current = locked;
+  submitRef.current = onSubmit;
+  draftRef.current = onDraftAnswer;
 
-  if (!data || !replay) return null;
-  const busy = locked || !!anim || replay.dropped.length === BT_COLS;
-  const drop = (ball: number) => {
-    if (busy || replay.dropped.includes(ball)) return;
-    const pair = data.pairs.find(([a, b]) => a === ball || b === ball);
-    const balls = pair ?? [ball];
-    const { runs } = btDrop(data, replay.tiles, balls.filter(item => !replay.dropped.includes(item)), replay.destroyed, replay.exploded);
-    sounded.current.clear();
-    setAnim({ runs, step: -1, beforeDestroyed: replay.destroyed, beforeExploded: replay.exploded });
-    setEvents((current) => [...current, { k: "d", ball }]);
+  const encode = () =>
+    appendClientCounters(
+      encodeBallTrackRun(course, {
+        seed,
+        claimedScore: game.score(state.current),
+        events: events.current,
+        endTick: state.current.tick,
+        checkpoints: checkpoints.current,
+      }),
+      arcadeCounters("balltrack", state.current, game.score(state.current)),
+    );
+
+  useEffect(() => {
+    state.current = game.init(seed);
+    events.current = [];
+    checkpoints.current = [];
+    queue.current = [];
+    submitted.current = false;
+  }, [game, seed]);
+
+  useEffect(() => {
+    let frame = 0;
+    resetArcadeClock();
+    let last = performance.now();
+    let accumulator = 0;
+    let draftAt = 0;
+    let seenHome = 0;
+    let seenBad = 0;
+    let shown = "";
+    const loop = (time: number) => {
+      frame = requestAnimationFrame(loop);
+      const delta = time - last;
+      last = time;
+      if (!game.isOver(state.current) && !lockedRef.current) {
+        accumulator += delta;
+        let ticks = Math.floor(accumulator / TICK_MS);
+        if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
+        accumulator -= ticks * TICK_MS;
+        for (let i = 0; i < ticks; i++) {
+          const next = queue.current.shift();
+          if (next) recordInput(events.current, { ...next, t: state.current.tick + 1 }, game.inputRanges);
+          state.current = game.step(state.current, inputAt(events.current, state.current.tick + 1));
+          if (state.current.tick % BT_CHECKPOINT_INTERVAL === 0) checkpoints.current.push(btCheckpoint(state.current));
+          if (game.isOver(state.current)) break;
+        }
+      }
+      const s = state.current;
+      if (s.home > seenHome) {
+        seenHome = s.home;
+        playBlip();
+      }
+      if (s.wrong + s.lost > seenBad) {
+        seenBad = s.wrong + s.lost;
+        playWrong();
+      }
+      const hopperBusy = s.balls.some((b) => b.cell === -1);
+      const key = `${s.home}|${s.wrong}|${s.next}|${hopperBusy}`;
+      if (key !== shown) {
+        shown = key;
+        setHud({ home: s.home, wrong: s.wrong, left: BT_BALLS - s.next, hopperBusy });
+      }
+      reportArcadeTick(s.tick, game.isOver(s));
+      const node = canvas.current;
+      const box = board.current?.getBoundingClientRect();
+      if (node && box && box.width > 1) {
+        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        const w = Math.round(box.width), h = Math.round(box.height);
+        if (node.width !== w * ratio || node.height !== h * ratio) {
+          node.width = w * ratio;
+          node.height = h * ratio;
+        }
+        const ctx = node.getContext("2d");
+        if (ctx) {
+          const v = view(w, h);
+          ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+          ctx.clearRect(0, 0, w, h);
+          ctx.translate(v.ox, v.oy);
+          ctx.scale(v.scale, v.scale);
+          game.draw(ctx, s, { width: BT_W, height: BT_H });
+        }
+      }
+      if (!submitted.current && time - draftAt >= 500) {
+        draftAt = time;
+        draftRef.current?.(encode());
+      }
+      if (game.isOver(s) && !submitted.current) {
+        submitted.current = true;
+        submitRef.current(encode());
+      }
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game, seed]);
+
+  const blocked = () => locked || submitted.current || game.isOver(state.current);
+  const push = (event: Omit<ArcadeInputEvent, "t">) => {
+    if (event.k === BT_K_SLIDE) queue.current = queue.current.filter((e) => !(e.k === BT_K_SLIDE && e.a === event.a));
+    if (queue.current.length < 6) queue.current.push(event);
   };
-  const active = anim?.runs.map((run) => ({ ball: run.ball, point: run.points[Math.min(Math.max(anim.step, 0), run.points.length - 1)] ?? { x: run.ball + .5, y: -.15, angle: 0 } })) ?? [];
-  const visibleBlasts = anim?.runs.flatMap(run => run.explosions).filter(blast => blast.step < anim.step) ?? [];
-  const destroyed = anim ? [...anim.beforeDestroyed, ...visibleBlasts.flatMap(blast => [blast.cell, blast.neighbour])] : replay.destroyed;
-  const exploded = anim ? [...anim.beforeExploded, ...visibleBlasts.map(blast => blast.cell)] : replay.exploded;
+  const world = (clientX: number, clientY: number) => {
+    const box = board.current?.getBoundingClientRect();
+    if (!box) return null;
+    const v = view(box.width, box.height);
+    return { x: (clientX - box.left - v.ox) / v.scale, y: (clientY - box.top - v.oy) / v.scale };
+  };
+
+  if (!data && puzzle.type !== "balltrack") return null;
+
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-1 pt-7">
-      <p className="shrink-0 font-mono text-xs text-muted-foreground">{replay.home} / 8 home · {replay.dropped.length} / 8 dropped · {replay.rotations} turns</p>
-      <div className={`w-full ${flashing.length && !reduced ? "animate-shake" : ""}`}>
-        <PipeBoard board={data} tiles={replay.tiles} dropped={replay.dropped} active={active} destroyed={destroyed} exploded={exploded} flashing={flashing} onRotate={busy ? undefined : (cell) => { buzz(8); setEvents((current) => [...current, { k: "r", cell }]); }} onDrop={busy ? undefined : drop} />
+    <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
+      <div
+        ref={board}
+        data-play-area
+        className="relative min-h-0 w-full flex-1"
+        style={{ touchAction: "none" }}
+        aria-label="Ball Track course"
+        onContextMenu={(e) => e.preventDefault()}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          if (blocked()) return;
+          const p = world(event.clientX, event.clientY);
+          if (!p) return;
+          const col = Math.floor(p.x / BT_TILE), row = Math.floor((p.y - BT_HOPPER_H) / BT_TILE);
+          if (col < 0 || col >= BT_COLS || row < 0 || row >= BT_ROWS) return;
+          const cell = row * BT_COLS + col;
+          const info = game.map[cell]!;
+          if (info.kind === 1) push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
+          else if (info.kind === 2) push({ k: BT_K_FLIP, a: cell, b: 0, c: 0, d: 0 });
+          else if (info.kind === 4) push({ k: BT_K_WHEEL, a: info.idx, b: 0, c: 0, d: 0 });
+          else if (info.kind === 3) {
+            const slider = course.sliders[info.idx]!;
+            const pos = state.current.slTo[info.idx]!;
+            const grab = (p.x - slider.col * BT_TILE) / BT_TILE - pos;
+            drag.current = { id: event.pointerId, slider: info.idx, grab, last: pos };
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }
+          if (info.kind !== 3 && info.kind !== 0) playTick();
+        }}
+        onPointerMove={(event) => {
+          const d = drag.current;
+          if (!d || d.id !== event.pointerId || blocked()) return;
+          const p = world(event.clientX, event.clientY);
+          if (!p) return;
+          const slider = course.sliders[d.slider]!;
+          const pos = Math.max(0, Math.min(slider.len - 2, Math.round((p.x - slider.col * BT_TILE) / BT_TILE - d.grab)));
+          if (pos !== d.last) {
+            d.last = pos;
+            push({ k: BT_K_SLIDE, a: d.slider, b: pos, c: 0, d: 0 });
+            playTick();
+          }
+        }}
+        onPointerUp={(event) => {
+          if (drag.current?.id === event.pointerId) drag.current = null;
+        }}
+        onPointerCancel={() => (drag.current = null)}
+      >
+        <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
+      </div>
+      <div className="flex h-14 w-full shrink-0 items-center justify-between gap-2 px-1 pt-1">
+        <span className="w-20 font-mono text-xs text-muted-foreground">
+          {hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}
+        </span>
+        <button
+          type="button"
+          className="h-12 min-w-36 rounded-xl bg-primary px-6 font-display text-lg font-bold text-primary-foreground shadow disabled:opacity-40"
+          style={{ touchAction: "manipulation" }}
+          disabled={locked || hud.left === 0 || hud.hopperBusy}
+          onPointerDown={(e) => {
+            e.preventDefault();
+            if (!blocked()) push({ k: BT_K_RELEASE, a: 0, b: 0, c: 0, d: 0 });
+          }}
+        >
+          Release
+        </button>
+        <span className="w-20 text-right font-mono text-xs text-muted-foreground">{hud.left} left</span>
       </div>
     </div>
   );
 }
+
+/* --------------------------------- Reveal ---------------------------------- */
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  const [dev, setDev] = useState(false);
-  useEffect(() => setDev(devDiagnosticsOn()), []);
   if (puzzle.type !== "balltrack") return null;
-  const mine = btReplay(puzzle, btDecode(myAnswer ?? ""));
+  const result = replayBallTrackRun(puzzle.course, puzzle.seed, myAnswer ?? "");
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <p className="font-display text-xl font-bold text-primary">{mine.home} / 8 home</p>
-      <p className="text-xs text-muted-foreground">Same puzzle for everyone</p>
-      <div className="flex w-full justify-center gap-3">
-        <div className="w-[46%] max-w-[170px]"><p className="mb-1 text-center text-xs text-muted-foreground">Solution</p><PipeBoard board={puzzle} tiles={puzzle.solution ?? puzzle.tiles} dropped={[]} small /></div>
-        <div className="w-[46%] max-w-[170px]"><p className="mb-1 text-center text-xs text-muted-foreground">Yours</p><PipeBoard board={puzzle} tiles={mine.tiles} dropped={[]} destroyed={mine.destroyed} exploded={mine.exploded} small /></div>
+    <div className="flex w-full flex-col items-center gap-3">
+      <p className="text-center font-mono text-lg font-bold text-foreground">
+        {result.home} / {BT_BALLS} home · {result.wrong} wrong
+      </p>
+      <div className="flex gap-1.5" aria-hidden="true">
+        {puzzle.course.trays.map((tray, i) => (
+          <span
+            key={i}
+            className="h-3 w-6 rounded-sm"
+            style={{ background: tray < 0 ? "var(--color-muted)" : BT_PALETTE[tray] }}
+          />
+        ))}
       </div>
-      <p className="font-mono text-xs text-muted-foreground">{mine.rotations} rotations · fewest {puzzle.minRotations ?? "—"}</p>
-      {dev && <p className="font-mono text-[10px] text-muted-foreground">Stored minimum {puzzle.minRotations ?? "—"}</p>}
+      <p className="text-center text-base text-muted-foreground">Same course for everyone</p>
+      <p className="font-mono text-base text-primary">{result.score} points</p>
     </div>
   );
 }
 
+/** The course comes from the server-only bank; the full input log is replayed on the server. */
 export const ballTrackPuzzle: PuzzleDefinition = {
   key: "balltrack",
   name: "Ball Track",
   category: "pattern",
+  arcadeRun: true,
   timeLimitMs: BALLTRACK_TIME_MS,
-  revealMs: 8_000,
-  generate: () => ({ type: "balltrack", cols: BT_COLS, rows: BT_ROWS, tiles: "0".repeat(BT_COLS * BT_ROWS), buckets: [1, 0, 3, 2, 5, 4, 7, 6], bombs: [{ cell: 18, neighbour: 19 }, { cell: 29, neighbour: 28 }, { cell: 34, neighbour: 35 }, { cell: 45, neighbour: 44 }], pairs: [[0, 3], [1, 2]], gates: [{ cell: 16, colour: 0 }, { cell: 47, colour: 7 }] }) satisfies BallTrackPuzzleData,
-  check: (answer, puzzle) => puzzle.type === "balltrack" && btReplay(puzzle, btDecode(answer)).home === BT_COLS,
-  revealHeading: "Ball Track",
+  revealMs: 6_000,
+  generate: () => ({ type: "balltrack", seed: 1, course: PRACTICE_COURSE }) satisfies BallTrackPuzzleData,
+  check: () => false,
+  revealHeading: "Your run",
   IntroExample,
   Stage,
   Reveal,

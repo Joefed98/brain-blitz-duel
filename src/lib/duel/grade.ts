@@ -65,7 +65,7 @@ import { replayColourClashRun } from "./colourClash";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
-import { btDecode, btReplay, scoreBallTrack } from "./ballTrack";
+import { decodeBallTrackRun, replayBallTrackRun } from "./ballTrack";
 import { scoreTrail, trComplete, trCorrectPrefix, trDecode } from "./trail";
 import { npComplete, npCorrectCells, npDecode, npDecodeRound, scoreNumberPyramid } from "./numberPyramid";
 import { digDecode, digReplay, scoreDig } from "./dig";
@@ -1672,15 +1672,28 @@ export function gradeSubmission(
       break;
     }
     case "balltrack": {
-      // The rotation / drop log is replayed against the stored board here.
-      const run = btReplay(puzzle, btDecode(answer));
-      isCorrect = run.home === puzzle.cols;
+      // The full input log is replayed against the stored course.
+      const replayStart = performance.now();
+      const run = replayBallTrackRun(puzzle.course, puzzle.seed, answer);
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      isCorrect = run.perfect;
       correctCount = run.home;
-      score = scoreBallTrack(run.home, ms, timeLimitMs, run.rotations, puzzle.minRotations);
+      errors = run.wrong;
+      score = run.score;
       extraDetail = {
         home: run.home,
-        rotations: run.rotations,
-        minRotations: puzzle.minRotations ?? null,
+        wrong: run.wrong,
+        lost: run.lost,
+        released: run.released,
+        actions: run.actions,
+        par: puzzle.par ?? null,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodeBallTrackRun(puzzle.course, answer).events.length,
+        ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
     }

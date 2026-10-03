@@ -1,3 +1,4 @@
+import type { BtCourse } from "@/lib/arcade/ballTrack";
 export type PuzzleType =
   | "wordsmith"
   | "groups"
@@ -2145,7 +2146,8 @@ export interface HotFloorPuzzleData {
 
 export const SHIKAKU_TIME_MS = 90_000;
 export const LIGHTUP_TIME_MS = 90_000;
-export const BALLTRACK_TIME_MS = 90_000;
+/** Ball Track: a 90 s arcade run plus the shared 3 s arcade slack. */
+export const BALLTRACK_TIME_MS = 93_000;
 export const WORDSEARCH_TIME_MS = 120_000;
 
 /** Number Pyramid: four rising-difficulty pyramids in one 120-second round. */
@@ -2192,24 +2194,13 @@ export interface DigPuzzleData {
 
 export interface BallTrackPuzzleData {
   type: "balltrack";
-  cols: number;
-  rows: number;
-  /** Row-major orientations: 0 vertical, 1 down-right, 2 down-left. */
-  tiles: string;
-  /** Bucket colours indexed by column; a derangement of the eight balls. */
-  buckets: number[];
-  /** Legacy room compatibility; new boards use bombs. */
-  blocks?: number[];
-  /** Seeded bomb locations and their orthogonal damage targets. */
-  bombs?: { cell: number; neighbour: number }[];
-  /** Two linked pairs; either member starts both balls. */
-  pairs: [number, number][];
-  /** Rotating pipe cells restricted to one ball colour. */
-  gates: { cell: number; colour: number }[];
-  /** Proven minimum across the stored paired/single drop plan; private until reveal. */
-  minRotations?: number;
-  solution?: string;
-  solutionEvents?: string;
+  /** Bank index + 1; checked against the submitted run. */
+  seed: number;
+  course: BtCourse;
+  tier?: number;
+  /** Playbook piece actions and the proving event log — private until the reveal. */
+  par?: number;
+  playbook?: string;
 }
 
 /** Letter Wheel: 120 s to fill a small crossword from a wheel of letters. */

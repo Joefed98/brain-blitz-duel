@@ -500,3 +500,8 @@
 - [x] Restrict gates to rows 3–6, rebuild 400 boards, update intro, and validate without browser tests.
 
 - Validation: 400 solution/scoring/constraint checks and 400 incremental/replay identities passed; preview build OK; no browser tests. Stored minimum remains the intended-route event-plan minimum, not an exhaustive proof over alternate routes.
+
+## Ball Track full rework (Oct 3)
+- [x] Arcade sim: 7×7 course, hopper, 5 trays + 2 pits, pipes/flippers/sliders/wheels, 15 balls
+- [x] 400-course bank with playbook proof (3 tiers), server replay grading, new scoring
+- [x] Intro, reveal, summaries; identity proof 200/200
