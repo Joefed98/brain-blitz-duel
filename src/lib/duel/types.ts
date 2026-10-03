@@ -722,9 +722,9 @@ export const SPOT_ONE_POINTS = 15;
 export const ROTATION_COLS = 5;
 
 /** Number Hunt: twenty two-digit numbers over one minute. */
-export const NUMHUNT_COUNT = 20;
+export const NUMHUNT_COUNT = 24;
 export const NUMHUNT_TIME_MS = 60_000;
-export const NUMHUNT_CIRCLE_PX = 46;
+export const NUMHUNT_CIRCLE_PX = 42;
 export const NUMHUNT_ERROR_PENALTY = 5;
 export const NUMHUNT_FLASH_MS = 200;
 export const NUMHUNT_MOVE_MS = 15_000;

@@ -17,7 +17,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 /** Reference size of the puzzle area on a 390px-wide phone, used for spacing. */
 const AREA_W = 340;
 const AREA_H = 320;
-const MIN_GAP_PX = NUMHUNT_CIRCLE_PX + 8;
+const MIN_GAP_PX = NUMHUNT_CIRCLE_PX + 6;
 const CONSECUTIVE_GAP_PX = 120;
 
 function distancePx(a: HuntSpot, b: HuntSpot): number {
@@ -207,7 +207,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
           >
-            <Circle n={spot.n} done size={44} />
+            <Circle n={spot.n} done size={38} />
           </span>
         ))}
       </div>
@@ -224,7 +224,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
-/** Twenty distinct two-digit numbers, ascending. */
+/** Twenty-four distinct two-digit numbers, ascending. */
 function pickValues(): number[] {
   const pool = new Set<number>();
   while (pool.size < NUMHUNT_COUNT) pool.add(randInt(10, 99));
@@ -261,10 +261,10 @@ function buildLayout(values: number[]): HuntSpot[] {
     }
     if (ok) return spots;
   }
-  // Fallback staggered grid — twenty circles with safe spacing at 390×700.
+  // Fallback staggered grid — 24 circles (4 × 6) with safe spacing at 390×700.
   return Array.from({ length: NUMHUNT_COUNT }, (_, i) => ({
       x: 10 + (i % 4) * 27,
-      y: 10 + Math.floor(i / 4) * 20,
+      y: 8 + Math.floor(i / 4) * 16.8,
       n: values[i]!,
     }));
 }
