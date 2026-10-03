@@ -493,3 +493,8 @@
 - [x] Fix row 1 as dim vertical pipes and rebuild 400 boards at 12–20 rotations with non-crossing pairs.
 - [x] Add smaller rolling balls, doubled edge-to-edge tubes, near-wall occlusion, and heavier nested pair links.
 - [x] Add the requested top clearance and validate source, bank, replay, types, and narrow-layout geometry without browser tests.
+
+## Ball Track tuning pass 4 (Oct 3)
+- [ ] Restore three orientations and flat edge-to-edge pipes with visible rolling balls.
+- [ ] Add four central nonadjacent bombs, stored neighbour damage, shared replay, and explosion effects.
+- [ ] Restrict gates to rows 3–6, rebuild 400 boards, update intro, and validate without browser tests.
