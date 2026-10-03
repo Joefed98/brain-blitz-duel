@@ -495,6 +495,8 @@
 - [x] Add the requested top clearance and validate source, bank, replay, types, and narrow-layout geometry without browser tests.
 
 ## Ball Track tuning pass 4 (Oct 3)
-- [ ] Restore three orientations and flat edge-to-edge pipes with visible rolling balls.
-- [ ] Add four central nonadjacent bombs, stored neighbour damage, shared replay, and explosion effects.
-- [ ] Restrict gates to rows 3–6, rebuild 400 boards, update intro, and validate without browser tests.
+- [x] Restore three orientations and flat edge-to-edge pipes with visible rolling balls.
+- [x] Add four central nonadjacent bombs, stored neighbour damage, shared replay, and explosion effects.
+- [x] Restrict gates to rows 3–6, rebuild 400 boards, update intro, and validate without browser tests.
+
+- Validation: 400 solution/scoring/constraint checks and 400 incremental/replay identities passed; preview build OK; no browser tests. Stored minimum remains the intended-route event-plan minimum, not an exhaustive proof over alternate routes.

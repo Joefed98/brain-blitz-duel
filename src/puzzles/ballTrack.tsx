@@ -87,7 +87,7 @@ function PipeBoard({ board, tiles, dropped, active, destroyed = [], exploded = [
           </div>
         ))}
       </div>
-      {active?.map((item) => <span key={item.ball} aria-hidden="true" className={`${small ? "size-1.5" : "w-[4.125%] max-w-none"} pointer-events-none absolute z-10 aspect-square rounded-full border border-foreground/50 `} style={{ left: `${item.point.x * 100 / board.cols}%`, top: `calc(${small ? 32 : 52}px + (100% - ${small ? 52 : 80}px) * ${item.point.y / board.rows})`, transform: `translate(-50%, -50%) rotate(${item.point.angle}deg)`, backgroundColor: BALL_COLOURS[item.ball % 8], transition: `left ${STEP_MS}ms linear, top ${STEP_MS}ms linear, transform ${STEP_MS}ms linear` }}><span className="absolute left-1/2 top-[8%] h-[30%] w-px bg-foreground/80" /></span>)}
+      {active?.map((item) => <span key={item.ball} aria-hidden="true" className={`${small ? "size-1.5" : "w-[4.125%] max-w-none"} pointer-events-none absolute z-10 aspect-square rounded-full border border-foreground/50 `} style={{ left: `${item.point.x * 100 / board.cols}%`, top: `calc(${small ? 32 : 51}px + (100% - ${small ? 52 : 79}px) * ${item.point.y / board.rows})`, transform: `translate(-50%, -50%) rotate(${item.point.angle}deg)`, backgroundColor: BALL_COLOURS[item.ball % 8], transition: `left ${STEP_MS}ms linear, top ${STEP_MS}ms linear, transform ${STEP_MS}ms linear` }}><span className="absolute left-1/2 top-[8%] h-[30%] w-px bg-foreground/80" /></span>)}
     </div>
   );
 }
@@ -118,7 +118,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   useEffect(() => { onDraftAnswer?.(encoded); }, [encoded, onDraftAnswer]);
   useEffect(() => {
     if (!anim) return;
-    const blasts = anim.runs.flatMap(run => run.explosions).filter(blast => blast.step <= anim.step && !sounded.current.has(blast.cell));
+    const blasts = anim.runs.flatMap(run => run.explosions).filter(blast => blast.step < anim.step && !sounded.current.has(blast.cell));
     if (!blasts.length) return;
     for (const blast of blasts) sounded.current.add(blast.cell);
     setFlashing(blasts.flatMap(blast => [blast.cell, blast.neighbour]));
@@ -157,7 +157,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     setEvents((current) => [...current, { k: "d", ball }]);
   };
   const active = anim?.runs.map((run) => ({ ball: run.ball, point: run.points[Math.min(Math.max(anim.step, 0), run.points.length - 1)] ?? { x: run.ball + .5, y: -.15, angle: 0 } })) ?? [];
-  const visibleBlasts = anim?.runs.flatMap(run => run.explosions).filter(blast => blast.step <= anim.step) ?? [];
+  const visibleBlasts = anim?.runs.flatMap(run => run.explosions).filter(blast => blast.step < anim.step) ?? [];
   const destroyed = anim ? [...anim.beforeDestroyed, ...visibleBlasts.flatMap(blast => [blast.cell, blast.neighbour])] : replay.destroyed;
   const exploded = anim ? [...anim.beforeExploded, ...visibleBlasts.map(blast => blast.cell)] : replay.exploded;
   return (
