@@ -15,7 +15,7 @@ interface RouteState { row:number; col:number; cost:number; need:Constraint; use
 
 function derangement() { let p:number[]; do p = shuffle([...Array(8).keys()]); while (p.some((x, i) => x === i)); return p; }
 function targetByBall(buckets:number[]) { const t = Array(8).fill(0); buckets.forEach((b, c) => { t[b] = c; }); return t; }
-function pathOne(ball:number, target:number, blocks:Set<number>, base:string, requireShallow:boolean):Constraint|null {
+function pathOne(ball:number, target:number, blocks:Set<number>, base:string, requireShallow:boolean, locked:Constraint):Constraint|null {
   let states:RouteState[] = [{ row:0, col:ball, cost:0, need:new Map(), usedShallow:false }];
   for (let row=0; row<BT_ROWS; row++) {
     const next:RouteState[]=[];
@@ -30,6 +30,7 @@ function pathOne(ball:number, target:number, blocks:Set<number>, base:string, re
         {shift:-1,cells:[[cell,"4"],[cell-1,"0"]] as [number,string][]},
       ];
       for(const move of moves){
+        if(move.cells.some(([at,value])=>locked.has(at)&&locked.get(at)!==value))continue;
         const col=state.col+move.shift;
         if(col<0||col>=BT_COLS||blocks.has(row*BT_COLS+col)||Math.abs(target-col)>BT_ROWS-row-1)continue;
         const need=new Map(state.need);let valid=true,add=0;
@@ -42,7 +43,7 @@ function pathOne(ball:number, target:number, blocks:Set<number>, base:string, re
   const done=states.filter(s=>s.col===target&&(!requireShallow||s.usedShallow)).sort((a,b)=>a.cost-b.cost);
   return done[0]?.need??null;
 }
-function pathPair(a:number, b:number, ta:number, tb:number, blocks:Set<number>, base:string):Constraint|null {
+function pathPair(a:number, b:number, ta:number, tb:number, blocks:Set<number>, base:string, locked:Constraint):Constraint|null {
   type S = { r:number; a:number; b:number; cost:number; need:Constraint };
   let states:S[] = [{ r:0, a, b, cost:0, need:new Map() }];
   for (let r = 0; r < BT_ROWS; r++) {
@@ -52,7 +53,9 @@ function pathPair(a:number, b:number, ta:number, tb:number, blocks:Set<number>, 
       if (r === 0 && (da !== 0 || db !== 0)) continue;
       if (na<0||na>=8||nb<0||nb>=8||blocks.has(ca)||blocks.has(cb)||Math.abs(ta-na)>BT_ROWS-r-1||Math.abs(tb-nb)>BT_ROWS-r-1) continue;
       if (ca===cb&&da!==db) continue;
-      const va=String(da===1?1:da===-1?3:0), vb=String(db===1?1:db===-1?3:0), need=new Map(s.need);
+      const va=String(da===1?1:da===-1?3:0), vb=String(db===1?1:db===-1?3:0);
+      if((locked.has(ca)&&locked.get(ca)!==va)||(locked.has(cb)&&locked.get(cb)!==vb))continue;
+      const need=new Map(s.need);
       need.set(ca,va); need.set(cb,vb);
       next.push({r:r+1,a:na,b:nb,cost:s.cost+(ca===cb?delta(base[ca]??"0",va):delta(base[ca]??"0",va)+delta(base[cb]??"0",vb)),need});
     }
@@ -71,7 +74,7 @@ function orderCost(groups:Group[], start:string) {
 }
 
 const entries:Entry[]=[]; const seen=new Set<string>();
-for(let attempt=0;entries.length<10&&attempt<100000;attempt++){ if(attempt%100===0) console.log("p",attempt,entries.length);
+for(let attempt=0;entries.length<400&&attempt<2_000_000;attempt++){
   const buckets=derangement(), targets=targetByBall(buckets);
   const chosen=shuffle([...Array(8).keys()]).slice(0,4).sort((a,b)=>a-b);
   const nested=pick(2)===1;
@@ -80,12 +83,12 @@ for(let attempt=0;entries.length<10&&attempt<100000;attempt++){ if(attempt%100==
   const pairs=rawPairs.map((pair)=>[pair[0] as number,pair[1] as number] as [number,number]);
   const paired=new Set(chosen), groupsBalls=[...pairs.map(p=>[...p]),...[...Array(8).keys()].filter(b=>!paired.has(b)).map(b=>[b])];
   const blockCount=4+pick(3), blocks=new Set<number>(); while(blocks.size<blockCount)blocks.add(BT_COLS+pick(BT_COLS*(BT_ROWS-1)));
-  const base="0".repeat(64); const groups:Group[]=[]; let failed=false;
+  const base="0".repeat(64); const groups:Group[]=[]; const locked:Constraint=new Map(); let failed=false;
   let singleIndex=0;
   for(const balls of groupsBalls){
     const a=balls[0]; if(a===undefined){failed=true;break;}
-    const need=balls.length===2?pathPair(a,balls[1] as number,targets[a] as number,targets[balls[1] as number] as number,blocks,base):pathOne(a,targets[a] as number,blocks,base,singleIndex++===0);
-    if(!need){failed=true;break;} groups.push({balls,need});
+    const need=balls.length===2?pathPair(a,balls[1] as number,targets[a] as number,targets[balls[1] as number] as number,blocks,base,locked):pathOne(a,targets[a] as number,blocks,base,singleIndex++===0,locked);
+    if(!need){failed=true;break;} need.forEach((value,cell)=>locked.set(cell,value)); groups.push({balls,need});
   }
   if(failed)continue;
   const occupiedBy=new Map<number,number[]>(); groups.forEach(g=>g.balls.forEach(ball=>g.need.forEach((_,cell)=>occupiedBy.set(cell,[...(occupiedBy.get(cell)??[]),ball]))));
@@ -93,9 +96,9 @@ for(let attempt=0;entries.length<10&&attempt<100000;attempt++){ if(attempt%100==
   for(const ball of gateBalls){const own=groups.find(g=>g.balls.includes(ball));if(!own){failed=true;break;}const choices=[...own.need.keys()].filter(cell=>cell>=BT_COLS&&(occupiedBy.get(cell)??[]).every(x=>x===ball)&&!gates.some(g=>g.cell===cell));if(!choices.length){failed=true;break;}gates.push({cell:choices[pick(choices.length)] as number,colour:ball});}
   if(failed)continue;
   if(!groups.every(g=>g.balls.every(ball=>[...g.need.keys()].every(cell=>{const gate=gates.find(x=>x.cell===cell);return !gate||gate.colour===ball;}))))continue;
-  const start=base.split(""); for(const cell of blocks)start[cell]="0";
+  const solved=base.split("");locked.forEach((value,cell)=>{solved[cell]=value;});const start=[...solved];for(const cell of blocks)start[cell]="0";
   for(let i=0;i<8;i++){const cell=BT_COLS+pick(BT_COLS*(BT_ROWS-1));if(!blocks.has(cell))start[cell]=String(1+pick(4));}
-  const best=orderCost(groups,start.join("")); if(!best)continue; console.log("cost",best.cost); if(best.cost<12||best.cost>20)continue;
+  const best=orderCost(groups,start.join("")); if(!best||best.cost<12||best.cost>20)continue;
   const events:BtEvent[]=[];let state=start.join("");for(let k=0;k<best.order.length;k++){const next=best.states[k];const group=groups[best.order[k] as number];if(!next||!group){failed=true;break;}for(let cell=BT_COLS;cell<64;cell++)if(!blocks.has(cell)){const n=delta(state[cell]??"0",next[cell]??"0");for(let j=0;j<n;j++)events.push({k:"r",cell});}events.push({k:"d",ball:group.balls[0] as number});state=next;}
   if(failed)continue;
   const board:BtBoard={cols:8,rows:8,tiles:start.join(""),buckets,blocks:[...blocks].sort((a,b)=>a-b),pairs,gates}, replay=btReplay(board,events);
@@ -103,7 +106,7 @@ for(let attempt=0;entries.length<10&&attempt<100000;attempt++){ if(attempt%100==
   const key=board.tiles+buckets.join("")+board.blocks?.join(",")+JSON.stringify(pairs)+JSON.stringify(gates);if(seen.has(key))continue;seen.add(key);
   entries.push({tiles:board.tiles,buckets:board.buckets,blocks:board.blocks??[],pairs,gates,min:best.cost,solution:state,solutionEvents:events.map(e=>e.k==="r"?`r${e.cell}`:`d${e.ball}`).join(",")});
 }
-if(entries.length!==10)throw Error(`Only built ${entries.length} boards`);
+if(entries.length!==400)throw Error(`Only built ${entries.length} boards`);
 const output=`/** Generated by scripts/ball-track-bank.ts; do not hand-edit. */\nexport interface BallTrackBankEntry { tiles:string; buckets:number[]; blocks:number[]; pairs:[number,number][]; gates:{cell:number;colour:number}[]; min:number; solution:string; solutionEvents:string }\nexport const BALL_TRACK_BANK: BallTrackBankEntry[] = ${JSON.stringify(entries)};\n`;
 writeFileSync("src/lib/duel/ballTrackBank.server.ts",output);
 console.log(`Ball Track: ${entries.length} boards; rotations ${Math.min(...entries.map(e=>e.min))}–${Math.max(...entries.map(e=>e.min))}`);
