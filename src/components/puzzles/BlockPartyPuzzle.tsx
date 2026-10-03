@@ -23,21 +23,23 @@ import {
   type BlockPlacement,
 } from "@/lib/duel/types";
 
-/** The seven game colours, so pieces stay distinguishable. */
+/** One distinct fill per piece, shared by the tray and board. */
 const PIECE_COLOURS = [
+  GLYPH_COLOURS.RED,
   GLYPH_COLOURS.BLUE,
   GLYPH_COLOURS.GREEN,
   GLYPH_COLOURS.PURPLE,
   GLYPH_COLOURS.PINK,
-  GLYPH_COLOURS.RED,
   GLYPH_COLOURS.ORANGE,
   GLYPH_COLOURS.BROWN,
+  GLYPH_COLOURS.YELLOW,
+  "var(--color-foreground)",
 ];
 
 const pct = (value: number) => `${(value * 100) / N}%`;
 
 export function pieceColour(piece: number): string {
-  return PIECE_COLOURS[BLOCK_PIECES[piece]!.colour % PIECE_COLOURS.length]!;
+  return PIECE_COLOURS[piece] ?? "var(--color-foreground)";
 }
 
 /** A small drawing of one piece, used in the tray. */
