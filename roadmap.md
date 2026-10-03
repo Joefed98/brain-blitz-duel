@@ -446,3 +446,11 @@
 - [ ] Extend Whack-a-Target to 60 seconds with queued pop-ups and universal three-second retreats.
 - [ ] Compact Clay Shoot status, conceal gold lineup discs until resolved, and reclaim arena height.
 - [ ] Run only Whack-a-Target and Clay Shoot self-replay proofs plus focused source checks; no browser tests.
+
+## Number & Speed tuning (Oct 3)
+- [x] Ten Drop sparser digits spread 1–10, operators needed on every target
+- [x] Number Pyramid levels shifted, new hardest Level 4, 120 s, bank rebuilt (400 × 4)
+- [x] Number Hunt 24 numbers
+- [x] Chain: set counter removed, Lock in button
+- [x] Whack: decoys drop at 1.5 s, 45 targets, 3 pts, +15 perfect
+- [x] Clay: launch origins in lower half / middle band only

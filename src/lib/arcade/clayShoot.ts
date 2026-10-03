@@ -41,11 +41,16 @@ export const CLAY_CONFIG = {
   /** Second clay of a pair leaves 24–43 ticks after the first. */
   pairOffsetMin: 24,
   pairOffsetSpan: 20,
-  /** Launch height ranges, px from the top. */
-  launchYMin: 70,
-  launchYSpan: 280,
-  nearTopYMin: 48,
-  nearTopYSpan: 50,
+  /**
+   * Launch heights, px from the top. Nothing launches from the top quarter.
+   * 15 clays leave from the lower half; 10 (all gold included) from the
+   * middle band, a quarter down to a quarter up.
+   */
+  lowerYMin: 200,
+  lowerYSpan: 171,
+  middleYMin: 100,
+  middleYSpan: 201,
+  middleClays: 10,
   /** Launch x just off each edge, px. */
   launchInset: 12,
   /** Orange speed in 1/256 px per tick. */
@@ -120,9 +125,10 @@ function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
   };
   const launch: number[] = [];
   const side: number[] = [];
+  const sideStart = draw(2);
   for (let i = 0; i < c.singles; i++) {
     launch.push(c.firstLaunchTick + i * c.singleGapTicks + draw(c.singleJitterTicks));
-    side.push(draw(2));
+    side.push((sideStart + i) & 1);
   }
   for (let p = 0; launch.length < c.clays; p++) {
     const t = c.firstPairTick + p * c.pairGapTicks + draw(c.pairJitterTicks);
@@ -137,6 +143,16 @@ function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
   const kind = new Array<number>(c.clays).fill(CLAY_KIND_ORANGE);
   const goldBands: readonly [number, number][] = [[4, 8], [12, 17], [19, 24]];
   for (const [lo, hi] of goldBands) kind[lo + draw(hi - lo + 1)] = CLAY_KIND_GOLD;
+  const middle = new Array<boolean>(c.clays).fill(false);
+  const orange: number[] = [];
+  for (let i = 0; i < c.clays; i++) {
+    if (kind[i] === CLAY_KIND_GOLD) middle[i] = true;
+    else orange.push(i);
+  }
+  for (let n = c.goldClays; n < c.middleClays; n++) {
+    const pick = orange.splice(draw(orange.length), 1)[0]!;
+    middle[pick] = true;
+  }
   const launchY: number[] = [];
   const vx: number[] = [];
   const vy: number[] = [];
@@ -151,7 +167,7 @@ function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
       : gold
         ? c.goldSteepAngleMin + draw(c.goldSteepAngleSpan)
         : c.orangeAngleMin + draw(c.orangeAngleSpan);
-    launchY.push(hardFlat ? c.nearTopYMin + draw(c.nearTopYSpan) : c.launchYMin + draw(c.launchYSpan));
+    launchY.push(middle[i] ? c.middleYMin + draw(c.middleYSpan) : c.lowerYMin + draw(c.lowerYSpan));
     const h = (speed * icos(angle)) >> 14;
     vx.push(side[i] === 0 ? h : -h);
     vy.push(-((speed * isin(angle)) >> 14));

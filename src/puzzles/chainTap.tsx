@@ -153,7 +153,7 @@ function ChainLines({
   );
 }
 
-function Stage({ puzzle, locked, onDraftAnswer, stateKey = "chain" }: PuzzleStageProps) {
+function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "chain" }: PuzzleStageProps) {
   const data: ChainPuzzleData | null = puzzle.type === "chain" ? puzzle : null;
   const [taps, setTaps] = useStageState<number[]>(stateKey, "chainTaps", () => []);
   const [wrong, setWrong] = useStageState<number | null>(stateKey, "chainWrong", () => null);
@@ -191,6 +191,12 @@ function Stage({ puzzle, locked, onDraftAnswer, stateKey = "chain" }: PuzzleStag
     hapticTick();
     setTaps((current) => [...current, CHAIN_RESET]);
   };
+  // Lock in submits the current tap log; the score is final from then on.
+  const lockIn = () => {
+    if (locked) return;
+    hapticTick();
+    onSubmit(encodeChainTaps(taps));
+  };
   const set = data.sets[replay.setIndex] ?? data.sets[data.sets.length - 1];
   if (!set) return null;
   const used = new Set(replay.current.chain);
@@ -199,7 +205,7 @@ function Stage({ puzzle, locked, onDraftAnswer, stateKey = "chain" }: PuzzleStag
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <RuleStrip cycle={replay.current.rule} step={replay.current.index} />
       <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        <span className="text-primary">{replay.correct}</span> links · set {replay.setIndex + 1}
+        <span className="text-primary">{replay.correct}</span> links
       </p>
       <div className="relative min-h-0 w-full flex-1">
         <ChainLines nodes={set.nodes} chain={replay.current.chain} />
@@ -238,6 +244,14 @@ function Stage({ puzzle, locked, onDraftAnswer, stateKey = "chain" }: PuzzleStag
           className="h-11 flex-1 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
           Reset
+        </button>
+        <button
+          type="button"
+          onClick={lockIn}
+          disabled={locked}
+          className="h-11 flex-1 rounded-xl bg-primary font-display text-sm font-bold uppercase tracking-widest text-primary-foreground disabled:opacity-40"
+        >
+          Lock in
         </button>
       </div>
     </div>

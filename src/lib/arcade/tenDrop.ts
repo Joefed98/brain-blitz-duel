@@ -43,9 +43,14 @@ export interface TenDropStage {
   needOp: boolean;
 }
 
-const EASY = { digitLo: 1, digitHi: 9, mul2: 0, div2: 0, div3: 0, minus: 0, minusLo: 1, minusHi: 1, needOp: false, len: 12 };
-const MID = { digitLo: 1, digitHi: 9, mul2: 20, div2: 0, div3: 0, minus: 0, minusLo: 1, minusHi: 1, needOp: false, len: 14 };
-const HARD = { digitLo: 1, digitHi: 5, mul2: 18, div2: 8, div3: 7, minus: 10, minusLo: 1, minusHi: 5, needOp: true, len: 16 };
+/**
+ * Digits are sparse (about half the tiles) and spread over 1–10 with no value
+ * repeated back to back; every stage needs an operator, because one pass of
+ * digits alone always falls short of the target.
+ */
+const EASY = { digitLo: 1, digitHi: 10, mul2: 30, div2: 0, div3: 0, minus: 20, minusLo: 1, minusHi: 3, needOp: true, len: 9 };
+const MID = { digitLo: 1, digitHi: 10, mul2: 25, div2: 10, div3: 0, minus: 15, minusLo: 1, minusHi: 4, needOp: true, len: 12 };
+const HARD = { digitLo: 1, digitHi: 10, mul2: 22, div2: 10, div3: 8, minus: 15, minusLo: 1, minusHi: 5, needOp: true, len: 14 };
 
 export const TD_CONFIG = {
   runSeconds: 90,
@@ -61,7 +66,7 @@ export const TD_CONFIG = {
   shakeTicks: 18,
   pointsPerTarget: 15,
   /** Rejection-sampling attempts per segment before the built-in fallback. */
-  maxSegmentTries: 400,
+  maxSegmentTries: 1000,
   stages: [
     { lo: 19, hi: 25, speed: 288, gap: 34, ...EASY },
     { lo: 19, hi: 25, speed: 312, gap: 34, ...EASY },
@@ -217,6 +222,7 @@ function buildPlan(seed: number): { rng: number; plan: TenDropPlan } {
     for (; attempt < TD_CONFIG.maxSegmentTries; attempt++) {
       target = stage.lo + draw(stage.hi - stage.lo + 1);
       queue = [];
+      let lastDigit = -1;
       for (let i = 0; i < stage.len; i++) {
         const roll = draw(100);
         let tile: number;
@@ -225,7 +231,13 @@ function buildPlan(seed: number): { rng: number; plan: TenDropPlan } {
         else if (roll < stage.mul2 + stage.div2 + stage.div3) tile = pack(TD_DIV3, 0);
         else if (roll < stage.mul2 + stage.div2 + stage.div3 + stage.minus)
           tile = pack(TD_MINUS, stage.minusLo + draw(stage.minusHi - stage.minusLo + 1));
-        else tile = pack(TD_DIGIT, stage.digitLo + draw(stage.digitHi - stage.digitLo + 1));
+        else {
+          // Spread digits: never the same value twice in a row.
+          let v = stage.digitLo + draw(stage.digitHi - stage.digitLo + (lastDigit < 0 ? 1 : 0));
+          if (lastDigit >= 0 && v >= lastDigit) v++;
+          lastDigit = v;
+          tile = pack(TD_DIGIT, v);
+        }
         queue.push(tile);
       }
       if (tdSegmentOk(stage, target, queue)) break;

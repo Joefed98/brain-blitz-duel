@@ -7,7 +7,8 @@ import {
   whackRule,
   whackScore,
   WHACK_CHECKPOINT_INTERVAL,
-  WHACK_FEED_INTERVAL_TICKS,
+  WHACK_DECOY_LIFETIME_TICKS,
+  WHACK_TARGETS,
   WHACK_FLIP_TICKS,
   WHACK_GOLD,
   WHACK_HOLES,
@@ -32,7 +33,7 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 if (whackRule(WHACK_FLIP_TICKS[0] - 1) !== WHACK_GOLD) fail("rule before first flip");
 if (whackRule(WHACK_FLIP_TICKS[0]) !== WHACK_RED) fail("rule at first flip");
 if (whackRule(WHACK_FLIP_TICKS[1]) !== WHACK_GOLD) fail("rule at second flip");
-if (whackScore(75, 0) !== 150 || whackScore(75, 1) !== 145 || whackScore(0, 1) !== 0) fail("score boundaries");
+if (whackScore(45, 0) !== 150 || whackScore(45, 1) !== 130 || whackScore(44, 0) !== 132 || whackScore(0, 1) !== 0) fail("score boundaries");
 
 let slowest = 0;
 let maxFed = 0;
@@ -51,22 +52,35 @@ for (let run = 0; run < RUNS; run++) {
   if (state.schedule.kind.some((kind) => kind !== WHACK_GOLD && kind !== WHACK_RED)) fail(`run ${run}: invalid colour`);
 
   if (state.next !== 0 || state.status.some((status) => status === WHACK_STATUS_UP)) fail(`run ${run}: balls started up`);
-  state = whackGame.step(state, null);
-  if (state.next !== 1 || !state.status.some((status) => status === WHACK_STATUS_UP)) fail(`run ${run}: first ball did not pop`);
-  for (let tick = 2; tick <= WHACK_FEED_INTERVAL_TICKS; tick++) state = whackGame.step(state, null);
-  if (state.next !== 1) fail(`run ${run}: queue fed too early`);
-  state = whackGame.step(state, null);
-  if (state.next !== 2) fail(`run ${run}: second ball did not pop on schedule`);
-
-  state = whackGame.init(seed);
-  let retirementChecked = false;
-  for (let tick = 1; tick <= 1 + WHACK_POP_LIFETIME_TICKS; tick++) {
-    state = whackGame.step(state, null);
-    if (tick === 1 + WHACK_POP_LIFETIME_TICKS) {
-      retirementChecked = state.status[0] === WHACK_STATUS_RETIRED;
+  const targets = state.schedule.kind.filter((k, i) => k === whackRule(state.schedule.at[i]!)).length;
+  const goldTargets = state.schedule.kind.filter((k, i) => k === WHACK_GOLD && whackRule(state.schedule.at[i]!) === WHACK_GOLD).length;
+  if (targets !== WHACK_TARGETS || goldTargets !== 27) fail(`run ${run}: target counts ${targets}/${goldTargets}`);
+  // Idle run: every ball pops on its tick, targets live 3 s, decoys 1.5 s, nothing changes role while up.
+  let idle = whackGame.init(seed);
+  while (!whackGame.isOver(idle)) {
+    idle = whackGame.step(idle, null);
+    for (let i = 0; i < idle.next; i++) {
+      if (idle.status[i] !== WHACK_STATUS_UP) continue;
+      const target = idle.schedule.kind[i] === whackRule(idle.spawn[i]!);
+      if (idle.schedule.kind[i] !== whackRule(idle.tick) && target) fail(`run ${run}: ball ${i} changed role while up`);
     }
   }
-  if (!retirementChecked) fail(`run ${run}: ball did not retreat after three seconds`);
+  for (let i = 0; i < WHACK_QUEUE_SIZE; i++) {
+    if (idle.spawn[i] !== idle.schedule.at[i]) { fail(`run ${run}: ball ${i} popped late`); break; }
+    if (idle.status[i] === WHACK_STATUS_UP && idle.spawn[i]! + WHACK_POP_LIFETIME_TICKS > idle.tick) continue;
+    const life = idle.doneTick[i]! - idle.spawn[i]!;
+    const target = idle.schedule.kind[i] === whackRule(idle.spawn[i]!);
+    const cutAtFlip = target && WHACK_FLIP_TICKS.includes(idle.doneTick[i]!) && life >= WHACK_DECOY_LIFETIME_TICKS && life < WHACK_POP_LIFETIME_TICKS;
+    if (idle.status[i] !== WHACK_STATUS_RETIRED || (!cutAtFlip && life !== (target ? WHACK_POP_LIFETIME_TICKS : WHACK_DECOY_LIFETIME_TICKS))) { fail(`run ${run}: ball ${i} lifetime ${life}`); break; }
+  }
+  // Perfect bot: whacks every target on its first tick, never a decoy.
+  let bot = whackGame.init(seed);
+  while (!whackGame.isOver(bot)) {
+    const t = bot.tick + 1;
+    const i = bot.status.findIndex((st, j) => st === WHACK_STATUS_UP && bot.spawn[j]! < t && bot.schedule.kind[j] === whackRule(t));
+    bot = whackGame.step(bot, i >= 0 ? { t, k: WHACK_INPUT_TAP, a: bot.hole[i]!, b: 0, c: 0, d: 0 } : null);
+  }
+  if (bot.hits !== WHACK_TARGETS || whackGame.score(bot) !== 150) fail(`run ${run}: perfect bot ${bot.hits}`);
 
   state = whackGame.init(seed);
   const events: ArcadeInputEvent[] = [];

@@ -158,7 +158,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "More correct choices = more points. Perfect = speed bonus.",
   },
   numhunt: {
-    goal: "Tap all twenty numbers from smallest to largest.",
+    goal: "Tap all 24 numbers from smallest to largest.",
     how: [
       { action: "Find the smallest", detail: "remaining number." },
       { action: "Tap in order", detail: "until every number is cleared." },
@@ -424,6 +424,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Keep your chain", detail: "from crossing itself." },
       { action: "Tap Undo or Reset", detail: "to take links back — mistakes still count." },
       { action: "Clear all 28 nodes", detail: "to start a fresh seeded set." },
+      { action: "Tap Lock in", detail: "to submit your score now and wait for the round to end." },
     ],
     score: "5 points per correct link; wrong taps cost 10. Maximum 150.",
   },
@@ -687,11 +688,12 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   whack: {
     goal: "Tap the targets the banner tells you to.",
     how: [
-      { action: "Balls pop up from the queue", detail: "and stay for three seconds or until tapped." },
+      { action: "Right-colour balls stay up", detail: "for three seconds or until tapped." },
+      { action: "Wrong-colour decoys", detail: "drop after 1.5 seconds." },
       { action: "The rule flips partway through", detail: "— watch the banner." },
       { action: "A wrong-colour tap", detail: "clears the hole but costs 5." },
     ],
-    score: "2 per correct ball; wrong-colour taps cost 5. Maximum 150.",
+    score: "3 per correct ball (45 in all); decoy taps cost 5. +15 for all 45 with no wrong taps. Maximum 150.",
   },
   wavefront: {
     goal: "Shoot down the formation before it reaches you.",

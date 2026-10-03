@@ -45,7 +45,11 @@ for (let run = 0; run < RUNS; run++) {
   if (state.schedule.kind.filter((kind) => kind === CLAY_KIND_ORANGE).length !== CLAY_CONFIG.orangeClays) fail(`run ${run}: orange count`);
   if (state.schedule.kind.filter((kind) => kind === CLAY_KIND_GOLD).length !== CLAY_CONFIG.goldClays) fail(`run ${run}: gold count`);
   if (state.schedule.launch[state.schedule.launch.length - 1]! >= CLAY_CONFIG.runSeconds * 60) fail(`run ${run}: launch after run`);
-  nearTop += state.schedule.launchY.filter((y) => y <= CLAY_CONFIG.nearTopYMin + CLAY_CONFIG.nearTopYSpan).length;
+  const ys = state.schedule.launchY;
+  const mid = ys.filter((y) => y >= 100 && y < 200).length;
+  if (ys.some((y) => y < CLAY_CONFIG.worldH / 4 || y > CLAY_CONFIG.worldH * 0.95)) fail(`run ${run}: launch outside bands`);
+  if (state.schedule.kind.some((k, i) => k === CLAY_KIND_GOLD && (ys[i]! < 100 || ys[i]! > 300))) fail(`run ${run}: gold outside middle band`);
+  nearTop += mid;
   left += state.schedule.side.filter((side) => side === 0).length;
   right += state.schedule.side.filter((side) => side === 1).length;
 
@@ -99,8 +103,8 @@ for (let run = 0; run < RUNS; run++) {
   }
 }
 if (maxEarly > 1 || maxLate > 2) fail(`airborne limits ${maxEarly}/${maxLate}`);
-if (nearTop === 0 || left === 0 || right === 0) fail("trajectory variety missing");
+if (nearTop === 0 || Math.abs(left - right) > RUNS || left === 0 || right === 0) fail("trajectory variety missing");
 console.log(`clay self-replay ${RUNS}/${RUNS}; aiming bot ${perfectRuns}/${RUNS}; gold ${goldHits}/${RUNS * CLAY_CONFIG.goldClays}; slowest ${slowest.toFixed(1)}ms`);
-console.log(`clay airborne max ${maxEarly}/${maxLate}; near-top ${nearTop}; edges ${left}/${right}`);
+console.log(`clay airborne max ${maxEarly}/${maxLate}; upper-middle ${nearTop}; edges ${left}/${right}`);
 console.log(failures ? `${failures} FAILURES` : "ALL OK");
 process.exit(failures ? 1 : 0);

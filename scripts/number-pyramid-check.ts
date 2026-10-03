@@ -18,8 +18,8 @@ for (const set of NUMBER_PYRAMID_BANK) {
     if (!npComplete(e.givens, e.tray, npDecode(npEncode(p), e.givens, e.tray.length), e.rows)) bad++;
   });
 }
-if (scoreNumberPyramid(4, true, 75_000, 0, 0) !== 135) bad++;
+if (scoreNumberPyramid(4, true, 60_000, 0, 0) !== 135) bad++;
 if (scoreNumberPyramid(2, false, 0, 3, 6) !== 75) bad++;
 if (scoreNumberPyramid(2, false, 0, 0, 6) !== 60) bad++;
-console.log(`checked ${NUMBER_PYRAMID_BANK.length} sets / ${seen.size} unique pyramids, problems ${bad}; all at half time ${scoreNumberPyramid(4, true, 75_000, 0, 0)}; two plus 3/6 ${scoreNumberPyramid(2, false, 0, 3, 6)}`);
+console.log(`checked ${NUMBER_PYRAMID_BANK.length} sets / ${seen.size} unique pyramids, problems ${bad}; all at half time ${scoreNumberPyramid(4, true, 60_000, 0, 0)}; two plus 3/6 ${scoreNumberPyramid(2, false, 0, 3, 6)}`);
 if (bad) process.exitCode = 1;
