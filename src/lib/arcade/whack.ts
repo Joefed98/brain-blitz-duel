@@ -192,7 +192,6 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
   const tick = state.tick + 1;
   let next: WhackState = { ...state, tick };
   const rule = whackRule(tick);
-  let resolved = false;
   if (input && input.k === WHACK_INPUT_TAP) {
     const hole = clampInt(input.a, 0, WHACK_HOLES - 1);
     next.taps += 1;
@@ -211,7 +210,6 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
       doneTick[index] = tick;
       next.status = status;
       next.doneTick = doneTick;
-      resolved = true;
     }
   }
   const expiredStatus = [...next.status];
