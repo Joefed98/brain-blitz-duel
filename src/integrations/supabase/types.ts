@@ -100,7 +100,6 @@ export type Database = {
         Row: {
           add_arcade: boolean
           add_maths: boolean
-          add_memory: boolean
           created_at: string
           current_round: number
           disbanded_at: string | null
@@ -123,7 +122,6 @@ export type Database = {
         Insert: {
           add_arcade?: boolean
           add_maths?: boolean
-          add_memory?: boolean
           created_at?: string
           current_round?: number
           disbanded_at?: string | null
@@ -146,7 +144,6 @@ export type Database = {
         Update: {
           add_arcade?: boolean
           add_maths?: boolean
-          add_memory?: boolean
           created_at?: string
           current_round?: number
           disbanded_at?: string | null

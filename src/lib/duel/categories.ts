@@ -7,7 +7,6 @@ export const CATEGORY_ORDER: readonly PuzzleCategory[] = [
   "attention",
   "word",
   "number",
-  "memory",
   "arcade",
 ];
 export const STANDARD_CATEGORIES: readonly PuzzleCategory[] = [
