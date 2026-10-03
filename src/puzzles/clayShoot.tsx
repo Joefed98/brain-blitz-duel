@@ -14,6 +14,7 @@ import {
   clayGame,
   clayView,
   unpackClayLog,
+  clayFlight,
   CLAY_CHECKPOINT_INTERVAL,
   CLAY_COUNT,
   CLAY_H,
