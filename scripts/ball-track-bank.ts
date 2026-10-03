@@ -1,7 +1,7 @@
 /**
  * Ball Track bank: 400 courses over the fixed serpentine.
  *   bun scripts/ball-track-bank.ts
- * Seeds only tray order, ball order and 3–5 extra fixed straights. Every tray
+ * Seeds only tray order, ball order and up to seven extra fixed straights. Every tray
  * must be reachable from the all-horizontal start, and a just-in-time playbook
  * (each tile set for the next ball due through it) must route every ball home in the
  * real sim; seeds that fail are rerolled.
@@ -61,14 +61,62 @@ export function routeTo(course: BtCourse, col: number): { cell: number; vert: nu
   return null;
 }
 
+/** Enumerate column placements, then minimise triple stacks within the fixed-tile budget. */
+const fixedPatterns = Array.from({ length: BT_COLS }, (_, col) => {
+  const candidates = BT_KIND.flatMap((kind, cell) => kind === 1 && cell % BT_COLS === col && cell < (BT_ROWS - 1) * BT_COLS && !BT_ALWAYS_FIXED.includes(cell) ? [cell] : []);
+  const patterns: { fixed: number[]; triples: number }[] = [];
+  for (let mask = 0; mask < 2 ** candidates.length; mask++) {
+    const fixed = candidates.filter((_, i) => mask & (1 << i));
+    const allFixed = new Set([...BT_ALWAYS_FIXED, ...fixed]);
+    let run = 0, triples = 0, valid = true;
+    for (let row = 0; row < BT_ROWS; row++) {
+      const cell = row * BT_COLS + col;
+      run = BT_KIND[cell] === 1 && !allFixed.has(cell) ? run + 1 : 0;
+      if (run === 3) triples++;
+      if (run > 3) valid = false;
+    }
+    if (valid) patterns.push({ fixed, triples });
+  }
+  return patterns;
+});
+const placementCost = Array.from({ length: BT_COLS + 1 }, () => Array.from({ length: 8 }, () => Infinity));
+const lastCosts = placementCost[BT_COLS];
+if (!lastCosts) throw new Error("Missing placement costs");
+lastCosts[0] = 0;
+for (let col = BT_COLS - 1; col >= 0; col--) {
+  const costs = placementCost[col], next = placementCost[col + 1];
+  if (!costs || !next) throw new Error("Missing column costs");
+  for (let budget = 0; budget <= 7; budget++) {
+    for (const pattern of fixedPatterns[col] ?? []) {
+      if (pattern.fixed.length <= budget) costs[budget] = Math.min(costs[budget] ?? Infinity, pattern.triples + (next[budget - pattern.fixed.length] ?? Infinity));
+    }
+  }
+}
+function seededFixed(): number[] {
+  const costs = placementCost[0];
+  if (!costs) throw new Error("Missing placement costs");
+  // Prefer fewer triple stacks first, then fewer fixed tiles among equally good placements.
+  let budget = 3;
+  for (let count = 4; count <= 7; count++) if ((costs[count] ?? Infinity) < (costs[budget] ?? Infinity)) budget = count;
+  if (!Number.isFinite(costs[budget])) throw new Error("No valid fixed-tile placement");
+  const fixed: number[] = [];
+  for (let col = 0; col < BT_COLS; col++) {
+    const options = (fixedPatterns[col] ?? []).filter((p) => p.fixed.length <= budget && p.triples + (placementCost[col + 1]?.[budget - p.fixed.length] ?? Infinity) === placementCost[col]?.[budget]);
+    const chosen = options[rnd(options.length)];
+    if (!chosen) throw new Error("No optimal column placement");
+    fixed.push(...chosen.fixed);
+    budget -= chosen.fixed.length;
+  }
+  return fixed.sort((a, b) => a - b);
+}
+
 function makeCourse(): BtCourse {
   const cols = shuffle([0, 1, 2, 3, 4, 5, 6]);
   const colours = shuffle([0, 1, 2, 3, 4]);
   const trays = Array.from({ length: BT_COLS }, () => -1);
   colours.forEach((c, i) => (trays[cols[i]!] = c));
   const balls = shuffle(Array.from({ length: BT_BALLS }, (_, i) => i % BT_COLOURS));
-  const pool = shuffle(BT_KIND.flatMap((k, cell) => (k === 1 && cell < (BT_ROWS - 1) * BT_COLS && !BT_ALWAYS_FIXED.includes(cell) ? [cell] : [])));
-  const fixed = pool.slice(0, 3 + rnd(3)).sort((a, b) => a - b);
+  const fixed = seededFixed();
   return { trays, balls, fixed };
 }
 

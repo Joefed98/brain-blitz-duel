@@ -6,7 +6,7 @@
 import { BALL_TRACK_BANK } from "../src/lib/duel/ballTrackBank.server";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { decodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { btCheckpoint, makeBallTrackGame, BT_BALLS, BT_CHECKPOINT_INTERVAL, BT_COLS, BT_KIND, BT_K_ROTATE, type BtCheckpoint } from "../src/lib/arcade/ballTrack";
+import { btCheckpoint, btRotatable, makeBallTrackGame, BT_BALLS, BT_CHECKPOINT_INTERVAL, BT_COLS, BT_ROWS, BT_KIND, BT_K_ROTATE, BT_DROP_TICKS, BT_STEP_TICKS, BT_RUN_TICKS, type BtCheckpoint } from "../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
 
 let fails = 0;
@@ -32,10 +32,22 @@ function play(index: number, choose: (tick: number) => Omit<ArcadeInputEvent, "t
 }
 
 let solved = 0;
+if (BT_DROP_TICKS !== 240 || BT_STEP_TICKS !== 12 || BT_RUN_TICKS !== 3600) fail("Pace constants");
 BALL_TRACK_BANK.forEach((entry, i) => {
   const c = entry.course;
   const extra = c.fixed.length;
-  if (extra < 3 || extra > 5 || c.fixed.some((x) => x >= 42 || x % BT_COLS === 3 || BT_KIND[x] !== 1)) fail(`course ${i}: fixed set`);
+  if (extra < 3 || extra > 7 || new Set(c.fixed).size !== extra || c.fixed.some((x) => x >= 42 || x % BT_COLS === 3 || BT_KIND[x] !== 1)) fail(`course ${i}: fixed set`);
+  const rotatable = new Set(btRotatable(c));
+  let triples = 0;
+  for (let col = 0; col < BT_COLS; col++) {
+    let run = 0;
+    for (let row = 0; row < BT_ROWS; row++) {
+      run = rotatable.has(row * BT_COLS + col) ? run + 1 : 0;
+      if (run === 3) triples++;
+      if (run > 3) fail(`course ${i}: four vertically adjacent rotatable tubes`);
+    }
+  }
+  if (triples !== 1) fail(`course ${i}: expected the minimum one triple stack, got ${triples}`);
   if (c.trays.filter((t) => t >= 0).length !== 5 || c.balls.length !== BT_BALLS) fail(`course ${i}: trays/balls`);
   for (let colour = 0; colour < 5; colour++) if (c.balls.filter((b) => b === colour).length !== 2) fail(`course ${i}: colour balance`);
   if (c.balls.some((b, j) => j >= 2 && b === c.balls[j - 1] && b === c.balls[j - 2])) fail(`course ${i}: three consecutive colours`);
