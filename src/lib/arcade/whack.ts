@@ -35,10 +35,24 @@ export const WHACK_RED = 1;
 
 /** The rule flips to TAP RED at 10 s and back to TAP GOLD at 20 s. */
 export const WHACK_FLIP_TICKS: readonly number[] = [600, 1200];
-export const WHACK_QUEUE_SIZE = 100;
+/** Target lifetime: up until whacked or three seconds. */
 export const WHACK_POP_LIFETIME_TICKS = 3 * TICKS_PER_SECOND;
-/** Feed at most one queued ball every three fifths of a second. */
-export const WHACK_FEED_INTERVAL_TICKS = 36;
+/** Decoys (wrong colour for the current rule) drop after 1.5 s. */
+export const WHACK_DECOY_LIFETIME_TICKS = 90;
+/**
+ * Seeded per-period queue: exactly 45 scoring targets (27 gold during Tap Gold,
+ * 18 red during Tap Red) plus decoys. Every ball pops at a fixed seeded tick
+ * inside its period and no later than a decoy lifetime before the flip, so no
+ * ball can change role while still countable.
+ */
+export const WHACK_PERIODS: readonly { start: number; end: number; rule: number; targets: number; decoys: number }[] = [
+  { start: 0, end: 600, rule: 0, targets: 5, decoys: 4 },
+  { start: 600, end: 1200, rule: 1, targets: 18, decoys: 8 },
+  { start: 1200, end: 3600, rule: 0, targets: 22, decoys: 15 },
+];
+export const WHACK_TARGETS = 45;
+export const WHACK_QUEUE_SIZE = WHACK_PERIODS.reduce((n, p) => n + p.targets + p.decoys, 0);
+export const WHACK_PERFECT_BONUS = 15;
 const POP_IN_TICKS = 7;
 const FALL_TICKS = 10;
 
@@ -60,19 +74,40 @@ export function whackRule(tick: number): number {
 /* =============================== Schedule =============================== */
 
 export interface WhackSchedule {
-  /** Seeded queue order; runtime occupancy decides when and where each appears. */
+  /** Seeded queue colours. */
   kind: number[];
+  /** Fixed seeded pop tick for each queued ball. */
+  at: number[];
 }
 
 function buildSchedule(seed: number): { rng: number; schedule: WhackSchedule } {
   let rng = seed | 0;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
   const kind: number[] = [];
-  for (let i = 0; i < WHACK_QUEUE_SIZE; i++) {
-    const draw = rngBelow(rng, 2);
-    rng = draw.state;
-    kind.push(draw.value);
+  const at: number[] = [];
+  for (const period of WHACK_PERIODS) {
+    const decoy = period.rule === WHACK_GOLD ? WHACK_RED : WHACK_GOLD;
+    const kinds = [
+      ...new Array<number>(period.targets).fill(period.rule),
+      ...new Array<number>(period.decoys).fill(decoy),
+    ];
+    for (let i = kinds.length - 1; i > 0; i--) {
+      const j = draw(i + 1);
+      [kinds[i], kinds[j]] = [kinds[j]!, kinds[i]!];
+    }
+    const first = period.start + 10;
+    const last = period.end - WHACK_DECOY_LIFETIME_TICKS;
+    const gap = Math.floor((last - first) / kinds.length);
+    for (let i = 0; i < kinds.length; i++) {
+      kind.push(kinds[i]!);
+      at.push(first + i * gap + draw(Math.max(1, gap >> 1)));
+    }
   }
-  return { rng, schedule: { kind } };
+  return { rng, schedule: { kind, at } };
 }
 
 /* ================================ State ================================ */
@@ -93,7 +128,8 @@ export interface WhackState {
   next: number;
 }
 
-function feedNextBall(state: WhackState, tick: number): WhackState {
+function feedDueBalls(state: WhackState, tick: number): WhackState {
+  if (state.next >= WHACK_QUEUE_SIZE || state.schedule.at[state.next]! > tick) return state;
   const spawn = [...state.spawn];
   const hole = [...state.hole];
   const status = [...state.status];
@@ -101,15 +137,16 @@ function feedNextBall(state: WhackState, tick: number): WhackState {
   for (let i = 0; i < state.next; i++) {
     if (status[i] === WHACK_STATUS_UP) occupied.add(hole[i]!);
   }
-  const free: number[] = [];
-  for (let h = 0; h < WHACK_HOLES; h++) if (!occupied.has(h)) free.push(h);
   let rng = state.rng;
   let next = state.next;
-  if (free.length > 0 && next < WHACK_QUEUE_SIZE) {
+  while (next < WHACK_QUEUE_SIZE && state.schedule.at[next]! <= tick) {
+    const free: number[] = [];
+    for (let h = 0; h < WHACK_HOLES; h++) if (!occupied.has(h)) free.push(h);
+    if (free.length === 0) break;
     const draw = rngBelow(rng, free.length);
     rng = draw.state;
-    const h = free.splice(draw.value, 1)[0];
-    if (h === undefined) return state;
+    const h = free[draw.value]!;
+    occupied.add(h);
     spawn[next] = tick;
     hole[next] = h;
     status[next] = WHACK_STATUS_UP;
@@ -181,28 +218,24 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
   const expiredDone = [...next.doneTick];
   let retired = false;
   for (let i = 0; i < next.next; i++) {
-    if (
-      expiredStatus[i] === WHACK_STATUS_UP &&
-      tick - next.spawn[i]! >= WHACK_POP_LIFETIME_TICKS
-    ) {
+    if (expiredStatus[i] !== WHACK_STATUS_UP) continue;
+    const age = tick - next.spawn[i]!;
+    const decoy = state.schedule.kind[i] !== rule;
+    if (age >= (decoy ? WHACK_DECOY_LIFETIME_TICKS : WHACK_POP_LIFETIME_TICKS)) {
       expiredStatus[i] = WHACK_STATUS_RETIRED;
       expiredDone[i] = tick;
       retired = true;
     }
   }
   if (retired) next = { ...next, status: expiredStatus, doneTick: expiredDone };
-  if (
-    (retired || resolved || (tick - 1) % WHACK_FEED_INTERVAL_TICKS === 0) &&
-    next.next < WHACK_QUEUE_SIZE
-  ) {
-    next = feedNextBall(next, tick);
-  }
+  next = feedDueBalls(next, tick);
   return next;
 }
 
-/** 2 per correct whack, minus 5 per wrong-colour tap, clamped to 0–150. */
+/** 3 per target whacked, −5 per decoy, +15 for all 45 with no decoy taps; 0–150. */
 export function whackScore(hits: number, wrong: number): number {
-  return clampInt(hits * 2 - wrong * 5, 0, 150);
+  const bonus = hits >= WHACK_TARGETS && wrong === 0 ? WHACK_PERFECT_BONUS : 0;
+  return clampInt(hits * 3 - wrong * 5 + bonus, 0, 150);
 }
 
 function score(state: WhackState): number {
