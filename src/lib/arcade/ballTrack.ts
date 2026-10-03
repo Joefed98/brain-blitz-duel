@@ -444,12 +444,26 @@ function drawPipe(ctx: CanvasRenderingContext2D, x: number, y: number, mask: num
   ctx.stroke();
 }
 
+const trackInks = new WeakMap<CanvasRenderingContext2D, Record<string, string>>();
+function drawingInks(ctx: CanvasRenderingContext2D) {
+  const cached = trackInks.get(ctx);
+  if (cached) return cached;
+  const styles = getComputedStyle(ctx.canvas);
+  const inks: Record<string, string> = {};
+  for (const key of ['background','cell','cell-alt','solid','guide','frame','rail','pipe','label','gold','pit','pit-border','error']) {
+    inks[key] = styles.getPropertyValue(`--track-${key}`).trim();
+  }
+  trackInks.set(ctx, inks);
+  return inks;
+}
+
 export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtCellInfo[], s: BtState, preview?: { slider: number; pos: number }) {
   const T = BT_TILE;
-  ctx.fillStyle = "#0E1116";
+  const ink = drawingInks(ctx);
+  ctx.fillStyle = (ink["background"] ?? "transparent");
   ctx.fillRect(0, 0, BT_W, BT_H);
   // The queue approaches the central release track from the left.
-  ctx.strokeStyle = "#4A5363";
+  ctx.strokeStyle = (ink["rail"] ?? "transparent");
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(HOPPER.x - 270, 10);
@@ -475,10 +489,10 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
   for (let cell = 0; cell < BT_COLS * BT_ROWS; cell++) {
     const { x, y } = centre(cell);
     const info = map[cell]!;
-    ctx.fillStyle = (Math.floor(cell / BT_COLS) + cell) % 2 ? "#151A21" : "#12161C";
+    ctx.fillStyle = (Math.floor(cell / BT_COLS) + cell) % 2 ? (ink["cell-alt"] ?? "transparent") : (ink["cell"] ?? "transparent");
     ctx.fillRect(x - T / 2, y - T / 2, T, T);
     if (info.kind === 0) {
-      ctx.strokeStyle = "#2A313C";
+      ctx.strokeStyle = (ink["guide"] ?? "transparent");
       ctx.lineWidth = 3;
       ctx.setLineDash([8, 10]);
       ctx.beginPath();
@@ -490,26 +504,26 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
       const pipe = course.pipes[info.idx]!;
       const mask = rotMask(BT_PIPE_MASKS[pipe.shape]!, s.pipeRot[info.idx]!);
       ctx.lineCap = "butt";
-      ctx.strokeStyle = "#9AA4B4";
+      ctx.strokeStyle = (ink["pipe"] ?? "transparent");
       ctx.lineWidth = 3;
       drawPipe(ctx, x, y, mask);
     } else if (info.kind === 2) {
       const dir = s.flip[info.idx] ? 1 : -1;
-      ctx.strokeStyle = "#3A414D";
+      ctx.strokeStyle = (ink["frame"] ?? "transparent");
       ctx.lineWidth = 4;
       ctx.strokeRect(x - T / 2 + 8, y - T / 2 + 8, T - 16, T - 16);
-      ctx.fillStyle = "#3A414D";
+      ctx.fillStyle = (ink["frame"] ?? "transparent");
       ctx.beginPath();
       ctx.arc(x, y - 18, 7, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "#F5B82E";
+      ctx.strokeStyle = (ink["gold"] ?? "transparent");
       ctx.lineWidth = 18;
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.moveTo(x, y - 32);
       ctx.lineTo(x + dir * 40, y + 30);
       ctx.stroke();
-      ctx.fillStyle = "#F5B82E";
+      ctx.fillStyle = (ink["gold"] ?? "transparent");
       ctx.beginPath();
       ctx.moveTo(x + dir * 34, y + 44);
       ctx.lineTo(x + dir * 20, y + 36);
@@ -521,7 +535,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
   course.sliders.forEach((slider, i) => {
     const left = centre(slider.row * BT_COLS + slider.col);
     const y = left.y;
-    ctx.strokeStyle = "#4A5363";
+    ctx.strokeStyle = (ink["rail"] ?? "transparent");
     ctx.lineWidth = 6;
     ctx.beginPath();
     ctx.moveTo(left.x - T / 2 + 6, y + 30);
@@ -533,9 +547,9 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
     const bx = left.x - T / 2 + pos * T;
     const slotX = bx + slider.slot * T + T / 2;
     const solidX = bx + (1 - slider.slot) * T;
-    ctx.fillStyle = "#262C36";
+    ctx.fillStyle = (ink["solid"] ?? "transparent");
     ctx.fillRect(solidX + 3, y - 26, T - 6, 52);
-    ctx.strokeStyle = "#9AA4B4";
+    ctx.strokeStyle = (ink["pipe"] ?? "transparent");
     ctx.lineWidth = 4;
     ctx.strokeRect(bx + 3, y - 26, 2 * T - 6, 52);
     ctx.beginPath();
@@ -558,7 +572,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
   // Paddle wheels: a rotating cross, circular rim and marked pocket.
   course.wheels.forEach((_, w) => {
     const p = pocketPoint(course, s, w, s.tick);
-    ctx.strokeStyle = "#9AA4B4";
+    ctx.strokeStyle = (ink["pipe"] ?? "transparent");
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(p.cx, p.cy, T * 0.95, 0, Math.PI * 2);
@@ -570,11 +584,11 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
       ctx.lineTo(p.cx + Math.cos(a) * T * 0.9, p.cy + Math.sin(a) * T * 0.9);
       ctx.stroke();
     }
-    ctx.strokeStyle = "#F5B82E";
+    ctx.strokeStyle = (ink["gold"] ?? "transparent");
     ctx.beginPath();
     ctx.arc(p.x, p.y, 30, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.fillStyle = "#C9D1DD";
+    ctx.fillStyle = (ink["label"] ?? "transparent");
     ctx.font = "32px sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("↺", p.cx - 65, p.cy + 11);
@@ -585,9 +599,9 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
   course.trays.forEach((tray, col) => {
     const x = col * T;
     if (tray < 0) {
-      ctx.fillStyle = "#050608";
+      ctx.fillStyle = (ink["pit"] ?? "transparent");
       ctx.fillRect(x + 6, ty + 8, T - 12, BT_TRAY_H - 14);
-      ctx.strokeStyle = "#3A1A1A";
+      ctx.strokeStyle = (ink["pit-border"] ?? "transparent");
       ctx.lineWidth = 3;
       ctx.strokeRect(x + 6, ty + 8, T - 12, BT_TRAY_H - 14);
     } else {
@@ -610,7 +624,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
     if (age > 40) continue;
     const x = mark.cell * T;
     ctx.globalAlpha = 1 - age / 40;
-    ctx.fillStyle = mark.ok ? "#F5B82E" : "#FF3B3B";
+    ctx.fillStyle = mark.ok ? (ink["gold"] ?? "transparent") : (ink["error"] ?? "transparent");
     ctx.fillRect(x + 6, ty + 8, T - 12, BT_TRAY_H - 14);
     ctx.globalAlpha = 1;
   }

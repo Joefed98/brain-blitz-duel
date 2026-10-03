@@ -507,7 +507,9 @@
 - [x] Intro, reveal, summaries; identity proof 200/200
 
 ## Ball Track piece tuning (Oct 3)
-- [ ] Centre hopper queue on column 4; flat wider pipes and half-tile balls.
-- [ ] Bidirectional pocket wheel, larger gold flippers, effective one-column slider deflection and drag preview.
-- [ ] Add piece legend; rebuild 400 courses with demonstrated slide dependence.
-- [ ] Ball Track-only bank, mechanics and 200-run replay checks; no browser tests.
+- [x] Centre hopper queue on column 4; flat wider pipes and half-tile balls.
+- [x] Bidirectional pocket wheel, larger gold flippers, effective one-column slider deflection and drag preview.
+- [x] Add piece legend; rebuild 400 courses with demonstrated slide dependence.
+- [x] Ball Track-only bank, mechanics and 200-run replay checks; no browser tests.
+
+- Validation: 400/400 courses solved and fail with slides removed; all demonstrate slot deflection; replay identity 200/200, focused piece checks passed. No browser tests.

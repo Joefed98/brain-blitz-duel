@@ -294,6 +294,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       >
         <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
       </div>
+      <div className="flex h-7 shrink-0 items-center justify-evenly gap-1 text-[10px] text-muted-foreground" aria-label="Piece legend">
+        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 0V24M19 0V24" fill="none" stroke="currentColor" strokeWidth="2" /></svg>Pipes</span>
+        <span className="flex items-center gap-1"><svg className="size-4 text-primary" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3L19 20" stroke="currentColor" strokeWidth="5" /></svg>Flipper</span>
+        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" /><path d="M12 2V22M2 12H22" stroke="currentColor" /><circle cx="16" cy="7" r="3" fill="none" stroke="currentColor" /></svg>Wheel</span>
+        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 21H23" stroke="currentColor" /><rect x="2" y="5" width="20" height="12" fill="none" stroke="currentColor" /><path d="M4 8L8 11L4 14" fill="none" stroke="currentColor" /><circle cx="17" cy="11" r="4" fill="none" stroke="currentColor" /></svg>Slider</span>
+      </div>
       <div className="flex h-14 w-full shrink-0 items-center justify-between gap-2 px-1 pt-1">
         <span className="w-20 font-mono text-xs text-muted-foreground">
           {hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}
@@ -312,12 +318,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         </Button>
         <span className="w-20 text-right font-mono text-xs text-muted-foreground">{hud.left} left</span>
       </div>
-      <div className="flex h-7 shrink-0 items-center justify-evenly gap-1 text-[10px] text-muted-foreground" aria-label="Piece legend">
-        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 0V24M19 0V24" fill="none" stroke="currentColor" strokeWidth="2" /></svg>Pipes</span>
-        <span className="flex items-center gap-1"><svg className="size-4 text-primary" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3L19 20" stroke="currentColor" strokeWidth="5" /></svg>Flipper</span>
-        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" /><path d="M12 2V22M2 12H22" stroke="currentColor" /><circle cx="16" cy="7" r="3" fill="none" stroke="currentColor" /></svg>Wheel</span>
-        <span className="flex items-center gap-1"><svg className="size-4" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 21H23" stroke="currentColor" /><rect x="2" y="5" width="20" height="12" fill="none" stroke="currentColor" /><path d="M4 8L8 11L4 14" fill="none" stroke="currentColor" /><circle cx="17" cy="11" r="4" fill="none" stroke="currentColor" /></svg>Slider</span>
-      </div>
+
     </div>
   );
 }
