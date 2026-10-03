@@ -521,7 +521,8 @@ export function buildSpotDifference(): SpotPuzzleData {
 
   // Fallback: five separated colour changes on a full grid.
   const top = fillGrid();
-  const chosen = top.filter((_, index) => index % 11 === 0).slice(0, SPOT_DIFFERENCES);
+  const FALLBACK_CELLS = [0, 3, 6, 25, 28, 47];
+  const chosen = top.filter((shape) => FALLBACK_CELLS.includes(shape.cell)).slice(0, SPOT_DIFFERENCES);
   const bottom = top.map((shape) =>
     chosen.some((candidate) => candidate.cell === shape.cell)
       ? { ...shape, colour: otherColour(shape.colour) }

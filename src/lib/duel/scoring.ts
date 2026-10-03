@@ -224,13 +224,13 @@ export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): 
 }
 
 /**
- * Spot the Difference: all five found scores 100 plus the speed bonus; every
- * difference found on its own is worth 20.
+ * Spot the Difference: all six found scores 100 plus the speed bonus; otherwise
+ * round(100 × found ÷ 6).
  */
 export function scoreSpotDifference(foundCount: number, msRemaining: number): number {
   const found = clamp(Math.round(foundCount), 0, SPOT_DIFFERENCES);
   if (found >= SPOT_DIFFERENCES) return BASE_POINTS + speedBonus(msRemaining, SPOT_TIME_MS);
-  return 20 * found;
+  return Math.round((BASE_POINTS * found) / SPOT_DIFFERENCES);
 }
 
 /** Pattern Completion: partial credit per board; speed only rewards a perfect set. */

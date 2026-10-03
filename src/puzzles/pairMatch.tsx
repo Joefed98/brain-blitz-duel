@@ -110,7 +110,7 @@ function IntroExample() {
           compact
         />
       </div>
-      <p className="text-center text-xs text-muted-foreground">Match all ten pairs.</p>
+      <p className="text-center text-xs text-muted-foreground">Match all fifteen pairs.</p>
     </div>
   );
 }
@@ -181,6 +181,9 @@ function Stage({
           cards={data.cards}
           faceUp={new Set(open)}
           matched={matched}
+          cols={5}
+          glyph={30}
+          compact
           onCard={open.length >= 2 ? undefined : tap}
         />
       </div>

@@ -179,18 +179,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Find every matching arrow in three growing grids.",
     how: [
       { action: "Tap every match", detail: "of each grid's target arrow." },
-      { action: "Finding them all", detail: "moves on by itself." },
-      { action: "Press Next", detail: "to move on early — 30 seconds for all three." },
+      { action: "Press Submit", detail: "to lock each grid and move on — 30 seconds for all three." },
     ],
     score: "Points for every arrow found; wrong taps cost a little; all three grids perfect for the time bonus.",
   },
   spotdiff: {
-    goal: "Find all five differences between the two pictures.",
+    goal: "Find all six differences between the two pictures.",
     how: [
       { action: "Compare both panels", detail: "carefully." },
       { action: "Tap each difference", detail: "in either panel." },
     ],
-    score: "Twenty a difference. All five = full points and the speed bonus.",
+    score: "Each difference found earns a share of 100. All six = 100 plus the speed bonus.",
   },
   patcomp: {
     goal: "Complete all three visual patterns.",
@@ -447,13 +446,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Finish inside 120 seconds; faster finishes score more.",
   },
   pairmatch: {
-    goal: "Find all ten matching pairs.",
+    goal: "Find all fifteen matching pairs.",
     how: [
       { action: "Tap two cards", detail: "to turn them over." },
       { action: "A match stays up", detail: "— a miss flips back." },
       { action: "Remember", detail: "where everything was." },
     ],
-    score: "Solve for 100 plus speed. Twelve flip-pairs or fewer adds 20; found pairs still score.",
+    score: "Solve for 100 plus speed. Eighteen flip-pairs or fewer adds 20; found pairs still score.",
   },
   flood: {
     goal: "Flood the whole board with one colour.",
