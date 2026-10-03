@@ -98,7 +98,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
   const data = puzzle.type === "balltrack" ? puzzle : null;
   const [events, setEvents] = useStageState<BtEvent[]>(stateKey ?? "balltrack", "ballTrackEvents", () => []);
-  const [anim, setAnim] = useState<{ runs: { ball: number; path: number[]; bucket: number | null }[]; step: number } | null>(null);
+  const [anim, setAnim] = useState<{ runs: { ball: number; path: number[]; points: BtPathPoint[]; bucket: number | null }[]; step: number } | null>(null);
   const reduced = usePrefersReducedMotion();
   const submitted = useRef(false);
   const encoded = btEncode(events);

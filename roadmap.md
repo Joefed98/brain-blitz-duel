@@ -489,7 +489,7 @@
 - [x] Update intro and verify narrow-layout calculations, types, and build without browser tests.
 
 ## Ball Track tuning pass 3 (Oct 3)
-- [ ] Add deterministic shallow-right and shallow-left runs to replay and bank generation.
-- [ ] Fix row 1 as dim vertical pipes and rebuild 400 boards at 12–20 rotations with non-crossing pairs.
-- [ ] Add smaller rolling balls, doubled edge-to-edge tubes, near-wall occlusion, and heavier nested pair links.
-- [ ] Add the requested top clearance and validate source, bank, replay, types, and narrow-layout geometry without browser tests.
+- [x] Add deterministic shallow-right and shallow-left runs to replay and bank generation.
+- [x] Fix row 1 as dim vertical pipes and rebuild 400 boards at 12–20 rotations with non-crossing pairs.
+- [x] Add smaller rolling balls, doubled edge-to-edge tubes, near-wall occlusion, and heavier nested pair links.
+- [x] Add the requested top clearance and validate source, bank, replay, types, and narrow-layout geometry without browser tests.
