@@ -107,4 +107,20 @@ if (nearTop === 0 || Math.abs(left - right) > RUNS || left === 0 || right === 0)
 console.log(`clay self-replay ${RUNS}/${RUNS}; aiming bot ${perfectRuns}/${RUNS}; gold ${goldHits}/${RUNS * CLAY_CONFIG.goldClays}; slowest ${slowest.toFixed(1)}ms`);
 console.log(`clay airborne max ${maxEarly}/${maxLate}; upper-middle ${nearTop}; edges ${left}/${right}`);
 console.log(failures ? `${failures} FAILURES` : "ALL OK");
-process.exit(failures ? 1 : 0);
+
+// Trajectory guard: every clay covers ⅔ width and stays ≥ 1 s on screen.
+{
+  const { clayGame: g, clayFlight: fl, CLAY_CONFIG: cc } = await import("@/lib/arcade/clayShoot");
+  let bad = 0, minCov = 1e9, minT = 1e9;
+  for (let r = 0; r < 2000; r++) {
+    const s = g.init((r * 2654435761 + 13) | 0).schedule;
+    for (let i = 0; i < s.vx.length; i++) {
+      const f = fl(s.side[i]!, s.launchY[i]!, s.vx[i]!, s.vy[i]!);
+      minCov = Math.min(minCov, f.coverage); minT = Math.min(minT, f.ticks);
+      if (f.coverage < cc.minCoverage || f.ticks < cc.minOnScreenTicks) bad++;
+    }
+  }
+  console.log(`trajectory guard 2000 seeds: ${bad} failing clays; min coverage ${minCov}px/${cc.worldW}; min on-screen ${minT} ticks`);
+  if (bad) process.exitCode = 1;
+}
+process.exit(failures || process.exitCode ? 1 : 0);

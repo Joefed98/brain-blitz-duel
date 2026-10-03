@@ -66,6 +66,15 @@ export const CLAY_CONFIG = {
   goldFlatAngleSpan: 1821,
   goldSteepAngleMin: 9102,
   goldSteepAngleSpan: 1457,
+  /** Every path covers ⅔ of the width (px) and stays ≥ 1 s on screen. */
+  minCoverage: 240,
+  minOnScreenTicks: 60,
+  rerollTries: 64,
+  scanAngleMin: 1024,
+  scanAngleCount: 40,
+  rerollAngleStep: 256,
+  rerollSpeedStep: 32,
+  rerollSpeedFloor: 900,
   /** Gravity, 1/256 px per tick². */
   gravity: 20,
   /** Shot radii and drawn clay radius, px. */
@@ -115,6 +124,37 @@ export interface ClaySchedule {
   vy: number[];
 }
 
+/**
+ * Simulates one clay exactly as `step` moves it and measures the on-screen
+ * stretch: from entering the visible arena until it first leaves any edge.
+ */
+export function clayFlight(side: number, launchY: number, vx: number, vy0: number): { coverage: number; ticks: number } {
+  const c = CLAY_CONFIG;
+  let x = (side === 0 ? -c.launchInset : c.worldW + c.launchInset) * 256;
+  let y = launchY * 256;
+  let vy = vy0;
+  let entered = false;
+  let startX = 0;
+  let ticks = 0;
+  const W = c.worldW * 256;
+  const H = c.worldH * 256;
+  for (let t = 0; t < 1200; t++) {
+    x += vx;
+    vy += c.gravity;
+    y += vy;
+    const visible = x >= 0 && x <= W && y >= 0 && y <= H;
+    if (visible) {
+      if (!entered) { entered = true; startX = side === 0 ? 0 : W; }
+      ticks += 1;
+    } else if (entered) {
+      return { coverage: Math.abs(Math.max(0, Math.min(W, x)) - startX) >> 8, ticks };
+    } else if (t > 30) {
+      return { coverage: 0, ticks: 0 };
+    }
+  }
+  return { coverage: Math.abs(Math.max(0, Math.min(W, x)) - startX) >> 8, ticks };
+}
+
 function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
   const c = CLAY_CONFIG;
   let rng = seed | 0;
@@ -159,18 +199,40 @@ function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
   for (let i = 0; i < c.clays; i++) {
     const gold = kind[i] === CLAY_KIND_GOLD;
     const hardFlat = gold && draw(2) === 0;
-    const speed = gold
-      ? c.goldSpeedMin + draw(c.goldSpeedSpan)
-      : c.orangeSpeedMin + draw(c.orangeSpeedSpan);
-    const angle = hardFlat
-      ? c.goldFlatAngleMin + draw(c.goldFlatAngleSpan)
-      : gold
-        ? c.goldSteepAngleMin + draw(c.goldSteepAngleSpan)
-        : c.orangeAngleMin + draw(c.orangeAngleSpan);
-    launchY.push(middle[i] ? c.middleYMin + draw(c.middleYSpan) : c.lowerYMin + draw(c.lowerYSpan));
-    const h = (speed * icos(angle)) >> 14;
-    vx.push(side[i] === 0 ? h : -h);
-    vy.push(-((speed * isin(angle)) >> 14));
+    const y0 = middle[i] ? c.middleYMin + draw(c.middleYSpan) : c.lowerYMin + draw(c.lowerYSpan);
+    launchY.push(y0);
+    // Seeded reroll until the path covers ⅔ of the width and stays ≥ 1 s on screen;
+    // after rerollTries the angle is lowered step by step so it always terminates.
+    const fits = (speed: number, angle: number): [number, number] | null => {
+      const h = (speed * icos(angle)) >> 14;
+      const hx = side[i] === 0 ? h : -h;
+      const hy = -((speed * isin(angle)) >> 14);
+      const f = clayFlight(side[i]!, y0, hx, hy);
+      return f.coverage >= c.minCoverage && f.ticks >= c.minOnScreenTicks ? [hx, hy] : null;
+    };
+    let found: [number, number] | null = null;
+    for (let tries = 0; tries < c.rerollTries && !found; tries++) {
+      const speed = gold
+        ? c.goldSpeedMin + draw(c.goldSpeedSpan)
+        : c.orangeSpeedMin + draw(c.orangeSpeedSpan);
+      const angle = hardFlat
+        ? c.goldFlatAngleMin + draw(c.goldFlatAngleSpan)
+        : gold
+          ? c.goldSteepAngleMin + draw(c.goldSteepAngleSpan)
+          : c.orangeAngleMin + draw(c.orangeAngleSpan);
+      found = fits(speed, angle);
+    }
+    // Fallback: deterministic scan, fastest speed first, angles from a seeded offset.
+    const top = gold ? c.goldSpeedMin + c.goldSpeedSpan : c.orangeSpeedMin + c.orangeSpeedSpan;
+    const offset = draw(c.scanAngleCount);
+    for (let speed = top; speed >= c.rerollSpeedFloor && !found; speed -= c.rerollSpeedStep) {
+      for (let k = 0; k < c.scanAngleCount && !found; k++) {
+        found = fits(speed, c.scanAngleMin + ((offset + k) % c.scanAngleCount) * c.rerollAngleStep);
+      }
+    }
+    const [hx, hy] = found ?? fits(c.rerollSpeedFloor, 8192) ?? [side[i] === 0 ? 900 : -900, -900];
+    vx.push(hx);
+    vy.push(hy);
   }
   return { rng, schedule: { launch, side, kind, launchY, vx, vy } };
 }

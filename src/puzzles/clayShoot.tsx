@@ -14,6 +14,7 @@ import {
   clayGame,
   clayView,
   unpackClayLog,
+  clayFlight,
   CLAY_CHECKPOINT_INTERVAL,
   CLAY_COUNT,
   CLAY_H,
@@ -182,7 +183,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             return `${e.tick}:${name}`;
           })
           .join(" ");
-        setDev(`tick ${s.tick} · queue ${s.next}/${CLAY_COUNT} · shots ${s.shots} · ${log}`);
+        const paths = s.schedule.vx
+          .map((vx, i) => {
+            const f = clayFlight(s.schedule.side[i]!, s.schedule.launchY[i]!, vx, s.schedule.vy[i]!);
+            return `${i + 1}:${Math.round((100 * f.coverage) / CLAY_W)}%/${(f.ticks / 60).toFixed(1)}s`;
+          })
+          .join(" ");
+        setDev(`tick ${s.tick} · queue ${s.next}/${CLAY_COUNT} · shots ${s.shots} · ${log}\n${paths}`);
       }
 
       reportArcadeTick(s.tick, clayGame.isOver(s));
@@ -245,7 +252,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       >
         <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
       </div>
-      {dev ? <p className="truncate font-mono text-[10px] text-muted-foreground">{dev}</p> : null}
+      {dev ? <p className="whitespace-pre-wrap break-all font-mono text-[10px] text-muted-foreground">{dev}</p> : null}
     </div>
   );
 }
