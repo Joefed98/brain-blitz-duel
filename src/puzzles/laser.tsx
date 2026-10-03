@@ -97,6 +97,18 @@ function sourceArrowPoints(x: number, y: number, dir: BeamDir, size: number): st
   return `${x - half},${y + half} ${x},${y - half} ${x + half},${y + half}`;
 }
 
+/** Each fork starts when the travelling beam reaches its parent splitter. */
+export function beamBranchOffsets(paths: number[][]): number[] {
+  return paths.map((path, index) => {
+    if (index === 0) return 0;
+    for (let parent = index - 1; parent >= 0; parent--) {
+      const position = paths[parent]?.indexOf(path[0]! ) ?? -1;
+      if (position >= 0) return (offsets[parent] ?? 0) + position;
+    }
+    return Number.POSITIVE_INFINITY;
+  });
+}
+
 interface BoardPointer {
   onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
 }
