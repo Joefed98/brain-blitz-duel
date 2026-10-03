@@ -1,6 +1,6 @@
 /** Shared, deterministic pipe rules. 0 = |, 1 = \\, 2 = /. */
 export const BT_COLS = 8;
-export const BT_ROWS = 6;
+export const BT_ROWS = 8;
 const MAX_EVENTS = 400;
 
 export interface BtBoard {
@@ -9,6 +9,12 @@ export interface BtBoard {
   tiles: string;
   /** bucket column -> ball colour index */
   buckets: number[];
+  /** Cell indices with no pipe. */
+  blocks?: number[];
+  /** Two linked pairs; tapping either member drops both. */
+  pairs?: [number, number][];
+  /** Cell index and permitted ball colour. */
+  gates?: { cell: number; colour: number }[];
 }
 
 export type BtEvent = { k: "r"; cell: number } | { k: "d"; ball: number };
@@ -32,7 +38,11 @@ export function btRun(board: BtBoard, tiles: string, ball: number): { path: numb
   const path: number[] = [];
   for (let row = 0; row < board.rows; row++) {
     path.push(row * board.cols + column);
-    const orientation = tiles[row * board.cols + column];
+    const cell = row * board.cols + column;
+    if (board.blocks?.includes(cell)) return { path, bucket: null, home: false };
+    const gate = board.gates?.find((candidate) => candidate.cell === cell);
+    if (gate && gate.colour !== ball) return { path, bucket: null, home: false };
+    const orientation = tiles[cell];
     column += orientation === "1" ? 1 : orientation === "2" ? -1 : 0;
     if (column < 0 || column >= board.cols) return { path, bucket: null, home: false };
   }
@@ -58,13 +68,19 @@ export function btReplay(board: BtBoard, events: readonly BtEvent[]): BtReplay {
     if (dropped.size === board.cols) break;
     if (event.k === "r") {
       if (!Number.isInteger(event.cell) || event.cell < 0 || event.cell >= board.cols * board.rows) continue;
+      if (board.blocks?.includes(event.cell)) continue;
       tiles[event.cell] = String((Number(tiles[event.cell]) + 1) % 3);
       rotations++;
     } else if (Number.isInteger(event.ball) && event.ball >= 0 && event.ball < board.cols && !dropped.has(event.ball)) {
-      const run = btRun(board, tiles.join(""), event.ball);
-      runs.push({ ball: event.ball, ...run });
-      dropped.add(event.ball);
-      if (run.home) home++;
+      const pair = board.pairs?.find(([a, b]) => a === event.ball || b === event.ball);
+      const balls = pair ?? [event.ball];
+      for (const ball of balls) {
+        if (dropped.has(ball)) continue;
+        const run = btRun(board, tiles.join(""), ball);
+        runs.push({ ball, ...run });
+        dropped.add(ball);
+        if (run.home) home++;
+      }
     }
   }
   return { tiles: tiles.join(""), dropped: [...dropped], home, rotations, runs };
