@@ -66,7 +66,9 @@ export const CLAY_CONFIG = {
   goldFlatAngleSpan: 1821,
   goldSteepAngleMin: 9102,
   goldSteepAngleSpan: 1457,
-  /** Every path covers ⅔ of the width (px) and stays ≥ 1 s on screen. */
+  /** Every path covers ⅔ of the width (px) and stays ≥ 0.6 s on screen. */
+  minCoverage: number;
+  minOnScreenTicks: 36,
   minCoverage: 240,
   minOnScreenTicks: 60,
   rerollTries: 64,
