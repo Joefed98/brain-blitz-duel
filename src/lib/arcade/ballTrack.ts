@@ -245,13 +245,14 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
   const removed = new Set<number>();
   for (const ball of s.balls) {
     if (t < ball.at) continue;
-    let target = ball.target, entry = ball.entry;
+    let target = ball.target, entry = ball.entry, fromCell = ball.cell;
     if (ball.held >= 0) {
       const w = ball.held;
       const q = s.whPocket[w]!;
       if (t < s.whUntil[w]! || (q !== 2 && q !== 3)) continue;
       const wc = course.wheels[w]!.cell;
       const below = wc + 2 * BT_COLS + (q === 2 ? 1 : 0);
+      fromCell = below - BT_COLS;
       const col = below % BT_COLS;
       target = below >= BT_COLS * BT_ROWS ? SLOT + col : below;
       entry = N;
@@ -297,7 +298,7 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
     if (occupied(target, ball.id)) continue;
     if (ball.held >= 0) s.whHeld[ball.held] = -1;
     ball.held = -1;
-    ball.from = ball.cell;
+    ball.from = fromCell;
     ball.cell = target;
     ball.arrived = t;
     ball.at = t + BT_STEP_TICKS;
@@ -376,8 +377,7 @@ function pocketPoint(course: BtCourse, s: BtState, w: number, tick: number) {
 export function btBallPoint(course: BtCourse, s: BtState, b: BtBall) {
   if (b.held >= 0) return pocketPoint(course, s, b.held, s.tick);
   const to = b.cell < 0 ? HOPPER : centre(b.cell);
-  const from = b.from < 0 ? HOPPER : b.from >= 0 && b.held < 0 && b.from !== b.cell ? centre(b.from) : to;
-  // A ball leaving a wheel starts from the pocket's bottom quadrant.
+  const from = b.from < 0 ? HOPPER : centre(b.from);
   const k = Math.min(1, (s.tick - b.arrived) / BT_STEP_TICKS);
   return { x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k };
 }
