@@ -99,14 +99,16 @@ function sourceArrowPoints(x: number, y: number, dir: BeamDir, size: number): st
 
 /** Each fork starts when the travelling beam reaches its parent splitter. */
 export function beamBranchOffsets(paths: number[][]): number[] {
-  return paths.map((path, index) => {
-    if (index === 0) return 0;
+  const offsets: number[] = [];
+  paths.forEach((path, index) => {
+    if (index === 0) { offsets.push(0); return; }
     for (let parent = index - 1; parent >= 0; parent--) {
-      const position = paths[parent]?.indexOf(path[0]! ) ?? -1;
-      if (position >= 0) return (offsets[parent] ?? 0) + position;
+      const position = paths[parent]?.indexOf(path[0]!) ?? -1;
+      if (position >= 0) { offsets.push(offsets[parent]! + position); return; }
     }
-    return Number.POSITIVE_INFINITY;
+    offsets.push(Number.POSITIVE_INFINITY);
   });
+  return offsets;
 }
 
 interface BoardPointer {
@@ -369,20 +371,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     onDraftAnswer?.(encodeLaserAnswer(placed, Math.max(1, fires)));
   }, [placed, fires, onDraftAnswer]);
 
-  // Each fork begins only after the source beam actually reaches its splitter.
-  // A branch starts with the splitter cell again, so it costs no extra travel step.
-  let remaining = shot ? shot.step + 1 : 0;
-  const revealed = shot ? shot.trace.paths.map((path, index) => {
-    if (index === 0) {
-      const visible = path.slice(0, remaining);
-      remaining -= visible.length;
-      return visible;
-    }
-    if (remaining <= 0) return [];
-    const visible = path.slice(0, remaining + 1);
-    remaining -= Math.max(0, visible.length - 1);
-    return visible;
-  }) : null;
+  const revealed = shot ? shot.trace.paths.map((path, index) =>
+    path.slice(0, Math.max(0, shot.step - beamBranchOffsets(shot.trace.paths)[index]! + 1))) : null;
   const visibleCells = revealed?.flat() ?? [];
   const litGems = shot ? shot.trace.gemsLit.filter((gem) => visibleCells.includes(gem)) : [];
   const bombFlash = Boolean(shot?.done && shot.trace.hitBomb);
@@ -507,9 +497,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     clearTimers();
     setShot({ trace: verdict.trace, step: 0, done: false });
 
-    const cells = verdict.trace.cells.length;
-    const per = Math.max(30, Math.round((LASER_BEAM_MS * 1.25) / Math.max(1, cells - 1)));
-    for (let step = 1; step < cells; step++) {
+    const offsets = beamBranchOffsets(verdict.trace.paths);
+    const lastStep = Math.max(0, ...verdict.trace.paths.map((path, index) => offsets[index]! + path.length - 1));
+    const per = Math.max(30, Math.round((LASER_BEAM_MS * 1.25) / Math.max(1, lastStep)));
+    for (let step = 1; step < lastStep; step++) {
       timers.current.push(
         window.setTimeout(
           () => setShot((current) => (current ? { ...current, step } : current)),
@@ -520,7 +511,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     timers.current.push(
       window.setTimeout(
         () => {
-          setShot((current) => (current ? { ...current, step: cells - 1, done: true } : current));
+          setShot((current) => (current ? { ...current, step: lastStep, done: true } : current));
           if (verdict.solved) {
             if (submitted.current) return;
             submitted.current = true;
@@ -532,7 +523,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
           playWrong();
           timers.current.push(window.setTimeout(() => setShot(null), LASER_FADE_MS));
         },
-        per * Math.max(1, cells - 1),
+        per * Math.max(1, lastStep),
       ),
     );
   }, [
