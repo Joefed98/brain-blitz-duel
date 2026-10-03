@@ -29,7 +29,7 @@ import { btDraw } from "@/lib/arcade/ballTrack";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Practice fallback course (the first bank course). */
-const PRACTICE_COURSE: BtCourse = {"trays": [-1, 3, 1, 2, 0, -1, 4], "balls": [0, 3, 1, 4, 4, 1, 3, 3, 0, 4, 2, 1, 0, 2], "fixed": [8, 18, 19, 29, 30, 32, 40]};
+const PRACTICE_COURSE: BtCourse = {"trays": [-1, 3, 1, 2, 0, -1, 4], "balls": [4, 0, 2, 0, 0, 1, 0, 3, 1, 3, 1, 3, 4, 2, 4, 2, 3, 4, 1, 2], "fixed": [15, 18, 19, 30, 32, 36, 40]};
 
 /* ------------------------------ Intro example ------------------------------ */
 
@@ -43,7 +43,7 @@ function IntroExample() {
   const ball = [{ x: 50, y: -10 }, { x: 50, y: 50 }, { x: 150, y: 50 }, { x: 150, y: 150 }, { x: 50, y: 150 }, { x: 50, y: 150 }][step]!;
   const tube = (d: string, key: string, dark = false) => (
     <g key={key}>
-      <path d={d} fill="none" stroke={dark ? "#6A7280" : "#F5B82E"} strokeWidth="46" />
+      <path d={d} fill="none" stroke={dark ? "#6A7280" : "#F5B82E"} strokeWidth="49" />
       <path d={d} fill="none" stroke="#12161C" strokeWidth="40" />
     </g>
   );

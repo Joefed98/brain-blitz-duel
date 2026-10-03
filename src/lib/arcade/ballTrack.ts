@@ -1,7 +1,7 @@
 /**
  * Ball Track: a deterministic 60-tick sim. A fixed 7×7 serpentine of straights
  * and corners; tapping a gold straight toggles it vertical so balls drop through
- * to the next row (or the tray below on row 7). Balls drop every 4 s. The server replays the tap log.
+ * to the next row (or the tray below on row 7). Balls drop every 2 s. The server replays the tap log.
  */
 
 import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
@@ -10,10 +10,10 @@ import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 
 export const BT_COLS = 7;
 export const BT_ROWS = 7;
-export const BT_BALLS = 14;
+export const BT_BALLS = 20;
 export const BT_COLOURS = 5;
 export const BT_STEP_TICKS = 12;
-export const BT_DROP_TICKS = 240; // a ball every 4 s
+export const BT_DROP_TICKS = 120; // a ball every 2 s
 export const BT_RUN_TICKS = 3600; // 60 s
 export const BT_HOPPER_COL = 3;
 export const BT_CHECKPOINT_INTERVAL = 300;
@@ -272,7 +272,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
   ctx.lineCap = "butt";
   ctx.lineJoin = "round";
   for (const movable of [false, true]) {
-    for (const [width, colour] of [[BALL_R * 3 + 6, movable ? TUBE : TUBE_FIXED], [BALL_R * 3, BG]] as const) {
+    for (const [width, colour] of [[BALL_R * 3 + 9, movable ? TUBE : TUBE_FIXED], [BALL_R * 3, BG]] as const) {
       ctx.strokeStyle = colour;
       ctx.lineWidth = width;
       ctx.beginPath();
