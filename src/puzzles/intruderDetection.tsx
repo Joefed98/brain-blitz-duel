@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick, useGridPointer } from "@/components/puzzles/GridDrag";
@@ -7,6 +7,9 @@ import { useStageState } from "@/lib/duel/stageState";
 import {
   INTRUDER_CHANGE_COUNTS,
   INTRUDER_BOARDS,
+  INTRUDER_BOARD_MS,
+  INTRUDER_CARD_MS,
+  INTRUDER_HOLD_MS,
   INTRUDER_HIDE_MS,
   INTRUDER_PLAY_MS,
   INTRUDER_SHOW_MS,
@@ -49,7 +52,7 @@ function Grid({
   wrong,
   onCell,
   compact = false,
-  offset,
+  picked = [],
 }: {
   size: number;
   cells: IntruderCell[] | null;
@@ -58,7 +61,8 @@ function Grid({
   wrong?: number | null;
   onCell?: ((cell: number) => void) | undefined;
   compact?: boolean;
-  offset?: IntruderBoard["offset"];
+  /** Player picks — lit with a yellow border. */
+  picked?: number[];
 }) {
   // Taps go through the shared pointer-to-cell mapping, so a finger always
   // lands on the square underneath it.
@@ -71,7 +75,6 @@ function Grid({
       className={`grid aspect-square max-h-full w-full ${compact ? "gap-px" : "gap-[3px]"}`}
       style={{
         ...style,
-        transform: offset === "left" ? `translateX(-${50 / size}%)` : offset === "right" ? `translateX(${50 / size}%)` : offset === "up" ? `translateY(-${50 / size}%)` : offset === "down" ? `translateY(${50 / size}%)` : undefined,
         ...(compact
           ? { gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }
           : {
@@ -86,7 +89,7 @@ function Grid({
         return (
           <div
             key={index}
-             className={`relative flex items-center justify-center rounded-md border-2 bg-card ${wrong === index ? "animate-shake border-warn" : "border-transparent"}`}
+             className={`relative flex items-center justify-center rounded-md border-2 bg-card ${picked.includes(index) ? "border-primary" : "border-transparent"} ${wrong === index ? "animate-shake" : ""}`}
           >
             {cell ? (
               <CellGlyph
@@ -138,54 +141,48 @@ function IntroExample() {
   );
 }
 
-/** Which cell differs between the two grids — the player can see both. */
+/** Which cells hold a changed symbol in the second view. */
 function changedCells(board: IntruderBoard): number[] {
   const changed: number[] = [];
-  for (let index = 0; index < board.cells.length; index++) {
-    const before = board.cells[index]!;
+  for (let index = 0; index < board.after.length; index++) {
+    const before = board.perm ? board.cells[board.perm[index]!]! : board.cells[index]!;
     const after = board.after[index]!;
-    if (
-      before.shape !== after.shape ||
-      before.colour !== after.colour ||
-      before.rot !== after.rot
-    ) {
+    if (before.shape !== after.shape || before.colour !== after.colour || before.rot !== after.rot) {
       changed.push(index);
     }
   }
   return changed;
 }
 
-type Phase = "show" | "hide" | "play";
+type Phase = "card" | "show" | "hide" | "play" | "hold";
 
-/**
- * The draining timer bar. It empties from the left for the memorise phase and
- * from the right for the three seconds the player has to tap.
- */
-function DrainBar({
-  ms,
-  className,
-  from,
-}: {
-  ms: number;
-  className: string;
-  from: "left" | "right";
-}) {
-  const [running, setRunning] = useState(false);
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setRunning(true));
-    return () => cancelAnimationFrame(frame);
-  }, []);
+/** Fixed per-board timeline, read straight from the round clock. */
+function timeline(elapsed: number): { index: number; phase: Phase; phaseStart: number } {
+  const t = Math.max(0, elapsed);
+  const index = Math.min(INTRUDER_BOARDS - 1, Math.floor(t / INTRUDER_BOARD_MS));
+  const base = index * INTRUDER_BOARD_MS;
+  const local = t - base;
+  const marks: [Phase, number][] = [
+    ["card", INTRUDER_CARD_MS],
+    ["show", INTRUDER_SHOW_MS],
+    ["hide", INTRUDER_HIDE_MS],
+    ["play", INTRUDER_PLAY_MS],
+    ["hold", INTRUDER_HOLD_MS],
+  ];
+  let start = 0;
+  for (const [phase, ms] of marks) {
+    if (local < start + ms) return { index, phase, phaseStart: base + start };
+    start += ms;
+  }
+  return { index, phase: "hold", phaseStart: base + start - INTRUDER_HOLD_MS };
+}
+
+/** A draining bar, positioned from the shared round clock. */
+function DrainBar({ ms, left, className }: { ms: number; left: number; className: string }) {
+  const share = Math.max(0, Math.min(1, left / ms));
   return (
-    <div className="flex h-1 w-full shrink-0 overflow-hidden rounded-full bg-border">
-      <span
-        className={`block h-full ${className}`}
-        style={{
-          width: running ? "0%" : "100%",
-          marginLeft: from === "left" ? "auto" : undefined,
-          marginRight: from === "right" ? "auto" : undefined,
-          transition: `width ${ms}ms linear`,
-        }}
-      />
+    <div className="flex h-1.5 w-full shrink-0 overflow-hidden rounded-full bg-border">
+      <span className={`block h-full ${className}`} style={{ width: `${share * 100}%` }} />
     </div>
   );
 }
@@ -200,14 +197,17 @@ function Stage({
   stateKey = "intruder",
 }: PuzzleStageProps) {
   const data: IntruderPuzzleData | null = puzzle.type === "intruder" ? puzzle : null;
-  const [index, setIndex] = useStageState<number>(stateKey, "intruderIndex", () => 0);
-  const [phase, setPhase] = useStageState<Phase>(stateKey, "intruderPhase", () => "show");
   const [taps, setTaps] = useStageState<number[][]>(stateKey, "intruderTaps", () =>
     Array.from({ length: INTRUDER_BOARDS }, () => [] as number[]),
   );
   const [wrong, setWrong] = useStageState<number | null>(stateKey, "intruderWrong", () => null);
+  // A ref mirror so two quick picks never read a stale list.
+  const tapsRef = useRef(taps);
+  tapsRef.current = taps;
   const submitted = useRef(false);
 
+  const elapsed = now - phaseStartedAt;
+  const { index, phase, phaseStart } = timeline(elapsed);
   const board = data?.boards[index];
   const answers = board ? changedCells(board) : [];
 
@@ -215,107 +215,87 @@ function Stage({
     onDraftAnswer?.(encodeIntruderTaps(taps));
   }, [taps, onDraftAnswer]);
 
-  // Memorise for five seconds, one blank second, then three seconds to tap.
-  useEffect(() => {
-    if (phase === "play") return;
-    const wait = phase === "show" ? INTRUDER_SHOW_MS[index]! : INTRUDER_HIDE_MS;
-    const timer = setTimeout(() => setPhase(phase === "show" ? "hide" : "play"), wait);
-    return () => clearTimeout(timer);
-  }, [phase, index, setPhase]);
-
-  // No tap inside the three seconds counts as a miss and moves on.
-  useEffect(() => {
-    if (phase !== "play" || locked || submitted.current) return;
-    const timer = setTimeout(() => {
-      if (submitted.current) return;
-      if (index >= INTRUDER_BOARDS - 1) {
-        submitted.current = true;
-        onSubmit(encodeIntruderTaps(taps));
-        return;
-      }
-      setIndex(index + 1);
-      setPhase("show");
-    }, INTRUDER_PLAY_MS[index]!);
-    return () => clearTimeout(timer);
-  }, [phase, index, locked, taps, onSubmit, setIndex, setPhase]);
-
-  // Whatever has been tapped goes up as the clock runs out.
+  // The last pick window closing locks the answer in.
   useEffect(() => {
     if (!data || locked || submitted.current) return;
-    if (now < phaseStartedAt + INTRUDER_TIME_MS - 400) return;
+    if (elapsed < INTRUDER_TIME_MS - INTRUDER_HOLD_MS && elapsed < INTRUDER_TIME_MS - 400) return;
     submitted.current = true;
-    onSubmit(encodeIntruderTaps(taps));
-  }, [now, phaseStartedAt, locked, data, taps, onSubmit]);
+    onSubmit(encodeIntruderTaps(tapsRef.current));
+  }, [elapsed, locked, data, onSubmit]);
 
   if (!data || !board) return null;
 
-  const advance = (next: number[][]) => {
-    if (index >= INTRUDER_BOARDS - 1) {
-      submitted.current = true;
-      onSubmit(encodeIntruderTaps(next));
-      return;
-    }
-    setIndex(index + 1);
-    setPhase("show");
-  };
+  const needed = INTRUDER_CHANGE_COUNTS[index]!;
+  const mine = taps[index] ?? [];
 
   const tap = (cell: number) => {
     if (locked || submitted.current || phase !== "play") return;
-    const mine = taps[index] ?? [];
-    if (mine.length >= INTRUDER_CHANGE_COUNTS[index]!) return;
-    const next = taps.map((board_, i) => (i === index ? [...board_, cell] : board_));
+    const current = tapsRef.current;
+    const own = current[index] ?? [];
+    if (own.length >= needed || own.includes(cell)) return;
+    const next = current.map((list, i) => (i === index ? [...list, cell] : list));
+    tapsRef.current = next;
     setTaps(next);
-    const found = [...new Set([...mine, cell])].filter((value) => answers.includes(value)).length;
     if (answers.includes(cell)) {
       hapticTick();
       playCorrect();
-      if (found >= answers.length) advance(next);
       return;
     }
     buzz(20);
     playWrong();
     setWrong(cell);
     setTimeout(() => setWrong(null), 300);
-    if (mine.length + 1 >= INTRUDER_CHANGE_COUNTS[index]!) advance(next);
   };
 
-  const showing = phase === "show";
+  if (phase === "card") {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center rounded-2xl bg-background">
+        <p className="whitespace-nowrap font-display text-6xl font-bold text-primary">Round {index + 1}</p>
+      </div>
+    );
+  }
+
+  const left = phaseStart + (phase === "show" ? INTRUDER_SHOW_MS : INTRUDER_PLAY_MS) - Math.max(0, elapsed);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex w-full shrink-0 gap-1.5" aria-label={`Grid ${index + 1} of 5`}>
         {Array.from({ length: INTRUDER_BOARDS }, (_, i) => (
-          <span
-            key={i}
-            className={`h-1.5 flex-1 rounded-full ${i <= index ? "bg-primary" : "bg-border"}`}
-          />
+          <span key={i} className={`h-1.5 flex-1 rounded-full ${i <= index ? "bg-primary" : "bg-border"}`} />
         ))}
       </div>
 
-      {phase === "play" ? (
-        <DrainBar key={`play-${index}`} ms={INTRUDER_PLAY_MS[index]!} className="bg-warn" from="right" />
-      ) : showing ? (
-        <DrainBar key={`show-${index}`} ms={INTRUDER_SHOW_MS[index]!} className="bg-primary" from="left" />
+      {phase === "show" ? (
+        <DrainBar ms={INTRUDER_SHOW_MS} left={left} className="bg-primary" />
+      ) : phase === "play" ? (
+        <DrainBar ms={INTRUDER_PLAY_MS} left={left} className="bg-warn" />
       ) : (
-        <div className="h-1 w-full shrink-0 rounded-full bg-border" />
+        <div className="h-1.5 w-full shrink-0 rounded-full bg-border" />
       )}
 
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <Grid
           size={board.size}
-          cells={showing ? board.cells : phase === "hide" ? null : board.after}
+          cells={phase === "show" ? board.cells : phase === "hide" ? null : board.after}
+          picked={phase === "play" || phase === "hold" ? mine : []}
           wrong={wrong}
           onCell={phase === "play" ? tap : undefined}
-          offset={phase === "play" ? board.offset : undefined}
         />
       </div>
 
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        {showing ? "Memorise the grid" : phase === "hide" ? "…" : `${INTRUDER_CHANGE_COUNTS[index]} change${INTRUDER_CHANGE_COUNTS[index] === 1 ? "" : "s"} — tap each`}
+        {phase === "show"
+          ? "Memorise the grid"
+          : phase === "hide"
+            ? "…"
+            : phase === "play"
+              ? `${needed} change${needed === 1 ? "" : "s"} — tap ${needed === 1 ? "it" : "each"} (${mine.length}/${needed})`
+              : "Picks locked"}
       </p>
     </div>
   );
 }
+
 
 function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "intruder") return null;

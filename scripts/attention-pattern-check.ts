@@ -13,13 +13,13 @@ for (let round = 0; round < 100; round += 1) {
   check(puzzle.boards.length === 5 && puzzle.answers?.length === 5, "Intruder must have five boards and answers");
   puzzle.boards.forEach((board, index) => {
     check(board.size === 3 && board.cells.length === 9 && board.after.length === 9, `Intruder board ${index + 1} is not 3x3`);
-    const changed = board.cells.flatMap((before, cell) => {
-      const after = board.after[cell]!;
+    const changed = board.cells.flatMap((original, cell) => { let before = original;
+      const after = board.after[cell]!; before = board.perm ? board.cells[board.perm[cell]!]! : before;
       return before.shape !== after.shape || before.colour !== after.colour || before.rot !== after.rot ? [cell] : [];
     });
     check(changed.length === INTRUDER_CHANGE_COUNTS[index], `Intruder board ${index + 1} change count`);
     check(JSON.stringify([...changed].sort()) === JSON.stringify([...(puzzle.answers?.[index]?.cells ?? [])].sort()), `Intruder board ${index + 1} stored targets`);
-    check(index >= 3 ? board.offset !== undefined : board.offset === undefined, `Intruder board ${index + 1} shuffle metadata`);
+    check(index >= 3 ? board.perm !== undefined : board.perm === undefined, `Intruder board ${index + 1} shuffle metadata`);
   });
 }
 
