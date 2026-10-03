@@ -8,6 +8,7 @@ import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnost
 import { decodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { btCheckpoint, makeBallTrackGame, BT_CHECKPOINT_INTERVAL, BT_K_FLIP, BT_K_RELEASE, BT_K_ROTATE, BT_K_SLIDE, BT_K_WHEEL, type BtCheckpoint } from "../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
+import { dependsOnSlide } from "./ball-track-bank";
 
 let fails = 0;
 const fail = (m: string) => { fails++; if (fails < 10) console.error(m); };
@@ -33,6 +34,7 @@ function play(index: number, choose: (tick: number) => Omit<ArcadeInputEvent, "t
 
 let solved = 0;
 BALL_TRACK_BANK.forEach((entry, i) => {
+  if (!dependsOnSlide(makeBallTrackGame(entry.course), decodeInputEvents(entry.playbook))) fail(`course ${i}: slides not required by playbook`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);
   if (state.home === 15 && state.wrong === 0 && state.lost === 0 && score >= 120 && state.actions === entry.par) solved++;
@@ -51,7 +53,7 @@ for (let run = 0; run < 200; run++) {
     if (roll < 6 && course.pipes.length) return { k: BT_K_ROTATE, a: course.pipes[rnd(course.pipes.length)]!.cell, b: 0, c: 0, d: 0 };
     if (roll < 9 && course.flippers.length) return { k: BT_K_FLIP, a: course.flippers[rnd(course.flippers.length)]!.cell, b: 0, c: 0, d: 0 };
     if (roll < 11 && course.sliders.length) return { k: BT_K_SLIDE, a: rnd(course.sliders.length), b: rnd(3), c: 0, d: 0 };
-    if (roll < 13 && course.wheels.length) return { k: BT_K_WHEEL, a: rnd(course.wheels.length), b: 0, c: 0, d: 0 };
+    if (roll < 13 && course.wheels.length) return { k: BT_K_WHEEL, a: rnd(course.wheels.length), b: rnd(2), c: 0, d: 0 };
     return null;
   });
   if (fails === before) same++;

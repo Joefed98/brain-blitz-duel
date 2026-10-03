@@ -84,6 +84,8 @@ export interface BtBall {
   /** Planned next move: target cell, 100 + slot column, or -2 lost. */
   target: number;
   entry: number;
+  /** Side through which the ball entered its current tile (render-only path metadata). */
+  inlet: number;
   /** Wheel index holding this ball, or -1. */
   held: number;
 }
@@ -98,6 +100,7 @@ export interface BtState {
   slTo: number[];
   slUntil: number[];
   whPocket: number[];
+  whDir: number[];
   whUntil: number[];
   whHeld: number[];
   balls: BtBall[];
@@ -118,7 +121,7 @@ export const rotMask = (mask: number, rot: number) => {
 };
 
 export const sliderPos = (state: BtState, i: number) =>
-  state.tick >= (state.slUntil[i] ?? 0) ? state.slTo[i]! : state.slFrom[i]!;
+  state.tick >= (state.slUntil[i] ?? 0) ? (state.slTo[i] ?? 0) : (state.slFrom[i] ?? 0);
 
 const LOST = -2;
 const SLOT = 100;
@@ -149,8 +152,8 @@ export function btExit(
   } else if (info.kind === 3) {
     const pos = sliderPos(state, info.idx);
     const slider = course.sliders[info.idx]!;
-    if (info.sub === pos) dc = slider.slot === 0 ? 0 : -1;
-    else if (info.sub === pos + 1) dc = slider.slot === 1 ? 0 : 1;
+    if (info.sub === pos && slider.slot === 1) dc = 1;
+    else if (info.sub === pos + 1 && slider.slot === 0) dc = -1;
   }
   const nr = r + dr, nc = c + dc;
   if (nc < 0 || nc >= BT_COLS) return { target: LOST, entry: 0 };
@@ -167,6 +170,7 @@ export function btInit(course: BtCourse): BtState {
     slTo: course.sliders.map((s) => s.pos),
     slUntil: course.sliders.map(() => 0),
     whPocket: course.wheels.map((w) => w.pocket & 3),
+    whDir: course.wheels.map(() => 1),
     whUntil: course.wheels.map(() => 0),
     whHeld: course.wheels.map(() => -1),
     balls: [],
@@ -193,6 +197,7 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
     slTo: [...prev.slTo],
     slUntil: [...prev.slUntil],
     whPocket: [...prev.whPocket],
+    whDir: [...prev.whDir],
     whUntil: [...prev.whUntil],
     whHeld: [...prev.whHeld],
     balls: prev.balls.map((b) => ({ ...b })),
@@ -219,7 +224,9 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
       }
     } else if (input.k === BT_K_WHEEL && input.a < course.wheels.length) {
       if (t >= s.whUntil[input.a]!) {
-        s.whPocket[input.a] = (s.whPocket[input.a]! + 1) & 3;
+        const direction = input.b === 0 ? -1 : 1;
+        s.whDir[input.a] = direction;
+        s.whPocket[input.a] = ((s.whPocket[input.a] ?? 0) + direction + 4) & 3;
         s.whUntil[input.a] = t + BT_WHEEL_TICKS;
         s.actions++;
       }
@@ -234,6 +241,7 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
           at: t,
           target: BT_HOPPER_COL,
           entry: N,
+          inlet: N,
           held: -1,
         });
         s.next++;
@@ -289,6 +297,7 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
       if (ball.held >= 0) s.whHeld[ball.held] = -1;
       ball.from = ball.cell;
       ball.cell = target;
+      ball.inlet = entry;
       ball.arrived = t;
       ball.at = t + BT_STEP_TICKS;
       ball.held = w;
@@ -300,6 +309,7 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
     ball.held = -1;
     ball.from = fromCell;
     ball.cell = target;
+    ball.inlet = entry;
     ball.arrived = t;
     ball.at = t + BT_STEP_TICKS;
     const exit = btExit(course, map, s, target, entry);
@@ -338,8 +348,8 @@ export interface BtCheckpoint {
 
 export function btCheckpoint(s: BtState): BtCheckpoint {
   const snap = { tick: s.tick, next: s.next, home: s.home, wrong: s.wrong, lost: s.lost, flying: s.balls.length };
-  const values: number[] = [...Object.values(snap), s.actions, s.lastLand, ...s.pipeRot, ...s.flip, ...s.slFrom, ...s.slTo, ...s.slUntil, ...s.whPocket, ...s.whUntil, ...s.whHeld];
-  for (const b of s.balls) values.push(b.id, b.cell, b.at, b.target, b.entry, b.held);
+  const values: number[] = [...Object.values(snap), s.actions, s.lastLand, ...s.pipeRot, ...s.flip, ...s.slFrom, ...s.slTo, ...s.slUntil, ...s.whPocket, ...s.whDir, ...s.whUntil, ...s.whHeld];
+  for (const b of s.balls) values.push(b.id, b.cell, b.at, b.target, b.entry, b.inlet, b.held);
   let checksum = 0x811c9dc5;
   for (const v of values) {
     checksum ^= v | 0;
@@ -369,7 +379,7 @@ function pocketPoint(course: BtCourse, s: BtState, w: number, tick: number) {
   const q = s.whPocket[w]!;
   const left = s.whUntil[w]! - tick;
   const frac = left > 0 ? left / BT_WHEEL_TICKS : 0;
-  const base = Math.atan2(QUAD[q]![1], QUAD[q]![0]) - frac * (Math.PI / 2);
+  const base = Math.atan2(QUAD[q]![1], QUAD[q]![0]) - frac * (s.whDir[w] ?? 1) * (Math.PI / 2);
   const rad = BT_TILE * 0.62;
   return { x: cx + Math.cos(base) * rad, y: cy + Math.sin(base) * rad, cx, cy, angle: base };
 }
@@ -377,44 +387,112 @@ function pocketPoint(course: BtCourse, s: BtState, w: number, tick: number) {
 export function btBallPoint(course: BtCourse, s: BtState, b: BtBall) {
   if (b.held >= 0) return pocketPoint(course, s, b.held, s.tick);
   const to = b.cell < 0 ? HOPPER : centre(b.cell);
-  const from = b.from < 0 ? HOPPER : centre(b.from);
+
   const k = Math.min(1, (s.tick - b.arrived) / BT_STEP_TICKS);
-  return { x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k };
+  const pipe = course.pipes.find((p) => p.cell === b.cell);
+  if (pipe) {
+    const inlet = b.inlet;
+    const start = { x: to.x + (inlet === W ? -50 : inlet === E ? 50 : 0), y: to.y + (inlet === N ? -50 : 50) };
+    const next = b.target >= 100 ? { x: (b.target - 100) * BT_TILE + 50, y: to.y + BT_TILE } : b.target >= 0 ? centre(b.target) : to;
+    const end = { x: to.x + Math.sign(next.x - to.x) * 50, y: to.y + Math.sign(next.y - to.y) * 50 };
+    const startPoint = k < 0.5 ? start : to, endPoint = k < 0.5 ? to : end;
+    const f = k < 0.5 ? k * 2 : (k - 0.5) * 2;
+    return { x: startPoint.x + (endPoint.x - startPoint.x) * f, y: startPoint.y + (endPoint.y - startPoint.y) * f };
+  }
+  const slider = course.sliders.find((sl) => Math.floor(b.cell / BT_COLS) === sl.row && b.cell % BT_COLS >= sl.col && b.cell % BT_COLS < sl.col + sl.len);
+  if (slider && b.target >= 0) {
+    const exitCol = b.target >= 100 ? b.target - 100 : b.target % BT_COLS;
+    const exitX = exitCol * BT_TILE + 50;
+    if (exitX !== to.x) {
+      if (k < 0.3) return { x: to.x, y: to.y - 50 + k / 0.3 * 50 };
+      if (k < 0.7) return { x: to.x + (exitX - to.x) * (k - 0.3) / 0.4, y: to.y };
+      return { x: exitX, y: to.y + (k - 0.7) / 0.3 * 50 };
+    }
+    return { x: to.x, y: to.y - 50 + k * 100 };
+  }
+  if (b.cell < 0) return HOPPER;
+  const next = b.target >= 100 ? { x: (b.target - 100) * BT_TILE + 50, y: to.y + BT_TILE } : b.target >= 0 ? centre(b.target) : to;
+  const startX = to.x + (b.inlet === W ? -50 : b.inlet === E ? 50 : 0);
+  const startY = to.y + (b.inlet === N ? -50 : b.inlet === W || b.inlet === E ? 0 : 50);
+  const endX = next.x;
+  const endY = to.y + 50;
+  return { x: startX + (endX - startX) * k, y: startY + (endY - startY) * k };
 }
 
-export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtCellInfo[], s: BtState) {
-  const T = BT_TILE;
-  ctx.fillStyle = "#0E1116";
-  ctx.fillRect(0, 0, BT_W, BT_H);
-  // Hopper: next four.
-  ctx.fillStyle = "#1A1F27";
+/** Outline of the union of pipe arms: two continuous walls, including corners/Ts. */
+function drawPipe(ctx: CanvasRenderingContext2D, x: number, y: number, mask: number) {
+  const half = BT_TILE / 2, gap = BT_TILE * 0.375;
   ctx.beginPath();
-  ctx.roundRect(BT_W / 2 - 170, 8, 340, BT_HOPPER_H - 22, 16);
-  ctx.fill();
+  for (let turn = 0; turn < 4; turn++) {
+    const a = [N, E, S, W][turn] ?? N;
+    const b = [E, S, W, N][turn] ?? E;
+    const rotate = (px: number, py: number) => {
+      for (let i = 0; i < turn; i++) [px, py] = [-py, px];
+      return [x + px, y + py];
+    };
+    const line = (ax: number, ay: number, bx: number, by: number) => {
+      const start = rotate(ax, ay), end = rotate(bx, by);
+      ctx.moveTo(start[0] ?? x, start[1] ?? y);
+      ctx.lineTo(end[0] ?? x, end[1] ?? y);
+    };
+    if (mask & a) line(gap, -half, gap, -gap);
+    if (mask & b) line(gap, -gap, half, -gap);
+    if (!(mask & a) && !(mask & b)) continue;
+    if (!(mask & a)) line(-gap, -gap, gap, -gap);
+    if (!(mask & b)) line(gap, -gap, gap, gap);
+  }
+  ctx.stroke();
+}
+
+const trackInks = new WeakMap<CanvasRenderingContext2D, Record<string, string>>();
+function drawingInks(ctx: CanvasRenderingContext2D) {
+  const cached = trackInks.get(ctx);
+  if (cached) return cached;
+  const styles = getComputedStyle(ctx.canvas);
+  const inks: Record<string, string> = {};
+  for (const key of ['background','cell','cell-alt','solid','guide','frame','rail','pipe','label','gold','pit','pit-border','error']) {
+    inks[key] = styles.getPropertyValue(`--track-${key}`).trim();
+  }
+  trackInks.set(ctx, inks);
+  return inks;
+}
+
+export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtCellInfo[], s: BtState, preview?: { slider: number; pos: number }) {
+  const T = BT_TILE;
+  const ink = drawingInks(ctx);
+  ctx.fillStyle = (ink["background"] ?? "transparent");
+  ctx.fillRect(0, 0, BT_W, BT_H);
+  // The queue approaches the central release track from the left.
+  ctx.strokeStyle = (ink["rail"] ?? "transparent");
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(HOPPER.x - 270, 10);
+  ctx.lineTo(HOPPER.x + 34, 10);
+  ctx.lineTo(HOPPER.x + 34, 70);
+  ctx.lineTo(HOPPER.x + 28, BT_HOPPER_H);
+  ctx.moveTo(HOPPER.x - 270, 70);
+  ctx.lineTo(HOPPER.x - 34, 70);
+  ctx.lineTo(HOPPER.x - 28, BT_HOPPER_H);
+  ctx.stroke();
   for (let i = 0; i < 4; i++) {
     const colour = course.balls[s.next + i];
     if (colour === undefined) continue;
-    const x = BT_W / 2 + 120 - i * 80;
-    ctx.globalAlpha = i === 0 ? 1 : 0.55;
-    ctx.fillStyle = BT_PALETTE[colour]!;
+    ctx.globalAlpha = i === 0 ? 1 : 0.65;
+    ctx.fillStyle = BT_PALETTE[colour] ?? BT_PALETTE[0];
     ctx.beginPath();
-    ctx.arc(x, 42, i === 0 ? 24 : 18, 0, Math.PI * 2);
+    ctx.arc(HOPPER.x - i * 80, HOPPER.y, 25, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
-  ctx.fillStyle = "#8A93A3";
-  ctx.font = "bold 22px JetBrains Mono, monospace";
-  ctx.textAlign = "left";
-  ctx.fillText(`${BT_BALLS - s.next}`, BT_W / 2 - 155, 50);
 
   // Grid cells.
   for (let cell = 0; cell < BT_COLS * BT_ROWS; cell++) {
     const { x, y } = centre(cell);
     const info = map[cell]!;
-    ctx.fillStyle = (Math.floor(cell / BT_COLS) + cell) % 2 ? "#151A21" : "#12161C";
+    ctx.fillStyle = (Math.floor(cell / BT_COLS) + cell) % 2 ? (ink["cell-alt"] ?? "transparent") : (ink["cell"] ?? "transparent");
     ctx.fillRect(x - T / 2, y - T / 2, T, T);
     if (info.kind === 0) {
-      ctx.strokeStyle = "#2A313C";
+      ctx.strokeStyle = (ink["guide"] ?? "transparent");
       ctx.lineWidth = 3;
       ctx.setLineDash([8, 10]);
       ctx.beginPath();
@@ -426,42 +504,26 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
       const pipe = course.pipes[info.idx]!;
       const mask = rotMask(BT_PIPE_MASKS[pipe.shape]!, s.pipeRot[info.idx]!);
       ctx.lineCap = "butt";
-      for (const [width, colour] of [[38, "#5B6575"], [26, "#2B313B"], [6, "#9AA4B4"]] as const) {
-        ctx.strokeStyle = colour;
-        ctx.lineWidth = width;
-        ctx.beginPath();
-        for (const [bit, dx, dy] of [[N, 0, -1], [E, 1, 0], [S, 0, 1], [W, -1, 0]] as const) {
-          if (!(mask & bit)) continue;
-          ctx.moveTo(x, y);
-          ctx.lineTo(x + (dx * T) / 2, y + (dy * T) / 2);
-        }
-        ctx.stroke();
-      }
-      ctx.fillStyle = "#5B6575";
-      ctx.beginPath();
-      ctx.arc(x, y, 19, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#2B313B";
-      ctx.beginPath();
-      ctx.arc(x, y, 13, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.strokeStyle = (ink["pipe"] ?? "transparent");
+      ctx.lineWidth = 3;
+      drawPipe(ctx, x, y, mask);
     } else if (info.kind === 2) {
       const dir = s.flip[info.idx] ? 1 : -1;
-      ctx.strokeStyle = "#3A414D";
+      ctx.strokeStyle = (ink["frame"] ?? "transparent");
       ctx.lineWidth = 4;
       ctx.strokeRect(x - T / 2 + 8, y - T / 2 + 8, T - 16, T - 16);
-      ctx.fillStyle = "#3A414D";
+      ctx.fillStyle = (ink["frame"] ?? "transparent");
       ctx.beginPath();
       ctx.arc(x, y - 18, 7, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "#F5B82E";
-      ctx.lineWidth = 12;
+      ctx.strokeStyle = (ink["gold"] ?? "transparent");
+      ctx.lineWidth = 18;
       ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.moveTo(x, y - 18);
-      ctx.lineTo(x + dir * 30, y + 26);
+      ctx.moveTo(x, y - 32);
+      ctx.lineTo(x + dir * 40, y + 30);
       ctx.stroke();
-      ctx.fillStyle = "#F5B82E";
+      ctx.fillStyle = (ink["gold"] ?? "transparent");
       ctx.beginPath();
       ctx.moveTo(x + dir * 34, y + 44);
       ctx.lineTo(x + dir * 20, y + 36);
@@ -473,7 +535,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
   course.sliders.forEach((slider, i) => {
     const left = centre(slider.row * BT_COLS + slider.col);
     const y = left.y;
-    ctx.strokeStyle = "#4A5363";
+    ctx.strokeStyle = (ink["rail"] ?? "transparent");
     ctx.lineWidth = 6;
     ctx.beginPath();
     ctx.moveTo(left.x - T / 2 + 6, y + 30);
@@ -483,57 +545,63 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
     const frac = remaining > 0 ? 1 - remaining / BT_SLIDE_TICKS : 1;
     const pos = s.slFrom[i]! + (s.slTo[i]! - s.slFrom[i]!) * frac;
     const bx = left.x - T / 2 + pos * T;
-    ctx.fillStyle = "#7C8698";
-    ctx.beginPath();
-    ctx.roundRect(bx + 6, y - 16, 2 * T - 12, 32, 10);
-    ctx.fill();
     const slotX = bx + slider.slot * T + T / 2;
-    ctx.fillStyle = "#0E1116";
+    const solidX = bx + (1 - slider.slot) * T;
+    ctx.fillStyle = (ink["solid"] ?? "transparent");
+    ctx.fillRect(solidX + 3, y - 26, T - 6, 52);
+    ctx.strokeStyle = (ink["pipe"] ?? "transparent");
+    ctx.lineWidth = 4;
+    ctx.strokeRect(bx + 3, y - 26, 2 * T - 6, 52);
     ctx.beginPath();
-    ctx.roundRect(slotX - 22, y - 10, 44, 20, 8);
-    ctx.fill();
-    ctx.fillStyle = "#C9D1DD";
-    for (const dx of [-1, 1]) {
-      ctx.beginPath();
-      ctx.arc(bx + T + dx * 10, y, 3, 0, Math.PI * 2);
-      ctx.fill();
+    ctx.arc(slotX, y, 36, 0, Math.PI * 2);
+    ctx.stroke();
+    const dir = slider.slot === 1 ? 1 : -1, chevronX = solidX + T / 2;
+    ctx.beginPath();
+    ctx.moveTo(chevronX - dir * 10, y - 13);
+    ctx.lineTo(chevronX + dir * 10, y);
+    ctx.lineTo(chevronX - dir * 10, y + 13);
+    ctx.stroke();
+    if (preview?.slider === i) {
+      ctx.globalAlpha = 0.3;
+      ctx.setLineDash([8, 8]);
+      ctx.strokeRect((slider.col + preview.pos + slider.slot) * T + 5, y + T / 2, T - 10, (BT_ROWS - slider.row - 1) * T);
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
     }
   });
-  // Wheels.
+  // Paddle wheels: a rotating cross, circular rim and marked pocket.
   course.wheels.forEach((_, w) => {
     const p = pocketPoint(course, s, w, s.tick);
-    ctx.fillStyle = "#262C36";
+    ctx.strokeStyle = (ink["pipe"] ?? "transparent");
+    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(p.cx, p.cy, T * 0.95, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#5B6575";
-    ctx.lineWidth = 6;
     ctx.stroke();
-    ctx.strokeStyle = "#3A414D";
-    ctx.lineWidth = 4;
-    for (let k = 0; k < 4; k++) {
-      const a = p.angle + Math.PI / 4 + (k * Math.PI) / 2;
+    for (let k = 0; k < 2; k++) {
+      const a = p.angle + Math.PI / 4 + k * Math.PI / 2;
       ctx.beginPath();
-      ctx.moveTo(p.cx, p.cy);
+      ctx.moveTo(p.cx - Math.cos(a) * T * 0.9, p.cy - Math.sin(a) * T * 0.9);
       ctx.lineTo(p.cx + Math.cos(a) * T * 0.9, p.cy + Math.sin(a) * T * 0.9);
       ctx.stroke();
     }
-    ctx.fillStyle = "#0B0D11";
+    ctx.strokeStyle = (ink["gold"] ?? "transparent");
     ctx.beginPath();
     ctx.arc(p.x, p.y, 30, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "#F5B82E";
-    ctx.lineWidth = 4;
     ctx.stroke();
+    ctx.fillStyle = (ink["label"] ?? "transparent");
+    ctx.font = "32px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("↺", p.cx - 65, p.cy + 11);
+    ctx.fillText("↻", p.cx + 65, p.cy + 11);
   });
   // Trays and pits.
   const ty = BT_HOPPER_H + BT_ROWS * T;
   course.trays.forEach((tray, col) => {
     const x = col * T;
     if (tray < 0) {
-      ctx.fillStyle = "#050608";
+      ctx.fillStyle = (ink["pit"] ?? "transparent");
       ctx.fillRect(x + 6, ty + 8, T - 12, BT_TRAY_H - 14);
-      ctx.strokeStyle = "#3A1A1A";
+      ctx.strokeStyle = (ink["pit-border"] ?? "transparent");
       ctx.lineWidth = 3;
       ctx.strokeRect(x + 6, ty + 8, T - 12, BT_TRAY_H - 14);
     } else {
@@ -556,7 +624,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
     if (age > 40) continue;
     const x = mark.cell * T;
     ctx.globalAlpha = 1 - age / 40;
-    ctx.fillStyle = mark.ok ? "#F5B82E" : "#FF3B3B";
+    ctx.fillStyle = mark.ok ? (ink["gold"] ?? "transparent") : (ink["error"] ?? "transparent");
     ctx.fillRect(x + 6, ty + 8, T - 12, BT_TRAY_H - 14);
     ctx.globalAlpha = 1;
   }
@@ -568,7 +636,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
     ctx.globalAlpha = 1 - age / 30;
     ctx.fillStyle = BT_PALETTE[mark.colour]!;
     ctx.beginPath();
-    ctx.arc(p.x + age * 1.5, p.y + age * age * 0.12, 22 * (1 - age / 45), 0, Math.PI * 2);
+    ctx.arc(p.x + age * 1.5, p.y + age * age * 0.12, 25 * (1 - age / 45), 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
@@ -577,12 +645,9 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, map: BtC
     const p = btBallPoint(course, s, b);
     ctx.fillStyle = BT_PALETTE[b.colour]!;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 22, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 25, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.45)";
-    ctx.beginPath();
-    ctx.arc(p.x - 7, p.y - 7, 7, 0, Math.PI * 2);
-    ctx.fill();
+
   }
 }
 
@@ -592,7 +657,7 @@ export const BT_INPUT_RANGES = [
   inputRange(BT_K_ROTATE, [0, BT_COLS * BT_ROWS - 1]),
   inputRange(BT_K_FLIP, [0, BT_COLS * BT_ROWS - 1]),
   inputRange(BT_K_SLIDE, [0, 3], [0, 2]),
-  inputRange(BT_K_WHEEL, [0, 3]),
+  inputRange(BT_K_WHEEL, [0, 3], [0, 1]),
   inputRange(BT_K_RELEASE),
 ] as const;
 
