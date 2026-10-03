@@ -178,7 +178,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           ctx.clearRect(0, 0, w, h);
           ctx.translate(v.ox, v.oy);
           ctx.scale(v.scale, v.scale);
-          btDraw(ctx, course, s);
+          btDraw(ctx, course, s, game.rotatable);
         }
       }
       if (!submitted.current && time - draftAt >= 500) {
