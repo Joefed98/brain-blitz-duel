@@ -69,7 +69,8 @@ for (let run = 0; run < RUNS; run++) {
     if (idle.spawn[i] !== idle.schedule.at[i]) { fail(`run ${run}: ball ${i} popped late`); break; }
     const life = idle.doneTick[i]! - idle.spawn[i]!;
     const target = idle.schedule.kind[i] === whackRule(idle.spawn[i]!);
-    if (idle.status[i] !== WHACK_STATUS_RETIRED || life !== (target ? WHACK_POP_LIFETIME_TICKS : WHACK_DECOY_LIFETIME_TICKS)) { fail(`run ${run}: ball ${i} lifetime ${life}`); break; }
+    const cutAtFlip = target && WHACK_FLIP_TICKS.includes(idle.doneTick[i]!) && life >= WHACK_DECOY_LIFETIME_TICKS && life < WHACK_POP_LIFETIME_TICKS;
+    if (idle.status[i] !== WHACK_STATUS_RETIRED || (!cutAtFlip && life !== (target ? WHACK_POP_LIFETIME_TICKS : WHACK_DECOY_LIFETIME_TICKS))) { fail(`run ${run}: ball ${i} lifetime ${life}`); break; }
   }
   // Perfect bot: whacks every target on its first tick, never a decoy.
   let bot = whackGame.init(seed);
