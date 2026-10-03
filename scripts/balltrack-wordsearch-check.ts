@@ -7,18 +7,22 @@ import type { PuzzleData } from "../src/lib/duel/types";
 
 let ok = 0, proof = 0, partial = 0;
 for (const e of BALL_TRACK_BANK) {
-  const p = { type: "balltrack", cols: 8, rows: 8, tiles: e.tiles, buckets: e.buckets, blocks: e.blocks, pairs: e.pairs, gates: e.gates, minRotations: e.min, solution: e.solution, solutionEvents: e.solutionEvents } as PuzzleData;
+  const p = { type: "balltrack", cols: 8, rows: 8, tiles: e.tiles, buckets: e.buckets, bombs: e.bombs, pairs: e.pairs, gates: e.gates, minRotations: e.min, solution: e.solution, solutionEvents: e.solutionEvents } as PuzzleData;
   const g = gradeSubmission(p, e.solutionEvents, 45_000);
   const replay = btReplay(p, btDecode(e.solutionEvents));
   if (g.isCorrect && g.score === 135 && replay.rotations === e.min) ok++;
-  const blockOk = e.blocks.length >= 4 && e.blocks.length <= 6 && new Set(e.blocks).size === e.blocks.length;
+  const blockOk = e.bombs.length === 4 && new Set(e.bombs.map(b => b.cell)).size === 4 && e.bombs.every(b => {
+    const row = Math.floor(b.cell / 8), col = b.cell % 8;
+    const neighbourDistance = Math.abs(Math.floor(b.neighbour / 8) - row) + Math.abs(b.neighbour % 8 - col);
+    return row >= 2 && row <= 5 && col >= 1 && col <= 6 && neighbourDistance === 1 && !e.gates.some(g => g.cell === b.cell || g.cell === b.neighbour) && !e.bombs.some(other => other !== b && Math.abs(Math.floor(other.cell / 8) - row) + Math.abs(other.cell % 8 - col) <= 1);
+  });
   const spans = e.pairs.map(([a, b]) => [Math.min(a, b), Math.max(a, b)] as const);
   const crossing = spans[0] && spans[1] && ((spans[0][0] < spans[1][0] && spans[1][0] < spans[0][1] && spans[0][1] < spans[1][1]) || (spans[1][0] < spans[0][0] && spans[0][0] < spans[1][1] && spans[1][1] < spans[0][1]));
   const pairOk = e.pairs.length === 2 && new Set(e.pairs.flat()).size === 4 && !crossing;
-  const gateOk = e.gates.length === 2 && e.gates.every((gate) => !e.blocks.includes(gate.cell));
-  const fixedTopOk = e.tiles.slice(0, 8) === "0".repeat(8) && e.solution.slice(0, 8) === "0".repeat(8) && e.blocks.every((cell) => cell >= 8);
-  const shallowOk = replay.runs.some((run) => run.path.length > 8);
-  if (blockOk && pairOk && gateOk && fixedTopOk && shallowOk && replay.home === 8 && replay.dropped.length === 8) proof++;
+  const gateOk = e.gates.length === 2 && e.gates.every(gate => gate.cell >= 16 && gate.cell < 48 && !e.bombs.some(b => b.cell === gate.cell));
+  const fixedTopOk = e.tiles.slice(0, 8) === "0".repeat(8) && e.solution.slice(0, 8) === "0".repeat(8) && /^[012]{64}$/.test(e.tiles) && e.min >= 12 && e.min <= 20;
+  const untouchedOk = replay.destroyed.length === 0 && replay.exploded.length === 0 && replay.runs.every(run => run.path.length === 8);
+  if (blockOk && pairOk && gateOk && fixedTopOk && untouchedOk && replay.home === 8 && replay.dropped.length === 8) proof++;
   if (scoreBallTrack(6, 0, 90_000, 200, e.min) === 53) partial++;
 }
 console.log(`ball track: ${ok}/${BALL_TRACK_BANK.length} solution scores 135 at 45s left · ${proof} constraint proofs · ${partial} partial scores`);
