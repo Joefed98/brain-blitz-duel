@@ -201,7 +201,7 @@ function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
     const hardFlat = gold && draw(2) === 0;
     const y0 = middle[i] ? c.middleYMin + draw(c.middleYSpan) : c.lowerYMin + draw(c.lowerYSpan);
     launchY.push(y0);
-    // Seeded reroll until the path covers ⅔ of the width and stays ≥ 1 s on screen;
+    // Seeded reroll until the path covers ⅔ of the width and stays ≥ 0.6 s on screen;
     // after rerollTries the angle is lowered step by step so it always terminates.
     const fits = (speed: number, angle: number): [number, number] | null => {
       const h = (speed * icos(angle)) >> 14;
