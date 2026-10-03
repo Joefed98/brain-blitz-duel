@@ -523,3 +523,8 @@
 ## Ball Track pace and tube tuning (Oct 4)
 - [x] Plain grey rotatable tubes, black fixed tubes, small piece gaps; ten balanced balls at five-second drops over 60 seconds, updated scoring and instructions.
 - [x] Regenerate 400 courses: all playbooks route 10/10 home, replay identity 200/200, drop schedule and scoring checks passed; no browser tests.
+
+## Ball Track fixed placement and pace tuning (Oct 4)
+- [ ] Gold fixed tubes, four-second drops, twelve-tick movement; keep sixty-second run and scoring.
+- [ ] Use at most seven extra fixed straights, minimise unavoidable triple stacks, never allow four; regenerate 400 courses and practice fallback.
+- [ ] Run Ball Track-only bank and identity proof; no browser tests.

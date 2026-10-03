@@ -1,7 +1,7 @@
 /**
  * Ball Track: a deterministic 60-tick sim. A fixed 7×7 serpentine of straights
  * and corners; tapping a grey straight toggles it vertical so balls drop through
- * to the next row (or the tray below on row 7). Balls drop every 5 s. The server replays the tap log.
+ * to the next row (or the tray below on row 7). Balls drop every 4 s. The server replays the tap log.
  */
 
 import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
@@ -12,8 +12,8 @@ export const BT_COLS = 7;
 export const BT_ROWS = 7;
 export const BT_BALLS = 10;
 export const BT_COLOURS = 5;
-export const BT_STEP_TICKS = 15;
-export const BT_DROP_TICKS = 300; // a ball every 5 s
+export const BT_STEP_TICKS = 12;
+export const BT_DROP_TICKS = 240; // a ball every 4 s
 export const BT_RUN_TICKS = 3600; // 60 s
 export const BT_HOPPER_COL = 3;
 export const BT_CHECKPOINT_INTERVAL = 300;
@@ -222,7 +222,7 @@ export const BT_H = BT_HOPPER_H + BT_ROWS * BT_TILE + BT_TRAY_H;
 const BALL_R = 20;
 const BG = "#12161C";
 const TUBE = "#6A7280";
-const TUBE_FIXED = "#000000";
+const TUBE_FIXED = "#F5B82E";
 
 const cellCentre = (cell: number) => ({
   x: (cell % BT_COLS) * BT_TILE + BT_TILE / 2,
@@ -268,7 +268,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
   ctx.fillStyle = BG;
   ctx.fillRect(0, gridY, BT_W, BT_ROWS * BT_TILE);
   const maskOf = (cell: number) => (BT_KIND[cell] === 2 ? BT_CORNER[cell]! : s.vert[cell] ? N | S : E | W);
-  // Tubes: a wide grey stroke with a background stroke inside leaves two parallel lines; fixed tiles darker.
+  // Two parallel lines per piece: grey rotatable tubes and gold fixed tubes.
   ctx.lineCap = "butt";
   ctx.lineJoin = "round";
   for (const movable of [false, true]) {
