@@ -64,17 +64,17 @@ function Gem({ lit }: { lit: boolean }) {
 }
 
 export function directionalChevronPoints(dir: BeamDir): string {
-  if (dir === "R") return "6,8 12,12 6,16";
-  if (dir === "L") return "18,8 12,12 18,16";
-  if (dir === "D") return "8,6 12,12 16,6";
-  return "8,18 12,12 16,18";
+  if (dir === "R") return "3,10 6,12 3,14";
+  if (dir === "L") return "21,10 18,12 21,14";
+  if (dir === "D") return "10,3 12,6 14,3";
+  return "10,21 12,18 14,21";
 }
 
 function DirectionalGem({ lit, from }: { lit: boolean; from?: BeamDir }) {
   return (
     <svg viewBox="0 0 24 24" className="h-full w-full overflow-visible" aria-hidden="true">
       <g transform="translate(6 6) scale(.5)"><Gem lit={lit} /></g>
-      {from ? <polyline points={directionalChevronPoints(from)} fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" /> : null}
+      {from ? <polyline points={directionalChevronPoints(from)} fill="none" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /> : null}
     </svg>
   );
 }
@@ -357,7 +357,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     onDraftAnswer?.(encodeLaserAnswer(placed, Math.max(1, fires)));
   }, [placed, fires, onDraftAnswer]);
 
-  const revealed = shot ? shot.trace.paths.map((path) => path.slice(0, shot.step + 1)) : null;
+  // Each fork begins only after the source beam actually reaches its splitter.
+  // A branch starts with the splitter cell again, so it costs no extra travel step.
+  let remaining = shot ? shot.step + 1 : 0;
+  const revealed = shot ? shot.trace.paths.map((path, index) => {
+    if (index === 0) {
+      const visible = path.slice(0, remaining);
+      remaining -= visible.length;
+      return visible;
+    }
+    if (remaining <= 0) return [];
+    const visible = path.slice(0, remaining + 1);
+    remaining -= Math.max(0, visible.length - 1);
+    return visible;
+  }) : null;
   const visibleCells = revealed?.flat() ?? [];
   const litGems = shot ? shot.trace.gemsLit.filter((gem) => visibleCells.includes(gem)) : [];
   const bombFlash = Boolean(shot?.done && shot.trace.hitBomb);
@@ -483,7 +496,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     setShot({ trace: verdict.trace, step: 0, done: false });
 
     const cells = verdict.trace.cells.length;
-    const per = Math.max(24, Math.round(LASER_BEAM_MS / Math.max(1, cells - 1)));
+    const per = Math.max(30, Math.round((LASER_BEAM_MS * 1.25) / Math.max(1, cells - 1)));
     for (let step = 1; step < cells; step++) {
       timers.current.push(
         window.setTimeout(
