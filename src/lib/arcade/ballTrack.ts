@@ -84,6 +84,8 @@ export interface BtBall {
   /** Planned next move: target cell, 100 + slot column, or -2 lost. */
   target: number;
   entry: number;
+  /** Side through which the ball entered its current tile (render-only path metadata). */
+  inlet: number;
   /** Wheel index holding this ball, or -1. */
   held: number;
 }
@@ -98,6 +100,7 @@ export interface BtState {
   slTo: number[];
   slUntil: number[];
   whPocket: number[];
+  whDir: number[];
   whUntil: number[];
   whHeld: number[];
   balls: BtBall[];
@@ -118,7 +121,7 @@ export const rotMask = (mask: number, rot: number) => {
 };
 
 export const sliderPos = (state: BtState, i: number) =>
-  state.tick >= (state.slUntil[i] ?? 0) ? state.slTo[i]! : state.slFrom[i]!;
+  state.tick >= (state.slUntil[i] ?? 0) ? (state.slTo[i] ?? 0) : (state.slFrom[i] ?? 0);
 
 const LOST = -2;
 const SLOT = 100;
@@ -149,8 +152,8 @@ export function btExit(
   } else if (info.kind === 3) {
     const pos = sliderPos(state, info.idx);
     const slider = course.sliders[info.idx]!;
-    if (info.sub === pos) dc = slider.slot === 0 ? 0 : -1;
-    else if (info.sub === pos + 1) dc = slider.slot === 1 ? 0 : 1;
+    if (info.sub === pos && slider.slot === 1) dc = 1;
+    else if (info.sub === pos + 1 && slider.slot === 0) dc = -1;
   }
   const nr = r + dr, nc = c + dc;
   if (nc < 0 || nc >= BT_COLS) return { target: LOST, entry: 0 };
@@ -167,6 +170,7 @@ export function btInit(course: BtCourse): BtState {
     slTo: course.sliders.map((s) => s.pos),
     slUntil: course.sliders.map(() => 0),
     whPocket: course.wheels.map((w) => w.pocket & 3),
+    whDir: course.wheels.map(() => 1),
     whUntil: course.wheels.map(() => 0),
     whHeld: course.wheels.map(() => -1),
     balls: [],
@@ -193,6 +197,7 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
     slTo: [...prev.slTo],
     slUntil: [...prev.slUntil],
     whPocket: [...prev.whPocket],
+    whDir: [...prev.whDir],
     whUntil: [...prev.whUntil],
     whHeld: [...prev.whHeld],
     balls: prev.balls.map((b) => ({ ...b })),
@@ -219,7 +224,9 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
       }
     } else if (input.k === BT_K_WHEEL && input.a < course.wheels.length) {
       if (t >= s.whUntil[input.a]!) {
-        s.whPocket[input.a] = (s.whPocket[input.a]! + 1) & 3;
+        const direction = input.b === 0 ? -1 : 1;
+        s.whDir[input.a] = direction;
+        s.whPocket[input.a] = ((s.whPocket[input.a] ?? 0) + direction + 4) & 3;
         s.whUntil[input.a] = t + BT_WHEEL_TICKS;
         s.actions++;
       }
@@ -234,6 +241,7 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
           at: t,
           target: BT_HOPPER_COL,
           entry: N,
+          inlet: N,
           held: -1,
         });
         s.next++;
@@ -289,6 +297,7 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
       if (ball.held >= 0) s.whHeld[ball.held] = -1;
       ball.from = ball.cell;
       ball.cell = target;
+      ball.inlet = entry;
       ball.arrived = t;
       ball.at = t + BT_STEP_TICKS;
       ball.held = w;
@@ -300,6 +309,7 @@ export function btStep(course: BtCourse, map: BtCellInfo[], prev: BtState, input
     ball.held = -1;
     ball.from = fromCell;
     ball.cell = target;
+    ball.inlet = entry;
     ball.arrived = t;
     ball.at = t + BT_STEP_TICKS;
     const exit = btExit(course, map, s, target, entry);
@@ -338,8 +348,8 @@ export interface BtCheckpoint {
 
 export function btCheckpoint(s: BtState): BtCheckpoint {
   const snap = { tick: s.tick, next: s.next, home: s.home, wrong: s.wrong, lost: s.lost, flying: s.balls.length };
-  const values: number[] = [...Object.values(snap), s.actions, s.lastLand, ...s.pipeRot, ...s.flip, ...s.slFrom, ...s.slTo, ...s.slUntil, ...s.whPocket, ...s.whUntil, ...s.whHeld];
-  for (const b of s.balls) values.push(b.id, b.cell, b.at, b.target, b.entry, b.held);
+  const values: number[] = [...Object.values(snap), s.actions, s.lastLand, ...s.pipeRot, ...s.flip, ...s.slFrom, ...s.slTo, ...s.slUntil, ...s.whPocket, ...s.whDir, ...s.whUntil, ...s.whHeld];
+  for (const b of s.balls) values.push(b.id, b.cell, b.at, b.target, b.entry, b.inlet, b.held);
   let checksum = 0x811c9dc5;
   for (const v of values) {
     checksum ^= v | 0;
@@ -369,7 +379,7 @@ function pocketPoint(course: BtCourse, s: BtState, w: number, tick: number) {
   const q = s.whPocket[w]!;
   const left = s.whUntil[w]! - tick;
   const frac = left > 0 ? left / BT_WHEEL_TICKS : 0;
-  const base = Math.atan2(QUAD[q]![1], QUAD[q]![0]) - frac * (Math.PI / 2);
+  const base = Math.atan2(QUAD[q]![1], QUAD[q]![0]) - frac * (s.whDir[w] ?? 1) * (Math.PI / 2);
   const rad = BT_TILE * 0.62;
   return { x: cx + Math.cos(base) * rad, y: cy + Math.sin(base) * rad, cx, cy, angle: base };
 }
@@ -592,7 +602,7 @@ export const BT_INPUT_RANGES = [
   inputRange(BT_K_ROTATE, [0, BT_COLS * BT_ROWS - 1]),
   inputRange(BT_K_FLIP, [0, BT_COLS * BT_ROWS - 1]),
   inputRange(BT_K_SLIDE, [0, 3], [0, 2]),
-  inputRange(BT_K_WHEEL, [0, 3]),
+  inputRange(BT_K_WHEEL, [0, 3], [0, 1]),
   inputRange(BT_K_RELEASE),
 ] as const;
 
