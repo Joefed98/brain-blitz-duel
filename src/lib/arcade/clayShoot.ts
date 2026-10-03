@@ -69,7 +69,9 @@ export const CLAY_CONFIG = {
   /** Every path covers ⅔ of the width (px) and stays ≥ 1 s on screen. */
   minCoverage: 240,
   minOnScreenTicks: 60,
-  rerollTries: 256,
+  rerollTries: 64,
+  scanAngleMin: 1024,
+  scanAngleCount: 40,
   rerollAngleStep: 256,
   rerollSpeedStep: 32,
   rerollSpeedFloor: 900,
@@ -201,33 +203,36 @@ function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
     launchY.push(y0);
     // Seeded reroll until the path covers ⅔ of the width and stays ≥ 1 s on screen;
     // after rerollTries the angle is lowered step by step so it always terminates.
-    let lower = 0;
-    let slow = 0;
-    for (let tries = 0; ; tries++) {
-      const drawn = gold
-        ? c.goldSpeedMin + draw(c.goldSpeedSpan)
-        : c.orangeSpeedMin + draw(c.orangeSpeedSpan);
-      const base = hardFlat
-        ? c.goldFlatAngleMin + draw(c.goldFlatAngleSpan)
-        : gold
-          ? c.goldSteepAngleMin + draw(c.goldSteepAngleSpan)
-          : c.orangeAngleMin + draw(c.orangeAngleSpan);
-      if (tries >= c.rerollTries) {
-        if (tries & 1) lower += c.rerollAngleStep;
-        else slow += c.rerollSpeedStep;
-      }
-      const angle = Math.max(0, base - lower);
-      const speed = Math.max(c.rerollSpeedFloor, drawn - slow);
+    const fits = (speed: number, angle: number): [number, number] | null => {
       const h = (speed * icos(angle)) >> 14;
       const hx = side[i] === 0 ? h : -h;
       const hy = -((speed * isin(angle)) >> 14);
       const f = clayFlight(side[i]!, y0, hx, hy);
-      if ((f.coverage >= c.minCoverage && f.ticks >= c.minOnScreenTicks) || (angle === 0 && speed === c.rerollSpeedFloor)) {
-        vx.push(hx);
-        vy.push(hy);
-        break;
+      return f.coverage >= c.minCoverage && f.ticks >= c.minOnScreenTicks ? [hx, hy] : null;
+    };
+    let found: [number, number] | null = null;
+    for (let tries = 0; tries < c.rerollTries && !found; tries++) {
+      const speed = gold
+        ? c.goldSpeedMin + draw(c.goldSpeedSpan)
+        : c.orangeSpeedMin + draw(c.orangeSpeedSpan);
+      const angle = hardFlat
+        ? c.goldFlatAngleMin + draw(c.goldFlatAngleSpan)
+        : gold
+          ? c.goldSteepAngleMin + draw(c.goldSteepAngleSpan)
+          : c.orangeAngleMin + draw(c.orangeAngleSpan);
+      found = fits(speed, angle);
+    }
+    // Fallback: deterministic scan, fastest speed first, angles from a seeded offset.
+    const top = gold ? c.goldSpeedMin + c.goldSpeedSpan : c.orangeSpeedMin + c.orangeSpeedSpan;
+    const offset = draw(c.scanAngleCount);
+    for (let speed = top; speed >= c.rerollSpeedFloor && !found; speed -= c.rerollSpeedStep) {
+      for (let k = 0; k < c.scanAngleCount && !found; k++) {
+        found = fits(speed, c.scanAngleMin + ((offset + k) % c.scanAngleCount) * c.rerollAngleStep);
       }
     }
+    const [hx, hy] = found ?? fits(c.rerollSpeedFloor, 8192) ?? [side[i] === 0 ? 900 : -900, -900];
+    vx.push(hx);
+    vy.push(hy);
   }
   return { rng, schedule: { launch, side, kind, launchY, vx, vy } };
 }
