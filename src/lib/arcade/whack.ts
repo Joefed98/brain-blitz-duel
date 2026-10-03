@@ -35,10 +35,9 @@ export const WHACK_RED = 1;
 
 /** The rule flips to TAP RED at 10 s and back to TAP GOLD at 20 s. */
 export const WHACK_FLIP_TICKS: readonly number[] = [600, 1200];
-/** Target lifetime: up until whacked or three seconds. */
-export const WHACK_POP_LIFETIME_TICKS = 3 * TICKS_PER_SECOND;
-/** Decoys (wrong colour for the current rule) drop after 1.5 s. */
-export const WHACK_DECOY_LIFETIME_TICKS = 90;
+/** Every ball — target or decoy — drops after one second if not whacked. */
+export const WHACK_POP_LIFETIME_TICKS = TICKS_PER_SECOND;
+export const WHACK_DECOY_LIFETIME_TICKS = TICKS_PER_SECOND;
 /**
  * Seeded per-period queue: exactly 45 scoring targets (27 gold during Tap Gold,
  * 18 red during Tap Red) plus decoys. Every ball pops at a fixed seeded tick

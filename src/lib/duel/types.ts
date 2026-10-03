@@ -541,7 +541,7 @@ export interface DuelRow {
   no_maths: boolean;
   /** Host opt-in: include the number category in the round draw. */
   add_maths: boolean;
-  /** Host opt-in: include the memory category in the round draw. */
+  /** Host setting: kept for older rooms; memory is never drawn (practice only). */
   add_memory: boolean;
   /** Host toggle, on by default: one round is an arcade game. */
   add_arcade: boolean;

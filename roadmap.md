@@ -454,3 +454,8 @@
 - [x] Chain: set counter removed, Lock in button
 - [x] Whack: decoys drop at 1.5 s, 45 targets, 3 pts, +15 perfect
 - [x] Clay: launch origins in lower half / middle band only
+
+## Whack lifetimes and memory removal (Oct 3)
+- [x] Whack-a-Target: every ball (target and decoy) drops after 1 s if not whacked; scoring unchanged.
+- [x] Rooms never draw memory: addMemory option removed from the draw, memory filtered from saved category settings; memory games stay in practice.
+- [x] Whack-only self-replay proof (200/200) and typecheck; no browser tests.
