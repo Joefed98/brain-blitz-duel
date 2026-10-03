@@ -1,6 +1,6 @@
 /**
  * Ball Track: a deterministic 60-tick sim. A fixed 7×7 serpentine of straights
- * and corners; tapping a gold straight toggles it vertical so balls drop through
+ * and corners; tapping a grey straight toggles it vertical so balls drop through
  * to the next row (or the tray below on row 7). Balls drop every 5 s. The server replays the tap log.
  */
 
