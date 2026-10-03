@@ -371,8 +371,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     onDraftAnswer?.(encodeLaserAnswer(placed, Math.max(1, fires)));
   }, [placed, fires, onDraftAnswer]);
 
+  const offsets = shot ? beamBranchOffsets(shot.trace.paths) : [];
   const revealed = shot ? shot.trace.paths.map((path, index) =>
-    path.slice(0, Math.max(0, shot.step - beamBranchOffsets(shot.trace.paths)[index]! + 1))) : null;
+    path.slice(0, Math.max(0, shot.step - offsets[index]! + 1))) : null;
   const visibleCells = revealed?.flat() ?? [];
   const litGems = shot ? shot.trace.gemsLit.filter((gem) => visibleCells.includes(gem)) : [];
   const bombFlash = Boolean(shot?.done && shot.trace.hitBomb);
