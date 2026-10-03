@@ -464,3 +464,8 @@
 - [x] Clay Shoot minimum on-screen time lowered from 1.2 s to 0.6 s; ⅔-width coverage rule unchanged.
 - [x] Whack-a-Target pop gap ramps 42→10 ticks so the final third regularly has 2–3 balls up (cap 3, never same hole twice); 900→450 ms lifetimes unchanged.
 - [x] Identity proofs run only for Clay Shoot and Whack-a-Target (200/200 each); no browser tests.
+
+## Intruder and Pair Match timing follow-up (Oct 3)
+- [x] Intruder Detection: per board 1 s card → 7 s memorise → 1 s blank → 5 s pick → 1 s hold; round 75 s, shared timer bar follows INTRUDER_TIME_MS.
+- [x] Pair Match: 90 s; complete rounds pay 100 + round(50 × ms_remaining ÷ 90,000) plus the ≤18 flip-pairs +20; partial scoring unchanged.
+- [x] Typecheck clean; no timing-proof scripts exist for either game; no browser tests.
