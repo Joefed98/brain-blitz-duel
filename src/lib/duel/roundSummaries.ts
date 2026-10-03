@@ -1210,7 +1210,7 @@ const whackSummary: SummaryBuilder = (result) => {
   const wrong = Number(result.extra?.["wrong"] ?? 0);
   return {
     summary: `${hits} whacked · ${wrong} wrong`,
-    detail: ["2 per hit · −5 per wrong colour"],
+    detail: ["3 per hit · −5 per decoy · +15 for all 45 clean"],
   };
 };
 
