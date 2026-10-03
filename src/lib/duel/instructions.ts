@@ -432,7 +432,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Memorise each grid", detail: "before it disappears." },
       { action: "Tap every change", detail: "— later boards contain two." },
-      { action: "Five grids", detail: "grow and the last two shift position." },
+      { action: "Five rounds", detail: "— 5 s to memorise, 3 s to pick; on the last two the symbols slide inside the grid." },
     ],
     score: "20 per fully solved board; one of two changes earns 10. All five for the speed bonus.",
   },
