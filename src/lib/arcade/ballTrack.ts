@@ -387,7 +387,7 @@ function pocketPoint(course: BtCourse, s: BtState, w: number, tick: number) {
 export function btBallPoint(course: BtCourse, s: BtState, b: BtBall) {
   if (b.held >= 0) return pocketPoint(course, s, b.held, s.tick);
   const to = b.cell < 0 ? HOPPER : centre(b.cell);
-  const from = b.from < 0 ? HOPPER : centre(b.from);
+
   const k = Math.min(1, (s.tick - b.arrived) / BT_STEP_TICKS);
   const pipe = course.pipes.find((p) => p.cell === b.cell);
   if (pipe) {
@@ -410,7 +410,13 @@ export function btBallPoint(course: BtCourse, s: BtState, b: BtBall) {
     }
     return { x: to.x, y: to.y - 50 + k * 100 };
   }
-  return { x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k };
+  if (b.cell < 0) return HOPPER;
+  const next = b.target >= 100 ? { x: (b.target - 100) * BT_TILE + 50, y: to.y + BT_TILE } : b.target >= 0 ? centre(b.target) : to;
+  const startX = to.x + (b.inlet === W ? -50 : b.inlet === E ? 50 : 0);
+  const startY = to.y + (b.inlet === N ? -50 : b.inlet === W || b.inlet === E ? 0 : 50);
+  const endX = next.x;
+  const endY = to.y + 50;
+  return { x: startX + (endX - startX) * k, y: startY + (endY - startY) * k };
 }
 
 /** Outline of the union of pipe arms: two continuous walls, including corners/Ts. */

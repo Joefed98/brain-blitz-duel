@@ -159,6 +159,20 @@ export function playbook(game: BtGame): { events: ArcadeInputEvent[]; state: BtS
 export function dependsOnSlide(game: BtGame, events: ArcadeInputEvent[]): boolean {
   if (!game.course.sliders.length) return true;
   if (!events.some((e) => e.k === BT_K_SLIDE)) return false;
+  let full = game.init(1), deflected = false;
+  while (!game.isOver(full)) {
+    const before = full;
+    full = game.step(full, inputAt(events, full.tick + 1));
+    for (const ball of full.balls) {
+      if (!before.balls.some((b) => b.id === ball.id && b.cell !== ball.cell)) continue;
+      const info = game.map[ball.cell];
+      if (info?.kind === 3 && ball.target >= 0) {
+        const col = ball.target >= 100 ? ball.target - 100 : ball.target % BT_COLS;
+        if (col !== ball.cell % BT_COLS) deflected = true;
+      }
+    }
+  }
+  if (!deflected) return false;
   const without = events.filter((e) => e.k !== BT_K_SLIDE);
   let state = game.init(1);
   while (!game.isOver(state)) state = game.step(state, inputAt(without, state.tick + 1));
