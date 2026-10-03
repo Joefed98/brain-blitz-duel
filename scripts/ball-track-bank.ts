@@ -14,8 +14,7 @@ function targets(buckets:number[]){const out=Array(8).fill(0);buckets.forEach((b
 function route(ball:number,target:number,row:number):Need{
  const need:Need=new Map();for(let r=0;r<8;r++)need.set(r*8+(r>row?target:ball),"0");
  const dir=target>ball?1:-1;
- if(shallow){need.set(row*8+ball,dir>0?"2":"4");need.set(row*8+target,"0");}
- else need.set(row*8+ball,dir>0?"1":"2");
+ need.set(row*8+ball,dir>0?"1":"2");
  return need;
 }
 function merge(a:Need,b:Need){const out=new Map(a);for(const [cell,value] of b){const prior=out.get(cell);if(prior!==undefined&&prior!==value)return null;out.set(cell,value);}return out;}
