@@ -94,7 +94,7 @@ const fixedTile = (parent: number, child: number): BtTile => {
       const m = rotMask(BT_PIPE_MASKS[shape]!, rot);
       if (m === (parent | child)) return { shape, rot };
     }
-  throw Error("no tile");
+  throw Error(`no tile ${parent} ${child}`);
 };
 
 function buildTree() {
