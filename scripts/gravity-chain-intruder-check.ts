@@ -142,8 +142,8 @@ for (let round = 0; round < ROUNDS; round++) {
       "intruder shape palette escalates",
       new Set(board.cells.map((cell) => cell.shape)).size <= INTRUDER_BOARD_SHAPE_COUNTS[index]!,
     );
-    const differing = board.cells.filter((cell, i) => {
-      const after = board.after[i]!;
+    const differing = board.after.filter((after, i) => {
+      const cell = board.perm ? board.cells[board.perm[i]!]! : board.cells[i]!;
       return cell.shape !== after.shape || cell.colour !== after.colour || cell.rot !== after.rot;
     });
     check("intruder exact change count", differing.length === INTRUDER_CHANGE_COUNTS[index]);
@@ -151,7 +151,7 @@ for (let round = 0; round < ROUNDS; round++) {
     check("intruder shuffle metadata", index >= 3 ? Boolean(board.perm) : !board.perm);
     answer.cells.forEach((cell, changedIndex) => {
       check("intruder target in range", cell >= 0 && cell < 9);
-      const before = board.cells[cell]!;
+      const before = board.perm ? board.cells[board.perm[cell]!]! : board.cells[cell]!;
       const after = board.after[cell]!;
       const kind = answer.kinds[changedIndex]!;
       check("intruder change kind stored", ["colour", "shape"].includes(kind));
