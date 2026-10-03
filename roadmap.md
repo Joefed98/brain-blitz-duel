@@ -483,7 +483,7 @@
 - [x] Update intro, reveal, scoring, instructions and round summaries; source-check narrow layouts and replay without browser tests.
 
 ## Ball Track rework pass 2 (Oct 3)
-- [ ] Expand to 8×8 with smaller balls and layered tube visuals.
-- [ ] Add 4–6 blocks, two linked pairs, and two colour gates to shared replay and UI.
-- [ ] Rebuild 400 boards with 12–20 stored minimum rotations and validate constraints.
-- [ ] Update intro and verify narrow-layout calculations, types, and build without browser tests.
+- [x] Expand to 8×8 with smaller balls and layered tube visuals.
+- [x] Add 4–6 blocks, two linked pairs, and two colour gates to shared replay and UI.
+- [x] Rebuild 400 boards with 12–20 stored minimum rotations and validate constraints.
+- [x] Update intro and verify narrow-layout calculations, types, and build without browser tests.
