@@ -15,17 +15,16 @@ const BALL_COLOURS = ["var(--color-ball-red)", "var(--color-ball-blue)", "var(--
 const STEP_MS = 130;
 const BALL_NAMES = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow"];
 
-function Tube({ orientation }: { orientation: number; small: boolean }) {
+function Tube({ board, tiles, blocked }: { board: BtBoard; tiles: string; blocked: Set<number> }) {
   // Ball diameter is 33% of a tile; inner pipe width 41.25% (ball = 80%).
-  const diagonal = orientation !== 0;
-  const offset = diagonal ? 29.17 : 20.625;
-  const lines = orientation === 1
-    ? [[-100, -100 - offset, 200, 200 - offset], [-100, -100 + offset, 200, 200 + offset]]
-    : orientation === 2
-      ? [[-100, 200 - offset, 200, -100 - offset], [-100, 200 + offset, 200, -100 + offset]]
-      : [[50 - offset, 0, 50 - offset, 100], [50 + offset, 0, 50 + offset, 100]];
-  return <svg viewBox="0 0 100 100" aria-hidden="true" className="absolute inset-0 size-full overflow-hidden">
-    {lines.map((line, index) => <line key={index} x1={line[0]} y1={line[1]} x2={line[2]} y2={line[3]} stroke="var(--color-foreground)" strokeOpacity=".7" strokeWidth={3} />)}
+  return <svg viewBox={`0 0 ${board.cols * 100} ${board.rows * 100}`} aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1] size-full overflow-hidden">
+    {Array.from({ length: board.cols * board.rows }, (_, cell) => {
+      if (blocked.has(cell) || board.bombs?.some(b => b.cell === cell)) return null;
+      const row = Math.floor(cell / board.cols), col = cell % board.cols;
+      const direction = Number(tiles[cell]) === 1 ? 1 : Number(tiles[cell]) === 2 ? -1 : 0;
+      const offset = direction ? 29.17 : 20.625;
+      return [-1, 1].map(side => <line key={`${cell}-${side}`} x1={col * 100 + 50 + offset * side} y1={row * 100} x2={(col + direction) * 100 + 50 + offset * side} y2={(row + 1) * 100} stroke="var(--color-foreground)" strokeOpacity={row === 0 ? '.4' : '.7'} strokeWidth={3} />);
+    })}
   </svg>;
 }
 
@@ -66,20 +65,20 @@ function PipeBoard({ board, tiles, dropped, active, destroyed = [], exploded = [
           </Button>
         ))}
       </div>
-      <div className="grid w-full" style={{ gridTemplateColumns: `repeat(${board.cols}, minmax(0, 1fr))` }}>
+      <div className="relative grid w-full" style={{ gridTemplateColumns: `repeat(${board.cols}, minmax(0, 1fr))` }}>
         {Array.from({ length: board.rows * board.cols }, (_, cell) => {
           const blocked = blocks.has(cell);
           const bomb = bombs.has(cell) && !exploded.includes(cell) && !blocked;
           const gate = gateMap.get(cell);
           return (
-            <Button key={cell} type="button" variant="outline" disabled={!onRotate || blocked || bomb || cell < board.cols} aria-label={bomb ? `Bomb row ${Math.floor(cell / board.cols) + 1}, column ${cell % board.cols + 1}` : blocked ? `Broken tile row ${Math.floor(cell / board.cols) + 1}, column ${cell % board.cols + 1}` : `Rotate pipe row ${Math.floor(cell / board.cols) + 1}, column ${cell % board.cols + 1}`} onClick={() => onRotate?.(cell)} className={`relative h-auto w-full min-w-0 overflow-hidden rounded-none border-0 p-0 disabled:opacity-100 ${flashing.includes(cell) ? "bg-ball-red animate-tile-flash" : blocked ? "bg-background" : cell < board.cols ? "bg-card opacity-65" : "bg-card"}`} style={{ aspectRatio: "1 / 1" }}>
-              {!blocked && !bomb && <Tube orientation={Number(tiles[cell]) % 3} small={small} />}
+            <Button key={cell} type="button" variant="outline" disabled={!onRotate || blocked || bomb || cell < board.cols} aria-label={bomb ? `Bomb row ${Math.floor(cell / board.cols) + 1}, column ${cell % board.cols + 1}` : blocked ? `Broken tile row ${Math.floor(cell / board.cols) + 1}, column ${cell % board.cols + 1}` : `Rotate pipe row ${Math.floor(cell / board.cols) + 1}, column ${cell % board.cols + 1}`} onClick={() => onRotate?.(cell)} className={`relative h-auto w-full min-w-0 overflow-hidden rounded-none border-0 p-0 shadow-none disabled:opacity-100 [&_svg]:size-[55%] ${flashing.includes(cell) ? "z-20 bg-ball-red animate-tile-flash" : blocked ? "z-[2] bg-background" : bomb ? "z-[2] bg-card" : "bg-card"}`} style={{ aspectRatio: "1 / 1" }}>
               {bomb && <Bomb aria-hidden="true" className="size-[55%] text-ball-red" />}
               {blocked && <X aria-hidden="true" className="size-[45%] text-muted-foreground/40" />}
-              {gate !== undefined && !blocked && !bomb && <span aria-hidden="true" className="absolute inset-[14%] rounded-full border-[3px]" style={{ borderColor: BALL_COLOURS[gate % 8] }} />}
+              {gate !== undefined && !blocked && !bomb && <span aria-hidden="true" className="absolute inset-[14%] z-[2] rounded-full border-[3px]" style={{ borderColor: BALL_COLOURS[gate % 8] }} />}
             </Button>
           );
         })}
+        <Tube board={board} tiles={tiles} blocked={blocks} />
       </div>
       <div className="grid w-full" style={{ gridTemplateColumns: `repeat(${board.cols}, minmax(0, 1fr))` }}>
         {board.buckets.map((colour, column) => (
