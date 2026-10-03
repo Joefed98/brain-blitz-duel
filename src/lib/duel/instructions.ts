@@ -424,6 +424,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Keep your chain", detail: "from crossing itself." },
       { action: "Tap Undo or Reset", detail: "to take links back — mistakes still count." },
       { action: "Clear all 28 nodes", detail: "to start a fresh seeded set." },
+      { action: "Tap Lock in", detail: "to submit your score now and wait for the round to end." },
     ],
     score: "5 points per correct link; wrong taps cost 10. Maximum 150.",
   },
