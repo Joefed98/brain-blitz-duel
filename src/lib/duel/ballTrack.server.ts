@@ -11,7 +11,11 @@ export function generateBallTrack(): BallTrackPuzzleData {
     rows: BT_ROWS,
     tiles: entry.tiles,
     buckets: [...entry.buckets],
+    blocks: [...entry.blocks],
+    pairs: entry.pairs.map((pair) => [...pair] as [number, number]),
+    gates: entry.gates.map((gate) => ({ ...gate })),
     minRotations: entry.min,
     solution: entry.solution,
+    solutionEvents: entry.solutionEvents,
   };
 }

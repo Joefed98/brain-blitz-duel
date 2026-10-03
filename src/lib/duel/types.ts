@@ -2198,9 +2198,16 @@ export interface BallTrackPuzzleData {
   tiles: string;
   /** Bucket colours indexed by column; a derangement of the eight balls. */
   buckets: number[];
-  /** Proven minimum for simultaneous routing; private until reveal. */
+  /** Solid cells that reject both rotations and balls. */
+  blocks: number[];
+  /** Two linked pairs; either member starts both balls. */
+  pairs: [number, number][];
+  /** Rotating pipe cells restricted to one ball colour. */
+  gates: { cell: number; colour: number }[];
+  /** Proven minimum across the stored paired/single drop plan; private until reveal. */
   minRotations?: number;
   solution?: string;
+  solutionEvents?: string;
 }
 
 /** Letter Wheel: 120 s to fill a small crossword from a wheel of letters. */

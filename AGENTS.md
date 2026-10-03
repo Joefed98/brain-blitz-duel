@@ -32,4 +32,4 @@
 - Bomb Defusal masks are recomputed per panel because many rule predicates read the panel; why: caching by rule text across panels gives wrong uniqueness proofs.
 - TimerBar is the only live-round countdown and PhoneShell owns the 4px game-screen safe margin; why: duel/practice timing and arena width must stay identical without per-game timer slots.
 - Number Pyramid stores one bank entry as four public boards plus private solutions and submits all four placement maps with the active index; why: skipped boards and current-board partial credit must grade identically on the server.
-- Ball Track replays ordered rotation/drop events over shared pipe rules; its server-only bank proves each static simultaneous eight-ball solution's minimum by a per-row perfect-matching lower bound, while players may rotate between drops; why: phones never choose scores and bank construction does not run in rooms.
+- Ball Track replays ordered rotations and paired/single drops over shared block/gate pipe rules; its server-only bank stores a proven minimum event plan; why: phones never choose scores and bank construction does not run in rooms.
