@@ -3,7 +3,7 @@
  *   bun scripts/ball-track-bank.ts
  * Seeds only tray order, ball order and 3–5 extra fixed straights. Every tray
  * must be reachable from the all-horizontal start, and a just-in-time playbook
- * (each tile set for the next ball due through it) must route all 8 home in the
+ * (each tile set for the next ball due through it) must route every ball home in the
  * real sim; seeds that fail are rerolled.
  */
 import { writeFileSync } from "node:fs";
@@ -66,13 +66,7 @@ function makeCourse(): BtCourse {
   const colours = shuffle([0, 1, 2, 3, 4]);
   const trays = Array.from({ length: BT_COLS }, () => -1);
   colours.forEach((c, i) => (trays[cols[i]!] = c));
-  const balls: number[] = [];
-  while (balls.length < BT_BALLS) {
-    const c = rnd(BT_COLOURS);
-    const n = balls.length;
-    if (n >= 2 && balls[n - 1] === c && balls[n - 2] === c) continue;
-    balls.push(c);
-  }
+  const balls = shuffle(Array.from({ length: BT_BALLS }, (_, i) => i % BT_COLOURS));
   const pool = shuffle(BT_KIND.flatMap((k, cell) => (k === 1 && cell < (BT_ROWS - 1) * BT_COLS && !BT_ALWAYS_FIXED.includes(cell) ? [cell] : [])));
   const fixed = pool.slice(0, 3 + rnd(3)).sort((a, b) => a - b);
   return { trays, balls, fixed };

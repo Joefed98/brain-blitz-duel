@@ -1,5 +1,5 @@
 /**
- * Ball Track proofs: every bank playbook scores 8/8 through the server path,
+ * Ball Track proofs: every bank playbook routes all balls through the server path,
  * and 200 self-replay runs (random taps over bank courses) match the server.
  *   bun scripts/balltrack-check.ts
  */
@@ -37,10 +37,12 @@ BALL_TRACK_BANK.forEach((entry, i) => {
   const extra = c.fixed.length;
   if (extra < 3 || extra > 5 || c.fixed.some((x) => x >= 42 || x % BT_COLS === 3 || BT_KIND[x] !== 1)) fail(`course ${i}: fixed set`);
   if (c.trays.filter((t) => t >= 0).length !== 5 || c.balls.length !== BT_BALLS) fail(`course ${i}: trays/balls`);
+  for (let colour = 0; colour < 5; colour++) if (c.balls.filter((b) => b === colour).length !== 2) fail(`course ${i}: colour balance`);
+  if (c.balls.some((b, j) => j >= 2 && b === c.balls[j - 1] && b === c.balls[j - 2])) fail(`course ${i}: three consecutive colours`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);
   if (state.home === BT_BALLS && state.wrong === 0 && state.lost === 0 && score === 150 && state.actions === entry.par) solved++;
-  else fail(`course ${i}: playbook did not route all 8 (${state.home}, score ${score})`);
+  else fail(`course ${i}: playbook did not route all ${BT_BALLS} (${state.home}, score ${score})`);
 });
 
 let same = 0;
@@ -51,5 +53,5 @@ for (let run = 0; run < 200; run++) {
   play(run, () => (rnd(100) < 4 ? { k: BT_K_ROTATE, a: rnd(49), b: 0, c: 0, d: 0 } : null));
   if (fails === before) same++;
 }
-console.log(`ball track: ${solved}/${BALL_TRACK_BANK.length} playbooks route all 8 home · self-replay identity ${same}/200`);
+console.log(`ball track: ${solved}/${BALL_TRACK_BANK.length} playbooks route all ${BT_BALLS} home · self-replay identity ${same}/200`);
 if (fails) throw Error(`${fails} failures`);

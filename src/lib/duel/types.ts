@@ -2146,8 +2146,8 @@ export interface HotFloorPuzzleData {
 
 export const SHIKAKU_TIME_MS = 90_000;
 export const LIGHTUP_TIME_MS = 90_000;
-/** Ball Track: a 90 s arcade run plus the shared 3 s arcade slack. */
-export const BALLTRACK_TIME_MS = 93_000;
+/** Ball Track: a 60 s arcade run plus the shared 3 s arcade slack. */
+export const BALLTRACK_TIME_MS = 63_000;
 export const WORDSEARCH_TIME_MS = 120_000;
 
 /** Number Pyramid: four rising-difficulty pyramids in one 120-second round. */

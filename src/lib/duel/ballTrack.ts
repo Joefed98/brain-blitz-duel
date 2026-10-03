@@ -3,6 +3,7 @@
 import {
   btCheckpoint,
   makeBallTrackGame,
+  BT_BALLS,
   BT_CHECKPOINT_INTERVAL,
   BT_CHECKPOINT_KEYS,
   type BtCheckpoint,
@@ -48,6 +49,6 @@ export function replayBallTrackRun(course: BtCourse, seed: number, raw: string):
     lost: s.lost,
     released: s.next,
     actions: s.actions,
-    perfect: s.home === 8,
+    perfect: s.home === BT_BALLS,
   };
 }
