@@ -169,8 +169,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     const nextSel = selected.includes(index) ? selected.filter((i) => i !== index) : [...selected, index];
     const all = selections.map((sel, i) => (i === stage ? nextSel : sel));
     setSelections(all);
-    const matches = matchesOf(current);
-    if (nextSel.length === matches.length && matches.every((m) => nextSel.includes(m))) advance(all);
   };
 
   return (
@@ -212,7 +210,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
         disabled={frozen}
         className="tap-target mt-3 w-full shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
       >
-        {stage >= STAGE_COUNT - 1 ? "Submit" : "Next"}
+        Submit
       </button>
     </div>
   );

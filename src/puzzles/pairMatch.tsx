@@ -37,12 +37,12 @@ function CardFace({ card, size }: { card: PairCard; size: number }) {
   );
 }
 
-/** A 5×4 board (or a small example board) of face-down cards. */
+/** A 6×5 board (or a small example board) of face-down cards. */
 function Board({
   cards,
   faceUp,
   matched,
-  cols = 5,
+  cols = 6,
   glyph = 34,
   onCard,
   compact = false,
@@ -110,7 +110,7 @@ function IntroExample() {
           compact
         />
       </div>
-      <p className="text-center text-xs text-muted-foreground">Match all ten pairs.</p>
+      <p className="text-center text-xs text-muted-foreground">Match all fifteen pairs.</p>
     </div>
   );
 }
@@ -181,6 +181,8 @@ function Stage({
           cards={data.cards}
           faceUp={new Set(open)}
           matched={matched}
+          glyph={30}
+          compact
           onCard={open.length >= 2 ? undefined : tap}
         />
       </div>

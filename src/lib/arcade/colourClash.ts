@@ -13,7 +13,6 @@ import {
 export const CLASH_WORLD_W = 390;
 export const CLASH_WORLD_H = 560;
 export const CLASH_RUN_TICKS = 60 * TICKS_PER_SECOND;
-export const CLASH_DEMO_TICKS = 5 * TICKS_PER_SECOND;
 export const CLASH_INPUT_LANE = 5;
 export const CLASH_MOVE_LEFT = 0;
 export const CLASH_MOVE_RIGHT = 1;
@@ -89,9 +88,16 @@ function nextItem(state: ClashState, spawn: number): ClashState {
   let rng = state.rng;
   const draw = (bound: number) => { const result = rngBelow(rng, bound); rng = result.state; return result.value; };
   const gates = clashGatesAt(state, spawn);
-  const word = gates[draw(gates.length)]!;
-  let ink = gates[draw(gates.length)]!;
-  if (ink === word) ink = gates[(gates.indexOf(word) + 1 + draw(gates.length - 1)) % gates.length]!;
+  const rule = clashRuleAt(state, spawn);
+  // Never three in a row with the same correct gate colour, across rule swaps.
+  const answers = state.items.slice(-2).map((prev) => (clashRuleAt(state, prev.spawn) === 0 ? prev.ink : prev.word));
+  const banned = answers.length === 2 && answers[0] === answers[1] ? answers[0] : -1;
+  const answerPool = gates.filter((colour) => colour !== banned);
+  const answer = answerPool[draw(answerPool.length)]!;
+  const otherPool = gates.filter((colour) => colour !== answer);
+  const other = otherPool[draw(otherPool.length)]!;
+  const word = rule === 0 ? other : answer;
+  const ink = rule === 0 ? answer : other;
   const item = { spawn, word, ink, fallTicks: clashFallTicks(spawn) };
   return { ...state, rng, items: [...state.items, item], lane: Math.floor(clashLaneCount(spawn) / 2), itemY: START_Y, dropping: 0 };
 }
@@ -103,7 +109,7 @@ function init(seed: number): ClashState {
     rules: [0, 1, 2, 3].map((phase) => ({ tick: phase * 15 * TICKS_PER_SECOND, rule: (phase % 2) as 0 | 1 })),
     lane: 1, itemY: START_Y, dropping: 0, correct: 0, wrong: 0, missed: 0, ended: 0,
   };
-  return base;
+  return nextItem(base, 0);
 }
 
 function isOver(state: ClashState): boolean { return state.ended !== 0; }
@@ -123,7 +129,6 @@ function step(state: ClashState, input: ArcadeInputEvent | null): ClashState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
   let next: ClashState = { ...state, tick };
-  if (tick === CLASH_DEMO_TICKS) next = nextItem(next, tick);
   const item = next.items.at(-1);
   if (item && item.spawn <= tick) {
     const lanes = clashLaneCount(tick);
@@ -179,10 +184,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
     ctx.fillStyle = "#E9E9EF"; ctx.font = "bold 10px ui-monospace, monospace"; ctx.fillText(CLASH_NAMES[colour]!, left + (lane + 0.5) * laneW, 512);
   }
   const current = state.items.at(-1);
-  if (state.tick < CLASH_DEMO_TICKS) {
-    ctx.fillStyle = CLASH_COLOURS[0]; ctx.font = "bold 28px ui-sans-serif, sans-serif"; ctx.fillText("BLUE", 195, 210);
-    ctx.fillStyle = "#E9E9EF"; ctx.font = "bold 16px ui-monospace, monospace"; ctx.fillText("DEMO · MATCH THE RED INK", 195, 255);
-  } else if (current) {
+  if (current) {
     ctx.fillStyle = CLASH_COLOURS[current.ink]!; ctx.font = "bold 27px ui-sans-serif, sans-serif";
     ctx.fillText(CLASH_NAMES[current.word]!, left + (state.lane + 0.5) * laneW, state.itemY / FP);
   }
