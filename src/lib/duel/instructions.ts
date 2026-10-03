@@ -858,7 +858,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   balltrack: {
     goal: "Steer every ball into the tray of its colour.",
     how: [
-      { action: "A ball drops every 10 seconds.", detail: "Tap the gold-outlined tubes to rotate them and send each ball down the right branch." },
+      { action: "A ball drops every 10 seconds.", detail: "" },
+      { action: "Tap the gold-outlined tubes", detail: "to rotate them and send each ball down the right branch." },
     ],
     score: "Points per ball home; wrong trays cost you.",
   },
