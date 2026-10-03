@@ -92,16 +92,17 @@ function PipeBoard({ board, tiles, dropped, active, destroyed = [], exploded = [
     </div>
   );
 }
-const EXAMPLE: BtBoard = { cols: 3, rows: 3, tiles: "000100000", buckets: [2, 0, 1], bombs: [{ cell: 5, neighbour: 8 }], pairs: [], gates: [{ cell: 4, colour: 0 }] };
+const EXAMPLE: BtBoard = { cols: 3, rows: 3, tiles: "000100000", buckets: [2, 0, 1], bombs: [{ cell: 5, neighbour: 8 }], pairs: [], gates: [{ cell: 7, colour: 0 }] };
 
 function IntroExample() {
-  const [row, setRow] = useState(-1);
+  const [step, setStep] = useState(0);
+  const points = btDrop(EXAMPLE, EXAMPLE.tiles, [0]).runs[0]?.points ?? [];
   useEffect(() => {
-    const timer = setInterval(() => setRow((current) => current >= 3 ? -1 : current + 1), 450);
+    const timer = setInterval(() => setStep(current => (current + 1) % 8), STEP_MS * 2);
     return () => clearInterval(timer);
   }, []);
-  const column = row < 0 ? 0 : 1;
-  return <div className="mx-auto w-[150px]"><PipeBoard board={EXAMPLE} tiles={EXAMPLE.tiles} dropped={[1, 2]} active={row >= 0 && row <= 3 ? [{ ball: 0, point: { x: column + .5, y: row, angle: row * 60 } }] : []} small /></div>;
+  const point = points[step];
+  return <div className="mx-auto w-[150px]"><PipeBoard board={EXAMPLE} tiles={EXAMPLE.tiles} dropped={[1, 2]} active={point ? [{ ball: 0, point }] : []} small /></div>;
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {

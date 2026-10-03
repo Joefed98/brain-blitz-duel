@@ -858,7 +858,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   balltrack: {
     goal: "Drop every ball into its matching bucket.",
     how: [
-      { action: "Tap pipes to rotate them, then tap a ball to drop it.", detail: "Coloured rings let only their colour through, linked balls drop together, and bombs destroy the pipe next to them." },
+      { action: "Tap pipes to rotate them, then tap a ball to drop it.", detail: "" },
+      { action: "Coloured rings let only their colour through, linked balls drop together,", detail: "and bombs destroy the pipe next to them." },
     ],
     score: "All eight home scores big; the fewest rotations earns a bonus.",
   },
