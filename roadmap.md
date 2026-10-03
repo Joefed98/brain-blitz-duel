@@ -1,3 +1,8 @@
+## Ball Track 14-ball tuning and memory settings removal (Oct 4)
+- [ ] Swap rotatable/fixed tube colours and update Ball Track to 14 balanced seeded balls.
+- [ ] Regenerate 400 courses and run only Ball Track identity proof; no browser tests.
+- [ ] Remove stored memory room settings and memory draws, preserving practice games and maths/arcade options.
+
 ## Stop Watch, Chain, Whack, and Clay updates (Oct 2)
 
 - [x] Make Stop Watch 1–7 bounce, Watches 8–10 wrap, and count right-edge arrivals from 2 through 11.

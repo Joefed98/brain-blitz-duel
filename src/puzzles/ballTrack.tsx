@@ -43,7 +43,7 @@ function IntroExample() {
   const ball = [{ x: 50, y: -10 }, { x: 50, y: 50 }, { x: 150, y: 50 }, { x: 150, y: 150 }, { x: 50, y: 150 }, { x: 50, y: 150 }][step]!;
   const tube = (d: string, key: string, dark = false) => (
     <g key={key}>
-      <path d={d} fill="none" stroke={dark ? "#F5B82E" : "#6A7280"} strokeWidth="46" />
+      <path d={d} fill="none" stroke={dark ? "#6A7280" : "#F5B82E"} strokeWidth="46" />
       <path d={d} fill="none" stroke="#12161C" strokeWidth="40" />
     </g>
   );
