@@ -185,7 +185,7 @@ if (import.meta.main) {
         const col = btTraysAt(course, landed[id] ?? 0).indexOf(c);
         if (col !== target[id]) { target[id] = col; changed = true; }
       });
-      if (process.env.BT_DEBUG2) console.log("pass", pass, run.state.home, run.state.wrong, run.state.lost, changed);
+      if (process.env.BT_DEBUG2 && !changed) { console.log("shuffle", course.shuffle.tick, JSON.stringify(course.trays), JSON.stringify(course.shuffle.trays)); console.log(course.balls.map((c, id) => `${id}:c${c}->${target[id]}@${landed[id]}`).join(" ")); console.log(JSON.stringify(run.state.landings)); process.exit(0); }
       if (!changed) break;
       run = playRoutes(course, target.map((col) => routeTo(course, col)!));
     }
