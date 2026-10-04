@@ -1414,7 +1414,9 @@ const lightUpSummary: SummaryBuilder = (result, puzzle) => {
 const ballTrackSummary: SummaryBuilder = (result) => {
   const home = Number(result.extra?.["home"] ?? 0);
   const wrong = Number(result.extra?.["wrong"] ?? 0);
-  return { summary: `${home} / ${BT_BALLS} home · ${wrong} wrong`, detail: ["Same track for everyone"] };
+  const speed = Number(result.extra?.["speed"] ?? 0);
+  const tail = speed ? `+${speed} speed` : `${wrong} wrong`;
+  return { summary: `${home} / ${BT_BALLS} home · ${tail}`, detail: ["Same track for everyone"] };
 };
 
 const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {

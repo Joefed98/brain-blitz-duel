@@ -51,5 +51,6 @@ export function replayBallTrackRun(course: BtCourse, seed: number, raw: string):
     released: s.next,
     actions: s.actions,
     perfect: s.home === BT_BALLS,
+    speed: btSpeedBonus(s.home, s.lastLand),
   };
 }
