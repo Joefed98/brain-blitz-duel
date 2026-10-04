@@ -495,7 +495,6 @@ export interface BinTossCheckpointState {
   vx: number;
   vy: number;
   wind: number;
-  binX: number;
 }
 
 export interface BinTossCheckpoint extends BinTossCheckpointState {
@@ -514,7 +513,6 @@ export function binTossCheckpointState(state: BinTossState): BinTossCheckpointSt
     vx: state.vx,
     vy: state.vy,
     wind: state.winds[Math.min(state.throwIndex, BINTOSS_THROWS - 1)] ?? 0,
-    binX: binTossCentreAt(state, Math.min(state.throwIndex, BINTOSS_THROWS - 1), state.tick),
   };
 }
 
