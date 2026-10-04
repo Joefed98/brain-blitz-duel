@@ -77,6 +77,30 @@ export const WAV_SAUCER_R = 10;
 export const WAV_POINTS_SAUCER = 5;
 export const WAV_POINTS_WAVE = 15;
 
+/** Armour from wave 2: [cells covered, hits] by wave (wave 5's values hold after). */
+export const WAV_ARMOUR_BY_WAVE: readonly (readonly [number, number])[] = [
+  [4, 6],
+  [6, 8],
+  [8, 10],
+  [10, 12],
+];
+/** Shape code for a cell covered by the wave's armoured piece. */
+export const WAV_ARMOUR_CODE = 10;
+/** A perfect run through wave 5: every shape, every armour hit, all 3 saucers, 5 waves. */
+export const WAV_PAR = (() => {
+  let raw = WAV_SHAPES;
+  for (const [cells, hits] of WAV_ARMOUR_BY_WAVE) raw += WAV_SHAPES - cells + hits;
+  const saucers = Math.trunc((WAV_RUN_SECONDS * TICKS_PER_SECOND - 1) / (15 * TICKS_PER_SECOND));
+  return raw + WAV_POINTS_SAUCER * saucers + WAV_POINTS_WAVE * 5;
+})();
+
+export const WAV_PIERCE_SHOTS = 5;
+export const WAV_PIERCE_HITS = 3;
+const DROP_SPEED_FP = 4 * FP;
+const DROP_DELAY_MIN = 10;
+const DROP_DELAY_SPAN = 21;
+export const WAV_DROP_R = 8;
+
 export const WAV_INPUT_RANGES: readonly InputRange[] = [
   inputRange(ARCADE_INPUT_DRAG, [0, WAV_WORLD_W]),
 ];
@@ -86,6 +110,25 @@ export const WAV_INPUT_RANGES: readonly InputRange[] = [
 export interface WavBolt {
   x: number;
   y: number;
+  /** Piercing bolts: hits left (0/undefined = ordinary), and whether the armour was already struck. */
+  p?: number;
+  a?: number;
+}
+
+export interface WavArmour {
+  col: number;
+  row: number;
+  w: number;
+  h: number;
+  hp: number;
+  maxHp: number;
+}
+
+export interface WavDrop {
+  x: number;
+  y: number;
+  /** Ticks until it starts falling (seeded delay); hidden until then. */
+  wait: number;
 }
 
 export interface WavBurst {
@@ -127,8 +170,26 @@ export interface WavState {
   /** 0 running, 1 time up, 2 destroyed. */
   ended: number;
   endedTick: number;
+  armour: WavArmour | null;
+  armourHits: number;
+  drop: WavDrop | null;
+  /** Piercing shots left. */
+  pierce: number;
   /** Render only. */
   bursts: WavBurst[];
+}
+
+/** Lay the wave's armoured piece (2 rows × cells/2 columns) over seeded cells. */
+function placeArmour(rng: number, shapes: number[], wave: number): { rng: number; armour: WavArmour | null } {
+  if (wave < 2) return { rng, armour: null };
+  const spec = WAV_ARMOUR_BY_WAVE[Math.min(wave - 2, WAV_ARMOUR_BY_WAVE.length - 1)]!;
+  const h = 2;
+  const w = spec[0] / h;
+  const c = rngBelow(rng, WAV_COLS - w + 1);
+  const r = rngBelow(c.state, WAV_ROWS - h + 1);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) shapes[(r.value + y) * WAV_COLS + c.value + x] = WAV_ARMOUR_CODE;
+  return { rng: r.state, armour: { col: c.value, row: r.value, w, h, hp: spec[1], maxHp: spec[1] } };
 }
 
 function newShapes(rng: number): { rng: number; shapes: number[] } {
@@ -178,6 +239,10 @@ function init(seed: number): WavState {
     saucerDir: 0,
     ended: 0,
     endedTick: 0,
+    armour: null,
+    armourHits: 0,
+    drop: null,
+    pierce: 0,
     bursts: [],
   };
 }
@@ -201,6 +266,8 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     shapes: state.shapes.slice(),
     bolts: state.bolts.map((b) => ({ ...b })),
     reds: state.reds.map((b) => ({ ...b })),
+    armour: state.armour ? { ...state.armour } : null,
+    drop: state.drop ? { ...state.drop } : null,
     bursts: state.bursts.filter((b) => tick - b.t < 24),
   };
   if (input && input.k === ARCADE_INPUT_DRAG) s.aimX = clampInt(input.a, 0, WAV_WORLD_W);
@@ -233,7 +300,12 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
   // Ship fire.
   if (s.fireIn > 0) s.fireIn -= 1;
   if (s.fireIn <= 0 && s.bolts.length < WAV_MAX_BOLTS) {
-    s.bolts.push({ x: s.shipX * FP, y: (WAV_SHIP_Y - 14 - WAV_BOLT_H) * FP });
+    const bolt: WavBolt = { x: s.shipX * FP, y: (WAV_SHIP_Y - 14 - WAV_BOLT_H) * FP };
+    if (s.pierce > 0) {
+      bolt.p = WAV_PIERCE_HITS;
+      s.pierce -= 1;
+    }
+    s.bolts.push(bolt);
     s.fireIn = WAV_FIRE_EVERY;
   }
 
@@ -261,6 +333,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     for (let i = 0; i < WAV_SHAPES && !hit; i++) {
       const code = s.shapes[i] ?? 0;
       if (code === 0) continue;
+      if (code === WAV_ARMOUR_CODE && bolt.a) continue;
       const box = wavShapeBox(s, i);
       if (
         bolt.x + 2 * FP > box.x * FP &&
@@ -268,7 +341,27 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
         bolt.y < (box.y + WAV_CELL) * FP &&
         bolt.y + WAV_BOLT_H * FP > box.y * FP
       ) {
-        hit = true;
+        if (bolt.p) {
+          bolt.p -= 1;
+          if (bolt.p <= 0) hit = true;
+        } else hit = true;
+        if (code === WAV_ARMOUR_CODE && s.armour) {
+          bolt.a = 1;
+          s.armour.hp -= 1;
+          s.armourHits += 1;
+          if (s.armour.hp <= 0) {
+            for (let j = 0; j < WAV_SHAPES; j++) if (s.shapes[j] === WAV_ARMOUR_CODE) s.shapes[j] = 0;
+            const ab = wavShapeBox(s, s.armour.row * WAV_COLS + s.armour.col);
+            s.bursts.push({
+              x: ab.x + ((s.armour.w - 1) * PITCH_X + WAV_CELL) / 2,
+              y: ab.y + ((s.armour.h - 1) * PITCH_Y + WAV_CELL) / 2,
+              t: tick,
+              c: 4,
+            });
+            s.armour = null;
+          }
+          continue;
+        }
         s.shapes[i] = 0;
         s.shapesDown += 1;
         s.waveKills += 1;
@@ -287,6 +380,15 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
         hit = true;
         s.saucers += 1;
         s.bursts.push({ x: Math.trunc(s.saucerX / FP), y: SAUCER_Y, t: tick, c: 3 });
+        if (!s.drop) {
+          const delay = rngBelow(s.rng, DROP_DELAY_SPAN);
+          s.rng = delay.state;
+          s.drop = {
+            x: clampInt(Math.trunc(s.saucerX / FP), SHIP_MIN_X, SHIP_MAX_X) * FP,
+            y: SAUCER_Y * FP,
+            wait: DROP_DELAY_MIN + delay.value,
+          };
+        }
         s.saucerDir = 0;
         s.saucerX = 0;
       }
@@ -294,6 +396,21 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     if (!hit) kept.push(bolt);
   }
   s.bolts = kept;
+
+  // Power-up drop: waits its seeded delay, then falls straight down.
+  if (s.drop) {
+    if (s.drop.wait > 0) s.drop.wait -= 1;
+    else {
+      s.drop.y += DROP_SPEED_FP;
+      const caught =
+        Math.abs(s.drop.x - s.shipX * FP) < (WAV_SHIP_W / 2 + WAV_DROP_R) * FP &&
+        Math.abs(s.drop.y - WAV_SHIP_Y * FP) < (WAV_SHIP_H / 2 + WAV_DROP_R) * FP;
+      if (caught) {
+        s.pierce = WAV_PIERCE_SHOTS;
+        s.drop = null;
+      } else if (s.drop.y > WAV_WORLD_H * FP) s.drop = null;
+    }
+  }
 
   // Enemy fire from any shape in the lowest two occupied rows, chosen from the seed.
   s.redIn -= 1;
@@ -304,7 +421,8 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     });
     const shooters: number[] = [];
     s.shapes.forEach((code, i) => {
-      if (code !== 0 && Math.trunc(i / WAV_COLS) >= lowest - 1) shooters.push(i);
+      if (code !== 0 && code !== WAV_ARMOUR_CODE && Math.trunc(i / WAV_COLS) >= lowest - 1)
+        shooters.push(i);
     });
     let volley = 1;
     if (s.wave >= DOUBLE_FROM_WAVE) {
@@ -351,6 +469,9 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     const next = newShapes(s.rng);
     s.rng = next.rng;
     s.shapes = next.shapes;
+    const armour = placeArmour(s.rng, s.shapes, s.wave);
+    s.rng = armour.rng;
+    s.armour = armour.armour;
     s.fx = START_X;
     s.fy = Math.min(MAX_START_Y, START_Y + (s.wave - 1) * PITCH_Y);
     s.dir = 1;
@@ -379,13 +500,14 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
   return s;
 }
 
-export function wavScoreOf(shapesDown: number, saucers: number, waves: number): number {
-  const raw = shapesDown + WAV_POINTS_SAUCER * saucers + WAV_POINTS_WAVE * waves;
-  return clampInt(Math.floor((raw * 3) / 4), 0, 150);
+/** Achieved = shapes + armour hits + 5 per saucer + 15 per wave; par (wave 5 perfect) = 150. */
+export function wavScoreOf(shapesDown: number, saucers: number, waves: number, armourHits = 0): number {
+  const raw = shapesDown + armourHits + WAV_POINTS_SAUCER * saucers + WAV_POINTS_WAVE * waves;
+  return clampInt(Math.floor((150 * raw) / WAV_PAR), 0, 150);
 }
 
 function score(state: WavState): number {
-  return wavScoreOf(state.shapesDown, state.saucers, state.wavesCleared);
+  return wavScoreOf(state.shapesDown, state.saucers, state.wavesCleared, state.armourHits);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -411,6 +533,10 @@ export const WAV_CHECKPOINT_KEYS = [
   "saucerX",
   "redBase",
   "redSpeed",
+  "armourHp",
+  "armourHits",
+  "pierce",
+  "drop",
   "alive",
   "rng",
   "checksum",
@@ -435,6 +561,10 @@ export interface WavCheckpoint {
   saucerX: number;
   redBase: number;
   redSpeed: number;
+  armourHp: number;
+  armourHits: number;
+  pierce: number;
+  drop: number;
   alive: number;
   rng: number;
   checksum: number;
@@ -460,6 +590,10 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
     saucerX: state.saucerX,
     redBase: state.redBase,
     redSpeed: state.redSpeed,
+    armourHp: state.armour ? state.armour.hp : 0,
+    armourHits: state.armourHits,
+    pierce: state.pierce,
+    drop: state.drop ? state.drop.y : 0,
     alive: state.shapes.reduce((n, code) => (code ? n + 1 : n), 0),
     rng: state.rng | 0,
   };
@@ -469,7 +603,7 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
   for (const b of [...state.bolts, ...state.reds]) {
-    checksum ^= (b.x ^ Math.imul(b.y, 31)) | 0;
+    checksum ^= (b.x ^ Math.imul(b.y, 31) ^ ((b.p ?? 0) << 3)) | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
   return { ...snap, checksum };
@@ -554,6 +688,38 @@ export function drawStars(ctx: CanvasRenderingContext2D, w: number, h: number, s
   }
 }
 
+/** Grey plated block; one black crack per hit taken (render-only shapes, fixed per hit index). */
+function drawWavArmour(ctx: CanvasRenderingContext2D, state: WavState, a: WavArmour): void {
+  const box = wavShapeBox(state, a.row * WAV_COLS + a.col);
+  const w = (a.w - 1) * PITCH_X + WAV_CELL;
+  const h = (a.h - 1) * PITCH_Y + WAV_CELL;
+  ctx.fillStyle = "#9AA3B2";
+  ctx.fillRect(box.x, box.y, w, h);
+  ctx.strokeStyle = "#D8DDE5";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(box.x + 3, box.y + 3, w - 6, h - 6);
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 2;
+  const hits = a.maxHp - a.hp;
+  for (let k = 0; k < hits; k++) {
+    let v = Math.imul(k + 1, 2654435761) ^ (a.maxHp * 977);
+    const rnd = () => {
+      v = (Math.imul(v, 1103515245) + 12345) | 0;
+      return ((v >>> 8) % 1000) / 1000;
+    };
+    let x = box.x + rnd() * w;
+    let y = box.y;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    for (let seg = 0; seg < 4; seg++) {
+      x = Math.min(box.x + w, Math.max(box.x, x + (rnd() - 0.5) * w * 0.5));
+      y += h / 4;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
 function draw(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize): void {
   const scale = Math.min(size.width / WAV_WORLD_W, size.height / WAV_WORLD_H);
   const ox = (size.width - WAV_WORLD_W * scale) / 2;
@@ -566,12 +732,29 @@ function draw(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize):
   drawStars(ctx, WAV_WORLD_W, WAV_WORLD_H, 91);
 
   state.shapes.forEach((code, i) => {
-    if (code === 0) return;
+    if (code === 0 || code === WAV_ARMOUR_CODE) return;
     const box = wavShapeBox(state, i);
     const kind = Math.trunc((code - 1) / 3);
     const colour = WAV_COLOURS[(code - 1) % 3] ?? WAV_COLOURS[0]!;
     drawWavShape(ctx, kind, colour, box.x + WAV_CELL / 2, box.y + WAV_CELL / 2, WAV_CELL);
   });
+
+  if (state.armour) drawWavArmour(ctx, state, state.armour);
+
+  if (state.drop && state.drop.wait === 0) {
+    const dx = state.drop.x / FP;
+    const dy = state.drop.y / FP;
+    ctx.fillStyle = WAV_PURPLE;
+    ctx.beginPath();
+    ctx.moveTo(dx, dy - WAV_DROP_R);
+    ctx.lineTo(dx + WAV_DROP_R, dy);
+    ctx.lineTo(dx, dy + WAV_DROP_R);
+    ctx.lineTo(dx - WAV_DROP_R, dy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#F7F7F8";
+    ctx.fillRect(dx - 1, dy - 5, 2, 10);
+  }
 
   if (state.saucerDir !== 0) {
     ctx.strokeStyle = WAV_PURPLE;
@@ -581,12 +764,15 @@ function draw(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize):
     ctx.stroke();
   }
 
-  ctx.fillStyle = WAV_GOLD;
-  for (const b of state.bolts) ctx.fillRect(b.x / FP - WAV_BOLT_W / 2, b.y / FP, WAV_BOLT_W, WAV_BOLT_H);
+  for (const b of state.bolts) {
+    ctx.fillStyle = b.p ? WAV_PURPLE : WAV_GOLD;
+    const w = b.p ? WAV_BOLT_W + 2 : WAV_BOLT_W;
+    ctx.fillRect(b.x / FP - w / 2, b.y / FP - (b.p ? 6 : 0), w, WAV_BOLT_H + (b.p ? 6 : 0));
+  }
   ctx.fillStyle = WAV_RED;
   for (const b of state.reds) ctx.fillRect(b.x / FP - WAV_BOLT_W / 2, b.y / FP, WAV_BOLT_W, WAV_BOLT_H);
 
-  drawBursts(ctx, state.bursts, state.tick, [...WAV_COLOURS, WAV_PURPLE]);
+  drawBursts(ctx, state.bursts, state.tick, [...WAV_COLOURS, WAV_PURPLE, "#9AA3B2"]);
 
   const flashing = state.invuln > 0 && state.tick % 8 < 4;
   if (!flashing && state.ended !== 2) drawWavShip(ctx, state.shipX, WAV_SHIP_Y, WAV_SHIP_W);
@@ -609,6 +795,10 @@ function draw(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize):
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`Wave ${state.wave} · ${score(state)}`, 14, 14);
+  if (state.pierce > 0) {
+    ctx.fillStyle = WAV_PURPLE;
+    ctx.fillText(`Laser ×${state.pierce}`, 14, 34);
+  }
   for (let i = 0; i < WAV_LIVES; i++) {
     ctx.globalAlpha = i < state.lives ? 1 : 0.2;
     drawWavShip(ctx, WAV_WORLD_W - 24 - i * 26, 22, 18);
