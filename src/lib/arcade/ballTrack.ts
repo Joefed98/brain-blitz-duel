@@ -10,9 +10,11 @@ import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 
 export const BT_COLS = 7;
 export const BT_ROWS = 9;
-export const BT_BALLS = 25;
-export const BT_COLOURS = 5;
-export const BT_STEP_TICKS = 12;
+export const BT_BALLS = 20;
+export const BT_COLOURS = 4;
+export const BT_STEP_TICKS = 14;
+/** Tray colours slide to their shuffled columns over this many ticks (~0.5 s). */
+export const BT_SHUFFLE_TICKS = 30;
 export const BT_DROP_TICKS = 120; // a ball every 2 s
 export const BT_RUN_TICKS = 3600; // 60 s
 export const BT_HOPPER_COL = 3;
@@ -23,9 +25,9 @@ export const BT_K_ROTATE = 12;
 /** Side bits. */
 export const N = 1, E = 2, S = 4, W = 8;
 
-/** Game palette: RED, BLUE, GREEN, PURPLE, YELLOW. */
-export const BT_PALETTE = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#B26BFF", "#FFE600"] as const;
-export const BT_COLOUR_NAMES = ["Red", "Blue", "Green", "Purple", "Yellow"] as const;
+/** Game palette: RED, BLUE, GREEN, YELLOW. */
+export const BT_PALETTE = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#FFE600"] as const;
+export const BT_COLOUR_NAMES = ["Red", "Blue", "Green", "Yellow"] as const;
 
 /* ================================ Track ================================= */
 
@@ -42,7 +44,7 @@ for (let r = 0; r < BT_ROWS; r++)
     const end = d > 0 ? BT_COLS - 1 : 0;
     const onRow = d > 0 ? c >= start : c <= start;
     let kind = onRow ? 1 : 0, mask = 0;
-    if (r === BT_ROWS - 1) { kind = c === end ? 2 : 1; mask = c === end ? W | S : 0; }
+    if (r === BT_ROWS - 1) { kind = c === 0 ? 2 : 1; mask = c === 0 ? N | E : 0; } // entry corner + six fixed straights
     else if (onRow && c === start) { kind = 2; mask = N | (d > 0 ? E : W); }
     else if (onRow && c === end && r < BT_ROWS - 1) { kind = 2; mask = S | (d > 0 ? W : E); }
     BT_KIND.push(kind);
@@ -54,8 +56,10 @@ export const BT_ALWAYS_FIXED = Array.from({ length: 6 }, (_, r) => r * BT_COLS +
 /* ================================ Course ================================ */
 
 export interface BtCourse {
-  /** Colour per bottom column (7), -1 = pit. */
+  /** Colour per bottom column (7), -1 = no drop. */
   trays: number[];
+  /** Seeded mid-round tray shuffle: from `tick` the drop columns hold `trays` instead. */
+  shuffle: { tick: number; trays: number[] };
   /** Ball colours in drop order. */
   balls: number[];
   /** Seeded extra fixed straights (rows 1–8; bottom row is always fixed). */
@@ -69,12 +73,17 @@ export function btRotatable(course: BtCourse): number[] {
 }
 
 const PIT = -2;
+
+/** Tray colours live at tick `t` (the drop columns never move, only their colours). */
+export function btTraysAt(course: BtCourse, t: number): number[] {
+  return t >= course.shuffle.tick ? course.shuffle.trays : course.trays;
+}
 const SLOT = 100;
 
 /** Next cell for a ball in `cell` (arrived from above if `fromAbove`): neighbour, SLOT + column, or PIT. */
 export function btNext(cell: number, fromAbove: boolean, vertical: boolean, course?: BtCourse): { cell: number; fromAbove: boolean } {
   const r = Math.floor(cell / BT_COLS), c = cell % BT_COLS;
-  const down = r === BT_ROWS - 1 ? (course?.trays[c] ?? -1) >= 0 || c === BT_COLS - 1 : BT_KIND[cell] === 2 ? !fromAbove : vertical;
+  const down = r === BT_ROWS - 1 ? c > 0 && (course?.trays[c] ?? -1) >= 0 : BT_KIND[cell] === 2 ? !fromAbove : vertical;
   if (down) return r === BT_ROWS - 1 ? { cell: SLOT + c, fromAbove: true } : { cell: cell + BT_COLS, fromAbove: true };
   const nc = c + rowDir(r);
   if (nc < 0 || nc >= BT_COLS) return { cell: PIT, fromAbove: false };
@@ -151,7 +160,7 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
     if (t < ball.at) continue;
     if (ball.cell >= SLOT) {
       const col = ball.cell - SLOT;
-      const tray = course.trays[col]!;
+      const tray = btTraysAt(course, t)[col]!;
       if (tray === ball.colour) s.home++;
       else if (tray < 0) s.lost++;
       else s.wrong++;
@@ -287,22 +296,27 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
       ctx.stroke();
     }
   }
-  // Trays and pits.
+  // Trays: after the shuffle each colour flashes and slides from its old column to its new one.
   const trayY = gridY + BT_ROWS * BT_TILE + 6;
-  course.trays.forEach((tray, col) => {
+  const since = s.tick - course.shuffle.tick;
+  const k = since < 0 ? 0 : Math.min(1, since / BT_SHUFFLE_TICKS);
+  const ease = k * k * (3 - 2 * k);
+  const shuffleFlash = since >= 0 && since < BT_SHUFFLE_TICKS + 20 && Math.floor(since / 5) % 2 === 0;
+  const now = btTraysAt(course, s.tick);
+  course.trays.forEach((tray, from) => {
+    if (tray < 0) return;
+    const to = since >= 0 ? course.shuffle.trays.indexOf(tray) : from;
+    const col = from + (to - from) * ease;
     const x = col * BT_TILE + 6, w = BT_TILE - 12, h = BT_TRAY_H - 10;
-    const flash = s.landings.some((m) => m.cell === col && s.tick - m.tick < 30);
-    if (tray < 0) {
-      // No tray below a non-drop column.
-    } else {
-      ctx.globalAlpha = flash ? 0.6 : 0.22;
-      ctx.fillStyle = BT_PALETTE[tray]!;
-      ctx.fillRect(x, trayY, w, h);
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = BT_PALETTE[tray]!;
-      ctx.lineWidth = 4;
-      ctx.strokeRect(x, trayY, w, h);
-    }
+    const landed = now.indexOf(tray);
+    const flash = shuffleFlash || s.landings.some((m) => m.cell === landed && s.tick - m.tick < 30);
+    ctx.globalAlpha = flash ? 0.6 : 0.22;
+    ctx.fillStyle = BT_PALETTE[tray]!;
+    ctx.fillRect(x, trayY, w, h);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = shuffleFlash ? "#FFFFFF" : BT_PALETTE[tray]!;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(x, trayY, w, h);
   });
   // Lost balls fade where they fell.
   for (const m of s.falls) {

@@ -1,7 +1,7 @@
 /**
  * Ball Track bank: 400 courses over the fixed serpentine.
  *   bun scripts/ball-track-bank.ts
- * Seeds only tray order, ball order and 8–10 upper fixed straights and sparse lower rotatables. Every tray
+ * Seeds tray columns/order, the mid-round tray shuffle, ball order and 8–10 upper fixed straights and sparse lower rotatables. Every tray
  * must be reachable from the all-horizontal start, and a just-in-time playbook
  * (each tile set for the next ball due through it) must route every ball home in the
  * real sim; seeds that fail are rerolled.
@@ -10,6 +10,7 @@ import { writeFileSync } from "node:fs";
 import { encodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
   btNext,
+  btTraysAt,
   btRotatable,
   makeBallTrackGame,
   BT_ALWAYS_FIXED,
@@ -23,7 +24,7 @@ import {
   type BtCourse,
 } from "../src/lib/arcade/ballTrack";
 
-const TARGET = 400;
+const TARGET = Number(process.env.BT_TARGET ?? 400);
 
 let seed = 0x5eed_ba11;
 const rnd = (n: number) => {
@@ -95,14 +96,26 @@ export function hasLowerShortcut(course: BtCourse): boolean {
 }
 
 function makeCourse(): BtCourse {
-  const cols = shuffle([0, 1, 2, 3, 4, 5]);
-  const colours = shuffle([0, 1, 2, 3, 4]);
+  // Row 9: entry corner in column 1, then four drops and two horizontals in seeded columns 2–7.
+  const cols = shuffle([1, 2, 3, 4, 5, 6]).slice(0, BT_COLOURS).sort((a, b) => a - b);
+  const colours = shuffle([0, 1, 2, 3]);
   const trays = Array.from({ length: BT_COLS }, () => -1);
   colours.forEach((c, i) => (trays[cols[i]!] = c));
-  // Four balls per colour, shuffled deterministically; triple runs are rerolled below.
+  // Mid-round shuffle: a seeded derangement (every tray changes colour) with 40–20 s left.
+  let order: number[];
+  do order = shuffle([...colours]); while (order.some((c, i) => c === colours[i]));
+  const after = Array.from({ length: BT_COLS }, () => -1);
+  order.forEach((c, i) => (after[cols[i]!] = c));
+  const shuffleAt = { tick: 1200 + rnd(1201), trays: after };
+  // Five balls per colour, shuffled deterministically; triple runs are rerolled below.
   const balls = shuffle(Array.from({ length: BT_BALLS }, (_, i) => i % BT_COLOURS));
   const fixed = seededFixed();
-  return { trays, balls, fixed };
+  return { trays, shuffle: shuffleAt, balls, fixed };
+}
+
+/** Landing tick per ball when every ball follows the route to its target column. */
+function landingTicks(course: BtCourse, target: number[]): number[] {
+  return playRoutes(course, target.map((col) => routeTo(course, col)!)).landed;
 }
 
 /** Just-in-time playbook: each tick toggle the mismatched tile whose next ball is closest to it. */
@@ -110,6 +123,7 @@ export function playRoutes(course: BtCourse, routes: { cell: number; vert: numbe
   const game = makeBallTrackGame(course);
   let state = game.init(1);
   const log: ArcadeInputEvent[] = [];
+  const landed: number[] = [];
   while (!game.isOver(state)) {
     const t = state.tick + 1;
     // Progress of each ball along its route (index of the tile it's in; -1 hopper/undropped).
@@ -134,24 +148,38 @@ export function playRoutes(course: BtCourse, routes: { cell: number; vert: numbe
       for (let i = 0; i <= progress[id]! && i < route.length; i++) if (state.balls.some((b) => b.id === id && b.cell === route[i]!.cell)) claimed.add(route[i]!.cell);
     }
     if (best) recordInput(log, { k: BT_K_ROTATE, a: best.cell, b: 0, c: 0, d: 0, t }, game.inputRanges);
+    const before = state.balls.map((b) => b.id);
     state = game.step(state, inputAt(log, t));
+    for (const id of before) if (!state.balls.some((b) => b.id === id)) landed[id] = state.tick;
   }
-  return { state, log };
+  return { state, log, landed };
 }
 
 if (import.meta.main) {
   const entries: { course: BtCourse; tier: number; par: number; endTick: number; playbook: string }[] = [];
   let tries = 0;
+  const stats = { short: 0, fail: 0, best: 0 };
   while (entries.length < TARGET) {
     tries++;
     if (tries > 100_000) throw Error("Course constraints exhausted");
     const course = makeCourse();
     if (course.balls.some((b, i) => i >= 2 && b === course.balls[i - 1] && b === course.balls[i - 2])) continue;
-    if (hasLowerShortcut(course)) continue;
+    if (hasLowerShortcut(course)) { stats.short++; continue; }
     if (!course.trays.every((tray, col) => tray < 0 || routeTo(course, col))) continue;
-    const routes = course.balls.map((c) => routeTo(course, course.trays.indexOf(c))!);
-    const run = playRoutes(course, routes);
-    if (run.state.home !== BT_BALLS) continue;
+    // Aim each ball at the column its colour occupies when it lands; re-aim after each trial run.
+    const target = course.balls.map((c) => course.trays.indexOf(c));
+    let run = playRoutes(course, target.map((col) => routeTo(course, col)!));
+    for (let pass = 0; pass < 8 && run.state.home !== BT_BALLS; pass++) {
+      const landed = landingTicks(course, target);
+      let changed = false;
+      course.balls.forEach((c, id) => {
+        const col = btTraysAt(course, landed[id] ?? 0).indexOf(c);
+        if (col !== target[id]) { target[id] = col; changed = true; }
+      });
+      if (!changed) break;
+      run = playRoutes(course, target.map((col) => routeTo(course, col)!));
+    }
+    if (run.state.home !== BT_BALLS) { stats.fail++; stats.best = Math.max(stats.best, run.state.home); continue; }
     const par = run.state.actions;
     entries.push({ course, tier: par < 20 ? 1 : par < 30 ? 2 : 3, par, endTick: run.state.lastLand, playbook: encodeInputEvents(run.log) });
   }
