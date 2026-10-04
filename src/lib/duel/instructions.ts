@@ -497,7 +497,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hit anything", detail: "and the run ends." },
       { action: "Everyone flies", detail: "the same course for sixty seconds." },
     ],
-    score: "45 gates in the run; 2 per gate, and all 45 = 100.",
+    score: "Gates passed ÷ total gates × 100.",
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",
@@ -574,7 +574,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         action: "After each crossing",
         detail: "you get a second on the kerb before the next one.",
       },
-      { action: "Three lives", detail: "a hit costs one and restarts you on that lane after a second." },
+      { action: "Three lives", detail: "a hit costs one and restarts you on the start lane of this crossing after a second." },
     ],
     score: "4 per lane advanced, +4 per crossing, +8 more for a clean crossing with no hits, up to 150.",
   },
@@ -651,10 +651,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a lane", detail: "as its note reaches the line." },
       { action: "Closer is better", detail: "— perfect, good, or just OK." },
       { action: "A tap with no note", detail: "costs nothing." },
-      { action: "Notes with a tail are holds", detail: "— tap the head and keep your finger down to the end; letting go early is Good at best." },
+      { action: "Notes with a tail are holds", detail: "— press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss." },
       { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 — a miss resets it." },
     ],
-    score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150. A finished hold counts as its tap.",
+    score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150. Holds score only after both ends are judged; mistimed releases miss the whole note.",
   },
   ricochet: {
     goal: "Climb the shaft by leaping wall to wall.",
@@ -766,10 +766,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   burst: {
     goal: "Pop every ball — big ones split into smaller ones.",
     how: [
-      { action: "Put your finger on the bottom bar and the figure sits right under it (or use the arrows),", detail: "tap the arena or FIRE to shoot straight up." },
+      { action: "Hold ◀ or ▶ to move,", detail: "tap the arena or FIRE to shoot straight up." },
       { action: "Pop a purple ball and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
       { action: "Blue balls sometimes drop a teal SHIELD", detail: "— it takes the next hit for you." },
-      { action: "Don't let a ball touch you", detail: "— three touches and you're out." },
+      { action: "Don't let a ball touch you", detail: "— two touches and you're out." },
     ],
     score: "2 per ball popped or split, −9 per life lost. Clear four waves without losing a life for 150.",
   },
@@ -804,7 +804,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Roll the ball out of the maze.",
     how: [
       { action: "Drag left or right to spin the maze", detail: "— the ball always rolls down." },
-      { action: "Each escape brings a harder maze.", detail: "Red pits end the run." },
+      { action: "Each escape brings a harder maze.", detail: "Red spikes end the run." },
       { action: "You have 90 seconds.", detail: "" },
     ],
     score: "30 per maze completed (ball out through the exit) — five completed = 150.",

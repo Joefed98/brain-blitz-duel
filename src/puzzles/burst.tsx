@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useRef } from "react";
 
-import { Button } from "@/components/ui/button";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 
 import {
@@ -13,7 +12,6 @@ import {
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
-  BURST_MOVE_SNAP,
   BURST_TEAL,
   BURST_WORLD_W,
   type BurstState,
@@ -42,27 +40,11 @@ function IntroExample() {
   );
 }
 
-/** Same device setting as Bastion's arrows. */
-const ARROWS_KEY = "duelz-bastion-arrows";
-
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BurstPuzzleData | null = puzzle.type === "burst" ? puzzle : null;
-  const [arrows, setArrows] = useState(false);
-  const arrowsRef = useRef(false);
-  arrowsRef.current = arrows;
   const fireFlip = useRef(0);
   /** Arrow press/release waiting to be sent: −1/1 = head for a wall, 0 = stop here. */
   const arrowEdge = useRef<number | null>(null);
-
-  useEffect(() => {
-    setArrows(window.localStorage.getItem(ARROWS_KEY) === "1");
-  }, []);
-
-  const toggle = () => {
-    const next = !arrows;
-    setArrows(next);
-    window.localStorage.setItem(ARROWS_KEY, next ? "1" : "0");
-  };
 
   const tickInput = (state: BurstState): PointerPayload | null => {
     const edge = arrowEdge.current;
@@ -72,11 +54,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { k: BURST_INPUT_MOVE, a, b: 0, c: 0 };
   };
 
-  const holdStart = (dir: -1 | 1) => (e: PointerEvent<HTMLButtonElement>) => {
-      if (arrowsRef.current) arrowEdge.current = dir;
-      else dragBar(e);
-  };
-  const holdEnd = () => { if (arrowsRef.current) arrowEdge.current = 0; };
+  const holdStart = (dir: -1 | 1) => () => { arrowEdge.current = dir; };
+  const holdEnd = () => { arrowEdge.current = 0; };
 
   const fire = (): PointerPayload => {
     fireFlip.current ^= 1;
@@ -93,22 +72,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return tickInput(state);
   };
 
-  const bar = useRef<HTMLDivElement | null>(null);
-  const dragBar = (e: PointerEvent<HTMLButtonElement | HTMLDivElement>) => {
-    const rect = bar.current?.getBoundingClientRect();
-    if (!rect || arrowsRef.current) return;
-    arrowEdge.current = null;
-    const x = Math.max(0, Math.min(BURST_WORLD_W, Math.round(((e.clientX - rect.left) / rect.width) * BURST_WORLD_W)));
-    // The same world-unit movement event used by the arena.
-    // c = 1: the figure sits exactly under the finger (1:1 follow).
-    barMove.current = { k: BURST_INPUT_MOVE, a: x, b: 0, c: BURST_MOVE_SNAP };
-  };
-  const barMove = useRef<PointerPayload | null>(null);
-  const tickWithBar = (state: BurstState) => {
-    const move = barMove.current;
-    barMove.current = null;
-    return tickAll(state) ?? move;
-  };
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-2">
     <ArcadeCanvasStage
@@ -124,24 +87,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       checkpoint={burstCheckpoint}
       interval={BURST_CHECKPOINT_INTERVAL}
       encodeRun={encodeBurstRun}
-      tickInput={tickWithBar}
+      tickInput={tickAll}
       pointer={(kind) => kind === "down" ? fire() : null}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
-      overlay={
-        <>
-          <Button
-            type="button"
-            onClick={toggle}
-            className={`absolute right-2 top-12 rounded-full border px-3 py-1 text-xs font-semibold ${arrows ? "border-primary bg-primary text-primary-foreground" : "border-primary/60 bg-background/50 text-primary"}`}
-            aria-pressed={arrows}
-          >
-            Arrows
-          </Button>
-        </>
-      }
     />
-    <div ref={bar} className="grid h-[72px] shrink-0 touch-none select-none grid-cols-3 items-center gap-3 bg-background/60" onPointerDown={(e) => { if (e.target === e.currentTarget && !locked) { e.currentTarget.setPointerCapture(e.pointerId); dragBar(e); } }} onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId) && !locked) dragBar(e); }}>
+    <div className="grid h-[72px] shrink-0 touch-none select-none grid-cols-3 items-center gap-3 bg-background/60">
       <ArcadeControlButton type="button" aria-label="Move left" disabled={locked} className="h-14 w-full border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary before:content-['◀'] active:bg-primary/30" onPressStart={holdStart(-1)} onPressEnd={holdEnd} />
       <ArcadeControlButton type="button" aria-label="Fire" disabled={locked} className="h-14 w-full p-0 text-xs font-bold before:content-['FIRE']" onPressStart={() => { firePending.current = true; }} />
       <ArcadeControlButton type="button" aria-label="Move right" disabled={locked} className="h-14 w-full border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary before:content-['▶'] active:bg-primary/30" onPressStart={holdStart(1)} onPressEnd={holdEnd} />

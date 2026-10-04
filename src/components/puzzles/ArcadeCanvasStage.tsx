@@ -31,6 +31,8 @@ interface Props<S, C> {
   locked: boolean;
   worldW: number;
   worldH: number;
+  /** Opt in when the renderer must preserve circular geometry in screen pixels. */
+  renderAtCanvasSize?: boolean;
   game: ArcadeGame<S, ArcadeInputEvent | null>;
   checkpoint: (state: S) => C;
   interval: number;
@@ -173,8 +175,12 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
         if (ctx) {
           const { worldW, worldH } = propsRef.current;
           ctx.save();
-          ctx.scale(size.width / worldW, size.height / worldH);
-          game.draw(ctx, state.current, { width: worldW, height: worldH });
+          if (propsRef.current.renderAtCanvasSize) {
+            game.draw(ctx, state.current, size);
+          } else {
+            ctx.scale(size.width / worldW, size.height / worldH);
+            game.draw(ctx, state.current, { width: worldW, height: worldH });
+          }
           ctx.restore();
         }
       }

@@ -1,7 +1,7 @@
 /**
  * Matchup — an arcade game on the shared engine.
  *
- * A 7×7 board of six symbols. A swap that makes a line of three or more clears
+ * A 7×8 board of six symbols. A swap that makes a line of three or more clears
  * it, everything above falls, and new symbols enter from the top. Refills never
  * draw fresh randomness during play: every column has a fixed queue built at
  * init, so the whole room sees the identical board and the identical incoming
@@ -32,7 +32,8 @@ export const MATCHUP_RUN_SECONDS = 60;
 export const MATCHUP_RUN_TICKS = MATCHUP_RUN_SECONDS * TICKS_PER_SECOND;
 
 export const MATCHUP_SIZE = 7;
-export const MATCHUP_CELLS = MATCHUP_SIZE * MATCHUP_SIZE;
+export const MATCHUP_ROWS = 8;
+export const MATCHUP_CELLS = MATCHUP_SIZE * MATCHUP_ROWS;
 export const MATCHUP_KINDS = 6;
 export const MATCHUP_BOMB = 6;
 export const MATCHUP_CROSS = 7;
@@ -45,6 +46,7 @@ export const MATCHUP_PAR_RAW = 2000;
 export const MATCHUP_CELL_PX = 50;
 export const MATCHUP_SYMBOL_PCT = 70;
 export const MATCHUP_BOARD_W = MATCHUP_SIZE * MATCHUP_CELL_PX;
+export const MATCHUP_BOARD_H = MATCHUP_ROWS * MATCHUP_CELL_PX;
 export const MATCHUP_BOARD_X = Math.round((MATCHUP_WORLD_W - MATCHUP_BOARD_W) / 2);
 export const MATCHUP_BOARD_Y = 100;
 /** The next-symbol strip: the board's width, 6 px above the board. */
@@ -52,7 +54,7 @@ export const MATCHUP_NEXT_H = 34;
 export const MATCHUP_NEXT_Y = MATCHUP_BOARD_Y - 6 - MATCHUP_NEXT_H;
 
 /** Fixed refill queue per column, built once at init. */
-export const MATCHUP_QUEUE_LEN = 60;
+export const MATCHUP_QUEUE_LEN = 70;
 
 /** Line length to points: 3 = 10, 4 = 25, 5 or more = 50. */
 export function matchupLinePoints(length: number): number {
@@ -70,9 +72,9 @@ export const MATCHUP_INPUT_SWAP = 3;
 export const MATCHUP_INPUT_RANGES: readonly InputRange[] = [
   inputRange(
     MATCHUP_INPUT_SWAP,
+    [0, MATCHUP_ROWS - 1],
     [0, MATCHUP_SIZE - 1],
-    [0, MATCHUP_SIZE - 1],
-    [0, MATCHUP_SIZE - 1],
+    [0, MATCHUP_ROWS - 1],
     [0, MATCHUP_SIZE - 1],
   ),
 ];
@@ -132,7 +134,7 @@ export function matchupRuns(cells: readonly number[]): MatchupRun[] {
       runs.push({ cells: group, length: group.length, points: matchupLinePoints(group.length) });
     }
   };
-  for (let row = 0; row < MATCHUP_SIZE; row++) {
+  for (let row = 0; row < MATCHUP_ROWS; row++) {
     let group: number[] = [];
     for (let col = 0; col < MATCHUP_SIZE; col++) {
       const index = matchupIndex(row, col);
@@ -149,7 +151,7 @@ export function matchupRuns(cells: readonly number[]): MatchupRun[] {
   }
   for (let col = 0; col < MATCHUP_SIZE; col++) {
     let group: number[] = [];
-    for (let row = 0; row < MATCHUP_SIZE; row++) {
+    for (let row = 0; row < MATCHUP_ROWS; row++) {
       const index = matchupIndex(row, col);
       const lastIndex = group.length > 0 ? group[group.length - 1] : undefined;
       const previous = lastIndex === undefined ? -1 : (cells[lastIndex] ?? -1);
@@ -197,13 +199,13 @@ export function matchupFindSwap(cells: readonly number[]): MatchupSwap | null {
     board[b] = bv;
     return made ? { row1, col1, row2, col2 } : null;
   };
-  for (let row = 0; row < MATCHUP_SIZE; row++) {
+  for (let row = 0; row < MATCHUP_ROWS; row++) {
     for (let col = 0; col < MATCHUP_SIZE; col++) {
       if (col + 1 < MATCHUP_SIZE) {
         const found = test(row, col, row, col + 1);
         if (found) return found;
       }
-      if (row + 1 < MATCHUP_SIZE) {
+      if (row + 1 < MATCHUP_ROWS) {
         const found = test(row, col, row + 1, col);
         if (found) return found;
       }
@@ -356,20 +358,20 @@ function addBlast(index: number, kind: number, gone: Set<number>): number {
     }
   };
   if (kind === MATCHUP_BOMB) {
-    for (let r = Math.max(0, row - 1); r <= Math.min(MATCHUP_SIZE - 1, row + 1); r++) {
+    for (let r = Math.max(0, row - 1); r <= Math.min(MATCHUP_ROWS - 1, row + 1); r++) {
       for (let c = Math.max(0, col - 1); c <= Math.min(MATCHUP_SIZE - 1, col + 1); c++) {
         add(matchupIndex(r, c));
       }
     }
   } else if (kind === MATCHUP_CROSS) {
     for (let c = 0; c < MATCHUP_SIZE; c++) add(matchupIndex(row, c));
-    for (let r = 0; r < MATCHUP_SIZE; r++) add(matchupIndex(r, col));
+    for (let r = 0; r < MATCHUP_ROWS; r++) add(matchupIndex(r, col));
   } else if (kind === MATCHUP_STAR) {
     for (let d = -(MATCHUP_SIZE - 1); d <= MATCHUP_SIZE - 1; d++) {
       const r1 = row + d;
       const c1 = col + d;
       const c2 = col - d;
-      if (r1 < 0 || r1 >= MATCHUP_SIZE) continue;
+      if (r1 < 0 || r1 >= MATCHUP_ROWS) continue;
       if (c1 >= 0 && c1 < MATCHUP_SIZE) add(matchupIndex(r1, c1));
       if (c2 >= 0 && c2 < MATCHUP_SIZE) add(matchupIndex(r1, c2));
     }
@@ -416,13 +418,13 @@ function fallAndRefill(
   const moves: MatchupAnimMove[] = [];
   for (let col = 0; col < MATCHUP_SIZE; col++) {
     const kept: { kind: number; row: number }[] = [];
-    for (let row = MATCHUP_SIZE - 1; row >= 0; row--) {
+    for (let row = MATCHUP_ROWS - 1; row >= 0; row--) {
       const index = matchupIndex(row, col);
       if (!gone.has(index)) kept.push({ kind: cells[index] ?? 0, row });
     }
     const queue = queues[col] ?? [];
-    for (let row = MATCHUP_SIZE - 1; row >= 0; row--) {
-      const depth = MATCHUP_SIZE - 1 - row;
+    for (let row = MATCHUP_ROWS - 1; row >= 0; row--) {
+      const depth = MATCHUP_ROWS - 1 - row;
       const target = matchupIndex(row, col);
       if (depth < kept.length) {
         const item = kept[depth];
@@ -569,9 +571,9 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
   const tick = state.tick + 1;
 
   if (input && input.k === MATCHUP_INPUT_SWAP) {
-    const row1 = clampInt(input.a, 0, MATCHUP_SIZE - 1);
+    const row1 = clampInt(input.a, 0, MATCHUP_ROWS - 1);
     const col1 = clampInt(input.b, 0, MATCHUP_SIZE - 1);
-    const row2 = clampInt(input.c, 0, MATCHUP_SIZE - 1);
+    const row2 = clampInt(input.c, 0, MATCHUP_ROWS - 1);
     const col2 = clampInt(input.d, 0, MATCHUP_SIZE - 1);
     if (adjacent(row1, col1, row2, col2)) {
       const a = matchupIndex(row1, col1);
@@ -728,7 +730,7 @@ export function matchupCellAt(
   const wy = (y - offsetY) / divisor - MATCHUP_BOARD_Y;
   const col = Math.floor(wx / MATCHUP_CELL_PX);
   const row = Math.floor(wy / MATCHUP_CELL_PX);
-  if (row < 0 || col < 0 || row >= MATCHUP_SIZE || col >= MATCHUP_SIZE) return null;
+  if (row < 0 || col < 0 || row >= MATCHUP_ROWS || col >= MATCHUP_SIZE) return null;
   return { row, col };
 }
 
@@ -880,7 +882,7 @@ function cellCentre(row: number, col: number): { x: number; y: number } {
 }
 
 function drawGrid(ctx: CanvasRenderingContext2D): void {
-  for (let row = 0; row < MATCHUP_SIZE; row++) {
+  for (let row = 0; row < MATCHUP_ROWS; row++) {
     for (let col = 0; col < MATCHUP_SIZE; col++) {
       const x = MATCHUP_BOARD_X + col * MATCHUP_CELL_PX;
       const y = MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX;
@@ -911,7 +913,7 @@ function drawNextStrip(ctx: CanvasRenderingContext2D, state: MatchupState): void
 function drawSettledBoard(ctx: CanvasRenderingContext2D, cells: readonly number[]): void {
   const radius = (MATCHUP_CELL_PX * MATCHUP_SYMBOL_PCT) / 200;
   drawGrid(ctx);
-  for (let row = 0; row < MATCHUP_SIZE; row++) {
+  for (let row = 0; row < MATCHUP_ROWS; row++) {
     for (let col = 0; col < MATCHUP_SIZE; col++) {
       const index = matchupIndex(row, col);
       const { x, y } = cellCentre(row, col);
@@ -964,7 +966,7 @@ function drawDetonations(
       const spread = MATCHUP_CELL_PX * (0.5 + progress * MATCHUP_SIZE);
       ctx.fillStyle = "rgba(245, 184, 46, 0.18)";
       ctx.fillRect(MATCHUP_BOARD_X, y - 3, MATCHUP_BOARD_W, 6);
-      ctx.fillRect(x - 3, MATCHUP_BOARD_Y, 6, MATCHUP_BOARD_W);
+      ctx.fillRect(x - 3, MATCHUP_BOARD_Y, 6, MATCHUP_BOARD_H);
       ctx.beginPath();
       ctx.moveTo(x - spread, y);
       ctx.lineTo(x + spread, y);
@@ -999,7 +1001,7 @@ function drawAnimatedBoard(
     const cleared = new Set(step.cleared);
     if (remaining < MATCHUP_CLEAR_MS) {
       const p = remaining / MATCHUP_CLEAR_MS;
-      for (let row = 0; row < MATCHUP_SIZE; row++) {
+      for (let row = 0; row < MATCHUP_ROWS; row++) {
         for (let col = 0; col < MATCHUP_SIZE; col++) {
           const index = matchupIndex(row, col);
           const { x, y } = cellCentre(row, col);
@@ -1018,7 +1020,7 @@ function drawAnimatedBoard(
     }
 
     const p = Math.min(1, (remaining - MATCHUP_CLEAR_MS) / dropMs);
-    for (let row = 0; row < MATCHUP_SIZE; row++) {
+    for (let row = 0; row < MATCHUP_ROWS; row++) {
       for (let col = 0; col < MATCHUP_SIZE; col++) {
         const index = matchupIndex(row, col);
         if (cleared.has(index)) continue;

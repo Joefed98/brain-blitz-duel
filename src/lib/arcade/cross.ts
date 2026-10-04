@@ -335,8 +335,8 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
       const lives = state.lives - 1;
       const base = { ...state, tick, lane, hop: 0, hopDir: 1, reached, crossings, crossStart, clean, lives, hitTick: tick };
       if (lives <= 0) return { ...base, col, pauseUntil, hitThisCrossing: true, ghost, dead: true, endedTick: tick };
-      // Back to the start column of the lane it died on, after a second's pause.
-      return { ...base, col: CROSS_COLS >> 1, pauseUntil: tick + CROSS_PAUSE_TICKS, hitThisCrossing: true, ghost: true };
+      // Respawn on the start lane of this crossing; keep its progress and traffic clock.
+      return { ...base, lane: 0, col: CROSS_COLS >> 1, pauseUntil: tick + CROSS_PAUSE_TICKS, hitThisCrossing: true, ghost: false };
     }
   }
 
@@ -427,6 +427,7 @@ export function crossCheckpoint(state: CrossState): CrossCheckpoint {
 
 export const CROSS_BG = "#0B0B0F";
 export const CROSS_PLAYER = "#F5B82E";
+export const CROSS_ROAD = "#0F0F15";
 export const CROSS_KERB = "#25252E";
 export const CROSS_GOAL = "#2ED3B7";
 export const CROSS_BLOCK = "#4F9CF9";
@@ -512,10 +513,10 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
-  // Kerbs.
-  ctx.fillStyle = CROSS_GOAL;
+  // Safe start and finish strips use the same road surface as traffic lanes.
+  ctx.fillStyle = CROSS_ROAD;
   ctx.fillRect(CROSS_BOARD_X, CROSS_HUD_H, CROSS_BOARD_W, CROSS_KERB_H);
-  ctx.fillStyle = CROSS_KERB;
+  ctx.fillStyle = CROSS_ROAD;
   ctx.fillRect(
     CROSS_BOARD_X,
     CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H,
@@ -525,7 +526,7 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
 
   for (let lane = 1; lane <= CROSS_LANES; lane++) {
     const top = crossLaneTop(lane);
-    ctx.fillStyle = lane % 2 === 0 ? "#131319" : "#0F0F15";
+    ctx.fillStyle = lane % 2 === 0 ? "#131319" : CROSS_ROAD;
     ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
     const laneDef = course.lanes[lane - 1];
     if (!laneDef) continue;

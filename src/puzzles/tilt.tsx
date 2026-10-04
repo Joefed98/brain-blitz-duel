@@ -26,7 +26,7 @@ function IntroExample() {
           <circle cx={75} cy={75} r={62} fill="#11111B" stroke={TILT_GOLD} strokeOpacity={0.5} strokeWidth={2} />
           <path d="M35 45 H95 M55 65 V105 M75 85 H115 M95 45 V65 M35 105 H75" stroke={TILT_GOLD} strokeWidth={3} strokeLinecap="round" />
           <line x1={115} y1={95} x2={115} y2={115} stroke={TILT_TEAL} strokeWidth={5} />
-          <circle cx={45} cy={85} r={5} fill={TILT_RED} />
+          <polygon points="45,80 49.3,87.5 40.7,87.5" fill={TILT_RED} />
           <circle cx={95} cy={100} r={6} fill={TILT_GOLD} />
         </g>
       </svg>
@@ -48,6 +48,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={TILT_WORLD_W}
       worldH={TILT_WORLD_H}
+      renderAtCanvasSize
       game={tiltGame}
       checkpoint={tiltCheckpoint}
       interval={TILT_CHECKPOINT_INTERVAL}

@@ -436,6 +436,9 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
   const o = (m.n * cs) / 2;
   ctx.translate(CX, CY);
   // Screen = rotate(angle) · maze; the sim turns gravity into the maze frame by the same angle.
+  ctx.beginPath();
+  ctx.arc(0, 0, TILT_DISC_R + 2, 0, Math.PI * 2);
+  ctx.clip();
   ctx.rotate((state.angle / 65536) * Math.PI * 2);
   ctx.fillStyle = "#11111B";
   ctx.beginPath();
@@ -450,7 +453,13 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
   for (const p of m.pits) {
     ctx.fillStyle = TILT_RED;
     ctx.beginPath();
-    ctx.arc((p % m.n) * cs + cs / 2 - o, Math.trunc(p / m.n) * cs + cs / 2 - o, cs * 0.32, 0, Math.PI * 2);
+    const x = (p % m.n) * cs + cs / 2 - o;
+    const y = Math.trunc(p / m.n) * cs + cs / 2 - o;
+    const radius = cs * 0.32;
+    ctx.moveTo(x, y - radius);
+    ctx.lineTo(x + radius * Math.sqrt(3) / 2, y + radius / 2);
+    ctx.lineTo(x - radius * Math.sqrt(3) / 2, y + radius / 2);
+    ctx.closePath();
     ctx.fill();
   }
   ctx.strokeStyle = TILT_GOLD;

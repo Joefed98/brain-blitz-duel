@@ -14,7 +14,6 @@
 - ArrowPad owns the device-local arrows/joystick preference so every arrow-controlled puzzle behaves consistently.
 - Balance placement uses only fixed, non-tilting distance buttons; their peg indices feed the existing server-validated placement encoding.
 - PhoneShell gameScreen owns selection/callout suppression: it locks html/body (game-lock class), cancels selectstart/contextmenu, and cancels touchstart inside [data-play-area] with a non-passive listener (React touch handlers are passive).
-- Hot Floor generation exhaustively enumerates simple budgeted survivors; accepted stages have at most two routes (three on stages 1–2), a zero-slack pinch on every survivor, three same-or-shorter number failures, and under 20% highest-number-first solves.
 - Tents uses `-1` for hidden row/column counts; shared solving and validation treat those lines as unconstrained.
 - Directional game controls use the shared press-safe button so pointer holds cannot trigger selection, callouts, or context menus.
 - All word games (Wordsmith, Word Hunt, Word Ladder, Tile Grid, Word Slide) check words through the one server-only SCOWL British English list behind dictionary.server.ts; why: one consistent dictionary that never reaches a device.
@@ -33,8 +32,8 @@
 - TimerBar is the only live-round countdown and PhoneShell owns the 4px game-screen safe margin; why: duel/practice timing and arena width must stay identical without per-game timer slots.
 - Number Pyramid stores one bank entry as four public boards plus private solutions and submits all four placement maps with the active index; why: skipped boards and current-board partial credit must grade identically on the server.
 - Ball Track uses a shared serpentine toggle sim with course-driven fixed bottom-row interception and occupied-tile locks; its server-only bank proves every tray has an upper-routing alternative and every ball gets home; why: drawing, generator and replay must agree without exposing playbooks.
-- Ball Track bank searches column placements, minimising triple rotatable stacks and forbidding longer ones; why: seeded courses retain the best count before replay acceptance.
-- Ball Track warnings derive from seeded event ticks; sound follows sim-tick digit transitions; why: identical warnings without changing replay state or event timing.
 - Memory stays out of room settings/draws; practice uses allTypesInCategory to retain its games.
 - Retire types via RETIRED_TYPES; why: room draws filter it, practice does not.
 - Logic grids use container sizing; Shikaku/Light Up prove uniqueness. Flood draws a private bank built by retrying exact in-band par proofs; no fallback.
+
+- ArcadeCanvasStage supports opt-in canvas-size rendering for Tilt; why: its circle must stay isotropic without changing other games or input coordinates.
