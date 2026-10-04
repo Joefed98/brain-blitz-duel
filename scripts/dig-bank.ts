@@ -118,15 +118,17 @@ function build(hard: boolean) {
   for (let c = 1; c < C - 1; c++) t[at(s, c)] = "#";
   for (let r = floor + 1; r < s; r++) route.push(at(r, col));
   const dir = col <= 3 ? 1 : col >= C - 4 ? -1 : rand(2) ? 1 : -1;
-  const dist = hard ? between(4, 6) : between(2, 5);
+  const dist = hard ? 3 : between(2, 3);
   const hole = col + dir * dist;
   if (hole < 1 || hole > C - 2) return null;
   for (let c = col + dir; c !== hole + dir; c += dir) route.push(at(s - 1, c));
   t[at(s, hole)] = "s";
   route.push(at(s, hole));
   for (let r = s + 1; r <= R - 2; r++) route.push(at(r, hole));
-  for (let c = hole - dir; c !== col - dir; c -= dir) route.push(at(R - 2, c));
-  t[at(R - 1, col)] = "D";
+  // Standard: back along the bottom to a drain beside the shaft's column. Hard: drain 1 under the hole.
+  const drainCol = hard ? hole : col + dir;
+  for (let c = hole - dir; c !== drainCol - dir; c -= dir) route.push(at(R - 2, c));
+  t[at(R - 1, drainCol)] = "D";
 
   // The obvious hole straight under the shaft, with a hazard beneath it.
   t[at(s, col)] = "s";
@@ -146,8 +148,7 @@ function build(hard: boolean) {
   let divider = -1;
   const lower: number[] = [];
   if (hard) {
-    const k = between(2, dist - 2);
-    const v = col + dir * k;
+    const v = col + dir * 2;
     divider = at(s, v);
     t[divider] = "s";
     lower.push(at(s + 1, v));
