@@ -185,6 +185,7 @@ if (import.meta.main) {
         const col = btTraysAt(course, landed[id] ?? 0).indexOf(c);
         if (col !== target[id]) { target[id] = col; changed = true; }
       });
+      if (process.env.BT_DEBUG2) console.log("pass", pass, run.state.home, run.state.wrong, run.state.lost, changed);
       if (!changed) break;
       run = playRoutes(course, target.map((col) => routeTo(course, col)!));
     }
