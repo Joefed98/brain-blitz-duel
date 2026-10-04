@@ -1,7 +1,7 @@
 /**
  * Ball Track bank: 400 courses over the fixed serpentine.
  *   bun scripts/ball-track-bank.ts
- * Seeds only tray order, ball order and up to seven extra fixed straights. Every tray
+ * Seeds only tray order, ball order and 8–10 upper fixed straights and sparse lower rotatables. Every tray
  * must be reachable from the all-horizontal start, and a just-in-time playbook
  * (each tile set for the next ball due through it) must route every ball home in the
  * real sim; seeds that fail are rerolled.
@@ -51,7 +51,7 @@ export function routeTo(course: BtCourse, col: number): { cell: number; vert: nu
     seen.add(key);
     const options = BT_KIND[q.cell] === 2 ? [-1] : rot.has(q.cell) ? [0, 1] : [0];
     for (const v of options) {
-      const next = btNext(q.cell, q.above, v === 1);
+      const next = btNext(q.cell, q.above, v === 1, course);
       const path = [...q.path, { cell: q.cell, vert: v }];
       if (next.cell >= 100) { if (next.cell - 100 === col) return path; continue; }
       if (next.cell < 0) continue;
@@ -61,57 +61,68 @@ export function routeTo(course: BtCourse, col: number): { cell: number; vert: nu
   return null;
 }
 
-/** Enumerate column placements, then minimise triple stacks within the fixed-tile budget. */
-const fixedPatterns = Array.from({ length: BT_COLS }, (_, col) => {
-  const candidates = BT_KIND.flatMap((kind, cell) => kind === 1 && cell % BT_COLS === col && cell < (BT_ROWS - 1) * BT_COLS && !BT_ALWAYS_FIXED.includes(cell) ? [cell] : []);
-  const patterns: { fixed: number[]; triples: number }[] = [];
-  for (let mask = 0; mask < 2 ** candidates.length; mask++) {
-    const fixed = candidates.filter((_, i) => mask & (1 << i));
-    const allFixed = new Set([...BT_ALWAYS_FIXED, ...fixed]);
-    let run = 0, triples = 0, valid = true;
-    for (let row = 0; row < BT_ROWS; row++) {
-      const cell = row * BT_COLS + col;
-      run = BT_KIND[cell] === 1 && !allFixed.has(cell) ? run + 1 : 0;
-      if (run === 3) triples++;
-      if (run > 3) valid = false;
-    }
-    if (valid) patterns.push({ fixed, triples });
-  }
-  return patterns;
-});
-const placementCost = Array.from({ length: BT_COLS + 1 }, () => Array.from({ length: 8 }, () => Infinity));
-const lastCosts = placementCost[BT_COLS];
-if (!lastCosts) throw new Error("Missing placement costs");
-lastCosts[0] = 0;
-for (let col = BT_COLS - 1; col >= 0; col--) {
-  const costs = placementCost[col], next = placementCost[col + 1];
-  if (!costs || !next) throw new Error("Missing column costs");
-  for (let budget = 0; budget <= 7; budget++) {
-    for (const pattern of fixedPatterns[col] ?? []) {
-      if (pattern.fixed.length <= budget) costs[budget] = Math.min(costs[budget] ?? Infinity, pattern.triples + (next[budget - pattern.fixed.length] ?? Infinity));
-    }
-  }
-}
+/** Minimise triple stacks with 8–10 seeded upper fixed straights and sparse lower rows. */
 function seededFixed(): number[] {
-  const costs = placementCost[0];
-  if (!costs) throw new Error("Missing placement costs");
-  // Prefer fewer triple stacks first, then fewer fixed tiles among equally good placements.
-  let budget = 3;
-  for (let count = 4; count <= 7; count++) if ((costs[count] ?? Infinity) < (costs[budget] ?? Infinity)) budget = count;
-  if (!Number.isFinite(costs[budget])) throw new Error("No valid fixed-tile placement");
-  const fixed: number[] = [];
+  const lowerRot = [6, 7].flatMap((row) => shuffle([1, 2, 3, 4, 5]).slice(0, 2).map((col) => row * BT_COLS + col));
+  if (new Set(lowerRot.map((cell) => cell % BT_COLS)).size !== lowerRot.length) return seededFixed();
+  const lowerFixed = BT_KIND.flatMap((kind, cell) => kind === 1 && cell >= 42 && cell < 56 && !lowerRot.includes(cell) ? [cell] : []);
+  const patterns = Array.from({ length: BT_COLS }, (_, col) => {
+    const candidates = BT_KIND.flatMap((kind, cell) => kind === 1 && cell < 42 && cell % BT_COLS === col && !BT_ALWAYS_FIXED.includes(cell) ? [cell] : []);
+    const options: { fixed: number[]; triples: number }[] = [];
+    for (let mask = 0; mask < 2 ** candidates.length; mask++) {
+      const fixed = candidates.filter((_, i) => mask & (1 << i));
+      const allFixed = new Set([...BT_ALWAYS_FIXED, ...lowerFixed, ...fixed]);
+      let run = 0, triples = 0, valid = true;
+      for (let row = 0; row < 8; row++) {
+        const cell = row * BT_COLS + col;
+        run = BT_KIND[cell] === 1 && !allFixed.has(cell) ? run + 1 : 0;
+        if (run === 3) triples++;
+        if (run > 3) valid = false;
+      }
+      if (valid) options.push({ fixed, triples });
+    }
+    return options;
+  });
+  const costs = Array.from({ length: BT_COLS + 1 }, () => Array.from({ length: 11 }, () => Infinity));
+  const last = costs[BT_COLS];
+  if (!last) throw Error("Missing costs");
+  last[0] = 0;
+  for (let col = BT_COLS - 1; col >= 0; col--) {
+    const current = costs[col];
+    if (!current) throw Error("Missing costs");
+    for (let budget = 0; budget <= 10; budget++) for (const option of patterns[col] ?? []) {
+      if (option.fixed.length <= budget) current[budget] = Math.min(current[budget] ?? Infinity, option.triples + (costs[col + 1]?.[budget - option.fixed.length] ?? Infinity));
+    }
+  }
+  let budget = 8 + rnd(3);
+  if (!Number.isFinite(costs[0]?.[budget])) return seededFixed();
+  const fixed = [...lowerFixed];
   for (let col = 0; col < BT_COLS; col++) {
-    const options = (fixedPatterns[col] ?? []).filter((p) => p.fixed.length <= budget && p.triples + (placementCost[col + 1]?.[budget - p.fixed.length] ?? Infinity) === placementCost[col]?.[budget]);
+    const options = (patterns[col] ?? []).filter((p) => p.fixed.length <= budget && p.triples + (costs[col + 1]?.[budget - p.fixed.length] ?? Infinity) === costs[col]?.[budget]);
     const chosen = options[rnd(options.length)];
-    if (!chosen) throw new Error("No optimal column placement");
+    if (!chosen) throw Error("Missing fixed pattern");
     fixed.push(...chosen.fixed);
     budget -= chosen.fixed.length;
   }
   return fixed.sort((a, b) => a - b);
 }
 
+/** Reject any tray obtainable from the initial track by one lower-row toggle alone. */
+export function hasLowerShortcut(course: BtCourse): boolean {
+  for (const toggle of btRotatable(course).filter((cell) => cell >= 42)) {
+    let cell = BT_HOPPER_COL, above = true;
+    for (let i = 0; i < BT_COLS * BT_ROWS + 1; i++) {
+      const next = btNext(cell, above, cell === toggle, course);
+      if (next.cell >= 100) { if ((course.trays[next.cell - 100] ?? -1) >= 0) return true; break; }
+      if (next.cell < 0) break;
+      cell = next.cell; above = next.fromAbove;
+    }
+  }
+  return false;
+}
+
 function makeCourse(): BtCourse {
-  const cols = shuffle([0, 1, 2, 3, 4, 5, 6]);
+  const cols = shuffle([0, 1, 2, 3, 4, 5]);
   const colours = shuffle([0, 1, 2, 3, 4]);
   const trays = Array.from({ length: BT_COLS }, () => -1);
   colours.forEach((c, i) => (trays[cols[i]!] = c));
@@ -162,6 +173,7 @@ if (import.meta.main) {
     tries++;
     const course = makeCourse();
     if (course.balls.some((b, i) => i >= 2 && b === course.balls[i - 1] && b === course.balls[i - 2])) continue;
+    if (hasLowerShortcut(course)) continue;
     if (!course.trays.every((tray, col) => tray < 0 || routeTo(course, col))) continue;
     const routes = course.balls.map((c) => routeTo(course, course.trays.indexOf(c))!);
     const run = playRoutes(course, routes);
