@@ -34,7 +34,7 @@ function play(index: number, choose: (tick: number) => Omit<ArcadeInputEvent, "t
 
 let solved = 0, apart = 0;
 const dropSets = new Set<string>();
-if (BT_BALLS !== 18 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 16 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
+if (BT_BALLS !== 22 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 16 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
 for (let home = 0; home <= BT_BALLS; home++) for (let wrong = 0; wrong <= BT_BALLS - home; wrong++) {
   if (btScoreOf(home, wrong) !== Math.max(0, Math.min(150, Math.round(120 * home / BT_BALLS) - 5 * wrong + btSpeedBonus(home, BT_RUN_TICKS)))) fail("Scoring formula");
 if (btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 20 * 60) !== 30 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 15 * 60) !== 23 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 10 * 60) !== 15 || btSpeedBonus(BT_BALLS - 1, 0) !== 0) fail("Speed bonus");
@@ -68,7 +68,7 @@ BALL_TRACK_BANK.forEach((entry, i) => {
   if (hasLowerShortcut(c) || c.trays.some((t,col) => t >= 0 && !routeTo(c,col))) fail(`course ${i}: tray reachability / early route`);
   if (c.trays.filter((t) => t >= 0).length !== 4 || c.balls.length !== BT_BALLS) fail(`course ${i}: trays/balls`);
   const counts = Array.from({ length: 4 }, (_, colour) => c.balls.filter((b) => b === colour).length).sort();
-  if (counts.join(",") !== "4,4,5,5") fail(`course ${i}: colour balance`);
+  if (counts.join(",") !== "5,5,6,6") fail(`course ${i}: colour balance`);
   if (c.balls.some((b, j) => j >= 2 && b === c.balls[j - 1] && b === c.balls[j - 2])) fail(`course ${i}: three consecutive colours`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);
