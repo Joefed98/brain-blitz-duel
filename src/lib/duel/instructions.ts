@@ -702,9 +702,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag to move", detail: "— you fire automatically." },
       { action: "Dodge the red bolts.", detail: "Three hits and you're out." },
-      { action: "The formation speeds up", detail: "as it thins." },
+      { action: "From wave 2, a grey armoured block", detail: "takes 6–12 hits — every hit counts." },
+      { action: "Shoot the saucer", detail: "and catch its drop: 5 laser shots that pierce up to 3 enemies." },
     ],
-    score: "Points for shapes, saucers and waves; the total is scaled.",
+    score: "Points for shapes, armour hits, saucers and waves. Clearing wave 5 perfectly scores 150.",
   },
   bastion: {
     goal: "Defend the base.",

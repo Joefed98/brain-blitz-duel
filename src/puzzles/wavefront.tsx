@@ -103,8 +103,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {wavefrontLine(result)}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {result.wavesCleared} wave{result.wavesCleared === 1 ? "" : "s"} cleared · same formation for
-        everyone
+        {result.wavesCleared} wave{result.wavesCleared === 1 ? "" : "s"} cleared · {result.armourHits} armour
+        hit{result.armourHits === 1 ? "" : "s"} · same formation for everyone
       </p>
     </div>
   );

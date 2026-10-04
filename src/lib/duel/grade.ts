@@ -1278,6 +1278,7 @@ export function gradeSubmission(
         wave: run.wave,
         shapesDown: run.shapesDown,
         saucers: run.saucers,
+        armourHits: run.armourHits,
         wavesCleared: run.wavesCleared,
         lives: run.lives,
         survived: run.survived,

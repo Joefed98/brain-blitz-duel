@@ -11,3 +11,4 @@
 - Beat reserves hold heads and awards the whole note only after a window-checked release; why: both endpoint errors determine server-verified credit.
 - Bin Toss stores seeded per-throw slides (integer half-wave, trimmed to keep the bin on screen) and narrows the bin from throw 4 with wind scaled to width; Bullseye stores per-arrow ring-value permutations with colour keyed to value; why: sim, drawing and server replay must agree.
 - Breaker draws per-brick HP (maxHp) and one laser/5-ball/double-ball brick in fixed row bands at init; a tap anywhere sends the button input, which fires whatever is held; why: seeded boards and tap-fires must replay identically on the server.
+- Wavefront's armoured piece (from wave 2) is a seeded 2-row block of formation cells marked WAV_ARMOUR_CODE with its own HP; armour hits count toward score against WAV_PAR (a perfect wave-5 run), and the saucer drop's delay is seeded; why: sim, drawing and server replay must agree.
