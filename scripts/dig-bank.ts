@@ -183,7 +183,7 @@ function build(hard: boolean) {
   if (minDigs < 4) return null;
 
   const pool = w.reduce((x, y) => x + y, 0);
-  const total = hard ? Math.floor((pool * 55 + 50) / 100) : digTarget(pool);
+  const total = hard ? Math.floor((pool * 60 + 50) / 100) : digTarget(pool);
   const split = hard ? (rand(2) ? 60 : 70) : 100;
   // Drain 1 (filled first) takes the smaller share, so plenty is left for drain 2.
   const t1 = hard ? total - Math.round((total * split) / 100) : total;
