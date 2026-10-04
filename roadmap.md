@@ -1,6 +1,6 @@
 ## Arcade second-pass tuning (Oct 4)
-- [ ] Apply touch suppression and seven game-specific tuning changes.
-- [ ] Run only Matchup, Breaker, Cross, Wavefront, Flip and Burst replay proofs and focused checks; no browser tests.
+- [x] Apply touch suppression and seven game-specific tuning changes; Beat canvas lanes and Burst press-safe buttons covered.
+- [x] Matchup, Breaker, Cross, Wavefront, Flip and Burst replay proofs passed 200/200 each; focused power-up, cascade, course and curve checks passed; no browser tests.
 
 ## Logic timing and proven Colour Flood bank (Oct 4)
 - [x] Set Shikaku and Light Up to 90 s; 50/50 unique boards each passed server scoring checks at 0/45/90 s remaining.
