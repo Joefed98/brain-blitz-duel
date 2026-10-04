@@ -25,6 +25,7 @@ function Board({
   size = NONO_SIZE,
   onCell,
   cell = 40,
+  fluid = false,
   goldCells,
   wrongCells,
 }: {
@@ -34,6 +35,7 @@ function Board({
   size?: number;
   onCell?: (index: number) => void;
   cell?: number;
+  fluid?: boolean;
   goldCells?: Set<number>;
   wrongCells?: Set<number>;
 }) {
@@ -44,10 +46,10 @@ function Board({
 
   return (
     <div
-      className="grid gap-0"
+      className={`grid gap-0 ${fluid ? "logic-nonogram-board" : ""}`}
       style={{
-        gridTemplateColumns: `auto repeat(${size}, ${cell}px)`,
-        gridTemplateRows: `auto repeat(${size}, ${cell}px)`,
+        gridTemplateColumns: fluid ? `0.9fr repeat(${size}, minmax(0, 1fr))` : `auto repeat(${size}, ${cell}px)`,
+        gridTemplateRows: fluid ? `auto repeat(${size}, minmax(0, 1fr))` : `auto repeat(${size}, ${cell}px)`,
       }}
     >
       <span />
@@ -200,8 +202,8 @@ function Stage({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-      <Board rows={data.rows} cols={data.cols} marks={marks} onCell={tap} cell={40} />
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-3">
+      <Board rows={data.rows} cols={data.cols} marks={marks} onCell={tap} fluid />
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
         Tap to fill, again to mark empty, again to clear.
       </p>

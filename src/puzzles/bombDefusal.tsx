@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
+import { Button } from "@/components/ui/button";
 import {
   actionLabel,
   BOMB_SWITCH_POSITIONS,
@@ -305,7 +306,8 @@ function Stage({
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           steps <span className="text-primary">{actions.length}</span> / {BOMB_MAX_SEQUENCE}
         </p>
-        <button
+        <div className="flex flex-1 items-center justify-center">
+        <Button
           type="button"
           disabled={locked || !actions.length}
           onClick={() => {
@@ -314,10 +316,11 @@ function Stage({
             playLock();
             onSubmit(encodeBombActions(actions));
           }}
-          className="h-12 flex-1 rounded-xl bg-primary px-5 font-display text-sm font-bold uppercase tracking-widest text-primary-foreground disabled:opacity-40"
+          className="h-9 w-3/4 rounded-lg px-4 font-display text-[10.5px] font-bold uppercase tracking-widest disabled:opacity-40"
         >
           Defuse
-        </button>
+        </Button>
+        </div>
         <button
           type="button"
           disabled={locked || !actions.length || submitted.current}

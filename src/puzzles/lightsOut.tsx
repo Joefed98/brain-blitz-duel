@@ -31,7 +31,7 @@ function LightsGrid({
 }) {
   return (
     <div
-      className="mx-auto grid aspect-square h-full max-h-full w-full max-w-full"
+      className="mx-auto grid aspect-square w-full max-w-full"
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${Math.ceil(lights.length / cols)}, minmax(0, 1fr))`,
@@ -138,8 +138,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         presses <span className="text-primary">{presses.filter((cell) => cell >= 0).length}</span>
       </p>
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <LightsGrid lights={lights} flash={flash} onPress={locked ? undefined : press} />
+      <div className="flex min-h-0 flex-1 items-center justify-center px-3">
+        <div className="logic-square-area flex h-full w-full items-center justify-center">
+          <div className="logic-square-board">
+            <LightsGrid lights={lights} flash={flash} onPress={locked ? undefined : press} />
+          </div>
+        </div>
       </div>
       <div className="flex shrink-0 items-center justify-center gap-6">
         <button

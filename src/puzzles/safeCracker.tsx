@@ -51,7 +51,7 @@ function Dial({
       onPressStart={() => hold(delta)}
       onPressEnd={stop}
       aria-label={delta > 0 ? "Up" : "Down"}
-      className="flex size-11 items-center justify-center font-mono text-lg leading-none text-muted-foreground disabled:opacity-40"
+      className="flex size-9 items-center justify-center font-mono text-sm leading-none text-muted-foreground disabled:opacity-40"
     >{label}</ArcadeControlButton>
   );
 
@@ -64,9 +64,9 @@ function Dial({
           wrong ? "border-warn text-warn" : gold ? "border-primary text-primary" : "border-border"
         }`}
         style={{
-          width: compact ? 34 : 46,
-          height: compact ? 44 : 50,
-          fontSize: compact ? 22 : 26,
+          width: compact ? 34 : 37,
+          height: compact ? 44 : 40,
+          fontSize: compact ? 22 : 21,
           touchAction: "none",
         }}
       >
@@ -142,16 +142,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="min-h-0 shrink-0 rounded-xl border border-border bg-card px-2 py-1.5">
+      <div className="flex min-h-0 flex-[1.2] flex-col justify-center rounded-lg border border-border bg-card px-3 py-2">
         {puzzle.clues.map((clue) => (
-          <p key={clue.text} className="text-center text-base leading-[1.45]">
+          <p key={clue.text} className="text-center text-[19.2px] leading-[1.45]">
             {clue.text}
           </p>
         ))}
       </div>
 
       <div
-        className={`flex min-h-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-border bg-card/60 p-1 ${
+        className={`mx-auto flex min-h-[140px] w-4/5 flex-[0.8] flex-col items-center justify-center gap-1 rounded-lg border-2 border-border bg-card/60 p-1 ${
           shake ? "animate-shake border-warn" : ""
         }`}
       >
