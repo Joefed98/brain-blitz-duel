@@ -106,7 +106,7 @@ function makeCourse(): BtCourse {
   do order = shuffle([...colours]); while (order.some((c, i) => c === colours[i]));
   const after = Array.from({ length: BT_COLS }, () => -1);
   order.forEach((c, i) => (after[cols[i]!] = c));
-  const shuffleAt = { tick: 1200 + rnd(1201), trays: after };
+  const shuffleAt = { tick: process.env.BT_NOSHUF ? 99999 : 1200 + rnd(1201), trays: after };
   // Five balls per colour, shuffled deterministically; triple runs are rerolled below.
   const balls = shuffle(Array.from({ length: BT_BALLS }, (_, i) => i % BT_COLOURS));
   const fixed = seededFixed();
