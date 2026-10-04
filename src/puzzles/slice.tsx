@@ -18,7 +18,8 @@ import {
   SLICE_COLOURS,
   SLICE_GOLD,
   SLICE_INPUT_SWIPE,
-  sliceClipSegment,
+  SLICE_INPUT_BEGIN,
+  SLICE_INPUT_END,
   SLICE_RUN_TICKS,
   SLICE_WORLD_H,
   SLICE_WORLD_W,
@@ -62,9 +63,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const state = useRef<SliceState>(sliceGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof sliceCheckpoint>[]>([]);
-  /** The finger: where the swipe was last recorded from, and where it is now. */
-  const from = useRef<{ x: number; y: number } | null>(null);
-  const now = useRef<{ x: number; y: number } | null>(null);
+  /** Preserve the sampled curve and explicit finger boundaries, not frame chords. */
+  const pending = useRef<Omit<ArcadeInputEvent, "t">[]>([]);
+  const finger = useRef<{ id: number; x: number; y: number } | null>(null);
   const submitted = useRef(false);
   const [, forceRedraw] = useState(0);
   useNoTouchScroll(wrap);
@@ -94,8 +95,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     state.current = sliceGame.init(seed);
     events.current = [];
     checkpoints.current = [];
-    from.current = null;
-    now.current = null;
+    pending.current = [];
+    finger.current = null;
     submitted.current = false;
     forceRedraw((n) => n + 1);
   }, [seed]);
@@ -127,33 +128,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
         accumulator -= ticks * TICK_MS;
         for (let i = 0; i < ticks; i++) {
-          // One swipe segment a tick, logged on the tick it is applied to.
-          const start = from.current;
-          const point = now.current;
-          let applied: ArcadeInputEvent | null = null;
-          if (start && point && (start.x !== point.x || start.y !== point.y)) {
-            // The path is capped at its maximum length: clip, then stop the stroke.
-            const clip = sliceClipSegment(state.current, start.x, start.y, point.x, point.y);
-            if (!clip) {
-              from.current = null;
-              now.current = null;
-            } else {
-              applied = {
-                t: state.current.tick + 1,
-                k: SLICE_INPUT_SWIPE,
-                a: start.x,
-                b: start.y,
-                c: clip.c,
-                d: clip.d,
-              };
-              if (clip.c !== point.x || clip.d !== point.y) {
-                from.current = null;
-                now.current = null;
-              } else {
-                from.current = point;
-              }
-              recordInput(events.current, applied, sliceGame.inputRanges);
-            }
+          const sample = pending.current.shift();
+          if (sample) {
+            const applied = { ...sample, t: state.current.tick + 1 };
+            // The sim enforces the cumulative path cap and explicit swipe boundaries.
+            recordInput(events.current, applied, sliceGame.inputRanges);
           }
           state.current = sliceGame.step(
             state.current,
@@ -178,7 +157,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       reportArcadeTick(state.current.tick, sliceGame.isOver(state.current));
 
       const size = sizeCanvas();
-      if (size) sliceGame.draw(canvas.current!.getContext("2d")!, state.current, size);
+      const ctx = canvas.current?.getContext("2d");
+      if (size && ctx) sliceGame.draw(ctx, state.current, size);
 
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
@@ -220,6 +200,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
   };
 
+  const samplePointer = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const previous = finger.current;
+    if (!previous || previous.id !== event.pointerId) return;
+    const point = worldPoint(event);
+    if (previous.x === point.x && previous.y === point.y) return;
+    pending.current.push({ k: SLICE_INPUT_SWIPE, a: previous.x, b: previous.y, c: point.x, d: point.y });
+    finger.current = { id: previous.id, ...point };
+  };
+  const endPointer = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (finger.current?.id !== event.pointerId) return;
+    samplePointer(event);
+    pending.current.push({ k: SLICE_INPUT_END, a: 0, b: 0, c: 0, d: 0 });
+    finger.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
   if (!data) return null;
 
   return (
@@ -237,28 +233,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           event.preventDefault();
           if (locked || submitted.current || sliceGame.isOver(state.current)) return;
           event.currentTarget.setPointerCapture(event.pointerId);
+          if (finger.current) return;
           const point = worldPoint(event);
-          from.current = point;
-          now.current = point;
+          finger.current = { id: event.pointerId, ...point };
+          pending.current.push({ k: SLICE_INPUT_BEGIN, a: point.x, b: point.y, c: 0, d: 0 });
         }}
-        onPointerMove={(event) => {
-          if (!from.current) return;
-          now.current = worldPoint(event);
-        }}
-        onPointerUp={(event) => {
-          from.current = null;
-          now.current = null;
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-        }}
-        onPointerCancel={(event) => {
-          from.current = null;
-          now.current = null;
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-        }}
+        onPointerMove={samplePointer}
+        onPointerUp={endPointer}
+        onPointerCancel={endPointer}
       />
     </div>
   );

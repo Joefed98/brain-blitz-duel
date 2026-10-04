@@ -37,6 +37,8 @@ export const SLICE_RUN_TICKS = SLICE_RUN_SECONDS * TICKS_PER_SECOND;
 
 /** One swipe segment per tick: kind 8, start (a, b) to end (c, d) in px. */
 export const SLICE_INPUT_SWIPE = 8;
+export const SLICE_INPUT_BEGIN = 9;
+export const SLICE_INPUT_END = 10;
 
 /** Objects are 40 px across. */
 export const SLICE_R = 20;
@@ -119,6 +121,8 @@ export const SLICE_FLASH_TICKS = 14;
 export const SLICE_HALVES_TICKS = 40;
 
 export const SLICE_INPUT_RANGES: readonly InputRange[] = [
+  inputRange(SLICE_INPUT_BEGIN, [0, SLICE_WORLD_W], [0, SLICE_WORLD_H]),
+  inputRange(SLICE_INPUT_END),
   inputRange(
     SLICE_INPUT_SWIPE,
     [0, SLICE_WORLD_W],
@@ -382,6 +386,10 @@ export interface SliceState {
   strokeX: number;
   strokeY: number;
   strokeLen: number;
+  /** Unique discs, credited weight and qualification across this down-to-up path. */
+  strokeCuts: number;
+  strokeWeighted: number;
+  strokeQualified: number;
   /** Render only: the last swipe segment, in px. */
   swipe: readonly [number, number, number, number] | null;
   /** Fixed at init: every disc the schedule could offer, specials' batches included. */
@@ -412,6 +420,9 @@ function init(seed: number): SliceState {
     strokeX: -1,
     strokeY: -1,
     strokeLen: 0,
+    strokeCuts: 0,
+    strokeWeighted: 0,
+    strokeQualified: 0,
     swipe: null,
     available: scheduleAvailable(schedule.objects),
     streak: 0,
@@ -535,9 +546,18 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
     next.comboUntil = 0;
   }
 
+  if (input?.k === SLICE_INPUT_BEGIN || input?.k === SLICE_INPUT_END ||
+      (input?.k === SLICE_INPUT_SWIPE && (input.a !== state.strokeX || input.b !== state.strokeY))) {
+    next.strokeX = input.k === SLICE_INPUT_BEGIN ? input.a : -1;
+    next.strokeY = input.k === SLICE_INPUT_BEGIN ? input.b : -1;
+    next.strokeLen = 0;
+    next.strokeCuts = 0;
+    next.strokeWeighted = 0;
+    next.strokeQualified = 0;
+  }
   const clipped =
     input && input.k === SLICE_INPUT_SWIPE
-      ? sliceClipSegment(state, input.a, input.b, input.c, input.d)
+      ? sliceClipSegment(next, input.a, input.b, input.c, input.d)
       : null;
   if (input && input.k === SLICE_INPUT_SWIPE && clipped) {
     input = { ...input, c: clipped.c, d: clipped.d };
@@ -584,22 +604,33 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
     if (slicedAt) next.slicedAt = slicedAt;
     if (frenzies.length > 0) next.frenzyFrom = [...state.frenzyFrom, ...frenzies];
     if (slows.length > 0) next.slowFrom = [...state.slowFrom, ...slows];
-    // The qualifying slice itself earns the new multiplier, even with a bomb.
-    if (cut >= SLICE_COMBO_START) {
+    // Accumulate every segment of one finger-down/up path; qualify only once.
+    next.strokeCuts += cut;
+    const qualifies = next.strokeCuts >= SLICE_COMBO_START && next.strokeQualified === 0;
+    if (qualifies) {
+      next.strokeQualified = 1;
       next.comboLive = 1;
       next.streak += 1;
       next.comboUntil = tick + SLICE_COMBO_TICKS;
       next.comboFlash = SLICE_COMBO_FLASH_TICKS;
     }
     const multiplier = sliceMultiplier(next.streak);
-    next.weighted += cut * multiplier;
+    if (qualifies) {
+      // Earlier segments of this qualifying swipe earn its new multiplier too.
+      const credit = next.strokeCuts * multiplier;
+      next.weighted += credit - next.strokeWeighted;
+      next.strokeWeighted = credit;
+    } else {
+      next.weighted += cut * multiplier;
+      next.strokeWeighted += cut * multiplier;
+    }
     if (cut > 0) next.bestMult = Math.max(next.bestMult, multiplier);
     if (added.length > 0) {
       next.objects = [...state.objects, ...added];
       next.slicedAt = [...(slicedAt ?? state.slicedAt), ...added.map(() => 0)];
     }
     if (cut > 0) next.slices = state.slices + cut;
-    if (cut >= SLICE_MULTI_NEEDED) next.bonuses = state.bonuses + 1;
+    if (qualifies) next.bonuses = state.bonuses + 1;
     if (bombs > 0) {
       next.bombsHit = state.bombsHit + bombs;
       next.flash = SLICE_FLASH_TICKS;
@@ -666,7 +697,7 @@ export function sliceCheckpointState(state: SliceState): SliceCheckpointState {
     bonuses: state.bonuses,
     bombsHit: state.bombsHit,
     airborne,
-    slicedFold,
+    slicedFold: (slicedFold ^ Math.imul(state.strokeCuts, 31) ^ Math.imul(state.strokeLen, 131) ^ state.strokeWeighted ^ state.strokeQualified ^ state.comboUntil) | 0,
     objectCount: state.objects.length,
     frenzies: state.frenzyFrom.length,
     streak: state.streak,
