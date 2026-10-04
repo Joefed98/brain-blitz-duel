@@ -737,6 +737,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap to flip gravity.", detail: "" },
       { action: "Spikes and gaps on one side", detail: "mean run on the other." },
+      { action: "From 20 s the corridor bends.", detail: "Hazards ride the bends with you." },
     ],
     score: "The longer you last, the more you score — the full minute is 150.",
   },
