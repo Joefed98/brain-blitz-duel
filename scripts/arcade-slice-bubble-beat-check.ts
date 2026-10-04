@@ -22,7 +22,6 @@ import {
   SLICE_FRENZY_COUNT,
   SLICE_INPUT_RANGES,
   SLICE_INPUT_SWIPE,
-  SLICE_LINE_COUNT,
   SLICE_RUN_TICKS,
   SLICE_WORLD_H,
   SLICE_WORLD_W,
@@ -269,7 +268,7 @@ for (let sample = 0; sample < 40; sample++) {
   if (frenzyCut === 0 || lineCut === 0) fail(`slice ${seed}: specials were not sliced`);
   if (state.frenzyFrom.length !== frenzyCut) fail(`slice ${seed}: frenzy windows not recorded`);
   const expected =
-    start.objects.length + frenzyCut * SLICE_FRENZY_COUNT + lineCut * SLICE_LINE_COUNT;
+    start.objects.length + frenzyCut * SLICE_FRENZY_COUNT;
   if (state.objects.length !== expected) {
     fail(`slice ${seed}: spawned ${state.objects.length - start.objects.length}, expected extra`);
   }
