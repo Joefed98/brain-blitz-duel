@@ -33,7 +33,7 @@ if (firstArrow) {
   while (core.tick < firstArrow.impact + PARRY_WINDOW) core = parryGame.step(core, null);
   check("Parry life is lost at core", core.status[0] === 2 && core.hits === 1);
 }
-check("Wavefront scales raw points by 0.75", wavScoreOf(10, 2, 1) === 26 && wavScoreOf(200, 0, 0) === 150);
+check("Wavefront scales raw points to par 248", wavScoreOf(10, 2, 1) === 21 && wavScoreOf(248, 0, 0) === 150);
 
 const beforeFinal = basSpawnGap(39 * TICKS_PER_SECOND);
 const finalGap = basSpawnGap(40 * TICKS_PER_SECOND);

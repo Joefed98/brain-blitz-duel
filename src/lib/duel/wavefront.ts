@@ -24,6 +24,7 @@ export interface WavefrontResult extends FlatReplay<WavState, WavCheckpoint> {
   wave: number;
   shapesDown: number;
   saucers: number;
+  armourHits: number;
   wavesCleared: number;
   lives: number;
   survived: boolean;
@@ -41,6 +42,7 @@ export function replayWavefrontRun(seed: number, raw: string): WavefrontResult {
     wave: s.wave,
     shapesDown: s.shapesDown,
     saucers: s.saucers,
+    armourHits: s.armourHits,
     wavesCleared: s.wavesCleared,
     lives: s.lives,
     survived: s.ended !== 2,

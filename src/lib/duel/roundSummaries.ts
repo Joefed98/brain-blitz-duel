@@ -1246,7 +1246,9 @@ const wavefrontSummary: SummaryBuilder = (result) => {
   const head = `Wave ${wave} · ${shapes} shape${shapes === 1 ? "" : "s"} · ${saucers} saucer${saucers === 1 ? "" : "s"}`;
   return {
     summary: survived ? `${head} · survived` : `${head} · destroyed at ${ended.toFixed(1)}s`,
-    detail: [`${Number(result.extra?.["wavesCleared"] ?? 0)} waves cleared`],
+    detail: [
+      `${Number(result.extra?.["wavesCleared"] ?? 0)} waves cleared · ${Number(result.extra?.["armourHits"] ?? 0)} armour hits`,
+    ],
   };
 };
 
