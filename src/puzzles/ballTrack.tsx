@@ -128,6 +128,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let draftAt = 0;
     let seenHome = 0;
     let seenBad = 0;
+    let shuffled = false;
     let shown = "";
     const loop = (time: number) => {
       frame = requestAnimationFrame(loop);
