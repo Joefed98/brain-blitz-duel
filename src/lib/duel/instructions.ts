@@ -860,7 +860,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Balls drop every 2 seconds", detail: "and snake down the track." },
       { action: "Tap a gold tube to turn it into a drop", detail: "— the bottom row is fixed, so send each ball down early…" },
-      { action: "…and the trays swap colours once mid-round", detail: "— watch for it." },
+      { action: "…the track's bottom row re-lays and the trays swap colours mid-round", detail: "— watch for both." },
     ],
     score: "Points per ball home; wrong trays cost you.",
   },

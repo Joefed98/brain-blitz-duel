@@ -128,7 +128,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let draftAt = 0;
     let seenHome = 0;
     let seenBad = 0;
-    let shuffled = false;
+    let shuffled = 0;
     let shown = "";
     const loop = (time: number) => {
       frame = requestAnimationFrame(loop);
@@ -152,8 +152,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         seenHome = s.home;
         playBlip();
       }
-      if (!shuffled && s.tick >= course.shuffle.tick) {
-        shuffled = true;
+      const events = (s.tick >= course.relay.tick ? 1 : 0) + (s.tick >= course.shuffle.tick ? 1 : 0);
+      if (events > shuffled) {
+        shuffled = events;
         playTick();
       }
       if (s.wrong + s.lost > seenBad) {

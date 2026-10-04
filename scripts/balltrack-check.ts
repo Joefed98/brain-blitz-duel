@@ -34,7 +34,7 @@ function play(index: number, choose: (tick: number) => Omit<ArcadeInputEvent, "t
 
 let solved = 0, apart = 0;
 const dropSets = new Set<string>();
-if (BT_BALLS !== 20 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 14 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
+if (BT_BALLS !== 18 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 16 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
 for (let home = 0; home <= BT_BALLS; home++) for (let wrong = 0; wrong <= BT_BALLS - home; wrong++) {
   if (btScoreOf(home, wrong) !== Math.max(0, Math.min(150, Math.round(120 * home / BT_BALLS) - 5 * wrong + btSpeedBonus(home, BT_RUN_TICKS)))) fail("Scoring formula");
 if (btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 20 * 60) !== 30 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 15 * 60) !== 23 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 10 * 60) !== 15 || btSpeedBonus(BT_BALLS - 1, 0) !== 0) fail("Speed bonus");
@@ -57,15 +57,18 @@ BALL_TRACK_BANK.forEach((entry, i) => {
   if ([...rotatable].some(c => c >= 56)) fail(`course ${i}: bottom row rotatable`);
   if ([...rotatable].filter(c => c >= 42 && c < 49).length > 2 || [...rotatable].filter(c => c >= 49 && c < 56).length > 4) fail(`course ${i}: lower-row limits`);
   const drops = (t: number[]) => t.flatMap((x, col) => (x >= 0 ? [col] : [])).join(",");
-  if (c.trays[0] !== -1 || new Set(c.trays.filter(t => t >= 0)).size !== 4 || drops(c.trays) !== drops(c.shuffle.trays) || new Set(c.shuffle.trays.filter(t => t >= 0)).size !== 4) fail(`course ${i}: tray columns`);
-  if (c.trays.some((t, col) => t >= 0 && c.shuffle.trays[col] === t) || c.shuffle.tick < 1200 || c.shuffle.tick > 2400) fail(`course ${i}: shuffle`);
+  const four = (t: number[]) => t[0] === -1 && new Set(t.filter(x => x >= 0)).size === 4;
+  if (!four(c.trays) || !four(c.relay.trays) || !four(c.shuffle.trays) || drops(c.relay.trays) !== drops(c.shuffle.trays) || drops(c.trays) === drops(c.relay.trays)) fail(`course ${i}: tray columns`);
+  const ord = (t: number[]) => t.filter(x => x >= 0).join();
+  if (ord(c.trays) !== ord(c.relay.trays) || c.relay.tick < 1200 || c.relay.tick > 1800) fail(`course ${i}: re-lay`);
+  if (c.relay.trays.some((t, col) => t >= 0 && c.shuffle.trays[col] === t) || c.shuffle.tick < 2400 || c.shuffle.tick > 2700) fail(`course ${i}: shuffle`);
   dropSets.add(drops(c.trays));
   const hz = c.trays.flatMap((t, col) => (col > 0 && t < 0 ? [col] : []));
   if (hz.length === 2 && hz[1]! - hz[0]! > 1) apart++;
   if (hasLowerShortcut(c) || c.trays.some((t,col) => t >= 0 && !routeTo(c,col))) fail(`course ${i}: tray reachability / early route`);
   if (c.trays.filter((t) => t >= 0).length !== 4 || c.balls.length !== BT_BALLS) fail(`course ${i}: trays/balls`);
   const counts = Array.from({ length: 4 }, (_, colour) => c.balls.filter((b) => b === colour).length).sort();
-  if (counts.join(",") !== "5,5,5,5") fail(`course ${i}: colour balance`);
+  if (counts.join(",") !== "4,4,5,5") fail(`course ${i}: colour balance`);
   if (c.balls.some((b, j) => j >= 2 && b === c.balls[j - 1] && b === c.balls[j - 2])) fail(`course ${i}: three consecutive colours`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);
