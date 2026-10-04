@@ -557,7 +557,7 @@ function findReference(lvl: InkLevel, ink: number): { ref: number[][]; t0: numbe
     for (const fx of [-60, -20, 20, 60, 110]) {
       way.push([lvl.spoutX + dir * fx, sy + Math.trunc(((lvl.bucketY - sy) * fy) / 100)]);
     }
-  const phases = lvl.slideAmp ? 16 : 1;
+  const phases = lvl.slideAmp ? 4 : 1;
   for (let k = 0; k < phases; k++) {
     const t0 = Math.trunc((k * lvl.slidePeriod) / phases);
     for (const w of [null, ...way]) {
