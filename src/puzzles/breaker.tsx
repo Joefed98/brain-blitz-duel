@@ -13,18 +13,13 @@ import {
   type CanvasSize,
 } from "@/lib/arcade/engine";
 import {
-  brkButtonHit,
-  BRK_DRAG_ZONE_TOP,
-  BRK_BTN_H,
-  BRK_BTN_W,
-  BRK_BTN_X,
-  BRK_BTN_Y,
+  BRK_TAP_MS,
+  BRK_TAP_PX,
   brkCheckpoint,
   breakerGame,
   BRK_BG,
   BRK_CHECKPOINT_INTERVAL,
   BRK_GOLD,
-  BRK_POWER_SPAM,
   BRK_RUN_TICKS,
   BRK_TEAL,
   BRK_WORLD_H,
@@ -65,7 +60,7 @@ function IntroExample() {
         <rect x={62} y={102} width={44} height={7} rx={2} fill={BRK_GOLD} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Catch the capsule a gold brick drops.
+        Catch a power-up brick's capsule, then tap to fire.
       </p>
     </div>
   );
@@ -85,12 +80,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const sent = useRef<number>(state.current.aimX);
   /** Button presses waiting for a tick, and the pointer holding the button. */
   const presses = useRef<number[]>([]);
-  /** The one pointer steering the paddle — only ever one that started in the play area. */
+  /** The one pointer in use, where and when it went down, and whether it became a drag. */
   const dragPointer = useRef<number | null>(null);
+  const downAt = useRef<{ x: number; y: number; time: number; drag: boolean } | null>(null);
   const submitted = useRef(false);
   const [, forceRedraw] = useState(0);
-  /** Which power-up button is showing, mirrored from the sim for the overlay. */
-  const [heldView, setHeldView] = useState(0);
   useNoTouchScroll(wrap);
 
   const lockedRef = useRef(locked);
@@ -129,7 +123,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   useEffect(() => {
     if (!data) return;
     let frame = 0;
-    let heldSeen = -1;
     resetArcadeClock();
     let last = performance.now();
     let accumulator = 0;
@@ -193,9 +186,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       reportArcadeTick(state.current.tick, breakerGame.isOver(state.current));
-      if (state.current.held !== heldSeen) {
-        heldSeen = state.current.held;
-        setHeldView(heldSeen);
+      // A held-down touch that has outlasted the tap window becomes a drag.
+      const down = downAt.current;
+      if (down && !down.drag && time - down.time >= BRK_TAP_MS) {
+        down.drag = true;
+        wanted.current = worldPoint(down.x, down.y).x;
       }
 
       const size = sizeCanvas();
@@ -255,33 +250,41 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const track = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (locked || submitted.current || breakerGame.isOver(state.current)) return;
     if (dragPointer.current !== event.pointerId) return;
+    const down = downAt.current;
+    if (!down) return;
+    if (!down.drag) {
+      const moved = Math.hypot(event.clientX - down.x, event.clientY - down.y);
+      if (moved < BRK_TAP_PX && performance.now() - down.time < BRK_TAP_MS) return;
+      down.drag = true;
+    }
+    down.x = event.clientX;
+    down.y = event.clientY;
     wanted.current = worldPoint(event.clientX, event.clientY).x;
   };
 
   const release = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (dragPointer.current === event.pointerId) dragPointer.current = null;
+    if (dragPointer.current === event.pointerId) {
+      const down = downAt.current;
+      // A tap (short and still) fires a held power-up; it never moves the paddle.
+      if (
+        event.type === "pointerup" &&
+        down &&
+        !down.drag &&
+        performance.now() - down.time < BRK_TAP_MS &&
+        Math.hypot(event.clientX - down.x, event.clientY - down.y) < BRK_TAP_PX &&
+        !locked &&
+        !submitted.current &&
+        !breakerGame.isOver(state.current) &&
+        state.current.held > 0
+      ) {
+        presses.current.push(0);
+      }
+      dragPointer.current = null;
+      downAt.current = null;
+    }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-  };
-
-  // The power-up button is its own target, laid over the drawn one.
-  const buttonStyle = (() => {
-    const box = wrap.current?.getBoundingClientRect();
-    if (!box || box.width < 1) return null;
-    const scaleX = box.width / BRK_WORLD_W;
-    const scaleY = box.height / BRK_WORLD_H;
-    return {
-      left: (BRK_BTN_X - 6) * scaleX,
-      top: (BRK_BTN_Y - 6) * scaleY,
-      width: (BRK_BTN_W + 12) * scaleX,
-      height: (BRK_BTN_H + 12) * scaleY,
-    };
-  })();
-
-  const stop = (event: React.PointerEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    event.preventDefault();
   };
 
   return (
@@ -298,39 +301,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || breakerGame.isOver(state.current)) return;
-          // Drags only count when they start in the bottom quarter of the
-          // play area, and never on the button.
+          // Any touch on the canvas: a tap fires a power-up, anything longer
+          // or further is a paddle drag.
           if (!inPlayArea(event.clientX, event.clientY)) return;
-          const point = worldPoint(event.clientX, event.clientY);
-          if (point.y < BRK_DRAG_ZONE_TOP) return;
-          if (brkButtonHit(point.x, point.y)) return;
           if (dragPointer.current !== null) return;
           dragPointer.current = event.pointerId;
+          downAt.current = { x: event.clientX, y: event.clientY, time: performance.now(), drag: false };
           event.currentTarget.setPointerCapture(event.pointerId);
-          track(event);
         }}
         onPointerMove={track}
         onPointerUp={release}
         onPointerCancel={release}
       />
-      {heldView > 0 && buttonStyle && (
-        <button
-          type="button"
-          aria-label={heldView === BRK_POWER_SPAM ? "Fire a ball" : "Fire the laser"}
-          className="absolute rounded-md bg-transparent"
-          style={{ ...buttonStyle, touchAction: "none" }}
-          onPointerDown={(event) => {
-            stop(event);
-            if (locked || submitted.current || breakerGame.isOver(state.current)) return;
-            const held = state.current.held;
-            if (held > 0) presses.current.push(held === BRK_POWER_SPAM ? 0 : 1);
-          }}
-          onPointerMove={stop}
-          onPointerUp={stop}
-          onPointerCancel={stop}
-          onClick={(event) => event.stopPropagation()}
-        />
-      )}
     </div>
   );
 }
@@ -353,7 +335,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {result.cleared
           ? `Cleared at ${result.endedSeconds.toFixed(1)}s`
-          : `${result.destroyed} / 72 bricks · ${result.hits} hits · ${result.powerUps} power-up${result.powerUps === 1 ? "" : "s"}`}
+          : `${result.destroyed} / 80 bricks · ${result.hits} hits · ${result.powerUps} power-up${result.powerUps === 1 ? "" : "s"}`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.losses} relaunch{result.losses === 1 ? "" : "es"}
