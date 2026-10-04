@@ -1,3 +1,7 @@
+## Ball Track nine-row tuning
+- [ ] Resolve generator constraints: fixed bottom drops intercept horizontal entrants, limiting reachable trays when rows 7–8 have only four rotatable columns. Previous working game retained pending clarification.
+- [ ] Implement nine-row board, compact sizing and intro; rebuild 400 courses and run Ball Track-only proofs, no browser tests.
+
 ## Ball Track 20-ball tuning
 - [x] Thicken gold and grey tube outlines by 1.5× without changing tile gaps.
 - [x] Use 20 balanced seeded balls dropping every 2 seconds, with existing replay and count-based scoring.
