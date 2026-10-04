@@ -97,8 +97,8 @@ function build(hard: boolean) {
   for (let c = 0; c < C; c++) t[at(R - 1, c)] = "#";
 
   // Pool.
-  const depth = between(3, 4);
-  const width = between(3, 4);
+  const depth = between(2, 4);
+  const width = between(3, 6);
   const a = between(2, C - 2 - width);
   const b = a + width - 1;
   const floor = depth + 1;
@@ -109,8 +109,7 @@ function build(hard: boolean) {
       t[at(r, c)] = ".";
       w[at(r, c)] = 4;
     }
-  // Plug in the middle of the pool so little water is stranded on its floor.
-  const col = width === 3 ? a + 1 : a + 1 + rand(2);
+  const col = between(a, b);
   t[at(floor, col)] = "s";
   const route: number[] = [at(floor, col)];
 
@@ -119,7 +118,7 @@ function build(hard: boolean) {
   for (let c = 1; c < C - 1; c++) t[at(s, c)] = "#";
   for (let r = floor + 1; r < s; r++) route.push(at(r, col));
   const dir = col <= 3 ? 1 : col >= C - 4 ? -1 : rand(2) ? 1 : -1;
-  const dist = hard ? 3 : between(2, 3);
+  const dist = hard ? between(3, 8) : between(2, 8);
   const hole = col + dir * dist;
   if (hole < 1 || hole > C - 2) return null;
   for (let c = col + dir; c !== hole + dir; c += dir) route.push(at(s - 1, c));
@@ -149,7 +148,7 @@ function build(hard: boolean) {
   let divider = -1;
   const lower: number[] = [];
   if (hard) {
-    const v = col + dir * 2;
+    const v = col + dir * between(2, Math.max(2, dist - 2));
     divider = at(s, v);
     t[divider] = "s";
     lower.push(at(s + 1, v));
