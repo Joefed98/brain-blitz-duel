@@ -792,10 +792,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Feed the sweet to the mouth.",
     how: [
       { action: "Swipe across a rope", detail: "to cut it — time it with the swing." },
-      { action: "Cut the last rope", detail: "and the sweet drops; it can bounce off ledges." },
-      { action: "Grab stars on the way.", detail: "A new level starts straight after each one." },
+      { action: "Cut the last rope", detail: "and the sweet drops; it bounces off the side walls." },
+      { action: "Don't let it settle on a ledge", detail: "or fly out the top or bottom — 10 levels, 12 s each." },
     ],
-    score: "10 per sweet fed, +5 per star with it — up to 150.",
+    score: "10 per sweet fed, +2 per star; feed all ten for a time bonus — up to 150.",
   },
   swing: {
     goal: "Swing to the 500 m finish.",
