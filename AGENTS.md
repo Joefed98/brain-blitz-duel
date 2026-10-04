@@ -34,4 +34,5 @@
 - Number Pyramid stores one bank entry as four public boards plus private solutions and submits all four placement maps with the active index; why: skipped boards and current-board partial credit must grade identically on the server.
 - Ball Track uses a shared serpentine toggle sim with course-driven fixed bottom-row interception and occupied-tile locks; its server-only bank proves every tray has an upper-routing alternative and every ball gets home; why: drawing, generator and replay must agree without exposing playbooks.
 - Ball Track's bank generator exhaustively enumerates per-column fixed placements and uses a budgeted dynamic programme to minimise triple rotatable stacks while forbidding longer ones; why: seeded selection must retain the best achievable stack count before route/replay acceptance.
+- Ball Track warnings derive from seeded event ticks; sound follows sim-tick digit transitions; why: identical warnings without changing replay state or event timing.
 - Memory is excluded from room category choices, stored room settings and room draw pools; practice uses allTypesInCategory independently so memory games remain playable.

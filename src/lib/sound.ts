@@ -315,7 +315,7 @@ export function soundDiagnostics(): SoundDiagnostics {
 /* ----------------------------------------------------------------- effects */
 
 /** Plays a one-shot effect. Retriggering a cue restarts it rather than stacking. */
-export function playCue(cue: Cue): void {
+export function playCue(cue: Cue, volume = 1): void {
   if (!ready() || !ctx || !effectsGain) return;
   const buffer = buffers.get(cue);
   if (!buffer) return;
@@ -331,7 +331,7 @@ export function playCue(cue: Cue): void {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(cue === "podium_fanfare" ? FANFARE_GAIN : 1, ctx.currentTime);
+    gain.gain.setValueAtTime((cue === "podium_fanfare" ? FANFARE_GAIN : 1) * Math.max(0, Math.min(1, volume)), ctx.currentTime);
     source.connect(gain).connect(effectsGain);
     source.onended = () => {
       if (playingEffects.get(cue) === source) playingEffects.delete(cue);
@@ -343,7 +343,7 @@ export function playCue(cue: Cue): void {
   }
 }
 
-export const playTick = () => playCue("tick");
+export const playTick = (volume = 1) => playCue("tick", volume);
 export const playCorrect = () => playCue("correct");
 export const playWrong = () => playCue("wrong");
 export const playLock = () => playCue("lock");
