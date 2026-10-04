@@ -5,7 +5,7 @@
  * non-overlapping rectangles cover every cell.
  */
 
-export const SHIKAKU_SIZE = 9;
+export const SHIKAKU_SIZE = 10;
 export const SHIKAKU_CELLS = SHIKAKU_SIZE * SHIKAKU_SIZE;
 
 export interface ShikakuClue {
@@ -123,7 +123,7 @@ export function countShikakuSolutions(clues: readonly ShikakuClue[], limit = 2, 
   return found;
 }
 
-/** Solved = 100 + time bonus; otherwise 70 × covered ÷ 64. */
+/** Solved = 100 + time bonus; otherwise 70 × covered ÷ board cells. */
 export function scoreShikaku(solved: boolean, msRemaining: number, timeLimitMs: number, covered: number): number {
   if (solved) return Math.min(150, 100 + Math.round((50 * Math.max(0, msRemaining)) / timeLimitMs));
   return Math.max(0, Math.round((70 * covered) / SHIKAKU_CELLS));

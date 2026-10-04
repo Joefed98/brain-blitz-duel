@@ -1,5 +1,5 @@
 /**
- * Server-only Shikaku generator: a 9×9 partition into 15–18 rectangles (at
+ * Server-only Shikaku generator: a 10×10 partition into 18–22 rectangles (at
  * most one 1×1, at most two of area 2, at least four of area 6+ whose number
  * sits away from the centre), with repeated adjacent areas, and the solver must
  * find exactly one partition — otherwise the board is re-rolled.
@@ -88,7 +88,7 @@ function clueCell(rect: ShikakuRect): number {
 export function generateShikaku(): ShikakuPuzzleData {
   for (let attempt = 0; attempt < 50000; attempt++) {
     const rects = tryPartition();
-    if (!rects || rects.length < 15 || rects.length > 18) continue;
+    if (!rects || rects.length < 18 || rects.length > 22) continue;
     if (rects.filter((rect) => rectArea(rect) >= 6).length < 4) continue;
     if (shikakuEqualAdjacentPairs(rects) < 3) continue;
     const clues: ShikakuClue[] = rects.map((rect) => ({ cell: clueCell(rect), n: rectArea(rect) }));

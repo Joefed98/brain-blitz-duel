@@ -101,12 +101,12 @@ function Board({
 }
 
 function IntroExample() {
-  // The real 9 × 9 board size, shown with one valid rectangle per row.
-  const clues = Array.from({ length: 9 }, (_, row) => ({ cell: row * 9 + (row % 2 ? 2 : 6), n: 9 }));
-  const rects = Array.from({ length: 9 }, (_, row) => ({ r0: row, c0: 0, r1: row, c1: 8 }));
+  // The real board size, shown with one valid rectangle per row.
+  const clues = Array.from({ length: SHIKAKU_SIZE }, (_, row) => ({ cell: row * SHIKAKU_SIZE + (row % 2 ? 2 : 6), n: SHIKAKU_SIZE }));
+  const rects = Array.from({ length: SHIKAKU_SIZE }, (_, row) => ({ r0: row, c0: 0, r1: row, c1: SHIKAKU_SIZE - 1 }));
   return (
     <div style={{ width: 180 }}>
-      <Board size={9} clues={clues} rects={rects} small />
+      <Board size={SHIKAKU_SIZE} clues={clues} rects={rects} small />
     </div>
   );
 }

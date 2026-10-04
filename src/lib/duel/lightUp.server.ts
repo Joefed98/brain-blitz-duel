@@ -1,5 +1,5 @@
 /**
- * Server-only Light Up generator: an 8×8 board with 14–18 walls, a random
+ * Server-only Light Up generator: a 9×9 board with 18–23 walls, a random
  * valid bulb layout, and roughly half of walls numbered. Boards the solver does
  * not find exactly one layout for are re-rolled.
  */
@@ -17,7 +17,7 @@ import type { LightUpPuzzleData } from "./types";
 export function generateLightUp(): LightUpPuzzleData {
   const size = LIGHTUP_SIZE;
   for (let attempt = 0; attempt < 100000; attempt++) {
-    const walls = shuffled([...Array(size * size).keys()]).slice(0, randInt(14, 18));
+    const walls = shuffled([...Array(size * size).keys()]).slice(0, randInt(18, 23));
     const wallSet = new Set(walls);
     const lit = new Set<number>();
     const bulbs: number[] = [];
