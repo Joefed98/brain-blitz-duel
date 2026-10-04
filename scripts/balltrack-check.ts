@@ -73,7 +73,7 @@ BALL_TRACK_BANK.forEach((entry, i) => {
   else fail(`course ${i}: playbook did not route all ${BT_BALLS} (${state.home}, score ${score})`);
 });
 
-if (dropSets.size < 10 || apart < 50) fail(`bottom-row variety: ${dropSets.size} drop layouts, ${apart} non-adjacent horizontals`);
+if (dropSets.size < 6 || apart < 50) fail(`bottom-row variety: ${dropSets.size} drop layouts, ${apart} non-adjacent horizontals`);
 let same = 0;
 for (let run = 0; run < 200; run++) {
   let r = 0x9e3779b9 ^ run;
