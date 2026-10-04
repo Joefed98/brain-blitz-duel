@@ -29,7 +29,7 @@ import { btDraw } from "@/lib/arcade/ballTrack";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Practice fallback course (the first bank course). */
-const PRACTICE_COURSE: BtCourse = {"trays":[-1,3,-1,2,0,-1,1],"shuffle":{"tick":1867,"trays":[-1,2,-1,0,1,-1,3]},"balls":[2,1,0,2,0,2,1,2,1,3,3,2,0,1,3,0,3,0,1,3],"fixed":[4,16,18,19,22,25,36,37,40,43,45,46,52]};
+const PRACTICE_COURSE: BtCourse = {"trays":[-1,2,0,-1,1,-1,3],"relay":{"tick":1478,"trays":[-1,-1,2,0,1,-1,3]},"shuffle":{"tick":2474,"trays":[-1,-1,1,3,2,-1,0]},"balls":[3,0,0,3,0,3,1,2,1,2,1,1,2,1,3,2,3,0],"fixed":[11,12,15,16,22,23,29,32,33,37,43,46,47,50]};
 
 /* ------------------------------ Intro example ------------------------------ */
 
@@ -128,7 +128,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let draftAt = 0;
     let seenHome = 0;
     let seenBad = 0;
-    let shuffled = false;
+    let shuffled = 0;
     let shown = "";
     const loop = (time: number) => {
       frame = requestAnimationFrame(loop);
@@ -152,8 +152,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         seenHome = s.home;
         playBlip();
       }
-      if (!shuffled && s.tick >= course.shuffle.tick) {
-        shuffled = true;
+      const bottomEvents = (s.tick >= course.relay.tick ? 1 : 0) + (s.tick >= course.shuffle.tick ? 1 : 0);
+      if (bottomEvents > shuffled) {
+        shuffled = bottomEvents;
         playTick();
       }
       if (s.wrong + s.lost > seenBad) {

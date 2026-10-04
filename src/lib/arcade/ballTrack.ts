@@ -10,9 +10,9 @@ import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 
 export const BT_COLS = 7;
 export const BT_ROWS = 9;
-export const BT_BALLS = 20;
+export const BT_BALLS = 18;
 export const BT_COLOURS = 4;
-export const BT_STEP_TICKS = 14;
+export const BT_STEP_TICKS = 16;
 /** Tray colours slide to their shuffled columns over this many ticks (~0.5 s). */
 export const BT_SHUFFLE_TICKS = 30;
 export const BT_DROP_TICKS = 120; // a ball every 2 s
@@ -58,7 +58,9 @@ export const BT_ALWAYS_FIXED = Array.from({ length: 6 }, (_, r) => r * BT_COLS +
 export interface BtCourse {
   /** Colour per bottom column (7), -1 = no drop. */
   trays: number[];
-  /** Seeded mid-round tray shuffle: from `tick` the drop columns hold `trays` instead. */
+  /** Seeded bottom-row re-lay (40–30 s left): drops move to new columns, each tray moving with its drop. */
+  relay: { tick: number; trays: number[] };
+  /** Seeded tray colour shuffle (20–15 s left) over the re-laid drop columns. */
   shuffle: { tick: number; trays: number[] };
   /** Ball colours in drop order. */
   balls: number[];
@@ -74,16 +76,16 @@ export function btRotatable(course: BtCourse): number[] {
 
 const PIT = -2;
 
-/** Tray colours live at tick `t` (the drop columns never move, only their colours). */
+/** Bottom-row layout (drop columns and their tray colours) live at tick `t`. */
 export function btTraysAt(course: BtCourse, t: number): number[] {
-  return t >= course.shuffle.tick ? course.shuffle.trays : course.trays;
+  return t >= course.shuffle.tick ? course.shuffle.trays : t >= course.relay.tick ? course.relay.trays : course.trays;
 }
 const SLOT = 100;
 
 /** Next cell for a ball in `cell` (arrived from above if `fromAbove`): neighbour, SLOT + column, or PIT. */
-export function btNext(cell: number, fromAbove: boolean, vertical: boolean, course?: BtCourse): { cell: number; fromAbove: boolean } {
+export function btNext(cell: number, fromAbove: boolean, vertical: boolean, course?: BtCourse, tick = 0): { cell: number; fromAbove: boolean } {
   const r = Math.floor(cell / BT_COLS), c = cell % BT_COLS;
-  const down = r === BT_ROWS - 1 ? c > 0 && (course?.trays[c] ?? -1) >= 0 : BT_KIND[cell] === 2 ? !fromAbove : vertical;
+  const down = r === BT_ROWS - 1 ? c > 0 && (course ? btTraysAt(course, tick)[c]! : -1) >= 0 : BT_KIND[cell] === 2 ? !fromAbove : vertical;
   if (down) return r === BT_ROWS - 1 ? { cell: SLOT + c, fromAbove: true } : { cell: cell + BT_COLS, fromAbove: true };
   const nc = c + rowDir(r);
   if (nc < 0 || nc >= BT_COLS) return { cell: PIT, fromAbove: false };
@@ -169,7 +171,7 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
       removed.add(ball.id);
       continue;
     }
-    const next = ball.cell < 0 ? { cell: BT_HOPPER_COL, fromAbove: true } : btNext(ball.cell, ball.above === 1, s.vert[ball.cell] === 1, course);
+    const next = ball.cell < 0 ? { cell: BT_HOPPER_COL, fromAbove: true } : btNext(ball.cell, ball.above === 1, s.vert[ball.cell] === 1, course, t);
     if (next.cell === PIT) {
       s.falls = keep(s.falls, { cell: ball.cell, colour: ball.colour, tick: t, ok: 0 });
       s.lost++;
@@ -283,7 +285,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
   const rot = rotatable ?? new Set(btRotatable(course));
   ctx.fillStyle = BG;
   ctx.fillRect(0, gridY, BT_W, BT_ROWS * BT_TILE);
-  const maskOf = (cell: number) => (cell >= (BT_ROWS - 1) * BT_COLS && (course.trays[cell % BT_COLS] ?? -1) >= 0 ? N | S : BT_KIND[cell] === 2 ? BT_CORNER[cell]! : s.vert[cell] ? N | S : E | W);
+  const maskOf = (cell: number) => (cell >= (BT_ROWS - 1) * BT_COLS && (btTraysAt(course, s.tick)[cell % BT_COLS] ?? -1) >= 0 ? N | S : BT_KIND[cell] === 2 ? BT_CORNER[cell]! : s.vert[cell] ? N | S : E | W);
   // Two parallel lines per piece: gold rotatable tubes and grey fixed tubes.
   ctx.lineCap = "butt";
   ctx.lineJoin = "round";
@@ -298,14 +300,17 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
   }
   // Trays: after the shuffle each colour flashes and slides from its old column to its new one.
   const trayY = gridY + BT_ROWS * BT_TILE + 6;
-  const since = s.tick - course.shuffle.tick;
+  // Latest bottom-row event (re-lay or colour shuffle) animates from the layout before it.
+  const event = s.tick >= course.shuffle.tick ? course.shuffle : s.tick >= course.relay.tick ? course.relay : null;
+  const prior = event ? btTraysAt(course, event.tick - 1) : course.trays;
+  const since = event ? s.tick - event.tick : -1;
   const k = since < 0 ? 0 : Math.min(1, since / BT_SHUFFLE_TICKS);
   const ease = k * k * (3 - 2 * k);
   const shuffleFlash = since >= 0 && since < BT_SHUFFLE_TICKS + 20 && Math.floor(since / 5) % 2 === 0;
   const now = btTraysAt(course, s.tick);
-  course.trays.forEach((tray, from) => {
+  prior.forEach((tray, from) => {
     if (tray < 0) return;
-    const to = since >= 0 ? course.shuffle.trays.indexOf(tray) : from;
+    const to = event ? event.trays.indexOf(tray) : from;
     const col = from + (to - from) * ease;
     const x = col * BT_TILE + 6, w = BT_TILE - 12, h = BT_TRAY_H - 10;
     const landed = now.indexOf(tray);
