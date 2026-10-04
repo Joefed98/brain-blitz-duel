@@ -464,6 +464,7 @@ function layout(level: number, count: number, draw: Draw): InkLevel {
   let slidePeriod = 1;
   let slidePhase = 0;
   if (level >= SLIDE_FROM) {
+    bucketX = clampInt(bucketX, 72, INK_WORLD_W - 72);
     // Keep the whole slide (bucket plus rim) on screen.
     const room = Math.min(bucketX, INK_WORLD_W - bucketX) - INK_BUCKET_W / 2 - RIM_R - 4;
     slideAmp = Math.max(0, Math.min(SLIDE_AMP_MIN + draw(SLIDE_AMP_SPAN), room));
