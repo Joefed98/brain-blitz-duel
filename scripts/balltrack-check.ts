@@ -63,7 +63,7 @@ BALL_TRACK_BANK.forEach((entry, i) => {
   if (c.balls.some((b, j) => j >= 2 && b === c.balls[j - 1] && b === c.balls[j - 2])) fail(`course ${i}: three consecutive colours`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);
-  if (state.home === BT_BALLS && state.wrong === 0 && state.lost === 0 && score === 150 && state.actions === entry.par) solved++;
+  if (state.home === BT_BALLS && state.wrong === 0 && state.lost === 0 && score === 120 + btSpeedBonus(BT_BALLS, state.lastLand) && state.actions === entry.par) solved++;
   else fail(`course ${i}: playbook did not route all ${BT_BALLS} (${state.home}, score ${score})`);
 });
 
