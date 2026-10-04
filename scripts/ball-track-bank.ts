@@ -118,10 +118,6 @@ function makeCourse(): BtCourse {
   return { trays, relay: { tick: 1200 + rnd(601), trays: relaid }, shuffle: { tick: 2400 + rnd(301), trays: after }, balls, fixed };
 }
 
-/** Landing tick per ball when every ball follows the route to its target column. */
-function landingTicks(course: BtCourse, target: number[]): number[] {
-  return playRoutes(course, target.map((col) => routeTo(course, col)!)).landed;
-}
 
 /** Just-in-time playbook: each tick toggle the mismatched tile whose next ball is closest to it. */
 export function playRoutes(course: BtCourse, routes: { cell: number; vert: number }[][]) {
