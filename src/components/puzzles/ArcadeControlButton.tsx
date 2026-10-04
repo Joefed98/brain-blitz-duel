@@ -47,7 +47,7 @@ export function ArcadeControlButton({
       {...props}
       ref={ref}
       className={cn("touch-none select-none [-webkit-touch-callout:none] [-webkit-user-select:none]", className)}
-      style={{ ...props.style, userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none", touchAction: "none" }}
+      style={{ ...props.style, userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none", WebkitTapHighlightColor: "transparent", touchAction: "none" }}
       onPointerDown={(event) => {
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);

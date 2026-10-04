@@ -48,14 +48,14 @@ export const FLIP_DECISION_OVERHANG = 1;
 export const FLIP_DECISION_PAIRED_SPIKES = 2;
 export const FLIP_DECISION_FALSE_GAP = 3;
 
-/** Path warp: starts at 20 s, amplitude ramps 0 → max over the next 20 s; period 3–5 s (seeded). */
+/** Path warp: starts at 20 s, amplitude ramps 0 → max over the next 20 s; period 4–6 s (seeded). */
 export const FLIP_WARP_FROM = 20 * TICKS_PER_SECOND;
 const WARP_RAMP = 20 * TICKS_PER_SECOND;
-const WARP_MAX = 46;
-const WARP_PERIOD_MIN = 3 * TICKS_PER_SECOND;
+const WARP_MAX = 76;
+const WARP_PERIOD_MIN = 4 * TICKS_PER_SECOND;
 const WARP_PERIOD_SPAN = 2 * TICKS_PER_SECOND + 1;
 /** Spatial wavelength of the bend, px. */
-const WARP_WAVE = 520;
+const WARP_WAVE = 1600;
 
 export const FLIP_INPUT_RANGES: readonly InputRange[] = [inputRange(FLIP_INPUT_TAP)];
 
@@ -292,7 +292,7 @@ export function flipWarpAt(s: FlipState, side: number, worldX: number, tick = s.
   const amp = flipWarpAmp(tick);
   if (amp === 0) return 0;
   const base = side === 0 ? s.warpFloor : s.warpCeil;
-  const along = Math.trunc((Math.trunc(worldX / FP) * 65536) / WARP_WAVE);
+  const along = Math.trunc((Math.trunc((worldX - s.x) / FP) * 65536) / WARP_WAVE);
   const time = Math.trunc(((tick - FLIP_WARP_FROM) * 65536) / s.warpPeriod);
   return Math.trunc((amp * isin((base + along + time) & 65535)) / TRIG_ONE);
 }

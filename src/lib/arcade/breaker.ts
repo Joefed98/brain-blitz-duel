@@ -2,7 +2,7 @@
  * Breaker — an arcade game on the shared engine.
  *
  * A paddle follows the finger, balls clear a wall of bricks. Each brick's hit
- * points (1–3) and where the three power-up bricks (laser, 5-ball,
+ * points (1–3) and where the four power-up bricks (laser, 5-ball,
  * double-ball) sit are drawn once at init from the seed, so everyone gets the
  * same board. Every value in the state is an integer in 1/256-pixel units and no
  * randomness is drawn during play except the relaunch angle, which comes from
@@ -49,7 +49,7 @@ export const BRK_HP3_MAX = 15;
 export const BRK_HP2_MIN = 20;
 export const BRK_HP2_MAX = 30;
 
-/** One of each power-up brick per board (counted in the 80, always 1 hit). */
+/** One laser, one 5-ball and two double-ball bricks per board (counted in the 80, always 1 hit). */
 export const BRK_POWER_MULTI = 0;
 export const BRK_POWER_SPAM = 1;
 export const BRK_POWER_LASER = 2;
@@ -215,7 +215,7 @@ function init(seed: number): BrkState {
   const bricks = new Array<number>(BRK_BRICKS).fill(1);
   const gold = new Array<number>(BRK_BRICKS).fill(0);
 
-  // One of each power-up brick, each inside its own band of rows.
+  // Four distinct power-up bricks, each inside its own band of rows.
   const placePower = (kind: number, rows: readonly [number, number]): void => {
     const span = (rows[1] - rows[0] + 1) * BRK_COLS;
     for (let guard = 0; guard < 400; guard++) {
@@ -236,6 +236,7 @@ function init(seed: number): BrkState {
   };
   placePower(BRK_POWER_LASER, BRK_LASER_ROWS);
   placePower(BRK_POWER_SPAM, BRK_SPAM_ROWS);
+  placePower(BRK_POWER_MULTI, BRK_MULTI_ROWS);
   placePower(BRK_POWER_MULTI, BRK_MULTI_ROWS);
 
   // Seeded hit points on the plain bricks: 3-hit first, then 2-hit.
@@ -577,14 +578,14 @@ export function brkCheckpoint(state: BrkState): BrkCheckpoint {
 
 export const BRK_BG = "#0B0B0F";
 export const BRK_GOLD = "#F5B82E";
-export const BRK_TEAL = ["#2ED3B7", "#27B6A0", "#1F9A89", "#178073"];
+export const BRK_TEAL = ["#83BAFF", "#4D8CFF", "#2857AA"] as const;
 /** Power-up brick colours, by kind: double-ball bronze, 5-ball silver, laser gold. */
 export const BRK_POWER_COLOURS = ["#C07A3E", "#C9CED6", "#F5B82E"] as const;
 export const BRK_POWER_LABELS = ["×2", "×5", "L"] as const;
 
-/** A black five-point star, marking a gold (power-up) brick. */
+/** A white five-point star marking every power-up brick. */
 function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number): void {
-  ctx.fillStyle = "#0B0B0F";
+  ctx.fillStyle = "#FFFFFF";
   ctx.beginPath();
   for (let point = 0; point < 10; point++) {
     const radius = point % 2 === 0 ? r : r * 0.45;
@@ -617,27 +618,11 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
     ctx.fillStyle =
       power >= 0
         ? (BRK_POWER_COLOURS[power] ?? BRK_GOLD)
-        : (BRK_TEAL[row % BRK_TEAL.length] ?? BRK_TEAL[0]!);
+        : (BRK_TEAL[left - 1] ?? BRK_TEAL[0]);
     ctx.fillRect(x + 1, y, BRK_BRICK_W - 2, BRK_BRICK_H);
     if (power >= 0) {
-      ctx.fillStyle = "#0B0B0F";
-      ctx.font = "700 10px 'JetBrains Mono', ui-monospace, monospace";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(BRK_POWER_LABELS[power] ?? "", x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2 + 1);
+      drawStar(ctx, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, 7);
       return;
-    }
-    // Tier: 2 = one bevel line, 3 = double bevel and a small "3".
-    ctx.strokeStyle = "rgba(255,255,255,0.6)";
-    ctx.lineWidth = 1;
-    if (left >= 2) ctx.strokeRect(x + 2.5, y + 1.5, BRK_BRICK_W - 5, BRK_BRICK_H - 3);
-    if (left >= 3) {
-      ctx.strokeRect(x + 5.5, y + 4.5, BRK_BRICK_W - 11, BRK_BRICK_H - 9);
-      ctx.fillStyle = "#0B0B0F";
-      ctx.font = "700 9px 'JetBrains Mono', ui-monospace, monospace";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("3", x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2 + 1);
     }
     // A crack per hit taken.
     const taken = (state.maxHp[index] ?? 1) - left;

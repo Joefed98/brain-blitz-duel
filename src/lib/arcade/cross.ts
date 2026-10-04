@@ -30,9 +30,10 @@ export const CROSS_RUN_TICKS = CROSS_RUN_SECONDS * TICKS_PER_SECOND;
 
 export const CROSS_LANES = 9;
 export const CROSS_LANE_H = 52;
-export const CROSS_COLS = 7;
-export const CROSS_COL_W = 52;
-export const CROSS_BOARD_W = CROSS_COLS * CROSS_COL_W;
+/** Thirteen half-column positions: sideways swipes move 26 px. */
+export const CROSS_COLS = 13;
+export const CROSS_COL_W = 26;
+export const CROSS_BOARD_W = (CROSS_COLS + 1) * CROSS_COL_W;
 export const CROSS_BOARD_X = (CROSS_WORLD_W - CROSS_BOARD_W) / 2;
 
 export const CROSS_HUD_H = 36;
@@ -105,7 +106,7 @@ export function crossBlocked(lane: CrossLane, centreFp: number, rel: number): bo
 }
 
 export function crossColumnCentreFp(col: number): number {
-  return (CROSS_BOARD_X + col * CROSS_COL_W + CROSS_COL_W / 2) * 256;
+  return (CROSS_BOARD_X + (col + 1) * CROSS_COL_W) * 256;
 }
 
 /** The search horizon used when proving a crossing is passable. */
@@ -513,21 +514,23 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
-  // Safe start and finish strips use the same road surface as traffic lanes.
-  ctx.fillStyle = CROSS_ROAD;
-  ctx.fillRect(CROSS_BOARD_X, CROSS_HUD_H, CROSS_BOARD_W, CROSS_KERB_H);
-  ctx.fillStyle = CROSS_ROAD;
-  ctx.fillRect(
-    CROSS_BOARD_X,
-    CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H,
-    CROSS_BOARD_W,
-    CROSS_KERB_H,
-  );
+  // Safe lanes have asphalt, kerbs and dashed markings like the traffic road.
+  const road = (top: number, height: number, alternate = false) => {
+    ctx.fillStyle = alternate ? "#131319" : CROSS_ROAD;
+    ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, height);
+    ctx.fillStyle = "#6A7280";
+    ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, 2);
+    ctx.fillRect(CROSS_BOARD_X, top + height - 2, CROSS_BOARD_W, 2);
+    ctx.fillStyle = "#C9CED6";
+    for (let x = CROSS_BOARD_X + 8; x < CROSS_BOARD_X + CROSS_BOARD_W; x += 40)
+      ctx.fillRect(x, top + height / 2 - 1, Math.min(18, CROSS_BOARD_X + CROSS_BOARD_W - x), 2);
+  };
+  road(CROSS_HUD_H, CROSS_KERB_H);
+  road(CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H, CROSS_KERB_H);
 
   for (let lane = 1; lane <= CROSS_LANES; lane++) {
     const top = crossLaneTop(lane);
-    ctx.fillStyle = lane % 2 === 0 ? "#131319" : CROSS_ROAD;
-    ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
+    road(top, CROSS_LANE_H, lane % 2 === 0);
     const laneDef = course.lanes[lane - 1];
     if (!laneDef) continue;
     const start = mod(laneDef.dir * laneDef.speed * rel + laneDef.phase, laneDef.period);

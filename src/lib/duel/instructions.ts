@@ -552,7 +552,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Make lines of three or more matching symbols.",
     how: [
       { action: "Swap two neighbours", detail: "by dragging one onto the other." },
-      { action: "Make four, five, or a T / L", detail: "to create bombs, crosses and stars (stars clear both diagonals)." },
+      { action: "Make four, five, or a T / L", detail: "to create a four-point star (nearby blast), cross or six-point star (both diagonals), including on cascades." },
       { action: "Trigger specials", detail: "to clear nearby symbols and start chain reactions." },
       { action: "Sixty seconds", detail: "on the same board for everyone." },
     ],
@@ -597,8 +597,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag to move the paddle", detail: "anywhere on the board." },
       { action: "Keep the ball up", detail: "— it gets faster with bricks and with time." },
-      { action: "Bevelled bricks take 2 or 3 hits", detail: "— each hit cracks them down a tier." },
-      { action: "Three power-up bricks drop a capsule", detail: "gold = laser, silver = ×5 balls, bronze = ×2 balls (works at once)." },
+      { action: "Darker blue bricks take 2 or 3 hits", detail: "— each hit cracks them down a tier." },
+      { action: "Four starred power-up bricks drop a capsule", detail: "gold = laser, silver = ×5 balls, bronze = ×2 balls (works at once)." },
       { action: "Tap anywhere to fire", detail: "a laser or ×5 you've caught; any other touch moves the paddle." },
     ],
     score: "135 × bricks destroyed ÷ 80; a full clear adds up to 15 for time left. Max 150.",
@@ -775,7 +775,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hold ◀ or ▶ to move,", detail: "tap the arena or FIRE to shoot straight up." },
       { action: "Pop a purple ball and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
       { action: "Blue balls sometimes drop a teal SHIELD", detail: "— it takes the next hit for you." },
-      { action: "Don't let a ball touch you", detail: "— two touches and you're out." },
+      { action: "Don't let a ball touch you", detail: "— three touches and you're out." },
     ],
     score: "2 per ball popped or split, −9 per life lost. Clear four waves without losing a life for 150.",
   },

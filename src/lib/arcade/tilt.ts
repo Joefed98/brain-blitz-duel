@@ -580,9 +580,14 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
     const x = (p % m.n) * cs + cs / 2 - o;
     const y = Math.trunc(p / m.n) * cs + cs / 2 - o;
     const radius = cs * 0.32;
-    ctx.moveTo(x, y - radius);
-    ctx.lineTo(x + radius * Math.sqrt(3) / 2, y + radius / 2);
-    ctx.lineTo(x - radius * Math.sqrt(3) / 2, y + radius / 2);
+    for (let point = 0; point < 12; point++) {
+      const r = point % 2 === 0 ? radius : radius * 0.48;
+      const angle = point * Math.PI / 6 - Math.PI / 2;
+      const sx = x + Math.cos(angle) * r;
+      const sy = y + Math.sin(angle) * r;
+      if (point === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    }
     ctx.closePath();
     ctx.fill();
   }
