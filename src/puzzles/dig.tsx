@@ -3,22 +3,28 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useGridPointer } from "@/components/puzzles/GridDrag";
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import {
+  digCleanCollected,
   digDecode,
   digEncode,
   digInit,
+  digLine,
   digReplay,
   digSettled,
   digStep,
   digWaterLeft,
   DIG_COLS,
+  DIG_EVAP_STEPS,
   DIG_MAX_PER_STEP,
   DIG_ROWS,
   DIG_STEP_MS,
   DIG_STEPS,
+  T_ACID,
   T_DRAIN,
   T_GAP,
+  T_LAVA,
   T_ROCK,
   T_SAND,
+  T_ACID_HIDDEN,
   type DigAction,
   type DigBoard,
   type DigState,
@@ -30,6 +36,16 @@ import { playCorrect } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const GRID_STYLE: CSSProperties = { touchAction: "none", overscrollBehavior: "none", userSelect: "none", WebkitUserSelect: "none" };
+
+function tileClass(t: string | undefined, onRoute: boolean): string {
+  if (t === T_ROCK) return "bg-muted";
+  if (t === T_SAND || t === T_ACID_HIDDEN) return onRoute ? "bg-primary/60" : "bg-primary/30";
+  if (t === T_DRAIN) return "bg-reaction-blue/40 ring-1 ring-inset ring-reaction-blue";
+  if (t === T_GAP) return "bg-destructive/40";
+  if (t === T_LAVA) return "bg-ball-red/80";
+  if (t === T_ACID) return "bg-ball-green/50";
+  return "bg-background";
+}
 
 function Grid({
   board,
@@ -60,15 +76,19 @@ function Grid({
     >
       {state.tiles.map((t, cell) => {
         const units = state.water[cell] ?? 0;
-        let cls = "bg-background";
-        if (t === T_ROCK) cls = "bg-muted";
-        else if (t === T_SAND) cls = route?.has(cell) ? "bg-primary/60" : "bg-primary/30";
-        else if (t === T_DRAIN) cls = "bg-reaction-blue/40 ring-1 ring-inset ring-reaction-blue";
-        else if (t === T_GAP) cls = "bg-destructive/40";
+        const settled = state.settled[cell] ?? 0;
+        const toxic = state.tox[cell] === 1;
+        const evaporating = (state.age[cell] ?? -1) >= DIG_EVAP_STEPS;
         return (
-          <div key={cell} className={`relative overflow-hidden ${small ? "" : "rounded-[2px]"} ${cls}`}>
+          <div key={cell} className={`relative overflow-hidden ${small ? "" : "rounded-[2px]"} ${tileClass(t, route?.has(cell) ?? false)}`}>
+            {settled > 0 && (
+              <span className="absolute inset-x-0 bottom-0 bg-muted-foreground/40" style={{ height: `${Math.min(4, settled) * 25}%` }} />
+            )}
             {units > 0 && (
-              <span className="absolute inset-x-0 bottom-0 bg-reaction-blue" style={{ height: `${units * 25}%` }} />
+              <span
+                className={`absolute inset-x-0 bottom-0 ${toxic ? "bg-ball-green" : "bg-reaction-blue"} ${evaporating ? "animate-pulse opacity-60" : ""}`}
+                style={{ height: `${units * 25}%` }}
+              />
             )}
           </div>
         );
@@ -77,50 +97,84 @@ function Grid({
   );
 }
 
-/** 6×8 example: the pool's sand plug is dug once, water falls to the drain. */
+/** 6×8 example: three digs straight down, clear of the green acid, fill the drain. */
 const EXAMPLE: DigBoard = {
   cols: 6,
   rows: 8,
-  tiles: "#....#" + "#....#" + "#....#" + "#s####" + "#.####" + "#....#" + "####.#" + "####D#",
+  tiles: "#....#" + "#....#" + "#....#" + "##s###" + "#sssA#" + "#ssss#" + "##D###" + "######",
   water: "000000" + "044440" + "044440" + "000000" + "000000" + "000000" + "000000" + "000000",
+  budget: 3,
+  minDigs: 3,
+  targets: [26],
 };
-// Route: plug (col 1, row 3) → shaft → along row 5 → down col 4 → drain.
-const EXAMPLE_TILES = EXAMPLE.tiles;
+const EXAMPLE_DIGS = [20, 26, 32];
 
 function IntroExample() {
   const [state, setState] = useState<DigState>(() => digInit(EXAMPLE));
   useEffect(() => {
     let s = digInit(EXAMPLE);
     const id = window.setInterval(() => {
-      if (s.step >= 70 || digSettled(s)) {
+      if (s.step >= 90 || digSettled(s)) {
         window.clearInterval(id);
         return;
       }
-      s = digStep(EXAMPLE, s, s.step + 1 === 10 ? [19] : []);
+      const n = s.step + 1;
+      s = digStep(EXAMPLE, s, n >= 8 && n <= 10 ? [EXAMPLE_DIGS[n - 8]!] : []);
       setState(s);
     }, DIG_STEP_MS);
     return () => window.clearInterval(id);
   }, []);
-  void EXAMPLE_TILES;
   return (
     <div className="flex flex-col items-center gap-2">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Digs left: {EXAMPLE.budget - state.dug}/{EXAMPLE.budget}</p>
       <div style={{ width: 96, height: 128 }}>
         <Grid board={EXAMPLE} state={state} small />
       </div>
       <p className="max-w-[260px] text-center text-xs text-muted-foreground">
-        One dig through the gold sand, and the water runs down to the drain.
+        Three digs straight down, clear of the green acid, and clean water fills the drain.
       </p>
     </div>
   );
 }
 
+function Legend({ state }: { state: DigState }) {
+  const item = (cls: string, label: string) => (
+    <span className="flex items-center gap-1">
+      <span className={`inline-block h-2.5 w-2.5 rounded-[2px] ${cls}`} />
+      {label}
+    </span>
+  );
+  return (
+    <div className="flex shrink-0 flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+      {item("bg-primary/30", "sand")}
+      {item("bg-muted", "rock")}
+      {item("bg-ball-green/50", "acid")}
+      {item("bg-ball-red/80", "lava")}
+      {state.drains.map((_, k) => (
+        <span key={k} className="flex items-center gap-1">
+          <span className="inline-block h-2.5 w-2.5 rounded-[2px] bg-reaction-blue/40 ring-1 ring-inset ring-reaction-blue" />
+          drain{state.drains.length > 1 ? ` ${k + 1}` : ""}{" "}
+          <span className={state.drained[k]! >= state.targets[k]! ? "text-primary" : "text-foreground"}>
+            {state.drained[k]}/{state.targets[k]}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function boardOf(data: DigPuzzleData): DigBoard {
+  return { cols: data.cols, rows: data.rows, tiles: data.tiles, water: data.water, budget: data.budget, minDigs: data.minDigs, targets: data.targets };
+}
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: DigPuzzleData | null = puzzle.type === "dig" ? puzzle : null;
-  const board: DigBoard = data ?? EXAMPLE;
+  const board: DigBoard = data ? boardOf(data) : EXAMPLE;
   const [state, setState] = useState<DigState>(() => digInit(board));
   const stateRef = useRef(state);
   const actions = useRef<DigAction[]>([]);
   const pending = useRef<number[]>([]);
+  const lastCell = useRef<number | null>(null);
   const submitted = useRef(false);
   const lockedRef = useRef(locked);
   const submitRef = useRef(onSubmit);
@@ -129,11 +183,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
   const [dev, setDev] = useState(false);
+  const [, setPendingTick] = useState(0);
   useEffect(() => setDev(devDiagnosticsOn()), []);
 
   useEffect(() => {
     if (!data) return;
-    let s = digInit(data);
+    const b = boardOf(data);
+    let s = digInit(b);
     stateRef.current = s;
     setState(s);
     actions.current = [];
@@ -152,14 +208,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         acc -= DIG_STEP_MS;
         const step = s.step + 1;
         const digs: number[] = [];
-        while (pending.current.length && digs.length < DIG_MAX_PER_STEP) {
+        while (pending.current.length && digs.length < DIG_MAX_PER_STEP && s.dug + digs.length < s.budget) {
           const cell = pending.current.shift()!;
           if (s.tiles[cell] === T_SAND && !digs.includes(cell)) {
             digs.push(cell);
             actions.current.push({ step, cell });
           }
         }
-        s = digStep(data, s, digs);
+        if (s.dug + digs.length >= s.budget) pending.current = [];
+        s = digStep(b, s, digs);
         changed = true;
       }
       if (acc > DIG_STEP_MS * 3) acc = DIG_STEP_MS * 3;
@@ -170,7 +227,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
       if ((digSettled(s) || s.step >= DIG_STEPS) && !submitted.current) {
         submitted.current = true;
-        if (s.collected >= s.full) playCorrect();
+        if (s.completeStep) playCorrect();
         submitRef.current(digEncode(actions.current));
       }
     };
@@ -186,37 +243,48 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       data && !locked
         ? (cell) => {
             if (submitted.current) return;
-            if (stateRef.current.tiles[cell] !== T_SAND || pending.current.includes(cell)) return;
-            pending.current.push(cell);
-            buzz(5);
+            const prev = lastCell.current;
+            lastCell.current = cell;
+            const cells = prev === null || prev === cell ? [cell] : digLine(prev, cell, DIG_COLS);
+            let added = false;
+            for (const c of cells) {
+              const s = stateRef.current;
+              if (s.dug + pending.current.length >= s.budget) break;
+              if (s.tiles[c] !== T_SAND || pending.current.includes(c)) continue;
+              pending.current.push(c);
+              added = true;
+            }
+            if (added) {
+              buzz(5);
+              setPendingTick((n) => n + 1);
+            }
           }
         : undefined,
+    onRelease: () => {
+      lastCell.current = null;
+    },
   });
 
   if (!data) return null;
-  const pct = Math.round((100 * state.collected) / Math.max(1, state.target));
+  const left = Math.max(0, state.budget - state.dug - pending.current.length);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1" style={{ overscrollBehavior: "none" }}>
+    <div className="flex min-h-0 flex-1 flex-col items-center gap-1.5 py-1" style={{ overscrollBehavior: "none" }}>
       <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        drained <span className="text-primary">{state.collected}</span> / {state.target}
-        {state.lost > 0 && (
-          <>
-            {" "}· lost <span className="text-destructive">{state.lost}</span>
-          </>
-        )}
+        Digs left: <span className={left ? "text-primary" : "text-destructive"}>{left}</span>/{state.budget}
       </p>
-      <div className="h-1.5 w-full max-w-[343px] shrink-0 overflow-hidden rounded-full bg-muted">
-        <div className="h-full bg-reaction-blue transition-[width]" style={{ width: `${Math.min(100, pct)}%` }} />
-      </div>
       <div className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
         <div style={{ width: `min(100cqw, calc(100cqh * ${DIG_COLS} / ${DIG_ROWS}))`, aspectRatio: `${DIG_COLS} / ${DIG_ROWS}` }}>
-          <Grid board={data} state={state} pointer={pointer} />
+          <Grid board={board} state={state} pointer={pointer} />
         </div>
       </div>
+      <Legend state={state} />
       {dev && (
-        <p className="shrink-0 font-mono text-[10px] text-muted-foreground">
-          dev · pool {digWaterLeft(state)} · collected {state.collected} · lost {state.lost} · step {state.step}
+        <p className="shrink-0 text-center font-mono text-[10px] leading-tight text-muted-foreground">
+          dev · pool {digWaterLeft(state)} · clean {state.drained.join("/")} · toxic {state.toxicIn} · lost {state.lost} · settled{" "}
+          {state.settledUnits}
+          {state.settledLog.length ? ` (${state.settledLog.slice(-4).map(([c, st]) => `${c}@${st}`).join(" ")})` : ""} · digs {state.dug}/
+          {state.budget}/min {data.minDigs} · step {state.step}
         </p>
       )}
     </div>
@@ -225,26 +293,28 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "dig") return null;
-  const mine = digReplay(puzzle, digDecode(myAnswer ?? "", puzzle.cols * puzzle.rows)).state;
-  const start = digInit(puzzle);
+  const board = boardOf(puzzle);
+  const mine = digReplay(board, digDecode(myAnswer ?? "", puzzle.cols * puzzle.rows)).state;
+  const start = digInit(board);
+  const total = mine.targets.reduce((a, b) => a + b, 0);
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <div className="flex w-full justify-center gap-3">
         <div className="flex flex-col items-center gap-1">
           <span className="text-xs uppercase tracking-widest text-muted-foreground">Route</span>
           <div style={{ width: 96, height: 128 }}>
-            <Grid board={puzzle} state={start} route={new Set(puzzle.route ?? [])} small />
+            <Grid board={board} state={start} route={new Set(puzzle.route ?? [])} small />
           </div>
         </div>
         <div className="flex flex-col items-center gap-1">
           <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
           <div style={{ width: 96, height: 128 }}>
-            <Grid board={puzzle} state={mine} small />
+            <Grid board={board} state={mine} small />
           </div>
         </div>
       </div>
       <p className="font-mono text-base text-primary">
-        {mine.collected} / {mine.pool} drained · {mine.lost} lost
+        {digCleanCollected(mine)} / {total} clean · {mine.dug} digs (min {puzzle.minDigs})
       </p>
     </div>
   );
@@ -257,11 +327,22 @@ export const digPuzzle: PuzzleDefinition = {
   timeLimitMs: DIG_TIME_MS,
   revealMs: 8_000,
   generate: () =>
-    ({ type: "dig", cols: EXAMPLE.cols, rows: EXAMPLE.rows, tiles: EXAMPLE.tiles, water: EXAMPLE.water }) satisfies DigPuzzleData,
+    ({
+      type: "dig",
+      cols: EXAMPLE.cols,
+      rows: EXAMPLE.rows,
+      tiles: EXAMPLE.tiles,
+      water: EXAMPLE.water,
+      budget: EXAMPLE.budget,
+      minDigs: EXAMPLE.minDigs,
+      targets: EXAMPLE.targets,
+      pool: 32,
+      hazards: [28],
+      tier: "standard",
+    }) satisfies DigPuzzleData,
   check: (answer, puzzle) => {
     if (puzzle.type !== "dig") return false;
-    const s = digReplay(puzzle, digDecode(answer, puzzle.cols * puzzle.rows)).state;
-    return s.collected >= s.full;
+    return digReplay(boardOf(puzzle), digDecode(answer, puzzle.cols * puzzle.rows)).state.completeStep > 0;
   },
   revealHeading: "Your dig",
   IntroExample,

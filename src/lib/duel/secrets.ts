@@ -94,7 +94,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   clayshoot: [],
   numpyramid: ["solutions"],
   trail: ["solution"],
-  dig: ["route"],
+  dig: ["route", "intended"],
   tents: ["solution"],
   shikaku: ["solution"],
   lightup: ["solution"],

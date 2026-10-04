@@ -1432,9 +1432,14 @@ const trailSummary: SummaryBuilder = (result, puzzle) => {
 
 const digSummary: SummaryBuilder = (result) => {
   const collected = Number(result.extra?.["collected"] ?? 0);
-  const pool = Number(result.extra?.["pool"] ?? 0);
-  const lost = Number(result.extra?.["lost"] ?? 0);
-  return { summary: `${collected} / ${pool} drained`, detail: lost ? [`${lost} lost`] : [] };
+  const targets = (result.extra?.["targets"] as number[] | undefined) ?? [];
+  const total = targets.reduce((a, b) => a + b, 0);
+  const dug = Number(result.extra?.["dug"] ?? 0);
+  const min = Number(result.extra?.["minDigs"] ?? 0);
+  const detail = [`${dug} digs (min ${min})`];
+  const toxic = Number(result.extra?.["toxic"] ?? 0);
+  if (toxic) detail.push(`${toxic} toxic`);
+  return { summary: result.is_correct ? `Drained · ${collected} / ${total}` : `${collected} / ${total} clean`, detail };
 };
 
 const wordSearchSummary: SummaryBuilder = (result) => {
