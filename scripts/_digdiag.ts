@@ -214,7 +214,7 @@ function build(hard: boolean) {
     if (digComplete(early)) return (FAIL[6]=(FAIL[6]??0)+1, null);
   }
   const good = digReplay(board, intended).state;
-  if (!good.completeStep && false) console.log(hard, good.drained, good.targets, good.lost, good.settledUnits, good.water.reduce((x,y)=>x+y,0), good.pool, good.toxicIn);
+  if (!good.completeStep && hard && Math.random()<0.004) console.log(hard, good.drained, good.targets, good.lost, good.settledUnits, good.water.reduce((x,y)=>x+y,0), good.pool, good.toxicIn);
   if (!good.completeStep) return (FAIL[7]=(FAIL[7]??0)+1, null);
 
   // Safe minimum: no hazards, nothing beside one, no gap.
