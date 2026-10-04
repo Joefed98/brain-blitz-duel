@@ -12,7 +12,7 @@ export const BT_COLS = 7;
 export const BT_ROWS = 9;
 export const BT_BALLS = 20;
 export const BT_COLOURS = 5;
-export const BT_STEP_TICKS = 10;
+export const BT_STEP_TICKS = 12;
 export const BT_DROP_TICKS = 120; // a ball every 2 s
 export const BT_RUN_TICKS = 3600; // 60 s
 export const BT_HOPPER_COL = 3;
@@ -311,15 +311,19 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
-  // Hopper: the next ball above column 4, the rest queued to its left.
+  // Show six upcoming balls, keeping the lead ball full-sized above column 4.
   const hy = BT_HOPPER_H / 2;
-  const queueGap = Math.min(50, (BT_HOPPER_COL * BT_TILE + BT_TILE / 2 - 20 - BALL_R * 0.7) / (BT_BALLS - 1));
-  for (let i = s.next; i < BT_BALLS; i++) {
-    const x = BT_HOPPER_COL * BT_TILE + BT_TILE / 2 - (i - s.next) * queueGap - (i > s.next ? 20 : 0);
+  const leadX = BT_HOPPER_COL * BT_TILE + BT_TILE / 2;
+  const queueGap = BALL_R; // half a full ball diameter of clear space; never compress it
+  const leadOutline = BALL_R + 6 + 1.5;
+  const queuedRadius = Math.min(BALL_R, (leadX - 4 - leadOutline - 5 * queueGap) / 10);
+  for (let i = s.next; i < Math.min(BT_BALLS, s.next + 6); i++) {
+    const offset = i - s.next;
+    const x = offset === 0 ? leadX : leadX - leadOutline - queueGap - queuedRadius - (offset - 1) * (queuedRadius * 2 + queueGap);
     ctx.fillStyle = BT_PALETTE[course.balls[i]!]!;
     ctx.globalAlpha = i === s.next ? 1 : 0.55;
     ctx.beginPath();
-    ctx.arc(x, hy, i === s.next ? BALL_R : BALL_R * 0.7, 0, Math.PI * 2);
+    ctx.arc(x, hy, offset === 0 ? BALL_R : queuedRadius, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
     if (i === s.next) {
