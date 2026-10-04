@@ -140,7 +140,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const key = `${s.level}.${s.eaten}.${s.stars}`;
       if (key !== shownKey) {
         shownKey = key;
-        setHud({ level: s.level + 1, eaten: s.eaten, stars: s.stars, score: snipGame.score(s) });
+        setHud({ level: Math.min(10, s.level + 1), eaten: s.eaten, stars: s.stars, score: snipGame.score(s) });
       }
       if (devOn && s.tick % 6 === 0) {
         const cuts = s.cutLog
