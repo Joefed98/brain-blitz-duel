@@ -3,35 +3,93 @@
  *
  *   bun scripts/dig-bank.ts
  *
- * Answer-first. A rock-walled pool sits near the top over a rock floor with
- * one sand plug. Below it, one or two full-width rock shelves each have a
- * single sand hole; the intended route is plug → shaft → along the shelf to
- * its hole → (next shelf) → shaft → drain. Everything else inside is sand.
- * Decoys: some boards have a side gap on a shelf, on the side away from the
- * hole; others have rock-lined pockets under a sand hole in the shelf, also on
- * the wrong side. Accepted only when digging the route (bottom-up, one cell a
- * step) collects ≥ 90% of the pool, and digging every sand cell at once
- * collects less than the 80% target.
+ * Answer-first. A rock basin holds the pool above a one-plug floor. The water
+ * falls down a shaft onto a full-width rock shelf. Straight under the shaft the
+ * shelf has a tempting sand hole — the obvious, shorter route to the drain
+ * below — with lava or acid right under it. The intended route instead runs
+ * along the shelf to a safe hole, down, and back along the bottom to the
+ * drain. Extra acid/lava sits in the sand away from the route; some boards add
+ * a side-gap decoy on the shelf.
+ *
+ * Hard boards add a second drain under a sand divider in the shelf, between
+ * the shaft and the safe hole: dig it too early and drain 1 never fills, too
+ * late and the water runs into full drain 1 and is lost.
+ *
+ * Accepted only when: the intended dig log completes; the safe minimum (a 0-1
+ * search over sand, away from hazards) is not below the route length; the
+ * geometric shortest route fails; and the minimum is at least 4.
  */
 import { writeFileSync } from "node:fs";
 
 import {
+  digComplete,
   digInit,
   digReplay,
+  digStep,
+  digTarget,
+  DIG_BUDGET_SLACK,
   DIG_COLS as C,
+  DIG_MAX_PER_STEP,
   DIG_ROWS as R,
+  DIG_STEPS,
+  digEncode,
   type DigAction,
   type DigBoard,
 } from "../src/lib/duel/dig";
 
-const BANK = 300;
+const STANDARD = 200;
+const HARD = 100;
 const rand = (n: number) => Math.floor(Math.random() * n);
 const between = (lo: number, hi: number) => lo + rand(hi - lo + 1);
+const at = (r: number, c: number) => r * C + c;
+const nbrs = (i: number) => {
+  const r = Math.floor(i / C);
+  const c = i % C;
+  const out: number[] = [];
+  if (r > 0) out.push(i - C);
+  if (r < R - 1) out.push(i + C);
+  if (c > 0) out.push(i - 1);
+  if (c < C - 1) out.push(i + 1);
+  return out;
+};
 
-function build() {
+/** 0-1 search from `start` (a sand cell, cost 1) to any drain; returns sand cells on the path in order. */
+function shortest(tiles: string[], start: number, blocked: (i: number) => boolean): number[] | null {
+  const dist = new Array(C * R).fill(Infinity);
+  const prev = new Array(C * R).fill(-1);
+  const dq: number[] = [start];
+  dist[start] = 1;
+  while (dq.length) {
+    const i = dq.shift()!;
+    if (tiles[i] === "D") {
+      const path: number[] = [];
+      for (let k = prev[i]; k >= 0; k = prev[k]) if (tiles[k] === "s") path.push(k);
+      return path.reverse();
+    }
+    for (const n of nbrs(i)) {
+      const t = tiles[n];
+      if (t === "#" || t === "G" || blocked(n)) continue;
+      // Water never climbs back above the pool floor.
+      if (Math.floor(n / C) < Math.floor(start / C)) continue;
+      const w = t === "s" ? 1 : 0;
+      if (dist[i] + w < dist[n]) {
+        dist[n] = dist[i] + w;
+        prev[n] = i;
+        if (w) dq.push(n);
+        else dq.unshift(n);
+      }
+    }
+  }
+  return null;
+}
+
+function logFor(cells: number[], from = 1): DigAction[] {
+  return cells.map((cell, i) => ({ step: from + Math.floor(i / DIG_MAX_PER_STEP), cell }));
+}
+
+function build(hard: boolean) {
   const t: string[] = new Array(C * R).fill("s");
   const w: number[] = new Array(C * R).fill(0);
-  const at = (r: number, c: number) => r * C + c;
   for (let r = 0; r < R; r++) {
     t[at(r, 0)] = "#";
     t[at(r, C - 1)] = "#";
@@ -51,110 +109,184 @@ function build() {
       t[at(r, c)] = ".";
       w[at(r, c)] = 4;
     }
-  const plug = between(a, b);
-  const route: number[] = [at(floor, plug)];
-  t[at(floor, plug)] = "s";
+  const col = between(a, b);
+  t[at(floor, col)] = "s";
+  const route: number[] = [at(floor, col)];
 
-  // Shelves.
-  const shelves = rand(3) === 0 ? 2 : 1;
-  const shelfRows =
-    shelves === 1 ? [between(floor + 3, 11)] : [between(floor + 3, 8), 0];
-  if (shelves === 2) shelfRows[1] = between(shelfRows[0]! + 3, 12);
-  if (shelfRows.some((r) => r > 13)) return null;
+  // Shelf.
+  const s = between(floor + 3, hard ? 10 : 11);
+  for (let c = 1; c < C - 1; c++) t[at(s, c)] = "#";
+  for (let r = floor + 1; r < s; r++) route.push(at(r, col));
+  const dir = col <= 3 ? 1 : col >= C - 4 ? -1 : rand(2) ? 1 : -1;
+  const dist = hard ? between(4, 6) : between(2, 5);
+  const hole = col + dir * dist;
+  if (hole < 1 || hole > C - 2) return null;
+  for (let c = col + dir; c !== hole + dir; c += dir) route.push(at(s - 1, c));
+  t[at(s, hole)] = "s";
+  route.push(at(s, hole));
+  for (let r = s + 1; r <= R - 2; r++) route.push(at(r, hole));
+  for (let c = hole - dir; c !== col - dir; c -= dir) route.push(at(R - 2, c));
+  t[at(R - 1, col)] = "D";
 
-  let col = plug;
-  let row = floor + 1;
-  const decoyKind = rand(10) < 7 ? "gap" : "pocket";
-  const gapShelf = rand(shelves);
-  const decoyCells: number[] = [];
-  for (let k = 0; k < shelves; k++) {
-    const s = shelfRows[k]!;
-    for (let c = 1; c < C - 1; c++) t[at(s, c)] = "#";
-    // Shaft down to the shelf.
-    for (let r = row; r < s; r++) route.push(at(r, col));
-    // Travel along the shelf to its hole (2–5 cells away).
-    const dir = col <= 2 ? 1 : col >= C - 3 ? -1 : rand(2) ? 1 : -1;
-    const dist = between(2, 5);
-    const hole = col + dir * dist;
-    if (hole < 1 || hole > C - 2) return null;
-    for (let c = col + dir; c !== hole + dir; c += dir) route.push(at(s - 1, c));
-    t[at(s, hole)] = "s";
-    route.push(at(s, hole));
-    // The decoy on the other side.
-    if (decoyKind === "gap" && k === gapShelf) {
-      const edge = dir > 0 ? 0 : C - 1;
-      t[at(s - 1, edge)] = "G";
-      for (let c = col - dir; c !== edge; c -= dir) decoyCells.push(at(s - 1, c));
+  // The obvious hole straight under the shaft, with a hazard beneath it.
+  t[at(s, col)] = "s";
+  const hazards: number[] = [];
+  let lava = 0;
+  let acid = 0;
+  if (rand(2)) {
+    t[at(s + 1, col)] = "L";
+    lava++;
+  } else {
+    t[at(s + 1, col)] = "a";
+    acid++;
+  }
+  hazards.push(at(s + 1, col));
+
+  // Hard: a divider in the shelf between the shaft and the safe hole, over drain 2.
+  let divider = -1;
+  const lower: number[] = [];
+  if (hard) {
+    const k = between(2, dist - 2);
+    const v = col + dir * k;
+    divider = at(s, v);
+    t[divider] = "s";
+    lower.push(at(s + 1, v));
+    t[at(s + 2, v)] = "D";
+  }
+
+  // Side-gap decoy on the shelf, on the far side.
+  if (rand(2)) t[at(s - 1, dir > 0 ? 0 : C - 1)] = "G";
+
+  // Extra hazards in the sand, away from the route.
+  const onRoute = new Set([...route, ...lower, divider, at(s, col)]);
+  const near = (i: number) => onRoute.has(i) || nbrs(i).some((n) => onRoute.has(n) || t[n] === "D" || t[n] === "L" || t[n] === "a" || t[n] === "G");
+  const wantAcid = between(1, 3);
+  const wantLava = between(lava, 2);
+  for (let tries = 0; tries < 200 && (acid < wantAcid || lava < wantLava); tries++) {
+    const i = at(between(floor + 1, R - 2), between(1, C - 2));
+    if (t[i] !== "s" || near(i)) continue;
+    if (lava < wantLava) {
+      t[i] = "L";
+      lava++;
     } else {
-      const d = col - dir * between(2, 3);
-      if (d >= 2 && d <= C - 3 && s + 3 < R - 1) {
-        t[at(s, d)] = "s";
-        for (let r = s + 1; r <= s + 2; r++) for (let c = d - 1; c <= d + 1; c++) t[at(r, c)] = ".";
-        for (let c = d - 2; c <= d + 2; c++) t[at(s + 3, c)] = "#";
-        for (let r = s + 1; r <= s + 3; r++) {
-          t[at(r, d - 2)] = "#";
-          t[at(r, d + 2)] = "#";
-        }
-        decoyCells.push(at(s, d));
+      t[i] = "a";
+      acid++;
+    }
+    hazards.push(i);
+  }
+  if (acid < 1) return null;
+  const all = [...route, ...lower];
+  if (all.some((cell) => t[cell] !== "s")) return null;
+  const minDigs = all.length + (hard ? 1 : 0);
+  if (minDigs < 4) return null;
+
+  const pool = w.reduce((x, y) => x + y, 0);
+  const total = hard ? Math.floor((pool * 70 + 50) / 100) : digTarget(pool);
+  const split = hard ? (rand(2) ? 60 : 70) : 100;
+  const t1 = hard ? Math.round((total * split) / 100) : total;
+  // Drains in tile order: drain 2 (mid-grid) comes before drain 1 (bottom row) for hard boards.
+  const targets = hard ? [total - t1, t1] : [total];
+  const board: DigBoard = { cols: C, rows: R, tiles: t.join(""), water: w.join(""), budget: minDigs + DIG_BUDGET_SLACK, minDigs, targets };
+
+  // Intended: dig from the pool downward at once.
+  let intended = logFor(all);
+  if (hard) {
+    // Play forward to find the step drain 1 (the bottom one) fills, then dig the divider.
+    let st = digInit(board);
+    let k = 0;
+    let fillStep = 0;
+    while (st.step < DIG_STEPS) {
+      const sNow = st.step + 1;
+      const digs: number[] = [];
+      while (k < intended.length && intended[k]!.step <= sNow) digs.push(intended[k++]!.cell);
+      st = digStep(board, st, digs);
+      if (st.drained[1]! >= st.targets[1]!) {
+        fillStep = st.step;
+        break;
       }
     }
-    col = hole;
-    row = s + 1;
+    if (!fillStep) return null;
+    intended = [...intended, { step: fillStep + 1, cell: divider }];
+    // Window: the divider dug at the start must fail.
+    const early = digReplay(board, [...logFor(all), { step: 1, cell: divider }].sort((x, y) => x.step - y.step)).state;
+    if (digComplete(early)) return null;
   }
-  for (let r = row; r < R - 1; r++) route.push(at(r, col));
-  t[at(R - 1, col)] = "D";
-  // Route cells must still be sand (pockets may have cut through them).
-  if (route.some((cell) => t[cell] !== "s")) return null;
-  if (!decoyCells.length) return null;
-
-  const board: DigBoard = { cols: C, rows: R, tiles: t.join(""), water: w.join("") };
-  const pool = digInit(board).pool;
-
-  // Intended: dig the route bottom-up, one cell per step.
-  const intended: DigAction[] = [...route].reverse().map((cell, i) => ({ step: i + 1, cell }));
   const good = digReplay(board, intended).state;
-  if (good.collected < good.full) return null;
-  // Everything at once (8 per step is the cap, so spread across steps).
-  const sand = [...board.tiles].map((ch, i) => (ch === "s" ? i : -1)).filter((i) => i >= 0);
-  const all: DigAction[] = sand.map((cell, i) => ({ step: 1 + Math.floor(i / 8), cell }));
-  const greedy = digReplay(board, all).state;
-  if (greedy.collected >= greedy.target) return null;
-  return { board, route, pool, collected: good.collected, allCollected: greedy.collected, decoyKind, shelves };
+  if (!good.completeStep) return null;
+
+  // Safe minimum: no hazards, nothing beside one, no gap.
+  const danger = new Set<number>();
+  for (let i = 0; i < t.length; i++)
+    if (t[i] === "L" || t[i] === "a" || t[i] === "G") {
+      danger.add(i);
+      for (const n of nbrs(i)) danger.add(n);
+    }
+  const plug = at(floor, col);
+  const safe = shortest(t, plug, (i) => danger.has(i));
+  if (!safe || safe.length + 1 < (hard ? all.length - lower.length : all.length)) return null;
+  // Geometric shortest (hazards allowed) must fail.
+  const geo = shortest(t, plug, () => false);
+  if (!geo) return null;
+  const geoCells = [plug, ...geo];
+  if (geoCells.length >= all.length) return null;
+  if (digComplete(digReplay(board, logFor(geoCells)).state)) return null;
+
+  return {
+    tiles: board.tiles,
+    water: board.water,
+    budget: board.budget,
+    minDigs,
+    targets,
+    pool,
+    hazards: hazards.sort((x, y) => x - y),
+    tier: hard ? ("hard" as const) : ("standard" as const),
+    route: hard ? [...all, divider] : all,
+    intended: digEncode(intended),
+    completeStep: good.completeStep,
+  };
 }
 
 const bank: NonNullable<ReturnType<typeof build>>[] = [];
 const seen = new Set<string>();
-let attempts = 0;
 const t0 = performance.now();
-while (bank.length < BANK && attempts < 200_000) {
-  attempts++;
-  const p = build();
-  if (!p || seen.has(p.board.tiles)) continue;
-  seen.add(p.board.tiles);
-  bank.push(p);
+const tries = { standard: 0, hard: 0 };
+for (const [hard, want] of [[false, STANDARD], [true, HARD]] as const) {
+  let got = 0;
+  while (got < want && tries[hard ? "hard" : "standard"] < 400_000) {
+    tries[hard ? "hard" : "standard"]++;
+    const p = build(hard);
+    if (!p || seen.has(p.tiles)) continue;
+    seen.add(p.tiles);
+    bank.push(p);
+    got++;
+  }
 }
-const pct = (x: number, y: number) => Math.round((100 * x) / y);
-const goodPct = bank.map((b) => pct(b.collected, b.pool));
-const allPct = bank.map((b) => pct(b.allCollected, b.pool));
 const out = `/**
- * Dig bank — generated by scripts/dig-bank.ts. Each board was simulated: the
- * intended \`route\` (dug bottom-up) collects ≥ 90% of the pool, and digging
- * every sand cell collects less than the 80% target.
- * Do not edit by hand.
+ * Dig bank — generated by scripts/dig-bank.ts. Every board's intended dig log
+ * completes in the shared sim, the geometric shortest route fails, and no safe
+ * route needs fewer digs. Do not edit by hand.
  */
 
 export interface DigBankEntry {
   tiles: string;
   water: string;
-  /** Intended dig route, top to bottom. */
+  budget: number;
+  minDigs: number;
+  targets: number[];
+  pool: number;
+  hazards: number[];
+  tier: "standard" | "hard";
+  /** Intended dig cells. */
   route: number[];
+  /** Intended dig log ("step:cell,…"). */
+  intended: string;
 }
 
-export const DIG_BANK: DigBankEntry[] = ${JSON.stringify(bank.map((b) => ({ tiles: b.board.tiles, water: b.board.water, route: b.route })))};
+export const DIG_BANK: DigBankEntry[] = ${JSON.stringify(bank.map(({ completeStep: _c, ...rest }) => rest))};
 `;
 writeFileSync(new URL("../src/lib/duel/digBank.server.ts", import.meta.url), out);
+const cs = bank.map((b) => b.completeStep);
 console.log(
-  `dig bank: ${bank.length} from ${attempts} attempts in ${((performance.now() - t0) / 1000).toFixed(1)}s · ` +
-    `route collects ${Math.min(...goodPct)}–${Math.max(...goodPct)}% · dig-all ${Math.min(...allPct)}–${Math.max(...allPct)}% · ` +
-    `gap ${bank.filter((b) => b.decoyKind === "gap").length} pocket ${bank.filter((b) => b.decoyKind === "pocket").length} · two shelves ${bank.filter((b) => b.shelves === 2).length}`,
+  `dig bank: ${bank.length} (${bank.filter((b) => b.tier === "standard").length} standard, ${bank.filter((b) => b.tier === "hard").length} hard) · tries ${tries.standard}/${tries.hard} · ` +
+    `${((performance.now() - t0) / 1000).toFixed(1)}s · intended completes at step ${Math.min(...cs)}–${Math.max(...cs)}`,
 );
