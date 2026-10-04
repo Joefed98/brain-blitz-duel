@@ -39,8 +39,8 @@ const shuffle = <T,>(list: T[]) => {
 };
 
 /** Shortest route into column `col`: visited cells with the vertical state each needs (-1 for corners). */
-export function routeTo(course: BtCourse, col: number): { cell: number; vert: number }[] | null {
-  const rot = new Set(btRotatable(course));
+export function routeTo(course: BtCourse, col: number, earlyOnly = false): { cell: number; vert: number }[] | null {
+  const rot = new Set(btRotatable(course).filter((cell) => !earlyOnly || cell < 42));
   type Q = { cell: number; above: boolean; path: { cell: number; vert: number }[] };
   const queue: Q[] = [{ cell: BT_HOPPER_COL, above: true, path: [] }];
   const seen = new Set<string>();
@@ -107,18 +107,9 @@ function seededFixed(): number[] {
   return fixed.sort((a, b) => a - b);
 }
 
-/** Reject any tray obtainable from the initial track by one lower-row toggle alone. */
+/** No tray may depend solely on a lower-row tap: prove an upper-row-only route to each. */
 export function hasLowerShortcut(course: BtCourse): boolean {
-  for (const toggle of btRotatable(course).filter((cell) => cell >= 42)) {
-    let cell = BT_HOPPER_COL, above = true;
-    for (let i = 0; i < BT_COLS * BT_ROWS + 1; i++) {
-      const next = btNext(cell, above, cell === toggle, course);
-      if (next.cell >= 100) { if ((course.trays[next.cell - 100] ?? -1) >= 0) return true; break; }
-      if (next.cell < 0) break;
-      cell = next.cell; above = next.fromAbove;
-    }
-  }
-  return false;
+  return course.trays.some((tray, col) => tray >= 0 && !routeTo(course, col, true));
 }
 
 function makeCourse(): BtCourse {
@@ -171,6 +162,7 @@ if (import.meta.main) {
   let tries = 0;
   while (entries.length < TARGET) {
     tries++;
+    if (tries > 100_000) throw Error("Course constraints exhausted: no valid bank");
     const course = makeCourse();
     if (course.balls.some((b, i) => i >= 2 && b === course.balls[i - 1] && b === course.balls[i - 2])) continue;
     if (hasLowerShortcut(course)) continue;
