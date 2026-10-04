@@ -69,7 +69,7 @@ function shortest(tiles: string[], start: number, blocked: (i: number) => boolea
     }
     for (const n of nbrs(i)) {
       const t = tiles[n];
-      if (t === "#" || t === "G" || blocked(n)) continue;
+      if (t === "#" || t === "G" || (t === "D" && n < (R - 1) * C) || blocked(n)) continue;
       // Water never climbs back above the pool floor.
       if (Math.floor(n / C) < Math.floor(start / C)) continue;
       const w = t === "s" ? 1 : 0;
