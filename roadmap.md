@@ -1,8 +1,8 @@
 ## Logic layout tuning (Oct 4)
-- [ ] Resize Lights Out, centre Tower, prioritise Safe Cracker clues and shrink DEFUSE without changing gameplay.
-- [ ] Expand Nonogram and Tents grids; move Colour Flood par to its reveal.
-- [ ] Retire Dig from room draws while keeping practice available.
-- [ ] Audit all eight screens at 390×700 and 375×667 from source; no browser tests.
+- [x] Resize Lights Out, centre Tower, prioritise Safe Cracker clues and shrink DEFUSE without changing gameplay.
+- [x] Expand Nonogram and Tents grids; move Colour Flood par to its reveal.
+- [x] Retire Dig from room draws while keeping practice available; registry check and 6,000 draws passed.
+- [x] Audit all eight screens at 390×700 and 375×667 from source and conservative dimension calculations; preview build OK, no browser tests. Actual device appearance/taps remain user-tested.
 
 ## Ball Track 25-ball and event countdown tuning
 - [x] Use 25 seeded balls (7/6/6/6), two-second drops through 48 s and base scoring out of 25.
