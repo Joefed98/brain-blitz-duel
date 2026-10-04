@@ -80,6 +80,12 @@ assert.equal(roadRects.length, 2);
 const laneRects = commands.filter((c) => c.method === "fillRect" && c.args[3] === CROSS_LANE_H);
 assert.ok(laneRects.length > 0 && laneRects.every((c) => c.fill === "#000000"));
 commands = []; tiltGame.draw(ctx, tiltGame.init(1), { width: 390, height: 620 });
-const redPaths = commands.filter((c) => c.method === "lineTo" && c.fill === "#FF4D5E");
-assert.ok(redPaths.length > 0 && redPaths.length % 11 === 0);
+let vertices = 0;
+let redStars = 0;
+for (const command of commands) {
+  if (command.method === "beginPath") vertices = 0;
+  if (command.method === "lineTo") vertices++;
+  if (command.method === "fill" && command.fill === "#FF4D5E" && vertices === 11) redStars++;
+}
+assert.ok(redStars > 0);
 console.log("Flip constant-gap curved band, Snip elastic walls/larger mouth, Matchup bomb/four-point/L-T icons, Cross black traffic lanes and Tilt drawing passed.");
