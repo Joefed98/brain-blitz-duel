@@ -1,7 +1,7 @@
 ## Logic timing and proven Colour Flood bank (Oct 4)
-- [ ] Set Shikaku and Light Up to 90 s.
-- [ ] Fill 400 distinct exactly proven-par Colour Flood boards, rejecting fallbacks.
-- [ ] Check every bank board minimum and server replay/scoring and both limits; no browser tests.
+- [x] Set Shikaku and Light Up to 90 s; 50/50 unique boards each passed server scoring checks at 0/45/90 s remaining.
+- [x] Fill 400 distinct exactly proven-par Colour Flood boards, rejecting fallbacks; final par range 10–14 (accepted band 10–15).
+- [x] All 400 boards passed independent exact minimum, no-shorter-route, complete/partial server replay and scoring checks; 0 failures, preview build OK, no browser tests.
 
 ## Logic grid size changes (Oct 4)
 - [x] Colour Flood 14×14, 60 s, full-width grid; exact par target 10–15 (proven fallback 16–20), observed 10–12 across 12 fresh boards.
