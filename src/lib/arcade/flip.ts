@@ -14,6 +14,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { isin, TRIG_ONE } from "./trig";
 
 /* ============================== Constants ============================== */
 
@@ -46,6 +47,15 @@ export const FLIP_OVERHANG = 2;
 export const FLIP_DECISION_OVERHANG = 1;
 export const FLIP_DECISION_PAIRED_SPIKES = 2;
 export const FLIP_DECISION_FALSE_GAP = 3;
+
+/** Path warp: starts at 20 s, amplitude ramps 0 → max over the next 20 s; period 3–5 s (seeded). */
+export const FLIP_WARP_FROM = 20 * TICKS_PER_SECOND;
+const WARP_RAMP = 20 * TICKS_PER_SECOND;
+const WARP_MAX = 46;
+const WARP_PERIOD_MIN = 3 * TICKS_PER_SECOND;
+const WARP_PERIOD_SPAN = 2 * TICKS_PER_SECOND + 1;
+/** Spatial wavelength of the bend, px. */
+const WARP_WAVE = 520;
 
 export const FLIP_INPUT_RANGES: readonly InputRange[] = [inputRange(FLIP_INPUT_TAP)];
 
@@ -264,6 +274,27 @@ export interface FlipState {
   ended: number;
   endedTick: number;
   segs: FlipSeg[];
+  /** Seeded warp period (ticks) and phases for the floor and ceiling (angle units). */
+  warpPeriod: number;
+  warpFloor: number;
+  warpCeil: number;
+  /** Runner's warped offset this tick, px (follows the surface it is on or arcing between). */
+  warpY: number;
+}
+
+export function flipWarpAmp(tick: number): number {
+  if (tick <= FLIP_WARP_FROM) return 0;
+  return Math.trunc((WARP_MAX * Math.min(WARP_RAMP, tick - FLIP_WARP_FROM)) / WARP_RAMP);
+}
+
+/** Integer vertical offset (px) of one surface at world x (FP) on this tick. */
+export function flipWarpAt(s: FlipState, side: number, worldX: number, tick = s.tick): number {
+  const amp = flipWarpAmp(tick);
+  if (amp === 0) return 0;
+  const base = side === 0 ? s.warpFloor : s.warpCeil;
+  const along = Math.trunc((Math.trunc(worldX / FP) * 65536) / WARP_WAVE);
+  const time = Math.trunc(((tick - FLIP_WARP_FROM) * 65536) / s.warpPeriod);
+  return Math.trunc((amp * isin((base + along + time) & 65535)) / TRIG_ONE);
 }
 
 const cache = new Map<number, { segs: FlipSeg[]; rng: number }>();
@@ -275,7 +306,24 @@ function init(seed: number): FlipState {
     if (cache.size > 16) cache.clear();
     cache.set(seed | 0, course);
   }
-  return { tick: 0, rng: course.rng, x: 0, side: 0, flipT: 0, cursor: 0, ended: 0, endedTick: 0, segs: course.segs };
+  const period = rngBelow(course.rng, WARP_PERIOD_SPAN);
+  const floor = rngBelow(period.state, 65536);
+  const ceil = rngBelow(floor.state, 65536);
+  return {
+    tick: 0,
+    rng: ceil.state,
+    x: 0,
+    side: 0,
+    flipT: 0,
+    cursor: 0,
+    ended: 0,
+    endedTick: 0,
+    segs: course.segs,
+    warpPeriod: WARP_PERIOD_MIN + period.value,
+    warpFloor: floor.value,
+    warpCeil: ceil.value,
+    warpY: 0,
+  };
 }
 
 function isOver(state: FlipState): boolean {
@@ -291,6 +339,16 @@ function step(state: FlipState, input: ArcadeInputEvent | null): FlipState {
   let cursor = s.cursor;
   while (cursor < s.segs.length && s.segs[cursor]!.x1 < s.x - RUNNER_HALF) cursor += 1;
   s.cursor = cursor;
+  // The runner rides the warped surface; hazards sit on the same warped surface, so contact is
+  // tested where both are (the shared x-span on that surface).
+  {
+    const on = flipWarpAt(s, s.side, s.x, tick);
+    if (s.flipT === 0) s.warpY = on;
+    else {
+      const from = flipWarpAt(s, s.side ^ 1, s.x, tick);
+      s.warpY = from + Math.trunc(((on - from) * (FLIP_ARC_TICKS - s.flipT)) / FLIP_ARC_TICKS);
+    }
+  }
   let hit = false;
   for (let i = cursor; i < s.segs.length; i++) {
     const seg = s.segs[i]!;
@@ -320,7 +378,7 @@ function score(state: FlipState): number {
 /* ============================= Checkpoints ============================= */
 
 export const FLIP_CHECKPOINT_INTERVAL = 300;
-export const FLIP_CHECKPOINT_KEYS = ["tick", "x", "side", "flipT", "cursor", "ended", "rng", "checksum"] as const;
+export const FLIP_CHECKPOINT_KEYS = ["tick", "x", "side", "flipT", "cursor", "warpY", "ended", "rng", "checksum"] as const;
 
 export interface FlipCheckpoint {
   tick: number;
@@ -328,6 +386,7 @@ export interface FlipCheckpoint {
   side: number;
   flipT: number;
   cursor: number;
+  warpY: number;
   ended: number;
   rng: number;
   checksum: number;
@@ -340,6 +399,7 @@ export function flipCheckpoint(state: FlipState): FlipCheckpoint {
     side: state.side,
     flipT: state.flipT,
     cursor: state.cursor,
+    warpY: state.warpY,
     ended: state.ended,
     rng: state.rng | 0,
   };
@@ -378,6 +438,15 @@ function draw(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize)
   ctx.scale(scale, scale);
 
   const toScreen = (wx: number) => RUNNER_X + (wx - state.x) / FP;
+  const toWorld = (sx: number) => state.x + (sx - RUNNER_X) * FP;
+  const wy = (side: number, sx: number) => flipWarpAt(state, side, toWorld(sx));
+  const warped = flipWarpAmp(state.tick) > 0;
+  const surfaceLine = (side: number, y: number, a: number, b: number) => {
+    if (b <= a) return;
+    ctx.moveTo(a, y + wy(side, a));
+    if (warped) for (let px = Math.ceil(a / 8) * 8; px < b; px += 8) ctx.lineTo(px, y + wy(side, px));
+    ctx.lineTo(b, y + wy(side, b));
+  };
   // Surfaces as gold lines, broken where a gap is.
   ctx.strokeStyle = FLIP_GOLD;
   ctx.lineWidth = 3;
@@ -389,12 +458,10 @@ function draw(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize)
       const a = toScreen(seg.x0);
       if (a > FLIP_WORLD_W) break;
       if (seg.side !== side || seg.kind !== FLIP_GAP) continue;
-      ctx.moveTo(from, y);
-      ctx.lineTo(Math.max(from, a), y);
+      surfaceLine(side, y, from, Math.max(from, a));
       from = Math.max(from, toScreen(seg.x1));
     }
-    ctx.moveTo(from, y);
-    ctx.lineTo(FLIP_WORLD_W, y);
+    surfaceLine(side, y, from, FLIP_WORLD_W);
     ctx.stroke();
   }
 
@@ -404,7 +471,7 @@ function draw(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize)
     const b = toScreen(seg.x1);
     if (a > FLIP_WORLD_W) break;
     if (b < 0) continue;
-    const y = seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y;
+    const y = (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, (Math.max(0, a) + Math.min(FLIP_WORLD_W, b)) / 2);
     const dirY = seg.side === 0 ? -1 : 1;
     if (seg.kind === FLIP_SPIKE) {
       ctx.fillStyle = FLIP_RED;
@@ -454,7 +521,7 @@ function draw(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize)
   }
 
   // Runner (no trail).
-  const y = runnerY(state.side, state.flipT);
+  const y = runnerY(state.side, state.flipT) + state.warpY;
   ctx.fillStyle = FLIP_GOLD;
   ctx.beginPath();
   ctx.roundRect(RUNNER_X - 12, y - 14, 24, 28, 12);
