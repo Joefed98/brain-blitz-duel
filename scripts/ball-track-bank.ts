@@ -115,18 +115,7 @@ function makeCourse(): BtCourse {
 
 /** Landing tick per ball when every ball follows the route to its target column. */
 function landingTicks(course: BtCourse, target: number[]): number[] {
-  const routes = target.map((col) => routeTo(course, col)!);
-  const { log } = playRoutes(course, routes);
-  const game = makeBallTrackGame(course);
-  let state = game.init(1);
-  const out: number[] = [];
-  while (!game.isOver(state)) {
-    const before = new Set(state.balls.map((b) => b.id));
-    state = game.step(state, inputAt(log, state.tick + 1));
-    const still = new Set(state.balls.map((b) => b.id));
-    for (const id of before) if (!still.has(id)) out[id] = state.tick;
-  }
-  return out;
+  return playRoutes(course, target.map((col) => routeTo(course, col)!)).landed;
 }
 
 /** Just-in-time playbook: each tick toggle the mismatched tile whose next ball is closest to it. */
@@ -134,6 +123,7 @@ export function playRoutes(course: BtCourse, routes: { cell: number; vert: numbe
   const game = makeBallTrackGame(course);
   let state = game.init(1);
   const log: ArcadeInputEvent[] = [];
+  const landed: number[] = [];
   while (!game.isOver(state)) {
     const t = state.tick + 1;
     // Progress of each ball along its route (index of the tile it's in; -1 hopper/undropped).
@@ -158,9 +148,11 @@ export function playRoutes(course: BtCourse, routes: { cell: number; vert: numbe
       for (let i = 0; i <= progress[id]! && i < route.length; i++) if (state.balls.some((b) => b.id === id && b.cell === route[i]!.cell)) claimed.add(route[i]!.cell);
     }
     if (best) recordInput(log, { k: BT_K_ROTATE, a: best.cell, b: 0, c: 0, d: 0, t }, game.inputRanges);
+    const before = state.balls.map((b) => b.id);
     state = game.step(state, inputAt(log, t));
+    for (const id of before) if (!state.balls.some((b) => b.id === id)) landed[id] = state.tick;
   }
-  return { state, log };
+  return { state, log, landed };
 }
 
 if (import.meta.main) {
@@ -185,7 +177,6 @@ if (import.meta.main) {
         const col = btTraysAt(course, landed[id] ?? 0).indexOf(c);
         if (col !== target[id]) { target[id] = col; changed = true; }
       });
-      if (process.env.BT_DEBUG2 && !changed) { console.log("shuffle", course.shuffle.tick, JSON.stringify(course.trays), JSON.stringify(course.shuffle.trays)); console.log(course.balls.map((c, id) => `${id}:c${c}->${target[id]}@${landed[id]}`).join(" ")); console.log(JSON.stringify(run.state.landings)); process.exit(0); }
       if (!changed) break;
       run = playRoutes(course, target.map((col) => routeTo(course, col)!));
     }
