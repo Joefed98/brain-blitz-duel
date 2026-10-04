@@ -24,7 +24,7 @@ import {
   type BtCourse,
 } from "../src/lib/arcade/ballTrack";
 
-const TARGET = 400;
+const TARGET = Number(process.env.BT_TARGET ?? 400);
 
 let seed = 0x5eed_ba11;
 const rnd = (n: number) => {
@@ -166,12 +166,14 @@ export function playRoutes(course: BtCourse, routes: { cell: number; vert: numbe
 if (import.meta.main) {
   const entries: { course: BtCourse; tier: number; par: number; endTick: number; playbook: string }[] = [];
   let tries = 0;
+  const stats = { short: 0, fail: 0, best: 0 };
   while (entries.length < TARGET) {
     tries++;
+    if (process.env.BT_DEBUG && tries % 50 === 0) console.log(tries, entries.length, stats);
     if (tries > 100_000) throw Error("Course constraints exhausted");
     const course = makeCourse();
     if (course.balls.some((b, i) => i >= 2 && b === course.balls[i - 1] && b === course.balls[i - 2])) continue;
-    if (hasLowerShortcut(course)) continue;
+    if (hasLowerShortcut(course)) { stats.short++; continue; }
     if (!course.trays.every((tray, col) => tray < 0 || routeTo(course, col))) continue;
     // Aim each ball at the column its colour occupies when it lands; re-aim after each trial run.
     const target = course.balls.map((c) => course.trays.indexOf(c));
@@ -186,7 +188,7 @@ if (import.meta.main) {
       if (!changed) break;
       run = playRoutes(course, target.map((col) => routeTo(course, col)!));
     }
-    if (run.state.home !== BT_BALLS) continue;
+    if (run.state.home !== BT_BALLS) { stats.fail++; stats.best = Math.max(stats.best, run.state.home); continue; }
     const par = run.state.actions;
     entries.push({ course, tier: par < 20 ? 1 : par < 30 ? 2 : 3, par, endTick: run.state.lastLand, playbook: encodeInputEvents(run.log) });
   }
