@@ -274,7 +274,7 @@ export interface FlipState {
   ended: number;
   endedTick: number;
   segs: FlipSeg[];
-  /** Seeded warp period (ticks) and phases for the floor and ceiling (angle units). */
+  /** Seeded warp period (ticks) and shared phase for the floor and ceiling (angle units). */
   warpPeriod: number;
   warpFloor: number;
   warpCeil: number;
@@ -288,10 +288,10 @@ export function flipWarpAmp(tick: number): number {
 }
 
 /** Integer vertical offset (px) of one surface at world x (FP) on this tick. */
-export function flipWarpAt(s: FlipState, side: number, worldX: number, tick = s.tick): number {
+export function flipWarpAt(s: FlipState, _side: number, worldX: number, tick = s.tick): number {
   const amp = flipWarpAmp(tick);
   if (amp === 0) return 0;
-  const base = side === 0 ? s.warpFloor : s.warpCeil;
+  const base = s.warpFloor; // Both boundaries belong to one constant-width band.
   const along = Math.trunc((Math.trunc((worldX - s.x) / FP) * 65536) / WARP_WAVE);
   const time = Math.trunc(((tick - FLIP_WARP_FROM) * 65536) / s.warpPeriod);
   return Math.trunc((amp * isin((base + along + time) & 65535)) / TRIG_ONE);
@@ -321,7 +321,7 @@ function init(seed: number): FlipState {
     segs: course.segs,
     warpPeriod: WARP_PERIOD_MIN + period.value,
     warpFloor: floor.value,
-    warpCeil: ceil.value,
+    warpCeil: floor.value,
     warpY: 0,
   };
 }
@@ -477,9 +477,10 @@ function draw(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize)
       ctx.fillStyle = FLIP_RED;
       ctx.beginPath();
       for (let px = a; px < b; px += 16) {
-        ctx.moveTo(px, y);
-        ctx.lineTo(px + 8, y + dirY * 22);
-        ctx.lineTo(Math.min(b, px + 16), y);
+        ctx.moveTo(px, (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, px));
+        ctx.lineTo(px + 8, (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, px + 8) + dirY * 22);
+        const end = Math.min(b, px + 16);
+        ctx.lineTo(end, (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, end));
       }
       ctx.fill();
     } else if (seg.kind === FLIP_GAP) {
@@ -515,7 +516,12 @@ function draw(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize)
     } else {
       ctx.fillStyle = FLIP_RED;
       ctx.globalAlpha = 0.85;
-      ctx.fillRect(a, seg.side === 0 ? y - 34 : y, b - a, 34);
+      ctx.beginPath();
+      surfaceLine(seg.side, seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y, a, b);
+      for (let px = b; px >= a; px -= 8) ctx.lineTo(px, (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, px) + dirY * 34);
+      ctx.lineTo(a, (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, a) + dirY * 34);
+      ctx.closePath();
+      ctx.fill();
       ctx.globalAlpha = 1;
     }
   }

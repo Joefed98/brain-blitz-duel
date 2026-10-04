@@ -579,9 +579,9 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
     ctx.beginPath();
     const x = (p % m.n) * cs + cs / 2 - o;
     const y = Math.trunc(p / m.n) * cs + cs / 2 - o;
-    const radius = cs * 0.32;
+    const radius = cs * 0.28; // Small six-pointed fixed spike; collision is unchanged.
     for (let point = 0; point < 12; point++) {
-      const r = point % 2 === 0 ? radius : radius * 0.48;
+      const r = point % 2 === 0 ? radius : radius * 0.4;
       const angle = point * Math.PI / 6 - Math.PI / 2;
       const sx = x + Math.cos(angle) * r;
       const sy = y + Math.sin(angle) * r;

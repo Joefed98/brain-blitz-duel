@@ -38,3 +38,5 @@
 
 - ArcadeCanvasStage supports opt-in canvas-size rendering for Tilt; why: its circle must stay isotropic without changing other games or input coordinates.
 - Snip's horizontal camera is render-only and cut coordinates include its displayed offset; why: screen edges must not become physics walls or change server replay.
+
+- Slice records ordered path samples with explicit finger-down/up inputs and aggregates hits in the shared sim; why: curves and loops must qualify once and replay identically.

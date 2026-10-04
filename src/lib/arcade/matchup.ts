@@ -769,18 +769,16 @@ export function matchupDrawSymbol(
 ): void {
   if (kind === MATCHUP_BOMB) {
     ctx.save();
-    ctx.fillStyle = "#FFFFFF";
+    ctx.fillStyle = MATCHUP_GOLD;
     ctx.beginPath();
-    for (let point = 0; point < 8; point++) {
-      const r = point % 2 === 0 ? radius * 1.12 : radius * 0.4;
-      const angle = point * Math.PI / 4 - Math.PI / 2;
-      const x = cx + Math.cos(angle) * r;
-      const y = cy + Math.sin(angle) * r;
-      if (point === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
+    ctx.arc(cx, cy + radius * 0.12, radius * 0.78, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = MATCHUP_TEXT;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + radius * 0.3, cy - radius * 0.5);
+    ctx.quadraticCurveTo(cx + radius * 0.3, cy - radius, cx + radius * 0.7, cy - radius * 0.9);
+    ctx.stroke();
     ctx.restore();
     return;
   }
@@ -806,13 +804,11 @@ export function matchupDrawSymbol(
   }
   if (kind === MATCHUP_CROSS) {
     ctx.save();
-    ctx.fillStyle = MATCHUP_GOLD;
-    ctx.strokeStyle = "#0B0B0F";
-    ctx.lineWidth = 1.5;
+    ctx.fillStyle = "#FFFFFF";
     ctx.beginPath();
     for (let point = 0; point < 8; point++) {
-      const r = point % 2 === 0 ? radius : radius * 0.38;
-      const angle = (Math.PI / 4) * point - Math.PI / 2;
+      const r = point % 2 === 0 ? radius * 1.12 : radius * 0.4;
+      const angle = point * Math.PI / 4 - Math.PI / 2;
       const x = cx + Math.cos(angle) * r;
       const y = cy + Math.sin(angle) * r;
       if (point === 0) ctx.moveTo(x, y);
@@ -820,7 +816,6 @@ export function matchupDrawSymbol(
     }
     ctx.closePath();
     ctx.fill();
-    ctx.stroke();
     ctx.restore();
     return;
   }

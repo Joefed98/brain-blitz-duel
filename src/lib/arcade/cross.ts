@@ -515,8 +515,8 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
   ctx.scale(scale, scale);
 
   // Safe lanes have asphalt, kerbs and dashed markings like the traffic road.
-  const road = (top: number, height: number, alternate = false) => {
-    ctx.fillStyle = alternate ? "#131319" : CROSS_ROAD;
+  const road = (top: number, height: number) => {
+    ctx.fillStyle = CROSS_ROAD;
     ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, height);
     ctx.fillStyle = "#6A7280";
     ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, 2);
@@ -530,7 +530,8 @@ function draw(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize
 
   for (let lane = 1; lane <= CROSS_LANES; lane++) {
     const top = crossLaneTop(lane);
-    road(top, CROSS_LANE_H, lane % 2 === 0);
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
     const laneDef = course.lanes[lane - 1];
     if (!laneDef) continue;
     const start = mod(laneDef.dir * laneDef.speed * rel + laneDef.phase, laneDef.period);
