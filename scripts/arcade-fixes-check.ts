@@ -121,7 +121,7 @@ for (let run = 0; run < 20; run++) {
   state = breakerGame.step(state, { t: 1, k: 7, a: 100, b: 0, c: 0, d: 0 });
   for (let i = 0; i < 60; i++) state = breakerGame.step(state, null);
   const before = { aim: state.aimX, paddle: state.paddleX };
-  state = { ...state, held: BRK_POWER_SPAM, charges: 5 } as typeof state;
+  state = { ...state, held: BRK_POWER_SPAM + 1, charges: 5 } as typeof state;
   state = breakerGame.step(state, { t: state.tick + 1, k: 10, a: 0, b: 0, c: 0, d: 0 });
   if (state.aimX !== before.aim || state.paddleX !== before.paddle) {
     fail("breaker: a button press moved the paddle");
