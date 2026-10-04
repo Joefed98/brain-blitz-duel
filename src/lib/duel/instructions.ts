@@ -597,10 +597,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag to move the paddle", detail: "anywhere on the board." },
       { action: "Keep the ball up", detail: "— it gets faster with bricks and with time." },
-      { action: "Four gold ★ bricks", detail: "drop a capsule: catch it for a power-up. MULTI doubles your balls." },
-      { action: "Drag in the bottom quarter", detail: "to move the paddle — ×5 and laser use the gold button." },
+      { action: "Bevelled bricks take 2 or 3 hits", detail: "— each hit cracks them down a tier." },
+      { action: "Three power-up bricks drop a capsule", detail: "gold = laser, silver = ×5 balls, bronze = ×2 balls (works at once)." },
+      { action: "Tap anywhere to fire", detail: "a laser or ×5 you've caught; any other touch moves the paddle." },
     ],
-    score: "2 per brick destroyed; all 72 bricks = 150.",
+    score: "135 × bricks destroyed ÷ 80; a full clear adds up to 15 for time left. Max 150.",
   },
   rally: {
     goal: "Keep the rally going.",

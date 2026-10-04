@@ -1887,7 +1887,7 @@ export interface RicoPuzzleData {
 /* =================== Breaker / Rally / Steady ============================ */
 
 /** Each run is a fixed 60 seconds; the round clock adds three of slack. */
-export const BREAKER_TIME_MS = 63_000;
+export const BREAKER_TIME_MS = 93_000;
 export const RALLY_TIME_MS = 63_000;
 export const STEADY_TIME_MS = 63_000;
 

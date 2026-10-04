@@ -15,7 +15,7 @@ import {
   BRK_CHECKPOINT_INTERVAL,
   BRK_INPUT_RANGES,
   BRK_RUN_TICKS,
-  BRK_TOTAL_HITS,
+  brkTotalHits,
   type BrkCheckpoint,
   type BrkState,
 } from "@/lib/arcade/breaker";
@@ -187,7 +187,7 @@ export function replayBreakerRun(seed: number, raw: string): BreakerResult {
     hits: state.hits,
     bricksLeft: brkBricksLeft(state),
     destroyed: brkDestroyed(state),
-    totalHits: BRK_TOTAL_HITS,
+    totalHits: brkTotalHits(state),
     losses: state.losses,
     powerUps: state.powerUps,
     cleared: state.cleared,
