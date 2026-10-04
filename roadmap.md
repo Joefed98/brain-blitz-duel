@@ -1,6 +1,6 @@
 ## Slice combos and Snip wider arena (Oct 4)
 - [x] Implement timed combo levels, revised Slice weighting, single-star Snip scoring and wider camera-followed arena.
-- [ ] Verify Slice/Snip replay proofs, combo and boundary rules, and single-star template solvability; no browser tests.
+- [x] Slice and Snip replay proofs passed 200/200 each; combo expiry/refresh, scoring, wall restitution and camera visibility checks passed; all ten templates can be fed with their star at −10/0/+10 pin wobble; automatic code checks passed; no browser tests.
 
 ## Arcade second-pass tuning (Oct 4)
 - [x] Apply touch suppression and seven game-specific tuning changes; Beat canvas lanes and Burst press-safe buttons covered.
