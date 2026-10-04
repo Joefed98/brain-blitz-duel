@@ -7,11 +7,10 @@
 
 import { floodApply, floodSolved, regionCells } from "./flood";
 import { randomBelow, shuffled } from "./random";
+import bankData from "./floodBank.server.json";
 import {
-  FLOOD_ATTEMPTS,
   FLOOD_CELLS,
   FLOOD_COLOURS,
-  FLOOD_FALLBACK_PAR,
   FLOOD_MAX_PAR,
   FLOOD_MIN_PAR,
   FLOOD_SEARCH_CAP,
@@ -35,7 +34,8 @@ function usefulColours(grid: number[]): number[] {
     ];
     for (const next of neighbours) {
       if (next < 0 || region.has(next)) continue;
-      const colour = grid[next]!;
+      const colour = grid[next];
+      if (colour === undefined) continue;
       if (colour !== mine) out.add(colour);
     }
   }
@@ -48,9 +48,11 @@ function remainingColours(grid: number[]): number {
   const left = new Set<number>();
   for (let cell = 0; cell < grid.length; cell++) {
     if (region.has(cell)) continue;
-    left.add(grid[cell]!);
+    const colour = grid[cell];
+    if (colour !== undefined) left.add(colour);
   }
-  left.delete(grid[0]!);
+  const mine = grid[0];
+  if (mine !== undefined) left.delete(mine);
   return left.size;
 }
 
@@ -104,8 +106,10 @@ function randomGrid(): number[] {
         row > 0 ? cell - FLOOD_SIZE : -1,
         row < FLOOD_SIZE - 1 ? cell + FLOOD_SIZE : -1,
       ].filter((index) => index >= 0);
-      const from = neighbours[randomBelow(neighbours.length)]!;
-      grid[cell] = grid[from]!;
+      const from = neighbours[randomBelow(neighbours.length)];
+      if (from === undefined) continue;
+      const colour = grid[from];
+      if (colour !== undefined) grid[cell] = colour;
     }
   }
   // Every colour must appear, or par could never reach the wanted band.
@@ -115,28 +119,24 @@ function randomGrid(): number[] {
   return grid;
 }
 
-export function generateFlood(): FloodPuzzleData {
-  let fallback: FloodPuzzleData | null = null;
+export const FLOOD_BANK_SIZE = 400;
+export const FLOOD_BANK = bankData as FloodPuzzleData[];
 
-  for (let attempt = 0; attempt < FLOOD_ATTEMPTS; attempt++) {
+/** Offline builder: retry until an exact minimum in the strict band is proven. */
+export function generateProvenFlood(): FloodPuzzleData {
+  while (true) {
     const grid = randomGrid();
-    const solved = floodMinMoves(grid, FLOOD_FALLBACK_PAR);
-    if (!solved) continue;
-    if (solved.par >= FLOOD_MIN_PAR && solved.par <= FLOOD_MAX_PAR) {
+    const solved = floodMinMoves(grid, FLOOD_MAX_PAR);
+    if (solved && solved.par >= FLOOD_MIN_PAR && solved.par <= FLOOD_MAX_PAR) {
       return { type: "flood", grid, par: solved.par, solution: solved.solution };
     }
-    if (!fallback && solved.par > FLOOD_MAX_PAR) {
-      fallback = { type: "flood", grid, par: solved.par, solution: solved.solution };
-    }
   }
+}
 
-  if (fallback) {
-    console.warn(
-      `[flood] no board in the ${FLOOD_MIN_PAR}–${FLOOD_MAX_PAR} band; par ${fallback.par}`,
-    );
-    return fallback;
-  }
-
-  // Scoring requires a proven minimum; never publish a guessed par.
-  throw new Error("Colour Flood generation failed to prove a par");
+/** Rooms and practice draw only from the complete private proven bank. */
+export function generateFlood(): FloodPuzzleData {
+  if (FLOOD_BANK.length !== FLOOD_BANK_SIZE) throw new Error("Colour Flood bank is incomplete");
+  const puzzle = FLOOD_BANK[randomBelow(FLOOD_BANK.length)];
+  if (!puzzle) throw new Error("Colour Flood board is missing");
+  return { ...puzzle, grid: [...puzzle.grid], solution: [...(puzzle.solution ?? [])] };
 }
