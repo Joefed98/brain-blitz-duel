@@ -357,6 +357,8 @@ for (const spec of GAMES.filter((g) => !ONLY || ONLY.includes(g.key))) {
     worstMs = Math.max(worstMs, performance.now() - started);
     const problems: string[] = [];
     if (result.score !== score) problems.push(`score ${score} vs ${result.score}`);
+    if (!same(result.state, state)) problems.push("full final state");
+    if (!same(result.checkpoints, checkpoints)) problems.push("full checkpoint list");
     if (!same(spec.checkpoint(result.state), spec.checkpoint(state))) problems.push("final state");
     if (result.desyncTick !== null) problems.push(`checkpoint desync at ${result.desyncTick}`);
     if (result.inputDiag.clamped || result.inputDiag.dropped)
