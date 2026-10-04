@@ -1372,7 +1372,12 @@ const tiltSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   const head = `${mazes} ${mazes === 1 ? "maze" : "mazes"} completed`;
   return {
-    summary: survived ? `${head} · survived` : `${head} · pit at ${ended.toFixed(1)}s`,
+    summary:
+      mazes >= 4
+        ? `4 / 4 mazes · ${Number(result.extra?.["secondsLeft"] ?? 0).toFixed(1)}s left`
+        : survived
+          ? `${head} · survived`
+          : `${head} · ${result.extra?.["caught"] === true ? "caught" : "pit"} at ${ended.toFixed(1)}s`,
     detail: ["Same mazes for everyone"],
   };
 };
