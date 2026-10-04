@@ -573,7 +573,9 @@
 - [x] Dig hole-seeking flow; bank 300 rebuilt (routes up to 8 along a shelf, pools 3–6 wide); dig-check 0 problems; no browser tests.
 
 ## Arcade tuning pass (Oct 4)
-- [ ] Hover pace/gaps, Matchup 7×8/refills, Bubble starting clusters/extra row/circles.
-- [ ] Beat two-ended hold judgement and visible heads/tails; Cross road lanes/start respawn.
-- [ ] Burst permanent arrows/two lives; Orbit red-box removal; Tilt circle/spikes; Bastion practice-only.
-- [ ] Focused mechanics checks and self-replay ONLY Hover, Matchup, Bubble, Beat, Cross, Burst, Orbit, Tilt; no browser tests.
+- [x] Hover pace/gaps, Matchup 7×8/refills, Bubble starting clusters/extra row/circles.
+- [x] Beat two-ended hold judgement and visible heads/tails; Cross road lanes/start respawn.
+- [x] Burst permanent arrows/two lives; Orbit red-box removal; Tilt circle/spikes; Bastion practice-only.
+- [x] Focused mechanics checks and self-replay ONLY Hover, Matchup, Bubble, Beat, Cross, Burst, Orbit, Tilt; no browser tests.
+
+- Validation: all eight requested games passed 200/200 full-state/checkpoint/score self-replays; 1,000 Hover/Bubble seed checks, 200 Matchup boards and focused hold/respawn/lives/retirement checks passed. Hover reaches 42 gates, final gate at 59.93 s; 45 generated pillars already cover the full run. No browser tests.

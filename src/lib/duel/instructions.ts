@@ -804,7 +804,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Roll the ball out of the maze.",
     how: [
       { action: "Drag left or right to spin the maze", detail: "— the ball always rolls down." },
-      { action: "Each escape brings a harder maze.", detail: "Red pits end the run." },
+      { action: "Each escape brings a harder maze.", detail: "Red spikes end the run." },
       { action: "You have 90 seconds.", detail: "" },
     ],
     score: "30 per maze completed (ball out through the exit) — five completed = 150.",
