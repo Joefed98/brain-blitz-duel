@@ -37,4 +37,4 @@
 - Ball Track warnings derive from seeded event ticks; sound follows sim-tick digit transitions; why: identical warnings without changing replay state or event timing.
 - Memory stays out of room settings/draws; practice uses allTypesInCategory to retain its games.
 - Retire types via RETIRED_TYPES; why: room draws filter it, practice does not.
-- Logic grids use container sizing and proportional clue tracks; why: square cells and clues fit the shared safe area.
+- Logic grids use container sizing to fit; Flood/Shikaku/Light Up generate on demand with par/uniqueness proofs, never guessed answers.

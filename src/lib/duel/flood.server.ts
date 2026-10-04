@@ -137,14 +137,6 @@ export function generateFlood(): FloodPuzzleData {
     return fallback;
   }
 
-  // Last resort: a plain random board with whatever par the search can prove.
-  const grid = randomGrid();
-  const solved = floodMinMoves(grid, FLOOD_FALLBACK_PAR);
-  console.warn("[flood] falling back to an unbanded board");
-  return {
-    type: "flood",
-    grid,
-    par: solved?.par ?? FLOOD_MAX_PAR,
-    ...(solved ? { solution: solved.solution } : {}),
-  };
+  // Scoring requires a proven minimum; never publish a guessed par.
+  throw new Error("Colour Flood generation failed to prove a par");
 }
