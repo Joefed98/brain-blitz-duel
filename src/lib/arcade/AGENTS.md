@@ -9,3 +9,4 @@
 - Ball Track warnings derive from seeded event ticks; sound follows sim-tick digit transitions; why: identical warnings without changing replay state or event timing.
 - Matchup uses separate row and column bounds for all matching, blasts, gravity and input mapping; why: its rectangular board must replay identically.
 - Beat reserves hold heads and awards the whole note only after a window-checked release; why: both endpoint errors determine server-verified credit.
+- Bin Toss stores seeded per-throw slides (integer half-wave, trimmed to keep the bin on screen) and narrows the bin from throw 4 with wind scaled to width; Bullseye stores per-arrow ring-value permutations with colour keyed to value; why: sim, drawing and server replay must agree.

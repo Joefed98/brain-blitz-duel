@@ -46,6 +46,18 @@ export const BINTOSS_BALL_Y = 126_208;
 export const BINTOSS_BIN_HALF = 10_240;
 /** The ball centre must cross at least 10 px inside either rim edge. */
 export const BINTOSS_RIM_INSET = 2_560;
+/** From this throw (0-based) the opening narrows to 68 px. */
+export const BINTOSS_NARROW_FROM = 3;
+export const BINTOSS_NARROW_HALF = 8_704;
+/** From this throw (0-based) the bin slides side to side. */
+export const BINTOSS_SLIDE_FROM = 6;
+/** Slide amplitude 40–70 px, period 2.0–2.8 s (ticks), both seeded. */
+export const BINTOSS_SLIDE_AMP_MIN = 40;
+export const BINTOSS_SLIDE_AMP_MAX = 70;
+export const BINTOSS_SLIDE_PERIOD_MIN = 120;
+export const BINTOSS_SLIDE_PERIOD_MAX = 168;
+/** The bin's right edge never passes this (6 px inside the world). */
+export const BINTOSS_SLIDE_RIGHT = 98_304;
 export const BINTOSS_BIN_H = 17_920;
 export const BINTOSS_RIM_Y = 110_080;
 
@@ -61,8 +73,8 @@ export const BINTOSS_VY_MAX = 3_840;
 /** The next ball appears this many ticks after the last one finished. */
 export const BINTOSS_NEXT_DELAY = 20;
 
-/** Bin distances from the ball: 100 px growing by 15 px a throw, up to 235 px. */
-export const BINTOSS_FIRST_DIST = 25_600;
+/** Bin distances from the ball: 135 px growing by 15 px a throw, up to 270 px. */
+export const BINTOSS_FIRST_DIST = 34_560;
 export const BINTOSS_DIST_STEP = 3_840;
 
 export const BINTOSS_BASKET_POINTS = 10;
@@ -107,6 +119,19 @@ export const BINTOSS_WIND_SUB = 256;
 export const BINTOSS_WIND_ACC = Math.round(
   (BINTOSS_BIN_HALF * BINTOSS_WIND_SUB) / (BINTOSS_WIND_TICKS * (BINTOSS_WIND_TICKS + 1)),
 );
+export const BINTOSS_WIND_ACC_NARROW = Math.round(
+  (BINTOSS_NARROW_HALF * BINTOSS_WIND_SUB) / (BINTOSS_WIND_TICKS * (BINTOSS_WIND_TICKS + 1)),
+);
+
+/** Half the bin opening for this throw. */
+export function binTossHalf(index: number): number {
+  return index >= BINTOSS_NARROW_FROM ? BINTOSS_NARROW_HALF : BINTOSS_BIN_HALF;
+}
+
+/** One wind point's acceleration for this throw: a quarter of its bin width. */
+export function binTossWindAcc(index: number): number {
+  return index >= BINTOSS_NARROW_FROM ? BINTOSS_WIND_ACC_NARROW : BINTOSS_WIND_ACC;
+}
 
 /**
  * Turns the aim vector (finger position minus the anchor, in world pixels) into
@@ -136,8 +161,12 @@ export interface BinTossFlight {
 }
 
 /** One tick of free flight. The single place gravity and wind are integrated. */
-export function binTossAdvance(flight: BinTossFlight, wind: number): BinTossFlight {
-  const windV = flight.windV + wind * BINTOSS_WIND_ACC;
+export function binTossAdvance(
+  flight: BinTossFlight,
+  wind: number,
+  windAcc: number = BINTOSS_WIND_ACC,
+): BinTossFlight {
+  const windV = flight.windV + wind * windAcc;
   const windPos = flight.windPos + windV;
   const drift =
     Math.trunc(windPos / BINTOSS_WIND_SUB) - Math.trunc(flight.windPos / BINTOSS_WIND_SUB);
@@ -161,6 +190,7 @@ export function binTossPath(
   vy: number,
   wind: number,
   stopAtRim: boolean,
+  windAcc: number = BINTOSS_WIND_ACC,
 ): { x: number; y: number }[] {
   let flight: BinTossFlight = {
     x: BINTOSS_BALL_X,
@@ -172,7 +202,7 @@ export function binTossPath(
   };
   const points = [{ x: px(flight.x), y: px(flight.y) }];
   for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
-    flight = binTossAdvance(flight, wind);
+    flight = binTossAdvance(flight, wind, windAcc);
     points.push({ x: px(flight.x), y: px(flight.y) });
     if (stopAtRim && flight.vy > 0 && flight.y >= BINTOSS_RIM_Y) break;
     if (flight.y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
@@ -182,8 +212,13 @@ export function binTossPath(
 }
 
 /** Where a launch would cross the bin's rim line, in world pixels. Render only. */
-export function binTossPredict(vx: number, vy: number, wind: number): { x: number; y: number } {
-  const path = binTossPath(vx, vy, wind, true);
+export function binTossPredict(
+  vx: number,
+  vy: number,
+  wind: number,
+  windAcc: number = BINTOSS_WIND_ACC,
+): { x: number; y: number } {
+  const path = binTossPath(vx, vy, wind, true, windAcc);
   const last = path[path.length - 1]!;
   return { x: Math.round(last.x), y: Math.round(last.y) };
 }
@@ -193,8 +228,37 @@ export function binTossDistance(index: number): number {
   return BINTOSS_FIRST_DIST + BINTOSS_DIST_STEP * clampInt(index, 0, BINTOSS_THROWS - 1);
 }
 
+/** The bin's resting centre for a throw (before any slide). */
 export function binTossBinCentre(index: number): number {
   return BINTOSS_BALL_X + binTossDistance(index);
+}
+
+export interface BinTossSlide {
+  /** Amplitude in 1/256 px (0 = no slide), period and phase in ticks. */
+  amp: number;
+  period: number;
+  phase: number;
+}
+
+/**
+ * Sideways slide offset at this tick, 1/256 px. A parabolic half-wave per half
+ * period (integer only, so identical everywhere), positive then negative.
+ */
+export function binTossSlideOffset(slide: BinTossSlide | undefined, tick: number): number {
+  if (!slide || slide.amp <= 0 || slide.period < 2) return 0;
+  const period = slide.period;
+  const q = (((tick + slide.phase) % period) + period) % period;
+  const half = period >> 1;
+  const sign = q < half ? 1 : -1;
+  const h = q < half ? q : q - half;
+  const span = period - half;
+  const width = q < half ? half : span;
+  return sign * Math.trunc((slide.amp * 4 * h * (width - h)) / (width * width));
+}
+
+/** The bin's actual centre for a throw at a sim tick, slide included. */
+export function binTossCentreAt(state: Pick<BinTossState, "slides">, index: number, tick: number): number {
+  return binTossBinCentre(index) + binTossSlideOffset(state.slides[index], tick);
 }
 
 /* ================================ State ================================ */
@@ -212,6 +276,8 @@ export interface BinTossState {
   baskets: number;
   /** Wind for each of the ten throws, −3 … +3. Same for everyone. */
   winds: number[];
+  /** Seeded side-to-side slide per throw (amp 0 before throw 7). */
+  slides: BinTossSlide[];
   /** 1 for a basket, 0 for a miss, in throw order. */
   results: number[];
   phase: number;
@@ -238,9 +304,26 @@ function init(seed: number): BinTossState {
     // 0..3 → −4..−1, 4..7 → +1..+4: never still air.
     winds.push(drawn.value < BINTOSS_WIND_MAX ? drawn.value - BINTOSS_WIND_MAX : drawn.value - BINTOSS_WIND_MAX + 1);
   }
+  const slides: BinTossSlide[] = [];
+  for (let index = 0; index < BINTOSS_THROWS; index++) {
+    if (index < BINTOSS_SLIDE_FROM) {
+      slides.push({ amp: 0, period: BINTOSS_SLIDE_PERIOD_MIN, phase: 0 });
+      continue;
+    }
+    const ampDraw = rngBelow(rng, BINTOSS_SLIDE_AMP_MAX - BINTOSS_SLIDE_AMP_MIN + 1);
+    const periodDraw = rngBelow(ampDraw.state, BINTOSS_SLIDE_PERIOD_MAX - BINTOSS_SLIDE_PERIOD_MIN + 1);
+    const period = BINTOSS_SLIDE_PERIOD_MIN + periodDraw.value;
+    const phaseDraw = rngBelow(periodDraw.state, period);
+    rng = phaseDraw.state;
+    // Keep the whole bin on screen: the swing is trimmed to the room on its right.
+    const room = BINTOSS_SLIDE_RIGHT - BINTOSS_NARROW_HALF - binTossBinCentre(index);
+    const amp = Math.min((BINTOSS_SLIDE_AMP_MIN + ampDraw.value) * 256, room);
+    slides.push({ amp, period, phase: phaseDraw.value });
+  }
   return {
     tick: 0,
     rng,
+    slides,
     throwIndex: 0,
     resolved: 0,
     baskets: 0,
@@ -326,6 +409,7 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
 
   // In flight: gravity plus the wind's own exact sideways drift.
   const wind = state.winds[state.throwIndex] ?? 0;
+  const half = binTossHalf(state.throwIndex);
   const advanced = binTossAdvance(
     {
       x: state.x,
@@ -336,6 +420,7 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
       windPos: state.windPos,
     },
     wind,
+    binTossWindAcc(state.throwIndex),
   );
   let vx = advanced.vx;
   let vy = advanced.vy;
@@ -345,15 +430,15 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
   const windPos = advanced.windPos;
   let wobbleTick = state.wobbleTick;
 
-  const centre = binTossBinCentre(state.throwIndex);
+  const centre = binTossCentreAt(state, state.throwIndex, tick);
 
   // Crossing the rim line on the way down decides the throw.
   if (vy > 0 && state.y < BINTOSS_RIM_Y && ny >= BINTOSS_RIM_Y) {
     const offset = Math.abs(nx - centre);
-    if (offset <= BINTOSS_BIN_HALF - BINTOSS_RIM_INSET) {
+    if (offset <= half - BINTOSS_RIM_INSET) {
       return resolve({ ...state, x: nx, y: ny, wobbleTick }, tick, true);
     }
-    if (offset <= BINTOSS_BIN_HALF + BINTOSS_BALL_R) {
+    if (offset <= half + BINTOSS_BALL_R) {
       // A rim edge: the ball bounces away and the throw is a miss.
       wobbleTick = tick;
       vx = -(vx >> 1);
@@ -364,13 +449,13 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
   }
 
   // Below the rim and overlapping the bin means it struck the outside wall.
-  if (ny > BINTOSS_RIM_Y && Math.abs(nx - centre) <= BINTOSS_BIN_HALF + BINTOSS_BALL_R) {
+  if (ny > BINTOSS_RIM_Y && Math.abs(nx - centre) <= half + BINTOSS_BALL_R) {
     wobbleTick = tick;
     vx = -(vx >> 1);
     nx =
       state.x < centre
-        ? centre - BINTOSS_BIN_HALF - BINTOSS_BALL_R
-        : centre + BINTOSS_BIN_HALF + BINTOSS_BALL_R;
+        ? centre - half - BINTOSS_BALL_R
+        : centre + half + BINTOSS_BALL_R;
   }
 
   const next: BinTossState = { ...state, tick, vx, vy, windV, windPos, x: nx, y: ny, wobbleTick };
@@ -499,8 +584,8 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
 
 function drawBin(ctx: CanvasRenderingContext2D, state: BinTossState): void {
   const index = Math.min(state.throwIndex, BINTOSS_THROWS - 1);
-  const centre = px(binTossBinCentre(index));
-  const half = px(BINTOSS_BIN_HALF);
+  const centre = px(binTossCentreAt(state, index, state.tick));
+  const half = px(binTossHalf(index));
   const top = px(BINTOSS_RIM_Y);
   const floor = px(BINTOSS_FLOOR_Y);
   // A rim hit rocks the bin for a few frames; render only.
@@ -622,6 +707,8 @@ export interface BinTossGhost {
   vx: number;
   vy: number;
   wind: number;
+  /** Throw index, so the wind uses that throw's bin width. */
+  index?: number;
 }
 
 export interface BinTossLandingPresentation {
@@ -665,7 +752,7 @@ export function binTossDrawGhost(
   drawPath(
     ctx,
     size,
-    binTossPath(ghost.vx, ghost.vy, ghost.wind, true),
+    binTossPath(ghost.vx, ghost.vy, ghost.wind, true, binTossWindAcc(ghost.index ?? 0)),
     BINTOSS_BALL_COLOUR,
     alpha,
   );
@@ -696,7 +783,7 @@ export function binTossDrawLanding(
   const { scale, offsetX, offsetY } = binTossTransform(size);
   const p = Math.max(0, Math.min(1, landing.progress));
   const centre = px(landing.binCentre);
-  const half = px(BINTOSS_BIN_HALF);
+  const half = px(binTossHalf(landing.binIndex));
   const rim = px(BINTOSS_RIM_Y);
   const floor = px(BINTOSS_FLOOR_Y);
   const radius = px(BINTOSS_BALL_R);

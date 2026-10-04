@@ -170,14 +170,14 @@ export function bullseyeAimPoint(
 /* ---------------------------- Moving target ---------------------------- */
 
 /** From this arrow (0-based) the whole target drifts left and right. */
-export const BULLSEYE_DRIFT_FROM = 5;
+export const BULLSEYE_DRIFT_FROM = 3;
 /** One full drift cycle, ticks (2.6 s). */
 export const BULLSEYE_DRIFT_PERIOD = 156;
 
 /**
  * Sideways target offset, whole world px, for this arrow at this sim tick:
- * 0 before arrow 6, then a sine-table oscillation whose amplitude rises from
- * 60 px (arrow 6) to 100 px (arrow 10); phase and direction from the seed.
+ * 0 before arrow 4, then a sine-table oscillation whose amplitude rises from
+ * 60 px (arrow 4) to 100 px (arrow 8 on); phase and direction from the seed.
  */
 export function bullseyeTargetDx(index: number, tick: number, phase: number, dir: number): number {
   if (index < BULLSEYE_DRIFT_FROM) return 0;
@@ -206,8 +206,22 @@ export function bullseyeRingAt(x: number, y: number, scalePct: number): number {
   return -1;
 }
 
-export function bullseyeRingValue(ring: number): number {
-  return ring < 0 ? 0 : (BULLSEYE_RING_VALUES[ring] ?? 0);
+/** From this arrow (0-based) the ring values are a seeded permutation per arrow. */
+export const BULLSEYE_SHUFFLE_FROM = 6;
+
+/** Colour for a ring VALUE, so the 10 ring keeps its colour wherever it sits. */
+export function bullseyeValueColour(value: number): string {
+  const index = BULLSEYE_RING_VALUES.indexOf(value as (typeof BULLSEYE_RING_VALUES)[number]);
+  return BULLSEYE_RING_COLOURS[index < 0 ? 0 : index]!;
+}
+
+/** The value of each ring (centre outwards) for this arrow. */
+export function bullseyeRingValues(state: Pick<BullseyeState, "ringValues">, arrow: number): readonly number[] {
+  return state.ringValues[clampInt(arrow, 0, BULLSEYE_ARROWS - 1)] ?? BULLSEYE_RING_VALUES;
+}
+
+export function bullseyeRingValue(ring: number, values: readonly number[] = BULLSEYE_RING_VALUES): number {
+  return ring < 0 ? 0 : (values[ring] ?? 0);
 }
 
 /* ================================ State ================================ */
@@ -242,6 +256,8 @@ export interface BullseyeState {
   /** Moving-target phase (ticks) and direction (±1), from the seed. */
   driftPhase: number;
   driftDir: number;
+  /** Ring values centre-outwards per arrow; shuffled from arrow 7. Same for everyone. */
+  ringValues: number[][];
 }
 
 export function bullseyeWinds(seed: number): number[] {
@@ -270,7 +286,23 @@ export function bullseyeInit(seed: number, storedWinds?: readonly number[]): Bul
   const phaseDraw = rngBelow(rng, BULLSEYE_DRIFT_PERIOD);
   const dirDraw = rngBelow(phaseDraw.state, 2);
   rng = dirDraw.state;
+  const ringValues: number[][] = [];
+  for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) {
+    const values = [...BULLSEYE_RING_VALUES] as number[];
+    if (arrow >= BULLSEYE_SHUFFLE_FROM) {
+      for (let i = values.length - 1; i > 0; i--) {
+        const pick = rngBelow(rng, i + 1);
+        rng = pick.state;
+        const j = pick.value;
+        [values[i], values[j]] = [values[j]!, values[i]!];
+      }
+      // Never the plain layout: rotate one step if the shuffle came out unchanged.
+      if (values.every((v, i) => v === BULLSEYE_RING_VALUES[i])) values.push(values.shift()!);
+    }
+    ringValues.push(values);
+  }
   return {
+    ringValues,
     driftPhase: phaseDraw.value,
     driftDir: dirDraw.value === 0 ? -1 : 1,
     tick: 0,
@@ -313,7 +345,7 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
     // Scored against where the target is when the arrow lands.
     const tdx = bullseyeTargetDx(arrow, tick + BULLSEYE_FLIGHT_TICKS, state.driftPhase, state.driftDir);
     const ring = bullseyeRingAt(x - tdx, y, bullseyeScalePct(arrow));
-    const value = bullseyeRingValue(ring);
+    const value = bullseyeRingValue(ring, bullseyeRingValues(state, arrow));
     const next: BullseyeState = {
       ...state,
       tick,
@@ -347,7 +379,7 @@ function score(state: BullseyeState): number {
 
 /** Arrows in the gold or red rings — the headline for the standings summary. */
 export function bullseyeInner(state: BullseyeState): number {
-  return state.hits.filter((hit) => hit.ring === 0 || hit.ring === 1).length;
+  return state.hits.filter((hit) => hit.value >= 9).length;
 }
 
 /* =========================== Integrity checks ========================== */
@@ -418,19 +450,25 @@ export function bullseyeTransform(size: CanvasSize): BullseyeTransform {
 }
 
 /** The six rings at the size this arrow sees them. */
-export function bullseyeDrawTarget(ctx: CanvasRenderingContext2D, scalePct: number, dx = 0): void {
+export function bullseyeDrawTarget(
+  ctx: CanvasRenderingContext2D,
+  scalePct: number,
+  dx = 0,
+  values: readonly number[] = BULLSEYE_RING_VALUES,
+): void {
   ctx.save();
   ctx.translate(dx, 0);
-  drawRings(ctx, scalePct);
+  drawRings(ctx, scalePct, values);
   ctx.restore();
 }
 
-function drawRings(ctx: CanvasRenderingContext2D, scalePct: number): void {
+function drawRings(ctx: CanvasRenderingContext2D, scalePct: number, values: readonly number[]): void {
   for (let ring = BULLSEYE_RINGS; ring >= 1; ring--) {
     const radius = (BULLSEYE_RING_STEP * ring * scalePct) / 100;
     ctx.beginPath();
-    ctx.fillStyle = BULLSEYE_RING_COLOURS[ring - 1]!;
-    ctx.globalAlpha = ring <= 2 ? 0.9 : 0.35;
+    const value = values[ring - 1] ?? 0;
+    ctx.fillStyle = bullseyeValueColour(value);
+    ctx.globalAlpha = value >= 9 ? 0.9 : 0.35;
     ctx.arc(BULLSEYE_CX, BULLSEYE_CY, radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -445,8 +483,9 @@ function drawRings(ctx: CanvasRenderingContext2D, scalePct: number): void {
     const outer = (BULLSEYE_RING_STEP * (index + 1) * scalePct) / 100;
     const inner = index === 0 ? 0 : (BULLSEYE_RING_STEP * index * scalePct) / 100;
     const y = BULLSEYE_CY - Math.max(8, (outer + inner) / 2);
-    ctx.fillStyle = index === 0 || index >= 4 ? "#0B0B0F" : BULLSEYE_TEXT;
-    ctx.fillText(String(BULLSEYE_RING_VALUES[index] ?? 0), BULLSEYE_CX, y);
+    const value = values[index] ?? 0;
+    ctx.fillStyle = value === 10 || value <= 6 ? "#0B0B0F" : BULLSEYE_TEXT;
+    ctx.fillText(String(value), BULLSEYE_CX, y);
   }
 }
 
@@ -518,7 +557,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
 
   // Mid-flight the target keeps moving (it is scored where it is on landing).
   const shownDx = bullseyeTargetDx(shown, state.tick, state.driftPhase, state.driftDir);
-  bullseyeDrawTarget(ctx, bullseyeScalePct(shown), shownDx);
+  bullseyeDrawTarget(ctx, bullseyeScalePct(shown), shownDx, bullseyeRingValues(state, shown));
 
   // The last landed arrow stays as a faint correction dot until the next release.
   const last = state.hits[state.hits.length - 1];

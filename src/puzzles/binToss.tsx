@@ -12,7 +12,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   binTossCheckpoint,
-  binTossBinCentre,
+  binTossCentreAt,
   binTossDrag,
   binTossDrawAim,
   binTossDrawGhost,
@@ -99,7 +99,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const aim = useRef<BinTossGhost | null>(null);
   const cancelActive = useRef(false);
   const [cancelHighlighted, setCancelHighlighted] = useState(false);
-  const landing = useRef<(BinTossLandingPresentation & { startedAt: number }) | null>(null);
+  const landing = useRef<(BinTossLandingPresentation & { startedAt: number; tick: number }) | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
@@ -189,8 +189,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               landing.current = {
                 startedAt: time,
                 progress: 0,
-                binCentre: binTossBinCentre(before.throwIndex),
+                binCentre: binTossCentreAt(before, before.throwIndex, state.current.tick),
                 binIndex: before.throwIndex,
+                tick: state.current.tick,
               };
             }
           }
@@ -221,6 +222,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                   ...state.current,
                   baskets: Math.max(0, state.current.baskets - 1),
                   throwIndex: activeLanding.binIndex,
+                  tick: activeLanding.tick,
                   x: -100_000,
                 }
               : state.current,
@@ -367,6 +369,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             vx: launch.vx,
             vy: launch.vy,
             wind: state.current.winds[state.current.throwIndex] ?? 0,
+            index: state.current.throwIndex,
           };
           pending.current.push({ t: 0, k: 1, a: launch.vx, b: launch.vy, c: 0, d: 0 });
         }}
