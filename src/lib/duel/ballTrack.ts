@@ -4,6 +4,7 @@ import {
   btCheckpoint,
   makeBallTrackGame,
   BT_BALLS,
+  btSpeedBonus,
   BT_CHECKPOINT_INTERVAL,
   BT_CHECKPOINT_KEYS,
   type BtCheckpoint,
