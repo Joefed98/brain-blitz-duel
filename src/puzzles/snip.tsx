@@ -7,6 +7,8 @@ import {
   snipCheckpoint,
   snipGame,
   snipView,
+  snipCamera,
+  drawSnip,
   unpackSnipCut,
   SNIP_CHECKPOINT_INTERVAL,
   SNIP_INPUT_CUT,
@@ -61,6 +63,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const board = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const camera = useRef({ x: 90, level: -1, time: 0 });
   const state = useRef<SnipState>(snipGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof snipCheckpoint>[]>([]);
@@ -168,7 +171,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const ctx = node.getContext("2d");
         if (ctx) {
           ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-          snipGame.draw(ctx, s, { width, height });
+          const previous = camera.current;
+          const reset = previous.level !== s.level;
+          const x = snipCamera(s, reset ? s.sx / 256 - 180 : previous.x, reset ? 1 : Math.min(0.1, Math.max(0, (time - previous.time) / 1000)));
+          camera.current = { x, level: s.level, time };
+          drawSnip(ctx, s, { width, height }, undefined, x);
         }
       }
 
@@ -192,7 +199,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const box = board.current?.getBoundingClientRect();
     if (!box) return null;
     const { scaleX, scaleY } = snipView({ width: box.width, height: box.height });
-    return { x: Math.round((clientX - box.left) / scaleX), y: Math.round((clientY - box.top) / scaleY) };
+    return { x: Math.round((clientX - box.left) / scaleX + camera.current.x), y: Math.round((clientY - box.top) / scaleY) };
   };
   const active = () => !locked && !submitted.current && !snipGame.isOver(state.current);
 
@@ -217,16 +224,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           event.preventDefault();
           if (!active()) return;
           event.currentTarget.setPointerCapture(event.pointerId);
-          lastPoint.current = toWorld(event.clientX, event.clientY);
+          lastPoint.current = { x: event.clientX, y: event.clientY };
         }}
         onPointerMove={(event) => {
-          const from = lastPoint.current;
-          if (!from || !active()) return;
+          const previous = lastPoint.current;
+          if (!previous || !active()) return;
+          const from = toWorld(previous.x, previous.y);
           const to = toWorld(event.clientX, event.clientY);
-          if (!to) return;
+          if (!from || !to) return;
           const seg = pendingCut.current;
           pendingCut.current = seg ? { ...seg, c: to.x, d: to.y } : { a: from.x, b: from.y, c: to.x, d: to.y };
-          lastPoint.current = to;
+          lastPoint.current = { x: event.clientX, y: event.clientY };
         }}
         onPointerUp={() => (lastPoint.current = null)}
         onPointerCancel={() => (lastPoint.current = null)}

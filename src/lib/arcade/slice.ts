@@ -96,8 +96,8 @@ export const SLICE_SLICE_POINTS = 2;
 export const SLICE_MULTI_BONUS = 3;
 export const SLICE_MULTI_NEEDED = 3;
 export const SLICE_BOMB_PENALTY = 10;
-/** Every this many combo slices raises the multiplier, up to ×3. */
-export const SLICE_COMBO_STEP = 15;
+/** Qualifying slices refresh this real-time window. */
+export const SLICE_COMBO_TICKS = 10 * TICKS_PER_SECOND;
 /** One swipe must cut this many discs to start or extend a combo. */
 export const SLICE_COMBO_START = 3;
 /** Gold border flash on a combo-starting slice: 0.5 s. */
@@ -109,9 +109,9 @@ export const SLICE_COMBO_MAX = 3;
 export const SLICE_REACH_NUM = 5;
 export const SLICE_REACH_DEN = 4;
 
-/** Multiplier for a streak of this many slices. */
+/** Multiplier for this many qualifying slices in the live window. */
 export function sliceMultiplier(streak: number): number {
-  return Math.min(SLICE_COMBO_MAX, 1 + Math.trunc(streak / SLICE_COMBO_STEP));
+  return Math.min(SLICE_COMBO_MAX, 1 + streak);
 }
 
 /** How long the bomb flash and the falling halves are drawn for. */
@@ -374,6 +374,8 @@ export interface SliceState {
   flash: number;
   /** 1 while a combo is live (started by a 3+ disc swipe). */
   comboLive: number;
+  /** Exclusive sim tick when the combo expires. */
+  comboUntil: number;
   /** Ticks left of the gold border flash. */
   comboFlash: number;
   /** The continuous slice path: its end point and length so far, in px. */
@@ -384,7 +386,7 @@ export interface SliceState {
   swipe: readonly [number, number, number, number] | null;
   /** Fixed at init: every disc the schedule could offer, specials' batches included. */
   available: number;
-  /** Combo slices since the combo began; weighted slices; best multiplier. */
+  /** Qualifying slice count in the live window; weighted slices; best multiplier. */
   streak: number;
   weighted: number;
   bestMult: number;
@@ -405,6 +407,7 @@ function init(seed: number): SliceState {
     slowFrom: [],
     flash: 0,
     comboLive: 0,
+    comboUntil: 0,
     comboFlash: 0,
     strokeX: -1,
     strokeY: -1,
@@ -526,6 +529,12 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
     swipe: null,
   };
 
+  if (tick >= next.comboUntil) {
+    next.comboLive = 0;
+    next.streak = 0;
+    next.comboUntil = 0;
+  }
+
   const clipped =
     input && input.k === SLICE_INPUT_SWIPE
       ? sliceClipSegment(state, input.a, input.b, input.c, input.d)
@@ -575,22 +584,16 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
     if (slicedAt) next.slicedAt = slicedAt;
     if (frenzies.length > 0) next.frenzyFrom = [...state.frenzyFrom, ...frenzies];
     if (slows.length > 0) next.slowFrom = [...state.slowFrom, ...slows];
-    // A 3+ disc swipe starts or extends the combo; a bomb in the same swipe
-    // still resets it below.
+    // The qualifying slice itself earns the new multiplier, even with a bomb.
     if (cut >= SLICE_COMBO_START) {
       next.comboLive = 1;
+      next.streak += 1;
+      next.comboUntil = tick + SLICE_COMBO_TICKS;
       next.comboFlash = SLICE_COMBO_FLASH_TICKS;
     }
-    for (let i = 0; i < cut; i++) {
-      if (next.comboLive) {
-        // Combo slices count at the multiplier they are made on.
-        next.weighted += sliceMultiplier(next.streak);
-        next.streak += 1;
-        next.bestMult = Math.max(next.bestMult, sliceMultiplier(next.streak));
-      } else {
-        next.weighted += 1;
-      }
-    }
+    const multiplier = sliceMultiplier(next.streak);
+    next.weighted += cut * multiplier;
+    if (cut > 0) next.bestMult = Math.max(next.bestMult, multiplier);
     if (added.length > 0) {
       next.objects = [...state.objects, ...added];
       next.slicedAt = [...(slicedAt ?? state.slicedAt), ...added.map(() => 0)];
@@ -600,20 +603,16 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
     if (bombs > 0) {
       next.bombsHit = state.bombsHit + bombs;
       next.flash = SLICE_FLASH_TICKS;
-      next.streak = 0;
-      next.comboLive = 0;
     }
   }
 
-  // A disc that has just left the arena unsliced breaks the combo.
+  // Misses remain diagnostic only: the timer alone governs combo expiry.
   for (let index = 0; index < next.objects.length; index++) {
     const object = next.objects[index]!;
     if (object.bomb || next.slicedAt[index] || tick - 1 < object.launchTick) continue;
     if (worldAge(object, tick - 1, next.slowFrom) === null) continue;
     if (worldAge(object, tick, next.slowFrom) !== null) continue;
     next.missed += 1;
-    next.streak = 0;
-    next.comboLive = 0;
   }
 
   return next;
@@ -621,8 +620,8 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
 
 function score(state: SliceState): number {
   const total = Math.max(1, sliceTotalDiscs(state));
-  // A perfect full-combo run scores 150: every slice weighted ×3.
-  const earned = Math.floor((150 * Math.min(state.weighted, total * SLICE_COMBO_MAX)) / (total * SLICE_COMBO_MAX));
+  // 70% at ×2 ≈109; 90% at ×3 reaches the cap. Bombs subtract before clamping.
+  const earned = Math.floor((235 * Math.min(state.weighted, total * SLICE_COMBO_MAX)) / (total * SLICE_COMBO_MAX));
   return clampInt(earned - SLICE_BOMB_PENALTY * state.bombsHit, 0, 150);
 }
 
@@ -821,20 +820,22 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
     ctx.fillRect(0, 0, SLICE_WORLD_W, SLICE_WORLD_H);
   }
 
-  // Combo meter, left edge: fills toward the next tier.
+  // Gold level bar; countdown is combo-only, not the round timer.
   const mult = sliceMultiplier(state.streak);
-  const fill = mult >= SLICE_COMBO_MAX ? 1 : (state.streak % SLICE_COMBO_STEP) / SLICE_COMBO_STEP;
-  const meterTop = SLICE_HUD_H + 40;
-  // A third of the old full-height meter.
-  const meterH = Math.round((SLICE_WORLD_H - meterTop - 40) / 3);
+  const meterTop = SLICE_HUD_H + 28;
   ctx.fillStyle = "rgba(255,255,255,0.08)";
-  ctx.fillRect(6, meterTop, 8, meterH);
-  ctx.fillStyle = mult >= 3 ? SLICE_GOLD : mult === 2 ? SLICE_COLOURS[0]! : "rgba(255,255,255,0.55)";
-  ctx.fillRect(6, meterTop + meterH * (1 - fill), 8, meterH * fill);
-  ctx.font = "bold 16px ui-monospace, monospace";
+  ctx.fillRect(12, meterTop, 64, 6);
+  ctx.fillStyle = SLICE_GOLD;
+  ctx.fillRect(12, meterTop, 32 * (mult - 1), 6);
+  ctx.font = "bold 14px 'JetBrains Mono', monospace";
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
-  ctx.fillText(`×${mult}`, 4, meterTop - 6);
+  ctx.fillText(`×${mult}`, 12, meterTop - 4);
+  if (state.comboLive) {
+    ctx.font = "11px 'JetBrains Mono', monospace";
+    ctx.textBaseline = "top";
+    ctx.fillText(`${Math.ceil(Math.max(0, state.comboUntil - state.tick) / TICKS_PER_SECOND)}s`, 12, meterTop + 10);
+  }
 
   ctx.fillStyle = SLICE_BG;
   ctx.fillRect(0, 0, SLICE_WORLD_W, SLICE_HUD_H);

@@ -634,10 +634,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         action: "Two star specials",
         detail: "— the rainbow star opens three bomb-free seconds; the silver star slows everything for four.",
       },
-      { action: "Cut 3+ discs in one swipe to start a combo", detail: "while it's live every 15 slices raise it ×1 → ×2 → ×3; a missed disc or a bomb resets it." },
+      { action: "Cut 3+ discs in one swipe", detail: "first combo gives ×2, second gives ×3. Each combo resets 10 seconds; only expiry returns you to ×1." },
       { action: "Each swipe has a length limit", detail: "— curve it, but it stops after about three-quarters of the screen." },
     ],
-    score: "150 × combo-weighted slices ÷ (3 × discs available) — a perfect full-combo run is 150. −10 per bomb.",
+    score: "floor(235 × combo-weighted slices ÷ (3 × discs available)) −10 per bomb; capped at 150.",
   },
   bubble: {
     goal: "Pop the bubbles by matching three of a colour.",
@@ -792,10 +792,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Feed the sweet to the mouth.",
     how: [
       { action: "Swipe across a rope", detail: "to cut it — time it with the swing." },
-      { action: "Cut the last rope", detail: "and the sweet drops; it bounces off the side walls." },
+      { action: "Cut the last rope", detail: "and the sweet drops; the camera follows across the wider arena. Its walls bounce it with 30% speed loss." },
       { action: "Don't let it settle on a ledge", detail: "or fly out the top or bottom — 10 levels, 12 s each." },
     ],
-    score: "10 per sweet fed, +2 per star; feed all ten for a time bonus — up to 150.",
+    score: "10 per sweet fed, +3 for each level's single star; feed all ten for round(20 × time left ÷ 60 s). Cap 150.",
   },
   swing: {
     goal: "Swing to the 500 m finish.",
