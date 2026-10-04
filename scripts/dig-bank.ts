@@ -97,8 +97,8 @@ function build(hard: boolean) {
   for (let c = 0; c < C; c++) t[at(R - 1, c)] = "#";
 
   // Pool.
-  const depth = between(2, 3);
-  const width = between(4, 6);
+  const depth = between(3, 4);
+  const width = between(3, 4);
   const a = between(2, C - 2 - width);
   const b = a + width - 1;
   const floor = depth + 1;
@@ -109,12 +109,13 @@ function build(hard: boolean) {
       t[at(r, c)] = ".";
       w[at(r, c)] = 4;
     }
-  const col = between(a, b);
+  // Plug in the middle of the pool so little water is stranded on its floor.
+  const col = width === 3 ? a + 1 : a + 1 + rand(2);
   t[at(floor, col)] = "s";
   const route: number[] = [at(floor, col)];
 
   // Shelf.
-  const s = between(floor + 3, hard ? 10 : 11);
+  const s = hard ? between(Math.max(floor + 3, 9), 10) : between(floor + 3, 11);
   for (let c = 1; c < C - 1; c++) t[at(s, c)] = "#";
   for (let r = floor + 1; r < s; r++) route.push(at(r, col));
   const dir = col <= 3 ? 1 : col >= C - 4 ? -1 : rand(2) ? 1 : -1;
