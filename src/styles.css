@@ -632,3 +632,14 @@ body.game-lock {
 .no-overscroll {
   overscroll-behavior: none;
 }
+
+.bt-example {
+  --bt-fixed: #6A7280;
+  --bt-tube: #F5B82E;
+  --bt-background: #12161C;
+  --bt-example-ball: #FF4D4D;
+}
+.bt-example-ball { transition: cx .55s linear, cy .55s linear; }
+@media (prefers-reduced-motion: reduce) {
+  .bt-example-ball { transition: none; }
+}

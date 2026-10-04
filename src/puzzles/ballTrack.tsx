@@ -29,37 +29,40 @@ import { btDraw } from "@/lib/arcade/ballTrack";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Practice fallback course (the first bank course). */
-const PRACTICE_COURSE: BtCourse = {"trays": [-1, 3, 1, 2, 0, -1, 4], "balls": [4, 0, 2, 0, 0, 1, 0, 3, 1, 3, 1, 3, 4, 2, 4, 2, 3, 4, 1, 2], "fixed": [15, 18, 19, 30, 32, 36, 40]};
+const PRACTICE_COURSE: BtCourse = {"trays": [3, -1, 1, 4, 0, 2, -1], "balls": [3, 3, 1, 3, 1, 0, 2, 2, 4, 4, 0, 1, 0, 4, 4, 3, 0, 2, 1, 2], "fixed": [15, 18, 19, 22, 23, 25, 36, 40, 44, 45, 46, 51]};
 
 /* ------------------------------ Intro example ------------------------------ */
 
-/** 3×3 serpentine: the middle of row 1 is turned vertical and the ball falls through it. */
+/** Compact example: turn an upper tube, then follow the fixed bottom to its tray. */
 function IntroExample() {
   const [step, setStep] = useState(0);
   useEffect(() => {
-    const id = window.setInterval(() => setStep((s) => (s + 1) % 6), 600);
+    const id = window.setInterval(() => setStep(s => (s + 1) % 7), 600);
     return () => window.clearInterval(id);
   }, []);
-  const ball = [{ x: 50, y: -10 }, { x: 50, y: 50 }, { x: 150, y: 50 }, { x: 150, y: 150 }, { x: 50, y: 150 }, { x: 50, y: 150 }][step]!;
-  const tube = (d: string, key: string, dark = false) => (
+  const positions = [{x:50,y:-10},{x:50,y:50},{x:150,y:50},{x:150,y:150},{x:50,y:150},{x:50,y:250},{x:50,y:315}];
+  const ball = positions[step] ?? positions[0];
+  if (!ball) return null;
+  const tube = (d: string, key: string, fixed = false) => (
     <g key={key}>
-      <path d={d} fill="none" stroke={dark ? "#6A7280" : "#F5B82E"} strokeWidth="49" />
-      <path d={d} fill="none" stroke="#12161C" strokeWidth="40" />
+      <path d={d} fill="none" stroke={fixed ? "var(--bt-fixed)" : "var(--bt-tube)"} strokeWidth="49" />
+      <path d={d} fill="none" stroke="var(--bt-background)" strokeWidth="43" />
     </g>
   );
   return (
-    <svg viewBox="0 -20 300 340" className="h-40 w-auto" aria-hidden="true">
-      <rect x="0" y="0" width="300" height="300" fill="#12161C" />
+    <svg viewBox="0 -30 300 370" className="bt-example h-40 w-auto" aria-hidden="true">
+      <rect width="300" height="300" fill="var(--bt-background)" />
       {tube("M50 2Q50 50 98 50", "a", true)}
       {tube("M150 2V98", "b")}
       {tube("M202 50Q250 50 250 98", "c", true)}
       {tube("M298 150Q250 150 250 102", "d", true)}
       {tube("M198 150H102", "e")}
       {tube("M98 150Q50 150 50 198", "f", true)}
-      {tube("M50 202Q50 250 98 250", "g", true)}
-      {tube("M102 250H198", "h")}
-      {tube("M202 250H298", "i")}
-      <circle cx={ball.x} cy={ball.y} r="15" fill="#FF4D4D" style={{ transition: "cx .55s linear, cy .55s linear" }} />
+      {tube("M50 202V298", "g", true)}
+      {tube("M102 250H198", "h", true)}
+      {tube("M202 250Q250 250 250 298", "i", true)}
+      <rect x="8" y="306" width="84" height="28" fill="none" stroke="var(--bt-example-ball)" strokeWidth="4" />
+      <circle cx={ball.x} cy={ball.y} r="22.5" fill="var(--bt-example-ball)" className="bt-example-ball" />
     </svg>
   );
 }
