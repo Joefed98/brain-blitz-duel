@@ -106,7 +106,7 @@ function makeCourse(): BtCourse {
   do order = shuffle([...colours]); while (order.some((c, i) => c === colours[i]));
   const after = Array.from({ length: BT_COLS }, () => -1);
   order.forEach((c, i) => (after[cols[i]!] = c));
-  const shuffleAt = { tick: process.env.BT_NOSHUF ? 99999 : 1200 + rnd(1201), trays: after };
+  const shuffleAt = { tick: 1200 + rnd(1201), trays: after };
   // Five balls per colour, shuffled deterministically; triple runs are rerolled below.
   const balls = shuffle(Array.from({ length: BT_BALLS }, (_, i) => i % BT_COLOURS));
   const fixed = seededFixed();
@@ -161,7 +161,6 @@ if (import.meta.main) {
   const stats = { short: 0, fail: 0, best: 0 };
   while (entries.length < TARGET) {
     tries++;
-    if (process.env.BT_DEBUG && tries % 50 === 0) console.log(tries, entries.length, stats);
     if (tries > 100_000) throw Error("Course constraints exhausted");
     const course = makeCourse();
     if (course.balls.some((b, i) => i >= 2 && b === course.balls[i - 1] && b === course.balls[i - 2])) continue;
