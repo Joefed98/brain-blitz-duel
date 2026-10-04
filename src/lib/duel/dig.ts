@@ -12,9 +12,10 @@
  * Water is integer units per cell, 0–4. Each step (10 per second) the digs for
  * that step apply first, then water flows: bottom row first, left to right.
  * A cell moves only the water it held at the start of the step: down first (as
- * much as fits), then sideways — left then right — into a neighbour holding
- * fewer units, floor((a − b) ÷ 2) at a time. One unit beside an equal or empty
- * neighbour stays put.
+ * much as fits). Water that cannot fall heads one cell toward the nearest drop
+ * along its row (a cell with room below, or a sink), ties left, at most 2 units
+ * a step. With no reachable drop it levels: into a lower neighbour, left then
+ * right, floor((a − b) ÷ 2) at a time.
  *
  * Water that has flowed and then sits unchanged for 15 steps is evaporating
  * (drawn flickering); at 30 steps it settles (dimmed) and counts as lost. Pool
@@ -27,6 +28,8 @@ export const DIG_STEPS_PER_SECOND = 10;
 export const DIG_STEPS = 600;
 export const DIG_STEP_MS = 1000 / DIG_STEPS_PER_SECOND;
 export const DIG_MAX_UNITS = 4;
+/** Most units a cell sends sideways toward a drop each step. */
+export const DIG_SIDE_MAX = 2;
 /** Standard boards: one drain, target 80% of the pool. */
 export const DIG_TARGET_PCT = 80;
 /** Most digs one step can carry (a fast interpolated drag). */
@@ -207,6 +210,22 @@ export function digStep(board: DigBoard, state: DigState, digs: readonly number[
     if (tiles[to] === T_ACID_HIDDEN) tiles[to] = T_ACID;
   };
   const canEnter = (n: number) => isOpen(tiles[n]) && settled[n] === 0;
+  /** A cell water could fall from: open, with room (or a sink) directly below. */
+  const isDrop = (n: number) => {
+    const j = n + cols;
+    if (j >= tiles.length) return false;
+    return isSink(tiles[j]) || (canEnter(j) && next[j]! < DIG_MAX_UNITS);
+  };
+  /** Steps along the row to the nearest drop (an in-row sink counts), or −1. */
+  const dropDist = (r: number, c: number, d: number) => {
+    for (let k = 1, cc = c + d; cc >= 0 && cc < cols; k++, cc += d) {
+      const n = r * cols + cc;
+      if (isSink(tiles[n])) return k;
+      if (!canEnter(n)) return -1;
+      if (isDrop(n)) return k;
+    }
+    return -1;
+  };
 
   for (let r = rows - 1; r >= 0; r--) {
     for (let c = 0; c < cols; c++) {
@@ -228,20 +247,23 @@ export function digStep(board: DigBoard, state: DigState, digs: readonly number[
         }
       }
       if (w <= 0) continue;
+      // Hole-seeking: head one cell toward the nearest drop in this row (ties left), at most 2 units.
+      const dl = dropDist(r, c, -1);
+      const dr = dropDist(r, c, 1);
+      if (dl >= 0 || dr >= 0) {
+        const d = dl >= 0 && (dr < 0 || dl <= dr) ? -1 : 1;
+        const n = i + d;
+        let m = Math.min(w, DIG_SIDE_MAX);
+        if (!isSink(tiles[n])) m = Math.min(m, DIG_MAX_UNITS - next[n]!);
+        if (m > 0) move(i, n, m);
+        continue;
+      }
       for (const d of [-1, 1]) {
         if (w <= 0) break;
         const cc = c + d;
         if (cc < 0 || cc >= cols) continue;
         const n = i + d;
         const level = next[i]!;
-        if (isSink(tiles[n])) {
-          let m = level >> 1;
-          if (m > w) m = w;
-          if (m <= 0) continue;
-          move(i, n, m);
-          w -= m;
-          continue;
-        }
         if (!canEnter(n)) continue;
         const nl = next[n]!;
         if (nl >= level) continue;

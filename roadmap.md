@@ -554,3 +554,4 @@
 
 ## Dig rework
 - [x] Sim fixes (level flow, orthogonal drag interpolation, settling, early end), budget, acid, lava, evaporation, two-drain hard boards; bank 300 (200/100) rebuilt and proven; no browser tests.
+- [x] Dig hole-seeking flow; bank 300 rebuilt (routes up to 8 along a shelf, pools 3–6 wide); dig-check 0 problems; no browser tests.
