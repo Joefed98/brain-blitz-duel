@@ -828,13 +828,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Solve it fast for the bonus.",
   },
   dig: {
-    goal: "Dig a channel so the water reaches the drain.",
+    goal: "Dig a path for the water to the drain.",
     how: [
-      { action: "Drag across gold sand", detail: "to dig it. Grey rock never moves." },
-      { action: "The water is already flowing", detail: "— where and when you dig matters." },
-      { action: "Red gaps and dead ends", detail: "waste water." },
+      { action: "Limited digs.", detail: "Drag across gold sand to dig it." },
+      { action: "Avoid acid", detail: "(poisons water) and lava (destroys it)." },
+      { action: "Still water evaporates.", detail: "" },
     ],
-    score: "Drain 90% for full marks plus a bonus for how fast you hit the target; otherwise points for how much you drained.",
+    score: "Fill the drain with clean water: 100 + time bonus, +20 using the fewest digs. Otherwise points for clean water drained.",
   },
   trail: {
     goal: "Draw one path from 1 to 36 through every square.",

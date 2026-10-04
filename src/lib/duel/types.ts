@@ -2182,12 +2182,24 @@ export interface DigPuzzleData {
   type: "dig";
   cols: number;
   rows: number;
-  /** One character per cell: # rock, s sand, . empty, D drain, G side gap. */
+  /** One character per cell: # rock, s sand, . empty, D drain, G side gap, L lava, a buried acid. */
   tiles: string;
   /** Starting water units per cell (0–4), one digit per cell. */
   water: string;
+  /** Most sand cells the player may dig (minimum + 3). */
+  budget: number;
+  minDigs: number;
+  /** Clean units each drain needs, in drain-cell order. */
+  targets: number[];
+  pool: number;
+  /** Acid and lava cells. */
+  hazards: number[];
+  /** "standard" (one drain) or "hard" (two drains). */
+  tier: "standard" | "hard";
   /** The intended dig route — private until the reveal. */
   route?: number[];
+  /** The intended dig log ("step:cell,…") — private. */
+  intended?: string;
 }
 
 export interface BallTrackPuzzleData {

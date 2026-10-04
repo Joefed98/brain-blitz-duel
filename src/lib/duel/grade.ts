@@ -68,7 +68,7 @@ import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { decodeBallTrackRun, replayBallTrackRun } from "./ballTrack";
 import { scoreTrail, trComplete, trCorrectPrefix, trDecode } from "./trail";
 import { npComplete, npCorrectCells, npDecode, npDecodeRound, scoreNumberPyramid } from "./numberPyramid";
-import { digDecode, digReplay, scoreDig } from "./dig";
+import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
 import { lwDecode, lwGrade, scoreLetterWheel } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
@@ -1634,11 +1634,24 @@ export function gradeSubmission(
       // The dig log is replayed against the stored board; the water result is the server's own.
       const run = digReplay(puzzle, digDecode(answer, puzzle.cols * puzzle.rows));
       const s = run.state;
-      isCorrect = s.collected >= s.full;
-      correctCount = s.collected;
-      errors = s.lost;
-      score = scoreDig(s);
-      extraDetail = { collected: s.collected, lost: s.lost, pool: s.pool, target: s.target, targetStep: s.targetStep, dug: run.dug, steps: s.step };
+      isCorrect = s.completeStep > 0;
+      correctCount = digCleanCollected(s);
+      errors = s.lost + s.settledUnits;
+      score = scoreDig(s, puzzle.minDigs);
+      extraDetail = {
+        collected: digCleanCollected(s),
+        drained: s.drained,
+        targets: s.targets,
+        lost: s.lost,
+        settled: s.settledUnits,
+        toxic: s.toxicIn,
+        pool: s.pool,
+        completeStep: s.completeStep,
+        dug: run.dug,
+        budget: puzzle.budget,
+        minDigs: puzzle.minDigs,
+        steps: s.step,
+      };
       break;
     }
     case "trail": {
