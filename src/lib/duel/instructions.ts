@@ -497,7 +497,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hit anything", detail: "and the run ends." },
       { action: "Everyone flies", detail: "the same course for sixty seconds." },
     ],
-    score: "45 gates in the run; 2 per gate, and all 45 = 100.",
+    score: "Gates passed ÷ total gates × 100.",
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",
@@ -651,10 +651,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a lane", detail: "as its note reaches the line." },
       { action: "Closer is better", detail: "— perfect, good, or just OK." },
       { action: "A tap with no note", detail: "costs nothing." },
-      { action: "Notes with a tail are holds", detail: "— tap the head and keep your finger down to the end; letting go early is Good at best." },
+      { action: "Notes with a tail are holds", detail: "— press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss." },
       { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 — a miss resets it." },
     ],
-    score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150. A finished hold counts as its tap.",
+    score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150. Holds score only after both ends are judged; mistimed releases miss the whole note.",
   },
   ricochet: {
     goal: "Climb the shaft by leaping wall to wall.",

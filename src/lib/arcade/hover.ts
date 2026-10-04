@@ -44,7 +44,7 @@ export const HOVER_SCROLL_MAX = 1_331;
 export const HOVER_PILLAR_W = 10_240;
 /** Pillar spacing in world pixels; the first pillar starts at the right edge. */
 export const HOVER_SPACING = 80_896;
-/** Every course holds exactly this many gates; a clean run passes them all. */
+/** Course capacity; the final unreachable gates keep the track populated to 60 s. */
 export const HOVER_GATE_COUNT = 45;
 export const HOVER_FIRST_X = 99_840;
 
@@ -55,7 +55,7 @@ export const HOVER_GAP_MIN = 25_600;
 export const HOVER_GAP_MARGIN = 10_240;
 export const HOVER_WORLD_BOTTOM = 143_360;
 
-/** 2 per gate; passing all 45 scores 100 (this game's maximum). */
+/** Score is the fraction of reachable gates passed, scaled to this maximum. */
 export const HOVER_GATE_POINTS = 2;
 export const HOVER_ALL_GATES_SCORE = 100;
 
@@ -106,11 +106,9 @@ function passedAt(pillar: HoverPillar): number {
 
 /** The whole course, long enough for the fastest possible run. */
 function buildCourse(seed: number): { pillars: HoverPillar[]; rng: number } {
-  const maxTravel = HOVER_SCROLL_MAX * HOVER_RUN_TICKS;
   const pillars: HoverPillar[] = [];
   let rng = seed | 0;
   let x = HOVER_FIRST_X;
-  void maxTravel;
   const reachable = countTotalGates(Array.from({ length: HOVER_GATE_COUNT }, (_, i) => ({
     x0: HOVER_FIRST_X + i * HOVER_SPACING, gapTop: 0, gapH: 0,
   })));
@@ -253,9 +251,7 @@ export function hoverSurvived(state: HoverState): boolean {
 }
 
 function score(state: HoverState): number {
-  const gates = clampInt(state.gates, 0, HOVER_GATE_COUNT);
-  if (gates >= state.totalGates) return HOVER_ALL_GATES_SCORE;
-  return clampInt(HOVER_GATE_POINTS * gates, 0, HOVER_ALL_GATES_SCORE);
+  return clampInt(Math.round(HOVER_ALL_GATES_SCORE * state.gates / Math.max(1, state.totalGates)), 0, HOVER_ALL_GATES_SCORE);
 }
 
 /* ================================ Drawing ============================== */
