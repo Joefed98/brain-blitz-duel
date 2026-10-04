@@ -647,12 +647,12 @@ body.game-lock {
 }
 .logic-nonogram-board > span {
   max-width: none;
-  font-size: calc(100cqw / 7.9 * 0.3);
+  font-size: calc(100cqw / 8.15 * 0.3);
 }
 .logic-nonogram-board > button {
   aspect-ratio: 1;
   min-width: 0;
-  font-size: calc(100cqw / 7.9 * 0.325);
+  font-size: calc(100cqw / 8.15 * 0.325);
 }
 
 .bt-example {

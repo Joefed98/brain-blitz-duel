@@ -151,7 +151,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
       </div>
 
       <div
-        className={`mx-auto flex min-h-[140px] w-4/5 flex-[0.8] flex-col items-center justify-center gap-1 rounded-lg border-2 border-border bg-card/60 p-1 ${
+        className={`mx-auto flex min-h-[152px] w-4/5 flex-[0.8] flex-col items-center justify-center gap-1 rounded-lg border-2 border-border bg-card/60 p-1 ${
           shake ? "animate-shake border-warn" : ""
         }`}
       >

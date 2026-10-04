@@ -48,7 +48,7 @@ function Board({
     <div
       className={`grid gap-0 ${fluid ? "logic-nonogram-board" : ""}`}
       style={{
-        gridTemplateColumns: fluid ? `0.9fr repeat(${size}, minmax(0, 1fr))` : `auto repeat(${size}, ${cell}px)`,
+        gridTemplateColumns: fluid ? `1.15fr repeat(${size}, minmax(0, 1fr))` : `auto repeat(${size}, ${cell}px)`,
         gridTemplateRows: fluid ? `auto repeat(${size}, minmax(0, 1fr))` : `auto repeat(${size}, ${cell}px)`,
       }}
     >
