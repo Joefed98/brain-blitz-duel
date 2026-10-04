@@ -33,7 +33,7 @@ function play(index: number, choose: (tick: number) => Omit<ArcadeInputEvent, "t
 }
 
 let solved = 0;
-if (BT_BALLS !== 20 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 10 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
+if (BT_BALLS !== 20 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 12 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
 for (let home = 0; home <= BT_BALLS; home++) for (let wrong = 0; wrong <= BT_BALLS - home; wrong++) {
   if (btScoreOf(home, wrong) !== Math.max(0, Math.min(150, Math.round(150 * home / BT_BALLS) - 5 * wrong))) fail("Scoring formula");
 }
