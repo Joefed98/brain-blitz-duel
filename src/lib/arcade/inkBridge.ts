@@ -631,6 +631,7 @@ function buildLevels(seed: number): { list: InkLevel[]; rng: number } {
       const found = findReference(lvl, inkBudget(level));
       made = { ...lvl, ref: found?.ref ?? [[96, 78, 300, 526]], refT0: found?.t0 ?? 0 };
     }
+    if ((globalThis as { INKDBG?: number }).INKDBG) console.log("level", level, Math.round(performance.now()));
     list.push(made);
   }
   return { list, rng };

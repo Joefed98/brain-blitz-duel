@@ -1,2 +1,3 @@
-import { inkReferenceCheck } from "@/lib/arcade/inkBridge";
-const t = performance.now(); inkReferenceCheck(104729); console.log("ms", performance.now() - t);
+(globalThis as any).INKDBG = 1;
+const { inkReferenceCheck } = await import("@/lib/arcade/inkBridge");
+inkReferenceCheck(104729);
