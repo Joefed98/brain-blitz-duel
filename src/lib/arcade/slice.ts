@@ -6,16 +6,18 @@
  * is sent as a segment per tick (kind 8) and tested against every airborne
  * object, so the phone and the server reach the same result from the same log.
  *
- * Two multicoloured specials sit in that same schedule: slicing FRENZY opens a
- * five-second burst of bomb-free discs, and slicing LINE hangs a row of six
- * across the screen. Both of their spawns are worked out at init from the seed
- * and simply timed off the tick they were sliced on, so nothing random is ever
+ * Two specials sit in that same schedule: slicing FRENZY (multicoloured
+ * six-pointed star) opens a three-second burst of bomb-free discs, and slicing
+ * SLOW (silver four-pointed star) runs every disc and bomb at 40% speed for
+ * four seconds. Slow motion scales a per-object "world age" in tenths of a
+ * tick, so it stays integer and identical on the server. Nothing random is
  * drawn during play.
  */
 
 import {
   clampInt,
   inputRange,
+  isqrt,
   rngBelow,
   TICKS_PER_SECOND,
   type ArcadeGame,
@@ -74,23 +76,19 @@ export const SLICE_BOMB_PERCENT = 12;
 
 export const SLICE_SPECIAL_NONE = 0;
 export const SLICE_SPECIAL_FRENZY = 1;
-export const SLICE_SPECIAL_LINE = 2;
+export const SLICE_SPECIAL_SLOW = 2;
 
 /** No special appears in the first ten seconds. */
 export const SLICE_SPECIAL_EARLIEST = 10 * TICKS_PER_SECOND;
-/** A frenzy runs five seconds at eight objects a window, with no bombs. */
-export const SLICE_FRENZY_TICKS = 5 * TICKS_PER_SECOND;
+/** A frenzy runs three seconds at eight objects a window, with no bombs. */
+export const SLICE_FRENZY_TICKS = 3 * TICKS_PER_SECOND;
 export const SLICE_FRENZY_PER_WINDOW = 8;
 export const SLICE_FRENZY_COUNT = Math.trunc(
   (SLICE_FRENZY_TICKS * SLICE_FRENZY_PER_WINDOW) / SLICE_WINDOW_TICKS,
 );
-/** A line is six discs that rise together and hang for two seconds. */
-export const SLICE_LINE_COUNT = 6;
-export const SLICE_LINE_RISE_TICKS = 24;
-export const SLICE_LINE_HANG_TICKS = 72;
-export const SLICE_LINE_Y = 250;
-export const SLICE_LINE_FIRST_X = 45;
-export const SLICE_LINE_GAP_X = 60;
+/** Slow motion: four seconds at 40% (4 tenths of a tick of world time per tick). */
+export const SLICE_SLOW_TICKS = 4 * TICKS_PER_SECOND;
+export const SLICE_SLOW_TENTHS = 4;
 /** Spawns start a few ticks after the special is cut. */
 export const SLICE_SPAWN_DELAY = 6;
 
@@ -98,8 +96,14 @@ export const SLICE_SLICE_POINTS = 2;
 export const SLICE_MULTI_BONUS = 3;
 export const SLICE_MULTI_NEEDED = 3;
 export const SLICE_BOMB_PENALTY = 10;
-/** Every this many slices in a row raises the multiplier, up to ×3. */
-export const SLICE_COMBO_STEP = 5;
+/** Every this many combo slices raises the multiplier, up to ×3. */
+export const SLICE_COMBO_STEP = 15;
+/** One swipe must cut this many discs to start or extend a combo. */
+export const SLICE_COMBO_START = 3;
+/** Gold border flash on a combo-starting slice: 0.5 s. */
+export const SLICE_COMBO_FLASH_TICKS = 30;
+/** A continuous slice path is capped at ¾ of the longer world side. */
+export const SLICE_MAX_PATH = Math.trunc((Math.max(SLICE_WORLD_W, SLICE_WORLD_H) * 3) / 4);
 export const SLICE_COMBO_MAX = 3;
 /** Each recorded segment cuts 25% longer, extended back past its start. */
 export const SLICE_REACH_NUM = 5;
@@ -136,12 +140,8 @@ export interface SliceObject {
   lastTick: number;
   bomb: boolean;
   colour: number;
-  /** 0 normal, 1 frenzy, 2 line. */
+  /** 0 normal, 1 frenzy, 2 slow motion. */
   special: number;
-  /** 1 for a disc that rises to a fixed line and hangs there. */
-  hang: number;
-  /** The line a hanging disc holds, in 1/256 px. */
-  targetY: number;
   /** What slicing this object launches; launch ticks are offsets. */
   payload: SliceObject[];
 }
@@ -193,8 +193,6 @@ function plainObject(
     bomb,
     colour,
     special: SLICE_SPECIAL_NONE,
-    hang: 0,
-    targetY: 0,
     payload: [],
   };
 }
@@ -221,30 +219,6 @@ function buildFrenzyPayload(rng: number): { rng: number; payload: SliceObject[] 
         colourDraw.value,
       ),
     );
-  }
-  return { rng: state, payload };
-}
-
-/** The six discs a line releases: they rise together, then hang for two seconds. */
-function buildLinePayload(rng: number): { rng: number; payload: SliceObject[] } {
-  let state = rng;
-  const payload: SliceObject[] = [];
-  for (let index = 0; index < SLICE_LINE_COUNT; index++) {
-    const colourDraw = rngBelow(state, SLICE_COLOURS.length);
-    state = colourDraw.state;
-    payload.push({
-      launchTick: SLICE_SPAWN_DELAY,
-      x: (SLICE_LINE_FIRST_X + index * SLICE_LINE_GAP_X) * 256,
-      vx: 0,
-      vy: 0,
-      lastTick: SLICE_SPAWN_DELAY + SLICE_LINE_RISE_TICKS + SLICE_LINE_HANG_TICKS,
-      bomb: false,
-      colour: colourDraw.value,
-      special: SLICE_SPECIAL_NONE,
-      hang: 1,
-      targetY: SLICE_LINE_Y * 256,
-      payload: [],
-    });
   }
   return { rng: state, payload };
 }
@@ -303,7 +277,7 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
   }
 
   // The two specials, once or twice each, never in the first ten seconds.
-  for (const special of [SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_LINE]) {
+  for (const special of [SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_SLOW]) {
     const countDraw = rngBelow(rng, 2);
     rng = countDraw.state;
     const count = 1 + countDraw.value;
@@ -317,7 +291,7 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
       rng = flight.rng;
 
       const built =
-        special === SLICE_SPECIAL_FRENZY ? buildFrenzyPayload(rng) : buildLinePayload(rng);
+        special === SLICE_SPECIAL_FRENZY ? buildFrenzyPayload(rng) : { rng, payload: [] };
       rng = built.rng;
 
       const object = plainObject(
@@ -339,22 +313,36 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
   return { rng, objects };
 }
 
-/** Position of an object at a tick, in 1/256 px. Pure integer arithmetic. */
-export function sliceObjectAt(object: SliceObject, tick: number): { x: number; y: number } | null {
-  const age = tick - object.launchTick;
-  if (age < 0 || tick > object.lastTick) return null;
-  if (object.hang) {
-    const start = (SLICE_WORLD_H + SLICE_R) * 256;
-    const y =
-      age >= SLICE_LINE_RISE_TICKS
-        ? object.targetY
-        : start + Math.trunc(((object.targetY - start) * age) / SLICE_LINE_RISE_TICKS);
-    return { x: object.x, y };
+/** World time at a tick, in tenths of a tick: slow-motion windows run at 40%. */
+export function sliceWorldTenths(slowFrom: readonly number[], tick: number): number {
+  let world = 10 * tick;
+  for (const from of slowFrom) {
+    const inside = Math.min(Math.max(tick - from, 0), SLICE_SLOW_TICKS);
+    world -= (10 - SLICE_SLOW_TENTHS) * inside;
   }
-  const drop = Math.trunc((SLICE_GRAV * age * (age + 1)) / 2);
+  return world;
+}
+
+/** An object's age in world tenths, or null before launch / after it has left. */
+function worldAge(object: SliceObject, tick: number, slowFrom: readonly number[]): number | null {
+  if (tick < object.launchTick) return null;
+  const age = sliceWorldTenths(slowFrom, tick) - sliceWorldTenths(slowFrom, object.launchTick);
+  if (age > 10 * (object.lastTick - object.launchTick)) return null;
+  return age;
+}
+
+/** Position of an object at a tick, in 1/256 px. Pure integer arithmetic. */
+export function sliceObjectAt(
+  object: SliceObject,
+  tick: number,
+  slowFrom: readonly number[] = [],
+): { x: number; y: number } | null {
+  const age = worldAge(object, tick, slowFrom);
+  if (age === null) return null;
+  const drop = Math.trunc((SLICE_GRAV * age * (age + 10)) / 200);
   return {
-    x: object.x + object.vx * age,
-    y: (SLICE_WORLD_H + SLICE_R) * 256 + object.vy * age + drop,
+    x: object.x + Math.trunc((object.vx * age) / 10),
+    y: (SLICE_WORLD_H + SLICE_R) * 256 + Math.trunc((object.vy * age) / 10) + drop,
   };
 }
 
@@ -381,12 +369,22 @@ export interface SliceState {
   bombsHit: number;
   /** The tick each frenzy started on; during one, scheduled bombs stay away. */
   frenzyFrom: number[];
+  /** The tick each slow-motion window started on. */
+  slowFrom: number[];
   flash: number;
+  /** 1 while a combo is live (started by a 3+ disc swipe). */
+  comboLive: number;
+  /** Ticks left of the gold border flash. */
+  comboFlash: number;
+  /** The continuous slice path: its end point and length so far, in px. */
+  strokeX: number;
+  strokeY: number;
+  strokeLen: number;
   /** Render only: the last swipe segment, in px. */
   swipe: readonly [number, number, number, number] | null;
   /** Fixed at init: every disc the schedule could offer, specials' batches included. */
   available: number;
-  /** Slices in a row without a miss or a bomb; weighted slices; best multiplier. */
+  /** Combo slices since the combo began; weighted slices; best multiplier. */
   streak: number;
   weighted: number;
   bestMult: number;
@@ -404,7 +402,13 @@ function init(seed: number): SliceState {
     bonuses: 0,
     bombsHit: 0,
     frenzyFrom: [],
+    slowFrom: [],
     flash: 0,
+    comboLive: 0,
+    comboFlash: 0,
+    strokeX: -1,
+    strokeY: -1,
+    strokeLen: 0,
     swipe: null,
     available: scheduleAvailable(schedule.objects),
     streak: 0,
@@ -435,6 +439,38 @@ function isOver(state: SliceState): boolean {
 /** True while a frenzy is running. */
 export function sliceFrenzyOn(state: SliceState, tick: number): boolean {
   return state.frenzyFrom.some((from) => tick >= from && tick < from + SLICE_FRENZY_TICKS);
+}
+
+/** True while slow motion is running. */
+export function sliceSlowOn(state: SliceState, tick: number): boolean {
+  return state.slowFrom.some((from) => tick >= from && tick < from + SLICE_SLOW_TICKS);
+}
+
+/**
+ * Clips a swipe segment to what is left of the path budget. A segment that
+ * starts where the last one ended continues that path; anything else is a new
+ * path. Shared by the phone (before recording) and the sim (enforcing it).
+ */
+export function sliceClipSegment(
+  state: Pick<SliceState, "strokeX" | "strokeY" | "strokeLen">,
+  a: number,
+  b: number,
+  c: number,
+  d: number,
+): { c: number; d: number; length: number; used: number } | null {
+  const used = a === state.strokeX && b === state.strokeY ? state.strokeLen : 0;
+  const left = SLICE_MAX_PATH - used;
+  if (left <= 0) return null;
+  const dx = c - a;
+  const dy = d - b;
+  const length = isqrt(dx * dx + dy * dy);
+  if (length <= left) return { c, d, length, used };
+  return {
+    c: a + Math.trunc((dx * left) / length),
+    d: b + Math.trunc((dy * left) / length),
+    length: left,
+    used,
+  };
 }
 
 /** A bomb launched inside a frenzy never appears at all. */
@@ -478,17 +514,29 @@ function segmentHits(
   return cross * cross <= r2 * len2;
 }
 
-function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
+function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState {
+  let input = rawInput;
   if (isOver(state)) return state;
   const tick = state.tick + 1;
   const next: SliceState = {
     ...state,
     tick,
     flash: state.flash > 0 ? state.flash - 1 : 0,
+    comboFlash: state.comboFlash > 0 ? state.comboFlash - 1 : 0,
     swipe: null,
   };
 
-  if (input && input.k === SLICE_INPUT_SWIPE) {
+  const clipped =
+    input && input.k === SLICE_INPUT_SWIPE
+      ? sliceClipSegment(state, input.a, input.b, input.c, input.d)
+      : null;
+  if (input && input.k === SLICE_INPUT_SWIPE && clipped) {
+    input = { ...input, c: clipped.c, d: clipped.d };
+    next.strokeX = input.c;
+    next.strokeY = input.d;
+    next.strokeLen = clipped.used + clipped.length;
+  }
+  if (input && input.k === SLICE_INPUT_SWIPE && clipped) {
     // The cut reaches 25% further back along the swipe than the recorded start.
     const ax = input.c - Math.trunc(((input.c - input.a) * SLICE_REACH_NUM) / SLICE_REACH_DEN);
     const ay = input.d - Math.trunc(((input.d - input.b) * SLICE_REACH_NUM) / SLICE_REACH_DEN);
@@ -498,12 +546,14 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
     let slicedAt: number[] | null = null;
     const added: SliceObject[] = [];
     const frenzies: number[] = [];
+    const slows: number[] = [];
+    const hitDiscs: number[] = [];
 
     for (let index = 0; index < state.objects.length; index++) {
       if (state.slicedAt[index]) continue;
       const object = state.objects[index]!;
       if (sliceSuppressed(state, object)) continue;
-      const at = sliceObjectAt(object, tick);
+      const at = sliceObjectAt(object, tick, state.slowFrom);
       if (!at) continue;
       const cx = Math.trunc(at.x / 256);
       const cy = Math.trunc(at.y / 256);
@@ -515,17 +565,32 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
       if (object.bomb) bombs += 1;
       else {
         cut += 1;
-        // Each slice counts at the multiplier it is made on.
-        next.weighted += sliceMultiplier(next.streak);
-        next.streak += 1;
-        next.bestMult = Math.max(next.bestMult, sliceMultiplier(next.streak));
+        hitDiscs.push(index);
       }
       if (object.special === SLICE_SPECIAL_FRENZY) frenzies.push(tick);
+      if (object.special === SLICE_SPECIAL_SLOW) slows.push(tick);
       for (const item of object.payload) added.push(spawned(item, tick));
     }
 
     if (slicedAt) next.slicedAt = slicedAt;
     if (frenzies.length > 0) next.frenzyFrom = [...state.frenzyFrom, ...frenzies];
+    if (slows.length > 0) next.slowFrom = [...state.slowFrom, ...slows];
+    // A 3+ disc swipe starts or extends the combo; a bomb in the same swipe
+    // still resets it below.
+    if (cut >= SLICE_COMBO_START) {
+      next.comboLive = 1;
+      next.comboFlash = SLICE_COMBO_FLASH_TICKS;
+    }
+    for (let i = 0; i < cut; i++) {
+      if (next.comboLive) {
+        // Combo slices count at the multiplier they are made on.
+        next.weighted += sliceMultiplier(next.streak);
+        next.streak += 1;
+        next.bestMult = Math.max(next.bestMult, sliceMultiplier(next.streak));
+      } else {
+        next.weighted += 1;
+      }
+    }
     if (added.length > 0) {
       next.objects = [...state.objects, ...added];
       next.slicedAt = [...(slicedAt ?? state.slicedAt), ...added.map(() => 0)];
@@ -536,15 +601,19 @@ function step(state: SliceState, input: ArcadeInputEvent | null): SliceState {
       next.bombsHit = state.bombsHit + bombs;
       next.flash = SLICE_FLASH_TICKS;
       next.streak = 0;
+      next.comboLive = 0;
     }
   }
 
-  // A disc that left the screen unsliced on the previous tick breaks the combo.
+  // A disc that has just left the arena unsliced breaks the combo.
   for (let index = 0; index < next.objects.length; index++) {
     const object = next.objects[index]!;
-    if (object.bomb || object.lastTick !== tick - 1 || next.slicedAt[index]) continue;
+    if (object.bomb || next.slicedAt[index] || tick - 1 < object.launchTick) continue;
+    if (worldAge(object, tick - 1, next.slowFrom) === null) continue;
+    if (worldAge(object, tick, next.slowFrom) !== null) continue;
     next.missed += 1;
     next.streak = 0;
+    next.comboLive = 0;
   }
 
   return next;
@@ -590,7 +659,7 @@ export function sliceCheckpointState(state: SliceState): SliceCheckpointState {
     }
     const object = state.objects[index]!;
     if (sliceSuppressed(state, object)) continue;
-    if (sliceObjectAt(object, state.tick)) airborne += 1;
+    if (sliceObjectAt(object, state.tick, state.slowFrom)) airborne += 1;
   }
   return {
     tick: state.tick,
@@ -624,39 +693,47 @@ export const SLICE_COLOURS = ["#2ED3B7", "#F5B82E", "#8B7BF7", "#F2734C"];
 export const SLICE_RAINBOW = ["#FF4D4D", "#FFE600", "#3DDC84", "#4D8CFF", "#B26BFF"];
 export const SLICE_BOMB = "#1B1B24";
 
-/** A multicoloured disc with a star (frenzy) or a bar (line). Render only. */
-function drawSpecial(ctx: CanvasRenderingContext2D, cx: number, cy: number, special: number): void {
-  const wedges = SLICE_RAINBOW.length;
-  for (let index = 0; index < wedges; index++) {
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(
-      cx,
-      cy,
-      SLICE_SPECIAL_R,
-      (index * Math.PI * 2) / wedges,
-      ((index + 1) * Math.PI * 2) / wedges,
-    );
-    ctx.closePath();
-    ctx.fillStyle = SLICE_RAINBOW[index]!;
-    ctx.fill();
-  }
-  ctx.fillStyle = "#0B0B0F";
-  if (special === SLICE_SPECIAL_LINE) {
-    ctx.fillRect(cx - 9, cy - 2, 18, 4);
-    return;
-  }
+export const SLICE_SILVER = "#C9CED6";
+
+/** A star with this many points, centred on (cx, cy). Render only. */
+function starPath(ctx: CanvasRenderingContext2D, cx: number, cy: number, points: number, outer: number, inner: number): void {
   ctx.beginPath();
-  for (let point = 0; point < 10; point++) {
-    const reach = point % 2 === 0 ? 11 : 5;
-    const angle = -Math.PI / 2 + (point * Math.PI) / 5;
+  for (let point = 0; point < points * 2; point++) {
+    const reach = point % 2 === 0 ? outer : inner;
+    const angle = -Math.PI / 2 + (point * Math.PI) / points;
     const x = cx + Math.cos(angle) * reach;
     const y = cy + Math.sin(angle) * reach;
     if (point === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
   ctx.closePath();
-  ctx.fill();
+}
+
+/** Frenzy: multicoloured six-pointed star. Slow: silver four-pointed star. Render only. */
+function drawSpecial(ctx: CanvasRenderingContext2D, cx: number, cy: number, special: number): void {
+  const outer = SLICE_SPECIAL_R + 4;
+  if (special === SLICE_SPECIAL_SLOW) {
+    starPath(ctx, cx, cy, 4, outer, outer * 0.38);
+    ctx.fillStyle = SLICE_SILVER;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    return;
+  }
+  starPath(ctx, cx, cy, 6, outer, outer * 0.5);
+  ctx.save();
+  ctx.clip();
+  const wedges = SLICE_RAINBOW.length;
+  for (let index = 0; index < wedges; index++) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, outer + 1, (index * Math.PI * 2) / wedges, ((index + 1) * Math.PI * 2) / wedges);
+    ctx.closePath();
+    ctx.fillStyle = SLICE_RAINBOW[index]!;
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize): void {
@@ -675,7 +752,7 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
     if (slicedAt) {
       const age = state.tick - slicedAt;
       if (age > SLICE_HALVES_TICKS) continue;
-      const at = sliceObjectAt(object, slicedAt);
+      const at = sliceObjectAt(object, slicedAt, state.slowFrom);
       if (!at) continue;
       // Render only: the two halves drift apart and fall away.
       const cx = at.x / 256;
@@ -685,7 +762,9 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
       ctx.globalAlpha = Math.max(0, 1 - age / SLICE_HALVES_TICKS);
       ctx.fillStyle = object.bomb
         ? SLICE_BOMB
-        : object.special !== SLICE_SPECIAL_NONE
+        : object.special === SLICE_SPECIAL_SLOW
+          ? SLICE_SILVER
+          : object.special !== SLICE_SPECIAL_NONE
           ? SLICE_RAINBOW[0]!
           : SLICE_COLOURS[object.colour % SLICE_COLOURS.length]!;
       ctx.beginPath();
@@ -698,7 +777,7 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
       continue;
     }
 
-    const at = sliceObjectAt(object, state.tick);
+    const at = sliceObjectAt(object, state.tick, state.slowFrom);
     if (!at) continue;
     const cx = at.x / 256;
     const cy = at.y / 256;
@@ -746,7 +825,8 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
   const mult = sliceMultiplier(state.streak);
   const fill = mult >= SLICE_COMBO_MAX ? 1 : (state.streak % SLICE_COMBO_STEP) / SLICE_COMBO_STEP;
   const meterTop = SLICE_HUD_H + 40;
-  const meterH = SLICE_WORLD_H - meterTop - 40;
+  // A third of the old full-height meter.
+  const meterH = Math.round((SLICE_WORLD_H - meterTop - 40) / 3);
   ctx.fillStyle = "rgba(255,255,255,0.08)";
   ctx.fillRect(6, meterTop, 8, meterH);
   ctx.fillStyle = mult >= 3 ? SLICE_GOLD : mult === 2 ? SLICE_COLOURS[0]! : "rgba(255,255,255,0.55)";
@@ -767,6 +847,9 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
   if (sliceFrenzyOn(state, state.tick)) {
     ctx.fillStyle = SLICE_RAINBOW[2]!;
     ctx.fillText("FRENZY", SLICE_WORLD_W / 2, SLICE_HUD_H / 2);
+  } else if (sliceSlowOn(state, state.tick)) {
+    ctx.fillStyle = SLICE_SILVER;
+    ctx.fillText("SLOW", SLICE_WORLD_W / 2, SLICE_HUD_H / 2);
   }
   ctx.textAlign = "right";
   ctx.fillStyle = "rgba(255,255,255,0.7)";
@@ -775,6 +858,14 @@ function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize
   ctx.strokeStyle = "#3A3A44";
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, SLICE_WORLD_W - 2, SLICE_WORLD_H - 2);
+  if (state.comboFlash > 0) {
+    // Gold border flash for a combo-starting swipe.
+    ctx.strokeStyle = SLICE_GOLD;
+    ctx.globalAlpha = state.comboFlash / SLICE_COMBO_FLASH_TICKS;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, SLICE_WORLD_W - 6, SLICE_WORLD_H - 6);
+    ctx.globalAlpha = 1;
+  }
   ctx.restore();
 }
 
