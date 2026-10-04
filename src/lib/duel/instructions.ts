@@ -737,6 +737,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap to flip gravity.", detail: "" },
       { action: "Spikes and gaps on one side", detail: "mean run on the other." },
+      { action: "From 20 s the corridor bends.", detail: "Hazards ride the bends with you." },
     ],
     score: "The longer you last, the more you score — the full minute is 150.",
   },
@@ -785,7 +786,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Miss and you drift away.", detail: "Avoid the red arcs." },
       { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops — never at the crossing." },
     ],
-    score: "3 per planet; finish all forty early for the time bonus. Skipping a planet is allowed if you can make the next one.",
+    score: "3 per planet; reach the sun (planet 40) early for up to 30 time bonus. The planet you hold at 30 s is a checkpoint: one respawn there after a later crash.",
   },
   snip: {
     goal: "Feed the sweet to the mouth.",
@@ -797,22 +798,22 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "10 per sweet fed, +5 per star with it — up to 150.",
   },
   swing: {
-    goal: "Swing as far as you can.",
+    goal: "Swing to the 500 m finish.",
     how: [
       { action: "Hold to grab an anchor and swing,", detail: "let go to fly." },
       { action: "Stuck? Keep swinging", detail: "— every pass gets you higher. Swipe up to shorten the rope for speed." },
       { action: "Don't touch the spikes", detail: "or fall to the floor." },
     ],
-    score: "Half a point per metre.",
+    score: "Up to 140 for distance; reaching 500 m adds up to 10 for time left. Maximum 150.",
   },
   tilt: {
     goal: "Roll the ball out of the maze.",
     how: [
       { action: "Drag left or right to spin the maze", detail: "— the ball always rolls down." },
       { action: "Each escape brings a harder maze.", detail: "Red spikes end the run." },
-      { action: "You have 90 seconds.", detail: "" },
+      { action: "From maze 2 a red ball waits behind a silver gate.", detail: "Pass the padlock and it's free — it tilts with you. Touch it and the run ends." },
     ],
-    score: "30 per maze completed (ball out through the exit) — five completed = 150.",
+    score: "Four mazes, 30 each. Finish all four for up to 30 more for time left. Maximum 150.",
   },
   hotfloor: {
     goal: "Plan a route to the exit before the floor falls.",

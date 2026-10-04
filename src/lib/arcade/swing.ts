@@ -41,7 +41,9 @@ const START_X = 3000 * FP;
 const LEAD = 195 * FP;
 const METRE = 40 * FP;
 const COL = 40 * FP;
-const COURSE_LEN = 36000 * FP;
+export const SWING_FINISH_M = 500;
+/** Anchors run a little past the 500 m finish so the last swing has somewhere to go. */
+const COURSE_LEN = START_X + (SWING_FINISH_M + 20) * METRE + 600 * FP;
 const COLS = Math.trunc(COURSE_LEN / COL) + 2;
 const SPIKE_HALF = 16 * FP;
 const SPIKE_DEPTH = 56 * FP;
@@ -355,6 +357,9 @@ function step(state: SwingState, input: ArcadeInputEvent | null): SwingState {
   if (dead) {
     s.ended = 2;
     s.endedTick = tick;
+  } else if (swingMetres(s) >= SWING_FINISH_M) {
+    s.ended = 1;
+    s.endedTick = tick;
   } else if (tick >= SWING_RUN_TICKS) {
     s.ended = 1;
     s.endedTick = tick;
@@ -367,7 +372,13 @@ export function swingMetres(s: SwingState): number {
 }
 
 function score(state: SwingState): number {
-  return clampInt(Math.floor(swingMetres(state) / 2), 0, 150);
+  const m = Math.min(SWING_FINISH_M, swingMetres(state));
+  let points = Math.round((140 * m) / SWING_FINISH_M);
+  if (m >= SWING_FINISH_M) {
+    const msLeft = Math.max(0, SWING_RUN_TICKS - state.endedTick) * (1000 / TICKS_PER_SECOND);
+    points += Math.round((10 * msLeft) / (SWING_RUN_TICKS * (1000 / TICKS_PER_SECOND)));
+  }
+  return clampInt(points, 0, 150);
 }
 
 export function swingExtra(s: SwingState) {
@@ -494,6 +505,20 @@ function draw(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize
     ctx.closePath();
     ctx.fill();
   }
+  // Finish line at 500 m.
+  {
+    const x = sx(START_X + SWING_FINISH_M * METRE);
+    if (x > -10 && x < SWING_WORLD_W + 10) {
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, SWING_WORLD_H);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
   // Anchors.
   state.anchors.forEach((a, i) => {
     const x = sx(a.x);
@@ -543,7 +568,7 @@ function draw(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`${swingMetres(state)} m`, 14, 26);
+  ctx.fillText(`${Math.min(SWING_FINISH_M, swingMetres(state))} / ${SWING_FINISH_M} m`, 14, 26);
   ctx.restore();
 }
 

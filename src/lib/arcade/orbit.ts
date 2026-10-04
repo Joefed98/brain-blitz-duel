@@ -28,7 +28,12 @@ import { ANG_QUARTER, iatan2, icos, isin, TRIG_ONE } from "./trig";
 const FP = 256;
 export const ORBIT_WORLD_W = 390;
 export const ORBIT_WORLD_H = 620;
-export const ORBIT_RUN_TICKS = 60 * TICKS_PER_SECOND;
+export const ORBIT_RUN_TICKS = 90 * TICKS_PER_SECOND;
+/** The planet held at this tick becomes the one-time respawn checkpoint. */
+export const ORBIT_CHECKPOINT_TICK = 30 * TICKS_PER_SECOND;
+/** Planet 40, the sun: bigger body and a large orbit. */
+const SUN_R = 40 * FP;
+const SUN_RING = 128 * FP;
 export const ORBIT_INPUT_TAP = 0;
 export const ORBIT_TOTAL = 40;
 const FLIGHT_MAX = 150;
@@ -97,6 +102,15 @@ function tierOf(i: number): number {
 }
 
 function planetShape(i: number) {
+  if (i === ORBIT_TOTAL) {
+    const tier = tierOf(i);
+    return {
+      r: SUN_R,
+      ring: SUN_RING,
+      omega: Math.trunc(65536 / LAPS[tier]!),
+      speed: FLIGHT_SLOW + Math.trunc(((FLIGHT_FAST - FLIGHT_SLOW) * tier) / (LAPS.length - 1)),
+    };
+  }
   const r = (28 - Math.trunc((10 * i) / ORBIT_TOTAL)) * FP;
   const band = i === 0 ? 0 : Math.min(RING_BANDS.length - 1, Math.trunc((i - 1) / 10));
   const ring = Math.trunc((RING_BASE * RING_BANDS[band]! * FP) / 100);
@@ -312,7 +326,7 @@ function buildCourse(seed: number): { planets: Planet[]; rng: number } {
     for (let attempt = 0; attempt < 160 && !placed; attempt++) {
       // Shape from the seed: figure-eights from 21 (one in four), ellipses from 11 (one in three).
       const roll = draw(12);
-      const kind = i >= EIGHT_FROM && roll < 3 ? ORBIT_EIGHT : i >= ELLIPSE_FROM && roll < 7 && roll >= 3 ? ORBIT_ELLIPSE : ORBIT_CIRCLE;
+      const kind = i === ORBIT_TOTAL ? ORBIT_CIRCLE : i >= EIGHT_FROM && roll < 3 ? ORBIT_EIGHT : i >= ELLIPSE_FROM && roll < 7 && roll >= 3 ? ORBIT_ELLIPSE : ORBIT_CIRCLE;
       const rot = kind === ORBIT_ELLIPSE ? draw(16) * 4096 : 0;
       const extent = orbitExtent({ kind, ring: shape.ring });
       const lo = extent + 8 * FP;
@@ -324,7 +338,7 @@ function buildCourse(seed: number): { planets: Planet[]; rng: number } {
       const dy = y - prev.y;
       const min = orbitExtent(prev) + extent + 24 * FP;
       if (dx * dx + dy * dy < min * min) continue;
-      const hazard = i >= HAZARD_FROM && draw(2) === 1 ? draw(64) * 1024 : -1;
+      const hazard = i >= HAZARD_FROM && i < ORBIT_TOTAL && draw(2) === 1 ? draw(64) * 1024 : -1;
       // A figure-eight always runs so its outer tips travel upward (towards the next planet).
       const spin = draw(2) ? 1 : -1;
       const candidate: Planet = { x, y, ...shape, dir: kind === ORBIT_EIGHT ? -1 : spin, hazard, colour: i % 4, kind, rot };
@@ -375,6 +389,11 @@ export interface OrbitState {
   releaseY: number;
   /** 1 once planet 40 is reached. */
   finished: number;
+  /** Furthest planet passed (scores); checkpoint planet set at 30 s (-1 before); respawns left. */
+  best: number;
+  checkpoint: number;
+  respawns: number;
+  respawnTick: number;
   ended: number;
   endedTick: number;
   planets: Planet[];
@@ -408,6 +427,10 @@ function init(seed: number): OrbitState {
     releaseX: 0,
     releaseY: 0,
     finished: 0,
+    best: 0,
+    checkpoint: -1,
+    respawns: 1,
+    respawnTick: -100,
     ended: 0,
     endedTick: 0,
     planets: course.planets,
@@ -423,7 +446,25 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
   const tick = state.tick + 1;
   const s: OrbitState = { ...state, tick };
   const here = s.planets[s.cur]!;
+  if (tick === ORBIT_CHECKPOINT_TICK) s.checkpoint = s.cur;
+  let respawned = false;
   const die = () => {
+    if (s.checkpoint >= 0 && s.respawns > 0) {
+      // One respawn at the 30 s checkpoint planet.
+      s.respawns -= 1;
+      s.respawnTick = tick;
+      s.cur = s.checkpoint;
+      const p = s.planets[s.cur]!;
+      s.angle = 3 * ANG_QUARTER;
+      const pos = orbitPos(p, s.angle);
+      s.x = pos.x;
+      s.y = pos.y;
+      s.vx = 0;
+      s.vy = 0;
+      s.flying = 0;
+      respawned = true;
+      return;
+    }
     s.ended = 2;
     s.endedTick = tick;
   };
@@ -431,9 +472,11 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
     if (input !== null && input.k === ORBIT_INPUT_TAP && innerLobe(here, s.angle)) {
       // Let go at a figure-eight's crossing: straight into the pair.
       die();
-      return s;
+      if (s.ended) return s;
     }
-    if (input !== null && input.k === ORBIT_INPUT_TAP) {
+    if (respawned) {
+      // Respawned this tick: hold orbit.
+    } else if (input !== null && input.k === ORBIT_INPUT_TAP) {
       const v = releaseVel(here, s.angle);
       s.vx = v.vx;
       s.vy = v.vy;
@@ -461,6 +504,7 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
       s.y = pos.y;
       s.flying = 0;
       s.captured += 1;
+      if (j > s.best) s.best = j;
       if (onArc(to, s.angle)) die();
       else if (j >= ORBIT_TOTAL) {
         s.ended = 1;
@@ -469,6 +513,7 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
       }
     } else if (outside(here, s.x, s.y) || s.flying >= FLIGHT_MAX) die();
     else s.flying += 1;
+    if (respawned) s.camY = s.planets[s.cur]!.y - VIEW_ANCHOR;
   }
   if (s.ended) return s;
   const target = s.planets[s.cur]!.y - VIEW_ANCHOR;
@@ -481,14 +526,16 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
 }
 
 function score(state: OrbitState): number {
-  // 3 per planet passed (captured or skipped) + round(30 × ms left ÷ 60000) for finishing.
+  // 3 per furthest planet passed (captured or skipped) + round(30 × ms left ÷ 90000) for finishing.
   const bonus = state.finished ? Math.round((30 * Math.max(0, ORBIT_RUN_TICKS - state.tick)) / ORBIT_RUN_TICKS) : 0;
-  return clampInt(3 * state.cur + bonus, 0, 150);
+  return clampInt(3 * state.best + bonus, 0, 150);
 }
 
 export function orbitExtra(s: OrbitState) {
   return {
-    passed: s.cur,
+    passed: s.best,
+    respawned: s.respawns === 0,
+    checkpoint: s.checkpoint,
     captured: s.captured,
     total: ORBIT_TOTAL,
     survived: s.ended !== 2,
@@ -509,6 +556,9 @@ export const ORBIT_CHECKPOINT_KEYS = [
   "y",
   "flying",
   "captured",
+  "best",
+  "checkpoint",
+  "respawns",
   "ended",
   "rng",
   "checksum",
@@ -522,6 +572,9 @@ export interface OrbitCheckpoint {
   y: number;
   flying: number;
   captured: number;
+  best: number;
+  checkpoint: number;
+  respawns: number;
   ended: number;
   rng: number;
   checksum: number;
@@ -536,6 +589,9 @@ export function orbitCheckpoint(state: OrbitState): OrbitCheckpoint {
     y: state.y,
     flying: state.flying,
     captured: state.captured,
+    best: state.best,
+    checkpoint: state.checkpoint,
+    respawns: state.respawns,
     ended: state.ended,
     rng: state.rng | 0,
   };
@@ -587,9 +643,23 @@ function draw(ctx: CanvasRenderingContext2D, state: OrbitState, size: CanvasSize
     const p = state.planets[i]!;
     const px = p.x / FP;
     const py = p.y / FP - cam;
-    if (py < -120) break;
-    if (py > ORBIT_WORLD_H + 120) continue;
-    const colour = ORBIT_COLOURS[p.colour]!;
+    if (py < -200) break;
+    if (py > ORBIT_WORLD_H + 200) continue;
+    const sun = i === ORBIT_TOTAL;
+    const colour = sun ? ORBIT_GOLD : ORBIT_COLOURS[p.colour]!;
+    if (sun) {
+      const glow = ctx.createRadialGradient(px, py, p.r / FP * 0.4, px, py, p.r / FP * 1.8);
+      glow.addColorStop(0, "rgba(255,214,102,0.9)");
+      glow.addColorStop(1, "rgba(255,170,40,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(px, py, (p.r / FP) * 1.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#FFD666";
+      ctx.beginPath();
+      ctx.arc(px, py, p.r / FP, 0, Math.PI * 2);
+      ctx.fill();
+    }
     // The capture ring follows the path the ship will fly.
     ctx.strokeStyle = colour;
     ctx.globalAlpha = 0.22;
@@ -674,7 +744,20 @@ function draw(ctx: CanvasRenderingContext2D, state: OrbitState, size: CanvasSize
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`Planets ${state.cur} / ${ORBIT_TOTAL}`, 14, 26);
+  ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`, 14, 26);
+  if (state.checkpoint >= 0) {
+    ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
+    ctx.font = "600 12px ui-monospace, monospace";
+    ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, 44);
+  }
+  if (state.tick - state.respawnTick < 45) {
+    ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;
+    ctx.fillStyle = ORBIT_GOLD;
+    ctx.font = "700 22px ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("RESPAWN", ORBIT_WORLD_W / 2, ORBIT_WORLD_H / 2);
+    ctx.globalAlpha = 1;
+  }
   ctx.restore();
 }
 

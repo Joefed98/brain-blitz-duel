@@ -35,7 +35,7 @@ const INSIDE_R = 180;
 const ANG_PER_PX = 91;
 const GRAVITY = 58;
 const SPEED_CAP = Math.trunc(3.6 * FP);
-export const TILT_MAX_MAZES = 10;
+export const TILT_MAX_MAZES = 4;
 /** Grid sizes per level: about 1.5× the wall segments of the previous layout (OLD_SIZES). */
 const SIZES = [9, 11, 11, 13, 13, 16, 16, 16, 16, 16];
 const OLD_SIZES = [7, 9, 9, 11, 11, 13, 13, 13, 13, 13];
@@ -65,6 +65,10 @@ export interface Maze {
   exitDir: number;
   /** Ball radius in FP: 70% of the previous layout's ball. */
   br: number;
+  /** From maze 2: the chaser's crevice cell, the gated side out of it, and the padlock cell (or -1). */
+  crevice: number;
+  gateDir: number;
+  lock: number;
 }
 
 function buildMaze(level: number, draw: (n: number) => number): Maze {
@@ -144,20 +148,56 @@ function buildMaze(level: number, draw: (n: number) => number): Maze {
   const path = new Set<number>();
   for (let c = far.c; c >= 0; c = parent[c]!) path.add(c);
   const pits: number[] = [];
+  const route: number[] = [];
+  for (let c = far.c; c >= 0; c = parent[c]!) route.unshift(c);
+  let crevice = -1;
+  let gateDir = -1;
+  let lock = -1;
+  const ends: number[] = [];
   if (level >= 1) {
-    const ends: number[] = [];
     for (let c = 0; c < n * n; c++) {
       if (!inside[c] || path.has(c) || dist[c]! < 3) continue;
       let open = 0;
       for (let d = 0; d < 4; d++) if (openNeighbour(n, inside, wallR, wallD, c, d) >= 0) open += 1;
       if (open === 1) ends.push(c);
     }
+  }
+  if (level >= 2 && ends.length > 0) {
+    // Crevice: the dead end whose branch leaves the route earliest past its first third,
+    // nearest the route; the padlock sits two route cells past that junction.
+    let best = -1;
+    let bestScore = Infinity;
+    let bestLock = -1;
+    for (const e of ends) {
+      let c = e;
+      let hops = 0;
+      while (!path.has(c) && c >= 0) {
+        c = parent[c]!;
+        hops += 1;
+      }
+      const at = route.indexOf(c);
+      if (at < Math.trunc(route.length / 3) || at + 2 >= route.length - 1) continue;
+      const score = hops * 1000 + at;
+      if (score < bestScore) {
+        bestScore = score;
+        best = e;
+        bestLock = route[at + 2]!;
+      }
+    }
+    if (best >= 0) {
+      crevice = best;
+      ends.splice(ends.indexOf(best), 1);
+      for (let d = 0; d < 4; d++) if (openNeighbour(n, inside, wallR, wallD, best, d) >= 0) gateDir = d;
+      lock = bestLock;
+    }
+  }
+  if (level >= 1) {
     const count = Math.min(ends.length, Math.min(level, 4));
     for (let k = 0; k < count; k++) pits.push(ends.splice(draw(ends.length), 1)[0]!);
   }
   const oldCs = Math.trunc(INNER / OLD_SIZES[Math.min(level, OLD_SIZES.length - 1)]!) * FP;
   const br = Math.min(Math.trunc((oldCs * 21) / 100), Math.trunc((cs * 4) / 10));
-  return { n, cs, inside, wallR, wallD, pits, start, exit: far.c, exitDir: far.d, br };
+  return { n, cs, inside, wallR, wallD, pits, start, exit: far.c, exitDir: far.d, br, crevice, gateDir, lock };
 }
 
 function openNeighbour(n: number, inside: number[], wallR: number[], wallD: number[], c: number, d: number): number {
@@ -170,7 +210,11 @@ function openNeighbour(n: number, inside: number[], wallR: number[], wallD: numb
   return wall ? -1 : nc;
 }
 
-function canPass(m: Maze, c: number, d: number): boolean {
+function canPass(m: Maze, c: number, d: number, gateShut = false): boolean {
+  if (gateShut && m.crevice >= 0) {
+    const nb = cellStep(m, m.crevice, m.gateDir);
+    if ((c === m.crevice && d === m.gateDir) || (c === nb && d === (m.gateDir + 2) % 4)) return false;
+  }
   const i = (c % m.n) + DX[d]!;
   const j = Math.trunc(c / m.n) + DY[d]!;
   const outside = i < 0 || j < 0 || i >= m.n || j >= m.n || !m.inside[j * m.n + i];
@@ -178,7 +222,18 @@ function canPass(m: Maze, c: number, d: number): boolean {
   return openNeighbour(m.n, m.inside, m.wallR, m.wallD, c, d) >= 0;
 }
 
+function cellStep(m: Maze, c: number, d: number): number {
+  return (Math.trunc(c / m.n) + DY[d]!) * m.n + (c % m.n) + DX[d]!;
+}
+
 /* ================================ State ================================ */
+
+export interface TiltChaser {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+}
 
 export interface TiltState {
   tick: number;
@@ -193,6 +248,10 @@ export interface TiltState {
   vy: number;
   lastA: number;
   lastC: number;
+  /** The red chaser in this maze (null when none or gone), and whether its gate is open. */
+  chaser: TiltChaser | null;
+  gate: number;
+  caught: number;
   ended: number;
   endedTick: number;
   list: Maze[];
@@ -205,6 +264,58 @@ function startPos(m: Maze) {
     x: (m.start % m.n) * m.cs + Math.trunc(m.cs / 2),
     y: Math.trunc(m.start / m.n) * m.cs + Math.trunc(m.cs / 2),
   };
+}
+
+function cellCentre(m: Maze, c: number) {
+  return { x: (c % m.n) * m.cs + Math.trunc(m.cs / 2), y: Math.trunc(c / m.n) * m.cs + Math.trunc(m.cs / 2) };
+}
+
+function chaserFor(m: Maze): TiltChaser | null {
+  if (m.crevice < 0) return null;
+  return { ...cellCentre(m, m.crevice), vx: 0, vy: 0 };
+}
+
+/** One tick of tilt physics with per-axis wall stops; returns the body's cell afterwards. */
+function moveBody(m: Maze, b: { x: number; y: number; vx: number; vy: number }, angle: number, gateShut: boolean): number {
+  const r = m.br;
+  b.vx += Math.trunc((GRAVITY * isin(angle)) / TRIG_ONE);
+  b.vy += Math.trunc((GRAVITY * icos(angle)) / TRIG_ONE);
+  b.vx = clampInt(b.vx - Math.trunc(b.vx / 64), -SPEED_CAP, SPEED_CAP);
+  b.vy = clampInt(b.vy - Math.trunc(b.vy / 64), -SPEED_CAP, SPEED_CAP);
+  let c = cellOf(m, b.x, b.y);
+  if (c >= 0) {
+    const i = c % m.n;
+    let nx = b.x + b.vx;
+    if (b.vx > 0 && nx + r > (i + 1) * m.cs && !canPass(m, c, 0, gateShut)) {
+      nx = (i + 1) * m.cs - r;
+      b.vx = 0;
+    } else if (b.vx < 0 && nx - r < i * m.cs && !canPass(m, c, 2, gateShut)) {
+      nx = i * m.cs + r;
+      b.vx = 0;
+    }
+    b.x = nx;
+  } else b.x += b.vx;
+  c = cellOf(m, b.x, b.y);
+  if (c >= 0) {
+    const j = Math.trunc(c / m.n);
+    let ny = b.y + b.vy;
+    if (b.vy > 0 && ny + r > (j + 1) * m.cs && !canPass(m, c, 1, gateShut)) {
+      ny = (j + 1) * m.cs - r;
+      b.vy = 0;
+    } else if (b.vy < 0 && ny - r < j * m.cs && !canPass(m, c, 3, gateShut)) {
+      ny = j * m.cs + r;
+      b.vy = 0;
+    }
+    b.y = ny;
+  } else b.y += b.vy;
+  return cellOf(m, b.x, b.y);
+}
+
+function inPit(m: Maze, c: number, x: number, y: number): boolean {
+  if (!m.pits.includes(c)) return false;
+  const p = cellCentre(m, c);
+  const q = Math.trunc(m.cs / 4);
+  return Math.abs(x - p.x) < q && Math.abs(y - p.y) < q;
 }
 
 function init(seed: number): TiltState {
@@ -237,6 +348,9 @@ function init(seed: number): TiltState {
     vy: 0,
     lastA: 0,
     lastC: -1,
+    chaser: chaserFor(built.list[0]!),
+    gate: 0,
+    caught: 0,
     ended: 0,
     endedTick: 0,
     list: built.list,
@@ -264,39 +378,18 @@ function step(state: TiltState, input: ArcadeInputEvent | null): TiltState {
     s.lastA = input.a;
   }
   const m = s.list[s.level]!;
-  const r = m.br;
-  s.vx += Math.trunc((GRAVITY * isin(s.angle)) / TRIG_ONE);
-  s.vy += Math.trunc((GRAVITY * icos(s.angle)) / TRIG_ONE);
-  s.vx = clampInt(s.vx - Math.trunc(s.vx / 64), -SPEED_CAP, SPEED_CAP);
-  s.vy = clampInt(s.vy - Math.trunc(s.vy / 64), -SPEED_CAP, SPEED_CAP);
-
-  // X then Y, each against the walls of the current cell.
-  let c = cellOf(m, s.x, s.y);
-  if (c >= 0) {
-    const i = c % m.n;
-    let nx = s.x + s.vx;
-    if (s.vx > 0 && nx + r > (i + 1) * m.cs && !canPass(m, c, 0)) {
-      nx = (i + 1) * m.cs - r;
-      s.vx = 0;
-    } else if (s.vx < 0 && nx - r < i * m.cs && !canPass(m, c, 2)) {
-      nx = i * m.cs + r;
-      s.vx = 0;
-    }
-    s.x = nx;
-  } else s.x += s.vx;
-  c = cellOf(m, s.x, s.y);
-  if (c >= 0) {
-    const j = Math.trunc(c / m.n);
-    let ny = s.y + s.vy;
-    if (s.vy > 0 && ny + r > (j + 1) * m.cs && !canPass(m, c, 1)) {
-      ny = (j + 1) * m.cs - r;
-      s.vy = 0;
-    } else if (s.vy < 0 && ny - r < j * m.cs && !canPass(m, c, 3)) {
-      ny = j * m.cs + r;
-      s.vy = 0;
-    }
-    s.y = ny;
-  } else s.y += s.vy;
+  const gateShut = s.gate === 0;
+  const ball = { x: s.x, y: s.y, vx: s.vx, vy: s.vy };
+  moveBody(m, ball, s.angle, gateShut);
+  s.x = ball.x;
+  s.y = ball.y;
+  s.vx = ball.vx;
+  s.vy = ball.vy;
+  if (s.chaser && s.gate) {
+    const ch = { ...s.chaser };
+    const cc = moveBody(m, ch, s.angle, false);
+    s.chaser = cc < 0 || inPit(m, cc, ch.x, ch.y) ? null : ch;
+  }
 
   const now = cellOf(m, s.x, s.y);
   if (now < 0) {
@@ -313,16 +406,30 @@ function step(state: TiltState, input: ArcadeInputEvent | null): TiltState {
     s.y = pos.y;
     s.vx = 0;
     s.vy = 0;
-  } else if (m.pits.includes(now)) {
-    const px = (now % m.n) * m.cs + Math.trunc(m.cs / 2);
-    const py = Math.trunc(now / m.n) * m.cs + Math.trunc(m.cs / 2);
-    const q = Math.trunc(m.cs / 4);
-    if (Math.abs(s.x - px) < q && Math.abs(s.y - py) < q) {
+    s.chaser = chaserFor(s.list[s.level]!);
+    s.gate = 0;
+    return endAtTime(s, tick);
+  } else if (inPit(m, now, s.x, s.y)) {
+    s.ended = 2;
+    s.endedTick = tick;
+    return s;
+  }
+  if (now === m.lock && s.gate === 0) s.gate = 1;
+  if (s.chaser) {
+    const dx = s.chaser.x - s.x;
+    const dy = s.chaser.y - s.y;
+    const reach = 2 * m.br;
+    if (Math.abs(dx) < reach && Math.abs(dy) < reach && (dx / 16) ** 2 + (dy / 16) ** 2 < (reach / 16) ** 2) {
+      s.caught = 1;
       s.ended = 2;
       s.endedTick = tick;
       return s;
     }
   }
+  return endAtTime(s, tick);
+}
+
+function endAtTime(s: TiltState, tick: number): TiltState {
   if (tick >= TILT_RUN_TICKS) {
     s.ended = 1;
     s.endedTick = tick;
@@ -330,12 +437,23 @@ function step(state: TiltState, input: ArcadeInputEvent | null): TiltState {
   return s;
 }
 
+/** 30 per maze; all four adds round(30 × ms left ÷ run length). */
 function score(state: TiltState): number {
-  return clampInt(MAZE_POINTS * state.mazes, 0, 150);
+  const bonus =
+    state.mazes >= TILT_MAX_MAZES
+      ? Math.round((30 * Math.max(0, TILT_RUN_TICKS - state.endedTick)) / TILT_RUN_TICKS)
+      : 0;
+  return clampInt(MAZE_POINTS * state.mazes + bonus, 0, 150);
 }
 
 export function tiltExtra(s: TiltState) {
-  return { mazes: s.mazes, survived: s.ended !== 2, survivedSeconds: s.tick / 60 };
+  return {
+    mazes: s.mazes,
+    survived: s.ended !== 2,
+    survivedSeconds: s.tick / 60,
+    caught: s.caught === 1,
+    secondsLeft: s.mazes >= TILT_MAX_MAZES ? Math.max(0, TILT_RUN_TICKS - s.endedTick) / 60 : 0,
+  };
 }
 
 /* ============================= Checkpoints ============================= */
@@ -350,6 +468,8 @@ export const TILT_CHECKPOINT_KEYS = [
   "y",
   "vx",
   "vy",
+  "gate",
+  "chaser",
   "ended",
   "rng",
   "checksum",
@@ -364,6 +484,8 @@ export interface TiltCheckpoint {
   y: number;
   vx: number;
   vy: number;
+  gate: number;
+  chaser: number;
   ended: number;
   rng: number;
   checksum: number;
@@ -379,6 +501,8 @@ export function tiltCheckpoint(state: TiltState): TiltCheckpoint {
     y: state.y,
     vx: state.vx,
     vy: state.vy,
+    gate: state.gate,
+    chaser: state.chaser ? (state.chaser.x ^ Math.imul(state.chaser.y, 31)) | 0 : 0,
     ended: state.ended,
     rng: state.rng | 0,
   };
@@ -429,7 +553,7 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`Completed ${state.mazes}`, 14, 26);
+  ctx.fillText(`Maze ${Math.min(TILT_MAX_MAZES, state.mazes + 1)} / ${TILT_MAX_MAZES}`, 14, 26);
 
   const m = state.list[Math.min(state.level, state.list.length - 1)]!;
   const cs = m.cs / FP;
@@ -486,6 +610,33 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
   ctx.beginPath();
   edge(ctx, m, m.exit, m.exitDir, o);
   ctx.stroke();
+
+  if (m.crevice >= 0) {
+    // Silver gate across the crevice mouth until the padlock is passed.
+    if (state.gate === 0) {
+      ctx.strokeStyle = "#C9CED6";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      edge(ctx, m, m.crevice, m.gateDir, o);
+      ctx.stroke();
+      const lx = (m.lock % m.n) * cs + cs / 2 - o;
+      const ly = Math.trunc(m.lock / m.n) * cs + cs / 2 - o;
+      const w = Math.max(6, cs * 0.34);
+      ctx.strokeStyle = "#C9CED6";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(lx, ly - w * 0.25, w * 0.32, Math.PI, 0);
+      ctx.stroke();
+      ctx.fillStyle = "#C9CED6";
+      ctx.fillRect(lx - w / 2, ly - w * 0.25, w, w * 0.7);
+    }
+    if (state.chaser) {
+      ctx.fillStyle = TILT_RED;
+      ctx.beginPath();
+      ctx.arc(state.chaser.x / FP - o, state.chaser.y / FP - o, m.br / FP, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 
   const bx = state.x / FP - o;
   const by = state.y / FP - o;

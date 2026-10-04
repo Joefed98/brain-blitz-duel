@@ -2097,7 +2097,7 @@ export interface BurstPuzzleData {
 }
 
 /** Orbit and Swing: fixed 60-second runs; the round clock adds three of slack. */
-export const ORBIT_TIME_MS = 63_000;
+export const ORBIT_TIME_MS = 93_000;
 export const SWING_TIME_MS = 63_000;
 
 /** Snip: a fixed 60-second run on the arcade engine. */

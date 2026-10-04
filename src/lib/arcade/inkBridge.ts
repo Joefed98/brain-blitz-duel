@@ -23,6 +23,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { isin, TRIG_ONE } from "./trig";
 
 /* ============================== Constants ============================== */
 
@@ -56,6 +57,16 @@ export const INK_BUCKET_W = 64;
 export const INK_BUCKET_H = 36;
 export const INK_BLOCK_H = 4;
 const BLOCK_COUNTS = [1, 2, 3, 3, 4, 5, 6, 7, 7, 8];
+/** Rim caps on the bucket lip (collision circles, as Bin Toss). */
+const RIM_R = 4;
+/** Rim bounce keeps this share of the normal speed (/256). */
+const RIM_BOUNCE_256 = 140;
+/** Rounds 9 and 10 (0-based 8, 9): the bucket slides, seeded amplitude and period. */
+const SLIDE_FROM = 8;
+const SLIDE_AMP_MIN = 28;
+const SLIDE_AMP_SPAN = 23;
+const SLIDE_PERIOD_MIN = 5 * TICKS_PER_SECOND;
+const SLIDE_PERIOD_SPAN = 2 * TICKS_PER_SECOND + 1;
 
 export const INK_INPUT_RANGES: readonly InputRange[] = [
   inputRange(INK_INPUT_STROKE, [0, INK_WORLD_W], [0, INK_WORLD_H], [0, 1]),
@@ -94,8 +105,13 @@ export interface InkLevel {
   /** Bucket rim, px. */
   bucketY: number;
   blocks: InkBlock[];
-  /** Reference solution: strokes as flat [x, y, x, y …] point lists. */
+  /** Slide amplitude (px, 0 = still), period (ticks) and phase (angle units). */
+  slideAmp: number;
+  slidePeriod: number;
+  slidePhase: number;
+  /** Reference solution: strokes as flat [x, y, x, y …] point lists, and a release tick that lands it. */
   ref: number[][];
+  refT0: number;
 }
 
 export interface InkBall {
@@ -112,13 +128,26 @@ export interface InkBall {
 }
 
 /** Earliest contact of a moving point with a capsule, in continuous sub-tick time. */
-function capsuleContact(x0: number, y0: number, x1: number, y1: number, seg: InkSeg): number | null {
-  const ax = seg.x0 * FP, ay = seg.y0 * FP, bx = seg.x1 * FP, by = seg.y1 * FP;
+function capsuleContact(
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  seg: InkSeg,
+): number | null {
+  const ax = seg.x0 * FP,
+    ay = seg.y0 * FP,
+    bx = seg.x1 * FP,
+    by = seg.y1 * FP;
   const radius = (BALL_R + 3) * FP;
-  const dx = x1 - x0, dy = y1 - y0, sx = bx - ax, sy = by - ay;
+  const dx = x1 - x0,
+    dy = y1 - y0,
+    sx = bx - ax,
+    sy = by - ay;
   const lengthSq = sx * sx + sy * sy;
   const distanceSq = (t: number) => {
-    const px = x0 + dx * t, py = y0 + dy * t;
+    const px = x0 + dx * t,
+      py = y0 + dy * t;
     const u = Math.max(0, Math.min(1, ((px - ax) * sx + (py - ay) * sy) / lengthSq));
     return (px - ax - u * sx) ** 2 + (py - ay - u * sy) ** 2;
   };
@@ -128,15 +157,22 @@ function capsuleContact(x0: number, y0: number, x1: number, y1: number, seg: Ink
   // Infinite strip: solve the crossing of either parallel offset line.
   const cross0 = (x0 - ax) * sy - (y0 - ay) * sx;
   const crossV = dx * sy - dy * sx;
-  if (crossV !== 0) for (const sign of [-1, 1]) {
-    const t = (sign * radius * Math.sqrt(lengthSq) - cross0) / crossV;
-    if (t >= 0 && t <= 1) candidates.push(t);
-  }
+  if (crossV !== 0)
+    for (const sign of [-1, 1]) {
+      const t = (sign * radius * Math.sqrt(lengthSq) - cross0) / crossV;
+      if (t >= 0 && t <= 1) candidates.push(t);
+    }
   // Rounded caps: solve the moving-point vs circle quadratic, including vertical lines.
-  for (const [cx, cy] of [[ax, ay], [bx, by]] as const) {
-    const ox = x0 - cx, oy = y0 - cy, a = dx * dx + dy * dy;
+  for (const [cx, cy] of [
+    [ax, ay],
+    [bx, by],
+  ] as const) {
+    const ox = x0 - cx,
+      oy = y0 - cy,
+      a = dx * dx + dy * dy;
     if (a === 0) continue;
-    const b = 2 * (ox * dx + oy * dy), c = ox * ox + oy * oy - radius * radius;
+    const b = 2 * (ox * dx + oy * dy),
+      c = ox * ox + oy * oy - radius * radius;
     const disc = b * b - 4 * a * c;
     if (disc >= 0) candidates.push((-b - Math.sqrt(disc)) / (2 * a));
   }
@@ -168,8 +204,14 @@ function relate(seg: InkSeg, x: number, y: number, n: readonly [number, number])
 
 function placeOn(ball: InkBall, seg: InkSeg): void {
   const n = upNormal(seg)!;
-  ball.x = seg.x0 * FP + Math.trunc(((seg.x1 - seg.x0) * ball.u) / seg.len) + Math.trunc((n[0] * BALL_R * FP) / seg.len);
-  ball.y = seg.y0 * FP + Math.trunc(((seg.y1 - seg.y0) * ball.u) / seg.len) + Math.trunc((n[1] * BALL_R * FP) / seg.len);
+  ball.x =
+    seg.x0 * FP +
+    Math.trunc(((seg.x1 - seg.x0) * ball.u) / seg.len) +
+    Math.trunc((n[0] * BALL_R * FP) / seg.len);
+  ball.y =
+    seg.y0 * FP +
+    Math.trunc(((seg.y1 - seg.y0) * ball.u) / seg.len) +
+    Math.trunc((n[1] * BALL_R * FP) / seg.len);
 }
 
 /** The segment continuing a stroke past one end of seg i, or −1. */
@@ -207,18 +249,30 @@ function clampOut(ball: InkBall, segs: readonly InkSeg[], prevX: number): boolea
   const r = (BALL_R - 1) * FP;
   for (let i = 0; i < segs.length; i++) {
     const seg = segs[i]!;
-    const ax = seg.x0 * FP, ay = seg.y0 * FP, sx = (seg.x1 - seg.x0) * FP, sy = (seg.y1 - seg.y0) * FP;
+    const ax = seg.x0 * FP,
+      ay = seg.y0 * FP,
+      sx = (seg.x1 - seg.x0) * FP,
+      sy = (seg.y1 - seg.y0) * FP;
     const lenSq = sx * sx + sy * sy;
-    const t = lenSq > 0 ? Math.max(0, Math.min(1, ((ball.x - ax) * sx + (ball.y - ay) * sy) / lenSq)) : 0;
-    const cx = ax + sx * t, cy = ay + sy * t;
-    let dx = ball.x - cx, dy = ball.y - cy;
+    const t =
+      lenSq > 0 ? Math.max(0, Math.min(1, ((ball.x - ax) * sx + (ball.y - ay) * sy) / lenSq)) : 0;
+    const cx = ax + sx * t,
+      cy = ay + sy * t;
+    let dx = ball.x - cx,
+      dy = ball.y - cy;
     const distSq = dx * dx + dy * dy;
     if (distSq >= r * r) continue;
     const n = upNormal(seg);
     let dist = Math.sqrt(distSq);
     if (dist < 1) {
       // Dead centre: push to the side the ball came from (walls) or upward.
-      if (n) { dx = n[0]; dy = n[1]; } else { dx = prevX < ax ? -1 : 1; dy = 0; }
+      if (n) {
+        dx = n[0];
+        dy = n[1];
+      } else {
+        dx = prevX < ax ? -1 : 1;
+        dy = 0;
+      }
       dist = Math.hypot(dx, dy);
     }
     ball.x = Math.trunc(cx + (dx * BALL_R * FP) / dist);
@@ -235,7 +289,8 @@ function clampOut(ball: InkBall, segs: readonly InkSeg[], prevX: number): boolea
       return true;
     }
     // Underside or a cap: lose the speed into the line.
-    const nx = dx / dist, ny = dy / dist;
+    const nx = dx / dist,
+      ny = dy / dist;
     const into = ball.vx * nx + ball.vy * ny;
     if (into < 0) {
       ball.vx = Math.trunc(ball.vx - into * nx);
@@ -245,8 +300,46 @@ function clampOut(ball: InkBall, segs: readonly InkSeg[], prevX: number): boolea
   return false;
 }
 
+/** Bucket centre x (px) on a tick: fixed, or a seeded slow slide in rounds 9–10. */
+export function inkBucketX(lvl: InkLevel, tick: number): number {
+  if (lvl.slideAmp === 0) return lvl.bucketX;
+  const a =
+    (lvl.slidePhase + Math.trunc(((tick % lvl.slidePeriod) * 65536) / lvl.slidePeriod)) & 65535;
+  return lvl.bucketX + Math.trunc((lvl.slideAmp * isin(a)) / TRIG_ONE);
+}
+
+/** Bounce the ball off the two rim caps; returns true if it struck one. */
+function rimBounce(ball: InkBall, bx: number, by: number): boolean {
+  let struck = false;
+  for (const cx of [bx - INK_BUCKET_W / 2, bx + INK_BUCKET_W / 2]) {
+    const dx = ball.x - cx * FP;
+    const dy = ball.y - by * FP;
+    const reach = (BALL_R + RIM_R) * FP;
+    if (Math.abs(dx) >= reach || Math.abs(dy) >= reach) continue;
+    const d = isqrt(dx * dx + dy * dy);
+    if (d >= reach) continue;
+    struck = true;
+    const nx = d > 0 ? Math.trunc((dx * 1024) / d) : 0;
+    const ny = d > 0 ? Math.trunc((dy * 1024) / d) : -1024;
+    // Push out to the surface, then reflect the inward part of the velocity.
+    ball.x = cx * FP + Math.trunc((nx * reach) / 1024);
+    ball.y = by * FP + Math.trunc((ny * reach) / 1024);
+    const vn = Math.trunc((ball.vx * nx + ball.vy * ny) / 1024);
+    if (vn < 0) {
+      const k = vn + Math.trunc((vn * RIM_BOUNCE_256) / 256);
+      ball.vx = Math.trunc(ball.vx - (k * nx) / 1024);
+      ball.vy = Math.trunc(ball.vy - (k * ny) / 1024);
+    }
+    ball.on = -1;
+    ball.u = 0;
+    ball.sp = 0;
+  }
+  return struck;
+}
+
 /** One tick of the ball: 0 still going, 1 in the bucket, 2 failed. Mutates ball. */
-function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel): number {
+function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel, tick = 0): number {
+  const bucketX = inkBucketX(lvl, tick);
   const px = ball.x;
   const py = ball.y;
   const seg = ball.on >= 0 ? segs[ball.on] : undefined;
@@ -261,7 +354,9 @@ function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel): number
       const forward = ball.u > 0;
       const j = joined(segs, ball.on, forward);
       const next = j >= 0 ? segs[j]! : null;
-      const dot = next ? (seg.x1 - seg.x0) * (next.x1 - next.x0) + (seg.y1 - seg.y0) * (next.y1 - next.y0) : 0;
+      const dot = next
+        ? (seg.x1 - seg.x0) * (next.x1 - next.x0) + (seg.y1 - seg.y0) * (next.y1 - next.y0)
+        : 0;
       if (next && dot > 0) {
         const over = forward ? ball.u - seg.len * FP : -ball.u;
         ball.sp = Math.trunc((ball.sp * dot) / (seg.len * next.len));
@@ -280,15 +375,20 @@ function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel): number
     ball.on = -1;
     ball.stall = 0;
     ball.vy = Math.min(MAX_V, ball.vy + GRAVITY);
-    const steps = Math.max(1, Math.ceil(Math.hypot(ball.vx, ball.vy) / (BALL_R * FP / 2)));
+    const steps = Math.max(1, Math.ceil(Math.hypot(ball.vx, ball.vy) / ((BALL_R * FP) / 2)));
     for (let sub = 1; sub <= steps; sub++) {
-      const startX = ball.x, startY = ball.y;
+      const startX = ball.x,
+        startY = ball.y;
       const endX = px + Math.trunc((ball.vx * sub) / steps);
       const endY = py + Math.trunc((ball.vy * sub) / steps);
-      let first = 2, firstIndex = -1;
+      let first = 2,
+        firstIndex = -1;
       for (let i = 0; i < segs.length; i++) {
         const contact = capsuleContact(startX, startY, endX, endY, segs[i]!);
-        if (contact !== null && contact < first) { first = contact; firstIndex = i; }
+        if (contact !== null && contact < first) {
+          first = contact;
+          firstIndex = i;
+        }
       }
       ball.x = endX;
       ball.y = endY;
@@ -300,7 +400,9 @@ function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel): number
         if (n && relate(line, startX, startY, n).height >= 0 && ball.vy >= 0) {
           ball.on = firstIndex;
           ball.u = clampInt(relate(line, hitX, hitY, n).along, 0, line.len * FP);
-          ball.sp = Math.trunc((ball.vx * (line.x1 - line.x0) + ball.vy * (line.y1 - line.y0)) / line.len);
+          ball.sp = Math.trunc(
+            (ball.vx * (line.x1 - line.x0) + ball.vy * (line.y1 - line.y0)) / line.len,
+          );
           placeOn(ball, line);
         } else {
           // A vertical wall or underside still stops the ball rather than tunnelling.
@@ -321,10 +423,11 @@ function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel): number
     }
   }
   for (const b of lvl.blocks) if (touchesBlock(ball, b)) return 2;
-  // Into the bucket through its rim, or past the bottom.
+  if (rimBounce(ball, bucketX, lvl.bucketY)) return 0;
+  // Into the bucket between its rim caps, or past the bottom.
   if (py < lvl.bucketY * FP && ball.y >= lvl.bucketY * FP) {
     const x = Math.trunc(ball.x / FP);
-    if (Math.abs(x - lvl.bucketX) <= INK_BUCKET_W / 2 - BALL_R) return 1;
+    if (Math.abs(x - bucketX) <= INK_BUCKET_W / 2 - BALL_R) return 1;
   }
   if (ball.y > (INK_WORLD_H + BALL_R) * FP) return 2;
   return 0;
@@ -374,11 +477,11 @@ function addStroke(p: Pen, x: number, y: number, start: boolean): void {
   p.penY += dy;
 }
 
-/** Runs a drop with fixed lines: 1 bucket, 2 failed. */
-function simulateDrop(lvl: InkLevel, segs: readonly InkSeg[]): number {
+/** Runs a drop with fixed lines released on tick t0: 1 bucket, 2 failed. */
+function simulateDrop(lvl: InkLevel, segs: readonly InkSeg[], t0 = 0): number {
   const ball = spoutBall(lvl);
   for (let t = 0; t < DROP_MAX; t++) {
-    const r = moveBall(ball, segs, lvl);
+    const r = moveBall(ball, segs, lvl, t0 + t + 1);
     if (r) return r;
   }
   return 2;
@@ -404,8 +507,22 @@ function blockOverlaps(a: InkBlock, b: InkBlock): boolean {
 function layout(level: number, count: number, draw: Draw): InkLevel {
   const spoutX = 60 + draw(271);
   let bucketX = 50 + draw(291);
-  if (Math.abs(bucketX - spoutX) < 100) bucketX = spoutX < 195 ? Math.min(340, spoutX + 100 + draw(60)) : Math.max(50, spoutX - 100 - draw(60));
+  if (Math.abs(bucketX - spoutX) < 100)
+    bucketX =
+      spoutX < 195 ? Math.min(340, spoutX + 100 + draw(60)) : Math.max(50, spoutX - 100 - draw(60));
   const bucketY = 470 + draw(81);
+  let slideAmp = 0;
+  let slidePeriod = 1;
+  let slidePhase = 0;
+  if (level >= SLIDE_FROM) {
+    bucketX = clampInt(bucketX, 72, INK_WORLD_W - 72);
+    // Keep the whole slide (bucket plus rim) on screen.
+    const room = Math.min(bucketX, INK_WORLD_W - bucketX) - INK_BUCKET_W / 2 - RIM_R - 4;
+    slideAmp = Math.max(0, Math.min(SLIDE_AMP_MIN + draw(SLIDE_AMP_SPAN), room));
+    slidePeriod = SLIDE_PERIOD_MIN + draw(SLIDE_PERIOD_SPAN);
+    slidePhase = draw(65536);
+  }
+  const mouth = INK_BUCKET_W / 2 + 10 + slideAmp;
   const blocks: InkBlock[] = [];
   // Block 0 sits right under the spout, so a straight fall never works.
   const len0 = 60 + draw(81);
@@ -419,16 +536,16 @@ function layout(level: number, count: number, draw: Draw): InkLevel {
     const by = 130 + draw(Math.max(1, bucketY - 50 - 130));
     const b = { x0: bx, x1: bx + len, y: by };
     // Keep the bucket mouth and the spout column above block 0 clear.
-    if (by > bucketY - 60 && bx < bucketX + INK_BUCKET_W / 2 + 10 && bx + len > bucketX - INK_BUCKET_W / 2 - 10) continue;
+    if (by > bucketY - 60 && bx < bucketX + mouth && bx + len > bucketX - mouth) continue;
     if (blocks.some((o) => blockOverlaps(o, b))) continue;
     blocks.push(b);
     k++;
   }
-  return { spoutX, bucketX, bucketY, blocks, ref: [] };
+  return { spoutX, bucketX, bucketY, blocks, slideAmp, slidePeriod, slidePhase, ref: [], refT0: 0 };
 }
 
 /** Candidate reference strokes: a ramp under the spout to above the bucket, optionally via a waypoint. */
-function findReference(lvl: InkLevel, ink: number): number[][] | null {
+function findReference(lvl: InkLevel, ink: number): { ref: number[][]; t0: number } | null {
   const dir = lvl.bucketX > lvl.spoutX ? 1 : -1;
   const sx = lvl.spoutX - dir * 24;
   const sy = SPOUT_Y + 28;
@@ -436,9 +553,13 @@ function findReference(lvl: InkLevel, ink: number): number[][] | null {
   for (const off of [0, -12, 12, -24, 24, -36, 36, -48]) ends.push(lvl.bucketX - dir * off);
   const lifts = [14, 26, 44, 70];
   const way: (readonly [number, number])[] = [];
-  for (const fy of [25, 45, 65]) for (const fx of [-60, -20, 20, 60, 110]) {
-    way.push([lvl.spoutX + dir * fx, sy + Math.trunc(((lvl.bucketY - sy) * fy) / 100)]);
-  }
+  for (const fy of [25, 45, 65])
+    for (const fx of [-60, -20, 20, 60, 110]) {
+      way.push([lvl.spoutX + dir * fx, sy + Math.trunc(((lvl.bucketY - sy) * fy) / 100)]);
+    }
+  // Screen candidates against the still bucket (one drop each); a sliding level then needs a
+  // release, among 16 over one slide period, that lands with the bucket moving.
+  const still: InkLevel = { ...lvl, slideAmp: 0 };
   for (const w of [null, ...way]) {
     for (const lift of lifts) {
       for (const ex of ends) {
@@ -448,11 +569,29 @@ function findReference(lvl: InkLevel, ink: number): number[][] | null {
         const ref = [pts];
         const pen = strokeSegs(ref, ink);
         if (pen.penDown === 0) continue; // ran out of ink
-        if (simulateDrop(lvl, pen.segs) === 1) return ref;
+        if (simulateDrop(still, pen.segs) !== 1) continue;
+        if (!lvl.slideAmp) return { ref, t0: 0 };
+        const t0 = landingRelease(lvl, pen.segs);
+        if (t0 >= 0) return { ref, t0 };
       }
     }
   }
   return null;
+}
+
+/** First of 16 evenly spaced release ticks over one slide period that lands; −1 if none. */
+function landingRelease(lvl: InkLevel, segs: readonly InkSeg[]): number {
+  const tries = lvl.slideAmp ? 16 : 1;
+  for (let k = 0; k < tries; k++) {
+    const t0 = Math.trunc((k * lvl.slidePeriod) / tries);
+    if (simulateDrop(lvl, segs, t0) === 1) return t0;
+  }
+  return -1;
+}
+
+/** Does any release over one slide period land with no lines? */
+function landsUnaided(lvl: InkLevel): boolean {
+  return landingRelease(lvl, []) >= 0;
 }
 
 function buildLevels(seed: number): { list: InkLevel[]; rng: number } {
@@ -465,20 +604,34 @@ function buildLevels(seed: number): { list: InkLevel[]; rng: number } {
   const list: InkLevel[] = [];
   for (let level = 0; level < INK_LEVELS; level++) {
     const full = BLOCK_COUNTS[level]! + (level === INK_LEVELS - 1 ? draw(2) : 0);
+    // Round 10 always has strictly more grey lines than round 9.
+    const atLeast = level === INK_LEVELS - 1 ? list[level - 1]!.blocks.length + 1 : 1;
     let made: InkLevel | null = null;
-    for (let attempt = 0; attempt < 60 && !made; attempt++) {
-      // After a run of failures, fewer extra blocks.
-      const count = Math.max(1, full - Math.trunc(attempt / 20));
+    for (let attempt = 0; attempt < (atLeast > 1 ? 200 : 60) && !made; attempt++) {
+      // After a run of failures, fewer extra blocks (never below the round-10 floor).
+      const count = Math.max(atLeast, Math.max(1, full - Math.trunc(attempt / 20)));
       const lvl = layout(level, count, draw);
-      if (simulateDrop(lvl, []) === 1) continue;
-      const ref = findReference(lvl, inkBudget(level));
-      if (ref) made = { ...lvl, ref };
+      if (lvl.blocks.length < atLeast) continue;
+      if (landsUnaided(lvl)) continue;
+      const found = findReference(lvl, inkBudget(level));
+      if (found) made = { ...lvl, ref: found.ref, refT0: found.t0 };
     }
     if (!made) {
       // Last resort: the spout block only, bucket far to one side, low.
       const spoutX = 120;
-      const lvl: InkLevel = { spoutX, bucketX: 300, bucketY: 540, blocks: [{ x0: 90, x1: 150, y: 200 }], ref: [] };
-      made = { ...lvl, ref: findReference(lvl, inkBudget(level)) ?? [[96, 78, 300, 526]] };
+      const lvl: InkLevel = {
+        spoutX,
+        bucketX: 300,
+        bucketY: 540,
+        blocks: [{ x0: 90, x1: 150, y: 200 }],
+        slideAmp: 0,
+        slidePeriod: 1,
+        slidePhase: 0,
+        ref: [],
+        refT0: 0,
+      };
+      const found = findReference(lvl, inkBudget(level));
+      made = { ...lvl, ref: found?.ref ?? [[96, 78, 300, 526]], refT0: found?.t0 ?? 0 };
     }
     list.push(made);
   }
@@ -489,13 +642,29 @@ function buildLevels(seed: number): { list: InkLevel[]; rng: number } {
  * Test hook: drops a ball from (x, y) onto one line and reports whether its
  * centre ever crossed from one side of the line's span to the other.
  */
-export function inkSingleLineDrop(x: number, y: number, vx: number, line: [number, number, number, number]): { crossed: boolean; minDist: number } {
+export function inkSingleLineDrop(
+  x: number,
+  y: number,
+  vx: number,
+  line: [number, number, number, number],
+): { crossed: boolean; minDist: number } {
   const [x0, y0, x1, y1] = line;
   const len = isqrt((x1 - x0) ** 2 + (y1 - y0) ** 2);
   const segs: InkSeg[] = [{ x0, y0, x1, y1, len }];
-  const lvl: InkLevel = { spoutX: x, bucketX: -1000, bucketY: 10_000, blocks: [], ref: [] };
+  const lvl: InkLevel = {
+    spoutX: x,
+    bucketX: -1000,
+    bucketY: 10_000,
+    blocks: [],
+    slideAmp: 0,
+    slidePeriod: 1,
+    slidePhase: 0,
+    ref: [],
+    refT0: 0,
+  };
   const ball: InkBall = { x: x * FP, y: y * FP, vx: vx * FP, vy: 0, on: -1, u: 0, sp: 0, stall: 0 };
-  const side = (bx: number, by: number) => Math.sign((x1 - x0) * (by / FP - y0) - (y1 - y0) * (bx / FP - x0));
+  const side = (bx: number, by: number) =>
+    Math.sign((x1 - x0) * (by / FP - y0) - (y1 - y0) * (bx / FP - x0));
   const inSpan = (bx: number, by: number) => {
     const t = ((bx / FP - x0) * (x1 - x0) + (by / FP - y0) * (y1 - y0)) / (len * len);
     return t > 0.02 && t < 0.98;
@@ -504,11 +673,18 @@ export function inkSingleLineDrop(x: number, y: number, vx: number, line: [numbe
   let crossed = false;
   let minDist = Infinity;
   for (let t = 0; t < 400; t++) {
-    const px = ball.x, py = ball.y;
+    const px = ball.x,
+      py = ball.y;
     if (moveBall(ball, segs, lvl)) break;
     const now = side(ball.x, ball.y);
     // Crossing counts only when the move went through the line's body, not around an end.
-    if (now !== 0 && lastSide !== 0 && now !== lastSide && (inSpan(px, py) || inSpan(ball.x, ball.y))) crossed = true;
+    if (
+      now !== 0 &&
+      lastSide !== 0 &&
+      now !== lastSide &&
+      (inSpan(px, py) || inSpan(ball.x, ball.y))
+    )
+      crossed = true;
     if (now !== 0) lastSide = now;
     if (inSpan(ball.x, ball.y)) {
       const d = Math.abs((x1 - x0) * (ball.y / FP - y0) - (y1 - y0) * (ball.x / FP - x0)) / len;
@@ -519,16 +695,22 @@ export function inkSingleLineDrop(x: number, y: number, vx: number, line: [numbe
 }
 
 /** Test hook: does each level's stored reference solution land in the bucket within its ink? */
-export function inkReferenceCheck(seed: number): { ok: number; blocks: number[]; ink: number[] } {
+export function inkReferenceCheck(seed: number): {
+  ok: number;
+  blocks: number[];
+  ink: number[];
+  slides: number[];
+} {
   const { list } = buildLevels(seed);
   let ok = 0;
   const ink: number[] = [];
   list.forEach((lvl, i) => {
     const pen = strokeSegs(lvl.ref, inkBudget(i));
     ink.push(pen.segs.reduce((sum, seg) => sum + seg.len, 0));
-    if (pen.penDown === 1 && simulateDrop(lvl, pen.segs) === 1 && simulateDrop(lvl, []) !== 1) ok++;
+    if (pen.penDown === 1 && simulateDrop(lvl, pen.segs, lvl.refT0) === 1 && !landsUnaided(lvl))
+      ok++;
   });
-  return { ok, blocks: list.map((l) => l.blocks.length), ink };
+  return { ok, blocks: list.map((l) => l.blocks.length), ink, slides: list.map((l) => l.slideAmp) };
 }
 
 /* ================================ State ================================ */
@@ -611,11 +793,23 @@ function resetLevel(s: InkState): void {
 function step(state: InkState, input: ArcadeInputEvent | null): InkState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
-  const s: InkState = { ...state, tick, ball: { ...state.ball }, segs: [...state.segs], strokeStarts: [...state.strokeStarts], positions: [...state.positions] };
+  const s: InkState = {
+    ...state,
+    tick,
+    ball: { ...state.ball },
+    segs: [...state.segs],
+    strokeStarts: [...state.strokeStarts],
+    positions: [...state.positions],
+  };
 
   if (input && !s.dropping) {
     if (input.k === INK_INPUT_STROKE) {
-      addStroke(s, clampInt(input.a, 0, INK_WORLD_W), clampInt(input.b, 0, INK_WORLD_H), input.c === 1);
+      addStroke(
+        s,
+        clampInt(input.a, 0, INK_WORLD_W),
+        clampInt(input.b, 0, INK_WORLD_H),
+        input.c === 1,
+      );
     } else if (input.k === INK_INPUT_RELEASE) {
       s.dropping = 1;
       s.penDown = 0;
@@ -634,9 +828,17 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
     s.dropTicks += 1;
     s.positions.push({ x: s.ball.x, y: s.ball.y });
     if (s.positions.length > PROGRESS_WINDOW) s.positions.shift();
-    let result = input?.k === INK_INPUT_DROP_AGAIN ? 2 : moveBall(s.ball, s.segs, s.list[s.level]!);
+    let result =
+      input?.k === INK_INPUT_DROP_AGAIN ? 2 : moveBall(s.ball, s.segs, s.list[s.level]!, tick);
     const old = s.positions[0];
-    if (!result && (s.dropTicks >= DROP_MAX || (s.positions.length === PROGRESS_WINDOW && old && Math.hypot(s.ball.x - old.x, s.ball.y - old.y) <= PROGRESS_DISTANCE))) result = 2;
+    if (
+      !result &&
+      (s.dropTicks >= DROP_MAX ||
+        (s.positions.length === PROGRESS_WINDOW &&
+          old &&
+          Math.hypot(s.ball.x - old.x, s.ball.y - old.y) <= PROGRESS_DISTANCE))
+    )
+      result = 2;
     if (result === 1) {
       s.levels += 1;
       s.flashKind = 1;
@@ -672,7 +874,8 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
 
 /** Level n complete = 2 × n; all ten add round(40 × time left ÷ run); cap 150. */
 export function inkScoreOf(levels: number, tick: number): number {
-  const bonus = levels >= INK_LEVELS ? Math.round((40 * Math.max(0, INK_RUN_TICKS - tick)) / INK_RUN_TICKS) : 0;
+  const bonus =
+    levels >= INK_LEVELS ? Math.round((40 * Math.max(0, INK_RUN_TICKS - tick)) / INK_RUN_TICKS) : 0;
   return clampInt(levels * (levels + 1) + bonus, 0, 150);
 }
 
@@ -684,7 +887,17 @@ function score(state: InkState): number {
 
 export const INK_CHECKPOINT_INTERVAL = 300;
 export const INK_CHECKPOINT_KEYS = [
-  "tick", "level", "levels", "fails", "segs", "ink", "penDown", "dropping", "ended", "rng", "checksum",
+  "tick",
+  "level",
+  "levels",
+  "fails",
+  "segs",
+  "ink",
+  "penDown",
+  "dropping",
+  "ended",
+  "rng",
+  "checksum",
 ] as const;
 
 export interface InkCheckpoint {
@@ -715,7 +928,18 @@ export function inkCheckpoint(state: InkState): InkCheckpoint {
     rng: state.rng | 0,
   };
   const b = state.ball;
-  const values = [...Object.values(snap), b.x, b.y, b.on, b.sp, b.stall, state.penX, state.penY, state.dropTicks, ...state.strokeStarts];
+  const values = [
+    ...Object.values(snap),
+    b.x,
+    b.y,
+    b.on,
+    b.sp,
+    b.stall,
+    state.penX,
+    state.penY,
+    state.dropTicks,
+    ...state.strokeStarts,
+  ];
   for (const p of state.positions) values.push(p.x, p.y);
   for (const seg of state.segs) values.push(seg.x0, seg.y0, seg.x1, seg.y1);
   let checksum = 0x811c9dc5;
@@ -746,9 +970,19 @@ function draw(ctx: CanvasRenderingContext2D, state: InkState, size: CanvasSize):
   const tick = state.tick;
   const lvl = state.list[Math.min(state.level, state.list.length - 1)]!;
 
-  // Spout.
-  ctx.fillStyle = "rgba(245,184,46,0.4)";
-  ctx.fillRect(lvl.spoutX - 14, SPOUT_Y - 26, 28, 16);
+  // Dispenser: a small hopper and nozzle just above the ball (y 33–43), clear of the HUD rows.
+  {
+    const x = lvl.spoutX;
+    ctx.fillStyle = "rgba(245,184,46,0.55)";
+    ctx.beginPath();
+    ctx.moveTo(x - 10, SPOUT_Y - 17);
+    ctx.lineTo(x + 10, SPOUT_Y - 17);
+    ctx.lineTo(x + 4, SPOUT_Y - 11);
+    ctx.lineTo(x - 4, SPOUT_Y - 11);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillRect(x - 3, SPOUT_Y - 11, 6, 4);
+  }
 
   // Grey blocks.
   ctx.fillStyle = INK_GREY;
@@ -757,12 +991,18 @@ function draw(ctx: CanvasRenderingContext2D, state: InkState, size: CanvasSize):
   // Bucket with a rim.
   const flash = tick - state.flashTick < 20 && state.flashKind === 1;
   ctx.fillStyle = flash ? "#FFFFFF" : INK_TEAL;
-  const bx = lvl.bucketX;
+  const bx = inkBucketX(lvl, tick);
   const by = lvl.bucketY;
   ctx.globalAlpha = 0.3;
   ctx.fillRect(bx - INK_BUCKET_W / 2, by, INK_BUCKET_W, INK_BUCKET_H);
   ctx.globalAlpha = 1;
-  ctx.fillRect(bx - INK_BUCKET_W / 2 - 4, by - 3, INK_BUCKET_W + 8, 5);
+  ctx.fillRect(bx - INK_BUCKET_W / 2 + 2, by - 2, INK_BUCKET_W - 4, 3);
+  // Rim caps: the two collision circles on the lip.
+  for (const cx of [bx - INK_BUCKET_W / 2, bx + INK_BUCKET_W / 2]) {
+    ctx.beginPath();
+    ctx.arc(cx, by, RIM_R, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.fillRect(bx - INK_BUCKET_W / 2, by, 3, INK_BUCKET_H);
   ctx.fillRect(bx + INK_BUCKET_W / 2 - 3, by, 3, INK_BUCKET_H);
 
@@ -818,14 +1058,15 @@ function draw(ctx: CanvasRenderingContext2D, state: InkState, size: CanvasSize):
   for (let i = 0; i < INK_FAILS; i++) {
     ctx.fillStyle = i < state.fails ? INK_RED : "rgba(255,255,255,0.2)";
     ctx.beginPath();
-    ctx.arc(INK_WORLD_W - 110 + i * 16, 36, 5, 0, Math.PI * 2);
+    ctx.arc(INK_WORLD_W - 162 + i * 14, 18, 5, 0, Math.PI * 2);
     ctx.fill();
   }
 
   ctx.fillStyle = INK_GOLD;
-  ctx.font = "bold 18px ui-monospace, monospace";
+  ctx.font = "bold 16px ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`Level ${Math.min(state.level + 1, INK_LEVELS)} / ${INK_LEVELS}`, 16, 26);
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(`Level ${Math.min(state.level + 1, INK_LEVELS)} / ${INK_LEVELS}`, 12, 24);
   ctx.restore();
 }
 
