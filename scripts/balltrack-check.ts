@@ -6,7 +6,7 @@
 import { BALL_TRACK_BANK } from "../src/lib/duel/ballTrackBank.server";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { decodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { btCheckpoint, btRotatable, btScoreOf, makeBallTrackGame, BT_BALLS, BT_CHECKPOINT_INTERVAL, BT_COLS, BT_ROWS, BT_KIND, BT_K_ROTATE, BT_DROP_TICKS, BT_STEP_TICKS, BT_RUN_TICKS, type BtCheckpoint } from "../src/lib/arcade/ballTrack";
+import { btCheckpoint, btRotatable, btScoreOf, btSpeedBonus, makeBallTrackGame, BT_BALLS, BT_CHECKPOINT_INTERVAL, BT_COLS, BT_ROWS, BT_KIND, BT_K_ROTATE, BT_DROP_TICKS, BT_STEP_TICKS, BT_RUN_TICKS, type BtCheckpoint } from "../src/lib/arcade/ballTrack";
 import { hasLowerShortcut, routeTo } from "./ball-track-bank";
 import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
 
@@ -35,7 +35,8 @@ function play(index: number, choose: (tick: number) => Omit<ArcadeInputEvent, "t
 let solved = 0;
 if (BT_BALLS !== 25 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 12 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
 for (let home = 0; home <= BT_BALLS; home++) for (let wrong = 0; wrong <= BT_BALLS - home; wrong++) {
-  if (btScoreOf(home, wrong) !== Math.max(0, Math.min(150, Math.round(150 * home / BT_BALLS) - 5 * wrong))) fail("Scoring formula");
+  if (btScoreOf(home, wrong) !== Math.max(0, Math.min(150, Math.round(120 * home / BT_BALLS) - 5 * wrong + btSpeedBonus(home, BT_RUN_TICKS)))) fail("Scoring formula");
+if (btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 20 * 60) !== 30 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 15 * 60) !== 23 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 10 * 60) !== 15 || btSpeedBonus(BT_BALLS - 1, 0) !== 0) fail("Speed bonus");
 }
 BALL_TRACK_BANK.forEach((entry, i) => {
   const c = entry.course;
@@ -62,7 +63,7 @@ BALL_TRACK_BANK.forEach((entry, i) => {
   if (c.balls.some((b, j) => j >= 2 && b === c.balls[j - 1] && b === c.balls[j - 2])) fail(`course ${i}: three consecutive colours`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);
-  if (state.home === BT_BALLS && state.wrong === 0 && state.lost === 0 && score === 150 && state.actions === entry.par) solved++;
+  if (state.home === BT_BALLS && state.wrong === 0 && state.lost === 0 && score === 120 + btSpeedBonus(BT_BALLS, state.lastLand) && state.actions === entry.par) solved++;
   else fail(`course ${i}: playbook did not route all ${BT_BALLS} (${state.home}, score ${score})`);
 });
 

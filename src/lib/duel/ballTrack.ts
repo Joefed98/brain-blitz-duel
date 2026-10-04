@@ -4,6 +4,7 @@ import {
   btCheckpoint,
   makeBallTrackGame,
   BT_BALLS,
+  btSpeedBonus,
   BT_CHECKPOINT_INTERVAL,
   BT_CHECKPOINT_KEYS,
   type BtCheckpoint,
@@ -28,6 +29,7 @@ export interface BallTrackResult extends FlatReplay<BtState, BtCheckpoint> {
   released: number;
   actions: number;
   perfect: boolean;
+  speed: number;
 }
 
 export function encodeBallTrackRun(course: BtCourse, run: FlatRun<BtCheckpoint>): string {
@@ -50,5 +52,6 @@ export function replayBallTrackRun(course: BtCourse, seed: number, raw: string):
     released: s.next,
     actions: s.actions,
     perfect: s.home === BT_BALLS,
+    speed: btSpeedBonus(s.home, s.lastLand),
   };
 }
