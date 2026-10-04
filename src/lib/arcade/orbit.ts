@@ -601,13 +601,6 @@ function draw(ctx: CanvasRenderingContext2D, state: OrbitState, size: CanvasSize
       else ctx.lineTo(px + o.u / FP, py + o.v / FP);
     }
     ctx.stroke();
-    if (p.kind === ORBIT_EIGHT) {
-      // The crossing between the pair: never let go here.
-      const inner = (eightA(p) * EIGHT_INNER_PCT) / 100 / FP;
-      ctx.fillStyle = ORBIT_RED;
-      ctx.globalAlpha = 0.12;
-      ctx.fillRect(px - inner, py - (eightA(p) * EIGHT_B_PCT) / 100 / FP - 4, inner * 2, ((eightA(p) * EIGHT_B_PCT) / 100 / FP) * 2 + 8);
-    }
     ctx.globalAlpha = 1;
     ctx.lineWidth = 5;
     const bodies = p.kind === ORBIT_EIGHT ? [-orbitLobes(p) / FP, orbitLobes(p) / FP] : [0];

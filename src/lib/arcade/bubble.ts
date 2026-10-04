@@ -35,7 +35,7 @@ export const BUB_D = 34;
 export const BUB_R = 17;
 export const BUB_COLS = 10;
 export const BUB_MAX_ROWS = 18;
-export const BUB_START_ROWS = 6;
+export const BUB_START_ROWS = 7;
 export const BUB_COLOUR_COUNT = 5;
 
 /** Rows are packed hex-style: 29 px apart, odd rows shifted half a bubble. */
@@ -113,7 +113,13 @@ function init(seed: number): BubState {
     for (let col = 0; col < bubRowCols(row); col++) {
       const draw = rngBelow(rng, BUB_COLOUR_COUNT);
       rng = draw.state;
-      grid[cellIndex(row, col)] = draw.value + 1;
+      const index = cellIndex(row, col);
+      // Try every colour deterministically; accepting only groups of at most five
+      // also catches a new bubble joining several previously separate groups.
+      for (let offset = 0; offset < BUB_COLOUR_COUNT; offset++) {
+        grid[index] = 1 + (draw.value + offset) % BUB_COLOUR_COUNT;
+        if (colourGroup(grid, index).length <= 5) break;
+      }
     }
   }
   const queue: number[] = [];
@@ -521,6 +527,18 @@ function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize):
   ctx.fillStyle = BUB_BG;
   ctx.fillRect(0, 0, size.width, size.height);
   ctx.scale(scaleX, scaleY);
+  const circle = (value: number, x: number, y: number, r: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1 / scaleX, 1 / scaleY);
+    const radius = r * Math.min(scaleX, scaleY);
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fillStyle = bubColour(value);
+    ctx.fill();
+    bubDrawSymbol(ctx, value, 0, 0, radius);
+    ctx.restore();
+  };
 
   ctx.strokeStyle = "rgba(255,255,255,0.10)";
   ctx.lineWidth = 2;
@@ -545,11 +563,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize):
       if (!value) continue;
       const cx = bubCellX(row, col);
       const cy = bubCellY(row, state.descents);
-      ctx.beginPath();
-      ctx.arc(cx, cy, BUB_R - 1, 0, Math.PI * 2);
-      ctx.fillStyle = bubColour(value);
-      ctx.fill();
-      bubDrawSymbol(ctx, value, cx, cy, BUB_R - 1);
+      circle(value, cx, cy, BUB_R - 1);
     }
   }
 
@@ -558,21 +572,13 @@ function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize):
   ctx.fillRect(BUB_SHOOTER_X - 18, BUB_SHOOTER_Y + 18, 36, 8);
   const holding = bubNextColour(state, 0);
   if (holding) {
-    ctx.beginPath();
-    ctx.arc(BUB_SHOOTER_X, BUB_SHOOTER_Y, BUB_R - 1, 0, Math.PI * 2);
-    ctx.fillStyle = bubColour(holding);
-    ctx.fill();
-    bubDrawSymbol(ctx, holding, BUB_SHOOTER_X, BUB_SHOOTER_Y, BUB_R - 1);
+    circle(holding, BUB_SHOOTER_X, BUB_SHOOTER_Y, BUB_R - 1);
   }
 
   if (state.flightColour) {
     const cx = state.x / 256;
     const cy = state.y / 256;
-    ctx.beginPath();
-    ctx.arc(cx, cy, BUB_R - 1, 0, Math.PI * 2);
-    ctx.fillStyle = bubColour(state.flightColour);
-    ctx.fill();
-    bubDrawSymbol(ctx, state.flightColour, cx, cy, BUB_R - 1);
+    circle(state.flightColour, cx, cy, BUB_R - 1);
   }
 
   ctx.fillStyle = BUB_BG;
@@ -593,11 +599,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize):
   for (let ahead = 1; ahead <= 3; ahead++) {
     const value = bubNextColour(state, ahead);
     if (!value) continue;
-    ctx.beginPath();
-    ctx.arc(52 + ahead * 22, 50, 8, 0, Math.PI * 2);
-    ctx.fillStyle = bubColour(value);
-    ctx.fill();
-    bubDrawSymbol(ctx, value, 52 + ahead * 22, 50, 8);
+    circle(value, 52 + ahead * 22, 50, 8);
   }
   ctx.restore();
 }

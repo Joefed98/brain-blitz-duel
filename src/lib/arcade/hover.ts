@@ -36,9 +36,9 @@ export const HOVER_GRAVITY = 90;
 export const HOVER_IMPULSE = -1_664;
 export const HOVER_TERMINAL = 2_304;
 
-/** Scroll speed: 2.6 px/tick, +0.08 px/tick per gate passed, capped at 5.2. */
+/** Scroll speed: 2.6 px/tick, +0.06 px/tick per gate passed, capped at 5.2. */
 export const HOVER_SCROLL_START = 666;
-export const HOVER_SCROLL_STEP = 20;
+export const HOVER_SCROLL_STEP = 0.06 * 256;
 export const HOVER_SCROLL_MAX = 1_331;
 
 export const HOVER_PILLAR_W = 10_240;
@@ -91,7 +91,7 @@ function gapUnits(index: number): number {
 
 /** Scroll speed for a player who has passed this many gates. */
 export function hoverScroll(gates: number): number {
-  return Math.min(HOVER_SCROLL_MAX, HOVER_SCROLL_START + HOVER_SCROLL_STEP * gates);
+  return Math.min(HOVER_SCROLL_MAX, Math.round(HOVER_SCROLL_START + HOVER_SCROLL_STEP * gates));
 }
 
 /** Left edge of a pillar right now. */
@@ -111,6 +111,10 @@ function buildCourse(seed: number): { pillars: HoverPillar[]; rng: number } {
   let rng = seed | 0;
   let x = HOVER_FIRST_X;
   void maxTravel;
+  const reachable = countTotalGates(Array.from({ length: HOVER_GATE_COUNT }, (_, i) => ({
+    x0: HOVER_FIRST_X + i * HOVER_SPACING, gapTop: 0, gapH: 0,
+  })));
+  let previousThird = 1;
   while (pillars.length < HOVER_GATE_COUNT) {
     const gap = gapUnits(pillars.length);
     const half = gap >> 1;
@@ -121,7 +125,13 @@ function buildCourse(seed: number): { pillars: HoverPillar[]; rng: number } {
     const span = Math.max(1, high - low + 1);
     const drawn = rngBelow(rng, span);
     rng = drawn.state;
-    const centre = (low + drawn.value) << 8;
+    let centre = (low + drawn.value) << 8;
+    let third = Math.min(2, Math.floor(centre * 3 / HOVER_WORLD_BOTTOM));
+    if (pillars.length < reachable - 12 && Math.abs(third - previousThird) === 2) {
+      centre = HOVER_WORLD_BOTTOM >> 1;
+      third = 1;
+    }
+    previousThird = third;
     pillars.push({ x0: x, gapTop: centre - half, gapH: gap });
     x += HOVER_SPACING;
   }
@@ -244,7 +254,7 @@ export function hoverSurvived(state: HoverState): boolean {
 
 function score(state: HoverState): number {
   const gates = clampInt(state.gates, 0, HOVER_GATE_COUNT);
-  if (gates >= HOVER_GATE_COUNT) return HOVER_ALL_GATES_SCORE;
+  if (gates >= state.totalGates) return HOVER_ALL_GATES_SCORE;
   return clampInt(HOVER_GATE_POINTS * gates, 0, HOVER_ALL_GATES_SCORE);
 }
 

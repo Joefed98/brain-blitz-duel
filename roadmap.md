@@ -571,3 +571,9 @@
 ## Dig rework
 - [x] Sim fixes (level flow, orthogonal drag interpolation, settling, early end), budget, acid, lava, evaporation, two-drain hard boards; bank 300 (200/100) rebuilt and proven; no browser tests.
 - [x] Dig hole-seeking flow; bank 300 rebuilt (routes up to 8 along a shelf, pools 3–6 wide); dig-check 0 problems; no browser tests.
+
+## Arcade tuning pass (Oct 4)
+- [ ] Hover pace/gaps, Matchup 7×8/refills, Bubble starting clusters/extra row/circles.
+- [ ] Beat two-ended hold judgement and visible heads/tails; Cross road lanes/start respawn.
+- [ ] Burst permanent arrows/two lives; Orbit red-box removal; Tilt circle/spikes; Bastion practice-only.
+- [ ] Focused mechanics checks and self-replay ONLY Hover, Matchup, Bubble, Beat, Cross, Burst, Orbit, Tilt; no browser tests.

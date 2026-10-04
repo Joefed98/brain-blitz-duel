@@ -373,8 +373,8 @@ for (const spec of GAMES.filter((g) => !ONLY || ONLY.includes(g.key))) {
   );
 }
 
-// Server repair: a bad log is clamped and replayed, never thrown away.
-{
+// Run the unrelated repair check only when Breaker is selected.
+if (!ONLY || ONLY.includes("breaker")) {
   const seed = 777;
   const events: ArcadeInputEvent[] = [
     { t: 10, k: 7, a: 200, b: 0, c: 0, d: 0 },
@@ -398,4 +398,4 @@ if (failures) {
   console.error(`${failures} check(s) failed`);
   process.exit(1);
 }
-console.log(`self-replay checks passed for all ${GAMES.length} games`);
+console.log(`self-replay checks passed for ${GAMES.filter((g) => !ONLY || ONLY.includes(g.key)).length} selected games`);
