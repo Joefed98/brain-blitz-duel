@@ -60,13 +60,13 @@ export const SNIP_CONFIG = {
   sweetShare: 64,
   sweetRadius: 12,
   /** Sweet centre within this distance of the mouth centre = eaten. */
-  mouthRadius: 20,
+  mouthRadius: 24,
   /** Sweet centre within this distance of a star = collected. */
   starReach: 24,
   /** Bounce kept off walls and platforms, out of 256. */
   bounce: 112,
-  /** Side walls retain 70% of velocity. Platforms keep their existing response. */
-  wallBounce: 179,
+  /** Side walls reflect velocity without loss. Platforms keep their existing response. */
+  wallBounce: 256,
   /** Sliding speed kept along a platform each contact tick, out of 256. */
   friction: 236,
   /** Seeded pin wobble per level, ± px. */
@@ -555,11 +555,11 @@ export function drawSnip(
   const [mxp, myp] = tpl.mouth;
   ctx.fillStyle = SNIP_MOUTH;
   ctx.beginPath();
-  ctx.arc(mxp, myp, 22, 0, Math.PI * 2);
+  ctx.arc(mxp, myp, SNIP_CONFIG.mouthRadius * 1.1, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#1E2433";
   ctx.beginPath();
-  ctx.ellipse(mxp, myp - 2, 11, 7, 0, 0, Math.PI * 2);
+  ctx.ellipse(mxp, myp - 2.4, 13.2, 8.4, 0, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = SNIP_STAR;
