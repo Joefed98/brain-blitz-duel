@@ -107,7 +107,7 @@ const EXAMPLE: DigBoard = {
   minDigs: 3,
   targets: [26],
 };
-const EXAMPLE_DIGS = [14, 20, 26];
+const EXAMPLE_DIGS = [20, 26, 32];
 
 function IntroExample() {
   const [state, setState] = useState<DigState>(() => digInit(EXAMPLE));
