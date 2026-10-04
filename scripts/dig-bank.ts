@@ -184,7 +184,8 @@ function build(hard: boolean) {
   const pool = w.reduce((x, y) => x + y, 0);
   const total = hard ? Math.floor((pool * 60 + 50) / 100) : digTarget(pool);
   const split = hard ? (rand(2) ? 60 : 70) : 100;
-  const t1 = hard ? Math.round((total * split) / 100) : total;
+  // Drain 1 (filled first) takes the smaller share, so plenty is left for drain 2.
+  const t1 = hard ? total - Math.round((total * split) / 100) : total;
   // Drains in tile order: drain 2 (mid-grid) comes before drain 1 (bottom row) for hard boards.
   const targets = hard ? [total - t1, t1] : [total];
   const board: DigBoard = { cols: C, rows: R, tiles: t.join(""), water: w.join(""), budget: minDigs + DIG_BUDGET_SLACK, minDigs, targets };
