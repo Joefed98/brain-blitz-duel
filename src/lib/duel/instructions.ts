@@ -831,10 +831,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Dig a path for the water to the drain.",
     how: [
       { action: "Limited digs.", detail: "Drag across gold sand to dig it." },
-      { action: "Avoid acid", detail: "(poisons water) and lava (destroys it)." },
-      { action: "Still water evaporates.", detail: "" },
+      { action: "Sand falls when you dig under it.", detail: "Fallen sand packs and can't be dug." },
+      { action: "Avoid acid and lava.", detail: "Still water evaporates." },
     ],
-    score: "Fill the drain with clean water: 100 + time bonus, +20 using the fewest digs. Otherwise points for clean water drained.",
+    score: "Fill the drain with clean water: 100 + time bonus, +20 within the planned digs. Otherwise points for clean water drained.",
   },
   trail: {
     goal: "Draw one path from 1 to 36 through every square.",

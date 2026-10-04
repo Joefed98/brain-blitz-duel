@@ -3,7 +3,9 @@
  *
  *   bun scripts/dig-bank.ts
  *
- * Answer-first. A rock basin holds the pool above a one-plug floor. The water
+ * Answer-first, on a rock board: sand only where placed (route, trap chute,
+ * stable decoy ledges), so planned digs run from the pool downward — dig a
+ * lower cell first and the sand above falls in and packs. A rock basin holds the pool above a one-plug floor. The water
  * falls down a shaft onto a full-width rock shelf. Straight under the shaft the
  * shelf has a tempting sand hole — the obvious, shorter route to the drain
  * below — with lava or acid right under it. The intended route instead runs
