@@ -183,7 +183,7 @@ function build(hard: boolean) {
   if (minDigs < 4) return (FAIL[4]=(FAIL[4]??0)+1, null);
 
   const pool = w.reduce((x, y) => x + y, 0);
-  const total = hard ? Math.floor((pool * 70 + 50) / 100) : digTarget(pool);
+  const total = hard ? Math.floor((pool * 60 + 50) / 100) : digTarget(pool);
   const split = hard ? (rand(2) ? 60 : 70) : 100;
   const t1 = hard ? Math.round((total * split) / 100) : total;
   // Drains in tile order: drain 2 (mid-grid) comes before drain 1 (bottom row) for hard boards.
@@ -214,7 +214,7 @@ function build(hard: boolean) {
     if (digComplete(early)) return (FAIL[6]=(FAIL[6]??0)+1, null);
   }
   const good = digReplay(board, intended).state;
-  if (!good.completeStep && Math.random()<0.003) console.log(hard, good.drained, good.targets, good.lost, good.settledUnits, good.water.reduce((x,y)=>x+y,0), good.pool, good.toxicIn);
+  if (!good.completeStep && false) console.log(hard, good.drained, good.targets, good.lost, good.settledUnits, good.water.reduce((x,y)=>x+y,0), good.pool, good.toxicIn);
   if (!good.completeStep) return (FAIL[7]=(FAIL[7]??0)+1, null);
 
   // Safe minimum: no hazards, nothing beside one, no gap.

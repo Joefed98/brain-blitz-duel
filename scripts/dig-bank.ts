@@ -182,7 +182,7 @@ function build(hard: boolean) {
   if (minDigs < 4) return null;
 
   const pool = w.reduce((x, y) => x + y, 0);
-  const total = hard ? Math.floor((pool * 70 + 50) / 100) : digTarget(pool);
+  const total = hard ? Math.floor((pool * 60 + 50) / 100) : digTarget(pool);
   const split = hard ? (rand(2) ? 60 : 70) : 100;
   const t1 = hard ? Math.round((total * split) / 100) : total;
   // Drains in tile order: drain 2 (mid-grid) comes before drain 1 (bottom row) for hard boards.
