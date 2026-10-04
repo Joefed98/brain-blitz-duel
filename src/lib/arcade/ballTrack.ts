@@ -10,7 +10,7 @@ import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 
 export const BT_COLS = 7;
 export const BT_ROWS = 9;
-export const BT_BALLS = 20;
+export const BT_BALLS = 25;
 export const BT_COLOURS = 5;
 export const BT_STEP_TICKS = 12;
 export const BT_DROP_TICKS = 120; // a ball every 2 s
