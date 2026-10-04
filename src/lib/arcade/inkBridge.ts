@@ -557,20 +557,22 @@ function findReference(lvl: InkLevel, ink: number): { ref: number[][]; t0: numbe
     for (const fx of [-60, -20, 20, 60, 110]) {
       way.push([lvl.spoutX + dir * fx, sy + Math.trunc(((lvl.bucketY - sy) * fy) / 100)]);
     }
-  const phases = lvl.slideAmp ? 4 : 1;
-  for (let k = 0; k < phases; k++) {
-    const t0 = Math.trunc((k * lvl.slidePeriod) / phases);
-    for (const w of [null, ...way]) {
-      for (const lift of lifts) {
-        for (const ex of ends) {
-          const ey = lvl.bucketY - lift;
-          const pts = w ? [sx, sy, w[0], w[1], ex, ey] : [sx, sy, ex, ey];
-          if (w && (w[0] < 4 || w[0] > INK_WORLD_W - 4 || w[1] >= ey - 10)) continue;
-          const ref = [pts];
-          const pen = strokeSegs(ref, ink);
-          if (pen.penDown === 0) continue; // ran out of ink
-          if (simulateDrop(lvl, pen.segs, t0) === 1) return { ref, t0 };
-        }
+  // Screen candidates against the still bucket (one drop each); a sliding level then needs a
+  // release, among 16 over one slide period, that lands with the bucket moving.
+  const still: InkLevel = { ...lvl, slideAmp: 0 };
+  for (const w of [null, ...way]) {
+    for (const lift of lifts) {
+      for (const ex of ends) {
+        const ey = lvl.bucketY - lift;
+        const pts = w ? [sx, sy, w[0], w[1], ex, ey] : [sx, sy, ex, ey];
+        if (w && (w[0] < 4 || w[0] > INK_WORLD_W - 4 || w[1] >= ey - 10)) continue;
+        const ref = [pts];
+        const pen = strokeSegs(ref, ink);
+        if (pen.penDown === 0) continue; // ran out of ink
+        if (simulateDrop(still, pen.segs) !== 1) continue;
+        if (!lvl.slideAmp) return { ref, t0: 0 };
+        const t0 = landingRelease(lvl, pen.segs);
+        if (t0 >= 0) return { ref, t0 };
       }
     }
   }
@@ -631,7 +633,6 @@ function buildLevels(seed: number): { list: InkLevel[]; rng: number } {
       const found = findReference(lvl, inkBudget(level));
       made = { ...lvl, ref: found?.ref ?? [[96, 78, 300, 526]], refT0: found?.t0 ?? 0 };
     }
-    if ((globalThis as { INKDBG?: number }).INKDBG) console.log("level", level, Math.round(performance.now()));
     list.push(made);
   }
   return { list, rng };
