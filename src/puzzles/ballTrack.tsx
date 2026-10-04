@@ -152,9 +152,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         seenHome = s.home;
         playBlip();
       }
-      const events = (s.tick >= course.relay.tick ? 1 : 0) + (s.tick >= course.shuffle.tick ? 1 : 0);
-      if (events > shuffled) {
-        shuffled = events;
+      const bottomEvents = (s.tick >= course.relay.tick ? 1 : 0) + (s.tick >= course.shuffle.tick ? 1 : 0);
+      if (bottomEvents > shuffled) {
+        shuffled = bottomEvents;
         playTick();
       }
       if (s.wrong + s.lost > seenBad) {
