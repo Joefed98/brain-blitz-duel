@@ -15,7 +15,9 @@ DIG_BANK.forEach((e, n) => {
   if (JSON.stringify(a.state) !== JSON.stringify(b.state)) fail(`${n}: replay identity`);
   if (!a.state.completeStep) fail(`${n}: intended incomplete`);
   if (a.dug !== e.minDigs) fail(`${n}: intended digs ${a.dug} ≠ min ${e.minDigs}`);
-  if (e.budget !== e.minDigs + 3 || e.minDigs < 4) fail(`${n}: budget`);
+  if (e.budget !== e.minDigs + 2 || e.minDigs < 4) fail(`${n}: budget`);
+  const cells = log.map((x) => x.cell).reverse();
+  if (digReplay(board, log.map((x, i) => ({ step: x.step, cell: cells[i]! }))).state.completeStep) fail(`${n}: reverse completes`);
   const s = a.state;
   const left = s.water.reduce((x, y) => x + y, 0);
   const inDrains = s.drained.reduce((x, y) => x + y, 0);
