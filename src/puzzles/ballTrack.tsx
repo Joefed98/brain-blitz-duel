@@ -30,7 +30,7 @@ import { btDraw } from "@/lib/arcade/ballTrack";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Practice fallback course (the first bank course). */
-const PRACTICE_COURSE: BtCourse = {"trays":[-1,-1,3,0,1,2,-1],"relay":{"tick":1454,"trays":[-1,3,-1,0,1,-1,2]},"shuffle":{"tick":2538,"trays":[-1,0,-1,1,2,-1,3]},"balls":[3,2,2,3,3,0,2,0,3,1,1,2,3,1,2,0,3,1,1,0,0,1],"fixed":[4,5,9,15,22,25,26,30,36,39,44,45,47,51]};
+const PRACTICE_COURSE: BtCourse = {"trays":[-1,-1,1,0,2,-1,3],"relay":{"tick":1469,"trays":[-1,1,-1,0,2,3,-1]},"shuffle":{"tick":2590,"trays":[-1,0,-1,3,1,2,-1]},"balls":[2,3,0,3,0,3,2,0,1,2,0,1,3,1,1,0,1,3,2,1,2,3,0,2,0],"fixed":[11,12,15,23,25,33,36,37,45,46,47,50]};
 
 /* ------------------------------ Intro example ------------------------------ */
 
