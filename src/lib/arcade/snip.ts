@@ -45,7 +45,8 @@ export const SNIP_CONFIG = {
   restTicks: 30,
   /** Per-tick speed (1/256 px) below which the sweet counts as resting. */
   restSpeed: 48,
-  worldW: 360,
+  worldW: 540,
+  viewW: 360,
   worldH: 560,
   /** Nodes per rope including the pin; the sweet is one more segment. */
   ropeNodes: 9,
@@ -64,27 +65,29 @@ export const SNIP_CONFIG = {
   starReach: 24,
   /** Bounce kept off walls and platforms, out of 256. */
   bounce: 112,
+  /** Side walls retain 70% of velocity. Platforms keep their existing response. */
+  wallBounce: 179,
   /** Sliding speed kept along a platform each contact tick, out of 256. */
   friction: 236,
   /** Seeded pin wobble per level, ± px. */
   pinJitter: 10,
   pointsPerSweet: 10,
-  pointsPerStar: 2,
+  pointsPerStar: 3,
   /** Bonus for clearing all ten levels, scaled by time left. */
-  finishBonus: 10,
+  finishBonus: 20,
   maxScore: 150,
   /** Ten levels in play order, easiest first. */
   templates: [
-    { name: "Drop", sweet: [180, 170], pins: [[180, 60, 0]], platforms: [], mouth: [180, 480], stars: [[180, 260], [180, 360]] },
-    { name: "Swing", sweet: [70, 150], pins: [[180, 50, 0]], platforms: [], mouth: [290, 490], stars: [[180, 200], [262, 330]] },
-    { name: "Pair", sweet: [180, 180], pins: [[70, 60, 0], [290, 60, 0]], platforms: [], mouth: [300, 490], stars: [[250, 250], [180, 210]] },
-    { name: "Long arc", sweet: [150, 80], pins: [[320, 50, 0]], platforms: [], mouth: [230, 490], stars: [[312, 215], [230, 380]] },
-    { name: "Ledge", sweet: [80, 170], pins: [[200, 60, 0]], platforms: [[30, 330, 150, 346]], mouth: [290, 500], stars: [[200, 225], [270, 330]] },
-    { name: "Triple", sweet: [180, 200], pins: [[60, 80, 0], [180, 40, 0], [300, 80, 0]], platforms: [[20, 430, 120, 446]], mouth: [180, 490], stars: [[180, 330], [180, 420]] },
-    { name: "Anchor", sweet: [220, 150], pins: [[120, 50, 0], [300, 230, 0]], platforms: [[200, 420, 340, 436]], mouth: [80, 490], stars: [[128, 192], [88, 440]] },
-    { name: "Shelf", sweet: [110, 170], pins: [[50, 60, 0], [170, 60, 0]], platforms: [[200, 300, 340, 316], [20, 440, 140, 456]], mouth: [290, 280], stars: [[200, 200], [250, 240]] },
-    { name: "Gap", sweet: [180, 150], pins: [[40, 100, 30], [320, 100, 30]], platforms: [[30, 400, 150, 416], [210, 400, 330, 416]], mouth: [180, 500], stars: [[180, 260], [180, 440], [120, 200]] },
-    { name: "Under", sweet: [180, 170], pins: [[60, 60, 0], [300, 60, 0], [180, 320, 0]], platforms: [[20, 380, 110, 396]], mouth: [290, 470], stars: [[180, 470], [100, 300], [250, 380]] },
+    { name: "Drop", sweet: [270, 170], pins: [[270, 60, 0]], platforms: [], mouth: [270, 480], stars: [[270, 260]] },
+    { name: "Swing", sweet: [160, 150], pins: [[270, 50, 0]], platforms: [], mouth: [380, 490], stars: [[270, 200]] },
+    { name: "Pair", sweet: [270, 180], pins: [[160, 60, 0], [380, 60, 0]], platforms: [], mouth: [390, 490], stars: [[340, 250]] },
+    { name: "Long arc", sweet: [240, 80], pins: [[410, 50, 0]], platforms: [], mouth: [320, 490], stars: [[320, 380]] },
+    { name: "Ledge", sweet: [170, 170], pins: [[290, 60, 0]], platforms: [[120, 330, 240, 346]], mouth: [380, 500], stars: [[360, 330]] },
+    { name: "Triple", sweet: [270, 200], pins: [[150, 80, 0], [270, 40, 0], [390, 80, 0]], platforms: [[110, 430, 210, 446]], mouth: [270, 490], stars: [[270, 330]] },
+    { name: "Anchor", sweet: [310, 150], pins: [[210, 50, 0], [390, 230, 0]], platforms: [[290, 420, 430, 436]], mouth: [170, 490], stars: [[178, 440]] },
+    { name: "Shelf", sweet: [200, 170], pins: [[140, 60, 0], [260, 60, 0]], platforms: [[290, 300, 430, 316], [110, 440, 230, 456]], mouth: [380, 280], stars: [[340, 240]] },
+    { name: "Gap", sweet: [270, 150], pins: [[130, 100, 30], [410, 100, 30]], platforms: [[120, 400, 240, 416], [300, 400, 420, 416]], mouth: [270, 500], stars: [[270, 260]] },
+    { name: "Under", sweet: [270, 170], pins: [[150, 60, 0], [390, 60, 0], [270, 320, 0]], platforms: [[110, 380, 200, 396]], mouth: [380, 470], stars: [[340, 380]] },
   ] as readonly SnipTemplate[],
 } as const;
 
@@ -355,7 +358,7 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
   if (sx < r || sx > W - r) {
     const pvx = sx - sox;
     sx = sx < r ? r : W - r;
-    sox = sx + ((pvx * c.bounce) >> 8);
+    sox = sx + ((pvx * c.wallBounce) >> 8);
   }
   for (const rope of ropes) {
     for (let i = 1; i < rope.x.length; i++) {
@@ -363,7 +366,7 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
       if (x >= 0 && x <= W) continue;
       const pvx = x - rope.ox[i]!;
       rope.x[i] = x < 0 ? 0 : W;
-      rope.ox[i] = rope.x[i]! + ((pvx * c.bounce) >> 8);
+      rope.ox[i] = rope.x[i]! + ((pvx * c.wallBounce) >> 8);
     }
   }
   let resting = false;
@@ -418,7 +421,7 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
   }
 
   if (outcome !== SNIP_PLAYING) {
-    next.stars += Math.min(3, next.starGot.reduce((n, g) => n + g, 0));
+    next.stars += Math.min(1, next.starGot.reduce((n, g) => n + g, 0));
     if (outcome === SNIP_EATEN) {
       next.eaten += 1;
       if (next.eaten >= c.levels) next.finishTick = tick;
@@ -430,7 +433,7 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
   return next;
 }
 
-/** 10 per level fed + 2 per star; all ten fed adds round(10 × ms left ÷ 60 s); cap 150. */
+/** 10 per level fed + 3 per star; all ten fed adds round(20 × ms left ÷ 60 s); cap 150. */
 export function snipScore(eaten: number, stars: number, finishTick = 0): number {
   const c = SNIP_CONFIG;
   const bonus = eaten >= c.levels && finishTick > 0
@@ -495,7 +498,18 @@ export const SNIP_MOUTH = "#5FBF4A";
 export const SNIP_STAR = "#F5C542";
 
 export function snipView(size: CanvasSize): { scaleX: number; scaleY: number } {
-  return { scaleX: size.width / SNIP_W, scaleY: size.height / SNIP_H };
+  return { scaleX: size.width / SNIP_CONFIG.viewW, scaleY: size.height / SNIP_H };
+}
+
+/** Render-only camera: soft velocity lead with a hard visibility guard. */
+export function snipCamera(state: SnipState, previous: number, dtSeconds = 1 / 60): number {
+  const x = state.sx / 256;
+  const velocity = (state.sx - state.sox) / 256;
+  const viewW = SNIP_CONFIG.viewW;
+  const target = clampInt(x + Math.max(-54, Math.min(54, velocity * 8)) - viewW / 2, 0, SNIP_W - viewW);
+  const eased = previous + (target - previous) * (1 - Math.exp(-8 * Math.max(0, dtSeconds)));
+  const safe = 36;
+  return Math.max(0, Math.min(SNIP_W - viewW, Math.max(x - viewW + safe, Math.min(x - safe, eased))));
 }
 
 function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
@@ -514,13 +528,24 @@ export function drawSnip(
   state: SnipState,
   size: CanvasSize,
   trail?: readonly (readonly [number, number])[],
+  cameraX = snipCamera(state, state.sx / 256 - SNIP_CONFIG.viewW / 2, 1),
 ): void {
   const { scaleX, scaleY } = snipView(size);
   ctx.save();
   ctx.clearRect(0, 0, size.width, size.height);
+  ctx.beginPath();
+  ctx.rect(0, 0, size.width, size.height);
+  ctx.clip();
   ctx.scale(scaleX, scaleY);
+  ctx.translate(-cameraX, 0);
   ctx.fillStyle = "#1E2433";
   ctx.fillRect(0, 0, SNIP_W, SNIP_H);
+  ctx.strokeStyle = "#6A7280";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(1.5, 0); ctx.lineTo(1.5, SNIP_H);
+  ctx.moveTo(SNIP_W - 1.5, 0); ctx.lineTo(SNIP_W - 1.5, SNIP_H);
+  ctx.stroke();
   const tpl = SNIP_CONFIG.templates[state.template]!;
 
   ctx.fillStyle = "#6B5B4B";
