@@ -36,7 +36,7 @@ let solved = 0, apart = 0;
 const dropSets = new Set<string>();
 if (BT_BALLS !== 25 || (BT_BALLS - 1) * BT_DROP_TICKS !== 48 * 60 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 16 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
 for (let home = 0; home <= BT_BALLS; home++) for (let wrong = 0; wrong <= BT_BALLS - home; wrong++) {
-  if (btScoreOf(home, wrong) !== Math.max(0, Math.min(150, Math.round(120 * home / BT_BALLS) - 5 * wrong + btSpeedBonus(home, BT_RUN_TICKS)))) fail("Scoring formula");
+  if (btScoreOf(home, wrong) !== Math.max(0, Math.min(150, Math.round(120 * home / BT_BALLS) + btSpeedBonus(home, BT_RUN_TICKS)))) fail("Scoring formula");
 if (btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 20 * 60) !== 30 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 15 * 60) !== 23 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 10 * 60) !== 15 || btSpeedBonus(BT_BALLS - 1, 0) !== 0) fail("Speed bonus");
 }
 BALL_TRACK_BANK.forEach((entry, i) => {

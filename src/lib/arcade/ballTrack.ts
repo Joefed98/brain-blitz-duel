@@ -210,10 +210,10 @@ export function btSpeedBonus(home: number, lastLand: number): number {
   return Math.min(30, Math.round((1.5 * (BT_RUN_TICKS - lastLand)) / 60));
 }
 
-/** round(120 × home ÷ ball count) − 5 per wrong tray + perfect-run speed bonus, 0–150. */
-export function btScoreOf(home: number, wrong: number, lastLand = BT_RUN_TICKS): number {
+/** round(120 × home ÷ ball count) + perfect-run speed bonus, 0–150; wrong trays score 0 like lost balls. */
+export function btScoreOf(home: number, _wrong: number, lastLand = BT_RUN_TICKS): number {
   const base = Math.round((120 * home) / BT_BALLS);
-  return Math.max(0, Math.min(150, base - 5 * wrong + btSpeedBonus(home, lastLand)));
+  return Math.max(0, Math.min(150, base + btSpeedBonus(home, lastLand)));
 }
 
 export function btScore(s: BtState): number {
