@@ -1,7 +1,6 @@
 ## Ball Track nine-row tuning
-- [x] Expand shared sim to 7×9, fixed tray-routing bottom row and 10-tick movement.
-- [ ] Rebuild 400 courses with sparse lower rows, 8–10 upper fixed straights and shortcut rejection.
-- [ ] Update compact phone sizing and intro example; run Ball Track-only proofs, no browser tests.
+- [ ] Resolve generator constraints: fixed bottom drops intercept horizontal entrants, limiting reachable trays when rows 7–8 have only four rotatable columns. Previous working game retained pending clarification.
+- [ ] Implement nine-row board, compact sizing and intro; rebuild 400 courses and run Ball Track-only proofs, no browser tests.
 
 ## Ball Track 20-ball tuning
 - [x] Thicken gold and grey tube outlines by 1.5× without changing tile gaps.
