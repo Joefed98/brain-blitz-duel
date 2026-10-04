@@ -7,9 +7,11 @@
 - Hot Floor generation exhaustively enumerates simple budgeted survivors; accepted stages have at most two routes (three on stages 1–2), a zero-slack pinch on every survivor, three same-or-shorter number failures, and under 20% highest-number-first solves.
 - Ball Track bank searches column placements, minimising triple rotatable stacks and forbidding longer ones; why: seeded courses retain the best count before replay acceptance.
 - Ball Track warnings derive from seeded event ticks; sound follows sim-tick digit transitions; why: identical warnings without changing replay state or event timing.
-- Matchup uses separate row and column bounds for all matching, blasts, gravity and input mapping; why: its rectangular board must replay identically.
+- Matchup uses separate row and column bounds and creates specials in every cascade/refill resolution; why: its rectangular board must replay identically.
 - Beat reserves hold heads and awards the whole note only after a window-checked release; why: both endpoint errors determine server-verified credit.
 - Bin Toss stores seeded per-throw slides (integer half-wave, trimmed to keep the bin on screen) and narrows the bin from throw 4 with wind scaled to width; Bullseye stores per-arrow ring-value permutations with colour keyed to value; why: sim, drawing and server replay must agree.
-- Breaker draws per-brick HP (maxHp) and one laser/5-ball/double-ball brick in fixed row bands at init; a tap anywhere sends the button input, which fires whatever is held; why: seeded boards and tap-fires must replay identically on the server.
+- Breaker draws per-brick HP (maxHp) and one laser, one 5-ball and two double-ball bricks in fixed row bands at init; a tap anywhere sends the button input, which fires whatever is held; why: seeded boards and tap-fires must replay identically on the server.
 - Wavefront's armoured piece (from wave 2) is a seeded 2-row block of formation cells marked WAV_ARMOUR_CODE with its own HP; armour hits count toward score against WAV_PAR (a perfect wave-5 run), and the saucer drop's delay is seeded; why: sim, drawing and server replay must agree.
 - Orbit's 30 s checkpoint grants one respawn and scores the furthest planet (best), not the current one; Tilt's chaser gate, padlock and crevice are chosen in buildMaze; Flip's warp is a seeded integer vertical offset that hazards share; Ink Bridge sliding buckets are verified with a still-bucket screen then a timed release; why: sim, drawing and server replay must agree.
+
+- Cross uses integer half-column positions in both play and passability search; why: shorter swipes must retain the same reachability proof.

@@ -29,7 +29,7 @@ export const WAV_HUD_H = 44;
 export const WAV_RUN_SECONDS = 60;
 export const WAV_RUN_TICKS = WAV_RUN_SECONDS * TICKS_PER_SECOND;
 
-export const WAV_SHIP_Y = 566;
+export const WAV_SHIP_Y = 554;
 export const WAV_SHIP_W = 40;
 export const WAV_SHIP_H = 24;
 const SHIP_MIN_X = 24;

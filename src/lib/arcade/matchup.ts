@@ -471,20 +471,21 @@ function resolveBoard(
     const gone = new Set<number>();
     const created = new Map<number, number>();
 
-    // A swap that makes two lines crossing at one cell (a T or an L) turns
-    // the swapped cell into a STAR instead of a bomb or cross.
+    // Every horizontal/vertical intersection makes an L/T special, including refills.
+    // Prefer the swapped cells on the first resolution, then scan in board order.
     const starRuns = new Set<MatchupRun>();
-    if (steps === 0) {
-      for (const cell of [preferred, otherSwapped]) {
-        if (cell === null || created.size > 0) continue;
-        const through = runs.filter((run) => run.cells.includes(cell));
-        const horizontal = through.find((run) => isHorizontal(run));
-        const vertical = through.find((run) => !isHorizontal(run));
-        if (horizontal && vertical) {
-          starRuns.add(horizontal);
-          starRuns.add(vertical);
-          created.set(cell, MATCHUP_STAR);
-        }
+    const candidates = [...new Set([
+      ...(steps === 0 ? [preferred, otherSwapped].filter((cell): cell is number => cell !== null) : []),
+      ...runs.flatMap((run) => run.cells),
+    ])];
+    for (const cell of candidates) {
+      const through = runs.filter((run) => run.cells.includes(cell));
+      const horizontal = through.find((run) => isHorizontal(run));
+      const vertical = through.find((run) => !isHorizontal(run));
+      if (horizontal && vertical && !starRuns.has(horizontal) && !starRuns.has(vertical)) {
+        starRuns.add(horizontal);
+        starRuns.add(vertical);
+        created.set(cell, MATCHUP_STAR);
       }
     }
 
@@ -768,26 +769,17 @@ export function matchupDrawSymbol(
 ): void {
   if (kind === MATCHUP_BOMB) {
     ctx.save();
-    ctx.fillStyle = "#15151C";
-    ctx.strokeStyle = MATCHUP_GOLD;
-    ctx.lineWidth = 2;
+    ctx.fillStyle = "#FFFFFF";
     ctx.beginPath();
-    ctx.arc(cx, cy + radius * 0.08, radius * 0.78, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.strokeStyle = MATCHUP_GOLD;
-    ctx.beginPath();
-    ctx.moveTo(cx + radius * 0.38, cy - radius * 0.58);
-    ctx.quadraticCurveTo(
-      cx + radius * 0.72,
-      cy - radius * 0.95,
-      cx + radius * 0.2,
-      cy - radius * 1.1,
-    );
-    ctx.stroke();
-    ctx.fillStyle = MATCHUP_GOLD;
-    ctx.beginPath();
-    ctx.arc(cx + radius * 0.12, cy - radius * 1.08, radius * 0.12, 0, Math.PI * 2);
+    for (let point = 0; point < 8; point++) {
+      const r = point % 2 === 0 ? radius * 1.12 : radius * 0.4;
+      const angle = point * Math.PI / 4 - Math.PI / 2;
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r;
+      if (point === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
     ctx.fill();
     ctx.restore();
     return;
