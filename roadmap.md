@@ -1,6 +1,6 @@
 ## Ball Track nine-row tuning
-- [ ] Resolve generator constraints: fixed bottom drops intercept horizontal entrants, limiting reachable trays when rows 7–8 have only four rotatable columns. Previous working game retained pending clarification.
-- [ ] Implement nine-row board, compact sizing and intro; rebuild 400 courses and run Ball Track-only proofs, no browser tests.
+- [x] Apply the agreed row-8 allowance of four rotatable straights; row 7 stays at two, with fixed bottom-row interception and upper-routing alternatives for every tray.
+- [x] Implement nine-row board, compact hopper/trays and fixed-row intro; 400/400 courses route 20/20 home and Ball Track identity passes 200/200. No browser tests; device fit remains user-tested.
 
 ## Ball Track 20-ball tuning
 - [x] Thicken gold and grey tube outlines by 1.5× without changing tile gaps.

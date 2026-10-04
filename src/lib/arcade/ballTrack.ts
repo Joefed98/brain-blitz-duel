@@ -1,7 +1,7 @@
 /**
- * Ball Track: a deterministic 60-tick sim. A fixed 7×7 serpentine of straights
+ * Ball Track: a deterministic 60-tick sim. A fixed 7×9 serpentine of straights
  * and corners; tapping a gold straight toggles it vertical so balls drop through
- * to the next row (or the tray below on row 7). Balls drop every 2 s. The server replays the tap log.
+ * to the next row (or the tray in the fixed bottom row). Balls drop every 2 s. The server replays the tap log.
  */
 
 import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
@@ -9,10 +9,10 @@ import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 /* ================================ Config ================================ */
 
 export const BT_COLS = 7;
-export const BT_ROWS = 7;
+export const BT_ROWS = 9;
 export const BT_BALLS = 20;
 export const BT_COLOURS = 5;
-export const BT_STEP_TICKS = 12;
+export const BT_STEP_TICKS = 10;
 export const BT_DROP_TICKS = 120; // a ball every 2 s
 export const BT_RUN_TICKS = 3600; // 60 s
 export const BT_HOPPER_COL = 3;
@@ -42,13 +42,14 @@ for (let r = 0; r < BT_ROWS; r++)
     const end = d > 0 ? BT_COLS - 1 : 0;
     const onRow = d > 0 ? c >= start : c <= start;
     let kind = onRow ? 1 : 0, mask = 0;
-    if (onRow && c === start) { kind = 2; mask = N | (d > 0 ? E : W); }
+    if (r === BT_ROWS - 1) { kind = c === end ? 2 : 1; mask = c === end ? W | S : 0; }
+    else if (onRow && c === start) { kind = 2; mask = N | (d > 0 ? E : W); }
     else if (onRow && c === end && r < BT_ROWS - 1) { kind = 2; mask = S | (d > 0 ? W : E); }
     BT_KIND.push(kind);
     BT_CORNER.push(mask);
   }
 /** Straights fixed in every course: column 4, rows 1–6. */
-export const BT_ALWAYS_FIXED = Array.from({ length: BT_ROWS - 1 }, (_, r) => r * BT_COLS + BT_HOPPER_COL).filter((c) => BT_KIND[c] === 1);
+export const BT_ALWAYS_FIXED = Array.from({ length: 6 }, (_, r) => r * BT_COLS + BT_HOPPER_COL).filter((c) => BT_KIND[c] === 1);
 
 /* ================================ Course ================================ */
 
@@ -57,23 +58,23 @@ export interface BtCourse {
   trays: number[];
   /** Ball colours in drop order. */
   balls: number[];
-  /** Seeded extra fixed straights (never row 7, never column 4). */
+  /** Seeded extra fixed straights (rows 1–8; bottom row is always fixed). */
   fixed: number[];
 }
 
 /** Rotatable straights: every straight not in column 4 rows 1–6 and not a seeded fixed tile. */
 export function btRotatable(course: BtCourse): number[] {
   const fixed = new Set([...BT_ALWAYS_FIXED, ...course.fixed]);
-  return BT_KIND.flatMap((k, cell) => (k === 1 && !fixed.has(cell) ? [cell] : []));
+  return BT_KIND.flatMap((k, cell) => (k === 1 && cell < (BT_ROWS - 1) * BT_COLS && !fixed.has(cell) ? [cell] : []));
 }
 
 const PIT = -2;
 const SLOT = 100;
 
 /** Next cell for a ball in `cell` (arrived from above if `fromAbove`): neighbour, SLOT + column, or PIT. */
-export function btNext(cell: number, fromAbove: boolean, vertical: boolean): { cell: number; fromAbove: boolean } {
+export function btNext(cell: number, fromAbove: boolean, vertical: boolean, course?: BtCourse): { cell: number; fromAbove: boolean } {
   const r = Math.floor(cell / BT_COLS), c = cell % BT_COLS;
-  const down = BT_KIND[cell] === 2 ? !fromAbove : vertical;
+  const down = r === BT_ROWS - 1 ? (course?.trays[c] ?? -1) >= 0 || c === BT_COLS - 1 : BT_KIND[cell] === 2 ? !fromAbove : vertical;
   if (down) return r === BT_ROWS - 1 ? { cell: SLOT + c, fromAbove: true } : { cell: cell + BT_COLS, fromAbove: true };
   const nc = c + rowDir(r);
   if (nc < 0 || nc >= BT_COLS) return { cell: PIT, fromAbove: false };
@@ -85,7 +86,7 @@ export function btNext(cell: number, fromAbove: boolean, vertical: boolean): { c
 export interface BtBall {
   id: number;
   colour: number;
-  /** -1 = hopper, 0..48 cell, 100+col = dropping into a tray. */
+  /** -1 = hopper, 0..62 cell, 100+col = dropping into a tray. */
   cell: number;
   from: number;
   /** 1 = entered its tile from above. */
@@ -159,7 +160,7 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
       removed.add(ball.id);
       continue;
     }
-    const next = ball.cell < 0 ? { cell: BT_HOPPER_COL, fromAbove: true } : btNext(ball.cell, ball.above === 1, s.vert[ball.cell] === 1);
+    const next = ball.cell < 0 ? { cell: BT_HOPPER_COL, fromAbove: true } : btNext(ball.cell, ball.above === 1, s.vert[ball.cell] === 1, course);
     if (next.cell === PIT) {
       s.falls = keep(s.falls, { cell: ball.cell, colour: ball.colour, tick: t, ok: 0 });
       s.lost++;
@@ -215,11 +216,11 @@ export function btCheckpoint(s: BtState): BtCheckpoint {
 /* ================================ Drawing ================================ */
 
 export const BT_TILE = 100;
-export const BT_HOPPER_H = 80;
-export const BT_TRAY_H = 70;
+export const BT_HOPPER_H = 58;
+export const BT_TRAY_H = 42;
 export const BT_W = BT_COLS * BT_TILE;
 export const BT_H = BT_HOPPER_H + BT_ROWS * BT_TILE + BT_TRAY_H;
-const BALL_R = 20;
+const BALL_R = 22.5;
 const BG = "#12161C";
 const TUBE = "#F5B82E";
 const TUBE_FIXED = "#6A7280";
@@ -267,12 +268,12 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
   const rot = rotatable ?? new Set(btRotatable(course));
   ctx.fillStyle = BG;
   ctx.fillRect(0, gridY, BT_W, BT_ROWS * BT_TILE);
-  const maskOf = (cell: number) => (BT_KIND[cell] === 2 ? BT_CORNER[cell]! : s.vert[cell] ? N | S : E | W);
+  const maskOf = (cell: number) => (cell >= (BT_ROWS - 1) * BT_COLS && (course.trays[cell % BT_COLS] ?? -1) >= 0 ? N | S : BT_KIND[cell] === 2 ? BT_CORNER[cell]! : s.vert[cell] ? N | S : E | W);
   // Two parallel lines per piece: gold rotatable tubes and grey fixed tubes.
   ctx.lineCap = "butt";
   ctx.lineJoin = "round";
   for (const movable of [false, true]) {
-    for (const [width, colour] of [[BALL_R * 3 + 9, movable ? TUBE : TUBE_FIXED], [BALL_R * 3, BG]] as const) {
+    for (const [width, colour] of [[BALL_R * 3 + 6, movable ? TUBE : TUBE_FIXED], [BALL_R * 3, BG]] as const) {
       ctx.strokeStyle = colour;
       ctx.lineWidth = width;
       ctx.beginPath();
@@ -286,8 +287,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
     const x = col * BT_TILE + 6, w = BT_TILE - 12, h = BT_TRAY_H - 10;
     const flash = s.landings.some((m) => m.cell === col && s.tick - m.tick < 30);
     if (tray < 0) {
-      ctx.fillStyle = "#07090C";
-      ctx.fillRect(x, trayY, w, h);
+      // No tray below a non-drop column.
     } else {
       ctx.globalAlpha = flash ? 0.6 : 0.22;
       ctx.fillStyle = BT_PALETTE[tray]!;
