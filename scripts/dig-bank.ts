@@ -61,7 +61,7 @@ function shortest(tiles: string[], start: number, blocked: (i: number) => boolea
   dist[start] = 1;
   while (dq.length) {
     const i = dq.shift()!;
-    if (tiles[i] === "D") {
+    if (tiles[i] === "D" && i >= (R - 1) * C) {
       const path: number[] = [];
       for (let k = prev[i]; k >= 0; k = prev[k]) if (tiles[k] === "s") path.push(k);
       return path.reverse();
@@ -223,11 +223,11 @@ function build(hard: boolean) {
     }
   const plug = at(floor, col);
   const safe = shortest(t, plug, (i) => danger.has(i));
-  if (!safe || safe.length + 1 < (hard ? all.length - lower.length : all.length)) return null;
+  if (!safe || safe.length < all.length - lower.length) return null;
   // Geometric shortest (hazards allowed) must fail.
   const geo = shortest(t, plug, () => false);
   if (!geo) return null;
-  const geoCells = [plug, ...geo];
+  const geoCells = geo;
   if (geoCells.length >= all.length) return null;
   if (digComplete(digReplay(board, logFor(geoCells)).state)) return null;
 
