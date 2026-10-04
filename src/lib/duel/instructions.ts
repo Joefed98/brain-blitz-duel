@@ -810,9 +810,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag left or right to spin the maze", detail: "— the ball always rolls down." },
       { action: "Each escape brings a harder maze.", detail: "Red spikes end the run." },
-      { action: "You have 90 seconds.", detail: "" },
+      { action: "From maze 2 a red ball waits behind a silver gate.", detail: "Pass the padlock and it's free — it tilts with you. Touch it and the run ends." },
     ],
-    score: "30 per maze completed (ball out through the exit) — five completed = 150.",
+    score: "Four mazes, 30 each. Finish all four for up to 30 more for time left. Maximum 150.",
   },
   hotfloor: {
     goal: "Plan a route to the exit before the floor falls.",
