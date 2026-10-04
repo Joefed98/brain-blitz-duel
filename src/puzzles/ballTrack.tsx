@@ -256,7 +256,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
-        {result.home} / {BT_BALLS} home · {result.wrong} wrong
+        {result.home} / {BT_BALLS} home
       </p>
       <div className="flex gap-1.5" aria-hidden="true">
         {puzzle.course.trays.map((tray, i) => (
