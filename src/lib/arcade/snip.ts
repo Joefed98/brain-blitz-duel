@@ -88,13 +88,13 @@ export const SNIP_CONFIG = {
     { name: "Shelf", sweet: [200, 170], pins: [[140, 60, 0], [260, 60, 0]], platforms: [[290, 300, 430, 316], [110, 440, 230, 456]], mouth: [380, 280], stars: [[340, 240]] },
     { name: "Gap", sweet: [270, 150], pins: [[130, 100, 30], [410, 100, 30]], platforms: [[120, 400, 240, 416], [300, 400, 420, 416]], mouth: [270, 500], stars: [[270, 260]] },
     { name: "Under", sweet: [270, 170], pins: [[150, 60, 0], [390, 60, 0], [270, 320, 0]], platforms: [[110, 380, 200, 396]], mouth: [380, 470], stars: [[340, 380]] },
-  ].map((template: SnipTemplate): SnipTemplate => ({
+  ].map((template): SnipTemplate => ({
     // Keep each layout intact, with 360 extra px of swing clearance on each side.
     name: template.name,
-    sweet: [template.sweet[0] + 360, template.sweet[1]],
+    sweet: [(template.sweet[0] ?? 0) + 360, template.sweet[1] ?? 0],
     pins: template.pins.map(([x = 0, y = 0, slack = 0]) => [x + 360, y, slack]),
     platforms: template.platforms.map(([x0 = 0, y0 = 0, x1 = 0, y1 = 0]) => [x0 + 360, y0, x1 + 360, y1]),
-    mouth: [template.mouth[0] + 360, template.mouth[1]],
+    mouth: [(template.mouth[0] ?? 0) + 360, template.mouth[1] ?? 0],
     stars: template.stars.map(([x = 0, y = 0]) => [x + 360, y]),
   })) as readonly SnipTemplate[],
 } as const;
