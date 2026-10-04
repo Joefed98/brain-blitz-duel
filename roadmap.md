@@ -1,3 +1,8 @@
+## Logic grid size changes (Oct 4)
+- [x] Colour Flood 14×14, 60 s, full-width grid; exact par target 10–15 (proven fallback 16–20), observed 10–12 across 12 fresh boards.
+- [x] Shikaku 10×10 and Light Up 9×9, 110 s each; planned-action medians 16→19 rectangles / 13→16 bulbs across 50-board samples. Human solve timing estimated, not measured.
+- [x] On-demand generators have no precomputed banks to rebuild; 50/50 unique per game and actual server grading checks passed, plus 12/12 Flood minimum-par/replay checks; preview build OK and source phone fit checked; no browser tests.
+
 ## Logic layout tuning (Oct 4)
 - [x] Resize Lights Out, centre Tower, prioritise Safe Cracker clues and shrink DEFUSE without changing gameplay.
 - [x] Expand Nonogram and Tents grids; move Colour Flood par to its reveal.

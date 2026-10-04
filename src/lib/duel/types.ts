@@ -1692,8 +1692,8 @@ export interface PairPuzzleData {
 
 /* ============================= Colour Flood ============================= */
 
-export const FLOOD_TIME_MS = 45_000;
-export const FLOOD_SIZE = 12;
+export const FLOOD_TIME_MS = 60_000;
+export const FLOOD_SIZE = 14;
 export const FLOOD_CELLS = FLOOD_SIZE * FLOOD_SIZE;
 export const FLOOD_COLOURS = 5;
 export const FLOOD_MIN_PAR = 10;
@@ -2142,8 +2142,8 @@ export interface HotFloorPuzzleData {
 
 /* ============================ Shikaku / Light Up ======================== */
 
-export const SHIKAKU_TIME_MS = 90_000;
-export const LIGHTUP_TIME_MS = 90_000;
+export const SHIKAKU_TIME_MS = 110_000;
+export const LIGHTUP_TIME_MS = 110_000;
 /** Ball Track: a 60 s arcade run plus the shared 3 s arcade slack. */
 export const BALLTRACK_TIME_MS = 63_000;
 export const WORDSEARCH_TIME_MS = 120_000;

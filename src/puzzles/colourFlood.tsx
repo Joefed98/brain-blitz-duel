@@ -29,10 +29,12 @@ function Board({
   grid,
   size = FLOOD_SIZE,
   cell = 26,
+  fluid = false,
 }: {
   grid: number[];
   size?: number;
   cell?: number;
+  fluid?: boolean;
 }) {
   const region = new Set(regionCells(grid, size));
   const edge = (index: number, neighbour: number | null) =>
@@ -40,8 +42,8 @@ function Board({
 
   return (
     <div
-      className="puzzle-board grid gap-0"
-      style={{ gridTemplateColumns: `repeat(${size}, ${cell}px)` }}
+      className={`puzzle-board grid gap-0 ${fluid ? "w-full aspect-square" : ""}`}
+      style={{ gridTemplateColumns: `repeat(${size}, ${fluid ? "minmax(0, 1fr)" : `${cell}px`})` }}
       aria-label="Colour Flood board"
     >
       {grid.map((colour, index) => {
@@ -60,8 +62,8 @@ function Board({
           <span
             key={index}
             style={{
-              width: cell,
-              height: cell,
+              width: fluid ? "100%" : cell,
+              height: fluid ? "100%" : cell,
               background: fillOf(colour),
               boxShadow: mine
                 ? `inset 0 ${border[0] ? 2 : 0}px 0 0 #FFFFFF, inset ${
@@ -141,8 +143,8 @@ function Stage({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-      <Board grid={replay.grid} />
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2 px-3">
+      <Board grid={replay.grid} fluid />
       <div className="flex shrink-0 items-center gap-2">
         {Array.from({ length: FLOOD_COLOURS }, (_, colour) => (
           <button
