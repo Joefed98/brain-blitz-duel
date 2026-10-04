@@ -10,7 +10,7 @@ import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 
 export const BT_COLS = 7;
 export const BT_ROWS = 9;
-export const BT_BALLS = 18;
+export const BT_BALLS = 22;
 export const BT_COLOURS = 4;
 export const BT_STEP_TICKS = 16;
 /** Tray colours slide to their shuffled columns over this many ticks (~0.5 s). */

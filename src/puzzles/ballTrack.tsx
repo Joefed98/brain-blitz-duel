@@ -274,7 +274,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 export const ballTrackPuzzle: PuzzleDefinition = {
   key: "balltrack",
   name: "Ball Track",
-  category: "pattern",
+  category: "arcade",
   arcadeRun: true,
   timeLimitMs: BALLTRACK_TIME_MS,
   revealMs: 6_000,
