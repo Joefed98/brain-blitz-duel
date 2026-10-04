@@ -47,7 +47,7 @@ function Pegs({
     lifted === null || lifted === undefined ? null : (pegs[lifted]?.at(-1) ?? null);
 
   return (
-    <div className="flex h-full w-full items-end justify-center gap-1.5">
+    <div className="flex h-full w-full items-center justify-center gap-1.5">
       {Array.from({ length: Math.max(3, pegs.length) }, (_, peg) => {
         const stack = pegs[peg] ?? [];
         const isLifted = lifted === peg;
@@ -59,12 +59,12 @@ function Pegs({
             disabled={!onPeg}
             onClick={() => onPeg?.(peg)}
             aria-label={`Peg ${peg + 1}`}
-            className="relative flex h-full flex-1 flex-col items-center justify-end"
+             className="relative flex h-full flex-1 flex-col items-center justify-center"
           >
             {/* The lifted disc hovers above its peg. */}
             <div
               className={`flex w-full flex-col items-center justify-end ${compact ? "gap-[2px]" : "gap-1"}`}
-              style={{ minHeight: 0 }}
+              style={{ height: discs * (compact ? 9 : 14) + 24, maxHeight: "calc(100% - 10px)", minHeight: 0 }}
             >
               <div className="flex h-6 w-full items-center justify-center">
                 {isLifted && liftedDisc !== null && (
@@ -79,7 +79,7 @@ function Pegs({
                 )}
               </div>
 
-              <div className="relative flex w-full flex-1 flex-col items-center justify-end">
+              <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-end">
                 <div
                   aria-hidden="true"
                   className="absolute bottom-0 w-[6px] rounded-t bg-border"
@@ -205,7 +205,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
         moves <span className="text-primary">{replay.moves}</span> · min {puzzle.minMoves}
       </p>
 
-      <div className="flex min-h-0 flex-1 items-end justify-center pb-1">
+      <div className="flex min-h-0 flex-1 items-center justify-center">
         <Pegs
           pegs={replay.pegs}
           discs={discs}

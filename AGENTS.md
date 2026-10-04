@@ -33,6 +33,8 @@
 - TimerBar is the only live-round countdown and PhoneShell owns the 4px game-screen safe margin; why: duel/practice timing and arena width must stay identical without per-game timer slots.
 - Number Pyramid stores one bank entry as four public boards plus private solutions and submits all four placement maps with the active index; why: skipped boards and current-board partial credit must grade identically on the server.
 - Ball Track uses a shared serpentine toggle sim with course-driven fixed bottom-row interception and occupied-tile locks; its server-only bank proves every tray has an upper-routing alternative and every ball gets home; why: drawing, generator and replay must agree without exposing playbooks.
-- Ball Track's bank generator exhaustively enumerates per-column fixed placements and uses a budgeted dynamic programme to minimise triple rotatable stacks while forbidding longer ones; why: seeded selection must retain the best achievable stack count before route/replay acceptance.
+- Ball Track bank searches column placements, minimising triple rotatable stacks and forbidding longer ones; why: seeded courses retain the best count before replay acceptance.
 - Ball Track warnings derive from seeded event ticks; sound follows sim-tick digit transitions; why: identical warnings without changing replay state or event timing.
-- Memory is excluded from room category choices, stored room settings and room draw pools; practice uses allTypesInCategory independently so memory games remain playable.
+- Memory stays out of room settings/draws; practice uses allTypesInCategory to retain its games.
+- Retire types via RETIRED_TYPES; why: room draws filter it, practice does not.
+- Logic grids use container sizing and proportional clue tracks; why: square cells and clues fit the shared safe area.

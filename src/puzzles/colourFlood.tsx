@@ -157,7 +157,7 @@ function Stage({
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <span className="font-mono text-xs text-muted-foreground">
-          Moves: {replay.moves} (par {data.par})
+          Moves: {replay.moves}
         </span>
         <button
           type="button"
@@ -180,7 +180,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <Board grid={replay.grid} cell={20} />
-       <p className="text-center font-mono text-base text-muted-foreground">{replay.moves} moves · par {puzzle.par}</p>
+       <p className="text-center font-mono text-base text-muted-foreground">Par {puzzle.par} — you used {replay.moves}</p>
       <p
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >

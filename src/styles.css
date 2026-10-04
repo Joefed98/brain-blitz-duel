@@ -633,6 +633,28 @@ body.game-lock {
   overscroll-behavior: none;
 }
 
+.logic-square-area {
+  container-type: size;
+}
+.logic-square-board {
+  width: min(100cqw, 100cqh);
+  aspect-ratio: 1;
+  flex-shrink: 0;
+}
+.logic-nonogram-board {
+  width: 100%;
+  container-type: inline-size;
+}
+.logic-nonogram-board > span {
+  max-width: none;
+  font-size: calc(100cqw / 8.15 * 0.3);
+}
+.logic-nonogram-board > button {
+  aspect-ratio: 1;
+  min-width: 0;
+  font-size: calc(100cqw / 8.15 * 0.325);
+}
+
 .bt-example {
   --bt-fixed: #6A7280;
   --bt-tube: #F5B82E;

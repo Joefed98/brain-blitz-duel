@@ -177,11 +177,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-3">
       <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
         tents <span className="text-primary">{tents.length}</span> / {data.trees.length}
       </p>
-       <div className="w-full" style={{ width: "min(100%, 340px)" }}>
+       <div className="w-full">
         <Board
           size={size}
           trees={data.trees}

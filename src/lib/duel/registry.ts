@@ -173,6 +173,7 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "sortrush",
   "parry",
   "hotfloor",
+  "dig",
 ]);
 
 const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> = {
