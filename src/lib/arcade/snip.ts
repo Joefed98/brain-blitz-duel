@@ -45,7 +45,7 @@ export const SNIP_CONFIG = {
   restTicks: 30,
   /** Per-tick speed (1/256 px) below which the sweet counts as resting. */
   restSpeed: 48,
-  worldW: 540,
+  worldW: 1260,
   viewW: 360,
   worldH: 560,
   /** Nodes per rope including the pin; the sweet is one more segment. */
@@ -60,7 +60,7 @@ export const SNIP_CONFIG = {
   sweetShare: 64,
   sweetRadius: 12,
   /** Sweet centre within this distance of the mouth centre = eaten. */
-  mouthRadius: 24,
+  mouthRadius: 32,
   /** Sweet centre within this distance of a star = collected. */
   starReach: 24,
   /** Bounce kept off walls and platforms, out of 256. */
@@ -88,7 +88,15 @@ export const SNIP_CONFIG = {
     { name: "Shelf", sweet: [200, 170], pins: [[140, 60, 0], [260, 60, 0]], platforms: [[290, 300, 430, 316], [110, 440, 230, 456]], mouth: [380, 280], stars: [[340, 240]] },
     { name: "Gap", sweet: [270, 150], pins: [[130, 100, 30], [410, 100, 30]], platforms: [[120, 400, 240, 416], [300, 400, 420, 416]], mouth: [270, 500], stars: [[270, 260]] },
     { name: "Under", sweet: [270, 170], pins: [[150, 60, 0], [390, 60, 0], [270, 320, 0]], platforms: [[110, 380, 200, 396]], mouth: [380, 470], stars: [[340, 380]] },
-  ] as readonly SnipTemplate[],
+  ].map((template): SnipTemplate => ({
+    // Keep each layout intact, with 360 extra px of swing clearance on each side.
+    name: template.name,
+    sweet: [template.sweet[0] + 360, template.sweet[1]],
+    pins: template.pins.map(([x = 0, y = 0, slack = 0]) => [x + 360, y, slack]),
+    platforms: template.platforms.map(([x0 = 0, y0 = 0, x1 = 0, y1 = 0]) => [x0 + 360, y0, x1 + 360, y1]),
+    mouth: [template.mouth[0] + 360, template.mouth[1]],
+    stars: template.stars.map(([x = 0, y = 0]) => [x + 360, y]),
+  })) as readonly SnipTemplate[],
 } as const;
 
 export const SNIP_RUN_TICKS = SNIP_CONFIG.runSeconds * TICKS_PER_SECOND;
@@ -417,7 +425,7 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
   else if (next.levelTick >= SNIP_LEVEL_TICKS) outcome = SNIP_TIMEOUT;
 
   if (tick % 300 === 0) {
-    next.trail = [...next.trail, clampInt(sx >> 8, 0, 1023) * 1024 + clampInt(sy >> 8, 0, 1023)];
+    next.trail = [...next.trail, clampInt(sx >> 8, 0, SNIP_W) * 1024 + clampInt(sy >> 8, 0, 1023)];
   }
 
   if (outcome !== SNIP_PLAYING) {
@@ -559,7 +567,7 @@ export function drawSnip(
   ctx.fill();
   ctx.fillStyle = "#1E2433";
   ctx.beginPath();
-  ctx.ellipse(mxp, myp - 2.4, 13.2, 8.4, 0, 0, Math.PI * 2);
+  ctx.ellipse(mxp, myp - SNIP_CONFIG.mouthRadius * 0.1, SNIP_CONFIG.mouthRadius * 0.55, SNIP_CONFIG.mouthRadius * 0.35, 0, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = SNIP_STAR;
