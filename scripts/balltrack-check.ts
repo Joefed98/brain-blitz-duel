@@ -68,7 +68,7 @@ BALL_TRACK_BANK.forEach((entry, i) => {
   if (hasLowerShortcut(c) || c.trays.some((t,col) => t >= 0 && !routeTo(c,col))) fail(`course ${i}: tray reachability / early route`);
   if (c.trays.filter((t) => t >= 0).length !== 4 || c.balls.length !== BT_BALLS) fail(`course ${i}: trays/balls`);
   const counts = Array.from({ length: 4 }, (_, colour) => c.balls.filter((b) => b === colour).length).sort();
-  if (counts.join(",") !== "4,4,5,5") fail(`course ${i}: colour balance`);
+  if (counts.join(",") !== "5,5,6,6") fail(`course ${i}: colour balance`);
   if (c.balls.some((b, j) => j >= 2 && b === c.balls[j - 1] && b === c.balls[j - 2])) fail(`course ${i}: three consecutive colours`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);
