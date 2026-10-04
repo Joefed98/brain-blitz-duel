@@ -643,9 +643,6 @@ export interface SliceCheckpointState {
   frenzies: number;
   streak: number;
   weighted: number;
-  slows: number;
-  comboLive: number;
-  strokeLen: number;
 }
 
 export interface SliceCheckpoint extends SliceCheckpointState {
@@ -675,9 +672,6 @@ export function sliceCheckpointState(state: SliceState): SliceCheckpointState {
     frenzies: state.frenzyFrom.length,
     streak: state.streak,
     weighted: state.weighted,
-    slows: state.slowFrom.length,
-    comboLive: state.comboLive,
-    strokeLen: state.strokeLen,
   };
 }
 
