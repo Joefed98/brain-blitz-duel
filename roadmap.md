@@ -1,6 +1,6 @@
 ## Arcade correction pass (Oct 4)
-- [ ] Correct Matchup icons, whole-swipe Slice combos, Cross lanes, shared Flip bend, Tilt stars and elastic/larger-mouth Snip.
-- [ ] Test curved three-disc swipe and focused rules; replay only Matchup, Slice, Flip and Snip; no browser tests.
+- [x] Correct Matchup icons, whole-swipe Slice combos, Cross lanes, shared Flip bend, Tilt stars and elastic/larger-mouth Snip.
+- [x] Curved three-disc swipe and focused rules passed; replay only Matchup, Slice, Flip and Snip passed 200/200 each; no browser tests.
 
 ## Slice combos and Snip wider arena (Oct 4)
 - [x] Implement timed combo levels, revised Slice weighting, single-star Snip scoring and wider camera-followed arena.

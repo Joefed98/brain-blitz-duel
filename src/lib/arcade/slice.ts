@@ -390,6 +390,7 @@ export interface SliceState {
   strokeCuts: number;
   strokeWeighted: number;
   strokeQualified: number;
+  strokeActive: number;
   /** Render only: the last swipe segment, in px. */
   swipe: readonly [number, number, number, number] | null;
   /** Fixed at init: every disc the schedule could offer, specials' batches included. */
@@ -423,6 +424,7 @@ function init(seed: number): SliceState {
     strokeCuts: 0,
     strokeWeighted: 0,
     strokeQualified: 0,
+    strokeActive: 0,
     swipe: null,
     available: scheduleAvailable(schedule.objects),
     streak: 0,
@@ -466,13 +468,13 @@ export function sliceSlowOn(state: SliceState, tick: number): boolean {
  * path. Shared by the phone (before recording) and the sim (enforcing it).
  */
 export function sliceClipSegment(
-  state: Pick<SliceState, "strokeX" | "strokeY" | "strokeLen">,
+  state: Pick<SliceState, "strokeX" | "strokeY" | "strokeLen"> & { strokeActive?: number },
   a: number,
   b: number,
   c: number,
   d: number,
 ): { c: number; d: number; length: number; used: number } | null {
-  const used = a === state.strokeX && b === state.strokeY ? state.strokeLen : 0;
+  const used = state.strokeActive || (a === state.strokeX && b === state.strokeY) ? state.strokeLen : 0;
   const left = SLICE_MAX_PATH - used;
   if (left <= 0) return null;
   const dx = c - a;
@@ -547,7 +549,8 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
   }
 
   if (input?.k === SLICE_INPUT_BEGIN || input?.k === SLICE_INPUT_END ||
-      (input?.k === SLICE_INPUT_SWIPE && (input.a !== state.strokeX || input.b !== state.strokeY))) {
+      (input?.k === SLICE_INPUT_SWIPE && !state.strokeActive && (input.a !== state.strokeX || input.b !== state.strokeY))) {
+    next.strokeActive = input.k === SLICE_INPUT_BEGIN ? 1 : 0;
     next.strokeX = input.k === SLICE_INPUT_BEGIN ? input.a : -1;
     next.strokeY = input.k === SLICE_INPUT_BEGIN ? input.b : -1;
     next.strokeLen = 0;
@@ -697,7 +700,7 @@ export function sliceCheckpointState(state: SliceState): SliceCheckpointState {
     bonuses: state.bonuses,
     bombsHit: state.bombsHit,
     airborne,
-    slicedFold: (slicedFold ^ Math.imul(state.strokeCuts, 31) ^ Math.imul(state.strokeLen, 131) ^ state.strokeWeighted ^ state.strokeQualified ^ state.comboUntil) | 0,
+    slicedFold: (slicedFold ^ Math.imul(state.strokeCuts, 31) ^ Math.imul(state.strokeLen, 131) ^ state.strokeWeighted ^ state.strokeQualified ^ state.comboUntil ^ state.strokeActive) | 0,
     objectCount: state.objects.length,
     frenzies: state.frenzyFrom.length,
     streak: state.streak,

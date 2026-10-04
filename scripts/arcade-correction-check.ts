@@ -34,6 +34,10 @@ step(SLICE_INPUT_END);
 assert.equal(slice.strokeCuts, 0);
 step(SLICE_INPUT_BEGIN, 100, 470);
 assert.equal(slice.strokeLen, 0); assert.equal(slice.streak, 1);
+step(SLICE_INPUT_SWIPE, 100, 470, 390, 0);
+const cappedLength = slice.strokeLen;
+step(SLICE_INPUT_SWIPE, 390, 0, 0, 620);
+assert.equal(slice.strokeLen, cappedLength);
 console.log("Slice curved C-path: three separate disc hits form exactly one ×2 combo; fourth hit stays in it; up/down resets swipe.");
 
 for (let seed = 1; seed <= 100; seed++) {
@@ -76,5 +80,6 @@ assert.equal(roadRects.length, 2);
 const laneRects = commands.filter((c) => c.method === "fillRect" && c.args[3] === CROSS_LANE_H);
 assert.ok(laneRects.length > 0 && laneRects.every((c) => c.fill === "#000000"));
 commands = []; tiltGame.draw(ctx, tiltGame.init(1), { width: 390, height: 620 });
-assert.ok(commands.some((c) => c.method === "lineTo"));
+const redPaths = commands.filter((c) => c.method === "lineTo" && c.fill === "#FF4D5E");
+assert.ok(redPaths.length > 0 && redPaths.length % 11 === 0);
 console.log("Flip constant-gap curved band, Snip elastic walls/larger mouth, Matchup bomb/four-point/L-T icons, Cross black traffic lanes and Tilt drawing passed.");
