@@ -1698,9 +1698,6 @@ export const FLOOD_CELLS = FLOOD_SIZE * FLOOD_SIZE;
 export const FLOOD_COLOURS = 5;
 export const FLOOD_MIN_PAR = 10;
 export const FLOOD_MAX_PAR = 15;
-/** After this many failed boards the par band widens, and the miss is logged. */
-export const FLOOD_ATTEMPTS = 400;
-export const FLOOD_FALLBACK_PAR = 20;
 export const FLOOD_SEARCH_CAP = 2_000_000;
 export const FLOOD_PAR_BONUS = 20;
 export const FLOOD_PARTIAL_POINTS = 60;
@@ -2142,8 +2139,8 @@ export interface HotFloorPuzzleData {
 
 /* ============================ Shikaku / Light Up ======================== */
 
-export const SHIKAKU_TIME_MS = 110_000;
-export const LIGHTUP_TIME_MS = 110_000;
+export const SHIKAKU_TIME_MS = 90_000;
+export const LIGHTUP_TIME_MS = 90_000;
 /** Ball Track: a 60 s arcade run plus the shared 3 s arcade slack. */
 export const BALLTRACK_TIME_MS = 63_000;
 export const WORDSEARCH_TIME_MS = 120_000;
