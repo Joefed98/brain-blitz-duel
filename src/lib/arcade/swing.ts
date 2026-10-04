@@ -505,6 +505,20 @@ function draw(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize
     ctx.closePath();
     ctx.fill();
   }
+  // Finish line at 500 m.
+  {
+    const x = sx(START_X + SWING_FINISH_M * METRE);
+    if (x > -10 && x < SWING_WORLD_W + 10) {
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, SWING_WORLD_H);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
   // Anchors.
   state.anchors.forEach((a, i) => {
     const x = sx(a.x);
@@ -554,7 +568,7 @@ function draw(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`${swingMetres(state)} m`, 14, 26);
+  ctx.fillText(`${Math.min(SWING_FINISH_M, swingMetres(state))} / ${SWING_FINISH_M} m`, 14, 26);
   ctx.restore();
 }
 

@@ -797,13 +797,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "10 per sweet fed, +5 per star with it — up to 150.",
   },
   swing: {
-    goal: "Swing as far as you can.",
+    goal: "Swing to the 500 m finish.",
     how: [
       { action: "Hold to grab an anchor and swing,", detail: "let go to fly." },
       { action: "Stuck? Keep swinging", detail: "— every pass gets you higher. Swipe up to shorten the rope for speed." },
       { action: "Don't touch the spikes", detail: "or fall to the floor." },
     ],
-    score: "Half a point per metre.",
+    score: "Up to 140 for distance; reaching 500 m adds up to 10 for time left. Maximum 150.",
   },
   tilt: {
     goal: "Roll the ball out of the maze.",
