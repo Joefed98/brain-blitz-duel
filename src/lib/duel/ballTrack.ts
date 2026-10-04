@@ -28,6 +28,7 @@ export interface BallTrackResult extends FlatReplay<BtState, BtCheckpoint> {
   released: number;
   actions: number;
   perfect: boolean;
+  speed: number;
 }
 
 export function encodeBallTrackRun(course: BtCourse, run: FlatRun<BtCheckpoint>): string {

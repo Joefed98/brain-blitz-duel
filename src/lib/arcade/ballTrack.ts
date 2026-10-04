@@ -184,14 +184,20 @@ export function btOver(s: BtState): boolean {
   return s.tick >= BT_RUN_TICKS || (s.next >= BT_BALLS && s.balls.length === 0);
 }
 
-/** round(150 × home ÷ ball count) − 5 per wrong tray, 0–150. */
-export function btScoreOf(home: number, wrong: number): number {
-  const base = Math.floor((300 * home + BT_BALLS) / (2 * BT_BALLS));
-  return Math.max(0, Math.min(150, base - 5 * wrong));
+/** Speed bonus on a perfect run: min(30, round(1.5 × seconds left when the last ball lands)). */
+export function btSpeedBonus(home: number, lastLand: number): number {
+  if (home !== BT_BALLS) return 0;
+  return Math.min(30, Math.round((1.5 * (BT_RUN_TICKS - lastLand)) / 60));
+}
+
+/** round(120 × home ÷ ball count) − 5 per wrong tray + perfect-run speed bonus, 0–150. */
+export function btScoreOf(home: number, wrong: number, lastLand = BT_RUN_TICKS): number {
+  const base = Math.round((120 * home) / BT_BALLS);
+  return Math.max(0, Math.min(150, base - 5 * wrong + btSpeedBonus(home, lastLand)));
 }
 
 export function btScore(s: BtState): number {
-  return btScoreOf(s.home, s.wrong);
+  return btScoreOf(s.home, s.wrong, s.lastLand);
 }
 
 /* ============================= Checkpoints ============================= */
