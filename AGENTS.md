@@ -38,3 +38,7 @@
 - Memory stays out of room settings/draws; practice uses allTypesInCategory to retain its games.
 - Retire types via RETIRED_TYPES; why: room draws filter it, practice does not.
 - Logic grids use container sizing; Shikaku/Light Up prove uniqueness. Flood draws a private bank built by retrying exact in-band par proofs; no fallback.
+
+- ArcadeCanvasStage supports opt-in canvas-size rendering for Tilt; why: its circle must stay isotropic without changing other games or input coordinates.
+- Matchup uses separate row and column bounds for all matching, blasts, gravity and input mapping; why: its rectangular board must replay identically.
+- Beat reserves hold heads and awards the whole note only after a window-checked release; why: both endpoint errors determine server-verified credit.

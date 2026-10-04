@@ -574,7 +574,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         action: "After each crossing",
         detail: "you get a second on the kerb before the next one.",
       },
-      { action: "Three lives", detail: "a hit costs one and restarts you on that lane after a second." },
+      { action: "Three lives", detail: "a hit costs one and restarts you on the start lane of this crossing after a second." },
     ],
     score: "4 per lane advanced, +4 per crossing, +8 more for a clean crossing with no hits, up to 150.",
   },
@@ -766,10 +766,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   burst: {
     goal: "Pop every ball — big ones split into smaller ones.",
     how: [
-      { action: "Put your finger on the bottom bar and the figure sits right under it (or use the arrows),", detail: "tap the arena or FIRE to shoot straight up." },
+      { action: "Hold ◀ or ▶ to move,", detail: "tap the arena or FIRE to shoot straight up." },
       { action: "Pop a purple ball and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
       { action: "Blue balls sometimes drop a teal SHIELD", detail: "— it takes the next hit for you." },
-      { action: "Don't let a ball touch you", detail: "— three touches and you're out." },
+      { action: "Don't let a ball touch you", detail: "— two touches and you're out." },
     ],
     score: "2 per ball popped or split, −9 per life lost. Clear four waves without losing a life for 150.",
   },

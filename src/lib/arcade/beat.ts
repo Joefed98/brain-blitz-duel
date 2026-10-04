@@ -34,8 +34,6 @@ export const BEAT_INPUT_RELEASE = 10;
 /** Holds appear from this tick (20 s), on about this share of notes. */
 export const BEAT_HOLD_FROM = 1200;
 export const BEAT_HOLD_PERCENT = 20;
-/** Lifting this many ticks or fewer before the tail still completes the hold. */
-export const BEAT_HOLD_GRACE = 6;
 /** Combo tiers that change the lane glow (display only). */
 export const BEAT_COMBO_TIERS = [10, 25, 50] as const;
 
@@ -73,6 +71,8 @@ export const BEAT_JUDGE_PERFECT = 1;
 export const BEAT_JUDGE_GOOD = 2;
 export const BEAT_JUDGE_OK = 3;
 export const BEAT_JUDGE_MISS = 4;
+/** A held head awaiting its release judgement; it earns no points yet. */
+export const BEAT_JUDGE_PENDING = 5;
 
 export const BEAT_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BEAT_INPUT_TAP, [0, BEAT_LANES - 1]),
@@ -191,6 +191,7 @@ export interface BeatState {
   tenths: number;
   /** Per lane: the hold note under the finger, or −1. */
   holding: number[];
+  holdStartErrors: number[];
   holdsDone: number;
   holdsDropped: number;
   /** Render only: the last judgement, and how long it has been shown. */
@@ -216,6 +217,7 @@ function init(seed: number): BeatState {
     strays: 0,
     tenths: 0,
     holding: [-1, -1, -1, -1],
+    holdStartErrors: [0, 0, 0, 0],
     holdsDone: 0,
     holdsDropped: 0,
     lastJudge: BEAT_JUDGE_NONE,
@@ -268,37 +270,51 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
   }
   next.cursor = cursor;
 
-  // A hold kept down to the end of its tail is complete at its head's judgement.
   let holding: number[] | null = null;
-  for (let lane = 0; lane < BEAT_LANES; lane++) {
-    const index = state.holding[lane]!;
-    if (index < 0) continue;
-    if (tick >= ticks[index]! + state.chart.holds[index]!) {
-      holding ??= [...state.holding];
-      holding[lane] = -1;
+  let holdStartErrors: number[] | null = null;
+  const judgeHold = (lane: number, releaseError: number) => {
+    const index = (holding ?? state.holding)[lane] ?? -1;
+    if (index < 0) return;
+    const error = Math.max(state.holdStartErrors[lane] ?? 0, releaseError);
+    const verdict = error <= BEAT_PERFECT_TICKS ? BEAT_JUDGE_PERFECT
+      : error <= BEAT_GOOD_TICKS ? BEAT_JUDGE_GOOD : BEAT_JUDGE_MISS;
+    holding ??= [...state.holding];
+    holding[lane] = -1;
+    judged ??= [...state.judged];
+    judged[index] = verdict;
+    if (verdict === BEAT_JUDGE_MISS) {
+      next.misses += 1;
+      next.holdsDropped += 1;
+      next.combo = 0;
+    } else {
       next.holdsDone += 1;
+      if (verdict === BEAT_JUDGE_PERFECT) {
+        next.perfect += 1;
+        next.tenths += BEAT_PERFECT_TENTHS;
+      } else {
+        next.good += 1;
+        next.tenths += BEAT_GOOD_TENTHS;
+      }
+      next.combo += 1;
+      next.maxCombo = Math.max(next.maxCombo, next.combo);
     }
+    next.lastJudge = verdict;
+    next.lastLane = lane;
+    next.judgeAge = 0;
+  };
+  // No automatic credit at the tail: a release inside the window is required.
+  for (let lane = 0; lane < BEAT_LANES; lane++) {
+    const index = state.holding[lane] ?? -1;
+    if (index < 0) continue;
+    const tailTick = (ticks[index] ?? 0) + (state.chart.holds[index] ?? 0);
+    if (tick > tailTick + BEAT_GOOD_TICKS) judgeHold(lane, BEAT_GOOD_TICKS + 1);
   }
-
   if (input && input.k === BEAT_INPUT_RELEASE) {
     const lane = clampInt(input.a, 0, BEAT_LANES - 1);
-    const index = (holding ?? state.holding)[lane]!;
+    const index = (holding ?? state.holding)[lane] ?? -1;
     if (index >= 0) {
-      holding ??= [...state.holding];
-      holding[lane] = -1;
-      if (tick >= ticks[index]! + state.chart.holds[index]! - BEAT_HOLD_GRACE) {
-        next.holdsDone += 1;
-      } else {
-        // Let go early: the head only, and Good at best.
-        next.holdsDropped += 1;
-        if ((judged ?? state.judged)[index] === BEAT_JUDGE_PERFECT) {
-          judged ??= [...state.judged];
-          judged[index] = BEAT_JUDGE_GOOD;
-          next.perfect -= 1;
-          next.good += 1;
-          next.tenths += BEAT_GOOD_TENTHS - BEAT_PERFECT_TENTHS;
-        }
-      }
+      const tailTick = (ticks[index] ?? 0) + (state.chart.holds[index] ?? 0);
+      judgeHold(lane, Math.abs(tick - tailTick));
     }
   }
 
@@ -324,21 +340,26 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
       const verdict = beatJudge(bestDistance);
       judged ??= [...state.judged];
       judged[bestIndex] = verdict;
-      if (verdict === BEAT_JUDGE_PERFECT) {
-        next.perfect += 1;
-        next.tenths += BEAT_PERFECT_TENTHS;
-      } else if (verdict === BEAT_JUDGE_GOOD) {
-        next.good += 1;
-        next.tenths += BEAT_GOOD_TENTHS;
-      } else {
-        next.ok += 1;
-        next.tenths += BEAT_OK_TENTHS;
-      }
-      next.combo += 1;
-      next.maxCombo = Math.max(next.maxCombo, next.combo);
-      if (state.chart.holds[bestIndex]! > 0) {
+      if ((state.chart.holds[bestIndex] ?? 0) > 0) {
+        // Reserve the head now, but judge the whole note only at release.
+        judged[bestIndex] = BEAT_JUDGE_PENDING;
         holding ??= [...state.holding];
         holding[lane] = bestIndex;
+        holdStartErrors ??= [...state.holdStartErrors];
+        holdStartErrors[lane] = bestDistance;
+      } else {
+        if (verdict === BEAT_JUDGE_PERFECT) {
+          next.perfect += 1;
+          next.tenths += BEAT_PERFECT_TENTHS;
+        } else if (verdict === BEAT_JUDGE_GOOD) {
+          next.good += 1;
+          next.tenths += BEAT_GOOD_TENTHS;
+        } else {
+          next.ok += 1;
+          next.tenths += BEAT_OK_TENTHS;
+        }
+        next.combo += 1;
+        next.maxCombo = Math.max(next.maxCombo, next.combo);
       }
       next.lastJudge = verdict;
       next.lastLane = lane;
@@ -351,6 +372,7 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
 
   if (judged) next.judged = judged;
   if (holding) next.holding = holding;
+  if (holdStartErrors) next.holdStartErrors = holdStartErrors;
   return next;
 }
 
@@ -396,7 +418,7 @@ export function beatCheckpointState(state: BeatState): BeatCheckpointState {
     tenths: state.tenths,
     combo: state.combo,
     holdFold:
-      state.holdsDone * 7 + state.holdsDropped * 131 + state.holding.reduce((sum, h, lane) => sum + (h + 1) * (lane + 1) * 17, 0),
+      state.holdsDone * 7 + state.holdsDropped * 131 + state.holding.reduce((sum, h, lane) => sum + (h + 1) * (lane + 1) * 17 + (h >= 0 ? (state.holdStartErrors[lane] ?? 0) * (lane + 1) * 257 : 0), 0),
   };
 }
 
@@ -478,12 +500,14 @@ function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize)
     if (hold > 0) {
       // The tail, from the head (pinned to the line while held) up to its end.
       const headY = held ? BEAT_HIT_LINE_Y : yAt(remaining);
-      const tailY = Math.max(BEAT_HUD_H, yAt(remaining + hold));
+      const tailY = yAt(remaining + hold);
       ctx.fillStyle = `${colour}${held ? "CC" : "66"}`;
       ctx.fillRect(lane * laneW + laneW / 2 - 9, tailY, 18, Math.max(0, headY - tailY));
       ctx.fillStyle = colour;
       ctx.fillRect(lane * laneW + 14, tailY - 4, laneW - 28, 8);
-      if (held) continue;
+      // Keep the head visible at the hit line while the tail approaches.
+      ctx.fillRect(lane * laneW + 10, headY - BEAT_NOTE_H / 2, laneW - 20, BEAT_NOTE_H);
+      continue;
     }
     ctx.fillStyle = colour;
     ctx.fillRect(lane * laneW + 10, yAt(remaining) - BEAT_NOTE_H / 2, laneW - 20, BEAT_NOTE_H);
