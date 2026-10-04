@@ -785,7 +785,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Miss and you drift away.", detail: "Avoid the red arcs." },
       { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops — never at the crossing." },
     ],
-    score: "3 per planet; finish all forty early for the time bonus. Skipping a planet is allowed if you can make the next one.",
+    score: "3 per planet; reach the sun (planet 40) early for up to 30 time bonus. The planet you hold at 30 s is a checkpoint: one respawn there after a later crash.",
   },
   snip: {
     goal: "Feed the sweet to the mouth.",
