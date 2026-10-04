@@ -9,8 +9,12 @@
  * Acid is open: water entering it turns toxic. Toxic spreads to every cell it
  * flows into and never becomes clean again.
  *
- * Water is integer units per cell, 0–4. Each step (10 per second) the digs for
- * that step apply first, then water flows: bottom row first, left to right.
+ * Sand obeys gravity: each step (bottom-up) loose or falling sand drops into an
+ * empty cell below, or sinks through water (the water rises). Sand that has
+ * fallen packs (`P`) when it comes to rest: undiggable and solid. Each step runs
+ * sand, then water, then the digs recorded for that step.
+ *
+ * Water is integer units per cell, 0–4. Water flows: bottom row first, left to right.
  * A cell moves only the water it held at the start of the step: down first (as
  * much as fits). Water that cannot fall heads one cell toward the nearest drop
  * along its row (a cell with room below, or a sink), ties left, at most 2 units
@@ -37,7 +41,7 @@ export const DIG_MAX_PER_STEP = 16;
 export const DIG_MAX_ACTIONS = 400;
 export const DIG_EVAP_STEPS = 15;
 export const DIG_SETTLE_STEPS = 30;
-export const DIG_BUDGET_SLACK = 3;
+export const DIG_BUDGET_SLACK = 2;
 export const DIG_MIN_BONUS = 20;
 
 export const T_ROCK = "#";
@@ -48,6 +52,10 @@ export const T_GAP = "G";
 export const T_LAVA = "L";
 export const T_ACID_HIDDEN = "a";
 export const T_ACID = "A";
+/** Sand in mid-fall (solid, not diggable). */
+export const T_FALLING = "f";
+/** Sand that fell and came to rest: undiggable, solid to water and sand. */
+export const T_PACKED = "P";
 
 export interface DigBoard {
   cols: number;
@@ -91,6 +99,8 @@ export interface DigState {
   pool: number;
   dug: number;
   budget: number;
+  /** Sand cell moves (falls and sink-swaps) this round. */
+  sandFallen: number;
   /** Step all drains reached their targets, or 0. */
   completeStep: number;
 }
@@ -131,6 +141,7 @@ export function digInit(board: DigBoard): DigState {
     pool,
     dug: 0,
     budget: board.budget,
+    sandFallen: 0,
     completeStep: 0,
   };
 }
@@ -160,18 +171,33 @@ function isOpen(t: string | undefined): boolean {
 export function digStep(board: DigBoard, state: DigState, digs: readonly number[]): DigState {
   const { cols, rows } = board;
   const tiles = state.tiles.slice();
-  let dug = state.dug;
-  for (const cell of digs) {
-    if (dug >= state.budget) break;
-    if (tiles[cell] !== T_SAND) continue;
-    tiles[cell] = T_EMPTY;
-    dug++;
-    revealAround(tiles, cols, rows, cell);
+  const water0 = state.water.slice();
+  const tox = state.tox.slice();
+  const age0 = state.age.slice();
+  let sandFallen = state.sandFallen;
+  // Sand first, bottom-up: fall into an empty cell, or sink through water (water rises).
+  for (let r = rows - 2; r >= 0; r--) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      const t = tiles[i];
+      if (t !== T_SAND && t !== T_FALLING) continue;
+      const j = i + cols;
+      if (tiles[j] === T_EMPTY && state.settled[j] === 0) {
+        tiles[j] = T_FALLING;
+        tiles[i] = T_EMPTY;
+        water0[i] = water0[j]!;
+        tox[i] = tox[j]!;
+        age0[i] = water0[j]! > 0 ? 0 : -1;
+        water0[j] = 0;
+        tox[j] = 0;
+        age0[j] = -1;
+        sandFallen++;
+      } else if (t === T_FALLING) tiles[i] = T_PACKED;
+    }
   }
   const step = state.step + 1;
-  const avail = state.water.slice();
-  const next = state.water.slice();
-  const tox = state.tox.slice();
+  const avail = water0.slice();
+  const next = water0.slice();
   const settled = state.settled.slice();
   const changed = new Array<boolean>(next.length).fill(false);
   const flowedIn = new Array<boolean>(next.length).fill(false);
@@ -277,7 +303,7 @@ export function digStep(board: DigBoard, state: DigState, digs: readonly number[
     }
   }
 
-  const age = state.age.slice();
+  const age = age0;
   let settledUnits = state.settledUnits;
   let settledLog = state.settledLog;
   for (let i = 0; i < next.length; i++) {
@@ -298,8 +324,18 @@ export function digStep(board: DigBoard, state: DigState, digs: readonly number[
     }
   }
 
+  // Digs recorded for this step apply last; only loose sand can be dug.
+  let dug = state.dug;
+  for (const cell of digs) {
+    if (dug >= state.budget) break;
+    if (tiles[cell] !== T_SAND) continue;
+    tiles[cell] = T_EMPTY;
+    dug++;
+    revealAround(tiles, cols, rows, cell);
+  }
   const out: DigState = {
     ...state,
+    sandFallen,
     step,
     tiles,
     water: next,

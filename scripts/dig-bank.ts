@@ -3,7 +3,9 @@
  *
  *   bun scripts/dig-bank.ts
  *
- * Answer-first. A rock basin holds the pool above a one-plug floor. The water
+ * Answer-first, on a rock board: sand only where placed (route, trap chute,
+ * stable decoy ledges), so planned digs run from the pool downward — dig a
+ * lower cell first and the sand above falls in and packs. A rock basin holds the pool above a one-plug floor. The water
  * falls down a shaft onto a full-width rock shelf. Straight under the shaft the
  * shelf has a tempting sand hole — the obvious, shorter route to the drain
  * below — with lava or acid right under it. The intended route instead runs
@@ -27,9 +29,9 @@ import {
   digReplay,
   digStep,
   digTarget,
+  digWaterLeft,
   DIG_BUDGET_SLACK,
   DIG_COLS as C,
-  DIG_MAX_PER_STEP,
   DIG_ROWS as R,
   DIG_STEPS,
   digEncode,
@@ -84,55 +86,88 @@ function shortest(tiles: string[], start: number, blocked: (i: number) => boolea
 }
 
 function logFor(cells: number[], from = 1): DigAction[] {
-  return cells.map((cell, i) => ({ step: from + Math.floor(i / DIG_MAX_PER_STEP), cell }));
+  // One dig per step, in order: planned routes are dug from the pool downward.
+  return cells.map((cell, i) => ({ step: from + i, cell }));
+}
+
+/** Same step stamps, cells in reverse order. */
+function reversed(log: DigAction[]): DigAction[] {
+  const cells = log.map((x) => x.cell).reverse();
+  return log.map((x, i) => ({ step: x.step, cell: cells[i]! }));
+}
+
+const RANDOM_RUNS = 1000;
+const RANDOM_CAP = 250;
+
+/** Cells water could ever pass with these digs: open/dug, or sand sharing a vertical run with a dug cell. */
+function couldConnect(t: string[], dug: Set<number>, plug: number): boolean {
+  const pass = new Array<boolean>(C * R).fill(false);
+  for (let i = 0; i < t.length; i++) if (t[i] === "." || t[i] === "D" || t[i] === "a" || dug.has(i)) pass[i] = true;
+  for (const d of dug) {
+    for (let k = d - C; k >= 0 && t[k] === "s"; k -= C) pass[k] = true;
+  }
+  if (!pass[plug]) return false;
+  const seen = new Set([plug]);
+  const q = [plug];
+  while (q.length) {
+    const i = q.pop()!;
+    if (t[i] === "D") return true;
+    for (const n of nbrs(i)) if (pass[n] && !seen.has(n) && Math.floor(n / C) >= Math.floor(plug / C)) {
+      seen.add(n);
+      q.push(n);
+    }
+  }
+  return false;
+}
+
+function completesWithin(board: DigBoard, log: DigAction[], cap: number): boolean {
+  let st = digInit(board);
+  let k = 0;
+  while (st.step < cap && !st.completeStep && (st.step < log.length + 2 || digWaterLeft(st) > 0)) {
+    const n = st.step + 1;
+    const digs: number[] = [];
+    while (k < log.length && log[k]!.step <= n) digs.push(log[k++]!.cell);
+    st = digStep(board, st, digs);
+  }
+  return st.completeStep > 0;
 }
 
 function build(hard: boolean) {
-  const t: string[] = new Array(C * R).fill("s");
+  const t: string[] = new Array(C * R).fill("#");
   const w: number[] = new Array(C * R).fill(0);
-  for (let r = 0; r < R; r++) {
-    t[at(r, 0)] = "#";
-    t[at(r, C - 1)] = "#";
-  }
-  for (let c = 0; c < C; c++) t[at(R - 1, c)] = "#";
 
-  // Pool.
+  // Pool, open to the sky, on a rock floor with one sand plug.
   const depth = between(2, 4);
   const width = between(3, 6);
   const a = between(2, C - 2 - width);
   const b = a + width - 1;
   const floor = depth + 1;
   for (let c = 1; c < C - 1; c++) t[at(0, c)] = ".";
-  for (let r = 1; r <= floor; r++) for (let c = 1; c < C - 1; c++) t[at(r, c)] = "#";
   for (let r = 1; r <= depth; r++)
     for (let c = a; c <= b; c++) {
       t[at(r, c)] = ".";
       w[at(r, c)] = 4;
     }
   const col = between(a, b);
-  t[at(floor, col)] = "s";
-  const route: number[] = [at(floor, col)];
-
-  // Shelf.
   const s = hard ? between(Math.max(floor + 3, 9), 10) : between(floor + 3, 11);
-  for (let c = 1; c < C - 1; c++) t[at(s, c)] = "#";
-  for (let r = floor + 1; r < s; r++) route.push(at(r, col));
   const dir = col <= 3 ? 1 : col >= C - 4 ? -1 : rand(2) ? 1 : -1;
   const dist = hard ? between(3, 8) : between(2, 8);
   const hole = col + dir * dist;
   if (hole < 1 || hole > C - 2) return null;
+
+  // Intended route, in dig order: plug and shaft (a sand column), along the shelf, down the hole.
+  const route: number[] = [];
+  for (let r = floor; r < s; r++) route.push(at(r, col));
   for (let c = col + dir; c !== hole + dir; c += dir) route.push(at(s - 1, c));
-  t[at(s, hole)] = "s";
-  route.push(at(s, hole));
-  for (let r = s + 1; r <= R - 2; r++) route.push(at(r, hole));
-  // Standard: back along the bottom to a drain beside the shaft's column. Hard: drain 1 under the hole.
+  for (let r = s; r <= R - 2; r++) route.push(at(r, hole));
   const drainCol = hard ? hole : col + dir;
   for (let c = hole - dir; c !== drainCol - dir; c -= dir) route.push(at(R - 2, c));
+  for (const i of route) t[i] = "s";
   t[at(R - 1, drainCol)] = "D";
 
-  // The obvious hole straight under the shaft, with a hazard beneath it.
+  // Trap: the obvious hole straight under the shaft, a hazard, and a sand chute on to the drain.
   t[at(s, col)] = "s";
-  const hazards: number[] = [];
+  const hazards: number[] = [at(s + 1, col)];
   let lava = 0;
   let acid = 0;
   if (rand(2)) {
@@ -142,30 +177,58 @@ function build(hard: boolean) {
     t[at(s + 1, col)] = "a";
     acid++;
   }
-  hazards.push(at(s + 1, col));
+  for (let r = s + 2; r <= R - 2; r++) t[at(r, col)] = "s";
+  if (hard) for (let c = col + dir; c !== hole; c += dir) t[at(R - 2, c)] = "s";
 
-  // Hard: a divider in the shelf between the shaft and the safe hole, over drain 2.
+  // Hard: a divider in the shelf over drain 2.
   let divider = -1;
-  const lower: number[] = [];
+  let lowerCell = -1;
   if (hard) {
     const v = col + dir * between(2, Math.max(2, dist - 2));
     divider = at(s, v);
+    lowerCell = at(s + 1, v);
     t[divider] = "s";
-    lower.push(at(s + 1, v));
+    t[lowerCell] = "s";
     t[at(s + 2, v)] = "D";
+    if (t[at(s + 3, v)] === "s") return null;
   }
 
-  // Side-gap decoy on the shelf, on the far side.
-  if (rand(2)) t[at(s - 1, dir > 0 ? 0 : C - 1)] = "G";
+  // Side-gap decoy along the shelf the other way.
+  if (rand(2)) {
+    const edge = dir > 0 ? 0 : C - 1;
+    for (let c = col - dir; c !== edge; c -= dir) if (t[at(s - 1, c)] === "#") t[at(s - 1, c)] = "s";
+    t[at(s - 1, edge)] = "G";
+  }
 
-  // Extra hazards in the sand, away from the route.
-  const onRoute = new Set([...route, ...lower, divider, at(s, col)]);
-  const near = (i: number) => onRoute.has(i) || nbrs(i).some((n) => onRoute.has(n) || t[n] === "D" || t[n] === "L" || t[n] === "a" || t[n] === "G");
+  // Decoy sand on rock ledges: stable stacks, never resting on a dug cell.
+  const keep = new Set([...route, at(s, col), divider, lowerCell]);
+  const restsOnDig = (i: number) => {
+    for (let k = i + C; k < C * R; k += C) {
+      if (keep.has(k)) return true;
+      if (t[k] !== "s") return false;
+    }
+    return false;
+  };
+  const decoy: number[] = [];
+  for (let r = R - 2; r > floor; r--)
+    for (let c = 1; c < C - 1; c++) {
+      const i = at(r, c);
+      if (t[i] !== "#" || r === s || Math.random() > 0.45) continue;
+      if (restsOnDig(i)) continue;
+      const below = t[i + C];
+      if (below !== "#" && below !== "s") continue;
+      t[i] = "s";
+      decoy.push(i);
+    }
+
+  // Extra hazards in decoy sand, away from the route.
+  const near = (i: number) => keep.has(i) || nbrs(i).some((n) => keep.has(n) || t[n] === "D" || t[n] === "L" || t[n] === "a" || t[n] === "G");
   const wantAcid = between(1, 3);
   const wantLava = between(lava, 2);
   for (let tries = 0; tries < 200 && (acid < wantAcid || lava < wantLava); tries++) {
-    const i = at(between(floor + 1, R - 2), between(1, C - 2));
-    if (t[i] !== "s" || near(i)) continue;
+    const i = decoy[rand(decoy.length)];
+    if (i === undefined || t[i] !== "s" || near(i)) continue;
+    if (t[i - C] === "s") continue; // nothing rests on a hazard that could later fall
     if (lava < wantLava) {
       t[i] = "L";
       lava++;
@@ -176,24 +239,19 @@ function build(hard: boolean) {
     hazards.push(i);
   }
   if (acid < 1) return null;
-  const all = [...route, ...lower];
-  if (all.some((cell) => t[cell] !== "s")) return null;
-  const minDigs = all.length + (hard ? 1 : 0);
-  if (minDigs < 4) return null;
+  const all = hard ? [...route] : route;
+  const planned = all.length + (hard ? 2 : 0);
+  if (planned < 4) return null;
 
   const pool = w.reduce((x, y) => x + y, 0);
   const total = hard ? Math.floor((pool * 60 + 50) / 100) : digTarget(pool);
   const split = hard ? (rand(2) ? 60 : 70) : 100;
-  // Drain 1 (filled first) takes the smaller share, so plenty is left for drain 2.
   const t1 = hard ? total - Math.round((total * split) / 100) : total;
-  // Drains in tile order: drain 2 (mid-grid) comes before drain 1 (bottom row) for hard boards.
   const targets = hard ? [total - t1, t1] : [total];
-  const board: DigBoard = { cols: C, rows: R, tiles: t.join(""), water: w.join(""), budget: minDigs + DIG_BUDGET_SLACK, minDigs, targets };
+  const board: DigBoard = { cols: C, rows: R, tiles: t.join(""), water: w.join(""), budget: planned + DIG_BUDGET_SLACK, minDigs: planned, targets };
 
-  // Intended: dig from the pool downward at once.
   let intended = logFor(all);
   if (hard) {
-    // Play forward to find the step drain 1 (the bottom one) fills, then dig the divider.
     let st = digInit(board);
     let k = 0;
     let fillStep = 0;
@@ -208,15 +266,18 @@ function build(hard: boolean) {
       }
     }
     if (!fillStep) return null;
-    intended = [...intended, { step: fillStep + 1, cell: divider }];
-    // Window: the divider dug at the start must fail.
-    const early = digReplay(board, [...logFor(all), { step: 1, cell: divider }].sort((x, y) => x.step - y.step)).state;
-    if (digComplete(early)) return null;
+    intended = [...intended, { step: fillStep + 1, cell: divider }, { step: fillStep + 2, cell: lowerCell }];
+    // (e) Divider dug at the start fails.
+    const early = [{ step: 1, cell: divider }, { step: 2, cell: lowerCell }, ...logFor(all, 3)];
+    if (digComplete(digReplay(board, early).state)) return null;
   }
+  // (a) Planned completes.
   const good = digReplay(board, intended).state;
-  if (!good.completeStep) return null;
+  if (!good.completeStep || good.dug !== planned) return null;
+  // (b) Planned in reverse fails.
+  if (digComplete(digReplay(board, reversed(intended)).state)) return null;
 
-  // Safe minimum: no hazards, nothing beside one, no gap.
+  // Safe minimum: no route clear of hazards needs fewer digs.
   const danger = new Set<number>();
   for (let i = 0; i < t.length; i++)
     if (t[i] === "L" || t[i] === "a" || t[i] === "G") {
@@ -225,26 +286,54 @@ function build(hard: boolean) {
     }
   const plug = at(floor, col);
   const safe = shortest(t, plug, (i) => danger.has(i));
-  if (!safe || safe.length < all.length - lower.length) return null;
-  // Geometric shortest (hazards allowed) must fail.
+  if (!safe || safe.length < all.length) return null;
+  // (d) Geometric shortest (through the hazard) fails.
   const geo = shortest(t, plug, () => false);
-  if (!geo) return null;
-  const geoCells = geo;
-  if (geoCells.length >= all.length) return null;
-  if (digComplete(digReplay(board, logFor(geoCells)).state)) return null;
+  if (!geo || geo.length >= all.length) return null;
+  if (digComplete(digReplay(board, logFor(geo)).state)) return null;
+
+  // (c) Random sequences within budget, on sand reachable from the pool: under 3% complete.
+  const reach: number[] = [];
+  {
+    const seen = new Set([plug]);
+    const q = [plug];
+    while (q.length) {
+      const i = q.pop()!;
+      if (t[i] === "s") reach.push(i);
+      for (const n of nbrs(i))
+        if (!seen.has(n) && (t[n] === "s" || t[n] === "." ) && Math.floor(n / C) > 0) {
+          seen.add(n);
+          q.push(n);
+        }
+    }
+  }
+  let wins = 0;
+  const limit = Math.floor(RANDOM_RUNS * 0.03);
+  for (let run = 0; run < RANDOM_RUNS; run++) {
+    const pick = reach.slice();
+    for (let k = pick.length - 1; k > 0; k--) {
+      const j = rand(k + 1);
+      [pick[k], pick[j]] = [pick[j]!, pick[k]!];
+    }
+    const cells = pick.slice(0, board.budget);
+    if (!couldConnect(t, new Set(cells), plug)) continue;
+    if (completesWithin(board, logFor(cells), RANDOM_CAP)) wins++;
+    if (wins >= limit) return null;
+  }
 
   return {
     tiles: board.tiles,
     water: board.water,
     budget: board.budget,
-    minDigs,
+    minDigs: planned,
     targets,
     pool,
     hazards: hazards.sort((x, y) => x - y),
     tier: hard ? ("hard" as const) : ("standard" as const),
-    route: hard ? [...all, divider] : all,
+    route: hard ? [...all, divider, lowerCell] : all,
     intended: digEncode(intended),
     completeStep: good.completeStep,
+    randomWins: wins,
   };
 }
 
@@ -284,11 +373,11 @@ export interface DigBankEntry {
   intended: string;
 }
 
-export const DIG_BANK: DigBankEntry[] = ${JSON.stringify(bank.map(({ completeStep: _c, ...rest }) => rest))};
+export const DIG_BANK: DigBankEntry[] = ${JSON.stringify(bank.map(({ completeStep: _c, randomWins: _w, ...rest }) => rest))};
 `;
 writeFileSync(new URL("../src/lib/duel/digBank.server.ts", import.meta.url), out);
 const cs = bank.map((b) => b.completeStep);
 console.log(
   `dig bank: ${bank.length} (${bank.filter((b) => b.tier === "standard").length} standard, ${bank.filter((b) => b.tier === "hard").length} hard) · tries ${tries.standard}/${tries.hard} · ` +
-    `${((performance.now() - t0) / 1000).toFixed(1)}s · intended completes at step ${Math.min(...cs)}–${Math.max(...cs)}`,
+    `${((performance.now() - t0) / 1000).toFixed(1)}s · intended completes at step ${Math.min(...cs)}–${Math.max(...cs)} · random wins max ${Math.max(...bank.map((b) => b.randomWins))}/1000`,
 );
