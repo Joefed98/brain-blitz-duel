@@ -10,7 +10,7 @@ import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 
 export const BT_COLS = 7;
 export const BT_ROWS = 9;
-export const BT_BALLS = 22;
+export const BT_BALLS = 25;
 export const BT_COLOURS = 4;
 export const BT_STEP_TICKS = 16;
 /** Tray colours slide to their shuffled columns over this many ticks (~0.5 s). */
@@ -79,6 +79,15 @@ const PIT = -2;
 /** Bottom-row layout (drop columns and their tray colours) live at tick `t`. */
 export function btTraysAt(course: BtCourse, t: number): number[] {
   return t >= course.shuffle.tick ? course.shuffle.trays : t >= course.relay.tick ? course.relay.trays : course.trays;
+}
+
+/** Render-only warning from stored event ticks; never changes replay state. */
+export function btEventCountdown(course: BtCourse, tick: number): number | null {
+  for (const event of [course.relay, course.shuffle]) {
+    const remaining = event.tick - tick;
+    if (remaining > 0 && remaining <= 5 * 60) return Math.ceil(remaining / 60);
+  }
+  return null;
 }
 const SLOT = 100;
 
@@ -338,6 +347,16 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
   }
   // Show six upcoming balls, keeping the lead ball full-sized above column 4.
   const hy = BT_HOPPER_H / 2;
+  const countdown = btEventCountdown(course, s.tick);
+  if (countdown !== null) {
+    ctx.save();
+    ctx.fillStyle = TUBE;
+    ctx.font = '24px "JetBrains Mono", monospace';
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(countdown), BT_W - 12, hy);
+    ctx.restore();
+  }
   const leadX = BT_HOPPER_COL * BT_TILE + BT_TILE / 2;
   const queueGap = BALL_R; // half a full ball diameter of clear space; never compress it
   const leadOutline = BALL_R + 6 + 1.5;

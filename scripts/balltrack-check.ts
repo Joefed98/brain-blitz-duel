@@ -6,7 +6,7 @@
 import { BALL_TRACK_BANK } from "../src/lib/duel/ballTrackBank.server";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { decodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { btCheckpoint, btRotatable, btScoreOf, btSpeedBonus, makeBallTrackGame, BT_BALLS, BT_CHECKPOINT_INTERVAL, BT_COLS, BT_ROWS, BT_KIND, BT_K_ROTATE, BT_DROP_TICKS, BT_STEP_TICKS, BT_RUN_TICKS, type BtCheckpoint } from "../src/lib/arcade/ballTrack";
+import { btCheckpoint, btEventCountdown, btRotatable, btScoreOf, btSpeedBonus, makeBallTrackGame, BT_BALLS, BT_CHECKPOINT_INTERVAL, BT_COLS, BT_ROWS, BT_KIND, BT_K_ROTATE, BT_DROP_TICKS, BT_STEP_TICKS, BT_RUN_TICKS, type BtCheckpoint } from "../src/lib/arcade/ballTrack";
 import { hasLowerShortcut, routeTo } from "./ball-track-bank";
 import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
 
@@ -34,13 +34,19 @@ function play(index: number, choose: (tick: number) => Omit<ArcadeInputEvent, "t
 
 let solved = 0, apart = 0;
 const dropSets = new Set<string>();
-if (BT_BALLS !== 22 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 16 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
+if (BT_BALLS !== 25 || (BT_BALLS - 1) * BT_DROP_TICKS !== 48 * 60 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 16 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
 for (let home = 0; home <= BT_BALLS; home++) for (let wrong = 0; wrong <= BT_BALLS - home; wrong++) {
   if (btScoreOf(home, wrong) !== Math.max(0, Math.min(150, Math.round(120 * home / BT_BALLS) - 5 * wrong + btSpeedBonus(home, BT_RUN_TICKS)))) fail("Scoring formula");
 if (btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 20 * 60) !== 30 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 15 * 60) !== 23 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 10 * 60) !== 15 || btSpeedBonus(BT_BALLS - 1, 0) !== 0) fail("Speed bonus");
 }
 BALL_TRACK_BANK.forEach((entry, i) => {
   const c = entry.course;
+  for (const event of [c.relay, c.shuffle]) {
+    if (btEventCountdown(c, event.tick - 301) !== null || btEventCountdown(c, event.tick) !== null) fail(`course ${i}: countdown boundaries`);
+    for (let before = 1; before <= 300; before++) {
+      if (btEventCountdown(c, event.tick - before) !== Math.ceil(before / 60)) fail(`course ${i}: countdown digit`);
+    }
+  }
   const upper = c.fixed.filter(x => x < 42);
   const extra = c.fixed.length;
   if (upper.length < 8 || upper.length > 10 || new Set(c.fixed).size !== extra || c.fixed.some((x) => x >= 56 || (x < 42 && x % BT_COLS === 3) || BT_KIND[x] !== 1)) fail(`course ${i}: fixed set`);
@@ -68,7 +74,7 @@ BALL_TRACK_BANK.forEach((entry, i) => {
   if (hasLowerShortcut(c) || c.trays.some((t,col) => t >= 0 && !routeTo(c,col))) fail(`course ${i}: tray reachability / early route`);
   if (c.trays.filter((t) => t >= 0).length !== 4 || c.balls.length !== BT_BALLS) fail(`course ${i}: trays/balls`);
   const counts = Array.from({ length: 4 }, (_, colour) => c.balls.filter((b) => b === colour).length).sort();
-  if (counts.join(",") !== "5,5,6,6") fail(`course ${i}: colour balance`);
+  if (counts.join(",") !== "6,6,6,7") fail(`course ${i}: colour balance`);
   if (c.balls.some((b, j) => j >= 2 && b === c.balls[j - 1] && b === c.balls[j - 2])) fail(`course ${i}: three consecutive colours`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);

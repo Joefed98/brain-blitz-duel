@@ -5,6 +5,7 @@ import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { inputAt, MAX_CATCH_UP_TICKS, recordInput, TICK_MS, type ArcadeInputEvent } from "@/lib/arcade/engine";
 import {
   btCheckpoint,
+  btEventCountdown,
   makeBallTrackGame,
   BT_BALLS,
   BT_CHECKPOINT_INTERVAL,
@@ -143,6 +144,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const next = queue.current.shift();
           if (next) recordInput(events.current, { ...next, t: state.current.tick + 1 }, game.inputRanges);
           state.current = game.step(state.current, inputAt(events.current, state.current.tick + 1));
+          const warning = btEventCountdown(course, state.current.tick);
+          if (warning !== null && warning !== btEventCountdown(course, state.current.tick - 1)) playTick(0.4);
           if (state.current.tick % BT_CHECKPOINT_INTERVAL === 0) checkpoints.current.push(btCheckpoint(state.current));
           if (game.isOver(state.current)) break;
         }

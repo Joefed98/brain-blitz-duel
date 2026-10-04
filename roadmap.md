@@ -1,3 +1,8 @@
+## Ball Track 25-ball and event countdown tuning
+- [ ] Use 25 seeded balls (7/6/6/6), two-second drops through 48 s and base scoring out of 25.
+- [ ] Show gold mono 5→1 warnings aligned with the hopper and soft ticks before both seeded events.
+- [ ] Regenerate 400 courses, sync practice, and run only Ball Track's identity proof; no browser tests.
+
 ## Ball Track pace and hopper tuning
 - [x] Slow movement to 12 ticks per tile and show only the next six balls with fixed clear gaps and a full-size lead ball.
 - [x] Retimed proof playbooks without changing any of the 400 courses or tiers: 400/400 solve 20/20, Ball Track identity 200/200; no browser tests.
