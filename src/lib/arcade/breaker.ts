@@ -578,7 +578,7 @@ export function brkCheckpoint(state: BrkState): BrkCheckpoint {
 
 export const BRK_BG = "#0B0B0F";
 export const BRK_GOLD = "#F5B82E";
-export const BRK_TEAL = ["#83BAFF", "#4D8CFF", "#2857AA"];
+export const BRK_TEAL = ["#83BAFF", "#4D8CFF", "#2857AA"] as const;
 /** Power-up brick colours, by kind: double-ball bronze, 5-ball silver, laser gold. */
 export const BRK_POWER_COLOURS = ["#C07A3E", "#C9CED6", "#F5B82E"] as const;
 export const BRK_POWER_LABELS = ["×2", "×5", "L"] as const;

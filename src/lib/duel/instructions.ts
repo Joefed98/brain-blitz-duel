@@ -552,7 +552,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Make lines of three or more matching symbols.",
     how: [
       { action: "Swap two neighbours", detail: "by dragging one onto the other." },
-      { action: "Make four, five, or a T / L", detail: "to create bombs, crosses and stars (stars clear both diagonals)." },
+      { action: "Make four, five, or a T / L", detail: "to create a four-point star (nearby blast), cross or six-point star (both diagonals), including on cascades." },
       { action: "Trigger specials", detail: "to clear nearby symbols and start chain reactions." },
       { action: "Sixty seconds", detail: "on the same board for everyone." },
     ],
