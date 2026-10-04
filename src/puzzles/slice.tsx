@@ -18,6 +18,7 @@ import {
   SLICE_COLOURS,
   SLICE_GOLD,
   SLICE_INPUT_SWIPE,
+  sliceClipSegment,
   SLICE_RUN_TICKS,
   SLICE_WORLD_H,
   SLICE_WORLD_W,
@@ -131,16 +132,28 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const point = now.current;
           let applied: ArcadeInputEvent | null = null;
           if (start && point && (start.x !== point.x || start.y !== point.y)) {
-            applied = {
-              t: state.current.tick + 1,
-              k: SLICE_INPUT_SWIPE,
-              a: start.x,
-              b: start.y,
-              c: point.x,
-              d: point.y,
-            };
-            from.current = point;
-            recordInput(events.current, applied, sliceGame.inputRanges);
+            // The path is capped at its maximum length: clip, then stop the stroke.
+            const clip = sliceClipSegment(state.current, start.x, start.y, point.x, point.y);
+            if (!clip) {
+              from.current = null;
+              now.current = null;
+            } else {
+              applied = {
+                t: state.current.tick + 1,
+                k: SLICE_INPUT_SWIPE,
+                a: start.x,
+                b: start.y,
+                c: clip.c,
+                d: clip.d,
+              };
+              if (clip.c !== point.x || clip.d !== point.y) {
+                from.current = null;
+                now.current = null;
+              } else {
+                from.current = point;
+              }
+              recordInput(events.current, applied, sliceGame.inputRanges);
+            }
           }
           state.current = sliceGame.step(
             state.current,
