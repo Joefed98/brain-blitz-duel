@@ -1,3 +1,8 @@
+## Logic grid size changes (Oct 4)
+- [ ] Colour Flood 14×14, 60 s, full-width grid and freshly proven par.
+- [ ] Shikaku 10×10 and Light Up 9×9, unique generation and workload-scaled time limits.
+- [ ] Validate changed games' solutions/replays, report limits and par range; no browser tests.
+
 ## Logic layout tuning (Oct 4)
 - [x] Resize Lights Out, centre Tower, prioritise Safe Cracker clues and shrink DEFUSE without changing gameplay.
 - [x] Expand Nonogram and Tents grids; move Colour Flood par to its reveal.
