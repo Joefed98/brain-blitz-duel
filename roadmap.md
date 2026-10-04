@@ -1,6 +1,6 @@
 ## Ball Track pace and hopper tuning
 - [x] Slow movement to 12 ticks per tile and show only the next six balls with fixed clear gaps and a full-size lead ball.
-- [ ] Verify the existing courses at the new pace and run Ball Track-only identity proof; no browser tests.
+- [x] Retimed proof playbooks without changing any of the 400 courses or tiers: 400/400 solve 20/20, Ball Track identity 200/200; no browser tests.
 
 ## Ball Track nine-row tuning
 - [x] Apply the agreed row-8 allowance of four rotatable straights; row 7 stays at two, with fixed bottom-row interception and upper-routing alternatives for every tray.
