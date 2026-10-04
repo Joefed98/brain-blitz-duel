@@ -25,6 +25,9 @@ import {
   T_ROCK,
   T_SAND,
   T_ACID_HIDDEN,
+  T_EMPTY,
+  T_FALLING,
+  T_PACKED,
   type DigAction,
   type DigBoard,
   type DigState,
@@ -39,6 +42,8 @@ const GRID_STYLE: CSSProperties = { touchAction: "none", overscrollBehavior: "no
 
 function tileClass(t: string | undefined, onRoute: boolean): string {
   if (t === T_ROCK) return "bg-muted";
+  if (t === T_PACKED) return "bg-primary/80 ring-1 ring-inset ring-background/60";
+  if (t === T_FALLING) return "bg-primary/45";
   if (t === T_SAND || t === T_ACID_HIDDEN) return onRoute ? "bg-primary/60" : "bg-primary/30";
   if (t === T_DRAIN) return "bg-reaction-blue/40 ring-1 ring-inset ring-reaction-blue";
   if (t === T_GAP) return "bg-destructive/40";
@@ -79,8 +84,16 @@ function Grid({
         const settled = state.settled[cell] ?? 0;
         const toxic = state.tox[cell] === 1;
         const evaporating = (state.age[cell] ?? -1) >= DIG_EVAP_STEPS;
+        const below = cell + board.cols;
+        const loose = t === T_SAND && below < state.tiles.length && state.tiles[below] === T_EMPTY && (state.settled[below] ?? 0) === 0;
         return (
           <div key={cell} className={`relative overflow-hidden ${small ? "" : "rounded-[2px]"} ${tileClass(t, route?.has(cell) ?? false)}`}>
+            {loose && (
+              <span
+                className="absolute inset-x-0 bottom-0 h-1/3 opacity-70"
+                style={{ backgroundImage: "repeating-linear-gradient(135deg, var(--background) 0 1px, transparent 1px 3px)" }}
+              />
+            )}
             {settled > 0 && (
               <span className="absolute inset-x-0 bottom-0 bg-muted-foreground/40" style={{ height: `${Math.min(4, settled) * 25}%` }} />
             )}
@@ -97,17 +110,17 @@ function Grid({
   );
 }
 
-/** 6×8 example: three digs straight down, clear of the green acid, fill the drain. */
+/** 6×8 example: dig from the pool down. Digging the lower cell first drops the plug into the channel, where it packs. */
 const EXAMPLE: DigBoard = {
   cols: 6,
   rows: 8,
-  tiles: "#....#" + "#....#" + "#....#" + "##s###" + "#sssA#" + "#ssss#" + "##D###" + "######",
+  tiles: "#....#" + "#....#" + "#....#" + "##s###" + "##ss##" + "###s##" + "###D##" + "######",
   water: "000000" + "044440" + "044440" + "000000" + "000000" + "000000" + "000000" + "000000",
-  budget: 3,
-  minDigs: 3,
+  budget: 4,
+  minDigs: 4,
   targets: [26],
 };
-const EXAMPLE_DIGS = [20, 26, 32];
+const EXAMPLE_DIGS = [20, 26, 27, 33];
 
 function IntroExample() {
   const [state, setState] = useState<DigState>(() => digInit(EXAMPLE));
@@ -119,7 +132,7 @@ function IntroExample() {
         return;
       }
       const n = s.step + 1;
-      s = digStep(EXAMPLE, s, n >= 8 && n <= 10 ? [EXAMPLE_DIGS[n - 8]!] : []);
+      s = digStep(EXAMPLE, s, n >= 8 && n <= 11 ? [EXAMPLE_DIGS[n - 8]!] : []);
       setState(s);
     }, DIG_STEP_MS);
     return () => window.clearInterval(id);
@@ -131,7 +144,7 @@ function IntroExample() {
         <Grid board={EXAMPLE} state={state} small />
       </div>
       <p className="max-w-[260px] text-center text-xs text-muted-foreground">
-        Three digs straight down, clear of the green acid, and clean water fills the drain.
+        Dig the lower cell first and the sand above drops into the channel and packs hard. Dig from the pool down instead.
       </p>
     </div>
   );
@@ -147,6 +160,7 @@ function Legend({ state }: { state: DigState }) {
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
       {item("bg-primary/30", "sand")}
+      {item("bg-primary/80", "packed")}
       {item("bg-muted", "rock")}
       {item("bg-ball-green/50", "acid")}
       {item("bg-ball-red/80", "lava")}
@@ -284,7 +298,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           dev · pool {digWaterLeft(state)} · clean {state.drained.join("/")} · toxic {state.toxicIn} · lost {state.lost} · settled{" "}
           {state.settledUnits}
           {state.settledLog.length ? ` (${state.settledLog.slice(-4).map(([c, st]) => `${c}@${st}`).join(" ")})` : ""} · digs {state.dug}/
-          {state.budget}/min {data.minDigs} · step {state.step}
+          {state.budget}/planned {data.minDigs} · fallen {state.sandFallen} · step {state.step}
         </p>
       )}
     </div>
@@ -314,7 +328,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         </div>
       </div>
       <p className="font-mono text-base text-primary">
-        {digCleanCollected(mine)} / {total} clean · {mine.dug} digs (min {puzzle.minDigs})
+        {digCleanCollected(mine)} / {total} clean · {mine.dug} digs (planned {puzzle.minDigs})
       </p>
     </div>
   );
