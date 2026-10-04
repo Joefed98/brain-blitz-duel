@@ -88,7 +88,7 @@ export const SNIP_CONFIG = {
     { name: "Shelf", sweet: [200, 170], pins: [[140, 60, 0], [260, 60, 0]], platforms: [[290, 300, 430, 316], [110, 440, 230, 456]], mouth: [380, 280], stars: [[340, 240]] },
     { name: "Gap", sweet: [270, 150], pins: [[130, 100, 30], [410, 100, 30]], platforms: [[120, 400, 240, 416], [300, 400, 420, 416]], mouth: [270, 500], stars: [[270, 260]] },
     { name: "Under", sweet: [270, 170], pins: [[150, 60, 0], [390, 60, 0], [270, 320, 0]], platforms: [[110, 380, 200, 396]], mouth: [380, 470], stars: [[340, 380]] },
-  ].map((template): SnipTemplate => ({
+  ].map((template: SnipTemplate): SnipTemplate => ({
     // Keep each layout intact, with 360 extra px of swing clearance on each side.
     name: template.name,
     sweet: [template.sweet[0] + 360, template.sweet[1]],
