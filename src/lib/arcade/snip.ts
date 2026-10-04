@@ -6,7 +6,9 @@
  * point. A swipe (kind 12, a/b → c/d in world px) is applied on the tick it
  * was recorded against the rope segments as they are on that tick; any rope
  * it crosses is cut. The level ends when the sweet enters the mouth, leaves
- * the arena or 20 s pass, and the next level starts at once.
+ * the arena through the top or bottom, rests on a platform for 0.5 s or
+ * 12 s pass, and the next level starts at once. Ten levels in a fixed
+ * rising order; the swing is undamped and the side walls are solid.
  * All physics is integer 1/256-pixel units; no floats in the sim.
  */
 
@@ -37,7 +39,12 @@ export interface SnipTemplate {
 
 export const SNIP_CONFIG = {
   runSeconds: 60,
-  levelSeconds: 20,
+  levelSeconds: 12,
+  levels: 10,
+  /** Ticks resting on a platform before the level fails. */
+  restTicks: 30,
+  /** Per-tick speed (1/256 px) below which the sweet counts as resting. */
+  restSpeed: 48,
   worldW: 360,
   worldH: 560,
   /** Nodes per rope including the pin; the sweet is one more segment. */
@@ -47,7 +54,7 @@ export const SNIP_CONFIG = {
   /** 1/256 px per tick². */
   gravity: 64,
   /** Velocity kept per tick, out of 256. */
-  damping: 254,
+  damping: 256,
   /** Out of 256: share of a rope correction taken by the sweet (the rest by its neighbour node). */
   sweetShare: 64,
   sweetRadius: 12,
@@ -62,105 +69,22 @@ export const SNIP_CONFIG = {
   /** Seeded pin wobble per level, ± px. */
   pinJitter: 10,
   pointsPerSweet: 10,
-  pointsPerStar: 5,
+  pointsPerStar: 2,
+  /** Bonus for clearing all ten levels, scaled by time left. */
+  finishBonus: 10,
   maxScore: 150,
+  /** Ten levels in play order, easiest first. */
   templates: [
-    {
-      name: "Drop",
-      sweet: [180, 170],
-      pins: [[180, 60, 0]],
-      platforms: [],
-      mouth: [180, 480],
-      stars: [[180, 300]],
-    },
-    {
-      name: "Swing",
-      sweet: [70, 150],
-      pins: [[180, 50, 0]],
-      platforms: [],
-      mouth: [290, 490],
-      stars: [[180, 200], [262, 330]],
-    },
-    {
-      name: "Pair",
-      sweet: [180, 180],
-      pins: [[70, 60, 0], [290, 60, 0]],
-      platforms: [],
-      mouth: [300, 490],
-      stars: [[250, 250], [180, 210]],
-    },
-    {
-      name: "Ledge",
-      sweet: [80, 170],
-      pins: [[200, 60, 0]],
-      platforms: [[30, 330, 180, 346]],
-      mouth: [290, 500],
-      stars: [[200, 225], [270, 330]],
-    },
-    {
-      name: "Triple",
-      sweet: [180, 200],
-      pins: [[60, 80, 0], [180, 40, 0], [300, 80, 0]],
-      platforms: [],
-      mouth: [180, 490],
-      stars: [[180, 330], [180, 420]],
-    },
-    {
-      name: "Step",
-      sweet: [90, 170],
-      pins: [[90, 60, 0]],
-      platforms: [[40, 420, 160, 436]],
-      mouth: [100, 392],
-      stars: [[90, 280]],
-    },
-    {
-      name: "Long arc",
-      sweet: [150, 80],
-      pins: [[320, 50, 0]],
-      platforms: [],
-      mouth: [230, 490],
-      stars: [[312, 215], [230, 380]],
-    },
-    {
-      name: "Shelf",
-      sweet: [110, 170],
-      pins: [[50, 60, 0], [170, 60, 0]],
-      platforms: [[200, 300, 340, 316]],
-      mouth: [290, 280],
-      stars: [[200, 200], [250, 240]],
-    },
-    {
-      name: "Hook",
-      sweet: [180, 150],
-      pins: [[270, 50, 0]],
-      platforms: [[40, 320, 190, 336]],
-      mouth: [80, 300],
-      stars: [[262, 188]],
-    },
-    {
-      name: "Gap",
-      sweet: [180, 150],
-      pins: [[40, 100, 30], [320, 100, 30]],
-      platforms: [[30, 400, 150, 416], [210, 400, 330, 416]],
-      mouth: [180, 500],
-      stars: [[180, 260], [180, 440]],
-    },
-    {
-      name: "Anchor",
-      sweet: [220, 150],
-      pins: [[120, 50, 0], [300, 230, 0]],
-      platforms: [],
-      mouth: [80, 490],
-      stars: [[128, 192], [88, 440]],
-    },
-    {
-      name: "Under",
-      sweet: [180, 170],
-      pins: [[60, 60, 0], [300, 60, 0], [180, 320, 0]],
-      platforms: [],
-      mouth: [290, 470],
-      stars: [[180, 470], [100, 300]],
-    },
+    { name: "Drop", sweet: [180, 170], pins: [[180, 60, 0]], platforms: [], mouth: [180, 480], stars: [[180, 260], [180, 360]] },
+    { name: "Swing", sweet: [70, 150], pins: [[180, 50, 0]], platforms: [], mouth: [290, 490], stars: [[180, 200], [262, 330]] },
+    { name: "Pair", sweet: [180, 180], pins: [[70, 60, 0], [290, 60, 0]], platforms: [], mouth: [300, 490], stars: [[250, 250], [180, 210]] },
+    { name: "Long arc", sweet: [150, 80], pins: [[320, 50, 0]], platforms: [], mouth: [230, 490], stars: [[312, 215], [230, 380]] },
+    { name: "Ledge", sweet: [80, 170], pins: [[200, 60, 0]], platforms: [[30, 330, 150, 346]], mouth: [290, 500], stars: [[200, 225], [270, 330]] },
+    { name: "Triple", sweet: [180, 200], pins: [[60, 80, 0], [180, 40, 0], [300, 80, 0]], platforms: [[20, 430, 120, 446]], mouth: [180, 490], stars: [[180, 330], [180, 420]] },
+    { name: "Anchor", sweet: [220, 150], pins: [[120, 50, 0], [300, 230, 0]], platforms: [[200, 420, 340, 436]], mouth: [80, 490], stars: [[128, 192], [88, 440]] },
+    { name: "Shelf", sweet: [110, 170], pins: [[50, 60, 0], [170, 60, 0]], platforms: [[200, 300, 340, 316], [20, 440, 140, 456]], mouth: [290, 280], stars: [[200, 200], [250, 240]] },
+    { name: "Gap", sweet: [180, 150], pins: [[40, 100, 30], [320, 100, 30]], platforms: [[30, 400, 150, 416], [210, 400, 330, 416]], mouth: [180, 500], stars: [[180, 260], [180, 440], [120, 200]] },
+    { name: "Under", sweet: [180, 170], pins: [[60, 60, 0], [300, 60, 0], [180, 320, 0]], platforms: [[20, 380, 110, 396]], mouth: [290, 470], stars: [[180, 470], [100, 300], [250, 380]] },
   ] as readonly SnipTemplate[],
 } as const;
 
@@ -182,6 +106,7 @@ export const SNIP_PLAYING = 0;
 export const SNIP_EATEN = 1;
 export const SNIP_LOST = 2;
 export const SNIP_TIMEOUT = 3;
+export const SNIP_LANDED = 4;
 
 /* ================================ State ================================ */
 
@@ -197,8 +122,12 @@ export interface SnipRope {
 export interface SnipState {
   tick: number;
   rng: number;
-  /** Template order for this run (seeded shuffle, repeated). */
+  /** Template per level (fixed rising order). */
   order: number[];
+  /** Consecutive ticks the sweet has rested on a platform. */
+  rest: number;
+  /** Tick the tenth level was fed (0 = not yet). */
+  finishTick: number;
   level: number;
   levelTick: number;
   template: number;
@@ -227,7 +156,7 @@ export interface SnipState {
 function buildLevel(state: SnipState, level: number, fixedJitter?: number): SnipState {
   const c = SNIP_CONFIG;
   let rng = state.rng;
-  const t = state.order[level % state.order.length]!;
+  const t = state.order[Math.min(level, state.order.length - 1)]!;
   const tpl = c.templates[t]!;
   const ropes: SnipRope[] = [];
   const sx = tpl.sweet[0] * 256;
@@ -262,22 +191,19 @@ function buildLevel(state: SnipState, level: number, fixedJitter?: number): Snip
     starY: tpl.stars.map((s) => s[1] * 256),
     starGot: tpl.stars.map(() => 0),
     outcome: SNIP_PLAYING,
+    rest: 0,
   };
 }
 
 function init(seed: number): SnipState {
   let rng = seed | 0;
-  const order = Array.from({ length: SNIP_TEMPLATES }, (_, i) => i);
-  for (let i = order.length - 1; i > 0; i--) {
-    const r = rngBelow(rng, i + 1);
-    rng = r.state;
-    const j = r.value;
-    [order[i], order[j]] = [order[j]!, order[i]!];
-  }
+  const order = Array.from({ length: SNIP_CONFIG.levels }, (_, i) => i % SNIP_TEMPLATES);
   const base: SnipState = {
     tick: 0,
     rng,
     order,
+    rest: 0,
+    finishTick: 0,
     level: 0,
     levelTick: 0,
     template: 0,
@@ -308,7 +234,7 @@ export function snipTestLevel(template: number, jitter: number): SnipState {
 }
 
 function isOver(state: SnipState): boolean {
-  return state.tick >= SNIP_RUN_TICKS || score(state) >= SNIP_CONFIG.maxScore;
+  return state.tick >= SNIP_RUN_TICKS || state.level >= SNIP_CONFIG.levels;
 }
 
 /** Sign of the cross product (b − a) × (p − a). */
@@ -431,11 +357,16 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
     sx = sx < r ? r : W - r;
     sox = sx + ((pvx * c.bounce) >> 8);
   }
-  if (sy < r) {
-    const pvy = sy - soy;
-    sy = r;
-    soy = sy + ((pvy * c.bounce) >> 8);
+  for (const rope of ropes) {
+    for (let i = 1; i < rope.x.length; i++) {
+      const x = rope.x[i]!;
+      if (x >= 0 && x <= W) continue;
+      const pvx = x - rope.ox[i]!;
+      rope.x[i] = x < 0 ? 0 : W;
+      rope.ox[i] = rope.x[i]! + ((pvx * c.bounce) >> 8);
+    }
   }
+  let resting = false;
   const tpl = c.templates[state.template]!;
   for (const [x0p, y0p, x1p, y1p] of tpl.platforms) {
     const x0 = x0p * 256, y0 = y0p * 256, x1 = x1p * 256, y1 = y1p * 256;
@@ -451,6 +382,7 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
       // Vertical contact: land on top (or hit the underside).
       const top = inside ? sy <= (y0 + y1) >> 1 : dy < 0;
       sy = top ? y0 - r : y1 + r;
+      if (top && Math.abs(pvx) < c.restSpeed && Math.abs(pvy) < c.restSpeed * 4) resting = true;
       soy = sy + ((pvy * c.bounce) >> 8);
       sox = sx - ((pvx * c.friction) >> 8);
     } else {
@@ -458,7 +390,7 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
       sox = sx + ((pvx * c.bounce) >> 8);
     }
   }
-  next = { ...next, sx, sy, sox, soy };
+  next = { ...next, sx, sy, sox, soy, rest: resting ? state.rest + 1 : 0 };
 
   // 5. Stars, mouth, out of the arena, timeout.
   const reach = c.starReach * 256;
@@ -477,7 +409,8 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
   const mr = c.mouthRadius * 256;
   let outcome = SNIP_PLAYING;
   if (mx * mx + my * my < mr * mr) outcome = SNIP_EATEN;
-  else if (sy > (c.worldH + c.sweetRadius * 2) * 256) outcome = SNIP_LOST;
+  else if (sy > (c.worldH + c.sweetRadius * 2) * 256 || sy < -c.sweetRadius * 2 * 256) outcome = SNIP_LOST;
+  else if (next.rest >= c.restTicks) outcome = SNIP_LANDED;
   else if (next.levelTick >= SNIP_LEVEL_TICKS) outcome = SNIP_TIMEOUT;
 
   if (tick % 300 === 0) {
@@ -485,9 +418,10 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
   }
 
   if (outcome !== SNIP_PLAYING) {
+    next.stars += Math.min(3, next.starGot.reduce((n, g) => n + g, 0));
     if (outcome === SNIP_EATEN) {
       next.eaten += 1;
-      next.stars += next.starGot.reduce((n, g) => n + g, 0);
+      if (next.eaten >= c.levels) next.finishTick = tick;
     }
     next.lastOutcome = outcome;
     next.endTick = tick;
@@ -496,13 +430,17 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
   return next;
 }
 
-export function snipScore(eaten: number, stars: number): number {
+/** 10 per level fed + 2 per star; all ten fed adds round(10 × ms left ÷ 60 s); cap 150. */
+export function snipScore(eaten: number, stars: number, finishTick = 0): number {
   const c = SNIP_CONFIG;
-  return clampInt(eaten * c.pointsPerSweet + stars * c.pointsPerStar, 0, c.maxScore);
+  const bonus = eaten >= c.levels && finishTick > 0
+    ? Math.round((c.finishBonus * Math.max(0, SNIP_RUN_TICKS - finishTick)) / SNIP_RUN_TICKS)
+    : 0;
+  return clampInt(eaten * c.pointsPerSweet + stars * c.pointsPerStar + bonus, 0, c.maxScore);
 }
 
 function score(state: SnipState): number {
-  return snipScore(state.eaten, state.stars);
+  return snipScore(state.eaten, state.stars, state.finishTick);
 }
 
 export function unpackSnipCut(entry: number): { tick: number; level: number; rope: number } {
