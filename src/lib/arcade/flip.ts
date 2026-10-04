@@ -48,14 +48,14 @@ export const FLIP_DECISION_OVERHANG = 1;
 export const FLIP_DECISION_PAIRED_SPIKES = 2;
 export const FLIP_DECISION_FALSE_GAP = 3;
 
-/** Path warp: starts at 20 s, amplitude ramps 0 → max over the next 20 s; period 4–6 s (seeded). */
+/** Path warp: starts at 20 s, amplitude ramps 0 → max over the next 20 s; period 2–3 s (seeded). */
 export const FLIP_WARP_FROM = 20 * TICKS_PER_SECOND;
 const WARP_RAMP = 20 * TICKS_PER_SECOND;
-const WARP_MAX = 76;
-const WARP_PERIOD_MIN = 4 * TICKS_PER_SECOND;
-const WARP_PERIOD_SPAN = 2 * TICKS_PER_SECOND + 1;
+const WARP_MAX = 145;
+const WARP_PERIOD_MIN = 2 * TICKS_PER_SECOND;
+const WARP_PERIOD_SPAN = TICKS_PER_SECOND + 1;
 /** Spatial wavelength of the bend, px. */
-const WARP_WAVE = 1600;
+const WARP_WAVE = 260;
 
 export const FLIP_INPUT_RANGES: readonly InputRange[] = [inputRange(FLIP_INPUT_TAP)];
 
@@ -444,7 +444,7 @@ function draw(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize)
   const surfaceLine = (side: number, y: number, a: number, b: number) => {
     if (b <= a) return;
     ctx.moveTo(a, y + wy(side, a));
-    if (warped) for (let px = Math.ceil(a / 8) * 8; px < b; px += 8) ctx.lineTo(px, y + wy(side, px));
+    if (warped) for (let px = Math.ceil(a / 3) * 3; px < b; px += 3) ctx.lineTo(px, y + wy(side, px));
     ctx.lineTo(b, y + wy(side, b));
   };
   // Surfaces as gold lines, broken where a gap is.

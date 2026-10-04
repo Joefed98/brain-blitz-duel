@@ -769,12 +769,13 @@ export function matchupDrawSymbol(
 ): void {
   if (kind === MATCHUP_BOMB) {
     ctx.save();
-    ctx.fillStyle = MATCHUP_GOLD;
+    ctx.fillStyle = "#000000";
+    ctx.strokeStyle = "#D9D9D9";
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(cx, cy + radius * 0.12, radius * 0.78, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = MATCHUP_TEXT;
-    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(cx + radius * 0.3, cy - radius * 0.5);
     ctx.quadraticCurveTo(cx + radius * 0.3, cy - radius, cx + radius * 0.7, cy - radius * 0.9);

@@ -51,10 +51,10 @@ for (let seed = 1; seed <= 100; seed++) {
   }
   assert.ok(new Set(offsets).size > 1);
 }
-assert.equal(SNIP_CONFIG.mouthRadius, 24);
+assert.equal(SNIP_CONFIG.mouthRadius, 32);
 for (const direction of [-1, 1]) {
   let s = snipGame.init(1);
-  const x = direction < 0 ? 13 : 527;
+  const x = direction < 0 ? 13 : SNIP_CONFIG.worldW - 13;
   s = { ...s, ropes: [], sx: x * 256, sy: 200 * 256, sox: (x - direction * 5) * 256, soy: 200 * 256 };
   const next = snipGame.step(s, null);
   assert.equal(next.sx - next.sox, -direction * 5 * 256);

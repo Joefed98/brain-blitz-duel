@@ -1,3 +1,7 @@
+## Matchup, Flip and Snip refinement (Oct 4)
+- [x] Black bomb with thin light-grey outline; deeper, more frequent shared-band Flip bends; larger Snip mouth and much wider walls.
+- [x] Matchup, Flip and Snip replay proofs passed 200/200 each; all 30 template/jitter swing envelopes clear widened walls, camera visibility and 75° Flip bend check passed; no browser tests.
+
 ## Arcade correction pass (Oct 4)
 - [x] Correct Matchup icons, whole-swipe Slice combos, Cross lanes, shared Flip bend, Tilt stars and elastic/larger-mouth Snip.
 - [x] Curved three-disc swipe and focused rules passed; replay only Matchup, Slice, Flip and Snip passed 200/200 each; no browser tests.
