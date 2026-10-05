@@ -249,7 +249,7 @@ const BUILDERS: Record<string, Builder> = {
     const done = n(r, "eaten") >= 10;
     return {
       axis: { value: n(r, "eaten"), max: 10, label: "Levels fed" },
-      lines: [`${n(r, "eaten")} fed × 10 · ${n(r, "stars")}★ × 3 → ${s}`],
+      lines: [`${n(r, "eaten")} fed × 10 · ${n(r, "stars")}★ × 3${done ? ` · time +${Math.max(0, s - 10 * n(r, "eaten") - 3 * n(r, "stars"))}` : ""} → ${s}`],
       tiles: [
         { label: "Stars", value: String(n(r, "stars")) },
         { label: "Cuts", value: String(n(r, "cuts")) },
