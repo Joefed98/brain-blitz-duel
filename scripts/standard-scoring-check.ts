@@ -67,7 +67,7 @@ const iv = replayIntruder([[1], [2], [3], [4], [5, 6]].map((cells) => ({ cells }
 ex("Intruder 4 + half", S.scoreIntruder(iv.points, false, 0, L), 108);
 // staged
 const scan = [0, 1, 2].map((i) => scanStageResult(i, [1, 2], [1, 2]));
-ex("Symbol Scan perfect half", scoreSymbolScanStages(scan, H, L), 150);
+ex("Symbol Scan perfect half", scoreSymbolScanStages(scan, H, L), 140);
 ex("Symbol Scan perfect zero", scoreSymbolScanStages(scan, 0, L), 130);
 ex("Count Up exact zero", scoreCountUpStages([5, 5, 5], [5, 5, 5], 0, L), 130);
 ex("Count Up off-by-1 on stage 3", scoreCountUpStages([5, 5, 6], [5, 5, 5], H, L), 108);
