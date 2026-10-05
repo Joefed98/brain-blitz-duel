@@ -689,3 +689,9 @@ body.game-lock {
 .arcade-reveal-glow {
   animation: arcade-reveal-glow 1.6s ease-in-out infinite;
 }
+
+/* Intro demo: height-led so the intro never scrolls at 375×667. */
+.intro-demo {
+  height: clamp(120px, 26svh, 210px);
+  max-width: 100%;
+}
