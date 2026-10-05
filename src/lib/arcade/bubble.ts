@@ -59,7 +59,7 @@ export const BUB_DESCEND_EVERY = 8;
 export const BUB_MIN_GROUP = 3;
 
 /** Par: popped + 2 x dropped = 90. */
-/** Cleared = 150; otherwise 150 − 3 per bubble left on the field. */
+/** Cleared = 130 + round(20 × ticks left ÷ run); otherwise round(130 × bubbles removed ÷ bubbles at start), 0…130. */
 
 export const BUB_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BUB_INPUT_SHOT, [-BUB_V_MAX, BUB_V_MAX], [-BUB_V_MAX, 0]),
