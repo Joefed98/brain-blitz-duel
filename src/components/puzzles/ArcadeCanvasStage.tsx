@@ -54,6 +54,8 @@ interface Props<S, C> {
   discrete?: boolean;
   /** Called every tick; a non-null payload replaces the pointer's wanted payload. */
   tickInput?: (state: S) => PointerPayload | null;
+  /** Render-side sound observer, created per run and stopped on teardown. */
+  sounds?: () => { frame: (state: S, running: boolean) => void; stop: () => void };
   /** Controls drawn over the canvas (absolute), never shrinking the play area. */
   overlay?: ReactNode;
   /** Controls below the canvas which can enqueue the same recorded inputs as pointer gestures. */
@@ -120,6 +122,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = propsRef.current.sounds?.();
     const tickOf = () => (state.current as { tick: number }).tick;
 
     const finish = () => {
@@ -172,6 +175,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       }
       reportArcadeTick(tickOf(), game.isOver(state.current));
       feedback(state.current as object, game.isOver(state.current));
+      sounds?.frame(state.current, !game.isOver(state.current) && !propsRef.current.locked);
       const size = sizeCanvas();
       if (size) {
         const ctx = canvas.current?.getContext("2d");
@@ -194,7 +198,10 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       if (game.isOver(state.current)) finish();
     };
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      sounds?.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, game, seed]);
 
