@@ -1,29 +1,13 @@
 /**
- * Proof run for Gravity Maze, Don't Break the Chain and Intruder Detection.
+ * Proof run for Gravity Maze and Intruder Detection.
  * Run with: bun scripts/gravity-chain-intruder-check.ts
  */
 
 import { generateGravity } from "../src/lib/duel/gravity.server";
 import { decodeGravityTilts, replayGravity } from "../src/lib/duel/gravity";
-import { generateChain } from "../src/lib/duel/chain.server";
-import {
-  chainDecoySteps,
-  convexHullSize,
-  chainSolutionIsFair,
-  chainTrapNodes,
-  countChainSolutions,
-} from "../src/lib/duel/chain.server";
-import { CHAIN_RESET, CHAIN_UNDO, chainRequired, replayChain } from "../src/lib/duel/chain";
 import { generateIntruder } from "../src/lib/duel/intruder.server";
 import { intruderColoursTooClose } from "../src/lib/duel/intruder";
 import {
-  CHAIN_LENGTH,
-  CHAIN_MAX_HULL_RATIO,
-  CHAIN_MIN_CENTRAL,
-  CHAIN_MIN_INVALID,
-  CHAIN_MIN_SPACING,
-  CHAIN_NODES,
-  CHAIN_NODE_WIDTH_PCT,
   GRAV_FALLBACK_MIN_TILTS,
   GRAV_MAX_TILTS,
   INTRUDER_BOARD_SIZES,
@@ -63,66 +47,6 @@ for (let round = 0; round < ROUNDS; round++) {
     "gravity shortest route swaps the balls' relative order",
     solutionSwapsOrder(new Set(puzzle.walls), { a: puzzle.startA, b: puzzle.startB }, solution),
   );
-}
-
-for (let round = 0; round < ROUNDS; round++) {
-  const puzzle = generateChain();
-  const solution = puzzle.solution ?? [];
-  check("chain node count", puzzle.nodes.length === CHAIN_NODES);
-  check(
-    "chain stored route count matches the search",
-    puzzle.solutionCount === countChainSolutions(puzzle.nodes, puzzle.cycle, [], 40),
-  );
-  check("chain has at least one route", (puzzle.solutionCount ?? 0) >= 1);
-  check("chain nodes reach the centre", centralNodes(puzzle.nodes) >= CHAIN_MIN_CENTRAL);
-  check(
-    "chain nodes are not ringed around the rim",
-    convexHullSize(puzzle.nodes) <= Math.floor(CHAIN_NODES * CHAIN_MAX_HULL_RATIO),
-  );
-  check(
-    "chain nodes keep their spacing",
-    minimumSpacing(puzzle.nodes) >= CHAIN_MIN_SPACING * CHAIN_NODE_WIDTH_PCT - 0.01,
-  );
-  check(
-    "chain has two early dead-end traps",
-    chainTrapNodes(puzzle.nodes, puzzle.cycle).length >= 2,
-  );
-  check("chain shape-only cycle", puzzle.cycle.length === 3);
-  check(
-    "chain searched solution stored",
-    chainSolutionIsFair(puzzle.nodes, puzzle.cycle, solution),
-  );
-  const prefix: number[] = [];
-  for (let step = 0; step < CHAIN_LENGTH; step++) {
-    const needed = chainRequired(puzzle.cycle, step);
-    const unused = puzzle.nodes
-      .map((_node, index) => index)
-      .filter((index) => !prefix.includes(index));
-    check(
-      "chain three shape-invalid nodes",
-      unused.filter((index) => puzzle.nodes[index]?.shape !== needed).length >= CHAIN_MIN_INVALID,
-    );
-    const next = solution[step];
-    if (next !== undefined) prefix.push(next);
-  }
-  check(
-    "chain route is tempted by crossings",
-    chainDecoySteps(puzzle.nodes, puzzle.cycle, solution) >= 4,
-  );
-  const good = replayChain(puzzle.nodes, puzzle.cycle, solution);
-  check("chain perfect run completes", good.completed && good.errors === 0);
-  const bad = replayChain(puzzle.nodes, puzzle.cycle, [
-    puzzle.nodes.findIndex((node) => node.shape !== chainRequired(puzzle.cycle, 0)),
-  ]);
-  check("chain wrong tap counts as an error", bad.errors === 1 && bad.chain.length === 0);
-  const undone = replayChain(puzzle.nodes, puzzle.cycle, [
-    ...solution.slice(0, 3),
-    CHAIN_UNDO,
-    puzzle.nodes.findIndex((node) => node.shape !== chainRequired(puzzle.cycle, 2)),
-    CHAIN_RESET,
-    ...solution,
-  ]);
-  check("chain undo and reset replay, errors kept", undone.completed && undone.errors === 1);
 }
 
 for (let round = 0; round < ROUNDS; round++) {

@@ -1,6 +1,9 @@
 /** Focused Stop Watch movement and Chain scatter checks. */
 import { generateChain } from "../src/lib/duel/chain.server";
+import { chainRequired, chainWindowMs, replayChain, encodeChainAnswer, decodeChainAnswer } from "../src/lib/duel/chain";
+import { scoreChain } from "../src/lib/duel/scoring";
 import {
+  CHAIN_LENGTH,
   CHAIN_BOARD_H_PX,
   CHAIN_BOARD_W_PX,
   CHAIN_NODE_GAP_PX,
@@ -32,23 +35,53 @@ for (let run = 0; run < 100; run++) {
 }
 
 const minimum = CHAIN_NODE_PX + CHAIN_NODE_GAP_PX;
-for (let run = 0; run < 20; run++) {
+const ROUNDS = 200;
+for (let run = 0; run < ROUNDS; run++) {
   const puzzle = generateChain();
-  for (const [setIndex, set] of puzzle.sets.entries()) {
-    if (set.nodes.length !== 28) throw new Error(`Chain set ${setIndex + 1} does not have 28 nodes`);
-    for (let a = 0; a < set.nodes.length; a++) {
-      for (let b = a + 1; b < set.nodes.length; b++) {
-        const left = set.nodes[a]!;
-        const right = set.nodes[b]!;
+  if (puzzle.boards.length !== 5) throw new Error("Chain needs five boards");
+  // Perfect run: pick a matching unused node each step, tapping 1 s apart.
+  const taps: { node: number; t: number }[] = [];
+  const used: number[][] = [];
+  for (let link = 0; link < CHAIN_LENGTH; link++) {
+    const board = Math.floor(link / 5);
+    const nodes = puzzle.boards[board]!;
+    const need = chainRequired(puzzle.cycle, link)!;
+    // Near-miss decoys exist for this step.
+    if (!nodes.some((n) => n.shape === need.shape && n.colour !== need.colour)) throw new Error("no same-shape decoy");
+    if (!nodes.some((n) => n.colour === need.colour && n.shape !== need.shape)) throw new Error("no same-colour decoy");
+    const pick = nodes.findIndex((n, i) => n.shape === need.shape && n.colour === need.colour && !(used[board] ?? []).includes(i));
+    if (pick < 0) throw new Error(`no valid node for link ${link + 1}`);
+    (used[board] ??= []).push(pick);
+    taps.push({ node: pick, t: 1000 + link * 1000 });
+  }
+  for (const [setIndex, set] of puzzle.boards.entries()) {
+    if (set.length !== 20) throw new Error(`Chain board ${setIndex + 1} does not have 20 nodes`);
+    for (let a = 0; a < set.length; a++) {
+      for (let b = a + 1; b < set.length; b++) {
+        const left = set[a]!;
+        const right = set[b]!;
         const distance = Math.hypot(
           ((left.x - right.x) / 100) * CHAIN_BOARD_W_PX,
           ((left.y - right.y) / 100) * CHAIN_BOARD_H_PX,
         );
-        if (distance < minimum - 0.01) throw new Error(`Chain set ${setIndex + 1} nodes touch`);
+        if (distance < minimum - 0.01) throw new Error(`Chain board ${setIndex + 1} nodes touch`);
       }
     }
   }
+  const full = replayChain(puzzle, decodeChainAnswer(encodeChainAnswer({ taps, reason: "complete" })));
+  if (full.links !== 25 || full.reason !== "complete" || scoreChain(full.links) !== 150) throw new Error("perfect run failed");
+  // Wrong tap at link 13 breaks with 12 links.
+  const wrongNode = puzzle.boards[2]!.findIndex((n) => { const need = chainRequired(puzzle.cycle, 12)!; return n.shape !== need.shape || n.colour !== need.colour; });
+  const wrong = replayChain(puzzle, { taps: [...taps.slice(0, 12), { node: wrongNode, t: 13_000 }], reason: "wrong" });
+  if (wrong.links !== 12 || wrong.reason !== "wrong" || scoreChain(wrong.links) !== 72) throw new Error("wrong-tap break failed");
+  // Late tap for link 19 (window 2.5 s... link 19 is 2.0 s) breaks on momentum.
+  const late = taps.slice(0, 19).map((tap, i) => (i === 18 ? { ...tap, t: taps[17]!.t + chainWindowMs(19) + 1 } : tap));
+  const slow = replayChain(puzzle, { taps: late, reason: "momentum" });
+  if (slow.links !== 18 || slow.reason !== "momentum") throw new Error("momentum break failed");
+  const onTime = taps.slice(0, 19).map((tap, i) => (i === 18 ? { ...tap, t: taps[17]!.t + chainWindowMs(19) } : tap));
+  if (replayChain(puzzle, { taps: onTime, reason: "timer" }).links !== 19) throw new Error("on-time tap rejected");
 }
+if (chainWindowMs(10) !== 3000 || chainWindowMs(11) !== 2500 || chainWindowMs(18) !== 2500 || chainWindowMs(19) !== 2000 || chainWindowMs(25) !== 2000) throw new Error("windows wrong");
 
 console.log("Stop Watch: 100/100 transition sets valid");
-console.log("Chain: 320/320 scattered sets keep 28 non-touching nodes");
+console.log(`Chain: ${ROUNDS}/${ROUNDS} runs — 25-link run = 150, wrong tap at 13 = 72, late tap breaks, decoys present`);
