@@ -1,3 +1,8 @@
+## Laser and Mirrors rework
+- [ ] Set 60 seconds, seven/eight mirrors and one movable oriented splitter; share placement validation/tracing across play and server grading while keeping three-shot scoring unchanged.
+- [ ] Verify exact supplied-piece solutions and splitter necessity, benchmark generation, use a precomputed bank if generation exceeds about one second.
+- [ ] Update fixed intro example and GOAL/HOW, test Laser only without browser tests and report timings.
+
 ## Chain reshuffle cycles
 - [x] One stored seed generates a new symbol set and order for each five-link board; shared phone/server replay uses the board's current cycle and current-cycle look-alike decoys, with legacy single-cycle fallback.
 - [x] Updated code flashes gold for 650ms with its board change; FASTER, momentum and scoring unchanged. Fixed short intro example still matches; HOW now explains changing cycles. Chain-only checks passed 200/200 seeded regenerations, full server grades, boundary decoys, timing edges, scatter and legacy replays; preview build OK, no browser tests.
