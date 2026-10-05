@@ -133,7 +133,7 @@ function ChainLine({ nodes, path, broken }: { nodes: ChainNode[]; path: number[]
   return (
     <svg
       className="pointer-events-none absolute inset-0 h-full w-full transition-all duration-700 ease-in"
-      style={broken ? { transform: "translateY(60%) rotate(6deg)", opacity: 0 } : undefined}
+      style={broken ? { transform: "translateY(60%) rotate(6deg)", opacity: 0, transitionDelay: "250ms" } : undefined}
       aria-hidden="true"
     >
       {points.slice(1).map((to, index) => {
