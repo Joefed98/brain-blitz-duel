@@ -19,7 +19,9 @@ export function AnimatedScore({ value, className }: { value: number; className?:
     const step = (time: number) => {
       const progress = Math.min(1, (time - start) / duration);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(from + (value - from) * eased));
+      const next = Math.round(from + (value - from) * eased);
+      setDisplay(next);
+      fromRef.current = next;
       if (progress < 1) frame = requestAnimationFrame(step);
       else fromRef.current = value;
     };

@@ -11,6 +11,7 @@ const PRIMITIVES: Record<FxHook, Primitive> = {
 };
 let activeTheme: GameTheme | undefined;
 const recent = new Map<FxHook, number>();
+const recentAudio = new Map<FxHook, number>();
 export function setFxTheme(theme?: GameTheme): () => void {
   const previous = activeTheme;
   activeTheme = theme;
@@ -25,6 +26,9 @@ export function visualFx(hook: FxHook, value?: number | string, theme?: GameThem
 }
 export function triggerFx(hook: FxHook, value?: number | string, theme?: GameTheme): void {
   if (demoHushed()) return;
+  const now = Date.now();
+  if (now - (recentAudio.get(hook) ?? 0) < 60) return;
+  recentAudio.set(hook, now);
   const sound = (theme ?? activeTheme)?.sounds[hook] ?? DEFAULT_SOUNDS[hook];
   playSound(sound);
   visualFx(hook, value, theme);

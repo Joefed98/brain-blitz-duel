@@ -57,6 +57,7 @@ export function MuteToggle() {
       <Button variant="ghost" size="icon"
         type="button"
         aria-label={muted ? "Turn sound on" : "Turn sound off"}
+        title={muted ? "Turn sound on" : "Turn sound off"}
         aria-pressed={muted}
         onPointerDown={startPress}
         onPointerUp={endPress}
