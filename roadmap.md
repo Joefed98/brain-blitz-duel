@@ -677,5 +677,5 @@
 - [x] Beam bounds/colours, white-free gem fills, renderer smoke and read-only-state checks passed; only four renderer files changed, protected gameplay and audio untouched; preview build OK. No browser tests or identity proofs; device appearance remains user-tested.
 
 ## Flip lava-tube theme (Oct 5)
-- [ ] Replace Flip artwork with curved glowing basalt tunnel, bounded hot-core rock, background decoration and headlamp robot.
-- [ ] Add Swing-volume lava hiss loop; check intro/reveal coverage and protected-file scope without browsers or identity proofs.
+- [x] Replace Flip artwork with curved glowing basalt tunnel, silhouette-clipped hot-core rock, exterior-only background decoration and runner-box-clipped headlamp robot.
+- [x] Swing-volume lava hiss loop added with stop cleanup; animated intro and answer backdrop already share flipArtGame. 72 renderer-only smoke/state/clip checks and shared FX checks passed; protected gameplay files unchanged, preview build OK. No browsers or identity proofs; device appearance and FPS remain user-tested.
