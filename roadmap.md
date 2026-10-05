@@ -1,3 +1,9 @@
+## Cross, Burst and Ten Drop pacing
+- [ ] Increase Cross speed by a steady step from crossing 3, preserving crossings 1-2; report speed table.
+- [ ] Double Burst shot interval and increase gold icon fall speed by 1.5x; preserve flawless scoring.
+- [ ] Add Ten Drop 30-tick gold solved-target freeze with recorded/ignored inputs and continuing clock.
+- [ ] Identity proofs only Cross, Burst and Ten Drop; no browser tests.
+
 ## Matchup and Bullseye renderer tuning
 - [x] Add 150ms accepted swap slides and 150ms-out/150ms-back rejected swaps; original cascade presentation and input gating unchanged, sim resolves on its original tick.
 - [x] Shared Bullseye arrow silhouette has near-black shaft/fletching/head with a thin light outline, in play and reveal/demo rendering; aim and wind/sway presentation unchanged.
