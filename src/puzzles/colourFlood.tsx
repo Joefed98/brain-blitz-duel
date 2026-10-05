@@ -187,7 +187,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
          {replay.solved
-           ? solvedMovesText(replay.moves, puzzle.par, myMsRemaining, FLOOD_TIME_MS)
+           ? solvedMovesText(replay.moves, puzzle.par, myMsRemaining, FLOOD_TIME_MS, "C")
           : `${replay.region} / ${FLOOD_CELLS} cells`}
       </p>
     </div>
