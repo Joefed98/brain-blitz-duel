@@ -4,7 +4,6 @@ import { serverNow } from "@/lib/duel/clock";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
 import {
   REACTION_DECOY_MS,
-  REACTION_FALSE_START_MS,
   REACTION_MAX_FLASHES,
   REACTION_MIN_FLASHES,
   REACTION_FLASH_MS,
@@ -64,12 +63,14 @@ export function buildReaction(): ReactionPuzzleData {
 
 export function reactionAverage(times: number[], falseStarts: number, flashCount = times.length): number {
   const count = Math.max(1, flashCount);
-  const filled = Array.from({ length: count }, (_, i) => times[i] ?? REACTION_MISS_MS);
-  return Math.round(filled.reduce((a, b) => a + b, 0) / count + falseStarts * REACTION_FALSE_START_MS);
+  void falseStarts;
+  const filled = Array.from({ length: count }, (_, i) => Math.min(REACTION_MISS_MS, Math.max(1, times[i] ?? REACTION_MISS_MS)));
+  return Math.round(filled.reduce((a, b) => a + b, 0) / count);
 }
 
-export function reactionPoints(avg: number): number {
-  return 50 + Math.max(0, Math.min(100, Math.round((650 - avg) / 6)));
+export function reactionPoints(avg: number, falseStarts = 0): number {
+  const base = avg <= 200 ? 150 : Math.max(0, Math.min(150, Math.round(150 - 0.16 * (avg - 200))));
+  return Math.max(0, Math.min(150, base - 8 * falseStarts));
 }
 
 function encode(times: (number | null)[], falseStarts: number): string {
@@ -104,8 +105,8 @@ function IntroExample() {
         </span>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Teal, red or blue is a trap: tapping it, or tapping a dark screen, is a false start (+200 ms). Score: 50 at
-        650 ms average, up to 150 at 50 ms.
+        Teal, red or blue is a trap: tapping it, or tapping a dark screen, is a false start (−8 points). Score: 150 at
+        200 ms average or faster, −16 per 100 ms slower; a missed flash counts 1,200 ms.
       </p>
     </div>
   );
@@ -243,19 +244,19 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         ) : (
           times.map((ms, index) => (
             <p key={index} className="font-mono text-xl tabular-nums text-foreground">
-              Flash {index + 1} — {ms >= REACTION_MISS_MS ? "missed (1,500 ms)" : `${ms} ms`}
+              Flash {index + 1} — {ms >= REACTION_MISS_MS ? "missed (1,200 ms)" : `${ms} ms`}
             </p>
           ))
         )}
         <p className="font-mono text-lg text-muted-foreground">
           False starts: {falseStarts}
-          {falseStarts > 0 ? ` (+${falseStarts * REACTION_FALSE_START_MS} ms)` : ""}
+          {falseStarts > 0 ? ` (−${falseStarts * 8} points)` : ""}
         </p>
       </div>
       <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
         <p className="text-base uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg ?? "—"} ms</p>
-        {avg !== null && <p className="font-mono text-base text-muted-foreground">{reactionPoints(avg)} points</p>}
+        {avg !== null && <p className="font-mono text-base text-muted-foreground">{reactionPoints(avg, falseStarts)} points</p>}
       </div>
     </>
   );

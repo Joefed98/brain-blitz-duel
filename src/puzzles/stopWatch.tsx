@@ -82,7 +82,8 @@ export function buildStopWatch(): StopWatchPuzzleData {
 }
 
 export function stopWatchPoints(avg: number): number {
-  return 50 + Math.max(0, Math.min(100, Math.round(100 * (1 - avg / STOPWATCH_MISS_MS))));
+  if (avg <= 20) return 150;
+  return Math.max(0, Math.min(150, Math.round(150 - 0.27 * (avg - 20))));
 }
 
 function Bar({
@@ -162,7 +163,7 @@ function IntroExample() {
       <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, wrap: false, passes: 2 }} marker={0.58} passesLeft={2} />
       <p className="text-center text-xs text-muted-foreground">
         Some targets move, hide, turn vertical or accelerate. The counter starts at 2 on Watch 1 and reaches 11 on
-        Watch 10. Watches 8–10 wrap from right to left. Score: 50 at 400 ms average error, up to 150 for perfect stops.
+        Watch 10. Watches 8–10 wrap from right to left. Score: 150 at 20 ms average error or closer, −27 per 100 ms more; a missed watch counts 500 ms.
       </p>
     </div>
   );
@@ -325,7 +326,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <div className="grid w-full grid-cols-2 gap-x-4 gap-y-1">
         {errors.map((ms, index) => (
           <p key={index} className="font-mono text-sm tabular-nums text-foreground">
-            Watch {index + 1} — {ms >= STOPWATCH_MISS_MS ? "missed (400 ms)" : `${ms} ms off`}
+            Watch {index + 1} — {ms >= STOPWATCH_MISS_MS ? "missed (500 ms)" : `${ms} ms off`}
           </p>
         ))}
       </div>

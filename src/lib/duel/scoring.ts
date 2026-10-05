@@ -12,7 +12,6 @@ import {
   ROUND_MS,
   SPOT_DIFFERENCES,
   SPOT_TIME_MS,
-  STOPWATCH_MAX_DIST_MS,
   MIRMATCH_ITEMS,
   MIRMATCH_TIME_MS,
   SPIN_ITEMS,
@@ -308,8 +307,8 @@ export function scoreStopWatch(averageDistanceMs: number): number {
 }
 
 /**
- * Number Hunt: a standard round score, less 10 points per wrong tap. An
- * unfinished run scores by how far up the order the player got.
+ * Number Hunt: 5 per number tapped in order, −5 per wrong tap; all 24 = 130 +
+ * round(20 × ms_remaining ÷ limit) − 5 per wrong tap; clamp 0…150.
  */
 export function scoreNumberHunt(
   finished: boolean,
