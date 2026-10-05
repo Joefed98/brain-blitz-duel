@@ -3,6 +3,10 @@ import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/l
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
 import { Button } from "@/components/ui/button";
+import { useEffect, useRef } from "react";
+import { fx } from "@/lib/fx";
+import { playVoice } from "@/lib/sound";
+import { gameTheme } from "@/lib/fx/theme";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -56,10 +60,25 @@ export function RoundIntro({
     (typeTimeLimitMs(type) - (usesArcadeClock(type) ? 3000 : 0)) / 1000,
   );
   const twoPlayer = activeCount === 2;
+  const theme = gameTheme(type, puzzleDef(type).category);
+  const countdownCued = useRef("");
+  const voiceCued = useRef(false);
+  useEffect(() => {
+    if (!counting) return;
+    const key = `${startedAt}-${secondsLeft}`;
+    if (countdownCued.current === key) return;
+    countdownCued.current = key;
+    fx.onCountdown(secondsLeft, theme);
+    if (!practice && !voiceCued.current) {
+      voiceCued.current = true;
+      if (round === 1) playVoice("prepareToDuel");
+      if (round === 6) playVoice("finalRound");
+    }
+  }, [counting, secondsLeft, startedAt, practice, round, type]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">
-      <div className="flex items-start justify-between">
+      <div className="category-header flex items-start justify-between">
         {practice && onBack ? (
           <Button type="button" variant="outline" size="sm" onClick={onBack} className="press h-8 shrink-0 px-2.5">
             ← Back
@@ -67,7 +86,7 @@ export function RoundIntro({
         ) : null}
         <div className="flex flex-col gap-0.5">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            {practice ? "Practice" : `Round ${round} of ${TOTAL_ROUNDS}`}
+            {practice ? "Practice" : `Round ${round} of ${TOTAL_ROUNDS}`} <span className="category-tag">· {theme.accent}</span>
           </span>
           {!counting && onReady ? (
             <span className="font-mono text-[0.7rem] text-muted-foreground/70">
@@ -86,7 +105,7 @@ export function RoundIntro({
         <div className="flex flex-1 items-center justify-center" aria-live="polite">
           <p
             key={secondsLeft}
-            className="font-mono text-[min(40vh,18rem)] font-bold leading-none text-primary animate-countdown-number"
+            className="font-mono text-[min(40vh,18rem)] font-bold leading-none text-category-accent animate-countdown-number"
           >
             {secondsLeft}
           </p>

@@ -4,6 +4,7 @@ import type { Standing } from "@/lib/duel/scoring";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { positionChange, previousStandingOrder } from "@/lib/duel/resultPresentation";
 import { Button } from "@/components/ui/button";
+import { prefersReducedMotion } from "@/lib/motion";
 
 import { AnimatedScore } from "./AnimatedScore";
 
@@ -45,7 +46,7 @@ export function Standings({ round, rows, mySlot, autoSeconds, isHost, onNext }: 
       const top = node.offsetTop;
       const previous = offsets.current.get(slot);
       offsets.current.set(slot, top);
-      if (previous === undefined || previous === top) return;
+      if (previous === undefined || previous === top || prefersReducedMotion()) return;
       node.style.transition = "none";
       node.style.transform = `translateY(${previous - top}px)`;
       requestAnimationFrame(() => {

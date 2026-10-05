@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { fx } from "@/lib/fx";
 
 import {
   CHAT_BAR_HEIGHT,
@@ -15,6 +16,13 @@ interface RoomChatProps {
 
 /** Floating reaction bubbles, bottom-right, fading upward over 1.5s. */
 export function ReactionLayer({ chat }: { chat: RoomChatState }) {
+  const seen = useRef(new Set<string>());
+  useEffect(() => {
+    for (const reaction of chat.reactions) {
+      if (!seen.current.has(reaction.id)) { seen.current.add(reaction.id); fx.onReaction(reaction.emoji); }
+    }
+    if (seen.current.size > 100) seen.current = new Set(chat.reactions.map(r => r.id));
+  }, [chat.reactions]);
   return (
     <div
       aria-hidden="true"

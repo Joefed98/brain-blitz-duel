@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { useStageState } from "@/lib/duel/stageState";
+import { fx } from "@/lib/fx";
 
 export const STAGE_CORRECT_HOLD_MS = 1_000;
 
@@ -39,6 +40,7 @@ export function useStageCorrectHold({
 }
 
 export function StageCorrect({ visible }: { visible: boolean }) {
+  useEffect(() => { if (visible) fx.onStageComplete(); }, [visible]);
   return (
     <div className="flex h-6 w-full shrink-0 items-center justify-center" role="status" aria-live="polite">
       <span className="font-mono text-sm font-bold text-primary">{visible ? "CORRECT" : ""}</span>

@@ -9,7 +9,9 @@ import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 import { puzzleDef, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/registry";
 import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong, stopMusic } from "@/lib/sound";
+import { stopMusic } from "@/lib/sound";
+import { fx } from "@/lib/fx";
+import { gameTheme } from "@/lib/fx/theme";
 
 interface AnswerRevealProps {
   round: number;
@@ -151,17 +153,19 @@ export function AnswerReveal({
   const cued = useRef(0);
 
   useEffect(() => {
-    if (cued.current === round) return;
+    if (myScore === null || cued.current === round) return;
     cued.current = round;
     stopMusic(200);
     if (myCorrect) {
-      playCorrect();
+      fx.onCorrect(undefined, gameTheme(puzzle.type, def.category));
+      fx.onComplete(undefined, gameTheme(puzzle.type, def.category));
       buzz(20);
     } else {
-      playWrong();
+      fx.onWrong(undefined, gameTheme(puzzle.type, def.category));
       buzz([12, 60, 12]);
     }
-  }, [round, myCorrect]);
+    fx.onRevealScore(myScore, gameTheme(puzzle.type, def.category));
+  }, [round, myCorrect, myScore, puzzle.type, def.category]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
