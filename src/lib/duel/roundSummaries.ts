@@ -1103,12 +1103,11 @@ const snakeSummary: SummaryBuilder = (result) => {
 
 const crossSummary: SummaryBuilder = (result) => {
   const crossings = Number(result.extra?.["crossings"] ?? 0);
-  const clean = Number(result.extra?.["clean"] ?? 0);
   const lost = Number(result.extra?.["livesLost"] ?? 0);
   const lanes = Number(result.extra?.["lanes"] ?? 0);
   return {
-    summary: crossLine({ crossings, clean, livesLost: lost }),
-    detail: [`${lanes} lane${lanes === 1 ? "" : "s"} into the last crossing`],
+    summary: crossLine({ crossings, livesLost: lost }),
+    detail: [`${lanes} lane${lanes === 1 ? "" : "s"} crossed in total`],
   };
 };
 

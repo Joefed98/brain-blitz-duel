@@ -39,7 +39,11 @@ export function drawFlipHazard(
       const tip = (x + end) / 2;
       ctx.beginPath();
       flipSurfaceLine(ctx, surfaceAt, x, end);
-      ctx.lineTo(tip, surfaceAt(tip) + dirY * SPIKE_HEIGHT);
+      const heightAt = (point: number) => SPIKE_HEIGHT * Math.max(0, 1 - Math.abs(point - tip) / ((end - x) / 2));
+      for (let point = end; point > x; point -= CURVE_STEP) {
+        ctx.lineTo(point, surfaceAt(point) + dirY * heightAt(point));
+      }
+      ctx.lineTo(x, surfaceAt(x));
       ctx.closePath();
       ctx.fill();
     }
