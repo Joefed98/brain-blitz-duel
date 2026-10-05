@@ -24,7 +24,6 @@ import { buzz } from "@/lib/motion";
 import {
   playLock,
   playPlayerJoined,
-  playRoundStart,
   startMusic,
   stopMusic,
   unlockAudio,
@@ -368,30 +367,13 @@ function DuelScreen() {
     };
   }, [tournamentKey, phase, round, revealed?.round, revealed?.tournamentKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /**
-   * The lobby bed plays from the waiting room through the first round's intro,
-   * and fades out as round one's puzzle opens.
-   */
-  const lobbyMusic =
-    !!duel &&
-    (duel.status === "waiting" ||
-      (duel.status === "in_progress" && round === 1 && phase === "intro"));
-  const lobbyPlaying = useRef(false);
+  // Beds are requested only outside rounds; manifest music is silent until supplied.
+  const musicScreen = duel?.status === "waiting" ? "lobby_loop" : duel?.status === "finished" ? "podium_loop" : phase === "standings" ? "standings_loop" : null;
   useEffect(() => {
-    if (lobbyMusic) {
-      lobbyPlaying.current = true;
-      startMusic("lobby_loop");
-    } else if (lobbyPlaying.current) {
-      lobbyPlaying.current = false;
-      stopMusic(400);
-    }
-  }, [lobbyMusic]);
-  useEffect(
-    () => () => {
-      if (lobbyPlaying.current) stopMusic(400);
-    },
-    [],
-  );
+    if (musicScreen) startMusic(musicScreen);
+    else stopMusic(0);
+    return () => stopMusic(0);
+  }, [musicScreen]);
 
   // A cue for each new player card in the lobby.
   const lobbyCount = duel?.status === "waiting" ? roomPlayers.length : 0;
@@ -400,16 +382,6 @@ function DuelScreen() {
     if (seenCount.current > 0 && lobbyCount > seenCount.current) playPlayerJoined();
     seenCount.current = lobbyCount;
   }, [lobbyCount]);
-
-  // The countdown sting lands its final hit on GO.
-  const roundStartCued = useRef(0);
-  useEffect(() => {
-    if (phase !== "intro" || round < 1 || phaseStart === null) return;
-    if (roundStartCued.current === round) return;
-    if (now < phaseStart + INTRO_MS - 1300) return;
-    roundStartCued.current = round;
-    playRoundStart();
-  }, [phase, round, now, phaseStart]);
 
   // Every phone follows the host into the new room as soon as it exists.
 
@@ -651,7 +623,7 @@ function DuelScreen() {
 
   if (phase === "intro" && puzzle) {
     return (
-      <PhoneShell gameScreen>
+      <PhoneShell constrained gameScreen gameType={puzzle.type}>
         <RoundIntro
           round={round}
           type={puzzle.type}
@@ -676,7 +648,7 @@ function DuelScreen() {
 
   if (phase === "reveal" && puzzle) {
     return (
-      <PhoneShell constrained gameScreen>
+      <PhoneShell constrained gameScreen gameType={puzzle?.type}>
         <AnswerReveal
           round={round}
           puzzle={currentReveal?.puzzle ?? puzzle}
@@ -714,7 +686,8 @@ function DuelScreen() {
     );
     if (isMulti) {
       return (
-        <PhoneShell>
+        <PhoneShell gameType={puzzle?.type}>
+          <span className="category-tag">{puzzle ? puzzleDef(puzzle.type).category : ""}</span>
           <RoundResultsTable
             roundTitle={roundTitle}
             rows={table}
@@ -730,7 +703,8 @@ function DuelScreen() {
       );
     }
     return (
-      <PhoneShell>
+      <PhoneShell gameType={puzzle?.type}>
+        <span className="category-tag">{puzzle ? puzzleDef(puzzle.type).category : ""}</span>
         <RoundResult
           roundTitle={roundTitle}
           myName={me.display_name}
@@ -754,7 +728,8 @@ function DuelScreen() {
   if (phase === "standings") {
     const autoSeconds = Math.max(0, Math.ceil((STANDINGS_MS - (now - (phaseStart ?? now))) / 1000));
     return (
-      <PhoneShell>
+      <PhoneShell gameType={puzzle?.type}>
+        <span className="category-tag">{puzzle ? puzzleDef(puzzle.type).category : ""}</span>
         {isMulti ? (
           <Standings
             round={round}
@@ -782,7 +757,7 @@ function DuelScreen() {
   const clockActive = clockStart !== null && now >= clockStart;
   const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
   return (
-    <PhoneShell constrained gameScreen>
+    <PhoneShell constrained gameScreen gameType={puzzle?.type}>
       <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
