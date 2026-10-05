@@ -56,7 +56,7 @@ export function buildEquation(): EquationPuzzleData {
   return { type: "equation", stages: built.map((b) => b.stage), operators: built.map((b) => b.ops) };
 }
 
-function OperatorSlot({ value, onClick }: { value: Operator | null; onClick?: () => void }) {
+function OperatorSlot({ value, onClick }: { value: Operator | null; onClick?: (() => void) | undefined }) {
   return (
     <button
       type="button"
