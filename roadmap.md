@@ -1,3 +1,7 @@
+## Flip sweeping bends
+- [x] Added integer bend table: 1,560px waves until 45s, then continuously shrinking through 1,040/520/260px at 50/55/60s; displacement eases to ±145px by 25s. Integrated phase preserves continuity, constant gap and existing seeded RNG draws.
+- [x] Flip-only identity proof passed 200/200; curve checks passed integer offsets, constant gap, continuous transitions and early/late change maxima 2/10px per tick. Preview build OK; no browser tests. Report cycle-rate table and saved Flip demo re-recording requirement; device feel remains user-tested.
+
 ## Cross, Burst and Ten Drop pacing
 - [x] Cross preserves crossings 1-2 and adds 64 fixed-point units/tick per crossing from 3; fallback uses the same later speed progression. Report lane speed ranges for all ten courses.
 - [x] Burst shot interval 8→16 ticks; gold icon fall 512→768 fixed-point units/tick; shield fall and flawless scoring unchanged.
