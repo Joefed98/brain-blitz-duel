@@ -43,7 +43,8 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   const centreX = BULLSEYE_WORLD_W / 2;
   const y = 84;
   ctx.save();
-  ctx.strokeStyle = wind === 0 ? "#F7F7F855" : BULLSEYE_GOLD;
+  ctx.strokeStyle = wind === 0
+    ? getComputedStyle(ctx.canvas).getPropertyValue("--bullseye-wind-quiet").trim() : BULLSEYE_GOLD;
   ctx.lineWidth = 2.8;
   if (wind !== 0) {
     const dir = wind < 0 ? -1 : 1;
@@ -93,7 +94,7 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
   if (state.arrowIndex < BULLSEYE_ARROWS && state.flightTick === 0) {
     ctx.save();
     ctx.translate(BULLSEYE_BOW_X, BULLSEYE_BOW_Y);
-    ctx.strokeStyle = "rgba(247, 247, 248, 0.65)";
+    ctx.strokeStyle = getComputedStyle(ctx.canvas).getPropertyValue("--bullseye-bow").trim();
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 10, 22, Math.PI, Math.PI * 2);

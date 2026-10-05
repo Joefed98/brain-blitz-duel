@@ -33,7 +33,7 @@ export function drawMatchupSwap(
   matchupGame.draw(ctx, { ...state, cells: tween.before.cells, heads: tween.before.heads,
     lastScoreTick: state.tick }, size);
   const { scale, offsetX, offsetY } = matchupTransform(size);
-  const tokens = getComputedStyle(ctx.canvas).getPropertyValue.bind(getComputedStyle(ctx.canvas));
+  const tokens = getComputedStyle(ctx.canvas);
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
@@ -44,7 +44,7 @@ export function drawMatchupSwap(
   for (const index of [tween.a, tween.b]) {
     const row = Math.floor(index / MATCHUP_SIZE);
     const col = index % MATCHUP_SIZE;
-    ctx.fillStyle = tokens((row + col) % 2 === 0 ? "--matchup-cell-alt" : "--matchup-cell").trim();
+    ctx.fillStyle = tokens.getPropertyValue((row + col) % 2 === 0 ? "--matchup-cell-alt" : "--matchup-cell").trim();
     ctx.fillRect(MATCHUP_BOARD_X + col * MATCHUP_CELL_PX,
       MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX, MATCHUP_CELL_PX, MATCHUP_CELL_PX);
   }

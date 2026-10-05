@@ -21,6 +21,7 @@ import {
   MATCHUP_CHECKPOINT_INTERVAL,
   MATCHUP_COLOURS,
   MATCHUP_RUN_TICKS,
+  MATCHUP_SIZE,
   type MatchupState,
 } from "@/lib/arcade/matchup";
 import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
@@ -168,7 +169,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (applied && (state.current.swaps > before.swaps ||
             state.current.lastInvalidTick === state.current.tick)) {
             swapTween.current = {
-              before, a: applied.a * 7 + applied.b, b: applied.c * 7 + applied.d,
+              before, a: applied.a * MATCHUP_SIZE + applied.b, b: applied.c * MATCHUP_SIZE + applied.d,
               rejected: state.current.swaps === before.swaps, startedAt: time,
             };
           }
