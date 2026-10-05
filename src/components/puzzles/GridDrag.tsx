@@ -550,6 +550,9 @@ export function useSwipe(
   return { onPointerDown };
 }
 
+/** Intro demos force the control mode the demo was recorded with (true = joystick). */
+export const ArrowModeOverride = createContext<boolean | null>(null);
+
 /**
  * The four arrow buttons in a compact row, within thumb reach. With `repeatMs` the
  * direction keeps firing while the button is held down.
@@ -576,13 +579,18 @@ export function ArrowPad({
   const stickDirection = useRef<"U" | "D" | "L" | "R" | null>(null);
   usePressSafeElement(stickElement);
 
+  const forcedJoystick = useContext(ArrowModeOverride);
   useEffect(() => {
+    if (forcedJoystick !== null) {
+      setJoystick(forcedJoystick);
+      return;
+    }
     try {
       setJoystick(window.localStorage.getItem("duelz-arrow-control") === "joystick");
     } catch {
       // Storage is optional; arrows remain the safe default.
     }
-  }, []);
+  }, [forcedJoystick]);
 
   const stop = useCallback(() => {
     if (timer.current !== null) {
