@@ -104,6 +104,8 @@ import {
 } from "./types";
 import { CORRECT_ANSWERS, ROUND_SUMMARIES } from "./roundSummaries";
 import { PUZZLE_INSTRUCTIONS } from "./instructions";
+import { gameTheme } from "@/lib/fx/theme";
+import { feedbackStage } from "@/components/duel/FeedbackStage";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
 type RegisteredPuzzleDefinition = PuzzleDefinition &
@@ -280,6 +282,8 @@ export const PUZZLE_REGISTRY = Object.fromEntries(
     type,
     {
       ...definition,
+      theme: gameTheme(type as PuzzleType, definition.category),
+      Stage: feedbackStage(definition.Stage, gameTheme(type as PuzzleType, definition.category)),
       instructions: PUZZLE_INSTRUCTIONS[type as PuzzleType],
       retired: RETIRED_TYPES.has(type as PuzzleType),
       revealMs:
