@@ -6,7 +6,7 @@
  */
 import type { PuzzleData } from "@/lib/duel/types";
 
-import { hoverGame } from "./hover";
+import { hoverArtGame as hoverGame } from "./hover.renderer";
 import { skylineGame } from "./skyline";
 import { binTossGame } from "./binToss";
 import { drawBullseye } from "./bullseye.renderer";
@@ -15,8 +15,9 @@ import { breakerGame } from "./breaker";
 import { rallyGame } from "./rally";
 import { sliceGame } from "./slice";
 import { bubbleGame } from "./bubble";
-import { beatGame } from "./beat";
-import { snakeGame, SNAKE_WORLD_H, SNAKE_WORLD_W } from "./snake";
+import { beatArtGame as beatGame } from "./beat.renderer";
+import { SNAKE_WORLD_H, SNAKE_WORLD_W } from "./snake";
+import { snakeArtGame as snakeGame } from "./snake.renderer";
 import { crossArtGame as crossGame } from "./cross.renderer";
 import { WAV_SHIP_Y } from "./wavefront";
 import { wavefrontArtGame as wavefrontGame } from "./wavefront.renderer";

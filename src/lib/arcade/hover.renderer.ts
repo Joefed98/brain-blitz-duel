@@ -110,8 +110,6 @@ function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState): void {
   const t = retroClock();
   const blink = Math.floor(t / 160) % 3;
   const body = state.crashed ? RETRO_RED : SAUCER;
-  ctx.shadowColor = body;
-  ctx.shadowBlur = retroBloom();
   pixelShape(ctx, cx, cy, r, 2, (dx, dy) => {
     if (dx * dx + dy * dy > r * r) return null;
     // Dome above the hull.
@@ -127,7 +125,6 @@ function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState): void {
     }
     return body;
   });
-  ctx.shadowBlur = 0;
 }
 
 export const hoverArtGame: ArcadeGame<HoverState> = { ...hoverGame, draw };
