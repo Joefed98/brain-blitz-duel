@@ -85,14 +85,36 @@ export function trSlots(givens: readonly (number | null)[], path: readonly numbe
   return slots;
 }
 
-/** Tray placement is independent of path order; legality is checked on completion. */
-export function trPlaceTile(givens: readonly (number | null)[], path: readonly number[], tile: number, cell: number): number[] | null {
-  if (!Number.isInteger(tile) || tile < 1 || tile > givens.length || givens.includes(tile)) return null;
-  if (!Number.isInteger(cell) || cell < 0 || cell >= givens.length || givens[cell] != null) return null;
-  const slots = trSlots(givens, path);
-  if (slots.includes(cell)) return null;
-  slots[tile - 1] = cell;
-  return slots;
+/** Remove the last player square and any fixed steps reached after it. */
+export function trUndoPlayer(givens: readonly (number | null)[], path: readonly number[]): number[] {
+  const prefix = trDragPath(givens, path);
+  for (let i = prefix.length - 1; i >= 0; i--) {
+    const cell = prefix[i];
+    if (cell !== undefined && givens[cell] == null) return prefix.slice(0, i);
+  }
+  return prefix;
+}
+
+/** Tap only the next adjacent empty square, or the last player square to undo. */
+export function trTapPath(givens: readonly (number | null)[], path: readonly number[], cell: number): number[] | null {
+  const prefix = trDragPath(givens, path);
+  const withoutLast = trUndoPlayer(givens, prefix);
+  if (withoutLast.length < prefix.length && prefix[withoutLast.length] === cell) return withoutLast;
+  if (givens[cell] != null || prefix.includes(cell)) return null;
+  // Fixed numbers already on the board need no tap; follow only legal next givens.
+  const next = [...prefix];
+  const followGivens = () => {
+    let fixed = givens.indexOf(next.length + 1);
+    while (fixed >= 0 && trCanStep(givens, next, fixed)) {
+      next.push(fixed);
+      fixed = givens.indexOf(next.length + 1);
+    }
+  };
+  followGivens();
+  if (!trCanStep(givens, next, cell)) return null;
+  next.push(cell);
+  followGivens();
+  return next;
 }
 
 /** Contiguous legal section used by the unchanged end-of-path drag gesture. */

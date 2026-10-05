@@ -1,3 +1,7 @@
+## Trail sequential tap correction
+- [ ] Remove tray/selection; share adjacent next-number taps and last-player undo with mixed dragging, preserving scoring and bank.
+- [ ] Run focused Trail checks and source phone-fit audit; no browser tests.
+
 ## Word Search, Rings and Tubes presentation
 - [x] Removed Word Search intro minimum-length line; Rings clues increased 11px to 14px (+27.3%), with auto-height reserved space instead of clipped 28px row.
 - [x] Tubes use 80% of their arena height, full-width five-column tracks and proportionate balls. Source audits at 390×700 and 375×667 confirm five balls plus one-ball clearance, 67–70px tap widths, and separate controls; no browser tests.
