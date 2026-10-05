@@ -37,7 +37,7 @@ function mix(a: string, b: string, t: number): string {
   const pa = parseInt(a.slice(1), 16);
   const pb = parseInt(b.slice(1), 16);
   const ch = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
-  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+  return `#${[ch(16), ch(8), ch(0)].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
 }
 
 /** Same offset maths as the sim's pathOffset. */
@@ -76,8 +76,7 @@ function planetLook(p: Planet, i: number, lobe: number) {
 }
 
 function drawPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, look: ReturnType<typeof planetLook>): void {
-  const base = look.type === 2 ? mix(look.colour.replace(/rgb\((\d+),(\d+),(\d+)\)/, (_, a, b, c) =>
-    `#${[a, b, c].map((n: string) => Number(n).toString(16).padStart(2, "0")).join("")}`), "#DDEBFF", 0.55) : look.colour;
+  const base = look.type === 2 ? mix(look.colour, "#DDEBFF", 0.55) : look.colour;
   // Atmosphere glow.
   const glow = ctx.createRadialGradient(x, y, r * 0.9, x, y, r * 1.5);
   glow.addColorStop(0, look.type === 2 ? "rgba(190,225,255,0.28)" : "rgba(255,255,255,0.14)");
