@@ -15,7 +15,7 @@ const fail = (m: string) => { failures += 1; console.error("FAIL", m); };
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 if (whackLife(0) !== 54 || whackLife(WHACK_RUN_TICKS) !== 36) fail("life window");
-if (whackScore(40, 0, 40) !== 150 || whackScore(39, 0, 40) !== 132 || whackScore(34, 0, 40) !== 115 || whackScore(40, 2, 40, 3) !== 131 || whackScore(0, 2, 40) !== 0) fail("score");
+if (whackScore(40, 0, 40) !== 150 || whackScore(39, 0, 40) !== 132 || whackScore(34, 0, 40) !== 115 || whackScore(40, 2, 40, 3) !== 135 || whackScore(40, 0, 40, 0, 2) !== 140 || whackScore(0, 2, 40) !== 0) fail("score");
 
 let slowest = 0, minT = 1e9, maxT = 0, pops = 0, bombs = 0;
 for (let run = 0; run < RUNS; run++) {

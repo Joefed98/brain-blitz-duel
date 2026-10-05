@@ -56,7 +56,8 @@ export const WHACK_NO_FLIP_TAIL_TICKS = 5 * TICKS_PER_SECOND;
 /** No target of the current colour pops in the final second. */
 export const WHACK_NO_TARGET_TAIL_TICKS = TICKS_PER_SECOND;
 export const WHACK_HIT_POINTS = 135;
-export const WHACK_WRONG_PENALTY = 5;
+export const WHACK_WRONG_PENALTY = 3;
+export const WHACK_BOMB_PENALTY = 5;
 /** A tap on an empty hole. */
 export const WHACK_EMPTY_PENALTY = 3;
 export const WHACK_PERFECT_BONUS = 15;
@@ -156,7 +157,10 @@ export interface WhackState {
   /** Tick each pop was resolved (0 while unresolved). */
   doneTick: number[];
   hits: number;
+  /** Taps on the wrong-colour ball. */
   wrong: number;
+  /** Taps on bombs. */
+  bombs: number;
   /** Taps that hit no ball. */
   empty: number;
   taps: number;
@@ -175,6 +179,7 @@ function init(seed: number): WhackState {
     doneTick: new Array(n).fill(0),
     hits: 0,
     wrong: 0,
+    bombs: 0,
     empty: 0,
     taps: 0,
     next: 0,
@@ -199,7 +204,7 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
   const s = state.schedule;
   const status = [...state.status];
   const doneTick = [...state.doneTick];
-  let { hits, wrong, empty, taps, next } = state;
+  let { hits, wrong, bombs, empty, taps, next } = state;
   // Retire expired pops, then release pops due this tick.
   for (let i = 0; i < next; i++) {
     if (status[i] === WHACK_STATUS_UP && tick >= s.at[i]! + s.life[i]!) {
@@ -218,6 +223,7 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
     for (let i = 0; i < next; i++) {
       if (status[i] !== WHACK_STATUS_UP || s.hole[i] !== h) continue;
       if (s.kind[i] === whackRule(s.flips, s.at[i]!)) { status[i] = WHACK_STATUS_HIT; hits += 1; }
+      else if (s.kind[i] === WHACK_BOMB) { status[i] = WHACK_STATUS_WRONG; bombs += 1; }
       else { status[i] = WHACK_STATUS_WRONG; wrong += 1; }
       doneTick[i] = tick;
       struck = true;
@@ -225,19 +231,19 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
     }
     if (!struck) empty += 1;
   }
-  return { ...state, tick, status, doneTick, hits, wrong, empty, taps, next };
+  return { ...state, tick, status, doneTick, hits, wrong, bombs, empty, taps, next };
 }
 
-/** round(135 × hits ÷ total) − 5 per decoy tap − 3 per empty tap; +15 if every target hit; clamp 0…150. */
-export function whackScore(hits: number, wrong: number, total: number, empty = 0): number {
+/** round(135 × hits ÷ total) − 3 per wrong-colour tap − 5 per bomb − 3 per empty tap; +15 if every target hit; clamp 0…150. */
+export function whackScore(hits: number, wrong: number, total: number, empty = 0, bombs = 0): number {
   if (total <= 0) return 0;
   const base = Math.floor((2 * WHACK_HIT_POINTS * hits + total) / (2 * total));
   const bonus = hits >= total ? WHACK_PERFECT_BONUS : 0;
-  return clampInt(base - wrong * WHACK_WRONG_PENALTY - empty * WHACK_EMPTY_PENALTY + bonus, 0, 150);
+  return clampInt(base - wrong * WHACK_WRONG_PENALTY - bombs * WHACK_BOMB_PENALTY - empty * WHACK_EMPTY_PENALTY + bonus, 0, 150);
 }
 
 function score(state: WhackState): number {
-  return whackScore(state.hits, state.wrong, state.schedule.total, state.empty);
+  return whackScore(state.hits, state.wrong, state.schedule.total, state.empty, state.bombs);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -248,6 +254,7 @@ export interface WhackCheckpointState {
   tick: number;
   hits: number;
   wrong: number;
+  bombs: number;
   empty: number;
   taps: number;
   next: number;
@@ -267,6 +274,7 @@ export function whackCheckpointState(state: WhackState): WhackCheckpointState {
     tick: state.tick,
     hits: state.hits,
     wrong: state.wrong,
+    bombs: state.bombs,
     empty: state.empty,
     taps: state.taps,
     next: state.next,

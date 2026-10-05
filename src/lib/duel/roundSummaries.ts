@@ -1209,9 +1209,10 @@ const whackSummary: SummaryBuilder = (result) => {
   const wrong = Number(result.extra?.["wrong"] ?? 0);
   const total = Number(result.extra?.["totalTargets"] ?? 0);
   const empty = Number(result.extra?.["empty"] ?? 0);
+  const bombs = Number(result.extra?.["bombs"] ?? 0);
   return {
-    summary: `Hits ${hits} / ${total} · Wrong ${wrong} · Empty ${empty}`,
-    detail: ["135 × share hit · −5 per wrong ball · −3 per empty tap · +15 for every target"],
+    summary: `Hits ${hits} / ${total} · Wrong ${wrong} · Bombs ${bombs} · Empty ${empty}`,
+    detail: ["135 × share hit · −3 per wrong ball · −5 per bomb · −3 per empty tap · +15 for every target"],
   };
 };
 
