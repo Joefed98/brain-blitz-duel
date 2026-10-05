@@ -1,3 +1,7 @@
+## Three word-game tuning
+- [ ] Add shared 700 ms accepted-word chips in fixed slots above Wordsmith and Word Hunt boards; audit 390×700 and 375×667 from source.
+- [ ] Share valid-word tile membership between Tile Grid counter and server grading; retain 8 points per tile and complete-grid scoring; run focused checks, no browser tests.
+
 ## Intro wording only
 - [x] Replace em/en-dashes in all 94 intro GOAL/HOW entries and 26 worked-example caption files; SCORE templates already contain no long dashes. Game logic and help formulas unchanged.
 - [x] State grader-enforced minima: Wordsmith 4, Word Hunt 4, Tile Grid 3, Word Slide exactly 5, Word Search 2, Letter Wheel 3; wording checks passed, preview build OK, no browser tests.
