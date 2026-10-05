@@ -872,7 +872,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   wordsearch: {
     goal: "Find the six hidden words from the category.",
     how: [
-      { action: "Drag in a straight line", detail: "through the letters in any direction, backwards too. Words must be at least 2 letters." },
+      { action: "Drag in a straight line", detail: "through the letters in any direction, backwards too." },
       { action: "A hidden word turns gold.", detail: "Only the count shows until you find them." },
     ],
     score: "20 per word. Find all six for 130 plus up to 20 speed points.",

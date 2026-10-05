@@ -166,7 +166,7 @@ function Rings({
 /** The link legend shown beside the rings. */
 function Legend({ pattern }: { pattern: number }) {
   return (
-    <ul className="flex flex-col gap-0.5 text-center font-mono text-[11px] leading-tight text-muted-foreground">
+    <ul className="flex flex-col gap-0.5 text-center font-mono text-sm leading-tight text-muted-foreground">
       {ringPattern(pattern).legend.map((line) => (
         <li key={line}>
           {line}
@@ -251,7 +251,7 @@ function Stage({
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 pt-1">
-      <div className="flex h-7 shrink-0 items-center justify-center overflow-hidden [&>*]:scale-90"><Legend pattern={data.pattern} /></div>
+      <div className="flex min-h-10 shrink-0 items-center justify-center py-1 [&>*]:scale-90"><Legend pattern={data.pattern} /></div>
       <div className="puzzle-square-space flex min-h-0 w-full flex-1 items-center justify-center">
         <div className="puzzle-square-board aspect-square [&>svg]:h-full [&>svg]:w-full">
         <Rings

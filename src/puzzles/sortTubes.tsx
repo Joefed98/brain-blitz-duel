@@ -52,7 +52,7 @@ function Tubes({
 }) {
   const ballSize = compact ? 9 : 11;
   return (
-    <div className={`grid w-full grid-cols-5 grid-rows-2 justify-center gap-x-1.5 gap-y-2 ${compact ? "h-full place-items-end" : "h-[184px] shrink-0 place-items-center"}`}>
+    <div className={`grid w-full grid-cols-5 grid-rows-2 justify-center gap-2 ${compact ? "h-full place-items-end" : "tubes-play-board shrink-0 place-items-center"}`}>
       {tubes.map((tube, index) => {
         const isLifted = lifted === index;
         const group = topGroup(tube);
@@ -74,22 +74,21 @@ function Tubes({
                    ? "border-primary/60 bg-card"
                   : "border-border bg-card"
             }`}
-            style={{ maxWidth: compact ? 26 : 42 }}
+              style={compact ? { maxWidth: 26 } : undefined}
             >
-            <span className={`flex w-full flex-col-reverse items-center justify-start ${compact ? "gap-[3px]" : "gap-0.5"}`}>
+            <span className={`flex w-full flex-col-reverse items-center justify-start ${compact ? "gap-[3px]" : "gap-1"}`}>
               {tube.map((colour, ball) => {
                 const rising = isLifted && ball >= tube.length - liftCount;
                 return (
                   <span
                     key={ball}
-                     className="shrink-0 rounded-full"
+                     className={`shrink-0 rounded-full ${compact ? "" : "tubes-play-ball"}`}
                     style={{
-                      width: ballSize,
-                      height: ballSize,
+                       ...(compact ? { width: ballSize, height: ballSize } : {}),
                       backgroundColor: ballColour(colour),
                       transform: rising ? "translateY(-4px)" : "none",
                       transition: "transform 150ms ease",
-                      boxShadow: rising ? "0 0 0 2px rgba(245,184,46,0.9)" : "none",
+                       boxShadow: rising ? "0 0 0 2px var(--primary)" : "none",
                     }}
                   />
                 );
@@ -177,7 +176,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
         moves <span className="text-primary">{replay.moves}</span>
       </p>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center pb-1">
+      <div className="tubes-play-space flex min-h-0 flex-1 items-center justify-center">
         <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} />
       </div>
 
