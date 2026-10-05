@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
-import { saveIntroDemoFn } from "@/lib/duel/practice.functions";
+import { checkDemoKeyFn, saveIntroDemoFn } from "@/lib/duel/practice.functions";
 import type { PuzzleData } from "@/lib/duel/types";
 
 import { hasIntroDemo } from "./IntroDemo";
@@ -18,12 +18,20 @@ export function SaveDemoButton({
   sealed: string;
   answer: string | null | undefined;
 }) {
-  const [dev, setDev] = useState(false);
+  const [key, setKey] = useState<string | null>(null);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const save = useServerFn(saveIntroDemoFn);
+  const check = useServerFn(checkDemoKeyFn);
   const queryClient = useQueryClient();
-  useEffect(() => setDev(devDiagnosticsOn()), []);
-  if (!dev || !answer || !hasIntroDemo(puzzle.type)) return null;
+  useEffect(() => {
+    if (!devDiagnosticsOn()) return;
+    const k = new URLSearchParams(window.location.search).get("key");
+    if (!k) return;
+    check({ data: { key: k } })
+      .then((r) => r.ok && setKey(k))
+      .catch(() => {});
+  }, [check]);
+  if (!key || !answer || !hasIntroDemo(puzzle.type)) return null;
   return (
     <button
       type="button"
@@ -31,7 +39,7 @@ export function SaveDemoButton({
       onClick={async () => {
         setState("saving");
         try {
-          await save({ data: { puzzle, sealed, answer, dev: true } });
+          await save({ data: { puzzle, sealed, answer, dev: true, key } });
           await queryClient.invalidateQueries({ queryKey: ["intro-demo", puzzle.type] });
           setState("saved");
         } catch (error) {
