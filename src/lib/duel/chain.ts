@@ -1,19 +1,40 @@
 /**
- * Don't Break the Chain rules. The shape cycle repeats forever. A correct node
- * must be unused, match the next shape, and add a segment that does not cross
- * the existing chain. The phone and server grade through this same replay.
+ * Don't Break the Chain rules. A three-item shape-and-colour cycle repeats; each
+ * correct tap must match it on the current board, inside the momentum window.
+ * The first wrong tap or lapse breaks the chain. The phone and the server walk
+ * the same timed tap list through replayChain.
  */
 
-import { CHAIN_CYCLE, CHAIN_LENGTH, type ChainNode, type ChainPuzzleData, type ChainShape } from "./types";
+import {
+  CHAIN_BLOCK,
+  CHAIN_CYCLE,
+  CHAIN_LENGTH,
+  CHAIN_MOMENTUM_MS,
+  CHAIN_TIME_MS,
+  type ChainBreak,
+  type ChainPuzzleData,
+  type ChainRuleItem,
+} from "./types";
 
-/** What the next tap has to be, at any point in the chain. */
-export function chainRequired(cycle: ChainShape[], step: number): ChainShape {
-  return cycle[step % CHAIN_CYCLE]!;
+/** What the next tap has to be, after `links` correct taps. */
+export function chainRequired(cycle: ChainRuleItem[], links: number): ChainRuleItem | undefined {
+  return cycle[links % CHAIN_CYCLE];
+}
+
+/** Momentum window (ms) for making link `link` (1-based) after the one before. */
+export function chainWindowMs(link: number): number {
+  for (const band of CHAIN_MOMENTUM_MS) if (link <= band.upTo) return band.ms;
+  return CHAIN_MOMENTUM_MS[CHAIN_MOMENTUM_MS.length - 1]!.ms;
+}
+
+/** The board shown after `links` correct taps. */
+export function chainBoardIndex(links: number): number {
+  return Math.min(Math.floor(links / CHAIN_BLOCK), Math.floor((CHAIN_LENGTH - 1) / CHAIN_BLOCK));
 }
 
 const EPSILON = 0.0001;
 
-/** Any positioned point — chain nodes and One-Stroke dots both qualify. */
+/** Any positioned point — One-Stroke dots use the segment test below. */
 type Point = { x: number; y: number };
 
 function orientation(a: Point, b: Point, c: Point): number {
@@ -49,132 +70,98 @@ export function chainSegmentsIntersect(a: Point, b: Point, c: Point, d: Point): 
   );
 }
 
-/** Would appending `next` cross an existing segment? The shared last endpoint is excluded. */
-export function chainWouldCross(nodes: ChainNode[], chain: number[], next: number): boolean {
-  if (chain.length < 2) return false;
-  const last = chain[chain.length - 1];
-  if (last === undefined) return false;
-  const from = nodes[last];
-  const to = nodes[next];
-  if (!from || !to) return true;
-  for (let index = 1; index < chain.length - 1; index++) {
-    const a = nodes[chain[index - 1]!];
-    const b = nodes[chain[index]!];
-    if (a && b && chainSegmentsIntersect(a, b, from, to)) return true;
+/** One tap: node index on the board showing at the time, ms since the round began. */
+export interface ChainTap {
+  node: number;
+  t: number;
+}
+
+export interface ChainAnswer {
+  taps: ChainTap[];
+  /** The phone's stated reason; the server re-derives what it can. */
+  reason: ChainBreak;
+}
+
+const REASONS: ChainBreak[] = ["wrong", "momentum", "timer", "complete"];
+
+/** "node@ms,node@ms|reason" */
+export function encodeChainAnswer(answer: ChainAnswer): string {
+  return `${answer.taps.map((tap) => `${tap.node}@${Math.round(tap.t)}`).join(",")}|${answer.reason}`;
+}
+
+export function decodeChainAnswer(raw: string): ChainAnswer {
+  const [list = "", reasonRaw = "timer"] = String(raw ?? "").split("|");
+  const taps: ChainTap[] = [];
+  for (const part of list.split(",")) {
+    const [nodeRaw, timeRaw] = part.split("@");
+    const node = Number.parseInt(nodeRaw ?? "", 10);
+    const t = Number.parseInt(timeRaw ?? "", 10);
+    if (!Number.isInteger(node) || !Number.isInteger(t) || node < 0 || t < 0) continue;
+    taps.push({ node, t });
+    if (taps.length >= CHAIN_LENGTH + 1) break;
   }
-  return false;
-}
-
-/** Undo and Reset travel in the tap list, so the server replays them too. */
-export const CHAIN_UNDO = -1;
-export const CHAIN_RESET = -2;
-
-export function encodeChainTaps(taps: number[]): string {
-  return taps.map((tap) => (tap === CHAIN_UNDO ? "u" : tap === CHAIN_RESET ? "r" : tap)).join(",");
-}
-
-export function decodeChainTaps(raw: string): number[] {
-  return String(raw ?? "")
-    .split(",")
-    .map((part) => {
-      const token = part.trim();
-      if (token === "u") return CHAIN_UNDO;
-      if (token === "r") return CHAIN_RESET;
-      return Number.parseInt(token, 10);
-    })
-    .filter((value) => Number.isInteger(value) && value >= CHAIN_RESET)
-    .slice(0, 400);
+  const reason = REASONS.includes(reasonRaw as ChainBreak) ? (reasonRaw as ChainBreak) : "timer";
+  return { taps, reason };
 }
 
 export interface ChainReplay {
-  /** The exact repeating three-item rule used by this round. */
-  rule: ChainShape[];
-  /** Number of accepted nodes; also selects rule[index % 3]. */
-  index: number;
-  /** Correct taps, in order — the gold chain. */
-  chain: number[];
-  errors: number;
-  completed: boolean;
-  /** One verdict per tap, in tap order. */
-  verdicts: boolean[];
+  /** Correct links made before the chain ended. */
+  links: number;
+  /** Why the chain ended (or "timer" while it is still live). */
+  reason: ChainBreak;
+  /** Node indices used on each board, in order. */
+  used: number[][];
+  /** Time (ms) of the last correct tap, or null before the first. */
+  lastT: number | null;
+  /** True once the chain is over (broken or complete). */
+  over: boolean;
 }
 
-/** The one place a tap list becomes a chain — used on the phone and the server. */
-export function replayChain(nodes: ChainNode[], cycle: ChainShape[], taps: number[]): ChainReplay {
-  const chain: number[] = [];
-  const verdicts: boolean[] = [];
-  let errors = 0;
-
-  for (const tap of taps) {
-    if (chain.length >= CHAIN_LENGTH) break;
-    // Undo drops the last link and Reset clears the chain; neither forgives an
-    // error already logged.
-    if (tap === CHAIN_UNDO) {
-      chain.pop();
-      verdicts.push(true);
-      continue;
-    }
-    if (tap === CHAIN_RESET) {
-      chain.length = 0;
-      verdicts.push(true);
-      continue;
-    }
-    const node = nodes[tap];
-    if (!node) {
-      verdicts.push(false);
-      errors++;
-      continue;
-    }
-    const ok =
-      !chain.includes(tap) &&
-      node.shape === chainRequired(cycle, chain.length) &&
-      !chainWouldCross(nodes, chain, tap);
-    verdicts.push(ok);
-    if (ok) chain.push(tap);
-    else errors++;
+/** Validates one tap against a live replay; does not mutate. */
+export function chainTapVerdict(
+  puzzle: ChainPuzzleData,
+  replay: ChainReplay,
+  tap: ChainTap,
+): "ok" | "wrong" | "momentum" {
+  if (replay.lastT !== null && tap.t - replay.lastT > chainWindowMs(replay.links + 1)) {
+    return "momentum";
   }
-
-  return {
-    rule: cycle.slice(0, CHAIN_CYCLE),
-    index: chain.length,
-    chain,
-    errors,
-    completed: chain.length >= CHAIN_LENGTH,
-    verdicts,
-  };
+  const board = chainBoardIndex(replay.links);
+  const node = puzzle.boards[board]?.[tap.node];
+  const need = chainRequired(puzzle.cycle, replay.links);
+  if (!node || !need) return "wrong";
+  if (replay.used[board]?.includes(tap.node)) return "wrong";
+  return node.shape === need.shape && node.colour === need.colour ? "ok" : "wrong";
 }
 
-export interface ChainRunReplay {
-  setIndex: number;
-  current: ChainReplay;
-  correct: number;
-  errors: number;
-  completedSets: number;
-}
-
-/** Replays a continuous run, automatically advancing after all 28 nodes. */
-export function replayChainRun(sets: ChainPuzzleData["sets"], taps: number[]): ChainRunReplay {
-  let setIndex = 0;
-  let setTaps: number[] = [];
-  let correct = 0;
-  let errors = 0;
-  let completedSets = 0;
-  let current = replayChain(sets[0]?.nodes ?? [], sets[0]?.cycle ?? [], []);
-  for (const tap of taps) {
-    const set = sets[setIndex];
-    if (!set) break;
-    const before = replayChain(set.nodes, set.cycle, setTaps);
-    setTaps.push(tap);
-    current = replayChain(set.nodes, set.cycle, setTaps);
-    if (current.errors > before.errors) errors++;
-    if (current.chain.length > before.chain.length) correct++;
-    if (current.completed) {
-      completedSets++;
-      setIndex++;
-      setTaps = [];
-      const next = sets[setIndex] ?? set;
-      current = replayChain(next.nodes, next.cycle, []);
+/** The one place a timed tap list becomes a chain — used on the phone and the server. */
+export function replayChain(puzzle: ChainPuzzleData, answer: ChainAnswer): ChainReplay {
+  const replay: ChainReplay = { links: 0, reason: "timer", used: [], lastT: null, over: false };
+  let previousT = -1;
+  for (const tap of answer.taps) {
+    if (replay.over) break;
+    // Times must run forwards and stay inside the round.
+    if (tap.t < previousT || tap.t > CHAIN_TIME_MS) break;
+    previousT = tap.t;
+    const verdict = chainTapVerdict(puzzle, replay, tap);
+    if (verdict !== "ok") {
+      replay.reason = verdict;
+      replay.over = true;
+      break;
+    }
+    const board = chainBoardIndex(replay.links);
+    (replay.used[board] ??= []).push(tap.node);
+    replay.links += 1;
+    replay.lastT = tap.t;
+    if (replay.links >= CHAIN_LENGTH) {
+      replay.reason = "complete";
+      replay.over = true;
     }
   }
-  return { setIndex, current, correct, errors, completedSets };
+  // A lapse after the last tap leaves no tap to prove it; trust only a momentum claim.
+  if (!replay.over && answer.reason === "momentum" && replay.links > 0) {
+    replay.reason = "momentum";
+    replay.over = true;
+  }
+  return replay;
 }

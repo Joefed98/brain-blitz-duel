@@ -417,15 +417,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewer tilts is what counts.",
   },
   chain: {
-    goal: "Keep linking shapes for the whole minute without crossing your line.",
+    goal: "Tap 25 nodes in order, following the repeating cycle — shape and colour must both match.",
     how: [
-      { action: "Follow the cycle", detail: "— it repeats." },
-      { action: "Keep your chain", detail: "from crossing itself." },
-      { action: "Tap Undo or Reset", detail: "to take links back — mistakes still count." },
-      { action: "Clear all 28 nodes", detail: "to start a fresh seeded set." },
-      { action: "Tap Lock in", detail: "to submit your score now and wait for the round to end." },
+      { action: "Follow the cycle", detail: "at the top; the lit item is the one you need next." },
+      { action: "Keep momentum", detail: "— tap again before the gold ring empties (3 s, then 2.5 s from link 11, 2 s from link 19)." },
+      { action: "One wrong tap or an empty ring", detail: "breaks the chain and ends the round." },
+      { action: "Every 5 links", detail: "the board reshuffles. Watch for look-alikes: right shape, wrong colour." },
     ],
-    score: "5 points per correct link; wrong taps cost 10. Maximum 150.",
+    score: "6 points per link; 25 links = 150. No time bonus.",
   },
   intruder: {
     goal: "Find everything that changed.",

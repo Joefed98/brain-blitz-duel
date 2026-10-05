@@ -1546,48 +1546,65 @@ export interface GravityPuzzleData {
 
 /* ======================= Don't Break the Chain ========================== */
 
-export const CHAIN_TIME_MS = 60_000;
-export const CHAIN_NODES = 28;
-export const CHAIN_LENGTH = CHAIN_NODES;
+export const CHAIN_TIME_MS = 45_000;
+/** The chain is a fixed 25 links; the board shows 20 nodes at a time. */
+export const CHAIN_LENGTH = 25;
+export const CHAIN_NODES = 20;
+/** After every this many correct taps the board reshuffles (seeded). */
+export const CHAIN_BLOCK = 5;
+export const CHAIN_BOARDS = CHAIN_LENGTH / CHAIN_BLOCK;
 /** The rule is a repeating three-step cycle. */
 export const CHAIN_CYCLE = 3;
-/** Points lost per wrong tap. */
-export const CHAIN_ERROR_PENALTY = 10;
-/** Every stored-solution step must retain this many shape-invalid choices. */
-export const CHAIN_MIN_INVALID = 4;
-/** Minimum distance between two nodes, in percent of the play area. */
-export const CHAIN_NODE_GAP = 15;
-/** Poisson-disc spacing, in node widths, and the spread checks on a layout. */
-export const CHAIN_MIN_SPACING = 1.6;
-/** A node glyph's width, as a share of the taller board axis in percent. */
-export const CHAIN_NODE_WIDTH_PCT = 7;
+/** Points per completed link (25 links = 150). */
+export const CHAIN_LINK_POINTS = 6;
+/** Momentum windows, in ms, to make the given link after the previous one. */
+export const CHAIN_MOMENTUM_MS = [
+  { upTo: 10, ms: 3_000 },
+  { upTo: 18, ms: 2_500 },
+  { upTo: 25, ms: 2_000 },
+] as const;
+/** The soft warning tick plays in this final part of the window. */
+export const CHAIN_WARN_MS = 500;
+/** Links at which the background shifts and "FASTER" is announced. */
+export const CHAIN_FASTER_AT = [10, 18] as const;
 /** A node glyph, and the clear space kept between two glyph edges, in pixels. */
 export const CHAIN_NODE_PX = 34;
-export const CHAIN_NODE_GAP_PX = 10;
+export const CHAIN_NODE_GAP_PX = 12;
 /**
  * Conservative size of the chain board on the smallest supported phone, used to
  * turn the pixel spacing rule into the percentage space node positions live in.
  */
 export const CHAIN_BOARD_W_PX = 343;
-export const CHAIN_BOARD_H_PX = 400;
-export const CHAIN_MIN_CENTRAL = 6;
-export const CHAIN_MAX_HULL_RATIO = 0.6;
+export const CHAIN_BOARD_H_PX = 380;
+export const CHAIN_MIN_CENTRAL = 5;
 
 export const CHAIN_SHAPES = ["circle", "square", "triangle"] as const;
+export const CHAIN_COLOURS = ["RED", "BLUE", "GREEN", "YELLOW"] as const;
 
 export type ChainShape = (typeof CHAIN_SHAPES)[number];
+export type ChainColour = (typeof CHAIN_COLOURS)[number];
 
 export interface ChainNode {
   /** Position in percent of the play area. */
   x: number;
   y: number;
   shape: ChainShape;
+  colour: ChainColour;
 }
+
+export interface ChainRuleItem {
+  shape: ChainShape;
+  colour: ChainColour;
+}
+
+export type ChainBreak = "wrong" | "momentum" | "timer" | "complete";
 
 export interface ChainPuzzleData {
   type: "chain";
-  /** Stored seeded sets shown in sequence during the run. */
-  sets: { nodes: ChainNode[]; cycle: ChainShape[] }[];
+  /** The repeating three-item rule: shape and colour must both match. */
+  cycle: ChainRuleItem[];
+  /** One board of 20 nodes per block of five links, shown in order. */
+  boards: ChainNode[][];
 }
 
 /* ========================= Intruder Detection =========================== */

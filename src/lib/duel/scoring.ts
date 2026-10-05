@@ -55,7 +55,7 @@ import {
   TUBES_TIME_MS,
   GRAV_TIME_MS,
   GRAV_LOCK_POINTS,
-  CHAIN_ERROR_PENALTY,
+  CHAIN_LINK_POINTS,
   INTRUDER_BOARDS,
   INTRUDER_TIME_MS,
   NONO_PARTIAL_POINTS,
@@ -788,14 +788,9 @@ export function scoreGravity(
   return clamp(GRAV_LOCK_POINTS * clamp(locked, 0, 3), 0, 3 * GRAV_LOCK_POINTS);
 }
 
-/** Don't Break the Chain: five per correct link, less ten per mistake. */
-export function scoreChain(
-  _completed: boolean,
-  correct: number,
-  errors: number,
-  _msRemaining: number,
-): number {
-  return clamp(5 * correct - CHAIN_ERROR_PENALTY * errors, 0, MAX_ROUND_SCORE);
+/** Don't Break the Chain: 6 per completed link, capped at 150; no bonus, no penalty. */
+export function scoreChain(links: number): number {
+  return clamp(CHAIN_LINK_POINTS * links, 0, MAX_ROUND_SCORE);
 }
 
 /** Intruder Detection: a share per grid, and the speed bonus only for a clean sweep. */
