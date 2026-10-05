@@ -73,3 +73,7 @@ ex("Count Up exact zero", scoreCountUpStages([5, 5, 5], [5, 5, 5], 0, L), 130);
 ex("Count Up off-by-1 on stage 3", scoreCountUpStages([5, 5, 6], [5, 5, 5], H, L), 108);
 console.log(fail ? `${fail} failures` : "standard scoring: all checks pass");
 process.exit(fail ? 1 : 0);
+ex("Tubes 6 unfinished capped", S.scoreTubes(false, 0, 20, 0, 6, L), 110);
+ex("Tents 14 unfinished capped", scoreTents(false, 0, L, 14, 1, 15), 110);
+ex("Tents finished at zero beats cap", scoreTents(true, 0, L, 15, 0, 15), 130);
+if (fail) { console.log(`${fail} failures`); process.exit(1); } else console.log("caps: pass");
