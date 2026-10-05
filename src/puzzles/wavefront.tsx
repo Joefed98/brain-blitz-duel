@@ -1,6 +1,5 @@
 import {
   wavCheckpoint,
-  wavefrontGame,
   WAV_BG,
   WAV_CHECKPOINT_INTERVAL,
   WAV_COLOURS,
@@ -12,6 +11,8 @@ import {
 import { encodeWavefrontRun, replayWavefrontRun } from "@/lib/duel/wavefront";
 import { WAVEFRONT_TIME_MS, type WavefrontPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { wavefrontArtGame } from "@/lib/arcade/wavefront.renderer";
+import { wavefrontSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -69,7 +70,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={WAV_WORLD_W}
       worldH={WAV_WORLD_H}
-      game={wavefrontGame}
+      game={wavefrontArtGame}
+      sounds={wavefrontSounds}
       checkpoint={wavCheckpoint}
       interval={WAV_CHECKPOINT_INTERVAL}
       encodeRun={encodeWavefrontRun}

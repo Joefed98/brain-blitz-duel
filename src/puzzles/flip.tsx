@@ -1,6 +1,5 @@
 import {
   flipCheckpoint,
-  flipGame,
   FLIP_BG,
   FLIP_CHECKPOINT_INTERVAL,
   FLIP_GOLD,
@@ -12,6 +11,8 @@ import {
 import { encodeFlipRun, replayFlipRun } from "@/lib/duel/flip";
 import { FLIP_TIME_MS, type FlipPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { flipArtGame } from "@/lib/arcade/flipArt.renderer";
+import { flipSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -43,7 +44,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={FLIP_WORLD_W}
       worldH={FLIP_WORLD_H}
-      game={flipGame}
+      game={flipArtGame}
+      sounds={flipSounds}
       checkpoint={flipCheckpoint}
       interval={FLIP_CHECKPOINT_INTERVAL}
       encodeRun={encodeFlipRun}
