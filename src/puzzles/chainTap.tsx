@@ -118,7 +118,7 @@ function IntroExample() {
         </span>
       </div>
       <p className="text-center font-mono text-[11px] text-muted-foreground">
-        Tap the green triangle before the ring empties — not the yellow one.
+        Tap the green triangle before the ring empties - not the yellow one.
       </p>
     </div>
   );

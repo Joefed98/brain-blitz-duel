@@ -54,7 +54,7 @@ function IntroExample() {
         />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Each leap lands you higher — but never on a spike.
+        Each leap lands you higher - but never on a spike.
       </p>
     </div>
   );

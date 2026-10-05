@@ -114,7 +114,7 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center text-sm text-muted-foreground">
-        How was the shape turned? Tap the answer — or FLIPPED if it&apos;s been mirrored.
+        How was the shape turned? Tap the answer - or FLIPPED if it&apos;s been mirrored.
       </p>
       <div className="flex items-end justify-center gap-4">
         <ColourShape shape={EXAMPLE} size={78} box={3} />

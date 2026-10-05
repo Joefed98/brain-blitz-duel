@@ -74,7 +74,7 @@ function IntroExample() {
         </text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Touch and drag to aim — the dotted path shows where it will go.
+        Touch and drag to aim - the dotted path shows where it will go.
       </p>
     </div>
   );

@@ -13,9 +13,9 @@ export interface PuzzleInstructions {
 
 export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   wordsmith: {
-    goal: "Make words from the nine letters — every word must use the centre letter.",
+    goal: "Make words from the nine letters - every word must use the centre letter.",
     how: [
-      { action: "Four letters or more, each letter once.", detail: "There's always a nine-letter word." },
+      { action: "Words must be at least 4 letters. Use each letter once.", detail: "There's always a nine-letter word." },
       { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine." },
       { action: "Tap or drag through letters", detail: "then Submit, tap the word box or press Enter." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
@@ -34,15 +34,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   tilegrid: {
     goal: "Build a mini crossword from your tiles.",
     how: [
-      { action: "Tap a tile, then a cell.", detail: "Every touching run must be a real word, and everything must connect." },
+      { action: "Tap a tile, then a cell.", detail: "Words must be at least 3 letters. Every run must be a real word, and all tiles must connect." },
       { action: "Double-tap a placed tile", detail: "to take it back. Clear empties the grid." },
-      { action: "Tap Done", detail: "to check — red runs need fixing." },
+      { action: "Tap Done", detail: "to check - red runs need fixing." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
     score: "All fifteen tiles in a valid grid = 130 + up to 20 for speed. Otherwise 8 per tile inside a real word.",
   },
   sumhunt: {
-    goal: "Clear paths of digits that add up to the target — it rises every time.",
+    goal: "Clear paths of digits that add up to the target - it rises every time.",
     how: [
       { action: "Swipe or tap touching cells", detail: "Move up, down, left or right; matching the target submits automatically." },
       { action: "A new board slides in", detail: "after each of the first eight clears; finish by chaining the whole grid." },
@@ -52,7 +52,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   balance: {
     goal: "Balance the scale.",
     how: [
-      { action: "Tap a weight, then a gold peg line.", detail: "Further from the middle counts more — a 2 on peg 3 equals a 3 on peg 2." },
+      { action: "Tap a weight, then a gold peg line.", detail: "Further from the middle counts more - a 2 on peg 3 equals a 3 on peg 2." },
       { action: "Double-tap a placed weight", detail: "to return it to the tray." },
     ],
     score: "20, 40 and 60 for scales 1, 2 and 3. All three = 120 + up to 30 for speed.",
@@ -60,9 +60,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   wordslide: {
     goal: "Slide rows and columns until every row is a word.",
     how: [
-      { action: "Swipe a row sideways or a column up and down", detail: "— letters wrap around the edge." },
+      { action: "Swipe a row sideways or a column up and down", detail: "- letters wrap around the edge. Words must be 5 letters." },
       { action: "Tap Undo or Reset", detail: "to take shifts back; they still count as moves." },
-      { action: "Lock a finished word with the padlock", detail: "so it stays put — column swipes go around it." },
+      { action: "Lock a finished word with the padlock", detail: "so it stays put - column swipes go around it." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
     score: "All five rows words = 100 + up to 30 for speed + up to 20 for moves (full at par, 0 at twice par). Otherwise 22 per word row.",
@@ -100,7 +100,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap each gap", detail: "to choose an operator, worked left to right." },
       { action: "A true equation", detail: "moves on by itself." },
-      { action: "Press Next", detail: "to skip ahead — 90 seconds for all three." },
+      { action: "Press Next", detail: "to skip ahead - 90 seconds for all three." },
     ],
     score: "30, 40 and 50 for the three equations; all three for the time bonus.",
   },
@@ -141,7 +141,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Find every tile faster = more points.",
   },
   reaction: {
-    goal: "Tap the instant the screen turns gold — five to eight times.",
+    goal: "Tap the instant the screen turns gold - five to eight times.",
     how: [
       { action: "Wait.", detail: "" },
       { action: "Don't tap the other colours,", detail: "or you'll get a false start." },
@@ -162,7 +162,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Find the smallest", detail: "remaining number." },
       { action: "Tap in order", detail: "until every number is cleared." },
-      { action: "Keep looking", detail: "— untapped numbers move every 15 seconds." },
+      { action: "Keep looking", detail: "- untapped numbers move every 15 seconds." },
     ],
     score: "5 per number in order; all 24 = 130 + speed bonus up to 20; −5 per wrong tap. Maximum 150.",
   },
@@ -171,7 +171,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Use ◀ ▶, the joystick, or tap a lane", detail: "to steer the word." },
       { action: "Swipe down or press ▼", detail: "to drop it quickly." },
-      { action: "Watch the banner", detail: "— the rule swaps every 15 seconds." },
+      { action: "Watch the banner", detail: "- the rule swaps every 15 seconds." },
     ],
     score: "Points for the share you sort right; wrong gates cost 2.",
   },
@@ -179,7 +179,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Find every matching arrow in three growing grids.",
     how: [
       { action: "Tap every match", detail: "of each grid's target arrow." },
-      { action: "Press Submit", detail: "to lock each grid and move on — 30 seconds for all three." },
+      { action: "Press Submit", detail: "to lock each grid and move on - 30 seconds for all three." },
     ],
     score: "Stages worth 30 / 45 / 55: share of arrows found, −3 per wrong tap. All three perfect adds up to 20 for speed.",
   },
@@ -237,19 +237,19 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Each correct digit in a row increases your span.",
   },
   stopwatch: {
-    goal: "Stop the marker in the gold zone — ten times, each one trickier.",
+    goal: "Stop the marker in the gold zone - ten times, each one trickier.",
     how: [
       { action: "Tap to stop it.", detail: "" },
-      { action: "Some targets move", detail: "— stop when the marker and the target line up." },
+      { action: "Some targets move", detail: "- stop when the marker and the target line up." },
       { action: "The counter drops at the right edge", detail: "from 2 on Watch 1 to 11 on Watch 10." },
-      { action: "Watches 8–10 wrap", detail: "from the right edge back to the left." },
+      { action: "Watches 8-10 wrap", detail: "from the right edge back to the left." },
     ],
     score: "150 at 20 ms average error or closer, −27 per 100 ms more; misses count 500 ms.",
   },
   countup: {
     goal: "Count the matching shapes in three crowded scenes.",
     how: [
-      { action: "Read the question", detail: "— each field asks for a new shape and colour." },
+      { action: "Read the question", detail: "- each field asks for a new shape and colour." },
       { action: "Type the total", detail: "on the keypad; ENTER moves to the next field." },
       { action: "Three scenes", detail: "share 45 seconds." },
     ],
@@ -268,7 +268,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Find as many valid words as you can.",
     how: [
       { action: "Drag or tap through letters", detail: "that touch, including diagonally." },
-      { action: "Use four or more letters", detail: "without reusing a tile. Plurals count." },
+      { action: "Words must be at least 4 letters.", detail: "without reusing a tile. Plurals count." },
       { action: "Release, tap the last letter again, or tap Submit", detail: "to submit each word." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
@@ -322,7 +322,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Connect every colour pair and fill every square.",
     how: [
       { action: "Drag from a dot", detail: "to its matching partner." },
-      { action: "Avoid dark walls", detail: "— no path can enter them." },
+      { action: "Avoid dark walls", detail: "- no path can enter them." },
       { action: "Fill every square", detail: "with a coloured path." },
       { action: "Keep paths separate", detail: "because they cannot cross." },
     ],
@@ -349,10 +349,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   laser: {
     goal: "Light all six gems with one shot.",
     how: [
-      { action: "Drag mirrors", detail: "onto the grid — all nine are needed." },
+      { action: "Drag mirrors", detail: "onto the grid - all nine are needed." },
       { action: "Tap a mirror", detail: "to flip it." },
-      { action: "Tap FIRE", detail: "to shoot — you get three shots and must avoid bombs." },
-      { action: "Follow special tiles", detail: "— splitters divide the beam. Gems with an arrow only light from that side." },
+      { action: "Tap FIRE", detail: "to shoot - you get three shots and must avoid bombs." },
+      { action: "Follow special tiles", detail: "- splitters divide the beam. Gems with an arrow only light from that side." },
     ],
     score: "Every gem on fire 1 / 2 / 3 = 130 / 115 / 100, + up to 20 for speed. Otherwise 15 per gem lit; never fired = 0.",
   },
@@ -362,7 +362,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a peg", detail: "to pick up its top disc." },
       { action: "Tap another peg", detail: "to place that disc." },
       { action: "Keep smaller discs above", detail: "larger discs at all times." },
-      { action: "Count the pegs", detail: "— each puzzle has 3 or 4." },
+      { action: "Count the pegs", detail: "- each puzzle has 3 or 4." },
     ],
     score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 110 × discs home from the bottom ÷ discs.",
   },
@@ -381,7 +381,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a tube", detail: "to lift its top balls." },
       {
         action: "Tap where to pour",
-        detail: "— onto the same colour or an empty tube; as many balls move as fit (5 per tube).",
+        detail: "- onto the same colour or an empty tube; as many balls move as fit (5 per tube).",
       },
       { action: "Undo or Reset", detail: "if a pour traps you." },
     ],
@@ -391,7 +391,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Find the four-digit combination that fits every clue.",
     how: [
       { action: "Use the arrows", detail: "to set each dial." },
-      { action: "Tap TRY", detail: "to test — you get three tries." },
+      { action: "Tap TRY", detail: "to test - you get three tries." },
       { action: "Read every clue", detail: "because only one combination fits them all." },
     ],
     score: "Opened on try 1 / 2 / 3 = 130 / 115 / 100, + up to 20 for speed. Otherwise 15 per dial right on the last try.",
@@ -401,7 +401,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       {
         action: "Only one plan fits",
-        detail: "the six rules together allow exactly one four-action sequence. Wires are numbered 1–7 from the left.",
+        detail: "the six rules together allow exactly one four-action sequence. Wires are numbered 1-7 from the left.",
       },
       { action: "Four steps exactly", detail: "tap wires and buttons, then tap DEFUSE." },
       { action: "One wrong step", detail: "and it explodes." },
@@ -412,15 +412,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Tilt the board to park all four balls on their own targets.",
     how: [
       { action: "Every ball slides until it hits something.", detail: "" },
-      { action: "A ball on its target locks and becomes a wall", detail: "— which can help or hurt the others." },
+      { action: "A ball on its target locks and becomes a wall", detail: "- which can help or hurt the others." },
     ],
     score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 30 per locked ball.",
   },
   chain: {
-    goal: "Tap 25 nodes in order, following the repeating cycle — shape and colour must both match.",
+    goal: "Tap 25 nodes in order, following the repeating cycle - shape and colour must both match.",
     how: [
       { action: "Follow the cycle", detail: "at the top; the lit item is the one you need next." },
-      { action: "Keep momentum", detail: "— tap again before the gold ring empties (3 s, then 2.5 s from link 11, 2 s from link 19)." },
+      { action: "Keep momentum", detail: "- tap again before the gold ring empties (3 s, then 2.5 s from link 11, 2 s from link 19)." },
       { action: "One wrong tap or an empty ring", detail: "breaks the chain and ends the round." },
       { action: "Every 5 links", detail: "the board reshuffles. Watch for look-alikes: right shape, wrong colour." },
     ],
@@ -430,8 +430,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Find everything that changed.",
     how: [
       { action: "Memorise each grid", detail: "before it disappears." },
-      { action: "Tap every change", detail: "— later boards contain two." },
-      { action: "Five rounds", detail: "— 7 s to memorise, 5 s to pick; on the last two the symbols slide inside the grid." },
+      { action: "Tap every change", detail: "- later boards contain two." },
+      { action: "Five rounds", detail: "- 7 s to memorise, 5 s to pick; on the last two the symbols slide inside the grid." },
     ],
     score: "Complete = 130 + up to 20 for speed. Otherwise 24 per board right; one of two changes earns 12.",
   },
@@ -448,7 +448,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Find all fifteen matching pairs.",
     how: [
       { action: "Tap two cards", detail: "to turn them over." },
-      { action: "A match stays up", detail: "— a miss flips back." },
+      { action: "A match stays up", detail: "- a miss flips back." },
       { action: "Remember", detail: "where everything was." },
     ],
     score: "Complete = 130 + up to 20 for speed. Otherwise 8 per pair found.",
@@ -458,7 +458,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap a colour", detail: "to change your region." },
       { action: "Your region grows", detail: "into every touching cell of that colour." },
-      { action: "Start from the top-left", detail: "— that cell is always yours." },
+      { action: "Start from the top-left", detail: "- that cell is always yours." },
     ],
     score: "Solved = 100 + up to 40 for moves (full at par, 0 at twice par) + up to 10 for speed. Otherwise 110 × region ÷ 196.",
   },
@@ -466,7 +466,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Trace every line in one stroke without lifting your finger.",
     how: [
       { action: "Start on any dot", detail: "and drag along the lines." },
-      { action: "No line twice", detail: "— you can't go back over one." },
+      { action: "No line twice", detail: "- you can't go back over one." },
       { action: "Lift your finger", detail: "to start the figure again." },
     ],
     score: "First try earns a bonus.",
@@ -484,7 +484,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Turn the rings so every spoke is one colour.",
     how: [
       { action: "Select a ring", detail: "then use the arrow buttons to turn it." },
-      { action: "Check the legend", detail: "— some rings turn others with them, same way or opposite." },
+      { action: "Check the legend", detail: "- some rings turn others with them, same way or opposite." },
       { action: "Watch the rim", detail: "for a gold tick on each finished spoke." },
     ],
     score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 12 per aligned spoke.",
@@ -517,7 +517,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "3 per block stacked + 2 per perfect drop, up to 150.",
   },
   bintoss: {
-    goal: "Throw the ball into the bin — ten throws.",
+    goal: "Throw the ball into the bin - ten throws.",
     how: [
       { action: "Touch and drag to aim", detail: "the dotted path shows where it will go." },
       {
@@ -525,16 +525,16 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         detail: "Wind 2 to the left? Aim half a bin width to the right.",
       },
       { action: "The bin moves", detail: "further away every throw, and gets narrower from throw 4." },
-      { action: "From throw 7 the bin slides", detail: "side to side — time your release." },
+      { action: "From throw 7 the bin slides", detail: "side to side - time your release." },
     ],
     score: "10 per basket; all ten = 130 + up to 20 for time left.",
   },
   bullseye: {
-    goal: "Hit the centre — ten arrows.",
+    goal: "Hit the centre - ten arrows.",
     how: [
       { action: "Touch and drag to aim", detail: "the dotted path shows where it will go." },
       {
-        action: "Your aim sways — watch the ring and release at the right moment.",
+        action: "Your aim sways - watch the ring and release at the right moment.",
         detail: "The ring circles once every two seconds.",
       },
       {
@@ -542,8 +542,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         detail: "Wind 2 to the right? Aim two rings to the left.",
       },
       { action: "The target", detail: "gets further away each shot." },
-      { action: "From the fourth arrow the target moves — lead it.", detail: "It is scored where it is when the arrow lands." },
-      { action: "From the seventh arrow the ring values swap places.", detail: "Read the numbers — each value keeps its colour." },
+      { action: "From the fourth arrow the target moves - lead it.", detail: "It is scored where it is when the arrow lands." },
+      { action: "From the seventh arrow the ring values swap places.", detail: "Read the numbers - each value keeps its colour." },
     ],
     score: "1.5 × your ring points, up to 150. Unfired arrows score 0.",
   },
@@ -595,8 +595,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Clear the wall.",
     how: [
       { action: "Drag to move the paddle", detail: "anywhere on the board." },
-      { action: "Keep the ball up", detail: "— it gets faster with bricks and with time." },
-      { action: "Darker blue bricks take 2 or 3 hits", detail: "— each hit cracks them down a tier." },
+      { action: "Keep the ball up", detail: "- it gets faster with bricks and with time." },
+      { action: "Darker blue bricks take 2 or 3 hits", detail: "- each hit cracks them down a tier." },
       { action: "Four starred power-up bricks drop a capsule", detail: "gold = laser, silver = ×5 balls, bronze = ×2 balls (works at once)." },
       { action: "Tap anywhere to fire", detail: "a laser or ×5 you've caught; any other touch moves the paddle." },
     ],
@@ -607,7 +607,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag to move the paddle", detail: "along the bottom." },
       { action: "Every hit", detail: "makes the paddle smaller and the ball faster." },
-      { action: "A gold ball drops in", detail: "every ten seconds — only gold hits score." },
+      { action: "A gold ball drops in", detail: "every ten seconds - only gold hits score." },
       { action: "Miss the blue ball", detail: "and the run is over." },
     ],
     score: "3 per gold-ball hit, up to 150. The blue ball scores nothing.",
@@ -620,7 +620,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         detail: "to stay inside the track. It gets narrower and faster.",
       },
       { action: "Touching an edge", detail: "costs a touch every half second until you're back inside." },
-      { action: "Keep your finger down", detail: "— lifting it for more than half a second costs touches too." },
+      { action: "Keep your finger down", detail: "- lifting it for more than half a second costs touches too." },
     ],
     score: "150 − 5 per touch.",
   },
@@ -628,20 +628,20 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Slice the flying discs. Don't hit the bombs.",
     how: [
       { action: "Swipe through the discs", detail: "to slice them in half." },
-      { action: "Never touch the dark bombs", detail: "— each one costs ten points." },
+      { action: "Never touch the dark bombs", detail: "- each one costs ten points." },
       {
         action: "Two star specials",
-        detail: "— the rainbow star opens three bomb-free seconds; the silver star slows everything for four.",
+        detail: "- the rainbow star opens three bomb-free seconds; the silver star slows everything for four.",
       },
       { action: "Cut 3+ discs in one swipe", detail: "one finger-down-to-up path counts together, even a curve or loop. First combo gives ×2, second gives ×3. Each combo resets 10 seconds; only expiry returns you to ×1." },
-      { action: "Each swipe has a length limit", detail: "— curve it, but it stops after about three-quarters of the screen." },
+      { action: "Each swipe has a length limit", detail: "- curve it, but it stops after about three-quarters of the screen." },
     ],
     score: "floor(235 × combo-weighted slices ÷ (3 × discs available)) −10 per bomb; capped at 150.",
   },
   bubble: {
     goal: "Pop the bubbles by matching three of a colour.",
     how: [
-      { action: "Drag to aim, release to shoot", detail: "— bounce off the walls." },
+      { action: "Drag to aim, release to shoot", detail: "- bounce off the walls." },
       { action: "Three of a colour pop", detail: "when they touch." },
       { action: "Bubbles left hanging", detail: "fall off the field." },
       { action: "Ninety seconds", detail: "on the same field for everyone." },
@@ -652,10 +652,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Tap the notes in time.",
     how: [
       { action: "Tap a lane", detail: "as its note reaches the line." },
-      { action: "Closer is better", detail: "— perfect, good, or just OK." },
+      { action: "Closer is better", detail: "- perfect, good, or just OK." },
       { action: "A tap with no note", detail: "costs nothing." },
-      { action: "Notes with a tail are holds", detail: "— press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss." },
-      { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 — a miss resets it." },
+      { action: "Notes with a tail are holds", detail: "- press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss." },
+      { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 - a miss resets it." },
     ],
     score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150. Holds score only after both ends are judged; mistimed releases miss the whole note.",
   },
@@ -671,7 +671,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   tendrop: {
     goal: "Make the running total hit the target exactly.",
     how: [
-      { action: "Tap falling tiles", detail: "— each one applies to the total in tap order." },
+      { action: "Tap falling tiles", detail: "- each one applies to the total in tap order." },
       { action: "×2, ÷2, ÷3 and −N", detail: "work on the total; a ÷ that doesn't divide exactly is refused." },
       { action: "Go past the target", detail: "and the total drops back to 0." },
     ],
@@ -680,28 +680,28 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   clayshoot: {
     goal: "Shoot all 25 clays out of the sky.",
     how: [
-      { action: "Tap a clay", detail: "to fire — the shot lands exactly where you tap." },
+      { action: "Tap a clay", detail: "to fire - the shot lands exactly where you tap." },
       { action: "Unlimited shots,", detail: "no reload." },
       { action: "Gold clays are faster and harder", detail: "and worth twice as much." },
-      { action: "Later on, two fly at once", detail: "— keep watching both edges." },
+      { action: "Later on, two fly at once", detail: "- keep watching both edges." },
     ],
     score: "5 per orange, 10 per gold, plus 10 for all 25. Maximum 150.",
   },
   whack: {
     goal: "Tap the targets the banner tells you to.",
     how: [
-      { action: "Balls pop up briefly", detail: "— the window shrinks as the run goes on." },
-      { action: "The rule flips 3–5 times", detail: "at unpredictable moments — watch the banner." },
-      { action: "Never tap a bomb", detail: "— bombs cost 5; a wrong-colour ball or an empty hole costs 3." },
+      { action: "Balls pop up briefly", detail: "- the window shrinks as the run goes on." },
+      { action: "The rule flips 3-5 times", detail: "at unpredictable moments - watch the banner." },
+      { action: "Never tap a bomb", detail: "- bombs cost 5; a wrong-colour ball or an empty hole costs 3." },
     ],
     score: "Up to 135 for the share of targets hit, −3 per wrong ball, −5 per bomb, −3 per empty tap, +15 for hitting every target. Maximum 150.",
   },
   wavefront: {
     goal: "Shoot down the formation before it reaches you.",
     how: [
-      { action: "Drag to move", detail: "— you fire automatically." },
+      { action: "Drag to move", detail: "- you fire automatically." },
       { action: "Dodge the red bolts.", detail: "Three hits and you're out." },
-      { action: "From wave 2, a grey armoured block", detail: "takes 6–12 hits — every hit counts." },
+      { action: "From wave 2, a grey armoured block", detail: "takes 6-12 hits - every hit counts." },
       { action: "Shoot the saucer", detail: "and catch its drop: 5 laser shots that pierce up to 3 enemies." },
     ],
     score: "Points for shapes, armour hits, saucers and waves. Clearing wave 5 perfectly scores 150.",
@@ -709,7 +709,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   bastion: {
     goal: "Defend the base.",
     how: [
-      { action: "Touch where you want to aim", detail: "— the turret follows and fires all the time." },
+      { action: "Touch where you want to aim", detail: "- the turret follows and fires all the time." },
       { action: "Prefer buttons?", detail: "Turn on Arrows and hold ◀ ▶ to turn the barrel." },
       { action: "Squares take two hits;", detail: "triangles split." },
     ],
@@ -726,13 +726,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   sortrush: {
     goal: "Sort every shape into the gate of its colour.",
     how: [
-      { action: "Swipe left or right", detail: "— from 20 seconds there's a middle gate too (swipe down)." },
+      { action: "Swipe left or right", detail: "- from 20 seconds there's a middle gate too (swipe down)." },
       { action: "The gate colours swap;", detail: "watch for the flash." },
     ],
     score: "Points for the share you sort; wrong gates cost 2.",
   },
   flip: {
-    goal: "Run the corridor — flip to the other side to dodge.",
+    goal: "Run the corridor - flip to the other side to dodge.",
     how: [
       { action: "Tap to flip gravity.", detail: "" },
       { action: "Spikes and gaps on one side", detail: "mean run on the other." },
@@ -744,7 +744,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Block every arrow with the gong shield.",
     how: [
       { action: "Swipe in any of eight directions", detail: "or use ⟲ ⟳ to move one position." },
-      { action: "A diagonal blocks both neighbours", detail: "— at 1:30 it covers the top and the right." },
+      { action: "A diagonal blocks both neighbours", detail: "- at 1:30 it covers the top and the right." },
       { action: "Later they come in pairs", detail: "and some swerve at the last moment. Three hits and you're out." },
     ],
     score: "2 per arrow deflected, −10 per life lost.",
@@ -753,9 +753,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Keep the traffic moving without a crash.",
     how: [
       { action: "Tap the black corner beside a road", detail: "to switch its light between red (stop) and green (go)." },
-      { action: "Cars on red queue up", detail: "— and they don't wait forever." },
-      { action: "Later,", detail: "some cars turn — they flash an indicator a second before the line." },
-      { action: "Ambulances (flashing blue)", detail: "come fast from 20 s — give them green before they reach the line." },
+      { action: "Cars on red queue up", detail: "- and they don't wait forever." },
+      { action: "Later,", detail: "some cars turn - they flash an indicator a second before the line." },
+      { action: "Ambulances (flashing blue)", detail: "come fast from 20 s - give them green before they reach the line." },
     ],
     score: "3 per car through, −1 per car that gives up, +5 per ambulance waved through, −5 if one has to stop, +40 for surviving the minute.",
   },
@@ -763,36 +763,36 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Draw a path so the ball rolls into the bucket.",
     how: [
       { action: "Draw lines around the grey blocks,", detail: "then tap RELEASE." },
-      { action: "Ink is limited", detail: "— more each level." },
+      { action: "Ink is limited", detail: "- more each level." },
       { action: "Three failed drops", detail: "and you're out." },
     ],
     score: "11 per level; all ten = 130 + up to 20 for time left.",
   },
   burst: {
-    goal: "Pop every ball — big ones split into smaller ones.",
+    goal: "Pop every ball - big ones split into smaller ones.",
     how: [
       { action: "Hold ◀ or ▶ to move,", detail: "tap the arena or FIRE to shoot straight up." },
       { action: "Pop a purple ball and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
-      { action: "Blue balls sometimes drop a teal SHIELD", detail: "— it takes the next hit for you." },
-      { action: "Don't let a ball touch you", detail: "— three touches and you're out." },
+      { action: "Blue balls sometimes drop a teal SHIELD", detail: "- it takes the next hit for you." },
+      { action: "Don't let a ball touch you", detail: "- three touches and you're out." },
     ],
     score: "2 per ball popped or split, −9 per life lost. Clear four waves without losing a life for 150.",
   },
   orbit: {
     goal: "Hop from planet to planet.",
     how: [
-      { action: "You orbit automatically.", detail: "Tap to let go — you fly straight until the next orbit catches you." },
+      { action: "You orbit automatically.", detail: "Tap to let go - you fly straight until the next orbit catches you." },
       { action: "Miss and you drift away.", detail: "Avoid the red arcs." },
-      { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops — never at the crossing." },
+      { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops - never at the crossing." },
     ],
     score: "3 per planet; reach the sun (planet 40) = 130 + up to 20 for time left. The planet you hold at 30 s is a checkpoint: one respawn there after a later crash.",
   },
   snip: {
     goal: "Feed the sweet to the mouth.",
     how: [
-      { action: "Swipe across a rope", detail: "to cut it — time it with the swing." },
+      { action: "Swipe across a rope", detail: "to cut it - time it with the swing." },
       { action: "Cut the last rope", detail: "and the sweet drops; the camera follows across the wider arena. Its walls bounce it without losing speed." },
-      { action: "Don't let it settle on a ledge", detail: "or fly out the top or bottom — 10 levels, 12 s each." },
+      { action: "Don't let it settle on a ledge", detail: "or fly out the top or bottom - 10 levels, 12 s each." },
     ],
     score: "10 per sweet fed, +3 for each level's single star; feed all ten for round(20 × time left ÷ 60 s). Cap 150.",
   },
@@ -800,7 +800,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Swing to the 500 m finish.",
     how: [
       { action: "Hold to grab an anchor and swing,", detail: "let go to fly." },
-      { action: "Stuck? Keep swinging", detail: "— every pass gets you higher. Swipe up to shorten the rope for speed." },
+      { action: "Stuck? Keep swinging", detail: "- every pass gets you higher. Swipe up to shorten the rope for speed." },
       { action: "Don't touch the spikes", detail: "or fall to the floor." },
     ],
     score: "130 × metres ÷ 500; reaching 500 m = 130 + up to 20 for time left.",
@@ -808,9 +808,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   tilt: {
     goal: "Roll the ball out of the maze.",
     how: [
-      { action: "Drag left or right to spin the maze", detail: "— the ball always rolls down." },
+      { action: "Drag left or right to spin the maze", detail: "- the ball always rolls down." },
       { action: "Each escape brings a harder maze.", detail: "Red spikes end the run." },
-      { action: "From maze 2 a red ball waits behind a silver gate.", detail: "Pass the padlock and it's free — it tilts with you. Touch it and the run ends." },
+      { action: "From maze 2 a red ball waits behind a silver gate.", detail: "Pass the padlock and it's free - it tilts with you. Touch it and the run ends." },
     ],
     score: "Four mazes, 30 each. All four = 130 + up to 20 for time left.",
   },
@@ -844,8 +844,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   trail: {
     goal: "Draw one path from 1 to 36 through every square.",
     how: [
-      { action: "Drag from the end of the path", detail: "to any touching square — sideways, up, down or diagonal." },
-      { action: "Ten dark numbers are fixed", detail: "— the path must reach each one at exactly that step. You fill the other 26." },
+      { action: "Drag from the end of the path", detail: "to any touching square - sideways, up, down or diagonal." },
+      { action: "Ten dark numbers are fixed", detail: "- the path must reach each one at exactly that step. You fill the other 26." },
       { action: "Undo removes your last square; Reset clears your path.", detail: "Dragging back along the path also undoes. Fixed numbers stay." },
     ],
     score: "Complete path = 130 + up to 20 for speed. Otherwise 5 per tile right from 1.",
@@ -855,7 +855,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag a tile", detail: "from the tray into an empty cell." },
       { action: "Double-tap a placed tile", detail: "to return it to the tray; drag it onto another cell to swap." },
-      { action: "Two tiles are decoys", detail: "— nothing fills itself in." },
+      { action: "Two tiles are decoys", detail: "- nothing fills itself in." },
       { action: "Skip", detail: "moves to the next pyramid without completing this one." },
     ],
     score: "30 per completed pyramid, plus up to 30 for finishing all four early. The current pyramid earns proportional partial points.",
@@ -864,15 +864,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Steer every ball into the tray of its colour.",
     how: [
       { action: "Balls drop every 2 seconds", detail: "and snake down the track." },
-      { action: "Tap a gold tube to turn it into a drop", detail: "— the bottom row is fixed, so send each ball down early…" },
-      { action: "…the track's bottom row re-lays and the trays swap colours mid-round", detail: "— watch for both." },
+      { action: "Tap a gold tube to turn it into a drop", detail: "- the bottom row is fixed, so send each ball down early…" },
+      { action: "…the track's bottom row re-lays and the trays swap colours mid-round", detail: "- watch for both." },
     ],
     score: "120 × balls home ÷ 25; all 25 home = 130 + up to 20 for time left. Wrong trays score nothing.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",
     how: [
-      { action: "Drag in a straight line", detail: "through the letters — any of eight directions, backwards too." },
+      { action: "Drag in a straight line", detail: "through the letters in any direction, backwards too. Words must be at least 2 letters." },
       { action: "A hidden word turns gold.", detail: "Only the count shows until you find them." },
     ],
     score: "20 per word. Find all six for 130 plus up to 20 speed points.",
@@ -881,7 +881,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Fill the crossword using the letters on the wheel.",
     how: [
       { action: "Drag through the letters and let go,", detail: "or tap letters then Submit or the word." },
-      { action: "Crossword words fill gold.", detail: "Other real words are not in this puzzle." },
+      { action: "Crossword words fill gold.", detail: "Words must be at least 3 letters. Other real words are not in this puzzle." },
     ],
     score: "15 per word on eight-word puzzles, 13 on nine-word puzzles. Find them all for 130 plus up to 20 for speed.",
   },

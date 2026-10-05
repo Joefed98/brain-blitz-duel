@@ -75,7 +75,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        Eight tiles light up in four groups of two, then vanish. Tap all eight — any order.
+        Eight tiles light up in four groups of two, then vanish. Tap all eight - any order.
       </p>
       <SequenceGrid order={EXAMPLE} cols={COLS} size="sm" numbered={false} />
       <p className="text-xs text-muted-foreground">

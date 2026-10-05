@@ -40,7 +40,7 @@ function IntroExample() {
           <rect key={i} x={60 + i * 10} y={116} width={8} height={5} fill={BAS_GOLD} />
         ))}
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Touch where you want to aim — it always fires.</p>
+      <p className="text-center text-xs text-muted-foreground">Touch where you want to aim - it always fires.</p>
     </div>
   );
 }

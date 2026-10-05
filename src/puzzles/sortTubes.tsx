@@ -109,7 +109,7 @@ function IntroExample() {
         <Tubes tubes={tubes} lifted={2} compact />
       </div>
       <p className="text-xs text-muted-foreground">
-        Tube 3&apos;s top ball is lifted — pour it onto the empty tube or a matching colour. Each tube holds five balls. You have 90 seconds.
+        Tube 3&apos;s top ball is lifted - pour it onto the empty tube or a matching colour. Each tube holds five balls. You have 90 seconds.
       </p>
     </div>
   );

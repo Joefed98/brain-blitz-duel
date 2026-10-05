@@ -135,7 +135,7 @@ function IntroExample() {
         </div>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        One cell is different the second time — tap it.
+        One cell is different the second time - tap it.
       </p>
     </div>
   );

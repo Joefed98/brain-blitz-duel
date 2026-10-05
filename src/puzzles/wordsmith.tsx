@@ -12,7 +12,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Make words from the nine letters — every word must use the centre letter.
+        Make words from the nine letters - every word must use the centre letter.
       </p>
       <div className="flex items-start gap-4">
         <div className="grid grid-cols-3 gap-1.5">

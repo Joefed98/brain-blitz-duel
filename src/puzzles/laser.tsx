@@ -309,7 +309,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Place all the mirrors so one shot lights every gem — and never touches a bomb.
+        Place all the mirrors so one shot lights every gem - and never touches a bomb.
       </p>
       <div style={{ width: 132 }}>
         <LaserBoard
