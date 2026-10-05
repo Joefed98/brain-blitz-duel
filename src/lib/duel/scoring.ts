@@ -580,7 +580,7 @@ export function standardComplete(msRemaining: number, timeLimitMs: number): numb
 
 /** Shape B (balanced) and C (move-weighted, Colour Flood only). */
 export type MovesShape = "B" | "C";
-const MOVES_SHAPE: Record<MovesShape, { moves: number; speed: number }> = {
+export const MOVES_SHAPE: Record<MovesShape, { moves: number; speed: number }> = {
   B: { moves: 25, speed: 25 },
   C: { moves: 40, speed: 10 },
 };
