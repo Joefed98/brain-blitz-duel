@@ -1,7 +1,7 @@
 ## Six-game presentation tuning
-- [ ] Separate Chain code from timer, centre Rotating Rings, halve laser animation speed, shrink square Pipes tiles 5–8%, and hide Tower minimum until reveal.
-- [ ] Check tube counts before selecting the compact tube layout; retain five-ball clearance and thumb-sized pour targets.
-- [ ] Source audit all six at 390×700 and 375×667; no browser tests or scoring/grading/sim changes.
+- [x] Separate Chain code from timer with 12px top space, centre Rotating Rings in a container-sized square with scaled SVG coordinates, halve laser animation speed, shrink square Pipes tiles about 7%, and hide Tower minimum until reveal.
+- [x] Confirmed every seed has ten tubes; user chose two rows of five. Tubes are 88px tall, balls 11px, with 15px headroom above five balls and tap targets at least 68.6×88px at the requested phone widths.
+- [x] Source audit all six passed at 390×700 and 375×667 with conservative safe areas and room score strip; rendered tube markup confirms ten targets. Preview build OK; no browser tests or scoring/grading/sim changes. Device appearance remains user-tested.
 
 ## Three number-game stage feedback
 - [x] Add one-second intermediate CORRECT holds to Balance, Equation Balancing and Number Pyramid; reserve gold slots above/below as requested, ignore input, leave final submission and scoring unchanged.
