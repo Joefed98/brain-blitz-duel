@@ -673,5 +673,5 @@
 - [x] Trail recordable (scaled cell lookup); retired games get no authored demos
 
 ## Orbit, Matchup, Swing and Wavefront visual tuning (Oct 5)
-- [ ] Tune colours, paths, facets, ceiling-connected rock, silver armour and bounded beams in renderers only.
-- [ ] Check renderer output and protected-file changes without browser tests or identity proofs.
+- [x] Tune colours, paths, facets, ceiling-connected rock, silver armour and bounded beams in renderers only.
+- [x] Beam bounds/colours, white-free gem fills, renderer smoke and read-only-state checks passed; only four renderer files changed, protected gameplay and audio untouched; preview build OK. No browser tests or identity proofs; device appearance remains user-tested.
