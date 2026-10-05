@@ -8,6 +8,7 @@ import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
 import { PuzzleInstructions } from "./PuzzleInstructions";
 import { hasIntroDemo, IntroDemo } from "./IntroDemo";
+import { PuzzleIntroDemo } from "./PuzzleDemo";
 
 interface RoundIntroProps {
   round: number;
@@ -101,12 +102,19 @@ export function RoundIntro({
                 }
               />
             ) : (
-              <>
-                <PuzzleInstructions type={type} />
-                <div className="round-intro-example">
-                  <Example />
-                </div>
-              </>
+              <PuzzleInstructions
+                type={type}
+                beforeScore={
+                  <PuzzleIntroDemo
+                    type={type}
+                    fallback={
+                      <div className="round-intro-example">
+                        <Example />
+                      </div>
+                    }
+                  />
+                }
+              />
             )}
             {introLine ? (
               <p className="font-mono text-sm font-bold uppercase tracking-widest text-primary">

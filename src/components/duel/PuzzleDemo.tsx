@@ -53,6 +53,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
   const [now, setNow] = useState(() => Date.now());
   const verdictIndex = useRef(0);
   const stateKey = `intro-demo-${puzzle.type}-${loop.id}`;
+  const mounted = scale > 0 && loop.id > 0;
 
   // Silent while mounted; real taps briefly lift the hush for Ready/Back.
   useEffect(() => {
@@ -90,7 +91,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
     return () => {
       for (const type of BLOCKED) el.removeEventListener(type, block, true);
     };
-  }, [scale]);
+  }, [mounted]);
 
   useEffect(() => {
     if (!scale) return;
@@ -284,7 +285,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
       style={{ aspectRatio: `${log.w} / ${log.h}` }}
       aria-label="Demo of the puzzle being solved"
     >
-      {scale > 0 && loop.id > 0 ? (
+      {mounted ? (
         <div
           ref={stageRef}
           aria-hidden="true"
