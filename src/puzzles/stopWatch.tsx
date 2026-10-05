@@ -81,11 +81,6 @@ export function buildStopWatch(): StopWatchPuzzleData {
   };
 }
 
-export function stopWatchPoints(avg: number): number {
-  if (avg <= 20) return 150;
-  return Math.max(0, Math.min(150, Math.round(150 - 0.27 * (avg - 20))));
-}
-
 function Bar({
   spec,
   marker,

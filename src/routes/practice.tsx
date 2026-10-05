@@ -294,6 +294,7 @@ function PracticeScreen() {
           myCorrect={graded.isCorrect}
           myReactionAvgMs={graded.reactionAvgMs}
           myMsRemaining={graded.msRemaining}
+          myScore={graded.score}
           myExtra={graded.extra ?? null}
           startedAt={startedAt}
           now={now}
