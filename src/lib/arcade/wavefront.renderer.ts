@@ -48,9 +48,13 @@ function shade(hex: string, amount: number): string {
 function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number, t: number): void {
   const cx = x + s / 2;
   const body = ctx.createLinearGradient(x, y, x, y + s);
-  body.addColorStop(0, shade(colour, -0.45));
+  body.addColorStop(0, shade(colour, -0.15));
   body.addColorStop(0.55, colour);
-  body.addColorStop(1, shade(colour, 0.3));
+  body.addColorStop(1, colour);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, s, s);
+  ctx.clip();
   ctx.fillStyle = body;
   ctx.strokeStyle = shade(colour, -0.6);
   ctx.lineWidth = 1;
@@ -102,21 +106,39 @@ function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x
   ctx.beginPath();
   ctx.ellipse(cx, y + s * 0.12, s * 0.12, s * 0.08, 0, 0, Math.PI * 2);
   ctx.fill();
-  // Cockpit highlight.
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  // Dark cockpit, no white highlight.
+  ctx.fillStyle = shade(colour, -0.65);
   ctx.beginPath();
   ctx.ellipse(cx, y + s * (kind === 1 ? 0.55 : 0.6), s * 0.1, s * 0.07, 0, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
 }
 
 function drawArmourHull(ctx: CanvasRenderingContext2D, state: WavState, a: WavArmour): void {
   const box = wavShapeBox(state, a.row * WAV_COLS + a.col);
   const w = (a.w - 1) * PITCH_X + WAV_CELL;
   const h = (a.h - 1) * PITCH_Y + WAV_CELL;
-  // Under-hull (shown where plates have been knocked off).
+  ctx.save();
   ctx.beginPath();
-  ctx.roundRect(box.x, box.y, w, h, 6);
-  ctx.fillStyle = "#2A2F3A";
+  ctx.rect(box.x, box.y, w, h);
+  ctx.clip();
+  // Silver spaceship silhouette; the dark frame shows through missing plates.
+  const cx = box.x + w / 2;
+  ctx.beginPath();
+  ctx.moveTo(cx, box.y + h);
+  ctx.lineTo(cx + w * 0.18, box.y + h * 0.72);
+  ctx.lineTo(box.x + w, box.y + h * 0.85);
+  ctx.lineTo(box.x + w, box.y + h * 0.24);
+  ctx.lineTo(cx + w * 0.2, box.y + h * 0.38);
+  ctx.lineTo(cx + w * 0.12, box.y);
+  ctx.lineTo(cx - w * 0.12, box.y);
+  ctx.lineTo(cx - w * 0.2, box.y + h * 0.38);
+  ctx.lineTo(box.x, box.y + h * 0.24);
+  ctx.lineTo(box.x, box.y + h * 0.85);
+  ctx.lineTo(cx - w * 0.18, box.y + h * 0.72);
+  ctx.closePath();
+  ctx.clip();
+  ctx.fillStyle = "#454B54";
   ctx.fill();
   ctx.strokeStyle = "#D8DDE5";
   ctx.lineWidth = 1.5;
@@ -132,7 +154,7 @@ function drawArmourHull(ctx: CanvasRenderingContext2D, state: WavState, a: WavAr
     const py = box.y + 3 + Math.trunc(k / cols) * ph;
     if (gone.has(k)) {
       // Exposed frame with a crack.
-      ctx.strokeStyle = "rgba(255,140,80,0.7)";
+      ctx.strokeStyle = "#242830";
       ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.moveTo(px + pw * 0.2, py + ph * 0.2);
@@ -144,19 +166,28 @@ function drawArmourHull(ctx: CanvasRenderingContext2D, state: WavState, a: WavAr
       continue;
     }
     const g = ctx.createLinearGradient(px, py, px, py + ph);
-    g.addColorStop(0, "#C9D0DB");
-    g.addColorStop(1, "#7C8596");
+    g.addColorStop(0, "#D2D5DA");
+    g.addColorStop(0.5, "#AEB3BC");
+    g.addColorStop(1, "#777E89");
     ctx.fillStyle = g;
     ctx.fillRect(px + 1, py + 1, pw - 2, ph - 2);
+    ctx.strokeStyle = "#353B45";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px + 1.5, py + 1.5, pw - 3, ph - 3);
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(px + 2, py + 2, 1.5, 1.5);
     ctx.fillRect(px + pw - 3.5, py + 2, 1.5, 1.5);
   }
+  ctx.restore();
 }
 
 function drawFighter(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number, moving: boolean, recoil: number, t: number): void {
   const top = cy - h / 2;
   const bottom = cy + h / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(cx - w / 2, top, w, h);
+  ctx.clip();
   if (moving) {
     const flick = 0.75 + 0.25 * Math.sin(t * 30);
     const fire = ctx.createLinearGradient(0, bottom - 4, 0, bottom + 6 * flick);
@@ -204,6 +235,16 @@ function drawFighter(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: n
     ctx.fill();
     ctx.globalAlpha = 1;
   }
+  ctx.restore();
+}
+
+/** All three beam styles stay inside the sim's identical 4 × 12 projectile box. */
+export function drawWavefrontBeam(ctx: CanvasRenderingContext2D, x: number, y: number, kind: "player" | "enemy" | "piercing"): void {
+  const piercing = kind === "piercing";
+  const w = Math.min(WAV_BOLT_W, piercing ? 3 : 2);
+  const h = Math.min(WAV_BOLT_H, piercing ? 12 : 8);
+  ctx.fillStyle = piercing ? WAV_PURPLE : kind === "enemy" ? WAV_RED : "#3DDC84";
+  ctx.fillRect(x - w / 2, y, w, h);
 }
 
 function drawSaucer(ctx: CanvasRenderingContext2D, x: number, t: number): void {
@@ -284,7 +325,7 @@ export function drawWavefrontArt(ctx: CanvasRenderingContext2D, state: WavState,
     if (code === 0 || code === WAV_ARMOUR_CODE) return;
     const box = wavShapeBox(state, i);
     const kind = Math.trunc((code - 1) / 3);
-    const colour = WAV_COLOURS[(code - 1) % 3] ?? WAV_COLOURS[0]!;
+    const colour = WAV_COLOURS[(code - 1) % 3] ?? WAV_GOLD;
     drawHull(ctx, kind, colour, box.x, box.y, WAV_CELL, t);
   });
   if (state.armour) drawArmourHull(ctx, state, state.armour);
@@ -292,8 +333,7 @@ export function drawWavefrontArt(ctx: CanvasRenderingContext2D, state: WavState,
   if (state.drop && state.drop.wait === 0) {
     const dx = state.drop.x / FP;
     const dy = state.drop.y / FP;
-    ctx.shadowColor = WAV_PURPLE;
-    ctx.shadowBlur = still ? 0 : 8;
+    ctx.shadowBlur = 0;
     ctx.fillStyle = WAV_PURPLE;
     ctx.beginPath();
     ctx.moveTo(dx, dy - WAV_DROP_R);
@@ -310,36 +350,10 @@ export function drawWavefrontArt(ctx: CanvasRenderingContext2D, state: WavState,
   if (state.saucerDir !== 0) drawSaucer(ctx, state.saucerX / FP, t);
 
   for (const b of state.bolts) {
-    const bx = b.x / FP;
-    const by = b.y / FP;
-    if (b.p) {
-      // Piercing laser: bright beam on the bolt's box, with a fading tail.
-      const w = WAV_BOLT_W + 2;
-      const tail = ctx.createLinearGradient(0, by + WAV_BOLT_H, 0, by + WAV_BOLT_H + 40);
-      tail.addColorStop(0, "rgba(200,180,255,0.45)");
-      tail.addColorStop(1, "rgba(200,180,255,0)");
-      ctx.fillStyle = tail;
-      ctx.fillRect(bx - 1, by + WAV_BOLT_H, 2, 40);
-      ctx.fillStyle = "rgba(167,139,250,0.45)";
-      ctx.fillRect(bx - w / 2 - 2, by - 6, w + 4, WAV_BOLT_H + 6);
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(bx - w / 2 + 1, by - 6, w - 2, WAV_BOLT_H + 6);
-    } else {
-      ctx.fillStyle = "rgba(245,184,46,0.35)";
-      ctx.fillRect(bx - WAV_BOLT_W / 2 - 1, by - 1, WAV_BOLT_W + 2, WAV_BOLT_H + 2);
-      ctx.fillStyle = "#FFE8A8";
-      ctx.fillRect(bx - WAV_BOLT_W / 2, by, WAV_BOLT_W, WAV_BOLT_H);
-    }
+    drawWavefrontBeam(ctx, b.x / FP, b.y / FP, b.p ? "piercing" : "player");
   }
   for (const b of state.reds) {
-    const bx = b.x / FP;
-    const by = b.y / FP;
-    ctx.fillStyle = "rgba(240,82,79,0.35)";
-    ctx.fillRect(bx - WAV_BOLT_W / 2 - 1.5, by - 1, WAV_BOLT_W + 3, WAV_BOLT_H + 2);
-    ctx.fillStyle = WAV_RED;
-    ctx.fillRect(bx - WAV_BOLT_W / 2, by, WAV_BOLT_W, WAV_BOLT_H);
-    ctx.fillStyle = "#FFD0C8";
-    ctx.fillRect(bx - 0.75, by + 2, 1.5, WAV_BOLT_H - 4);
+    drawWavefrontBeam(ctx, b.x / FP, b.y / FP, "enemy");
   }
 
   drawBursts(ctx, state, [...WAV_COLOURS, WAV_PURPLE, "#9AA3B2"], still);
