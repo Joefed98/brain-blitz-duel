@@ -139,7 +139,6 @@ import {
   NUMHUNT_COUNT,
   NUMSEQ_ITEMS,
   PCTSPRINT_ITEMS,
-  REACTION_FALSE_START_MS,
   REACTION_MISS_MS,
   ROUND_MS,
   SPOT_DIFFERENCES,
@@ -311,12 +310,10 @@ export function gradeSubmission(
       });
       const parsedFalse = Number.parseInt(falsePart, 10);
       const falseStarts = Number.isFinite(parsedFalse) ? clamp(parsedFalse, 0, 99) : 0;
-      reactionAvgMs = Math.round(
-        total.reduce((sum, attempt) => sum + attempt, 0) / Math.max(1, flashCount) +
-          falseStarts * REACTION_FALSE_START_MS,
-      );
+      reactionAvgMs = Math.round(total.reduce((sum, attempt) => sum + attempt, 0) / Math.max(1, flashCount));
       isCorrect = true;
-      score = scoreReaction(reactionAvgMs);
+      errors = falseStarts;
+      score = scoreReaction(reactionAvgMs, falseStarts);
       storedMs = 0;
       break;
     }
@@ -433,7 +430,7 @@ export function gradeSubmission(
       const finished = reached >= NUMHUNT_COUNT;
       isCorrect = finished;
       correctCount = reached;
-      score = scoreNumberHunt(finished, ms, errors, reached, NUMHUNT_COUNT);
+      score = scoreNumberHunt(finished, ms, errors, reached, NUMHUNT_COUNT, timeLimitMs);
       break;
     }
     case "target": {
@@ -1191,6 +1188,7 @@ export function gradeSubmission(
         hits: run.hits,
         totalTargets: run.totalTargets,
         wrong: run.wrong,
+        empty: run.empty,
         taps: run.taps,
         perfect: run.perfect,
         finished: run.finished,

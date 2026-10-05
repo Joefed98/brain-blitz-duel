@@ -168,8 +168,10 @@ export function scoreTargetNumber(
 }
 
 /** Reaction Time: 50 at 650 ms or slower, up to 150 at 50 ms. */
-export function scoreReaction(averageMs: number): number {
-  return 50 + clamp(Math.round((650 - averageMs) / 6), 0, 100);
+/** Reaction Time: 150 at ≤200 ms average, −0.16 per ms above, −8 per false start, 0…150. */
+export function scoreReaction(averageMs: number, falseStarts = 0): number {
+  const base = averageMs <= 200 ? 150 : clamp(Math.round(150 - 0.16 * (averageMs - 200)), 0, 150);
+  return clamp(base - 8 * Math.max(0, falseStarts), 0, 150);
 }
 
 /** Colour Clash: accuracy out of 100, plus the speed bonus on a flawless run. */
@@ -301,12 +303,8 @@ export function scoreCountUp(
 
 /** Stop Watch: 150 for a perfect average, down to 50 at 400 ms or worse. */
 export function scoreStopWatch(averageDistanceMs: number): number {
-  const bonus = clamp(
-    Math.round(100 * (1 - averageDistanceMs / STOPWATCH_MAX_DIST_MS)),
-    0,
-    100,
-  );
-  return 50 + bonus;
+  if (averageDistanceMs <= 20) return 150;
+  return clamp(Math.round(150 - 0.27 * (averageDistanceMs - 20)), 0, 150);
 }
 
 /**
@@ -319,15 +317,16 @@ export function scoreNumberHunt(
   errors: number,
   reached = 0,
   total = 1,
+  timeLimitMs = NUMHUNT_TIME_MS,
 ): number {
+  const limit = timeLimitMs > 0 ? timeLimitMs : NUMHUNT_TIME_MS;
+  const penalty = NUMHUNT_ERROR_PENALTY * Math.max(0, errors);
   if (finished) {
-    const raw = BASE_POINTS + speedBonus(msRemaining, NUMHUNT_TIME_MS) - 10 * errors;
-    return Math.round(clamp(raw, 0, MAX_ROUND_SCORE));
+    const bonus = Math.round((20 * clamp(msRemaining, 0, limit)) / limit);
+    return clamp(130 + bonus - penalty, 0, MAX_ROUND_SCORE);
   }
   const count = clamp(Math.round(reached), 0, Math.max(1, total));
-  if (count < 1) return 0;
-  const raw = Math.round((90 * count) / Math.max(1, total)) - NUMHUNT_ERROR_PENALTY * errors;
-  return clamp(Math.max(raw, 5), 0, 90);
+  return clamp(5 * count - penalty, 0, MAX_ROUND_SCORE);
 }
 
 export function resultFor(
