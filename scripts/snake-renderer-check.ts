@@ -1,4 +1,4 @@
-/** No-browser comet drawing/cache checks; no simulation replay or identity proof. */
+/** No-browser meteor drawing/cache checks; no simulation replay or identity proof. */
 import assert from 'node:assert/strict';
 import { snakeGame, SNAKE_CELL } from '../src/lib/arcade/snake';
 import { snakeArtGame } from '../src/lib/arcade/snake.renderer';
@@ -6,10 +6,10 @@ let allocations = 0, clock = 1000, reduced = false;
 Object.defineProperty(globalThis, 'performance', { configurable: true, value: { now: () => clock } });
 Object.defineProperty(globalThis, 'window', { configurable: true, value: { matchMedia: () => ({ get matches() { return reduced; } }) } });
 function context() {
- const stats = { blur: 0, depth: 0, blits: [] as number[][], rects: [] as number[][] };
+ const stats = { blur: 0, depth: 0, colours: new Set<string>(), blits: [] as number[][], rects: [] as number[][] };
  const base = { canvas: {}, getTransform: () => ({ a: 2, b: 0 }), save: () => stats.depth++, restore: () => stats.depth--,
  drawImage: (_: unknown, ...args: number[]) => stats.blits.push(args), fillRect: (...args: number[]) => stats.rects.push(args) };
- const ctx = new Proxy(base as unknown as CanvasRenderingContext2D, {get(t,k){return Reflect.get(t,k) ?? (()=>{});},set(t,k,v){if(k==='shadowBlur'&&v>0)stats.blur++;return Reflect.set(t,k,v);}});
+ const ctx = new Proxy(base as unknown as CanvasRenderingContext2D, {get(t,k){return Reflect.get(t,k) ?? (()=>{});},set(t,k,v){if(k==='shadowBlur'&&v>0)stats.blur++;if(k==='fillStyle'||k==='shadowColor')stats.colours.add(String(v));return Reflect.set(t,k,v);}});
  return {ctx,stats};
 }
 const surfaces: { width: number; height: number; stats: ReturnType<typeof context>['stats'] }[] = [];
@@ -25,13 +25,25 @@ assert.equal(allocations,warm,'no warm allocations');assert.equal(stats.blur,0,'
 const beadSurfaces=surfaces.filter(s=>s.width===48&&s.height===48);
 assert(beadSurfaces.length>=6);
 for(const s of beadSurfaces)for(const [x,y,w,h] of s.stats.rects)assert(x>=0&&y>=0&&x+w<=24&&y+h<=24,'pixel art inside cell');
+for(const s of beadSurfaces) {
+ assert(!s.stats.colours.has('#4BFF7A') && !s.stats.colours.has('#1E9C45'), 'meteor/star sprites have no green');
+}
+assert(beadSurfaces.some(s=>s.stats.colours.has('#29282D')), 'charcoal head');
+assert(beadSurfaces.some(s=>s.stats.colours.has('#77747B')), 'rock flecks');
+assert(beadSurfaces.some(s=>s.stats.colours.has('#FFF4D2')), 'white-hot fire front');
+assert(beadSurfaces.some(s=>s.stats.colours.has('#85818B')), 'smoke-grey tail');
+for(let dir=0;dir<4;dir++){state.dir=dir;draw();}
+const directionCaches=allocations;
+for(let dir=0;dir<4;dir++){state.dir=dir;draw();}
+assert.equal(allocations,directionCaches,'directional head caches reused');
 // Every collision cell receives a centred, full-cell stamp, including tail.
 stats.blits=[];draw();const beads=stats.blits.filter(b=>b[2]===24&&b[3]===24);assert(beads.length>=301);
 for(let i=0;i<300;i++){const x=15+i%15*24,y=44+Math.trunc(i/15)*24;assert(beads.some(b=>b[0]===x&&b[1]===y));}
 // Eat, death and frozen end frames are immutable and remain bounded.
 state.eaten++;state.pellet=150;state.tick++;draw();clock+=90;draw();
-state.dead=true;state.tick++;draw();clock+=300;stats.rects=[];draw();const particleRects=stats.rects.filter(r=>r[2]===2&&r[3]===2);assert(particleRects.length<=34,'32 sparks plus two eyes');
+state.dead=true;state.tick++;draw();clock+=300;stats.rects=[];draw();const particleRects=stats.rects.filter(r=>(r[2]===2&&r[3]===2)||(r[2]===4&&r[3]===4));assert(particleRects.length<=34,'32 embers/smoke plus two eyes');
 reduced=true;stats.rects=[];draw();assert.equal(stats.rects.filter(r=>r[2]===2&&r[3]===2).length,2,'reduced motion has only eyes, no sparks');
+assert.equal(stats.rects.filter(r=>r[2]===4&&r[3]===4).length,0,'no animated smoke under reduced motion');
 assert.equal(stats.depth,0);assert.equal(stats.blur,0);
 // No-canvas fallback remains safe.
 delete (globalThis as {OffscreenCanvas?:unknown}).OffscreenCanvas;
