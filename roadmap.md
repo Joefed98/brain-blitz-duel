@@ -1,3 +1,7 @@
+## Flip sweeping bends
+- [ ] Replace early shaking with long shared-band bends, ramping frequency and change rate only from 45 seconds; keep integer seeded physics and existing randomness.
+- [ ] Run Flip-only identity proof and focused curve checks; report tuning table and saved intro demo re-recording requirement. No browser tests.
+
 ## Cross, Burst and Ten Drop pacing
 - [x] Cross preserves crossings 1-2 and adds 64 fixed-point units/tick per crossing from 3; fallback uses the same later speed progression. Report lane speed ranges for all ten courses.
 - [x] Burst shot interval 8→16 ticks; gold icon fall 512→768 fixed-point units/tick; shield fall and flawless scoring unchanged.
