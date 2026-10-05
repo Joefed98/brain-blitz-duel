@@ -1,6 +1,6 @@
 ## Chain reshuffle cycles
-- [ ] Generate a seeded new symbol set/order for each five-link board; shared phone/server replay uses the current cycle and current-cycle decoys.
-- [ ] Highlight updated link code without changing FASTER, momentum or scoring; verify intro and focused seeded replay checks without browser tests.
+- [x] One stored seed generates a new symbol set and order for each five-link board; shared phone/server replay uses the board's current cycle and current-cycle look-alike decoys, with legacy single-cycle fallback.
+- [x] Updated code flashes gold for 650ms with its board change; FASTER, momentum and scoring unchanged. Fixed short intro example still matches; HOW now explains changing cycles. Chain-only checks passed 200/200 seeded regenerations, full server grades, boundary decoys, timing edges, scatter and legacy replays; preview build OK, no browser tests.
 
 ## Trail sequential tap correction
 - [x] Removed tray/selection; shared adjacent next-number taps and last-player undo support mixed dragging. Fixed numbers remain on the board; scoring, SCORE wording and bank fingerprints unchanged.
