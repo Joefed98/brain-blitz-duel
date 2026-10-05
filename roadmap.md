@@ -1,3 +1,8 @@
+## Matchup and Bullseye renderer tuning
+- [ ] Add accepted and rejected swap tweens without changing simulation modules or input handling.
+- [ ] Darken Bullseye arrows with light outlines; preserve aim and sway indicators.
+- [ ] Run focused render checks only; no browser tests or identity proofs.
+
 ## Six-game presentation tuning
 - [x] Separate Chain code from timer with 12px top space, centre Rotating Rings in a container-sized square with scaled SVG coordinates, halve laser animation speed, shrink square Pipes tiles about 7%, and hide Tower minimum until reveal.
 - [x] Confirmed every seed has ten tubes; user chose two rows of five. Tubes are 88px tall, balls 11px, with 15px headroom above five balls and tap targets at least 68.6×88px at the requested phone widths.
