@@ -8,6 +8,9 @@ import type { SwingState } from "@/lib/arcade/swing";
 import type { WavState } from "@/lib/arcade/wavefront";
 import type { CrossState } from "@/lib/arcade/cross";
 import type { FlipState } from "@/lib/arcade/flip";
+import { HOVER_IMPULSE, type HoverState } from "@/lib/arcade/hover";
+import type { SnakeState } from "@/lib/arcade/snake";
+import { BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 
 export interface GameSounds<S> {
   frame: (state: S, running: boolean) => void;
@@ -99,5 +102,75 @@ export function flipSounds(): GameSounds<FlipState> {
       prev = state;
     },
     stop: () => stopLoop("arc_lava_hiss"),
+  };
+}
+
+/* ============================ Retro Arcade world ============================ */
+
+/** Coin once when the run starts; shared by every Retro Arcade game. */
+function retroStart() {
+  let started = false;
+  return (running: boolean) => {
+    if (running && !started) {
+      started = true;
+      playSound("arc_retro_coin");
+    }
+  };
+}
+
+export function hoverSounds(): GameSounds<HoverState> {
+  let prev: HoverState | null = null;
+  const start = retroStart();
+  return {
+    frame(state, running) {
+      start(running);
+      if (prev && state.tick > prev.tick) {
+        if (state.crashed && !prev.crashed) playSound("arc_retro_explode");
+        else {
+          if (state.gates > prev.gates) playSound("arc_retro_note");
+          // A tap sets vy to the impulse exactly; gravity alone never reaches it.
+          if (state.vy === HOVER_IMPULSE) playSound("arc_retro_blip", 0.7, 1, true);
+        }
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+export function snakeSounds(): GameSounds<SnakeState> {
+  let prev: SnakeState | null = null;
+  const start = retroStart();
+  return {
+    frame(state, running) {
+      start(running);
+      if (prev && state.tick > prev.tick) {
+        if (state.dead && !prev.dead) playSound("arc_retro_explode");
+        else if (state.eaten > prev.eaten) playSound("arc_retro_blip");
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+/** Lane pitches: a rising major-ish set of semitone steps. */
+const BEAT_LANE_RATES = [1, 2 ** (4 / 12), 2 ** (7 / 12), 2 ** (12 / 12)];
+
+export function beatSounds(): GameSounds<BeatState> {
+  let prev: BeatState | null = null;
+  const start = retroStart();
+  return {
+    frame(state, running) {
+      start(running);
+      if (prev && state.tick > prev.tick) {
+        if (state.misses > prev.misses) playSound("arc_retro_hit");
+        const hits = state.perfect + state.good + state.ok - (prev.perfect + prev.good + prev.ok);
+        const heldNew = state.lastJudge === BEAT_JUDGE_PENDING && state.judgeAge === 0;
+        if (hits > 0 || heldNew) playSound("arc_retro_note", 0.8, BEAT_LANE_RATES[Math.max(0, state.lastLane)] ?? 1, true);
+      }
+      prev = state;
+    },
+    stop: () => {},
   };
 }

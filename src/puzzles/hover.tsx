@@ -25,7 +25,8 @@ import {
 import { decodeHoverRun, encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { HOVER_CRASH_FREEZE_MS, type HoverPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playWrong } from "@/lib/sound";
+import { hoverArtGame } from "@/lib/arcade/hover.renderer";
+import { hoverSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -111,6 +112,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = hoverSounds();
     // Dev-only tick-rate probe.
     let secondAt = last;
     let ticksThisSecond = 0;
@@ -153,10 +155,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, hoverGame.isOver(state.current));
       feedback(state.current, hoverGame.isOver(state.current));
+      sounds.frame(state.current, !hoverGame.isOver(state.current) && !lockedRef.current);
 
       const size = sizeCanvas();
       const context = canvasContext();
-      if (size && context) hoverGame.draw(context, state.current, size);
+      if (size && context) hoverArtGame.draw(context, state.current, size);
 
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);
@@ -179,7 +182,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (crashedAt.current === null) {
             crashedAt.current = time;
             buzz(40);
-            playWrong();
           } else if (time - crashedAt.current >= HOVER_CRASH_FREEZE_MS) {
             finish();
           }
@@ -191,7 +193,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      sounds.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 
@@ -225,7 +230,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <canvas
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
-        style={{ background: HOVER_BG }}
+        style={{ background: "#000000" }}
         aria-label="Hover"
         onPointerDown={(event) => {
           event.preventDefault();

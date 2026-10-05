@@ -29,7 +29,9 @@ import {
 } from "@/lib/arcade/beat";
 import { decodeBeatRun, encodeBeatRun, replayBeatRun } from "@/lib/duel/beat";
 import type { BeatPuzzleData } from "@/lib/duel/types";
-import { playBeatStep, playCorrect, playWrong } from "@/lib/sound";
+import { playBeatStep } from "@/lib/sound";
+import { beatArtGame } from "@/lib/arcade/beat.renderer";
+import { beatSounds } from "@/lib/fx/gameSounds";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -122,8 +124,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
-    let judged = state.current.perfect + state.current.good + state.current.ok;
-    let missed = state.current.misses;
+    const sounds = beatSounds();
 
     const finish = () => {
       if (submitted.current) return;
@@ -164,22 +165,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
       }
 
-      const nowJudged = state.current.perfect + state.current.good + state.current.ok;
-      if (nowJudged > judged) {
-        judged = nowJudged;
-        playCorrect();
-      }
-      if (state.current.misses > missed) {
-        missed = state.current.misses;
-        playWrong();
-      }
 
       reportArcadeTick(state.current.tick, beatGame.isOver(state.current));
       feedback(state.current, beatGame.isOver(state.current));
+      sounds.frame(state.current, !beatGame.isOver(state.current) && !lockedRef.current);
 
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) beatGame.draw(context, state.current, size);
+      if (size && context) beatArtGame.draw(context, state.current, size);
 
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
@@ -190,7 +183,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      sounds.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, data]);
 
