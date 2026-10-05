@@ -158,14 +158,13 @@ export function scoreTargetNumber(
   msRemaining: number,
   timeLimitMs: number,
 ): number {
-  if (distance === 0) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
-  if (distance === 1) return 90;
-  if (distance === 2) return 85;
-  if (distance <= 5) return 80;
-  if (distance <= 10) return 70;
-  if (distance <= 20) return 60;
-  if (distance <= 50) return 50;
-  return 0;
+  const d = Math.max(0, Math.round(distance));
+  if (d === 0) {
+    const limit = timeLimitMs > 0 ? timeLimitMs : ROUND_MS;
+    return Math.min(MAX_ROUND_SCORE, 130 + Math.round((20 * clamp(msRemaining, 0, limit)) / limit));
+  }
+  if (d <= 10) return 120 - ((d - 1) * (d + 2)) / 2;
+  return Math.max(0, Math.round(66 - 0.6 * (d - 10)));
 }
 
 /** Reaction Time: 50 at 650 ms or slower, up to 150 at 50 ms. */

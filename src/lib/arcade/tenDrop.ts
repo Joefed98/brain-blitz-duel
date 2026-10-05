@@ -64,7 +64,9 @@ export const TD_CONFIG = {
   /** A new tile never lands in the same column as the last two. */
   avoidRecentCols: 2,
   shakeTicks: 18,
-  pointsPerTarget: 15,
+  pointsPerTarget: 13,
+  /** Up to this many points for clearing all ten, by sim time of the last clear. */
+  clearBonus: 20,
   /** Rejection-sampling attempts per segment before the built-in fallback. */
   maxSegmentTries: 1000,
   stages: [
@@ -402,12 +404,19 @@ function step(state: TenDropState, input: ArcadeInputEvent | null): TenDropState
   return next;
 }
 
-export function tenDropScore(cleared: number): number {
-  return clampInt(cleared * TD_CONFIG.pointsPerTarget, 0, TD_TARGETS * TD_CONFIG.pointsPerTarget);
+/** 13 per target; all ten adds round(20 × (run ticks − clear tick) ÷ run ticks). Cap 150. */
+export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS): number {
+  const n = clampInt(cleared, 0, TD_TARGETS);
+  let total = n * TD_CONFIG.pointsPerTarget;
+  if (n >= TD_TARGETS) {
+    const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
+    total += Math.round((TD_CONFIG.clearBonus * left) / TD_RUN_TICKS);
+  }
+  return clampInt(total, 0, 150);
 }
 
 function score(state: TenDropState): number {
-  return tenDropScore(state.cleared);
+  return tenDropScore(state.cleared, state.clearTick);
 }
 
 /* ============================= Checkpoints ============================= */

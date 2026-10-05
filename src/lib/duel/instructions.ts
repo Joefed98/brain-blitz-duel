@@ -55,7 +55,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a weight, then a gold peg line.", detail: "Further from the middle counts more — a 2 on peg 3 equals a 3 on peg 2." },
       { action: "Double-tap a placed weight", detail: "to return it to the tray." },
     ],
-    score: "One point-third per scale; all three for the time bonus.",
+    score: "20, 40 and 60 for scales 1, 2 and 3. All three = 120 + up to 30 for speed.",
   },
   wordslide: {
     goal: "Slide rows and columns until every row is a word.",
@@ -84,7 +84,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Use each number", detail: "at most once." },
       { action: "Keep every step", detail: "to a whole number." },
     ],
-    score: "Exact = full points. Closer answers score more.",
+    score: "Exact = 130 + up to 20 for speed. Off by 1 = 120, falling faster the further off; 120+ away scores 0.",
   },
   numseq: {
     goal: "Work out the next number in each sequence.",
@@ -676,7 +676,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "×2, ÷2, ÷3 and −N", detail: "work on the total; a ÷ that doesn't divide exactly is refused." },
       { action: "Go past the target", detail: "and the total drops back to 0." },
     ],
-    score: "15 per target cleared — all ten is 150.",
+    score: "13 per target cleared. All ten adds up to 20 for clearing them early.",
   },
   clayshoot: {
     goal: "Shoot all 25 clays out of the sky.",
@@ -849,7 +849,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Dark numbers are fixed", detail: "— the path must reach each one at exactly that step." },
       { action: "Drag back along the path", detail: "to undo. Lift and carry on from the end." },
     ],
-    score: "Finish fast for the bonus. Otherwise, points for how far your path is right from 1.",
+    score: "Complete path = 130 + up to 20 for speed. Otherwise 5 per tile right from 1.",
   },
   numpyramid: {
     goal: "Complete four pyramids: every cell is the sum of the two below it.",

@@ -84,7 +84,15 @@ export function balanceSolvedCount(scales: BalanceScale[], placements: Placement
   return n;
 }
 
-export function balanceRoundScore(solved: number, speed: number): number {
-  const base = Math.round((100 * solved) / BAL_SCALES);
-  return Math.min(150, solved === BAL_SCALES ? base + speed : base);
+/** Stage weights for scales 1 / 2 / 3 when the round is unfinished. */
+export const BAL_STAGE_POINTS = [20, 40, 60] as const;
+
+/** All three: 120 + round(30 × ms left ÷ limit), cap 150. Otherwise the solved stages' weights. */
+export function balanceRoundScore(solved: number, msRemaining: number, timeLimitMs: number): number {
+  const n = Math.max(0, Math.min(BAL_SCALES, solved));
+  if (n >= BAL_SCALES) {
+    const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
+    return Math.min(150, 120 + (timeLimitMs > 0 ? Math.round((30 * ms) / timeLimitMs) : 0));
+  }
+  return BAL_STAGE_POINTS.slice(0, n).reduce((a, b) => a + b, 0);
 }

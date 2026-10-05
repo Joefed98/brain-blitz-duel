@@ -67,7 +67,7 @@ function IntroExample() {
         75 × 6 = 450 · 450 + 10 = 460 · 460 + 2 = 462
       </p>
       <p className="text-center text-xs text-muted-foreground">
-        Exact hit scores full points; close counts for less.
+        Exact hit scores 130 + speed; off by 1 scores 120, and it falls from there.
       </p>
     </div>
   );

@@ -260,7 +260,7 @@ export function gradeSubmission(
       const solved = balanceSolvedCount(puzzle.scales, decodeBalance(answer, puzzle.scales));
       correctCount = solved;
       isCorrect = solved === BAL_SCALES;
-      score = balanceRoundScore(solved, speedBonus(ms, timeLimitMs));
+      score = balanceRoundScore(solved, ms, timeLimitMs);
       extraDetail = { solved };
       break;
     }
@@ -1680,7 +1680,7 @@ export function gradeSubmission(
       const active = boards[decoded.active];
       isCorrect = completed === puzzle.pyramids.length;
       correctCount = boards.reduce((sum, board) => sum + board.correctCells, 0);
-      score = scoreNumberPyramid(completed, isCorrect, ms, active && !active.complete ? active.correctCells : 0, active?.emptyCells ?? 0);
+      score = scoreNumberPyramid(completed, isCorrect, ms, active && !active.complete ? active.correctCells : 0, active?.emptyCells ?? 0, timeLimitMs);
       extraDetail = { completed, active: decoded.active, boards };
       break;
     }
