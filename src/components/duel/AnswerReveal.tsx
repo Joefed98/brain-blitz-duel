@@ -16,6 +16,8 @@ interface AnswerRevealProps {
   myCorrect: boolean;
   myReactionAvgMs: number | null;
   myMsRemaining?: number;
+  /** The score the server stored for this player and round; null until it lands. */
+  myScore: number | null;
   /** The stored result detail; arcade runs carry dev diagnostics under `diag`. */
   myExtra?: Record<string, unknown> | null;
   /** False until the round's answers have arrived from the server. */
@@ -56,6 +58,22 @@ function DevDiagnostics({ extra }: { extra: Record<string, unknown> | null }) {
           : "no client counters"}
       </div>
     </div>
+  );
+}
+
+/** The only score on the reveal: the server's stored number, never a local calculation. */
+export function StoredScore({ score }: { score: number | null }) {
+  if (score === null) {
+    return (
+      <div data-reveal-score="pending" className="shrink-0">
+        <WaitingLine label="Scoring…" />
+      </div>
+    );
+  }
+  return (
+    <p data-reveal-score={score} className="shrink-0 font-mono text-2xl font-bold tabular-nums text-primary animate-pop-in">
+      {score} points
+    </p>
   );
 }
 
@@ -111,6 +129,7 @@ export function AnswerReveal({
   myCorrect,
   myReactionAvgMs,
   myMsRemaining,
+  myScore,
   myExtra,
   answersReady,
   startedAt,
@@ -154,6 +173,7 @@ export function AnswerReveal({
             {def.revealHeading ?? "The answer was"}
           </p>
         ) : null}
+        <StoredScore score={myScore} />
         <div className="answer-reveal-content flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           {answersReady ? (
             <Reveal

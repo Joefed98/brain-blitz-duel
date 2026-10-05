@@ -311,7 +311,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         ))}
       </svg>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.raw.toLocaleString("en-GB")} pts → {result.score}
+        {result.raw.toLocaleString("en-GB")} match points
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.swaps} swap{result.swaps === 1 ? "" : "s"} · best line {result.bestLine || "—"}

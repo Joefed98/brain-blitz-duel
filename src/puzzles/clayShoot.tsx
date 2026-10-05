@@ -266,7 +266,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.hits} / {result.total} clays · {result.orangeHits} orange · {result.goldHits} gold
       </p>
       <p className="text-center text-base text-muted-foreground">{result.shots} shot{result.shots === 1 ? "" : "s"} · Same clays for everyone</p>
-      <p className="font-mono text-base text-primary">{result.score} points</p>
     </div>
   );
 }

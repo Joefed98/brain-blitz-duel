@@ -338,9 +338,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           ? ` · reached the line at ${result.endedSeconds.toFixed(1)}s`
           : ""}
       </p>
-      <p className="shrink-0 font-mono text-base" style={{ color: BUB_GOLD }}>
-        {result.score} points
-      </p>
     </div>
   );
 }

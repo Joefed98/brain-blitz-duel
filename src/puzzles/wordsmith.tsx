@@ -1,6 +1,5 @@
 import { WordsmithPuzzle } from "@/components/puzzles/WordsmithPuzzle";
 import { wordsmithPoints, type WordsmithPuzzleData } from "@/lib/duel/types";
-import { scoreWordsmith } from "@/lib/duel/scoring";
 import { WORDSMITH_TIME_MS } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -62,7 +61,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     .split(",")
     .map((word) => word.trim().toUpperCase())
     .filter((word) => word.length > 0);
-  const points = mine.reduce((sum, word) => sum + wordsmithPoints(word), 0);
   const missed = (puzzle.words ?? [])
     .filter((entry) => !mine.includes(entry.word))
     .sort((a, b) => b.word.length - a.word.length || b.points - a.points)
@@ -72,7 +70,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        <span className="text-primary">floor(2.5 × {points}) = {scoreWordsmith(points)}</span> · {mine.length} words
+        {mine.length} words
       </p>
 
       {mine.length > 0 && (

@@ -68,11 +68,6 @@ export function reactionAverage(times: number[], falseStarts: number, flashCount
   return Math.round(filled.reduce((a, b) => a + b, 0) / count);
 }
 
-export function reactionPoints(avg: number, falseStarts = 0): number {
-  const base = avg <= 200 ? 150 : Math.max(0, Math.min(150, Math.round(150 - 0.16 * (avg - 200))));
-  return Math.max(0, Math.min(150, base - 8 * falseStarts));
-}
-
 function encode(times: (number | null)[], falseStarts: number): string {
   return `${times.map((t) => t ?? REACTION_MISS_MS).join(",")}|${falseStarts}`;
 }
@@ -256,7 +251,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
         <p className="text-base uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg ?? "—"} ms</p>
-        {avg !== null && <p className="font-mono text-base text-muted-foreground">{reactionPoints(avg, falseStarts)} points</p>}
       </div>
     </>
   );

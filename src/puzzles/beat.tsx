@@ -284,9 +284,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         best combo {result.maxCombo} · {result.holdsDone} / {result.holds} holds
       </p>
-      <p className="shrink-0 font-mono text-base" style={{ color: BEAT_GOLD }}>
-        {result.score} points
-      </p>
     </div>
   );
 }

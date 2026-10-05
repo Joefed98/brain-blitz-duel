@@ -5,7 +5,6 @@ import {
   decodeTents,
   encodeTents,
   lineCounts,
-  scoreTents,
   tentsLayoutValid,
   tentsTouch,
 } from "@/lib/duel/tents";
@@ -212,7 +211,6 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const correct = mine.filter((cell) => solution.has(cell)).length;
   const wrong = mine.length - correct;
   const trees = puzzle.trees.length;
-  const points = scoreTents(myCorrect, myMsRemaining ?? 0, timeLimitMs, correct, wrong, trees);
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
@@ -245,8 +243,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       </div>
       <p className="font-mono text-base text-primary">
         {correct === trees && wrong === 0
-          ? `${correct} / ${trees} · ${points}`
-          : `${correct} / ${trees} tents · ${points}`}
+          ? `${correct} / ${trees}`
+          : `${correct} / ${trees} tents`}
       </p>
     </div>
   );

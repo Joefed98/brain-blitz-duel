@@ -81,11 +81,6 @@ export function buildStopWatch(): StopWatchPuzzleData {
   };
 }
 
-export function stopWatchPoints(avg: number): number {
-  if (avg <= 20) return 150;
-  return Math.max(0, Math.min(150, Math.round(150 - 0.27 * (avg - 20))));
-}
-
 function Bar({
   spec,
   marker,
@@ -333,7 +328,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
         <p className="text-base uppercase tracking-[0.2em] text-muted-foreground">Average error</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg} ms</p>
-        <p className="font-mono text-base text-muted-foreground">{stopWatchPoints(avg)} points</p>
       </div>
     </>
   );

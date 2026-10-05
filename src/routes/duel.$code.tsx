@@ -684,6 +684,7 @@ function DuelScreen() {
           myCorrect={!!myResult?.is_correct}
           myReactionAvgMs={myResult?.reaction_avg_ms ?? null}
           myMsRemaining={myResult?.ms_remaining ?? 0}
+          myScore={myResult ? myResult.score : null}
           myExtra={myResult?.extra ?? null}
           startedAt={phaseStart ?? now}
           now={now}

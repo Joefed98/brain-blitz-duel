@@ -13,7 +13,6 @@ import {
   PIPE_W,
 } from "@/lib/duel/logic";
 import { useStageState } from "@/lib/duel/stageState";
-import { scorePipes } from "@/lib/duel/scoring";
 import {
   PIPES_CELLS,
   PIPES_COLS,
@@ -254,9 +253,6 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         {myCorrect
           ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `✗ ${mineState.connected.size} / ${PIPES_CELLS} connected`}
-      </p>
-      <p className="font-mono text-base text-muted-foreground">
-        {scorePipes(Boolean(myCorrect), mineState.connected.size, myMsRemaining ?? 0, timeLimitMs)} points
       </p>
     </div>
   );

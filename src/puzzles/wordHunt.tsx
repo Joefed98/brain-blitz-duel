@@ -1,6 +1,5 @@
 import { WordHuntBoard, WordHuntPuzzle } from "@/components/puzzles/WordHuntPuzzle";
 import { WORDHUNT_TIME_MS, wordHuntPoints, type WordHuntPuzzleData } from "@/lib/duel/types";
-import { scoreWordHunt } from "@/lib/duel/scoring";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -55,13 +54,12 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     .split(",")
     .map((word) => word.trim().toUpperCase())
     .filter((word) => word.length > 0);
-  const points = mine.reduce((sum, word) => sum + wordHuntPoints(word), 0);
   const missed = (puzzle.words ?? []).filter((entry) => !mine.includes(entry.word)).sort((a, b) => b.word.length - a.word.length || b.points - a.points).slice(0, 5);
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        <span className="text-primary">{points} points × 2 = {scoreWordHunt(points)}</span> · {mine.length} words
+        {mine.length} words
       </p>
 
       {mine.length > 0 && (

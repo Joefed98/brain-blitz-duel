@@ -35,3 +35,4 @@
 - Memory stays out of room settings/draws; practice uses allTypesInCategory to retain its games.
 - Retire types via RETIRED_TYPES; why: room draws filter it, practice does not.
 - Logic grids use container sizing; Shikaku/Light Up prove uniqueness. Flood draws a private bank built by retrying exact in-band par proofs; no fallback.
+- The answer reveal shows only the server-stored round score (AnswerReveal's StoredScore, "Scoring…" until it lands); puzzle Reveals must never compute or print a score; scripts/reveal-score-check.tsx guards this. Why: local maths drifted from server scoring.

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { lwDecode, lwGrade, lwSlotCells, scoreLetterWheel } from "@/lib/duel/letterWheel";
+import { lwDecode, lwGrade, lwSlotCells } from "@/lib/duel/letterWheel";
 import { useStageState } from "@/lib/duel/stageState";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData, type LetterWheelSlot } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -323,7 +323,6 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
   const missed = new Map([...all].filter(([c]) => !mine.has(c)));
   const complete = v.totalCells > 0 && v.cells >= v.totalCells;
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
-  const score = scoreLetterWheel(v.slots.length, puzzle.slots.length, myMsRemaining ?? 0, timeLimitMs);
   const px = Math.floor(200 / Math.max(puzzle.cols, puzzle.rows));
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -334,9 +333,6 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
         {complete
           ? `${words.length} / ${words.length} · ${(elapsed / 1000).toFixed(1)}s`
           : `${v.slots.length} / ${words.length} words`}
-      </p>
-      <p className="text-center font-mono text-xs text-muted-foreground">
-        {complete ? "130 + speed" : `${v.slots.length} × ${words.length === 8 ? 15 : 13}`} = <span className="text-primary">{score}</span>
       </p>
     </div>
   );

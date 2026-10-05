@@ -102,7 +102,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 }
 
 export function burstLine(r: { wave: number; score: number; hits: number; livesLost: number }): string {
-  return `Wave ${Math.max(1, r.wave)} · ${r.hits} popped · ${r.livesLost} ${r.livesLost === 1 ? "life" : "lives"} lost · ${r.score}`;
+  return `Wave ${Math.max(1, r.wave)} · ${r.hits} popped · ${r.livesLost} ${r.livesLost === 1 ? "life" : "lives"} lost`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

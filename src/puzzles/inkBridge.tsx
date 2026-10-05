@@ -103,7 +103,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 }
 
 export function inkBridgeLine(r: { levels: number; total: number; score: number }): string {
-  return r.levels >= r.total ? `All ${r.total} · ${r.score}` : `Level ${r.levels} · ${r.score} points`;
+  return r.levels >= r.total ? `All ${r.total} levels` : `Level ${r.levels}`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

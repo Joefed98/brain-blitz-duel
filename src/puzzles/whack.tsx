@@ -265,7 +265,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         Hits {result.hits} / {result.totalTargets} · Wrong {result.wrong}
       </p>
       <p className="text-center text-base text-muted-foreground">Same targets for everyone</p>
-      <p className="font-mono text-base text-primary">{result.score} points</p>
     </div>
   );
 }
