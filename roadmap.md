@@ -1,3 +1,9 @@
+## Bullseye, Cross and Flip tuning
+- [ ] Update Bullseye values, labels/example and score wording without geometry, wind or sway changes.
+- [ ] Update Cross score, shared total-lane counter, intro/help and stored reveal breakdown/tiles; remove clean bonus.
+- [ ] Align Flip hazards to the gold track curve without changing physics if possible.
+- [ ] Run only requested identity proofs and focused checks; report demo re-recording, no browser tests.
+
 ## Laser and Mirrors rework
 - [x] Set 60 seconds, seven/eight mirrors and one movable oriented splitter; separate inventory limits and shared tracing enforce placement/orientation in play and server grading. Three-shot scoring unchanged; legacy stored rounds remain readable.
 - [x] 200 seeded layouts passed independent exact-piece tracing, every proper witness subset, terminal-edge splitter necessity and server grading. 1,000 fresh draws measured 1.55–26.07ms, median 4.62ms, p95 10.83ms; fixed intro cold draw 35.35ms. Below one second, so no precomputed bank needed. Subset proof is for the stored solution, not a global minimum-mirror search.
