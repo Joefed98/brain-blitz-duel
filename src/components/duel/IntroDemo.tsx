@@ -9,6 +9,8 @@ import { getIntroDemoFn } from "@/lib/duel/introDemo.functions";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
 
 const RING_TICKS = 18; // 300 ms at 60 ticks a second
+// Display-only switch for the white touch rings in demo playback.
+const DEMO_SHOW_TOUCHES = false;
 
 /** True when this type has an engine renderer, so its intro shows a demo. */
 export function hasIntroDemo(type: PuzzleType): boolean {
