@@ -644,8 +644,6 @@ const tileGridSummary: SummaryBuilder = (result) => {
 };
 
 const wordSlideSummary: SummaryBuilder = (result, puzzle) => {
-  const moves = Number(result.extra?.["moves"] ?? 0);
-  const par = Number(result.extra?.["par"] ?? (puzzle.type === "wordslide" ? puzzle.par : 0));
   const rows = Number(result.extra?.["rows"] ?? result.correct_count ?? 0);
   return {
     summary: result.is_correct
