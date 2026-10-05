@@ -15,6 +15,7 @@ import {
   practiceGenerateFn,
   practiceGradeFn,
 } from "@/lib/duel/practice.functions";
+import { SaveDemoButton } from "@/components/duel/SaveDemoButton";
 import {
   PUZZLE_REGISTRY,
   RETIRED_PUZZLE_TYPES,
@@ -299,6 +300,7 @@ function PracticeScreen() {
           startedAt={startedAt}
           now={now}
         />
+        <SaveDemoButton puzzle={graded.puzzle} sealed={sealed} answer={graded.answer} />
       </PhoneShell>
     );
   }

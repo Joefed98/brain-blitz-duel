@@ -6,6 +6,7 @@ import type { PuzzleData } from "@/lib/duel/types";
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
 import { PuzzleInstructions } from "./PuzzleInstructions";
+import { hasIntroDemo, IntroDemo } from "./IntroDemo";
 
 interface RoundIntroProps {
   round: number;
@@ -82,10 +83,23 @@ export function RoundIntro({
       ) : (
         <>
           <div className="round-intro-content flex min-h-0 flex-1 flex-col items-center justify-start gap-2 overflow-y-auto overscroll-contain py-1">
-            <PuzzleInstructions type={type} />
-            <div className="round-intro-example">
-              <Example />
-            </div>
+            {hasIntroDemo(type) ? (
+              <PuzzleInstructions
+                type={type}
+                beforeScore={
+                  <div className="flex justify-center">
+                    <IntroDemo type={type} puzzle={puzzle} />
+                  </div>
+                }
+              />
+            ) : (
+              <>
+                <PuzzleInstructions type={type} />
+                <div className="round-intro-example">
+                  <Example />
+                </div>
+              </>
+            )}
             {introLine ? (
               <p className="font-mono text-sm font-bold uppercase tracking-widest text-primary">
                 {introLine}

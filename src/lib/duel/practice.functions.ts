@@ -173,3 +173,41 @@ export const practiceCheckGroupFn = createServerFn({ method: "POST" })
       theme: puzzle.groups?.[groupIndex]?.theme ?? "Group",
     };
   });
+
+/**
+ * Dev-only save (?dev=1 practice reveal). The run must belong to a puzzle this
+ * server issued (the sealed practice half), and only the public half is kept.
+ */
+export const saveIntroDemoFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: { puzzle: PuzzleData; sealed: string; answer: string; dev: boolean }) => input,
+  )
+  .handler(async ({ data }) => {
+    if (data.dev !== true) throw new Error("Demo saving is only available in dev practice.");
+    const { ARCADE_REVEAL_RENDERERS } = await import("@/lib/arcade/revealRenderers");
+    const { DEMO_LENGTH_TICKS, DEMO_MAX_CHARS, DEMO_START_TICK, runSeed } = await import(
+      "@/lib/arcade/introDemo"
+    );
+    const type = String(data.puzzle?.type ?? "");
+    if (!ARCADE_REVEAL_RENDERERS[type]) throw new Error("Only engine games have intro demos.");
+    const run = String(data.answer ?? "");
+    if (!run || run.length > DEMO_MAX_CHARS) throw new Error("Run log is empty or too long.");
+    const priv = await unseal(String(data.sealed ?? ""));
+    if (priv["type"] !== type) throw new Error("Bad practice puzzle.");
+    const { pub } = splitPuzzle(mergePuzzle(data.puzzle, priv));
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("intro_demos" as never).upsert(
+      {
+        game_type: type,
+        seed: runSeed(run),
+        puzzle: pub,
+        input_log: { run },
+        start_tick: DEMO_START_TICK,
+        length_ticks: DEMO_LENGTH_TICKS,
+        recorded_at: new Date().toISOString(),
+      } as never,
+      { onConflict: "game_type" },
+    );
+    if (error) throw new Error("Could not save the demo.");
+    return { ok: true };
+  });
