@@ -13,7 +13,7 @@
 - Trail uses shared sequential tap/last-player undo helpers and contiguous legal drag prefixes while retaining numbered-slot decoding for old answers; why: mixed gestures must share one sequence without changing independent tile grading.
 - Chain stores a seeded cycle per board and uses chainCycleAt/chainRequiredAt in display and replay, falling back to the legacy single cycle; why: reshuffles must change rules identically for all players without invalidating old results.
 - Renderer-only tuning uses *.renderer.ts helpers for play/reveal/demo; why: never modify sims or inputs.
-- Cross uses crossTotalLanes for scoring and replay result counters; Flip borders and hazard rims share flipSurfaceLine in its renderer helper. Why: stored breakdowns and curve artwork must follow their authoritative progress/offsets.
+- Cross counters use crossTotalLanes; Flip curves use flipSurfaceLine with exterior-only decoration and silhouette/runner-box clips; why: scores and art must follow authoritative geometry.
 - Gameplay holds run inside the shared simulation and HUDs read their derived hold state; why: inputs, timeouts and replay must stay synchronized without pausing the client clock.
 - Player-selected arcade checkpoints use validated recorded inputs and retained selection counters, with HUD availability derived from sim state; why: the server replay must enforce one-use selection and preserve result facts.
 - Arcade bend ramps use shared integer control points and integrated phase rather than resetting oscillators; why: sim, play rendering and saved-run rendering must agree without discontinuities.

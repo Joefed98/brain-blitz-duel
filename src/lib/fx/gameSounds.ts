@@ -89,13 +89,15 @@ export function crossSounds(): GameSounds<CrossState> {
 export function flipSounds(): GameSounds<FlipState> {
   let prev: FlipState | null = null;
   return {
-    frame(state) {
+    frame(state, running) {
+      if (running) ensureLoop("arc_lava_hiss", HISS_VOLUME);
+      else stopLoop("arc_lava_hiss");
       if (prev && state.tick > prev.tick) {
         if (state.ended === 2 && prev.ended !== 2) playSound("arc_crash");
         else if (state.flipT > prev.flipT) playSound("arc_swoosh", 0.7);
       }
       prev = state;
     },
-    stop: () => {},
+    stop: () => stopLoop("arc_lava_hiss"),
   };
 }
