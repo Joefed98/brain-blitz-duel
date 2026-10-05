@@ -1,4 +1,5 @@
 # Puzzle rules
+- Trail answers are numbered cell slots with -1 for empty slots and legacy drag paths remain readable; shared independent correct-tile counting drives grading and reveal facts. Why: tray placement can be out of order without changing the bank or completion rules.
 - Tile Grid is tap-only: rack tile, then empty cell; placed tile, then empty cell or rack.
 - Sum Hunt uses deterministic 4×4 stage boards with 1–3 orthogonal target paths of 3–6 cells; server replay regenerates them.
 - Balance placement uses only fixed, non-tilting distance buttons; their peg indices feed the existing server-validated placement encoding.

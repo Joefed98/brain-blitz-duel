@@ -44,7 +44,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   equation: "Solve the three equations for 30, 40 and 50 points. Solve all three for a bonus for finishing fast.",
   balance: "Balance the three scales for 20, 40 and 60 points. Balance all three: 120 points, plus up to 30 more for finishing fast.",
   numpyramid: "Each finished pyramid scores 30, and all four earn up to 30 more for finishing fast. The pyramid you're on scores for the bricks you've got right.",
-  trail: standard("Complete the path", "5 points for each tile you placed correctly"),
+  trail: standard("Complete the path", "5 for each tile in the right place") + " Wrong tiles cost nothing.",
   tendrop: "13 points for each target you hit. Clear all ten for up to 20 more for clearing them early.",
   numseq: "Twenty points for each sequence. Get all five right for a speed bonus.",
   chaincalc: "Get it right quickly for the most points.",
