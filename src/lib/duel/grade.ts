@@ -1659,8 +1659,10 @@ export function gradeSubmission(
       const prefix = trCorrectPrefix(path, puzzle.solution ?? []);
       const complete = trComplete(puzzle.givens, path) && prefix === puzzle.givens.length;
       isCorrect = complete;
-      correctCount = prefix;
-      score = scoreTrail(complete, ms, timeLimitMs, prefix, puzzle.givens.length);
+      // Fixed tiles sit at their own step, so givens with step <= prefix are inside the matched prefix.
+      const givensInPrefix = puzzle.givens.filter((g) => g != null && g <= prefix).length;
+      correctCount = prefix - givensInPrefix;
+      score = scoreTrail(complete, ms, timeLimitMs, prefix, givensInPrefix);
       extraDetail = { complete, prefix, drawn: path.length };
       break;
     }
