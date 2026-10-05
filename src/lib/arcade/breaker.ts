@@ -92,7 +92,7 @@ export const BRK_TAP_PX = 10;
 /** Losing the last ball costs three seconds, not the run. */
 export const BRK_RELAUNCH_TICKS = 3 * TICKS_PER_SECOND;
 
-/** Par: every brick destroyed. 135 × destroyed ÷ 80, full clear + up to 15 for time. */
+/** 130 × destroyed ÷ 80; all 80 = 130 + round(20 × ticks left ÷ run). */
 export const BRK_BRICK_SCORE = 130;
 export function brkDestroyed(state: { bricks: number[] }): number {
   return state.bricks.reduce((n, left) => (left <= 0 ? n + 1 : n), 0);
