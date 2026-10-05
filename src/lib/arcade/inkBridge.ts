@@ -14,6 +14,7 @@
 
 import {
   clampInt,
+  finishScore,
   inputRange,
   isqrt,
   rngBelow,
@@ -872,11 +873,12 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
   return s;
 }
 
-/** Level n complete = 2 × n; all ten add round(40 × time left ÷ run); cap 150. */
+export const INK_LEVEL_POINTS = 11;
+
+/** 11 per level completed; all ten = 130 + round(20 × ticks left ÷ run). */
 export function inkScoreOf(levels: number, tick: number): number {
-  const bonus =
-    levels >= INK_LEVELS ? Math.round((40 * Math.max(0, INK_RUN_TICKS - tick)) / INK_RUN_TICKS) : 0;
-  return clampInt(levels * (levels + 1) + bonus, 0, 150);
+  if (levels >= INK_LEVELS) return finishScore(INK_RUN_TICKS, tick);
+  return clampInt(INK_LEVEL_POINTS * Math.max(0, levels), 0, 130);
 }
 
 function score(state: InkState): number {

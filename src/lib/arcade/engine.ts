@@ -47,6 +47,12 @@ export function parPoints(achieved: number, par: number): number {
   return Math.min(ARCADE_PAR_POINTS, Math.floor((2 * ARCADE_PAR_POINTS * a + p) / (2 * p)));
 }
 
+/** Finish-state arcade score: 130 + round(20 × (run ticks − finish tick) ÷ run ticks), 0…150. */
+export function finishScore(runTicks: number, finishTick: number): number {
+  const left = Math.max(0, Math.min(runTicks, runTicks - finishTick));
+  return clampInt(130 + Math.round((20 * left) / Math.max(1, runTicks)), 0, 150);
+}
+
 export function clampInt(value: number, low: number, high: number): number {
   return value < low ? low : value > high ? high : value;
 }

@@ -8,6 +8,7 @@
 
 import {
   clampInt,
+  finishScore,
   inputRange,
   rngBelow,
   TICKS_PER_SECOND,
@@ -437,13 +438,10 @@ function endAtTime(s: TiltState, tick: number): TiltState {
   return s;
 }
 
-/** 30 per maze; all four adds round(30 × ms left ÷ run length). */
+/** 30 per maze; all four = 130 + round(20 × ticks left ÷ run). */
 function score(state: TiltState): number {
-  const bonus =
-    state.mazes >= TILT_MAX_MAZES
-      ? Math.round((30 * Math.max(0, TILT_RUN_TICKS - state.endedTick)) / TILT_RUN_TICKS)
-      : 0;
-  return clampInt(MAZE_POINTS * state.mazes + bonus, 0, 150);
+  if (state.mazes >= TILT_MAX_MAZES) return finishScore(TILT_RUN_TICKS, state.endedTick);
+  return clampInt(MAZE_POINTS * state.mazes, 0, 130);
 }
 
 export function tiltExtra(s: TiltState) {

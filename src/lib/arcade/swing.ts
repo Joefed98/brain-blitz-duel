@@ -8,6 +8,7 @@
 
 import {
   clampInt,
+  finishScore,
   inputRange,
   rngBelow,
   TICKS_PER_SECOND,
@@ -373,12 +374,8 @@ export function swingMetres(s: SwingState): number {
 
 function score(state: SwingState): number {
   const m = Math.min(SWING_FINISH_M, swingMetres(state));
-  let points = Math.round((140 * m) / SWING_FINISH_M);
-  if (m >= SWING_FINISH_M) {
-    const msLeft = Math.max(0, SWING_RUN_TICKS - state.endedTick) * (1000 / TICKS_PER_SECOND);
-    points += Math.round((10 * msLeft) / (SWING_RUN_TICKS * (1000 / TICKS_PER_SECOND)));
-  }
-  return clampInt(points, 0, 150);
+  if (m >= SWING_FINISH_M) return finishScore(SWING_RUN_TICKS, state.endedTick);
+  return clampInt(Math.round((130 * m) / SWING_FINISH_M), 0, 130);
 }
 
 export function swingExtra(s: SwingState) {
