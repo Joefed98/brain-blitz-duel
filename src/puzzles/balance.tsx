@@ -272,11 +272,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   );
 }
 
-function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "balance") return null;
   const placements = decodeBalance(myAnswer ?? "", puzzle.scales);
   const solved = balanceSolvedCount(puzzle.scales, placements);
-  const elapsed = myMsRemaining === undefined ? null : ((BAL_TIME_MS - myMsRemaining) / 1000).toFixed(1);
+  const elapsed = myMsRemaining === undefined ? null : ((timeLimitMs - myMsRemaining) / 1000).toFixed(1);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-6 overflow-y-auto py-1">
       {puzzle.scales.map((scale, s) => {

@@ -293,11 +293,11 @@ function Stage({
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "rings") return null;
   const replay = replayRings(puzzle.segments, puzzle.pattern, decodeRingTaps(myAnswer ?? ""));
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((RINGS_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   const min = puzzle.minMoves ?? 0;
   const solvedOffsets = replay.solved
     ? replay.offsets
@@ -321,7 +321,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
         {replay.solved
-          ? solvedMovesText(replay.moves, min, myMsRemaining, RINGS_TIME_MS)
+          ? solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs)
           : `${replay.aligned} / ${RINGS_SEGMENTS} spokes`}
       </p>
        {!replay.solved && <p className="font-mono text-base text-muted-foreground">{replay.moves} moves · min {min}</p>}

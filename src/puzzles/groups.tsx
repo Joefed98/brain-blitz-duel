@@ -185,7 +185,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkGroup }: PuzzleSt
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "groups" || !puzzle.groups) return null;
   const foundCount = new Set(
     (myAnswer ?? "")
@@ -207,7 +207,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       .filter((index) => index >= 0),
   ).size;
   const label = foundCount === 4 ? "All four groups" : `${foundCount} / 4 groups`;
-  const elapsed = ((GROUPS_TIME_MS - Math.max(0, myMsRemaining ?? 0)) / 1000).toFixed(1);
+  const elapsed = ((timeLimitMs - Math.max(0, myMsRemaining ?? 0)) / 1000).toFixed(1);
   return (
     <div className="flex w-full flex-col items-center gap-2">
       {puzzle.groups.map((group, index) => (

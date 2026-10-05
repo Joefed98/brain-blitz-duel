@@ -339,7 +339,7 @@ function Stage({
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "bomb") return null;
   const required = decodeBombActions(puzzle.required ?? puzzle.sequence ?? "");
   const constraints = decodeBombConstraints(puzzle.constraints ?? "");
@@ -347,7 +347,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   const mine = decodeBombActions(myAnswer ?? "");
   const replay = checkBombPlan(required, constraints, mine);
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((BOMB_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
     <div className="flex w-full flex-col items-center gap-2">

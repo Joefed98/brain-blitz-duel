@@ -265,11 +265,11 @@ function Stage({
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "stroke") return null;
   const replay = replayStroke(puzzle.edges, decodeStrokeAttempts(myAnswer ?? ""));
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((STROKE_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   // Number the edges along one valid route so the figure reads as a single line.
   const numbers = new Map<number, number>();
   const route = puzzle.solution ?? [];

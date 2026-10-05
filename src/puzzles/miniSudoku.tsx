@@ -240,7 +240,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "sudoku") return null;
   const solution = puzzle.solution ?? puzzle.givens;
   const mine = decodeSudoku(myAnswer ?? "");
@@ -261,7 +261,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
     tones[cell] === "wrong" ? (mine[cell] ?? value) : value,
   );
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((SUDOKU_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
     <div className="flex w-full flex-col items-center gap-3">

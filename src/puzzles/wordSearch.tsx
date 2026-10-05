@@ -162,7 +162,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   );
 }
 
-function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   const [dev, setDev] = useState(false);
   useEffect(() => setDev(devDiagnosticsOn()), []);
   if (puzzle.type !== "wordsearch") return null;
@@ -172,7 +172,7 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   const gold = new Set(verdict.found.flatMap((i) => placements[i]?.cells ?? []));
   const missed = new Set(placements.flatMap((p, i) => (foundSet.has(i) ? [] : p.cells)));
   const all = verdict.found.length === placements.length && placements.length > 0;
-  const elapsed = Math.max(0, WORDSEARCH_TIME_MS - (myMsRemaining ?? 0));
+  const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <div style={{ width: 210, containerType: "inline-size" }}>

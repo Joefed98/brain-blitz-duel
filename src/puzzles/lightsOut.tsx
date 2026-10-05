@@ -167,7 +167,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "lightsout") return null;
   const solution = puzzle.solution ?? [];
   const numbers: Record<number, number> = {};
@@ -188,7 +188,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       </p>
       {myCorrect ? (
         <p className="font-mono text-base text-primary">
-          {solvedMovesText(mine, min, myMsRemaining, LIGHTS_TIME_MS)}
+          {solvedMovesText(mine, min, myMsRemaining, timeLimitMs)}
         </p>
       ) : null}
     </div>

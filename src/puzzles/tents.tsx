@@ -198,7 +198,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "tents") return null;
   const cells = puzzle.size * puzzle.size;
   const solution = new Set(puzzle.solution ?? []);
@@ -212,7 +212,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   const correct = mine.filter((cell) => solution.has(cell)).length;
   const wrong = mine.length - correct;
   const trees = puzzle.trees.length;
-  const points = scoreTents(myCorrect, myMsRemaining ?? 0, TENTS_TIME_MS, correct, wrong, trees);
+  const points = scoreTents(myCorrect, myMsRemaining ?? 0, timeLimitMs, correct, wrong, trees);
 
   return (
     <div className="flex w-full flex-col items-center gap-3">

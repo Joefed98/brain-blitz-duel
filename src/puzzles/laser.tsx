@@ -668,7 +668,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   const isLaser = puzzle.type === "laser";
   if (!isLaser) return null;
   const solution = puzzle.solution ?? [];
@@ -694,7 +694,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
     puzzle.directionalGems,
   );
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((LASER_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   const ordinal = mine.fires === 1 ? "1st" : mine.fires === 2 ? "2nd" : "3rd";
   const total = puzzle.gems.length;
   const result = myCorrect

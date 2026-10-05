@@ -213,7 +213,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "pipes") return null;
   const solved: PipeTile[] = puzzle.tiles.map((tile, index) => ({
     sides: puzzle.solution?.[index] ?? tileOpenings(tile),
@@ -221,7 +221,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   const mine = decodeSides(puzzle.tiles, myAnswer ?? encodeSides(puzzle.tiles));
   const mineState = pipesState(mine, puzzle.source);
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((PIPES_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
@@ -256,7 +256,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
           : `✗ ${mineState.connected.size} / ${PIPES_CELLS} connected`}
       </p>
       <p className="font-mono text-base text-muted-foreground">
-        {scorePipes(Boolean(myCorrect), mineState.connected.size, myMsRemaining ?? 0)} points
+        {scorePipes(Boolean(myCorrect), mineState.connected.size, myMsRemaining ?? 0, timeLimitMs)} points
       </p>
     </div>
   );

@@ -313,7 +313,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   );
 }
 
-function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "letterwheel") return null;
   const words = puzzle.words ?? [];
   const v = lwGrade(words, puzzle.slots, puzzle.cols, lwDecode(myAnswer ?? ""));
@@ -322,8 +322,8 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   const all = letterMap(puzzle.cols, puzzle.slots, words);
   const missed = new Map([...all].filter(([c]) => !mine.has(c)));
   const complete = v.totalCells > 0 && v.cells >= v.totalCells;
-  const elapsed = Math.max(0, LETTERWHEEL_TIME_MS - (myMsRemaining ?? 0));
-  const score = scoreLetterWheel(v.slots.length, puzzle.slots.length, myMsRemaining ?? 0, LETTERWHEEL_TIME_MS);
+  const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
+  const score = scoreLetterWheel(v.slots.length, puzzle.slots.length, myMsRemaining ?? 0, timeLimitMs);
   const px = Math.floor(200 / Math.max(puzzle.cols, puzzle.rows));
   return (
     <div className="flex w-full flex-col items-center gap-2">

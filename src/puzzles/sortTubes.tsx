@@ -209,10 +209,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "tubes") return null;
   const mine = replayTubes(puzzle.tubes, decodeTubeMoves(myAnswer ?? ""));
-  const limit = TUBES_TIME_MS;
+  const limit = timeLimitMs;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
 

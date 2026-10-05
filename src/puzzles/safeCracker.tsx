@@ -182,13 +182,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "safe") return null;
   const combination = puzzle.combination ?? new Array(SAFE_DIALS).fill(0);
   const tries = decodeSafeTries(myAnswer ?? "");
   const last = tries[tries.length - 1] ?? null;
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((SAFE_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
     <div className="flex w-full flex-col items-center gap-3">

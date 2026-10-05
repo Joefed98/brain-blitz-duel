@@ -64,7 +64,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   const solution = decodeMoves(puzzle.type === "unblock" ? (puzzle.solution ?? "") : "");
   const [step, setStep] = useState(0);
 
@@ -117,7 +117,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
       </p>
       {myCorrect ? (
         <p className="font-mono text-base text-primary">
-          {solvedMovesText(mine, min, myMsRemaining, UNBLOCK_TIME_MS)}
+          {solvedMovesText(mine, min, myMsRemaining, timeLimitMs)}
         </p>
       ) : null}
     </div>
