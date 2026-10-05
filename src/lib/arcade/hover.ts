@@ -56,8 +56,7 @@ export const HOVER_GAP_MARGIN = 10_240;
 export const HOVER_WORLD_BOTTOM = 143_360;
 
 /** Score is the fraction of reachable gates passed, scaled to this maximum. */
-export const HOVER_GATE_POINTS = 2;
-export const HOVER_ALL_GATES_SCORE = 100;
+export const HOVER_ALL_GATES_SCORE = 150;
 
 /* ================================ State ================================ */
 

@@ -364,13 +364,12 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
 }
 
 /**
- * A perfect 100 scores 150; otherwise 146 − 3 per point short of 100, min 0.
+ * round(1.5 × arrow total), 0…150.
  * Arrows still unfired when the clock ends add nothing.
  */
 export function bullseyeScoreFor(total: number): number {
   const points = clampInt(total, 0, BULLSEYE_ARROWS * 10);
-  const earned = points >= 100 ? 150 : 146 - 3 * (100 - points);
-  return clampInt(earned, 0, 150);
+  return clampInt(Math.round(1.5 * points), 0, 150);
 }
 
 function score(state: BullseyeState): number {

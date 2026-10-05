@@ -9,6 +9,7 @@
 
 import {
   clampInt,
+  finishScore,
   inputRange,
   rngBelow,
   setLength,
@@ -58,8 +59,7 @@ export const BUB_DESCEND_EVERY = 8;
 export const BUB_MIN_GROUP = 3;
 
 /** Par: popped + 2 x dropped = 90. */
-/** Cleared = 150; otherwise 150 − 3 per bubble left on the field. */
-export const BUB_REMAINING_PENALTY = 3;
+/** Cleared = 130 + round(20 × ticks left ÷ run); otherwise round(130 × bubbles removed ÷ bubbles at start), 0…130. */
 
 export const BUB_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BUB_INPUT_SHOT, [-BUB_V_MAX, BUB_V_MAX], [-BUB_V_MAX, 0]),
@@ -100,6 +100,8 @@ export interface BubState {
   cleared: boolean;
   dead: boolean;
   endedTick: number;
+  /** Bubbles on the field at the start of the run. */
+  startCount: number;
 }
 
 function cellIndex(row: number, col: number): number {
@@ -146,6 +148,7 @@ function init(seed: number): BubState {
     cleared: false,
     dead: false,
     endedTick: 0,
+    startCount: grid.filter((cell) => cell !== 0).length,
   };
 }
 
@@ -389,8 +392,9 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
 }
 
 function score(state: BubState): number {
-  if (state.cleared) return 150;
-  return clampInt(150 - BUB_REMAINING_PENALTY * bubRemaining(state), 0, 150);
+  if (state.cleared) return finishScore(BUB_RUN_TICKS, state.endedTick);
+  const start = Math.max(1, state.startCount);
+  return clampInt(Math.round((130 * (start - bubRemaining(state))) / start), 0, 130);
 }
 
 /** Bubbles still on the field. */

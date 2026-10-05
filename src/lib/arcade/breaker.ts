@@ -11,6 +11,7 @@
 
 import {
   clampInt,
+  finishScore,
   inputRange,
   isqrt,
   px,
@@ -91,10 +92,8 @@ export const BRK_TAP_PX = 10;
 /** Losing the last ball costs three seconds, not the run. */
 export const BRK_RELAUNCH_TICKS = 3 * TICKS_PER_SECOND;
 
-/** Par: every brick destroyed. 135 × destroyed ÷ 80, full clear + up to 15 for time. */
-export const BRK_PAR = BRK_BRICKS;
-export const BRK_BRICK_SCORE = 135;
-export const BRK_TIME_BONUS = 15;
+/** 130 × destroyed ÷ 80; all 80 = 130 + round(20 × ticks left ÷ run). */
+export const BRK_BRICK_SCORE = 130;
 export function brkDestroyed(state: { bricks: number[] }): number {
   return state.bricks.reduce((n, left) => (left <= 0 ? n + 1 : n), 0);
 }
@@ -506,13 +505,8 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
 
 function score(state: BrkState): number {
   const destroyed = brkDestroyed(state);
-  let points = Math.round((BRK_BRICK_SCORE * destroyed) / BRK_BRICKS);
-  if (destroyed >= BRK_BRICKS) {
-    // ms remaining ÷ 90,000 ms, worked in ticks so it stays an exact integer ratio.
-    const remaining = Math.max(0, BRK_RUN_TICKS - state.endedTick);
-    points += Math.round((BRK_TIME_BONUS * remaining) / BRK_RUN_TICKS);
-  }
-  return clampInt(points, 0, 150);
+  if (destroyed >= BRK_BRICKS) return finishScore(BRK_RUN_TICKS, state.endedTick);
+  return clampInt(Math.round((BRK_BRICK_SCORE * destroyed) / BRK_BRICKS), 0, 130);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -700,7 +694,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  ctx.fillText(`Bricks ${brkDestroyed(state)} / ${BRK_PAR}`, 14, 14);
+  ctx.fillText(`Bricks ${brkDestroyed(state)} / ${BRK_BRICKS}`, 14, 14);
   ctx.textAlign = "right";
 
   if (state.pause > 0) {

@@ -12,6 +12,7 @@
 
 import {
   clampInt,
+  finishScore,
   inputRange,
   isqrt,
   rngBelow,
@@ -526,9 +527,9 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
 }
 
 function score(state: OrbitState): number {
-  // 3 per furthest planet passed (captured or skipped) + round(30 × ms left ÷ 90000) for finishing.
-  const bonus = state.finished ? Math.round((30 * Math.max(0, ORBIT_RUN_TICKS - state.tick)) / ORBIT_RUN_TICKS) : 0;
-  return clampInt(3 * state.best + bonus, 0, 150);
+  // 3 per furthest planet passed; reaching the sun = 130 + round(20 × ticks left ÷ run).
+  if (state.finished) return finishScore(ORBIT_RUN_TICKS, state.endedTick);
+  return clampInt(3 * state.best, 0, 130);
 }
 
 export function orbitExtra(s: OrbitState) {

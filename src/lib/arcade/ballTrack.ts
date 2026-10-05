@@ -4,7 +4,7 @@
  * to the next row (or the tray in the fixed bottom row). Balls drop every 2 s. The server replays the tap log.
  */
 
-import { inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
+import { finishScore, inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 
 /* ================================ Config ================================ */
 
@@ -204,16 +204,16 @@ export function btOver(s: BtState): boolean {
   return s.tick >= BT_RUN_TICKS || (s.next >= BT_BALLS && s.balls.length === 0);
 }
 
-/** Speed bonus on a perfect run: min(30, round(1.5 × seconds left when the last ball lands)). */
+/** Perfect-run speed bonus: round(20 × (run ticks − last landing) ÷ run ticks). */
 export function btSpeedBonus(home: number, lastLand: number): number {
   if (home !== BT_BALLS) return 0;
-  return Math.min(30, Math.round((1.5 * (BT_RUN_TICKS - lastLand)) / 60));
+  return finishScore(BT_RUN_TICKS, lastLand) - 130;
 }
 
-/** round(120 × home ÷ ball count) + perfect-run speed bonus, 0–150; wrong trays score 0 like lost balls. */
+/** round(120 × home ÷ ball count); 25/25 = 130 + speed bonus; wrong trays score 0 like lost balls. */
 export function btScoreOf(home: number, _wrong: number, lastLand = BT_RUN_TICKS): number {
-  const base = Math.round((120 * home) / BT_BALLS);
-  return Math.max(0, Math.min(150, base + btSpeedBonus(home, lastLand)));
+  if (home >= BT_BALLS) return finishScore(BT_RUN_TICKS, lastLand);
+  return Math.max(0, Math.min(130, Math.round((120 * home) / BT_BALLS)));
 }
 
 export function btScore(s: BtState): number {

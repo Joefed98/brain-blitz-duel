@@ -496,7 +496,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hit anything", detail: "and the run ends." },
       { action: "Everyone flies", detail: "the same course for sixty seconds." },
     ],
-    score: "Gates passed ÷ total gates × 100.",
+    score: "150 × gates passed ÷ total gates.",
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",
@@ -527,7 +527,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The bin moves", detail: "further away every throw, and gets narrower from throw 4." },
       { action: "From throw 7 the bin slides", detail: "side to side — time your release." },
     ],
-    score: "10 per basket; all ten add the whole seconds left on the clock.",
+    score: "10 per basket; all ten = 130 + up to 20 for time left.",
   },
   bullseye: {
     goal: "Hit the centre — ten arrows.",
@@ -545,7 +545,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "From the fourth arrow the target moves — lead it.", detail: "It is scored where it is when the arrow lands." },
       { action: "From the seventh arrow the ring values swap places.", detail: "Read the numbers — each value keeps its colour." },
     ],
-    score: "100 = 150; otherwise 146 − 3 per point short of 100. Unfired arrows score 0.",
+    score: "1.5 × your ring points, up to 150. Unfired arrows score 0.",
   },
   matchup: {
     goal: "Make lines of three or more matching symbols.",
@@ -600,7 +600,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Four starred power-up bricks drop a capsule", detail: "gold = laser, silver = ×5 balls, bronze = ×2 balls (works at once)." },
       { action: "Tap anywhere to fire", detail: "a laser or ×5 you've caught; any other touch moves the paddle." },
     ],
-    score: "135 × bricks destroyed ÷ 80; a full clear adds up to 15 for time left. Max 150.",
+    score: "130 × bricks destroyed ÷ 80; all 80 = 130 + up to 20 for time left.",
   },
   rally: {
     goal: "Keep the rally going.",
@@ -646,7 +646,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Bubbles left hanging", detail: "fall off the field." },
       { action: "Ninety seconds", detail: "on the same field for everyone." },
     ],
-    score: "Clear the field = 150; otherwise 150 − 3 per bubble left.",
+    score: "130 × share of starting bubbles cleared; clear the field = 130 + up to 20 for time left.",
   },
   beat: {
     goal: "Tap the notes in time.",
@@ -766,7 +766,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ink is limited", detail: "— more each level." },
       { action: "Three failed drops", detail: "and you're out." },
     ],
-    score: "2 points × the level number for each level; finish all ten fast for the bonus.",
+    score: "11 per level; all ten = 130 + up to 20 for time left.",
   },
   burst: {
     goal: "Pop every ball — big ones split into smaller ones.",
@@ -785,7 +785,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Miss and you drift away.", detail: "Avoid the red arcs." },
       { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops — never at the crossing." },
     ],
-    score: "3 per planet; reach the sun (planet 40) early for up to 30 time bonus. The planet you hold at 30 s is a checkpoint: one respawn there after a later crash.",
+    score: "3 per planet; reach the sun (planet 40) = 130 + up to 20 for time left. The planet you hold at 30 s is a checkpoint: one respawn there after a later crash.",
   },
   snip: {
     goal: "Feed the sweet to the mouth.",
@@ -803,7 +803,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Stuck? Keep swinging", detail: "— every pass gets you higher. Swipe up to shorten the rope for speed." },
       { action: "Don't touch the spikes", detail: "or fall to the floor." },
     ],
-    score: "Up to 140 for distance; reaching 500 m adds up to 10 for time left. Maximum 150.",
+    score: "130 × metres ÷ 500; reaching 500 m = 130 + up to 20 for time left.",
   },
   tilt: {
     goal: "Roll the ball out of the maze.",
@@ -812,7 +812,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Each escape brings a harder maze.", detail: "Red spikes end the run." },
       { action: "From maze 2 a red ball waits behind a silver gate.", detail: "Pass the padlock and it's free — it tilts with you. Touch it and the run ends." },
     ],
-    score: "Four mazes, 30 each. Finish all four for up to 30 more for time left. Maximum 150.",
+    score: "Four mazes, 30 each. All four = 130 + up to 20 for time left.",
   },
   hotfloor: {
     goal: "Plan a route to the exit before the floor falls.",
@@ -867,7 +867,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a gold tube to turn it into a drop", detail: "— the bottom row is fixed, so send each ball down early…" },
       { action: "…the track's bottom row re-lays and the trays swap colours mid-round", detail: "— watch for both." },
     ],
-    score: "Points per ball home; wrong trays score nothing.",
+    score: "120 × balls home ÷ 25; all 25 home = 130 + up to 20 for time left. Wrong trays score nothing.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",

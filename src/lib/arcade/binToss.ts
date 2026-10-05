@@ -10,6 +10,7 @@
 
 import {
   clampInt,
+  finishScore,
   dragLaunch,
   inputRange,
   px,
@@ -80,7 +81,6 @@ export const BINTOSS_DIST_STEP = 3_840;
 export const BINTOSS_BASKET_POINTS = 10;
 /** Par: ten baskets = 110. */
 export const BINTOSS_PAR = 10;
-export const BINTOSS_TIME_BONUS = 50;
 
 /** A release: a = launch vx, b = launch vy, both in 1/256 px a tick. */
 export const BINTOSS_INPUT_FLICK = 1;
@@ -471,13 +471,9 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
 
 function score(state: BinTossState): number {
   const baskets = clampInt(state.baskets, 0, BINTOSS_THROWS);
-  // 10 per basket; a perfect 10/10 adds the whole seconds left on the clock.
-  let points = BINTOSS_BASKET_POINTS * baskets;
-  if (baskets >= BINTOSS_THROWS) {
-    const remaining = Math.max(0, BINTOSS_RUN_TICKS - state.tick);
-    points += Math.floor(remaining / TICKS_PER_SECOND);
-  }
-  return clampInt(points, 0, 150);
+  // 10 per basket; a perfect 10/10 = 130 + round(20 × ticks left ÷ run).
+  if (baskets >= BINTOSS_THROWS) return finishScore(BINTOSS_RUN_TICKS, state.tick);
+  return clampInt(BINTOSS_BASKET_POINTS * baskets, 0, 130);
 }
 
 /* =========================== Integrity checks ========================== */
