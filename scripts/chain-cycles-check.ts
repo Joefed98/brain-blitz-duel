@@ -74,7 +74,11 @@ for (let seed = 0; seed < 200; seed++) {
     check(late.links === link - 1 && late.reason === "momentum", "Late tap accepted");
   }
   // Legacy single-cycle stored boards must retain global cycle phase.
-  const legacy: ChainPuzzleData = { type: "chain", cycle: puzzle.cycle, boards: Array.from({ length: CHAIN_BOARDS }, () => Array.from({ length: CHAIN_BLOCK }, (_, i) => ({ ...puzzle.cycle[i % CHAIN_CYCLE], x: i * 15, y: 50 }))) };
+  const legacy: ChainPuzzleData = { type: "chain", cycle: puzzle.cycle, boards: Array.from({ length: CHAIN_BOARDS }, (_, board) => Array.from({ length: CHAIN_BLOCK }, (_, i) => {
+    const face = puzzle.cycle[(board * CHAIN_BLOCK + i) % CHAIN_CYCLE];
+    if (!face) throw new Error("Missing legacy face");
+    return { ...face, x: i * 15, y: 50 };
+  })) };
   check(replayChain(legacy, { taps: solve(legacy), reason: "complete" }).links === 25, "Legacy replay changed");
 }
 check(JSON.stringify(CHAIN_FASTER_AT) === "[10,18]", "FASTER changed");
