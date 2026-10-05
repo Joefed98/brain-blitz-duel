@@ -48,14 +48,53 @@ export const FLIP_DECISION_OVERHANG = 1;
 export const FLIP_DECISION_PAIRED_SPIKES = 2;
 export const FLIP_DECISION_FALSE_GAP = 3;
 
-/** Path warp: starts at 20 s, amplitude ramps 0 → max over the next 20 s; period 2–3 s (seeded). */
+/** Shared-band bends: long sweeps until 45 s, then a continuous late-run ramp. */
 export const FLIP_WARP_FROM = 20 * TICKS_PER_SECOND;
-const WARP_RAMP = 20 * TICKS_PER_SECOND;
-const WARP_MAX = 145;
+const WARP_RAMP = 5 * TICKS_PER_SECOND;
 const WARP_PERIOD_MIN = 2 * TICKS_PER_SECOND;
 const WARP_PERIOD_SPAN = TICKS_PER_SECOND + 1;
-/** Spatial wavelength of the bend, px. */
-const WARP_WAVE = 260;
+const WARP_ANGLE = 65536;
+/** Integer control points; interpolate length/displacement/period, never reset phase.
+ * length is a complete spatial wave in world px; period is the fastest seeded
+ * complete direction cycle in ticks (the existing seed stretches it up to 1.5x).
+ */
+export const FLIP_BEND_TABLE = [
+  { tick: FLIP_WARP_FROM, length: 1560, displacement: 145, period: 720 },
+  { tick: 45 * TICKS_PER_SECOND, length: 1560, displacement: 145, period: 720 },
+  { tick: 50 * TICKS_PER_SECOND, length: 1040, displacement: 145, period: 360 },
+  { tick: 55 * TICKS_PER_SECOND, length: 520, displacement: 145, period: 180 },
+  { tick: FLIP_RUN_TICKS, length: 260, displacement: 145, period: WARP_PERIOD_MIN },
+] as const;
+
+export function flipBendAt(tick: number) {
+  const first = FLIP_BEND_TABLE[0];
+  let previous: { tick: number; length: number; displacement: number; period: number } = first;
+  for (const next of FLIP_BEND_TABLE.slice(1)) {
+    if (tick <= next.tick) {
+      const elapsed = Math.max(0, tick - previous.tick);
+      const duration = next.tick - previous.tick;
+      const interpolate = (a: number, b: number) => a + Math.trunc(((b - a) * elapsed) / duration);
+      return {
+        length: interpolate(previous.length, next.length),
+        displacement: interpolate(previous.displacement, next.displacement),
+        period: interpolate(previous.period, next.period),
+      };
+    }
+    previous = next;
+  }
+  return { length: previous.length, displacement: previous.displacement, period: previous.period };
+}
+
+/** Integrated fixed-point angle prevents phase jumps when the period changes. */
+const WARP_PHASE_AT: readonly number[] = (() => {
+  const out = [0];
+  let phase = 0;
+  for (let tick = 1; tick <= FLIP_RUN_TICKS; tick++) {
+    if (tick > FLIP_WARP_FROM) phase += Math.trunc((WARP_ANGLE * FP) / flipBendAt(tick).period);
+    out.push(phase);
+  }
+  return out;
+})();
 
 export const FLIP_INPUT_RANGES: readonly InputRange[] = [inputRange(FLIP_INPUT_TAP)];
 
@@ -284,7 +323,9 @@ export interface FlipState {
 
 export function flipWarpAmp(tick: number): number {
   if (tick <= FLIP_WARP_FROM) return 0;
-  return Math.trunc((WARP_MAX * Math.min(WARP_RAMP, tick - FLIP_WARP_FROM)) / WARP_RAMP);
+  // Smooth integer onset: zero slope at both ends, full displacement by 25 s.
+  const elapsed = Math.min(WARP_RAMP, tick - FLIP_WARP_FROM);
+  return Math.trunc((flipBendAt(tick).displacement * elapsed * elapsed * (3 * WARP_RAMP - 2 * elapsed)) / (WARP_RAMP * WARP_RAMP * WARP_RAMP));
 }
 
 /** Integer vertical offset (px) of one surface at world x (FP) on this tick. */
@@ -292,9 +333,11 @@ export function flipWarpAt(s: FlipState, _side: number, worldX: number, tick = s
   const amp = flipWarpAmp(tick);
   if (amp === 0) return 0;
   const base = s.warpFloor; // Both boundaries belong to one constant-width band.
-  const along = Math.trunc((Math.trunc((worldX - s.x) / FP) * 65536) / WARP_WAVE);
-  const time = Math.trunc(((tick - FLIP_WARP_FROM) * 65536) / s.warpPeriod);
-  return Math.trunc((amp * isin((base + along + time) & 65535)) / TRIG_ONE);
+  const bend = flipBendAt(tick);
+  const along = Math.trunc(((worldX - s.x) * WARP_ANGLE) / (FP * bend.length));
+  const phase = WARP_PHASE_AT[clampInt(tick, 0, FLIP_RUN_TICKS)] ?? 0;
+  const time = Math.trunc((phase * WARP_PERIOD_MIN) / (FP * s.warpPeriod));
+  return Math.trunc((amp * isin((base + along + time) & (WARP_ANGLE - 1))) / TRIG_ONE);
 }
 
 const cache = new Map<number, { segs: FlipSeg[]; rng: number }>();

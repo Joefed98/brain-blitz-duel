@@ -17,6 +17,7 @@
 - Cross uses integer half-column positions in both play and passability search; why: shorter swipes must retain the same reachability proof.
 - Cross course generation and its fallback use crossSpeedFor for later-crossing acceleration; why: proven traffic and played traffic must share one integer speed progression.
 - Ten Drop completion holds derive only from clearTick, cleared and stage, delaying stage advancement and gameplay inputs while tick advances; why: solved targets, timeouts and replay must agree without a client pause.
+- Flip interpolates its integer bend table and integrates phase across period changes, reusing the existing seeded period and shared boundary phase; why: slow sweeps and late acceleration must remain continuous and replay-identical with a constant gap.
 
 - ArcadeCanvasStage supports opt-in canvas-size rendering for Tilt; why: its circle must stay isotropic without changing other games or input coordinates.
 - Snip's horizontal camera is render-only and cut coordinates include its displayed offset; why: screen edges must not become physics walls or change server replay.
