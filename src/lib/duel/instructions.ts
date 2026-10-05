@@ -844,7 +844,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   trail: {
     goal: "Draw one path from 1 to 36 through every square.",
     how: [
-      { action: "Tap a tray tile, then an empty square; tap a placed tile to pick it up.", detail: "Or drag from the path end to a touching square, including diagonals." },
+      { action: "Tap an empty square touching the path end to place the next number.", detail: "Or drag from the end, including diagonals. Tap your last square to undo." },
       { action: "Ten dark numbers are fixed", detail: "- the path must reach each one at exactly that step. You fill the other 26." },
       { action: "Undo removes your last square; Reset clears your path.", detail: "Dragging back along the path also undoes. Fixed numbers stay." },
     ],

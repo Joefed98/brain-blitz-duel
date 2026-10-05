@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import { Button } from "@/components/ui/button";
-import { trCanStep, trComplete, trCorrectTiles, trDecode, trDragPath, trEncode, trPlaceTile, trSlots, TR_SIZE } from "@/lib/duel/trail";
+import { trCanStep, trComplete, trCorrectTiles, trDecode, trDragPath, trEncode, trTapPath, trUndoPlayer, trSlots, TR_SIZE } from "@/lib/duel/trail";
 import { useStageState } from "@/lib/duel/stageState";
 import { TRAIL_TIME_MS, type TrailPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -25,7 +25,6 @@ function Grid({
   cell,
   marks,
   shakeCell,
-  selected,
   endCell,
 }: {
   size: number;
@@ -35,7 +34,6 @@ function Grid({
   /** Reveal: solution cell at each numbered step. */
   marks?: readonly number[];
   shakeCell?: number | null;
-  selected?: number | null;
   endCell?: number | undefined;
 }) {
   const stepOf = new Map<number, number>();
@@ -84,7 +82,7 @@ function Grid({
               key={c}
               className={`relative flex items-center justify-center rounded-md font-mono font-bold ${cls} ${
                 c === end && marks === undefined ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""
-              } ${step === selected ? "ring-2 ring-primary" : ""} ${shakeCell === c ? "animate-shake" : ""}`}
+              } ${shakeCell === c ? "animate-shake" : ""}`}
               style={{ width: cell, height: cell, fontSize: cell * 0.4 }}
             >
               {g ?? step ?? ""}
@@ -121,8 +119,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const data: TrailPuzzleData | null = puzzle.type === "trail" ? puzzle : null;
   const startCell = data ? data.givens.indexOf(1) : 0;
   const [path, setPath] = useStageState<number[]>(stateKey ?? "trail", "trailPath", () => [startCell]);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [history, setHistory] = useStageState<number[][]>(stateKey ?? "trail", "trailEdits", () => []);
   const [shakeCell, setShakeCell] = useState<number | null>(null);
   const drawing = useRef(false);
   const press = useRef<{ cell: number; x: number; y: number; moved: boolean } | null>(null);
@@ -172,8 +168,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 
   if (!data) return null;
   const busy = locked || complete;
-  // 20px count + 116px tray + 44px controls + gaps; keep the 36px board minimum.
-  const fit = Math.min(space.w - 8, space.h - 216);
+  // Count, two gaps, top inset and 44px controls; no tray. Keep 36px squares.
+  const fit = Math.min(space.w - 8, space.h - 84);
   const cell = Math.max(36, Math.min(60, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
 
   const refuse = (c: number) => {
@@ -214,7 +210,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         if (end !== undefined && data.givens[end] == null) next[dragPath.length - 1] = -1;
         else { drawing.current = false; return; }
       }
-      setHistory([...history, [...path]]);
       setPath(next);
       lastRefused.current = null;
       buzz(4);
@@ -223,7 +218,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (trCanStep(data.givens, dragPath, c) && (!slots.includes(c) || slots[dragPath.length] === c)) {
       const next = path.length < data.givens.length ? [...dragPath, c] : [...slots];
       if (path.length === data.givens.length) next[dragPath.length] = c;
-      setHistory([...history, [...path]]);
       setPath(next);
       lastRefused.current = null;
       buzz(6);
@@ -254,45 +248,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     press.current = null;
     drawing.current = false;
     if (!p || p.moved || busy) return;
-    const c = p.cell;
-    if (data.givens[c] != null) return;
-    const index = slots.indexOf(c);
-    if (index >= 0) {
-      const next = [...slots];
-      next[index] = -1;
-      setHistory([...history, [...path]]);
-      setPath(next);
-      setSelected(index + 1);
-      buzz(4);
-    } else if (selected != null) {
-      const next = trPlaceTile(data.givens, slots, selected, c);
-      if (!next) return;
-      setHistory([...history, [...path]]);
-      setPath(next);
-      setSelected(null);
-      buzz(6);
-    }
+    const next = trTapPath(data.givens, path, p.cell);
+    if (!next) return;
+    setPath(next);
+    lastRefused.current = null;
+    buzz(next.length < trDragPath(data.givens, path).length ? 4 : 6);
   };
   const cancel = () => { drawing.current = false; press.current = null; };
 
   const undo = () => {
     if (busy) return;
-    const previous = history[history.length - 1];
-    if (previous) { setPath(previous); setHistory(history.slice(0, -1)); }
-    else {
-      const dragPath = trDragPath(data.givens, path);
-      if (dragPath.length <= 1) return;
-      setPath(dragPath.slice(0, -1));
-    }
-    setSelected(null);
+    setPath(trUndoPlayer(data.givens, path));
     lastRefused.current = null;
     buzz(4);
   };
   const reset = () => {
     if (busy) return;
     setPath([startCell]);
-    setHistory([]);
-    setSelected(null);
     lastRefused.current = null;
     buzz(6);
   };
@@ -317,21 +289,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         onPointerCancel={cancel}
         onPointerLeave={cancel}
       >
-        <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} shakeCell={shakeCell} selected={selected} endCell={trDragPath(data.givens, path).at(-1)} />
-      </div>
-      <div className="grid w-full shrink-0 grid-cols-9 gap-1" aria-label="Tile tray">
-        {data.givens.map((_, i) => i + 1).filter((tile) => !data.givens.includes(tile)).map((tile) => (
-          <Button key={tile} variant={selected === tile ? "default" : "outline"}
-            aria-label={`Tile ${tile}`} aria-pressed={selected === tile}
-            disabled={busy || (slots[tile - 1] ?? -1) >= 0}
-            className="h-9 min-w-9 p-0 font-mono font-bold"
-            onClick={() => setSelected(tile)}>{tile}</Button>
-        ))}
+        <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} shakeCell={shakeCell} endCell={trDragPath(data.givens, path).at(-1)} />
       </div>
       <div className="flex shrink-0 gap-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>
         <Button variant="outline"
           type="button"
-          disabled={busy || (!history.length && path.length <= 1)}
+          disabled={busy || slots.every((c, i) => c < 0 || data.givens.includes(i + 1))}
           onClick={undo}
           className="h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
@@ -339,7 +302,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         </Button>
         <Button variant="outline"
           type="button"
-          disabled={busy || (slots.every((c, i) => c < 0 || data.givens.includes(i + 1)) && selected == null)}
+          disabled={busy || slots.every((c, i) => c < 0 || data.givens.includes(i + 1))}
           onClick={reset}
           className="h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >

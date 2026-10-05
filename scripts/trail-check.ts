@@ -1,5 +1,5 @@
 import { TRAIL_BANK } from "../src/lib/duel/trailBank.server";
-import { scoreTrail, trComplete, trCountSolutions, trCorrectPrefix, trCorrectTiles, trDecode, trEncode, trSlots, trPlaceTile, trDragPath } from "../src/lib/duel/trail";
+import { scoreTrail, trComplete, trCountSolutions, trCorrectPrefix, trCorrectTiles, trDecode, trEncode, trSlots, trTapPath, trUndoPlayer, trCanStep, trDragPath } from "../src/lib/duel/trail";
 import { TRAIL_TIME_MS } from "../src/lib/duel/types";
 import { gradeSubmission } from "../src/lib/duel/grade";
 let bad = 0;
@@ -28,10 +28,44 @@ for (const e of TRAIL_BANK) {
   const empty = trSlots(e.givens, []);
   if (trCorrectTiles(e.givens, empty, e.solution) !== 0 || trComplete(e.givens, empty)) bad++;
   if (trEncode(trDecode(trEncode(empty))) !== trEncode(empty)) bad++;
-  const placed = trPlaceTile(e.givens, empty, late + 1, lateCell);
-  if (!placed || trCorrectTiles(e.givens, placed, e.solution) !== 1) bad++;
-  if (placed && trPlaceTile(e.givens, placed, early + 1, lateCell) !== null) bad++;
-  if (trPlaceTile(e.givens, empty, 1, earlyCell) !== null) bad++;
+   let tapped = e.solution.slice(0, 1);
+   for (const step of playerSteps) {
+     const cell = e.solution[step];
+     if (cell === undefined) throw new Error("Missing tap cell");
+     const next = trTapPath(e.givens, tapped, cell);
+     if (!next || trEncode(next) !== trEncode(e.solution.slice(0, next.length))) { bad++; break; }
+     const undone = trTapPath(e.givens, next, cell);
+     if (!undone || trEncode(undone) !== trEncode(trUndoPlayer(e.givens, next))) bad++;
+     if (undone && trEncode(trTapPath(e.givens, undone, cell) ?? []) !== trEncode(next)) bad++;
+     for (const fixed of e.solution.filter((c) => e.givens[c] != null)) {
+       if (trTapPath(e.givens, next, fixed) !== null) bad++;
+     }
+     for (const earlier of next.slice(0, step)) {
+       if (trTapPath(e.givens, next, earlier) !== null) bad++;
+     }
+     tapped = next;
+   }
+   if (!trComplete(e.givens, tapped)) bad++;
+   // Alternate real drag steps and taps, including fixed-number boundaries.
+   let mixed = e.solution.slice(0, 1);
+   while (mixed.length < 36) {
+     const cell = e.solution[mixed.length];
+     if (cell === undefined) throw new Error("Missing mixed cell");
+     if (mixed.length % 2 === 0 || e.givens[cell] != null) {
+       if (!trCanStep(e.givens, mixed, cell)) { bad++; break; }
+       mixed = [...mixed, cell];
+     } else {
+       const next = trTapPath(e.givens, mixed, cell);
+       if (!next) { bad++; break; }
+       mixed = next;
+     }
+   }
+   if (!trComplete(e.givens, mixed)) bad++;
+   for (let c = 0; c < 36; c++) {
+     if (!trCanStep(e.givens, e.solution.slice(0, early), c) && e.givens[c] == null) {
+       if (trTapPath(e.givens, e.solution.slice(0, early), c) !== null) bad++;
+     }
+   }
   if (trEncode(trDragPath(e.givens, e.solution)) !== trEncode(e.solution)) bad++;
   for (let length = 1; length <= 36; length++) {
     const partial = e.solution.slice(0, length);
