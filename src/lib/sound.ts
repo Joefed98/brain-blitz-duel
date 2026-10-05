@@ -337,7 +337,7 @@ export function demoHushed(): boolean {
 }
 
 /** Plays a one-shot effect. Retriggering a cue restarts it rather than stacking. */
-export function playSound(cue: SoundId, volume = 1, rate = 1): void {
+export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): void {
   if (demoHushed()) return;
   if (isMuted() || !ready() || !ctx || !effectsGain) return;
   const entry = SOUND_MANIFEST[cue];
@@ -345,7 +345,7 @@ export function playSound(cue: SoundId, volume = 1, rate = 1): void {
   const buffer = buffers.get(cue);
   duckMusic(buffer ? buffer.duration * 1000 : entry.ms);
   if (!buffer) { if (entry.frequency > 0) playTone(entry.frequency * rate, entry.ms, "sine", 0.18 * volume, undefined, entry.channel === "voice"); return; }
-  const previous = playingEffects.get(cue);
+  const previous = overlap ? undefined : playingEffects.get(cue);
   if (previous) {
     try {
       previous.stop();
@@ -363,7 +363,7 @@ export function playSound(cue: SoundId, volume = 1, rate = 1): void {
     source.onended = () => {
       if (playingEffects.get(cue) === source) playingEffects.delete(cue);
     };
-    playingEffects.set(cue, source);
+    if (!overlap) playingEffects.set(cue, source);
     source.start();
   } catch (error) {
     warnOnce("effect playback failed", error);

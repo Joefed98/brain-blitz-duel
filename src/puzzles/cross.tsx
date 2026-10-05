@@ -1,4 +1,6 @@
 import { arcadeFeedback } from "@/lib/fx/arcade";
+import { crossSounds } from "@/lib/fx/gameSounds";
+import { drawCrossArt } from "@/lib/arcade/cross.renderer";
 import { crossLine } from "@/lib/duel/crossLine";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
@@ -115,6 +117,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = crossSounds();
 
     const finish = () => {
       if (submitted.current) return;
@@ -155,10 +158,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, crossGame.isOver(state.current));
       feedback(state.current, crossGame.isOver(state.current));
+      sounds.frame(state.current, !crossGame.isOver(state.current));
 
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) crossGame.draw(context, state.current, size);
+      if (size && context) drawCrossArt(context, state.current, size);
 
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
