@@ -1,3 +1,4 @@
+import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -151,6 +152,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
+    const feedback = arcadeFeedback();
     let secondAt = last;
     let ticksThisSecond = 0;
 
@@ -204,6 +206,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       reportArcadeTick(state.current.tick, binTossGame.isOver(state.current));
+      feedback(state.current, binTossGame.isOver(state.current));
 
       const size = sizeCanvas();
       if (size) {
