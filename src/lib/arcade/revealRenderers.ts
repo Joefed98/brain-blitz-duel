@@ -8,7 +8,7 @@ import type { PuzzleData } from "@/lib/duel/types";
 
 import { hoverArtGame as hoverGame } from "./hover.renderer";
 import { skylineGame } from "./skyline";
-import { binTossGame } from "./binToss";
+import { binTossArtGame as binTossGame } from "./binTossArt.renderer";
 import { drawBullseye } from "./bullseye.renderer";
 import { matchupArtGame as matchupGame } from "./matchup.renderer";
 import { breakerArtGame as breakerGame } from "./breaker.renderer";

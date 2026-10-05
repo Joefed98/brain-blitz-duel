@@ -14,7 +14,7 @@ import {
 import {
   bullseyeCheckpoint,
   bullseyeDrag,
-  bullseyeDrawAim,
+
   bullseyeGame,
   bullseyeInit,
   bullseyeAimPoint,
@@ -35,7 +35,8 @@ import {
   type BullseyeState,
 } from "@/lib/arcade/bullseye";
 import { decodeBullseyeRun, encodeBullseyeRun, replayBullseyeRun } from "@/lib/duel/bullseye";
-import { drawBullseye } from "@/lib/arcade/bullseye.renderer";
+import { bullseyeArtAim, drawBullseye } from "@/lib/arcade/bullseye.renderer";
+import { bullseyeSounds } from "@/lib/fx/gameSounds";
 import { ARCADE_CRASH_FREEZE_MS, type BullseyePuzzleData } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -162,6 +163,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = bullseyeSounds();
     let secondAt = last;
     let ticksThisSecond = 0;
 
@@ -203,6 +205,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, bullseyeGame.isOver(state.current));
       feedback(state.current, bullseyeGame.isOver(state.current));
+      sounds.frame(state.current, !bullseyeGame.isOver(state.current));
 
       const size = sizeCanvas();
       if (size) {
@@ -211,7 +214,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (context && aim.current && state.current.flightTick === 0) {
           // The dotted path and landing ring include the sway at the tick a
           // release would land on, so the player can time it.
-          bullseyeDrawAim(
+          bullseyeArtAim(
             context,
             size,
             bullseyeAimPoint(
@@ -245,7 +248,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => { cancelAnimationFrame(frame); sounds.stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 
