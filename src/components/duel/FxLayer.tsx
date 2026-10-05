@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
-import { FX_EVENT, visualFx, type FxEvent } from "@/lib/fx";
+import { FX_EVENT, setFxTheme, visualFx, type FxEvent } from "@/lib/fx";
 import { animateFx } from "@/lib/fx/motion";
 import { prefersReducedMotion } from "@/lib/motion";
-import type { FxHook } from "@/lib/fx/theme";
+import type { FxHook, GameTheme } from "@/lib/fx/theme";
 
 /** Bounded, layout-free effects; never transforms the puzzle or its hit regions. */
-export function FxLayer() {
+export function FxLayer({ theme }: { theme?: GameTheme | undefined }) {
   const layer = useRef<HTMLDivElement>(null);
+  useEffect(() => setFxTheme(theme), [theme]);
   useEffect(() => {
     const nodes = new Set<HTMLElement>();
     const timers = new Set<ReturnType<typeof setTimeout>>();
@@ -14,10 +15,11 @@ export function FxLayer() {
       const host = layer.current;
       if (!host || nodes.size >= 32) return;
       const reduced = prefersReducedMotion();
-      const count = event.primitive === "burst" && !reduced ? 12 : 1;
+      const count = Math.min(32 - nodes.size, event.primitive === "burst" && !reduced ? 12 : 1);
       for (let i = 0; i < count; i++) {
         const node = document.createElement("span");
         node.className = `fx-particle ${event.hook === "onWrong" || event.hook === "onTimerWarning5" ? "fx-danger" : ""}`;
+        if (event.primitive === "glow" || event.primitive === "shake") node.classList.add("fx-outline");
         if (event.primitive === "scorePop") {
           node.className = "fx-score font-mono";
           node.textContent = event.hook === "onCombo" ? `×${event.value ?? 1}` : event.value === undefined ? "" : `+${event.value}`;

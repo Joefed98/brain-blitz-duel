@@ -5,7 +5,6 @@ import { Wordmark } from "./Wordmark";
 import { FxLayer } from "./FxLayer";
 import type { PuzzleType } from "@/lib/duel/types";
 import { puzzleDef } from "@/lib/duel/registry";
-import { gameTheme } from "@/lib/fx/theme";
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -75,7 +74,7 @@ function useRootSelectionLock(active: boolean) {
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
 export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
-  const theme = gameType ? gameTheme(gameType, puzzleDef(gameType).category) : null;
+  const theme = gameType ? puzzleDef(gameType).theme : undefined;
   return (
     <div
       className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""} ${
@@ -99,7 +98,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
         )}
         {children}
       </div>
-      <FxLayer />
+      <FxLayer theme={theme} />
     </div>
   );
 }

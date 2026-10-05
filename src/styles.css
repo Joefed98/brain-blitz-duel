@@ -784,6 +784,8 @@ body.game-lock {
 [data-particle-shape="square"] .fx-particle { border-radius: 0; }
 [data-particle-shape="diamond"] .fx-particle { border-radius: 0; rotate: 45deg; }
 .fx-danger { background: var(--destructive); }
+.fx-outline { top: 10%; left: calc(50% - 22px); width: 44px; height: 24px; background: transparent; border: 1px solid var(--category-accent); border-radius: 4px; }
+.fx-outline.fx-danger { border-color: var(--destructive); }
 .fx-score { position: absolute; top: 12%; left: 50%; color: var(--category-accent); font-size: 12px; font-weight: 700; }
 .timer-ring-track, .timer-ring-fill { fill: none; stroke-width: 2; }
 .timer-ring-track { stroke: var(--muted); }
