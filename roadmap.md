@@ -1,6 +1,6 @@
 ## Intro wording only
-- [ ] Replace em/en-dashes in intro GOAL, HOW, SCORE templates and example captions without changing game logic or help formulas.
-- [ ] State each of the six word games' grader-enforced minimum in HOW where one exists; verify wording without browser tests.
+- [x] Replace em/en-dashes in all 94 intro GOAL/HOW entries and 26 worked-example caption files; SCORE templates already contain no long dashes. Game logic and help formulas unchanged.
+- [x] State grader-enforced minima: Wordsmith 4, Word Hunt 4, Tile Grid 3, Word Slide exactly 5, Word Search 2, Letter Wheel 3; wording checks passed, preview build OK, no browser tests.
 
 ## Practice intro Back button (Oct 5)
 - [x] Add a compact outlined top-left Back button in the existing intro header, practice only; cancel and clear the run without grading.

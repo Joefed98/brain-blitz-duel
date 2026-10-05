@@ -268,7 +268,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Find as many valid words as you can.",
     how: [
       { action: "Drag or tap through letters", detail: "that touch, including diagonally." },
-      { action: "Words must be at least 4 letters.", detail: "without reusing a tile. Plurals count." },
+      { action: "Words must be at least 4 letters.", detail: "Don't reuse a tile. Plurals count." },
       { action: "Release, tap the last letter again, or tap Submit", detail: "to submit each word." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
