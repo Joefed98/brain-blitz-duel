@@ -16,6 +16,8 @@ import { artHash, reducedMotion } from "./art.renderer";
 /** Nine frames at 60 Hz, independent of simulation ticks. */
 export const MATCHUP_SWAP_MS = 150;
 const RADIUS = (MATCHUP_CELL_PX * MATCHUP_SYMBOL_PCT) / 200;
+const SPECIAL_WHITE = "#FFFFFF";
+const BOMB_OUTLINE = "#D5D7DF";
 
 export interface MatchupSwapTween {
   before: MatchupState;
@@ -110,6 +112,24 @@ function facetedGem(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>,
   ctx.restore();
 }
 
+/** Pattern depends only on colour, never cell, time or swap position. */
+function gemFlecks(ctx: CanvasRenderingContext2D, shape: string, kind: number, cx: number, cy: number, r: number, colour: string): void {
+  ctx.save();
+  pathOf(ctx, cutPoints(shape, cx, cy, r));
+  ctx.clip();
+  for (let k = 0; k < 6; k++) {
+    const hash = artHash(kind, 230 + k);
+    const x = cx + (((hash % 101) / 100) - 0.5) * r * 1.3;
+    const y = cy + ((((hash >>> 8) % 101) / 100) - 0.5) * r * 1.3;
+    const s = r * (0.045 + ((hash >>> 16) % 3) * 0.013);
+    ctx.fillStyle = shade(colour, k % 2 ? -0.35 : 0.28);
+    ctx.beginPath();
+    ctx.ellipse(x, y, s * 1.5, s, (hash % 6) * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /** One gem centred on (cx, cy) at the sim's symbol radius. */
 export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: number, cy: number, radius: number, time = 0): void {
   ctx.save();
@@ -120,6 +140,13 @@ export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: 
   if (kind === MATCHUP_BOMB) {
     const pts = cutPoints("hexagon", cx, cy + radius * 0.06, radius * 0.86);
     facetedGem(ctx, pts, cx, cy + radius * 0.06, radius * 0.86, "#2A2A33");
+    pathOf(ctx, pts);
+    ctx.save();
+    ctx.clip();
+    ctx.strokeStyle = BOMB_OUTLINE;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.restore();
     const pulse = 0.65 + 0.35 * Math.sin(time * 8);
     const spark = ctx.createRadialGradient(cx + radius * 0.55, cy - radius * 0.72, 0, cx + radius * 0.55, cy - radius * 0.72, radius * 0.5);
     spark.addColorStop(0, `rgba(255,220,120,${pulse})`);
@@ -137,14 +164,14 @@ export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: 
     ctx.fill();
   } else if (kind === MATCHUP_CROSS) {
     const pts = cutPoints("square", cx, cy, radius);
-    facetedGem(ctx, pts, cx, cy, radius, MATCHUP_GOLD);
+    facetedGem(ctx, pts, cx, cy, radius, SPECIAL_WHITE);
     ctx.fillStyle = shade(MATCHUP_GOLD, -0.55);
     const w = radius * 0.22;
     ctx.fillRect(cx - radius * 0.85, cy - w / 2, radius * 1.7, w);
     ctx.fillRect(cx - w / 2, cy - radius * 0.85, w, radius * 1.7);
   } else if (kind === MATCHUP_STAR) {
     const pts = cutPoints("star", cx, cy, radius);
-    facetedGem(ctx, pts, cx, cy, radius, shade(MATCHUP_GOLD, -0.35));
+    facetedGem(ctx, pts, cx, cy, radius, SPECIAL_WHITE);
     pathOf(ctx, pts);
     ctx.clip();
     ctx.strokeStyle = MATCHUP_GOLD;
@@ -152,7 +179,9 @@ export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: 
     ctx.stroke();
   } else {
     const shape = MATCHUP_SHAPES[kind] ?? "circle";
-    facetedGem(ctx, cutPoints(shape, cx, cy, radius), cx, cy, radius, MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD);
+    const colour = MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD;
+    facetedGem(ctx, cutPoints(shape, cx, cy, radius), cx, cy, radius, colour);
+    gemFlecks(ctx, shape, kind, cx, cy, radius, colour);
   }
   ctx.restore();
 }
@@ -234,7 +263,7 @@ function shatter(ctx: CanvasRenderingContext2D, kind: number, index: number, p: 
     ctx.globalAlpha = 1;
     return;
   }
-  const colour = kind < MATCHUP_COLOURS.length ? MATCHUP_COLOURS[kind]! : MATCHUP_GOLD;
+  const colour = kind < MATCHUP_COLOURS.length ? (MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD) : MATCHUP_GOLD;
   ctx.globalAlpha = Math.max(0, 1 - p * 2.2);
   drawMatchupGem(ctx, kind, x, y, RADIUS);
   ctx.globalAlpha = 1;
@@ -367,8 +396,9 @@ function drawScene(ctx: CanvasRenderingContext2D, state: MatchupState, size: Can
   ctx.scale(scale, scale);
   drawNextStrip(ctx, state, time);
   drawFrame(ctx);
-  const animating = options.animationMs != null && state.lastAnimation.length > 0;
-  if (animating) drawAnimated(ctx, state, options.animationMs!, time);
+  const animationMs = options.animationMs;
+  const animating = animationMs != null && state.lastAnimation.length > 0;
+  if (animating && animationMs != null) drawAnimated(ctx, state, animationMs, time);
   else drawSettled(ctx, options.cells ?? state.cells, time, options.skip);
 
   if (!animating && !options.cells && matchupShowHint(state)) {
