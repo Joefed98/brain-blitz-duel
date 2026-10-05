@@ -18,6 +18,7 @@ import { buzz } from "@/lib/motion";
 import { playCorrect } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
 import { StageProgress } from "@/components/puzzles/StageProgress";
+import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -145,7 +146,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   }, []);
 
   const complete = board ? npComplete(board.givens, board.tray, placements, board.rows) : false;
-  const busy = locked || submitted.current;
+  const holding = useStageCorrectHold({
+    complete,
+    finalStage: stage >= NP_SET_SIZE - 1,
+    locked: locked || submitted.current,
+    stateKey: key,
+    onAdvance: () => { playCorrect(); advance(placements); },
+  });
+  const busy = locked || submitted.current || complete;
 
   const updatePlacements = (next: NpPlacements) => {
     const boards = [...allPlacements]; boards[stage] = next; setAllPlacements(boards);
@@ -157,22 +165,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     setStage(stage + 1);
   };
 
-  useEffect(() => {
-    if (!complete || busy || !board) return;
-    playCorrect();
-    const id = window.setTimeout(() => advance(placements), 220);
-    return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [complete, locked]);
-
   if (!data || !board) return null;
   const placedTray = new Set(Object.values(placements));
   const filled = npFilled(board.givens, board.tray, placements);
-  const heightFit = Math.floor((size.height - 220) / board.rows / 0.72);
+  const heightFit = Math.floor((size.height - 244) / board.rows / 0.72);
   const cellW = Math.max(38, Math.min(board.rows === 4 ? 62 : 56, Math.floor((size.width - 16) / board.rows), heightFit));
   const cellH = Math.round(cellW * 0.72);
 
   const drop = (tray: number, from: number | null, cell: number | null) => {
+    if (busy) return;
     const next: NpPlacements = { ...placements };
     if (from !== null) delete next[from];
     if (cell !== null) {
@@ -194,11 +195,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     setDrag({ tray, from, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false });
   };
   const move = (event: React.PointerEvent) => {
-    if (!drag) return;
+    if (busy || !drag) return;
     setDrag({ ...drag, x: event.clientX, y: event.clientY, moved: drag.moved || Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 8 });
   };
   const end = (event: React.PointerEvent) => {
-    if (!drag) return;
+    if (busy || !drag) return;
     const d = drag; setDrag(null);
     if (!d.moved) {
       if (d.from !== null) {
@@ -232,6 +233,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {NP_SET_SIZE}</p>
         <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => advance(placements)}>Skip</Button>
       </div>
+      <StageCorrect visible={holding} />
       <div className="flex min-h-0 w-full flex-1 items-center justify-center">
         <div className="relative" style={NO_TOUCH}>
           <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} cellW={cellW} cellH={cellH} />

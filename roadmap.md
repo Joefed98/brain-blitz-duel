@@ -1,3 +1,7 @@
+## Three number-game stage feedback
+- [ ] Add one-second intermediate CORRECT holds to Balance, Equation Balancing and Number Pyramid; reserve gold slots above/below as requested, ignore input, leave final submission and scoring unchanged.
+- [ ] Check hold timing/input guards and source layout budgets at 390×700 and 375×667; no browser tests.
+
 ## Three word-game tuning
 - [x] Add shared 700 ms gold/white accepted-word chips in fixed 32px slots above both boards; Wordsmith hides the chip while its dropdown is open. Square boards fit remaining height and width; error rows stay reserved. Source budget audit passed at 390×700 and 375×667, including conservative safe areas and room score strip; device appearance remains user-tested.
 - [x] Share valid-word tile membership between Tile Grid counter and server grading; retain 8 points per counted tile and completion scores 130/140/150 at zero/half/full speed bonus. Crossing, invalid-run, isolated-tile, removal, tray-tampering and 320 generated partial-board parity checks passed; preview build OK, no browser tests.
