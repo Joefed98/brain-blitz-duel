@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { Button } from "@/components/ui/button";
+import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import {
   BAL_PEGS,
   BAL_REVEAL_MS,
@@ -155,6 +156,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     scales.map((s) => s.tray.map(() => null)),
   );
   const [selected, setSelected] = useState<number | null>(null);
+  const [current, setCurrentStage] = useStageState<number>(stateKey, "balanceStage", () => Math.min(balanceSolvedCount(scales, placements), BAL_SCALES - 1));
   const [progressTarget, setProgressTarget] = useState<HTMLElement | null>(null);
   const lastTap = useRef<{ tray: number; time: number } | null>(null);
   const submitted = useRef(false);
@@ -168,6 +170,13 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
 
   const solved = balanceSolvedCount(scales, placements);
   const encoded = encodeBalance(placements);
+  const holding = useStageCorrectHold({
+    complete: solved > current && current < BAL_SCALES - 1,
+    finalStage: false,
+    locked: locked || submitted.current,
+    stateKey,
+    onAdvance: () => setCurrentStage(Math.min(current + 1, BAL_SCALES - 1)),
+  });
 
   useEffect(() => {
     setSelected(null);
@@ -192,12 +201,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   }, [now, phaseStartedAt, locked, data, encoded, onSubmit, solved]);
 
   if (!data) return null;
-  const current = Math.min(solved, BAL_SCALES - 1);
   const scale = scales[current]!;
   const placement = placements[current] ?? scale.tray.map(() => null);
-  const frozen = locked || submitted.current;
+  const frozen = locked || submitted.current || holding;
 
   const setCurrent = (next: Placement) => {
+    if (frozen) return;
     const all = placements.map((p, i) => (i === current ? next : p));
     setPlacements(all);
     if (scaleSolved(scale, next)) playCorrect();
@@ -243,6 +252,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       )}
       <div className="relative min-h-0 w-full flex-1">
         <div className="absolute left-1/2" style={{ top: "calc(50% - 50px)", transform: "translate(-50%, -42px)" }}>
+          <StageCorrect visible={holding} />
           <Beam
             scale={scale}
             placement={placement}

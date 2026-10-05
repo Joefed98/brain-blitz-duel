@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { StageProgress } from "@/components/puzzles/StageProgress";
+import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { randInt, shuffled } from "@/lib/duel/random";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -55,7 +56,7 @@ export function buildEquation(): EquationPuzzleData {
   return { type: "equation", stages: built.map((b) => b.stage), operators: built.map((b) => b.ops) };
 }
 
-function OperatorSlot({ value, onClick }: { value: Operator | null; onClick?: () => void }) {
+function OperatorSlot({ value, onClick }: { value: Operator | null; onClick?: (() => void) | undefined }) {
   return (
     <button
       type="button"
@@ -102,12 +103,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
   const current = data?.stages[Math.min(stage, STAGE_COUNT - 1)];
   const liveAnswers = answers.map((a, i) => (i === stage ? slots.filter(Boolean).join(",") : a));
   const draft = joinStages(liveAnswers);
+  const complete = !!current && slots.every((slot) => slot !== null) && equationStageCorrect(current.numbers, current.target, slots.join(","));
+  const holding = useStageCorrectHold({
+    complete,
+    finalStage: stage >= STAGE_COUNT - 1,
+    locked: locked || done.current,
+    stateKey,
+    onAdvance: () => advance(slots),
+  });
   useEffect(() => {
     onDraftAnswer?.(draft);
   }, [draft, onDraftAnswer]);
 
   if (!data || !current) return null;
-  const frozen = locked || done.current;
+  const frozen = locked || done.current || holding;
 
   const advance = (filled: (Operator | null)[]) => {
     const next = [...answers];
@@ -120,7 +129,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
     }
     const nextStage = stage + 1;
     setStage(nextStage);
-    setSlots(Array(data.stages[nextStage]!.numbers.length - 1).fill(null));
+    const nextNumbers = data.stages[nextStage]?.numbers;
+    if (nextNumbers) setSlots(Array(nextNumbers.length - 1).fill(null));
   };
 
   const tapOperator = (op: Operator) => {
@@ -130,9 +140,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
     const next = [...slots];
     next[index] = op;
     setSlots(next);
-    if (next.every((s) => s !== null) && equationStageCorrect(current.numbers, current.target, next.join(","))) {
-      advance(next);
-    }
   };
 
   const clearSlot = (index: number) => {
@@ -156,13 +163,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
             <span key={index} className="flex items-center gap-1.5">
               <span>{n}</span>
               {index < current.numbers.length - 1 && (
-                <OperatorSlot value={slots[index] ?? null} onClick={() => clearSlot(index)} />
+                <OperatorSlot value={slots[index] ?? null} onClick={frozen ? undefined : () => clearSlot(index)} />
               )}
             </span>
           ))}
           <span className="text-primary">= {current.target}</span>
         </div>
-
+        <StageCorrect visible={holding} />
         <div className="grid grid-cols-4 gap-2">
           {OPERATORS.map((op) => (
             <button
