@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
-import { DEMO_LENGTH_TICKS, demoTouches, placeholderRun } from "@/lib/arcade/introDemo";
+import { DEMO_LENGTH_TICKS, demoTouches, placeholderRun, runAtTick as runFrame } from "@/lib/arcade/introDemo";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { getIntroDemoFn } from "@/lib/duel/introDemo.functions";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
@@ -109,6 +109,3 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
     </div>
   );
 }
-
-import { runAtTick } from "@/lib/arcade/introDemo";
-const runFrame = runAtTick;
