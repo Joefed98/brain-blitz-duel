@@ -343,6 +343,33 @@ export function playCue(cue: Cue, volume = 1): void {
   }
 }
 
+/** A short synthesised tone (e.g. rising chain-link pitch); silent when audio is off. */
+export function playTone(
+  frequency: number,
+  durationMs = 120,
+  type: OscillatorType = "sine",
+  volume = 0.25,
+  endFrequency?: number,
+): void {
+  if (!ready() || !ctx || !effectsGain) return;
+  try {
+    const now = ctx.currentTime;
+    const end = now + durationMs / 1000;
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, now);
+    if (endFrequency) osc.frequency.exponentialRampToValueAtTime(endFrequency, end);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(Math.max(0, Math.min(1, volume)), now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, end);
+    osc.connect(gain).connect(effectsGain);
+    osc.start(now);
+    osc.stop(end + 0.02);
+  } catch (error) {
+    warnOnce("tone playback failed", error);
+  }
+}
+
 export const playTick = (volume = 1) => playCue("tick", volume);
 export const playCorrect = () => playCue("correct");
 export const playWrong = () => playCue("wrong");
