@@ -693,9 +693,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Balls pop up briefly", detail: "— the window shrinks as the run goes on." },
       { action: "The rule flips 3–5 times", detail: "at unpredictable moments — watch the banner." },
-      { action: "Never tap a bomb", detail: "or a wrong-colour ball — each costs 5; an empty hole costs 3." },
+      { action: "Never tap a bomb", detail: "— bombs cost 5; a wrong-colour ball or an empty hole costs 3." },
     ],
-    score: "Up to 135 for the share of targets hit, −5 per wrong ball, −3 per empty tap, +15 for hitting every target. Maximum 150.",
+    score: "Up to 135 for the share of targets hit, −3 per wrong ball, −5 per bomb, −3 per empty tap, +15 for hitting every target. Maximum 150.",
   },
   wavefront: {
     goal: "Shoot down the formation before it reaches you.",
