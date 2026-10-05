@@ -1114,8 +1114,6 @@ export const FLOW_PARTIAL_POINTS = 60;
 export const FLOW_PAIR_POINTS = 10;
 /** Unfinished Ice Slide: share of distance closed × this. */
 export const SLIDE_PARTIAL_POINTS = 90;
-/** Unfinished Maze Dash: share of the path walked × this. */
-export const MAZE_PARTIAL_POINTS = 110;
 
 export type FlowColour =
   | StroopColour
@@ -1425,8 +1423,8 @@ export const MAZE_LONG_DEAD_END_LENGTH = 11;
 export const MAZE_MIN_JUNCTIONS = 14;
 /** The exit may not be visible down a straight corridor from this last stretch. */
 export const MAZE_BLIND_TAIL = 10;
-/** Most a partly-run maze can earn. */
-export const MAZE_PARTIAL_POINTS = 60;
+/** Unfinished Maze Dash: share of the path walked × this. */
+export const MAZE_PARTIAL_POINTS = 110;
 
 export interface MazePuzzleData {
   type: "maze";
