@@ -18,7 +18,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        Watch the tiles light up, then tap them back in reverse order — last one first.
+        Watch the tiles light up, then tap them back in reverse order - last one first.
       </p>
       <div className="flex items-center gap-3">
         <div className="flex flex-col items-center gap-2">

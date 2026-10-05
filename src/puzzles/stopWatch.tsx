@@ -158,7 +158,7 @@ function IntroExample() {
       <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, wrap: false, passes: 2 }} marker={0.58} passesLeft={2} />
       <p className="text-center text-xs text-muted-foreground">
         Some targets move, hide, turn vertical or accelerate. The counter starts at 2 on Watch 1 and reaches 11 on
-        Watch 10. Watches 8–10 wrap from right to left. Score: 150 at 20 ms average error or closer, −27 per 100 ms more; a missed watch counts 500 ms.
+        Watch 10. Watches 8-10 wrap from right to left. Score: 150 at 20 ms average error or closer, −27 per 100 ms more; a missed watch counts 500 ms.
       </p>
     </div>
   );

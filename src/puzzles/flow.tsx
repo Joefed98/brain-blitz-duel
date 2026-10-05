@@ -155,7 +155,7 @@ function IntroExample() {
         <FlowBoard pairs={pairs} paths={paths} walls={walls} cols={4} cells={16} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Striped squares are walls — no path can enter them. Drag from a dot to its partner. You have 75 seconds.
+        Striped squares are walls - no path can enter them. Drag from a dot to its partner. You have 75 seconds.
       </p>
     </div>
   );

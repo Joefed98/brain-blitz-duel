@@ -52,7 +52,7 @@ function IntroExample() {
         <line x1="90" y1="10" x2="90" y2="86" stroke="rgba(255,255,255,0.14)" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        One thumb per side — both runners have to clear their blocks.
+        One thumb per side - both runners have to clear their blocks.
       </p>
     </div>
   );

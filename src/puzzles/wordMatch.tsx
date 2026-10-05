@@ -27,7 +27,7 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        Tap the word that means the same — or the opposite — as shown.
+        Tap the word that means the same - or the opposite - as shown.
       </p>
       <p className="font-display text-4xl font-bold">FRUGAL</p>
       <ModeLabel mode="synonym" />

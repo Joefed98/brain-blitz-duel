@@ -128,7 +128,7 @@ function IntroExample() {
         <Board data={example} balls={[20, 21, 7, 24]} size={104} cols={5} />
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        One tilt down: gold, teal and pink lock on their rings; purple stops on the block — and
+        One tilt down: gold, teal and pink lock on their rings; purple stops on the block - and
         it's locked too.
       </p>
     </div>

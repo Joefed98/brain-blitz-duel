@@ -135,7 +135,7 @@ function IntroExample() {
     <div className="flex w-full flex-col items-center gap-2">
       <Board rows={rows} cols={cols} marks={marks} size={4} cell={24} />
       <p className="text-center text-xs text-muted-foreground">
-        The numbers are the run lengths — this one is a diamond.
+        The numbers are the run lengths - this one is a diamond.
       </p>
     </div>
   );
