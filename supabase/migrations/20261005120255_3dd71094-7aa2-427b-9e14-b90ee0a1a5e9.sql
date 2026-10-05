@@ -1,0 +1,1 @@
+ALTER TABLE public.intro_demos ADD COLUMN IF NOT EXISTS example_id text;

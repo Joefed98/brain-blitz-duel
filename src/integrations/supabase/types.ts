@@ -167,6 +167,7 @@ export type Database = {
       }
       intro_demos: {
         Row: {
+          example_id: string | null
           game_type: string
           input_log: Json
           length_ticks: number
@@ -176,6 +177,7 @@ export type Database = {
           start_tick: number
         }
         Insert: {
+          example_id?: string | null
           game_type: string
           input_log: Json
           length_ticks?: number
@@ -185,6 +187,7 @@ export type Database = {
           start_tick?: number
         }
         Update: {
+          example_id?: string | null
           game_type?: string
           input_log?: Json
           length_ticks?: number
