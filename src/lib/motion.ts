@@ -1,3 +1,4 @@
+import { demoHushed } from "./sound";
 import { useEffect, useState } from "react";
 
 const QUERY = "(prefers-reduced-motion: reduce)";
@@ -22,6 +23,7 @@ export function useReducedMotion(): boolean {
 
 /** Short haptic buzz where the device supports it. Never throws. */
 export function buzz(pattern: number | number[]): void {
+  if (demoHushed()) return;
   if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
   if (prefersReducedMotion()) return;
   try {
