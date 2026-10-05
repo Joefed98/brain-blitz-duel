@@ -31,6 +31,8 @@ import {
   typesInCategory,
 } from "@/lib/duel/registry";
 import { clearStageState } from "@/lib/duel/stageState";
+import { DemoRecorder, type PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
+import { hasIntroDemo } from "@/components/duel/IntroDemo";
 import { INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playLock, playRoundStart, unlockAudio } from "@/lib/sound";
@@ -96,6 +98,26 @@ function PracticeScreen() {
   const now = useTicker(stage === "intro" || stage === "puzzle" || stage === "reveal");
   const demoKey = useDemoKey();
   const stateKey = `practice-${run}`;
+  // Dev only: "Intro examples" loads each game's fixed intro example and records touches.
+  const [exampleMode, setExampleMode] = useState(false);
+  const exampleRun = useRef(false);
+  const recorder = useRef<DemoRecorder | null>(null);
+  const [recording, setRecording] = useState<PuzzleDemoLog | null>(null);
+  const recordArea = useCallback(
+    (el: HTMLDivElement | null) => {
+      if (!el || !exampleRun.current || !demoKey || !puzzle || hasIntroDemo(puzzle.type)) return;
+      if (!recorder.current) {
+        recorder.current = new DemoRecorder(startedAt);
+        recorder.current.attach(el);
+      }
+    },
+    [demoKey, puzzle, startedAt],
+  );
+  const stopRecording = useCallback(() => {
+    const rec = recorder.current;
+    recorder.current = null;
+    setRecording(rec ? rec.finish() : null);
+  }, []);
 
   useEffect(() => setHelpOpen(false), [stage, type]);
 
@@ -112,12 +134,16 @@ function PracticeScreen() {
     setGraded(null);
     setPuzzle(null);
     setStage("loading");
-    const made = await practiceGenerateFn({ data: { type: next } });
+    recorder.current?.finish();
+    recorder.current = null;
+    setRecording(null);
+    exampleRun.current = exampleMode;
+    const made = await practiceGenerateFn({ data: { type: next, example: exampleMode } });
     setPuzzle(made.puzzle as PuzzleData);
     setSealed(made.sealed);
     setStartedAt(Date.now());
     setStage("intro");
-  }, []);
+  }, [exampleMode]);
 
   const cancelIntro = useCallback(() => {
     introCancelled.current = true;
@@ -145,6 +171,7 @@ function PracticeScreen() {
     async (answer: string, meta?: SubmitMeta) => {
       if (!puzzle || grading.current) return;
       grading.current = true;
+      stopRecording();
       playLock();
       buzz(15);
       const remaining =

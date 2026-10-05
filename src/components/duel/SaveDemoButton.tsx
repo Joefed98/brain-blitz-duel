@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
-import { checkDemoKeyFn, saveIntroDemoFn } from "@/lib/duel/practice.functions";
+import { checkDemoKeyFn, saveIntroDemoFn, savePuzzleDemoFn } from "@/lib/duel/practice.functions";
+import type { PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
 import type { PuzzleData } from "@/lib/duel/types";
 
 import { hasIntroDemo } from "./IntroDemo";
@@ -51,16 +52,22 @@ export function SaveDemoButton({
   puzzle,
   sealed,
   answer,
+  recording = null,
 }: {
   demoKey: string | null;
   puzzle: PuzzleData;
   sealed: string;
   answer: string | null | undefined;
+  /** Puzzle games: the touches recorded on the fixed intro example. */
+  recording?: PuzzleDemoLog | null;
 }) {
   const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const save = useServerFn(saveIntroDemoFn);
+  const savePuzzle = useServerFn(savePuzzleDemoFn);
   const queryClient = useQueryClient();
-  if (!demoKey || !answer || !hasIntroDemo(puzzle.type)) return null;
+  const engine = hasIntroDemo(puzzle.type);
+  if (!demoKey) return null;
+  if (engine ? !answer : !recording?.actions.length) return null;
   return (
     <button
       type="button"
@@ -68,7 +75,8 @@ export function SaveDemoButton({
       onClick={async () => {
         setState("saving");
         try {
-          await save({ data: { puzzle, sealed, answer, dev: true, key: demoKey } });
+          if (engine) await save({ data: { puzzle, sealed, answer: answer ?? "", dev: true, key: demoKey } });
+          else await savePuzzle({ data: { puzzle, sealed, log: recording, dev: true, key: demoKey } });
           await queryClient.invalidateQueries({ queryKey: ["intro-demo", puzzle.type] });
           setState("saved");
         } catch (error) {
