@@ -1,3 +1,7 @@
+## Chain reshuffle cycles
+- [ ] Generate a seeded new symbol set/order for each five-link board; shared phone/server replay uses the current cycle and current-cycle decoys.
+- [ ] Highlight updated link code without changing FASTER, momentum or scoring; verify intro and focused seeded replay checks without browser tests.
+
 ## Trail sequential tap correction
 - [x] Removed tray/selection; shared adjacent next-number taps and last-player undo support mixed dragging. Fixed numbers remain on the board; scoring, SCORE wording and bank fingerprints unchanged.
 - [x] All 300 Trail boards passed tap-only solves, last-player undo/re-tap, ignored invalid taps, mixed tap/drag and scoring checks. Source fit audit passed at 390×700 and 375×667 with 59px/56px squares and 44px controls; preview build OK, no browser tests.
