@@ -1188,6 +1188,7 @@ export function gradeSubmission(
         hits: run.hits,
         totalTargets: run.totalTargets,
         wrong: run.wrong,
+        bombs: run.bombs,
         empty: run.empty,
         taps: run.taps,
         perfect: run.perfect,
