@@ -23,13 +23,22 @@ export type DemoAction =
   | { t: number; action: "type"; args: { text: string } }
   | { t: number; action: "select"; args: { option: string } };
 
+export interface DemoVerdict {
+  valid: boolean;
+  points?: number;
+  word?: string;
+  reason?: string;
+  groupIndex?: number;
+  theme?: string;
+}
+
 export interface PuzzleDemoLog {
   actions: DemoAction[];
   /** Play-area size (CSS px) the positions were recorded against. */
   w: number;
   h: number;
   /** Server word/group verdicts in the order the run asked for them. */
-  verdicts?: unknown[];
+  verdicts?: DemoVerdict[];
   /** ArrowPad mode the run used (true = joystick). */
   joystick?: boolean;
 }
@@ -41,7 +50,7 @@ const TAP_MS = 400;
 /** Captures one practice run's real touches inside the play area. */
 export class DemoRecorder {
   private actions: DemoAction[] = [];
-  private verdicts: unknown[] = [];
+  private verdicts: DemoVerdict[] = [];
   private down: { id: number; t0: number; pts: [number, number, number][] } | null = null;
   private typing: { t: number; text: string } | null = null;
   private detach: (() => void) | null = null;
@@ -104,8 +113,8 @@ export class DemoRecorder {
     };
   }
 
-  verdict(value: unknown): void {
-    this.verdicts.push(value);
+  verdict(value: DemoVerdict): void {
+    this.verdicts.push(JSON.parse(JSON.stringify(value)) as DemoVerdict);
   }
 
   private flushTyping(): void {

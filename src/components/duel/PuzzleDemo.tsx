@@ -9,6 +9,7 @@ import {
   expandActions,
   isPuzzleDemoLog,
   type DemoEvent,
+  type DemoVerdict,
   type PuzzleDemoLog,
 } from "@/lib/duel/puzzleDemo";
 import { puzzleDef } from "@/lib/duel/registry";
@@ -274,10 +275,9 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
 
   useEffect(() => () => clearStageState(stateKey), [stateKey]);
 
-  const verdict = <T,>(fallback: T): Promise<T> => {
-    const list = log.verdicts ?? [];
-    const v = list[verdictIndex.current++];
-    return Promise.resolve((v ?? fallback) as T);
+  const verdict = (fallback: DemoVerdict): Promise<DemoVerdict> => {
+    const v = log.verdicts?.[verdictIndex.current++];
+    return Promise.resolve(v ?? fallback);
   };
 
   return (
@@ -308,7 +308,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
               now={now}
               locked={false}
               onSubmit={() => undefined}
-              checkWord={(word) => verdict({ valid: false, points: 0, word })}
+              checkWord={(word) => verdict({ valid: false, points: 0, word }).then((v) => ({ ...v, points: v.points ?? 0, word: v.word ?? word }))}
               checkGroup={() => verdict({ valid: false })}
             />
           </ArrowModeOverride.Provider>

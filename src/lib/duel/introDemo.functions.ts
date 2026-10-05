@@ -1,13 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import type { PuzzleData } from "./types";
+import type { PuzzleDemoLog } from "./puzzleDemo";
 
 export interface IntroDemoRow {
   game_type: string;
   seed: number;
   puzzle: PuzzleData;
   /** Engine games: { run }. Puzzle games: a PuzzleDemoLog. */
-  input_log: { run?: string } & Record<string, unknown>;
+  input_log: { run?: string } & Partial<PuzzleDemoLog>;
   example_id?: string | null;
   start_tick: number;
   length_ticks: number;
