@@ -63,7 +63,7 @@ ex("Tents 11", scoreTents(false, 0, L, 11, 2, 12), 110);
 ex("Shikaku 90", scoreShikaku(false, 0, L, 90), 99);
 ex("LightUp 45/50 1 clash", scoreLightUp(false, 0, L, 45, 50, 1), 94);
 ex("Word Slide 4", S.scoreWordSlide(4, 5, 0, L), 88);
-const iv = replayIntruder([[1], [2], [3], [4], [5, 6]], [[1], [2], [3], [4], [5]] as never);
+const iv = replayIntruder([[1], [2], [3], [4], [5, 6]].map((cells) => ({ cells })) as never, [[1], [2], [3], [4], [5]] as never);
 ex("Intruder 4 + half", S.scoreIntruder(iv.points, false, 0, L), 108);
 // staged
 const scan = [0, 1, 2].map((i) => scanStageResult(i, [1, 2], [1, 2]));
