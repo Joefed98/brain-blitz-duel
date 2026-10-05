@@ -177,8 +177,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const cellAt = (x: number, y: number, strict: boolean): number | null => {
     const rect = grid.current?.getBoundingClientRect();
     if (!rect) return null;
-    const px = x - rect.left;
-    const py = y - rect.top;
+    // Screen px → layout px, so a scaled-down intro demo hits the same cells.
+    const scale = grid.current && grid.current.offsetWidth > 0 ? rect.width / grid.current.offsetWidth : 1;
+    const px = (x - rect.left) / scale;
+    const py = (y - rect.top) / scale;
     const pitch = cell + GAP;
     const col = Math.floor(px / pitch);
     const row = Math.floor(py / pitch);
