@@ -599,3 +599,5 @@
 - [x] Focused mechanics checks and self-replay ONLY Hover, Matchup, Bubble, Beat, Cross, Burst, Orbit, Tilt; no browser tests.
 
 - Validation: all eight requested games passed 200/200 full-state/checkpoint/score self-replays; 1,000 Hover/Bubble seed checks, 200 Matchup boards and focused hold/respawn/lives/retirement checks passed. Hover reaches 42 gates, final gate at 59.93 s; 45 generated pillars already cover the full run. No browser tests.
+- [x] Puzzle intro demos: player, Intro examples switch, touch recording + save (device check pending)
+- [ ] Author demos for Trail, Groups, Word Ladder, Chain Calculation, Number Climb (waiting on later batches)
