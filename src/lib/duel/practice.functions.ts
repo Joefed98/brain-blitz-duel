@@ -174,16 +174,33 @@ export const practiceCheckGroupFn = createServerFn({ method: "POST" })
     };
   });
 
+async function demoKeyOk(key: unknown): Promise<boolean> {
+  const expected = process.env["INTRO_DEMO_KEY"];
+  if (!expected || typeof key !== "string" || !key) return false;
+  const { createHash, timingSafeEqual } = await import("crypto");
+  const a = createHash("sha256").update(key).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
+/** Whether the ?key= on the URL is the private intro-demo key. */
+export const checkDemoKeyFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { key: string }) => input)
+  .handler(async ({ data }) => ({ ok: await demoKeyOk(data.key) }));
+
 /**
- * Dev-only save (?dev=1 practice reveal). The run must belong to a puzzle this
- * server issued (the sealed practice half), and only the public half is kept.
+ * Dev-only save (?dev=1&key=… practice reveal). Requires the private
+ * INTRO_DEMO_KEY. The run must belong to a puzzle this server issued (the
+ * sealed practice half), and only the public half is kept.
  */
 export const saveIntroDemoFn = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { puzzle: PuzzleData; sealed: string; answer: string; dev: boolean }) => input,
+    (input: { puzzle: PuzzleData; sealed: string; answer: string; dev: boolean; key: string }) =>
+      input,
   )
   .handler(async ({ data }) => {
     if (data.dev !== true) throw new Error("Demo saving is only available in dev practice.");
+    if (!(await demoKeyOk(data.key))) throw new Error("Forbidden");
     const { ARCADE_REVEAL_RENDERERS } = await import("@/lib/arcade/revealRenderers");
     const { DEMO_LENGTH_TICKS, DEMO_MAX_CHARS, DEMO_START_TICK, runSeed } = await import(
       "@/lib/arcade/introDemo"
