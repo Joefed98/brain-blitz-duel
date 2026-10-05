@@ -89,22 +89,22 @@ function Grid({
   );
 }
 
-/** 4×4 mini: givens 1, 7, 12, 16; the path is drawn once, a step at a time. */
-const EX_GIVENS: (number | null)[] = [1, null, null, null, null, null, 7, null, null, 12, null, null, null, 16, null, null];
-const EX_PATH = [0, 5, 1, 2, 3, 7, 6, 10, 11, 15, 14, 9, 4, 8, 12, 13];
+/** A real 6×6 board: ten fixed numbers, the path drawn once a step at a time. */
+const EX_GIVENS: (number | null)[] = [null,null,null,null,null,null,null,17,null,null,null,28,null,null,null,null,30,1,null,23,35,null,31,null,11,null,null,36,null,null,null,null,null,null,4,null];
+const EX_PATH = [17,23,29,34,35,28,33,32,31,30,24,25,18,12,6,0,7,1,2,3,8,13,19,14,9,4,5,11,10,16,22,15,21,26,20,27];
 
 function IntroExample() {
   const [n, setN] = useState(1);
   useEffect(() => {
     if (n >= EX_PATH.length) return;
-    const t = setTimeout(() => setN((v) => v + 1), n === 1 ? 700 : 260);
+    const t = setTimeout(() => setN((v) => v + 1), n === 1 ? 700 : 150);
     return () => clearTimeout(t);
   }, [n]);
   return (
     <div className="flex flex-col items-center gap-2">
-      <Grid size={4} givens={EX_GIVENS} path={EX_PATH.slice(0, n)} cell={36} />
+      <Grid size={TR_SIZE} givens={EX_GIVENS} path={EX_PATH.slice(0, n)} cell={28} />
       <p className="max-w-[260px] text-center text-xs text-muted-foreground">
-        Diagonal steps count. The path hits 7, 12 and 16 exactly on time.
+        Ten numbers are fixed; you fill the other 26. Diagonal steps count, and the path must hit each fixed number on its step.
       </p>
     </div>
   );
@@ -161,8 +161,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 
   if (!data) return null;
   const busy = locked || complete;
-  const fit = Math.min(space.w - 8, space.h - 40);
-  const cell = Math.max(48, Math.min(60, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
+  // Room for the count line above and the Undo / Reset row below.
+  const fit = Math.min(space.w - 8, space.h - 100);
+  const cell = Math.max(36, Math.min(60, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
 
   const refuse = (c: number) => {
     if (lastRefused.current === c) return;
@@ -226,11 +227,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     drawing.current = false;
   };
 
+  const undo = () => {
+    if (busy || path.length <= 1) return;
+    setPath(path.slice(0, -1));
+    lastRefused.current = null;
+    buzz(4);
+  };
+  const reset = () => {
+    if (busy || path.length <= 1) return;
+    setPath([startCell]);
+    lastRefused.current = null;
+    buzz(6);
+  };
+
   return (
     <div
       ref={box}
       data-play-area
-      className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 py-1 select-none"
+      className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 pt-1 select-none"
       style={NO_TOUCH}
     >
       <p className="font-mono text-sm text-muted-foreground">
@@ -246,6 +260,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         onPointerLeave={up}
       >
         <Grid size={TR_SIZE} givens={data.givens} path={path} cell={cell} shakeCell={shakeCell} />
+      </div>
+      <div className="flex shrink-0 gap-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>
+        <button
+          type="button"
+          disabled={busy || path.length <= 1}
+          onClick={undo}
+          className="h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+        >
+          Undo
+        </button>
+        <button
+          type="button"
+          disabled={busy || path.length <= 1}
+          onClick={reset}
+          className="h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+        >
+          Reset
+        </button>
       </div>
     </div>
   );
