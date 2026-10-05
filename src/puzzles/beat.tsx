@@ -1,3 +1,4 @@
+import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -76,6 +77,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const frameTiming = useArcadeFrameTiming(canvas);
   const state = useRef<BeatState>(beatGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof beatCheckpoint>[]>([]);
@@ -133,6 +135,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     const loop = (time: number) => {
+      frameTiming.begin(time);
       frame = requestAnimationFrame(loop);
       const delta = time - last;
       last = time;
@@ -170,9 +173,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       feedback(state.current, beatGame.isOver(state.current));
       sounds.frame(state.current, !beatGame.isOver(state.current) && !lockedRef.current);
 
+      frameTiming.draw();
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
       if (size && context) beatArtGame.draw(context, state.current, size);
+
+      frameTiming.rendered();
 
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
@@ -180,6 +186,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       if (beatGame.isOver(state.current) && !submitted.current) finish();
+      frameTiming.end();
     };
 
     frame = requestAnimationFrame(loop);

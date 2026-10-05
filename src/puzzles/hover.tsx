@@ -1,3 +1,4 @@
+import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordTap, tapAt } from "@/lib/arcade/engine";
@@ -60,6 +61,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const frameTiming = useArcadeFrameTiming(canvas);
   const state = useRef<HoverState>(hoverGame.init(seed));
   const inputs = useRef<number[]>([]);
   const checkpoints = useRef<ReturnType<typeof hoverCheckpoint>[]>([]);
@@ -124,6 +126,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     const loop = (time: number) => {
+      frameTiming.begin(time);
       frame = requestAnimationFrame(loop);
       const delta = time - last;
       last = time;
@@ -157,9 +160,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       feedback(state.current, hoverGame.isOver(state.current));
       sounds.frame(state.current, !hoverGame.isOver(state.current) && !lockedRef.current);
 
+      frameTiming.draw();
       const size = sizeCanvas();
       const context = canvasContext();
       if (size && context) hoverArtGame.draw(context, state.current, size);
+
+      frameTiming.rendered();
 
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);
@@ -190,6 +196,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           finish();
         }
       }
+      frameTiming.end();
     };
 
     frame = requestAnimationFrame(loop);

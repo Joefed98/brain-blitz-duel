@@ -1,6 +1,6 @@
 ## Burst performance
-- [ ] Profile crowded Burst drawing, cache artwork/glow/scanlines and cap particles (32; skip above 24 enemies or 8 shots).
-- [ ] Add dev frame-time readout across arcade drawing paths; verify without browsers or identity proofs.
+- [x] Profile crowded Burst drawing; cache artwork/glow/scanlines and cap particles (32; skip above 24 enemies or 8 shots). Warm frame filled rectangles fell from about 1,653 to 19, with no live blur; desktop DPR-2 crowded-frame median fell from 2.64 ms to 0.31–0.46 ms (cached p95 0.96–2.40 ms).
+- [x] Add dev frame interval/FPS, p95, draw/work readout across shared and 16 dedicated arcade drawing paths. Cache/particle checks, shared FX checks, native raster image inspection and 188 pre-change fingerprint comparisons passed; preview build OK. No browser tests or identity proofs; 60 fps on phones awaits user device checks.
 
 ## Matchup facets and Swing ceiling correction (Oct 5)
 - [x] Replace standard-gem flecks with deterministic flat own-colour facets and bright joins; specials and bomb unchanged.

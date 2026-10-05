@@ -5,6 +5,7 @@
  * original draw used, then draw in world coordinates with the pixel helpers.
  */
 import { reducedMotion } from "./art.renderer";
+import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 
 export const RETRO_BLACK = "#000000";
 export const RETRO_BEZEL = "#141418";
@@ -48,6 +49,23 @@ export interface RetroFrame {
   scaleY: number;
   offsetX: number;
   offsetY: number;
+}
+
+const scanlines = new WeakMap<CanvasRenderingContext2D, { width: number; height: number; ratio: number; layer: ArtCanvas }>();
+function cachedScanlines(ctx: CanvasRenderingContext2D, width: number, height: number): ArtCanvas | null {
+  const transform = ctx.getTransform();
+  const ratio = Math.min(2, Math.max(1, Math.hypot(transform.a, transform.b)));
+  const w = Math.ceil(width), h = Math.ceil(height) + 6;
+  const old = scanlines.get(ctx);
+  if (old && old.width === w && old.height === h && old.ratio === ratio) return old.layer;
+  const layer = artCanvas(Math.ceil(w * ratio), Math.ceil(h * ratio));
+  const c = layer && artContext(layer);
+  if (!layer || !c) return null;
+  c.scale(ratio, ratio);
+  c.fillStyle = "rgba(0,0,0,0.28)";
+  for (let y = 0; y < h; y += 3) c.fillRect(0, y, w, 1);
+  scanlines.set(ctx, { width: w, height: h, ratio, layer });
+  return layer;
 }
 
 /**
@@ -116,8 +134,11 @@ export function retroScreen(
   ctx.clip();
   ctx.fillStyle = "rgba(0,0,0,0.28)";
   const drift = Math.floor(retroClock() / 90) % 3;
-  for (let y = offsetY + drift; y < offsetY + screenH; y += 3) {
-    ctx.fillRect(offsetX, Math.floor(y), screenW, 1);
+  const layer = cachedScanlines(ctx, screenW, screenH);
+  if (layer) {
+    ctx.drawImage(layer, offsetX, offsetY + drift - 3, Math.ceil(screenW), Math.ceil(screenH) + 6);
+  } else {
+    for (let y = offsetY + drift; y < offsetY + screenH; y += 3) ctx.fillRect(offsetX, Math.floor(y), screenW, 1);
   }
   ctx.restore();
   ctx.restore();

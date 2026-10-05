@@ -3,6 +3,7 @@ import { FX_EVENT, setFxTheme, visualFx, type FxEvent } from "@/lib/fx";
 import { animateFx } from "@/lib/fx/motion";
 import { prefersReducedMotion } from "@/lib/motion";
 import type { FxHook, GameTheme } from "@/lib/fx/theme";
+import { FX_PARTICLE_LIMIT } from "@/lib/fx/limits";
 
 /** Bounded, layout-free effects; never transforms the puzzle or its hit regions. */
 export function FxLayer({ theme }: { theme?: GameTheme | undefined }) {
@@ -13,9 +14,9 @@ export function FxLayer({ theme }: { theme?: GameTheme | undefined }) {
     const timers = new Set<ReturnType<typeof setTimeout>>();
     const add = (event: FxEvent) => {
       const host = layer.current;
-      if (!host || nodes.size >= 32) return;
+      if (!host || nodes.size >= FX_PARTICLE_LIMIT) return;
       const reduced = prefersReducedMotion();
-      const count = Math.min(32 - nodes.size, event.primitive === "burst" && !reduced ? 12 : 1);
+      const count = Math.min(FX_PARTICLE_LIMIT - nodes.size, event.primitive === "burst" && !reduced ? 12 : 1);
       for (let i = 0; i < count; i++) {
         const node = document.createElement("span");
         node.className = `fx-particle ${event.hook === "onWrong" || event.hook === "onTimerWarning5" ? "fx-danger" : ""}`;

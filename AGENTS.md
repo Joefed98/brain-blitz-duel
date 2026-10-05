@@ -12,7 +12,7 @@
 - ArrowPad owns the device-local arrows/joystick preference so every arrow-controlled puzzle behaves consistently.
 - Trail uses shared sequential tap/last-player undo helpers and contiguous legal drag prefixes while retaining numbered-slot decoding for old answers; why: mixed gestures must share one sequence without changing independent tile grading.
 - Chain stores a seeded cycle per board and uses chainCycleAt/chainRequiredAt in display and replay, falling back to the legacy single cycle; why: reshuffles must change rules identically for all players without invalidating old results.
-- Renderer-only tuning uses *.renderer.ts helpers for play/reveal/demo; why: never modify sims or inputs.
+- Art stays in *.renderer.ts; Burst/glow/scanlines cache lazily and arcade loops share frame timing; why: speed without replay changes.
 - Cross counters use crossTotalLanes; Flip curves use flipSurfaceLine with exterior-only pools/decoration and silhouette/runner-box clips; pool-death sinks use per-canvas presentation clocks, never sim ticks or input holds; why: scores and collision geometry remain authoritative while frozen deaths can animate.
 - Gameplay holds run inside the shared simulation and HUDs read their derived hold state; why: inputs, timeouts and replay must stay synchronized without pausing the client clock.
 - Player-selected arcade checkpoints use validated recorded inputs and retained selection counters, with HUD availability derived from sim state; why: the server replay must enforce one-use selection and preserve result facts.
@@ -32,7 +32,7 @@
 - Square puzzle arenas use container-sized squares and SVG viewBoxes with coordinate conversion for scaled input; why: boards must remain centred, square and correctly tappable at every arena size.
 - The answer reveal shows only the server-stored round score (AnswerReveal's StoredScore, "Scoring…" until it lands); puzzle Reveals must never compute or print a score; scripts/reveal-score-check.tsx guards this. Why: local maths drifted from server scoring.
 - RoundIntro exposes Back only in practice; its practice callback cancels the intro and clears run state without grading. Why: leaving an intro must not create results or affect rooms.
-- Non-engine intro demos drive the game's real Stage over its fixed intro example (generated under `withSeededRandom` with INTRO_EXAMPLE_SEED; the sealed half carries the example id) from a stored action list in fractions of the recorded play area, with recorded server verdicts replayed; why: the demo must show the real puzzle UI without exposing answers or diverging from play.
+- Non-engine demos use the real Stage, INTRO_EXAMPLE_SEED, sealed example id and recorded area-fraction actions/verdicts; why: real UI without exposed answers or divergent play.
 - Mechanic-changing puzzle revisions reject incompatible saved intro demos by their stored puzzle shape; why: old touches must not show retired mechanics while a new fixed example awaits recording.
 
 - Shared category themes, bounded FX and manifest audio adapters live outside sims; why: preserve gameplay and grading.
