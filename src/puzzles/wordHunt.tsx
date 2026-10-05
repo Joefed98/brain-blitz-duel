@@ -30,7 +30,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">Word points × 3 = round score (max 150). Plurals count. You have 120 seconds.</p>
+      <p className="text-xs text-muted-foreground">Word points × 2 = round score (max 150). Plurals count. You have 100 seconds.</p>
     </div>
   );
 }
@@ -61,7 +61,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        <span className="text-primary">{points} points × 3 = {scoreWordHunt(points)}</span> · {mine.length} words
+        <span className="text-primary">{points} points × 2 = {scoreWordHunt(points)}</span> · {mine.length} words
       </p>
 
       {mine.length > 0 && (

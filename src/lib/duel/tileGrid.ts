@@ -7,7 +7,7 @@
 export const TG_SIZE = 7;
 export const TG_CELLS = TG_SIZE * TG_SIZE;
 export const TG_TILES = 15;
-export const TG_TIME_MS = 120_000;
+export const TG_TIME_MS = 100_000;
 export const TG_REVEAL_MS = 8_000;
 
 export interface TileRun {
@@ -86,11 +86,12 @@ export function fitsTray(cells: string[], tray: string[]): boolean {
   return true;
 }
 
-/** Tile Grid score: valid = share of 100 (+ speed with all 15, cap 150); invalid = share of 50. */
-export function scoreTileGrid(valid: boolean, placed: number, speed: number): number {
+/**
+ * Tile Grid score: all fifteen in a valid grid = 130 + speed (0–20, cap 150);
+ * otherwise 8 per tile that sits in at least one real word of the grid.
+ */
+export function scoreTileGrid(valid: boolean, placed: number, wordTiles: number, speed: number): number {
   const n = Math.max(0, Math.min(TG_TILES, placed));
-  if (!valid) return Math.round((50 * n) / TG_TILES);
-  if (n === TG_TILES) return Math.min(150, 100 + speed);
-  // Near-miss ceiling: an incomplete grid never scores above 90.
-  return Math.min(90, Math.round((100 * n) / TG_TILES));
+  if (valid && n === TG_TILES) return Math.min(150, 130 + Math.max(0, Math.min(20, speed)));
+  return Math.min(150, 8 * Math.max(0, Math.min(TG_TILES, wordTiles)));
 }

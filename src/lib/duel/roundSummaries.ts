@@ -572,7 +572,7 @@ const wordHuntSummary: SummaryBuilder = (result, puzzle) => {
     .filter((word) => word.length > 0);
   const points = words.reduce((sum, word) => sum + wordHuntPoints(word), 0);
   return {
-    summary: `${points} points × 3 = ${result.score} · ${words.length} words`,
+    summary: `${points} points × 2 = ${result.score} · ${words.length} words`,
     detail: [
       seconds(elapsedMs(result, puzzle)),
       ...(words.length > 0 ? [words.join(" · ")] : ["No words"]),
@@ -644,12 +644,10 @@ const tileGridSummary: SummaryBuilder = (result) => {
 };
 
 const wordSlideSummary: SummaryBuilder = (result, puzzle) => {
-  const moves = Number(result.extra?.["moves"] ?? 0);
-  const par = Number(result.extra?.["par"] ?? (puzzle.type === "wordslide" ? puzzle.par : 0));
   const rows = Number(result.extra?.["rows"] ?? result.correct_count ?? 0);
   return {
     summary: result.is_correct
-      ? `Solved · ${moves} moves (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`
+      ? `Solved · 5 / 5 rows · ${seconds(elapsedMs(result, puzzle))}`
       : `${rows} / 5 rows`,
     detail: [],
   };

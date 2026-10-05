@@ -336,7 +336,7 @@ function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
           : `${v.slots.length} / ${words.length} words`}
       </p>
       <p className="text-center font-mono text-xs text-muted-foreground">
-        {v.slots.length} × {words.length === 8 ? 15 : 12}{complete ? " + speed" : ""} = <span className="text-primary">{score}</span>
+        {complete ? "130 + speed" : `${v.slots.length} × ${words.length === 8 ? 15 : 13}`} = <span className="text-primary">{score}</span>
       </p>
     </div>
   );

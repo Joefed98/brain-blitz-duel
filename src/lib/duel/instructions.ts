@@ -39,7 +39,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap Done", detail: "to check — red runs need fixing." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
-    score: "More tiles placed scores more; all fifteen for the time bonus.",
+    score: "All fifteen tiles in a valid grid = 130 + up to 20 for speed. Otherwise 8 per tile inside a real word.",
   },
   sumhunt: {
     goal: "Clear paths of digits that add up to the target — it rises every time.",
@@ -65,7 +65,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Lock a finished word with the padlock", detail: "so it stays put — column swipes go around it." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
-    score: "Fewer moves is what counts; speed is a small extra.",
+    score: "All five rows words = 125 + up to 25 for speed. Otherwise 22 per word row. Moves do not count.",
   },
   ladder: {
     goal: "Reach the final word by changing one letter at a time.",
@@ -272,7 +272,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Release, tap the last letter again, or tap Submit", detail: "to submit each word." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
-    score: "Round score = 3 × word points, up to 150. The counter shows word points.",
+    score: "Round score = 2 × word points, up to 150. The counter shows word points.",
   },
   unblock: {
     goal: "Slide the gold car through the exit.",
@@ -876,7 +876,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag in a straight line", detail: "through the letters — any of eight directions, backwards too." },
       { action: "A hidden word turns gold.", detail: "Only the count shows until you find them." },
     ],
-    score: "20 per word. Find all six for 120 plus up to 30 speed points.",
+    score: "20 per word. Find all six for 130 plus up to 20 speed points.",
   },
   letterwheel: {
     goal: "Fill the crossword using the letters on the wheel.",
@@ -884,7 +884,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag through the letters and let go,", detail: "or tap letters then Submit or the word." },
       { action: "Crossword words fill gold.", detail: "Other real words are not in this puzzle." },
     ],
-    score: "Eight-word puzzles score 15 per word plus up to 30 for speed; nine-word puzzles score 12 per word plus up to 42. Maximum 150.",
+    score: "15 per word on eight-word puzzles, 13 on nine-word puzzles. Find them all for 130 plus up to 20 for speed.",
   },
   lightup: {
     goal: "Place bulbs so every white square is lit.",
