@@ -349,7 +349,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         })}
       </svg>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.total} / 100 rings → {result.score} pts
+        {result.total} / 100 rings
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {shots} of {BULLSEYE_ARROWS} arrows

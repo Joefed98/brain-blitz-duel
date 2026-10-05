@@ -333,7 +333,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
         <p className="text-base uppercase tracking-[0.2em] text-muted-foreground">Average error</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg} ms</p>
-        <p className="font-mono text-base text-muted-foreground">{stopWatchPoints(avg)} points</p>
       </div>
     </>
   );

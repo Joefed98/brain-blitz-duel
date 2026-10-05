@@ -96,7 +96,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 }
 
 export function parryLine(r: { deflected: number; hits: number; score: number }): string {
-  return `${r.deflected} deflected · ${r.hits} ${r.hits === 1 ? "life" : "lives"} lost · ${r.score}`;
+  return `${r.deflected} deflected · ${r.hits} ${r.hits === 1 ? "life" : "lives"} lost`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

@@ -255,9 +255,6 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `✗ ${mineState.connected.size} / ${PIPES_CELLS} connected`}
       </p>
-      <p className="font-mono text-base text-muted-foreground">
-        {scorePipes(Boolean(myCorrect), mineState.connected.size, myMsRemaining ?? 0, timeLimitMs)} points
-      </p>
     </div>
   );
 }

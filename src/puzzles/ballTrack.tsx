@@ -268,7 +268,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         ))}
       </div>
       <p className="text-center text-base text-muted-foreground">Same track for everyone</p>
-      <p className="font-mono text-base text-primary">{result.score} points</p>
     </div>
   );
 }

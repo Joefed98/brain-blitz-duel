@@ -255,7 +255,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.eaten} sweet{result.eaten === 1 ? "" : "s"} fed · {result.stars}★
       </p>
       <p className="text-center text-base text-muted-foreground">Same levels for everyone</p>
-      <p className="font-mono text-base text-primary">{result.score} points</p>
     </div>
   );
 }

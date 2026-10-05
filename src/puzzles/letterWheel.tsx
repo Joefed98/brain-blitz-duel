@@ -335,9 +335,6 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
           ? `${words.length} / ${words.length} · ${(elapsed / 1000).toFixed(1)}s`
           : `${v.slots.length} / ${words.length} words`}
       </p>
-      <p className="text-center font-mono text-xs text-muted-foreground">
-        {complete ? "130 + speed" : `${v.slots.length} × ${words.length === 8 ? 15 : 13}`} = <span className="text-primary">{score}</span>
-      </p>
     </div>
   );
 }

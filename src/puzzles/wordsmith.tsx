@@ -72,7 +72,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-4">
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        <span className="text-primary">floor(2.5 × {points}) = {scoreWordsmith(points)}</span> · {mine.length} words
+        {mine.length} words
       </p>
 
       {mine.length > 0 && (

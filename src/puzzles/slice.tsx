@@ -263,9 +263,6 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.bombsHit === 1 ? "1 bomb" : `${result.bombsHit} bombs`} hit
       </p>
-      <p className="shrink-0 font-mono text-base" style={{ color: SLICE_GOLD }}>
-        {result.score} points
-      </p>
     </div>
   );
 }
