@@ -1,6 +1,6 @@
 ## Three word-game tuning
-- [ ] Add shared 700 ms accepted-word chips in fixed slots above Wordsmith and Word Hunt boards; audit 390×700 and 375×667 from source.
-- [ ] Share valid-word tile membership between Tile Grid counter and server grading; retain 8 points per tile and complete-grid scoring; run focused checks, no browser tests.
+- [x] Add shared 700 ms gold/white accepted-word chips in fixed 32px slots above both boards; Wordsmith hides the chip while its dropdown is open. Square boards fit remaining height and width; error rows stay reserved. Source budget audit passed at 390×700 and 375×667, including conservative safe areas and room score strip; device appearance remains user-tested.
+- [x] Share valid-word tile membership between Tile Grid counter and server grading; retain 8 points per counted tile and completion scores 130/140/150 at zero/half/full speed bonus. Crossing, invalid-run, isolated-tile, removal, tray-tampering and 320 generated partial-board parity checks passed; preview build OK, no browser tests.
 
 ## Intro wording only
 - [x] Replace em/en-dashes in all 94 intro GOAL/HOW entries and 26 worked-example caption files; SCORE templates already contain no long dashes. Game logic and help formulas unchanged.
