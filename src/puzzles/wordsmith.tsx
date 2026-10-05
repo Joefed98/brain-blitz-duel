@@ -1,6 +1,7 @@
 import { WordsmithPuzzle } from "@/components/puzzles/WordsmithPuzzle";
 import { wordsmithPoints, type WordsmithPuzzleData } from "@/lib/duel/types";
 import { scoreWordsmith } from "@/lib/duel/scoring";
+import { WORDSMITH_TIME_MS } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -36,7 +37,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">No plurals. Longer words score more; find the nine-letter word for 15. Round score = floor(2.5 × word points), up to 150. You have 120 seconds.</p>
+      <p className="text-xs text-muted-foreground">No plurals. Longer words score more; find the nine-letter word for 15. Round score = floor(2.5 × word points), up to 150. You have 100 seconds.</p>
     </div>
   );
 }
@@ -109,7 +110,7 @@ export const wordsmithPuzzle: PuzzleDefinition = {
   key: "wordsmith",
   name: "Wordsmith",
   category: "word",
-  timeLimitMs: 120_000,
+  timeLimitMs: WORDSMITH_TIME_MS,
   generate: () => ({ type: "wordsmith", letters: [] }) satisfies WordsmithPuzzleData,
   check: () => false,
   revealHeading: "Your words",

@@ -108,7 +108,7 @@ export function checkWordSearchPath(
 }
 
 /**
- * All six found: 120 + round(30 × ms left ÷ 120,000), capped at 150.
+ * All six found: 130 + round(20 × ms left ÷ registry limit), capped at 150.
  * Otherwise: 20 per word. Wrong selections never affect the score.
  */
 export function scoreWordSearch(
@@ -120,7 +120,7 @@ export function scoreWordSearch(
 ): number {
   if (found >= total && total > 0) {
     const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
-    return Math.min(150, 120 + Math.round((30 * ms) / 120_000));
+    return Math.min(150, 130 + (timeLimitMs > 0 ? Math.round((20 * ms) / timeLimitMs) : 0));
   }
   return Math.min(120, 20 * Math.max(0, found));
 }

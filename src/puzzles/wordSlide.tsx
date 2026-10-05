@@ -275,7 +275,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, validRows }: Puzzl
       )}
       <p className={`text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
         {myCorrect
-          ? `Solved · ${replay.moves} moves (par ${puzzle.par})${elapsed ? ` · ${elapsed}s` : ""}`
+          ? `Solved · 5 / 5 rows${elapsed ? ` · ${elapsed}s` : ""}`
            : `${good.size} / 5 rows`}
       </p>
     </div>

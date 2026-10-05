@@ -94,6 +94,8 @@ import {
   scoreGoNoGo,
   scoreGroups,
   scoreWordLadder,
+  scoreWordSlide,
+  wordSpeedBonus,
   scoreSolvedMoves,
   speedBonus,
   scoreNumberClimb,
@@ -241,8 +243,8 @@ export function gradeSubmission(
       const verdict = judgeTileGrid(decodeTileGrid(answer), puzzle.tray);
       isCorrect = verdict.valid;
       correctCount = verdict.placed;
-      score = scoreTileGrid(verdict.valid, verdict.placed, speedBonus(ms, timeLimitMs));
-      extraDetail = { placed: verdict.placed, valid: verdict.valid };
+      score = scoreTileGrid(verdict.valid, verdict.placed, verdict.wordTiles, wordSpeedBonus(ms, timeLimitMs));
+      extraDetail = { placed: verdict.placed, valid: verdict.valid, wordTiles: verdict.wordTiles };
       break;
     }
     case "sumhunt": {
@@ -269,9 +271,7 @@ export function gradeSubmission(
       const rows = markedRowsSolved(replay.grid);
       isCorrect = rows === WS_MARKED_ROWS.length;
       correctCount = rows;
-      score = isCorrect
-        ? scoreSolvedMoves(replay.moves, puzzle.par, ms, timeLimitMs)
-        : Math.min(80, 20 * rows);
+      score = scoreWordSlide(rows, WS_MARKED_ROWS.length, ms, timeLimitMs);
       extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows,
         validRows: WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid) };
       break;

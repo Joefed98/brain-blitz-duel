@@ -96,7 +96,11 @@ export function checkTileGridWord(raw: string): { valid: boolean; points: number
   return { valid: word.length >= 3 && word.length <= 7 && isWord(word), points: 0, word };
 }
 
-export function judgeTileGrid(cells: string[], tray: string[]): { placed: number; valid: boolean } {
-  if (!fitsTray(cells, tray)) return { placed: 0, valid: false };
-  return { placed: placedCount(cells), valid: tileGridValid(cells) };
+export function judgeTileGrid(cells: string[], tray: string[]): { placed: number; valid: boolean; wordTiles: number } {
+  if (!fitsTray(cells, tray)) return { placed: 0, valid: false, wordTiles: 0 };
+  const inWord = new Set<number>();
+  for (const run of tileGridRuns(cells)) {
+    if (run.word.length >= 3 && isWord(run.word)) run.cells.forEach((c) => inWord.add(c));
+  }
+  return { placed: placedCount(cells), valid: tileGridValid(cells), wordTiles: inWord.size };
 }

@@ -51,8 +51,8 @@ export function lwGrade(
 }
 
 /**
- * Eight-word boards score 15 per word plus up to 30 completion speed points.
- * Nine-word boards score 12 per word plus up to 42. Both cap at 150.
+ * Unfinished: 15 per word on eight-word boards, 13 on nine-word boards.
+ * All words found: 130 + round(20 × ms left ÷ registry limit), cap 150.
  */
 export function scoreLetterWheel(
   slots: number,
@@ -60,12 +60,11 @@ export function scoreLetterWheel(
   msRemaining: number,
   timeLimitMs: number,
 ): number {
-  const pointsPerWord = totalSlots === 8 ? 15 : 12;
-  const maxSpeedBonus = totalSlots === 8 ? 30 : 42;
+  const pointsPerWord = totalSlots === 8 ? 15 : 13;
   const base = pointsPerWord * Math.max(0, slots);
   if (totalSlots > 0 && slots >= totalSlots) {
     const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
-    return Math.min(150, base + Math.round((maxSpeedBonus * ms) / timeLimitMs));
+    return Math.min(150, 130 + (timeLimitMs > 0 ? Math.round((20 * ms) / timeLimitMs) : 0));
   }
   return Math.min(150, base);
 }

@@ -537,9 +537,21 @@ export function scoreWordsmith(points: number): number {
   return clamp(Math.floor(2.5 * Math.max(0, points)), 0, MAX_ROUND_SCORE);
 }
 
-/** Word rounds: raw word points stay on the play counter; each is worth three round points. */
+/** Word-category completion bonus: round(max × ms_remaining ÷ registry limit). */
+export function wordSpeedBonus(msRemaining: number, timeLimitMs: number, max = 20): number {
+  if (!(timeLimitMs > 0)) return 0;
+  return Math.round((max * clamp(msRemaining, 0, timeLimitMs)) / timeLimitMs);
+}
+
+/** Word Slide: all five rows = 125 + round(25 × ms left ÷ limit); otherwise 22 per valid row. */
+export function scoreWordSlide(rows: number, totalRows: number, msRemaining: number, timeLimitMs: number): number {
+  if (totalRows > 0 && rows >= totalRows) return clamp(125 + wordSpeedBonus(msRemaining, timeLimitMs, 25), 0, MAX_ROUND_SCORE);
+  return clamp(22 * Math.max(0, rows), 0, MAX_ROUND_SCORE);
+}
+
+/** Word Hunt: raw word points stay on the play counter; each is worth two round points. */
 export function scoreWordHunt(points: number): number {
-  return clamp(3 * Math.round(points), 0, MAX_ROUND_SCORE);
+  return clamp(2 * Math.round(points), 0, MAX_ROUND_SCORE);
 }
 
 /**

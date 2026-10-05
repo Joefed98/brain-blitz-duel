@@ -99,7 +99,7 @@ export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
 
 /** Wordsmith: nine letters in a 3×3 square; every word uses the centre letter. */
-export const WORDSMITH_TIME_MS = 120_000;
+export const WORDSMITH_TIME_MS = 100_000;
 export const WORDSMITH_MIN_LENGTH = 4;
 export const WORDSMITH_LETTERS = 9;
 /** Index of the centre letter in the 3×3 square. */
@@ -917,7 +917,7 @@ export interface MirrorPuzzleData {
 
 export const WORDHUNT_COLS = 5;
 export const WORDHUNT_CELLS = WORDHUNT_COLS * WORDHUNT_COLS;
-export const WORDHUNT_TIME_MS = 120_000;
+export const WORDHUNT_TIME_MS = 100_000;
 export const WORDHUNT_MIN_LENGTH = 4;
 /** A board is only used when the dictionary finds at least this many words. */
 export const WORDHUNT_MIN_WORDS = 40;
@@ -2211,7 +2211,7 @@ export interface BallTrackPuzzleData {
 }
 
 /** Letter Wheel: 120 s to fill a small crossword from a wheel of letters. */
-export const LETTERWHEEL_TIME_MS = 120_000;
+export const LETTERWHEEL_TIME_MS = 100_000;
 
 export interface LetterWheelSlot {
   row: number;
