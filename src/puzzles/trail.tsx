@@ -36,7 +36,7 @@ function Grid({
   marks?: readonly number[];
   shakeCell?: number | null;
   selected?: number | null;
-  endCell?: number;
+  endCell?: number | undefined;
 }) {
   const stepOf = new Map<number, number>();
   path.forEach((c, i) => { if (c >= 0) stepOf.set(c, i + 1); });
