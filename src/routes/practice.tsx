@@ -15,7 +15,7 @@ import {
   practiceGenerateFn,
   practiceGradeFn,
 } from "@/lib/duel/practice.functions";
-import { SaveDemoButton } from "@/components/duel/SaveDemoButton";
+import { SaveDemoButton, useDemoKey } from "@/components/duel/SaveDemoButton";
 import {
   PUZZLE_REGISTRY,
   RETIRED_PUZZLE_TYPES,
@@ -94,6 +94,7 @@ function PracticeScreen() {
   const introCancelled = useRef(false);
   const draftAnswer = useRef("");
   const now = useTicker(stage === "intro" || stage === "puzzle" || stage === "reveal");
+  const demoKey = useDemoKey();
   const stateKey = `practice-${run}`;
 
   useEffect(() => setHelpOpen(false), [stage, type]);
@@ -318,7 +319,7 @@ function PracticeScreen() {
           startedAt={startedAt}
           now={now}
         />
-        <SaveDemoButton puzzle={graded.puzzle} sealed={sealed} answer={graded.answer} />
+        <SaveDemoButton demoKey={demoKey} puzzle={graded.puzzle} sealed={sealed} answer={graded.answer} />
       </PhoneShell>
     );
   }
@@ -356,6 +357,7 @@ function PracticeScreen() {
             </button>
           </div>
         </div>
+        <SaveDemoButton demoKey={demoKey} puzzle={graded.puzzle} sealed={sealed} answer={graded.answer} />
       </PhoneShell>
     );
   }
