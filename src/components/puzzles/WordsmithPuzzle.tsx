@@ -1,6 +1,7 @@
 import { playCorrect, playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { AcceptedWordChip } from "./AcceptedWordChip";
 
 import {
   WORDSMITH_CENTRE_INDEX,
@@ -37,6 +38,7 @@ export function WordsmithPuzzle({
   const [selectedTiles, setSelectedTiles] = useState<number[]>([]);
   const [found, setFound] = useState<Found[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [acceptedWord, setAcceptedWord] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
   const [busy, setBusy] = useState(false);
   const [listOpen, setListOpen] = useState(false);
@@ -88,6 +90,7 @@ export function WordsmithPuzzle({
       setFound((current) => [{ word: verdict.word, points: verdict.points }, ...current]);
       setSelectedTiles([]);
       setMessage(null);
+      setAcceptedWord(verdict.word);
     } else {
       playWrong();
       setMessage(verdict.reason ?? "Not a word");
@@ -128,7 +131,7 @@ export function WordsmithPuzzle({
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="relative flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           points <span className="text-primary">{points}</span>
@@ -168,9 +171,12 @@ export function WordsmithPuzzle({
       </div>
 
       {/* 3×3 square: eight letters around a gold centre letter every word must use. */}
+      <div className="flex min-h-0 flex-1 flex-col items-center">
+      <AcceptedWordChip word={acceptedWord} hidden={listOpen} />
+      <div className="word-confirmation-board-space">
       <div
         ref={wheelRef}
-        className="grid aspect-square w-full shrink-0 select-none grid-cols-3 gap-2 touch-none"
+        className="word-confirmation-board grid shrink-0 select-none grid-cols-3 gap-2 touch-none"
         onPointerMove={(event) => {
           if (!dragging.current) return;
           const origin = pointerStart.current;
@@ -231,6 +237,8 @@ export function WordsmithPuzzle({
           );
         })}
       </div>
+      </div>
+      </div>
 
       {/* Keyboard entry: highlights the matching tiles as you type. */}
       <input
@@ -276,7 +284,7 @@ export function WordsmithPuzzle({
         key={shake}
         className={`tap-target w-full rounded-xl border bg-card px-4 text-center font-mono text-base uppercase tracking-[0.2em] text-foreground placeholder:tracking-normal placeholder:text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50 ${message ? "border-warn animate-shake" : "border-border"}`}
       />
-      {message && <p className="text-center font-mono text-xs text-warn">{message}</p>}
+      <p className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>
 
        <div className="mt-auto flex gap-2">
          <Button

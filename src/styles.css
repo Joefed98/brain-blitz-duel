@@ -22,6 +22,7 @@
   --color-popover-foreground: var(--card-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-accepted-word-foreground: var(--accepted-word-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -62,6 +63,7 @@
   --card-foreground: oklch(0.97 0.005 285);
   --primary: oklch(0.81 0.155 82);
   --primary-foreground: oklch(0.16 0.02 82);
+  --accepted-word-foreground: #FFFFFF;
   --secondary: oklch(0.26 0.014 285);
   --secondary-foreground: oklch(0.97 0.005 285);
   --muted: oklch(0.24 0.012 285);
@@ -226,6 +228,29 @@ body.game-lock {
   100% {
     transform: scale(1);
   }
+}
+
+/* The remaining board region sizes square grids by both available dimensions. */
+.word-confirmation-board-space {
+  container-type: size;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  justify-content: center;
+  align-items: flex-start;
+}
+.word-confirmation-board {
+  width: min(100%, 100cqh);
+  aspect-ratio: 1;
+}
+@keyframes accepted-word-fade {
+  0%, 100% { opacity: 0; }
+  12%, 80% { opacity: 1; }
+}
+.accepted-word-chip { animation: accepted-word-fade 700ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .accepted-word-chip { animation: none; }
 }
 
 @utility animate-tile-flash {

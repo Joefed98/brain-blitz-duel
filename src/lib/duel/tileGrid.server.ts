@@ -8,6 +8,7 @@ import {
   TG_TILES,
   tileGridConnected,
   tileGridRuns,
+  tileGridWordCells,
 } from "./tileGrid";
 import type { TileGridPuzzleData } from "./types";
 
@@ -98,9 +99,6 @@ export function checkTileGridWord(raw: string): { valid: boolean; points: number
 
 export function judgeTileGrid(cells: string[], tray: string[]): { placed: number; valid: boolean; wordTiles: number } {
   if (!fitsTray(cells, tray)) return { placed: 0, valid: false, wordTiles: 0 };
-  const inWord = new Set<number>();
-  for (const run of tileGridRuns(cells)) {
-    if (run.word.length >= 3 && isWord(run.word)) run.cells.forEach((c) => inWord.add(c));
-  }
+  const inWord = tileGridWordCells(cells, isWord);
   return { placed: placedCount(cells), valid: tileGridValid(cells), wordTiles: inWord.size };
 }

@@ -1,5 +1,6 @@
 import { playCorrect, playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AcceptedWordChip } from "./AcceptedWordChip";
 
 import {
   adjacentGridCellAt,
@@ -140,6 +141,7 @@ export function WordHuntPuzzle({
   const [found, setFound] = useState<Found[]>([]);
   const [flash, setFlash] = useState<"good" | "bad" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [acceptedWord, setAcceptedWord] = useState<string | null>(null);
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const tracing = useRef(false);
@@ -202,6 +204,7 @@ export function WordHuntPuzzle({
       playCorrect();
       setFlash("good");
       setMessage(null);
+      setAcceptedWord(verdict.word);
       hapticTick();
     } else {
       setFlash("bad");
@@ -321,12 +324,13 @@ export function WordHuntPuzzle({
       </div>
 
       <div
-        className={`-mx-1 flex min-h-0 flex-1 items-center justify-center rounded-xl p-1 transition-colors duration-150 ${
+        className={`flex min-h-0 flex-1 flex-col items-center rounded-xl transition-colors duration-150 ${
           flash === "good" ? "bg-ok/25" : flash === "bad" ? "bg-warn/25" : "bg-transparent"
         }`}
       >
-        {/* Cells stay at least 56 px: five cells plus four 6 px gaps. */}
-        <div className="aspect-square h-auto max-h-full w-full min-w-0 flex-1">
+        <AcceptedWordChip word={acceptedWord} />
+        <div className="word-confirmation-board-space">
+        <div className="word-confirmation-board">
           <WordHuntBoard
             grid={grid}
             path={path}
@@ -336,9 +340,10 @@ export function WordHuntPuzzle({
             pointer={pointer}
           />
         </div>
+        </div>
       </div>
 
-      {message && <p className="text-center font-mono text-xs text-warn">{message}</p>}
+      <p className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>
 
       <button
         type="button"

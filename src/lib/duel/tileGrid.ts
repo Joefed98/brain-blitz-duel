@@ -32,6 +32,18 @@ export function placedCount(cells: string[]): number {
   return cells.filter(Boolean).length;
 }
 
+/** Union of cells in currently valid whole runs; crossings count only once.
+ * The phone supplies server verdicts; the grader supplies its private dictionary.
+ */
+export function tileGridWordCells(cells: string[], validWord: (word: string) => boolean): Set<number> {
+  const counted = new Set<number>();
+  for (const run of tileGridRuns(cells)) {
+    if (run.word.length < 3 || !validWord(run.word)) continue;
+    for (const cell of run.cells) counted.add(cell);
+  }
+  return counted;
+}
+
 /** Every horizontal and vertical run of two or more touching letters. */
 export function tileGridRuns(cells: string[]): TileRun[] {
   const runs: TileRun[] = [];
