@@ -6,7 +6,9 @@ export interface IntroDemoRow {
   game_type: string;
   seed: number;
   puzzle: PuzzleData;
-  input_log: { run: string };
+  /** Engine games: { run }. Puzzle games: a PuzzleDemoLog. */
+  input_log: { run?: string } & Record<string, unknown>;
+  example_id?: string | null;
   start_tick: number;
   length_ticks: number;
 }
@@ -30,7 +32,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     });
     const { data: row, error } = await client
       .from("intro_demos" as never)
-      .select("game_type, seed, puzzle, input_log, start_tick, length_ticks")
+      .select("game_type, seed, puzzle, input_log, start_tick, length_ticks, example_id")
       .eq("game_type", data.type)
       .maybeSingle();
     if (error) {
