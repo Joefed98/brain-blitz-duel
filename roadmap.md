@@ -1,6 +1,6 @@
 ## Flip sweeping bends
-- [ ] Replace early shaking with long shared-band bends, ramping frequency and change rate only from 45 seconds; keep integer seeded physics and existing randomness.
-- [ ] Run Flip-only identity proof and focused curve checks; report tuning table and saved intro demo re-recording requirement. No browser tests.
+- [x] Added integer bend table: 1,560px waves until 45s, then continuously shrinking through 1,040/520/260px at 50/55/60s; displacement eases to ±145px by 25s. Integrated phase preserves continuity, constant gap and existing seeded RNG draws.
+- [x] Flip-only identity proof passed 200/200; curve checks passed integer offsets, constant gap, continuous transitions and early/late change maxima 2/10px per tick. Preview build OK; no browser tests. Report cycle-rate table and saved Flip demo re-recording requirement; device feel remains user-tested.
 
 ## Cross, Burst and Ten Drop pacing
 - [x] Cross preserves crossings 1-2 and adds 64 fixed-point units/tick per crossing from 3; fallback uses the same later speed progression. Report lane speed ranges for all ten courses.
