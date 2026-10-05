@@ -18,7 +18,7 @@ import {
   binTossDrag,
   binTossDrawAim,
   binTossDrawGhost,
-  binTossDrawLanding,
+
   binTossGame,
   binTossTransform,
   BINTOSS_AIM,
@@ -38,6 +38,8 @@ import { decodeBinTossRun, encodeBinTossRun, replayBinTossRun } from "@/lib/duel
 import { ARCADE_CRASH_FREEZE_MS, type BinTossPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playWrong } from "@/lib/sound";
+import { binTossArtGame, binTossArtLanding } from "@/lib/arcade/binTossArt.renderer";
+import { binTossSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -155,6 +157,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = binTossSounds();
     let secondAt = last;
     let ticksThisSecond = 0;
 
@@ -210,6 +213,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, binTossGame.isOver(state.current));
       feedback(state.current, binTossGame.isOver(state.current));
+      sounds.frame(state.current, !binTossGame.isOver(state.current));
 
       frameTiming.draw();
       const size = sizeCanvas();
@@ -222,7 +226,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             if (activeLanding.progress >= 1) landing.current = null;
           }
           const hideNewBasket = activeLanding && activeLanding.progress < 1;
-          binTossGame.draw(
+          binTossArtGame.draw(
             context,
             hideNewBasket
               ? {
@@ -239,7 +243,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (aim.current && state.current.phase === BINTOSS_AIM) {
             binTossDrawAim(context, size, aim.current, cancelActive.current);
           }
-          if (activeLanding) binTossDrawLanding(context, size, activeLanding);
+          if (activeLanding) binTossArtLanding(context, size, activeLanding);
         }
       }
 
@@ -274,7 +278,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => { cancelAnimationFrame(frame); sounds.stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 

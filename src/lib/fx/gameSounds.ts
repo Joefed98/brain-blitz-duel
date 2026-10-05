@@ -14,6 +14,8 @@ import { BRK_PADDLE_Y, type BrkState } from "@/lib/arcade/breaker";
 import type { RallyState } from "@/lib/arcade/rally";
 import type { BurstState } from "@/lib/arcade/burst";
 import { BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
+import { BINTOSS_THROWS, type BinTossState } from "@/lib/arcade/binToss";
+import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
 
 export interface GameSounds<S> {
   frame: (state: S, running: boolean) => void;
@@ -230,6 +232,56 @@ export function burstSounds(): GameSounds<BurstState> {
         if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
         if ((state.shield && !prev.shield) || (state.burst && !prev.burst)) playSound("arc_retro_pickup");
         if (state.shots.length > prev.shots.length) playSound("arc_retro_blip", 0.6, 1, true);
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+/* ============================== Fairground world ============================= */
+
+/** Sting once when a run finishes perfect; shared by every Fairground game. */
+function fairPerfect() {
+  let played = false;
+  return (perfect: boolean) => {
+    if (perfect && !played) {
+      played = true;
+      playSound("arc_fair_sting");
+    }
+  };
+}
+
+export function binTossSounds(): GameSounds<BinTossState> {
+  let prev: BinTossState | null = null;
+  const perfect = fairPerfect();
+  return {
+    frame(state) {
+      if (prev && state.tick > prev.tick) {
+        if (state.baskets > prev.baskets) {
+          playSound("arc_fair_bucket");
+          if (state.baskets === BINTOSS_THROWS) playSound("arc_fair_bell");
+        } else if (state.resolved > prev.resolved) playSound("arc_bounce", 0.7);
+        if (state.wobbleTick !== prev.wobbleTick && state.wobbleTick > 0) playSound("arc_bounce", 0.7, 1, true);
+        perfect(state.baskets === BINTOSS_THROWS);
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+export function bullseyeSounds(): GameSounds<BullseyeState> {
+  let prev: BullseyeState | null = null;
+  const perfect = fairPerfect();
+  return {
+    frame(state) {
+      if (prev && state.tick > prev.tick) {
+        if (prev.flightTick > 0 && state.flightTick === 0 && state.hits.length > 0) {
+          playSound("arc_fair_thud");
+          if (state.hits[state.hits.length - 1]!.value === 10) playSound("arc_fair_bell");
+        }
+        perfect(state.hits.length === BULLSEYE_ARROWS && state.flightTick === 0 && state.total === BULLSEYE_ARROWS * 10);
       }
       prev = state;
     },
