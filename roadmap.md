@@ -1,3 +1,7 @@
+## Intro wording only
+- [ ] Replace em/en-dashes in intro GOAL, HOW, SCORE templates and example captions without changing game logic or help formulas.
+- [ ] State each of the six word games' grader-enforced minimum in HOW where one exists; verify wording without browser tests.
+
 ## Practice intro Back button (Oct 5)
 - [x] Add a compact outlined top-left Back button in the existing intro header, practice only; cancel and clear the run without grading.
 - [x] Cancellation checks passed; Back shares the existing header row without increasing its height; preview build OK. No browser tests; phone appearance remains user-tested.
