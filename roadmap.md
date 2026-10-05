@@ -1,7 +1,7 @@
 ## Shared visual and audio foundation
-- [ ] Shared category themes/tokens, layered backgrounds and bounded reduced-motion effects.
-- [ ] Manifest effects/voice, separate persisted music mute, ducking and phase-only silent music.
-- [ ] Shared HUD, lifecycle and all-game feedback adapters; audit and report coverage without browser tests or identity proofs.
+- [x] Shared category themes/tokens, layered backgrounds and bounded reduced-motion effects; 94 registry themes, no individual overrides yet.
+- [x] Manifest effects/voice placeholders, separate persisted music mute, ducking and lobby/standings/podium-only silent music. Spoken recordings and music await supplied assets.
+- [x] Shared 20px ring timer, score/progress rows, existing shared help, server-verdict puzzle feedback and all dedicated/shared arcade run-end observers. Focused FX tests and build passed; 47 protected files unchanged. No browser tests or identity proofs; phone fit and 60fps remain device-unverified. Granular placement feedback is only emitted where an existing validated event exists.
 
 ## Bullseye, Cross and Flip tuning
 - [x] Bullseye values are 10/9/8/3/2/1; seeded arrow-7–10 permutations and value colours derive from that one list, labels/example and SCORE updated; geometry, wind and sway unchanged. Raw max 100, score max 150.
