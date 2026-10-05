@@ -122,7 +122,9 @@ function glowRect(ctx: CanvasRenderingContext2D, left: number, top: number, widt
   if (stamp) {
     const pad = stamp.pad;
     ctx.globalAlpha = Math.min(1, retroBloom() / 9);
-    if (vertical) {
+    if (vertical && height === BURST_SHORT_LEN) {
+      blit(ctx, stamp, left, top);
+    } else if (vertical) {
       // Slice the shaft and end caps separately: stretching never lengthens the caps.
       ctx.drawImage(stamp.layer, 0, pad * 2, stamp.layer.width, h * 2, left - pad, top, w + pad * 2, height);
       ctx.drawImage(stamp.layer, 0, 0, stamp.layer.width, pad * 2, left - pad, top - pad, w + pad * 2, pad);
