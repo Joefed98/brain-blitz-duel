@@ -16,6 +16,9 @@
  * failure is swallowed: sound is a nicety, never a failure.
  */
 
+import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
+
+const MUSIC_MUTE_KEY = "duelz_music_muted";
 const MUTE_KEY = "duelz_muted";
 const MUSIC_KEY = "duelz_music_volume";
 const FX_KEY = "duelz_effects_volume";
@@ -36,22 +39,10 @@ export type Cue =
   | "round_won"
   | "podium_fanfare";
 
-export type Track = "lobby_loop" | "tension_loop";
+export type Track = "lobby_loop" | "tension_loop" | "standings_loop" | "podium_loop";
 
-const FILES: Record<Cue | Track, string> = {
-  lobby_loop: "/sounds/lobby_loop.mp3",
-  tension_loop: "/sounds/tension_loop.mp3",
-  player_joined: "/sounds/player_joined.mp3",
-  round_start: "/sounds/round_start.mp3",
-  tick: "/sounds/tick.mp3",
-  correct: "/sounds/correct.mp3",
-  wrong: "/sounds/wrong.mp3",
-  lock: "/sounds/lock.mp3",
-  round_won: "/sounds/round_won.mp3",
-  podium_fanfare: "/sounds/podium_fanfare.mp3",
-};
-
-export const SOUND_NAMES = Object.keys(FILES) as (Cue | Track)[];
+const FILES = Object.fromEntries(Object.entries(SOUND_MANIFEST).flatMap(([id, entry]) => entry.url ? [[id, entry.url]] : [])) as Partial<Record<SoundId, string>>;
+export const SOUND_NAMES = Object.keys(SOUND_MANIFEST) as SoundId[];
 
 const FADE_MS = 400;
 
@@ -61,13 +52,14 @@ let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
 let musicGain: GainNode | null = null;
 let effectsGain: GainNode | null = null;
+let voiceGain: GainNode | null = null;
 let unlocked = false;
 let loading: Promise<void> | null = null;
 let lifecycleBound = false;
 let loggedFailure = false;
 const buffers = new Map<string, AudioBuffer>();
 const failedFiles = new Set<string>();
-const playingEffects = new Map<Cue, AudioBufferSourceNode>();
+const playingEffects = new Map<SoundId, AudioBufferSourceNode>();
 let currentTrack: { name: Track; source: AudioBufferSourceNode; gain: GainNode } | null = null;
 /** What music should be playing, so we can restart it after an interruption. */
 let desiredTrack: { name: Track; options: MusicOptions } | null = null;
@@ -93,6 +85,16 @@ export function isMuted(): boolean {
   return window.localStorage.getItem(MUTE_KEY) === "1";
 }
 
+export function isMusicMuted(): boolean {
+  if (typeof window === "undefined") return false;
+  try { return window.localStorage.getItem(MUSIC_MUTE_KEY) === "1"; } catch { return false; }
+}
+export function setMusicMuted(next: boolean): void {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(MUSIC_MUTE_KEY, next ? "1" : "0"); } catch { /* unavailable */ }
+  if (!next) unlockAudio();
+  applySettings(); announce();
+}
 export function musicVolume(): number {
   return readNumber(MUSIC_KEY, DEFAULT_MUSIC_VOLUME);
 }
@@ -104,9 +106,10 @@ export function effectsVolume(): number {
 function applySettings(): void {
   if (!ctx || !masterGain || !musicGain || !effectsGain) return;
   const t = ctx.currentTime;
-  masterGain.gain.setValueAtTime(isMuted() ? 0 : 1, t);
-  musicGain.gain.setValueAtTime(musicVolume(), t);
-  effectsGain.gain.setValueAtTime(effectsVolume(), t);
+  masterGain.gain.setValueAtTime(1, t);
+  musicGain.gain.setValueAtTime(isMusicMuted() ? 0 : musicVolume(), t);
+  effectsGain.gain.setValueAtTime(isMuted() ? 0 : effectsVolume(), t);
+  voiceGain?.gain.setValueAtTime(isMuted() ? 0 : effectsVolume(), t);
 }
 
 function announce(): void {
@@ -153,10 +156,13 @@ async function preload(): Promise<void> {
     Object.entries(FILES).map(async ([name, url]) => {
       if (buffers.has(name)) return;
       try {
+        if (!url) return;
         const response = await fetch(url);
         if (!response.ok) throw new Error(`${response.status}`);
         const bytes = await response.arrayBuffer();
-        const decoded = await ctx!.decodeAudioData(bytes);
+        const context = ctx;
+        if (!context) return;
+        const decoded = await context.decodeAudioData(bytes);
         buffers.set(name, decoded);
         failedFiles.delete(name);
       } catch (error) {
@@ -237,8 +243,10 @@ export function unlockAudio(): void {
       masterGain = ctx.createGain();
       musicGain = ctx.createGain();
       effectsGain = ctx.createGain();
+      voiceGain = ctx.createGain();
       musicGain.connect(masterGain);
       effectsGain.connect(masterGain);
+      voiceGain.connect(masterGain);
       masterGain.connect(ctx.destination);
       applySettings();
       bindLifecycle();
@@ -274,7 +282,6 @@ export function installSoundUnlock(): () => void {
 }
 
 function ready(): boolean {
-  if (isMuted()) return false;
   if (!unlocked || !ctx) return false;
   const state = contextState();
   if (state === "suspended" || state === "interrupted") {
@@ -329,11 +336,14 @@ export function demoHushed(): boolean {
 }
 
 /** Plays a one-shot effect. Retriggering a cue restarts it rather than stacking. */
-export function playCue(cue: Cue, volume = 1): void {
+export function playSound(cue: SoundId, volume = 1): void {
   if (demoHushed()) return;
-  if (!ready() || !ctx || !effectsGain) return;
+  if (isMuted() || !ready() || !ctx || !effectsGain) return;
+  const entry = SOUND_MANIFEST[cue];
+  if (entry.channel === "music") return;
+  duckMusic(entry.ms);
   const buffer = buffers.get(cue);
-  if (!buffer) return;
+  if (!buffer) { playTone(entry.frequency, entry.ms, "sine", 0.18, undefined, entry.channel === "voice"); return; }
   const previous = playingEffects.get(cue);
   if (previous) {
     try {
@@ -347,7 +357,7 @@ export function playCue(cue: Cue, volume = 1): void {
     source.buffer = buffer;
     const gain = ctx.createGain();
     gain.gain.setValueAtTime((cue === "podium_fanfare" ? FANFARE_GAIN : 1) * Math.max(0, Math.min(1, volume)), ctx.currentTime);
-    source.connect(gain).connect(effectsGain);
+    source.connect(gain).connect(entry.channel === "voice" && voiceGain ? voiceGain : effectsGain);
     source.onended = () => {
       if (playingEffects.get(cue) === source) playingEffects.delete(cue);
     };
@@ -358,6 +368,21 @@ export function playCue(cue: Cue, volume = 1): void {
   }
 }
 
+function duckMusic(durationMs: number): void {
+  if (!ctx || !musicGain || isMusicMuted()) return;
+  const time = ctx.currentTime;
+  const gain = musicGain.gain;
+  gain.cancelScheduledValues(time); gain.setValueAtTime(gain.value, time);
+  gain.linearRampToValueAtTime(musicVolume() * 0.3, time + 0.03);
+  gain.linearRampToValueAtTime(musicVolume(), time + Math.max(0.25, durationMs / 1000) + 0.2);
+}
+export function playCue(cue: Cue, volume = 1): void {
+  if (demoHushed()) return;
+  playSound(cue, volume);
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("duelz-cue", { detail: cue }));
+}
+export const playVoice = (id: "prepareToDuel" | "finalRound" | "gg") => playSound(id);
+
 /** A short synthesised tone (e.g. rising chain-link pitch); silent when audio is off. */
 export function playTone(
   frequency: number,
@@ -365,9 +390,10 @@ export function playTone(
   type: OscillatorType = "sine",
   volume = 0.25,
   endFrequency?: number,
+  voice = false,
 ): void {
   if (demoHushed()) return;
-  if (!ready() || !ctx || !effectsGain) return;
+  if (isMuted() || !ready() || !ctx || !effectsGain) return;
   try {
     const now = ctx.currentTime;
     const end = now + durationMs / 1000;
@@ -378,7 +404,7 @@ export function playTone(
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(Math.max(0, Math.min(1, volume)), now);
     gain.gain.exponentialRampToValueAtTime(0.0001, end);
-    osc.connect(gain).connect(effectsGain);
+    osc.connect(gain).connect(voice && voiceGain ? voiceGain : effectsGain);
     osc.start(now);
     osc.stop(end + 0.02);
   } catch (error) {
@@ -408,6 +434,7 @@ const BEAT_BASS = [55, 43.65, 65.41, 49];
  * four-bar A–F–C–G progression. `step` counts eighths from the first beat.
  */
 export function playBeatStep(step: number): void {
+  if (isMuted()) return;
   if (demoHushed()) return;
   if (!ready() || !ctx || !musicGain) return;
   try {
@@ -426,17 +453,17 @@ export function playBeatStep(step: number): void {
     hp.frequency.value = 7000;
     const hatGain = ctx.createGain();
     hatGain.gain.value = inBar % 2 === 1 ? 0.22 : 0.12;
-    hat.connect(hp).connect(hatGain).connect(musicGain);
+    hat.connect(hp).connect(hatGain).connect(effectsGain ?? musicGain);
     hat.start(t);
     if (inBar === 0 || inBar === 4 || inBar === 7) {
       const osc = ctx.createOscillator();
       osc.type = "triangle";
-      osc.frequency.value = BEAT_BASS[bar]! * (inBar === 7 ? 2 : 1);
+      osc.frequency.value = (BEAT_BASS[bar] ?? 55) * (inBar === 7 ? 2 : 1);
       const g = ctx.createGain();
       g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(0.5, t + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-      osc.connect(g).connect(musicGain);
+      osc.connect(g).connect(effectsGain ?? musicGain);
       osc.start(t);
       osc.stop(t + 0.4);
     }
@@ -474,6 +501,7 @@ interface MusicOptions {
  * one track at a time. Re-calling with the track already playing does nothing.
  */
 export function startMusic(name: Track, options: MusicOptions = {}): void {
+  if (name === "tension_loop") return;
   if (currentTrack?.name === name) return;
   // Remembered so an interruption (call, app switch) can restart it on resume.
   desiredTrack = { name, options };

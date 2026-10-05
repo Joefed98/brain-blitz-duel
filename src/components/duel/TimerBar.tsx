@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { useReducedMotion } from "@/lib/motion";
-import { playTick, startMusic, stopMusic } from "@/lib/sound";
+import { fx } from "@/lib/fx";
 
 interface TimerBarProps {
   msRemaining: number;
@@ -19,64 +19,21 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
   const progress = Math.max(0, Math.min(1, remaining / limit));
   const seconds = Math.ceil(remaining / 1000);
   const finalTen = active && remaining > 0 && remaining <= 10_000;
-  const finalThird = active && progress <= 1 / 3;
-  const middleThird = active && !finalThird && progress <= 2 / 3;
-
+  const critical = active && remaining > 0 && remaining <= 5_000;
   useEffect(() => {
-    if (!finalTen || seconds < 1 || lastTick.current === seconds) return;
+    if (!active || lastTick.current === seconds) return;
     lastTick.current = seconds;
-    if (seconds <= 3) playTick();
-  }, [finalTen, seconds]);
-
-  const tensionRemaining = useRef(0);
-  if (finalThird) tensionRemaining.current = remaining;
-  useEffect(() => {
-    if (!finalThird) return;
-    startMusic("tension_loop", {
-      rate: 1,
-      rampToRate: 1.15,
-      rampMs: Math.max(400, tensionRemaining.current),
-    });
-  }, [finalThird]);
-
-  useEffect(() => {
-    if (active) return;
-    stopMusic(200);
-  }, [active]);
-
-  useEffect(() => () => stopMusic(200), []);
-
-  const fill = !active
-    ? "bg-muted-foreground"
-    : finalThird
-      ? "bg-destructive"
-      : middleThird
-        ? "bg-timer-orange"
-        : "bg-timer-green";
-  const digits = !active
-    ? "text-muted-foreground"
-    : finalThird
-      ? "text-destructive"
-      : middleThird
-        ? "text-timer-orange"
-        : "text-timer-green";
-  const pulse = finalTen && !reduced ? "animate-timer-second-pulse" : "";
-
+    if (seconds === 10) fx.onTimerWarning10();
+    if (seconds === 5) fx.onTimerWarning5();
+    if (seconds === 0) fx.onTimeUp();
+  }, [active, seconds]);
   return (
-    <div
-      className={`grid h-5 w-full shrink-0 grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-1 ${pulse}`}
-      aria-label={`${seconds} seconds remaining`}
-      role="timer"
-    >
-      <div className="h-1.5 w-full overflow-hidden bg-muted">
-        <div
-          className={`h-full origin-left transition-[width,background-color] duration-100 ease-linear ${fill}`}
-          style={{ width: `${progress * 100}%` }}
-        />
-      </div>
-      <span className={`text-right font-mono text-[11px] font-bold leading-none tabular-nums ${digits}`}>
-        {seconds}
-      </span>
+    <div className={`flex h-5 w-full shrink-0 items-center justify-end gap-1 ${finalTen ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`} aria-label={`${seconds} seconds remaining`} role="timer">
+      <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0 fx-timer-ring" aria-hidden="true">
+        <circle cx="10" cy="10" r="8" className="timer-ring-track" />
+        <circle cx="10" cy="10" r="8" pathLength="100" strokeDasharray="100" strokeDashoffset={100 - progress * 100} transform="rotate(-90 10 10)" className={reduced ? "timer-ring-fill" : "timer-ring-fill transition-[stroke-dashoffset] duration-100"} />
+      </svg>
+      <span className="w-9 text-right font-mono text-[11px] font-bold leading-none tabular-nums text-timer-gold">{seconds}</span>
     </div>
   );
 }

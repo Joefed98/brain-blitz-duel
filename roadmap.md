@@ -1,3 +1,8 @@
+## Shared visual and audio foundation
+- [ ] Shared category themes/tokens, layered backgrounds and bounded reduced-motion effects.
+- [ ] Manifest effects/voice, separate persisted music mute, ducking and phase-only silent music.
+- [ ] Shared HUD, lifecycle and all-game feedback adapters; audit and report coverage without browser tests or identity proofs.
+
 ## Bullseye, Cross and Flip tuning
 - [x] Bullseye values are 10/9/8/3/2/1; seeded arrow-7–10 permutations and value colours derive from that one list, labels/example and SCORE updated; geometry, wind and sway unchanged. Raw max 100, score max 150.
 - [x] Cross scores 2 per total lane plus 4 per crossing, cap 150; shared total-lane helper feeds score and server result, intro/help/reveal/summary updated, clean bonus removed (legacy clean checkpoint field retained).
