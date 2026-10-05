@@ -1,3 +1,7 @@
+## Eat and Grow neon comet
+- [ ] Replace square snake art with cached cell-centred comet beads, pixel-star pellets and bounded presentation-only sparks; preserve full-cell envelopes, sounds and reduced-motion behaviour.
+- [ ] Run no-browser drawing/cache checks and compare protected source fingerprints; phone appearance and 60 fps remain user-tested.
+
 ## Burst performance
 - [x] Profile crowded Burst drawing; cache artwork/glow/scanlines and cap particles (32; skip above 24 enemies or 8 shots). Warm frame filled rectangles fell from about 1,653 to 19, with no live blur; desktop DPR-2 crowded-frame median fell from 2.64 ms to 0.31–0.46 ms (cached p95 0.96–2.40 ms).
 - [x] Add dev frame interval/FPS, p95, draw/work readout across shared and 16 dedicated arcade drawing paths. Cache/particle checks, shared FX checks, native raster image inspection and 188 pre-change fingerprint comparisons passed; preview build OK. No browser tests or identity proofs; 60 fps on phones awaits user device checks.
