@@ -302,12 +302,12 @@ function LaserBoard({
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
-  const gems = [5, 15, 25, 55, 75, 95];
-  const solution: MirrorPlacement[] = [{ cell: 45, kind: "S-" }];
+  const gems = [35, 26, 29, 55, 76, 79];
+  const solution: MirrorPlacement[] = [{ cell: 45, kind: "S-" }, { cell: 25, kind: "/" }, { cell: 75, kind: "\\" }];
   const trace = traceBeam(40, "R", solution, [], [], gems);
   return (
     <div className="flex flex-col items-center gap-2">
-      <p className="text-xs text-muted-foreground">Place the splitter to send one beam through all six gems.</p>
+      <p className="text-xs text-muted-foreground">Place the splitter and mirrors to light all six gems.</p>
       <div className="h-[140px] w-[140px]">
         <LaserBoard source={40} dir="R" gems={gems} bombs={[]} blocks={[]}
           placed={solution} beam={trace.paths} litGems={trace.gemsLit} />

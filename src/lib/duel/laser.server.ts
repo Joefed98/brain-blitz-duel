@@ -13,12 +13,8 @@ import {
   LASER_MIN_BOMBS,
   LASER_MAX_MIRRORS,
   LASER_MIN_MIRRORS,
-  LASER_MIN_ADJACENT_BLOCKS,
   LASER_MIN_BLOCKS,
-  LASER_MIN_BOMB_CROSSINGS,
   LASER_MIN_CENTRAL_BLOCKS,
-  LASER_MIN_SHORTCUT_BLOCKS,
-  LASER_PROMISING_CAP,
   type BeamDir,
   type LaserPuzzleData,
   type MirrorKind,
@@ -45,8 +41,6 @@ const PERPENDICULAR: Record<BeamDir, BeamDir[]> = {
   R: ["U", "D"],
 };
 
-const DIR_INDEX: Record<BeamDir, number> = { U: 0, D: 1, L: 2, R: 3 };
-const DIRS: BeamDir[] = ["U", "D", "L", "R"];
 
 /** True for the middle 6x6 of the board. */
 function isCentral(cell: number): boolean {

@@ -1308,7 +1308,7 @@ export const LASER_PROMISING_CAP = 20_000;
 export const LASER_BEAM_MS = 600;
 export const LASER_FADE_MS = 1_500;
 
-/** A diagonal mirror: "/" or "\". */
+/** Diagonal mirrors and splitters with a vertical/horizontal input axis. */
 export type MirrorKind = "/" | "\\" | "S|" | "S-";
 
 /** Up, down, left, right — the direction a beam travels. */
@@ -1326,9 +1326,9 @@ export interface LaserStats {
   bends: number;
   gems: number;
   bombs: number;
-  /** True when no placement of one to four mirrors lights all three gems. */
+  /** Every proper subset of the stored exact-piece solution fails. */
   necessityPass: boolean;
-  /** How many mirror placements the exhaustive search traced. */
+  /** How many proper subsets of the stored solution were traced. */
   subsetsTested: number;
   attempts: number;
   splitters?: number;
@@ -1343,7 +1343,7 @@ export interface LaserPuzzleData {
   source: number;
   /** The direction it fires, inward from that edge. */
   dir: BeamDir;
-  /** The three gems one beam must pass through, in any order. */
+  /** The six gems the split beam must light. */
   gems: number[];
   /** Two gems only light when entered with this heading. */
   directionalGems?: { cell: number; from: BeamDir }[];
