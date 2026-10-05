@@ -27,6 +27,7 @@ import {
 import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import { drawMatchupSwap, MATCHUP_SWAP_MS, type MatchupSwapTween } from "@/lib/arcade/matchup.renderer";
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
+import { arcadeFeedback } from "@/lib/fx/arcade";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -132,6 +133,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
+    const feedback = arcadeFeedback();
     let secondAt = last;
     let ticksThisSecond = 0;
 
@@ -182,6 +184,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       reportArcadeTick(state.current.tick, matchupGame.isOver(state.current));
+      feedback(state.current, matchupGame.isOver(state.current));
 
       const size = sizeCanvas();
       if (size) {

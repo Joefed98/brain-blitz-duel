@@ -15,7 +15,7 @@ interface PhoneShellProps {
   constrained?: boolean;
   /** Suppress iOS selection/callouts throughout an active round screen. */
   gameScreen?: boolean;
-  gameType?: PuzzleType;
+  gameType?: PuzzleType | undefined;
 }
 
 /** Inline no-select style for text on game screens (timer digits, HUD, banners). */
@@ -94,7 +94,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
         {!bare && (
           <div className="mb-2 flex items-center justify-between" style={gameScreen ? NO_SELECT_STYLE : undefined}>
             <Wordmark />
-            <MuteToggle />
+            <div className="flex items-center"><MuteToggle /></div>
           </div>
         )}
         {children}

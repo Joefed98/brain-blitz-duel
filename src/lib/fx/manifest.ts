@@ -1,5 +1,6 @@
 /** Swap URLs here when the final files arrive; null music is intentionally silent. */
-export const SOUND_MANIFEST = {
+interface SoundEntry { channel: "effects" | "voice" | "music"; frequency: number; ms: number; url: string | null; }
+const ENTRIES = {
   player_joined: { channel: "effects", frequency: 520, ms: 110, url: null },
   round_start: { channel: "effects", frequency: 440, ms: 180, url: null },
   tick: { channel: "effects", frequency: 660, ms: 55, url: null },
@@ -27,4 +28,5 @@ export const SOUND_MANIFEST = {
   podium_loop: { channel: "music", frequency: 0, ms: 0, url: null },
   tension_loop: { channel: "music", frequency: 0, ms: 0, url: null },
 } satisfies Record<string, { channel: "effects" | "voice" | "music"; frequency: number; ms: number; url: string | null }>;
-export type SoundId = keyof typeof SOUND_MANIFEST;
+export type SoundId = keyof typeof ENTRIES;
+export const SOUND_MANIFEST: Record<SoundId, SoundEntry> = ENTRIES;

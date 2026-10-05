@@ -104,12 +104,12 @@ import {
 } from "./types";
 import { CORRECT_ANSWERS, ROUND_SUMMARIES } from "./roundSummaries";
 import { PUZZLE_INSTRUCTIONS } from "./instructions";
-import { gameTheme } from "@/lib/fx/theme";
+import { gameTheme, type GameTheme } from "@/lib/fx/theme";
 import { feedbackStage } from "@/components/duel/FeedbackStage";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
 type RegisteredPuzzleDefinition = PuzzleDefinition &
-  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions" | "retired">>;
+  Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions" | "retired">> & { theme: GameTheme };
 
 const LONG_REVEAL_TYPES = new Set<PuzzleType>([
   "numseq",
@@ -277,7 +277,7 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   trail: trailPuzzle,
 };
 
-export const PUZZLE_REGISTRY = Object.fromEntries(
+export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(
   Object.entries(BASE_REGISTRY).map(([type, definition]) => [
     type,
     {

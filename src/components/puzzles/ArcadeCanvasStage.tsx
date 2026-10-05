@@ -13,6 +13,7 @@ import {
   type CanvasSize,
 } from "@/lib/arcade/engine";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
+import { arcadeFeedback } from "@/lib/fx/arcade";
 
 export interface PointerPayload {
   /** Event kind for the pointer/tick path (default 7, a drag); discrete games use inputKind. */
@@ -118,6 +119,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
+    const feedback = arcadeFeedback();
     const tickOf = () => (state.current as { tick: number }).tick;
 
     const finish = () => {
@@ -169,6 +171,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
         }
       }
       reportArcadeTick(tickOf(), game.isOver(state.current));
+      feedback(state.current as object, game.isOver(state.current));
       const size = sizeCanvas();
       if (size) {
         const ctx = canvas.current?.getContext("2d");

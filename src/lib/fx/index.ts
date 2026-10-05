@@ -2,7 +2,7 @@ import { demoHushed, playSound } from "@/lib/sound";
 import { DEFAULT_SOUNDS, type FxHook, type GameTheme, type Primitive } from "./theme";
 
 export const FX_EVENT = "duelz-fx";
-export interface FxEvent { hook: FxHook; primitive: Primitive; value?: number | string; }
+export interface FxEvent { hook: FxHook; primitive: Primitive; value?: number | string | undefined; }
 const PRIMITIVES: Record<FxHook, Primitive> = {
   onRoundStart: "slideIn", onCountdown: "pop", onPlace: "pop", onMove: "trail",
   onCorrect: "burst", onWrong: "shake", onStageComplete: "glow", onComplete: "burst",

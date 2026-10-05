@@ -30,6 +30,7 @@ import {
 import { decodeBeatRun, encodeBeatRun, replayBeatRun } from "@/lib/duel/beat";
 import type { BeatPuzzleData } from "@/lib/duel/types";
 import { playBeatStep, playBlip, playWrong } from "@/lib/sound";
+import { arcadeFeedback } from "@/lib/fx/arcade";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -120,6 +121,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
+    const feedback = arcadeFeedback();
     let judged = state.current.perfect + state.current.good + state.current.ok;
     let missed = state.current.misses;
 
@@ -173,9 +175,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       reportArcadeTick(state.current.tick, beatGame.isOver(state.current));
+      feedback(state.current, beatGame.isOver(state.current));
 
       const size = sizeCanvas();
-      if (size) beatGame.draw(canvas.current!.getContext("2d")!, state.current, size);
+      const context = canvas.current?.getContext("2d");
+      if (size && context) beatGame.draw(context, state.current, size);
 
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
