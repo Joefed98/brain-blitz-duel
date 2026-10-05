@@ -106,7 +106,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   hover: arcadeOpen("each gap you fly through; all of them scores 150"),
   skyline: arcadeOpen("each block stacked, with extra for perfect drops"),
   bintoss: arcadeFinish("each basket, 10 a time", "Sink all ten"),
-  bullseye: `Rings are worth ${BULLSEYE_RING_VALUES.join(", ")} from the centre out. Your ring total earns one and a half points per point, up to 150. Missed or unfired arrows score nothing.`,
+  bullseye: `Rings: ${BULLSEYE_RING_VALUES.join(", ")} from the centre out. Earn one and a half times your ring total, up to 150. Missed or unfired arrows score nothing.`,
   matchup: arcadeOpen("every line you match; bigger lines score far more"),
   snake: arcadeOpen("each pellet you eat"),
   cross: `${CROSS_LANE_POINTS} points for each lane crossed, plus ${CROSS_CROSSING_POINTS} for each full crossing, up to 150. Being hit costs a life, not points.`,
