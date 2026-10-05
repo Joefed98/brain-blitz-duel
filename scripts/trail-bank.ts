@@ -8,8 +8,8 @@
  * dropped in random order whenever the backtracking solver still finds only
  * one path, leaving an irreducible set. That is repeated 8 times per path with
  * different orders and the smallest set kept (smallest found, not a proven
- * global minimum). Paths needing more than 12 are rejected; sets under 8 are
- * topped up with random extra steps to reach 8.
+ * global minimum). Paths needing more than 10 are rejected; smaller sets are
+ * topped up with random extra steps to exactly 10.
  */
 import { writeFileSync } from "node:fs";
 

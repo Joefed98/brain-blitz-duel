@@ -5,8 +5,8 @@
 
 export const TR_SIZE = 6;
 export const TR_CELLS = TR_SIZE * TR_SIZE;
-export const TR_MIN_GIVENS = 8;
-export const TR_MAX_GIVENS = 12;
+export const TR_MIN_GIVENS = 10;
+export const TR_MAX_GIVENS = 10;
 
 export function trAdjacent(a: number, b: number, size = TR_SIZE): boolean {
   if (a === b) return false;
