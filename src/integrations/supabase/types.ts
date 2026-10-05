@@ -165,6 +165,36 @@ export type Database = {
         }
         Relationships: []
       }
+      intro_demos: {
+        Row: {
+          game_type: string
+          input_log: Json
+          length_ticks: number
+          puzzle: Json
+          recorded_at: string
+          seed: number
+          start_tick: number
+        }
+        Insert: {
+          game_type: string
+          input_log: Json
+          length_ticks?: number
+          puzzle: Json
+          recorded_at?: string
+          seed: number
+          start_tick?: number
+        }
+        Update: {
+          game_type?: string
+          input_log?: Json
+          length_ticks?: number
+          puzzle?: Json
+          recorded_at?: string
+          seed?: number
+          start_tick?: number
+        }
+        Relationships: []
+      }
       room_messages: {
         Row: {
           created_at: string
