@@ -264,6 +264,9 @@ function drawBursts(ctx: CanvasRenderingContext2D, state: WavState, palette: str
   ctx.globalAlpha = 1;
 }
 
+/** Render-side memory of recent ship movement, for the engine flame only. */
+const motion = { tick: -1, shipX: 0, movedTick: -100 };
+
 export function drawWavefrontArt(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize): void {
   const still = reducedMotion();
   const t = still ? 0 : state.tick / 60;
@@ -341,7 +344,11 @@ export function drawWavefrontArt(ctx: CanvasRenderingContext2D, state: WavState,
 
   drawBursts(ctx, state, [...WAV_COLOURS, WAV_PURPLE, "#9AA3B2"], still);
 
-  const moving = !still && Math.abs(state.aimX - state.shipX) > 1 && state.ended === 0;
+  if (state.tick < motion.tick) motion.movedTick = -100;
+  if (state.tick !== motion.tick && state.shipX !== motion.shipX) motion.movedTick = state.tick;
+  motion.tick = state.tick;
+  motion.shipX = state.shipX;
+  const moving = !still && state.tick - motion.movedTick < 8 && state.ended === 0;
   const recoil = state.fireIn > WAV_FIRE_EVERY - 5 ? (state.fireIn - (WAV_FIRE_EVERY - 5)) / 5 : 0;
   const flashing = state.invuln > 0 && state.tick % 8 < 4;
   if (state.ended === 2) {
