@@ -361,7 +361,7 @@ function PracticeScreen() {
   if (stage === "result" && graded) {
     const secondsUsed = Math.max(0, Math.round((timeLimitMs - graded.msRemaining) / 100) / 10);
     return (
-      <PhoneShell>
+      <PhoneShell gameType={type}>
         <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center animate-phase-in">
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
             {puzzleName(type)}

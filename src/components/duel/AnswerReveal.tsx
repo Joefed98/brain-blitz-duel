@@ -11,7 +11,6 @@ import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { stopMusic } from "@/lib/sound";
 import { fx } from "@/lib/fx";
-import { gameTheme } from "@/lib/fx/theme";
 
 interface AnswerRevealProps {
   round: number;
@@ -157,14 +156,14 @@ export function AnswerReveal({
     cued.current = round;
     stopMusic(200);
     if (myCorrect) {
-      fx.onCorrect(undefined, gameTheme(puzzle.type, def.category));
-      fx.onComplete(undefined, gameTheme(puzzle.type, def.category));
+      fx.onCorrect(undefined, def.theme);
       buzz(20);
     } else {
-      fx.onWrong(undefined, gameTheme(puzzle.type, def.category));
+      fx.onWrong(undefined, def.theme);
       buzz([12, 60, 12]);
     }
-    fx.onRevealScore(myScore, gameTheme(puzzle.type, def.category));
+    if (!def.arcadeRun && def.category !== "arcade") fx.onComplete(undefined, def.theme);
+    fx.onRevealScore(myScore, def.theme);
   }, [round, myCorrect, myScore, puzzle.type, def.category]);
 
   return (

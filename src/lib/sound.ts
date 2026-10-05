@@ -1,7 +1,6 @@
 /**
- * Sound manager. Ten MP3 cues served from /sounds, decoded once on the first
- * real user gesture, played through two channels: music (looping beds) and
- * effects (everything else).
+ * Manifest-driven audio with separate effects, music and voice channels.
+ * Effects use synthesized placeholders; music remains silent without files.
  *
  * Mobile rules that drive the shape of this file:
  *  - iOS only counts a gesture inside `touchend` / `click` / `pointerup`, so
@@ -255,7 +254,9 @@ export function unlockAudio(): void {
     void ctx.resume().catch((error) => warnOnce("initial resume failed", error));
     resumeContext();
     unlocked = true;
-    loading ??= preload();
+    loading ??= preload().then(() => {
+      if (desiredTrack) startMusic(desiredTrack.name, desiredTrack.options);
+    });
   } catch (error) {
     warnOnce("could not create the audio context", error);
   }
@@ -341,9 +342,9 @@ export function playSound(cue: SoundId, volume = 1): void {
   if (isMuted() || !ready() || !ctx || !effectsGain) return;
   const entry = SOUND_MANIFEST[cue];
   if (entry.channel === "music") return;
-  duckMusic(entry.ms);
   const buffer = buffers.get(cue);
-  if (!buffer) { playTone(entry.frequency, entry.ms, "sine", 0.18, undefined, entry.channel === "voice"); return; }
+  duckMusic(buffer ? buffer.duration * 1000 : entry.ms);
+  if (!buffer) { playTone(entry.frequency, entry.ms, "sine", 0.18 * volume, undefined, entry.channel === "voice"); return; }
   const previous = playingEffects.get(cue);
   if (previous) {
     try {
@@ -369,7 +370,7 @@ export function playSound(cue: SoundId, volume = 1): void {
 }
 
 function duckMusic(durationMs: number): void {
-  if (!ctx || !musicGain || isMusicMuted()) return;
+  if (!ctx || !musicGain || !currentTrack || isMusicMuted()) return;
   const time = ctx.currentTime;
   const gain = musicGain.gain;
   gain.cancelScheduledValues(time); gain.setValueAtTime(gain.value, time);
@@ -436,7 +437,7 @@ const BEAT_BASS = [55, 43.65, 65.41, 49];
 export function playBeatStep(step: number): void {
   if (isMuted()) return;
   if (demoHushed()) return;
-  if (!ready() || !ctx || !musicGain) return;
+  if (!ready() || !ctx || !effectsGain) return;
   try {
     const t = ctx.currentTime;
     const inBar = ((step % 8) + 8) % 8;
@@ -453,7 +454,7 @@ export function playBeatStep(step: number): void {
     hp.frequency.value = 7000;
     const hatGain = ctx.createGain();
     hatGain.gain.value = inBar % 2 === 1 ? 0.22 : 0.12;
-    hat.connect(hp).connect(hatGain).connect(effectsGain ?? musicGain);
+    hat.connect(hp).connect(hatGain).connect(effectsGain);
     hat.start(t);
     if (inBar === 0 || inBar === 4 || inBar === 7) {
       const osc = ctx.createOscillator();
@@ -463,7 +464,7 @@ export function playBeatStep(step: number): void {
       g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(0.5, t + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-      osc.connect(g).connect(effectsGain ?? musicGain);
+      osc.connect(g).connect(effectsGain);
       osc.start(t);
       osc.stop(t + 0.4);
     }

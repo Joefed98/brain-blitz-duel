@@ -283,7 +283,7 @@ export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(
     {
       ...definition,
       theme: gameTheme(type as PuzzleType, definition.category),
-      Stage: feedbackStage(definition.Stage, gameTheme(type as PuzzleType, definition.category)),
+      Stage: feedbackStage(definition.Stage, gameTheme(type as PuzzleType, definition.category), Boolean(definition.arcadeRun || definition.category === "arcade")),
       instructions: PUZZLE_INSTRUCTIONS[type as PuzzleType],
       retired: RETIRED_TYPES.has(type as PuzzleType),
       revealMs:

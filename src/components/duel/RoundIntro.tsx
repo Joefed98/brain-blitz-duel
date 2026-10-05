@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
 import { playVoice } from "@/lib/sound";
-import { gameTheme } from "@/lib/fx/theme";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -60,7 +59,7 @@ export function RoundIntro({
     (typeTimeLimitMs(type) - (usesArcadeClock(type) ? 3000 : 0)) / 1000,
   );
   const twoPlayer = activeCount === 2;
-  const theme = gameTheme(type, puzzleDef(type).category);
+  const theme = puzzleDef(type).theme;
   const countdownCued = useRef("");
   const voiceCued = useRef(false);
   useEffect(() => {
@@ -143,7 +142,7 @@ export function RoundIntro({
           </div>
 
           <div className="sticky bottom-0 z-10 flex shrink-0 flex-col items-center gap-2 bg-background pt-1">
-            <button
+            <Button
               type="button"
               disabled={ready}
               onClick={onReady}
@@ -152,7 +151,7 @@ export function RoundIntro({
               }`}
             >
               {ready ? "Ready ✓" : "Ready"}
-            </button>
+            </Button>
 
             <p className="flex h-5 items-center gap-1.5 font-mono text-xs text-muted-foreground">
               {activeCount > 1 ? (
