@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
 import { pick, shuffled } from "@/lib/duel/random";
-import { scoreWordMatch } from "@/lib/duel/scoring";
 import {
   WORDMATCH_ITEMS,
   WORDMATCH_TIME_MS,

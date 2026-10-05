@@ -5,7 +5,6 @@ import {
   decodeTents,
   encodeTents,
   lineCounts,
-  scoreTents,
   tentsLayoutValid,
   tentsTouch,
 } from "@/lib/duel/tents";

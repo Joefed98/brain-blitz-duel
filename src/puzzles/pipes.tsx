@@ -13,7 +13,6 @@ import {
   PIPE_W,
 } from "@/lib/duel/logic";
 import { useStageState } from "@/lib/duel/stageState";
-import { scorePipes } from "@/lib/duel/scoring";
 import {
   PIPES_CELLS,
   PIPES_COLS,
