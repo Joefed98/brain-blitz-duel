@@ -11,6 +11,7 @@
 
 - ArrowPad owns the device-local arrows/joystick preference so every arrow-controlled puzzle behaves consistently.
 - Trail uses shared sequential tap/last-player undo helpers and contiguous legal drag prefixes while retaining numbered-slot decoding for old answers; why: mixed gestures must share one sequence without changing independent tile grading.
+- Chain stores a seeded cycle per board and uses chainCycleAt/chainRequiredAt in display and replay, falling back to the legacy single cycle; why: reshuffles must change rules identically for all players without invalidating old results.
 - Renderer-only arcade tuning belongs in separate *.renderer.ts helpers used by play and relevant reveal/demo draws; why: visual tweens and arrow silhouettes must not modify simulation modules or input logs.
 - Gameplay holds run inside the shared simulation and HUDs read their derived hold state; why: inputs, timeouts and replay must stay synchronized without pausing the client clock.
 - Player-selected arcade checkpoints use validated recorded inputs and retained selection counters, with HUD availability derived from sim state; why: the server replay must enforce one-use selection and preserve result facts.

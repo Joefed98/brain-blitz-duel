@@ -4,7 +4,9 @@ import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick, pointerElementIndex } from "@/components/puzzles/GridDrag";
 import {
   chainBoardIndex,
-  chainRequired,
+  chainCycleAt,
+  chainRequiredAt,
+  chainRuleStep,
   chainTapVerdict,
   chainWindowMs,
   decodeChainAnswer,
@@ -15,6 +17,7 @@ import {
 import { useStageState } from "@/lib/duel/stageState";
 import {
   CHAIN_FASTER_AT,
+  CHAIN_BLOCK,
   CHAIN_LENGTH,
   CHAIN_TIME_MS,
   CHAIN_WARN_MS,
@@ -32,6 +35,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 const NODE = 34;
 /** Delay between a break and the submit, so the snap can be seen. */
 const BREAK_HOLD_MS = 1_000;
+const CYCLE_HIGHLIGHT_MS = 650;
 
 function NodeGlyph({ shape, size, colour }: { shape: ChainShape; size: number; colour?: string }) {
   const inner = Math.round(size * 0.62);
@@ -44,11 +48,11 @@ function NodeGlyph({ shape, size, colour }: { shape: ChainShape; size: number; c
   );
 }
 
-function RuleStrip({ cycle, step, compact }: { cycle: ChainRuleItem[]; step: number; compact?: boolean }) {
+function RuleStrip({ cycle, step, compact, highlight = false }: { cycle: ChainRuleItem[]; step: number; compact?: boolean; highlight?: boolean }) {
   const active = step % cycle.length;
   const size = compact ? 24 : 32;
   return (
-    <div className="flex shrink-0 items-center justify-center gap-1.5" aria-label="Repeating rule">
+    <div className={`flex shrink-0 items-center justify-center gap-1.5 rounded-md transition-colors duration-150 motion-reduce:transition-none ${highlight ? "bg-primary/20 ring-2 ring-primary" : "bg-transparent"}`} aria-label="Repeating rule">
       {cycle.map((item, index) => (
         <span key={`${item.shape}-${item.colour}`} className="flex items-center gap-1.5">
           <span
@@ -252,7 +256,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
     if (made >= CHAIN_LENGTH) finish("complete", nextTaps);
   };
 
-  const need = chainRequired(data.cycle, links);
+   const cycle = chainCycleAt(data, links);
+   const need = chainRequiredAt(data, links);
+   const changedAt = taps[boardIndex * CHAIN_BLOCK - 1]?.t;
+   const cycleHighlight = boardIndex > 0 && changedAt !== undefined && clock - changedAt < CYCLE_HIGHLIGHT_MS && !over;
 
   return (
     <div
@@ -260,7 +267,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
         tier === 2 ? "bg-warn/10" : tier === 1 ? "bg-primary/10" : ""
       }`}
     >
-      <RuleStrip cycle={data.cycle} step={links} />
+      <RuleStrip cycle={cycle} step={chainRuleStep(data, links)} highlight={cycleHighlight} />
       <p className="shrink-0 text-center font-mono text-3xl font-bold leading-none tabular-nums">
         <span key={links} className={`inline-block ${links > 0 ? "animate-scale-in" : ""} text-primary`}>
           {links}

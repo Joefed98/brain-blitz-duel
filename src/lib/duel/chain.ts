@@ -21,6 +21,20 @@ export function chainRequired(cycle: ChainRuleItem[], links: number): ChainRuleI
   return cycle[links % CHAIN_CYCLE];
 }
 
+/** Stored per-board rule, with the original rule retained for older rounds. */
+export function chainCycleAt(puzzle: ChainPuzzleData, links: number): ChainRuleItem[] {
+  return puzzle.cycles?.[chainBoardIndex(links)] ?? puzzle.cycle;
+}
+
+/** Each new board starts its new cycle at the first symbol. */
+export function chainRuleStep(puzzle: ChainPuzzleData, links: number): number {
+  return puzzle.cycles ? links % CHAIN_BLOCK : links;
+}
+
+export function chainRequiredAt(puzzle: ChainPuzzleData, links: number): ChainRuleItem | undefined {
+  return chainRequired(chainCycleAt(puzzle, links), chainRuleStep(puzzle, links));
+}
+
 /** Momentum window (ms) for making link `link` (1-based) after the one before. */
 export function chainWindowMs(link: number): number {
   for (const band of CHAIN_MOMENTUM_MS) if (link <= band.upTo) return band.ms;
@@ -128,7 +142,7 @@ export function chainTapVerdict(
   }
   const board = chainBoardIndex(replay.links);
   const node = puzzle.boards[board]?.[tap.node];
-  const need = chainRequired(puzzle.cycle, replay.links);
+  const need = chainRequiredAt(puzzle, replay.links);
   if (!node || !need) return "wrong";
   if (replay.used[board]?.includes(tap.node)) return "wrong";
   return node.shape === need.shape && node.colour === need.colour ? "ok" : "wrong";

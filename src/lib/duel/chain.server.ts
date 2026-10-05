@@ -1,13 +1,13 @@
 /**
  * Server-only generation for Don't Break the Chain.
  *
- * One seeded shape-and-colour cycle and five seeded boards of 20 nodes (one per
+ * A new seeded shape-and-colour cycle for each of five boards of 20 nodes (one per
  * block of five links). Every board holds exactly the nodes its five links need,
  * plus near-miss decoys: for each rule item, nodes sharing its shape but not its
  * colour and its colour but not its shape. Positions are Poisson-disc scattered.
  */
 
-import { randInt, shuffled } from "./random";
+import { randInt } from "./random";
 import { chainRequired } from "./chain";
 import {
   CHAIN_BLOCK,
@@ -92,15 +92,32 @@ function sameItem(a: ChainRuleItem, b: ChainRuleItem): boolean {
   return a.shape === b.shape && a.colour === b.colour;
 }
 
-function pick<T>(list: readonly T[]): T {
-  return list[randInt(0, list.length - 1)]!;
+function pick<T>(list: readonly T[], random: () => number): T {
+  const item = list[Math.floor(random() * list.length)];
+  if (item === undefined) throw new Error("Empty Chain choices");
+  return item;
+}
+
+function shuffle<T>(list: readonly T[], random: () => number): T[] {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    const a = out[i];
+    const b = out[j];
+    if (a === undefined || b === undefined) throw new Error("Missing Chain choice");
+    out[i] = b;
+    out[j] = a;
+  }
+  return out;
 }
 
 /** The 20 node faces for one block, in shuffled order. */
-export function chainBoardFaces(cycle: ChainRuleItem[], block: number): ChainRuleItem[] {
+export function chainBoardFaces(cycle: ChainRuleItem[], block: number, random = seededRandom(randInt(0, 0x7fffffff))): ChainRuleItem[] {
   const faces: ChainRuleItem[] = [];
   for (let step = 0; step < CHAIN_BLOCK; step++) {
-    faces.push({ ...chainRequired(cycle, block * CHAIN_BLOCK + step)! });
+    const required = chainRequired(cycle, block * CHAIN_BLOCK + step);
+    if (!required) throw new Error("Missing Chain rule");
+    faces.push({ ...required });
   }
   const isRule = (face: ChainRuleItem) => cycle.some((item) => sameItem(item, face));
   for (const item of cycle) {
@@ -109,31 +126,52 @@ export function chainBoardFaces(cycle: ChainRuleItem[], block: number): ChainRul
     for (let i = 0; i < DECOYS_PER_KIND; i++) {
       // Decoys must never be a valid face for any step of the cycle.
       let face: ChainRuleItem;
-      do face = { shape: item.shape, colour: pick(otherColours) };
+      do face = { shape: item.shape, colour: pick(otherColours, random) };
       while (isRule(face));
       faces.push(face);
-      do face = { shape: pick(otherShapes) as ChainShape, colour: item.colour };
+      do face = { shape: pick(otherShapes, random) as ChainShape, colour: item.colour };
       while (isRule(face));
       faces.push(face);
     }
   }
   while (faces.length < CHAIN_NODES) {
-    const face = { shape: pick(CHAIN_SHAPES), colour: pick(CHAIN_COLOURS) as ChainColour };
+    const item = pick(cycle, random);
+    const face = random() < 0.5
+      ? { shape: item.shape, colour: pick(CHAIN_COLOURS, random) as ChainColour }
+      : { shape: pick(CHAIN_SHAPES, random), colour: item.colour };
     if (!isRule(face)) faces.push(face);
   }
-  return shuffled(faces);
+  return shuffle(faces, random);
 }
 
-export function generateChain(): ChainPuzzleData {
-  const shapes = shuffled([...CHAIN_SHAPES]).slice(0, CHAIN_CYCLE);
-  const colours = shuffled([...CHAIN_COLOURS]).slice(0, CHAIN_CYCLE);
-  const cycle: ChainRuleItem[] = shapes.map((shape, index) => ({ shape, colour: colours[index]! }));
-  const boards: ChainNode[][] = Array.from({ length: CHAIN_BOARDS }, (_unused, block) => {
-    const random = seededRandom(randInt(0, 0x7fffffff));
+export function generateChain(seed = randInt(0, 0x7fffffff)): ChainPuzzleData {
+  const random = seededRandom(seed);
+  const cycles: ChainRuleItem[][] = [];
+  const boards: ChainNode[][] = Array.from({ length: CHAIN_BOARDS }, () => {
+    const previous = cycles.at(-1);
+    let cycle: ChainRuleItem[];
+    do {
+      const shapes = shuffle(CHAIN_SHAPES, random).slice(0, CHAIN_CYCLE);
+      const colours = shuffle(CHAIN_COLOURS, random).slice(0, CHAIN_CYCLE);
+      cycle = shapes.map((shape, index) => {
+        const colour = colours[index];
+        if (!colour) throw new Error("Missing Chain colour");
+        return { shape, colour };
+      });
+      // Both the symbol set and shape order must change at every reshuffle.
+    } while (previous && (
+      cycle.every((item) => previous.some((old) => sameItem(item, old))) ||
+      cycle.every((item, index) => item.shape === previous[index]?.shape)
+    ));
+    cycles.push(cycle);
     let points = samplePoints(random);
     while (!points) points = samplePoints(random);
-    const faces = chainBoardFaces(cycle, block);
-    return points.map((point, index) => ({ ...point, ...faces[index]! }));
+    const faces = chainBoardFaces(cycle, 0, random);
+    return points.map((point, index) => {
+      const face = faces[index];
+      if (!face) throw new Error("Missing Chain face");
+      return { ...point, ...face };
+    });
   });
-  return { type: "chain", cycle, boards };
+  return { type: "chain", seed, cycle: cycles[0] ?? [], cycles, boards };
 }
