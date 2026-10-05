@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick } from "@/components/puzzles/GridDrag";
+import { Button } from "@/components/ui/button";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   canPour,
@@ -49,38 +50,39 @@ function Tubes({
   onTube?: ((tube: number) => void) | undefined;
   compact?: boolean;
 }) {
-  const ballSize = compact ? 9 : 15;
+  const ballSize = compact ? 9 : 11;
   return (
-    <div className="grid h-full w-full grid-cols-5 grid-rows-2 place-items-end justify-center gap-x-1.5 gap-y-2">
+    <div className={`grid w-full grid-cols-5 grid-rows-2 justify-center gap-x-1.5 gap-y-2 ${compact ? "h-full place-items-end" : "h-[184px] shrink-0 place-items-center"}`}>
       {tubes.map((tube, index) => {
         const isLifted = lifted === index;
         const group = topGroup(tube);
         const liftCount = isLifted && group ? group.count : 0;
         return (
-          <button
+          <Button
             key={index}
             type="button"
             disabled={!onTube}
+            variant="ghost"
             onClick={() => onTube?.(index)}
             aria-label={`Tube ${index + 1}`}
-            className={`flex h-full w-full flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${
-              shake === index ? "animate-shake" : ""
-            } ${
+            className={`flex h-full w-full min-w-0 items-end justify-center rounded-none border-0 p-0 hover:bg-transparent disabled:opacity-100 ${compact ? "" : "min-h-11 min-w-11"}`}
+          >
+            <span className={`flex h-full w-full shrink-0 flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${shake === index ? "animate-shake" : ""} ${
               isLifted
                 ? "border-primary bg-primary/10"
                 : tubeSorted(tube)
-                  ? "border-ok/60 bg-card"
+                   ? "border-primary/60 bg-card"
                   : "border-border bg-card"
             }`}
             style={{ maxWidth: compact ? 26 : 42 }}
-          >
-            <div className="flex w-full flex-col-reverse items-center justify-start gap-[3px]">
+            >
+            <span className={`flex w-full flex-col-reverse items-center justify-start ${compact ? "gap-[3px]" : "gap-0.5"}`}>
               {tube.map((colour, ball) => {
                 const rising = isLifted && ball >= tube.length - liftCount;
                 return (
                   <span
                     key={ball}
-                    className="rounded-full"
+                     className="shrink-0 rounded-full"
                     style={{
                       width: ballSize,
                       height: ballSize,
@@ -92,8 +94,9 @@ function Tubes({
                   />
                 );
               })}
-            </div>
-          </button>
+            </span>
+            </span>
+          </Button>
         );
       })}
     </div>
@@ -174,7 +177,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
         moves <span className="text-primary">{replay.moves}</span>
       </p>
 
-      <div className="flex min-h-0 flex-1 items-end justify-center pb-1">
+      <div className="flex min-h-0 flex-1 items-center justify-center pb-1">
         <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} />
       </div>
 
