@@ -1,3 +1,7 @@
+## Burst performance
+- [ ] Profile crowded Burst drawing, cache artwork/glow/scanlines and cap particles (32; skip above 24 enemies or 8 shots).
+- [ ] Add dev frame-time readout across arcade drawing paths; verify without browsers or identity proofs.
+
 ## Matchup facets and Swing ceiling correction (Oct 5)
 - [x] Replace standard-gem flecks with deterministic flat own-colour facets and bright joins; specials and bomb unchanged.
 - [x] Anchor Swing's narrow rock band and stalactites to the authoritative cave ceiling; clip cave scenery below that line and clear above it for the shared background.
