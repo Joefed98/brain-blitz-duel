@@ -1,6 +1,7 @@
 import { TRAIL_BANK } from "../src/lib/duel/trailBank.server";
 import { scoreTrail, trComplete, trCountSolutions, trCorrectPrefix, trCorrectTiles, trDecode, trEncode, trSlots, trPlaceTile, trDragPath } from "../src/lib/duel/trail";
 import { TRAIL_TIME_MS } from "../src/lib/duel/types";
+import { gradeSubmission } from "../src/lib/duel/grade";
 let bad = 0;
 const seen = new Set<string>();
 for (const e of TRAIL_BANK) {
@@ -21,6 +22,9 @@ for (const e of TRAIL_BANK) {
   wrong[late] = earlyCell;
   if (trCorrectTiles(e.givens, wrong, e.solution) !== 24 || trComplete(e.givens, wrong)) bad++;
   if (scoreTrail(false, 0, TRAIL_TIME_MS, trCorrectTiles(e.givens, wrong, e.solution)) !== 120) bad++;
+  const puzzle = { type: "trail" as const, givens: e.givens, solution: e.solution };
+  const graded = gradeSubmission(puzzle, trEncode(wrong), TRAIL_TIME_MS);
+  if (graded.score !== 120 || graded.correctCount !== 24 || graded.isCorrect) bad++;
   const empty = trSlots(e.givens, []);
   if (trCorrectTiles(e.givens, empty, e.solution) !== 0 || trComplete(e.givens, empty)) bad++;
   if (trEncode(trDecode(trEncode(empty))) !== trEncode(empty)) bad++;
@@ -36,6 +40,8 @@ for (const e of TRAIL_BANK) {
   }
   for (const ms of [0, TRAIL_TIME_MS / 2, TRAIL_TIME_MS]) {
     if (scoreTrail(true, ms, TRAIL_TIME_MS, 26) !== 130 + Math.round(20 * ms / TRAIL_TIME_MS)) bad++;
+    const full = gradeSubmission(puzzle, trEncode(e.solution), ms);
+    if (full.score !== 130 + Math.round(20 * ms / TRAIL_TIME_MS) || !full.isCorrect || full.correctCount !== 26) bad++;
   }
   seen.add(e.solution.join("."));
 }

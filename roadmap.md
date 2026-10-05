@@ -1,7 +1,7 @@
 ## Trail independent credit and tap input
-- [ ] Count every correct player tile server-side; retain completion bonus and the 300-board bank.
-- [ ] Add tray selection, empty-cell tap placement and pickup; retain drag, Undo and Reset; audit phone sizes without browser tests.
-- [ ] Update Trail wording and focused regression checks.
+- [x] Shared independent tile counting grades every correct player tile; complete scores remain 130/140/150 at zero/half/full time. Bank checksum unchanged.
+- [x] Added highlighted tray selection, empty-cell tap placement and pickup with numbered slots; legacy dragging remains supported, Undo restores edits and Reset restores fixed tiles. Source phone audit keeps at least 36px squares and 44px Undo/Reset controls; no browser tests.
+- [x] Updated SCORE/HOW and independent reveal tile marks; 300 bank checks, 300 early-error server grades and 900 completion grades passed. Preview build OK; device interaction remains user-tested.
 
 ## Orbit chosen checkpoint
 - [x] Replaced automatic checkpoint with validated recorded input 1 while orbiting; selection is immutable, gold planet marker clears after the one respawn and no second selection is allowed. HUD uses sim-derived availability and a fixed 48px control slot.
