@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 - ArrowPad owns the device-local arrows/joystick preference so every arrow-controlled puzzle behaves consistently.
+- Trail uses shared numbered-slot helpers for tray input and grading, with contiguous legal prefixes for drag gestures; why: tap placement and legacy recorded drags must use the same answer format and completion rules.
 - Renderer-only arcade tuning belongs in separate *.renderer.ts helpers used by play and relevant reveal/demo draws; why: visual tweens and arrow silhouettes must not modify simulation modules or input logs.
 - Gameplay holds run inside the shared simulation and HUDs read their derived hold state; why: inputs, timeouts and replay must stay synchronized without pausing the client clock.
 - Player-selected arcade checkpoints use validated recorded inputs and retained selection counters, with HUD availability derived from sim state; why: the server replay must enforce one-use selection and preserve result facts.

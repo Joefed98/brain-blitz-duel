@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
-import { trCanStep, trComplete, trCorrectPrefix, trDecode, trEncode, TR_SIZE } from "@/lib/duel/trail";
+import { Button } from "@/components/ui/button";
+import { trCanStep, trComplete, trCorrectTiles, trDecode, trDragPath, trEncode, trPlaceTile, trSlots, TR_SIZE } from "@/lib/duel/trail";
 import { useStageState } from "@/lib/duel/stageState";
 import { TRAIL_TIME_MS, type TrailPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -24,18 +25,22 @@ function Grid({
   cell,
   marks,
   shakeCell,
+  selected,
+  endCell,
 }: {
   size: number;
   givens: readonly (number | null)[];
   path: readonly number[];
   cell: number;
-  /** Reveal: steps (1-based) at or below this count are right; above are wrong. */
-  marks?: number;
+  /** Reveal: solution cell at each numbered step. */
+  marks?: readonly number[];
   shakeCell?: number | null;
+  selected?: number | null;
+  endCell?: number | undefined;
 }) {
   const stepOf = new Map<number, number>();
-  path.forEach((c, i) => stepOf.set(c, i + 1));
-  const end = path[path.length - 1];
+  path.forEach((c, i) => { if (c >= 0) stepOf.set(c, i + 1); });
+  const end = endCell ?? path[path.length - 1];
   const centre = (c: number) => ({
     x: (c % size) * (cell + GAP) + cell / 2,
     y: Math.floor(c / size) * (cell + GAP) + cell / 2,
@@ -45,7 +50,9 @@ function Grid({
     <div className="relative" style={{ width: span, height: span }}>
       <svg className="pointer-events-none absolute inset-0" width={span} height={span}>
         {path.slice(1).map((c, i) => {
-          const a = centre(path[i]!);
+          const previous = path[i];
+          if (previous === undefined || previous < 0 || c < 0) return null;
+          const a = centre(previous);
           const b = centre(c);
           return (
             <line
@@ -65,7 +72,7 @@ function Grid({
       <div className="grid" style={{ gridTemplateColumns: `repeat(${size}, ${cell}px)`, gap: GAP }}>
         {givens.map((g, c) => {
           const step = stepOf.get(c);
-          const wrong = marks !== undefined && step !== undefined && step > marks;
+          const wrong = marks !== undefined && step !== undefined && marks[step - 1] !== c;
           const cls =
             g != null
               ? "bg-foreground text-background"
@@ -77,7 +84,7 @@ function Grid({
               key={c}
               className={`relative flex items-center justify-center rounded-md font-mono font-bold ${cls} ${
                 c === end && marks === undefined ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""
-              } ${shakeCell === c ? "animate-shake" : ""}`}
+              } ${step === selected ? "ring-2 ring-primary" : ""} ${shakeCell === c ? "animate-shake" : ""}`}
               style={{ width: cell, height: cell, fontSize: cell * 0.4 }}
             >
               {g ?? step ?? ""}
@@ -114,8 +121,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const data: TrailPuzzleData | null = puzzle.type === "trail" ? puzzle : null;
   const startCell = data ? data.givens.indexOf(1) : 0;
   const [path, setPath] = useStageState<number[]>(stateKey ?? "trail", "trailPath", () => [startCell]);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [history, setHistory] = useStageState<number[][]>(stateKey ?? "trail", "trailEdits", () => []);
   const [shakeCell, setShakeCell] = useState<number | null>(null);
   const drawing = useRef(false);
+  const press = useRef<{ cell: number; x: number; y: number; moved: boolean } | null>(null);
   const lastRefused = useRef<number | null>(null);
   const submitted = useRef(false);
   const box = useRef<HTMLDivElement | null>(null);
@@ -150,19 +160,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     };
   }, []);
 
-  const complete = data ? trComplete(data.givens, path) : false;
+  const slots = data ? trSlots(data.givens, path) : path;
+  const complete = data ? trComplete(data.givens, slots) : false;
   useEffect(() => {
     if (!complete || submitted.current || locked) return;
     submitted.current = true;
     playCorrect();
-    onSubmit(encoded);
+    onSubmit(trEncode(slots));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [complete, locked]);
 
   if (!data) return null;
   const busy = locked || complete;
-  // Room for the count line above and the Undo / Reset row below.
-  const fit = Math.min(space.w - 8, space.h - 100);
+  // 20px count + 116px tray + 44px controls + gaps; keep the 36px board minimum.
+  const fit = Math.min(space.w - 8, space.h - 216);
   const cell = Math.max(36, Math.min(60, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
 
   const refuse = (c: number) => {
@@ -194,16 +205,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   };
 
   const visit = (c: number) => {
-    const end = path[path.length - 1];
+    const dragPath = trDragPath(data.givens, path);
+    const end = dragPath[dragPath.length - 1];
     if (c === end) return;
-    if (path.length > 1 && c === path[path.length - 2]) {
-      setPath(path.slice(0, -1));
+    if (dragPath.length > 1 && c === dragPath[dragPath.length - 2]) {
+      const next = path.length < data.givens.length ? path.slice(0, -1) : [...slots];
+      if (path.length === data.givens.length) {
+        if (end !== undefined && data.givens[end] == null) next[dragPath.length - 1] = -1;
+        else { drawing.current = false; return; }
+      }
+      setHistory([...history, [...path]]);
+      setPath(next);
       lastRefused.current = null;
       buzz(4);
       return;
     }
-    if (trCanStep(data.givens, path, c)) {
-      setPath([...path, c]);
+    if (trCanStep(data.givens, dragPath, c) && (!slots.includes(c) || slots[dragPath.length] === c)) {
+      const next = path.length < data.givens.length ? [...dragPath, c] : [...slots];
+      if (path.length === data.givens.length) next[dragPath.length] = c;
+      setHistory([...history, [...path]]);
+      setPath(next);
       lastRefused.current = null;
       buzz(6);
     } else refuse(c);
@@ -215,29 +236,63 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     const c = cellAt(e.clientX, e.clientY, false);
     if (c === null) return;
     lastRefused.current = null;
-    if (c === path[path.length - 1]) drawing.current = true;
-    else refuse(c);
+    press.current = { cell: c, x: e.clientX, y: e.clientY, moved: false };
+    const dragPath = trDragPath(data.givens, path);
+    drawing.current = c === dragPath[dragPath.length - 1];
   };
 
   const move = (e: React.PointerEvent) => {
+    const p = press.current;
+    if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 6) p.moved = true;
     if (!drawing.current || busy) return;
     const c = cellAt(e.clientX, e.clientY, true);
     if (c !== null) visit(c);
   };
 
   const up = () => {
+    const p = press.current;
+    press.current = null;
     drawing.current = false;
+    if (!p || p.moved || busy) return;
+    const c = p.cell;
+    if (data.givens[c] != null) return;
+    const index = slots.indexOf(c);
+    if (index >= 0) {
+      const next = [...slots];
+      next[index] = -1;
+      setHistory([...history, [...path]]);
+      setPath(next);
+      setSelected(index + 1);
+      buzz(4);
+    } else if (selected != null) {
+      const next = trPlaceTile(data.givens, slots, selected, c);
+      if (!next) return;
+      setHistory([...history, [...path]]);
+      setPath(next);
+      setSelected(null);
+      buzz(6);
+    }
   };
+  const cancel = () => { drawing.current = false; press.current = null; };
 
   const undo = () => {
-    if (busy || path.length <= 1) return;
-    setPath(path.slice(0, -1));
+    if (busy) return;
+    const previous = history[history.length - 1];
+    if (previous) { setPath(previous); setHistory(history.slice(0, -1)); }
+    else {
+      const dragPath = trDragPath(data.givens, path);
+      if (dragPath.length <= 1) return;
+      setPath(dragPath.slice(0, -1));
+    }
+    setSelected(null);
     lastRefused.current = null;
     buzz(4);
   };
   const reset = () => {
-    if (busy || path.length <= 1) return;
+    if (busy) return;
     setPath([startCell]);
+    setHistory([]);
+    setSelected(null);
     lastRefused.current = null;
     buzz(6);
   };
@@ -249,37 +304,47 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 pt-1 select-none"
       style={NO_TOUCH}
     >
-      <p className="font-mono text-sm text-muted-foreground">
-        {path.length} / {data.givens.length}
+      <p className="shrink-0 font-mono text-sm text-muted-foreground">
+        {slots.filter((c, i) => c >= 0 && !data.givens.includes(i + 1)).length} / 26
       </p>
       <div
         ref={grid}
+        className="shrink-0"
         style={NO_TOUCH}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
-        onPointerCancel={up}
-        onPointerLeave={up}
+        onPointerCancel={cancel}
+        onPointerLeave={cancel}
       >
-        <Grid size={TR_SIZE} givens={data.givens} path={path} cell={cell} shakeCell={shakeCell} />
+        <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} shakeCell={shakeCell} selected={selected} endCell={trDragPath(data.givens, path).at(-1)} />
+      </div>
+      <div className="grid w-full shrink-0 grid-cols-9 gap-1" aria-label="Tile tray">
+        {data.givens.map((_, i) => i + 1).filter((tile) => !data.givens.includes(tile)).map((tile) => (
+          <Button key={tile} variant={selected === tile ? "default" : "outline"}
+            aria-label={`Tile ${tile}`} aria-pressed={selected === tile}
+            disabled={busy || (slots[tile - 1] ?? -1) >= 0}
+            className="h-9 min-w-9 p-0 font-mono font-bold"
+            onClick={() => setSelected(tile)}>{tile}</Button>
+        ))}
       </div>
       <div className="flex shrink-0 gap-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>
-        <button
+        <Button variant="outline"
           type="button"
-          disabled={busy || path.length <= 1}
+          disabled={busy || (!history.length && path.length <= 1)}
           onClick={undo}
           className="h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
           Undo
-        </button>
-        <button
+        </Button>
+        <Button variant="outline"
           type="button"
-          disabled={busy || path.length <= 1}
+          disabled={busy || (slots.every((c, i) => c < 0 || data.givens.includes(i + 1)) && selected == null)}
           onClick={reset}
           className="h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -291,20 +356,20 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "trail") return null;
   const solution = puzzle.solution ?? [];
   const mine = trDecode(myAnswer ?? "", puzzle.givens.length);
-  const prefix = trCorrectPrefix(mine, solution);
+  const correctTiles = trCorrectTiles(puzzle.givens, mine, solution);
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <div className="flex w-full justify-center gap-3">
         <div className="flex flex-col items-center gap-1">
           <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-          <Grid size={TR_SIZE} givens={puzzle.givens} path={solution} cell={24} marks={36} />
+          <Grid size={TR_SIZE} givens={puzzle.givens} path={solution} cell={24} marks={solution} />
         </div>
         <div className="flex flex-col items-center gap-1">
           <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-          <Grid size={TR_SIZE} givens={puzzle.givens} path={mine} cell={24} marks={prefix} />
+          <Grid size={TR_SIZE} givens={puzzle.givens} path={mine} cell={24} marks={solution} />
         </div>
       </div>
-      <p className="font-mono text-base text-primary">{myCorrect ? "Complete" : `${prefix} / 36 steps correct`}</p>
+      <p className="font-mono text-base text-primary">{myCorrect ? "Complete" : `${correctTiles} / 26 tiles correct`}</p>
       {dev && <p className="max-w-[340px] break-all font-mono text-[10px] text-muted-foreground">dev · solution [{solution.join(", ")}]</p>}
     </div>
   );

@@ -67,7 +67,7 @@ import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { decodeBallTrackRun, replayBallTrackRun } from "./ballTrack";
-import { scoreTrail, trComplete, trCorrectPrefix, trDecode } from "./trail";
+import { scoreTrail, trComplete, trCorrectPrefix, trCorrectTiles, trDecode } from "./trail";
 import { npComplete, npCorrectCells, npDecode, npDecodeRound, scoreNumberPyramid } from "./numberPyramid";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
@@ -1694,11 +1694,9 @@ export function gradeSubmission(
       const prefix = trCorrectPrefix(path, puzzle.solution ?? []);
       const complete = trComplete(puzzle.givens, path) && prefix === puzzle.givens.length;
       isCorrect = complete;
-      // Fixed tiles sit at their own step, so givens with step <= prefix are inside the matched prefix.
-      const givensInPrefix = puzzle.givens.filter((g) => g != null && g <= prefix).length;
-      correctCount = prefix - givensInPrefix;
-      score = scoreTrail(complete, ms, timeLimitMs, prefix, givensInPrefix);
-      extraDetail = { complete, prefix, drawn: path.length };
+      correctCount = trCorrectTiles(puzzle.givens, path, puzzle.solution ?? []);
+      score = scoreTrail(complete, ms, timeLimitMs, correctCount);
+      extraDetail = { complete, prefix, correctTiles: correctCount, drawn: path.filter((cell) => cell >= 0).length };
       break;
     }
     case "numpyramid": {

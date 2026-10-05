@@ -844,11 +844,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   trail: {
     goal: "Draw one path from 1 to 36 through every square.",
     how: [
-      { action: "Drag from the end of the path", detail: "to any touching square - sideways, up, down or diagonal." },
+      { action: "Tap a tray tile, then an empty square; tap a placed tile to pick it up.", detail: "Or drag from the path end to a touching square, including diagonals." },
       { action: "Ten dark numbers are fixed", detail: "- the path must reach each one at exactly that step. You fill the other 26." },
       { action: "Undo removes your last square; Reset clears your path.", detail: "Dragging back along the path also undoes. Fixed numbers stay." },
     ],
-    score: "Complete path = 130 + up to 20 for speed. Otherwise 5 per tile right from 1.",
+    score: "Complete path = 130 + up to 20 for speed. Otherwise 5 per player tile in its correct cell; wrong tiles = 0, no penalty.",
   },
   numpyramid: {
     goal: "Complete four pyramids: every cell is the sum of the two below it.",

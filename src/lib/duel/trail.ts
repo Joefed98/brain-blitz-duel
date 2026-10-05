@@ -34,7 +34,7 @@ function chebyshev(a: number, b: number, size: number): number {
   return Math.max(Math.abs(Math.floor(a / size) - Math.floor(b / size)), Math.abs((a % size) - (b % size)));
 }
 
-/** Answer = cell indices in path order, dot-separated. */
+/** Answer = cell indices in number order, dot-separated; -1 is an unplaced tile. */
 export function trEncode(path: readonly number[]): string {
   return path.join(".");
 }
@@ -44,7 +44,7 @@ export function trDecode(answer: string, cells = TR_CELLS): number[] {
   const out: number[] = [];
   for (const part of answer.split(".").slice(0, cells)) {
     const n = Number(part);
-    if (!Number.isInteger(n) || n < 0 || n >= cells) break;
+    if (!part.trim() || !Number.isInteger(n) || n < -1 || n >= cells) break;
     out.push(n);
   }
   return out;
@@ -56,6 +56,7 @@ export function trDecode(answer: string, cells = TR_CELLS): number[] {
  * owned by a given only on that given's cell).
  */
 export function trCanStep(givens: readonly (number | null)[], path: readonly number[], cell: number, size = TR_SIZE): boolean {
+  if (!Number.isInteger(cell) || cell < 0 || cell >= givens.length) return false;
   const step = path.length + 1;
   if (step > givens.length) return false;
   if (path.length && !trAdjacent(path[path.length - 1]!, cell, size)) return false;
@@ -72,22 +73,52 @@ export function trCorrectPrefix(path: readonly number[], solution: readonly numb
   return n;
 }
 
+/** Correct player tiles count independently; fixed tiles and empty slots never score. */
+export function trCorrectTiles(givens: readonly (number | null)[], path: readonly number[], solution: readonly number[]): number {
+  return path.reduce((count, cell, i) => count + (cell >= 0 && givens[cell] === null && cell === solution[i] ? 1 : 0), 0);
+}
+
+/** Expand legacy drag answers to numbered slots, retaining all fixed numbers. */
+export function trSlots(givens: readonly (number | null)[], path: readonly number[]): number[] {
+  const slots = Array.from({ length: givens.length }, (_, i) => path[i] ?? -1);
+  givens.forEach((n, cell) => { if (n != null) slots[n - 1] = cell; });
+  return slots;
+}
+
+/** Tray placement is independent of path order; legality is checked on completion. */
+export function trPlaceTile(givens: readonly (number | null)[], path: readonly number[], tile: number, cell: number): number[] | null {
+  if (!Number.isInteger(tile) || tile < 1 || tile > givens.length || givens.includes(tile)) return null;
+  if (!Number.isInteger(cell) || cell < 0 || cell >= givens.length || givens[cell] != null) return null;
+  const slots = trSlots(givens, path);
+  if (slots.includes(cell)) return null;
+  slots[tile - 1] = cell;
+  return slots;
+}
+
+/** Contiguous legal section used by the unchanged end-of-path drag gesture. */
+export function trDragPath(givens: readonly (number | null)[], slots: readonly number[]): number[] {
+  const prefix: number[] = [];
+  for (const cell of slots) {
+    if (!trCanStep(givens, prefix, cell)) break;
+    prefix.push(cell);
+  }
+  return prefix;
+}
+
 /** A full, legal path through every cell that honours every given. */
 export function trComplete(givens: readonly (number | null)[], path: readonly number[], size = TR_SIZE): boolean {
   if (path.length !== givens.length) return false;
   const seen: number[] = [];
   for (const cell of path) {
-    if (!trCanStep(givens, seen, cell, size)) return false;
+    if (cell < 0 || cell >= givens.length || !trCanStep(givens, seen, cell, size)) return false;
     seen.push(cell);
   }
   return true;
 }
 
-export function scoreTrail(complete: boolean, msRemaining: number, timeLimitMs: number, prefix: number, givenCount: number): number {
+export function scoreTrail(complete: boolean, msRemaining: number, timeLimitMs: number, playerCorrect: number): number {
   if (complete) return Math.min(150, 130 + (timeLimitMs > 0 ? Math.round((20 * Math.max(0, Math.min(msRemaining, timeLimitMs))) / timeLimitMs) : 0));
-  // Only player-placed tiles score: the correct prefix includes fixed tiles, so subtract them.
-  const playerCorrect = Math.max(0, prefix - Math.min(givenCount, prefix));
-  return Math.min(150, 5 * playerCorrect);
+  return Math.min(130, 5 * Math.max(0, playerCorrect));
 }
 
 /**
