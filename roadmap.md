@@ -1,3 +1,7 @@
+## Orbit chosen checkpoint
+- [ ] Replace automatic checkpoint with recorded one-time set input while orbiting; marker clears after one respawn, no reset allowed.
+- [ ] Update Orbit controls, intro and stored reveal tile without scoring changes; verify early/late/never Orbit-only replays. Saved Orbit demo needs re-recording; no browser tests.
+
 ## Flip sweeping bends
 - [x] Added integer bend table: 1,560px waves until 45s, then continuously shrinking through 1,040/520/260px at 50/55/60s; displacement eases to ±145px by 25s. Integrated phase preserves continuity, constant gap and existing seeded RNG draws.
 - [x] Flip-only identity proof passed 200/200; curve checks passed integer offsets, constant gap, continuous transitions and early/late change maxima 2/10px per tick. Preview build OK; no browser tests. Report cycle-rate table and saved Flip demo re-recording requirement; device feel remains user-tested.
