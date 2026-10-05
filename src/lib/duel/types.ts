@@ -660,7 +660,7 @@ export const REACTION_MIN_FLASHES = 5;
 export const REACTION_MAX_FLASHES = 8;
 /** A gold flash lasts until tapped or this long; a miss records this value. */
 export const REACTION_FLASH_MS = 1_500;
-export const REACTION_MISS_MS = 1_500;
+export const REACTION_MISS_MS = 1_200;
 /** Added to the average for every false start. */
 export const REACTION_FALSE_START_MS = 200;
 /** How long a decoy pulse stays on screen. */
@@ -827,7 +827,7 @@ export const STOPWATCH_ROUND_MS = 60_000;
 /** Pause between one watch's result and the next watch starting. */
 export const STOPWATCH_GAP_MS = 600;
 /** Recorded when a watch is never stopped. */
-export const STOPWATCH_MISS_MS = 400;
+export const STOPWATCH_MISS_MS = 500;
 /** Distance at which the accuracy bonus reaches zero. */
 export const STOPWATCH_MAX_DIST_MS = 400;
 

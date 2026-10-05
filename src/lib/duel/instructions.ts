@@ -146,7 +146,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Wait.", detail: "" },
       { action: "Don't tap the other colours,", detail: "or you'll get a false start." },
     ],
-    score: "Faster average scores more; false starts add 200 ms.",
+    score: "150 at 200 ms average or faster, −16 per 100 ms slower; misses count 1,200 ms; −8 per false start.",
   },
   gonogo: {
     goal: "Tap every gold circle and ignore every other shape.",
@@ -164,7 +164,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap in order", detail: "until every number is cleared." },
       { action: "Keep looking", detail: "— untapped numbers move every 15 seconds." },
     ],
-    score: "Faster = more points. Wrong taps cost points. How far you got still scores.",
+    score: "5 per number in order; all 24 = 130 + speed bonus up to 20; −5 per wrong tap. Maximum 150.",
   },
   stroop: {
     goal: "Steer each falling word into the matching coloured gate.",
@@ -244,7 +244,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The counter drops at the right edge", detail: "from 2 on Watch 1 to 11 on Watch 10." },
       { action: "Watches 8–10 wrap", detail: "from the right edge back to the left." },
     ],
-    score: "Closer to the centre scores more.",
+    score: "150 at 20 ms average error or closer, −27 per 100 ms more; misses count 500 ms.",
   },
   countup: {
     goal: "Count the matching shapes in three crowded scenes.",
@@ -693,9 +693,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Balls pop up briefly", detail: "— the window shrinks as the run goes on." },
       { action: "The rule flips 3–5 times", detail: "at unpredictable moments — watch the banner." },
-      { action: "Never tap a bomb", detail: "or a wrong-colour ball — each costs 5." },
+      { action: "Never tap a bomb", detail: "or a wrong-colour ball — each costs 5; an empty hole costs 3." },
     ],
-    score: "Up to 135 for the share of targets hit, −5 per wrong tap, +15 for every target with no wrong taps. Maximum 150.",
+    score: "Up to 135 for the share of targets hit, −5 per wrong ball, −3 per empty tap, +15 for hitting every target. Maximum 150.",
   },
   wavefront: {
     goal: "Shoot down the formation before it reaches you.",

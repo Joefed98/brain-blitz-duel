@@ -36,13 +36,13 @@ export const WHACK_GOLD = 0;
 export const WHACK_RED = 1;
 export const WHACK_BOMB = 2;
 
-/** Up-window: 54 ticks (900 ms) at the start shrinking to 27 (450 ms) at the end. */
+/** Up-window: 54 ticks (900 ms) at the start shrinking to 36 (600 ms) at the end. */
 export const WHACK_LIFE_START_TICKS = 54;
-export const WHACK_LIFE_END_TICKS = 27;
-/** Gap between pops: 42 ticks at the start ramping to 10 at the end, plus 0…5 jitter,
+export const WHACK_LIFE_END_TICKS = 36;
+/** Gap between pops: 42 ticks at the start ramping to 13 at the end, plus 0…5 jitter,
  *  so the final third regularly has two or three balls up together (cap 3). */
 const POP_GAP_START = 42;
-const POP_GAP_END = 10;
+const POP_GAP_END = 13;
 const POP_GAP_JITTER = 6;
 const FIRST_POP_TICK = 30;
 export const WHACK_MAX_UP = 3;
@@ -57,6 +57,8 @@ export const WHACK_NO_FLIP_TAIL_TICKS = 5 * TICKS_PER_SECOND;
 export const WHACK_NO_TARGET_TAIL_TICKS = TICKS_PER_SECOND;
 export const WHACK_HIT_POINTS = 135;
 export const WHACK_WRONG_PENALTY = 5;
+/** A tap on an empty hole. */
+export const WHACK_EMPTY_PENALTY = 3;
 export const WHACK_PERFECT_BONUS = 15;
 const POP_IN_TICKS = 7;
 const FALL_TICKS = 10;
@@ -155,6 +157,8 @@ export interface WhackState {
   doneTick: number[];
   hits: number;
   wrong: number;
+  /** Taps that hit no ball. */
+  empty: number;
   taps: number;
   /** Pops released so far. */
   next: number;
@@ -171,6 +175,7 @@ function init(seed: number): WhackState {
     doneTick: new Array(n).fill(0),
     hits: 0,
     wrong: 0,
+    empty: 0,
     taps: 0,
     next: 0,
   };
@@ -194,7 +199,7 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
   const s = state.schedule;
   const status = [...state.status];
   const doneTick = [...state.doneTick];
-  let { hits, wrong, taps, next } = state;
+  let { hits, wrong, empty, taps, next } = state;
   // Retire expired pops, then release pops due this tick.
   for (let i = 0; i < next; i++) {
     if (status[i] === WHACK_STATUS_UP && tick >= s.at[i]! + s.life[i]!) {
@@ -209,27 +214,30 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
   if (input && input.k === WHACK_INPUT_TAP) {
     const h = clampInt(input.a, 0, WHACK_HOLES - 1);
     taps += 1;
+    let struck = false;
     for (let i = 0; i < next; i++) {
       if (status[i] !== WHACK_STATUS_UP || s.hole[i] !== h) continue;
       if (s.kind[i] === whackRule(s.flips, s.at[i]!)) { status[i] = WHACK_STATUS_HIT; hits += 1; }
       else { status[i] = WHACK_STATUS_WRONG; wrong += 1; }
       doneTick[i] = tick;
+      struck = true;
       break;
     }
+    if (!struck) empty += 1;
   }
-  return { ...state, tick, status, doneTick, hits, wrong, taps, next };
+  return { ...state, tick, status, doneTick, hits, wrong, empty, taps, next };
 }
 
-/** round(135 × hits ÷ total) − 5 per wrong tap, min 0; +15 if perfect; cap 150. */
-export function whackScore(hits: number, wrong: number, total: number): number {
+/** round(135 × hits ÷ total) − 5 per decoy tap − 3 per empty tap; +15 if every target hit; clamp 0…150. */
+export function whackScore(hits: number, wrong: number, total: number, empty = 0): number {
   if (total <= 0) return 0;
   const base = Math.floor((2 * WHACK_HIT_POINTS * hits + total) / (2 * total));
-  const bonus = hits >= total && wrong === 0 ? WHACK_PERFECT_BONUS : 0;
-  return clampInt(Math.max(0, base - wrong * WHACK_WRONG_PENALTY) + bonus, 0, 150);
+  const bonus = hits >= total ? WHACK_PERFECT_BONUS : 0;
+  return clampInt(base - wrong * WHACK_WRONG_PENALTY - empty * WHACK_EMPTY_PENALTY + bonus, 0, 150);
 }
 
 function score(state: WhackState): number {
-  return whackScore(state.hits, state.wrong, state.schedule.total);
+  return whackScore(state.hits, state.wrong, state.schedule.total, state.empty);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -240,6 +248,7 @@ export interface WhackCheckpointState {
   tick: number;
   hits: number;
   wrong: number;
+  empty: number;
   taps: number;
   next: number;
   statusHash: number;
@@ -258,6 +267,7 @@ export function whackCheckpointState(state: WhackState): WhackCheckpointState {
     tick: state.tick,
     hits: state.hits,
     wrong: state.wrong,
+    empty: state.empty,
     taps: state.taps,
     next: state.next,
     statusHash,
