@@ -1,3 +1,8 @@
+## Word Search, Rings and Tubes presentation
+- [x] Removed Word Search intro minimum-length line; Rings clues increased 11px to 14px (+27.3%), with auto-height reserved space instead of clipped 28px row.
+- [x] Tubes use 80% of their arena height, full-width five-column tracks and proportionate balls. Source audits at 390×700 and 375×667 confirm five balls plus one-ball clearance, 67–70px tap widths, and separate controls; no browser tests.
+- [x] Rings/tubes rule modules, grader and scoring checksums unchanged; preview build OK. Device appearance remains user-tested.
+
 ## Trail independent credit and tap input
 - [x] Shared independent tile counting grades every correct player tile; complete scores remain 130/140/150 at zero/half/full time. Bank checksum unchanged.
 - [x] Added highlighted tray selection, empty-cell tap placement and pickup with numbered slots; legacy dragging remains supported, Undo restores edits and Reset restores fixed tiles. Source phone audit keeps at least 36px squares and 44px Undo/Reset controls; no browser tests.

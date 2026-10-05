@@ -685,6 +685,17 @@ body.game-lock {
   aspect-ratio: 1;
   flex-shrink: 0;
 }
+.tubes-play-space {
+  container-type: size;
+}
+.tubes-play-board {
+  height: 80cqh;
+}
+.tubes-play-ball {
+  /* Six ball diameters leave one diameter of clearance above five balls. */
+  width: min(calc((40cqh - 30px) / 6), calc((100cqw - 32px) / 5 - 16px));
+  aspect-ratio: 1;
+}
 .logic-nonogram-board {
   width: 100%;
   container-type: inline-size;
