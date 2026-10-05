@@ -51,7 +51,7 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(sx(first * COL), ceilingAt(sx(first * COL)));
-  for (let i = first + 1; i <= last; i++) ctx.lineTo(sx(i * COL), state.ceil[i] / FP);
+  for (let i = first + 1; i <= last; i++) ctx.lineTo(sx(i * COL), ceilingAt(sx(i * COL)));
   ctx.lineTo(sx(last * COL), SWING_WORLD_H);
   ctx.lineTo(sx(first * COL), SWING_WORLD_H);
   ctx.closePath();
@@ -80,9 +80,9 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
 
   // Narrow rock band begins at the sim's ceiling line and faces down into the cave.
   ctx.beginPath();
-  ctx.moveTo(sx(first * COL), state.ceil[first] / FP);
-  for (let i = first + 1; i <= last; i++) ctx.lineTo(sx(i * COL), state.ceil[i] / FP);
-  for (let i = last; i >= first; i--) ctx.lineTo(sx(i * COL), state.ceil[i] / FP + 5);
+  ctx.moveTo(sx(first * COL), ceilingAt(sx(first * COL)));
+  for (let i = first + 1; i <= last; i++) ctx.lineTo(sx(i * COL), ceilingAt(sx(i * COL)));
+  for (let i = last; i >= first; i--) ctx.lineTo(sx(i * COL), ceilingAt(sx(i * COL)) + 5);
   ctx.closePath();
   const rock = ctx.createLinearGradient(0, 0, 0, 110);
   rock.addColorStop(0, "#0E0B0E");
