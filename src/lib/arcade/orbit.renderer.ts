@@ -20,7 +20,7 @@ import {
   type Planet,
 } from "./orbit";
 import { ANG_QUARTER, icos, isin, TRIG_ONE } from "./trig";
-import { prefersReducedMotion } from "@/lib/fx/motion";
+import { reducedMotion as prefersReducedMotion } from "./art.renderer";
 
 /* Mirrors of private sim constants, used only to trace the same paths. */
 const FP = 256;
