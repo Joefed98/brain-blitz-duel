@@ -1,4 +1,6 @@
 import { arcadeFeedback } from "@/lib/fx/arcade";
+import { rallyArtGame } from "@/lib/arcade/rally.renderer";
+import { rallySounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -27,7 +29,6 @@ import {
 import { decodeRallyRun, encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
 import { ARCADE_CRASH_FREEZE_MS, type RallyPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -110,6 +111,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = rallySounds();
 
     const finish = () => {
       if (submitted.current) return;
@@ -155,10 +157,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, rallyGame.isOver(state.current));
       feedback(state.current, rallyGame.isOver(state.current));
+      sounds.frame(state.current, !rallyGame.isOver(state.current) && !lockedRef.current);
 
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) rallyGame.draw(context, state.current, size);
+      if (size && context) rallyArtGame.draw(context, state.current, size);
 
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
@@ -170,7 +173,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (deadAt.current === null) {
             deadAt.current = time;
             buzz(40);
-            playWrong();
           } else if (time - deadAt.current >= ARCADE_CRASH_FREEZE_MS) {
             finish();
           }
@@ -181,7 +183,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      sounds.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 

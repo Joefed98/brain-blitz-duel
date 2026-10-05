@@ -10,6 +10,9 @@ import type { CrossState } from "@/lib/arcade/cross";
 import type { FlipState } from "@/lib/arcade/flip";
 import { HOVER_IMPULSE, type HoverState } from "@/lib/arcade/hover";
 import type { SnakeState } from "@/lib/arcade/snake";
+import { BRK_PADDLE_Y, type BrkState } from "@/lib/arcade/breaker";
+import type { RallyState } from "@/lib/arcade/rally";
+import type { BurstState } from "@/lib/arcade/burst";
 import { BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 
 export interface GameSounds<S> {
@@ -168,6 +171,65 @@ export function beatSounds(): GameSounds<BeatState> {
         const hits = state.perfect + state.good + state.ok - (prev.perfect + prev.good + prev.ok);
         const heldNew = state.lastJudge === BEAT_JUDGE_PENDING && state.judgeAge === 0;
         if (hits > 0 || heldNew) playSound("arc_retro_note", 0.8, BEAT_LANE_RATES[Math.max(0, state.lastLane)] ?? 1, true);
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+export function breakerSounds(): GameSounds<BrkState> {
+  let prev: BrkState | null = null;
+  const start = retroStart();
+  return {
+    frame(state, running) {
+      start(running);
+      if (prev && state.tick > prev.tick) {
+        if (state.losses > prev.losses) playSound("arc_retro_explode");
+        if (state.powerUps > prev.powerUps) playSound("arc_retro_pickup");
+        if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
+        // Paddle hit: a ball near the paddle that was falling and now rises.
+        const paddleHit = state.balls.some((ball, i) => {
+          const before = prev!.balls[i];
+          return !!before && before.vy > 0 && ball.vy < 0 && ball.y > (BRK_PADDLE_Y - 40) * 256;
+        });
+        if (paddleHit) playSound("arc_retro_blip", 0.8, 1, true);
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+export function rallySounds(): GameSounds<RallyState> {
+  let prev: RallyState | null = null;
+  const start = retroStart();
+  return {
+    frame(state, running) {
+      start(running);
+      if (prev && state.tick > prev.tick) {
+        if (state.dead && !prev.dead) playSound("arc_retro_explode");
+        if (state.goldHits > prev.goldHits) playSound("arc_retro_note");
+        if (state.hits > prev.hits) playSound("arc_retro_blip");
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+export function burstSounds(): GameSounds<BurstState> {
+  let prev: BurstState | null = null;
+  const start = retroStart();
+  return {
+    frame(state, running) {
+      start(running);
+      if (prev && state.tick > prev.tick) {
+        if (state.ended === 2 && prev.ended !== 2) playSound("arc_retro_explode");
+        else if (state.lives < prev.lives) playSound("arc_lose_life");
+        if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
+        if ((state.shield && !prev.shield) || (state.burst && !prev.burst)) playSound("arc_retro_pickup");
+        if (state.shots.length > prev.shots.length) playSound("arc_retro_blip", 0.6, 1, true);
       }
       prev = state;
     },

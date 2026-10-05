@@ -1,4 +1,6 @@
 import { arcadeFeedback } from "@/lib/fx/arcade";
+import { breakerArtGame } from "@/lib/arcade/breaker.renderer";
+import { breakerSounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -129,6 +131,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = breakerSounds();
 
     const finish = () => {
       if (submitted.current) return;
@@ -189,6 +192,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, breakerGame.isOver(state.current));
       feedback(state.current, breakerGame.isOver(state.current));
+      sounds.frame(state.current, !breakerGame.isOver(state.current) && !lockedRef.current);
       // A held-down touch that has outlasted the tap window becomes a drag.
       const down = downAt.current;
       if (down && !down.drag && time - down.time >= BRK_TAP_MS) {
@@ -198,7 +202,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) breakerGame.draw(context, state.current, size);
+      if (size && context) breakerArtGame.draw(context, state.current, size);
 
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
@@ -209,7 +213,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      sounds.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 

@@ -18,6 +18,8 @@ import {
 } from "@/lib/arcade/burst";
 import { encodeBurstRun, replayBurstRun } from "@/lib/duel/burst";
 import { BURST_TIME_MS, type BurstPuzzleData } from "@/lib/duel/types";
+import { burstArtGame } from "@/lib/arcade/burst.renderer";
+import { burstSounds } from "@/lib/fx/gameSounds";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -77,13 +79,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <ArcadeCanvasStage
       diagKey="burst"
       label="Burst"
-      background={BURST_BG}
+      background="#000000"
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
       worldW={BURST_WORLD_W}
       worldH={BURST_FLOOR_Y}
-      game={burstGame}
+      game={burstArtGame}
+      sounds={burstSounds}
       checkpoint={burstCheckpoint}
       interval={BURST_CHECKPOINT_INTERVAL}
       encodeRun={encodeBurstRun}

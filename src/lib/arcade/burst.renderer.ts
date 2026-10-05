@@ -2,7 +2,6 @@
 import {
   burstCeiling,
   burstGame,
-  burstScoreOf,
   BURST_COLOURS,
   BURST_FLOOR_Y,
   BURST_LIVES,
@@ -21,7 +20,6 @@ import {
   retroNeon,
   retroReadout,
   retroScreen,
-  retroText,
   RETRO_RED,
   RETRO_WHITE,
 } from "./retro.renderer";
@@ -163,12 +161,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     ctx.globalAlpha = 1;
   }
 
-  const score = burstScoreOf(state.hits, BURST_LIVES - state.lives, state.cleared, state.ended !== 0);
+  const score = burstGame.score(state);
   retroReadout(ctx, 14, 8, `WAVE ${Math.max(1, state.wave)} ${score}${state.burst ? " BURST" : ""}`, RETRO_WHITE);
   for (let i = 0; i < BURST_LIVES; i++) {
     sprite(ctx, ["..X..", ".XXX.", "XXXXX", "X.X.X"], BURST_WORLD_W - 100 + i * 16, 14, 2, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
   }
-  void retroText;
 }
 
 export const burstArtGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGame, draw };
