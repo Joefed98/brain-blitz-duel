@@ -1,142 +1,216 @@
-/** Eat and Grow in the Retro Arcade world. Render only; the sim and its cells are untouched. */
+/** Eat and Grow's cached Retro Arcade comet. Presentation only. */
 import {
-  snakeGame,
-  snakeCol,
-  snakeRow,
-  SNAKE_BOARD_H,
-  SNAKE_BOARD_W,
-  SNAKE_BOARD_X,
-  SNAKE_BOARD_Y,
-  SNAKE_CELL,
-  SNAKE_COLS,
-  SNAKE_ROWS,
-  SNAKE_WORLD_H,
-  SNAKE_WORLD_W,
-  type SnakeState,
+  snakeGame, snakeCol, snakeRow, SNAKE_BOARD_H, SNAKE_BOARD_W,
+  SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_CELL, SNAKE_COLS, SNAKE_ROWS,
+  SNAKE_WORLD_H, SNAKE_WORLD_W, type SnakeState,
 } from "./snake";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
-import { pixelRect, retroBloom, retroClock, retroReadout, retroScreen, RETRO_RED, RETRO_WHITE } from "./retro.renderer";
+import { reducedMotion } from "./art.renderer";
+import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { retroClock, retroScreen, retroText, RETRO_BLACK, RETRO_RED, RETRO_WHITE } from "./retro.renderer";
+import { FX_PARTICLE_LIMIT } from "../fx/limits";
 
-const BODY = "#4BFF7A";
-const BODY_DARK = "#1E9C45";
-const HEAD = "#B9FFC9";
+// The existing neon game accent; colour roles remain local to the art layer.
+const ACCENT = "#4BFF7A";
+const DIM = "#1E9C45";
 const PELLET = "#FFD84A";
-const POP_MS = 260;
+const EYE = RETRO_BLACK;
+const SPRITE_RATIO = 2;
+const EAT_MS = 260;
+const DEATH_MS = 650;
+const TAIL_SPARKS = 6;
+const LEVELS = 6;
+const stamps = new Map<string, ArtCanvas>();
+let grid: ArtCanvas | null = null;
 
-/** Per-canvas presentation memory for the eat pop; never read by the sim. */
-const pops = new WeakMap<CanvasRenderingContext2D, { eaten: number; at: number; cell: number }>();
+type Memory = { tick: number; rng: number; eaten: number; pellet: number; dead: boolean; eatAt: number; eatCell: number; deathAt: number };
+const memories = new WeakMap<CanvasRenderingContext2D, Memory>();
+const point = (cell: number) => ({ x: SNAKE_BOARD_X + snakeCol(cell) * SNAKE_CELL + SNAKE_CELL / 2, y: SNAKE_BOARD_Y + snakeRow(cell) * SNAKE_CELL + SNAKE_CELL / 2 });
+const direction = (dir: number) => ({ x: dir === 1 ? 1 : dir === 3 ? -1 : 0, y: dir === 2 ? 1 : dir === 0 ? -1 : 0 });
 
-function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize): void {
-  retroScreen(ctx, size, SNAKE_WORLD_W, SNAKE_WORLD_H, "fit", (c) => drawWorld(c, state, ctx));
+/** Fixed DPR-2 sprites: only cache creation draws pixel planes and pays for blur. */
+function stamp(kind: "bead" | "head" | "star", level = 0): ArtCanvas | null {
+  const id = `${kind}:${level}`;
+  const old = stamps.get(id);
+  if (old) return old;
+  const canvas = artCanvas(SNAKE_CELL * SPRITE_RATIO, SNAKE_CELL * SPRITE_RATIO);
+  const c = canvas && artContext(canvas);
+  if (!canvas || !c) return null;
+  c.scale(SPRITE_RATIO, SPRITE_RATIO);
+  c.imageSmoothingEnabled = false;
+  const middle = SNAKE_CELL / 2;
+  if (kind === "star") {
+    c.fillStyle = PELLET;
+    c.shadowColor = PELLET;
+    c.shadowBlur = 3;
+    // Four pointed pixel star; no soft/gradient geometry.
+    c.fillRect(middle - 1, middle - 6, 2, 12);
+    c.fillRect(middle - 6, middle - 1, 12, 2);
+    c.fillRect(middle - 3, middle - 3, 6, 6);
+    c.shadowBlur = 0;
+    c.fillStyle = RETRO_WHITE;
+    c.fillRect(middle - 1, middle - 1, 2, 2);
+  } else {
+    // A full 24px outer bead always marks the sim cell. Only the bright inner
+    // bead tapers: 24 -> 18px (75%), never the collision-sized envelope.
+    const inner = kind === "head" ? SNAKE_CELL : SNAKE_CELL - Math.round(level / (LEVELS - 1) * 3) * 2;
+    const radius = inner / 2;
+    const inset = (SNAKE_CELL - inner) / 2;
+    c.fillStyle = DIM;
+    c.shadowColor = ACCENT;
+    c.shadowBlur = 3;
+    for (let y = 0; y < SNAKE_CELL; y += 2) {
+      for (let x = 0; x < SNAKE_CELL; x += 2) {
+        const dx = x + 1 - middle, dy = y + 1 - middle;
+        if (dx * dx + dy * dy <= middle * middle) c.fillRect(x, y, 2, 2);
+      }
+    }
+    c.shadowBlur = 0;
+    c.fillStyle = ACCENT;
+    c.globalAlpha = kind === "head" ? 1 : 1 - level * 0.105;
+    for (let y = inset; y < SNAKE_CELL - inset; y += 2) {
+      for (let x = inset; x < SNAKE_CELL - inset; x += 2) {
+        const dx = x + 1 - middle, dy = y + 1 - middle;
+        if (dx * dx + dy * dy <= radius * radius) c.fillRect(x, y, 2, 2);
+      }
+    }
+    c.globalAlpha = 1;
+    if (kind === "head") {
+      c.fillStyle = RETRO_WHITE;
+      c.fillRect(middle - 4, middle - 4, 8, 8);
+      c.fillRect(middle - 2, middle - 6, 4, 12);
+    }
+  }
+  // Canvas itself clips every glow to the full-cell envelope.
+  stamps.set(id, canvas);
+  return canvas;
 }
 
-function cellX(cell: number) {
-  return SNAKE_BOARD_X + snakeCol(cell) * SNAKE_CELL;
+function blit(ctx: CanvasRenderingContext2D, sprite: ArtCanvas | null, x: number, y: number, fallback = ACCENT): void {
+  if (sprite) ctx.drawImage(sprite, Math.round(x - SNAKE_CELL / 2), Math.round(y - SNAKE_CELL / 2), SNAKE_CELL, SNAKE_CELL);
+  else { ctx.fillStyle = fallback; ctx.fillRect(x - 9, y - 9, 18, 18); }
 }
-function cellY(cell: number) {
-  return SNAKE_BOARD_Y + snakeRow(cell) * SNAKE_CELL;
+
+function drawGrid(ctx: CanvasRenderingContext2D): void {
+  if (!grid) {
+    const canvas = artCanvas(SNAKE_BOARD_W * SPRITE_RATIO, SNAKE_BOARD_H * SPRITE_RATIO);
+    const c = canvas && artContext(canvas);
+    if (canvas && c) {
+      c.scale(SPRITE_RATIO, SPRITE_RATIO);
+      c.fillStyle = "rgba(75,255,122,0.07)";
+      for (let col = 0; col <= SNAKE_COLS; col++) c.fillRect(col * SNAKE_CELL, 0, 1, SNAKE_BOARD_H);
+      for (let row = 0; row <= SNAKE_ROWS; row++) c.fillRect(0, row * SNAKE_CELL, SNAKE_BOARD_W, 1);
+      c.strokeStyle = "rgba(75,255,122,0.35)";
+      c.lineWidth = 1;
+      c.strokeRect(0.5, 0.5, SNAKE_BOARD_W - 1, SNAKE_BOARD_H - 1);
+      grid = canvas;
+    }
+  }
+  if (grid) ctx.drawImage(grid, SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_BOARD_W, SNAKE_BOARD_H);
+}
+
+function memory(key: CanvasRenderingContext2D, state: SnakeState, now: number): Memory {
+  let memo = memories.get(key);
+  if (!memo || state.tick < memo.tick || (state.tick === 0 && state.rng !== memo.rng) || state.eaten < memo.eaten) {
+    memo = { tick: state.tick, rng: state.rng, eaten: state.eaten, pellet: state.pellet, dead: state.dead, eatAt: -Infinity, eatCell: -1, deathAt: state.dead ? now : -Infinity };
+  }
+  if (state.eaten > memo.eaten) { memo.eatAt = now; memo.eatCell = memo.pellet; }
+  if (state.dead && !memo.dead) memo.deathAt = now;
+  memo.tick = state.tick; memo.rng = state.rng; memo.eaten = state.eaten; memo.pellet = state.pellet; memo.dead = state.dead;
+  memories.set(key, memo);
+  return memo;
+}
+
+function eyes(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number): void {
+  const d = direction(dir);
+  ctx.fillStyle = EYE;
+  for (const side of [-1, 1]) ctx.fillRect(x + d.x * 6 - d.y * side * 5 - 1, y + d.y * 6 + d.x * side * 5 - 1, 2, 2);
 }
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: CanvasRenderingContext2D): void {
   const now = typeof performance === "undefined" ? 0 : performance.now();
-  let pop = pops.get(key);
-  if (!pop || state.eaten < pop.eaten) pop = { eaten: state.eaten, at: -1e9, cell: -1 };
-  if (state.eaten > pop.eaten) pop = { eaten: state.eaten, at: now, cell: state.body[0] ?? -1 };
-  pops.set(key, pop);
-  const popAge = now - pop.at;
-
-  // Faint grid.
-  ctx.fillStyle = "rgba(75,255,122,0.07)";
-  for (let col = 0; col <= SNAKE_COLS; col++) ctx.fillRect(SNAKE_BOARD_X + col * SNAKE_CELL, SNAKE_BOARD_Y, 1, SNAKE_BOARD_H);
-  for (let row = 0; row <= SNAKE_ROWS; row++) ctx.fillRect(SNAKE_BOARD_X, SNAKE_BOARD_Y + row * SNAKE_CELL, SNAKE_BOARD_W, 1);
-  ctx.fillStyle = "rgba(75,255,122,0.35)";
-  ctx.fillRect(SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_BOARD_W, 1);
-  ctx.fillRect(SNAKE_BOARD_X, SNAKE_BOARD_Y + SNAKE_BOARD_H - 1, SNAKE_BOARD_W, 1);
-  ctx.fillRect(SNAKE_BOARD_X, SNAKE_BOARD_Y, 1, SNAKE_BOARD_H);
-  ctx.fillRect(SNAKE_BOARD_X + SNAKE_BOARD_W - 1, SNAKE_BOARD_Y, 1, SNAKE_BOARD_H);
-
-  // Pellet: a pixel dot that pulses inside its cell.
-  const bloom = retroBloom();
-  const t = retroClock();
-  const pulse = t === 0 ? 0 : Math.floor(t / 260) % 2;
-  const pxl = cellX(state.pellet);
-  const pyl = cellY(state.pellet);
-  const inset = 7 - pulse;
-  pixelRect(ctx, pxl + inset, pyl + inset + 2, SNAKE_CELL - inset * 2, SNAKE_CELL - inset * 2 - 4, PELLET, bloom);
-  pixelRect(ctx, pxl + inset + 2, pyl + inset, SNAKE_CELL - inset * 2 - 4, SNAKE_CELL - inset * 2, PELLET, bloom);
-
-  // Eat pop: a pixel ring growing to the cell edge, inside the eaten cell.
-  if (pop.cell >= 0 && popAge >= 0 && popAge < POP_MS) {
-    const k = popAge / POP_MS;
-    const ring = Math.round(2 + k * 8);
-    const x = cellX(pop.cell) + 12 - ring;
-    const y = cellY(pop.cell) + 12 - ring;
-    ctx.globalAlpha = 1 - k;
-    ctx.fillStyle = PELLET;
-    ctx.fillRect(x, y, ring * 2, 2);
-    ctx.fillRect(x, y + ring * 2 - 2, ring * 2, 2);
-    ctx.fillRect(x, y, 2, ring * 2);
-    ctx.fillRect(x + ring * 2 - 2, y, 2, ring * 2);
+  const motion = !reducedMotion();
+  const memo = memory(key, state, now);
+  const age = now - memo.eatAt;
+  const deathAge = now - memo.deathAt;
+  drawGrid(ctx);
+  // Body decoration cannot spill beyond the playable grid.
+  ctx.save();
+  ctx.beginPath(); ctx.rect(SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_BOARD_W, SNAKE_BOARD_H); ctx.clip();
+  const pellet = point(state.pellet);
+  blit(ctx, stamp("star"), pellet.x, pellet.y, PELLET);
+  const headCell = state.body[0];
+  if (headCell !== undefined) {
+    const head = point(headCell);
+    // Light only between contiguous centres; no interpolation or moved segments.
+    if (motion && !state.dead) {
+      ctx.fillStyle = ACCENT; ctx.globalAlpha = 0.12;
+      for (let i = 1; i < state.body.length; i++) {
+        const cell = state.body[i], ahead = state.body[i - 1];
+        if (cell === undefined || ahead === undefined) continue;
+        const a = point(cell), b = point(ahead);
+        if (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) !== SNAKE_CELL) continue;
+        ctx.fillRect(Math.min(a.x, b.x) - 1, Math.min(a.y, b.y) - 1, Math.abs(a.x - b.x) + 2, Math.abs(a.y - b.y) + 2);
+      }
+      ctx.globalAlpha = 1;
+    }
+    for (let i = state.body.length - 1; i >= 0; i--) {
+      const cell = state.body[i];
+      if (cell === undefined) continue;
+      const p = point(cell);
+      const level = Math.min(LEVELS - 1, Math.round(i / Math.max(1, state.body.length - 1) * (LEVELS - 1)));
+      ctx.globalAlpha = state.dead && motion ? 1 - 0.35 * Math.min(1, deathAge / DEATH_MS) : 1;
+      blit(ctx, stamp(i === 0 ? "head" : "bead", i === 0 ? 0 : level), p.x, p.y);
+    }
     ctx.globalAlpha = 1;
-  }
-
-  const body = state.body;
-  const last = body.length - 1;
-  for (let i = last; i >= 1; i--) {
-    const x = cellX(body[i]!);
-    const y = cellY(body[i]!);
-    const colour = state.dead ? "#B02A40" : BODY;
-    if (i === last) {
-      drawTail(ctx, x, y, body[i - 1]!, body[i]!, colour);
-      continue;
+    eyes(ctx, head.x, head.y, state.dir);
+    if (age >= 0 && age < EAT_MS) {
+      if (motion && memo.eatCell >= 0) {
+        const start = point(memo.eatCell), d = direction(state.dir), k = Math.min(1, age / 150);
+        const x = start.x - d.x * 8, y = start.y - d.y * 8;
+        ctx.globalAlpha = 1 - k;
+        blit(ctx, stamp("star"), x + (head.x - x) * k, y + (head.y - y) * k, PELLET);
+      }
+      ctx.globalAlpha = 0.75 * (1 - age / EAT_MS);
+      ctx.fillStyle = RETRO_WHITE; ctx.fillRect(head.x - 6, head.y - 6, 12, 12);
+      ctx.globalAlpha = 1;
+      eyes(ctx, head.x, head.y, state.dir);
     }
-    pixelRect(ctx, x, y, SNAKE_CELL, SNAKE_CELL, BODY_DARK);
-    pixelRect(ctx, x + 2, y + 2, SNAKE_CELL - 4, SNAKE_CELL - 4, colour);
+    if (motion) sparks(ctx, state, now, deathAge);
   }
+  ctx.restore();
+  // Same 1UP readout, without a per-frame text blur.
+  const on = Math.floor(retroClock() / 500) % 2 === 0;
+  retroText(ctx, "1UP", 14, 10, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
+  retroText(ctx, `PELLETS ${state.eaten}`, 14, 22, 10, RETRO_WHITE);
+}
 
-  const head = body[0] ?? 0;
-  const hx = cellX(head);
-  const hy = cellY(head);
-  const flashing = popAge >= 0 && popAge < 160;
-  const headColour = state.dead ? RETRO_RED : flashing ? RETRO_WHITE : HEAD;
-  pixelRect(ctx, hx, hy, SNAKE_CELL, SNAKE_CELL, headColour, bloom);
-  drawEyes(ctx, hx, hy, state.dir);
-
-  retroReadout(ctx, 14, 10, `PELLETS ${state.eaten}`, RETRO_WHITE);
-  if (state.dead) {
-    ctx.fillStyle = "rgba(255,59,92,0.2)";
-    ctx.fillRect(0, 0, SNAKE_WORLD_W, SNAKE_WORLD_H);
+/** Analytic sparks: no emitter allocation, shared maximum, no sim randomness. */
+function sparks(ctx: CanvasRenderingContext2D, state: SnakeState, now: number, deathAge: number): void {
+  const death = state.dead;
+  if (death && (deathAge < 0 || deathAge >= DEATH_MS)) return;
+  const count = death ? Math.min(FX_PARTICLE_LIMIT, state.body.length * 2) : TAIL_SPARKS;
+  const tail = state.body[state.body.length - 1];
+  if (tail === undefined) return;
+  const ahead = state.body[state.body.length - 2] ?? tail;
+  const t = point(tail), a = point(ahead);
+  ctx.fillStyle = ACCENT;
+  for (let i = 0; i < count; i++) {
+    const cell = death ? state.body[Math.floor(i * state.body.length / count)] : tail;
+    if (cell === undefined) continue;
+    const p = point(cell);
+    const k = death ? deathAge / DEATH_MS : ((now / 550 + i / count) % 1);
+    const angle = i * 2.39996 + snakeCol(cell) * 0.3;
+    const spread = death ? 15 * k : 5 * k;
+    const dx = death ? Math.cos(angle) * spread : (t.x - a.x) / SNAKE_CELL * (5 + k * 10) + Math.cos(angle) * spread;
+    const dy = death ? Math.sin(angle) * spread : (t.y - a.y) / SNAKE_CELL * (5 + k * 10) + Math.sin(angle) * spread;
+    ctx.globalAlpha = (1 - k) * 0.75;
+    ctx.fillRect(Math.round(p.x + dx) - 1, Math.round(p.y + dy) - 1, 2, 2);
   }
+  ctx.globalAlpha = 1;
 }
 
-/** Two square eyes on the leading side of the head. */
-function drawEyes(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number): void {
-  const e = 4;
-  const near = 4;
-  const far = SNAKE_CELL - 4 - e;
-  const front = dir === 0 || dir === 3 ? 4 : SNAKE_CELL - 4 - e;
-  const spots = dir === 0 || dir === 2
-    ? [[near, front], [far, front]]
-    : [[front, near], [front, far]];
-  for (const [ex, ey] of spots) pixelRect(ctx, x + ex!, y + ey!, e, e, "#000000");
+function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize): void {
+  retroScreen(ctx, size, SNAKE_WORLD_W, SNAKE_WORLD_H, "fit", c => drawWorld(c, state, ctx));
 }
-
-/** The tail tapers in pixel steps away from the segment in front of it. */
-function drawTail(ctx: CanvasRenderingContext2D, x: number, y: number, ahead: number, tail: number, colour: string): void {
-  const dRow = snakeRow(ahead) - snakeRow(tail);
-  const dCol = snakeCol(ahead) - snakeCol(tail);
-  const steps = [2, 5, 8];
-  const band = SNAKE_CELL / steps.length;
-  steps.forEach((inset, s) => {
-    // s = 0 touches the segment ahead; later bands narrow towards the tip.
-    if (dCol !== 0) {
-      const bx = dCol > 0 ? x + SNAKE_CELL - (s + 1) * band : x + s * band;
-      pixelRect(ctx, bx, y + inset, band, SNAKE_CELL - inset * 2, colour);
-    } else {
-      const by = dRow > 0 ? y + SNAKE_CELL - (s + 1) * band : y + s * band;
-      pixelRect(ctx, x + inset, by, SNAKE_CELL - inset * 2, band, colour);
-    }
-  });
-}
-
 export const snakeArtGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeGame, draw };
