@@ -1,6 +1,6 @@
 ## Trail sequential tap correction
-- [ ] Remove tray/selection; share adjacent next-number taps and last-player undo with mixed dragging, preserving scoring and bank.
-- [ ] Run focused Trail checks and source phone-fit audit; no browser tests.
+- [x] Removed tray/selection; shared adjacent next-number taps and last-player undo support mixed dragging. Fixed numbers remain on the board; scoring, SCORE wording and bank fingerprints unchanged.
+- [x] All 300 Trail boards passed tap-only solves, last-player undo/re-tap, ignored invalid taps, mixed tap/drag and scoring checks. Source fit audit passed at 390×700 and 375×667 with 59px/56px squares and 44px controls; preview build OK, no browser tests.
 
 ## Word Search, Rings and Tubes presentation
 - [x] Removed Word Search intro minimum-length line; Rings clues increased 11px to 14px (+27.3%), with auto-height reserved space instead of clipped 28px row.
