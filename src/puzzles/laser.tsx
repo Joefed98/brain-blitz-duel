@@ -360,7 +360,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
 
   const offsets = shot ? beamBranchOffsets(shot.trace.paths) : [];
   const revealed = shot ? shot.trace.paths.map((path, index) =>
-    path.slice(0, Math.max(0, shot.step - offsets[index]! + 1))) : null;
+    path.slice(0, Math.max(0, shot.step - (offsets[index] ?? 0) + 1))) : null;
   const visibleCells = revealed?.flat() ?? [];
   const litGems = shot ? shot.trace.gemsLit.filter((gem) => visibleCells.includes(gem)) : [];
   const bombFlash = Boolean(shot?.done && shot.trace.hitBomb);
@@ -487,7 +487,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     setShot({ trace: verdict.trace, step: 0, done: false });
 
     const offsets = beamBranchOffsets(verdict.trace.paths);
-    const lastStep = Math.max(0, ...verdict.trace.paths.map((path, index) => offsets[index]! + path.length - 1));
+    const lastStep = Math.max(0, ...verdict.trace.paths.map((path, index) => (offsets[index] ?? 0) + path.length - 1));
     const per = 2 * Math.max(30, Math.round((LASER_BEAM_MS * 1.25) / Math.max(1, lastStep)));
     for (let step = 1; step < lastStep; step++) {
       timers.current.push(
@@ -561,7 +561,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
 
   const undo = () => {
     if (!history.length) return;
-    const last = history[history.length - 1]!;
+    const last = history.at(-1);
+    if (last === undefined) return;
     hapticTick();
     setHistory((current) => current.slice(0, -1));
     setPlaced((current) => current.filter((mirror) => mirror.cell !== last));
@@ -613,7 +614,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
                 trackDrag(event.clientX, event.clientY);
               }}
               className={`h-11 min-w-11 gap-2 px-2 ${isSplitter(selected) === isSplitter(kind) ? "border-primary" : ""}`}>
-              <span className="flex h-7 w-7 items-center justify-center">{isSplitter(kind) ? <Splitter kind={kind} /> : <span className="text-lg">/</span>}</span>
+              <span className="flex h-7 w-7 items-center justify-center [&_svg]:size-6">{isSplitter(kind) ? <Splitter kind={kind} /> : <span className="text-lg">/</span>}</span>
               <span className="font-mono text-xs">{left}</span>
             </Button>
           );

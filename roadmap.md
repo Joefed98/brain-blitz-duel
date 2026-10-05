@@ -1,7 +1,7 @@
 ## Laser and Mirrors rework
-- [ ] Set 60 seconds, seven/eight mirrors and one movable oriented splitter; share placement validation/tracing across play and server grading while keeping three-shot scoring unchanged.
-- [ ] Verify exact supplied-piece solutions and splitter necessity, benchmark generation, use a precomputed bank if generation exceeds about one second.
-- [ ] Update fixed intro example and GOAL/HOW, test Laser only without browser tests and report timings.
+- [x] Set 60 seconds, seven/eight mirrors and one movable oriented splitter; separate inventory limits and shared tracing enforce placement/orientation in play and server grading. Three-shot scoring unchanged; legacy stored rounds remain readable.
+- [x] 200 seeded layouts passed independent exact-piece tracing, every proper witness subset, terminal-edge splitter necessity and server grading. 1,000 fresh draws measured 1.55–26.07ms, median 4.62ms, p95 10.83ms; fixed intro cold draw 35.35ms. Below one second, so no precomputed bank needed. Subset proof is for the stored solution, not a global minimum-mirror search.
+- [x] Updated six-gem fixed example and GOAL/HOW; incompatible old fixed-splitter demos fall back to the new static example until re-recorded. Laser-only tests and preview build passed; no browser tests, device interaction remains user-tested.
 
 ## Chain reshuffle cycles
 - [x] One stored seed generates a new symbol set and order for each five-link board; shared phone/server replay uses the board's current cycle and current-cycle look-alike decoys, with legacy single-cycle fallback.
