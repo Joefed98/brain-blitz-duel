@@ -96,7 +96,6 @@ import {
   scoreWordLadder,
   scoreWordSlide,
   wordSpeedBonus,
-  scoreSolvedMoves,
   speedBonus,
   scoreNumberClimb,
   scoreNumberHunt,
