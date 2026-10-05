@@ -1,7 +1,7 @@
 ## Matchup facets and Swing ceiling correction (Oct 5)
-- [ ] Replace standard-gem flecks with flat own-colour facets; leave specials and bomb unchanged.
-- [ ] Anchor Swing rock band and stalactites to the cave ceiling; keep above-ceiling background clear.
-- [ ] Run focused drawing checks without browser tests or identity proofs.
+- [x] Replace standard-gem flecks with deterministic flat own-colour facets and bright joins; specials and bomb unchanged.
+- [x] Anchor Swing's narrow rock band and stalactites to the authoritative cave ceiling; clip cave scenery below that line and clear above it for the shared background.
+- [x] Mock-canvas facet, unchanged-special/bomb, ceiling-envelope and seven drawing smoke checks passed; shared FX checks passed, protected source unchanged and preview build OK. No browser tests or identity proofs; device appearance remains user-tested.
 
 ## Matchup, Swing and Flip visual refinement (Oct 5)
 - [x] Restore white Matchup specials, outline bomb and add six stable own-colour flecks per standard gem.
