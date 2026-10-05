@@ -1147,6 +1147,7 @@ export function gradeSubmission(
         dropped: run.dropped,
         shots: run.shots,
         bubblesLeft: run.bubblesLeft,
+        startCount: run.state.startCount,
         cleared: run.cleared,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
