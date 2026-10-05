@@ -2,8 +2,8 @@
  * Burst — pop bouncing balls with a vertical shot; big balls split into two
  * smaller ones. Drags set the player's target x (k = 7, a = x); taps fire
  * (k = 0; b alternates so repeated taps stay distinct events). Every wave is
- * drawn at init from the seed. Popping an L ball drops a gold icon (2 px/tick);
- * catching it switches to BURST shots — three short 12 px/tick shots 8 ticks
+ * drawn at init from the seed. Popping an L ball drops a gold icon;
+ * catching it switches to BURST shots — three short shots spaced by BURST_GAP
  * apart per tap — until a life is lost.
  */
 
@@ -47,10 +47,11 @@ const MAX_WAVES = 41;
 const HIT_POINTS = 2;
 const LIFE_COST = 9;
 const TOP_UP_WAVES = 4;
-const ICON_FALL = 3 * FP;
+const ICON_FALL = 2 * FP;
+export const BURST_ICON_FALL = 3 * FP;
 const ICON_HALF = 8;
 const BURST_SHOTS = 3;
-const BURST_GAP = 16;
+export const BURST_GAP = 16;
 const BURST_SPEED = 12 * FP;
 export const BURST_SHORT_LEN = 30;
 /** Popping an M ball drops a SHIELD icon one time in this many (seeded). */
@@ -376,7 +377,7 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
   // Power-up icons fall; the player catches them, the floor loses them.
   const falling: BurstIcon[] = [];
   for (const icon of s.icons) {
-    icon.y += ICON_FALL;
+    icon.y += icon.kind === 0 ? BURST_ICON_FALL : ICON_FALL;
     const top = (BURST_FLOOR_Y - PLAYER_H) * FP;
     const near = Math.abs(icon.x - s.x) <= (PLAYER_HALF_W + ICON_HALF) * FP;
     if (near && icon.y + ICON_HALF * FP >= top) {
