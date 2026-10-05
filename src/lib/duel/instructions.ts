@@ -422,7 +422,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Follow the cycle", detail: "at the top; the lit item is the one you need next." },
       { action: "Keep momentum", detail: "- tap again before the gold ring empties (3 s, then 2.5 s from link 11, 2 s from link 19)." },
       { action: "One wrong tap or an empty ring", detail: "breaks the chain and ends the round." },
-      { action: "Every 5 links", detail: "the board reshuffles. Watch for look-alikes: right shape, wrong colour." },
+      { action: "Every 5 links", detail: "the board reshuffles with a new cycle and order. Watch for look-alikes: right shape, wrong colour." },
     ],
     score: "6 points per link; 25 links = 150. No time bonus.",
   },

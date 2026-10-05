@@ -1615,6 +1615,10 @@ export interface ChainPuzzleData {
   type: "chain";
   /** The repeating three-item rule: shape and colour must both match. */
   cycle: ChainRuleItem[];
+  /** Seeded rule per five-link board; absent on legacy single-cycle puzzles. */
+  cycles?: ChainRuleItem[][];
+  /** Seed used to generate every rule, face and position in this round. */
+  seed?: number;
   /** One board of 20 nodes per block of five links, shown in order. */
   boards: ChainNode[][];
 }

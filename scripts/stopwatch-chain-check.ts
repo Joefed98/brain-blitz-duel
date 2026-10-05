@@ -1,6 +1,6 @@
 /** Focused Stop Watch movement and Chain scatter checks. */
 import { generateChain } from "../src/lib/duel/chain.server";
-import { chainRequired, chainWindowMs, replayChain, encodeChainAnswer, decodeChainAnswer } from "../src/lib/duel/chain";
+import { chainRequiredAt, chainWindowMs, replayChain, encodeChainAnswer, decodeChainAnswer } from "../src/lib/duel/chain";
 import { scoreChain } from "../src/lib/duel/scoring";
 import {
   CHAIN_LENGTH,
@@ -45,7 +45,7 @@ for (let run = 0; run < ROUNDS; run++) {
   for (let link = 0; link < CHAIN_LENGTH; link++) {
     const board = Math.floor(link / 5);
     const nodes = puzzle.boards[board]!;
-    const need = chainRequired(puzzle.cycle, link)!;
+    const need = chainRequiredAt(puzzle, link)!;
     // Near-miss decoys exist for this step.
     if (!nodes.some((n) => n.shape === need.shape && n.colour !== need.colour)) throw new Error("no same-shape decoy");
     if (!nodes.some((n) => n.colour === need.colour && n.shape !== need.shape)) throw new Error("no same-colour decoy");
@@ -71,7 +71,7 @@ for (let run = 0; run < ROUNDS; run++) {
   const full = replayChain(puzzle, decodeChainAnswer(encodeChainAnswer({ taps, reason: "complete" })));
   if (full.links !== 25 || full.reason !== "complete" || scoreChain(full.links) !== 150) throw new Error("perfect run failed");
   // Wrong tap at link 13 breaks with 12 links.
-  const wrongNode = puzzle.boards[2]!.findIndex((n) => { const need = chainRequired(puzzle.cycle, 12)!; return n.shape !== need.shape || n.colour !== need.colour; });
+  const wrongNode = puzzle.boards[2]!.findIndex((n) => { const need = chainRequiredAt(puzzle, 12)!; return n.shape !== need.shape || n.colour !== need.colour; });
   const wrong = replayChain(puzzle, { taps: [...taps.slice(0, 12), { node: wrongNode, t: 13_000 }], reason: "wrong" });
   if (wrong.links !== 12 || wrong.reason !== "wrong" || scoreChain(wrong.links) !== 72) throw new Error("wrong-tap break failed");
   // Late tap for link 19 (window 2.5 s... link 19 is 2.0 s) breaks on momentum.
