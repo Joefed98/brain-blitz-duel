@@ -36,8 +36,8 @@ let solved = 0, apart = 0;
 const dropSets = new Set<string>();
 if (BT_BALLS !== 25 || (BT_BALLS - 1) * BT_DROP_TICKS !== 48 * 60 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 16 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
 for (let home = 0; home <= BT_BALLS; home++) for (let wrong = 0; wrong <= BT_BALLS - home; wrong++) {
-  if (btScoreOf(home, wrong) !== Math.max(0, Math.min(150, Math.round(120 * home / BT_BALLS) + btSpeedBonus(home, BT_RUN_TICKS)))) fail("Scoring formula");
-if (btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 20 * 60) !== 30 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 15 * 60) !== 23 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS - 10 * 60) !== 15 || btSpeedBonus(BT_BALLS - 1, 0) !== 0) fail("Speed bonus");
+  if (btScoreOf(home, wrong) !== (home >= BT_BALLS ? 130 + btSpeedBonus(home, BT_RUN_TICKS) : Math.round(120 * home / BT_BALLS))) fail("Scoring formula");
+if (btSpeedBonus(BT_BALLS, 0) !== 20 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS / 2) !== 10 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS) !== 0 || btSpeedBonus(BT_BALLS - 1, 0) !== 0) fail("Speed bonus");
 }
 BALL_TRACK_BANK.forEach((entry, i) => {
   const c = entry.course;
@@ -78,7 +78,7 @@ BALL_TRACK_BANK.forEach((entry, i) => {
   if (c.balls.some((b, j) => j >= 2 && b === c.balls[j - 1] && b === c.balls[j - 2])) fail(`course ${i}: three consecutive colours`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);
-  if (state.home === BT_BALLS && state.wrong === 0 && state.lost === 0 && score === 120 + btSpeedBonus(BT_BALLS, state.lastLand) && state.actions === entry.par) solved++;
+  if (state.home === BT_BALLS && state.wrong === 0 && state.lost === 0 && score === 130 + btSpeedBonus(BT_BALLS, state.lastLand) && state.actions === entry.par) solved++;
   else fail(`course ${i}: playbook did not route all ${BT_BALLS} (${state.home}, score ${score})`);
 });
 
