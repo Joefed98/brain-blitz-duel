@@ -29,7 +29,7 @@ import {
 } from "@/lib/arcade/beat";
 import { decodeBeatRun, encodeBeatRun, replayBeatRun } from "@/lib/duel/beat";
 import type { BeatPuzzleData } from "@/lib/duel/types";
-import { playBeatStep, playBlip, playWrong } from "@/lib/sound";
+import { playBeatStep, playCorrect, playWrong } from "@/lib/sound";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -167,7 +167,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const nowJudged = state.current.perfect + state.current.good + state.current.ok;
       if (nowJudged > judged) {
         judged = nowJudged;
-        playBlip();
+        playCorrect();
       }
       if (state.current.misses > missed) {
         missed = state.current.misses;

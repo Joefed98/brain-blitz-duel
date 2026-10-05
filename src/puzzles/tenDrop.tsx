@@ -31,7 +31,7 @@ import {
 } from "@/lib/arcade/tenDrop";
 import { encodeTenDropRun, replayTenDropRun } from "@/lib/duel/tenDrop";
 import { TENDROP_TIME_MS, type TenDropPuzzleData } from "@/lib/duel/types";
-import { playBlip, playTick, playWrong } from "@/lib/sound";
+import { playCorrect, playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -178,7 +178,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const s = state.current;
       if (s.cleared > seenCleared) {
         seenCleared = s.cleared;
-        playBlip();
+        playCorrect();
       }
       if (s.resets > seenResets) {
         seenResets = s.resets;

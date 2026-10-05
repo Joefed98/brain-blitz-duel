@@ -26,7 +26,7 @@ import {
 } from "@/lib/arcade/whack";
 import { encodeWhackRun, replayWhackRun } from "@/lib/duel/whack";
 import { WHACK_TIME_MS, type WhackPuzzleData } from "@/lib/duel/types";
-import { playBlip, playTick, playWrong } from "@/lib/sound";
+import { playCorrect, playTick, playWrong } from "@/lib/sound";
 import { gridCellAt } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -160,7 +160,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
       if (state.current.hits > hits) {
         hits = state.current.hits;
-        playBlip();
+        playCorrect();
       }
       if (state.current.wrong > wrong) {
         wrong = state.current.wrong;

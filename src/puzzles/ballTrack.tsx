@@ -24,7 +24,7 @@ import {
 } from "@/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { BALLTRACK_TIME_MS, type BallTrackPuzzleData } from "@/lib/duel/types";
-import { playBlip, playTick, playWrong } from "@/lib/sound";
+import { playCorrect, playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { btDraw } from "@/lib/arcade/ballTrack";
 
@@ -155,7 +155,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const s = state.current;
       if (s.home > seenHome) {
         seenHome = s.home;
-        playBlip();
+        playCorrect();
       }
       const bottomEvents = (s.tick >= course.relay.tick ? 1 : 0) + (s.tick >= course.shuffle.tick ? 1 : 0);
       if (bottomEvents > shuffled) {
