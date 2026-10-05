@@ -112,21 +112,38 @@ function facetedGem(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>,
   ctx.restore();
 }
 
-/** Pattern depends only on colour, never cell, time or swap position. */
-function gemFlecks(ctx: CanvasRenderingContext2D, shape: string, kind: number, cx: number, cy: number, r: number, colour: string): void {
+/** Flat table and bevel planes: fixed per cut, with three own-colour shades. */
+function flatGem(ctx: CanvasRenderingContext2D, shape: string, cx: number, cy: number, r: number, colour: string): void {
+  const pts = cutPoints(shape, cx, cy, r);
+  const inner = pts.map(([x, y]) => [cx + (x - cx) * 0.5, cy + (y - cy) * 0.5 - r * 0.12] as [number, number]);
+  const light = shade(colour, 0.28);
+  const dark = shade(colour, -0.3);
   ctx.save();
-  pathOf(ctx, cutPoints(shape, cx, cy, r));
+  pathOf(ctx, pts);
   ctx.clip();
-  for (let k = 0; k < 6; k++) {
-    const hash = artHash(kind, 230 + k);
-    const x = cx + (((hash % 101) / 100) - 0.5) * r * 1.3;
-    const y = cy + ((((hash >>> 8) % 101) / 100) - 0.5) * r * 1.3;
-    const s = r * (0.045 + ((hash >>> 16) % 3) * 0.013);
-    ctx.fillStyle = shade(colour, k % 2 ? -0.35 : 0.28);
-    ctx.beginPath();
-    ctx.ellipse(x, y, s * 1.5, s, (hash % 6) * 0.5, 0, Math.PI * 2);
+  for (let k = 0; k < pts.length; k++) {
+    const a = pts[k]; const b = pts[(k + 1) % pts.length];
+    const ia = inner[k]; const ib = inner[(k + 1) % inner.length];
+    if (!a || !b || !ia || !ib) continue;
+    const height = ((a[1] + b[1]) / 2 - cy) / r;
+    ctx.fillStyle = height < -0.3 ? light : height > 0.3 ? dark : colour;
+    pathOf(ctx, [a, b, ib, ia]);
     ctx.fill();
   }
+  pathOf(ctx, inner);
+  ctx.fillStyle = light;
+  ctx.fill();
+  ctx.strokeStyle = light;
+  ctx.lineWidth = 0.65;
+  ctx.beginPath();
+  for (let k = 0; k < pts.length; k++) {
+    const a = pts[k]; const b = inner[k];
+    if (!a || !b) continue;
+    ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
+  }
+  ctx.stroke();
+  pathOf(ctx, inner); ctx.stroke();
+  pathOf(ctx, pts); ctx.lineWidth = 1; ctx.stroke();
   ctx.restore();
 }
 
@@ -180,8 +197,7 @@ export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: 
   } else {
     const shape = MATCHUP_SHAPES[kind] ?? "circle";
     const colour = MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD;
-    facetedGem(ctx, cutPoints(shape, cx, cy, radius), cx, cy, radius, colour);
-    gemFlecks(ctx, shape, kind, cx, cy, radius, colour);
+    flatGem(ctx, shape, cx, cy, radius, colour);
   }
   ctx.restore();
 }
