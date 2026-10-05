@@ -269,7 +269,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "maze") return null;
   const mine = decodeMazePath(myAnswer ?? "");
   const verdict = verifyMazePath(
@@ -280,7 +280,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
     mine,
   );
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((MAZE_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
     <div className="flex w-full flex-col items-center gap-3">

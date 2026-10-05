@@ -218,11 +218,11 @@ function Stage({
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "tiles") return null;
   const replay = replayTiles(puzzle.frame, decodeTileMoves(myAnswer ?? ""));
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((TILES_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   const min = puzzle.minMoves ?? 0;
 
   return (
@@ -232,7 +232,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
         {replay.solved
-          ? solvedMovesText(replay.moves, min, myMsRemaining, TILES_TIME_MS)
+          ? solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs)
           : `${replay.inPlace} / ${TILES_COUNT} in place`}
       </p>
     </div>

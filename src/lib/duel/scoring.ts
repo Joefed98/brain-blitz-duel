@@ -750,7 +750,10 @@ export function scoreMaze(
   return clamp(Math.round(MAZE_PARTIAL_POINTS * clamp(progress, 0, 1)), 0, MAZE_PARTIAL_POINTS);
 }
 
-/** Sort the Tubes (B). Unfinished 22 per single-colour tube. */
+/** Unfinished boards that must never reach a finished score (130+). */
+export const UNFINISHED_CAP = 110;
+
+/** Sort the Tubes (B). Unfinished 22 per single-colour tube, max 110. */
 export function scoreTubes(
   solved: boolean,
   moves: number,
@@ -760,7 +763,7 @@ export function scoreTubes(
   timeLimitMs: number = TUBES_TIME_MS,
 ): number {
   if (solved) return scoreSolvedMoves(moves, minMoves, msRemaining, timeLimitMs);
-  return clamp(TUBES_TUBE_POINTS * Math.max(0, Math.round(sortedTubes)), 0, MAX_ROUND_SCORE);
+  return clamp(TUBES_TUBE_POINTS * Math.max(0, Math.round(sortedTubes)), 0, UNFINISHED_CAP);
 }
 
 /** Safe Cracker: try 1 / 2 / 3 = 130 / 115 / 100 + SPEED(20); else 15 per dial on the last try. */

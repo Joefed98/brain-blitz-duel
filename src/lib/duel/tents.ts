@@ -182,5 +182,5 @@ export function scoreTents(
 ): number {
   const perfect = trees > 0 && correct === trees && wrong === 0;
   if (perfect) return Math.min(150, 130 + Math.round((20 * Math.max(0, Math.min(timeLimitMs, msRemaining))) / timeLimitMs));
-  return Math.min(150, 10 * Math.max(0, correct));
+  return Math.min(110, 10 * Math.max(0, correct));
 }

@@ -65,6 +65,8 @@ export interface PuzzleRevealProps {
   myCorrect: boolean;
   myReactionAvgMs: number | null;
   myMsRemaining?: number | undefined;
+  /** The round length from the registry — the same limit the server grades against. */
+  timeLimitMs: number;
   /** Server-checked row indices for the Word Slide reveal. */
   validRows?: number[] | undefined;
 }

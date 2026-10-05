@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { WaitingLine } from "@/components/duel/Dots";
 
-import { puzzleDef, puzzleRevealMs } from "@/lib/duel/registry";
+import { puzzleDef, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/registry";
 import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong, stopMusic } from "@/lib/sound";
@@ -162,6 +162,7 @@ export function AnswerReveal({
               myCorrect={myCorrect}
               myReactionAvgMs={myReactionAvgMs}
               myMsRemaining={myMsRemaining}
+              timeLimitMs={puzzleTimeLimitMs(puzzle)}
               validRows={Array.isArray(myExtra?.["validRows"]) ? (myExtra["validRows"] as number[]) : undefined}
             />
           ) : (

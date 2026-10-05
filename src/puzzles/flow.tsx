@@ -297,7 +297,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "flow") return null;
   const solution = puzzle.solution ?? puzzle.pairs.map(() => []);
   const mine = myAnswer
@@ -310,7 +310,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
     : puzzle.pairs.map(() => []);
   const verdict = verifyFlow(puzzle.pairs, mine, puzzle.walls ?? []);
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((FLOW_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
     <div className="flex w-full flex-col items-center gap-3">

@@ -220,14 +220,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "sumhunt") return null;
   const state = replaySumHunt(puzzle.seed, puzzle.target, decodeSumPaths(myAnswer ?? ""));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2">
       <p className={`text-center font-mono text-lg font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
         {state.stage > SH_STAGES && myMsRemaining !== undefined
-          ? `Cleared the grid · ${((SH_TIME_MS - myMsRemaining) / 1000).toFixed(1)}s`
+          ? `Cleared the grid · ${((timeLimitMs - myMsRemaining) / 1000).toFixed(1)}s`
           : sumHuntText(state)}
       </p>
       <p className="text-center text-sm text-muted-foreground">Target {state.target}</p>

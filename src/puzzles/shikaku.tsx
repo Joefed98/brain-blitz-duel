@@ -186,11 +186,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "shikaku") return null;
   const mine = acceptedRects(decodeShikaku(myAnswer ?? "", puzzle.size), puzzle.clues, puzzle.size);
   const covered = mine.reduce((sum, r) => sum + (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1), 0);
-  const elapsed = Math.max(0, SHIKAKU_TIME_MS - (myMsRemaining ?? 0));
+  const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <div className="flex w-full justify-center gap-3">

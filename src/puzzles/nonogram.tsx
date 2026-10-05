@@ -211,7 +211,7 @@ function Stage({
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "nonogram") return null;
   const pattern = puzzle.pattern ?? [];
   const filled = decodeNonoCells(myAnswer ?? "");
@@ -219,7 +219,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   const correct = filled.filter((cell) => pattern[cell]).length;
   const total = pattern.filter(Boolean).length;
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((NONO_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   const solutionMarks = pattern.map((cell) => (cell ? 1 : 0)) as NonoMarks;
   const myMarks = Array.from({ length: NONO_SIZE * NONO_SIZE }, (_, index) =>

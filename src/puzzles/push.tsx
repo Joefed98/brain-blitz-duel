@@ -195,7 +195,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   const isPush = puzzle.type === "push";
   const solution = isPush ? decodePushSolution(puzzle.solution ?? "") : [];
   const frames = useMemo(
@@ -229,7 +229,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   );
   const min = puzzle.minPushes ?? solution.length;
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((PUSH_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
     <div className="flex w-full flex-col items-center gap-3">

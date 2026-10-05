@@ -247,11 +247,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "tower") return null;
   const start = puzzle.start ?? [];
   const mine = replayTower(start, puzzle.targetPeg, puzzle.discs, decodeTowerMoves(myAnswer ?? ""));
-  const limit = puzzle.timeLimitMs ?? TOWER_TIME_MS;
+  const limit = timeLimitMs;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
 

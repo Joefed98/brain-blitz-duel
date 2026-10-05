@@ -325,12 +325,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   );
 }
 
-function Reveal({ puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "chain") return null;
   const answer = decodeChainAnswer(myAnswer ?? "");
   const replay = replayChain(puzzle, answer);
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((CHAIN_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   const ending =
     replay.reason === "complete"
       ? "Full chain"

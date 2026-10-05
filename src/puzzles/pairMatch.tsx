@@ -193,11 +193,11 @@ function Stage({
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "pairmatch") return null;
   const replay = replayPairs(puzzle.cards, decodePairFlips(myAnswer ?? ""));
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((PAIR_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   const everything = new Set(Array.from({ length: PAIR_CARDS }, (_, index) => index));
 
   return (

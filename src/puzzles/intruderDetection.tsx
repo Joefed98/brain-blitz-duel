@@ -297,13 +297,13 @@ function Stage({
 }
 
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "intruder") return null;
   const taps = decodeIntruderTaps(myAnswer ?? "");
   const answers = puzzle.boards.map((board) => changedCells(board));
   const correct = answers.filter((cells, index) => cells.every((cell) => (taps[index] ?? []).includes(cell))).length;
   const elapsed =
-    myMsRemaining === undefined ? null : Math.round((INTRUDER_TIME_MS - myMsRemaining) / 100) / 10;
+    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">

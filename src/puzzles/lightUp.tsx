@@ -223,7 +223,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "lightup") return null;
   const cells = puzzle.size * puzzle.size;
   const solution = new Set(puzzle.solution ?? []);
@@ -233,7 +233,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProp
   const myMarks = Array.from({ length: cells }, (_, c) => (mineSet.has(c) ? 1 : 0)) as Mark[];
   const wrong = new Set(mine.filter((c) => !solution.has(c)));
   const status = lightUpStatus(puzzle, mine);
-  const elapsed = Math.max(0, LIGHTUP_TIME_MS - (myMsRemaining ?? 0));
+  const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <div className="flex w-full justify-center gap-3">
