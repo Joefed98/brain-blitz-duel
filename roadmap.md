@@ -1,3 +1,8 @@
+## Trail independent credit and tap input
+- [ ] Count every correct player tile server-side; retain completion bonus and the 300-board bank.
+- [ ] Add tray selection, empty-cell tap placement and pickup; retain drag, Undo and Reset; audit phone sizes without browser tests.
+- [ ] Update Trail wording and focused regression checks.
+
 ## Orbit chosen checkpoint
 - [x] Replaced automatic checkpoint with validated recorded input 1 while orbiting; selection is immutable, gold planet marker clears after the one respawn and no second selection is allowed. HUD uses sim-derived availability and a fixed 48px control slot.
 - [x] Updated GOAL/HOW and removed timed-checkpoint help; intro SCORE and scoring code unchanged. Stored checkpoint tile shows the selected planet even after use, or none. Orbit identity 200/200 and early/late/never full-state replay checks 15/15 passed; preview build OK, no browser tests. Saved Orbit demo needs re-recording; device appearance remains user-tested.
