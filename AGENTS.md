@@ -11,6 +11,7 @@
 
 - ArrowPad owns the device-local arrows/joystick preference so every arrow-controlled puzzle behaves consistently.
 - Renderer-only arcade tuning belongs in separate *.renderer.ts helpers used by play and relevant reveal/demo draws; why: visual tweens and arrow silhouettes must not modify simulation modules or input logs.
+- Gameplay holds run inside the shared simulation and HUDs read their derived hold state; why: inputs, timeouts and replay must stay synchronized without pausing the client clock.
 - AcceptedWordChip owns the reserved confirmation row for word-entry boards, sized by the remaining board region; why: accepted words must not move or cover controls.
 - StageCorrect owns the fixed confirmation slot and persisted presentation-only hold deadline for staged puzzles; why: intermediate solved boards stay visible without pausing the shared round clock.
 - Tile Grid uses tileGridWordCells for client verdict-based counting and server dictionary-based counting; why: crossing tiles and changing runs must grade and display consistently without shipping the dictionary.

@@ -50,7 +50,11 @@ export const CROSS_HOP_TICKS = 6;
 
 /** How many crossings are laid out at init; later crossings reuse the last. */
 export const CROSS_COURSES = 10;
-/** Each crossing runs 10% faster than the one before. */
+/** Crossing 2 retains the original 10% increase; later crossings add a fixed step. */
+export const CROSS_SPEED_GROWTH_INITIAL = 11;
+export const CROSS_SPEED_GROWTH_DEN = 10;
+export const CROSS_SPEED_RAMP_FROM = 3;
+export const CROSS_SPEED_STEP_FP = 64;
 export const CROSS_SPEED_MIN_FP = 96;
 export const CROSS_SPEED_SPAN_FP = 120;
 export const CROSS_BLOCK_MIN_FP = 16_384;
@@ -156,6 +160,12 @@ export function crossPassable(course: CrossCourse): boolean {
   return false;
 }
 
+export function crossSpeedFor(base: number, index: number): number {
+  if (index === 0) return base;
+  const second = Math.trunc(base * CROSS_SPEED_GROWTH_INITIAL / CROSS_SPEED_GROWTH_DEN);
+  return second + Math.max(0, index - CROSS_SPEED_RAMP_FROM + 2) * CROSS_SPEED_STEP_FP;
+}
+
 function rollCourse(rng: number, index: number): { rng: number; course: CrossCourse } {
   let state = rng;
   for (let attempt = 0; attempt < 40; attempt++) {
@@ -171,8 +181,7 @@ function rollCourse(rng: number, index: number): { rng: number; course: CrossCou
       state = g.state;
       const blockW = CROSS_BLOCK_MIN_FP + w.value;
       const gap = CROSS_GAP_MIN_FP + g.value;
-      let speed = CROSS_SPEED_MIN_FP + s.value;
-      for (let step = 0; step < index; step++) speed = Math.trunc((speed * 11) / 10);
+      const speed = crossSpeedFor(CROSS_SPEED_MIN_FP + s.value, index);
       const period = blockW + gap;
       const p = rngBelow(state, period);
       state = p.state;
@@ -192,7 +201,8 @@ function rollCourse(rng: number, index: number): { rng: number; course: CrossCou
   for (let lane = 0; lane < CROSS_LANES; lane++) {
     lanes.push({
       dir: lane % 2 === 0 ? 1 : -1,
-      speed: CROSS_SPEED_MIN_FP,
+      speed: index < CROSS_SPEED_RAMP_FROM - 1 ? CROSS_SPEED_MIN_FP
+        : crossSpeedFor(CROSS_SPEED_MIN_FP, index),
       blockW: CROSS_BLOCK_MIN_FP,
       period: CROSS_BLOCK_MIN_FP + CROSS_GAP_MIN_FP + CROSS_GAP_SPAN_FP,
       phase: lane * 4_096,

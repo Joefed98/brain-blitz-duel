@@ -64,6 +64,7 @@ export const TD_CONFIG = {
   /** A new tile never lands in the same column as the last two. */
   avoidRecentCols: 2,
   shakeTicks: 18,
+  clearHoldTicks: 30,
   pointsPerTarget: 13,
   /** Up to this many points for clearing all ten, by sim time of the last clear. */
   clearBonus: 20,
@@ -310,7 +311,13 @@ function init(seed: number): TenDropState {
 }
 
 function isOver(state: TenDropState): boolean {
-  return state.tick >= TD_RUN_TICKS || state.cleared >= TD_TARGETS;
+  return state.tick >= TD_RUN_TICKS ||
+    (state.cleared >= TD_TARGETS && state.tick - state.clearTick >= TD_CONFIG.clearHoldTicks);
+}
+
+/** Completion holds are gameplay time, not a paused client clock. */
+export function tenDropHolding(state: TenDropState): boolean {
+  return state.cleared > state.stage && state.tick - state.clearTick <= TD_CONFIG.clearHoldTicks;
 }
 
 function pushLog(log: number[], tick: number, code: number, extra: number): number[] {
@@ -326,7 +333,14 @@ function step(state: TenDropState, input: ArcadeInputEvent | null): TenDropState
   if (isOver(state)) return state;
   const c = TD_CONFIG;
   const tick = state.tick + 1;
-  const stage = c.stages[state.stage]!;
+  if (state.cleared > state.stage) {
+    // Log collection happens outside the sim; no gameplay input is applied here.
+    if (tick - state.clearTick <= c.clearHoldTicks) return { ...state, tick };
+    state = { ...state, stage: state.stage + 1, total: 0, queueIndex: 0,
+      tiles: [], recentCols: [], spawnIn: 1 };
+  }
+  const stage = c.stages[state.stage];
+  if (!stage) return { ...state, tick };
   const next: TenDropState = { ...state, tick };
 
   // Fall, then drop anything past the bottom (no penalty).
@@ -385,15 +399,8 @@ function step(state: TenDropState, input: ArcadeInputEvent | null): TenDropState
         } else if (result === target) {
           next.cleared += 1;
           next.clearTick = tick;
-          next.total = 0;
+          next.total = result;
           next.log = pushLog(next.log, tick, TD_LOG_CLEAR, col);
-          if (next.cleared < TD_TARGETS) {
-            next.stage = state.stage + 1;
-            next.queueIndex = 0;
-            next.tiles = [];
-            next.recentCols = [];
-            next.spawnIn = 1;
-          }
         } else {
           next.total = result;
           next.log = pushLog(next.log, tick, TD_LOG_APPLIED, col);

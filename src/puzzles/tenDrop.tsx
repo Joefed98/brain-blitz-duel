@@ -12,6 +12,7 @@ import {
 import {
   tenDropCheckpoint,
   tenDropGame,
+  tenDropHolding,
   tdView,
   unpackTdLog,
   TD_CHECKPOINT_INTERVAL,
@@ -186,7 +187,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         playTick();
       }
       const flash: "" | "red" | "gold" =
-        s.tick - s.clearTick < 24 ? "gold" : s.tick - s.resetTick < 24 ? "red" : "";
+        tenDropHolding(s) ? "gold" : s.tick - s.resetTick < 24 ? "red" : "";
       const target = s.plan.targets[Math.min(s.stage, TD_TARGETS - 1)]!;
       const key = `${target}|${s.total}|${s.cleared}|${Math.ceil((tenDropGame.runTicks - s.tick) / 60)}|${flash}`;
       if (key !== shownKey) {

@@ -1,3 +1,9 @@
+## Cross, Burst and Ten Drop pacing
+- [x] Cross preserves crossings 1-2 and adds 64 fixed-point units/tick per crossing from 3; fallback uses the same later speed progression. Report lane speed ranges for all ten courses.
+- [x] Burst shot interval 8→16 ticks; gold icon fall 512→768 fixed-point units/tick; shield fall and flawless scoring unchanged.
+- [x] Ten Drop holds the completed target and total for 30 sim ticks, ignores gameplay inputs but retains their logs, and advances only after the hold. Final target also holds; speed bonus still uses actual clearTick, and the 90-second timeout wins during a hold.
+- [x] Cross 200/200, Burst 200/200 and Ten Drop 200/200 identity proofs passed. Additional Ten Drop full solves 20/20, 200 holds and 6,000 logged/ignored inputs plus timeout checks passed. Preview build OK; no browser tests or other-game identity proofs.
+
 ## Matchup and Bullseye renderer tuning
 - [x] Add 150ms accepted swap slides and 150ms-out/150ms-back rejected swaps; original cascade presentation and input gating unchanged, sim resolves on its original tick.
 - [x] Shared Bullseye arrow silhouette has near-black shaft/fletching/head with a thin light outline, in play and reveal/demo rendering; aim and wind/sway presentation unchanged.
