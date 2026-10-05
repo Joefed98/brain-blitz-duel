@@ -675,3 +675,7 @@
 ## Orbit, Matchup, Swing and Wavefront visual tuning (Oct 5)
 - [x] Tune colours, paths, facets, ceiling-connected rock, silver armour and bounded beams in renderers only.
 - [x] Beam bounds/colours, white-free gem fills, renderer smoke and read-only-state checks passed; only four renderer files changed, protected gameplay and audio untouched; preview build OK. No browser tests or identity proofs; device appearance remains user-tested.
+
+## Flip lava-tube theme (Oct 5)
+- [x] Replace Flip artwork with curved glowing basalt tunnel, silhouette-clipped hot-core rock, exterior-only background decoration and runner-box-clipped headlamp robot.
+- [x] Swing-volume lava hiss loop added with stop cleanup; animated intro and answer backdrop already share flipArtGame. 72 renderer-only smoke/state/clip checks and shared FX checks passed; protected gameplay files unchanged, preview build OK. No browsers or identity proofs; device appearance and FPS remain user-tested.
