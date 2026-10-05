@@ -101,7 +101,7 @@ for (const file of readdirSync("src/puzzles").filter((f) => f.endsWith(".tsx")))
   const rest = src.slice(start + 1);
   const end = rest.slice(10).search(/\n(export |function |\/\*\*)/);
   const body = end < 0 ? rest : rest.slice(0, end + 10);
-  const hit = body.split("\n").find((line) => banned.test(line.replace(/wordsmithPoints|wordHuntPoints/g, "")));
+  const hit = body.split("\n").find((line) => banned.test(line.replace(/wordsmithPoints|wordHuntPoints|countStagePoints/g, "")));
   if (hit) failures.push(`${file}: Reveal computes a score locally → ${hit.trim()}`);
 }
 
