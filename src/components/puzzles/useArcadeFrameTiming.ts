@@ -4,7 +4,7 @@ import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 type Sample = { frame: number; draw: number; work: number };
 /** Presentation only: timings never enter a run, checkpoint or sim clock. */
 export function useArcadeFrameTiming(canvas: RefObject<HTMLCanvasElement | null>) {
-  const timing = useRef({ enabled: false, node: null as HTMLDivElement | null, samples: [] as Sample[], last: 0, raf: 0, start: 0, drawStart: 0, updated: 0 });
+  const timing = useRef({ enabled: false, node: null as HTMLDivElement | null, samples: [] as Sample[], last: 0, raf: 0, start: 0, drawStart: 0, drawMs: 0, updated: 0 });
   useEffect(() => {
     const t = timing.current;
     const sync = () => {
@@ -31,12 +31,13 @@ export function useArcadeFrameTiming(canvas: RefObject<HTMLCanvasElement | null>
       t.raf = raf; t.start = performance.now(); t.drawStart = t.start;
     },
     draw() { if (timing.current.enabled) timing.current.drawStart = performance.now(); },
+    rendered() { if (timing.current.enabled) timing.current.drawMs = performance.now() - timing.current.drawStart; },
     end() {
       const t = timing.current;
       if (!t.enabled) return;
       const now = performance.now();
       if (t.last && t.raf > t.last) {
-        t.samples.push({ frame: t.raf - t.last, draw: now - t.drawStart, work: now - t.start });
+        t.samples.push({ frame: t.raf - t.last, draw: t.drawMs, work: now - t.start });
         if (t.samples.length > 120) t.samples.shift();
       }
       t.last = t.raf;

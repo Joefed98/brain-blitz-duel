@@ -64,6 +64,26 @@
   --font-mono: var(--font-mono);
 }
 
+.arcade-frame-timing {
+  position: absolute;
+  z-index: 30;
+  bottom: 4px;
+  left: 4px;
+  width: max-content;
+  max-width: calc(100% - 8px);
+  padding: 4px 6px;
+  color: var(--foreground);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  pointer-events: none;
+  user-select: none;
+}
+
 :root {
   --radius: 0.75rem;
   --background: #0B0B0F;
