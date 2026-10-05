@@ -598,7 +598,7 @@ export function gradeSubmission(
     case "laser": {
       // The beam is re-traced here from the placement the phone sent, so the
       // client's own claim about the shot is never trusted.
-      const shot = decodeLaserAnswer(answer, puzzle.mirrors);
+      const shot = decodeLaserAnswer(answer, puzzle.mirrors + (puzzle.splitterPieces ?? 0));
       const verdict = verifyLaser(puzzle, shot.mirrors, shot.fires);
       isCorrect = verdict.solved;
       correctCount = verdict.gemsLit;

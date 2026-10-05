@@ -347,12 +347,12 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 110 × crates home ÷ crates.",
   },
   laser: {
-    goal: "Light all six gems with one shot.",
+    goal: "Place mirrors and a splitter to light all six gems with one shot.",
     how: [
-      { action: "Drag mirrors", detail: "onto the grid - all nine are needed." },
-      { action: "Tap a mirror", detail: "to flip it." },
+      { action: "Place your pieces", detail: "- drag mirrors and the splitter onto empty squares." },
+      { action: "Tap a piece", detail: "to turn it. The splitter forks the beam across its input axis." },
       { action: "Tap FIRE", detail: "to shoot - you get three shots and must avoid bombs." },
-      { action: "Follow special tiles", detail: "- splitters divide the beam. Gems with an arrow only light from that side." },
+      { action: "Follow gem arrows", detail: "- marked gems only light from that direction." },
     ],
     score: "Every gem on fire 1 / 2 / 3 = 130 / 115 / 100, + up to 20 for speed. Otherwise 15 per gem lit; never fired = 0.",
   },
