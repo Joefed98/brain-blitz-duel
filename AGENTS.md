@@ -40,3 +40,4 @@
 - Snip's horizontal camera is render-only and cut coordinates include its displayed offset; why: screen edges must not become physics walls or change server replay.
 
 - Slice records ordered path samples with explicit finger-down/up inputs and aggregates hits in the shared sim; why: curves and loops must qualify once and replay identically.
+- Colour Flood: the routine check (scripts/logic-grid-check.ts) quick-tests every bank board and runs the exhaustive par proof on a seeded sample of 40; the full proof (scripts/flood-par-proof.ts) runs only at bank rebuild; why: proving all 400 is too slow for a routine run.
