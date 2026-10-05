@@ -1,3 +1,9 @@
+## Matchup, Swing and Flip visual refinement (Oct 5)
+- [ ] Restore white Matchup specials, outline bomb and add per-colour standard-gem flecks.
+- [ ] Clip Swing stalactites at the arena top boundary.
+- [ ] Replace Flip robot with gravity-boot figure; add bounded lava pools/death sink and warmer mineral-streaked rock.
+- [ ] Exercise renderer-only checks; no browser tests or identity proofs.
+
 ## Shared visual and audio foundation
 - [x] Shared category themes/tokens, layered backgrounds and bounded reduced-motion effects; 94 registry themes, no individual overrides yet.
 - [x] Manifest effects/voice placeholders, separate persisted music mute, ducking and lobby/standings/podium-only silent music. Spoken recordings and music await supplied assets.
