@@ -13,6 +13,7 @@ import {
   WAV_BOLT_W,
   WAV_CELL,
   WAV_COLOURS,
+  WAV_COLS,
   WAV_DRAG_ZONE_TOP,
   WAV_DROP_R,
   WAV_FIRE_EVERY,
@@ -109,7 +110,7 @@ function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x
 }
 
 function drawArmourHull(ctx: CanvasRenderingContext2D, state: WavState, a: WavArmour): void {
-  const box = wavShapeBox(state, a.row * WAV_COLS_OF(a) + a.col);
+  const box = wavShapeBox(state, a.row * WAV_COLS + a.col);
   const w = (a.w - 1) * PITCH_X + WAV_CELL;
   const h = (a.h - 1) * PITCH_Y + WAV_CELL;
   // Under-hull (shown where plates have been knocked off).
@@ -152,7 +153,6 @@ function drawArmourHull(ctx: CanvasRenderingContext2D, state: WavState, a: WavAr
     ctx.fillRect(px + pw - 3.5, py + 2, 1.5, 1.5);
   }
 }
-const WAV_COLS_OF = (_a: WavArmour) => 6;
 
 function drawFighter(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number, moving: boolean, recoil: number, t: number): void {
   const top = cy - h / 2;
