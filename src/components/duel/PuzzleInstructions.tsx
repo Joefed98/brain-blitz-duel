@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { puzzleDef } from "@/lib/duel/registry";
+import { INTRO_SCORE } from "@/lib/duel/introScore";
 import type { PuzzleType } from "@/lib/duel/types";
 
 interface PuzzleInstructionsProps {
@@ -39,7 +40,7 @@ export function PuzzleInstructions({ type, overlay = false }: PuzzleInstructions
       </div>
       <div>
         <p className="font-mono text-[10px] font-bold uppercase text-primary">Score</p>
-        <p className="text-sm leading-snug text-muted-foreground">{instructions.score}</p>
+        <p className="text-sm leading-snug text-muted-foreground">{overlay ? instructions.score : INTRO_SCORE[type]}</p>
       </div>
     </section>
   );

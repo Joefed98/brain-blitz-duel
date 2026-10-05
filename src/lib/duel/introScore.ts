@@ -59,7 +59,6 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   chain: "6 points for each link, so all 25 links scores 150. A wrong or missed tap ends your run.",
   whack: "Points for the share of targets you hit, up to 135, plus 15 if you hit them all. Wrong colour or empty tap: lose 3. Bomb: lose 5.",
   clayshoot: "5 points for each orange clay and 10 for each gold one. Hit all 25 for 10 more.",
-  colourclash: arcadeOpen("each item you sort correctly"),
   symscan: "The three grids are worth 30, 45 and 55 points, scored by how many arrows you find. Wrong tap: lose 3. Get all three perfect for up to 20 more for speed.",
   countup: "The three scenes are worth 30, 45 and 55 points; one off still earns some. Get all three exact for up to 20 more for speed.",
   spotdiff: standard("Find all six differences", "20 points for each difference found"),
