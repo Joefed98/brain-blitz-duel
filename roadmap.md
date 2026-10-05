@@ -1,3 +1,9 @@
+## Bullseye, Cross and Flip tuning
+- [x] Bullseye values are 10/9/8/3/2/1; seeded arrow-7–10 permutations and value colours derive from that one list, labels/example and SCORE updated; geometry, wind and sway unchanged. Raw max 100, score max 150.
+- [x] Cross scores 2 per total lane plus 4 per crossing, cap 150; shared total-lane helper feeds score and server result, intro/help/reveal/summary updated, clean bonus removed (legacy clean checkpoint field retained).
+- [x] Flip renderer-only fix samples the shared curve at hazard rims, gaps, chevrons and overhangs; all physics, seeds, inputs and scoring unchanged. Shared drawing helper serves play/reveal/demo.
+- [x] Bullseye, Cross and Flip identity proofs passed 200/200 each (Flip's sim-containing file had drawing edits); focused values/score/cap/reveal and every-tick curve-vertex checks passed. No browser tests. Bullseye and Cross saved demos need re-recording; Flip demo remains compatible.
+
 ## Laser and Mirrors rework
 - [x] Set 60 seconds, seven/eight mirrors and one movable oriented splitter; separate inventory limits and shared tracing enforce placement/orientation in play and server grading. Three-shot scoring unchanged; legacy stored rounds remain readable.
 - [x] 200 seeded layouts passed independent exact-piece tracing, every proper witness subset, terminal-edge splitter necessity and server grading. 1,000 fresh draws measured 1.55–26.07ms, median 4.62ms, p95 10.83ms; fixed intro cold draw 35.35ms. Below one second, so no precomputed bank needed. Subset proof is for the stored solution, not a global minimum-mirror search.

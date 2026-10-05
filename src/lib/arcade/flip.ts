@@ -15,6 +15,7 @@ import {
   type InputRange,
 } from "./engine";
 import { isin, TRIG_ONE } from "./trig";
+import { drawFlipHazard, flipSurfaceLine } from "./flip.renderer";
 
 /* ============================== Constants ============================== */
 
@@ -483,12 +484,8 @@ function draw(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize)
   const toScreen = (wx: number) => RUNNER_X + (wx - state.x) / FP;
   const toWorld = (sx: number) => state.x + (sx - RUNNER_X) * FP;
   const wy = (side: number, sx: number) => flipWarpAt(state, side, toWorld(sx));
-  const warped = flipWarpAmp(state.tick) > 0;
   const surfaceLine = (side: number, y: number, a: number, b: number) => {
-    if (b <= a) return;
-    ctx.moveTo(a, y + wy(side, a));
-    if (warped) for (let px = Math.ceil(a / 3) * 3; px < b; px += 3) ctx.lineTo(px, y + wy(side, px));
-    ctx.lineTo(b, y + wy(side, b));
+    flipSurfaceLine(ctx, (x) => y + wy(side, x), a, b);
   };
   // Surfaces as gold lines, broken where a gap is.
   ctx.strokeStyle = FLIP_GOLD;
@@ -514,59 +511,14 @@ function draw(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize)
     const b = toScreen(seg.x1);
     if (a > FLIP_WORLD_W) break;
     if (b < 0) continue;
-    const y = (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, (Math.max(0, a) + Math.min(FLIP_WORLD_W, b)) / 2);
     const dirY = seg.side === 0 ? -1 : 1;
-    if (seg.kind === FLIP_SPIKE) {
-      ctx.fillStyle = FLIP_RED;
-      ctx.beginPath();
-      for (let px = a; px < b; px += 16) {
-        ctx.moveTo(px, (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, px));
-        ctx.lineTo(px + 8, (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, px + 8) + dirY * 22);
-        const end = Math.min(b, px + 16);
-        ctx.lineTo(end, (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, end));
-      }
-      ctx.fill();
-    } else if (seg.kind === FLIP_GAP) {
-      // Red jagged void with hazard chevrons at both ends.
-      const depth = 40;
-      ctx.fillStyle = "rgba(255,77,94,0.28)";
-      ctx.beginPath();
-      ctx.moveTo(a, y);
-      let zig = 0;
-      for (let px = a; px < b; px += 10) {
-        zig ^= 1;
-        ctx.lineTo(Math.min(b, px + 10), y - dirY * (zig ? depth : depth - 12));
-      }
-      ctx.lineTo(b, y);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = FLIP_RED;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = FLIP_RED;
-      for (const [cx, point] of [[a, 1], [b, -1]] as const) {
-        for (let k = 0; k < 2; k++) {
-          const tip = cx + point * (6 + k * 9);
-          ctx.beginPath();
-          ctx.moveTo(tip - point * 8, y - dirY * 2);
-          ctx.lineTo(tip, y - dirY * 8);
-          ctx.lineTo(tip - point * 8, y - dirY * 14);
-          ctx.lineTo(tip - point * 4, y - dirY * 8);
-          ctx.closePath();
-          ctx.fill();
-        }
-      }
-    } else {
-      ctx.fillStyle = FLIP_RED;
-      ctx.globalAlpha = 0.85;
-      ctx.beginPath();
-      surfaceLine(seg.side, seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y, a, b);
-      for (let px = b; px >= a; px -= 8) ctx.lineTo(px, (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, px) + dirY * 34);
-      ctx.lineTo(a, (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, a) + dirY * 34);
-      ctx.closePath();
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
+    drawFlipHazard(
+      ctx,
+      seg.kind === FLIP_SPIKE ? "spike" : seg.kind === FLIP_GAP ? "gap" : "overhang",
+      a, b, dirY,
+      (x) => (seg.side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y) + wy(seg.side, x),
+      FLIP_RED,
+    );
   }
 
   // Runner (no trail).

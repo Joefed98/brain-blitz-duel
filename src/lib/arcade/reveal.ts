@@ -5,6 +5,8 @@
  * replay that produced round_results.score.
  */
 
+import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
+
 export interface ArcadeRevealTile {
   label: string;
   value: string;
@@ -166,10 +168,15 @@ const BUILDERS: Record<string, Builder> = {
     outcome: ended(r, false),
   }),
   cross: (r, s) => ({
-    axis: { value: n(r, "lanes"), max: null, label: "Lanes reached" },
-    lines: [`${n(r, "lanes")} lanes · ${n(r, "crossings")} crossings → ${s}`],
+    axis: { value: n(r, "lanes"), max: null, label: "Lanes crossed" },
+    lines: [
+      `${n(r, "lanes")} lanes × ${CROSS_LANE_POINTS} = ${n(r, "lanes") * CROSS_LANE_POINTS}`,
+      `${n(r, "crossings")} crossings × ${CROSS_CROSSING_POINTS} = ${n(r, "crossings") * CROSS_CROSSING_POINTS}`,
+      `Total → ${s} · capped at 150`,
+    ],
     tiles: [
-      { label: "Clean crossings", value: String(n(r, "clean")) },
+      { label: "Lanes crossed", value: String(n(r, "lanes")) },
+      { label: "Crossings completed", value: String(n(r, "crossings")) },
       { label: "Lives lost", value: String(n(r, "livesLost")) },
     ],
     outcome: ended(r, false),
