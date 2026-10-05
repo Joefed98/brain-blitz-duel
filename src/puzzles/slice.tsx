@@ -28,7 +28,7 @@ import {
 import { decodeSliceRun, encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import type { SlicePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playBlip, playWrong } from "@/lib/sound";
+import { playCorrect, playWrong } from "@/lib/sound";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -153,7 +153,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         playWrong();
       } else if (state.current.slices > slices) {
         slices = state.current.slices;
-        playBlip();
+        playCorrect();
       }
 
       reportArcadeTick(state.current.tick, sliceGame.isOver(state.current));

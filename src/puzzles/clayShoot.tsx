@@ -31,7 +31,7 @@ import {
 } from "@/lib/arcade/clayShoot";
 import { encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { CLAYSHOOT_TIME_MS, type ClayShootPuzzleData } from "@/lib/duel/types";
-import { playBlip, playTick } from "@/lib/sound";
+import { playCorrect, playTick } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -169,7 +169,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const s = state.current;
       if (s.hits > seenHits) {
         seenHits = s.hits;
-        playBlip();
+        playCorrect();
       }
       const key = s.status.join("");
       if (key !== shownKey) {

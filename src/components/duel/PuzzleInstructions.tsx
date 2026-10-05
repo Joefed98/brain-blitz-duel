@@ -23,7 +23,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
       aria-label={`${puzzleDef(type).name} instructions`}
     >
       <div>
-        <p className="font-mono text-[10px] font-bold uppercase text-primary">Goal</p>
+        <p className="font-mono text-[10px] font-bold uppercase text-category-accent">Goal</p>
         <p
           className={`font-display font-bold leading-tight text-foreground ${overlay ? "text-2xl" : "text-lg"}`}
         >
@@ -31,7 +31,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
         </p>
       </div>
       <div>
-        <p className="font-mono text-[10px] font-bold uppercase text-primary">How</p>
+        <p className="font-mono text-[10px] font-bold uppercase text-category-accent">How</p>
         <div className="flex flex-col gap-0.5 text-sm leading-snug text-muted-foreground">
           {instructions.how.map((line) => (
             <p key={`${line.action}-${line.detail}`}>
@@ -42,7 +42,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
       </div>
       {beforeScore}
       <div>
-        <p className="font-mono text-[10px] font-bold uppercase text-primary">Score</p>
+        <p className="font-mono text-[10px] font-bold uppercase text-category-accent">Score</p>
         <p className="text-sm leading-snug text-muted-foreground">{overlay ? instructions.score : INTRO_SCORE[type]}</p>
       </div>
     </section>

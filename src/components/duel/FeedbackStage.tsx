@@ -9,7 +9,7 @@ export function feedbackStage(Stage: ComponentType<PuzzleStageProps>, theme: Gam
     const latest = useRef(props);
     latest.current = props;
     const lastDraft = useRef("");
-    useEffect(() => { fx.onRoundStart(undefined, theme); }, []);
+    useEffect(() => { fx.onRoundStart(undefined, theme); fx.onCountdown("go", theme); }, []);
     const draft = useCallback((answer: string) => {
       if (!arcade && answer !== lastDraft.current && !latest.current.locked) {
         lastDraft.current = answer;
