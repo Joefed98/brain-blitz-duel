@@ -56,6 +56,7 @@ export function trDecode(answer: string, cells = TR_CELLS): number[] {
  * owned by a given only on that given's cell).
  */
 export function trCanStep(givens: readonly (number | null)[], path: readonly number[], cell: number, size = TR_SIZE): boolean {
+  if (!Number.isInteger(cell) || cell < 0 || cell >= givens.length) return false;
   const step = path.length + 1;
   if (step > givens.length) return false;
   if (path.length && !trAdjacent(path[path.length - 1]!, cell, size)) return false;

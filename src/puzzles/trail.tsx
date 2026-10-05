@@ -26,6 +26,7 @@ function Grid({
   marks,
   shakeCell,
   selected,
+  endCell,
 }: {
   size: number;
   givens: readonly (number | null)[];
@@ -35,10 +36,11 @@ function Grid({
   marks?: readonly number[];
   shakeCell?: number | null;
   selected?: number | null;
+  endCell?: number;
 }) {
   const stepOf = new Map<number, number>();
   path.forEach((c, i) => { if (c >= 0) stepOf.set(c, i + 1); });
-  const end = path[path.length - 1];
+  const end = endCell ?? path[path.length - 1];
   const centre = (c: number) => ({
     x: (c % size) * (cell + GAP) + cell / 2,
     y: Math.floor(c / size) * (cell + GAP) + cell / 2,
@@ -203,22 +205,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   };
 
   const visit = (c: number) => {
-    const dragPath = trDragPath(data.givens, slots);
+    const dragPath = trDragPath(data.givens, path);
     const end = dragPath[dragPath.length - 1];
     if (c === end) return;
     if (dragPath.length > 1 && c === dragPath[dragPath.length - 2]) {
-      const next = [...slots];
-      if (end !== undefined && data.givens[end] == null) next[dragPath.length - 1] = -1;
-      else { drawing.current = false; return; }
+      const next = path.length < data.givens.length ? path.slice(0, -1) : [...slots];
+      if (path.length === data.givens.length) {
+        if (end !== undefined && data.givens[end] == null) next[dragPath.length - 1] = -1;
+        else { drawing.current = false; return; }
+      }
       setHistory([...history, [...path]]);
       setPath(next);
       lastRefused.current = null;
       buzz(4);
       return;
     }
-    if (trCanStep(data.givens, dragPath, c) && !slots.includes(c)) {
-      const next = [...slots];
-      next[dragPath.length] = c;
+    if (trCanStep(data.givens, dragPath, c) && (!slots.includes(c) || slots[dragPath.length] === c)) {
+      const next = path.length < data.givens.length ? [...dragPath, c] : [...slots];
+      if (path.length === data.givens.length) next[dragPath.length] = c;
       setHistory([...history, [...path]]);
       setPath(next);
       lastRefused.current = null;
@@ -233,7 +237,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (c === null) return;
     lastRefused.current = null;
     press.current = { cell: c, x: e.clientX, y: e.clientY, moved: false };
-    const dragPath = trDragPath(data.givens, slots);
+    const dragPath = trDragPath(data.givens, path);
     drawing.current = c === dragPath[dragPath.length - 1];
   };
 
@@ -313,7 +317,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         onPointerCancel={cancel}
         onPointerLeave={cancel}
       >
-        <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} shakeCell={shakeCell} selected={selected} />
+        <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} shakeCell={shakeCell} selected={selected} endCell={trDragPath(data.givens, path).at(-1)} />
       </div>
       <div className="grid w-full shrink-0 grid-cols-9 gap-1" aria-label="Tile tray">
         {data.givens.map((_, i) => i + 1).filter((tile) => !data.givens.includes(tile)).map((tile) => (
