@@ -30,12 +30,11 @@ const FP = 256;
 export const ORBIT_WORLD_W = 390;
 export const ORBIT_WORLD_H = 620;
 export const ORBIT_RUN_TICKS = 90 * TICKS_PER_SECOND;
-/** The planet held at this tick becomes the one-time respawn checkpoint. */
-export const ORBIT_CHECKPOINT_TICK = 30 * TICKS_PER_SECOND;
 /** Planet 40, the sun: bigger body and a large orbit. */
 const SUN_R = 40 * FP;
 const SUN_RING = 128 * FP;
 export const ORBIT_INPUT_TAP = 0;
+export const ORBIT_INPUT_CHECKPOINT = 1;
 export const ORBIT_TOTAL = 40;
 const FLIGHT_MAX = 150;
 /** The current planet sits this far down the screen. */
@@ -51,7 +50,7 @@ const ABOVE_VIEW = 160 * FP;
 const SAFE_RUN = 4;
 export const ORBIT_TRAIL_TICKS = 10;
 
-export const ORBIT_INPUT_RANGES: readonly InputRange[] = [inputRange(ORBIT_INPUT_TAP)];
+export const ORBIT_INPUT_RANGES: readonly InputRange[] = [inputRange(ORBIT_INPUT_TAP), inputRange(ORBIT_INPUT_CHECKPOINT)];
 
 /* ================================ Course =============================== */
 
@@ -390,7 +389,7 @@ export interface OrbitState {
   releaseY: number;
   /** 1 once planet 40 is reached. */
   finished: number;
-  /** Furthest planet passed (scores); checkpoint planet set at 30 s (-1 before); respawns left. */
+  /** Furthest planet passed (scores); chosen checkpoint (-1 until set); respawns left. */
   best: number;
   checkpoint: number;
   respawns: number;
@@ -442,16 +441,20 @@ function isOver(state: OrbitState): boolean {
   return state.ended !== 0;
 }
 
+export function orbitCanSetCheckpoint(state: OrbitState): boolean {
+  return state.ended === 0 && state.flying === 0 && state.checkpoint < 0 && state.respawns > 0;
+}
+
 function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
   const s: OrbitState = { ...state, tick };
   const here = s.planets[s.cur]!;
-  if (tick === ORBIT_CHECKPOINT_TICK) s.checkpoint = s.cur;
+  if (input?.k === ORBIT_INPUT_CHECKPOINT && orbitCanSetCheckpoint(s)) s.checkpoint = s.cur;
   let respawned = false;
   const die = () => {
     if (s.checkpoint >= 0 && s.respawns > 0) {
-      // One respawn at the 30 s checkpoint planet.
+      // Keep the chosen planet for the result, but consume its active marker/respawn.
       s.respawns -= 1;
       s.respawnTick = tick;
       s.cur = s.checkpoint;
@@ -679,6 +682,12 @@ function draw(ctx: CanvasRenderingContext2D, state: OrbitState, size: CanvasSize
       ctx.beginPath();
       ctx.arc(px + bx, py, (p.kind === ORBIT_EIGHT ? p.r * 0.8 : p.r) / FP - 3, 0, Math.PI * 2);
       ctx.stroke();
+    }
+    if (i === state.checkpoint && state.respawns > 0) {
+      ctx.fillStyle = ORBIT_GOLD;
+      ctx.beginPath();
+      ctx.arc(px, py - p.r / FP - 10, 4, 0, Math.PI * 2);
+      ctx.fill();
     }
     if (p.hazard >= 0) {
       ctx.strokeStyle = ORBIT_RED;

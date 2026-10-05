@@ -1,3 +1,7 @@
+## Orbit chosen checkpoint
+- [x] Replaced automatic checkpoint with validated recorded input 1 while orbiting; selection is immutable, gold planet marker clears after the one respawn and no second selection is allowed. HUD uses sim-derived availability and a fixed 48px control slot.
+- [x] Updated GOAL/HOW and removed timed-checkpoint help; intro SCORE and scoring code unchanged. Stored checkpoint tile shows the selected planet even after use, or none. Orbit identity 200/200 and early/late/never full-state replay checks 15/15 passed; preview build OK, no browser tests. Saved Orbit demo needs re-recording; device appearance remains user-tested.
+
 ## Flip sweeping bends
 - [x] Added integer bend table: 1,560px waves until 45s, then continuously shrinking through 1,040/520/260px at 50/55/60s; displacement eases to ±145px by 25s. Integrated phase preserves continuity, constant gap and existing seeded RNG draws.
 - [x] Flip-only identity proof passed 200/200; curve checks passed integer offsets, constant gap, continuous transitions and early/late change maxima 2/10px per tick. Preview build OK; no browser tests. Report cycle-rate table and saved Flip demo re-recording requirement; device feel remains user-tested.
