@@ -925,13 +925,19 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
 
 const chainSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "chain") return { summary: "—", detail: [] };
-  const correct = Number(result.extra?.["correct"] ?? 0);
-  const errors = Number(result.extra?.["errors"] ?? 0);
+  const links = Number(result.extra?.["links"] ?? 0);
+  const reason = String(result.extra?.["reason"] ?? "timer");
+  const ending =
+    reason === "complete"
+      ? "Full chain"
+      : reason === "wrong"
+        ? `Broken at link ${links + 1} — wrong tap`
+        : reason === "momentum"
+          ? `Broken at link ${links + 1} — too slow`
+          : "Time ran out";
   return {
-    summary: `${correct} links · ${errors} error${errors === 1 ? "" : "s"} · ${seconds(
-      elapsedMs(result, puzzle),
-    )}`,
-    detail: [`${Number(result.extra?.["completed"] ?? 0)} complete sets`],
+    summary: `${links} / 25 links · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: [ending, "6 per link · 25 links = 150"],
   };
 };
 
