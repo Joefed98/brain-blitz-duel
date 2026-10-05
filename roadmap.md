@@ -1,6 +1,6 @@
 ## Three number-game stage feedback
-- [ ] Add one-second intermediate CORRECT holds to Balance, Equation Balancing and Number Pyramid; reserve gold slots above/below as requested, ignore input, leave final submission and scoring unchanged.
-- [ ] Check hold timing/input guards and source layout budgets at 390×700 and 375×667; no browser tests.
+- [x] Add one-second intermediate CORRECT holds to Balance, Equation Balancing and Number Pyramid; reserve gold slots above/below as requested, ignore input, leave final submission and scoring unchanged.
+- [x] Focused hold checks passed for all intermediate stages, stable deadlines through updates, immediate final advancement and cancellation on round lock. Conservative source budgets passed at 390×700 and 375×667 with safe areas, room score strip and wrapped equation; preview build OK, no browser tests. Device appearance remains user-tested.
 
 ## Three word-game tuning
 - [x] Add shared 700 ms gold/white accepted-word chips in fixed 32px slots above both boards; Wordsmith hides the chip while its dropdown is open. Square boards fit remaining height and width; error rows stay reserved. Source budget audit passed at 390×700 and 375×667, including conservative safe areas and room score strip; device appearance remains user-tested.
