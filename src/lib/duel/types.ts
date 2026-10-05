@@ -710,6 +710,8 @@ export const SPOT_COLS = 8;
 export const SPOT_ROWS = 6;
 export const SPOT_CELLS = SPOT_COLS * SPOT_ROWS;
 export const SPOT_DIFFERENCES = 6;
+/** Unfinished Spot the Difference: points per difference found. */
+export const SPOT_DIFF_POINTS = 20;
 export const SPOT_TIME_MS = 30_000;
 /** Flat scores for partial finds. */
 export const SPOT_FOUR_POINTS = 70;
@@ -863,7 +865,7 @@ export interface CountUpPuzzleData {
 }
 
 export const COUNTUP_STAGE_SIZES = [50, 80, 110] as const;
-export const STAGE_WEIGHTS_3 = [30, 35, 35] as const;
+export const STAGE_WEIGHTS_3 = [30, 45, 55] as const;
 
 /** The field fills a short phone's measured play area without cropping its edges. */
 export const COUNTUP_COLS = 8;
@@ -990,6 +992,8 @@ export const BLOCK_FREE_CELLS = BLOCK_CELLS - BLOCK_BLOCKERS;
 export const BLOCK_TIME_MS = 60_000;
 /** Partial credit when the board is not filled by the timer. */
 export const BLOCK_PARTIAL_POINTS = 60;
+/** Unfinished Block Party: points per legally placed piece. */
+export const BLOCK_PIECE_POINTS = 12;
 
 /** One piece sitting on the board, by the absolute cells it covers. */
 export interface BlockPlacement {
@@ -1077,7 +1081,7 @@ export const SUDOKU_BOX_COLS = 3;
 export const SUDOKU_TIME_MS = 90_000;
 export const SUDOKU_MIN_GIVENS = 14;
 export const SUDOKU_MAX_GIVENS = 16;
-export const SUDOKU_PARTIAL_POINTS = 60;
+export const SUDOKU_PARTIAL_POINTS = 110;
 
 export interface SudokuPuzzleData {
   type: "sudoku";
@@ -1106,6 +1110,10 @@ export const FLOW_TIME_MS = 75_000;
 export const FLOW_MIN_PATH = 3;
 /** Most a partly-joined board can earn. */
 export const FLOW_PARTIAL_POINTS = 60;
+/** Unfinished Colour Connect: points per pair joined. */
+export const FLOW_PAIR_POINTS = 10;
+/** Unfinished Ice Slide: share of distance closed × this. */
+export const SLIDE_PARTIAL_POINTS = 90;
 
 export type FlowColour =
   | StroopColour
@@ -1227,7 +1235,7 @@ export const PUSH_BANK_SIZE = 120;
 /** Bonus for finishing in the fewest possible pushes. */
 export const PUSH_MIN_PUSH_BONUS = 20;
 /** Most a partly-finished warehouse can earn. */
-export const PUSH_PARTIAL_POINTS = 60;
+export const PUSH_PARTIAL_POINTS = 110;
 
 /** Generator figures, shown only in the dev readout. */
 export interface PushStats {
@@ -1289,7 +1297,9 @@ export const LASER_MAX_BENDS = 9;
 /** Three shots per round. */
 export const LASER_MAX_FIRES = 3;
 /** Base points by the shot that lit every gem: first, second, third. */
-export const LASER_FIRE_BASE = [100, 85, 70];
+export const LASER_FIRE_BASE = [130, 115, 100];
+/** Fired but not every gem lit: points per gem lit. */
+export const LASER_GEM_POINTS = 15;
 /** A shot that missed scores in proportion to the gems it did light. */
 export const LASER_PARTIAL_POINTS = 70;
 /** How many near-miss placements the necessity search may carry forward. */
@@ -1364,7 +1374,7 @@ export const TOWER_MAX_MINIMUM = 40;
 /** Bonus for finishing in the fewest possible moves. */
 export const TOWER_MIN_MOVE_BONUS = 20;
 /** Most a partly-built tower can earn. */
-export const TOWER_PARTIAL_POINTS = 60;
+export const TOWER_PARTIAL_POINTS = 110;
 
 /** Generator figures, shown only in the dev readout. */
 export interface TowerStats {
@@ -1413,8 +1423,8 @@ export const MAZE_LONG_DEAD_END_LENGTH = 11;
 export const MAZE_MIN_JUNCTIONS = 14;
 /** The exit may not be visible down a straight corridor from this last stretch. */
 export const MAZE_BLIND_TAIL = 10;
-/** Most a partly-run maze can earn. */
-export const MAZE_PARTIAL_POINTS = 60;
+/** Unfinished Maze Dash: share of the path walked × this. */
+export const MAZE_PARTIAL_POINTS = 110;
 
 export interface MazePuzzleData {
   type: "maze";
@@ -1445,6 +1455,8 @@ export const TUBES_MAX_MIN_MOVES = 26;
 export const TUBES_BFS_CAP = 1_000_000;
 /** Bonus for solving in the fewest possible pours. */
 export const TUBES_MIN_MOVE_BONUS = 20;
+/** Unfinished Sort the Tubes: points per single-colour tube. */
+export const TUBES_TUBE_POINTS = 22;
 /** Most an unsolved board can earn, shared out per finished tube. */
 export const TUBES_PARTIAL_POINTS = 60;
 
@@ -1465,7 +1477,7 @@ export const SAFE_DIALS = 4;
 export const SAFE_CLUE_COUNT = 5;
 export const SAFE_TRIES = 3;
 /** Base points by the try that opened the safe: first, second, third. */
-export const SAFE_TRY_POINTS = [100, 85, 70];
+export const SAFE_TRY_POINTS = [130, 115, 100];
 /** Points per correct dial when the safe stays shut. */
 export const SAFE_DIAL_POINTS = 15;
 
@@ -1489,8 +1501,8 @@ export const BOMB_NECESSARY_RULES = 4;
 export const BOMB_MIN_SEQUENCE = 4;
 export const BOMB_MAX_SEQUENCE = 4;
 /** Points per correct leading action when the bomb is not defused. */
-export const BOMB_PREFIX_POINTS = 15;
-export const BOMB_PARTIAL_POINTS = 60;
+export const BOMB_PREFIX_POINTS = 25;
+export const BOMB_PARTIAL_POINTS = 75;
 
 export interface BombPuzzleData {
   type: "bomb";
@@ -1526,7 +1538,7 @@ export const GRAV_MAX_TILTS = 14;
 /** The joint search gives up (and the board is re-rolled) past this many states. */
 export const GRAV_NODE_CAP = 400_000;
 /** Points per locked ball when the board is not finished. */
-export const GRAV_LOCK_POINTS = 25;
+export const GRAV_LOCK_POINTS = 30;
 
 export type GravityDir = "U" | "D" | "L" | "R" | "X" | "Y";
 
@@ -1669,7 +1681,7 @@ export const NONO_SIZE = 7;
 export const NONO_MIN_FILLED = 18;
 export const NONO_MAX_FILLED = 30;
 /** Partial credit share and the cost of a wrongly filled cell. */
-export const NONO_PARTIAL_POINTS = 60;
+export const NONO_PARTIAL_POINTS = 110;
 export const NONO_WRONG_PENALTY = 5;
 
 /** A cell the player has filled (1), pencilled as empty (2), or left blank (0). */
@@ -1695,6 +1707,8 @@ export const PAIR_FLIP_MS = 150;
 export const PAIR_CLEAN_FLIPS = 18;
 export const PAIR_CLEAN_BONUS = 20;
 export const PAIR_PARTIAL_POINTS = 60;
+/** Unfinished Pair Match: points per pair found. */
+export const PAIR_PAIR_POINTS = 8;
 
 export interface PairCard {
   shape: IntruderShape;
@@ -1717,7 +1731,7 @@ export const FLOOD_MIN_PAR = 10;
 export const FLOOD_MAX_PAR = 15;
 export const FLOOD_SEARCH_CAP = 2_000_000;
 export const FLOOD_PAR_BONUS = 20;
-export const FLOOD_PARTIAL_POINTS = 60;
+export const FLOOD_PARTIAL_POINTS = 110;
 
 export interface FloodPuzzleData {
   type: "flood";
@@ -1790,6 +1804,8 @@ export const RINGS_MIN_TURNS = 7;
 export const RINGS_MAX_TURNS = 12;
 export const RINGS_MIN_BONUS = 20;
 export const RINGS_PARTIAL_POINTS = 60;
+/** Unfinished Rotating Rings: points per aligned spoke. */
+export const RINGS_SPOKE_POINTS = 12;
 export const RINGS_TURN_MS = 150;
 export const RINGS_ATTEMPTS = 600;
 

@@ -65,7 +65,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Lock a finished word with the padlock", detail: "so it stays put — column swipes go around it." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
-    score: "All five rows words = 125 + up to 25 for speed. Otherwise 22 per word row. Moves do not count.",
+    score: "All five rows words = 100 + up to 30 for speed + up to 20 for moves (full at par, 0 at twice par). Otherwise 22 per word row.",
   },
   ladder: {
     goal: "Reach the final word by changing one letter at a time.",
@@ -181,7 +181,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap every match", detail: "of each grid's target arrow." },
       { action: "Press Submit", detail: "to lock each grid and move on — 30 seconds for all three." },
     ],
-    score: "Points for every arrow found; wrong taps cost a little; all three grids perfect for the time bonus.",
+    score: "Stages worth 30 / 45 / 55: share of arrows found, −3 per wrong tap. All three perfect adds up to 20 for speed.",
   },
   spotdiff: {
     goal: "Find all six differences between the two pictures.",
@@ -189,7 +189,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Compare both panels", detail: "carefully." },
       { action: "Tap each difference", detail: "in either panel." },
     ],
-    score: "Each difference found earns a share of 100. All six = 100 plus the speed bonus.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 20 per difference found.",
   },
   patcomp: {
     goal: "Complete all three visual patterns.",
@@ -253,7 +253,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Type the total", detail: "on the keypad; ENTER moves to the next field." },
       { action: "Three scenes", detail: "share 45 seconds." },
     ],
-    score: "Exact counts score most, near misses score some; all three exact for the time bonus.",
+    score: "Stages worth 30 / 45 / 55: exact = full, off by 1 = 60%, off by 2 = 30%. All three exact adds up to 20 for speed.",
   },
   mirmatch: {
     goal: "Choose the exact mirror image of each shape.",
@@ -281,7 +281,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Clear a path", detail: "for the gold car." },
       { action: "Slide the gold car", detail: "out through the opening." },
     ],
-    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: up to 70 for clearing the gold car's lane.",
   },
   blockparty: {
     goal: "Fill every free board square with all nine pieces.",
@@ -290,7 +290,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag its anchor", detail: "onto a free board square." },
       { action: "Fit every piece", detail: "around the fixed pegs." },
     ],
-    score: "Complete the board faster = more points.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 12 per piece placed.",
   },
   lightsout: {
     goal: "Turn every light off.",
@@ -298,7 +298,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a light", detail: "to flip it and its four neighbours." },
       { action: "Plan each press", detail: "because nearby lights also change." },
     ],
-    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 1–4 lights left = 85 / 75 / 60 / 50.",
   },
   pipes: {
     goal: "Connect every pipe to the source with no leaks.",
@@ -307,7 +307,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Join every opening", detail: "to another pipe or the source." },
       { action: "Leave no leaks", detail: "at the grid edges." },
     ],
-    score: "All 49 = 100 plus speed. 48 = 90, 47–45 = 85, then 5 less per two tiles down to 40 at 27; fewer score 1.5 each.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 48 = 90, 47–45 = 85, then 5 less per two tiles down to 40 at 27; fewer score 1.5 each.",
   },
   sudoku: {
     goal: "Fill the grid with every row, column, and box valid.",
@@ -316,7 +316,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Use 1 to 6 once", detail: "in each row, column, and box." },
       { action: "Use pencil marks", detail: "for optional notes." },
     ],
-    score: "Complete the grid faster = more points.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 110 × correct cells ÷ empty cells.",
   },
   flow: {
     goal: "Connect every colour pair and fill every square.",
@@ -326,7 +326,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Fill every square", detail: "with a coloured path." },
       { action: "Keep paths separate", detail: "because they cannot cross." },
     ],
-    score: "Complete the grid faster = more points. Otherwise 60 × pairs joined ÷ pairs.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 10 per pair joined.",
   },
   iceslide: {
     goal: "Slide the ball safely to the exit.",
@@ -335,7 +335,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Follow one-way arrows", detail: "that turn the ball; avoid holes or restart." },
       { action: "Portals carry you across the board.", detail: "Cracked ice breaks after you cross it once." },
     ],
-    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: up to 90 for the distance closed.",
   },
   push: {
     goal: "Push every crate onto a target.",
@@ -344,7 +344,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Push one crate", detail: "by walking into it." },
       { action: "Plan ahead", detail: "because crates cannot be pulled." },
     ],
-    score: "Fewer pushes and a faster finish = more points.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 110 × crates home ÷ crates.",
   },
   laser: {
     goal: "Light all six gems with one shot.",
@@ -354,7 +354,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap FIRE", detail: "to shoot — you get three shots and must avoid bombs." },
       { action: "Follow special tiles", detail: "— splitters divide the beam. Gems with an arrow only light from that side." },
     ],
-    score: "Faster = more points. Fewer shots = bonus. Each gem lit still scores.",
+    score: "Every gem on fire 1 / 2 / 3 = 130 / 115 / 100, + up to 20 for speed. Otherwise 15 per gem lit; never fired = 0.",
   },
   tower: {
     goal: "Move the full tower onto the marked peg.",
@@ -364,7 +364,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Keep smaller discs above", detail: "larger discs at all times." },
       { action: "Count the pegs", detail: "— each puzzle has 3 or 4." },
     ],
-    score: "Fewer moves and a faster finish = more points.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 110 × discs home from the bottom ÷ discs.",
   },
   maze: {
     goal: "Draw a path from the start to the exit.",
@@ -373,7 +373,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Follow the corridors", detail: "without crossing walls." },
       { action: "Reach the exit", detail: "to finish." },
     ],
-    score: "Faster = more points. How far along the route you got still scores.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 110 × share of the route reached.",
   },
   tubes: {
     goal: "Sort the balls so every tube is one colour.",
@@ -385,7 +385,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "Undo or Reset", detail: "if a pour traps you." },
     ],
-    score: "Fewer moves and a faster finish = more points. Each sorted tube scores.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 22 per single-colour tube.",
   },
   safe: {
     goal: "Find the four-digit combination that fits every clue.",
@@ -394,7 +394,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap TRY", detail: "to test — you get three tries." },
       { action: "Read every clue", detail: "because only one combination fits them all." },
     ],
-    score: "Fewer tries scores more.",
+    score: "Opened on try 1 / 2 / 3 = 130 / 115 / 100, + up to 20 for speed. Otherwise 15 per dial right on the last try.",
   },
   bomb: {
     goal: "Read all six rules, work out the four actions and their order, then do them.",
@@ -406,7 +406,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Four steps exactly", detail: "tap wires and buttons, then tap DEFUSE." },
       { action: "One wrong step", detail: "and it explodes." },
     ],
-    score: "Defuse fast; a correct opening earns partial credit.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 25 per correct step before the strike, up to 75.",
   },
   gravity: {
     goal: "Tilt the board to park all four balls on their own targets.",
@@ -414,7 +414,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Every ball slides until it hits something.", detail: "" },
       { action: "A ball on its target locks and becomes a wall", detail: "— which can help or hurt the others." },
     ],
-    score: "Fewer tilts is what counts.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 30 per locked ball.",
   },
   chain: {
     goal: "Tap 25 nodes in order, following the repeating cycle — shape and colour must both match.",
@@ -433,7 +433,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap every change", detail: "— later boards contain two." },
       { action: "Five rounds", detail: "— 7 s to memorise, 5 s to pick; on the last two the symbols slide inside the grid." },
     ],
-    score: "20 per fully solved board; one of two changes earns 10. All five for the speed bonus.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 24 per board right; one of two changes earns 12.",
   },
   nonogram: {
     goal: "Fill the grid so every row and column matches its numbers.",
@@ -442,7 +442,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Read the numbers", detail: "as the lengths of the filled runs, in order." },
       { action: "A line dims", detail: "once it matches its numbers." },
     ],
-    score: "Finish inside 120 seconds; faster finishes score more.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 110 × correct cells ÷ cells, −5 per wrong cell, up to 110.",
   },
   pairmatch: {
     goal: "Find all fifteen matching pairs.",
@@ -451,7 +451,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A match stays up", detail: "— a miss flips back." },
       { action: "Remember", detail: "where everything was." },
     ],
-    score: "Solve for 100 plus speed. Eighteen flip-pairs or fewer adds 20; found pairs still score.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 8 per pair found.",
   },
   flood: {
     goal: "Flood the whole board with one colour.",
@@ -460,7 +460,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Your region grows", detail: "into every touching cell of that colour." },
       { action: "Start from the top-left", detail: "— that cell is always yours." },
     ],
-    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
+    score: "Solved = 100 + up to 40 for moves (full at par, 0 at twice par) + up to 10 for speed. Otherwise 110 × region ÷ 196.",
   },
   stroke: {
     goal: "Trace every line in one stroke without lifting your finger.",
@@ -478,7 +478,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Finish left to right", detail: "with the gap bottom-right." },
       { action: "Tap Undo or Reset", detail: "to take slides back." },
     ],
-    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 14 per tile in place, up to 90.",
   },
   rings: {
     goal: "Turn the rings so every spoke is one colour.",
@@ -487,7 +487,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Check the legend", detail: "— some rings turn others with them, same way or opposite." },
       { action: "Watch the rim", detail: "for a gold tick on each finished spoke." },
     ],
-    score: "Fewer moves is what counts — par earns the full bonus; speed is a small extra.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 12 per aligned spoke.",
   },
   hover: {
     goal: "Fly through as many gaps as you can.",
@@ -830,7 +830,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Each rectangle must hold exactly one number,", detail: "and that number is its size in squares." },
       { action: "Cover every square.", detail: "" },
     ],
-    score: "Solve it fast for the bonus.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 110 × cells covered ÷ 100.",
   },
   dig: {
     goal: "Dig a path for the water to the drain.",
@@ -892,7 +892,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Bulbs must never shine on each other.", detail: "" },
       { action: "A number on a wall", detail: "says exactly how many bulbs touch that wall's sides." },
     ],
-    score: "Solve it fast for the bonus.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 110 × lit cells ÷ white cells, −5 per clashing bulb.",
   },
   tents: {
     goal: "Pitch one tent beside every tree.",
@@ -901,6 +901,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tents can't touch,", detail: "even diagonally." },
       { action: "The numbers", detail: "say how many tents are in each row and column." },
     ],
-    score: "10 per tent; all twelve for the time bonus.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 10 per correct tent; wrong tents cost nothing.",
   },
 };

@@ -64,10 +64,10 @@ export function scanStageResult(stage: number, selected: number[], targets: numb
   return { found, targets: targets.length, wrong, points, perfect: found === targets.length && wrong === 0 };
 }
 
-export function scoreSymbolScanStages(results: ScanStageResult[], msRemaining: number): number {
+export function scoreSymbolScanStages(results: ScanStageResult[], msRemaining: number, timeLimitMs: number = SYMSCAN_TIME_MS): number {
   const base = results.reduce((sum, r) => sum + r.points, 0);
   const all = results.length === STAGE_COUNT && results.every((r) => r.perfect);
-  const bonus = all ? Math.round((50 * clampMs(msRemaining, SYMSCAN_TIME_MS)) / SYMSCAN_TIME_MS) : 0;
+  const bonus = all ? Math.round((20 * clampMs(msRemaining, timeLimitMs)) / timeLimitMs) : 0;
   return Math.min(150, base + bonus);
 }
 
@@ -88,10 +88,10 @@ export function countStagePoints(stage: number, given: number | null, truth: num
   return 0;
 }
 
-export function scoreCountUpStages(given: (number | null)[], counts: number[], msRemaining: number): number {
+export function scoreCountUpStages(given: (number | null)[], counts: number[], msRemaining: number, timeLimitMs: number = COUNTUP_TIME_MS): number {
   const base = counts.reduce((sum, truth, i) => sum + countStagePoints(i, given[i] ?? null, truth), 0);
   const all = counts.length === STAGE_COUNT && counts.every((truth, i) => given[i] === truth);
-  const bonus = all ? Math.round((50 * clampMs(msRemaining, COUNTUP_TIME_MS)) / COUNTUP_TIME_MS) : 0;
+  const bonus = all ? Math.round((20 * clampMs(msRemaining, timeLimitMs)) / timeLimitMs) : 0;
   return Math.min(150, base + bonus);
 }
 

@@ -278,6 +278,9 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, validRows }: Puzzl
           ? `Solved · 5 / 5 rows${elapsed ? ` · ${elapsed}s` : ""}`
            : `${good.size} / 5 rows`}
       </p>
+      <p className="text-center font-mono text-base text-muted-foreground">
+        Par {puzzle.par} — you used {replay.moves}
+      </p>
     </div>
   );
 }
