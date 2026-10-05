@@ -36,8 +36,7 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   const ox = (size.width - SWING_WORLD_W * scale) / 2;
   const oy = (size.height - SWING_WORLD_H * scale) / 2;
   ctx.save();
-  ctx.fillStyle = "#08060A";
-  ctx.fillRect(0, 0, size.width, size.height);
+  ctx.clearRect(0, 0, size.width, size.height);
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
   ctx.beginPath();
@@ -47,6 +46,18 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   const sx = (x: number) => x / FP - cam;
   const first = Math.max(0, Math.min(state.ceil.length - 2, Math.trunc(state.camX / COL) - 1));
   const last = Math.min(state.ceil.length - 1, first + 12);
+  const ceilingAt = (x: number) => lerpAt(state.ceil, Math.round((x + cam) * FP)) / FP;
+  // All cave scenery stays below the authoritative ceiling, not the screen edge.
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(sx(first * COL), ceilingAt(sx(first * COL)));
+  for (let i = first + 1; i <= last; i++) ctx.lineTo(sx(i * COL), ceilingAt(sx(i * COL)));
+  ctx.lineTo(sx(last * COL), SWING_WORLD_H);
+  ctx.lineTo(sx(first * COL), SWING_WORLD_H);
+  ctx.closePath();
+  ctx.clip();
+  ctx.fillStyle = "#08060A";
+  ctx.fillRect(0, 0, SWING_WORLD_W, SWING_WORLD_H);
 
   // Cavern back wall: faint distant rock, slow parallax.
   ctx.fillStyle = "#120C10";
@@ -67,11 +78,11 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   ctx.fillStyle = cast;
   ctx.fillRect(0, lavaTop - 160, SWING_WORLD_W, 170);
 
-  // Ceiling rock, edge exactly on the sim's ceiling line.
+  // Narrow rock band begins at the sim's ceiling line and faces down into the cave.
   ctx.beginPath();
-  ctx.moveTo(sx(first * COL), 0);
-  for (let i = first; i <= last; i++) ctx.lineTo(sx(i * COL), state.ceil[i]! / FP);
-  ctx.lineTo(sx(last * COL), 0);
+  ctx.moveTo(sx(first * COL), ceilingAt(sx(first * COL)));
+  for (let i = first + 1; i <= last; i++) ctx.lineTo(sx(i * COL), ceilingAt(sx(i * COL)));
+  for (let i = last; i >= first; i--) ctx.lineTo(sx(i * COL), ceilingAt(sx(i * COL)) + 5);
   ctx.closePath();
   const rock = ctx.createLinearGradient(0, 0, 0, 110);
   rock.addColorStop(0, "#0E0B0E");
@@ -94,21 +105,20 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
     const x = sx(s.x);
     if (x < -40 || x > SWING_WORLD_W + 40) continue;
     const top = s.top / FP;
-    // Explicit arena intersection: even negative ceiling heights emerge at y=0.
+    // Intersection of cave ceiling and the unchanged full-width hazard envelope.
     ctx.save();
     ctx.beginPath();
-    ctx.rect(Math.max(0, x - SPIKE_HALF), 0,
+    ctx.rect(Math.max(0, x - SPIKE_HALF), Math.max(0, top),
       Math.max(0, Math.min(SWING_WORLD_W, x + SPIKE_HALF) - Math.max(0, x - SPIKE_HALF)),
-      Math.max(0, Math.min(SWING_WORLD_H, top + SPIKE_DEPTH)));
+      Math.max(0, Math.min(SWING_WORLD_H, top + SPIKE_DEPTH) - Math.max(0, top)));
     ctx.clip();
     ctx.beginPath();
-    ctx.moveTo(x - SPIKE_HALF, 0);
-    ctx.lineTo(x - SPIKE_HALF, Math.max(0, top));
+    ctx.moveTo(x - SPIKE_HALF, Math.max(top, ceilingAt(x - SPIKE_HALF)));
     ctx.lineTo(x - 8, Math.max(0, top + SPIKE_DEPTH));
     ctx.lineTo(x, Math.max(0, top + 24));
     ctx.lineTo(x + 8, Math.max(0, top + SPIKE_DEPTH));
-    ctx.lineTo(x + SPIKE_HALF, Math.max(0, top));
-    ctx.lineTo(x + SPIKE_HALF, 0);
+    ctx.lineTo(x + SPIKE_HALF, Math.max(top, ceilingAt(x + SPIKE_HALF)));
+    for (let px = x + SPIKE_HALF; px >= x - SPIKE_HALF; px -= 4) ctx.lineTo(px, Math.max(top, ceilingAt(px)));
     ctx.closePath();
     // Clip the rim to the sim's full-width, top-to-lowest-tip hazard zone.
     ctx.save();
@@ -369,6 +379,7 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   ctx.arc(fx, fy - 6.5, 3.4, 0, Math.PI * 2);
   ctx.fill();
 
+  ctx.restore();
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
