@@ -5,7 +5,7 @@ import {
   FLIP_GAP, FLIP_RED, FLIP_SPIKE, FLIP_WORLD_H, FLIP_WORLD_W,
   type FlipState,
 } from "./flip";
-import { drawFlipHazard, flipSurfaceLine } from "./flip.renderer";
+import { flipSurfaceLine } from "./flip.renderer";
 import { artHash, reducedMotion } from "./art.renderer";
 
 const FP = 256;
@@ -17,10 +17,30 @@ const MATERIAL = {
   wash: "rgba(8,7,10,0.76)", tunnel: "#0B0C10", basalt: "#17171C",
   nearRock: "#202027", farRock: "#101116", seam: "#303039",
   lava: "#FF4A24", hot: "#FFAA46", core: "#E73720", obsidian: "#090A0D",
-  robot: "#AEB5BA", armour: "#59636D", visor: "#1B2229",
+  figure: "#F5B82E", boot: "#59636D", mineral: "#C98760",
   lamp: "#FFE4A1", dust: "rgba(161,153,147,0.22)",
 };
 type Surface = (x: number) => number;
+const POOL_DEPTH = 40;
+const SINK_MS = 420;
+const sinkFrames = new WeakMap<CanvasRenderingContext2D, { segs: FlipState["segs"]; endedTick: number; startedAt: number }>();
+
+/** Presentation clock only: the ended simulation tick deliberately stays frozen. */
+export function flipPoolSink(ctx: CanvasRenderingContext2D, state: FlipState, still: boolean, now = performance.now()): number | null {
+  const hit = state.ended === 2 && state.flipT === 0 ? state.segs.find(seg =>
+    seg.side === state.side && state.x + 12 * FP >= seg.x0 && state.x - 12 * FP <= seg.x1) : undefined;
+  if (hit?.kind !== FLIP_GAP) {
+    sinkFrames.delete(ctx);
+    return null;
+  }
+  if (still) return 1;
+  let frame = sinkFrames.get(ctx);
+  if (!frame || frame.segs !== state.segs || frame.endedTick !== state.endedTick) {
+    frame = { segs: state.segs, endedTick: state.endedTick, startedAt: now };
+    sinkFrames.set(ctx, frame);
+  }
+  return Math.max(0, Math.min(1, (now - frame.startedAt) / SINK_MS));
+}
 
 function runnerY(side: number, flipT: number): number {
   const target = side === 0 ? FLIP_FLOOR_Y - 14 : FLIP_CEIL_Y + 14;
@@ -170,7 +190,12 @@ function drawRockObstacle(ctx: CanvasRenderingContext2D, a: number, b: number, i
     reverseLine(ctx, x => at(x) + inward * profile(x), x0, x1);
     ctx.closePath();
     ctx.clip();
-    ctx.fillStyle = MATERIAL.obsidian;
+    const body = ctx.createLinearGradient(0, at(tip), 0, at(tip) + inward * height);
+    body.addColorStop(0, MATERIAL.obsidian);
+    body.addColorStop(0.4, MATERIAL.core);
+    body.addColorStop(0.8, MATERIAL.lava);
+    body.addColorStop(1, MATERIAL.hot);
+    ctx.fillStyle = body;
     ctx.fillRect(x0, Math.min(at(x0), at(x1)) - maxH, slot, Math.abs(at(x0) - at(x1)) + maxH * 2);
     const core = ctx.createLinearGradient(0, at(tip), 0, at(tip) + inward * height);
     core.addColorStop(0, MATERIAL.core);
@@ -183,12 +208,68 @@ function drawRockObstacle(ctx: CanvasRenderingContext2D, a: number, b: number, i
     ctx.lineTo(tip + slot * 0.1, at(tip) + inward * height * 0.4);
     ctx.lineTo(tip, at(tip) + inward * height * 0.86);
     ctx.stroke();
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = MATERIAL.mineral;
+    ctx.lineWidth = 0.7;
+    for (const sign of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(tip + sign * slot * 0.24, at(tip) + inward * height * 0.2);
+      ctx.lineTo(tip + sign * slot * 0.13, at(tip) + inward * height * 0.48);
+      ctx.lineTo(tip + sign * slot * 0.06, at(tip) + inward * height * 0.7);
+      ctx.stroke();
+    }
     ctx.restore();
   }
   ctx.restore();
 }
 
-function drawRobot(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean): void {
+/** Gap has no simulated depth: the 40px basin is exterior scenery in its exact x-span. */
+export function drawFlipPool(ctx: CanvasRenderingContext2D, a: number, b: number, inward: number, at: Surface, time: number, seed: number): void {
+  if (b <= a) return;
+  ctx.save();
+  ctx.beginPath();
+  flipSurfaceLine(ctx, at, a, b);
+  reverseLine(ctx, x => at(x) - inward * POOL_DEPTH, a, b);
+  ctx.closePath();
+  ctx.clip();
+  const mid = (a + b) / 2;
+  const lava = ctx.createLinearGradient(0, at(mid), 0, at(mid) - inward * POOL_DEPTH);
+  lava.addColorStop(0, MATERIAL.hot);
+  lava.addColorStop(0.18, MATERIAL.lava);
+  lava.addColorStop(0.65, MATERIAL.core);
+  lava.addColorStop(1, MATERIAL.obsidian);
+  ctx.fillStyle = lava;
+  ctx.fillRect(a, Math.min(at(a), at(b), at(mid)) - POOL_DEPTH - 145, b - a, POOL_DEPTH * 2 + 290);
+  ctx.strokeStyle = MATERIAL.hot;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.6;
+  for (let k = 0; k < 3; k++) {
+    ctx.beginPath();
+    flipSurfaceLine(ctx, x => at(x) - inward * (4 + k * 7 + Math.sin((x - a) * 0.07 + time * 0.65 + k) * 1.1), a + 2, b - 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 0.7;
+  for (let k = 0; k < 4; k++) {
+    const h = artHash(seed, k + 67);
+    const x = a + (b - a) * (0.12 + (h % 76) / 100);
+    const age = ((time * 0.25 + (h % 100) / 100) % 1);
+    ctx.fillStyle = MATERIAL.lamp;
+    ctx.fillRect(x, at(x) - inward * (3 + age * 15), 1.2, 1.2);
+  }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = MATERIAL.obsidian;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  flipSurfaceLine(ctx, at, a, b);
+  ctx.moveTo(a, at(a));
+  ctx.lineTo(a, at(a) - inward * POOL_DEPTH);
+  ctx.moveTo(b, at(b));
+  ctx.lineTo(b, at(b) - inward * POOL_DEPTH);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean, sink: number | null): void {
   const dead = state.ended === 2;
   const progress = state.flipT > 0 ? 1 - state.flipT / FLIP_ARC_TICKS : 1;
   const upright = state.side === 0 ? 0 : Math.PI;
@@ -198,28 +279,34 @@ function drawRobot(ctx: CanvasRenderingContext2D, state: FlipState, y: number, s
   ctx.beginPath();
   ctx.rect(RUNNER_X - 12, y - 14, 24, 28);
   ctx.clip();
-  ctx.translate(RUNNER_X, y);
+  ctx.translate(RUNNER_X, y + (sink ?? 0) * 32 * (state.side === 0 ? 1 : -1));
   ctx.rotate(angle);
-  ctx.fillStyle = dead ? FLIP_RED : MATERIAL.armour;
+  // Swing's small gold head/torso/limbs, with compact gravity boots.
+  ctx.strokeStyle = dead && sink === null ? FLIP_RED : MATERIAL.figure;
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.lineWidth = 2.4;
+  ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.roundRect(-6, -3, 12, 12, 2);
+  ctx.arc(0, -6.5, 3.4, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = MATERIAL.robot;
+  const stride = still || state.flipT > 0 || dead ? 0 : Math.sin(state.tick * 0.5) * 1.5;
   ctx.beginPath();
-  ctx.roundRect(-7, -12, 14, 9, 2);
-  ctx.fill();
-  ctx.fillStyle = MATERIAL.visor;
-  ctx.fillRect(-4, -10, 8, 3);
+  ctx.moveTo(0, -3); ctx.lineTo(0, 3);
+  ctx.moveTo(0, -3); ctx.lineTo(-5, 2 + stride);
+  ctx.moveTo(0, -3); ctx.lineTo(5, 1 - stride);
+  ctx.moveTo(0, 3); ctx.lineTo(-3 + stride, 9);
+  ctx.moveTo(0, 3); ctx.lineTo(3 - stride, 9);
+  ctx.stroke();
+  ctx.fillStyle = MATERIAL.boot;
+  ctx.fillRect(-5 + stride, 8, 4, 2.5);
+  ctx.fillRect(1 - stride, 8, 4, 2.5);
+  ctx.fillStyle = MATERIAL.hot;
+  ctx.globalAlpha = 0.65;
+  ctx.fillRect(-5 + stride, 10.5, 4, 0.8);
+  ctx.fillRect(1 - stride, 10.5, 4, 0.8);
+  ctx.globalAlpha = 1;
   ctx.fillStyle = MATERIAL.lamp;
-  ctx.fillRect(5, -9, 2, 3);
-  ctx.fillStyle = MATERIAL.core;
-  ctx.fillRect(-2, 0, 4, 3);
-  const stride = still || state.flipT > 0 ? 0 : Math.sin(state.tick * 0.5) * 2;
-  ctx.fillStyle = MATERIAL.robot;
-  ctx.fillRect(-8, 1, 2, 6);
-  ctx.fillRect(6, 1, 2, 6);
-  ctx.fillRect(-5 + stride, 9, 4, 4);
-  ctx.fillRect(1 - stride, 9, 4, 4);
+  ctx.fillRect(2, -8, 2, 1.5);
   ctx.restore();
 }
 
@@ -282,6 +369,7 @@ export function drawFlipArt(ctx: CanvasRenderingContext2D, state: FlipState, siz
   }
 
   const y = runnerY(state.side, state.flipT) + state.warpY;
+  const sink = flipPoolSink(ctx, state, still);
   // Headlamp and tiny flip sparks are non-colliding light, behind solid objects.
   ctx.save();
   bandPath(ctx, ceilAt, floorAt);
@@ -299,7 +387,9 @@ export function drawFlipArt(ctx: CanvasRenderingContext2D, state: FlipState, siz
     ctx.lineTo(x, y + (floorAt(x) - floorAt(RUNNER_X)) + (x - RUNNER_X) * 0.22);
   }
   ctx.closePath();
+  ctx.globalAlpha = sink === null ? 1 : 1 - sink;
   ctx.fill();
+  ctx.globalAlpha = 1;
   if (!still && state.flipT > 0 && state.ended === 0) {
     for (let k = 1; k <= 6; k++) {
       ctx.globalAlpha = 0.45 * (1 - k / 7);
@@ -318,10 +408,14 @@ export function drawFlipArt(ctx: CanvasRenderingContext2D, state: FlipState, siz
     if (b < 0) continue;
     const inward = seg.side === 0 ? -1 : 1;
     const at = seg.side === 0 ? floorAt : ceilAt;
-    if (seg.kind === FLIP_GAP) drawFlipHazard(ctx, "gap", a, b, inward, at, MATERIAL.lava);
+    if (seg.kind === FLIP_GAP) drawFlipPool(ctx, a, b, inward, at, still ? 0 : state.tick / 60, seg.x0);
     else drawRockObstacle(ctx, a, b, inward, at, seg.kind === FLIP_SPIKE ? SPIKE_HEIGHT : OVERHANG_DEPTH, seg.x0 ^ state.warpFloor, pulse);
   }
-  drawRobot(ctx, state, y, still);
+  ctx.save();
+  // Pool deaths sink behind the opening; no new player or hazard geometry.
+  if (sink !== null) { bandPath(ctx, ceilAt, floorAt); ctx.clip(); }
+  drawFigure(ctx, state, y, still, sink);
+  ctx.restore();
   ctx.restore();
 }
 
