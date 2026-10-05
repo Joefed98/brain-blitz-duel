@@ -1,3 +1,4 @@
+import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -74,6 +75,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   const { game, seed, enabled } = props;
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const frameTiming = useArcadeFrameTiming(canvas);
   const state = useRef<S>(game.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<C[]>([]);
@@ -132,6 +134,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     };
 
     const loop = (time: number) => {
+      frameTiming.begin(time);
       frame = requestAnimationFrame(loop);
       const delta = time - last;
       last = time;
@@ -176,6 +179,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       reportArcadeTick(tickOf(), game.isOver(state.current));
       feedback(state.current as object, game.isOver(state.current));
       sounds?.frame(state.current, !game.isOver(state.current) && !propsRef.current.locked);
+      frameTiming.draw();
       const size = sizeCanvas();
       if (size) {
         const ctx = canvas.current?.getContext("2d");
@@ -191,11 +195,14 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
           ctx.restore();
         }
       }
+      frameTiming.rendered();
+
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
         propsRef.current.onDraftAnswer?.(encode());
       }
       if (game.isOver(state.current)) finish();
+      frameTiming.end();
     };
     frame = requestAnimationFrame(loop);
     return () => {

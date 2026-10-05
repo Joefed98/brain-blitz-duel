@@ -1,3 +1,4 @@
+import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { rallyArtGame } from "@/lib/arcade/rally.renderer";
 import { rallySounds } from "@/lib/fx/gameSounds";
@@ -61,6 +62,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const frameTiming = useArcadeFrameTiming(canvas);
   const state = useRef<RallyState>(rallyGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof rallyCheckpoint>[]>([]);
@@ -120,6 +122,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     const loop = (time: number) => {
+      frameTiming.begin(time);
       frame = requestAnimationFrame(loop);
       const delta = time - last;
       last = time;
@@ -159,9 +162,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       feedback(state.current, rallyGame.isOver(state.current));
       sounds.frame(state.current, !rallyGame.isOver(state.current) && !lockedRef.current);
 
+      frameTiming.draw();
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
       if (size && context) rallyArtGame.draw(context, state.current, size);
+
+      frameTiming.rendered();
 
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
@@ -180,6 +186,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           finish();
         }
       }
+      frameTiming.end();
     };
 
     frame = requestAnimationFrame(loop);

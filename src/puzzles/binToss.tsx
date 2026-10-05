@@ -1,3 +1,4 @@
+import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
@@ -87,6 +88,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const frameTiming = useArcadeFrameTiming(canvas);
   const cancelZone = useRef<HTMLDivElement | null>(null);
   const state = useRef<BinTossState>(binTossGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
@@ -163,6 +165,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     const loop = (time: number) => {
+      frameTiming.begin(time);
       frame = requestAnimationFrame(loop);
       const delta = time - last;
       last = time;
@@ -208,6 +211,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       reportArcadeTick(state.current.tick, binTossGame.isOver(state.current));
       feedback(state.current, binTossGame.isOver(state.current));
 
+      frameTiming.draw();
       const size = sizeCanvas();
       if (size) {
         const context = canvas.current?.getContext("2d");
@@ -239,6 +243,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
       }
 
+      frameTiming.rendered();
+
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);
         console.log(
@@ -264,6 +270,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           finish();
         }
       }
+      frameTiming.end();
     };
 
     frame = requestAnimationFrame(loop);

@@ -1,3 +1,4 @@
+import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -81,6 +82,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const frameTiming = useArcadeFrameTiming(canvas);
   const state = useRef<WhackState>(whackGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof whackCheckpoint>[]>([]);
@@ -132,6 +134,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let shown = { hits: -1, wrong: -1, next: -1, red: false, flash: false };
 
     const loop = (time: number) => {
+      frameTiming.begin(time);
       frame = requestAnimationFrame(loop);
       const delta = time - last;
       last = time;
@@ -186,6 +189,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, whackGame.isOver(state.current));
       feedback(state.current, whackGame.isOver(state.current));
+      frameTiming.draw();
       const node = canvas.current;
       const box = board.current?.getBoundingClientRect();
       if (node && box && box.width > 1) {
@@ -203,6 +207,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
       }
 
+      frameTiming.rendered();
+
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
         draftRef.current?.(encode());
@@ -211,6 +217,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         submitted.current = true;
         submitRef.current(encode());
       }
+      frameTiming.end();
     };
     frame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frame);

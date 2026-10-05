@@ -1,3 +1,4 @@
+import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
@@ -73,6 +74,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const frameTiming = useArcadeFrameTiming(canvas);
   const state = useRef<BubState>(bubbleGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof bubCheckpoint>[]>([]);
@@ -135,6 +137,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     const loop = (time: number) => {
+      frameTiming.begin(time);
       frame = requestAnimationFrame(loop);
       const delta = time - last;
       last = time;
@@ -168,12 +171,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       reportArcadeTick(state.current.tick, bubbleGame.isOver(state.current));
       feedback(state.current, bubbleGame.isOver(state.current));
 
+      frameTiming.draw();
       const size = sizeCanvas();
       const ctx = canvas.current?.getContext("2d");
       if (size && ctx) {
         bubbleGame.draw(ctx, state.current, size);
         drawAim(ctx, size);
       }
+
+      frameTiming.rendered();
 
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
@@ -193,6 +199,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           finish();
         }
       }
+      frameTiming.end();
     };
 
     frame = requestAnimationFrame(loop);
