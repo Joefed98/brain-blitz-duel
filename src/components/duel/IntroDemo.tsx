@@ -64,6 +64,7 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
         console.error("[intro demo] draw failed", error);
       }
       ctx.restore();
+      if (!DEMO_SHOW_TOUCHES) return;
       for (const touch of touches) {
         const age = tick - touch.t;
         if (age < 0 || age >= RING_TICKS) continue;
