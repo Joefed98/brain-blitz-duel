@@ -200,7 +200,7 @@ function PracticeScreen() {
       setStartedAt(Date.now());
       setStage("reveal");
     },
-    [puzzle, sealed, clockDeadline, timeLimitMs],
+    [puzzle, sealed, clockDeadline, timeLimitMs, stopRecording],
   );
 
   // The intro runs for exactly as long as it does in a room.
@@ -252,6 +252,22 @@ function PracticeScreen() {
               One puzzle at a time, on this device. Nothing is scored or saved.
             </p>
           </div>
+
+          {demoKey ? (
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+              <span className="flex flex-col">
+                <span className="font-display text-sm font-semibold text-foreground">Intro examples</span>
+                <span className="text-xs text-muted-foreground">Each game loads its fixed intro example, for recording demos.</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={exampleMode}
+                onChange={(e) => setExampleMode(e.target.checked)}
+                className="h-5 w-5 shrink-0 accent-[var(--primary)]"
+              />
+            </label>
+          ) : null}
 
           {puzzleCategories().map((category) => (
             <div key={category} className="flex flex-col gap-2">
@@ -346,7 +362,7 @@ function PracticeScreen() {
           startedAt={startedAt}
           now={now}
         />
-        <SaveDemoButton demoKey={demoKey} puzzle={graded.puzzle} sealed={sealed} answer={graded.answer} />
+        <SaveDemoButton demoKey={demoKey} puzzle={graded.puzzle} sealed={sealed} answer={graded.answer} recording={recording} />
       </PhoneShell>
     );
   }
@@ -384,7 +400,7 @@ function PracticeScreen() {
             </button>
           </div>
         </div>
-        <SaveDemoButton demoKey={demoKey} puzzle={graded.puzzle} sealed={sealed} answer={graded.answer} />
+        <SaveDemoButton demoKey={demoKey} puzzle={graded.puzzle} sealed={sealed} answer={graded.answer} recording={recording} />
       </PhoneShell>
     );
   }
@@ -416,7 +432,7 @@ function PracticeScreen() {
 
         {puzzle.type === "balance" && <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" />}
 
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div ref={recordArea} className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           <StageComponent
             key={stateKey}
             stateKey={stateKey}
@@ -428,10 +444,16 @@ function PracticeScreen() {
             onDraftAnswer={(answer) => {
               draftAnswer.current = answer;
             }}
-            checkWord={(word, found, path) =>
-              practiceCheckWordFn({ data: { puzzle, word, found, path: path ?? [], sealed } })
-            }
-            checkGroup={(indices) => practiceCheckGroupFn({ data: { puzzle, sealed, indices } })}
+            checkWord={async (word, found, path) => {
+              const verdict = await practiceCheckWordFn({ data: { puzzle, word, found, path: path ?? [], sealed } });
+              recorder.current?.verdict(verdict);
+              return verdict;
+            }}
+            checkGroup={async (indices) => {
+              const verdict = await practiceCheckGroupFn({ data: { puzzle, sealed, indices } });
+              recorder.current?.verdict(verdict);
+              return verdict;
+            }}
           />
           <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
         </div>
