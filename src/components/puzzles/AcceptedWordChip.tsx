@@ -12,7 +12,7 @@ export function AcceptedWordChip({ word, hidden = false }: { word: string | null
   return (
     <div className="flex h-8 w-full shrink-0 items-center justify-center" role="status" aria-live="polite">
       {word && visible && !hidden ? (
-        <span key={word} className="accepted-word-chip max-w-full truncate rounded-md bg-primary px-3 py-1 font-mono text-xs font-bold uppercase text-destructive-foreground">
+        <span key={word} className="accepted-word-chip max-w-full truncate rounded-md bg-primary px-3 py-1 font-mono text-xs font-bold uppercase text-accepted-word-foreground">
           {word}
         </span>
       ) : null}

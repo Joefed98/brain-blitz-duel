@@ -1,5 +1,6 @@
 import { TG_CELLS, tileGridWordCells, scoreTileGrid } from "../src/lib/duel/tileGrid";
-import { checkTileGridWord, judgeTileGrid } from "../src/lib/duel/tileGrid.server";
+import { checkTileGridWord, generateTileGrid, judgeTileGrid } from "../src/lib/duel/tileGrid.server";
+import { withSeededRandom } from "../src/lib/duel/random";
 
 function expect(label: string, actual: number, expected: number) {
   if (actual !== expected) throw new Error(`${label}: expected ${expected}, got ${actual}`);
@@ -28,14 +29,27 @@ expect("removing shared tile invalidates both runs", count(), 0);
 cells[2] = "T";
 cells[3] = "Q";
 expect("extending CAT to invalid CATQ stops counting substring", count(), 0);
-const complete = Array<string>(TG_CELLS).fill("");
-for (const [word, row, col, horizontal] of [["PLANETS", 2, 0, true], ["COMPLEX", 0, 0, false], ["BENT", 0, 3, false]] as const) {
-  [...word].forEach((letter, i) => { complete[(row + (horizontal ? 0 : i)) * 7 + col + (horizontal ? i : 0)] = letter; });
-}
-const result = judgeTileGrid(complete, complete.filter(Boolean));
+const puzzle = withSeededRandom(42, () => generateTileGrid());
+const complete = puzzle.solution;
+if (!complete) throw new Error("Missing generated solution");
+const result = judgeTileGrid(complete, puzzle.tray);
 if (!result.valid) throw new Error("Complete grid rejected");
 expect("complete count", result.wordTiles, 15);
 expect("complete at buzzer unchanged", scoreTileGrid(result.valid, result.placed, result.wordTiles, 0), 130);
 expect("complete half bonus unchanged", scoreTileGrid(result.valid, result.placed, result.wordTiles, 10), 140);
 expect("complete full bonus unchanged", scoreTileGrid(result.valid, result.placed, result.wordTiles, 20), 150);
+const mismatchedTray = judgeTileGrid(complete, []);
+expect("tray tampering gives no counted tiles", mismatchedTray.wordTiles, 0);
+for (let seed = 1; seed <= 20; seed++) {
+  const generated = withSeededRandom(seed, () => generateTileGrid());
+  const solution = generated.solution;
+  if (!solution) throw new Error("Missing solution");
+  for (let removed = 0; removed <= 15; removed++) {
+    const partial = [...solution];
+    const filled = partial.map((letter, i) => letter ? i : -1).filter((i) => i >= 0);
+    for (const cell of filled.slice(0, removed)) partial[cell] = "";
+    const live = tileGridWordCells(partial, (word) => checkTileGridWord(word).valid).size;
+    expect(`seed ${seed}, removals ${removed}`, judgeTileGrid(partial, generated.tray).wordTiles, live);
+  }
+}
 console.log("Tile Grid valid-word tile counting and unchanged completion scores pass");
