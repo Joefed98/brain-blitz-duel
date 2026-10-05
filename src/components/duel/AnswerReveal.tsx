@@ -2,6 +2,9 @@ import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { useEffect, useRef, useState } from "react";
 
 import { WaitingLine } from "@/components/duel/Dots";
+import { ArcadeReveal, type RevealPlayer } from "@/components/duel/ArcadeReveal";
+import type { ArcadeRevealData } from "@/lib/arcade/reveal";
+import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 
 import { puzzleDef, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/registry";
 import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
@@ -22,6 +25,8 @@ interface AnswerRevealProps {
   myExtra?: Record<string, unknown> | null;
   /** False until the round's answers have arrived from the server. */
   answersReady: boolean;
+  /** Everyone in the room for the arcade progress track (practice: omitted, own marker only). */
+  players?: RevealPlayer[];
   startedAt: number;
   now: number;
 }
@@ -132,6 +137,7 @@ export function AnswerReveal({
   myScore,
   myExtra,
   answersReady,
+  players,
   startedAt,
   now,
 }: AnswerRevealProps) {
@@ -166,6 +172,19 @@ export function AnswerReveal({
         <span className="font-mono text-xs text-muted-foreground">{secondsLeft}s</span>
       </div>
 
+      {ARCADE_REVEAL_RENDERERS[puzzle.type] ? (
+        <ArcadeReveal
+          puzzle={puzzle}
+          myAnswer={myAnswer}
+          myScore={myScore}
+          myReveal={(myExtra?.["reveal"] as ArcadeRevealData | undefined) ?? null}
+          players={
+            players ?? [
+              { slot: 0, name: "You", isMe: true, reveal: (myExtra?.["reveal"] as ArcadeRevealData | undefined) ?? null },
+            ]
+          }
+        />
+      ) : (
       <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
         {!puzzleOwnsRevealLayout ? <Verdict correct={myCorrect} /> : null}
         {!puzzleOwnsRevealLayout ? (
@@ -192,6 +211,7 @@ export function AnswerReveal({
           )}
         </div>
       </div>
+      )}
       <DevDiagnostics extra={myExtra ?? null} />
     </div>
   );

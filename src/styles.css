@@ -671,3 +671,21 @@ body.game-lock {
 @media (prefers-reduced-motion: reduce) {
   .bt-example-ball { transition: none; }
 }
+
+/* Arcade answer reveal: finish/crash highlight on the final-frame backdrop. */
+@keyframes arcade-reveal-pulse {
+  0% { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+@keyframes arcade-reveal-glow {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.35; }
+}
+.arcade-reveal-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: arcade-reveal-pulse 1.2s ease-out infinite;
+}
+.arcade-reveal-glow {
+  animation: arcade-reveal-glow 1.6s ease-in-out infinite;
+}

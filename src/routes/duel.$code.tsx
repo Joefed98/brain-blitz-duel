@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
@@ -685,6 +686,18 @@ function DuelScreen() {
           myReactionAvgMs={myResult?.reaction_avg_ms ?? null}
           myMsRemaining={myResult?.ms_remaining ?? 0}
           myScore={myResult ? myResult.score : null}
+          players={roomPlayers
+            .filter((p) => p.status !== "left" || resultFor(results, p.player_slot, round))
+            .map((p) => {
+              const row = resultFor(results, p.player_slot, round);
+              const reveal = (row?.extra as Record<string, unknown> | null | undefined)?.["reveal"];
+              return {
+                slot: p.player_slot,
+                name: p.display_name,
+                isMe: p.player_slot === mySlot,
+                reveal: row ? ((reveal as ArcadeRevealData | undefined) ?? null) : null,
+              };
+            })}
           myExtra={myResult?.extra ?? null}
           startedAt={phaseStart ?? now}
           now={now}

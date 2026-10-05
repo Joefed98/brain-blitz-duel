@@ -5,7 +5,7 @@
  * For every puzzle type (active and practice-only) it generates seeded puzzles,
  * grades sample submissions with the exact server grader (the value the room
  * inserts as round_results.score), renders the real AnswerReveal with that row,
- * and asserts:
+ * and asserts (arcade games also check the stored breakdown line ends in that score):
  *   1. the rendered data-reveal-score equals the stored score;
  *   2. with no stored row yet, the reveal shows "Scoring…" and no number;
  *   3. no puzzle Reveal source computes a score locally (static scan).
@@ -16,6 +16,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { renderToString } from "react-dom/server";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
+import { ARCADE_REVEAL_TYPES } from "@/lib/arcade/reveal";
 import { generatePuzzle, gradeAnswer } from "@/lib/duel/generate.server";
 import { ACTIVE_PUZZLE_TYPES, RETIRED_PUZZLE_TYPES, puzzleDef } from "@/lib/duel/registry";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -82,6 +83,12 @@ for (const type of [...ACTIVE_PUZZLE_TYPES, ...RETIRED_PUZZLE_TYPES]) {
       const shown = [...html.matchAll(/data-reveal-score="([^"]*)"/g)].map((m) => m[1]);
       if (shown.length !== 1 || shown[0] !== String(stored.score)) {
         failures.push(`${type}: stored ${stored.score}, reveal shows ${shown.join(",") || "nothing"}`);
+      }
+      const reveal = (stored.extra as Record<string, unknown> | null)?.["reveal"] as { lines: string[] } | undefined;
+      if (ARCADE_REVEAL_TYPES.includes(type)) {
+        const first = reveal?.lines[0] ?? "";
+        const ok = first.endsWith(`→ ${stored.score}`) || first.endsWith(`→ 130 · time +${stored.score - 130}`);
+        if (!ok) failures.push(`${type}: stored ${stored.score}, breakdown line "${first}"`);
       }
       checked++;
     }

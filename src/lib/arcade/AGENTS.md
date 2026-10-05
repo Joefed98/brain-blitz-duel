@@ -19,3 +19,4 @@
 - ArcadeCanvasStage supports opt-in canvas-size rendering for Tilt; why: its circle must stay isotropic without changing other games or input coordinates.
 - Snip's horizontal camera is render-only and cut coordinates include its displayed offset; why: screen edges must not become physics walls or change server replay.
 - Slice records ordered path samples with explicit finger-down/up inputs and aggregates hits in the shared sim; why: curves and loops must qualify once and replay identically.
+- Engine-game answer reveals use the shared ArcadeReveal: score/lines/tiles/axis come only from round_results (extra.reveal, built by buildArcadeReveal from the server replay); the dimmed final-frame backdrop is visual only, re-drawn from the stored seed + input log via revealRenderers.ts. Why: one screen for every engine game that cannot disagree with the stored score.
