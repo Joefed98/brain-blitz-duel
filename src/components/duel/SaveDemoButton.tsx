@@ -29,21 +29,52 @@ function readDevKey(): string | null {
   return key;
 }
 
-/** Practice-page hook: the verified intro-demo key, or null. Checked once per page. */
-export function useDemoKey(): string | null {
+export type DemoKeyStatus = "none" | "checking" | "accepted" | "refused" | "failed";
+
+/**
+ * Practice-page hook: the verified intro-demo key, or null, plus the check's
+ * status. Depends only on ?dev=1 and the key — never on screen size or input
+ * type. Re-checks when the page is restored from the back-forward cache.
+ */
+export function useDemoKey(): { key: string | null; status: DemoKeyStatus } {
   const [key, setKey] = useState<string | null>(null);
+  const [status, setStatus] = useState<DemoKeyStatus>("none");
   const check = useServerFn(checkDemoKeyFn);
   useEffect(() => {
-    const k = readDevKey();
-    if (!k) return;
-    check({ data: { key: k } })
-      .then((r) => {
-        if (r.ok) setKey(k);
-        else console.warn("[intro demo] key rejected");
-      })
-      .catch((error) => console.error("[intro demo] key check failed", error));
+    const run = () => {
+      const k = readDevKey();
+      if (!k) {
+        setKey(null);
+        setStatus(new URLSearchParams(window.location.search).get("dev") === "1" ? "refused" : "none");
+        return;
+      }
+      setStatus("checking");
+      check({ data: { key: k } })
+        .then((r) => {
+          setKey(r.ok ? k : null);
+          setStatus(r.ok ? "accepted" : "refused");
+        })
+        .catch((error) => {
+          console.error("[intro demo] key check failed", error);
+          setStatus("failed");
+        });
+    };
+    run();
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) run();
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
   }, [check]);
-  return key;
+  return { key, status };
+}
+
+/** One-line dev status, shown whenever ?dev=1 is on the address. */
+export function DevKeyStatus({ status }: { status: DemoKeyStatus }) {
+  if (status === "none") return null;
+  const text =
+    status === "checking" ? "Dev: checking key…" : status === "accepted" ? "Dev: key accepted" : status === "refused" ? "Dev: key refused" : "Dev: check failed";
+  return <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">{text}</p>;
 }
 
 /** Dev-only (?dev=1&key=… practice): saves this run as the game's intro demo. */

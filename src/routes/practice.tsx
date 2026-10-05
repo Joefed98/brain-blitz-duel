@@ -15,7 +15,7 @@ import {
   practiceGenerateFn,
   practiceGradeFn,
 } from "@/lib/duel/practice.functions";
-import { SaveDemoButton, useDemoKey } from "@/components/duel/SaveDemoButton";
+import { DevKeyStatus, SaveDemoButton, useDemoKey } from "@/components/duel/SaveDemoButton";
 import {
   PUZZLE_REGISTRY,
   RETIRED_PUZZLE_TYPES,
@@ -96,7 +96,7 @@ function PracticeScreen() {
   const introCancelled = useRef(false);
   const draftAnswer = useRef("");
   const now = useTicker(stage === "intro" || stage === "puzzle" || stage === "reveal");
-  const demoKey = useDemoKey();
+  const { key: demoKey, status: demoStatus } = useDemoKey();
   const stateKey = `practice-${run}`;
   // Dev only: "Intro examples" loads each game's fixed intro example and records touches.
   const [exampleMode, setExampleMode] = useState(false);
@@ -251,6 +251,7 @@ function PracticeScreen() {
             <p className="mt-1 text-sm text-muted-foreground">
               One puzzle at a time, on this device. Nothing is scored or saved.
             </p>
+            <DevKeyStatus status={demoStatus} />
           </div>
 
           {demoKey ? (
