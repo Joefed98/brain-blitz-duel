@@ -125,6 +125,6 @@ export function countShikakuSolutions(clues: readonly ShikakuClue[], limit = 2, 
 
 /** Solved = 100 + time bonus; otherwise 70 × covered ÷ board cells. */
 export function scoreShikaku(solved: boolean, msRemaining: number, timeLimitMs: number, covered: number): number {
-  if (solved) return Math.min(150, 100 + Math.round((50 * Math.max(0, msRemaining)) / timeLimitMs));
-  return Math.max(0, Math.round((70 * covered) / SHIKAKU_CELLS));
+  if (solved) return Math.min(150, 130 + Math.round((20 * Math.max(0, Math.min(timeLimitMs, msRemaining))) / timeLimitMs));
+  return Math.max(0, Math.round((110 * covered) / SHIKAKU_CELLS));
 }

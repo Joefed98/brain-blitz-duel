@@ -167,7 +167,7 @@ export function scoreLightUp(
   whites: number,
   clashing: number,
 ): number {
-  if (solved) return Math.min(150, 100 + Math.round((50 * Math.max(0, msRemaining)) / timeLimitMs));
+  if (solved) return Math.min(150, 130 + Math.round((20 * Math.max(0, Math.min(timeLimitMs, msRemaining))) / timeLimitMs));
   if (whites <= 0) return 0;
-  return Math.max(0, Math.round((70 * lit) / whites) - 5 * clashing);
+  return Math.max(0, Math.round((110 * lit) / whites) - 5 * clashing);
 }

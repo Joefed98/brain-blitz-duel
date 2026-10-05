@@ -180,8 +180,7 @@ export function scoreTents(
   wrong: number,
   trees: number,
 ): number {
-  const base = 10 * Math.max(0, correct);
   const perfect = trees > 0 && correct === trees && wrong === 0;
-  const bonus = perfect ? Math.round((30 * Math.max(0, msRemaining)) / timeLimitMs) : 0;
-  return Math.min(150, base + bonus);
+  if (perfect) return Math.min(150, 130 + Math.round((20 * Math.max(0, Math.min(timeLimitMs, msRemaining))) / timeLimitMs));
+  return Math.min(150, 10 * Math.max(0, correct));
 }
