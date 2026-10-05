@@ -314,8 +314,23 @@ export function soundDiagnostics(): SoundDiagnostics {
 
 /* ----------------------------------------------------------------- effects */
 
+/* Intro demos drive real puzzle screens; they must stay silent. A real tap
+   lifts the hush briefly so the player's own Ready/Back sounds still play. */
+let demoHush = 0;
+let lastRealInput = 0;
+export function hushForDemo(on: boolean): void {
+  demoHush = Math.max(0, demoHush + (on ? 1 : -1));
+}
+export function noteRealInput(): void {
+  lastRealInput = Date.now();
+}
+export function demoHushed(): boolean {
+  return demoHush > 0 && Date.now() - lastRealInput > 600;
+}
+
 /** Plays a one-shot effect. Retriggering a cue restarts it rather than stacking. */
 export function playCue(cue: Cue, volume = 1): void {
+  if (demoHushed()) return;
   if (!ready() || !ctx || !effectsGain) return;
   const buffer = buffers.get(cue);
   if (!buffer) return;
@@ -351,6 +366,7 @@ export function playTone(
   volume = 0.25,
   endFrequency?: number,
 ): void {
+  if (demoHushed()) return;
   if (!ready() || !ctx || !effectsGain) return;
   try {
     const now = ctx.currentTime;
@@ -392,6 +408,7 @@ const BEAT_BASS = [55, 43.65, 65.41, 49];
  * four-bar A–F–C–G progression. `step` counts eighths from the first beat.
  */
 export function playBeatStep(step: number): void {
+  if (demoHushed()) return;
   if (!ready() || !ctx || !musicGain) return;
   try {
     const t = ctx.currentTime;

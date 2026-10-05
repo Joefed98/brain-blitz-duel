@@ -10,8 +10,36 @@
 const CRYPTO: Crypto | undefined =
   typeof globalThis.crypto?.getRandomValues === "function" ? globalThis.crypto : undefined;
 
+/** Set only while a fixed intro example is generated; null otherwise. */
+let seeded: (() => number) | null = null;
+
+/**
+ * Runs a synchronous generator with every draw (including `Math.random`) taken
+ * from one fixed seed, so the same intro example comes out every time.
+ */
+export function withSeededRandom<T>(seed: number, fn: () => T): T {
+  let state = seed >>> 0;
+  const rng = () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 0x1_0000_0000;
+  };
+  const original = Math.random;
+  seeded = rng;
+  Math.random = rng;
+  try {
+    return fn();
+  } finally {
+    seeded = null;
+    Math.random = original;
+  }
+}
+
 /** A fresh float in [0, 1) from the CSPRNG. */
 export function random(): number {
+  if (seeded) return seeded();
   if (!CRYPTO) return Math.random();
   const buffer = new Uint32Array(1);
   CRYPTO.getRandomValues(buffer);
@@ -21,6 +49,7 @@ export function random(): number {
 /** A uniform integer in [0, bound) — rejection sampled, so no modulo bias. */
 export function randomBelow(bound: number): number {
   if (bound <= 1) return 0;
+  if (seeded) return Math.floor(seeded() * bound);
   if (!CRYPTO) return Math.floor(Math.random() * bound);
   const limit = Math.floor(0x1_0000_0000 / bound) * bound;
   const buffer = new Uint32Array(1);

@@ -43,7 +43,13 @@ async function seal(payload: unknown): Promise<string> {
   return `${toBase64(iv)}.${toBase64(cipher)}`;
 }
 
+/** The sealed half minus its intro-example tag. */
 async function unseal(sealed: string): Promise<Loose> {
+  const { __example: _example, ...priv } = await unsealRaw(sealed);
+  return priv;
+}
+
+async function unsealRaw(sealed: string): Promise<Loose> {
   const [ivPart, cipherPart] = sealed.split(".");
   if (!ivPart || !cipherPart) throw new Error("Bad practice puzzle.");
   const plain = await crypto.subtle.decrypt(
@@ -61,18 +67,36 @@ function validType(type: string): PuzzleType {
 
 /** Generates one puzzle of the requested type with the same code rooms use. */
 export const practiceGenerateFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { type: string }) => input)
+  .inputValidator((input: { type: string; example?: boolean }) => input)
   .handler(async ({ data }) => {
     const type = validType(data.type);
     const { generatePuzzle } = await import("./generate.server");
+    const example = data.example === true;
     let unblockRow = null;
     if (type === "unblock") {
-      const { drawUnblockRow } = await import("./unblock.server");
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      unblockRow = await drawUnblockRow(supabaseAdmin);
+      if (example) {
+        // The fixed example always uses the bank's first board, without marking it used.
+        const { data: rows } = await supabaseAdmin
+          .from("unblock_bank")
+          .select("id, layout, min_moves, solution")
+          .order("id", { ascending: true })
+          .limit(1);
+        unblockRow = (rows?.[0] as never) ?? null;
+      } else {
+        const { drawUnblockRow } = await import("./unblock.server");
+        unblockRow = await drawUnblockRow(supabaseAdmin);
+      }
     }
-    const { pub, priv } = splitPuzzle(generatePuzzle(type, { unblockRow }));
-    return { puzzle: pub, sealed: await seal(priv) };
+    if (!example) {
+      const { pub, priv } = splitPuzzle(generatePuzzle(type, { unblockRow }));
+      return { puzzle: pub, sealed: await seal(priv) };
+    }
+    const { withSeededRandom } = await import("./random");
+    const { INTRO_EXAMPLE_ID, INTRO_EXAMPLE_SEED } = await import("./puzzleDemo");
+    const made = withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type, { unblockRow }));
+    const { pub, priv } = splitPuzzle(made);
+    return { puzzle: pub, sealed: await seal({ ...priv, __example: INTRO_EXAMPLE_ID }) };
   });
 
 /** Checks and scores a practice answer, then hands back the full puzzle. */
@@ -223,6 +247,50 @@ export const saveIntroDemoFn = createServerFn({ method: "POST" })
         length_ticks: DEMO_LENGTH_TICKS,
         recorded_at: new Date().toISOString(),
       } as never,
+      { onConflict: "game_type" },
+    );
+    if (error) throw new Error("Could not save the demo.");
+    return { ok: true };
+  });
+
+/**
+ * Dev-only save of a puzzle intro demo: the touches from a practice run on the
+ * fixed intro example. Same private key as the engine demos; the sealed half
+ * must carry the intro-example tag, so only fixed examples can be saved.
+ */
+export const savePuzzleDemoFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: { puzzle: PuzzleData; sealed: string; log: unknown; dev: boolean; key: string }) => input,
+  )
+  .handler(async ({ data }) => {
+    if (data.dev !== true) throw new Error("Demo saving is only available in dev practice.");
+    if (!(await demoKeyOk(data.key))) throw new Error("Forbidden");
+    const { ARCADE_REVEAL_RENDERERS } = await import("@/lib/arcade/revealRenderers");
+    const { INTRO_EXAMPLE_ID, PUZZLE_DEMO_MAX_CHARS, isPuzzleDemoLog } = await import("./puzzleDemo");
+    const type = validType(String(data.puzzle?.type ?? ""));
+    if (ARCADE_REVEAL_RENDERERS[type]) throw new Error("Engine games use the run-log demo.");
+    if (!isPuzzleDemoLog(data.log)) throw new Error("No recorded actions.");
+    const text = JSON.stringify(data.log);
+    if (text.length > PUZZLE_DEMO_MAX_CHARS) throw new Error("Demo is too long.");
+    const raw = await unsealRaw(String(data.sealed ?? ""));
+    if (raw["type"] !== type) throw new Error("Bad practice puzzle.");
+    if (raw["__example"] !== INTRO_EXAMPLE_ID) throw new Error("Only the fixed intro example can be saved.");
+    const { __example: _example, ...priv } = raw;
+    const { pub } = splitPuzzle(mergePuzzle(data.puzzle, priv));
+    const log = JSON.parse(text) as { actions: { t: number }[] };
+    const lengthMs = Math.max(0, ...log.actions.map((a) => Number(a.t) || 0));
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("intro_demos").upsert(
+      {
+        game_type: type,
+        seed: 0,
+        puzzle: pub as never,
+        input_log: log as never,
+        start_tick: 0,
+        length_ticks: Math.round(lengthMs),
+        example_id: INTRO_EXAMPLE_ID,
+        recorded_at: new Date().toISOString(),
+      },
       { onConflict: "game_type" },
     );
     if (error) throw new Error("Could not save the demo.");

@@ -1,0 +1,17 @@
+# Puzzle rules
+- Tile Grid is tap-only: rack tile, then empty cell; placed tile, then empty cell or rack.
+- Sum Hunt uses deterministic 4×4 stage boards with 1–3 orthogonal target paths of 3–6 cells; server replay regenerates them.
+- Balance placement uses only fixed, non-tilting distance buttons; their peg indices feed the existing server-validated placement encoding.
+- Tents uses `-1` for hidden row/column counts; shared solving and validation treat those lines as unconstrained.
+- Stop Watch stores target-motion phase, right-edge allowances, wrap mode, and pass durations in each generated watch; why: every player must see identical moving targets and acceleration.
+- Gravity Maze locks a ball when it comes to rest on its own target (locked = sitting on target), and the minimum is a capped breadth-first joint search; why: a summed per-ball heuristic over-estimates when one tilt moves every ball, so it cannot prove a minimum.
+- Ice Slide state is (cell, broken thin-ice bitmask) and every search, replay and undo carries the mask; why: thin ice makes move order matter.
+- Ice Slide animates the transient ball along `slideOutcome.path`, including entry/exit portal cells and arrow turns, while only the original move array is submitted; why: visual interpolation must not alter deterministic grading.
+- Rotating Rings boards store a link-pattern index into the shared bank in rings.ts; why: phone and server must apply identical linked turns.
+- Laser beam tracing branches at fixed splitters and enforces directional gem entry in shared phone/server logic; why: generation, animation, and grading must agree.
+- Laser's visual fork offsets are derived from the tracer's paths so a splitter branch is not revealed before the incoming beam reaches it; why: the splitter is not an independent light source.
+- Tower's peg count is the length of the stored `start` (3 or 4) and every rule/replay/search reads it from there; why: the peg count varies per puzzle but must be identical for all players.
+- Colour Connect walls live on the public puzzle and are passed to the shared `verifyFlow`; uniqueness is proven server-side by an exhaustive solver before a board is used; why: phone, grader and generator must agree.
+- Bomb Defusal masks are recomputed per panel because many rule predicates read the panel; why: caching by rule text across panels gives wrong uniqueness proofs.
+- Number Pyramid stores one bank entry as four public boards plus private solutions and submits all four placement maps with the active index; why: skipped boards and current-board partial credit must grade identically on the server.
+- Ball Track uses a shared serpentine toggle sim with course-driven fixed bottom-row interception and occupied-tile locks; its server-only bank proves every tray has an upper-routing alternative and every ball gets home; why: drawing, generator and replay must agree without exposing playbooks.
