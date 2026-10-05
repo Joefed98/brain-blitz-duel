@@ -40,7 +40,7 @@ draw(375, 500);
 assert.equal(allocations, warmAllocations + 1, "only scanlines rebuild after canvas size changes");
 
 // Remove objects: particle rectangles are distinguishable from the five world rectangles.
-state.balls = []; state.shots = []; state.shield = 0; state.invuln = 1;
+state.balls = []; state.shots = []; state.shield = 0; state.invuln = 0;
 state.tick = 1; state.popTick = -100;
 draw();
 let maxParticles = 0;
@@ -48,7 +48,7 @@ for (let tick = 2; tick < 30; tick++) {
   state.tick = tick; state.popTick = tick;
   const previous = stats.rects;
   draw();
-  const particles = stats.rects - previous - 5;
+  const particles = stats.rects - previous - 6;
   maxParticles = Math.max(maxParticles, particles);
   assert(particles <= FX_PARTICLE_LIMIT, `particle count ${particles} exceeds shared cap`);
 }
@@ -58,16 +58,16 @@ state.popTick = 100;
 state.balls = Array.from({ length: BURST_FX_ENEMY_THRESHOLD + 1 }, () => ({ size: 0, x: 100 * 256, y: 300 * 256, vx: 0, vy: 0 }));
 let previous = stats.rects;
 draw();
-assert.equal(stats.rects - previous, 5, "crowded enemies suppress new particles");
+assert.equal(stats.rects - previous, 6, "crowded enemies suppress new particles");
 state.balls = []; state.tick++; // Do not spawn a previously suppressed pop after load drops.
 previous = stats.rects;
 draw();
-assert.equal(stats.rects - previous, 5);
+assert.equal(stats.rects - previous, 6);
 state.tick = 130; state.popTick = 130;
 state.shots = Array.from({ length: BURST_FX_SHOT_THRESHOLD + 1 }, () => ({ short: 1, x: 100 * 256, top: 280 * 256 }));
 previous = stats.rects;
 draw();
-assert.equal(stats.rects - previous, 5 + state.shots.length, "crowded shots suppress new particles");
+assert.equal(stats.rects - previous, 6 + state.shots.length, "crowded shots suppress new particles");
 delete (globalThis as { OffscreenCanvas?: unknown }).OffscreenCanvas;
 const fallback = context();
 burstArtGame.draw(fallback.ctx, state, { width: 100, height: 100 });
