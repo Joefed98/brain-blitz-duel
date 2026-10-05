@@ -80,43 +80,43 @@ function pathOf(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>): vo
 
 function facetedGem(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>, cx: number, cy: number, r: number, colour: string): void {
   const body = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
-  body.addColorStop(0, shade(colour, 0.35));
+  body.addColorStop(0, colour);
   body.addColorStop(0.5, colour);
-  body.addColorStop(1, shade(colour, -0.5));
+  body.addColorStop(1, shade(colour, -0.2));
+  ctx.save();
   pathOf(ctx, pts);
+  ctx.clip();
   ctx.fillStyle = body;
   ctx.fill();
   // Table facet and spokes.
   const inner = pts.map(([x, y]) => [cx + (x - cx) * 0.52, cy + (y - cy) * 0.52 - r * 0.06] as [number, number]);
-  ctx.strokeStyle = "rgba(255,255,255,0.28)";
+  ctx.strokeStyle = shade(colour, -0.25);
   ctx.lineWidth = 0.9;
   ctx.beginPath();
   pts.forEach(([x, y], i) => {
     ctx.moveTo(x, y);
-    ctx.lineTo(inner[i]![0], inner[i]![1]);
+    const point = inner[i];
+    if (point) ctx.lineTo(point[0], point[1]);
   });
   ctx.stroke();
-  const glow = ctx.createRadialGradient(cx, cy - r * 0.1, 0, cx, cy, r * 0.6);
-  glow.addColorStop(0, shade(colour, 0.6));
-  glow.addColorStop(1, shade(colour, 0.1));
   pathOf(ctx, inner);
-  ctx.fillStyle = glow;
+  ctx.fillStyle = colour;
   ctx.fill();
   // Darker base edge and a crisp rim.
   pathOf(ctx, pts);
   ctx.strokeStyle = shade(colour, -0.6);
   ctx.lineWidth = 1.2;
   ctx.stroke();
-  // Highlight glint.
-  ctx.fillStyle = "rgba(255,255,255,0.75)";
-  ctx.beginPath();
-  ctx.ellipse(cx - r * 0.3, cy - r * 0.42, r * 0.2, r * 0.09, -0.5, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.restore();
 }
 
 /** One gem centred on (cx, cy) at the sim's symbol radius. */
 export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: number, cy: number, radius: number, time = 0): void {
   ctx.save();
+  // Includes special fuse details: never exceed the symbol's bounds.
+  ctx.beginPath();
+  ctx.rect(cx - radius, cy - radius, radius * 2, radius * 2);
+  ctx.clip();
   if (kind === MATCHUP_BOMB) {
     const pts = cutPoints("hexagon", cx, cy + radius * 0.06, radius * 0.86);
     facetedGem(ctx, pts, cx, cy + radius * 0.06, radius * 0.86, "#2A2A33");
@@ -137,18 +137,16 @@ export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: 
     ctx.fill();
   } else if (kind === MATCHUP_CROSS) {
     const pts = cutPoints("square", cx, cy, radius);
-    facetedGem(ctx, pts, cx, cy, radius, "#C9D3E6");
-    const light = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-    light.addColorStop(0, "rgba(255,255,255,1)");
-    light.addColorStop(1, "rgba(245,184,46,0)");
-    ctx.fillStyle = light;
+    facetedGem(ctx, pts, cx, cy, radius, MATCHUP_GOLD);
+    ctx.fillStyle = shade(MATCHUP_GOLD, -0.55);
     const w = radius * 0.22;
     ctx.fillRect(cx - radius * 0.85, cy - w / 2, radius * 1.7, w);
     ctx.fillRect(cx - w / 2, cy - radius * 0.85, w, radius * 1.7);
   } else if (kind === MATCHUP_STAR) {
     const pts = cutPoints("star", cx, cy, radius);
-    facetedGem(ctx, pts, cx, cy, radius, "#F7F7F8");
+    facetedGem(ctx, pts, cx, cy, radius, shade(MATCHUP_GOLD, -0.35));
     pathOf(ctx, pts);
+    ctx.clip();
     ctx.strokeStyle = MATCHUP_GOLD;
     ctx.lineWidth = 1.6;
     ctx.stroke();
@@ -238,7 +236,7 @@ function shatter(ctx: CanvasRenderingContext2D, kind: number, index: number, p: 
   }
   const colour = kind < MATCHUP_COLOURS.length ? MATCHUP_COLOURS[kind]! : MATCHUP_GOLD;
   ctx.globalAlpha = Math.max(0, 1 - p * 2.2);
-  drawMatchupGem(ctx, kind, x, y, RADIUS * (1 + p * 0.25));
+  drawMatchupGem(ctx, kind, x, y, RADIUS);
   ctx.globalAlpha = 1;
   const ease = 1 - (1 - p) * (1 - p);
   for (let k = 0; k < 7; k++) {
@@ -247,7 +245,7 @@ function shatter(ctx: CanvasRenderingContext2D, kind: number, index: number, p: 
     const d = ease * (14 + (h >>> 8) % 12);
     const s = 2.5 + ((h >>> 4) % 3);
     ctx.globalAlpha = 1 - p;
-    ctx.fillStyle = k % 3 === 0 ? "#FFFFFF" : colour;
+    ctx.fillStyle = colour;
     ctx.save();
     ctx.translate(x + Math.cos(a) * d, y + Math.sin(a) * d + ease * ease * 6);
     ctx.rotate(a + p * 4);

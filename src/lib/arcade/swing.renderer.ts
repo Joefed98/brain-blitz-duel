@@ -95,12 +95,17 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
     if (x < -40 || x > SWING_WORLD_W + 40) continue;
     const top = s.top / FP;
     ctx.beginPath();
-    ctx.moveTo(x - SPIKE_HALF, top);
+    ctx.moveTo(x - SPIKE_HALF, 0);
+    ctx.lineTo(x - SPIKE_HALF, top);
     ctx.lineTo(x - 8, top + SPIKE_DEPTH);
     ctx.lineTo(x, top + 24);
     ctx.lineTo(x + 8, top + SPIKE_DEPTH);
     ctx.lineTo(x + SPIKE_HALF, top);
+    ctx.lineTo(x + SPIKE_HALF, 0);
     ctx.closePath();
+    // Clip the rim to the sim's full-width, top-to-lowest-tip hazard zone.
+    ctx.save();
+    ctx.clip();
     const g = ctx.createLinearGradient(x - SPIKE_HALF, 0, x + SPIKE_HALF, 0);
     g.addColorStop(0, "#3A2C30");
     g.addColorStop(0.5, "#241A1E");
@@ -110,6 +115,7 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
     ctx.strokeStyle = "rgba(255,120,60,0.55)";
     ctx.lineWidth = 1.2;
     ctx.stroke();
+    ctx.restore();
     const h = artHash(s.x);
     if (h % 3 === 0) {
       // Glowing lava seam on the tips, and a falling drip.

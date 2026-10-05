@@ -29,16 +29,8 @@ const EIGHT_A_PCT = 150;
 const EIGHT_B_PCT = 45;
 const HAZARD_SPAN = ANG_QUARTER;
 
-/** The eight game colours, muted toward slate for planet surfaces. */
+/** Full-strength eight game colours for seeded planet surfaces and paths. */
 const GAME_COLOURS = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#B26BFF", "#FF6BD6", "#FF8A3D", "#8B5A2B", "#FFE600"];
-const MUTED = GAME_COLOURS.map((hex) => mix(hex, "#5A6070", 0.38));
-
-function mix(a: string, b: string, t: number): string {
-  const pa = parseInt(a.slice(1), 16);
-  const pb = parseInt(b.slice(1), 16);
-  const ch = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
-  return `#${[ch(16), ch(8), ch(0)].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
-}
 
 /** Same offset maths as the sim's pathOffset. */
 function pathOffset(p: Planet, phase: number): { u: number; v: number } {
@@ -68,7 +60,7 @@ function planetLook(p: Planet, i: number, lobe: number) {
   h = Math.imul(h, 0xc2b2ae35) >>> 0;
   return {
     type: h % 3, // 0 rocky, 1 gas giant, 2 icy
-    colour: MUTED[(h >>> 4) % 8]!,
+    colour: GAME_COLOURS[(h >>> 4) % 8] ?? ORBIT_GOLD,
     ring: ((h >>> 9) % 4) === 0,
     tilt: (((h >>> 12) % 60) - 30) * (Math.PI / 180),
     h,
@@ -76,23 +68,14 @@ function planetLook(p: Planet, i: number, lobe: number) {
 }
 
 function drawPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, look: ReturnType<typeof planetLook>): void {
-  const base = look.type === 2 ? mix(look.colour, "#DDEBFF", 0.55) : look.colour;
-  // Atmosphere glow.
-  const glow = ctx.createRadialGradient(x, y, r * 0.9, x, y, r * 1.5);
-  glow.addColorStop(0, look.type === 2 ? "rgba(190,225,255,0.28)" : "rgba(255,255,255,0.14)");
-  glow.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(x, y, r * 1.5, 0, Math.PI * 2);
-  ctx.fill();
-  // Ring behind.
-  if (look.ring) drawRingHalf(ctx, x, y, r, look.tilt, true);
   ctx.save();
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.clip();
-  ctx.fillStyle = base;
+  ctx.fillStyle = look.colour;
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  // Any ring detail stays inside the planet's collision circle.
+  if (look.ring) drawRingHalf(ctx, x, y, r, look.tilt, true);
   if (look.type === 1) {
     // Gas bands.
     ctx.globalAlpha = 0.22;
@@ -137,8 +120,8 @@ function drawPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
   shade.addColorStop(1, "rgba(0,0,0,0.75)");
   ctx.fillStyle = shade;
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  ctx.restore();
   if (look.ring) drawRingHalf(ctx, x, y, r, look.tilt, false);
+  ctx.restore();
 }
 
 function drawRingHalf(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, tilt: number, back: boolean): void {
@@ -148,12 +131,16 @@ function drawRingHalf(ctx: CanvasRenderingContext2D, x: number, y: number, r: nu
   ctx.strokeStyle = back ? "rgba(230,220,200,0.25)" : "rgba(230,220,200,0.55)";
   ctx.lineWidth = Math.max(1, r * 0.1);
   ctx.beginPath();
-  ctx.ellipse(0, 0, r * 1.55, r * 0.38, 0, back ? Math.PI : 0, back ? Math.PI * 2 : Math.PI);
+  ctx.ellipse(0, 0, r * 0.9, r * 0.3, 0, back ? Math.PI : 0, back ? Math.PI * 2 : Math.PI);
   ctx.stroke();
   ctx.restore();
 }
 
 function drawSun(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, t: number): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.clip();
   const corona = ctx.createRadialGradient(x, y, r * 0.6, x, y, r * 2.2);
   corona.addColorStop(0, "rgba(255,214,102,0.85)");
   corona.addColorStop(0.45, "rgba(255,150,40,0.25)");
@@ -180,6 +167,7 @@ function drawSun(ctx: CanvasRenderingContext2D, x: number, y: number, r: number,
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
 }
 
 function tracePath(ctx: CanvasRenderingContext2D, p: Planet, px: number, py: number, from: number, span: number, steps: number): void {
@@ -244,14 +232,14 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
     visible.push(i);
   }
 
-  // Orbit paths first, faint dashes; the current orbit a touch brighter.
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([5, 6]);
+  // Solid planet-coloured paths; only the current orbit is emphasized.
+  ctx.setLineDash([]);
   for (const i of visible) {
     const p = state.planets[i]!;
     const sun = i === ORBIT_TOTAL;
-    ctx.strokeStyle = sun ? ORBIT_GOLD : "#CFE3FF";
-    ctx.globalAlpha = i === state.cur ? 0.5 : 0.2;
+    ctx.strokeStyle = sun ? ORBIT_GOLD : planetLook(p, i, 0).colour;
+    ctx.lineWidth = i === state.cur ? 2 : 1;
+    ctx.globalAlpha = i === state.cur ? 0.75 : 0.3;
     tracePath(ctx, p, p.x / FP, p.y / FP - cam, 0, 65536, 72);
     ctx.stroke();
   }
