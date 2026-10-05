@@ -3,7 +3,6 @@ import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import {
   orbitCanSetCheckpoint,
   orbitCheckpoint,
-  orbitGame,
   ORBIT_BG,
   ORBIT_CHECKPOINT_INTERVAL,
   ORBIT_COLOURS,
@@ -17,6 +16,8 @@ import {
 import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { ORBIT_TIME_MS, type OrbitPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { orbitArtGame } from "@/lib/arcade/orbit.renderer";
+import { orbitSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -46,13 +47,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <ArcadeCanvasStage
       diagKey="orbit"
       label="Orbit"
-      background={ORBIT_BG}
+      background="transparent"
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
       worldW={ORBIT_WORLD_W}
       worldH={ORBIT_WORLD_H}
-      game={orbitGame}
+      game={orbitArtGame}
+      sounds={orbitSounds}
       checkpoint={orbitCheckpoint}
       interval={ORBIT_CHECKPOINT_INTERVAL}
       encodeRun={encodeOrbitRun}

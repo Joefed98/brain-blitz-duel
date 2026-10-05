@@ -5,7 +5,6 @@ import {
   SWING_REEL_DOWN,
   SWING_REEL_UP,
   swingCheckpoint,
-  swingGame,
   SWING_BG,
   SWING_CHECKPOINT_INTERVAL,
   SWING_GOLD,
@@ -17,6 +16,8 @@ import {
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
 import { SWING_TIME_MS, type SwingPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { swingArtGame } from "@/lib/arcade/swing.renderer";
+import { swingSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -46,13 +47,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <ArcadeCanvasStage
       diagKey="swing"
       label="Swing"
-      background={SWING_BG}
+      background="transparent"
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
       worldW={SWING_WORLD_W}
       worldH={SWING_WORLD_H}
-      game={swingGame}
+      game={swingArtGame}
+      sounds={swingSounds}
       checkpoint={swingCheckpoint}
       interval={SWING_CHECKPOINT_INTERVAL}
       encodeRun={encodeSwingRun}

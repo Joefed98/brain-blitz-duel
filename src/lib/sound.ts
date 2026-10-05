@@ -337,14 +337,14 @@ export function demoHushed(): boolean {
 }
 
 /** Plays a one-shot effect. Retriggering a cue restarts it rather than stacking. */
-export function playSound(cue: SoundId, volume = 1): void {
+export function playSound(cue: SoundId, volume = 1, rate = 1): void {
   if (demoHushed()) return;
   if (isMuted() || !ready() || !ctx || !effectsGain) return;
   const entry = SOUND_MANIFEST[cue];
   if (entry.channel === "music") return;
   const buffer = buffers.get(cue);
   duckMusic(buffer ? buffer.duration * 1000 : entry.ms);
-  if (!buffer) { playTone(entry.frequency, entry.ms, "sine", 0.18 * volume, undefined, entry.channel === "voice"); return; }
+  if (!buffer) { if (entry.frequency > 0) playTone(entry.frequency * rate, entry.ms, "sine", 0.18 * volume, undefined, entry.channel === "voice"); return; }
   const previous = playingEffects.get(cue);
   if (previous) {
     try {
@@ -356,6 +356,7 @@ export function playSound(cue: SoundId, volume = 1): void {
   try {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
+    if (rate !== 1) source.playbackRate.setValueAtTime(rate, ctx.currentTime);
     const gain = ctx.createGain();
     gain.gain.setValueAtTime((cue === "podium_fanfare" ? FANFARE_GAIN : 1) * Math.max(0, Math.min(1, volume)), ctx.currentTime);
     source.connect(gain).connect(entry.channel === "voice" && voiceGain ? voiceGain : effectsGain);
@@ -366,6 +367,48 @@ export function playSound(cue: SoundId, volume = 1): void {
     source.start();
   } catch (error) {
     warnOnce("effect playback failed", error);
+  }
+}
+
+const loops = new Map<SoundId, { source: AudioBufferSourceNode; gain: GainNode }>();
+
+/**
+ * Keeps a looping effect running on the effects channel. Call every frame while
+ * it should play; it starts once the file is decoded and stops when muted.
+ */
+export function ensureLoop(id: SoundId, volume = 0.3): void {
+  if (isMuted() || demoHushed()) { stopLoop(id, 120); return; }
+  if (loops.has(id) || !ready() || !ctx || !effectsGain) return;
+  const buffer = buffers.get(id);
+  if (!buffer) return;
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(Math.max(0, Math.min(1, volume)), ctx.currentTime + 0.4);
+    source.connect(gain).connect(effectsGain);
+    source.start();
+    loops.set(id, { source, gain });
+  } catch (error) {
+    warnOnce("loop playback failed", error);
+  }
+}
+
+/** Fades out and stops a looping effect started by ensureLoop. */
+export function stopLoop(id: SoundId, fadeMs = 300): void {
+  const loop = loops.get(id);
+  if (!loop) return;
+  loops.delete(id);
+  try {
+    const now = ctx?.currentTime ?? 0;
+    loop.gain.gain.cancelScheduledValues(now);
+    loop.gain.gain.setValueAtTime(loop.gain.gain.value, now);
+    loop.gain.gain.linearRampToValueAtTime(0.0001, now + fadeMs / 1000);
+    loop.source.stop(now + fadeMs / 1000 + 0.02);
+  } catch {
+    /* already stopped */
   }
 }
 

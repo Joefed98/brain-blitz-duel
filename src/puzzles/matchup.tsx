@@ -14,8 +14,6 @@ import {
   matchupCellAt,
   matchupAnimationDuration,
   matchupCheckpoint,
-  matchupDrawAnimated,
-  matchupDrawSelection,
   matchupGame,
   MATCHUP_BG,
   MATCHUP_CHECKPOINT_INTERVAL,
@@ -25,7 +23,11 @@ import {
   type MatchupState,
 } from "@/lib/arcade/matchup";
 import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
-import { drawMatchupSwap, MATCHUP_SWAP_MS, type MatchupSwapTween } from "@/lib/arcade/matchup.renderer";
+import {
+  drawMatchupArt, drawMatchupArtAnimated, drawMatchupArtSelection, drawMatchupSwap,
+  matchupStepOffsets, MATCHUP_SWAP_MS, type MatchupSwapTween,
+} from "@/lib/arcade/matchup.renderer";
+import { playGemChime } from "@/lib/fx/gameSounds";
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 
@@ -85,6 +87,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const animStart = useRef(0);
   const animUntil = useRef(0);
   const swapTween = useRef<MatchupSwapTween | null>(null);
+  /** Pending gem chimes for the current swap: wall-clock times, cascade step = index. */
+  const chimes = useRef<{ at: number[]; next: number }>({ at: [], next: 0 });
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
@@ -121,6 +125,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     animStart.current = 0;
     animUntil.current = 0;
     swapTween.current = null;
+    chimes.current = { at: [], next: 0 };
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
@@ -167,6 +172,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             const duration = matchupAnimationDuration(state.current.lastAnimation);
             animStart.current = time;
             animUntil.current = time + duration;
+            // A new swap resets the cascade pitch.
+            chimes.current = {
+              at: matchupStepOffsets(state.current.lastAnimation).map((ms) => time + MATCHUP_SWAP_MS + ms),
+              next: 0,
+            };
           }
           if (applied && (state.current.swaps > before.swaps ||
             state.current.lastInvalidTick === state.current.tick)) {
@@ -185,6 +195,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, matchupGame.isOver(state.current));
       feedback(state.current, matchupGame.isOver(state.current));
+      const chime = chimes.current;
+      while (chime.next < chime.at.length && time >= chime.at[chime.next]!) {
+        playGemChime(chime.next);
+        chime.next += 1;
+      }
 
       const size = sizeCanvas();
       if (size) {
@@ -197,16 +212,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (tween && elapsed < swapDuration) {
             drawMatchupSwap(ctx, state.current, size, tween, elapsed);
           } else if (tween && !tween.rejected && time < animUntil.current + MATCHUP_SWAP_MS) {
-            matchupDrawAnimated(ctx, state.current, size, elapsed - MATCHUP_SWAP_MS);
+            drawMatchupArtAnimated(ctx, state.current, size, elapsed - MATCHUP_SWAP_MS);
           } else if (!tween && time < animUntil.current) {
-            matchupDrawAnimated(ctx, state.current, size, time - animStart.current);
+            drawMatchupArtAnimated(ctx, state.current, size, time - animStart.current);
           } else {
-            matchupGame.draw(ctx, state.current, size);
+            drawMatchupArt(ctx, state.current, size);
           }
           const pick = selected.current;
           if (pick && !matchupGame.isOver(state.current) && time >= animUntil.current &&
             (!tween || elapsed >= swapDuration)) {
-            matchupDrawSelection(ctx, size, pick.row, pick.col);
+            drawMatchupArtSelection(ctx, size, pick.row, pick.col);
           }
         }
       }
