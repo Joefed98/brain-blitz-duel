@@ -2,6 +2,7 @@
 import { writeFileSync } from "node:fs";
 import { generateProvenFlood, FLOOD_BANK_SIZE } from "../src/lib/duel/flood.server";
 import type { FloodPuzzleData } from "../src/lib/duel/types";
+import { proveFloodBank } from "./flood-par-proof";
 const bank: FloodPuzzleData[] = [];
 const seen = new Set<string>();
 while (bank.length < FLOOD_BANK_SIZE) {
@@ -14,3 +15,5 @@ while (bank.length < FLOOD_BANK_SIZE) {
 }
 writeFileSync(new URL("../src/lib/duel/floodBank.server.json", import.meta.url), JSON.stringify(bank));
 console.log(`Final bank: ${bank.length} distinct boards; par ${Math.min(...bank.map(p => p.par))}–${Math.max(...bank.map(p => p.par))}; no fallbacks.`);
+// Every rebuild ends with the full 400-board par proof.
+if (proveFloodBank(bank)) process.exit(1);
