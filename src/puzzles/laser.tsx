@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -10,6 +11,7 @@ import {
   decodeLaserAnswer,
   encodeLaserAnswer,
   flipMirror,
+  isSplitter,
   traceBeam,
   verifyLaser,
   type BeamTrace,
@@ -25,6 +27,7 @@ import {
   type BeamDir,
   type LaserPuzzleData,
   type MirrorPlacement,
+  type MirrorKind,
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
@@ -79,11 +82,11 @@ function DirectionalGem({ lit, from }: { lit: boolean; from?: BeamDir }) {
   );
 }
 
-function Splitter() {
+function Splitter({ kind = "S-" }: { kind?: MirrorKind }) {
   return (
     <svg viewBox="0 0 24 24" className="h-[90%] w-[90%]" aria-hidden="true">
-      <polygon points="12,1.5 22.5,12 12,22.5 1.5,12" fill="#11282B" stroke="#3DDCBE" strokeWidth="1.8" />
-      <path d="M12 18V12M12 12L7 7M12 12L17 7M7 7L5.5 5.5M17 7L18.5 5.5" fill="none" stroke="#3DDCBE" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <polygon points="12,1.5 22.5,12 12,22.5 1.5,12" fill="var(--card)" stroke="var(--opponent)" strokeWidth="1.8" />
+      <path transform={kind === "S|" ? "" : "rotate(90 12 12)"} d="M12 22V12M2 12H22M2 12L6 8M2 12L6 16M22 12L18 8M22 12L18 16" fill="none" stroke="var(--opponent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -191,6 +194,8 @@ function LaserBoard({
       >
         {Array.from({ length: cols * rows }, (_, cell) => {
           if (wall.has(cell)) return <div key={cell} className="rounded-md bg-foreground/75" />;
+          const piece = mirrorAt.get(cell);
+          if (piece && isSplitter(piece)) return <div key={cell} aria-label={`Splitter ${piece === "S|" ? "vertical" : "horizontal"} input`} className="flex items-center justify-center"><Splitter kind={piece} /></div>;
           if (splitters.includes(cell)) return <div key={cell} aria-label="Splitter" className="flex items-center justify-center"><Splitter /></div>;
           if (gemSet.has(cell)) {
             const directional = directionalGems.find((gem) => gem.cell === cell);
@@ -258,7 +263,7 @@ function LaserBoard({
                 }}
               />
             ) : null)}
-            {placed.map((mirror) => {
+            {placed.filter((piece) => !isSplitter(piece.kind)).map((mirror) => {
               const centre = at(mirror.cell);
               const reach = unit * 0.34;
               const forward = mirror.kind === "/";
@@ -297,37 +302,17 @@ function LaserBoard({
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
-  // A fixed splitter example: the beam enters cell 5 and branches up/down.
-  const gems = [1, 9];
-  const bombs = [14];
-  const solution: MirrorPlacement[] = [
-    { cell: 13, kind: "/" },
-  ];
-  const splitters = [5];
-  const directionalGems = [{ cell: 1, from: "U" as const }, { cell: 9, from: "D" as const }];
-  const trace = traceBeam(4, "R", solution, [], bombs, gems, splitters, directionalGems);
+  const gems = [5, 15, 25, 55, 75, 95];
+  const solution: MirrorPlacement[] = [{ cell: 45, kind: "S-" }];
+  const trace = traceBeam(40, "R", solution, [], [], gems);
   return (
-    <div className="flex flex-col items-center gap-4">
-      <p className="text-sm text-muted-foreground">
-        Place all the mirrors so one shot lights every gem - and never touches a bomb.
-      </p>
-      <div style={{ width: 132 }}>
-        <LaserBoard
-          cols={4}
-          cells={16}
-          source={4}
-          dir="R"
-          gems={gems}
-          bombs={bombs}
-          blocks={[]}
-          splitters={splitters}
-          directionalGems={directionalGems}
-          placed={solution}
-          beam={trace.paths}
-          litGems={trace.gemsLit}
-        />
+    <div className="flex flex-col items-center gap-2">
+      <p className="text-xs text-muted-foreground">Place the splitter to send one beam through all six gems.</p>
+      <div className="h-[140px] w-[140px]">
+        <LaserBoard source={40} dir="R" gems={gems} bombs={[]} blocks={[]}
+          placed={solution} beam={trace.paths} litGems={trace.gemsLit} />
       </div>
-      <p className="text-xs text-muted-foreground">Three shots. Fewer shots scores more.</p>
+      <p className="text-xs text-muted-foreground">Tap a placed piece to turn it. Three shots.</p>
     </div>
   );
 }
@@ -342,6 +327,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   const splitters = isLaser ? puzzle.splitters ?? [] : [];
   const directionalGems = isLaser ? puzzle.directionalGems ?? [] : [];
   const total = isLaser ? puzzle.mirrors : 0;
+  const splitterTotal = isLaser ? puzzle.splitterPieces ?? 0 : 0;
+  const [selected, setSelected] = useState<MirrorKind>("/");
 
   const [placed, setPlaced] = useStageState<MirrorPlacement[]>(stateKey, "mirrors", () => []);
   const [history, setHistory] = useStageState<number[]>(stateKey, "history", () => []);
@@ -357,7 +344,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   const placedRef = useRef(placed);
   placedRef.current = placed;
   const ghostRef = useRef<number | null>(null);
-  const dragRef = useRef<{ kind: "tray" | "move"; from: number | null } | null>(null);
+  const dragRef = useRef<{ kind: "tray" | "move"; from: number | null; piece?: MirrorKind } | null>(null);
   const busyRef = useRef(false);
   busyRef.current = Boolean(locked || submitted.current || shot);
 
@@ -444,14 +431,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       refuse();
       return;
     }
-    if (current.length >= total) {
+    const kind = drag.piece ?? selected;
+    if (current.filter((piece) => isSplitter(piece.kind) === isSplitter(kind)).length >= (isSplitter(kind) ? splitterTotal : total)) {
       refuse();
       return;
     }
     hapticTick();
-    setPlaced([...current, { cell: target, kind: "/" }]);
+    setPlaced([...current, { cell: target, kind }]);
     setHistory((order) => [...order.filter((cell) => cell !== target), target]);
-  }, [refuse, setHistory, setPlaced, taken, total]);
+  }, [refuse, setHistory, setPlaced, taken, total, splitterTotal, selected]);
 
   const trackDrag = useCallback(
     (clientX: number, clientY: number) => {
@@ -492,7 +480,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
 
   const fire = useCallback(() => {
     if (locked || submitted.current || firesLeft === 0 || shot) return;
-    const verdict = verifyLaser({ source, dir, gems, bombs, blocks, mirrors: total, splitters, directionalGems }, placed);
+    const verdict = verifyLaser({ source, dir, gems, bombs, blocks, mirrors: total, splitterPieces: splitterTotal, splitters, directionalGems }, placed);
     const attempt = fires + 1;
     setFires(attempt);
     clearTimers();
@@ -537,6 +525,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     bombs,
     blocks,
     total,
+    splitterTotal,
+    splitters,
+    directionalGems,
     placed,
     fires,
     setFires,
@@ -559,12 +550,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       refuse();
       return;
     }
-    if (placed.length >= total) {
+    if (placed.filter((piece) => isSplitter(piece.kind) === isSplitter(selected)).length >= (isSplitter(selected) ? splitterTotal : total)) {
       refuse();
       return;
     }
     hapticTick();
-    setPlaced([...placed, { cell, kind: "/" }]);
+    setPlaced([...placed, { cell, kind: selected }]);
     setHistory((order) => [...order.filter((placedCell) => placedCell !== cell), cell]);
   };
 
@@ -578,12 +569,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
 
   if (!isLaser) return null;
 
-  const trayLeft = Math.max(0, total - placed.length);
+  const mirrorsPlaced = placed.filter((piece) => !isSplitter(piece.kind)).length;
+  const splitterPlaced = placed.filter((piece) => isSplitter(piece.kind)).length;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        mirrors <span className="text-primary">{placed.length}</span> / {total}
+        mirrors <span className="text-primary">{mirrorsPlaced}</span> / {total}
+        {splitterTotal > 0 ? <> · splitter <span className="text-opponent">{splitterPlaced}</span> / {splitterTotal}</> : null}
       </p>
 
       <div className="flex min-h-0 flex-1 items-center justify-center">
@@ -607,57 +600,56 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       </div>
 
       <div className="flex shrink-0 items-center justify-center gap-2">
-        {Array.from({ length: total }, (_, index) => {
-          const used = index >= trayLeft;
+        {(["/", ...(splitterTotal > 0 ? ["S-"] : [])] as MirrorKind[]).map((kind) => {
+          const left = isSplitter(kind) ? splitterTotal - splitterPlaced : total - mirrorsPlaced;
           return (
-            <div
-              key={index}
-              aria-label={used ? "Mirror placed" : "Mirror in the tray"}
+            <Button key={kind} variant="outline" aria-label={isSplitter(kind) ? "Select splitter" : "Select mirror"}
+              aria-pressed={isSplitter(selected) === isSplitter(kind)} disabled={left <= 0 || busyRef.current}
+              onClick={() => setSelected(kind)}
               onPointerDown={(event) => {
-                if (used || busyRef.current) return;
-                event.preventDefault();
-                dragRef.current = { kind: "tray", from: null };
+                if (left <= 0 || busyRef.current) return;
+                event.preventDefault(); setSelected(kind);
+                dragRef.current = { kind: "tray", from: null, piece: kind };
                 trackDrag(event.clientX, event.clientY);
               }}
-              className={`flex h-11 w-11 items-center justify-center rounded-xl border ${
-                used ? "border-border/40 opacity-30" : "border-primary/60 bg-card"
-              }`}
-              style={{ touchAction: "none" }}
-            >
-              <span className="text-lg text-foreground">/</span>
-            </div>
+              className={`h-11 min-w-11 gap-2 px-2 ${isSplitter(selected) === isSplitter(kind) ? "border-primary" : ""}`}>
+              <span className="flex h-7 w-7 items-center justify-center">{isSplitter(kind) ? <Splitter kind={kind} /> : <span className="text-lg">/</span>}</span>
+              <span className="font-mono text-xs">{left}</span>
+            </Button>
           );
         })}
-        <button
+        <Button
           type="button"
           disabled={locked || solved || !placed.length || Boolean(shot)}
           onClick={() => {
             setPlaced([]);
             setHistory([]);
           }}
-          className="h-11 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+          variant="outline"
+          className="h-11 rounded-md border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset
-        </button>
+        </Button>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <button
+        <Button
           type="button"
           disabled={locked || solved || firesLeft === 0 || Boolean(shot)}
           onClick={fire}
-          className="h-12 flex-1 rounded-xl bg-primary font-mono text-sm uppercase tracking-widest text-primary-foreground disabled:opacity-40"
+          className="h-12 flex-1 rounded-md bg-primary font-mono text-sm uppercase tracking-widest text-primary-foreground disabled:opacity-40"
         >
           Fire
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           disabled={locked || solved || !history.length || Boolean(shot)}
           onClick={undo}
-          className="h-12 shrink-0 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+          variant="outline"
+          className="h-12 shrink-0 rounded-md border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Undo
-        </button>
+        </Button>
         <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
           Fires
           <br />
@@ -672,7 +664,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const isLaser = puzzle.type === "laser";
   if (!isLaser) return null;
   const solution = puzzle.solution ?? [];
-  const mine = decodeLaserAnswer(myAnswer ?? "", puzzle.mirrors);
+  const mine = decodeLaserAnswer(myAnswer ?? "", puzzle.mirrors + (puzzle.splitterPieces ?? 0));
   const solutionTrace = traceBeam(
     puzzle.source,
     puzzle.dir,
@@ -683,16 +675,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
     puzzle.splitters,
     puzzle.directionalGems,
   );
-  const myTrace = traceBeam(
-    puzzle.source,
-    puzzle.dir,
-    mine.mirrors,
-    puzzle.blocks,
-    puzzle.bombs,
-    puzzle.gems,
-    puzzle.splitters,
-    puzzle.directionalGems,
-  );
+  const myTrace = verifyLaser(puzzle, mine.mirrors, mine.fires).trace;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   const ordinal = mine.fires === 1 ? "1st" : mine.fires === 2 ? "2nd" : "3rd";
