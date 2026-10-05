@@ -256,7 +256,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
 
   return (
     <div
-      className={`relative flex min-h-0 flex-1 flex-col gap-1.5 rounded-xl transition-colors duration-500 ${
+      className={`relative flex min-h-0 flex-1 flex-col gap-1.5 rounded-xl pt-3 transition-colors duration-500 ${
         tier === 2 ? "bg-warn/10" : tier === 1 ? "bg-primary/10" : ""
       }`}
     >

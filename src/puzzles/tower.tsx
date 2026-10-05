@@ -202,7 +202,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        moves <span className="text-primary">{replay.moves}</span> · min {puzzle.minMoves}
+        moves <span className="text-primary">{replay.moves}</span>
       </p>
 
       <div className="flex min-h-0 flex-1 items-center justify-center">

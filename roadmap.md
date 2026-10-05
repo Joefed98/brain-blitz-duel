@@ -1,3 +1,8 @@
+## Six-game presentation tuning
+- [ ] Separate Chain code from timer, centre Rotating Rings, halve laser animation speed, shrink square Pipes tiles 5–8%, and hide Tower minimum until reveal.
+- [ ] Check tube counts before selecting the compact tube layout; retain five-ball clearance and thumb-sized pour targets.
+- [ ] Source audit all six at 390×700 and 375×667; no browser tests or scoring/grading/sim changes.
+
 ## Three number-game stage feedback
 - [x] Add one-second intermediate CORRECT holds to Balance, Equation Balancing and Number Pyramid; reserve gold slots above/below as requested, ignore input, leave final submission and scoring unchanged.
 - [x] Focused hold checks passed for all intermediate stages, stable deadlines through updates, immediate final advancement and cancellation on round lock. Conservative source budgets passed at 390×700 and 375×667 with safe areas, room score strip and wrapped equation; preview build OK, no browser tests. Device appearance remains user-tested.

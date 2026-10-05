@@ -500,7 +500,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
 
     const offsets = beamBranchOffsets(verdict.trace.paths);
     const lastStep = Math.max(0, ...verdict.trace.paths.map((path, index) => offsets[index]! + path.length - 1));
-    const per = Math.max(30, Math.round((LASER_BEAM_MS * 1.25) / Math.max(1, lastStep)));
+    const per = 2 * Math.max(30, Math.round((LASER_BEAM_MS * 1.25) / Math.max(1, lastStep)));
     for (let step = 1; step < lastStep; step++) {
       timers.current.push(
         window.setTimeout(

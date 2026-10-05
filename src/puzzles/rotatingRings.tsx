@@ -78,14 +78,15 @@ function Rings({
     <svg
       width={size}
       height={size}
+      viewBox={`0 0 ${size} ${size}`}
       className="shrink-0 touch-none"
       aria-label="Rotating Rings board"
       onPointerDown={(event) => {
         if (!onSelect) return;
         event.preventDefault();
         const box = event.currentTarget.getBoundingClientRect();
-        const x = event.clientX - box.left - centre;
-        const y = event.clientY - box.top - centre;
+         const x = (event.clientX - box.left) * size / box.width - centre;
+         const y = (event.clientY - box.top) * size / box.height - centre;
         const distance = Math.hypot(x, y);
         let ring: number | null = null;
         for (let candidate = 0; candidate < RINGS_COUNT; candidate += 1) {
@@ -251,7 +252,8 @@ function Stage({
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 pt-1">
       <div className="flex h-7 shrink-0 items-center justify-center overflow-hidden [&>*]:scale-90"><Legend pattern={data.pattern} /></div>
-      <div className="aspect-square min-h-0 w-full flex-1 [&>svg]:h-full [&>svg]:w-full" style={{ maxHeight: "calc(100dvh - 224px)" }}>
+      <div className="puzzle-square-space flex min-h-0 w-full flex-1 items-center justify-center">
+        <div className="puzzle-square-board aspect-square [&>svg]:h-full [&>svg]:w-full">
         <Rings
           segments={data.segments}
           offsets={replay.offsets}
@@ -259,6 +261,7 @@ function Stage({
           selectedRing={selectedRing}
           onSelect={setSelectedRing}
         />
+        </div>
       </div>
       <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         ring {selectedRing + 1} selected · turns{" "}

@@ -664,11 +664,18 @@ body.game-lock {
   overscroll-behavior: none;
 }
 
-.logic-square-area {
+.logic-square-area,
+.puzzle-square-space {
   container-type: size;
 }
-.logic-square-board {
+.logic-square-board,
+.puzzle-square-board {
   width: min(100cqw, 100cqh);
+  aspect-ratio: 1;
+  flex-shrink: 0;
+}
+.pipes-play-board {
+  width: min(93.5cqw, 93.5cqh);
   aspect-ratio: 1;
   flex-shrink: 0;
 }

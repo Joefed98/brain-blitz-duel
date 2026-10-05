@@ -200,13 +200,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         connected <span className="text-primary">{state.connected.size}</span> / {PIPES_CELLS}
       </p>
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+      <div className="puzzle-square-space flex min-h-0 flex-1 items-center justify-center">
+        <div className="pipes-play-board aspect-square">
         <PipesBoard
           tiles={tiles}
           source={source}
           connected={state.connected}
           onTap={locked ? undefined : rotate}
         />
+        </div>
       </div>
     </div>
   );
