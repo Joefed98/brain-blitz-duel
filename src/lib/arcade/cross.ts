@@ -62,12 +62,9 @@ export const CROSS_BLOCK_SPAN_FP = 14_336;
 export const CROSS_GAP_MIN_FP = 28_672;
 export const CROSS_GAP_SPAN_FP = 23_040;
 
-/** Par: six full crossings. */
-/** 4 per lane advanced, +4 per completed crossing (a full crossing = 40). */
-export const CROSS_LANE_POINTS = 4;
+/** 2 per lane advanced, +4 per completed crossing (a full crossing = 22). */
+export const CROSS_LANE_POINTS = 2;
 export const CROSS_CROSSING_POINTS = 4;
-/** Bonus for a crossing finished without being hit on any lane. */
-export const CROSS_CLEAN_POINTS = 8;
 export const CROSS_LIVES = 3;
 
 /** A move: a = 0 up, 1 down, 2 left, 3 right — each from a swipe. */
@@ -370,11 +367,14 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
   return next;
 }
 
+/** Bank completed crossings plus the furthest lane reached in the current one. */
+export function crossTotalLanes(state: Pick<CrossState, "crossings" | "reached">): number {
+  return state.crossings * CROSS_LANES + clampInt(state.reached, 0, CROSS_LANES);
+}
+
 function score(state: CrossState): number {
-  // Each lane is a ninth of a crossing, so progress counts in lanes.
-  const lanes = state.crossings * CROSS_LANES + clampInt(state.reached, 0, CROSS_LANES);
   return clampInt(
-    CROSS_LANE_POINTS * lanes + CROSS_CROSSING_POINTS * state.crossings + CROSS_CLEAN_POINTS * state.clean,
+    CROSS_LANE_POINTS * crossTotalLanes(state) + CROSS_CROSSING_POINTS * state.crossings,
     0,
     150,
   );

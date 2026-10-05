@@ -1,4 +1,6 @@
 import { MOVES_SHAPE } from "./scoring";
+import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
+import { BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import type { PuzzleType } from "./types";
 
 /**
@@ -104,10 +106,10 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   hover: arcadeOpen("each gap you fly through; all of them scores 150"),
   skyline: arcadeOpen("each block stacked, with extra for perfect drops"),
   bintoss: arcadeFinish("each basket, 10 a time", "Sink all ten"),
-  bullseye: "Points for every ring you hit, and the centre is worth the most. A perfect ten arrows scores 150.",
+  bullseye: `Rings are worth ${BULLSEYE_RING_VALUES.join(", ")} from the centre out. Your ring total earns one and a half points per point, up to 150. Missed or unfired arrows score nothing.`,
   matchup: arcadeOpen("every line you match; bigger lines score far more"),
   snake: arcadeOpen("each pellet you eat"),
-  cross: "Points for each lane you cross and each full crossing. A crossing without being hit earns extra.",
+  cross: `${CROSS_LANE_POINTS} points for each lane crossed, plus ${CROSS_CROSSING_POINTS} for each full crossing, up to 150. Being hit costs a life, not points.`,
   breaker: arcadeFinish("each brick destroyed", "Clear all 80"),
   rally: arcadeOpen("each gold-ball hit; the blue ball scores nothing"),
   slice: "Points for each disc you slice, and cutting three or more at once boosts your multiplier. Bomb: lose 10.",

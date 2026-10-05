@@ -577,7 +577,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "Three lives", detail: "a hit costs one and restarts you on the start lane of this crossing after a second." },
     ],
-    score: "4 per lane advanced, +4 per crossing, +8 more for a clean crossing with no hits, up to 150.",
+    score: "2 × total lanes crossed + 4 × crossings completed, up to 150. No clean-crossing bonus.",
   },
   dual: {
     goal: "Keep both runners alive.",

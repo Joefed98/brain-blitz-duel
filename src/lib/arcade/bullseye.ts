@@ -44,7 +44,7 @@ export const BULLSEYE_RINGS = 6;
 export const BULLSEYE_RING_STEP = BULLSEYE_OUTER_R / BULLSEYE_RINGS;
 
 /** Centre outwards. */
-export const BULLSEYE_RING_VALUES = [10, 9, 8, 7, 6, 5] as const;
+export const BULLSEYE_RING_VALUES = [10, 9, 8, 3, 2, 1] as const;
 export const BULLSEYE_RING_COLOURS = [
   "#F5B82E",
   "#FF4D4D",

@@ -27,6 +27,7 @@ import {
   BULLSEYE_CHECKPOINT_INTERVAL,
   BULLSEYE_OUTER_R,
   BULLSEYE_RING_COLOURS,
+  BULLSEYE_RING_VALUES,
   BULLSEYE_RING_STEP,
   BULLSEYE_RINGS,
   BULLSEYE_RUN_TICKS,
@@ -59,6 +60,21 @@ function IntroExample() {
             opacity={ring <= 2 ? 0.9 : 0.35}
             stroke="#0B0B0FB0"
           />
+        ))}
+        {BULLSEYE_RING_VALUES.map((value, index) => (
+          <text
+            key={value}
+            x="98"
+            y={46 - (index * 6 + 3)}
+            fill={value >= 8 && value < 10 ? "var(--foreground)" : "var(--background)"}
+            fontSize="5"
+            fontWeight="700"
+            fontFamily="monospace"
+            textAnchor="middle"
+            dominantBaseline="middle"
+          >
+            {value}
+          </text>
         ))}
         <g stroke={BULLSEYE_GOLD} strokeWidth="2">
           <line x1="52" y1="14" x2="28" y2="14" />
