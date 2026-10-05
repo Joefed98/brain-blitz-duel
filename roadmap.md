@@ -671,3 +671,7 @@
 - Validation: all eight requested games passed 200/200 full-state/checkpoint/score self-replays; 1,000 Hover/Bubble seed checks, 200 Matchup boards and focused hold/respawn/lives/retirement checks passed. Hover reaches 42 gates, final gate at 59.93 s; 45 generated pillars already cover the full run. No browser tests.
 - [x] Puzzle intro demos: player, Intro examples switch, touch recording + save (device check pending)
 - [x] Trail recordable (scaled cell lookup); retired games get no authored demos
+
+## Orbit, Matchup, Swing and Wavefront visual tuning (Oct 5)
+- [ ] Tune colours, paths, facets, ceiling-connected rock, silver armour and bounded beams in renderers only.
+- [ ] Check renderer output and protected-file changes without browser tests or identity proofs.
