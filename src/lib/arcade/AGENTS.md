@@ -15,3 +15,7 @@
 - Orbit's 30 s checkpoint grants one respawn and scores the furthest planet (best), not the current one; Tilt's chaser gate, padlock and crevice are chosen in buildMaze; Flip's warp is a seeded integer vertical offset that hazards share; Ink Bridge sliding buckets are verified with a still-bucket screen then a timed release; why: sim, drawing and server replay must agree.
 
 - Cross uses integer half-column positions in both play and passability search; why: shorter swipes must retain the same reachability proof.
+
+- ArcadeCanvasStage supports opt-in canvas-size rendering for Tilt; why: its circle must stay isotropic without changing other games or input coordinates.
+- Snip's horizontal camera is render-only and cut coordinates include its displayed offset; why: screen edges must not become physics walls or change server replay.
+- Slice records ordered path samples with explicit finger-down/up inputs and aggregates hits in the shared sim; why: curves and loops must qualify once and replay identically.
