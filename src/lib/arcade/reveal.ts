@@ -132,7 +132,7 @@ const BUILDERS: Record<string, Builder> = {
     outcome: "time",
   }),
   bubble: (r, s) => {
-    const start = n(r, "popped") + n(r, "dropped") + n(r, "bubblesLeft");
+    const start = n(r, "startCount");
     const pct = start > 0 ? Math.round((100 * (start - n(r, "bubblesLeft"))) / start) : 0;
     const done = b(r, "cleared");
     return {
