@@ -161,8 +161,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 
   if (!data) return null;
   const busy = locked || complete;
-  const fit = Math.min(space.w - 8, space.h - 40);
-  const cell = Math.max(48, Math.min(60, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
+  // Room for the count line above and the Undo / Reset row below.
+  const fit = Math.min(space.w - 8, space.h - 100);
+  const cell = Math.max(36, Math.min(60, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
 
   const refuse = (c: number) => {
     if (lastRefused.current === c) return;
@@ -226,11 +227,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     drawing.current = false;
   };
 
+  const undo = () => {
+    if (busy || path.length <= 1) return;
+    setPath(path.slice(0, -1));
+    lastRefused.current = null;
+    buzz(4);
+  };
+  const reset = () => {
+    if (busy || path.length <= 1) return;
+    setPath([startCell]);
+    lastRefused.current = null;
+    buzz(6);
+  };
+
   return (
     <div
       ref={box}
       data-play-area
-      className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 py-1 select-none"
+      className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 pt-1 select-none"
       style={NO_TOUCH}
     >
       <p className="font-mono text-sm text-muted-foreground">
@@ -246,6 +260,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         onPointerLeave={up}
       >
         <Grid size={TR_SIZE} givens={data.givens} path={path} cell={cell} shakeCell={shakeCell} />
+      </div>
+      <div className="flex shrink-0 gap-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>
+        <button
+          type="button"
+          disabled={busy || path.length <= 1}
+          onClick={undo}
+          className="h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+        >
+          Undo
+        </button>
+        <button
+          type="button"
+          disabled={busy || path.length <= 1}
+          onClick={reset}
+          className="h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+        >
+          Reset
+        </button>
       </div>
     </div>
   );

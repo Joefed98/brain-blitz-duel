@@ -846,8 +846,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Draw one path from 1 to 36 through every square.",
     how: [
       { action: "Drag from the end of the path", detail: "to any touching square — sideways, up, down or diagonal." },
-      { action: "Dark numbers are fixed", detail: "— the path must reach each one at exactly that step." },
-      { action: "Drag back along the path", detail: "to undo. Lift and carry on from the end." },
+      { action: "Ten dark numbers are fixed", detail: "— the path must reach each one at exactly that step. You fill the other 26." },
+      { action: "Undo removes your last square; Reset clears your path.", detail: "Dragging back along the path also undoes. Fixed numbers stay." },
     ],
     score: "Complete path = 130 + up to 20 for speed. Otherwise 5 per tile right from 1.",
   },
