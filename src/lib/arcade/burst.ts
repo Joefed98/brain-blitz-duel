@@ -47,10 +47,10 @@ const MAX_WAVES = 41;
 const HIT_POINTS = 2;
 const LIFE_COST = 9;
 const TOP_UP_WAVES = 4;
-const ICON_FALL = 2 * FP;
+const ICON_FALL = 3 * FP;
 const ICON_HALF = 8;
 const BURST_SHOTS = 3;
-const BURST_GAP = 8;
+const BURST_GAP = 16;
 const BURST_SPEED = 12 * FP;
 export const BURST_SHORT_LEN = 30;
 /** Popping an M ball drops a SHIELD icon one time in this many (seeded). */

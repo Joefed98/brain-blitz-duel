@@ -172,7 +172,8 @@ function rollCourse(rng: number, index: number): { rng: number; course: CrossCou
       const blockW = CROSS_BLOCK_MIN_FP + w.value;
       const gap = CROSS_GAP_MIN_FP + g.value;
       let speed = CROSS_SPEED_MIN_FP + s.value;
-      for (let step = 0; step < index; step++) speed = Math.trunc((speed * 11) / 10);
+      const cap = Math.min(index, 7);
+      for (let step = 0; step < cap; step++) speed = Math.trunc((speed * (step === 0 ? 11 : 13)) / 10);
       const period = blockW + gap;
       const p = rngBelow(state, period);
       state = p.state;
