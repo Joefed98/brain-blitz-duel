@@ -75,6 +75,12 @@
   --border: oklch(0.29 0.015 285);
   --arcade-frame: #3A3A44;
   --arcade-boundary: #5A5A66;
+  --bullseye-arrow: #101014;
+  --bullseye-arrow-outline: #F7F7F8;
+  --bullseye-wind-quiet: #F7F7F855;
+  --bullseye-bow: rgba(247, 247, 248, 0.65);
+  --matchup-cell: #101017;
+  --matchup-cell-alt: #15151C;
   --track-background: #0E1116;
   --track-cell: #12161C;
   --track-cell-alt: #151A21;

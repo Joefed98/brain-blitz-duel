@@ -1,3 +1,8 @@
+## Matchup and Bullseye renderer tuning
+- [x] Add 150ms accepted swap slides and 150ms-out/150ms-back rejected swaps; original cascade presentation and input gating unchanged, sim resolves on its original tick.
+- [x] Shared Bullseye arrow silhouette has near-black shaft/fletching/head with a thin light outline, in play and reveal/demo rendering; aim and wind/sway presentation unchanged.
+- [x] Focused mocked-canvas checks passed at both phone widths, easing endpoints/midpoints and dark outlined drawing verified; simulation files match their original fingerprints. Preview build OK; no browser tests or identity proofs, device appearance remains user-tested.
+
 ## Six-game presentation tuning
 - [x] Separate Chain code from timer with 12px top space, centre Rotating Rings in a container-sized square with scaled SVG coordinates, halve laser animation speed, shrink square Pipes tiles about 7%, and hide Tower minimum until reveal.
 - [x] Confirmed every seed has ten tubes; user chose two rows of five. Tubes are 88px tall, balls 11px, with 15px headroom above five balls and tap targets at least 68.6×88px at the requested phone widths.

@@ -33,6 +33,7 @@ import {
   type BullseyeState,
 } from "@/lib/arcade/bullseye";
 import { decodeBullseyeRun, encodeBullseyeRun, replayBullseyeRun } from "@/lib/duel/bullseye";
+import { drawBullseye } from "@/lib/arcade/bullseye.renderer";
 import { ARCADE_CRASH_FREEZE_MS, type BullseyePuzzleData } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -186,9 +187,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       const size = sizeCanvas();
       if (size) {
-        const context = canvas.current!.getContext("2d")!;
-        bullseyeGame.draw(context, state.current, size);
-        if (aim.current && state.current.flightTick === 0) {
+        const context = canvas.current?.getContext("2d");
+        if (context) drawBullseye(context, state.current, size);
+        if (context && aim.current && state.current.flightTick === 0) {
           // The dotted path and landing ring include the sway at the tick a
           // release would land on, so the player can time it.
           bullseyeDrawAim(
