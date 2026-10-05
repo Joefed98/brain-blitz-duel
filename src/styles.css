@@ -228,6 +228,29 @@ body.game-lock {
   }
 }
 
+/* The remaining board region sizes square grids by both available dimensions. */
+.word-confirmation-board-space {
+  container-type: size;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  justify-content: center;
+  align-items: flex-start;
+}
+.word-confirmation-board {
+  width: min(100%, 100cqh);
+  aspect-ratio: 1;
+}
+@keyframes accepted-word-fade {
+  0%, 100% { opacity: 0; }
+  12%, 80% { opacity: 1; }
+}
+.accepted-word-chip { animation: accepted-word-fade 700ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .accepted-word-chip { animation: none; }
+}
+
 @utility animate-tile-flash {
   animation: tile-flash 280ms ease-out;
 }

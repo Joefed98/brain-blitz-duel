@@ -14,6 +14,7 @@ import {
   TG_TIME_MS,
   tileGridConnected,
   tileGridRuns,
+  tileGridWordCells,
 } from "@/lib/duel/tileGrid";
 import type { TileGridPuzzleData } from "@/lib/duel/types";
 import { playLock, playWrong } from "@/lib/sound";
@@ -108,7 +109,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const pending = useRef(new Set<string>());
   const verify = useCallback(
     async (word: string): Promise<boolean> => {
-      if (word in verdicts) return verdicts[word]!;
+      const cached = verdicts[word];
+      if (cached !== undefined) return cached;
       if (!checkWord) return false;
       pending.current.add(word);
       const verdict = await checkWord(word, []).catch(() => ({ valid: false }));
@@ -131,11 +133,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     onSubmit(encoded);
   }, [now, phaseStartedAt, locked, data, encoded, onSubmit]);
 
-  const goodCells = useMemo(() => {
-    const out = new Set<number>();
-    for (const run of runs) if (verdicts[run.word] === true) run.cells.forEach((c) => out.add(c));
-    return out;
-  }, [runs, verdicts]);
+  const goodCells = useMemo(
+    () => tileGridWordCells(cells, (word) => verdicts[word] === true),
+    [cells, verdicts],
+  );
 
   if (!data) return null;
   const frozen = locked || submitted.current;
@@ -247,7 +248,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       </div>
       <div className="flex w-[318px] shrink-0 items-center gap-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          placed <span className="text-primary">{placedCount(cells)}</span> / {TG_TILES}
+          placed <span className="text-primary">{goodCells.size}</span> / {TG_TILES}
         </span>
         <Button
           type="button"
