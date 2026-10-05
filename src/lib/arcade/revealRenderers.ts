@@ -9,7 +9,7 @@ import type { PuzzleData } from "@/lib/duel/types";
 import { hoverGame } from "./hover";
 import { skylineGame } from "./skyline";
 import { binTossGame } from "./binToss";
-import { bullseyeGame } from "./bullseye";
+import { drawBullseye } from "./bullseye.renderer";
 import { matchupGame } from "./matchup";
 import { breakerGame } from "./breaker";
 import { rallyGame } from "./rally";
@@ -103,7 +103,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a)),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a)),
   bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a)),
-  bullseye: simple(GOLD, 390, 560, bullseyeGame, (p, a) =>
+  bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
     replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : []),
   ),
   matchup: simple(GOLD, 390, 560, matchupGame, (p, a) => replayMatchupRun(seedOf(p), a)),

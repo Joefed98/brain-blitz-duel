@@ -24,6 +24,7 @@ import {
   type MatchupState,
 } from "@/lib/arcade/matchup";
 import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
+import { drawMatchupSwap, MATCHUP_SWAP_MS, type MatchupSwapTween } from "@/lib/arcade/matchup.renderer";
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -81,6 +82,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const selected = useRef<{ row: number; col: number } | null>(null);
   const animStart = useRef(0);
   const animUntil = useRef(0);
+  const swapTween = useRef<MatchupSwapTween | null>(null);
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
@@ -116,6 +118,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     selected.current = null;
     animStart.current = 0;
     animUntil.current = 0;
+    swapTween.current = null;
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
@@ -162,6 +165,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             animStart.current = time;
             animUntil.current = time + duration;
           }
+          if (applied && (state.current.swaps > before.swaps ||
+            state.current.lastInvalidTick === state.current.tick)) {
+            swapTween.current = {
+              before, a: applied.a * 7 + applied.b, b: applied.c * 7 + applied.d,
+              rejected: state.current.swaps === before.swaps, startedAt: time,
+            };
+          }
           if (state.current.tick % MATCHUP_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(matchupCheckpoint(state.current));
           }
@@ -177,13 +187,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const node = canvas.current;
         const ctx = node?.getContext("2d");
         if (ctx) {
-          if (time < animUntil.current) {
+          const tween = swapTween.current;
+          const elapsed = tween ? time - tween.startedAt : 0;
+          const swapDuration = MATCHUP_SWAP_MS * (tween?.rejected ? 2 : 1);
+          if (tween && elapsed < swapDuration) {
+            drawMatchupSwap(ctx, state.current, size, tween, elapsed);
+          } else if (tween && !tween.rejected && time < animUntil.current + MATCHUP_SWAP_MS) {
+            matchupDrawAnimated(ctx, state.current, size, elapsed - MATCHUP_SWAP_MS);
+          } else if (!tween && time < animUntil.current) {
             matchupDrawAnimated(ctx, state.current, size, time - animStart.current);
           } else {
             matchupGame.draw(ctx, state.current, size);
           }
           const pick = selected.current;
-          if (pick && !matchupGame.isOver(state.current) && time >= animUntil.current) {
+          if (pick && !matchupGame.isOver(state.current) && time >= animUntil.current &&
+            (!tween || elapsed >= swapDuration)) {
             matchupDrawSelection(ctx, size, pick.row, pick.col);
           }
         }
