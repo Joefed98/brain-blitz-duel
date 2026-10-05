@@ -49,7 +49,13 @@ export function reflect(dir: BeamDir, kind: MirrorKind): BeamDir {
 }
 
 export function flipMirror(kind: MirrorKind): MirrorKind {
+  if (kind === "S|") return "S-";
+  if (kind === "S-") return "S|";
   return kind === "/" ? "\\" : "/";
+}
+
+export function isSplitter(kind: MirrorKind): boolean {
+  return kind === "S|" || kind === "S-";
 }
 
 export interface BeamTrace {
@@ -96,17 +102,22 @@ export function traceBeam(
   const queue: { cell: number; heading: BeamDir; path: number[] }[] = [{ cell: source, heading: dir, path: [source] }];
   const seen = new Set<string>();
   while (queue.length) {
-    const beam = queue.shift()!; let cell = beam.cell; let heading = beam.heading; const path = beam.path;
+    const beam = queue.shift(); if (!beam) break; let cell = beam.cell; let heading = beam.heading; const path = beam.path;
     for (let guard = 0; guard < LASER_CELLS * 4; guard++) {
       const key = `${cell}:${heading}`; if (seen.has(key)) break; seen.add(key);
-      const mirror = mirrorAt.get(cell); if (mirror && cell !== source) heading = reflect(heading, mirror);
+      const mirror = mirrorAt.get(cell); if (mirror && !isSplitter(mirror) && cell !== source) heading = reflect(heading, mirror);
       const next = laserStep(cell, heading); if (next === null || blocked.has(next)) break;
       cell = next; path.push(cell); cells.push(cell);
       if (bombAt.has(cell)) { hitBomb = true; break; }
       if (gemAt.has(cell) && !gemsLit.includes(cell) && (!required.has(cell) || required.get(cell) === heading)) gemsLit.push(cell);
-      if (splitterAt.has(cell)) {
-        const turns: BeamDir[] = heading === "U" || heading === "D" ? ["L", "R"] : ["U", "D"];
-        queue.push({ cell, heading: turns[1]!, path: [cell] }); heading = turns[0]!;
+      const piece = mirrorAt.get(cell);
+      if (splitterAt.has(cell) || (piece && isSplitter(piece))) {
+        const vertical = heading === "U" || heading === "D";
+        // A rotated splitter accepts only its marked input axis.
+        if (piece && isSplitter(piece) && ((piece === "S|") !== vertical)) break;
+        const first: BeamDir = vertical ? "L" : "U";
+        const second: BeamDir = vertical ? "R" : "D";
+        queue.push({ cell, heading: second, path: [cell] }); heading = first;
       }
     }
     paths.push(path);
@@ -133,7 +144,7 @@ export function decodeMirrors(raw: string, max: number): MirrorPlacement[] {
   for (const part of String(raw ?? "").split(",")) {
     const [rawCell, rawKind] = part.split(":");
     const cell = Number.parseInt(rawCell ?? "", 10);
-    const kind = rawKind === "/" ? "/" : rawKind === "\\" ? "\\" : null;
+    const kind: MirrorKind | null = rawKind === "/" || rawKind === "\\" || rawKind === "S|" || rawKind === "S-" ? rawKind : null;
     if (!Number.isInteger(cell) || cell < 0 || cell >= LASER_CELLS || !kind) continue;
     if (seen.has(cell)) continue;
     seen.add(cell);
@@ -153,7 +164,7 @@ export function decodeLaserAnswer(
   max: number,
 ): { mirrors: MirrorPlacement[]; fires: number } {
   const text = String(raw ?? "");
-  const bar = text.indexOf("|");
+  const bar = /^\d+\|/.test(text) ? text.indexOf("|") : -1;
   if (bar === -1) return { mirrors: decodeMirrors(text, max), fires: LASER_MAX_FIRES };
   const fires = Number.parseInt(text.slice(0, bar), 10);
   return {
@@ -189,12 +200,26 @@ export function verifyLaser(
     splitters?: number[];
     directionalGems?: { cell: number; from: BeamDir }[];
     mirrors: number;
+    splitterPieces?: number;
   },
   placements: MirrorPlacement[],
   fires = LASER_MAX_FIRES,
 ): LaserVerdict {
   const taken = new Set([...puzzle.blocks, ...puzzle.bombs, ...puzzle.gems, ...(puzzle.splitters ?? []), puzzle.source]);
-  const legal = placements.filter((mirror) => !taken.has(mirror.cell)).slice(0, puzzle.mirrors);
+  const legal: MirrorPlacement[] = [];
+  let mirrors = 0; let splitters = 0;
+  for (const piece of placements) {
+    if (!Number.isInteger(piece.cell) || piece.cell < 0 || piece.cell >= LASER_CELLS || taken.has(piece.cell)) continue;
+    if (!["/", "\\", "S|", "S-"].includes(piece.kind)) continue;
+    if (isSplitter(piece.kind)) {
+      if (splitters >= (puzzle.splitterPieces ?? 0)) continue;
+      splitters++;
+    } else {
+      if (mirrors >= puzzle.mirrors) continue;
+      mirrors++;
+    }
+    taken.add(piece.cell); legal.push(piece);
+  }
 
   const trace = traceBeam(
     puzzle.source,
@@ -210,7 +235,7 @@ export function verifyLaser(
   return {
     solved: trace.litAll,
     gemsLit: trace.gemsLit.length,
-    mirrorsPlaced: legal.length,
+    mirrorsPlaced: mirrors,
     fires: shot,
     trace,
   };

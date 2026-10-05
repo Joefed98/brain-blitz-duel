@@ -1269,10 +1269,10 @@ export interface PushPuzzleData {
 
 export const LASER_COLS = 10;
 export const LASER_CELLS = LASER_COLS * LASER_COLS;
-export const LASER_TIME_MS = 40_000;
-/** Always exactly nine mirrors, and the route always bends once per mirror. */
-export const LASER_MIN_MIRRORS = 9;
-export const LASER_MAX_MIRRORS = 9;
+export const LASER_TIME_MS = 60_000;
+/** Seven or eight mirrors, plus one movable splitter. */
+export const LASER_MIN_MIRRORS = 7;
+export const LASER_MAX_MIRRORS = 8;
 export const LASER_MIN_BLOCKS = 18;
 export const LASER_MAX_BLOCKS = 26;
 /** Six gems the beam must pass through, and three or four bombs it must miss. */
@@ -1291,9 +1291,9 @@ export const LASER_CENTRAL_TO = 7;
 /** A bomb must lie on this many different near-miss beams. */
 export const LASER_MIN_BOMB_CROSSINGS = 2;
 /** The beam route always turns at least this many times. */
-export const LASER_MIN_BENDS = 9;
+export const LASER_MIN_BENDS = 7;
 /** And never more: the route bends exactly once per mirror. */
-export const LASER_MAX_BENDS = 9;
+export const LASER_MAX_BENDS = 8;
 /** Three shots per round. */
 export const LASER_MAX_FIRES = 3;
 /** Base points by the shot that lit every gem: first, second, third. */
@@ -1308,8 +1308,8 @@ export const LASER_PROMISING_CAP = 20_000;
 export const LASER_BEAM_MS = 600;
 export const LASER_FADE_MS = 1_500;
 
-/** A diagonal mirror: "/" or "\". */
-export type MirrorKind = "/" | "\\";
+/** Diagonal mirrors and splitters with a vertical/horizontal input axis. */
+export type MirrorKind = "/" | "\\" | "S|" | "S-";
 
 /** Up, down, left, right — the direction a beam travels. */
 export type BeamDir = "U" | "D" | "L" | "R";
@@ -1326,14 +1326,15 @@ export interface LaserStats {
   bends: number;
   gems: number;
   bombs: number;
-  /** True when no placement of one to four mirrors lights all three gems. */
+  /** Every proper subset of the stored exact-piece solution fails. */
   necessityPass: boolean;
-  /** How many mirror placements the exhaustive search traced. */
+  /** How many proper subsets of the stored solution were traced. */
   subsetsTested: number;
   attempts: number;
   splitters?: number;
   directionalGems?: number;
   splitRequired?: boolean;
+  generationMs?: number;
 }
 
 export interface LaserPuzzleData {
@@ -1342,12 +1343,14 @@ export interface LaserPuzzleData {
   source: number;
   /** The direction it fires, inward from that edge. */
   dir: BeamDir;
-  /** The three gems one beam must pass through, in any order. */
+  /** The six gems the split beam must light. */
   gems: number[];
   /** Two gems only light when entered with this heading. */
   directionalGems?: { cell: number; from: BeamDir }[];
-  /** Fixed blocks that branch an incoming beam into both perpendicular headings. */
+  /** Legacy fixed splitters, retained only for previously stored rounds. */
   splitters?: number[];
+  /** Movable splitter pieces supplied in addition to the mirrors. */
+  splitterPieces?: number;
   /** Bombs: touching one ends the shot at once. */
   bombs: number[];
   /** Cells the beam cannot pass. */

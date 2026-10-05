@@ -40,6 +40,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
       console.error("[intro demo] read failed", error.message);
       return null;
     }
-    return (row as IntroDemoRow | null) ?? null;
+    const demo = (row as IntroDemoRow | null) ?? null;
+    // The fixed-splitter demo cannot replay the new movable-piece example.
+    if (data.type === "laser" && demo?.puzzle.type === "laser" && demo.puzzle.splitterPieces !== 1) return null;
+    return demo;
   });
 

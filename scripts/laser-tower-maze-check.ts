@@ -58,87 +58,8 @@ for (const dir of ["U", "D", "L", "R"] as const) {
   if (points.some((value) => !Number.isFinite(value) || value < 0 || value > 24)) fail(`directional gem ${dir} chevron leaves its cell`);
 }
 
-for (let index = 0; index < 20; index++) {
-  const puzzle = generateLaser();
-  const stats = puzzle.stats;
-  if (!stats) fail("laser shipped no generator stats");
-  if (!stats.necessityPass) fail("laser necessity proof did not pass");
-  if (stats.subsetsTested < 1000) fail("laser necessity proof barely tested anything");
-  if (stats.bends < LASER_MIN_BENDS || stats.bends > LASER_MAX_BENDS) {
-    fail(`laser bend count ${stats.bends}`);
-  }
-  if (stats.blocks !== puzzle.blocks.length) fail("laser stats block count disagrees");
-  if (puzzle.blocks.length < LASER_MIN_BLOCKS || puzzle.blocks.length > LASER_MAX_BLOCKS) {
-    fail(`laser block count ${puzzle.blocks.length}`);
-  }
-  if (puzzle.gems.length !== LASER_GEMS) fail(`laser gem count ${puzzle.gems.length}`);
-  if ((puzzle.splitters?.length ?? 0) < 1 || (puzzle.splitters?.length ?? 0) > 2) fail("laser splitter count");
-  if (puzzle.directionalGems?.length !== 2) fail("laser directional gem count");
-  const central = puzzle.blocks.filter((cell) => {
-    const row = Math.floor(cell / 10);
-    const col = cell % 10;
-    return row >= 2 && row <= 7 && col >= 2 && col <= 7;
-  }).length;
-  if (central < LASER_MIN_CENTRAL_BLOCKS) fail(`only ${central} blocks in the central 6x6`);
-  if (puzzle.bombs.length < LASER_MIN_BOMBS || puzzle.bombs.length > LASER_MAX_BOMBS) {
-    fail(`laser bomb count ${puzzle.bombs.length}`);
-  }
-  const solution = puzzle.solution ?? [];
-  if (solution.length !== LASER_MAX_MIRRORS) fail(`laser mirror count ${solution.length}`);
-  if (solution.length !== puzzle.mirrors) fail("tray does not match the solution");
-
-  const solved = traceBeam(
-    puzzle.source,
-    puzzle.dir,
-    solution,
-    puzzle.blocks,
-    puzzle.bombs,
-    puzzle.gems,
-    puzzle.splitters,
-    puzzle.directionalGems,
-  );
-  if (!solved.litAll || solved.hitBomb) fail("the branching solution does not light every gem safely");
-  const withoutSplitters = traceBeam(puzzle.source, puzzle.dir, solution, puzzle.blocks, puzzle.bombs, puzzle.gems, [], puzzle.directionalGems);
-  if (withoutSplitters.litAll) fail("laser solution does not require a split beam");
-  if (!solved.litAll) fail("stored placement does not light all four gems");
-  if (solved.hitBomb) fail("stored placement touches a bomb");
-
-  const empty = traceBeam(puzzle.source, puzzle.dir, [], puzzle.blocks, puzzle.bombs, puzzle.gems);
-  if (empty.gemsLit.length > 0) fail("a gem is lit straight from the source");
-
-  // The server's own verification agrees, through the wire format.
-  const round = decodeLaserAnswer(encodeLaserAnswer(solution, 1), puzzle.mirrors);
-  if (round.fires !== 1) fail("the shot number does not survive the wire format");
-  if (!verifyLaser(puzzle, round.mirrors, round.fires).solved) {
-    fail("verifyLaser rejects its own solution");
-  }
-  if (verifyLaser(puzzle, []).solved) fail("verifyLaser accepts an empty tray");
-
-  for (const mirror of solution) {
-    if (puzzle.blocks.includes(mirror.cell)) fail("a mirror sits on a block");
-    if (puzzle.bombs.includes(mirror.cell)) fail("a mirror sits on a bomb");
-    if (puzzle.gems.includes(mirror.cell)) fail("a mirror sits on a gem");
-    if (mirror.cell === puzzle.source) fail("mirror on the source");
-  }
-
-  // Every mirror must be needed: drop any one and the shot fails — this only
-  // proves the six placed mirrors are each necessary given the other five, not
-  // the exhaustive one-to-five-mirror proof, which lives in generateLaser's
-  // own necessityPass check above.
-  for (let drop = 0; drop < solution.length; drop++) {
-    const fewer = solution.filter((_, index) => index !== drop);
-    if (
-      traceBeam(puzzle.source, puzzle.dir, fewer, puzzle.blocks, puzzle.bombs, puzzle.gems).litAll
-    ) {
-      fail("every gem is reachable with one mirror fewer");
-    }
-  }
-  const orientations = new Set(solution.map((mirror) => mirror.kind));
-  if (orientations.size !== 2) fail("the solution uses only one mirror orientation");
-}
-console.log(
-  "Laser: 20 layouts — four gems, bombs, six necessary mirrors (proved against every 1-5 mirror placement), beam stops on the last gem",
-);
+// Laser's current exact-piece and timing proof is shared with the focused runner.
+import "./laser-check";
 
 /* -------------------------------- Tower ---------------------------------- */
 
