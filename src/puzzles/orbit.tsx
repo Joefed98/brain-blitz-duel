@@ -1,4 +1,7 @@
+import { useRef, useState } from "react";
+import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import {
+  orbitCanSetCheckpoint,
   orbitCheckpoint,
   orbitGame,
   ORBIT_BG,
@@ -6,6 +9,7 @@ import {
   ORBIT_COLOURS,
   ORBIT_GOLD,
   ORBIT_INPUT_TAP,
+  ORBIT_INPUT_CHECKPOINT,
   ORBIT_RED,
   ORBIT_WORLD_H,
   ORBIT_WORLD_W,
@@ -36,6 +40,8 @@ function IntroExample() {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: OrbitPuzzleData | null = puzzle.type === "orbit" ? puzzle : null;
+  const [canSet, setCanSet] = useState(true);
+  const availability = useRef(true);
   return (
     <ArcadeCanvasStage
       diagKey="orbit"
@@ -52,6 +58,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       encodeRun={encodeOrbitRun}
       discrete
       inputKind={ORBIT_INPUT_TAP}
+      tickInput={(state) => {
+        const next = orbitCanSetCheckpoint(state);
+        if (availability.current !== next) {
+          availability.current = next;
+          setCanSet(next);
+        }
+        return null;
+      }}
+      footer={(send) => (
+        <div className="flex h-12 shrink-0 items-center justify-center">
+          {canSet && !locked && (
+            <ArcadeControlButton
+              type="button"
+              aria-label="Set checkpoint"
+              className="h-11 px-5 text-xs font-bold before:content-['SET_CHECKPOINT']"
+              onPressStart={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })}
+            />
+          )}
+        </div>
+      )}
       pointer={(kind) => (kind === "down" ? { a: 0, b: 0, c: 0 } : null)}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}

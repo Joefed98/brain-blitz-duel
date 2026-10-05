@@ -779,13 +779,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "2 per ball popped or split, −9 per life lost. Clear four waves without losing a life for 150.",
   },
   orbit: {
-    goal: "Hop from planet to planet.",
+    goal: "Reach the sun, choosing one planet as your checkpoint.",
     how: [
       { action: "You orbit automatically.", detail: "Tap to let go - you fly straight until the next orbit catches you." },
-      { action: "Miss and you drift away.", detail: "Avoid the red arcs." },
+      { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Avoid red arcs." },
       { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops - never at the crossing." },
     ],
-    score: "3 per planet; reach the sun (planet 40) = 130 + up to 20 for time left. The planet you hold at 30 s is a checkpoint: one respawn there after a later crash.",
+    score: "3 per planet; reach the sun (planet 40) = 130 + up to 20 for time left.",
   },
   snip: {
     goal: "Feed the sweet to the mouth.",

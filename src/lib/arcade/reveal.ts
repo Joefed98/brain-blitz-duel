@@ -229,7 +229,7 @@ const BUILDERS: Record<string, Builder> = {
       axis: { value: n(r, "passed"), max: 40, label: "Planets" },
       lines: [head(done ? "Sun reached" : `${n(r, "passed")} / 40 planets`, s, done)],
       tiles: [
-        { label: "Checkpoint planet", value: String(n(r, "checkpoint")) },
+        { label: "Checkpoint planet", value: typeof r["checkpoint"] === "number" && n(r, "checkpoint") >= 0 ? String(n(r, "checkpoint")) : "none" },
         { label: "Captures", value: String(n(r, "captured")) },
       ],
       outcome: done ? "finish" : ended(r, false),
