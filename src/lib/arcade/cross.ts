@@ -51,6 +51,9 @@ export const CROSS_HOP_TICKS = 6;
 /** How many crossings are laid out at init; later crossings reuse the last. */
 export const CROSS_COURSES = 10;
 /** Each crossing runs 10% faster than the one before. */
+export const CROSS_SPEED_GROWTH_INITIAL = 11;
+export const CROSS_SPEED_GROWTH_LATE = 13;
+export const CROSS_SPEED_GROWTH_CAP = 7;
 export const CROSS_SPEED_MIN_FP = 96;
 export const CROSS_SPEED_SPAN_FP = 120;
 export const CROSS_BLOCK_MIN_FP = 16_384;
@@ -172,8 +175,8 @@ function rollCourse(rng: number, index: number): { rng: number; course: CrossCou
       const blockW = CROSS_BLOCK_MIN_FP + w.value;
       const gap = CROSS_GAP_MIN_FP + g.value;
       let speed = CROSS_SPEED_MIN_FP + s.value;
-      const cap = Math.min(index, 7);
-      for (let step = 0; step < cap; step++) speed = Math.trunc((speed * (step === 0 ? 11 : 13)) / 10);
+      const cap = Math.min(index, CROSS_SPEED_GROWTH_CAP);
+      for (let step = 0; step < cap; step++) speed = Math.trunc((speed * (step === 0 ? CROSS_SPEED_GROWTH_INITIAL : CROSS_SPEED_GROWTH_LATE)) / 10);
       const period = blockW + gap;
       const p = rngBelow(state, period);
       state = p.state;
