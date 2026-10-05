@@ -1,3 +1,4 @@
+import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordTap, tapAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -109,6 +110,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
+    const feedback = arcadeFeedback();
     // Dev-only tick-rate probe.
     let secondAt = last;
     let ticksThisSecond = 0;
@@ -150,9 +152,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       reportArcadeTick(state.current.tick, hoverGame.isOver(state.current));
+      feedback(state.current, hoverGame.isOver(state.current));
 
       const size = sizeCanvas();
-      if (size) hoverGame.draw(canvasContext()!, state.current, size);
+      const context = canvasContext();
+      if (size && context) hoverGame.draw(context, state.current, size);
 
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);

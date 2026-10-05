@@ -1,3 +1,4 @@
+import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState } from "react";
@@ -113,6 +114,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
+    const feedback = arcadeFeedback();
     let secondAt = last;
     let ticksThisSecond = 0;
 
@@ -154,9 +156,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       reportArcadeTick(state.current.tick, swerveGame.isOver(state.current));
+      feedback(state.current, swerveGame.isOver(state.current));
 
       const size = sizeCanvas();
-      if (size) swerveGame.draw(canvas.current!.getContext("2d")!, state.current, size);
+      const context = canvas.current?.getContext("2d");
+      if (size && context) swerveGame.draw(context, state.current, size);
 
       if (import.meta.env.DEV && time - secondAt >= 1000) {
         const rate = (ticksThisSecond * 1000) / (time - secondAt);

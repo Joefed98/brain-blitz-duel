@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { prefersReducedMotion } from "@/lib/motion";
+import { visualFx } from "@/lib/fx";
 
 /** Counts up quickly whenever the value changes. */
 export function AnimatedScore({ value, className }: { value: number; className?: string }) {
@@ -8,6 +10,8 @@ export function AnimatedScore({ value, className }: { value: number; className?:
   useEffect(() => {
     const from = fromRef.current;
     if (from === value) return;
+    if (value > from) visualFx("onRevealScore", value - from);
+    if (prefersReducedMotion()) { setDisplay(value); fromRef.current = value; return; }
     const duration = 450;
     const start = performance.now();
     let frame = 0;

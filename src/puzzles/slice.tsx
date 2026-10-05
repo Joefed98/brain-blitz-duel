@@ -29,6 +29,7 @@ import { decodeSliceRun, encodeSliceRun, replaySliceRun } from "@/lib/duel/slice
 import type { SlicePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playBlip, playWrong } from "@/lib/sound";
+import { arcadeFeedback } from "@/lib/fx/arcade";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -108,6 +109,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
+    const feedback = arcadeFeedback();
     let bombs = state.current.bombsHit;
     let slices = state.current.slices;
 
@@ -155,6 +157,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       reportArcadeTick(state.current.tick, sliceGame.isOver(state.current));
+      feedback(state.current, sliceGame.isOver(state.current));
 
       const size = sizeCanvas();
       const ctx = canvas.current?.getContext("2d");

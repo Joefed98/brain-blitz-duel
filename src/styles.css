@@ -50,6 +50,15 @@
   --color-ball-orange: var(--ball-orange);
   --color-ball-brown: var(--ball-brown);
   --color-ball-yellow: var(--ball-yellow);
+  --color-category-accent: var(--category-accent);
+  --color-category-word: var(--category-word);
+  --color-category-number: var(--category-number);
+  --color-category-speed: var(--category-speed);
+  --color-category-attention: var(--category-attention);
+  --color-category-pattern: var(--category-pattern);
+  --color-category-logic: var(--category-logic);
+  --color-category-arcade: var(--category-arcade);
+  --color-timer-gold: var(--timer-gold);
   --font-display: var(--font-display);
   --font-sans: var(--font-body);
   --font-mono: var(--font-mono);
@@ -57,11 +66,22 @@
 
 :root {
   --radius: 0.75rem;
-  --background: oklch(0.145 0.008 285);
+  --background: #0B0B0F;
   --foreground: oklch(0.97 0.005 285);
   --card: oklch(0.205 0.012 285);
   --card-foreground: oklch(0.97 0.005 285);
-  --primary: oklch(0.81 0.155 82);
+  --primary: #F5B82E;
+  --timer-gold: #FFD166;
+  --category-word: #4D8CFF;
+  --category-number: #3DDC84;
+  --category-speed: #FF8A3D;
+  --category-attention: #FF6BD6;
+  --category-pattern: #B26BFF;
+  --category-logic: #2ED3B7;
+  --category-arcade: #FF4D4D;
+  --category-accent: var(--category-logic);
+  --screen-mid: #15151D;
+  --screen-edge: #070709;
   --primary-foreground: oklch(0.16 0.02 82);
   --accepted-word-foreground: #FFFFFF;
   --secondary: oklch(0.26 0.014 285);
@@ -70,7 +90,7 @@
   --muted-foreground: oklch(0.68 0.015 285);
   --accent: oklch(0.26 0.014 285);
   --accent-foreground: oklch(0.97 0.005 285);
-  --destructive: oklch(0.68 0.21 25);
+  --destructive: #FF4D4D;
   --destructive-foreground: oklch(0.98 0.005 285);
   --border: oklch(0.29 0.015 285);
   --arcade-frame: #3A3A44;
@@ -96,8 +116,8 @@
   --track-error: #FF3B3B;
   --input: oklch(0.29 0.015 285);
   --ring: oklch(0.81 0.155 82);
-  --me: oklch(0.81 0.155 82);
-  --opponent: oklch(0.78 0.13 172);
+  --me: #F5B82E;
+  --opponent: #2ED3B7;
   --reaction-blue: oklch(0.68 0.16 245);
   --warn: oklch(0.68 0.21 25);
   --timer-green: oklch(0.72 0.17 145);
@@ -743,4 +763,47 @@ body.game-lock {
 .intro-demo {
   height: clamp(120px, 26svh, 210px);
   max-width: 100%;
+}
+
+/* Shared presentation foundation. All layers and effects are out of layout. */
+[data-category="word"] { --category-accent: var(--category-word); }
+[data-category="number"] { --category-accent: var(--category-number); }
+[data-category="speed"] { --category-accent: var(--category-speed); }
+[data-category="attention"] { --category-accent: var(--category-attention); }
+[data-category="pattern"], [data-category="memory"] { --category-accent: var(--category-pattern); }
+[data-category="logic"] { --category-accent: var(--category-logic); }
+[data-category="arcade"] { --category-accent: var(--category-arcade); }
+.screen-background { position: absolute; inset: 0; overflow: hidden; pointer-events: none; background: linear-gradient(155deg, var(--screen-mid), var(--background) 55%, var(--screen-edge)); }
+.screen-background::before { content: ""; position: absolute; inset: 0; opacity: 0.16; background-image: radial-gradient(var(--muted-foreground) 0.6px, transparent 0.6px); background-size: 24px 24px; }
+.screen-background::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 30%, color-mix(in srgb, var(--screen-edge) 65%, transparent)); }
+.screen-drift { position: absolute; inset: -6%; background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--category-accent) 7%, transparent), transparent 65%); animation: screen-drift 30s ease-in-out infinite alternate; }
+@keyframes screen-drift { from { transform: translate3d(-2%, 0, 0); } to { transform: translate3d(2%, 3%, 0); } }
+.game-screen :is([data-play-area], .puzzle-square-board, .logic-square-board, .pipes-play-board, .logic-nonogram-board) { box-shadow: 0 0 0 1px color-mix(in srgb, var(--category-accent) 24%, transparent), 0 0 8px color-mix(in srgb, var(--category-accent) 8%, transparent); }
+.fx-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 30; contain: layout paint; }
+.fx-particle { position: absolute; top: 12%; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: var(--category-accent); opacity: 0.75; }
+[data-particle-shape="square"] .fx-particle { border-radius: 0; }
+[data-particle-shape="diamond"] .fx-particle { border-radius: 0; rotate: 45deg; }
+.fx-danger { background: var(--destructive); }
+.fx-outline { top: 10%; left: calc(50% - 22px); width: 44px; height: 24px; background: transparent; border: 1px solid var(--category-accent); border-radius: 4px; }
+.fx-outline.fx-danger { border-color: var(--destructive); }
+.fx-score { position: absolute; top: 12%; left: 50%; color: var(--category-accent); font-size: 12px; font-weight: 700; }
+.timer-ring-track, .timer-ring-fill { fill: none; stroke-width: 2; }
+.timer-ring-track { stroke: var(--muted); }
+.timer-ring-fill { stroke: var(--category-accent); }
+.fx-timer-critical .timer-ring-fill { stroke: var(--destructive); }
+.fx-timer-critical > span { color: var(--destructive); }
+.fx-timer-pulse .fx-timer-ring, .fx-timer-pulse > span { animation: fx-timer-pulse 1s ease-in-out infinite; }
+@keyframes fx-timer-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 45% { opacity: 0.5; transform: scale(1.05); } }
+@keyframes fx-pop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+@keyframes fx-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+.animate-pop-in, .animate-tile-flash { animation: fx-pop 180ms ease-out; }
+.animate-shake { animation: fx-shake 250ms ease-out; }
+.category-header { border-bottom: 1px solid color-mix(in srgb, var(--category-accent) 35%, transparent); }
+.category-tag { color: var(--category-accent); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; }
+.round-instructions > div > p:first-child { color: var(--category-accent); }
+@media (prefers-reduced-motion: reduce) {
+  .screen-drift { animation: none; }
+  .fx-timer-pulse .fx-timer-ring, .fx-timer-pulse > span { animation: fx-fade 1s ease-in-out infinite !important; }
+  .animate-phase-in, .animate-rise-settle, .animate-pop-in, .animate-tile-flash, .animate-shake, .animate-stamp-in, .animate-tag-slam, .animate-word-scale-in, .animate-row-stagger, .animate-reaction-float { animation: fx-fade 160ms ease-out !important; }
+  @keyframes fx-fade { from { opacity: 0.65; } to { opacity: 1; } }
 }

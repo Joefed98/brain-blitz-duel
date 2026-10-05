@@ -6,7 +6,8 @@ import type { Standing } from "@/lib/duel/scoring";
 import type { PuzzleType, RoundResultRow } from "@/lib/duel/types";
 import { playerBreakdown } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
-import { playFanfare, playRoundWon, stopMusic } from "@/lib/sound";
+import { playVoice } from "@/lib/sound";
+import { fx } from "@/lib/fx";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { Dots } from "./Dots";
@@ -20,7 +21,8 @@ const PLINTH = [
 
 function Plinth({ standing, place }: { standing: Standing | undefined; place: number }) {
   if (!standing) return <div className="flex-1" />;
-  const style = PLINTH[place - 1]!;
+  const style = PLINTH[place - 1];
+  if (!style) return null;
   return (
     <div className="flex flex-1 flex-col items-center justify-end gap-2">
       <span className="max-w-full truncate font-display text-xs text-foreground">
@@ -68,12 +70,13 @@ export function Podium({
   useEffect(() => {
     if (cued.current) return;
     cued.current = true;
-    stopMusic(400);
+    fx.onPodium();
+    playVoice("gg");
     if (won) {
-      playFanfare();
+
       buzz([25, 50, 25]);
     } else {
-      playRoundWon();
+
     }
   }, [won]);
 

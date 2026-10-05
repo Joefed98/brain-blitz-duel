@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 import {
   DEFAULT_EFFECTS_VOLUME,
   DEFAULT_MUSIC_VOLUME,
   effectsVolume,
   isMuted,
+  isMusicMuted,
+  setMusicMuted,
   musicVolume,
   onSoundSettingsChange,
   setEffectsVolume,
@@ -20,12 +23,14 @@ export function MuteToggle() {
   const [open, setOpen] = useState(false);
   const [music, setMusic] = useState(DEFAULT_MUSIC_VOLUME);
   const [effects, setEffects] = useState(DEFAULT_EFFECTS_VOLUME);
+  const [musicMuted, setLocalMusicMuted] = useState(false);
   const timer = useRef<number | null>(null);
   const longPressed = useRef(false);
 
   useEffect(() => {
     const read = () => {
       setLocal(isMuted());
+      setLocalMusicMuted(isMusicMuted());
       setMusic(musicVolume());
       setEffects(effectsVolume());
     };
@@ -49,7 +54,7 @@ export function MuteToggle() {
 
   return (
     <>
-      <button
+      <Button variant="ghost" size="icon"
         type="button"
         aria-label={muted ? "Turn sound on" : "Turn sound off"}
         aria-pressed={muted}
@@ -84,7 +89,10 @@ export function MuteToggle() {
             </>
           )}
         </svg>
-      </button>
+      </Button>
+      <Button variant="ghost" size="icon" title="Music" aria-label={musicMuted ? "Turn music on" : "Turn music off"} aria-pressed={musicMuted} onClick={() => setMusicMuted(!musicMuted)} className="press h-9 w-9 shrink-0 text-muted-foreground">
+        <span aria-hidden="true">{musicMuted ? "♫̸" : "♫"}</span>
+      </Button>
 
       {open && (
         <div
@@ -133,13 +141,13 @@ export function MuteToggle() {
               />
             </label>
 
-            <button
+            <Button variant="outline"
               type="button"
               onClick={() => setOpen(false)}
               className="press tap-target mt-5 w-full rounded-xl border border-border font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
             >
               Done
-            </button>
+            </Button>
           </div>
         </div>
       )}

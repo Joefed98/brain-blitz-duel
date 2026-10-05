@@ -1,3 +1,4 @@
+import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -124,6 +125,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
+    const feedback = arcadeFeedback();
     let popped = state.current.popped;
 
     const finish = () => {
@@ -164,10 +166,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
 
       reportArcadeTick(state.current.tick, bubbleGame.isOver(state.current));
+      feedback(state.current, bubbleGame.isOver(state.current));
 
       const size = sizeCanvas();
-      if (size) {
-        const ctx = canvas.current!.getContext("2d")!;
+      const ctx = canvas.current?.getContext("2d");
+      if (size && ctx) {
         bubbleGame.draw(ctx, state.current, size);
         drawAim(ctx, size);
       }

@@ -35,7 +35,7 @@ import { DemoRecorder, type PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
 import { hasIntroDemo } from "@/components/duel/IntroDemo";
 import { INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playLock, playRoundStart, unlockAudio } from "@/lib/sound";
+import { playCorrect, playLock, unlockAudio } from "@/lib/sound";
 import type { SubmitMeta } from "@/puzzles/types";
 
 export const Route = createFileRoute("/practice")({
@@ -224,16 +224,6 @@ function PracticeScreen() {
     setStage("result");
   }, [stage, now, startedAt, puzzle]);
 
-  // The countdown sting lands its final hit on GO, exactly as a room does.
-  const stingCued = useRef(0);
-  useEffect(() => {
-    if (stage !== "intro") return;
-    if (stingCued.current === run) return;
-    if (now - startedAt < INTRO_MS - 1300) return;
-    stingCued.current = run;
-    playRoundStart();
-  }, [stage, now, startedAt, run]);
-
   // The practice card takes the place of the podium fanfare.
   const resultCued = useRef(0);
   useEffect(() => {
@@ -326,7 +316,7 @@ function PracticeScreen() {
 
   if (stage === "intro") {
     return (
-      <PhoneShell gameScreen>
+      <PhoneShell constrained gameScreen gameType={type}>
         <RoundIntro
           round={1}
           type={type}
@@ -349,7 +339,7 @@ function PracticeScreen() {
 
   if (stage === "reveal" && graded) {
     return (
-      <PhoneShell constrained gameScreen>
+      <PhoneShell constrained gameScreen gameType={type}>
         <AnswerReveal
           round={1}
           puzzle={graded.puzzle}
@@ -371,7 +361,7 @@ function PracticeScreen() {
   if (stage === "result" && graded) {
     const secondsUsed = Math.max(0, Math.round((timeLimitMs - graded.msRemaining) / 100) / 10);
     return (
-      <PhoneShell>
+      <PhoneShell gameType={type}>
         <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center animate-phase-in">
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
             {puzzleName(type)}
@@ -409,7 +399,7 @@ function PracticeScreen() {
   const StageComponent = puzzleDef(puzzle.type).Stage;
   const clockActive = clockStart !== null && now >= clockStart;
   return (
-    <PhoneShell constrained gameScreen>
+    <PhoneShell constrained gameScreen gameType={type}>
       <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">

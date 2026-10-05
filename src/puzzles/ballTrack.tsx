@@ -1,3 +1,4 @@
+import { arcadeFeedback } from "@/lib/fx/arcade";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -127,6 +128,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
+    const feedback = arcadeFeedback();
     let seenHome = 0;
     let seenBad = 0;
     let shuffled = 0;
@@ -170,6 +172,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         setHud({ home: s.home, wrong: s.wrong, left: BT_BALLS - s.next });
       }
       reportArcadeTick(s.tick, game.isOver(s));
+      feedback(s, game.isOver(s));
       const node = canvas.current;
       const box = board.current?.getBoundingClientRect();
       if (node && box && box.width > 1) {

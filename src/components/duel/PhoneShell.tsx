@@ -2,6 +2,9 @@ import { useEffect, type ReactNode } from "react";
 
 import { MuteToggle } from "./MuteToggle";
 import { Wordmark } from "./Wordmark";
+import { FxLayer } from "./FxLayer";
+import type { PuzzleType } from "@/lib/duel/types";
+import { puzzleDef } from "@/lib/duel/registry";
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -11,6 +14,7 @@ interface PhoneShellProps {
   constrained?: boolean;
   /** Suppress iOS selection/callouts throughout an active round screen. */
   gameScreen?: boolean;
+  gameType?: PuzzleType | undefined;
 }
 
 /** Inline no-select style for text on game screens (timer digits, HUD, banners). */
@@ -68,33 +72,19 @@ function useRootSelectionLock(active: boolean) {
 }
 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
-export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false }: PhoneShellProps) {
+export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
+  const theme = gameType ? puzzleDef(gameType).theme : undefined;
   return (
     <div
       className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""} ${
         constrained ? "no-overscroll h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
       }`}
+      data-category={theme?.accent}
+      data-particle-shape={theme?.particleShape ?? "disc"}
       style={gameScreen ? NO_SELECT_STYLE : undefined}
     >
-      {/* Depth: one soft warm glow top-centre, one cool glow bottom, faint grid. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(60% 40% at 50% -5%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%), radial-gradient(50% 35% at 50% 105%, color-mix(in oklab, var(--opponent) 10%, transparent), transparent 70%)",
-        }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.05]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)",
-          backgroundSize: "44px 44px",
-        }}
-      />
+      <div aria-hidden="true" className="screen-background"><div className="screen-drift" /></div>
       <div
         className={`relative flex min-h-0 w-full flex-col ${gameScreen ? "pad-game-safe" : "mx-auto max-w-[430px] pad-safe"} ${
           constrained ? "no-overscroll h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
@@ -103,11 +93,12 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
         {!bare && (
           <div className="mb-2 flex items-center justify-between" style={gameScreen ? NO_SELECT_STYLE : undefined}>
             <Wordmark />
-            <MuteToggle />
+            <div className="flex items-center"><MuteToggle /></div>
           </div>
         )}
         {children}
       </div>
+      <FxLayer theme={theme} />
     </div>
   );
 }
