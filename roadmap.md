@@ -1,3 +1,7 @@
+## Practice intro Back button (Oct 5)
+- [x] Add a compact outlined top-left Back button in the existing intro header, practice only; cancel and clear the run without grading.
+- [ ] Check cancellation and unchanged header height without browser tests.
+
 ## Matchup, Flip and Snip refinement (Oct 4)
 - [x] Black bomb with thin light-grey outline; deeper, more frequent shared-band Flip bends; larger Snip mouth and much wider walls.
 - [x] Matchup, Flip and Snip replay proofs passed 200/200 each; all 30 template/jitter swing envelopes clear widened walls, camera visibility and 75° Flip bend check passed; no browser tests.

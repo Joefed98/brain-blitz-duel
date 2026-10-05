@@ -2,6 +2,7 @@ import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/d
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
+import { Button } from "@/components/ui/button";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -21,6 +22,7 @@ interface RoundIntroProps {
   activeCount?: number;
   onReady?: () => void;
   practice?: boolean;
+  onBack?: () => void;
   /** This round's public puzzle, for puzzle-specific intro lines. */
   puzzle?: PuzzleData | null;
 }
@@ -36,6 +38,7 @@ export function RoundIntro({
   activeCount = 0,
   onReady,
   practice = false,
+  onBack,
   puzzle = null,
 }: RoundIntroProps) {
   const elapsed = Math.max(0, now - startedAt);
@@ -54,6 +57,11 @@ export function RoundIntro({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">
       <div className="flex items-start justify-between">
+        {practice && onBack ? (
+          <Button type="button" variant="outline" size="sm" onClick={onBack} className="press h-8 shrink-0 px-2.5">
+            ← Back
+          </Button>
+        ) : null}
         <div className="flex flex-col gap-0.5">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             {practice ? "Practice" : `Round ${round} of ${TOTAL_ROUNDS}`}

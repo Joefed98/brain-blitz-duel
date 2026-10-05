@@ -91,6 +91,7 @@ function PracticeScreen() {
   const [run, setRun] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const grading = useRef(false);
+  const introCancelled = useRef(false);
   const draftAnswer = useRef("");
   const now = useTicker(stage === "intro" || stage === "puzzle" || stage === "reveal");
   const stateKey = `practice-${run}`;
@@ -99,6 +100,7 @@ function PracticeScreen() {
 
   const load = useCallback(async (next: PuzzleType) => {
     unlockAudio();
+    introCancelled.current = false;
     grading.current = false;
     draftAnswer.current = "";
     setRun((count) => {
@@ -115,6 +117,20 @@ function PracticeScreen() {
     setStartedAt(Date.now());
     setStage("intro");
   }, []);
+
+  const cancelIntro = useCallback(() => {
+    introCancelled.current = true;
+    grading.current = true;
+    draftAnswer.current = "";
+    clearStageState(stateKey);
+    setPuzzle(null);
+    setType(null);
+    setSealed("");
+    setGraded(null);
+    setStartedAt(0);
+    setHelpOpen(false);
+    setStage("list");
+  }, [stateKey]);
 
   const prepMs = puzzlePrepMs(puzzle ?? undefined);
   const durationMs = puzzleDurationMs(puzzle ?? undefined);
@@ -161,7 +177,7 @@ function PracticeScreen() {
 
   // The intro runs for exactly as long as it does in a room.
   useEffect(() => {
-    if (stage !== "intro") return;
+    if (stage !== "intro" || introCancelled.current) return;
     if (now - startedAt < INTRO_MS) return;
     setStartedAt(Date.now());
     setStage("puzzle");
@@ -273,8 +289,10 @@ function PracticeScreen() {
           now={now}
           outcomes={[]}
           practice
+          onBack={cancelIntro}
           puzzle={puzzle}
           onReady={() => {
+            if (introCancelled.current) return;
             playLock();
             setStartedAt(Date.now());
             setStage("puzzle");
