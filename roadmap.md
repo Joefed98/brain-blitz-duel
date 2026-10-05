@@ -1,3 +1,7 @@
+## Eat and Grow blazing meteor
+- [ ] Restyle cached sprites as a rocky fire-wrapped head, orange/red flame cells and smoke-grey tail with bounded embers; preserve cell geometry, arena palette, stars, sounds and static reduced-motion fallback.
+- [ ] Verify cached drawing, colours, bounds and protected fingerprints without browser tests or identity proofs.
+
 ## Eat and Grow neon comet
 - [x] Replace square snake art with cached cell-centred comet beads, pixel-star pellets and bounded presentation-only sparks; preserve full-cell envelopes, sounds and reduced-motion behaviour. Bright inner beads taper to 75%; collision-sized outer beads never shrink.
 - [x] No-browser 300-segment/600-frame cache, cell bounds, pellet/death, 32-spark cap and reduced-motion checks passed; native canvas stills inspected, shared FX checks passed, all 297 protected fingerprints unchanged and preview build OK. Phone appearance and 60 fps remain user-tested; no browser tests or identity proofs.
