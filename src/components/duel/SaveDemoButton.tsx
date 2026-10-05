@@ -76,7 +76,8 @@ export function SaveDemoButton({
           setState("failed");
         }
       }}
-      className="press fixed bottom-3 left-1/2 z-[100] -translate-x-1/2 rounded-full border border-border bg-card px-3 py-1 font-mono text-[11px] uppercase tracking-widest text-foreground"
+      style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+      className="press fixed right-3 z-[100] rounded-full border border-border bg-card px-3 py-1 font-mono text-[11px] uppercase tracking-widest text-foreground"
     >
       {state === "saving" ? "Saving…" : state === "saved" ? "Saved ✓" : state === "failed" ? "Save failed" : "Save as intro demo"}
     </button>
