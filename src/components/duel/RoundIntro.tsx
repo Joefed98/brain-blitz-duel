@@ -8,7 +8,7 @@ import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
 import { PuzzleInstructions } from "./PuzzleInstructions";
 import { hasIntroDemo, IntroDemo } from "./IntroDemo";
-import { PuzzleIntroDemo } from "./PuzzleDemo";
+import { PuzzleIntroDemo, usePuzzleDemo } from "./PuzzleDemo";
 
 interface RoundIntroProps {
   round: number;
@@ -48,6 +48,8 @@ export function RoundIntro({
   const secondsLeft = Math.max(1, Math.ceil(remaining / 1000));
   const autoSeconds = Math.max(0, Math.ceil((remaining - INTRO_COUNTDOWN_MS) / 1000));
   const Example = puzzleDef(type).IntroExample;
+  const savedPuzzleDemo = usePuzzleDemo(type);
+  const puzzleDemo = hasIntroDemo(type) ? null : savedPuzzleDemo;
   const introLine = puzzle ? (puzzleDef(type).introLine?.(puzzle) ?? null) : null;
   // Arcade phases carry 3 s of invisible slack; show the run length only.
   const seconds = Math.round(
@@ -101,20 +103,15 @@ export function RoundIntro({
                   </div>
                 }
               />
+            ) : puzzleDemo ? (
+              <PuzzleInstructions type={type} beforeScore={<PuzzleIntroDemo demo={puzzleDemo} />} />
             ) : (
-              <PuzzleInstructions
-                type={type}
-                beforeScore={
-                  <PuzzleIntroDemo
-                    type={type}
-                    fallback={
-                      <div className="round-intro-example">
-                        <Example />
-                      </div>
-                    }
-                  />
-                }
-              />
+              <>
+                <PuzzleInstructions type={type} />
+                <div className="round-intro-example">
+                  <Example />
+                </div>
+              </>
             )}
             {introLine ? (
               <p className="font-mono text-sm font-bold uppercase tracking-widest text-primary">

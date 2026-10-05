@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -21,11 +21,8 @@ const TRAIL_MS = 220;
 const APPROACH_MS = 350;
 const BLOCKED = ["pointerdown", "pointermove", "pointerup", "click", "touchstart", "touchend", "mousedown", "mouseup", "keydown", "wheel"];
 
-/**
- * Intro slot for non-engine puzzles: the saved demo playing over the fixed
- * intro example, or the static example when no demo has been saved.
- */
-export function PuzzleIntroDemo({ type, fallback }: { type: PuzzleType; fallback: ReactNode }) {
+/** The saved puzzle demo for this type, or null (then the static example shows). */
+export function usePuzzleDemo(type: PuzzleType): { puzzle: PuzzleData; log: PuzzleDemoLog } | null {
   const fetchDemo = useServerFn(getIntroDemoFn);
   const { data: demo } = useQuery({
     queryKey: ["intro-demo", type],
@@ -33,10 +30,15 @@ export function PuzzleIntroDemo({ type, fallback }: { type: PuzzleType; fallback
     staleTime: 5 * 60_000,
   });
   const log = demo?.input_log;
-  if (!demo || demo.puzzle?.type !== type || !isPuzzleDemoLog(log)) return <>{fallback}</>;
+  if (!demo || demo.puzzle?.type !== type || !isPuzzleDemoLog(log)) return null;
+  return { puzzle: demo.puzzle, log };
+}
+
+/** Intro slot for non-engine puzzles: the saved demo over the fixed intro example. */
+export function PuzzleIntroDemo({ demo }: { demo: { puzzle: PuzzleData; log: PuzzleDemoLog } }) {
   return (
     <div className="flex justify-center">
-      <PuzzleDemoPlayer puzzle={demo.puzzle} log={log} />
+      <PuzzleDemoPlayer puzzle={demo.puzzle} log={demo.log} />
     </div>
   );
 }
