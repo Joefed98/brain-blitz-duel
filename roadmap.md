@@ -1,8 +1,8 @@
 ## Matchup, Swing and Flip visual refinement (Oct 5)
-- [ ] Restore white Matchup specials, outline bomb and add per-colour standard-gem flecks.
-- [ ] Clip Swing stalactites at the arena top boundary.
-- [ ] Replace Flip robot with gravity-boot figure; add bounded lava pools/death sink and warmer mineral-streaked rock.
-- [ ] Exercise renderer-only checks; no browser tests or identity proofs.
+- [x] Restore white Matchup specials, outline bomb and add six stable own-colour flecks per standard gem.
+- [x] Clip Swing stalactites at the arena top boundary, including negative ceiling heights.
+- [x] Replace Flip robot with gravity-boot figure; add exact-gap-span exterior lava pools, 420ms presentation-only death sink and warmer mineral-streaked rock.
+- [x] Mock-canvas gem/pool/sink checks, 13 three-game smoke frames, 72 Flip frames and shared FX checks passed; protected source fingerprints unchanged and preview build OK. No browser tests or identity proofs; device appearance remains user-tested.
 
 ## Shared visual and audio foundation
 - [x] Shared category themes/tokens, layered backgrounds and bounded reduced-motion effects; 94 registry themes, no individual overrides yet.
