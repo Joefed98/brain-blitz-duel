@@ -240,7 +240,10 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
     ctx.strokeStyle = sun ? ORBIT_GOLD : planetLook(p, i, 0).colour;
     ctx.lineWidth = i === state.cur ? 2 : 1;
     ctx.globalAlpha = i === state.cur ? 0.75 : 0.3;
-    tracePath(ctx, p, p.x / FP, p.y / FP - cam, 0, 65536, 72);
+    // Omit the hazard interval entirely: the rocket still follows the full sim path.
+    const from = p.hazard >= 0 ? (p.hazard + HAZARD_SPAN) & 65535 : 0;
+    const span = p.hazard >= 0 ? 65536 - HAZARD_SPAN : 65536;
+    tracePath(ctx, p, p.x / FP, p.y / FP - cam, from, span, 72);
     ctx.stroke();
   }
   ctx.setLineDash([]);
@@ -271,20 +274,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
-    if (p.hazard >= 0) {
-      // Hazard arc on the exact path, with a hot glow.
-      ctx.strokeStyle = ORBIT_RED;
-      ctx.lineCap = "round";
-      ctx.globalAlpha = 0.3;
-      ctx.lineWidth = 9;
-      tracePath(ctx, p, px, py, p.hazard, HAZARD_SPAN, 16);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.lineWidth = 4;
-      tracePath(ctx, p, px, py, p.hazard, HAZARD_SPAN, 16);
-      ctx.stroke();
-      ctx.lineCap = "butt";
-    }
+    // Hazard path intervals deliberately remain invisible, without a red overlay/glow.
   }
 
   // Release guide, faintly, for a moment after the tap.

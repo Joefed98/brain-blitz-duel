@@ -45,7 +45,8 @@ import {
 /** Neon brick shades by hits left: lighter = fewer hits. */
 const BRICK_NEON = ["#9FE8FF", "#3DA8FF", "#1F5FD6"] as const;
 const PADDLE = "#FFD84A";
-const LASER = "#FF4DE1";
+const LASER = "#B4FF9A";
+const powerColour = (power: number): string => power === BRK_POWER_LASER ? LASER : BRK_POWER_COLOURS[power] ?? PADDLE;
 const BURST_MS = 320;
 
 const memo = new WeakMap<CanvasRenderingContext2D, { tick: number; bricks: number[]; deaths: { index: number; at: number }[] }>();
@@ -64,7 +65,7 @@ function brickXY(index: number) {
 
 function brickColour(state: BrkState, index: number, left: number): string {
   const power = (state.gold[index] ?? 0) - 1;
-  if (power >= 0) return BRK_POWER_COLOURS[power] ?? PADDLE;
+  if (power >= 0) return powerColour(power);
   return BRICK_NEON[Math.max(0, left - 1)] ?? BRICK_NEON[0];
 }
 
@@ -132,7 +133,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   }
 
   for (const capsule of state.capsules) {
-    const colour = BRK_POWER_COLOURS[capsule.kind] ?? PADDLE;
+    const colour = powerColour(capsule.kind);
     const cx = px(capsule.x);
     const cy = px(capsule.y);
     pixelRect(ctx, cx - BRK_CAPSULE_W / 2, cy - BRK_CAPSULE_H / 2, BRK_CAPSULE_W, BRK_CAPSULE_H, colour, bloom);
@@ -165,7 +166,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
       BRK_WORLD_W / 2,
       BRK_PADDLE_Y + BRK_PADDLE_H + 14,
       9,
-      laser ? BRK_POWER_COLOURS[2] : BRK_POWER_COLOURS[1],
+      laser ? LASER : powerColour(BRK_POWER_SPAM),
       "center",
     );
   }

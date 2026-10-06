@@ -2,7 +2,7 @@
 import type { CanvasSize } from './engine';
 import { inkBridgeGame, inkBucketX, inkBudget, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
-import { COUNTRY_SKY as SKY, COUNTRY_GRASS as GRASS, countryCloud as cloud, countryStamp, drawCountryside } from './countryside.renderer';
+import { COUNTRY_SKY as SKY, COUNTRY_GRASS as GRASS, countryCloud as cloud, countryStamp, drawCountryside, drawCountryGround } from './countryside.renderer';
 
 /* Private geometry mirrors: 7px coin, 4px rim caps, 6px stroke. */
 const FP = 256, BALL_R = 7, RIM_R = 4, STROKE_W = 6;
@@ -92,6 +92,8 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
   c.save();c.fillStyle=SKY;c.fillRect(0,0,size.width,size.height);
   c.translate((size.width-INK_WORLD_W*scale)/2,(size.height-INK_WORLD_H*scale)/2);c.scale(scale,scale);
   drawCountryside(c);
+  // Background only, below the pot opening and every level block; touchable art paints above it.
+  drawCountryGround(c,lvl.bucketY+INK_BUCKET_H,inkBucketX(lvl,state.tick));
   countryStamp(c,'cloud',48,26,lvl.spoutX-24,19,cloud);
   for(const b of lvl.blocks) {
     // Fully fill all 4px of every hazard, never an inset silhouette.
@@ -123,7 +125,7 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
 /** Fixed intro art shares the same sprites; no gameplay inputs or demo log changes. */
 export function drawInkRainbowExample(c:CanvasRenderingContext2D):void {
   c.fillStyle=SKY;c.fillRect(0,0,168,130);
-  c.fillStyle=GRASS;c.beginPath();c.moveTo(0,127);c.quadraticCurveTo(90,113,168,127);c.lineTo(168,130);c.lineTo(0,130);c.fill();
+  c.fillStyle=GRASS;c.beginPath();c.moveTo(0,130);c.quadraticCurveTo(90,130,118,122);c.lineTo(150,122);c.lineTo(168,127);c.lineTo(168,130);c.lineTo(0,130);c.fill();
   c.save();c.translate(30,0);c.scale(0.75,0.75);countryStamp(c,'cloud',48,26,0,0,cloud);c.restore();
   stamp(c,'coin',14,14,41,16,coin);
   c.fillStyle=RED;c.fillRect(30,58,40,3);

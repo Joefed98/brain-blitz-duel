@@ -1,3 +1,8 @@
+## Five renderer-only updates (Oct 6, 15:40)
+- [x] Slice meat/cabbage/onion and matching cut faces/particles; gold segmented combo-state readout using unchanged streak/expiry, start empty x1 and reveal next empty segment through x3.
+- [x] Ink Bridge foreground hill meets stationary pot base below touchable blocks; Orbit hazard intervals omitted from path and red overlay; Breaker light-green beam, laser brick/capsule/held tint.
+- [x] Native drawing checks pass: 15 combo cases, four exact-sized foods/cut faces, ten hill/pot/block checks and Orbit/Breaker drawings. All 507 non-renderer source files byte-identical; preview build OK. No browsers or identity proofs. Device appearance awaits user testing.
+
 ## Snip orchard and shared countryside (Oct 6, 15:34)
 - [x] Extracted unchanged Ink Bridge backdrop/clouds; cached orchard apple/basket/gold leaf/canopy/stone walls/fence rails, exact existing geometry/camera and non-sea sounds. Ink Bridge gameplay objects unchanged.
 - [x] Nine exact native PNG parity checks, circular sprite bounds, full platform rectangles and zero warm-frame allocations pass. Level-10 DPR-2 draw median 0.061–0.068ms, p95 0.114–0.193ms; Snip now has shared accepted-key FPS/frame/p95/Draw/work readout. All 507 protected source files unchanged; preview build OK. No browsers or identity proof.

@@ -40,6 +40,15 @@ export function countryClock(): number {
   if(typeof window==='undefined'||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return 0;
   return performance.now()/1000;
 }
+/** Supporting foreground hill; its flat crest meets the unmoved pot's base. */
+export function drawCountryGround(c: CanvasRenderingContext2D, base: number, x: number): void {
+  c.fillStyle = COUNTRY_GRASS;
+  c.beginPath(); c.moveTo(0,base+12);
+  c.quadraticCurveTo(Math.max(0,x-80),base+12,x-32,base);
+  c.lineTo(x+32,base);
+  c.quadraticCurveTo(Math.min(390,x+80),base+12,390,base+12);
+  c.lineTo(390,620);c.lineTo(0,620);c.closePath();c.fill();
+}
 /** In a 390×620 reference frame; camera parallax is opt-in, Ink Bridge is unchanged. */
 export function drawCountryside(c: CanvasRenderingContext2D, camera = 0): void {
   countryStamp(c,'background',390,620,0,0,countryBackdrop);

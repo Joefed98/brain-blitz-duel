@@ -1,8 +1,8 @@
 /** Slice Kitchen art only. World transform, collision radii and state are authoritative. */
 import type { CanvasSize } from './engine';
 import { TICKS_PER_SECOND } from './engine';
-import { sliceFrenzyOn, sliceGame, sliceMultiplier, sliceObjectAt, sliceSlowOn, sliceSuppressed,
-  SLICE_COMBO_FLASH_TICKS, SLICE_FLASH_TICKS, SLICE_HALVES_TICKS, SLICE_HUD_H, SLICE_R,
+import { sliceFrenzyOn, sliceGame, sliceObjectAt, sliceSlowOn, sliceSuppressed,
+  SLICE_COMBO_TICKS, SLICE_COMBO_FLASH_TICKS, SLICE_FLASH_TICKS, SLICE_HALVES_TICKS, SLICE_HUD_H, SLICE_R,
   SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_NONE, SLICE_SPECIAL_R, SLICE_SPECIAL_SLOW,
   SLICE_WORLD_H, SLICE_WORLD_W, SLICE_RAINBOW, SLICE_SILVER, type SliceState } from './slice';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
@@ -12,11 +12,12 @@ import { FX_PARTICLE_LIMIT } from '../fx/limits';
 // Kitchen palette belongs to the renderer, never to the simulation's colour table.
 const K = { ink:'#232721', board:'#AC784B', grain:'#855936', edge:'#70492F', tile:'#DCE9E7',
   grout:'#A5BFBA', counter:'#648985', white:'#FFF9EB', gold:'#F5C542', silver:SLICE_SILVER,
-  bagel:'#F4BF61', loaf:'#E8A42B', cucumber:'#087F43', tomato:'#F52C35', flesh:'#FFF0BE',
+  bagel:'#F4BF61', cabbage:'#56B63B', onion:'#EAF3D8', meat:'#925237', tomato:'#F52C35', flesh:'#FFF0BE',
+  cabbageLight:'#B7E47C', cabbageDark:'#287C35', onionGreen:'#76AB58', onionFace:'#F9FBEA', meatFace:'#CB8067', fat:'#F5DCC2',
   seeds:'#FFE18E', leaf:'#275C27', mustard:'#FFDC24', chilli:'#ED202F', glow:'rgba(255,38,45,0.45)' };
-export const SLICE_FOODS = ['bagel','loaf','cucumber','tomato'] as const;
+export const SLICE_FOODS = ['bagel','cabbage','onion','meat'] as const;
 type Food = typeof SLICE_FOODS[number];
-const colours: Record<Food,string> = {bagel:K.bagel,loaf:K.loaf,cucumber:K.cucumber,tomato:K.tomato};
+const colours: Record<Food,string> = {bagel:K.bagel,cabbage:K.cabbage,onion:K.onion,meat:K.meat};
 const foodOf = (colour:number):Food => SLICE_FOODS[colour % SLICE_FOODS.length] ?? 'bagel';
 const cache = new Map<string,ArtCanvas>();
 function sprite(key:string,size:number,paint:(c:CanvasRenderingContext2D,s:number)=>void):ArtCanvas|null {
@@ -36,22 +37,31 @@ function paintFood(kind:Food,cut=false) {
     const r=size/2;c.translate(r,r);
     circle(c,0,0,r,K.ink);circle(c,0,0,r*.94,colours[kind]);
     if(cut) {
-      circle(c,0,0,r*.80,kind==='tomato' ? '#FF7870':kind==='cucumber' ? '#BAEC74':K.flesh);
-      if(kind==='tomato'||kind==='cucumber') {
-        for(let i=0;i<8;i++) { const a=i*Math.PI/4;c.fillStyle=K.seeds;c.beginPath();
-          c.ellipse(Math.cos(a)*r*.47,Math.sin(a)*r*.47,r*.1,r*.055,a,0,Math.PI*2);c.fill(); }
-      } else if(kind==='loaf') {
-        for(let i=0;i<9;i++) circle(c,Math.sin(i*2.7)*r*.55,Math.cos(i*1.8)*r*.55,r*.045,K.loaf);
+      circle(c,0,0,r*.80,kind==='meat'?K.meatFace:kind==='cabbage'?K.cabbageLight:kind==='onion'?K.onionFace:K.flesh);
+      if(kind==='onion') {
+        c.strokeStyle=K.onionGreen;c.lineWidth=r*.045;
+        for(const rr of [.22,.43,.64,.79]) {c.beginPath();c.arc(0,0,r*rr,0,Math.PI*2);c.stroke();}
+      } else if(kind==='cabbage') {
+        c.strokeStyle=K.cabbageDark;c.lineWidth=r*.055;
+        for(let i=0;i<7;i++){const a=i*Math.PI*2/7;c.save();c.rotate(a);c.beginPath();c.moveTo(0,r*.72);c.bezierCurveTo(-r*.65,r*.35,r*.55,-r*.2,0,-r*.72);c.stroke();c.restore();}
+        circle(c,0,r*.55,r*.16,K.flesh);
+      } else if(kind==='meat') {
+        c.strokeStyle=K.fat;c.lineWidth=r*.07;c.lineCap='round';
+        for(const y of [-.38,.05,.42]){c.beginPath();c.moveTo(-r*.63,r*y);c.bezierCurveTo(-r*.2,r*(y-.18),r*.2,r*(y+.23),r*.62,r*y);c.stroke();}
+        circle(c,r*.22,-r*.12,r*.19,K.fat);circle(c,r*.22,-r*.12,r*.08,K.meatFace);
       }
-    } else if(kind==='loaf') {
-      c.strokeStyle=K.flesh;c.lineWidth=r*.11;c.lineCap='round';
-      for(const y of [-.4,0,.4]) {c.beginPath();c.moveTo(-r*.44,r*(y+.12));c.lineTo(r*.44,r*(y-.12));c.stroke();}
-    } else if(kind==='cucumber') {
-      c.strokeStyle='#42D46A';c.lineWidth=r*.07;
-      for(const x of [-.42,0,.42]) {c.beginPath();c.moveTo(r*x,-r*.69);c.quadraticCurveTo(r*(x+.13),0,r*x,r*.69);c.stroke();}
-    } else if(kind==='tomato') {
-      c.fillStyle=K.leaf;c.beginPath();
-      for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=r*(i%2?.12:.43);const x=Math.cos(a)*rr,y=-r*.42+Math.sin(a)*rr;if(i===0)c.moveTo(x,y);else c.lineTo(x,y);}c.closePath();c.fill();
+    } else if(kind==='cabbage') {
+      c.strokeStyle=K.cabbageDark;c.lineWidth=r*.09;
+      for(let i=0;i<5;i++){const a=i*Math.PI*2/5;c.save();c.rotate(a);c.beginPath();c.ellipse(0,-r*.22,r*.38,r*.61,.3,0,Math.PI*2);c.stroke();c.restore();}
+      c.strokeStyle=K.cabbageLight;c.lineWidth=r*.06;c.beginPath();c.moveTo(0,r*.75);c.quadraticCurveTo(-r*.22,0,r*.1,-r*.65);c.stroke();
+    } else if(kind==='onion') {
+      c.strokeStyle=K.onionGreen;c.lineWidth=r*.075;
+      for(const x of [-.5,-.22,.22,.5]) {c.beginPath();c.moveTo(0,-r*.8);c.quadraticCurveTo(r*x*1.7,0,0,r*.8);c.stroke();}
+      c.fillStyle=K.onionGreen;c.beginPath();c.moveTo(-r*.14,-r*.7);c.lineTo(0,-r*.91);c.lineTo(r*.14,-r*.7);c.closePath();c.fill();
+    } else if(kind==='meat') {
+      c.strokeStyle=K.fat;c.lineWidth=r*.12;c.beginPath();c.arc(0,0,r*.76,-.8,2.8);c.stroke();
+      c.strokeStyle=K.ink;c.lineWidth=r*.075;c.lineCap='round';
+      for(const y of [-.4,0,.4]) {c.beginPath();c.moveTo(-r*.43,r*(y+.12));c.lineTo(r*.43,r*(y-.12));c.stroke();}
     }
     if(kind==='bagel') {
       // Transparent hole reads as a ring on the chopping board and on the cut face.
@@ -147,7 +157,7 @@ export function drawSliceArt(ctx:CanvasRenderingContext2D,state:SliceState,size:
         if(face)ctx.drawImage(face as CanvasImageSource,-r,-r,2*r,2*r);ctx.restore();
       }
       if(!still&&!o.bomb&&o.special===SLICE_SPECIAL_NONE)for(let p=0;p<6&&particles<FX_PARTICLE_LIMIT;p++,particles++){
-        const a=p*Math.PI/3+i*.7,d=age*(1.1+p%3);circle(ctx,cx+Math.cos(a)*d,at.y/256+Math.sin(a)*d+age*age/30,kind==='loaf'||kind==='bagel'?1.3:1.8,colours[kind]);
+        const a=p*Math.PI/3+i*.7,d=age*(1.1+p%3);circle(ctx,cx+Math.cos(a)*d,at.y/256+Math.sin(a)*d+age*age/30,kind==='bagel'?1.3:1.8,colours[kind]);
       }
       ctx.globalAlpha=1;continue;
     }
@@ -169,14 +179,7 @@ export function drawSliceArt(ctx:CanvasRenderingContext2D,state:SliceState,size:
   ctx.lineCap='round';for(const e of memo.trail){const [x1,y1,x2,y2]=e.seg;ctx.globalAlpha=.65*(1-(now-e.at)/110);ctx.strokeStyle=K.silver;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
   ctx.globalAlpha=1;if(state.swipe){const[x1,y1,x2,y2]=state.swipe;ctx.strokeStyle=K.silver;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.strokeStyle=K.white;ctx.lineWidth=.8;ctx.stroke();}
   if(state.flash>0){ctx.fillStyle=`rgba(224,80,60,${state.flash/SLICE_FLASH_TICKS*.45})`;ctx.fillRect(0,0,SLICE_WORLD_W,SLICE_WORLD_H);}
-  // Keep the existing gauge and HUD locations; stainless steel replaces nautical brass.
-  const mult=sliceMultiplier(state.streak),gx=38,gy=SLICE_HUD_H+34;
-  ctx.fillStyle=K.silver;ctx.beginPath();ctx.arc(gx,gy,24,Math.PI,0);ctx.closePath();ctx.fill();
-  ctx.fillStyle=K.ink;ctx.beginPath();ctx.arc(gx,gy,20,Math.PI,0);ctx.closePath();ctx.fill();
-  ctx.strokeStyle=K.white;ctx.lineWidth=3;for(let i=1;i<=3;i++){const a=Math.PI+(i-1)/2*Math.PI;ctx.beginPath();ctx.moveTo(gx+Math.cos(a)*15,gy+Math.sin(a)*15);ctx.lineTo(gx+Math.cos(a)*19,gy+Math.sin(a)*19);ctx.stroke();}
-  const a=Math.PI+(mult-1)/2*Math.PI;ctx.strokeStyle=K.gold;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx+Math.cos(a)*17,gy+Math.sin(a)*17);ctx.stroke();
-  ctx.fillStyle=K.ink;ctx.font="bold 13px 'JetBrains Mono', monospace";ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(`×${mult}`,gx,gy+3);
-  if(state.comboLive){ctx.font="11px 'JetBrains Mono', monospace";ctx.fillText(`${Math.ceil(Math.max(0,state.comboUntil-state.tick)/TICKS_PER_SECOND)}s`,gx,gy+18);}
+  drawSliceComboMeter(ctx,state);
   ctx.fillStyle='rgba(220,233,231,0.88)';ctx.fillRect(20,8,SLICE_WORLD_W-70,30);
   ctx.fillStyle=K.ink;ctx.font='bold 20px ui-monospace, monospace';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillText(`Sliced ${state.slices}`,14,SLICE_HUD_H/2);ctx.textAlign='center';
   if(sliceFrenzyOn(state,state.tick))ctx.fillText('FRENZY',SLICE_WORLD_W/2,SLICE_HUD_H/2);else if(sliceSlowOn(state,state.tick))ctx.fillText('SLOW',SLICE_WORLD_W/2,SLICE_HUD_H/2);
@@ -186,12 +189,29 @@ export function drawSliceArt(ctx:CanvasRenderingContext2D,state:SliceState,size:
 }
 export const sliceArtGame={...sliceGame,draw:drawSliceArt};
 
+/** Qualifying-combo progress only: labels do not replace the sim's scoring multiplier. */
+export function drawSliceComboMeter(ctx:CanvasRenderingContext2D,state:SliceState):void {
+  const left=Math.max(0,state.comboUntil-state.tick);
+  const filled=state.comboLive&&left>0?Math.max(0,Math.min(3,state.streak)):0;
+  const shown=Math.min(3,filled+1),remaining=Math.min(1,left/SLICE_COMBO_TICKS);
+  const x0=14,y=SLICE_HUD_H+14,w=30,h=14,gap=4;
+  ctx.save();ctx.lineWidth=1.5;ctx.strokeStyle=K.gold;
+  ctx.font="bold 13px 'JetBrains Mono', monospace";ctx.textAlign='center';ctx.textBaseline='top';
+  for(let i=0;i<shown;i++){
+    const x=x0+i*(w+gap),amount=Math.max(0,Math.min(1,filled*remaining-i));
+    if(amount>0){ctx.fillStyle=K.gold;ctx.fillRect(x+1,y+1,(w-2)*amount,h-2);}
+    ctx.strokeRect(x,y,w,h);ctx.fillStyle=K.ink;ctx.fillText(`x${i+1}`,x+w/2,y+h+4);
+  }
+  if(filled>0){ctx.font="11px 'JetBrains Mono', monospace";ctx.fillText(`${Math.ceil(left/TICKS_PER_SECOND)}s`,x0+(shown*(w+gap)-gap)/2,y+h+21);}
+  ctx.restore();
+}
+
 /** Fixed worked example uses the same cached food painters; never creates gameplay state. */
 export function drawSliceKitchenExample(ctx:CanvasRenderingContext2D):void {
   ctx.save();ctx.fillStyle=K.board;ctx.fillRect(0,0,168,120);
   ctx.strokeStyle=K.grain;ctx.lineWidth=.5;
   for(let y=8;y<120;y+=12){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(168,y+2);ctx.stroke();}
-  for(const [kind,x,y] of [['bagel',44,70],['loaf',84,50],['tomato',124,72]] as const){
+  for(const [kind,x,y] of [['bagel',44,70],['cabbage',84,50],['meat',124,72]] as const){
     const s=sprite(kind,26,paintFood(kind));if(s)ctx.drawImage(s as CanvasImageSource,x-13,y-13,26,26);
   }
   ctx.strokeStyle=K.silver;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(24,92);ctx.lineTo(146,40);ctx.stroke();ctx.restore();
