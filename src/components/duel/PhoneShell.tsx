@@ -7,6 +7,7 @@ import type { PuzzleType } from "@/lib/duel/types";
 import { puzzleDef } from "@/lib/duel/registry";
 import { usePuzzleSurfaces } from "@/components/puzzles/usePuzzleSurfaces";
 import { GameLayoutDevOverlay } from "./GameLayoutDevOverlay";
+import { GameColumnLayout } from "@/components/puzzles/gameColumn";
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -57,7 +58,7 @@ export function GameLayout({ label, title, help, progress, timer, beforeGame, ch
       {beforeGame}
       <div ref={stageRef} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <div data-game-stage className={`game-column flex min-h-0 flex-1 flex-col ${locked ? "pointer-events-none opacity-30 transition-opacity duration-200" : ""}`}>
-          {children}
+          <GameColumnLayout.Provider value>{children}</GameColumnLayout.Provider>
         </div>
         {overlay}
       </div>

@@ -1,3 +1,4 @@
+import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -58,6 +59,7 @@ function Beam({
   const tilt = balanceTilt(scale, placement);
   const balanced = scaleSolved(scale, placement);
   const disc = Math.min(40, spacing - 2);
+  const column = useGameColumnLayout();
   const width = spacing * BAL_PEGS + PEG_GAP * (BAL_PEGS - 1);
   const onPeg = new Map<number, { w: number; fixed: boolean; tray?: number }>();
   scale.fixed.forEach((f) => onPeg.set(f.peg, { w: f.w, fixed: true }));
@@ -250,33 +252,69 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           ))}
         </div>, progressTarget,
       )}
-      <div className="relative min-h-0 w-full flex-1">
-        <div className="absolute left-1/2" style={{ top: "calc(50% - 50px)", transform: "translate(-50%, -42px)" }}>
-          <StageCorrect visible={holding} />
-          <Beam
-            scale={scale}
-            placement={placement}
-            spacing={spacing}
-            selected={selected}
-            showControls
-            onWeightTap={tapWeight}
-            onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
-          />
-        </div>
-        <p className="absolute inset-x-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" style={{ bottom: 108 }}>
-          scale {current + 1} / {BAL_SCALES}
-        </p>
-        <div className="absolute inset-x-0 flex min-h-[48px] flex-wrap justify-center gap-3" style={{ bottom: 56 }}>
-          {trayLeft.map((i) => (
-            <span
-              key={i}
-              onClick={() => tapWeight(i)}
-              className={selected === i ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}
-            >
-              <Disc value={scale.tray[i]!} fixed={false} size={44} />
-            </span>
-          ))}
-        </div>
+      {column ? (
+        <>
+          {/* Column layout: beam arena, then the scale counter and tray in flow 12px below. */}
+          <div data-game-arena="balance" className="relative min-h-[140px] w-full">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <StageCorrect visible={holding} />
+              <Beam
+                scale={scale}
+                placement={placement}
+                spacing={spacing}
+                selected={selected}
+                showControls
+                onWeightTap={tapWeight}
+                onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
+              />
+            </div>
+          </div>
+          <div data-game-controls="tray" className="flex w-full shrink-0 flex-col items-center gap-3">
+            <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              scale {current + 1} / {BAL_SCALES}
+            </p>
+            <div className="flex min-h-[48px] w-full flex-wrap justify-center gap-3">
+              {trayLeft.map((i) => (
+                <span
+                  key={i}
+                  onClick={() => tapWeight(i)}
+                  className={selected === i ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}
+                >
+                  <Disc value={scale.tray[i]!} fixed={false} size={44} />
+                </span>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="relative min-h-0 w-full flex-1">
+          <div className="absolute left-1/2" style={{ top: "calc(50% - 50px)", transform: "translate(-50%, -42px)" }}>
+            <StageCorrect visible={holding} />
+            <Beam
+              scale={scale}
+              placement={placement}
+              spacing={spacing}
+              selected={selected}
+              showControls
+              onWeightTap={tapWeight}
+              onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
+            />
+          </div>
+          <p className="absolute inset-x-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" style={{ bottom: 108 }}>
+            scale {current + 1} / {BAL_SCALES}
+          </p>
+          <div className="absolute inset-x-0 flex min-h-[48px] flex-wrap justify-center gap-3" style={{ bottom: 56 }}>
+            {trayLeft.map((i) => (
+              <span
+                key={i}
+                onClick={() => tapWeight(i)}
+                className={selected === i ? "rounded-full ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}
+              >
+                <Disc value={scale.tray[i]!} fixed={false} size={44} />
+              </span>
+            ))}
+          </div>
+      )}
       </div>
     </div>
   );
