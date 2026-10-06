@@ -52,7 +52,7 @@ function Tubes({
 }) {
   const ballSize = compact ? 9 : 11;
   return (
-    <div className={`grid w-full grid-cols-5 grid-rows-2 justify-center gap-2 ${compact ? "h-full place-items-end" : "tubes-play-board shrink-0 place-items-center"}`}>
+    <div className={`grid w-full grid-cols-5 grid-rows-2 justify-center ${compact ? "gap-2 h-full place-items-end" : "gap-3 px-2 tubes-play-board shrink-0 place-items-center"}`}>
       {tubes.map((tube, index) => {
         const isLifted = lifted === index;
         const group = topGroup(tube);
@@ -180,7 +180,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
         <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} />
       </div>
 
-      <div className="flex shrink-0 justify-center gap-2">
+      <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
         <button
           type="button"
           disabled={locked || !moves.length}
@@ -204,9 +204,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
           Reset
         </button>
       </div>
-      <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        Tap a tube to lift its top balls, then tap where to pour
-      </p>
     </div>
   );
 }

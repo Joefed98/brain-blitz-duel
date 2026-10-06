@@ -262,7 +262,7 @@ function Stage({
           {replay.aligned} / {RINGS_SEGMENTS}
         </span>
       </p>
-      <div className="grid h-[52px] w-full shrink-0 grid-cols-2 gap-2">
+      <div data-game-controls="actions" className="grid h-[52px] w-full shrink-0 grid-cols-2 gap-3 px-2">
         <Button
           type="button"
           variant="outline"

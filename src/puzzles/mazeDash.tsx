@@ -247,7 +247,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
         <MazeBoard cells={cells} start={start} exit={exit} path={path} onCell={touch} />
       </div>
 
-       <div className="flex shrink-0 flex-col items-center justify-center gap-1">
+       <div className="flex shrink-0 flex-col items-center justify-center">
         <ArrowPad
           onPress={step}
           disabled={locked || solved}
@@ -255,9 +255,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
           expanded
         />
       </div>
-      <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        Tap or hold an arrow · or draw with your finger · go back to undo
-      </p>
     </div>
   );
 }

@@ -198,7 +198,7 @@ function Stage({
       <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         moves <span className="text-primary">{replay.moves}</span>
       </p>
-      <div className="flex shrink-0 gap-2">
+      <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">
         <button
           type="button"
           onPointerDown={() => log(TILES_UNDO)}

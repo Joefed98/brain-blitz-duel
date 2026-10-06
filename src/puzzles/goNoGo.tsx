@@ -149,9 +149,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         ) : null}
       </button>
 
-      <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        Tap gold circles only
-      </p>
     </div>
   );
 }

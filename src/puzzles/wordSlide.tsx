@@ -235,7 +235,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         Moves <span className="text-primary">{replay.moves}</span>
       </p>
-      <div className="flex shrink-0 gap-2">
+      <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">
         <Button
           type="button"
           disabled={frozen || !canUndo}

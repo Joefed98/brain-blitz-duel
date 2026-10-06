@@ -291,7 +291,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       >
         <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} shakeCell={shakeCell} endCell={trDragPath(data.givens, path).at(-1)} />
       </div>
-      <div className="flex shrink-0 gap-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>
+      <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>
         <Button variant="outline"
           type="button"
           disabled={busy || slots.every((c, i) => c < 0 || data.givens.includes(i + 1))}

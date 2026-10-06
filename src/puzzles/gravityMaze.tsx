@@ -195,15 +195,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
         ) : null}
       </div>
 
-      <div className="flex shrink-0 flex-col items-center gap-1">
+      <div className="flex shrink-0 flex-col items-center gap-3">
         <ArrowPad onPress={press} disabled={locked || replay.solved} />
-        <div className="flex gap-2">
+        <div data-game-controls="actions" className="flex gap-3 px-2">
           <Button
             type="button"
             variant="outline"
             disabled={locked || !tilts.length}
             onClick={() => setTilts((current) => [...current, "X"])}
-            className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
+            className="h-11 min-w-11 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
           >
             Undo
           </Button>
@@ -212,7 +212,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
             variant="outline"
             disabled={locked || !tilts.length}
             onClick={() => setTilts((current) => [...current, "Y"])}
-            className="h-10 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
+            className="h-11 min-w-11 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
           >
             Reset
           </Button>
