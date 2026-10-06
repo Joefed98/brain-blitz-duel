@@ -26,6 +26,7 @@ function centroid(polygon: Point[]): Point {
   return { x: x / (3 * area), y: y / (3 * area) };
 }
 type GlyphBox = { x: number; y: number; width: number; height: number };
+export const WORDSMITH_GLYPH_REDUCTION = .7;
 /** Maximum upright glyph scale inside every polygon edge, with a 1% board margin. */
 export function wordsmithGlyphScale(polygon: Point[], label: Point, box: GlyphBox): number {
   let scale = Infinity;
@@ -49,7 +50,8 @@ export function WordsmithRing({ letters, selected = [], disabled = true, onTap }
 }) {
   const host = useRef<HTMLDivElement>(null);
   const probes = useRef<(SVGTextElement | null)[]>([]);
-  const [metrics, setMetrics] = useState<{ boxes: GlyphBox[]; size: number }>({ boxes: [], size: 25 });
+  const lightProbes = useRef<(SVGTextElement | null)[]>([]);
+  const [metrics, setMetrics] = useState<{ boxes: GlyphBox[]; size: number }>({ boxes: [], size: 25 * WORDSMITH_GLYPH_REDUCTION });
   const outer = letters.map((_, index) => index).filter(index => index !== WORDSMITH_CENTRE_INDEX);
   const segments = letters.map((_, index) => {
     if (index === WORDSMITH_CENTRE_INDEX) return { polygon: inner, label: { x: 50, y: 50 } };
@@ -66,16 +68,18 @@ export function WordsmithRing({ letters, selected = [], disabled = true, onTap }
       if (!active) return;
       const width = element.getBoundingClientRect().width;
       if (!width) return;
-      const boxes = probes.current.map(probe => {
+      const readBox = (probe: SVGTextElement | null) => {
         const box = probe?.getBBox();
         return box && box.width > 0 ? { x: box.x, y: box.y, width: box.width, height: box.height } : { x: 0, y: -75, width: 75, height: 75 };
-      });
+      };
+      const boxes = probes.current.map(readBox);
       let scale = (element.closest('.wordsmith-ring-example') ? 192 : 312) / width;
       segments.forEach(({ polygon, label }, i) => {
         const box = boxes[i];
         if (box) scale = Math.min(scale, wordsmithGlyphScale(polygon, label, box));
       });
-      setMetrics({ boxes, size: scale * 100 });
+      // Keep the previous bold fit as the reference, then shrink the lettering only.
+      setMetrics({ boxes: lightProbes.current.map(readBox), size: scale * 100 * WORDSMITH_GLYPH_REDUCTION });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -103,13 +107,14 @@ export function WordsmithRing({ letters, selected = [], disabled = true, onTap }
     })}
     <svg className="wordsmith-ring-labels" viewBox="0 0 100 100" aria-hidden="true">
       <g visibility="hidden">{letters.map((letter, index) => <text key={index} ref={node => { probes.current[index] = node; }} x="0" y="0" fontSize="100">{letter}</text>)}</g>
+      <g visibility="hidden" className="wordsmith-ring-glyph-weight">{letters.map((letter, index) => <text key={index} ref={node => { lightProbes.current[index] = node; }} x="0" y="0" fontSize="100">{letter}</text>)}</g>
       {letters.map((letter, index) => {
         const segment = segments[index];
         if (!segment) return null;
         const box = metrics.boxes[index] ?? { x: 0, y: -75, width: 75, height: 75 };
         const scale = metrics.size / 100;
         const used = index !== WORDSMITH_CENTRE_INDEX && selected.includes(index);
-        return <text key={index} className={`wordsmith-ring-label ${used ? "wordsmith-ring-label-used" : ""}`}
+        return <text key={index} className={`wordsmith-ring-label wordsmith-ring-glyph-weight ${used ? "wordsmith-ring-label-used" : ""}`}
           fontSize={metrics.size} x={segment.label.x - (box.x + box.width / 2) * scale}
           y={segment.label.y - (box.y + box.height / 2) * scale}>{letter}</text>;
       })}
