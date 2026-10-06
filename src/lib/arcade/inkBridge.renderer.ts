@@ -28,7 +28,7 @@ function stamp(c: CanvasRenderingContext2D, key: string, w: number, h: number, x
 function cloud(c: CanvasRenderingContext2D): void {
   c.fillStyle = CLOUD_SHADE; c.beginPath(); c.roundRect(0, 10, 48, 16, 8); c.fill();
   c.fillStyle = CLOUD;
-  for (const [x,y,r] of [[12,13,10],[26,11,11],[38,16,9]]) { c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill(); }
+  for (const [x,y,r] of [[12,13,10],[26,11,11],[38,16,9]] as const) { c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill(); }
 }
 function backdrop(c: CanvasRenderingContext2D): void {
   c.fillStyle = SKY; c.fillRect(0,0,INK_WORLD_W,INK_WORLD_H);
@@ -110,7 +110,7 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
   c.translate((size.width-INK_WORLD_W*scale)/2,(size.height-INK_WORLD_H*scale)/2);c.scale(scale,scale);
   stamp(c,'background',INK_WORLD_W,INK_WORLD_H,0,0,backdrop);
   const t=motionTime();
-  for(const [x,y,f] of [[38,100,0.55],[278,146,0.7],[152,218,0.4]]) { c.save();c.globalAlpha=0.68;c.translate(x+Math.sin(t*0.08+y)*5,y);c.scale(f,f);stamp(c,'cloud',48,26,0,0,cloud);c.restore(); }
+  for(const [x,y,f] of [[38,100,0.55],[278,146,0.7],[152,218,0.4]] as const) { c.save();c.globalAlpha=0.68;c.translate(x+Math.sin(t*0.08+y)*5,y);c.scale(f,f);stamp(c,'cloud',48,26,0,0,cloud);c.restore(); }
   stamp(c,'cloud',48,26,lvl.spoutX-24,19,cloud);
   for(const b of lvl.blocks) {
     // Fully fill all 4px of every hazard, never an inset silhouette.

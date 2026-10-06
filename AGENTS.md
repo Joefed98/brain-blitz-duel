@@ -37,6 +37,6 @@
 
 - FX/audio stay outside sims; no untargeted boxes; dev displays require accepted keys. Why: safe feedback.
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
-- Scenery stays in renderers; why: separate art from gameplay.
+- Art caches stay in renderers (see arcade guidance); why: no sim changes.
 
 - PhoneShell shares puzzle paint; WordsmithRing fits equal-size glyphs to shared polygons; wordInput owns hit/toggle helpers. Why: consistent UI, no grader changes.

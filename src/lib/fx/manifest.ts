@@ -39,6 +39,8 @@ const ENTRIES = {
   arc_retro_explode: { channel: "effects", frequency: 110, ms: 260, url: "/__l5e/assets-v1/31683d59-9699-451b-a1af-46323ea962c7/arc_retro_explode.mp3" },
   arc_retro_hit: { channel: "effects", frequency: 200, ms: 120, url: "/__l5e/assets-v1/b8f6aa7a-8f21-4f1c-a70e-c88b6706f5ff/arc_retro_hit.mp3" },
   arc_fair_thud: { channel: "effects", frequency: 120, ms: 160, url: "/__l5e/assets-v1/06dc394f-4a06-44e1-9f35-ecdf84bd7d58/arc_fair_thud.mp3" },
+  // Generic cue reuses the supplied thud recording.
+  arc_thud: { channel: "effects", frequency: 120, ms: 160, url: "/__l5e/assets-v1/06dc394f-4a06-44e1-9f35-ecdf84bd7d58/arc_fair_thud.mp3" },
   arc_fair_bell: { channel: "effects", frequency: 1320, ms: 400, url: "/__l5e/assets-v1/2362baaf-c0dd-480f-b7b3-5a331c15ef4d/arc_fair_bell.mp3" },
   arc_fair_bucket: { channel: "effects", frequency: 330, ms: 200, url: "/__l5e/assets-v1/83270d2b-eabf-4c8c-8e71-8d08bc7e22d3/arc_fair_bucket.mp3" },
   arc_fair_sting: { channel: "effects", frequency: 880, ms: 300, url: "/__l5e/assets-v1/4d2b8c9a-ece9-438e-9efd-79ea9e95d1e8/arc_fair_sting.mp3" },

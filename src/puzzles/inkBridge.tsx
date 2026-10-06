@@ -1,45 +1,39 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import {
-  inkBridgeGame,
   inkCheckpoint,
-  INK_BG,
   INK_CHECKPOINT_INTERVAL,
-  INK_GOLD,
-  INK_GREY,
   INK_INPUT_RELEASE,
   INK_INPUT_UNDO,
   INK_INPUT_RESET,
   INK_INPUT_DROP_AGAIN,
   INK_INPUT_STROKE,
   INK_STEP_PX,
-  INK_TEAL,
   INK_WORLD_H,
   INK_WORLD_W,
 } from "@/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
 import { INKBRIDGE_TIME_MS, type InkBridgePuzzleData } from "@/lib/duel/types";
-import { inkBridgeArtGame, INK_ART_BG } from "@/lib/arcade/inkBridge.renderer";
+import { drawInkRainbowExample, inkBridgeArtGame, INK_ART_BG } from "@/lib/arcade/inkBridge.renderer";
 import { inkBridgeSounds } from "@/lib/fx/gameSounds";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { Button } from "@/components/ui/button";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: a spout, a grey block, a drawn line past it and the bucket. */
+/** Fixed intro shares the rainbow sprites without changing demo inputs. */
 function IntroExample() {
+  const canvas = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const ctx = canvas.current?.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(2, 0, 0, 2, 0, 0);
+    drawInkRainbowExample(ctx);
+  }, []);
   return (
     <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 168 130" width={168} height={130} aria-hidden="true" style={{ background: INK_BG, borderRadius: 10 }}>
-        <rect x={40} y={4} width={16} height={8} fill={INK_GOLD} opacity={0.4} />
-        <circle cx={48} cy={18} r={5} fill={INK_GOLD} />
-        <rect x={30} y={58} width={40} height={3} fill={INK_GREY} />
-        <line x1={36} y1={30} x2={130} y2={86} stroke={INK_GOLD} strokeWidth={8} strokeOpacity={0.25} strokeLinecap="round" />
-        <line x1={36} y1={30} x2={130} y2={86} stroke={INK_GOLD} strokeWidth={3} strokeLinecap="round" />
-        <rect x={120} y={104} width={36} height={20} fill={INK_TEAL} opacity={0.3} />
-        <rect x={117} y={102} width={42} height={3} fill={INK_TEAL} />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">Draw around the grey block, then RELEASE.</p>
+      <canvas ref={canvas} width={336} height={260} className="h-[130px] w-[168px] rounded-lg" aria-hidden="true" />
+      <p className="text-center text-xs text-muted-foreground">Draw around the red block, then RELEASE.</p>
     </div>
   );
 }

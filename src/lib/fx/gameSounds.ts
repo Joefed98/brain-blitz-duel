@@ -20,6 +20,7 @@ import type { BtState } from "@/lib/arcade/ballTrack";
 import type { JuncState } from "@/lib/arcade/junction";
 import type { SkylineState } from "@/lib/arcade/skyline";
 import type { InkState } from "@/lib/arcade/inkBridge";
+import { inkFailedOnBlock } from "@/lib/arcade/inkBridge.renderer";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
 import type { BubState } from "@/lib/arcade/bubble";
 import type { SliceState } from "@/lib/arcade/slice";
@@ -406,8 +407,7 @@ export function skylineSounds(): GameSounds<SkylineState> {
   };
 }
 
-/** Sim y (1/256 px) below which a failed drop has fallen into the river. */
-const INK_RIVER_FP = 596 * 256;
+/** Rainbow world; shared run-end feedback supplies the complete cue. */
 
 export function inkBridgeSounds(): GameSounds<InkState> {
   let prev: InkState | null = null;
@@ -415,18 +415,17 @@ export function inkBridgeSounds(): GameSounds<InkState> {
   return {
     frame(state) {
       if (prev && state.tick > prev.tick) {
-        // One swoosh per bridge, once its first plank is actually laid.
-        if (state.strokeStarts.length > prev.strokeStarts.length) armed = state.strokeStarts[state.strokeStarts.length - 1]!;
+        // Keep one draw sound after the first segment of each stroke.
+        if (state.strokeStarts.length > prev.strokeStarts.length) armed = state.strokeStarts[state.strokeStarts.length - 1] ?? -1;
         if (armed >= 0 && state.segs.length > armed) {
           playSound("arc_swoosh", 0.6);
           armed = -1;
         }
         if (state.flashTick === state.tick || state.flashTick > prev.flashTick) {
           if (state.flashKind === 1) {
-            playSound("arc_marble_clink", 0.5, 1.25);
-            playSound("stage_complete");
-          } else if (state.flashKind === 2 && state.failedBall && state.failedBall.y >= INK_RIVER_FP) {
-            playSound("arc_splash");
+            playSound("arc_fair_bell");
+          } else if (inkFailedOnBlock(state)) {
+            playSound("arc_thud");
           }
         }
       }
