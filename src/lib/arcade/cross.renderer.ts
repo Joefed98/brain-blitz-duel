@@ -143,8 +143,8 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.roundRect(x, y, w, h, Math.max(0, Math.min(r, w / 2, h / 2)));
 }
 
-/** A car or lorry filling exactly its collision box. */
-function drawVehicle(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dir: number, colour: string, lorry: boolean): void {
+/** A car or lorry filling exactly its collision box (shared by the Real World games). */
+export function drawVehicle(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dir: number, colour: string, lorry: boolean, beams = true): void {
   const front = dir > 0 ? x + w : x;
   const back = dir > 0 ? x : x + w;
   const body = ctx.createLinearGradient(0, y, 0, y + h);
@@ -187,6 +187,7 @@ function drawVehicle(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.arc(hx, y + 6, 2.6, 0, Math.PI * 2);
   ctx.arc(hx, y + h - 6, 2.6, 0, Math.PI * 2);
   ctx.fill();
+  if (beams) {
   ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
   ctx.beginPath();
   ctx.moveTo(front, y + 2);
@@ -195,6 +196,7 @@ function drawVehicle(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.lineTo(front, y + h - 2);
   ctx.closePath();
   ctx.fill();
+  }
   ctx.fillStyle = "#FF3B3B";
   const tx = back + dir * 2;
   ctx.fillRect(tx - 1.5, y + 3, 3, 5);
