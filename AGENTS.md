@@ -39,4 +39,4 @@
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
 - Scenery stays in renderers; why: separate art from gameplay.
 
-- PhoneShell shares puzzle paint; WordsmithRing shares live/example tiles; wordInput owns strict hit/toggle helpers; why: consistent UI without grader changes.
+- PhoneShell shares puzzle paint; WordsmithRing shares live/intro/reveal polygons; wordInput owns hit/toggle helpers; why: consistent UI without grader changes.

@@ -78,7 +78,7 @@ function Backdrop({ puzzle, answer, outcome }: { puzzle: PuzzleData; answer: str
     }
   }, [renderer, puzzle, answer]);
   if (!renderer) return null;
-  const ring = outcome === "finish" ? "var(--me)" : outcome === "crash" ? "var(--warn)" : null;
+  const ring = outcome === "finish" ? "var(--me)" : null;
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl" aria-hidden="true">
       <canvas
