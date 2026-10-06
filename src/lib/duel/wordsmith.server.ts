@@ -1,6 +1,6 @@
 /**
  * Server-only Wordsmith logic: board generation, word checking and scoring.
- * Nine letters in a 3×3 square; every word must use the centre letter. The
+ * Eight to eleven letters in a ring; every word must use the centre letter. The
  * dictionary and the board's word list never reach a device.
  */
 
@@ -10,7 +10,7 @@ import type { Graded } from "./grade";
 import { scoreWordsmith } from "./scoring";
 import {
   WORDSMITH_CENTRE_INDEX,
-  WORDSMITH_LETTERS,
+  WORDSMITH_SIZES,
   WORDSMITH_MAX_WORDS,
   WORDSMITH_MIN_LENGTH,
   WORDSMITH_MIN_WORDS,
@@ -46,17 +46,19 @@ export function isPluralForm(raw: string): boolean {
   return false;
 }
 
-let sources: string[] | null = null;
-/** Everyday nine-letter words with no letter used more than twice. */
-function sourceWords(): string[] {
-  if (sources) return sources;
-  sources = commonWords().filter((word) => {
-    if (word.length !== WORDSMITH_LETTERS) return false;
+const sources = new Map<number, string[]>();
+/** Everyday pangrams of the chosen size, with no letter used more than twice. */
+function sourceWords(size: number): string[] {
+  const cached = sources.get(size);
+  if (cached) return cached;
+  const words = commonWords().filter((word) => {
+    if (word.length !== size || isPluralForm(word)) return false;
     const counts = new Map<string, number>();
     for (const letter of word) counts.set(letter, (counts.get(letter) ?? 0) + 1);
     return [...counts.values()].every((n) => n <= 2);
   });
-  return sources;
+  sources.set(size, words);
+  return words;
 }
 
 function build(source: string, centre: string, valid: string[]): WordsmithPuzzleData {
@@ -86,9 +88,10 @@ function validWords(source: string, centre: string): string[] {
   return wordsFrom(source, WORDSMITH_MIN_LENGTH, true).filter((word) => word.includes(centre) && !isPluralForm(word));
 }
 
-/** Picks a nine-letter word and a centre letter giving 25–60 valid words. */
-export function generateWordsmith(): WordsmithPuzzleData {
-  const bank = sourceWords();
+/** Uniform size draw, then an answer-first pangram with 25–60 centre-using words. */
+export function generateWordsmith(size: number = pick(WORDSMITH_SIZES)): WordsmithPuzzleData {
+  if (!WORDSMITH_SIZES.some((value) => value === size)) throw new Error("Unsupported Wordsmith size");
+  const bank = sourceWords(size);
   for (let attempt = 0; attempt < 200 && bank.length; attempt++) {
     const source = pick(bank);
     if (isPluralForm(source)) continue;
@@ -101,8 +104,14 @@ export function generateWordsmith(): WordsmithPuzzleData {
     if (!centre) continue;
     return build(source, centre, all.filter((word) => word.includes(centre)));
   }
-  const source = "carpenter";
-  return build(source, "p", validWords(source, "p"));
+  // Never silently change size or bypass the count requirement on a retry limit.
+  for (const source of bank) {
+    for (const centre of new Set(source)) {
+      const valid = validWords(source, centre);
+      if (valid.length >= WORDSMITH_MIN_WORDS && valid.length <= WORDSMITH_MAX_WORDS) return build(source, centre, valid);
+    }
+  }
+  throw new Error(`No qualifying Wordsmith pangram for ${size} letters`);
 }
 
 export interface WordVerdict {
@@ -119,7 +128,7 @@ export function checkWordsmithWord(letters: string[], raw: string, already: stri
   if (!/^[A-Z]+$/.test(word)) return { ...base, reason: "Letters only" };
   if (word.length < WORDSMITH_MIN_LENGTH) return { ...base, reason: "Too short" };
   if (!buildableFrom(word, letters)) return { ...base, reason: "Not on the board" };
-  const centre = letters.length === WORDSMITH_LETTERS ? letters[WORDSMITH_CENTRE_INDEX] : undefined;
+  const centre = WORDSMITH_SIZES.some((size) => size === letters.length) ? letters[WORDSMITH_CENTRE_INDEX] : undefined;
   if (centre && !word.includes(centre.toUpperCase())) return { ...base, reason: "Must use the centre letter" };
   if (!isWord(word)) return { ...base, reason: "Not in the dictionary" };
   if (isPluralForm(word)) return { ...base, reason: "No plurals" };

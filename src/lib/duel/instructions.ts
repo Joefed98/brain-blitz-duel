@@ -13,14 +13,14 @@ export interface PuzzleInstructions {
 
 export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   wordsmith: {
-    goal: "Make words from the nine letters - every word must use the centre letter.",
+    goal: "Make words from the 8–11 letters - every word must use the centre letter.",
     how: [
-      { action: "Words must be at least 4 letters. Use each letter once.", detail: "There's always a nine-letter word." },
+      { action: "Words must be at least 4 letters. Use each letter once.", detail: "There's always a word using every tile." },
       { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine." },
       { action: "Tap letters in order", detail: "Tap a selected letter again to remove it. Clear empties the word; Enter checks it." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
-    score: "Longer words score more; find the nine-letter word for 15. Round score = floor(2.5 × word points), up to 150.",
+    score: "Longer words score more: 8 letters = 11 word points; 9–11 letters = 15. Round score = floor(2.5 × word points), up to 150.",
   },
   groups: {
     goal: "Sort all sixteen words into four groups of four.",
