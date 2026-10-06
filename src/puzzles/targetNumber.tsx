@@ -1,3 +1,5 @@
+import { Undo2, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { playWrong } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -262,23 +264,15 @@ function TargetStage({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <div className="flex gap-4">
-          <button
-            type="button"
-            onClick={undo}
-            disabled={isLockedNow || history.length === 0}
-            className="font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
-          >
-            Undo
-          </button>
-          <button
-            type="button"
-            onClick={reset}
-            disabled={isLockedNow || history.length === 0}
-            className="font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
-          >
-            Reset
-          </button>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" aria-label="Undo" title="Undo" onClick={undo}
+            disabled={isLockedNow || history.length === 0} className="puzzle-secondary-control">
+            <Undo2 aria-hidden="true" />
+          </Button>
+          <Button type="button" variant="outline" aria-label="Reset" title="Reset" onClick={reset}
+            disabled={isLockedNow || history.length === 0} className="puzzle-secondary-control">
+            <RotateCcw aria-hidden="true" />
+          </Button>
         </div>
         <button
           type="button"

@@ -242,7 +242,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <canvas
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
-        style={{ background: BEAT_BG }}
+        style={{ ...NO_SCROLL_STYLE, background: BEAT_BG }}
         aria-label="Beat"
         onPointerDown={(event) => {
           event.preventDefault();

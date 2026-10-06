@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { ArrowModeOverride } from "@/components/puzzles/GridDrag";
+import { puzzleInputDemoCompatible } from "@/components/puzzles/wordInput";
 import { getIntroDemoFn } from "@/lib/duel/introDemo.functions";
 import {
   PUZZLE_DEMO_HOLD_MS,
@@ -32,6 +33,7 @@ export function usePuzzleDemo(type: PuzzleType): { puzzle: PuzzleData; log: Puzz
   });
   const log = demo?.input_log;
   if (!demo || demo.puzzle?.type !== type || !isPuzzleDemoLog(log)) return null;
+  if (!puzzleInputDemoCompatible(type, log)) return null;
   return { puzzle: demo.puzzle, log };
 }
 

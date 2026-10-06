@@ -189,14 +189,15 @@
 .game-screen,
 .game-screen *,
 canvas,
+button,
 [data-play-area],
 [data-play-area] *,
 html.game-lock,
 body.game-lock {
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 html.game-lock,
@@ -299,6 +300,46 @@ body.game-lock {
   width: min(100%, 100cqh);
   aspect-ratio: 1;
 }
+.wordsmith-ring { container-type: inline-size; }
+.wordsmith-ring-tile {
+  position: absolute;
+  width: 24%;
+  height: 24%;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  border: 0;
+  background: var(--puzzle-surface);
+  color: var(--foreground);
+  isolation: isolate;
+  opacity: 1 !important;
+}
+.wordsmith-ring-outer {
+  border-radius: 0;
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+  background: var(--puzzle-edge);
+}
+.wordsmith-ring-outer::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  clip-path: inherit;
+  background: var(--puzzle-surface);
+}
+.wordsmith-ring-centre { border-radius: 50%; background: var(--primary); color: var(--primary-foreground); }
+.wordsmith-ring-used { background: var(--primary); color: var(--primary-foreground); }
+.wordsmith-ring-used::before { background: var(--primary); }
+.wordsmith-ring-tile:focus-visible { outline: 2px solid var(--foreground); outline-offset: -4px; }
+.wordsmith-ring-tile:disabled { cursor: default; }
+.wordsmith-ring-example .wordsmith-ring-tile { font-size: 16px; }
+.puzzle-secondary-control { height: 44px; min-width: 44px; padding: 0; border-radius: var(--puzzle-action-radius); }
+.puzzle-secondary-control svg { width: 20px; height: 20px; }
+.sudoku-grid { position: relative; }
+.sudoku-box-outline { position: absolute; pointer-events: none; inset: 0; width: 100%; height: 100%; z-index: 5; }
+.sudoku-box-outline path { fill: none; stroke: var(--foreground); stroke-width: 3; vector-effect: non-scaling-stroke; }
 @keyframes accepted-word-fade {
   0%, 100% { opacity: 0; }
   12%, 80% { opacity: 1; }

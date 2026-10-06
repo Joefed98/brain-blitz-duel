@@ -252,15 +252,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
           onPress={step}
           disabled={locked || solved}
           repeatMs={240}
+          expanded
         />
-        <button
-          type="button"
-          disabled={locked || path.length < 2}
-          onClick={() => setPath([start])}
-          className="h-11 rounded-xl border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
-        >
-          Reset
-        </button>
       </div>
       <p className="shrink-0 text-center text-[11px] text-muted-foreground">
         Tap or hold an arrow · or draw with your finger · go back to undo

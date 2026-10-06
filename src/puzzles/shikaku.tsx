@@ -52,18 +52,19 @@ function Board({
     <div
       ref={pointer?.ref}
       {...(pointer ? pointer.handlers : {})}
-      className="grid w-full select-none"
+      className="grid w-full shrink-0 select-none"
       style={{
         ...(pointer?.handlers.style ?? {}),
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(${rows}, auto)`,
+        gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+        aspectRatio: `${size} / ${rows}`,
         gap: small ? 1 : 2,
       }}
     >
       {Array.from({ length: size * rows }, (_, cell) => (
         <div
           key={cell}
-          className="flex aspect-square items-center justify-center rounded-sm border border-border bg-card"
+          className="flex min-h-0 min-w-0 items-center justify-center rounded-sm border border-border bg-card"
           style={{ gridRow: Math.floor(cell / size) + 1, gridColumn: (cell % size) + 1 }}
         />
       ))}

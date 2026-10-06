@@ -1,3 +1,5 @@
+import { Undo2, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { playCorrect } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -145,23 +147,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           </div>
         </div>
       </div>
-      <div className="flex shrink-0 items-center justify-center gap-6">
-        <button
-          type="button"
+      <div className="flex shrink-0 items-center justify-center gap-3">
+        <Button type="button" variant="outline" aria-label="Undo" title="Undo"
           onClick={() => setPresses((current) => [...current, -1])}
-          disabled={locked || presses.length === 0}
-          className="press font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
-        >
-          Undo
-        </button>
-        <button
-          type="button"
+          disabled={locked || presses.length === 0} className="puzzle-secondary-control">
+          <Undo2 aria-hidden="true" />
+        </Button>
+        <Button type="button" variant="outline" aria-label="Reset" title="Reset"
           onClick={() => setPresses((current) => [...current, -2])}
-          disabled={locked || presses.length === 0}
-          className="press font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
-        >
-          Reset
-        </button>
+          disabled={locked || presses.length === 0} className="puzzle-secondary-control">
+          <RotateCcw aria-hidden="true" />
+        </Button>
       </div>
     </div>
   );

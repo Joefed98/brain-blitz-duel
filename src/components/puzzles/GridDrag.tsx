@@ -562,11 +562,13 @@ export function ArrowPad({
   disabled = false,
   repeatMs,
   directions = ["L", "U", "D", "R"],
+  expanded = false,
 }: {
   onPress: (dir: "U" | "D" | "L" | "R") => void;
   disabled?: boolean;
   repeatMs?: number | undefined;
   directions?: readonly ("U" | "D" | "L" | "R")[];
+  expanded?: boolean;
 }) {
   const press = useRef(onPress);
   press.current = onPress;
@@ -634,7 +636,7 @@ export function ArrowPad({
       onPressStart={() => start(dir)}
       onPressEnd={stop}
       aria-label={label}
-      className="flex h-11 w-14 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl text-foreground transition-colors select-none touch-none active:bg-primary/20 disabled:opacity-40"
+      className={`flex shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl text-foreground transition-colors select-none touch-none active:bg-primary/20 disabled:opacity-40 ${expanded ? "h-[68px] min-w-0 flex-1" : "h-11 w-14"}`}
     >{glyph}</ArcadeControlButton>
   );
 
@@ -672,7 +674,7 @@ export function ArrowPad({
   }, [stop]);
 
   return (
-    <div className="relative mx-auto flex h-[60px] w-full max-w-[343px] shrink-0 items-center justify-center">
+    <div className={`relative mx-auto flex w-full max-w-[343px] shrink-0 items-center justify-center ${expanded ? "h-[104px] flex-col gap-2" : "h-[60px]"}`}>
       {joystick ? (
         <div
           ref={stickElement}
@@ -698,7 +700,7 @@ export function ArrowPad({
           />
         </div>
       ) : (
-        <div className="absolute left-0 flex items-center gap-4">
+        <div className={expanded ? "flex w-full items-center gap-3" : "absolute left-0 flex items-center gap-4"}>
           {directions.includes("L") ? button("L", "◀", "Left") : null}
           {directions.includes("U") ? button("U", "▲", "Up") : null}
           {directions.includes("D") ? button("D", "▼", "Down") : null}
@@ -710,7 +712,7 @@ export function ArrowPad({
         role="switch"
         aria-checked={joystick}
         onClick={() => setMode(!joystick)}
-        className={`absolute right-0 h-7 rounded-full border px-1.5 font-mono text-[8px] uppercase ${joystick ? "border-primary bg-primary/20 text-primary" : "border-border bg-card text-muted-foreground"}`}
+        className={`${expanded ? "self-end" : "absolute right-0"} h-7 rounded-full border px-1.5 font-mono text-[8px] uppercase ${joystick ? "border-primary bg-primary/20 text-primary" : "border-border bg-card text-muted-foreground"}`}
       >
         Joystick
       </button>

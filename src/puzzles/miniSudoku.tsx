@@ -51,7 +51,7 @@ function SudokuGrid({
 
   return (
     <div
-      className="mx-auto grid aspect-square h-full max-h-full w-full max-w-full"
+      className="sudoku-grid mx-auto grid aspect-square h-full max-h-full w-full max-w-full"
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${Math.ceil(values.length / cols)}, minmax(0, 1fr))`,
@@ -102,6 +102,9 @@ function SudokuGrid({
           </button>
         );
       })}
+      <svg className="sudoku-box-outline" viewBox="0 0 6 6" aria-hidden="true">
+        <path d="M 0 0 H 6 V 6 H 0 Z M 3 0 V 6 M 0 2 H 6 M 0 4 H 6" />
+      </svg>
     </div>
   );
 }

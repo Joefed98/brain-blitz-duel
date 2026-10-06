@@ -13,8 +13,6 @@ import {
   replayRings,
   ringColour,
   ringPattern,
-  RING_RESET,
-  RING_UNDO,
 } from "@/lib/duel/rings";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -228,12 +226,6 @@ function Stage({
 
   if (!data || !replay) return null;
 
-  const control = (code: number) => {
-    if (locked || submitted.current || replay.solved || !taps.length) return;
-    hapticTick();
-    setTaps([...taps, code]);
-  };
-
   const turn = (ring: number, clockwise: boolean) => {
     if (locked || submitted.current || replay.solved) return;
     hapticTick();
@@ -270,9 +262,7 @@ function Stage({
           {replay.aligned} / {RINGS_SEGMENTS}
         </span>
       </p>
-      <div className="grid h-[52px] w-full shrink-0 grid-cols-4 gap-2">
-        <Button type="button" variant="outline" disabled={locked || !taps.length} onClick={() => control(RING_UNDO)} className="h-[52px] rounded-xl px-1 font-mono text-[11px] uppercase">Undo</Button>
-        <Button type="button" variant="outline" disabled={locked || !taps.length} onClick={() => control(RING_RESET)} className="h-[52px] rounded-xl px-1 font-mono text-[11px] uppercase">Reset</Button>
+      <div className="grid h-[52px] w-full shrink-0 grid-cols-2 gap-2">
         <Button
           type="button"
           variant="outline"
