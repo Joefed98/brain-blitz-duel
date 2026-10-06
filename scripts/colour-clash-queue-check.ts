@@ -1,7 +1,7 @@
 /** Colour Clash fixed-queue proof: queue end, scoring anchor, unchanged pattern/events and legacy identity. Colour Clash only. */
 import {
   colourClashGame, colourClashQueueGame, clashQueueScoreOf, clashLaneCount, clashRuleAt, clashGatesAt, clashFallTicks,
-  CLASH_QUEUE, CLASH_RUN_TICKS, CLASH_INPUT_LANE, CLASH_DROP, CLASH_SET_LANE, CLASH_WORLD_W, type ClashState,
+  clashCheckpoint, CLASH_CHECKPOINT_INTERVAL, CLASH_QUEUE, CLASH_RUN_TICKS, CLASH_INPUT_LANE, CLASH_DROP, CLASH_SET_LANE, CLASH_WORLD_W, type ClashState,
 } from "../src/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "../src/lib/duel/colourClash";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
@@ -36,16 +36,18 @@ for (let seed = 1; seed <= SEEDS; seed++) {
   // Strong run finishes the queue early with the right score, and replays identically.
   let s = colourClashQueueGame.init(seed);
   const events: ArcadeInputEvent[] = [];
+  const cps: ReturnType<typeof clashCheckpoint>[] = [];
   let legacy = colourClashGame.init(seed);
   while (!colourClashQueueGame.isOver(s) && s.tick < CLASH_RUN_TICKS) {
     const e = strong(s); if (e && (e.t % 2 === 0)) events.push(e);
     s = colourClashQueueGame.step(s, e && e.t % 2 === 0 ? e : null);
+    if (s.tick % CLASH_CHECKPOINT_INTERVAL === 0) cps.push(clashCheckpoint(s));
     legacy = colourClashGame.step(legacy, null);
   }
   check(s.items.length === CLASH_QUEUE && s.correct === CLASH_QUEUE && s.finishTick > 0, `seed ${seed}: strong run did not sort all ${CLASH_QUEUE}`);
   finishMin = Math.min(finishMin, s.finishTick); finishMax = Math.max(finishMax, s.finishTick);
   check(colourClashQueueGame.score(s) === clashQueueScoreOf(s.correct, s.wrong, CLASH_QUEUE, s.finishTick), "score formula");
-  const raw = encodeColourClashRun({ seed, claimedScore: colourClashQueueGame.score(s), events, endTick: s.tick, checkpoints: [] });
+  const raw = encodeColourClashRun({ seed, claimedScore: colourClashQueueGame.score(s), events, endTick: s.tick, checkpoints: cps });
   const rep = replayColourClashRun(seed, raw, CLASH_QUEUE);
   check(rep.score === colourClashQueueGame.score(s) && rep.correct === CLASH_QUEUE && rep.finished, `seed ${seed}: server replay differs ${JSON.stringify({rs: rep.score, s: colourClashQueueGame.score(s), rc: rep.correct, f: rep.finished, reason: rep.reason, ev: events.length, d: rep.inputDiag})}`);
   // Idle run: unchanged pattern, events, fall speeds; stops spawning at N and ends at 60 s.
