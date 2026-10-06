@@ -1,3 +1,8 @@
+## Snip orchard and shared countryside (Oct 6, 15:34)
+- [ ] Extract unchanged Ink Bridge backdrop; orchard sprites, exact existing geometry/camera and non-sea sounds.
+- [ ] Native bounds/cache/backdrop parity and level-10 timing checks; shared accepted-key frame readout; no browsers or identity proof.
+- [ ] Report cached sprites, Ink Bridge parity, timings and any existing geometry discrepancy.
+
 ## Wordsmith variable size (Oct 6, 14:05)
 - [x] Uniform 8–11-letter size draw then SCOWL answer-first pangram; 25–60 possible nonplural centre-using words at each size, 4+ letters and tile multiplicity retained. Scoring unchanged including existing 15-point saturation for words of 9+ letters; fixed practice example explicitly generates nine tiles without a size draw. Dropdown remains per-puzzle, help/intro SCORE/reveal labels updated.
 - [x] Unchanged outer and centre octagons with 7–10 equal angular wedges, 70% equal-size glyph fit and tap-only controls. Geometric regression verifies every wedge contains a 44×44px square on a conservative 280px live board; fixed eight-wedge geometry preserved. Actual phone appearance remains user-tested.
