@@ -9,7 +9,6 @@ import {
   snipGame,
   snipView,
   snipCamera,
-  drawSnip,
   unpackSnipCut,
   SNIP_CHECKPOINT_INTERVAL,
   SNIP_INPUT_CUT,
@@ -17,9 +16,11 @@ import {
   SNIP_SWEET,
   type SnipState,
 } from "@/lib/arcade/snip";
+import { drawSnipArt, type SnipSwipe } from "@/lib/arcade/snip.renderer";
+import { snipSounds } from "@/lib/fx/gameSounds";
 import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
 import { SNIP_TIME_MS, type SnipPuzzleData } from "@/lib/duel/types";
-import { playCorrect, playTick } from "@/lib/sound";
+import { playCorrect } from "@/lib/sound";
 import { NO_SCROLL_STYLE } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -70,6 +71,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof snipCheckpoint>[]>([]);
   /** The swipe since the last tick, as one straight step. */
   const pendingCut = useRef<{ a: number; b: number; c: number; d: number } | null>(null);
+  const swipes = useRef<SnipSwipe[]>([]);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
   const submitted = useRef(false);
   const lockedRef = useRef(locked);
@@ -110,6 +112,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = snipSounds();
     let seenEaten = 0;
     let shownKey = "";
 
@@ -126,10 +129,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const seg = pendingCut.current;
           pendingCut.current = null;
           if (seg) {
-            const cutsBefore = state.current.cuts;
             recordInput(events.current, { t: state.current.tick + 1, k: SNIP_INPUT_CUT, ...seg }, snipGame.inputRanges);
             state.current = snipGame.step(state.current, inputAt(events.current, state.current.tick + 1));
-            if (state.current.cuts > cutsBefore) playTick();
           } else {
             state.current = snipGame.step(state.current, inputAt(events.current, state.current.tick + 1));
           }
@@ -161,6 +162,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(s.tick, snipGame.isOver(s));
       feedback(s, snipGame.isOver(s));
+      sounds.frame(s, !snipGame.isOver(s) && !lockedRef.current);
       const node = canvas.current;
       const box = board.current?.getBoundingClientRect();
       if (node && box && box.width > 1) {
@@ -178,7 +180,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const reset = previous.level !== s.level;
           const x = snipCamera(s, reset ? s.sx / 256 - 180 : previous.x, reset ? 1 : Math.min(0.1, Math.max(0, (time - previous.time) / 1000)));
           camera.current = { x, level: s.level, time };
-          drawSnip(ctx, s, { width, height }, undefined, x);
+          swipes.current = swipes.current.filter((w) => time - w.at < 220);
+          drawSnipArt(ctx, s, { width, height }, undefined, x, swipes.current);
         }
       }
 
@@ -192,7 +195,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
     };
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      sounds.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, data]);
 
@@ -237,6 +243,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (!from || !to) return;
           const seg = pendingCut.current;
           pendingCut.current = seg ? { ...seg, c: to.x, d: to.y } : { a: from.x, b: from.y, c: to.x, d: to.y };
+          swipes.current.push({ a: from.x, b: from.y, c: to.x, d: to.y, at: performance.now() });
+          if (swipes.current.length > 24) swipes.current.shift();
           lastPoint.current = { x: event.clientX, y: event.clientY };
         }}
         onPointerUp={() => (lastPoint.current = null)}
