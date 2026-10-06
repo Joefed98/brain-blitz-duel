@@ -1562,26 +1562,28 @@ export interface GravityPuzzleData {
 /* ======================= Don't Break the Chain ========================== */
 
 export const CHAIN_TIME_MS = 45_000;
-/** The chain is a fixed 30 links; the board shows 20 nodes at a time. */
-export const CHAIN_LENGTH = 30;
+/** The chain is a fixed 40 links; the board shows 20 nodes at a time. */
+export const CHAIN_LENGTH = 40;
 export const CHAIN_NODES = 20;
 /** After every this many correct taps the board reshuffles (seeded). */
 export const CHAIN_BLOCK = 5;
 export const CHAIN_BOARDS = CHAIN_LENGTH / CHAIN_BLOCK;
 /** The rule is a repeating three-step cycle. */
 export const CHAIN_CYCLE = 3;
-/** Points per completed link (30 links = 150). */
-export const CHAIN_LINK_POINTS = 5;
+/** Points per completed link (40 links = 140 before the finish bonus). */
+export const CHAIN_LINK_POINTS = 3.5;
+export const CHAIN_FINISH_BONUS = 10;
+export const CHAIN_RULES_VERSION = 2;
 /** Momentum windows, in ms, to make the given link after the previous one. */
 export const CHAIN_MOMENTUM_MS = [
-  { upTo: 10, ms: 3_000 },
-  { upTo: 18, ms: 2_500 },
+  { upTo: 13, ms: 3_000 },
+  { upTo: 26, ms: 2_500 },
   { upTo: CHAIN_LENGTH, ms: 2_000 },
 ] as const;
 /** The soft warning tick plays in this final part of the window. */
 export const CHAIN_WARN_MS = 500;
 /** Links at which the background shifts and "FASTER" is announced. */
-export const CHAIN_FASTER_AT = [10, 18, 26] as const;
+export const CHAIN_FASTER_AT = [10, 20, 30] as const;
 /** A node glyph, and the clear space kept between two glyph edges, in pixels. */
 export const CHAIN_NODE_PX = 34;
 export const CHAIN_NODE_GAP_PX = 12;
@@ -1616,6 +1618,8 @@ export type ChainBreak = "wrong" | "momentum" | "timer" | "complete";
 
 export interface ChainPuzzleData {
   type: "chain";
+  /** Versioned rules; unversioned stored boards retain their original rules. */
+  rulesVersion?: number;
   /** The repeating three-item rule: shape and colour must both match. */
   cycle: ChainRuleItem[];
   /** Seeded rule per five-link board; absent on legacy single-cycle puzzles. */

@@ -4,6 +4,7 @@ import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick, pointerElementIndex } from "@/components/puzzles/GridDrag";
 import {
   chainBoardIndex,
+  chainRules,
   chainCycleAt,
   chainRequiredAt,
   chainRuleStep,
@@ -16,9 +17,7 @@ import {
 } from "@/lib/duel/chain";
 import { useStageState } from "@/lib/duel/stageState";
 import {
-  CHAIN_FASTER_AT,
   CHAIN_BLOCK,
-  CHAIN_LENGTH,
   CHAIN_TIME_MS,
   CHAIN_WARN_MS,
   type ChainBreak,
@@ -200,7 +199,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
       const t = Date.now() - phaseStartedAt;
       setClock(t);
       if (replay.lastT !== null) {
-        const windowMs = chainWindowMs(replay.links + 1);
+        const windowMs = chainWindowMs(replay.links + 1, data ?? undefined);
         const left = windowMs - (t - replay.lastT);
         if (left <= 0) {
           finish("momentum", taps);
@@ -220,17 +219,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
 
   if (!data || !replay) return null;
   const links = replay.links;
-  const boardIndex = chainBoardIndex(links);
+  const rules = chainRules(data);
+  const boardIndex = chainBoardIndex(links, data);
   const board = data.boards[boardIndex] ?? [];
   const used = new Set(replay.used[boardIndex] ?? []);
   const path = replay.used[boardIndex] ?? [];
   const broken = ended === "wrong" || ended === "momentum";
   const over = Boolean(ended) || locked;
   // The ring sits on the last linked node; after a reshuffle it follows that slot.
-  const lastSlot = replay.used[chainBoardIndex(Math.max(0, links - 1))]?.at(-1) ?? null;
-  const windowMs = chainWindowMs(links + 1);
+  const lastSlot = replay.used[chainBoardIndex(Math.max(0, links - 1), data)]?.at(-1) ?? null;
+  const windowMs = chainWindowMs(links + 1, data);
   const left = replay.lastT === null ? 1 : (windowMs - (clock - replay.lastT)) / windowMs;
-  const tier = links >= CHAIN_FASTER_AT[1] ? 2 : links >= CHAIN_FASTER_AT[0] ? 1 : 0;
+  const tier = links >= (rules.fasterAt[1] ?? Infinity) ? 2 : links >= (rules.fasterAt[0] ?? Infinity) ? 1 : 0;
 
   const tap = (nodeId: number) => {
     if (over) return;
@@ -249,11 +249,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
     setPulse(nodeId);
     setTimeout(() => setPulse((current) => (current === nodeId ? null : current)), 180);
     const made = links + 1;
-    if ((CHAIN_FASTER_AT as readonly number[]).includes(made)) {
+    if (rules.fasterAt.includes(made)) {
       setFaster(true);
       setTimeout(() => setFaster(false), 900);
     }
-    if (made >= CHAIN_LENGTH) finish("complete", nextTaps);
+    if (made >= rules.length) finish("complete", nextTaps);
   };
 
    const cycle = chainCycleAt(data, links);
@@ -272,7 +272,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
         <span key={links} className={`inline-block ${links > 0 ? "animate-scale-in" : ""} text-primary`}>
           {links}
         </span>
-        <span className="text-muted-foreground"> / {CHAIN_LENGTH}</span>
+        <span className="text-muted-foreground"> / {rules.length}</span>
       </p>
       <div data-play-area className={`relative min-h-0 w-full flex-1 ${broken ? "animate-shake" : ""}`}>
         <ChainLine nodes={board} path={path} broken={broken} />
@@ -349,7 +349,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2">
       <p className="font-mono text-3xl font-bold">
-        {replay.links} / {CHAIN_LENGTH}
+        {replay.links} / {chainRules(puzzle).length}
       </p>
       <p className="whitespace-normal break-words text-center font-mono text-sm">
         {ending}

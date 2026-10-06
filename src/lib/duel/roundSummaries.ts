@@ -1,3 +1,4 @@
+import { chainRules } from "./chain";
 import { crossLine } from "@/lib/duel/crossLine";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import {
@@ -55,8 +56,6 @@ import {
 } from "./types";
 import { BOMB_TIME_MS, SAFE_DIALS, SAFE_TIME_MS, TUBES_COLOURS, TUBES_TIME_MS } from "./types";
 import {
-  CHAIN_LENGTH,
-  CHAIN_LINK_POINTS,
   CHAIN_TIME_MS,
   GRAV_TIME_MS,
   INTRUDER_BOARDS,
@@ -928,6 +927,7 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
 const chainSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "chain") return { summary: "—", detail: [] };
   const links = Number(result.extra?.["links"] ?? 0);
+  const rules = chainRules(puzzle);
   const reason = String(result.extra?.["reason"] ?? "timer");
   const ending =
     reason === "complete"
@@ -938,8 +938,8 @@ const chainSummary: SummaryBuilder = (result, puzzle) => {
           ? `Broken at link ${links + 1} — too slow`
           : "Time ran out";
   return {
-    summary: `${links} / ${CHAIN_LENGTH} links · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: [ending, `${CHAIN_LINK_POINTS} per link · ${CHAIN_LENGTH} links = 150`],
+    summary: `${links} / ${rules.length} links · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: [ending, `${rules.points} per link${rules.bonus ? ", rounded down" : ""} · ${rules.length} links = ${rules.length * rules.points}${rules.bonus ? ` + up to ${rules.bonus} for speed` : ""}`],
   };
 };
 

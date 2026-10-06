@@ -1,7 +1,7 @@
 /**
  * Server-only generation for Don't Break the Chain.
  *
- * A new seeded shape-and-colour cycle for each of six boards of 20 nodes (one per
+ * A new seeded shape-and-colour cycle for each of eight boards of 20 nodes (one per
  * block of five links). Every board holds exactly the nodes its five links need,
  * plus near-miss decoys: for each rule item, nodes sharing its shape but not its
  * colour and its colour but not its shape. Positions are Poisson-disc scattered.
@@ -11,6 +11,7 @@ import { randInt } from "./random";
 import { chainRequired } from "./chain";
 import {
   CHAIN_BLOCK,
+  CHAIN_RULES_VERSION,
   CHAIN_BOARDS,
   CHAIN_BOARD_H_PX,
   CHAIN_BOARD_W_PX,
@@ -173,5 +174,5 @@ export function generateChain(seed = randInt(0, 0x7fffffff)): ChainPuzzleData {
       return { ...point, ...face };
     });
   });
-  return { type: "chain", seed, cycle: cycles[0] ?? [], cycles, boards };
+  return { type: "chain", rulesVersion: CHAIN_RULES_VERSION, seed, cycle: cycles[0] ?? [], cycles, boards };
 }

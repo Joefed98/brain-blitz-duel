@@ -1,3 +1,8 @@
+## Chain forty-link update (Oct 6, 13:53)
+- [x] New rounds use 40 links, eight seeded boards, the requested momentum bands and 3.5-point/140-plus-10 scoring. Stored unversioned 30-link boards retain five-point scoring, original momentum and completion at 30; no database rows regraded.
+- [x] Refreshed shape-template intro SCORE, question-mark formulas and rule-aware reveal facts; old Chain demos rejected. Link-code/timer geometry unchanged.
+- [x] 200/200 seeded Chain replay regressions, 12,400 old 30-link full/partial grades and legacy timing checks, all 45,001 finish-bonus values, intro/help assertions and 1,410 generated stored-score reveal fixtures pass; preview build OK. Database read found 10 historical Chain rows, all pre-tap-log puzzle shapes: zero stored 30-link tap-log rows exist to replay. Historical-row replay verification is therefore unavailable, not claimed; no browsers or identity proofs.
+
 ## Six-game scoring update (Oct 6, 13:44)
 - [x] Updated six scoring formulas and Ball Track's 30-ball/103-tick schedule (last release 49.8 s); regenerated 400 proven courses and practice fallback.
 - [x] Refreshed shape-template intro SCORE, question-mark formulas, reveal facts and stale summary text; rejected old Ball Track demo by queue shape, other five remain valid. Rally's existing points text rounds down; artwork unchanged.

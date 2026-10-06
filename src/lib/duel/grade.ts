@@ -729,7 +729,7 @@ export function gradeSubmission(
       isCorrect = replay.reason === "complete";
       correctCount = replay.links;
       errors = replay.reason === "wrong" ? 1 : 0;
-      score = scoreChain(replay.links);
+      score = scoreChain(replay.links, ms, puzzle);
       extraDetail = {
         links: replay.links,
         reason: replay.reason,

@@ -1,3 +1,4 @@
+import { chainDemoCompatible } from "./chain";
 import { createServerFn } from "@tanstack/react-start";
 
 import type { PuzzleData } from "./types";
@@ -46,6 +47,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "laser" && demo?.puzzle.type === "laser" && demo.puzzle.splitterPieces !== 1) return null;
     // Old Ball Track queues and release timings cannot replay the current run.
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== BT_BALLS) return null;
+    if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
     return demo;
   });
 

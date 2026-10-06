@@ -9,6 +9,10 @@ import {
   CHAIN_BLOCK,
   CHAIN_CYCLE,
   CHAIN_LENGTH,
+  CHAIN_LINK_POINTS,
+  CHAIN_FINISH_BONUS,
+  CHAIN_RULES_VERSION,
+  CHAIN_FASTER_AT,
   CHAIN_MOMENTUM_MS,
   CHAIN_TIME_MS,
   type ChainBreak,
@@ -23,7 +27,7 @@ export function chainRequired(cycle: ChainRuleItem[], links: number): ChainRuleI
 
 /** Stored per-board rule, with the original rule retained for older rounds. */
 export function chainCycleAt(puzzle: ChainPuzzleData, links: number): ChainRuleItem[] {
-  return puzzle.cycles?.[chainBoardIndex(links)] ?? puzzle.cycle;
+  return puzzle.cycles?.[chainBoardIndex(links, puzzle)] ?? puzzle.cycle;
 }
 
 /** Each new board starts its new cycle at the first symbol. */
@@ -35,15 +39,47 @@ export function chainRequiredAt(puzzle: ChainPuzzleData, links: number): ChainRu
   return chainRequired(chainCycleAt(puzzle, links), chainRuleStep(puzzle, links));
 }
 
-/** Momentum window (ms) for making link `link` (1-based) after the one before. */
-export function chainWindowMs(link: number): number {
-  for (const band of CHAIN_MOMENTUM_MS) if (link <= band.upTo) return band.ms;
-  return CHAIN_MOMENTUM_MS[CHAIN_MOMENTUM_MS.length - 1]!.ms;
+/** Resolve old rounds from their stored board count, never today's constants. */
+export function chainRules(puzzle?: ChainPuzzleData) {
+  const legacyLength = puzzle && puzzle.rulesVersion !== CHAIN_RULES_VERSION
+    ? puzzle.boards.length * CHAIN_BLOCK : 0;
+  if (legacyLength === 25 || legacyLength === 30) {
+    return {
+      length: legacyLength,
+      points: legacyLength === 25 ? 6 : 5,
+      bonus: 0,
+      bands: [{ upTo: 10, ms: 3000 }, { upTo: 18, ms: 2500 }, { upTo: legacyLength, ms: 2000 }],
+      fasterAt: [10, 18, 26] as readonly number[],
+    };
+  }
+  return { length: CHAIN_LENGTH, points: CHAIN_LINK_POINTS, bonus: CHAIN_FINISH_BONUS,
+    bands: CHAIN_MOMENTUM_MS, fasterAt: CHAIN_FASTER_AT as readonly number[] };
+}
+
+/** Momentum window for the next 1-based link; the first tap is untimed. */
+export function chainWindowMs(link: number, puzzle?: ChainPuzzleData): number {
+  const bands = chainRules(puzzle).bands;
+  for (const band of bands) if (link <= band.upTo) return band.ms;
+  return bands.at(-1)?.ms ?? 2000;
 }
 
 /** The board shown after `links` correct taps. */
-export function chainBoardIndex(links: number): number {
-  return Math.min(Math.floor(links / CHAIN_BLOCK), Math.floor((CHAIN_LENGTH - 1) / CHAIN_BLOCK));
+export function chainBoardIndex(links: number, puzzle?: ChainPuzzleData): number {
+  return Math.min(Math.floor(links / CHAIN_BLOCK), Math.floor((chainRules(puzzle).length - 1) / CHAIN_BLOCK));
+}
+
+/** Shared server-scoring rule, with the original rule for stored rounds. */
+export function chainScore(links: number, msRemaining = 0, puzzle?: ChainPuzzleData): number {
+  const rules = chainRules(puzzle);
+  const count = Math.max(0, Math.min(rules.length, Math.floor(links)));
+  const bonus = count === rules.length
+    ? Math.round(rules.bonus * Math.max(0, Math.min(CHAIN_TIME_MS, msRemaining)) / CHAIN_TIME_MS) : 0;
+  return Math.min(150, Math.floor(rules.points * count) + bonus);
+}
+
+/** Old recordings use the old timing bands and must be recorded again. */
+export function chainDemoCompatible(puzzle: ChainPuzzleData): boolean {
+  return puzzle.rulesVersion === CHAIN_RULES_VERSION && puzzle.boards.length === CHAIN_LENGTH / CHAIN_BLOCK;
 }
 
 const EPSILON = 0.0001;
@@ -137,10 +173,10 @@ export function chainTapVerdict(
   replay: ChainReplay,
   tap: ChainTap,
 ): "ok" | "wrong" | "momentum" {
-  if (replay.lastT !== null && tap.t - replay.lastT > chainWindowMs(replay.links + 1)) {
+  if (replay.lastT !== null && tap.t - replay.lastT > chainWindowMs(replay.links + 1, puzzle)) {
     return "momentum";
   }
-  const board = chainBoardIndex(replay.links);
+  const board = chainBoardIndex(replay.links, puzzle);
   const node = puzzle.boards[board]?.[tap.node];
   const need = chainRequiredAt(puzzle, replay.links);
   if (!node || !need) return "wrong";
@@ -163,11 +199,11 @@ export function replayChain(puzzle: ChainPuzzleData, answer: ChainAnswer): Chain
       replay.over = true;
       break;
     }
-    const board = chainBoardIndex(replay.links);
+    const board = chainBoardIndex(replay.links, puzzle);
     (replay.used[board] ??= []).push(tap.node);
     replay.links += 1;
     replay.lastT = tap.t;
-    if (replay.links >= CHAIN_LENGTH) {
+    if (replay.links >= chainRules(puzzle).length) {
       replay.reason = "complete";
       replay.over = true;
     }
