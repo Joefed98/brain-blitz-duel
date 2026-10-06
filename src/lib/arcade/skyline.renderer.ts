@@ -6,12 +6,17 @@
 import { px, type CanvasSize } from "./engine";
 import { skylineGame, SKYLINE_BLOCK_H, SKYLINE_MIN_ZOOM, SKYLINE_PERFECT_GROW, SKYLINE_WORLD_H, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
 import { artHash, reducedMotion } from "./art.renderer";
-import { realClock, realCloud, realMemo, realNow, realSky, REAL_GOLD, REAL_INK, REAL_SHADOW } from "./realworld.renderer";
+import { realMemo, realNow, realNightSky, REAL_GOLD, REAL_SHADOW, REAL_NIGHT_BG, REAL_NIGHT_TEXT, REAL_LAMP, REAL_LAMP_WASH } from "./realworld.renderer";
 
 /** City glass tints, cycled per level. */
 const GLASS = ["#7FB3D5", "#9CC9C2", "#A9B8D8", "#8FBCE0", "#B5C7D3", "#7FA8C9", "#A4C4B4", "#98AEC8"];
-const STEEL = "#4A5563";
-const STEEL_LIGHT = "#6B7684";
+const STEEL = "#788DA4";
+const STEEL_LIGHT = "#A9BED0";
+const TOWER_DARK = "#131D2C";
+const TOWER_NEAR = "#202C3D";
+const WINDOW_LIGHT = "#C8B981";
+const PANE_GLOW = "rgba(216,243,255,0.18)";
+const GROUND = "#424F60";
 const JIB_Y = 30;
 const CHUNK_MS = 900;
 const SPARK_TICKS = 18;
@@ -58,18 +63,21 @@ const BACKDROP = [
 function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: number): void {
   const k = 1 - (1 - zoom) * 0.2;
   ctx.save();
-  ctx.globalAlpha = 0.38;
+  ctx.globalAlpha = 0.65;
   ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H + scroll * 0.2 * zoom);
   ctx.scale(k, k);
   ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H);
-  ctx.fillStyle = "#B9C9D8";
+  ctx.fillStyle = TOWER_DARK;
   for (const [x, w, h] of BACKDROP) ctx.fillRect(x - 40, SKYLINE_WORLD_H - h, w - 2, h);
-  ctx.fillStyle = "#A3B5C7";
+  ctx.fillStyle = TOWER_NEAR;
   for (const [x, w, h] of BACKDROP) ctx.fillRect(x + 15, SKYLINE_WORLD_H - h * 0.6, w - 4, h * 0.6);
-  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.fillStyle = WINDOW_LIGHT;
+  ctx.globalAlpha = 0.24;
   for (const [x, w, h] of BACKDROP) {
     for (let wy = SKYLINE_WORLD_H - h * 0.6 + 8; wy < SKYLINE_WORLD_H - 6; wy += 14) {
-      for (let wx = x + 19; wx < x + 15 + w - 8; wx += 8) ctx.fillRect(wx, wy, 3, 5);
+      for (let wx = x + 19; wx < x + 15 + w - 8; wx += 8) {
+        if (artHash(wx, wy) % 3 !== 0) ctx.fillRect(wx, wy, 3, 5);
+      }
     }
   }
   ctx.restore();
@@ -82,6 +90,8 @@ function drawBlock(ctx: CanvasRenderingContext2D, x: number, top: number, w: num
   const inset = 3;
   const panes = Math.max(1, Math.round((w - inset * 2) / 16));
   const pw = (w - inset * 2) / panes;
+  for (let p = 0; p < panes; p++) ctx.fillRect(x + inset + p * pw + 1, top + inset + 2, pw - 2, h - inset * 2 - 4);
+  ctx.fillStyle = PANE_GLOW;
   for (let p = 0; p < panes; p++) ctx.fillRect(x + inset + p * pw + 1, top + inset + 2, pw - 2, h - inset * 2 - 4);
   ctx.fillStyle = "rgba(255,255,255,0.28)";
   for (let p = 0; p < panes; p++) ctx.fillRect(x + inset + p * pw + 1, top + inset + 2, Math.max(1, (pw - 2) * 0.3), h - inset * 2 - 4);
@@ -104,8 +114,17 @@ function drawCrane(ctx: CanvasRenderingContext2D, trolleyX: number, tick: number
   }
   ctx.stroke();
   // Trolley.
-  ctx.fillStyle = REAL_INK;
+  ctx.fillStyle = STEEL_LIGHT;
   ctx.fillRect(trolleyX - 8, JIB_Y + 11, 16, 5);
+  ctx.fillStyle = REAL_LAMP_WASH;
+  ctx.beginPath();
+  ctx.moveTo(trolleyX, JIB_Y + 16);
+  ctx.lineTo(trolleyX - 65, JIB_Y + 145);
+  ctx.lineTo(trolleyX + 65, JIB_Y + 145);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = REAL_LAMP;
+  ctx.fillRect(trolleyX - 4, JIB_Y + 16, 8, 3);
   void tick;
 }
 
@@ -115,10 +134,9 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
   const offsetY = (size.height - SKYLINE_WORLD_H * scale) / 2;
   const blockH = px(SKYLINE_BLOCK_H);
   const mem = remember(ctx, state);
-  const t = realClock();
 
   ctx.save();
-  realSky(ctx, 0, 0, size.width, size.height, true);
+  realNightSky(ctx, size.width, size.height);
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 
@@ -131,13 +149,6 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
   const visibleH = SKYLINE_WORLD_H / zoom;
   const camScroll = Math.max(0, towerH + blockH - visibleH * 0.5);
 
-  // Clouds drift slowly (frozen under reduced motion).
-  for (let c = 0; c < 4; c++) {
-    const h = artHash(c, 41);
-    const span = SKYLINE_WORLD_W + 160;
-    const x = ((h % span) + t * (6 + (h % 5))) % span - 80;
-    realCloud(ctx, x, 70 + c * 55 + ((h >>> 8) % 30), 22 + ((h >>> 4) % 14), 0.8);
-  }
   drawBackdrop(ctx, zoom, camScroll);
 
   ctx.save();
@@ -146,7 +157,7 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
   ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H + camScroll);
 
   // Ground slab under the base.
-  ctx.fillStyle = "#8C8F94";
+  ctx.fillStyle = GROUND;
   ctx.fillRect(-SKYLINE_WORLD_W, SKYLINE_WORLD_H, SKYLINE_WORLD_W * 3, 400);
 
   state.blocks.forEach((block, index) => {
@@ -169,7 +180,7 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
     const bw = px(state.w);
     hookX = bx + bw / 2;
     // Cable and slings from far above down to the hook.
-    ctx.strokeStyle = REAL_INK;
+    ctx.strokeStyle = STEEL_LIGHT;
     ctx.lineWidth = 1.5 / zoom;
     ctx.beginPath();
     ctx.moveTo(hookX, hangTop - 4000);
@@ -223,7 +234,7 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
   drawCrane(ctx, (hookX - SKYLINE_WORLD_W / 2) * zoom + SKYLINE_WORLD_W / 2, state.tick);
 
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = REAL_INK;
+  ctx.fillStyle = REAL_NIGHT_TEXT;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`Blocks ${state.placed}`, 12, 12);
@@ -236,4 +247,4 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
 }
 
 export const skylineArtGame = { ...skylineGame, draw: drawSkylineArt };
-export const SKYLINE_ART_BG = "#BFDDF2";
+export const SKYLINE_ART_BG = REAL_NIGHT_BG;
