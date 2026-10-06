@@ -70,6 +70,17 @@ const risks: Record<string, string> = {
 const window = new Window();
 const root = window.document.createElement("div");
 window.document.body.append(root);
+// Exercise measured branches with explicit geometry, not a pretend layout engine.
+root.innerHTML = '<div class="grid"><div data-cell="0" class="rounded-lg bg-primary ring-2 ring-primary font-mono">7</div></div><button class="h-9">Undo</button><svg class="absolute" viewBox="0 0 100 100"><polyline points="10,10 30,10" stroke="var(--primary)" /></svg>';
+for (const node of root.querySelectorAll("[data-cell], button")) {
+  node.getBoundingClientRect = () => ({ x: node.tagName === "BUTTON" ? 100 : 0, y: 0, left: node.tagName === "BUTTON" ? 100 : 0, top: 0, right: node.tagName === "BUTTON" ? 136 : 50, bottom: node.tagName === "BUTTON" ? 36 : 50, width: node.tagName === "BUTTON" ? 36 : 50, height: node.tagName === "BUTTON" ? 36 : 50, toJSON: () => ({}) });
+}
+applyPuzzleSurfaces(root as unknown as HTMLElement, "wordhunt");
+assert.equal(root.querySelector("[data-cell]")?.getAttribute("data-puzzle-state"), "selected");
+assert.equal(root.querySelector("button")?.getAttribute("data-puzzle-hit"), "halo");
+assert.equal(root.querySelector("button")?.getAttribute("aria-label"), "Undo");
+assert.equal(root.querySelector("polyline")?.getAttribute("data-puzzle-path"), "true");
+assert.equal(root.querySelector("polyline")?.getAttribute("points"), "10,10 30,10");
 let phases = 0;
 for (const [key, definition] of active) {
   const type = key as PuzzleType;
@@ -79,7 +90,6 @@ for (const [key, definition] of active) {
     window.happyDOM.setWindowSize({ width, height });
     const phaseCounts: string[] = [];
     for (const phase of ["live", "intro", "reveal"] as const) {
-      const Component = phase === "reveal" ? definition.Reveal : definition.Stage;
       const stageProps = { puzzle: pub, phaseStartedAt: 0, now: 0, locked: false, onSubmit: () => undefined, onDraftAnswer: () => undefined, stateKey: `surface-audit-${key}`, checkWord: async (word: string) => ({ word, valid: false, points: 0 }) };
       const revealProps = { puzzle: full, myAnswer: null, myCorrect: false, myReactionAvgMs: null, timeLimitMs: definition.timeLimitMs ?? 60000 };
       // Type-specific props remain in the unmodified component. A component union needs split rendering.
