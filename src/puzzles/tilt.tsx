@@ -1,3 +1,5 @@
+import { tiltArtGame } from "@/lib/arcade/tiltArt.renderer";
+import { tiltSounds } from "@/lib/fx/gameSounds";
 import { useRef } from "react";
 
 import {
@@ -49,7 +51,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       worldW={TILT_WORLD_W}
       worldH={TILT_WORLD_H}
       renderAtCanvasSize
-      game={tiltGame}
+      game={tiltArtGame}
+      sounds={tiltSounds}
       checkpoint={tiltCheckpoint}
       interval={TILT_CHECKPOINT_INTERVAL}
       encodeRun={encodeTiltRun}

@@ -15,6 +15,8 @@ import type { RallyState } from "@/lib/arcade/rally";
 import type { BurstState } from "@/lib/arcade/burst";
 import { BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_THROWS, type BinTossState } from "@/lib/arcade/binToss";
+import type { TiltState } from "@/lib/arcade/tilt";
+import type { BtState } from "@/lib/arcade/ballTrack";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
 
 export interface GameSounds<S> {
@@ -286,5 +288,69 @@ export function bullseyeSounds(): GameSounds<BullseyeState> {
       prev = state;
     },
     stop: () => {},
+  };
+}
+
+/* ================================ Toybox world =============================== */
+
+const ROLL_VOLUME = 0.14;
+const KNOCK_GAP_MS = 80;
+
+/** Wood knock on ball-to-wall contact, at most one per 80 ms. */
+function toyKnock() {
+  let lastAt = -Infinity;
+  return () => {
+    const now = typeof performance === "undefined" ? 0 : performance.now();
+    if (now - lastAt < KNOCK_GAP_MS) return;
+    lastAt = now;
+    playSound("arc_wood_knock", 0.7, 1, true);
+  };
+}
+
+/** Quiet marble-roll loop while the player's ball moves. */
+function toyRoll(moving: boolean) {
+  if (moving) ensureLoop("arc_marble_roll", ROLL_VOLUME);
+  else stopLoop("arc_marble_roll");
+}
+
+/** Speed (1/256 px a tick) above which a stop against a wall counts as a knock. */
+const TILT_KNOCK_SPEED = 100;
+const TILT_ROLL_SPEED = 40;
+
+export function tiltSounds(): GameSounds<TiltState> {
+  let prev: TiltState | null = null;
+  const knock = toyKnock();
+  return {
+    frame(state, running) {
+      toyRoll(running && Math.abs(state.vx) + Math.abs(state.vy) > TILT_ROLL_SPEED);
+      if (prev && state.tick > prev.tick) {
+        if (state.caught && !prev.caught) playSound("arc_crash");
+        if (state.mazes > prev.mazes) playSound("arc_marble_clink");
+        else if (state.level === prev.level) {
+          if (state.gate && !prev.gate) playSound("arc_latch");
+          const hitX = Math.abs(prev.vx) > TILT_KNOCK_SPEED && state.vx === 0;
+          const hitY = Math.abs(prev.vy) > TILT_KNOCK_SPEED && state.vy === 0;
+          if (hitX || hitY) knock();
+        }
+      }
+      prev = state;
+    },
+    stop: () => stopLoop("arc_marble_roll"),
+  };
+}
+
+export function ballTrackSounds(): GameSounds<BtState> {
+  let prev: BtState | null = null;
+  return {
+    frame(state, running) {
+      toyRoll(running && state.balls.some((b) => b.cell >= 0));
+      if (prev && state.tick > prev.tick) {
+        if (state.home > prev.home) playSound("arc_marble_clink");
+        if (state.wrong > prev.wrong) playSound("arc_wood_knock");
+        if (state.actions > prev.actions) playSound("arc_latch", 0.8, 1, true);
+      }
+      prev = state;
+    },
+    stop: () => stopLoop("arc_marble_roll"),
   };
 }

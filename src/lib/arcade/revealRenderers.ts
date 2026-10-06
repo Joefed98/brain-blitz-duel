@@ -29,7 +29,8 @@ import { burstArtGame as burstGame } from "./burst.renderer";
 import { orbitArtGame as orbitGame } from "./orbit.renderer";
 import { swingArtGame as swingGame } from "./swing.renderer";
 import { drawSnip, snipCamera, SNIP_CONFIG, SNIP_H, type SnipState } from "./snip";
-import { tiltGame } from "./tilt";
+import { tiltArtGame as tiltGame } from "./tiltArt.renderer";
+import { btArtDraw } from "./ballTrackArt.renderer";
 import { btDraw, BT_H, BT_W, type BtState } from "./ballTrack";
 import { whackGame } from "./whack";
 import { clayGame, CLAY_H, CLAY_W } from "./clayShoot";
@@ -157,7 +158,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     drawFinal: (ctx, puzzle, answer) => {
       if (puzzle.type !== "balltrack") return null;
       const state = replayBallTrackRun(puzzle.course, puzzle.seed, answer).state as BtState;
-      btDraw(ctx, puzzle.course, state);
+      btArtDraw(ctx, puzzle.course, state);
       return null;
     },
   },
