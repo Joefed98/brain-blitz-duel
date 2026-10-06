@@ -1,3 +1,8 @@
+## Five renderer-only updates (Oct 6, 15:40)
+- [ ] Slice meat/cabbage/onion and matching cut faces/particles; gold segmented combo-state readout.
+- [ ] Ink Bridge hill meets stationary pot; Orbit hazard-path gaps; Breaker light-green laser and markers.
+- [ ] Native drawing checks and protected-source fingerprints; no browsers, identity proofs or gameplay changes.
+
 ## Snip orchard and shared countryside (Oct 6, 15:34)
 - [x] Extracted unchanged Ink Bridge backdrop/clouds; cached orchard apple/basket/gold leaf/canopy/stone walls/fence rails, exact existing geometry/camera and non-sea sounds. Ink Bridge gameplay objects unchanged.
 - [x] Nine exact native PNG parity checks, circular sprite bounds, full platform rectangles and zero warm-frame allocations pass. Level-10 DPR-2 draw median 0.061–0.068ms, p95 0.114–0.193ms; Snip now has shared accepted-key FPS/frame/p95/Draw/work readout. All 507 protected source files unchanged; preview build OK. No browsers or identity proof.
