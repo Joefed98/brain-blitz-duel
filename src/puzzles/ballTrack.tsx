@@ -24,9 +24,10 @@ import {
 } from "@/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { BALLTRACK_TIME_MS, type BallTrackPuzzleData } from "@/lib/duel/types";
-import { playCorrect, playTick, playWrong } from "@/lib/sound";
+import { playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
-import { btDraw } from "@/lib/arcade/ballTrack";
+import { btArtDraw } from "@/lib/arcade/ballTrackArt.renderer";
+import { ballTrackSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -129,6 +130,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = ballTrackSounds();
     let seenHome = 0;
     let seenBad = 0;
     let shuffled = 0;
@@ -153,17 +155,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
       }
       const s = state.current;
-      if (s.home > seenHome) {
-        seenHome = s.home;
-        playCorrect();
-      }
+      sounds.frame(s, !game.isOver(s) && !lockedRef.current);
+      if (s.home > seenHome) seenHome = s.home;
       const bottomEvents = (s.tick >= course.relay.tick ? 1 : 0) + (s.tick >= course.shuffle.tick ? 1 : 0);
       if (bottomEvents > shuffled) {
         shuffled = bottomEvents;
         playTick();
       }
-      if (s.wrong + s.lost > seenBad) {
-        seenBad = s.wrong + s.lost;
+      // Wrong trays knock (sound observer); only lost balls keep the miss cue.
+      if (s.lost > seenBad) {
+        seenBad = s.lost;
         playWrong();
       }
       const key = `${s.home}|${s.wrong}|${s.next}`;
@@ -189,7 +190,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           ctx.clearRect(0, 0, w, h);
           ctx.translate(v.ox, v.oy);
           ctx.scale(v.scale, v.scale);
-          btDraw(ctx, course, s, game.rotatable);
+          btArtDraw(ctx, course, s, game.rotatable);
         }
       }
       if (!submitted.current && time - draftAt >= 500) {
@@ -202,7 +203,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
     };
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => { cancelAnimationFrame(frame); sounds.stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game, seed]);
 
@@ -238,7 +239,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const cell = row * BT_COLS + col;
           if (!game.rotatable.has(cell)) return;
           push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
-          playTick();
         }}
       >
         <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
