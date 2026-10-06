@@ -93,9 +93,9 @@ const ENTRIES = {
   prepareToDuel: { channel: "voice", frequency: 440, ms: 180, url: null },
   finalRound: { channel: "voice", frequency: 520, ms: 180, url: null },
   gg: { channel: "voice", frequency: 660, ms: 220, url: null },
-  lobby_loop: { channel: "music", frequency: 0, ms: 0, url: null },
-  standings_loop: { channel: "music", frequency: 0, ms: 0, url: null },
-  podium_loop: { channel: "music", frequency: 0, ms: 0, url: null },
+  lobby_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f7966f98-a5dc-4c2a-8d1f-9192430a4643/lobby_loop.wav" },
+  standings_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f2f3b307-5cd4-4afa-98bf-fc713858e9e2/standings_loop.wav" },
+  podium_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/79c1e447-45cd-4f9e-8362-ec438e509d49/podium_loop.wav" },
   tension_loop: { channel: "music", frequency: 0, ms: 0, url: null },
 } satisfies Record<string, { channel: "effects" | "voice" | "music"; frequency: number; ms: number; url: string | null }>;
 export type SoundId = keyof typeof ENTRIES;
