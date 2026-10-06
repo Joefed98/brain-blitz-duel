@@ -16,3 +16,8 @@
 - Bomb Defusal masks are recomputed per panel because many rule predicates read the panel; why: caching by rule text across panels gives wrong uniqueness proofs.
 - Number Pyramid stores one bank entry as four public boards plus private solutions and submits all four placement maps with the active index; why: skipped boards and current-board partial credit must grade identically on the server.
 - Ball Track uses a shared serpentine toggle sim with course-driven fixed bottom-row interception and occupied-tile locks; its server-only bank proves every tray has an upper-routing alternative and every ball gets home; why: drawing, generator and replay must agree without exposing playbooks.
+- Trail uses shared sequential tap/last-player undo helpers and contiguous legal drag prefixes while retaining numbered-slot decoding for old answers; why: mixed gestures must share one sequence without changing independent tile grading.
+- Chain shares versioned length, points and timing across generation, display and replay; unversioned boards retain legacy rules/cycles. Why: never regrade old rounds.
+- Tile Grid uses tileGridWordCells for client verdict-based counting and server dictionary-based counting; why: crossing tiles and changing runs must grade and display consistently without shipping the dictionary.
+- Colour Clash draws spawn lanes from state PRNG using shared lane-count constants; Count Up recomputes truth from stored scenes; why: deterministic server verification.
+- Logic grids use container sizing and cell-owned strokes/clipped labels; Shikaku/Light Up prove uniqueness. Flood draws a private bank with exact in-band par proofs; no fallback. Why: aligned geometry.

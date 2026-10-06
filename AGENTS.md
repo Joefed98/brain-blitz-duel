@@ -10,26 +10,16 @@
 <!-- LOVABLE:END -->
 
 - ArrowPad owns device-local arrows/joystick preference and reserved full-width control tracks; why: consistent modes without overlaps.
-- Trail uses shared sequential tap/last-player undo helpers and contiguous legal drag prefixes while retaining numbered-slot decoding for old answers; why: mixed gestures must share one sequence without changing independent tile grading.
-- Chain shares versioned length, points and timing across generation, display and replay; unversioned boards retain legacy rules/cycles. Why: never regrade old rounds.
-- *.renderer.ts owns art and lazy Burst/comet sprite/glow/scanline caches; arcade loops share frame timing, comet taper keeps its full-cell envelope, sparks use shared caps. Why: fast, readable art, unchanged replay.
-- Cross counters use crossTotalLanes; Flip curves use flipSurfaceLine with exterior-only pools/decoration and silhouette/runner-box clips; pool-death sinks use per-canvas presentation clocks, never sim ticks or input holds; why: scores and collision geometry remain authoritative while frozen deaths can animate.
-- Gameplay holds run inside the shared simulation and HUDs read their derived hold state; why: inputs, timeouts and replay must stay synchronized without pausing the client clock.
-- Player-selected arcade checkpoints use validated recorded inputs and retained selection counters, with HUD availability derived from sim state; why: the server replay must enforce one-use selection and preserve result facts.
-- Arcade bend ramps use shared integer control points and integrated phase rather than resetting oscillators; why: sim, play rendering and saved-run rendering must agree without discontinuities.
 - AcceptedWordChip owns the reserved confirmation row for word-entry boards, sized by the remaining board region; why: accepted words must not move or cover controls.
 - StageCorrect owns the fixed confirmation slot and persisted presentation-only hold deadline for staged puzzles; why: intermediate solved boards stay visible without pausing the shared round clock.
-- Tile Grid uses tileGridWordCells for client verdict-based counting and server dictionary-based counting; why: crossing tiles and changing runs must grade and display consistently without shipping the dictionary.
 - PhoneShell/GameLayout own equal round geometry; chat stays outside play/reveal, Stage omits repeated hints. Why: room/practice parity.
 - Game screens follow the `.game-column` rule: top-anchored 100%-height column, stages mark `data-stage-column`/`data-game-arena`/`data-game-controls`, the capped arena is the only flexible item and controls sit 12px below it; legacy demos keep old layout via `GameColumnLayout`/log revision. Why: controls never drift down with dead space above.
 - Directional game controls use the shared press-safe button so pointer holds cannot trigger selection, callouts, or context menus.
 - All word games (Wordsmith, Word Hunt, Word Ladder, Tile Grid, Word Slide) check words through the one server-only SCOWL British English list behind dictionary.server.ts; why: one consistent dictionary that never reaches a device.
-- Colour Clash draws spawn lanes from state PRNG using shared lane-count constants; Count Up recomputes truth from stored scenes; why: deterministic server verification.
 - RoundIntro renders optional definition `introLine(puzzle)`; why: fixed examples stay fixed while puzzle-specific facts still show.
 - TimerBar is the only countdown: accent ring in its existing 20px slot; PhoneShell owns 4px side safety; why: preserve board space.
 - Memory stays out of room settings/draws; practice uses allTypesInCategory to retain its games.
 - Retire types via RETIRED_TYPES; why: room draws filter it, practice does not.
-- Logic grids use container sizing and cell-owned strokes/clipped labels; Shikaku/Light Up prove uniqueness. Flood draws a private bank with exact in-band par proofs; no fallback. Why: aligned geometry.
 - Square puzzle arenas use container-sized squares and SVG viewBoxes with coordinate conversion for scaled input; why: boards must remain centred, square and correctly tappable at every arena size.
 - The answer reveal shows only the server-stored round score (AnswerReveal's StoredScore, "Scoring…" until it lands); puzzle Reveals must never compute or print a score; scripts/reveal-score-check.tsx guards this. Why: local maths drifted from server scoring.
 - RoundIntro exposes Back only in practice; its practice callback cancels the intro and clears run state without grading. Why: leaving an intro must not create results or affect rooms.
@@ -38,6 +28,5 @@
 
 - FX/audio stay outside sims; no untargeted boxes; dev displays require accepted keys. Why: safe feedback.
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
-- Countryside owns backdrop/pot hills; other art stays in renderers. Orbit shares outside-circle belt geometry, swept free-flight collisions and revision-gated demos. Why: safe orbits and identical replay.
 
 - PhoneShell shares paint; WordsmithRing fits octagonal wedges; wordInput owns taps. Wordsmith keeps centre index, size bands and original-band seeded examples. Why: demo compatibility.
