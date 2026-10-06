@@ -1,7 +1,7 @@
 ## Shared red-box bug and fitted Wordsmith letters (Oct 6)
-- [ ] Remove the shared red-box cause; audit recorder/focus/dev layers without changing gameplay.
-- [ ] Fit tripled Wordsmith letter targets to the shared wedge geometry with a small margin and equal centre size.
-- [ ] Run non-browser regressions and confirm protected gameplay unchanged.
+- [x] Cause: FxLayer created untargeted shake/glow outline spans at 10% screen height, coloured red for wrong feedback; removed these globally and their CSS. Recorder already requires example recording and accepted key; intro touch dots are off. Touch focus outlines suppressed, keyboard focus retained. Diagnostics now require a server-accepted key, not dev=1 alone.
+- [x] Wordsmith targets tripled to 312px live/192px example and reveal, capped by actual font glyph bounds against all polygon edges with 1% board margin; equal centre/outer font size, remeasured on resize/font load. Existing geometry, controls and colours retained.
+- [x] Passed shared-box/dev-gate regression, 14 polygon/phase geometry checks, 60 input/phase checks, 336 surface checks and shared FX. 306 protected fingerprints unchanged; only diagnostic display permission changed. Preview build OK; no browsers or identity proofs. Actual appearance/no-scroll awaits user device testing.
 
 ## Reveal marker and dark Wordsmith tuning (Oct 6)
 - [x] Audited all 26 registered engine reveal paths: Hover crash-coloured saucer/tint, Cross hit circle/tint, Junction crash star/flash, Rally crash-coloured ball/tint and Skyline miss tint now use reveal-only suppression; live/demo art and gold finish ring retained. Swerve is not a registered engine reveal.
