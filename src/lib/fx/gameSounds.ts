@@ -408,10 +408,16 @@ const INK_RIVER_FP = 596 * 256;
 
 export function inkBridgeSounds(): GameSounds<InkState> {
   let prev: InkState | null = null;
+  let armed = -1;
   return {
     frame(state) {
       if (prev && state.tick > prev.tick) {
-        if (state.strokeStarts.length > prev.strokeStarts.length) playSound("arc_swoosh", 0.6);
+        // One swoosh per bridge, once its first plank is actually laid.
+        if (state.strokeStarts.length > prev.strokeStarts.length) armed = state.strokeStarts[state.strokeStarts.length - 1]!;
+        if (armed >= 0 && state.segs.length > armed) {
+          playSound("arc_swoosh", 0.6);
+          armed = -1;
+        }
         if (state.flashTick === state.tick || state.flashTick > prev.flashTick) {
           if (state.flashKind === 1) {
             playSound("arc_marble_clink", 0.5, 1.25);
