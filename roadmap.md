@@ -1,8 +1,10 @@
 ## Puzzle input and layout tuning (Oct 6)
-- [ ] Suppress in-game tap/hold highlight, including Beat.
-- [ ] Tap-only Wordsmith ring and fixed intro; inner-60% adjacent Word Hunt dragging/backtracking.
-- [ ] Target/Lights icons, Maze arrows, Rings/Flood control removals, Sudoku box outlines and square Shikaku reveals.
-- [ ] Run input regressions, both-size source/markup geometry audit, reveal check and protected fingerprints; device appearance awaits user.
+- [x] Suppress native tap/hold highlights globally and explicitly on Beat canvas; gameplay input/replay untouched.
+- [x] Shared tap-only Wordsmith ring/fixed intro with Clear/Enter, no typing/drag/shuffle; preserved word verdicts/dropdown/gold chip. Word Hunt strict inner-60% hit boxes, adjacent-only extension/backtrack, one active pointer and cancelled gesture cleanup; drag retained.
+- [x] Centred 44px Target/Lights SVG controls; removed Maze Reset and enlarged separated arrows with shared mode preference; removed Rings Undo/Reset and Flood Undo. Heavy non-scaling Sudoku box outlines; equal square Shikaku tracks and aligned reveals.
+- [x] Revision-gated old coordinate demos for changed controls; new recordings save the revision, old demos fall back to updated static examples.
+- [x] 500 strict-hit samples and 60 phase/size source-SSR audits across 10 games passed; 336 full surface checks, shared FX and 1,410 stored-score checks passed. 198 protected files unchanged; only user-facing help wording changed among sampled lib files. Preview build OK.
+- [ ] Device fit, native hold highlight and drag reliability at 390x700 and 375x667 await user testing. Existing long-list/multi-board internal-scroll reveals remain explicitly uncertified; report in .lovable/audits/puzzle-input-oct6.md.
 
 ## Cross reveal-score investigation (Oct 6)
 - [x] Reproduced 15 false failures: stored 0, component lines 0+0, total 0; check incorrectly required a first-line total.
