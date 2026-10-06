@@ -314,8 +314,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
               </span>
             ))}
           </div>
+        </div>
       )}
-      </div>
     </div>
   );
 }
