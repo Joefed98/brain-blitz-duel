@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import { WordsmithRing, wordsmithGlyphScale } from "../src/components/puzzles/WordsmithRing";
+import { WordsmithRing, wordsmithGlyphScale, WORDSMITH_GLYPH_REDUCTION } from "../src/components/puzzles/WordsmithRing";
 import { miniSudokuPuzzle } from "../src/puzzles/miniSudoku";
 import { shikakuPuzzle } from "../src/puzzles/shikaku";
 import { wordsmithPuzzle } from "../src/puzzles/wordsmith";
@@ -19,6 +19,8 @@ assert.match(backdrop, /<circle[\s\S]*<rect/); // finish position and fallback r
 assert.match(css, /wordsmith-ring-labels[^}]*pointer-events: none/);
 assert.doesNotMatch(css, /\.fx-outline/);
 assert.match(readFileSync("src/components/puzzles/WordsmithRing.tsx", "utf8"), /\? 192 : 312/);
+assert.equal(WORDSMITH_GLYPH_REDUCTION, .7);
+assert.match(css, /wordsmith-ring-glyph-weight[^}]*font-weight: 500/);
 assert.match(readFileSync("src/components/duel/FxLayer.tsx", "utf8"), /event\.primitive === "glow" \|\| event\.primitive === "shake"\) return/);
 assert.match(css, /--wordsmith-paper: var\(--background\)/);
 assert.match(css, /wordsmith-ring-lines line[^}]*stroke: var\(--wordsmith-outline\)/);
@@ -36,6 +38,10 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
   const tiles = [...root.querySelectorAll<HTMLButtonElement>("[data-wordsmith-tile]")];
   assert.equal(tiles.length, 9);
   assert.equal(root.querySelectorAll('[aria-pressed="true"]').length, 2);
+  const glyphs = [...root.querySelectorAll(".wordsmith-ring-label")];
+  assert.equal(glyphs.length, 9);
+  assert.ok(glyphs.every(glyph => glyph.classList.contains("wordsmith-ring-glyph-weight")));
+  assert.ok(glyphs.every(glyph => Number(glyph.getAttribute("font-size")) === 25 * .7));
   const wedgeAreas = tiles.filter(n => !n.classList.contains("wordsmith-ring-centre")).map(n => area(parse(n.style.clipPath)));
   for (const tile of tiles) {
     const polygon = parse(tile.style.clipPath).map(([x = 0, y = 0]) => ({ x, y }));
@@ -106,7 +112,7 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
   assert.ok(font <= cell);
   assert.ok(font * 1.2 <= cell); // two mono digits, each approximately .6em
   rows.push(`| ArcadeReveal | ${width}x${height} | PASS source: crash marker absent; finish circles/fallback unchanged |`);
-  rows.push(`| Wordsmith | ${width}x${height} | PASS shared markup + geometry: regular octagons, equal wedges, nine controls, tripled 312px/192px targets capped by measured glyph fit with 1% board margins and equal centre size; near-black/gold/accent fills unchanged |`);
+  rows.push(`| Wordsmith | ${width}x${height} | PASS shared markup + geometry: regular octagons, equal wedges, nine controls; glyph size is 70% of the previous bold fitted 312px/192px targets, weight 700 to 500 (~71%), equal centre size; outline, tap targets and fills unchanged |`);
   rows.push(`| Mini Sudoku | ${width}x${height} | PASS live/intro/reveal: 36 equal-track cells; heavy strokes are borders of those exact cells, no overlay |`);
   rows.push(`| Shikaku | ${width}x${height} | PASS both individual grids and pair: clipped board/labels, equal tracks; ${pairedWidth}px grid, ${cell.toFixed(2)}px cells, ${font.toFixed(2)}px labels |`);
 }

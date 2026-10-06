@@ -327,6 +327,7 @@ body.game-lock {
   pointer-events: none;
 }
 .wordsmith-ring-labels { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; font-family: var(--font-display); font-weight: 700; }
+.wordsmith-ring-glyph-weight { font-weight: 500; }
 .wordsmith-ring-label { fill: var(--accepted-word-foreground); }
 .wordsmith-ring-label-used { fill: var(--wordsmith-ink); }
 .wordsmith-ring-centre, .wordsmith-ring-centre:hover { background: var(--category-accent); color: var(--accepted-word-foreground); }

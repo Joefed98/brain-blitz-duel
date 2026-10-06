@@ -19,6 +19,7 @@ import { renderToString } from "react-dom/server";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { ARCADE_REVEAL_TYPES, buildArcadeReveal } from "@/lib/arcade/reveal";
 import { crossGame, crossTotalLanes, CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
+import { bubbleGame, bubRemaining } from "@/lib/arcade/bubble";
 import { generatePuzzle, gradeAnswer } from "@/lib/duel/generate.server";
 import { ACTIVE_PUZZLE_TYPES, RETIRED_PUZZLE_TYPES, puzzleDef } from "@/lib/duel/registry";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -56,6 +57,37 @@ for (const [crossings, reached] of [[0, 0], [0, 5], [1, 0], [3, 4], [7, 0]]) {
   console.log(`Cross regression: lanes ${crossTotalLanes(state)}, crossings ${crossings}, stored ${score}; ${reveal.lines.join("; ")}`);
 }
 assert.ok(!crossBreakdownMatches(["1 lanes × 2 = 2", "0 crossings × 4 = 0", "Total → 0 · capped at 150"], 0));
+
+function bubbleBreakdownMatches(extra: Record<string, unknown>, score: number): boolean {
+  const start = Number(extra["startCount"]);
+  const left = Number(extra["bubblesLeft"]);
+  const done = extra["cleared"] === true;
+  const reveal = extra["reveal"] as ReturnType<typeof buildArcadeReveal>;
+  if (!reveal || !Number.isFinite(start) || start <= 0 || !Number.isFinite(left)) return false;
+  const pct = Math.max(0, Math.min(100, Math.round(100 * (start - left) / start)));
+  // Current partial scoring is 130 × fraction cleared, not 150 − 3 × left.
+  // Finished boards keep their existing 130 + time bonus.
+  return reveal.axis.value === (done ? 100 : pct)
+    && reveal.lines[0] === (done ? `Board cleared → 130 · time +${score - 130}` : `${pct}% cleared → ${score}`)
+    && (done || score === Math.max(0, Math.min(130, Math.round(130 * (start - left) / start))));
+}
+
+// Use the real score on partial board snapshots, without replay/identity proofs.
+for (const seed of [17, 29, 53]) {
+  const initial = bubbleGame.init(seed);
+  for (const fractionLeft of [1, .75, .5, .25, .05]) {
+    let left = Math.round(initial.startCount * fractionLeft);
+    const state = { ...initial, grid: initial.grid.map(cell => cell !== 0 && left-- > 0 ? cell : 0) };
+    const score = bubbleGame.score(state);
+    const facts = { popped: initial.startCount - bubRemaining(state), dropped: 0, shots: 3, bubblesLeft: bubRemaining(state), cleared: false, state };
+    const reveal = buildArcadeReveal("bubble", facts, score);
+    assert.ok(reveal);
+    assert.ok(bubbleBreakdownMatches({ ...facts, startCount: initial.startCount, reveal }, score));
+    const flat = buildArcadeReveal("bubble", { ...facts, state: undefined, startCount: initial.startCount }, score);
+    assert.deepEqual(flat, reveal);
+    console.log(`Bubble regression: ${bubRemaining(state)}/${initial.startCount} left, stored ${score}; ${reveal.lines[0]}`);
+  }
+}
 
 function seeded(n: number): () => number {
   let x = n >>> 0 || 1;
@@ -125,6 +157,13 @@ for (const type of [...ACTIVE_PUZZLE_TYPES, ...RETIRED_PUZZLE_TYPES]) {
         if (type === "cross" && reveal) {
           for (const line of reveal.lines) {
             if (!html.includes(line)) failures.push(`${type}: stored breakdown not rendered: "${line}"`);
+          }
+        }
+        if (type === "bubble") {
+          const extra = stored.extra as Record<string, unknown>;
+          if (!bubbleBreakdownMatches(extra, stored.score)) failures.push(`bubble: percentage does not match stored board counters (${stored.score})`);
+          for (const line of reveal?.lines ?? []) {
+            if (!html.includes(line)) failures.push(`bubble: stored breakdown not rendered: "${line}"`);
           }
         }
       }
