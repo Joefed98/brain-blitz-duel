@@ -1,8 +1,8 @@
 ## Wordsmith, Bubble Pop and Bomb Defusal presentation (Oct 6, 13:36)
-- [ ] Reduce shared Wordsmith glyph size and weight to about 70%; preserve all polygons and tap targets.
-- [ ] Trace Bubble Pop stored counters; stop if incorrect, otherwise fix only reveal facts and verify 1,410+ server-graded row fixtures.
-- [ ] Rewrite all Bomb Defusal adjacency clues into explicit first-action/VERY NEXT-action forms; list before/after templates and retain semantics/bank.
-- [ ] Run non-browser checks; confirm protected gameplay files unchanged. Device checks remain with the user.
+- [x] Shared Wordsmith glyphs use 70% of the previous bold fitted size; visible font weight 700→500 (~71%), with the old bold probes retained as the size reference and light probes for centring. Polygons, outlines, centre and tap targets unchanged.
+- [x] Bubble counters are correct: reveal read absent run.startCount instead of run.state.startCount. Reveal-only fallback now supports nested replay state and flat stored facts. All 1,410 server-graded row fixtures and 15 partial-board checks pass. Current score is round(130 × cleared fraction), not 150 − 3 × bubbles left; no applicable 150-minus rule exists here. Historical database rows were not tested or rewritten.
+- [x] Template 16 only: "{X} immediately after {Y}." → "{Y}, then {X} as the VERY NEXT action." All 72 ordered action pairs verified, including both wire/button directions. No straight-after/right-after templates exist. Bank count 40, predicate and generation unchanged; 40 generated panels pass exact wording, uniqueness, necessity, family and pair checks.
+- [x] 14 source/SSR geometry checks at both phone sizes; 321 protected files byte-identical and Bomb's template literal is its sole change. Preview build OK. No browser tests or identity proofs; actual device appearance remains with the user.
 
 ## Ink Bridge rainbow retheme (Oct 6)
 - [x] Cached daylight background, cloud/dispenser, coin, black pot, rainbow meter and per-canvas stroke raster; full 4px red hazards, original 14px coin/64px pot/4px rim/6px stroke geometry. Intro and saved-run art share the new theme.
