@@ -1,3 +1,7 @@
+## Cross reveal-score investigation (Oct 6)
+- [ ] Reproduce the 15 zero-lane failures and trace stored score/breakdown display.
+- [ ] Fix only breakdown/check faults, re-run the full registry, and report before/after without browsers or scoring changes.
+
 ## Shared puzzle surface polish (Oct 6)
 - [x] Add shared presentation scope to all 42 active non-engine games, preserving game source and meaningful colours; specialised glyphs/objects remain exceptions.
 - [x] Run no-browser source/SSR checks and per-game size-labelled audit; rendered fit is explicitly unverified.
