@@ -1,7 +1,8 @@
 ## Slice kitchen retheme (Oct 6)
-- [ ] Replace Slice sea art with full-arena kitchen background, collision-sized foods/condiments/chilli, cut faces and capped particles.
-- [ ] Replace only Slice sea sounds; preserve shared combo.
-- [ ] Check both phone sizes without browsers or identity proofs; verify protected files unchanged and report mapping/caches.
+- [x] Replace Slice sea art with full-arena kitchen background, four collision-sized foods/condiments/chilli, swipe cut faces and capped particles.
+- [x] Replace only Slice sea sounds; preserve shared combo and haptics, remove duplicate correct/wrong audio.
+- [x] Native drawing/size/bounds/cache/motion checks and shared FX passed; protected files unchanged. Mapping/cache report: .lovable/audits/slice-kitchen.md.
+- [ ] Actual phone appearance/no-scroll/audio/performance awaits user device testing; no browsers or identity proofs.
 
 ## Shared red-box bug and fitted Wordsmith letters (Oct 6)
 - [x] Cause: FxLayer created untargeted shake/glow outline spans at 10% screen height, coloured red for wrong feedback; removed these globally and their CSS. Recorder already requires example recording and accepted key; intro touch dots are off. Touch focus outlines suppressed, keyboard focus retained. Diagnostics now require a server-accepted key, not dev=1 alone.
