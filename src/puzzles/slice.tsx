@@ -2,7 +2,7 @@ import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming"
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
-import { drawSliceArt } from "@/lib/arcade/slice.renderer";
+import { drawSliceArt, drawSliceKitchenExample } from "@/lib/arcade/slice.renderer";
 import { sliceSounds } from "@/lib/fx/gameSounds";
 import { useEffect, useRef, useState } from "react";
 
@@ -31,7 +31,6 @@ import {
 import { decodeSliceRun, encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import type { SlicePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -39,20 +38,20 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 /** Fixed intro still: one swipe through three discs. */
 function IntroExample() {
+  const preview = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const ctx = preview.current?.getContext("2d");
+    if (ctx) drawSliceKitchenExample(ctx);
+  }, []);
   return (
     <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 168 120"
+      <canvas
+        ref={preview}
         width={168}
         height={120}
         aria-hidden="true"
         style={{ background: SLICE_BG, borderRadius: 10 }}
-      >
-        <circle cx={44} cy={70} r={13} fill={SLICE_COLOURS[0]} />
-        <circle cx={84} cy={50} r={13} fill={SLICE_COLOURS[1]} />
-        <circle cx={124} cy={72} r={13} fill={SLICE_COLOURS[2]} />
-        <path d="M24 92 L146 40" stroke="rgba(255,255,255,0.8)" strokeWidth={3} />
-      </svg>
+      />
       <p className="text-center text-xs text-muted-foreground">Three in one swipe earns a bonus.</p>
     </div>
   );
@@ -116,7 +115,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const feedback = arcadeFeedback();
     const sounds = sliceSounds();
     let bombs = state.current.bombsHit;
-    let slices = state.current.slices;
 
     const finish = () => {
       if (submitted.current) return;
@@ -156,10 +154,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if (state.current.bombsHit > bombs) {
         bombs = state.current.bombsHit;
         buzz(40);
-        playWrong();
-      } else if (state.current.slices > slices) {
-        slices = state.current.slices;
-        playCorrect();
       }
 
       reportArcadeTick(state.current.tick, sliceGame.isOver(state.current));
