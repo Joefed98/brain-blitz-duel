@@ -5,11 +5,11 @@ No browser tests. PASS means source/SSR and analytic geometry, not measured devi
 | Presentation | Size | Result |
 |---|---|---|
 | ArcadeReveal | 390x700 | PASS source: crash marker absent; finish circles/fallback unchanged |
-| Wordsmith | 390x700 | PASS shared markup + geometry: regular outer/inner octagons, eight equal wedges, area conservation, nine controls, 52px live / 32px example/reveal letters |
+| Wordsmith | 390x700 | PASS shared markup + geometry: regular outer/inner octagons, eight equal wedges, area conservation, nine controls, 104px live / 64px example/reveal letters; near-black wedges, white letters/light outlines, gold selection and accent centre |
 | Mini Sudoku | 390x700 | PASS live/intro/reveal: 36 equal-track cells; heavy strokes are borders of those exact cells, no overlay |
 | Shikaku | 390x700 | PASS both individual grids and pair: clipped board/labels, equal tracks; 170px grid, 16.10px cells, 12.88px labels |
 | ArcadeReveal | 375x667 | PASS source: crash marker absent; finish circles/fallback unchanged |
-| Wordsmith | 375x667 | PASS shared markup + geometry: regular outer/inner octagons, eight equal wedges, area conservation, nine controls, 52px live / 32px example/reveal letters |
+| Wordsmith | 375x667 | PASS shared markup + geometry: regular outer/inner octagons, eight equal wedges, area conservation, nine controls, 104px live / 64px example/reveal letters; near-black wedges, white letters/light outlines, gold selection and accent centre |
 | Mini Sudoku | 375x667 | PASS live/intro/reveal: 36 equal-track cells; heavy strokes are borders of those exact cells, no overlay |
 | Shikaku | 375x667 | PASS both individual grids and pair: clipped board/labels, equal tracks; 170px grid, 16.10px cells, 12.88px labels |
 
