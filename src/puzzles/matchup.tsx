@@ -28,6 +28,7 @@ import {
   matchupStepOffsets, matchupStepSound, MATCHUP_SWAP_MS, type MatchupSwapTween,
 } from "@/lib/arcade/matchup.renderer";
 import { playSound } from "@/lib/sound";
+import type { SoundId } from "@/lib/fx/manifest";
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 
@@ -88,7 +89,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const animUntil = useRef(0);
   const swapTween = useRef<MatchupSwapTween | null>(null);
   /** Pending gem chimes for the current swap: wall-clock times, cascade step = index. */
-  const chimes = useRef<{ at: number[]; sounds: string[]; next: number }>({
+  const chimes = useRef<{ at: number[]; sounds: SoundId[]; next: number }>({
     at: [], sounds: [], next: 0,
   });
   const submitted = useRef(false);
