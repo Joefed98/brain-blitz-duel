@@ -13,6 +13,8 @@ export function FxLayer({ theme }: { theme?: GameTheme | undefined }) {
     const nodes = new Set<HTMLElement>();
     const timers = new Set<ReturnType<typeof setTimeout>>();
     const add = (event: FxEvent) => {
+      // No untargeted feedback boxes floating above every game's board.
+      if (event.primitive === "glow" || event.primitive === "shake") return;
       const host = layer.current;
       if (!host || nodes.size >= FX_PARTICLE_LIMIT) return;
       const reduced = prefersReducedMotion();
@@ -20,7 +22,6 @@ export function FxLayer({ theme }: { theme?: GameTheme | undefined }) {
       for (let i = 0; i < count; i++) {
         const node = document.createElement("span");
         node.className = `fx-particle ${event.hook === "onWrong" || event.hook === "onTimerWarning5" ? "fx-danger" : ""}`;
-        if (event.primitive === "glow" || event.primitive === "shake") node.classList.add("fx-outline");
         if (event.primitive === "scorePop") {
           node.className = "fx-score font-mono";
           node.textContent = event.hook === "onCombo" ? `×${event.value ?? 1}` : event.value === undefined ? "" : `+${event.value}`;
