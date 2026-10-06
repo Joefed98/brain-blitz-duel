@@ -23,6 +23,7 @@ export const NO_SELECT_STYLE = {
   userSelect: "none",
   WebkitUserSelect: "none",
   WebkitTouchCallout: "none",
+  WebkitTapHighlightColor: "transparent",
 } as const;
 
 const CONTROL = "button, a, input, textarea, select, [role='button']";
