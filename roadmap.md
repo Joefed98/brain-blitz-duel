@@ -1,3 +1,8 @@
+## Shared red-box bug and fitted Wordsmith letters (Oct 6)
+- [ ] Remove the shared red-box cause; audit recorder/focus/dev layers without changing gameplay.
+- [ ] Fit tripled Wordsmith letter targets to the shared wedge geometry with a small margin and equal centre size.
+- [ ] Run non-browser regressions and confirm protected gameplay unchanged.
+
 ## Reveal marker and dark Wordsmith tuning (Oct 6)
 - [x] Audited all 26 registered engine reveal paths: Hover crash-coloured saucer/tint, Cross hit circle/tint, Junction crash star/flash, Rally crash-coloured ball/tint and Skyline miss tint now use reveal-only suppression; live/demo art and gold finish ring retained. Swerve is not a registered engine reveal.
 - [x] Doubled Wordsmith letters again to 104px live/64px intro and reveal; near-black wedges, white letters/light outlines, gold selection and accent centre share the existing board.
