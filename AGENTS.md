@@ -12,7 +12,7 @@
 - ArrowPad owns the device-local arrows/joystick preference so every arrow-controlled puzzle behaves consistently.
 - Trail uses shared sequential tap/last-player undo helpers and contiguous legal drag prefixes while retaining numbered-slot decoding for old answers; why: mixed gestures must share one sequence without changing independent tile grading.
 - Chain shares versioned length, points and timing across generation, display and replay; unversioned boards retain legacy rules/cycles. Why: never regrade old rounds.
-- Art stays in *.renderer.ts; Burst and comet sprites/glow/scanlines cache lazily and arcade loops share frame timing; comet taper keeps a full-cell outer envelope and sparks use the shared cap; why: speed and readable collision bodies without replay changes.
+- *.renderer.ts owns art and lazy Burst/comet sprite/glow/scanline caches; arcade loops share frame timing, comet taper keeps its full-cell envelope, sparks use shared caps. Why: fast, readable art, unchanged replay.
 - Cross counters use crossTotalLanes; Flip curves use flipSurfaceLine with exterior-only pools/decoration and silhouette/runner-box clips; pool-death sinks use per-canvas presentation clocks, never sim ticks or input holds; why: scores and collision geometry remain authoritative while frozen deaths can animate.
 - Gameplay holds run inside the shared simulation and HUDs read their derived hold state; why: inputs, timeouts and replay must stay synchronized without pausing the client clock.
 - Player-selected arcade checkpoints use validated recorded inputs and retained selection counters, with HUD availability derived from sim state; why: the server replay must enforce one-use selection and preserve result facts.
@@ -37,6 +37,6 @@
 
 - FX/audio stay outside sims; no untargeted boxes; dev displays require accepted keys. Why: safe feedback.
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
-- Art caches stay in renderers (see arcade guidance); why: no sim changes.
+- Countryside shares Ink Bridge/Snip backdrop caches; other art caches stay in renderers. Why: unchanged sims.
 
 - PhoneShell shares puzzle paint; WordsmithRing fits shared octagonal wedges; wordInput owns taps. Wordsmith keeps centre index and seeded nine-tile demos. Why: replay compatibility.

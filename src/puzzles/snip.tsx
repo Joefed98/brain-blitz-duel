@@ -12,15 +12,13 @@ import {
   unpackSnipCut,
   SNIP_CHECKPOINT_INTERVAL,
   SNIP_INPUT_CUT,
-  SNIP_MOUTH,
-  SNIP_SWEET,
   type SnipState,
 } from "@/lib/arcade/snip";
-import { drawSnipArt, type SnipSwipe } from "@/lib/arcade/snip.renderer";
+import { drawSnipArt, drawSnipOrchardExample, type SnipSwipe } from "@/lib/arcade/snip.renderer";
 import { snipSounds } from "@/lib/fx/gameSounds";
 import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
 import { SNIP_TIME_MS, type SnipPuzzleData } from "@/lib/duel/types";
-import { playCorrect } from "@/lib/sound";
+import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { NO_SCROLL_STYLE } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -35,28 +33,12 @@ function IntroExample() {
     const id = window.setTimeout(() => setT((v) => v + 1), 33);
     return () => window.clearTimeout(id);
   }, [t]);
-  const cut = t >= 25;
-  const fall = cut ? Math.min(1, ((t - 25) / 22) ** 2) : 0;
-  const sy = 45 + fall * 70;
-  const eaten = t >= 47;
-  const swipe = t >= 15 && t < 30 ? (t - 15) / 10 : -1;
-  return (
-    <svg viewBox="0 0 160 140" width={160} height={140} aria-hidden="true" className="rounded-lg">
-      <rect width={160} height={140} fill="#1E2433" />
-      <circle cx={80} cy={10} r={3} fill="#D9D9D9" />
-      {cut ? (
-        <polyline points="80,10 79,18 80,24" fill="none" stroke="#C9A66B" strokeWidth={2} opacity={0.5} />
-      ) : (
-        <line x1={80} y1={10} x2={80} y2={45} stroke="#C9A66B" strokeWidth={2} />
-      )}
-      <circle cx={80} cy={120} r={12} fill={SNIP_MOUTH} />
-      <ellipse cx={80} cy={119} rx={6} ry={eaten ? 1 : 4} fill="#1E2433" />
-      {!eaten && <circle cx={80} cy={sy} r={7} fill={SNIP_SWEET} />}
-      {swipe >= 0 && swipe <= 1 && (
-        <line x1={55} y1={22} x2={55 + 50 * Math.min(1, swipe)} y2={30} stroke="white" strokeWidth={2} strokeLinecap="round" opacity={0.8} />
-      )}
-    </svg>
-  );
+  const canvas = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    const ctx=canvas.current?.getContext("2d");if(!ctx)return;
+    ctx.setTransform(2,0,0,2,0,0);drawSnipOrchardExample(ctx,t);
+  },[t]);
+  return <canvas ref={canvas} width={320} height={280} aria-hidden="true" className="h-[140px] w-[160px] rounded-lg" />;
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
@@ -65,6 +47,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const board = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const frameTiming = useArcadeFrameTiming(canvas);
   const camera = useRef({ x: 90, level: -1, time: 0 });
   const state = useRef<SnipState>(snipGame.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
@@ -113,11 +96,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let draftAt = 0;
     const feedback = arcadeFeedback();
     const sounds = snipSounds();
-    let seenEaten = 0;
     let shownKey = "";
 
     const loop = (time: number) => {
       frame = requestAnimationFrame(loop);
+      frameTiming.begin(time);
       const delta = time - last;
       last = time;
       if (!snipGame.isOver(state.current) && !lockedRef.current) {
@@ -139,10 +122,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
       }
       const s = state.current;
-      if (s.eaten > seenEaten) {
-        seenEaten = s.eaten;
-        playCorrect();
-      }
       const key = `${s.level}.${s.eaten}.${s.stars}`;
       if (key !== shownKey) {
         shownKey = key;
@@ -181,7 +160,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const x = snipCamera(s, reset ? s.sx / 256 - 180 : previous.x, reset ? 1 : Math.min(0.1, Math.max(0, (time - previous.time) / 1000)));
           camera.current = { x, level: s.level, time };
           swipes.current = swipes.current.filter((w) => time - w.at < 220);
+          frameTiming.draw();
           drawSnipArt(ctx, s, { width, height }, undefined, x, swipes.current);
+          frameTiming.rendered();
         }
       }
 
@@ -193,6 +174,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         submitted.current = true;
         submitRef.current(encode());
       }
+      frameTiming.end();
     };
     frame = requestAnimationFrame(loop);
     return () => {
@@ -220,7 +202,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           <span className="text-primary">{hud.score}</span>
         </span>
         <span>
-          {hud.eaten} fed · {hud.stars}★
+          {hud.eaten} picked · {hud.stars} leaves
         </span>
       </div>
       <div
@@ -263,7 +245,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
-        {result.eaten} sweet{result.eaten === 1 ? "" : "s"} fed · {result.stars}★
+        {result.eaten} apple{result.eaten === 1 ? "" : "s"} picked · {result.stars} leaves
       </p>
       <p className="text-center text-base text-muted-foreground">Same levels for everyone</p>
     </div>

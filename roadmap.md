@@ -1,3 +1,8 @@
+## Snip orchard and shared countryside (Oct 6, 15:34)
+- [x] Extracted unchanged Ink Bridge backdrop/clouds; cached orchard apple/basket/gold leaf/canopy/stone walls/fence rails, exact existing geometry/camera and non-sea sounds. Ink Bridge gameplay objects unchanged.
+- [x] Nine exact native PNG parity checks, circular sprite bounds, full platform rectangles and zero warm-frame allocations pass. Level-10 DPR-2 draw median 0.061–0.068ms, p95 0.114–0.193ms; Snip now has shared accepted-key FPS/frame/p95/Draw/work readout. All 507 protected source files unchanged; preview build OK. No browsers or identity proof.
+- [x] Reported caches, pixel parity and local timing; preserved existing world width 1260/view width 360 = 3.5 screens (not requested 1.5) under no-sim-change constraint. Actual phone readout remains user-tested. Audit: .lovable/audits/snip-orchard.md.
+
 ## Wordsmith variable size (Oct 6, 14:05)
 - [x] Uniform 8–11-letter size draw then SCOWL answer-first pangram; 25–60 possible nonplural centre-using words at each size, 4+ letters and tile multiplicity retained. Scoring unchanged including existing 15-point saturation for words of 9+ letters; fixed practice example explicitly generates nine tiles without a size draw. Dropdown remains per-puzzle, help/intro SCORE/reveal labels updated.
 - [x] Unchanged outer and centre octagons with 7–10 equal angular wedges, 70% equal-size glyph fit and tap-only controls. Geometric regression verifies every wedge contains a 44×44px square on a conservative 280px live board; fixed eight-wedge geometry preserved. Actual phone appearance remains user-tested.
