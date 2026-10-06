@@ -47,7 +47,7 @@ function Pegs({
     lifted === null || lifted === undefined ? null : (pegs[lifted]?.at(-1) ?? null);
 
   return (
-    <div className="flex h-full w-full items-center justify-center gap-1.5">
+    <div className={`flex h-full w-full items-center justify-center ${compact ? "gap-1.5" : "gap-3 px-2"}`}>
       {Array.from({ length: Math.max(3, pegs.length) }, (_, peg) => {
         const stack = pegs[peg] ?? [];
         const isLifted = lifted === peg;
@@ -216,7 +216,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
         />
       </div>
 
-      <div className="flex shrink-0 justify-center gap-2">
+      <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
         <button
           type="button"
           disabled={locked || !moves.length}
@@ -240,9 +240,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
           Reset
         </button>
       </div>
-      <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        Tap a peg to lift its top disc, then tap where it goes
-      </p>
     </div>
   );
 }

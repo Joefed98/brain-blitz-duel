@@ -173,7 +173,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
         />
       </div>
         <ArrowPad onPress={step} disabled={locked || replay.solved} />
-      <div className="flex shrink-0 justify-center gap-2">
+      <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
         <button
           type="button"
           disabled={locked || !moves.length}

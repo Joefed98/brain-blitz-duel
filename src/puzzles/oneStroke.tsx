@@ -258,9 +258,6 @@ function Stage({
           current={path[path.length - 1] ?? null}
         />
       </div>
-      <p className="shrink-0 text-center text-xs text-muted-foreground">
-        Lift your finger to start again.
-      </p>
     </div>
   );
 }

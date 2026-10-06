@@ -332,9 +332,6 @@ function Stage({
           Reset
         </button>
       </div>
-      <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        Read every rule, act in order, then tap DEFUSE
-      </p>
     </div>
   );
 }

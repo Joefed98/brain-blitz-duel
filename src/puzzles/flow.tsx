@@ -290,9 +290,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
           onRelease={release}
         />
       </div>
-      <p className="shrink-0 text-center text-[11px] text-muted-foreground">
-        Drag dot to dot · drag from a loose end to carry on · tap a dot to clear it
-      </p>
     </div>
   );
 }

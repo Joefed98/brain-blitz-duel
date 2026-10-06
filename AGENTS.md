@@ -9,7 +9,7 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- ArrowPad owns the device-local arrows/joystick preference so every arrow-controlled puzzle behaves consistently.
+- ArrowPad owns device-local arrows/joystick preference and reserved full-width control tracks; why: consistent modes without overlaps.
 - Trail uses shared sequential tap/last-player undo helpers and contiguous legal drag prefixes while retaining numbered-slot decoding for old answers; why: mixed gestures must share one sequence without changing independent tile grading.
 - Chain shares versioned length, points and timing across generation, display and replay; unversioned boards retain legacy rules/cycles. Why: never regrade old rounds.
 - *.renderer.ts owns art and lazy Burst/comet sprite/glow/scanline caches; arcade loops share frame timing, comet taper keeps its full-cell envelope, sparks use shared caps. Why: fast, readable art, unchanged replay.
@@ -20,7 +20,7 @@
 - AcceptedWordChip owns the reserved confirmation row for word-entry boards, sized by the remaining board region; why: accepted words must not move or cover controls.
 - StageCorrect owns the fixed confirmation slot and persisted presentation-only hold deadline for staged puzzles; why: intermediate solved boards stay visible without pausing the shared round clock.
 - Tile Grid uses tileGridWordCells for client verdict-based counting and server dictionary-based counting; why: crossing tiles and changing runs must grade and display consistently without shipping the dictionary.
-- PhoneShell/GameLayout own fixed round chrome and equal stage ancestry; chat stays outside play/reveal. Why: room/practice control parity.
+- PhoneShell/GameLayout own equal round geometry; chat stays outside play/reveal, Stage omits repeated hints. Why: room/practice parity.
 - Directional game controls use the shared press-safe button so pointer holds cannot trigger selection, callouts, or context menus.
 - All word games (Wordsmith, Word Hunt, Word Ladder, Tile Grid, Word Slide) check words through the one server-only SCOWL British English list behind dictionary.server.ts; why: one consistent dictionary that never reaches a device.
 - Colour Clash draws spawn lanes from state PRNG using shared lane-count constants; Count Up recomputes truth from stored scenes; why: deterministic server verification.

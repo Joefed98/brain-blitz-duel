@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { ArcadeControlButton, usePressSafeElement } from "./ArcadeControlButton";
+import { Button } from "@/components/ui/button";
 
 /**
  * The shared grid drag-and-snap behaviour used by Unblock and Block Party.
@@ -636,7 +637,7 @@ export function ArrowPad({
       onPressStart={() => start(dir)}
       onPressEnd={stop}
       aria-label={label}
-      className={`flex shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl text-foreground transition-colors select-none touch-none active:bg-primary/20 disabled:opacity-40 ${expanded ? "h-[68px] min-w-0 flex-1" : "h-11 w-14"}`}
+      className={`flex min-w-11 flex-1 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-xl text-foreground transition-colors select-none touch-none active:bg-primary/20 disabled:opacity-40 ${expanded ? "h-[68px]" : "h-11"}`}
     >{glyph}</ArcadeControlButton>
   );
 
@@ -674,13 +675,13 @@ export function ArrowPad({
   }, [stop]);
 
   return (
-    <div className={`relative mx-auto flex w-full max-w-[343px] shrink-0 items-center justify-center ${expanded ? "h-[104px] flex-col gap-2" : "h-[60px]"}`}>
+    <div data-game-controls="arrows" className={`grid w-full shrink-0 grid-cols-[minmax(0,1fr)_44px] items-center gap-3 px-2 pb-1 pt-3 ${expanded ? "h-[84px]" : "h-[60px]"}`}>
       {joystick ? (
         <div
           ref={stickElement}
           role="application"
           aria-label="Directional joystick"
-          className="relative h-[60px] w-[60px] touch-none rounded-full border border-border bg-card"
+          className={`relative justify-self-center touch-none rounded-full border border-border bg-card ${expanded ? "h-[68px] w-[68px]" : "h-11 w-11"}`}
           style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
           onPointerDown={(event) => {
             if (disabled) return;
@@ -700,22 +701,25 @@ export function ArrowPad({
           />
         </div>
       ) : (
-        <div className={expanded ? "flex w-full items-center gap-3" : "absolute left-0 flex items-center gap-4"}>
+        <div className="flex min-w-0 w-full items-center gap-3">
           {directions.includes("L") ? button("L", "◀", "Left") : null}
           {directions.includes("U") ? button("U", "▲", "Up") : null}
           {directions.includes("D") ? button("D", "▼", "Down") : null}
           {directions.includes("R") ? button("R", "▶", "Right") : null}
         </div>
       )}
-      <button
+      <Button
         type="button"
+        variant="ghost"
         role="switch"
         aria-checked={joystick}
+        aria-label="Joystick"
+        title="Joystick"
         onClick={() => setMode(!joystick)}
-        className={`${expanded ? "self-end" : "absolute right-0"} h-7 rounded-full border px-1.5 font-mono text-[8px] uppercase ${joystick ? "border-primary bg-primary/20 text-primary" : "border-border bg-card text-muted-foreground"}`}
+        className={`h-11 w-11 shrink-0 rounded-lg border p-0 ${joystick ? "border-primary bg-primary/20 text-primary" : "border-border bg-card text-muted-foreground"}`}
       >
-        Joystick
-      </button>
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 7v9M6 20h12l-2-4H8z" /><circle cx="12" cy="5" r="3" /></svg>
+      </Button>
     </div>
   );
 }

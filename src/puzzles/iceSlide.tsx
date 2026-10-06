@@ -344,7 +344,7 @@ function Stage({
         </div>
       </div>
       <ArrowPad onPress={slide} disabled={locked || replay.solved || animating} />
-      <div className="flex shrink-0 justify-center gap-2">
+      <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
         <button
           type="button"
           disabled={locked || animating || !moves.length}

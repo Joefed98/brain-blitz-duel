@@ -1,3 +1,8 @@
+## Play captions and control clearance (Oct 6, 17:49)
+- [x] Removed six active-game captions plus Go / No-Go and One Stroke practice captions; live state and intro/help unchanged.
+- [x] Shared ArrowPad reserves a 44px switch track, 44px/68px targets and 12px gaps without growing its normal block; action rows match. Audited specified games without browser tests or gameplay changes.
+- [x] 68 games / 272 DOM parity comparisons and focused caption/control arithmetic pass; preview build OK. Word Slide lock-rail fit and Gravity's potential ~3px arena reduction at 375×667 with a 34px inset are reported; real device positions remain unmeasured. Details: .lovable/audits/play-control-clearance.md.
+
 ## Room/practice control parity (Oct 6, 17:36)
 - [x] PhoneShell/GameLayout share fixed 36px top bar, 28px single-line round heading and identical flexible stage ancestry; no game-specific layout, control target, simulation, input, grader or score changes.
 - [x] No-browser checks pass 68 active games / 272 room-multi versus practice DOM comparisons at 390×700 and 375×667, covering 1,220 control nodes. Calculated shell height delta is 0px including a 34px bottom inset; no source-level game differences. Actual control positions within 4px and rendered no-scroll/target fit remain unmeasured and user device-tested. No identity proofs.
