@@ -1,3 +1,7 @@
+## Engine result theme labels (Oct 6, 16:14)
+- [ ] Audit all 22 engine games' breakdowns, axes and tiles; rename presentation nouns only and shared intro SCORE tokens. Preserve counters, formulas and values; no browsers or identity proofs.
+- [ ] Verify label-only changes and report every before/after label per game.
+
 ## Wordsmith per-size word ranges (Oct 6, 15:43)
 - [x] Enforced 8:25–60, 9:30–80, 10:40–100, 11:50–120; fixed-example full baseline identical (25 words) through original-band example generator. Seed repeatability passes all 800 automatic size draws and 800 per-size samples; weighting remains 205/201/206/188.
 - [x] Independently checked 200 puzzles per size: word min/median/p95/max 8=25/36/58/60, 9=30/51/78/80, 10=40/71/97/100, 11=51/91/117/120. Local warm generation median/p95/max ms 8=5.51/15.83/32.11, 9=6.88/15.48/28.68, 10=9.11/20.04/31.23, 11=8.86/20.64/24.81; none near 1s, no bank. Detailed histograms in script output; 509 protected source files unchanged, scorer section unchanged; preview build OK. No browsers.
