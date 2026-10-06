@@ -35,7 +35,7 @@
 - Non-engine demos use the real Stage, INTRO_EXAMPLE_SEED, sealed example id and recorded area-fraction actions/verdicts; why: real UI without exposed answers or divergent play.
 - Changed puzzle inputs/layouts reject old demos by shape or recorded presentation revision; why: stale touches cannot target new controls.
 
-- FX/audio stay outside sims; no untargeted glow/shake boxes. Why: safe feedback.
+- FX/audio stay outside sims; no untargeted boxes; dev displays require accepted keys. Why: safe feedback.
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
 - Scenery stays in renderers; why: separate art from gameplay.
 
