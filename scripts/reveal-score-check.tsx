@@ -5,7 +5,7 @@
  * For every puzzle type (active and practice-only) it generates seeded puzzles,
  * grades sample submissions with the exact server grader (the value the room
  * inserts as round_results.score), renders the real AnswerReveal with that row,
- * and asserts (arcade games also check the stored breakdown line ends in that score):
+ * and asserts (arcade summaries check their total; Cross checks both terms and cap):
  *   1. the rendered data-reveal-score equals the stored score;
  *   2. with no stored row yet, the reveal shows "Scoring…" and no number;
  *   3. no puzzle Reveal source computes a score locally (static scan).
@@ -13,10 +13,12 @@
  *   bun scripts/reveal-score-check.tsx [samplesPerType]
  */
 import { readFileSync, readdirSync } from "node:fs";
+import assert from "node:assert/strict";
 import { renderToString } from "react-dom/server";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
-import { ARCADE_REVEAL_TYPES } from "@/lib/arcade/reveal";
+import { ARCADE_REVEAL_TYPES, buildArcadeReveal } from "@/lib/arcade/reveal";
+import { crossGame, crossTotalLanes, CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
 import { generatePuzzle, gradeAnswer } from "@/lib/duel/generate.server";
 import { ACTIVE_PUZZLE_TYPES, RETIRED_PUZZLE_TYPES, puzzleDef } from "@/lib/duel/registry";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -25,6 +27,35 @@ const samples = Number(process.argv[2] ?? 5);
 const failures: string[] = [];
 const skipped: string[] = [];
 let checked = 0;
+
+/** Cross has two additive terms followed by a capped total, not a first-line total. */
+function crossBreakdownMatches(lines: string[], score: number): boolean {
+  if (lines.length !== 3) return false;
+  const lanes = /^(\d+) lanes × (\d+) = (\d+)$/.exec(lines[0] ?? "");
+  const crossings = /^(\d+) crossings × (\d+) = (\d+)$/.exec(lines[1] ?? "");
+  const total = /^Total → (\d+) · capped at 150$/.exec(lines[2] ?? "");
+  if (!lanes || !crossings || !total) return false;
+  const laneCount = Number(lanes[1]), laneRate = Number(lanes[2]), lanePoints = Number(lanes[3]);
+  const crossingCount = Number(crossings[1]), crossingRate = Number(crossings[2]), crossingPoints = Number(crossings[3]);
+  return laneRate === CROSS_LANE_POINTS && crossingRate === CROSS_CROSSING_POINTS
+    && lanePoints === laneCount * laneRate && crossingPoints === crossingCount * crossingRate
+    && Number(total[1]) === score && Math.min(150, lanePoints + crossingPoints) === score;
+}
+
+// Exercise the real score function and summary builder at zero, partial, completed
+// and capped progress. Also prove a matching headline cannot hide incorrect terms.
+const crossInitial = crossGame.init(17);
+for (const [crossings, reached] of [[0, 0], [0, 5], [1, 0], [3, 4], [7, 0]]) {
+  const state = { ...crossInitial, crossings, reached };
+  const score = crossGame.score(state);
+  const reveal = buildArcadeReveal("cross", { lanes: crossTotalLanes(state), crossings, livesLost: 0 }, score);
+  assert.ok(reveal);
+  assert.ok(crossBreakdownMatches(reveal.lines, score));
+  assert.ok(!crossBreakdownMatches(["1 lanes × 2 = 0", reveal.lines[1] ?? "", reveal.lines[2] ?? ""], score));
+  assert.ok(!crossBreakdownMatches([reveal.lines[0] ?? "", reveal.lines[1] ?? "", `Total → ${score + 1} · capped at 150`], score));
+  console.log(`Cross regression: lanes ${crossTotalLanes(state)}, crossings ${crossings}, stored ${score}; ${reveal.lines.join("; ")}`);
+}
+assert.ok(!crossBreakdownMatches(["1 lanes × 2 = 2", "0 crossings × 4 = 0", "Total → 0 · capped at 150"], 0));
 
 function seeded(n: number): () => number {
   let x = n >>> 0 || 1;
@@ -87,8 +118,15 @@ for (const type of [...ACTIVE_PUZZLE_TYPES, ...RETIRED_PUZZLE_TYPES]) {
       const reveal = (stored.extra as Record<string, unknown> | null)?.["reveal"] as { lines: string[] } | undefined;
       if (ARCADE_REVEAL_TYPES.includes(type)) {
         const first = reveal?.lines[0] ?? "";
-        const ok = first.endsWith(`→ ${stored.score}`) || first.endsWith(`→ 130 · time +${stored.score - 130}`);
-        if (!ok) failures.push(`${type}: stored ${stored.score}, breakdown line "${first}"`);
+        const ok = type === "cross"
+          ? crossBreakdownMatches(reveal?.lines ?? [], stored.score)
+          : first.endsWith(`→ ${stored.score}`) || first.endsWith(`→ 130 · time +${stored.score - 130}`);
+        if (!ok) failures.push(`${type}: stored ${stored.score}, breakdown "${reveal?.lines.join("; ") ?? "missing"}"`);
+        if (type === "cross" && reveal) {
+          for (const line of reveal.lines) {
+            if (!html.includes(line)) failures.push(`${type}: stored breakdown not rendered: "${line}"`);
+          }
+        }
       }
       checked++;
     }
