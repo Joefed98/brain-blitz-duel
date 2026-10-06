@@ -32,6 +32,17 @@ export const CLASH_QUEUE_V1 = 18;
  * (1.60 / 1.30 / 1.10 / 0.70 s) from spawn to gate.
  */
 export const CLASH_QUEUE_FALL_TICKS = [95, 77, 65, 41] as const;
+/** Current revision: 75 s run, five 15 s phases, 52 words. Stored as puzzle.clashRev. */
+export const CLASH_REV = 3;
+export const CLASH_REV3_RUN_TICKS = 75 * TICKS_PER_SECOND;
+/** One tick shorter than 108 / 96 / 84 / 72 / 60 so each word takes exactly 1.80 / 1.60 / 1.40 / 1.20 / 1.00 s. */
+export const CLASH_REV3_FALL_TICKS = [107, 95, 83, 71, 59] as const;
+/** Variant key: 3 = current, 2 = 52-word/60 s, 1 = 18-word, 0 = legacy stream. */
+export function clashVariantOf(p: { queue?: number | null; clashRev?: number | null } | null | undefined): number {
+  if (p?.clashRev === CLASH_REV) return 3;
+  return p?.queue === CLASH_QUEUE ? 2 : p?.queue === CLASH_QUEUE_V1 ? 1 : 0;
+}
+export function clashRunTicksOf(state: Pick<ClashState, "rev">): number { return state.rev === CLASH_REV ? CLASH_REV3_RUN_TICKS : CLASH_RUN_TICKS; }
 export const CLASH_COMPLETE_POINTS = 130;
 export const CLASH_SPEED_POINTS = 20;
 const FP = 256;
@@ -63,11 +74,13 @@ export interface ClashState {
   queue: number;
   /** Tick the last queued item was sorted (0 = not finished). */
   finishTick: number;
+  /** Set only on the current 75 s revision (absent keeps older states byte-identical). */
+  rev?: number;
 }
 
 export function clashLaneCount(tick: number): number { return tick >= CLASH_LANE_EXPAND_TICK ? CLASH_EXPANDED_LANES : CLASH_INITIAL_LANES; }
 
-function buildGates(seed: number): { gates: ClashGateChange[]; rng: number } {
+function buildGates(seed: number, phases = 4): { gates: ClashGateChange[]; rng: number } {
   let rng = seed | 0;
   const draw = (bound: number) => { const result = rngBelow(rng, bound); rng = result.state; return result.value; };
   const firstPool = Array.from({ length: CLASH_NAMES.length }, (_, index) => index);
@@ -78,7 +91,7 @@ function buildGates(seed: number): { gates: ClashGateChange[]; rng: number } {
     first.push(colour);
   }
   const gates: ClashGateChange[] = [{ tick: 0, gates: first }];
-  for (const tick of [15, 30, 45].map((seconds) => seconds * TICKS_PER_SECOND)) {
+  for (const tick of [15, 30, 45, 60].slice(0, phases - 1).map((seconds) => seconds * TICKS_PER_SECOND)) {
     const count = clashLaneCount(tick);
     const previous = gates.at(-1)?.gates ?? first;
     const kept = [...previous];
@@ -102,7 +115,8 @@ export function clashGatesAt(state: ClashState, tick: number): number[] {
   return current;
 }
 
-export function clashFallTicks(tick: number, queue = 0): number {
+export function clashFallTicks(tick: number, queue = 0, rev = 0): number {
+  if (rev === CLASH_REV) return CLASH_REV3_FALL_TICKS[Math.min(4, Math.floor(tick / (15 * TICKS_PER_SECOND)))]!;
   const phase = Math.min(3, Math.floor(tick / (15 * TICKS_PER_SECOND)));
   if (queue === CLASH_QUEUE) return CLASH_QUEUE_FALL_TICKS[phase]!;
   return Math.round(BASE_FALL_TICKS * (0.88 ** phase));
@@ -122,23 +136,26 @@ function nextItem(state: ClashState, spawn: number): ClashState {
   const other = otherPool[draw(otherPool.length)]!;
   const word = rule === 0 ? other : answer;
   const ink = rule === 0 ? answer : other;
-  const item = { spawn, word, ink, fallTicks: clashFallTicks(spawn, state.queue) };
+  const item = { spawn, word, ink, fallTicks: clashFallTicks(spawn, state.queue, state.rev) };
   // Draw before storing rng so the spawn lane and future draws replay identically.
   const lane = draw(clashLaneCount(spawn));
   return { ...state, rng, items: [...state.items, item], lane, itemY: START_Y, dropping: 0 };
 }
 
-function initWith(seed: number, queue: number): ClashState {
-  const plan = buildGates(seed);
+function initWith(seed: number, queue: number, rev = 0): ClashState {
+  const phases = rev === CLASH_REV ? 5 : 4;
+  const plan = buildGates(seed, phases);
   const base: ClashState = {
     tick: 0, rng: plan.rng, items: [], gates: plan.gates,
-    rules: [0, 1, 2, 3].map((phase) => ({ tick: phase * 15 * TICKS_PER_SECOND, rule: (phase % 2) as 0 | 1 })),
+    rules: Array.from({ length: phases }, (_, phase) => phase).map((phase) => ({ tick: phase * 15 * TICKS_PER_SECOND, rule: (phase % 2) as 0 | 1 })),
     lane: 1, itemY: START_Y, dropping: 0, correct: 0, wrong: 0, missed: 0, ended: 0, queue, finishTick: 0,
+    ...(rev === CLASH_REV ? { rev } : {}),
   };
   return nextItem(base, 0);
 }
 function init(seed: number): ClashState { return initWith(seed, 0); }
 function initQueue(seed: number): ClashState { return initWith(seed, CLASH_QUEUE); }
+function initRev3(seed: number): ClashState { return initWith(seed, CLASH_QUEUE, CLASH_REV); }
 function initQueueV1(seed: number): ClashState { return initWith(seed, CLASH_QUEUE_V1); }
 
 function isOver(state: ClashState): boolean { return state.ended !== 0; }
@@ -153,7 +170,7 @@ function land(state: ClashState, tick: number): ClashState {
   const landed = { ...state, correct: state.correct + (correct ? 1 : 0), wrong: state.wrong + (correct ? 0 : 1) };
   // Fixed queue: the run ends the moment the last queued item is sorted.
   if (landed.queue > 0 && landed.correct + landed.wrong >= landed.queue) return { ...landed, ended: 1, finishTick: tick };
-  return tick < CLASH_RUN_TICKS ? nextItem(landed, tick) : landed;
+  return tick < clashRunTicksOf(state) ? nextItem(landed, tick) : landed;
 }
 
 function step(state: ClashState, input: ArcadeInputEvent | null): ClashState {
@@ -175,7 +192,7 @@ function step(state: ClashState, input: ArcadeInputEvent | null): ClashState {
     next.itemY += speed;
     if (next.itemY >= GATE_Y) next = land(next, tick);
   }
-  if (next.ended === 0 && tick >= CLASH_RUN_TICKS) {
+  if (next.ended === 0 && tick >= clashRunTicksOf(next)) {
     if (next.items.length > next.correct + next.wrong) next.missed += 1;
     next.ended = 1;
   }
@@ -186,18 +203,19 @@ export function clashScoreOf(correct: number, wrong: number, total: number): num
   return clampInt(Math.round((150 * correct) / Math.max(1, total)) - 2 * wrong, 0, 150);
 }
 /** Arcade-finish shape: round(130 × correct / N) − 2 per wrong, + round(20 × ticks left / run ticks) only when all N are sorted; clamp 0–150. */
-export function clashQueueScoreOf(correct: number, wrong: number, queue: number, finishTick: number): number {
+export function clashQueueScoreOf(correct: number, wrong: number, queue: number, finishTick: number, runTicks: number = CLASH_RUN_TICKS): number {
   const base = Math.round((CLASH_COMPLETE_POINTS * correct) / Math.max(1, queue)) - 2 * wrong;
   const done = queue > 0 && correct + wrong >= queue && finishTick > 0;
-  const bonus = done ? Math.round((CLASH_SPEED_POINTS * Math.max(0, CLASH_RUN_TICKS - finishTick)) / CLASH_RUN_TICKS) : 0;
+  const bonus = done ? Math.round((CLASH_SPEED_POINTS * Math.max(0, runTicks - finishTick)) / runTicks) : 0;
   return clampInt(base + bonus, 0, 150);
 }
-export function clashTimeBonusOf(state: Pick<ClashState, "queue" | "correct" | "wrong" | "finishTick">): number {
+export function clashTimeBonusOf(state: Pick<ClashState, "queue" | "correct" | "wrong" | "finishTick" | "rev">): number {
   if (!(state.queue > 0 && state.correct + state.wrong >= state.queue && state.finishTick > 0)) return 0;
-  return Math.round((CLASH_SPEED_POINTS * Math.max(0, CLASH_RUN_TICKS - state.finishTick)) / CLASH_RUN_TICKS);
+  const run = clashRunTicksOf(state);
+  return Math.round((CLASH_SPEED_POINTS * Math.max(0, run - state.finishTick)) / run);
 }
 function score(state: ClashState): number {
-  return state.queue > 0 ? clashQueueScoreOf(state.correct, state.wrong, state.queue, state.finishTick) : clashScoreOf(state.correct, state.wrong, state.items.length);
+  return state.queue > 0 ? clashQueueScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state)) : clashScoreOf(state.correct, state.wrong, state.items.length);
 }
 
 export const CLASH_CHECKPOINT_INTERVAL = 300;
@@ -242,6 +260,9 @@ export const colourClashGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = 
 export const colourClashQueueGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, init: initQueue };
 /** 18-item revision with the legacy fall times. */
 export const colourClashQueueV1Game: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, init: initQueueV1 };
-export function colourClashGameFor(queue: number | null | undefined): ArcadeGame<ClashState, ArcadeInputEvent | null> {
-  return queue === CLASH_QUEUE ? colourClashQueueGame : queue === CLASH_QUEUE_V1 ? colourClashQueueV1Game : colourClashGame;
+/** Current revision: 75 s, five phases, 52 words. */
+export const colourClashRev3Game: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, runTicks: CLASH_REV3_RUN_TICKS, init: initRev3 };
+/** Takes a clashVariantOf key. */
+export function colourClashGameFor(variant: number): ArcadeGame<ClashState, ArcadeInputEvent | null> {
+  return variant === 3 ? colourClashRev3Game : variant === 2 ? colourClashQueueGame : variant === 1 ? colourClashQueueV1Game : colourClashGame;
 }
