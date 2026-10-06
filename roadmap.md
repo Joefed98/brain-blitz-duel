@@ -1,3 +1,8 @@
+## Play captions and control clearance (Oct 6, 17:49)
+- [ ] Remove repeated Stage instruction captions across active games, preserving live state and intro/help instructions.
+- [ ] Give shared controls 44px targets, 12px gaps and safe edges; audit room/practice geometry at both phone sizes without browsers or gameplay changes.
+- [ ] Report removed captions and any arena-size/control-fit constraints; validate source parity and preview diagnostics.
+
 ## Room/practice control parity (Oct 6, 17:36)
 - [x] PhoneShell/GameLayout share fixed 36px top bar, 28px single-line round heading and identical flexible stage ancestry; no game-specific layout, control target, simulation, input, grader or score changes.
 - [x] No-browser checks pass 68 active games / 272 room-multi versus practice DOM comparisons at 390×700 and 375×667, covering 1,220 control nodes. Calculated shell height delta is 0px including a 34px bottom inset; no source-level game differences. Actual control positions within 4px and rendered no-scroll/target fit remain unmeasured and user device-tested. No identity proofs.
