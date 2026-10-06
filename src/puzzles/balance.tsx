@@ -59,7 +59,6 @@ function Beam({
   const tilt = balanceTilt(scale, placement);
   const balanced = scaleSolved(scale, placement);
   const disc = Math.min(40, spacing - 2);
-  const column = useGameColumnLayout();
   const width = spacing * BAL_PEGS + PEG_GAP * (BAL_PEGS - 1);
   const onPeg = new Map<number, { w: number; fixed: boolean; tray?: number }>();
   scale.fixed.forEach((f) => onPeg.set(f.peg, { w: f.w, fixed: true }));
@@ -152,6 +151,7 @@ function useSpacing(ref: React.RefObject<HTMLDivElement | null>): number {
 }
 
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, stateKey = "balance" }: PuzzleStageProps) {
+  const column = useGameColumnLayout();
   const data: BalancePuzzleData | null = puzzle.type === "balance" ? puzzle : null;
   const scales = data?.scales ?? [];
   const [placements, setPlacements] = useStageState<Placement[]>(stateKey, "placements", () =>
