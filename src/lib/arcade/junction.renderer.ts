@@ -1,6 +1,7 @@
 /**
  * Junction art (Real World). Render only: reads JuncState, never mutates it.
- * Cars fill exactly the sim's 41×24 car box from juncCarPose; road geometry
+ * Cars fill the unchanged 41×24 car box; only the 2D visual turn path changes.
+ * Simulation progress, clearing and junction occupancy remain untouched. Road geometry
  * mirrors the sim's private HALF/LANE constants.
  */
 import type { CanvasSize } from "./engine";
@@ -37,6 +38,7 @@ import { artHash } from "./art.renderer";
 /* Mirrors of the sim's private constants (junction.ts). */
 const FP = 256;
 const HALF = 31;
+const LANE = 16;
 const CAR_W = 24;
 const CAR_PX = 41;
 const SPAWN_OUT = 20;
@@ -44,6 +46,22 @@ const STOP_V = (JUNC_CY - HALF + SPAWN_OUT) * FP;
 const STOP_H = (JUNC_CX - HALF + SPAWN_OUT) * FP;
 const STOP = [STOP_V, STOP_V, STOP_H, STOP_H];
 const FADE_TICKS = 30;
+
+/** Presentation-only turn pivot at the destination arm's outgoing lane. */
+export function junctionArtCarPose(car: JuncCar): { x: number; y: number; dx: number; dy: number } {
+  if (!car.turn) return juncCarPose(car);
+  const origin = juncCarPose({ ...car, s: 0, turn: 0 });
+  const { dx, dy } = origin;
+  const tx = car.turn === 2 ? -dy : dy;
+  const ty = car.turn === 2 ? dx : -dx;
+  // Eastbound exits below the centre; southbound exits to its left.
+  const laneX = JUNC_CX - ty * LANE;
+  const laneY = JUNC_CY + tx * LANE;
+  const pivot = dx === 0 ? (laneY - origin.y) / dy : (laneX - origin.x) / dx;
+  const s = car.s / FP;
+  if (s <= pivot) return { x: origin.x + dx * s, y: origin.y + dy * s, dx, dy };
+  return { x: origin.x + dx * pivot + tx * (s - pivot), y: origin.y + dy * pivot + ty * (s - pivot), dx: tx, dy: ty };
+}
 
 /** Daylight versions of the car colours, taken from Cross's palette. */
 const CAR_COLOURS = [CROSS_BLOCK_COLOURS[2], CROSS_BLOCK_COLOURS[4], CROSS_BLOCK_COLOURS[1], CROSS_BLOCK_COLOURS[5]];
@@ -65,7 +83,7 @@ function remember(state: JuncState): Memory {
     m.ghosts = m.ghosts.filter((g) => state.tick - g.start < FADE_TICKS);
     m.gaveUp = state.gaveUp;
     m.tick = state.tick;
-    m.seen = new Map(state.cars.map((car) => [car.id, { car, ...juncCarPose(car) }]));
+    m.seen = new Map(state.cars.map((car) => [car.id, { car, ...junctionArtCarPose(car) }]));
   }
   return m;
 }
@@ -135,6 +153,11 @@ function drawScene(ctx: CanvasRenderingContext2D): void {
 }
 
 function drawLight(ctx: CanvasRenderingContext2D, x: number, y: number, green: boolean): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1.18, 1.18);
+  x = 0;
+  y = 0;
   ctx.fillStyle = REAL_SHADOW;
   ctx.beginPath();
   ctx.roundRect(x - 7 + 2, y - 13 + 2, 14, 26, 4);
@@ -151,6 +174,7 @@ function drawLight(ctx: CanvasRenderingContext2D, x: number, y: number, green: b
   ctx.beginPath();
   ctx.arc(x, y + 6, 4.2, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
 }
 
 function drawCar(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, colour: string, amb: boolean, tick: number, alpha = 1): void {
@@ -198,7 +222,7 @@ export function drawJunctionArt(ctx: CanvasRenderingContext2D, state: JuncState,
   }
 
   for (const car of state.cars) {
-    const pose = juncCarPose(car);
+    const pose = junctionArtCarPose(car);
     drawCar(ctx, pose.x, pose.y, pose.dx, pose.dy, CAR_COLOURS[car.colour % CAR_COLOURS.length]!, car.amb === 1, tick);
     // Indicator before the turn (same timing as the sim's old drawing).
     const toLine = (STOP[car.ap]! - car.s) / juncSpeed(tick);
