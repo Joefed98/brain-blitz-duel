@@ -8,7 +8,7 @@ import type { SwingState } from "@/lib/arcade/swing";
 import type { WavState } from "@/lib/arcade/wavefront";
 import type { CrossState } from "@/lib/arcade/cross";
 import type { FlipState } from "@/lib/arcade/flip";
-import { HOVER_IMPULSE, type HoverState } from "@/lib/arcade/hover";
+import { type HoverState } from "@/lib/arcade/hover";
 import type { SnakeState } from "@/lib/arcade/snake";
 import { BRK_PADDLE_Y, type BrkState } from "@/lib/arcade/breaker";
 import type { RallyState } from "@/lib/arcade/rally";
