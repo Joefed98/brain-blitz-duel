@@ -23,7 +23,15 @@ export const CLASH_DROP = 2;
 export const CLASH_SET_LANE = 3;
 export const CLASH_FLASH_TICKS = 30;
 /** Fixed queue length for current rounds: items the no-drop cadence sorts by about 48 s. 0 = legacy open stream. */
-export const CLASH_QUEUE = 18;
+export const CLASH_QUEUE = 52;
+/** First fixed-queue revision (stored rounds keep their own length and fall times). */
+export const CLASH_QUEUE_V1 = 18;
+/**
+ * Fixed-queue fall setting per 15 s phase. Integer speed rounding adds one
+ * landing tick, so each word takes exactly 96 / 78 / 66 / 42 ticks
+ * (1.60 / 1.30 / 1.10 / 0.70 s) from spawn to gate.
+ */
+export const CLASH_QUEUE_FALL_TICKS = [95, 77, 65, 41] as const;
 export const CLASH_COMPLETE_POINTS = 130;
 export const CLASH_SPEED_POINTS = 20;
 const FP = 256;
@@ -94,8 +102,9 @@ export function clashGatesAt(state: ClashState, tick: number): number[] {
   return current;
 }
 
-export function clashFallTicks(tick: number): number {
+export function clashFallTicks(tick: number, queue = 0): number {
   const phase = Math.min(3, Math.floor(tick / (15 * TICKS_PER_SECOND)));
+  if (queue === CLASH_QUEUE) return CLASH_QUEUE_FALL_TICKS[phase]!;
   return Math.round(BASE_FALL_TICKS * (0.88 ** phase));
 }
 
@@ -113,7 +122,7 @@ function nextItem(state: ClashState, spawn: number): ClashState {
   const other = otherPool[draw(otherPool.length)]!;
   const word = rule === 0 ? other : answer;
   const ink = rule === 0 ? answer : other;
-  const item = { spawn, word, ink, fallTicks: clashFallTicks(spawn) };
+  const item = { spawn, word, ink, fallTicks: clashFallTicks(spawn, state.queue) };
   // Draw before storing rng so the spawn lane and future draws replay identically.
   const lane = draw(clashLaneCount(spawn));
   return { ...state, rng, items: [...state.items, item], lane, itemY: START_Y, dropping: 0 };
@@ -130,6 +139,7 @@ function initWith(seed: number, queue: number): ClashState {
 }
 function init(seed: number): ClashState { return initWith(seed, 0); }
 function initQueue(seed: number): ClashState { return initWith(seed, CLASH_QUEUE); }
+function initQueueV1(seed: number): ClashState { return initWith(seed, CLASH_QUEUE_V1); }
 
 function isOver(state: ClashState): boolean { return state.ended !== 0; }
 
@@ -230,6 +240,8 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
 export const colourClashGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { key: "stroop", runTicks: CLASH_RUN_TICKS, init, step, isOver, score, draw, inputRanges: CLASH_INPUT_RANGES };
 /** Current fixed-queue run. */
 export const colourClashQueueGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, init: initQueue };
+/** 18-item revision with the legacy fall times. */
+export const colourClashQueueV1Game: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, init: initQueueV1 };
 export function colourClashGameFor(queue: number | null | undefined): ArcadeGame<ClashState, ArcadeInputEvent | null> {
-  return queue === CLASH_QUEUE ? colourClashQueueGame : colourClashGame;
+  return queue === CLASH_QUEUE ? colourClashQueueGame : queue === CLASH_QUEUE_V1 ? colourClashQueueV1Game : colourClashGame;
 }
