@@ -261,10 +261,13 @@ export function drawJunctionArt(ctx: CanvasRenderingContext2D, state: JuncState,
     }
   } else crashSeen.delete(ctx);
 
-  ctx.fillStyle = REAL_INK;
   ctx.font = "bold 18px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "center";
-  ctx.fillText(`Cleared ${state.cleared}`, JUNC_WORLD_W / 2 - 70, 30);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = REAL_INK;
+  ctx.strokeText(`Cleared ${state.cleared}`, JUNC_WORLD_W / 2, 30);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillText(`Cleared ${state.cleared}`, JUNC_WORLD_W / 2, 30);
   ctx.restore();
 }
 
