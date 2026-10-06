@@ -38,7 +38,7 @@ const minimum = CHAIN_NODE_PX + CHAIN_NODE_GAP_PX;
 const ROUNDS = 200;
 for (let run = 0; run < ROUNDS; run++) {
   const puzzle = generateChain();
-  if (puzzle.boards.length !== 6) throw new Error("Chain needs six boards");
+  if (puzzle.boards.length !== 8) throw new Error("Chain needs eight boards");
   // Perfect run: pick a matching unused node each step, tapping 1 s apart.
   const taps: { node: number; t: number }[] = [];
   const used: number[][] = [];
@@ -69,19 +69,19 @@ for (let run = 0; run < ROUNDS; run++) {
     }
   }
   const full = replayChain(puzzle, decodeChainAnswer(encodeChainAnswer({ taps, reason: "complete" })));
-  if (full.links !== 30 || full.reason !== "complete" || scoreChain(full.links) !== 150) throw new Error("perfect run failed");
+  if (full.links !== 40 || full.reason !== "complete" || scoreChain(full.links, 5000, puzzle) !== 141) throw new Error("perfect run failed");
   // Wrong tap at link 13 breaks with 12 links.
   const wrongNode = puzzle.boards[2]!.findIndex((n) => { const need = chainRequiredAt(puzzle, 12)!; return n.shape !== need.shape || n.colour !== need.colour; });
   const wrong = replayChain(puzzle, { taps: [...taps.slice(0, 12), { node: wrongNode, t: 13_000 }], reason: "wrong" });
-  if (wrong.links !== 12 || wrong.reason !== "wrong" || scoreChain(wrong.links) !== 60) throw new Error("wrong-tap break failed");
-  // Late tap for link 19 (window 2.5 s... link 19 is 2.0 s) breaks on momentum.
+  if (wrong.links !== 12 || wrong.reason !== "wrong" || scoreChain(wrong.links, 0, puzzle) !== 42) throw new Error("wrong-tap break failed");
+  // Late tap for link 19 (window 2.5 s) breaks on momentum.
   const late = taps.slice(0, 19).map((tap, i) => (i === 18 ? { ...tap, t: taps[17]!.t + chainWindowMs(19) + 1 } : tap));
   const slow = replayChain(puzzle, { taps: late, reason: "momentum" });
   if (slow.links !== 18 || slow.reason !== "momentum") throw new Error("momentum break failed");
   const onTime = taps.slice(0, 19).map((tap, i) => (i === 18 ? { ...tap, t: taps[17]!.t + chainWindowMs(19) } : tap));
   if (replayChain(puzzle, { taps: onTime, reason: "timer" }).links !== 19) throw new Error("on-time tap rejected");
 }
-if (chainWindowMs(10) !== 3000 || chainWindowMs(11) !== 2500 || chainWindowMs(18) !== 2500 || chainWindowMs(19) !== 2000 || chainWindowMs(25) !== 2000 || chainWindowMs(26) !== 2000 || chainWindowMs(30) !== 2000) throw new Error("windows wrong");
+if (chainWindowMs(13) !== 3000 || chainWindowMs(14) !== 2500 || chainWindowMs(26) !== 2500 || chainWindowMs(27) !== 2000 || chainWindowMs(40) !== 2000) throw new Error("windows wrong");
 
 console.log("Stop Watch: 100/100 transition sets valid");
-console.log(`Chain: ${ROUNDS}/${ROUNDS} runs — 30-link run = 150, wrong tap at 13 = 60, late tap breaks, decoys present`);
+console.log(`Chain: ${ROUNDS}/${ROUNDS} runs — 40-link run at 40 s = 141, wrong tap at 13 = 42, late tap breaks, decoys present`);
