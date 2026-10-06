@@ -22,6 +22,7 @@ import type { SkylineState } from "@/lib/arcade/skyline";
 import type { InkState } from "@/lib/arcade/inkBridge";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
 import type { BubState } from "@/lib/arcade/bubble";
+import type { SliceState } from "@/lib/arcade/slice";
 import { SNIP_EATEN, SNIP_LOST, type SnipState } from "@/lib/arcade/snip";
 
 export interface GameSounds<S> {
@@ -489,6 +490,40 @@ export function snipSounds(): GameSounds<SnipState> {
           if (state.lastOutcome === SNIP_EATEN) playSound("arc_sea_chest");
           else if (state.lastOutcome === SNIP_LOST) playSound("arc_splash", 0.8);
         }
+      }
+      prev = state;
+    },
+    stop: () => stopLoop("arc_sea_waves"),
+  };
+}
+
+export function sliceSounds(): GameSounds<SliceState> {
+  let prev: SliceState | null = null;
+  let lastCut = -1e9;
+  let lastCannon = -1e9;
+  return {
+    frame(state, running) {
+      const now = typeof performance === "undefined" ? 0 : performance.now();
+      if (running) ensureLoop("arc_sea_waves", WAVES_VOLUME);
+      else stopLoop("arc_sea_waves");
+      if (prev && state.tick > prev.tick) {
+        if (state.slices > prev.slices && now - lastCut >= 60) {
+          lastCut = now;
+          playSound("arc_sea_cutlass", 0.8, 1, true);
+        }
+        if (state.bombsHit > prev.bombsHit) playSound("arc_crash");
+        let launched = false;
+        let special = false;
+        for (let i = 0; i < state.objects.length; i++) {
+          const o = state.objects[i]!;
+          if (o.launchTick > prev.tick && o.launchTick <= state.tick) launched = true;
+          if (o.special && state.slicedAt[i] && !(prev.slicedAt[i] ?? 0)) special = true;
+        }
+        if (launched && now - lastCannon >= 400) {
+          lastCannon = now;
+          playSound("arc_sea_cannon", 0.5);
+        }
+        if (special) playSound("arc_sea_coin");
       }
       prev = state;
     },
