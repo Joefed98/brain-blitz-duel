@@ -11,7 +11,7 @@ import {
   parseOperators,
   splitStages,
 } from "@/lib/duel/stagedRounds";
-import { EQUATION_TIME_MS, type EquationPuzzleData, type EquationStage, type Operator } from "@/lib/duel/types";
+import { EQUATION_STAGE_COUNT, EQUATION_TIME_MS, type EquationPuzzleData, type EquationStage, type Operator } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 

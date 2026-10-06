@@ -275,6 +275,7 @@ export interface EquationPuzzleData {
 
 export const EQUATION_TIME_MS = 90_000;
 export const EQUATION_STAGE_POINTS = [25, 30, 35, 40] as const;
+export const EQUATION_STAGE_COUNT = 4;
 
 export type StroopColour =
   "RED" | "BLUE" | "GREEN" | "PURPLE" | "PINK" | "ORANGE" | "BROWN" | "YELLOW";
