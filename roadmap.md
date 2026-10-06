@@ -1,7 +1,7 @@
 ## Ink Bridge rainbow retheme (Oct 6)
-- [ ] Replace only artwork with cached daylight hills/clouds, exact-bound coin/pot/red blocks, rainbow stroke and draining meter.
-- [ ] Map pot/block/final-clear cues, retain draw sound, verify protected source fingerprints.
-- [ ] Check both phone arena sizes and motion modes without browsers; report cached sprites and native level-10 timings with existing dev readout.
+- [x] Cached daylight background, cloud/dispenser, coin, black pot, rainbow meter and per-canvas stroke raster; full 4px red hazards, original 14px coin/64px pot/4px rim/6px stroke geometry. Intro and saved-run art share the new theme.
+- [x] Pot arc_fair_bell, block arc_thud (alias to supplied thud recording), existing arc_swoosh draw cue; shared run-end complete retained without duplicate final cue. All 506 protected source files unchanged.
+- [x] Native DPR-2 checks at 382x454 and 367x421 arenas, both motion modes, 200-segment level 10: median 0.078–0.082ms, p95 0.124–0.209ms, no warm surface allocations. Shared FX and preview compilation passed. Existing accepted-key dev readout reports FPS/frame/p95/draw/work; actual device values unverified. Audit: .lovable/audits/ink-rainbow.md.
 - [ ] Actual phone appearance/audio/frame readout awaits user device testing; no identity proofs.
 
 ## Slice kitchen retheme (Oct 6)
