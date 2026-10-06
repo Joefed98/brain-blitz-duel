@@ -303,8 +303,8 @@ body.game-lock {
 .wordsmith-ring { container-type: inline-size; }
 .wordsmith-ring-tile {
   position: absolute;
-  width: 25%;
-  height: 25%;
+  width: 24%;
+  height: 24%;
   padding: 0;
   transform: translate(-50%, -50%);
   font-family: var(--font-display);

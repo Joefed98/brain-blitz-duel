@@ -56,7 +56,7 @@ const window = new Window();
 const root = window.document.createElement("div");
 const report = ["# Puzzle input tuning audit", "", "No browser tests. PASS below means source, explicit geometry and SSR structure, not measured device fit or native hold appearance.", "", "## Shared checks", "", `- ${hitChecks} inner-60% Word Hunt hit tests, plus gap, adjacency, diagonal, reuse and backtrack regressions.`, "- Wordsmith tile toggles remove only the re-tapped tile; no input box, typing, shuffle or drag handlers.", "- Game roots, all canvases/buttons and Beat hold canvas explicitly suppress native tap highlights/selection/callouts.", "- Old coordinate-based demos for changed controls fall back to fixed examples until re-recorded.", "", "## Both-size per-game audit", "", "| Game | 390×700 | 375×667 | Source geometry and remaining device checks |", "|---|---|---|---|"];
 const notes: Record<string, string> = {
-  wordsmith: "Square height/width-fitted wheel, eight 25%-diameter octagons at 35% radius plus centre circle. Adjacent tile boxes have >1.7% wheel-width gaps; 44px word/action rows, fixed 32px gold-chip slot. Dropdown unchanged; long reveal lists retain internal scrolling.",
+  wordsmith: "Square height/width-fitted wheel, eight 24%-diameter octagons at 35% radius plus centre circle. All tile boxes have >0.7% wheel-width gaps; 44px word/action rows, fixed 32px gold-chip slot. Dropdown unchanged; long reveal lists retain internal scrolling.",
   wordhunt: "Existing 5×5 height/width-fitted square retained. Inner-60% boxes create 40%-cell plus gap dead zones. Previous-cell removes last; nonadjacent/reused hits ignored; second pointer ignored. Drag retained; real finger reliability awaits devices.",
   target: "Undo/Reset each 44×44 with centred 20px SVG; gap 8px. Actions need 88+8+12px plus Lock width: usable widths 382/367px leave 274/259px for Lock. Existing step history is bounded/internal scrolling.",
   maze: "Reset removed. Shared preference retained. 343px control width: four 76.75×68px arrows, 12px gaps; switch on separate 28px row. 104px total replaces old 60+4+44=108px stack; maze loses no height.",
@@ -106,7 +106,7 @@ for (const key of keys) {
 }
 // Newspaper ring circle/square bounding boxes are disjoint at both full widths.
 for (const width of [382, 367, 300]) {
-  const size = width * .25;
+  const size = width * .24;
   const centres = Array.from({ length: 8 }, (_, i) => ({ x: width * (.5 + .35 * Math.cos(i * Math.PI / 4)), y: width * (.5 + .35 * Math.sin(i * Math.PI / 4)) }));
   centres.push({ x: width / 2, y: width / 2 });
   for (let i = 0; i < centres.length; i++) for (let j = i + 1; j < centres.length; j++) {
