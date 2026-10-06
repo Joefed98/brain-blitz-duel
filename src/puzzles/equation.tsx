@@ -36,7 +36,7 @@ function buildStage(count: number, stageIndex: number): { stage: EquationStage; 
     ? ops.includes("÷") && ops.includes("×") && new Set(ops).size >= 3
     : stageIndex !== 2 || !ops.includes("÷");
   for (let attempt = 0; attempt < 900; attempt++) {
-    const numbers = Array.from({ length: count }, () => randInt(2, count === 3 ? 12 : 15));
+    const numbers = Array.from({ length: count }, () => randInt(2, isLast ? 20 : count === 3 ? 12 : 15));
     const solutions = combos
       .map((ops) => ({ ops, value: evaluateLeftToRight(numbers, ops) }))
       .filter((r): r is { ops: Operator[]; value: number } => r.value !== null);
