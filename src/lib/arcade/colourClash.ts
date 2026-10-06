@@ -26,8 +26,12 @@ export const CLASH_FLASH_TICKS = 30;
 export const CLASH_QUEUE = 52;
 /** First fixed-queue revision (stored rounds keep their own length and fall times). */
 export const CLASH_QUEUE_V1 = 18;
-/** Fixed-queue fall time per 15 s phase, in ticks: 1.60 / 1.30 / 1.10 / 0.70 s. */
-export const CLASH_QUEUE_FALL_TICKS = [96, 78, 66, 42] as const;
+/**
+ * Fixed-queue fall setting per 15 s phase. Integer speed rounding adds one
+ * landing tick, so each word takes exactly 96 / 78 / 66 / 42 ticks
+ * (1.60 / 1.30 / 1.10 / 0.70 s) from spawn to gate.
+ */
+export const CLASH_QUEUE_FALL_TICKS = [95, 77, 65, 41] as const;
 export const CLASH_COMPLETE_POINTS = 130;
 export const CLASH_SPEED_POINTS = 20;
 const FP = 256;
