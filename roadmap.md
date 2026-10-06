@@ -1,3 +1,8 @@
+## Slice kitchen retheme (Oct 6)
+- [ ] Replace Slice sea art with full-arena kitchen background, collision-sized foods/condiments/chilli, cut faces and capped particles.
+- [ ] Replace only Slice sea sounds; preserve shared combo.
+- [ ] Check both phone sizes without browsers or identity proofs; verify protected files unchanged and report mapping/caches.
+
 ## Shared red-box bug and fitted Wordsmith letters (Oct 6)
 - [x] Cause: FxLayer created untargeted shake/glow outline spans at 10% screen height, coloured red for wrong feedback; removed these globally and their CSS. Recorder already requires example recording and accepted key; intro touch dots are off. Touch focus outlines suppressed, keyboard focus retained. Diagnostics now require a server-accepted key, not dev=1 alone.
 - [x] Wordsmith targets tripled to 312px live/192px example and reveal, capped by actual font glyph bounds against all polygon edges with 1% board margin; equal centre/outer font size, remeasured on resize/font load. Existing geometry, controls and colours retained.
