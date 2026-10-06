@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
-import { PhoneShell } from "@/components/duel/PhoneShell";
+import { GameLayout, PhoneShell } from "@/components/duel/PhoneShell";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 
 import { RoundIntro } from "@/components/duel/RoundIntro";
@@ -400,30 +400,21 @@ function PracticeScreen() {
   const clockActive = clockStart !== null && now >= clockStart;
   return (
     <PhoneShell constrained gameScreen gameType={type}>
-      <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
-        <div className="flex items-center justify-between">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            PRACTICE
-          </span>
-          <div className="flex items-center gap-2">
-            <span className="font-display text-sm font-bold text-foreground">
-              {puzzleName(puzzle.type)}
-            </span>
-            <PuzzleHelpButton onClick={() => setHelpOpen(true)} />
-          </div>
-        </div>
-
-        {puzzleShowsTimer(puzzle) && (
+      <GameLayout
+        label="PRACTICE"
+        title={puzzleName(puzzle.type)}
+        help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
+        timer={puzzleShowsTimer(puzzle) ? (
           <TimerBar
             msRemaining={runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
             totalMs={runMs ?? timeLimitMs}
             active={clockActive}
           />
-        )}
-
-        {puzzle.type === "balance" && <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" />}
-
-        <div ref={recordArea} className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        ) : undefined}
+        beforeGame={puzzle.type === "balance" ? <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" /> : undefined}
+        stageRef={recordArea}
+        overlay={<PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />}
+      >
           <StageComponent
             key={stateKey}
             stateKey={stateKey}
@@ -446,9 +437,7 @@ function PracticeScreen() {
               return verdict;
             }}
           />
-          <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
-        </div>
-      </div>
+      </GameLayout>
     </PhoneShell>
   );
 }

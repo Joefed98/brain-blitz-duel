@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { FinalResult } from "@/components/duel/FinalResult";
-import { PhoneShell } from "@/components/duel/PhoneShell";
+import { GameLayout, PhoneShell } from "@/components/duel/PhoneShell";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundPips } from "@/components/duel/RoundPips";
@@ -776,68 +776,30 @@ function DuelScreen() {
       );
   return (
     <PhoneShell constrained gameScreen gameType={puzzle?.type} gameHeader={roomGameHeader}>
-      <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
-        <div className="flex items-center justify-between">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            Round {round} of {TOTAL_ROUNDS}
-          </span>
-          <div className="flex items-center gap-3">
-            <span className="font-display text-sm font-bold text-foreground">
-              {puzzle ? puzzleName(puzzle.type) : ""}
-            </span>
-            <PuzzleHelpButton onClick={() => setHelpOpen(true)} />
-            <RoundPips currentRound={round} outcomes={outcomes} />
-          </div>
-        </div>
-
-        {showTimer && (
+      <GameLayout
+        label={`Round ${round} of ${TOTAL_ROUNDS}`}
+        title={puzzle ? puzzleName(puzzle.type) : ""}
+        help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
+        progress={<RoundPips currentRound={round} outcomes={outcomes} />}
+        timer={showTimer ? (
           <TimerBar
             msRemaining={myResult ? 0 : runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
             totalMs={runMs ?? timeLimitMs}
             active={clockActive && !myResult}
           />
-        )}
-
-        {puzzle?.type === "balance" && <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" />}
-
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-          {puzzle && Stage && (
-            <div
-              className={`flex min-h-0 flex-1 flex-col ${
-                myResult ? "pointer-events-none opacity-30 transition-opacity duration-200" : ""
-              }`}
-            >
-              {/* Keyed by the round alone: mounted once, never re-keyed by room updates. */}
-              <Stage
-                key={stateKey}
-                stateKey={stateKey}
-                puzzle={puzzle}
-                phaseStartedAt={puzzleStart ?? now}
-                now={now}
-                locked={!!myResult}
-                onSubmit={handleSubmit}
-                onDraftAnswer={handleDraftAnswer}
-                checkWord={handleCheckWord}
-                checkGroup={handleCheckGroup}
-              />
-            </div>
-          )}
-          {puzzle && (
-            <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
-          )}
-
+        ) : undefined}
+        beforeGame={puzzle?.type === "balance" ? <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" /> : undefined}
+        locked={!!myResult}
+        overlay={<>
+          {puzzle && <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />}
           {myResult && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-              <span className="animate-stamp-in rounded-lg border-2 border-primary px-4 py-2 font-display text-lg font-bold uppercase tracking-[0.2em] text-primary">
-                Locked
-              </span>
+              <span className="animate-stamp-in rounded-lg border-2 border-primary px-4 py-2 font-display text-lg font-bold uppercase tracking-[0.2em] text-primary">Locked</span>
               <span className="flex items-center gap-2 text-sm text-muted-foreground">
                 {isMulti ? "Waiting for other players" : "Waiting for opponent"} <Dots />
               </span>
-            </div>
           )}
-        </div>
-      </div>
+      </GameLayout>
     </PhoneShell>
   );
 }
