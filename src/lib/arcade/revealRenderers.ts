@@ -65,6 +65,7 @@ import { replayWhackRun } from "@/lib/duel/whack";
 import { replayClayRun } from "@/lib/duel/clayShoot";
 import { replayTenDropRun } from "@/lib/duel/tenDrop";
 import { replayColourClashRun } from "@/lib/duel/colourClash";
+import { clashVariantOf } from "@/lib/arcade/colourClash";
 
 export interface ArcadeRevealRenderer {
   /** The game's own accent colour for tiles and the track. */
@@ -168,5 +169,5 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   whack: simple(GOLD, 390, 560, whackGame, (p, a) => replayWhackRun(seedOf(p), a)),
   clayshoot: simple("#E8762C", CLAY_W, CLAY_H, clayGame, (p, a) => replayClayRun(seedOf(p), a)),
   tendrop: simple(GOLD, TD_W, TD_H, tenDropGame, (p, a) => replayTenDropRun(seedOf(p), a)),
-  stroop: simple(GOLD, 390, 560, colourClashGame, (p, a) => replayColourClashRun(seedOf(p), a, p.type === "stroop" ? p.queue : null)),
+  stroop: simple(GOLD, 390, 560, colourClashGame, (p, a) => replayColourClashRun(seedOf(p), a, p.type === "stroop" ? clashVariantOf(p) : 0)),
 };

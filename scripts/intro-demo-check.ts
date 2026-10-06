@@ -62,6 +62,7 @@ import { replayWhackRun } from "@/lib/duel/whack";
 import { replayClayRun } from "@/lib/duel/clayShoot";
 import { replayTenDropRun } from "@/lib/duel/tenDrop";
 import { replayColourClashRun } from "@/lib/duel/colourClash";
+import { clashVariantOf } from "@/lib/arcade/colourClash";
 
 type AnyGame = ArcadeGame<unknown, unknown>;
 interface Case {
@@ -108,7 +109,7 @@ const CASES: Case[] = [
   { type: "whack", game: g(whackGame), replay: r(replayWhackRun) },
   { type: "clayshoot", game: g(clayGame), replay: r(replayClayRun) },
   { type: "tendrop", game: g(tenDropGame), replay: r(replayTenDropRun) },
-  { type: "stroop", game: g(colourClashGame), replay: r(replayColourClashRun) },
+  { type: "stroop", game: g(colourClashGame), replay: (p: PuzzleData, s: number, raw: string) => replayColourClashRun(s, raw, clashVariantOf(p as never)) },
 ];
 
 const quietError = console.error;

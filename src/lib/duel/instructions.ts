@@ -173,9 +173,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Use ◀ ▶, the joystick, or tap a lane", detail: "to steer the word." },
       { action: "Swipe down or press ▼", detail: "to drop it quickly." },
       { action: "Watch the banner", detail: "- the rule swaps every 15 seconds." },
-      { action: "Sort the last word", detail: `to finish - the run ends when all ${CLASH_QUEUE} are sorted, or at 60 seconds.` },
+      { action: "Sort the last word", detail: `to finish - the run ends when all ${CLASH_QUEUE} are sorted, or at 75 seconds.` },
     ],
-    score: `round(130 × correct ÷ ${CLASH_QUEUE}) − 2 per wrong gate; sort all ${CLASH_QUEUE} for + round(20 × time left ÷ 60 s). Minimum 0, maximum 150.`,
+    score: `round(130 × correct ÷ ${CLASH_QUEUE}) − 2 per wrong gate; sort all ${CLASH_QUEUE} for + round(20 × time left ÷ 75 s). Minimum 0, maximum 150.`,
   },
   symscan: {
     goal: "Find every matching arrow in three growing grids.",
@@ -796,7 +796,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Cut the last rope", detail: "and the sweet drops; the camera follows across the wider arena. Its walls bounce it without losing speed." },
       { action: "Don't let it settle on a ledge", detail: "or fly out the top or bottom - 10 levels, 12 s each." },
     ],
-    score: "10 per apple collected, +3 for each level's single leaf; collect all ten for round(20 × time left ÷ 60 s). Cap 150.",
+    score: "10 per apple collected, +3 for each level's single leaf; collect all ten for round(20 × time left ÷ 75 s). Cap 150.",
   },
   swing: {
     goal: "Swing to the 500 m finish.",
@@ -869,7 +869,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a gold tube to turn it into a drop", detail: "- the bottom row is fixed, so send each ball down early…" },
       { action: "…the track's bottom row re-lays and the trays swap colours mid-round", detail: "- watch for both." },
     ],
-    score: "round(130 × marbles home ÷ 30), plus round(20 × sim time left ÷ 60 s) only when all 30 are home. Cap 150. Wrong trays have no penalty.",
+    score: "round(130 × marbles home ÷ 30), plus round(20 × sim time left ÷ 75 s) only when all 30 are home. Cap 150. Wrong trays have no penalty.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",

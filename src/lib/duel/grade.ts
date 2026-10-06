@@ -63,6 +63,7 @@ import { decodeSnipRun, replaySnipRun } from "./snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
+import { clashVariantOf } from "@/lib/arcade/colourClash";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
@@ -332,7 +333,7 @@ export function gradeSubmission(
       break;
     }
     case "stroop": {
-      const replay = replayColourClashRun(puzzle.seed, answer, puzzle.queue);
+      const replay = replayColourClashRun(puzzle.seed, answer, clashVariantOf(puzzle));
       revealRun = replay;
       correctCount = replay.correct;
       isCorrect = replay.correct >= replay.total;

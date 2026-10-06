@@ -49,7 +49,7 @@ for (let seed = 1; seed <= SEEDS; seed++) {
   finishMin = Math.min(finishMin, s.finishTick); finishMax = Math.max(finishMax, s.finishTick);
   check(colourClashQueueGame.score(s) === clashQueueScoreOf(s.correct, s.wrong, CLASH_QUEUE, s.finishTick), "score formula");
   const raw = encodeColourClashRun({ seed, claimedScore: colourClashQueueGame.score(s), events, endTick: s.tick, checkpoints: cps });
-  const rep = replayColourClashRun(seed, raw, CLASH_QUEUE);
+  const rep = replayColourClashRun(seed, raw, 2);
   check(rep.score === colourClashQueueGame.score(s) && rep.correct === s.correct && rep.finished, `seed ${seed}: server replay differs ${JSON.stringify({rs: rep.score, s: colourClashQueueGame.score(s), rc: rep.correct, f: rep.finished, reason: rep.reason, ev: events.length, d: rep.inputDiag})}`);
   // Idle run: unchanged pattern, events, fall speeds; stops spawning at N and ends at 60 s.
   let q = colourClashQueueGame.init(seed), l = colourClashGame.init(seed);

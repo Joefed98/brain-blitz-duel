@@ -40,3 +40,4 @@
 - Player-selected arcade checkpoints use validated recorded inputs and retained selection counters, with HUD availability derived from sim state; why: the server replay must enforce one-use selection and preserve result facts.
 - Arcade bend ramps use shared integer control points and integrated phase rather than resetting oscillators; why: sim, play rendering and saved-run rendering must agree without discontinuities.
 - Countryside owns backdrop/pot hills; other art stays in renderers. Orbit shares outside-circle belt geometry, swept free-flight collisions and revision-gated demos. Why: safe orbits and identical replay.
+- Colour Clash revisions are keyed by clashVariantOf(puzzle) (clashRev, else queue length) and every revision keeps its own game object; why: stored rounds replay on their original rules.
