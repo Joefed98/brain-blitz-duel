@@ -230,7 +230,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const lastSlot = replay.used[chainBoardIndex(Math.max(0, links - 1), data)]?.at(-1) ?? null;
   const windowMs = chainWindowMs(links + 1, data);
   const left = replay.lastT === null ? 1 : (windowMs - (clock - replay.lastT)) / windowMs;
-  const tier = links >= rules.fasterAt[1] ? 2 : links >= rules.fasterAt[0] ? 1 : 0;
+  const tier = links >= (rules.fasterAt[1] ?? Infinity) ? 2 : links >= (rules.fasterAt[0] ?? Infinity) ? 1 : 0;
 
   const tap = (nodeId: number) => {
     if (over) return;
