@@ -1,3 +1,9 @@
+## Ink Bridge rainbow retheme (Oct 6)
+- [ ] Replace only artwork with cached daylight hills/clouds, exact-bound coin/pot/red blocks, rainbow stroke and draining meter.
+- [ ] Map pot/block/final-clear cues, retain draw sound, verify protected source fingerprints.
+- [ ] Check both phone arena sizes and motion modes without browsers; report cached sprites and native level-10 timings with existing dev readout.
+- [ ] Actual phone appearance/audio/frame readout awaits user device testing; no identity proofs.
+
 ## Slice kitchen retheme (Oct 6)
 - [x] Replace Slice sea art with full-arena kitchen background, four collision-sized foods/condiments/chilli, swipe cut faces and capped particles.
 - [x] Replace only Slice sea sounds; preserve shared combo and haptics, remove duplicate correct/wrong audio.
