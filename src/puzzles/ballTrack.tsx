@@ -32,7 +32,7 @@ import { ballTrackSounds } from "@/lib/fx/gameSounds";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Practice fallback course (the first bank course). */
-const PRACTICE_COURSE: BtCourse = {"trays":[-1,-1,1,0,2,-1,3],"relay":{"tick":1469,"trays":[-1,1,-1,0,2,3,-1]},"shuffle":{"tick":2590,"trays":[-1,0,-1,3,1,2,-1]},"balls":[2,3,0,3,0,3,2,0,1,2,0,1,3,1,1,0,1,3,2,1,2,3,0,2,0],"fixed":[11,12,15,23,25,33,36,37,45,46,47,50]};
+const PRACTICE_COURSE: BtCourse = {"trays":[-1,-1,2,0,1,-1,3],"relay":{"tick":1414,"trays":[-1,2,-1,0,1,3,-1]},"shuffle":{"tick":2596,"trays":[-1,0,-1,2,3,1,-1]},"balls":[3,3,1,2,2,1,0,0,2,0,2,0,3,2,1,2,2,1,3,0,0,3,1,2,3,1,1,3,0,1],"fixed":[8,9,11,12,18,23,26,29,37,39,44,46,47,50]};
 
 /* ------------------------------ Intro example ------------------------------ */
 
