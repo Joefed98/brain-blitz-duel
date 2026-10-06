@@ -32,7 +32,6 @@ export interface GameSounds<S> {
 }
 
 const AMBIENCE_VOLUME = 0.22;
-const HISS_VOLUME = 0.18;
 
 export function orbitSounds(): GameSounds<OrbitState> {
   let prev: OrbitState | null = null;
@@ -55,15 +54,14 @@ export function swingSounds(): GameSounds<SwingState> {
   let prev: SwingState | null = null;
   return {
     frame(state, running) {
-      if (running) ensureLoop("arc_lava_hiss", HISS_VOLUME);
-      else stopLoop("arc_lava_hiss");
+      void running;
       if (prev && state.tick > prev.tick) {
         if (state.ended === 2 && prev.ended !== 2) playSound("arc_crash");
-        else if (prev.rope >= 0 && state.rope < 0) playSound("arc_swoosh");
+        else if (prev.rope < 0 && state.rope >= 0) playSound("arc_grapple");
       }
       prev = state;
     },
-    stop: () => stopLoop("arc_lava_hiss"),
+    stop: () => {},
   };
 }
 
@@ -95,7 +93,7 @@ export function crossSounds(): GameSounds<CrossState> {
       if (prev && state.tick > prev.tick) {
         if (state.lives < prev.lives) playSound("arc_lose_life");
         else if (state.crossings > prev.crossings) playSound("stage_complete");
-        else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) playSound("arc_swoosh", 0.6);
+        else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) playSound("arc_yelp", 0.6);
       }
       prev = state;
     },
@@ -107,15 +105,14 @@ export function flipSounds(): GameSounds<FlipState> {
   let prev: FlipState | null = null;
   return {
     frame(state, running) {
-      if (running) ensureLoop("arc_lava_hiss", HISS_VOLUME);
-      else stopLoop("arc_lava_hiss");
+      void running;
       if (prev && state.tick > prev.tick) {
         if (state.ended === 2 && prev.ended !== 2) playSound("arc_crash");
-        else if (state.flipT > prev.flipT) playSound("arc_swoosh", 0.7);
+        else if (state.flipT > prev.flipT) playSound("arc_gravity_flip", 0.7);
       }
       prev = state;
     },
-    stop: () => stopLoop("arc_lava_hiss"),
+    stop: () => {},
   };
 }
 
@@ -143,7 +140,8 @@ export function hoverSounds(): GameSounds<HoverState> {
         else {
           if (state.gates > prev.gates) playSound("arc_retro_note");
           // A tap sets vy to the impulse exactly; gravity alone never reaches it.
-          if (state.vy === HOVER_IMPULSE) playSound("arc_retro_blip", 0.7, 1, true);
+          // Never stacked: a retrigger cuts the previous instance.
+          if (state.vy === HOVER_IMPULSE) playSound("arc_hover_tap", 0.7);
         }
       }
       prev = state;
@@ -418,7 +416,7 @@ export function inkBridgeSounds(): GameSounds<InkState> {
         // Keep one draw sound after the first segment of each stroke.
         if (state.strokeStarts.length > prev.strokeStarts.length) armed = state.strokeStarts[state.strokeStarts.length - 1] ?? -1;
         if (armed >= 0 && state.segs.length > armed) {
-          playSound("arc_swoosh", 0.6);
+          playSound("arc_rainbow", 0.6);
           armed = -1;
         }
         if (state.flashTick === state.tick || state.flashTick > prev.flashTick) {
@@ -468,12 +466,12 @@ export function snipSounds(): GameSounds<SnipState> {
   return {
     frame(state) {
       if (prev && state.tick > prev.tick) {
-        if (state.cuts > prev.cuts) playSound("arc_swoosh", 0.8, 1, true);
+        if (state.cuts > prev.cuts) playSound("arc_rope_cut", 0.8, 1, true);
         const got = (s: SnipState) => s.starGot.reduce((n, g) => n + g, 0);
         const levelChanged = state.endTick !== prev.endTick;
-        if (!levelChanged && state.level === prev.level && got(state) > got(prev)) playSound("arc_gem_chime");
+        if (!levelChanged && state.level === prev.level && got(state) > got(prev)) playSound("arc_leaf_collect");
         if (levelChanged) {
-          if (state.stars > prev.stars && got(prev) === 0) playSound("arc_gem_chime");
+          if (state.stars > prev.stars && got(prev) === 0) playSound("arc_leaf_collect");
           if (state.lastOutcome === SNIP_EATEN) playSound("arc_wood_knock");
           else playSound("arc_thud");
         }
