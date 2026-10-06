@@ -1,7 +1,7 @@
 /**
  * Ball Track: a deterministic 60-tick sim. A fixed 7×9 serpentine of straights
  * and corners; tapping a gold straight toggles it vertical so balls drop through
- * to the next row (or the tray in the fixed bottom row). Balls drop every 2 s. The server replays the tap log.
+ * to the next row (or the tray in the fixed bottom row). Balls drop every 103 ticks. The server replays the tap log.
  */
 
 import { finishScore, inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
@@ -10,12 +10,12 @@ import { finishScore, inputRange, type ArcadeGame, type ArcadeInputEvent } from 
 
 export const BT_COLS = 7;
 export const BT_ROWS = 9;
-export const BT_BALLS = 25;
+export const BT_BALLS = 30;
 export const BT_COLOURS = 4;
 export const BT_STEP_TICKS = 16;
 /** Tray colours slide to their shuffled columns over this many ticks (~0.5 s). */
 export const BT_SHUFFLE_TICKS = 30;
-export const BT_DROP_TICKS = 120; // a ball every 2 s
+export const BT_DROP_TICKS = 103; // last of 30 releases at tick 2988 (49.8 s)
 export const BT_RUN_TICKS = 3600; // 60 s
 export const BT_HOPPER_COL = 3;
 export const BT_CHECKPOINT_INTERVAL = 300;
@@ -210,10 +210,10 @@ export function btSpeedBonus(home: number, lastLand: number): number {
   return finishScore(BT_RUN_TICKS, lastLand) - 130;
 }
 
-/** round(120 × home ÷ ball count); 25/25 = 130 + speed bonus; wrong trays score 0 like lost balls. */
+/** round(130 × home ÷ ball count); all home = 130 + speed bonus; wrong trays have no penalty. */
 export function btScoreOf(home: number, _wrong: number, lastLand = BT_RUN_TICKS): number {
   if (home >= BT_BALLS) return finishScore(BT_RUN_TICKS, lastLand);
-  return Math.max(0, Math.min(130, Math.round((120 * home) / BT_BALLS)));
+  return Math.max(0, Math.min(130, Math.round((130 * home) / BT_BALLS)));
 }
 
 export function btScore(s: BtState): number {

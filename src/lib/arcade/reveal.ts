@@ -6,6 +6,8 @@
  */
 
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
+import { BT_BALLS } from "./ballTrack";
+import { MATCHUP_PAR_RAW } from "./matchup";
 
 export interface ArcadeRevealTile {
   label: string;
@@ -88,7 +90,7 @@ const BUILDERS: Record<string, Builder> = {
     outcome: b(r, "finished") ? "finish" : "time",
   }),
   matchup: (r, s) => ({
-    axis: { value: n(r, "raw"), max: 2000, label: "Match points" },
+    axis: { value: n(r, "raw"), max: MATCHUP_PAR_RAW, label: "Match points" },
     lines: [`${n(r, "raw").toLocaleString("en-GB")} match points → ${s}`],
     tiles: [
       { label: "Best line", value: String(n(r, "bestLine")) },
@@ -280,11 +282,12 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   balltrack: (r, s) => {
-    const done = n(r, "home") >= 25;
+    const done = n(r, "home") >= BT_BALLS;
     return {
-      axis: { value: n(r, "home"), max: 25, label: "Balls home" },
-      lines: [head(`${n(r, "home")} / 25 home`, s, done)],
+      axis: { value: n(r, "home"), max: BT_BALLS, label: "Balls home" },
+      lines: [head(`${n(r, "home")} / ${BT_BALLS} home`, s, done)],
       tiles: [
+        { label: "Balls home", value: `${n(r, "home")} / ${BT_BALLS}` },
         { label: "Wrong tray", value: String(n(r, "wrong")) },
         { label: "Lost", value: String(n(r, "lost")) },
       ],

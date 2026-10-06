@@ -270,7 +270,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         />
       </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.goldHits} gold hit{result.goldHits === 1 ? "" : "s"} × 3 ·{" "}
+        {result.goldHits} gold hit{result.goldHits === 1 ? "" : "s"} × 2.5 (rounded down) ·{" "}
         {result.survived ? "survived" : `lost at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">

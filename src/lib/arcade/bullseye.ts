@@ -364,12 +364,12 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
 }
 
 /**
- * round(1.5 × arrow total), 0…150.
+ * floor(1.7 × arrow total − 20), clamped to 0…150.
  * Arrows still unfired when the clock ends add nothing.
  */
 export function bullseyeScoreFor(total: number): number {
   const points = clampInt(total, 0, BULLSEYE_ARROWS * 10);
-  return clampInt(Math.round(1.5 * points), 0, 150);
+  return clampInt(Math.floor((17 * points) / 10 - 20), 0, 150);
 }
 
 function score(state: BullseyeState): number {

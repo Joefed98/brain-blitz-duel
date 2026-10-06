@@ -59,13 +59,13 @@ export const JUNC_INDICATE_TICKS = 60;
 /** 2.4 px a tick, +10% every 15 s. */
 const SPEEDS: readonly number[] = [614, 675, 743, 817];
 const SPEED_STEP_TICKS = 15 * TICKS_PER_SECOND;
-const CAR_POINTS = 3;
-/** Ambulances: from 20 s, one every 15 s, 1.3× speed, ±5 points each. */
+const CAR_POINTS = 2;
+/** Ambulances: from 20 s, one every 15 s, 1.3× speed, ±4 points each. */
 export const JUNC_AMB_FROM = 20 * TICKS_PER_SECOND;
 export const JUNC_AMB_EVERY = 15 * TICKS_PER_SECOND;
 const AMB_SPEED_NUM = 13;
 const AMB_SPEED_DEN = 10;
-const AMB_POINTS = 5;
+const AMB_POINTS = 4;
 const SURVIVE_BONUS = 40;
 
 export const JUNC_INPUT_RANGES: readonly InputRange[] = [inputRange(JUNC_INPUT_TAP, [0, 3])];
@@ -230,7 +230,7 @@ function step(state: JuncState, input: ArcadeInputEvent | null): JuncState {
     car.s += moved;
     if (car.s <= stop && moved * 2 < own) {
       if (car.amb) {
-        // An ambulance never gives up; being made to stop costs 5, once.
+        // An ambulance never gives up; being made to stop costs 4, once.
         if (!car.stopped) {
           car.stopped = 1;
           s.ambStopped += 1;
@@ -284,7 +284,7 @@ function step(state: JuncState, input: ArcadeInputEvent | null): JuncState {
   return s;
 }
 
-/** 3 per car cleared, −1 per car that gave up, ±5 per ambulance, +40 for the minute; 0–150. */
+/** 2 per car cleared, −1 per car that gave up, ±4 per ambulance, +40 for the minute; 0–150. */
 export function juncScoreOf(cleared: number, gaveUp: number, survived: boolean, ambThrough = 0, ambStopped = 0): number {
   return clampInt(
     CAR_POINTS * cleared - gaveUp + AMB_POINTS * (ambThrough - ambStopped) + (survived ? SURVIVE_BONUS : 0),

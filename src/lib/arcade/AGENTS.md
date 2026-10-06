@@ -7,6 +7,7 @@
 - Hot Floor generation exhaustively enumerates simple budgeted survivors; accepted stages have at most two routes (three on stages 1–2), a zero-slack pinch on every survivor, three same-or-shorter number failures, and under 20% highest-number-first solves.
 - Ball Track bank searches column placements, minimising triple rotatable stacks and forbidding longer ones; why: seeded courses retain the best count before replay acceptance.
 - Ball Track warnings derive from seeded event ticks; sound follows sim-tick digit transitions; why: identical warnings without changing replay state or event timing.
+- Ball Track bank queues and practice fallback regenerate together after spawn changes; saved demos reject mismatched queue lengths. Why: every current course and demo must match shared release timing.
 - Matchup uses separate row and column bounds and creates specials in every cascade/refill resolution; why: its rectangular board must replay identically.
 - Beat reserves hold heads and awards the whole note only after a window-checked release; why: both endpoint errors determine server-verified credit.
 - Bin Toss stores seeded per-throw slides (integer half-wave, trimmed to keep the bin on screen) and narrows the bin from throw 4 with wind scaled to width; Bullseye stores per-arrow ring-value permutations with colour keyed to value; why: sim, drawing and server replay must agree.

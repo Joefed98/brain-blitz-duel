@@ -34,9 +34,9 @@ function play(index: number, choose: (tick: number) => Omit<ArcadeInputEvent, "t
 
 let solved = 0, apart = 0;
 const dropSets = new Set<string>();
-if (BT_BALLS !== 25 || (BT_BALLS - 1) * BT_DROP_TICKS !== 48 * 60 || BT_DROP_TICKS !== 120 || BT_STEP_TICKS !== 16 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
+if (BT_BALLS !== 30 || 1 + (BT_BALLS - 1) * BT_DROP_TICKS !== 2988 || BT_DROP_TICKS !== 103 || BT_STEP_TICKS !== 16 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
 for (let home = 0; home <= BT_BALLS; home++) for (let wrong = 0; wrong <= BT_BALLS - home; wrong++) {
-  if (btScoreOf(home, wrong) !== (home >= BT_BALLS ? 130 + btSpeedBonus(home, BT_RUN_TICKS) : Math.round(120 * home / BT_BALLS))) fail("Scoring formula");
+  if (btScoreOf(home, wrong) !== (home >= BT_BALLS ? 130 + btSpeedBonus(home, BT_RUN_TICKS) : Math.round(130 * home / BT_BALLS))) fail("Scoring formula");
 if (btSpeedBonus(BT_BALLS, 0) !== 20 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS / 2) !== 10 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS) !== 0 || btSpeedBonus(BT_BALLS - 1, 0) !== 0) fail("Speed bonus");
 }
 BALL_TRACK_BANK.forEach((entry, i) => {
@@ -74,7 +74,7 @@ BALL_TRACK_BANK.forEach((entry, i) => {
   if (hasLowerShortcut(c) || c.trays.some((t,col) => t >= 0 && !routeTo(c,col))) fail(`course ${i}: tray reachability / early route`);
   if (c.trays.filter((t) => t >= 0).length !== 4 || c.balls.length !== BT_BALLS) fail(`course ${i}: trays/balls`);
   const counts = Array.from({ length: 4 }, (_, colour) => c.balls.filter((b) => b === colour).length).sort();
-  if (counts.join(",") !== "6,6,6,7") fail(`course ${i}: colour balance`);
+  if (counts.join(",") !== "7,7,8,8") fail(`course ${i}: colour balance`);
   if (c.balls.some((b, j) => j >= 2 && b === c.balls[j - 1] && b === c.balls[j - 2])) fail(`course ${i}: three consecutive colours`);
   const events = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
   const { state, score } = play(i, (t) => events.get(t) ?? null);

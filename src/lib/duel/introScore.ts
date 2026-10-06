@@ -1,6 +1,10 @@
 import { MOVES_SHAPE } from "./scoring";
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
 import { BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
+import { BT_BALLS } from "@/lib/arcade/ballTrack";
+import { MATCHUP_PAR_RAW } from "@/lib/arcade/matchup";
+import { RALLY_GOLD_POINTS } from "@/lib/arcade/rally";
+import { SKYLINE_BLOCK_POINTS, SKYLINE_PERFECT_POINTS } from "@/lib/arcade/skyline";
 import type { PuzzleType } from "./types";
 
 /**
@@ -28,6 +32,11 @@ const arcadeFinish = (progress: string, finish: string) =>
 /** Arcade open-ended. */
 const arcadeOpen = (counts: string, penalty?: string) =>
   `Points for ${counts}.${penalty ? ` ${penalty}.` : ""}`;
+
+/** Converted raw totals and weighted counters, rounded down and capped. */
+const arcadeConverted = (counts: string) => `${counts}. Round down to a whole point, up to 150.`;
+const arcadePar = (par: number) => `Bigger lines score far more match points. ${par.toLocaleString("en-GB")} match points earn 150; fewer earn a proportional share, rounded down.`;
+const arcadeTraffic = (car: number, ambulance: number) => `${car} points per car through, ${ambulance} per ambulance through, and 40 for lasting the minute. A car that gives up: lose 1. A stopped ambulance: lose ${ambulance}. Minimum 0, maximum 150.`;
 
 export const INTRO_SCORE: Record<PuzzleType, string> = {
   // Word
@@ -104,27 +113,27 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
 
   // Arcade
   hover: arcadeOpen("each gap you fly through; all of them scores 150"),
-  skyline: arcadeOpen("each block stacked, with extra for perfect drops"),
+  skyline: arcadeConverted(`${SKYLINE_BLOCK_POINTS} points per block stacked, plus ${SKYLINE_PERFECT_POINTS} per perfect drop`),
   bintoss: arcadeFinish("each basket, 10 a time", "Sink all ten"),
-  bullseye: `Rings: ${BULLSEYE_RING_VALUES.join(", ")} from the centre out. Earn one and a half times your ring total, up to 150. Missed or unfired arrows score nothing.`,
-  matchup: arcadeOpen("every line you match; bigger lines score far more"),
+  bullseye: `Rings: ${BULLSEYE_RING_VALUES.join(", ")} from the centre out. ${arcadeConverted("Multiply your ring total by 1.7, then subtract 20")} Minimum 0. Missed or unfired arrows add nothing to the ring total.`,
+  matchup: arcadePar(MATCHUP_PAR_RAW),
   snake: arcadeOpen("each pellet you eat"),
   cross: `${CROSS_LANE_POINTS} points for each lane crossed, plus ${CROSS_CROSSING_POINTS} for each full crossing, up to 150. Being hit costs a life, not points.`,
   breaker: arcadeFinish("each brick destroyed", "Clear all 80"),
-  rally: arcadeOpen("each gold-ball hit; the blue ball scores nothing"),
+  rally: `${arcadeConverted(`${RALLY_GOLD_POINTS} points per gold-ball hit`)} The blue ball scores nothing.`,
   slice: "Points for each disc you slice, and cutting three or more at once boosts your multiplier. Bomb: lose 10.",
   bubble: arcadeFinish("the share of bubbles you clear", "Clear the whole field"),
   beat: "Points for each note: most for perfect timing, less for good or OK. Missed note: lose 2. Holds count only if you press and let go in time.",
   wavefront: "Points for shapes, armour hits, saucers and waves cleared. Clear all five waves perfectly for 150.",
   flip: "The longer you last, the more you score. Survive the full minute for 150.",
-  junction: "Points for each car you get through, with extra for ambulances and for lasting the minute. A car that gives up: lose 1. A stopped ambulance: lose 5.",
+  junction: arcadeTraffic(2, 4),
   inkbridge: arcadeFinish("each level you finish", "Finish all ten"),
   burst: "Points for each ball you pop or split. Losing a life costs 9. Clear four waves without losing a life for 150.",
   orbit: arcadeFinish("each planet you reach", "Reach the sun"),
   snip: arcadeFinish("each sweet you feed, with extra for each star", "Feed all ten"),
   swing: arcadeFinish("how far you swing", "Reach 500 metres"),
   tilt: arcadeFinish("each maze you finish", "Finish all four"),
-  balltrack: arcadeFinish("each ball you get home", "Get all 25 home"),
+  balltrack: `${arcadeFinish(`the share of ${BT_BALLS} balls you get home, rounded to the nearest whole point`, `Get all ${BT_BALLS} home`)} Wrong trays cost nothing.`,
   swerve: arcadeOpen("each coin you collect"),
   dual: "The longer both runners survive, the more you score. The full minute is 150.",
   steady: "Start on 150. Touching the edge: lose 5.",

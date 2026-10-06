@@ -39,8 +39,8 @@ export const MATCHUP_BOMB = 6;
 export const MATCHUP_CROSS = 7;
 /** Made by a T or L swap (two lines at once); clears both diagonals. */
 export const MATCHUP_STAR = 8;
-/** Raw points for a perfect-feeling run: 2000 raw = 150. Tune here. */
-export const MATCHUP_PAR_RAW = 2000;
+/** Raw points for a perfect-feeling run: 2500 raw = 150. Tune here. */
+export const MATCHUP_PAR_RAW = 2500;
 
 /** Cells are 50 px; symbols are drawn at 70% of the cell. */
 export const MATCHUP_CELL_PX = 50;

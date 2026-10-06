@@ -59,7 +59,7 @@ export const RALLY_MIN_VY = 120;
 /** Par: thirty hits (gold hits count double). */
 export const RALLY_PAR = 30;
 export const RALLY_HIT_POINTS = 3;
-export const RALLY_GOLD_POINTS = 3;
+export const RALLY_GOLD_POINTS = 2.5;
 export const RALLY_POINTS_CAP = 110;
 export const RALLY_SURVIVE_BONUS = 40;
 
@@ -280,7 +280,7 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
 
 function score(state: RallyState): number {
   // Only gold-ball hits score; the blue ball scores nothing but losing it ends the run.
-  return clampInt(RALLY_GOLD_POINTS * state.goldHits, 0, 150);
+  return clampInt(Math.floor(RALLY_GOLD_POINTS * state.goldHits), 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */

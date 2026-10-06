@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
+import { BT_BALLS } from "@/lib/arcade/ballTrack";
 
 export interface IntroDemoRow {
   game_type: string;
@@ -43,6 +44,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     const demo = (row as IntroDemoRow | null) ?? null;
     // The fixed-splitter demo cannot replay the new movable-piece example.
     if (data.type === "laser" && demo?.puzzle.type === "laser" && demo.puzzle.splitterPieces !== 1) return null;
+    // Old Ball Track queues and release timings cannot replay the current run.
+    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== BT_BALLS) return null;
     return demo;
   });
 
