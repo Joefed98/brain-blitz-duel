@@ -52,7 +52,7 @@ function sourceWords(size: number): string[] {
   const cached = sources.get(size);
   if (cached) return cached;
   const words = commonWords().filter((word) => {
-    if (word.length !== size || isPluralForm(word)) return false;
+    if (word.length !== size) return false;
     const counts = new Map<string, number>();
     for (const letter of word) counts.set(letter, (counts.get(letter) ?? 0) + 1);
     return [...counts.values()].every((n) => n <= 2);
@@ -106,6 +106,7 @@ export function generateWordsmith(size: number = pick(WORDSMITH_SIZES)): Wordsmi
   }
   // Never silently change size or bypass the count requirement on a retry limit.
   for (const source of bank) {
+    if (isPluralForm(source)) continue;
     for (const centre of new Set(source)) {
       const valid = validWords(source, centre);
       if (valid.length >= WORDSMITH_MIN_WORDS && valid.length <= WORDSMITH_MAX_WORDS) return build(source, centre, valid);

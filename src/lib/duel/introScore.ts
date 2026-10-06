@@ -48,7 +48,7 @@ const arcadeTraffic = (car: number, ambulance: number) => `${car} points per car
 
 export const INTRO_SCORE: Record<PuzzleType, string> = {
   // Word
-  wordsmith: "Longer words score more, and the nine-letter word is worth the most. Your word points are boosted up to a maximum of 150.",
+  wordsmith: "Longer words score more: 8 letters earn 11 word points; 9–11 letters earn 15. Round down 2.5 × your word points, up to 150.",
   wordhunt: "Longer words score more. Your word points count double, up to 150.",
   tilegrid: "Use all fifteen tiles in a valid grid: 130 points, plus up to 20 more for finishing fast. Not finished: 8 points for each tile inside a real word.",
   wordslide: "Make all five rows words: 100 points, plus up to 30 for being quick and up to 20 for using few moves. Not finished: 22 points for each row that is a word.",
