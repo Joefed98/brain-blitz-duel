@@ -578,6 +578,7 @@ function DuelScreen() {
             </div>
           )}
         </div>
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -640,6 +641,7 @@ function DuelScreen() {
             void readyUp(duel.id, round);
           }}
         />
+        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -672,7 +674,6 @@ function DuelScreen() {
           startedAt={phaseStart ?? now}
           now={now}
         />
-        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
