@@ -188,6 +188,20 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
       const wobble = !reducedMotion() && landAge < 450
         ? Math.sin(landAge / 30) * 0.35 * (1 - landAge / 450) : 0;
       drawDart(ctx, last.x, last.y, 0.45, flightColour(last.arrow), wobble);
+      if (landAge < 500) {
+        const u = landAge / 500;
+        const pop = reducedMotion() ? 1 : 1 + 0.2 * Math.sin(Math.min(1, u * 4) * Math.PI);
+        ctx.save();
+        ctx.translate(last.x, last.y - 14 - (reducedMotion() ? 0 : u * 8));
+        ctx.scale(pop, pop);
+        ctx.globalAlpha = u < 0.3 ? 1 : (1 - u) / 0.7;
+        ctx.fillStyle = BULLSEYE_GOLD;
+        ctx.font = "700 20px 'JetBrains Mono', ui-monospace, monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(String(last.value), 0, 0);
+        ctx.restore();
+      }
     }
     if (last && state.flightTick > 0) {
       const progress = (BULLSEYE_FLIGHT_TICKS - state.flightTick) / BULLSEYE_FLIGHT_TICKS;
@@ -217,7 +231,7 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
     ctx.textAlign = "left";
     const shownArrow = Math.min(BULLSEYE_ARROWS, state.arrowIndex + 1);
     ctx.fillText(`Dart ${shownArrow} / ${BULLSEYE_ARROWS} · ${state.total} pts`, 12, 12);
-  });
+  }, [0.08, 0.3]);
 }
 
 /** Chalk aim line from the dart to the predicted landing point. Render only. */

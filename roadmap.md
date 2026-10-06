@@ -1,3 +1,8 @@
+## Seven-game artwork tuning (Oct 6)
+- [ ] Check Junction turn ownership first; stop Junction changes if simulation-owned.
+- [ ] Tune Fairground scenery, Bin Toss colours/aim, Bullseye landing numbers, Tilt pits/cup, Ball Track brass, Skyline sky/buildings and Ink Bridge cloud ledges/ambient bird/sky.
+- [ ] Run no-browser drawing/bounds checks and verify protected source fingerprints; preserve all gameplay and sound.
+
 ## Eat and Grow blazing meteor
 - [x] Restyle cached sprites as a rocky fire-wrapped directional head, orange/red flame cells and smoke-grey tail with bounded rising embers and death smoke; preserve cell geometry, arena palette, stars, sounds and static reduced-motion fallback.
 - [x] No-browser 300-cell/600-frame cache, directional head, colour, bounds, particle and reduced-motion checks passed; native canvas stills inspected, shared FX checks passed, all 297 protected fingerprints unchanged and preview build OK. No browser tests or identity proofs; phone appearance/performance remain user-tested.
