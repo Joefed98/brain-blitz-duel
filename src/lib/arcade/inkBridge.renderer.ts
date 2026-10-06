@@ -9,7 +9,6 @@ import { inkBridgeGame, inkBucketX, inkBudget, INK_BLOCK_H, INK_BUCKET_H, INK_BU
 import { artHash } from "./art.renderer";
 import {
   realClock,
-  realCloud,
   realSky,
   REAL_GRASS,
   REAL_GRASS_DARK,
@@ -33,6 +32,9 @@ const WATER_Y = 596;
 const TIN = "#B7BEC6";
 const TIN_DARK = "#7D868F";
 const DROP = "#3D8FE0";
+const CLOUD_BASE = "#D8E3EB";
+const CLOUD_TOP = "#F2F7FA";
+const CLOUD_EDGE = "#91A9BC";
 
 function drawRiver(ctx: CanvasRenderingContext2D, t: number): void {
   ctx.fillStyle = REAL_WATER;
@@ -141,28 +143,46 @@ export function drawInkBridgeArt(ctx: CanvasRenderingContext2D, state: InkState,
   const oy = (size.height - INK_WORLD_H * scale) / 2;
   const t = realClock();
   ctx.save();
-  realSky(ctx, 0, 0, size.width, size.height);
+  realSky(ctx, 0, 0, size.width, size.height, true);
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
   const tick = state.tick;
   const lvl = state.list[Math.min(state.level, state.list.length - 1)]!;
 
-  for (let c = 0; c < 3; c++) {
-    const h = artHash(c, 9);
-    const span = INK_WORLD_W + 140;
-    realCloud(ctx, ((h % span) + t * (4 + c)) % span - 70, 100 + c * 70, 18 + (h % 10), 0.7);
-  }
+  // One faint distant bird; ambient only, static under reduced motion.
+  const birdX = (80 + t * 5) % (INK_WORLD_W + 30) - 15;
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  ctx.strokeStyle = REAL_INK;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(birdX - 7, 88);
+  ctx.quadraticCurveTo(birdX - 3, 85, birdX, 89);
+  ctx.quadraticCurveTo(birdX + 3, 85, birdX + 7, 88);
+  ctx.stroke();
+  ctx.restore();
   drawRiver(ctx, t);
   drawDispenser(ctx, lvl.spoutX);
 
-  // Stone ledges on the sim's blocks.
+  // Thin clouds fill the exact platform rectangle, with a firm straight top.
   for (const b of lvl.blocks) {
-    ctx.fillStyle = REAL_SHADOW;
-    ctx.fillRect(b.x0 + 1, b.y + 2, b.x1 - b.x0, INK_BLOCK_H);
-    ctx.fillStyle = "#7E858E";
+    const w = b.x1 - b.x0;
+    ctx.fillStyle = CLOUD_BASE;
     ctx.fillRect(b.x0, b.y, b.x1 - b.x0, INK_BLOCK_H);
-    ctx.fillStyle = "#A9AFB7";
-    ctx.fillRect(b.x0, b.y, b.x1 - b.x0, 1);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(b.x0, b.y, w, INK_BLOCK_H);
+    ctx.clip();
+    ctx.fillStyle = CLOUD_TOP;
+    const puffs = Math.max(2, Math.ceil(w / 16));
+    for (let i = 0; i < puffs; i++) {
+      ctx.beginPath();
+      ctx.ellipse(b.x0 + (i + 0.5) * w / puffs, b.y + INK_BLOCK_H * 0.45, w / puffs * 0.7, INK_BLOCK_H * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.fillStyle = CLOUD_EDGE;
+    ctx.fillRect(b.x0, b.y, w, 1);
   }
 
   const bx = inkBucketX(lvl, tick);

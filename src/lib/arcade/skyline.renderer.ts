@@ -58,6 +58,7 @@ const BACKDROP = [
 function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: number): void {
   const k = 1 - (1 - zoom) * 0.2;
   ctx.save();
+  ctx.globalAlpha = 0.38;
   ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H + scroll * 0.2 * zoom);
   ctx.scale(k, k);
   ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H);
@@ -117,7 +118,7 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
   const t = realClock();
 
   ctx.save();
-  realSky(ctx, 0, 0, size.width, size.height);
+  realSky(ctx, 0, 0, size.width, size.height, true);
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
 

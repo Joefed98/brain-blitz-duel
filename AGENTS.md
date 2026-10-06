@@ -37,3 +37,4 @@
 
 - Shared category themes, bounded FX and manifest audio adapters live outside sims; why: preserve gameplay and grading.
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
+- Per-game tent lists, sky dimming and aim-path art stay in renderers to isolate scenery from gameplay.

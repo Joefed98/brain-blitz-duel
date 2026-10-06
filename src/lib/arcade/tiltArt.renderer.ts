@@ -6,7 +6,7 @@
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltGame, type Maze, type TiltState } from "./tilt";
 import {
-  TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_WOOD_DARK, TOY_WOOD_DEEP,
+  TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_WOOD_DARK,
   toyBoard, toyChangeAge, toyGrain, toyMarble, toyTabletop,
 } from "./toybox.renderer";
 import { reducedMotion } from "./art.renderer";
@@ -20,6 +20,9 @@ export const TILT_MARBLE_BLUE = "#3E7BFA";
 export const TILT_MARBLE_RED = "#E8394A";
 const STRIP = "#8C5A30";
 const STRIP_TOP = "#B9824C";
+const CUP_GLASS = "#C4E9FA";
+const CUP_BLUE = "#83C9EA";
+const CUP_GLOW = "rgba(151,218,249,0.4)";
 
 function openNeighbour(m: Maze, c: number, d: number): number {
   const i = (c % m.n) + DX[d]!;
@@ -121,34 +124,46 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
   ctx.fill();
   toyGrain(ctx, -TILT_DISC_R, -TILT_DISC_R, TILT_DISC_R * 2, TILT_DISC_R * 2, 12);
 
-  // Drilled pits at the sim's pit half-size (cs/4).
+  // Full square collision footprint; rounded bevel stays inside the dark cut.
   const pr = cs / 4;
   for (const p of m.pits) {
     const x = (p % m.n) * cs + cs / 2 - o;
     const y = Math.trunc(p / m.n) * cs + cs / 2 - o;
     ctx.fillStyle = "#120A05";
-    ctx.beginPath();
-    ctx.arc(x, y, pr, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(x - pr, y - pr, pr * 2, pr * 2);
     ctx.strokeStyle = TOY_WOOD_DARK;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(x, y, pr - 0.75, 0, Math.PI * 2);
+    ctx.roundRect(x - pr + 0.75, y - pr + 0.75, pr * 2 - 1.5, pr * 2 - 1.5, 2);
     ctx.stroke();
     ctx.strokeStyle = "rgba(255,230,190,0.45)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(x, y, pr - 0.5, Math.PI * 0.15, Math.PI * 0.85);
+    ctx.moveTo(x - pr + 2, y + pr - 0.5);
+    ctx.lineTo(x + pr - 2, y + pr - 0.5);
     ctx.stroke();
   }
 
-  // Brass-ringed cup beyond the exit.
-  ctx.fillStyle = TOY_WOOD_DEEP;
+  // Blue glass cup: the soft glow is contained in the existing outer ring.
+  const cupGlow = ctx.createRadialGradient(cup.x, cup.y, cup.r * 0.5, cup.x, cup.y, cup.r + 2);
+  cupGlow.addColorStop(0, CUP_GLASS);
+  cupGlow.addColorStop(1, CUP_GLOW);
+  ctx.fillStyle = cupGlow;
+  ctx.beginPath();
+  ctx.arc(cup.x, cup.y, cup.r + 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = CUP_GLASS;
   ctx.beginPath();
   ctx.arc(cup.x, cup.y, cup.r + 1, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = TOY_BRASS;
   ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.strokeStyle = CUP_BLUE;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cup.x, cup.y, Math.max(1, cup.r - 1), 0, Math.PI * 2);
   ctx.stroke();
 
   // Raised wooden strips with a slight shadow.
