@@ -239,7 +239,7 @@ function candidateRules(panel: Panel): RuleInstance[] {
         const b = at(s, y);
         return a >= 0 && b >= 0 && a < b;
       }, `before:${pair}`);
-      add(16, `${x}>${y}`, `${cap(act(x))} immediately after ${act(y)}.`, `after:${x}>${y}`, (s) => {
+      add(16, `${x}>${y}`, `${cap(act(y))}, then ${act(x)} as the VERY NEXT action.`, `after:${x}>${y}`, (s) => {
         const a = at(s, x);
         const b = at(s, y);
         return a >= 0 && b >= 0 && a === b + 1;
