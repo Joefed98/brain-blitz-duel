@@ -1,3 +1,7 @@
+## Night scenes and outlined aim dots (Oct 6)
+- [ ] Outline white Bin Toss aim dots; night Skyline and Ink Bridge with moon/stars, lamps and visible glass/platforms.
+- [ ] Verify renderer-only scope and drawing checks without browser tests or identity proofs.
+
 ## Seven-game artwork tuning (Oct 6)
 - [x] Junction's 2D pose is explicitly render-only; simulation uses 1D progress/occupancy. Corrected all eight outgoing lanes with continuous visual turns and enlarged lights 18%, without changing authoritative progress or collision decisions.
 - [x] Tuned Fairground scenery, Bin Toss matte tin/deep-red ball/darker identical no-wind aim, Bullseye 500ms gold landing numbers, Tilt full-square pits/blue glass cup, Ball Track brass, Skyline sky/buildings and Ink Bridge exact-bound cloud ledges/ambient bird/sky.

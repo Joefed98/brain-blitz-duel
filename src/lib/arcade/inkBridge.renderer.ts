@@ -9,13 +9,15 @@ import { inkBridgeGame, inkBucketX, inkBudget, INK_BLOCK_H, INK_BUCKET_H, INK_BU
 import { artHash } from "./art.renderer";
 import {
   realClock,
-  realSky,
-  REAL_GRASS,
-  REAL_GRASS_DARK,
+  realNightSky,
+  REAL_NIGHT_BG,
+  REAL_NIGHT_TEXT,
+  REAL_MOON,
+  REAL_LAMP,
+  REAL_LAMP_WASH,
   REAL_INK,
   REAL_RED,
   REAL_SHADOW,
-  REAL_STONE,
   REAL_WATER,
   REAL_WATER_DARK,
   REAL_WOOD,
@@ -29,15 +31,20 @@ const BALL_R = 7;
 const SPOUT_Y = 50;
 const RIM_R = 4;
 const WATER_Y = 596;
-const TIN = "#B7BEC6";
-const TIN_DARK = "#7D868F";
+const TIN = "#C5B598";
+const TIN_DARK = "#8F7D65";
 const DROP = "#3D8FE0";
 const CLOUD_BASE = "#D8E3EB";
 const CLOUD_TOP = "#F2F7FA";
-const CLOUD_EDGE = "#91A9BC";
+const CLOUD_EDGE = "#F3F3E4";
+const NIGHT_WATER = "#243F59";
+const NIGHT_STONE = "#404C55";
+const NIGHT_GRASS = "#364A3C";
+const NIGHT_GRASS_DARK = "#25352E";
+const MOON_RIPPLE = "rgba(227,233,207,0.32)";
 
 function drawRiver(ctx: CanvasRenderingContext2D, t: number): void {
-  ctx.fillStyle = REAL_WATER;
+  ctx.fillStyle = NIGHT_WATER;
   ctx.fillRect(0, WATER_Y, INK_WORLD_W, INK_WORLD_H - WATER_Y);
   ctx.strokeStyle = "rgba(255,255,255,0.45)";
   ctx.lineWidth = 1.5;
@@ -51,18 +58,28 @@ function drawRiver(ctx: CanvasRenderingContext2D, t: number): void {
     }
     ctx.stroke();
   }
+  ctx.strokeStyle = MOON_RIPPLE;
+  ctx.lineWidth = 1.5;
+  for (let row = 0; row < 6; row++) {
+    const half = 8 + row * 3;
+    const x = INK_WORLD_W * 0.84 + Math.sin(t * 0.9 + row * 1.7) * 3;
+    ctx.beginPath();
+    ctx.moveTo(x - half, WATER_Y + 3 + row * 3.5);
+    ctx.lineTo(x + half, WATER_Y + 3 + row * 3.5);
+    ctx.stroke();
+  }
   // Grass-and-stone banks at each edge, in the river band only.
   for (const [x0, w] of [[0, 34], [INK_WORLD_W - 34, 34]] as const) {
-    ctx.fillStyle = REAL_STONE;
+    ctx.fillStyle = NIGHT_STONE;
     ctx.fillRect(x0, WATER_Y, w, INK_WORLD_H - WATER_Y);
     ctx.fillStyle = "rgba(0,0,0,0.15)";
     for (let k = 0; k < 6; k++) {
       const h = artHash(k, x0);
       ctx.fillRect(x0 + (h % (w - 8)), WATER_Y + 6 + ((h >>> 6) % 16), 8, 1);
     }
-    ctx.fillStyle = REAL_GRASS;
+    ctx.fillStyle = NIGHT_GRASS;
     ctx.fillRect(x0, WATER_Y - 3, w, 5);
-    ctx.fillStyle = REAL_GRASS_DARK;
+    ctx.fillStyle = NIGHT_GRASS_DARK;
     ctx.fillRect(x0, WATER_Y + 2, w, 1);
   }
 }
@@ -73,6 +90,15 @@ function drawDispenser(ctx: CanvasRenderingContext2D, x: number): void {
   ctx.fillRect(x - 16, 27, 32, 3);
   ctx.fillStyle = REAL_WOOD_DARK;
   ctx.fillRect(x - 16, 29, 32, 1);
+  ctx.fillStyle = REAL_LAMP_WASH;
+  ctx.beginPath();
+  ctx.moveTo(x + 14, 30);
+  ctx.lineTo(INK_WORLD_W, WATER_Y);
+  ctx.lineTo(0, WATER_Y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = REAL_LAMP;
+  ctx.fillRect(x + 9, 29, 10, 4);
   ctx.save();
   ctx.translate(x, 36);
   ctx.rotate(0.35);
@@ -100,9 +126,9 @@ function drawBucket(ctx: CanvasRenderingContext2D, bx: number, by: number, flash
     for (let k = 0; k < 4; k++) ctx.fillRect(left + k * 16 + 1, bottom, 14, 5);
   } else {
     // Stone pier under the bucket down to the river, narrower than the bucket.
-    ctx.fillStyle = REAL_STONE;
+    ctx.fillStyle = NIGHT_STONE;
     ctx.fillRect(left + 8, bottom, INK_BUCKET_W - 16, WATER_Y - bottom);
-    ctx.fillStyle = REAL_GRASS;
+    ctx.fillStyle = NIGHT_GRASS;
     ctx.fillRect(left + 4, bottom, INK_BUCKET_W - 8, 4);
   }
   ctx.fillStyle = REAL_SHADOW;
@@ -143,23 +169,27 @@ export function drawInkBridgeArt(ctx: CanvasRenderingContext2D, state: InkState,
   const oy = (size.height - INK_WORLD_H * scale) / 2;
   const t = realClock();
   ctx.save();
-  realSky(ctx, 0, 0, size.width, size.height, true);
+  realNightSky(ctx, size.width, size.height);
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
   const tick = state.tick;
   const lvl = state.list[Math.min(state.level, state.list.length - 1)]!;
 
-  // One faint distant bird; ambient only, static under reduced motion.
+  // Distant plane with a navigation blink; static under reduced motion.
   const birdX = (80 + t * 5) % (INK_WORLD_W + 30) - 15;
   ctx.save();
   ctx.globalAlpha = 0.22;
-  ctx.strokeStyle = REAL_INK;
+  ctx.strokeStyle = REAL_NIGHT_TEXT;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(birdX - 7, 88);
-  ctx.quadraticCurveTo(birdX - 3, 85, birdX, 89);
-  ctx.quadraticCurveTo(birdX + 3, 85, birdX + 7, 88);
+  ctx.lineTo(birdX + 7, 88);
+  ctx.moveTo(birdX, 84);
+  ctx.lineTo(birdX, 91);
   ctx.stroke();
+  ctx.globalAlpha = t === 0 || Math.floor(t * 2) % 4 === 0 ? 0.6 : 0.12;
+  ctx.fillStyle = REAL_LAMP;
+  ctx.fillRect(birdX + 6, 87, 1.5, 1.5);
   ctx.restore();
   drawRiver(ctx, t);
   drawDispenser(ctx, lvl.spoutX);
@@ -232,7 +262,7 @@ export function drawInkBridgeArt(ctx: CanvasRenderingContext2D, state: InkState,
     ctx.arc(INK_WORLD_W - 162 + i * 14, 18, 5, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.fillStyle = REAL_INK;
+   ctx.fillStyle = REAL_NIGHT_TEXT;
   ctx.font = "bold 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
@@ -242,4 +272,4 @@ export function drawInkBridgeArt(ctx: CanvasRenderingContext2D, state: InkState,
 
 void SPOUT_Y;
 export const inkBridgeArtGame = { ...inkBridgeGame, draw: drawInkBridgeArt };
-export const INK_ART_BG = "#BFDDF2";
+export const INK_ART_BG = REAL_NIGHT_BG;

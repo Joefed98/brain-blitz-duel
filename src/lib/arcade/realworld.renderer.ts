@@ -25,6 +25,35 @@ export const REAL_WATER_DARK = "#367FB8";
 export const REAL_STONE = "#9AA0A8";
 export const REAL_RED = "#E5484D";
 export const REAL_GOLD = "#F5B82E";
+export const REAL_NIGHT_BG = "#090F20";
+export const REAL_NIGHT_LOW = "#1B2940";
+export const REAL_MOON = "#E3E9CF";
+export const REAL_NIGHT_TEXT = "#E5EDF3";
+export const REAL_LAMP = "#FFE0A0";
+export const REAL_LAMP_WASH = "rgba(255,211,135,0.1)";
+
+/** Static sparse stars and moon, behind all gameplay geometry. */
+export function realNightSky(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  ctx.save();
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, REAL_NIGHT_BG);
+  g.addColorStop(1, REAL_NIGHT_LOW);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = REAL_NIGHT_TEXT;
+  for (let i = 0; i < 17; i++) {
+    ctx.globalAlpha = 0.3 + (i % 3) * 0.15;
+    const x = ((i * 73 + 29) % 397) / 397 * w;
+    const y = (0.08 + ((i * 47 + 13) % 211) / 211 * 0.56) * h;
+    ctx.fillRect(x, y, i % 4 === 0 ? 1.8 : 1, i % 4 === 0 ? 1.8 : 1);
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = REAL_MOON;
+  ctx.beginPath();
+  ctx.arc(w * 0.84, h * 0.15, Math.min(w, h) * 0.035, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
 
 /** Seconds of presentation time; frozen at 0 under reduced motion. */
 export function realClock(): number {

@@ -20,6 +20,7 @@ const TIN_LIGHT = "#ACB0B3";
 const TIN_MID = "#959A9E";
 const TIN_DARK = "#787E83";
 const AIM_INK = "#453C53";
+const AIM_WHITE = "#FFFFFF";
 const FLOOR = px(BINTOSS_FLOOR_Y);
 
 export function drawRubberBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, spin: number): void {
@@ -216,15 +217,19 @@ export function binTossArtAim(ctx: CanvasRenderingContext2D, size: CanvasSize, a
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
   ctx.strokeStyle = AIM_INK;
-  ctx.globalAlpha = cancelled ? 0.28 : 0.85;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([3, 5]);
+  ctx.globalAlpha = cancelled ? 0.28 : 1;
+  ctx.lineCap = "round";
+  ctx.lineWidth = 3.5;
+  ctx.setLineDash([0.1, 8]);
   ctx.beginPath();
   ctx.moveTo(first.x, first.y);
   for (let i = 1; i < points.length; i++) {
     const point = points[i];
     if (point) ctx.lineTo(point.x, point.y);
   }
+  ctx.stroke();
+  ctx.strokeStyle = AIM_WHITE;
+  ctx.lineWidth = 2;
   ctx.stroke();
   ctx.restore();
 }
