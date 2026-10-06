@@ -238,16 +238,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   if (!isMaze) return null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-1">
+    <div data-stage-column="1" className="flex min-h-0 flex-1 flex-col gap-1">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         squares <span className="text-primary">{path.length}</span> · wasted {wasted}
       </p>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+      <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <MazeBoard cells={cells} start={start} exit={exit} path={path} onCell={touch} />
       </div>
 
-       <div className="flex shrink-0 flex-col items-center justify-center">
+       <div data-game-controls="pad" className="flex shrink-0 flex-col items-center justify-center">
         <ArrowPad
           onPress={step}
           disabled={locked || solved}

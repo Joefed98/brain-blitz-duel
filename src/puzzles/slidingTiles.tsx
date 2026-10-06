@@ -193,9 +193,9 @@ function Stage({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
       <Frame frame={replay.frame} cell={86} onTile={slide} />
-      <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+      <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         moves <span className="text-primary">{replay.moves}</span>
       </p>
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">

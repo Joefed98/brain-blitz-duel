@@ -141,8 +141,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
   if (!isSafe) return null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="flex min-h-0 flex-[1.2] flex-col justify-center rounded-lg border border-border bg-card px-3 py-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
+      <div data-game-arena="fixed" className="flex min-h-0 flex-[1.2] flex-col justify-center rounded-lg border border-border bg-card px-3 py-2">
         {puzzle.clues.map((clue) => (
           <p key={clue.text} className="text-center text-[19.2px] leading-[1.45]">
             {clue.text}
@@ -151,7 +151,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
       </div>
 
       <div
-        className={`mx-auto flex min-h-[152px] w-4/5 flex-[0.8] flex-col items-center justify-center gap-1 rounded-lg border-2 border-border bg-card/60 p-1 ${
+        data-game-controls="dial" className={`mx-auto flex min-h-[152px] w-4/5 flex-[0.8] flex-col items-center justify-center gap-1 rounded-lg border-2 border-border bg-card/60 p-1 ${
           shake ? "animate-shake border-warn" : ""
         }`}
       >
@@ -174,7 +174,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
         type="button"
         disabled={locked || triesLeft === 0}
         onClick={tryIt}
-        className="h-12 shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-widest text-primary-foreground disabled:opacity-40"
+        data-game-controls="actions" className="h-12 shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-widest text-primary-foreground disabled:opacity-40"
       >
         Try
       </button>

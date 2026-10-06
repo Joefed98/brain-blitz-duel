@@ -268,7 +268,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     <div
       ref={wrap}
       data-play-area=""
-      className="relative min-h-0 w-full flex-1 overflow-hidden"
+      data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden"
       style={{ ...NO_SCROLL_STYLE, WebkitTouchCallout: "none" }}
       onContextMenu={(event) => event.preventDefault()}
     >

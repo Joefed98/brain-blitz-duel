@@ -834,3 +834,8 @@
 ## Flip lava-tube theme (Oct 5)
 - [x] Replace Flip artwork with curved glowing basalt tunnel, silhouette-clipped hot-core rock, exterior-only background decoration and runner-box-clipped headlamp robot.
 - [x] Swing-volume lava hiss loop added with stop cleanup; animated intro and answer backdrop already share flipArtGame. 72 renderer-only smoke/state/clip checks and shared FX checks passed; protected gameplay files unchanged, preview build OK. No browsers or identity proofs; device appearance and FPS remain user-tested.
+
+## Explicit game-column layout rule
+- [x] Top-anchored 100% column, arena-only flex with caps, controls 12px below, no bottom pinning; 68 games audited from source.
+- [x] Word Search reveal red unfound letters/fill/outline; accepted-key bounds overlay.
+- [ ] Actual phone positions await user device testing; no browsers ran.

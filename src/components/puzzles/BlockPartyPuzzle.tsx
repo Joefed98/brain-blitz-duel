@@ -348,7 +348,7 @@ export function BlockPartyPuzzle({
   const trayCell = Math.min(boardCell * 0.75, trayCellCapacity);
 
   return (
-    <div ref={layoutRef} className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">
+    <div ref={layoutRef} data-stage-column="2" className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex shrink-0 items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           covered <span className="text-primary">{covered}</span> / {BLOCK_FREE_CELLS}
@@ -356,7 +356,7 @@ export function BlockPartyPuzzle({
         <span className="text-[10px]">tap to rotate</span>
       </div>
 
-      <div className="flex shrink-0 justify-center">
+      <div data-game-arena="fixed" className="flex shrink-0 justify-center">
         <BlockBoard
           blockers={puzzle.blockers}
           placements={placed}
@@ -413,7 +413,7 @@ export function BlockPartyPuzzle({
       {/* Tray: every remaining piece, at a reduced scale. */}
       <div
         ref={trayRef}
-        className="grid min-h-0 flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 overflow-hidden rounded-xl bg-card/60 px-2.5 py-2.5"
+        data-game-controls="tray" className="grid min-h-0 flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 overflow-hidden rounded-xl bg-card/60 px-2.5 py-2.5"
       >
         {inTray.length === 0 ? (
           <p className="col-span-3 text-center font-mono text-xs uppercase tracking-widest text-primary">

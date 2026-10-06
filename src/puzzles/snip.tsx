@@ -195,7 +195,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const active = () => !locked && !submitted.current && !snipGame.isOver(state.current);
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col gap-2 select-none" style={GAME_ROOT_STYLE}>
+    <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col gap-2 select-none" style={GAME_ROOT_STYLE}>
       <div className="flex items-baseline justify-between px-1 font-mono text-sm text-muted-foreground">
         <span>Level {hud.level}</span>
         <span className="text-2xl font-bold text-foreground">
@@ -208,7 +208,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <div
         ref={board}
         data-play-area
-        className="relative min-h-0 w-full flex-1"
+        data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
         style={{ touchAction: "none" }}
         aria-label="Snip arena"
         onPointerDown={(event) => {

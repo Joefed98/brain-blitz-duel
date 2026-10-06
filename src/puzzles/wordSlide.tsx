@@ -71,7 +71,7 @@ function Board({
   );
   if (!onLock) return board;
   return (
-    <div className="flex shrink-0 items-start gap-1">
+    <div data-game-arena="fixed" className="flex shrink-0 items-start gap-1">
       {board}
       <div className="flex flex-col p-1.5" style={{ gap: GAP }}>
         {Array.from({ length: WS_SIZE }, (_, row) => {
@@ -230,9 +230,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   };
 
   return (
-    <div ref={root} className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3" style={NO_SCROLL_STYLE}>
+    <div ref={root} data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3" style={NO_SCROLL_STYLE}>
       <Board grid={replay.grid} cell={CELL} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} onLock={(row) => push(`L${row}`)} />
-      <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+      <p data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         Moves <span className="text-primary">{replay.moves}</span>
       </p>
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">

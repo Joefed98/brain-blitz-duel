@@ -155,13 +155,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   if (puzzle.type !== "push") return null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         pushes <span className="text-primary">{replay.pushes}</span> · moves {replay.moves} ·{" "}
         {replay.cratesOnTargets} / {targets.length} home
       </p>
       <div
-        className="flex min-h-0 flex-1 items-center justify-center touch-none"
+        data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center touch-none"
         style={{ touchAction: "none" }}
         {...swipe}
       >

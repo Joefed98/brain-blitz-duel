@@ -913,3 +913,80 @@ body.game-lock {
   [data-puzzle-surface] [data-puzzle-path] { filter: none !important; }
   [data-puzzle-surface] [data-puzzle-state="selected"] { box-shadow: inset 0 0 0 1px var(--primary) !important; }
 }
+
+/*
+ * In-game column rule (rooms and practice share it; see AGENTS.md).
+ * 1. The game screen fills html/body by height:100% (never vh/dvh); the inner
+ *    column owns the safe-area padding once (pad-game-safe).
+ * 2. Top bar, then arena, then the control block 12px below it, then nothing.
+ *    No space-between / flex-end / auto margins / bottom pinning.
+ * 3. The arena is the only flexible element and is capped at its design size
+ *    (--arena-max, default the column width), so spare height on tall phones
+ *    collects BELOW the controls.
+ * Scoped to .game-column: live game stages always carry it; intro demos carry
+ * it only when recorded with the current layout revision, so older recorded
+ * touches still land on the layout they were recorded against.
+ */
+html,
+body {
+  height: 100%;
+}
+html.game-lock,
+body.game-lock {
+  overflow: hidden;
+}
+.game-column {
+  container-type: inline-size;
+  justify-content: flex-start;
+  row-gap: 12px;
+}
+/* data-stage-column="N" declares the column's existing Tailwind gap-N. */
+.game-column [data-stage-column] {
+  --stage-gap: 0px;
+  justify-content: flex-start;
+}
+.game-column [data-stage-column="1"] { --stage-gap: 4px; }
+.game-column [data-stage-column="1.5"] { --stage-gap: 6px; }
+.game-column [data-stage-column="2"] { --stage-gap: 8px; }
+.game-column [data-stage-column="3"] { --stage-gap: 12px; }
+.game-column [data-stage-column="4"] { --stage-gap: 16px; }
+.game-column [data-stage-column="5"] { --stage-gap: 20px; }
+.game-column [data-stage-column="6"] { --stage-gap: 24px; }
+.game-column [data-stage-column="7"] { --stage-gap: 28px; }
+.game-column [data-stage-column] > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.game-column [data-stage-column] > :not([data-game-arena], [data-stage-column], [data-arena-part]) {
+  flex-grow: 0;
+  flex-basis: auto;
+}
+/* Exactly 12px from the arena to whatever follows it (the control block). */
+.game-column [data-stage-column] > [data-game-arena] + * {
+  margin-top: calc(12px - var(--stage-gap));
+}
+.game-column [data-game-arena] {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: var(--arena-max, 100cqw);
+}
+/* Design caps. 150cqw ~ the whole game region at the 390x700 design phone. */
+.game-column :is([data-game-arena="canvas"], [data-game-arena="tall"]) { --arena-max: 150cqw; }
+.game-column [data-game-arena="word"] { --arena-max: calc(100cqw + 32px); }
+.game-column [data-game-arena="countup"] { --arena-max: calc(100cqw + 28px); }
+.game-column [data-game-arena="balance"] { --arena-max: 168px; }
+.game-column [data-game-arena="letterwheel-wheel"] { --arena-max: 60cqw; }
+.game-column [data-game-arena="fixed"] {
+  flex: 0 1 auto;
+  max-height: none;
+}
+/* A board that is part of the arena but sits above the arena row (Letter Wheel). */
+.game-column [data-arena-part="letterwheel-board"] { max-height: min(334px, 100cqw); }
+/* After an unmarked fixed-size board component. */
+.game-column [data-stage-column] > [data-after-arena] {
+  margin-top: calc(12px - var(--stage-gap));
+}
+.game-column [data-game-controls="arrows"] {
+  height: auto;
+  padding-top: 0;
+}

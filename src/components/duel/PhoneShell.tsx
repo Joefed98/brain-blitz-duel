@@ -6,6 +6,8 @@ import { FxLayer } from "./FxLayer";
 import type { PuzzleType } from "@/lib/duel/types";
 import { puzzleDef } from "@/lib/duel/registry";
 import { usePuzzleSurfaces } from "@/components/puzzles/usePuzzleSurfaces";
+import { GameLayoutDevOverlay } from "./GameLayoutDevOverlay";
+import { GameColumnLayout } from "@/components/puzzles/gameColumn";
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -45,7 +47,7 @@ export function GameLayout({ label, title, help, progress, timer, beforeGame, ch
 }) {
   return (
     <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
-      <div data-round-heading className="grid h-7 shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
+      <div data-round-heading data-game-topbar className="grid h-7 shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <span className="truncate text-right font-display text-sm font-bold text-foreground">{title}</span>
@@ -55,11 +57,12 @@ export function GameLayout({ label, title, help, progress, timer, beforeGame, ch
       {timer}
       {beforeGame}
       <div ref={stageRef} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div data-game-stage className={`flex min-h-0 flex-1 flex-col ${locked ? "pointer-events-none opacity-30 transition-opacity duration-200" : ""}`}>
-          {children}
+        <div data-game-stage className={`game-column flex min-h-0 flex-1 flex-col ${locked ? "pointer-events-none opacity-30 transition-opacity duration-200" : ""}`}>
+          <GameColumnLayout.Provider value>{children}</GameColumnLayout.Provider>
         </div>
         {overlay}
       </div>
+      <GameLayoutDevOverlay />
     </div>
   );
 }
@@ -80,6 +83,9 @@ function useRootSelectionLock(active: boolean) {
     root.dataset["gameLocks"] = String(count);
     root.classList.add("game-lock");
     body.classList.add("game-lock");
+    // A scrolled pre-round page (room intro + chat bar) must not leave the
+    // locked game column offset or with a collapsed-toolbar height.
+    window.scrollTo(0, 0);
     const noSelect = (event: Event) => {
       const target = event.target;
       if (target instanceof Element && target.closest("input, textarea")) return;
@@ -121,7 +127,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
     <div
       ref={surfaceRef}
       className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""} ${
-        constrained ? "no-overscroll h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
+        constrained ? "no-overscroll h-full overflow-hidden" : "min-h-[100dvh]"
       }`}
       data-category={theme?.accent}
       data-puzzle-surface={puzzleSurface ? gameType : undefined}
@@ -130,12 +136,13 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
     >
       <div aria-hidden="true" className="screen-background"><div className="screen-drift" /></div>
       <div
-        className={`relative flex min-h-0 w-full flex-col ${gameScreen ? "pad-game-safe" : "mx-auto max-w-[430px] pad-safe"} ${
-          constrained ? "no-overscroll h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
+        data-game-column={constrained ? "" : undefined}
+        className={`relative flex min-h-0 w-full flex-col justify-start ${gameScreen ? "pad-game-safe" : "mx-auto max-w-[430px] pad-safe"} ${
+          constrained ? "no-overscroll h-full overflow-hidden" : "min-h-[100dvh]"
         }`}
       >
         {!bare && (
-          <div className="mb-2 grid h-9 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
+          <div data-game-topbar={gameScreen ? "" : undefined} className="mb-2 grid h-9 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
             <div className="min-w-0">{gameHeader ?? <Wordmark />}</div>
             <div className="flex shrink-0 items-center"><MuteToggle /></div>
           </div>

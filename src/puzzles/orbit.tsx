@@ -69,7 +69,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         return null;
       }}
       footer={(send) => (
-        <div className="flex h-12 shrink-0 items-center justify-center">
+        <div data-game-controls="checkpoint" className="flex h-12 shrink-0 items-center justify-center">
           {canSet && !locked && (
             <ArcadeControlButton
               type="button"

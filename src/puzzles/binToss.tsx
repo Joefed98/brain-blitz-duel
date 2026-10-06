@@ -329,7 +329,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div
       ref={wrap}
-      className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl bg-card"
+      data-game-arena="canvas" className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl bg-card"
     >
       <canvas
         ref={canvas}

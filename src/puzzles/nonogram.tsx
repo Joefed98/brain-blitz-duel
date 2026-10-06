@@ -202,7 +202,7 @@ function Stage({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-3">
+    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-3">
       <Board rows={data.rows} cols={data.cols} marks={marks} onCell={tap} fluid />
     </div>
   );

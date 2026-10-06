@@ -136,18 +136,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         presses <span className="text-primary">{presses.filter((cell) => cell >= 0).length}</span>
       </p>
-      <div className="flex min-h-0 flex-1 items-center justify-center px-3">
+      <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center px-3">
         <div className="logic-square-area flex h-full w-full items-center justify-center">
           <div className="logic-square-board">
             <LightsGrid lights={lights} flash={flash} onPress={locked ? undefined : press} />
           </div>
         </div>
       </div>
-      <div className="flex shrink-0 items-center justify-center gap-3">
+      <div data-game-controls="actions" className="flex shrink-0 items-center justify-center gap-3">
         <Button type="button" variant="outline" aria-label="Undo" title="Undo"
           onClick={() => setPresses((current) => [...current, -1])}
           disabled={locked || presses.length === 0} className="puzzle-secondary-control">

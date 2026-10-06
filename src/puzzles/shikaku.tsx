@@ -177,11 +177,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const uncovered = size * size - shikakuCovered(rects, clues, size);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
       <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
         uncovered <span className="text-primary">{uncovered}</span>
       </p>
-      <div key={shake} className={`w-full ${shake ? "animate-shake" : ""}`} style={{ width: "min(100%, 342px)", minWidth: 324 }}>
+      <div key={shake} data-game-arena="fixed" className={`w-full ${shake ? "animate-shake" : ""}`} style={{ width: "min(100%, 342px)", minWidth: 324 }}>
         <Board size={size} clues={clues} rects={rects} preview={preview} pointer={pointer} />
       </div>
     </div>

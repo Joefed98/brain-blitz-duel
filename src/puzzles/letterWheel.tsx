@@ -277,8 +277,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1">
-      <div className="flex min-h-0 w-full flex-[6] items-center justify-center" style={{ containerType: "size" }}>
+    <div data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1">
+      <div data-arena-part="letterwheel-board" className="flex min-h-0 w-full flex-[6] items-center justify-center" style={{ containerType: "size" }}>
         <div
           style={{
             width: `min(334px, 100cqw, calc(100cqh * ${data.cols / data.rows}))`,
@@ -289,13 +289,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           <Crossword cols={data.cols} rows={data.rows} slots={data.slots} letters={letterMap(data.cols, data.slots, filled)} />
         </div>
       </div>
-      <p className="flex h-7 shrink-0 items-center justify-center px-2 font-mono text-lg font-bold tracking-widest text-primary" aria-live="polite">
+      <p data-arena-part="letterwheel-word" className="flex h-7 shrink-0 items-center justify-center px-2 font-mono text-lg font-bold tracking-widest text-primary" aria-live="polite">
         {current || flash || ""}
       </p>
-      <div className="flex min-h-[142px] w-full flex-[4] -translate-y-1 items-center justify-center" style={{ containerType: "size" }}>
+      <div data-game-arena="letterwheel-wheel" className="flex min-h-[142px] w-full flex-[4] -translate-y-1 items-center justify-center" style={{ containerType: "size" }}>
         <Wheel letters={wheel} path={path} onPath={setPath} onRelease={release} onTap={tapLetter} disabled={done} shake={shake} />
       </div>
-      <div className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pt-2">
+      <div data-game-controls="actions" className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pt-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           <span className="text-primary">{filledCount}</span> / {slotCount} words
         </span>

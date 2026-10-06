@@ -200,7 +200,7 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
   const showLast = lastShown && t < lastShown.until;
 
   return (
-    <div className="flex flex-1 flex-col gap-3">
+    <div data-stage-column="3" className="flex flex-1 flex-col gap-3">
       <div className="flex items-center justify-end font-mono text-sm uppercase tracking-widest text-muted-foreground">
         {falseStarts > 0 && <span className="text-warn">{falseStarts} false</span>}
       </div>
@@ -208,7 +208,7 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
         type="button"
         aria-label="Reaction area"
         onPointerDown={handleTap}
-        className={`flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
+        data-game-arena="tall" className={`flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
       >
         {liveIndex >= 0 ? null : showLast ? (
           <span

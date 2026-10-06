@@ -280,12 +280,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
       tabIndex={0}
       aria-label="Stop the marker"
       onPointerDown={handleTap}
-      className="flex min-h-0 flex-1 flex-col items-center justify-center gap-7"
+      data-stage-column="7" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-7"
     >
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
         Watch {Math.min(cursor.index + 1, watches.length)} / {watches.length}
       </p>
-      <div className={`flex min-h-0 w-full ${spec.vertical ? "flex-1 justify-end" : ""}`}>
+      <div data-game-arena={spec.vertical ? "tall" : "fixed"} className={`flex min-h-0 w-full ${spec.vertical ? "flex-1 justify-end" : ""}`}>
         <Bar
           key={cursor.index}
           spec={spec}
@@ -296,7 +296,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
           passesLeft={passesLeft}
         />
       </div>
-      <p
+      <p data-game-controls="status"
         className={`font-mono text-3xl font-bold tabular-nums ${
           cursor.result !== null ? (cursor.signed === null ? "text-warn" : "text-primary") : "text-muted-foreground"
         }`}

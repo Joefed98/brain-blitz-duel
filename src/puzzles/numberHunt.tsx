@@ -160,7 +160,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   const elapsed = Math.max(0, now - phaseStartedAt);
 
   return (
-    <div className="flex flex-1 flex-col gap-3">
+    <div data-stage-column="3" className="flex flex-1 flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           Next: {spots[Math.min(next, spots.length - 1)]?.n ?? ""}
@@ -170,7 +170,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         </span>
       </div>
 
-      <div className={`relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10 ${moveFlash === layoutIndex ? "animate-pulse" : ""}`}>
+      <div data-game-arena="tall" className={`relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10 ${moveFlash === layoutIndex ? "animate-pulse" : ""}`}>
         {spots.map((spot, index) => (
           <button
             key={index}
@@ -186,7 +186,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         ))}
       </div>
 
-      <p className="text-center font-mono text-xs text-muted-foreground">
+      <p data-game-controls="status" className="text-center font-mono text-xs text-muted-foreground">
         {(elapsed / 1000).toFixed(1)}s
       </p>
     </div>

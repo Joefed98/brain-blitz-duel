@@ -197,7 +197,7 @@ export function UnblockPuzzle({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           moves <span className="text-primary">{moves.filter((move) => move.id >= 0).length}</span>
@@ -205,7 +205,7 @@ export function UnblockPuzzle({
         <span>get the gold car out</span>
       </div>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+      <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <div
           ref={boardRef}
           className="relative aspect-square h-auto max-h-full w-full min-w-0 max-w-full"
@@ -261,7 +261,7 @@ export function UnblockPuzzle({
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div data-game-controls="actions" className="flex gap-2">
         <button
           type="button"
           onClick={undo}

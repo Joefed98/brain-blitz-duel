@@ -1,3 +1,4 @@
+import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
@@ -121,6 +122,7 @@ interface Drag {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
+  const column = useGameColumnLayout();
   const data: NumberPyramidPuzzleData | null = puzzle.type === "numpyramid" ? puzzle : null;
   const key = stateKey ?? "numpyramid";
   const [stage, setStage] = useStageState<number>(key, "numPyramidStage", () => 0);
@@ -227,14 +229,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const tileClass = (tray: number) => `flex items-center justify-center rounded-md border-2 bg-card font-mono font-bold text-primary ${selected?.tray === tray ? "border-foreground ring-2 ring-primary" : "border-primary"}`;
 
   return (
-    <div ref={box} data-play-area className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-0.5 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
+    <div ref={box} data-play-area data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-0.5 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
       <StageProgress stage={stage} total={NP_SET_SIZE} />
       <div className="flex h-8 w-full shrink-0 items-center justify-between">
         <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {NP_SET_SIZE}</p>
         <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => advance(placements)}>Skip</Button>
       </div>
       <StageCorrect visible={holding} />
-      <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+      <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center">
         <div className="relative" style={NO_TOUCH}>
           <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} cellW={cellW} cellH={cellH} />
           <div className="absolute inset-0 flex flex-col items-center" style={{ gap: 4 }}>
@@ -244,7 +246,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           </div>
         </div>
       </div>
-      <div data-np-tray className="mt-auto flex w-full shrink-0 flex-wrap justify-center gap-1.5 rounded-lg bg-muted/40 p-2" style={{ ...NO_TOUCH, minHeight: cellH * 2 + 20 }}>
+      <div data-np-tray data-game-controls="tray" className={`${column ? "" : "mt-auto "}flex w-full shrink-0 flex-wrap justify-center gap-1.5 rounded-lg bg-muted/40 p-2`} style={{ ...NO_TOUCH, minHeight: cellH * 2 + 20 }}>
         {board.tray.map((value, tray) => placedTray.has(tray) ? null : <div key={tray} className={`${tileClass(tray)} ${drag?.tray === tray ? "opacity-30" : ""}`} style={{ width: cellW, height: cellH, fontSize: cellH * 0.42 }} onPointerDown={(e) => start(e, tray, null)}>{value}</div>)}
       </div>
       {drag?.moved && <div className="pointer-events-none fixed z-50 flex items-center justify-center rounded-md border-2 border-primary bg-card font-mono font-bold text-primary shadow-lg" style={{ width: cellW, height: cellH, fontSize: cellH * 0.42, left: drag.x - cellW / 2, top: drag.y - cellH - 12 }}>{board.tray[drag.tray]}</div>}

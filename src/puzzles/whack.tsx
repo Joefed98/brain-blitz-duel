@@ -228,13 +228,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const total = state.current.schedule.total;
 
   return (
-    <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col gap-2" style={NO_SCROLL_STYLE}>
+    <div ref={wrap} data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col gap-2" style={NO_SCROLL_STYLE}>
       <Banner red={hud.red} flash={hud.flash} />
       <p className="text-center font-mono text-sm text-muted-foreground">
         Hits <span className="text-primary">{hud.hits}</span> / {total} · Wrong{" "}
         <span className="text-destructive">{hud.wrong}</span>
       </p>
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+      <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <div
           ref={board}
           className="puzzle-board relative grid aspect-square max-h-full w-full"

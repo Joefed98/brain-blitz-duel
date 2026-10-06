@@ -44,13 +44,13 @@ export function NumberEntry({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex min-h-0 flex-1 flex-col items-center gap-3 pt-1">
+    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
+      <div data-game-arena="countup" className="flex min-h-0 flex-1 flex-col items-center gap-3 pt-1">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
         {children}
       </div>
 
-      <div className="flex shrink-0 flex-col gap-2" style={{ touchAction: "manipulation" }}>
+      <div data-game-controls="input" className="flex shrink-0 flex-col gap-2" style={{ touchAction: "manipulation" }}>
         <div className={compactKeypad ? "flex gap-2" : "contents"}>
         <input
           ref={inputRef}

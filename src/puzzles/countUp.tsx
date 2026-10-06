@@ -159,7 +159,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <StageProgress stage={stage} />
       <NumberEntry
         label={`${stage + 1} / 3 · ${countUpQuestion(current.targetColour, current.targetShape)}`}

@@ -242,9 +242,9 @@ function Stage({
   };
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 pt-1">
+    <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 pt-1">
       <div className="flex min-h-10 shrink-0 items-center justify-center py-1 [&>*]:scale-90"><Legend pattern={data.pattern} /></div>
-      <div className="puzzle-square-space flex min-h-0 w-full flex-1 items-center justify-center">
+      <div data-game-arena="board" className="puzzle-square-space flex min-h-0 w-full flex-1 items-center justify-center">
         <div className="puzzle-square-board aspect-square [&>svg]:h-full [&>svg]:w-full">
         <Rings
           segments={data.segments}
@@ -255,7 +255,7 @@ function Stage({
         />
         </div>
       </div>
-      <p className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+      <p data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         ring {selectedRing + 1} selected · turns{" "}
         <span className="text-primary">{replay.moves}</span> · spokes{" "}
         <span className="text-primary">

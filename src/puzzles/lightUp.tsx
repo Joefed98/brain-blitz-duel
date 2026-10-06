@@ -212,11 +212,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const status = lightUpStatus(data, bulbs);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
       <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
         lit <span className="text-primary">{status.lit.size}</span> / {status.whites}
       </p>
-       <div className="w-full" style={{ width: "min(100%, 336px)", minWidth: 320 }}>
+       <div data-game-arena="fixed" className="w-full" style={{ width: "min(100%, 336px)", minWidth: 320 }}>
         <Board board={data} marks={marks} pointer={pointer} />
       </div>
     </div>

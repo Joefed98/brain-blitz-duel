@@ -3,9 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { ArrowModeOverride } from "@/components/puzzles/GridDrag";
+import { GameColumnLayout } from "@/components/puzzles/gameColumn";
 import { puzzleInputDemoCompatible } from "@/components/puzzles/wordInput";
 import { getIntroDemoFn } from "@/lib/duel/introDemo.functions";
 import {
+  GAME_COLUMN_LAYOUT,
   PUZZLE_DEMO_HOLD_MS,
   expandActions,
   isPuzzleDemoLog,
@@ -293,7 +295,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
         <div
           ref={stageRef}
           aria-hidden="true"
-          className="absolute left-1/2 top-1/2 flex flex-col overflow-hidden"
+          className={`absolute left-1/2 top-1/2 flex flex-col overflow-hidden ${log.layout === GAME_COLUMN_LAYOUT ? "game-column" : ""}`}
           style={{
             width: log.w,
             height: log.h,
@@ -301,6 +303,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
             transformOrigin: "center center",
           }}
         >
+          <GameColumnLayout.Provider value={log.layout === GAME_COLUMN_LAYOUT}>
           <ArrowModeOverride.Provider value={log.joystick ?? false}>
             <Stage
               key={stateKey}
@@ -314,6 +317,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
               checkGroup={() => verdict({ valid: false })}
             />
           </ArrowModeOverride.Provider>
+          </GameColumnLayout.Provider>
         </div>
       ) : null}
       <canvas ref={cursorRef} className="pointer-events-none absolute inset-0 h-full w-full" />

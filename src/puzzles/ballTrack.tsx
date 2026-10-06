@@ -221,11 +221,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data && puzzle.type !== "balltrack") return null;
 
   return (
-    <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
+    <div ref={wrap} data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
       <div
         ref={board}
         data-play-area
-        className="relative min-h-0 w-full flex-1"
+        data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
         style={{ touchAction: "none" }}
         aria-label="Ball Track course"
         onContextMenu={(e) => e.preventDefault()}
@@ -243,7 +243,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       >
         <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
       </div>
-      <div className="flex h-7 w-full shrink-0 items-center justify-between px-1 font-mono text-xs text-muted-foreground">
+      <div data-game-controls="status" className="flex h-7 w-full shrink-0 items-center justify-between px-1 font-mono text-xs text-muted-foreground">
         <span>{hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}</span>
         <span>{hud.left} to drop</span>
       </div>
