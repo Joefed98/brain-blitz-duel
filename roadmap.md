@@ -1,3 +1,7 @@
+## Orbit outside belts (Oct 6, 17:58)
+- [ ] Move belts to concentric outer circles; free-flight swept collision only; verify safe timed hops and minimum opening.
+- [ ] Update art, HOW and demo revision; run Orbit-only identity proof and report constants/coverage without browsers.
+
 ## Play captions and control clearance (Oct 6, 17:49)
 - [x] Removed six active-game captions plus Go / No-Go and One Stroke practice captions; live state and intro/help unchanged.
 - [x] Shared ArrowPad reserves a 44px switch track, 44px/68px targets and 12px gaps without growing its normal block; action rows match. Audited specified games without browser tests or gameplay changes.

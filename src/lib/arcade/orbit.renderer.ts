@@ -7,6 +7,7 @@ import type { CanvasSize } from "./engine";
 import {
   orbitGame,
   orbitBeltStart,
+  orbitBeltOffset,
   ORBIT_BELT_SPAN,
   orbitLobes,
   ORBIT_BG,
@@ -185,7 +186,7 @@ function drawBelt(ctx: CanvasRenderingContext2D, p: Planet, tick: number, cam: n
   const start = orbitBeltStart(p, tick);
   if (start < 0) return;
   const points = Array.from({ length: 129 }, (_, k) => {
-    const o = pathOffset(p, (start + Math.trunc(ORBIT_BELT_SPAN * k / 128)) & 65535);
+    const o = orbitBeltOffset(p, (start + Math.trunc(ORBIT_BELT_SPAN * k / 128)) & 65535);
     return { x: (p.x + o.u) / FP, y: (p.y + o.v) / FP - cam };
   });
   ctx.save();
@@ -206,12 +207,13 @@ function drawBelt(ctx: CanvasRenderingContext2D, p: Planet, tick: number, cam: n
   ctx.globalAlpha = 0.25;
   ctx.lineWidth = 3;
   ctx.lineCap = "butt";
-  tracePath(ctx, p, p.x / FP, p.y / FP - cam, start, ORBIT_BELT_SPAN, 128);
+  ctx.beginPath();
+  points.forEach((point, k) => k === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y));
   ctx.stroke();
   ctx.globalAlpha = 1;
   for (let k = 1; k < 64; k++) {
     const phase = (start + Math.trunc(ORBIT_BELT_SPAN * k / 64)) & 65535;
-    const o = pathOffset(p, phase);
+    const o = orbitBeltOffset(p, phase);
     const hash = Math.imul((p.hazard ^ p.x ^ p.y) + k * 977, 0x85ebca6b) >>> 0;
     const r = 1.1 + (hash % 8) / 10;
     ctx.save();

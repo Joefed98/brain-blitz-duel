@@ -2,7 +2,7 @@
  * Orbit — planet hopping. The ship orbits its planet at a constant angular
  * speed; a tap (k = 0) releases it tangentially in a straight line. Crossing a
  * later planet's orbit ring captures it (pure geometry). Leaving the screen or
- * 150 ticks without capture ends the run, as does a capture onto a red arc.
+ * 150 ticks without capture ends the run. Outside asteroid belts crash only free flight.
  * A release that misses planet n + 1 but is caught by n + 2 skips n + 1 (it
  * counts as passed). Capture rings shrink every ten planets (×0.8, floor 45%);
  * asteroid belts may appear on planets 31–39 only. Reaching planet 40 ends the run with a
@@ -42,6 +42,17 @@ const VIEW_ANCHOR = 440 * FP;
 const VIEW_BELOW = (ORBIT_WORLD_H * FP) - VIEW_ANCHOR;
 const HAZARD_FROM = 31;
 const HAZARD_SPAN = ANG_QUARTER;
+/** Enclosing diameter of the drawn rocket (nose +10, fins within radius 10). */
+export const ORBIT_ROCKET_DIAMETER = 20 * FP;
+/** 2.5 enclosing rocket diameters, in integer 1/256px world units. */
+export const ORBIT_BELT_CLEARANCE = 50 * FP;
+export const ORBIT_BELT_HALF_WIDTH = 2 * FP;
+export const ORBIT_BELT_REVISION = 2;
+export const orbitBeltRadius = (p: Planet) => p.ring + ORBIT_BELT_CLEARANCE;
+export function orbitBeltOffset(p: Planet, angle: number) {
+  const radius = orbitBeltRadius(p);
+  return { u: Math.trunc(radius * icos(angle) / TRIG_ONE), v: Math.trunc(radius * isin(angle) / TRIG_ONE) };
+}
 /** Exact 12-second revolution, derived from integer sim ticks without drift. */
 export const ORBIT_BELT_PERIOD_TICKS = 12 * TICKS_PER_SECOND;
 export const ORBIT_BELT_SPAN = HAZARD_SPAN;
@@ -138,9 +149,29 @@ export function orbitExtent(p: { kind: number; ring: number }): number {
   return p.kind === ORBIT_EIGHT ? Math.trunc((p.ring * EIGHT_A_PCT) / 100) : p.ring;
 }
 
-export function orbitOnBelt(p: Planet, angle: number, tick: number): boolean {
+/** Rocket swept against the circular arc, including its endpoints; never called on orbit. */
+export function orbitFlightHitsBelt(p: Planet, x0: number, y0: number, x1: number, y1: number, tick: number): boolean {
   const start = orbitBeltStart(p, tick);
-  return start >= 0 && ((angle - start) & 65535) < HAZARD_SPAN;
+  if (start < 0) return false;
+  const radius = orbitBeltRadius(p);
+  const pad = ORBIT_ROCKET_DIAMETER / 2 + ORBIT_BELT_HALF_WIDTH + FP / 2;
+  const steps = Math.max(1, Math.trunc((Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) + FP - 1) / FP));
+  const first = orbitBeltOffset(p, start), last = orbitBeltOffset(p, (start + HAZARD_SPAN) & 65535);
+  for (let k = 0; k <= steps; k++) {
+    const dx = x0 + Math.trunc((x1 - x0) * k / steps) - p.x;
+    const dy = y0 + Math.trunc((y1 - y0) * k / steps) - p.y;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < (radius - pad) ** 2 || d2 > (radius + pad) ** 2) continue;
+    if (((iatan2(dy, dx) - start) & 65535) < HAZARD_SPAN) return true;
+    if ((dx - first.u) ** 2 + (dy - first.v) ** 2 <= pad * pad ||
+        (dx - last.u) ** 2 + (dy - last.v) ** 2 <= pad * pad) return true;
+  }
+  return false;
+}
+
+function flightHitsBelts(planets: readonly Planet[], x0: number, y0: number, x1: number, y1: number, tick: number): boolean {
+  // Includes departure, arrival and every other belt crossed by a skipped flight.
+  return planets.some((p) => orbitFlightHitsBelt(p, x0, y0, x1, y1, tick));
 }
 
 /** Offset of the path point at this phase from the planet centre, 1/256 px. */
@@ -258,20 +289,21 @@ function captureAt(planets: readonly Planet[], cur: number, x: number, y: number
 }
 
 /** Does releasing from planet i at this phase reach planet i + 1 safely? */
-function hopOk(planets: readonly Planet[], i: number, angle: number): boolean {
+function hopOk(planets: readonly Planet[], i: number, angle: number, releaseTick = 0): boolean {
   const from = planets[i]!;
   if (innerLobe(from, angle)) return false;
   let { x, y } = orbitPos(from, angle);
   const { vx, vy } = releaseVel(from, angle);
   for (let t = 1; t <= FLIGHT_MAX; t++) {
+    const previousX = x, previousY = y;
     x += vx;
     y += vy;
+    if (flightHitsBelts(planets, previousX, previousY, x, y, releaseTick + t)) return false;
     if (outside(from, x, y)) return false;
     const j = captureAt(planets, i, x, y);
     if (j < 0) continue;
     if (j !== i + 1) return false;
-    const to = planets[j]!;
-    return !orbitOnBelt(to, phaseAt(to, x, y), 0);
+    return true;
   }
   return false;
 }
@@ -291,11 +323,23 @@ function lapPhases(p: Planet): number[] {
 }
 
 function hasWindow(planets: readonly Planet[], i: number): boolean {
-  const good = lapPhases(planets[i]!).map((phase) => hopOk(planets, i, phase));
-  const samples = good.length;
+  const from = planets[i];
+  if (!from) return false;
+  const moving = planets.some((p) => p.hazard >= 0 && Math.abs(p.y - from.y) <= (FLIGHT_MAX * from.speed + orbitBeltRadius(p)));
+  if (moving) {
+    // Verify actual sequential orbit phases over a full belt revolution, not frozen tick-zero landings.
+    let phase = 3 * ANG_QUARTER, run = 0;
+    for (let tick = 0; tick < ORBIT_BELT_PERIOD_TICKS * 4; tick++) {
+      run = hopOk(planets, i, phase, tick) ? run + 1 : 0;
+      if (run >= 1) return true;
+      phase = (phase + from.dir * phaseRate(from, phase)) & 65535;
+    }
+    return false;
+  }
+  const good = lapPhases(from).map((phase) => hopOk(planets, i, phase));
   let run = 0;
-  for (let k = 0; k < samples * 2; k++) {
-    run = good[k % samples] ? run + 1 : 0;
+  for (let k = 0; k < good.length * 2; k++) {
+    run = good[k % good.length] ? run + 1 : 0;
     if (run >= SAFE_RUN) return true;
   }
   return false;
@@ -371,8 +415,13 @@ function buildCourse(seed: number): { planets: Planet[]; rng: number } {
           if (ok && !chosen) chosen = c;
         }
       }
-      planets.push(chosen ?? { x: clampInt(prev.x + -1 * reach, lo, hi), y: prev.y - 264 * FP, ...shape, dir, hazard: -1, colour: i % 4, kind: ORBIT_CIRCLE, rot: 0 });
+      if (!chosen) throw new Error("Orbit course has no verified hop window");
+      planets.push(chosen);
     }
+  }
+  // A later belt must not invalidate an earlier flight window. Gate the completed course too.
+  for (let i = 0; i < ORBIT_TOTAL; i++) {
+    if (!hasWindow(planets, i)) throw new Error(`Orbit seed ${seed} hop ${i} has no verified window`);
   }
   return { planets, rng };
 }
@@ -481,11 +530,6 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
     s.endedTick = tick;
   };
   if (s.flying === 0) {
-    // Belt contact uses the same death/checkpoint path as a hazardous capture.
-    if (orbitOnBelt(here, s.angle, tick)) {
-      die();
-      if (s.ended) return s;
-    }
     if (!respawned && input !== null && input.k === ORBIT_INPUT_TAP && innerLobe(here, s.angle)) {
       // Let go at a figure-eight's crossing: straight into the pair.
       die();
@@ -506,15 +550,20 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
       const pos = orbitPos(here, s.angle);
       s.x = pos.x;
       s.y = pos.y;
-      if (orbitOnBelt(here, s.angle, tick)) {
-        die();
-        if (s.ended) return s;
-      }
     }
   }
   if (s.flying > 0) {
+    const previousX = s.x, previousY = s.y;
     s.x += s.vx;
     s.y += s.vy;
+    if (flightHitsBelts(s.planets, previousX, previousY, s.x, s.y, tick)) {
+      die();
+      if (respawned) {
+        const checkpointPlanet = s.planets[s.cur];
+        if (checkpointPlanet) s.camY = checkpointPlanet.y - VIEW_ANCHOR;
+      }
+      if (s.ended || respawned) return s;
+    }
     const j = captureAt(s.planets, s.cur, s.x, s.y);
     if (j >= 0) {
       const to = s.planets[j]!;
@@ -526,8 +575,7 @@ function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
       s.flying = 0;
       s.captured += 1;
       if (j > s.best) s.best = j;
-      if (orbitOnBelt(to, s.angle, tick)) die();
-      else if (j >= ORBIT_TOTAL) {
+      if (j >= ORBIT_TOTAL) {
         s.ended = 1;
         s.endedTick = tick;
         s.finished = 1;
@@ -711,7 +759,7 @@ function draw(ctx: CanvasRenderingContext2D, state: OrbitState, size: CanvasSize
       ctx.lineWidth = 5;
       ctx.beginPath();
       for (let k = 0; k <= 16; k++) {
-        const o = pathOffset(p, (orbitBeltStart(p, state.tick) + Math.trunc((HAZARD_SPAN * k) / 16)) & 65535);
+        const o = orbitBeltOffset(p, (orbitBeltStart(p, state.tick) + Math.trunc((HAZARD_SPAN * k) / 16)) & 65535);
         if (k === 0) ctx.moveTo(px + o.u / FP, py + o.v / FP);
         else ctx.lineTo(px + o.u / FP, py + o.v / FP);
       }
