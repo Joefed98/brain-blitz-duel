@@ -143,7 +143,7 @@ export function drawSliceArt(ctx:CanvasRenderingContext2D,state:SliceState,size:
         ctx.beginPath();ctx.rect(-r,side<0?-r:-cut.offset,r*2,side<0?r-cut.offset:r+cut.offset);ctx.clip();
         ctx.rotate(-cut.angle);ctx.drawImage(stamp as CanvasImageSource,-r,-r,2*r,2*r);
         // Exposed clean face follows the actual cut chord, with seeded-free render memo fallback.
-        ctx.rotate(cut.angle);ctx.beginPath();ctx.rect(-r,-cut.offset-2,r*2,4);ctx.clip();ctx.rotate(-cut.angle);
+        ctx.rotate(cut.angle);ctx.beginPath();ctx.rect(-r,-cut.offset-5,r*2,10);ctx.clip();ctx.rotate(-cut.angle);
         if(face)ctx.drawImage(face as CanvasImageSource,-r,-r,2*r,2*r);ctx.restore();
       }
       if(!still&&!o.bomb&&o.special===SLICE_SPECIAL_NONE)for(let p=0;p<6&&particles<FX_PARTICLE_LIMIT;p++,particles++){
