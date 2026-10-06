@@ -201,6 +201,9 @@ export function breakerSounds(): GameSounds<BrkState> {
         if (state.losses > prev.losses) playSound("arc_retro_explode");
         if (state.powerUps > prev.powerUps) playSound("arc_retro_pickup");
         if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
+        // Laser fired: the beam timer jumps to full; one instance per fired ball.
+        if (state.beam > prev.beam) playSound("arc_laser_beam", 0.8);
+        for (let b = 0; b < state.balls.length - prev.balls.length; b++) playSound("arc_multiball", 0.7);
         // Paddle hit: a ball near the paddle that was falling and now rises.
         const paddleHit = state.balls.some((ball, i) => {
           const before = prev!.balls[i];

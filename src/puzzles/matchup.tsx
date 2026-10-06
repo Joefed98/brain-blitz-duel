@@ -197,7 +197,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       feedback(state.current, matchupGame.isOver(state.current));
       const chime = chimes.current;
       while (chime.next < chime.at.length && time >= chime.at[chime.next]!) {
-        playGemChime(chime.next);
+        playSound("arc_gem_match", 0.8);
         chime.next += 1;
       }
 
