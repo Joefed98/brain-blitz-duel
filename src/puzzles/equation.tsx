@@ -194,6 +194,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
       </div>
 
       <button
+        data-game-controls="submit"
         type="button"
         onClick={() => !frozen && advance(slots)}
         disabled={frozen}
