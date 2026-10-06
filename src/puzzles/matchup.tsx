@@ -175,8 +175,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             animStart.current = time;
             animUntil.current = time + duration;
             // A new swap resets the cascade pitch.
+            const animSteps = state.current.lastAnimation;
             chimes.current = {
-              at: matchupStepOffsets(state.current.lastAnimation).map((ms) => time + MATCHUP_SWAP_MS + ms),
+              at: matchupStepOffsets(animSteps).map((ms) => time + MATCHUP_SWAP_MS + ms),
+              sounds: animSteps.map(matchupStepSound),
               next: 0,
             };
           }
