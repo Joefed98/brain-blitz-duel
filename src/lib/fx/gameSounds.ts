@@ -75,9 +75,13 @@ export function wavefrontSounds(): GameSounds<WavState> {
   return {
     frame(state) {
       if (prev && state.tick > prev.tick) {
-        if (state.fireIn > prev.fireIn) playSound("arc_laser", 0.6, 1, true);
+        if (state.fireIn > prev.fireIn) playSound("arc_blaster", 0.6, 1, true);
+        // The saucer never fires in the sim; its entrance plays the saucer shot.
+        if (state.saucerDir !== 0 && prev.saucerDir === 0) playSound("arc_saucer_shot", 0.7);
+        if (state.pierce > prev.pierce) playSound("arc_retro_pickup");
         // Shapes and the armour block destroyed this frame (bursts carry the kill tick).
-        if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) playSound("arc_crash", 0.7);
+        if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) playSound("arc_big_explode", 0.8);
+        else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) playSound("arc_crash", 0.7);
         if (state.lives < prev.lives) playSound("arc_lose_life");
       }
       prev = state;
@@ -197,6 +201,9 @@ export function breakerSounds(): GameSounds<BrkState> {
         if (state.losses > prev.losses) playSound("arc_retro_explode");
         if (state.powerUps > prev.powerUps) playSound("arc_retro_pickup");
         if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
+        // Laser fired: the beam timer jumps to full; one instance per fired ball.
+        if (state.beam > prev.beam) playSound("arc_laser_beam", 0.8);
+        for (let b = 0; b < state.balls.length - prev.balls.length; b++) playSound("arc_multiball", 0.7);
         // Paddle hit: a ball near the paddle that was falling and now rises.
         const paddleHit = state.balls.some((ball, i) => {
           const before = prev!.balls[i];
@@ -492,13 +499,15 @@ export function sliceSounds(): GameSounds<SliceState> {
       if (prev && state.tick > prev.tick) {
         if (state.slices > prev.slices && now - lastCut >= 60) {
           lastCut = now;
-          playSound("arc_swoosh", 0.8, 1, true);
+          playSound("arc_knife_slice", 0.8, 1, true);
         }
         if (state.bombsHit > prev.bombsHit) playSound("arc_crash");
-        const special = state.objects.some((object, i) =>
-          object.special && state.slicedAt[i] && !(prev?.slicedAt[i] ?? 0));
-        if (special) playSound("arc_pickup");
-        // The shared arcadeFeedback observer continues to own the combo cue.
+        if (state.frenzyFrom.length > prev.frenzyFrom.length) playSound("arc_ketchup");
+        if (state.slowFrom.length > prev.slowFrom.length) playSound("arc_mustard");
+        // Slice owns its combo cue; slice.tsx passes { combo: false } to arcadeFeedback.
+        const combo = state.comboLive ? 1 + state.streak : 0;
+        const prevCombo = prev.comboLive ? 1 + prev.streak : 0;
+        if (combo > prevCombo && combo > 1) playSound("arc_slice_combo", 0.8);
       }
       prev = state;
     },

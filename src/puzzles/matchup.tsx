@@ -27,7 +27,7 @@ import {
   drawMatchupArt, drawMatchupArtAnimated, drawMatchupArtSelection, drawMatchupSwap,
   matchupStepOffsets, MATCHUP_SWAP_MS, type MatchupSwapTween,
 } from "@/lib/arcade/matchup.renderer";
-import { playGemChime } from "@/lib/fx/gameSounds";
+import { playSound } from "@/lib/sound";
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 
@@ -197,7 +197,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       feedback(state.current, matchupGame.isOver(state.current));
       const chime = chimes.current;
       while (chime.next < chime.at.length && time >= chime.at[chime.next]!) {
-        playGemChime(chime.next);
+        playSound("arc_gem_match", 0.8);
         chime.next += 1;
       }
 
