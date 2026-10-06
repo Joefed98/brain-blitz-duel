@@ -21,12 +21,6 @@ interface Found {
   path: number[];
 }
 
-function adjacent(a: number, b: number): boolean {
-  const dr = Math.abs(Math.floor(a / N) - Math.floor(b / N));
-  const dc = Math.abs((a % N) - (b % N));
-  return dr <= 1 && dc <= 1 && a !== b;
-}
-
 const centre = (cell: number) => ({
   x: ((cell % N) + 0.5) * (100 / N),
   y: (Math.floor(cell / N) + 0.5) * (100 / N),
@@ -144,6 +138,7 @@ export function WordHuntPuzzle({
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const tracing = useRef(false);
+  const activePointer = useRef<number | null>(null);
   const dragging = useRef(false);
   const pointerStart = useRef<{ cell: number; x: number; y: number } | null>(null);
   const livePath = useRef<number[]>([]);
@@ -161,7 +156,7 @@ export function WordHuntPuzzle({
 
   // The round runs the full minute; the traced words go in just before it ends.
   useEffect(() => {
-    if (locked) return;
+    if (locked || tracing.current) return;
     const remaining = phaseStartedAt + WORDHUNT_TIME_MS - now;
     if (remaining <= 600) lockIn();
   }, [locked, now, phaseStartedAt, lockIn]);
@@ -230,6 +225,7 @@ export function WordHuntPuzzle({
       // Capture is a nicety; the window listeners still follow the finger.
     }
     tracing.current = true;
+    activePointer.current = event.pointerId;
     dragging.current = false;
     pointerStart.current = { cell, x: event.clientX, y: event.clientY };
     setPointer(centre(cell));
@@ -239,25 +235,16 @@ export function WordHuntPuzzle({
   const tapCell = useCallback((cell: number) => {
     const current = livePath.current;
     const last = current[current.length - 1];
-    if (last === cell) {
-      void finish();
-      return;
-    }
-    const existing = current.indexOf(cell);
-    const next = existing >= 0
-      ? current.slice(0, existing + 1)
-      : last !== undefined && adjacent(last, cell)
-        ? [...current, cell]
-        : [cell];
+    const next = last === cell ? current.slice(0, -1) : extendWordHuntPath(current, cell, N);
     livePath.current = next;
     setPath(next);
     setPointer(centre(cell));
     hapticTick();
-  }, [finish]);
+  }, []);
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
-      if (!tracing.current) return;
+      if (!tracing.current || activePointer.current !== event.pointerId) return;
       const origin = pointerStart.current;
       if (!dragging.current) {
         if (!origin || Math.hypot(event.clientX - origin.x, event.clientY - origin.y) < 8) return;
@@ -285,9 +272,10 @@ export function WordHuntPuzzle({
       hapticTick();
     };
     const up = (event: PointerEvent) => {
-      if (!tracing.current) return;
+      if (!tracing.current || activePointer.current !== event.pointerId) return;
       const origin = pointerStart.current;
       tracing.current = false;
+      activePointer.current = null;
       pointerStart.current = null;
       if (event.type === "pointercancel") {
         dragging.current = false;
