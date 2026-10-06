@@ -37,6 +37,6 @@
 
 - FX/audio stay outside sims; no untargeted boxes; dev displays require accepted keys. Why: safe feedback.
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
-- Countryside owns shared backdrop caches and pot-support hill art; other art stays in renderers. Why: unchanged sims.
+- Countryside owns backdrop/pot hills; other art stays in renderers. Orbit shares tick belt phase/demos. Why: replay.
 
 - PhoneShell shares paint; WordsmithRing fits octagonal wedges; wordInput owns taps. Wordsmith keeps centre index, size bands and original-band seeded examples. Why: demo compatibility.
