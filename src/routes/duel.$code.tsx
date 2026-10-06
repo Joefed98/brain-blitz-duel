@@ -798,7 +798,25 @@ function DuelScreen() {
               <span className="flex items-center gap-2 text-sm text-muted-foreground">
                 {isMulti ? "Waiting for other players" : "Waiting for opponent"} <Dots />
               </span>
+            </div>
           )}
+        </>}
+      >
+        {puzzle && Stage && (
+          // Keyed by the round alone: mounted once, never re-keyed by room updates.
+          <Stage
+            key={stateKey}
+            stateKey={stateKey}
+            puzzle={puzzle}
+            phaseStartedAt={puzzleStart ?? now}
+            now={now}
+            locked={!!myResult}
+            onSubmit={handleSubmit}
+            onDraftAnswer={handleDraftAnswer}
+            checkWord={handleCheckWord}
+            checkGroup={handleCheckGroup}
+          />
+        )}
       </GameLayout>
     </PhoneShell>
   );
