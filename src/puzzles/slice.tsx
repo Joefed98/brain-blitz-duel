@@ -183,7 +183,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      sounds.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, data]);
 
