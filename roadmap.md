@@ -1,7 +1,7 @@
 ## Reveal marker and dark Wordsmith tuning (Oct 6)
-- [ ] Trace Hover and every engine reveal for renderer-owned crash markers; remove only reveal markers and retain gold finishes.
-- [ ] Double Wordsmith letters again; dark wedges, white letters/light outlines, gold selection, accent centre across live/intro/reveal.
-- [ ] Run focused non-browser checks; confirm generator/grading/scoring unchanged.
+- [x] Audited all 26 registered engine reveal paths: Hover crash-coloured saucer/tint, Cross hit circle/tint, Junction crash star/flash, Rally crash-coloured ball/tint and Skyline miss tint now use reveal-only suppression; live/demo art and gold finish ring retained. Swerve is not a registered engine reveal.
+- [x] Doubled Wordsmith letters again to 104px live/64px intro and reveal; near-black wedges, white letters/light outlines, gold selection and accent centre share the existing board.
+- [x] Passed five immutable reveal drawing variants at both widths, 14 geometry checks, 60 input/phase checks, 336 surface checks and shared FX; 211 protected source fingerprints unchanged (only arcade architecture notes differ). Preview build OK; no browser tests or identity proofs.
 
 ## Presentation geometry tuning (Oct 6)
 - [x] Removed only the ArcadeReveal crash marker, retaining the gold finish marker.
