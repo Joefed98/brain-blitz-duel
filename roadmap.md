@@ -1,3 +1,9 @@
+## Puzzle input and layout tuning (Oct 6)
+- [ ] Suppress in-game tap/hold highlight, including Beat.
+- [ ] Tap-only Wordsmith ring and fixed intro; inner-60% adjacent Word Hunt dragging/backtracking.
+- [ ] Target/Lights icons, Maze arrows, Rings/Flood control removals, Sudoku box outlines and square Shikaku reveals.
+- [ ] Run input regressions, both-size source/markup geometry audit, reveal check and protected fingerprints; device appearance awaits user.
+
 ## Cross reveal-score investigation (Oct 6)
 - [x] Reproduced 15 false failures: stored 0, component lines 0+0, total 0; check incorrectly required a first-line total.
 - [x] Fixed test-only Cross three-line arithmetic/cap validation, added zero/partial/crossing/capped and corrupted-line regressions; full registry passes 1,410 rows across 94 types. Scoring and reveal builder unchanged; no browsers.
