@@ -497,36 +497,26 @@ export function snipSounds(): GameSounds<SnipState> {
   };
 }
 
+/** Kitchen Slice: common arcade cues, no nautical ambience or launch sounds. */
 export function sliceSounds(): GameSounds<SliceState> {
   let prev: SliceState | null = null;
   let lastCut = -1e9;
-  let lastCannon = -1e9;
   return {
-    frame(state, running) {
+    frame(state) {
       const now = typeof performance === "undefined" ? 0 : performance.now();
-      if (running) ensureLoop("arc_sea_waves", WAVES_VOLUME);
-      else stopLoop("arc_sea_waves");
       if (prev && state.tick > prev.tick) {
         if (state.slices > prev.slices && now - lastCut >= 60) {
           lastCut = now;
-          playSound("arc_sea_cutlass", 0.8, 1, true);
+          playSound("arc_swoosh", 0.8, 1, true);
         }
         if (state.bombsHit > prev.bombsHit) playSound("arc_crash");
-        let launched = false;
-        let special = false;
-        for (let i = 0; i < state.objects.length; i++) {
-          const o = state.objects[i]!;
-          if (o.launchTick > prev.tick && o.launchTick <= state.tick) launched = true;
-          if (o.special && state.slicedAt[i] && !(prev.slicedAt[i] ?? 0)) special = true;
-        }
-        if (launched && now - lastCannon >= 400) {
-          lastCannon = now;
-          playSound("arc_sea_cannon", 0.5);
-        }
-        if (special) playSound("arc_sea_coin");
+        const special = state.objects.some((object, i) =>
+          object.special && state.slicedAt[i] && !(prev?.slicedAt[i] ?? 0));
+        if (special) playSound("arc_pickup");
+        // The shared arcadeFeedback observer continues to own the combo cue.
       }
       prev = state;
     },
-    stop: () => stopLoop("arc_sea_waves"),
+    stop: () => {},
   };
 }

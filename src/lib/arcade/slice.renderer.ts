@@ -1,504 +1,187 @@
-/**
- * Slice art: a ship's gun deck in the High Seas world. Render only.
- * Uses the sim's own stretched world transform; every store, keg and special
- * is drawn inside the sim radius (SLICE_R / SLICE_SPECIAL_R) at the sim's
- * position. Ports, sea, lanterns and planks are background only.
- */
-import type { CanvasSize } from "./engine";
-import {
-  sliceFrenzyOn,
-  sliceGame,
-  sliceMultiplier,
-  sliceObjectAt,
-  sliceSlowOn,
-  sliceSuppressed,
-  SLICE_COMBO_FLASH_TICKS,
-  SLICE_FLASH_TICKS,
-  SLICE_HALVES_TICKS,
-  SLICE_HUD_H,
-  SLICE_R,
-  SLICE_SPECIAL_FRENZY,
-  SLICE_SPECIAL_NONE,
-  SLICE_SPECIAL_R,
-  SLICE_SPECIAL_SLOW,
-  SLICE_WORLD_H,
-  SLICE_WORLD_W,
-  type SliceState,
-} from "./slice";
-import { TICKS_PER_SECOND as TICKS_PER_SECOND_SLICE } from "./engine";
-import {
-  seaClock,
-  seaDeviceScale,
-  seaNow,
-  seaSprite,
-  SEA_BRASS,
-  SEA_BRASS_DARK,
-  SEA_DEEP,
-  SEA_GOLD,
-  SEA_MID,
-  SEA_SKY_LOW,
-  SEA_SKY_TOP,
-  SEA_TEXT,
-  SEA_WOOD,
-  SEA_WOOD_DARK,
-  SEA_WOOD_LIGHT,
-} from "./seas.renderer";
-import { reducedMotion } from "./art.renderer";
+/** Slice Kitchen art only. World transform, collision radii and state are authoritative. */
+import type { CanvasSize } from './engine';
+import { TICKS_PER_SECOND } from './engine';
+import { sliceFrenzyOn, sliceGame, sliceMultiplier, sliceObjectAt, sliceSlowOn, sliceSuppressed,
+  SLICE_COMBO_FLASH_TICKS, SLICE_FLASH_TICKS, SLICE_HALVES_TICKS, SLICE_HUD_H, SLICE_R,
+  SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_NONE, SLICE_SPECIAL_R, SLICE_SPECIAL_SLOW,
+  SLICE_WORLD_H, SLICE_WORLD_W, SLICE_RAINBOW, SLICE_SILVER, type SliceState } from './slice';
+import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
+import { reducedMotion } from './art.renderer';
+import { FX_PARTICLE_LIMIT } from '../fx/limits';
 
-/** Sim colour index → store. The sim has four colours. */
-export const SLICE_STORES = ["barrel", "crate", "cannonball", "rope"] as const;
-type Store = (typeof SLICE_STORES)[number] | "sack";
-const STORE_COLOURS: Record<Store, string> = {
-  barrel: "#B5653A",
-  crate: "#D9A64E",
-  cannonball: "#4A5562",
-  rope: "#C8B07A",
-  sack: SEA_GOLD,
-};
-
-function storeOf(colour: number): Store {
-  return SLICE_STORES[colour % SLICE_STORES.length] ?? "sack";
+// Kitchen palette belongs to the renderer, never to the simulation's colour table.
+const K = { ink:'#232721', board:'#AC784B', grain:'#855936', edge:'#70492F', tile:'#DCE9E7',
+  grout:'#A5BFBA', counter:'#648985', white:'#FFF9EB', gold:'#F5C542', silver:SLICE_SILVER,
+  bagel:'#F4BF61', loaf:'#E8A42B', cucumber:'#087F43', tomato:'#F52C35', flesh:'#FFF0BE',
+  seeds:'#FFE18E', leaf:'#275C27', mustard:'#FFDC24', chilli:'#ED202F', glow:'rgba(255,38,45,0.45)' };
+export const SLICE_FOODS = ['bagel','loaf','cucumber','tomato'] as const;
+type Food = typeof SLICE_FOODS[number];
+const colours: Record<Food,string> = {bagel:K.bagel,loaf:K.loaf,cucumber:K.cucumber,tomato:K.tomato};
+const foodOf = (colour:number):Food => SLICE_FOODS[colour % SLICE_FOODS.length] ?? 'bagel';
+const cache = new Map<string,ArtCanvas>();
+function sprite(key:string,size:number,paint:(c:CanvasRenderingContext2D,s:number)=>void):ArtCanvas|null {
+  const px=Math.max(4,Math.round(size)); const id=`${key}@${px}`;
+  const old=cache.get(id); if(old) return old;
+  const canvas=artCanvas(px,px); const c=canvas ? artContext(canvas):null;
+  if(!canvas || !c) return null;
+  if(cache.size>=96) cache.clear();
+  paint(c as CanvasRenderingContext2D,px);cache.set(id,canvas);return canvas;
 }
-
-/** Painters work in a unit box of `size` px; content stays inside the inscribed circle. */
-function paintStore(kind: Store) {
-  return (c: CanvasRenderingContext2D, size: number) => {
-    const r = size / 2;
-    c.translate(r, r);
-    const col = STORE_COLOURS[kind];
-    c.lineWidth = Math.max(1, r * 0.08);
-    c.strokeStyle = "#20140A";
-    switch (kind) {
-      case "barrel": {
-        c.fillStyle = col;
-        c.beginPath();
-        c.ellipse(0, 0, r * 0.7, r * 0.94, 0, 0, Math.PI * 2);
-        c.fill();
-        c.stroke();
-        c.fillStyle = "rgba(0,0,0,0.18)";
-        for (const dx of [-0.35, 0, 0.35]) c.fillRect(dx * r - r * 0.03, -r * 0.85, r * 0.06, r * 1.7);
-        c.fillStyle = "#3A3A3A";
-        for (const dy of [-0.55, 0.55]) c.fillRect(-r * 0.66, dy * r - r * 0.07, r * 1.32, r * 0.14);
-        break;
+function circle(c:CanvasRenderingContext2D,x:number,y:number,r:number,fill:string) {
+  c.fillStyle=fill;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();
+}
+/** Food outer circle is the exact collision envelope; inner details convey the ingredient. */
+function paintFood(kind:Food,cut=false) {
+  return (c:CanvasRenderingContext2D,size:number)=>{
+    const r=size/2;c.translate(r,r);
+    circle(c,0,0,r,K.ink);circle(c,0,0,r*.94,colours[kind]);
+    if(cut) {
+      circle(c,0,0,r*.80,kind==='tomato' ? '#FF7870':kind==='cucumber' ? '#BAEC74':K.flesh);
+      if(kind==='tomato'||kind==='cucumber') {
+        for(let i=0;i<8;i++) { const a=i*Math.PI/4;c.fillStyle=K.seeds;c.beginPath();
+          c.ellipse(Math.cos(a)*r*.47,Math.sin(a)*r*.47,r*.1,r*.055,a,0,Math.PI*2);c.fill(); }
+      } else if(kind==='loaf') {
+        for(let i=0;i<9;i++) circle(c,Math.sin(i*2.7)*r*.55,Math.cos(i*1.8)*r*.55,r*.045,K.loaf);
       }
-      case "crate": {
-        const h = r * 0.68;
-        c.fillStyle = col;
-        c.fillRect(-h, -h, h * 2, h * 2);
-        c.strokeRect(-h, -h, h * 2, h * 2);
-        c.strokeStyle = "#7A5129";
-        c.lineWidth = r * 0.14;
-        c.beginPath();
-        c.moveTo(-h, -h);
-        c.lineTo(h, h);
-        c.moveTo(-h, -h + r * 0.1);
-        c.lineTo(h, -h + r * 0.1);
-        c.moveTo(-h, h - r * 0.1);
-        c.lineTo(h, h - r * 0.1);
-        c.stroke();
-        break;
-      }
-      case "cannonball": {
-        c.fillStyle = col;
-        c.beginPath();
-        c.arc(0, 0, r * 0.92, 0, Math.PI * 2);
-        c.fill();
-        c.stroke();
-        c.fillStyle = "rgba(255,255,255,0.28)";
-        c.beginPath();
-        c.arc(-r * 0.32, -r * 0.32, r * 0.24, 0, Math.PI * 2);
-        c.fill();
-        break;
-      }
-      case "rope": {
-        c.strokeStyle = "#5C4326";
-        c.lineWidth = r * 0.22;
-        c.beginPath();
-        c.arc(0, 0, r * 0.8, 0, Math.PI * 2);
-        c.stroke();
-        c.strokeStyle = col;
-        c.lineWidth = r * 0.16;
-        for (const rr of [0.8, 0.52, 0.26]) {
-          c.beginPath();
-          c.arc(0, 0, r * rr, 0, Math.PI * 2);
-          c.stroke();
-        }
-        c.strokeStyle = "rgba(60,40,20,0.6)";
-        c.lineWidth = r * 0.05;
-        c.setLineDash([r * 0.12, r * 0.12]);
-        for (const rr of [0.8, 0.52]) {
-          c.beginPath();
-          c.arc(0, 0, r * rr, 0, Math.PI * 2);
-          c.stroke();
-        }
-        break;
-      }
-      case "sack": {
-        c.fillStyle = col;
-        c.beginPath();
-        c.ellipse(0, r * 0.18, r * 0.78, r * 0.7, 0, 0, Math.PI * 2);
-        c.fill();
-        c.stroke();
-        c.fillStyle = "#8C5A1E";
-        c.fillRect(-r * 0.3, -r * 0.62, r * 0.6, r * 0.16);
-        break;
-      }
+    } else if(kind==='loaf') {
+      c.strokeStyle=K.flesh;c.lineWidth=r*.11;c.lineCap='round';
+      for(const y of [-.4,0,.4]) {c.beginPath();c.moveTo(-r*.44,r*(y+.12));c.lineTo(r*.44,r*(y-.12));c.stroke();}
+    } else if(kind==='cucumber') {
+      c.strokeStyle='#42D46A';c.lineWidth=r*.07;
+      for(const x of [-.42,0,.42]) {c.beginPath();c.moveTo(r*x,-r*.69);c.quadraticCurveTo(r*(x+.13),0,r*x,r*.69);c.stroke();}
+    } else if(kind==='tomato') {
+      c.fillStyle=K.leaf;c.beginPath();
+      for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=r*(i%2?.12:.43);const x=Math.cos(a)*rr,y=-r*.42+Math.sin(a)*rr;if(i===0)c.moveTo(x,y);else c.lineTo(x,y);}c.closePath();c.fill();
+    }
+    if(kind==='bagel') {
+      // Transparent hole reads as a ring on the chopping board and on the cut face.
+      c.globalCompositeOperation='destination-out';circle(c,0,0,r*.29,K.white);c.globalCompositeOperation='source-over';
+      c.strokeStyle=K.ink;c.lineWidth=r*.055;c.beginPath();c.arc(0,0,r*.30,0,Math.PI*2);c.stroke();
+      if(!cut) for(let i=0;i<12;i++){const a=i*2.4;circle(c,Math.cos(a)*r*.64,Math.sin(a)*r*.64,r*.035,K.white);}
     }
   };
 }
-
-function paintKeg(c: CanvasRenderingContext2D, size: number): void {
-  const r = size / 2;
-  c.translate(r, r);
-  c.fillStyle = "#2B1D12";
-  c.beginPath();
-  c.ellipse(0, r * 0.08, r * 0.7, r * 0.86, 0, 0, Math.PI * 2);
-  c.fill();
-  c.strokeStyle = "#E0503C";
-  c.lineWidth = r * 0.1;
-  c.stroke();
-  c.fillStyle = "#555";
-  for (const dy of [-0.45, 0.6]) c.fillRect(-r * 0.66, dy * r - r * 0.06, r * 1.32, r * 0.12);
-  c.fillStyle = "#E0503C";
-  c.font = `bold ${Math.round(r * 0.55)}px ui-monospace, monospace`;
-  c.textAlign = "center";
-  c.textBaseline = "middle";
-  c.fillText("XXX", 0, r * 0.1);
+/** Matching rounded bottles, filling the full diameter rather than disguising a smaller target. */
+function paintBottle(mustard:boolean) {
+  return (c:CanvasRenderingContext2D,size:number)=>{
+    const r=size/2;c.translate(r,r);
+    circle(c,0,0,r,K.ink);circle(c,0,0,r*.94,mustard?K.mustard:K.tomato);
+    c.fillStyle=K.white;c.beginPath();c.roundRect(-r*.32,-r*.90,r*.64,r*.38,r*.08);c.fill();
+    c.fillStyle=K.white;c.beginPath();c.roundRect(-r*.62,-r*.13,r*1.24,r*.72,r*.12);c.fill();
+    circle(c,0,r*.2,r*.20,mustard?K.mustard:K.tomato);
+    c.strokeStyle=K.ink;c.lineWidth=r*.06;c.beginPath();c.moveTo(-r*.25,r*.48);c.lineTo(r*.25,r*.48);c.stroke();
+  };
 }
-
-function paintDoubloon(c: CanvasRenderingContext2D, size: number): void {
-  const r = size / 2;
-  c.translate(r, r);
-  const g = c.createRadialGradient(0, 0, r * 0.2, 0, 0, r);
-  g.addColorStop(0, "rgba(255,230,140,0.9)");
-  g.addColorStop(1, "rgba(255,200,60,0)");
-  c.fillStyle = g;
-  c.fillRect(-r, -r, size, size);
-  c.fillStyle = SEA_BRASS_DARK;
-  c.beginPath();
-  c.arc(0, 0, r * 0.78, 0, Math.PI * 2);
-  c.fill();
-  c.fillStyle = SEA_GOLD;
-  c.beginPath();
-  c.arc(0, 0, r * 0.68, 0, Math.PI * 2);
-  c.fill();
-  // Cross of the doubloon.
-  c.fillStyle = SEA_BRASS_DARK;
-  c.fillRect(-r * 0.08, -r * 0.45, r * 0.16, r * 0.9);
-  c.fillRect(-r * 0.45, -r * 0.08, r * 0.9, r * 0.16);
+/** Chilli's red circular outer skin preserves the entire hazardous collision body. */
+function paintChilli(c:CanvasRenderingContext2D,size:number) {
+  const r=size/2;c.translate(r,r);circle(c,0,0,r,K.ink);circle(c,0,0,r*.94,K.chilli);
+  c.fillStyle='#A10A22';c.beginPath();c.moveTo(-r*.72,-r*.4);c.bezierCurveTo(-r*.83,r*.48,r*.17,r*.94,r*.7,r*.48);
+  c.bezierCurveTo(r*.05,r*.6,-r*.46,r*.06,-r*.72,-r*.4);c.fill();
+  c.strokeStyle=K.white;c.lineWidth=r*.09;c.lineCap='round';c.beginPath();c.moveTo(r*.5,-r*.4);c.quadraticCurveTo(r*.72,0,r*.45,r*.3);c.stroke();
+  c.strokeStyle=K.leaf;c.lineWidth=r*.17;c.beginPath();c.moveTo(0,-r*.68);c.quadraticCurveTo(r*.24,-r*.5,r*.3,-r*.84);c.stroke();
 }
-
-function paintHourglass(c: CanvasRenderingContext2D, size: number): void {
-  const r = size / 2;
-  c.translate(r, r);
-  c.fillStyle = SEA_WOOD_DARK;
-  c.fillRect(-r * 0.6, -r * 0.8, r * 1.2, r * 0.16);
-  c.fillRect(-r * 0.6, r * 0.64, r * 1.2, r * 0.16);
-  c.fillRect(-r * 0.56, -r * 0.7, r * 0.1, r * 1.4);
-  c.fillRect(r * 0.46, -r * 0.7, r * 0.1, r * 1.4);
-  c.fillStyle = "rgba(200,230,245,0.75)";
-  c.beginPath();
-  c.moveTo(-r * 0.4, -r * 0.64);
-  c.lineTo(r * 0.4, -r * 0.64);
-  c.lineTo(r * 0.06, 0);
-  c.lineTo(r * 0.4, r * 0.64);
-  c.lineTo(-r * 0.4, r * 0.64);
-  c.lineTo(-r * 0.06, 0);
-  c.closePath();
-  c.fill();
-  c.fillStyle = "#E8C77A";
-  c.beginPath();
-  c.moveTo(-r * 0.25, -r * 0.3);
-  c.lineTo(r * 0.25, -r * 0.3);
-  c.lineTo(0, -r * 0.04);
-  c.closePath();
-  c.moveTo(-r * 0.36, r * 0.62);
-  c.lineTo(r * 0.36, r * 0.62);
-  c.lineTo(0, r * 0.3);
-  c.closePath();
-  c.fill();
+function paintGlow(c:CanvasRenderingContext2D,size:number) {
+  const r=size/2,g=c.createRadialGradient(r,r,r*.72,r,r,r);g.addColorStop(0,'rgba(255,38,45,0)');g.addColorStop(.84,K.glow);g.addColorStop(1,'rgba(255,38,45,0)');c.fillStyle=g;c.fillRect(0,0,size,size);
 }
-
-type Sprite = ReturnType<typeof seaSprite>;
-function spriteFor(object: { bomb: boolean; special: number; colour: number }, px: number): { s: Sprite; r: number } {
-  if (object.special === SLICE_SPECIAL_FRENZY) return { s: seaSprite("sl-doubloon", px * (SLICE_SPECIAL_R / SLICE_R), paintDoubloon), r: SLICE_SPECIAL_R };
-  if (object.special === SLICE_SPECIAL_SLOW) return { s: seaSprite("sl-hourglass", px * (SLICE_SPECIAL_R / SLICE_R), paintHourglass), r: SLICE_SPECIAL_R };
-  if (object.bomb) return { s: seaSprite("sl-keg", px, paintKeg), r: SLICE_R };
-  const kind = storeOf(object.colour);
-  return { s: seaSprite(`sl-${kind}`, px, paintStore(kind)), r: SLICE_R };
+function paintBackground(c:CanvasRenderingContext2D) {
+  const W=SLICE_WORLD_W,H=SLICE_WORLD_H;
+  c.fillStyle=K.board;c.fillRect(0,0,W,H);
+  c.strokeStyle=K.grain;c.lineWidth=.7;
+  for(let i=0;i<60;i++){const y=SLICE_HUD_H+10+i*10;c.beginPath();c.moveTo(0,y);c.bezierCurveTo(W*.3,y+Math.sin(i)*4,W*.7,y-3,W,y+2);c.stroke();}
+  // Tiles and kitchen objects live behind the existing HUD, not in a newly reserved arena.
+  c.fillStyle=K.tile;c.fillRect(0,0,W,SLICE_HUD_H);
+  c.strokeStyle=K.grout;c.lineWidth=1;for(let x=0;x<W;x+=48)c.strokeRect(x,0,48,SLICE_HUD_H);
+  c.fillStyle=K.counter;c.fillRect(0,H-4,W,4);c.fillStyle=K.edge;c.fillRect(0,SLICE_HUD_H,W,2);
+  // Small cropped towel on outer margin, knife block and utensils in background header.
+  c.fillStyle=K.white;c.fillRect(W-7,SLICE_HUD_H+6,7,50);c.strokeStyle=K.counter;c.lineWidth=1;
+  for(let y=SLICE_HUD_H+10;y<SLICE_HUD_H+56;y+=7){c.beginPath();c.moveTo(W-7,y);c.lineTo(W,y);c.stroke();}
+  c.fillStyle=K.edge;c.fillRect(W-45,8,31,28);c.strokeStyle=K.silver;c.lineWidth=3;
+  for(let x=W-39;x<W-15;x+=9){c.beginPath();c.moveTo(x,8);c.lineTo(x-3,0);c.stroke();}
+  c.strokeStyle=K.ink;c.lineWidth=2;c.beginPath();c.moveTo(10,5);c.lineTo(10,32);c.stroke();circle(c,10,5,4,K.silver);
+  const light=c.createLinearGradient(0,0,W,H);light.addColorStop(0,'rgba(255,249,220,0.14)');light.addColorStop(1,'rgba(255,249,220,0)');c.fillStyle=light;c.fillRect(0,SLICE_HUD_H,W,H-SLICE_HUD_H);
 }
-
-interface Memo { tick: number; trail: { seg: readonly [number, number, number, number]; at: number }[] }
-const memos = new WeakMap<object, Memo>();
-
-function background(ctx: CanvasRenderingContext2D): void {
-  const W = SLICE_WORLD_W;
-  const H = SLICE_WORLD_H;
-  const t = seaClock();
-  // Deck planks as the arena floor.
-  ctx.fillStyle = SEA_WOOD_DARK;
-  ctx.fillRect(0, 0, W, H);
-  for (let i = 0; i < 13; i++) {
-    const x = i * 30;
-    ctx.fillStyle = i % 2 ? "#5A3D22" : "#634427";
-    ctx.fillRect(x, 0, 29, H);
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
-    for (let y = (i * 97) % 140; y < H; y += 140) ctx.fillRect(x, y, 29, 1.5);
-  }
-  ctx.fillStyle = "rgba(10,12,20,0.35)";
-  ctx.fillRect(0, 0, W, H);
-
-  // Cannon ports along the bottom margin: sea and a distant enemy ship.
-  const portY = H - 46;
-  for (let i = 0; i < 4; i++) {
-    const px = 22 + i * 92;
-    ctx.fillStyle = SEA_WOOD_LIGHT;
-    ctx.fillRect(px - 3, portY - 3, 62, 42);
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(px, portY, 56, 36);
-    ctx.clip();
-    const sky = ctx.createLinearGradient(0, portY, 0, portY + 36);
-    sky.addColorStop(0, SEA_SKY_TOP);
-    sky.addColorStop(0.5, SEA_SKY_LOW);
-    sky.addColorStop(0.5, SEA_MID);
-    sky.addColorStop(1, SEA_DEEP);
-    ctx.fillStyle = sky;
-    ctx.fillRect(px, portY, 56, 36);
-    if (i === 2) {
-      const sx = px + 28 + Math.sin(t * 0.2) * 6;
-      ctx.fillStyle = "rgba(30,24,20,0.7)";
-      ctx.fillRect(sx - 10, portY + 15, 20, 3);
-      ctx.fillRect(sx - 1, portY + 5, 1.5, 10);
-      ctx.beginPath();
-      ctx.moveTo(sx, portY + 6);
-      ctx.lineTo(sx + 6, portY + 13);
-      ctx.lineTo(sx, portY + 13);
-      ctx.fill();
-    }
-    ctx.fillStyle = "rgba(207,232,245,0.35)";
-    const off = (t * 10) % 14;
-    for (let x = px - 14 + off; x < px + 56; x += 14) ctx.fillRect(x, portY + 22, 6, 1);
-    ctx.restore();
-  }
-
-  // Lanterns swinging in the side margins.
-  for (const [lx, phase] of [[14, 0], [W - 14, 1.6]] as const) {
-    const a = Math.sin(t * 1.3 + phase) * 0.18;
-    const ly = SLICE_HUD_H;
-    const ex = lx + Math.sin(a) * 34;
-    const ey = ly + Math.cos(a) * 34;
-    ctx.strokeStyle = "#2A1A0C";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(lx, ly);
-    ctx.lineTo(ex, ey);
-    ctx.stroke();
-    const glow = ctx.createRadialGradient(ex, ey + 6, 1, ex, ey + 6, 40);
-    glow.addColorStop(0, "rgba(255,200,110,0.35)");
-    glow.addColorStop(1, "rgba(255,200,110,0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(ex - 40, ey - 34, 80, 80);
-    ctx.fillStyle = SEA_BRASS;
-    ctx.fillRect(ex - 5, ey, 10, 3);
-    ctx.fillStyle = "#FFD27A";
-    ctx.fillRect(ex - 4, ey + 3, 8, 9);
-    ctx.fillStyle = SEA_BRASS;
-    ctx.fillRect(ex - 5, ey + 12, 10, 2);
-  }
+function background():ArtCanvas|null {
+  const key='kitchen-background';const old=cache.get(key);if(old)return old;
+  const canvas=artCanvas(SLICE_WORLD_W,SLICE_WORLD_H),c=canvas?artContext(canvas):null;
+  if(!canvas||!c)return null;paintBackground(c as CanvasRenderingContext2D);cache.set(key,canvas);return canvas;
 }
-
-export function drawSliceArt(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize): void {
-  const scaleX = size.width / SLICE_WORLD_W;
-  const scaleY = size.height / SLICE_WORLD_H;
-  const px = SLICE_R * 2 * Math.max(scaleX, scaleY) * seaDeviceScale(ctx);
-  const now = seaNow();
-  const still = reducedMotion();
-
-  let m = memos.get(ctx);
-  if (!m || state.tick < m.tick) {
-    m = { tick: state.tick, trail: [] };
-    memos.set(ctx, m);
+interface Cut {angle:number;offset:number}
+interface Memo {tick:number;trail:{seg:readonly[number,number,number,number];at:number}[];cuts:Map<number,Cut>}
+const memos=new WeakMap<object,Memo>();
+export function drawSliceArt(ctx:CanvasRenderingContext2D,state:SliceState,size:CanvasSize):void {
+  const sx=size.width/SLICE_WORLD_W,sy=size.height/SLICE_WORLD_H;
+  const tr=typeof ctx.getTransform==='function'?ctx.getTransform():null;
+  const dpr=tr?Math.max(1,Math.min(2,Math.hypot(tr.a,tr.b))):1;
+  const px=SLICE_R*2*Math.max(sx,sy)*dpr,now=typeof performance==='undefined'?0:performance.now(),still=reducedMotion();
+  let memo=memos.get(ctx);if(!memo||state.tick<memo.tick){memo={tick:state.tick,trail:[],cuts:new Map()};memos.set(ctx,memo);}
+  if(state.swipe&&state.tick!==memo.tick){memo.trail.push({seg:state.swipe,at:now});
+    const [x1,y1,x2,y2]=state.swipe,angle=Math.atan2(y2-y1,x2-x1);
+    state.slicedAt.forEach((t,i)=>{if(t>memo.tick&&!memo.cuts.has(i)){
+      const object=state.objects[i],at=object?sliceObjectAt(object,t,state.slowFrom):null;
+      const r=object?.special?SLICE_SPECIAL_R:SLICE_R;
+      const offset=at?Math.max(-r+1,Math.min(r-1,((at.x/256-x1)*-Math.sin(angle)+(at.y/256-y1)*Math.cos(angle)))):0;
+      memo.cuts.set(i,{angle,offset});
+    }});
   }
-  if (state.swipe && state.tick !== m.tick) {
-    const last = m.trail[m.trail.length - 1];
-    if (!last || last.seg !== state.swipe) m.trail.push({ seg: state.swipe, at: now });
-  }
-  m.tick = state.tick;
-  m.trail = m.trail.filter((e) => now - e.at < 160).slice(-10);
-
-  ctx.save();
-  ctx.fillStyle = SEA_DEEP;
-  ctx.fillRect(0, 0, size.width, size.height);
-  ctx.scale(scaleX, scaleY);
-  background(ctx);
-
-  for (let index = 0; index < state.objects.length; index++) {
-    const object = state.objects[index]!;
-    if (sliceSuppressed(state, object)) continue;
-    const slicedAt = state.slicedAt[index]!;
-    const { s, r } = spriteFor(object, px);
-    if (slicedAt) {
-      const age = state.tick - slicedAt;
-      if (age > SLICE_HALVES_TICKS) continue;
-      const at = sliceObjectAt(object, slicedAt, state.slowFrom);
-      if (!at || !s) continue;
-      const cx = at.x / 256;
-      const cy = at.y / 256 + (age * age) / 20;
-      const spread = 3 + age;
-      const k = age / SLICE_HALVES_TICKS;
-      ctx.globalAlpha = Math.max(0, 1 - k);
-      const sw = (s as { width: number }).width;
-      const sh = (s as { height: number }).height;
-      ctx.drawImage(s as CanvasImageSource, 0, 0, sw / 2, sh, cx - spread - r, cy - r, r, r * 2);
-      ctx.drawImage(s as CanvasImageSource, sw / 2, 0, sw / 2, sh, cx + spread, cy - r, r, r * 2);
-      // Barrel spray / crate planks; deterministic from age.
-      if (!object.bomb && object.special === SLICE_SPECIAL_NONE && !still) {
-        const kind = storeOf(object.colour);
-        const by = at.y / 256;
-        if (kind === "barrel") {
-          ctx.fillStyle = "rgba(200,120,60,0.85)";
-          for (let i = 0; i < 8; i++) {
-            const a = -Math.PI * (0.15 + (i / 7) * 0.7);
-            const d = age * (2 + (i % 3));
-            ctx.fillRect(cx + Math.cos(a) * d, by + Math.sin(a) * d + (age * age) / 30, 2.5, 2.5);
-          }
-        } else if (kind === "crate") {
-          ctx.fillStyle = "#B88A44";
-          for (let i = 0; i < 4; i++) {
-            const a = (i / 4) * Math.PI * 2 + 0.4;
-            const d = age * 1.8;
-            ctx.save();
-            ctx.translate(cx + Math.cos(a) * d, by + Math.sin(a) * d + (age * age) / 18);
-            ctx.rotate(a + age * 0.2);
-            ctx.fillRect(-7, -1.5, 14, 3);
-            ctx.restore();
-          }
-        }
+  memo.tick=state.tick;memo.trail=memo.trail.filter(e=>now-e.at<110).slice(-6);
+  ctx.save();ctx.scale(sx,sy);const bg=background();if(bg)ctx.drawImage(bg as CanvasImageSource,0,0,SLICE_WORLD_W,SLICE_WORLD_H);else paintBackground(ctx);
+  let particles=0;
+  for(let i=0;i<state.objects.length;i++) {
+    const o=state.objects[i];if(!o||sliceSuppressed(state,o))continue;
+    const slicedAt=state.slicedAt[i]??0,r=o.special?SLICE_SPECIAL_R:SLICE_R,kind=foodOf(o.colour);
+    const stamp=sprite(o.bomb?'chilli':o.special===SLICE_SPECIAL_FRENZY?'ketchup':o.special===SLICE_SPECIAL_SLOW?'mustard':kind,px*r/SLICE_R,
+      o.bomb?paintChilli:o.special?paintBottle(o.special===SLICE_SPECIAL_SLOW):paintFood(kind));
+    if(!stamp)continue;
+    if(slicedAt){const age=state.tick-slicedAt;if(age>SLICE_HALVES_TICKS)continue;
+      const at=sliceObjectAt(o,slicedAt,state.slowFrom);if(!at)continue;
+      const cx=at.x/256,cy=at.y/256+(still?0:age*age/20),spread=still?3:3+age;
+      const cut=memo.cuts.get(i)??{angle:0,offset:0};
+      const face=!o.bomb&&!o.special?sprite(`${kind}-face`,px,paintFood(kind,true)):stamp;
+      ctx.globalAlpha=Math.max(0,1-age/SLICE_HALVES_TICKS);
+      for(const side of [-1,1]) {
+        ctx.save();ctx.translate(cx-Math.sin(cut.angle)*spread*side,cy+Math.cos(cut.angle)*spread*side);ctx.rotate(cut.angle);
+        ctx.beginPath();ctx.rect(-r,side<0?-r:-cut.offset,r*2,side<0?r-cut.offset:r+cut.offset);ctx.clip();
+        ctx.rotate(-cut.angle);ctx.drawImage(stamp as CanvasImageSource,-r,-r,2*r,2*r);
+        // Exposed clean face follows the actual cut chord, with seeded-free render memo fallback.
+        ctx.rotate(cut.angle);ctx.beginPath();ctx.rect(-r,-cut.offset-2,r*2,4);ctx.clip();ctx.rotate(-cut.angle);
+        if(face)ctx.drawImage(face as CanvasImageSource,-r,-r,2*r,2*r);ctx.restore();
       }
-      ctx.globalAlpha = 1;
-      continue;
+      if(!still&&!o.bomb&&o.special===SLICE_SPECIAL_NONE)for(let p=0;p<6&&particles<FX_PARTICLE_LIMIT;p++,particles++){
+        const a=p*Math.PI/3+i*.7,d=age*(1.1+p%3);circle(ctx,cx+Math.cos(a)*d,at.y/256+Math.sin(a)*d+age*age/30,kind==='loaf'||kind==='bagel'?1.3:1.8,colours[kind]);
+      }
+      ctx.globalAlpha=1;continue;
     }
-    const at = sliceObjectAt(object, state.tick, state.slowFrom);
-    if (!at || !s) continue;
-    const cx = at.x / 256;
-    const cy = at.y / 256;
-    if (cy - SLICE_R > SLICE_WORLD_H) continue;
-    ctx.drawImage(s as CanvasImageSource, cx - r, cy - r, r * 2, r * 2);
-    if (object.bomb) {
-      // Sparking fuse rising from the keg's top, inside the radius.
-      const flick = still ? 0 : Math.sin(now / 40 + index) * 1.5;
-      ctx.strokeStyle = "#C8B07A";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - r * 0.72);
-      ctx.quadraticCurveTo(cx + 4, cy - r * 0.85, cx + 3, cy - r * 0.94);
-      ctx.stroke();
-      ctx.fillStyle = "#FFD27A";
-      ctx.beginPath();
-      ctx.arc(cx + 3 + flick * 0.4, cy - r * 0.94, 2 + Math.abs(flick) * 0.4, 0, Math.PI * 2);
-      ctx.fill();
+    const at=sliceObjectAt(o,state.tick,state.slowFrom);if(!at)continue;const cx=at.x/256,cy=at.y/256;
+    ctx.drawImage(stamp as CanvasImageSource,cx-r,cy-r,2*r,2*r);
+    if(o.special){const tint=o.special===SLICE_SPECIAL_SLOW?K.silver:SLICE_RAINBOW[Math.floor((still?0:now/110))%SLICE_RAINBOW.length]??K.tomato;
+      ctx.globalAlpha=still?.28:.25+.16*Math.sin(now/140);ctx.strokeStyle=tint;ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+    }
+    if(o.bomb){const glow=sprite('chilli-glow',px,paintGlow);if(glow)ctx.drawImage(glow as CanvasImageSource,cx-r,cy-r,2*r,2*r);
+      // Fuse, spark and glow clipped to the hazard envelope; no inner warning icon or shrunken body.
+      ctx.save();ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.clip();
+      ctx.strokeStyle=K.white;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(cx+r*.3,cy-r*.78);ctx.lineTo(cx+r*.23,cy-r*.91);ctx.stroke();
+      circle(ctx,cx+r*.23,cy-r*.91,1.5,K.gold);
+      if(!still)for(let p=0;p<3&&particles<FX_PARTICLE_LIMIT;p++,particles++){
+        const t=(now/100+p*.33)%1;circle(ctx,cx+r*.23+Math.sin(p*2.4)*t*4,cy-r*.91+t*3,.7,K.white);
+      }ctx.restore();
     }
   }
-
-  // Cutlass arc: steel, brass at ×2, gold at ×3.
-  const mult = sliceMultiplier(state.streak);
-  const blade = mult >= 3 ? "245,197,66" : mult === 2 ? "201,160,74" : "220,228,236";
-  ctx.lineCap = "round";
-  for (const e of m.trail) {
-    const k = 1 - (now - e.at) / 160;
-    const [x1, y1, x2, y2] = e.seg;
-    ctx.strokeStyle = `rgba(${blade},${0.5 * k})`;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-  }
-  if (state.swipe) {
-    const [x1, y1, x2, y2] = state.swipe;
-    ctx.strokeStyle = `rgba(${blade},0.95)`;
-    ctx.lineWidth = 3.5;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(255,255,255,0.9)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-
-  if (state.flash > 0) {
-    ctx.fillStyle = `rgba(224,80,60,${(state.flash / SLICE_FLASH_TICKS) * 0.45})`;
-    ctx.fillRect(0, 0, SLICE_WORLD_W, SLICE_WORLD_H);
-  }
-
-  // Brass gauge for the combo multiplier.
-  const gx = 38;
-  const gy = SLICE_HUD_H + 34;
-  ctx.fillStyle = SEA_BRASS_DARK;
-  ctx.beginPath();
-  ctx.arc(gx, gy, 24, Math.PI, 0);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = "#1A140C";
-  ctx.beginPath();
-  ctx.arc(gx, gy, 20, Math.PI, 0);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = SEA_BRASS;
-  ctx.lineWidth = 3;
-  for (let i = 1; i <= 3; i++) {
-    const a = Math.PI + ((i - 1) / 2) * Math.PI;
-    ctx.beginPath();
-    ctx.moveTo(gx + Math.cos(a) * 15, gy + Math.sin(a) * 15);
-    ctx.lineTo(gx + Math.cos(a) * 19, gy + Math.sin(a) * 19);
-    ctx.stroke();
-  }
-  const na = Math.PI + ((mult - 1) / 2) * Math.PI;
-  ctx.strokeStyle = mult >= 3 ? SEA_GOLD : SEA_TEXT;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(gx, gy);
-  ctx.lineTo(gx + Math.cos(na) * 17, gy + Math.sin(na) * 17);
-  ctx.stroke();
-  ctx.fillStyle = SEA_GOLD;
-  ctx.font = "bold 13px 'JetBrains Mono', monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  ctx.fillText(`×${mult}`, gx, gy + 3);
-  if (state.comboLive) {
-    ctx.font = "11px 'JetBrains Mono', monospace";
-    ctx.fillText(`${Math.ceil(Math.max(0, state.comboUntil - state.tick) / TICKS_PER_SECOND_SLICE)}s`, gx, gy + 18);
-  }
-
-  // HUD beam.
-  ctx.fillStyle = SEA_WOOD_DARK;
-  ctx.fillRect(0, 0, SLICE_WORLD_W, SLICE_HUD_H);
-  ctx.fillStyle = SEA_WOOD;
-  ctx.fillRect(0, SLICE_HUD_H - 4, SLICE_WORLD_W, 4);
-  ctx.fillStyle = SEA_GOLD;
-  ctx.font = "bold 20px ui-monospace, monospace";
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "left";
-  ctx.fillText(`Sliced ${state.slices}`, 14, SLICE_HUD_H / 2);
-  ctx.textAlign = "center";
-  if (sliceFrenzyOn(state, state.tick)) ctx.fillText("FRENZY", SLICE_WORLD_W / 2, SLICE_HUD_H / 2);
-  else if (sliceSlowOn(state, state.tick)) {
-    ctx.fillStyle = SEA_TEXT;
-    ctx.fillText("SLOW", SLICE_WORLD_W / 2, SLICE_HUD_H / 2);
-  }
-  ctx.strokeStyle = SEA_WOOD_DARK;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(1, 1, SLICE_WORLD_W - 2, SLICE_WORLD_H - 2);
-  if (state.comboFlash > 0) {
-    ctx.strokeStyle = SEA_GOLD;
-    ctx.globalAlpha = state.comboFlash / SLICE_COMBO_FLASH_TICKS;
-    ctx.lineWidth = 6;
-    ctx.strokeRect(3, 3, SLICE_WORLD_W - 6, SLICE_WORLD_H - 6);
-    ctx.globalAlpha = 1;
-  }
+  ctx.lineCap='round';for(const e of memo.trail){const [x1,y1,x2,y2]=e.seg;ctx.globalAlpha=.65*(1-(now-e.at)/110);ctx.strokeStyle=K.silver;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+  ctx.globalAlpha=1;if(state.swipe){const[x1,y1,x2,y2]=state.swipe;ctx.strokeStyle=K.silver;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.strokeStyle=K.white;ctx.lineWidth=.8;ctx.stroke();}
+  if(state.flash>0){ctx.fillStyle=`rgba(224,80,60,${state.flash/SLICE_FLASH_TICKS*.45})`;ctx.fillRect(0,0,SLICE_WORLD_W,SLICE_WORLD_H);}
+  // Keep the existing gauge and HUD locations; stainless steel replaces nautical brass.
+  const mult=sliceMultiplier(state.streak),gx=38,gy=SLICE_HUD_H+34;
+  ctx.fillStyle=K.silver;ctx.beginPath();ctx.arc(gx,gy,24,Math.PI,0);ctx.closePath();ctx.fill();
+  ctx.fillStyle=K.ink;ctx.beginPath();ctx.arc(gx,gy,20,Math.PI,0);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=K.white;ctx.lineWidth=3;for(let i=1;i<=3;i++){const a=Math.PI+(i-1)/2*Math.PI;ctx.beginPath();ctx.moveTo(gx+Math.cos(a)*15,gy+Math.sin(a)*15);ctx.lineTo(gx+Math.cos(a)*19,gy+Math.sin(a)*19);ctx.stroke();}
+  const a=Math.PI+(mult-1)/2*Math.PI;ctx.strokeStyle=K.gold;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx+Math.cos(a)*17,gy+Math.sin(a)*17);ctx.stroke();
+  ctx.fillStyle=K.ink;ctx.font="bold 13px 'JetBrains Mono', monospace";ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(`×${mult}`,gx,gy+3);
+  if(state.comboLive){ctx.font="11px 'JetBrains Mono', monospace";ctx.fillText(`${Math.ceil(Math.max(0,state.comboUntil-state.tick)/TICKS_PER_SECOND)}s`,gx,gy+18);}
+  ctx.fillStyle='rgba(220,233,231,0.88)';ctx.fillRect(20,8,SLICE_WORLD_W-70,30);
+  ctx.fillStyle=K.ink;ctx.font='bold 20px ui-monospace, monospace';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillText(`Sliced ${state.slices}`,14,SLICE_HUD_H/2);ctx.textAlign='center';
+  if(sliceFrenzyOn(state,state.tick))ctx.fillText('FRENZY',SLICE_WORLD_W/2,SLICE_HUD_H/2);else if(sliceSlowOn(state,state.tick))ctx.fillText('SLOW',SLICE_WORLD_W/2,SLICE_HUD_H/2);
+  ctx.strokeStyle=K.edge;ctx.lineWidth=2;ctx.strokeRect(1,1,SLICE_WORLD_W-2,SLICE_WORLD_H-2);
+  if(state.comboFlash>0){ctx.strokeStyle=K.gold;ctx.globalAlpha=state.comboFlash/SLICE_COMBO_FLASH_TICKS;ctx.lineWidth=6;ctx.strokeRect(3,3,SLICE_WORLD_W-6,SLICE_WORLD_H-6);}
   ctx.restore();
 }
-
-export const sliceArtGame = { ...sliceGame, draw: drawSliceArt };
+export const sliceArtGame={...sliceGame,draw:drawSliceArt};
