@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { useReducedMotion } from "@/lib/motion";
 import { fx } from "@/lib/fx";
+import { stopWarning10 } from "@/lib/sound";
 
 interface TimerBarProps {
   msRemaining: number;
@@ -20,13 +21,26 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
   const seconds = Math.ceil(remaining / 1000);
   const finalTen = active && remaining > 0 && remaining <= 10_000;
   const critical = active && remaining > 0 && remaining <= 5_000;
+  const warned10 = useRef(false);
   useEffect(() => {
-    if (!active || lastTick.current === seconds) return;
+    // Round ended early (submit, all-active-submitted, arcade game over) or
+    // the timer unmounted: cut the countdown cue immediately.
+    if (!active) {
+      stopWarning10();
+      return;
+    }
+    // Fire exactly as the clock crosses 10.0 s; a player joining inside the
+    // last 10 s starts the cue offset so it still ends at 0.
+    if (remaining > 0 && remaining <= 10_000 && !warned10.current) {
+      warned10.current = true;
+      fx.onTimerWarning10((10_000 - remaining) / 1000);
+    }
+    if (lastTick.current === seconds) return;
     lastTick.current = seconds;
-    if (seconds === 10) fx.onTimerWarning10();
     if (seconds === 5) fx.onTimerWarning5();
     if (seconds === 0) fx.onTimeUp();
-  }, [active, seconds]);
+  }, [active, seconds, remaining]);
+  useEffect(() => () => stopWarning10(), []);
   return (
     <div className={`flex h-5 w-full shrink-0 items-center justify-end gap-1 ${finalTen ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`} aria-label={`${seconds} seconds remaining`} role="timer">
       <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0 fx-timer-ring" aria-hidden="true">
