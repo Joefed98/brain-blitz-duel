@@ -1,3 +1,4 @@
+import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { Undo2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { playWrong } from "@/lib/sound";
@@ -99,6 +100,7 @@ function TargetStage({
   locked,
   onSubmit,
 }: PuzzleStageProps & { tiles: number[]; target: number }) {
+  const column = useGameColumnLayout();
   const [pool, setPool] = useState<Tile[]>(() =>
     startTiles.map((value, id) => ({ id, value, active: true })),
   );
@@ -203,7 +205,7 @@ function TargetStage({
   const isLockedNow = locked || lockedHere;
 
   return (
-    <div data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col justify-between gap-2">
+    <div data-stage-column="2" className={`relative flex min-h-0 flex-1 flex-col gap-2 ${column ? "" : "justify-between"}`}>
       <div className="flex flex-col items-center gap-2">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Target</p>
         <p className="font-mono text-5xl font-bold leading-none text-primary tabular-nums">

@@ -1,3 +1,4 @@
+import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useEffect, useRef } from "react";
 
 import { StageProgress } from "@/components/puzzles/StageProgress";
@@ -97,6 +98,7 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" }: PuzzleStageProps) {
+  const column = useGameColumnLayout();
   const data = puzzle.type === "equation" ? puzzle : null;
   const [stage, setStage] = useStageState<number>(stateKey, "eqStage", () => 0);
   const [answers, setAnswers] = useStageState<string[]>(stateKey, "eqAnswers", () => Array.from({ length: data?.stages.length ?? 4 }, () => ""));
@@ -158,7 +160,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
   const last = stage >= total - 1;
 
   return (
-    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col justify-between gap-3">
+    <div data-stage-column="3" className={`flex min-h-0 flex-1 flex-col gap-3 ${column ? "" : "justify-between"}`}>
       <div data-game-arena="fixed" className="flex flex-col items-center gap-3">
         <StageProgress stage={stage} total={total} />
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
