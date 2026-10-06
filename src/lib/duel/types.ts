@@ -303,6 +303,8 @@ export interface StroopPuzzleData {
   seed: number;
   /** Fixed queue length (current rounds); absent = legacy open-ended 60 s stream. */
   queue?: number;
+  /** Rules revision (3 = 75 s, five phases); absent = older rules by queue. */
+  clashRev?: number;
 }
 
 export interface SpatialPuzzleData {

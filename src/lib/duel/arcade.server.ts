@@ -1,4 +1,4 @@
-import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
+import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
 /**
  * Server-only seeds for the arcade rounds. One seed per round drives the whole
  * course, so everyone in the room plays the identical run; practice draws a
@@ -138,7 +138,7 @@ export function generateSortRush(): SortRushPuzzleData {
 }
 
 export function generateColourClash(): StroopPuzzleData {
-  return { type: "stroop", seed: arcadeSeed(), queue: CLASH_QUEUE };
+  return { type: "stroop", seed: arcadeSeed(), queue: CLASH_QUEUE, clashRev: CLASH_REV };
 }
 
 export function generateFlip(): FlipPuzzleData {

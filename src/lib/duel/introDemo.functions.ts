@@ -5,7 +5,7 @@ import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION } from "@/lib/arcade/orbit";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
-import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
+import { CLASH_REV } from "@/lib/arcade/colourClash";
 
 export interface IntroDemoRow {
   game_type: string;
@@ -51,7 +51,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Old Ball Track queues and release timings cannot replay the current run.
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== BT_BALLS) return null;
     // Open-stream Colour Clash demos cannot replay the fixed-queue run.
-    if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.queue !== CLASH_QUEUE) return null;
+    if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
     return demo;
   });
