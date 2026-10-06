@@ -71,10 +71,10 @@ const BUILDERS: Record<string, Builder> = {
   bintoss: (r, s) => {
     const done = n(r, "baskets") >= 10;
     return {
-      axis: { value: n(r, "baskets"), max: 10, label: "Baskets" },
-      lines: [head(`${n(r, "baskets")} / 10 baskets`, s, done)],
+      axis: { value: n(r, "baskets"), max: 10, label: "Buckets" },
+      lines: [head(`${n(r, "baskets")} / 10 buckets`, s, done)],
       tiles: [
-        { label: "Baskets", value: `${n(r, "baskets")} / 10` },
+        { label: "Buckets", value: `${n(r, "baskets")} / 10` },
         { label: "Throws", value: String(n(r, "throws")) },
       ],
       outcome: done ? "finish" : "time",
@@ -85,7 +85,7 @@ const BUILDERS: Record<string, Builder> = {
     lines: [`${n(r, "total")} / 100 rings → ${s}`],
     tiles: [
       { label: "Bullseyes", value: String(n(r, "inner")) },
-      { label: "Arrows", value: String(n(r, "arrows")) },
+      { label: "Darts", value: String(n(r, "arrows")) },
     ],
     outcome: b(r, "finished") ? "finish" : "time",
   }),
@@ -123,15 +123,15 @@ const BUILDERS: Record<string, Builder> = {
     outcome: ended(r, false),
   }),
   slice: (r, s) => ({
-    axis: { value: n(r, "slices"), max: n(r, "totalDiscs"), label: "Discs sliced" },
+    axis: { value: n(r, "slices"), max: n(r, "totalDiscs"), label: "Foods sliced" },
     lines: [
-      `${n(r, "slices")} / ${n(r, "totalDiscs")} discs → ${s}`,
-      ...(n(r, "bombsHit") > 0 ? [`−10 × ${n(r, "bombsHit")} bomb${n(r, "bombsHit") === 1 ? "" : "s"}`] : []),
+      `${n(r, "slices")} / ${n(r, "totalDiscs")} foods → ${s}`,
+      ...(n(r, "bombsHit") > 0 ? [`−10 × ${n(r, "bombsHit")} ${n(r, "bombsHit") === 1 ? "chilli" : "chillies"}`] : []),
     ],
     tiles: [
       { label: "Best combo", value: `×${n(r, "bestMult")}` },
-      { label: "Specials", value: String(n(r, "bonuses")) },
-      { label: "Bombs", value: String(n(r, "bombsHit")) },
+      { label: "Ketchup / mustard", value: String(n(r, "bonuses")) },
+      { label: "Chillies", value: String(n(r, "bombsHit")) },
     ],
     outcome: "time",
   }),
@@ -164,8 +164,8 @@ const BUILDERS: Record<string, Builder> = {
     outcome: "time",
   }),
   snake: (r, s) => ({
-    axis: { value: n(r, "pellets"), max: null, label: "Pellets" },
-    lines: [`${n(r, "pellets")} pellets → ${s}`],
+    axis: { value: n(r, "pellets"), max: null, label: "Stars" },
+    lines: [`${n(r, "pellets")} stars → ${s}`],
     tiles: [
       { label: "Length", value: String(n(r, "length")) },
       { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "endedSeconds")) },
@@ -190,7 +190,7 @@ const BUILDERS: Record<string, Builder> = {
     const done = n(r, "wavesCleared") >= 5;
     return {
       axis: { value: n(r, "wavesCleared"), max: 5, label: "Waves" },
-      lines: [`${n(r, "wavesCleared")} / 5 waves · ${n(r, "shapesDown")} shapes → ${s}`],
+      lines: [`${n(r, "wavesCleared")} / 5 waves · ${n(r, "shapesDown")} ships → ${s}`],
       tiles: [
         { label: "Armour hits", value: String(n(r, "armourHits")) },
         { label: "Saucers", value: String(n(r, "saucers")) },
@@ -228,9 +228,9 @@ const BUILDERS: Record<string, Builder> = {
   },
   burst: (r, s) => ({
     axis: { value: Math.max(1, n(r, "wave")), max: null, label: "Waves" },
-    lines: [`Wave ${Math.max(1, n(r, "wave"))} · ${n(r, "hits")} popped → ${s}`],
+    lines: [`Wave ${Math.max(1, n(r, "wave"))} · ${n(r, "hits")} invaders → ${s}`],
     tiles: [
-      { label: "Popped", value: String(n(r, "hits")) },
+      { label: "Invaders", value: String(n(r, "hits")) },
       { label: "Lives lost", value: String(n(r, "livesLost")) },
     ],
     outcome: ended(r, false),
@@ -242,7 +242,7 @@ const BUILDERS: Record<string, Builder> = {
       lines: [head(done ? "Sun reached" : `${n(r, "passed")} / 40 planets`, s, done)],
       tiles: [
         { label: "Checkpoint planet", value: typeof r["checkpoint"] === "number" && n(r, "checkpoint") >= 0 ? String(n(r, "checkpoint")) : "none" },
-        { label: "Captures", value: String(n(r, "captured")) },
+        { label: "Planets", value: String(n(r, "captured")) },
       ],
       outcome: done ? "finish" : ended(r, false),
     };
@@ -260,10 +260,10 @@ const BUILDERS: Record<string, Builder> = {
   snip: (r, s) => {
     const done = n(r, "eaten") >= 10;
     return {
-      axis: { value: n(r, "eaten"), max: 10, label: "Levels fed" },
-      lines: [`${n(r, "eaten")} fed × 10 · ${n(r, "stars")}★ × 3${done ? ` · time +${Math.max(0, s - 10 * n(r, "eaten") - 3 * n(r, "stars"))}` : ""} → ${s}`],
+      axis: { value: n(r, "eaten"), max: 10, label: "Apples" },
+      lines: [`${n(r, "eaten")} apples × 10 · ${n(r, "stars")} leaves × 3${done ? ` · time +${Math.max(0, s - 10 * n(r, "eaten") - 3 * n(r, "stars"))}` : ""} → ${s}`],
       tiles: [
-        { label: "Stars", value: String(n(r, "stars")) },
+        { label: "Leaves", value: String(n(r, "stars")) },
         { label: "Cuts", value: String(n(r, "cuts")) },
       ],
       outcome: done ? "finish" : "time",
@@ -284,10 +284,10 @@ const BUILDERS: Record<string, Builder> = {
   balltrack: (r, s) => {
     const done = n(r, "home") >= BT_BALLS;
     return {
-      axis: { value: n(r, "home"), max: BT_BALLS, label: "Balls home" },
+      axis: { value: n(r, "home"), max: BT_BALLS, label: "Marbles home" },
       lines: [head(`${n(r, "home")} / ${BT_BALLS} home`, s, done)],
       tiles: [
-        { label: "Balls home", value: `${n(r, "home")} / ${BT_BALLS}` },
+        { label: "Marbles home", value: `${n(r, "home")} / ${BT_BALLS}` },
         { label: "Wrong tray", value: String(n(r, "wrong")) },
         { label: "Lost", value: String(n(r, "lost")) },
       ],
