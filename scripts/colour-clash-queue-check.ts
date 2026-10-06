@@ -30,7 +30,9 @@ function strong(state: ClashState): ArcadeInputEvent | null {
 }
 
 let finishMin = Infinity, finishMax = 0, idleSorted48: number[] = [];
-for (let seed = 1; seed <= 200; seed++) {
+const SEEDS = Number(process.env["SEEDS"] ?? 200);
+for (let seed = 1; seed <= SEEDS; seed++) {
+  const t0 = performance.now();
   // Strong run finishes the queue early with the right score, and replays identically.
   let s = colourClashQueueGame.init(seed);
   const events: ArcadeInputEvent[] = [];
@@ -70,4 +72,4 @@ for (let seed = 1; seed <= 200; seed++) {
     check(old.score(a) === colourClashGame.score(b2), "legacy score");
   }
 }
-console.log(`Colour Clash queue: 200/200 seeds passed; N=${CLASH_QUEUE}; strong finish ${(finishMin / 60).toFixed(2)}–${(finishMax / 60).toFixed(2)} s; idle sorted by 48 s ${Math.min(...idleSorted48)}–${Math.max(...idleSorted48)}; half-time anchor 140; legacy identity ${legacyPath ? "200/200" : "skipped"}`);
+console.log(`Colour Clash queue: ${SEEDS}/${SEEDS} seeds passed; N=${CLASH_QUEUE}; strong finish ${(finishMin / 60).toFixed(2)}–${(finishMax / 60).toFixed(2)} s; idle sorted by 48 s ${Math.min(...idleSorted48)}–${Math.max(...idleSorted48)}; half-time anchor 140; legacy identity ${legacyPath ? `${SEEDS}/${SEEDS}` : "skipped"}`);
