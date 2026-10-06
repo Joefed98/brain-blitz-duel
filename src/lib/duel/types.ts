@@ -301,6 +301,8 @@ export interface StroopPuzzleData {
   type: "stroop";
   /** Draws the full sorting stream — identical for everyone. */
   seed: number;
+  /** Fixed queue length (current rounds); absent = legacy open-ended 60 s stream. */
+  queue?: number;
 }
 
 export interface SpatialPuzzleData {

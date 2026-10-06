@@ -334,15 +334,36 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : "time",
     };
   },
-  stroop: (r, s) => ({
-    axis: { value: n(r, "correct"), max: n(r, "total"), label: "Correct" },
-    lines: [`${n(r, "correct")} / ${n(r, "total")} correct → ${s}`],
-    tiles: [
-      { label: "Wrong", value: String(n(r, "wrong")) },
-      { label: "Missed", value: String(n(r, "missed")) },
-    ],
-    outcome: n(r, "correct") >= n(r, "total") && n(r, "total") > 0 ? "finish" : "time",
-  }),
+  stroop: (r, s) => {
+    // Fixed-queue rounds: correct / N, wrong and the completion-only time bonus.
+    if (n(r, "queue") > 0) {
+      const done = b(r, "finished");
+      return {
+        axis: { value: n(r, "correct"), max: n(r, "queue"), label: "Correct" },
+        lines: [
+          `${n(r, "correct")} / ${n(r, "queue")} correct`,
+          `${n(r, "wrong")} wrong × −2`,
+          done ? `time bonus +${n(r, "timeBonus")}` : "time bonus — (not all sorted)",
+          `→ ${s}`,
+        ],
+        tiles: [
+          { label: "Correct", value: `${n(r, "correct")} / ${n(r, "queue")}` },
+          { label: "Wrong", value: String(n(r, "wrong")) },
+          { label: "Time bonus", value: done ? `+${n(r, "timeBonus")}` : "—" },
+        ],
+        outcome: done ? "finish" : "time",
+      };
+    }
+    return {
+      axis: { value: n(r, "correct"), max: n(r, "total"), label: "Correct" },
+      lines: [`${n(r, "correct")} / ${n(r, "total")} correct → ${s}`],
+      tiles: [
+        { label: "Wrong", value: String(n(r, "wrong")) },
+        { label: "Missed", value: String(n(r, "missed")) },
+      ],
+      outcome: n(r, "correct") >= n(r, "total") && n(r, "total") > 0 ? "finish" : "time",
+    };
+  },
 };
 
 export const ARCADE_REVEAL_TYPES = Object.keys(BUILDERS);
