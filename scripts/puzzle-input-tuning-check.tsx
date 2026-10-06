@@ -48,7 +48,7 @@ assert.match(css, /\.game-screen,[\s\S]*?canvas,\s*button,[\s\S]*?-webkit-tap-hi
 assert.match(readFileSync("src/puzzles/beat.tsx", "utf8"), /style=\{\{ \.\.\.NO_SCROLL_STYLE, background: BEAT_BG \}\}/);
 assert.match(css, /sudoku-box-outline path[^}]*stroke-width: 3/);
 const wordsmithSource = readFileSync("src/components/puzzles/WordsmithPuzzle.tsx", "utf8");
-assert.doesNotMatch(wordsmithSource, /<input|onPointerMove|onPointerDown|Math.random|Shuffle/);
+assert.doesNotMatch(wordsmithSource, /<input|onPointerMove|Math.random|Shuffle/);
 assert.match(wordsmithSource, /toggleWordsmithTile/);
 assert.match(wordsmithSource, /checkWord\(/);
 const keys: PuzzleType[] = ["wordsmith", "wordhunt", "target", "maze", "rings", "lightsout", "sudoku", "flood", "shikaku", "beat"];

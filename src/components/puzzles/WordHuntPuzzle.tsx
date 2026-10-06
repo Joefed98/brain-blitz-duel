@@ -156,7 +156,7 @@ export function WordHuntPuzzle({
 
   // The round runs the full minute; the traced words go in just before it ends.
   useEffect(() => {
-    if (locked || tracing.current) return;
+    if (locked) return;
     const remaining = phaseStartedAt + WORDHUNT_TIME_MS - now;
     if (remaining <= 600) lockIn();
   }, [locked, now, phaseStartedAt, lockIn]);
@@ -215,7 +215,7 @@ export function WordHuntPuzzle({
   const cellAt = (x: number, y: number): number | null => wordHuntInnerCell(gridGeometry(gridRef.current, x, y, N, N), N, N);
 
   const startTrace = (cell: number, event: React.PointerEvent) => {
-    if (locked) return;
+    if (locked || tracing.current) return;
     const hit = cellAt(event.clientX, event.clientY);
     if (hit === null || hit !== cell) return;
     event.preventDefault();
