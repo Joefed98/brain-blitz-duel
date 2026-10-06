@@ -230,15 +230,15 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         const ok = equationStageCorrect(stage.numbers, stage.target, parts[i] ?? "");
         return (
           <div key={i} className="flex w-full flex-col items-center gap-1 rounded-lg bg-card px-2 py-2">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Equation {i + 1}</p>
+            <p className="text-sm text-muted-foreground">
+              Equation {i + 1} · <span className={ok ? "text-primary" : "text-warn"}>{ok ? "✓" : mine.length < stage.numbers.length - 1 ? (mine.length ? "Incomplete ✗" : "Skipped ✗") : "✗"}</span>
+            </p>
             <p className="text-center font-mono text-lg font-bold tabular-nums text-primary">
               <Line numbers={stage.numbers} ops={puzzle.operators?.[i] ?? []} /> = {stage.target}
             </p>
-            {mine.length < stage.numbers.length - 1 ? (
-              <p className="font-display text-base font-bold text-warn">{mine.length ? "Incomplete" : "Skipped"} ✗</p>
-            ) : (
-              <p className={`text-center font-mono text-base font-bold tabular-nums ${ok ? "text-primary" : "text-warn"}`}>
-                <Line numbers={stage.numbers} ops={mine} /> {ok ? "✓" : "✗"}
+            {!ok && mine.length === stage.numbers.length - 1 && (
+              <p className="text-center font-mono text-base font-bold tabular-nums text-warn">
+                <Line numbers={stage.numbers} ops={mine} /> ✗
               </p>
             )}
           </div>
