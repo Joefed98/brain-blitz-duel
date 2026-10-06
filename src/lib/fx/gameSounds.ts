@@ -32,7 +32,6 @@ export interface GameSounds<S> {
 }
 
 const AMBIENCE_VOLUME = 0.22;
-const HISS_VOLUME = 0.18;
 
 export function orbitSounds(): GameSounds<OrbitState> {
   let prev: OrbitState | null = null;
