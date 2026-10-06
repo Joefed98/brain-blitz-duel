@@ -75,9 +75,13 @@ export function wavefrontSounds(): GameSounds<WavState> {
   return {
     frame(state) {
       if (prev && state.tick > prev.tick) {
-        if (state.fireIn > prev.fireIn) playSound("arc_laser", 0.6, 1, true);
+        if (state.fireIn > prev.fireIn) playSound("arc_blaster", 0.6, 1, true);
+        // The saucer never fires in the sim; its entrance plays the saucer shot.
+        if (state.saucerDir !== 0 && prev.saucerDir === 0) playSound("arc_saucer_shot", 0.7);
+        if (state.pierce > prev.pierce) playSound("arc_retro_pickup");
         // Shapes and the armour block destroyed this frame (bursts carry the kill tick).
-        if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) playSound("arc_crash", 0.7);
+        if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) playSound("arc_big_explode", 0.8);
+        else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) playSound("arc_crash", 0.7);
         if (state.lives < prev.lives) playSound("arc_lose_life");
       }
       prev = state;
