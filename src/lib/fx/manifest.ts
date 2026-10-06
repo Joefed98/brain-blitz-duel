@@ -63,7 +63,6 @@ const ENTRIES = {
   arc_leaf_collect: { channel: "effects", frequency: 1040, ms: 840, url: "/__l5e/assets-v1/af49e1bf-1bbe-4d6b-931a-c7977fd02a63/arc_leaf_collect.mp3" },
   arc_rainbow: { channel: "effects", frequency: 880, ms: 910, url: "/__l5e/assets-v1/5afeae12-fe26-42f7-8ce5-774b816301ff/arc_rainbow.mp3" },
   arc_rope_cut: { channel: "effects", frequency: 1400, ms: 230, url: "/__l5e/assets-v1/6b66fec8-e76a-4fc9-bbbd-71565de13bd0/arc_rope_cut.mp3" },
-  arc_yelp: { channel: "effects", frequency: 700, ms: 310, url: "/__l5e/assets-v1/bd27dc5b-4976-4c52-8816-63546eeae8f0/arc_yelp.mp3" },
   arc_grapple: { channel: "effects", frequency: 400, ms: 450, url: "/__l5e/assets-v1/3b24ecb8-823f-488c-8642-005cdd085b28/arc_grapple.mp3" },
   arc_gravity_flip: { channel: "effects", frequency: 500, ms: 330, url: "/__l5e/assets-v1/6794873a-641a-48f5-b743-9c0415e763a8/arc_gravity_flip.mp3" },
   arc_hover_tap: { channel: "effects", frequency: 600, ms: 110, url: "/__l5e/assets-v1/43b659cf-d1a4-4cfd-b049-c1f1c0aa153a/arc_hover_tap.mp3" },

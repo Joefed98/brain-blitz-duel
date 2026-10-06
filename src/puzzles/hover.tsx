@@ -28,6 +28,7 @@ import { HOVER_CRASH_FREEZE_MS, type HoverPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { hoverArtGame } from "@/lib/arcade/hover.renderer";
 import { hoverSounds } from "@/lib/fx/gameSounds";
+import { playSound } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -144,6 +145,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const tapped = pending.current > 0;
           if (tapped) pending.current -= 1;
           if (tapped) recordTap(inputs.current, state.current.tick + 1);
+          // Played at the applied tap itself; a retrigger cuts the previous instance.
+          if (tapped && !lockedRef.current) playSound("arc_hover_tap", 0.7);
           state.current = hoverGame.step(
             state.current,
             tapAt(inputs.current, state.current.tick + 1),
