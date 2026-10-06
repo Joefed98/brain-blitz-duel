@@ -1,3 +1,9 @@
+## Presentation geometry tuning (Oct 6)
+- [ ] Remove only the ArcadeReveal crash marker, retaining the gold finish marker.
+- [ ] Share one segmented octagonal Wordsmith board across live, intro and reveal; preserve controls and verdicts.
+- [ ] Anchor Sudoku box strokes to cell edges and clip/size Shikaku reveal labels on equal tracks.
+- [ ] Audit source/SSR and geometry at 390x700 and 375x667 without browsers; verify protected gameplay files unchanged.
+
 ## Colour Clash four-lane spawn fix (Oct 6)
 - [x] Cause: fixed centre-lane spawn (`floor(lanes / 2)`) always chose index 2 (third lane) after expansion. Replaced with one seeded PRNG draw, saved after consumption; shared integer lane-count/transition constants.
 - [x] Colour Clash-only identity proof passed 200/200; 200-seed spawn regression covers every lane, exact PRNG state and integer state. Four-lane counts: 716/735/665/684. Preview build OK; no browser tests, devices remain user-tested.
