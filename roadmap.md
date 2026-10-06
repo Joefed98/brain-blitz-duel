@@ -1,7 +1,7 @@
 ## Six-game scoring update (Oct 6, 13:44)
-- [ ] Update six scoring formulas and Ball Track's 30-ball/103-tick schedule; regenerate proven bank and practice course.
-- [ ] Refresh shape-template intro SCORE, question-mark formulas and reveal facts; invalidate only Ball Track's old demo.
-- [ ] Run identity proofs only for the six requested games and focused formula/timing checks; no browsers or art changes.
+- [x] Updated six scoring formulas and Ball Track's 30-ball/103-tick schedule (last release 49.8 s); regenerated 400 proven courses and practice fallback.
+- [x] Refreshed shape-template intro SCORE, question-mark formulas, reveal facts and stale summary text; rejected old Ball Track demo by queue shape, other five remain valid. Rally's existing points text rounds down; artwork unchanged.
+- [x] Ball Track 200/200 identity and 400/400 playbooks route 30/30; Matchup, Junction, Rally, Skyline, Bullseye each 200/200 identity. 14,800 focused formula/schedule/intro/reveal/demo checks passed including all Bullseye anchors; no browsers or other-game identity proofs.
 
 ## Wordsmith, Bubble Pop and Bomb Defusal presentation (Oct 6, 13:36)
 - [x] Shared Wordsmith glyphs use 70% of the previous bold fitted size; visible font weight 700→500 (~71%), with the old bold probes retained as the size reference and light probes for centring. Polygons, outlines, centre and tap targets unchanged.

@@ -380,7 +380,7 @@ function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize
   ctx.fillText(`Rally ${state.hits}`, 14, 14);
   ctx.textAlign = "center";
   ctx.fillStyle = RALLY_GOLD;
-  ctx.fillText(`gold ${state.goldHits} · ${RALLY_GOLD_POINTS * state.goldHits} pts`, RALLY_WORLD_W / 2, 14);
+  ctx.fillText(`gold ${state.goldHits} · ${Math.floor(RALLY_GOLD_POINTS * state.goldHits)} pts`, RALLY_WORLD_W / 2, 14);
   ctx.fillStyle = "#F7F7F8";
   ctx.textAlign = "right";
 
