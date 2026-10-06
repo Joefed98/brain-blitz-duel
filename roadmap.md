@@ -1,3 +1,8 @@
+## Wordsmith variable size (Oct 6, 14:05)
+- [ ] Generate seeded equally weighted 8–11-letter answer-first boards with enforced word totals; keep scoring and fixed demo.
+- [ ] Divide existing octagonal ring into 7–10 wedges with 70% glyph fitting and 44px targets.
+- [ ] Verify counts, validation, seed reproducibility, geometry, demo compatibility and generation time without browsers.
+
 ## Equation fourth stage (Oct 6, 14:00)
 - [x] Four stages with 3/4/5/5 numbers; stage 3 avoids division, stage 4 requires division, multiplication and at least three operator kinds, numbers 2–20, target ≤400, all intermediate results whole/nonnegative. All 256 operator assignments checked for uniqueness; unique fallback 12 + 3 + 7 ÷ 2 × 5 = 55 (left to right). Four-stage progress and compact answer rows; existing one-second running-timer holds apply to stages 1–3.
 - [x] Standard staged 25/30/35/40 + completion-only 20 scoring, shape-template intro and question-mark formula; half-time completion = 140. Stored three-stage Equation puzzles preserve legacy scoring. Fixed illustration unchanged.
