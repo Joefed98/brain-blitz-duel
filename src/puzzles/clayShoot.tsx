@@ -237,7 +237,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div ref={wrap} className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
+    <div ref={wrap} data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
       <p className="shrink-0 text-center font-mono text-xs font-semibold leading-none text-foreground">
         <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold
       </p>
@@ -245,7 +245,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <div
         ref={board}
         data-play-area
-        className="relative min-h-0 w-full flex-1"
+        data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
         style={{ touchAction: "none" }}
         aria-label="Clay Shoot sky"
         onPointerDown={(event) => {

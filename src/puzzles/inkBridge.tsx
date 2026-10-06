@@ -48,7 +48,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     if (pending.current.length < 120) pending.current.push(payload);
   };
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col gap-2">
+    <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col gap-2">
       <ArcadeCanvasStage
         diagKey="inkbridge"
         label="Ink Bridge"
@@ -85,7 +85,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         onSubmit={(answer) => onSubmit(answer)}
         onDraftAnswer={onDraftAnswer}
       />
-      <div className="flex h-12 shrink-0 gap-1.5">
+      <div data-game-controls="tools" className="flex h-12 shrink-0 gap-1.5">
         {([ [INK_INPUT_UNDO, "UNDO"], [INK_INPUT_RESET, "RESET"], [INK_INPUT_RELEASE, "RELEASE"], [INK_INPUT_DROP_AGAIN, "DROP AGAIN"] ] as const).map(([k, label]) => (
           <Button key={k} type="button" disabled={locked} variant={k === INK_INPUT_RELEASE ? "default" : "outline"} className="h-12 min-w-0 flex-1 px-1 text-xs font-bold" style={{ touchAction: "none" }} onPointerDown={(e) => {
             e.preventDefault();

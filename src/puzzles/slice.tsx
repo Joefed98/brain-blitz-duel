@@ -232,7 +232,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div
       ref={wrap}
-      className="min-h-0 w-full flex-1 overflow-hidden"
+      data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden"
       style={NO_SCROLL_STYLE}
     >
       <canvas
