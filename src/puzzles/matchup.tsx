@@ -202,7 +202,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       feedback(state.current, matchupGame.isOver(state.current));
       const chime = chimes.current;
       while (chime.next < chime.at.length && time >= chime.at[chime.next]!) {
-        playSound(chime.sounds[chime.next] ?? "arc_gem_match", 0.8);
+        // Cascade pitch ladder: chain depth 1-4 rises 1.0 / 1.12 / 1.26 / 1.41.
+        const depth = Math.min(chime.next + 1, MATCHUP_PITCH_RATES.length);
+        playSound("arc_gem_match", 0.8, MATCHUP_PITCH_RATES[depth - 1] ?? 1, true);
+        const special = chime.sounds[chime.next];
+        // A special layers over the match chime rather than cutting it.
+        if (special && special !== "arc_gem_match") playSound(special, 0.8, 1, true);
         chime.next += 1;
       }
 
