@@ -1,3 +1,8 @@
+## Orbit moving asteroid belts (Oct 6, 16:20)
+- [ ] Replace final-planet hazard phases with integer tick-driven 12-second belts; preserve course selection, hopping/checkpoint/scoring rules.
+- [ ] Draw bounded tumbling rocks/dust instead of invisible gaps, update HOW, reject old Orbit demos and allow new recordings.
+- [ ] Run only Orbit identity proof plus focused belt/bounds checks; report speed and eligible planets. No browser tests.
+
 ## Engine result theme labels (Oct 6, 16:14)
 - [x] Audited all 22 engine games' breakdowns, axes and tiles; renamed Snip apples/leaves, Orbit planets, Slice foods/chillies/ketchup-mustard, Bin Toss buckets, Bullseye darts, Eat and Grow stars (four-point pickup art), Wavefront ships, Burst invaders and Ball Track marbles. Shared intro SCORE parameters and matching question-mark formula nouns updated; Hover intro gap→gate. Ink Bridge/Tilt have no legacy nouns in these surfaces; other current-world labels retained.
 - [x] 330 synthetic presentation fixtures across all 22 preserve axes, tile values, outcomes and numeric breakdowns. Parser comparison confirms only text literals differ in the three changed source files, formula code and literal numbers unchanged; 509 other source files byte-identical. Preview build OK; no sims/graders executed, no browsers or identity proofs. Before/after report supplied; device testing remains with user.
