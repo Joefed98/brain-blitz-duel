@@ -1,3 +1,9 @@
+## Wordsmith, Bubble Pop and Bomb Defusal presentation (Oct 6, 13:36)
+- [ ] Reduce shared Wordsmith glyph size and weight to about 70%; preserve all polygons and tap targets.
+- [ ] Trace Bubble Pop stored counters; stop if incorrect, otherwise fix only reveal facts and verify 1,410+ server-graded row fixtures.
+- [ ] Rewrite all Bomb Defusal adjacency clues into explicit first-action/VERY NEXT-action forms; list before/after templates and retain semantics/bank.
+- [ ] Run non-browser checks; confirm protected gameplay files unchanged. Device checks remain with the user.
+
 ## Ink Bridge rainbow retheme (Oct 6)
 - [x] Cached daylight background, cloud/dispenser, coin, black pot, rainbow meter and per-canvas stroke raster; full 4px red hazards, original 14px coin/64px pot/4px rim/6px stroke geometry. Intro and saved-run art share the new theme.
 - [x] Pot arc_fair_bell, block arc_thud (alias to supplied thud recording), existing arc_swoosh draw cue; shared run-end complete retained without duplicate final cue. All 506 protected source files unchanged.
