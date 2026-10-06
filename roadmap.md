@@ -1,3 +1,8 @@
+## Chain forty-link update (Oct 6, 13:53)
+- [ ] Update new rounds, shared replay and scoring while preserving stored legacy rules.
+- [ ] Refresh intro/help/reveal facts and invalidate the old Chain intro demo.
+- [ ] Run focused replay regressions and inspect existing stored rows; no browsers or identity proofs.
+
 ## Six-game scoring update (Oct 6, 13:44)
 - [x] Updated six scoring formulas and Ball Track's 30-ball/103-tick schedule (last release 49.8 s); regenerated 400 proven courses and practice fallback.
 - [x] Refreshed shape-template intro SCORE, question-mark formulas, reveal facts and stale summary text; rejected old Ball Track demo by queue shape, other five remain valid. Rally's existing points text rounds down; artwork unchanged.
