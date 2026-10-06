@@ -91,6 +91,7 @@ for (const count of [7, 8, 9, 10]) {
     }
     check(fits, "44px square target within wedge");
   }
-  check(Math.abs(area - 7326.659734495806) < .001, "same octagonal ring coverage");
+  const octagonArea = (10000 - 2 * ((1 - Math.tan(Math.PI / 8)) * 50) ** 2) * (1 - .34 ** 2);
+  check(Math.abs(area - octagonArea) < .001, "same octagonal ring coverage");
 }
 console.log("PASS: variable validation, totals, scoring, private projection, seeded fixed-demo parity, 70% glyphs and 44px targets; no browsers");
