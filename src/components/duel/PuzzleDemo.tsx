@@ -6,6 +6,7 @@ import { ArrowModeOverride } from "@/components/puzzles/GridDrag";
 import { puzzleInputDemoCompatible } from "@/components/puzzles/wordInput";
 import { getIntroDemoFn } from "@/lib/duel/introDemo.functions";
 import {
+  GAME_COLUMN_LAYOUT,
   PUZZLE_DEMO_HOLD_MS,
   expandActions,
   isPuzzleDemoLog,
@@ -293,7 +294,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
         <div
           ref={stageRef}
           aria-hidden="true"
-          className="absolute left-1/2 top-1/2 flex flex-col overflow-hidden"
+          className={`absolute left-1/2 top-1/2 flex flex-col overflow-hidden ${log.layout === GAME_COLUMN_LAYOUT ? "game-column" : ""}`}
           style={{
             width: log.w,
             height: log.h,

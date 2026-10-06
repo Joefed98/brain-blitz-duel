@@ -41,7 +41,12 @@ export interface PuzzleDemoLog {
   verdicts?: DemoVerdict[];
   /** ArrowPad mode the run used (true = joystick). */
   joystick?: boolean;
+  /** In-game column layout revision the run was recorded against (absent = original layout). */
+  layout?: number;
 }
+
+/** Current in-game column layout revision (top-anchored arena, controls 12px below). */
+export const GAME_COLUMN_LAYOUT = 1;
 
 const round3 = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 1000) / 1000;
 const TAP_SPAN = 0.025;
@@ -155,6 +160,7 @@ export class DemoRecorder {
       w: this.w,
       h: this.h,
       verdicts: this.verdicts,
+      layout: GAME_COLUMN_LAYOUT,
       ...(joystick === undefined ? {} : { joystick }),
     };
   }

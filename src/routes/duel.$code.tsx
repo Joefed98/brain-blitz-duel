@@ -6,6 +6,7 @@ import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { FinalResult } from "@/components/duel/FinalResult";
 import { GameLayout, PhoneShell } from "@/components/duel/PhoneShell";
+import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundPips } from "@/components/duel/RoundPips";
@@ -180,6 +181,8 @@ function DuelScreen() {
   const roomCode = code.toUpperCase();
   const state = useDuel(roomCode);
   const { duel, players, results, me, opponent, roomPlayers, isMulti, isHost, now } = state;
+  // Accepted ?dev=1 key enables presentation-only readouts (layout overlay) in rooms too.
+  useDemoKey();
 
   const [rematchBusy, setRematchBusy] = useState(false);
   const [starting, setStarting] = useState(false);
