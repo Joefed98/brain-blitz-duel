@@ -1,0 +1,12 @@
+# Orbit outside asteroid belts
+
+- Clearance: `ORBIT_BELT_CLEARANCE = 12800` in 1/256px units, 50px. Rocket uses a conservative enclosing 20px diameter covering its nose and fins; clearance is 2.5 diameters.
+- Circular belt radius: `planet.ring + clearance`, including oval/figure-eight planets; their existing full orbit paths, movement and capture shapes remain unchanged.
+- Existing seeded eligibility: planets 31–39; sun 40 and planets 0–30 have no belts. Quarter-turn blocked arc and integer `floor((tick % 720) * 65536 / 720)` movement retained, one revolution every 12s.
+- Collision: free flight only, before capture; all belt arcs along a flight are checked, including departure, arrival and skips. Integer substeps no farther than 1px with a 0.5px conservative sweep allowance; 10px enclosing rocket radius plus 2px belt ribbon. Arc endpoints included. No old orbit-phase/capture-gap checks remain. Existing death/checkpoint/scoring path retained.
+- Generation: candidate windows use flight-time moving belts, checked at 24 belt epochs; completed courses are rechecked before return so later belts cannot silently invalidate earlier hop windows. Unsafe courses fail rather than returning an unverified fallback. This is a generation acceptance invariant, not exhaustive enumeration of all integer seeds.
+- Sample: 200 seeds, 8000 hop windows, 926 belts. All 200 actual sequential safe-hop input logs reached sun before timeout, maximum observed wait 372 ticks (6.2s). Random-log identity 200/200; full-sun identity 200/200; existing checkpoint tests 15/15. No other game's identity proof ran.
+- Opening: 270 degrees; minimum belt radius 99.9765625px. Open arc 23.556 enclosing rocket widths. Conservative straight endpoint separation 7.069 widths; 5.819 widths after both 12.5px collision pads. The chord is a conservative opening measure, not the temporal release window.
+- Art uses shared circular belt offsets; rocks/dust remain clipped to 1.9px half-width ribbon and arc endpoints. Full orbit path drawn unchanged. Mathematical/source checks, not rendered phone measurements.
+- HOW now explains safe orbits and arrival/departure threading. SCORE formula/text unchanged: it never mentioned belts. Demo revision 2 rejects the previous recording even though its 720-tick period matches; new accepted-key recordings save revision 2.
+- Changed: orbit.ts, orbit.renderer.ts, instructions.ts, introDemo.functions.ts, practice.functions.ts; targeted check, roadmap, guidance and this audit. No browser tests. Preview diagnostics build OK.

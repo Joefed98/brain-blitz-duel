@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
-import { ORBIT_BELT_PERIOD_TICKS } from "@/lib/arcade/orbit";
+import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION } from "@/lib/arcade/orbit";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
 
 export interface IntroDemoRow {
@@ -11,7 +11,7 @@ export interface IntroDemoRow {
   seed: number;
   puzzle: PuzzleData;
   /** Engine games: { run }. Puzzle games: a PuzzleDemoLog. */
-  input_log: { run?: string; orbitBeltPeriodTicks?: number } & Partial<PuzzleDemoLog>;
+  input_log: { run?: string; orbitBeltPeriodTicks?: number; orbitBeltRevision?: number } & Partial<PuzzleDemoLog>;
   example_id?: string | null;
   start_tick: number;
   length_ticks: number;
@@ -44,7 +44,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
       return null;
     }
     const demo = (row as IntroDemoRow | null) ?? null;
-    if (data.type === "orbit" && demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS) return null;
+    if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
     // The fixed-splitter demo cannot replay the new movable-piece example.
     if (data.type === "laser" && demo?.puzzle.type === "laser" && demo.puzzle.splitterPieces !== 1) return null;
     // Old Ball Track queues and release timings cannot replay the current run.

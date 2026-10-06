@@ -782,7 +782,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Reach the sun, choosing one planet as your checkpoint.",
     how: [
       { action: "You orbit automatically.", detail: "Tap to let go - you fly straight until the next orbit catches you." },
-      { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Avoid moving asteroid belts on later planets - each circles its orbit in 12 seconds." },
+      { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring - it turns once every 12 seconds." },
       { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops - never at the crossing." },
     ],
     score: "3 per planet; reach the sun (planet 40) = 130 + up to 20 for time left.",
