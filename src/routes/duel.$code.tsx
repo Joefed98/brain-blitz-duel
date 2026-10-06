@@ -578,7 +578,6 @@ function DuelScreen() {
             </div>
           )}
         </div>
-        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }

@@ -39,19 +39,18 @@ function Grid({
       style={{ ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
     >
       {Array.from({ length: size * size }, (_, cell) => {
-        const cls = bad?.has(cell)
+        const fill = bad?.has(cell)
           ? "bg-destructive text-destructive-foreground"
           : live?.has(cell)
             ? "bg-primary/40 text-foreground"
             : gold.has(cell)
               ? "bg-primary text-primary-foreground"
-              : missedPath?.has(cell)
-                ? "bg-card text-foreground ring-2 ring-inset ring-destructive"
-                : "bg-card text-foreground";
+              : "bg-card text-foreground";
+        const missedOutline = missedPath?.has(cell) ? "ring-2 ring-inset ring-destructive" : "";
         return (
           <div
             key={cell}
-            className={`flex aspect-square items-center justify-center rounded-sm font-mono font-bold ${cls}`}
+            className={`flex aspect-square items-center justify-center rounded-sm font-mono font-bold ${fill} ${missedOutline}`}
             style={{ fontSize: small ? 9 : "clamp(14px, 5cqw, 22px)" }}
           >
             {grid[cell]}
