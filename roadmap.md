@@ -1,3 +1,8 @@
+## Six-game scoring update (Oct 6, 13:44)
+- [ ] Update six scoring formulas and Ball Track's 30-ball/103-tick schedule; regenerate proven bank and practice course.
+- [ ] Refresh shape-template intro SCORE, question-mark formulas and reveal facts; invalidate only Ball Track's old demo.
+- [ ] Run identity proofs only for the six requested games and focused formula/timing checks; no browsers or art changes.
+
 ## Wordsmith, Bubble Pop and Bomb Defusal presentation (Oct 6, 13:36)
 - [x] Shared Wordsmith glyphs use 70% of the previous bold fitted size; visible font weight 700→500 (~71%), with the old bold probes retained as the size reference and light probes for centring. Polygons, outlines, centre and tap targets unchanged.
 - [x] Bubble counters are correct: reveal read absent run.startCount instead of run.state.startCount. Reveal-only fallback now supports nested replay state and flat stored facts. All 1,410 server-graded row fixtures and 15 partial-board checks pass. Current score is round(130 × cleared fraction), not 150 − 3 × bubbles left; no applicable 150-minus rule exists here. Historical database rows were not tested or rewritten.
