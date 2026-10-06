@@ -31,7 +31,7 @@ import { swingArtGame as swingGame } from "./swing.renderer";
 import { drawSnip, snipCamera, SNIP_CONFIG, SNIP_H, type SnipState } from "./snip";
 import { tiltArtGame as tiltGame } from "./tiltArt.renderer";
 import { btArtDraw } from "./ballTrackArt.renderer";
-import { btDraw, BT_H, BT_W, type BtState } from "./ballTrack";
+import { BT_H, BT_W, type BtState } from "./ballTrack";
 import { whackGame } from "./whack";
 import { clayGame, CLAY_H, CLAY_W } from "./clayShoot";
 import { tenDropGame, TD_H, TD_W } from "./tenDrop";
