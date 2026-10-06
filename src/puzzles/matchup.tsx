@@ -27,7 +27,7 @@ import {
   drawMatchupArt, drawMatchupArtAnimated, drawMatchupArtSelection, drawMatchupSwap,
   matchupStepOffsets, MATCHUP_SWAP_MS, type MatchupSwapTween,
 } from "@/lib/arcade/matchup.renderer";
-import { playGemChime } from "@/lib/fx/gameSounds";
+import { playSound } from "@/lib/sound";
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 
