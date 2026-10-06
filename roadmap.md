@@ -1,6 +1,6 @@
 ## Room/practice control parity (Oct 6, 17:36)
-- [ ] Share fixed-height round chrome and identical stage ancestry; preserve practice layout, targets and gameplay.
-- [ ] Audit all active games at both phone sizes without browsers; separate source parity from measured pixel verification.
+- [x] PhoneShell/GameLayout share fixed 36px top bar, 28px single-line round heading and identical flexible stage ancestry; no game-specific layout, control target, simulation, input, grader or score changes.
+- [x] No-browser checks pass 68 active games / 272 room-multi versus practice DOM comparisons at 390×700 and 375×667, covering 1,220 control nodes. Calculated shell height delta is 0px including a 34px bottom inset; no source-level game differences. Actual control positions within 4px and rendered no-scroll/target fit remain unmeasured and user device-tested. No identity proofs.
 
 ## Room viewport and Word Search reveal (Oct 6, 17:13)
 - [x] Move the room-only score strip into the shared game header and remove chat from constrained play/reveal; restore both room and practice intros to natural scrolling.

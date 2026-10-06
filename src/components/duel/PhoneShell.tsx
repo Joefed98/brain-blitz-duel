@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, type ReactNode, type Ref } from "react";
 
 import { MuteToggle } from "./MuteToggle";
 import { Wordmark } from "./Wordmark";
@@ -40,7 +40,7 @@ export function GameLayout({ label, title, help, progress, timer, beforeGame, ch
   beforeGame?: ReactNode;
   children: ReactNode;
   overlay?: ReactNode;
-  stageRef?: RefObject<HTMLDivElement | null>;
+  stageRef?: Ref<HTMLDivElement>;
   locked?: boolean;
 }) {
   return (
