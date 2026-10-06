@@ -1878,10 +1878,10 @@ export function gradeSubmission(
     }
 
     case "equation": {
-      const parts = splitStages(answer);
+      const parts = splitStages(answer, puzzle.stages.length);
       const correct = puzzle.stages.map((stage, i) => equationStageCorrect(stage.numbers, stage.target, parts[i] ?? ""));
       correctCount = correct.filter(Boolean).length;
-      isCorrect = correctCount === STAGE_COUNT;
+      isCorrect = puzzle.stages.length > 0 && correctCount === puzzle.stages.length;
       score = scoreEquationStages(correct, ms);
       break;
     }

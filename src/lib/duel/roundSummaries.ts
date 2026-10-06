@@ -9,6 +9,7 @@ import {
 } from "./pattern";
 import { equationStageCorrect, parseCount, parseSelection, scanStageResult, splitStages } from "./stagedRounds";
 import {
+  EQUATION_TIME_MS,
   BLOCK_FREE_CELLS,
   BLOCK_TIME_MS,
   GONOGO_ITEMS,
@@ -192,7 +193,7 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
           : puzzle.type === "target"
             ? TARGET_TIME_MS
             : puzzle.type === "equation"
-              ? 60_000
+              ? EQUATION_TIME_MS
               : puzzle.type === "chaincalc"
               ? 45_000
               : puzzle.type === "symscan"
@@ -305,10 +306,10 @@ function symbolScanSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDet
 
 function equationSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   if (puzzle.type !== "equation") return { summary: "No answer", detail: [] };
-  const parts = splitStages(result.answer);
+  const parts = splitStages(result.answer, puzzle.stages.length);
   const correct = puzzle.stages.map((st, i) => equationStageCorrect(st.numbers, st.target, parts[i] ?? ""));
   return {
-    summary: `${correct.filter(Boolean).length} / 3 equations · ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `${correct.filter(Boolean).length} / ${puzzle.stages.length} equations · ${seconds(elapsedMs(result, puzzle))}`,
     detail: correct.map((ok, i) => `Equation ${i + 1}: ${parts[i] ? joinOperators(parts[i]!.split(",")) : "skipped"} ${ok ? "✓" : "✗"}`),
   };
 }
