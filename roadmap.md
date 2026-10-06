@@ -1,3 +1,8 @@
+## Equation fourth stage (Oct 6, 14:00)
+- [ ] Add a harder unique five-number stage, four-stage play/reveal and unchanged running-timer holds.
+- [ ] Apply staged 25/30/35/40 + completion-only 20 scoring; refresh intro/help.
+- [ ] Check uniqueness, scoring anchor, generation timing and reveal fit without browsers.
+
 ## Chain forty-link update (Oct 6, 13:53)
 - [x] New rounds use 40 links, eight seeded boards, the requested momentum bands and 3.5-point/140-plus-10 scoring. Stored unversioned 30-link boards retain five-point scoring, original momentum and completion at 30; no database rows regraded.
 - [x] Refreshed shape-template intro SCORE, question-mark formulas and rule-aware reveal facts; old Chain demos rejected. Link-code/timer geometry unchanged.
