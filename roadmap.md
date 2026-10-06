@@ -1,7 +1,7 @@
 ## Chain 30-link rework (Oct 6)
 - [x] Extend seeded generation/client/server replay to 30 links and six five-link boards; preserve 45s and momentum, add FASTER at 26.
 - [x] Set five-point links and update SCORE, goal and reveal breakdown; fixed intro illustration has no link count and stays unchanged.
-- [ ] Run seeded/timing/grading and stored-score regressions without browsers.
+- [x] Passed 200 seeded cycle/replay/server-grade checks, 200 scatter/score checks and all 1,410 stored-score rows; preview build OK. No browser tests; device checks remain with the user.
 
 ## Puzzle input and layout tuning (Oct 6)
 - [x] Suppress native tap/hold highlights globally and explicitly on Beat canvas; gameplay input/replay untouched.
