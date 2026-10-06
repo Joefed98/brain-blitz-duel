@@ -4,6 +4,7 @@ import { Window } from 'happy-dom';
 import { devDisplayAllowed, setDevDisplayKey } from '../src/lib/devDisplay';
 const window = new Window({ url: 'http://localhost:8080/practice?dev=1&key=test-key' });
 Object.defineProperty(globalThis, 'window', { configurable: true, value: window });
+Object.defineProperty(globalThis, 'Event', { configurable: true, value: window.Event });
 assert.equal(devDisplayAllowed(), false, 'dev=1 and an unchecked key cannot show diagnostics');
 setDevDisplayKey('test-key');
 assert.equal(devDisplayAllowed(), true);
