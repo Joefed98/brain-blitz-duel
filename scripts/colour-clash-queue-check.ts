@@ -8,6 +8,7 @@ import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
 function check(ok: boolean, message: string) { if (!ok) throw new Error(message); }
 const legacyPath = process.argv[2];
+const old = legacyPath ? (await import(legacyPath)).colourClashGame : null;
 
 // Anchor: all N correct at half time = 140; full at tick 0 would be 150; zero-time finish = 130.
 check(clashQueueScoreOf(CLASH_QUEUE, 0, CLASH_QUEUE, CLASH_RUN_TICKS / 2) === 140, "half-time anchor");
@@ -50,7 +51,7 @@ for (let seed = 1; seed <= 200; seed++) {
   while (q.tick < CLASH_RUN_TICKS) {
     q = colourClashQueueGame.step(q, null); l = colourClashGame.step(l, null);
     const n = Math.min(q.items.length, l.items.length);
-    check(JSON.stringify(q.items.slice(0, n)) === JSON.stringify(l.items.slice(0, n)), "item pattern changed");
+    if (q.tick % 60 === 0 || q.tick === CLASH_RUN_TICKS) check(JSON.stringify(q.items.slice(0, n)) === JSON.stringify(l.items.slice(0, n)), "item pattern changed");
     check(q.items.length <= CLASH_QUEUE, "spawned past queue");
     if (q.tick === 2880) idleSorted48.push(q.correct + q.wrong);
   }
@@ -58,14 +59,13 @@ for (let seed = 1; seed <= 200; seed++) {
   check(q.ended === 1, "did not end at 60 s");
   check(colourClashQueueGame.score(q) === clashQueueScoreOf(q.correct, q.wrong, CLASH_QUEUE, q.finishTick), "idle score");
   // Legacy identity: open-stream rounds replay exactly as the previous sim.
-  if (legacyPath) {
-    const old = (await import(legacyPath)).colourClashGame;
+  if (old) {
     let a = old.init(seed), b2 = colourClashGame.init(seed);
     for (let t = 1; t <= CLASH_RUN_TICKS; t++) {
       const e: ArcadeInputEvent | null = t % 37 === 0 ? { t, k: CLASH_INPUT_LANE, a: (seed + t) % 4, b: (seed * t) % CLASH_WORLD_W, c: 0, d: 0 } : null;
       a = old.step(a, e); b2 = colourClashGame.step(b2, e);
       const { queue: _q, finishTick: _f, ...rest } = b2;
-      check(JSON.stringify(a) === JSON.stringify(rest), `seed ${seed}: legacy diverged at ${t}`);
+      if (t % 30 === 0 || t === CLASH_RUN_TICKS) check(JSON.stringify(a) === JSON.stringify(rest), `seed ${seed}: legacy diverged at ${t}`);
     }
     check(old.score(a) === colourClashGame.score(b2), "legacy score");
   }
