@@ -958,7 +958,8 @@ body.game-lock {
   margin-bottom: 0;
 }
 .game-column [data-stage-column] > :not([data-game-arena], [data-stage-column]) {
-  flex: 0 1 auto;
+  flex-grow: 0;
+  flex-basis: auto;
 }
 /* Exactly 12px from the arena to whatever follows it (the control block). */
 .game-column [data-stage-column] > [data-game-arena] + * {
