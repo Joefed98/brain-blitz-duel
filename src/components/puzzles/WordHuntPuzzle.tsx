@@ -336,7 +336,7 @@ export function WordHuntPuzzle({
         type="button"
         onClick={() => void finish()}
         disabled={locked || path.length === 0}
-        className="press tap-target rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+        data-game-controls="actions" className="press tap-target rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
       >
         Submit
       </button>

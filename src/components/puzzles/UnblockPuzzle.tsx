@@ -261,7 +261,7 @@ export function UnblockPuzzle({
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div data-game-controls="actions" className="flex gap-2">
         <button
           type="button"
           onClick={undo}

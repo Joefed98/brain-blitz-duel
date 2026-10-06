@@ -281,7 +281,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       </p>
       <div
         ref={grid}
-        className="shrink-0"
+        data-game-arena="fixed" className="shrink-0"
         style={NO_TOUCH}
         onPointerDown={down}
         onPointerMove={move}

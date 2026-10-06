@@ -159,7 +159,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
 
   return (
     <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col justify-between gap-3">
-      <div className="flex flex-col items-center gap-3">
+      <div data-game-arena="fixed" className="flex flex-col items-center gap-3">
         <StageProgress stage={stage} total={total} />
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
           Equation {stage + 1} of {total} · left to right
