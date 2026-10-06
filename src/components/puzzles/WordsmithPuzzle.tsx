@@ -1,3 +1,4 @@
+import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export function WordsmithPuzzle({
   onSubmit,
   checkWord,
 }: WordsmithPuzzleProps) {
+  const column = useGameColumnLayout();
   const letters = puzzle.letters;
   const [selectedTiles, setSelectedTiles] = useState<number[]>([]);
   const [found, setFound] = useState<Found[]>([]);
@@ -155,7 +157,7 @@ export function WordsmithPuzzle({
       </div>
       <p data-game-controls="status" className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>
 
-      <div data-game-controls="actions" className="mt-auto grid shrink-0 grid-cols-2 gap-2">
+      <div data-game-controls="actions" className={`${column ? "" : "mt-auto "}grid shrink-0 grid-cols-2 gap-2`}>
         <Button type="button" variant="outline" onClick={() => {
           selectedRef.current = [];
           setSelectedTiles([]);
