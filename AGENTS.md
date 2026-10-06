@@ -35,8 +35,8 @@
 - Non-engine demos use the real Stage, INTRO_EXAMPLE_SEED, sealed example id and recorded area-fraction actions/verdicts; why: real UI without exposed answers or divergent play.
 - Changed puzzle inputs/layouts reject old demos by shape or recorded presentation revision; why: stale touches cannot target new controls.
 
-- Themes, bounded FX and audio live outside sims; why: preserve grading.
+- FX/audio stay outside sims; no untargeted boxes; dev displays require accepted keys. Why: safe feedback.
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
 - Scenery stays in renderers; why: separate art from gameplay.
 
-- PhoneShell shares puzzle paint; WordsmithRing shares live/intro/reveal polygons; wordInput owns hit/toggle helpers; why: consistent UI without grader changes.
+- PhoneShell shares puzzle paint; WordsmithRing fits equal-size glyphs to shared polygons; wordInput owns hit/toggle helpers. Why: consistent UI, no grader changes.

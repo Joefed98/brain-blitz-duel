@@ -41,6 +41,7 @@ import { hotfloorCheckpoint } from "./hotFloor";
 import { snipCheckpoint } from "./snip";
 import { btCheckpoint } from "./ballTrack";
 import type { InputDiag } from "./engine";
+import { devDisplayAllowed } from "../devDisplay";
 
 export type ArcadeCounters = Record<string, number>;
 
@@ -158,8 +159,7 @@ export function buildArcadeDiag(
   };
 }
 
-/** Dev diagnostics only show with ?dev=1 on the URL. */
+/** Visible diagnostics require the server-accepted practice dev key. */
 export function devDiagnosticsOn(): boolean {
-  if (typeof window === "undefined") return false;
-  return new URLSearchParams(window.location.search).get("dev") === "1";
+  return devDisplayAllowed();
 }

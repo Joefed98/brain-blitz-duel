@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
+import { DEV_DISPLAY_EVENT } from "@/lib/devDisplay";
 
 type Sample = { frame: number; draw: number; work: number };
 /** Presentation only: timings never enter a run, checkpoint or sim clock. */
@@ -22,7 +23,8 @@ export function useArcadeFrameTiming(canvas: RefObject<HTMLCanvasElement | null>
     };
     sync();
     window.addEventListener("popstate", sync);
-    return () => { window.removeEventListener("popstate", sync); t.enabled = false; t.node?.remove(); t.node = null; };
+    window.addEventListener(DEV_DISPLAY_EVENT, sync);
+    return () => { window.removeEventListener("popstate", sync); window.removeEventListener(DEV_DISPLAY_EVENT, sync); t.enabled = false; t.node?.remove(); t.node = null; };
   }, [canvas]);
   return {
     begin(raf: number) {

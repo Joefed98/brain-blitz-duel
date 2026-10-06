@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import { WordsmithRing } from "../src/components/puzzles/WordsmithRing";
+import { WordsmithRing, wordsmithGlyphScale } from "../src/components/puzzles/WordsmithRing";
 import { miniSudokuPuzzle } from "../src/puzzles/miniSudoku";
 import { shikakuPuzzle } from "../src/puzzles/shikaku";
 import { wordsmithPuzzle } from "../src/puzzles/wordsmith";
@@ -16,8 +16,10 @@ const backdrop = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8").sp
 assert.match(backdrop, /const ring = outcome === "finish" \? "var\(--me\)" : null/);
 assert.doesNotMatch(backdrop, /outcome === "crash"|var\(--warn\)/);
 assert.match(backdrop, /<circle[\s\S]*<rect/); // finish position and fallback retained
-assert.match(css, /font-size: 104px/);
-assert.match(css, /wordsmith-ring-example[^}]*font-size: 64px/);
+assert.match(css, /wordsmith-ring-labels[^}]*pointer-events: none/);
+assert.doesNotMatch(css, /\.fx-outline/);
+assert.match(readFileSync("src/components/puzzles/WordsmithRing.tsx", "utf8"), /\? 192 : 312/);
+assert.match(readFileSync("src/components/duel/FxLayer.tsx", "utf8"), /event\.primitive === "glow" \|\| event\.primitive === "shake"\) return/);
 assert.match(css, /--wordsmith-paper: var\(--background\)/);
 assert.match(css, /wordsmith-ring-lines line[^}]*stroke: var\(--wordsmith-outline\)/);
 assert.match(css, /sudoku-grid\.sudoku-grid > button[^}]*border-radius: 0 !important/);
@@ -35,6 +37,21 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
   assert.equal(tiles.length, 9);
   assert.equal(root.querySelectorAll('[aria-pressed="true"]').length, 2);
   const wedgeAreas = tiles.filter(n => !n.classList.contains("wordsmith-ring-centre")).map(n => area(parse(n.style.clipPath)));
+  for (const tile of tiles) {
+    const polygon = parse(tile.style.clipPath).map(([x = 0, y = 0]) => ({ x, y }));
+    const label = polygon.reduce((p, point) => ({ x: p.x + point.x / polygon.length, y: p.y + point.y / polygon.length }), {x: 0, y: 0});
+    const box = { x: 0, y: -75, width: 85, height: 80 };
+    const scale = wordsmithGlyphScale(polygon, label, box);
+    assert(scale > 0);
+    for (const dx of [-box.width / 2, box.width / 2]) for (const dy of [-box.height / 2, box.height / 2]) {
+      const point = {x: label.x + dx * scale, y: label.y + dy * scale};
+      polygon.forEach((a, i) => {
+        const b = polygon[(i + 1) % polygon.length];
+        if (!b) return;
+        assert((b.x-a.x)*(point.y-a.y)-(b.y-a.y)*(point.x-a.x) >= Math.hypot(b.x-a.x,b.y-a.y) - 1e-8);
+      });
+    }
+  }
   assert.ok(wedgeAreas.every(a => Math.abs(a - (wedgeAreas[0] ?? 0)) < 1e-8));
   const polygons = [...root.querySelectorAll("polygon")].map(n => (n.getAttribute("points") ?? "").split(" ").map(s => s.split(",").map(Number)));
   const outer = polygons[0];
@@ -89,7 +106,7 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
   assert.ok(font <= cell);
   assert.ok(font * 1.2 <= cell); // two mono digits, each approximately .6em
   rows.push(`| ArcadeReveal | ${width}x${height} | PASS source: crash marker absent; finish circles/fallback unchanged |`);
-  rows.push(`| Wordsmith | ${width}x${height} | PASS shared markup + geometry: regular outer/inner octagons, eight equal wedges, area conservation, nine controls, 104px live / 64px example/reveal letters; near-black wedges, white letters/light outlines, gold selection and accent centre |`);
+  rows.push(`| Wordsmith | ${width}x${height} | PASS shared markup + geometry: regular octagons, equal wedges, nine controls, tripled 312px/192px targets capped by measured glyph fit with 1% board margins and equal centre size; near-black/gold/accent fills unchanged |`);
   rows.push(`| Mini Sudoku | ${width}x${height} | PASS live/intro/reveal: 36 equal-track cells; heavy strokes are borders of those exact cells, no overlay |`);
   rows.push(`| Shikaku | ${width}x${height} | PASS both individual grids and pair: clipped board/labels, equal tracks; ${pairedWidth}px grid, ${cell.toFixed(2)}px cells, ${font.toFixed(2)}px labels |`);
 }

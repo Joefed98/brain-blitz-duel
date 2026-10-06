@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { setDevDisplayKey } from "@/lib/devDisplay";
 
 import { checkDemoKeyFn, saveIntroDemoFn, savePuzzleDemoFn } from "@/lib/duel/practice.functions";
 import type { PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
@@ -42,7 +43,11 @@ export function useDemoKey(): { key: string | null; status: DemoKeyStatus } {
   const [status, setStatus] = useState<DemoKeyStatus>("none");
   const check = useServerFn(checkDemoKeyFn);
   useEffect(() => {
+    let generation = 0;
     const run = () => {
+      const request = ++generation;
+      setDevDisplayKey(null);
+      setKey(null);
       const k = readDevKey();
       if (!k) {
         setKey(null);
@@ -52,10 +57,15 @@ export function useDemoKey(): { key: string | null; status: DemoKeyStatus } {
       setStatus("checking");
       check({ data: { key: k } })
         .then((r) => {
+          if (request !== generation) return;
+          setDevDisplayKey(r.ok ? k : null);
           setKey(r.ok ? k : null);
           setStatus(r.ok ? "accepted" : "refused");
         })
         .catch((error) => {
+          if (request !== generation) return;
+          setDevDisplayKey(null);
+          setKey(null);
           console.error("[intro demo] key check failed", error);
           setStatus("failed");
         });
@@ -65,7 +75,8 @@ export function useDemoKey(): { key: string | null; status: DemoKeyStatus } {
       if (e.persisted) run();
     };
     window.addEventListener("pageshow", onShow);
-    return () => window.removeEventListener("pageshow", onShow);
+    window.addEventListener("popstate", run);
+    return () => { generation++; setDevDisplayKey(null); window.removeEventListener("pageshow", onShow); window.removeEventListener("popstate", run); };
   }, [check]);
   return { key, status };
 }
