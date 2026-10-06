@@ -1,6 +1,6 @@
 ## Orbit outside belts (Oct 6, 17:58)
-- [ ] Move belts to concentric outer circles; free-flight swept collision only; verify safe timed hops and minimum opening.
-- [ ] Update art, HOW and demo revision; run Orbit-only identity proof and report constants/coverage without browsers.
+- [x] Outside circular belts at ring + 12800 fixed-point (50px = 2.5 enclosing 20px rocket diameters); full safe orbit paths, free-flight swept collision only, quarter-turn belts/12-second rotation retained. Generation verifies each completed course's timed hop windows before returning it.
+- [x] Updated belt art, HOW and demo revision. Orbit-only random-log identity 200/200, full-sun timed identity 200/200, checkpoint checks 15/15; 8000 hops/926 belts across 200 courses, 270-degree opening, conservative endpoint gap 7.069 rocket widths (5.819 after collision padding). No browsers; device art remains user-tested.
 
 ## Play captions and control clearance (Oct 6, 17:49)
 - [x] Removed six active-game captions plus Go / No-Go and One Stroke practice captions; live state and intro/help unchanged.
