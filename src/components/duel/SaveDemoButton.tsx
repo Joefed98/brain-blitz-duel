@@ -7,7 +7,7 @@ import type { PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
 import type { PuzzleData } from "@/lib/duel/types";
 
 import { hasIntroDemo } from "./IntroDemo";
-import { PUZZLE_INPUT_PRESENTATION, REVISED_PUZZLE_DEMOS } from "@/components/puzzles/wordInput";
+import { PUZZLE_INPUT_PRESENTATION, WORDSMITH_PRESENTATION, REVISED_PUZZLE_DEMOS } from "@/components/puzzles/wordInput";
 
 const STORE = "duelz-dev-demo-key";
 
@@ -108,7 +108,7 @@ export function SaveDemoButton({
         setState("saving");
         try {
           if (engine) await save({ data: { puzzle, sealed, answer: answer ?? "", dev: true, key: demoKey } });
-          else await savePuzzle({ data: { puzzle, sealed, log: REVISED_PUZZLE_DEMOS.has(puzzle.type) ? { ...recording, presentation: PUZZLE_INPUT_PRESENTATION } : recording, dev: true, key: demoKey } });
+          else await savePuzzle({ data: { puzzle, sealed, log: REVISED_PUZZLE_DEMOS.has(puzzle.type) ? { ...recording, presentation: puzzle.type === "wordsmith" ? WORDSMITH_PRESENTATION : PUZZLE_INPUT_PRESENTATION } : recording, dev: true, key: demoKey } });
           await queryClient.invalidateQueries({ queryKey: ["intro-demo", puzzle.type] });
           setState("saved");
         } catch (error) {
