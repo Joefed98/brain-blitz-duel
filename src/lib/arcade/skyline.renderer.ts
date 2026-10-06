@@ -155,7 +155,6 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
       // Soft shadow on the block below, inside its own rectangle.
       const l = Math.max(px(block.x), px(below.x));
       const r = Math.min(px(block.x + block.w), px(below.x + below.w));
-      drawBlock(ctx, px(below.x), top + blockH, px(below.w), blockH, index - 1);
       ctx.fillStyle = REAL_SHADOW;
       if (r > l) ctx.fillRect(l, top + blockH, r - l, 3);
     }
