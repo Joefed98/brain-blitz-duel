@@ -75,7 +75,8 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
     assert.equal(grid.style.aspectRatio, "10 / 10");
     for (const label of grid.querySelectorAll<HTMLElement>(".shikaku-clue")) {
       assert.ok(label.classList.contains("min-h-0") && label.classList.contains("overflow-hidden"));
-      assert.ok(label.style.fontSize.includes("100cqw"));
+      // Happy DOM does not parse container-query units in clamp; inspect the emitted declaration.
+      assert.ok(label.getAttribute("style")?.includes("100cqw"));
       assert.ok(label.querySelector(".leading-none"));
     }
     checks++;
