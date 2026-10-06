@@ -263,10 +263,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
             onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
           />
         </div>
-        <p className="absolute inset-x-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" style={{ bottom: "calc(56px + env(safe-area-inset-bottom) + 52px)" }}>
+        <p className="absolute inset-x-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" style={{ bottom: 108 }}>
           scale {current + 1} / {BAL_SCALES}
         </p>
-        <div className="absolute inset-x-0 flex min-h-[48px] flex-wrap justify-center gap-3" style={{ bottom: "calc(56px + env(safe-area-inset-bottom))" }}>
+        <div className="absolute inset-x-0 flex min-h-[48px] flex-wrap justify-center gap-3" style={{ bottom: 56 }}>
           {trayLeft.map((i) => (
             <span
               key={i}

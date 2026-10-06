@@ -316,7 +316,7 @@ function PracticeScreen() {
 
   if (stage === "intro") {
     return (
-      <PhoneShell constrained gameScreen gameType={type}>
+      <PhoneShell gameType={type}>
         <RoundIntro
           round={1}
           type={type}

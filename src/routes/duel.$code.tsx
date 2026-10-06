@@ -232,8 +232,8 @@ function DuelScreen() {
   }, [tournamentKey, round]);
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
-  // Chat and reactions are live on every screen except an active puzzle.
-  const chatActive = !!duel && !(duel.status === "in_progress" && duel.phase === "puzzle");
+  // Chat and reactions never reserve or cover space during viewport-locked play/reveal.
+  const chatActive = !!duel && !(duel.status === "in_progress" && (duel.phase === "puzzle" || duel.phase === "reveal"));
   const chat = useRoomChat(duel?.id ?? null, me?.user_id ?? null, chatActive);
   useEffect(() => {
     if (!chatActive) chat.setSheetOpen(false);
@@ -623,7 +623,7 @@ function DuelScreen() {
 
   if (phase === "intro" && puzzle) {
     return (
-      <PhoneShell constrained gameScreen gameType={puzzle.type}>
+      <PhoneShell gameType={puzzle.type}>
         <RoundIntro
           round={round}
           type={puzzle.type}
@@ -674,7 +674,6 @@ function DuelScreen() {
           startedAt={phaseStart ?? now}
           now={now}
         />
-        <RoomChat chat={chat} myUserId={me.user_id} />
       </PhoneShell>
     );
   }
@@ -756,8 +755,27 @@ function DuelScreen() {
 
   const clockActive = clockStart !== null && now >= clockStart;
   const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
+  const roomGameHeader = puzzle?.type === "spotdiff" || puzzle?.type === "blockparty"
+    ? undefined
+    : isMulti ? (
+        <SoloScoreStrip
+          name={me.display_name}
+          total={myTotal}
+          position={myStanding?.position ?? 1}
+          playerCount={roomPlayers.length}
+          compact
+        />
+      ) : (
+        <ScoreStrip
+          myName={me.display_name}
+          opponentName={opponent?.display_name ?? "Opponent"}
+          myTotal={myTotal}
+          opponentTotal={opponentTotal}
+          compact
+        />
+      );
   return (
-    <PhoneShell constrained gameScreen gameType={puzzle?.type}>
+    <PhoneShell constrained gameScreen gameType={puzzle?.type} gameHeader={roomGameHeader}>
       <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -781,24 +799,6 @@ function DuelScreen() {
         )}
 
         {puzzle?.type === "balance" && <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" />}
-
-        {puzzle?.type !== "spotdiff" &&
-          puzzle?.type !== "blockparty" &&
-          (isMulti ? (
-            <SoloScoreStrip
-              name={me.display_name}
-              total={myTotal}
-              position={myStanding?.position ?? 1}
-              playerCount={roomPlayers.length}
-            />
-          ) : (
-            <ScoreStrip
-              myName={me.display_name}
-              opponentName={opponent?.display_name ?? "Opponent"}
-              myTotal={myTotal}
-              opponentTotal={opponentTotal}
-            />
-          ))}
 
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           {puzzle && Stage && (

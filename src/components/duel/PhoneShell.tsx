@@ -16,6 +16,8 @@ interface PhoneShellProps {
   /** Suppress iOS selection/callouts throughout an active round screen. */
   gameScreen?: boolean;
   gameType?: PuzzleType | undefined;
+  /** Room score summary that replaces the wordmark without taking board height. */
+  gameHeader?: ReactNode;
 }
 
 /** Inline no-select style for text on game screens (timer digits, HUD, banners). */
@@ -74,7 +76,7 @@ function useRootSelectionLock(active: boolean) {
 }
 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
-export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType }: PhoneShellProps) {
+export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
   const definition = gameType ? puzzleDef(gameType) : undefined;
   const theme = definition?.theme;
@@ -99,9 +101,9 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
         }`}
       >
         {!bare && (
-          <div className="mb-2 flex items-center justify-between" style={gameScreen ? NO_SELECT_STYLE : undefined}>
-            <Wordmark />
-            <div className="flex items-center"><MuteToggle /></div>
+          <div className="mb-2 grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
+            <div className="min-w-0">{gameHeader ?? <Wordmark />}</div>
+            <div className="flex shrink-0 items-center"><MuteToggle /></div>
           </div>
         )}
         {children}
