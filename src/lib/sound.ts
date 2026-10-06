@@ -372,6 +372,50 @@ export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): 
 
 const loops = new Map<SoundId, { source: AudioBufferSourceNode; gain: GainNode }>();
 
+/* ----------------------------------------------------------- warning_10 */
+
+/** The single 10 s countdown instance; never retriggered while playing. */
+let warning10: AudioBufferSourceNode | null = null;
+
+/**
+ * Plays the 10 s round-end countdown. `offsetSeconds` lets a player who
+ * joins the last 10 s mid-way (e.g. after a rejoin) start part-way through
+ * so the cue still ends exactly at 0. Ducks music like any other effect.
+ */
+export function startWarning10(offsetSeconds = 0): void {
+  if (demoHushed()) return;
+  if (isMuted() || !ready() || !ctx || !effectsGain) return;
+  if (warning10) return;
+  const buffer = buffers.get("warning_10");
+  if (!buffer) return;
+  const offset = Math.max(0, Math.min(offsetSeconds, buffer.duration - 0.05));
+  duckMusic((buffer.duration - offset) * 1000);
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(effectsGain);
+    source.onended = () => {
+      if (warning10 === source) warning10 = null;
+    };
+    source.start(0, offset);
+    warning10 = source;
+  } catch (error) {
+    warnOnce("warning playback failed", error);
+  }
+}
+
+/** Stops the countdown immediately (round ended early: submit, all submitted, game over). */
+export function stopWarning10(): void {
+  const current = warning10;
+  warning10 = null;
+  if (!current) return;
+  try {
+    current.stop();
+  } catch {
+    /* already finished */
+  }
+}
+
 /**
  * Keeps a looping effect running on the effects channel. Call every frame while
  * it should play; it starts once the file is decoded and stops when muted.

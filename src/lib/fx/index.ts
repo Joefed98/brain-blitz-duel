@@ -1,4 +1,4 @@
-import { demoHushed, playSound } from "@/lib/sound";
+import { demoHushed, playSound, startWarning10 } from "@/lib/sound";
 import { DEFAULT_SOUNDS, type FxHook, type GameTheme, type Primitive } from "./theme";
 
 export const FX_EVENT = "duelz-fx";
@@ -29,6 +29,18 @@ export function triggerFx(hook: FxHook, value?: number | string, theme?: GameThe
   const now = Date.now();
   if (now - (recentAudio.get(hook) ?? 0) < 60) return;
   recentAudio.set(hook, now);
+  // The 5 s mark is visual-only; warning_5 stays in the manifest unused.
+  if (hook === "onTimerWarning5") {
+    visualFx(hook, value, theme);
+    return;
+  }
+  // The 10 s mark starts the countdown cue; `value` is the offset in seconds
+  // for players who joined inside the last 10 s.
+  if (hook === "onTimerWarning10") {
+    startWarning10(typeof value === "number" ? value : 0);
+    visualFx(hook, value, theme);
+    return;
+  }
   const sound = (theme ?? activeTheme)?.sounds[hook] ?? DEFAULT_SOUNDS[hook];
   playSound(sound);
   visualFx(hook, value, theme);

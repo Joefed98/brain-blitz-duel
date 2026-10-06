@@ -14,7 +14,7 @@ const ENTRIES = {
   stage_complete: { channel: "effects", frequency: 800, ms: 160, url: "/__l5e/assets-v1/b8729617-12cf-44b0-a6c8-64fc118425e0/stage_complete.mp3" },
   complete: { channel: "effects", frequency: 920, ms: 200, url: "/__l5e/assets-v1/1f8ca848-8038-4b77-b594-d315ace95b66/complete.mp3" },
   combo: { channel: "effects", frequency: 840, ms: 90, url: "/__l5e/assets-v1/8be9c0c2-ce7b-4306-98e9-a5058cb028dd/combo.mp3" },
-  warning_10: { channel: "effects", frequency: 500, ms: 100, url: "/__l5e/assets-v1/b8448e1e-620b-4b58-b46f-ea697554da0e/warning_10.mp3" },
+  warning_10: { channel: "effects", frequency: 500, ms: 10000, url: "/__l5e/assets-v1/1bf9c4f3-6364-48d9-a825-321098412e98/warning_10.wav" },
   warning_5: { channel: "effects", frequency: 250, ms: 130, url: "/__l5e/assets-v1/6c9ef430-99a1-4edd-a5dd-e4b291fe0de3/warning_5.mp3" },
   time_up: { channel: "effects", frequency: 160, ms: 250, url: "/__l5e/assets-v1/b1049634-15c0-4057-b079-789943435723/time_up.mp3" },
   submit: { channel: "effects", frequency: 390, ms: 90, url: "/__l5e/assets-v1/d305b9ed-85de-4069-9f36-260d44739e66/submit.mp3" },
