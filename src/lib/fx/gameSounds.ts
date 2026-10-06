@@ -17,6 +17,9 @@ import { BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_THROWS, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
 import type { BtState } from "@/lib/arcade/ballTrack";
+import type { JuncState } from "@/lib/arcade/junction";
+import type { SkylineState } from "@/lib/arcade/skyline";
+import type { InkState } from "@/lib/arcade/inkBridge";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
 
 export interface GameSounds<S> {
@@ -352,5 +355,80 @@ export function ballTrackSounds(): GameSounds<BtState> {
       prev = state;
     },
     stop: () => stopLoop("arc_marble_roll"),
+  };
+}
+
+/* ============================== Real World ============================== */
+
+const HORN_GAP_MS = 700;
+
+export function junctionSounds(): GameSounds<JuncState> {
+  let prev: JuncState | null = null;
+  let hornAt = -Infinity;
+  return {
+    frame(state) {
+      if (prev && state.tick > prev.tick) {
+        if (state.gaveUp > prev.gaveUp) {
+          const now = typeof performance === "undefined" ? 0 : performance.now();
+          if (now - hornAt >= HORN_GAP_MS) {
+            hornAt = now;
+            playSound("arc_horn", 0.6);
+          }
+        }
+        const known = new Set(prev.cars.map((c) => c.id));
+        if (state.cars.some((c) => c.amb && !known.has(c.id))) playSound("arc_siren", 0.5);
+        if (state.ended === 2 && prev.ended === 0) playSound("arc_crash");
+        else if (state.ended === 1 && prev.ended === 0) playSound("stage_complete");
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+export function skylineSounds(): GameSounds<SkylineState> {
+  let prev: SkylineState | null = null;
+  return {
+    frame(state) {
+      if (prev && state.tick > prev.tick) {
+        if (state.blocks.length > prev.blocks.length) {
+          playSound("arc_clank", 0.8, 1, true);
+          if (state.perfectTick === state.tick) playSound("correct");
+        }
+        if (state.missed && !prev.missed) playSound("arc_crash");
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+/** Sim y (1/256 px) below which a failed drop has fallen into the river. */
+const INK_RIVER_FP = 596 * 256;
+
+export function inkBridgeSounds(): GameSounds<InkState> {
+  let prev: InkState | null = null;
+  let armed = -1;
+  return {
+    frame(state) {
+      if (prev && state.tick > prev.tick) {
+        // One swoosh per bridge, once its first plank is actually laid.
+        if (state.strokeStarts.length > prev.strokeStarts.length) armed = state.strokeStarts[state.strokeStarts.length - 1]!;
+        if (armed >= 0 && state.segs.length > armed) {
+          playSound("arc_swoosh", 0.6);
+          armed = -1;
+        }
+        if (state.flashTick === state.tick || state.flashTick > prev.flashTick) {
+          if (state.flashKind === 1) {
+            playSound("arc_marble_clink", 0.5, 1.25);
+            playSound("stage_complete");
+          } else if (state.flashKind === 2 && state.failedBall && state.failedBall.y >= INK_RIVER_FP) {
+            playSound("arc_splash");
+          }
+        }
+      }
+      prev = state;
+    },
+    stop: () => {},
   };
 }
