@@ -39,4 +39,4 @@
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
 - Countryside owns shared backdrop caches and pot-support hill art; other art stays in renderers. Why: unchanged sims.
 
-- PhoneShell shares puzzle paint; WordsmithRing fits shared octagonal wedges; wordInput owns taps. Wordsmith keeps centre index and seeded nine-tile demos. Why: replay compatibility.
+- PhoneShell shares paint; WordsmithRing fits octagonal wedges; wordInput owns taps. Wordsmith keeps centre index, size bands and original-band seeded examples. Why: demo compatibility.

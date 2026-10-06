@@ -1,3 +1,7 @@
+## Wordsmith per-size word ranges (Oct 6, 15:43)
+- [ ] Enforce 8:25–60, 9:30–80, 10:40–100, 11:50–120; preserve exact fixed example and seed repeatability.
+- [ ] Sample 200 puzzles per size, independently check valid-word totals and report distribution/timing; no layout/input/scoring changes or browsers.
+
 ## Five renderer-only updates (Oct 6, 15:40)
 - [x] Slice meat/cabbage/onion and matching cut faces/particles; gold segmented combo-state readout using unchanged streak/expiry, start empty x1 and reveal next empty segment through x3.
 - [x] Ink Bridge foreground hill meets stationary pot base below touchable blocks; Orbit hazard intervals omitted from path and red overlay; Breaker light-green beam, laser brick/capsule/held tint.
