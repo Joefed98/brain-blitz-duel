@@ -12,13 +12,10 @@ import {
   realNightSky,
   REAL_NIGHT_BG,
   REAL_NIGHT_TEXT,
-  REAL_MOON,
   REAL_LAMP,
   REAL_LAMP_WASH,
-  REAL_INK,
   REAL_RED,
   REAL_SHADOW,
-  REAL_WATER,
   REAL_WATER_DARK,
   REAL_WOOD,
   REAL_WOOD_DARK,
@@ -262,7 +259,7 @@ export function drawInkBridgeArt(ctx: CanvasRenderingContext2D, state: InkState,
     ctx.arc(INK_WORLD_W - 162 + i * 14, 18, 5, 0, Math.PI * 2);
     ctx.fill();
   }
-   ctx.fillStyle = REAL_NIGHT_TEXT;
+  ctx.fillStyle = REAL_NIGHT_TEXT;
   ctx.font = "bold 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
