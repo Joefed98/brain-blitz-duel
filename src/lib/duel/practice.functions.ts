@@ -1,3 +1,4 @@
+import { ORBIT_BELT_PERIOD_TICKS } from "@/lib/arcade/orbit";
 import { createServerFn } from "@tanstack/react-start";
 
 import { type SubmitExtra } from "./grade";
@@ -243,7 +244,7 @@ export const saveIntroDemoFn = createServerFn({ method: "POST" })
         game_type: type,
         seed: runSeed(run),
         puzzle: pub,
-        input_log: { run },
+        input_log: { run, ...(type === "orbit" ? { orbitBeltPeriodTicks: ORBIT_BELT_PERIOD_TICKS } : {}) },
         start_tick: DEMO_START_TICK,
         length_ticks: DEMO_LENGTH_TICKS,
         recorded_at: new Date().toISOString(),

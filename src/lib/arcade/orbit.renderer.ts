@@ -6,6 +6,8 @@
 import type { CanvasSize } from "./engine";
 import {
   orbitGame,
+  orbitBeltStart,
+  ORBIT_BELT_SPAN,
   orbitLobes,
   ORBIT_BG,
   ORBIT_EIGHT,
@@ -19,7 +21,7 @@ import {
   type OrbitState,
   type Planet,
 } from "./orbit";
-import { ANG_QUARTER, icos, isin, TRIG_ONE } from "./trig";
+import { icos, isin, TRIG_ONE } from "./trig";
 import { reducedMotion as prefersReducedMotion } from "./art.renderer";
 
 /* Mirrors of private sim constants, used only to trace the same paths. */
@@ -27,7 +29,6 @@ const FP = 256;
 const ELLIPSE_B_PCT = 60;
 const EIGHT_A_PCT = 150;
 const EIGHT_B_PCT = 45;
-const HAZARD_SPAN = ANG_QUARTER;
 
 /** Full-strength eight game colours for seeded planet surfaces and paths. */
 const GAME_COLOURS = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#B26BFF", "#FF6BD6", "#FF8A3D", "#8B5A2B", "#FFE600"];
@@ -179,6 +180,60 @@ function tracePath(ctx: CanvasRenderingContext2D, p: Planet, px: number, py: num
   }
 }
 
+/** Rocks and dust stay inside a 3.8px ribbon, with butt ends on the collision arc. */
+function drawBelt(ctx: CanvasRenderingContext2D, p: Planet, tick: number, cam: number, still: boolean): void {
+  const start = orbitBeltStart(p, tick);
+  if (start < 0) return;
+  const points = Array.from({ length: 129 }, (_, k) => {
+    const o = pathOffset(p, (start + Math.trunc(ORBIT_BELT_SPAN * k / 128)) & 65535);
+    return { x: (p.x + o.u) / FP, y: (p.y + o.v) / FP - cam };
+  });
+  ctx.save();
+  ctx.beginPath();
+  for (let k = 1; k < points.length; k++) {
+    const a = points[k - 1], b = points[k];
+    if (!a || !b) continue;
+    const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const nx = -(b.y - a.y) * 1.9 / length, ny = (b.x - a.x) * 1.9 / length;
+    ctx.moveTo(a.x + nx, a.y + ny);
+    ctx.lineTo(b.x + nx, b.y + ny);
+    ctx.lineTo(b.x - nx, b.y - ny);
+    ctx.lineTo(a.x - nx, a.y - ny);
+    ctx.closePath();
+  }
+  ctx.clip();
+  ctx.strokeStyle = "#91877A";
+  ctx.globalAlpha = 0.25;
+  ctx.lineWidth = 3;
+  ctx.lineCap = "butt";
+  tracePath(ctx, p, p.x / FP, p.y / FP - cam, start, ORBIT_BELT_SPAN, 128);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  for (let k = 1; k < 64; k++) {
+    const phase = (start + Math.trunc(ORBIT_BELT_SPAN * k / 64)) & 65535;
+    const o = pathOffset(p, phase);
+    const hash = Math.imul((p.hazard ^ p.x ^ p.y) + k * 977, 0x85ebca6b) >>> 0;
+    const r = 1.1 + (hash % 8) / 10;
+    ctx.save();
+    ctx.translate((p.x + o.u) / FP, (p.y + o.v) / FP - cam);
+    ctx.rotate((hash % 360) * Math.PI / 180 + (still ? 0 : tick / 180) * (hash & 1 ? 1 : -1));
+    ctx.fillStyle = k % 3 === 0 ? "#756455" : k % 3 === 1 ? "#A29989" : "#68645D";
+    ctx.beginPath();
+    ctx.moveTo(-r, -r * 0.35);
+    ctx.lineTo(-r * 0.25, -r);
+    ctx.lineTo(r * 0.8, -r * 0.6);
+    ctx.lineTo(r, r * 0.2);
+    ctx.lineTo(r * 0.2, r);
+    ctx.lineTo(-r * 0.8, r * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#C0B7A7";
+    ctx.fillRect(-r * 0.4, -r * 0.5, r * 0.6, r * 0.3);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 function drawStars(ctx: CanvasRenderingContext2D, cam: number, t: number, still: boolean): void {
   const layers = [
     { par: 0.15, gap: 60, size: 1, alpha: 0.35 },
@@ -240,10 +295,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
     ctx.strokeStyle = sun ? ORBIT_GOLD : planetLook(p, i, 0).colour;
     ctx.lineWidth = i === state.cur ? 2 : 1;
     ctx.globalAlpha = i === state.cur ? 0.75 : 0.3;
-    // Omit the hazard interval entirely: the rocket still follows the full sim path.
-    const from = p.hazard >= 0 ? (p.hazard + HAZARD_SPAN) & 65535 : 0;
-    const span = p.hazard >= 0 ? 65536 - HAZARD_SPAN : 65536;
-    tracePath(ctx, p, p.x / FP, p.y / FP - cam, from, span, 72);
+    tracePath(ctx, p, p.x / FP, p.y / FP - cam, 0, 65536, 72);
     ctx.stroke();
   }
   ctx.setLineDash([]);
@@ -274,7 +326,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
-    // Hazard path intervals deliberately remain invisible, without a red overlay/glow.
+    drawBelt(ctx, p, state.tick, cam, still);
   }
 
   // Release guide, faintly, for a moment after the tap.
