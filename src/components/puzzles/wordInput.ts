@@ -1,5 +1,13 @@
 import type { GridGeometry } from "./GridDrag";
 
+/** Coordinate recordings made before these control-layout changes cannot replay. */
+export const REVISED_PUZZLE_DEMOS = new Set(["wordsmith", "maze", "rings", "flood"]);
+export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
+export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
+  if (!REVISED_PUZZLE_DEMOS.has(type)) return true;
+  return typeof log === "object" && log !== null && "presentation" in log && log.presentation === PUZZLE_INPUT_PRESENTATION;
+}
+
 /** A tile can be used once; re-tapping removes only that occurrence. */
 export function toggleWordsmithTile(selected: readonly number[], index: number): number[] {
   return selected.includes(index) ? selected.filter((tile) => tile !== index) : [...selected, index];

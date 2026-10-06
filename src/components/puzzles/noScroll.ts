@@ -9,6 +9,8 @@ export const NO_SCROLL_STYLE = {
   overscrollBehavior: "none",
   WebkitUserSelect: "none",
   userSelect: "none",
+  WebkitTouchCallout: "none",
+  WebkitTapHighlightColor: "transparent",
 } as const;
 
 /**

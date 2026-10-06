@@ -33,10 +33,10 @@
 - The answer reveal shows only the server-stored round score (AnswerReveal's StoredScore, "Scoring…" until it lands); puzzle Reveals must never compute or print a score; scripts/reveal-score-check.tsx guards this. Why: local maths drifted from server scoring.
 - RoundIntro exposes Back only in practice; its practice callback cancels the intro and clears run state without grading. Why: leaving an intro must not create results or affect rooms.
 - Non-engine demos use the real Stage, INTRO_EXAMPLE_SEED, sealed example id and recorded area-fraction actions/verdicts; why: real UI without exposed answers or divergent play.
-- Mechanic-changing puzzle revisions reject incompatible saved intro demos by their stored puzzle shape; why: old touches must not show retired mechanics while a new fixed example awaits recording.
+- Changed puzzle inputs/layouts reject old demos by shape or recorded presentation revision; why: stale touches cannot target new controls.
 
 - Themes, bounded FX and audio live outside sims; why: preserve grading.
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
 - Scenery stays in renderers; why: separate art from gameplay.
 
-- PhoneShell shares puzzle surface roles without wrappers or input changes; why: play/demo/reveal share paint, not rules.
+- PhoneShell shares puzzle paint; WordsmithRing shares live/example tiles; wordInput owns strict hit/toggle helpers; why: consistent UI without grader changes.
