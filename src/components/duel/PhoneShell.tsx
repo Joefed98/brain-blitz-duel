@@ -1,10 +1,11 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { MuteToggle } from "./MuteToggle";
 import { Wordmark } from "./Wordmark";
 import { FxLayer } from "./FxLayer";
 import type { PuzzleType } from "@/lib/duel/types";
 import { puzzleDef } from "@/lib/duel/registry";
+import { usePuzzleSurfaces } from "@/components/puzzles/usePuzzleSurfaces";
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -74,13 +75,19 @@ function useRootSelectionLock(active: boolean) {
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
 export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
-  const theme = gameType ? puzzleDef(gameType).theme : undefined;
+  const definition = gameType ? puzzleDef(gameType) : undefined;
+  const theme = definition?.theme;
+  const puzzleSurface = Boolean(gameScreen && definition && !definition.retired && !definition.arcadeRun && definition.category !== "arcade");
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  usePuzzleSurfaces(surfaceRef, gameType, puzzleSurface);
   return (
     <div
+      ref={surfaceRef}
       className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""} ${
         constrained ? "no-overscroll h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
       }`}
       data-category={theme?.accent}
+      data-puzzle-surface={puzzleSurface ? gameType : undefined}
       data-particle-shape={theme?.particleShape ?? "disc"}
       style={gameScreen ? NO_SELECT_STYLE : undefined}
     >

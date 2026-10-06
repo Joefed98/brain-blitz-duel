@@ -1,3 +1,9 @@
+## Shared puzzle surface polish (Oct 6)
+- [x] Add shared presentation scope to all 42 active non-engine games, preserving game source and meaningful colours; specialised glyphs/objects remain exceptions.
+- [x] Run no-browser source/SSR checks and per-game size-labelled audit; rendered fit is explicitly unverified.
+- [x] Verify 327 protected fingerprints and shared FX checks; report exceptions and existing Cross reveal-check failure.
+- [ ] Device sizing/appearance verification at 390x700 and 375x667; blocked on user device testing (no browsers requested). Uniform action heights and universal 44px hits remain exceptions to preserve layouts and input ownership.
+
 ## Night scenes and outlined aim dots (Oct 6)
 - [x] White Bin Toss round aim dots have matching wider dark under-strokes. Skyline/Ink Bridge use shared static night skies, stars/moon, lamps, high-contrast glass/cloud edges, dim towers/windows, moonlit river and a faint navigation-light plane; Skyline clouds removed.
 - [x] No-browser checks passed 2,400 night-scene frames and 3,840 existing drawing frames across both sizes/motion modes, immutability, exact platform/pit geometry, identical aim vertices and paired dot strokes; Fairground smoke/shared FX passed and preview build OK. Only renderer files and project notes changed; no simulation/input/grader/scoring/sound changes or identity proofs. Device appearance remains user-tested.
