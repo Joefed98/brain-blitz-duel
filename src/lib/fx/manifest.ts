@@ -97,6 +97,17 @@ const ENTRIES = {
   standings_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f2f3b307-5cd4-4afa-98bf-fc713858e9e2/standings_loop.wav" },
   podium_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/79c1e447-45cd-4f9e-8362-ec438e509d49/podium_loop.wav" },
   tension_loop: { channel: "music", frequency: 0, ms: 0, url: null },
+  // Supplied Oct 6 themed 60 s music tracks; registered, not yet played anywhere.
+  music_attention: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/1b7b9245-8708-4750-a457-9633c4252e09/music_attention.mp3" },
+  music_bubble: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/17096d2e-5a21-40ac-bc43-70591746ddd6/music_bubble.mp3" },
+  music_fairground: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/74c8b1ba-dc0e-497b-8cc0-097a445e486f/music_fairground.mp3" },
+  music_logic: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/3799f3cb-8ed8-4d19-a999-aa4f0bd599de/music_logic.mp3" },
+  music_matchup: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/8e0f89d4-7b43-4192-8255-a3b77f9bfd8d/music_matchup.mp3" },
+  music_number: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/db3c78ff-f7a6-4e67-86f4-6466c3dbd762/music_number.mp3" },
+  music_pattern: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/52ea53a1-fd4f-4ba0-ac30-20c42f30fceb/music_pattern.mp3" },
+  music_rainbow: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/151b1d38-51e0-4a0d-bfa5-c81a3d54765f/music_rainbow.mp3" },
+  music_retro: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/8b6fae98-fbea-451e-8794-256dd6078df4/music_retro.mp3" },
+  music_space: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/3a6c9357-0585-47c9-9b93-bb39c8b1e32c/music_space.mp3" },
 } satisfies Record<string, { channel: "effects" | "voice" | "music"; frequency: number; ms: number; url: string | null }>;
 export type SoundId = keyof typeof ENTRIES;
 export const SOUND_MANIFEST: Record<SoundId, SoundEntry> = ENTRIES;
