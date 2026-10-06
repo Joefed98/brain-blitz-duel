@@ -44,6 +44,19 @@ export function matchupStepOffsets(steps: readonly MatchupAnimStep[]): number[] 
   return out;
 }
 
+/** Sound for each cascade step: the special that went off, else the match chime. */
+export function matchupStepSound(step: MatchupAnimStep): string {
+  const kinds = new Set<number>();
+  for (const index of step.detonated) {
+    const kind = step.before[index] ?? -1;
+    if (kind === MATCHUP_BOMB || kind === MATCHUP_CROSS || kind === MATCHUP_STAR) kinds.add(kind);
+  }
+  if (kinds.has(MATCHUP_BOMB)) return "arc_gem_bomb";
+  if (kinds.has(MATCHUP_STAR)) return "arc_gem_star";
+  if (kinds.has(MATCHUP_CROSS)) return "arc_gem_zap";
+  return "arc_gem_match";
+}
+
 /* ================================ Gems ================================ */
 
 function shade(hex: string, amount: number): string {
