@@ -108,6 +108,12 @@ const ENTRIES = {
   music_space: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/7bc0ef67-9f31-4b9b-9e0a-bbc79fd4d576/music_space.wav" },
   standings_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f2f3b307-5cd4-4afa-98bf-fc713858e9e2/standings_loop.wav" },
   podium_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/79c1e447-45cd-4f9e-8362-ec438e509d49/podium_loop.wav" },
+  // In-round beds awaiting files; silent until supplied.
+  music_word: { channel: "music", frequency: 0, ms: 0, url: null },
+  music_orchard: { channel: "music", frequency: 0, ms: 0, url: null },
+  music_lava: { channel: "music", frequency: 0, ms: 0, url: null },
+  music_kitchen: { channel: "music", frequency: 0, ms: 0, url: null },
+  music_city: { channel: "music", frequency: 0, ms: 0, url: null },
   tension_loop: { channel: "music", frequency: 0, ms: 0, url: null },
 } satisfies Record<string, { channel: "effects" | "voice" | "music"; frequency: number; ms: number; url: string | null }>;
 export type SoundId = keyof typeof ENTRIES;

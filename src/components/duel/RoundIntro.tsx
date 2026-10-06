@@ -5,7 +5,7 @@ import type { PuzzleData } from "@/lib/duel/types";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
-import { playVoice } from "@/lib/sound";
+import { playVoice, roundMusicClaimed, startRoundMusic, stopRoundMusic } from "@/lib/sound";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -68,12 +68,18 @@ export function RoundIntro({
     if (countdownCued.current === key) return;
     countdownCued.current = key;
     fx.onCountdown(secondsLeft, theme);
+    startRoundMusic(theme.music);
     if (!practice && !voiceCued.current) {
       voiceCued.current = true;
       if (round === 1) playVoice("prepareToDuel");
       if (round === 6) playVoice("finalRound");
     }
   }, [counting, secondsLeft, startedAt, practice, round, type]);
+
+  // Leaving the intro without a round starting (practice Back) silences it.
+  useEffect(() => () => {
+    window.setTimeout(() => { if (!roundMusicClaimed()) stopRoundMusic(); }, 2_000);
+  }, []);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">

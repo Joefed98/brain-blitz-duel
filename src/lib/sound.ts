@@ -109,6 +109,7 @@ function applySettings(): void {
   musicGain.gain.setValueAtTime(isMusicMuted() ? 0 : musicVolume(), t);
   effectsGain.gain.setValueAtTime(isMuted() ? 0 : effectsVolume(), t);
   voiceGain?.gain.setValueAtTime(isMuted() ? 0 : effectsVolume(), t);
+  applyRoundLevel(0);
 }
 
 function announce(): void {
@@ -256,6 +257,7 @@ export function unlockAudio(): void {
     unlocked = true;
     loading ??= preload().then(() => {
       if (desiredTrack) startMusic(desiredTrack.name, desiredTrack.options);
+      if (pendingRound) startRoundMusic(pendingRound);
     });
   } catch (error) {
     warnOnce("could not create the audio context", error);
@@ -631,4 +633,67 @@ export function stopMusic(fadeMs: number = FADE_MS): void {
 
 export function isMusicPlaying(name: Track): boolean {
   return currentTrack?.name === name;
+}
+
+/* ------------------------------------------------------------- round music */
+
+/* In-round beds: start at the 3-2-1, stop dead at round end. Level is a share
+   of the effects level (30% → 70% over the closing stretch) on its own gain so
+   lobby ducking never touches it; the persisted music mute silences it. */
+let roundTrack: { id: SoundId; source: AudioBufferSourceNode; gain: GainNode } | null = null;
+let pendingRound: SoundId | null = null;
+let roundLevel = 0.3;
+let roundClaimed = false;
+
+function applyRoundLevel(rampSeconds: number): void {
+  if (!ctx || !roundTrack) return;
+  const target = isMusicMuted() ? 0 : roundLevel * effectsVolume();
+  const g = roundTrack.gain.gain; const t = ctx.currentTime;
+  try {
+    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t);
+    if (rampSeconds > 0) g.linearRampToValueAtTime(target, t + rampSeconds); else g.setValueAtTime(target, t);
+  } catch { /* closed */ }
+}
+
+export function startRoundMusic(id: SoundId | null | undefined): void {
+  if (!id || SOUND_MANIFEST[id]?.channel !== "music") return;
+  if (roundTrack?.id === id) return;
+  stopRoundMusic();
+  roundLevel = 0.3; roundClaimed = false;
+  pendingRound = id;
+  if (currentTrack) { fadeOut(currentTrack, 150); currentTrack = null; }
+  desiredTrack = null;
+  if (!ready() || !ctx || !masterGain) return;
+  const buffer = buffers.get(id);
+  if (!buffer) return;
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer; source.loop = true;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(isMusicMuted() ? 0 : roundLevel * effectsVolume(), ctx.currentTime);
+    source.connect(gain).connect(masterGain);
+    source.start();
+    roundTrack = { id, source, gain };
+    pendingRound = null;
+  } catch (error) { warnOnce("round music failed", error); }
+}
+
+/** 0.3–0.7 share of the effects level, set from the round clock. */
+export function setRoundMusicLevel(level: number): void {
+  const next = Math.max(0, Math.min(1, level));
+  if (Math.abs(next - roundLevel) < 0.002) return;
+  roundLevel = next;
+  applyRoundLevel(0.12);
+}
+
+/** The live round timer took over; intro teardown must not stop the music. */
+export function claimRoundMusic(): void { roundClaimed = true; }
+export function roundMusicClaimed(): boolean { return roundClaimed; }
+
+/** Stops round music dead (no fade). */
+export function stopRoundMusic(): void {
+  pendingRound = null; roundClaimed = false;
+  const track = roundTrack; roundTrack = null;
+  if (!track) return;
+  try { track.source.stop(); } catch { /* already stopped */ }
 }

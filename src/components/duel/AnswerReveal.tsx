@@ -9,7 +9,7 @@ import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 import { puzzleDef, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/registry";
 import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { stopMusic } from "@/lib/sound";
+import { stopMusic, stopRoundMusic } from "@/lib/sound";
 import { fx } from "@/lib/fx";
 
 interface AnswerRevealProps {
@@ -155,6 +155,7 @@ export function AnswerReveal({
     if (myScore === null || cued.current === round) return;
     cued.current = round;
     stopMusic(200);
+    stopRoundMusic();
     if (myCorrect) {
       fx.onCorrect(undefined, def.theme);
       buzz(20);
