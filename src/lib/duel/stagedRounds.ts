@@ -37,9 +37,12 @@ export function parseOperators(segment: string): Operator[] {
 }
 
 export function scoreEquationStages(correct: boolean[], msRemaining: number): number {
-  const base = correct.reduce((sum, ok, i) => sum + (ok ? EQUATION_STAGE_POINTS[i] ?? 0 : 0), 0);
-  const all = correct.every(Boolean);
-  const bonus = all ? Math.round((30 * clampMs(msRemaining, EQUATION_TIME_MS)) / EQUATION_TIME_MS) : 0;
+  // A stored three-stage round retains its original weights and bonus.
+  const legacy = correct.length === 3;
+  const weights = legacy ? [30, 40, 50] : EQUATION_STAGE_POINTS;
+  const base = correct.reduce((sum, ok, i) => sum + (ok ? weights[i] ?? 0 : 0), 0);
+  const all = correct.length === (legacy ? 3 : EQUATION_STAGE_COUNT) && correct.every(Boolean);
+  const bonus = all ? Math.round(((legacy ? 30 : EQUATION_SPEED_POINTS) * clampMs(msRemaining, EQUATION_TIME_MS)) / EQUATION_TIME_MS) : 0;
   return Math.min(150, base + bonus);
 }
 
