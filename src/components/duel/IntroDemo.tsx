@@ -59,7 +59,7 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
       ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
       ctx.save();
       try {
-        renderer.drawFinal(ctx, source.puzzle, source.live ? runFrame(source.run, tick) : source.run);
+        renderer.drawFinal(ctx, source.puzzle, source.live ? runFrame(source.run, tick) : source.run, "demo");
       } catch (error) {
         console.error("[intro demo] draw failed", error);
       }
