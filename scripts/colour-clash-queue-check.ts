@@ -23,9 +23,9 @@ function strong(state: ClashState): ArcadeInputEvent | null {
   const lane = gates.indexOf(wanted);
   if (lane !== state.lane) {
     const lanes = clashLaneCount(state.tick + 1);
-    return { t: state.tick + 1, k: CLASH_INPUT_LANE, a: CLASH_SET_LANE, b: Math.floor(((lane + 0.5) * CLASH_WORLD_W) / lanes), c: 0 };
+    return { t: state.tick + 1, k: CLASH_INPUT_LANE, a: CLASH_SET_LANE, b: Math.floor(((lane + 0.5) * CLASH_WORLD_W) / lanes), c: 0, d: 0 };
   }
-  return { t: state.tick + 1, k: CLASH_INPUT_LANE, a: CLASH_DROP, b: 0, c: 0 };
+  return { t: state.tick + 1, k: CLASH_INPUT_LANE, a: CLASH_DROP, b: 0, c: 0, d: 0 };
 }
 
 let finishMin = Infinity, finishMax = 0, idleSorted48: number[] = [];
@@ -62,7 +62,7 @@ for (let seed = 1; seed <= 200; seed++) {
     const old = (await import(legacyPath)).colourClashGame;
     let a = old.init(seed), b2 = colourClashGame.init(seed);
     for (let t = 1; t <= CLASH_RUN_TICKS; t++) {
-      const e: ArcadeInputEvent | null = t % 37 === 0 ? { t, k: CLASH_INPUT_LANE, a: (seed + t) % 4, b: (seed * t) % CLASH_WORLD_W, c: 0 } : null;
+      const e: ArcadeInputEvent | null = t % 37 === 0 ? { t, k: CLASH_INPUT_LANE, a: (seed + t) % 4, b: (seed * t) % CLASH_WORLD_W, c: 0, d: 0 } : null;
       a = old.step(a, e); b2 = colourClashGame.step(b2, e);
       const { queue: _q, finishTick: _f, ...rest } = b2;
       check(JSON.stringify(a) === JSON.stringify(rest), `seed ${seed}: legacy diverged at ${t}`);
