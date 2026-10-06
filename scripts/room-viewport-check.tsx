@@ -28,11 +28,9 @@ assert.doesNotMatch(shellSource, /100vh/);
 assert.equal((styles.match(/padding-bottom: max\(0\.5rem, env\(safe-area-inset-bottom\)\)/g) ?? []).length, 1);
 
 const active = Object.entries(PUZZLE_REGISTRY).filter(([, definition]) => !definition.retired);
-const fixedHeightRisks = active.filter(([, definition]) => {
-  const source = readFileSync(`src/puzzles/${definition.key}.tsx`, "utf8");
-  return /(?:min-h-|h-)\[(?:[4-9]\d\d|\d{4,})px\]/.test(source);
-});
-assert.deepEqual(fixedHeightRisks.map(([type]) => type), []);
+const puzzleSources = Array.from(new Bun.Glob("src/puzzles/*.tsx").scanSync()).map((path) => readFileSync(path, "utf8"));
+const fixedHeightRisks = puzzleSources.filter((source) => /(?:min-h-|h-)\[(?:[4-9]\d\d|\d{4,})px\]/.test(source));
+assert.equal(fixedHeightRisks.length, 0);
 for (const [width, height] of [[390, 700], [375, 667]] as const) {
   const header = <ScoreStrip myName="A long player name" opponentName="Another long player name" myTotal={123} opponentTotal={149} compact />;
   for (const [type] of active) {
