@@ -25,9 +25,10 @@ import {
 import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import {
   drawMatchupArt, drawMatchupArtAnimated, drawMatchupArtSelection, drawMatchupSwap,
-  matchupStepOffsets, MATCHUP_SWAP_MS, type MatchupSwapTween,
+  matchupStepOffsets, matchupStepSound, MATCHUP_SWAP_MS, type MatchupSwapTween,
 } from "@/lib/arcade/matchup.renderer";
 import { playSound } from "@/lib/sound";
+import type { SoundId } from "@/lib/fx/manifest";
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 
@@ -88,7 +89,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const animUntil = useRef(0);
   const swapTween = useRef<MatchupSwapTween | null>(null);
   /** Pending gem chimes for the current swap: wall-clock times, cascade step = index. */
-  const chimes = useRef<{ at: number[]; next: number }>({ at: [], next: 0 });
+  const chimes = useRef<{ at: number[]; sounds: SoundId[]; next: number }>({
+    at: [], sounds: [], next: 0,
+  });
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
@@ -125,7 +128,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     animStart.current = 0;
     animUntil.current = 0;
     swapTween.current = null;
-    chimes.current = { at: [], next: 0 };
+    chimes.current = { at: [], sounds: [], next: 0 };
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
@@ -173,8 +176,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             animStart.current = time;
             animUntil.current = time + duration;
             // A new swap resets the cascade pitch.
+            const animSteps = state.current.lastAnimation;
             chimes.current = {
-              at: matchupStepOffsets(state.current.lastAnimation).map((ms) => time + MATCHUP_SWAP_MS + ms),
+              at: matchupStepOffsets(animSteps).map((ms) => time + MATCHUP_SWAP_MS + ms),
+              sounds: animSteps.map(matchupStepSound),
               next: 0,
             };
           }
@@ -197,7 +202,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       feedback(state.current, matchupGame.isOver(state.current));
       const chime = chimes.current;
       while (chime.next < chime.at.length && time >= chime.at[chime.next]!) {
-        playSound("arc_gem_match", 0.8);
+        playSound(chime.sounds[chime.next] ?? "arc_gem_match", 0.8);
         chime.next += 1;
       }
 

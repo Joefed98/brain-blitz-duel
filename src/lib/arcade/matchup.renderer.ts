@@ -4,6 +4,7 @@
  * each colour keeps its own cut so shapes stay distinguishable.
  */
 import type { CanvasSize } from "./engine";
+import type { SoundId } from "@/lib/fx/manifest";
 import {
   matchupFindSwap, matchupGame, matchupIndex, matchupShowHint, matchupTransform,
   MATCHUP_BOARD_H, MATCHUP_BOARD_W, MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOMB, MATCHUP_CELL_PX,
@@ -42,6 +43,19 @@ export function matchupStepOffsets(steps: readonly MatchupAnimStep[]): number[] 
     at += MATCHUP_CLEAR_MS + Math.max(1, step.ticks) * MATCHUP_DROP_MS;
   }
   return out;
+}
+
+/** Sound for each cascade step: the special that went off, else the match chime. */
+export function matchupStepSound(step: MatchupAnimStep): SoundId {
+  const kinds = new Set<number>();
+  for (const index of step.detonated) {
+    const kind = step.before[index] ?? -1;
+    if (kind === MATCHUP_BOMB || kind === MATCHUP_CROSS || kind === MATCHUP_STAR) kinds.add(kind);
+  }
+  if (kinds.has(MATCHUP_BOMB)) return "arc_gem_bomb";
+  if (kinds.has(MATCHUP_STAR)) return "arc_gem_star";
+  if (kinds.has(MATCHUP_CROSS)) return "arc_gem_zap";
+  return "arc_gem_match";
 }
 
 /* ================================ Gems ================================ */
