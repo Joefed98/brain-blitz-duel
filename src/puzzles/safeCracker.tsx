@@ -6,7 +6,7 @@ import { clueHolds, dialsCorrect, decodeSafeTries, encodeSafeTries } from "@/lib
 import { useStageState } from "@/lib/duel/stageState";
 import { SAFE_DIALS, SAFE_TIME_MS, SAFE_TRIES, type SafePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playSound, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -123,7 +123,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
     const opened = puzzle.clues.every((clue) => clueHolds(clue, dials));
     if (opened) {
       submitted.current = true;
-      playCorrect();
+      playSound("pz_safe_open");
       hapticTick();
       onSubmit(encodeSafeTries(next));
       return;

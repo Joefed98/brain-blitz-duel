@@ -19,7 +19,7 @@ import {
   WS_TIME_MS,
   type SlideShift,
 } from "@/lib/duel/wordSlide";
-import { playCorrect, playLock } from "@/lib/sound";
+import { playCorrect, playSound } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -160,7 +160,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     if (!data || locked || submitted.current) return;
     if (rowWords.length && rowWords.every((w) => verdicts[w] === true)) {
       submitted.current = true;
-      playLock();
+      playSound("pz_padlock");
       onSubmit(encoded);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,7 +231,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
 
   return (
     <div ref={root} data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3" style={NO_SCROLL_STYLE}>
-      <Board grid={replay.grid} cell={CELL} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} onLock={(row) => push(`L${row}`)} />
+      <Board grid={replay.grid} cell={CELL} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} onLock={(row) => { playSound("pz_padlock"); push(`L${row}`); }} />
       <p data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         Moves <span className="text-primary">{replay.moves}</span>
       </p>
