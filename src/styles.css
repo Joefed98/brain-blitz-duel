@@ -957,7 +957,7 @@ body.game-lock {
   margin-top: 0;
   margin-bottom: 0;
 }
-.game-column [data-stage-column] > :not([data-game-arena], [data-stage-column]) {
+.game-column [data-stage-column] > :not([data-game-arena], [data-stage-column], [data-arena-part]) {
   flex-grow: 0;
   flex-basis: auto;
 }
@@ -970,8 +970,22 @@ body.game-lock {
   min-height: 0;
   max-height: var(--arena-max, 100cqw);
 }
-.game-column [data-game-arena="canvas"] {
-  --arena-max: 150cqw;
+/* Design caps. 150cqw ~ the whole game region at the 390x700 design phone. */
+.game-column :is([data-game-arena="canvas"], [data-game-arena="tall"]) { --arena-max: 150cqw; }
+.game-column [data-game-arena="word"] { --arena-max: calc(100cqw + 32px); }
+.game-column [data-game-arena="countup"] { --arena-max: calc(100cqw + 28px); }
+.game-column [data-game-arena="balance"] { --arena-max: 168px; }
+.game-column [data-game-arena="letterwheel-wheel"] { --arena-max: 60cqw; }
+.game-column [data-game-arena="fixed"] {
+  flex: 0 1 auto;
+  max-height: none;
+}
+/* A board that is part of the arena but sits above the arena row (Letter Wheel). */
+.game-column [data-arena-part="letterwheel-board"] { max-height: min(334px, 100cqw); }
+.game-column [data-stage-column] > [data-arena-part] { flex-basis: 0%; flex-grow: revert-layer; }
+/* After an unmarked fixed-size board component. */
+.game-column [data-stage-column] > [data-after-arena] {
+  margin-top: calc(12px - var(--stage-gap));
 }
 .game-column [data-game-controls="arrows"] {
   height: auto;
