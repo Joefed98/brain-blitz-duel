@@ -13,6 +13,9 @@ import {
 export const CLASH_WORLD_W = 390;
 export const CLASH_WORLD_H = 560;
 export const CLASH_RUN_TICKS = 60 * TICKS_PER_SECOND;
+export const CLASH_INITIAL_LANES = 3;
+export const CLASH_EXPANDED_LANES = 4;
+export const CLASH_LANE_EXPAND_TICK = 30 * TICKS_PER_SECOND;
 export const CLASH_INPUT_LANE = 5;
 export const CLASH_MOVE_LEFT = 0;
 export const CLASH_MOVE_RIGHT = 1;
@@ -46,14 +49,18 @@ export interface ClashState {
   ended: number;
 }
 
-export function clashLaneCount(tick: number): number { return tick >= 30 * TICKS_PER_SECOND ? 4 : 3; }
+export function clashLaneCount(tick: number): number { return tick >= CLASH_LANE_EXPAND_TICK ? CLASH_EXPANDED_LANES : CLASH_INITIAL_LANES; }
 
 function buildGates(seed: number): { gates: ClashGateChange[]; rng: number } {
   let rng = seed | 0;
   const draw = (bound: number) => { const result = rngBelow(rng, bound); rng = result.state; return result.value; };
   const firstPool = Array.from({ length: CLASH_NAMES.length }, (_, index) => index);
   const first: number[] = [];
-  while (first.length < 3) first.push(firstPool.splice(draw(firstPool.length), 1)[0]!);
+  while (first.length < CLASH_INITIAL_LANES) {
+    const colour = firstPool.splice(draw(firstPool.length), 1)[0];
+    if (colour === undefined) throw new Error("Missing Colour Clash gate colour");
+    first.push(colour);
+  }
   const gates: ClashGateChange[] = [{ tick: 0, gates: first }];
   for (const tick of [15, 30, 45].map((seconds) => seconds * TICKS_PER_SECOND)) {
     const count = clashLaneCount(tick);
@@ -99,7 +106,9 @@ function nextItem(state: ClashState, spawn: number): ClashState {
   const word = rule === 0 ? other : answer;
   const ink = rule === 0 ? answer : other;
   const item = { spawn, word, ink, fallTicks: clashFallTicks(spawn) };
-  return { ...state, rng, items: [...state.items, item], lane: Math.floor(clashLaneCount(spawn) / 2), itemY: START_Y, dropping: 0 };
+  // Draw before storing rng so the spawn lane and future draws replay identically.
+  const lane = draw(clashLaneCount(spawn));
+  return { ...state, rng, items: [...state.items, item], lane, itemY: START_Y, dropping: 0 };
 }
 
 function init(seed: number): ClashState {
