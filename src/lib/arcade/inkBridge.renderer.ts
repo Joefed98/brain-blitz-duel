@@ -67,12 +67,12 @@ function drawRiver(ctx: CanvasRenderingContext2D, t: number): void {
 
 function drawDispenser(ctx: CanvasRenderingContext2D, x: number): void {
   // Wooden post arm from the top edge, with a tin bucket tipped over the drop (y 26–41).
-  ctx.fillStyle = REAL_WOOD_DARK;
-  ctx.fillRect(x - 2, 26, 4, 5);
   ctx.fillStyle = REAL_WOOD;
-  ctx.fillRect(x - 16, 24, 32, 4);
+  ctx.fillRect(x - 16, 27, 32, 3);
+  ctx.fillStyle = REAL_WOOD_DARK;
+  ctx.fillRect(x - 16, 29, 32, 1);
   ctx.save();
-  ctx.translate(x, 35);
+  ctx.translate(x, 36);
   ctx.rotate(0.35);
   ctx.fillStyle = TIN;
   ctx.beginPath();
