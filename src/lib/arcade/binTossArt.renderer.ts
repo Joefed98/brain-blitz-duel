@@ -8,17 +8,18 @@ import {
   BINTOSS_BALL_R, BINTOSS_FLOOR_Y, BINTOSS_FLY, BINTOSS_GRAVITY, BINTOSS_MISS_COLOUR,
   BINTOSS_RIM_Y, BINTOSS_SLIDE_FROM, BINTOSS_THROWS, BINTOSS_WAIT, BINTOSS_WIND_MAX,
   BINTOSS_WORLD_H, BINTOSS_WORLD_W, BINTOSS_BIN_COLOUR,
-  binTossCentreAt, binTossGame, binTossHalf, type BinTossLandingPresentation, type BinTossState,
+  binTossCentreAt, binTossGame, binTossHalf, binTossPath, type BinTossGhost, type BinTossLandingPresentation, type BinTossState,
 } from "./binToss";
 import { reducedMotion } from "./art.renderer";
 import { FAIR_TEXT, fairChangeAge, fairPennant, fairScreen, fairTransform } from "./fairground.renderer";
 
 const px = (v: number) => v / 256;
-export const BINTOSS_RUBBER = "#FF5A4E";
+export const BINTOSS_RUBBER = "#A72B32";
 const SEAM = "#4A0F0B";
-const TIN_LIGHT = "#D9DEE6";
-const TIN_MID = "#9AA3B0";
-const TIN_DARK = "#5B6370";
+const TIN_LIGHT = "#ACB0B3";
+const TIN_MID = "#959A9E";
+const TIN_DARK = "#787E83";
+const AIM_INK = "#453C53";
 const FLOOR = px(BINTOSS_FLOOR_Y);
 
 export function drawRubberBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, spin: number): void {
@@ -78,7 +79,7 @@ function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number,
   ctx.save();
   ctx.clip(body);
   // Stacked-tin ridges.
-  ctx.strokeStyle = "rgba(40, 44, 52, 0.55)";
+  ctx.strokeStyle = "rgba(40, 44, 52, 0.3)";
   ctx.lineWidth = 1.5;
   for (const f of [0.22, 0.5, 0.78]) {
     ctx.beginPath();
@@ -86,7 +87,7 @@ function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number,
     ctx.lineTo(half, -h * (1 - f));
     ctx.stroke();
   }
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
   ctx.lineWidth = 1;
   for (const f of [0.22, 0.5, 0.78]) {
     ctx.beginPath();
@@ -202,7 +203,30 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
       ctx.arc(20 + i * 16, BINTOSS_WORLD_H - 16, 4, 0, Math.PI * 2);
       ctx.fill();
     }
-  });
+  }, [0.3, 0.52]);
+}
+
+/** Same no-wind path, with artwork-only contrast against the evening sky. */
+export function binTossArtAim(ctx: CanvasRenderingContext2D, size: CanvasSize, aim: BinTossGhost, cancelled = false): void {
+  const points = binTossPath(aim.vx, aim.vy, 0, false);
+  const first = points[0];
+  if (!first) return;
+  const { scale, offsetX, offsetY } = fairTransform(size, BINTOSS_WORLD_W, BINTOSS_WORLD_H);
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = AIM_INK;
+  ctx.globalAlpha = cancelled ? 0.28 : 0.85;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 5]);
+  ctx.beginPath();
+  ctx.moveTo(first.x, first.y);
+  for (let i = 1; i < points.length; i++) {
+    const point = points[i];
+    if (point) ctx.lineTo(point.x, point.y);
+  }
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** Scored-ball drop into the bucket; presentation only, same path as before. */

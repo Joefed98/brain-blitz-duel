@@ -46,7 +46,7 @@ export function fairTransform(size: CanvasSize, worldW: number, worldH: number):
   return { scale, offsetX: (size.width - worldW * scale) / 2, offsetY: (size.height - worldH * scale) / 2 };
 }
 
-function sky(ctx: CanvasRenderingContext2D, size: CanvasSize, horizon: number, frame: FairFrame): void {
+function sky(ctx: CanvasRenderingContext2D, size: CanvasSize, horizon: number, frame: FairFrame, tents: readonly number[]): void {
   const g = ctx.createLinearGradient(0, 0, 0, horizon);
   g.addColorStop(0, FAIR_SKY_TOP);
   g.addColorStop(0.6, FAIR_SKY_MID);
@@ -57,7 +57,7 @@ function sky(ctx: CanvasRenderingContext2D, size: CanvasSize, horizon: number, f
   // Silhouettes: a big wheel and a row of tents, faint, on the horizon.
   const s = frame.scale;
   ctx.save();
-  ctx.globalAlpha = 0.5;
+  ctx.globalAlpha = 0.18;
   ctx.fillStyle = FAIR_SILHOUETTE;
   ctx.strokeStyle = FAIR_SILHOUETTE;
   const wr = 70 * s;
@@ -82,7 +82,6 @@ function sky(ctx: CanvasRenderingContext2D, size: CanvasSize, horizon: number, f
     const a = (i * Math.PI) / 4;
     ctx.fillRect(wx + Math.cos(a) * wr - 4 * s, wy + Math.sin(a) * wr, 8 * s, 7 * s);
   }
-  const tents = [0.08, 0.3, 0.52];
   for (const t of tents) {
     const tx = size.width * t;
     const tw = 54 * s;
@@ -195,11 +194,12 @@ export function fairScreen(
   worldH: number,
   counterWorldY: number,
   drawWorld: (frame: FairFrame) => void,
+  tents: readonly number[] = [0.08, 0.3, 0.52],
 ): FairFrame {
   const frame = fairTransform(size, worldW, worldH);
   const counterTop = frame.offsetY + counterWorldY * frame.scale;
   ctx.save();
-  sky(ctx, size, counterTop, frame);
+  sky(ctx, size, counterTop, frame, tents);
   counter(ctx, size, counterTop, frame.scale);
   ctx.save();
   ctx.translate(frame.offsetX, frame.offsetY);

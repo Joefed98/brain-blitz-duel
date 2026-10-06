@@ -9,7 +9,7 @@ import {
   btBallPoint, btEventCountdown, btRotatable, btTraysAt, type BtCourse, type BtState,
 } from "./ballTrack";
 import {
-  TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK, TOY_WOOD_DARK, TOY_WOOD_DEEP,
+  TOY_BRASS, TOY_INK, TOY_OAK, TOY_WOOD_DARK, TOY_WOOD_DEEP,
   toyBoard, toyMarble, toyTabletop,
 } from "./toybox.renderer";
 
@@ -18,6 +18,8 @@ const SLOT = 100;
 const CHANNEL_FIXED = "#9C6B3E";
 const CHANNEL_SWITCH = "#B5683A";
 const GROOVE = "#5A3519";
+const SWITCH_BRASS = "#A47726";
+const SWITCH_EDGE = "#493619";
 /** Carved symbol per colour index: circle, square, triangle, diamond. */
 export const BT_SYMBOLS = ["circle", "square", "triangle", "diamond"] as const;
 
@@ -94,11 +96,11 @@ export function btArtDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: Bt
   // Switches: a brass pin at each rotatable paddle's centre.
   for (const cell of rot) {
     const { x, y } = cellCentre(cell);
-    ctx.fillStyle = TOY_BRASS;
+    ctx.fillStyle = SWITCH_BRASS;
     ctx.beginPath();
     ctx.arc(x, y, 6, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = TOY_BRASS_DARK;
+    ctx.strokeStyle = SWITCH_EDGE;
     ctx.lineWidth = 1.5;
     ctx.stroke();
   }

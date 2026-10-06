@@ -1,3 +1,8 @@
+## Seven-game artwork tuning (Oct 6)
+- [x] Junction's 2D pose is explicitly render-only; simulation uses 1D progress/occupancy. Corrected all eight outgoing lanes with continuous visual turns and enlarged lights 18%, without changing authoritative progress or collision decisions.
+- [x] Tuned Fairground scenery, Bin Toss matte tin/deep-red ball/darker identical no-wind aim, Bullseye 500ms gold landing numbers, Tilt full-square pits/blue glass cup, Ball Track brass, Skyline sky/buildings and Ink Bridge exact-bound cloud ledges/ambient bird/sky.
+- [x] Drawing checks passed 3,840 immutable frames across two sizes/motion modes, exact pit/cloud footprints, all eight turn lanes/continuity, landing expiry and identical aim vertices. Fairground/Toybox smoke and shared FX checks passed; 296 protected files unchanged, sole stage change is Bin Toss artwork import wiring. Preview build OK; no browser tests or identity proofs. Device appearance remains user-tested.
+
 ## Eat and Grow blazing meteor
 - [x] Restyle cached sprites as a rocky fire-wrapped directional head, orange/red flame cells and smoke-grey tail with bounded rising embers and death smoke; preserve cell geometry, arena palette, stars, sounds and static reduced-motion fallback.
 - [x] No-browser 300-cell/600-frame cache, directional head, colour, bounds, particle and reduced-motion checks passed; native canvas stills inspected, shared FX checks passed, all 297 protected fingerprints unchanged and preview build OK. No browser tests or identity proofs; phone appearance/performance remain user-tested.

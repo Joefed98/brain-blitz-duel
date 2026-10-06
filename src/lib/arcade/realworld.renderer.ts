@@ -8,6 +8,8 @@ export { drawVehicle as realVehicle } from "./cross.renderer";
 
 export const REAL_SKY_TOP = "#BFDDF2";
 export const REAL_SKY_LOW = "#EAF4FA";
+export const REAL_SKY_DIM_TOP = "#A9CCE5";
+export const REAL_SKY_DIM_LOW = "#D9EAF5";
 export const REAL_GRASS = "#86BF63";
 export const REAL_GRASS_DARK = "#6FA851";
 export const REAL_ASPHALT = "#555B64";
@@ -36,10 +38,10 @@ export function realNow(): number {
 }
 
 /** Pale daylight sky over the given rectangle. */
-export function realSky(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+export function realSky(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dim = false): void {
   const g = ctx.createLinearGradient(0, y, 0, y + h);
-  g.addColorStop(0, REAL_SKY_TOP);
-  g.addColorStop(1, REAL_SKY_LOW);
+  g.addColorStop(0, dim ? REAL_SKY_DIM_TOP : REAL_SKY_TOP);
+  g.addColorStop(1, dim ? REAL_SKY_DIM_LOW : REAL_SKY_LOW);
   ctx.fillStyle = g;
   ctx.fillRect(x, y, w, h);
 }

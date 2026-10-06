@@ -16,7 +16,6 @@ import {
   binTossCheckpoint,
   binTossCentreAt,
   binTossDrag,
-  binTossDrawAim,
   binTossDrawGhost,
 
   binTossGame,
@@ -38,7 +37,7 @@ import { decodeBinTossRun, encodeBinTossRun, replayBinTossRun } from "@/lib/duel
 import { ARCADE_CRASH_FREEZE_MS, type BinTossPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playWrong } from "@/lib/sound";
-import { binTossArtGame, binTossArtLanding } from "@/lib/arcade/binTossArt.renderer";
+import { binTossArtGame, binTossArtLanding, binTossArtAim as binTossDrawAim } from "@/lib/arcade/binTossArt.renderer";
 import { binTossSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
