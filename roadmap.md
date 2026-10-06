@@ -1,8 +1,9 @@
 ## Presentation geometry tuning (Oct 6)
-- [ ] Remove only the ArcadeReveal crash marker, retaining the gold finish marker.
-- [ ] Share one segmented octagonal Wordsmith board across live, intro and reveal; preserve controls and verdicts.
-- [ ] Anchor Sudoku box strokes to cell edges and clip/size Shikaku reveal labels on equal tracks.
-- [ ] Audit source/SSR and geometry at 390x700 and 375x667 without browsers; verify protected gameplay files unchanged.
+- [x] Removed only the ArcadeReveal crash marker, retaining the gold finish marker.
+- [x] Shared one segmented octagonal Wordsmith board across live, intro and reveal; controls/verdicts unchanged, stale Wordsmith coordinate demos rejected separately from other puzzles.
+- [x] Anchored Sudoku box strokes to actual cell edges; clipped each Shikaku board/label with equal tracks and cell-relative readable text.
+- [x] Passed 14 focused phase/geometry checks at 390x700 and 375x667, 60 input/phase checks, 336 surface checks and shared FX. All 250 library/integration files unchanged; preview build OK. Audit: .lovable/audits/presentation-geometry-oct6.md.
+- [ ] Actual appearance/no-scroll awaits user device testing; no browsers ran. Existing long Wordsmith reveal lists remain internally scrollable.
 
 ## Colour Clash four-lane spawn fix (Oct 6)
 - [x] Cause: fixed centre-lane spawn (`floor(lanes / 2)`) always chose index 2 (third lane) after expansion. Replaced with one seeded PRNG draw, saved after consumption; shared integer lane-count/transition constants.

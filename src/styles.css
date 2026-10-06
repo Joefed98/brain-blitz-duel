@@ -336,7 +336,7 @@ body.game-lock {
 .puzzle-secondary-control { height: 44px; min-width: 44px; padding: 0; border-radius: var(--puzzle-action-radius); }
 .puzzle-secondary-control svg { width: 20px; height: 20px; }
 .sudoku-grid { position: relative; }
-.sudoku-grid > button { border-radius: 0 !important; box-shadow: none !important; }
+.sudoku-grid.sudoku-grid > button { border-radius: 0 !important; box-shadow: none !important; }
 .sudoku-box-top { border-top: 3px solid var(--foreground); }
 .sudoku-box-left { border-left: 3px solid var(--foreground); }
 .sudoku-box-bottom { border-bottom: 3px solid var(--foreground); }

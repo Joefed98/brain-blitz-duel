@@ -18,7 +18,7 @@ assert.doesNotMatch(backdrop, /outcome === "crash"|var\(--warn\)/);
 assert.match(backdrop, /<circle[\s\S]*<rect/); // finish position and fallback retained
 assert.match(css, /font-size: 52px/);
 assert.match(css, /wordsmith-ring-example[^}]*font-size: 32px/);
-assert.match(css, /sudoku-grid > button[^}]*border-radius: 0 !important/);
+assert.match(css, /sudoku-grid\.sudoku-grid > button[^}]*border-radius: 0 !important/);
 const parse = (s: string) => [...s.matchAll(/([\d.]+)% ([\d.]+)%/g)].map(m => [Number(m[1]), Number(m[2])]);
 const area = (p: number[][]) => Math.abs(p.reduce((sum, a, i) => {
   const b = p[(i + 1) % p.length];
