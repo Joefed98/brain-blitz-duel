@@ -1,3 +1,7 @@
+## Colour Clash four-lane spawn fix (Oct 6)
+- [ ] Diagnose and fix post-30s lane choice using only seeded PRNG and shared integer constants.
+- [ ] Run Colour Clash-only identity proof and report the cause; no browser tests.
+
 ## Chain 30-link rework (Oct 6)
 - [x] Extend seeded generation/client/server replay to 30 links and six five-link boards; preserve 45s and momentum, add FASTER at 26.
 - [x] Set five-point links and update SCORE, goal and reveal breakdown; fixed intro illustration has no link count and stays unchanged.
