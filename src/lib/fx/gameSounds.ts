@@ -76,8 +76,6 @@ export function wavefrontSounds(): GameSounds<WavState> {
     frame(state) {
       if (prev && state.tick > prev.tick) {
         if (state.fireIn > prev.fireIn) playSound("arc_blaster", 0.6, 1, true);
-        // The saucer never fires in the sim; its entrance plays the saucer shot.
-        if (state.saucerDir !== 0 && prev.saucerDir === 0) playSound("arc_saucer_shot", 0.7);
         if (state.pierce > prev.pierce) playSound("arc_retro_pickup");
         // Shapes and the armour block destroyed this frame (bursts carry the kill tick).
         if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) playSound("arc_big_explode", 0.8);
@@ -97,7 +95,7 @@ export function crossSounds(): GameSounds<CrossState> {
       if (prev && state.tick > prev.tick) {
         if (state.lives < prev.lives) playSound("arc_lose_life");
         else if (state.crossings > prev.crossings) playSound("stage_complete");
-        else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) playSound("arc_yelp", 0.6);
+        else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) playSound("arc_honk", 0.6);
       }
       prev = state;
     },
@@ -143,9 +141,6 @@ export function hoverSounds(): GameSounds<HoverState> {
         if (state.crashed && !prev.crashed) playSound("arc_retro_explode");
         else {
           if (state.gates > prev.gates) playSound("arc_retro_note");
-          // A tap sets vy to the impulse exactly; gravity alone never reaches it.
-          // Never stacked: a retrigger cuts the previous instance.
-          if (state.vy === HOVER_IMPULSE) playSound("arc_hover_tap", 0.7);
         }
       }
       prev = state;
@@ -501,7 +496,7 @@ export function sliceSounds(): GameSounds<SliceState> {
           lastCut = now;
           playSound("arc_knife_slice", 0.8, 1, true);
         }
-        if (state.bombsHit > prev.bombsHit) playSound("arc_crash");
+        if (state.bombsHit > prev.bombsHit) { playSound("arc_crash"); playSound("arc_chilli_bell"); }
         if (state.frenzyFrom.length > prev.frenzyFrom.length) playSound("arc_ketchup");
         if (state.slowFrom.length > prev.slowFrom.length) playSound("arc_mustard");
         // Slice owns its combo cue; slice.tsx passes { combo: false } to arcadeFeedback.
