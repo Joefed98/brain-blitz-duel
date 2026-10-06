@@ -185,3 +185,14 @@ export function drawSliceArt(ctx:CanvasRenderingContext2D,state:SliceState,size:
   ctx.restore();
 }
 export const sliceArtGame={...sliceGame,draw:drawSliceArt};
+
+/** Fixed worked example uses the same cached food painters; never creates gameplay state. */
+export function drawSliceKitchenExample(ctx:CanvasRenderingContext2D):void {
+  ctx.save();ctx.fillStyle=K.board;ctx.fillRect(0,0,168,120);
+  ctx.strokeStyle=K.grain;ctx.lineWidth=.5;
+  for(let y=8;y<120;y+=12){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(168,y+2);ctx.stroke();}
+  for(const [kind,x,y] of [['bagel',44,70],['loaf',84,50],['tomato',124,72]] as const){
+    const s=sprite(kind,26,paintFood(kind));if(s)ctx.drawImage(s as CanvasImageSource,x-13,y-13,26,26);
+  }
+  ctx.strokeStyle=K.silver;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(24,92);ctx.lineTo(146,40);ctx.stroke();ctx.restore();
+}
