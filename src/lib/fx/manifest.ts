@@ -94,6 +94,8 @@ const ENTRIES = {
   finalRound: { channel: "voice", frequency: 520, ms: 180, url: null },
   gg: { channel: "voice", frequency: 660, ms: 220, url: null },
   lobby_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f7966f98-a5dc-4c2a-8d1f-9192430a4643/lobby_loop.wav" },
+  music_toybox: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/aa66acb8-ca56-4f6c-a06d-2de7363cc1ae/music_toybox.wav" },
+  music_speed: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/48e4c0ad-8653-420d-82e1-4b1b6e06e74c/music_speed.wav" },
   music_attention: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/b764be2a-fb6e-4609-a5c9-0d4766bb1729/music_attention.wav" },
   music_bubble: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/3565e0d3-17d1-4a96-82a4-a17b1316e4b9/music_bubble.wav" },
   music_fairground: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/84362465-d952-4359-bbc1-14c1b6256e61/music_fairground.wav" },
