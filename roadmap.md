@@ -1,3 +1,8 @@
+## Reveal marker and dark Wordsmith tuning (Oct 6)
+- [ ] Trace Hover and every engine reveal for renderer-owned crash markers; remove only reveal markers and retain gold finishes.
+- [ ] Double Wordsmith letters again; dark wedges, white letters/light outlines, gold selection, accent centre across live/intro/reveal.
+- [ ] Run focused non-browser checks; confirm generator/grading/scoring unchanged.
+
 ## Presentation geometry tuning (Oct 6)
 - [x] Removed only the ArcadeReveal crash marker, retaining the gold finish marker.
 - [x] Shared one segmented octagonal Wordsmith board across live, intro and reveal; controls/verdicts unchanged, stale Wordsmith coordinate demos rejected separately from other puzzles.
