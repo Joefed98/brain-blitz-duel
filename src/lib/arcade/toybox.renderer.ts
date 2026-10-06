@@ -126,21 +126,25 @@ export function toyMarble(ctx: CanvasRenderingContext2D, x: number, y: number, r
   ctx.restore();
 }
 
-/** Per-canvas presentation memory: ms since a watched value last grew (Infinity before). */
-const memos = new WeakMap<CanvasRenderingContext2D, Map<string, { value: number; at: number; extra: unknown }>>();
-export function toyChangeAge(ctx: CanvasRenderingContext2D, name: string, value: number, extra?: unknown): { age: number; extra: unknown } {
+/**
+ * Per-canvas presentation memory: ms since a watched value last grew
+ * (Infinity before), plus the `extra` passed on the frame BEFORE that change.
+ */
+const memos = new WeakMap<CanvasRenderingContext2D, Map<string, { value: number; at: number; last: unknown; snap: unknown }>>();
+export function toyChangeAge(ctx: CanvasRenderingContext2D, name: string, value: number, extra?: unknown): { age: number; before: unknown } {
   let map = memos.get(ctx);
   if (!map) memos.set(ctx, (map = new Map()));
   const now = typeof performance === "undefined" ? 0 : performance.now();
   const old = map.get(name);
   if (!old) {
-    map.set(name, { value, at: -Infinity, extra });
-    return { age: Infinity, extra };
+    map.set(name, { value, at: -Infinity, last: extra, snap: undefined });
+    return { age: Infinity, before: undefined };
   }
   if (old.value !== value) {
     old.at = value > old.value ? now : -Infinity;
     old.value = value;
-    if (value > 0) old.extra = extra;
+    old.snap = old.last;
   }
-  return { age: now - old.at, extra: old.extra };
+  old.last = extra;
+  return { age: now - old.at, before: old.snap };
 }
