@@ -39,13 +39,17 @@ function Grid({
       style={{ ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
     >
       {Array.from({ length: size * size }, (_, cell) => {
+        const missedOnly = (missedPath?.has(cell) ?? false) && !gold.has(cell);
+        // Unfound reveal path: red letters on a faint red fill; crossings with found words stay gold.
         const fill = bad?.has(cell)
           ? "bg-destructive text-destructive-foreground"
           : live?.has(cell)
             ? "bg-primary/40 text-foreground"
             : gold.has(cell)
               ? "bg-primary text-primary-foreground"
-              : "bg-card text-foreground";
+              : missedOnly
+                ? "bg-destructive/15 text-destructive"
+                : "bg-card text-foreground";
         const missedOutline = missedPath?.has(cell) ? "ring-2 ring-inset ring-destructive" : "";
         return (
           <div
