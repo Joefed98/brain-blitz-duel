@@ -45,7 +45,7 @@ export function matchupStepOffsets(steps: readonly MatchupAnimStep[]): number[] 
 }
 
 /** Sound for each cascade step: the special that went off, else the match chime. */
-export function matchupStepSound(step: MatchupAnimStep): string {
+export function matchupStepSound(step: MatchupAnimStep): SoundId {
   const kinds = new Set<number>();
   for (const index of step.detonated) {
     const kind = step.before[index] ?? -1;

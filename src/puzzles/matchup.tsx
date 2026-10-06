@@ -127,7 +127,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     animStart.current = 0;
     animUntil.current = 0;
     swapTween.current = null;
-    chimes.current = { at: [], next: 0 };
+    chimes.current = { at: [], sounds: [], next: 0 };
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
