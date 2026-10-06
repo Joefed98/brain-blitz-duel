@@ -102,7 +102,7 @@ export function WordsmithPuzzle({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="relative flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           points <span className="text-primary">{points}</span>
@@ -141,7 +141,7 @@ export function WordsmithPuzzle({
         )}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col items-center">
+      <div data-game-arena="word" className="flex min-h-0 flex-1 flex-col items-center">
         <AcceptedWordChip word={acceptedWord} hidden={listOpen} />
         <div className="word-confirmation-board-space">
           <div className="word-confirmation-board">
@@ -150,12 +150,12 @@ export function WordsmithPuzzle({
         </div>
       </div>
       <div key={shake} aria-live="polite" aria-label="Current word"
-        className={`flex h-11 shrink-0 items-center justify-center rounded-lg border bg-card px-2 text-center font-mono text-xl uppercase text-foreground ${message ? "border-warn animate-shake" : "border-border"}`}>
+        data-game-controls="input" className={`flex h-11 shrink-0 items-center justify-center rounded-lg border bg-card px-2 text-center font-mono text-xl uppercase text-foreground ${message ? "border-warn animate-shake" : "border-border"}`}>
         {word || " "}
       </div>
-      <p className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>
+      <p data-game-controls="status" className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>
 
-      <div className="mt-auto grid shrink-0 grid-cols-2 gap-2">
+      <div data-game-controls="actions" className="mt-auto grid shrink-0 grid-cols-2 gap-2">
         <Button type="button" variant="outline" onClick={() => {
           selectedRef.current = [];
           setSelectedTiles([]);

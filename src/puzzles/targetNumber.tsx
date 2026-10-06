@@ -203,7 +203,7 @@ function TargetStage({
   const isLockedNow = locked || lockedHere;
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col justify-between gap-2">
+    <div data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col justify-between gap-2">
       <div className="flex flex-col items-center gap-2">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Target</p>
         <p className="font-mono text-5xl font-bold leading-none text-primary tabular-nums">
@@ -211,7 +211,7 @@ function TargetStage({
         </p>
       </div>
 
-      <div className="flex max-h-[3.75rem] min-h-10 flex-col items-center gap-0.5 overflow-y-auto rounded-lg px-2">
+      <div data-game-arena="fixed" className="flex max-h-[3.75rem] min-h-10 flex-col items-center gap-0.5 overflow-y-auto rounded-lg px-2">
         {steps.length === 0 ? (
           <p className="font-mono text-xs text-muted-foreground">No steps yet</p>
         ) : (
@@ -226,7 +226,7 @@ function TargetStage({
         )}
       </div>
 
-      <div key={shake} className={shake > 0 ? "animate-shake" : ""}>
+      <div key={shake} data-game-controls="numbers" className={shake > 0 ? "animate-shake" : ""}>
         <div className="grid grid-cols-3 gap-2">
           {pool.map((tile) => (
             <button
@@ -245,7 +245,7 @@ function TargetStage({
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      <div data-game-controls="operators" className="grid grid-cols-4 gap-2">
         {TARGET_OPERATORS.map((op) => (
           <button
             key={op}
@@ -263,7 +263,7 @@ function TargetStage({
         ))}
       </div>
 
-      <div className="flex items-center justify-between gap-3">
+      <div data-game-controls="actions" className="flex items-center justify-between gap-3">
         <div className="flex gap-2">
           <Button type="button" variant="outline" aria-label="Undo" title="Undo" onClick={undo}
             disabled={isLockedNow || history.length === 0} className="puzzle-secondary-control">

@@ -276,12 +276,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   if (puzzle.type !== "flow") return null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         cells filled <span className="text-primary">{filled}</span> / {FLOW_CELLS - walls.length} ·{" "}
         {verdict.pairsJoined} / {pairs.length} pairs
       </p>
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+      <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <FlowBoard
           pairs={pairs}
           paths={paths}

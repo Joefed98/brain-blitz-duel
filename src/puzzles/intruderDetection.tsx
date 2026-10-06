@@ -249,7 +249,7 @@ function Stage({
 
   if (phase === "card") {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center rounded-2xl bg-background">
+      <div data-game-arena="tall" className="flex min-h-0 flex-1 items-center justify-center rounded-2xl bg-background">
         <p className="whitespace-nowrap font-display text-6xl font-bold text-primary">Round {index + 1}</p>
       </div>
     );
@@ -258,7 +258,7 @@ function Stage({
   const left = phaseStart + (phase === "show" ? INTRUDER_SHOW_MS : INTRUDER_PLAY_MS) - Math.max(0, elapsed);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex w-full shrink-0 gap-1.5" aria-label={`Grid ${index + 1} of 5`}>
         {Array.from({ length: INTRUDER_BOARDS }, (_, i) => (
           <span key={i} className={`h-1.5 flex-1 rounded-full ${i <= index ? "bg-primary" : "bg-border"}`} />
@@ -283,7 +283,7 @@ function Stage({
         />
       </div>
 
-      <p className="shrink-0 text-center text-[11px] text-muted-foreground">
+      <p data-game-controls="status" className="shrink-0 text-center text-[11px] text-muted-foreground">
         {phase === "show"
           ? "Memorise the grid"
           : phase === "hide"

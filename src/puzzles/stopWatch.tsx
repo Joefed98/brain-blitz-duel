@@ -280,7 +280,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
       tabIndex={0}
       aria-label="Stop the marker"
       onPointerDown={handleTap}
-      className="flex min-h-0 flex-1 flex-col items-center justify-center gap-7"
+      data-stage-column="7" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-7"
     >
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
         Watch {Math.min(cursor.index + 1, watches.length)} / {watches.length}

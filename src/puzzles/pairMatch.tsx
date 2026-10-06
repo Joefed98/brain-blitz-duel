@@ -175,8 +175,8 @@ function Stage({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-      <div className="w-full max-w-[340px]">
+    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+      <div data-game-arena="fixed" className="w-full max-w-[340px]">
         <Board
           cards={data.cards}
           faceUp={new Set(open)}
@@ -186,7 +186,7 @@ function Stage({
           onCard={open.length >= 2 ? undefined : tap}
         />
       </div>
-      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+      <p data-game-controls="status" className="shrink-0 text-center font-mono text-xs text-muted-foreground">
         pairs {replay.pairs} / {PAIR_PAIRS} · flips {replay.flips}
       </p>
     </div>

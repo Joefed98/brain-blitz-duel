@@ -302,7 +302,7 @@ export function WordHuntPuzzle({
   }, [finish, tapCell]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           points <span className="text-primary">{points}</span>
@@ -311,7 +311,7 @@ export function WordHuntPuzzle({
       </div>
 
       <div
-        className={`flex min-h-0 flex-1 flex-col items-center rounded-xl transition-colors duration-150 ${
+        data-game-arena="word" className={`flex min-h-0 flex-1 flex-col items-center rounded-xl transition-colors duration-150 ${
           flash === "good" ? "bg-ok/25" : flash === "bad" ? "bg-warn/25" : "bg-transparent"
         }`}
       >
@@ -330,7 +330,7 @@ export function WordHuntPuzzle({
         </div>
       </div>
 
-      <p className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>
+      <p data-game-controls="status" className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>
 
       <button
         type="button"

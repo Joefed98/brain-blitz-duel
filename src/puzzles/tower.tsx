@@ -200,12 +200,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   if (!isTower) return null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         moves <span className="text-primary">{replay.moves}</span>
       </p>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+      <div data-game-arena="tall" className="flex min-h-0 flex-1 items-center justify-center">
         <Pegs
           pegs={replay.pegs}
           discs={discs}

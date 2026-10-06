@@ -143,9 +143,9 @@ function Stage({
   };
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2 px-3">
+    <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2 px-3">
       <Board grid={replay.grid} fluid />
-      <div className="flex shrink-0 items-center gap-2">
+      <div data-game-controls="colours" className="flex shrink-0 items-center gap-2">
         {Array.from({ length: FLOOD_COLOURS }, (_, colour) => (
           <button
             key={colour}
@@ -157,7 +157,7 @@ function Stage({
           />
         ))}
       </div>
-      <div className="flex shrink-0 items-center gap-3">
+      <div data-game-controls="status" className="flex shrink-0 items-center gap-3">
         <span className="font-mono text-xs text-muted-foreground">
           Moves: {replay.moves}
         </span>

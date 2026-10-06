@@ -348,12 +348,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   };
 
   return (
-    <div className="spot-difference-stage flex min-h-0 flex-1 flex-col items-center gap-2">
+    <div data-stage-column="2" className="spot-difference-stage flex min-h-0 flex-1 flex-col items-center gap-2">
       <p className="shrink-0 font-mono text-sm uppercase tracking-widest text-primary">
         {foundGroups.length} / {total} found
       </p>
       <div
-        className={`flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card ${
+        data-game-arena="tall" className={`flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card ${
           wrong !== null ? "animate-shake" : ""
         }`}
       >

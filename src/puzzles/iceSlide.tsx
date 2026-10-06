@@ -302,13 +302,13 @@ function Stage({
   if (!data) return null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         moves <span className="text-primary">{replay.moves}</span>
         {replay.falls > 0 ? ` · ${replay.falls} fall${replay.falls === 1 ? "" : "s"}` : ""}
       </p>
       <div
-        className="flex min-h-0 flex-1 items-center justify-center touch-none rounded-lg transition-colors"
+        data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center touch-none rounded-lg transition-colors"
         style={{
           touchAction: "none",
           backgroundColor: flash ? "color-mix(in srgb, var(--warn) 35%, transparent)" : undefined,

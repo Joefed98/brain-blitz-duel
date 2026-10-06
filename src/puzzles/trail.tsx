@@ -273,7 +273,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     <div
       ref={box}
       data-play-area
-      className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 pt-1 select-none"
+      data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 pt-1 select-none"
       style={NO_TOUCH}
     >
       <p className="shrink-0 font-mono text-sm text-muted-foreground">

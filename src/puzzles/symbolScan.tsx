@@ -172,7 +172,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
   };
 
   return (
-    <div ref={stageRef} className="flex min-h-0 flex-1 flex-col items-center">
+    <div ref={stageRef} data-stage-column="0" className="flex min-h-0 flex-1 flex-col items-center">
       <div ref={topRef} className="flex w-full shrink-0 flex-col items-center gap-2">
         <StageProgress stage={stage} />
         <div className="flex items-center gap-3">
@@ -185,7 +185,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
         </div>
       </div>
 
-      <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden pt-2">
+      <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden pt-2">
         <div
           className="grid shrink-0 gap-1"
           style={{ width: gridSide, height: gridSide, gridTemplateColumns: `repeat(${current.cols}, minmax(0, 1fr))` }}
@@ -208,7 +208,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
         type="button"
         onClick={() => !frozen && advance(selections)}
         disabled={frozen}
-        className="tap-target mt-3 w-full shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
+        data-game-controls="actions" className="tap-target mt-3 w-full shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
       >
         Submit
       </button>

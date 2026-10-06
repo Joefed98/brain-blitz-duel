@@ -189,8 +189,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
+      <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <SudokuGrid
           values={grid}
           tones={tones}
@@ -199,7 +199,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           onSelect={locked ? undefined : (cell) => setSelected(cell)}
         />
       </div>
-      <div className="flex shrink-0 flex-col gap-2">
+      <div data-game-controls="numbers" className="flex shrink-0 flex-col gap-2">
         <div className="grid grid-cols-6 gap-1.5">
           {DIGITS.map((digit) => (
             <button

@@ -145,14 +145,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   if (!data) return null;
   const gold = new Set(found.flatMap((f) => f.cells));
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1">
       <div className="flex shrink-0 flex-col items-center">
         <p className="font-display text-xl font-bold leading-tight text-foreground">{data.category}</p>
         <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           <span className="text-primary">{found.length}</span> / {total} found
         </p>
       </div>
-      <div className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
+      <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
         <div style={{ width: "min(100cqw, 100cqh)", aspectRatio: "1 / 1" }}>
           <Grid grid={data.grid} size={size} gold={gold} live={new Set(line)} bad={new Set(bad)} pointer={pointer} />
         </div>

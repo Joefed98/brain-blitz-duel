@@ -574,13 +574,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   const splitterPlaced = placed.filter((piece) => isSplitter(piece.kind)).length;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         mirrors <span className="text-primary">{mirrorsPlaced}</span> / {total}
         {splitterTotal > 0 ? <> · splitter <span className="text-opponent">{splitterPlaced}</span> / {splitterTotal}</> : null}
       </p>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+      <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <LaserBoard
           source={source}
           dir={dir}
@@ -600,7 +600,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
         />
       </div>
 
-      <div className="flex shrink-0 items-center justify-center gap-2">
+      <div data-game-controls="pieces" className="flex shrink-0 items-center justify-center gap-2">
         {(["/", ...(splitterTotal > 0 ? ["S-"] : [])] as MirrorKind[]).map((kind) => {
           const left = isSplitter(kind) ? splitterTotal - splitterPlaced : total - mirrorsPlaced;
           return (
@@ -633,7 +633,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
         </Button>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div data-game-controls="actions" className="flex shrink-0 items-center gap-2">
         <Button
           type="button"
           disabled={locked || solved || firesLeft === 0 || Boolean(shot)}

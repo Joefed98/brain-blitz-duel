@@ -348,7 +348,7 @@ export function BlockPartyPuzzle({
   const trayCell = Math.min(boardCell * 0.75, trayCellCapacity);
 
   return (
-    <div ref={layoutRef} className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">
+    <div ref={layoutRef} data-stage-column="2" className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex shrink-0 items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           covered <span className="text-primary">{covered}</span> / {BLOCK_FREE_CELLS}
@@ -356,7 +356,7 @@ export function BlockPartyPuzzle({
         <span className="text-[10px]">tap to rotate</span>
       </div>
 
-      <div className="flex shrink-0 justify-center">
+      <div data-game-arena="fixed" className="flex shrink-0 justify-center">
         <BlockBoard
           blockers={puzzle.blockers}
           placements={placed}

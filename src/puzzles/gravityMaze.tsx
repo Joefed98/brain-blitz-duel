@@ -178,13 +178,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         tilts <span className="text-primary">{replay.tilts}</span> · locked{" "}
         <span className="text-primary">{replay.locked} / 4</span>
       </p>
 
-      <div ref={boardSpaceRef} className="flex min-h-0 flex-1 items-center justify-center">
+      <div ref={boardSpaceRef} data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         {boardSpace ? (
           <Board
             data={data}

@@ -278,7 +278,7 @@ function Stage({
     .map((action) => action.slice(1) as "A" | "B");
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="shrink-0 rounded-xl border border-border bg-card p-2">
         {puzzle.rules.map((rule, index) => (
           <p key={rule.id} className="text-[14px] leading-snug">
@@ -288,7 +288,7 @@ function Stage({
         ))}
       </div>
 
-      <div className="flex min-h-0 flex-1">
+      <div data-game-arena="board" className="flex min-h-0 flex-1">
         <Panel
           wires={puzzle.wires}
           buttons={puzzle.buttons}
@@ -302,7 +302,7 @@ function Stage({
         />
       </div>
 
-      <div className="flex shrink-0 items-center justify-between">
+      <div data-game-controls="actions" className="flex shrink-0 items-center justify-between">
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           steps <span className="text-primary">{actions.length}</span> / {BOMB_MAX_SEQUENCE}
         </p>

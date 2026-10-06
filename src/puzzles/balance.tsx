@@ -240,7 +240,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   return (
     <div
       ref={root}
-      className="flex min-h-0 w-full flex-1 flex-col items-center gap-3"
+      data-stage-column="3" className="flex min-h-0 w-full flex-1 flex-col items-center gap-3"
       style={NO_SCROLL_STYLE}
     >
       {progressTarget && createPortal(

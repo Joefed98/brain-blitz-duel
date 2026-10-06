@@ -196,8 +196,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center gap-1">
-      <div ref={boardSpace} className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+    <div data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1">
+      <div ref={boardSpace} data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
       <div
         className="grid shrink-0 rounded-xl border-2 border-border bg-card p-1"
         style={{ gridTemplateColumns: `repeat(${TG_SIZE}, ${cellSize}px)`, gap: GAP }}
@@ -234,7 +234,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       <div onClick={(event) => {
         if (selected === null || event.target !== event.currentTarget || placed.indexOf(selected) < 0) return;
         returnToTray(selected);
-      }} className="flex h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5 [@media(max-height:700px)]:h-[102px]">
+      }} data-game-controls="tray" className="flex h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5 [@media(max-height:700px)]:h-[102px]">
         {inTray.map((tile) => (
           <span
             key={tile}
@@ -246,7 +246,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           </span>
         ))}
       </div>
-      <div className="flex w-[318px] shrink-0 items-center gap-2">
+      <div data-game-controls="actions" className="flex w-[318px] shrink-0 items-center gap-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           placed <span className="text-primary">{goodCells.size}</span> / {TG_TILES}
         </span>
