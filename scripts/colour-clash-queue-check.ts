@@ -50,15 +50,15 @@ for (let seed = 1; seed <= SEEDS; seed++) {
   check(rep.score === colourClashQueueGame.score(s) && rep.correct === CLASH_QUEUE && rep.finished, `seed ${seed}: server replay differs ${JSON.stringify({rs: rep.score, s: colourClashQueueGame.score(s), rc: rep.correct, f: rep.finished, reason: rep.reason, ev: events.length, d: rep.inputDiag})}`);
   // Idle run: unchanged pattern, events, fall speeds; stops spawning at N and ends at 60 s.
   let q = colourClashQueueGame.init(seed), l = colourClashGame.init(seed);
-  while (q.tick < CLASH_RUN_TICKS) {
+  while (q.tick < CLASH_RUN_TICKS && !colourClashQueueGame.isOver(q)) {
     q = colourClashQueueGame.step(q, null); l = colourClashGame.step(l, null);
     const n = Math.min(q.items.length, l.items.length);
     if (q.tick % 60 === 0 || q.tick === CLASH_RUN_TICKS) check(JSON.stringify(q.items.slice(0, n)) === JSON.stringify(l.items.slice(0, n)), "item pattern changed");
     check(q.items.length <= CLASH_QUEUE, "spawned past queue");
-    if (q.tick === 2880) idleSorted48.push(q.correct + q.wrong);
   }
   check(q.items.every((item) => item.fallTicks === clashFallTicks(item.spawn)), "fall speed changed");
-  check(q.ended === 1, "did not end at 60 s");
+  check(q.ended === 1 && q.items.length === CLASH_QUEUE, "idle run did not end");
+  idleSorted48.push(q.finishTick || CLASH_RUN_TICKS);
   check(colourClashQueueGame.score(q) === clashQueueScoreOf(q.correct, q.wrong, CLASH_QUEUE, q.finishTick), "idle score");
   // Legacy identity: open-stream rounds replay exactly as the previous sim.
   if (old) {
@@ -72,4 +72,4 @@ for (let seed = 1; seed <= SEEDS; seed++) {
     check(old.score(a) === colourClashGame.score(b2), "legacy score");
   }
 }
-console.log(`Colour Clash queue: ${SEEDS}/${SEEDS} seeds passed; N=${CLASH_QUEUE}; strong finish ${(finishMin / 60).toFixed(2)}–${(finishMax / 60).toFixed(2)} s; idle sorted by 48 s ${Math.min(...idleSorted48)}–${Math.max(...idleSorted48)}; half-time anchor 140; legacy identity ${legacyPath ? `${SEEDS}/${SEEDS}` : "skipped"}`);
+console.log(`Colour Clash queue: ${SEEDS}/${SEEDS} seeds passed; N=${CLASH_QUEUE}; strong finish ${(finishMin / 60).toFixed(2)}–${(finishMax / 60).toFixed(2)} s; no-drop finish ${(Math.min(...idleSorted48) / 60).toFixed(2)}–${(Math.max(...idleSorted48) / 60).toFixed(2)} s; half-time anchor 140; legacy identity ${legacyPath ? `${SEEDS}/${SEEDS}` : "skipped"}`);
