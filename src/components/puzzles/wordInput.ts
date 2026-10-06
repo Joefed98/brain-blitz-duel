@@ -1,7 +1,7 @@
 import type { GridGeometry } from "./GridDrag";
 
 /** Coordinate recordings made before these control-layout changes cannot replay. */
-export const REVISED_PUZZLE_DEMOS = new Set(["wordsmith", "maze", "rings", "flood"]);
+export const REVISED_PUZZLE_DEMOS = new Set(["wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood"]);
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
   if (!REVISED_PUZZLE_DEMOS.has(type)) return true;

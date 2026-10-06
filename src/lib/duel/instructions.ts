@@ -17,7 +17,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Words must be at least 4 letters. Use each letter once.", detail: "There's always a nine-letter word." },
       { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine." },
-      { action: "Tap or drag through letters", detail: "then Submit, tap the word box or press Enter." },
+      { action: "Tap letters in order", detail: "Tap a selected letter again to remove it. Clear empties the word; Enter checks it." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
     score: "Longer words score more; find the nine-letter word for 15. Round score = floor(2.5 × word points), up to 150.",
