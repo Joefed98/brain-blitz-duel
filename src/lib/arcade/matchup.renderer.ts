@@ -4,6 +4,7 @@
  * each colour keeps its own cut so shapes stay distinguishable.
  */
 import type { CanvasSize } from "./engine";
+import type { SoundId } from "@/lib/fx/manifest";
 import {
   matchupFindSwap, matchupGame, matchupIndex, matchupShowHint, matchupTransform,
   MATCHUP_BOARD_H, MATCHUP_BOARD_W, MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOMB, MATCHUP_CELL_PX,
