@@ -104,6 +104,8 @@
   --category-accent: var(--category-logic);
   --puzzle-surface: oklch(0.205 0.012 285);
   --puzzle-edge: oklch(0.36 0.014 285);
+  --wordsmith-paper: oklch(0.93 0.005 285);
+  --wordsmith-ink: oklch(0.16 0.012 285);
   --puzzle-given: oklch(0.265 0.014 285);
   --puzzle-selected-shadow: 0 0 7px color-mix(in oklab, var(--primary) 22%, transparent);
   --puzzle-path-shadow: 0 0 2px currentColor;
@@ -303,43 +305,42 @@ body.game-lock {
 .wordsmith-ring { container-type: inline-size; }
 .wordsmith-ring-tile {
   position: absolute;
-  width: 24%;
-  height: 24%;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   padding: 0;
-  transform: translate(-50%, -50%);
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 52px;
   font-weight: 700;
   border: 0;
-  background: var(--puzzle-surface);
-  color: var(--foreground);
+  border-radius: 0;
+  background: var(--wordsmith-paper);
+  color: var(--wordsmith-ink);
   isolation: isolate;
   opacity: 1 !important;
 }
-.wordsmith-ring-outer {
-  border-radius: 0;
-  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
-  background: var(--puzzle-edge);
-}
-.wordsmith-ring-outer::before {
-  content: "";
+.wordsmith-ring-letter {
   position: absolute;
-  inset: 1px;
-  z-index: -1;
-  clip-path: inherit;
-  background: var(--puzzle-surface);
+  transform: translate(-50%, -50%);
+  line-height: 1;
+  pointer-events: none;
 }
-.wordsmith-ring-centre { border-radius: 50%; background: var(--primary); color: var(--primary-foreground); }
-.wordsmith-ring-used { background: var(--primary); color: var(--primary-foreground); }
-.wordsmith-ring-used::before { background: var(--primary); }
+.wordsmith-ring-centre, .wordsmith-ring-centre:hover { background: var(--category-accent); color: var(--accepted-word-foreground); }
+.wordsmith-ring-outer:hover { background: var(--wordsmith-paper); color: var(--wordsmith-ink); }
+.wordsmith-ring-used, .wordsmith-ring-used:hover { background: var(--primary); color: var(--wordsmith-ink); }
+.wordsmith-ring-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.wordsmith-ring-lines polygon, .wordsmith-ring-lines line { fill: none; stroke: var(--wordsmith-ink); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .wordsmith-ring-tile:focus-visible { outline: 2px solid var(--foreground); outline-offset: -4px; }
 .wordsmith-ring-tile:disabled { cursor: default; }
-.wordsmith-ring-example .wordsmith-ring-tile { font-size: 16px; }
+.wordsmith-ring-example .wordsmith-ring-tile { font-size: 32px; }
 .puzzle-secondary-control { height: 44px; min-width: 44px; padding: 0; border-radius: var(--puzzle-action-radius); }
 .puzzle-secondary-control svg { width: 20px; height: 20px; }
 .sudoku-grid { position: relative; }
-.sudoku-box-outline { position: absolute; pointer-events: none; inset: 0; width: 100%; height: 100%; z-index: 5; }
-.sudoku-box-outline path { fill: none; stroke: var(--foreground); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.sudoku-grid.sudoku-grid > button { border-radius: 0 !important; box-shadow: none !important; }
+.sudoku-box-top { border-top: 3px solid var(--foreground); }
+.sudoku-box-left { border-left: 3px solid var(--foreground); }
+.sudoku-box-bottom { border-bottom: 3px solid var(--foreground); }
+.sudoku-box-right { border-right: 3px solid var(--foreground); }
 @keyframes accepted-word-fade {
   0%, 100% { opacity: 0; }
   12%, 80% { opacity: 1; }

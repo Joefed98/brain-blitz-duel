@@ -52,13 +52,14 @@ function Board({
     <div
       ref={pointer?.ref}
       {...(pointer ? pointer.handlers : {})}
-      className="grid w-full shrink-0 select-none"
+      className="shikaku-board grid w-full shrink-0 select-none overflow-hidden"
       style={{
         ...(pointer?.handlers.style ?? {}),
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
         aspectRatio: `${size} / ${rows}`,
         gap: small ? 1 : 2,
+        containerType: "inline-size",
       }}
     >
       {Array.from({ length: size * rows }, (_, cell) => (
@@ -89,12 +90,12 @@ function Board({
       {[...clueAt].map(([cell, n]) => (
         <span
           key={`n${cell}`}
-          className={`pointer-events-none flex items-center justify-center font-mono font-bold text-foreground ${
-            small ? "text-xs" : "text-lg"
-          }`}
-          style={{ gridRow: Math.floor(cell / size) + 1, gridColumn: (cell % size) + 1, zIndex: 3 }}
+          className="shikaku-clue pointer-events-none flex min-h-0 min-w-0 items-center justify-center overflow-hidden font-mono font-bold leading-none text-foreground"
+          style={{ gridRow: Math.floor(cell / size) + 1, gridColumn: (cell % size) + 1, zIndex: 3,
+            fontSize: small ? `clamp(12px, calc((100cqw - ${size - 1}px) / ${size} * 0.8), 20px)` : undefined,
+          }}
         >
-          {n}
+          <span className={small ? "leading-none" : "text-lg"}>{n}</span>
         </span>
       ))}
     </div>
@@ -195,11 +196,11 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <div className="flex w-full justify-center gap-3">
-        <div className="flex flex-1 flex-col items-center gap-1" style={{ maxWidth: 170 }}>
+        <div className="flex min-w-0 flex-1 flex-col items-center gap-1" style={{ maxWidth: 170 }}>
           <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
           <Board size={puzzle.size} clues={puzzle.clues} rects={puzzle.solution ?? []} small />
         </div>
-        <div className="flex flex-1 flex-col items-center gap-1" style={{ maxWidth: 170 }}>
+        <div className="flex min-w-0 flex-1 flex-col items-center gap-1" style={{ maxWidth: 170 }}>
           <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
           <Board size={puzzle.size} clues={puzzle.clues} rects={mine} small />
         </div>

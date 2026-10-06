@@ -21,10 +21,10 @@ function boxEdges(cell: number): string {
   const row = Math.floor(cell / SUDOKU_COLS);
   const col = cell % SUDOKU_COLS;
   const classes = ["border-border/60"];
-  classes.push(row % SUDOKU_BOX_ROWS === 0 ? "border-t-2 border-t-border" : "border-t");
-  classes.push(col % SUDOKU_BOX_COLS === 0 ? "border-l-2 border-l-border" : "border-l");
-  if (row === SUDOKU_COLS - 1) classes.push("border-b-2 border-b-border");
-  if (col === SUDOKU_COLS - 1) classes.push("border-r-2 border-r-border");
+  classes.push(row % SUDOKU_BOX_ROWS === 0 ? "sudoku-box-top" : "border-t");
+  classes.push(col % SUDOKU_BOX_COLS === 0 ? "sudoku-box-left" : "border-l");
+  if (row === SUDOKU_COLS - 1) classes.push("sudoku-box-bottom");
+  if (col === SUDOKU_COLS - 1) classes.push("sudoku-box-right");
   return classes.join(" ");
 }
 
@@ -102,9 +102,6 @@ function SudokuGrid({
           </button>
         );
       })}
-      <svg className="sudoku-box-outline" viewBox="0 0 6 6" aria-hidden="true">
-        <path d="M 0 0 H 6 V 6 H 0 Z M 3 0 V 6 M 0 2 H 6 M 0 4 H 6" />
-      </svg>
     </div>
   );
 }

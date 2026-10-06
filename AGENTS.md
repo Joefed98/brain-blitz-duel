@@ -28,7 +28,7 @@
 - TimerBar is the only countdown: accent ring in its existing 20px slot; PhoneShell owns 4px side safety; why: preserve board space.
 - Memory stays out of room settings/draws; practice uses allTypesInCategory to retain its games.
 - Retire types via RETIRED_TYPES; why: room draws filter it, practice does not.
-- Logic grids use container sizing; Shikaku/Light Up prove uniqueness. Flood draws a private bank built by retrying exact in-band par proofs; no fallback.
+- Logic grids use container sizing and cell-owned strokes/clipped labels; Shikaku/Light Up prove uniqueness. Flood draws a private bank with exact in-band par proofs; no fallback. Why: aligned geometry.
 - Square puzzle arenas use container-sized squares and SVG viewBoxes with coordinate conversion for scaled input; why: boards must remain centred, square and correctly tappable at every arena size.
 - The answer reveal shows only the server-stored round score (AnswerReveal's StoredScore, "Scoring…" until it lands); puzzle Reveals must never compute or print a score; scripts/reveal-score-check.tsx guards this. Why: local maths drifted from server scoring.
 - RoundIntro exposes Back only in practice; its practice callback cancels the intro and clears run state without grading. Why: leaving an intro must not create results or affect rooms.
@@ -39,4 +39,4 @@
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
 - Scenery stays in renderers; why: separate art from gameplay.
 
-- PhoneShell shares puzzle paint; WordsmithRing shares live/example tiles; wordInput owns strict hit/toggle helpers; why: consistent UI without grader changes.
+- PhoneShell shares puzzle paint; WordsmithRing shares live/intro/reveal polygons; wordInput owns hit/toggle helpers; why: consistent UI without grader changes.
