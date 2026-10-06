@@ -851,3 +851,20 @@ export const orbitGame: ArcadeGame<OrbitState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: ORBIT_INPUT_RANGES,
 };
+
+/**
+ * Dev-only practice jump: the seeded course's init state moved to orbit planet
+ * `planet` (1-based). Never used by rooms, grading or replay.
+ */
+export function orbitDevStart(state: OrbitState, planet: number): OrbitState {
+  const index = clampInt(Math.trunc(planet) - 1, 0, ORBIT_TOTAL - 1);
+  if (index === 0) return state;
+  const p = state.planets[index]!;
+  const angle = 3 * ANG_QUARTER;
+  const pos = orbitPos(p, angle);
+  return { ...state, cur: index, best: index, angle, x: pos.x, y: pos.y, camY: p.y - VIEW_ANCHOR };
+}
+/** 1-based planets carrying an asteroid belt on this course. */
+export function orbitBeltPlanets(state: Pick<OrbitState, "planets">): number[] {
+  return state.planets.flatMap((p, i) => (p.hazard >= 0 ? [i + 1] : []));
+}
