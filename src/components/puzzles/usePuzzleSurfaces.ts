@@ -8,6 +8,9 @@ export function applyPuzzleSurfaces(root: HTMLElement, type: string) {
       if (node.getAttribute(name) !== value) node.setAttribute(name, value);
     };
       const candidates = root.querySelectorAll<HTMLElement>("button, [data-cell], [data-pointer-index], [data-np-cell], .grid > div, .grid > span, .grid > button, .rounded-md.font-mono, .rounded-lg.font-display");
+      for (const ghost of root.querySelectorAll<HTMLElement>("[data-puzzle-ghost]")) {
+        if (!(ghost.style.pointerEvents === "none" && ghost.style.zIndex === "40") && !ghost.classList.contains("fixed")) ghost.removeAttribute("data-puzzle-ghost");
+      }
       const cells: HTMLElement[] = [];
       for (const node of candidates) {
         if (node.closest("[role='dialog'], .screen-background") || node.closest("button") !== null && node.tagName !== "BUTTON") continue;
