@@ -200,7 +200,7 @@ function drawCar(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number
   ctx.restore();
 }
 
-export function drawJunctionArt(ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize): void {
+export function drawJunctionArt(ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize, crashIndicator = true): void {
   const scale = Math.min(size.width / JUNC_WORLD_W, size.height / JUNC_WORLD_H);
   const ox = (size.width - JUNC_WORLD_W * scale) / 2;
   const oy = (size.height - JUNC_WORLD_H * scale) / 2;
@@ -260,7 +260,7 @@ export function drawJunctionArt(ctx: CanvasRenderingContext2D, state: JuncState,
     ctx.fillText("HONK", lx, ly - 18);
   }
 
-  if (state.ended === 2) {
+  if (state.ended === 2 && crashIndicator) {
     let at = crashSeen.get(ctx);
     if (at === undefined) {
       at = realNow();
@@ -296,4 +296,5 @@ export function drawJunctionArt(ctx: CanvasRenderingContext2D, state: JuncState,
 }
 
 export const junctionArtGame = { ...junctionGame, draw: drawJunctionArt };
+export const junctionRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize) => drawJunctionArt(ctx, state, size, false) };
 export const JUNC_ART_BG = REAL_GRASS_DARK;

@@ -37,8 +37,11 @@ const CAP_H = 8;
 function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize): void {
   retroScreen(ctx, size, HOVER_WORLD_W, HOVER_WORLD_H, "fit", (c) => drawWorld(c, state));
 }
+function drawReveal(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize): void {
+  retroScreen(ctx, size, HOVER_WORLD_W, HOVER_WORLD_H, "fit", (c) => drawWorld(c, state, false));
+}
 
-function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState): void {
+function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndicator = true): void {
   const bloom = retroBloom();
   const discLeft = HOVER_DISC_X - HOVER_DISC_R;
   const width = px(HOVER_PILLAR_W);
@@ -58,10 +61,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState): void {
     drawPipe(ctx, left, bottom, width, HOVER_WORLD_H - bottom, colour, bloom, flash, "top");
   });
 
-  drawSaucer(ctx, state);
+  drawSaucer(ctx, state, crashIndicator);
   retroReadout(ctx, 10, 10, `GATES ${state.gates}/${state.totalGates}`, RETRO_WHITE);
 
-  if (state.crashed) {
+  if (state.crashed && crashIndicator) {
     ctx.fillStyle = "rgba(255,59,92,0.2)";
     ctx.fillRect(0, 0, HOVER_WORLD_W, HOVER_WORLD_H);
   }
@@ -95,7 +98,7 @@ function drawPipe(
 }
 
 /** Saucer drawn in 2 px blocks, every block inside the sim's disc. */
-function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState): void {
+function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState, crashIndicator: boolean): void {
   const cx = px(HOVER_DISC_X);
   const cy = px(state.y);
   const r = px(HOVER_DISC_R);
@@ -109,12 +112,12 @@ function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState): void {
   }
   const t = retroClock();
   const blink = Math.floor(t / 160) % 3;
-  const body = state.crashed ? RETRO_RED : SAUCER;
+  const body = state.crashed && crashIndicator ? RETRO_RED : SAUCER;
   pixelShape(ctx, cx, cy, r, 2, (dx, dy) => {
     if (dx * dx + dy * dy > r * r) return null;
     // Dome above the hull.
     const domeY = dy + r * 0.1;
-    if (domeY < 0 && dx * dx + domeY * domeY <= (r * 0.5) ** 2) return state.crashed ? RETRO_RED : DOME;
+    if (domeY < 0 && dx * dx + domeY * domeY <= (r * 0.5) ** 2) return state.crashed && crashIndicator ? RETRO_RED : DOME;
     // Flat hull ellipse.
     const ey = (dy - r * 0.2) / (r * 0.38);
     const ex = dx / r;
@@ -128,3 +131,5 @@ function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState): void {
 }
 
 export const hoverArtGame: ArcadeGame<HoverState> = { ...hoverGame, draw };
+/** Preserve the actual final state and live death art, but omit the reveal's red indicator. */
+export const hoverRevealGame = { draw: drawReveal };

@@ -128,7 +128,7 @@ function drawCrane(ctx: CanvasRenderingContext2D, trolleyX: number, tick: number
   void tick;
 }
 
-export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize): void {
+export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize, crashIndicator = true): void {
   const scale = Math.min(size.width / SKYLINE_WORLD_W, size.height / SKYLINE_WORLD_H);
   const offsetX = (size.width - SKYLINE_WORLD_W * scale) / 2;
   const offsetY = (size.height - SKYLINE_WORLD_H * scale) / 2;
@@ -239,7 +239,7 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
   ctx.textAlign = "left";
   ctx.fillText(`Blocks ${state.placed}`, 12, 12);
 
-  if (state.missed) {
+  if (state.missed && crashIndicator) {
     ctx.fillStyle = "rgba(229, 72, 77, 0.18)";
     ctx.fillRect(0, 0, SKYLINE_WORLD_W, SKYLINE_WORLD_H);
   }
@@ -247,4 +247,5 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
 }
 
 export const skylineArtGame = { ...skylineGame, draw: drawSkylineArt };
+export const skylineRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize) => drawSkylineArt(ctx, state, size, false) };
 export const SKYLINE_ART_BG = REAL_NIGHT_BG;

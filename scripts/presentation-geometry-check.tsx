@@ -16,8 +16,10 @@ const backdrop = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8").sp
 assert.match(backdrop, /const ring = outcome === "finish" \? "var\(--me\)" : null/);
 assert.doesNotMatch(backdrop, /outcome === "crash"|var\(--warn\)/);
 assert.match(backdrop, /<circle[\s\S]*<rect/); // finish position and fallback retained
-assert.match(css, /font-size: 52px/);
-assert.match(css, /wordsmith-ring-example[^}]*font-size: 32px/);
+assert.match(css, /font-size: 104px/);
+assert.match(css, /wordsmith-ring-example[^}]*font-size: 64px/);
+assert.match(css, /--wordsmith-paper: var\(--background\)/);
+assert.match(css, /wordsmith-ring-lines line[^}]*stroke: var\(--wordsmith-outline\)/);
 assert.match(css, /sudoku-grid\.sudoku-grid > button[^}]*border-radius: 0 !important/);
 const parse = (s: string) => [...s.matchAll(/([\d.]+)% ([\d.]+)%/g)].map(m => [Number(m[1]), Number(m[2])]);
 const area = (p: number[][]) => Math.abs(p.reduce((sum, a, i) => {
@@ -87,7 +89,7 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
   assert.ok(font <= cell);
   assert.ok(font * 1.2 <= cell); // two mono digits, each approximately .6em
   rows.push(`| ArcadeReveal | ${width}x${height} | PASS source: crash marker absent; finish circles/fallback unchanged |`);
-  rows.push(`| Wordsmith | ${width}x${height} | PASS shared markup + geometry: regular outer/inner octagons, eight equal wedges, area conservation, nine controls, 52px live / 32px example/reveal letters |`);
+  rows.push(`| Wordsmith | ${width}x${height} | PASS shared markup + geometry: regular outer/inner octagons, eight equal wedges, area conservation, nine controls, 104px live / 64px example/reveal letters; near-black wedges, white letters/light outlines, gold selection and accent centre |`);
   rows.push(`| Mini Sudoku | ${width}x${height} | PASS live/intro/reveal: 36 equal-track cells; heavy strokes are borders of those exact cells, no overlay |`);
   rows.push(`| Shikaku | ${width}x${height} | PASS both individual grids and pair: clipped board/labels, equal tracks; ${pairedWidth}px grid, ${cell.toFixed(2)}px cells, ${font.toFixed(2)}px labels |`);
 }
