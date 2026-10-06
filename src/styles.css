@@ -840,6 +840,7 @@ body.game-lock {
 /* Shared puzzle surfaces: paint only, never board tracks or input geometry. */
 [data-puzzle-surface] [data-puzzle-cell] { border-radius: var(--puzzle-cell-radius, 6px) !important; box-shadow: inset 0 0 0 1px var(--puzzle-edge); letter-spacing: 0; }
 [data-puzzle-surface] [data-puzzle-cell="overlay"] { box-shadow: none; background: transparent; }
+[data-puzzle-surface] [data-puzzle-node][data-puzzle-state="active"] { box-shadow: inset 0 0 0 1px var(--category-accent); }
 [data-puzzle-surface] [data-puzzle-object] { border-radius: revert-layer !important; }
 [data-puzzle-surface] [data-puzzle-cell="standard"] { background-color: var(--puzzle-surface) !important; color: var(--foreground); }
 [data-puzzle-surface] [data-puzzle-cell="standard"][data-puzzle-state="active"] { background-color: var(--category-accent) !important; color: var(--background) !important; }

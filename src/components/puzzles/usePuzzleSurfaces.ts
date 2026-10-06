@@ -11,14 +11,21 @@ export function applyPuzzleSurfaces(root: HTMLElement, type: string) {
       for (const ghost of root.querySelectorAll<HTMLElement>("[data-puzzle-ghost]")) {
         if (!(ghost.style.pointerEvents === "none" && ghost.style.zIndex === "40") && !ghost.classList.contains("fixed")) ghost.removeAttribute("data-puzzle-ghost");
       }
+      // Scattered round nodes keep their shape and coordinates but share state edges.
+      for (const node of root.querySelectorAll<HTMLElement>(".rounded-full.font-mono, button.absolute.rounded-full")) {
+        if (!["numhunt", "chain", "bomb"].includes(type)) continue;
+        set(node, "data-puzzle-node", "true");
+        set(node, "data-puzzle-state", surfaceState(node.className));
+      }
       const cells: HTMLElement[] = [];
       for (const node of candidates) {
         if (node.closest("[role='dialog'], .screen-background") || node.closest("button") !== null && node.tagName !== "BUTTON") continue;
         const classes = node.className;
         const text = node.textContent?.trim() ?? "";
-        const command = node.tagName === "BUTTON" && PUZZLE_ACTIONS.test(text);
+        const actionName = PUZZLE_ACTIONS.test(text) ? text : node.getAttribute("aria-label") ?? "";
+        const command = node.tagName === "BUTTON" && PUZZLE_ACTIONS.test(actionName);
         if (command) {
-          set(node, "data-puzzle-action", PUZZLE_PRIMARY_ACTIONS.test(text) ? "primary" : "secondary");
+          set(node, "data-puzzle-action", PUZZLE_PRIMARY_ACTIONS.test(actionName) ? "primary" : "secondary");
           if (/^(undo|reset|restart|erase)$/i.test(text) && !node.querySelector("svg")) {
             set(node, "data-puzzle-icon", /undo/i.test(text) ? "undo" : /erase/i.test(text) ? "erase" : "reset");
             if (!node.hasAttribute("aria-label")) set(node, "aria-label", text);
