@@ -94,8 +94,8 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
     }
     const { withSeededRandom } = await import("./random");
     const { INTRO_EXAMPLE_ID, INTRO_EXAMPLE_SEED } = await import("./puzzleDemo");
-    const { generateWordsmith } = await import("./wordsmith.server");
-    const made = withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? generateWordsmith(9) : generatePuzzle(type, { unblockRow }));
+    const { generateWordsmithExample } = await import("./wordsmith.server");
+    const made = withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? generateWordsmithExample() : generatePuzzle(type, { unblockRow }));
     const { pub, priv } = splitPuzzle(made);
     return { puzzle: pub, sealed: await seal({ ...priv, __example: INTRO_EXAMPLE_ID }) };
   });

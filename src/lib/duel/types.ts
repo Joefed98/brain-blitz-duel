@@ -105,9 +105,13 @@ export const WORDSMITH_LETTERS = 9;
 export const WORDSMITH_SIZES = [8, 9, 10, 11] as const;
 /** Stable index preserves old rounds and the fixed nine-letter example. */
 export const WORDSMITH_CENTRE_INDEX = 4;
-/** A centre letter is only used when it allows this many valid words. */
-export const WORDSMITH_MIN_WORDS = 25;
-export const WORDSMITH_MAX_WORDS = 60;
+/** Inclusive possible-word bounds for each generated puzzle size. */
+export const WORDSMITH_WORD_RANGES = {
+  8: { min: 25, max: 60 },
+  9: { min: 30, max: 80 },
+  10: { min: 40, max: 100 },
+  11: { min: 50, max: 120 },
+} as const;
 /** Par is this share of every point available on the board. */
 export const WORDSMITH_PAR_SHARE = 0.35;
 const WORDSMITH_POINTS: Record<number, number> = { 4: 1, 5: 2, 6: 4, 7: 7, 8: 11, 9: 15 };

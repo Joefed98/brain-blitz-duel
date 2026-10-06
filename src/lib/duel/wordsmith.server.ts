@@ -11,9 +11,8 @@ import { scoreWordsmith } from "./scoring";
 import {
   WORDSMITH_CENTRE_INDEX,
   WORDSMITH_SIZES,
-  WORDSMITH_MAX_WORDS,
+  WORDSMITH_WORD_RANGES,
   WORDSMITH_MIN_LENGTH,
-  WORDSMITH_MIN_WORDS,
   WORDSMITH_PAR_SHARE,
   WORDSMITH_TIME_MS,
   wordsmithPoints,
@@ -88,9 +87,19 @@ function validWords(source: string, centre: string): string[] {
   return wordsFrom(source, WORDSMITH_MIN_LENGTH, true).filter((word) => word.includes(centre) && !isPluralForm(word));
 }
 
-/** Uniform size draw, then an answer-first pangram with 25–60 centre-using words. */
+/** Uniform size draw, then an answer-first pangram within the size's word-count band. */
 export function generateWordsmith(size: number = pick(WORDSMITH_SIZES)): WordsmithPuzzleData {
-  if (!WORDSMITH_SIZES.some((value) => value === size)) throw new Error("Unsupported Wordsmith size");
+  const supported = WORDSMITH_SIZES.find((value) => value === size);
+  if (supported === undefined) throw new Error("Unsupported Wordsmith size");
+  return generateWithinRange(supported, WORDSMITH_WORD_RANGES[supported]);
+}
+
+/** Preserve the exact seeded nine-letter practice/intro board under its original band. */
+export function generateWordsmithExample(): WordsmithPuzzleData {
+  return generateWithinRange(9, { min: 25, max: 60 });
+}
+
+function generateWithinRange(size: number, range: { readonly min: number; readonly max: number }): WordsmithPuzzleData {
   const bank = sourceWords(size);
   for (let attempt = 0; attempt < 200 && bank.length; attempt++) {
     const source = pick(bank);
@@ -98,7 +107,7 @@ export function generateWordsmith(size: number = pick(WORDSMITH_SIZES)): Wordsmi
     const all = wordsFrom(source, WORDSMITH_MIN_LENGTH, true).filter((word) => !isPluralForm(word));
     const centres = shuffled([...new Set(source.split(""))]).filter((centre) => {
       const n = all.filter((word) => word.includes(centre)).length;
-      return n >= WORDSMITH_MIN_WORDS && n <= WORDSMITH_MAX_WORDS;
+      return n >= range.min && n <= range.max;
     });
     const centre = centres[0];
     if (!centre) continue;
@@ -109,7 +118,7 @@ export function generateWordsmith(size: number = pick(WORDSMITH_SIZES)): Wordsmi
     if (isPluralForm(source)) continue;
     for (const centre of new Set(source)) {
       const valid = validWords(source, centre);
-      if (valid.length >= WORDSMITH_MIN_WORDS && valid.length <= WORDSMITH_MAX_WORDS) return build(source, centre, valid);
+      if (valid.length >= range.min && valid.length <= range.max) return build(source, centre, valid);
     }
   }
   throw new Error(`No qualifying Wordsmith pangram for ${size} letters`);
