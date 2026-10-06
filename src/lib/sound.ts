@@ -18,6 +18,7 @@
 import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
 
 const MUSIC_MUTE_KEY = "duelz_music_muted";
+const PUZZLE_ROUND_MUSIC_KEY = "duelz_puzzle_round_music";
 const MUTE_KEY = "duelz_muted";
 const MUSIC_KEY = "duelz_music_volume";
 const FX_KEY = "duelz_effects_volume";
@@ -93,6 +94,17 @@ export function setMusicMuted(next: boolean): void {
   try { window.localStorage.setItem(MUSIC_MUTE_KEY, next ? "1" : "0"); } catch { /* unavailable */ }
   if (!next) unlockAudio();
   applySettings(); announce();
+}
+/** Device-persisted opt-in for music in logic, word and number rounds (default off). */
+export function isPuzzleRoundMusicOn(): boolean {
+  if (typeof window === "undefined") return false;
+  try { return window.localStorage.getItem(PUZZLE_ROUND_MUSIC_KEY) === "1"; } catch { return false; }
+}
+export function setPuzzleRoundMusic(next: boolean): void {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(PUZZLE_ROUND_MUSIC_KEY, next ? "1" : "0"); } catch { /* unavailable */ }
+  if (next) unlockAudio();
+  announce();
 }
 export function musicVolume(): number {
   return readNumber(MUSIC_KEY, DEFAULT_MUSIC_VOLUME);

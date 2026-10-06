@@ -7,6 +7,8 @@ import {
   effectsVolume,
   isMuted,
   isMusicMuted,
+  isPuzzleRoundMusicOn,
+  setPuzzleRoundMusic,
   setMusicMuted,
   musicVolume,
   onSoundSettingsChange,
@@ -24,6 +26,7 @@ export function MuteToggle() {
   const [music, setMusic] = useState(DEFAULT_MUSIC_VOLUME);
   const [effects, setEffects] = useState(DEFAULT_EFFECTS_VOLUME);
   const [musicMuted, setLocalMusicMuted] = useState(false);
+  const [puzzleMusic, setLocalPuzzleMusic] = useState(false);
   const timer = useRef<number | null>(null);
   const longPressed = useRef(false);
 
@@ -31,6 +34,7 @@ export function MuteToggle() {
     const read = () => {
       setLocal(isMuted());
       setLocalMusicMuted(isMusicMuted());
+      setLocalPuzzleMusic(isPuzzleRoundMusicOn());
       setMusic(musicVolume());
       setEffects(effectsVolume());
     };
@@ -93,6 +97,9 @@ export function MuteToggle() {
       </Button>
       <Button variant="ghost" size="icon" title="Music" aria-label={musicMuted ? "Turn music on" : "Turn music off"} aria-pressed={musicMuted} onClick={() => setMusicMuted(!musicMuted)} className="press h-9 w-9 shrink-0 text-muted-foreground">
         <span aria-hidden="true">{musicMuted ? "♫̸" : "♫"}</span>
+      </Button>
+      <Button variant="ghost" size="icon" title="Music in puzzle rounds" aria-label={puzzleMusic ? "Turn puzzle-round music off" : "Turn puzzle-round music on"} aria-pressed={puzzleMusic} onClick={() => setPuzzleRoundMusic(!puzzleMusic)} className={`press h-9 w-9 shrink-0 ${puzzleMusic ? "text-foreground" : "text-muted-foreground"}`}>
+        <span aria-hidden="true">{puzzleMusic ? "♩" : "♩̸"}</span>
       </Button>
 
       {open && (
