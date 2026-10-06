@@ -527,7 +527,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The bin moves", detail: "further away every throw, and gets narrower from throw 4." },
       { action: "From throw 7 the bin slides", detail: "side to side - time your release." },
     ],
-    score: "10 per basket; all ten = 130 + up to 20 for time left.",
+    score: "10 per bucket; all ten = 130 + up to 20 for time left.",
   },
   bullseye: {
     goal: "Hit the centre - ten arrows.",
@@ -545,7 +545,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "From the fourth arrow the target moves - lead it.", detail: "It is scored where it is when the arrow lands." },
       { action: "From the seventh arrow the ring values swap places.", detail: "Read the numbers - each value keeps its colour." },
     ],
-    score: "clamp(floor(1.7 × ring total − 20), 0, 150). Unfired arrows add 0 to the ring total.",
+    score: "clamp(floor(1.7 × ring total − 20), 0, 150). Unfired darts add 0 to the ring total.",
   },
   matchup: {
     goal: "Make lines of three or more matching symbols.",
@@ -564,7 +564,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "You grow with every pellet", detail: "and you speed up." },
       { action: "Everyone gets", detail: "the same food in the same order." },
     ],
-    score: "5 points per pellet eaten, up to 150.",
+    score: "5 points per star eaten, up to 150.",
   },
   cross: {
     goal: "Get across the traffic as many times as you can.",
@@ -636,7 +636,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Cut 3+ discs in one swipe", detail: "one finger-down-to-up path counts together, even a curve or loop. First combo gives ×2, second gives ×3. Each combo resets 10 seconds; only expiry returns you to ×1." },
       { action: "Each swipe has a length limit", detail: "- curve it, but it stops after about three-quarters of the screen." },
     ],
-    score: "floor(235 × combo-weighted slices ÷ (3 × discs available)) −10 per bomb; capped at 150.",
+    score: "floor(235 × combo-weighted slices ÷ (3 × foods available)) −10 per chilli; capped at 150.",
   },
   bubble: {
     goal: "Pop the bubbles by matching three of a colour.",
@@ -704,7 +704,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "From wave 2, a grey armoured block", detail: "takes 6-12 hits - every hit counts." },
       { action: "Shoot the saucer", detail: "and catch its drop: 5 laser shots that pierce up to 3 enemies." },
     ],
-    score: "Points for shapes, armour hits, saucers and waves. Clearing wave 5 perfectly scores 150.",
+    score: "Points for ships, armour hits, saucers and waves. Clearing wave 5 perfectly scores 150.",
   },
   bastion: {
     goal: "Defend the base.",
@@ -776,7 +776,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Blue balls sometimes drop a teal SHIELD", detail: "- it takes the next hit for you." },
       { action: "Don't let a ball touch you", detail: "- three touches and you're out." },
     ],
-    score: "2 per ball popped or split, −9 per life lost. Clear four waves without losing a life for 150.",
+    score: "2 per invader destroyed or split, −9 per life lost. Clear four waves without losing a life for 150.",
   },
   orbit: {
     goal: "Reach the sun, choosing one planet as your checkpoint.",
@@ -794,7 +794,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Cut the last rope", detail: "and the sweet drops; the camera follows across the wider arena. Its walls bounce it without losing speed." },
       { action: "Don't let it settle on a ledge", detail: "or fly out the top or bottom - 10 levels, 12 s each." },
     ],
-    score: "10 per sweet fed, +3 for each level's single star; feed all ten for round(20 × time left ÷ 60 s). Cap 150.",
+    score: "10 per apple collected, +3 for each level's single leaf; collect all ten for round(20 × time left ÷ 60 s). Cap 150.",
   },
   swing: {
     goal: "Swing to the 500 m finish.",
@@ -867,7 +867,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a gold tube to turn it into a drop", detail: "- the bottom row is fixed, so send each ball down early…" },
       { action: "…the track's bottom row re-lays and the trays swap colours mid-round", detail: "- watch for both." },
     ],
-    score: "round(130 × balls home ÷ 30), plus round(20 × sim time left ÷ 60 s) only when all 30 are home. Cap 150. Wrong trays have no penalty.",
+    score: "round(130 × marbles home ÷ 30), plus round(20 × sim time left ÷ 60 s) only when all 30 are home. Cap 150. Wrong trays have no penalty.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",
