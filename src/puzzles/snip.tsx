@@ -9,7 +9,6 @@ import {
   snipGame,
   snipView,
   snipCamera,
-  drawSnip,
   unpackSnipCut,
   SNIP_CHECKPOINT_INTERVAL,
   SNIP_INPUT_CUT,
