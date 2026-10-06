@@ -44,8 +44,12 @@ export function applyPuzzleSurfaces(root: HTMLElement, type: string) {
         cells.push(node);
         set(node, "data-puzzle-cell", MEANINGFUL_SURFACE_GAMES.has(type) ? "meaningful" : "standard");
         // Never infer correctness or disable given-cell callbacks: the existing game owns both.
-        const given = node.hasAttribute("disabled") || (type === "sudoku" && /text-foreground/.test(classes)) || (type === "trail" && /bg-foreground/.test(classes));
-        set(node, "data-puzzle-state", surfaceState(classes, given));
+        const given = (type === "sudoku" && /text-foreground/.test(classes)) || (type === "trail" && /bg-foreground/.test(classes)) || (type === "numpyramid" && /bg-foreground/.test(classes));
+        const state = surfaceState(classes, given);
+        set(node, "data-puzzle-state", state);
+        // Number Pyramid's input overlay is transparent: never paint over its number below.
+        if (node.hasAttribute("data-np-cell")) set(node, "data-puzzle-cell", "overlay");
+        if (["tubes", "tower", "balance", "rings", "unblock", "blockparty"].includes(type)) set(node, "data-puzzle-object", "true");
         const rect = node.getBoundingClientRect();
         if (rect.width > 0 && rect.height > 0) node.style.setProperty("--puzzle-cell-radius", `${Math.min(8, Math.max(3, Math.min(rect.width, rect.height) * 0.14))}px`);
         if (/^\d+(?:\s*[+×−÷=]\s*\d+)*$/.test(text)) set(node, "data-puzzle-numeric", "true");
@@ -68,8 +72,8 @@ export function applyPuzzleSurfaces(root: HTMLElement, type: string) {
           }
         }
       }
-      for (const node of root.querySelectorAll<HTMLElement>("[style*='translate3d']")) {
-        if (node.style.pointerEvents !== "none" || node.style.zIndex !== "40") continue;
+      for (const node of root.querySelectorAll<HTMLElement>("[style*='translate3d'], .pointer-events-none.fixed.z-50.font-mono")) {
+        if (!(node.style.pointerEvents === "none" && node.style.zIndex === "40") && !node.classList.contains("fixed")) continue;
         const fresh = !node.hasAttribute("data-puzzle-ghost");
         set(node, "data-puzzle-ghost", "true");
         if (fresh) animateFx(node, "trail");
