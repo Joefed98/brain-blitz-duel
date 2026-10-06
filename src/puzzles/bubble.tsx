@@ -31,6 +31,8 @@ import {
   BUB_WORLD_W,
   type BubState,
 } from "@/lib/arcade/bubble";
+import { drawBubbleArt, drawBubbleAimTrail } from "@/lib/arcade/bubble.renderer";
+import { bubbleSounds } from "@/lib/fx/gameSounds";
 import { decodeBubbleRun, encodeBubbleRun, replayBubbleRun } from "@/lib/duel/bubble";
 import { ARCADE_CRASH_FREEZE_MS, type BubblePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -128,6 +130,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = bubbleSounds();
     let popped = state.current.popped;
 
     const finish = () => {
@@ -170,13 +173,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, bubbleGame.isOver(state.current));
       feedback(state.current, bubbleGame.isOver(state.current));
+      sounds.frame(state.current, !bubbleGame.isOver(state.current) && !lockedRef.current);
 
       frameTiming.draw();
       const size = sizeCanvas();
       const ctx = canvas.current?.getContext("2d");
       if (size && ctx) {
-        bubbleGame.draw(ctx, state.current, size);
-        drawAim(ctx, size);
+        drawBubbleArt(ctx, state.current, size);
+        drawBubbleAimTrail(ctx, size, aim.current, state.current);
       }
 
       frameTiming.rendered();
@@ -203,7 +207,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      sounds.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, data]);
 
@@ -224,43 +231,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     if (!ctx) return null;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     return { width, height };
-  };
-
-  /** Render only: the dotted path a release now would take, walls included. */
-  const drawAim = (ctx: CanvasRenderingContext2D, size: CanvasSize) => {
-    const shot = aim.current;
-    if (!shot || state.current.flightColour !== 0) return;
-    const scaleX = size.width / BUB_WORLD_W;
-    const scaleY = size.height / BUB_WORLD_H;
-    const left = BUB_WALL + BUB_R;
-    const right = BUB_WORLD_W - BUB_WALL - BUB_R;
-
-    ctx.save();
-    ctx.scale(scaleX, scaleY);
-    ctx.strokeStyle = "rgba(255,255,255,0.4)";
-    ctx.setLineDash([5, 6]);
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(BUB_SHOOTER_X, BUB_SHOOTER_Y);
-    let x = BUB_SHOOTER_X;
-    let y = BUB_SHOOTER_Y;
-    let vx = shot.vx / 64;
-    const vy = shot.vy / 64;
-    for (let stepIndex = 0; stepIndex < 160 && y > 0; stepIndex++) {
-      x += vx;
-      y += vy;
-      if (x < left) {
-        x = left + (left - x);
-        vx = -vx;
-      } else if (x > right) {
-        x = right - (x - right);
-        vx = -vx;
-      }
-      ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
   };
 
   const worldPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
