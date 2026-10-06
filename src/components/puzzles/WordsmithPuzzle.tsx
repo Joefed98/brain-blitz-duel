@@ -2,9 +2,10 @@ import { playCorrect, playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AcceptedWordChip } from "./AcceptedWordChip";
+import { WordsmithRing } from "./WordsmithRing";
+import { toggleWordsmithTile } from "./wordInput";
 
 import {
-  WORDSMITH_CENTRE_INDEX,
   WORDSMITH_MIN_LENGTH,
   WORDSMITH_TIME_MS,
   type WordsmithPuzzleData,
@@ -34,7 +35,6 @@ export function WordsmithPuzzle({
   checkWord,
 }: WordsmithPuzzleProps) {
   const letters = puzzle.letters;
-  const [order, setOrder] = useState(() => letters.map((_, i) => i));
   const [selectedTiles, setSelectedTiles] = useState<number[]>([]);
   const [found, setFound] = useState<Found[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -42,11 +42,6 @@ export function WordsmithPuzzle({
   const [shake, setShake] = useState(0);
   const [busy, setBusy] = useState(false);
   const [listOpen, setListOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const wheelRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
-  const dragged = useRef(false);
-  const pointerStart = useRef<{ x: number; y: number; index: number; initial: number[] } | null>(null);
   const selectedRef = useRef<number[]>([]);
   const submitted = useRef(false);
   const foundRef = useRef<Found[]>([]);
@@ -88,6 +83,7 @@ export function WordsmithPuzzle({
     if (verdict.valid) {
       playCorrect();
       setFound((current) => [{ word: verdict.word, points: verdict.points }, ...current]);
+      selectedRef.current = [];
       setSelectedTiles([]);
       setMessage(null);
       setAcceptedWord(verdict.word);
@@ -98,36 +94,11 @@ export function WordsmithPuzzle({
     }
   };
 
-  const tapTile = (index: number, from = selectedRef.current) => {
-    if (locked) return;
-    const usedAt = from.indexOf(index);
-    if (usedAt >= 0) {
-      selectedRef.current = from.slice(0, usedAt);
-      setSelectedTiles(selectedRef.current);
-      return;
-    }
+  const tapTile = (index: number) => {
+    if (locked || busy) return;
     setMessage(null);
-    selectedRef.current = [...from, index];
+    selectedRef.current = toggleWordsmithTile(selectedRef.current, index);
     setSelectedTiles(selectedRef.current);
-  };
-
-  const addDraggedTile = (index: number) => {
-    if (selectedRef.current.includes(index)) return;
-    selectedRef.current = [...selectedRef.current, index];
-    setSelectedTiles(selectedRef.current);
-    setMessage(null);
-  };
-
-  const tileAt = (x: number, y: number) => {
-    const element = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-wordsmith-tile]");
-    if (!element || !wheelRef.current?.contains(element)) return null;
-    const index = Number(element.dataset["wordsmithTile"]);
-    return Number.isInteger(index) ? index : null;
-  };
-
-  const removeAt = (position: number) => {
-    if (locked) return;
-    setSelectedTiles((current) => current.slice(0, position));
   };
 
   return (
@@ -170,156 +141,28 @@ export function WordsmithPuzzle({
         )}
       </div>
 
-      {/* 3×3 square: eight letters around a gold centre letter every word must use. */}
       <div className="flex min-h-0 flex-1 flex-col items-center">
-      <AcceptedWordChip word={acceptedWord} hidden={listOpen} />
-      <div className="word-confirmation-board-space">
-      <div
-        ref={wheelRef}
-        className="word-confirmation-board grid shrink-0 select-none grid-cols-3 gap-2 touch-none"
-        onPointerMove={(event) => {
-          if (!dragging.current) return;
-          const origin = pointerStart.current;
-          if (origin && Math.hypot(event.clientX - origin.x, event.clientY - origin.y) >= 8) dragged.current = true;
-          if (!dragged.current) return;
-          const index = tileAt(event.clientX, event.clientY);
-          if (index !== null && !selectedRef.current.includes(index)) {
-            addDraggedTile(index);
-          }
-        }}
-        onPointerUp={() => {
-          if (!dragging.current) return;
-          dragging.current = false;
-          const origin = pointerStart.current;
-          pointerStart.current = null;
-          if (dragged.current) void trySubmit(selectedRef.current);
-          else if (origin) {
-            tapTile(origin.index, origin.initial);
-          }
-        }}
-        onPointerCancel={() => {
-          const origin = pointerStart.current;
-          if (origin) setSelectedTiles(origin.initial);
-          pointerStart.current = null;
-          dragging.current = false;
-        }}
-      >
-        {order.map((index) => {
-          const spent = selectedTiles.includes(index);
-          const centre = index === WORDSMITH_CENTRE_INDEX;
-          return (
-            <button
-              key={index}
-              type="button"
-              data-wordsmith-tile={index}
-              disabled={locked}
-              onPointerDown={(event) => {
-                event.preventDefault();
-                wheelRef.current?.setPointerCapture(event.pointerId);
-                dragging.current = true;
-                dragged.current = false;
-                pointerStart.current = { x: event.clientX, y: event.clientY, index, initial: [...selectedRef.current] };
-                if (!selectedRef.current.includes(index)) addDraggedTile(index);
-              }}
-              aria-label={centre ? `Centre letter ${letters[index]}` : letters[index]}
-              className={`flex items-center justify-center rounded-xl border-2 font-display text-2xl font-bold transition-colors duration-150 ${
-                centre
-                  ? spent
-                    ? "border-primary bg-primary/70 text-primary-foreground"
-                    : "border-primary bg-primary text-primary-foreground"
-                  : spent
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-card text-foreground"
-              }`}
-            >
-              {letters[index]}
-            </button>
-          );
-        })}
+        <AcceptedWordChip word={acceptedWord} hidden={listOpen} />
+        <div className="word-confirmation-board-space">
+          <div className="word-confirmation-board">
+            <WordsmithRing letters={letters} selected={selectedTiles} disabled={locked || busy} onTap={tapTile} />
+          </div>
+        </div>
       </div>
+      <div key={shake} aria-live="polite" aria-label="Current word"
+        className={`flex h-11 shrink-0 items-center justify-center rounded-lg border bg-card px-2 text-center font-mono text-xl uppercase text-foreground ${message ? "border-warn animate-shake" : "border-border"}`}>
+        {word || " "}
       </div>
-      </div>
-
-      {/* Keyboard entry: highlights the matching tiles as you type. */}
-      <input
-        ref={inputRef}
-        value={word}
-        disabled={locked}
-        inputMode="text"
-        autoCapitalize="characters"
-        autoCorrect="off"
-        autoComplete="off"
-        spellCheck={false}
-        maxLength={letters.length}
-        placeholder="type here"
-        aria-label="Word entry; tap to submit a word"
-        onPointerDown={(event) => {
-          if (word.length > 0) {
-            event.preventDefault();
-            void trySubmit();
-          }
-        }}
-        onChange={(event) => {
-          const next = event.target.value.toUpperCase().replace(/[^A-Z]/g, "");
-          if (next === word.slice(0, -1)) {
-            setSelectedTiles((current) => current.slice(0, -1));
-            setMessage(null);
-            return;
-          }
-          if (!next.startsWith(word) || next.length !== word.length + 1) return;
-          const typed = next.at(-1);
-          const tileIndex = order.find(
-            (index) => letters[index] === typed && !selectedTiles.includes(index),
-          );
-          if (tileIndex === undefined) return;
-          setMessage(null);
-          setSelectedTiles((current) => [...current, tileIndex]);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            void trySubmit();
-          }
-        }}
-        key={shake}
-        className={`tap-target w-full rounded-xl border bg-card px-4 text-center font-mono text-base uppercase tracking-[0.2em] text-foreground placeholder:tracking-normal placeholder:text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50 ${message ? "border-warn animate-shake" : "border-border"}`}
-      />
       <p className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>
 
-       <div className="mt-auto flex gap-2">
-         <Button
-          type="button"
-           variant="outline"
-          onClick={() => setSelectedTiles((current) => current.slice(0, -1))}
-          disabled={locked || word.length === 0}
-           className="press tap-target h-11 rounded-xl border-border bg-card px-3 font-display text-xs font-semibold uppercase text-muted-foreground disabled:opacity-35"
-        >
-          Undo
-         </Button>
-         <Button
-          type="button"
-           variant="outline"
-          onClick={() => {
-            setSelectedTiles([]);
-            setOrder((current) => {
-              const outer = current.filter((i) => i !== WORDSMITH_CENTRE_INDEX).sort(() => Math.random() - 0.5);
-              return [...outer.slice(0, WORDSMITH_CENTRE_INDEX), WORDSMITH_CENTRE_INDEX, ...outer.slice(WORDSMITH_CENTRE_INDEX)];
-            });
-            inputRef.current?.blur();
-          }}
-          disabled={locked}
-           className="press tap-target h-11 rounded-xl border-border bg-card px-4 font-display text-xs font-semibold uppercase text-muted-foreground"
-        >
-          Shuffle
-         </Button>
-         <Button
-           type="button"
-           onClick={() => void trySubmit()}
-           disabled={locked || busy || word.length === 0}
-           className="press tap-target ml-auto h-11 rounded-xl px-4 font-display text-xs font-semibold uppercase disabled:opacity-35"
-         >
-           Submit
-         </Button>
+      <div className="mt-auto grid shrink-0 grid-cols-2 gap-2">
+        <Button type="button" variant="outline" onClick={() => {
+          selectedRef.current = [];
+          setSelectedTiles([]);
+          setMessage(null);
+        }} disabled={locked || busy || word.length === 0} className="h-11" >Clear</Button>
+        <Button type="button" onClick={() => void trySubmit()} disabled={locked || busy || word.length === 0}
+          className="h-11">Enter</Button>
       </div>
     </div>
   );

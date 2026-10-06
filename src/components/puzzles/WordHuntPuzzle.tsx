@@ -1,10 +1,9 @@
 import { playCorrect, playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AcceptedWordChip } from "./AcceptedWordChip";
+import { extendWordHuntPath, wordHuntInnerCell } from "./wordInput";
 
 import {
-  adjacentGridCellAt,
-  gridCellAt,
   gridGeometry,
   hapticTick,
 } from "@/components/puzzles/GridDrag";
@@ -218,10 +217,12 @@ export function WordHuntPuzzle({
     return () => clearTimeout(id);
   }, [flash]);
 
-  const cellAt = (x: number, y: number): number | null => gridCellAt(gridRef.current, x, y, N, N);
+  const cellAt = (x: number, y: number): number | null => wordHuntInnerCell(gridGeometry(gridRef.current, x, y, N, N), N, N);
 
   const startTrace = (cell: number, event: React.PointerEvent) => {
     if (locked) return;
+    const hit = cellAt(event.clientX, event.clientY);
+    if (hit === null || hit !== cell) return;
     event.preventDefault();
     try {
       (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
@@ -275,28 +276,26 @@ export function WordHuntPuzzle({
           y: (geometry.y / geometry.height) * 100,
         });
       }
-      const direct = cellAt(event.clientX, event.clientY);
-      const cell =
-        direct === last
-          ? last
-          : adjacentGridCellAt(gridRef.current, event.clientX, event.clientY, N, N, last);
+      const cell = wordHuntInnerCell(geometry, N, N);
       if (cell === null) return;
-      if (cell === last) return;
-      if (current.length > 1 && cell === current[current.length - 2]) {
-        livePath.current = current.slice(0, -1);
-        setPath(livePath.current);
-        return;
-      }
-      if (current.includes(cell) || last === undefined || !adjacent(last, cell)) return;
-      livePath.current = [...current, cell];
-      setPath(livePath.current);
+      const next = extendWordHuntPath(current, cell, N);
+      if (next.length === current.length) return;
+      livePath.current = next;
+      setPath(next);
       hapticTick();
     };
-    const up = () => {
+    const up = (event: PointerEvent) => {
       if (!tracing.current) return;
       const origin = pointerStart.current;
       tracing.current = false;
       pointerStart.current = null;
+      if (event.type === "pointercancel") {
+        dragging.current = false;
+        livePath.current = [];
+        setPath([]);
+        setPointer(null);
+        return;
+      }
       if (dragging.current) {
         dragging.current = false;
         void finish();

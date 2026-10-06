@@ -1,3 +1,4 @@
+import { WordsmithRing } from "@/components/puzzles/WordsmithRing";
 import { WordsmithPuzzle } from "@/components/puzzles/WordsmithPuzzle";
 import { wordsmithPoints, type WordsmithPuzzleData } from "@/lib/duel/types";
 import { WORDSMITH_TIME_MS } from "@/lib/duel/types";
@@ -15,17 +16,8 @@ function IntroExample() {
         Make words from the nine letters - every word must use the centre letter.
       </p>
       <div className="flex items-start gap-4">
-        <div className="grid grid-cols-3 gap-1.5">
-          {EXAMPLE_TILES.map((letter, index) => (
-            <span
-              key={index}
-              className={`flex h-10 w-10 items-center justify-center rounded-lg border font-display text-base font-bold ${
-                index === 4 ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"
-              }`}
-            >
-              {letter}
-            </span>
-          ))}
+        <div className="wordsmith-ring-example w-[160px] shrink-0">
+          <WordsmithRing letters={EXAMPLE_TILES} />
         </div>
         <ul className="flex flex-col gap-1">
           {EXAMPLE_WORDS.map((word) => (
