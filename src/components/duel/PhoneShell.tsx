@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type Ref } from "react";
 
 import { MuteToggle } from "./MuteToggle";
 import { Wordmark } from "./Wordmark";
@@ -29,6 +29,40 @@ export const NO_SELECT_STYLE = {
 } as const;
 
 const CONTROL = "button, a, input, textarea, select, [role='button']";
+
+/** Identical round geometry: mode-specific text cannot resize the game region. */
+export function GameLayout({ label, title, help, progress, timer, beforeGame, children, overlay, stageRef, locked = false }: {
+  label: ReactNode;
+  title: ReactNode;
+  help: ReactNode;
+  progress?: ReactNode;
+  timer?: ReactNode;
+  beforeGame?: ReactNode;
+  children: ReactNode;
+  overlay?: ReactNode;
+  stageRef?: Ref<HTMLDivElement>;
+  locked?: boolean;
+}) {
+  return (
+    <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
+      <div data-round-heading className="grid h-7 shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
+        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+          <span className="truncate text-right font-display text-sm font-bold text-foreground">{title}</span>
+          <div className="flex shrink-0 items-center gap-2">{help}{progress}</div>
+        </div>
+      </div>
+      {timer}
+      {beforeGame}
+      <div ref={stageRef} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div data-game-stage className={`flex min-h-0 flex-1 flex-col ${locked ? "pointer-events-none opacity-30 transition-opacity duration-200" : ""}`}>
+          {children}
+        </div>
+        {overlay}
+      </div>
+    </div>
+  );
+}
 
 /**
  * While any game screen is mounted, lock selection at the document root:
@@ -101,7 +135,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
         }`}
       >
         {!bare && (
-          <div className="mb-2 grid min-h-9 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
+          <div className="mb-2 grid h-9 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
             <div className="min-w-0">{gameHeader ?? <Wordmark />}</div>
             <div className="flex shrink-0 items-center"><MuteToggle /></div>
           </div>
