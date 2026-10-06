@@ -2,11 +2,10 @@
 import type { CanvasSize } from './engine';
 import { inkBridgeGame, inkBucketX, inkBudget, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
+import { COUNTRY_SKY as SKY, COUNTRY_GRASS as GRASS, countryCloud as cloud, countryStamp, drawCountryside } from './countryside.renderer';
 
 /* Private geometry mirrors: 7px coin, 4px rim caps, 6px stroke. */
 const FP = 256, BALL_R = 7, RIM_R = 4, STROKE_W = 6;
-const SKY = '#89CEF2', CLOUD = '#FFFFFF', CLOUD_SHADE = '#E4F2F9';
-const GRASS = '#65B94B', GRASS_BACK = '#98D674', GRASS_DARK = '#408B37';
 const GOLD = '#FFD54B', GOLD_EDGE = '#986519', SHINE = '#FFF8C9';
 const POT = '#181B21', POT_EDGE = '#39414B', TEXT = '#24333C';
 const RED = '#E93640', RED_EDGE = '#AA202C', EMPTY = '#D2E3E9';
@@ -24,18 +23,6 @@ function stamp(c: CanvasRenderingContext2D, key: string, w: number, h: number, x
   const image = sprite(key, w, h, draw);
   if (image) c.drawImage(image, x, y, w, h);
   else { c.save(); c.translate(x, y); draw(c); c.restore(); }
-}
-function cloud(c: CanvasRenderingContext2D): void {
-  c.fillStyle = CLOUD_SHADE; c.beginPath(); c.roundRect(0, 10, 48, 16, 8); c.fill();
-  c.fillStyle = CLOUD;
-  for (const [x,y,r] of [[12,13,10],[26,11,11],[38,16,9]] as const) { c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill(); }
-}
-function backdrop(c: CanvasRenderingContext2D): void {
-  c.fillStyle = SKY; c.fillRect(0,0,INK_WORLD_W,INK_WORLD_H);
-  // Hills are scenery, below the gameplay area; no raised decorative ledges.
-  c.fillStyle = GRASS_BACK; c.beginPath(); c.moveTo(0,610); c.quadraticCurveTo(100,582,230,610); c.quadraticCurveTo(330,588,390,605); c.lineTo(390,620); c.lineTo(0,620); c.fill();
-  c.fillStyle = GRASS; c.beginPath(); c.moveTo(0,616); c.quadraticCurveTo(210,590,390,614); c.lineTo(390,620); c.lineTo(0,620); c.fill();
-  c.fillStyle = GRASS_DARK; c.fillRect(0,618,INK_WORLD_W,2);
 }
 function coin(c: CanvasRenderingContext2D): void {
   c.fillStyle = GOLD_EDGE; c.beginPath(); c.arc(7,7,BALL_R,0,Math.PI*2); c.fill();
@@ -99,19 +86,13 @@ function drawBridge(c:CanvasRenderingContext2D,state:InkState):void {
   }
   if(cache?.surface)c.drawImage(cache.surface,0,0,INK_WORLD_W,INK_WORLD_H);else paintBridge(c,state);
 }
-function motionTime():number {
-  if(typeof window==='undefined'||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return 0;
-  return performance.now()/1000;
-}
 export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:CanvasSize):void {
   const lvl=state.list[Math.min(state.level,state.list.length-1)];if(!lvl)return;
   const scale=Math.min(size.width/INK_WORLD_W,size.height/INK_WORLD_H);
   c.save();c.fillStyle=SKY;c.fillRect(0,0,size.width,size.height);
   c.translate((size.width-INK_WORLD_W*scale)/2,(size.height-INK_WORLD_H*scale)/2);c.scale(scale,scale);
-  stamp(c,'background',INK_WORLD_W,INK_WORLD_H,0,0,backdrop);
-  const t=motionTime();
-  for(const [x,y,f] of [[38,100,0.55],[278,146,0.7],[152,218,0.4]] as const) { c.save();c.globalAlpha=0.68;c.translate(x+Math.sin(t*0.08+y)*5,y);c.scale(f,f);stamp(c,'cloud',48,26,0,0,cloud);c.restore(); }
-  stamp(c,'cloud',48,26,lvl.spoutX-24,19,cloud);
+  drawCountryside(c);
+  countryStamp(c,'cloud',48,26,lvl.spoutX-24,19,cloud);
   for(const b of lvl.blocks) {
     // Fully fill all 4px of every hazard, never an inset silhouette.
     c.fillStyle=RED;c.fillRect(b.x0,b.y,b.x1-b.x0,INK_BLOCK_H);
@@ -143,7 +124,7 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
 export function drawInkRainbowExample(c:CanvasRenderingContext2D):void {
   c.fillStyle=SKY;c.fillRect(0,0,168,130);
   c.fillStyle=GRASS;c.beginPath();c.moveTo(0,127);c.quadraticCurveTo(90,113,168,127);c.lineTo(168,130);c.lineTo(0,130);c.fill();
-  c.save();c.translate(30,0);c.scale(0.75,0.75);stamp(c,'cloud',48,26,0,0,cloud);c.restore();
+  c.save();c.translate(30,0);c.scale(0.75,0.75);countryStamp(c,'cloud',48,26,0,0,cloud);c.restore();
   stamp(c,'coin',14,14,41,16,coin);
   c.fillStyle=RED;c.fillRect(30,58,40,3);
   c.strokeStyle=rainbow(c,36,34,132,94,0,113);c.lineCap='round';c.lineWidth=3;c.beginPath();c.moveTo(36,34);c.lineTo(132,94);c.stroke();
