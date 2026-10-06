@@ -15,6 +15,7 @@ import {
   practiceGenerateFn,
   practiceGradeFn,
 } from "@/lib/duel/practice.functions";
+import { orbitDevPlanet } from "@/lib/arcade/orbitDevJump";
 import { DevKeyStatus, SaveDemoButton, useDemoKey } from "@/components/duel/SaveDemoButton";
 import {
   PUZZLE_REGISTRY,
@@ -172,6 +173,16 @@ function PracticeScreen() {
       if (!puzzle || grading.current) return;
       grading.current = true;
       stopRecording();
+      // Dev Orbit jump runs are never graded, stored or offered as demos.
+      if (puzzle.type === "orbit" && orbitDevPlanet() !== null) {
+        setRecording(null);
+        clearStageState(stateKey);
+        setPuzzle(null);
+        setType(null);
+        setGraded(null);
+        setStage("list");
+        return;
+      }
       playLock();
       buzz(15);
       const remaining =
@@ -200,7 +211,7 @@ function PracticeScreen() {
       setStartedAt(Date.now());
       setStage("reveal");
     },
-    [puzzle, sealed, clockDeadline, timeLimitMs, stopRecording],
+    [puzzle, sealed, clockDeadline, timeLimitMs, stopRecording, stateKey],
   );
 
   // The intro runs for exactly as long as it does in a room.

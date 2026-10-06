@@ -1,7 +1,10 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { orbitDevPlanet } from "@/lib/arcade/orbitDevJump";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import {
+  orbitBeltPlanets,
   orbitCanSetCheckpoint,
+  orbitDevStart,
   orbitCheckpoint,
   ORBIT_BG,
   ORBIT_CHECKPOINT_INTERVAL,
@@ -43,7 +46,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: OrbitPuzzleData | null = puzzle.type === "orbit" ? puzzle : null;
   const [canSet, setCanSet] = useState(true);
   const availability = useRef(true);
+  // Dev-only practice jump (?planet=N with the accepted key); such runs are never graded.
+  const [devPlanet] = useState(() => (data ? orbitDevPlanet() : null));
+  const game = useMemo(
+    () => (devPlanet ? { ...orbitArtGame, init: (seed: number) => orbitDevStart(orbitArtGame.init(seed), devPlanet) } : orbitArtGame),
+    [devPlanet],
+  );
+  const belts = useMemo(() => (devPlanet && data ? orbitBeltPlanets(orbitArtGame.init(data.seed)) : []), [devPlanet, data]);
   return (
+    <>
+    {devPlanet && (
+      <p className="shrink-0 text-center font-mono text-xs text-muted-foreground">
+        DEV · start planet {devPlanet} · belts {belts.length ? belts.join(", ") : "none"} · not scored
+      </p>
+    )}
     <ArcadeCanvasStage
       diagKey="orbit"
       label="Orbit"
@@ -53,7 +69,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={ORBIT_WORLD_W}
       worldH={ORBIT_WORLD_H}
-      game={orbitArtGame}
+      game={game}
       sounds={orbitSounds}
       checkpoint={orbitCheckpoint}
       interval={ORBIT_CHECKPOINT_INTERVAL}
@@ -84,6 +100,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />
+    </>
   );
 }
 
