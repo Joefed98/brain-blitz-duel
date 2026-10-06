@@ -2,6 +2,8 @@ import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming"
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
+import { drawSliceArt } from "@/lib/arcade/slice.renderer";
+import { sliceSounds } from "@/lib/fx/gameSounds";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -112,6 +114,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = sliceSounds();
     let bombs = state.current.bombsHit;
     let slices = state.current.slices;
 
@@ -161,11 +164,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, sliceGame.isOver(state.current));
       feedback(state.current, sliceGame.isOver(state.current));
+      sounds.frame(state.current, !sliceGame.isOver(state.current) && !lockedRef.current);
 
       frameTiming.draw();
       const size = sizeCanvas();
       const ctx = canvas.current?.getContext("2d");
-      if (size && ctx) sliceGame.draw(ctx, state.current, size);
+      if (size && ctx) drawSliceArt(ctx, state.current, size);
 
       frameTiming.rendered();
 

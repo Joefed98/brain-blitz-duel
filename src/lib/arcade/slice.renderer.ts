@@ -23,14 +23,13 @@ import {
   SLICE_SPECIAL_SLOW,
   SLICE_WORLD_H,
   SLICE_WORLD_W,
-  TICKS_PER_SECOND_SLICE,
   type SliceState,
-} from "./slice.art-imports";
+} from "./slice";
+import { TICKS_PER_SECOND as TICKS_PER_SECOND_SLICE } from "./engine";
 import {
   seaClock,
   seaDeviceScale,
   seaNow,
-  seaRope,
   seaSprite,
   SEA_BRASS,
   SEA_BRASS_DARK,
@@ -502,5 +501,4 @@ export function drawSliceArt(ctx: CanvasRenderingContext2D, state: SliceState, s
   ctx.restore();
 }
 
-export { seaRope as _unusedRope };
 export const sliceArtGame = { ...sliceGame, draw: drawSliceArt };
