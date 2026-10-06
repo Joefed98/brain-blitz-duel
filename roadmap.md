@@ -1,3 +1,8 @@
+## Room viewport and Word Search reveal (Oct 6, 17:13)
+- [ ] Move the room-only score strip into the shared game header and remove chat from constrained play/reveal; restore the intro to natural scrolling.
+- [ ] Mark every unfound Word Search path on its cells and in its word list with the exact destructive red while retaining found gold.
+- [ ] Run no-browser room-mode source/geometry checks at 390×700 and 375×667, list remaining overflow risks, and confirm the preview build.
+
 ## Orbit moving asteroid belts (Oct 6, 16:20)
 - [x] Shared orbitBeltStart derives seeded hazard phase plus floor((tick % 720) × 65536 / 720); same quarter-orbit arc, positive phase direction, exact 12-second revolution. Existing seeded belt eligibility stays 31–39 (not every planet); sun 40 is safe. Contact on capture or while orbiting follows existing death/checkpoint path. Course generation, scoring and result facts unchanged.
 - [x] Full orbit lines restored; grey-brown varied rocks tumble on the moving arc, faint dust and rocks clipped within 1.9px of its geometry/endpoints. HOW says moving belts, SCORE unchanged (no gap mention). Old Orbit demo rejected unless its saved period matches current constant; new accepted-key recordings store the period.

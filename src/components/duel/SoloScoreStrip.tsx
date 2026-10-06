@@ -7,18 +7,19 @@ interface SoloScoreStripProps {
   total: number;
   position: number;
   playerCount: number;
+  compact?: boolean;
 }
 
 /**
  * In a room of three or more only the viewer's own total and place are shown —
  * nobody sees anyone else's progress during a round.
  */
-export function SoloScoreStrip({ name, total, position, playerCount }: SoloScoreStripProps) {
+export function SoloScoreStrip({ name, total, position, playerCount, compact = false }: SoloScoreStripProps) {
   return (
     <ProgressStrip name={name} value={total} trailing={
-      <span className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+      <span className={`shrink-0 font-mono uppercase tracking-widest text-muted-foreground ${compact ? "text-[10px]" : "text-sm"}`}>
         {ordinal(position)} of {playerCount}
       </span>
-    } />
+    } compact={compact} />
   );
 }
