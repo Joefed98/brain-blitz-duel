@@ -45,7 +45,7 @@ for (let seed = 1; seed <= SEEDS; seed++) {
     if (s.tick % CLASH_CHECKPOINT_INTERVAL === 0) cps.push(clashCheckpoint(s));
     legacy = colourClashGame.step(legacy, null);
   }
-  check(s.items.length === CLASH_QUEUE && s.correct === CLASH_QUEUE && s.finishTick > 0, `seed ${seed}: strong run did not sort all ${CLASH_QUEUE}`);
+  check(s.items.length === CLASH_QUEUE && s.correct === CLASH_QUEUE && s.finishTick > 0, `seed ${seed}: strong run did not sort all ${CLASH_QUEUE}: ${s.correct}/${s.wrong}/${s.items.length} tick ${s.tick}`);
   finishMin = Math.min(finishMin, s.finishTick); finishMax = Math.max(finishMax, s.finishTick);
   check(colourClashQueueGame.score(s) === clashQueueScoreOf(s.correct, s.wrong, CLASH_QUEUE, s.finishTick), "score formula");
   const raw = encodeColourClashRun({ seed, claimedScore: colourClashQueueGame.score(s), events, endTick: s.tick, checkpoints: cps });
