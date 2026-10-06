@@ -24,7 +24,7 @@ import { inkFailedOnBlock } from "@/lib/arcade/inkBridge.renderer";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
 import type { BubState } from "@/lib/arcade/bubble";
 import type { SliceState } from "@/lib/arcade/slice";
-import { SNIP_EATEN, SNIP_LOST, type SnipState } from "@/lib/arcade/snip";
+import { SNIP_EATEN, type SnipState } from "@/lib/arcade/snip";
 
 export interface GameSounds<S> {
   frame: (state: S, running: boolean) => void;
@@ -462,37 +462,25 @@ export function bubbleSounds(): GameSounds<BubState> {
   };
 }
 
+/** Orchard Snip; shared feedback owns the all-ten complete cue. */
 export function snipSounds(): GameSounds<SnipState> {
   let prev: SnipState | null = null;
-  let creakAt = 0;
   return {
-    frame(state, running) {
-      const now = typeof performance === "undefined" ? 0 : performance.now();
-      if (running) {
-        ensureLoop("arc_sea_waves", WAVES_VOLUME);
-        if (creakAt === 0) creakAt = now + 6000 + Math.random() * 4000;
-        else if (now >= creakAt) {
-          playSound("arc_sea_creak", 0.25);
-          creakAt = now + 6000 + Math.random() * 4000;
-        }
-      } else {
-        stopLoop("arc_sea_waves");
-        creakAt = 0;
-      }
+    frame(state) {
       if (prev && state.tick > prev.tick) {
-        if (state.cuts > prev.cuts) playSound("arc_sea_cutlass", 0.8, 1, true);
+        if (state.cuts > prev.cuts) playSound("arc_swoosh", 0.8, 1, true);
         const got = (s: SnipState) => s.starGot.reduce((n, g) => n + g, 0);
         const levelChanged = state.endTick !== prev.endTick;
-        if (!levelChanged && state.level === prev.level && got(state) > got(prev)) playSound("arc_sea_coin");
+        if (!levelChanged && state.level === prev.level && got(state) > got(prev)) playSound("arc_gem_chime");
         if (levelChanged) {
-          if (state.stars > prev.stars && got(prev) === 0) playSound("arc_sea_coin");
-          if (state.lastOutcome === SNIP_EATEN) playSound("arc_sea_chest");
-          else if (state.lastOutcome === SNIP_LOST) playSound("arc_splash", 0.8);
+          if (state.stars > prev.stars && got(prev) === 0) playSound("arc_gem_chime");
+          if (state.lastOutcome === SNIP_EATEN) playSound("arc_wood_knock");
+          else playSound("arc_thud");
         }
       }
       prev = state;
     },
-    stop: () => stopLoop("arc_sea_waves"),
+    stop: () => {},
   };
 }
 
