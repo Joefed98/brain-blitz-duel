@@ -1,3 +1,4 @@
+import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import type { PuzzleType } from "./types";
 
 export interface PuzzleInstructionLine {
@@ -167,13 +168,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "5 per number in order; all 24 = 130 + speed bonus up to 20; −5 per wrong tap. Maximum 150.",
   },
   stroop: {
-    goal: "Steer each falling word into the matching coloured gate.",
+    goal: `Steer all ${CLASH_QUEUE} falling words into the matching coloured gates.`,
     how: [
       { action: "Use ◀ ▶, the joystick, or tap a lane", detail: "to steer the word." },
       { action: "Swipe down or press ▼", detail: "to drop it quickly." },
       { action: "Watch the banner", detail: "- the rule swaps every 15 seconds." },
+      { action: "Sort the last word", detail: `to finish - the run ends when all ${CLASH_QUEUE} are sorted, or at 60 seconds.` },
     ],
-    score: "Points for the share you sort right; wrong gates cost 2.",
+    score: `round(130 × correct ÷ ${CLASH_QUEUE}) − 2 per wrong gate; sort all ${CLASH_QUEUE} for + round(20 × time left ÷ 60 s). Minimum 0, maximum 150.`,
   },
   symscan: {
     goal: "Find every matching arrow in three growing grids.",

@@ -19,5 +19,5 @@
 - Trail uses shared sequential tap/last-player undo helpers and contiguous legal drag prefixes while retaining numbered-slot decoding for old answers; why: mixed gestures must share one sequence without changing independent tile grading.
 - Chain shares versioned length, points and timing across generation, display and replay; unversioned boards retain legacy rules/cycles. Why: never regrade old rounds.
 - Tile Grid uses tileGridWordCells for client verdict-based counting and server dictionary-based counting; why: crossing tiles and changing runs must grade and display consistently without shipping the dictionary.
-- Colour Clash draws spawn lanes from state PRNG using shared lane-count constants; Count Up recomputes truth from stored scenes; why: deterministic server verification.
+- Colour Clash draws spawn lanes from state PRNG using shared lane-count constants and picks its sim by the stored puzzle `queue` (absent = legacy open stream); Count Up recomputes truth from stored scenes; why: deterministic server verification without regrading old rounds.
 - Logic grids use container sizing and cell-owned strokes/clipped labels; Shikaku/Light Up prove uniqueness. Flood draws a private bank with exact in-band par proofs; no fallback. Why: aligned geometry.

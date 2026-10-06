@@ -1,3 +1,4 @@
+import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { MOVES_SHAPE } from "./scoring";
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
 import { BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
@@ -84,7 +85,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   pairmatch: standard("Find all fifteen pairs", "8 points for each pair found"),
   maze: standard("Reach the exit", "points for how far along the route you got"),
   intruder: standard("Get all five boards right", "24 points for each board right, or 12 for half of one"),
-  stroop: "Points for the share of words you sort correctly. Wrong gate: lose 2.",
+  stroop: `${arcadeFinish(`the share of the ${CLASH_QUEUE} words you sort correctly, rounded to the nearest whole point`, `Sort all ${CLASH_QUEUE}`)} Wrong gate: lose 2.`,
   sortrush: "Points for the share you sort correctly. Wrong gate: lose 2.",
   gonogo: "More correct choices means more points. A perfect run earns a speed bonus.",
   sequence: "Repeat the whole sequence quickly for the most points.",

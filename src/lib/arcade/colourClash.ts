@@ -22,6 +22,10 @@ export const CLASH_MOVE_RIGHT = 1;
 export const CLASH_DROP = 2;
 export const CLASH_SET_LANE = 3;
 export const CLASH_FLASH_TICKS = 30;
+/** Fixed queue length for current rounds: items the no-drop cadence sorts by about 48 s. 0 = legacy open stream. */
+export const CLASH_QUEUE = 18;
+export const CLASH_COMPLETE_POINTS = 130;
+export const CLASH_SPEED_POINTS = 20;
 const FP = 256;
 const START_Y = 92 * FP;
 const GATE_Y = 454 * FP;
@@ -47,6 +51,10 @@ export interface ClashState {
   wrong: number;
   missed: number;
   ended: number;
+  /** Queue length (0 = legacy open-ended stream). */
+  queue: number;
+  /** Tick the last queued item was sorted (0 = not finished). */
+  finishTick: number;
 }
 
 export function clashLaneCount(tick: number): number { return tick >= CLASH_LANE_EXPAND_TICK ? CLASH_EXPANDED_LANES : CLASH_INITIAL_LANES; }
@@ -111,15 +119,17 @@ function nextItem(state: ClashState, spawn: number): ClashState {
   return { ...state, rng, items: [...state.items, item], lane, itemY: START_Y, dropping: 0 };
 }
 
-function init(seed: number): ClashState {
+function initWith(seed: number, queue: number): ClashState {
   const plan = buildGates(seed);
   const base: ClashState = {
     tick: 0, rng: plan.rng, items: [], gates: plan.gates,
     rules: [0, 1, 2, 3].map((phase) => ({ tick: phase * 15 * TICKS_PER_SECOND, rule: (phase % 2) as 0 | 1 })),
-    lane: 1, itemY: START_Y, dropping: 0, correct: 0, wrong: 0, missed: 0, ended: 0,
+    lane: 1, itemY: START_Y, dropping: 0, correct: 0, wrong: 0, missed: 0, ended: 0, queue, finishTick: 0,
   };
   return nextItem(base, 0);
 }
+function init(seed: number): ClashState { return initWith(seed, 0); }
+function initQueue(seed: number): ClashState { return initWith(seed, CLASH_QUEUE); }
 
 function isOver(state: ClashState): boolean { return state.ended !== 0; }
 
@@ -131,6 +141,8 @@ function land(state: ClashState, tick: number): ClashState {
   const wanted = clashRuleAt(state, tick) === 0 ? item.ink : item.word;
   const correct = gates[lane] === wanted;
   const landed = { ...state, correct: state.correct + (correct ? 1 : 0), wrong: state.wrong + (correct ? 0 : 1) };
+  // Fixed queue: the run ends the moment the last queued item is sorted.
+  if (landed.queue > 0 && landed.correct + landed.wrong >= landed.queue) return { ...landed, ended: 1, finishTick: tick };
   return tick < CLASH_RUN_TICKS ? nextItem(landed, tick) : landed;
 }
 
@@ -153,7 +165,7 @@ function step(state: ClashState, input: ArcadeInputEvent | null): ClashState {
     next.itemY += speed;
     if (next.itemY >= GATE_Y) next = land(next, tick);
   }
-  if (tick >= CLASH_RUN_TICKS) {
+  if (next.ended === 0 && tick >= CLASH_RUN_TICKS) {
     if (next.items.length > next.correct + next.wrong) next.missed += 1;
     next.ended = 1;
   }
@@ -163,7 +175,20 @@ function step(state: ClashState, input: ArcadeInputEvent | null): ClashState {
 export function clashScoreOf(correct: number, wrong: number, total: number): number {
   return clampInt(Math.round((150 * correct) / Math.max(1, total)) - 2 * wrong, 0, 150);
 }
-function score(state: ClashState): number { return clashScoreOf(state.correct, state.wrong, state.items.length); }
+/** Arcade-finish shape: round(130 × correct / N) − 2 per wrong, + round(20 × ticks left / run ticks) only when all N are sorted; clamp 0–150. */
+export function clashQueueScoreOf(correct: number, wrong: number, queue: number, finishTick: number): number {
+  const base = Math.round((CLASH_COMPLETE_POINTS * correct) / Math.max(1, queue)) - 2 * wrong;
+  const done = queue > 0 && correct + wrong >= queue && finishTick > 0;
+  const bonus = done ? Math.round((CLASH_SPEED_POINTS * Math.max(0, CLASH_RUN_TICKS - finishTick)) / CLASH_RUN_TICKS) : 0;
+  return clampInt(base + bonus, 0, 150);
+}
+export function clashTimeBonusOf(state: Pick<ClashState, "queue" | "correct" | "wrong" | "finishTick">): number {
+  if (!(state.queue > 0 && state.correct + state.wrong >= state.queue && state.finishTick > 0)) return 0;
+  return Math.round((CLASH_SPEED_POINTS * Math.max(0, CLASH_RUN_TICKS - state.finishTick)) / CLASH_RUN_TICKS);
+}
+function score(state: ClashState): number {
+  return state.queue > 0 ? clashQueueScoreOf(state.correct, state.wrong, state.queue, state.finishTick) : clashScoreOf(state.correct, state.wrong, state.items.length);
+}
 
 export const CLASH_CHECKPOINT_INTERVAL = 300;
 export const CLASH_CHECKPOINT_KEYS = ["tick", "lane", "itemY", "dropping", "correct", "wrong", "missed", "ended", "rng", "checksum"] as const;
@@ -197,8 +222,14 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
     ctx.fillStyle = CLASH_COLOURS[current.ink]!; ctx.font = "bold 27px ui-sans-serif, sans-serif";
     ctx.fillText(CLASH_NAMES[current.word]!, left + (state.lane + 0.5) * laneW, state.itemY / FP);
   }
-  ctx.fillStyle = "#E9E9EF"; ctx.font = "bold 13px ui-monospace, monospace"; ctx.fillText(`${state.correct} right · ${state.wrong} wrong`, 195, 548);
+  ctx.fillStyle = "#E9E9EF"; ctx.font = "bold 13px ui-monospace, monospace"; ctx.fillText(state.queue > 0 ? `${state.correct} right · ${state.wrong} wrong · ${state.queue - state.correct - state.wrong} left` : `${state.correct} right · ${state.wrong} wrong`, 195, 548);
   ctx.restore();
 }
 
+/** Legacy open-ended stream: stored rounds without a queue replay with it unchanged. */
 export const colourClashGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { key: "stroop", runTicks: CLASH_RUN_TICKS, init, step, isOver, score, draw, inputRanges: CLASH_INPUT_RANGES };
+/** Current fixed-queue run. */
+export const colourClashQueueGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, init: initQueue };
+export function colourClashGameFor(queue: number | null | undefined): ArcadeGame<ClashState, ArcadeInputEvent | null> {
+  return queue === CLASH_QUEUE ? colourClashQueueGame : colourClashGame;
+}

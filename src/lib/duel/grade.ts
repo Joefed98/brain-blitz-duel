@@ -332,7 +332,7 @@ export function gradeSubmission(
       break;
     }
     case "stroop": {
-      const replay = replayColourClashRun(puzzle.seed, answer);
+      const replay = replayColourClashRun(puzzle.seed, answer, puzzle.queue);
       revealRun = replay;
       correctCount = replay.correct;
       isCorrect = replay.correct >= replay.total;
