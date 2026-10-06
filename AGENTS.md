@@ -11,7 +11,7 @@
 
 - ArrowPad owns the device-local arrows/joystick preference so every arrow-controlled puzzle behaves consistently.
 - Trail uses shared sequential tap/last-player undo helpers and contiguous legal drag prefixes while retaining numbered-slot decoding for old answers; why: mixed gestures must share one sequence without changing independent tile grading.
-- Chain resolves versioned length, points and timing across generation, display and replay; unversioned board counts retain legacy rules and cycles. Why: stored rounds must never adopt new grading.
+- Chain shares versioned length, points and timing across generation, display and replay; unversioned boards retain legacy rules/cycles. Why: never regrade old rounds.
 - Art stays in *.renderer.ts; Burst and comet sprites/glow/scanlines cache lazily and arcade loops share frame timing; comet taper keeps a full-cell outer envelope and sparks use the shared cap; why: speed and readable collision bodies without replay changes.
 - Cross counters use crossTotalLanes; Flip curves use flipSurfaceLine with exterior-only pools/decoration and silhouette/runner-box clips; pool-death sinks use per-canvas presentation clocks, never sim ticks or input holds; why: scores and collision geometry remain authoritative while frozen deaths can animate.
 - Gameplay holds run inside the shared simulation and HUDs read their derived hold state; why: inputs, timeouts and replay must stay synchronized without pausing the client clock.
