@@ -14,6 +14,8 @@ import {
 } from "@/lib/arcade/junction";
 import { encodeJunctionRun, replayJunctionRun } from "@/lib/duel/junction";
 import { JUNCTION_TIME_MS, type JunctionPuzzleData } from "@/lib/duel/types";
+import { junctionArtGame, JUNC_ART_BG } from "@/lib/arcade/junction.renderer";
+import { junctionSounds } from "@/lib/fx/gameSounds";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -42,13 +44,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <ArcadeCanvasStage
       diagKey="junction"
       label="Junction"
-      background={JUNC_BG}
+      background={JUNC_ART_BG}
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
       worldW={JUNC_WORLD_W}
       worldH={JUNC_WORLD_H}
-      game={junctionGame}
+      game={junctionArtGame}
+      sounds={junctionSounds}
       checkpoint={juncCheckpoint}
       interval={JUNC_CHECKPOINT_INTERVAL}
       encodeRun={encodeJunctionRun}

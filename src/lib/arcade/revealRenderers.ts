@@ -7,7 +7,7 @@
 import type { PuzzleData } from "@/lib/duel/types";
 
 import { hoverArtGame as hoverGame } from "./hover.renderer";
-import { skylineGame } from "./skyline";
+import { skylineArtGame as skylineGame } from "./skyline.renderer";
 import { binTossArtGame as binTossGame } from "./binTossArt.renderer";
 import { drawBullseye } from "./bullseye.renderer";
 import { matchupArtGame as matchupGame } from "./matchup.renderer";
@@ -22,8 +22,8 @@ import { crossArtGame as crossGame } from "./cross.renderer";
 import { WAV_SHIP_Y } from "./wavefront";
 import { wavefrontArtGame as wavefrontGame } from "./wavefront.renderer";
 import { flipArtGame as flipGame } from "./flipArt.renderer";
-import { junctionGame } from "./junction";
-import { inkBridgeGame } from "./inkBridge";
+import { junctionArtGame as junctionGame } from "./junction.renderer";
+import { inkBridgeArtGame as inkBridgeGame } from "./inkBridge.renderer";
 import { BURST_FLOOR_Y } from "./burst";
 import { burstArtGame as burstGame } from "./burst.renderer";
 import { orbitArtGame as orbitGame } from "./orbit.renderer";

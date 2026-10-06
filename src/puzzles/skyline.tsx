@@ -24,7 +24,8 @@ import {
 import { decodeSkylineRun, encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { ARCADE_CRASH_FREEZE_MS, type SkylinePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playWrong } from "@/lib/sound";
+import { drawSkylineArt, SKYLINE_ART_BG } from "@/lib/arcade/skyline.renderer";
+import { skylineSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -106,6 +107,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback();
+    const sounds = skylineSounds();
     let secondAt = last;
     let ticksThisSecond = 0;
 
@@ -146,11 +148,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, skylineGame.isOver(state.current));
       feedback(state.current, skylineGame.isOver(state.current));
+      sounds.frame(state.current, !skylineGame.isOver(state.current) && !lockedRef.current);
 
       frameTiming.draw();
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) skylineGame.draw(context, state.current, size);
+      if (size && context) drawSkylineArt(context, state.current, size);
 
       frameTiming.rendered();
 
@@ -173,7 +176,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (missedAt.current === null) {
             missedAt.current = time;
             buzz(40);
-            playWrong();
           } else if (time - missedAt.current >= ARCADE_CRASH_FREEZE_MS) {
             finish();
           }
@@ -185,7 +187,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      sounds.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 
@@ -215,7 +220,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <canvas
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
-        style={{ background: SKYLINE_BG }}
+        style={{ background: SKYLINE_ART_BG }}
         aria-label="Skyline"
         onPointerDown={(event) => {
           event.preventDefault();
