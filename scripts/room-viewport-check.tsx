@@ -56,7 +56,7 @@ const reveal = renderToStaticMarkup(
         { word: "AFKPU", cells: [0, 5, 10, 15, 20] },
       ],
     }}
-    myAnswer="0.1.2.3.4"
+    myAnswer="0.4"
     myCorrect={false}
     myReactionAvgMs={null}
     timeLimitMs={60_000}
