@@ -1,4 +1,5 @@
 import type { PuzzleCategory, PuzzleType } from "@/lib/duel/types";
+import { isPuzzleRoundMusicOn } from "@/lib/sound";
 import type { SoundId } from "./manifest";
 
 export const FX_HOOKS = ["onRoundStart", "onCountdown", "onPlace", "onMove", "onCorrect", "onWrong", "onStageComplete", "onComplete", "onCombo", "onTimerWarning10", "onTimerWarning5", "onTimeUp", "onSubmit", "onRevealScore", "onPodium", "onReaction"] as const;
@@ -28,6 +29,11 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   bubble: "music_bubble", matchup: "music_matchup",
 };
 export function roundMusicFor(type: PuzzleType | undefined, category: PuzzleCategory): SoundId | null {
+  // Logic, word and number rounds are silent unless the device opted in.
+  if (category === "logic" || category === "word" || category === "number") {
+    if (!isPuzzleRoundMusicOn()) return null;
+    return CATEGORY_MUSIC[category] ?? null;
+  }
   return (category === "arcade" ? (type ? WORLD_MUSIC[type] : undefined) : CATEGORY_MUSIC[category]) ?? null;
 }
 export const DEFAULT_SOUNDS: Record<FxHook, SoundId> = {
