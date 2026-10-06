@@ -30,7 +30,7 @@ import {
   type MirrorKind,
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playCorrect, playSound, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -489,6 +489,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     const offsets = beamBranchOffsets(verdict.trace.paths);
     const lastStep = Math.max(0, ...verdict.trace.paths.map((path, index) => (offsets[index] ?? 0) + path.length - 1));
     const per = 2 * Math.max(30, Math.round((LASER_BEAM_MS * 1.25) / Math.max(1, lastStep)));
+    // Sound only: each gem (rising pitch) and each splitter once, at the step the beam reaches it.
+    const GEM_RATES = [1, 1.06, 1.12, 1.19, 1.26, 1.33];
+    const splitterCells = new Set([...splitters, ...placed.filter((piece) => isSplitter(piece.kind)).map((piece) => piece.cell)]);
+    const reached = new Map<number, number>();
+    verdict.trace.paths.forEach((path, index) => path.forEach((cell, i) => {
+      const at = (offsets[index] ?? 0) + i;
+      if (!reached.has(cell) || at < reached.get(cell)!) reached.set(cell, at);
+    }));
+    const cues: { at: number; play: () => void }[] = [];
+    [...verdict.trace.gemsLit].sort((a, b) => (reached.get(a) ?? 0) - (reached.get(b) ?? 0)).forEach((gem, n) => {
+      const rate = GEM_RATES[Math.min(n, GEM_RATES.length - 1)];
+      cues.push({ at: reached.get(gem) ?? 0, play: () => playSound("pz_laser_gem", 1, rate, true) });
+    });
+    for (const cell of splitterCells) if (reached.has(cell)) cues.push({ at: reached.get(cell)!, play: () => playSound("pz_laser_split", 1, 1, true) });
+    for (const cue of cues) timers.current.push(window.setTimeout(cue.play, per * cue.at));
     for (let step = 1; step < lastStep; step++) {
       timers.current.push(
         window.setTimeout(

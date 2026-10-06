@@ -20,7 +20,7 @@ import {
 } from "@/lib/duel/bomb";
 import { useStageState } from "@/lib/duel/stageState";
 import { BOMB_MAX_SEQUENCE, BOMB_TIME_MS, BOMB_WIRES, type BombPuzzleData } from "@/lib/duel/types";
-import { playLock } from "@/lib/sound";
+import { playLock, playSound } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -343,6 +343,11 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const shown = decodeBombActions(puzzle.sequence ?? "");
   const mine = decodeBombActions(myAnswer ?? "");
   const replay = checkBombPlan(required, constraints, mine);
+  // Strike cue on the reveal, once per reveal.
+  useEffect(() => {
+    if (replay.exploded) playSound("pz_bomb_explode");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 

@@ -14,7 +14,7 @@ import {
 import { useStageState } from "@/lib/duel/stageState";
 import { GRAV_COLS, GRAV_TIME_MS, type GravityDir, type GravityPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playLock } from "@/lib/sound";
+import { playCorrect, playLock, playSound } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -172,6 +172,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
     if (locked || submitted.current || replay.solved) return;
     hapticTick();
     buzz(10);
+    // A new tilt cuts the previous pull, so long pulls never overlap.
+    playSound("pz_gravity_pull");
     setLean(dir);
     setTimeout(() => setLean(null), 200);
     setTilts((current) => [...current, dir]);

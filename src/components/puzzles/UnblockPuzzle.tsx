@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { playSound } from "@/lib/sound";
 
 import {
   gridCellSize,
@@ -175,6 +176,7 @@ export function UnblockPuzzle({
       setMoves(nextMoves);
       if (isSolved(next)) {
         setEscaping(true);
+        playSound("pz_car_escape");
         setTimeout(() => lockIn(nextMoves), 420);
       }
       return true;
