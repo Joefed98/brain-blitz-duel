@@ -328,10 +328,10 @@ function hasWindow(planets: readonly Planet[], i: number): boolean {
   const moving = planets.some((p) => p.hazard >= 0 && Math.abs(p.y - from.y) <= (FLIGHT_MAX * from.speed + orbitBeltRadius(p)));
   if (moving) {
     // Verify actual sequential orbit phases over a full belt revolution, not frozen tick-zero landings.
-    let phase = 3 * ANG_QUARTER, run = 0;
+    let phase = 0, run = 0;
     for (let tick = 0; tick < ORBIT_BELT_PERIOD_TICKS * 4; tick++) {
       run = hopOk(planets, i, phase, tick) ? run + 1 : 0;
-      if (run >= 1) return true;
+      if (run >= SAFE_RUN) return true;
       phase = (phase + from.dir * phaseRate(from, phase)) & 65535;
     }
     return false;
