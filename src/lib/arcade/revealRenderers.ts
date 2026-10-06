@@ -6,7 +6,7 @@
  */
 import type { PuzzleData } from "@/lib/duel/types";
 
-import { hoverArtGame as hoverGame } from "./hover.renderer";
+import { hoverArtGame as hoverGame, hoverRevealGame } from "./hover.renderer";
 import { skylineArtGame as skylineGame } from "./skyline.renderer";
 import { binTossArtGame as binTossGame } from "./binTossArt.renderer";
 import { drawBullseye } from "./bullseye.renderer";
@@ -72,7 +72,7 @@ export interface ArcadeRevealRenderer {
   worldW: number;
   worldH: number;
   /** Draws the final tick into a worldW × worldH context. */
-  drawFinal: (ctx: CanvasRenderingContext2D, puzzle: PuzzleData, answer: string) => { x: number; y: number } | null;
+  drawFinal: (ctx: CanvasRenderingContext2D, puzzle: PuzzleData, answer: string, presentation?: "reveal" | "demo") => { x: number; y: number } | null;
 }
 
 const GOLD = "#F5B82E";
@@ -90,14 +90,15 @@ function simple<S>(
   game: Drawable<S>,
   replay: (puzzle: PuzzleData, answer: string) => { state: S },
   focus?: (state: S) => { x: number; y: number } | null,
+  revealGame: Drawable<S> = game,
 ): ArcadeRevealRenderer {
   return {
     accent,
     worldW,
     worldH,
-    drawFinal: (ctx, puzzle, answer) => {
+    drawFinal: (ctx, puzzle, answer, presentation = "reveal") => {
       const { state } = replay(puzzle, answer);
-      game.draw(ctx, state, { width: worldW, height: worldH });
+      (presentation === "demo" ? game : revealGame).draw(ctx, state, { width: worldW, height: worldH });
       return focus ? focus(state) : null;
     },
   };
@@ -106,7 +107,7 @@ function simple<S>(
 const seedOf = (puzzle: PuzzleData): number => ("seed" in puzzle ? Number(puzzle.seed) : 1);
 
 export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
-  hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a)),
+  hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a), undefined, hoverRevealGame),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a)),
   bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a)),
   bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
