@@ -58,7 +58,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   reaction: "Average 200 ms or faster for 150 points; slower reactions score less. A miss counts as a very slow tap. Tapping too early: lose 8.",
   stopwatch: "Stop within 20 ms of the zone on average for 150 points; bigger misses score less. A watch you never stop counts as a big miss.",
   numhunt: "Tap all 24 in order: 130 points, plus up to 20 more for finishing fast. Not finished: 5 points for each number. Wrong tap: lose 5.",
-  chain: "6 points for each link, so all 25 links scores 150. A wrong or missed tap ends your run.",
+  chain: "5 points for each link, so all 30 links score 150. A wrong or missed tap ends your run.",
   whack: "Points for the share of targets you hit, up to 135, plus 15 if you hit them all. Wrong colour or empty tap: lose 3. Bomb: lose 5.",
   clayshoot: "5 points for each orange clay and 10 for each gold one. Hit all 25 for 10 more.",
   symscan: "The three grids are worth 30, 45 and 55 points, scored by how many arrows you find. Wrong tap: lose 3. Get all three perfect for up to 20 more for speed.",

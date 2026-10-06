@@ -1,3 +1,8 @@
+## Chain 30-link rework (Oct 6)
+- [x] Extend seeded generation/client/server replay to 30 links and six five-link boards; preserve 45s and momentum, add FASTER at 26.
+- [x] Set five-point links and update SCORE, goal and reveal breakdown; fixed intro illustration has no link count and stays unchanged.
+- [x] Passed 200 seeded cycle/replay/server-grade checks, 200 scatter/score checks and all 1,410 stored-score rows; preview build OK. No browser tests; device checks remain with the user.
+
 ## Puzzle input and layout tuning (Oct 6)
 - [x] Suppress native tap/hold highlights globally and explicitly on Beat canvas; gameplay input/replay untouched.
 - [x] Shared tap-only Wordsmith ring/fixed intro with Clear/Enter, no typing/drag/shuffle; preserved word verdicts/dropdown/gold chip. Word Hunt strict inner-60% hit boxes, adjacent-only extension/backtrack, one active pointer and cancelled gesture cleanup; drag retained.

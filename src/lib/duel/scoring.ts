@@ -803,7 +803,7 @@ export function scoreGravity(
   return clamp(GRAV_LOCK_POINTS * Math.max(0, Math.round(locked)), 0, MAX_ROUND_SCORE);
 }
 
-/** Don't Break the Chain: 6 per completed link, capped at 150; no bonus, no penalty. */
+/** Don't Break the Chain: 5 per completed link, capped at 150; no bonus, no penalty. */
 export function scoreChain(links: number): number {
   return clamp(CHAIN_LINK_POINTS * links, 0, MAX_ROUND_SCORE);
 }
