@@ -21,6 +21,8 @@ import type { JuncState } from "@/lib/arcade/junction";
 import type { SkylineState } from "@/lib/arcade/skyline";
 import type { InkState } from "@/lib/arcade/inkBridge";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
+import type { BubState } from "@/lib/arcade/bubble";
+import { SNIP_EATEN, SNIP_LOST, type SnipState } from "@/lib/arcade/snip";
 
 export interface GameSounds<S> {
   frame: (state: S, running: boolean) => void;
@@ -430,5 +432,66 @@ export function inkBridgeSounds(): GameSounds<InkState> {
       prev = state;
     },
     stop: () => {},
+  };
+}
+
+/* ============================== High Seas ============================== */
+
+const WAVES_VOLUME = 0.18;
+
+export function bubbleSounds(): GameSounds<BubState> {
+  let prev: BubState | null = null;
+  let lastPop = -1e9;
+  return {
+    frame(state, running) {
+      if (running) ensureLoop("arc_sea_waves", WAVES_VOLUME);
+      else stopLoop("arc_sea_waves");
+      if (prev && state.tick > prev.tick) {
+        if (state.queueAt > prev.queueAt) playSound("arc_sea_bubble", 0.7);
+        if (state.popped > prev.popped) {
+          const now = typeof performance === "undefined" ? 0 : performance.now();
+          if (now - lastPop >= 40) {
+            lastPop = now;
+            playSound("arc_sea_pop", 0.7, 1, true);
+          }
+        }
+      }
+      prev = state;
+    },
+    stop: () => stopLoop("arc_sea_waves"),
+  };
+}
+
+export function snipSounds(): GameSounds<SnipState> {
+  let prev: SnipState | null = null;
+  let creakAt = 0;
+  return {
+    frame(state, running) {
+      const now = typeof performance === "undefined" ? 0 : performance.now();
+      if (running) {
+        ensureLoop("arc_sea_waves", WAVES_VOLUME);
+        if (creakAt === 0) creakAt = now + 6000 + Math.random() * 4000;
+        else if (now >= creakAt) {
+          playSound("arc_sea_creak", 0.25);
+          creakAt = now + 6000 + Math.random() * 4000;
+        }
+      } else {
+        stopLoop("arc_sea_waves");
+        creakAt = 0;
+      }
+      if (prev && state.tick > prev.tick) {
+        if (state.cuts > prev.cuts) playSound("arc_sea_cutlass", 0.8, 1, true);
+        const got = (s: SnipState) => s.starGot.reduce((n, g) => n + g, 0);
+        const levelChanged = state.endTick !== prev.endTick;
+        if (!levelChanged && state.level === prev.level && got(state) > got(prev)) playSound("arc_sea_coin");
+        if (levelChanged) {
+          if (state.stars > prev.stars && got(prev) === 0) playSound("arc_sea_coin");
+          if (state.lastOutcome === SNIP_EATEN) playSound("arc_sea_chest");
+          else if (state.lastOutcome === SNIP_LOST) playSound("arc_splash", 0.8);
+        }
+      }
+      prev = state;
+    },
+    stop: () => stopLoop("arc_sea_waves"),
   };
 }
