@@ -514,7 +514,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Overhang is cut", detail: "so the next block is narrower." },
       { action: "Line it up exactly", detail: "and the block grows back a little." },
     ],
-    score: "3 per block stacked + 2 per perfect drop, up to 150.",
+    score: "floor(2.5 × blocks stacked + 3 × perfect drops), capped at 150.",
   },
   bintoss: {
     goal: "Throw the ball into the bin - ten throws.",
@@ -545,7 +545,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "From the fourth arrow the target moves - lead it.", detail: "It is scored where it is when the arrow lands." },
       { action: "From the seventh arrow the ring values swap places.", detail: "Read the numbers - each value keeps its colour." },
     ],
-    score: "1.5 × your ring points, up to 150. Unfired arrows score 0.",
+    score: "clamp(floor(1.7 × ring total − 20), 0, 150). Unfired arrows add 0 to the ring total.",
   },
   matchup: {
     goal: "Make lines of three or more matching symbols.",
@@ -555,7 +555,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Trigger specials", detail: "to clear nearby symbols and start chain reactions." },
       { action: "Sixty seconds", detail: "on the same board for everyone." },
     ],
-    score: "3 = 10, 4 = 25, 5 = 50; 2,000 points = 150, fewer in proportion.",
+    score: "3 = 10, 4 = 25, 5 = 50; clamp(floor(150 × match points ÷ 2,500), 0, 150).",
   },
   snake: {
     goal: "Eat the pellets and don't hit anything.",
@@ -610,7 +610,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A gold ball drops in", detail: "every ten seconds - only gold hits score." },
       { action: "Miss the blue ball", detail: "and the run is over." },
     ],
-    score: "3 per gold-ball hit, up to 150. The blue ball scores nothing.",
+    score: "floor(2.5 × gold-ball hits), capped at 150. The blue ball scores nothing.",
   },
   steady: {
     goal: "Stay inside the track.",
@@ -757,7 +757,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Later,", detail: "some cars turn - they flash an indicator a second before the line." },
       { action: "Ambulances (flashing blue)", detail: "come fast from 20 s - give them green before they reach the line." },
     ],
-    score: "3 per car through, −1 per car that gives up, +5 per ambulance waved through, −5 if one has to stop, +40 for surviving the minute.",
+    score: "2 per car through, −1 per car that gives up, +4 per ambulance waved through, −4 if one has to stop, +40 for surviving the minute. Clamp 0–150.",
   },
   inkbridge: {
     goal: "Draw a path so the ball rolls into the bucket.",
@@ -863,11 +863,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   balltrack: {
     goal: "Steer every ball into the tray of its colour.",
     how: [
-      { action: "Balls drop every 2 seconds", detail: "and snake down the track." },
+      { action: "30 balls drop about every 1.72 seconds", detail: "- the last is released at about 50 seconds; the run lasts 60 seconds." },
       { action: "Tap a gold tube to turn it into a drop", detail: "- the bottom row is fixed, so send each ball down early…" },
       { action: "…the track's bottom row re-lays and the trays swap colours mid-round", detail: "- watch for both." },
     ],
-    score: "120 × balls home ÷ 25; all 25 home = 130 + up to 20 for time left. Wrong trays score nothing.",
+    score: "round(130 × balls home ÷ 30), plus round(20 × sim time left ÷ 60 s) only when all 30 are home. Cap 150. Wrong trays have no penalty.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",

@@ -41,8 +41,8 @@ export const SKYLINE_PERFECT_GROW = 1_536;
 
 /** Par: 36 blocks placed. */
 export const SKYLINE_PAR = 36;
-export const SKYLINE_BLOCK_POINTS = 3;
-export const SKYLINE_PERFECT_POINTS = 2;
+export const SKYLINE_BLOCK_POINTS = 2.5;
+export const SKYLINE_PERFECT_POINTS = 3;
 export const SKYLINE_POINTS_CAP = 110;
 export const SKYLINE_SURVIVE_BONUS = 40;
 
@@ -159,7 +159,7 @@ function step(state: SkylineState, tapped: boolean): SkylineState {
 }
 
 function score(state: SkylineState): number {
-  return clampInt(SKYLINE_BLOCK_POINTS * state.placed + SKYLINE_PERFECT_POINTS * state.perfects, 0, 150);
+  return clampInt(Math.floor(SKYLINE_BLOCK_POINTS * state.placed + SKYLINE_PERFECT_POINTS * state.perfects), 0, 150);
 }
 
 /* =========================== Integrity checks ========================== */

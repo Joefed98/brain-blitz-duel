@@ -111,9 +111,9 @@ function makeCourse(): BtCourse {
   do order = shuffle([...colours]); while (order.some((c, i) => c === colours[i]));
   const after = Array.from({ length: BT_COLS }, () => -1);
   order.forEach((c, i) => (after[moved[i]!] = c));
-  // 25 balls: one seeded colour gets seven, the other three six; triple runs are rerolled below.
-  const big = rnd(BT_COLOURS);
-  const balls = shuffle([0, 1, 2, 3].flatMap((c) => Array.from({ length: c === big ? 7 : 6 }, () => c)));
+  // Balanced queue: seeded colours receive the remainder; triple runs are rerolled below.
+  const extra = shuffle([0, 1, 2, 3]).slice(0, BT_BALLS % BT_COLOURS);
+  const balls = shuffle([0, 1, 2, 3].flatMap((c) => Array.from({ length: Math.floor(BT_BALLS / BT_COLOURS) + (extra.includes(c) ? 1 : 0) }, () => c)));
   const fixed = seededFixed();
   return { trays, relay: { tick: 1200 + rnd(601), trays: relaid }, shuffle: { tick: 2400 + rnd(301), trays: after }, balls, fixed };
 }

@@ -1087,7 +1087,7 @@ const bullseyeSummary: SummaryBuilder = (result) => {
   const inner = Number(result.extra?.["inner"] ?? 0);
   return {
     summary: `${result.score} · ${inner} in the gold/red`,
-    detail: ["1.5 × ring points, up to 150", `${Number(result.extra?.["total"] ?? 0)} ring points`],
+    detail: ["floor(1.7 × ring points − 20), clamped 0–150", `${Number(result.extra?.["total"] ?? 0)} ring points`],
   };
 };
 
@@ -1161,8 +1161,8 @@ const rallySummary: SummaryBuilder = (result) => {
   const gold = `${goldHits} gold hit${goldHits === 1 ? "" : "s"}`;
   return {
     summary: survived
-      ? `${gold} (3 each) · ${hits} blue returns · survived`
-      : `${gold} (3 each) · ${hits} blue returns · lost at ${ended.toFixed(1)}s`,
+      ? `${gold} (2.5 each, rounded down) · ${hits} blue returns · survived`
+      : `${gold} (2.5 each, rounded down) · ${hits} blue returns · lost at ${ended.toFixed(1)}s`,
     detail: [survived ? "Kept the rally alive" : "Lost the ball"],
   };
 };
@@ -1429,7 +1429,7 @@ const ballTrackSummary: SummaryBuilder = (result) => {
   const home = Number(result.extra?.["home"] ?? 0);
   const speed = Number(result.extra?.["speed"] ?? 0);
   const tail = speed ? ` · +${speed} speed` : "";
-  return { summary: `${home} / ${BT_BALLS} home${tail}`, detail: ["120 × balls home ÷ 25 · 25 / 25 = 130 + up to 20 for time left", "Same track for everyone"] };
+  return { summary: `${home} / ${BT_BALLS} home${tail}`, detail: [`round(130 × balls home ÷ ${BT_BALLS}) · ${BT_BALLS} / ${BT_BALLS} = 130 + up to 20 for time left`, "Same track for everyone"] };
 };
 
 const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {

@@ -66,7 +66,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   retroBall(ctx, bx, by, RALLY_BALL_R, state.dead && crashIndicator ? "#FF3B5C" : BALL);
 
   retroReadout(ctx, 14, 8, `RALLY ${state.hits}`, RETRO_WHITE);
-  retroText(ctx, `GOLD ${state.goldHits} ${RALLY_GOLD_POINTS * state.goldHits}PTS`, RALLY_WORLD_W - 14, 20, 10, GOLD, "right");
+  retroText(ctx, `GOLD ${state.goldHits} ${Math.floor(RALLY_GOLD_POINTS * state.goldHits)}PTS`, RALLY_WORLD_W - 14, 20, 10, GOLD, "right");
 
   if (state.dead && crashIndicator) {
     ctx.fillStyle = "rgba(255,59,92,0.2)";
