@@ -29,6 +29,9 @@ import {
 } from "@/lib/arcade/matchup.renderer";
 import { playSound } from "@/lib/sound";
 import type { SoundId } from "@/lib/fx/manifest";
+
+/** Cascade pitch ladder: chain depth 1-4 (capped) rises through these rates. */
+const MATCHUP_PITCH_RATES = [1, 1.12, 1.26, 1.41] as const;
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 
