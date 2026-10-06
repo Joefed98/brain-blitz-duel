@@ -1,6 +1,6 @@
 ## Cross reveal-score investigation (Oct 6)
-- [ ] Reproduce the 15 zero-lane failures and trace stored score/breakdown display.
-- [ ] Fix only breakdown/check faults, re-run the full registry, and report before/after without browsers or scoring changes.
+- [x] Reproduced 15 false failures: stored 0, component lines 0+0, total 0; check incorrectly required a first-line total.
+- [x] Fixed test-only Cross three-line arithmetic/cap validation, added zero/partial/crossing/capped and corrupted-line regressions; full registry passes 1,410 rows across 94 types. Scoring and reveal builder unchanged; no browsers.
 
 ## Shared puzzle surface polish (Oct 6)
 - [x] Add shared presentation scope to all 42 active non-engine games, preserving game source and meaningful colours; specialised glyphs/objects remain exceptions.
