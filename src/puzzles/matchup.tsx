@@ -29,6 +29,9 @@ import {
 } from "@/lib/arcade/matchup.renderer";
 import { playSound } from "@/lib/sound";
 import type { SoundId } from "@/lib/fx/manifest";
+
+/** Cascade pitch ladder: chain depth 1-4 (capped) rises through these rates. */
+const MATCHUP_PITCH_RATES = [1, 1.12, 1.26, 1.41] as const;
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 
@@ -202,7 +205,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       feedback(state.current, matchupGame.isOver(state.current));
       const chime = chimes.current;
       while (chime.next < chime.at.length && time >= chime.at[chime.next]!) {
-        playSound(chime.sounds[chime.next] ?? "arc_gem_match", 0.8);
+        // Cascade pitch ladder: chain depth 1-4 rises 1.0 / 1.12 / 1.26 / 1.41.
+        const depth = Math.min(chime.next + 1, MATCHUP_PITCH_RATES.length);
+        playSound("arc_gem_match", 0.8, MATCHUP_PITCH_RATES[depth - 1] ?? 1, true);
+        const special = chime.sounds[chime.next];
+        // A special layers over the match chime rather than cutting it.
+        if (special && special !== "arc_gem_match") playSound(special, 0.8, 1, true);
         chime.next += 1;
       }
 
