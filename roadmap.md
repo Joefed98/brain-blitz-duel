@@ -1,3 +1,7 @@
+## Room/practice control parity (Oct 6, 17:36)
+- [ ] Share fixed-height round chrome and identical stage ancestry; preserve practice layout, targets and gameplay.
+- [ ] Audit all active games at both phone sizes without browsers; separate source parity from measured pixel verification.
+
 ## Room viewport and Word Search reveal (Oct 6, 17:13)
 - [x] Move the room-only score strip into the shared game header and remove chat from constrained play/reveal; restore both room and practice intros to natural scrolling.
 - [x] Mark every unfound Word Search path on its cells and in its word list with the exact destructive red while retaining found gold, including overlapping found/missed cells.
