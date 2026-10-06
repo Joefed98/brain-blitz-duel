@@ -982,7 +982,6 @@ body.game-lock {
 }
 /* A board that is part of the arena but sits above the arena row (Letter Wheel). */
 .game-column [data-arena-part="letterwheel-board"] { max-height: min(334px, 100cqw); }
-.game-column [data-stage-column] > [data-arena-part] { flex-basis: 0%; flex-grow: revert-layer; }
 /* After an unmarked fixed-size board component. */
 .game-column [data-stage-column] > [data-after-arena] {
   margin-top: calc(12px - var(--stage-gap));
