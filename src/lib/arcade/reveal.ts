@@ -134,8 +134,11 @@ const BUILDERS: Record<string, Builder> = {
     outcome: "time",
   }),
   bubble: (r, s) => {
-    const start = n(r, "startCount");
-    const pct = start > 0 ? Math.round((100 * (start - n(r, "bubblesLeft"))) / start) : 0;
+    // Replay results keep the original board count on state; persisted flat facts
+    // also carry startCount. Neither popped nor shots is the starting total.
+    const state = r["state"];
+    const start = n(r, "startCount") || (state && typeof state === "object" ? n(state as Run, "startCount") : 0);
+    const pct = start > 0 ? Math.max(0, Math.min(100, Math.round((100 * (start - n(r, "bubblesLeft"))) / start))) : 0;
     const done = b(r, "cleared");
     return {
       axis: { value: done ? 100 : pct, max: 100, label: "% cleared" },
