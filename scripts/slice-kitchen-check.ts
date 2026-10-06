@@ -1,7 +1,7 @@
 /** Non-browser drawing/geometry checks only; no replay or identity proof. */
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { createCanvas } from '/tmp/slice-kitchen/raster/node_modules/@napi-rs/canvas';
+import { createCanvas } from '@napi-rs/canvas';
 import { drawSliceArt, drawSliceKitchenExample, SLICE_FOODS } from '../src/lib/arcade/slice.renderer';
 import { sliceGame, SLICE_R, SLICE_SPECIAL_R, SLICE_WORLD_W, SLICE_WORLD_H, SLICE_COLOURS } from '../src/lib/arcade/slice';
 let allocations=0,reduced=false,clock=12000;
@@ -13,7 +13,7 @@ Object.defineProperty(globalThis,'OffscreenCanvas',{configurable:true,value:Surf
 const initial=sliceGame.init(21);
 assert.equal(SLICE_FOODS.length,SLICE_COLOURS.length);
 const objects=Array.from({length:7},(_,i)=>({...initial.objects[0],launchTick:60,x:(35+i*50)*256,vx:0,vy:-1024,lastTick:500,bomb:i===6,special:i===4?1:i===5?2:0,colour:i%4,payload:[]}));
-const state={...initial,objects,slicedAt:objects.map(()=>0),tick:100,slowFrom:[],frenzyFrom:[]};
+const state: typeof initial={...initial,objects,slicedAt:objects.map(()=>0),tick:100,slowFrom:[],frenzyFrom:[]};
 let checks=0;
 for(const [width,height] of [[382,510],[367,477]])for(const still of [false,true]) {
  reduced=still;const c=createCanvas(width*2,height*2),native=c.getContext('2d');native.scale(2,2);
@@ -24,7 +24,7 @@ for(const [width,height] of [[382,510],[367,477]])for(const still of [false,true
  const warm=allocations;for(let frame=0;frame<30;frame++){clock+=16;drawSliceArt(ctx,state,{width,height});}assert.equal(allocations,warm,'cached warm-frame art');
  writeFileSync(`/tmp/slice-kitchen/live-${width}-${still}.png`,c.toBuffer('image/png'));
  state.slicedAt=objects.map((_,i)=>i<4?100:0);state.tick=101;state.swipe=[0,560,390,480];
- drawSliceArt(ctx,state,{width,height});assert.equal(JSON.stringify(state),JSON.stringify(state));
+ const cutBefore=JSON.stringify(state);drawSliceArt(ctx,state,{width,height});assert.equal(JSON.stringify(state),cutBefore);
  writeFileSync(`/tmp/slice-kitchen/cut-${width}-${still}.png`,c.toBuffer('image/png'));
  state.slicedAt=objects.map(()=>0);state.tick=100;state.swipe=null;checks++;
 }
