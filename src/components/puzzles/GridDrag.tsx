@@ -675,13 +675,13 @@ export function ArrowPad({
   }, [stop]);
 
   return (
-    <div data-game-controls="arrows" className={`grid w-full shrink-0 grid-cols-[minmax(0,1fr)_44px] items-center gap-3 px-2 pb-1 pt-3 ${expanded ? "h-[84px]" : "h-[76px]"}`}>
+    <div data-game-controls="arrows" className={`grid w-full shrink-0 grid-cols-[minmax(0,1fr)_44px] items-center gap-3 px-2 pb-1 pt-3 ${expanded ? "h-[84px]" : "h-[60px]"}`}>
       {joystick ? (
         <div
           ref={stickElement}
           role="application"
           aria-label="Directional joystick"
-          className="relative h-[60px] w-[60px] justify-self-center touch-none rounded-full border border-border bg-card"
+          className={`relative justify-self-center touch-none rounded-full border border-border bg-card ${expanded ? "h-[68px] w-[68px]" : "h-11 w-11"}`}
           style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
           onPointerDown={(event) => {
             if (disabled) return;
