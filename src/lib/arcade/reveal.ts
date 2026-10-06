@@ -341,10 +341,9 @@ const BUILDERS: Record<string, Builder> = {
       return {
         axis: { value: n(r, "correct"), max: n(r, "queue"), label: "Correct" },
         lines: [
-          `${n(r, "correct")} / ${n(r, "queue")} correct`,
+          `${n(r, "correct")} / ${n(r, "queue")} correct → ${s}`,
           `${n(r, "wrong")} wrong × −2`,
-          done ? `time bonus +${n(r, "timeBonus")}` : "time bonus — (not all sorted)",
-          `→ ${s}`,
+          done ? `time bonus +${n(r, "timeBonus")}` : "time bonus — not all sorted",
         ],
         tiles: [
           { label: "Correct", value: `${n(r, "correct")} / ${n(r, "queue")}` },
