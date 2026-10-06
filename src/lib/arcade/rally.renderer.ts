@@ -35,8 +35,11 @@ const GOLD = "#FFD84A";
 function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
   retroScreen(ctx, size, RALLY_WORLD_W, RALLY_WORLD_H, "stretch", (c) => drawWorld(c, state, ctx));
 }
+function drawReveal(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
+  retroScreen(ctx, size, RALLY_WORLD_W, RALLY_WORLD_H, "stretch", (c) => drawWorld(c, state, ctx, false));
+}
 
-function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: CanvasRenderingContext2D): void {
+function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: CanvasRenderingContext2D, crashIndicator = true): void {
   const bloom = retroBloom();
   // Neon court: walls on the original wall lines, a dashed centre line.
   const top = RALLY_HUD_H + RALLY_WALL;
@@ -60,15 +63,16 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   const bx = px(state.x);
   const by = px(state.y);
   if (!state.dead) drawRetroTrail(ctx, retroTrail(key, state.tick, "main", bx, by), RALLY_BALL_R, BALL);
-  retroBall(ctx, bx, by, RALLY_BALL_R, state.dead ? "#FF3B5C" : BALL);
+  retroBall(ctx, bx, by, RALLY_BALL_R, state.dead && crashIndicator ? "#FF3B5C" : BALL);
 
   retroReadout(ctx, 14, 8, `RALLY ${state.hits}`, RETRO_WHITE);
   retroText(ctx, `GOLD ${state.goldHits} ${RALLY_GOLD_POINTS * state.goldHits}PTS`, RALLY_WORLD_W - 14, 20, 10, GOLD, "right");
 
-  if (state.dead) {
+  if (state.dead && crashIndicator) {
     ctx.fillStyle = "rgba(255,59,92,0.2)";
     ctx.fillRect(0, 0, RALLY_WORLD_W, RALLY_WORLD_H);
   }
 }
 
 export const rallyArtGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = { ...rallyGame, draw };
+export const rallyRevealGame = { draw: drawReveal };

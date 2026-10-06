@@ -243,7 +243,7 @@ function drawWalker(ctx: CanvasRenderingContext2D, x: number, y: number, facing:
   ctx.restore();
 }
 
-export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize): void {
+export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true): void {
   const still = reducedMotion();
   const scale = Math.min(size.width / CROSS_WORLD_W, size.height / CROSS_WORLD_H);
   const offsetX = (size.width - CROSS_WORLD_W * scale) / 2;
@@ -321,7 +321,7 @@ export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, s
     const p = Math.min(1, hitAge / 40);
     const flash = Math.floor(hitAge / 4) % 2 === 0;
     ctx.globalAlpha = state.dead ? 1 : 1 - p;
-    if (flash) {
+    if (flash && crashIndicator) {
       ctx.fillStyle = "rgba(255,77,77,0.55)";
       ctx.beginPath();
       ctx.arc(memory.hitX, memory.hitY, CROSS_PLAYER_R, 0, Math.PI * 2);
@@ -351,7 +351,7 @@ export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, s
   ctx.textAlign = "left";
   ctx.fillText(`Crossings ${state.crossings}`, 14, 10);
 
-  if (hitAge < 20 && !state.dead) {
+  if (hitAge < 20 && !state.dead && crashIndicator) {
     ctx.fillStyle = `rgba(255, 77, 77, ${0.25 * (1 - hitAge / 20)})`;
     ctx.fillRect(0, 0, CROSS_WORLD_W, CROSS_WORLD_H);
   }
@@ -364,7 +364,7 @@ export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, s
     ctx.textBaseline = "middle";
     ctx.fillText(`Crossing ${state.crossings + 1}`, CROSS_WORLD_W / 2, CROSS_WORLD_H / 2);
   }
-  if (state.dead) {
+  if (state.dead && crashIndicator) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";
     ctx.fillRect(0, 0, CROSS_WORLD_W, CROSS_WORLD_H);
   }
@@ -373,3 +373,4 @@ export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, s
 
 /** The sim with the art renderer swapped in; step/score are the sim's own. */
 export const crossArtGame = { ...crossGame, draw: drawCrossArt };
+export const crossRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize) => drawCrossArt(ctx, state, size, false) };

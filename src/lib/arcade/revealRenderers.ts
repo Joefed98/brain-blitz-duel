@@ -7,23 +7,23 @@
 import type { PuzzleData } from "@/lib/duel/types";
 
 import { hoverArtGame as hoverGame, hoverRevealGame } from "./hover.renderer";
-import { skylineArtGame as skylineGame } from "./skyline.renderer";
+import { skylineArtGame as skylineGame, skylineRevealGame } from "./skyline.renderer";
 import { binTossArtGame as binTossGame } from "./binTossArt.renderer";
 import { drawBullseye } from "./bullseye.renderer";
 import { matchupArtGame as matchupGame } from "./matchup.renderer";
 import { breakerArtGame as breakerGame } from "./breaker.renderer";
-import { rallyArtGame as rallyGame } from "./rally.renderer";
+import { rallyArtGame as rallyGame, rallyRevealGame } from "./rally.renderer";
 import { sliceGame } from "./slice";
 import { sliceArtGame } from "./slice.renderer";
 import { bubbleArtGame as bubbleGame } from "./bubble.renderer";
 import { beatArtGame as beatGame } from "./beat.renderer";
 import { SNAKE_WORLD_H, SNAKE_WORLD_W } from "./snake";
 import { snakeArtGame as snakeGame } from "./snake.renderer";
-import { crossArtGame as crossGame } from "./cross.renderer";
+import { crossArtGame as crossGame, crossRevealGame } from "./cross.renderer";
 import { WAV_SHIP_Y } from "./wavefront";
 import { wavefrontArtGame as wavefrontGame } from "./wavefront.renderer";
 import { flipArtGame as flipGame } from "./flipArt.renderer";
-import { junctionArtGame as junctionGame } from "./junction.renderer";
+import { junctionArtGame as junctionGame, junctionRevealGame } from "./junction.renderer";
 import { inkBridgeArtGame as inkBridgeGame } from "./inkBridge.renderer";
 import { BURST_FLOOR_Y } from "./burst";
 import { burstArtGame as burstGame } from "./burst.renderer";
@@ -108,19 +108,19 @@ const seedOf = (puzzle: PuzzleData): number => ("seed" in puzzle ? Number(puzzle
 
 export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a), undefined, hoverRevealGame),
-  skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a)),
+  skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a), undefined, skylineRevealGame),
   bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a)),
   bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
     replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : []),
   ),
   matchup: simple(GOLD, 390, 560, matchupGame, (p, a) => replayMatchupRun(seedOf(p), a)),
   breaker: simple(GOLD, 390, 620, breakerGame, (p, a) => replayBreakerRun(seedOf(p), a)),
-  rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a)),
+  rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a), undefined, rallyRevealGame),
   slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a)),
   bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a)),
   beat: simple(GOLD, 390, 620, beatGame, (p, a) => replayBeatRun(seedOf(p), a)),
   snake: simple("#2ED3B7", SNAKE_WORLD_W, SNAKE_WORLD_H, snakeGame, (p, a) => replaySnakeRun(seedOf(p), a)),
-  cross: simple("#2ED3B7", 390, 580, crossGame, (p, a) => replayCrossRun(seedOf(p), a)),
+  cross: simple("#2ED3B7", 390, 580, crossGame, (p, a) => replayCrossRun(seedOf(p), a), undefined, crossRevealGame),
   wavefront: simple(
     "#A78BFA",
     390,
@@ -130,7 +130,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     (s) => ({ x: s.shipX, y: WAV_SHIP_Y }),
   ),
   flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a)),
-  junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a)),
+  junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a), undefined, junctionRevealGame),
   inkbridge: simple("#2ED3B7", 390, 620, inkBridgeGame, (p, a) => replayInkBridgeRun(seedOf(p), a)),
   burst: simple("#2ED3B7", 390, BURST_FLOOR_Y, burstGame, (p, a) => replayBurstRun(seedOf(p), a)),
   orbit: simple(
