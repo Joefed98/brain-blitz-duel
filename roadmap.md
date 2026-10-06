@@ -1,6 +1,6 @@
 ## Colour Clash four-lane spawn fix (Oct 6)
-- [ ] Diagnose and fix post-30s lane choice using only seeded PRNG and shared integer constants.
-- [ ] Run Colour Clash-only identity proof and report the cause; no browser tests.
+- [x] Cause: fixed centre-lane spawn (`floor(lanes / 2)`) always chose index 2 (third lane) after expansion. Replaced with one seeded PRNG draw, saved after consumption; shared integer lane-count/transition constants.
+- [x] Colour Clash-only identity proof passed 200/200; 200-seed spawn regression covers every lane, exact PRNG state and integer state. Four-lane counts: 716/735/665/684. Preview build OK; no browser tests, devices remain user-tested.
 
 ## Chain 30-link rework (Oct 6)
 - [x] Extend seeded generation/client/server replay to 30 links and six five-link boards; preserve 45s and momentum, add FASTER at 26.

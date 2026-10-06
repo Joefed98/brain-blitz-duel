@@ -23,7 +23,7 @@
 - PhoneShell gameScreen owns selection/callout suppression: it locks html/body (game-lock class), cancels selectstart/contextmenu, and cancels touchstart inside [data-play-area] with a non-passive listener (React touch handlers are passive).
 - Directional game controls use the shared press-safe button so pointer holds cannot trigger selection, callouts, or context menus.
 - All word games (Wordsmith, Word Hunt, Word Ladder, Tile Grid, Word Slide) check words through the one server-only SCOWL British English list behind dictionary.server.ts; why: one consistent dictionary that never reaches a device.
-- Colour Clash is a deterministic arcade replay, while Count Up truth is recomputed from each stored scene; why: room results must be independently verifiable.
+- Colour Clash draws spawn lanes from state PRNG using shared lane-count constants; Count Up recomputes truth from stored scenes; why: deterministic server verification.
 - RoundIntro renders optional definition `introLine(puzzle)`; why: fixed examples stay fixed while puzzle-specific facts still show.
 - TimerBar is the only countdown: accent ring in its existing 20px slot; PhoneShell owns 4px side safety; why: preserve board space.
 - Memory stays out of room settings/draws; practice uses allTypesInCategory to retain its games.
