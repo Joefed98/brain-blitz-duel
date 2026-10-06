@@ -55,16 +55,22 @@ for (let seed = 0; seed < 200; seed++) {
   const taps = solve(puzzle);
   const answer = encodeChainAnswer({ taps, reason: "complete" });
   const replay = replayChain(JSON.parse(JSON.stringify(puzzle)), decodeChainAnswer(answer));
-  check(replay.links === 25 && replay.reason === "complete", "Replay failed");
-  const graded = gradeSubmission(puzzle, answer, CHAIN_TIME_MS - 25000);
+  check(replay.links === 30 && replay.reason === "complete", "Replay failed");
+  const graded = gradeSubmission(puzzle, answer, CHAIN_TIME_MS - 30000);
   check(graded.score === 150 && graded.isCorrect, "Server score failed");
-  for (const link of [5, 10, 15, 20]) {
+  for (const links of [0, 1, 12, 25, 26, 29, 30]) {
+    const partial = gradeSubmission(puzzle, encodeChainAnswer({ taps: taps.slice(0, links), reason: "timer" }), CHAIN_TIME_MS - links * 1000);
+    check(partial.score === links * 5 && partial.isCorrect === (links === 30), `Partial server score failed at ${links}`);
+  }
+  check(replayChain(puzzle, { taps: taps.slice(0, 25), reason: "complete" }).reason !== "complete", "Client completion claim accepted at 25");
+  check(chainBoardIndex(25) === 5 && puzzle.boards.length === 6, "Sixth board missing");
+  for (const link of [5, 10, 15, 20, 25]) {
     const need = chainRequiredAt(puzzle, link);
     const wrong = puzzle.boards[chainBoardIndex(link)]?.findIndex((n) => need && !same(n, need)) ?? -1;
     const broken = replayChain(puzzle, { taps: [...taps.slice(0, link), { node: wrong, t: (link + 1) * 1000 }], reason: "wrong" });
     check(broken.links === link && broken.reason === "wrong", "Boundary decoy accepted");
   }
-  for (const link of [10, 11, 18, 19, 25]) {
+  for (const link of [10, 11, 18, 19, 25, 26, 30]) {
     const tap = taps[link - 1];
     const previous = taps[link - 2];
     if (!tap || !previous) throw new Error("Missing timed tap");
@@ -79,8 +85,9 @@ for (let seed = 0; seed < 200; seed++) {
     if (!face) throw new Error("Missing legacy face");
     return { ...face, x: i * 15, y: 50 };
   })) };
-  check(replayChain(legacy, { taps: solve(legacy), reason: "complete" }).links === 25, "Legacy replay changed");
+  check(replayChain(legacy, { taps: solve(legacy), reason: "complete" }).links === 30, "Legacy cycle fallback changed");
 }
-check(JSON.stringify(CHAIN_FASTER_AT) === "[10,18]", "FASTER changed");
-check([10,11,18,19,25].map(chainWindowMs).join() === "3000,2500,2500,2000,2000", "Momentum changed");
-console.log("Chain: 200/200 seeded regeneration, five changing cycles, current decoys, scatter, server grades, boundary taps, momentum and legacy replay checks passed.");
+check(CHAIN_LENGTH === 30 && CHAIN_BLOCK === 5 && CHAIN_BOARDS === 6 && CHAIN_TIME_MS === 45000, "Chain configuration incorrect");
+check(JSON.stringify(CHAIN_FASTER_AT) === "[10,18,26]", "FASTER prompts incorrect");
+check([10,11,18,19,25,26,30].map(chainWindowMs).join() === "3000,2500,2500,2000,2000,2000,2000", "Momentum changed");
+console.log("Chain: 200/200 seeded regeneration, six changing cycles, current decoys, scatter, full/partial server grades, boundary taps, momentum and legacy cycle fallback checks passed.");

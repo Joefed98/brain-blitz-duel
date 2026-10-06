@@ -417,14 +417,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 30 per locked ball.",
   },
   chain: {
-    goal: "Tap 25 nodes in order, following the repeating cycle - shape and colour must both match.",
+    goal: "Tap 30 nodes in order, following the repeating cycle - shape and colour must both match.",
     how: [
       { action: "Follow the cycle", detail: "at the top; the lit item is the one you need next." },
       { action: "Keep momentum", detail: "- tap again before the gold ring empties (3 s, then 2.5 s from link 11, 2 s from link 19)." },
       { action: "One wrong tap or an empty ring", detail: "breaks the chain and ends the round." },
       { action: "Every 5 links", detail: "the board reshuffles with a new cycle and order. Watch for look-alikes: right shape, wrong colour." },
     ],
-    score: "6 points per link; 25 links = 150. No time bonus.",
+    score: "5 points per link; 30 links = 150. No time bonus.",
   },
   intruder: {
     goal: "Find everything that changed.",

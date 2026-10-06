@@ -55,6 +55,8 @@ import {
 } from "./types";
 import { BOMB_TIME_MS, SAFE_DIALS, SAFE_TIME_MS, TUBES_COLOURS, TUBES_TIME_MS } from "./types";
 import {
+  CHAIN_LENGTH,
+  CHAIN_LINK_POINTS,
   CHAIN_TIME_MS,
   GRAV_TIME_MS,
   INTRUDER_BOARDS,
@@ -936,8 +938,8 @@ const chainSummary: SummaryBuilder = (result, puzzle) => {
           ? `Broken at link ${links + 1} — too slow`
           : "Time ran out";
   return {
-    summary: `${links} / 25 links · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: [ending, "6 per link · 25 links = 150"],
+    summary: `${links} / ${CHAIN_LENGTH} links · ${seconds(elapsedMs(result, puzzle))}`,
+    detail: [ending, `${CHAIN_LINK_POINTS} per link · ${CHAIN_LENGTH} links = 150`],
   };
 };
 

@@ -1,7 +1,7 @@
 /**
  * Server-only generation for Don't Break the Chain.
  *
- * A new seeded shape-and-colour cycle for each of five boards of 20 nodes (one per
+ * A new seeded shape-and-colour cycle for each of six boards of 20 nodes (one per
  * block of five links). Every board holds exactly the nodes its five links need,
  * plus near-miss decoys: for each rule item, nodes sharing its shape but not its
  * colour and its colour but not its shape. Positions are Poisson-disc scattered.
