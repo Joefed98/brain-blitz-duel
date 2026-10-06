@@ -1,6 +1,6 @@
 ## Night scenes and outlined aim dots (Oct 6)
-- [ ] Outline white Bin Toss aim dots; night Skyline and Ink Bridge with moon/stars, lamps and visible glass/platforms.
-- [ ] Verify renderer-only scope and drawing checks without browser tests or identity proofs.
+- [x] White Bin Toss round aim dots have matching wider dark under-strokes. Skyline/Ink Bridge use shared static night skies, stars/moon, lamps, high-contrast glass/cloud edges, dim towers/windows, moonlit river and a faint navigation-light plane; Skyline clouds removed.
+- [x] No-browser checks passed 2,400 night-scene frames and 3,840 existing drawing frames across both sizes/motion modes, immutability, exact platform/pit geometry, identical aim vertices and paired dot strokes; Fairground smoke/shared FX passed and preview build OK. Only renderer files and project notes changed; no simulation/input/grader/scoring/sound changes or identity proofs. Device appearance remains user-tested.
 
 ## Seven-game artwork tuning (Oct 6)
 - [x] Junction's 2D pose is explicitly render-only; simulation uses 1D progress/occupancy. Corrected all eight outgoing lanes with continuous visual turns and enlarged lights 18%, without changing authoritative progress or collision decisions.
