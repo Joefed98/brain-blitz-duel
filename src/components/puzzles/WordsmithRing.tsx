@@ -11,6 +11,34 @@ const vertices: Point[] = [
   { x: 0, y: 100 - inset }, { x: 0, y: inset },
 ];
 const inner = vertices.map(({ x, y }) => ({ x: 50 + (x - 50) * .34, y: 50 + (y - 50) * .34 }));
+/** Equal angular wedges clipped to the unchanged outer and centre octagons. */
+export function wordsmithRingSegments(count: number) {
+  const angleAt = (point: Point) => {
+    const angle = Math.atan2(point.y - 50, point.x - 50) * 180 / Math.PI;
+    return angle < -112.5 - 1e-8 ? angle + 360 : angle;
+  };
+  const boundary = (angle: number): Point => {
+    const dx = Math.cos(angle * Math.PI / 180), dy = Math.sin(angle * Math.PI / 180);
+    let radius = Infinity;
+    vertices.forEach((a, i) => {
+      const b = vertices[(i + 1) % vertices.length];
+      if (!b) return;
+      const ex = b.x - a.x, ey = b.y - a.y;
+      const denominator = dx * ey - dy * ex;
+      if (Math.abs(denominator) < 1e-9) return;
+      const t = ((a.x - 50) * ey - (a.y - 50) * ex) / denominator;
+      const u = ((a.x - 50) * dy - (a.y - 50) * dx) / denominator;
+      if (t >= 0 && u >= -1e-8 && u <= 1 + 1e-8) radius = Math.min(radius, t);
+    });
+    return { x: 50 + dx * radius, y: 50 + dy * radius };
+  };
+  return Array.from({ length: count }, (_, i) => {
+    const start = -112.5 + i * 360 / count, end = start + 360 / count;
+    const edge = [boundary(start), ...vertices.filter(point => angleAt(point) > start + 1e-8 && angleAt(point) < end - 1e-8), boundary(end)];
+    const polygon = [...edge, ...edge.slice().reverse().map(({ x, y }) => ({ x: 50 + (x - 50) * .34, y: 50 + (y - 50) * .34 }))];
+    return { polygon, label: centroid(polygon), boundary: edge[0] };
+  });
+}
 const points = (polygon: Point[]) => polygon.map(({ x, y }) => `${x},${y}`).join(" ");
 const clip = (polygon: Point[]) => `polygon(${polygon.map(({ x, y }) => `${x}% ${y}%`).join(",")})`;
 function centroid(polygon: Point[]): Point {
@@ -53,12 +81,10 @@ export function WordsmithRing({ letters, selected = [], disabled = true, onTap }
   const lightProbes = useRef<(SVGTextElement | null)[]>([]);
   const [metrics, setMetrics] = useState<{ boxes: GlyphBox[]; size: number }>({ boxes: [], size: 25 * WORDSMITH_GLYPH_REDUCTION });
   const outer = letters.map((_, index) => index).filter(index => index !== WORDSMITH_CENTRE_INDEX);
+  const wedges = wordsmithRingSegments(outer.length);
   const segments = letters.map((_, index) => {
     if (index === WORDSMITH_CENTRE_INDEX) return { polygon: inner, label: { x: 50, y: 50 } };
-    const segment = outer.indexOf(index), next = (segment + 1) % vertices.length;
-    const a = vertices[segment], b = vertices[next], c = inner[next], d = inner[segment];
-    const polygon = a && b && c && d ? [a, b, c, d] : [];
-    return { polygon, label: centroid(polygon) };
+    return wedges[outer.indexOf(index)] ?? { polygon: [], label: { x: 50, y: 50 } };
   });
   useEffect(() => {
     const element = host.current;
@@ -90,12 +116,8 @@ export function WordsmithRing({ letters, selected = [], disabled = true, onTap }
   return <div ref={host} className="wordsmith-ring relative aspect-square w-full select-none" aria-label="Wordsmith letter ring">
     {letters.map((letter, index) => {
       const centre = index === WORDSMITH_CENTRE_INDEX;
-      const segment = outer.indexOf(index);
-      const next = (segment + 1) % vertices.length;
-      const a = vertices[segment], b = vertices[next], c = inner[next], d = inner[segment];
-      const polygon = centre ? inner : a && b && c && d ? [a, b, c, d] : [];
+      const polygon = segments[index]?.polygon ?? [];
       if (!polygon.length) return null;
-      const label = centre ? { x: 50, y: 50 } : centroid(polygon);
       const used = selected.includes(index);
       return <Button key={index} type="button" variant="ghost" disabled={disabled}
         data-wordsmith-tile={index} aria-pressed={used}
@@ -122,7 +144,7 @@ export function WordsmithRing({ letters, selected = [], disabled = true, onTap }
     <svg className="wordsmith-ring-lines" viewBox="0 0 100 100" aria-hidden="true">
       <polygon points={points(vertices)} />
       <polygon points={points(inner)} />
-      {vertices.map((point, i) => <line key={i} x1={point.x} y1={point.y} x2={inner[i]?.x} y2={inner[i]?.y} />)}
+      {wedges.map(({ boundary: point }, i) => point && <line key={i} x1={point.x} y1={point.y} x2={50 + (point.x - 50) * .34} y2={50 + (point.y - 50) * .34} />)}
     </svg>
   </div>;
 }

@@ -39,4 +39,4 @@
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
 - Art caches stay in renderers (see arcade guidance); why: no sim changes.
 
-- PhoneShell shares puzzle paint; WordsmithRing fits equal-size glyphs to shared polygons; wordInput owns hit/toggle helpers. Why: consistent UI, no grader changes.
+- PhoneShell shares puzzle paint; WordsmithRing fits shared octagonal wedges; wordInput owns taps. Wordsmith keeps centre index and seeded nine-tile demos. Why: replay compatibility.

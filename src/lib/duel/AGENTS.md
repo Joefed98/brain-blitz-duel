@@ -7,3 +7,4 @@
 - Intruder Detection runs a fixed clock-driven timeline per board (card 1 s, show 5 s, blank 1 s, pick 3 s, hold 1 s) derived from the round start, and shuffled boards store `perm` (after[i] comes from cells[perm[i]]) with answers indexed in the shown grid; why: identical timing for all players and the grid never moves.
 
 - Equation uses puzzle-owned stage counts with explicit answer segment totals, preserving other three-stage games and legacy Equation scoring; its fourth generator filters unique full-operator enumeration for division, multiplication and three operator kinds. Why: play, grading and reveal must agree without changing unrelated rounds.
+- Wordsmith draws its size before its pangram, retaining centre index 4 and explicit nine-letter fixed-example generation; its bounded retry then exhaustive fallback always enforces the selected size and word-count band. Why: seeded boards, old grading and recorded demos stay compatible.

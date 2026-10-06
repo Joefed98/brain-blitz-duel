@@ -57,7 +57,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     .filter((entry) => !mine.includes(entry.word))
     .sort((a, b) => b.word.length - a.word.length || b.points - a.points)
     .slice(0, 5);
-  const nine = puzzle.source ?? (puzzle.words ?? []).find((entry) => entry.word.length === 9)?.word;
+  const pangram = puzzle.source ?? (puzzle.words ?? []).find((entry) => entry.word.length === puzzle.letters.length)?.word;
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
@@ -86,9 +86,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         </div>
       )}
 
-      {nine && (
+      {pangram && (
         <p className="text-center font-mono text-base text-muted-foreground">
-          Nine-letter word: <span className="text-primary">{nine}</span>
+          {puzzle.letters.length}-letter word: <span className="text-primary">{pangram}</span>
         </p>
       )}
     </div>
