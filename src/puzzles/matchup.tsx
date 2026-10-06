@@ -25,7 +25,7 @@ import {
 import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import {
   drawMatchupArt, drawMatchupArtAnimated, drawMatchupArtSelection, drawMatchupSwap,
-  matchupStepOffsets, MATCHUP_SWAP_MS, type MatchupSwapTween,
+  matchupStepOffsets, matchupStepSound, MATCHUP_SWAP_MS, type MatchupSwapTween,
 } from "@/lib/arcade/matchup.renderer";
 import { playSound } from "@/lib/sound";
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
@@ -88,7 +88,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const animUntil = useRef(0);
   const swapTween = useRef<MatchupSwapTween | null>(null);
   /** Pending gem chimes for the current swap: wall-clock times, cascade step = index. */
-  const chimes = useRef<{ at: number[]; next: number }>({ at: [], next: 0 });
+  const chimes = useRef<{ at: number[]; sounds: string[]; next: number }>({
+    at: [], sounds: [], next: 0,
+  });
   const submitted = useRef(false);
   const endedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
