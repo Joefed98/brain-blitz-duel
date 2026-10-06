@@ -1,3 +1,5 @@
+import { chainScore } from "./chain";
+import type { ChainPuzzleData } from "./types";
 import {
   BLOCK_PIECE_POINTS,
   BLOCK_TIME_MS,
@@ -55,7 +57,6 @@ import {
   TUBES_TIME_MS,
   GRAV_TIME_MS,
   GRAV_LOCK_POINTS,
-  CHAIN_LINK_POINTS,
   INTRUDER_BOARDS,
   INTRUDER_TIME_MS,
   NONO_PARTIAL_POINTS,
@@ -803,9 +804,9 @@ export function scoreGravity(
   return clamp(GRAV_LOCK_POINTS * Math.max(0, Math.round(locked)), 0, MAX_ROUND_SCORE);
 }
 
-/** Don't Break the Chain: 5 per completed link, capped at 150; no bonus, no penalty. */
-export function scoreChain(links: number): number {
-  return clamp(CHAIN_LINK_POINTS * links, 0, MAX_ROUND_SCORE);
+/** Chain points and finish bonus follow the stored puzzle rules. */
+export function scoreChain(links: number, msRemaining = 0, puzzle?: ChainPuzzleData): number {
+  return chainScore(links, msRemaining, puzzle);
 }
 
 /** Intruder Detection (A): 24 per board (12 for half a two-change board); all five = 130 + SPEED(20). */

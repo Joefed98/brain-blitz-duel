@@ -5,7 +5,7 @@ import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { MATCHUP_PAR_RAW } from "@/lib/arcade/matchup";
 import { RALLY_GOLD_POINTS } from "@/lib/arcade/rally";
 import { SKYLINE_BLOCK_POINTS, SKYLINE_PERFECT_POINTS } from "@/lib/arcade/skyline";
-import type { PuzzleType } from "./types";
+import { CHAIN_LENGTH, CHAIN_LINK_POINTS, CHAIN_FINISH_BONUS, type PuzzleType } from "./types";
 
 /**
  * Plain-English SCORE lines for the round intro. Built from one template per
@@ -18,6 +18,10 @@ const SPEED = 20;
 /** Standard: 130 + up to 20 for speed; flat points otherwise. */
 const standard = (finish: string, notFinished: string) =>
   `${finish}: ${COMPLETE} points, plus up to ${SPEED} more for finishing fast. Not finished: ${notFinished}.`;
+
+/** Fixed links with a completion-only speed bonus. */
+const linkedFinish = (length: number, points: number, bonus: number) =>
+  `Complete all ${length} links: ${length * points} points, plus up to ${bonus} more for finishing fast. Not finished: ${points} per link, rounded down. A wrong or missed tap ends your run.`;
 
 /** Fewest moves: 100 + moves points + speed points. */
 const fewestMoves = (finish: string, notFinished: string, shape: "B" | "C" = "B") => {
@@ -67,7 +71,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   reaction: "Average 200 ms or faster for 150 points; slower reactions score less. A miss counts as a very slow tap. Tapping too early: lose 8.",
   stopwatch: "Stop within 20 ms of the zone on average for 150 points; bigger misses score less. A watch you never stop counts as a big miss.",
   numhunt: "Tap all 24 in order: 130 points, plus up to 20 more for finishing fast. Not finished: 5 points for each number. Wrong tap: lose 5.",
-  chain: "5 points for each link, so all 30 links score 150. A wrong or missed tap ends your run.",
+  chain: linkedFinish(CHAIN_LENGTH, CHAIN_LINK_POINTS, CHAIN_FINISH_BONUS),
   whack: "Points for the share of targets you hit, up to 135, plus 15 if you hit them all. Wrong colour or empty tap: lose 3. Bomb: lose 5.",
   clayshoot: "5 points for each orange clay and 10 for each gold one. Hit all 25 for 10 more.",
   symscan: "The three grids are worth 30, 45 and 55 points, scored by how many arrows you find. Wrong tap: lose 3. Get all three perfect for up to 20 more for speed.",
