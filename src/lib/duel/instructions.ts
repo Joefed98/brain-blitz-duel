@@ -96,13 +96,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Twenty a sequence. All five right for the speed bonus.",
   },
   equation: {
-    goal: "Make three growing equations equal their targets.",
+    goal: "Make four increasingly difficult equations equal their targets.",
     how: [
       { action: "Tap each gap", detail: "to choose an operator, worked left to right." },
-      { action: "A true equation", detail: "moves on by itself." },
-      { action: "Press Next", detail: "to skip ahead - 90 seconds for all three." },
+      { action: "A true equation", detail: "holds for 1 second, then moves on; the timer keeps running." },
+      { action: "Press Next", detail: "to skip ahead - 90 seconds for all four; the last uses division in a harder operator mix." },
     ],
-    score: "30, 40 and 50 for the three equations; all three for the time bonus.",
+    score: "Solved stages: 25 / 30 / 35 / 40. All four: 130 + round(20 × ms remaining / 90000). Otherwise sum solved stage points. Maximum 150.",
   },
   chaincalc: {
     goal: "Calculate the final number in the chain.",

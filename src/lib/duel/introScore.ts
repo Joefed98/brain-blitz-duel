@@ -5,7 +5,7 @@ import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { MATCHUP_PAR_RAW } from "@/lib/arcade/matchup";
 import { RALLY_GOLD_POINTS } from "@/lib/arcade/rally";
 import { SKYLINE_BLOCK_POINTS, SKYLINE_PERFECT_POINTS } from "@/lib/arcade/skyline";
-import { CHAIN_LENGTH, CHAIN_LINK_POINTS, CHAIN_FINISH_BONUS, type PuzzleType } from "./types";
+import { EQUATION_STAGE_POINTS, CHAIN_LENGTH, CHAIN_LINK_POINTS, CHAIN_FINISH_BONUS, type PuzzleType } from "./types";
 
 /**
  * Plain-English SCORE lines for the round intro. Built from one template per
@@ -22,6 +22,10 @@ const standard = (finish: string, notFinished: string) =>
 /** Fixed links with a completion-only speed bonus. */
 const linkedFinish = (length: number, points: number, bonus: number) =>
   `Complete all ${length} links: ${length * points} points, plus up to ${bonus} more for finishing fast. Not finished: ${points} per link, rounded down. A wrong or missed tap ends your run.`;
+
+/** Standard staged: solved weights total 130, plus completion-only SPEED(20). */
+const standardStaged = (weights: readonly number[]) =>
+  `Stages score ${weights.join(" / ")} points. All ${weights.length} correct: ${weights.reduce((sum, n) => sum + n, 0)} points, plus up to ${SPEED} more for finishing fast. Not finished: add the points for stages solved.`;
 
 /** Fewest moves: 100 + moves points + speed points. */
 const fewestMoves = (finish: string, notFinished: string, shape: "B" | "C" = "B") => {
@@ -56,7 +60,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
 
   // Number
   target: "Hit the target exactly: 130 points, plus up to 20 more for finishing fast. One off scores 120, and it drops faster the further away you are.",
-  equation: "Solve the three equations for 30, 40 and 50 points. Solve all three for a bonus for finishing fast.",
+  equation: standardStaged(EQUATION_STAGE_POINTS),
   balance: "Balance the three scales for 20, 40 and 60 points. Balance all three: 120 points, plus up to 30 more for finishing fast.",
   numpyramid: "Each finished pyramid scores 30, and all four earn up to 30 more for finishing fast. The pyramid you're on scores for the bricks you've got right.",
   trail: standard("Complete the path", "5 for each tile in the right place") + " Wrong tiles cost nothing.",

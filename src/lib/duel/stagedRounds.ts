@@ -1,11 +1,13 @@
 /**
- * Shared answer encoding and scoring for the three-stage rounds (Equation
+ * Shared answer encoding and scoring for staged rounds (Equation
  * Balancing, Symbol Scan, Count Up). Answers are one segment per stage,
  * joined by "|"; an empty segment is a skipped stage. Used by the server
  * grader, the reveal and the result summaries so they always agree.
  */
 import {
   EQUATION_STAGE_POINTS,
+  EQUATION_STAGE_COUNT,
+  EQUATION_SPEED_POINTS,
   EQUATION_TIME_MS,
   STAGE_WEIGHTS_3,
   COUNTUP_TIME_MS,
@@ -15,13 +17,13 @@ import {
 
 export const STAGE_COUNT = 3;
 
-export function splitStages(answer: string | null | undefined): string[] {
+export function splitStages(answer: string | null | undefined, count = STAGE_COUNT): string[] {
   const parts = (answer ?? "").split("|");
-  return Array.from({ length: STAGE_COUNT }, (_, i) => (parts[i] ?? "").trim());
+  return Array.from({ length: count }, (_, i) => (parts[i] ?? "").trim());
 }
 
-export function joinStages(parts: string[]): string {
-  return Array.from({ length: STAGE_COUNT }, (_, i) => parts[i] ?? "").join("|");
+export function joinStages(parts: string[], count = STAGE_COUNT): string {
+  return Array.from({ length: count }, (_, i) => parts[i] ?? "").join("|");
 }
 
 function clampMs(ms: number, limit: number): number {
@@ -36,7 +38,7 @@ export function parseOperators(segment: string): Operator[] {
 
 export function scoreEquationStages(correct: boolean[], msRemaining: number): number {
   const base = correct.reduce((sum, ok, i) => sum + (ok ? EQUATION_STAGE_POINTS[i] ?? 0 : 0), 0);
-  const all = correct.length === STAGE_COUNT && correct.every(Boolean);
+  const all = correct.every(Boolean);
   const bonus = all ? Math.round((30 * clampMs(msRemaining, EQUATION_TIME_MS)) / EQUATION_TIME_MS) : 0;
   return Math.min(150, base + bonus);
 }

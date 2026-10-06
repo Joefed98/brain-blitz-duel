@@ -5,7 +5,6 @@ import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCor
 import { randInt, shuffled } from "@/lib/duel/random";
 import { useStageState } from "@/lib/duel/stageState";
 import {
-  STAGE_COUNT,
   equationStageCorrect,
   evaluateLeftToRight,
   joinStages,
@@ -20,8 +19,8 @@ export { evaluateLeftToRight };
 
 export const OPERATORS: Operator[] = ["+", "-", "×", "÷"];
 
-/** Numbers per stage: three, four, then five. */
-export const EQUATION_STAGE_NUMBERS = [3, 4, 5] as const;
+/** Numbers per stage: three, four, five, then a harder five. */
+export const EQUATION_STAGE_NUMBERS = [3, 4, 5, 5] as const;
 
 /** Every operator combination for the given number of slots. */
 export function allCombos(slots: number): Operator[][] {
@@ -31,15 +30,18 @@ export function allCombos(slots: number): Operator[][] {
 }
 
 /** Answer-first: pick numbers, keep a target reached by exactly one operator set. */
-function buildStage(count: number): { stage: EquationStage; ops: Operator[] } {
+function buildStage(count: number, stageIndex: number): { stage: EquationStage; ops: Operator[] } {
   const combos = allCombos(count - 1);
+  const allowed = (ops: Operator[]) => stageIndex === 3
+    ? ops.includes("÷") && ops.includes("×") && new Set(ops).size >= 3
+    : stageIndex !== 2 || !ops.includes("÷");
   for (let attempt = 0; attempt < 900; attempt++) {
     const numbers = Array.from({ length: count }, () => randInt(2, count === 3 ? 12 : 15));
     const solutions = combos
       .map((ops) => ({ ops, value: evaluateLeftToRight(numbers, ops) }))
       .filter((r): r is { ops: Operator[]; value: number } => r.value !== null);
     const chosen = shuffled(solutions).find(
-      (c) => c.value <= 400 && solutions.filter((o) => o.value === c.value).length === 1,
+      (c) => c.value <= 400 && allowed(c.ops) && solutions.filter((o) => o.value === c.value).length === 1,
     );
     if (chosen) return { stage: { numbers, target: chosen.value }, ops: chosen.ops };
   }
@@ -48,11 +50,14 @@ function buildStage(count: number): { stage: EquationStage; ops: Operator[] } {
     4: { stage: { numbers: [8, 2, 5, 3], target: 17 }, ops: ["÷", "×", "-"] },
     5: { stage: { numbers: [9, 3, 4, 2, 5], target: 31 }, ops: ["-", "×", "+", "+"] },
   };
-  return fallback[count]!;
+  if (stageIndex === 3) return { stage: { numbers: [12, 3, 7, 2, 5], target: 55 }, ops: ["+", "+", "÷", "×"] };
+  const result = fallback[count];
+  if (!result) throw new Error("Unsupported Equation stage");
+  return result;
 }
 
 export function buildEquation(): EquationPuzzleData {
-  const built = EQUATION_STAGE_NUMBERS.map((n) => buildStage(n));
+  const built = EQUATION_STAGE_NUMBERS.map((n, i) => buildStage(n, i));
   return { type: "equation", stages: built.map((b) => b.stage), operators: built.map((b) => b.ops) };
 }
 
@@ -94,19 +99,20 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" }: PuzzleStageProps) {
   const data = puzzle.type === "equation" ? puzzle : null;
   const [stage, setStage] = useStageState<number>(stateKey, "eqStage", () => 0);
-  const [answers, setAnswers] = useStageState<string[]>(stateKey, "eqAnswers", () => ["", "", ""]);
+  const [answers, setAnswers] = useStageState<string[]>(stateKey, "eqAnswers", () => Array.from({ length: data?.stages.length ?? 4 }, () => ""));
   const [slots, setSlots] = useStageState<(Operator | null)[]>(stateKey, "eqSlots", () =>
     Array(Math.max(0, (data?.stages[0]?.numbers.length ?? 1) - 1)).fill(null),
   );
   const done = useRef(false);
 
-  const current = data?.stages[Math.min(stage, STAGE_COUNT - 1)];
+  const total = data?.stages.length ?? 4;
+  const current = data?.stages[Math.min(stage, total - 1)];
   const liveAnswers = answers.map((a, i) => (i === stage ? slots.filter(Boolean).join(",") : a));
-  const draft = joinStages(liveAnswers);
+  const draft = joinStages(liveAnswers, total);
   const complete = !!current && slots.every((slot) => slot !== null) && equationStageCorrect(current.numbers, current.target, slots.join(","));
   const holding = useStageCorrectHold({
     complete,
-    finalStage: stage >= STAGE_COUNT - 1,
+    finalStage: stage >= total - 1,
     locked: locked || done.current,
     stateKey,
     onAdvance: () => advance(slots),
@@ -122,9 +128,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
     const next = [...answers];
     next[stage] = filled.filter(Boolean).join(",");
     setAnswers(next);
-    if (stage >= STAGE_COUNT - 1) {
+    if (stage >= total - 1) {
       done.current = true;
-      onSubmit(joinStages(next));
+      onSubmit(joinStages(next, total));
       return;
     }
     const nextStage = stage + 1;
@@ -149,14 +155,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
     setSlots(next);
   };
 
-  const last = stage >= STAGE_COUNT - 1;
+  const last = stage >= total - 1;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col justify-between gap-3">
       <div className="flex flex-col items-center gap-3">
-        <StageProgress stage={stage} />
+        <StageProgress stage={stage} total={total} />
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Equation {stage + 1} of 3 · left to right
+          Equation {stage + 1} of {total} · left to right
         </p>
         <div className="flex w-full flex-wrap items-center justify-center gap-1 rounded-2xl bg-card px-2 py-3 font-mono text-lg font-bold tabular-nums min-[390px]:text-xl">
           {current.numbers.map((n, index) => (
@@ -216,14 +222,14 @@ function Line({ numbers, ops }: { numbers: number[]; ops: string[] }) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "equation") return null;
-  const parts = splitStages(myAnswer);
+  const parts = splitStages(myAnswer, puzzle.stages.length);
   return (
-    <div className="flex w-full flex-col gap-3">
+    <div className="flex min-h-0 w-full flex-1 flex-col justify-center gap-2">
       {puzzle.stages.map((stage, i) => {
         const mine = parseOperators(parts[i] ?? "");
         const ok = equationStageCorrect(stage.numbers, stage.target, parts[i] ?? "");
         return (
-          <div key={i} className="flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-3 py-3">
+          <div key={i} className="flex w-full flex-col items-center gap-1 rounded-lg bg-card px-2 py-2">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Equation {i + 1}</p>
             <p className="text-center font-mono text-lg font-bold tabular-nums text-primary">
               <Line numbers={stage.numbers} ops={puzzle.operators?.[i] ?? []} /> = {stage.target}
@@ -250,7 +256,7 @@ export const equationPuzzle: PuzzleDefinition = {
   generate: buildEquation,
   check: (answer, puzzle) => {
     if (puzzle.type !== "equation") return false;
-    const parts = splitStages(answer);
+    const parts = splitStages(answer, puzzle.stages.length);
     return puzzle.stages.every((st, i) => equationStageCorrect(st.numbers, st.target, parts[i] ?? ""));
   },
   IntroExample,
