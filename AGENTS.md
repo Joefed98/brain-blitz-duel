@@ -35,6 +35,8 @@
 - Non-engine demos use the real Stage, INTRO_EXAMPLE_SEED, sealed example id and recorded area-fraction actions/verdicts; why: real UI without exposed answers or divergent play.
 - Mechanic-changing puzzle revisions reject incompatible saved intro demos by their stored puzzle shape; why: old touches must not show retired mechanics while a new fixed example awaits recording.
 
-- Shared category themes, bounded FX and manifest audio adapters live outside sims; why: preserve gameplay and grading.
+- Themes, bounded FX and audio live outside sims; why: preserve grading.
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
-- Per-game tents, day/night sky helpers and aim-path art stay in renderers to isolate scenery from gameplay.
+- Scenery stays in renderers; why: separate art from gameplay.
+
+- PhoneShell applies shared puzzle surface roles without wrappers or input changes; why: play/demo/reveal share paint, not rules.
