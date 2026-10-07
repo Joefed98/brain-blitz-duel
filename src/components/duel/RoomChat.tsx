@@ -404,7 +404,9 @@ export function RoomChat({
       <div
         className="sticky z-[55] mt-2 shrink-0 bg-background"
         style={{ height: CHAT_BAR_HEIGHT, bottom: "env(safe-area-inset-bottom, 0px)" }}
-        onTouchStart={(event) => { barTouchY.current = event.touches[0]?.clientY ?? null; }}
+        onTouchStart={(event) => {
+          barTouchY.current = event.touches[0]?.clientY ?? null;
+        }}
         onTouchEnd={(event) => {
           const start = barTouchY.current;
           const end = event.changedTouches[0]?.clientY;
