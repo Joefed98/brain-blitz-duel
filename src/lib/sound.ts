@@ -421,8 +421,35 @@ export function startWarning10(offsetSeconds = 0): void {
   }
 }
 
+/** Final-seconds ticks; tracked so an early end cuts them with warning_10. */
+const warningTicks = new Set<AudioBufferSourceNode>();
+export function playWarningTick(id: "warning_tick" | "warning_tick_final"): void {
+  if (demoHushed()) return;
+  if (isMuted() || !ready() || !ctx || !effectsGain) return;
+  const buffer = buffers.get(id);
+  if (!buffer) return;
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(effectsGain);
+    source.onended = () => warningTicks.delete(source);
+    source.start();
+    warningTicks.add(source);
+  } catch (error) {
+    warnOnce("warning tick failed", error);
+  }
+}
+
 /** Stops the countdown immediately (round ended early: submit, all submitted, game over). */
 export function stopWarning10(): void {
+  for (const tick of warningTicks) {
+    try {
+      tick.stop();
+    } catch {
+      /* already finished */
+    }
+  }
+  warningTicks.clear();
   const current = warning10;
   warning10 = null;
   if (!current) return;

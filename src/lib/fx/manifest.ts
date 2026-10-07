@@ -15,7 +15,10 @@ const ENTRIES = {
   stage_complete: { channel: "effects", frequency: 800, ms: 160, url: "/__l5e/assets-v1/ed29c910-891c-4de2-983b-e61f40d2c540/stage_complete.mp3" },
   complete: { channel: "effects", frequency: 920, ms: 200, url: "/__l5e/assets-v1/103c93bb-4c34-40af-9c15-910eba0fced1/complete.mp3" },
   combo: { channel: "effects", frequency: 840, ms: 90, url: "/__l5e/assets-v1/3a978521-aa1e-4d66-904f-65f5a648f142/combo.mp3" },
-  warning_10: { channel: "effects", frequency: 500, ms: 10000, url: "/__l5e/assets-v1/c5d72dc7-263a-401b-b8be-89239458ff00/warning_10.mp3" },
+  warning_10: { channel: "effects", frequency: 500, ms: 10000, url: "/__l5e/assets-v1/6a9b01a7-79c2-40a7-a864-55d7c7508be0/warning_10.mp3" },
+  // Final-seconds ticks: warning_tick at 10–4 s left, warning_tick_final at 3–1 s.
+  warning_tick: { channel: "effects", frequency: 0, ms: 120, url: "/__l5e/assets-v1/cf1f25be-b735-4975-8652-2ea9f294cfe7/warning_tick.mp3" },
+  warning_tick_final: { channel: "effects", frequency: 0, ms: 250, url: "/__l5e/assets-v1/3dab0120-c117-4b13-a1c3-54eb2b32fa3d/warning_tick_final.mp3" },
   warning_5: { channel: "effects", frequency: 250, ms: 130, url: "/__l5e/assets-v1/6c9ef430-99a1-4edd-a5dd-e4b291fe0de3/warning_5.mp3" },
   time_up: { channel: "effects", frequency: 160, ms: 250, url: "/__l5e/assets-v1/9f6f8ee7-851a-4690-8516-018d7a1a0a5f/time_up.mp3" },
   reveal_score: { channel: "effects", frequency: 760, ms: 140, url: "/__l5e/assets-v1/a01b1d2f-6d1d-4dee-85ca-4f5cbbe9ff76/reveal_score.mp3" },
