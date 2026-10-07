@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
-import { prepareRoundMusic, roundMusicClaimed, startRoundMusic, stopRoundMusic } from "@/lib/sound";
+import { prepareRoundMusic, roundMusicClaimed, startMusic, startRoundMusic, stopMusic, stopMusicIf, stopRoundMusic } from "@/lib/sound";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -76,6 +76,18 @@ export function RoundIntro({
   useEffect(() => {
     if (practice) prepareRoundMusic(roundMusicFor(type, puzzleDef(type).category));
   }, [type, practice]);
+
+  // Intro bed: restarts on each intro, never during the 3-2-1 (late arrivals skip it).
+  useEffect(() => {
+    if (counting) return;
+    stopMusic(0);
+    startMusic("intro_loop", { fadeMs: 0 });
+    return () => stopMusicIf("intro_loop", 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startedAt, type]);
+  useEffect(() => {
+    if (counting) stopMusicIf("intro_loop", 300);
+  }, [counting]);
 
   // Leaving the intro without a round starting (practice Back) silences it.
   useEffect(
