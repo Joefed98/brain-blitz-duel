@@ -197,7 +197,7 @@ function Home() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter") void start();
                     }}
-                    className="absolute inset-0 h-full w-full cursor-pointer bg-transparent text-transparent caret-transparent outline-none"
+                    className="absolute inset-0 h-full w-full cursor-pointer bg-transparent text-[16px] text-transparent caret-transparent outline-none"
                   />
                 </div>
               </div>
