@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "asset_id": "0ff7cf10-ad3d-4824-99b6-e7aa97643235",
+  "asset_id": "52da2759-6f1b-46d3-aa76-97cb1f69684d",
   "project_id": "1c894023-8cb3-44c9-93e8-f86c9e3be667",
-  "url": "/__l5e/assets-v1/0ff7cf10-ad3d-4824-99b6-e7aa97643235/tick.mp3",
-  "r2_key": "a/v1/1c894023-8cb3-44c9-93e8-f86c9e3be667/0ff7cf10-ad3d-4824-99b6-e7aa97643235/tick.mp3",
+  "url": "/__l5e/assets-v1/52da2759-6f1b-46d3-aa76-97cb1f69684d/tick.mp3",
+  "r2_key": "a/v1/1c894023-8cb3-44c9-93e8-f86c9e3be667/52da2759-6f1b-46d3-aa76-97cb1f69684d/tick.mp3",
   "original_filename": "tick.mp3",
-  "size": 1298,
+  "size": 1440,
   "content_type": "audio/mpeg",
-  "created_at": "2026-10-05T20:53:54Z"
+  "created_at": "2026-10-07T20:22:17Z"
 }

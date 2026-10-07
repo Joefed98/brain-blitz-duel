@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "asset_id": "052e5249-1317-498e-8daa-f55af7cb8123",
+  "asset_id": "0c51cfab-4d61-42ca-a9ee-ce1fca0af119",
   "project_id": "1c894023-8cb3-44c9-93e8-f86c9e3be667",
-  "url": "/__l5e/assets-v1/052e5249-1317-498e-8daa-f55af7cb8123/podium_fanfare.mp3",
-  "r2_key": "a/v1/1c894023-8cb3-44c9-93e8-f86c9e3be667/052e5249-1317-498e-8daa-f55af7cb8123/podium_fanfare.mp3",
+  "url": "/__l5e/assets-v1/0c51cfab-4d61-42ca-a9ee-ce1fca0af119/podium_fanfare.mp3",
+  "r2_key": "a/v1/1c894023-8cb3-44c9-93e8-f86c9e3be667/0c51cfab-4d61-42ca-a9ee-ce1fca0af119/podium_fanfare.mp3",
   "original_filename": "podium_fanfare.mp3",
-  "size": 21674,
+  "size": 24768,
   "content_type": "audio/mpeg",
-  "created_at": "2026-10-05T20:54:32Z"
+  "created_at": "2026-10-07T20:22:10Z"
 }
