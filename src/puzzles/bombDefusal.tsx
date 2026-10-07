@@ -20,7 +20,7 @@ import {
 } from "@/lib/duel/bomb";
 import { useStageState } from "@/lib/duel/stageState";
 import { BOMB_MAX_SEQUENCE, BOMB_TIME_MS, BOMB_WIRES, type BombPuzzleData } from "@/lib/duel/types";
-import { playLock, playSound } from "@/lib/sound";
+import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
