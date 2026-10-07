@@ -16,6 +16,7 @@
  */
 
 import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
+import { devDisplayAllowed } from "./devDisplay";
 import {
   changeChannelMuted,
   changeChannelVolume,
@@ -888,20 +889,73 @@ export function prepareRoundMusic(id: SoundId | null | undefined): void {
     }
     roundBuffers.push(id);
   }
-  void loadMusicBuffer(id);
+  if (!musicBuffers.has(id) && !musicLoads.has(id)) {
+    const log = logFor(id);
+    log.loadStart = stamp();
+    void loadMusicBuffer(id).then(() => {
+      if (musicBuffers.has(id)) logFor(id).loadEnd = stamp();
+    });
+  } else void loadMusicBuffer(id);
 }
 
-/** Starts the round bed only if already decoded; a late track is skipped for the round. */
+/* Dev audio log (accepted key only): one line per round track. */
+interface RoundLog { id: SoundId; loadStart: number | null; loadEnd: number | null; start: number | null; stop: number | null; reason: string | null }
+const roundLogs = new Map<SoundId, RoundLog>();
+function logFor(id: SoundId): RoundLog {
+  let log = roundLogs.get(id);
+  if (!log) roundLogs.set(id, (log = { id, loadStart: null, loadEnd: null, start: null, stop: null, reason: null }));
+  return log;
+}
+function stamp(): number {
+  return Math.round(performance.now());
+}
+function flushRoundLog(id: SoundId, reason: string): void {
+  const log = roundLogs.get(id);
+  roundLogs.delete(id);
+  if (!log || !devDisplayAllowed()) return;
+  log.stop = stamp();
+  log.reason = reason;
+  const f = (n: number | null) => (n === null ? "-" : `${n}ms`);
+  console.info(
+    `[audio] round ${log.id} load ${f(log.loadStart)}→${f(log.loadEnd)} start ${f(log.start)} stop ${f(log.stop)} reason=${reason}`,
+  );
+}
+
+/** Round track wanted at the 3-2-1 but not decoded yet. */
+let wantedRound: SoundId | null = null;
+/** Latest round clock reading (ms remaining); null before the timer runs. */
+let roundRemaining: number | null = null;
+const LATE_START_MIN_MS = 10_000;
+
+/** Starts the round bed at the 3-2-1; a late track starts when ready with >10 s left. */
 export function startRoundMusic(id: SoundId | null | undefined): void {
   if (!id || SOUND_MANIFEST[id]?.channel !== "music") return;
   if (roundTrack?.id === id) return;
-  if (!ready() || !ctx || !masterGain) return;
+  if (!ctx || !masterGain) return;
   const buffer = musicBuffers.get(id);
-  if (!buffer || !roundBuffers.includes(id)) return;
-  if (roundTrack) stopRoundMusic();
+  if (!buffer || !roundBuffers.includes(id) || !ready()) {
+    if (wantedRound !== id) {
+      wantedRound = id;
+      roundRemaining = null;
+      if (!roundBuffers.includes(id)) prepareRoundMusic(id);
+      else void loadMusicBuffer(id);
+      void musicLoads.get(id)?.then(() => {
+        if (wantedRound !== id) return;
+        if (roundRemaining !== null && roundRemaining <= LATE_START_MIN_MS) {
+          wantedRound = null;
+          flushRoundLog(id, "skipped-late");
+          return;
+        }
+        startRoundMusic(id);
+      });
+    }
+    return;
+  }
+  wantedRound = null;
+  if (roundTrack) stopRoundMusic("replaced");
   roundArcade = !/^music_(word|number|speed|attention|pattern|logic)_/.test(id);
-  roundLevel = roundMusicRamp(roundArcade, Infinity);
-  roundClaimed = false;
+  roundLevel = roundMusicRamp(roundArcade, roundRemaining ?? Infinity);
+  // Only the intro bed is faded; the round track has its own node and gain.
   if (currentTrack) {
     fadeOut(currentTrack, 150);
     currentTrack = null;
@@ -914,6 +968,7 @@ export function startRoundMusic(id: SoundId | null | undefined): void {
     source.connect(gain).connect(masterGain);
     source.start(0, source.loopStart);
     roundTrack = { id, source, gain };
+    logFor(id).start = stamp();
   } catch (error) {
     warnOnce("round music failed", error);
   }
@@ -921,6 +976,11 @@ export function startRoundMusic(id: SoundId | null | undefined): void {
 
 /** Clock-driven round ramp, independent of effects and voice volume. */
 export function updateRoundMusicClock(remainingMs: number): void {
+  roundRemaining = arguments[0] as number;
+  if (wantedRound && roundRemaining <= LATE_START_MIN_MS) {
+    flushRoundLog(wantedRound, "skipped-late");
+    wantedRound = null;
+  }
   setRoundMusicLevel(roundMusicRamp(roundArcade, remainingMs));
 }
 
@@ -941,8 +1001,13 @@ export function roundMusicClaimed(): boolean {
 }
 
 /** Stops round music dead (no fade) and releases its decoded buffer. */
-export function stopRoundMusic(): void {
+export function stopRoundMusic(reason = "stopped"): void {
   roundClaimed = false;
+  if (wantedRound) {
+    flushRoundLog(wantedRound, `${reason}-before-ready`);
+    wantedRound = null;
+  }
+  roundRemaining = null;
   const track = roundTrack;
   roundTrack = null;
   if (!track) return;
@@ -953,5 +1018,6 @@ export function stopRoundMusic(): void {
     /* already stopped */
   }
   track.source.buffer = null;
+  flushRoundLog(track.id, reason);
   releaseRoundBuffer(track.id);
 }
