@@ -57,7 +57,9 @@ export function WinnerReveal({ startedAt }: { startedAt: number }) {
         text.current.style.opacity = String(state.opacity);
         text.current.style.transform = `scale(${state.scale})`;
         text.current.style.textShadow =
-          state.glow > 0 ? `0 0 ${Math.round(24 * state.glow)}px rgba(245, 184, 46, ${state.glow.toFixed(2)})` : "none";
+          state.glow > 0
+            ? `0 0 ${Math.round(24 * state.glow)}px rgba(245, 184, 46, ${state.glow.toFixed(2)})`
+            : "none";
       }
       frame = requestAnimationFrame(paint);
     };

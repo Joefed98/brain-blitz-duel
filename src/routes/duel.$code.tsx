@@ -10,7 +10,11 @@ import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { DuelStart } from "@/components/duel/DuelStart";
-import { DUEL_START_MS, WINNER_CRASH_GRACE_MS, WINNER_REVEAL_MS } from "@/lib/duel/startPresentation";
+import {
+  DUEL_START_MS,
+  WINNER_CRASH_GRACE_MS,
+  WINNER_REVEAL_MS,
+} from "@/lib/duel/startPresentation";
 import { WinnerReveal } from "@/components/duel/WinnerReveal";
 import { animateFx } from "@/lib/fx/motion";
 import { RoundPips } from "@/components/duel/RoundPips";
@@ -247,7 +251,13 @@ function DuelScreen() {
   // Chat and reactions never reserve or cover space during viewport-locked play/reveal.
   const chatActive =
     !!duel &&
-    !(duel.status === "in_progress" && (duel.phase === "starting" || duel.phase === "puzzle" || duel.phase === "reveal" || duel.phase === "winner_reveal"));
+    !(
+      duel.status === "in_progress" &&
+      (duel.phase === "starting" ||
+        duel.phase === "puzzle" ||
+        duel.phase === "reveal" ||
+        duel.phase === "winner_reveal")
+    );
   const chat = useRoomChat(duel?.id ?? null, me?.user_id ?? null, chatActive);
   useEffect(() => {
     if (!chatActive) chat.setSheetOpen(false);
@@ -351,7 +361,13 @@ function DuelScreen() {
       return;
     }
     if (dueSince.current === 0) dueSince.current = now;
-    if (phase !== "starting" && phase !== "winner_reveal" && !leads && now - dueSince.current < 2_500) return;
+    if (
+      phase !== "starting" &&
+      phase !== "winner_reveal" &&
+      !leads &&
+      now - dueSince.current < 2_500
+    )
+      return;
     if (Date.now() - lastAdvance.current < 1_500) return;
     lastAdvance.current = Date.now();
     void advancePhase(duel.id);
@@ -545,7 +561,12 @@ function DuelScreen() {
     );
   }
 
-  if (duel.status === "in_progress" && phase === "starting" && phaseStart !== null && now < phaseStart + DUEL_START_MS) {
+  if (
+    duel.status === "in_progress" &&
+    phase === "starting" &&
+    phaseStart !== null &&
+    now < phaseStart + DUEL_START_MS
+  ) {
     return <DuelStart startedAt={phaseStart} type={puzzle?.type} />;
   }
 
@@ -632,40 +653,40 @@ function DuelScreen() {
     if (isMulti) {
       return (
         <div ref={podiumShell}>
-        <PhoneShell>
-          <Podium
-            rows={standings(roomPlayers, results, TOTAL_ROUNDS)}
-            mySlot={mySlot}
-            results={results}
-            roundOrder={duel.round_order}
-            isHost={isHost}
-            busy={rematchBusy}
-            onPlayAgain={() => void handlePlayAgain()}
-            onLeave={() => void handleLeave()}
-          />
-          <RoomChat chat={chat} myUserId={me.user_id} />
-        </PhoneShell>
+          <PhoneShell>
+            <Podium
+              rows={standings(roomPlayers, results, TOTAL_ROUNDS)}
+              mySlot={mySlot}
+              results={results}
+              roundOrder={duel.round_order}
+              isHost={isHost}
+              busy={rematchBusy}
+              onPlayAgain={() => void handlePlayAgain()}
+              onLeave={() => void handleLeave()}
+            />
+            <RoomChat chat={chat} myUserId={me.user_id} />
+          </PhoneShell>
         </div>
       );
     }
     return (
       <div ref={podiumShell}>
-      <PhoneShell>
-        <FinalResult
-          outcome={duelOutcome(results, mySlot, opponentSlot)}
-          myName={me.display_name}
-          opponentName={opponent?.display_name ?? "Opponent"}
-          myTotal={totalScore(results, mySlot)}
-          opponentTotal={totalScore(results, opponentSlot)}
-          breakdown={roundBreakdown(results, mySlot, opponentSlot)}
-          roundOrder={duel.round_order}
-          busy={rematchBusy}
-          isHost={isHost}
-          onPlayAgain={() => void handlePlayAgain()}
-          onHome={() => void handleLeave()}
-        />
-        <RoomChat chat={chat} myUserId={me.user_id} />
-      </PhoneShell>
+        <PhoneShell>
+          <FinalResult
+            outcome={duelOutcome(results, mySlot, opponentSlot)}
+            myName={me.display_name}
+            opponentName={opponent?.display_name ?? "Opponent"}
+            myTotal={totalScore(results, mySlot)}
+            opponentTotal={totalScore(results, opponentSlot)}
+            breakdown={roundBreakdown(results, mySlot, opponentSlot)}
+            roundOrder={duel.round_order}
+            busy={rematchBusy}
+            isHost={isHost}
+            onPlayAgain={() => void handlePlayAgain()}
+            onHome={() => void handleLeave()}
+          />
+          <RoomChat chat={chat} myUserId={me.user_id} />
+        </PhoneShell>
       </div>
     );
   }
@@ -678,7 +699,11 @@ function DuelScreen() {
           totalRounds={duel.round_count}
           type={puzzle.type}
           puzzle={puzzle}
-          startedAt={phase === "starting" && phaseStart !== null ? phaseStart + DUEL_START_MS : phaseStart ?? now}
+          startedAt={
+            phase === "starting" && phaseStart !== null
+              ? phaseStart + DUEL_START_MS
+              : (phaseStart ?? now)
+          }
           now={now}
           outcomes={outcomes}
           ready={me.intro_ready_round >= round}
