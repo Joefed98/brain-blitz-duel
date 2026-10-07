@@ -132,7 +132,8 @@ export function MuteToggle() {
                 className="h-9"
                 onValueChange={([value]) => {
                   if (value === undefined) return;
-                  effects ? setEffectsVolume(value / 100) : setMusicVolume(value / 100);
+                  if (effects) setEffectsVolume(value / 100);
+                  else setMusicVolume(value / 100);
                 }}
               />
             </PopoverContent>

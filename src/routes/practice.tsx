@@ -40,6 +40,7 @@ import {
   claimRoundMusic,
   playCorrect,
   playLock,
+  releaseRoomMusic,
   startRoundMusic,
   stopRoundMusic,
   stopWarning10,
@@ -133,6 +134,14 @@ function PracticeScreen() {
   }, []);
 
   useEffect(() => setHelpOpen(false), [stage, type]);
+  useEffect(() => {
+    releaseRoomMusic();
+    return () => {
+      stopRoundMusic();
+      stopWarning10();
+      releaseRoomMusic();
+    };
+  }, []);
 
   const load = useCallback(
     async (next: PuzzleType) => {
