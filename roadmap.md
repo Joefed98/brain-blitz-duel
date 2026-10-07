@@ -1,3 +1,8 @@
+## Room chat scrolling and expansion (Oct 7)
+- [ ] Diagnose scroll interception and long-press/flex blockers.
+- [ ] Add isolated compact/85% expanded sheet, phase timer, safe footer and automatic countdown close.
+- [ ] Run focused non-browser UI checks; keep gameplay/sound unchanged.
+
 ## Effects audit fix batch (Oct 7, 16:30)
 - [x] One verdict per word check; silent background checks; move-only non-final moves; single reveal verdict + delayed score; Bubble pop alone; eight fallback IDs; clean-up of unused sounds and superseded music uploads. Typecheck and reveal-score guard pass; device audio user-tested.
 
