@@ -1,5 +1,4 @@
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
-import { playCorrect, playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AcceptedWordChip } from "./AcceptedWordChip";
@@ -83,14 +82,12 @@ export function WordsmithPuzzle({
     );
     setBusy(false);
     if (verdict.valid) {
-      playCorrect();
       setFound((current) => [{ word: verdict.word, points: verdict.points }, ...current]);
       selectedRef.current = [];
       setSelectedTiles([]);
       setMessage(null);
       setAcceptedWord(verdict.word);
     } else {
-      playWrong();
       setMessage(verdict.reason ?? "Not a word");
       setShake((n) => n + 1);
     }

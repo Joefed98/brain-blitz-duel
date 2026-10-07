@@ -9,7 +9,10 @@ import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 import { puzzleDef, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/registry";
 import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { stopMusic, stopRoundMusic } from "@/lib/sound";
+import { playSound, stopMusic, stopRoundMusic } from "@/lib/sound";
+import { bombRevealExploded } from "@/puzzles/bombDefusal";
+
+const REVEAL_SCORE_DELAY_MS = 350;
 import { fx } from "@/lib/fx";
 
 interface AnswerRevealProps {
@@ -150,22 +153,28 @@ export function AnswerReveal({
   const Reveal = def.Reveal;
   const puzzleOwnsRevealLayout = puzzle.type === "chain" || puzzle.type === "intruder";
   const cued = useRef(0);
+  const scoreCue = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (myScore === null || cued.current === round) return;
     cued.current = round;
     stopMusic(200);
     stopRoundMusic();
-    if (myCorrect) {
+    // One verdict (none for partial credit), then the score cue 0.35 s later.
+    if (puzzle.type === "bomb" && bombRevealExploded(puzzle, myAnswer)) {
+      playSound("pz_bomb_explode");
+      buzz([12, 60, 12]);
+    } else if (myCorrect) {
       fx.onCorrect(undefined, def.theme);
       buzz(20);
-    } else {
+    } else if (myScore <= 0) {
       fx.onWrong(undefined, def.theme);
       buzz([12, 60, 12]);
     }
-    if (!def.arcadeRun && def.category !== "arcade") fx.onComplete(undefined, def.theme);
-    fx.onRevealScore(myScore, def.theme);
+    const score = myScore;
+    scoreCue.current = window.setTimeout(() => fx.onRevealScore(score, def.theme), REVEAL_SCORE_DELAY_MS);
   }, [round, myCorrect, myScore, puzzle.type, def.category]);
+  useEffect(() => () => window.clearTimeout(scoreCue.current), []);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">

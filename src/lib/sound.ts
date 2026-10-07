@@ -340,6 +340,11 @@ export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): 
   if (isMuted() || !ready() || !ctx || !effectsGain) return;
   const entry = SOUND_MANIFEST[cue];
   if (entry.channel === "music") return;
+  // A cue without its own file plays its registered fallback instead.
+  if (!entry.url && entry.fallback) {
+    playSound(entry.fallback as SoundId, volume, rate, overlap);
+    return;
+  }
   const buffer = buffers.get(cue);
   // Voice lines without a loaded file are skipped silently: never a placeholder beep.
   if (!buffer && entry.channel === "voice") return;

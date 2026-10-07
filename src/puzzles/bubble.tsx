@@ -36,7 +36,7 @@ import { bubbleSounds } from "@/lib/fx/gameSounds";
 import { decodeBubbleRun, encodeBubbleRun, replayBubbleRun } from "@/lib/duel/bubble";
 import { ARCADE_CRASH_FREEZE_MS, type BubblePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -168,7 +168,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       if (state.current.popped > popped) {
         popped = state.current.popped;
-        playCorrect();
       }
 
       reportArcadeTick(state.current.tick, bubbleGame.isOver(state.current));

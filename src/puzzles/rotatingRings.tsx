@@ -24,7 +24,7 @@ import {
   type RingsPuzzleData,
   type StroopColour,
 } from "@/lib/duel/types";
-import { playCorrect, playLock } from "@/lib/sound";
+import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -238,7 +238,6 @@ function Stage({
       onSubmit(encodeRingTaps(next));
       return;
     }
-    playCorrect();
   };
 
   return (

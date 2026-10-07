@@ -20,7 +20,7 @@ import {
 } from "@/lib/duel/bomb";
 import { useStageState } from "@/lib/duel/stageState";
 import { BOMB_MAX_SEQUENCE, BOMB_TIME_MS, BOMB_WIRES, type BombPuzzleData } from "@/lib/duel/types";
-import { playLock, playSound } from "@/lib/sound";
+import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -336,6 +336,13 @@ function Stage({
   );
 }
 
+/** Whether a revealed plan replays as an explosion; the answer reveal plays its cue. */
+export function bombRevealExploded(puzzle: PuzzleRevealProps["puzzle"], answer: string | null | undefined): boolean {
+  if (puzzle.type !== "bomb") return false;
+  const required = decodeBombActions(puzzle.required ?? puzzle.sequence ?? "");
+  return checkBombPlan(required, decodeBombConstraints(puzzle.constraints ?? ""), decodeBombActions(answer ?? "")).exploded;
+}
+
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "bomb") return null;
   const required = decodeBombActions(puzzle.required ?? puzzle.sequence ?? "");
@@ -343,11 +350,6 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const shown = decodeBombActions(puzzle.sequence ?? "");
   const mine = decodeBombActions(myAnswer ?? "");
   const replay = checkBombPlan(required, constraints, mine);
-  // Strike cue on the reveal, once per reveal.
-  useEffect(() => {
-    if (replay.exploded) playSound("pz_bomb_explode");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 

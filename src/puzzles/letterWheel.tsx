@@ -4,7 +4,6 @@ import { lwDecode, lwGrade, lwSlotCells } from "@/lib/duel/letterWheel";
 import { useStageState } from "@/lib/duel/stageState";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData, type LetterWheelSlot } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -259,7 +258,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       if (v.valid && v.reason?.startsWith("slot:")) {
         const i = Number(v.reason.slice(5));
         buzz(12);
-        playCorrect();
         setFilled((f) => {
           const next = [...f];
           next[i] = v.word;
@@ -269,7 +267,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         setFlash("Not in this puzzle");
         setTimeout(() => setFlash(null), 900);
       } else {
-        playWrong();
         setShake(true);
         setTimeout(() => setShake(false), 350);
       }
