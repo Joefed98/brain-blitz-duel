@@ -26,6 +26,7 @@ import {
   playLock,
   playPlayerJoined,
   startMusic,
+  releaseRoomMusic,
   stopMusic,
   unlockAudio,
 } from "@/lib/sound";
