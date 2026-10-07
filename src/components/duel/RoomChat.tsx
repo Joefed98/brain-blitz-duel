@@ -111,6 +111,7 @@ export function RoomChat({
   const seenCount = useRef(chat.messages.length);
   const focusScroll = useRef<{ x: number; y: number } | null>(null);
   const headerTouch = useRef<{ x: number; y: number } | null>(null);
+  const barTouchY = useRef<number | null>(null);
   const savedListTop = useRef(0);
   const open = available && chat.sheetOpen;
   const setSheetOpen = chat.setSheetOpen;
@@ -403,6 +404,13 @@ export function RoomChat({
       <div
         className="sticky z-[55] mt-2 shrink-0 bg-background"
         style={{ height: CHAT_BAR_HEIGHT, bottom: "env(safe-area-inset-bottom, 0px)" }}
+        onTouchStart={(event) => { barTouchY.current = event.touches[0]?.clientY ?? null; }}
+        onTouchEnd={(event) => {
+          const start = barTouchY.current;
+          const end = event.changedTouches[0]?.clientY;
+          if (start !== null && end !== undefined && start - end > 30) setSheetOpen(true);
+          barTouchY.current = null;
+        }}
       >
         {!open && composer}
       </div>
