@@ -41,6 +41,7 @@ import {
   playCorrect,
   playLock,
   releaseRoomMusic,
+  holdMusicBed,
   startRoundMusic,
   stopRoundMusic,
   stopWarning10,
@@ -137,6 +138,7 @@ function PracticeScreen() {
   useEffect(() => setHelpOpen(false), [stage, type]);
   useEffect(() => {
     releaseRoomMusic();
+    holdMusicBed("intro_loop");
     return () => {
       stopRoundMusic();
       stopWarning10();
