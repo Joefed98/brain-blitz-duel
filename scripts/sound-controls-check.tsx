@@ -17,7 +17,10 @@ for (const width of [375, 390]) {
   assert.ok(width - 8 - 104 - 8 >= 255, "game header retains flexible text space");
   assert.ok(width - 40 - 104 - 8 >= 223, "lobby/practice text space");
 }
-for (const [arcade, base, end, windowMs] of [[false, 0.2, 0.5, 10000], [true, 0.5, 0.9, 15000]] as const) {
+for (const [arcade, base, end, windowMs] of [
+  [false, 0.2, 0.5, 10000],
+  [true, 0.5, 0.9, 15000],
+] as const) {
   assert.equal(roundMusicRamp(arcade, windowMs * 2), base);
   assert.equal(roundMusicRamp(arcade, windowMs), base);
   assert.ok(Math.abs(roundMusicRamp(arcade, windowMs / 2) - (base + end) / 2) < 1e-9);
@@ -32,7 +35,10 @@ for (const [type, def] of Object.entries(PUZZLE_REGISTRY)) {
 const sound = readFileSync("src/lib/sound.ts", "utf8");
 assert.match(sound, /roundLevel \* musicVolume\(\)/);
 assert.doesNotMatch(sound, /roundLevel \* effectsVolume/);
-const prepare = sound.split("export function prepareRoundMusic")[1]?.split("export function startRoundMusic")[0] ?? "";
+const prepare =
+  sound
+    .split("export function prepareRoundMusic")[1]
+    ?.split("export function startRoundMusic")[0] ?? "";
 assert.doesNotMatch(prepare, /isMusicMuted|isMuted/);
 assert.match(prepare, /roundBuffers.length >= 2/);
 const ui = readFileSync("src/components/duel/MuteToggle.tsx", "utf8");
@@ -41,4 +47,6 @@ assert.match(ui, /event.preventDefault\(\)/);
 assert.match(ui, /event.stopPropagation\(\)/);
 const timer = readFileSync("src/components/duel/TimerBar.tsx", "utf8");
 assert.match(timer, /updateRoundMusicClock\(remaining\)/);
-console.log("PASS shared 36px controls, 375/390px header budgets, music mappings, Beat silence, ramps, slider independence, unconditional loading and outside-tap shield.");
+console.log(
+  "PASS shared 36px controls, 375/390px header budgets, music mappings, Beat silence, ramps, slider independence, unconditional loading and outside-tap shield.",
+);
