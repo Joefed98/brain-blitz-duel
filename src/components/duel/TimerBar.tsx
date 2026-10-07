@@ -8,6 +8,7 @@ import {
   updateRoundMusicClock,
   stopRoundMusic,
   stopWarning10,
+  playWarningTick,
 } from "@/lib/sound";
 
 interface TimerBarProps {
@@ -28,6 +29,7 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
   const finalTen = active && remaining > 0 && remaining <= 10_000;
   const critical = active && remaining > 0 && remaining <= 5_000;
   const warned10 = useRef(false);
+  const warnSecond = useRef<number | null>(null);
   const wasActive = useRef(false);
   useEffect(() => {
     claimRoundMusic();
@@ -55,6 +57,16 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
     if (remaining > 0 && remaining <= 10_000 && !warned10.current) {
       warned10.current = true;
       fx.onTimerWarning10((10_000 - remaining) / 1000);
+    }
+    // Ticks fire as the clock crosses each whole second (10–4 normal, 3–1 final);
+    // the first reading (e.g. a rejoin) only arms them for the next second.
+    if (warnSecond.current !== seconds) {
+      const first = warnSecond.current === null;
+      warnSecond.current = seconds;
+      if (!first && remaining > 0) {
+        if (seconds >= 4 && seconds <= 10) playWarningTick("warning_tick");
+        else if (seconds >= 1 && seconds <= 3) playWarningTick("warning_tick_final");
+      }
     }
     if (lastTick.current === seconds) return;
     lastTick.current = seconds;
