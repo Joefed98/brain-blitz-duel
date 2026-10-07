@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "asset_id": "dc77d9b5-a0b5-4035-8320-028485762ed8",
+  "asset_id": "2bb4d78b-772d-40aa-8ad8-c0da9e6d449f",
   "project_id": "1c894023-8cb3-44c9-93e8-f86c9e3be667",
-  "url": "/__l5e/assets-v1/dc77d9b5-a0b5-4035-8320-028485762ed8/arc_clank.mp3",
-  "r2_key": "a/v1/1c894023-8cb3-44c9-93e8-f86c9e3be667/dc77d9b5-a0b5-4035-8320-028485762ed8/arc_clank.mp3",
+  "url": "/__l5e/assets-v1/2bb4d78b-772d-40aa-8ad8-c0da9e6d449f/arc_clank.mp3",
+  "r2_key": "a/v1/1c894023-8cb3-44c9-93e8-f86c9e3be667/2bb4d78b-772d-40aa-8ad8-c0da9e6d449f/arc_clank.mp3",
   "original_filename": "arc_clank.mp3",
-  "size": 3806,
+  "size": 3456,
   "content_type": "audio/mpeg",
-  "created_at": "2026-10-06T00:09:02Z"
+  "created_at": "2026-10-07T20:42:44Z"
 }
