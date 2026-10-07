@@ -1,4 +1,4 @@
-import { playCorrect, playWrong } from "@/lib/sound";
+import { playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AcceptedWordChip } from "./AcceptedWordChip";
 import { extendWordHuntPath, wordHuntInnerCell } from "./wordInput";
