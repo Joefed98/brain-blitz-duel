@@ -877,7 +877,6 @@ export function releaseRoomMusic(): void {
 let roundTrack: { id: SoundId; source: AudioBufferSourceNode; gain: GainNode } | null = null;
 let roundLevel = 0.2;
 let roundArcade = false;
-let roundClaimed = false;
 /** Round tracks decoded or decoding, oldest first; never more than two. */
 const roundBuffers: SoundId[] = [];
 let pendingRoundMusic: SoundId | null = null;
