@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { useReducedMotion } from "@/lib/motion";
 import { fx } from "@/lib/fx";
-import { claimRoundMusic, setRoundMusicLevel, stopRoundMusic, stopWarning10 } from "@/lib/sound";
+import { claimRoundMusic, updateRoundMusicClock, stopRoundMusic, stopWarning10 } from "@/lib/sound";
 
 interface TimerBarProps {
   msRemaining: number;
@@ -25,14 +25,12 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
   const wasActive = useRef(false);
   useEffect(() => { claimRoundMusic(); return () => stopRoundMusic(); }, []);
   useEffect(() => {
-    // Round music: stop dead when a running round ends; otherwise ramp
-    // 30% → 70% of effects over the final 15 s (10 s on rounds under 30 s).
+    // Music follows this same puzzle/shared or arcade simulation clock.
     if (!active) { if (wasActive.current) stopRoundMusic(); return; }
     wasActive.current = true;
-    const window = limit < 30_000 ? 10_000 : 15_000;
-    setRoundMusicLevel(remaining >= window ? 0.3 : 0.3 + 0.4 * (1 - remaining / window));
+    updateRoundMusicClock(remaining);
     if (remaining <= 0) stopRoundMusic();
-  }, [active, remaining, limit]);
+  }, [active, remaining]);
   useEffect(() => {
     // Round ended early (submit, all-active-submitted, arcade game over) or
     // the timer unmounted: cut the countdown cue immediately.

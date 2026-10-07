@@ -36,7 +36,8 @@ import { DemoRecorder, type PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
 import { hasIntroDemo } from "@/components/duel/IntroDemo";
 import { INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playLock, unlockAudio } from "@/lib/sound";
+import { claimRoundMusic, playCorrect, playLock, startRoundMusic, stopRoundMusic, stopWarning10, unlockAudio } from "@/lib/sound";
+import { roundMusicFor } from "@/lib/fx/theme";
 import type { SubmitMeta } from "@/puzzles/types";
 
 export const Route = createFileRoute("/practice")({
@@ -147,6 +148,7 @@ function PracticeScreen() {
   }, [exampleMode]);
 
   const cancelIntro = useCallback(() => {
+    stopRoundMusic();
     introCancelled.current = true;
     grading.current = true;
     draftAnswer.current = "";
@@ -172,6 +174,8 @@ function PracticeScreen() {
     async (answer: string, meta?: SubmitMeta) => {
       if (!puzzle || grading.current) return;
       grading.current = true;
+      stopRoundMusic();
+      stopWarning10();
       stopRecording();
       // Dev Orbit jump runs are never graded, stored or offered as demos.
       if (puzzle.type === "orbit" && orbitDevPlanet() !== null) {
@@ -215,6 +219,14 @@ function PracticeScreen() {
   );
 
   // The intro runs for exactly as long as it does in a room.
+  useEffect(() => {
+    if (stage !== "puzzle" || !type) return;
+    // Ready can enter practice without a countdown; try once at game start.
+    startRoundMusic(roundMusicFor(type, puzzleDef(type).category));
+    claimRoundMusic();
+    return () => stopRoundMusic();
+  }, [stage, type]);
+
   useEffect(() => {
     if (stage !== "intro" || introCancelled.current) return;
     if (now - startedAt < INTRO_MS) return;

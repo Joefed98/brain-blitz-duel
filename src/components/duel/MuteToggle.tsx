@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Music2, Volume2, VolumeX } from "lucide-react";
+import { ChevronDown, Music2, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
@@ -32,7 +32,7 @@ export function MuteToggle() {
         const muted = effects ? settings.muted : settings.musicMuted;
         const volume = muted ? 0 : settings[channel];
         const label = effects ? "Effects" : "Music";
-        const Icon = effects ? (muted ? VolumeX : Volume2) : Music2;
+        const Icon = effects ? Volume2 : Music2;
         return (
           <Popover key={channel} open={open === channel} onOpenChange={(value) => setOpen(value ? channel : null)}>
             <div className="flex h-9 w-[52px] shrink-0 items-center">
@@ -43,7 +43,7 @@ export function MuteToggle() {
                 aria-pressed={!muted}
                 onClick={() => effects ? setMuted(!muted) : setMusicMuted(!muted)}>
                 <Icon aria-hidden="true" />
-                {!effects && muted && <svg aria-hidden="true" viewBox="0 0 24 24" className="absolute h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3 21 21" /></svg>}
+                {muted && <svg aria-hidden="true" viewBox="0 0 24 24" className="absolute h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3 21 21" /></svg>}
               </Button>
               <PopoverTrigger asChild>
                 <Button variant="ghost" type="button" className="press h-9 w-4 shrink-0 px-0"
@@ -53,6 +53,7 @@ export function MuteToggle() {
               </PopoverTrigger>
             </div>
             <PopoverContent align="end" side="bottom" className="w-56 p-3"
+              onPointerDownOutside={(event) => event.preventDefault()}
               onPointerDown={(event) => event.stopPropagation()}
               onPointerUp={(event) => event.stopPropagation()}
               onClick={(event) => event.stopPropagation()}>
