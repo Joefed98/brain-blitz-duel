@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "asset_id": "0731b87a-b80a-467a-8fc9-399db5709e92",
+  "asset_id": "796e2e29-b528-45bd-aeeb-e9b2e0d40e8f",
   "project_id": "1c894023-8cb3-44c9-93e8-f86c9e3be667",
-  "url": "/__l5e/assets-v1/0731b87a-b80a-467a-8fc9-399db5709e92/arc_blaster.mp3",
-  "r2_key": "a/v1/1c894023-8cb3-44c9-93e8-f86c9e3be667/0731b87a-b80a-467a-8fc9-399db5709e92/arc_blaster.mp3",
+  "url": "/__l5e/assets-v1/796e2e29-b528-45bd-aeeb-e9b2e0d40e8f/arc_blaster.mp3",
+  "r2_key": "a/v1/1c894023-8cb3-44c9-93e8-f86c9e3be667/796e2e29-b528-45bd-aeeb-e9b2e0d40e8f/arc_blaster.mp3",
   "original_filename": "arc_blaster.mp3",
-  "size": 3408,
+  "size": 2880,
   "content_type": "audio/mpeg",
-  "created_at": "2026-10-06T21:21:03Z"
+  "created_at": "2026-10-07T20:44:33Z"
 }
