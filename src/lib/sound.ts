@@ -16,18 +16,14 @@
  */
 
 import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
+import { changeChannelMuted, changeChannelVolume, readSoundSettings, roundMusicRamp, SOUND_SETTINGS_EVENT } from "./soundSettings";
 
-const MUSIC_MUTE_KEY = "duelz_music_muted";
-const PUZZLE_ROUND_MUSIC_KEY = "duelz_puzzle_round_music";
-const MUTE_KEY = "duelz_muted";
-const MUSIC_KEY = "duelz_music_volume";
-const FX_KEY = "duelz_effects_volume";
-const EVENT = "duelz-sound-change";
-
-export const DEFAULT_MUSIC_VOLUME = 0.35;
-export const DEFAULT_EFFECTS_VOLUME = 0.8;
-/** The fanfare sits slightly above the other effects. */
-const FANFARE_GAIN = 0.9 / DEFAULT_EFFECTS_VOLUME;
+const EVENT = SOUND_SETTINGS_EVENT;
+export const DEFAULT_MUSIC_VOLUME = 1;
+export const DEFAULT_EFFECTS_VOLUME = 1;
+/** Preserve the existing music-bed bus level independently of its slider. */
+const MUSIC_BED_LEVEL = 0.35;
+const FANFARE_GAIN = 0.9 / 0.8;
 
 export type Cue =
   | "player_joined"
@@ -77,70 +73,23 @@ function warnOnce(message: string, error?: unknown): void {
 
 /* ---------------------------------------------------------------- settings */
 
-function readNumber(key: string, fallback: number): number {
-  if (typeof window === "undefined") return fallback;
-  const raw = window.localStorage.getItem(key);
-  if (raw === null) return fallback;
-  const value = Number(raw);
-  return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : fallback;
-}
-
-export function isMuted(): boolean {
-  if (typeof window === "undefined") return true;
-  return window.localStorage.getItem(MUTE_KEY) === "1";
-}
-
-export function isMusicMuted(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return window.localStorage.getItem(MUSIC_MUTE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
+export function isMuted(): boolean { return readSoundSettings().effects.muted; }
+export function isMusicMuted(): boolean { return readSoundSettings().music.muted; }
+export function musicVolume(): number { return readSoundSettings().music.volume; }
+export function effectsVolume(): number { return readSoundSettings().effects.volume; }
 export function setMusicMuted(next: boolean): void {
   if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(MUSIC_MUTE_KEY, next ? "1" : "0");
-  } catch {
-    /* unavailable */
-  }
+  changeChannelMuted("music", next);
   if (!next) unlockAudio();
   applySettings();
   announce();
-}
-/** Device-persisted opt-in for music in logic, word and number rounds (default off). */
-export function isPuzzleRoundMusicOn(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return window.localStorage.getItem(PUZZLE_ROUND_MUSIC_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-export function setPuzzleRoundMusic(next: boolean): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(PUZZLE_ROUND_MUSIC_KEY, next ? "1" : "0");
-  } catch {
-    /* unavailable */
-  }
-  if (next) unlockAudio();
-  announce();
-}
-export function musicVolume(): number {
-  return readNumber(MUSIC_KEY, DEFAULT_MUSIC_VOLUME);
-}
-
-export function effectsVolume(): number {
-  return readNumber(FX_KEY, DEFAULT_EFFECTS_VOLUME);
 }
 
 function applySettings(): void {
   if (!ctx || !masterGain || !musicGain || !effectsGain) return;
   const t = ctx.currentTime;
   masterGain.gain.setValueAtTime(1, t);
-  musicGain.gain.setValueAtTime(isMusicMuted() ? 0 : musicVolume(), t);
+  musicGain.gain.setValueAtTime(isMusicMuted() ? 0 : MUSIC_BED_LEVEL * musicVolume(), t);
   effectsGain.gain.setValueAtTime(isMuted() ? 0 : effectsVolume(), t);
   voiceGain?.gain.setValueAtTime(isMuted() ? 0 : effectsVolume(), t);
   applyRoundLevel(0);
@@ -153,22 +102,22 @@ function announce(): void {
 
 export function setMuted(next: boolean): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(MUTE_KEY, next ? "1" : "0");
+  changeChannelMuted("effects", next);
   if (!next) unlockAudio();
   applySettings();
   announce();
 }
-
 export function setMusicVolume(value: number): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(MUSIC_KEY, String(Math.min(1, Math.max(0, value))));
+  changeChannelVolume("music", value);
+  if (value > 0) unlockAudio();
   applySettings();
   announce();
 }
-
 export function setEffectsVolume(value: number): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(FX_KEY, String(Math.min(1, Math.max(0, value))));
+  changeChannelVolume("effects", value);
+  if (value > 0) unlockAudio();
   applySettings();
   announce();
 }
@@ -507,8 +456,8 @@ function duckMusic(durationMs: number): void {
   const gain = musicGain.gain;
   gain.cancelScheduledValues(time);
   gain.setValueAtTime(gain.value, time);
-  gain.linearRampToValueAtTime(musicVolume() * 0.3, time + 0.03);
-  gain.linearRampToValueAtTime(musicVolume(), time + Math.max(0.25, durationMs / 1000) + 0.2);
+  gain.linearRampToValueAtTime(MUSIC_BED_LEVEL * musicVolume() * 0.3, time + 0.03);
+  gain.linearRampToValueAtTime(MUSIC_BED_LEVEL * musicVolume(), time + Math.max(0.25, durationMs / 1000) + 0.2);
 }
 /** Stops a playing one-shot effect (e.g. the winner drumroll at its cut-off). */
 export function stopSound(id: SoundId): void {
@@ -779,12 +728,12 @@ function detectLoopPoints(buffer: AudioBuffer): { start: number; end: number } {
   for (let c = 0; c < buffer.numberOfChannels; c++) {
     const data = buffer.getChannelData(c);
     for (let i = 0; i < first; i++)
-      if (Math.abs(data[i]!) > LOOP_THRESHOLD) {
+      if (Math.abs(data[i] ?? 0) > LOOP_THRESHOLD) {
         first = i;
         break;
       }
     for (let i = data.length - 1; i > last; i--)
-      if (Math.abs(data[i]!) > LOOP_THRESHOLD) {
+      if (Math.abs(data[i] ?? 0) > LOOP_THRESHOLD) {
         last = i;
         break;
       }
@@ -850,19 +799,18 @@ export function releaseRoomMusic(): void {
 
 /* ------------------------------------------------------------- round music */
 
-/* In-round beds: start at the 3-2-1, stop dead at round end. Level is a share
-   of the effects level (30% → 70% over the closing stretch) on its own gain so
-   lobby ducking never touches it; the persisted music mute silences it.
-   Round tracks are decoded per round (at most two held) and released on stop. */
+/* In-round beds have independent ramp × music-slider gain.
+   Tracks prepare even when muted; at most two are held and released on stop. */
 let roundTrack: { id: SoundId; source: AudioBufferSourceNode; gain: GainNode } | null = null;
-let roundLevel = 0.3;
+let roundLevel = 0.2;
+let roundArcade = false;
 let roundClaimed = false;
 /** Round tracks decoded or decoding, oldest first; never more than two. */
 const roundBuffers: SoundId[] = [];
 
 function applyRoundLevel(rampSeconds: number): void {
   if (!ctx || !roundTrack) return;
-  const target = isMusicMuted() ? 0 : roundLevel * effectsVolume();
+  const target = isMusicMuted() ? 0 : roundLevel * musicVolume();
   const g = roundTrack.gain.gain;
   const t = ctx.currentTime;
   try {
@@ -887,7 +835,7 @@ export function prepareRoundMusic(id: SoundId | null | undefined): void {
   if (!roundBuffers.includes(id)) {
     // Keep only the playing track (if any) alongside the new one.
     for (const other of [...roundBuffers]) if (other !== roundTrack?.id) releaseRoundBuffer(other);
-    while (roundBuffers.length >= 2) releaseRoundBuffer(roundBuffers[0]!);
+    while (roundBuffers.length >= 2) { const oldest = roundBuffers[0]; if (oldest) releaseRoundBuffer(oldest); }
     roundBuffers.push(id);
   }
   void loadMusicBuffer(id);
@@ -901,7 +849,8 @@ export function startRoundMusic(id: SoundId | null | undefined): void {
   const buffer = musicBuffers.get(id);
   if (!buffer || !roundBuffers.includes(id)) return;
   if (roundTrack) stopRoundMusic();
-  roundLevel = 0.3;
+  roundArcade = !/^music_(word|number|speed|attention|pattern|logic)_/.test(id);
+  roundLevel = roundMusicRamp(roundArcade, Infinity);
   roundClaimed = false;
   if (currentTrack) {
     fadeOut(currentTrack, 150);
@@ -911,7 +860,7 @@ export function startRoundMusic(id: SoundId | null | undefined): void {
   try {
     const source = loopingSource(id, buffer);
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(isMusicMuted() ? 0 : roundLevel * effectsVolume(), ctx.currentTime);
+    gain.gain.setValueAtTime(isMusicMuted() ? 0 : roundLevel * musicVolume(), ctx.currentTime);
     source.connect(gain).connect(masterGain);
     source.start(0, source.loopStart);
     roundTrack = { id, source, gain };
@@ -920,7 +869,12 @@ export function startRoundMusic(id: SoundId | null | undefined): void {
   }
 }
 
-/** 0.3–0.7 share of the effects level, set from the round clock. */
+/** Clock-driven round ramp, independent of effects and voice volume. */
+export function updateRoundMusicClock(remainingMs: number): void {
+  setRoundMusicLevel(roundMusicRamp(roundArcade, remainingMs));
+}
+
+/** Normalized level before the device music slider. */
 export function setRoundMusicLevel(level: number): void {
   const next = Math.max(0, Math.min(1, level));
   if (Math.abs(next - roundLevel) < 0.002) return;
