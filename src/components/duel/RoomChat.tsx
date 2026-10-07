@@ -113,6 +113,7 @@ export function RoomChat({
   const headerTouch = useRef<{ x: number; y: number } | null>(null);
   const savedListTop = useRef(0);
   const open = available && chat.sheetOpen;
+  const setSheetOpen = chat.setSheetOpen;
 
   useEffect(() => {
     setMounted(true);
@@ -137,11 +138,11 @@ export function RoomChat({
   }, []);
   useEffect(() => {
     if (!available) {
-      chat.setSheetOpen(false);
+      setSheetOpen(false);
       setMenuFor(null);
       setExpanded(false);
     }
-  }, [available, chat.setSheetOpen]);
+  }, [available, setSheetOpen]);
 
   const toBottom = () => {
     const el = list.current;
@@ -154,7 +155,7 @@ export function RoomChat({
     const el = list.current;
     if (atBottom.current) toBottom();
     else if (el) el.scrollTop = savedListTop.current;
-  }, [open]);
+  }, [open, expanded, viewport?.height]);
   useEffect(() => {
     const grew = chat.messages.length > seenCount.current;
     seenCount.current = chat.messages.length;
