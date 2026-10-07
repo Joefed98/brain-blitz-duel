@@ -1,5 +1,5 @@
 /** Swap URLs here when the final files arrive; null music is intentionally silent. */
-interface SoundEntry { channel: "effects" | "voice" | "music"; frequency: number; ms: number; url: string | null; }
+interface SoundEntry { channel: "effects" | "voice" | "music"; frequency: number; ms: number; url: string | null; fallback?: string; }
 const ENTRIES = {
   player_joined: { channel: "effects", frequency: 520, ms: 110, url: "/__l5e/assets-v1/4598b2e1-7e9f-43ce-a663-6ade3058dfb4/player_joined.mp3" },
   round_start: { channel: "effects", frequency: 440, ms: 180, url: "/__l5e/assets-v1/7ef5d069-61fd-4fc9-b25a-9e2a881945aa/round_start.mp3" },
@@ -17,12 +17,10 @@ const ENTRIES = {
   warning_10: { channel: "effects", frequency: 500, ms: 10000, url: "/__l5e/assets-v1/1bf9c4f3-6364-48d9-a825-321098412e98/warning_10.wav" },
   warning_5: { channel: "effects", frequency: 250, ms: 130, url: "/__l5e/assets-v1/6c9ef430-99a1-4edd-a5dd-e4b291fe0de3/warning_5.mp3" },
   time_up: { channel: "effects", frequency: 160, ms: 250, url: "/__l5e/assets-v1/b1049634-15c0-4057-b079-789943435723/time_up.mp3" },
-  submit: { channel: "effects", frequency: 390, ms: 90, url: "/__l5e/assets-v1/d305b9ed-85de-4069-9f36-260d44739e66/submit.mp3" },
   reveal_score: { channel: "effects", frequency: 760, ms: 140, url: "/__l5e/assets-v1/aca666d7-9fbd-4461-8963-06e56a0daaad/reveal_score.mp3" },
   reaction: { channel: "effects", frequency: 600, ms: 100, url: "/__l5e/assets-v1/de0be4a1-df3c-4767-a07d-075b6e6b31fb/reaction.mp3" },
   // Arcade per-game sounds: registered for later theme overrides; no callers yet.
   arc_crash: { channel: "effects", frequency: 120, ms: 200, url: "/__l5e/assets-v1/9345f157-45a5-43b2-a2df-1f9e157dad92/arc_crash.mp3" },
-  arc_gem_chime: { channel: "effects", frequency: 1040, ms: 140, url: "/__l5e/assets-v1/04b7c268-d821-4ea2-94b9-9d78b93ff79f/arc_gem_chime.mp3" },
   arc_pickup: { channel: "effects", frequency: 880, ms: 100, url: "/__l5e/assets-v1/f7536723-8a2e-4203-ad4e-bb594492f158/arc_pickup.mp3" },
   arc_space_ambience: { channel: "effects", frequency: 0, ms: 0, url: "/__l5e/assets-v1/fadde3ab-4d12-4c1c-ac22-0beadd141086/arc_space_ambience.mp3" },
   arc_thruster: { channel: "effects", frequency: 180, ms: 160, url: "/__l5e/assets-v1/995e177b-af96-4a88-8953-d251adb8ce81/arc_thruster.mp3" },
@@ -85,6 +83,15 @@ const ENTRIES = {
   gg: { channel: "voice", frequency: 660, ms: 1312, url: "/__l5e/assets-v1/486cb4ac-232c-4035-a5eb-2938a412dc05/gg.mp3" },
   roundTaken: { channel: "voice", frequency: 660, ms: 1801, url: "/__l5e/assets-v1/54a44813-95a4-4d93-8cb4-4ee2410f8947/roundTaken.mp3" },
   roundLost: { channel: "voice", frequency: 330, ms: 1801, url: "/__l5e/assets-v1/fc411939-97f0-4713-acf1-937810c59bac/roundLost.mp3" },
+  // Own-name cues awaiting files: each plays its fallback until a file of its own name is uploaded.
+  arc_shape_pop: { channel: "effects", frequency: 0, ms: 0, url: null, fallback: "arc_crash" },
+  arc_rainbow_pot: { channel: "effects", frequency: 0, ms: 0, url: null, fallback: "arc_fair_bell" },
+  arc_rainbow_bump: { channel: "effects", frequency: 0, ms: 0, url: null, fallback: "arc_fair_thud" },
+  arc_orchard_basket: { channel: "effects", frequency: 0, ms: 0, url: null, fallback: "arc_wood_knock" },
+  arc_orchard_miss: { channel: "effects", frequency: 0, ms: 0, url: null, fallback: "arc_fair_thud" },
+  pz_clash_lane: { channel: "effects", frequency: 0, ms: 0, url: null, fallback: "move" },
+  pz_clash_right: { channel: "effects", frequency: 0, ms: 0, url: null, fallback: "correct" },
+  pz_clash_wrong: { channel: "effects", frequency: 0, ms: 0, url: null, fallback: "wrong" },
   // Round-number announcements; round7 unreachable until rooms exceed seven rounds.
   round1: { channel: "voice", frequency: 440, ms: 1298, url: "/__l5e/assets-v1/c5cf8b8a-45e5-421a-b9bd-b573330b523e/round1.mp3" },
   round2: { channel: "voice", frequency: 440, ms: 1532, url: "/__l5e/assets-v1/38655cdb-4eef-451e-a4b4-43134f963009/round2.mp3" },

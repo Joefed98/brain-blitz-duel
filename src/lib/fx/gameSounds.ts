@@ -4,6 +4,7 @@
  */
 import { ensureLoop, playSound, stopLoop } from "@/lib/sound";
 import type { OrbitState } from "@/lib/arcade/orbit";
+import type { ClashState } from "@/lib/arcade/colourClash";
 import type { SwingState } from "@/lib/arcade/swing";
 import type { WavState } from "@/lib/arcade/wavefront";
 import type { CrossState } from "@/lib/arcade/cross";
@@ -65,11 +66,6 @@ export function swingSounds(): GameSounds<SwingState> {
   };
 }
 
-/** Gem chime for cascade step n: up one semitone per step. */
-export function playGemChime(step: number): void {
-  playSound("arc_gem_chime", 1, Math.pow(2, Math.min(step, 12) / 12));
-}
-
 export function wavefrontSounds(): GameSounds<WavState> {
   let prev: WavState | null = null;
   return {
@@ -79,7 +75,7 @@ export function wavefrontSounds(): GameSounds<WavState> {
         if (state.pierce > prev.pierce) playSound("arc_retro_pickup");
         // Shapes and the armour block destroyed this frame (bursts carry the kill tick).
         if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) playSound("arc_big_explode", 0.8);
-        else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) playSound("arc_crash", 0.7);
+        else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) playSound("arc_shape_pop", 0.7);
         if (state.lives < prev.lives) playSound("arc_lose_life");
       }
       prev = state;
@@ -423,9 +419,9 @@ export function inkBridgeSounds(): GameSounds<InkState> {
         }
         if (state.flashTick === state.tick || state.flashTick > prev.flashTick) {
           if (state.flashKind === 1) {
-            playSound("arc_fair_bell");
+            playSound("arc_rainbow_pot");
           } else if (inkFailedOnBlock(state)) {
-            playSound("arc_thud");
+            playSound("arc_rainbow_bump");
           }
         }
       }
@@ -474,8 +470,8 @@ export function snipSounds(): GameSounds<SnipState> {
         if (!levelChanged && state.level === prev.level && got(state) > got(prev)) playSound("arc_leaf_collect");
         if (levelChanged) {
           if (state.stars > prev.stars && got(prev) === 0) playSound("arc_leaf_collect");
-          if (state.lastOutcome === SNIP_EATEN) playSound("arc_wood_knock");
-          else playSound("arc_thud");
+          if (state.lastOutcome === SNIP_EATEN) playSound("arc_orchard_basket");
+          else playSound("arc_orchard_miss");
         }
       }
       prev = state;
@@ -503,6 +499,22 @@ export function sliceSounds(): GameSounds<SliceState> {
         const combo = state.comboLive ? 1 + state.streak : 0;
         const prevCombo = prev.comboLive ? 1 + prev.streak : 0;
         if (combo > prevCombo && combo > 1) playSound("arc_slice_combo", 0.8);
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+/** Colour Clash: lane moves and landings read from observed sim state only. */
+export function colourClashSounds(): GameSounds<ClashState> {
+  let prev: ClashState | null = null;
+  return {
+    frame(state) {
+      if (prev && state.tick > prev.tick) {
+        if (state.lane !== prev.lane) playSound("pz_clash_lane", 0.8, 1, true);
+        if (state.correct > prev.correct) playSound("pz_clash_right");
+        if (state.wrong > prev.wrong) playSound("pz_clash_wrong");
       }
       prev = state;
     },
