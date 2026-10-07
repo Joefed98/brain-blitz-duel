@@ -168,7 +168,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       if (state.current.popped > popped) {
         popped = state.current.popped;
-        playCorrect();
       }
 
       reportArcadeTick(state.current.tick, bubbleGame.isOver(state.current));

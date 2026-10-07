@@ -21,7 +21,7 @@ import {
   type StroopColour,
   type TilesPuzzleData,
 } from "@/lib/duel/types";
-import { playCorrect, playLock } from "@/lib/sound";
+import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -183,7 +183,6 @@ function Stage({
       onSubmit(encodeTileMoves(next));
       return;
     }
-    playCorrect();
   };
 
   const log = (marker: number) => {

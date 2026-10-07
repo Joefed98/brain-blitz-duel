@@ -1,4 +1,3 @@
-import { playCorrect, playWrong } from "@/lib/sound";
 import { useEffect, useRef, useState } from "react";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -70,12 +69,10 @@ function Stage({
     const verdict = await checkWord(value, [puzzle.startWord, ...rungs]);
     setBusy(false);
     if (!verdict.valid) {
-      playWrong();
       setBad(true);
       window.setTimeout(() => setBad(false), 420);
       return;
     }
-    playCorrect();
     const next = [...rungs, verdict.word];
     setRungs(next);
     setValue("");

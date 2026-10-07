@@ -6,7 +6,6 @@ import { useStageState } from "@/lib/duel/stageState";
 import { WORDSEARCH_TIME_MS, type WordSearchPlacement, type WordSearchPuzzleData } from "@/lib/duel/types";
 import { wsDecode, wsEncode, wsGrade, wsSnapLine, WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
 import { buzz } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -135,10 +134,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       void checkWord("", already, path).then((verdict) => {
         if (verdict.valid) {
           buzz(12);
-          playCorrect();
           setFound((f) => (f.some((x) => x.word === verdict.word) ? f : [...f, { word: verdict.word, cells: path }]));
         } else if (verdict.reason !== "Already found") {
-          playWrong();
           setBad(path);
           setTimeout(() => setBad([]), 350);
         }

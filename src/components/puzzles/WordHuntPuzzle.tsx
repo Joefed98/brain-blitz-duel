@@ -195,7 +195,6 @@ export function WordHuntPuzzle({
         { word: verdict.word, points: verdict.points, path: cells },
         ...current,
       ]);
-      playCorrect();
       setFlash("good");
       setMessage(null);
       setAcceptedWord(verdict.word);

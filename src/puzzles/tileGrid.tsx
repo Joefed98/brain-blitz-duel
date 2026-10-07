@@ -68,6 +68,8 @@ function IntroExample() {
   );
 }
 
+/** Word checks here are background validation: the shared wrapper plays no verdict for them. */
+const SILENT_CHECKS = true;
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, checkWord, stateKey = "tilegrid" }: PuzzleStageProps) {
   const data: TileGridPuzzleData | null = puzzle.type === "tilegrid" ? puzzle : null;
   /** Which tray tile sits in each cell, or null. */
@@ -310,3 +312,4 @@ export const tileGridPuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
+(Stage as { silentWordChecks?: boolean }).silentWordChecks = SILENT_CHECKS;

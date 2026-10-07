@@ -5,6 +5,7 @@ import type { GameTheme } from "@/lib/fx/theme";
 
 /** Submission is not correctness: only a stored/server verdict may claim a win. */
 export function feedbackStage(Stage: ComponentType<PuzzleStageProps>, theme: GameTheme, arcade = false) {
+  const silent = Boolean((Stage as { silentWordChecks?: boolean }).silentWordChecks);
   return function FeedbackStage(props: PuzzleStageProps) {
     const latest = useRef(props);
     latest.current = props;
@@ -21,8 +22,9 @@ export function feedbackStage(Stage: ComponentType<PuzzleStageProps>, theme: Gam
       const check = latest.current.checkWord;
       if (!check) return { valid: false, points: 0, word: args[0] };
       const result = await check(...args);
-      if (!latest.current.locked) {
-        if (result.valid) { fx.onPlace(undefined, theme); fx.onCorrect(undefined, theme); }
+      // One verdict per player-triggered check; background validation stays silent.
+      if (!latest.current.locked && !silent) {
+        if (result.valid) fx.onCorrect(undefined, theme);
         else fx.onWrong(undefined, theme);
       }
       return result;

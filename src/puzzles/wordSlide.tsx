@@ -19,7 +19,7 @@ import {
   WS_TIME_MS,
   type SlideShift,
 } from "@/lib/duel/wordSlide";
-import { playCorrect, playSound } from "@/lib/sound";
+import { playSound } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -123,6 +123,8 @@ function IntroExample() {
   );
 }
 
+/** Word checks here are background validation: the shared wrapper plays no verdict for them. */
+const SILENT_CHECKS = true;
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, checkWord, stateKey = "wordslide" }: PuzzleStageProps) {
   const data: WordSlidePuzzleData | null = puzzle.type === "wordslide" ? puzzle : null;
   const [tokens, setTokens] = useStageState<string[]>(stateKey, "slideTokens", () => []);
@@ -223,7 +225,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           : { axis: "c", index: start % WS_SIZE, dir: dy > 0 ? 1 : -1 };
       if (shift.axis === "r" && lockedRows.has(shift.index)) return;
       push(shiftToken(shift));
-      playCorrect();
     };
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
@@ -299,3 +300,4 @@ export const wordSlidePuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
+(Stage as { silentWordChecks?: boolean }).silentWordChecks = SILENT_CHECKS;
