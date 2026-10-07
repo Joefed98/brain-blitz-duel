@@ -9,7 +9,7 @@ import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 import { puzzleDef, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/registry";
 import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playSound, stopMusic, stopRoundMusic } from "@/lib/sound";
+import { playSound, stopMusic } from "@/lib/sound";
 import { bombRevealExploded } from "@/puzzles/bombDefusal";
 
 const REVEAL_SCORE_DELAY_MS = 350;
@@ -159,7 +159,6 @@ export function AnswerReveal({
     if (myScore === null || cued.current === round) return;
     cued.current = round;
     stopMusic(200);
-    stopRoundMusic("reveal");
     // One verdict (none for partial credit), then the score cue 0.35 s later.
     if (puzzle.type === "bomb" && bombRevealExploded(puzzle, myAnswer)) {
       playSound("pz_bomb_explode");
