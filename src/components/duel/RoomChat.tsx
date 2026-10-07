@@ -89,6 +89,7 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
   const [newBelow, setNewBelow] = useState(false);
   const seenCount = useRef(0);
   const touchStartY = useRef<number | null>(null);
+  const focusScroll = useRef<{ x: number; y: number } | null>(null);
   const sheetTouchY = useRef<number | null>(null);
 
   const toBottom = () => {
@@ -250,8 +251,9 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
       )}
 
       <div
-        className="relative z-[55] mt-2 flex shrink-0 items-center gap-1.5 bg-background"
-        style={{ height: CHAT_BAR_HEIGHT }}
+        className="sticky z-[55] mt-2 flex shrink-0 items-center gap-1.5 bg-background"
+        // Stays fully on screen, above the home indicator, even on a tall page.
+        style={{ height: CHAT_BAR_HEIGHT, bottom: "env(safe-area-inset-bottom, 0px)" }}
         onTouchStart={(event) => {
           touchStartY.current = event.touches[0]?.clientY ?? null;
         }}
@@ -285,9 +287,18 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
           maxLength={MESSAGE_MAX_LENGTH}
           placeholder="Say something"
           aria-label="Message"
+          onFocus={() => {
+            focusScroll.current = { x: window.scrollX, y: window.scrollY };
+          }}
           onBlur={() => {
-            // Keyboard closed: return to the top of the screen layout at normal scale.
-            window.setTimeout(() => window.scrollTo(0, 0), 50);
+            // Keyboard closed: restore only the scroll position from before it opened.
+            const saved = focusScroll.current;
+            focusScroll.current = null;
+            if (!saved) return;
+            window.setTimeout(() => {
+              if (window.scrollX !== saved.x || window.scrollY !== saved.y)
+                window.scrollTo(saved.x, saved.y);
+            }, 50);
           }}
           className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-[16px] text-foreground outline-none placeholder:text-muted-foreground"
         />
