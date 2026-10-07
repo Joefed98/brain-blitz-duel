@@ -686,6 +686,7 @@ export function isMusicPlaying(name: Track): boolean {
 /** Decoded music, loaded on demand (never in the first-tap preload). */
 const musicBuffers = new Map<SoundId, AudioBuffer>();
 const musicLoads = new Map<SoundId, Promise<void>>();
+const musicTokens = new Map<SoundId, object>();
 /** Lobby/standings/podium beds held for the room. */
 const bedBuffers = new Set<SoundId>();
 /** Detected audible start/end (seconds) for MP3 loops; WAV loops play whole. */
@@ -711,19 +712,21 @@ function loadMusicBuffer(id: SoundId): Promise<void> {
   const url = SOUND_MANIFEST[id]?.url;
   const context = ctx;
   if (!url || !context) return Promise.resolve();
+  const token = {};
+  musicTokens.set(id, token);
   const load = (async () => {
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`${response.status}`);
       const decoded = await context.decodeAudioData(await response.arrayBuffer());
       // Released while decoding (round moved on): drop it.
-      if (musicLoads.get(id) !== load) return;
+      if (musicTokens.get(id) !== token) return;
       if (/\.mp3$/i.test(url)) loopPoints.set(id, detectLoopPoints(decoded));
       musicBuffers.set(id, decoded);
     } catch (error) {
       warnOnce(`could not load ${url}`, error);
     } finally {
-      if (musicLoads.get(id) === load) musicLoads.delete(id);
+      if (musicTokens.get(id) === token) musicLoads.delete(id);
     }
   })();
   musicLoads.set(id, load);
@@ -733,6 +736,7 @@ function loadMusicBuffer(id: SoundId): Promise<void> {
 function releaseMusicBuffer(id: SoundId): void {
   musicBuffers.delete(id);
   musicLoads.delete(id);
+  musicTokens.delete(id);
   loopPoints.delete(id);
 }
 
@@ -787,7 +791,7 @@ export function prepareRoundMusic(id: SoundId | null | undefined): void {
   if (!roundBuffers.includes(id)) {
     // Keep only the playing track (if any) alongside the new one.
     for (const other of [...roundBuffers]) if (other !== roundTrack?.id) releaseRoundBuffer(other);
-    while (roundBuffers.length >= 2) releaseRoundBuffer(roundBuffers[0]);
+    while (roundBuffers.length >= 2) releaseRoundBuffer(roundBuffers[0]!);
     roundBuffers.push(id);
   }
   void loadMusicBuffer(id);
