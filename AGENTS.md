@@ -31,3 +31,4 @@
 - Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
 
 - PhoneShell shares paint; WordsmithRing fits octagonal wedges; wordInput owns taps. Wordsmith keeps centre index, size bands and original-band seeded examples. Why: demo compatibility.
+- The last round leads to a server-timed, unskippable `winner_reveal` phase (WinnerReveal, shared-clock cues) before status finished, replacing final standings; why: every phone reveals the winner at the same moment.
