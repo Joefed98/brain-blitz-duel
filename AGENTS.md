@@ -28,7 +28,7 @@
 - Changed puzzle inputs/layouts reject old demos by shape or recorded presentation revision; why: stale touches cannot target new controls.
 
 - FX/audio stay outside sims; no untargeted boxes; dev displays require accepted keys. Why: safe feedback.
-- Music is lobby/standings/podium-only; Beat cues use effects; why: no round music.
+- soundSettings owns device channel migration and normalized slider values; sound.ts owns bus gains and round-track ramp classification, while MuteToggle owns compact overlay controls. Why: all screens share settings without altering gameplay or clock ownership.
 
 - PhoneShell shares paint; WordsmithRing fits octagonal wedges; wordInput owns taps. Wordsmith keeps centre index, size bands and original-band seeded examples. Why: demo compatibility.
 - The last round leads to a server-timed, unskippable `winner_reveal` phase (WinnerReveal, shared-clock cues) before status finished, replacing final standings; why: every phone reveals the winner at the same moment.
