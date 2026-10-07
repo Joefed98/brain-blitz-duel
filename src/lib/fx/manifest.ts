@@ -58,7 +58,7 @@ const ENTRIES = {
   arc_gem_match: { channel: "effects", frequency: 600, ms: 616, url: "/__l5e/assets-v1/5c41d5c7-2edc-4081-b80c-79f3c41105e8/arc_gem_match.mp3" },
   arc_ketchup: { channel: "effects", frequency: 600, ms: 230, url: "/__l5e/assets-v1/aff0ea71-69aa-4dab-839b-97adbd7ded71/arc_ketchup.mp3" },
   arc_knife_slice: { channel: "effects", frequency: 600, ms: 300, url: "/__l5e/assets-v1/2bb302ac-e58f-43a7-849a-e2b36404effa/arc_knife_slice.mp3" },
-  arc_laser_beam: { channel: "effects", frequency: 600, ms: 370, url: "/__l5e/assets-v1/c79d8b4d-4a6d-4a1d-8305-1677d1481de5/arc_laser_beam.mp3" },
+  arc_laser_beam: { channel: "effects", frequency: 600, ms: 370, url: "/__l5e/assets-v1/22d0061e-236a-49d3-94cb-c1e0087231dc/arc_laser_beam.mp3" },
   arc_multiball: { channel: "effects", frequency: 600, ms: 64, url: "/__l5e/assets-v1/5c5cf3a0-9320-4cf5-8f10-b547bdaf62f8/arc_multiball.mp3" },
   arc_mustard: { channel: "effects", frequency: 600, ms: 410, url: "/__l5e/assets-v1/2f2b4cb5-a6cd-4fd4-8dbe-2540f314eb5e/arc_mustard.mp3" },
   arc_slice_combo: { channel: "effects", frequency: 600, ms: 721, url: "/__l5e/assets-v1/8ba9770c-cc35-470f-a7b3-19f08221783f/arc_slice_combo.mp3" },
