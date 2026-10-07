@@ -1,6 +1,20 @@
 /** Presentation-only timing; the room server uses the same fixed duration. */
-export const DUEL_START_MS = 5_000;
+export const DUEL_START_MS = 6_000;
 export const DUEL_START_VOICE_MS = 2_000;
+export const ROUND_TITLE_MS = 3_000;
+export const ROUND_TITLE_VOICE_MS = 200;
+export const ROUND_TITLE_VOICE_CUTOFF_MS = 1_000;
+
+export function roundTitleFrame(elapsedMs: number, reducedMotion: boolean) {
+  const t = Math.max(0, elapsedMs);
+  const entrance = Math.min(1, t / 300);
+  const exit = Math.max(0, Math.min(1, (ROUND_TITLE_MS - t) / 300));
+  return {
+    titleOpacity: entrance * exit,
+    categoryOpacity: Math.max(0, Math.min(1, (t - 200) / 300)) * exit,
+    scale: reducedMotion ? 1 : 0.96 + 0.04 * entrance,
+  };
+}
 
 export function duelStartFrame(elapsedMs: number, reducedMotion: boolean) {
   const elapsed = Math.max(0, elapsedMs);

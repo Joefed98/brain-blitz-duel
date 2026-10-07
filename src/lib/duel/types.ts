@@ -535,7 +535,7 @@ export type PuzzleData =
   | HotFloorPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
-export type DuelPhase = "starting" | "intro" | "puzzle" | "reveal" | "result" | "standings" | "winner_reveal";
+export type DuelPhase = "starting" | "round_title" | "intro" | "puzzle" | "reveal" | "result" | "standings" | "winner_reveal";
 
 export interface DuelRow {
   id: string;
