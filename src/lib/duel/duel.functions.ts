@@ -7,6 +7,7 @@ import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
 import { puzzleDef, puzzleDurationMs, puzzleRevealMs, typesInCategory } from "./registry";
 import { generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
+import { DUEL_START_MS } from "./startPresentation";
 import {
   INACTIVE_AFTER_MISSED,
   INTRO_MS,
@@ -401,7 +402,7 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     return { ok: true as const, roomId: room.id, roomCode: room.room_code };
   });
 
-/** Host only: generates the six rounds and opens the Round 1 intro. */
+/** Host only: generates the rounds and opens the shared, unskippable start screen. */
 export const startRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string }) => input)
@@ -455,7 +456,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
         puzzles_public: JSON.parse(JSON.stringify(split.map((s) => s.pub))),
         status: "in_progress",
         current_round: 1,
-        phase: "intro",
+        phase: "starting",
         phase_started_at: startedAt,
         round_started_at: startedAt,
       })
@@ -597,6 +598,23 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     const puzzle = room.puzzles_public[round - 1];
     const players = await getPlayers(client, room.id);
     const waitingOn = activePlayers(players);
+
+    if (room.phase === "starting") {
+      if (elapsed < DUEL_START_MS) return { ok: true };
+      // Use the fixed deadline, not request arrival time: reconnects retain the
+      // same intro position and concurrent requests cannot restart the intro.
+      const introAt = new Date(phaseStart + DUEL_START_MS).toISOString();
+      const { error } = await client
+        .from("duels")
+        .update({ phase: "intro", phase_started_at: introAt, round_started_at: introAt })
+        .eq("id", room.id)
+        .eq("status", "in_progress")
+        .eq("current_round", round)
+        .eq("phase", "starting")
+        .eq("phase_started_at", stamp);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
 
     if (room.phase === "intro") {
       if (elapsed < INTRO_WAIT_MS && allIntroReady(players, round)) {
