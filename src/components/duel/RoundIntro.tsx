@@ -68,7 +68,7 @@ export function RoundIntro({
     if (countdownCued.current === key) return;
     countdownCued.current = key;
     fx.onCountdown(secondsLeft, theme);
-    // Read the puzzle-round switch now, so a change applies from the next round.
+    // A prepared source runs even while muted, allowing immediate channel toggles.
     startRoundMusic(roundMusicFor(type, puzzleDef(type).category));
   }, [counting, secondsLeft, startedAt, type]);
 

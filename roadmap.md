@@ -1,3 +1,8 @@
+## Shared sound controls and levels (Oct 7, 16:13)
+- [x] Replace old mute/puzzle switch with fixed-height speaker/music controls and consumed outside-tap volume dropdowns; migrate device settings and remove puzzle opt-in.
+- [x] Default-on music across room/practice, unconditional loading, separate puzzle/arcade ramps, practice no-countdown start and immediate end cleanup; preserve gameplay.
+- [x] Non-browser settings/markup/mapping/ramp/loading checks and focused lint pass; device appearance/audio remains user-tested, no browser or gameplay proof.
+
 ## Room start and round titles (Oct 7, 16:05)
 - [x] Extend starting to six seconds; add guarded three-second round_title before every room intro, with fixed deadlines and concurrent-request guards.
 - [x] Add shared-clock category title, move room announcements and preload later round music; preserve practice/gameplay/winner flow. Registry draw categories are number for Ten Drop, speed for Whack/Clay, attention for Colour Clash.
