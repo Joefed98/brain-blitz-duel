@@ -132,11 +132,11 @@ export function RoundResult({
             onClick={onNext}
             className="press tap-target w-full font-display font-bold uppercase"
           >
-            {finalRound ? "Podium" : "Next"} ({autoSeconds}s)
+            {finalRound ? "Winner" : "Next"} ({autoSeconds}s)
           </Button>
         )}
         <p className="text-center font-mono text-xs text-muted-foreground">
-          {finalRound ? "Podium" : "Standings"} in {autoSeconds}s
+          {finalRound ? "Winner" : "Standings"} in {autoSeconds}s
         </p>
       </div>
     </div>
