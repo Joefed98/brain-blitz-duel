@@ -7,7 +7,7 @@ import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
 import { puzzleDef, puzzleDurationMs, puzzleRevealMs, typesInCategory } from "./registry";
 import { generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
-import { DUEL_START_MS } from "./startPresentation";
+import { DUEL_START_MS, WINNER_REVEAL_MS } from "./startPresentation";
 import {
   INACTIVE_AFTER_MISSED,
   INTRO_MS,
@@ -213,7 +213,7 @@ function roundHasEnded(room: DuelRow, round: number): boolean {
   if (room.current_round > round) return true;
   return (
     room.current_round === round &&
-    (room.phase === "reveal" || room.phase === "result" || room.phase === "standings")
+    (room.phase === "reveal" || room.phase === "result" || room.phase === "standings" || room.phase === "winner_reveal")
   );
 }
 
@@ -641,17 +641,26 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
+    if (room.phase === "winner_reveal") {
+      // Timer-driven only: the host cannot skip the reveal.
+      if (elapsed < WINNER_REVEAL_MS) return { ok: true };
+      await client
+        .from("duels")
+        .update({ status: "finished" })
+        .eq("id", room.id)
+        .eq("status", "in_progress")
+        .eq("current_round", round)
+        .eq("phase", "winner_reveal");
+      return { ok: true };
+    }
+
     const hostNext = data.hostNext === true && context.userId === room.host_user_id;
 
     if (room.phase === "result") {
       if (!hostNext && elapsed < NEXT_ROUND_AUTO_MS) return { ok: true };
       if (round >= (room.round_count ?? TOTAL_ROUNDS)) {
-        await client
-          .from("duels")
-          .update({ status: "finished" })
-          .eq("id", room.id)
-          .eq("current_round", round)
-          .eq("phase", "result");
+        // Last round: the shared winner reveal replaces the overall standings.
+        await setPhase(client, room.id, round, "result", "winner_reveal");
         return { ok: true };
       }
       await setPhase(client, room.id, round, "result", "standings");

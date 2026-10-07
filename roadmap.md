@@ -843,3 +843,4 @@
 - [x] Top-anchored 100% column, arena-only flex with caps, controls 12px below, no bottom pinning; 68 games audited from source.
 - [x] Word Search reveal red unfound letters/fill/outline; accepted-key bounds overlay.
 - [ ] Actual phone positions await user device testing; no browsers ran.
+- [x] Winner reveal phase

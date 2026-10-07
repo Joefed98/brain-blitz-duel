@@ -75,13 +75,16 @@ export function RoundResultsTable({
                 type="button"
                 aria-expanded={open}
                 onClick={() => setExpanded((value) => (value === row.slot ? null : row.slot))}
-                className={`grid h-full min-h-[38px] w-full grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-x-2 rounded-md border px-2 text-left ${
+                className={`grid h-full min-h-[38px] w-full ${finalRound ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1.25rem_minmax(0,1fr)_auto]"} items-center gap-x-2 rounded-md border px-2 text-left ${
                   isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
                 } ${row.status === "inactive" ? "opacity-40" : ""}`}
               >
-                <span className="font-mono text-xs font-bold text-muted-foreground">
-                  {index + 1}
-                </span>
+                {/* Last round: no positions, so the overall winner stays hidden until the reveal. */}
+                {!finalRound && (
+                  <span className="font-mono text-xs font-bold text-muted-foreground">
+                    {index + 1}
+                  </span>
+                )}
                 <span className="min-w-0 self-center">
                   <span className="flex min-w-0 items-center gap-1.5">
                     <span className="truncate font-display text-xs font-semibold text-foreground">
@@ -118,11 +121,11 @@ export function RoundResultsTable({
             className="press tap-target w-full font-display font-bold uppercase"
             onClick={onNext}
           >
-            {finalRound ? `Podium (${autoSeconds}s)` : `Next (${autoSeconds}s)`}
+            {finalRound ? `Winner (${autoSeconds}s)` : `Next (${autoSeconds}s)`}
           </Button>
         ) : (
           <p className="text-center font-mono text-xs uppercase text-muted-foreground">
-            {finalRound ? "Podium" : "Standings"} in {autoSeconds}s
+            {finalRound ? "Winner" : "Standings"} in {autoSeconds}s
           </p>
         )}
       </footer>

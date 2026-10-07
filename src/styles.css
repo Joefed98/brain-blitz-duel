@@ -92,6 +92,20 @@
   will-change: transform, opacity;
 }
 
+.winner-reveal-text {
+  margin: 0;
+  padding: 0 16px;
+  text-align: center;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(28px, 9vw, 44px);
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  color: #F5B82E;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
 .arcade-frame-timing {
   position: absolute;
   z-index: 30;
