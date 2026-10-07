@@ -252,6 +252,7 @@ export function unlockAudio(): void {
     void ctx.resume().catch((error) => warnOnce("initial resume failed", error));
     resumeContext();
     unlocked = true;
+    if (pendingRoundMusic) prepareRoundMusic(pendingRoundMusic);
     loading ??= preload();
     if (desiredTrack && !currentTrack) startMusic(desiredTrack.name, desiredTrack.options);
   } catch (error) {
@@ -824,6 +825,7 @@ let roundArcade = false;
 let roundClaimed = false;
 /** Round tracks decoded or decoding, oldest first; never more than two. */
 const roundBuffers: SoundId[] = [];
+let pendingRoundMusic: SoundId | null = null;
 
 function applyRoundLevel(rampSeconds: number): void {
   if (!ctx || !roundTrack) return;
@@ -846,9 +848,11 @@ function releaseRoundBuffer(id: SoundId): void {
   releaseMusicBuffer(id);
 }
 
-/** Called as a round's intro appears: fetch and decode only that round's track. */
+/** Rooms prepare in starting/title; practice prepares in intro, even while muted. */
 export function prepareRoundMusic(id: SoundId | null | undefined): void {
+  pendingRoundMusic = id ?? null;
   if (!id || SOUND_MANIFEST[id]?.channel !== "music" || !ctx) return;
+  pendingRoundMusic = null;
   if (!roundBuffers.includes(id)) {
     // Keep only the playing track (if any) alongside the new one.
     for (const other of [...roundBuffers]) if (other !== roundTrack?.id) releaseRoundBuffer(other);

@@ -108,6 +108,7 @@ function PracticeScreen() {
   const [helpOpen, setHelpOpen] = useState(false);
   const grading = useRef(false);
   const introCancelled = useRef(false);
+  const skippedCountdown = useRef(false);
   const draftAnswer = useRef("");
   const now = useTicker(stage === "intro" || stage === "puzzle" || stage === "reveal");
   const { key: demoKey, status: demoStatus } = useDemoKey();
@@ -147,6 +148,7 @@ function PracticeScreen() {
     async (next: PuzzleType) => {
       unlockAudio();
       introCancelled.current = false;
+      skippedCountdown.current = false;
       grading.current = false;
       draftAnswer.current = "";
       setRun((count) => {
@@ -245,7 +247,7 @@ function PracticeScreen() {
   useEffect(() => {
     if (stage !== "puzzle" || !type) return;
     // Ready can enter practice without a countdown; try once at game start.
-    startRoundMusic(roundMusicFor(type, puzzleDef(type).category));
+    if (skippedCountdown.current) startRoundMusic(roundMusicFor(type, puzzleDef(type).category));
     claimRoundMusic();
     return () => stopRoundMusic();
   }, [stage, type]);
@@ -378,6 +380,7 @@ function PracticeScreen() {
           puzzle={puzzle}
           onReady={() => {
             if (introCancelled.current) return;
+            skippedCountdown.current = now - startedAt < INTRO_MS - 3_000;
             playLock();
             setStartedAt(Date.now());
             setStage("puzzle");
