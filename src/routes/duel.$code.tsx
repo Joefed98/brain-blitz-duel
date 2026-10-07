@@ -376,7 +376,7 @@ function DuelScreen() {
     if (musicScreen) startMusic(musicScreen);
     else stopMusic(0);
   }, [musicScreen]);
-  useEffect(() => () => stopMusic(0), []);
+  useEffect(() => () => releaseRoomMusic(), []);
 
   // A cue for each new player card in the lobby.
   const lobbyCount = duel?.status === "waiting" ? roomPlayers.length : 0;

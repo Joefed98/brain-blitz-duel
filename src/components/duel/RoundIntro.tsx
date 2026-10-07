@@ -5,7 +5,7 @@ import type { PuzzleData } from "@/lib/duel/types";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
-import { playVoice, roundMusicClaimed, startRoundMusic, stopRoundMusic, voiceDurationMs, type VoiceId } from "@/lib/sound";
+import { playVoice, prepareRoundMusic, roundMusicClaimed, startRoundMusic, stopRoundMusic, voiceDurationMs, type VoiceId } from "@/lib/sound";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -89,6 +89,9 @@ export function RoundIntro({
     fx.onCountdown(secondsLeft, theme);
     startRoundMusic(theme.music);
   }, [counting, secondsLeft, startedAt, type]);
+
+  // Decode only this round's track as the intro appears.
+  useEffect(() => { prepareRoundMusic(theme.music); }, [theme.music]);
 
   // Leaving the intro without a round starting (practice Back) silences it.
   useEffect(() => () => {
