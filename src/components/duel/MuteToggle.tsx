@@ -1,164 +1,72 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { ChevronDown, Music2, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
+import { effectsVolume, isMuted, isMusicMuted, setMusicMuted, musicVolume,
+  onSoundSettingsChange, setEffectsVolume, setMusicVolume, setMuted } from "@/lib/sound";
+import type { SoundChannel } from "@/lib/soundSettings";
 
-import {
-  DEFAULT_EFFECTS_VOLUME,
-  DEFAULT_MUSIC_VOLUME,
-  effectsVolume,
-  isMuted,
-  isMusicMuted,
-  isPuzzleRoundMusicOn,
-  setPuzzleRoundMusic,
-  setMusicMuted,
-  musicVolume,
-  onSoundSettingsChange,
-  setEffectsVolume,
-  setMusicVolume,
-  setMuted,
-  unlockAudio,
-} from "@/lib/sound";
-
-const LONG_PRESS_MS = 500;
-
+/** Two stable 52px channel groups replace the old three 36px mute buttons. */
 export function MuteToggle() {
-  const [muted, setLocal] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [music, setMusic] = useState(DEFAULT_MUSIC_VOLUME);
-  const [effects, setEffects] = useState(DEFAULT_EFFECTS_VOLUME);
-  const [musicMuted, setLocalMusicMuted] = useState(false);
-  const [puzzleMusic, setLocalPuzzleMusic] = useState(false);
-  const timer = useRef<number | null>(null);
-  const longPressed = useRef(false);
-
+  const [open, setOpen] = useState<SoundChannel | null>(null);
+  const [settings, setSettings] = useState({ effects: 1, music: 1, muted: false, musicMuted: false });
   useEffect(() => {
-    const read = () => {
-      setLocal(isMuted());
-      setLocalMusicMuted(isMusicMuted());
-      setLocalPuzzleMusic(isPuzzleRoundMusicOn());
-      setMusic(musicVolume());
-      setEffects(effectsVolume());
-    };
+    const read = () => setSettings({ effects: effectsVolume(), music: musicVolume(), muted: isMuted(), musicMuted: isMusicMuted() });
     read();
     return onSoundSettingsChange(read);
   }, []);
-
-  const startPress = () => {
-    longPressed.current = false;
-    timer.current = window.setTimeout(() => {
-      longPressed.current = true;
-      unlockAudio();
-      setOpen(true);
-    }, LONG_PRESS_MS);
-  };
-
-  const endPress = () => {
-    if (timer.current !== null) window.clearTimeout(timer.current);
-    timer.current = null;
-  };
-
   return (
-    <>
-      <Button variant="ghost" size="icon"
-        type="button"
-        aria-label={muted ? "Turn sound on" : "Turn sound off"}
-        title={muted ? "Turn sound on" : "Turn sound off"}
-        aria-pressed={muted}
-        onPointerDown={startPress}
-        onPointerUp={endPress}
-        onPointerLeave={endPress}
-        onPointerCancel={endPress}
-        onContextMenu={(e) => e.preventDefault()}
-        onClick={() => {
-          if (longPressed.current) return;
-          setMuted(!muted);
-        }}
-        className="press flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M4 9v6h3l5 4V5L7 9H4Z" />
-          {muted ? (
-            <path d="m16 9 5 6m0-6-5 6" />
-          ) : (
-            <>
-              <path d="M16.5 8.5a5 5 0 0 1 0 7" />
-              <path d="M19 6a8.5 8.5 0 0 1 0 12" />
-            </>
-          )}
-        </svg>
-      </Button>
-      <Button variant="ghost" size="icon" title="Music" aria-label={musicMuted ? "Turn music on" : "Turn music off"} aria-pressed={musicMuted} onClick={() => setMusicMuted(!musicMuted)} className="press h-9 w-9 shrink-0 text-muted-foreground">
-        <span aria-hidden="true">{musicMuted ? "♫̸" : "♫"}</span>
-      </Button>
-      <Button variant="ghost" size="icon" title="Music in puzzle rounds" aria-label={puzzleMusic ? "Turn puzzle-round music off" : "Turn puzzle-round music on"} aria-pressed={puzzleMusic} onClick={() => setPuzzleRoundMusic(!puzzleMusic)} className={`press h-9 w-9 shrink-0 ${puzzleMusic ? "text-foreground" : "text-muted-foreground"}`}>
-        <span aria-hidden="true">{puzzleMusic ? "♩" : "♩̸"}</span>
-      </Button>
-
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-end bg-background/70"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="w-full rounded-t-2xl border-t border-border bg-card p-5 animate-phase-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-              Sound
-            </p>
-
-            <label className="mt-4 block text-xs uppercase tracking-widest text-muted-foreground">
-              Music
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={music}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  setMusic(value);
-                  setMusicVolume(value);
-                }}
-                className="mt-2 h-6 w-full accent-[var(--primary)]"
-              />
-            </label>
-
-            <label className="mt-4 block text-xs uppercase tracking-widest text-muted-foreground">
-              Effects
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={effects}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  setEffects(value);
-                  setEffectsVolume(value);
-                }}
-                className="mt-2 h-6 w-full accent-[var(--primary)]"
-              />
-            </label>
-
-            <Button variant="outline"
-              type="button"
-              onClick={() => setOpen(false)}
-              className="press tap-target mt-5 w-full rounded-xl border border-border font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
-            >
-              Done
-            </Button>
-          </div>
-        </div>
+    <div data-sound-controls className="flex h-9 w-[104px] shrink-0 items-center">
+      {open && createPortal(
+        <div data-sound-dismiss className="fixed inset-0 z-40"
+          onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
+          onPointerUp={(event) => { event.preventDefault(); event.stopPropagation(); }}
+          onClick={(event) => { event.preventDefault(); event.stopPropagation(); setOpen(null); }}
+          onContextMenu={(event) => event.preventDefault()} />,
+        document.body,
       )}
-    </>
+      {(["effects", "music"] as const).map((channel) => {
+        const effects = channel === "effects";
+        const muted = effects ? settings.muted : settings.musicMuted;
+        const volume = muted ? 0 : settings[channel];
+        const label = effects ? "Effects" : "Music";
+        const Icon = effects ? (muted ? VolumeX : Volume2) : Music2;
+        return (
+          <Popover key={channel} open={open === channel} onOpenChange={(value) => setOpen(value ? channel : null)}>
+            <div className="flex h-9 w-[52px] shrink-0 items-center">
+              <Button variant="ghost" size="icon" type="button"
+                className={`press relative h-9 w-9 shrink-0 ${muted ? "text-muted-foreground" : "text-foreground"}`}
+                title={`${muted ? "Turn on" : "Turn off"} ${label.toLowerCase()}`}
+                aria-label={`${muted ? "Turn on" : "Turn off"} ${label.toLowerCase()}`}
+                aria-pressed={!muted}
+                onClick={() => effects ? setMuted(!muted) : setMusicMuted(!muted)}>
+                <Icon aria-hidden="true" />
+                {!effects && muted && <svg aria-hidden="true" viewBox="0 0 24 24" className="absolute h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3 21 21" /></svg>}
+              </Button>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" type="button" className="press h-9 w-4 shrink-0 px-0"
+                  aria-label={`${label} volume`} title={`${label} volume`}>
+                  <ChevronDown aria-hidden="true" className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+            </div>
+            <PopoverContent align="end" side="bottom" className="w-56 p-3"
+              onPointerDown={(event) => event.stopPropagation()}
+              onPointerUp={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}>
+              <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm">
+                <span className="min-w-0 font-display">{label}</span>
+                <output className="font-mono tabular-nums">{Math.round(volume * 100)}%</output>
+              </div>
+              <Slider aria-label={`${label} volume percentage`} min={0} max={100} step={1}
+                value={[Math.round(volume * 100)]} className="h-9"
+                onValueChange={([value]) => { if (value === undefined) return; effects ? setEffectsVolume(value / 100) : setMusicVolume(value / 100); }} />
+            </PopoverContent>
+          </Popover>
+        );
+      })}
+    </div>
   );
 }
