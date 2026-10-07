@@ -17,15 +17,15 @@ const CATEGORY_MUSIC: Partial<Record<PuzzleCategory, SoundId>> = {
   word: "music_word", number: "music_number", speed: "music_speed",
   attention: "music_attention", logic: "music_logic", pattern: "music_pattern",
 };
-/** Arcade round music follows each game's world. */
+/** Arcade round music is per game; Beat has none (its chart is the music). */
 const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
-  hover: "music_retro", snake: "music_retro", beat: "music_retro", breaker: "music_retro", rally: "music_retro", burst: "music_retro",
-  orbit: "music_space", wavefront: "music_space",
-  tilt: "music_toybox", balltrack: "music_toybox",
-  bintoss: "music_fairground", bullseye: "music_fairground",
-  inkbridge: "music_rainbow", snip: "music_orchard",
-  flip: "music_lava", swing: "music_lava", slice: "music_kitchen",
-  skyline: "music_city", junction: "music_city", cross: "music_city",
+  hover: "music_hover", snake: "music_eatgrow", breaker: "music_breaker", rally: "music_rally", burst: "music_burst",
+  orbit: "music_orbit", wavefront: "music_wavefront",
+  tilt: "music_tilt", balltrack: "music_balltrack",
+  bintoss: "music_bintoss", bullseye: "music_bullseye",
+  inkbridge: "music_inkbridge", snip: "music_snip",
+  flip: "music_flip", swing: "music_swing", slice: "music_slice",
+  skyline: "music_skyline", junction: "music_junction", cross: "music_cross",
   bubble: "music_bubble", matchup: "music_matchup",
 };
 export function roundMusicFor(type: PuzzleType | undefined, category: PuzzleCategory): SoundId | null {

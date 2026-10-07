@@ -104,21 +104,16 @@ const ENTRIES = {
   round6: { channel: "voice", frequency: 440, ms: 1621, url: "/__l5e/assets-v1/5dd0fdeb-b365-4fce-bf1d-84ef933c436a/round6.mp3" },
   round7: { channel: "voice", frequency: 440, ms: 1536, url: "/__l5e/assets-v1/9a8142d1-071b-48b8-889c-b9e694b264a5/round7.mp3" },
   lobby_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f7966f98-a5dc-4c2a-8d1f-9192430a4643/lobby_loop.wav" },
-  music_toybox: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/aa66acb8-ca56-4f6c-a06d-2de7363cc1ae/music_toybox.wav" },
   music_speed: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/48e4c0ad-8653-420d-82e1-4b1b6e06e74c/music_speed.wav" },
   music_attention: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/b764be2a-fb6e-4609-a5c9-0d4766bb1729/music_attention.wav" },
   music_bubble: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/d6ff8836-5885-4575-8cba-325acf0ae98f/music_bubble.mp3" },
-  music_fairground: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/84362465-d952-4359-bbc1-14c1b6256e61/music_fairground.wav" },
   music_logic: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/bd0cc375-bbe2-467e-b2cb-d2b12f532abf/music_logic.wav" },
   music_matchup: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f645e779-80bb-4696-be77-b144f028666f/music_matchup.mp3" },
   music_number: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/24aa3876-00b6-4e7e-8fe4-4cd79a502270/music_number.wav" },
   music_pattern: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/fa57d0bf-324d-44a7-87b1-adb50e5565c8/music_pattern.wav" },
-  music_rainbow: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/0b467c7e-aea1-4be2-b2d7-064326551b9c/music_rainbow.wav" },
-  music_retro: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/63a7eec3-855a-416b-9fe6-7ac6d1845b40/music_retro.wav" },
-  music_space: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/7bc0ef67-9f31-4b9b-9e0a-bbc79fd4d576/music_space.wav" },
   standings_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f2f3b307-5cd4-4afa-98bf-fc713858e9e2/standings_loop.wav" },
   podium_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/79c1e447-45cd-4f9e-8362-ec438e509d49/podium_loop.wav" },
-  // Per-game round beds; registered, not yet mapped (worlds still choose music).
+  // Per-game arcade round beds.
   music_burst: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f635d436-cf68-4844-bbd6-583e3c1bb54f/music_burst.mp3" },
   music_cross: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/88df3ac5-d8de-47b1-b258-deb9a5e4260c/music_cross.mp3" },
   music_eatgrow: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/9d207ed8-42fc-45a7-9306-1630d93dbee8/music_eatgrow.mp3" },
@@ -140,10 +135,6 @@ const ENTRIES = {
   music_wavefront: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/94ad8b7c-b458-477d-b98e-ec2b1c21c0d5/music_wavefront.mp3" },
   // In-round beds awaiting files; silent until supplied.
   music_word: { channel: "music", frequency: 0, ms: 0, url: null },
-  music_orchard: { channel: "music", frequency: 0, ms: 0, url: null },
-  music_lava: { channel: "music", frequency: 0, ms: 0, url: null },
-  music_kitchen: { channel: "music", frequency: 0, ms: 0, url: null },
-  music_city: { channel: "music", frequency: 0, ms: 0, url: null },
   tension_loop: { channel: "music", frequency: 0, ms: 0, url: null },
 } satisfies Record<string, { channel: "effects" | "voice" | "music"; frequency: number; ms: number; url: string | null }>;
 export type SoundId = keyof typeof ENTRIES;
