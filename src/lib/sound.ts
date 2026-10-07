@@ -164,7 +164,7 @@ async function preload(): Promise<void> {
         const decoded = await context.decodeAudioData(bytes);
         buffers.set(name, decoded);
         // Looping effects trim MP3 padding at the same -60 dB edges as music.
-        if (EFFECT_LOOPS.has(name) && /\.mp3$/i.test(SOUND_MANIFEST[name]?.url ?? "")) loopPoints.set(name, detectLoopPoints(decoded));
+        if (EFFECT_LOOPS.has(name as SoundId) && /\.mp3$/i.test(url)) loopPoints.set(name as SoundId, detectLoopPoints(decoded));
         failedFiles.delete(name);
       } catch (error) {
         failedFiles.add(name);
