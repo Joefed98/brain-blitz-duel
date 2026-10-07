@@ -23,10 +23,16 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
   const critical = active && remaining > 0 && remaining <= 5_000;
   const warned10 = useRef(false);
   const wasActive = useRef(false);
-  useEffect(() => { claimRoundMusic(); return () => stopRoundMusic(); }, []);
+  useEffect(() => {
+    claimRoundMusic();
+    return () => stopRoundMusic();
+  }, []);
   useEffect(() => {
     // Music follows this same puzzle/shared or arcade simulation clock.
-    if (!active) { if (wasActive.current) stopRoundMusic(); return; }
+    if (!active) {
+      if (wasActive.current) stopRoundMusic();
+      return;
+    }
     wasActive.current = true;
     updateRoundMusicClock(remaining);
     if (remaining <= 0) stopRoundMusic();
@@ -51,12 +57,31 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
   }, [active, seconds, remaining]);
   useEffect(() => () => stopWarning10(), []);
   return (
-    <div className={`flex h-5 w-full shrink-0 items-center justify-end gap-1 ${finalTen ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`} aria-label={`${seconds} seconds remaining`} role="timer">
+    <div
+      className={`flex h-5 w-full shrink-0 items-center justify-end gap-1 ${finalTen ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`}
+      aria-label={`${seconds} seconds remaining`}
+      role="timer"
+    >
       <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0 fx-timer-ring" aria-hidden="true">
         <circle cx="10" cy="10" r="8" className="timer-ring-track" />
-        <circle cx="10" cy="10" r="8" pathLength="100" strokeDasharray="100" strokeDashoffset={100 - progress * 100} transform="rotate(-90 10 10)" className={reduced ? "timer-ring-fill" : "timer-ring-fill transition-[stroke-dashoffset] duration-100"} />
+        <circle
+          cx="10"
+          cy="10"
+          r="8"
+          pathLength="100"
+          strokeDasharray="100"
+          strokeDashoffset={100 - progress * 100}
+          transform="rotate(-90 10 10)"
+          className={
+            reduced
+              ? "timer-ring-fill"
+              : "timer-ring-fill transition-[stroke-dashoffset] duration-100"
+          }
+        />
       </svg>
-      <span className="w-9 text-right font-mono text-[11px] font-bold leading-none tabular-nums text-timer-gold">{seconds}</span>
+      <span className="w-9 text-right font-mono text-[11px] font-bold leading-none tabular-nums text-timer-gold">
+        {seconds}
+      </span>
     </div>
   );
 }

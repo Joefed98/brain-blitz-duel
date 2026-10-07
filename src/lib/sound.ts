@@ -16,7 +16,13 @@
  */
 
 import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
-import { changeChannelMuted, changeChannelVolume, readSoundSettings, roundMusicRamp, SOUND_SETTINGS_EVENT } from "./soundSettings";
+import {
+  changeChannelMuted,
+  changeChannelVolume,
+  readSoundSettings,
+  roundMusicRamp,
+  SOUND_SETTINGS_EVENT,
+} from "./soundSettings";
 
 const EVENT = SOUND_SETTINGS_EVENT;
 export const DEFAULT_MUSIC_VOLUME = 1;
@@ -73,10 +79,18 @@ function warnOnce(message: string, error?: unknown): void {
 
 /* ---------------------------------------------------------------- settings */
 
-export function isMuted(): boolean { return readSoundSettings().effects.muted; }
-export function isMusicMuted(): boolean { return readSoundSettings().music.muted; }
-export function musicVolume(): number { return readSoundSettings().music.volume; }
-export function effectsVolume(): number { return readSoundSettings().effects.volume; }
+export function isMuted(): boolean {
+  return readSoundSettings().effects.muted;
+}
+export function isMusicMuted(): boolean {
+  return readSoundSettings().music.muted;
+}
+export function musicVolume(): number {
+  return readSoundSettings().music.volume;
+}
+export function effectsVolume(): number {
+  return readSoundSettings().effects.volume;
+}
 export function setMusicMuted(next: boolean): void {
   if (typeof window === "undefined") return;
   changeChannelMuted("music", next);
@@ -457,7 +471,10 @@ function duckMusic(durationMs: number): void {
   gain.cancelScheduledValues(time);
   gain.setValueAtTime(gain.value, time);
   gain.linearRampToValueAtTime(MUSIC_BED_LEVEL * musicVolume() * 0.3, time + 0.03);
-  gain.linearRampToValueAtTime(MUSIC_BED_LEVEL * musicVolume(), time + Math.max(0.25, durationMs / 1000) + 0.2);
+  gain.linearRampToValueAtTime(
+    MUSIC_BED_LEVEL * musicVolume(),
+    time + Math.max(0.25, durationMs / 1000) + 0.2,
+  );
 }
 /** Stops a playing one-shot effect (e.g. the winner drumroll at its cut-off). */
 export function stopSound(id: SoundId): void {
@@ -835,7 +852,10 @@ export function prepareRoundMusic(id: SoundId | null | undefined): void {
   if (!roundBuffers.includes(id)) {
     // Keep only the playing track (if any) alongside the new one.
     for (const other of [...roundBuffers]) if (other !== roundTrack?.id) releaseRoundBuffer(other);
-    while (roundBuffers.length >= 2) { const oldest = roundBuffers[0]; if (oldest) releaseRoundBuffer(oldest); }
+    while (roundBuffers.length >= 2) {
+      const oldest = roundBuffers[0];
+      if (oldest) releaseRoundBuffer(oldest);
+    }
     roundBuffers.push(id);
   }
   void loadMusicBuffer(id);

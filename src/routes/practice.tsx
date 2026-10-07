@@ -36,7 +36,15 @@ import { DemoRecorder, type PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
 import { hasIntroDemo } from "@/components/duel/IntroDemo";
 import { INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { claimRoundMusic, playCorrect, playLock, startRoundMusic, stopRoundMusic, stopWarning10, unlockAudio } from "@/lib/sound";
+import {
+  claimRoundMusic,
+  playCorrect,
+  playLock,
+  startRoundMusic,
+  stopRoundMusic,
+  stopWarning10,
+  unlockAudio,
+} from "@/lib/sound";
 import { roundMusicFor } from "@/lib/fx/theme";
 import type { SubmitMeta } from "@/puzzles/types";
 
@@ -56,7 +64,10 @@ export const Route = createFileRoute("/practice")({
         property: "og:description",
         content: "Practise one puzzle type at a time. Nothing counts anywhere.",
       },
-      { name: "twitter:description", content: "Practise one puzzle type at a time. Nothing counts anywhere." },
+      {
+        name: "twitter:description",
+        content: "Practise one puzzle type at a time. Nothing counts anywhere.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -123,29 +134,32 @@ function PracticeScreen() {
 
   useEffect(() => setHelpOpen(false), [stage, type]);
 
-  const load = useCallback(async (next: PuzzleType) => {
-    unlockAudio();
-    introCancelled.current = false;
-    grading.current = false;
-    draftAnswer.current = "";
-    setRun((count) => {
-      clearStageState(`practice-${count}`);
-      return count + 1;
-    });
-    setType(next);
-    setGraded(null);
-    setPuzzle(null);
-    setStage("loading");
-    recorder.current?.finish();
-    recorder.current = null;
-    setRecording(null);
-    exampleRun.current = exampleMode;
-    const made = await practiceGenerateFn({ data: { type: next, example: exampleMode } });
-    setPuzzle(made.puzzle as PuzzleData);
-    setSealed(made.sealed);
-    setStartedAt(Date.now());
-    setStage("intro");
-  }, [exampleMode]);
+  const load = useCallback(
+    async (next: PuzzleType) => {
+      unlockAudio();
+      introCancelled.current = false;
+      grading.current = false;
+      draftAnswer.current = "";
+      setRun((count) => {
+        clearStageState(`practice-${count}`);
+        return count + 1;
+      });
+      setType(next);
+      setGraded(null);
+      setPuzzle(null);
+      setStage("loading");
+      recorder.current?.finish();
+      recorder.current = null;
+      setRecording(null);
+      exampleRun.current = exampleMode;
+      const made = await practiceGenerateFn({ data: { type: next, example: exampleMode } });
+      setPuzzle(made.puzzle as PuzzleData);
+      setSealed(made.sealed);
+      setStartedAt(Date.now());
+      setStage("intro");
+    },
+    [exampleMode],
+  );
 
   const cancelIntro = useCallback(() => {
     stopRoundMusic();
@@ -270,8 +284,12 @@ function PracticeScreen() {
           {demoKey ? (
             <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
               <span className="flex flex-col">
-                <span className="font-display text-sm font-semibold text-foreground">Intro examples</span>
-                <span className="text-xs text-muted-foreground">Each game loads its fixed intro example, for recording demos.</span>
+                <span className="font-display text-sm font-semibold text-foreground">
+                  Intro examples
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Each game loads its fixed intro example, for recording demos.
+                </span>
               </span>
               <input
                 type="checkbox"
@@ -376,7 +394,13 @@ function PracticeScreen() {
           startedAt={startedAt}
           now={now}
         />
-        <SaveDemoButton demoKey={demoKey} puzzle={graded.puzzle} sealed={sealed} answer={graded.answer} recording={recording} />
+        <SaveDemoButton
+          demoKey={demoKey}
+          puzzle={graded.puzzle}
+          sealed={sealed}
+          answer={graded.answer}
+          recording={recording}
+        />
       </PhoneShell>
     );
   }
@@ -414,7 +438,13 @@ function PracticeScreen() {
             </button>
           </div>
         </div>
-        <SaveDemoButton demoKey={demoKey} puzzle={graded.puzzle} sealed={sealed} answer={graded.answer} recording={recording} />
+        <SaveDemoButton
+          demoKey={demoKey}
+          puzzle={graded.puzzle}
+          sealed={sealed}
+          answer={graded.answer}
+          recording={recording}
+        />
       </PhoneShell>
     );
   }
@@ -427,39 +457,49 @@ function PracticeScreen() {
         label="PRACTICE"
         title={puzzleName(puzzle.type)}
         help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
-        timer={puzzleShowsTimer(puzzle) ? (
-          <TimerBar
-            msRemaining={runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
-            totalMs={runMs ?? timeLimitMs}
-            active={clockActive}
-          />
-        ) : undefined}
-        beforeGame={puzzle.type === "balance" ? <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" /> : undefined}
+        timer={
+          puzzleShowsTimer(puzzle) ? (
+            <TimerBar
+              msRemaining={runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
+              totalMs={runMs ?? timeLimitMs}
+              active={clockActive}
+            />
+          ) : undefined
+        }
+        beforeGame={
+          puzzle.type === "balance" ? (
+            <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" />
+          ) : undefined
+        }
         stageRef={recordArea}
-        overlay={<PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />}
+        overlay={
+          <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
+        }
       >
-          <StageComponent
-            key={stateKey}
-            stateKey={stateKey}
-            puzzle={puzzle}
-            phaseStartedAt={startedAt}
-            now={now}
-            locked={false}
-            onSubmit={(answer, meta) => void grade(answer, meta)}
-            onDraftAnswer={(answer) => {
-              draftAnswer.current = answer;
-            }}
-            checkWord={async (word, found, path) => {
-              const verdict = await practiceCheckWordFn({ data: { puzzle, word, found, path: path ?? [], sealed } });
-              recorder.current?.verdict(verdict);
-              return verdict;
-            }}
-            checkGroup={async (indices) => {
-              const verdict = await practiceCheckGroupFn({ data: { puzzle, sealed, indices } });
-              recorder.current?.verdict(verdict);
-              return verdict;
-            }}
-          />
+        <StageComponent
+          key={stateKey}
+          stateKey={stateKey}
+          puzzle={puzzle}
+          phaseStartedAt={startedAt}
+          now={now}
+          locked={false}
+          onSubmit={(answer, meta) => void grade(answer, meta)}
+          onDraftAnswer={(answer) => {
+            draftAnswer.current = answer;
+          }}
+          checkWord={async (word, found, path) => {
+            const verdict = await practiceCheckWordFn({
+              data: { puzzle, word, found, path: path ?? [], sealed },
+            });
+            recorder.current?.verdict(verdict);
+            return verdict;
+          }}
+          checkGroup={async (indices) => {
+            const verdict = await practiceCheckGroupFn({ data: { puzzle, sealed, indices } });
+            recorder.current?.verdict(verdict);
+            return verdict;
+          }}
+        />
       </GameLayout>
     </PhoneShell>
   );
