@@ -93,9 +93,10 @@ const ENTRIES = {
   round5: { channel: "voice", frequency: 440, ms: 1569, url: "/__l5e/assets-v1/4f041b40-3195-4946-bd70-988dfa1a57df/round5.mp3" },
   round6: { channel: "voice", frequency: 440, ms: 1553, url: "/__l5e/assets-v1/7893893b-3eb6-48ac-a295-05d9ee588f4a/round6.mp3" },
   round7: { channel: "voice", frequency: 440, ms: 1716, url: "/__l5e/assets-v1/442784a2-9cdd-43e0-b1a1-99bf0cff16c6/round7.mp3" },
-  winnerIs: { channel: "voice", frequency: 660, ms: 1883, url: "/__l5e/assets-v1/930389c9-c7c4-41e1-840e-1dc154740351/winnerIs.mp3" }, // registered, not yet mapped
-  winner_drumroll: { channel: "effects", frequency: 660, ms: 4000, url: "/__l5e/assets-v1/65f9c280-3a99-4952-855b-7eb9807b98a6/winner_drumroll.mp3" }, // registered, not yet mapped
-  winner_crash: { channel: "effects", frequency: 660, ms: 2480, url: "/__l5e/assets-v1/accf8497-0738-4d9a-b584-81bd72469ba5/winner_crash.mp3" }, // registered, not yet mapped
+  // Winner reveal; frequency 0 = silent (no beep) if a file is missing.
+  winnerIs: { channel: "voice", frequency: 0, ms: 1883, url: "/__l5e/assets-v1/930389c9-c7c4-41e1-840e-1dc154740351/winnerIs.mp3" },
+  winner_drumroll: { channel: "effects", frequency: 0, ms: 4000, url: "/__l5e/assets-v1/65f9c280-3a99-4952-855b-7eb9807b98a6/winner_drumroll.mp3" },
+  winner_crash: { channel: "effects", frequency: 0, ms: 2480, url: "/__l5e/assets-v1/accf8497-0738-4d9a-b584-81bd72469ba5/winner_crash.mp3" },
   lobby_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f7966f98-a5dc-4c2a-8d1f-9192430a4643/lobby_loop.wav" },
   music_bubble: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/d6ff8836-5885-4575-8cba-325acf0ae98f/music_bubble.mp3" },
   music_matchup: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f645e779-80bb-4696-be77-b144f028666f/music_matchup.mp3" },

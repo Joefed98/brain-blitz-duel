@@ -510,6 +510,17 @@ function duckMusic(durationMs: number): void {
   gain.linearRampToValueAtTime(musicVolume() * 0.3, time + 0.03);
   gain.linearRampToValueAtTime(musicVolume(), time + Math.max(0.25, durationMs / 1000) + 0.2);
 }
+/** Stops a playing one-shot effect (e.g. the winner drumroll at its cut-off). */
+export function stopSound(id: SoundId): void {
+  const src = playingEffects.get(id);
+  if (!src) return;
+  playingEffects.delete(id);
+  try {
+    src.stop();
+  } catch {
+    /* finished */
+  }
+}
 export function playCue(cue: Cue, volume = 1): void {
   if (demoHushed()) return;
   playSound(cue, volume);
@@ -518,6 +529,7 @@ export function playCue(cue: Cue, volume = 1): void {
 }
 export type VoiceId =
   | "prepareToDuel"
+  | "winnerIs"
   | "finalRound"
   | "gg"
   | "roundTaken"
@@ -531,6 +543,7 @@ export type VoiceId =
   | "round7";
 const VOICE_IDS: VoiceId[] = [
   "prepareToDuel",
+  "winnerIs",
   "finalRound",
   "gg",
   "roundTaken",
