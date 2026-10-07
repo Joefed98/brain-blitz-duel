@@ -631,7 +631,7 @@ function DuelScreen() {
   if (duel.status === "finished") {
     if (isMulti) {
       return (
-        <div ref={podiumShell} className="contents-shake">
+        <div ref={podiumShell}>
         <PhoneShell>
           <Podium
             rows={standings(roomPlayers, results, TOTAL_ROUNDS)}
@@ -649,7 +649,7 @@ function DuelScreen() {
       );
     }
     return (
-      <div ref={podiumShell} className="contents-shake">
+      <div ref={podiumShell}>
       <PhoneShell>
         <FinalResult
           outcome={duelOutcome(results, mySlot, opponentSlot)}
