@@ -40,6 +40,7 @@ import {
   releaseRoomMusic,
   holdMusicBed,
   stopMusic,
+  stopRoundMusic,
   unlockAudio,
 } from "@/lib/sound";
 import {
@@ -424,7 +425,10 @@ function DuelScreen() {
   useEffect(() => {
     if (roomStarted) holdMusicBed("intro_loop");
   }, [roomStarted]);
-  useEffect(() => () => releaseRoomMusic(), []);
+  useEffect(() => () => {
+    stopRoundMusic("left-room");
+    releaseRoomMusic();
+  }, []);
 
   // The crash and shake land as the podium appears after a winner reveal
   // (also for a player who arrived mid-reveal); fanfare and gg are unchanged.

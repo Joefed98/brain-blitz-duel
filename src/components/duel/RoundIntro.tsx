@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
-import { prepareRoundMusic, roundMusicClaimed, startMusic, startRoundMusic, stopMusic, stopMusicIf, stopRoundMusic } from "@/lib/sound";
+import {
+  prepareRoundMusic,
+  startMusic,
+  startRoundMusic,
+  stopMusic,
+  stopMusicIf,
+} from "@/lib/sound";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -89,15 +95,8 @@ export function RoundIntro({
     if (counting) stopMusicIf("intro_loop", 300);
   }, [counting]);
 
-  // Leaving the intro without a round starting (practice Back) silences it.
-  useEffect(
-    () => () => {
-      window.setTimeout(() => {
-        if (!roundMusicClaimed()) stopRoundMusic();
-      }, 2_000);
-    },
-    [],
-  );
+  // Round music is not stopped here: the intro bed fade never touches it. Practice
+  // Back and leaving the room stop it explicitly.
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">

@@ -159,7 +159,7 @@ export function AnswerReveal({
     if (myScore === null || cued.current === round) return;
     cued.current = round;
     stopMusic(200);
-    stopRoundMusic();
+    stopRoundMusic("reveal");
     // One verdict (none for partial credit), then the score cue 0.35 s later.
     if (puzzle.type === "bomb" && bombRevealExploded(puzzle, myAnswer)) {
       playSound("pz_bomb_explode");
