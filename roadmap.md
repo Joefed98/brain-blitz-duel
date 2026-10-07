@@ -1,3 +1,6 @@
+## Effects audit fix batch (Oct 7, 16:30)
+- [x] One verdict per word check; silent background checks; move-only non-final moves; single reveal verdict + delayed score; Bubble pop alone; eight fallback IDs; clean-up of unused sounds and superseded music uploads. Typecheck and reveal-score guard pass; device audio user-tested.
+
 ## Shared sound controls and levels (Oct 7, 16:13)
 - [x] Replace old mute/puzzle switch with fixed-height speaker/music controls and consumed outside-tap volume dropdowns; migrate device settings and remove puzzle opt-in.
 - [x] Default-on music across room/practice, unconditional loading, separate puzzle/arcade ramps, practice no-countdown start and immediate end cleanup; preserve gameplay.
