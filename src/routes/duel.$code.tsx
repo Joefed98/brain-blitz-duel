@@ -13,7 +13,6 @@ import { DuelStart } from "@/components/duel/DuelStart";
 import { DUEL_START_MS, WINNER_CRASH_GRACE_MS, WINNER_REVEAL_MS } from "@/lib/duel/startPresentation";
 import { WinnerReveal } from "@/components/duel/WinnerReveal";
 import { animateFx } from "@/lib/fx/motion";
-import { prefersReducedMotion } from "@/lib/motion";
 import { RoundPips } from "@/components/duel/RoundPips";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { RoundResultsTable } from "@/components/duel/RoundResultsTable";
@@ -26,10 +25,11 @@ import { DuelOverall } from "@/components/duel/DuelOverall";
 import { Podium } from "@/components/duel/Podium";
 import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
-import { buzz } from "@/lib/motion";
+import { buzz, prefersReducedMotion } from "@/lib/motion";
 import {
   playLock,
   playPlayerJoined,
+  playSound,
   startMusic,
   releaseRoomMusic,
   stopMusic,
