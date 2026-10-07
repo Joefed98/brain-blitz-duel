@@ -26,6 +26,7 @@ import {
   playLock,
   playPlayerJoined,
   startMusic,
+  releaseRoomMusic,
   stopMusic,
   unlockAudio,
 } from "@/lib/sound";
@@ -95,7 +96,10 @@ export const Route = createFileRoute("/duel/$code")({
         property: "og:description",
         content: "Six rounds. Two to ten players. Fastest brain wins.",
       },
-      { name: "twitter:description", content: "Six rounds. Two to ten players. Fastest brain wins." },
+      {
+        name: "twitter:description",
+        content: "Six rounds. Two to ten players. Fastest brain wins.",
+      },
     ],
   }),
   component: DuelScreen,
@@ -236,7 +240,9 @@ function DuelScreen() {
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
   // Chat and reactions never reserve or cover space during viewport-locked play/reveal.
-  const chatActive = !!duel && !(duel.status === "in_progress" && (duel.phase === "puzzle" || duel.phase === "reveal"));
+  const chatActive =
+    !!duel &&
+    !(duel.status === "in_progress" && (duel.phase === "puzzle" || duel.phase === "reveal"));
   const chat = useRoomChat(duel?.id ?? null, me?.user_id ?? null, chatActive);
   useEffect(() => {
     if (!chatActive) chat.setSheetOpen(false);
@@ -371,12 +377,19 @@ function DuelScreen() {
   }, [tournamentKey, phase, round, revealed?.round, revealed?.tournamentKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Beds are requested only outside rounds; manifest music is silent until supplied.
-  const musicScreen = duel?.status === "waiting" ? "lobby_loop" : duel?.status === "finished" ? "podium_loop" : phase === "standings" ? "standings_loop" : null;
+  const musicScreen =
+    duel?.status === "waiting"
+      ? "lobby_loop"
+      : duel?.status === "finished"
+        ? "podium_loop"
+        : phase === "standings"
+          ? "standings_loop"
+          : null;
   useEffect(() => {
     if (musicScreen) startMusic(musicScreen);
     else stopMusic(0);
   }, [musicScreen]);
-  useEffect(() => () => stopMusic(0), []);
+  useEffect(() => () => releaseRoomMusic(), []);
 
   // A cue for each new player card in the lobby.
   const lobbyCount = duel?.status === "waiting" ? roomPlayers.length : 0;
@@ -759,25 +772,24 @@ function DuelScreen() {
 
   const clockActive = clockStart !== null && now >= clockStart;
   const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
-  const roomGameHeader = puzzle?.type === "spotdiff" || puzzle?.type === "blockparty"
-    ? undefined
-    : isMulti ? (
-        <SoloScoreStrip
-          name={me.display_name}
-          total={myTotal}
-          position={myStanding?.position ?? 1}
-          playerCount={roomPlayers.length}
-          compact
-        />
-      ) : (
-        <ScoreStrip
-          myName={me.display_name}
-          opponentName={opponent?.display_name ?? "Opponent"}
-          myTotal={myTotal}
-          opponentTotal={opponentTotal}
-          compact
-        />
-      );
+  const roomGameHeader =
+    puzzle?.type === "spotdiff" || puzzle?.type === "blockparty" ? undefined : isMulti ? (
+      <SoloScoreStrip
+        name={me.display_name}
+        total={myTotal}
+        position={myStanding?.position ?? 1}
+        playerCount={roomPlayers.length}
+        compact
+      />
+    ) : (
+      <ScoreStrip
+        myName={me.display_name}
+        opponentName={opponent?.display_name ?? "Opponent"}
+        myTotal={myTotal}
+        opponentTotal={opponentTotal}
+        compact
+      />
+    );
   return (
     <PhoneShell constrained gameScreen gameType={puzzle?.type} gameHeader={roomGameHeader}>
       <GameLayout
@@ -785,26 +797,38 @@ function DuelScreen() {
         title={puzzle ? puzzleName(puzzle.type) : ""}
         help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
         progress={<RoundPips currentRound={round} outcomes={outcomes} />}
-        timer={showTimer ? (
-          <TimerBar
-            msRemaining={myResult ? 0 : runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
-            totalMs={runMs ?? timeLimitMs}
-            active={clockActive && !myResult}
-          />
-        ) : undefined}
-        beforeGame={puzzle?.type === "balance" ? <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" /> : undefined}
+        timer={
+          showTimer ? (
+            <TimerBar
+              msRemaining={myResult ? 0 : runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
+              totalMs={runMs ?? timeLimitMs}
+              active={clockActive && !myResult}
+            />
+          ) : undefined
+        }
+        beforeGame={
+          puzzle?.type === "balance" ? (
+            <div id={`balance-progress-${stateKey}`} className="h-3 w-full shrink-0" />
+          ) : undefined
+        }
         locked={!!myResult}
-        overlay={<>
-          {puzzle && <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />}
-          {myResult && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-              <span className="animate-stamp-in rounded-lg border-2 border-primary px-4 py-2 font-display text-lg font-bold uppercase tracking-[0.2em] text-primary">Locked</span>
-              <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                {isMulti ? "Waiting for other players" : "Waiting for opponent"} <Dots />
-              </span>
-            </div>
-          )}
-        </>}
+        overlay={
+          <>
+            {puzzle && (
+              <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
+            )}
+            {myResult && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                <span className="animate-stamp-in rounded-lg border-2 border-primary px-4 py-2 font-display text-lg font-bold uppercase tracking-[0.2em] text-primary">
+                  Locked
+                </span>
+                <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {isMulti ? "Waiting for other players" : "Waiting for opponent"} <Dots />
+                </span>
+              </div>
+            )}
+          </>
+        }
       >
         {puzzle && Stage && (
           // Keyed by the round alone: mounted once, never re-keyed by room updates.

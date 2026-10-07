@@ -41,7 +41,12 @@ export type Cue =
 
 export type Track = "lobby_loop" | "tension_loop" | "standings_loop" | "podium_loop";
 
-const FILES = Object.fromEntries(Object.entries(SOUND_MANIFEST).flatMap(([id, entry]) => entry.url ? [[id, entry.url]] : [])) as Partial<Record<SoundId, string>>;
+/** First-tap preload: effects and voice only; music loads on demand per screen/round. */
+const FILES = Object.fromEntries(
+  Object.entries(SOUND_MANIFEST).flatMap(([id, entry]) =>
+    entry.url && entry.channel !== "music" ? [[id, entry.url]] : [],
+  ),
+) as Partial<Record<SoundId, string>>;
 export const SOUND_NAMES = Object.keys(SOUND_MANIFEST) as SoundId[];
 
 const FADE_MS = 400;
@@ -87,22 +92,39 @@ export function isMuted(): boolean {
 
 export function isMusicMuted(): boolean {
   if (typeof window === "undefined") return false;
-  try { return window.localStorage.getItem(MUSIC_MUTE_KEY) === "1"; } catch { return false; }
+  try {
+    return window.localStorage.getItem(MUSIC_MUTE_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 export function setMusicMuted(next: boolean): void {
   if (typeof window === "undefined") return;
-  try { window.localStorage.setItem(MUSIC_MUTE_KEY, next ? "1" : "0"); } catch { /* unavailable */ }
+  try {
+    window.localStorage.setItem(MUSIC_MUTE_KEY, next ? "1" : "0");
+  } catch {
+    /* unavailable */
+  }
   if (!next) unlockAudio();
-  applySettings(); announce();
+  applySettings();
+  announce();
 }
 /** Device-persisted opt-in for music in logic, word and number rounds (default off). */
 export function isPuzzleRoundMusicOn(): boolean {
   if (typeof window === "undefined") return false;
-  try { return window.localStorage.getItem(PUZZLE_ROUND_MUSIC_KEY) === "1"; } catch { return false; }
+  try {
+    return window.localStorage.getItem(PUZZLE_ROUND_MUSIC_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 export function setPuzzleRoundMusic(next: boolean): void {
   if (typeof window === "undefined") return;
-  try { window.localStorage.setItem(PUZZLE_ROUND_MUSIC_KEY, next ? "1" : "0"); } catch { /* unavailable */ }
+  try {
+    window.localStorage.setItem(PUZZLE_ROUND_MUSIC_KEY, next ? "1" : "0");
+  } catch {
+    /* unavailable */
+  }
   if (next) unlockAudio();
   announce();
 }
@@ -267,10 +289,8 @@ export function unlockAudio(): void {
     void ctx.resume().catch((error) => warnOnce("initial resume failed", error));
     resumeContext();
     unlocked = true;
-    loading ??= preload().then(() => {
-      if (desiredTrack) startMusic(desiredTrack.name, desiredTrack.options);
-      if (pendingRound) startRoundMusic(pendingRound);
-    });
+    loading ??= preload();
+    if (desiredTrack && !currentTrack) startMusic(desiredTrack.name, desiredTrack.options);
   } catch (error) {
     warnOnce("could not create the audio context", error);
   }
@@ -357,8 +377,13 @@ export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): 
   const entry = SOUND_MANIFEST[cue];
   if (entry.channel === "music") return;
   const buffer = buffers.get(cue);
+  // Voice lines without a loaded file are skipped silently: never a placeholder beep.
+  if (!buffer && entry.channel === "voice") return;
   duckMusic(buffer ? buffer.duration * 1000 : entry.ms);
-  if (!buffer) { if (entry.frequency > 0) playTone(entry.frequency * rate, entry.ms, "sine", 0.18 * volume, undefined, entry.channel === "voice"); return; }
+  if (!buffer) {
+    if (entry.frequency > 0) playTone(entry.frequency * rate, entry.ms, "sine", 0.18 * volume);
+    return;
+  }
   const previous = overlap ? undefined : playingEffects.get(cue);
   if (previous) {
     try {
@@ -372,7 +397,10 @@ export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): 
     source.buffer = buffer;
     if (rate !== 1) source.playbackRate.setValueAtTime(rate, ctx.currentTime);
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime((cue === "podium_fanfare" ? FANFARE_GAIN : 1) * Math.max(0, Math.min(1, volume)), ctx.currentTime);
+    gain.gain.setValueAtTime(
+      (cue === "podium_fanfare" ? FANFARE_GAIN : 1) * Math.max(0, Math.min(1, volume)),
+      ctx.currentTime,
+    );
     source.connect(gain).connect(entry.channel === "voice" && voiceGain ? voiceGain : effectsGain);
     source.onended = () => {
       if (playingEffects.get(cue) === source) playingEffects.delete(cue);
@@ -435,7 +463,10 @@ export function stopWarning10(): void {
  * it should play; it starts once the file is decoded and stops when muted.
  */
 export function ensureLoop(id: SoundId, volume = 0.3): void {
-  if (isMuted() || demoHushed()) { stopLoop(id, 120); return; }
+  if (isMuted() || demoHushed()) {
+    stopLoop(id, 120);
+    return;
+  }
   if (loops.has(id) || !ready() || !ctx || !effectsGain) return;
   const buffer = buffers.get(id);
   if (!buffer) return;
@@ -474,33 +505,69 @@ function duckMusic(durationMs: number): void {
   if (!ctx || !musicGain || !currentTrack || isMusicMuted()) return;
   const time = ctx.currentTime;
   const gain = musicGain.gain;
-  gain.cancelScheduledValues(time); gain.setValueAtTime(gain.value, time);
+  gain.cancelScheduledValues(time);
+  gain.setValueAtTime(gain.value, time);
   gain.linearRampToValueAtTime(musicVolume() * 0.3, time + 0.03);
   gain.linearRampToValueAtTime(musicVolume(), time + Math.max(0.25, durationMs / 1000) + 0.2);
 }
 export function playCue(cue: Cue, volume = 1): void {
   if (demoHushed()) return;
   playSound(cue, volume);
-  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("duelz-cue", { detail: cue }));
+  if (typeof window !== "undefined")
+    window.dispatchEvent(new CustomEvent("duelz-cue", { detail: cue }));
 }
-export type VoiceId = "prepareToDuel" | "finalRound" | "gg" | "roundTaken" | "roundLost"
-  | "round1" | "round2" | "round3" | "round4" | "round5" | "round6" | "round7";
-const VOICE_IDS: VoiceId[] = ["prepareToDuel", "finalRound", "gg", "roundTaken", "roundLost",
-  "round1", "round2", "round3", "round4", "round5", "round6", "round7"];
+export type VoiceId =
+  | "prepareToDuel"
+  | "finalRound"
+  | "gg"
+  | "roundTaken"
+  | "roundLost"
+  | "round1"
+  | "round2"
+  | "round3"
+  | "round4"
+  | "round5"
+  | "round6"
+  | "round7";
+const VOICE_IDS: VoiceId[] = [
+  "prepareToDuel",
+  "finalRound",
+  "gg",
+  "roundTaken",
+  "roundLost",
+  "round1",
+  "round2",
+  "round3",
+  "round4",
+  "round5",
+  "round6",
+  "round7",
+];
 let voiceTimer: number | undefined;
 /** One voice line at a time: a new line (or a pending delayed one) replaces the current line. */
 export function playVoice(id: VoiceId, delayMs = 0): void {
   if (typeof window === "undefined") return;
-  if (voiceTimer !== undefined) { window.clearTimeout(voiceTimer); voiceTimer = undefined; }
+  if (voiceTimer !== undefined) {
+    window.clearTimeout(voiceTimer);
+    voiceTimer = undefined;
+  }
   const run = () => {
     voiceTimer = undefined;
     for (const other of VOICE_IDS) {
       const src = playingEffects.get(other);
-      if (src) { try { src.stop(); } catch { /* finished */ } playingEffects.delete(other); }
+      if (src) {
+        try {
+          src.stop();
+        } catch {
+          /* finished */
+        }
+        playingEffects.delete(other);
+      }
     }
     playSound(id);
   };
-  if (delayMs > 0) voiceTimer = window.setTimeout(run, delayMs); else run();
+  if (delayMs > 0) voiceTimer = window.setTimeout(run, delayMs);
+  else run();
 }
 /** Length of a voice line in ms: decoded file when loaded, else the manifest figure. */
 export function voiceDurationMs(id: VoiceId): number {
@@ -636,17 +703,22 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
   // Remembered so an interruption (call, app switch) can restart it on resume.
   desiredTrack = { name, options };
   if (!ready() || !ctx || !musicGain) return;
-  const buffer = buffers.get(name);
-  if (!buffer) return;
+  const buffer = musicBuffers.get(name);
+  if (!buffer) {
+    // Loaded the first time a screen needs it; starts once decoded if still wanted.
+    void loadMusicBuffer(name).then(() => {
+      if (desiredTrack?.name === name && !currentTrack) startMusic(name, desiredTrack.options);
+    });
+    return;
+  }
+  bedBuffers.add(name);
   const fade = options.fadeMs ?? FADE_MS;
   if (currentTrack) {
     fadeOut(currentTrack, fade);
     currentTrack = null;
   }
   try {
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
+    const source = loopingSource(name, buffer);
     const gain = ctx.createGain();
     const t = ctx.currentTime;
     gain.gain.setValueAtTime(0.0001, t);
@@ -656,7 +728,7 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
       source.playbackRate.linearRampToValueAtTime(options.rampToRate, t + options.rampMs / 1000);
     }
     source.connect(gain).connect(musicGain);
-    source.start();
+    source.start(0, source.loopStart);
     currentTrack = { name, source, gain };
     desiredTrack = null;
   } catch (error) {
@@ -675,47 +747,164 @@ export function isMusicPlaying(name: Track): boolean {
   return currentTrack?.name === name;
 }
 
+/* ------------------------------------------------------- music buffers */
+
+/** Decoded music, loaded on demand (never in the first-tap preload). */
+const musicBuffers = new Map<SoundId, AudioBuffer>();
+const musicLoads = new Map<SoundId, Promise<void>>();
+const musicTokens = new Map<SoundId, object>();
+/** Lobby/standings/podium beds held for the room. */
+const bedBuffers = new Set<SoundId>();
+/** Detected audible start/end (seconds) for MP3 loops; WAV loops play whole. */
+const loopPoints = new Map<SoundId, { start: number; end: number }>();
+/** -60 dB: anything quieter at the edges is encoder padding/silence. */
+const LOOP_THRESHOLD = 0.001;
+
+function detectLoopPoints(buffer: AudioBuffer): { start: number; end: number } {
+  let first = buffer.length;
+  let last = -1;
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const data = buffer.getChannelData(c);
+    for (let i = 0; i < first; i++)
+      if (Math.abs(data[i]!) > LOOP_THRESHOLD) {
+        first = i;
+        break;
+      }
+    for (let i = data.length - 1; i > last; i--)
+      if (Math.abs(data[i]!) > LOOP_THRESHOLD) {
+        last = i;
+        break;
+      }
+  }
+  if (last <= first) return { start: 0, end: buffer.duration };
+  return { start: first / buffer.sampleRate, end: (last + 1) / buffer.sampleRate };
+}
+
+function loadMusicBuffer(id: SoundId): Promise<void> {
+  if (musicBuffers.has(id)) return Promise.resolve();
+  const existing = musicLoads.get(id);
+  if (existing) return existing;
+  const url = SOUND_MANIFEST[id]?.url;
+  const context = ctx;
+  if (!url || !context) return Promise.resolve();
+  const token = {};
+  musicTokens.set(id, token);
+  const load = (async () => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`${response.status}`);
+      const decoded = await context.decodeAudioData(await response.arrayBuffer());
+      // Released while decoding (round moved on): drop it.
+      if (musicTokens.get(id) !== token) return;
+      if (/\.mp3$/i.test(url)) loopPoints.set(id, detectLoopPoints(decoded));
+      musicBuffers.set(id, decoded);
+    } catch (error) {
+      warnOnce(`could not load ${url}`, error);
+    } finally {
+      if (musicTokens.get(id) === token) musicLoads.delete(id);
+    }
+  })();
+  musicLoads.set(id, load);
+  return load;
+}
+
+function releaseMusicBuffer(id: SoundId): void {
+  musicBuffers.delete(id);
+  musicLoads.delete(id);
+  musicTokens.delete(id);
+  loopPoints.delete(id);
+}
+
+function loopingSource(id: SoundId, buffer: AudioBuffer): AudioBufferSourceNode {
+  if (!ctx) throw new Error("no audio context");
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  const points = loopPoints.get(id);
+  if (points) {
+    source.loopStart = points.start;
+    source.loopEnd = points.end;
+  }
+  return source;
+}
+
+/** Leaving the room: stop and release the lobby/standings/podium beds. */
+export function releaseRoomMusic(): void {
+  stopMusic(0);
+  for (const id of bedBuffers) releaseMusicBuffer(id);
+  bedBuffers.clear();
+}
+
 /* ------------------------------------------------------------- round music */
 
 /* In-round beds: start at the 3-2-1, stop dead at round end. Level is a share
    of the effects level (30% → 70% over the closing stretch) on its own gain so
-   lobby ducking never touches it; the persisted music mute silences it. */
+   lobby ducking never touches it; the persisted music mute silences it.
+   Round tracks are decoded per round (at most two held) and released on stop. */
 let roundTrack: { id: SoundId; source: AudioBufferSourceNode; gain: GainNode } | null = null;
-let pendingRound: SoundId | null = null;
 let roundLevel = 0.3;
 let roundClaimed = false;
+/** Round tracks decoded or decoding, oldest first; never more than two. */
+const roundBuffers: SoundId[] = [];
 
 function applyRoundLevel(rampSeconds: number): void {
   if (!ctx || !roundTrack) return;
   const target = isMusicMuted() ? 0 : roundLevel * effectsVolume();
-  const g = roundTrack.gain.gain; const t = ctx.currentTime;
+  const g = roundTrack.gain.gain;
+  const t = ctx.currentTime;
   try {
-    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t);
-    if (rampSeconds > 0) g.linearRampToValueAtTime(target, t + rampSeconds); else g.setValueAtTime(target, t);
-  } catch { /* closed */ }
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    if (rampSeconds > 0) g.linearRampToValueAtTime(target, t + rampSeconds);
+    else g.setValueAtTime(target, t);
+  } catch {
+    /* closed */
+  }
 }
 
+function releaseRoundBuffer(id: SoundId): void {
+  const i = roundBuffers.indexOf(id);
+  if (i >= 0) roundBuffers.splice(i, 1);
+  releaseMusicBuffer(id);
+}
+
+/** Called as a round's intro appears: fetch and decode only that round's track. */
+export function prepareRoundMusic(id: SoundId | null | undefined): void {
+  if (!id || SOUND_MANIFEST[id]?.channel !== "music" || !ctx) return;
+  if (!roundBuffers.includes(id)) {
+    // Keep only the playing track (if any) alongside the new one.
+    for (const other of [...roundBuffers]) if (other !== roundTrack?.id) releaseRoundBuffer(other);
+    while (roundBuffers.length >= 2) releaseRoundBuffer(roundBuffers[0]!);
+    roundBuffers.push(id);
+  }
+  void loadMusicBuffer(id);
+}
+
+/** Starts the round bed only if already decoded; a late track is skipped for the round. */
 export function startRoundMusic(id: SoundId | null | undefined): void {
   if (!id || SOUND_MANIFEST[id]?.channel !== "music") return;
   if (roundTrack?.id === id) return;
-  stopRoundMusic();
-  roundLevel = 0.3; roundClaimed = false;
-  pendingRound = id;
-  if (currentTrack) { fadeOut(currentTrack, 150); currentTrack = null; }
-  desiredTrack = null;
   if (!ready() || !ctx || !masterGain) return;
-  const buffer = buffers.get(id);
-  if (!buffer) return;
+  const buffer = musicBuffers.get(id);
+  if (!buffer || !roundBuffers.includes(id)) return;
+  if (roundTrack) stopRoundMusic();
+  roundLevel = 0.3;
+  roundClaimed = false;
+  if (currentTrack) {
+    fadeOut(currentTrack, 150);
+    currentTrack = null;
+  }
+  desiredTrack = null;
   try {
-    const source = ctx.createBufferSource();
-    source.buffer = buffer; source.loop = true;
+    const source = loopingSource(id, buffer);
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(isMusicMuted() ? 0 : roundLevel * effectsVolume(), ctx.currentTime);
     source.connect(gain).connect(masterGain);
-    source.start();
+    source.start(0, source.loopStart);
     roundTrack = { id, source, gain };
-    pendingRound = null;
-  } catch (error) { warnOnce("round music failed", error); }
+  } catch (error) {
+    warnOnce("round music failed", error);
+  }
 }
 
 /** 0.3–0.7 share of the effects level, set from the round clock. */
@@ -727,13 +916,25 @@ export function setRoundMusicLevel(level: number): void {
 }
 
 /** The live round timer took over; intro teardown must not stop the music. */
-export function claimRoundMusic(): void { roundClaimed = true; }
-export function roundMusicClaimed(): boolean { return roundClaimed; }
+export function claimRoundMusic(): void {
+  roundClaimed = true;
+}
+export function roundMusicClaimed(): boolean {
+  return roundClaimed;
+}
 
-/** Stops round music dead (no fade). */
+/** Stops round music dead (no fade) and releases its decoded buffer. */
 export function stopRoundMusic(): void {
-  pendingRound = null; roundClaimed = false;
-  const track = roundTrack; roundTrack = null;
+  roundClaimed = false;
+  const track = roundTrack;
+  roundTrack = null;
   if (!track) return;
-  try { track.source.stop(); } catch { /* already stopped */ }
+  try {
+    track.source.stop();
+    track.source.disconnect();
+  } catch {
+    /* already stopped */
+  }
+  track.source.buffer = null;
+  releaseRoundBuffer(track.id);
 }

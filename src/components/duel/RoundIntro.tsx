@@ -5,7 +5,15 @@ import type { PuzzleData } from "@/lib/duel/types";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
-import { playVoice, roundMusicClaimed, startRoundMusic, stopRoundMusic, voiceDurationMs, type VoiceId } from "@/lib/sound";
+import {
+  playVoice,
+  prepareRoundMusic,
+  roundMusicClaimed,
+  startRoundMusic,
+  stopRoundMusic,
+  voiceDurationMs,
+  type VoiceId,
+} from "@/lib/sound";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -58,9 +66,7 @@ export function RoundIntro({
   const puzzleDemo = hasIntroDemo(type) ? null : savedPuzzleDemo;
   const introLine = puzzle ? (puzzleDef(type).introLine?.(puzzle) ?? null) : null;
   // Arcade phases carry 3 s of invisible slack; show the run length only.
-  const seconds = Math.round(
-    (typeTimeLimitMs(type) - (usesArcadeClock(type) ? 3000 : 0)) / 1000,
-  );
+  const seconds = Math.round((typeTimeLimitMs(type) - (usesArcadeClock(type) ? 3000 : 0)) / 1000);
   const twoPlayer = activeCount === 2;
   const theme = puzzleDef(type).theme;
   const countdownCued = useRef("");
@@ -90,22 +96,39 @@ export function RoundIntro({
     startRoundMusic(theme.music);
   }, [counting, secondsLeft, startedAt, type]);
 
+  // Decode only this round's track as the intro appears.
+  useEffect(() => {
+    prepareRoundMusic(theme.music);
+  }, [theme.music]);
+
   // Leaving the intro without a round starting (practice Back) silences it.
-  useEffect(() => () => {
-    window.setTimeout(() => { if (!roundMusicClaimed()) stopRoundMusic(); }, 2_000);
-  }, []);
+  useEffect(
+    () => () => {
+      window.setTimeout(() => {
+        if (!roundMusicClaimed()) stopRoundMusic();
+      }, 2_000);
+    },
+    [],
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">
       <div className="category-header flex items-start justify-between">
         {practice && onBack ? (
-          <Button type="button" variant="outline" size="sm" onClick={onBack} className="press h-8 shrink-0 px-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onBack}
+            className="press h-8 shrink-0 px-2.5"
+          >
             ← Back
           </Button>
         ) : null}
         <div className="flex flex-col gap-0.5">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            {practice ? "Practice" : `Round ${round} of ${TOTAL_ROUNDS}`} <span className="category-tag">· {theme.accent}</span>
+            {practice ? "Practice" : `Round ${round} of ${TOTAL_ROUNDS}`}{" "}
+            <span className="category-tag">· {theme.accent}</span>
           </span>
           {!counting && onReady ? (
             <span className="font-mono text-[0.7rem] text-muted-foreground/70">
