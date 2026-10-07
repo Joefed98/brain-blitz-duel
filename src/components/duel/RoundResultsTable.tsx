@@ -40,7 +40,9 @@ export function RoundResultsTable({
     const mine = ordered.find((row) => row.slot === mySlot);
     if (mine && mine.roundScore > 0 && mine.roundScore === topScore) {
       playRoundWon();
-      playVoice("roundTaken", cueDurationMs("round_won"));
+      // A shared top score in a 3+ room is a tie: no voice line for anyone.
+      const tied = ordered.filter((row) => row.roundScore === topScore).length > 1;
+      if (!tied) playVoice("roundTaken", cueDurationMs("round_won"));
       buzz(12);
     }
   }, [mySlot, ordered, topScore]);
