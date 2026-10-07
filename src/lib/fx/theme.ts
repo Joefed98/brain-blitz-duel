@@ -125,7 +125,8 @@ export function roundMusicFor(
       : null
     : puzzleMusic(type, category);
 }
-export const DEFAULT_SOUNDS: Record<FxHook, SoundId> = {
+/** onSubmit is visual-only (lock pop); it has no sound. */
+export const DEFAULT_SOUNDS: Partial<Record<FxHook, SoundId>> = {
   onRoundStart: "round_start",
   onCountdown: "tick",
   onPlace: "place",
@@ -138,7 +139,6 @@ export const DEFAULT_SOUNDS: Record<FxHook, SoundId> = {
   onTimerWarning10: "warning_10",
   onTimerWarning5: "warning_5",
   onTimeUp: "time_up",
-  onSubmit: "submit",
   onRevealScore: "reveal_score",
   onPodium: "podium_fanfare",
   onReaction: "reaction",

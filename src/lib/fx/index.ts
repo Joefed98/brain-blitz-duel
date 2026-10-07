@@ -42,7 +42,7 @@ export function triggerFx(hook: FxHook, value?: number | string, theme?: GameThe
     return;
   }
   const sound = (theme ?? activeTheme)?.sounds[hook] ?? DEFAULT_SOUNDS[hook];
-  playSound(sound);
+  if (sound) playSound(sound);
   visualFx(hook, value, theme);
 }
 export const fx = Object.fromEntries(Object.keys(PRIMITIVES).map(hook => [hook,

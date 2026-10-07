@@ -149,6 +149,6 @@ const ENTRIES = {
   music_slice: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/ca7ea5f4-7a4c-4672-8130-a6afa33d18f0/music_slice.mp3" },
   music_wavefront: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/94ad8b7c-b458-477d-b98e-ec2b1c21c0d5/music_wavefront.mp3" },
   tension_loop: { channel: "music", frequency: 0, ms: 0, url: null },
-} satisfies Record<string, { channel: "effects" | "voice" | "music"; frequency: number; ms: number; url: string | null }>;
+} satisfies Record<string, { channel: "effects" | "voice" | "music"; frequency: number; ms: number; url: string | null; fallback?: string }>;
 export type SoundId = keyof typeof ENTRIES;
 export const SOUND_MANIFEST: Record<SoundId, SoundEntry> = ENTRIES;
