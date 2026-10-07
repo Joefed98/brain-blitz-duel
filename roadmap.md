@@ -857,6 +857,10 @@
 - [x] Replace Flip artwork with curved glowing basalt tunnel, silhouette-clipped hot-core rock, exterior-only background decoration and runner-box-clipped headlamp robot.
 - [x] Swing-volume lava hiss loop added with stop cleanup; animated intro and answer backdrop already share flipArtGame. 72 renderer-only smoke/state/clip checks and shared FX checks passed; protected gameplay files unchanged, preview build OK. No browsers or identity proofs; device appearance and FPS remain user-tested.
 
+## Chat sheet bottom-edge fix (Oct 7)
+- [x] Hide the compact strip under open sheets without changing screen geometry; unify sheet/footer background through the home-indicator inset and clear non-keyboard viewport spacing.
+- [x] Focused source and syntax checks passed; no browsers or proofs; device appearance awaits user testing.
+
 ## Explicit game-column layout rule
 - [x] Top-anchored 100% column, arena-only flex with caps, controls 12px below, no bottom pinning; 68 games audited from source.
 - [x] Word Search reveal red unfound letters/fill/outline; accepted-key bounds overlay.

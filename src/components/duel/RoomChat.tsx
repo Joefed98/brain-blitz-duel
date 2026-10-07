@@ -105,6 +105,7 @@ export function RoomChat({
   const [expanded, setExpanded] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [viewport, setViewport] = useState<{ height: number; bottom: number } | null>(null);
+  const syncViewport = useRef<() => void>(() => {});
   const list = useRef<HTMLUListElement | null>(null);
   const atBottom = useRef(true);
   const [newBelow, setNewBelow] = useState(false);
@@ -120,15 +121,17 @@ export function RoomChat({
     setMounted(true);
     // Only this sheet follows the keyboard viewport; never resize/reset the page.
     const visual = window.visualViewport;
-    const sync = () =>
-      setViewport(
-        visual
-          ? {
-              height: visual.height,
-              bottom: Math.max(0, window.innerHeight - visual.height - visual.offsetTop),
-            }
-          : null,
-      );
+    const sync = () => {
+      const chatInputFocused = document.activeElement?.hasAttribute("data-room-chat-input");
+      // Browser chrome/zoom must not leave a keyboard-sized gap below the sheet.
+      const keyboardOpen = chatInputFocused && visual && visual.scale <= 1.05 &&
+        window.innerHeight - visual.height > 120;
+      setViewport(keyboardOpen ? {
+        height: visual.height,
+        bottom: Math.max(0, window.innerHeight - visual.height - visual.offsetTop),
+      } : null);
+    };
+    syncViewport.current = sync;
     sync();
     visual?.addEventListener("resize", sync);
     visual?.addEventListener("scroll", sync);
@@ -176,7 +179,7 @@ export function RoomChat({
     void chat.send(value);
   };
   const composer = (
-    <div className="flex h-11 min-w-0 shrink-0 items-center gap-1.5 bg-background">
+    <div className={`flex h-11 min-w-0 shrink-0 items-center gap-1.5 ${open ? "bg-card" : "bg-background"}`}>
       <Button
         type="button"
         variant="outline"
@@ -192,6 +195,7 @@ export function RoomChat({
         )}
       </Button>
       <input
+        data-room-chat-input
         value={text}
         onChange={(event) => setText(event.target.value.slice(0, MESSAGE_MAX_LENGTH))}
         onKeyDown={(event) => {
@@ -202,8 +206,10 @@ export function RoomChat({
         aria-label="Message"
         onFocus={() => {
           focusScroll.current = { x: window.scrollX, y: window.scrollY };
+          syncViewport.current();
         }}
         onBlur={() => {
+          setViewport(null);
           const saved = focusScroll.current;
           focusScroll.current = null;
           if (!saved) return;
@@ -340,7 +346,7 @@ export function RoomChat({
             </Button>
           )}
         </div>
-        <footer className="min-h-0 shrink-0 border-t border-border bg-background px-2 pt-2 pb-[max(8px,env(safe-area-inset-bottom))]">
+        <footer className="min-h-0 shrink-0 border-t border-border bg-card px-2 pt-2 pb-[max(8px,env(safe-area-inset-bottom))]">
           {composer}
           {(chat.notice || chat.error) && (
             <p className="pt-1 text-center text-[11px] text-muted-foreground">
@@ -402,7 +408,8 @@ export function RoomChat({
     <>
       <ReactionLayer chat={chat} />
       <div
-        className="sticky z-[55] mt-2 shrink-0 bg-background"
+        aria-hidden={open || undefined}
+        className={`sticky z-[55] mt-2 shrink-0 bg-background ${open ? "invisible pointer-events-none" : ""}`}
         style={{ height: CHAT_BAR_HEIGHT, bottom: "env(safe-area-inset-bottom, 0px)" }}
         onTouchStart={(event) => {
           barTouchY.current = event.touches[0]?.clientY ?? null;
