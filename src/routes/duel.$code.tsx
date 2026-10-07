@@ -40,6 +40,7 @@ import {
   releaseRoomMusic,
   holdMusicBed,
   stopMusic,
+  stopRoundMusic,
   unlockAudio,
 } from "@/lib/sound";
 import {
