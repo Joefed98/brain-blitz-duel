@@ -1,7 +1,7 @@
 ## Room start and round titles (Oct 7, 16:05)
-- [ ] Extend starting to six seconds; add guarded three-second round_title before every room intro.
-- [ ] Add shared-clock category title, move room announcements and preload later round music; preserve practice/gameplay/winner flow.
-- [ ] Run focused non-browser timing/flow checks and inspect preview compilation.
+- [x] Extend starting to six seconds; add guarded three-second round_title before every room intro, with fixed deadlines and concurrent-request guards.
+- [x] Add shared-clock category title, move room announcements and preload later round music; preserve practice/gameplay/winner flow. Registry draw categories are number for Ten Drop, speed for Whack/Clay, attention for Colour Clash.
+- [x] Non-browser gate/concurrency/rejoin/frame/reduced-motion/cue/preload checks pass; preview build OK, focused lint has no errors (existing countdown theme dependency warning). Device rendering/audio remains user-tested; no gameplay proof or browser tests.
 
 ## Shared duel start (Oct 7)
 - [x] Add guarded five-second starting phase, shared-clock bolt screen and round-one music preload.
