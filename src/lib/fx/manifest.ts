@@ -137,6 +137,7 @@ const ENTRIES = {
   music_rally: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/8f7a0226-3d76-4fbc-99b9-dd9e24fec7f2/music_rally.mp3" },
   music_skyline: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/bc7ea775-7d35-4e1a-a9ea-2fd7732103d7/music_skyline.mp3" },
   music_slice: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/ca7ea5f4-7a4c-4672-8130-a6afa33d18f0/music_slice.mp3" },
+  music_wavefront: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/94ad8b7c-b458-477d-b98e-ec2b1c21c0d5/music_wavefront.mp3" },
   // In-round beds awaiting files; silent until supplied.
   music_word: { channel: "music", frequency: 0, ms: 0, url: null },
   music_orchard: { channel: "music", frequency: 0, ms: 0, url: null },
