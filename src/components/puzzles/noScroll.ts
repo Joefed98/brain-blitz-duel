@@ -23,6 +23,7 @@ export function useNoTouchScroll(ref: RefObject<HTMLElement | null>): void {
     const node = ref.current;
     if (!node) return;
     const stop = (event: TouchEvent) => {
+      if (event.target instanceof Element && event.target.closest("[data-scrollable]")) return;
       if (event.cancelable) event.preventDefault();
     };
     node.addEventListener("touchmove", stop, { passive: false });

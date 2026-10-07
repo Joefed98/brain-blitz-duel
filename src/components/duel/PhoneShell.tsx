@@ -95,6 +95,7 @@ function useRootSelectionLock(active: boolean) {
     const noTouch = (event: TouchEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
+      if (target.closest("[data-scrollable]")) return;
       if (!target.closest("[data-play-area]") || target.closest(CONTROL)) return;
       if (event.cancelable) event.preventDefault();
     };
