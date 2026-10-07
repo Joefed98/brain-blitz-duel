@@ -1,3 +1,7 @@
+## Shared duel start (Oct 7)
+- [x] Add guarded five-second starting phase, shared-clock bolt screen and round-one music preload.
+- [x] Move prepareToDuel to two seconds into starting; preserve subsequent room flow. No-browser checks pass for the five-second gate, concurrent requests, rejoin deadline, shared cubic frames, reduced fade and both phone sizes; preview build OK. Device visuals/audio remain user-tested.
+
 ## Orbit outside belts (Oct 6, 17:58)
 - [x] Outside circular belts at ring + 12800 fixed-point (50px = 2.5 enclosing 20px rocket diameters); full safe orbit paths, free-flight swept collision only, quarter-turn belts/12-second rotation retained. Generation verifies each completed course's timed hop windows before returning it.
 - [x] Updated belt art, HOW and demo revision. Orbit-only random-log identity 200/200, full-sun timed identity 200/200, checkpoint checks 15/15; 8000 hops/926 belts across 200 courses, 270-degree opening, conservative endpoint gap 7.069 rocket widths (5.819 after collision padding). No browsers; device art remains user-tested.

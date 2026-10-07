@@ -66,6 +66,32 @@
   --font-mono: var(--font-mono);
 }
 
+.duel-start-lock {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+.duel-start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--background);
+  touch-action: none;
+  user-select: none;
+}
+
+.duel-start-bolt {
+  width: 96%;
+  height: 96%;
+  color: var(--primary);
+  transform: scale(0.04);
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
 .arcade-frame-timing {
   position: absolute;
   z-index: 30;

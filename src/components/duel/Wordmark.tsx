@@ -1,7 +1,7 @@
 /** The Duelz mark: tight Space Grotesk with a gold bolt beside it. */
-export function BoltGlyph({ className = "h-4 w-4" }: { className?: string }) {
+export function BoltGlyph({ className = "h-4 w-4", viewBox = "0 0 24 24" }: { className?: string; viewBox?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+    <svg viewBox={viewBox} className={className} aria-hidden="true">
       <path d="M14 2 5 14h6l-2 8 10-13h-6l1-7Z" fill="currentColor" />
     </svg>
   );

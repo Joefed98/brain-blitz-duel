@@ -12,7 +12,6 @@ import {
   roundMusicClaimed,
   startRoundMusic,
   stopRoundMusic,
-  voiceDurationMs,
   type VoiceId,
 } from "@/lib/sound";
 
@@ -72,7 +71,6 @@ export function RoundIntro({
   const theme = puzzleDef(type).theme;
   const countdownCued = useRef("");
   const announced = useRef(false);
-  const prepared = useRef(false);
   // Round announcement as the intro appears; the room's last round says "final round".
   useEffect(() => {
     if (practice || announced.current) return;
@@ -80,14 +78,6 @@ export function RoundIntro({
     if (round >= totalRounds) playVoice("finalRound");
     else if (round >= 1 && round <= 7) playVoice(`round${round}` as VoiceId);
   }, [practice, round, totalRounds]);
-  // Round 1: "prepare to duel" is timed to finish exactly as the 3-2-1 begins.
-  useEffect(() => {
-    if (practice || round !== 1 || prepared.current || counting) return;
-    if (remaining - INTRO_COUNTDOWN_MS <= voiceDurationMs("prepareToDuel")) {
-      prepared.current = true;
-      playVoice("prepareToDuel");
-    }
-  }, [practice, round, counting, remaining]);
   useEffect(() => {
     if (!counting) return;
     const key = `${startedAt}-${secondsLeft}`;

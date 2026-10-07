@@ -9,6 +9,8 @@ import { GameLayout, PhoneShell } from "@/components/duel/PhoneShell";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
+import { DuelStart } from "@/components/duel/DuelStart";
+import { DUEL_START_MS } from "@/lib/duel/startPresentation";
 import { RoundPips } from "@/components/duel/RoundPips";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { RoundResultsTable } from "@/components/duel/RoundResultsTable";
@@ -242,7 +244,7 @@ function DuelScreen() {
   // Chat and reactions never reserve or cover space during viewport-locked play/reveal.
   const chatActive =
     !!duel &&
-    !(duel.status === "in_progress" && (duel.phase === "puzzle" || duel.phase === "reveal"));
+    !(duel.status === "in_progress" && (duel.phase === "starting" || duel.phase === "puzzle" || duel.phase === "reveal"));
   const chat = useRoomChat(duel?.id ?? null, me?.user_id ?? null, chatActive);
   useEffect(() => {
     if (!chatActive) chat.setSheetOpen(false);
@@ -331,7 +333,8 @@ function DuelScreen() {
     ).length;
 
     let due = false;
-    if (phase === "intro")
+    if (phase === "starting") due = elapsed >= DUEL_START_MS;
+    else if (phase === "intro")
       due = elapsed >= INTRO_MS || (elapsed < INTRO_WAIT_MS && activeReady >= activeCount);
     else if (phase === "puzzle")
       due = answeredThisRound >= activeCount || (deadline !== null && now > deadline + 800);
@@ -344,7 +347,7 @@ function DuelScreen() {
       return;
     }
     if (dueSince.current === 0) dueSince.current = now;
-    if (!leads && now - dueSince.current < 2_500) return;
+    if (phase !== "starting" && !leads && now - dueSince.current < 2_500) return;
     if (Date.now() - lastAdvance.current < 1_500) return;
     lastAdvance.current = Date.now();
     void advancePhase(duel.id);
@@ -524,6 +527,10 @@ function DuelScreen() {
     );
   }
 
+  if (duel.status === "in_progress" && phase === "starting" && phaseStart !== null && now < phaseStart + DUEL_START_MS) {
+    return <DuelStart startedAt={phaseStart} type={puzzle?.type} />;
+  }
+
   if (state.opponentDisconnected) {
     return (
       <Centered>
@@ -637,7 +644,7 @@ function DuelScreen() {
     );
   }
 
-  if (phase === "intro" && puzzle) {
+  if ((phase === "intro" || phase === "starting") && puzzle) {
     return (
       <PhoneShell gameType={puzzle.type}>
         <RoundIntro
@@ -645,7 +652,7 @@ function DuelScreen() {
           totalRounds={duel.round_count}
           type={puzzle.type}
           puzzle={puzzle}
-          startedAt={phaseStart ?? now}
+          startedAt={phase === "starting" && phaseStart !== null ? phaseStart + DUEL_START_MS : phaseStart ?? now}
           now={now}
           outcomes={outcomes}
           ready={me.intro_ready_round >= round}
