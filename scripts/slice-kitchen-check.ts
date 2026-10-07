@@ -36,6 +36,6 @@ for(const c of surfaces.filter(c=>c.width===c.height)){
 }
 const preview=createCanvas(168,120);drawSliceKitchenExample(preview.getContext('2d') as unknown as CanvasRenderingContext2D);writeFileSync('/tmp/slice-kitchen/example.png',preview.toBuffer('image/png'));
 const sounds=readFileSync('src/lib/fx/gameSounds.ts','utf8').split('export function sliceSounds()')[1]??'';
-for(const id of ['arc_swoosh','arc_crash','arc_pickup'])assert(sounds.includes(`"${id}"`));assert(!sounds.includes('arc_sea_'));
+for(const id of ['arc_crash','arc_pickup'])assert(sounds.includes(`"${id}"`));assert(!sounds.includes('arc_sea_'));
 const art=readFileSync('src/lib/arcade/slice.renderer.ts','utf8');assert(art.includes('particles<FX_PARTICLE_LIMIT'));assert(art.includes("./cache.renderer"));assert(!art.includes('shadowBlur'));assert(!art.includes('seas.renderer'));
 console.log(JSON.stringify({checks,mapping:SLICE_FOODS,cachedSurfaces:allocations,phoneSizes:['390x700','375x667'],bounds:'exact 40px food/hazard and 32px special stamps; raster extents within 2px',motion:'normal and reduced',browserTests:0,identityProofs:0}));

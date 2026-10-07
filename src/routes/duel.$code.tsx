@@ -382,7 +382,7 @@ function DuelScreen() {
       ? "lobby_loop"
       : duel?.status === "finished"
         ? "podium_loop"
-        : phase === "standings"
+        : phase === "result" || phase === "standings"
           ? "standings_loop"
           : null;
   useEffect(() => {

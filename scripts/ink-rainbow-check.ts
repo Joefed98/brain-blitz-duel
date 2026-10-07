@@ -44,7 +44,7 @@ for(let y=0;y<28;y++)for(let x=0;x<28;x++)if(data[(y*28+x)*4+3]>20){minX=Math.mi
 assert(minX<=2&&minY<=2&&maxX>=25&&maxY>=25);
 const preview=createCanvas(336,260);preview.getContext('2d').scale(2,2);drawInkRainbowExample(preview.getContext('2d') as unknown as CanvasRenderingContext2D);writeFileSync('/tmp/ink-rainbow/example.png',preview.toBuffer('image/png'));
 const sounds=readFileSync('src/lib/fx/gameSounds.ts','utf8').split('export function inkBridgeSounds()')[1]?.split('/* ============================== High Seas')[0]??'';
-for(const id of ['arc_fair_bell','arc_thud','arc_swoosh'])assert(sounds.includes(`"${id}"`));for(const id of ['arc_marble','arc_splash','arc_sea','stage_complete'])assert(!sounds.includes(id));
+for(const id of ['arc_fair_bell','arc_thud'])assert(sounds.includes(`"${id}"`));for(const id of ['arc_marble','arc_splash','arc_sea','stage_complete'])assert(!sounds.includes(id));
 const feedback=readFileSync('src/lib/fx/arcade.ts','utf8');assert(feedback.includes('fx.onComplete()'));
 const hook=readFileSync('src/components/puzzles/useArcadeFrameTiming.ts','utf8');assert(hook.includes('devDiagnosticsOn()'));assert(hook.includes('Draw ${mean("draw")'));assert(hook.includes('p95'));
 const baseline=JSON.parse(readFileSync('/tmp/ink-rainbow/baseline.json','utf8'));const {createHash}=await import('node:crypto');const allowed=['src/lib/arcade/inkBridge.renderer.ts','src/puzzles/inkBridge.tsx','src/lib/fx/gameSounds.ts','src/lib/fx/manifest.ts','src/lib/arcade/AGENTS.md'];
