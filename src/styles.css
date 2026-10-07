@@ -1062,3 +1062,18 @@ body.game-lock {
   height: auto;
   padding-top: 0;
 }
+
+/* iOS zooms into inputs under 16px; text fields stay at 16px (zoom remains allowed). */
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]),
+textarea,
+select {
+  font-size: max(16px, 1em);
+}
+
+/* Chat message list: its own finger-scrollable area, never chaining to the page. */
+.chat-scroll {
+  overflow-y: auto;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}

@@ -289,7 +289,7 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
             // Keyboard closed: return to the top of the screen layout at normal scale.
             window.setTimeout(() => window.scrollTo(0, 0), 50);
           }}
-          className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-base text-foreground outline-none placeholder:text-muted-foreground"
+          className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-[16px] text-foreground outline-none placeholder:text-muted-foreground"
         />
 
         <button
