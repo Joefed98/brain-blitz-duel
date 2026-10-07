@@ -84,13 +84,37 @@ function MessageRow({
 export function RoomChat({ chat, myUserId }: RoomChatProps) {
   const [text, setText] = useState("");
   const [menuFor, setMenuFor] = useState<RoomMessageRow | null>(null);
-  const listEnd = useRef<HTMLDivElement | null>(null);
+  const list = useRef<HTMLUListElement | null>(null);
+  const atBottom = useRef(true);
+  const [newBelow, setNewBelow] = useState(false);
+  const seenCount = useRef(0);
   const touchStartY = useRef<number | null>(null);
   const sheetTouchY = useRef<number | null>(null);
 
+  const toBottom = () => {
+    const el = list.current;
+    if (el) el.scrollTop = el.scrollHeight;
+    atBottom.current = true;
+    setNewBelow(false);
+  };
+  // Opening the sheet lands at the bottom.
   useEffect(() => {
-    if (chat.sheetOpen) listEnd.current?.scrollIntoView({ block: "end" });
+    if (chat.sheetOpen) toBottom();
+  }, [chat.sheetOpen]);
+  // New messages follow only when the player is already at (or near) the bottom.
+  useEffect(() => {
+    const grew = chat.messages.length > seenCount.current;
+    seenCount.current = chat.messages.length;
+    if (!chat.sheetOpen || !grew) return;
+    if (atBottom.current) toBottom();
+    else setNewBelow(true);
   }, [chat.messages.length, chat.sheetOpen]);
+  const onListScroll = () => {
+    const el = list.current;
+    if (!el) return;
+    atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+    if (atBottom.current) setNewBelow(false);
+  };
 
   const submit = () => {
     const value = text.trim();
@@ -144,7 +168,16 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
                   ✕
                 </button>
               </div>
-              <ul className="min-h-0 flex-1 overflow-y-auto">
+              <div className="relative flex min-h-0 flex-1 flex-col">
+              <ul
+                ref={list}
+                onScroll={onListScroll}
+                onTouchStart={(event) => event.stopPropagation()}
+                onTouchEnd={(event) => event.stopPropagation()}
+                onTouchMove={(event) => event.stopPropagation()}
+                className="chat-scroll min-h-0 flex-1"
+                style={{ maxHeight: "calc(60dvh - 5rem)" }}
+              >
                 {chat.messages.length === 0 && (
                   <li className="py-6 text-center text-xs text-muted-foreground">
                     No messages yet.
@@ -158,8 +191,17 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
                     onLongPress={() => setMenuFor(message)}
                   />
                 ))}
-                <div ref={listEnd} />
               </ul>
+              {newBelow && (
+                <button
+                  type="button"
+                  onClick={toBottom}
+                  className="press absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground shadow"
+                >
+                  New messages ↓
+                </button>
+              )}
+              </div>
               {chat.notice && (
                 <p className="pt-1 text-center text-[11px] text-muted-foreground">{chat.notice}</p>
               )}
@@ -243,7 +285,11 @@ export function RoomChat({ chat, myUserId }: RoomChatProps) {
           maxLength={MESSAGE_MAX_LENGTH}
           placeholder="Say something"
           aria-label="Message"
-          className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          onBlur={() => {
+            // Keyboard closed: return to the top of the screen layout at normal scale.
+            window.setTimeout(() => window.scrollTo(0, 0), 50);
+          }}
+          className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-3 text-base text-foreground outline-none placeholder:text-muted-foreground"
         />
 
         <button
