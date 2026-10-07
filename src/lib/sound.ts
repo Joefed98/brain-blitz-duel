@@ -483,7 +483,35 @@ export function playCue(cue: Cue, volume = 1): void {
   playSound(cue, volume);
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("duelz-cue", { detail: cue }));
 }
-export const playVoice = (id: "prepareToDuel" | "finalRound" | "gg") => playSound(id);
+export type VoiceId = "prepareToDuel" | "finalRound" | "gg" | "roundTaken" | "roundLost"
+  | "round1" | "round2" | "round3" | "round4" | "round5" | "round6" | "round7";
+const VOICE_IDS: VoiceId[] = ["prepareToDuel", "finalRound", "gg", "roundTaken", "roundLost",
+  "round1", "round2", "round3", "round4", "round5", "round6", "round7"];
+let voiceTimer: number | undefined;
+/** One voice line at a time: a new line (or a pending delayed one) replaces the current line. */
+export function playVoice(id: VoiceId, delayMs = 0): void {
+  if (typeof window === "undefined") return;
+  if (voiceTimer !== undefined) { window.clearTimeout(voiceTimer); voiceTimer = undefined; }
+  const run = () => {
+    voiceTimer = undefined;
+    for (const other of VOICE_IDS) {
+      const src = playingEffects.get(other);
+      if (src) { try { src.stop(); } catch { /* finished */ } playingEffects.delete(other); }
+    }
+    playSound(id);
+  };
+  if (delayMs > 0) voiceTimer = window.setTimeout(run, delayMs); else run();
+}
+/** Length of a voice line in ms: decoded file when loaded, else the manifest figure. */
+export function voiceDurationMs(id: VoiceId): number {
+  const buffer = buffers.get(id);
+  return buffer ? buffer.duration * 1000 : SOUND_MANIFEST[id].ms;
+}
+/** Length of an effect cue in ms (decoded file when loaded). */
+export function cueDurationMs(id: SoundId): number {
+  const buffer = buffers.get(id);
+  return buffer ? buffer.duration * 1000 : SOUND_MANIFEST[id].ms;
+}
 
 /** A short synthesised tone (e.g. rising chain-link pitch); silent when audio is off. */
 export function playTone(

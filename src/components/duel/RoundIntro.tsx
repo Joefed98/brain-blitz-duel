@@ -5,7 +5,7 @@ import type { PuzzleData } from "@/lib/duel/types";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
-import { playVoice, roundMusicClaimed, startRoundMusic, stopRoundMusic } from "@/lib/sound";
+import { playVoice, roundMusicClaimed, startRoundMusic, stopRoundMusic, voiceDurationMs, type VoiceId } from "@/lib/sound";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -29,6 +29,8 @@ interface RoundIntroProps {
   onBack?: () => void;
   /** This round's public puzzle, for puzzle-specific intro lines. */
   puzzle?: PuzzleData | null;
+  /** The room's round count; its last round announces "final round". */
+  totalRounds?: number;
 }
 
 export function RoundIntro({
@@ -44,6 +46,7 @@ export function RoundIntro({
   practice = false,
   onBack,
   puzzle = null,
+  totalRounds = TOTAL_ROUNDS,
 }: RoundIntroProps) {
   const elapsed = Math.max(0, now - startedAt);
   const remaining = Math.max(0, INTRO_MS - elapsed);
@@ -61,7 +64,23 @@ export function RoundIntro({
   const twoPlayer = activeCount === 2;
   const theme = puzzleDef(type).theme;
   const countdownCued = useRef("");
-  const voiceCued = useRef(false);
+  const announced = useRef(false);
+  const prepared = useRef(false);
+  // Round announcement as the intro appears; the room's last round says "final round".
+  useEffect(() => {
+    if (practice || announced.current) return;
+    announced.current = true;
+    if (round >= totalRounds) playVoice("finalRound");
+    else if (round >= 1 && round <= 7) playVoice(`round${round}` as VoiceId);
+  }, [practice, round, totalRounds]);
+  // Round 1: "prepare to duel" is timed to finish exactly as the 3-2-1 begins.
+  useEffect(() => {
+    if (practice || round !== 1 || prepared.current || counting) return;
+    if (remaining - INTRO_COUNTDOWN_MS <= voiceDurationMs("prepareToDuel")) {
+      prepared.current = true;
+      playVoice("prepareToDuel");
+    }
+  }, [practice, round, counting, remaining]);
   useEffect(() => {
     if (!counting) return;
     const key = `${startedAt}-${secondsLeft}`;
@@ -69,12 +88,7 @@ export function RoundIntro({
     countdownCued.current = key;
     fx.onCountdown(secondsLeft, theme);
     startRoundMusic(theme.music);
-    if (!practice && !voiceCued.current) {
-      voiceCued.current = true;
-      if (round === 1) playVoice("prepareToDuel");
-      if (round === 6) playVoice("finalRound");
-    }
-  }, [counting, secondsLeft, startedAt, practice, round, type]);
+  }, [counting, secondsLeft, startedAt, type]);
 
   // Leaving the intro without a round starting (practice Back) silences it.
   useEffect(() => () => {

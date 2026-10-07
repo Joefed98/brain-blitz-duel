@@ -90,10 +90,12 @@ const ENTRIES = {
   pz_car_escape: { channel: "effects", frequency: 600, ms: 2470, url: "/__l5e/assets-v1/964e6156-dd67-448f-b5d9-766b3dcb83cd/pz_car_escape.mp3" },
   pz_clay_hit: { channel: "effects", frequency: 600, ms: 780, url: "/__l5e/assets-v1/2bc5d695-8271-4bcb-b7a1-055b9c1be790/pz_clay_hit.mp3" },
   pz_gravity_pull: { channel: "effects", frequency: 600, ms: 1100, url: "/__l5e/assets-v1/41df14ad-b12a-4c93-bfb0-0565321ee8c4/pz_gravity_pull.mp3" },
-  prepareToDuel: { channel: "voice", frequency: 440, ms: 180, url: null },
-  finalRound: { channel: "voice", frequency: 520, ms: 180, url: null },
+  prepareToDuel: { channel: "voice", frequency: 440, ms: 2709, url: "/__l5e/assets-v1/0df32a3d-4249-47d4-a83c-34061a568bc8/prepareToDuel.mp3" },
+  finalRound: { channel: "voice", frequency: 520, ms: 1600, url: "/__l5e/assets-v1/5f6484c8-6298-4bbc-8547-947f22b274a4/finalRound.mp3" },
   gg: { channel: "voice", frequency: 660, ms: 220, url: null },
-  // Supplied round-number announcements; registered, not yet played anywhere.
+  roundTaken: { channel: "voice", frequency: 660, ms: 1728, url: "/__l5e/assets-v1/44e350a1-6cf7-4138-a80d-87e243ef4802/roundTaken.mp3" },
+  roundLost: { channel: "voice", frequency: 330, ms: 1728, url: "/__l5e/assets-v1/7380f7cd-966f-4fd6-aabc-ff2bfee03bc2/roundLost.mp3" },
+  // Round-number announcements; round7 unreachable until rooms exceed seven rounds.
   round1: { channel: "voice", frequency: 440, ms: 1771, url: "/__l5e/assets-v1/1abd0bad-2a11-4ea1-a2a6-e788955ac40f/round1.mp3" },
   round2: { channel: "voice", frequency: 440, ms: 1600, url: "/__l5e/assets-v1/5e394f42-cbb4-4282-8274-e7ef57dc56e0/round2.mp3" },
   round3: { channel: "voice", frequency: 440, ms: 1707, url: "/__l5e/assets-v1/a520b9af-b2a3-4923-9e5e-97100c34a15c/round3.mp3" },
