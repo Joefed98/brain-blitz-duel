@@ -2,7 +2,13 @@ import { useEffect, useRef } from "react";
 
 import { useReducedMotion } from "@/lib/motion";
 import { fx } from "@/lib/fx";
-import { claimRoundMusic, releaseRoundMusicClaim, updateRoundMusicClock, stopRoundMusic, stopWarning10 } from "@/lib/sound";
+import {
+  claimRoundMusic,
+  releaseRoundMusicClaim,
+  updateRoundMusicClock,
+  stopRoundMusic,
+  stopWarning10,
+} from "@/lib/sound";
 
 interface TimerBarProps {
   msRemaining: number;

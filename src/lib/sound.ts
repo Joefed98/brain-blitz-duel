@@ -165,7 +165,8 @@ async function preload(): Promise<void> {
         const decoded = await context.decodeAudioData(bytes);
         buffers.set(name, decoded);
         // Looping effects trim MP3 padding at the same -60 dB edges as music.
-        if (EFFECT_LOOPS.has(name as SoundId) && /\.mp3$/i.test(url)) loopPoints.set(name as SoundId, detectLoopPoints(decoded));
+        if (EFFECT_LOOPS.has(name as SoundId) && /\.mp3$/i.test(url))
+          loopPoints.set(name as SoundId, detectLoopPoints(decoded));
         failedFiles.delete(name);
       } catch (error) {
         failedFiles.add(name);
@@ -899,11 +900,22 @@ export function prepareRoundMusic(id: SoundId | null | undefined): void {
 }
 
 /* Dev audio log (accepted key only): one line per round track. */
-interface RoundLog { id: SoundId; loadStart: number | null; loadEnd: number | null; start: number | null; stop: number | null; reason: string | null }
+interface RoundLog {
+  id: SoundId;
+  loadStart: number | null;
+  loadEnd: number | null;
+  start: number | null;
+  stop: number | null;
+  reason: string | null;
+}
 const roundLogs = new Map<SoundId, RoundLog>();
 function logFor(id: SoundId): RoundLog {
   let log = roundLogs.get(id);
-  if (!log) roundLogs.set(id, (log = { id, loadStart: null, loadEnd: null, start: null, stop: null, reason: null }));
+  if (!log)
+    roundLogs.set(
+      id,
+      (log = { id, loadStart: null, loadEnd: null, start: null, stop: null, reason: null }),
+    );
   return log;
 }
 function stamp(): number {
