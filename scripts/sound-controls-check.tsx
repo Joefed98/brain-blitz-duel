@@ -5,6 +5,7 @@ import { MuteToggle } from "../src/components/duel/MuteToggle";
 import { PUZZLE_REGISTRY } from "../src/lib/duel/registry";
 import { roundMusicFor } from "../src/lib/fx/theme";
 import { roundMusicRamp } from "../src/lib/soundSettings";
+import type { PuzzleType } from "../src/lib/duel/types";
 
 // Static markup and arithmetic only: no browser or gameplay simulation.
 const controls = renderToStaticMarkup(<MuteToggle />);
@@ -24,7 +25,7 @@ for (const [arcade, base, end, windowMs] of [[false, 0.2, 0.5, 10000], [true, 0.
 }
 for (const [type, def] of Object.entries(PUZZLE_REGISTRY)) {
   if (def.retired) continue;
-  const track = roundMusicFor(def.type, def.category);
+  const track = roundMusicFor(type as PuzzleType, def.category);
   if (type === "beat") assert.equal(track, null);
   else assert.ok(track, `${type} has round music independent of mute`);
 }
