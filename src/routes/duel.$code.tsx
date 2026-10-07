@@ -629,6 +629,7 @@ function DuelScreen() {
       <PhoneShell gameType={puzzle.type}>
         <RoundIntro
           round={round}
+          totalRounds={duel.round_count}
           type={puzzle.type}
           puzzle={puzzle}
           startedAt={phaseStart ?? now}

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { formatElapsed, roundResultOrder } from "@/lib/duel/resultPresentation";
 import type { Standing } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
-import { playRoundWon } from "@/lib/sound";
+import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 
 import { AnimatedScore } from "./AnimatedScore";
 
@@ -40,6 +40,7 @@ export function RoundResultsTable({
     const mine = ordered.find((row) => row.slot === mySlot);
     if (mine && mine.roundScore > 0 && mine.roundScore === topScore) {
       playRoundWon();
+      playVoice("roundTaken", cueDurationMs("round_won"));
       buzz(12);
     }
   }, [mySlot, ordered, topScore]);

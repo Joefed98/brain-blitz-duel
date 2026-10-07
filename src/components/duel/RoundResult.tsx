@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { MAX_ROUND_SCORE } from "@/lib/duel/scoring";
-import { playRoundWon } from "@/lib/sound";
+import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
 
 import { AnimatedScore } from "./AnimatedScore";
@@ -41,12 +41,13 @@ export function RoundResult({
   const theyWon = opponentRoundScore > myRoundScore;
   const cued = useRef(false);
 
-  // Only the round's top scorer hears the round-won cue.
+  // Winner: round-won cue then "round taken"; two-player loser: "round lost". Ties: neither.
   useEffect(() => {
     if (cued.current) return;
     cued.current = true;
-    if (iWon) playRoundWon();
-  }, [iWon]);
+    if (iWon) { playRoundWon(); playVoice("roundTaken", cueDurationMs("round_won")); }
+    else if (theyWon) playVoice("roundLost");
+  }, [iWon, theyWon]);
 
   const bar = (score: number) => `${Math.round((score / MAX_ROUND_SCORE) * 100)}%`;
 
