@@ -976,7 +976,7 @@ export function startRoundMusic(id: SoundId | null | undefined): void {
 
 /** Clock-driven round ramp, independent of effects and voice volume. */
 export function updateRoundMusicClock(remainingMs: number): void {
-  roundRemaining = arguments[0] as number;
+  roundRemaining = remainingMs;
   if (wantedRound && roundRemaining <= LATE_START_MIN_MS) {
     flushRoundLog(wantedRound, "skipped-late");
     wantedRound = null;
@@ -993,8 +993,17 @@ export function setRoundMusicLevel(level: number): void {
 }
 
 /** The live round timer took over; intro teardown must not stop the music. */
+let roundClaims = 0;
 export function claimRoundMusic(): void {
   roundClaimed = true;
+  roundClaims++;
+}
+/** A timer unmounted: stop only if no remounted timer re-claimed the round. */
+export function releaseRoundMusicClaim(): void {
+  roundClaims = Math.max(0, roundClaims - 1);
+  setTimeout(() => {
+    if (roundClaims === 0) stopRoundMusic("left-screen");
+  }, 0);
 }
 export function roundMusicClaimed(): boolean {
   return roundClaimed;
