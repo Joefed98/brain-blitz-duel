@@ -38,7 +38,7 @@ assert.doesNotMatch(sound, /roundLevel \* effectsVolume/);
 const prepare =
   sound
     .split("export function prepareRoundMusic")[1]
-    ?.split("export function startRoundMusic")[0] ?? "";
+    ?.split("/* Dev audio log")[0] ?? "";
 assert.doesNotMatch(prepare, /isMusicMuted|isMuted/);
 assert.match(prepare, /roundBuffers.length >= 2/);
 const ui = readFileSync("src/components/duel/MuteToggle.tsx", "utf8");
@@ -46,7 +46,19 @@ assert.match(ui, /data-sound-dismiss/);
 assert.match(ui, /event.preventDefault\(\)/);
 assert.match(ui, /event.stopPropagation\(\)/);
 const timer = readFileSync("src/components/duel/TimerBar.tsx", "utf8");
-assert.match(timer, /updateRoundMusicClock\(remaining\)/);
+assert.doesNotMatch(timer, /RoundMusic/, "the timer bar never owns round music");
+for (const file of [
+  "src/components/duel/RoundIntro.tsx",
+  "src/components/duel/AnswerReveal.tsx",
+  "src/components/duel/FeedbackStage.tsx",
+  "src/components/duel/PhoneShell.tsx",
+]) {
+  assert.doesNotMatch(readFileSync(file, "utf8"), /startRoundMusic|stopRoundMusic|syncRoundMusic/, file);
+}
+assert.doesNotMatch(sound, /export function (startRoundMusic|stopRoundMusic)/);
+for (const route of ["src/routes/duel.$code.tsx", "src/routes/practice.tsx"]) {
+  assert.match(readFileSync(route, "utf8"), /useRoundMusic\(/, route);
+}
 console.log(
   "PASS shared 36px controls, 375/390px header budgets, music mappings, Beat silence, ramps, slider independence, unconditional loading and outside-tap shield.",
 );
