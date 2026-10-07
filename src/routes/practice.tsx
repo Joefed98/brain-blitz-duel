@@ -34,20 +34,18 @@ import {
 import { clearStageState } from "@/lib/duel/stageState";
 import { DemoRecorder, type PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
 import { hasIntroDemo } from "@/components/duel/IntroDemo";
-import { INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
+import { INTRO_COUNTDOWN_MS, INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import {
-  claimRoundMusic,
   playCorrect,
   playLock,
   releaseRoomMusic,
   holdMusicBed,
-  startRoundMusic,
-  stopRoundMusic,
   stopWarning10,
   unlockAudio,
 } from "@/lib/sound";
 import { roundMusicFor } from "@/lib/fx/theme";
+import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import type { SubmitMeta } from "@/puzzles/types";
 
 export const Route = createFileRoute("/practice")({

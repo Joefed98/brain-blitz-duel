@@ -40,9 +40,10 @@ import {
   releaseRoomMusic,
   holdMusicBed,
   stopMusic,
-  stopRoundMusic,
   unlockAudio,
 } from "@/lib/sound";
+import { roundMusicFor } from "@/lib/fx/theme";
+import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import {
   advancePhase,
   checkGroup,
@@ -82,6 +83,7 @@ import {
   puzzleRunMs,
 } from "@/lib/duel/registry";
 import {
+  INTRO_COUNTDOWN_MS,
   INTRO_MS,
   INTRO_WAIT_MS,
   NEXT_ROUND_AUTO_MS,
