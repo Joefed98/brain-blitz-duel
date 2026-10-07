@@ -425,10 +425,39 @@ function DuelScreen() {
   useEffect(() => {
     if (roomStarted) holdMusicBed("intro_loop");
   }, [roomStarted]);
-  useEffect(() => () => {
-    stopRoundMusic("left-room");
-    releaseRoomMusic();
-  }, []);
+  useEffect(() => () => releaseRoomMusic(), []);
+
+  // Round music: the one owner is this round-phase state (useRoundMusic).
+  // It starts as the 3-2-1 begins (or at the game, when there was no 3-2-1)
+  // and stops only at time up, an early end, the reveal or leaving the room.
+  const inProgress = duel?.status === "in_progress";
+  const introPhase =
+    inProgress && (phase === "intro" || phase === "starting" || phase === "round_title");
+  const introStartAt =
+    phaseStart === null
+      ? null
+      : phase === "starting"
+        ? phaseStart + DUEL_START_MS + ROUND_TITLE_MS
+        : phase === "round_title"
+          ? phaseStart + ROUND_TITLE_MS
+          : phaseStart;
+  const countdownBegun =
+    introPhase && introStartAt !== null && now >= introStartAt + INTRO_MS - INTRO_COUNTDOWN_MS;
+  const puzzlePhase = inProgress && phase === "puzzle";
+  const musicRemaining = puzzlePhase
+    ? roundMusicRemaining(msRemaining, runMs, clockStart, now, arcadeMsRemaining)
+    : null;
+  const roundOver = puzzlePhase && (!!myResult || (musicRemaining ?? 1) <= 0);
+  useRoundMusic(
+    {
+      key: inProgress ? stateKey : "",
+      track: puzzle ? roundMusicFor(puzzle.type, puzzleDef(puzzle.type).category) : null,
+      on: countdownBegun || (puzzlePhase && !roundOver),
+      remainingMs: musicRemaining,
+      reason: puzzlePhase ? (myResult ? "early-end" : "timer") : introPhase ? "left-intro" : "reveal",
+    },
+    "left-room",
+  );
 
   // The crash and shake land as the podium appears after a winner reveal
   // (also for a player who arrived mid-reveal); fanfare and gg are unchanged.
