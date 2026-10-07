@@ -4,6 +4,7 @@ const ENTRIES = {
   player_joined: { channel: "effects", frequency: 520, ms: 110, url: "/__l5e/assets-v1/5a4fcbb6-7647-4d0f-aeac-3848688f3aca/player_joined.mp3" },
   round_start: { channel: "effects", frequency: 440, ms: 180, url: "/__l5e/assets-v1/21193cee-e586-4f36-b0cb-0fa51d079e4a/round_start.mp3" },
   tick: { channel: "effects", frequency: 660, ms: 55, url: "/__l5e/assets-v1/52da2759-6f1b-46d3-aa76-97cb1f69684d/tick.mp3" },
+  countdown_step: { channel: "effects", frequency: 660, ms: 251, url: "/__l5e/assets-v1/24f33544-56d5-45ac-948e-9bde1f2a9115/countdown_step.mp3" },
   place: { channel: "effects", frequency: 360, ms: 50, url: "/__l5e/assets-v1/de61557a-4838-4922-9cda-8af5971b6233/place.mp3" },
   move: { channel: "effects", frequency: 280, ms: 40, url: "/__l5e/assets-v1/50a61f77-260c-4dfc-9609-f55e1b3789a8/move.mp3" },
   correct: { channel: "effects", frequency: 740, ms: 120, url: "/__l5e/assets-v1/9fa05f4c-3c0b-4eda-a28d-de5d0ce751de/correct.mp3" },
@@ -33,8 +34,6 @@ const ENTRIES = {
   arc_retro_explode: { channel: "effects", frequency: 110, ms: 260, url: "/__l5e/assets-v1/eb868a91-fa05-4674-b358-213839046d80/arc_retro_explode.mp3" },
   arc_retro_hit: { channel: "effects", frequency: 200, ms: 120, url: "/__l5e/assets-v1/732ef8cd-21dc-495f-9032-ac1b6cc4d1f0/arc_retro_hit.mp3" },
   arc_fair_thud: { channel: "effects", frequency: 120, ms: 160, url: "/__l5e/assets-v1/604bff82-b185-424c-bf4a-aa1301132853/arc_fair_thud.mp3" },
-  // Generic cue reuses the supplied thud recording.
-  arc_thud: { channel: "effects", frequency: 120, ms: 160, url: "/__l5e/assets-v1/604bff82-b185-424c-bf4a-aa1301132853/arc_fair_thud.mp3" },
   arc_fair_bell: { channel: "effects", frequency: 1320, ms: 400, url: "/__l5e/assets-v1/5cbf4cca-016c-487f-a8ee-469fd1deb56f/arc_fair_bell.mp3" },
   arc_fair_bucket: { channel: "effects", frequency: 330, ms: 200, url: "/__l5e/assets-v1/13547836-8752-4413-bb14-c4061bda7da3/arc_fair_bucket.mp3" },
   arc_fair_sting: { channel: "effects", frequency: 880, ms: 300, url: "/__l5e/assets-v1/747ef856-e26e-40b7-bc05-1f37e6e83784/arc_fair_sting.mp3" },

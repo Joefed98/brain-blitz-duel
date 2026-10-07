@@ -52,6 +52,8 @@ const FILES = Object.fromEntries(
 export const SOUND_NAMES = Object.keys(SOUND_MANIFEST) as SoundId[];
 
 const FADE_MS = 400;
+/** Effects played through ensureLoop. */
+const EFFECT_LOOPS = new Set<SoundId>(["arc_space_ambience", "arc_marble_roll", "arc_sea_waves"]);
 
 type AnyContextState = AudioContextState | "interrupted";
 
@@ -161,6 +163,8 @@ async function preload(): Promise<void> {
         if (!context) return;
         const decoded = await context.decodeAudioData(bytes);
         buffers.set(name, decoded);
+        // Looping effects trim MP3 padding at the same -60 dB edges as music.
+        if (EFFECT_LOOPS.has(name as SoundId) && /\.mp3$/i.test(url)) loopPoints.set(name as SoundId, detectLoopPoints(decoded));
         failedFiles.delete(name);
       } catch (error) {
         failedFiles.add(name);
@@ -443,11 +447,16 @@ export function ensureLoop(id: SoundId, volume = 0.3): void {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.loop = true;
+    const points = loopPoints.get(id);
+    if (points) {
+      source.loopStart = points.start;
+      source.loopEnd = points.end;
+    }
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
     gain.gain.linearRampToValueAtTime(Math.max(0, Math.min(1, volume)), ctx.currentTime + 0.4);
     source.connect(gain).connect(effectsGain);
-    source.start();
+    source.start(0, points?.start ?? 0);
     loops.set(id, { source, gain });
   } catch (error) {
     warnOnce("loop playback failed", error);

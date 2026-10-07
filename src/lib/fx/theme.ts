@@ -128,7 +128,7 @@ export function roundMusicFor(
 /** onSubmit is visual-only (lock pop); it has no sound. */
 export const DEFAULT_SOUNDS: Partial<Record<FxHook, SoundId>> = {
   onRoundStart: "round_start",
-  onCountdown: "tick",
+  onCountdown: "countdown_step",
   onPlace: "place",
   onMove: "move",
   onCorrect: "correct",
