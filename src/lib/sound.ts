@@ -41,7 +41,7 @@ export type Cue =
   | "round_won"
   | "podium_fanfare";
 
-export type Track = "lobby_loop" | "tension_loop" | "standings_loop" | "podium_loop";
+export type Track = "lobby_loop" | "tension_loop" | "standings_loop" | "podium_loop" | "intro_loop";
 
 /** First-tap preload: effects and voice only; music loads on demand per screen/round. */
 const FILES = Object.fromEntries(
@@ -735,6 +735,18 @@ export function stopMusic(fadeMs: number = FADE_MS): void {
   if (!currentTrack) return;
   fadeOut(currentTrack, fadeMs);
   currentTrack = null;
+}
+
+/** Stops the bed only if it is (or is about to be) `name`; other beds are untouched. */
+export function stopMusicIf(name: Track, fadeMs: number = FADE_MS): void {
+  if (currentTrack?.name === name || desiredTrack?.name === name) stopMusic(fadeMs);
+}
+
+/** Loads a bed now and holds it with the room/practice beds until releaseRoomMusic. */
+export function holdMusicBed(name: Track): void {
+  if (!ctx) return;
+  bedBuffers.add(name);
+  void loadMusicBuffer(name);
 }
 
 export function isMusicPlaying(name: Track): boolean {

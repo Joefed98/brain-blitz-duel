@@ -38,6 +38,7 @@ import {
   playSound,
   startMusic,
   releaseRoomMusic,
+  holdMusicBed,
   stopMusic,
   unlockAudio,
 } from "@/lib/sound";
@@ -415,8 +416,14 @@ function DuelScreen() {
           : null;
   useEffect(() => {
     if (musicScreen) startMusic(musicScreen);
-    else stopMusic(0);
-  }, [musicScreen]);
+    // The intro screen owns its own bed (intro_loop).
+    else if (phase !== "intro") stopMusic(0);
+  }, [musicScreen]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Intro bed loads once the room starts and is held with the other beds.
+  const roomStarted = !!duel && duel.status !== "waiting";
+  useEffect(() => {
+    if (roomStarted) holdMusicBed("intro_loop");
+  }, [roomStarted]);
   useEffect(() => () => releaseRoomMusic(), []);
 
   // The crash and shake land as the podium appears after a winner reveal
