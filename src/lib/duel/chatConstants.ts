@@ -8,7 +8,8 @@ export const MESSAGE_MAX_PER_PLAYER = 30;
 /** One reaction a second per player. */
 export const REACTION_MIN_GAP_MS = 1_000;
 /** Only the last hundred messages of a room are ever loaded. */
-export const MESSAGE_HISTORY_LIMIT = 100;
+/** Whole-room history (per-player caps keep rooms far below this). */
+export const MESSAGE_HISTORY_LIMIT = 1000;
 /** How long a reaction bubble stays on screen. */
 export const REACTION_LIFETIME_MS = 1_500;
 

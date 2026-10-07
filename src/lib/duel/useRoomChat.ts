@@ -112,7 +112,7 @@ export function useRoomChat(
           const row = payload.new as RoomMessageRow | undefined;
           if (!row || row.duel_id !== roomId || knownIds.current.has(row.id)) return;
           knownIds.current.add(row.id);
-          setMessages((prev) => [...prev, row].slice(-MESSAGE_HISTORY_LIMIT));
+          setMessages((prev) => [...prev, row]);
           if (row.sender_user_id !== myUserId && !sheetOpenRef.current) playBlip();
         },
       )
