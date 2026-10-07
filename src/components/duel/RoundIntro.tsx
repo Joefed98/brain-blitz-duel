@@ -5,6 +5,7 @@ import type { PuzzleData } from "@/lib/duel/types";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
+import { roundMusicFor } from "@/lib/fx/theme";
 import {
   playVoice,
   prepareRoundMusic,
@@ -93,13 +94,14 @@ export function RoundIntro({
     if (countdownCued.current === key) return;
     countdownCued.current = key;
     fx.onCountdown(secondsLeft, theme);
-    startRoundMusic(theme.music);
+    // Read the puzzle-round switch now, so a change applies from the next round.
+    startRoundMusic(roundMusicFor(type, puzzleDef(type).category));
   }, [counting, secondsLeft, startedAt, type]);
 
   // Decode only this round's track as the intro appears.
   useEffect(() => {
-    prepareRoundMusic(theme.music);
-  }, [theme.music]);
+    prepareRoundMusic(roundMusicFor(type, puzzleDef(type).category));
+  }, [type]);
 
   // Leaving the intro without a round starting (practice Back) silences it.
   useEffect(
