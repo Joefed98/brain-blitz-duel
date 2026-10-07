@@ -6,13 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
-import {
-  prepareRoundMusic,
-  startMusic,
-  startRoundMusic,
-  stopMusic,
-  stopMusicIf,
-} from "@/lib/sound";
+import { prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
