@@ -877,7 +877,6 @@ export function releaseRoomMusic(): void {
 let roundTrack: { id: SoundId; source: AudioBufferSourceNode; gain: GainNode } | null = null;
 let roundLevel = 0.2;
 let roundArcade = false;
-let roundClaimed = false;
 /** Round tracks decoded or decoding, oldest first; never more than two. */
 const roundBuffers: SoundId[] = [];
 let pendingRoundMusic: SoundId | null = null;
@@ -960,40 +959,107 @@ function flushRoundLog(id: SoundId, reason: string): void {
   );
 }
 
-/** Round track wanted at the 3-2-1 but not decoded yet. */
-let wantedRound: SoundId | null = null;
-/** Latest round clock reading (ms remaining); null before the timer runs. */
-let roundRemaining: number | null = null;
-const LATE_START_MIN_MS = 10_000;
+/*
+ * Round music has ONE owner: the room's / practice's round-phase state, fed in
+ * through syncRoundMusic (via useRoundMusic) and leaveRoundMusic. No screen
+ * component (intro, countdown, timer bar, game frame, arena) starts or stops it.
+ * Per round key the track starts at most once and stops at most once, so
+ * mounting, unmounting or re-rendering can never start, stop or restart it.
+ */
+export interface RoundMusicPlan {
+  /** Round identity; a new key ends whatever the previous round left playing. */
+  key: string;
+  track: SoundId | null;
+  /** True from the start of the 3-2-1 until the round ends. */
+  on: boolean;
+  /** Round clock reading (ms remaining) once the round runs; null before. */
+  remainingMs: number | null;
+  /** Logged stop reason used when `on` turns false. */
+  reason: string;
+}
 
-/** Starts the round bed at the 3-2-1; a late track starts when ready with >10 s left. */
-export function startRoundMusic(id: SoundId | null | undefined): void {
-  if (!id || SOUND_MANIFEST[id]?.channel !== "music") return;
-  if (roundTrack?.id === id) return;
-  if (!ctx || !masterGain) return;
+const LATE_START_MIN_MS = 10_000;
+let plan: RoundMusicPlan = { key: "", track: null, on: false, remainingMs: null, reason: "" };
+/** The track was started (or skipped) for this key: never started again. */
+let roundBegan = false;
+/** This key's music has stopped or been skipped: nothing more happens. */
+let roundDone = false;
+/** Wanted but not decoded/ready yet; started on arrival with >10 s left. */
+let wantedRound: SoundId | null = null;
+const awaitingLoad = new Set<SoundId>();
+
+export function syncRoundMusic(next: RoundMusicPlan): void {
+  if (next.key !== plan.key) {
+    haltRoundMusic("next-round");
+    roundBegan = false;
+    roundDone = false;
+  }
+  if (next.track && next.track !== plan.track) {
+    roundArcade = !/^music_(word|number|speed|attention|pattern|logic)_/.test(next.track);
+  }
+  plan = next;
+  applyRoundPlan();
+}
+
+/** The room or practice screen itself went away (left room, left practice). */
+export function leaveRoundMusic(reason: string): void {
+  haltRoundMusic(reason);
+  plan = { key: "", track: null, on: false, remainingMs: null, reason: "" };
+  roundBegan = false;
+  roundDone = false;
+}
+
+function applyRoundPlan(): void {
+  const { track, on, remainingMs, reason } = plan;
+  if (remainingMs !== null) setRoundMusicLevel(roundMusicRamp(roundArcade, remainingMs));
+  if (roundDone || !track) return;
+  if (!on) {
+    if (roundTrack || wantedRound) {
+      roundDone = true;
+      haltRoundMusic(reason);
+    }
+    return;
+  }
+  if (roundTrack || roundBegan) return;
+  // Not playing yet with 10 s or less left: skip it for this round.
+  if (remainingMs !== null && remainingMs <= LATE_START_MIN_MS) {
+    roundDone = true;
+    if (wantedRound) flushRoundLog(wantedRound, "skipped-late");
+    wantedRound = null;
+    return;
+  }
+  startRoundTrack(track);
+}
+
+function startRoundTrack(id: SoundId): void {
+  if (SOUND_MANIFEST[id]?.channel !== "music") return;
+  if (!ctx || !masterGain) {
+    // No audio yet (before the first tap): remember it for when audio unlocks.
+    pendingRoundMusic = id;
+    return;
+  }
+  if (!roundBuffers.includes(id)) prepareRoundMusic(id);
   const buffer = musicBuffers.get(id);
-  if (!buffer || !roundBuffers.includes(id) || !ready()) {
-    if (wantedRound !== id) {
-      wantedRound = id;
-      roundRemaining = null;
-      if (!roundBuffers.includes(id)) prepareRoundMusic(id);
-      else void loadMusicBuffer(id);
-      void musicLoads.get(id)?.then(() => {
-        if (wantedRound !== id) return;
-        if (roundRemaining !== null && roundRemaining <= LATE_START_MIN_MS) {
-          wantedRound = null;
-          flushRoundLog(id, "skipped-late");
-          return;
-        }
-        startRoundMusic(id);
-      });
+  if (!buffer || !ready()) {
+    wantedRound = id;
+    if (!buffer) {
+      if (!musicLoads.has(id)) void loadMusicBuffer(id);
+      const load = musicLoads.get(id);
+      if (load && !awaitingLoad.has(id)) {
+        awaitingLoad.add(id);
+        void load.then(() => {
+          awaitingLoad.delete(id);
+          // The moment it is ready: same rules (still wanted, >10 s left).
+          if (wantedRound === id && plan.track === id) applyRoundPlan();
+        });
+      }
     }
     return;
   }
   wantedRound = null;
-  if (roundTrack) stopRoundMusic("replaced");
-  roundArcade = !/^music_(word|number|speed|attention|pattern|logic)_/.test(id);
-  roundLevel = roundMusicRamp(roundArcade, roundRemaining ?? Infinity);
+  roundBegan = true;
+  const level = roundMusicRamp(roundArcade, plan.remainingMs ?? Infinity);
+  roundLevel = level;
   // Only the intro bed is faded; the round track has its own node and gain.
   if (currentTrack) {
     fadeOut(currentTrack, 150);
@@ -1013,49 +1079,20 @@ export function startRoundMusic(id: SoundId | null | undefined): void {
   }
 }
 
-/** Clock-driven round ramp, independent of effects and voice volume. */
-export function updateRoundMusicClock(remainingMs: number): void {
-  roundRemaining = remainingMs;
-  if (wantedRound && roundRemaining <= LATE_START_MIN_MS) {
-    flushRoundLog(wantedRound, "skipped-late");
-    wantedRound = null;
-  }
-  setRoundMusicLevel(roundMusicRamp(roundArcade, remainingMs));
-}
-
 /** Normalized level before the device music slider. */
-export function setRoundMusicLevel(level: number): void {
+function setRoundMusicLevel(level: number): void {
   const next = Math.max(0, Math.min(1, level));
   if (Math.abs(next - roundLevel) < 0.002) return;
   roundLevel = next;
   applyRoundLevel(0.12);
 }
 
-/** The live round timer took over; intro teardown must not stop the music. */
-let roundClaims = 0;
-export function claimRoundMusic(): void {
-  roundClaimed = true;
-  roundClaims++;
-}
-/** A timer unmounted: stop only if no remounted timer re-claimed the round. */
-export function releaseRoundMusicClaim(): void {
-  roundClaims = Math.max(0, roundClaims - 1);
-  setTimeout(() => {
-    if (roundClaims === 0) stopRoundMusic("left-screen");
-  }, 0);
-}
-export function roundMusicClaimed(): boolean {
-  return roundClaimed;
-}
-
-/** Stops round music dead (no fade) and releases its decoded buffer. */
-export function stopRoundMusic(reason = "stopped"): void {
-  roundClaimed = false;
+/** Stops round music dead (no fade) and releases its decoded buffer. Internal only. */
+function haltRoundMusic(reason: string): void {
   if (wantedRound) {
     flushRoundLog(wantedRound, `${reason}-before-ready`);
     wantedRound = null;
   }
-  roundRemaining = null;
   const track = roundTrack;
   roundTrack = null;
   if (!track) return;

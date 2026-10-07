@@ -6,13 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
-import {
-  prepareRoundMusic,
-  startMusic,
-  startRoundMusic,
-  stopMusic,
-  stopMusicIf,
-} from "@/lib/sound";
+import { prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -74,8 +68,6 @@ export function RoundIntro({
     if (countdownCued.current === key) return;
     countdownCued.current = key;
     fx.onCountdown(secondsLeft, theme);
-    // A prepared source runs even while muted, allowing immediate channel toggles.
-    startRoundMusic(roundMusicFor(type, puzzleDef(type).category));
   }, [counting, secondsLeft, startedAt, type]);
 
   // Rooms preload in starting/round_title; practice keeps its existing entry point.
@@ -95,8 +87,7 @@ export function RoundIntro({
     if (counting) stopMusicIf("intro_loop", 300);
   }, [counting]);
 
-  // Round music is not stopped here: the intro bed fade never touches it. Practice
-  // Back and leaving the room stop it explicitly.
+  // Round music is owned by the room/practice round state, never by this screen.
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">

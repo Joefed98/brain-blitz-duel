@@ -34,20 +34,18 @@ import {
 import { clearStageState } from "@/lib/duel/stageState";
 import { DemoRecorder, type PuzzleDemoLog } from "@/lib/duel/puzzleDemo";
 import { hasIntroDemo } from "@/components/duel/IntroDemo";
-import { INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
+import { INTRO_COUNTDOWN_MS, INTRO_MS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import {
-  claimRoundMusic,
   playCorrect,
   playLock,
   releaseRoomMusic,
   holdMusicBed,
-  startRoundMusic,
-  stopRoundMusic,
   stopWarning10,
   unlockAudio,
 } from "@/lib/sound";
 import { roundMusicFor } from "@/lib/fx/theme";
+import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import type { SubmitMeta } from "@/puzzles/types";
 
 export const Route = createFileRoute("/practice")({
@@ -109,8 +107,9 @@ function PracticeScreen() {
   const [helpOpen, setHelpOpen] = useState(false);
   const grading = useRef(false);
   const introCancelled = useRef(false);
-  const skippedCountdown = useRef(false);
   const draftAnswer = useRef("");
+  /** The run whose round ended early (submitted); its music stops at once. */
+  const [endedKey, setEndedKey] = useState("");
   const now = useTicker(stage === "intro" || stage === "puzzle" || stage === "reveal");
   const { key: demoKey, status: demoStatus } = useDemoKey();
   const stateKey = `practice-${run}`;
@@ -140,7 +139,6 @@ function PracticeScreen() {
     releaseRoomMusic();
     holdMusicBed("intro_loop");
     return () => {
-      stopRoundMusic();
       stopWarning10();
       releaseRoomMusic();
     };
@@ -150,7 +148,6 @@ function PracticeScreen() {
     async (next: PuzzleType) => {
       unlockAudio();
       introCancelled.current = false;
-      skippedCountdown.current = false;
       grading.current = false;
       draftAnswer.current = "";
       setRun((count) => {
@@ -175,7 +172,6 @@ function PracticeScreen() {
   );
 
   const cancelIntro = useCallback(() => {
-    stopRoundMusic();
     introCancelled.current = true;
     grading.current = true;
     draftAnswer.current = "";
@@ -201,7 +197,7 @@ function PracticeScreen() {
     async (answer: string, meta?: SubmitMeta) => {
       if (!puzzle || grading.current) return;
       grading.current = true;
-      stopRoundMusic();
+      setEndedKey(stateKey);
       stopWarning10();
       stopRecording();
       // Dev Orbit jump runs are never graded, stored or offered as demos.
@@ -245,15 +241,34 @@ function PracticeScreen() {
     [puzzle, sealed, clockDeadline, timeLimitMs, stopRecording, stateKey],
   );
 
-  // The intro runs for exactly as long as it does in a room.
-  useEffect(() => {
-    if (stage !== "puzzle" || !type) return;
-    // Ready can enter practice without a countdown; try once at game start.
-    if (skippedCountdown.current) startRoundMusic(roundMusicFor(type, puzzleDef(type).category));
-    claimRoundMusic();
-    return () => stopRoundMusic();
-  }, [stage, type]);
+  // Round music: the one owner is this practice round state (useRoundMusic).
+  // It starts as the 3-2-1 begins (or at the game, when Ready skipped it) and
+  // stops only at time up, an early end, the reveal, Back or leaving practice.
+  const countdownBegun = stage === "intro" && now - startedAt >= INTRO_MS - INTRO_COUNTDOWN_MS;
+  const musicRemaining =
+    stage === "puzzle"
+      ? roundMusicRemaining(msRemaining, runMs, clockStart, now, arcadeMsRemaining)
+      : null;
+  const roundEnded = endedKey === stateKey;
+  useRoundMusic(
+    {
+      key: stateKey,
+      track: type ? roundMusicFor(type, puzzleDef(type).category) : null,
+      on: countdownBegun || (stage === "puzzle" && !roundEnded && (musicRemaining ?? 1) > 0),
+      remainingMs: musicRemaining,
+      reason:
+        stage === "puzzle"
+          ? roundEnded
+            ? "early-end"
+            : "timer"
+          : stage === "reveal" || stage === "result"
+            ? "reveal"
+            : "practice-back",
+    },
+    "left-practice",
+  );
 
+  // The intro runs for exactly as long as it does in a room.
   useEffect(() => {
     if (stage !== "intro" || introCancelled.current) return;
     if (now - startedAt < INTRO_MS) return;
@@ -382,7 +397,6 @@ function PracticeScreen() {
           puzzle={puzzle}
           onReady={() => {
             if (introCancelled.current) return;
-            skippedCountdown.current = now - startedAt < INTRO_MS - 3_000;
             playLock();
             setStartedAt(Date.now());
             setStage("puzzle");
