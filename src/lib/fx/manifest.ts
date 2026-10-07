@@ -103,7 +103,7 @@ const ENTRIES = {
   winnerIs: { channel: "voice", frequency: 0, ms: 1883, url: "/__l5e/assets-v1/930389c9-c7c4-41e1-840e-1dc154740351/winnerIs.mp3" },
   winner_drumroll: { channel: "effects", frequency: 0, ms: 4000, url: "/__l5e/assets-v1/65f9c280-3a99-4952-855b-7eb9807b98a6/winner_drumroll.mp3" },
   winner_crash: { channel: "effects", frequency: 0, ms: 2480, url: "/__l5e/assets-v1/accf8497-0738-4d9a-b584-81bd72469ba5/winner_crash.mp3" },
-  lobby_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f7966f98-a5dc-4c2a-8d1f-9192430a4643/lobby_loop.wav" },
+  lobby_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/62214736-57fe-4753-90ad-91545ad62fdb/lobby_loop.mp3" },
   music_bubble: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/d6ff8836-5885-4575-8cba-325acf0ae98f/music_bubble.mp3" },
   music_matchup: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f645e779-80bb-4696-be77-b144f028666f/music_matchup.mp3" },
   // Puzzle round beds, three per category.
@@ -125,8 +125,8 @@ const ENTRIES = {
   music_logic_1: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/c75f7566-d02e-4cb5-b10c-372ce78825fc/music_logic_1.mp3" },
   music_logic_2: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/904a56f2-4111-41d2-a77e-181b5652507c/music_logic_2.mp3" },
   music_logic_3: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/255b3c18-3662-4fd4-b724-54727fd7a5bc/music_logic_3.mp3" },
-  standings_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f2f3b307-5cd4-4afa-98bf-fc713858e9e2/standings_loop.wav" },
-  podium_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/79c1e447-45cd-4f9e-8362-ec438e509d49/podium_loop.wav" },
+  standings_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/3c9c2107-1712-442e-986c-cafedc6ff63d/standings_loop.mp3" },
+  podium_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/d79b262e-d0fb-43f0-91f1-42e14c994186/podium_loop.mp3" },
   // Per-game arcade round beds.
   music_burst: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f635d436-cf68-4844-bbd6-583e3c1bb54f/music_burst.mp3" },
   music_cross: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/88df3ac5-d8de-47b1-b258-deb9a5e4260c/music_cross.mp3" },
@@ -147,6 +147,8 @@ const ENTRIES = {
   music_skyline: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/bc7ea775-7d35-4e1a-a9ea-2fd7732103d7/music_skyline.mp3" },
   music_slice: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/ca7ea5f4-7a4c-4672-8130-a6afa33d18f0/music_slice.mp3" },
   music_wavefront: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/94ad8b7c-b458-477d-b98e-ec2b1c21c0d5/music_wavefront.mp3" },
+  // Supplied Oct 7; not yet placed on any screen.
+  intro_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/c2aa2a16-1482-435d-981a-3bfb2c9e29e4/intro_loop.mp3" },
   tension_loop: { channel: "music", frequency: 0, ms: 0, url: null },
 } satisfies Record<string, { channel: "effects" | "voice" | "music"; frequency: number; ms: number; url: string | null; fallback?: string }>;
 export type SoundId = keyof typeof ENTRIES;
