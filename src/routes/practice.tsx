@@ -252,7 +252,7 @@ function PracticeScreen() {
   const roundEnded = endedKey === stateKey;
   useRoundMusic(
     {
-      key: stage === "list" ? "" : stateKey,
+      key: stateKey,
       track: type ? roundMusicFor(type, puzzleDef(type).category) : null,
       on: countdownBegun || (stage === "puzzle" && !roundEnded && (musicRemaining ?? 1) > 0),
       remainingMs: musicRemaining,
