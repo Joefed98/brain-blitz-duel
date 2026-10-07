@@ -82,9 +82,9 @@ const ENTRIES = {
   pz_gravity_pull: { channel: "effects", frequency: 600, ms: 1100, url: "/__l5e/assets-v1/41df14ad-b12a-4c93-bfb0-0565321ee8c4/pz_gravity_pull.mp3" },
   prepareToDuel: { channel: "voice", frequency: 440, ms: 2837, url: "/__l5e/assets-v1/0af392b8-a2fc-4612-9eea-1afc3233fe00/prepareToDuel.mp3" },
   finalRound: { channel: "voice", frequency: 520, ms: 2110, url: "/__l5e/assets-v1/fe5aa506-e10b-4fa2-a3ca-0c87133312aa/finalRound.mp3" },
-  gg: { channel: "voice", frequency: 660, ms: 220, url: null },
+  gg: { channel: "voice", frequency: 660, ms: 1312, url: "/__l5e/assets-v1/486cb4ac-232c-4035-a5eb-2938a412dc05/gg.mp3" },
   roundTaken: { channel: "voice", frequency: 660, ms: 1801, url: "/__l5e/assets-v1/54a44813-95a4-4d93-8cb4-4ee2410f8947/roundTaken.mp3" },
-  roundLost: { channel: "voice", frequency: 330, ms: 1728, url: "/__l5e/assets-v1/7380f7cd-966f-4fd6-aabc-ff2bfee03bc2/roundLost.mp3" },
+  roundLost: { channel: "voice", frequency: 330, ms: 1801, url: "/__l5e/assets-v1/fc411939-97f0-4713-acf1-937810c59bac/roundLost.mp3" },
   // Round-number announcements; round7 unreachable until rooms exceed seven rounds.
   round1: { channel: "voice", frequency: 440, ms: 1298, url: "/__l5e/assets-v1/c5cf8b8a-45e5-421a-b9bd-b573330b523e/round1.mp3" },
   round2: { channel: "voice", frequency: 440, ms: 1532, url: "/__l5e/assets-v1/38655cdb-4eef-451e-a4b4-43134f963009/round2.mp3" },
@@ -93,6 +93,9 @@ const ENTRIES = {
   round5: { channel: "voice", frequency: 440, ms: 1569, url: "/__l5e/assets-v1/4f041b40-3195-4946-bd70-988dfa1a57df/round5.mp3" },
   round6: { channel: "voice", frequency: 440, ms: 1553, url: "/__l5e/assets-v1/7893893b-3eb6-48ac-a295-05d9ee588f4a/round6.mp3" },
   round7: { channel: "voice", frequency: 440, ms: 1716, url: "/__l5e/assets-v1/442784a2-9cdd-43e0-b1a1-99bf0cff16c6/round7.mp3" },
+  winnerIs: { channel: "voice", frequency: 660, ms: 1883, url: "/__l5e/assets-v1/930389c9-c7c4-41e1-840e-1dc154740351/winnerIs.mp3" }, // registered, not yet mapped
+  winner_drumroll: { channel: "effects", frequency: 660, ms: 4000, url: "/__l5e/assets-v1/65f9c280-3a99-4952-855b-7eb9807b98a6/winner_drumroll.mp3" }, // registered, not yet mapped
+  winner_crash: { channel: "effects", frequency: 660, ms: 2480, url: "/__l5e/assets-v1/accf8497-0738-4d9a-b584-81bd72469ba5/winner_crash.mp3" }, // registered, not yet mapped
   lobby_loop: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f7966f98-a5dc-4c2a-8d1f-9192430a4643/lobby_loop.wav" },
   music_bubble: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/d6ff8836-5885-4575-8cba-325acf0ae98f/music_bubble.mp3" },
   music_matchup: { channel: "music", frequency: 0, ms: 0, url: "/__l5e/assets-v1/f645e779-80bb-4696-be77-b144f028666f/music_matchup.mp3" },
