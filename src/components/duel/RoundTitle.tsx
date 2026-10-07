@@ -1,14 +1,27 @@
 import { useEffect, useRef } from "react";
 import { serverNow } from "@/lib/duel/clock";
 import { puzzleDef } from "@/lib/duel/registry";
-import { ROUND_TITLE_MS, ROUND_TITLE_VOICE_MS, ROUND_TITLE_VOICE_CUTOFF_MS, roundTitleFrame } from "@/lib/duel/startPresentation";
+import {
+  ROUND_TITLE_MS,
+  ROUND_TITLE_VOICE_MS,
+  ROUND_TITLE_VOICE_CUTOFF_MS,
+  roundTitleFrame,
+} from "@/lib/duel/startPresentation";
 import type { PuzzleType } from "@/lib/duel/types";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { playVoice, prepareRoundMusic, stopMusic, type VoiceId } from "@/lib/sound";
 
 /** Room-only, shell-free title; presentation and cues use the shared clock. */
-export function RoundTitle({ startedAt, round, totalRounds, type }: {
-  startedAt: number; round: number; totalRounds: number; type: PuzzleType;
+export function RoundTitle({
+  startedAt,
+  round,
+  totalRounds,
+  type,
+}: {
+  startedAt: number;
+  round: number;
+  totalRounds: number;
+  type: PuzzleType;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const categoryLine = useRef<HTMLParagraphElement>(null);
@@ -24,7 +37,11 @@ export function RoundTitle({ startedAt, round, totalRounds, type }: {
   useEffect(() => {
     const elapsed = serverNow() - startedAt;
     if (elapsed > ROUND_TITLE_VOICE_CUTOFF_MS) return;
-    const voice: VoiceId | null = final ? "finalRound" : round >= 1 && round <= 6 ? `round${round}` as VoiceId : null;
+    const voice: VoiceId | null = final
+      ? "finalRound"
+      : round >= 1 && round <= 6
+        ? (`round${round}` as VoiceId)
+        : null;
     if (!voice) return;
     let timer: ReturnType<typeof setTimeout>;
     const cue = () => {
@@ -64,8 +81,12 @@ export function RoundTitle({ startedAt, round, totalRounds, type }: {
   return (
     <div className="duel-start-screen" data-category={category} aria-label="Round title">
       <div className="round-title-lines">
-        <h1 ref={heading} className="round-title-heading">{final ? "FINAL ROUND" : `ROUND ${round}`}</h1>
-        <p ref={categoryLine} className="round-title-category">{category.toUpperCase()}</p>
+        <h1 ref={heading} className="round-title-heading">
+          {final ? "FINAL ROUND" : `ROUND ${round}`}
+        </h1>
+        <p ref={categoryLine} className="round-title-category">
+          {category.toUpperCase()}
+        </p>
       </div>
     </div>
   );
