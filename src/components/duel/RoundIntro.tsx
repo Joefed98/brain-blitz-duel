@@ -52,7 +52,6 @@ export function RoundIntro({
   practice = false,
   onBack,
   puzzle = null,
-  totalRounds = TOTAL_ROUNDS,
 }: RoundIntroProps) {
   const elapsed = Math.max(0, now - startedAt);
   const remaining = Math.max(0, INTRO_MS - elapsed);
