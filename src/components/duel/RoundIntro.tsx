@@ -6,14 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
-import {
-  playVoice,
-  prepareRoundMusic,
-  roundMusicClaimed,
-  startRoundMusic,
-  stopRoundMusic,
-  type VoiceId,
-} from "@/lib/sound";
+import { prepareRoundMusic, roundMusicClaimed, startRoundMusic, stopRoundMusic } from "@/lib/sound";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -54,7 +47,6 @@ export function RoundIntro({
   practice = false,
   onBack,
   puzzle = null,
-  totalRounds = TOTAL_ROUNDS,
 }: RoundIntroProps) {
   const elapsed = Math.max(0, now - startedAt);
   const remaining = Math.max(0, INTRO_MS - elapsed);
@@ -70,14 +62,6 @@ export function RoundIntro({
   const twoPlayer = activeCount === 2;
   const theme = puzzleDef(type).theme;
   const countdownCued = useRef("");
-  const announced = useRef(false);
-  // Round announcement as the intro appears; the room's last round says "final round".
-  useEffect(() => {
-    if (practice || announced.current) return;
-    announced.current = true;
-    if (round >= totalRounds) playVoice("finalRound");
-    else if (round >= 1 && round <= 7) playVoice(`round${round}` as VoiceId);
-  }, [practice, round, totalRounds]);
   useEffect(() => {
     if (!counting) return;
     const key = `${startedAt}-${secondsLeft}`;
@@ -88,10 +72,10 @@ export function RoundIntro({
     startRoundMusic(roundMusicFor(type, puzzleDef(type).category));
   }, [counting, secondsLeft, startedAt, type]);
 
-  // Decode only this round's track as the intro appears.
+  // Rooms preload in starting/round_title; practice keeps its existing entry point.
   useEffect(() => {
-    prepareRoundMusic(roundMusicFor(type, puzzleDef(type).category));
-  }, [type]);
+    if (practice) prepareRoundMusic(roundMusicFor(type, puzzleDef(type).category));
+  }, [type, practice]);
 
   // Leaving the intro without a round starting (practice Back) silences it.
   useEffect(

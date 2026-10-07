@@ -7,7 +7,7 @@ import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
 import { puzzleDef, puzzleDurationMs, puzzleRevealMs, typesInCategory } from "./registry";
 import { generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
-import { DUEL_START_MS, WINNER_REVEAL_MS } from "./startPresentation";
+import { DUEL_START_MS, ROUND_TITLE_MS, WINNER_REVEAL_MS } from "./startPresentation";
 import {
   INACTIVE_AFTER_MISSED,
   INTRO_MS,
@@ -601,16 +601,30 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
 
     if (room.phase === "starting") {
       if (elapsed < DUEL_START_MS) return { ok: true };
-      // Use the fixed deadline, not request arrival time: reconnects retain the
-      // same intro position and concurrent requests cannot restart the intro.
-      const introAt = new Date(phaseStart + DUEL_START_MS).toISOString();
+      // Fixed deadlines preserve the same title position after reconnects.
+      const titleAt = new Date(phaseStart + DUEL_START_MS).toISOString();
+      const { error } = await client
+        .from("duels")
+        .update({ phase: "round_title", phase_started_at: titleAt, round_started_at: titleAt })
+        .eq("id", room.id)
+        .eq("status", "in_progress")
+        .eq("current_round", round)
+        .eq("phase", "starting")
+        .eq("phase_started_at", stamp);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
+    if (room.phase === "round_title") {
+      if (elapsed < ROUND_TITLE_MS) return { ok: true };
+      const introAt = new Date(phaseStart + ROUND_TITLE_MS).toISOString();
       const { error } = await client
         .from("duels")
         .update({ phase: "intro", phase_started_at: introAt, round_started_at: introAt })
         .eq("id", room.id)
         .eq("status", "in_progress")
         .eq("current_round", round)
-        .eq("phase", "starting")
+        .eq("phase", "round_title")
         .eq("phase_started_at", stamp);
       if (error) throw new Error(error.message);
       return { ok: true };
@@ -686,7 +700,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
       .from("duels")
       .update({
         current_round: round + 1,
-        phase: "intro",
+        phase: "round_title",
         phase_started_at: startedAt,
         round_started_at: startedAt,
       })

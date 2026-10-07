@@ -10,8 +10,10 @@ import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { DuelStart } from "@/components/duel/DuelStart";
+import { RoundTitle } from "@/components/duel/RoundTitle";
 import {
   DUEL_START_MS,
+  ROUND_TITLE_MS,
   WINNER_CRASH_GRACE_MS,
   WINNER_REVEAL_MS,
 } from "@/lib/duel/startPresentation";
@@ -254,6 +256,7 @@ function DuelScreen() {
     !(
       duel.status === "in_progress" &&
       (duel.phase === "starting" ||
+        duel.phase === "round_title" ||
         duel.phase === "puzzle" ||
         duel.phase === "reveal" ||
         duel.phase === "winner_reveal")
@@ -347,6 +350,7 @@ function DuelScreen() {
 
     let due = false;
     if (phase === "starting") due = elapsed >= DUEL_START_MS;
+    else if (phase === "round_title") due = elapsed >= ROUND_TITLE_MS;
     else if (phase === "intro")
       due = elapsed >= INTRO_MS || (elapsed < INTRO_WAIT_MS && activeReady >= activeCount);
     else if (phase === "puzzle")
@@ -363,6 +367,7 @@ function DuelScreen() {
     if (dueSince.current === 0) dueSince.current = now;
     if (
       phase !== "starting" &&
+      phase !== "round_title" &&
       phase !== "winner_reveal" &&
       !leads &&
       now - dueSince.current < 2_500
@@ -570,6 +575,15 @@ function DuelScreen() {
     return <DuelStart startedAt={phaseStart} type={puzzle?.type} />;
   }
 
+  // While the guarded server write catches up, render the next shared frame,
+  // never replay a completed title or expose a shell between the two screens.
+  const titleStart = phaseStart === null ? null :
+    phase === "starting" ? phaseStart + DUEL_START_MS :
+    phase === "round_title" ? phaseStart : null;
+  if (duel.status === "in_progress" && puzzle && titleStart !== null && now < titleStart + ROUND_TITLE_MS) {
+    return <RoundTitle key={`${stateKey}-${titleStart}`} startedAt={titleStart} round={round} totalRounds={duel.round_count ?? TOTAL_ROUNDS} type={puzzle.type} />;
+  }
+
   if (duel.status === "in_progress" && phase === "winner_reveal" && phaseStart !== null) {
     return <WinnerReveal startedAt={phaseStart} />;
   }
@@ -691,7 +705,7 @@ function DuelScreen() {
     );
   }
 
-  if ((phase === "intro" || phase === "starting") && puzzle) {
+  if ((phase === "intro" || phase === "starting" || phase === "round_title") && puzzle) {
     return (
       <PhoneShell gameType={puzzle.type}>
         <RoundIntro
@@ -700,8 +714,8 @@ function DuelScreen() {
           type={puzzle.type}
           puzzle={puzzle}
           startedAt={
-            phase === "starting" && phaseStart !== null
-              ? phaseStart + DUEL_START_MS
+            titleStart !== null
+              ? titleStart + ROUND_TITLE_MS
               : (phaseStart ?? now)
           }
           now={now}
