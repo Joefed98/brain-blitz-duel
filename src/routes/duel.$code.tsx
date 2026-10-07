@@ -445,6 +445,13 @@ function DuelScreen() {
           : phaseStart;
   const countdownBegun =
     introPhase && introStartAt !== null && now >= introStartAt + INTRO_MS - INTRO_COUNTDOWN_MS;
+  const chatAvailable = chatActive && !countdownBegun;
+  const chatSeconds = phaseStart === null ? null :
+    phase === "intro" ? Math.max(0, Math.ceil((INTRO_WAIT_MS - (now - phaseStart)) / 1000)) :
+    phase === "result" ? Math.max(0, Math.ceil((NEXT_ROUND_AUTO_MS - (now - phaseStart)) / 1000)) :
+    phase === "standings" ? Math.max(0, Math.ceil((STANDINGS_MS - (now - phaseStart)) / 1000)) : null;
+  const chatScreen = phase === "intro" ? "Intro" : phase === "result" ? "Results" : phase === "standings" ? "Standings" : duel?.status === "finished" ? "Podium" : "Lobby";
+  const chatLabel = chatSeconds === null ? chatScreen : `${chatScreen} ${Math.floor(chatSeconds / 60)}:${String(chatSeconds % 60).padStart(2, "0")}`;
   const puzzlePhase = inProgress && phase === "puzzle";
   const musicRemaining = puzzlePhase
     ? roundMusicRemaining(msRemaining, runMs, clockStart, now, arcadeMsRemaining)
@@ -700,7 +707,7 @@ function DuelScreen() {
             </div>
           )}
         </div>
-        <RoomChat chat={chat} myUserId={me.user_id} />
+        <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
       </PhoneShell>
     );
   }
@@ -720,7 +727,7 @@ function DuelScreen() {
               onPlayAgain={() => void handlePlayAgain()}
               onLeave={() => void handleLeave()}
             />
-            <RoomChat chat={chat} myUserId={me.user_id} />
+            <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
           </PhoneShell>
         </div>
       );
@@ -741,7 +748,7 @@ function DuelScreen() {
             onPlayAgain={() => void handlePlayAgain()}
             onHome={() => void handleLeave()}
           />
-          <RoomChat chat={chat} myUserId={me.user_id} />
+          <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
         </PhoneShell>
       </div>
     );
@@ -772,7 +779,7 @@ function DuelScreen() {
             void readyUp(duel.id, round);
           }}
         />
-        <RoomChat chat={chat} myUserId={me.user_id} />
+        <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
       </PhoneShell>
     );
   }
@@ -828,7 +835,7 @@ function DuelScreen() {
             finalRound={round >= duel.round_count}
             onNext={() => void advancePhase(duel.id, true)}
           />
-          <RoomChat chat={chat} myUserId={me.user_id} />
+          <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
         </PhoneShell>
       );
     }
@@ -850,7 +857,7 @@ function DuelScreen() {
           isHost={isHost}
           onNext={() => void advancePhase(duel.id, true)}
         />
-        <RoomChat chat={chat} myUserId={me.user_id} />
+        <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
       </PhoneShell>
     );
   }
@@ -879,7 +886,7 @@ function DuelScreen() {
             onNext={() => void advancePhase(duel.id, true)}
           />
         )}
-        <RoomChat chat={chat} myUserId={me.user_id} />
+        <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
       </PhoneShell>
     );
   }
