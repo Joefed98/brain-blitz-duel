@@ -1439,7 +1439,7 @@ const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {
   return { summary: `${completed} / 4 pyramids complete`, detail: [] };
 };
 
-const trailSummary: SummaryBuilder = (result, puzzle) => {
+const trailSummary: SummaryBuilder = (result) => {
   const correctTiles = Number(result.extra?.["correctTiles"] ?? (result.is_correct ? 26 : 0));
   return { summary: `${correctTiles} / 26 tiles correct`, detail: [] };
 };
