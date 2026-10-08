@@ -934,9 +934,9 @@ const chainSummary: SummaryBuilder = (result, puzzle) => {
     reason === "complete"
       ? "Full chain"
       : reason === "wrong"
-        ? `Broken at link ${links + 1} — wrong tap`
+        ? `Broken at link ${links + 1} - wrong tap`
         : reason === "momentum"
-          ? `Broken at link ${links + 1} — too slow`
+          ? `Broken at link ${links + 1} - too slow`
           : "Time ran out";
   return {
     summary: `${links} / ${rules.length} links · ${seconds(elapsedMs(result, puzzle))}`,
@@ -1076,7 +1076,7 @@ const matchupSummary: SummaryBuilder = (result) => {
   const bestLine = Number(result.extra?.["bestLine"] ?? 0);
   const reshuffles = Number(result.extra?.["reshuffles"] ?? 0);
   return {
-    summary: `${raw.toLocaleString("en-GB")} pts → ${result.score} · ${swaps} swaps · best line ${bestLine || "—"}`,
+    summary: `${raw.toLocaleString("en-GB")} pts → ${result.score} · ${swaps} swaps · best line ${bestLine || "-"}`,
     detail: [
       `${swaps} scoring swap${swaps === 1 ? "" : "s"}`,
       ...(reshuffles > 0 ? [`${reshuffles} reshuffled`] : []),
@@ -1442,7 +1442,7 @@ const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {
 const trailSummary: SummaryBuilder = (result, puzzle) => {
   const prefix = Number(result.extra?.["prefix"] ?? 0);
   if (result.is_correct) return { summary: `Complete · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
-  return { summary: `${prefix} / 36 steps correct`, detail: [] };
+  return { summary: `${prefix} / 26 tiles correct`, detail: [] };
 };
 
 const digSummary: SummaryBuilder = (result) => {

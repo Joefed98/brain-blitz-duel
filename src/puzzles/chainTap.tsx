@@ -342,9 +342,9 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
     replay.reason === "complete"
       ? "Full chain"
       : replay.reason === "wrong"
-        ? `Broken at link ${replay.links + 1} — wrong tap`
+        ? `Broken at link ${replay.links + 1} - wrong tap`
         : replay.reason === "momentum"
-          ? `Broken at link ${replay.links + 1} — too slow`
+          ? `Broken at link ${replay.links + 1} - too slow`
           : "Time ran out";
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2">

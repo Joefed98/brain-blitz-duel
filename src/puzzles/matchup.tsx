@@ -364,7 +364,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.raw.toLocaleString("en-GB")} match points
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {result.swaps} swap{result.swaps === 1 ? "" : "s"} · best line {result.bestLine || "—"}
+        {result.swaps} swap{result.swaps === 1 ? "" : "s"} · best line {result.bestLine || "-"}
         {result.reshuffles > 0 ? ` · ${result.reshuffles} reshuffled` : ""}
       </p>
       {sent > result.swaps && (
