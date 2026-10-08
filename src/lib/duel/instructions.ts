@@ -14,14 +14,14 @@ export interface PuzzleInstructions {
 
 export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   wordsmith: {
-    goal: "Make words from the 8–11 letters - every word must use the centre letter.",
+    goal: "Make words from the 8-11 letters - every word must use the centre letter.",
     how: [
       { action: "Words must be at least 4 letters. Use each letter once.", detail: "There's always a word using every tile." },
       { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine." },
       { action: "Tap letters in order", detail: "Tap a selected letter again to remove it. Clear empties the word; Enter checks it." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
-    score: "Longer words score more: 8 letters = 11 word points; 9–11 letters = 15. Round score = floor(2.5 × word points), up to 150.",
+    score: "Longer words score more: 8 letters = 11 word points; 9-11 letters = 15. Round score = floor(2.5 × word points), up to 150.",
   },
   groups: {
     goal: "Sort all sixteen words into four groups of four.",
@@ -300,7 +300,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a light", detail: "to flip it and its four neighbours." },
       { action: "Plan each press", detail: "because nearby lights also change." },
     ],
-    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 1–4 lights left = 85 / 75 / 60 / 50.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 1-4 lights left = 85 / 75 / 60 / 50.",
   },
   pipes: {
     goal: "Connect every pipe to the source with no leaks.",
@@ -309,7 +309,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Join every opening", detail: "to another pipe or the source." },
       { action: "Leave no leaks", detail: "at the grid edges." },
     ],
-    score: "Complete = 130 + up to 20 for speed. Otherwise 48 = 90, 47–45 = 85, then 5 less per two tiles down to 40 at 27; fewer score 1.5 each.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 48 = 90, 47-45 = 85, then 5 less per two tiles down to 40 at 27; fewer score 1.5 each.",
   },
   sudoku: {
     goal: "Fill the grid with every row, column, and box valid.",
@@ -630,10 +630,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Slice the flying discs. Don't hit the bombs.",
     how: [
       { action: "Swipe through the discs", detail: "to slice them in half." },
-      { action: "Never touch the dark bombs", detail: "- each one costs ten points." },
+      { action: "Never touch the lit chilli", detail: "- each one costs ten points." },
       {
-        action: "Two star specials",
-        detail: "- the rainbow star opens three bomb-free seconds; the silver star slows everything for four.",
+        action: "Two special bottles",
+        detail: "- the ketchup bottle opens three bomb-free seconds; the mustard bottle slows everything for four.",
       },
       { action: "Cut 3+ discs in one swipe", detail: "one finger-down-to-up path counts together, even a curve or loop. First combo gives ×2, second gives ×3. Each combo resets 10 seconds; only expiry returns you to ×1." },
       { action: "Each swipe has a length limit", detail: "- curve it, but it stops after about three-quarters of the screen." },
@@ -723,7 +723,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Swipe left or right", detail: "to change lane, up to jump, down to slide." },
       { action: "It keeps getting faster.", detail: "" },
     ],
-    score: "The longer you last, the more you score — the full minute is 150.",
+    score: "The longer you last, the more you score - the full minute is 150.",
   },
   sortrush: {
     goal: "Sort every shape into the gate of its colour.",
@@ -740,7 +740,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Spikes and gaps on one side", detail: "mean run on the other." },
       { action: "From 20 s the corridor bends.", detail: "Hazards ride the bends with you." },
     ],
-    score: "The longer you last, the more you score — the full minute is 150.",
+    score: "The longer you last, the more you score - the full minute is 150.",
   },
   parry: {
     goal: "Block every arrow with the gong shield.",
@@ -759,7 +759,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Later,", detail: "some cars turn - they flash an indicator a second before the line." },
       { action: "Ambulances (flashing blue)", detail: "come fast from 20 s - give them green before they reach the line." },
     ],
-    score: "2 per car through, −1 per car that gives up, +4 per ambulance waved through, −4 if one has to stop, +40 for surviving the minute. Clamp 0–150.",
+    score: "2 per car through, −1 per car that gives up, +4 per ambulance waved through, −4 if one has to stop, +40 for surviving the minute. Clamp 0-150.",
   },
   inkbridge: {
     goal: "Draw a path so the ball rolls into the bucket.",
@@ -771,12 +771,12 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "11 per level; all ten = 130 + up to 20 for time left.",
   },
   burst: {
-    goal: "Pop every ball - big ones split into smaller ones.",
+    goal: "Pop every invader - big ones split into smaller ones.",
     how: [
       { action: "Hold ◀ or ▶ to move,", detail: "tap the arena or FIRE to shoot straight up." },
-      { action: "Pop a purple ball and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
-      { action: "Blue balls sometimes drop a teal SHIELD", detail: "- it takes the next hit for you." },
-      { action: "Don't let a ball touch you", detail: "- three touches and you're out." },
+      { action: "Pop a purple invader and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
+      { action: "Blue invaders sometimes drop a teal SHIELD", detail: "- it takes the next hit for you." },
+      { action: "Don't let an invader touch you", detail: "- three touches and you're out." },
     ],
     score: "2 per invader destroyed or split, −9 per life lost. Clear four waves without losing a life for 150.",
   },
@@ -790,20 +790,20 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "3 per planet; reach the sun (planet 40) = 130 + up to 20 for time left.",
   },
   snip: {
-    goal: "Feed the sweet to the mouth.",
+    goal: "Drop the apple into the basket.",
     how: [
       { action: "Swipe across a rope", detail: "to cut it - time it with the swing." },
       { action: "Cut the last rope", detail: "and the sweet drops; the camera follows across the wider arena. Its walls bounce it without losing speed." },
       { action: "Don't let it settle on a ledge", detail: "or fly out the top or bottom - 10 levels, 12 s each." },
     ],
-    score: "10 per apple collected, +3 for each level's single leaf; collect all ten for round(20 × time left ÷ 75 s). Cap 150.",
+    score: "10 per apple collected, +3 for each level's single leaf; collect all ten for round(20 × time left ÷ 60 s). Cap 150.",
   },
   swing: {
     goal: "Swing to the 500 m finish.",
     how: [
       { action: "Hold to grab an anchor and swing,", detail: "let go to fly." },
       { action: "Stuck? Keep swinging", detail: "- every pass gets you higher. Swipe up to shorten the rope for speed." },
-      { action: "Don't touch the spikes", detail: "or fall to the floor." },
+      { action: "Don't touch the spikes", detail: "or fall into the lava." },
     ],
     score: "130 × metres ÷ 500; reaching 500 m = 130 + up to 20 for time left.",
   },
