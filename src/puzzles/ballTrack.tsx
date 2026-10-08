@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -227,7 +228,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         data-play-area
         data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
         style={{ touchAction: "none" }}
-        aria-label="Ball Track course"
+        aria-label={`${gameDisplayName("balltrack")} course`}
         onContextMenu={(e) => e.preventDefault()}
         onPointerDown={(event) => {
           event.preventDefault();
@@ -278,7 +279,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The course comes from the server-only bank; the full input log is replayed on the server. */
 export const ballTrackPuzzle: PuzzleDefinition = {
   key: "balltrack",
-  name: "Ball Track",
+  name: gameDisplayName("balltrack"),
   category: "arcade",
   arcadeRun: true,
   timeLimitMs: BALLTRACK_TIME_MS,

@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useRef } from "react";
 
 import {
@@ -46,7 +47,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="swing"
-      label="Swing"
+      label={gameDisplayName("swing")}
       background="transparent"
       seed={data?.seed ?? 1}
       enabled={data !== null}
@@ -102,7 +103,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const swingPuzzle: PuzzleDefinition = {
   key: "swing",
-  name: "Swing",
+  name: gameDisplayName("swing"),
   category: "arcade",
   timeLimitMs: SWING_TIME_MS,
   revealMs: 6_000,

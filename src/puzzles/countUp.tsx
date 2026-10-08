@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 import { GLYPH_COLOURS, ShapeGlyph } from "@/components/duel/ShapeGlyph";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
@@ -323,7 +324,7 @@ export function buildCountUp(): CountUpPuzzleData {
 
 export const countUpPuzzle: PuzzleDefinition = {
   key: "countup",
-  name: "Count Up",
+  name: gameDisplayName("countup"),
   category: "attention",
   timeLimitMs: COUNTUP_TIME_MS,
   generate: buildCountUp,

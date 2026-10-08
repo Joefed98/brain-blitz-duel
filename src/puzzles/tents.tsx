@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
 import { useStageState } from "@/lib/duel/stageState";
@@ -252,7 +253,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 
 export const tentsPuzzle: PuzzleDefinition = {
   key: "tents",
-  name: "Tents and Trees",
+  name: gameDisplayName("tents"),
   category: "logic",
   timeLimitMs: TENTS_TIME_MS,
   revealMs: 8_000,

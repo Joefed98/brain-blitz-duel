@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { Undo2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { solvedMovesText } from "@/lib/duel/scoring";
@@ -194,7 +195,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** Patterns are built from a hidden press set; the true minimum stays server-side. */
 export const lightsOutPuzzle: PuzzleDefinition = {
   key: "lightsout",
-  name: "Lights Out",
+  name: gameDisplayName("lightsout"),
   category: "logic",
   timeLimitMs: LIGHTS_TIME_MS,
   generate: () =>

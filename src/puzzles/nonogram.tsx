@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { Fragment, useEffect, useMemo, useRef } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
@@ -250,7 +251,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The clues are public; the picture they describe stays in the secrets row. */
 export const nonogramPuzzle: PuzzleDefinition = {
   key: "nonogram",
-  name: "Nonogram",
+  name: gameDisplayName("nonogram"),
   category: "logic",
   timeLimitMs: NONO_TIME_MS,
   revealMs: 8_000,

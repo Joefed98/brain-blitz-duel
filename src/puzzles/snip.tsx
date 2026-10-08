@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters, devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -210,7 +211,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         data-play-area
         data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
         style={{ touchAction: "none" }}
-        aria-label="Snip arena"
+        aria-label={`${gameDisplayName("snip")} arena`}
         onPointerDown={(event) => {
           event.preventDefault();
           if (!active()) return;
@@ -255,7 +256,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** Levels come from the round's seed; the run is replayed on the server. */
 export const snipPuzzle: PuzzleDefinition = {
   key: "snip",
-  name: "Snip",
+  name: gameDisplayName("snip"),
   category: "arcade",
   timeLimitMs: SNIP_TIME_MS,
   revealMs: 6_000,

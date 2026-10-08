@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect } from "@/lib/sound";
 import { useEffect, useMemo, useRef } from "react";
 
@@ -263,7 +264,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The solved side-sets stay server-side; the server re-checks the flow itself. */
 export const pipesPuzzle: PuzzleDefinition = {
   key: "pipes",
-  name: "Pipes",
+  name: gameDisplayName("pipes"),
   category: "logic",
   timeLimitMs: PIPES_TIME_MS,
   revealMs: 8_000,

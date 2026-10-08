@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useRef } from "react";
 
@@ -44,7 +45,7 @@ function Board({
     <div
       className={`puzzle-board grid gap-0 ${fluid ? "w-full aspect-square" : ""}`}
       style={{ gridTemplateColumns: `repeat(${size}, ${fluid ? "minmax(0, 1fr)" : `${cell}px`})` }}
-      aria-label="Colour Flood board"
+      aria-label={`${gameDisplayName("flood")} board`}
     >
       {grid.map((colour, index) => {
         const row = Math.floor(index / size);
@@ -189,7 +190,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The grid and par are public; one par-length route stays in the secrets row. */
 export const colourFloodPuzzle: PuzzleDefinition = {
   key: "flood",
-  name: "Colour Flood",
+  name: gameDisplayName("flood"),
   category: "logic",
   timeLimitMs: FLOOD_TIME_MS,
   revealMs: 5_000,

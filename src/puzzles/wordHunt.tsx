@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { WordHuntBoard, WordHuntPuzzle } from "@/components/puzzles/WordHuntPuzzle";
 import { WORDHUNT_TIME_MS, wordHuntPoints, type WordHuntPuzzleData } from "@/lib/duel/types";
 
@@ -89,7 +90,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
  */
 export const wordHuntPuzzle: PuzzleDefinition = {
   key: "wordhunt",
-  name: "Word Hunt",
+  name: gameDisplayName("wordhunt"),
   category: "word",
   timeLimitMs: WORDHUNT_TIME_MS,
   generate: () => ({ type: "wordhunt", grid: [] }) satisfies WordHuntPuzzleData,

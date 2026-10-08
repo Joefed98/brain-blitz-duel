@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters, devDiagnosticsOn } from "@/lib/arcade/diagnostics";
@@ -247,7 +248,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         data-play-area
         data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
         style={{ touchAction: "none" }}
-        aria-label="Clay Shoot sky"
+        aria-label={`${gameDisplayName("clayshoot")} sky`}
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || clayGame.isOver(state.current)) return;
@@ -283,7 +284,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The launch schedule comes from the round's seed; the run is replayed on the server. */
 export const clayShootPuzzle: PuzzleDefinition = {
   key: "clayshoot",
-  name: "Clay Shoot",
+  name: gameDisplayName("clayshoot"),
   category: "speed",
   arcadeRun: true,
   timeLimitMs: CLAYSHOOT_TIME_MS,

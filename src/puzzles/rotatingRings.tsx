@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -78,7 +79,7 @@ function Rings({
       height={size}
       viewBox={`0 0 ${size} ${size}`}
       className="shrink-0 touch-none"
-      aria-label="Rotating Rings board"
+      aria-label={`${gameDisplayName("rings")} board`}
       onPointerDown={(event) => {
         if (!onSelect) return;
         event.preventDefault();
@@ -324,7 +325,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The rings are public; the minimum and one shortest turn order stay private. */
 export const rotatingRingsPuzzle: PuzzleDefinition = {
   key: "rings",
-  name: "Rotating Rings",
+  name: gameDisplayName("rings"),
   category: "pattern",
   timeLimitMs: RINGS_TIME_MS,
   revealMs: 5_000,

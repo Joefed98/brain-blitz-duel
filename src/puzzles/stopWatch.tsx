@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
@@ -335,7 +336,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 export const stopWatchPuzzle: PuzzleDefinition = {
   key: "stopwatch",
-  name: "Stop Watch",
+  name: gameDisplayName("stopwatch"),
   category: "speed",
   timeLimitMs: STOPWATCH_ROUND_MS,
   generate: buildStopWatch,

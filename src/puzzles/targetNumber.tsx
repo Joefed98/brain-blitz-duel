@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { Undo2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -326,7 +327,7 @@ function TargetReveal({
 
 export const targetNumberPuzzle: PuzzleDefinition = {
   key: "target",
-  name: "Target Number",
+  name: gameDisplayName("target"),
   category: "number",
   timeLimitMs: TARGET_TIME_MS,
   generate: generateTargetPuzzle,

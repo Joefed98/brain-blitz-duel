@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { WordsmithRing } from "@/components/puzzles/WordsmithRing";
 import { WordsmithPuzzle } from "@/components/puzzles/WordsmithPuzzle";
 import { wordsmithPoints, type WordsmithPuzzleData } from "@/lib/duel/types";
@@ -101,7 +102,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
  */
 export const wordsmithPuzzle: PuzzleDefinition = {
   key: "wordsmith",
-  name: "Wordsmith",
+  name: gameDisplayName("wordsmith"),
   category: "word",
   timeLimitMs: WORDSMITH_TIME_MS,
   generate: () => ({ type: "wordsmith", letters: [] }) satisfies WordsmithPuzzleData,

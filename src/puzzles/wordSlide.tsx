@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { Lock, LockOpen } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -49,7 +50,7 @@ function Board({
       onPointerDown={onPointerDown}
       className="puzzle-board grid shrink-0 rounded-xl border-2 border-border bg-card p-1.5"
       style={{ gridTemplateColumns: `repeat(${WS_SIZE}, ${cell}px)`, gap: GAP, ...(onPointerDown ? NO_SCROLL_STYLE : {}) }}
-      aria-label="Word Slide board"
+      aria-label={`${gameDisplayName("wordslide")} board`}
     >
       {grid.map((letter, i) => {
         const row = Math.floor(i / WS_SIZE);
@@ -288,7 +289,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, valid
 
 export const wordSlidePuzzle: PuzzleDefinition = {
   key: "wordslide",
-  name: "Word Slide",
+  name: gameDisplayName("wordslide"),
   category: "word",
   timeLimitMs: WS_TIME_MS,
   revealMs: WS_REVEAL_MS,

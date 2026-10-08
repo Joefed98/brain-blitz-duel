@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef } from "react";
 
 import {
@@ -51,7 +52,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col gap-2">
       <ArcadeCanvasStage
         diagKey="inkbridge"
-        label="Ink Bridge"
+        label={gameDisplayName("inkbridge")}
         background={INK_ART_BG}
         seed={data?.seed ?? 1}
         enabled={data !== null}
@@ -119,7 +120,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const inkBridgePuzzle: PuzzleDefinition = {
   key: "inkbridge",
-  name: "Ink Bridge",
+  name: gameDisplayName("inkbridge"),
   category: "arcade",
   timeLimitMs: INKBRIDGE_TIME_MS,
   revealMs: 6_000,

@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { BlockBoard, BlockPartyPuzzle } from "@/components/puzzles/BlockPartyPuzzle";
 import { decodePlacements } from "@/lib/duel/blockParty";
 import { BLOCK_FREE_CELLS, BLOCK_TIME_MS, type BlockPartyPuzzleData } from "@/lib/duel/types";
@@ -74,7 +75,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
 /** Layouts are solver-verified on the server; the solution stays server-side. */
 export const blockPartyPuzzle: PuzzleDefinition = {
   key: "blockparty",
-  name: "Block Party",
+  name: gameDisplayName("blockparty"),
   category: "pattern",
   timeLimitMs: BLOCK_TIME_MS,
   generate: () => ({ type: "blockparty", blockers: [] }) satisfies BlockPartyPuzzleData,

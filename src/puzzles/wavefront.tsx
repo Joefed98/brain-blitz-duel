@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   wavCheckpoint,
   WAV_BG,
@@ -63,7 +64,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="wavefront"
-      label="Wavefront"
+      label={gameDisplayName("wavefront")}
       background={WAV_BG}
       seed={data?.seed ?? 1}
       enabled={data !== null}
@@ -115,7 +116,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const wavefrontPuzzle: PuzzleDefinition = {
   key: "wavefront",
-  name: "Wavefront",
+  name: gameDisplayName("wavefront"),
   category: "arcade",
   timeLimitMs: WAVEFRONT_TIME_MS,
   revealMs: 6_000,

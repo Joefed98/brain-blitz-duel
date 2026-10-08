@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -252,7 +253,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: BUB_BG }}
-        aria-label="Bubble Pop"
+        aria-label={gameDisplayName("bubble")}
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || bubbleGame.isOver(state.current)) return;
@@ -324,7 +325,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const bubblePuzzle: PuzzleDefinition = {
   key: "bubble",
-  name: "Bubble Pop",
+  name: gameDisplayName("bubble"),
   category: "arcade",
   timeLimitMs: (BUB_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,

@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
@@ -277,7 +278,7 @@ export function buildNumberHunt(): NumberHuntPuzzleData {
 
 export const numberHuntPuzzle: PuzzleDefinition = {
   key: "numhunt",
-  name: "Number Hunt",
+  name: gameDisplayName("numhunt"),
   category: "speed",
   timeLimitMs: NUMHUNT_TIME_MS,
   generate: buildNumberHunt,

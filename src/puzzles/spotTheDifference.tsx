@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -542,7 +543,7 @@ export function buildSpotDifference(): SpotPuzzleData {
 
 export const spotDifferencePuzzle: PuzzleDefinition = {
   key: "spotdiff",
-  name: "Spot the Difference",
+  name: gameDisplayName("spotdiff"),
   category: "attention",
   timeLimitMs: SPOT_TIME_MS,
   generate: buildSpotDifference,

@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
@@ -361,7 +362,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
 
 export const chainTapPuzzle: PuzzleDefinition = {
   key: "chain",
-  name: "Don't Break the Chain",
+  name: gameDisplayName("chain"),
   category: "speed",
   timeLimitMs: CHAIN_TIME_MS,
   revealMs: 5_000,

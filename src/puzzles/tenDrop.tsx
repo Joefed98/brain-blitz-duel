@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters, devDiagnosticsOn } from "@/lib/arcade/diagnostics";
@@ -257,7 +258,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         data-play-area
         data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
         style={{ touchAction: "none" }}
-        aria-label="Ten Drop board"
+        aria-label={`${gameDisplayName("tendrop")} board`}
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || tenDropGame.isOver(state.current)) return;
@@ -294,7 +295,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** Targets and tile queues come from the round's seed; the run is replayed on the server. */
 export const tenDropPuzzle: PuzzleDefinition = {
   key: "tendrop",
-  name: "Ten Drop",
+  name: gameDisplayName("tendrop"),
   category: "number",
   arcadeRun: true,
   timeLimitMs: TENDROP_TIME_MS,

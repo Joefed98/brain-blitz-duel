@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
@@ -337,7 +338,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** All three grids, the changed cells and the change kinds come from the server. */
 export const intruderDetectionPuzzle: PuzzleDefinition = {
   key: "intruder",
-  name: "Intruder Detection",
+  name: gameDisplayName("intruder"),
   category: "attention",
   timeLimitMs: INTRUDER_TIME_MS,
   revealMs: 8_000,

@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
@@ -203,7 +204,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       <div
         className="grid shrink-0 rounded-xl border-2 border-border bg-card p-1"
         style={{ gridTemplateColumns: `repeat(${TG_SIZE}, ${cellSize}px)`, gap: GAP }}
-        aria-label="Tile Grid board"
+        aria-label={`${gameDisplayName("tilegrid")} board`}
       >
         {placed.map((tile, i) => {
           const letter = cells[i];
@@ -301,7 +302,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
 
 export const tileGridPuzzle: PuzzleDefinition = {
   key: "tilegrid",
-  name: "Tile Grid",
+  name: gameDisplayName("tilegrid"),
   category: "word",
   timeLimitMs: TG_TIME_MS,
   revealMs: TG_REVEAL_MS,

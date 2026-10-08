@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   juncApproachAt,
   juncCheckpoint,
@@ -43,7 +44,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="junction"
-      label="Junction"
+      label={gameDisplayName("junction")}
       background={JUNC_ART_BG}
       seed={data?.seed ?? 1}
       enabled={data !== null}
@@ -92,7 +93,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const junctionPuzzle: PuzzleDefinition = {
   key: "junction",
-  name: "Junction",
+  name: gameDisplayName("junction"),
   category: "arcade",
   timeLimitMs: JUNCTION_TIME_MS,
   revealMs: 6_000,

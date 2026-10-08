@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { breakerArtGame } from "@/lib/arcade/breaker.renderer";
@@ -315,7 +316,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: BRK_BG }}
-        aria-label="Breaker"
+        aria-label={gameDisplayName("breaker")}
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || breakerGame.isOver(state.current)) return;
@@ -365,7 +366,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const breakerPuzzle: PuzzleDefinition = {
   key: "breaker",
-  name: "Breaker",
+  name: gameDisplayName("breaker"),
   category: "arcade",
   timeLimitMs: (BRK_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
