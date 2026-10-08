@@ -177,11 +177,12 @@ export function AnswerReveal({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
-      <div className="flex items-baseline justify-between">
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+      <div className="flex items-center justify-between gap-2">
+        <span className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
           Round {round} of {TOTAL_ROUNDS}
         </span>
-        <span className="font-mono text-xs text-muted-foreground">{secondsLeft}s</span>
+        <span className="min-w-0 flex-1 whitespace-normal break-words text-center font-display text-sm font-bold leading-none text-foreground">{def.name}</span>
+        <span className="shrink-0 font-mono text-xs text-muted-foreground">{secondsLeft}s</span>
       </div>
 
       {ARCADE_REVEAL_RENDERERS[puzzle.type] ? (

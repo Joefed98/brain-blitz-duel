@@ -50,7 +50,7 @@ export function GameLayout({ label, title, help, progress, timer, beforeGame, ch
       <div data-round-heading data-game-topbar className="grid h-7 shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-          <span className="truncate text-right font-display text-sm font-bold text-foreground">{title}</span>
+          <span className="min-w-0 whitespace-normal break-words text-right font-display text-sm font-bold leading-none text-foreground">{title}</span>
           <div className="flex shrink-0 items-center gap-2">{help}{progress}</div>
         </div>
       </div>

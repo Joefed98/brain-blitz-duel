@@ -117,7 +117,7 @@ export function RoundIntro({
         {!practice && <RoundPips currentRound={round} outcomes={outcomes} />}
       </div>
 
-      <h1 className="text-center font-display text-[2.25rem] font-bold leading-none animate-pop-in sm:text-[2.75rem]">
+      <h1 className="w-full min-w-0 whitespace-normal break-words text-center font-display text-[2.25rem] font-bold leading-none animate-pop-in sm:text-[2.75rem]">
         {puzzleName(type)}
       </h1>
 

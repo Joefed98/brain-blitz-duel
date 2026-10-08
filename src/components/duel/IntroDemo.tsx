@@ -7,6 +7,7 @@ import { DEMO_LENGTH_TICKS, demoTouches, placeholderRun, runAtTick as runFrame }
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { getIntroDemoFn } from "@/lib/duel/introDemo.functions";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
+import { gameDisplayName } from "@/lib/duel/gameNames";
 
 const RING_TICKS = 18; // 300 ms at 60 ticks a second
 // Display-only switch for the white touch rings in demo playback.
@@ -105,7 +106,7 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
       className="intro-demo relative overflow-hidden rounded-lg border border-border bg-background"
       style={{ aspectRatio: `${renderer.worldW} / ${renderer.worldH}` }}
     >
-      <canvas ref={canvasRef} className="block h-full w-full" aria-label="Demo of the game being played" />
+      <canvas ref={canvasRef} className="block h-full w-full" aria-label={`${gameDisplayName(type)} demo`} />
       <span className="absolute right-1.5 top-1 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
         Demo
       </span>
