@@ -272,7 +272,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         Sliced {result.slices} / {result.totalDiscs} · best combo ×{result.bestMult}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {result.bombsHit === 1 ? "1 bomb" : `${result.bombsHit} bombs`} hit
+        {result.bombsHit === 1 ? "1 chilli" : `${result.bombsHit} chillies`} hit
       </p>
     </div>
   );
