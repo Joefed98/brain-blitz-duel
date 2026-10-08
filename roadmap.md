@@ -1,7 +1,7 @@
 ## IP art pass (Oct 8)
-- [ ] Capture before/after Fission split and Nucleus word at 360px; authorized frame timing.
-- [ ] Replace Fission targets and Nucleus board; Slice labels; matching intro/help/reveal wording only.
-- [ ] Report Scrumper and six unchanged games with screenshots; run 75 checks against baseline.
+- [x] Capture before/after Fission split and Nucleus word at 360px; authorized after timing, baseline acceptance caveat reported.
+- [x] Replace Fission targets and Nucleus board; Slice labels; matching intro/help/reveal wording only.
+- [x] Report Scrumper and six unchanged games with screenshots; 75 checks: 58 pass, 15 existing fails, 2 timeouts (Snip newly exceeds runner limit; no new assertion failure).
 
 ## Display-only game renames
 - [x] Audit name-dependent logic, stored game names, shared/game surfaces and check selectors before renaming.
