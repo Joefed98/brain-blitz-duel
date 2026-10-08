@@ -137,7 +137,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   flip: "The longer you last, the more you score. Survive the full minute for 150.",
   junction: arcadeTraffic(2, 4),
   inkbridge: arcadeFinish("each level you finish", "Finish all ten"),
-  burst: "Points for each invader you destroy or split. Losing a life costs 9. Clear four waves without losing a life for 150.",
+  burst: "Points for each atom you destroy or split. Losing a life costs 9. Clear four waves without losing a life for 150.",
   orbit: arcadeFinish("each planet you reach", "Reach the sun"),
   snip: arcadeFinish("each apple you collect, with extra for each leaf", "Collect all ten apples"),
   swing: arcadeFinish("how far you swing", "Reach 500 metres"),

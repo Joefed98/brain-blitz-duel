@@ -31,14 +31,17 @@ function IntroExample() {
     <div className="flex w-full flex-col items-center gap-2">
       <svg viewBox="0 0 168 130" width={168} height={130} aria-hidden="true" style={{ background: BURST_BG, borderRadius: 10 }}>
         <line x1={0} y1={116} x2={168} y2={116} stroke={BURST_TEAL} strokeWidth={2} />
-        <circle cx={104} cy={46} r={18} fill="none" stroke={BURST_COLOURS[0]} strokeWidth={5} />
+        <circle cx={104} cy={46} r={18} fill={BURST_COLOURS[0]} fillOpacity={.12} stroke={BURST_COLOURS[0]} strokeWidth={1} />
+        <ellipse cx={104} cy={46} rx={16.5} ry={7} transform="rotate(-30 104 46)" fill="none" stroke={BURST_COLOURS[0]} strokeWidth={1} />
+        <ellipse cx={104} cy={46} rx={16.5} ry={7} transform="rotate(45 104 46)" fill="none" stroke={BURST_COLOURS[0]} strokeWidth={1} />
+        <circle cx={104} cy={46} r={5} fill={BURST_COLOURS[0]} />
         <path d="M60 50 Q84 0 104 28" fill="none" stroke={BURST_COLOURS[0]} strokeOpacity={0.3} strokeDasharray="3 4" />
         <line x1={96} y1={116} x2={96} y2={70} stroke={BURST_GOLD} strokeWidth={2} />
         <path d="M96 70 L99 74" stroke={BURST_GOLD} strokeWidth={2} />
         <rect x={90} y={102} width={12} height={14} rx={5} fill={BURST_GOLD} />
         <circle cx={96} cy={98} r={3} fill={BURST_GOLD} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Fire straight up to split the ball.</p>
+       <p className="text-center text-xs text-muted-foreground">Fire straight up to split the atom.</p>
     </div>
   );
 }
@@ -106,7 +109,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 }
 
 export function burstLine(r: { wave: number; score: number; hits: number; livesLost: number }): string {
-  return `Wave ${Math.max(1, r.wave)} · ${r.hits} popped · ${r.livesLost} ${r.livesLost === 1 ? "life" : "lives"} lost`;
+  return `Wave ${Math.max(1, r.wave)} · ${r.hits} atoms split or destroyed · ${r.livesLost} ${r.livesLost === 1 ? "life" : "lives"} lost`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

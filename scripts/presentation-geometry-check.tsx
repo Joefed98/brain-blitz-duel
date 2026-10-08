@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import { WordsmithRing, wordsmithGlyphScale, WORDSMITH_GLYPH_REDUCTION } from "../src/components/puzzles/WordsmithRing";
+import { WordsmithRing } from "../src/components/puzzles/WordsmithRing";
 import { miniSudokuPuzzle } from "../src/puzzles/miniSudoku";
 import { shikakuPuzzle } from "../src/puzzles/shikaku";
 import { wordsmithPuzzle } from "../src/puzzles/wordsmith";
@@ -16,14 +16,11 @@ const backdrop = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8").sp
 assert.match(backdrop, /const ring = outcome === "finish" \? "var\(--me\)" : null/);
 assert.doesNotMatch(backdrop, /outcome === "crash"|var\(--warn\)/);
 assert.match(backdrop, /<circle[\s\S]*<rect/); // finish position and fallback retained
-assert.match(css, /wordsmith-ring-labels[^}]*pointer-events: none/);
+assert.match(css, /wordsmith-ring-lines[^}]*pointer-events: none/);
 assert.doesNotMatch(css, /\.fx-outline/);
-assert.match(readFileSync("src/components/puzzles/WordsmithRing.tsx", "utf8"), /\? 192 : 312/);
-assert.equal(WORDSMITH_GLYPH_REDUCTION, .7);
-assert.match(css, /wordsmith-ring-glyph-weight[^}]*font-weight: 500/);
+assert.match(css, /wordsmith-ring-tile[^}]*min-width: 44px; min-height: 44px/);
+assert.match(css, /wordsmith-orbit[^}]*stroke: var\(--wordsmith-orbit-edge\)/);
 assert.match(readFileSync("src/components/duel/FxLayer.tsx", "utf8"), /event\.primitive === "glow" \|\| event\.primitive === "shake"\) return/);
-assert.match(css, /--wordsmith-paper: var\(--background\)/);
-assert.match(css, /wordsmith-ring-lines line[^}]*stroke: var\(--wordsmith-outline\)/);
 assert.match(css, /sudoku-grid\.sudoku-grid > button[^}]*border-radius: 0 !important/);
 const parse = (s: string) => [...s.matchAll(/([\d.]+)% ([\d.]+)%/g)].map(m => [Number(m[1]), Number(m[2])]);
 const area = (p: number[][]) => Math.abs(p.reduce((sum, a, i) => {
@@ -38,37 +35,17 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
   const tiles = [...root.querySelectorAll<HTMLButtonElement>("[data-wordsmith-tile]")];
   assert.equal(tiles.length, 9);
   assert.equal(root.querySelectorAll('[aria-pressed="true"]').length, 2);
-  const glyphs = [...root.querySelectorAll(".wordsmith-ring-label")];
-  assert.equal(glyphs.length, 9);
-  assert.ok(glyphs.every(glyph => glyph.classList.contains("wordsmith-ring-glyph-weight")));
-  assert.ok(glyphs.every(glyph => Number(glyph.getAttribute("font-size")) === 25 * .7));
-  const wedgeAreas = tiles.filter(n => !n.classList.contains("wordsmith-ring-centre")).map(n => area(parse(n.style.clipPath)));
-  for (const tile of tiles) {
-    const polygon = parse(tile.style.clipPath).map(([x = 0, y = 0]) => ({ x, y }));
-    const label = polygon.reduce((p, point) => ({ x: p.x + point.x / polygon.length, y: p.y + point.y / polygon.length }), {x: 0, y: 0});
-    const box = { x: 0, y: -75, width: 85, height: 80 };
-    const scale = wordsmithGlyphScale(polygon, label, box);
-    assert(scale > 0);
-    for (const dx of [-box.width / 2, box.width / 2]) for (const dy of [-box.height / 2, box.height / 2]) {
-      const point = {x: label.x + dx * scale, y: label.y + dy * scale};
-      polygon.forEach((a, i) => {
-        const b = polygon[(i + 1) % polygon.length];
-        if (!b) return;
-        assert((b.x-a.x)*(point.y-a.y)-(b.y-a.y)*(point.x-a.x) >= Math.hypot(b.x-a.x,b.y-a.y) - 1e-8);
-      });
-    }
+  assert.equal(root.querySelectorAll(".wordsmith-ring-letter").length, 9);
+  assert.equal(root.querySelectorAll("polygon, line").length, 0);
+  assert.equal(root.querySelectorAll(".wordsmith-orbit").length, 1);
+  assert.equal(root.querySelector(".wordsmith-orbit")?.getAttribute("r"), "37");
+  for (const count of [7,8,9,10]) {
+    const diameter = 280 * .18, orbit = 280 * .37;
+    assert(diameter >= 44);
+    assert(2 * orbit * Math.sin(Math.PI / count) > diameter, "orbit tiles do not overlap");
+    assert(orbit + diameter / 2 < 140, "tiles stay inside board");
   }
-  assert.ok(wedgeAreas.every(a => Math.abs(a - (wedgeAreas[0] ?? 0)) < 1e-8));
-  const polygons = [...root.querySelectorAll("polygon")].map(n => (n.getAttribute("points") ?? "").split(" ").map(s => s.split(",").map(Number)));
-  const outer = polygons[0];
-  assert.ok(outer);
-  const edges = outer.map((a, i) => {
-    const b = outer[(i + 1) % outer.length] ?? [];
-    return Math.hypot((a[0] ?? 0) - (b[0] ?? 0), (a[1] ?? 0) - (b[1] ?? 0));
-  });
-  assert.ok(edges.every(e => Math.abs(e - (edges[0] ?? 0)) < 1e-8));
-  assert.equal(root.querySelectorAll("line").length, 8);
-  assert.ok(Math.abs(wedgeAreas.reduce((s, a) => s + a, 0) + area(polygons[1] ?? []) - area(outer)) < 1e-8);
+  for (const tile of tiles) assert.equal(tile.style.clipPath, "");
   root.innerHTML = renderToStaticMarkup(<wordsmithPuzzle.Reveal puzzle={{ type: "wordsmith", letters }} myAnswer={null} myCorrect={false} myReactionAvgMs={null} timeLimitMs={100000} />);
   assert.equal(root.querySelectorAll("[data-wordsmith-tile]").length, 9);
   checks += 2;
@@ -112,7 +89,7 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
   assert.ok(font <= cell);
   assert.ok(font * 1.2 <= cell); // two mono digits, each approximately .6em
   rows.push(`| ArcadeReveal | ${width}x${height} | PASS source: crash marker absent; finish circles/fallback unchanged |`);
-  rows.push(`| Wordsmith | ${width}x${height} | PASS shared markup + geometry: regular octagons, equal wedges, nine controls; glyph size is 70% of the previous bold fitted 312px/192px targets, weight 700 to 500 (~71%), equal centre size; outline, tap targets and fills unchanged |`);
+  rows.push(`| Wordsmith | ${width}x${height} | PASS shared markup + geometry: circular nucleus, faint 37%-radius orbit and round controls; all 7–10 outer layouts fit without overlap; 50.4px targets at conservative 280px board; fixed chip/action slots unchanged |`);
   rows.push(`| Mini Sudoku | ${width}x${height} | PASS live/intro/reveal: 36 equal-track cells; heavy strokes are borders of those exact cells, no overlay |`);
   rows.push(`| Shikaku | ${width}x${height} | PASS both individual grids and pair: clipped board/labels, equal tracks; ${pairedWidth}px grid, ${cell.toFixed(2)}px cells, ${font.toFixed(2)}px labels |`);
 }
@@ -122,4 +99,4 @@ writeFileSync(".lovable/audits/presentation-geometry-oct6.md", [
   "| Presentation | Size | Result |", "|---|---|---|", ...rows, "",
   "The live Wordsmith board retains its height/width-fitting square and all existing fixed chip/action slots. Its reveal now adds a 160px shared board; existing long word lists can still require internal scrolling. Sudoku retains its previous board dimensions; Shikaku remains two 170px-max squares with a 12px gutter. No generators, grading or scoring changed. Actual fit and appearance remain for user device checks.", "",
 ].join("\n"));
-console.log(`PASS ${checks} source/SSR phase checks plus both-size polygon/cell/label geometry; crash marker source check passed. Device fit unverified.`);
+console.log(`PASS ${checks} source/SSR phase checks plus both-size orbit/cell/label geometry; crash marker source check passed. Device fit unverified.`);

@@ -39,13 +39,21 @@ const WALL = "#B49CFF";
 const SHIP = "#FFD84A";
 const SHIELD = "#3DFFE0";
 
-/** Invader sprites, 8 × 7, one per ball size. */
-const SPRITES: readonly string[][] = [
-  ["..X..X..", "...XX...", "..XXXX..", ".XX..XX.", "XXXXXXXX", "X.XXXX.X", "..X..X.."],
-  ["...XX...", "..XXXX..", ".XXXXXX.", "XX.XX.XX", "XXXXXXXX", "..X..X..", ".X.XX.X."],
-  ["..XXXX..", ".XXXXXX.", "XX.XX.XX", "XXXXXXXX", ".XX..XX.", "X......X", ".X....X."],
-  ["X.XXXX.X", "XXXXXXXX", "XX.XX.XX", "XXXXXXXX", ".X.XX.X.", "X......X", "........"],
-];
+/** Full collision-disc atoms. Bloom is cached and clipped inside the disc. */
+function paintAtom(c: CanvasRenderingContext2D, r: number, colour: string, tier: number, bloom = true): void {
+  c.save(); c.beginPath(); c.arc(r, r, r, 0, Math.PI * 2); c.clip();
+  c.fillStyle = `${colour}22`; c.fill();
+  c.strokeStyle = colour; c.lineWidth = 1.2;
+  c.beginPath(); c.arc(r, r, r - .6, 0, Math.PI * 2); c.stroke();
+  c.shadowColor = colour; c.shadowBlur = bloom ? 4 : 0;
+  c.beginPath(); c.ellipse(r, r, r - 1.3, r * .42, -.55, 0, Math.PI * 2);
+  if (tier < 3) c.ellipse(r, r, r - 1.3, r * .42, .75, 0, Math.PI * 2);
+  c.stroke();
+  c.fillStyle = colour; c.beginPath(); c.arc(r, r, Math.max(2, r * .27), 0, Math.PI * 2); c.fill();
+  c.shadowBlur = 0; c.fillStyle = RETRO_WHITE;
+  c.beginPath(); c.arc(r - r * .06, r - r * .06, Math.max(1, r * .12), 0, Math.PI * 2); c.fill();
+  c.restore();
+}
 
 /** Pixel ship, 12 × 18 blocks of 2 px = exactly the 24 × 36 player box. */
 const SHIP_ROWS = [
@@ -81,7 +89,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BurstState, size: CanvasSize
 }
 
 type Stamp = { layer: ArtCanvas; width: number; height: number; pad: number };
-// Finite art variants only: 4 invaders, ship colours, icons, walls, beam types and shield.
+// Finite art variants only: 4 atoms, ship colours, icons, walls, beam types and shield.
 const stamps = new Map<string, Stamp>();
 function cachedArt(key: string, width: number, height: number, colour: string, glow: number,
   paint: (ctx: CanvasRenderingContext2D) => void): Stamp | null {
@@ -193,14 +201,21 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     }
   }
 
-  // Invaders: each sprite fits the square inscribed in the sim's circle.
+  // Atoms fill the authoritative circle; electron rings never exceed it.
   for (const ball of state.balls) {
     const r = BURST_RADIUS[ball.size] ?? 8;
-    const side = r * 1.4;
-    const block = side / 8;
     const colour = retroNeon(BURST_COLOURS[ball.size] ?? RETRO_WHITE);
-    const rows = SPRITES[ball.size];
-    if (rows) sprite(ctx, rows, ball.x / FP - side / 2, ball.y / FP - (block * 7) / 2, block, colour, 8);
+    const stamp = cachedArt(`atom:${ball.size}`, r * 2, r * 2, colour, 0,
+      c => paintAtom(c, r, colour, ball.size));
+    const x = ball.x / FP, y = ball.y / FP;
+    if (stamp) blit(ctx, stamp, x - r, y - r);
+    else { ctx.save(); ctx.translate(x - r, y - r); paintAtom(ctx, r, colour, ball.size, false); ctx.restore(); }
+    // A bounded, short flash at the existing split event; daughters are sim objects.
+    const age = tick - state.popTick;
+    if (age >= 0 && age < 8 && Math.hypot(x - state.popX / FP, y - state.popY / FP) < (BURST_RADIUS[state.popSize] ?? 8) * 2) {
+      ctx.globalAlpha = .65 * (1 - age / 8);
+      ctx.fillStyle = RETRO_WHITE; ctx.beginPath(); ctx.arc(x, y, r - .6, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    }
   }
   particles(ctx, state);
 

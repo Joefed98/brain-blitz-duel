@@ -228,9 +228,9 @@ const BUILDERS: Record<string, Builder> = {
   },
   burst: (r, s) => ({
     axis: { value: Math.max(1, n(r, "wave")), max: null, label: "Waves" },
-    lines: [`Wave ${Math.max(1, n(r, "wave"))} · ${n(r, "hits")} invaders → ${s}`],
+    lines: [`Wave ${Math.max(1, n(r, "wave"))} · ${n(r, "hits")} atoms → ${s}`],
     tiles: [
-      { label: "Invaders", value: String(n(r, "hits")) },
+      { label: "Atoms", value: String(n(r, "hits")) },
       { label: "Lives lost", value: String(n(r, "livesLost")) },
     ],
     outcome: ended(r, false),

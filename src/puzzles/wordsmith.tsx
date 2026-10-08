@@ -14,7 +14,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Make words from the nine letters - every word must use the centre letter.
+        Tap the round tiles to make words - the glowing centre letter must be in every word.
       </p>
       <div className="flex items-start gap-4">
         <div className="wordsmith-ring-example w-[160px] shrink-0">

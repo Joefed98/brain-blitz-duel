@@ -182,7 +182,7 @@ export function drawSliceArt(ctx:CanvasRenderingContext2D,state:SliceState,size:
   drawSliceComboMeter(ctx,state);
   ctx.fillStyle='rgba(220,233,231,0.88)';ctx.fillRect(20,8,SLICE_WORLD_W-70,30);
   ctx.fillStyle=K.ink;ctx.font='bold 20px ui-monospace, monospace';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillText(`Sliced ${state.slices}`,14,SLICE_HUD_H/2);ctx.textAlign='center';
-  if(sliceFrenzyOn(state,state.tick))ctx.fillText('FRENZY',SLICE_WORLD_W/2,SLICE_HUD_H/2);else if(sliceSlowOn(state,state.tick))ctx.fillText('SLOW',SLICE_WORLD_W/2,SLICE_HUD_H/2);
+  if(sliceFrenzyOn(state,state.tick))ctx.fillText('SAUCY',SLICE_WORLD_W/2,SLICE_HUD_H/2);else if(sliceSlowOn(state,state.tick))ctx.fillText('SIMMER',SLICE_WORLD_W/2,SLICE_HUD_H/2);
   ctx.strokeStyle=K.edge;ctx.lineWidth=2;ctx.strokeRect(1,1,SLICE_WORLD_W-2,SLICE_WORLD_H-2);
   if(state.comboFlash>0){ctx.strokeStyle=K.gold;ctx.globalAlpha=state.comboFlash/SLICE_COMBO_FLASH_TICKS;ctx.lineWidth=6;ctx.strokeRect(3,3,SLICE_WORLD_W-6,SLICE_WORLD_H-6);}
   ctx.restore();

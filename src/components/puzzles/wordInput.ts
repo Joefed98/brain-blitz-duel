@@ -8,7 +8,7 @@ export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
   if (typeof log !== "object" || log === null || !("presentation" in log)) return false;
   return log.presentation === (type === "wordsmith" ? WORDSMITH_PRESENTATION : PUZZLE_INPUT_PRESENTATION);
 }
-export const WORDSMITH_PRESENTATION = "oct6-segmented-octagon";
+export const WORDSMITH_PRESENTATION = "oct8-atom-orbit";
 
 /** A tile can be used once; re-tapping removes only that occurrence. */
 export function toggleWordsmithTile(selected: readonly number[], index: number): number[] {

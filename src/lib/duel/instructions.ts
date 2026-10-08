@@ -14,11 +14,11 @@ export interface PuzzleInstructions {
 
 export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   wordsmith: {
-    goal: "Make words from the 8-11 letters - every word must use the centre letter.",
+    goal: "Make words from the 8-11 letters - the centre letter must be in every word.",
     how: [
       { action: "Words must be at least 4 letters. Use each letter once.", detail: "There's always a word using every tile." },
       { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine." },
-      { action: "Tap letters in order", detail: "Tap a selected letter again to remove it. Clear empties the word; Enter checks it." },
+      { action: "Tap the round letter tiles in order", detail: "Include the glowing centre letter. Tap a selected letter again to remove it. Clear empties the word; Enter checks it." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
     score: "Longer words score more: 8 letters = 11 word points; 9-11 letters = 15. Round score = floor(2.5 × word points), up to 150.",
@@ -633,7 +633,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Never touch the lit chilli", detail: "- each one costs ten points." },
       {
         action: "Two special bottles",
-        detail: "- the ketchup bottle opens three bomb-free seconds; the mustard bottle slows everything for four.",
+        detail: "- Saucy (ketchup) opens three bomb-free seconds; Simmer (mustard) slows everything for four.",
       },
       { action: "Cut 3+ discs in one swipe", detail: "one finger-down-to-up path counts together, even a curve or loop. First combo gives ×2, second gives ×3. Each combo resets 10 seconds; only expiry returns you to ×1." },
       { action: "Each swipe has a length limit", detail: "- curve it, but it stops after about three-quarters of the screen." },
@@ -771,14 +771,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "11 per level; all ten = 130 + up to 20 for time left.",
   },
   burst: {
-    goal: "Pop every invader - big ones split into smaller ones.",
+    goal: "Split every atom - big ones split into smaller atoms.",
     how: [
       { action: "Hold ◀ or ▶ to move,", detail: "tap the arena or FIRE to shoot straight up." },
-      { action: "Pop a purple invader and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
-      { action: "Blue invaders sometimes drop a teal SHIELD", detail: "- it takes the next hit for you." },
-      { action: "Don't let an invader touch you", detail: "- three touches and you're out." },
+      { action: "Split a purple atom and catch the gold icon", detail: "for triple BURST shots until you lose a life." },
+      { action: "Blue atoms sometimes drop a teal SHIELD", detail: "- it takes the next hit for you." },
+      { action: "Don't let an atom touch you", detail: "- three touches and you're out." },
     ],
-    score: "2 per invader destroyed or split, −9 per life lost. Clear four waves without losing a life for 150.",
+    score: "2 per atom destroyed or split, −9 per life lost. Clear four waves without losing a life for 150.",
   },
   orbit: {
     goal: "Reach the sun, choosing one planet as your checkpoint.",
