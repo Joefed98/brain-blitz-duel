@@ -5,7 +5,7 @@ import { withSeededRandom, pick, shuffled } from "../src/lib/duel/random";
 import { WORDSMITH_CENTRE_INDEX, WORDSMITH_SIZES, WORDSMITH_WORD_RANGES, wordsmithPoints } from "../src/lib/duel/types";
 import { INTRO_EXAMPLE_SEED } from "../src/lib/duel/puzzleDemo";
 import { splitPuzzle } from "../src/lib/duel/secrets";
-import { WordsmithRing, wordsmithRingSegments, WORDSMITH_GLYPH_REDUCTION } from "../src/components/puzzles/WordsmithRing";
+import { WordsmithRing } from "../src/components/puzzles/WordsmithRing";
 
 function check(ok: unknown, label: string): asserts ok { if (!ok) throw new Error(label); }
 const distribution = new Map<number, number>();
@@ -75,28 +75,13 @@ const legacy = withSeededRandom(INTRO_EXAMPLE_SEED, () => {
   throw new Error("legacy seed fallback");
 });
 check(JSON.stringify(legacy) === JSON.stringify(withSeededRandom(INTRO_EXAMPLE_SEED, () => generateWordsmithExample()).letters), "fixed demo puzzle unchanged");
-check(WORDSMITH_GLYPH_REDUCTION === .7, "70% lettering retained");
-// Conservative 280px live board, smaller than available source-derived phone room space.
-// Every wedge contains a real, non-overlapping 44×44 CSS-pixel square.
+// Preserve generated counts and input ids; inspect the new circular presentation.
 for (const count of [7, 8, 9, 10]) {
-  const segments = wordsmithRingSegments(count);
-  check(segments.length === count, "wedge count");
-  let area = 0;
-  for (const { polygon } of segments) {
-    area += polygon.reduce((sum, a, i) => { const b = polygon[(i + 1) % polygon.length]; return b ? sum + a.x * b.y - b.x * a.y : sum; }, 0) / 2;
-    const inside = (x: number, y: number) => {
-      let result = false;
-      polygon.forEach((a, i) => { const b = polygon[(i + 1) % polygon.length]; if (b && (a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) result = !result; });
-      return result;
-    };
-    const half = 22 / 2.8;
-    let fits = false;
-    for (let y = 0; y <= 100 && !fits; y += .5) for (let x = 0; x <= 100 && !fits; x += .5) {
-      fits = [[-half,-half],[half,-half],[-half,half],[half,half]].every(([dx = 0,dy = 0]) => inside(x + dx,y + dy));
-    }
-    check(fits, "44px square target within wedge");
-  }
-  const octagonArea = (10000 - 2 * ((1 - Math.tan(Math.PI / 8)) * 50) ** 2) * (1 - .34 ** 2);
-  check(Math.abs(area - octagonArea) < .001, "same octagonal ring coverage");
+  const diameter = 280 * .18, orbit = 280 * .37;
+  check(diameter >= 44, "44px circular tap targets");
+  check(2 * orbit * Math.sin(Math.PI / count) > diameter, "outer tiles never overlap");
+  check(orbit + diameter / 2 < 140, "all tiles within board");
+  const html = renderToStaticMarkup(<WordsmithRing letters={Array(count + 1).fill("A")} />);
+  check(!html.includes("polygon") && html.includes('wordsmith-orbit'), "no octagons or wedges");
 }
-console.log("PASS: variable validation, totals, scoring, private projection, seeded fixed-demo parity, 70% glyphs and 44px targets; no browsers");
+console.log("PASS: variable validation, totals, scoring, private projection, seeded fixed-demo parity and circular 44px targets; no browsers");

@@ -5,11 +5,11 @@ No browser tests. PASS means source/SSR and analytic geometry, not measured devi
 | Presentation | Size | Result |
 |---|---|---|
 | ArcadeReveal | 390x700 | PASS source: crash marker absent; finish circles/fallback unchanged |
-| Wordsmith | 390x700 | PASS shared markup + geometry: regular octagons, equal wedges, nine controls; glyph size is 70% of the previous bold fitted 312px/192px targets, weight 700 to 500 (~71%), equal centre size; outline, tap targets and fills unchanged |
+| Wordsmith | 390x700 | PASS shared markup + geometry: circular nucleus, faint 37%-radius orbit and round controls; all 7–10 outer layouts fit without overlap; 50.4px targets at conservative 280px board; fixed chip/action slots unchanged |
 | Mini Sudoku | 390x700 | PASS live/intro/reveal: 36 equal-track cells; heavy strokes are borders of those exact cells, no overlay |
 | Shikaku | 390x700 | PASS both individual grids and pair: clipped board/labels, equal tracks; 170px grid, 16.10px cells, 12.88px labels |
 | ArcadeReveal | 375x667 | PASS source: crash marker absent; finish circles/fallback unchanged |
-| Wordsmith | 375x667 | PASS shared markup + geometry: regular octagons, equal wedges, nine controls; glyph size is 70% of the previous bold fitted 312px/192px targets, weight 700 to 500 (~71%), equal centre size; outline, tap targets and fills unchanged |
+| Wordsmith | 375x667 | PASS shared markup + geometry: circular nucleus, faint 37%-radius orbit and round controls; all 7–10 outer layouts fit without overlap; 50.4px targets at conservative 280px board; fixed chip/action slots unchanged |
 | Mini Sudoku | 375x667 | PASS live/intro/reveal: 36 equal-track cells; heavy strokes are borders of those exact cells, no overlay |
 | Shikaku | 375x667 | PASS both individual grids and pair: clipped board/labels, equal tracks; 170px grid, 16.10px cells, 12.88px labels |
 

@@ -1,3 +1,8 @@
+## IP art pass (Oct 8)
+- [ ] Capture before/after Fission split and Nucleus word at 360px; authorized frame timing.
+- [ ] Replace Fission targets and Nucleus board; Slice labels; matching intro/help/reveal wording only.
+- [ ] Report Scrumper and six unchanged games with screenshots; run 75 checks against baseline.
+
 ## Display-only game renames
 - [x] Audit name-dependent logic, stored game names, shared/game surfaces and check selectors before renaming.
 - [x] Centralize 53 requested names without changing ids/data/gameplay; all 68 headings fit at 360px with 14px minimum.

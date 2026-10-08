@@ -177,6 +177,10 @@
   --puzzle-surface: oklch(0.205 0.012 285);
   --puzzle-edge: oklch(0.36 0.014 285);
   --wordsmith-paper: var(--background);
+  --wordsmith-tile-surface: var(--puzzle-given);
+  --wordsmith-tile-edge: color-mix(in oklab, var(--category-accent) 45%, var(--foreground));
+  --wordsmith-orbit-edge: color-mix(in oklab, var(--category-accent) 28%, transparent);
+  --wordsmith-nucleus-glow: 0 0 22px color-mix(in oklab, var(--category-accent) 32%, transparent);
   --wordsmith-outline: var(--foreground);
   --wordsmith-ink: oklch(0.16 0.012 285);
   --puzzle-given: oklch(0.265 0.014 285);
@@ -376,41 +380,38 @@ body.game-lock {
   aspect-ratio: 1;
 }
 .wordsmith-ring { container-type: inline-size; }
-.wordsmith-ring-tile {
+.wordsmith-ring .wordsmith-ring-tile {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  font-family: var(--font-display);
-  font-size: 104px;
-  font-weight: 700;
-  border: 0;
-  border-radius: 0;
-  background: var(--wordsmith-paper);
+  width: 18%; height: 18%; min-width: 44px; min-height: 44px;
+  transform: translate(-50%, -50%);
+  padding: 0; border-radius: 50%;
+  border: 1px solid var(--wordsmith-tile-edge);
+  background: var(--wordsmith-tile-surface);
   color: var(--accepted-word-foreground);
-  isolation: isolate;
+  font-family: var(--font-display); font-weight: 600;
+  font-size: 11cqw !important; line-height: 1;
   opacity: 1 !important;
 }
-.wordsmith-ring-letter {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  line-height: 1;
-  pointer-events: none;
+.wordsmith-ring .wordsmith-ring-tile .wordsmith-ring-letter { font-size: 11cqw !important; line-height: 1; pointer-events: none; }
+.wordsmith-ring .wordsmith-ring-centre .wordsmith-ring-letter { font-size: 14cqw !important; }
+.wordsmith-ring .wordsmith-ring-centre, .wordsmith-ring .wordsmith-ring-centre:hover {
+  width: 28%; height: 28%; font-size: 14cqw !important;
+  background: var(--category-accent); border-color: var(--category-accent);
+  color: var(--accepted-word-foreground); box-shadow: var(--wordsmith-nucleus-glow);
 }
-.wordsmith-ring-labels { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; font-family: var(--font-display); font-weight: 700; }
-.wordsmith-ring-glyph-weight { font-weight: 500; }
-.wordsmith-ring-label { fill: var(--accepted-word-foreground); }
-.wordsmith-ring-label-used { fill: var(--wordsmith-ink); }
-.wordsmith-ring-centre, .wordsmith-ring-centre:hover { background: var(--category-accent); color: var(--accepted-word-foreground); }
-.wordsmith-ring-outer:hover { background: var(--wordsmith-paper); color: var(--accepted-word-foreground); }
-.wordsmith-ring-used, .wordsmith-ring-used:hover { background: var(--primary); color: var(--wordsmith-ink); }
-.wordsmith-ring-centre.wordsmith-ring-used, .wordsmith-ring-centre.wordsmith-ring-used:hover { background: var(--category-accent); color: var(--accepted-word-foreground); }
-.wordsmith-ring-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
-.wordsmith-ring-lines polygon, .wordsmith-ring-lines line { fill: none; stroke: var(--wordsmith-outline); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.wordsmith-ring-tile:focus-visible { outline: 2px solid var(--foreground); outline-offset: -4px; }
+.wordsmith-ring-outer:hover { background: var(--wordsmith-tile-surface); }
+.wordsmith-ring .wordsmith-ring-used, .wordsmith-ring .wordsmith-ring-used:hover {
+  background: var(--primary); color: var(--wordsmith-ink); border-color: var(--primary);
+}
+.wordsmith-ring .wordsmith-ring-centre.wordsmith-ring-used, .wordsmith-ring .wordsmith-ring-centre.wordsmith-ring-used:hover {
+  background: var(--category-accent); color: var(--accepted-word-foreground); border-color: var(--accepted-word-foreground);
+}
+.wordsmith-ring-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.wordsmith-orbit { fill: none; stroke: var(--wordsmith-orbit-edge); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.wordsmith-ring-tile:focus-visible { outline: 2px solid var(--foreground); outline-offset: 3px; }
 .wordsmith-ring-tile:disabled { cursor: default; }
-.wordsmith-ring-example .wordsmith-ring-tile { font-size: 64px; }
+.wordsmith-ring-example .wordsmith-ring-tile { min-width: 0; min-height: 0; }
+@media (prefers-reduced-motion: reduce) { .wordsmith-ring-tile { transition: none; } }
 .puzzle-secondary-control { height: 44px; min-width: 44px; padding: 0; border-radius: var(--puzzle-action-radius); }
 .puzzle-secondary-control svg { width: 20px; height: 20px; }
 .sudoku-grid { position: relative; }

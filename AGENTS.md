@@ -31,7 +31,7 @@
 - FX/audio stay outside sims; no untargeted boxes; dev displays require accepted keys. Why: safe feedback.
 - soundSettings owns device channel migration and normalized slider values; sound.ts owns bus gains and round-track ramp classification, while MuteToggle owns compact overlay controls. Why: all screens share settings without altering gameplay or clock ownership.
 
-- PhoneShell shares paint; WordsmithRing fits octagonal wedges; wordInput owns taps. Wordsmith keeps centre index, size bands and original-band seeded examples. Why: demo compatibility.
+- PhoneShell shares paint; WordsmithRing owns the shared circular orbit board and wordInput owns taps; presentation revisions reject coordinate demos of obsolete boards. Wordsmith keeps centre index, size bands and original-band seeded examples. Why: demo compatibility.
 - The last round leads to a server-timed, unskippable `winner_reveal` phase (WinnerReveal, shared-clock cues) before status finished, replacing final standings; why: every phone reveals the winner at the same moment.
 - Round music is started/stopped only by useRoundMusic, called from the room and practice round-phase state; screen components (intro, countdown, timer bar, game frame) never touch it. Why: component mounts at the GO cut the track.
 - RoomChat owns portalled bounded compact/expanded message sheets and keyboard geometry; room state supplies only chat availability and header time, and gesture blockers exempt data-scrollable. Why: chat scroll stays independent of game/page layouts.
