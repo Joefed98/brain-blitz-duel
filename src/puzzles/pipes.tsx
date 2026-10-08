@@ -153,7 +153,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        All 49 = 100 + speed. 48 = 90, 47 = 85, then 5 less per 2 tiles. You have 120 seconds.
+        All 49 connected = 130 + up to 20 for speed. You have 120 seconds.
       </p>
     </div>
   );

@@ -793,7 +793,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Drop the apple into the basket.",
     how: [
       { action: "Swipe across a rope", detail: "to cut it - time it with the swing." },
-      { action: "Cut the last rope", detail: "and the sweet drops; the camera follows across the wider arena. Its walls bounce it without losing speed." },
+      { action: "Cut the last rope", detail: "and the apple drops; the walls bounce it without losing speed, and the camera follows across the wider arena." },
       { action: "Don't let it settle on a ledge", detail: "or fly out the top or bottom - 10 levels, 12 s each." },
     ],
     score: "10 per apple collected, +3 for each level's single leaf; collect all ten for round(20 × time left ÷ 60 s). Cap 150.",
@@ -808,11 +808,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "130 × metres ÷ 500; reaching 500 m = 130 + up to 20 for time left.",
   },
   tilt: {
-    goal: "Roll the ball out of the maze.",
+    goal: "Roll the ball into the blue cup.",
     how: [
       { action: "Drag left or right to spin the maze", detail: "- the ball always rolls down." },
-      { action: "Each escape brings a harder maze.", detail: "Red spikes end the run." },
-      { action: "From maze 2 a red ball waits behind a silver gate.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch it and the run ends." },
+      { action: "Each escape brings a harder maze.", detail: "Dark holes end the run." },
+      { action: "From maze 2 the red ball waits behind a silver gate with a padlock.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch the red ball and the run ends." },
     ],
     score: "Four mazes, 30 each. All four = 130 + up to 20 for time left.",
   },
@@ -869,7 +869,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a gold tube to turn it into a drop", detail: "- the bottom row is fixed, so send each ball down early…" },
       { action: "…the track's bottom row re-lays and the trays swap colours mid-round", detail: "- watch for both." },
     ],
-    score: "round(130 × marbles home ÷ 30), plus round(20 × sim time left ÷ 75 s) only when all 30 are home. Cap 150. Wrong trays have no penalty.",
+    score: "round(130 × marbles home ÷ 30), plus round(20 × sim time left ÷ 60 s) only when all 30 are home. Cap 150. Wrong trays have no penalty.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",
