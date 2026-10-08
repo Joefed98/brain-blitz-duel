@@ -796,7 +796,7 @@ const laserSummary: SummaryBuilder = (result, puzzle) => {
   if (result.is_correct) {
     return {
       summary: `${puzzle.gems.length} / ${puzzle.gems.length} gems · ${ordinal} shot · ${seconds(elapsedMs(result, puzzle))}`,
-      detail: [`All ${puzzle.mirrors} mirrors in place`],
+      detail: [`All ${puzzle.mirrors + (puzzle.splitterPieces ?? 0)} pieces in place`],
     };
   }
   if (gems >= 1) {
@@ -1385,7 +1385,7 @@ const tiltSummary: SummaryBuilder = (result) => {
         ? `4 / 4 mazes · ${Number(result.extra?.["secondsLeft"] ?? 0).toFixed(1)}s left`
         : survived
           ? `${head} · survived`
-          : `${head} · ${result.extra?.["caught"] === true ? "caught" : "pit"} at ${ended.toFixed(1)}s`,
+          : `${head} · ${result.extra?.["caught"] === true ? "caught by the red ball" : "dark hole"} at ${ended.toFixed(1)}s`,
     detail: ["30 per maze · all four = 130 + up to 20 for time left", "Same mazes for everyone"],
   };
 };
@@ -1439,10 +1439,9 @@ const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {
   return { summary: `${completed} / 4 pyramids complete`, detail: [] };
 };
 
-const trailSummary: SummaryBuilder = (result, puzzle) => {
-  const prefix = Number(result.extra?.["prefix"] ?? 0);
-  if (result.is_correct) return { summary: `Complete · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
-  return { summary: `${prefix} / 36 steps correct`, detail: [] };
+const trailSummary: SummaryBuilder = (result) => {
+  const correctTiles = Number(result.extra?.["correctTiles"] ?? (result.is_correct ? 26 : 0));
+  return { summary: `${correctTiles} / 26 tiles correct`, detail: [] };
 };
 
 const digSummary: SummaryBuilder = (result) => {

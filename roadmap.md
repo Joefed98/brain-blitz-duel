@@ -1,3 +1,6 @@
+## Intro audit text rulings
+- [x] Apply Tilt nouns, Trail tile result, Pipes example, Laser piece count, Snip apple wording and Ball Track 60-second help denominator. Snip help already uses 60 seconds; plain-English intro templates contain no denominator. Burst unchanged. Focused lint has no errors; preview build OK. No browser tests or proofs.
+
 ## Room chat scrolling and expansion (Oct 7)
 - [x] Found uncancelled message long-press on finger drag/pointer cancellation; bounded and portalled list, scrollable guard exemptions.
 - [x] Added compact/85% expanded sheet, shared phase-time header, safe keyboard footer, close/header swipe and automatic countdown hiding.

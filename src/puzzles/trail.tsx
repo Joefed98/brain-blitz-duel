@@ -313,7 +313,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const [dev, setDev] = useState(false);
   useEffect(() => setDev(devDiagnosticsOn()), []);
   if (puzzle.type !== "trail") return null;
@@ -332,7 +332,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           <Grid size={TR_SIZE} givens={puzzle.givens} path={mine} cell={24} marks={solution} />
         </div>
       </div>
-      <p className="font-mono text-base text-primary">{myCorrect ? "Complete" : `${correctTiles} / 26 tiles correct`}</p>
+      <p className="font-mono text-base text-primary">{`${correctTiles} / 26 tiles correct`}</p>
       {dev && <p className="max-w-[340px] break-all font-mono text-[10px] text-muted-foreground">dev · solution [{solution.join(", ")}]</p>}
     </div>
   );

@@ -32,7 +32,7 @@ function IntroExample() {
           <circle cx={95} cy={100} r={6} fill={TILT_GOLD} />
         </g>
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Spin the maze so the ball rolls to the teal gap.</p>
+      <p className="text-center text-xs text-muted-foreground">Spin the maze so the ball rolls into the blue cup.</p>
     </div>
   );
 }
@@ -69,7 +69,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 export function tiltLine(r: { mazes: number; survived: boolean; survivedSeconds: number }): string {
   const head = `${r.mazes} ${r.mazes === 1 ? "maze" : "mazes"} completed`;
-  return r.survived ? `${head} · survived` : `${head} · pit at ${r.survivedSeconds.toFixed(1)}s`;
+  return r.survived ? `${head} · survived` : `${head} · dark hole at ${r.survivedSeconds.toFixed(1)}s`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
