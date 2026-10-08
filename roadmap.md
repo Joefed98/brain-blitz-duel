@@ -1,7 +1,7 @@
 ## Display-only game renames
-- [ ] Audit name-dependent logic, stored game names, shared/game surfaces and check selectors before renaming.
-- [ ] Centralize requested names without changing ids/data/gameplay; fit long names at 360px.
-- [ ] Run all existing checks, verify renamed puzzle/arcade practice presentation and audio, report complete map and residual old-name search.
+- [x] Audit name-dependent logic, stored game names, shared/game surfaces and check selectors before renaming.
+- [x] Centralize 53 requested names without changing ids/data/gameplay; all 68 headings fit at 360px with 14px minimum.
+- [x] Run all 75 existing checks before/after: 58 pass, 16 pre-existing failures, 1 proof timeout; no new failures. Flash/Fission live practice intro/example/play/reveal/results and audio verified. Complete report in Files; unrelated existing failures not changed.
 
 ## Intro audit text rulings
 - [x] Apply Tilt nouns, Trail tile result, Pipes example, Laser piece count, Snip apple wording and Ball Track 60-second help denominator. Snip help already uses 60 seconds; plain-English intro templates contain no denominator. Burst unchanged. Focused lint has no errors; preview build OK. No browser tests or proofs.
