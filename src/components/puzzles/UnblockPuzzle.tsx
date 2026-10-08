@@ -50,7 +50,7 @@ function Vehicle({
         ...(escaping ? { transform: `translateX(${100 / N + 60}%)` } : {}),
         ...style,
       }}
-      aria-label={gold ? "Gold car" : `${vehicle.len === 3 ? "Lorry" : "Car"} ${vehicle.id}`}
+      aria-label={gold ? "Gold block" : `${vehicle.len === 3 ? "Long block" : "Block"} ${vehicle.id}`}
     >
       <div className={`h-full w-full rounded-[7px] ${gold ? "bg-primary" : "bg-foreground/25"}`} />
     </div>
@@ -204,7 +204,7 @@ export function UnblockPuzzle({
         <span>
           moves <span className="text-primary">{moves.filter((move) => move.id >= 0).length}</span>
         </span>
-        <span>get the gold car out</span>
+        <span>get the gold block out</span>
       </div>
 
       <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">

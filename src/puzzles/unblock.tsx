@@ -19,7 +19,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Slide the cars out of the way. Get the gold car to the exit.
+        Slide the blocks out of the way. Get the gold block to the exit.
       </p>
       <div className="relative" style={{ width: 150 }}>
         <UnblockBoard vehicles={EXAMPLE_VEHICLES} size={150} />

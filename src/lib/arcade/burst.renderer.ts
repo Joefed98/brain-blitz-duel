@@ -252,7 +252,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   retroText(ctx, "1UP", 14, 8, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
   retroText(ctx, `WAVE ${Math.max(1, state.wave)} ${score}${state.burst ? " BURST" : ""}`, 14, 20, 10, RETRO_WHITE);
   for (let i = 0; i < BURST_LIVES; i++) {
-    sprite(ctx, ["..X..", ".XXX.", "XXXXX", "X.X.X"], BURST_WORLD_W - 100 + i * 16, 14, 2, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
+    sprite(ctx, SHIP_ROWS, BURST_WORLD_W - 100 + i * 16, 14, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
   }
 }
 

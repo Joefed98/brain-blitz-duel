@@ -1,3 +1,8 @@
+## Small art follow-up (Oct 8)
+- [x] Replace Hover pipes with collision-sized cached purple/magenta pixel barriers; matching intro/help/demo/reveal wording updated.
+- [x] Use the player's cannon sprite for Fission lives; replace Gridlock car wording, preserving sound IDs and all gameplay files.
+- [x] Capture and visually inspect 360px active-run comparisons and lives close-ups; 75 checks: 59 pass / same 15 fail / 1 timeout. Snip timeout improved to pass; no new failures. Report and screenshots saved in Files.
+
 ## IP art pass (Oct 8)
 - [x] Capture before/after Fission split and Nucleus word at 360px; authorized after timing, baseline acceptance caveat reported.
 - [x] Replace Fission targets and Nucleus board; Slice labels; matching intro/help/reveal wording only.

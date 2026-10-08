@@ -44,14 +44,22 @@ function IntroExample() {
         aria-hidden="true"
         style={{ background: HOVER_BG, borderRadius: 10 }}
       >
-        <rect x="95" y="0" width="20" height="30" fill={HOVER_PILLAR_COLOUR} />
-        <rect x="95" y="78" width="20" height="32" fill={HOVER_PILLAR_COLOUR} />
-        <rect x="155" y="0" width="20" height="46" fill={HOVER_PILLAR_COLOUR} />
-        <rect x="155" y="90" width="20" height="20" fill={HOVER_PILLAR_COLOUR} />
+        <defs>
+          <pattern id="hover-energy-blocks" width="20" height="8" patternUnits="userSpaceOnUse">
+            <rect width="20" height="8" fill="#39114F" />
+            <rect width="20" height="7" fill="#C642CE" />
+            <path d="M2 2 H18" stroke="#F6ADFF" strokeWidth="1" />
+          </pattern>
+        </defs>
+        <rect x="95" y="0" width="20" height="30" fill="url(#hover-energy-blocks)" />
+        <rect x="95" y="78" width="20" height="32" fill="url(#hover-energy-blocks)" />
+        <rect x="155" y="0" width="20" height="46" fill="url(#hover-energy-blocks)" />
+        <rect x="155" y="90" width="20" height="20" fill="url(#hover-energy-blocks)" />
+        <path d="M95 29.5 H115 M95 78.5 H115 M155 45.5 H175 M155 90.5 H175" stroke="#F6ADFF" strokeWidth="1" />
         <circle cx="55" cy="55" r="9" fill={HOVER_DISC_COLOUR} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Tap to lift the disc through the gap.
+        Tap to lift the saucer through the gaps in the energy barriers.
       </p>
     </div>
   );
@@ -260,7 +268,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.gates} / {result.totalGates} gates ·{" "}
+        {result.gates} / {result.totalGates} barriers ·{" "}
         {result.survived ? "Survived" : `Crashed at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
