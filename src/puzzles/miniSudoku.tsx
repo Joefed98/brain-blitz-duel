@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { decodeSudoku, encodeSudoku, sudokuBox, sudokuSolved } from "@/lib/duel/logic";
@@ -280,7 +281,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The one grid the givens allow stays server-side until the reveal. */
 export const miniSudokuPuzzle: PuzzleDefinition = {
   key: "sudoku",
-  name: "Mini Sudoku",
+  name: gameDisplayName("sudoku"),
   category: "logic",
   timeLimitMs: SUDOKU_TIME_MS,
   revealMs: 8_000,

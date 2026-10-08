@@ -1,3 +1,4 @@
+import { gameDisplayName } from "./gameNames";
 /**
  * Server-only generation for the logic types. Minimum press counts, solved
  * pipe orientations and Sudoku solutions are worked out here and stored in the
@@ -140,7 +141,7 @@ export function generateLightsOut(): LightsOutPuzzleData {
     if (solution.length < LIGHTS_MIN_BUILD || solution.length > LIGHTS_MAX_BUILD) continue;
     return { type: "lightsout", lights, minPresses: solution.length, solution };
   }
-  throw new Error("Lights Out generator could not build an 8–12 press board");
+  throw new Error(`${gameDisplayName("lightsout")} generator could not build an 8–12 press board`);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -205,7 +206,7 @@ export function generatePipes(): PipesPuzzleData {
 
     return { type: "pipes", tiles, source: root, solution: masks };
   }
-  throw new Error("Pipes generator could not build a proven-solvable board");
+  throw new Error(`${gameDisplayName("pipes")} generator could not build a proven-solvable board`);
 }
 
 /* -------------------------------------------------------------------------- */

@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
@@ -218,7 +219,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The board is dealt once on the server; the flip list is replayed there too. */
 export const pairMatchPuzzle: PuzzleDefinition = {
   key: "pairmatch",
-  name: "Pair Match",
+  name: gameDisplayName("pairmatch"),
   category: "attention",
   timeLimitMs: PAIR_TIME_MS,
   revealMs: 5_000,

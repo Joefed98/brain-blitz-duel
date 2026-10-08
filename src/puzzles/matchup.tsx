@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -314,7 +315,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: MATCHUP_BG }}
-        aria-label="Matchup"
+        aria-label={gameDisplayName("matchup")}
         onPointerDown={(event) => {
           event.preventDefault();
           if (busy()) return;
@@ -379,7 +380,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const matchupPuzzle: PuzzleDefinition = {
   key: "matchup",
-  name: "Matchup",
+  name: gameDisplayName("matchup"),
   category: "arcade",
   timeLimitMs: (MATCHUP_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,

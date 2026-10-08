@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef } from "react";
 
 import { hapticTick, useSwipe } from "@/components/puzzles/GridDrag";
@@ -234,7 +235,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The combination is generated and checked on the server; clues are public. */
 export const safeCrackerPuzzle: PuzzleDefinition = {
   key: "safe",
-  name: "Safe Cracker",
+  name: gameDisplayName("safe"),
   category: "logic",
   timeLimitMs: SAFE_TIME_MS,
   revealMs: 8_000,

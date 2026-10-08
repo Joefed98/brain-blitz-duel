@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -407,7 +408,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The minimum and the shortest route stay server-side until the reveal. */
 export const iceSlidePuzzle: PuzzleDefinition = {
   key: "iceslide",
-  name: "Ice Slide",
+  name: gameDisplayName("iceslide"),
   category: "pattern",
   timeLimitMs: SLIDE_TIME_MS,
   revealMs: 8_000,

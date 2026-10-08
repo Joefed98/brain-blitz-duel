@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -335,7 +336,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         ref={canvas}
         className="puzzle-board block min-h-0 w-full flex-1 rounded-t-xl"
         style={{ background: BINTOSS_BG }}
-        aria-label="Bin Toss"
+        aria-label={gameDisplayName("bintoss")}
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || binTossGame.isOver(state.current)) return;
@@ -450,7 +451,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const binTossPuzzle: PuzzleDefinition = {
   key: "bintoss",
-  name: "Bin Toss",
+  name: gameDisplayName("bintoss"),
   category: "arcade",
   timeLimitMs: (BINTOSS_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,

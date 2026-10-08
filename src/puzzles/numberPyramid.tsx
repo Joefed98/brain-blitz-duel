@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
@@ -280,7 +281,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
 }
 export const numberPyramidPuzzle: PuzzleDefinition = {
   key: "numpyramid",
-  name: "Number Pyramid",
+  name: gameDisplayName("numpyramid"),
   category: "number",
   timeLimitMs: NUMPYRAMID_TIME_MS,
   revealMs: 8_000,

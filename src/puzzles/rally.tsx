@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { rallyArtGame } from "@/lib/arcade/rally.renderer";
@@ -239,7 +240,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: RALLY_BG }}
-        aria-label="Rally"
+        aria-label={gameDisplayName("rally")}
         onPointerDown={(event) => {
           event.preventDefault();
           event.currentTarget.setPointerCapture(event.pointerId);
@@ -283,7 +284,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const rallyPuzzle: PuzzleDefinition = {
   key: "rally",
-  name: "Rally",
+  name: gameDisplayName("rally"),
   category: "arcade",
   timeLimitMs: (RALLY_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,

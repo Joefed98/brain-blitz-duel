@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
 import { lwDecode, lwGrade, lwSlotCells } from "@/lib/duel/letterWheel";
@@ -337,7 +338,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
 
 export const letterWheelPuzzle: PuzzleDefinition = {
   key: "letterwheel",
-  name: "Letter Wheel",
+  name: gameDisplayName("letterwheel"),
   category: "word",
   timeLimitMs: LETTERWHEEL_TIME_MS,
   revealMs: 8_000,

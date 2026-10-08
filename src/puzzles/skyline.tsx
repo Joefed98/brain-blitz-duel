@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -221,7 +222,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: SKYLINE_ART_BG }}
-        aria-label="Skyline"
+        aria-label={gameDisplayName("skyline")}
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || skylineGame.isOver(state.current)) return;
@@ -264,7 +265,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const skylinePuzzle: PuzzleDefinition = {
   key: "skyline",
-  name: "Skyline",
+  name: gameDisplayName("skyline"),
   category: "arcade",
   timeLimitMs: (SKYLINE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,

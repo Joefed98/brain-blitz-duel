@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 import { GLYPH_COLOURS, ShapeGlyph } from "@/components/duel/ShapeGlyph";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
@@ -313,7 +314,7 @@ function buildStage(total: number, [min, max]: [number, number]): { stage: Count
     const stage = { cols: 10, rows: 10, shapes, targetShape, targetColour } satisfies CountUpStage;
     if (countUpSceneValid(stage)) return { stage, count };
   }
-  throw new Error("Count Up scene generation exhausted visibility attempts");
+  throw new Error(`${gameDisplayName("countup")} scene generation exhausted visibility attempts`);
 }
 
 export function buildCountUp(): CountUpPuzzleData {
@@ -323,7 +324,7 @@ export function buildCountUp(): CountUpPuzzleData {
 
 export const countUpPuzzle: PuzzleDefinition = {
   key: "countup",
-  name: "Count Up",
+  name: gameDisplayName("countup"),
   category: "attention",
   timeLimitMs: COUNTUP_TIME_MS,
   generate: buildCountUp,

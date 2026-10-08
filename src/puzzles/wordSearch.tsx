@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
 import { useGridPointer } from "@/components/puzzles/GridDrag";
@@ -205,7 +206,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
 
 export const wordSearchPuzzle: PuzzleDefinition = {
   key: "wordsearch",
-  name: "Word Search",
+  name: gameDisplayName("wordsearch"),
   category: "word",
   timeLimitMs: WORDSEARCH_TIME_MS,
   revealMs: 8_000,

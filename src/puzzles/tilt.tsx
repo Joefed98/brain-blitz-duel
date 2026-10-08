@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { tiltArtGame } from "@/lib/arcade/tiltArt.renderer";
 import { tiltSounds } from "@/lib/fx/gameSounds";
 import { useRef } from "react";
@@ -43,7 +44,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="tilt"
-      label="Tilt"
+      label={gameDisplayName("tilt")}
       background={TILT_BG}
       seed={data?.seed ?? 1}
       enabled={data !== null}
@@ -88,7 +89,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const tiltPuzzle: PuzzleDefinition = {
   key: "tilt",
-  name: "Tilt",
+  name: gameDisplayName("tilt"),
   category: "arcade",
   timeLimitMs: TILT_TIME_MS,
   revealMs: 6_000,

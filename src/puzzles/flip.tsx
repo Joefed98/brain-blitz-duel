@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   flipCheckpoint,
   FLIP_BG,
@@ -37,7 +38,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="flip"
-      label="Flip"
+      label={gameDisplayName("flip")}
       background={FLIP_BG}
       seed={data?.seed ?? 1}
       enabled={data !== null}
@@ -78,7 +79,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const flipPuzzle: PuzzleDefinition = {
   key: "flip",
-  name: "Flip",
+  name: gameDisplayName("flip"),
   category: "arcade",
   timeLimitMs: FLIP_TIME_MS,
   revealMs: 6_000,

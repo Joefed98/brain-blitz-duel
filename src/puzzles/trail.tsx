@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
@@ -340,7 +341,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 export const trailPuzzle: PuzzleDefinition = {
   key: "trail",
-  name: "Trail",
+  name: gameDisplayName("trail"),
   category: "number",
   timeLimitMs: TRAIL_TIME_MS,
   revealMs: 8_000,

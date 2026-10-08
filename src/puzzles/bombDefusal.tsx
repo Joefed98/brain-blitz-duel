@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, type CSSProperties } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
@@ -399,7 +400,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The rules and panel are public; the required sequence is server-side only. */
 export const bombDefusalPuzzle: PuzzleDefinition = {
   key: "bomb",
-  name: "Bomb Defusal",
+  name: gameDisplayName("bomb"),
   category: "logic",
   timeLimitMs: BOMB_TIME_MS,
   revealMs: 8_000,

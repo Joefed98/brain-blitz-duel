@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
@@ -258,7 +259,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 export const reactionPuzzle: PuzzleDefinition = {
   key: "reaction",
-  name: "Reaction Time",
+  name: gameDisplayName("reaction"),
   category: "speed",
   timeLimitMs: REACTION_ROUND_MS,
   generate: buildReaction,

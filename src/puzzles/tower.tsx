@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
@@ -281,7 +282,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The spread, the minimum and one shortest solution all come from the server. */
 export const towerPuzzle: PuzzleDefinition = {
   key: "tower",
-  name: "Tower",
+  name: gameDisplayName("tower"),
   category: "logic",
   timeLimitMs: TOWER_TIME_MS,
   revealMs: 5_000,

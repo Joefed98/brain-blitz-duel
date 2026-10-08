@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
@@ -241,7 +242,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The board, its searched minimum and one shortest solution come from the server. */
 export const sortTubesPuzzle: PuzzleDefinition = {
   key: "tubes",
-  name: "Sort the Tubes",
+  name: gameDisplayName("tubes"),
   category: "logic",
   timeLimitMs: TUBES_TIME_MS,
   revealMs: 8_000,

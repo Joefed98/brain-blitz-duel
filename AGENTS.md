@@ -21,6 +21,7 @@
 - TimerBar is the only countdown: accent ring in its existing 20px slot; PhoneShell owns 4px side safety; why: preserve board space.
 - Memory stays out of room settings/draws; practice uses allTypesInCategory to retain its games.
 - Retire types via RETIRED_TYPES; why: room draws filter it, practice does not.
+- The browser-safe gameNames catalog supplies each active registry entry's name and named board/demo labels; all non-display logic stays keyed by PuzzleType. Why: display renames must not change saved rounds, assets, inputs or code identifiers.
 - Square puzzle arenas use container-sized squares and SVG viewBoxes with coordinate conversion for scaled input; why: boards must remain centred, square and correctly tappable at every arena size.
 - The answer reveal shows only the server-stored round score (AnswerReveal's StoredScore, "Scoring…" until it lands); puzzle Reveals must never compute or print a score; scripts/reveal-score-check.tsx guards this. Why: local maths drifted from server scoring.
 - RoundIntro exposes Back only in practice; its practice callback cancels the intro and clears run state without grading. Why: leaving an intro must not create results or affect rooms.

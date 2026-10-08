@@ -1,3 +1,4 @@
+import { gameDisplayName } from "./gameNames";
 /**
  * Server-only Colour Connect generation. Two to four wall cells are placed,
  * a random Hamiltonian path over the remaining cells is cut into 10–12
@@ -270,7 +271,7 @@ export function generateFlow(stats?: FlowGenStats): FlowPuzzleData {
     if (stats) stats.attempts = attempts;
     return { type: "flow", pairs, walls, solution: paths };
   }
-  throw new Error("Colour Connect generator could not build a unique board");
+  throw new Error(`${gameDisplayName("flow")} generator could not build a unique board`);
 }
 
 /** Server-side check of a Colour Connect submission against the rules themselves. */

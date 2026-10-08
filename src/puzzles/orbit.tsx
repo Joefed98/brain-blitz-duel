@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useMemo, useRef, useState } from "react";
 import { orbitDevPlanet } from "@/lib/arcade/orbitDevJump";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
@@ -62,7 +63,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     )}
     <ArcadeCanvasStage
       diagKey="orbit"
-      label="Orbit"
+      label={gameDisplayName("orbit")}
       background="transparent"
       seed={data?.seed ?? 1}
       enabled={data !== null}
@@ -126,7 +127,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const orbitPuzzle: PuzzleDefinition = {
   key: "orbit",
-  name: "Orbit",
+  name: gameDisplayName("orbit"),
   category: "arcade",
   timeLimitMs: ORBIT_TIME_MS,
   revealMs: 6_000,

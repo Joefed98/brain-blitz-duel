@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef } from "react";
 
 import { ArrowPad, gridCellAt } from "@/components/puzzles/GridDrag";
@@ -295,7 +296,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The maze and its one route are built server-side and stay there. */
 export const mazeDashPuzzle: PuzzleDefinition = {
   key: "maze",
-  name: "Maze Dash",
+  name: gameDisplayName("maze"),
   category: "attention",
   timeLimitMs: MAZE_TIME_MS,
   revealMs: 5_000,

@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
@@ -243,7 +244,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ ...NO_SCROLL_STYLE, background: BEAT_BG }}
-        aria-label="Beat"
+        aria-label={gameDisplayName("beat")}
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || beatGame.isOver(state.current)) return;
@@ -298,7 +299,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The chart comes from the round's seed; the run is replayed on the server. */
 export const beatPuzzle: PuzzleDefinition = {
   key: "beat",
-  name: "Beat",
+  name: gameDisplayName("beat"),
   category: "arcade",
   timeLimitMs: (BEAT_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,

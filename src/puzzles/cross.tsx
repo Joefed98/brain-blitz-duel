@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { crossSounds } from "@/lib/fx/gameSounds";
 import { drawCrossArt } from "@/lib/arcade/cross.renderer";
@@ -220,7 +221,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: CROSS_BG }}
-        aria-label="Cross"
+        aria-label={gameDisplayName("cross")}
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || crossGame.isOver(state.current)) return;
@@ -280,7 +281,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const crossPuzzle: PuzzleDefinition = {
   key: "cross",
-  name: "Cross",
+  name: gameDisplayName("cross"),
   category: "arcade",
   timeLimitMs: (CROSS_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,

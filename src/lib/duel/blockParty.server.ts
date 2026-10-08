@@ -1,3 +1,4 @@
+import { gameDisplayName } from "./gameNames";
 /**
  * Server-only Block Party layout building. A layout is only used once a solver
  * has proved it fits and counted how many ways it can be done.
@@ -95,5 +96,5 @@ export function generateBlockParty(): BlockPartyPuzzleData {
     if (first) return { type: "blockparty", blockers, solution: first, solutions: count };
   }
 
-  throw new Error(`Could not build a Block Party layout of ${BLOCK_FREE_CELLS} cells.`);
+  throw new Error(`Could not build a ${gameDisplayName("blockparty")} layout of ${BLOCK_FREE_CELLS} cells.`);
 }

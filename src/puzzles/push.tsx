@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowPad, useSwipe } from "@/components/puzzles/GridDrag";
@@ -251,7 +252,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** Layouts come from the curated bank; the minimum and solution stay server-side. */
 export const pushPuzzle: PuzzleDefinition = {
   key: "push",
-  name: "Push",
+  name: gameDisplayName("push"),
   category: "logic",
   timeLimitMs: PUSH_TIME_MS,
   revealMs: 8_000,

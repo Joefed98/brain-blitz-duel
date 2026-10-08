@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
 import { useGridPointer } from "@/components/puzzles/GridDrag";
@@ -214,7 +215,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 
 export const shikakuPuzzle: PuzzleDefinition = {
   key: "shikaku",
-  name: "Shikaku",
+  name: gameDisplayName("shikaku"),
   category: "logic",
   timeLimitMs: SHIKAKU_TIME_MS,
   revealMs: 8_000,

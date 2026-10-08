@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef } from "react";
 
@@ -57,7 +58,7 @@ function Frame({
       ref={board}
       className="puzzle-board grid gap-1.5 rounded-xl border-2 border-border bg-card p-1.5"
       style={{ gridTemplateColumns: `repeat(${TILES_SIZE}, ${cell}px)` }}
-      aria-label="Sliding Tiles frame"
+      aria-label={`${gameDisplayName("tiles")} frame`}
     >
       {frame.map((value, index) =>
         value === 0 ? (
@@ -241,7 +242,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The frame is public; the minimum and one shortest route stay private. */
 export const slidingTilesPuzzle: PuzzleDefinition = {
   key: "tiles",
-  name: "Sliding Tiles",
+  name: gameDisplayName("tiles"),
   category: "pattern",
   timeLimitMs: TILES_TIME_MS,
   revealMs: 5_000,

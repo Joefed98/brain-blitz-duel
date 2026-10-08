@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef } from "react";
 
@@ -257,7 +258,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** Walls, starts, targets, the searched minimum and one shortest route come from the server. */
 export const gravityMazePuzzle: PuzzleDefinition = {
   key: "gravity",
-  name: "Gravity Maze",
+  name: gameDisplayName("gravity"),
   category: "pattern",
   timeLimitMs: GRAV_TIME_MS,
   revealMs: 8_000,

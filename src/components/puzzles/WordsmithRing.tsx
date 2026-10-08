@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { WORDSMITH_CENTRE_INDEX } from "@/lib/duel/types";
+import { gameDisplayName } from "@/lib/duel/gameNames";
 
 type Point = { x: number; y: number };
 const inset = (1 - Math.tan(Math.PI / 8)) * 50;
@@ -113,7 +114,7 @@ export function WordsmithRing({ letters, selected = [], disabled = true, onTap }
     void document.fonts.ready.then(measure);
     return () => { active = false; observer.disconnect(); };
   }, [letters.join("")]);
-  return <div ref={host} className="wordsmith-ring relative aspect-square w-full select-none" aria-label="Wordsmith letter ring">
+  return <div ref={host} className="wordsmith-ring relative aspect-square w-full select-none" aria-label={`${gameDisplayName("wordsmith")} letter ring`}>
     {letters.map((letter, index) => {
       const centre = index === WORDSMITH_CENTRE_INDEX;
       const polygon = segments[index]?.polygon ?? [];

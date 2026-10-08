@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
@@ -239,7 +240,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         ref={canvas}
         className="puzzle-board block h-full w-full rounded-xl"
         style={{ background: SLICE_BG }}
-        aria-label="Slice"
+        aria-label={gameDisplayName("slice")}
         onPointerDown={(event) => {
           event.preventDefault();
           if (locked || submitted.current || sliceGame.isOver(state.current)) return;
@@ -281,7 +282,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The seed is generated on the server; every run is replayed there for scoring. */
 export const slicePuzzle: PuzzleDefinition = {
   key: "slice",
-  name: "Slice",
+  name: gameDisplayName("slice"),
   category: "arcade",
   timeLimitMs: (SLICE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,

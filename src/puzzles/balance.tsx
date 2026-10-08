@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -354,7 +355,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
 
 export const balancePuzzle: PuzzleDefinition = {
   key: "balance",
-  name: "Balance",
+  name: gameDisplayName("balance"),
   category: "number",
   timeLimitMs: BAL_TIME_MS,
   revealMs: BAL_REVEAL_MS,

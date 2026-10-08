@@ -1,3 +1,4 @@
+import { gameDisplayName } from "./gameNames";
 import { pick, randInt, shuffled } from "./random";
 import type { Operator, TargetNumberPuzzleData, TargetStep } from "./types";
 
@@ -217,7 +218,7 @@ function buildFallbackPuzzle(): TargetNumberPuzzleData {
     const solution = findFiveTileTarget(tiles, target);
     if (solution) return { type: "target", tiles, target, solution };
   }
-  throw new Error("Unable to construct a valid Target Number puzzle");
+  throw new Error(`Unable to construct a valid ${gameDisplayName("target")} puzzle`);
 }
 
 /**

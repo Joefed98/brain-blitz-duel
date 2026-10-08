@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -244,7 +245,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             gap: WHACK_GAP_PX,
             minWidth: 4 * 72 + 3 * WHACK_GAP_PX,
           }}
-          aria-label="Whack-a-Target board"
+          aria-label={`${gameDisplayName("whack")} board`}
           onPointerDown={(event) => {
             event.preventDefault();
             if (locked || submitted.current || whackGame.isOver(state.current)) return;
@@ -282,7 +283,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The schedule comes from the round's seed; the run is replayed on the server. */
 export const whackPuzzle: PuzzleDefinition = {
   key: "whack",
-  name: "Whack-a-Target",
+  name: gameDisplayName("whack"),
   category: "speed",
   arcadeRun: true,
   timeLimitMs: WHACK_TIME_MS,

@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -753,7 +754,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** Layouts and the mirror placement are built server-side and stay there. */
 export const laserPuzzle: PuzzleDefinition = {
   key: "laser",
-  name: "Laser and Mirrors",
+  name: gameDisplayName("laser"),
   category: "pattern",
   timeLimitMs: LASER_TIME_MS,
   revealMs: 8_000,

@@ -1,3 +1,4 @@
+import { gameDisplayName } from "./gameNames";
 /**
  * Server-only Wordsmith logic: board generation, word checking and scoring.
  * Eight to eleven letters in a ring; every word must use the centre letter. The
@@ -90,7 +91,7 @@ function validWords(source: string, centre: string): string[] {
 /** Uniform size draw, then an answer-first pangram within the size's word-count band. */
 export function generateWordsmith(size: number = pick(WORDSMITH_SIZES)): WordsmithPuzzleData {
   const supported = WORDSMITH_SIZES.find((value) => value === size);
-  if (supported === undefined) throw new Error("Unsupported Wordsmith size");
+  if (supported === undefined) throw new Error(`Unsupported ${gameDisplayName("wordsmith")} size`);
   return generateWithinRange(supported, WORDSMITH_WORD_RANGES[supported]);
 }
 

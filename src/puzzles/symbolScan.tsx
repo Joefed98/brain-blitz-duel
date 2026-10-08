@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
 import { StageProgress } from "@/components/puzzles/StageProgress";
@@ -285,7 +286,7 @@ export function buildSymbolScan(): SymbolScanPuzzleData {
 
 export const symbolScanPuzzle: PuzzleDefinition = {
   key: "symscan",
-  name: "Symbol Scan",
+  name: gameDisplayName("symscan"),
   category: "attention",
   timeLimitMs: SYMSCAN_TIME_MS,
   generate: buildSymbolScan,

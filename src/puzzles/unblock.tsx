@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useState } from "react";
 
@@ -127,7 +128,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** Layouts come from a verified bank; the minimum and its solution stay server-side. */
 export const unblockPuzzle: PuzzleDefinition = {
   key: "unblock",
-  name: "Unblock",
+  name: gameDisplayName("unblock"),
   category: "pattern",
   timeLimitMs: UNBLOCK_TIME_MS,
   generate: () => ({ type: "unblock", vehicles: [] }) satisfies UnblockPuzzleData,

@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useEffect, useRef } from "react";
 
@@ -253,7 +254,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 export const equationPuzzle: PuzzleDefinition = {
   key: "equation",
-  name: "Equation Balancing",
+  name: gameDisplayName("equation"),
   category: "number",
   timeLimitMs: EQUATION_TIME_MS,
   generate: buildEquation,

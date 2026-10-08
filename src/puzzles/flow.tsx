@@ -1,3 +1,4 @@
+import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";
@@ -337,7 +338,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 /** The solved paths stay server-side; the server re-walks whatever a phone sends. */
 export const flowPuzzle: PuzzleDefinition = {
   key: "flow",
-  name: "Colour Connect",
+  name: gameDisplayName("flow"),
   category: "logic",
   timeLimitMs: FLOW_TIME_MS,
   revealMs: 8_000,
