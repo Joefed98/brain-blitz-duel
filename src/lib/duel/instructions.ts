@@ -762,9 +762,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "2 per car through, −1 per car that gives up, +4 per ambulance waved through, −4 if one has to stop, +40 for surviving the minute. Clamp 0-150.",
   },
   inkbridge: {
-    goal: "Draw a path so the ball rolls into the bucket.",
+    goal: "Draw a path so the coin rolls into the pot.",
     how: [
-      { action: "Draw lines around the grey blocks,", detail: "then tap RELEASE." },
+      { action: "Draw lines around the red blocks,", detail: "then tap RELEASE." },
       { action: "Ink is limited", detail: "- more each level." },
       { action: "Three failed drops", detail: "and you're out." },
     ],
@@ -811,8 +811,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Roll the ball out of the maze.",
     how: [
       { action: "Drag left or right to spin the maze", detail: "- the ball always rolls down." },
-      { action: "Each escape brings a harder maze.", detail: "Red spikes end the run." },
-      { action: "From maze 2 a red ball waits behind a silver gate.", detail: "Pass the padlock and it's free - it tilts with you. Touch it and the run ends." },
+      { action: "Each escape brings a harder maze.", detail: "A dark pit ends the run." },
+      { action: "From maze 2 a red ball waits behind a silver gate.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch it and the run ends." },
     ],
     score: "Four mazes, 30 each. All four = 130 + up to 20 for time left.",
   },

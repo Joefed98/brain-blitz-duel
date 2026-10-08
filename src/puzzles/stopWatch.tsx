@@ -321,7 +321,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <div className="grid w-full grid-cols-2 gap-x-4 gap-y-1">
         {errors.map((ms, index) => (
           <p key={index} className="font-mono text-sm tabular-nums text-foreground">
-            Watch {index + 1} — {ms >= STOPWATCH_MISS_MS ? "missed (500 ms)" : `${ms} ms off`}
+            Watch {index + 1} - {ms >= STOPWATCH_MISS_MS ? "missed (500 ms)" : `${ms} ms off`}
           </p>
         ))}
       </div>

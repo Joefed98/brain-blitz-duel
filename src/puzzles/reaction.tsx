@@ -239,7 +239,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         ) : (
           times.map((ms, index) => (
             <p key={index} className="font-mono text-xl tabular-nums text-foreground">
-              Flash {index + 1} — {ms >= REACTION_MISS_MS ? "missed (1,200 ms)" : `${ms} ms`}
+              Flash {index + 1} - {ms >= REACTION_MISS_MS ? "missed (1,200 ms)" : `${ms} ms`}
             </p>
           ))
         )}
