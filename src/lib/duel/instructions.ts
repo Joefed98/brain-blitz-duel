@@ -300,7 +300,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a light", detail: "to flip it and its four neighbours." },
       { action: "Plan each press", detail: "because nearby lights also change." },
     ],
-    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 1–4 lights left = 85 / 75 / 60 / 50.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 1-4 lights left = 85 / 75 / 60 / 50.",
   },
   pipes: {
     goal: "Connect every pipe to the source with no leaks.",
@@ -309,7 +309,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Join every opening", detail: "to another pipe or the source." },
       { action: "Leave no leaks", detail: "at the grid edges." },
     ],
-    score: "Complete = 130 + up to 20 for speed. Otherwise 48 = 90, 47–45 = 85, then 5 less per two tiles down to 40 at 27; fewer score 1.5 each.",
+    score: "Complete = 130 + up to 20 for speed. Otherwise 48 = 90, 47-45 = 85, then 5 less per two tiles down to 40 at 27; fewer score 1.5 each.",
   },
   sudoku: {
     goal: "Fill the grid with every row, column, and box valid.",
@@ -723,7 +723,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Swipe left or right", detail: "to change lane, up to jump, down to slide." },
       { action: "It keeps getting faster.", detail: "" },
     ],
-    score: "The longer you last, the more you score — the full minute is 150.",
+    score: "The longer you last, the more you score - the full minute is 150.",
   },
   sortrush: {
     goal: "Sort every shape into the gate of its colour.",
