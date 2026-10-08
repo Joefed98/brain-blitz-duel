@@ -314,7 +314,7 @@ function buildStage(total: number, [min, max]: [number, number]): { stage: Count
     const stage = { cols: 10, rows: 10, shapes, targetShape, targetColour } satisfies CountUpStage;
     if (countUpSceneValid(stage)) return { stage, count };
   }
-  throw new Error("Count Up scene generation exhausted visibility attempts");
+  throw new Error(`${gameDisplayName("countup")} scene generation exhausted visibility attempts`);
 }
 
 export function buildCountUp(): CountUpPuzzleData {
