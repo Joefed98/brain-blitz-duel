@@ -1442,7 +1442,7 @@ const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {
 const trailSummary: SummaryBuilder = (result, puzzle) => {
   const prefix = Number(result.extra?.["prefix"] ?? 0);
   if (result.is_correct) return { summary: `Complete · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
-  return { summary: `${prefix} / 26 tiles correct`, detail: [] };
+  return { summary: `${prefix} / 36 steps correct`, detail: [] };
 };
 
 const digSummary: SummaryBuilder = (result) => {

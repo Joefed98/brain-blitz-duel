@@ -811,7 +811,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Roll the ball out of the maze.",
     how: [
       { action: "Drag left or right to spin the maze", detail: "- the ball always rolls down." },
-      { action: "Each escape brings a harder maze.", detail: "A dark pit ends the run." },
+      { action: "Each escape brings a harder maze.", detail: "Red spikes end the run." },
       { action: "From maze 2 a red ball waits behind a silver gate.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch it and the run ends." },
     ],
     score: "Four mazes, 30 each. All four = 130 + up to 20 for time left.",
