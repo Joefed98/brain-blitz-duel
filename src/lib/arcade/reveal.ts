@@ -50,10 +50,10 @@ const BUILDERS: Record<string, Builder> = {
   hover: (r, s) => {
     const done = n(r, "gates") >= n(r, "totalGates") && n(r, "totalGates") > 0;
     return {
-      axis: { value: n(r, "gates"), max: n(r, "totalGates"), label: "Gates passed" },
-      lines: [`${n(r, "gates")} / ${n(r, "totalGates")} gates → ${s}`],
+      axis: { value: n(r, "gates"), max: n(r, "totalGates"), label: "Barriers passed" },
+      lines: [`${n(r, "gates")} / ${n(r, "totalGates")} barriers → ${s}`],
       tiles: [
-        { label: "Gates", value: String(n(r, "gates")) },
+        { label: "Barriers", value: String(n(r, "gates")) },
         { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "endedSeconds")) },
       ],
       outcome: done ? "finish" : ended(r, false),

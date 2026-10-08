@@ -1030,8 +1030,8 @@ const hoverSummary: SummaryBuilder = (result) => {
   return {
     summary: survived
       ? `${gates} / ${total} · survived`
-      : `${gates} / ${total} gates · crashed at ${ended.toFixed(1)}s`,
-    detail: ["150 × gates passed ÷ total gates", survived ? "Flew the whole run" : "Run ended early"],
+      : `${gates} / ${total} barriers · crashed at ${ended.toFixed(1)}s`,
+    detail: ["150 × barriers passed ÷ total barriers", survived ? "Flew the whole run" : "Run ended early"],
   };
 };
 

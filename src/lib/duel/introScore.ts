@@ -96,7 +96,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   patcomp: "Each correct pattern scores. Get all three for a speed bonus.",
 
   // Logic and pattern
-  unblock: fewestMoves("Free the gold car", "up to 70 points for clearing its lane"),
+  unblock: fewestMoves("Free the gold block", "up to 70 points for clearing its lane"),
   lightsout: fewestMoves("Turn every light off", "up to 85 points if only a few lights are left on"),
   pipes: standard("Connect every pipe", "points for how many tiles are connected"),
   sudoku: standard("Fill the grid", "points for each correct cell, up to 110"),
@@ -121,7 +121,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   dig: "Fill the drain with clean water: 100 points plus a time bonus, and 20 more if you stay within the planned digs. Otherwise points for clean water drained.",
 
   // Arcade
-  hover: arcadeOpen("each gate you fly through; all of them scores 150"),
+  hover: arcadeOpen("each barrier gap you fly through; all of them scores 150"),
   skyline: arcadeConverted(`${SKYLINE_BLOCK_POINTS} points per block stacked, plus ${SKYLINE_PERFECT_POINTS} per perfect drop`),
   bintoss: arcadeFinish("each bucket, 10 a time", "Sink all ten"),
   bullseye: `Rings: ${BULLSEYE_RING_VALUES.join(", ")} from the centre out. ${arcadeConverted("Multiply your ring total by 1.7, then subtract 20")} Minimum 0. Missed or unfired darts add nothing to the ring total.`,

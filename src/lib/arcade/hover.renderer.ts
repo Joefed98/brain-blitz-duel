@@ -14,6 +14,7 @@ import {
   type HoverState,
 } from "./hover";
 import type { ArcadeGame, CanvasSize } from "./engine";
+import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import {
   pixelRect,
   pixelShape,
@@ -27,12 +28,36 @@ import {
 
 const FP = 256;
 const px = (v: number) => v / FP;
-const PIPE = "#3DFFE0";
-const PIPE_FAST = "#B6FFF3";
+const PIPE = "#E95AFF";
+const PIPE_FAST = "#F6ADFF";
 const SAUCER = "#FFD84A";
 const SAUCER_DARK = "#B8901C";
 const DOME = "#5CD0FF";
-const CAP_H = 8;
+const barrierCache = new Map<string, ArtCanvas>();
+
+/** Two finite, full-height raster columns; cropped without scaling to each collision box. */
+function barrierSprite(w: number, colour: string): ArtCanvas | null {
+  const cached = barrierCache.get(colour);
+  if (cached) return cached;
+  const layer = artCanvas(w * 2, HOVER_WORLD_H * 2);
+  const c = layer && artContext(layer);
+  if (!layer || !c) return null;
+  c.scale(2, 2);
+  c.fillStyle = "#39114F"; c.fillRect(0, 0, w, HOVER_WORLD_H);
+  // One baked glow pass, clipped by the raster's exact rectangular footprint.
+  c.shadowColor = colour; c.shadowBlur = 3;
+  for (let y = 0; y < HOVER_WORLD_H; y += 12) {
+    c.fillStyle = Math.floor(y / 12) % 2 ? "#9E38D6" : "#C642CE";
+    c.fillRect(0, y, w, 11);
+  }
+  c.shadowBlur = 0;
+  for (let y = 0; y < HOVER_WORLD_H; y += 12) {
+    c.fillStyle = colour; c.fillRect(2, y + 2, w - 4, 1);
+    c.fillStyle = "#5A1D75"; c.fillRect(w / 2, y + 3, 1, 7);
+  }
+  barrierCache.set(colour, layer);
+  return layer;
+}
 
 function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize): void {
   retroScreen(ctx, size, HOVER_WORLD_W, HOVER_WORLD_H, "fit", (c) => drawWorld(c, state));
@@ -62,7 +87,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   });
 
   drawSaucer(ctx, state, crashIndicator);
-  retroReadout(ctx, 10, 10, `GATES ${state.gates}/${state.totalGates}`, RETRO_WHITE);
+  retroReadout(ctx, 10, 10, `BARRIERS ${state.gates}/${state.totalGates}`, RETRO_WHITE);
 
   if (state.crashed && crashIndicator) {
     ctx.fillStyle = "rgba(255,59,92,0.2)";
@@ -70,7 +95,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   }
 }
 
-/** A neon pipe filling exactly the pillar box, with a pixel cap at the gap end. */
+/** Stacked energy blocks fill the exact pillar rectangle, without a cap or lip. */
 function drawPipe(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -83,18 +108,25 @@ function drawPipe(
   capAt: "top" | "bottom",
 ): void {
   if (h <= 0) return;
-  pixelRect(ctx, x, y, w, h, "#06302A");
-  pixelRect(ctx, x, y, 2, h, colour, bloom);
-  pixelRect(ctx, x + w - 2, y, 2, h, colour, bloom);
-  pixelRect(ctx, x + 8, y, 4, h, `${colour}55`);
-  const capY = capAt === "bottom" ? y + h - Math.min(CAP_H, h) : y;
-  pixelRect(ctx, x, capY, w, Math.min(CAP_H, h), colour, bloom);
-  pixelRect(ctx, x + 4, capY + 2, w - 8, Math.max(0, Math.min(CAP_H, h) - 4), "#06302A");
+  const stamp = barrierSprite(w, colour);
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  if (stamp) ctx.drawImage(stamp, 0, 0, w * 2, h * 2, x, y, w, h);
+  else {
+    pixelRect(ctx, x, y, w, h, "#39114F");
+    for (let row = 0; row < h; row += 12)
+      pixelRect(ctx, x, y + row, w, Math.min(11, h - row), colour);
+  }
+  // A thin jagged energy trace remains inside the flat facing block edge.
+  const edge = capAt === "bottom" ? y + h - 1 : y;
+  pixelRect(ctx, x, edge, w, 1, colour);
+  for (let column = 2; column < w; column += 6)
+    pixelRect(ctx, x + column, capAt === "bottom" ? edge - 1 : edge + 1, Math.min(3, w - column), 1, RETRO_WHITE);
   if (flash > 0) {
     ctx.globalAlpha = flash * 0.85;
-    pixelRect(ctx, x, y, w, h, RETRO_WHITE, bloom * 1.5);
+    pixelRect(ctx, x, y, w, h, RETRO_WHITE);
     ctx.globalAlpha = 1;
   }
+  ctx.restore();
 }
 
 /** Saucer drawn in 2 px blocks, every block inside the sim's disc. */

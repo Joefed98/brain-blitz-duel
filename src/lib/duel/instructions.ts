@@ -277,13 +277,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Round score = 2 × word points, up to 150. The counter shows word points.",
   },
   unblock: {
-    goal: "Slide the gold car through the exit.",
+    goal: "Slide the gold block through the exit.",
     how: [
-      { action: "Drag each car", detail: "only along its own direction." },
-      { action: "Clear a path", detail: "for the gold car." },
-      { action: "Slide the gold car", detail: "out through the opening." },
+      { action: "Drag each block", detail: "only along its own direction." },
+      { action: "Clear a path", detail: "for the gold block." },
+      { action: "Slide the gold block", detail: "out through the opening." },
     ],
-    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: up to 70 for clearing the gold car's lane.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: up to 70 for clearing the gold block's lane.",
   },
   blockparty: {
     goal: "Fill every free board square with all nine pieces.",
@@ -492,13 +492,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 12 per aligned spoke.",
   },
   hover: {
-    goal: "Fly through as many gaps as you can.",
+    goal: "Fly through as many gaps in the energy barriers as you can.",
     how: [
       { action: "Tap anywhere", detail: "to hover up; let go to drop." },
       { action: "Hit anything", detail: "and the run ends." },
       { action: "Everyone flies", detail: "the same course for sixty seconds." },
     ],
-    score: "150 × gates passed ÷ total gates.",
+    score: "150 × barriers passed ÷ total barriers.",
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",
