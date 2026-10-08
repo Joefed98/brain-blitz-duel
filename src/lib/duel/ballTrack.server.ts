@@ -1,3 +1,4 @@
+import { gameDisplayName } from "./gameNames";
 import { BALL_TRACK_BANK } from "./ballTrackBank.server";
 import type { BallTrackPuzzleData } from "./types";
 
@@ -5,7 +6,7 @@ import type { BallTrackPuzzleData } from "./types";
 export function generateBallTrack(): BallTrackPuzzleData {
   const index = Math.floor(Math.random() * BALL_TRACK_BANK.length);
   const entry = BALL_TRACK_BANK[index];
-  if (!entry) throw new Error("Ball Track bank is empty");
+  if (!entry) throw new Error(`${gameDisplayName("balltrack")} bank is empty`);
   return {
     type: "balltrack",
     seed: index + 1,

@@ -1,3 +1,4 @@
+import { gameDisplayName } from "./gameNames";
 /**
  * Server-only Light Up generator: a 9×9 board with 18–23 walls, a random
  * valid bulb layout, and roughly half of walls numbered. Boards the solver does
@@ -47,5 +48,5 @@ export function generateLightUp(): LightUpPuzzleData {
       solution: [...bulbs].sort((a, b) => a - b),
     };
   }
-  throw new Error("Light Up generation failed");
+  throw new Error(`${gameDisplayName("lightup")} generation failed`);
 }

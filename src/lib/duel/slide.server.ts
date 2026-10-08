@@ -1,3 +1,4 @@
+import { gameDisplayName } from "./gameNames";
 /**
  * Server-only Ice Slide generation. Every layout is proved solvable by
  * breadth-first search over (ball cell, broken thin-ice mask); the minimum must
@@ -107,5 +108,5 @@ export function generateIceSlide(): SlidePuzzleData {
       solution: found.route.join(""),
     };
   }
-  throw new Error("Ice Slide generator could not build a reachable layout");
+  throw new Error(`${gameDisplayName("iceslide")} generator could not build a reachable layout`);
 }
