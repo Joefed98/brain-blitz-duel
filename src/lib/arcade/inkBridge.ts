@@ -37,6 +37,8 @@ export const INK_INPUT_RELEASE = 13;
 export const INK_INPUT_UNDO = 14;
 export const INK_INPUT_RESET = 15;
 export const INK_INPUT_DROP_AGAIN = 16;
+/** Live levels only: commits the live draft strokes drawn since the last lift. */
+export const INK_INPUT_LIFT = 17;
 /** Stroke points closer than this to the pen are not sent. */
 export const INK_STEP_PX = 12;
 export const INK_LEVELS = 10;
@@ -105,11 +107,32 @@ export const INK_INPUT_RANGES: readonly InputRange[] = [
   inputRange(INK_INPUT_UNDO, [0, 255]),
   inputRange(INK_INPUT_RESET, [0, 255]),
   inputRange(INK_INPUT_DROP_AGAIN, [0, 255]),
+  inputRange(INK_INPUT_LIFT, [0, 255]),
 ];
 
 /** Ink for a level (0-based), px: 500 at level 1 rising to 1,400 at level 10. */
 export function inkBudget(level: number): number {
   return 500 + Math.trunc((900 * clampInt(level, 0, INK_LEVELS - 1)) / (INK_LEVELS - 1));
+}
+
+/** Is this level (0-based) a "live" level — only true under inkRev 3, rounds 9–10. */
+export function inkIsLive(level: number, rev?: number | null): boolean {
+  return rev === INK_REV3 && level >= INK_LIVE_FROM;
+}
+
+/** Ink for a level, rev-aware: live levels share a budget 1.5× the usual. */
+export function inkBudgetFor(level: number, rev?: number | null): number {
+  const base = inkBudget(level);
+  return inkIsLive(level, rev) ? Math.trunc((base * INK_LIVE_BUDGET_256) / 256) : base;
+}
+
+/** Current slide speed of the bucket, px/tick (0 on a still pot). */
+export function inkSlideSpeed(lvl: InkLevel, tick: number): number {
+  if (lvl.slideAmp === 0) return 0;
+  const a =
+    (lvl.slidePhase + Math.trunc(((tick % lvl.slidePeriod) * 65536) / lvl.slidePeriod)) & 65535;
+  const da = Math.max(1, Math.trunc(65536 / lvl.slidePeriod));
+  return Math.trunc((lvl.slideAmp * (isin((a + da) & 65535) - isin(a))) / TRIG_ONE);
 }
 
 /* ================================ Types ================================ */
