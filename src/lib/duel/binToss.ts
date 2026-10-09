@@ -115,7 +115,8 @@ export interface BinTossResult {
 }
 
 /** The single place a Bin Toss score is worked out. */
-export function replayBinTossRun(seed: number, raw: string): BinTossResult {
+export function replayBinTossRun(seed: number, raw: string, rev?: number | null): BinTossResult {
+  const binTossGame = binTossGameFor(rev);
   const run = decodeBinTossRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BINTOSS_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < BINTOSS_RUN_TICKS;

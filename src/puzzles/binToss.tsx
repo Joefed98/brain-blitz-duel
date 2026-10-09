@@ -412,7 +412,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "bintoss") return null;
-  const result = replayBinTossRun(puzzle.seed, myAnswer ?? "");
+  const result = replayBinTossRun(puzzle.seed, myAnswer ?? "", puzzle.binRev);
   const throws = decodeBinTossRun(myAnswer ?? "").events.length;
 
   return (

@@ -1807,7 +1807,7 @@ export function gradeSubmission(
     case "bintoss": {
       // Same rule as the other arcade games: only the server's replay scores.
       const replayStart = performance.now();
-      const run = replayBinTossRun(puzzle.seed, answer);
+      const run = replayBinTossRun(puzzle.seed, answer, puzzle.binRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

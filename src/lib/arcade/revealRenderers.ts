@@ -110,7 +110,7 @@ const seedOf = (puzzle: PuzzleData): number => ("seed" in puzzle ? Number(puzzle
 export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a), undefined, hoverRevealGame),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a), undefined, skylineRevealGame),
-  bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a)),
+  bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a, p.type === "bintoss" ? p.binRev : undefined)),
   bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
     replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : []),
   ),
