@@ -1,7 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef } from "react";
 
-import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import {
   decodeTowerMoves,
@@ -20,10 +19,12 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const DISC_COLOURS = ["RED", "ORANGE", "GREEN", "BLUE", "PURPLE", "PINK", "BROWN"] as const;
+/** Graduated by size, smallest (light yellow) to largest (sky blue); equal sizes share a colour. */
+const HANOI_SHADES = 9;
 
-function discColour(size: number): string {
-  return GLYPH_COLOURS[DISC_COLOURS[(size - 1) % DISC_COLOURS.length]!];
+function discColour(size: number, discs = TOWER_DISCS): string {
+  const step = discs <= 1 ? 1 : Math.round(((size - 1) * (HANOI_SHADES - 1)) / (discs - 1)) + 1;
+  return `var(--hanoi-${Math.max(1, Math.min(HANOI_SHADES, step))})`;
 }
 
 /** Three or four pegs on a base; the target peg wears a gold base. */
@@ -52,14 +53,13 @@ function Pegs({
       {Array.from({ length: Math.max(3, pegs.length) }, (_, peg) => {
         const stack = pegs[peg] ?? [];
         const isLifted = lifted === peg;
-        const top = stack.length ? stack[stack.length - 1]! : null;
-        return (
+                return (
           <button
             key={peg}
             type="button"
             disabled={!onPeg}
             onClick={() => onPeg?.(peg)}
-            aria-label={`Peg ${peg + 1}`}
+            aria-label={`Post ${peg + 1}`}
              className="relative flex h-full flex-1 flex-col items-center justify-center"
           >
             {/* The lifted disc hovers above its peg. */}
@@ -70,11 +70,11 @@ function Pegs({
               <div className="flex h-6 w-full items-center justify-center">
                 {isLifted && liftedDisc !== null && (
                   <div
-                    className="rounded-full border-2 border-primary"
+                    className="hanoi-disc hanoi-lifted rounded-full -translate-y-0.5"
                     style={{
-                      height: compact ? 7 : 11,
+                      height: compact ? 7 : 12,
                       width: `${30 + (liftedDisc / discs) * 65}%`,
-                      backgroundColor: discColour(liftedDisc),
+                      backgroundColor: discColour(liftedDisc, discs),
                     }}
                   />
                 )}
@@ -83,7 +83,7 @@ function Pegs({
               <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-end">
                 <div
                   aria-hidden="true"
-                  className="absolute bottom-0 w-[6px] rounded-t bg-border"
+                  className="hanoi-post absolute bottom-0 w-[7px] rounded-t-full"
                   style={{ height: "100%" }}
                 />
                 {/* The stack is bottom-to-top from index 0, so the column is drawn
@@ -93,15 +93,13 @@ function Pegs({
                   return (
                     <div
                       key={size}
-                      className={`relative z-10 rounded-full ${shake === peg ? "animate-shake" : ""}`}
+                      className={`hanoi-disc relative z-10 rounded-full ${shake === peg ? "animate-shake" : ""}`}
                       style={{
                         height: compact ? 7 : 12,
                         marginTop: 2,
                         width: `${30 + (size / discs) * 65}%`,
-                        backgroundColor: discColour(size),
+                        backgroundColor: discColour(size, discs),
                         opacity: hide ? 0.25 : 1,
-                        outline:
-                          top === size && !hide ? "1px solid rgba(255,255,255,0.25)" : "none",
                       }}
                     />
                   );
@@ -109,8 +107,8 @@ function Pegs({
               </div>
             </div>
             <div
-              className={`mt-1 h-[6px] w-full rounded-full ${
-                peg === targetPeg ? "bg-primary" : "bg-border"
+              className={`mt-1 h-[7px] w-full rounded-full ${
+                peg === targetPeg ? "bg-primary" : "hanoi-base"
               }`}
             />
           </button>
@@ -126,13 +124,13 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Move every disc to the marked peg, one at a time. Never put a bigger disc on a smaller one.
+        Move every ring to the gold-based post, one at a time. Never put a bigger ring on a smaller one.
       </p>
       <div style={{ width: 190, height: 96 }}>
         <Pegs pegs={pegs} discs={9} targetPeg={3} compact />
       </div>
       <p className="text-xs text-muted-foreground">
-        Nine discs on 3 or 4 pegs - the line below says which. Fewest moves earns a bonus. You have 90 seconds.
+        Nine rings on 3 or 4 posts - the line below says which. Fewest moves earns a bonus. You have 90 seconds.
       </p>
     </div>
   );
@@ -273,7 +271,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         </span>
       </p>
       <p className="text-center text-base text-muted-foreground">
-        Park the big discs where they won&apos;t block you.
+        Park the big rings where they won&apos;t block you.
       </p>
     </div>
   );
@@ -298,7 +296,7 @@ export const towerPuzzle: PuzzleDefinition = {
   check: () => false,
   revealHeading: "Your tower",
   introLine: (puzzle) =>
-    puzzle.type === "tower" ? `${towerPegCount(puzzle.start)} pegs` : null,
+    puzzle.type === "tower" ? `${towerPegCount(puzzle.start)} posts` : null,
   IntroExample,
   Stage,
   Reveal,

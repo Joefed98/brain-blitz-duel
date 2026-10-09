@@ -24,27 +24,43 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const STAR_HEAD = "12,6.5 14.3,11.6 20,12.1 15.7,15.8 17,21.5 12,18.6 7,21.5 8.3,15.8 4,12.1 9.7,11.6";
-/** A friendly party guest: head shape = cell shape, face and hat = cell colour. */
+const STAR_HEAD = "12,3.2 14.9,9.4 21.6,10 16.6,14.5 18.1,21.2 12,17.8 5.9,21.2 7.4,14.5 2.4,10 9.1,9.4";
+/**
+ * A rounded, softly lit party guest. Head silhouette = cell shape, body and hat = cell colour;
+ * everything else (face, rim light, shadow) is identical on every guest.
+ */
 function CellGlyph({ cell, size }: { cell: IntruderCell; size: number }) {
   const fill = GLYPH_COLOURS[cell.colour];
   const ink = "var(--guest-ink)";
-  const head = { fill, stroke: ink, strokeWidth: 0.8, strokeLinejoin: "round" as const };
-  // Face features sit a little lower on triangles and stars so they stay inside the head.
-  const fy = cell.shape === "triangle" ? 18 : cell.shape === "star" ? 14.6 : 15;
-  const hatY = cell.shape === "circle" ? 6.8 : cell.shape === "square" ? 6.6 : cell.shape === "star" ? 5.2 : 6.5;
+  const head = { fill, stroke: ink, strokeWidth: 1.1, strokeLinejoin: "round" as const };
+  const sheen = { fill: "url(#guest-sheen)", pointerEvents: "none" as const };
+  const fy = cell.shape === "triangle" ? 17.6 : cell.shape === "star" ? 13.8 : 14.2;
+  const hatY = cell.shape === "circle" ? 6.2 : cell.shape === "square" ? 5.6 : cell.shape === "star" ? 4 : 5.2;
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <g transform={`rotate(${cell.rot} 12 12)`}>
-        {cell.shape === "circle" && <circle cx="12" cy="15" r="8.4" {...head} />}
-        {cell.shape === "square" && <rect x="3.6" y="6.6" width="16.8" height="16.8" rx="3" {...head} />}
-        {cell.shape === "triangle" && <polygon points="12,6.5 21.6,23.2 2.4,23.2" {...head} />}
-        {cell.shape === "star" && <polygon points={STAR_HEAD} {...head} transform="translate(-3 -3.5) scale(1.25)" />}
-        <polygon points={`12,0.6 14.6,${hatY} 9.4,${hatY}`} fill={fill} stroke={ink} strokeWidth="0.7" strokeLinejoin="round" />
-        <circle cx="12" cy="0.9" r="1.1" fill="var(--tally-white)" stroke={ink} strokeWidth="0.4" />
-        <circle cx="10.2" cy={fy - 0.8} r="0.95" fill={ink} />
-        <circle cx="13.8" cy={fy - 0.8} r="0.95" fill={ink} />
-        <path d={`M10.4 ${fy + 1.1}q1.6 1.4 3.2 0`} fill="none" stroke={ink} strokeWidth="0.8" strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="0 0 24 26" aria-hidden="true" style={{ overflow: "visible" }}>
+      <defs>
+        <radialGradient id="guest-sheen" cx="35%" cy="28%" r="75%">
+          <stop offset="0%" stopColor="var(--tally-white)" stopOpacity="0.55" />
+          <stop offset="45%" stopColor="var(--tally-white)" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="var(--guest-ink)" stopOpacity="0.32" />
+        </radialGradient>
+      </defs>
+      <ellipse cx="12" cy="25" rx="8" ry="1.3" fill={ink} opacity="0.55" />
+      <g transform={`rotate(${cell.rot} 12 13)`}>
+        <path d="M5.4 25c0-3.4 2.9-5.4 6.6-5.4s6.6 2 6.6 5.4z" fill={fill} stroke={ink} strokeWidth="1" />
+        <path d="M5.4 25c0-3.4 2.9-5.4 6.6-5.4s6.6 2 6.6 5.4z" {...sheen} />
+        {cell.shape === "circle" && <><circle cx="12" cy="13.4" r="7.6" {...head} /><circle cx="12" cy="13.4" r="7.6" {...sheen} /></>}
+        {cell.shape === "square" && <><rect x="4.6" y="5.6" width="14.8" height="14.8" rx="3.4" {...head} /><rect x="4.6" y="5.6" width="14.8" height="14.8" rx="3.4" {...sheen} /></>}
+        {cell.shape === "triangle" && <><polygon points="12,4.6 21,21 3,21" {...head} /><polygon points="12,4.6 21,21 3,21" {...sheen} /></>}
+        {cell.shape === "star" && <><polygon points={STAR_HEAD} {...head} /><polygon points={STAR_HEAD} {...sheen} /></>}
+        {/* Rim light on the upper-left edge. */}
+        <path d={cell.shape === "square" ? "M5.6 15V9a3 3 0 0 1 3-3" : cell.shape === "triangle" ? "M5 18.4 10.6 8" : cell.shape === "star" ? "M4.6 10.4h4.6" : "M5.6 11.2a7 7 0 0 1 4.2-4.6"} fill="none" stroke="var(--tally-white)" strokeOpacity="0.7" strokeWidth="0.9" strokeLinecap="round" />
+        <polygon points={`12,0 14.4,${hatY} 9.6,${hatY}`} fill={fill} stroke={ink} strokeWidth="0.8" strokeLinejoin="round" />
+        <path d={`M11.2 1.6 10.4 ${hatY - 0.6}`} stroke="var(--tally-white)" strokeOpacity="0.75" strokeWidth="0.7" strokeLinecap="round" />
+        <circle cx="12" cy="0.3" r="1.2" fill="var(--tally-white)" stroke={ink} strokeWidth="0.4" />
+        <circle cx="10.3" cy={fy - 0.8} r="1" fill={ink} />
+        <circle cx="13.7" cy={fy - 0.8} r="1" fill={ink} />
+        <path d={`M10.5 ${fy + 1.1}q1.5 1.3 3 0`} fill="none" stroke={ink} strokeWidth="0.85" strokeLinecap="round" />
       </g>
     </svg>
   );
@@ -59,6 +75,7 @@ function Grid({
   onCell,
   compact = false,
   picked = [],
+  tagged = false,
 }: {
   size: number;
   cells: IntruderCell[] | null;
@@ -69,10 +86,13 @@ function Grid({
   compact?: boolean;
   /** Player picks — lit with a yellow border. */
   picked?: number[];
+  /** Reveal only: label each marked guest with a small tag. */
+  tagged?: boolean;
 }) {
   // Taps go through the shared pointer-to-cell mapping, so a finger always
   // lands on the square underneath it.
   const { ref, handlers } = useGridPointer({ cols: size, rows: size, onCell });
+  const isMarked = (index: number) => (Array.isArray(marked) ? marked.includes(index) : marked === index);
   const { style, ...pointer } = handlers;
   return (
     <div
@@ -95,7 +115,7 @@ function Grid({
         return (
           <div
             key={index}
-             className={`party-cell relative flex items-center justify-center rounded-md border-2 bg-card ${picked.includes(index) ? "border-primary" : "border-transparent"} ${wrong === index ? "animate-shake" : ""}`}
+             className={`relative flex items-center justify-center rounded-full border-2 ${isMarked(index) ? "party-spot-bright" : "party-spot"} ${picked.includes(index) ? "border-primary" : "border-transparent"} ${wrong === index ? "animate-shake" : ""}`}
           >
             {cell ? (
               <CellGlyph
@@ -103,7 +123,8 @@ function Grid({
                 size={compact ? Math.max(13, 38 / size) : Math.round(280 / size) * 0.7}
               />
             ) : null}
-             {(Array.isArray(marked) ? marked.includes(index) : marked === index) && <span className="pointer-events-none absolute inset-[4%] rounded-full border-2 border-primary" aria-label="Changed cell" />}
+             {isMarked(index) && <span className="pointer-events-none absolute inset-[4%] rounded-full border-2 border-primary" aria-label="Changed guest" />}
+             {isMarked(index) && tagged && <span aria-label="Who's this?" className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary font-mono text-[10px] font-bold leading-none text-primary-foreground">?</span>}
           </div>
         );
       })}
@@ -132,11 +153,11 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <div className="flex items-center justify-center gap-3">
-        <div style={{ width: 92 }}>
+        <div className="party-room p-1" style={{ width: 92 }}>
           <Grid size={3} cells={EXAMPLE_BEFORE} compact />
         </div>
         <span className="font-mono text-xs text-muted-foreground">→</span>
-        <div style={{ width: 92 }}>
+        <div className="party-room p-1" style={{ width: 92 }}>
           <Grid size={3} cells={EXAMPLE_AFTER} marked={5} compact />
         </div>
       </div>
@@ -279,7 +300,8 @@ function Stage({
         <div className="h-1.5 w-full shrink-0 rounded-full bg-border" />
       )}
 
-      <div className="flex min-h-0 flex-1 items-center justify-center">
+      {/* The room dims during the existing one-second hide phase; no extra time is added. */}
+      <div className={`party-room flex min-h-0 flex-1 items-center justify-center p-1 ${phase === "hide" ? "party-dim" : ""}`}>
         <Grid
           size={board.size}
           cells={phase === "show" ? board.cells : phase === "hide" ? null : board.after}
@@ -313,6 +335,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
+       <p className="text-center font-mono text-base text-muted-foreground">Bright spotlight + ? = who&apos;s this?</p>
        <div className="flex w-full max-w-[480px] shrink-0 flex-col items-center gap-3">
         {puzzle.boards.map((board, index) => {
            const boardTaps = taps[index] ?? [];
@@ -320,9 +343,9 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           return (
              <div key={index} className="flex min-w-0 flex-col items-center gap-0.5">
                <span className="font-mono text-base text-muted-foreground">Party {index + 1} · original</span>
-               <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.cells} compact /></div>
+               <div className="party-room w-full max-w-[160px] p-1"><Grid size={board.size} cells={board.cells} compact /></div>
                <span aria-hidden="true" className="text-lg leading-none text-primary">↓</span>
-               <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.after} marked={answers[index] ?? []} wrong={boardTaps.find((tap) => !answers[index]!.includes(tap)) ?? null} compact /></div>
+               <div className="party-room w-full max-w-[160px] p-1"><Grid size={board.size} cells={board.after} marked={answers[index] ?? []} tagged wrong={boardTaps.find((tap) => !answers[index]!.includes(tap)) ?? null} compact /></div>
                <span className={`font-mono text-base ${ok ? "text-primary" : "text-warn"}`}>
                  {boardTaps.length === 0 ? "No taps" : ok ? "Your taps ✓" : "Your taps ✗"}
                </span>

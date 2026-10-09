@@ -1159,3 +1159,123 @@ body.game-lock {
 .bonk-burrow { border-radius: 50%; background: var(--bonk-hole); }
 .bonk-banner-red { color: var(--bonk-red); }
 .bonk-banner-gold { color: var(--bonk-gold); }
+
+/* Visual refresh C — presentation-only tokens and surfaces. */
+:root {
+  --concrete: #4A4D52;
+  --concrete-seam: rgba(0, 0, 0, 0.22);
+  --shelf: #1A1E24;
+  --shelf-edge: #36404C;
+  --crate: #B07B4F;
+  --crate-dark: #6F4729;
+  --crate-light: #D39A66;
+  --hazard: #F5C518;
+  --hazard-dark: #15171A;
+  --home-light: #3DDC84;
+  --worker-hat: #F5C518;
+  --worker-vest: #FF8A3D;
+  --worker-body: #2B3A4A;
+  --wood: #A8743F;
+  --wood-dark: #6B4423;
+  --wood-light: #D9A66B;
+  --hanoi-1: #FFE14D;
+  --hanoi-2: #FFC23D;
+  --hanoi-3: #FF9A3D;
+  --hanoi-4: #F2675E;
+  --hanoi-5: #E0508F;
+  --hanoi-6: #B85CD6;
+  --hanoi-7: #7E6BF0;
+  --hanoi-8: #4D8CFF;
+  --hanoi-9: #34B3E4;
+  --glass: rgba(200, 225, 255, 0.07);
+  --glass-edge: rgba(200, 225, 255, 0.32);
+  --glass-shine: rgba(255, 255, 255, 0.35);
+  --cork: #B88552;
+  --cork-dark: #7A5332;
+  --flood-a: #E0508F;
+  --flood-b: #3D7BFF;
+  --flood-c: #5EE6C8;
+  --flood-d: #FFE14D;
+  --flood-e: #FF8A1F;
+  --grass: #1C2A1F;
+  --grass-blade: rgba(120, 190, 110, 0.12);
+  --tuft: #6FB45E;
+  --pine: #2F7A45;
+  --pine-dark: #1E5631;
+  --leaf: #4E9A4A;
+  --trunk: #6B4423;
+  --sign: #8A5E36;
+  --sign-edge: #4E321B;
+  --sign-ink: #F6E7CF;
+  --velvet: #1A0F1F;
+  --velvet-deep: #0C070F;
+  --spot: rgba(255, 240, 210, 0.13);
+  --spot-bright: rgba(255, 230, 160, 0.38);
+  --plinth: #17181C;
+  --plinth-edge: #2C2E35;
+  --platter: #8F959E;
+  --platter-dark: #4C5158;
+  --strobe-off: #3A3D44;
+}
+.warehouse-floor {
+  background-color: var(--concrete);
+  background-image: linear-gradient(var(--concrete-seam) 1px, transparent 1px), linear-gradient(90deg, var(--concrete-seam) 1px, transparent 1px);
+  background-size: 50% 50%;
+}
+.warehouse-shelf {
+  background: linear-gradient(180deg, var(--shelf-edge) 0 14%, var(--shelf) 14% 46%, var(--shelf-edge) 46% 56%, var(--shelf) 56% 100%);
+  box-shadow: inset 0 0 0 1px var(--shelf-edge);
+}
+.warehouse-target {
+  background: repeating-linear-gradient(45deg, var(--hazard) 0 3px, var(--hazard-dark) 3px 6px);
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  padding: 3px;
+}
+.hanoi-disc {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.45) 0 18%, rgba(255,255,255,.08) 40%, rgba(0,0,0,.18) 100%);
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.45);
+}
+.hanoi-lifted { box-shadow: 0 0 10px 2px color-mix(in oklab, var(--primary) 65%, transparent), inset 0 -1px 0 rgba(0,0,0,.35); }
+.hanoi-post { background: linear-gradient(90deg, var(--wood-dark), var(--wood-light) 45%, var(--wood) 70%, var(--wood-dark)); }
+.hanoi-base { background: linear-gradient(180deg, var(--wood-light), var(--wood) 40%, var(--wood-dark)); box-shadow: 0 2px 3px rgba(0,0,0,.5); }
+@layer components {
+.flask {
+  background: linear-gradient(90deg, var(--glass) 0, rgba(255,255,255,.02) 55%, var(--glass));
+  border-color: var(--glass-edge);
+  box-shadow: inset 2px 0 0 var(--glass-shine);
+}
+}
+.potion-layer { box-shadow: inset 0 1px 0 rgba(0,0,0,.45), inset 0 3px 3px -2px rgba(255,255,255,.35); position: relative; overflow: hidden; }
+.potion-bubble { position: absolute; width: 3px; height: 3px; border-radius: 999px; background: rgba(255,255,255,.55); bottom: 0; animation: potion-rise 2.6s linear infinite; }
+@keyframes potion-rise { from { transform: translateY(0); opacity: 0; } 15% { opacity: .9; } to { transform: translateY(-260%); opacity: 0; } }
+.potion-cork { animation: cork-pop 380ms cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes cork-pop { from { transform: translateY(-10px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.potion-sparkle { animation: sparkle 700ms ease-out both; }
+@keyframes sparkle { from { transform: scale(.2) rotate(0); opacity: 1; } to { transform: scale(1.4) rotate(90deg); opacity: 0; } }
+.flood-tile { border-radius: 3px; background-image: linear-gradient(160deg, rgba(255,255,255,.08), rgba(0,0,0,.12)); }
+.flood-wet { background-image: linear-gradient(135deg, rgba(255,255,255,.34) 0 22%, rgba(255,255,255,.06) 45%, rgba(0,0,0,.05)); }
+.flood-ripple { animation: flood-ripple 300ms ease-out both; }
+@keyframes flood-ripple { from { transform: scale(.72); filter: brightness(1.45); } to { transform: none; filter: none; } }
+.camp-cell {
+  background-color: var(--grass);
+  background-image: repeating-linear-gradient(100deg, transparent 0 5px, var(--grass-blade) 5px 6px), repeating-linear-gradient(75deg, transparent 0 7px, var(--grass-blade) 7px 8px);
+}
+.camp-sign { background: linear-gradient(180deg, var(--sign), var(--sign-edge)); color: var(--sign-ink); border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.party-room { background: radial-gradient(ellipse at 50% 0%, var(--velvet), var(--velvet-deep)); border-radius: 16px; transition: filter 260ms ease; }
+.party-dim { filter: brightness(.35); }
+.party-spot { background: radial-gradient(circle at 50% 58%, var(--spot) 0 42%, transparent 70%); }
+.party-spot-bright { background: radial-gradient(circle at 50% 58%, var(--spot-bright) 0 44%, transparent 72%); }
+.deck-plinth { background: linear-gradient(160deg, var(--plinth-edge), var(--plinth) 40%); border-radius: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 6px 14px rgba(0,0,0,.45); }
+.ring-turn { animation: ring-turn var(--turn-ms, 220ms) cubic-bezier(.2,.9,.25,1.12) both; }
+@keyframes ring-turn { from { transform: rotate(var(--turn-from)); } to { transform: rotate(0deg); } }
+.record-solved { animation: record-spin 1100ms cubic-bezier(.4,0,.2,1) both; filter: drop-shadow(0 0 8px var(--primary)); }
+@keyframes record-spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+.ring-glow { filter: drop-shadow(0 0 4px var(--primary)); }
+@media (prefers-reduced-motion: reduce) {
+  .potion-bubble, .flood-ripple, .ring-turn, .record-solved, .potion-sparkle { animation: none; }
+}
+.tubes-play-layer {
+  /* One ball diameter plus its old gap, so five layers fill the same slots. */
+  height: calc(min(calc((40cqh - 30px) / 6), calc((100cqw - 32px) / 5 - 16px)) + 4px);
+}
