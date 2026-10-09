@@ -245,7 +245,7 @@ function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
                                                             : puzzle.type === "safe"
                                                               ? SAFE_TIME_MS
                                                               : puzzle.type === "bomb"
-                                                                ? BOMB_TIME_MS
+                                                                ? (puzzle.timeLimitMs ?? BOMB_TIME_MS)
                                                                 : puzzle.type === "gravity"
                                                                   ? GRAV_TIME_MS
                                                                   : puzzle.type === "chain"
@@ -898,7 +898,12 @@ const bombSummary: SummaryBuilder = (result, puzzle) => {
     summary: exploded
       ? `Exploded · ${prefix} / ${puzzle.stepCount}`
       : `${prefix} / ${puzzle.stepCount}`,
-    detail: [`${prefix} action${prefix === 1 ? "" : "s"} carried out correctly`],
+    detail: [
+      `${prefix} action${prefix === 1 ? "" : "s"} carried out correctly`,
+      puzzle.bombVersion === 2
+        ? `75 × ${prefix} ÷ ${puzzle.stepCount}, rounded`
+        : `25 per correct step, up to 75`,
+    ],
   };
 };
 

@@ -20,7 +20,7 @@ import {
   type WireColour,
 } from "@/lib/duel/bomb";
 import { useStageState } from "@/lib/duel/stageState";
-import { BOMB_MAX_SEQUENCE, BOMB_TIME_MS, BOMB_WIRES, type BombPuzzleData } from "@/lib/duel/types";
+import { BOMB_MAX_SEQUENCE, BOMB_TIME_MS, BOMB_V2_TIME_MS, BOMB_WIRES, type BombPuzzleData } from "@/lib/duel/types";
 import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -234,7 +234,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Rule: “If the light is ON, cut wire 2.” The light is on, so wire 2 is cut. Read all six rules, work out the four actions and their order, then do them.
+        Rule: “If the light is ON, cut wire 2.” The light is on, so wire 2 is cut. Read every rule, work out the six actions and their order, then do them.
       </p>
     </div>
   );
@@ -266,7 +266,7 @@ function Stage({
 
   useEffect(() => {
     if (locked || submitted.current || !isBomb) return;
-    if (now < phaseStartedAt + BOMB_TIME_MS - 400) return;
+    if (now < phaseStartedAt + (puzzle.timeLimitMs ?? BOMB_TIME_MS) - 400) return;
     submitted.current = true;
     onSubmit(encodeBombActions(actions));
   }, [now, phaseStartedAt, actions, locked, isBomb, onSubmit]);
@@ -305,7 +305,7 @@ function Stage({
 
       <div data-game-controls="actions" className="flex shrink-0 items-center justify-between">
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          steps <span className="text-primary">{actions.length}</span> / {BOMB_MAX_SEQUENCE}
+          steps <span className="text-primary">{actions.length}</span> / {puzzle.stepCount || BOMB_MAX_SEQUENCE}
         </p>
         <div className="flex flex-1 items-center justify-center">
         <Button
@@ -402,6 +402,7 @@ export const bombDefusalPuzzle: PuzzleDefinition = {
   key: "bomb",
   name: gameDisplayName("bomb"),
   category: "logic",
+  // New six-step rounds carry their own 90 s clock; this default covers stored four-step rounds.
   timeLimitMs: BOMB_TIME_MS,
   revealMs: 8_000,
   generate: () =>

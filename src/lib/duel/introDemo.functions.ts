@@ -52,6 +52,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== BT_BALLS) return null;
     // Open-stream Colour Clash demos cannot replay the fixed-queue run.
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV) return null;
+    // Four-step bomb demos cannot replay the six-step example.
+    if (data.type === "bomb" && demo?.puzzle.type === "bomb" && demo.puzzle.bombVersion !== 2) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
     return demo;
   });
