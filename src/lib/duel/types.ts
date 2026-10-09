@@ -2022,6 +2022,8 @@ export interface ClayShootPuzzleData {
   type: "clayshoot";
   /** Draws the whole launch schedule — identical for everyone. */
   seed: number;
+  /** 2 = seeded white birds and bird-hit penalties. Absent = original clay-only run. */
+  clayRev?: number;
 }
 
 export interface WhackPuzzleData {

@@ -1,6 +1,7 @@
 import { INK_REV } from "@/lib/arcade/inkBridge";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
+import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
 /**
  * Server-only seeds for the arcade rounds. One seed per round drives the whole
@@ -117,7 +118,7 @@ export function generateTenDrop(): TenDropPuzzleData {
 }
 
 export function generateClayShoot(): ClayShootPuzzleData {
-  return { type: "clayshoot", seed: arcadeSeed() };
+  return { type: "clayshoot", seed: arcadeSeed(), clayRev: CLAY_REV };
 }
 
 export function generateWhack(): WhackPuzzleData {
