@@ -34,31 +34,14 @@ function Disc({ value, fixed, size }: { value: number; fixed: boolean; size: num
   return <Kettlebell value={value} fixed={fixed} size={size} />;
 }
 
-/** Below this the existing ±12° tilt is too faint to see, so unbalanced beams show at least this much. */
-const MIN_VISIBLE_TILT = 5;
-function visibleTilt(scale: BalanceScale, placement: Placement): number {
-  if (scaleSolved(scale, placement)) return 0;
-  const tilt = balanceTilt(scale, placement);
-  if (tilt === 0) return 0;
-  return Math.sign(tilt) * Math.min(12, Math.max(MIN_VISIBLE_TILT, Math.abs(tilt)));
-}
-
-function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showControls = false, height }: {
+function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showControls = false }: {
   scale: BalanceScale; placement: Placement; spacing: number;
   onWeightTap?: (tray: number) => void; onPlace?: (peg: number) => void;
   selected?: number | null; showControls?: boolean;
-  /** Total drawing height; the beam sits about a third of the way down. */
-  height?: number;
 }) {
-  const tilt = visibleTilt(scale, placement);
+  const tilt = balanceTilt(scale, placement);
   const balanced = scaleSolved(scale, placement);
   const width = spacing * BAL_PEGS;
-  const big = height !== undefined;
-  const H = height ?? (showControls ? 144 : 126);
-  const beamY = big ? Math.max(32, Math.round(H / 3)) : 32;
-  const weight = big ? 52 : Math.min(44, spacing);
-  const standW = big ? 14 : 10;
-  const baseW = big ? 46 : 34;
   const onPeg = new Map<number, { w: number; fixed: boolean; tray?: number }>();
   scale.fixed.forEach(f => onPeg.set(f.peg, { w: f.w, fixed: true }));
   placement.forEach((peg, i) => {
@@ -66,47 +49,32 @@ function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showC
     if (peg !== null && w !== undefined) onPeg.set(peg, { w, fixed: false, tray: i });
   });
   const offset = (peg: number) => Math.tan(tilt * Math.PI / 180) * ((peg + .5) * spacing - width / 2);
-  const ease = 'transform 420ms cubic-bezier(.3,.7,.3,1)';
-  return <div className="balance-instrument relative" style={{ width, height: H }}>
-    <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox={`0 0 ${width} ${H}`} aria-hidden="true">
-      <path d={`M${width/2-standW} ${beamY+13} L${width/2+standW} ${beamY+13} L${width/2+standW+7} ${H-7} L${width/2-standW-7} ${H-7}Z`} className="balance-metal"/>
-      <path d={`M${width/2-baseW} ${H-9}h${baseW*2}l8 9h-${baseW*2+16}Z`} className="balance-metal"/>
-      <path d={`M${width/2} ${beamY+13}v${H-beamY-24}`} stroke="var(--balance-highlight)" strokeWidth="2"/>
-      <g style={{ transform: `rotate(${tilt}deg)`, transformOrigin: `${width/2}px ${beamY}px`, transition: ease }}>
-        <rect x="1" y={beamY-5} width={width-2} height="10" rx="3" className="balance-metal"/>
-        <path d={`M4 ${beamY-3}H${width-4}`} stroke="var(--balance-highlight)" strokeWidth="1"/>
+  return <div className="balance-instrument relative" style={{ width, height: showControls ? 144 : 126 }}>
+    <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox={`0 0 ${width} ${showControls ? 144 : 126}`} aria-hidden="true">
+      <path d={`M${width/2-10} 45 L${width/2+10} 45 L${width/2+17} 121 L${width/2-17} 121Z`} className="balance-metal"/>
+      <path d={`M${width/2-34} 119h68l8 9h-84Z`} className="balance-metal"/>
+      <path d={`M${width/2} 45v68`} stroke="var(--balance-highlight)" strokeWidth="2"/>
+      <g transform={`rotate(${tilt} ${width/2} 32)`}>
+        <rect x="1" y="27" width={width-2} height="10" rx="3" className="balance-metal"/>
+        <path d={`M4 29H${width-4}`} stroke="var(--balance-highlight)" strokeWidth="1"/>
       </g>
-      <circle cx={width/2} cy={beamY+7} r="5" fill={balanced ? 'var(--primary)' : 'var(--balance-handle)'}/>
+      <circle cx={width/2} cy="39" r="5" fill={balanced ? 'var(--primary)' : 'var(--balance-handle)'}/>
     </svg>
     {Array.from({ length: BAL_PEGS }, (_, peg) => {
       const item = onPeg.get(peg), available = selected != null && !item;
-      return <div key={peg} className="absolute flex flex-col items-center" style={{ top: beamY - 32, left: peg * spacing, width: spacing, transform: `translateY(${offset(peg)}px)`, transition: ease }}>
+      return <div key={peg} className="absolute top-0" style={{ left: peg * spacing, width: spacing, transform: `translateY(${offset(peg)}px)`, transition: 'transform 150ms ease-out' }}>
         {showControls ? <Button type="button" variant="ghost" onClick={() => { if (available) onPlace?.(peg); }}
           aria-label={`Place at distance ${pegDistanceLabel(peg)} on the ${peg < 4 ? 'left' : 'right'}`} aria-disabled={!available}
           className={`balance-notch h-11 w-full min-w-0 px-0 font-mono text-sm ${available ? 'text-primary' : 'text-foreground'}`}>
           <span className={available ? 'balance-notch-label balance-notch-active' : 'balance-notch-label'}>{pegDistanceLabel(peg)}</span>
-        </Button> : <div className="flex h-11 w-full items-center justify-center font-mono text-sm text-foreground"><span className="balance-notch-label">{pegDistanceLabel(peg)}</span></div>}
+        </Button> : <div className="flex h-11 items-center justify-center font-mono text-sm text-foreground"><span className="balance-notch-label">{pegDistanceLabel(peg)}</span></div>}
         {item && <div className="flex flex-col items-center">
           <span className="balance-chain h-2 w-px"/>
-          {item.fixed ? <Disc value={item.w} fixed size={weight} /> : <Button variant="ghost" className={`min-w-0 p-0 ${big ? 'h-[52px]' : 'h-11'} w-full ${item.tray === selected ? 'ring-2 ring-primary' : ''}`} onClick={() => { if (item.tray !== undefined) onWeightTap?.(item.tray); }} aria-label={`Select weight ${item.w}`}><Disc value={item.w} fixed={false} size={weight}/></Button>}
+          {item.fixed ? <Disc value={item.w} fixed size={Math.min(44, spacing)} /> : <Button variant="ghost" className={`h-11 w-full min-w-0 p-0 ${item.tray === selected ? 'ring-2 ring-primary' : ''}`} onClick={() => { if (item.tray !== undefined) onWeightTap?.(item.tray); }} aria-label={`Select weight ${item.w}`}><Disc value={item.w} fixed={false} size={Math.min(44, spacing)}/></Button>}
         </div>}
       </div>;
     })}
   </div>;
-}
-
-function useHeight(ref: React.RefObject<HTMLDivElement | null>): number {
-  const [h, setH] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const measure = () => setH(el.clientHeight);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [ref]);
-  return h;
 }
 
 function IntroExample() {
@@ -148,8 +116,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const root = useRef<HTMLDivElement | null>(null);
   useNoTouchScroll(root);
   const spacing = useSpacing(root);
-  const arena = useRef<HTMLDivElement | null>(null);
-  const arenaHeight = useHeight(arena);
 
   useEffect(() => {
     setProgressTarget(document.getElementById(`balance-progress-${stateKey}`));
@@ -240,8 +206,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       {column ? (
         <>
           {/* Column layout: beam arena, then the scale counter and tray in flow 12px below. */}
-          <div ref={arena} data-game-arena="balance" className="relative min-h-[170px] w-full">
-            <div className="absolute left-1/2 top-0 -translate-x-1/2">
+          <div data-game-arena="balance" className="relative min-h-[140px] w-full">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <StageCorrect visible={holding} />
               <Beam
                 scale={scale}
@@ -249,7 +215,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
                 spacing={spacing}
                 selected={selected}
                 showControls
-                height={Math.max(170, arenaHeight)}
                 onWeightTap={tapWeight}
                 onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
               />
@@ -259,15 +224,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
             <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
               scale {current + 1} / {BAL_SCALES}
             </p>
-            <div className="flex min-h-[56px] w-full flex-wrap justify-center gap-3">
+            <div className="flex min-h-[48px] w-full flex-wrap justify-center gap-3">
               {trayLeft.map((i) => (
                 <Button variant="ghost"
                   key={i}
                   aria-label={`Select weight ${scale.tray[i] ?? 0}`}
                   onClick={() => tapWeight(i)}
-                  className={`h-14 w-14 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
+                  className={`h-11 w-11 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
                 >
-                  <Disc value={scale.tray[i] ?? 0} fixed={false} size={56} />
+                  <Disc value={scale.tray[i] ?? 0} fixed={false} size={44} />
                 </Button>
               ))}
             </div>
@@ -296,9 +261,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
                 key={i}
                 aria-label={`Select weight ${scale.tray[i] ?? 0}`}
                 onClick={() => tapWeight(i)}
-                className={`h-14 w-14 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
+                className={`h-11 w-11 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
               >
-                <Disc value={scale.tray[i] ?? 0} fixed={false} size={56} />
+                <Disc value={scale.tray[i] ?? 0} fixed={false} size={44} />
               </Button>
             ))}
           </div>

@@ -3,45 +3,34 @@ import type { ArrowDir, SpotShapeKind } from '@/lib/duel/types';
 export const EAGLE_ANGLES: Record<ArrowDir, number> = { N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315 };
 export const SWEET_NAMES: Record<SpotShapeKind, string> = { circle: 'lollipop', square: 'wrapped sweet', triangle: 'ice cream cone', star: 'cupcake', hexagon: 'doughnut', arrow: 'candy cane' };
 
-/**
- * A north-facing eagle seen from above in a glide: pointed hooked head with a gold eye at the
- * front, wings swept back into a chevron, and a narrow tail. The front reads like an arrow tip.
- */
+/** A single north-facing silhouette; its beak, wings and split tail establish direction. */
 export function EagleIcon({ dir, size = 28 }: { dir: ArrowDir; size?: number }) {
   return <svg width={size} height={size} style={{ width: size, height: size }} viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
-    <g transform={`rotate(${EAGLE_ANGLES[dir]} 16 16)`}>
-      <path fill="currentColor" d="M16 .8 18.9 4.6 18.7 9.2 21.4 11.4 30.6 20.2 29.4 23 19.9 17.6 18.4 22.4 20.2 30.4 16 28.6 11.8 30.4 13.6 22.4 12.1 17.6 2.6 23 1.4 20.2 10.6 11.4 13.3 9.2 13.1 4.6Z" />
-      <path d="M16 .8 17.6 3.2 16 4.2" fill="none" stroke="var(--eagle-beak)" strokeWidth="1.1" strokeLinejoin="round" />
-      <circle cx="16" cy="5.6" r="1.35" fill="var(--eagle-eye)" />
-    </g>
+    <path transform={`rotate(${EAGLE_ANGLES[dir]} 16 16)`} fill="currentColor" d="M16 2 19 7 18 11 22 12 29 8 27 15 22 19 19 19 18 24 20 29 16 27 12 29 14 24 13 19 10 19 5 15 3 8 10 12 14 11 13 7Z" />
   </svg>;
 }
 
-/** Bold, simplified sweets that fill the 40-unit box; at most one detail stroke each. */
+/** All six icons share a flat fill and a restrained two-unit detail stroke. */
 export function SweetIcon({ kind, fill }: { kind: SpotShapeKind; fill: string }) {
   const detail = 'var(--sweet-detail)';
   switch (kind) {
-    case 'circle': return <g fill={fill}><rect x="18" y="24" width="4" height="15" rx="1.5"/><circle cx="20" cy="14" r="13"/><path d="M14 9c6-5 13 4 6 7" fill="none" stroke={detail} strokeWidth="2.6" strokeLinecap="round"/></g>;
-    case 'square': return <g fill={fill}><path d="M1 9l10 7v8L1 31zM39 9l-10 7v8l10 7z"/><rect x="9" y="8" width="22" height="24" rx="7"/></g>;
-    // Cone points down under a round scoop; the cherry sits off-centre so flips stay visible.
-    case 'triangle': return <g fill={fill}><path d="M8 19h24L20 39z"/><circle cx="20" cy="15" r="12"/><circle cx="29" cy="5" r="4"/><path d="M12 23l7 7" stroke={detail} strokeWidth="2.6" fill="none" strokeLinecap="round"/></g>;
-    case 'star': return <g fill={fill}><path d="M6 20h28l-4 18H10z"/><path d="M4 21c-2-7 4-11 8-10-1-8 15-11 17-3 7 0 10 7 7 13z"/><path d="M20 24v11" stroke={detail} strokeWidth="2.6" fill="none" strokeLinecap="round"/></g>;
-    case 'hexagon': return <path fill={fill} fillRule="evenodd" d="M20 1a19 19 0 1 0 0 38 19 19 0 0 0 0-38Zm0 12a7 7 0 1 1 0 14 7 7 0 0 1 0-14Z"/>;
+    case 'circle': return <g fill={fill}><path d="M18 21h4v16h-4z"/><circle cx="20" cy="14" r="11"/><path d="M15 10c8-6 14 7 5 8-5 1-6-5-2-5" fill="none" stroke={detail} strokeWidth="2" strokeLinecap="round"/></g>;
+    case 'square': return <g fill={fill}><path d="m3 10 9 5v10l-9 5 3-10zM37 10l-9 5v10l9 5-3-10z"/><rect x="10" y="10" width="20" height="20" rx="6"/><path d="M15 14v12M25 14v12" fill="none" stroke={detail} strokeWidth="2" strokeLinecap="round"/></g>;
+    // The point remains north, just like the old triangle. The side scoop makes mirrors visible.
+    case 'triangle': return <g fill={fill}><path d="m20 3 12 22H8z"/><path d="M7 26c0-5 5-7 9-5 1-7 13-7 15 0 5 1 7 8 2 12H8c-4-1-5-5-1-7Z"/><path d="m17 14 6 7M15 20l4 5" stroke={detail} strokeWidth="2" fill="none" strokeLinecap="round"/></g>;
+    case 'star': return <g fill={fill}><path d="m9 23 3 14h16l3-14zM7 22c-2-5 2-9 6-9-2-7 10-10 13-3 6-1 10 5 7 12Z"/><path d="M16 27v6M24 27v6M11 18h18" stroke={detail} strokeWidth="2" fill="none" strokeLinecap="round"/></g>;
+    case 'hexagon': return <g><path fill={fill} fillRule="evenodd" d="M20 3a17 17 0 1 0 0 34 17 17 0 0 0 0-34Zm0 11a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z"/><path d="m11 11 3 1m13-1-1 3m-17 9 3 1m13 7 3-1" stroke={detail} strokeWidth="2" strokeLinecap="round"/></g>;
     // Long shaft leads right into the hook; the open hook clearly changes under a mirror.
-    case 'arrow': return <g fill={fill}><path d="M1 17h23c3 0 5-2 5-5s-2-5-4-5c-3 0-4 2-4 4h-7c0-7 5-10 11-10 7 0 12 5 12 11 0 7-5 12-13 12H1z"/></g>;
+    case 'arrow': return <g fill={fill}><path d="M4 17h20c3 0 4-2 4-4s-1-4-3-4c-2 0-3 1-3 3h-6c0-6 4-9 9-9 6 0 10 5 10 10 0 6-4 10-11 10H4z"/><path d="m10 18-2 4m9-4-2 4m10-5 3 3" stroke={detail} strokeWidth="2" fill="none" strokeLinecap="round"/></g>;
   }
 }
 
-/** Movable kettlebells are gold; fixed ones are dark iron with a small lock. */
 export function Kettlebell({ value, fixed = false, size = 44 }: { value: number; fixed?: boolean; size?: number }) {
   return <svg width={size} height={size} style={{ width: size, height: size }} viewBox="0 0 44 44" role="img" aria-label={`${value}${fixed ? ' fixed' : ''}`} className="balance-weight">
-    <path d="M15 17V10c0-7 14-7 14 0v7" fill="none" stroke={fixed ? 'var(--balance-iron-edge)' : 'var(--balance-handle)'} strokeWidth="4"/>
-    <path d="M13 15h18l5 10c4 9 0 15-14 15S4 34 8 25Z" fill={fixed ? 'var(--balance-iron)' : 'var(--primary)'} stroke={fixed ? 'var(--balance-iron-edge)' : 'var(--balance-weight-edge)'} strokeWidth="1"/>
-    <path d="M11 26c0-4 2-7 4-8" fill="none" stroke="var(--balance-highlight)" strokeOpacity={fixed ? 0.45 : 1} strokeWidth="2" strokeLinecap="round"/>
-    <text x="22" y="33" textAnchor="middle" fill={fixed ? 'var(--balance-highlight)' : 'var(--primary-foreground)'} fontFamily="var(--font-mono)" fontSize="16" fontWeight="700">{value}</text>
-    {fixed && <g transform="translate(31 4)">
-      <path d="M2.5 5V3.5a3 3 0 0 1 6 0V5" fill="none" stroke="var(--balance-highlight)" strokeWidth="1.6"/>
-      <rect x="1" y="5" width="9" height="7" rx="1.5" fill="var(--balance-highlight)"/>
-    </g>}
+    <path d="M15 17V10c0-7 14-7 14 0v7" fill="none" stroke="var(--balance-handle)" strokeWidth="4"/>
+    <path d="M13 15h18l5 10c4 9 0 15-14 15S4 34 8 25Z" fill="var(--primary)" stroke="var(--balance-weight-edge)" strokeWidth="1"/>
+    <path d="M11 26c0-4 2-7 4-8" fill="none" stroke="var(--balance-highlight)" strokeWidth="2" strokeLinecap="round"/>
+    <text x="22" y="32" textAnchor="middle" fill="var(--primary-foreground)" fontFamily="var(--font-mono)" fontSize="17" fontWeight="700">{value}</text>
+    {fixed && <circle cx="22" cy="37" r="1.5" fill="var(--balance-weight-edge)"/>}
   </svg>;
 }
