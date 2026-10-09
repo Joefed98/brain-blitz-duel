@@ -28,6 +28,15 @@ for (let i = 0; i < count; i++) {
   const state = game.init(seed);
   check('legacy has no dragons', swingGameFor().init(seed).dragons === undefined);
   check('seed identical', JSON.stringify(state) === JSON.stringify(game.init(seed)));
+  let old = swingGameFor().init(seed);
+  let fresh = state;
+  for (let t = 1; t <= 120; t++) {
+    old = swingGameFor().step(old, null);
+    fresh = game.step(fresh, null);
+    const { dragons: _dragons, ...withoutDragons } = fresh;
+    check('pre-dragon physics unchanged', JSON.stringify(old) === JSON.stringify(withoutDragons));
+    check('legacy score unchanged', swingGameFor().score(old) === game.score(fresh));
+  }
   check('4–6 dragons', (state.dragons?.length ?? 0) >= 4 && (state.dragons?.length ?? 0) <= 6);
   check('last 150m only', (state.dragons ?? []).every(d => d.x >= (3000 + 350 * 40) * 256 && d.x < (3000 + 500 * 40) * 256));
   const witness = proveSwingSeed(seed);
