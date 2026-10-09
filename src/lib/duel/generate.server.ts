@@ -99,7 +99,7 @@ export interface GenerateContext {
 /** Every new puzzle is stamped with the speed-par scoring version; stored rounds without it keep the legacy curve. */
 export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
   const made = generateUnstamped(type, context);
-  return { ...(made as object), speedPar: SPEED_PAR_VERSION } as PuzzleData;
+  return { ...(made as object), speedPar: SPEED_PAR_VERSION } as unknown as PuzzleData;
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
