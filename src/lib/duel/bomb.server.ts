@@ -123,6 +123,13 @@ const colourWord = (colour: WireColour) => colour.charAt(0) + colour.slice(1).to
 /** "cut wire 3" / "press A" — the {X}/{Y} wording. */
 const act = (action: BombAction) =>
   isCut(action) ? `cut wire ${cutIndex(action) + 1}` : `press ${action.slice(1)}`;
+/** "Cut wire 6 before wire 5." / "Press A before B." / "Cut wire 6 before pressing A." */
+const beforeText = (x: BombAction, y: BombAction) => {
+  const later = isCut(x) === isCut(y)
+    ? (isCut(y) ? `wire ${cutIndex(y) + 1}` : y.slice(1))
+    : isCut(y) ? `cutting wire ${cutIndex(y) + 1}` : `pressing ${y.slice(1)}`;
+  return `${cap(act(x))} before ${later}.`;
+};
 const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 const count = (panel: Panel, colour: WireColour) =>
@@ -257,12 +264,12 @@ function candidateRules(panel: Panel): RuleInstance[] {
 
   // 15–18. Ordering between named actions.
   for (const x of BOMB_ACTIONS) {
-    add(17, x, `${cap(act(x))} is the first action.`, `first:${x}`, (s) => s[0] === x);
-    add(18, x, `${cap(act(x))} is the last action.`, `last:${x}`, (s) => s[s.length - 1] === x);
+    add(17, x, `Do this first: ${act(x)}.`, `first:${x}`, (s) => s[0] === x);
+    add(18, x, `Do this last: ${act(x)}.`, `last:${x}`, (s) => s[s.length - 1] === x);
     for (const y of BOMB_ACTIONS) {
       if (x === y) continue;
       const pair = [x, y].sort().join("|");
-      add(15, `${x}>${y}`, `${cap(act(x))} before ${act(y)}.`, `before:${x}>${y}`, (s) => {
+      add(15, `${x}>${y}`, beforeText(x, y), `before:${x}>${y}`, (s) => {
         const a = at(s, x);
         const b = at(s, y);
         return a >= 0 && b >= 0 && a < b;
