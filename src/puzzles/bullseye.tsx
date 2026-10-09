@@ -60,7 +60,7 @@ function IntroExample() {
             cy="46"
             r={ring * 6}
             fill={flightpathColour(BULLSEYE_RING_VALUES[ring - 1] ?? 0)}
-            opacity={ring <= 2 ? 0.9 : 0.35}
+            opacity={1}
             stroke="#0B0B0FB0"
           />
         ))}

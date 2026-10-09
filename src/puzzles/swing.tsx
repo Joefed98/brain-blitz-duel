@@ -36,7 +36,7 @@ function IntroExample() {
         <rect x={72} y={76} width={12} height={20} rx={6} fill={SWING_GOLD} />
         <path d="M 84 82 Q 104 70 118 50" fill="none" stroke={SWING_GOLD} strokeOpacity={0.4} strokeDasharray="3 4" />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Swing back for momentum, then let go to fly forward.</p>
+      <p className="text-center text-xs text-muted-foreground">Swing the ninja back for momentum, then let go to fly forward.</p>
     </div>
   );
 }

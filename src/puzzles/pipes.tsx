@@ -82,7 +82,7 @@ function PipeTileView({
         <circle cx={50} cy={50} r={13} fill={stroke} />
         {flowDelay !== undefined && <g style={{ "--flow-delay": `${flowDelay}ms`, "--flow-duration": `${flowDuration ?? 100}ms` } as CSSProperties}>
           {ARMS.filter((arm) => mask & arm.bit).map((arm) => <g key={arm.bit}>
-            <line className="pipeline-water pipeline-flow" x1={50} y1={50} x2={arm.x} y2={arm.y} strokeWidth={14} strokeLinecap="round" pathLength={1} strokeDasharray={1} />
+            <line className="pipeline-water pipeline-flow" x1={50} y1={50} x2={arm.x} y2={arm.y} strokeWidth={18} strokeLinecap="round" pathLength={1} strokeDasharray={1} />
             <line className="pipeline-water-core pipeline-flow" x1={50} y1={50} x2={arm.x} y2={arm.y} strokeWidth={3} strokeLinecap="round" pathLength={1} strokeDasharray={1} />
           </g>)}
           <circle className="pipeline-water pipeline-node" cx={50} cy={50} r={8} />
