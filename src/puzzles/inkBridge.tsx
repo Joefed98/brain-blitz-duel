@@ -156,8 +156,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 export function inkBridgeLine(r: { levels: number; total: number; score: number }, rev?: number): string {
   if (r.levels >= r.total) return `All ${r.total} levels`;
+  if (rev !== 3) return `Level ${r.levels}`;
   const base = `Level ${r.levels + 1}`;
-  if (rev !== 3) return base;
   const phase = r.levels < 4 ? "Standard" : r.levels < 8 ? "Moving Pot" : "Live";
   return `${base} (${phase})`;
 }
