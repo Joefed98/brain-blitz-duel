@@ -1,6 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
-import { GLYPH_COLOURS, ShapeGlyph } from "@/components/duel/ShapeGlyph";
+import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
 import { StageProgress } from "@/components/puzzles/StageProgress";
@@ -41,8 +41,31 @@ const PLURAL: Record<SceneShape, string> = {
   hexagon: "hexagons",
 };
 
+/** Display-only palette: the stored BROWN id is drawn and named as white. */
+const TALLY_FILL: Partial<Record<GlyphColour, string>> = { BROWN: "var(--tally-white)" };
+const TALLY_NAME: Partial<Record<GlyphColour, string>> = { BROWN: "white" };
+export function tallyColourName(colour: GlyphColour): string {
+  return TALLY_NAME[colour] ?? colour.toLowerCase();
+}
+
 export function countUpQuestion(colour: GlyphColour, shape: SceneShape): string {
-  return `How many ${colour.toLowerCase()} ${PLURAL[shape]}?`;
+  return `How many ${tallyColourName(colour)} ${PLURAL[shape]}?`;
+}
+
+const STAR_POINTS = "12,2 14.9,8.9 22.4,9.5 16.7,14.4 18.5,21.7 12,17.8 5.5,21.7 7.3,14.4 1.6,9.5 9.1,8.9";
+/** Same geometry as the shared glyph, with a thin dark outline and a soft shadow. */
+function TallyGlyph({ shape, colour, size }: { shape: SceneShape; colour: GlyphColour; size: number }) {
+  const fill = TALLY_FILL[colour] ?? GLYPH_COLOURS[colour];
+  const common = { fill, stroke: "var(--tally-outline)", strokeWidth: 0.9, strokeLinejoin: "round" as const };
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="tally-glyph shrink-0">
+      {shape === "circle" && <circle cx="12" cy="12" r="9.5" {...common} />}
+      {shape === "square" && <rect x="2.5" y="2.5" width="19" height="19" rx="2" {...common} />}
+      {shape === "triangle" && <polygon points="12,2.5 22,21 2,21" {...common} />}
+      {shape === "star" && <polygon points={STAR_POINTS} {...common} />}
+      {shape === "hexagon" && <polygon points="12,2 20.7,7 20.7,17 12,22 3.3,17 3.3,7" {...common} />}
+    </svg>
+  );
 }
 
 function Field({
@@ -66,7 +89,7 @@ function Field({
 }) {
   return (
     <div
-       className="relative w-full overflow-hidden rounded-lg border border-border bg-card"
+       className="tally-tray relative w-full overflow-hidden rounded-lg border"
        style={{ height: play ? "100%" : height }}
     >
       {shapes.map((item, index) => {
@@ -84,7 +107,7 @@ function Field({
               boxShadow: lit ? `inset 0 0 0 2px ${GLYPH_COLOURS.GOLD}` : undefined,
             }}
           >
-            <ShapeGlyph shape={item.shape} colour={item.colour} size={play ? item.size : Math.min(item.size, size)} />
+            <TallyGlyph shape={item.shape} colour={item.colour} size={play ? item.size : Math.min(item.size, size)} />
           </span>
         );
       })}
