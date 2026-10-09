@@ -5,7 +5,7 @@ export const SWEET_NAMES: Record<SpotShapeKind, string> = { circle: 'lollipop', 
 
 /** A single north-facing silhouette; its beak, wings and split tail establish direction. */
 export function EagleIcon({ dir, size = 28 }: { dir: ArrowDir; size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
+  return <svg width={size} height={size} style={{ width: size, height: size }} viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
     <path transform={`rotate(${EAGLE_ANGLES[dir]} 16 16)`} fill="currentColor" d="M16 2 19 7 18 11 22 12 29 8 27 15 22 19 19 19 18 24 20 29 16 27 12 29 14 24 13 19 10 19 5 15 3 8 10 12 14 11 13 7Z" />
   </svg>;
 }
@@ -26,7 +26,7 @@ export function SweetIcon({ kind, fill }: { kind: SpotShapeKind; fill: string })
 }
 
 export function Kettlebell({ value, fixed = false, size = 44 }: { value: number; fixed?: boolean; size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 44 44" role="img" aria-label={`${value}${fixed ? ' fixed' : ''}`} className="balance-weight">
+  return <svg width={size} height={size} style={{ width: size, height: size }} viewBox="0 0 44 44" role="img" aria-label={`${value}${fixed ? ' fixed' : ''}`} className="balance-weight">
     <path d="M15 17V10c0-7 14-7 14 0v7" fill="none" stroke="var(--balance-handle)" strokeWidth="4"/>
     <path d="M13 15h18l5 10c4 9 0 15-14 15S4 34 8 25Z" fill="var(--primary)" stroke="var(--balance-weight-edge)" strokeWidth="1"/>
     <path d="M11 26c0-4 2-7 4-8" fill="none" stroke="var(--balance-highlight)" strokeWidth="2" strokeLinecap="round"/>

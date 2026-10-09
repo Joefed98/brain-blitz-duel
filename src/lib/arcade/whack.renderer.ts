@@ -47,7 +47,7 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
     }
   }
 
-  for (let h = 0; h < PALETTE.holeS; h++) {
+  for (let h = 0; h < WHACK_HOLES; h++) {
     const { x, y } = origin(h);
     ctx.fillStyle = flashWrong.has(h) ? "rgba(224,80,60,0.45)" : PALETTE.hole;
     ctx.beginPath();
