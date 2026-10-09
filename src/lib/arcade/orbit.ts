@@ -26,7 +26,7 @@ import { ANG_QUARTER, iatan2, icos, isin, TRIG_ONE } from "./trig";
 
 /* ============================== Constants ============================== */
 
-const FP = 256;
+export const FP = 256;
 export const ORBIT_WORLD_W = 390;
 export const ORBIT_WORLD_H = 620;
 export const ORBIT_RUN_TICKS = 90 * TICKS_PER_SECOND;
@@ -37,10 +37,12 @@ export const ORBIT_INPUT_TAP = 0;
 export const ORBIT_INPUT_CHECKPOINT = 1;
 export const ORBIT_TOTAL = 40;
 const FLIGHT_MAX = 150;
+export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
 /** The current planet sits this far down the screen. */
 const VIEW_ANCHOR = 440 * FP;
 const VIEW_BELOW = (ORBIT_WORLD_H * FP) - VIEW_ANCHOR;
-const HAZARD_FROM = 31;
+export const ORBIT_HAZARD_FROM = 31;
+const HAZARD_FROM = ORBIT_HAZARD_FROM;
 const HAZARD_SPAN = ANG_QUARTER;
 /** Enclosing diameter of the drawn rocket (nose +10, fins within radius 10). */
 export const ORBIT_ROCKET_DIAMETER = 20 * FP;
@@ -61,11 +63,13 @@ export function orbitBeltStart(p: Planet, tick: number): number {
   return p.hazard < 0 ? -1 : (p.hazard + Math.trunc(((tick % ORBIT_BELT_PERIOD_TICKS) * 65536) / ORBIT_BELT_PERIOD_TICKS)) & 65535;
 }
 /** Captures reach one planet past the next — a skip. */
-const LOOKAHEAD = 2;
+export const ORBIT_LOOKAHEAD = 2;
+const LOOKAHEAD = ORBIT_LOOKAHEAD;
 /** Off-screen margin above the view a skip may fly through. */
 const ABOVE_VIEW = 160 * FP;
 /** Minimum run of consecutive safe release samples per hop. */
-const SAFE_RUN = 4;
+export const ORBIT_SAFE_RUN = 4;
+const SAFE_RUN = ORBIT_SAFE_RUN;
 export const ORBIT_TRAIL_TICKS = 10;
 
 export const ORBIT_INPUT_RANGES: readonly InputRange[] = [inputRange(ORBIT_INPUT_TAP), inputRange(ORBIT_INPUT_CHECKPOINT)];
@@ -76,8 +80,10 @@ export const ORBIT_INPUT_RANGES: readonly InputRange[] = [inputRange(ORBIT_INPUT
 export const ORBIT_CIRCLE = 0;
 export const ORBIT_ELLIPSE = 1;
 export const ORBIT_EIGHT = 2;
-const ELLIPSE_FROM = 11;
-const EIGHT_FROM = 21;
+export const ORBIT_ELLIPSE_FROM = 11;
+const ELLIPSE_FROM = ORBIT_ELLIPSE_FROM;
+export const ORBIT_EIGHT_FROM = 21;
+const EIGHT_FROM = ORBIT_EIGHT_FROM;
 /** Ellipse minor axis, % of the major. */
 const ELLIPSE_B_PCT = 60;
 /** Figure-eight: half-width = ring × this %, height = half-width × B %. */
@@ -119,7 +125,7 @@ function tierOf(i: number): number {
   return Math.min(LAPS.length - 1, Math.trunc(i / 5));
 }
 
-function planetShape(i: number) {
+export function planetShape(i: number) {
   if (i === ORBIT_TOTAL) {
     const tier = tierOf(i);
     return {
@@ -169,13 +175,13 @@ export function orbitFlightHitsBelt(p: Planet, x0: number, y0: number, x1: numbe
   return false;
 }
 
-function flightHitsBelts(planets: readonly Planet[], x0: number, y0: number, x1: number, y1: number, tick: number): boolean {
+export function flightHitsBelts(planets: readonly Planet[], x0: number, y0: number, x1: number, y1: number, tick: number): boolean {
   // Includes departure, arrival and every other belt crossed by a skipped flight.
   return planets.some((p) => orbitFlightHitsBelt(p, x0, y0, x1, y1, tick));
 }
 
 /** Offset of the path point at this phase from the planet centre, 1/256 px. */
-function pathOffset(p: Planet, phase: number): { u: number; v: number } {
+export function pathOffset(p: Planet, phase: number): { u: number; v: number } {
   if (p.kind === ORBIT_ELLIPSE) {
     const u = Math.trunc((p.ring * icos(phase)) / TRIG_ONE);
     const v = Math.trunc((ellipseB(p) * isin(phase)) / TRIG_ONE);
@@ -194,13 +200,13 @@ function pathOffset(p: Planet, phase: number): { u: number; v: number } {
   return { u: Math.trunc((p.ring * icos(phase)) / TRIG_ONE), v: Math.trunc((p.ring * isin(phase)) / TRIG_ONE) };
 }
 
-function orbitPos(p: Planet, phase: number) {
+export function orbitPos(p: Planet, phase: number) {
   const o = pathOffset(p, phase);
   return { x: p.x + o.u, y: p.y + o.v };
 }
 
 /** Phase advance this tick: constant, except an ellipse is fastest nearest the planet. */
-function phaseRate(p: Planet, phase: number): number {
+export function phaseRate(p: Planet, phase: number): number {
   if (p.kind !== ORBIT_ELLIPSE) return p.omega;
   const o = pathOffset(p, phase);
   const dist = Math.max(FP, isqrt(Math.trunc(o.u / 16) ** 2 + Math.trunc(o.v / 16) ** 2) * 16);
@@ -209,12 +215,12 @@ function phaseRate(p: Planet, phase: number): number {
 }
 
 /** True when a figure-eight release is at the crossing between the pair (unsafe). */
-function innerLobe(p: Planet, phase: number): boolean {
+export function innerLobe(p: Planet, phase: number): boolean {
   if (p.kind !== ORBIT_EIGHT) return false;
   return Math.abs(pathOffset(p, phase).u) < Math.trunc((eightA(p) * EIGHT_INNER_PCT) / 100);
 }
 
-function releaseVel(p: Planet, angle: number) {
+export function releaseVel(p: Planet, angle: number) {
   // Tangent of the path at this phase, scaled to the planet's flight speed.
   const a = pathOffset(p, angle);
   const b = pathOffset(p, (angle + p.dir * 256) & 65535);
@@ -234,7 +240,7 @@ export function orbitLobes(p: { ring: number }): number {
 }
 
 /** Is the point inside planet p's capture region (the region the path encloses)? */
-function inside(p: Planet, x: number, y: number): boolean {
+export function inside(p: Planet, x: number, y: number): boolean {
   const dx = x - p.x;
   const dy = y - p.y;
   if (p.kind === ORBIT_ELLIPSE) {
@@ -255,7 +261,7 @@ function inside(p: Planet, x: number, y: number): boolean {
 }
 
 /** Phase on planet p's path for a captured point. */
-function phaseAt(p: Planet, x: number, y: number): number {
+export function phaseAt(p: Planet, x: number, y: number): number {
   const dx = x - p.x;
   const dy = y - p.y;
   if (p.kind === ORBIT_ELLIPSE) {
@@ -281,7 +287,7 @@ function phaseAt(p: Planet, x: number, y: number): number {
 }
 
 /** First later planet whose capture region contains the point, or -1. */
-function captureAt(planets: readonly Planet[], cur: number, x: number, y: number): number {
+export function captureAt(planets: readonly Planet[], cur: number, x: number, y: number): number {
   for (let j = cur + 1; j <= cur + LOOKAHEAD && j < planets.length; j++) {
     if (inside(planets[j]!, x, y)) return j;
   }
@@ -309,7 +315,7 @@ function hopOk(planets: readonly Planet[], i: number, angle: number, releaseTick
 }
 
 /** Every phase the ship actually occupies over one lap, in order. */
-function lapPhases(p: Planet): number[] {
+export function lapPhases(p: Planet): number[] {
   const out: number[] = [];
   let phase = 0;
   let travelled = 0;
@@ -446,6 +452,8 @@ export interface OrbitState {
   flying: number;
   captured: number;
   camY: number;
+  /** World-coordinate width this course was built for; renderer-facing, not used by sim logic except bounds. Rev1/2 = ORBIT_WORLD_W. */
+  worldW: number;
   releaseTick: number;
   releaseX: number;
   releaseY: number;
@@ -485,6 +493,7 @@ function init(seed: number): OrbitState {
     flying: 0,
     captured: 0,
     camY: p.y - VIEW_ANCHOR,
+    worldW: ORBIT_WORLD_W,
     releaseTick: -100,
     releaseX: 0,
     releaseY: 0,

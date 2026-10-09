@@ -899,3 +899,11 @@
 - [x] Word Search reveal red unfound letters/fill/outline; accepted-key bounds overlay.
 - [ ] Actual phone positions await user device testing; no browsers ran.
 - [x] Winner reveal phase
+
+## Orbit scrolling camera (orbitRev 3, Oct 9)
+- [ ] Versioned rev 3: 1,000-wide world, seeded zig-zag generator, 190-tick flight cap, rev 1/2 byte-identical
+- [ ] Render-only tick-driven camera (rocket lock in flight, safe box, gold edge arrow, reduced motion)
+- [ ] Release-window proof (≥2 windows ≥4 ticks), 500-layout server bank, live fallback
+- [ ] Report fallback share, >120-unit sideways share, bot completion vs rev 2
+- [ ] Split outside-belt check; new proof/replay/legacy/camera/bounds checks; 300 s runner results
+- [ ] Two 360px mid-run mock screenshots (one with edge arrow); demo needs re-recording
