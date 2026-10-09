@@ -54,10 +54,11 @@ function flightOutcome(game: any, state: any, event: (t: number, k: number) => a
   return probe;
 }
 
-function recordRun(game: any, seed: number) {
+function recordRun(game: any, seed: number, checkpointInterval: number, checkpointFn: (s: any) => any) {
   const event = (t: number, k: number) => ({ t, k, a: 0, b: 0, c: 0, d: 0 });
   let state = game.init(seed);
   const events: any[] = [];
+  const checkpoints: any[] = [];
   let guard = 0;
   while (!game.isOver(state) && guard++ < 20000) {
     const tick = state.tick + 1;
@@ -68,8 +69,9 @@ function recordRun(game: any, seed: number) {
     }
     if (kind !== undefined) recordInput(events, event(tick, kind), game.inputRanges);
     state = game.step(state, inputAt(events, tick));
+    if (state.tick % checkpointInterval === 0) checkpoints.push(checkpointFn(state));
   }
-  return { state, events, endTick: state.tick };
+  return { state, events, checkpoints, endTick: state.tick };
 }
 
 const seeds = Array.from({ length: 20 }, (_, i) => 1000 + i * 137);
@@ -88,19 +90,16 @@ const produced: FixtureEntry[] = [];
 
 let checked = 0;
 for (const seed of seeds) {
-  // Record the tap log once against the OLD engine (ticks, kinds only — no
-  // old-specific state is reused beyond that), then replay that exact raw
+  // Record the tap log and matching checkpoints in a single deterministic
+  // pass against the OLD engine (the real client records checkpoints inline
+  // as it steps, never by a separate replay pass), then feed that exact raw
   // string through both old and current replayOrbitRun(seed, raw).
-  const { events, endTick } = recordRun(oldOrbit.orbitGame, seed);
-
-  // Re-simulate on the old engine to get its own checkpoints/claimedScore (as
-  // the real client would), matching how orbit-checkpoint-check builds runs.
-  let oldState = oldOrbit.orbitGame.init(seed);
-  const oldCheckpoints: any[] = [];
-  for (let tick = 1; tick <= endTick; tick++) {
-    oldState = oldOrbit.orbitGame.step(oldState, inputAt(events, tick));
-    if (oldState.tick % oldOrbit.ORBIT_CHECKPOINT_INTERVAL === 0) oldCheckpoints.push(oldOrbit.orbitCheckpoint(oldState));
-  }
+  const { events, checkpoints: oldCheckpoints, endTick, state: oldState } = recordRun(
+    oldOrbit.orbitGame,
+    seed,
+    oldOrbit.ORBIT_CHECKPOINT_INTERVAL,
+    oldOrbit.orbitCheckpoint,
+  );
   const claimedScore = oldOrbit.orbitGame.score(oldState);
   const raw = oldDuel.encodeOrbitRun({ seed, events, checkpoints: oldCheckpoints, endTick, claimedScore });
 

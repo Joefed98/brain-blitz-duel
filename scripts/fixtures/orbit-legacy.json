@@ -1,0 +1,322 @@
+[
+  {
+    "seed": 1000,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 26,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 1137,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 30,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 1274,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 26,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 1411,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 28,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 1548,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 26,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 1685,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 25,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 1822,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 24,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 1959,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 27,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 2096,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 30,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 2233,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 25,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 2370,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 28,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 2507,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 28,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 2644,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 23,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 2781,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 26,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 2918,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 25,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 3055,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 30,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 3192,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 26,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 3329,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 26,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 3466,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 27,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  },
+  {
+    "seed": 3603,
+    "score": 117,
+    "extra": {
+      "passed": 39,
+      "respawned": false,
+      "checkpoint": -1,
+      "captured": 26,
+      "total": 40,
+      "survived": true,
+      "survivedSeconds": 90,
+      "finished": false,
+      "secondsLeft": 0
+    },
+    "hasWorldW": true
+  }
+]
