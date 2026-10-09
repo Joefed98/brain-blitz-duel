@@ -225,7 +225,24 @@
   --sweet-purple: #8C5DC5;
   --sweet-pink: #F2A9D0;
   --sweet-orange: #F69B32;
-  --sweet-brown: #80532D;
+  --sweet-brown: #C98A4B;
+  --balance-iron: #2B3036;
+  --balance-iron-edge: #12161A;
+  --eagle-beak: #0F1418;
+  --eagle-eye: #F5B82E;
+  --tally-white: #F2F4F7;
+  --tally-outline: rgba(0, 0, 0, 0.55);
+  --tray-glass: rgba(255, 255, 255, 0.05);
+  --tray-glass-edge: rgba(255, 255, 255, 0.16);
+  --charm-shine: rgba(255, 255, 255, 0.6);
+  --chain-link: #F5B82E;
+  --chain-link-dark: #8A6214;
+  --guest-ink: #17141D;
+  --guest-cheek: rgba(255, 120, 140, 0.45);
+  --vinyl: #121216;
+  --vinyl-groove: rgba(255, 255, 255, 0.07);
+  --vinyl-label: #2A2630;
+  --tonearm: #C9CED6;
   --sweet-detail: #17141D;
   --bonk-gold: #F5B82E;
   --bonk-red: #E0503C;
@@ -1081,7 +1098,7 @@ body.game-lock {
 .game-column :is([data-game-arena="canvas"], [data-game-arena="tall"]) { --arena-max: 150cqw; }
 .game-column [data-game-arena="word"] { --arena-max: calc(100cqw + 32px); }
 .game-column [data-game-arena="countup"] { --arena-max: calc(100cqw + 28px); }
-.game-column [data-game-arena="balance"] { --arena-max: 168px; }
+.game-column [data-game-arena="balance"] { --arena-max: 340px; }
 .game-column [data-game-arena="letterwheel-wheel"] { --arena-max: 60cqw; }
 .game-column [data-game-arena="fixed"] {
   flex: 0 1 auto;

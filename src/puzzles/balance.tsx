@@ -148,6 +148,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const root = useRef<HTMLDivElement | null>(null);
   useNoTouchScroll(root);
   const spacing = useSpacing(root);
+  const arena = useRef<HTMLDivElement | null>(null);
+  const arenaHeight = useHeight(arena);
 
   useEffect(() => {
     setProgressTarget(document.getElementById(`balance-progress-${stateKey}`));
@@ -238,8 +240,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       {column ? (
         <>
           {/* Column layout: beam arena, then the scale counter and tray in flow 12px below. */}
-          <div data-game-arena="balance" className="relative min-h-[140px] w-full">
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div ref={arena} data-game-arena="balance" className="relative min-h-[170px] w-full">
+            <div className="absolute left-1/2 top-0 -translate-x-1/2">
               <StageCorrect visible={holding} />
               <Beam
                 scale={scale}
@@ -247,6 +249,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
                 spacing={spacing}
                 selected={selected}
                 showControls
+                height={Math.max(170, arenaHeight)}
                 onWeightTap={tapWeight}
                 onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
               />
@@ -256,15 +259,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
             <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
               scale {current + 1} / {BAL_SCALES}
             </p>
-            <div className="flex min-h-[48px] w-full flex-wrap justify-center gap-3">
+            <div className="flex min-h-[56px] w-full flex-wrap justify-center gap-3">
               {trayLeft.map((i) => (
                 <Button variant="ghost"
                   key={i}
                   aria-label={`Select weight ${scale.tray[i] ?? 0}`}
                   onClick={() => tapWeight(i)}
-                  className={`h-11 w-11 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
+                  className={`h-14 w-14 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
                 >
-                  <Disc value={scale.tray[i] ?? 0} fixed={false} size={44} />
+                  <Disc value={scale.tray[i] ?? 0} fixed={false} size={56} />
                 </Button>
               ))}
             </div>
@@ -293,9 +296,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
                 key={i}
                 aria-label={`Select weight ${scale.tray[i] ?? 0}`}
                 onClick={() => tapWeight(i)}
-                className={`h-11 w-11 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
+                className={`h-14 w-14 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
               >
-                <Disc value={scale.tray[i] ?? 0} fixed={false} size={44} />
+                <Disc value={scale.tray[i] ?? 0} fixed={false} size={56} />
               </Button>
             ))}
           </div>
