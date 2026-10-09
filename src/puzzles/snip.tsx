@@ -8,6 +8,7 @@ import { inputAt, MAX_CATCH_UP_TICKS, recordInput, TICK_MS, type ArcadeInputEven
 import {
   snipCheckpoint,
   snipGame,
+  snipGameFor,
   snipView,
   snipCamera,
   unpackSnipCut,
@@ -45,6 +46,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SnipPuzzleData | null = puzzle.type === "snip" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const snipGame = snipGameFor(data?.snipRev);
 
   const board = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -242,7 +244,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "snip") return null;
-  const result = replaySnipRun(puzzle.seed, myAnswer ?? "");
+  const result = replaySnipRun(puzzle.seed, myAnswer ?? "", puzzle.snipRev);
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">

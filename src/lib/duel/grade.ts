@@ -1563,7 +1563,7 @@ export function gradeSubmission(
     }
     case "snip": {
       const replayStart = performance.now();
-      const run = replaySnipRun(puzzle.seed, answer);
+      const run = replaySnipRun(puzzle.seed, answer, puzzle.snipRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

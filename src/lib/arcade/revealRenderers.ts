@@ -148,7 +148,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     worldW: SNIP_CONFIG.viewW,
     worldH: SNIP_H,
     drawFinal: (ctx, puzzle, answer) => {
-      const state = replaySnipRun(seedOf(puzzle), answer).state as SnipState;
+      const state = replaySnipRun(seedOf(puzzle), answer, puzzle.type === "snip" ? puzzle.snipRev : undefined).state as SnipState;
       const camera = snipCamera(state, state.sx / FP - SNIP_CONFIG.viewW / 2, 1);
       drawSnip(ctx, state, { width: SNIP_CONFIG.viewW, height: SNIP_H }, undefined, camera);
       return null;
