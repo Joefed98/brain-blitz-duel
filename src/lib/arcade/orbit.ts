@@ -36,6 +36,8 @@ const SUN_RING = 128 * FP;
 export const ORBIT_INPUT_TAP = 0;
 export const ORBIT_INPUT_CHECKPOINT = 1;
 export const ORBIT_TOTAL = 40;
+/** Rev stamp for the wider zig-zag/scrolling-camera course (orbitRev3.ts). */
+export const ORBIT_REV3 = 3;
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
 /** The current planet sits this far down the screen. */

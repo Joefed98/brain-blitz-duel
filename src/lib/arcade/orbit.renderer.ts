@@ -34,8 +34,8 @@ const EIGHT_B_PCT = 45;
 /** Full-strength eight game colours for seeded planet surfaces and paths. */
 const GAME_COLOURS = ["#FF4D4D", "#4D8CFF", "#3DDC84", "#B26BFF", "#FF6BD6", "#FF8A3D", "#8B5A2B", "#FFE600"];
 
-/** Same offset maths as the sim's pathOffset. */
-function pathOffset(p: Planet, phase: number): { u: number; v: number } {
+/** Same offset maths as the sim's pathOffset. Exported for orbit-bounds-check.ts to compare against orbit.ts's own pathOffset. */
+export function orbitRendererPathOffset(p: Planet, phase: number): { u: number; v: number } {
   if (p.kind === ORBIT_ELLIPSE) {
     const b = Math.trunc((p.ring * ELLIPSE_B_PCT) / 100);
     const u = Math.trunc((p.ring * icos(phase)) / TRIG_ONE);
@@ -175,7 +175,7 @@ function drawSun(ctx: CanvasRenderingContext2D, x: number, y: number, r: number,
 function tracePath(ctx: CanvasRenderingContext2D, p: Planet, px: number, py: number, from: number, span: number, steps: number): void {
   ctx.beginPath();
   for (let k = 0; k <= steps; k++) {
-    const o = pathOffset(p, (from + Math.trunc((span * k) / steps)) & 65535);
+    const o = orbitRendererPathOffset(p, (from + Math.trunc((span * k) / steps)) & 65535);
     if (k === 0) ctx.moveTo(px + o.u / FP, py + o.v / FP);
     else ctx.lineTo(px + o.u / FP, py + o.v / FP);
   }
@@ -351,8 +351,8 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
   let hx = state.vx;
   let hy = state.vy;
   if (state.flying === 0) {
-    const a = pathOffset(here, state.angle);
-    const b = pathOffset(here, (state.angle + here.dir * 256) & 65535);
+    const a = orbitRendererPathOffset(here, state.angle);
+    const b = orbitRendererPathOffset(here, (state.angle + here.dir * 256) & 65535);
     hx = b.u - a.u;
     hy = b.v - a.v;
   }
@@ -455,3 +455,334 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
 /** The sim with the art renderer swapped in; step/score are the sim's own. */
 export const orbitArtGame = { ...orbitGame, draw: drawOrbitArt };
 export { ORBIT_BG };
+
+/* ============================ Rev 3 (camera) ============================ */
+/**
+ * Rev3 world-scroll art: same geometry helpers as rev1/2 (tracePath,
+ * drawPlanet, drawSun, drawBelt, planetLook) but translated by the shared,
+ * render-only orbitCamera (sim-tick deterministic; locked to the rocket with
+ * no cap in flight, capped at 6 units/tick while orbiting) instead of the
+ * fixed camY scroll. Rev1/2 drawing above is untouched. Why: one camera
+ * module keeps play, reveal and intro-demo frames identical without the sim
+ * knowing about the viewport.
+ */
+import {
+  orbitCamera,
+  orbitVisiblePlanets,
+  orbitCameraArrow,
+  ORBIT_CAM_VIEW_W,
+  ORBIT_CAM_VIEW_H,
+  ORBIT_ARROW_GOLD,
+  type OrbitCamOffset,
+} from "./orbitCamera";
+import { orbitRev3Game, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
+import { devDisplayAllowed } from "@/lib/devDisplay";
+
+/** One baked sprite per (planet index, lobe, radius) — drawPlanet has no time dependence. */
+const rev3SpriteCaches = new WeakMap<Planet[], Map<string, HTMLCanvasElement>>();
+
+function rev3PlanetSprite(planets: Planet[], p: Planet, i: number, lobe: number, r: number): HTMLCanvasElement | null {
+  if (typeof document === "undefined" || r <= 0) return null;
+  let cache = rev3SpriteCaches.get(planets);
+  if (!cache) {
+    cache = new Map();
+    rev3SpriteCaches.set(planets, cache);
+  }
+  const key = `${i}:${lobe}:${Math.round(r * 4)}`;
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const pad = 4;
+  const size = Math.ceil(r * 2 + pad * 2);
+  const off = document.createElement("canvas");
+  off.width = size;
+  off.height = size;
+  const octx = off.getContext("2d");
+  if (!octx) return null;
+  drawPlanet(octx, size / 2, size / 2, r, planetLook(p, i, lobe));
+  cache.set(key, off);
+  return off;
+}
+
+function rev3Starfield(ctx: CanvasRenderingContext2D, cam: OrbitCamOffset, t: number, still: boolean): void {
+  // Same seeded hashed layout as rev1/2's drawStars, parallaxed at 0.3x in both axes
+  // since rev3 scrolls sideways as well as vertically.
+  const par = 0.3;
+  const gap = 46;
+  const camX = cam.x * par;
+  const camY = cam.y * par;
+  const bandX = Math.floor(camX / gap);
+  const bandY = Math.floor(camY / gap);
+  ctx.fillStyle = "#FFFFFF";
+  const cols = Math.ceil(ORBIT_CAM_VIEW_W / gap) + 2;
+  const rows = Math.ceil(ORBIT_CAM_VIEW_H / gap) + 2;
+  for (let row = bandY - 1; row < bandY + rows; row++) {
+    for (let col = bandX - 1; col < bandX + cols; col++) {
+      const h = Math.imul(row * 92821 + col * 7919 + 11, 2654435761) >>> 0;
+      const sx = col * gap + ((h >>> 12) % gap) - camX;
+      const sy = row * gap + ((h >>> 18) % gap) - camY;
+      const twinkle = still ? 1 : 0.75 + 0.25 * Math.sin(t * 2 + (h % 97));
+      ctx.globalAlpha = (0.25 + ((h >>> 20) % 60) / 100) * twinkle;
+      const size = 1 + ((h >>> 2) % 2) * 0.5;
+      ctx.fillRect(sx, sy, size, size);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** One additive pass drawing every near-glow (sun corona + current-planet halo) together. */
+function rev3GlowLayer(ctx: CanvasRenderingContext2D, state: OrbitRev3State, visible: number[], cam: OrbitCamOffset, t: number): void {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const i of visible) {
+    const p = state.planets[i]!;
+    const px = p.x / FP - cam.x;
+    const py = p.y / FP - cam.y;
+    const sun = i === ORBIT_TOTAL;
+    const r = p.r / FP;
+    if (sun) {
+      const glow = ctx.createRadialGradient(px, py, r * 0.6, px, py, r * 2.2);
+      glow.addColorStop(0, "rgba(255,214,102,0.55)");
+      glow.addColorStop(1, "rgba(255,150,40,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(px, py, r * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (i === state.cur) {
+      const glow = ctx.createRadialGradient(px, py, r * 0.8, px, py, r * 1.6);
+      glow.addColorStop(0, "rgba(255,255,255,0.18)");
+      glow.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(px, py, r * 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function rev3Arrow(ctx: CanvasRenderingContext2D, arrow: { angle: number; off: number }): void {
+  const cx = ORBIT_CAM_VIEW_W / 2;
+  const cy = ORBIT_CAM_VIEW_H / 2;
+  const insetX = ORBIT_CAM_VIEW_W / 2 - 26;
+  const insetY = ORBIT_CAM_VIEW_H / 2 - 36;
+  const ux = Math.cos(arrow.angle);
+  const uy = Math.sin(arrow.angle);
+  const k = Math.min(insetX / (Math.abs(ux) || 1e-6), insetY / (Math.abs(uy) || 1e-6));
+  const ax = cx + ux * k;
+  const ay = cy + uy * k;
+  ctx.save();
+  ctx.translate(ax, ay);
+  ctx.rotate(Math.atan2(uy, ux));
+  ctx.globalAlpha = 0.6 + 0.4 * arrow.off;
+  ctx.fillStyle = ORBIT_ARROW_GOLD;
+  ctx.beginPath();
+  ctx.moveTo(12, 0);
+  ctx.lineTo(-8, -8);
+  ctx.lineTo(-8, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, size: CanvasSize): void {
+  const still = prefersReducedMotion();
+  const t = still ? 0 : state.tick / 60;
+  const cam = orbitCamera(state, { reducedMotion: still });
+  const scale = Math.min(size.width / ORBIT_CAM_VIEW_W, size.height / ORBIT_CAM_VIEW_H);
+  const ox = (size.width - ORBIT_CAM_VIEW_W * scale) / 2;
+  const oy = (size.height - ORBIT_CAM_VIEW_H * scale) / 2;
+  ctx.save();
+  ctx.clearRect(0, 0, size.width, size.height);
+  ctx.fillStyle = ORBIT_REV3_BG;
+  ctx.fillRect(0, 0, size.width, size.height);
+  ctx.translate(ox, oy);
+  ctx.scale(scale, scale);
+  ctx.beginPath();
+  ctx.rect(0, 0, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
+  ctx.clip();
+
+  rev3Starfield(ctx, cam, t, still);
+
+  // Cull to the view plus one ring's margin either side (orbitVisiblePlanets).
+  const visible = orbitVisiblePlanets(state, cam);
+
+  ctx.setLineDash([]);
+  for (const i of visible) {
+    const p = state.planets[i]!;
+    const sun = i === ORBIT_TOTAL;
+    ctx.strokeStyle = sun ? ORBIT_GOLD : planetLook(p, i, 0).colour;
+    ctx.lineWidth = i === state.cur ? 2 : 1;
+    ctx.globalAlpha = i === state.cur ? 0.75 : 0.3;
+    tracePath(ctx, p, p.x / FP - cam.x, p.y / FP - cam.y, 0, 65536, 72);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  rev3GlowLayer(ctx, state, visible, cam, t);
+
+  for (const i of visible) {
+    const p = state.planets[i]!;
+    const px = p.x / FP - cam.x;
+    const py = p.y / FP - cam.y;
+    if (i === ORBIT_TOTAL) drawSun(ctx, px, py, p.r / FP, t);
+    else {
+      const eight = p.kind === ORBIT_EIGHT;
+      const bodies = eight ? [-orbitLobes(p) / FP, orbitLobes(p) / FP] : [0];
+      bodies.forEach((bx, lobe) => {
+        const r = (eight ? p.r * 0.8 : p.r) / FP;
+        const sprite = rev3PlanetSprite(state.planets, p, i, lobe, r);
+        if (sprite) ctx.drawImage(sprite, px + bx - sprite.width / 2, py - sprite.height / 2);
+        else drawPlanet(ctx, px + bx, py, r, planetLook(p, i, lobe));
+      });
+    }
+    if (i === state.checkpoint && state.respawns > 0) {
+      const r = p.r / FP;
+      const pulse = still ? 0 : Math.sin(t * 4) * 1.5;
+      ctx.strokeStyle = ORBIT_GOLD;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(px, py, r + 6 + pulse, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    drawBelt(ctx, p, state.tick, cam.y, still);
+  }
+
+  const since = state.tick - state.releaseTick;
+  if (since >= 0 && since < ORBIT_TRAIL_TICKS && state.flying > 0) {
+    ctx.strokeStyle = ORBIT_GOLD;
+    ctx.globalAlpha = 0.2 * (1 - since / ORBIT_TRAIL_TICKS);
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.moveTo(state.releaseX / FP - cam.x, state.releaseY / FP - cam.y);
+    ctx.lineTo(state.releaseX / FP - cam.x + (state.vx / FP) * 90, state.releaseY / FP - cam.y + (state.vy / FP) * 90);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+
+  const here = state.planets[state.cur]!;
+  let hx = state.vx;
+  let hy = state.vy;
+  if (state.flying === 0) {
+    const a = orbitRendererPathOffset(here, state.angle);
+    const b = orbitRendererPathOffset(here, (state.angle + here.dir * 256) & 65535);
+    hx = b.u - a.u;
+    hy = b.v - a.v;
+  }
+  const len = Math.hypot(hx, hy) || 1;
+  const ux = hx / len;
+  const uy = hy / len;
+  const sx = state.x / FP - cam.x;
+  const sy = state.y / FP - cam.y;
+
+  if (state.flying > 0) {
+    const back = Math.min(state.flying, 14) * (Math.hypot(state.vx, state.vy) / FP);
+    const trail = ctx.createLinearGradient(sx, sy, sx - ux * back, sy - uy * back);
+    trail.addColorStop(0, "rgba(255,209,102,0.55)");
+    trail.addColorStop(1, "rgba(255,209,102,0)");
+    ctx.strokeStyle = trail;
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx - ux * back, sy - uy * back);
+    ctx.stroke();
+    ctx.lineCap = "butt";
+  }
+
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(Math.atan2(uy, ux));
+  const dead = state.ended === 2;
+  if (state.flying > 0 && !dead && since < 24) {
+    const flicker = still ? 1 : 0.8 + 0.2 * Math.sin(state.tick * 2.3);
+    const flame = (10 + (24 - since) * 0.35) * flicker;
+    const fire = ctx.createLinearGradient(-6, 0, -6 - flame, 0);
+    fire.addColorStop(0, "rgba(255,240,180,0.95)");
+    fire.addColorStop(0.4, "rgba(255,140,50,0.85)");
+    fire.addColorStop(1, "rgba(255,77,77,0)");
+    ctx.fillStyle = fire;
+    ctx.beginPath();
+    ctx.moveTo(-5, -3);
+    ctx.quadraticCurveTo(-6 - flame * 0.6, 0, -6 - flame, 0);
+    ctx.quadraticCurveTo(-6 - flame * 0.6, 0, -5, 3);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = dead ? "#8A2B33" : "#C8862A";
+  ctx.beginPath();
+  ctx.moveTo(-6, -2);
+  ctx.lineTo(-9, -6);
+  ctx.lineTo(-2, -3);
+  ctx.closePath();
+  ctx.moveTo(-6, 2);
+  ctx.lineTo(-9, 6);
+  ctx.lineTo(-2, 3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = dead ? ORBIT_REV3_RED : "#F4F1EA";
+  ctx.beginPath();
+  ctx.moveTo(10, 0);
+  ctx.quadraticCurveTo(4, -4.5, -6, -3);
+  ctx.lineTo(-6, 3);
+  ctx.quadraticCurveTo(4, 4.5, 10, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = dead ? "#5A1820" : ORBIT_GOLD;
+  ctx.beginPath();
+  ctx.moveTo(10, 0);
+  ctx.quadraticCurveTo(7, -2.6, 5, -2.6);
+  ctx.lineTo(5, 2.6);
+  ctx.quadraticCurveTo(7, 2.6, 10, 0);
+  ctx.fill();
+  ctx.fillStyle = "#4D8CFF";
+  ctx.beginPath();
+  ctx.arc(1, 0, 1.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Gold edge arrow (screen space) when the next ring is more than 30% off-screen.
+  const arrow = orbitCameraArrow(state, cam);
+  if (arrow) rev3Arrow(ctx, arrow);
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "left";
+  ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`, 14, 26);
+  if (state.checkpoint >= 0) {
+    ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
+    ctx.font = "600 12px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, 44);
+  }
+  if (state.tick - state.respawnTick < 45) {
+    ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;
+    ctx.fillStyle = ORBIT_GOLD;
+    ctx.font = "700 22px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("RESPAWN", ORBIT_CAM_VIEW_W / 2, ORBIT_CAM_VIEW_H / 2);
+    ctx.globalAlpha = 1;
+  }
+
+  // Dev-only frame readout (?dev=1 + accepted key): camera position and visible-planet count.
+  if (devDisplayAllowed()) {
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.font = "500 10px ui-monospace, monospace";
+    ctx.textAlign = "left";
+    ctx.fillText(`cam ${cam.x.toFixed(1)}, ${cam.y.toFixed(1)} · visible ${visible.length}`, 14, ORBIT_CAM_VIEW_H - 10);
+  }
+  ctx.restore();
+}
+
+/** The rev3 sim with its camera-scrolled renderer swapped in. */
+export const orbitRev3ArtGame = { ...orbitRev3Game, draw: drawOrbitRev3Art };
+
+/**
+ * Dispatches on the replayed state's own `rev` field rather than puzzle data,
+ * so a single reveal/intro-demo config keeps working once rev3 is wired into
+ * the server puzzle type: rev-1/2 states draw exactly as before.
+ */
+export function orbitArtGameFor(state: object): { draw: typeof drawOrbitArt } {
+  return (state && (state as { rev?: number }).rev === 3 ? orbitRev3ArtGame : orbitArtGame) as unknown as { draw: typeof drawOrbitArt };
+}

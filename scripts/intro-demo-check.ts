@@ -97,7 +97,11 @@ const CASES: Case[] = [
   { type: "junction", game: g(junctionGame), replay: r(replayJunctionRun) },
   { type: "inkbridge", game: g(inkBridgeGame), replay: r(replayInkBridgeRun) },
   { type: "burst", game: g(burstGame), replay: r(replayBurstRun) },
-  { type: "orbit", game: g(orbitGame), replay: r(replayOrbitRun) },
+  {
+    type: "orbit",
+    game: g(orbitGame),
+    replay: (p, s, raw) => replayOrbitRun(s, raw, p.type === "orbit" ? p.orbitRev : undefined, p.type === "orbit" ? p.planets : undefined),
+  },
   { type: "swing", game: (p) => swingGameFor(p.type === "swing" ? p.swingRev : undefined) as unknown as AnyGame, replay: (p, s, raw) => replaySwingRun(s, raw, p.type === "swing" ? p.swingRev : undefined) },
   { type: "snip", game: g(snipGame), replay: r(replaySnipRun) },
   { type: "tilt", game: g(tiltGame), replay: r(replayTiltRun) },

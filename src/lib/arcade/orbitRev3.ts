@@ -412,28 +412,41 @@ export function findHopTapDelay(
   return bestStart + Math.trunc(bestLen / 2);
 }
 
-/** Live-sim bot: taps mid of the first robust window from its real arrival state. */
-function runRev3Bot(planets: Planet[], worldW: number): OrbitRev3Proof {
+/**
+ * Live-sim bot: taps mid of the first robust window from its real arrival
+ * state. Also records every tap tick, so a bank build can store the tap log
+ * alongside the proof and later re-verify by replaying it (no re-search)
+ * through orbitRev3Game.
+ */
+export function runRev3BotWithTaps(planets: Planet[], worldW: number): { proof: OrbitRev3Proof; taps: number[] } {
   let state = initRev3From(planets, worldW);
+  const taps: number[] = [];
   let safety = 0;
   while (state.cur < ORBIT_TOTAL && state.ended === 0 && safety < ORBIT_REV3_RUN_TICKS) {
     if (state.flying === 0) {
       const here = state.planets[state.cur]!;
       const lapTicks = lapPhases(here).length;
       const delay = findHopTapDelay(state, worldW, lapTicks);
-      if (delay === null) return { ok: false, ticks: state.tick, reason: `no window at hop ${state.cur}` };
+      if (delay === null) return { proof: { ok: false, ticks: state.tick, reason: `no window at hop ${state.cur}` }, taps };
       for (let k = 0; k < delay; k++) {
         state = stepRev3(state, worldW, null);
         safety++;
       }
-      state = stepRev3(state, worldW, { t: state.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 });
+      const tapTick = state.tick + 1;
+      taps.push(tapTick);
+      state = stepRev3(state, worldW, { t: tapTick, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 });
     } else {
       state = stepRev3(state, worldW, null);
     }
     safety++;
   }
   const ok = state.cur >= ORBIT_TOTAL || state.finished === 1;
-  return ok ? { ok, ticks: state.tick } : { ok, ticks: state.tick, reason: "did not reach planet 40 in time" };
+  const proof = ok ? { ok, ticks: state.tick } : { ok, ticks: state.tick, reason: "did not reach planet 40 in time" };
+  return { proof, taps };
+}
+
+function runRev3Bot(planets: Planet[], worldW: number): OrbitRev3Proof {
+  return runRev3BotWithTaps(planets, worldW).proof;
 }
 
 /** Salted attempts per seed before giving up; each attempt is fully seeded. */
@@ -444,7 +457,7 @@ const proofCache = new Map<string, { planets: Planet[]; rng: number; proof: Orbi
  * Seeded course whose completion is proved by the live-sim bot. Salt s rebuilds
  * the raw course from a deterministic seed mix until the bot finishes.
  */
-function buildCourse3(seed: number, worldW = ORBIT_REV3_WORLD_W): { planets: Planet[]; rng: number; proof: OrbitRev3Proof; salt: number } {
+export function buildCourse3(seed: number, worldW = ORBIT_REV3_WORLD_W): { planets: Planet[]; rng: number; proof: OrbitRev3Proof; salt: number } {
   const key = `${seed}:${worldW}`;
   const hit = proofCache.get(key);
   if (hit) return hit;
@@ -512,7 +525,7 @@ export interface OrbitRev3State {
 const VIEW_ANCHOR = 440 * FP;
 const courseCache = new Map<number, { planets: Planet[]; rng: number }>();
 
-function initRev3From(planets: Planet[], worldW: number, rng = 0): OrbitRev3State {
+export function initRev3From(planets: Planet[], worldW: number, rng = 0): OrbitRev3State {
   const p = planets[0]!;
   const angle = 3 * ANG_QUARTER;
   const pos = orbitPos(p, angle);
@@ -851,3 +864,29 @@ export const orbitRev3Game: ArcadeGame<OrbitRev3State, ArcadeInputEvent | null> 
 };
 
 export { ORBIT_LOOKAHEAD as ORBIT_REV3_LOOKAHEAD, ORBIT_ROCKET_DIAMETER as ORBIT_REV3_ROCKET_DIAMETER };
+
+/* ========================= Compact planet rows ========================= */
+
+/**
+ * Per-planet compact row: only the fields planetShape(i) cannot derive from
+ * the index — [x, y, dir, hazard, colour, kind, rot].
+ */
+export type OrbitRev3CompactPlanet = [number, number, number, number, number, number, number];
+
+export function encodeRev3Planets(planets: readonly Planet[]): OrbitRev3CompactPlanet[] {
+  return planets.map((p) => [p.x, p.y, p.dir, p.hazard, p.colour, p.kind, p.rot]);
+}
+
+export function decodeRev3Planets(rows: readonly OrbitRev3CompactPlanet[]): Planet[] {
+  return rows.map(([x, y, dir, hazard, colour, kind, rot], i) => ({
+    ...planetShape(i),
+    x,
+    y,
+    dir,
+    hazard,
+    colour,
+    kind,
+    rot,
+  }));
+}
+

@@ -2,6 +2,8 @@ import { INK_REV3 } from "@/lib/arcade/inkBridge";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
+import { ORBIT_REV3 } from "@/lib/arcade/orbit";
+import { orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V3_BANK } from "./swingBank.server";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
@@ -169,7 +171,11 @@ export function generateBurst(): BurstPuzzleData {
 }
 
 export function generateOrbit(): OrbitPuzzleData {
-  return { type: "orbit", seed: arcadeSeed() };
+  const seed = arcadeSeed();
+  // Rev 3 only from the proved bank: live proof is too slow for a room start, so an empty bank keeps rev 2.
+  const bankPlanets = orbitRev3PlanetsForSeed(seed);
+  if (!bankPlanets) return { type: "orbit", seed };
+  return { type: "orbit", seed, orbitRev: ORBIT_REV3, planets: encodeRev3Planets(bankPlanets) };
 }
 
 export function generateSnip(): SnipPuzzleData {

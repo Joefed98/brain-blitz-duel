@@ -2,7 +2,7 @@
  * Orbit rev 3 camera — render-only. Pure function of sim state (never the
  * frame clock): target = rocket + 35% toward the next planet, rocket held in
  * a central safe box, eased with a critically-damped spring evaluated per sim
- * tick. While in flight the camera locks straight to the rocket (no cap, no
+ * tick. In flight the same capped spring follows (flight speed < cap); no
  * spring) so a fast hop can never outrun the view. Assumed rev-3 field names
  * (per spec, orbit.ts rev 3 is being built concurrently and does not yet
  * exist): state.rev, state.worldW, state.planets[{x,y,ring}], state.rocket
@@ -20,6 +20,8 @@ const SAFE_INSET_X = 70;
 const SAFE_INSET_Y = 120;
 const LEAD_PCT = 0.35;
 const ORBIT_SPEED_CAP = 6;
+/** Longest frame gap eased tick-by-tick; longer jumps snap. */
+const MAX_CATCHUP_TICKS = 30;
 const SPRING_OMEGA = 0.35;
 export const ORBIT_ARROW_GOLD = "#F5B82E";
 const REDUCED_SLIDE_MS = 250;
@@ -119,6 +121,37 @@ function clampStep(prevX: number, prevY: number, x: number, y: number, cap: numb
   return { x: prevX + dx * k, y: prevY + dy * k };
 }
 
+/** Count of ticks where the safe-box clamp overrode the 6/tick spring cap. */
+let clampOverrideCount = 0;
+
+/** Test/dev hook: how many ticks so far needed the safe-box override. */
+export function orbitCameraClampOverrideCount(): number {
+  return clampOverrideCount;
+}
+
+/**
+ * After the (possibly capped) spring step, hard-clamp the camera so the
+ * rocket is guaranteed inside the safe box — the spring/cap are an easing
+ * approximation and can otherwise leave the rocket outside the box for a
+ * tick or two. This override only nudges the camera when the eased step
+ * actually failed to keep the rocket boxed, so it is a no-op the vast
+ * majority of ticks; `clampOverrideCount` tracks how often it fires.
+ */
+function hardClampToSafeBox(rocket: { x: number; y: number }, cam: OrbitCamOffset): OrbitCamOffset {
+  let { x, y } = cam;
+  const left = x + SAFE_INSET_X;
+  const right = x + ORBIT_CAM_VIEW_W - SAFE_INSET_X;
+  const top = y + SAFE_INSET_Y;
+  const bottom = y + ORBIT_CAM_VIEW_H - SAFE_INSET_Y;
+  let overrode = false;
+  if (rocket.x < left) { x -= left - rocket.x; overrode = true; }
+  else if (rocket.x > right) { x += rocket.x - right; overrode = true; }
+  if (rocket.y < top) { y -= top - rocket.y; overrode = true; }
+  else if (rocket.y > bottom) { y += rocket.y - bottom; overrode = true; }
+  if (overrode) clampOverrideCount++;
+  return { x, y };
+}
+
 /**
  * Deterministic camera offset for this sim state. Determinism relies only on
  * `state.planets` (the seeded, stable course array — the same reference
@@ -135,12 +168,6 @@ export function orbitCamera(state: Rev3Like, opts?: { reducedMotion?: boolean })
   const key = state.planets as object;
   const prev = cache.get(key);
   const reduced = opts?.reducedMotion ?? false;
-
-  if (flying && !reduced) {
-    // Locked to the rocket: no spring, no cap, never outrun.
-    cache.set(key, { tick: state.tick, x: raw.x, y: raw.y, vx: 0, vy: 0 });
-    return raw;
-  }
 
   if (reduced) {
     if (flying) {
@@ -170,16 +197,27 @@ export function orbitCamera(state: Rev3Like, opts?: { reducedMotion?: boolean })
     return { x: out.x, y: out.y };
   }
 
-  if (prev.tick !== state.tick - 1) {
-    // Non-sequential jump: snap rather than pay for an unbounded replay.
+  const gap = state.tick - prev.tick;
+  if (gap < 0 || gap > MAX_CATCHUP_TICKS) {
+    // Backwards or long jump (e.g. a reveal built straight at its final tick): snap.
     cache.set(key, { tick: state.tick, x: raw.x, y: raw.y, vx: 0, vy: 0 });
     return raw;
   }
 
-  const sx = springStep(prev.x, prev.vx, raw.x, 1);
-  const sy = springStep(prev.y, prev.vy, raw.y, 1);
-  const capped = clampStep(prev.x, prev.y, sx.x, sy.x === sx.x ? sy.x : sx.x, ORBIT_SPEED_CAP); // placeholder, replaced below
-  const out = clampStep(prev.x, prev.y, sx.x, sy.x, ORBIT_SPEED_CAP);
+  // Same spring, 6/tick cap and safe-box clamp in orbit and in flight (rocket
+  // flight speed stays below the cap, so following never outruns it). Skipped
+  // frames step the spring once per missed tick so a slow frame never snaps.
+  let cx = prev.x, cy = prev.y, vx = prev.vx, vy = prev.vy;
+  let out: OrbitCamOffset = { x: cx, y: cy };
+  const sx = { x: 0, v: 0 }, sy = { x: 0, v: 0 };
+  for (let k = 0; k < gap; k++) {
+    const ax = springStep(cx, vx, raw.x, 1);
+    const ay = springStep(cy, vy, raw.y, 1);
+    const stepped = clampStep(cx, cy, ax.x, ay.x, ORBIT_SPEED_CAP);
+    out = k === gap - 1 ? hardClampToSafeBox(rocketOf(state), stepped) : stepped;
+    cx = out.x; cy = out.y; vx = ax.v; vy = ay.v;
+  }
+  sx.v = vx; sy.v = vy;
   cache.set(key, { tick: state.tick, x: out.x, y: out.y, vx: sx.v, vy: sy.v });
   return out;
 }
@@ -224,4 +262,5 @@ export function orbitCameraArrow(state: Rev3Like, cam: OrbitCamOffset): OrbitCam
 /** Test/dev hook: drops cached spring state (new course, or isolating test runs). */
 export function orbitCameraResetCache(): void {
   cache.clear();
+  clampOverrideCount = 0;
 }
