@@ -1129,6 +1129,7 @@ body.game-lock {
 .balance-weight { filter: drop-shadow(0 2px 2px var(--background)); }
 .eagle-sky { background: linear-gradient(145deg, var(--eagle-sky), var(--card)) !important; }
 .eagle-cell { height: auto; }
+.eagle-cell[aria-pressed="true"] { background: color-mix(in srgb, var(--primary) 15%, var(--card)); color: var(--primary); border-color: var(--primary); }
 .sweet-panel { background: linear-gradient(145deg, var(--card), var(--background)); }
 .bonk-example { background: var(--bonk-ground); border-radius: 8px; padding: 2px; }
 .bonk-burrow { border-radius: 50%; background: var(--bonk-hole); }

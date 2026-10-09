@@ -52,7 +52,7 @@ function CellBox({
   const Tag = onClick ? Button : "div";
   return (
     <Tag
-      {...(onClick ? { type: "button" as const, onClick, disabled, "aria-label": label } : {})}
+      {...(onClick ? { type: "button" as const, onClick, disabled, "aria-label": label, "aria-pressed": state === "selected" } : {})}
       className={`eagle-cell min-w-0 p-0 flex aspect-square w-full items-center justify-center rounded-lg border ${style}`}
       style={size ? { width: size, height: size } : undefined}
     >
