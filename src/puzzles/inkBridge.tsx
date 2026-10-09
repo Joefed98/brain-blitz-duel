@@ -15,7 +15,7 @@ import {
 } from "@/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
 import { INKBRIDGE_TIME_MS, type InkBridgePuzzleData } from "@/lib/duel/types";
-import { drawInkRainbowExample, inkBridgeArtGame, INK_ART_BG } from "@/lib/arcade/inkBridge.renderer";
+import { drawInkRainbowExample, inkBridgeArtGameFor, INK_ART_BG } from "@/lib/arcade/inkBridge.renderer";
 import { inkBridgeSounds } from "@/lib/fx/gameSounds";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { Button } from "@/components/ui/button";
@@ -34,9 +34,17 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <canvas ref={canvas} width={336} height={260} className="h-[130px] w-[168px] rounded-lg" aria-hidden="true" />
-      <p className="text-center text-xs text-muted-foreground">Draw around the red block, then RELEASE.</p>
+      <p className="text-center text-xs text-muted-foreground">Draw around the white birds, then RELEASE.</p>
     </div>
   );
+}
+
+const artGames = new Map<number, ReturnType<typeof inkBridgeArtGameFor>>();
+function inkBirdsArt(rev?: number) {
+  const k = rev ?? 0;
+  let g = artGames.get(k);
+  if (!g) { g = inkBridgeArtGameFor(rev); artGames.set(k, g); }
+  return g;
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
@@ -59,7 +67,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         locked={locked}
         worldW={INK_WORLD_W}
         worldH={INK_WORLD_H}
-        game={inkBridgeArtGame}
+        game={inkBirdsArt(data?.inkRev)}
         sounds={inkBridgeSounds}
         checkpoint={inkCheckpoint}
         interval={INK_CHECKPOINT_INTERVAL}
@@ -106,7 +114,7 @@ export function inkBridgeLine(r: { levels: number; total: number; score: number 
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "inkbridge") return null;
-  const result = replayInkBridgeRun(puzzle.seed, myAnswer ?? "");
+  const result = replayInkBridgeRun(puzzle.seed, myAnswer ?? "", puzzle.inkRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">

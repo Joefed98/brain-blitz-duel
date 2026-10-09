@@ -764,7 +764,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   inkbridge: {
     goal: "Draw a path so the coin rolls into the pot.",
     how: [
-      { action: "Draw lines around the red blocks,", detail: "then tap RELEASE." },
+      { action: "Draw lines around the white birds,", detail: "then tap RELEASE." },
       { action: "Ink is limited", detail: "- more each level." },
       { action: "Three failed drops", detail: "and you're out." },
     ],

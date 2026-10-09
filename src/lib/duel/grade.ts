@@ -1480,7 +1480,7 @@ export function gradeSubmission(
     }
     case "inkbridge": {
       const replayStart = performance.now();
-      const run = replayInkBridgeRun(puzzle.seed, answer);
+      const run = replayInkBridgeRun(puzzle.seed, answer, puzzle.inkRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
