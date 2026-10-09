@@ -1,12 +1,13 @@
 import type { GridGeometry } from "./GridDrag";
 
 /** Coordinate recordings made before these control-layout changes cannot replay. */
-export const REVISED_PUZZLE_DEMOS = new Set(["wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood"]);
+export const REVISED_PUZZLE_DEMOS = new Set(["wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const BALANCE_PRESENTATION = "oct9-beam-notches";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
   if (!REVISED_PUZZLE_DEMOS.has(type)) return true;
   if (typeof log !== "object" || log === null || !("presentation" in log)) return false;
-  return log.presentation === (type === "wordsmith" ? WORDSMITH_PRESENTATION : PUZZLE_INPUT_PRESENTATION);
+  return log.presentation === (type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION);
 }
 export const WORDSMITH_PRESENTATION = "oct8-atom-orbit";
 

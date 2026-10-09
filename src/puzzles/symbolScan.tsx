@@ -1,3 +1,5 @@
+import { EagleIcon } from "@/components/puzzles/refreshIcons";
+import { Button } from "@/components/ui/button";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
@@ -19,36 +21,6 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 /** Compass order, so "adjacent" directions are simply the neighbours here. */
 const DIRECTIONS: ArrowDir[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-
-const ANGLE: Record<ArrowDir, number> = {
-  N: 0,
-  NE: 45,
-  E: 90,
-  SE: 135,
-  S: 180,
-  SW: 225,
-  W: 270,
-  NW: 315,
-};
-
-/** One arrow shape, drawn inline and rotated — never a Unicode glyph. */
-function Arrow({ dir, size = 24 }: { dir: ArrowDir; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
-      <g
-        transform={`rotate(${ANGLE[dir]} 12 12)`}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <line x1="12" y1="20" x2="12" y2="4.5" />
-        <polyline points="6.5,10.5 12,4.5 17.5,10.5" />
-      </g>
-    </svg>
-  );
-}
 
 type CellState = "plain" | "selected" | "target" | "wrong" | "missed";
 
@@ -76,15 +48,15 @@ function CellBox({
           ? "border-warn bg-warn/10 text-warn"
           : state === "missed"
             ? "border-warn border-dashed text-warn"
-            : "border-border bg-card text-muted-foreground";
-  const Tag = onClick ? "button" : "div";
+            : "border-border eagle-sky text-foreground";
+  const Tag = onClick ? Button : "div";
   return (
     <Tag
-      {...(onClick ? { type: "button" as const, onClick, disabled, "aria-label": label } : {})}
-      className={`flex aspect-square w-full items-center justify-center rounded-lg border ${style}`}
+      {...(onClick ? { type: "button" as const, onClick, disabled, "aria-label": label, "aria-pressed": state === "selected" } : {})}
+      className={`eagle-cell min-w-0 p-0 flex aspect-square w-full items-center justify-center rounded-lg border ${style}`}
       style={size ? { width: size, height: size } : undefined}
     >
-      <Arrow dir={dir} size={size ? Math.round(size * 0.66) : 28} />
+      <EagleIcon dir={dir} size={size ? Math.round(size * 0.66) : 32} />
     </Tag>
   );
 }
@@ -100,7 +72,7 @@ function IntroExample() {
       <div className="flex flex-col items-center gap-1">
         <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
         <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
-          <Arrow dir={EXAMPLE_TARGET} size={30} />
+          <EagleIcon dir={EXAMPLE_TARGET} size={30} />
         </div>
       </div>
       <div className="grid grid-cols-3 gap-1.5">
@@ -138,7 +110,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     if (!el || !top || !submit) return;
     const read = () => {
       const availableHeight = el.clientHeight - top.offsetHeight - submit.offsetHeight - 20;
-      setGridSide(Math.max(0, Math.floor(Math.min(availableHeight, el.clientWidth))));
+      setGridSide(Math.max(0, Math.floor(Math.min(Math.max(availableHeight, 332), el.clientWidth))));
     };
     read();
     const observer = new ResizeObserver(read);
@@ -181,7 +153,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
             Grid {stage + 1} of 3 · target
           </span>
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
-            <Arrow dir={current.target} size={30} />
+            <EagleIcon dir={current.target} size={30} />
           </div>
         </div>
       </div>
@@ -204,7 +176,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
         </div>
       </div>
 
-      <button
+      <Button
         ref={submitRef}
         type="button"
         onClick={() => !frozen && advance(selections)}
@@ -212,7 +184,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
         data-game-controls="actions" className="tap-target mt-3 w-full shrink-0 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
       >
         Submit
-      </button>
+      </Button>
     </div>
   );
 }
@@ -231,7 +203,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           <div key={s} className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-3 py-3">
             <div className="flex items-center gap-2 text-primary">
               <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Grid {s + 1}</span>
-              <Arrow dir={stage.target} size={20} />
+              <EagleIcon dir={stage.target} size={20} />
             </div>
             <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${stage.cols}, minmax(0, 1fr))` }}>
               {stage.cells.map((dir, index) => {

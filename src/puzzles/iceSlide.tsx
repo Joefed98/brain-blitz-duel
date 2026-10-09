@@ -150,6 +150,10 @@ function Board({
             <Crack />
           ) : turn ? (
             <Chevron dir={turn} />
+          ) : cell === exit ? (
+            <svg viewBox="0 0 20 20" className="h-[82%] w-[82%]" aria-hidden="true">
+              <path d="M8 3H3v14h5M8 10h9m-4-4 4 4-4 4" fill="none" stroke="var(--ice-wall)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           ) : cell === start ? (
             <span
               className="block rounded-full" 

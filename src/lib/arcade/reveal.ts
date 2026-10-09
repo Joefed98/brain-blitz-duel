@@ -297,7 +297,7 @@ const BUILDERS: Record<string, Builder> = {
   whack: (r, s) => {
     const penalties = [
       n(r, "wrong") > 0 ? `−${3 * n(r, "wrong")} wrong` : "",
-      n(r, "bombs") > 0 ? `−${5 * n(r, "bombs")} bombs` : "",
+      n(r, "bombs") > 0 ? `−${5 * n(r, "bombs")} hedgehogs` : "",
       n(r, "empty") > 0 ? `−${3 * n(r, "empty")} empty` : "",
       b(r, "perfect") ? "+15 all targets" : "",
     ].filter(Boolean);
@@ -306,7 +306,7 @@ const BUILDERS: Record<string, Builder> = {
       lines: [`${n(r, "hits")} / ${n(r, "totalTargets")} hits → ${s}`, ...(penalties.length ? [penalties.join(" · ")] : [])],
       tiles: [
         { label: "Wrong colour", value: String(n(r, "wrong")) },
-        { label: "Bombs", value: String(n(r, "bombs")) },
+        { label: "Hedgehogs", value: String(n(r, "bombs")) },
         { label: "Empty taps", value: String(n(r, "empty")) },
       ],
       outcome: "time",
