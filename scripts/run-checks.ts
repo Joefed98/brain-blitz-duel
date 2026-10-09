@@ -12,7 +12,7 @@ import { readdirSync } from "node:fs";
 const DEFAULT_TIMEOUT_MS = 300_000;
 const TIMEOUT_OVERRIDES: Record<string, number> = {
   "snip-check.ts": 1_800_000,
-  "orbit-outside-belt-deep.ts": 1_800_000,
+  "orbit-outside-belt-deep-check.ts": 1_800_000,
 };
 
 const filters = process.argv.slice(2);
