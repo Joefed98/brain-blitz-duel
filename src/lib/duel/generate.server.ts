@@ -4,6 +4,7 @@
  * handled here, so nothing answer-shaped is ever reachable from a client bundle.
  */
 
+import { SPEED_PAR_VERSION, puzzleUsesSpeedPar, withSpeedCurve } from "./speedPar";
 import { generateBlockParty } from "./blockParty.server";
 import { generateGroups } from "./groups.server";
 import { gradeSubmission, type Graded, type SubmitExtra } from "./grade";
@@ -95,7 +96,13 @@ export interface GenerateContext {
   recentWordMatchWords?: string[];
 }
 
+/** Every new puzzle is stamped with the speed-par scoring version; stored rounds without it keep the legacy curve. */
 export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
+  const made = generateUnstamped(type, context);
+  return { ...(made as object), speedPar: SPEED_PAR_VERSION } as PuzzleData;
+}
+
+function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
   if (type === "stroop") return generateColourClash();
   if (type === "gonogo") return buildGoNoGo(context.previousGoNoGoFirst ?? null);
   if (type === "wordmatch") return buildWordMatch(context.recentWordMatchWords ?? []);
@@ -201,7 +208,9 @@ export function gradeAnswer(
   msRemaining: number,
   extra?: SubmitExtra,
 ): Graded {
-  if (puzzle.type === "wordsmith") return gradeWordsmith(puzzle, answer, msRemaining);
-  if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
-  return gradeSubmission(puzzle, answer, msRemaining, extra);
+  return withSpeedCurve(puzzleUsesSpeedPar(puzzle), () => {
+    if (puzzle.type === "wordsmith") return gradeWordsmith(puzzle, answer, msRemaining);
+    if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
+    return gradeSubmission(puzzle, answer, msRemaining, extra);
+  });
 }
