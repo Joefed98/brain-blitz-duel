@@ -89,6 +89,27 @@ export const SNIP_CONFIG = {
     { name: "Shelf", sweet: [200, 170], pins: [[140, 60, 0], [260, 60, 0]], platforms: [[290, 300, 430, 316], [110, 440, 230, 456]], mouth: [380, 280], stars: [[340, 240]] },
     { name: "Gap", sweet: [270, 150], pins: [[130, 100, 30], [410, 100, 30]], platforms: [[120, 400, 240, 416], [300, 400, 420, 416]], mouth: [270, 500], stars: [[270, 260]] },
     { name: "Under", sweet: [270, 170], pins: [[150, 60, 0], [390, 60, 0], [270, 320, 0]], platforms: [[110, 380, 200, 396]], mouth: [380, 470], stars: [[340, 380]] },
+    // ---- Level-variety revision (snipRev 2): drawn by band, never in the fixed legacy order. ----
+    { name: "Swing back", sweet: [380, 150], pins: [[270, 50, 0]], platforms: [], mouth: [160, 490], stars: [[270, 200]] },
+    { name: "Pair left", sweet: [270, 180], pins: [[380, 60, 0], [160, 60, 0]], platforms: [], mouth: [150, 490], stars: [[200, 250]] },
+    { name: "Long arc back", sweet: [300, 80], pins: [[130, 50, 0]], platforms: [], mouth: [220, 490], stars: [[220, 380]] },
+    { name: "Low swing", sweet: [150, 230], pins: [[270, 110, 0]], platforms: [], mouth: [390, 490], stars: [[392, 319]] },
+    { name: "Lean", sweet: [330, 170], pins: [[230, 60, 0]], platforms: [], mouth: [190, 490], stars: [[243, 269]] },
+    { name: "Wide pair", sweet: [270, 200], pins: [[130, 70, 0], [410, 70, 0]], platforms: [], mouth: [160, 490], stars: [[322, 242]] },
+    { name: "Ledge right", sweet: [370, 170], pins: [[250, 60, 0]], platforms: [[300, 330, 420, 346]], mouth: [160, 500], stars: [[180, 330]] },
+    { name: "Triple left", sweet: [270, 200], pins: [[390, 80, 0], [270, 40, 0], [150, 80, 0]], platforms: [[330, 430, 430, 446]], mouth: [270, 490], stars: [[270, 330]] },
+    { name: "Anchor right", sweet: [230, 150], pins: [[330, 50, 0], [150, 230, 0]], platforms: [[110, 420, 250, 436]], mouth: [370, 490], stars: [[362, 440]] },
+    { name: "Shelf left", sweet: [340, 170], pins: [[400, 60, 0], [280, 60, 0]], platforms: [[110, 300, 250, 316], [310, 440, 430, 456]], mouth: [160, 280], stars: [[200, 240]] },
+    { name: "Step down", sweet: [160, 150], pins: [[260, 50, 0]], platforms: [[300, 340, 430, 356]], mouth: [150, 490], stars: [[160, 213]] },
+    { name: "Bridge", sweet: [270, 170], pins: [[170, 60, 0], [370, 60, 0]], platforms: [[220, 330, 320, 346]], mouth: [400, 490], stars: [[317, 213]] },
+    { name: "Hook", sweet: [220, 150], pins: [[120, 60, 0], [340, 240, 0]], platforms: [], mouth: [400, 490], stars: [[231, 343]] },
+    { name: "Under left", sweet: [270, 170], pins: [[390, 60, 0], [150, 60, 0], [270, 320, 0]], platforms: [[340, 380, 430, 396]], mouth: [160, 470], stars: [[200, 380]] },
+    { name: "Cradle", sweet: [270, 200], pins: [[140, 80, 20], [400, 80, 20]], platforms: [[200, 380, 340, 396]], mouth: [120, 490], stars: [[188, 344]] },
+    { name: "Slalom", sweet: [150, 150], pins: [[250, 50, 0], [120, 250, 0]], platforms: [[260, 320, 400, 336]], mouth: [380, 490], stars: [[136, 352]] },
+    { name: "Twin gap", sweet: [270, 140], pins: [[150, 90, 20], [390, 90, 20]], platforms: [[110, 380, 230, 396], [310, 380, 430, 396]], mouth: [270, 500], stars: [[270, 203]] },
+    { name: "Low anchor", sweet: [270, 150], pins: [[270, 50, 0], [150, 300, 0]], platforms: [], mouth: [390, 490], stars: [[251, 463]] },
+    { name: "Off gap", sweet: [220, 150], pins: [[110, 100, 30], [350, 100, 30]], platforms: [[110, 400, 200, 416], [260, 400, 380, 416]], mouth: [230, 500], stars: [[220, 213]] },
+    { name: "Perch", sweet: [300, 150], pins: [[200, 50, 0]], platforms: [[110, 360, 220, 376]], mouth: [400, 490], stars: [[330, 230]] },
   ].map((template): SnipTemplate => ({
     // Keep each layout intact, with 360 extra px of swing clearance on each side.
     name: template.name,
@@ -237,6 +258,41 @@ function init(seed: number): SnipState {
     trail: [],
   };
   return buildLevel(base, 0);
+}
+
+/**
+ * Level-variety revision (stored as puzzle.snipRev): ten distinct templates
+ * drawn from the seed by band — levels 1–3 easy, 4–7 medium, 8–10 hard — then
+ * the usual seeded pin wobble. The draw uses its own stream, so pin wobble is
+ * drawn from the seed exactly as before. Rounds without snipRev keep the fixed
+ * legacy order 0–9.
+ */
+export const SNIP_REV = 2;
+export const SNIP_BANDS = {
+  easy: [0, 1, 2, 3, 10, 11, 12, 13, 14, 15],
+  medium: [4, 5, 6, 7, 16, 17, 18, 19, 20, 21, 22, 29],
+  hard: [8, 9, 23, 24, 25, 26, 27, 28],
+} as const;
+const SNIP_BAND_PLAN = [3, 4, 3] as const;
+
+/** The ten-level order for a snipRev-2 seed. */
+export function snipLevelOrder(seed: number): number[] {
+  let rng = (seed ^ 0x51ab_c0de) | 0;
+  const out: number[] = [];
+  [SNIP_BANDS.easy, SNIP_BANDS.medium, SNIP_BANDS.hard].forEach((band, b) => {
+    const pool = [...band];
+    for (let k = 0; k < SNIP_BAND_PLAN[b]!; k++) {
+      const r = rngBelow(rng, pool.length);
+      rng = r.state;
+      out.push(pool.splice(r.value, 1)[0]!);
+    }
+  });
+  return out;
+}
+
+function initRev2(seed: number): SnipState {
+  const s = init(seed);
+  return buildLevel({ ...s, rng: seed | 0, order: snipLevelOrder(seed) }, 0);
 }
 
 /** Scripts only: one level of a template with every pin moved by `jitter` px. */
@@ -632,3 +688,9 @@ export const snipGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = {
   draw: (ctx, state, size) => drawSnip(ctx, state, size),
   inputRanges: SNIP_INPUT_RANGES,
 };
+
+/** Level-variety revision. */
+export const snipRev2Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipGame, init: initRev2 };
+export function snipGameFor(rev?: number | null): ArcadeGame<SnipState, ArcadeInputEvent | null> {
+  return rev === SNIP_REV ? snipRev2Game : snipGame;
+}

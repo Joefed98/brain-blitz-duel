@@ -10,7 +10,11 @@ import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import {
   snipCheckpoint,
   snipGame,
+  snipGameFor,
+  snipLevelOrder,
   snipTestLevel,
+  SNIP_BANDS,
+  SNIP_REV,
   SNIP_CHECKPOINT_INTERVAL,
   SNIP_CONFIG,
   SNIP_INPUT_CUT,
@@ -18,6 +22,7 @@ import {
   type SnipState,
 } from "@/lib/arcade/snip";
 import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
+import { cutFor } from "./snip-check-lib";
 
 const RUNS = Number(process.argv[2] ?? 200);
 const ONLY = process.argv[3];
@@ -26,24 +31,6 @@ const fail = (m: string) => {
   failures++;
   console.error("FAIL", m);
 };
-
-/** A short swipe across rope i, perpendicular to its first segment. */
-export function cutFor(s: SnipState, i: number): ArcadeInputEvent {
-  const r = s.ropes[i]!;
-  const x = (r.x[0]! + r.x[1]!) / 512;
-  const y = (r.y[0]! + r.y[1]!) / 512;
-  const dx = (r.y[1]! - r.y[0]!) / 256;
-  const dy = (r.x[0]! - r.x[1]!) / 256;
-  const L = Math.max(1, Math.hypot(dx, dy));
-  return {
-    t: s.tick + 1,
-    k: SNIP_INPUT_CUT,
-    a: Math.round(x - (dx / L) * 15),
-    b: Math.round(y - (dy / L) * 15),
-    c: Math.round(x + (dx / L) * 15),
-    d: Math.round(y + (dy / L) * 15),
-  };
-}
 
 /** Plays one level with the given (rope, level tick) cuts. Stars if eaten, else -1. */
 function playLevel(t: number, jit: number, plan: [number, number][]): number {
@@ -104,6 +91,21 @@ for (let t = 0; t < SNIP_CONFIG.templates.length; t++) {
 }
 if (ONLY && ONLY !== "replay") process.exit(failures ? 1 : 0);
 
+/* ------------------------------ Bands ------------------------------ */
+{
+  const all = [...SNIP_BANDS.easy, ...SNIP_BANDS.medium, ...SNIP_BANDS.hard].sort((a, b) => a - b);
+  if (all.join() !== Array.from({ length: SNIP_CONFIG.templates.length }, (_, i) => i).join()) fail("bands must cover every template exactly once");
+  for (let seed = 1; seed < 2000; seed += 7) {
+    const o = snipLevelOrder(seed);
+    const okBand = (i: number, band: readonly number[]) => band.includes(o[i]!);
+    if (new Set(o).size !== 10 || ![0, 1, 2].every((i) => okBand(i, SNIP_BANDS.easy)) || ![3, 4, 5, 6].every((i) => okBand(i, SNIP_BANDS.medium)) || ![7, 8, 9].every((i) => okBand(i, SNIP_BANDS.hard)))
+      fail(`seed ${seed} order ${o}`);
+    if (snipLevelOrder(seed).join() !== o.join()) fail("order not repeatable");
+  }
+  if (snipGame.init(5).order.join() !== "0,1,2,3,4,5,6,7,8,9") fail("legacy order changed");
+  console.log("bands: every seed draws 3 easy + 4 medium + 3 hard distinct templates; legacy order intact");
+}
+
 /* ------------------------------ Self-replay ------------------------------ */
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 let slow = 0;
@@ -117,11 +119,13 @@ for (let run = 0; run < RUNS; run++) {
     rng = x.state;
     return x.value;
   };
-  let s = snipGame.init(seed);
+  const rev = run % 4 < 2 ? SNIP_REV : undefined;
+  const game = snipGameFor(rev);
+  let s = game.init(seed);
   const log: ArcadeInputEvent[] = [];
   const cps: ReturnType<typeof snipCheckpoint>[] = [];
   const aimed = run % 2 === 0;
-  while (!snipGame.isOver(s)) {
+  while (!game.isOver(s)) {
     let cand: ArcadeInputEvent | null = null;
     if (aimed) {
       const alive = s.ropes.map((x, i) => (x.alive ? i : -1)).filter((i) => i >= 0);
@@ -129,20 +133,20 @@ for (let run = 0; run < RUNS; run++) {
     } else if (r(5) === 0) {
       cand = { t: s.tick + 1, k: r(30) === 0 ? 4 : SNIP_INPUT_CUT, a: r(480) - 60, b: r(680) - 60, c: r(480) - 60, d: r(680) - 60 };
     }
-    recordInput(log, cand, snipGame.inputRanges);
-    s = snipGame.step(s, inputAt(log, s.tick + 1));
+    recordInput(log, cand, game.inputRanges);
+    s = game.step(s, inputAt(log, s.tick + 1));
     if (s.tick % SNIP_CHECKPOINT_INTERVAL === 0) cps.push(snipCheckpoint(s));
   }
-  bestScore = Math.max(bestScore, snipGame.score(s));
+  bestScore = Math.max(bestScore, game.score(s));
   maxLevels = Math.max(maxLevels, s.level);
   const raw = appendClientCounters(
-    encodeSnipRun({ seed, claimedScore: snipGame.score(s), events: log, endTick: s.tick, checkpoints: cps }),
-    arcadeCounters("snip", s, snipGame.score(s)),
+    encodeSnipRun({ seed, claimedScore: game.score(s), events: log, endTick: s.tick, checkpoints: cps }),
+    arcadeCounters("snip", s, game.score(s)),
   );
   const t0 = performance.now();
-  const res = replaySnipRun(seed, raw);
+  const res = replaySnipRun(seed, raw, rev);
   slow = Math.max(slow, performance.now() - t0);
-  if (!same(res.state, s) || res.score !== snipGame.score(s) || res.flagged || res.inputDiag.clamped || res.inputDiag.dropped)
+  if (!same(res.state, s) || res.score !== game.score(s) || res.flagged || res.inputDiag.clamped || res.inputDiag.dropped)
     fail(`snip run ${run} replay mismatch ${res.reason ?? ""} ${res.desyncTick}`);
 }
 console.log(`snip self-replay ${RUNS} runs; slowest replay ${slow.toFixed(1)}ms; best bot score ${bestScore}; most levels ${maxLevels}`);

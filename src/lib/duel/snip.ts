@@ -6,7 +6,7 @@
 
 import {
   snipCheckpoint,
-  snipGame,
+  snipGameFor,
   SNIP_CHECKPOINT_FIELDS,
   SNIP_CHECKPOINT_INTERVAL,
   SNIP_INPUT_RANGES,
@@ -84,7 +84,8 @@ export interface SnipResult {
 }
 
 /** The single place a Snip score is worked out. */
-export function replaySnipRun(seed: number, raw: string): SnipResult {
+export function replaySnipRun(seed: number, raw: string, rev?: number | null): SnipResult {
+  const snipGame = snipGameFor(rev);
   const run = decodeSnipRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, SNIP_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < SNIP_RUN_TICKS;

@@ -1,3 +1,4 @@
+import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
 /**
@@ -167,7 +168,7 @@ export function generateOrbit(): OrbitPuzzleData {
 }
 
 export function generateSnip(): SnipPuzzleData {
-  return { type: "snip", seed: arcadeSeed() };
+  return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV };
 }
 
 export function generateSwing(): SwingPuzzleData {
