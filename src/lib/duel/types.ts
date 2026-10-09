@@ -2208,6 +2208,7 @@ export interface OrbitPuzzleData {
 
 export interface SwingPuzzleData {
   type: "swing";
+  swingRev?: number;
   /** Draws the cavern — identical for everyone. */
   seed: number;
 }

@@ -1592,7 +1592,7 @@ export function gradeSubmission(
     }
     case "swing": {
       const replayStart = performance.now();
-      const run = replaySwingRun(puzzle.seed, answer);
+      const run = replaySwingRun(puzzle.seed, answer, puzzle.swingRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

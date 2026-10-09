@@ -6,6 +6,7 @@
 import type { CanvasSize } from "./engine";
 import {
   swingGame,
+  swingGameFor,
   swingMetres,
   SWING_FINISH_M,
   SWING_GOLD,
@@ -15,6 +16,7 @@ import {
 } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
 import { drawGrapplerHood } from "./grapplerFigure.renderer";
+import { drawGrapplerDragon } from "./grapplerDragon.renderer";
 
 /* Mirrors of private sim constants, used only to place art on the same geometry. */
 const FP = 256;
@@ -155,6 +157,11 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
         ctx.globalAlpha = 1;
       }
     }
+  }
+
+  for (const [i, dragon] of (state.dragons ?? []).entries()) {
+    const x = sx(dragon.x);
+    if (x >= -20 && x <= SWING_WORLD_W + 20) drawGrapplerDragon(ctx, x, dragon.y / FP, still ? 0 : Math.floor(state.tick / 8) + i * 2);
   }
 
   // Distance posts every 100 m; 500 m is a gold gate.
@@ -370,3 +377,7 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
 
 /** The sim with the art renderer swapped in; step/score are the sim's own. */
 export const swingArtGame = { ...swingGame, draw: drawSwingArt };
+const dragonArtGame = { ...swingGameFor(2), draw: drawSwingArt };
+export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  return rev === 2 ? dragonArtGame : swingArtGame;
+}

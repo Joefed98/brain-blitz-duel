@@ -805,6 +805,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hold to grab an anchor and swing,", detail: "let go to fly." },
       { action: "Stuck? Keep swinging", detail: "- every pass gets you higher. Swipe up to shorten the rope for speed." },
       { action: "Don't touch the spikes", detail: "or fall into the lava." },
+      { action: "Watch out for dragons near the end.", detail: "Touching one ends the run." },
     ],
     score: "130 × metres ÷ 500; reaching 500 m = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },

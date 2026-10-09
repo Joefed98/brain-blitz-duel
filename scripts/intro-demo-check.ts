@@ -27,7 +27,7 @@ import { junctionGame } from "@/lib/arcade/junction";
 import { inkBridgeGame } from "@/lib/arcade/inkBridge";
 import { burstGame } from "@/lib/arcade/burst";
 import { orbitGame } from "@/lib/arcade/orbit";
-import { swingGame } from "@/lib/arcade/swing";
+import { swingGameFor } from "@/lib/arcade/swing";
 import { snipGame } from "@/lib/arcade/snip";
 import { tiltGame } from "@/lib/arcade/tilt";
 import { makeBallTrackGame } from "@/lib/arcade/ballTrack";
@@ -98,7 +98,7 @@ const CASES: Case[] = [
   { type: "inkbridge", game: g(inkBridgeGame), replay: r(replayInkBridgeRun) },
   { type: "burst", game: g(burstGame), replay: r(replayBurstRun) },
   { type: "orbit", game: g(orbitGame), replay: r(replayOrbitRun) },
-  { type: "swing", game: g(swingGame), replay: r(replaySwingRun) },
+  { type: "swing", game: (p) => swingGameFor(p.type === "swing" ? p.swingRev : undefined) as unknown as AnyGame, replay: (p, s, raw) => replaySwingRun(s, raw, p.type === "swing" ? p.swingRev : undefined) },
   { type: "snip", game: g(snipGame), replay: r(replaySnipRun) },
   { type: "tilt", game: g(tiltGame), replay: r(replayTiltRun) },
   {
