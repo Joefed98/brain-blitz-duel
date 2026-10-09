@@ -799,7 +799,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "10 per apple collected, +3 for each level's single leaf; collect all ten for round(20 × time left ÷ 60 s). Cap 150.",
   },
   swing: {
-    goal: "Swing to the 500 m finish.",
+    goal: "Swing the ninja to the 500 m finish.",
     how: [
       { action: "Hold to grab an anchor and swing,", detail: "let go to fly." },
       { action: "Stuck? Keep swinging", detail: "- every pass gets you higher. Swipe up to shorten the rope for speed." },

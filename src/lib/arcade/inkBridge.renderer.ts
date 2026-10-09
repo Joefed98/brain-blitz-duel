@@ -1,4 +1,5 @@
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
+import { sceneryTexture, grassTexture } from "./sceneryTexture.renderer";
 import type { CanvasSize } from './engine';
 import { inkBridgeGame, inkBucketX, inkBudget, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
@@ -23,6 +24,14 @@ function stamp(c: CanvasRenderingContext2D, key: string, w: number, h: number, x
   const image = sprite(key, w, h, draw);
   if (image) c.drawImage(image, x, y, w, h);
   else { c.save(); c.translate(x, y); draw(c); c.restore(); }
+}
+function leprechaun(c:CanvasRenderingContext2D):void {
+ c.fillStyle='#183F36';c.fillRect(6,14,10,10);c.fillRect(5,27,6,3);c.fillRect(13,27,6,3);
+ c.fillStyle='#557F48';c.fillRect(7,22,3,5);c.fillRect(13,22,3,5);
+ c.fillStyle='#DDB17B';c.beginPath();c.ellipse(11,10,5,6,0,0,Math.PI*2);c.fill();
+ c.fillStyle='#B06434';c.beginPath();c.moveTo(6,12);c.lineTo(11,19);c.lineTo(16,12);c.closePath();c.fill();
+ c.fillStyle='#225C4B';c.fillRect(6,2,10,6);c.fillRect(3,7,16,2);c.fillStyle='#C5AC6D';c.fillRect(6,5,10,1);
+ c.fillStyle='#24333C';c.fillRect(8,10,1,1);c.fillRect(13,10,1,1);
 }
 function coin(c: CanvasRenderingContext2D): void {
   c.fillStyle = GOLD_EDGE; c.beginPath(); c.arc(7,7,BALL_R,0,Math.PI*2); c.fill();
@@ -92,8 +101,12 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
   c.save();c.fillStyle=SKY;c.fillRect(0,0,size.width,size.height);
   c.translate((size.width-INK_WORLD_W*scale)/2,(size.height-INK_WORLD_H*scale)/2);c.scale(scale,scale);
   drawCountryside(c);
+  c.save();c.globalAlpha=.24;sceneryTexture(c,"rainbow");c.restore();
   // Background only, below the pot opening and every level block; touchable art paints above it.
   drawCountryGround(c,lvl.bucketY+INK_BUCKET_H,inkBucketX(lvl,state.tick));
+  c.save(); const bx=inkBucketX(lvl,state.tick), base=lvl.bucketY+INK_BUCKET_H;
+  c.beginPath();c.moveTo(0,INK_WORLD_H);c.lineTo(0,INK_WORLD_H-18);c.quadraticCurveTo(bx*.55,INK_WORLD_H-18,bx-32,base);c.lineTo(bx+32,base);c.quadraticCurveTo(bx+(INK_WORLD_W-bx)*.65,base,INK_WORLD_W,INK_WORLD_H-10);c.lineTo(INK_WORLD_W,INK_WORLD_H);c.closePath();c.clip();grassTexture(c);c.restore();
+  stamp(c,"leprechaun",22,30,Math.min(INK_WORLD_W-24,Math.max(2,bx+40)),base-27,leprechaun);
   countryStamp(c,'cloud',48,26,lvl.spoutX-24,19,cloud);
   for(const b of lvl.blocks) {
     // Fully fill all 4px of every hazard, never an inset silhouette.

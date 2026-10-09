@@ -1,3 +1,8 @@
+## Quick visual fixes (Oct 9)
+- [x] Capture and inspect 360px before images for Skid, Flightpath, Rainbow Bridge, Grappler, Pull! and Pipeline.
+- [x] Apply only the six requested visual treatments and matching wording; preserve geometry and all gameplay/audio.
+- [x] Capture after images and Pipeline mid/full flow; deliver report and palette. Checks: 58 pass / same 15 fail / 2 timeout versus 59 / 15 / 1; Snip and Orbit remain time-limited, no new failing script.
+
 ## Small art follow-up (Oct 8)
 - [x] Replace Hover pipes with collision-sized cached purple/magenta pixel barriers; matching intro/help/demo/reveal wording updated.
 - [x] Use the player's cannon sprite for Fission lives; replace Gridlock car wording, preserving sound IDs and all gameplay files.

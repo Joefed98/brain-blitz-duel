@@ -14,6 +14,7 @@ import {
   type SwingState,
 } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
+import { drawGrapplerHood } from "./grapplerFigure.renderer";
 
 /* Mirrors of private sim constants, used only to place art on the same geometry. */
 const FP = 256;
@@ -331,34 +332,8 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   }
 
   const dead = state.ended === 2;
-  // Scarf/trail streaming behind while in flight.
-  if (state.rope < 0 && !dead) {
-    const sp = Math.hypot(state.vx, state.vy) / FP;
-    const d = sp || 1;
-    const bx = -state.vx / FP / d;
-    const by = -state.vy / FP / d;
-    const length = 8 + Math.min(14, sp * 2.2);
-    ctx.strokeStyle = "rgba(245,184,46,0.25)";
-    ctx.lineWidth = 6;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(fx, fy);
-    ctx.lineTo(fx + bx * length * 1.6, fy + by * length * 1.6);
-    ctx.stroke();
-    ctx.strokeStyle = "#FF4D4D";
-    ctx.lineWidth = 2.4;
-    ctx.beginPath();
-    ctx.moveTo(fx, fy - 4);
-    const flutter = still ? 0 : Math.sin(state.tick * 0.6) * 3;
-    ctx.quadraticCurveTo(
-      fx + bx * length * 0.5 - by * flutter, fy - 4 + by * length * 0.5 + bx * flutter,
-      fx + bx * length, fy - 4 + by * length,
-    );
-    ctx.stroke();
-  }
-
   // Figure inside the 10 px body radius: head, torso, arms to the rope, legs.
-  const body = dead ? "#FF4D5E" : SWING_GOLD;
+  const body = dead ? "#FF4D5E" : "#253541";
   ctx.strokeStyle = body;
   ctx.lineCap = "round";
   ctx.lineWidth = 2.4;
@@ -378,6 +353,7 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   ctx.beginPath();
   ctx.arc(fx, fy - 6.5, 3.4, 0, Math.PI * 2);
   ctx.fill();
+  drawGrapplerHood(ctx,fx,fy);
 
   ctx.restore();
   ctx.fillStyle = "#FFFFFF";

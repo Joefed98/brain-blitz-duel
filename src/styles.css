@@ -204,6 +204,16 @@
   --arcade-frame: #3A3A44;
   --arcade-boundary: #5A5A66;
   --bullseye-arrow: #101014;
+  --ice-surface: #E8F5FC;
+  --ice-grid: #BFD9E7;
+  --ice-wall: #111923;
+  --ice-marker: #18354C;
+  --ice-player: #075BA8;
+  --ice-exit: #8A3108;
+  --ice-portal-one: #AD128C;
+  --ice-portal-two: #126CBA;
+  --pipeline-water: #42BFF5;
+  --pipeline-water-core: #D1F5FF;
   --bullseye-arrow-outline: #F7F7F8;
   --bullseye-wind-quiet: #F7F7F855;
   --bullseye-bow: rgba(247, 247, 248, 0.65);
@@ -1065,6 +1075,20 @@ body.game-lock {
 }
 
 /* Chat message list: its own finger-scrollable area, never chaining to the page. */
+.ice-board { background: linear-gradient(145deg, var(--ice-surface), color-mix(in srgb, var(--ice-surface) 88%, var(--ice-grid))); }
+.ice-board-grid { background: var(--ice-grid); }
+.ice-board .ice-cell { background: var(--ice-surface) !important; border-radius: 3px !important; box-shadow: none !important; }
+.ice-board .ice-wall { background: var(--ice-wall) !important; border-radius: 0 !important; box-shadow: none !important; }
+.ice-board .ice-exit { border-color: var(--ice-exit); background: color-mix(in srgb, var(--ice-exit) 12%, var(--ice-surface)) !important; }
+.ice-player { background: var(--ice-player); }
+.ice-frost { stroke: var(--ice-grid); stroke-width: .018; opacity: .65; fill: none; }
+.pipeline-water { stroke: var(--pipeline-water); fill: var(--pipeline-water); }
+.pipeline-water-core { stroke: var(--pipeline-water-core); }
+.pipeline-flow { animation: pipeline-fill var(--flow-duration) linear var(--flow-delay) both; }
+@keyframes pipeline-fill { from { stroke-dashoffset: 1; opacity: 0; } 1% { opacity: 1; } to { stroke-dashoffset: 0; opacity: 1; } }
+.pipeline-node { animation: pipeline-node 80ms linear var(--flow-delay) both; }
+@keyframes pipeline-node { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pipeline-flow, .pipeline-node { animation: none !important; stroke-dashoffset: 0; opacity: 1; } }
 .chat-scroll {
   overflow-y: auto;
   touch-action: pan-y;

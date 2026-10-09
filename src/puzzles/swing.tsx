@@ -33,10 +33,12 @@ function IntroExample() {
         <circle cx={50} cy={34} r={5} fill="none" stroke={SWING_GOLD} strokeWidth={2} />
         <circle cx={128} cy={38} r={5} fill="none" stroke={SWING_GOLD} strokeWidth={2} />
         <line x1={50} y1={34} x2={78} y2={80} stroke={SWING_GOLD} strokeWidth={2} />
-        <rect x={72} y={76} width={12} height={20} rx={6} fill={SWING_GOLD} />
+        <rect x={72} y={76} width={12} height={20} rx={6} fill="var(--ice-wall)" stroke="var(--muted-foreground)" strokeWidth={0.7} />
+        <path d="M73 79 H83 M73 79 L69 83 M73 80 L70 87" stroke="var(--ball-pink)" strokeWidth={1.5} fill="none" />
+        <path d="M75 82 H80" stroke="var(--foreground)" strokeWidth={1.5} />
         <path d="M 84 82 Q 104 70 118 50" fill="none" stroke={SWING_GOLD} strokeOpacity={0.4} strokeDasharray="3 4" />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Swing back for momentum, then let go to fly forward.</p>
+      <p className="text-center text-xs text-muted-foreground">Swing the ninja back for momentum, then let go to fly forward.</p>
     </div>
   );
 }

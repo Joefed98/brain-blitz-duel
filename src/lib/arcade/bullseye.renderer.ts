@@ -8,8 +8,9 @@ import {
   BULLSEYE_ARROWS, BULLSEYE_BOW_X, BULLSEYE_BOW_Y, BULLSEYE_CX, BULLSEYE_CY,
   BULLSEYE_DRIFT_FROM, BULLSEYE_FLIGHT_TICKS, BULLSEYE_GOLD, BULLSEYE_OUTER_R, BULLSEYE_RINGS,
   BULLSEYE_RING_STEP, BULLSEYE_TEXT, BULLSEYE_WIND_MAX, BULLSEYE_WORLD_H, BULLSEYE_WORLD_W,
-  bullseyeRingValues, bullseyeScalePct, bullseyeTargetDx, bullseyeValueColour, type BullseyeState,
+  bullseyeRingValues, bullseyeScalePct, bullseyeTargetDx, type BullseyeState,
 } from "./bullseye";
+import { flightpathColour, flightpathInk } from "./flightpathPalette.renderer";
 import { reducedMotion } from "./art.renderer";
 import {
   FAIR_CHALK, FAIR_WOOD, FAIR_WOOD_DARK, fairChangeAge, fairPennant, fairScreen, fairTransform,
@@ -109,8 +110,8 @@ function drawBoard(ctx: CanvasRenderingContext2D, scalePct: number, dx: number, 
   for (let ring = BULLSEYE_RINGS; ring >= 1; ring--) {
     const radius = (BULLSEYE_RING_STEP * ring * scalePct) / 100;
     const value = values[ring - 1] ?? 0;
-    ctx.fillStyle = bullseyeValueColour(value);
-    ctx.globalAlpha = value >= 9 ? 1 : 0.82;
+    ctx.fillStyle = flightpathColour(value);
+    ctx.globalAlpha = 1;
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.fill();
@@ -141,7 +142,7 @@ function drawBoard(ctx: CanvasRenderingContext2D, scalePct: number, dx: number, 
     const o = (BULLSEYE_RING_STEP * (index + 1) * scalePct) / 100;
     const inner = index === 0 ? 0 : (BULLSEYE_RING_STEP * index * scalePct) / 100;
     const value = values[index] ?? 0;
-    ctx.fillStyle = value === 10 || value <= 6 ? "#0B0B0F" : BULLSEYE_TEXT;
+    ctx.fillStyle = flightpathInk(value);
     ctx.fillText(String(value), cx, cy - Math.max(8, (o + inner) / 2));
   }
   ctx.restore();

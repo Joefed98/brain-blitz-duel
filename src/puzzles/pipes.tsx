@@ -1,3 +1,5 @@
+import { pipelineDepths } from "@/components/puzzles/pipelineFlow";
+import type { CSSProperties } from "react";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect } from "@/lib/sound";
 import { useEffect, useMemo, useRef } from "react";
@@ -40,6 +42,8 @@ function PipeTileView({
   leak,
   onTap,
   label,
+  flowDelay,
+  flowDuration,
 }: {
   tile: PipeTile;
   lit: boolean;
@@ -47,6 +51,8 @@ function PipeTileView({
   leak?: boolean | undefined;
   onTap?: (() => void) | undefined;
   label?: string;
+  flowDelay?: number;
+  flowDuration?: number;
 }) {
   const mask = tileOpenings(tile);
   const stroke = lit ? "var(--primary)" : "var(--muted-foreground)";
@@ -74,6 +80,13 @@ function PipeTileView({
           />
         ))}
         <circle cx={50} cy={50} r={13} fill={stroke} />
+        {flowDelay !== undefined && <g style={{ "--flow-delay": `${flowDelay}ms`, "--flow-duration": `${flowDuration ?? 100}ms` } as CSSProperties}>
+          {ARMS.filter((arm) => mask & arm.bit).map((arm) => <g key={arm.bit}>
+            <line className="pipeline-water pipeline-flow" x1={50} y1={50} x2={arm.x} y2={arm.y} strokeWidth={18} strokeLinecap="round" pathLength={1} strokeDasharray={1} />
+            <line className="pipeline-water-core pipeline-flow" x1={50} y1={50} x2={arm.x} y2={arm.y} strokeWidth={3} strokeLinecap="round" pathLength={1} strokeDasharray={1} />
+          </g>)}
+          <circle className="pipeline-water pipeline-node" cx={50} cy={50} r={8} />
+        </g>}
       </svg>
       {source && (
         <span className="pointer-events-none absolute inset-[14%] rounded-full border-2 border-primary" />
@@ -93,6 +106,7 @@ function PipesBoard({
   onTap,
   gap = 6,
   cols = PIPES_COLS,
+  solvedFlow = false,
 }: {
   tiles: PipeTile[];
   source: number;
@@ -101,7 +115,10 @@ function PipesBoard({
   onTap?: ((cell: number) => void) | undefined;
   gap?: number | undefined;
   cols?: number | undefined;
+  solvedFlow?: boolean;
 }) {
+  const depths = useMemo(() => solvedFlow ? pipelineDepths(tiles, source, cols) : new Map<number, number>(), [tiles, source, cols, solvedFlow]);
+  const stepMs = 1400 / (Math.max(0, ...depths.values()) + 1);
   return (
     <div
       className="mx-auto grid aspect-square h-full max-h-full w-full max-w-full"
@@ -119,6 +136,7 @@ function PipesBoard({
           lit={connected.has(cell)}
           source={cell === source}
           leak={leaks?.has(cell)}
+          {...(depths.has(cell) ? { flowDelay: (depths.get(cell) ?? 0) * stepMs, flowDuration: stepMs } : {})}
           {...(onTap ? { onTap: () => onTap(cell) } : {})}
         />
       ))}
@@ -207,6 +225,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
           tiles={tiles}
           source={source}
           connected={state.connected}
+          solvedFlow={state.solved}
           onTap={locked ? undefined : rotate}
         />
         </div>
@@ -233,6 +252,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
             tiles={solved}
             source={puzzle.source}
             connected={new Set(solved.map((_, index) => index))}
+            solvedFlow
             gap={4}
           />
           <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
@@ -245,6 +265,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
             source={puzzle.source}
             connected={mineState.connected}
             leaks={mineState.leaks}
+            solvedFlow={mineState.solved}
             gap={4}
           />
           <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">

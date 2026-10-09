@@ -1,3 +1,4 @@
+import { flightpathColour, flightpathInk } from "@/lib/arcade/flightpathPalette.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -28,7 +29,6 @@ import {
   BULLSEYE_GOLD,
   BULLSEYE_CHECKPOINT_INTERVAL,
   BULLSEYE_OUTER_R,
-  BULLSEYE_RING_COLOURS,
   BULLSEYE_RING_VALUES,
   BULLSEYE_RING_STEP,
   BULLSEYE_RINGS,
@@ -59,8 +59,8 @@ function IntroExample() {
             cx="98"
             cy="46"
             r={ring * 6}
-            fill={BULLSEYE_RING_COLOURS[ring - 1]}
-            opacity={ring <= 2 ? 0.9 : 0.35}
+            fill={flightpathColour(BULLSEYE_RING_VALUES[ring - 1] ?? 0)}
+            opacity={1}
             stroke="#0B0B0FB0"
           />
         ))}
@@ -69,7 +69,7 @@ function IntroExample() {
             key={value}
             x="98"
             y={46 - (index * 6 + 3)}
-            fill={value >= 8 && value < 10 ? "var(--foreground)" : "var(--background)"}
+            fill={flightpathInk(value)}
             fontSize="5"
             fontWeight="700"
             fontFamily="monospace"
@@ -357,7 +357,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
               cx={size / 2}
               cy={size / 2}
               r={ring * BULLSEYE_RING_STEP}
-              fill={BULLSEYE_RING_COLOURS[ring - 1]}
+              fill={flightpathColour(BULLSEYE_RING_VALUES[ring - 1] ?? 0)}
               opacity={ring <= 2 ? 0.9 : 0.3}
               stroke="#0B0B0FB0"
             />
