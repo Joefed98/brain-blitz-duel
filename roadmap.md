@@ -1,7 +1,7 @@
 ## Grappler dragons (Oct 9)
-- [ ] Add versioned stationary final-stretch hazards and preserve legacy replay.
-- [ ] Verify full-course completion before returning a new room seed.
-- [ ] Update art/wording and deliver 360px comparisons and check results.
+- [x] Add versioned 4–6 stationary final-stretch dragons; legacy sim/replay preserved.
+- [x] Require private timed completion witness for every returned room seed; 20/20 sampled witnesses replay identically. Local search about 2.65s; hosted start latency unmeasured.
+- [x] Update art/wording; inspected 360px canvas comparisons and saved report. Checks remain 59 pass / 15 existing fail / 3 timeout. New saved intro demo awaits recording; current still fallback retained.
 
 ## Visual refresh A (Oct 9)
 - [x] Refresh Counterweight, Bonk, Eagle Eye and Double Take one-to-one; improve Grappler and Skid contrast without gameplay/audio changes.
