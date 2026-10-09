@@ -123,9 +123,25 @@ export const BINTOSS_WIND_ACC_NARROW = Math.round(
   (BINTOSS_NARROW_HALF * BINTOSS_WIND_SUB) / (BINTOSS_WIND_TICKS * (BINTOSS_WIND_TICKS + 1)),
 );
 
+/**
+ * Smaller-bucket revision (stored as puzzle.binRev): opening, narrowed opening
+ * and rim inset all scaled to 85 % about the same centre. Wind, slides, ball
+ * and scoring are unchanged. Rounds without binRev replay on the original bin.
+ */
+export const BINTOSS_REV = 2;
+export const BINTOSS_BIN_HALF_V2 = 8_704; // 34 px (was 40 px)
+export const BINTOSS_NARROW_HALF_V2 = 7_398; // ≈28.9 px (was 34 px)
+export const BINTOSS_RIM_INSET_V2 = 2_176; // 8.5 px (was 10 px)
+
 /** Half the bin opening for this throw. */
-export function binTossHalf(index: number): number {
+export function binTossHalf(index: number, rev?: number): number {
+  if (rev === BINTOSS_REV) return index >= BINTOSS_NARROW_FROM ? BINTOSS_NARROW_HALF_V2 : BINTOSS_BIN_HALF_V2;
   return index >= BINTOSS_NARROW_FROM ? BINTOSS_NARROW_HALF : BINTOSS_BIN_HALF;
+}
+
+/** How far inside the rim edge the ball centre must cross to count. */
+export function binTossRimInset(rev?: number): number {
+  return rev === BINTOSS_REV ? BINTOSS_RIM_INSET_V2 : BINTOSS_RIM_INSET;
 }
 
 /** One wind point's acceleration for this throw: a quarter of its bin width. */
@@ -293,6 +309,8 @@ export interface BinTossState {
   /** Last rim hit, for the render-only bin wobble. */
   wobbleTick: number;
   endedTick: number;
+  /** Set only on the smaller-bucket revision; absent keeps older states byte-identical. */
+  rev?: number;
 }
 
 function init(seed: number): BinTossState {
@@ -409,7 +427,7 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
 
   // In flight: gravity plus the wind's own exact sideways drift.
   const wind = state.winds[state.throwIndex] ?? 0;
-  const half = binTossHalf(state.throwIndex);
+  const half = binTossHalf(state.throwIndex, state.rev);
   const advanced = binTossAdvance(
     {
       x: state.x,
@@ -435,7 +453,7 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
   // Crossing the rim line on the way down decides the throw.
   if (vy > 0 && state.y < BINTOSS_RIM_Y && ny >= BINTOSS_RIM_Y) {
     const offset = Math.abs(nx - centre);
-    if (offset <= half - BINTOSS_RIM_INSET) {
+    if (offset <= half - binTossRimInset(state.rev)) {
       return resolve({ ...state, x: nx, y: ny, wobbleTick }, tick, true);
     }
     if (offset <= half + BINTOSS_BALL_R) {
@@ -581,7 +599,7 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
 function drawBin(ctx: CanvasRenderingContext2D, state: BinTossState): void {
   const index = Math.min(state.throwIndex, BINTOSS_THROWS - 1);
   const centre = px(binTossCentreAt(state, index, state.tick));
-  const half = px(binTossHalf(index));
+  const half = px(binTossHalf(index, state.rev));
   const top = px(BINTOSS_RIM_Y);
   const floor = px(BINTOSS_FLOOR_Y);
   // A rim hit rocks the bin for a few frames; render only.
@@ -711,6 +729,7 @@ export interface BinTossLandingPresentation {
   progress: number;
   binCentre: number;
   binIndex: number;
+  rev?: number;
 }
 
 /** Draws a walked flight as a dotted arc. Never touches simulation state. */
@@ -779,7 +798,7 @@ export function binTossDrawLanding(
   const { scale, offsetX, offsetY } = binTossTransform(size);
   const p = Math.max(0, Math.min(1, landing.progress));
   const centre = px(landing.binCentre);
-  const half = px(binTossHalf(landing.binIndex));
+  const half = px(binTossHalf(landing.binIndex, landing.rev));
   const rim = px(BINTOSS_RIM_Y);
   const floor = px(BINTOSS_FLOOR_Y);
   const radius = px(BINTOSS_BALL_R);
@@ -827,3 +846,15 @@ export const binTossGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: BINTOSS_INPUT_RANGES,
 };
+
+function initRev2(seed: number): BinTossState {
+  return { ...init(seed), rev: BINTOSS_REV };
+}
+
+/** Smaller-bucket revision. */
+export const binTossRev2Game: ArcadeGame<BinTossState, ArcadeInputEvent | null> = { ...binTossGame, init: initRev2 };
+
+/** Takes puzzle.binRev; anything else is the original bin. */
+export function binTossGameFor(rev?: number | null): ArcadeGame<BinTossState, ArcadeInputEvent | null> {
+  return rev === BINTOSS_REV ? binTossRev2Game : binTossGame;
+}

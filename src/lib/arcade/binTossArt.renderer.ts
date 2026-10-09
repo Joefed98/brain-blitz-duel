@@ -171,7 +171,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
   fairScreen(ctx, size, BINTOSS_WORLD_W, BINTOSS_WORLD_H, FLOOR, () => {
     const index = Math.min(state.throwIndex, BINTOSS_THROWS - 1);
     const centre = px(binTossCentreAt(state, index, state.tick));
-    const half = px(binTossHalf(index));
+    const half = px(binTossHalf(index, state.rev));
     const since = state.tick - state.wobbleTick;
     let lean = state.wobbleTick > 0 && since >= 0 && since < 24 ? (since % 8 < 4 ? 2 : -2) : 0;
     if (!reducedMotion() && basketAge < 500) lean = Math.sin(basketAge / 45) * 2 * (1 - basketAge / 500);
@@ -243,7 +243,7 @@ export function binTossArtLanding(
   const { scale, offsetX, offsetY } = fairTransform(size, BINTOSS_WORLD_W, BINTOSS_WORLD_H);
   const p = Math.max(0, Math.min(1, landing.progress));
   const centre = px(landing.binCentre);
-  const half = px(binTossHalf(landing.binIndex));
+  const half = px(binTossHalf(landing.binIndex, landing.rev));
   const rim = px(BINTOSS_RIM_Y);
   const radius = px(BINTOSS_BALL_R);
   let x = centre;
