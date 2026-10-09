@@ -19,14 +19,13 @@
 - All word games (Wordsmith, Word Hunt, Word Ladder, Tile Grid, Word Slide) check words through the one server-only SCOWL British English list behind dictionary.server.ts; why: one consistent dictionary that never reaches a device.
 - RoundIntro renders optional definition `introLine(puzzle)`; why: fixed examples stay fixed while puzzle-specific facts still show.
 - TimerBar is the only countdown: accent ring in its existing 20px slot; PhoneShell owns 4px side safety; why: preserve board space.
-- Memory stays out of room settings/draws; practice uses allTypesInCategory to retain its games.
-- Retire types via RETIRED_TYPES; why: room draws filter it, practice does not.
+- Room settings/draws exclude Memory and RETIRED_TYPES; practice retains both via allTypesInCategory. Why: retirement must not remove practice access.
 - The browser-safe gameNames catalog supplies each active registry entry's name and named board/demo labels; all non-display logic stays keyed by PuzzleType. Why: display renames must not change saved rounds, assets, inputs or code identifiers.
 - Square puzzle arenas use container-sized squares and SVG viewBoxes with coordinate conversion for scaled input; why: boards must remain centred, square and correctly tappable at every arena size.
 - The answer reveal shows only the server-stored round score (AnswerReveal's StoredScore, "Scoring…" until it lands); puzzle Reveals must never compute or print a score; scripts/reveal-score-check.tsx guards this. Why: local maths drifted from server scoring.
 - RoundIntro exposes Back only in practice; its practice callback cancels the intro and clears run state without grading. Why: leaving an intro must not create results or affect rooms.
 - Non-engine demos use the real Stage, INTRO_EXAMPLE_SEED, sealed example id and recorded area-fraction actions/verdicts; why: real UI without exposed answers or divergent play.
-- Changed puzzle inputs/layouts reject old demos by shape or recorded presentation revision; why: stale touches cannot target new controls.
+- Changed inputs/layouts reject demos by shape or presentation revision; why: stale touches must not target new controls.
 
 - FX/audio stay outside sims; no untargeted boxes; dev displays require accepted keys. Why: safe feedback.
 - Hover barriers use two finite cached full-height rasters cropped to collision rectangles; Fission lives reuse the player sprite rows. Why: art stays bounded, inexpensive and visually consistent without simulation changes.
