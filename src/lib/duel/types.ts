@@ -1914,6 +1914,8 @@ export interface BinTossPuzzleData {
   type: "bintoss";
   /** Drives the wind on all ten throws — identical for everyone in the room. */
   seed: number;
+  /** 2 = smaller bucket (85 % opening). Absent on rounds stored before it. */
+  binRev?: number;
 }
 
 export interface BullseyePuzzleData {

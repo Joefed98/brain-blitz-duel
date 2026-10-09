@@ -1,3 +1,4 @@
+import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
 /**
  * Server-only seeds for the arcade rounds. One seed per round drives the whole
@@ -57,7 +58,7 @@ export function generateSkyline(): SkylinePuzzleData {
 }
 
 export function generateBinToss(): BinTossPuzzleData {
-  return { type: "bintoss", seed: arcadeSeed() };
+  return { type: "bintoss", seed: arcadeSeed(), binRev: BINTOSS_REV };
 }
 
 export function generateBullseye(): BullseyePuzzleData {
