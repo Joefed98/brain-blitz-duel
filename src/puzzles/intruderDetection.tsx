@@ -24,22 +24,27 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
+const STAR_HEAD = "12,6.5 14.3,11.6 20,12.1 15.7,15.8 17,21.5 12,18.6 7,21.5 8.3,15.8 4,12.1 9.7,11.6";
+/** A friendly party guest: head shape = cell shape, face and hat = cell colour. */
 function CellGlyph({ cell, size }: { cell: IntruderCell; size: number }) {
   const fill = GLYPH_COLOURS[cell.colour];
+  const ink = "var(--guest-ink)";
+  const head = { fill, stroke: ink, strokeWidth: 0.8, strokeLinejoin: "round" as const };
+  // Face features sit a little lower on triangles and stars so they stay inside the head.
+  const fy = cell.shape === "triangle" ? 18 : cell.shape === "star" ? 14.6 : 15;
+  const hatY = cell.shape === "circle" ? 6.8 : cell.shape === "square" ? 6.6 : 6.5;
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <g transform={`rotate(${cell.rot} 12 12)`}>
-        {cell.shape === "circle" && <circle cx="12" cy="12" r="9.5" fill={fill} />}
-        {cell.shape === "square" && (
-          <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />
-        )}
-        {cell.shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill={fill} />}
-        {cell.shape === "star" && (
-          <polygon
-            points="12,2 14.9,8.9 22.4,9.5 16.7,14.4 18.5,21.7 12,17.8 5.5,21.7 7.3,14.4 1.6,9.5 9.1,8.9"
-            fill={fill}
-          />
-        )}
+        {cell.shape === "circle" && <circle cx="12" cy="15" r="8.4" {...head} />}
+        {cell.shape === "square" && <rect x="3.6" y="6.6" width="16.8" height="16.8" rx="3" {...head} />}
+        {cell.shape === "triangle" && <polygon points="12,6.5 21.6,23.2 2.4,23.2" {...head} />}
+        {cell.shape === "star" && <polygon points={STAR_HEAD} {...head} transform="translate(-4.4 -6.6) scale(1.37)" />}
+        <polygon points={`12,0.6 14.6,${hatY} 9.4,${hatY}`} fill={fill} stroke={ink} strokeWidth="0.7" strokeLinejoin="round" />
+        <circle cx="12" cy="0.9" r="1.1" fill="var(--tally-white)" stroke={ink} strokeWidth="0.4" />
+        <circle cx="10.2" cy={fy - 0.8} r="0.95" fill={ink} />
+        <circle cx="13.8" cy={fy - 0.8} r="0.95" fill={ink} />
+        <path d={`M10.4 ${fy + 1.1}q1.6 1.4 3.2 0`} fill="none" stroke={ink} strokeWidth="0.8" strokeLinecap="round" />
       </g>
     </svg>
   );
@@ -90,7 +95,7 @@ function Grid({
         return (
           <div
             key={index}
-             className={`relative flex items-center justify-center rounded-md border-2 bg-card ${picked.includes(index) ? "border-primary" : "border-transparent"} ${wrong === index ? "animate-shake" : ""}`}
+             className={`party-cell relative flex items-center justify-center rounded-md border-2 bg-card ${picked.includes(index) ? "border-primary" : "border-transparent"} ${wrong === index ? "animate-shake" : ""}`}
           >
             {cell ? (
               <CellGlyph
@@ -136,7 +141,7 @@ function IntroExample() {
         </div>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        One cell is different the second time - tap it.
+        One guest is different the second time - tap them.
       </p>
     </div>
   );
@@ -286,7 +291,7 @@ function Stage({
 
       <p data-game-controls="status" className="shrink-0 text-center text-[11px] text-muted-foreground">
         {phase === "show"
-          ? "Memorise the grid"
+          ? "Memorise the guests"
           : phase === "hide"
             ? "…"
             : phase === "play"
@@ -314,7 +319,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
            const ok = answers[index]!.every((cell) => boardTaps.includes(cell));
           return (
              <div key={index} className="flex min-w-0 flex-col items-center gap-0.5">
-               <span className="font-mono text-base text-muted-foreground">Board {index + 1} · original</span>
+               <span className="font-mono text-base text-muted-foreground">Party {index + 1} · original</span>
                <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.cells} compact /></div>
                <span aria-hidden="true" className="text-lg leading-none text-primary">↓</span>
                <div className="w-full max-w-[160px]"><Grid size={board.size} cells={board.after} marked={answers[index] ?? []} wrong={boardTaps.find((tap) => !answers[index]!.includes(tap)) ?? null} compact /></div>
@@ -344,7 +349,7 @@ export const intruderDetectionPuzzle: PuzzleDefinition = {
   revealMs: 8_000,
   generate: () => ({ type: "intruder", boards: [] }) satisfies IntruderPuzzleData,
   check: () => false,
-  revealHeading: "The five grids",
+  revealHeading: "The five parties",
   IntroExample,
   Stage,
   Reveal,
