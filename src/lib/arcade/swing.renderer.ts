@@ -331,34 +331,8 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   }
 
   const dead = state.ended === 2;
-  // Scarf/trail streaming behind while in flight.
-  if (state.rope < 0 && !dead) {
-    const sp = Math.hypot(state.vx, state.vy) / FP;
-    const d = sp || 1;
-    const bx = -state.vx / FP / d;
-    const by = -state.vy / FP / d;
-    const length = 8 + Math.min(14, sp * 2.2);
-    ctx.strokeStyle = "rgba(245,184,46,0.25)";
-    ctx.lineWidth = 6;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(fx, fy);
-    ctx.lineTo(fx + bx * length * 1.6, fy + by * length * 1.6);
-    ctx.stroke();
-    ctx.strokeStyle = "#FF4D4D";
-    ctx.lineWidth = 2.4;
-    ctx.beginPath();
-    ctx.moveTo(fx, fy - 4);
-    const flutter = still ? 0 : Math.sin(state.tick * 0.6) * 3;
-    ctx.quadraticCurveTo(
-      fx + bx * length * 0.5 - by * flutter, fy - 4 + by * length * 0.5 + bx * flutter,
-      fx + bx * length, fy - 4 + by * length,
-    );
-    ctx.stroke();
-  }
-
   // Figure inside the 10 px body radius: head, torso, arms to the rope, legs.
-  const body = dead ? "#FF4D5E" : SWING_GOLD;
+  const body = dead ? "#FF4D5E" : "#253541";
   ctx.strokeStyle = body;
   ctx.lineCap = "round";
   ctx.lineWidth = 2.4;
@@ -378,6 +352,11 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   ctx.beginPath();
   ctx.arc(fx, fy - 6.5, 3.4, 0, Math.PI * 2);
   ctx.fill();
+  // Original hood/headband details stay inside the existing body footprint.
+  ctx.strokeStyle="#86A5B3";ctx.lineWidth=.65;ctx.beginPath();ctx.arc(fx,fy-6.5,3.1,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle="#D2EEF0";ctx.fillRect(fx-2.5,fy-7,5,1.5);
+  ctx.fillStyle="#EB6BB3";ctx.fillRect(fx-3,fy-9,6,1.2);
+  ctx.strokeStyle="#EB6BB3";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(fx-2.5,fy-8);ctx.lineTo(fx-7,fy-5);ctx.moveTo(fx-2.5,fy-8);ctx.lineTo(fx-5.5,fy-2);ctx.stroke();
 
   ctx.restore();
   ctx.fillStyle = "#FFFFFF";

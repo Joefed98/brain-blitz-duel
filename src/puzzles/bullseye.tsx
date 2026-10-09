@@ -1,3 +1,4 @@
+import { flightpathColour, flightpathInk } from "@/lib/arcade/flightpathPalette.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";

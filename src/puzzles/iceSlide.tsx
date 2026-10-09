@@ -24,7 +24,7 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const GOLD = "var(--primary)";
+const GOLD = "var(--ice-exit)";
 
 /** A one-way cell wears a chevron pointing the way the ball is sent. */
 function Chevron({ dir }: { dir: SlideDir }) {
@@ -39,7 +39,7 @@ function Chevron({ dir }: { dir: SlideDir }) {
       <polyline
         points="3,2 7,5 3,8"
         fill="none"
-        stroke="var(--primary)"
+        stroke="var(--ice-marker)"
         strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -48,7 +48,7 @@ function Chevron({ dir }: { dir: SlideDir }) {
   );
 }
 
-const PORTAL_COLOURS = ["#2FD4C4", "#B26BFF"] as const;
+const PORTAL_COLOURS = ["var(--ice-portal-one)", "var(--ice-portal-two)"] as const;
 
 /** Thin ice: a cracked tile that breaks after one crossing. */
 function Crack() {
@@ -57,12 +57,12 @@ function Crack() {
       <polyline
         points="1,2 4,5 3,7 6,9"
         fill="none"
-        stroke="var(--foreground)"
+        stroke="var(--ice-marker)"
         strokeOpacity={0.75}
         strokeWidth={0.9}
         strokeLinejoin="round"
       />
-      <path d="M4,5 L7,4 L9,1" fill="none" stroke="var(--foreground)" strokeOpacity={0.75} strokeWidth={0.9} />
+      <path d="M4,5 L7,4 L9,1" fill="none" stroke="var(--ice-marker)" strokeOpacity={0.75} strokeWidth={0.9} />
     </svg>
   );
 }
@@ -111,9 +111,9 @@ function Board({
   const thinBit = new Map(thin.map((cell, bit) => [cell, bit]));
 
   return (
-    <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full">
+    <div className="ice-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full">
       <div
-        className="puzzle-board grid h-full w-full"
+        className="ice-board-grid puzzle-board grid h-full w-full"
         style={{
           gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
@@ -132,19 +132,19 @@ function Board({
             <span
               aria-label="Ball"
               className="block rounded-full"
-              style={{ width: "80%", height: "80%", backgroundColor: GOLD }}
+              style={{ width: "80%", height: "80%", backgroundColor: "var(--ice-player)" }}
             />
           ) : pit.has(cell) || brokenHole ? (
             <span
               aria-label="Hole"
               className="block rounded-full bg-background"
-              style={{ width: "72%", height: "72%", border: "2px solid var(--foreground)" }}
+              style={{ width: "72%", height: "72%", border: "2px solid var(--ice-marker)" }}
             />
           ) : ring ? (
             <span
               aria-label="Portal"
               className="block rounded-full"
-              style={{ width: "76%", height: "76%", border: `3px solid ${ring}` }}
+              style={{ width: "76%", height: "76%", border: `3px solid ${ring}`, boxShadow: `0 0 5px ${ring}` }}
             />
           ) : bit !== undefined ? (
             <Crack />
@@ -152,18 +152,18 @@ function Board({
             <Chevron dir={turn} />
           ) : cell === start ? (
             <span
-              className="block rounded-full bg-muted-foreground"
-              style={{ width: "28%", height: "28%" }}
+              className="block rounded-full" 
+              style={{ width: "28%", height: "28%", background: "var(--ice-marker)" }}
             />
           ) : null;
 
           if (wall.has(cell)) {
-            return <div key={cell} className="rounded-md bg-foreground/70" />;
+            return <div key={cell} className="ice-wall rounded-md bg-foreground/70" />;
           }
           const className =
-            "flex items-center justify-center " +
+            "ice-cell flex items-center justify-center " +
             (cell === exit
-              ? "rounded-md border-2 border-primary bg-primary/20"
+              ? "ice-exit rounded-md border-2 border-primary bg-primary/20"
               : "rounded-[3px] bg-secondary/60");
           return (
             <div key={cell} className={className} aria-label={cell === exit ? "Exit" : undefined}>
@@ -178,6 +178,7 @@ function Board({
         className="pointer-events-none absolute inset-0 h-full w-full"
         aria-hidden="true"
       >
+        <path className="ice-frost" d={`M .15 .3 L ${cols*.4} ${rows*.35} M ${cols*.65} .2 L ${cols*.8} ${rows*.45} M .2 ${rows*.8} L ${cols*.4} ${rows*.65}`} />
         {route && route.length > 1 && (
           <polyline
             points={route
@@ -331,7 +332,7 @@ function Stage({
           {visualBall && (
             <span
               aria-label="Ball"
-              className="pointer-events-none absolute z-10 block rounded-full bg-primary"
+              className="pointer-events-none absolute z-10 block rounded-full ice-player"
               style={{
                 width: "calc((100% - 22px) * 0.066666667)",
                 height: "calc((100% - 22px) * 0.066666667)",

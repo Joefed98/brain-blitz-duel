@@ -1,3 +1,4 @@
+import { sceneryTexture } from "./sceneryTexture.renderer";
 /**
  * Clay Shoot — a speed round on the shared arcade engine.
  *
@@ -454,13 +455,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ClayState, size: CanvasSize)
   ctx.save();
   ctx.clearRect(0, 0, size.width, size.height);
   ctx.scale(scaleX, scaleY);
-  const sky = ctx.createLinearGradient(0, 0, 0, CLAY_H);
-  sky.addColorStop(0, "#1D3B5C");
-  sky.addColorStop(1, "#6F9BC0");
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, CLAY_W, CLAY_H);
-  ctx.fillStyle = "#2F4A2A";
-  ctx.fillRect(0, CLAY_H - 42, CLAY_W, 42);
+  sceneryTexture(ctx, "clay");
 
   const r = CLAY_CONFIG.clayRadius;
   const tick = state.tick;
