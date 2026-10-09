@@ -1,3 +1,4 @@
+import { speedBonusCurve } from "./speedPar";
 /**
  * Dig — a deterministic cell-grid water sim shared by the phone, the server
  * grader and the bank script.
@@ -448,7 +449,7 @@ export function scoreDig(state: DigState, minDigs: number): number {
   if (state.completeStep > 0) {
     const msLeft = Math.max(0, (DIG_STEPS - state.completeStep) * DIG_STEP_MS);
     const bonus = state.dug <= minDigs ? DIG_MIN_BONUS : 0;
-    return Math.min(150, 100 + Math.round((50 * msLeft) / (DIG_STEPS * DIG_STEP_MS)) + bonus);
+    return Math.min(150, 100 + speedBonusCurve(50, msLeft, DIG_STEPS * DIG_STEP_MS) + bonus);
   }
   const total = state.targets.reduce((a, b) => a + b, 0);
   if (total <= 0) return 0;

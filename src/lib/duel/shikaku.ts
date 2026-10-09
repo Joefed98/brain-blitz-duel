@@ -1,3 +1,4 @@
+import { speedBonusCurve } from "./speedPar";
 /**
  * Shikaku rules, shared by the phone (live checks, auto-lock) and the server
  * (grading, generation). A rectangle is valid when it holds exactly one clue
@@ -125,6 +126,6 @@ export function countShikakuSolutions(clues: readonly ShikakuClue[], limit = 2, 
 
 /** Solved = 100 + time bonus; otherwise 70 × covered ÷ board cells. */
 export function scoreShikaku(solved: boolean, msRemaining: number, timeLimitMs: number, covered: number): number {
-  if (solved) return Math.min(150, 130 + Math.round((20 * Math.max(0, Math.min(timeLimitMs, msRemaining))) / timeLimitMs));
+  if (solved) return Math.min(150, 130 + speedBonusCurve(20, msRemaining, timeLimitMs));
   return Math.max(0, Math.round((110 * covered) / SHIKAKU_CELLS));
 }

@@ -12,6 +12,7 @@
  * All physics is integer 1/256-pixel units; no floats in the sim.
  */
 
+import { speedBonusCurve } from "../duel/speedPar";
 import {
   clampInt,
   inputRange,
@@ -445,7 +446,7 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
 export function snipScore(eaten: number, stars: number, finishTick = 0): number {
   const c = SNIP_CONFIG;
   const bonus = eaten >= c.levels && finishTick > 0
-    ? Math.round((c.finishBonus * Math.max(0, SNIP_RUN_TICKS - finishTick)) / SNIP_RUN_TICKS)
+    ? speedBonusCurve(c.finishBonus, SNIP_RUN_TICKS - finishTick, SNIP_RUN_TICKS)
     : 0;
   return clampInt(eaten * c.pointsPerSweet + stars * c.pointsPerStar + bonus, 0, c.maxScore);
 }

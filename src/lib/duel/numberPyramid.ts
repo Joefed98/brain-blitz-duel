@@ -1,3 +1,4 @@
+import { speedBonusCurve } from "./speedPar";
 /** Number Pyramid rules shared by the phone, grader, and offline bank builder. */
 
 export const NP_SET_SIZE = 4;
@@ -122,7 +123,7 @@ export function npCorrectCells(givens: readonly (number | null)[], tray: readonl
 
 export function scoreNumberPyramid(completed: number, allComplete: boolean, msRemaining: number, activeCorrect: number, activeEmpty: number, timeLimitMs: number): number {
   const base = 30 * Math.max(0, Math.min(NP_SET_SIZE, completed));
-  const bonus = allComplete ? (timeLimitMs > 0 ? Math.round((30 * Math.max(0, Math.min(msRemaining, timeLimitMs))) / timeLimitMs) : 0) : 0;
+  const bonus = allComplete ? (timeLimitMs > 0 ? speedBonusCurve(30, msRemaining, timeLimitMs) : 0) : 0;
   const partial = allComplete || activeEmpty <= 0 ? 0 : Math.round((30 * Math.max(0, Math.min(activeCorrect, activeEmpty))) / activeEmpty);
   return Math.min(150, base + bonus + partial);
 }

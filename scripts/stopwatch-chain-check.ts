@@ -69,7 +69,7 @@ for (let run = 0; run < ROUNDS; run++) {
     }
   }
   const full = replayChain(puzzle, decodeChainAnswer(encodeChainAnswer({ taps, reason: "complete" })));
-  if (full.links !== 40 || full.reason !== "complete" || scoreChain(full.links, 5000, puzzle) !== 141) throw new Error("perfect run failed");
+  if (full.links !== 40 || full.reason !== "complete" || scoreChain(full.links, 5000, puzzle) !== 142) throw new Error("perfect run failed");
   // Wrong tap at link 13 breaks with 12 links.
   const wrongNode = puzzle.boards[2]!.findIndex((n) => { const need = chainRequiredAt(puzzle, 12)!; return n.shape !== need.shape || n.colour !== need.colour; });
   const wrong = replayChain(puzzle, { taps: [...taps.slice(0, 12), { node: wrongNode, t: 13_000 }], reason: "wrong" });

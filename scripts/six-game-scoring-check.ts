@@ -19,7 +19,7 @@ const clamp = (n: number) => Math.max(0, Math.min(150, n));
 for (let home = 0; home <= 30; home++) for (let wrong = 0; wrong <= 30 - home; wrong++) {
   eq(btScoreOf(home, wrong), Math.round(130 * home / 30), "Ball Track base/no penalty");
 }
-for (const last of [0, 1800, 2988, 3600]) eq(btScoreOf(30, 0, last), 130 + Math.round(20 * (3600 - last) / 3600), "Ball Track finish");
+for (const last of [0, 1800, 2988, 3600]) eq(btScoreOf(30, 0, last), 130 + Math.round(20 * Math.min(1, (3600 - last) / 1800)), "Ball Track finish (speed par)");
 const first = BALL_TRACK_BANK[0];
 if (!first) throw Error("Missing Ball Track course");
 const game = makeBallTrackGame(first.course);

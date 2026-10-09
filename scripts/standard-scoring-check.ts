@@ -10,33 +10,33 @@ const ex = (n: string, got: number, want: number | number[]) => {
   const ok = Array.isArray(want) ? want.includes(got) : got === want;
   if (!ok) { fail++; console.log("FAIL", n, got, "want", want); }
 };
-// A games complete at half time = 140
-ex("Spot", S.scoreSpotDifference(6, H, L), 140);
-ex("Maze", S.scoreMaze(true, 1, H, L), 140);
-ex("Intruder", S.scoreIntruder(120, true, H, L), 140);
-ex("Pair", S.scorePairMatch(true, 15, H, L), 140);
-ex("Block", S.scoreBlockParty(true, H, 9, L), 140);
-ex("Pipes", S.scorePipes(true, 49, H, L), 140);
-ex("Sudoku", S.scoreSudoku(true, 10, 10, H, L), 140);
-ex("Flow", S.scoreFlow(true, 12, H, 12, L), 140);
-ex("Bomb", S.scoreBomb(true, H, 4, L), 140);
-ex("Nono", S.scoreNonogram(true, 1, 1, 0, H, L), 140);
-ex("Tents", scoreTents(true, H, L, 12, 0, 12), 140);
-ex("Shikaku", scoreShikaku(true, H, L, 100), 140);
-ex("LightUp", scoreLightUp(true, H, L, 50, 50, 0), 140);
-ex("Laser 1st", S.scoreLaser(true, 6, 1, H, L), 140);
-ex("Safe 1st", S.scoreSafe(1, H, 4, L), 140);
-// B games at min and half time = 137/138
+// A games complete at half time = 150 (speed par: full bonus with half the time left)
+ex("Spot", S.scoreSpotDifference(6, H, L), 150);
+ex("Maze", S.scoreMaze(true, 1, H, L), 150);
+ex("Intruder", S.scoreIntruder(120, true, H, L), 150);
+ex("Pair", S.scorePairMatch(true, 15, H, L), 150);
+ex("Block", S.scoreBlockParty(true, H, 9, L), 150);
+ex("Pipes", S.scorePipes(true, 49, H, L), 150);
+ex("Sudoku", S.scoreSudoku(true, 10, 10, H, L), 150);
+ex("Flow", S.scoreFlow(true, 12, H, 12, L), 150);
+ex("Bomb", S.scoreBomb(true, H, 4, L), 150);
+ex("Nono", S.scoreNonogram(true, 1, 1, 0, H, L), 150);
+ex("Tents", scoreTents(true, H, L, 12, 0, 12), 150);
+ex("Shikaku", scoreShikaku(true, H, L, 100), 150);
+ex("LightUp", scoreLightUp(true, H, L, 50, 50, 0), 150);
+ex("Laser 1st", S.scoreLaser(true, 6, 1, H, L), 150);
+ex("Safe 1st", S.scoreSafe(1, H, 4, L), 150);
+// B games at min and half time = 150 (speed par)
 for (const [n, v] of [
   ["Unblock", S.scoreUnblock(true, H, 10, 10, 0, false, L)], ["Ice", S.scoreIceSlide(true, 8, 8, H, 0, L)],
   ["Gravity", S.scoreGravity(true, 6, 6, H, 0, L)], ["Tiles", S.scoreTiles(true, 20, 20, 8, H, L)],
   ["Rings", S.scoreRings(true, 7, 7, 8, H, L)], ["Lights", S.scoreLightsOut(true, 5, 5, H, 0, 0, L)],
   ["Push", S.scorePush(true, 20, 20, H, 4, 4, L)], ["Tower", S.scoreTower(true, 30, 30, H, L, 9, 9)],
   ["Tubes", S.scoreTubes(true, 20, 20, H, 6, L)],
-] as const) ex(n, v, [137, 138]);
+] as const) ex(n, v, 150);
 ex("B at 2× min, no time", S.scoreSolvedMoves(20, 10, 0, L), 100);
-ex("Flood par half", S.scoreFlood(true, 12, 12, 196, H, L), 145);
-ex("Word Slide par half", S.scoreWordSlide(5, 5, H, L, 6, 6), 135);
+ex("Flood par half", S.scoreFlood(true, 12, 12, 196, H, L), 150);
+ex("Word Slide par half", S.scoreWordSlide(5, 5, H, L, 6, 6), 150);
 // partials
 ex("Connect 11/12", S.scoreFlow(false, 11, 0, 12, L), 110);
 ex("Tower 8/9", S.scoreTower(false, 0, 30, 0, L, 8, 9), 98);
@@ -50,8 +50,8 @@ ex("Tiles 6", S.scoreTiles(false, 0, 20, 6, 0, L), 84);
 ex("Rings 7", S.scoreRings(false, 0, 7, 7, 0, L), 84);
 ex("Laser 5 lit", S.scoreLaser(false, 5, 3, 0, L), 75);
 ex("Laser unfired", S.scoreLaser(false, 0, 0, 0, L), 0);
-ex("Laser 3rd half", S.scoreLaser(true, 6, 3, H, L), 110);
-ex("Safe 2nd half", S.scoreSafe(2, H, 4, L), 125);
+ex("Laser 3rd half", S.scoreLaser(true, 6, 3, H, L), 120);
+ex("Safe 2nd half", S.scoreSafe(2, H, 4, L), 135);
 ex("Push 4/5", S.scorePush(false, 0, 20, 0, 4, 5, L), 88);
 ex("Tubes 4", S.scoreTubes(false, 0, 20, 0, 4, L), 88);
 ex("Bomb 3 steps", S.scoreBomb(false, 0, 3, L), 75);
@@ -67,7 +67,7 @@ const iv = replayIntruder([[1], [2], [3], [4], [5, 6]].map((cells) => ({ cells }
 ex("Intruder 4 + half", S.scoreIntruder(iv.points, false, 0, L), 108);
 // staged
 const scan = [0, 1, 2].map((i) => scanStageResult(i, [1, 2], [1, 2]));
-ex("Symbol Scan perfect half", scoreSymbolScanStages(scan, H, L), 140);
+ex("Symbol Scan perfect half", scoreSymbolScanStages(scan, H, L), 150);
 ex("Symbol Scan perfect zero", scoreSymbolScanStages(scan, 0, L), 130);
 ex("Count Up exact zero", scoreCountUpStages([5, 5, 5], [5, 5, 5], 0, L), 130);
 ex("Count Up off-by-1 on stage 3", scoreCountUpStages([5, 5, 6], [5, 5, 5], H, L), 108);

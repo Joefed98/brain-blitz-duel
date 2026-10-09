@@ -10,8 +10,8 @@ function check(ok: boolean, message: string) { if (!ok) throw new Error(message)
 const legacyPath = process.argv[2];
 const old = legacyPath ? (await import(legacyPath)).colourClashGame : null;
 
-// Anchor: all N correct at half time = 140; full at tick 0 would be 150; zero-time finish = 130.
-check(clashQueueScoreOf(CLASH_QUEUE, 0, CLASH_QUEUE, CLASH_RUN_TICKS / 2) === 140, "half-time anchor");
+// Anchor (speed par): all N correct with half the time left = 150; zero-time finish = 130.
+check(clashQueueScoreOf(CLASH_QUEUE, 0, CLASH_QUEUE, CLASH_RUN_TICKS / 2) === 150, "half-time anchor");
 check(clashQueueScoreOf(CLASH_QUEUE, 0, CLASH_QUEUE, CLASH_RUN_TICKS) === 130, "no-time finish");
 check(clashQueueScoreOf(0, 5, CLASH_QUEUE, 0) === 0, "clamp at 0");
 

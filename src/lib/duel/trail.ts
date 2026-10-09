@@ -1,3 +1,4 @@
+import { speedBonusCurve } from "./speedPar";
 /**
  * Trail: one king-move path through every cell of a 6×6 grid, numbered 1–36.
  * Shared by the phone, the grader and the bank script.
@@ -139,7 +140,7 @@ export function trComplete(givens: readonly (number | null)[], path: readonly nu
 }
 
 export function scoreTrail(complete: boolean, msRemaining: number, timeLimitMs: number, playerCorrect: number): number {
-  if (complete) return Math.min(150, 130 + (timeLimitMs > 0 ? Math.round((20 * Math.max(0, Math.min(msRemaining, timeLimitMs))) / timeLimitMs) : 0));
+  if (complete) return Math.min(150, 130 + (timeLimitMs > 0 ? speedBonusCurve(20, msRemaining, timeLimitMs) : 0));
   return Math.min(130, 5 * Math.max(0, playerCorrect));
 }
 

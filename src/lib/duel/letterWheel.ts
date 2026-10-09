@@ -4,6 +4,7 @@
  * the server matches each against the stored crossword.
  */
 
+import { speedBonusCurve } from "./speedPar";
 import type { LetterWheelSlot } from "./types";
 
 export const LW_MAX_WORDS = 400;
@@ -64,7 +65,7 @@ export function scoreLetterWheel(
   const base = pointsPerWord * Math.max(0, slots);
   if (totalSlots > 0 && slots >= totalSlots) {
     const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
-    return Math.min(150, 130 + (timeLimitMs > 0 ? Math.round((20 * ms) / timeLimitMs) : 0));
+    return Math.min(150, 130 + (timeLimitMs > 0 ? speedBonusCurve(20, ms, timeLimitMs) : 0));
   }
   return Math.min(150, base);
 }
