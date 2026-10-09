@@ -37,34 +37,13 @@ const NODE = 34;
 const BREAK_HOLD_MS = 1_000;
 const CYCLE_HIGHLIGHT_MS = 650;
 
-/** Glossy charm: same shape and colour as before, filling more of its slot, with a soft highlight. */
 function NodeGlyph({ shape, size, colour }: { shape: ChainShape; size: number; colour?: string }) {
-  const inner = Math.round(size * 0.74);
+  const inner = Math.round(size * 0.62);
   return (
-    <svg width={inner} height={inner} viewBox="0 0 24 24" aria-hidden="true" className="chain-charm" style={colour ? { color: colour } : undefined}>
-      {shape === "circle" && <circle cx="12" cy="12" r="10" fill="currentColor" />}
-      {shape === "square" && <rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor" />}
-      {shape === "triangle" && <path d="M12 2 22.4 20.6a1 1 0 0 1-.9 1.4H2.5a1 1 0 0 1-.9-1.4Z" fill="currentColor" />}
-      {shape === "circle" && <ellipse cx="9" cy="8" rx="4.2" ry="2.6" fill="var(--charm-shine)" transform="rotate(-25 9 8)" />}
-      {shape === "square" && <rect x="5" y="4.5" width="9" height="4" rx="2" fill="var(--charm-shine)" />}
-      {shape === "triangle" && <ellipse cx="10.5" cy="12" rx="2" ry="3.4" fill="var(--charm-shine)" transform="rotate(28 10.5 12)" />}
-    </svg>
-  );
-}
-
-/** The chain grows one link per correct tap; a break makes it strain red. */
-function ChainLinks({ links, total, broken }: { links: number; total: number; broken: boolean }) {
-  const w = 10;
-  return (
-    <svg key={broken ? "broken" : "ok"} className={`h-3.5 w-full shrink-0 ${broken ? "chain-strain" : ""}`} viewBox={`0 0 ${total * w + 4} 14`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      {Array.from({ length: total }, (_, i) => {
-        const made = i < links;
-        const x = 2 + i * w;
-        const stroke = broken && made ? "var(--color-warn)" : made ? "var(--chain-link)" : "var(--color-border)";
-        return i % 2 === 0
-          ? <rect key={i} x={x} y={3} width={w + 3} height={8} rx={4} fill="none" stroke={stroke} strokeWidth={made ? 2 : 1.2} />
-          : <line key={i} x1={x + 1} y1={7} x2={x + w + 2} y2={7} stroke={stroke} strokeWidth={made ? 2.4 : 1.2} strokeLinecap="round" />;
-      })}
+    <svg width={inner} height={inner} viewBox="0 0 24 24" aria-hidden="true" style={colour ? { color: colour } : undefined}>
+      {shape === "circle" && <circle cx="12" cy="12" r="9.5" fill="currentColor" />}
+      {shape === "square" && <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill="currentColor" />}
+      {shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill="currentColor" />}
     </svg>
   );
 }
@@ -143,7 +122,7 @@ function IntroExample() {
         </span>
       </div>
       <p className="text-center font-mono text-[11px] text-muted-foreground">
-        Tap the green triangle charm before the ring empties - not the yellow one. Each right tap adds a link.
+        Tap the green triangle before the ring empties - not the yellow one.
       </p>
     </div>
   );
@@ -296,7 +275,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
         </span>
         <span className="text-muted-foreground"> / {rules.length}</span>
       </p>
-      <ChainLinks links={links} total={rules.length} broken={broken} />
       <div data-play-area data-game-arena="tall" className={`relative min-h-0 w-full flex-1 ${broken ? "animate-shake" : ""}`}>
         <ChainLine nodes={board} path={path} broken={broken} />
         {board.map((node, index) => {
