@@ -66,7 +66,7 @@ function Board({
         push(line[1] || wet[1], -w(1), 0, c(1));
         push(line[2] || wet[2], 0, -w(2), c(2));
         push(line[3] || wet[3], w(3), 0, c(3));
-        const r = (a: number, b2: number) => (side[a] && side[b2] ? "28%" : "0");
+        const r = (a: number, b2: number) => (side[a] && side[b2] ? "20%" : "0");
         return (
           <span
             key={ripple?.cells.has(index) ? `${index}-${ripple.key}` : index}
