@@ -58,6 +58,18 @@ export const INK_BUCKET_W = 64;
 export const INK_BUCKET_H = 36;
 export const INK_BLOCK_H = 4;
 const BLOCK_COUNTS = [1, 2, 3, 3, 4, 5, 6, 7, 7, 8];
+/**
+ * Birds revision (stored as puzzle.inkRev): obstacles are white birds 6.5 px
+ * thick (1.625× the 4 px blocks, kept per obstacle in 1/256 px as `h`), and
+ * levels 6–10 have about 30% fewer. Rounds without inkRev keep blocks.
+ */
+export const INK_REV = 2;
+export const INK_BIRD_H_FP = 1_664; // 6.5 px
+const BIRD_COUNTS = [1, 2, 3, 3, 4, 4, 4, 5, 5, 6];
+/** Obstacle thickness in px (render and tests). */
+export function inkBlockH(b: InkBlock): number {
+  return b.h ? b.h / FP : INK_BLOCK_H;
+}
 /** Rim caps on the bucket lip (collision circles, as Bin Toss). */
 const RIM_R = 4;
 /** Rim bounce keeps this share of the normal speed (/256). */
@@ -98,6 +110,8 @@ export interface InkBlock {
   x1: number;
   /** Top edge, px. */
   y: number;
+  /** Birds revision only: thickness in 1/256 px (absent = 4 px block). */
+  h?: number;
 }
 
 export interface InkLevel {
@@ -232,7 +246,7 @@ function joined(segs: readonly InkSeg[], i: number, forward: boolean): number {
 
 function touchesBlock(ball: InkBall, b: InkBlock): boolean {
   const cx = clampInt(ball.x, b.x0 * FP, b.x1 * FP);
-  const cy = clampInt(ball.y, b.y * FP, (b.y + INK_BLOCK_H) * FP);
+  const cy = clampInt(ball.y, b.y * FP, b.y * FP + (b.h ?? INK_BLOCK_H * FP));
   const dx = ball.x - cx;
   const dy = ball.y - cy;
   const r = BALL_R * FP;
@@ -505,7 +519,7 @@ function blockOverlaps(a: InkBlock, b: InkBlock): boolean {
   return a.x0 < b.x1 + 16 && b.x0 < a.x1 + 16 && Math.abs(a.y - b.y) < 30;
 }
 
-function layout(level: number, count: number, draw: Draw): InkLevel {
+function layout(level: number, count: number, draw: Draw, h?: number): InkLevel {
   const spoutX = 60 + draw(271);
   let bucketX = 50 + draw(291);
   if (Math.abs(bucketX - spoutX) < 100)
@@ -530,12 +544,12 @@ function layout(level: number, count: number, draw: Draw): InkLevel {
   let x0 = clampInt(spoutX - 10 - draw(len0 - 20), 0, INK_WORLD_W - len0);
   if (x0 > spoutX - BALL_R) x0 = spoutX - BALL_R - 2;
   if (x0 + len0 < spoutX + BALL_R) x0 = spoutX + BALL_R + 2 - len0;
-  blocks.push({ x0, x1: x0 + len0, y: SPOUT_Y + 90 + draw(Math.min(160, 60 + level * 12)) });
+  blocks.push({ x0, x1: x0 + len0, y: SPOUT_Y + 90 + draw(Math.min(160, 60 + level * 12)), ...(h ? { h } : {}) });
   for (let k = 1, tries = 0; k < count && tries < 60; tries++) {
     const len = 60 + draw(141);
     const bx = draw(INK_WORLD_W - len + 1);
     const by = 130 + draw(Math.max(1, bucketY - 50 - 130));
-    const b = { x0: bx, x1: bx + len, y: by };
+    const b: InkBlock = { x0: bx, x1: bx + len, y: by, ...(h ? { h } : {}) };
     // Keep the bucket mouth and the spout column above block 0 clear.
     if (by > bucketY - 60 && bx < bucketX + mouth && bx + len > bucketX - mouth) continue;
     if (blocks.some((o) => blockOverlaps(o, b))) continue;
@@ -595,7 +609,10 @@ function landsUnaided(lvl: InkLevel): boolean {
   return landingRelease(lvl, []) >= 0;
 }
 
-function buildLevels(seed: number): { list: InkLevel[]; rng: number } {
+function buildLevels(seed: number, rev?: number): { list: InkLevel[]; rng: number } {
+  const birds = rev === INK_REV;
+  const counts = birds ? BIRD_COUNTS : BLOCK_COUNTS;
+  const h = birds ? INK_BIRD_H_FP : undefined;
   let rng = seed | 0;
   const draw: Draw = (bound) => {
     const r = rngBelow(rng, Math.max(1, bound));
@@ -604,14 +621,14 @@ function buildLevels(seed: number): { list: InkLevel[]; rng: number } {
   };
   const list: InkLevel[] = [];
   for (let level = 0; level < INK_LEVELS; level++) {
-    const full = BLOCK_COUNTS[level]! + (level === INK_LEVELS - 1 ? draw(2) : 0);
+    const full = counts[level]! + (level === INK_LEVELS - 1 ? draw(2) : 0);
     // Round 10 always has strictly more grey lines than round 9.
     const atLeast = level === INK_LEVELS - 1 ? list[level - 1]!.blocks.length + 1 : 1;
     let made: InkLevel | null = null;
     for (let attempt = 0; attempt < (atLeast > 1 ? 200 : 60) && !made; attempt++) {
       // After a run of failures, fewer extra blocks (never below the round-10 floor).
       const count = Math.max(atLeast, Math.max(1, full - Math.trunc(attempt / 20)));
-      const lvl = layout(level, count, draw);
+      const lvl = layout(level, count, draw, h);
       if (lvl.blocks.length < atLeast) continue;
       if (landsUnaided(lvl)) continue;
       const found = findReference(lvl, inkBudget(level));
@@ -624,7 +641,7 @@ function buildLevels(seed: number): { list: InkLevel[]; rng: number } {
         spoutX,
         bucketX: 300,
         bucketY: 540,
-        blocks: [{ x0: 90, x1: 150, y: 200 }],
+        blocks: [{ x0: 90, x1: 150, y: 200, ...(h ? { h } : {}) }],
         slideAmp: 0,
         slidePeriod: 1,
         slidePhase: 0,
@@ -696,13 +713,13 @@ export function inkSingleLineDrop(
 }
 
 /** Test hook: does each level's stored reference solution land in the bucket within its ink? */
-export function inkReferenceCheck(seed: number): {
+export function inkReferenceCheck(seed: number, rev?: number): {
   ok: number;
   blocks: number[];
   ink: number[];
   slides: number[];
 } {
-  const { list } = buildLevels(seed);
+  const { list } = buildLevels(seed, rev);
   let ok = 0;
   const ink: number[] = [];
   list.forEach((lvl, i) => {
@@ -742,14 +759,19 @@ export interface InkState {
   failedBall: { x: number; y: number } | null;
 }
 
-const cache = new Map<number, ReturnType<typeof buildLevels>>();
+const cache = new Map<string, ReturnType<typeof buildLevels>>();
 
 function init(seed: number): InkState {
-  let plan = cache.get(seed | 0);
+  return initWith(seed);
+}
+
+function initWith(seed: number, rev?: number): InkState {
+  const key = `${rev ?? 0}:${seed | 0}`;
+  let plan = cache.get(key);
   if (!plan) {
-    plan = buildLevels(seed);
+    plan = buildLevels(seed, rev);
     if (cache.size > 16) cache.clear();
-    cache.set(seed | 0, plan);
+    cache.set(key, plan);
   }
   return {
     tick: 0,
@@ -988,7 +1010,7 @@ function draw(ctx: CanvasRenderingContext2D, state: InkState, size: CanvasSize):
 
   // Grey blocks.
   ctx.fillStyle = INK_GREY;
-  for (const b of lvl.blocks) ctx.fillRect(b.x0, b.y, b.x1 - b.x0, INK_BLOCK_H);
+  for (const b of lvl.blocks) ctx.fillRect(b.x0, b.y, b.x1 - b.x0, inkBlockH(b));
 
   // Bucket with a rim.
   const flash = tick - state.flashTick < 20 && state.flashKind === 1;
@@ -1082,3 +1104,9 @@ export const inkBridgeGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: INK_INPUT_RANGES,
 };
+
+/** Birds revision: thicker obstacles, fewer on levels 6–10. */
+export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV) };
+export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  return rev === INK_REV ? inkBridgeBirdsGame : inkBridgeGame;
+}

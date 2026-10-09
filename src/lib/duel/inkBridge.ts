@@ -2,6 +2,8 @@
 
 import {
   inkBridgeGame,
+  inkBridgeBirdsGame,
+  INK_REV,
   inkCheckpoint,
   INK_CHECKPOINT_INTERVAL,
   INK_CHECKPOINT_KEYS,
@@ -19,6 +21,14 @@ const run = makeArcadeRun<InkState, InkCheckpoint>({
   interval: INK_CHECKPOINT_INTERVAL,
 });
 
+const birdsRun = makeArcadeRun<InkState, InkCheckpoint>({
+  tag: "inkbridge",
+  game: inkBridgeBirdsGame,
+  checkpoint: inkCheckpoint,
+  keys: INK_CHECKPOINT_KEYS,
+  interval: INK_CHECKPOINT_INTERVAL,
+});
+
 export interface InkBridgeResult extends FlatReplay<InkState, InkCheckpoint> {
   levels: number;
   total: number;
@@ -29,8 +39,8 @@ export const encodeInkBridgeRun = run.encode;
 export const decodeInkBridgeRun = run.decode;
 
 /** The single place an Ink Bridge score is worked out. */
-export function replayInkBridgeRun(seed: number, raw: string): InkBridgeResult {
-  const result = run.replay(seed, raw);
+export function replayInkBridgeRun(seed: number, raw: string, rev?: number | null): InkBridgeResult {
+  const result = (rev === INK_REV ? birdsRun : run).replay(seed, raw);
   const s = result.state;
   return { ...result, levels: s.levels, total: INK_LEVELS, fails: s.fails };
 }

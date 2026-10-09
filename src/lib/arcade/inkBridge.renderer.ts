@@ -1,7 +1,7 @@
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import { sceneryTexture, grassTexture } from "./sceneryTexture.renderer";
 import type { CanvasSize } from './engine';
-import { inkBridgeGame, inkBucketX, inkBudget, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
+import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { COUNTRY_SKY as SKY, COUNTRY_GRASS as GRASS, countryCloud as cloud, countryStamp, drawCountryside, drawCountryGround } from './countryside.renderer';
 
@@ -13,6 +13,35 @@ const RED = '#E93640', RED_EDGE = '#AA202C', EMPTY = '#D2E3E9';
 export const INK_RAINBOW = ['#F04448', '#F59332', '#F3D63D', '#3BAE65', '#278DE1', '#514EB5', '#AB57C7'] as const;
 export const INK_ART_BG = SKY;
 const sprites = new Map<string, ArtCanvas>();
+const BIRD = '#FFFFFF', BIRD_EDGE = '#26313F';
+/**
+ * One white bird filling a 32×13 cell (drawn scaled into its share of the
+ * collision box): wingtips reach both ends, body spans the full height.
+ * Four cached flap frames; render only.
+ */
+function birdFrame(c: CanvasRenderingContext2D, f: number): void {
+  const lift = [1, 4.5, 9, 4.5][f] ?? 1; // wingtip height from the top
+  c.lineJoin = 'round';
+  c.fillStyle = BIRD; c.strokeStyle = BIRD_EDGE; c.lineWidth = 1.6;
+  // Wings.
+  c.beginPath();
+  c.moveTo(0.5, lift); c.quadraticCurveTo(8, lift + 1, 13, 6); c.lineTo(19, 6); c.quadraticCurveTo(24, lift + 1, 31.5, lift);
+  c.quadraticCurveTo(24, lift + 4, 19, 9); c.lineTo(13, 9); c.quadraticCurveTo(8, lift + 4, 0.5, lift); c.closePath();
+  c.fill(); c.stroke();
+  // Body and head (full height of the cell).
+  c.beginPath(); c.ellipse(16, 6.5, 5, 6, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+  c.fillStyle = '#F5B82E'; c.beginPath(); c.moveTo(19.5, 5); c.lineTo(23, 6.5); c.lineTo(19.5, 8); c.fill();
+  c.fillStyle = '#1C2430'; c.fillRect(17.5, 4, 1.4, 1.4);
+}
+/** A flock filling the obstacle box exactly, flapping in place. */
+function drawBirds(c: CanvasRenderingContext2D, b: { x0: number; x1: number; y: number }, h: number, tick: number): void {
+  const len = b.x1 - b.x0, n = Math.max(1, Math.round(len / 18)), w = len / n;
+  for (let i = 0; i < n; i++) {
+    const f = Math.floor((tick + i * 5) / 7) % 4;
+    const img = sprite(`bird${f}`, 64, 26, (m) => { m.scale(2, 2); birdFrame(m, f); });
+    if (img) c.drawImage(img, b.x0 + i * w, b.y, w, h);
+  }
+}
 function sprite(key: string, w: number, h: number, draw: (c: CanvasRenderingContext2D) => void): ArtCanvas | null {
   const cached = sprites.get(key); if (cached) return cached;
   const surface = artCanvas(w * 2, h * 2); if (!surface) return null;
@@ -61,7 +90,7 @@ export function inkFailedOnBlock(state: InkState): boolean {
   const x=b.x/FP,y=b.y/FP;
   return lvl.blocks.some(block => {
     const dx=x-Math.max(block.x0,Math.min(block.x1,x));
-    const dy=y-Math.max(block.y,Math.min(block.y+INK_BLOCK_H,y));
+    const dy=y-Math.max(block.y,Math.min(block.y+inkBlockH(block),y));
     return dx*dx+dy*dy<=BALL_R*BALL_R;
   });
 }
@@ -109,6 +138,7 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
   stamp(c,"leprechaun",22,30,Math.min(INK_WORLD_W-24,Math.max(2,bx+40)),base-27,leprechaun);
   countryStamp(c,'cloud',48,26,lvl.spoutX-24,19,cloud);
   for(const b of lvl.blocks) {
+    if(b.h){drawBirds(c,b,inkBlockH(b),state.tick);continue;}
     // Fully fill all 4px of every hazard, never an inset silhouette.
     c.fillStyle=RED;c.fillRect(b.x0,b.y,b.x1-b.x0,INK_BLOCK_H);
     c.fillStyle=RED_EDGE;c.fillRect(b.x0,b.y+INK_BLOCK_H-1,b.x1-b.x0,1);
@@ -141,8 +171,9 @@ export function drawInkRainbowExample(c:CanvasRenderingContext2D):void {
   c.fillStyle=GRASS;c.beginPath();c.moveTo(0,130);c.quadraticCurveTo(90,130,118,122);c.lineTo(150,122);c.lineTo(168,127);c.lineTo(168,130);c.lineTo(0,130);c.fill();
   c.save();c.translate(30,0);c.scale(0.75,0.75);countryStamp(c,'cloud',48,26,0,0,cloud);c.restore();
   stamp(c,'coin',14,14,41,16,coin);
-  c.fillStyle=RED;c.fillRect(30,58,40,3);
+  drawBirds(c,{x0:30,x1:70,y:56},5,0);
   c.strokeStyle=rainbow(c,36,34,132,94,0,113);c.lineCap='round';c.lineWidth=3;c.beginPath();c.moveTo(36,34);c.lineTo(132,94);c.stroke();
   c.save();c.translate(134,104);c.scale(0.5,0.5);drawPot(c,0,0,false);c.restore();
 }
 export const inkBridgeArtGame={...inkBridgeGame,draw:drawInkBridgeArt};
+export const inkBridgeArtGameFor=(rev?:number|null)=>({...inkBridgeGameFor(rev),draw:drawInkBridgeArt});

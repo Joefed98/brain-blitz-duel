@@ -1,3 +1,4 @@
+import { INK_REV } from "@/lib/arcade/inkBridge";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
@@ -156,7 +157,7 @@ export function generateJunction(): JunctionPuzzleData {
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {
-  return { type: "inkbridge", seed: arcadeSeed() };
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV };
 }
 
 export function generateBurst(): BurstPuzzleData {

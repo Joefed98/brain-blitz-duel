@@ -2168,6 +2168,8 @@ export interface JunctionPuzzleData {
 
 export interface InkBridgePuzzleData {
   type: "inkbridge";
+  /** 2 = white birds, fewer on levels 6–10. Absent = original blocks. */
+  inkRev?: number;
   /** Draws the drops and bucket moves — identical for everyone. */
   seed: number;
 }

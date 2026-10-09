@@ -1,3 +1,4 @@
+import { INK_REV } from "@/lib/arcade/inkBridge";
 import { chainDemoCompatible } from "./chain";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -54,6 +55,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV) return null;
     // Four-step bomb demos cannot replay the six-step example.
     if (data.type === "bomb" && demo?.puzzle.type === "bomb" && demo.puzzle.bombVersion !== 2) return null;
+    // Block-era Rainbow Bridge demos would show red blocks under the birds wording.
+    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
     return demo;
   });
