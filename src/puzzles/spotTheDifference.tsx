@@ -1,3 +1,4 @@
+import { SweetIcon, SWEET_NAMES } from "@/components/puzzles/refreshIcons";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -20,13 +21,8 @@ import {
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const COLOURS: Record<Exclude<StroopColour, "YELLOW">, string> = {
-  RED: "#FF4D4D",
-  BLUE: "#4D8CFF",
-  GREEN: "#3DDC84",
-  PURPLE: "#B26BFF",
-  PINK: "#FF6BD6",
-  ORANGE: "#FF8A3D",
-  BROWN: "#8B5A2B",
+  RED: "var(--sweet-red)", BLUE: "var(--sweet-blue)", GREEN: "var(--sweet-green)",
+  PURPLE: "var(--sweet-purple)", PINK: "var(--sweet-pink)", ORANGE: "var(--sweet-orange)", BROWN: "var(--sweet-brown)",
 };
 
 const COLOUR_KEYS = Object.keys(COLOURS) as Exclude<StroopColour, "YELLOW">[];
@@ -77,23 +73,11 @@ function cellsApart(a: number, b: number): number {
   return Math.max(Math.abs(ac - bc), Math.abs(ar - br));
 }
 
-function shapePath(kind: SpotShapeKind, fill: string) {
-  switch (kind) {
-    case "circle":
-      return <circle cx="20" cy="20" r="13" fill={fill} />;
-    case "square":
-      return <rect x="7" y="7" width="26" height="26" rx="2" fill={fill} />;
-    case "triangle":
-      return <polygon points="20,5 35,33 5,33" fill={fill} />;
-    case "star":
-      return (
-        <polygon points="20,3 24,14 36,14 26,22 30,35 20,27 10,35 14,22 4,14 16,14" fill={fill} />
-      );
-    case "hexagon":
-      return <polygon points="12,5 28,5 36,20 28,35 12,35 4,20" fill={fill} />;
-    default:
-      return <path d="M4 14h18V7l14 13-14 13v-7H4z" fill={fill} />;
-  }
+function shapePath(kind: SpotShapeKind, fill: string) { return <SweetIcon kind={kind} fill={fill}/>; }
+
+/** Translate saved labels at display time; never rewrite generated or stored differences. */
+function sweetLabel(label: string): string {
+  return label.replace(/\b(circle|square|triangle|star|hexagon|arrow)\b/g, kind => SWEET_NAMES[kind as SpotShapeKind]).replace('A shape', 'A sweet');
 }
 
 function DrawnShape({ shape, size = SHAPE }: { shape: SpotShape; size?: number }) {
@@ -141,7 +125,7 @@ function Panel({
       width="100%"
       preserveAspectRatio="xMidYMid meet"
       {...(height ? { height } : {})}
-      className={`block select-none ${fitHeight ? "h-full min-h-0 w-full" : "w-full"}`}
+      className={`sweet-panel block select-none ${fitHeight ? "h-full min-h-0 w-full" : "w-full"}`}
       style={{ touchAction: "manipulation" }}
     >
       {shapes.map((shape) => (
@@ -279,7 +263,7 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center text-sm text-muted-foreground">
-        Find the six differences between the top and bottom pictures.
+        Find the six differences between the top and bottom sweet-shop pictures.
       </p>
       <div className="flex w-full flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card">
         <Panel shapes={EXAMPLE_TOP} found={[4]} rows={2} />
@@ -410,7 +394,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           const got = found.includes(difference);
           return (
             <div key={index} className="flex items-center justify-between text-base">
-              <span className="text-muted-foreground">{difference.label}</span>
+              <span className="text-muted-foreground">{sweetLabel(difference.label)}</span>
               <span className={`font-display font-bold ${got ? "text-primary" : "text-warn"}`}>
                 {got ? "✓" : "✗"}
               </span>
