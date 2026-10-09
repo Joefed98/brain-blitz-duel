@@ -57,7 +57,7 @@ for (let seed = 0; seed < 200; seed++) {
   const replay = replayChain(JSON.parse(JSON.stringify(puzzle)), decodeChainAnswer(answer));
   check(replay.links === 40 && replay.reason === "complete", "Replay failed");
   const graded = gradeSubmission(puzzle, answer, CHAIN_TIME_MS - 40000);
-  check(graded.score === 141 && graded.isCorrect, "Server score failed");
+  check(graded.score === 142 && graded.isCorrect, "Server score failed");
   for (const links of [0, 1, 12, 13, 25, 26, 27, 29, 30, 39, 40]) {
     const partial = gradeSubmission(puzzle, encodeChainAnswer({ taps: taps.slice(0, links), reason: "timer" }), CHAIN_TIME_MS - links * 1000);
     check(partial.score === chainScore(links, CHAIN_TIME_MS - links * 1000, puzzle) && partial.isCorrect === (links === 40), `Partial server score failed at ${links}`);

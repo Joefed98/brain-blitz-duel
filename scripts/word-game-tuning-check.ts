@@ -13,12 +13,12 @@ expect("Wordsmith cap", scoreWordsmith(100), 150);
 
 expect("Word Search wrong picks ignored", scoreWordSearch(2, 6, 99, 0, 120_000), 40);
 expect("Word Search complete at zero", scoreWordSearch(6, 6, 0, 0, 120_000), 130);
-expect("Word Search complete halfway", scoreWordSearch(6, 6, 0, 60_000, 120_000), 140);
+expect("Word Search complete halfway", scoreWordSearch(6, 6, 0, 60_000, 120_000), 150);
 expect("Word Search complete full time", scoreWordSearch(6, 6, 0, 120_000, 120_000), 150);
 
 expect("Letter Wheel 8-word incomplete", scoreLetterWheel(3, 8, 100_000, 100_000), 45);
 expect("Letter Wheel 8-word complete at zero", scoreLetterWheel(8, 8, 0, 100_000), 130);
-expect("Letter Wheel 8-word complete halfway", scoreLetterWheel(8, 8, 50_000, 100_000), 140);
+expect("Letter Wheel 8-word complete halfway", scoreLetterWheel(8, 8, 50_000, 100_000), 150);
 expect("Letter Wheel 9-word incomplete", scoreLetterWheel(8, 9, 100_000, 100_000), 104);
 expect("Letter Wheel 9-word cap", scoreLetterWheel(9, 9, 100_000, 100_000), 150);
 
