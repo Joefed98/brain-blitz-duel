@@ -713,6 +713,37 @@ function traceDrop(
 }
 
 /**
+ * Samples many candidate pre-release lines (single stroke from near the spout, every
+ * direction, several lengths up to `cap`) and reports whether any of them alone lands
+ * the ball in the bucket. Used both to validate shield placement at generation time and
+ * to pick layouts where the live stroke is genuinely required.
+ */
+const PRE_SAMPLE_ANGLES = 8;
+const PRE_SAMPLE_LEN_FRACS = [1];
+function anyPreAloneWins(lvl: InkLevel, cap: number, gravity: number): boolean {
+  // Capped at 3 starts × 8 angles × 1 length = 24 sampled lines (speed: keeps init p95 low).
+  const starts: [number, number][] = [
+    [lvl.spoutX, SPOUT_Y + 10],
+    [lvl.spoutX - 24, SPOUT_Y + 28],
+    [lvl.spoutX + 24, SPOUT_Y + 28],
+  ];
+  for (const [sx, sy] of starts) {
+    for (let a = 0; a < PRE_SAMPLE_ANGLES; a++) {
+      const theta = (a / PRE_SAMPLE_ANGLES) * Math.PI * 2;
+      for (const frac of PRE_SAMPLE_LEN_FRACS) {
+        const len = Math.round(cap * frac);
+        const ex = clampInt(sx + Math.round(Math.cos(theta) * len), 0, INK_WORLD_W);
+        const ey = clampInt(sy + Math.round(Math.sin(theta) * len), 0, INK_WORLD_H);
+        const pen = strokeSegs([[sx, sy, ex, ey]], cap);
+        if (pen.segs.length === 0) continue;
+        if (simulateDrop(lvl, pen.segs, 0, gravity) === 1) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Live-level reference: a pre-release line (one stroke, from the spout to a waypoint) that by
  * itself should usually fail, plus one live stroke (waypoint to the bucket) drawn and lifted
  * once the ball has rolled off the pre-release line, respecting the no-draw zone at every tick
@@ -863,9 +894,9 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
     const h = birds ? INK_BIRD_H_FP : undefined;
     const gravity = live ? INK_LIVE_GRAVITY : GRAVITY;
     const count = counts[sourceLevel]!;
-    const ink = live ? inkBudgetFor(i, INK_REV3) : inkBudget(sourceLevel);
+    const ink = inkBudgetFor(i, INK_REV3);
     let made: InkLevel | null = null;
-    for (let attempt = 0; attempt < 120 && !made; attempt++) {
+    for (let attempt = 0; attempt < (live ? 48 : 120) && !made; attempt++) {
       const c = Math.max(1, count - Math.trunc(attempt / 20));
       let lvl = layout(sourceLevel, c, draw, h, forceSlide);
       if (live) {
@@ -873,7 +904,7 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
         // waypoints (within ±60 px of the spout) and the bucket: a pre-release line
         // alone sends the ball on a course that this shield intercepts, so reaching
         // the bucket genuinely needs the live stroke to route around it.
-        const shieldY = SPOUT_Y + 28 + Math.trunc(((lvl.bucketY - (SPOUT_Y + 28)) * 60) / 100);
+        const shieldY = SPOUT_Y + 28 + Math.trunc(((lvl.bucketY - (SPOUT_Y + 28)) * 78) / 100);
         const shield: InkBlock = {
           x0: Math.max(0, lvl.spoutX - 70),
           x1: Math.min(INK_WORLD_W, lvl.spoutX + 70),
@@ -884,6 +915,9 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
       }
       if (landsUnaided(lvl, gravity)) continue;
       if (live) {
+        // Adversarial gate: reject this layout/shield combo outright if any sampled
+        // pre-release line (any direction, up to the cap) already wins alone.
+        if (anyPreAloneWins(lvl, INK_LIVE_PRE_CAP, gravity)) continue;
         const found = findLiveReference(lvl, ink, gravity);
         if (found) made = { ...lvl, ref: found.ref, refT0: found.t0, liveRef: found.liveRef };
       } else {
@@ -892,20 +926,41 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
       }
     }
     if (!made) {
+      // Last resort: an open layout with no obstacles between spout and bucket column,
+      // so a pre-release line short enough for INK_LIVE_PRE_CAP always exists, and (for
+      // live levels) the fallback route is still built live — pre-cap aware with a real
+      // liveRef — never a plain over-cap single-stroke solve.
       const spoutX = 120;
       const lvl: InkLevel = {
         spoutX,
         bucketX: 300,
         bucketY: 540,
-        blocks: [{ x0: 90, x1: 150, y: 200, ...(h ? { h } : {}) }],
+        blocks: live ? [] : [{ x0: 90, x1: 150, y: 200, ...(h ? { h } : {}) }],
         slideAmp: 0,
         slidePeriod: 1,
         slidePhase: 0,
         ref: [],
         refT0: 0,
       };
-      const found = findReference(lvl, ink, gravity);
-      made = { ...lvl, ref: found?.ref ?? [[96, 78, 300, 526]], refT0: found?.t0 ?? 0 };
+      if (live) {
+        const found = findLiveReference(lvl, ink, gravity);
+        if (found) {
+          made = { ...lvl, ref: found.ref, refT0: found.t0, liveRef: found.liveRef };
+        } else {
+          // Degenerate but cap/shield-aware: a short pre-release line that alone falls
+          // short, finished off by one live stroke straight into the bucket.
+          const preEnd: [number, number] = [spoutX, SPOUT_Y + 28 + 120];
+          made = {
+            ...lvl,
+            ref: [[spoutX, SPOUT_Y + 28, preEnd[0], preEnd[1]]],
+            refT0: 0,
+            liveRef: [{ tick: 6, pts: [preEnd[0], preEnd[1], lvl.bucketX, lvl.bucketY - 20] }],
+          };
+        }
+      } else {
+        const found = findReference(lvl, ink, gravity);
+        made = { ...lvl, ref: found?.ref ?? [[96, 78, 300, 526]], refT0: found?.t0 ?? 0 };
+      }
     }
     list.push(made);
   }
@@ -1032,12 +1087,32 @@ export function inkReferenceCheck(seed: number, rev?: number): {
     const budget = inkBudgetFor(i, rev);
     const pen = strokeSegs(lvl.ref, budget);
     ink.push(pen.segs.reduce((sum, seg) => sum + seg.len, 0));
-    if (
-      pen.penDown === 1 &&
-      simulateDrop(lvl, pen.segs, lvl.refT0, gravity) === 1 &&
-      !landsUnaided(lvl, gravity)
-    )
-      ok++;
+    if (!live) {
+      if (
+        pen.penDown === 1 &&
+        simulateDrop(lvl, pen.segs, lvl.refT0, gravity) === 1 &&
+        !landsUnaided(lvl, gravity)
+      )
+        ok++;
+      return;
+    }
+    // Live levels: the reference is the pre-release line plus mid-fall live strokes —
+    // validate the whole staged route (never the pre-release line in isolation).
+    let segs: InkSeg[] = pen.segs;
+    let usedInk = pen.segs.reduce((sum, seg) => sum + seg.len, 0) * FP;
+    let fits = pen.penDown === 1;
+    const stages: { tick: number; segs: readonly InkSeg[] }[] = [{ tick: 0, segs }];
+    for (const ev of lvl.liveRef ?? []) {
+      const pen2 = strokeSegs([ev.pts], Math.trunc((budget * FP - usedInk) / FP));
+      if (pen2.penDown !== 1) {
+        fits = false;
+        break;
+      }
+      segs = [...segs, ...pen2.segs];
+      usedInk += pen2.segs.reduce((sum, seg) => sum + seg.len, 0) * FP;
+      stages.push({ tick: ev.tick + 2, segs });
+    }
+    if (fits && simulateStaged(lvl, stages, gravity) === 1 && !landsUnaided(lvl, gravity)) ok++;
   });
   return { ok, blocks: list.map((l) => l.blocks.length), ink, slides: list.map((l) => l.slideAmp) };
 }
@@ -1078,6 +1153,9 @@ export interface InkState {
   draftPenDown: number;
   /** Live levels: lifts (commits of the draft) used on the current drop. */
   liveLifts: number;
+  /** Live levels: ink spent on the pre-release line so far this drop, 1/256 px
+   * (enforces INK_LIVE_PRE_CAP in real play, independent of the shared ink pool). */
+  preInkUsed: number;
 }
 
 const cache = new Map<string, ReturnType<typeof buildLevels>>();
@@ -1123,6 +1201,7 @@ function initWith(seed: number, rev?: number): InkState {
     draftPenY: 0,
     draftPenDown: 0,
     liveLifts: 0,
+    preInkUsed: 0,
   };
 }
 
@@ -1143,6 +1222,7 @@ function resetLevel(s: InkState): void {
   s.draftStrokeStarts = [];
   s.draftPenDown = 0;
   s.liveLifts = 0;
+  s.preInkUsed = 0;
 }
 
 function step(state: InkState, input: ArcadeInputEvent | null): InkState {
@@ -1165,6 +1245,22 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       // Live levels: only one pre-release line may be drawn (the rest comes mid-drop as lifts).
       if (live && input.c === 1 && s.strokeStarts.length >= 1) {
         // ignored: pre-release line cap reached
+      } else if (live) {
+        // Live levels: the pre-release line is capped at INK_LIVE_PRE_CAP px, separate
+        // from (and well below) the shared ink pool, so it can never alone reach the
+        // bucket — only the actual ink it uses is deducted from the shared pool.
+        const beforeInk = s.ink;
+        const capRemain = Math.max(0, INK_LIVE_PRE_CAP * FP - s.preInkUsed);
+        s.ink = Math.min(s.ink, capRemain);
+        addStroke(
+          s,
+          clampInt(input.a, 0, INK_WORLD_W),
+          clampInt(input.b, 0, INK_WORLD_H),
+          input.c === 1,
+        );
+        const used = Math.min(beforeInk, capRemain) - s.ink;
+        s.preInkUsed += used;
+        s.ink = beforeInk - used;
       } else {
         addStroke(
           s,
