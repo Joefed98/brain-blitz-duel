@@ -3,7 +3,7 @@ import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { inputAt, recordInput, rngBelow, type ArcadeInputEvent } from "@/lib/arcade/engine";
 import {
   clayCheckpoint,
-  clayGame,
+  clayGameFor,
   clayScore,
   CLAY_CHECKPOINT_INTERVAL,
   CLAY_CONFIG,
@@ -12,6 +12,7 @@ import {
   CLAY_INPUT_SHOT,
   CLAY_KIND_GOLD,
   CLAY_KIND_ORANGE,
+  CLAY_REV,
 } from "@/lib/arcade/clayShoot";
 import { encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { gradeAnswer } from "@/lib/duel/generate.server";
@@ -23,7 +24,7 @@ const fail = (message: string) => {
   console.error("FAIL", message);
 };
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-if (clayScore(22, 3) !== 150 || clayScore(22, 2) !== 130 || clayScore(0, 0) !== 0) fail("score boundaries");
+if (clayScore(22, 3) !== 150 || clayScore(22, 2) !== 130 || clayScore(0, 0) !== 0 || clayScore(22, 3, 0, CLAY_REV) !== 150 || clayScore(22, 3, 1, CLAY_REV) !== 130 || clayScore(0, 0, 4, CLAY_REV) !== 0) fail("score boundaries");
 
 let slowest = 0;
 let perfectRuns = 0;
@@ -41,7 +42,11 @@ for (let run = 0; run < RUNS; run++) {
     rng = result.state;
     return result.value;
   };
-  let state = clayGame.init(seed);
+  const game = clayGameFor(CLAY_REV);
+  let state = game.init(seed);
+  const birds = state.birds;
+  if (!birds || birds.launch.length < 3 || birds.launch.length > 4) fail(`run ${run}: bird count`);
+  if (birds?.launch.some((tick, i) => tick < 360 || tick >= CLAY_CONFIG.runSeconds * 60 || (i > 0 && tick <= birds.launch[i - 1]!))) fail(`run ${run}: bird timing`);
   if (state.schedule.kind.filter((kind) => kind === CLAY_KIND_ORANGE).length !== CLAY_CONFIG.orangeClays) fail(`run ${run}: orange count`);
   if (state.schedule.kind.filter((kind) => kind === CLAY_KIND_GOLD).length !== CLAY_CONFIG.goldClays) fail(`run ${run}: gold count`);
   if (state.schedule.launch[state.schedule.launch.length - 1]! >= CLAY_CONFIG.runSeconds * 60) fail(`run ${run}: launch after run`);
@@ -53,10 +58,10 @@ for (let run = 0; run < RUNS; run++) {
   left += state.schedule.side.filter((side) => side === 0).length;
   right += state.schedule.side.filter((side) => side === 1).length;
 
-  let idle = clayGame.init(seed);
+  let idle = game.init(seed);
   let idleGoldOverlap = false;
-  while (!clayGame.isOver(idle)) {
-    idle = clayGame.step(idle, null);
+  while (!game.isOver(idle)) {
+    idle = game.step(idle, null);
     const flying = idle.status.map((status, i) => ({ status, i })).filter(({ status }) => status === CLAY_FLYING);
     const airborneGold = flying.filter(({ i }) => idle.schedule.kind[i] === CLAY_KIND_GOLD).length;
     if (airborneGold > 1) idleGoldOverlap = true;
@@ -68,7 +73,7 @@ for (let run = 0; run < RUNS; run++) {
 
   const events: ArcadeInputEvent[] = [];
   const checkpoints: ReturnType<typeof clayCheckpoint>[] = [];
-  while (!clayGame.isOver(state)) {
+  while (!game.isOver(state)) {
     const flying = state.status.map((status, i) => ({ status, i })).filter(({ status }) => status === CLAY_FLYING);
 
     let candidate: ArcadeInputEvent | null = null;
@@ -80,8 +85,8 @@ for (let run = 0; run < RUNS; run++) {
     } else if (draw(200) === 0) {
       candidate = { t: state.tick + 1, k: CLAY_INPUT_SHOT, a: draw(CLAY_CONFIG.worldW + 1), b: draw(CLAY_CONFIG.worldH + 1), c: 0, d: 0 };
     }
-    recordInput(events, candidate, clayGame.inputRanges);
-    state = clayGame.step(state, inputAt(events, state.tick + 1));
+    recordInput(events, candidate, game.inputRanges);
+    state = game.step(state, inputAt(events, state.tick + 1));
     if (state.tick % CLAY_CHECKPOINT_INTERVAL === 0) checkpoints.push(clayCheckpoint(state));
   }
   if (state.hits !== CLAY_COUNT || state.goldHits !== CLAY_CONFIG.goldClays) fail(`run ${run}: aiming bot hit ${state.hits}/${CLAY_COUNT}, gold ${state.goldHits}`);
@@ -89,18 +94,23 @@ for (let run = 0; run < RUNS; run++) {
     perfectRuns += 1;
     goldHits += state.goldHits;
   }
-  const score = clayGame.score(state);
+  const score = game.score(state);
   const raw = appendClientCounters(
-    encodeClayRun({ seed, claimedScore: score, events, endTick: state.tick, checkpoints }),
+      encodeClayRun({ seed, claimedScore: score, events, endTick: state.tick, checkpoints }, CLAY_REV),
     arcadeCounters("clayshoot", state, score),
   );
   const started = performance.now();
-  const replay = replayClayRun(seed, raw);
+  const replay = replayClayRun(seed, raw, CLAY_REV);
   slowest = Math.max(slowest, performance.now() - started);
-  const graded = gradeAnswer({ type: "clayshoot", seed }, raw, 0);
+  const graded = gradeAnswer({ type: "clayshoot", seed, clayRev: CLAY_REV }, raw, 0);
   if (!same(replay.state, state) || replay.score !== score || graded.score !== score || replay.flagged || replay.desyncTick !== null) {
     fail(`run ${run}: replay mismatch ${replay.reason ?? ""}`);
   }
+}
+for (let run = 0; run < Math.min(RUNS, 100); run++) {
+  const legacy = clayGameFor(undefined).init((run * 7919 + 31) | 0);
+  if (legacy.rev !== undefined || legacy.birds !== undefined || legacy.birdHits !== undefined) fail(`legacy ${run}: bird state leaked`);
+  if (clayGameFor(undefined).score(legacy) !== 0) fail(`legacy ${run}: score changed`);
 }
 if (maxEarly > 1 || maxLate > 2) fail(`airborne limits ${maxEarly}/${maxLate}`);
 if (nearTop === 0 || Math.abs(left - right) > RUNS || left === 0 || right === 0) fail("trajectory variety missing");
@@ -110,7 +120,8 @@ console.log(failures ? `${failures} FAILURES` : "ALL OK");
 
 // Trajectory guard: every clay covers ⅔ width and stays ≥ 0.6 s on screen.
 {
-  const { clayGame: g, clayFlight: fl, CLAY_CONFIG: cc } = await import("@/lib/arcade/clayShoot");
+  const { clayGameFor: gf, clayFlight: fl, CLAY_CONFIG: cc, CLAY_REV: rev } = await import("@/lib/arcade/clayShoot");
+  const g = gf(rev);
   let bad = 0, minCov = 1e9, minT = 1e9;
   for (let r = 0; r < 2000; r++) {
     const s = g.init((r * 2654435761 + 13) | 0).schedule;
