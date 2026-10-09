@@ -38,3 +38,5 @@
 - RoomChat owns portalled bounded compact/expanded message sheets and keyboard geometry; room state supplies only chat availability and header time, and gesture blockers exempt data-scrollable. Why: chat scroll stays independent of game/page layouts.
 
 - Pipeline BFS is presentation-only; Flightpath palette/scenery are renderer modules and Grappler art is private. Why: animation/paint cannot alter grading, clocks or Roofbound.
+
+- Refresh icons share one-to-one direction/kind art; Bonk caches original circular-footprint sprites in its renderer and shares vectors with its intro. Why: new artwork must preserve generated variants and replay state.

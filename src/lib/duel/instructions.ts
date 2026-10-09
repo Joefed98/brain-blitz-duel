@@ -53,8 +53,8 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   balance: {
     goal: "Balance the scale.",
     how: [
-      { action: "Tap a weight, then a gold peg line.", detail: "Further from the middle counts more - a 2 on peg 3 equals a 3 on peg 2." },
-      { action: "Double-tap a placed weight", detail: "to return it to the tray." },
+      { action: "Tap a kettlebell, then a numbered beam notch.", detail: "Further from the middle counts more - a 2 on peg 3 equals a 3 on peg 2." },
+      { action: "Double-tap a placed kettlebell", detail: "to return it to the tray." },
     ],
     score: "20, 40 and 60 for scales 1, 2 and 3. All three = 120 + up to 30 for speed.",
   },
@@ -178,15 +178,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: `round(130 × correct ÷ ${CLASH_QUEUE}) − 2 per wrong gate; sort all ${CLASH_QUEUE} for + round(20 × time left ÷ 75 s). Minimum 0, maximum 150.`,
   },
   symscan: {
-    goal: "Find every matching arrow in three growing grids.",
+    goal: "Find every matching eagle in three growing grids.",
     how: [
-      { action: "Tap every match", detail: "of each grid's target arrow." },
+      { action: "Tap every match", detail: "of each grid's target eagle direction." },
       { action: "Press Submit", detail: "to lock each grid and move on - 30 seconds for all three." },
     ],
-    score: "Stages worth 30 / 45 / 55: share of arrows found, −3 per wrong tap. All three perfect adds up to 20 for speed.",
+    score: "Stages worth 30 / 45 / 55: share of eagles found, −3 per wrong tap. All three perfect adds up to 20 for speed.",
   },
   spotdiff: {
-    goal: "Find all six differences between the two pictures.",
+    goal: "Find all six differences between the two sweet-shop pictures.",
     how: [
       { action: "Compare both panels", detail: "carefully." },
       { action: "Tap each difference", detail: "in either panel." },
@@ -690,13 +690,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "5 per orange, 10 per gold, plus 10 for all 25. Maximum 150.",
   },
   whack: {
-    goal: "Tap the targets the banner tells you to.",
+    goal: "Tap gophers whose hard hats match the banner.",
     how: [
-      { action: "Balls pop up briefly", detail: "- the window shrinks as the run goes on." },
+      { action: "Gophers pop up briefly", detail: "- the window shrinks as the run goes on." },
       { action: "The rule flips 3-5 times", detail: "at unpredictable moments - watch the banner." },
-      { action: "Never tap a bomb", detail: "- bombs cost 5; a wrong-colour ball or an empty hole costs 3." },
+      { action: "Never tap a hedgehog", detail: "- hedgehogs cost 5; a wrong-colour hat or an empty burrow costs 3." },
     ],
-    score: "Up to 135 for the share of targets hit, −3 per wrong ball, −5 per bomb, −3 per empty tap, +15 for hitting every target. Maximum 150.",
+    score: "Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target. Maximum 150.",
   },
   wavefront: {
     goal: "Shoot down the formation before it reaches you.",

@@ -348,6 +348,11 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   ctx.lineTo(fx - 3, fy + 9);
   ctx.moveTo(fx, fy + 3);
   ctx.lineTo(fx + 3, fy + 9);
+  ctx.strokeStyle = "#D2EEF0";
+  ctx.lineWidth = 4.4;
+  ctx.stroke();
+  ctx.strokeStyle = body;
+  ctx.lineWidth = 2.4;
   ctx.stroke();
   ctx.fillStyle = body;
   ctx.beginPath();

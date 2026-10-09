@@ -2,7 +2,7 @@
 - Trail answers retain numbered cell slots with -1 for empty slots and legacy drag paths remain readable; shared independent correct-tile counting drives grading and reveal facts. Why: old answers must keep their credit while new taps and drags extend one sequential trail.
 - Tile Grid is tap-only: rack tile, then empty cell; placed tile, then empty cell or rack.
 - Sum Hunt uses deterministic 4×4 stage boards with 1–3 orthogonal target paths of 3–6 cells; server replay regenerates them.
-- Balance placement uses only fixed, non-tilting distance buttons; their peg indices feed the existing server-validated placement encoding.
+- Balance numbered notches share the render-only beam tilt and keep 44px axis-aligned hit regions; their unchanged peg indices feed the existing server-validated placement encoding. Why: instrument polish must not change placements or torque grading.
 - Tents uses `-1` for hidden row/column counts; shared solving and validation treat those lines as unconstrained.
 - Stop Watch stores target-motion phase, right-edge allowances, wrap mode, and pass durations in each generated watch; why: every player must see identical moving targets and acceleration.
 - Gravity Maze locks a ball when it comes to rest on its own target (locked = sitting on target), and the minimum is a capped breadth-first joint search; why: a summed per-ball heuristic over-estimates when one tilt moves every ball, so it cannot prove a minimum.

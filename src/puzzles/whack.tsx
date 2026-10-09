@@ -1,3 +1,5 @@
+import { BonkIcon } from "@/components/puzzles/BonkIcon";
+import { whackArtGame } from "@/lib/arcade/whack.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -19,11 +21,8 @@ import {
   WHACK_CHECKPOINT_INTERVAL,
   WHACK_COLS,
   WHACK_GAP_PX,
-  WHACK_GOLD_HEX,
-  WHACK_HOLE,
   WHACK_INPUT_TAP,
   WHACK_RED,
-  WHACK_RED_HEX,
   type WhackState,
 } from "@/lib/arcade/whack";
 import { encodeWhackRun, replayWhackRun } from "@/lib/duel/whack";
@@ -38,7 +37,7 @@ function Banner({ red, flash }: { red: boolean; flash: boolean }) {
   return (
     <div
       className={`mx-auto rounded-full bg-card px-6 py-2 text-center font-display text-2xl font-bold tracking-widest transition-transform duration-150 ${
-        red ? "text-destructive" : "text-primary"
+        red ? "bonk-banner-red" : "bonk-banner-gold"
       } ${flash ? "scale-110 ring-2 ring-current" : ""}`}
     >
       {red ? "TAP RED" : "TAP GOLD"}
@@ -51,27 +50,10 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-2">
       <Banner red={false} flash={false} />
-      <svg viewBox="0 0 120 120" width={120} height={120} aria-hidden="true">
-        {[0, 1, 2, 3].map((h) => (
-          <rect
-            key={h}
-            x={(h % 2) * 62}
-            y={Math.floor(h / 2) * 62}
-            width={58}
-            height={58}
-            rx={10}
-            fill={WHACK_HOLE}
-          />
-        ))}
-        <circle cx={29} cy={29} r={17} fill={WHACK_GOLD_HEX} />
-        <text x={29} y={35} textAnchor="middle" fontSize={18} fontWeight="bold" fill="#0B0B0F">
-          ✓
-        </text>
-        <circle cx={91} cy={91} r={17} fill={WHACK_RED_HEX} />
-        <text x={91} y={97} textAnchor="middle" fontSize={18} fontWeight="bold" fill="#0B0B0F">
-          ✗
-        </text>
-      </svg>
+      <div className="bonk-example grid h-[120px] w-[120px] grid-cols-2 gap-1">
+        <div className="bonk-burrow"><BonkIcon/></div><div className="bonk-burrow"/>
+        <div className="bonk-burrow"><BonkIcon hedgehog/></div><div className="bonk-burrow"><BonkIcon red/></div>
+      </div>
     </div>
   );
 }
@@ -204,7 +186,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const ctx = node.getContext("2d");
         if (ctx) {
           ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-          whackGame.draw(ctx, state.current, { width, height });
+          whackArtGame.draw(ctx, state.current, { width, height });
         }
       }
 

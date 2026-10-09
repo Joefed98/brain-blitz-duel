@@ -209,9 +209,33 @@
   --ice-wall: #111923;
   --ice-marker: #18354C;
   --ice-player: #075BA8;
-  --ice-exit: #8A3108;
+  --ice-exit: #F5B82E;
   --ice-portal-one: #AD128C;
-  --ice-portal-two: #126CBA;
+  --ice-portal-two: #BB4B08;
+  --grappler-rim: #D2EEF0;
+  --balance-metal: #778594;
+  --balance-metal-dark: #35414B;
+  --balance-highlight: #DFE9EC;
+  --balance-handle: #BDA168;
+  --balance-weight-edge: #805511;
+  --eagle-sky: #1A2631;
+  --sweet-red: #EA5153;
+  --sweet-blue: #409CFF;
+  --sweet-green: #CDD76A;
+  --sweet-purple: #8C5DC5;
+  --sweet-pink: #F2A9D0;
+  --sweet-orange: #F69B32;
+  --sweet-brown: #80532D;
+  --sweet-detail: #17141D;
+  --bonk-gold: #F5B82E;
+  --bonk-red: #E0503C;
+  --bonk-fur: #8A7365;
+  --bonk-muzzle: #F0D7AC;
+  --bonk-ink: #241C22;
+  --bonk-spines: #B7A18C;
+  --bonk-hat-shine: #FFF4CF;
+  --bonk-ground: #28251F;
+  --bonk-hole: #131114;
   --pipeline-water: #42BFF5;
   --pipeline-water-core: #D1F5FF;
   --bullseye-arrow-outline: #F7F7F8;
@@ -1079,7 +1103,7 @@ body.game-lock {
 .ice-board-grid { background: var(--ice-grid); }
 .ice-board .ice-cell { background: var(--ice-surface) !important; border-radius: 3px !important; box-shadow: none !important; }
 .ice-board .ice-wall { background: var(--ice-wall) !important; border-radius: 0 !important; box-shadow: none !important; }
-.ice-board .ice-exit { border-color: var(--ice-exit); background: color-mix(in srgb, var(--ice-exit) 12%, var(--ice-surface)) !important; }
+.ice-board .ice-exit { border-color: var(--ice-exit); background: var(--ice-exit) !important; }
 .ice-player { background: var(--ice-player); }
 .ice-frost { stroke: var(--ice-grid); stroke-width: .018; opacity: .65; fill: none; }
 .pipeline-water { stroke: var(--pipeline-water); fill: var(--pipeline-water); }
@@ -1095,3 +1119,18 @@ body.game-lock {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Visual refresh A: presentation-only instruments and icon surfaces. */
+.balance-metal { fill: var(--balance-metal); stroke: var(--balance-metal-dark); stroke-width: 1; }
+.balance-notch { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; }
+.balance-notch-label { display: flex; align-items: center; justify-content: center; width: 26px; height: 24px; margin-top: 20px; background: var(--balance-metal-dark); border: 1px solid var(--balance-metal); border-radius: 4px; }
+.balance-notch-active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 22%, var(--balance-metal-dark)); }
+.balance-chain { background: var(--balance-handle); }
+.balance-weight { filter: drop-shadow(0 2px 2px var(--background)); }
+.eagle-sky { background: linear-gradient(145deg, var(--eagle-sky), var(--card)) !important; }
+.eagle-cell { height: auto; }
+.sweet-panel { background: linear-gradient(145deg, var(--card), var(--background)); }
+.bonk-example { background: var(--bonk-ground); border-radius: 8px; padding: 2px; }
+.bonk-burrow { border-radius: 50%; background: var(--bonk-hole); }
+.bonk-banner-red { color: var(--bonk-red); }
+.bonk-banner-gold { color: var(--bonk-gold); }

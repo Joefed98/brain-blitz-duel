@@ -34,7 +34,7 @@ import { snipCamera, SNIP_CONFIG, SNIP_H, type SnipState } from "./snip";
 import { tiltArtGame as tiltGame } from "./tiltArt.renderer";
 import { btArtDraw } from "./ballTrackArt.renderer";
 import { BT_H, BT_W, type BtState } from "./ballTrack";
-import { whackGame } from "./whack";
+import { whackArtGame as whackGame } from "./whack.renderer";
 import { clayGame, CLAY_H, CLAY_W } from "./clayShoot";
 import { tenDropGame, TD_H, TD_W } from "./tenDrop";
 import { colourClashGame } from "./colourClash";
