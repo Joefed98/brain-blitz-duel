@@ -180,8 +180,8 @@ function Rings({
         const angle = -Math.PI / 4;
         const hx = centre + mid * Math.cos(angle);
         const hy = centre + mid * Math.sin(angle);
-        const px = size * 0.985;
-        const py = size * 0.015;
+        const px = size * 0.95;
+        const py = size * 0.05;
         const w = Math.max(1.5, size * 0.008);
         return (
           <g pointerEvents="none" className="ring-tonearm" style={{ transition: "all 200ms ease-out" }}>
