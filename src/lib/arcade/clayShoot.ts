@@ -393,7 +393,16 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
   const birdY = state.birdY ? [...state.birdY] : undefined;
   const birdStatus = state.birdStatus ? [...state.birdStatus] : undefined;
   const birdDoneTick = state.birdDoneTick ? [...state.birdDoneTick] : undefined;
-  const next: ClayState = { ...state, tick, x, y, vy, status, doneTick, birdX, birdY, birdStatus, birdDoneTick };
+  const next: ClayState = {
+    ...state,
+    tick,
+    x,
+    y,
+    vy,
+    status,
+    doneTick,
+    ...(birdX && birdY && birdStatus && birdDoneTick ? { birdX, birdY, birdStatus, birdDoneTick } : {}),
+  };
   const { launch, side, vx } = state.schedule;
 
   while (next.next < c.clays && launch[next.next]! <= tick) {
