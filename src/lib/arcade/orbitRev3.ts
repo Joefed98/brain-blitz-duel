@@ -379,13 +379,14 @@ export function findHopTapDelay(
   for (let k = 0; k <= maxK; k++) {
     let branch = stepRev3(walk, worldW, { t: walk.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 });
     let success = false;
-    if (branch.ended === 0) {
+    if (branch.ended === 0 || branch.finished === 1) {
       let guard = 0;
       while (branch.flying > 0 && branch.ended === 0 && guard < FLIGHT_MAX + 5) {
         branch = stepRev3(branch, worldW, null);
         guard++;
       }
-      success = branch.ended === 0 && branch.cur > startCur;
+      // Finishing (planet 40, ended = 1) also counts as a successful hop.
+      success = (branch.ended === 0 || branch.finished === 1) && branch.cur > startCur;
     }
     ok.push(success);
     if (k < maxK) walk = stepRev3(walk, worldW, null);
