@@ -32,14 +32,14 @@ function CellGlyph({ cell, size }: { cell: IntruderCell; size: number }) {
   const head = { fill, stroke: ink, strokeWidth: 0.8, strokeLinejoin: "round" as const };
   // Face features sit a little lower on triangles and stars so they stay inside the head.
   const fy = cell.shape === "triangle" ? 18 : cell.shape === "star" ? 14.6 : 15;
-  const hatY = cell.shape === "circle" ? 6.8 : cell.shape === "square" ? 6.6 : 6.5;
+  const hatY = cell.shape === "circle" ? 6.8 : cell.shape === "square" ? 6.6 : cell.shape === "star" ? 5.2 : 6.5;
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <g transform={`rotate(${cell.rot} 12 12)`}>
         {cell.shape === "circle" && <circle cx="12" cy="15" r="8.4" {...head} />}
         {cell.shape === "square" && <rect x="3.6" y="6.6" width="16.8" height="16.8" rx="3" {...head} />}
         {cell.shape === "triangle" && <polygon points="12,6.5 21.6,23.2 2.4,23.2" {...head} />}
-        {cell.shape === "star" && <polygon points={STAR_HEAD} {...head} transform="translate(-4.4 -6.6) scale(1.37)" />}
+        {cell.shape === "star" && <polygon points={STAR_HEAD} {...head} transform="translate(-3 -3.5) scale(1.25)" />}
         <polygon points={`12,0.6 14.6,${hatY} 9.4,${hatY}`} fill={fill} stroke={ink} strokeWidth="0.7" strokeLinejoin="round" />
         <circle cx="12" cy="0.9" r="1.1" fill="var(--tally-white)" stroke={ink} strokeWidth="0.4" />
         <circle cx="10.2" cy={fy - 0.8} r="0.95" fill={ink} />
