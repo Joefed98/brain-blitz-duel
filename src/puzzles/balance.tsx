@@ -249,7 +249,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
                 spacing={spacing}
                 selected={selected}
                 showControls
-                height={Math.max(170, arenaHeight)}
+                height={Math.max(146, arenaHeight - 24)}
                 onWeightTap={tapWeight}
                 onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
               />
