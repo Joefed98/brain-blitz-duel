@@ -80,7 +80,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   whack: "Points for the share of targets you hit, up to 135, plus 15 if you hit them all. Wrong colour or empty tap: lose 3. Hedgehog: lose 5.",
   clayshoot: "5 points for each orange clay and 10 for each gold one. Hit all 25 for 10 more.",
   symscan: "The three grids are worth 30, 45 and 55 points, scored by how many eagles you find. Wrong tap: lose 3. Get all three perfect for up to 20 more for speed.",
-  countup: "The three scenes are worth 30, 45 and 55 points; one off still earns some. Get all three exact for up to 20 more for speed.",
+  countup: "The three trays are worth 30, 45 and 55 points; one off still earns some. Get all three exact for up to 20 more for speed.",
   spotdiff: standard("Find all six differences", "20 points for each difference found"),
   pairmatch: standard("Find all fifteen pairs", "8 points for each pair found"),
   maze: standard("Reach the exit", "points for how far along the route you got"),
