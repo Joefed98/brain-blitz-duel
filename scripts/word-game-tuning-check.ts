@@ -24,7 +24,7 @@ expect("Letter Wheel 9-word cap", scoreLetterWheel(9, 9, 100_000, 100_000), 150)
 
 expect("Word Hunt doubles", scoreWordHunt(41), 82);
 expect("Word Hunt cap", scoreWordHunt(100), 150);
-expect("Tile Grid complete", scoreTileGrid(true, 15, 15, wordSpeedBonus(50_000, 100_000)), 140);
+expect("Tile Grid complete", scoreTileGrid(true, 15, 15, wordSpeedBonus(50_000, 100_000)), 150);
 expect("Tile Grid 14 word tiles", scoreTileGrid(false, 15, 14, 20), 112);
 expect("Word Slide complete at par, full time", scoreWordSlide(5, 5, 100_000, 100_000, 6, 6), 150);
 expect("Word Slide four rows", scoreWordSlide(4, 5, 100_000, 100_000), 88);

@@ -118,6 +118,6 @@ check(CHAIN_LENGTH === 40 && CHAIN_BLOCK === 5 && CHAIN_BOARDS === 8 && CHAIN_TI
 check(JSON.stringify(CHAIN_FASTER_AT) === "[10,20,30]", "FASTER prompts incorrect");
 check([1,13,14,26,27,40].map((link) => chainWindowMs(link)).join() === "3000,3000,2500,2500,2000,2000", "Momentum changed");
 for (let links = 0; links < 40; links++) check(chainScore(links, 45000) === Math.floor(3.5 * links), "Unfinished formula changed");
-for (let ms = 0; ms <= 45000; ms++) check(chainScore(40, ms) === 140 + Math.round(10 * ms / 45000), "Finish bonus mismatch");
+for (let ms = 0; ms <= 45000; ms++) check(chainScore(40, ms) === 140 + Math.round(10 * Math.min(1, ms / 22500)), "Finish bonus mismatch (speed par)");
 check(chainScore(40, 50000) === 150 && chainScore(40, -10) === 140, "Score bounds failed");
 console.log("Chain: 200/200 seeded regeneration, eight changing cycles, current decoys, scatter, full/partial server grades, boundary taps, momentum and legacy 30-link full/partial grading, old momentum, demo invalidation and 45,001 finish-bonus checks passed.");
