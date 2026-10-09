@@ -79,7 +79,7 @@ function Rings({
       height={size}
       viewBox={`0 0 ${size} ${size}`}
       className="shrink-0 touch-none"
-      aria-label={`${gameDisplayName("rings")} board`}
+      aria-label={`${gameDisplayName("rings")} record`}
       onPointerDown={(event) => {
         if (!onSelect) return;
         event.preventDefault();
@@ -95,6 +95,16 @@ function Rings({
         onSelect(ring);
       }}
     >
+      <defs>
+        <radialGradient id="vinyl-sheen" cx="35%" cy="25%" r="75%">
+          <stop offset="0%" stopColor="white" stopOpacity="0.16" />
+          <stop offset="55%" stopColor="white" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx={centre} cy={centre} r={half * 0.995} fill="var(--vinyl)" />
+      {Array.from({ length: 14 }, (_v, g) => (
+        <circle key={`groove-${g}`} cx={centre} cy={centre} r={half * (INNER_HOLE + 0.02 + (g * (0.97 - INNER_HOLE)) / 14)} fill="none" stroke="var(--vinyl-groove)" strokeWidth={0.8} />
+      ))}
       {Array.from({ length: RINGS_COUNT }, (_v, ring) =>
         Array.from({ length: RINGS_SEGMENTS }, (_s, spoke) => (
           <path
@@ -108,10 +118,15 @@ function Rings({
               (spoke + 1) * step - Math.PI / 2 - 0.05,
             )}
             fill={colourOf(ringColour(segments, offsets, ring, spoke))}
+            stroke="var(--vinyl)"
+            strokeOpacity={0.5}
+            strokeWidth={0.8}
             style={{ transition: `fill ${RINGS_TURN_MS}ms linear` }}
           />
         )),
       )}
+      {/* Gloss: one soft sheen over the whole record, never hiding colours. */}
+      <circle cx={centre} cy={centre} r={half * 0.98} fill="url(#vinyl-sheen)" pointerEvents="none" />
       {Array.from({ length: RINGS_SEGMENTS }, (_v, spoke) => {
         const angle = (spoke + 0.5) * step - Math.PI / 2;
         const rim = half * RADII[0]!;
@@ -157,7 +172,25 @@ function Rings({
           />
         </g>
       )}
-      <circle cx={centre} cy={centre} r={half * INNER_HOLE} fill="var(--color-card)" />
+      <circle cx={centre} cy={centre} r={half * INNER_HOLE} fill="var(--vinyl-label)" stroke={GLYPH_COLOURS.GOLD} strokeOpacity={0.6} strokeWidth={1} />
+      <circle cx={centre} cy={centre} r={Math.max(1.5, half * 0.02)} fill="var(--vinyl)" />
+      {selectedRing === undefined ? null : (() => {
+        // Slim tonearm from the deck's top-right corner, its head resting on the selected ring.
+        const mid = (radiusOf(selectedRing) + innerOf(selectedRing)) / 2;
+        const angle = -Math.PI / 4;
+        const hx = centre + mid * Math.cos(angle);
+        const hy = centre + mid * Math.sin(angle);
+        const px = size * 0.985;
+        const py = size * 0.015;
+        const w = Math.max(1.5, size * 0.008);
+        return (
+          <g pointerEvents="none" className="ring-tonearm" style={{ transition: "all 200ms ease-out" }}>
+            <line x1={px} y1={py} x2={hx} y2={hy} stroke="var(--tonearm)" strokeWidth={w * 1.6} strokeLinecap="round" />
+            <circle cx={px} cy={py} r={w * 3.2} fill="var(--tonearm)" stroke="var(--vinyl)" strokeWidth={1} />
+            <circle cx={hx} cy={hy} r={w * 2.2} fill="var(--tonearm)" stroke={GLYPH_COLOURS.GOLD} strokeWidth={w} />
+          </g>
+        );
+      })()}
     </svg>
   );
 }
@@ -193,7 +226,7 @@ function IntroExample() {
       </div>
       <Legend pattern={EXAMPLE_PATTERN} />
       <p className="text-center text-xs text-muted-foreground">
-        One turn of ring 2 also turns ring 4 the other way - and every spoke is one colour.
+        One turn of ring 2 also turns ring 4 the other way - and every spoke of the record is one colour.
       </p>
     </div>
   );
