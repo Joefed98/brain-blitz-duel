@@ -130,7 +130,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         events: events.current,
         endTick: state.current.tick,
         checkpoints: checkpoints.current,
-      }),
+      }, data?.clayRev),
       arcadeCounters("clayshoot", state.current, game.score(state.current)),
     );
 

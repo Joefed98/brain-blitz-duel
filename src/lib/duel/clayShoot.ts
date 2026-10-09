@@ -6,7 +6,6 @@
 
 import {
   clayCheckpoint,
-  clayGame,
   CLAY_CHECKPOINT_FIELDS,
   CLAY_CHECKPOINT_FIELDS_V2,
   CLAY_CHECKPOINT_INTERVAL,
