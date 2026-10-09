@@ -1,3 +1,8 @@
+## Grappler dragons (Oct 9)
+- [ ] Add versioned stationary final-stretch hazards and preserve legacy replay.
+- [ ] Verify full-course completion before returning a new room seed.
+- [ ] Update art/wording and deliver 360px comparisons and check results.
+
 ## Visual refresh A (Oct 9)
 - [x] Refresh Counterweight, Bonk, Eagle Eye and Double Take one-to-one; improve Grappler and Skid contrast without gameplay/audio changes.
 - [x] Inspect six 360px fixed-fixture before/after images and document variant mappings, existing torque/tilt and wording. Full-shell fit and universal 44px targets are not certified; Double Take's existing dense boards and Bonk's unchanged disks are disclosed exceptions.
