@@ -87,7 +87,16 @@ export const CLAY_CONFIG = {
   orangePoints: 5,
   goldPoints: 10,
   perfectBonus: 10,
+  birdPenalty: 10,
 } as const;
+
+/** Bird-hazard revision. Stored rounds without clayRev retain the clay-only sim and score. */
+export const CLAY_REV = 2;
+export const CLAY_BIRD_MIN = 3;
+export const CLAY_BIRD_MAX = 4;
+export const CLAY_BIRD_RX = 15;
+export const CLAY_BIRD_RY = 9;
+export const CLAY_BIRD_STARTLED_TICKS = 36;
 
 export const CLAY_RUN_TICKS = CLAY_CONFIG.runSeconds * TICKS_PER_SECOND;
 export const CLAY_W = CLAY_CONFIG.worldW;
@@ -104,11 +113,16 @@ export const CLAY_WAITING = 0;
 export const CLAY_FLYING = 1;
 export const CLAY_HIT = 2;
 export const CLAY_MISSED = 3;
+export const CLAY_BIRD_WAITING = 0;
+export const CLAY_BIRD_FLYING = 1;
+export const CLAY_BIRD_STARTLED = 2;
+export const CLAY_BIRD_GONE = 3;
 
 /** Log codes. */
 export const CLAY_LOG_HIT = 1;
 export const CLAY_LOG_MISS_SHOT = 2;
 export const CLAY_LOG_ESCAPED = 3;
+export const CLAY_LOG_BIRD = 4;
 export const CLAY_KIND_ORANGE = 0;
 export const CLAY_KIND_GOLD = 1;
 const LOG_KEEP = 16;
@@ -120,6 +134,15 @@ export interface ClaySchedule {
   /** 0 = from the left, 1 = from the right. */
   side: number[];
   kind: number[];
+  launchY: number[];
+  vx: number[];
+  vy: number[];
+}
+
+export interface ClayBirdSchedule {
+  launch: number[];
+  /** 0 = from the left, 1 = from the right. */
+  side: number[];
   launchY: number[];
   vx: number[];
   vy: number[];
@@ -238,6 +261,33 @@ function buildSchedule(seed: number): { rng: number; schedule: ClaySchedule } {
   return { rng, schedule: { launch, side, kind, launchY, vx, vy } };
 }
 
+function buildBirdSchedule(rngStart: number): { rng: number; schedule: ClayBirdSchedule } {
+  let rng = rngStart | 0;
+  const draw = (bound: number) => {
+    const out = rngBelow(rng, bound);
+    rng = out.state;
+    return out.value;
+  };
+  const count = CLAY_BIRD_MIN + draw(CLAY_BIRD_MAX - CLAY_BIRD_MIN + 1);
+  const launch: number[] = [];
+  const side: number[] = [];
+  const launchY: number[] = [];
+  const vx: number[] = [];
+  const vy: number[] = [];
+  const firstSide = draw(2);
+  for (let i = 0; i < count; i++) {
+    // Broad, non-overlapping windows spread the birds through the full minute.
+    launch.push(360 + i * 840 + draw(301));
+    const from = (firstSide + i + draw(2)) & 1;
+    side.push(from);
+    launchY.push(62 + draw(231));
+    const speed = 760 + draw(321);
+    vx.push(from === 0 ? speed : -speed);
+    vy.push(draw(121) - 60);
+  }
+  return { rng, schedule: { launch, side, launchY, vx, vy } };
+}
+
 /* ================================ State ================================ */
 
 export interface ClayState {
@@ -262,6 +312,15 @@ export interface ClayState {
   shotHit: number;
   /** Recent events, packed tick·256 + code·32 + clay. */
   log: number[];
+  /** Present only in clayRev 2 states; absent keeps legacy state/replays unchanged. */
+  rev?: number;
+  birds?: ClayBirdSchedule;
+  birdX?: number[];
+  birdY?: number[];
+  birdStatus?: number[];
+  birdDoneTick?: number[];
+  birdNext?: number;
+  birdHits?: number;
 }
 
 function init(seed: number): ClayState {
@@ -290,6 +349,24 @@ function init(seed: number): ClayState {
   };
 }
 
+function initRev2(seed: number): ClayState {
+  const base = init(seed);
+  const built = buildBirdSchedule(base.rng);
+  const count = built.schedule.launch.length;
+  return {
+    ...base,
+    rng: built.rng,
+    rev: CLAY_REV,
+    birds: built.schedule,
+    birdX: new Array(count).fill(0),
+    birdY: new Array(count).fill(0),
+    birdStatus: new Array(count).fill(CLAY_BIRD_WAITING),
+    birdDoneTick: new Array(count).fill(0),
+    birdNext: 0,
+    birdHits: 0,
+  };
+}
+
 function isOver(state: ClayState): boolean {
   return state.tick >= CLAY_RUN_TICKS;
 }
@@ -312,7 +389,20 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
   const vy = [...state.vy];
   const status = [...state.status];
   const doneTick = [...state.doneTick];
-  const next: ClayState = { ...state, tick, x, y, vy, status, doneTick };
+  const birdX = state.birdX ? [...state.birdX] : undefined;
+  const birdY = state.birdY ? [...state.birdY] : undefined;
+  const birdStatus = state.birdStatus ? [...state.birdStatus] : undefined;
+  const birdDoneTick = state.birdDoneTick ? [...state.birdDoneTick] : undefined;
+  const next: ClayState = {
+    ...state,
+    tick,
+    x,
+    y,
+    vy,
+    status,
+    doneTick,
+    ...(birdX && birdY && birdStatus && birdDoneTick ? { birdX, birdY, birdStatus, birdDoneTick } : {}),
+  };
   const { launch, side, vx } = state.schedule;
 
   while (next.next < c.clays && launch[next.next]! <= tick) {
@@ -329,6 +419,28 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
     x[i] = x[i]! + vx[i]!;
     vy[i] = vy[i]! + c.gravity;
     y[i] = y[i]! + vy[i]!;
+  }
+
+  const birds = state.birds;
+  if (birds && birdX && birdY && birdStatus && birdDoneTick) {
+    let birdNext = state.birdNext ?? 0;
+    while (birdNext < birds.launch.length && birds.launch[birdNext]! <= tick) {
+      birdStatus[birdNext] = CLAY_BIRD_FLYING;
+      birdX[birdNext] = (birds.side[birdNext] === 0 ? -CLAY_BIRD_RX : c.worldW + CLAY_BIRD_RX) * 256;
+      birdY[birdNext] = birds.launchY[birdNext]! * 256;
+      birdNext += 1;
+    }
+    next.birdNext = birdNext;
+    for (let i = 0; i < birds.launch.length; i++) {
+      if (birdStatus[i] === CLAY_BIRD_FLYING) {
+        birdX[i] = birdX[i]! + birds.vx[i]!;
+        birdY[i] = birdY[i]! + birds.vy[i]!;
+      } else if (birdStatus[i] === CLAY_BIRD_STARTLED) {
+        birdX[i] = birdX[i]! + Math.trunc((birds.vx[i]! * 3) / 2);
+        birdY[i] = birdY[i]! - 1150;
+        if (tick - birdDoneTick[i]! >= CLAY_BIRD_STARTLED_TICKS) birdStatus[i] = CLAY_BIRD_GONE;
+      }
+    }
   }
 
   if (input && input.k === CLAY_INPUT_SHOT) {
@@ -363,6 +475,28 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
       next.shotHit = 0;
       next.log = pushLog(next.log, tick, CLAY_LOG_MISS_SHOT, 0);
     }
+    if (best < 0 && birds && birdX && birdY && birdStatus && birdDoneTick) {
+      let birdBest = -1;
+      let birdBestD = Number.MAX_SAFE_INTEGER;
+      const rx = CLAY_BIRD_RX * 256;
+      const ry = CLAY_BIRD_RY * 256;
+      for (let i = 0; i < birds.launch.length; i++) {
+        if (birdStatus[i] !== CLAY_BIRD_FLYING) continue;
+        const dx = birdX[i]! - sx;
+        const dy = birdY[i]! - sy;
+        const d = dx * dx * ry * ry + dy * dy * rx * rx;
+        if (d <= rx * rx * ry * ry && d < birdBestD) {
+          birdBest = i;
+          birdBestD = d;
+        }
+      }
+      if (birdBest >= 0) {
+        birdStatus[birdBest] = CLAY_BIRD_STARTLED;
+        birdDoneTick[birdBest] = tick;
+        next.birdHits = (state.birdHits ?? 0) + 1;
+        next.log = pushLog(next.log, tick, CLAY_LOG_BIRD, birdBest);
+      }
+    }
   }
 
   const m = c.exitMargin * 256;
@@ -379,20 +513,29 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
       next.log = pushLog(next.log, tick, CLAY_LOG_ESCAPED, i);
     }
   }
+  if (birds && birdX && birdY && birdStatus) {
+    const margin = (CLAY_BIRD_RX + 4) * 256;
+    for (let i = 0; i < birds.launch.length; i++) {
+      if (birdStatus[i] !== CLAY_BIRD_FLYING) continue;
+      if (birdX[i]! < -margin || birdX[i]! > c.worldW * 256 + margin || birdY[i]! < -margin || birdY[i]! > c.worldH * 256 + margin) {
+        birdStatus[i] = CLAY_BIRD_GONE;
+      }
+    }
+  }
   return next;
 }
 
-export function clayScore(orangeHits: number, goldHits: number): number {
-  const all = orangeHits === CLAY_CONFIG.orangeClays && goldHits === CLAY_CONFIG.goldClays;
+export function clayScore(orangeHits: number, goldHits: number, birdHits = 0, rev?: number): number {
+  const all = orangeHits === CLAY_CONFIG.orangeClays && goldHits === CLAY_CONFIG.goldClays && (rev !== CLAY_REV || birdHits === 0);
   return clampInt(
-    orangeHits * CLAY_CONFIG.orangePoints + goldHits * CLAY_CONFIG.goldPoints + (all ? CLAY_CONFIG.perfectBonus : 0),
+    orangeHits * CLAY_CONFIG.orangePoints + goldHits * CLAY_CONFIG.goldPoints + (all ? CLAY_CONFIG.perfectBonus : 0) - (rev === CLAY_REV ? birdHits * CLAY_CONFIG.birdPenalty : 0),
     0,
     150,
   );
 }
 
 function score(state: ClayState): number {
-  return clayScore(state.orangeHits, state.goldHits);
+  return clayScore(state.orangeHits, state.goldHits, state.birdHits ?? 0, state.rev);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -408,6 +551,8 @@ export interface ClayCheckpointState {
   shots: number;
   next: number;
   posHash: number;
+  birdHits?: number;
+  birdPosHash?: number;
 }
 
 export interface ClayCheckpoint extends ClayCheckpointState {
@@ -415,6 +560,7 @@ export interface ClayCheckpoint extends ClayCheckpointState {
 }
 
 export const CLAY_CHECKPOINT_FIELDS = ["tick", "hits", "orangeHits", "goldHits", "missed", "shots", "next", "posHash"] as const;
+export const CLAY_CHECKPOINT_FIELDS_V2 = [...CLAY_CHECKPOINT_FIELDS, "birdHits", "birdPosHash"] as const;
 
 export function clayCheckpoint(state: ClayState): ClayCheckpoint {
   let posHash = 0;
@@ -432,6 +578,14 @@ export function clayCheckpoint(state: ClayState): ClayCheckpoint {
     next: state.next,
     posHash,
   };
+  if (state.rev === CLAY_REV) {
+    let birdPosHash = 0;
+    for (let i = 0; i < (state.birdStatus?.length ?? 0); i++) {
+      birdPosHash = (Math.imul(birdPosHash, 31) + (state.birdStatus?.[i] ?? 0) * 7 + (state.birdX?.[i] ?? 0) + Math.imul(state.birdY?.[i] ?? 0, 3)) | 0;
+    }
+    snapshot.birdHits = state.birdHits ?? 0;
+    snapshot.birdPosHash = birdPosHash;
+  }
   let checksum = 0x811c9dc5;
   for (const value of Object.values(snapshot)) {
     checksum ^= value | 0;
@@ -459,6 +613,52 @@ function draw(ctx: CanvasRenderingContext2D, state: ClayState, size: CanvasSize)
 
   const r = CLAY_CONFIG.clayRadius;
   const tick = state.tick;
+  if (state.birds && state.birdX && state.birdY && state.birdStatus && state.birdDoneTick) {
+    for (let i = 0; i < state.birds.launch.length; i++) {
+      const status = state.birdStatus[i];
+      if (status !== CLAY_BIRD_FLYING && status !== CLAY_BIRD_STARTLED) continue;
+      const px = state.birdX[i]! / 256;
+      const py = state.birdY[i]! / 256;
+      const startledAge = status === CLAY_BIRD_STARTLED ? tick - state.birdDoneTick[i]! : -1;
+      const flap = ((tick + i * 7) % 12) < 6 ? -6 : 5;
+      ctx.save();
+      ctx.translate(px, py);
+      if (state.birds.side[i] === 1) ctx.scale(-1, 1);
+      ctx.fillStyle = "#F7F7F8";
+      ctx.strokeStyle = "rgba(11,11,15,0.72)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 9, 5, 0, 0, Math.PI * 2);
+      ctx.moveTo(-5, 0);
+      ctx.quadraticCurveTo(-12, flap, -15, 0);
+      ctx.quadraticCurveTo(-10, 2, -4, 3);
+      ctx.moveTo(3, 0);
+      ctx.quadraticCurveTo(8, flap, 12, 1);
+      ctx.quadraticCurveTo(7, 3, 2, 3);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#0B0B0F";
+      ctx.beginPath();
+      ctx.arc(6, -1, 1, 0, Math.PI * 2);
+      ctx.fill();
+      if (startledAge >= 0) {
+        ctx.fillStyle = "#F7F7F8";
+        for (let k = 0; k < 6; k++) {
+          const a = k * Math.PI / 3;
+          const d = 8 + startledAge * 0.8;
+          ctx.globalAlpha = Math.max(0, 1 - startledAge / CLAY_BIRD_STARTLED_TICKS);
+          ctx.fillRect(Math.cos(a) * d - 1, Math.sin(a) * d - 1, 3, 2);
+        }
+        ctx.globalAlpha = 1;
+        ctx.scale(state.birds.side[i] === 1 ? -1 : 1, 1);
+        ctx.fillStyle = "#FF4D4D";
+        ctx.font = "700 14px 'JetBrains Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("−10", 0, -16 - startledAge * 0.35);
+      }
+      ctx.restore();
+    }
+  }
   for (let i = 0; i < state.status.length; i++) {
     const px = state.x[i]! / 256;
     const py = state.y[i]! / 256;
@@ -507,3 +707,9 @@ export const clayGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: CLAY_INPUT_RANGES,
 };
+
+export const clayRev2Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: initRev2 };
+
+export function clayGameFor(rev?: number | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+  return rev === CLAY_REV ? clayRev2Game : clayGame;
+}

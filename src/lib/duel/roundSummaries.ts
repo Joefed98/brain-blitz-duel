@@ -1243,10 +1243,12 @@ const clayShootSummary: SummaryBuilder = (result) => {
   const total = Number(result.extra?.["total"] ?? 25);
   const orange = Number(result.extra?.["orangeHits"] ?? 0);
   const gold = Number(result.extra?.["goldHits"] ?? 0);
+  const birds = Number(result.extra?.["birdHits"] ?? 0);
+  const birdTotal = Number(result.extra?.["birdTotal"] ?? 0);
   const shots = Number(result.extra?.["shots"] ?? 0);
   return {
     summary: `${hits} / ${total} clays`,
-    detail: [`${orange} orange · ${gold} gold · ${shots} shot${shots === 1 ? "" : "s"}`],
+    detail: [`${orange} orange · ${gold} gold · ${shots} shot${shots === 1 ? "" : "s"}${birdTotal > 0 ? ` · ${birds} bird${birds === 1 ? "" : "s"} hit (−${birds * 10})` : ""}`],
   };
 };
 

@@ -680,14 +680,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "13 per target cleared. All ten adds up to 20 for clearing them early.",
   },
   clayshoot: {
-    goal: "Shoot all 25 clays out of the sky.",
+    goal: "Shoot all 25 clays out of the sky without hitting a bird.",
     how: [
       { action: "Tap a clay", detail: "to fire - the shot lands exactly where you tap." },
       { action: "Unlimited shots,", detail: "no reload." },
       { action: "Gold clays are faster and harder", detail: "and worth twice as much." },
       { action: "Later on, two fly at once", detail: "- keep watching both edges." },
+      { action: "Don't shoot the birds", detail: "- each one costs 10." },
     ],
-    score: "5 per orange, 10 per gold, plus 10 for all 25. Maximum 150.",
+    score: "5 per orange, 10 per gold, −10 per bird. Hit all 25 with zero birds hit for +10. Maximum 150; minimum 0.",
   },
   whack: {
     goal: "Tap gophers whose hard hats match the banner.",

@@ -14,7 +14,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   clayCheckpoint,
-  clayGame,
+  clayGameFor,
   clayView,
   unpackClayLog,
   clayFlight,
@@ -66,6 +66,10 @@ function IntroExample() {
         })
       )}
       {t >= 36 ? <circle cx={x} cy={y} r={14} fill="none" stroke="#F5B82E" strokeWidth={2} opacity={shot ? 1 - (t - 40) / 20 : 1} /> : null}
+      <g transform="translate(154 32)" fill="#F7F7F8" stroke="#0B0B0F" strokeWidth="1">
+        <ellipse rx="8" ry="4" />
+        <path d="M-4 0 Q-11 -8 -14 0 Q-9 2 -3 2M3 0 Q9 -8 13 0 Q8 2 2 2" />
+      </g>
     </svg>
   );
 }
@@ -96,17 +100,18 @@ function Pips({ status, kind }: { status: number[]; kind: number[] }) {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: ClayShootPuzzleData | null = puzzle.type === "clayshoot" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const game = clayGameFor(data?.clayRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const frameTiming = useArcadeFrameTiming(canvas);
-  const state = useRef<ClayState>(clayGame.init(seed));
+  const state = useRef<ClayState>(game.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof clayCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const submitted = useRef(false);
-  const [hud, setHud] = useState({ hits: 0, orangeHits: 0, goldHits: 0, status: new Array<number>(CLAY_COUNT).fill(0) });
+  const [hud, setHud] = useState({ hits: 0, orangeHits: 0, goldHits: 0, birdHits: 0, status: new Array<number>(CLAY_COUNT).fill(0) });
   const [dev, setDev] = useState<string | null>(null);
   useNoTouchScroll(wrap);
 
@@ -121,16 +126,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     appendClientCounters(
       encodeClayRun({
         seed,
-        claimedScore: clayGame.score(state.current),
+        claimedScore: game.score(state.current),
         events: events.current,
         endTick: state.current.tick,
         checkpoints: checkpoints.current,
-      }),
-      arcadeCounters("clayshoot", state.current, clayGame.score(state.current)),
+      }, data?.clayRev),
+      arcadeCounters("clayshoot", state.current, game.score(state.current)),
     );
 
   useEffect(() => {
-    state.current = clayGame.init(seed);
+    state.current = game.init(seed);
     events.current = [];
     checkpoints.current = [];
     pending.current = [];
@@ -154,7 +159,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frame = requestAnimationFrame(loop);
       const delta = time - last;
       last = time;
-      if (!clayGame.isOver(state.current) && !lockedRef.current) {
+      if (!game.isOver(state.current) && !lockedRef.current) {
         accumulator += delta;
         let ticks = Math.floor(accumulator / TICK_MS);
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
@@ -162,12 +167,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         for (let i = 0; i < ticks; i++) {
           const queued = pending.current.shift() ?? null;
           const applied = queued ? { ...queued, t: state.current.tick + 1 } : null;
-          if (applied && recordInput(events.current, applied, clayGame.inputRanges)) playTick();
-          state.current = clayGame.step(state.current, inputAt(events.current, state.current.tick + 1));
+          if (applied && recordInput(events.current, applied, game.inputRanges)) playTick();
+          state.current = game.step(state.current, inputAt(events.current, state.current.tick + 1));
           if (state.current.tick % CLAY_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(clayCheckpoint(state.current));
           }
-          if (clayGame.isOver(state.current)) break;
+          if (game.isOver(state.current)) break;
         }
       }
       const s = state.current;
@@ -175,10 +180,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         for (let n = seenHits; n < s.hits; n++) playSound("pz_clay_hit", 1, 1, true);
         seenHits = s.hits;
       }
-      const key = s.status.join("");
+      const key = `${s.status.join("")}:${s.birdHits ?? 0}`;
       if (key !== shownKey) {
         shownKey = key;
-        setHud({ hits: s.hits, orangeHits: s.orangeHits, goldHits: s.goldHits, status: [...s.status] });
+        setHud({ hits: s.hits, orangeHits: s.orangeHits, goldHits: s.goldHits, birdHits: s.birdHits ?? 0, status: [...s.status] });
       }
       if (devOn && s.tick % 6 === 0) {
         const log = s.log
@@ -198,8 +203,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         setDev(`tick ${s.tick} · queue ${s.next}/${CLAY_COUNT} · shots ${s.shots} · ${log}\n${paths}`);
       }
 
-      reportArcadeTick(s.tick, clayGame.isOver(s));
-      feedback(s, clayGame.isOver(s));
+      reportArcadeTick(s.tick, game.isOver(s));
+      feedback(s, game.isOver(s));
       frameTiming.draw();
       const node = canvas.current;
       const box = board.current?.getBoundingClientRect();
@@ -214,7 +219,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const ctx = node.getContext("2d");
         if (ctx) {
           ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-          clayGame.draw(ctx, s, { width, height });
+          game.draw(ctx, s, { width, height });
         }
       }
 
@@ -224,7 +229,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         draftAt = time;
         draftRef.current?.(encode());
       }
-      if (clayGame.isOver(s) && !submitted.current) {
+      if (game.isOver(s) && !submitted.current) {
         submitted.current = true;
         submitRef.current(encode());
       }
@@ -233,14 +238,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     frame = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seed, data]);
+  }, [seed, data, game]);
 
   if (!data) return null;
 
   return (
     <div ref={wrap} data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
       <p className="shrink-0 text-center font-mono text-xs font-semibold leading-none text-foreground">
-        <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold
+        <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds
       </p>
       <div className="shrink-0"><Pips status={hud.status} kind={state.current.schedule.kind} /></div>
       <div
@@ -251,7 +256,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         aria-label={`${gameDisplayName("clayshoot")} sky`}
         onPointerDown={(event) => {
           event.preventDefault();
-          if (locked || submitted.current || clayGame.isOver(state.current)) return;
+          if (locked || submitted.current || game.isOver(state.current)) return;
           const box = board.current?.getBoundingClientRect();
           if (!box) return;
           const { scaleX, scaleY } = clayView({ width: box.width, height: box.height });
@@ -270,13 +275,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "clayshoot") return null;
-  const result = replayClayRun(puzzle.seed, myAnswer ?? "");
+  const result = replayClayRun(puzzle.seed, myAnswer ?? "", puzzle.clayRev);
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
-        {result.hits} / {result.total} clays · {result.orangeHits} orange · {result.goldHits} gold
+        {result.hits} / {result.total} clays · {result.orangeHits} orange · {result.goldHits} gold · {result.birdHits} birds hit
       </p>
-      <p className="text-center text-base text-muted-foreground">{result.shots} shot{result.shots === 1 ? "" : "s"} · Same clays for everyone</p>
+      <p className="text-center text-base text-muted-foreground">{result.shots} shot{result.shots === 1 ? "" : "s"} · Don't shoot the birds — each one costs 10.</p>
     </div>
   );
 }
@@ -289,9 +294,10 @@ export const clayShootPuzzle: PuzzleDefinition = {
   arcadeRun: true,
   timeLimitMs: CLAYSHOOT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "clayshoot", seed: 1 }) satisfies ClayShootPuzzleData,
+  generate: () => ({ type: "clayshoot", seed: 1, clayRev: 2 }) satisfies ClayShootPuzzleData,
   check: () => false,
   revealHeading: "Your run",
+  introLine: () => "Don't shoot the birds — each one costs 10.",
   IntroExample,
   Stage,
   Reveal,
