@@ -167,10 +167,11 @@ export function orbitRev3HopWindow(worldW: number, planets: readonly Planet[], i
   const epochs = moving ? Array.from({ length: Math.ceil(ORBIT_BELT_PERIOD_TICKS / 30) }, (_, k) => k * 30) : [0];
   const lapLen = phases.length;
   const requiredLaps = ORBIT_REV3_MIN_LAPS;
+  let result: Rev3HopWindow | null = null;
   for (const epoch of epochs) {
     const ok = phases.map((phase, k) => hopOk3(worldW, planets, i, phase, epoch + k));
     const windows = windowsOf(ok, ORBIT_REV3_MIN_WINDOW);
-    if (windows.length === 0) continue;
+    if (windows.length === 0) return null;
     const falseIdx = ok.indexOf(false) < 0 ? 0 : ok.indexOf(false);
     // Rotated window indices map back to original phase index k via falseIdx.
     let survivor: { start: number; len: number } | null = null;
@@ -192,12 +193,13 @@ export function orbitRev3HopWindow(worldW: number, planets: readonly Planet[], i
         break;
       }
     }
-    if (!survivor) continue;
+    // Players arrive at any tick, so with moving belts every sampled epoch must offer a window.
+    if (!survivor) return null;
     const startK = (survivor.start + falseIdx) % lapLen;
     const mid = (survivor.start + Math.trunc(survivor.len / 2) + falseIdx) % lapLen;
-    return { phase: phases[mid]!, epoch, startK, len: survivor.len };
+    result ??= { phase: phases[mid]!, epoch, startK, len: survivor.len };
   }
-  return null;
+  return result;
 }
 
 function forwardDelta(dir: number, from: number, to: number): number {
