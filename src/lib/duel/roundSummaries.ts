@@ -1337,12 +1337,23 @@ const junctionSummary: SummaryBuilder = (result) => {
   };
 };
 
-const inkBridgeSummary: SummaryBuilder = (result) => {
+const inkBridgeSummary: SummaryBuilder = (result, puzzle) => {
   const levels = Number(result.extra?.["levels"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 10);
+  const rev = puzzle.type === "inkbridge" ? puzzle.inkRev : undefined;
+  const current = levels < total ? levels + 1 : total;
+  let phase = "";
+  if (rev === 3 && levels < total) {
+    phase = current <= 4 ? " (Standard)" : current <= 8 ? " (Moving Pot)" : " (Live)";
+  }
   return {
-    summary: levels >= total ? `All ${total} · ${result.score}` : `Level ${levels} · ${result.score} points`,
-    detail: ["11 per level · all ten = 130 + up to 20 for time left", "Same levels for everyone"],
+    summary: levels >= total ? `All ${total} · ${result.score}` : `Level ${current}${phase} · ${result.score} points`,
+    detail: [
+      rev === 3
+        ? "11 per level - 1-4 standard, 5-8 moving, 9-10 live - all ten = 130 + up to 20 for time"
+        : "11 per level - all ten = 130 + up to 20 for time",
+      "Same levels for everyone",
+    ],
   };
 };
 

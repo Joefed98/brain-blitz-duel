@@ -215,12 +215,20 @@ const BUILDERS: Record<string, Builder> = {
     outcome: ended(r, false),
   }),
   inkbridge: (r, s) => {
-    const done = n(r, "levels") >= n(r, "total") && n(r, "total") > 0;
+    const levels = n(r, "levels");
+    const total = n(r, "total") || 10;
+    const done = levels >= total;
+    const rev = n(r, "rev");
+    const current = levels < total ? levels + 1 : total;
+    let phase = "";
+    if (rev === 3 && levels < total) {
+      phase = current <= 4 ? " (Standard)" : current <= 8 ? " (Moving Pot)" : " (Live)";
+    }
     return {
-      axis: { value: n(r, "levels"), max: 10, label: "Levels" },
-      lines: [head(`${n(r, "levels")} / ${n(r, "total")} levels`, s, done)],
+      axis: { value: levels, max: 10, label: "Levels" },
+      lines: [head(`${levels} / ${total} levels${phase}`, s, done)],
       tiles: [
-        { label: "Levels", value: String(n(r, "levels")) },
+        { label: "Levels", value: String(levels) },
         { label: "Fails", value: String(n(r, "fails")) },
       ],
       outcome: done ? "finish" : "time",

@@ -1,14 +1,17 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   inkCheckpoint,
+  inkIsLive,
   INK_CHECKPOINT_INTERVAL,
   INK_INPUT_RELEASE,
   INK_INPUT_UNDO,
   INK_INPUT_RESET,
   INK_INPUT_DROP_AGAIN,
+  INK_INPUT_LIFT,
   INK_INPUT_STROKE,
+  INK_REV3,
   INK_STEP_PX,
   INK_WORLD_H,
   INK_WORLD_W,
@@ -34,7 +37,7 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <canvas ref={canvas} width={336} height={260} className="h-[130px] w-[168px] rounded-lg" aria-hidden="true" />
-      <p className="text-center text-xs text-muted-foreground">Draw around the white birds, then RELEASE.</p>
+      <p className="text-center text-xs text-muted-foreground">Draw lines around the white birds, then RELEASE. Rounds 5-8 move; 9-10 are live!</p>
     </div>
   );
 }
@@ -47,15 +50,26 @@ function inkBirdsArt(rev?: number) {
   return g;
 }
 
+const LIVE_HINT_KEY = "duelz-inkbridge-live-hint";
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: InkBridgePuzzleData | null = puzzle.type === "inkbridge" ? puzzle : null;
   // Stroke points and RELEASE presses waiting to be sent, one a tick, and the last point queued.
   const pending = useRef<PointerPayload[]>([]);
   const pen = useRef<{ x: number; y: number } | null>(null);
   const presses = useRef(0);
+  // Rounds 9–10 only: whether the current level is live (drawing continues while the ball falls).
+  const liveLevelRef = useRef(false);
+  const liveDroppingRef = useRef(false);
+  const [liveLevel, setLiveLevel] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const hintSeen = useRef(false);
   const queue = (payload: PointerPayload) => {
     if (pending.current.length < 120) pending.current.push(payload);
   };
+  useEffect(() => {
+    hintSeen.current = window.localStorage.getItem(LIVE_HINT_KEY) === "1";
+  }, []);
   return (
     <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col gap-2">
       <ArcadeCanvasStage
@@ -73,7 +87,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         interval={INK_CHECKPOINT_INTERVAL}
         encodeRun={encodeInkBridgeRun}
         inputKind={INK_INPUT_STROKE}
-        tickInput={() => pending.current.shift() ?? null}
+        tickInput={(state) => {
+          const live = data?.inkRev === INK_REV3 && inkIsLive(state.level, data.inkRev);
+          liveLevelRef.current = live;
+          liveDroppingRef.current = live && state.dropping === 1;
+          if (live !== liveLevel) setLiveLevel(live);
+          if (live && !hintSeen.current && !showHint) {
+            hintSeen.current = true;
+            window.localStorage.setItem(LIVE_HINT_KEY, "1");
+            setShowHint(true);
+          }
+          return pending.current.shift() ?? null;
+        }}
         pointer={(kind, x, y) => {
           // Every payload carries k = 8 so the recorder files it as a stroke event.
           if (kind === "down") {
@@ -88,11 +113,32 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             pen.current = { x, y };
             queue({ k: INK_INPUT_STROKE, a: x, b: y, c: 0 });
           }
-          if (kind === "up") pen.current = null;
+          if (kind === "up") {
+            pen.current = null;
+            // Live levels: finger-up while the ball is falling commits the draft so far.
+            if (liveDroppingRef.current) {
+              presses.current = (presses.current + 1) % 256;
+              queue({ k: INK_INPUT_LIFT, a: presses.current, b: 0, c: 0 });
+            }
+          }
           return null;
         }}
         onSubmit={(answer) => onSubmit(answer)}
         onDraftAnswer={onDraftAnswer}
+        overlay={
+          <>
+            {liveLevel && (
+              <span className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 rounded-full border border-primary bg-primary/90 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground">
+                Live
+              </span>
+            )}
+            {showHint && (
+              <p className="pointer-events-none absolute bottom-2 left-1/2 w-[90%] -translate-x-1/2 rounded-md bg-background/80 px-2 py-1 text-center text-xs text-foreground">
+                Draw one line, release, then keep drawing as it falls.
+              </p>
+            )}
+          </>
+        }
       />
       <div data-game-controls="tools" className="flex h-12 shrink-0 gap-1.5">
         {([ [INK_INPUT_UNDO, "UNDO"], [INK_INPUT_RESET, "RESET"], [INK_INPUT_RELEASE, "RELEASE"], [INK_INPUT_DROP_AGAIN, "DROP AGAIN"] ] as const).map(([k, label]) => (
@@ -108,8 +154,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function inkBridgeLine(r: { levels: number; total: number; score: number }): string {
-  return r.levels >= r.total ? `All ${r.total} levels` : `Level ${r.levels}`;
+export function inkBridgeLine(r: { levels: number; total: number; score: number }, rev?: number): string {
+  if (r.levels >= r.total) return `All ${r.total} levels`;
+  const base = `Level ${r.levels + 1}`;
+  if (rev !== 3) return base;
+  const phase = r.levels < 4 ? "Standard" : r.levels < 8 ? "Moving Pot" : "Live";
+  return `${base} (${phase})`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
@@ -118,7 +168,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {inkBridgeLine(result)}
+        {inkBridgeLine(result, puzzle.inkRev)}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same levels for everyone</p>
     </div>

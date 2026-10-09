@@ -765,8 +765,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   inkbridge: {
     goal: "Draw a path so the coin rolls into the pot.",
     how: [
-      { action: "Draw lines around the white birds,", detail: "then tap RELEASE." },
-      { action: "Ink is limited", detail: "- more each level." },
+      { action: "Rounds 1-4", detail: "Draw lines around the white birds, then tap RELEASE to drop the coin into a still pot." },
+      { action: "Rounds 5-8", detail: "The pot moves! Time your release so the coin rolls into it." },
+      { action: "Rounds 9-10: LIVE", detail: "Draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can't draw through birds or near the coin." },
+      { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live rounds." },
       { action: "Three failed drops", detail: "and you're out." },
     ],
     score: "11 per level; all ten = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
