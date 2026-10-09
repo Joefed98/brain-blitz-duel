@@ -1162,10 +1162,10 @@ body.game-lock {
 
 /* Visual refresh C — presentation-only tokens and surfaces. */
 :root {
-  --concrete: #4A4D52;
-  --concrete-seam: rgba(0, 0, 0, 0.22);
-  --shelf: #1A1E24;
-  --shelf-edge: #36404C;
+  --concrete: #8C8478;
+  --concrete-seam: rgba(40, 30, 20, 0.18);
+  --shelf: #121418;
+  --shelf-edge: #262B33;
   --crate: #B07B4F;
   --crate-dark: #6F4729;
   --crate-light: #D39A66;
