@@ -59,7 +59,7 @@ function Board({
         const line = nb.map((n) => n !== null && grid[n] !== colour);
         const wet = mine ? nb.map((n) => edge(index, n)) : [false, false, false, false];
         const shadows: string[] = [];
-        const push = (on: boolean, x: number, y: number, c: string) => { if (on) shadows.push(`inset ${x}px ${y}px 0 0 ${c}`); };
+        const push = (on: boolean | undefined, x: number, y: number, c: string) => { if (on) shadows.push(`inset ${x}px ${y}px 0 0 ${c}`); };
         const w = (i: number) => (wet[i] ? 2 : 1);
         const c = (i: number) => (wet[i] ? "var(--tally-white)" : "var(--flood-edge)");
         push(line[0] || wet[0], 0, w(0), c(0));
