@@ -1,5 +1,5 @@
 import type { BtCourse } from "@/lib/arcade/ballTrack";
-import type { OrbitRev3CompactPlanet } from "@/lib/duel/orbitRev3Course.server";
+import type { OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 export type PuzzleType =
   | "wordsmith"
   | "groups"
