@@ -249,9 +249,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "150 at 20 ms average error or closer, −27 per 100 ms more; misses count 500 ms.",
   },
   countup: {
-    goal: "Count the matching shapes in three crowded scenes.",
+    goal: "Count the matching shapes in three crowded display trays.",
     how: [
-      { action: "Read the question", detail: "- each field asks for a new shape and colour." },
+      { action: "Read the question", detail: "- each tray asks for a new shape and colour (red, blue, green, purple, pink, orange or white)." },
       { action: "Type the total", detail: "on the keypad; ENTER moves to the next field." },
       { action: "Three scenes", detail: "share 45 seconds." },
     ],
@@ -419,7 +419,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 30 per locked ball.",
   },
   chain: {
-    goal: "Tap 40 nodes in order, following the repeating cycle - shape and colour must both match.",
+    goal: "Tap 40 charms in order, following the repeating cycle - shape and colour must both match. Each right tap adds a link to the chain.",
     how: [
       { action: "Follow the cycle", detail: "at the top; the lit item is the one you need next." },
       { action: "Keep momentum", detail: "- tap again before the gold ring empties (3 s for links 1-13, 2.5 s for 14-26, 2 s for 27-40). The first tap is untimed." },
@@ -429,11 +429,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Unfinished: floor(3.5 × links). All 40: 140 + round(10 × ms remaining / 45000). Maximum 150; round lasts 45 s.",
   },
   intruder: {
-    goal: "Find everything that changed.",
+    goal: "Find every party guest who changed.",
     how: [
-      { action: "Memorise each grid", detail: "before it disappears." },
-      { action: "Tap every change", detail: "- later boards contain two." },
-      { action: "Five rounds", detail: "- 7 s to memorise, 5 s to pick; on the last two the symbols slide inside the grid." },
+      { action: "Memorise the guests", detail: "before they disappear - head shape and colour." },
+      { action: "Tap every changed guest", detail: "- later boards contain two." },
+      { action: "Five rounds", detail: "- 7 s to memorise, 5 s to pick; on the last two the guests swap places around the party." },
     ],
     score: "Complete = 130 + up to 20 for speed. Otherwise 24 per board right; one of two changes earns 12.",
   },
@@ -483,9 +483,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 14 per tile in place, up to 90.",
   },
   rings: {
-    goal: "Turn the rings so every spoke is one colour.",
+    goal: "Turn the record's rings so every spoke is one colour.",
     how: [
-      { action: "Select a ring", detail: "then use the arrow buttons to turn it." },
+      { action: "Tap a ring", detail: "- the tonearm rests on it - then use the arrow buttons to turn it." },
       { action: "Check the legend", detail: "- some rings turn others with them, same way or opposite." },
       { action: "Watch the rim", detail: "for a gold tick on each finished spoke." },
     ],
