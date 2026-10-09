@@ -399,16 +399,16 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Opened on try 1 / 2 / 3 = 130 / 115 / 100, + up to 20 for speed: the full 20 if you finish with at least half the time left. Otherwise 15 per dial right on the last try.",
   },
   bomb: {
-    goal: "Read all six rules, work out the four actions and their order, then do them.",
+    goal: "Read every rule, work out the six actions and their order, then do them.",
     how: [
       {
         action: "Only one plan fits",
-        detail: "the six rules together allow exactly one four-action sequence. Wires are numbered 1-7 from the left.",
+        detail: "the rules together allow exactly one six-action sequence, and every rule is needed. Wires are numbered 1-7 from the left.",
       },
-      { action: "Four steps exactly", detail: "tap wires and buttons, then tap DEFUSE." },
+      { action: "Six steps exactly", detail: "tap wires and buttons, then tap DEFUSE." },
       { action: "One wrong step", detail: "and it explodes." },
     ],
-    score: "Complete = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left. Otherwise 25 per correct step before the strike, up to 75.",
+    score: "Complete = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left. Otherwise 75 × correct steps before the strike ÷ 6, rounded (up to 75).",
   },
   gravity: {
     goal: "Tilt the board to park all four balls on their own targets.",

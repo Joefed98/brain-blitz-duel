@@ -107,7 +107,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   tower: fewestMoves("Move the whole tower", "points for each ring in place from the bottom, up to 110"),
   tubes: fewestMoves("Cork every flask", "22 points for each corked flask, up to 110"),
   safe: "Open the safe on your first try: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Second try 115, third 100. Not opened: 15 points for each dial right.",
-  bomb: standard("Defuse the bomb", "25 points for each correct step before a strike"),
+  bomb: standard("Defuse the bomb", "75 × correct steps before a strike ÷ 6, rounded"),
   gravity: fewestMoves("Park all four balls", "30 points for each ball on its target"),
   nonogram: standard("Complete the picture", "points for each correct cell, up to 110. Wrong cell: lose 5"),
   flood: fewestMoves("Flood the board", "points for how much of the board you flooded", "C"),

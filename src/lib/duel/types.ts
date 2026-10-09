@@ -1518,6 +1518,30 @@ export const BOMB_MAX_SEQUENCE = 4;
 export const BOMB_PREFIX_POINTS = 25;
 export const BOMB_PARTIAL_POINTS = 75;
 
+/** Generator/scoring version 2: six steps; stored rounds without `bombVersion` are version 1. */
+export const BOMB_V2 = 2 as const;
+export const BOMB_V2_STEPS = 6;
+/** Card size: six to nine rules, every one individually necessary. */
+export const BOMB_V2_RULES = 9;
+/** At most three rules from any one of the four template families. */
+export const BOMB_V2_FAMILY_CAP = 3;
+/** Minimum card size; the pruned card makes every rule necessary. */
+export const BOMB_V2_NECESSARY = 6;
+export const BOMB_V2_TIME_MS = 90_000;
+
+export interface BombSpec {
+  steps: number;
+  rules: number;
+  familyCap: number;
+  necessary: number;
+}
+
+export function bombSpecOf(version: 1 | 2): BombSpec {
+  return version === BOMB_V2
+    ? { steps: BOMB_V2_STEPS, rules: BOMB_V2_RULES, familyCap: BOMB_V2_FAMILY_CAP, necessary: BOMB_V2_NECESSARY }
+    : { steps: BOMB_MAX_SEQUENCE, rules: BOMB_RULE_COUNT, familyCap: 2, necessary: BOMB_NECESSARY_RULES };
+}
+
 export interface BombPuzzleData {
   type: "bomb";
   wires: import("./bomb").WireColour[];
@@ -1528,8 +1552,12 @@ export interface BombPuzzleData {
   serial: string;
   /** The rule card, in the order it must be read. */
   rules: { id: string; text: string }[];
-  /** How many actions the plan needs — the "actions 2 / 4" counter. */
+  /** How many actions the plan needs — the "actions 2 / 6" counter. */
   stepCount: number;
+  /** 2 for six-step rounds; absent on stored four-step rounds. */
+  bombVersion?: 2;
+  /** Version 2 carries its own clock; version 1 uses BOMB_TIME_MS. */
+  timeLimitMs?: number;
   /** Server-side only: the required actions, as `bA,w2`. */
   required?: string;
   /** Server-side only: the ordering the rules impose, as `bA<w2;last:w6`. */

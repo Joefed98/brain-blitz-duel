@@ -781,14 +781,22 @@ export function scoreSafe(
   return clamp(SAFE_DIAL_POINTS * dialsRight, 0, SAFE_DIAL_POINTS * 4);
 }
 
-/** Bomb Defusal (A). Unfinished 25 per correct step before the strike, max 75. */
+/**
+ * Bomb Defusal (A). Unfinished: version 2 (six steps) = round(75 × correct
+ * steps before the strike ÷ 6); version 1 (stored four-step rounds, `steps`
+ * omitted) = 25 per correct step, max 75.
+ */
 export function scoreBomb(
   defused: boolean,
   msRemaining: number,
   correctPrefix: number,
   timeLimitMs: number = BOMB_TIME_MS,
+  steps?: number,
 ): number {
   if (defused) return standardComplete(msRemaining, timeLimitMs);
+  if (steps && steps > 0) {
+    return clamp(Math.round((BOMB_PARTIAL_POINTS * Math.min(correctPrefix, steps)) / steps), 0, BOMB_PARTIAL_POINTS);
+  }
   return clamp(BOMB_PREFIX_POINTS * correctPrefix, 0, BOMB_PARTIAL_POINTS);
 }
 

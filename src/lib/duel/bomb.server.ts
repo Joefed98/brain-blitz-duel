@@ -5,15 +5,17 @@
  * CONSTRUCTION, in this order:
  *
  *  1. randomise the panel (seven wires, two buttons, the light, the serial),
- *  2. CHOOSE the four-action plan first — four distinct actions, in order,
- *     drawn from the nine the panel offers (seven cuts, two presses),
- *  3. generate four rules that are TRUE of that panel and that plan, each one
- *     an instance of a fixed template that is a testable predicate,
- *  4. enumerate all 9 × 8 × 7 × 6 = 3,024 ordered four-action sequences and
- *     keep the panel only when EXACTLY ONE of them satisfies all four rules —
- *     and it is the chosen one,
- *  5. check necessity: dropping any single rule must leave more than one
- *     satisfying sequence, otherwise the panel is re-rolled.
+ *  2. CHOOSE the plan first — distinct actions, in order, drawn from the nine
+ *     the panel offers (seven cuts, two presses): six for version 2 (new
+ *     rounds), four for version 1 (stored rounds),
+ *  3. pick rules that are TRUE of that panel and that plan, each one an
+ *     instance of a fixed template that is a testable predicate,
+ *  4. enumerate every ordered sequence of that length (3,024 for four,
+ *     60,480 for six) and keep the panel only when EXACTLY ONE satisfies all
+ *     the rules — and it is the chosen one,
+ *  5. check necessity: version 1 needs at least four of six rules necessary;
+ *     version 2 prunes its card (6–9 rules, at most three per family) until
+ *     every rule is individually necessary.
  *
  * Zero solutions (a contradiction) and several solutions (an ambiguity) are
  * therefore both rejected before the panel ever reaches a player. The server
@@ -37,7 +39,17 @@ import {
   type WireColour,
 } from "./bomb";
 import { pick, randomBelow, shuffled } from "./random";
-import { BOMB_MAX_SEQUENCE, BOMB_NECESSARY_RULES, BOMB_RULE_COUNT, BOMB_WIRES } from "./types";
+import { BOMB_V2_BANK } from "./bombBank.server";
+import {
+  BOMB_MAX_SEQUENCE,
+  BOMB_NECESSARY_RULES,
+  BOMB_RULE_COUNT,
+  BOMB_V2,
+  BOMB_V2_TIME_MS,
+  BOMB_WIRES,
+  bombSpecOf,
+  type BombSpec,
+} from "./types";
 import type { BombPuzzleData } from "./types";
 
 interface Panel {
@@ -65,8 +77,13 @@ interface RuleInstance {
   pair?: string | undefined;
 }
 
-/** The plan is always this long. */
-const PLAN_LENGTH = BOMB_MAX_SEQUENCE;
+/** Version 1 (stored rounds) plan length. */
+const V1_SPEC: BombSpec = {
+  steps: BOMB_MAX_SEQUENCE,
+  rules: BOMB_RULE_COUNT,
+  familyCap: 2,
+  necessary: BOMB_NECESSARY_RULES,
+};
 
 /** The nine actions any panel offers. */
 export const BOMB_ACTIONS: BombAction[] = [
@@ -75,11 +92,14 @@ export const BOMB_ACTIONS: BombAction[] = [
   pressAction("B"),
 ];
 
-/** Every ordered choice of four distinct actions — 3,024 of them. */
-const ALL_SEQUENCES: BombAction[][] = (() => {
+/** Every ordered choice of `length` distinct actions: 3,024 for four, 60,480 for six. */
+const SEQUENCES = new Map<number, BombAction[][]>();
+function sequencesOf(length: number): BombAction[][] {
+  const cached = SEQUENCES.get(length);
+  if (cached) return cached;
   const out: BombAction[][] = [];
   const walk = (prefix: BombAction[]) => {
-    if (prefix.length === PLAN_LENGTH) {
+    if (prefix.length === length) {
       out.push(prefix);
       return;
     }
@@ -89,8 +109,9 @@ const ALL_SEQUENCES: BombAction[][] = (() => {
     }
   };
   walk([]);
+  SEQUENCES.set(length, out);
   return out;
-})();
+}
 
 /* -------------------------------------------------------------------------- */
 /*  The 40-template rule bank                                                 */
@@ -108,7 +129,11 @@ const count = (panel: Panel, colour: WireColour) =>
   panel.wires.filter((wire) => wire === colour).length;
 const at = (sequence: BombAction[], action: BombAction) => sequence.indexOf(action);
 const has = (sequence: BombAction[], action: BombAction) => sequence.includes(action);
-const cutsOf = (sequence: BombAction[]) => sequence.filter(isCut).map(cutIndex);
+/** Cut wire indices in order; memoised on the (immutable, shared) sequence array. */
+const cutsOf = (sequence: BombAction[]): number[] => {
+  const memo = sequence as BombAction[] & { cuts?: number[] };
+  return (memo.cuts ??= sequence.filter(isCut).map(cutIndex));
+};
 const pressesOf = (sequence: BombAction[]) => sequence.filter((step) => !isCut(step));
 const LABELS = ["A", "B"] as const;
 const WIRES = Array.from({ length: BOMB_WIRES }, (_, index) => index);
@@ -145,6 +170,9 @@ function candidateRules(panel: Panel): RuleInstance[] {
   const digitSum = digits.reduce((a, b) => a + b, 0);
   const buttonColour = (label: "A" | "B") => panel.buttons.find((b) => b.label === label)!.colour;
   const present = WIRE_COLOURS.filter((colour) => count(panel, colour) > 0);
+  /** Wire positions of a colour as a bitmask: colour predicates are keyed by WHERE, so masks are shared across panels. */
+  const pos = (colour: WireColour) => panel.wires.reduce((bits, wire, index) => (wire === colour ? bits | (1 << index) : bits), 0);
+  const layout = panel.wires.map((colour) => WIRE_COLOURS.indexOf(colour)).join("");
 
   const hasCut = (wire: number) => (sequence: BombAction[]) => has(sequence, cutAction(wire));
   const pressBeforeCuts = (label: "A" | "B") => (sequence: BombAction[]) => {
@@ -269,7 +297,7 @@ function candidateRules(panel: Panel): RuleInstance[] {
   });
   // 24. The first wire you cut is {C}.
   for (const colour of present) {
-    add(24, colour, `The first wire you cut is ${colourWord(colour)}.`, `firstcut:${colour}`, (s) => {
+    add(24, colour, `The first wire you cut is ${colourWord(colour)}.`, `firstcut:${pos(colour)}`, (s) => {
       const cuts = cutsOf(s);
       return cuts.length > 0 && panel.wires[cuts[0]!] === colour;
     });
@@ -280,7 +308,7 @@ function candidateRules(panel: Panel): RuleInstance[] {
     return cuts.length >= 2 && cuts[cuts.length - 1]! > cuts[0]!;
   });
   // 26. Never cut two wires of the same colour in a row.
-  add(26, "", "Never cut two wires of the same colour in a row.", "cuts:norepeat", (s) => {
+  add(26, "", "Never cut two wires of the same colour in a row.", `norepeat:${layout}`, (s) => {
     for (let index = 1; index < s.length; index++) {
       const a = s[index - 1]!;
       const b = s[index]!;
@@ -298,11 +326,11 @@ function candidateRules(panel: Panel): RuleInstance[] {
   }
   for (const colour of present) {
     for (let k = 0; k <= Math.min(4, count(panel, colour)); k++) {
-      add(29, `${colour}:${k}`, `Cut exactly ${k} ${colourWord(colour)} wire${k === 1 ? "" : "s"}.`, `ncol:${colour}:${k}`, (s) => cutsOf(s).filter((w) => panel.wires[w] === colour).length === k);
+      add(29, `${colour}:${k}`, `Cut exactly ${k} ${colourWord(colour)} wire${k === 1 ? "" : "s"}.`, `ncol:${pos(colour)}:${k}`, (s) => cutsOf(s).filter((w) => panel.wires[w] === colour).length === k);
     }
     for (const other of present) {
       if (other === colour) continue;
-      add(30, `${colour}:${other}`, `Cut more ${colourWord(colour)} wires than ${colourWord(other)} wires.`, `more:${colour}:${other}`, (s) => {
+      add(30, `${colour}:${other}`, `Cut more ${colourWord(colour)} wires than ${colourWord(other)} wires.`, `more:${pos(colour)}:${pos(other)}`, (s) => {
         const cuts = cutsOf(s);
         return cuts.filter((w) => panel.wires[w] === colour).length > cuts.filter((w) => panel.wires[w] === other).length;
       });
@@ -317,16 +345,16 @@ function candidateRules(panel: Panel): RuleInstance[] {
     return cuts.every((a) => cuts.every((b) => Math.abs(a - b) !== 1));
   });
   for (const k of [2, 3, 4]) {
-    add(34, `${k}`, `Cut wires from at least ${k} different colours.`, `colours:${k}`, (s) => new Set(cutsOf(s).map((w) => panel.wires[w])).size >= k);
+    add(34, `${k}`, `Cut wires from at least ${k} different colours.`, `colours:${layout}:${k}`, (s) => new Set(cutsOf(s).map((w) => panel.wires[w])).size >= k);
   }
 
   // 35–40. Colour logic.
   for (const colour of WIRE_COLOURS) {
-    add(35, colour, `Do not cut any ${colourWord(colour)} wire.`, `nocol:${colour}`, (s) => cutsOf(s).every((w) => panel.wires[w] !== colour));
+    add(35, colour, `Do not cut any ${colourWord(colour)} wire.`, `nocol:${pos(colour)}`, (s) => cutsOf(s).every((w) => panel.wires[w] !== colour));
   }
   for (const colour of present) {
     const all = WIRES.filter((w) => panel.wires[w] === colour);
-    add(36, colour, `Cut every ${colourWord(colour)} wire.`, `every:${colour}`, (s) => all.every((w) => has(s, cutAction(w))));
+    add(36, colour, `Cut every ${colourWord(colour)} wire.`, `every:${pos(colour)}`, (s) => all.every((w) => has(s, cutAction(w))));
     const first = panel.wires.indexOf(colour);
     const last = panel.wires.lastIndexOf(colour);
     add(37, colour, `Cut the ${colourWord(colour)} wire that is furthest left.`, `has:w${first}`, hasCut(first));
@@ -334,9 +362,9 @@ function candidateRules(panel: Panel): RuleInstance[] {
   }
   for (const label of LABELS) {
     const colour = buttonColour(label);
-    add(39, label, `Cut a wire of the same colour as button ${label}.`, `samecol:${colour}`, (s) => cutsOf(s).some((w) => panel.wires[w] === colour));
+    add(39, label, `Cut a wire of the same colour as button ${label}.`, `samecol:${pos(colour)}`, (s) => cutsOf(s).some((w) => panel.wires[w] === colour));
   }
-  add(40, "", "Cut a wire whose colour is NOT the colour of either button.", "notbuttons", (s) =>
+  add(40, "", "Cut a wire whose colour is NOT the colour of either button.", `notbuttons:${pos(buttonColour("A")) | pos(buttonColour("B"))}`, (s) =>
     cutsOf(s).some((w) => panel.wires[w] !== buttonColour("A") && panel.wires[w] !== buttonColour("B")),
   );
 
@@ -348,19 +376,28 @@ function candidateRules(panel: Panel): RuleInstance[] {
 /* -------------------------------------------------------------------------- */
 
 /** Bit per sequence, so intersecting rule sets is a handful of word ANDs. */
-const MASK_WORDS = Math.ceil(ALL_SEQUENCES.length / 32);
+let ALL_SEQUENCES: BombAction[][] = sequencesOf(V1_SPEC.steps);
+let MASK_WORDS = Math.ceil(ALL_SEQUENCES.length / 32);
 
-const MASK_CACHE = new Map<string, Uint32Array>();
 
-/** Which of the 3,024 sequences a rule allows, cached by predicate. */
+/** Which sequences of the active length a rule allows, cached by predicate. */
+/**
+ * Every predicate key names its own meaning without the panel (colour rules
+ * are keyed by wire positions), so masks are shared across panels per plan
+ * length. The cache is bounded.
+ */
+const STABLE_CACHE = new Map<string, Uint32Array>();
+
 function maskOf(rule: RuleInstance): Uint32Array {
-  const cached = MASK_CACHE.get(rule.key);
+  const stable = `${SPEC.steps}|${rule.key}`;
+  const cached = STABLE_CACHE.get(stable);
   if (cached) return cached;
+  if (STABLE_CACHE.size > 6000) STABLE_CACHE.clear();
   const mask = new Uint32Array(MASK_WORDS);
   for (let index = 0; index < ALL_SEQUENCES.length; index++) {
     if (rule.test(ALL_SEQUENCES[index]!)) mask[index >> 5]! |= 1 << (index & 31);
   }
-  MASK_CACHE.set(rule.key, mask);
+  STABLE_CACHE.set(stable, mask);
   return mask;
 }
 
@@ -372,7 +409,20 @@ function everything(): Uint32Array {
   return bits;
 }
 
-const ALL_BITS = everything();
+let ALL_BITS = everything();
+let SPEC: BombSpec = V1_SPEC;
+
+/** Switch the proof to one version's plan length (synchronous callers only). */
+function useSpec(spec: BombSpec): void {
+  if (SPEC.steps === spec.steps && ALL_SEQUENCES.length > 0) {
+    SPEC = spec;
+    return;
+  }
+  SPEC = spec;
+  ALL_SEQUENCES = sequencesOf(spec.steps);
+  MASK_WORDS = Math.ceil(ALL_SEQUENCES.length / 32);
+  ALL_BITS = everything();
+}
 
 function intersect(a: Uint32Array, b: Uint32Array): Uint32Array {
   const out = new Uint32Array(MASK_WORDS);
@@ -432,7 +482,6 @@ function isNecessary(masks: Uint32Array[]): boolean {
 }
 
 /** At most two rules from any one family. */
-const FAMILY_CAP = 2;
 
 /** No two rules may concern exactly the same action pair in the same way. */
 function pairsDistinct(rules: (RuleInstance | undefined)[]): boolean {
@@ -449,7 +498,7 @@ function familiesOk(rules: RuleInstance[]): boolean {
   const counts = new Map<Family, number>();
   for (const rule of rules) {
     const next = (counts.get(rule.family) ?? 0) + 1;
-    if (next > FAMILY_CAP) return false;
+    if (next > SPEC.familyCap) return false;
     counts.set(rule.family, next);
   }
   return true;
@@ -461,14 +510,57 @@ function familiesOk(rules: RuleInstance[]): boolean {
  * Depth-first: at each level the candidates that cut the survivors most are
  * tried first, a few at a time.
  */
+
+/**
+ * Six-step search: randomised greedy narrowing (one of the sharpest few cuts
+ * each time, family cap and distinct pairs respected) until only the plan is
+ * left, then prune every rule the rest already imply. What remains is minimal,
+ * so every rule on the card is individually necessary. Kept when it fits the
+ * card size.
+ */
+function chooseRulesGreedy(pool: RuleInstance[], masks: Uint32Array[], planIndex: number): number[] | null {
+  for (let restart = 0; restart < 24; restart++) {
+    const picked: number[] = [];
+    let bits = ALL_BITS;
+    while (countBits(bits, 2) > 1) {
+      const chosen = picked.map((index) => pool[index]!);
+      const before = countBits(bits);
+      const options: { index: number; next: Uint32Array; left: number }[] = [];
+      for (let index = 0; index < pool.length; index++) {
+        if (picked.includes(index)) continue;
+        const rule = pool[index]!;
+        if (!familiesOk([...chosen, rule]) || !pairsDistinct([...chosen, rule])) continue;
+        const next = intersect(bits, masks[index]!);
+        const left = countBits(next);
+        if (left < before) options.push({ index, next, left });
+      }
+      if (options.length === 0) break;
+      options.sort((a, b) => a.left - b.left);
+      const option = options[randomBelow(Math.min(4, options.length))]!;
+      picked.push(option.index);
+      bits = option.next;
+    }
+    if (countBits(bits, 2) !== 1 || firstBit(bits) !== planIndex) continue;
+    // Prune: drop any rule the others already imply, in a random order.
+    let kept = [...picked];
+    for (const drop of shuffled([...picked])) {
+      const rest = kept.filter((index) => index !== drop);
+      if (solutions(rest.map((index) => masks[index]!), 2).length === 1) kept = rest;
+    }
+    if (kept.length < SPEC.necessary || kept.length > SPEC.rules) continue;
+    return kept;
+  }
+  return null;
+}
+
 function chooseRules(pool: RuleInstance[], masks: Uint32Array[], planIndex: number): number[] | null {
   const picked: number[] = [];
-  let budget = 3000;
+  let budget = SPEC.steps > 4 ? 6000 : 3000;
   const walk = (bits: Uint32Array): number[] | null => {
     if (budget-- <= 0) return null;
-    if (picked.length === BOMB_RULE_COUNT) {
+    if (picked.length === SPEC.rules) {
       if (countBits(bits, 2) !== 1 || firstBit(bits) !== planIndex) return null;
-      if (necessaryCount(picked.map((index) => masks[index]!)) < BOMB_NECESSARY_RULES) return null;
+      if (necessaryCount(picked.map((index) => masks[index]!)) < SPEC.necessary) return null;
       return [...picked];
     }
     const chosen = picked.map((index) => pool[index]!);
@@ -520,17 +612,24 @@ export interface BombGeneration {
 const planKey = (sequence: readonly string[]) => sequence.join(",");
 
 /** Sequence text to its index, so a plan's slot is a lookup not a scan. */
-const SEQUENCE_INDEX = new Map<string, number>(
-  ALL_SEQUENCES.map((sequence, index) => [planKey(sequence), index]),
-);
+const SEQUENCE_INDEX = new Map<number, Map<string, number>>();
+function indexOfPlan(plan: readonly string[]): number {
+  let index = SEQUENCE_INDEX.get(plan.length);
+  if (!index) {
+    index = new Map(sequencesOf(plan.length).map((sequence, i) => [planKey(sequence), i]));
+    SEQUENCE_INDEX.set(plan.length, index);
+  }
+  return index.get(planKey(plan))!;
+}
 
-export function generateBombPanel(): BombGeneration {
+/** Version 2 (default for new rounds): six steps. Version 1 reproduces the stored four-step bank. */
+export function generateBombPanel(version: 1 | 2 = BOMB_V2): BombGeneration {
+  const spec = version === BOMB_V2 ? bombSpecOf(BOMB_V2) : V1_SPEC;
   for (let attempt = 1; attempt <= 20_000; attempt++) {
     const panel = randomPanel();
-    // Several predicates read the panel, so masks never carry across panels.
-    MASK_CACHE.clear();
-    const plan = shuffled(BOMB_ACTIONS).slice(0, PLAN_LENGTH);
-    const planIndex = SEQUENCE_INDEX.get(planKey(plan))!;
+    useSpec(spec);
+    const plan = shuffled(BOMB_ACTIONS).slice(0, spec.steps);
+    const planIndex = indexOfPlan(plan);
 
     // Only rules true of this plan, one per distinct predicate — two rules that
     // say the same thing could never both be necessary.
@@ -538,10 +637,17 @@ export function generateBombPanel(): BombGeneration {
     const pool = shuffled(candidateRules(panel).filter((rule) => rule.test(plan))).filter(
       (rule) => !seen.has(rule.key) && seen.add(rule.key) !== undefined,
     );
-    if (pool.length < BOMB_RULE_COUNT) continue;
-    const masks = pool.map(maskOf);
+    if (pool.length < spec.rules) continue;
+    // Masks are built lazily: six-step proofs cover 60,480 sequences per rule.
+    const masks = new Proxy([] as Uint32Array[], {
+      get: (target, prop) =>
+        typeof prop === "string" && /^\d+$/.test(prop)
+          ? (target[Number(prop)] ??= maskOf(pool[Number(prop)]!))
+          : Reflect.get(target, prop),
+    });
 
-    const picked = chooseRules(pool, masks, planIndex);
+    const picked =
+      spec.steps > 4 ? chooseRulesGreedy(pool, masks, planIndex) : chooseRules(pool, masks, planIndex);
     if (!picked) continue;
 
     // The plan must be the one surviving sequence, not merely one of them.
@@ -568,7 +674,8 @@ export function generateBombPanel(): BombGeneration {
         serial: panel.serial,
         switchPosition: panel.switchPosition,
         rules,
-        stepCount: PLAN_LENGTH,
+        stepCount: spec.steps,
+        ...(version === BOMB_V2 ? { bombVersion: BOMB_V2, timeLimitMs: BOMB_V2_TIME_MS } : {}),
         required: encodeBombActions(plan),
         constraints: encodeBombConstraints(constraints),
         sequence: encodeBombActions(plan),
@@ -578,10 +685,18 @@ export function generateBombPanel(): BombGeneration {
   throw new Error("Bomb Defusal generator could not build an unambiguous panel");
 }
 
+/**
+ * New rounds draw a six-step panel from the script-built, server-only bank
+ * (scripts/bomb-bank.ts); the room stores it, so every player gets the same one.
+ */
 export function generateBomb(): BombPuzzleData {
-  const generated = generateBombPanel();
+  if (BOMB_V2_BANK.length > 0) {
+    const entry = BOMB_V2_BANK[randomBelow(BOMB_V2_BANK.length)]!;
+    return structuredClone({ ...entry, bombVersion: BOMB_V2, timeLimitMs: BOMB_V2_TIME_MS });
+  }
+  const generated = generateBombPanel(BOMB_V2);
   console.log(
-    `[bomb] panel accepted after ${generated.attempts} attempt(s): one unique four-action plan from ${BOMB_RULE_COUNT} rules`,
+    `[bomb] panel accepted after ${generated.attempts} attempt(s): one unique ${generated.puzzle.stepCount}-action plan from ${generated.puzzle.rules.length} rules`,
   );
   return generated.puzzle;
 }
@@ -612,7 +727,8 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
     serial: puzzle.serial,
     switchPosition: puzzle.switchPosition,
   };
-  MASK_CACHE.clear();
+  const spec = puzzle.bombVersion === BOMB_V2 ? bombSpecOf(BOMB_V2) : V1_SPEC;
+  useSpec(spec);
   const candidates = candidateRules(panel);
   const rebuilt = puzzle.rules.map(({ id }) => candidates.find((rule) => rule.id === id));
   const known = rebuilt.filter((rule): rule is RuleInstance => Boolean(rule));
@@ -626,7 +742,7 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
         2,
       ).length >= 2,
   ).length;
-  const necessary = known.length === puzzle.rules.length && necessaryRules >= BOMB_NECESSARY_RULES;
+  const necessary = known.length === puzzle.rules.length && necessaryRules >= spec.necessary;
 
   return {
     solutions: found.length,

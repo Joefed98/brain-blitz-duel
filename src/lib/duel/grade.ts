@@ -137,6 +137,7 @@ import {
   scoreRings,
 } from "./scoring";
 import {
+  BOMB_V2,
   GONOGO_ITEMS,
   NUMHUNT_COUNT,
   NUMSEQ_ITEMS,
@@ -699,7 +700,14 @@ export function gradeSubmission(
       const replay = checkBombPlan(required, constraints, decodeBombActions(answer));
       isCorrect = replay.defused;
       correctCount = replay.correctPrefix;
-      score = scoreBomb(replay.defused, ms, replay.correctPrefix, timeLimitMs);
+      // Version 2 (six steps) scores partial credit as a share of the plan; stored four-step rounds keep 25 per step.
+      score = scoreBomb(
+        replay.defused,
+        ms,
+        replay.correctPrefix,
+        timeLimitMs,
+        puzzle.bombVersion === BOMB_V2 ? required.length : undefined,
+      );
       extraDetail = {
         defused: replay.defused,
         exploded: replay.exploded,
