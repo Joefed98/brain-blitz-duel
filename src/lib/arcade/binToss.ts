@@ -729,7 +729,7 @@ export interface BinTossLandingPresentation {
   progress: number;
   binCentre: number;
   binIndex: number;
-  rev?: number;
+  rev?: number | undefined;
 }
 
 /** Draws a walked flight as a dotted arc. Never touches simulation state. */
