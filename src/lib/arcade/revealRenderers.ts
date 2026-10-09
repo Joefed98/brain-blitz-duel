@@ -27,7 +27,7 @@ import { junctionArtGame as junctionGame, junctionRevealGame } from "./junction.
 import { inkBridgeArtGame as inkBridgeGame } from "./inkBridge.renderer";
 import { BURST_FLOOR_Y } from "./burst";
 import { burstArtGame as burstGame } from "./burst.renderer";
-import { orbitArtGame as orbitGame } from "./orbit.renderer";
+import { orbitArtGame as orbitGame, orbitArtGameFor } from "./orbit.renderer";
 import { swingArtGame as swingGame } from "./swing.renderer";
 import { drawSnipArt as drawSnip } from "./snip.renderer";
 import { snipCamera, SNIP_CONFIG, SNIP_H, type SnipState } from "./snip";
@@ -134,14 +134,19 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a), undefined, junctionRevealGame),
   inkbridge: simple("#2ED3B7", 390, 620, inkBridgeGame, (p, a) => replayInkBridgeRun(seedOf(p), a, p.type === "inkbridge" ? p.inkRev : undefined)),
   burst: simple("#2ED3B7", 390, BURST_FLOOR_Y, burstGame, (p, a) => replayBurstRun(seedOf(p), a)),
-  orbit: simple(
-    GOLD,
-    390,
-    620,
-    orbitGame,
-    (p, a) => replayOrbitRun(seedOf(p), a),
-    (s) => ({ x: s.x / FP, y: (s.y - s.camY) / FP }),
-  ),
+  orbit: {
+    accent: GOLD,
+    worldW: 390,
+    worldH: 620,
+    drawFinal: (ctx, puzzle, answer) => {
+      const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined);
+      // Dispatches on the replayed state's own rev field (rev3 draws via the
+      // camera-scrolled renderer; rev1/2 stay byte-identical) rather than
+      // puzzle data, so this keeps working once rev3 reaches the server.
+      orbitArtGameFor(state).draw(ctx, state, { width: 390, height: 620 });
+      return (state as { rev?: number }).rev === 3 ? null : { x: state.x / FP, y: (state.y - state.camY) / FP };
+    },
+  },
   swing: simple(GOLD, 390, 620, swingGame, (p, a) => replaySwingRun(seedOf(p), a, p.type === "swing" ? p.swingRev : undefined)),
   snip: {
     accent: "#E84A7F",

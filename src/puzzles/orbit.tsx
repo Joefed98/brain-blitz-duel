@@ -20,7 +20,9 @@ import {
 import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { ORBIT_TIME_MS, type OrbitPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
-import { orbitArtGame } from "@/lib/arcade/orbit.renderer";
+import { orbitArtGame, orbitRev3ArtGame } from "@/lib/arcade/orbit.renderer";
+import { initRev3From, decodeRev3Planets, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV3 } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -49,10 +51,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const availability = useRef(true);
   // Dev-only practice jump (?planet=N with the accepted key); such runs are never graded.
   const [devPlanet] = useState(() => (data ? orbitDevPlanet() : null));
-  const game = useMemo(
-    () => (devPlanet ? { ...orbitArtGame, init: (seed: number) => orbitDevStart(orbitArtGame.init(seed), devPlanet) } : orbitArtGame),
-    [devPlanet],
-  );
+  const game = useMemo(() => {
+    if (devPlanet) return { ...orbitArtGame, init: (seed: number) => orbitDevStart(orbitArtGame.init(seed), devPlanet) };
+    if (data?.orbitRev === ORBIT_REV3 && data.planets) {
+      const planets = decodeRev3Planets(data.planets);
+      return { ...orbitRev3ArtGame, init: () => initRev3From(planets, ORBIT_REV3_WORLD_W) } as unknown as typeof orbitArtGame;
+    }
+    return orbitArtGame;
+  }, [devPlanet, data]);
   const belts = useMemo(() => (devPlanet && data ? orbitBeltPlanets(orbitArtGame.init(data.seed)) : []), [devPlanet, data]);
   return (
     <>
@@ -113,7 +119,7 @@ export function orbitLine(r: { passed: number; total: number; survived: boolean;
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "orbit") return null;
-  const result = replayOrbitRun(puzzle.seed, myAnswer ?? "");
+  const result = replayOrbitRun(puzzle.seed, myAnswer ?? "", puzzle.orbitRev, puzzle.planets);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">

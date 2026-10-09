@@ -1,4 +1,5 @@
 import type { BtCourse } from "@/lib/arcade/ballTrack";
+import type { OrbitRev3CompactPlanet } from "@/lib/duel/orbitRev3Course.server";
 export type PuzzleType =
   | "wordsmith"
   | "groups"
@@ -2204,6 +2205,10 @@ export interface OrbitPuzzleData {
   type: "orbit";
   /** Draws the planet course — identical for everyone. */
   seed: number;
+  /** 3 = wider zig-zag world with a scrolling camera; absent = legacy fixed-camera course. */
+  orbitRev?: number;
+  /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
+  planets?: OrbitRev3CompactPlanet[];
 }
 
 export interface SwingPuzzleData {
