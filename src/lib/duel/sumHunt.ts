@@ -1,3 +1,4 @@
+import { speedBonusCurve } from "./speedPar";
 /**
  * Sum Hunt rules, shared by the phone and server. Every stage board is derived
  * only from the round seed and stage number, so both players see identical play.
@@ -33,7 +34,7 @@ function drawInt(rng: { value: number }, min: number, max: number): number {
 
 export function sumHuntRoundScore(stage: number, msRemaining: number): number {
   return stage > SH_STAGES
-    ? 100 + Math.round(50 * Math.max(0, Math.min(SH_TIME_MS, msRemaining)) / SH_TIME_MS)
+    ? 100 + speedBonusCurve(50, msRemaining, SH_TIME_MS)
     : Math.min(80, 10 * Math.max(0, stage - 1));
 }
 

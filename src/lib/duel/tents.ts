@@ -1,3 +1,4 @@
+import { speedBonusCurve } from "./speedPar";
 /**
  * Tents and Trees rules, shared by the phone (live feedback, auto-lock) and the
  * server (grading, generation). A layout is valid when every row and column
@@ -181,6 +182,6 @@ export function scoreTents(
   trees: number,
 ): number {
   const perfect = trees > 0 && correct === trees && wrong === 0;
-  if (perfect) return Math.min(150, 130 + Math.round((20 * Math.max(0, Math.min(timeLimitMs, msRemaining))) / timeLimitMs));
+  if (perfect) return Math.min(150, 130 + speedBonusCurve(20, msRemaining, timeLimitMs));
   return Math.min(110, 10 * Math.max(0, correct));
 }

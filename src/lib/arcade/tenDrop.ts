@@ -8,6 +8,7 @@
  * A tap is kind 11, `a` = column, `b` = y px; the sim finds the tile itself.
  */
 
+import { speedBonusCurve } from "../duel/speedPar";
 import {
   clampInt,
   inputRange,
@@ -417,7 +418,7 @@ export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS): number 
   let total = n * TD_CONFIG.pointsPerTarget;
   if (n >= TD_TARGETS) {
     const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
-    total += Math.round((TD_CONFIG.clearBonus * left) / TD_RUN_TICKS);
+    total += speedBonusCurve(TD_CONFIG.clearBonus, left, TD_RUN_TICKS);
   }
   return clampInt(total, 0, 150);
 }

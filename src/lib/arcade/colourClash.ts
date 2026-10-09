@@ -1,4 +1,5 @@
 /** Deterministic Colour Clash falling-word lane game. */
+import { speedBonusCurve } from "../duel/speedPar";
 import {
   clampInt,
   inputRange,
@@ -206,7 +207,7 @@ export function clashScoreOf(correct: number, wrong: number, total: number): num
 export function clashQueueScoreOf(correct: number, wrong: number, queue: number, finishTick: number, runTicks: number = CLASH_RUN_TICKS): number {
   const base = Math.round((CLASH_COMPLETE_POINTS * correct) / Math.max(1, queue)) - 2 * wrong;
   const done = queue > 0 && correct + wrong >= queue && finishTick > 0;
-  const bonus = done ? Math.round((CLASH_SPEED_POINTS * Math.max(0, runTicks - finishTick)) / runTicks) : 0;
+  const bonus = done ? speedBonusCurve(CLASH_SPEED_POINTS, runTicks - finishTick, runTicks) : 0;
   return clampInt(base + bonus, 0, 150);
 }
 export function clashTimeBonusOf(state: Pick<ClashState, "queue" | "correct" | "wrong" | "finishTick" | "rev">): number {

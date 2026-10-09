@@ -4,6 +4,7 @@
  * joined by "|"; an empty segment is a skipped stage. Used by the server
  * grader, the reveal and the result summaries so they always agree.
  */
+import { speedBonusCurve } from "./speedPar";
 import {
   EQUATION_STAGE_POINTS,
   EQUATION_STAGE_COUNT,
@@ -42,7 +43,7 @@ export function scoreEquationStages(correct: boolean[], msRemaining: number): nu
   const weights = legacy ? [30, 40, 50] : EQUATION_STAGE_POINTS;
   const base = correct.reduce((sum, ok, i) => sum + (ok ? weights[i] ?? 0 : 0), 0);
   const all = correct.length === (legacy ? 3 : EQUATION_STAGE_COUNT) && correct.every(Boolean);
-  const bonus = all ? Math.round(((legacy ? 30 : EQUATION_SPEED_POINTS) * clampMs(msRemaining, EQUATION_TIME_MS)) / EQUATION_TIME_MS) : 0;
+  const bonus = all ? speedBonusCurve(legacy ? 30 : EQUATION_SPEED_POINTS, clampMs(msRemaining, EQUATION_TIME_MS), EQUATION_TIME_MS) : 0;
   return Math.min(150, base + bonus);
 }
 
@@ -72,7 +73,7 @@ export function scanStageResult(stage: number, selected: number[], targets: numb
 export function scoreSymbolScanStages(results: ScanStageResult[], msRemaining: number, timeLimitMs: number = SYMSCAN_TIME_MS): number {
   const base = results.reduce((sum, r) => sum + r.points, 0);
   const all = results.length === STAGE_COUNT && results.every((r) => r.perfect);
-  const bonus = all ? Math.round((20 * clampMs(msRemaining, timeLimitMs)) / timeLimitMs) : 0;
+  const bonus = all ? speedBonusCurve(20, clampMs(msRemaining, timeLimitMs), timeLimitMs) : 0;
   return Math.min(150, base + bonus);
 }
 
@@ -96,7 +97,7 @@ export function countStagePoints(stage: number, given: number | null, truth: num
 export function scoreCountUpStages(given: (number | null)[], counts: number[], msRemaining: number, timeLimitMs: number = COUNTUP_TIME_MS): number {
   const base = counts.reduce((sum, truth, i) => sum + countStagePoints(i, given[i] ?? null, truth), 0);
   const all = counts.length === STAGE_COUNT && counts.every((truth, i) => given[i] === truth);
-  const bonus = all ? Math.round((20 * clampMs(msRemaining, timeLimitMs)) / timeLimitMs) : 0;
+  const bonus = all ? speedBonusCurve(20, clampMs(msRemaining, timeLimitMs), timeLimitMs) : 0;
   return Math.min(150, base + bonus);
 }
 

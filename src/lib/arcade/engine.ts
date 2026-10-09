@@ -1,3 +1,4 @@
+import { speedBonusCurve } from "../duel/speedPar";
 /**
  * The deterministic arcade engine.
  *
@@ -50,7 +51,7 @@ export function parPoints(achieved: number, par: number): number {
 /** Finish-state arcade score: 130 + round(20 × (run ticks − finish tick) ÷ run ticks), 0…150. */
 export function finishScore(runTicks: number, finishTick: number): number {
   const left = Math.max(0, Math.min(runTicks, runTicks - finishTick));
-  return clampInt(130 + Math.round((20 * left) / Math.max(1, runTicks)), 0, 150);
+  return clampInt(130 + speedBonusCurve(20, left, Math.max(1, runTicks)), 0, 150);
 }
 
 export function clampInt(value: number, low: number, high: number): number {

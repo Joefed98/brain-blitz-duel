@@ -1,3 +1,4 @@
+import { speedBonusCurve } from "./speedPar";
 /**
  * Light Up rules, shared by the phone (live lighting, auto-lock) and the
  * server (grading, generation). Bulbs light their row and column up to a wall;
@@ -167,7 +168,7 @@ export function scoreLightUp(
   whites: number,
   clashing: number,
 ): number {
-  if (solved) return Math.min(150, 130 + Math.round((20 * Math.max(0, Math.min(timeLimitMs, msRemaining))) / timeLimitMs));
+  if (solved) return Math.min(150, 130 + speedBonusCurve(20, msRemaining, timeLimitMs));
   if (whites <= 0) return 0;
   return Math.max(0, Math.round((110 * lit) / whites) - 5 * clashing);
 }
