@@ -35,7 +35,7 @@ function solve(seed: number): ArcadeInputEvent[] | null {
     if (state.phase !== BINTOSS_AIM) { state = game.step(state, null); continue; }
     let found: { s: BinTossState; e: ArcadeInputEvent } | null = null;
     for (const [vx, vy] of candidates) {
-      const e: ArcadeInputEvent = { t: state.tick + 1, k: BINTOSS_INPUT_FLICK, a: vx, b: vy, c: 0 };
+      const e: ArcadeInputEvent = { t: state.tick + 1, k: BINTOSS_INPUT_FLICK, a: vx, b: vy, c: 0, d: 0 };
       let s = game.step(state, e);
       const before = s.resolved;
       while (s.resolved === before && !game.isOver(s)) s = game.step(s, null);
