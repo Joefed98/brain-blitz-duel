@@ -75,7 +75,7 @@ for (const e of TRAIL_BANK) {
   for (const ms of [0, TRAIL_TIME_MS / 2, TRAIL_TIME_MS]) {
     if (scoreTrail(true, ms, TRAIL_TIME_MS, 26) !== 130 + Math.round(20 * Math.min(1, (2 * ms) / TRAIL_TIME_MS))) bad++;
     const full = gradeSubmission(puzzle, trEncode(e.solution), ms);
-    if (full.score !== 130 + Math.round(20 * ms / TRAIL_TIME_MS) || !full.isCorrect || full.correctCount !== 26) bad++;
+    if (full.score !== 130 + Math.round(20 * Math.min(1, (2 * ms) / TRAIL_TIME_MS)) || !full.isCorrect || full.correctCount !== 26) bad++;
   }
   seen.add(e.solution.join("."));
 }
