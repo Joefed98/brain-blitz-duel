@@ -71,6 +71,10 @@ function IntroExample() {
         <ellipse rx="8" ry="4" />
         <path d="M-4 0 Q-11 -8 -14 0 Q-9 2 -3 2M3 0 Q9 -8 13 0 Q8 2 2 2" />
       </g>
+      <g transform="translate(130 50)" fill="#F7F7F8" stroke="#0B0B0F" strokeWidth="1">
+        <ellipse rx="8" ry="4" />
+        <path d="M-4 0 Q-11 -8 -14 0 Q-9 2 -3 2M3 0 Q9 -8 13 0 Q8 2 2 2" />
+      </g>
     </svg>
   );
 }

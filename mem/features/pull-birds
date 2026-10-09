@@ -1,0 +1,22 @@
+# Feature: Pull Birds (Hazards)
+
+Bird hazards fly across the sky. Shooting a bird incurrs a penalty and startles it away.
+
+## Revision 1 (Legacy)
+- No birds. Replays and scoring are clay-only.
+
+## Revision 2
+- 3–4 birds per game.
+- Birds are spread through the full minute.
+- Penalty: -10 points.
+- Clay-first priority: shots resolve against clays first, then birds if no clay was hit. This ensures fairness if a bird overlaps a clay.
+
+## Revision 3 (Current)
+- 10–12 birds per game (roughly one every 5–6s).
+- Maximum 2 birds on screen at once.
+- Approximately 1/3 of games (34.4%) feature at least one moment with two birds overlapping on screen.
+- Timing: Launches start between 60–201 ticks. Gaps are calculated to ensure the last bird exits before the round ends (run margin 240 ticks).
+- Height Variety: Mostly clay heights (middle/lower bands), with a 1/5 chance of higher (40–80px) or lower (330–380px) trajectories.
+- Bug Fixes:
+  - Fixed timing where the last bird could launch too late to exit.
+  - Fixed overlap chaining that could put 3+ birds on screen.
