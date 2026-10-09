@@ -13,6 +13,9 @@ import {
   CLAY_KIND_GOLD,
   CLAY_KIND_ORANGE,
   CLAY_REV,
+  CLAY_REV2,
+  CLAY_BIRD_RX,
+  CLAY_BIRD_RY,
 } from "@/lib/arcade/clayShoot";
 import { encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { gradeAnswer } from "@/lib/duel/generate.server";
@@ -28,6 +31,7 @@ if (clayScore(22, 3) !== 150 || clayScore(22, 2) !== 130 || clayScore(0, 0) !== 
 
 let slowest = 0;
 let perfectRuns = 0;
+let perfectZeroBirdRuns = 0;
 let goldHits = 0;
 let maxEarly = 0;
 let maxLate = 0;
@@ -35,23 +39,22 @@ let nearTop = 0;
 let left = 0;
 let right = 0;
 const birdCounts: Record<number, number> = {};
-let birdTableSeed0: { launch: number; side: number; y: number }[] = [];
+let birdTableSeed0: { launch: number; side: number; y: number; vx: number; vy: number }[] = [];
 let maxConcurrentBirds = 0;
+let overlapGames = 0; // games with >=1 moment of 2 birds on screen
+let overlapEpisodesOverLimit = 0; // games where >2 distinct overlap episodes occurred
+let fairnessFailures = 0;
+let overlapTicksTotal = 0;
+
 for (let run = 0; run < RUNS; run++) {
   const seed = (run * 40503 + 17) | 0;
-  let rng = seed ^ 0x1234567;
-  const draw = (bound: number) => {
-    const result = rngBelow(rng, bound);
-    rng = result.state;
-    return result.value;
-  };
   const game = clayGameFor(CLAY_REV);
   let state = game.init(seed);
   const birds = state.birds;
   if (!birds || birds.launch.length < 10 || birds.launch.length > 12) fail(`run ${run}: bird count`);
   if (birds?.launch.some((tick, i) => tick < 0 || tick >= CLAY_CONFIG.runSeconds * 60 || (i > 0 && tick < birds.launch[i - 1]!))) fail(`run ${run}: bird timing`);
   birdCounts[birds?.launch.length ?? 0] = (birdCounts[birds?.launch.length ?? 0] ?? 0) + 1;
-  if (run === 0) birdTableSeed0 = birds ? birds.launch.map((t, i) => ({ launch: t, side: birds.side[i], y: birds.launchY[i] })) : [];
+  if (run === 0) birdTableSeed0 = birds ? birds.launch.map((t, i) => ({ launch: t, side: birds.side[i]!, y: birds.launchY[i]!, vx: birds.vx[i]!, vy: birds.vy[i]! })) : [];
   if (state.schedule.kind.filter((kind) => kind === CLAY_KIND_ORANGE).length !== CLAY_CONFIG.orangeClays) fail(`run ${run}: orange count`);
   if (state.schedule.kind.filter((kind) => kind === CLAY_KIND_GOLD).length !== CLAY_CONFIG.goldClays) fail(`run ${run}: gold count`);
   if (state.schedule.launch[state.schedule.launch.length - 1]! >= CLAY_CONFIG.runSeconds * 60) fail(`run ${run}: launch after run`);
@@ -63,8 +66,16 @@ for (let run = 0; run < RUNS; run++) {
   left += state.schedule.side.filter((side) => side === 0).length;
   right += state.schedule.side.filter((side) => side === 1).length;
 
+  // Idle run (no input): track airborne clay overlap, bird concurrency/episodes,
+  // and an explicit fairness scan: for each clay, record every tick it is flying
+  // and whether a bird overlaps its hit circle at that tick.
   let idle = game.init(seed);
   let idleGoldOverlap = false;
+  let runMaxBirdsUp = 0;
+  let wasOverlap = false;
+  let episodes = 0;
+  const clayHittableTicks = new Array<number>(CLAY_COUNT).fill(0);
+  const clayClearTicks = new Array<number>(CLAY_COUNT).fill(0);
   while (!game.isOver(idle)) {
     idle = game.step(idle, null);
     const flying = idle.status.map((status, i) => ({ status, i })).filter(({ status }) => status === CLAY_FLYING);
@@ -74,23 +85,59 @@ for (let run = 0; run < RUNS; run++) {
     else maxLate = Math.max(maxLate, flying.length);
     const birdsUp = idle.birdStatus?.filter((status) => status === 1).length ?? 0;
     maxConcurrentBirds = Math.max(maxConcurrentBirds, birdsUp);
+    runMaxBirdsUp = Math.max(runMaxBirdsUp, birdsUp);
+    const nowOverlap = birdsUp >= 2;
+    if (nowOverlap && !wasOverlap) episodes += 1;
+    wasOverlap = nowOverlap;
+
+    // Fairness: for every flying clay, is any flying bird within the clay's hit radius (plus bird radius)?
+    for (const { i: ci } of flying) {
+      clayHittableTicks[ci]! += 1;
+      const radius = (idle.schedule.kind[ci] === CLAY_KIND_GOLD ? CLAY_CONFIG.goldHitRadius : CLAY_CONFIG.orangeHitRadius);
+      let blocked = false;
+      if (idle.birds && idle.birdX && idle.birdY && idle.birdStatus) {
+        for (let bi = 0; bi < idle.birds.launch.length; bi++) {
+          if (idle.birdStatus[bi] !== 1) continue;
+          const dx = (idle.x[ci]! - idle.birdX[bi]!) / 256;
+          const dy = (idle.y[ci]! - idle.birdY[bi]!) / 256;
+          if (Math.hypot(dx, dy) <= radius + Math.max(CLAY_BIRD_RX, CLAY_BIRD_RY)) {
+            blocked = true;
+            overlapTicksTotal += 1;
+          }
+        }
+      }
+      if (!blocked) clayClearTicks[ci]! += 1;
+    }
   }
   if (idleGoldOverlap) fail(`run ${run}: gold overlap`);
   if (idle.missed !== CLAY_COUNT) fail(`run ${run}: idle run resolved ${idle.missed}/${CLAY_COUNT}`);
+  if (runMaxBirdsUp >= 2) overlapGames += 1;
+  if (episodes > 2) overlapEpisodesOverLimit += 1;
+  for (let ci = 0; ci < CLAY_COUNT; ci++) {
+    // Even on ticks where a bird visually overlaps, the sim resolves clay shots
+    // first (step-order), so hittability only requires the clay to be flying at all.
+    if (clayHittableTicks[ci] === 0) {
+      fairnessFailures += 1;
+      fail(`run ${run}: clay ${ci} never flies — no hittable window`);
+    } else if (clayClearTicks[ci] === 0) {
+      // Every tick overlapped by a bird: still hittable (clay-first priority),
+      // but flag so the schedule can be tightened if this ever happens.
+      console.error(`NOTE run ${run}: clay ${ci} has no bird-free tick (still hittable via clay-first priority)`);
+    }
+  }
 
+  // Dedicated perfect-150 bot: aims only at clays, never fires when none is
+  // flying, so any bird hit would be a scheduling fault, not bot carelessness.
   const events: ArcadeInputEvent[] = [];
   const checkpoints: ReturnType<typeof clayCheckpoint>[] = [];
   while (!game.isOver(state)) {
     const flying = state.status.map((status, i) => ({ status, i })).filter(({ status }) => status === CLAY_FLYING);
-
     let candidate: ArcadeInputEvent | null = null;
     const target = flying[0]?.i;
     if (target !== undefined) {
       const x = Math.round((state.x[target]! + state.schedule.vx[target]!) / 256);
       const y = Math.round((state.y[target]! + state.vy[target]! + CLAY_CONFIG.gravity) / 256);
       candidate = { t: state.tick + 1, k: CLAY_INPUT_SHOT, a: x, b: y, c: 0, d: 0 };
-    } else if (draw(200) === 0) {
-      candidate = { t: state.tick + 1, k: CLAY_INPUT_SHOT, a: draw(CLAY_CONFIG.worldW + 1), b: draw(CLAY_CONFIG.worldH + 1), c: 0, d: 0 };
     }
     recordInput(events, candidate, game.inputRanges);
     state = game.step(state, inputAt(events, state.tick + 1));
@@ -100,6 +147,8 @@ for (let run = 0; run < RUNS; run++) {
   else {
     perfectRuns += 1;
     goldHits += state.goldHits;
+    if ((state.birdHits ?? 0) === 0) perfectZeroBirdRuns += 1;
+    else fail(`run ${run}: perfect bot hit a bird (birdHits=${state.birdHits}) — perfect 150 blocked`);
   }
   const score = game.score(state);
   const raw = appendClientCounters(
@@ -113,11 +162,21 @@ for (let run = 0; run < RUNS; run++) {
   if (!same(replay.state, state) || replay.score !== score || graded.score !== score || replay.flagged || replay.desyncTick !== null) {
     fail(`run ${run}: replay mismatch ${replay.reason ?? ""}`);
   }
+  if (score !== 150) fail(`run ${run}: perfect bot score ${score} !== 150`);
 }
+
+// rev1 (undefined/legacy) guard: no bird state leaks, score unaffected.
 for (let run = 0; run < Math.min(RUNS, 100); run++) {
   const legacy = clayGameFor(undefined).init((run * 7919 + 31) | 0);
   if (legacy.rev !== undefined || legacy.birds !== undefined || legacy.birdHits !== undefined) fail(`legacy ${run}: bird state leaked`);
   if (clayGameFor(undefined).score(legacy) !== 0) fail(`legacy ${run}: score changed`);
+}
+// rev2 guard: unchanged cadence (3-4 birds) and scoring still replay/score as before.
+for (let run = 0; run < Math.min(RUNS, 100); run++) {
+  const seed = (run * 7919 + 31) | 0;
+  const rev2 = clayGameFor(CLAY_REV2).init(seed);
+  if (rev2.rev !== CLAY_REV2) fail(`rev2 ${run}: wrong rev tag`);
+  if (!rev2.birds || rev2.birds.launch.length < 3 || rev2.birds.launch.length > 4) fail(`rev2 ${run}: bird count drifted from legacy 3-4`);
 }
 {
   const game = clayGameFor(CLAY_REV);
@@ -133,8 +192,15 @@ for (let run = 0; run < Math.min(RUNS, 100); run++) {
 }
 if (maxEarly > 1 || maxLate > 2) fail(`airborne limits ${maxEarly}/${maxLate}`);
 if (nearTop === 0 || Math.abs(left - right) > RUNS || left === 0 || right === 0) fail("trajectory variety missing");
-console.log(`clay self-replay ${RUNS}/${RUNS}; aiming bot ${perfectRuns}/${RUNS}; gold ${goldHits}/${RUNS * CLAY_CONFIG.goldClays}; slowest ${slowest.toFixed(1)}ms`);
+if (maxConcurrentBirds > 2) fail(`more than 2 birds ever on screen: ${maxConcurrentBirds}`);
+if (overlapEpisodesOverLimit > 0) fail(`${overlapEpisodesOverLimit} games exceeded 2 two-bird moments`);
+const overlapShare = RUNS ? (overlapGames / RUNS) : 0;
+if (overlapShare < 0.2 || overlapShare > 0.5) console.error(`NOTE two-bird share ${(overlapShare * 100).toFixed(1)}% is outside the "about a third" target band (20-50%)`);
+
+console.log(`clay self-replay ${RUNS}/${RUNS}; aiming bot ${perfectRuns}/${RUNS} (perfect+zero-birds ${perfectZeroBirdRuns}/${RUNS}); gold ${goldHits}/${RUNS * CLAY_CONFIG.goldClays}; slowest ${slowest.toFixed(1)}ms`);
 console.log(`clay bird count distribution: ${JSON.stringify(birdCounts)}; max concurrent on screen ${maxConcurrentBirds}`);
+console.log(`clay two-bird games: ${overlapGames}/${RUNS} (${(overlapShare * 100).toFixed(1)}%); runs with >2 overlap moments: ${overlapEpisodesOverLimit}`);
+console.log(`clay fairness: every clay had a hittable (flying) window on every seed; failures ${fairnessFailures}; bird-overlap ticks observed across all clays/seeds ${overlapTicksTotal} (still hittable: clay-first priority)`);
 console.log(`clay bird table (seed 0): ${JSON.stringify(birdTableSeed0)}`);
 console.log(`clay airborne max ${maxEarly}/${maxLate}; upper-middle ${nearTop}; edges ${left}/${right}`);
 console.log(failures ? `${failures} FAILURES` : "ALL OK");

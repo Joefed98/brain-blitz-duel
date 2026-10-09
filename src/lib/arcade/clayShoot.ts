@@ -354,7 +354,9 @@ function buildBirdScheduleV3(rngStart: number): { rng: number; schedule: ClayBir
     const used = new Set<number>();
     for (let n = 0; n < overlaps; n++) {
       const i = draw(count - 1);
-      if (used.has(i)) continue;
+      // Never pull in a pair adjacent to an already-chosen pair: chaining
+      // (e.g. pulling i,i+1 and then i+1,i+2) could put 3 birds up at once.
+      if (used.has(i - 1) || used.has(i) || used.has(i + 1)) continue;
       used.add(i);
       const offset = CLAY_BIRD_OVERLAP_OFFSET_MIN + draw(CLAY_BIRD_OVERLAP_OFFSET_SPAN);
       launch[i + 1] = Math.min(launch[i + 1]!, launch[i]! + offset);

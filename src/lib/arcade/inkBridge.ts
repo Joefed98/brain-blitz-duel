@@ -66,6 +66,24 @@ const BLOCK_COUNTS = [1, 2, 3, 3, 4, 5, 6, 7, 7, 8];
 export const INK_REV = 2;
 export const INK_BIRD_H_FP = 1_664; // 6.5 px
 const BIRD_COUNTS = [1, 2, 3, 3, 4, 4, 4, 5, 5, 6];
+/**
+ * inkRev 3 ("Rainbow Bridge"): rounds 1–4 reuse old levels 3–6 (stationary
+ * pot), 5–8 reuse old levels 7–10 (moving pot), 9–10 are new "live" levels —
+ * stationary pot, slightly slower gravity, a shared ink budget 1.5× the usual
+ * and a second drawing phase while the ball falls (see INK_INPUT_LIFT).
+ * Rounds 1/2 generation and physics are untouched by this revision.
+ */
+export const INK_REV3 = 3;
+/** Live levels start at this 0-based index under inkRev 3. */
+const INK_LIVE_FROM = 8;
+/** Gravity on live levels: a little gentler than the usual 64 (1/256 px/tick²). */
+export const INK_LIVE_GRAVITY = 54;
+/** Shared ink budget multiplier on live levels (pre-release line + live strokes), ×256. */
+const INK_LIVE_BUDGET_256 = 384;
+/** No-draw zone radius around the ball's current position on live levels: one coin diameter. */
+export const INK_NO_DRAW_ZONE_PX = BALL_R * 2;
+/** Up to this many live strokes may be lifted (committed) per drop. */
+export const INK_LIVE_MAX_LIFTS = 2;
 /** Obstacle thickness in px (render and tests). */
 export function inkBlockH(b: InkBlock): number {
   return b.h ? b.h / FP : INK_BLOCK_H;
