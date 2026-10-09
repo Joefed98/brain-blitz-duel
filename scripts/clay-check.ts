@@ -34,6 +34,9 @@ let maxLate = 0;
 let nearTop = 0;
 let left = 0;
 let right = 0;
+const birdCounts: Record<number, number> = {};
+let birdTableSeed0: { launch: number; side: number; y: number }[] = [];
+let maxConcurrentBirds = 0;
 for (let run = 0; run < RUNS; run++) {
   const seed = (run * 40503 + 17) | 0;
   let rng = seed ^ 0x1234567;
@@ -45,8 +48,10 @@ for (let run = 0; run < RUNS; run++) {
   const game = clayGameFor(CLAY_REV);
   let state = game.init(seed);
   const birds = state.birds;
-  if (!birds || birds.launch.length < 3 || birds.launch.length > 4) fail(`run ${run}: bird count`);
-  if (birds?.launch.some((tick, i) => tick < 360 || tick >= CLAY_CONFIG.runSeconds * 60 || (i > 0 && tick <= birds.launch[i - 1]!))) fail(`run ${run}: bird timing`);
+  if (!birds || birds.launch.length < 10 || birds.launch.length > 12) fail(`run ${run}: bird count`);
+  if (birds?.launch.some((tick, i) => tick < 0 || tick >= CLAY_CONFIG.runSeconds * 60 || (i > 0 && tick < birds.launch[i - 1]!))) fail(`run ${run}: bird timing`);
+  birdCounts[birds?.launch.length ?? 0] = (birdCounts[birds?.launch.length ?? 0] ?? 0) + 1;
+  if (run === 0) birdTableSeed0 = birds ? birds.launch.map((t, i) => ({ launch: t, side: birds.side[i], y: birds.launchY[i] })) : [];
   if (state.schedule.kind.filter((kind) => kind === CLAY_KIND_ORANGE).length !== CLAY_CONFIG.orangeClays) fail(`run ${run}: orange count`);
   if (state.schedule.kind.filter((kind) => kind === CLAY_KIND_GOLD).length !== CLAY_CONFIG.goldClays) fail(`run ${run}: gold count`);
   if (state.schedule.launch[state.schedule.launch.length - 1]! >= CLAY_CONFIG.runSeconds * 60) fail(`run ${run}: launch after run`);
@@ -67,6 +72,8 @@ for (let run = 0; run < RUNS; run++) {
     if (airborneGold > 1) idleGoldOverlap = true;
     if (idle.tick < CLAY_CONFIG.runSeconds * 30) maxEarly = Math.max(maxEarly, flying.length);
     else maxLate = Math.max(maxLate, flying.length);
+    const birdsUp = idle.birdStatus?.filter((status) => status === 1).length ?? 0;
+    maxConcurrentBirds = Math.max(maxConcurrentBirds, birdsUp);
   }
   if (idleGoldOverlap) fail(`run ${run}: gold overlap`);
   if (idle.missed !== CLAY_COUNT) fail(`run ${run}: idle run resolved ${idle.missed}/${CLAY_COUNT}`);
@@ -127,6 +134,8 @@ for (let run = 0; run < Math.min(RUNS, 100); run++) {
 if (maxEarly > 1 || maxLate > 2) fail(`airborne limits ${maxEarly}/${maxLate}`);
 if (nearTop === 0 || Math.abs(left - right) > RUNS || left === 0 || right === 0) fail("trajectory variety missing");
 console.log(`clay self-replay ${RUNS}/${RUNS}; aiming bot ${perfectRuns}/${RUNS}; gold ${goldHits}/${RUNS * CLAY_CONFIG.goldClays}; slowest ${slowest.toFixed(1)}ms`);
+console.log(`clay bird count distribution: ${JSON.stringify(birdCounts)}; max concurrent on screen ${maxConcurrentBirds}`);
+console.log(`clay bird table (seed 0): ${JSON.stringify(birdTableSeed0)}`);
 console.log(`clay airborne max ${maxEarly}/${maxLate}; upper-middle ${nearTop}; edges ${left}/${right}`);
 console.log(failures ? `${failures} FAILURES` : "ALL OK");
 

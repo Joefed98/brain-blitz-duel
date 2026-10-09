@@ -5,6 +5,7 @@ import {
   swingGame,
   swingGameFor,
   SWING_REV,
+  SWING_REV_V2,
   SWING_CHECKPOINT_INTERVAL,
   SWING_CHECKPOINT_KEYS,
   swingExtra,
@@ -21,7 +22,8 @@ const run = makeArcadeRun<SwingState, SwingCheckpoint>({
   interval: SWING_CHECKPOINT_INTERVAL,
 });
 
-const dragonRun = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", game: swingGameFor(SWING_REV), checkpoint: swingCheckpoint, keys: SWING_CHECKPOINT_KEYS, interval: SWING_CHECKPOINT_INTERVAL });
+const dragonRunV3 = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", game: swingGameFor(SWING_REV), checkpoint: swingCheckpoint, keys: SWING_CHECKPOINT_KEYS, interval: SWING_CHECKPOINT_INTERVAL });
+const dragonRunV2 = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", game: swingGameFor(SWING_REV_V2), checkpoint: swingCheckpoint, keys: SWING_CHECKPOINT_KEYS, interval: SWING_CHECKPOINT_INTERVAL });
 
 export type SwingResult = FlatReplay<SwingState, SwingCheckpoint> & ReturnType<typeof swingExtra>;
 
@@ -30,6 +32,7 @@ export const decodeSwingRun = run.decode;
 
 /** The single place a Swing score is worked out. */
 export function replaySwingRun(seed: number, raw: string, rev?: number): SwingResult {
-  const result = (rev === SWING_REV ? dragonRun : run).replay(seed, raw);
+  const picked = rev === SWING_REV ? dragonRunV3 : rev === SWING_REV_V2 ? dragonRunV2 : run;
+  const result = picked.replay(seed, raw);
   return { ...result, ...swingExtra(result.state) };
 }

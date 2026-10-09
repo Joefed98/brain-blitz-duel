@@ -43,10 +43,17 @@ const LEAD = 195 * FP;
 const METRE = 40 * FP;
 const COL = 40 * FP;
 export const SWING_FINISH_M = 500;
-export const SWING_REV = 2;
-export const SWING_DRAGON_HALF_W = 20 * FP;
-export const SWING_DRAGON_HALF_H = 14 * FP;
-export interface SwingDragon { x: number; y: number; }
+/** Current version: swingRev 3 (bigger, menacing dragons). swingRev 2 rounds keep the original 40×28 box and art. */
+export const SWING_REV = 3;
+export const SWING_REV_V2 = 2;
+/** swingRev 2 dragon box: 40 × 28 px. */
+export const SWING_DRAGON_HALF_W_V2 = 20 * FP;
+export const SWING_DRAGON_HALF_H_V2 = 14 * FP;
+/** swingRev 3 dragon box: 64 × 44 px. */
+export const SWING_DRAGON_HALF_W = 32 * FP;
+export const SWING_DRAGON_HALF_H = 22 * FP;
+/** Collision half-size travels with each dragon so one sim serves every revision's box unchanged. */
+export interface SwingDragon { x: number; y: number; hw: number; hh: number; }
 /** Anchors run a little past the 500 m finish so the last swing has somewhere to go. */
 const COURSE_LEN = START_X + (SWING_FINISH_M + 20) * METRE + 600 * FP;
 const COLS = Math.trunc(COURSE_LEN / COL) + 2;
@@ -215,7 +222,7 @@ function moveBody(b: Body, c: { ceil: number[]; floor: number[]; spikes: Spike[]
   }
   if (b.y + RADIUS >= lerpAt(c.floor, b.x)) return true;
   for (const d of c.dragons ?? []) {
-    if (Math.abs(b.x - d.x) <= SWING_DRAGON_HALF_W + RADIUS && Math.abs(b.y - d.y) <= SWING_DRAGON_HALF_H + RADIUS) return true;
+    if (Math.abs(b.x - d.x) <= d.hw + RADIUS && Math.abs(b.y - d.y) <= d.hh + RADIUS) return true;
   }
   for (const s of c.spikes) {
     if (s.x - b.x > SPIKE_HALF + RADIUS) break;
@@ -340,7 +347,8 @@ function init(seed: number): SwingState {
   };
 }
 
-function initDragons(seed: number): SwingState {
+/** swingRev 2 legacy placement: 4–6 dragons, 40 × 28 px box. Stored rounds replay unchanged. */
+function initDragonsV2(seed: number): SwingState {
   const s = init(seed);
   let rng = s.rng;
   const draw = (bound: number) => { const r = rngBelow(rng, bound); rng = r.state; return r.value; };
@@ -350,7 +358,23 @@ function initDragons(seed: number): SwingState {
     const metre = 350 + Math.trunc(((i * 2 + 1) * 140) / (count * 2)) + draw(7) - 3;
     const x = START_X + metre * METRE;
     const y = (i % 2 === 0 ? 200 + draw(61) : 330 + draw(61)) * FP;
-    dragons.push({ x, y });
+    dragons.push({ x, y, hw: SWING_DRAGON_HALF_W_V2, hh: SWING_DRAGON_HALF_H_V2 });
+  }
+  return { ...s, dragons };
+}
+
+/** swingRev 3 placement: same 350–500 m alternating bands, 3–5 bigger (64 × 44 px) dragons. */
+function initDragonsV3(seed: number): SwingState {
+  const s = init(seed);
+  let rng = s.rng;
+  const draw = (bound: number) => { const r = rngBelow(rng, bound); rng = r.state; return r.value; };
+  const count = 3 + draw(3);
+  const dragons: SwingDragon[] = [];
+  for (let i = 0; i < count; i++) {
+    const metre = 350 + Math.trunc(((i * 2 + 1) * 140) / (count * 2)) + draw(7) - 3;
+    const x = START_X + metre * METRE;
+    const y = (i % 2 === 0 ? 200 + draw(61) : 330 + draw(61)) * FP;
+    dragons.push({ x, y, hw: SWING_DRAGON_HALF_W, hh: SWING_DRAGON_HALF_H });
   }
   return { ...s, dragons };
 }
@@ -603,7 +627,10 @@ export const swingGame: ArcadeGame<SwingState, ArcadeInputEvent | null> = {
   inputRanges: SWING_INPUT_RANGES,
 };
 
-const dragonGame = { ...swingGame, init: initDragons };
+const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
+const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 export function swingGameFor(rev?: number): typeof swingGame {
-  return rev === SWING_REV ? dragonGame : swingGame;
+  if (rev === SWING_REV) return dragonGameV3;
+  if (rev === SWING_REV_V2) return dragonGameV2;
+  return swingGame;
 }

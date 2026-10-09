@@ -31,6 +31,7 @@ import {
   CLAY_W,
   type ClayState,
 } from "@/lib/arcade/clayShoot";
+import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { CLAYSHOOT_TIME_MS, type ClayShootPuzzleData } from "@/lib/duel/types";
 import { playSound, playTick } from "@/lib/sound";
@@ -294,7 +295,7 @@ export const clayShootPuzzle: PuzzleDefinition = {
   arcadeRun: true,
   timeLimitMs: CLAYSHOOT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "clayshoot", seed: 1, clayRev: 2 }) satisfies ClayShootPuzzleData,
+  generate: () => ({ type: "clayshoot", seed: 1, clayRev: CLAY_REV }) satisfies ClayShootPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   introLine: () => "Don't shoot the birds — each one costs 10.",
