@@ -2,7 +2,7 @@ import type { GridGeometry } from "./GridDrag";
 
 /** Coordinate recordings made before these control-layout changes cannot replay. */
 export const REVISED_PUZZLE_DEMOS = new Set(["wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
-export const BALANCE_PRESENTATION = "oct9-beam-notches";
+export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
   if (!REVISED_PUZZLE_DEMOS.has(type)) return true;
