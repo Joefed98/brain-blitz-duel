@@ -718,9 +718,10 @@ function traceDrop(
  * the ball in the bucket. Used both to validate shield placement at generation time and
  * to pick layouts where the live stroke is genuinely required.
  */
-const PRE_SAMPLE_ANGLES = 16;
-const PRE_SAMPLE_LEN_FRACS = [1, 0.8, 0.6, 0.4];
+const PRE_SAMPLE_ANGLES = 8;
+const PRE_SAMPLE_LEN_FRACS = [1];
 function anyPreAloneWins(lvl: InkLevel, cap: number, gravity: number): boolean {
+  // Capped at 3 starts × 8 angles × 1 length = 24 sampled lines (speed: keeps init p95 low).
   const starts: [number, number][] = [
     [lvl.spoutX, SPOUT_Y + 10],
     [lvl.spoutX - 24, SPOUT_Y + 28],
@@ -895,7 +896,7 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
     const count = counts[sourceLevel]!;
     const ink = live ? inkBudgetFor(i, INK_REV3) : inkBudget(sourceLevel);
     let made: InkLevel | null = null;
-    for (let attempt = 0; attempt < 120 && !made; attempt++) {
+    for (let attempt = 0; attempt < (live ? 48 : 120) && !made; attempt++) {
       const c = Math.max(1, count - Math.trunc(attempt / 20));
       let lvl = layout(sourceLevel, c, draw, h, forceSlide);
       if (live) {
@@ -903,7 +904,7 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
         // waypoints (within ±60 px of the spout) and the bucket: a pre-release line
         // alone sends the ball on a course that this shield intercepts, so reaching
         // the bucket genuinely needs the live stroke to route around it.
-        const shieldY = SPOUT_Y + 28 + Math.trunc(((lvl.bucketY - (SPOUT_Y + 28)) * 60) / 100);
+        const shieldY = SPOUT_Y + 28 + Math.trunc(((lvl.bucketY - (SPOUT_Y + 28)) * 78) / 100);
         const shield: InkBlock = {
           x0: Math.max(0, lvl.spoutX - 70),
           x1: Math.min(INK_WORLD_W, lvl.spoutX + 70),
@@ -925,20 +926,41 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
       }
     }
     if (!made) {
+      // Last resort: an open layout with no obstacles between spout and bucket column,
+      // so a pre-release line short enough for INK_LIVE_PRE_CAP always exists, and (for
+      // live levels) the fallback route is still built live — pre-cap aware with a real
+      // liveRef — never a plain over-cap single-stroke solve.
       const spoutX = 120;
       const lvl: InkLevel = {
         spoutX,
         bucketX: 300,
         bucketY: 540,
-        blocks: [{ x0: 90, x1: 150, y: 200, ...(h ? { h } : {}) }],
+        blocks: live ? [] : [{ x0: 90, x1: 150, y: 200, ...(h ? { h } : {}) }],
         slideAmp: 0,
         slidePeriod: 1,
         slidePhase: 0,
         ref: [],
         refT0: 0,
       };
-      const found = findReference(lvl, ink, gravity);
-      made = { ...lvl, ref: found?.ref ?? [[96, 78, 300, 526]], refT0: found?.t0 ?? 0 };
+      if (live) {
+        const found = findLiveReference(lvl, ink, gravity);
+        if (found) {
+          made = { ...lvl, ref: found.ref, refT0: found.t0, liveRef: found.liveRef };
+        } else {
+          // Degenerate but cap/shield-aware: a short pre-release line that alone falls
+          // short, finished off by one live stroke straight into the bucket.
+          const preEnd: [number, number] = [spoutX, SPOUT_Y + 28 + 120];
+          made = {
+            ...lvl,
+            ref: [[spoutX, SPOUT_Y + 28, preEnd[0], preEnd[1]]],
+            refT0: 0,
+            liveRef: [{ tick: 6, pts: [preEnd[0], preEnd[1], lvl.bucketX, lvl.bucketY - 20] }],
+          };
+        }
+      } else {
+        const found = findReference(lvl, ink, gravity);
+        made = { ...lvl, ref: found?.ref ?? [[96, 78, 300, 526]], refT0: found?.t0 ?? 0 };
+      }
     }
     list.push(made);
   }
