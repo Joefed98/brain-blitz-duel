@@ -97,8 +97,8 @@ function Rings({
     >
       <defs>
         <radialGradient id="vinyl-sheen" cx="35%" cy="25%" r="75%">
-          <stop offset="0%" stopColor="white" stopOpacity="0.16" />
-          <stop offset="55%" stopColor="white" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--tally-white)" stopOpacity="0.16" />
+          <stop offset="55%" stopColor="var(--tally-white)" stopOpacity="0" />
         </radialGradient>
       </defs>
       <circle cx={centre} cy={centre} r={half * 0.995} fill="var(--vinyl)" />
