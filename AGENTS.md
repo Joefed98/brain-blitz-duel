@@ -36,3 +36,5 @@
 - The last round leads to a server-timed, unskippable `winner_reveal` phase (WinnerReveal, shared-clock cues) before status finished, replacing final standings; why: every phone reveals the winner at the same moment.
 - Round music is started/stopped only by useRoundMusic, called from the room and practice round-phase state; screen components (intro, countdown, timer bar, game frame) never touch it. Why: component mounts at the GO cut the track.
 - RoomChat owns portalled bounded compact/expanded message sheets and keyboard geometry; room state supplies only chat availability and header time, and gesture blockers exempt data-scrollable. Why: chat scroll stays independent of game/page layouts.
+
+- Pipeline BFS is presentation-only; Flightpath palette/scenery are renderer modules and Grappler art is private. Why: animation/paint cannot alter grading, clocks or Roofbound.

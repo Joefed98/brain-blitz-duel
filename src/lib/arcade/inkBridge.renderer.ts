@@ -101,7 +101,7 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
   c.save();c.fillStyle=SKY;c.fillRect(0,0,size.width,size.height);
   c.translate((size.width-INK_WORLD_W*scale)/2,(size.height-INK_WORLD_H*scale)/2);c.scale(scale,scale);
   drawCountryside(c);
-  sceneryTexture(c,"rainbow");
+  c.save();c.globalAlpha=.24;sceneryTexture(c,"rainbow");c.restore();
   // Background only, below the pot opening and every level block; touchable art paints above it.
   drawCountryGround(c,lvl.bucketY+INK_BUCKET_H,inkBucketX(lvl,state.tick));
   c.save(); const bx=inkBucketX(lvl,state.tick), base=lvl.bucketY+INK_BUCKET_H;
