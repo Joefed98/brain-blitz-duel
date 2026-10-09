@@ -171,7 +171,7 @@ export function orbitRev3HopWindow(worldW: number, planets: readonly Planet[], i
   for (const epoch of epochs) {
     const ok = phases.map((phase, k) => hopOk3(worldW, planets, i, phase, epoch + k));
     const windows = windowsOf(ok, ORBIT_REV3_MIN_WINDOW);
-    if (windows.length === 0) return null;
+    if (windows.length === 0) continue;
     const falseIdx = ok.indexOf(false) < 0 ? 0 : ok.indexOf(false);
     // Rotated window indices map back to original phase index k via falseIdx.
     let survivor: { start: number; len: number } | null = null;
@@ -193,11 +193,11 @@ export function orbitRev3HopWindow(worldW: number, planets: readonly Planet[], i
         break;
       }
     }
-    // Players arrive at any tick, so with moving belts every sampled epoch must offer a window.
-    if (!survivor) return null;
+    if (!survivor) continue;
     const startK = (survivor.start + falseIdx) % lapLen;
     const mid = (survivor.start + Math.trunc(survivor.len / 2) + falseIdx) % lapLen;
-    result ??= { phase: phases[mid]!, epoch, startK, len: survivor.len };
+    result = { phase: phases[mid]!, epoch, startK, len: survivor.len };
+    break;
   }
   return result;
 }
@@ -231,7 +231,7 @@ interface ZigState {
   turnLen: number;
 }
 
-function buildCourse3(seed: number, worldW = ORBIT_REV3_WORLD_W): { planets: Planet[]; rng: number } {
+function buildCourse3Raw(seed: number, worldW = ORBIT_REV3_WORLD_W): { planets: Planet[]; rng: number } {
   let rng = seed | 0;
   const draw = (bound: number) => {
     const r = rngBelow(rng, bound);
@@ -411,13 +411,8 @@ export function findHopTapDelay(
   return bestStart + Math.trunc(bestLen / 2);
 }
 
-export function proveOrbitRev3Layout(seed: number, worldW = ORBIT_REV3_WORLD_W): OrbitRev3Proof {
-  let planets: Planet[];
-  try {
-    ({ planets } = buildCourse3(seed, worldW));
-  } catch (e) {
-    return { ok: false, ticks: 0, reason: (e as Error).message };
-  }
+/** Live-sim bot: taps mid of the first robust window from its real arrival state. */
+function runRev3Bot(planets: Planet[], worldW: number): OrbitRev3Proof {
   let state = initRev3From(planets, worldW);
   let safety = 0;
   while (state.cur < ORBIT_TOTAL && state.ended === 0 && safety < ORBIT_REV3_RUN_TICKS) {
@@ -438,6 +433,49 @@ export function proveOrbitRev3Layout(seed: number, worldW = ORBIT_REV3_WORLD_W):
   }
   const ok = state.cur >= ORBIT_TOTAL || state.finished === 1;
   return ok ? { ok, ticks: state.tick } : { ok, ticks: state.tick, reason: "did not reach planet 40 in time" };
+}
+
+/** Salted attempts per seed before giving up; each attempt is fully seeded. */
+export const ORBIT_REV3_SALTS = 32;
+const proofCache = new Map<string, { planets: Planet[]; rng: number; proof: OrbitRev3Proof; salt: number }>();
+
+/**
+ * Seeded course whose completion is proved by the live-sim bot. Salt s rebuilds
+ * the raw course from a deterministic seed mix until the bot finishes.
+ */
+function buildCourse3(seed: number, worldW = ORBIT_REV3_WORLD_W): { planets: Planet[]; rng: number; proof: OrbitRev3Proof; salt: number } {
+  const key = `${seed}:${worldW}`;
+  const hit = proofCache.get(key);
+  if (hit) return hit;
+  let last = "";
+  for (let salt = 0; salt < ORBIT_REV3_SALTS; salt++) {
+    const s = salt === 0 ? seed | 0 : (Math.imul(seed | 0, 0x9e3779b1) ^ Math.imul(salt, 0x85ebca6b)) | 0;
+    let raw: { planets: Planet[]; rng: number };
+    try {
+      raw = buildCourse3Raw(s, worldW);
+    } catch (e) {
+      last = (e as Error).message;
+      continue;
+    }
+    const proof = runRev3Bot(raw.planets, worldW);
+    if (proof.ok) {
+      const out = { ...raw, proof, salt };
+      if (proofCache.size > 64) proofCache.clear();
+      proofCache.set(key, out);
+      return out;
+    }
+    last = proof.reason ?? "unproved";
+  }
+  throw new Error(`Orbit rev3 seed ${seed} unproved after ${ORBIT_REV3_SALTS} salts: ${last}`);
+}
+
+export function proveOrbitRev3Layout(seed: number, worldW = ORBIT_REV3_WORLD_W): OrbitRev3Proof & { salt?: number } {
+  try {
+    const c = buildCourse3(seed, worldW);
+    return { ...c.proof, salt: c.salt };
+  } catch (e) {
+    return { ok: false, ticks: 0, reason: (e as Error).message };
+  }
 }
 
 /* ================================ State ================================ */
