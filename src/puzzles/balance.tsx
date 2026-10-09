@@ -47,7 +47,7 @@ function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showC
   scale: BalanceScale; placement: Placement; spacing: number;
   onWeightTap?: (tray: number) => void; onPlace?: (peg: number) => void;
   selected?: number | null; showControls?: boolean;
-  /** Total drawing height; the beam sits about a third of the way down. */
+  /** Total drawing height (capped at 250px and centred); the beam sits a little above the middle. */
   height?: number;
 }) {
   const tilt = visibleTilt(scale, placement);
@@ -55,10 +55,10 @@ function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showC
   const width = spacing * BAL_PEGS;
   const big = height !== undefined;
   const H = height ?? (showControls ? 144 : 126);
-  const beamY = big ? Math.max(32, Math.round(H / 3)) : 32;
+  const beamY = big ? Math.max(32, Math.round(H * 0.36)) : 32;
   const weight = big ? 52 : Math.min(44, spacing);
-  const standW = big ? 14 : 10;
-  const baseW = big ? 46 : 34;
+  const standW = big ? 20 : 10;
+  const baseW = big ? 58 : 34;
   const onPeg = new Map<number, { w: number; fixed: boolean; tray?: number }>();
   scale.fixed.forEach(f => onPeg.set(f.peg, { w: f.w, fixed: true }));
   placement.forEach((peg, i) => {
@@ -241,7 +241,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
         <>
           {/* Column layout: beam arena, then the scale counter and tray in flow 12px below. */}
           <div ref={arena} data-game-arena="balance" className="relative min-h-[170px] w-full">
-            <div className="absolute left-1/2 top-0 -translate-x-1/2">
+            <div className="absolute left-1/2 -translate-x-1/2" style={{ top: Math.max(0, Math.round((arenaHeight - 24 - Math.min(250, Math.max(146, arenaHeight - 24))) / 2)) }}>
               <StageCorrect visible={holding} />
               <Beam
                 scale={scale}
@@ -249,7 +249,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
                 spacing={spacing}
                 selected={selected}
                 showControls
-                height={Math.max(146, arenaHeight - 24)}
+                height={Math.min(250, Math.max(146, arenaHeight - 24))}
                 onWeightTap={tapWeight}
                 onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
               />

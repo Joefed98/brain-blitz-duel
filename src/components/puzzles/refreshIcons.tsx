@@ -10,9 +10,9 @@ export const SWEET_NAMES: Record<SpotShapeKind, string> = { circle: 'lollipop', 
 export function EagleIcon({ dir, size = 28 }: { dir: ArrowDir; size?: number }) {
   return <svg width={size} height={size} style={{ width: size, height: size }} viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
     <g transform={`rotate(${EAGLE_ANGLES[dir]} 16 16)`}>
-      <path fill="currentColor" d="M16 .8 18.9 4.6 18.7 9.2 21.4 11.4 30.6 20.2 29.4 23 19.9 17.6 18.4 22.4 20.2 30.4 16 28.6 11.8 30.4 13.6 22.4 12.1 17.6 2.6 23 1.4 20.2 10.6 11.4 13.3 9.2 13.1 4.6Z" />
-      <path d="M16 .8 17.6 3.2 16 4.2" fill="none" stroke="var(--eagle-beak)" strokeWidth="1.1" strokeLinejoin="round" />
-      <circle cx="16" cy="5.6" r="1.35" fill="var(--eagle-eye)" />
+      <path fill="currentColor" d="M16 1 18.6 4.2 18.4 8.4 21.2 9.6 26.4 10 30.8 11.6 31.4 13.8 29.6 13.6 30.4 15.6 28.4 15.2 29 17.2 26.8 16.6 25.2 18.2 19.6 15.6 18.2 21.2 20.4 26.6 19.4 27.4 18.8 28.8 17.4 28.2 16.9 29.6 16 29 15.1 29.6 14.6 28.2 13.2 28.8 12.6 27.4 11.6 26.6 13.8 21.2 12.4 15.6 6.8 18.2 5.2 16.6 3 17.2 3.6 15.2 1.6 15.6 2.4 13.6 0.6 13.8 1.2 11.6 5.6 10 10.8 9.6 13.6 8.4 13.4 4.2Z" />
+      <path d="M16 1 17.4 3.2 16 4" fill="none" stroke="var(--eagle-beak)" strokeWidth="1.1" strokeLinejoin="round" />
+      <circle cx="16" cy="5.4" r="1.3" fill="var(--eagle-eye)" />
     </g>
   </svg>;
 }

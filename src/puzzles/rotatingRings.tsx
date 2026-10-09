@@ -57,21 +57,45 @@ function Rings({
   size,
   selectedRing,
   onSelect,
+  solved = false,
 }: {
   segments: number[][];
   offsets: number[];
   size: number;
   selectedRing?: number | undefined;
   onSelect?: ((ring: number) => void) | undefined;
+  /** Render-only celebration once the solve has been recorded. */
+  solved?: boolean;
 }) {
   const centre = size / 2;
   const half = size / 2;
+  // The record sits on a platter inside the deck, leaving the corner free for the tonearm base.
+  const record = half * 0.86;
   const aligned = new Set(alignedSpokes(segments, offsets));
   const step = (Math.PI * 2) / RINGS_SEGMENTS;
   // Ring 0 is the innermost ring, drawn with the smallest radius.
-  const radiusOf = (ring: number) => half * RADII[RINGS_COUNT - 1 - ring]!;
+  const radiusOf = (ring: number) => record * RADII[RINGS_COUNT - 1 - ring]!;
   const innerOf = (ring: number) =>
-    ring === 0 ? half * INNER_HOLE : half * RADII[RINGS_COUNT - ring]! + 4;
+    ring === 0 ? record * INNER_HOLE : record * RADII[RINGS_COUNT - ring]! + 1.5;
+
+  // Presentation only: each turned ring eases in from its previous angle.
+  const previous = useRef<number[] | null>(null);
+  const turnCount = useRef<number[]>(Array.from({ length: RINGS_COUNT }, () => 0));
+  const turnFrom = useRef<number[]>(Array.from({ length: RINGS_COUNT }, () => 0));
+  if (previous.current && previous.current.join() !== offsets.join()) {
+    for (let ring = 0; ring < RINGS_COUNT; ring += 1) {
+      let delta = ((((offsets[ring] ?? 0) - (previous.current[ring] ?? 0)) % RINGS_SEGMENTS) + RINGS_SEGMENTS) % RINGS_SEGMENTS;
+      if (delta > RINGS_SEGMENTS / 2) delta -= RINGS_SEGMENTS;
+      if (delta !== 0) {
+        turnCount.current[ring] = (turnCount.current[ring] ?? 0) + 1;
+        turnFrom.current[ring] = delta * (360 / RINGS_SEGMENTS);
+      }
+    }
+  }
+  previous.current = [...offsets];
+
+  const strobe = half * 0.91;
+  const origin = `${centre}px ${centre}px`;
 
   return (
     <svg
@@ -79,7 +103,7 @@ function Rings({
       height={size}
       viewBox={`0 0 ${size} ${size}`}
       className="shrink-0 touch-none"
-      aria-label={`${gameDisplayName("rings")} record`}
+      aria-label={`${gameDisplayName("rings")} deck`}
       onPointerDown={(event) => {
         if (!onSelect) return;
         event.preventDefault();
@@ -97,97 +121,91 @@ function Rings({
     >
       <defs>
         <radialGradient id="vinyl-sheen" cx="35%" cy="25%" r="75%">
-          <stop offset="0%" stopColor="var(--tally-white)" stopOpacity="0.16" />
+          <stop offset="0%" stopColor="var(--tally-white)" stopOpacity="0.18" />
           <stop offset="55%" stopColor="var(--tally-white)" stopOpacity="0" />
         </radialGradient>
+        <linearGradient id="platter-metal" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--platter)" />
+          <stop offset="50%" stopColor="var(--platter-dark)" />
+          <stop offset="100%" stopColor="var(--platter)" />
+        </linearGradient>
       </defs>
-      <circle cx={centre} cy={centre} r={half * 0.995} fill="var(--vinyl)" />
-      {Array.from({ length: 14 }, (_v, g) => (
-        <circle key={`groove-${g}`} cx={centre} cy={centre} r={half * (INNER_HOLE + 0.02 + (g * (0.97 - INNER_HOLE)) / 14)} fill="none" stroke="var(--vinyl-groove)" strokeWidth={0.8} />
+      <rect x={0.5} y={0.5} width={size - 1} height={size - 1} rx={size * 0.06} fill="var(--plinth)" stroke="var(--plinth-edge)" strokeWidth={1} />
+      {/* Brushed-metal platter with a glossy rim. */}
+      <circle cx={centre} cy={centre} r={half * 0.955} fill="url(#platter-metal)" />
+      {Array.from({ length: 10 }, (_v, g) => (
+        <circle key={`brush-${g}`} cx={centre} cy={centre} r={half * (0.875 + g * 0.0075)} fill="none" stroke="var(--tally-white)" strokeOpacity={0.08} strokeWidth={0.6} />
       ))}
-      {Array.from({ length: RINGS_COUNT }, (_v, ring) =>
-        Array.from({ length: RINGS_SEGMENTS }, (_s, spoke) => (
-          <path
-            key={`${ring}-${spoke}`}
-            d={arc(
-              centre,
-              centre,
-              radiusOf(ring) - 2,
-              innerOf(ring) + 2,
-              spoke * step - Math.PI / 2 + 0.05,
-              (spoke + 1) * step - Math.PI / 2 - 0.05,
-            )}
-            fill={colourOf(ringColour(segments, offsets, ring, spoke))}
-            stroke="var(--vinyl)"
-            strokeOpacity={0.5}
-            strokeWidth={0.8}
-            style={{ transition: `fill ${RINGS_TURN_MS}ms linear` }}
-          />
-        )),
-      )}
-      {/* Gloss: one soft sheen over the whole record, never hiding colours. */}
-      <circle cx={centre} cy={centre} r={half * 0.98} fill="url(#vinyl-sheen)" pointerEvents="none" />
+      <circle cx={centre} cy={centre} r={half * 0.955} fill="none" stroke="var(--tally-white)" strokeOpacity={0.35} strokeWidth={1.2} />
+      {/* Strobe dots, one per spoke, lit when that spoke is solved. */}
       {Array.from({ length: RINGS_SEGMENTS }, (_v, spoke) => {
         const angle = (spoke + 0.5) * step - Math.PI / 2;
-        const rim = half * RADII[0]!;
         return (
-          <g key={`spoke-${spoke}`}>
-            <line
-              x1={centre + half * INNER_HOLE * Math.cos(angle)}
-              y1={centre + half * INNER_HOLE * Math.sin(angle)}
-              x2={centre + rim * Math.cos(angle)}
-              y2={centre + rim * Math.sin(angle)}
-              stroke="var(--color-background)"
-              strokeOpacity={0.35}
-              strokeWidth={1.5}
-            />
-            {aligned.has(spoke) ? (
-              <circle
-                cx={centre + (rim + 5) * Math.cos(angle)}
-                cy={centre + (rim + 5) * Math.sin(angle)}
-                r={3.2}
-                fill={GLYPH_COLOURS.GOLD}
-              />
-            ) : null}
-          </g>
+          <circle
+            key={`strobe-${spoke}`}
+            cx={centre + strobe * Math.cos(angle)}
+            cy={centre + strobe * Math.sin(angle)}
+            r={Math.max(2.4, size * 0.011)}
+            fill={aligned.has(spoke) ? GLYPH_COLOURS.GOLD : "var(--strobe-off)"}
+            className={aligned.has(spoke) ? "ring-glow" : undefined}
+          />
         );
       })}
+      <g className={solved ? "record-solved" : undefined} style={{ transformOrigin: origin }}>
+        <circle cx={centre} cy={centre} r={record * 0.995} fill="var(--vinyl)" />
+        {Array.from({ length: RINGS_COUNT }, (_v, ring) => (
+          <g
+            key={`ring-${ring}-${turnCount.current[ring]}`}
+            className={turnCount.current[ring] ? "ring-turn" : undefined}
+            style={{ transformOrigin: origin, ["--turn-from" as string]: `${turnFrom.current[ring]}deg`, ["--turn-ms" as string]: `${RINGS_TURN_MS}ms` }}
+          >
+            {Array.from({ length: RINGS_SEGMENTS }, (_s, spoke) => (
+              <path
+                key={`${ring}-${spoke}`}
+                d={arc(
+                  centre,
+                  centre,
+                  radiusOf(ring) - 0.75,
+                  innerOf(ring) + 0.75,
+                  spoke * step - Math.PI / 2 + 0.05,
+                  (spoke + 1) * step - Math.PI / 2 - 0.05,
+                )}
+                fill={colourOf(ringColour(segments, offsets, ring, spoke))}
+              />
+            ))}
+            {/* Groove shimmer: two faint grooves across each band. */}
+            {[0.33, 0.66].map((t) => (
+              <circle key={t} cx={centre} cy={centre} r={innerOf(ring) + (radiusOf(ring) - innerOf(ring)) * t} fill="none" stroke="var(--guest-ink)" strokeOpacity={0.22} strokeWidth={0.7} />
+            ))}
+          </g>
+        ))}
+        {/* Gloss: one soft sheen over the whole record, never hiding colours. */}
+        <circle cx={centre} cy={centre} r={record} fill="url(#vinyl-sheen)" pointerEvents="none" />
+        <circle cx={centre} cy={centre} r={record * INNER_HOLE} fill="var(--vinyl-label)" stroke={GLYPH_COLOURS.GOLD} strokeOpacity={0.6} strokeWidth={1} />
+        <circle cx={centre} cy={centre} r={Math.max(1.5, half * 0.02)} fill="var(--vinyl)" />
+      </g>
       {selectedRing === undefined ? null : (
-        <g pointerEvents="none">
-          <circle
-            cx={centre}
-            cy={centre}
-            r={radiusOf(selectedRing) - 1}
-            fill="none"
-            stroke={GLYPH_COLOURS.GOLD}
-            strokeWidth={3}
-          />
-          <circle
-            cx={centre}
-            cy={centre}
-            r={innerOf(selectedRing) + 1}
-            fill="none"
-            stroke={GLYPH_COLOURS.GOLD}
-            strokeWidth={3}
-          />
+        <g pointerEvents="none" className="ring-glow">
+          <circle cx={centre} cy={centre} r={radiusOf(selectedRing) - 0.5} fill="none" stroke={GLYPH_COLOURS.GOLD} strokeWidth={2.2} />
+          <circle cx={centre} cy={centre} r={innerOf(selectedRing) + 0.5} fill="none" stroke={GLYPH_COLOURS.GOLD} strokeWidth={2.2} />
         </g>
       )}
-      <circle cx={centre} cy={centre} r={half * INNER_HOLE} fill="var(--vinyl-label)" stroke={GLYPH_COLOURS.GOLD} strokeOpacity={0.6} strokeWidth={1} />
-      <circle cx={centre} cy={centre} r={Math.max(1.5, half * 0.02)} fill="var(--vinyl)" />
       {selectedRing === undefined ? null : (() => {
-        // Slim tonearm from the deck's top-right corner, its head resting on the selected ring.
-        const mid = (radiusOf(selectedRing) + innerOf(selectedRing)) / 2;
+        // Tonearm base in the deck's top-right corner. The arm runs down the spoke gap on the
+        // diagonal, so only the needle tip touches the selected ring's outer edge.
         const angle = -Math.PI / 4;
-        const hx = centre + mid * Math.cos(angle);
-        const hy = centre + mid * Math.sin(angle);
-        const px = size * 0.95;
-        const py = size * 0.05;
-        const w = Math.max(1.5, size * 0.008);
+        const tip = radiusOf(selectedRing);
+        const hx = centre + tip * Math.cos(angle);
+        const hy = centre + tip * Math.sin(angle);
+        const px = size * 0.93;
+        const py = size * 0.07;
+        const w = Math.max(1, size * 0.004);
         return (
-          <g pointerEvents="none" className="ring-tonearm" style={{ transition: "all 200ms ease-out" }}>
-            <line x1={px} y1={py} x2={hx} y2={hy} stroke="var(--tonearm)" strokeWidth={w * 1.6} strokeLinecap="round" />
-            <circle cx={px} cy={py} r={w * 3.2} fill="var(--tonearm)" stroke="var(--vinyl)" strokeWidth={1} />
-            <circle cx={hx} cy={hy} r={w * 2.2} fill="var(--tonearm)" stroke={GLYPH_COLOURS.GOLD} strokeWidth={w} />
+          <g pointerEvents="none" className="ring-tonearm">
+            <line x1={px} y1={py} x2={hx} y2={hy} stroke="var(--tonearm)" strokeWidth={w} strokeLinecap="round" />
+            <circle cx={px} cy={py} r={size * 0.04} fill="var(--platter-dark)" stroke="var(--tonearm)" strokeWidth={1} />
+            <circle cx={px} cy={py} r={size * 0.015} fill="var(--tonearm)" />
+            <circle cx={hx} cy={hy} r={w * 1.6} fill={GLYPH_COLOURS.GOLD} />
           </g>
         );
       })()}
@@ -226,7 +244,7 @@ function IntroExample() {
       </div>
       <Legend pattern={EXAMPLE_PATTERN} />
       <p className="text-center text-xs text-muted-foreground">
-        One turn of ring 2 also turns ring 4 the other way - and every spoke of the record is one colour.
+        One turn of ring 2 also turns ring 4 the other way - every spoke is one colour and every strobe dot lights.
       </p>
     </div>
   );
@@ -285,6 +303,7 @@ function Stage({
           size={351}
           selectedRing={selectedRing}
           onSelect={setSelectedRing}
+          solved={replay.solved}
         />
         </div>
       </div>

@@ -55,35 +55,15 @@ function Board({
       >
         {/* Every piece is a centred child of its own cell, so nothing can drift. */}
         {Array.from({ length: cols * rows }, (_, cell) => {
-          if (wall.has(cell)) return <div key={cell} className="rounded-md bg-foreground/70" />;
+          if (wall.has(cell)) return <div key={cell} className="warehouse-shelf rounded-[3px]" aria-label="Shelving" />;
           const onTarget = targets.includes(cell);
           const hasCrate = crate.has(cell);
           const hasPusher = cell === pusher;
           return (
-            <div
-              key={cell}
-              className={`flex items-center justify-center rounded-[3px] bg-card ${
-                onTarget ? "border-2 border-primary/70" : "border border-border/50"
-              }`}
-            >
-              {hasCrate && (
-                <span
-                  aria-label={onTarget ? "Crate home" : "Crate"}
-                  className="block rounded-[15%]"
-                  style={{
-                    width: "80%",
-                    height: "80%",
-                    backgroundColor: onTarget ? "var(--primary)" : "#B07B4F",
-                  }}
-                />
-              )}
-              {hasPusher && !hasCrate && (
-                <span
-                  aria-label="You"
-                  className="block rounded-full bg-primary"
-                  style={{ width: "70%", height: "70%" }}
-                />
-              )}
+            <div key={cell} className="warehouse-floor relative flex items-center justify-center rounded-[2px]">
+              {onTarget && <span aria-hidden="true" className="warehouse-target absolute inset-[10%] rounded-[3px]" />}
+              {hasCrate && <CrateArt home={onTarget} />}
+              {hasPusher && !hasCrate && <WorkerArt />}
             </div>
           );
         })}
@@ -92,12 +72,40 @@ function Board({
   );
 }
 
+/** Wooden crate with plank lines; a green light shows when it sits on a marking. */
+function CrateArt({ home }: { home: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" className="relative block h-[82%] w-[82%]" aria-label={home ? "Crate home" : "Crate"}>
+      <rect x="1" y="1" width="18" height="18" rx="2" fill="var(--crate)" stroke="var(--crate-dark)" strokeWidth="1.4" />
+      <path d="M2 7h16M2 13h16" stroke="var(--crate-dark)" strokeWidth="1" />
+      <path d="M3 3l14 14" stroke="var(--crate-dark)" strokeWidth="1.6" />
+      <path d="M2.4 2.4h15.2" stroke="var(--crate-light)" strokeWidth="0.8" />
+      {home && <>
+        <circle cx="15" cy="5" r="3.6" fill="var(--home-light)" stroke="var(--hazard-dark)" strokeWidth="0.8" />
+        <path d="M13.3 5l1.2 1.2 2.2-2.4" fill="none" stroke="var(--hazard-dark)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+      </>}
+    </svg>
+  );
+}
+
+/** Top-down warehouse worker: shoulders, hi-vis vest and a hard hat. */
+function WorkerArt() {
+  return (
+    <svg viewBox="0 0 20 20" className="relative block h-[78%] w-[78%]" aria-label="You">
+      <ellipse cx="10" cy="11.5" rx="7.6" ry="5" fill="var(--worker-body)" stroke="var(--hazard-dark)" strokeWidth="0.8" />
+      <path d="M5.2 9.2 7 15.6M14.8 9.2 13 15.6" stroke="var(--worker-vest)" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="10" cy="10" r="4.4" fill="var(--worker-hat)" stroke="var(--hazard-dark)" strokeWidth="0.9" />
+      <path d="M10 5.8v8.4" stroke="var(--crate-light)" strokeWidth="0.9" opacity="0.7" />
+    </svg>
+  );
+}
+
 /** Fixed intro example — never randomised. */
 function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Push every crate onto a target. You can only push - never pull - and only one crate at a
+        Push every crate onto a hatched floor marking. You can only push - never pull - and only one crate at a
         time.
       </p>
       <div className="flex items-center gap-2">

@@ -340,9 +340,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: up to 90 for the distance closed.",
   },
   push: {
-    goal: "Push every crate onto a target.",
+    goal: "Push every crate onto a hatched floor marking.",
     how: [
-      { action: "Move the player", detail: "one square at a time." },
+      { action: "Move the worker", detail: "one square at a time." },
       { action: "Push one crate", detail: "by walking into it." },
       { action: "Plan ahead", detail: "because crates cannot be pulled." },
     ],
@@ -359,14 +359,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Every gem on fire 1 / 2 / 3 = 130 / 115 / 100, + up to 20 for speed. Otherwise 15 per gem lit; never fired = 0.",
   },
   tower: {
-    goal: "Move the full tower onto the marked peg.",
+    goal: "Move the full tower onto the gold-based post.",
     how: [
-      { action: "Tap a peg", detail: "to pick up its top disc." },
-      { action: "Tap another peg", detail: "to place that disc." },
-      { action: "Keep smaller discs above", detail: "larger discs at all times." },
-      { action: "Count the pegs", detail: "- each puzzle has 3 or 4." },
+      { action: "Tap a post", detail: "to lift its top ring." },
+      { action: "Tap another post", detail: "to place that ring." },
+      { action: "Keep smaller rings above", detail: "larger rings at all times - colour shows size." },
+      { action: "Count the posts", detail: "- each puzzle has 3 or 4." },
     ],
-    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 110 × discs home from the bottom ÷ discs.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 110 × rings home from the bottom ÷ rings.",
   },
   maze: {
     goal: "Draw a path from the start to the exit.",
@@ -378,16 +378,16 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Complete = 130 + up to 20 for speed. Otherwise 110 × share of the route reached.",
   },
   tubes: {
-    goal: "Sort the balls so every tube is one colour.",
+    goal: "Sort the potions so every flask is one colour.",
     how: [
-      { action: "Tap a tube", detail: "to lift its top balls." },
+      { action: "Tap a flask", detail: "to lift its top layers." },
       {
         action: "Tap where to pour",
-        detail: "- onto the same colour or an empty tube; as many balls move as fit (5 per tube).",
+        detail: "- onto the same colour or an empty flask; as many layers move as fit (5 per flask). A full one-colour flask gets a cork.",
       },
       { action: "Undo or Reset", detail: "if a pour traps you." },
     ],
-    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 22 per single-colour tube.",
+    score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 22 per corked flask.",
   },
   safe: {
     goal: "Find the four-digit combination that fits every clue.",
@@ -431,7 +431,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   intruder: {
     goal: "Find every party guest who changed.",
     how: [
-      { action: "Memorise the guests", detail: "before they disappear - head shape and colour." },
+      { action: "Memorise the guests", detail: "before the lights dim - head shape and colour." },
       { action: "Tap every changed guest", detail: "- later boards contain two." },
       { action: "Five rounds", detail: "- 7 s to memorise, 5 s to pick; on the last two the guests swap places around the party." },
     ],
@@ -456,9 +456,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Complete = 130 + up to 20 for speed. Otherwise 8 per pair found.",
   },
   flood: {
-    goal: "Flood the whole board with one colour.",
+    goal: "Flood the whole board with one colour of paint.",
     how: [
-      { action: "Tap a colour", detail: "to change your region." },
+      { action: "Tap a colour", detail: "to repaint your wet region." },
       { action: "Your region grows", detail: "into every touching cell of that colour." },
       { action: "Start from the top-left", detail: "- that cell is always yours." },
     ],
@@ -485,9 +485,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   rings: {
     goal: "Turn the record's rings so every spoke is one colour.",
     how: [
-      { action: "Tap a ring", detail: "- the tonearm rests on it - then use the arrow buttons to turn it." },
+      { action: "Tap a ring", detail: "- it glows and the needle touches its edge - then use the arrow buttons to turn it." },
       { action: "Check the legend", detail: "- some rings turn others with them, same way or opposite." },
-      { action: "Watch the rim", detail: "for a gold tick on each finished spoke." },
+      { action: "Watch the strobe dots", detail: "around the platter - one lights for each finished spoke." },
     ],
     score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed. Unfinished: 12 per aligned spoke.",
   },
@@ -899,9 +899,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   tents: {
     goal: "Pitch one tent beside every tree.",
     how: [
-      { action: "Tap a cell", detail: "for a tent, again for grass, again to clear." },
+      { action: "Tap a cell", detail: "for a tent, again for a grass tuft, again to clear." },
       { action: "Tents can't touch,", detail: "even diagonally." },
-      { action: "The numbers", detail: "say how many tents are in each row and column." },
+      { action: "The signposts", detail: "say how many tents are in each row and column." },
     ],
     score: "Complete = 130 + up to 20 for speed. Otherwise 10 per correct tent; wrong tents cost nothing.",
   },

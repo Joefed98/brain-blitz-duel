@@ -15,21 +15,46 @@ import { buzz } from "@/lib/motion";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const TREE_GREEN = "#2F6B3A";
-
-function TreeIcon() {
+/** Clean flat trees; pine or round is picked from the cell position (cosmetic only). */
+function TreeIcon({ cell }: { cell: number }) {
+  const pine = ((cell * 7 + (cell >> 3)) % 3) !== 0;
   return (
-    <svg viewBox="0 0 20 20" className="h-3/4 w-3/4" aria-hidden="true">
-      <polygon points="10,2 17,14 3,14" fill={TREE_GREEN} />
-      <rect x={8.5} y={14} width={3} height={4} fill="#5A3B22" />
+    <svg viewBox="0 0 20 20" className="h-[80%] w-[80%]" aria-hidden="true">
+      <ellipse cx="10" cy="18.4" rx="5" ry="1.2" fill="var(--guest-ink)" opacity="0.45" />
+      <rect x="8.8" y="13.6" width="2.4" height="4.8" rx="0.8" fill="var(--trunk)" />
+      {pine ? (
+        <>
+          <path d="M10 1.6 16 9.2h-2.6L17.2 14H2.8l3.8-4.8H4z" fill="var(--pine)" />
+          <path d="M10 1.6 4 9.2h2.6L2.8 14H10z" fill="var(--pine-dark)" />
+        </>
+      ) : (
+        <>
+          <circle cx="10" cy="8.4" r="6.2" fill="var(--leaf)" />
+          <path d="M10 2.2a6.2 6.2 0 0 0 0 12.4z" fill="var(--pine)" />
+        </>
+      )}
     </svg>
   );
 }
 
+/** Striped canvas tent in gold (or the reveal colour). */
 function TentIcon({ colour = "var(--primary)" }: { colour?: string | undefined }) {
   return (
-    <svg viewBox="0 0 20 20" className="h-3/4 w-3/4" aria-hidden="true">
-      <polygon points="10,3 18,17 2,17" fill={colour} />
+    <svg viewBox="0 0 20 20" className="h-[80%] w-[80%]" aria-hidden="true">
+      <ellipse cx="10" cy="17.6" rx="8" ry="1.2" fill="var(--guest-ink)" opacity="0.45" />
+      <polygon points="10,2.6 18.4,17 1.6,17" fill={colour} />
+      <path d="M10 2.6 7.2 17M10 2.6 12.8 17" stroke="var(--guest-ink)" strokeOpacity="0.28" strokeWidth="1.3" />
+      <polygon points="10,8.4 12.4,17 7.6,17" fill="var(--guest-ink)" opacity="0.7" />
+      <path d="M10 2.6V1" stroke="var(--sign-ink)" strokeWidth="0.9" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** A small grass tuft for cells marked "no tent". */
+function TuftIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-[46%] w-[46%]" aria-hidden="true">
+      <path d="M4 16c1-4 2-6 3-8M8 16c0-5 1-8 2-11M12 16c0-4 0-6-1-9M15 16c-1-3-1-5 1-7" fill="none" stroke="var(--tuft)" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -74,8 +99,8 @@ function Board({
       {colCounts.map((count, c) => (
         <span
           key={`c${c}`}
-          className={`text-center font-mono text-sm font-bold ${
-            count >= 0 && cols[c] === count ? "text-muted-foreground opacity-40" : "text-foreground"
+          className={`camp-sign mx-auto mb-px w-[78%] text-center font-mono text-sm font-bold ${
+            count >= 0 && cols[c] === count ? "opacity-40" : ""
           }`}
         >
           {count < 0 ? "?" : count}
@@ -84,8 +109,8 @@ function Board({
       {Array.from({ length: size }, (_, r) => [
         <span
           key={`r${r}`}
-          className={`flex items-center justify-center font-mono text-sm font-bold ${
-            (rowCounts[r] ?? -1) >= 0 && rows[r] === rowCounts[r] ? "text-muted-foreground opacity-40" : "text-foreground"
+          className={`camp-sign my-[12%] flex items-center justify-center font-mono text-sm font-bold ${
+            (rowCounts[r] ?? -1) >= 0 && rows[r] === rowCounts[r] ? "opacity-40" : ""
           }`}
         >
           {(rowCounts[r] ?? -1) < 0 ? "?" : rowCounts[r]}
@@ -100,17 +125,15 @@ function Board({
               type="button"
               disabled={!onTap || tree}
               onClick={onTap && !tree ? () => onTap(cell) : undefined}
-              className={`flex aspect-square items-center justify-center rounded-md border border-border ${
-                tree ? "bg-muted" : "bg-card"
-              } ${flash === cell ? "animate-pulse bg-destructive/50" : ""}`}
+              className={`flex aspect-square items-center justify-center rounded-md border border-border ${flash === cell ? "animate-pulse bg-destructive/50" : "camp-cell"}`}
               aria-label={tree ? "Tree" : mark === 1 ? "Tent" : mark === 2 ? "Grass" : "Empty"}
             >
               {tree ? (
-                <TreeIcon />
+                <TreeIcon cell={cell} />
               ) : mark === 1 ? (
                 <TentIcon colour={tentColour?.(cell)} />
               ) : mark === 2 ? (
-                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+                <TuftIcon />
               ) : null}
             </button>
           );

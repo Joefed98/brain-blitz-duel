@@ -1,8 +1,7 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
-import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import { decodeFloodMoves, encodeFloodMoves, regionCells, replayFlood } from "@/lib/duel/flood";
 import { useStageState } from "@/lib/duel/stageState";
@@ -12,17 +11,17 @@ import {
   FLOOD_SIZE,
   FLOOD_TIME_MS,
   type FloodPuzzleData,
-  type StroopColour,
 } from "@/lib/duel/types";
 import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** The five board colours, in index order. */
-const FLOOD_PALETTE: StroopColour[] = ["RED", "BLUE", "GREEN", "YELLOW", "ORANGE"];
+/** Wet-paint display colours for stored indices 0–4 (red, blue, green, yellow, orange), chosen to stay distinct with red-green colour blindness. */
+const FLOOD_FILLS = ["var(--flood-a)", "var(--flood-b)", "var(--flood-c)", "var(--flood-d)", "var(--flood-e)"];
+const FLOOD_NAMES = ["Magenta", "Blue", "Mint", "Yellow", "Orange"];
 
 function fillOf(colour: number): string {
-  return GLYPH_COLOURS[FLOOD_PALETTE[colour % FLOOD_PALETTE.length]!];
+  return FLOOD_FILLS[colour % FLOOD_FILLS.length]!;
 }
 
 /** The board, with one white outline around the player's region boundary. */
@@ -31,11 +30,14 @@ function Board({
   size = FLOOD_SIZE,
   cell = 26,
   fluid = false,
+  ripple,
 }: {
   grid: number[];
   size?: number;
   cell?: number;
   fluid?: boolean;
+  /** Cells that just joined the region, keyed by move count so each move replays it. */
+  ripple?: { cells: Set<number>; key: number } | undefined;
 }) {
   const region = new Set(regionCells(grid, size));
   const edge = (index: number, neighbour: number | null) =>
@@ -43,7 +45,7 @@ function Board({
 
   return (
     <div
-      className={`puzzle-board grid gap-0 ${fluid ? "w-full aspect-square" : ""}`}
+      className={`puzzle-board grid gap-px ${fluid ? "w-full aspect-square" : ""}`}
       style={{ gridTemplateColumns: `repeat(${size}, ${fluid ? "minmax(0, 1fr)" : `${cell}px`})` }}
       aria-label={`${gameDisplayName("flood")} board`}
     >
@@ -61,17 +63,20 @@ function Board({
           : [false, false, false, false];
         return (
           <span
-            key={index}
+            key={ripple?.cells.has(index) ? `${index}-${ripple.key}` : index}
+            className={`flood-tile ${mine ? "flood-wet" : ""} ${ripple?.cells.has(index) ? "flood-ripple" : ""}`}
             style={{
+              animationDelay: ripple?.cells.has(index) ? `${Math.min(80, (row + col) * 6)}ms` : undefined,
+              animationDuration: "220ms",
               width: fluid ? "100%" : cell,
               height: fluid ? "100%" : cell,
-              background: fillOf(colour),
+              backgroundColor: fillOf(colour),
               boxShadow: mine
-                ? `inset 0 ${border[0] ? 2 : 0}px 0 0 #FFFFFF, inset ${
+                ? `inset 0 ${border[0] ? 2 : 0}px 0 0 var(--tally-white), inset ${
                     border[1] ? -2 : 0
-                  }px 0 0 0 #FFFFFF, inset 0 ${border[2] ? -2 : 0}px 0 0 #FFFFFF, inset ${
+                  }px 0 0 0 var(--tally-white), inset 0 ${border[2] ? -2 : 0}px 0 0 var(--tally-white), inset ${
                     border[3] ? 2 : 0
-                  }px 0 0 0 #FFFFFF`
+                  }px 0 0 0 var(--tally-white)`
                 : undefined,
             }}
           />
@@ -93,7 +98,7 @@ function IntroExample() {
         <Board grid={replayFlood(EXAMPLE_GRID, [1, 3], 4).grid} size={4} cell={22} />
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Two taps, and the top-left region has swallowed its neighbours.
+        Two taps, and the wet paint from the top-left has swallowed its neighbours.
       </p>
     </div>
   );
@@ -113,6 +118,13 @@ function Stage({
   const submitted = useRef(false);
 
   const replay = data ? replayFlood(data.grid, moves) : null;
+  // Presentation only: which cells the last move swallowed, for the wet-paint ripple.
+  const ripple = useMemo(() => {
+    if (!data || !moves.length) return undefined;
+    const before = new Set(regionCells(replayFlood(data.grid, moves.slice(0, -1)).grid, FLOOD_SIZE));
+    const after = regionCells(replayFlood(data.grid, moves).grid, FLOOD_SIZE);
+    return { cells: new Set(after.filter((cell) => !before.has(cell))), key: moves.length };
+  }, [data, moves]);
 
   useEffect(() => {
     onDraftAnswer?.(encodeFloodMoves(moves));
@@ -144,16 +156,16 @@ function Stage({
 
   return (
     <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2 px-3">
-      <Board grid={replay.grid} fluid />
+      <Board grid={replay.grid} fluid ripple={ripple} />
       <div data-after-arena data-game-controls="colours" className="flex shrink-0 items-center gap-2">
         {Array.from({ length: FLOOD_COLOURS }, (_, colour) => (
           <button
             key={colour}
             type="button"
-            aria-label={FLOOD_PALETTE[colour]}
+            aria-label={FLOOD_NAMES[colour]}
             onPointerDown={() => tap(colour)}
-            className="rounded-lg border-2 border-border"
-            style={{ width: 52, height: 52, background: fillOf(colour) }}
+            className="flood-tile rounded-lg border-2 border-border"
+            style={{ width: 52, height: 52, backgroundColor: fillOf(colour), borderRadius: 10 }}
           />
         ))}
       </div>

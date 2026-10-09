@@ -37,7 +37,10 @@ function ballColour(index: number): string {
   return GLYPH_COLOURS[BALL_COLOURS[index % BALL_COLOURS.length]!];
 }
 
-/** Ten tubes in two rows of five; the lifted tube wears a gold outline. */
+/** A faint symbol per liquid colour, as a second cue beside the colour itself. */
+const POTION_SYMBOLS = ["●", "▲", "■", "◆", "★", "✚", "♥", "✦"] as const;
+
+/** Ten glass flasks in two rows of five; each ball is one countable liquid layer. */
 function Tubes({
   tubes,
   lifted,
@@ -65,33 +68,44 @@ function Tubes({
             disabled={!onTube}
             variant="ghost"
             onClick={() => onTube?.(index)}
-            aria-label={`Tube ${index + 1}`}
+            aria-label={`Flask ${index + 1}`}
             className={`flex h-full w-full min-w-0 items-end justify-center rounded-none border-0 p-0 hover:bg-transparent disabled:opacity-100 ${compact ? "" : "min-h-11 min-w-11"}`}
           >
-            <span className={`flex h-full w-full shrink-0 flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${shake === index ? "animate-shake" : ""} ${
-              isLifted
-                ? "border-primary bg-primary/10"
-                : tubeSorted(tube)
-                   ? "border-primary/60 bg-card"
-                  : "border-border bg-card"
+            <span className={`flask relative flex h-full w-full shrink-0 flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${shake === index ? "animate-shake" : ""} ${
+              isLifted ? "border-primary" : tubeSorted(tube) ? "border-primary/60" : ""
             }`}
               style={compact ? { maxWidth: 26 } : undefined}
             >
-            <span className={`flex w-full flex-col-reverse items-center justify-start ${compact ? "gap-[3px]" : "gap-1"}`}>
+              {tubeSorted(tube) && (
+                <span aria-label="Corked" className="pointer-events-none absolute -top-[7px] left-1/2 -translate-x-1/2">
+                  <span className="potion-cork block h-[9px] w-[60%] min-w-[10px] rounded-[3px]" style={{ background: "linear-gradient(180deg, var(--cork), var(--cork-dark))", width: compact ? 12 : 20 }} />
+                  {!compact && <span aria-hidden="true" className="potion-sparkle absolute -right-3 -top-2 text-xs text-primary">✦</span>}
+                </span>
+              )}
+            <span className="flex w-full flex-col-reverse items-stretch justify-start overflow-hidden rounded-b-[10px]">
               {tube.map((colour, ball) => {
                 const rising = isLifted && ball >= tube.length - liftCount;
+                const topLayer = ball === tube.length - 1;
                 return (
                   <span
                     key={ball}
-                     className={`shrink-0 rounded-full ${compact ? "" : "tubes-play-ball"}`}
+                    className={`potion-layer flex w-full shrink-0 items-center justify-center ${compact ? "" : "tubes-play-layer"}`}
                     style={{
-                       ...(compact ? { width: ballSize, height: ballSize } : {}),
+                      ...(compact ? { height: ballSize + 3 } : {}),
                       backgroundColor: ballColour(colour),
                       transform: rising ? "translateY(-4px)" : "none",
                       transition: "transform 150ms ease",
-                       boxShadow: rising ? "0 0 0 2px var(--primary)" : "none",
+                      boxShadow: rising ? "0 0 0 2px var(--primary)" : undefined,
                     }}
-                  />
+                  >
+                    {!compact && <span aria-hidden="true" className="text-[10px] leading-none opacity-30" style={{ color: "var(--guest-ink)" }}>{POTION_SYMBOLS[colour % POTION_SYMBOLS.length]}</span>}
+                    {!compact && topLayer && !tubeSorted(tube) && (
+                      <>
+                        <span aria-hidden="true" className="potion-bubble" style={{ left: "28%", animationDelay: `${(index * 0.37) % 2.6}s` }} />
+                        <span aria-hidden="true" className="potion-bubble" style={{ left: "64%", animationDelay: `${(index * 0.37 + 1.3) % 2.6}s` }} />
+                      </>
+                    )}
+                  </span>
                 );
               })}
             </span>
@@ -112,7 +126,7 @@ function IntroExample() {
         <Tubes tubes={tubes} lifted={2} compact />
       </div>
       <p className="text-xs text-muted-foreground">
-        Tube 3&apos;s top ball is lifted - pour it onto the empty tube or a matching colour. Each tube holds five balls. You have 90 seconds.
+        Flask 3&apos;s top layer is lifted - pour it into the empty flask or onto a matching colour. Each flask holds five layers; a full one-colour flask gets a cork. You have 90 seconds.
       </p>
     </div>
   );
@@ -232,8 +246,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       </p>
       <p className="text-center text-base text-muted-foreground">
         {myCorrect
-          ? "Keep one tube empty for as long as you can."
-          : `${mine.sorted} of ${TUBES_COLOURS} tubes finished.`}
+          ? "Keep one flask empty for as long as you can."
+          : `${mine.sorted} of ${TUBES_COLOURS} flasks corked.`}
       </p>
     </div>
   );
@@ -253,7 +267,7 @@ export const sortTubesPuzzle: PuzzleDefinition = {
       minMoves: 0,
     }) satisfies TubesPuzzleData,
   check: () => false,
-  revealHeading: "Your tubes",
+  revealHeading: "Your flasks",
   IntroExample,
   Stage,
   Reveal,
