@@ -180,7 +180,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         for (let n = seenHits; n < s.hits; n++) playSound("pz_clay_hit", 1, 1, true);
         seenHits = s.hits;
       }
-      const key = s.status.join("");
+      const key = `${s.status.join("")}:${s.birdHits ?? 0}`;
       if (key !== shownKey) {
         shownKey = key;
         setHud({ hits: s.hits, orangeHits: s.orangeHits, goldHits: s.goldHits, birdHits: s.birdHits ?? 0, status: [...s.status] });
@@ -297,6 +297,7 @@ export const clayShootPuzzle: PuzzleDefinition = {
   generate: () => ({ type: "clayshoot", seed: 1, clayRev: 2 }) satisfies ClayShootPuzzleData,
   check: () => false,
   revealHeading: "Your run",
+  introLine: () => "Don't shoot the birds — each one costs 10.",
   IntroExample,
   Stage,
   Reveal,

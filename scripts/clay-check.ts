@@ -112,6 +112,18 @@ for (let run = 0; run < Math.min(RUNS, 100); run++) {
   if (legacy.rev !== undefined || legacy.birds !== undefined || legacy.birdHits !== undefined) fail(`legacy ${run}: bird state leaked`);
   if (clayGameFor(undefined).score(legacy) !== 0) fail(`legacy ${run}: score changed`);
 }
+{
+  const game = clayGameFor(CLAY_REV);
+  let state = game.init(20261009);
+  while (!state.birdStatus?.some((status) => status === 1)) state = game.step(state, null);
+  const bird = state.birdStatus?.findIndex((status) => status === 1) ?? -1;
+  const before = game.score(state);
+  if (bird < 0) fail("bird hit fixture: no flying bird");
+  else {
+    state = game.step(state, { t: state.tick + 1, k: CLAY_INPUT_SHOT, a: Math.round((state.birdX?.[bird] ?? 0) / 256), b: Math.round((state.birdY?.[bird] ?? 0) / 256), c: 0, d: 0 });
+    if (state.birdHits !== 1 || state.birdStatus?.[bird] !== 2 || game.score(state) !== Math.max(0, before - 10)) fail("bird hit fixture: penalty/startle");
+  }
+}
 if (maxEarly > 1 || maxLate > 2) fail(`airborne limits ${maxEarly}/${maxLate}`);
 if (nearTop === 0 || Math.abs(left - right) > RUNS || left === 0 || right === 0) fail("trajectory variety missing");
 console.log(`clay self-replay ${RUNS}/${RUNS}; aiming bot ${perfectRuns}/${RUNS}; gold ${goldHits}/${RUNS * CLAY_CONFIG.goldClays}; slowest ${slowest.toFixed(1)}ms`);
