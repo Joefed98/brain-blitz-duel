@@ -894,7 +894,7 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
     const h = birds ? INK_BIRD_H_FP : undefined;
     const gravity = live ? INK_LIVE_GRAVITY : GRAVITY;
     const count = counts[sourceLevel]!;
-    const ink = live ? inkBudgetFor(i, INK_REV3) : inkBudget(sourceLevel);
+    const ink = inkBudgetFor(i, INK_REV3);
     let made: InkLevel | null = null;
     for (let attempt = 0; attempt < (live ? 48 : 120) && !made; attempt++) {
       const c = Math.max(1, count - Math.trunc(attempt / 20));
