@@ -42,8 +42,10 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
 
   const flashWrong = new Set<number>();
   for (let i = 0; i < state.status.length; i++) {
-    if (state.status[i] === WHACK_STATUS_WRONG && state.tick - state.doneTick[i]! < 12) {
-      flashWrong.add(state.schedule.hole[i]!);
+    const done = state.doneTick[i];
+    const hole = state.schedule.hole[i];
+    if (done !== undefined && hole !== undefined && state.status[i] === WHACK_STATUS_WRONG && state.tick - done < 12) {
+      flashWrong.add(hole);
     }
   }
 
@@ -60,9 +62,11 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
   const tick = state.tick;
   const r = cell * 0.3;
   for (let i = 0; i < state.next; i++) {
-    if (spawn[i]! > tick) continue;
-    if (state.status[i] === WHACK_STATUS_RETIRED && tick - state.doneTick[i]! >= 10) continue;
-    const { x, y } = origin(hole[i]!);
+    const spawnTick = spawn[i], doneTick = state.doneTick[i], targetHole = hole[i], targetKind = kind[i];
+    if (spawnTick === undefined || doneTick === undefined || targetHole === undefined || targetKind === undefined) continue;
+    if (spawnTick > tick) continue;
+    if (state.status[i] === WHACK_STATUS_RETIRED && tick - doneTick >= 10) continue;
+    const { x, y } = origin(targetHole);
     const cx = x + cellW / 2;
     const cy = y + cellH / 2;
     ctx.save();
@@ -70,14 +74,14 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
     ctx.roundRect(x, y, cellW, cellH, Math.min(14, cell * 0.18));
     ctx.clip();
     if (state.status[i] === WHACK_STATUS_UP) {
-      const grow = Math.min(1, (tick - spawn[i]! + 1) / 7);
-      drawTarget(ctx, cx, cy + (1 - grow) * cellH * 0.35, r * (0.4 + 0.6 * grow), kind[i]!);
+      const grow = Math.min(1, (tick - spawnTick + 1) / 7);
+      drawTarget(ctx, cx, cy + (1 - grow) * cellH * 0.35, r * (0.4 + 0.6 * grow), targetKind);
     } else if (state.status[i] === WHACK_STATUS_RETIRED) {
-      const fall = (tick - state.doneTick[i]!) / 10;
+      const fall = (tick - doneTick) / 10;
       ctx.globalAlpha = 1 - fall;
-      drawTarget(ctx, cx, cy + fall * cellH * 0.5, r * (1 - 0.3 * fall), kind[i]!);
+      drawTarget(ctx, cx, cy + fall * cellH * 0.5, r * (1 - 0.3 * fall), targetKind);
     } else if (state.status[i] === WHACK_STATUS_HIT) {
-      const age = tick - state.doneTick[i]!;
+      const age = tick - doneTick;
       if (age < 10) {
         ctx.globalAlpha = 1 - age / 10;
         ctx.strokeStyle = PALETTE.gold;
