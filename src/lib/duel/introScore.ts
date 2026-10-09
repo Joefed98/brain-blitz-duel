@@ -16,27 +16,27 @@ import { EQUATION_STAGE_POINTS, CHAIN_LENGTH, CHAIN_LINK_POINTS, CHAIN_FINISH_BO
 const COMPLETE = 130;
 const SPEED = 20;
 
-/** Standard: 130 + up to 20 for speed; flat points otherwise. */
+/** Standard: 130 + up to 20 for speed: the full 20 if you finish with at least half the time left; flat points otherwise. */
 const standard = (finish: string, notFinished: string) =>
-  `${finish}: ${COMPLETE} points, plus up to ${SPEED} more for finishing fast. Not finished: ${notFinished}.`;
+  `${finish}: ${COMPLETE} points, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left. Not finished: ${notFinished}.`;
 
-/** Fixed links with a completion-only speed bonus. */
+/** Fixed links with a completion-only speed bonus (the full bonus if you finish with at least half the time left). */
 const linkedFinish = (length: number, points: number, bonus: number) =>
-  `Complete all ${length} links: ${length * points} points, plus up to ${bonus} more for finishing fast. Not finished: ${points} per link, rounded down. A wrong or missed tap ends your run.`;
+  `Complete all ${length} links: ${length * points} points, plus up to ${bonus} for speed: the full ${bonus} if you finish with at least half the time left. Not finished: ${points} per link, rounded down. A wrong or missed tap ends your run.`;
 
 /** Standard staged: solved weights total 130, plus completion-only SPEED(20). */
 const standardStaged = (weights: readonly number[]) =>
-  `Stages score ${weights.join(" / ")} points. All ${weights.length} correct: ${weights.reduce((sum, n) => sum + n, 0)} points, plus up to ${SPEED} more for finishing fast. Not finished: add the points for stages solved.`;
+  `Stages score ${weights.join(" / ")} points. All ${weights.length} correct: ${weights.reduce((sum, n) => sum + n, 0)} points, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left. Not finished: add the points for stages solved.`;
 
 /** Fewest moves: 100 + moves points + speed points. */
 const fewestMoves = (finish: string, notFinished: string, shape: "B" | "C" = "B") => {
   const w = MOVES_SHAPE[shape];
-  return `${finish}: 100 points, plus up to ${w.moves} for using few moves and up to ${w.speed} for being quick. Not finished: ${notFinished}.`;
+  return `${finish}: 100 points, plus up to ${w.moves} for using few moves and up to ${w.speed} for speed: the full ${w.speed} if you finish with at least half the time left. Not finished: ${notFinished}.`;
 };
 
 /** Arcade with a finish state. */
 const arcadeFinish = (progress: string, finish: string) =>
-  `Points for ${progress}. ${finish} for ${COMPLETE}, plus up to ${SPEED} for getting there fast.`;
+  `Points for ${progress}. ${finish} for ${COMPLETE}, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left.`;
 
 /** Arcade open-ended. */
 const arcadeOpen = (counts: string, penalty?: string) =>
@@ -51,62 +51,62 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   // Word
   wordsmith: "Longer words score more: 8 letters earn 11 word points; 9-11 letters earn 15. Round down 2.5 × your word points, up to 150.",
   wordhunt: "Longer words score more. Your word points count double, up to 150.",
-  tilegrid: "Use all fifteen tiles in a valid grid: 130 points, plus up to 20 more for finishing fast. Not finished: 8 points for each tile inside a real word.",
-  wordslide: "Make all five rows words: 100 points, plus up to 30 for being quick and up to 20 for using few moves. Not finished: 22 points for each row that is a word.",
+  tilegrid: "Use all fifteen tiles in a valid grid: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Not finished: 8 points for each tile inside a real word.",
+  wordslide: "Make all five rows words: 100 points, plus up to 30 for speed: the full 30 if you finish with at least half the time left and up to 20 for using few moves. Not finished: 22 points for each row that is a word.",
   wordsearch: standard("Find all six words", "20 points for each word found"),
-  letterwheel: "Find every word: 130 points, plus up to 20 more for finishing fast. Not finished: 15 points a word, or 13 on nine-word puzzles.",
+  letterwheel: "Find every word: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Not finished: 15 points a word, or 13 on nine-word puzzles.",
   ladder: "Finish the ladder quickly for the most points. Getting close still scores.",
-  groups: "More groups means more points. Find all four for a speed bonus.",
+  groups: "More groups means more points. Find all four for a speed bonus (the full bonus if you finish with at least half the time left).",
   wordmatch: "Get all eight right: 100 points, plus more for being quick. Otherwise 13 points for each correct pair.",
 
   // Number
-  target: "Hit the target exactly: 130 points, plus up to 20 more for finishing fast. One off scores 120, and it drops faster the further away you are.",
+  target: "Hit the target exactly: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. One off scores 120, and it drops faster the further away you are.",
   equation: standardStaged(EQUATION_STAGE_POINTS),
-  balance: "Balance the three scales for 20, 40 and 60 points. Balance all three: 120 points, plus up to 30 more for finishing fast.",
-  numpyramid: "Each finished pyramid scores 30, and all four earn up to 30 more for finishing fast. The pyramid you're on scores for the bricks you've got right.",
+  balance: "Balance the three scales for 20, 40 and 60 points. Balance all three: 120 points, plus up to 30 for speed: the full 30 if you finish with at least half the time left.",
+  numpyramid: "Each finished pyramid scores 30, and all four earn up to 30 for speed: the full 30 if you finish with at least half the time left. The pyramid you're on scores for the bricks you've got right.",
   trail: standard("Complete the path", "5 for each tile in the right place") + " Wrong tiles cost nothing.",
   tendrop: "13 points for each target you hit. Clear all ten for up to 20 more for clearing them early.",
-  numseq: "Twenty points for each sequence. Get all five right for a speed bonus.",
+  numseq: "Twenty points for each sequence. Get all five right for a speed bonus (the full bonus if you finish with at least half the time left).",
   chaincalc: "Get it right quickly for the most points.",
-  pctsprint: "More correct answers means more points. Get all five for a speed bonus.",
-  sumhunt: "10 points for each stage. Clear the whole grid for a time bonus.",
+  pctsprint: "More correct answers means more points. Get all five for a speed bonus (the full bonus if you finish with at least half the time left).",
+  sumhunt: "10 points for each stage. Clear the whole grid for a time bonus (the full bonus if you finish with at least half the time left).",
   numclimb: "Each digit you recall in order raises your score.",
 
   // Attention
   reaction: "Average 200 ms or faster for 150 points; slower reactions score less. A miss counts as a very slow tap. Tapping too early: lose 8.",
   stopwatch: "Stop within 20 ms of the zone on average for 150 points; bigger misses score less. A watch you never stop counts as a big miss.",
-  numhunt: "Tap all 24 in order: 130 points, plus up to 20 more for finishing fast. Not finished: 5 points for each number. Wrong tap: lose 5.",
+  numhunt: "Tap all 24 in order: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Not finished: 5 points for each number. Wrong tap: lose 5.",
   chain: linkedFinish(CHAIN_LENGTH, CHAIN_LINK_POINTS, CHAIN_FINISH_BONUS),
   whack: "Points for the share of targets you hit, up to 135, plus 15 if you hit them all. Wrong colour or empty tap: lose 3. Hedgehog: lose 5.",
   clayshoot: "5 points for each orange clay and 10 for each gold one. Hit all 25 for 10 more.",
-  symscan: "The three grids are worth 30, 45 and 55 points, scored by how many eagles you find. Wrong tap: lose 3. Get all three perfect for up to 20 more for speed.",
-  countup: "The three trays are worth 30, 45 and 55 points; one off still earns some. Get all three exact for up to 20 more for speed.",
+  symscan: "The three grids are worth 30, 45 and 55 points, scored by how many eagles you find. Wrong tap: lose 3. Get all three perfect for up to 20 for speed: the full 20 if you finish with at least half the time left.",
+  countup: "The three trays are worth 30, 45 and 55 points; one off still earns some. Get all three exact for up to 20 for speed: the full 20 if you finish with at least half the time left.",
   spotdiff: standard("Find all six differences", "20 points for each difference found"),
   pairmatch: standard("Find all fifteen pairs", "8 points for each pair found"),
   maze: standard("Reach the exit", "points for how far along the route you got"),
   intruder: standard("Get all five boards right", "24 points for each board right, or 12 for half of one"),
   stroop: `${arcadeFinish(`the share of the ${CLASH_QUEUE} words you sort correctly, rounded to the nearest whole point`, `Sort all ${CLASH_QUEUE}`)} Wrong gate: lose 2.`,
   sortrush: "Points for the share you sort correctly. Wrong gate: lose 2.",
-  gonogo: "More correct choices means more points. A perfect run earns a speed bonus.",
+  gonogo: "More correct choices means more points. A perfect run earns a speed bonus (the full bonus if you finish with at least half the time left).",
   sequence: "Repeat the whole sequence quickly for the most points.",
   reverse: "Repeat the whole sequence quickly for the most points.",
   spatial: "Find every tile quickly for the most points.",
-  spin: "More correct answers means more points. A perfect run earns a speed bonus.",
-  mirmatch: "More correct answers means more points. Get all five for a speed bonus.",
-  patcomp: "Each correct pattern scores. Get all three for a speed bonus.",
+  spin: "More correct answers means more points. A perfect run earns a speed bonus (the full bonus if you finish with at least half the time left).",
+  mirmatch: "More correct answers means more points. Get all five for a speed bonus (the full bonus if you finish with at least half the time left).",
+  patcomp: "Each correct pattern scores. Get all three for a speed bonus (the full bonus if you finish with at least half the time left).",
 
   // Logic and pattern
   unblock: fewestMoves("Free the gold block", "up to 70 points for clearing its lane"),
   lightsout: fewestMoves("Turn every light off", "up to 85 points if only a few lights are left on"),
   pipes: standard("Connect every pipe", "points for how many tiles are connected"),
   sudoku: standard("Fill the grid", "points for each correct cell, up to 110"),
-  flow: "Connect every pair: 130 points, plus up to 20 more for finishing fast. Run out of time: 10 points for each pair you connected.",
+  flow: "Connect every pair: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Run out of time: 10 points for each pair you connected.",
   iceslide: fewestMoves("Reach the exit", "up to 90 points for how close you got"),
   push: fewestMoves("Get every crate home", "points for each crate on a floor marking, up to 110"),
-  laser: "Light every gem on your first shot: 130 points, plus up to 20 more for finishing fast. Second shot 115, third 100. Not finished: 15 points for each gem lit.",
+  laser: "Light every gem on your first shot: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Second shot 115, third 100. Not finished: 15 points for each gem lit.",
   tower: fewestMoves("Move the whole tower", "points for each ring in place from the bottom, up to 110"),
   tubes: fewestMoves("Cork every flask", "22 points for each corked flask, up to 110"),
-  safe: "Open the safe on your first try: 130 points, plus up to 20 more for finishing fast. Second try 115, third 100. Not opened: 15 points for each dial right.",
+  safe: "Open the safe on your first try: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Second try 115, third 100. Not opened: 15 points for each dial right.",
   bomb: standard("Defuse the bomb", "25 points for each correct step before a strike"),
   gravity: fewestMoves("Park all four balls", "30 points for each ball on its target"),
   nonogram: standard("Complete the picture", "points for each correct cell, up to 110. Wrong cell: lose 5"),
@@ -118,7 +118,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   lightup: standard("Light every cell", "points for each lit cell, up to 110. Clashing bulbs: lose 5"),
   tents: standard("Place every tent", "10 points for each correct tent, up to 110"),
   stroke: "Finish on your first try for a bonus.",
-  dig: "Fill the drain with clean water: 100 points plus a time bonus, and 20 more if you stay within the planned digs. Otherwise points for clean water drained.",
+  dig: "Fill the drain with clean water: 100 points plus a time bonus (the full bonus if you finish with at least half the time left), and 20 more if you stay within the planned digs. Otherwise points for clean water drained.",
 
   // Arcade
   hover: arcadeOpen("each barrier gap you fly through; all of them scores 150"),
