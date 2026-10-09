@@ -37,7 +37,7 @@ const dropSets = new Set<string>();
 if (BT_BALLS !== 30 || 1 + (BT_BALLS - 1) * BT_DROP_TICKS !== 2988 || BT_DROP_TICKS !== 103 || BT_STEP_TICKS !== 16 || BT_ROWS !== 9 || BT_COLS !== 7 || BT_RUN_TICKS !== 3600) fail("Pace constants");
 for (let home = 0; home <= BT_BALLS; home++) for (let wrong = 0; wrong <= BT_BALLS - home; wrong++) {
   if (btScoreOf(home, wrong) !== (home >= BT_BALLS ? 130 + btSpeedBonus(home, BT_RUN_TICKS) : Math.round(130 * home / BT_BALLS))) fail("Scoring formula");
-if (btSpeedBonus(BT_BALLS, 0) !== 20 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS / 2) !== 10 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS) !== 0 || btSpeedBonus(BT_BALLS - 1, 0) !== 0) fail("Speed bonus");
+if (btSpeedBonus(BT_BALLS, 0) !== 20 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS / 2) !== 20 || btSpeedBonus(BT_BALLS, (3 * BT_RUN_TICKS) / 4) !== 10 || btSpeedBonus(BT_BALLS, BT_RUN_TICKS) !== 0 || btSpeedBonus(BT_BALLS - 1, 0) !== 0) fail("Speed bonus");
 }
 BALL_TRACK_BANK.forEach((entry, i) => {
   const c = entry.course;
