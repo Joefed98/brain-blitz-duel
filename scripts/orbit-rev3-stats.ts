@@ -60,13 +60,13 @@ function findHopTapDelayGeneric<S extends HopBotState>(
   for (let k = 0; k <= maxK; k++) {
     let branch = step(walk, { t: walk.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 });
     let success = false;
-    if (branch.ended === 0) {
+    if (branch.ended === 0 || branch.finished === 1) {
       let guard = 0;
       while (branch.flying > 0 && branch.ended === 0 && guard < flightMax + 5) {
         branch = step(branch, null);
         guard++;
       }
-      success = branch.ended === 0 && branch.cur > startCur;
+      success = (branch.ended === 0 || branch.finished === 1) && branch.cur > startCur;
     }
     ok.push(success);
     if (k < maxK) walk = step(walk, null);
