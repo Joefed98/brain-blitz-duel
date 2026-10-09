@@ -154,7 +154,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   }, [now, phaseStartedAt, locked, data, encoded, onSubmit, solved]);
 
   if (!data) return null;
-  const scale = scales[current]!;
+  const scale = scales[current];
+  if (!scale) return null;
   const placement = placements[current] ?? scale.tray.map(() => null);
   const frozen = locked || submitted.current || holding;
 
