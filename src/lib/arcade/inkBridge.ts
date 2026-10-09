@@ -82,6 +82,9 @@ const INK_LIVE_FROM = 8;
 export const INK_LIVE_GRAVITY = 54;
 /** Shared ink budget multiplier on live levels (pre-release line + live strokes), ×256. */
 const INK_LIVE_BUDGET_256 = 384;
+/** Pre-release line ink cap on live levels, px: short enough that it alone usually strands the
+ * ball well short of the bucket, so the mid-fall live stroke genuinely does the rescuing. */
+const INK_LIVE_PRE_CAP = 170;
 /** No-draw zone radius around the ball's current position on live levels: one coin diameter. */
 export const INK_NO_DRAW_ZONE_PX = BALL_R * 2;
 /** Up to this many live strokes may be lifted (committed) per drop. */
@@ -165,9 +168,14 @@ export interface InkLevel {
   slideAmp: number;
   slidePeriod: number;
   slidePhase: number;
-  /** Reference solution: strokes as flat [x, y, x, y …] point lists, and a release tick that lands it. */
+  /** Reference solution: strokes as flat [x, y, x, y …] point lists, and a release tick that lands it.
+   * Live levels only: this is the *pre-release* line (one stroke). */
   ref: number[][];
   refT0: number;
+  /** Live levels only: up to two live strokes completing the route, each fired as
+   * STROKE(down)/STROKE(point)/LIFT starting at `tick` ticks after release (LIFT lands on
+   * `tick + 2`, i.e. the stroke is committed two ticks after the first point is drawn). */
+  liveRef?: { tick: number; pts: number[] }[];
 }
 
 export interface InkBall {
@@ -671,6 +679,157 @@ function landsUnaided(lvl: InkLevel, gravity = GRAVITY): boolean {
   return landingRelease(lvl, [], gravity) >= 0;
 }
 
+/** Runs a drop whose line set changes mid-flight: `stages` is sorted by tick, stages[0].tick === 0. */
+function simulateStaged(lvl: InkLevel, stages: { tick: number; segs: readonly InkSeg[] }[], gravity = GRAVITY): number {
+  const ball = spoutBall(lvl);
+  let segs = stages[0]?.segs ?? [];
+  let si = 1;
+  for (let t = 0; t < DROP_MAX; t++) {
+    const tick = t + 1;
+    while (si < stages.length && stages[si]!.tick <= tick) {
+      segs = stages[si]!.segs;
+      si++;
+    }
+    const r = moveBall(ball, segs, lvl, tick, gravity);
+    if (r) return r;
+  }
+  return 2;
+}
+
+/** Ball trace (position + which line it is on, if any) tick by tick for a fixed line set. */
+function traceDrop(
+  lvl: InkLevel,
+  segs: readonly InkSeg[],
+  gravity = GRAVITY,
+): { x: number; y: number; on: number }[] {
+  const ball = spoutBall(lvl);
+  const trace: { x: number; y: number; on: number }[] = [{ x: ball.x, y: ball.y, on: ball.on }];
+  for (let t = 0; t < DROP_MAX; t++) {
+    const r = moveBall(ball, segs, lvl, t + 1, gravity);
+    trace.push({ x: ball.x, y: ball.y, on: ball.on });
+    if (r) break;
+  }
+  return trace;
+}
+
+/**
+ * Live-level reference: a pre-release line (one stroke, from the spout to a waypoint) that by
+ * itself should usually fail, plus one live stroke (waypoint to the bucket) drawn and lifted
+ * once the ball has rolled off the pre-release line, respecting the no-draw zone at every tick
+ * the stroke is drawn. Prefers candidates where the pre-release line alone does NOT win.
+ */
+function findLiveReference(
+  lvl: InkLevel,
+  ink: number,
+  gravity: number,
+): { ref: number[][]; t0: number; liveRef: { tick: number; pts: number[] }[]; preAlone: boolean } | null {
+  const dir = lvl.bucketX > lvl.spoutX ? 1 : -1;
+  const sx = lvl.spoutX - dir * 24;
+  const sy = SPOUT_Y + 28;
+  const ends: number[] = [];
+  for (const off of [0, -12, 12, -24, 24, -36, 36, -48]) ends.push(lvl.bucketX - dir * off);
+  const lifts = [14, 26, 44, 70];
+  // Waypoints stay in the top half of the fall and close to the spout column: the
+  // pre-release line alone should strand the ball well short of the bucket, so landing
+  // takes a genuine mid-fall correction (not just a longer single line).
+  const way: (readonly [number, number])[] = [];
+  for (const fy of [20, 32, 44])
+    for (const fx of [-36, -16, 16, 36, 60])
+      way.push([lvl.spoutX + dir * fx, sy + Math.trunc(((lvl.bucketY - sy) * fy) / 100)]);
+  const zone = INK_NO_DRAW_ZONE_PX + 2;
+  let fallback: ReturnType<typeof findLiveReference> = null;
+  for (const w of way) {
+    if (w[0] < 4 || w[0] > INK_WORLD_W - 4) continue;
+    const ref1 = [[sx, sy, w[0], w[1]]];
+    // Cap the pre-release line's own ink well below the full live budget: the line
+    // must stop short of the bucket on its own, so it genuinely needs the live stroke.
+    const pen1 = strokeSegs(ref1, Math.min(ink, INK_LIVE_PRE_CAP));
+    if (pen1.penDown !== 1) continue; // the pre-release line must fit fully within its cap
+    const used1 = pen1.segs.reduce((sum, seg) => sum + seg.len, 0) * FP;
+    const remaining = ink * FP - used1; // full live budget minus the capped pre-release line
+    if (remaining < FP * 8) continue;
+    const trace = traceDrop(lvl, pen1.segs, gravity);
+    let drawTick = -1;
+    for (let t = 1; t < trace.length; t++) {
+      if (trace[t - 1]!.on === 0 && trace[t]!.on === -1) {
+        drawTick = t + 2;
+        break;
+      }
+    }
+    if (drawTick < 0 || drawTick + 2 >= trace.length - 1) continue;
+    for (const lift of lifts) {
+      for (const ex of ends) {
+        const ey = lvl.bucketY - lift;
+        if (w[1] >= ey - 10) continue;
+        const ref2 = [[w[0], w[1], ex, ey]];
+        const pen2 = strokeSegs(ref2, Math.trunc(remaining / FP));
+        if (pen2.penDown !== 1) continue;
+        let safe = true;
+        // Real step() checks the no-draw zone against the ball position *before* that
+        // tick's physics update runs: the STROKE(down) event at physics tick `drawTick`
+        // sees the position after tick drawTick-1, and STROKE(point) at drawTick+1 sees
+        // the position after tick drawTick. Mirror that here (checked against both
+        // endpoints, with one extra tick of margin either side).
+        for (const tt of [drawTick - 1, drawTick, drawTick + 1]) {
+          const p = trace[Math.max(0, Math.min(tt, trace.length - 1))]!;
+          if (Math.hypot(p.x / FP - w[0], p.y / FP - w[1]) < zone) safe = false;
+          if (Math.hypot(p.x / FP - ex, p.y / FP - ey) < zone) safe = false;
+        }
+        if (!safe) continue;
+        const actTick = drawTick + 2;
+        const result = simulateStaged(
+          lvl,
+          [
+            { tick: 0, segs: pen1.segs },
+            { tick: actTick, segs: [...pen1.segs, ...pen2.segs] },
+          ],
+          gravity,
+        );
+        if (result !== 1) continue;
+        const preAlone = simulateDrop(lvl, pen1.segs, 0, gravity) === 1;
+        const candidate = { ref: ref1, t0: 0, liveRef: [{ tick: drawTick, pts: ref2[0]! }], preAlone };
+        if (!preAlone) return candidate;
+        if (!fallback) fallback = candidate;
+      }
+    }
+  }
+  return fallback;
+}
+
+/** Test hook: does the live reference (pre-release + live strokes) land, and does the
+ * pre-release line alone also land (reported as a share across seeds)? */
+export function inkLiveReferenceCheck(seed: number): { ok: number; preAloneWins: number; liveLevels: number } {
+  const { list } = buildLevels(seed, INK_REV3);
+  let ok = 0,
+    preAloneWins = 0,
+    liveLevels = 0;
+  list.forEach((lvl, i) => {
+    if (!inkIsLive(i, INK_REV3)) return;
+    liveLevels++;
+    const gravity = INK_LIVE_GRAVITY;
+    const budget = inkBudgetFor(i, INK_REV3);
+    const pen1 = strokeSegs(lvl.ref, budget);
+    const preAlone = pen1.penDown === 1 && simulateDrop(lvl, pen1.segs, lvl.refT0, gravity) === 1;
+    if (preAlone) preAloneWins++;
+    let segs: InkSeg[] = pen1.segs;
+    let usedInk = pen1.segs.reduce((sum, seg) => sum + seg.len, 0) * FP;
+    let fits = pen1.penDown === 1;
+    const stages: { tick: number; segs: readonly InkSeg[] }[] = [{ tick: 0, segs }];
+    for (const ev of lvl.liveRef ?? []) {
+      const pen2 = strokeSegs([ev.pts], Math.trunc((budget * FP - usedInk) / FP));
+      if (pen2.penDown !== 1) {
+        fits = false;
+        break;
+      }
+      segs = [...segs, ...pen2.segs];
+      usedInk += pen2.segs.reduce((sum, seg) => sum + seg.len, 0) * FP;
+      stages.push({ tick: ev.tick + 2, segs });
+    }
+    if (fits && simulateStaged(lvl, stages, gravity) === 1 && !landsUnaided(lvl, gravity)) ok++;
+  });
+  return { ok, preAloneWins, liveLevels };
+}
+
 /** Rev-3 level plan: 1–4 reuse old levels 3–6 stationary, 5–8 reuse old levels 7–10
  * (inkRev2 bird counts) with a forced moving pot, 9–10 are new live levels (stationary,
  * gentler gravity, hardest block count, shared live ink budget). */
@@ -708,10 +867,29 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
     let made: InkLevel | null = null;
     for (let attempt = 0; attempt < 120 && !made; attempt++) {
       const c = Math.max(1, count - Math.trunc(attempt / 20));
-      const lvl = layout(sourceLevel, c, draw, h, forceSlide);
+      let lvl = layout(sourceLevel, c, draw, h, forceSlide);
+      if (live) {
+        // A shield block straddling the spout column, between the pre-release
+        // waypoints (within ±60 px of the spout) and the bucket: a pre-release line
+        // alone sends the ball on a course that this shield intercepts, so reaching
+        // the bucket genuinely needs the live stroke to route around it.
+        const shieldY = SPOUT_Y + 28 + Math.trunc(((lvl.bucketY - (SPOUT_Y + 28)) * 60) / 100);
+        const shield: InkBlock = {
+          x0: Math.max(0, lvl.spoutX - 70),
+          x1: Math.min(INK_WORLD_W, lvl.spoutX + 70),
+          y: shieldY,
+          ...(h ? { h } : {}),
+        };
+        if (!lvl.blocks.some((o) => blockOverlaps(o, shield))) lvl.blocks = [...lvl.blocks, shield];
+      }
       if (landsUnaided(lvl, gravity)) continue;
-      const found = findReference(lvl, ink, gravity);
-      if (found) made = { ...lvl, ref: found.ref, refT0: found.t0 };
+      if (live) {
+        const found = findLiveReference(lvl, ink, gravity);
+        if (found) made = { ...lvl, ref: found.ref, refT0: found.t0, liveRef: found.liveRef };
+      } else {
+        const found = findReference(lvl, ink, gravity);
+        if (found) made = { ...lvl, ref: found.ref, refT0: found.t0 };
+      }
     }
     if (!made) {
       const spoutX = 120;
@@ -849,9 +1027,16 @@ export function inkReferenceCheck(seed: number, rev?: number): {
   let ok = 0;
   const ink: number[] = [];
   list.forEach((lvl, i) => {
-    const pen = strokeSegs(lvl.ref, inkBudget(i));
+    const live = inkIsLive(i, rev);
+    const gravity = live ? INK_LIVE_GRAVITY : GRAVITY;
+    const budget = inkBudgetFor(i, rev);
+    const pen = strokeSegs(lvl.ref, budget);
     ink.push(pen.segs.reduce((sum, seg) => sum + seg.len, 0));
-    if (pen.penDown === 1 && simulateDrop(lvl, pen.segs, lvl.refT0) === 1 && !landsUnaided(lvl))
+    if (
+      pen.penDown === 1 &&
+      simulateDrop(lvl, pen.segs, lvl.refT0, gravity) === 1 &&
+      !landsUnaided(lvl, gravity)
+    )
       ok++;
   });
   return { ok, blocks: list.map((l) => l.blocks.length), ink, slides: list.map((l) => l.slideAmp) };
@@ -921,7 +1106,7 @@ function initWith(seed: number, rev?: number): InkState {
     penX: 0,
     penY: 0,
     penDown: 0,
-    ink: inkBudget(0) * FP,
+    ink: inkBudgetFor(0, rev) * FP,
     dropping: 0,
     ball: spoutBall(plan.list[0]!),
     dropTicks: 0,
@@ -949,7 +1134,7 @@ function resetLevel(s: InkState): void {
   s.segs = [];
   s.strokeStarts = [];
   s.penDown = 0;
-  s.ink = inkBudget(s.level) * FP;
+  s.ink = inkBudgetFor(s.level, s.rev) * FP;
   s.dropping = 0;
   s.ball = spoutBall(s.list[s.level]!);
   s.dropTicks = 0;
@@ -1246,6 +1431,40 @@ function draw(ctx: CanvasRenderingContext2D, state: InkState, size: CanvasSize):
   ctx.arc(state.ball.x / FP, state.ball.y / FP, BALL_R, 0, Math.PI * 2);
   ctx.fill();
 
+  // Live levels while dropping: faded, non-solid draft strokes (clipped off any birds) and a
+  // no-draw ring where the next draft point would be rejected.
+  if (inkIsLive(state.level, state.rev) && state.dropping) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, INK_WORLD_W, INK_WORLD_H);
+    for (const b of lvl.blocks) if (b.h) ctx.rect(b.x0, b.y, b.x1 - b.x0, inkBlockH(b));
+    ctx.clip("evenodd");
+    ctx.strokeStyle = INK_GOLD;
+    ctx.lineCap = "round";
+    ctx.setLineDash([6, 6]);
+    ctx.globalAlpha = 0.35;
+    ctx.lineWidth = 4;
+    for (const seg of state.draftSegs) {
+      ctx.beginPath();
+      ctx.moveTo(seg.x0, seg.y0);
+      ctx.lineTo(seg.x1, seg.y1);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.setLineDash([3, 4]);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(state.ball.x / FP, state.ball.y / FP, INK_NO_DRAW_ZONE_PX, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
   if (state.failedBall && tick - state.flashTick < 30 && state.flashKind === 2) {
     ctx.save();
     ctx.globalAlpha = 1 - (tick - state.flashTick) / 30;
@@ -1301,6 +1520,9 @@ export const inkBridgeGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
 
 /** Birds revision: thicker obstacles, fewer on levels 6–10. */
 export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV) };
+/** Rainbow Bridge revision 3: reused levels plus the two live levels at the end. */
+export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
 export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  if (rev === INK_REV3) return inkBridgeInkRev3Game;
   return rev === INK_REV ? inkBridgeBirdsGame : inkBridgeGame;
 }

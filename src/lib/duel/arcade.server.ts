@@ -1,4 +1,4 @@
-import { INK_REV } from "@/lib/arcade/inkBridge";
+import { INK_REV3, INK_REV } from "@/lib/arcade/inkBridge";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
@@ -161,7 +161,7 @@ export function generateJunction(): JunctionPuzzleData {
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV };
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV /* INK_REV3 pending live-round proof */ };
 }
 
 export function generateBurst(): BurstPuzzleData {

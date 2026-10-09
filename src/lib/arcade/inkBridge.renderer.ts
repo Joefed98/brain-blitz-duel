@@ -1,7 +1,7 @@
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import { sceneryTexture, grassTexture } from "./sceneryTexture.renderer";
 import type { CanvasSize } from './engine';
-import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
+import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkIsLive, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_NO_DRAW_ZONE_PX, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { COUNTRY_SKY as SKY, COUNTRY_GRASS as GRASS, countryCloud as cloud, countryStamp, drawCountryside, drawCountryGround } from './countryside.renderer';
 
@@ -150,6 +150,19 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
     for(let i=1;i<trail.length;i++){const a=trail[i-1],b=trail[i];if(!a||!b)continue;c.globalAlpha=i/trail.length*0.35;c.beginPath();c.moveTo(a.x/FP,a.y/FP);c.lineTo(b.x/FP,b.y/FP);c.stroke();}c.globalAlpha=1;
   }
   stamp(c,'coin',BALL_R*2,BALL_R*2,state.ball.x/FP-BALL_R,state.ball.y/FP-BALL_R,coin);
+  // Live levels while dropping: faded, non-solid draft strokes (clipped off any birds) and a
+  // no-draw ring where the next draft point would be rejected.
+  if (inkIsLive(state.level,state.rev)&&state.dropping) {
+    c.save();c.beginPath();c.rect(0,0,INK_WORLD_W,INK_WORLD_H);
+    for(const b of lvl.blocks) if(b.h) c.rect(b.x0,b.y,b.x1-b.x0,inkBlockH(b));
+    c.clip('evenodd');
+    c.strokeStyle=GOLD;c.lineCap='round';c.setLineDash([6,6]);c.globalAlpha=0.35;c.lineWidth=4;
+    for(const seg of state.draftSegs){c.beginPath();c.moveTo(seg.x0,seg.y0);c.lineTo(seg.x1,seg.y1);c.stroke();}
+    c.setLineDash([]);c.globalAlpha=1;c.restore();
+    c.save();c.strokeStyle='rgba(255,255,255,0.55)';c.setLineDash([3,4]);c.lineWidth=1.5;
+    c.beginPath();c.arc(state.ball.x/FP,state.ball.y/FP,INK_NO_DRAW_ZONE_PX,0,Math.PI*2);c.stroke();
+    c.setLineDash([]);c.restore();
+  }
   const age=state.tick-state.flashTick;
   if(state.flashKind===2&&state.failedBall&&age<20) {
     c.globalAlpha=1-age/20;stamp(c,'coin',14,14,state.failedBall.x/FP-7,state.failedBall.y/FP-7,coin);

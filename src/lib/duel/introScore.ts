@@ -136,7 +136,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   wavefront: "Points for ships, armour hits, saucers and waves cleared. Clear all five waves perfectly for 150.",
   flip: "The longer you last, the more you score. Survive the full minute for 150.",
   junction: arcadeTraffic(2, 4),
-  inkbridge: arcadeFinish("each level you finish", "Finish all ten"),
+  inkbridge: "11 points per level. Finish all ten for 130, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Rounds 1-4 are standard, 5-8 have moving pots, and 9-10 are live!",
   burst: "Points for each atom you destroy or split. Losing a life costs 9. Clear four waves without losing a life for 150.",
   orbit: arcadeFinish("each planet you reach", "Reach the sun"),
   snip: arcadeFinish("each apple you collect, with extra for each leaf", "Collect all ten apples"),
