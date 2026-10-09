@@ -82,6 +82,9 @@ const INK_LIVE_FROM = 8;
 export const INK_LIVE_GRAVITY = 54;
 /** Shared ink budget multiplier on live levels (pre-release line + live strokes), ×256. */
 const INK_LIVE_BUDGET_256 = 384;
+/** Pre-release line ink cap on live levels, px: short enough that it alone usually strands the
+ * ball well short of the bucket, so the mid-fall live stroke genuinely does the rescuing. */
+const INK_LIVE_PRE_CAP = 170;
 /** No-draw zone radius around the ball's current position on live levels: one coin diameter. */
 export const INK_NO_DRAW_ZONE_PX = BALL_R * 2;
 /** Up to this many live strokes may be lifted (committed) per drop. */
@@ -726,19 +729,24 @@ function findLiveReference(
   const ends: number[] = [];
   for (const off of [0, -12, 12, -24, 24, -36, 36, -48]) ends.push(lvl.bucketX - dir * off);
   const lifts = [14, 26, 44, 70];
+  // Waypoints stay in the top half of the fall and close to the spout column: the
+  // pre-release line alone should strand the ball well short of the bucket, so landing
+  // takes a genuine mid-fall correction (not just a longer single line).
   const way: (readonly [number, number])[] = [];
-  for (const fy of [25, 45, 65])
-    for (const fx of [-60, -20, 20, 60, 110])
+  for (const fy of [20, 32, 44])
+    for (const fx of [-36, -16, 16, 36, 60])
       way.push([lvl.spoutX + dir * fx, sy + Math.trunc(((lvl.bucketY - sy) * fy) / 100)]);
   const zone = INK_NO_DRAW_ZONE_PX + 2;
   let fallback: ReturnType<typeof findLiveReference> = null;
   for (const w of way) {
     if (w[0] < 4 || w[0] > INK_WORLD_W - 4) continue;
     const ref1 = [[sx, sy, w[0], w[1]]];
-    const pen1 = strokeSegs(ref1, ink);
-    if (pen1.penDown !== 1) continue; // the pre-release line must fit fully within budget
+    // Cap the pre-release line's own ink well below the full live budget: the line
+    // must stop short of the bucket on its own, so it genuinely needs the live stroke.
+    const pen1 = strokeSegs(ref1, Math.min(ink, INK_LIVE_PRE_CAP));
+    if (pen1.penDown !== 1) continue; // the pre-release line must fit fully within its cap
     const used1 = pen1.segs.reduce((sum, seg) => sum + seg.len, 0) * FP;
-    const remaining = ink * FP - used1;
+    const remaining = ink * FP - used1; // full live budget minus the capped pre-release line
     if (remaining < FP * 8) continue;
     const trace = traceDrop(lvl, pen1.segs, gravity);
     let drawTick = -1;
@@ -859,7 +867,21 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
     let made: InkLevel | null = null;
     for (let attempt = 0; attempt < 120 && !made; attempt++) {
       const c = Math.max(1, count - Math.trunc(attempt / 20));
-      const lvl = layout(sourceLevel, c, draw, h, forceSlide);
+      let lvl = layout(sourceLevel, c, draw, h, forceSlide);
+      if (live) {
+        // A shield block straddling the spout column, between the pre-release
+        // waypoints (within ±60 px of the spout) and the bucket: a pre-release line
+        // alone sends the ball on a course that this shield intercepts, so reaching
+        // the bucket genuinely needs the live stroke to route around it.
+        const shieldY = SPOUT_Y + 28 + Math.trunc(((lvl.bucketY - (SPOUT_Y + 28)) * 60) / 100);
+        const shield: InkBlock = {
+          x0: Math.max(0, lvl.spoutX - 70),
+          x1: Math.min(INK_WORLD_W, lvl.spoutX + 70),
+          y: shieldY,
+          ...(h ? { h } : {}),
+        };
+        if (!lvl.blocks.some((o) => blockOverlaps(o, shield))) lvl.blocks = [...lvl.blocks, shield];
+      }
       if (landsUnaided(lvl, gravity)) continue;
       if (live) {
         const found = findLiveReference(lvl, ink, gravity);
