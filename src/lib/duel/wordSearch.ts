@@ -5,6 +5,7 @@
  * forwards or backwards. The client's idea of which words it found is never used.
  */
 
+import { speedBonusCurve } from "./speedPar";
 import type { WordSearchPlacement } from "./types";
 
 export const WS_SIZE = 10;
@@ -120,7 +121,7 @@ export function scoreWordSearch(
 ): number {
   if (found >= total && total > 0) {
     const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
-    return Math.min(150, 130 + (timeLimitMs > 0 ? Math.round((20 * ms) / timeLimitMs) : 0));
+    return Math.min(150, 130 + (timeLimitMs > 0 ? speedBonusCurve(20, ms, timeLimitMs) : 0));
   }
   return Math.min(120, 20 * Math.max(0, found));
 }

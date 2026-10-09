@@ -5,6 +5,7 @@
  * the same timed tap list through replayChain.
  */
 
+import { speedBonusCurve } from "./speedPar";
 import {
   CHAIN_BLOCK,
   CHAIN_CYCLE,
@@ -73,7 +74,7 @@ export function chainScore(links: number, msRemaining = 0, puzzle?: ChainPuzzleD
   const rules = chainRules(puzzle);
   const count = Math.max(0, Math.min(rules.length, Math.floor(links)));
   const bonus = count === rules.length
-    ? Math.round(rules.bonus * Math.max(0, Math.min(CHAIN_TIME_MS, msRemaining)) / CHAIN_TIME_MS) : 0;
+    ? speedBonusCurve(rules.bonus, msRemaining, CHAIN_TIME_MS) : 0;
   return Math.min(150, Math.floor(rules.points * count) + bonus);
 }
 

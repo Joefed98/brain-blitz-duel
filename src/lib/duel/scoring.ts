@@ -1,3 +1,4 @@
+import { speedBonusCurve } from "./speedPar";
 import { chainScore } from "./chain";
 import type { ChainPuzzleData } from "./types";
 import {
@@ -92,7 +93,7 @@ function clamp(value: number, min: number, max: number): number {
 export function speedBonus(msRemaining: number, timeLimitMs: number = ROUND_MS): number {
   const limit = timeLimitMs > 0 ? timeLimitMs : ROUND_MS;
   const clamped = clamp(msRemaining, 0, limit);
-  return Math.round((MAX_SPEED_BONUS * clamped) / limit);
+  return speedBonusCurve(MAX_SPEED_BONUS, clamped, limit);
 }
 
 /** 0–50 from an average reaction time: 50 at 150 ms, 0 at 650 ms or slower. */
@@ -159,7 +160,7 @@ export function scoreTargetNumber(
   const d = Math.max(0, Math.round(distance));
   if (d === 0) {
     const limit = timeLimitMs > 0 ? timeLimitMs : ROUND_MS;
-    return Math.min(MAX_ROUND_SCORE, 130 + Math.round((20 * clamp(msRemaining, 0, limit)) / limit));
+    return Math.min(MAX_ROUND_SCORE, 130 + speedBonusCurve(20, msRemaining, limit));
   }
   if (d <= 10) return 120 - ((d - 1) * (d + 2)) / 2;
   return Math.max(0, Math.round(66 - 0.6 * (d - 10)));
@@ -317,7 +318,7 @@ export function scoreNumberHunt(
   const limit = timeLimitMs > 0 ? timeLimitMs : NUMHUNT_TIME_MS;
   const penalty = NUMHUNT_ERROR_PENALTY * Math.max(0, errors);
   if (finished) {
-    const bonus = Math.round((20 * clamp(msRemaining, 0, limit)) / limit);
+    const bonus = speedBonusCurve(20, msRemaining, limit);
     return clamp(130 + bonus - penalty, 0, MAX_ROUND_SCORE);
   }
   const count = clamp(Math.round(reached), 0, Math.max(1, total));
@@ -509,7 +510,7 @@ export function scoreWordsmith(points: number): number {
 /** Word-category completion bonus: round(max × ms_remaining ÷ registry limit). */
 export function wordSpeedBonus(msRemaining: number, timeLimitMs: number, max = 20): number {
   if (!(timeLimitMs > 0)) return 0;
-  return Math.round((max * clamp(msRemaining, 0, timeLimitMs)) / timeLimitMs);
+  return speedBonusCurve(max, msRemaining, timeLimitMs);
 }
 
 /** Word Slide: all five rows = 100 + SPEED(30) + MOVES(20, moves, par); otherwise 22 per valid row. */
@@ -565,7 +566,7 @@ export function scoreBlockParty(
 /** SPEED(P) = round(P × ms_remaining ÷ registry time limit). */
 export function speedPoints(points: number, msRemaining: number, timeLimitMs: number): number {
   if (!(timeLimitMs > 0)) return 0;
-  return Math.round((points * clamp(msRemaining, 0, timeLimitMs)) / timeLimitMs);
+  return speedBonusCurve(points, msRemaining, timeLimitMs);
 }
 
 /** MOVES(B, m, min) = round(B × clamp(1 − (m − min) ÷ min, 0, 1)). */

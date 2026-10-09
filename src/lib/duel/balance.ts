@@ -4,6 +4,7 @@
  * answer lists, per scale, the peg each tray weight sits on ("-" for the tray).
  */
 
+import { speedBonusCurve } from "./speedPar";
 import type { BalanceScale } from "./types";
 
 export const BAL_PEGS = 8;
@@ -92,7 +93,7 @@ export function balanceRoundScore(solved: number, msRemaining: number, timeLimit
   const n = Math.max(0, Math.min(BAL_SCALES, solved));
   if (n >= BAL_SCALES) {
     const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
-    return Math.min(150, 120 + (timeLimitMs > 0 ? Math.round((30 * ms) / timeLimitMs) : 0));
+    return Math.min(150, 120 + (timeLimitMs > 0 ? speedBonusCurve(30, ms, timeLimitMs) : 0));
   }
   return BAL_STAGE_POINTS.slice(0, n).reduce((a, b) => a + b, 0);
 }
