@@ -14,6 +14,7 @@ import {
   type SwingState,
 } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
+import { drawGrapplerHood } from "./grapplerFigure.renderer";
 
 /* Mirrors of private sim constants, used only to place art on the same geometry. */
 const FP = 256;
@@ -352,11 +353,7 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   ctx.beginPath();
   ctx.arc(fx, fy - 6.5, 3.4, 0, Math.PI * 2);
   ctx.fill();
-  // Original hood/headband details stay inside the existing body footprint.
-  ctx.strokeStyle="#86A5B3";ctx.lineWidth=.65;ctx.beginPath();ctx.arc(fx,fy-6.5,3.1,0,Math.PI*2);ctx.stroke();
-  ctx.fillStyle="#D2EEF0";ctx.fillRect(fx-2.5,fy-7,5,1.5);
-  ctx.fillStyle="#EB6BB3";ctx.fillRect(fx-3,fy-9,6,1.2);
-  ctx.strokeStyle="#EB6BB3";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(fx-2.5,fy-8);ctx.lineTo(fx-7,fy-5);ctx.moveTo(fx-2.5,fy-8);ctx.lineTo(fx-5.5,fy-2);ctx.stroke();
+  drawGrapplerHood(ctx,fx,fy);
 
   ctx.restore();
   ctx.fillStyle = "#FFFFFF";
