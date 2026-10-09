@@ -1,7 +1,7 @@
 ## Visual refresh A (Oct 9)
-- [ ] Refresh Counterweight, Bonk, Eagle Eye and Double Take one-to-one; improve Grappler and Skid contrast without gameplay/audio changes.
-- [ ] Inspect 360px before/after mid-play images, variant mappings, targets and matching examples/reveals.
-- [ ] Run the existing check suite against 58 pass / 15 fail / 2 timeout; deliver report, wording and images.
+- [x] Refresh Counterweight, Bonk, Eagle Eye and Double Take one-to-one; improve Grappler and Skid contrast without gameplay/audio changes.
+- [x] Inspect six 360px fixed-fixture before/after images and document variant mappings, existing torque/tilt and wording. Full-shell fit and universal 44px targets are not certified; Double Take's existing dense boards and Bonk's unchanged disks are disclosed exceptions.
+- [x] Complete all 75 checks: same 58 pass / 15 fail / 2 timeout, no status regressions. Report and comparisons saved in the Visual refresh A collection; report upload initially pending.
 
 ## Quick visual fixes (Oct 9)
 - [x] Capture and inspect 360px before images for Skid, Flightpath, Rainbow Bridge, Grappler, Pull! and Pipeline.
