@@ -12,7 +12,7 @@ export function proveSwingSeed(seed: number, rev = SWING_REV): ArcadeInputEvent[
       let state = node.state;
       const log = node.log.slice();
       for (let j = 0; j < 12; j++) {
-        const event = j === 0 && action !== -1 ? { t: state.tick + 1, k: action >= 2 ? 4 : 12, a: action >= 2 ? action - 2 : action, b: 0, c: 0 } : null;
+        const event = j === 0 && action !== -1 ? { t: state.tick + 1, k: action >= 2 ? 4 : 12, a: action >= 2 ? action - 2 : action, b: 0, c: 0, d: 0 } : null;
         if (event) log.push(event);
         state = game.step(state, event);
         if (state.ended) break;
