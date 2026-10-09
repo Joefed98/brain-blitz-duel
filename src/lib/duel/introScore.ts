@@ -57,7 +57,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   letterwheel: "Find every word: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Not finished: 15 points a word, or 13 on nine-word puzzles.",
   ladder: "Finish the ladder quickly for the most points. Getting close still scores.",
   groups: "More groups means more points. Find all four for a speed bonus (the full bonus if you finish with at least half the time left).",
-  wordmatch: "Get all eight right: 100 points, plus more for being quick. Otherwise 13 points for each correct pair.",
+  wordmatch: "Get all eight right: 100 points, plus up to 50 for speed: the full 50 if you finish with at least half the time left. Otherwise 13 points for each correct pair.",
 
   // Number
   target: "Hit the target exactly: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. One off scores 120, and it drops faster the further away you are.",
@@ -65,7 +65,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   balance: "Balance the three scales for 20, 40 and 60 points. Balance all three: 120 points, plus up to 30 for speed: the full 30 if you finish with at least half the time left.",
   numpyramid: "Each finished pyramid scores 30, and all four earn up to 30 for speed: the full 30 if you finish with at least half the time left. The pyramid you're on scores for the bricks you've got right.",
   trail: standard("Complete the path", "5 for each tile in the right place") + " Wrong tiles cost nothing.",
-  tendrop: "13 points for each target you hit. Clear all ten for up to 20 more for clearing them early.",
+  tendrop: "13 points for each target you hit. Clear all ten for up to 20 for speed: the full 20 if you finish with at least half the time left.",
   numseq: "Twenty points for each sequence. Get all five right for a speed bonus (the full bonus if you finish with at least half the time left).",
   chaincalc: "Get it right quickly for the most points.",
   pctsprint: "More correct answers means more points. Get all five for a speed bonus (the full bonus if you finish with at least half the time left).",

@@ -940,7 +940,7 @@ const chainSummary: SummaryBuilder = (result, puzzle) => {
           : "Time ran out";
   return {
     summary: `${links} / ${rules.length} links · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: [ending, `${rules.points} per link${rules.bonus ? ", rounded down" : ""} · ${rules.length} links = ${rules.length * rules.points}${rules.bonus ? ` + up to ${rules.bonus} for speed` : ""}`],
+    detail: [ending, `${rules.points} per link${rules.bonus ? ", rounded down" : ""} · ${rules.length} links = ${rules.length * rules.points}${rules.bonus ? ` + up to ${rules.bonus} for speed (full with half the time left)` : ""}`],
   };
 };
 

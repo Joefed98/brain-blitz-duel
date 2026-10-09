@@ -529,7 +529,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The bin moves", detail: "further away every throw, and gets narrower from throw 4." },
       { action: "From throw 7 the bin slides", detail: "side to side - time your release." },
     ],
-    score: "10 per bucket; all ten = 130 + up to 20 for time left.",
+    score: "10 per bucket; all ten = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },
   bullseye: {
     goal: "Hit the centre - ten arrows.",
@@ -602,7 +602,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Four starred power-up bricks drop a capsule", detail: "gold = laser, silver = ×5 balls, bronze = ×2 balls (works at once)." },
       { action: "Tap anywhere to fire", detail: "a laser or ×5 you've caught; any other touch moves the paddle." },
     ],
-    score: "130 × bricks destroyed ÷ 80; all 80 = 130 + up to 20 for time left.",
+    score: "130 × bricks destroyed ÷ 80; all 80 = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },
   rally: {
     goal: "Keep the rally going.",
@@ -648,7 +648,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Bubbles left hanging", detail: "fall off the field." },
       { action: "Ninety seconds", detail: "on the same field for everyone." },
     ],
-    score: "130 × share of starting bubbles cleared; clear the field = 130 + up to 20 for time left.",
+    score: "130 × share of starting bubbles cleared; clear the field = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },
   beat: {
     goal: "Tap the notes in time.",
@@ -768,7 +768,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ink is limited", detail: "- more each level." },
       { action: "Three failed drops", detail: "and you're out." },
     ],
-    score: "11 per level; all ten = 130 + up to 20 for time left.",
+    score: "11 per level; all ten = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },
   burst: {
     goal: "Split every atom - big ones split into smaller atoms.",
@@ -787,7 +787,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring - it turns once every 12 seconds." },
       { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops - never at the crossing." },
     ],
-    score: "3 per planet; reach the sun (planet 40) = 130 + up to 20 for time left.",
+    score: "3 per planet; reach the sun (planet 40) = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },
   snip: {
     goal: "Drop the apple into the basket.",
@@ -805,7 +805,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Stuck? Keep swinging", detail: "- every pass gets you higher. Swipe up to shorten the rope for speed." },
       { action: "Don't touch the spikes", detail: "or fall into the lava." },
     ],
-    score: "130 × metres ÷ 500; reaching 500 m = 130 + up to 20 for time left.",
+    score: "130 × metres ÷ 500; reaching 500 m = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },
   tilt: {
     goal: "Roll the ball into the blue cup.",
@@ -814,7 +814,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Each escape brings a harder maze.", detail: "Dark holes end the run." },
       { action: "From maze 2 the red ball waits behind a silver gate with a padlock.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch the red ball and the run ends." },
     ],
-    score: "Four mazes, 30 each. All four = 130 + up to 20 for time left.",
+    score: "Four mazes, 30 each. All four = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },
   hotfloor: {
     goal: "Plan a route to the exit before the floor falls.",
