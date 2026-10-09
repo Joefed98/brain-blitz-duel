@@ -19,7 +19,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 function TreeIcon({ cell }: { cell: number }) {
   const pine = ((cell * 7 + (cell >> 3)) % 3) !== 0;
   return (
-    <svg viewBox="0 0 20 20" className="h-[80%] w-[80%]" aria-hidden="true">
+    <svg viewBox="0 0 20 20" className="h-[70%] w-[70%]" aria-hidden="true">
       <ellipse cx="10" cy="18.4" rx="5" ry="1.2" fill="var(--guest-ink)" opacity="0.45" />
       <rect x="8.8" y="13.6" width="2.4" height="4.8" rx="0.8" fill="var(--trunk)" />
       {pine ? (
@@ -40,7 +40,7 @@ function TreeIcon({ cell }: { cell: number }) {
 /** Striped canvas tent in gold (or the reveal colour). */
 function TentIcon({ colour = "var(--primary)" }: { colour?: string | undefined }) {
   return (
-    <svg viewBox="0 0 20 20" className="h-[80%] w-[80%]" aria-hidden="true">
+    <svg viewBox="0 0 20 20" className="h-[70%] w-[70%]" aria-hidden="true">
       <ellipse cx="10" cy="17.6" rx="8" ry="1.2" fill="var(--guest-ink)" opacity="0.45" />
       <polygon points="10,2.6 18.4,17 1.6,17" fill={colour} />
       <path d="M10 2.6 7.2 17M10 2.6 12.8 17" stroke="var(--guest-ink)" strokeOpacity="0.28" strokeWidth="1.3" />
@@ -53,7 +53,7 @@ function TentIcon({ colour = "var(--primary)" }: { colour?: string | undefined }
 /** A small grass tuft for cells marked "no tent". */
 function TuftIcon() {
   return (
-    <svg viewBox="0 0 20 20" className="h-[46%] w-[46%]" aria-hidden="true">
+    <svg viewBox="0 0 20 20" className="h-[36%] w-[36%]" aria-hidden="true">
       <path d="M4 16c1-4 2-6 3-8M8 16c0-5 1-8 2-11M12 16c0-4 0-6-1-9M15 16c-1-3-1-5 1-7" fill="none" stroke="var(--tuft)" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );

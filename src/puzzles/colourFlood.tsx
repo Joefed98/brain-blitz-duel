@@ -45,7 +45,7 @@ function Board({
 
   return (
     <div
-      className={`puzzle-board grid gap-px ${fluid ? "w-full aspect-square" : ""}`}
+      className={`puzzle-board grid gap-0 ${fluid ? "w-full aspect-square" : ""}`}
       style={{ gridTemplateColumns: `repeat(${size}, ${fluid ? "minmax(0, 1fr)" : `${cell}px`})` }}
       aria-label={`${gameDisplayName("flood")} board`}
     >
@@ -53,14 +53,20 @@ function Board({
         const row = Math.floor(index / size);
         const col = index % size;
         const mine = region.has(index);
-        const border = mine
-          ? [
-              edge(index, row > 0 ? index - size : null),
-              edge(index, col < size - 1 ? index + 1 : null),
-              edge(index, row < size - 1 ? index + size : null),
-              edge(index, col > 0 ? index - 1 : null),
-            ]
-          : [false, false, false, false];
+        const nb = [row > 0 ? index - size : null, col < size - 1 ? index + 1 : null, row < size - 1 ? index + size : null, col > 0 ? index - 1 : null];
+        // A side is an edge where the colour changes (or the board ends); same-colour cells join seamlessly.
+        const side = nb.map((n) => n === null || grid[n] !== colour);
+        const line = nb.map((n) => n !== null && grid[n] !== colour);
+        const wet = mine ? nb.map((n) => edge(index, n)) : [false, false, false, false];
+        const shadows: string[] = [];
+        const push = (on: boolean | undefined, x: number, y: number, c: string) => { if (on) shadows.push(`inset ${x}px ${y}px 0 0 ${c}`); };
+        const w = (i: number) => (wet[i] ? 2 : 1);
+        const c = (i: number) => (wet[i] ? "var(--tally-white)" : "var(--flood-edge)");
+        push(line[0] || wet[0], 0, w(0), c(0));
+        push(line[1] || wet[1], -w(1), 0, c(1));
+        push(line[2] || wet[2], 0, -w(2), c(2));
+        push(line[3] || wet[3], w(3), 0, c(3));
+        const r = (a: number, b2: number) => (side[a] && side[b2] ? "20%" : "0");
         return (
           <span
             key={ripple?.cells.has(index) ? `${index}-${ripple.key}` : index}
@@ -71,13 +77,8 @@ function Board({
               width: fluid ? "100%" : cell,
               height: fluid ? "100%" : cell,
               backgroundColor: fillOf(colour),
-              boxShadow: mine
-                ? `inset 0 ${border[0] ? 2 : 0}px 0 0 var(--tally-white), inset ${
-                    border[1] ? -2 : 0
-                  }px 0 0 0 var(--tally-white), inset 0 ${border[2] ? -2 : 0}px 0 0 var(--tally-white), inset ${
-                    border[3] ? 2 : 0
-                  }px 0 0 0 var(--tally-white)`
-                : undefined,
+              borderRadius: `${r(0, 3)} ${r(0, 1)} ${r(2, 1)} ${r(2, 3)}`,
+              boxShadow: shadows.length ? shadows.join(", ") : undefined,
             }}
           />
         );

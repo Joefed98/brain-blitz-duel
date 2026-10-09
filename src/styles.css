@@ -1162,10 +1162,11 @@ body.game-lock {
 
 /* Visual refresh C — presentation-only tokens and surfaces. */
 :root {
-  --concrete: #4A4D52;
-  --concrete-seam: rgba(0, 0, 0, 0.22);
-  --shelf: #1A1E24;
-  --shelf-edge: #36404C;
+  --concrete: #8C8478;
+  --concrete-seam: rgba(40, 30, 20, 0.18);
+  --shelf: #121418;
+  --shelf-edge: #262B33;
+  --shelf-top: #9AA6B5;
   --crate: #B07B4F;
   --crate-dark: #6F4729;
   --crate-light: #D39A66;
@@ -1197,9 +1198,9 @@ body.game-lock {
   --flood-c: #5EE6C8;
   --flood-d: #FFE14D;
   --flood-e: #FF8A1F;
-  --grass: #1C2A1F;
+  --grass: color-mix(in oklab, var(--card) 88%, #3d8a4a);
   --grass-blade: rgba(120, 190, 110, 0.12);
-  --tuft: #6FB45E;
+  --tuft: #4F7A48;
   --pine: #2F7A45;
   --pine-dark: #1E5631;
   --leaf: #4E9A4A;
@@ -1223,8 +1224,8 @@ body.game-lock {
   background-size: 50% 50%;
 }
 .warehouse-shelf {
-  background: linear-gradient(180deg, var(--shelf-edge) 0 14%, var(--shelf) 14% 46%, var(--shelf-edge) 46% 56%, var(--shelf) 56% 100%);
-  box-shadow: inset 0 0 0 1px var(--shelf-edge);
+  background: linear-gradient(180deg, var(--shelf-top) 0 12%, var(--shelf) 12% 52%, var(--shelf-edge) 52% 58%, var(--shelf) 58% 100%);
+  box-shadow: inset 0 0 0 1px var(--shelf-edge), 0 1px 0 rgba(0,0,0,.6);
 }
 .warehouse-target {
   background: repeating-linear-gradient(45deg, var(--hazard) 0 3px, var(--hazard-dark) 3px 6px);
@@ -1253,13 +1254,14 @@ body.game-lock {
 @keyframes cork-pop { from { transform: translateY(-10px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
 .potion-sparkle { animation: sparkle 700ms ease-out both; }
 @keyframes sparkle { from { transform: scale(.2) rotate(0); opacity: 1; } to { transform: scale(1.4) rotate(90deg); opacity: 0; } }
-.flood-tile { border-radius: 3px; background-image: linear-gradient(160deg, rgba(255,255,255,.08), rgba(0,0,0,.12)); }
-.flood-wet { background-image: linear-gradient(135deg, rgba(255,255,255,.34) 0 22%, rgba(255,255,255,.06) 45%, rgba(0,0,0,.05)); }
+.flood-tile { --flood-edge: rgba(10, 10, 15, .55); }
+/* Uniform sheen so joined wet cells stay seamless. */
+.flood-wet { background-image: linear-gradient(rgba(255,255,255,.2), rgba(255,255,255,.2)); }
 .flood-ripple { animation: flood-ripple 300ms ease-out both; }
 @keyframes flood-ripple { from { transform: scale(.72); filter: brightness(1.45); } to { transform: none; filter: none; } }
 .camp-cell {
   background-color: var(--grass);
-  background-image: repeating-linear-gradient(100deg, transparent 0 5px, var(--grass-blade) 5px 6px), repeating-linear-gradient(75deg, transparent 0 7px, var(--grass-blade) 7px 8px);
+  background-image: none;
 }
 .camp-sign { background: linear-gradient(180deg, var(--sign), var(--sign-edge)); color: var(--sign-ink); border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.5); }
 .party-room { background: radial-gradient(ellipse at 50% 0%, var(--velvet), var(--velvet-deep)); border-radius: 16px; transition: filter 260ms ease; }

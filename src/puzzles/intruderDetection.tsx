@@ -24,43 +24,41 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const STAR_HEAD = "12,3.2 14.9,9.4 21.6,10 16.6,14.5 18.1,21.2 12,17.8 5.9,21.2 7.4,14.5 2.4,10 9.1,9.4";
+const STAR_HEAD = "12,4.2 14.3,10.2 20.7,10.6 15.7,14.6 17.4,20.8 12,17.3 6.6,20.8 8.3,14.6 3.3,10.6 9.7,10.2";
+/** Per shape: eye line y, and the y of the head's top where the hat sits. */
+const FACE = {
+  circle: { eye: 12.2, top: 4.6 },
+  square: { eye: 12.2, top: 4.6 },
+  triangle: { eye: 15.4, top: 3.6 },
+  star: { eye: 12.4, top: 4.2 },
+} as const;
 /**
- * A rounded, softly lit party guest. Head silhouette = cell shape, body and hat = cell colour;
- * everything else (face, rim light, shadow) is identical on every guest.
+ * A party guest that is mostly head: the head silhouette (≈70% of the spotlight) is the cell's
+ * shape, drawn with sharp, true geometry; head and hat take the cell colour. The tiny collar,
+ * face and shadow are identical on every guest so they never blur the outline.
  */
-function CellGlyph({ cell, size }: { cell: IntruderCell; size: number }) {
+function CellGlyph({ cell }: { cell: IntruderCell }) {
   const fill = GLYPH_COLOURS[cell.colour];
   const ink = "var(--guest-ink)";
-  const head = { fill, stroke: ink, strokeWidth: 1.1, strokeLinejoin: "round" as const };
-  const sheen = { fill: "url(#guest-sheen)", pointerEvents: "none" as const };
-  const fy = cell.shape === "triangle" ? 17.6 : cell.shape === "star" ? 13.8 : 14.2;
-  const hatY = cell.shape === "circle" ? 6.2 : cell.shape === "square" ? 5.6 : cell.shape === "star" ? 4 : 5.2;
+  const head = { fill, stroke: ink, strokeWidth: 0.9, strokeLinejoin: "miter" as const };
+  const face = FACE[cell.shape as keyof typeof FACE] ?? FACE.circle;
+  const fy = face.eye;
+  const hatY = face.top + 1.4;
   return (
-    <svg width={size} height={size} viewBox="0 0 24 26" aria-hidden="true" style={{ overflow: "visible" }}>
-      <defs>
-        <radialGradient id="guest-sheen" cx="35%" cy="28%" r="75%">
-          <stop offset="0%" stopColor="var(--tally-white)" stopOpacity="0.55" />
-          <stop offset="45%" stopColor="var(--tally-white)" stopOpacity="0.08" />
-          <stop offset="100%" stopColor="var(--guest-ink)" stopOpacity="0.32" />
-        </radialGradient>
-      </defs>
-      <ellipse cx="12" cy="25" rx="8" ry="1.3" fill={ink} opacity="0.55" />
+    <svg viewBox="0 0 24 24" aria-hidden="true" style={{ overflow: "visible", width: "96%", height: "96%" }}>
+      <ellipse cx="12" cy="23.6" rx="6" ry="0.9" fill={ink} opacity="0.5" />
       <g transform={`rotate(${cell.rot} 12 13)`}>
-        <path d="M5.4 25c0-3.4 2.9-5.4 6.6-5.4s6.6 2 6.6 5.4z" fill={fill} stroke={ink} strokeWidth="1" />
-        <path d="M5.4 25c0-3.4 2.9-5.4 6.6-5.4s6.6 2 6.6 5.4z" {...sheen} />
-        {cell.shape === "circle" && <><circle cx="12" cy="13.4" r="7.6" {...head} /><circle cx="12" cy="13.4" r="7.6" {...sheen} /></>}
-        {cell.shape === "square" && <><rect x="4.6" y="5.6" width="14.8" height="14.8" rx="3.4" {...head} /><rect x="4.6" y="5.6" width="14.8" height="14.8" rx="3.4" {...sheen} /></>}
-        {cell.shape === "triangle" && <><polygon points="12,4.6 21,21 3,21" {...head} /><polygon points="12,4.6 21,21 3,21" {...sheen} /></>}
-        {cell.shape === "star" && <><polygon points={STAR_HEAD} {...head} /><polygon points={STAR_HEAD} {...sheen} /></>}
-        {/* Rim light on the upper-left edge. */}
-        <path d={cell.shape === "square" ? "M5.6 15V9a3 3 0 0 1 3-3" : cell.shape === "triangle" ? "M5 18.4 10.6 8" : cell.shape === "star" ? "M4.6 10.4h4.6" : "M5.6 11.2a7 7 0 0 1 4.2-4.6"} fill="none" stroke="var(--tally-white)" strokeOpacity="0.7" strokeWidth="0.9" strokeLinecap="round" />
-        <polygon points={`12,0 14.4,${hatY} 9.6,${hatY}`} fill={fill} stroke={ink} strokeWidth="0.8" strokeLinejoin="round" />
-        <path d={`M11.2 1.6 10.4 ${hatY - 0.6}`} stroke="var(--tally-white)" strokeOpacity="0.75" strokeWidth="0.7" strokeLinecap="round" />
-        <circle cx="12" cy="0.3" r="1.2" fill="var(--tally-white)" stroke={ink} strokeWidth="0.4" />
-        <circle cx="10.3" cy={fy - 0.8} r="1" fill={ink} />
-        <circle cx="13.7" cy={fy - 0.8} r="1" fill={ink} />
-        <path d={`M10.5 ${fy + 1.1}q1.5 1.3 3 0`} fill="none" stroke={ink} strokeWidth="0.85" strokeLinecap="round" />
+        {/* Small neutral collar, identical on every guest. */}
+        <path d="M9 23.6c0-1.5 1.3-2.4 3-2.4s3 .9 3 2.4z" fill="var(--strobe-off)" stroke={ink} strokeWidth="0.6" />
+        {cell.shape === "circle" && <circle cx="12" cy="13" r="8.4" {...head} />}
+        {cell.shape === "square" && <rect x="3.6" y="4.6" width="16.8" height="16.8" rx="2" {...head} />}
+        {cell.shape === "triangle" && <polygon points="12,3.6 20.8,20.6 3.2,20.6" {...head} />}
+        {cell.shape === "star" && <polygon points={STAR_HEAD} {...head} />}
+        <polygon points={`12,${face.top - 3.6} 13.5,${hatY} 10.5,${hatY}`} fill={fill} stroke={ink} strokeWidth="0.6" strokeLinejoin="round" />
+        <circle cx="12" cy={face.top - 3.7} r="0.9" fill="var(--tally-white)" stroke={ink} strokeWidth="0.3" />
+        <circle cx="10.6" cy={fy} r="0.85" fill={ink} />
+        <circle cx="13.4" cy={fy} r="0.85" fill={ink} />
+        <path d={`M10.8 ${fy + 1.7}q1.2 1 2.4 0`} fill="none" stroke={ink} strokeWidth="0.7" strokeLinecap="round" />
       </g>
     </svg>
   );
@@ -118,10 +116,7 @@ function Grid({
              className={`relative flex items-center justify-center rounded-full border-2 ${isMarked(index) ? "party-spot-bright" : "party-spot"} ${picked.includes(index) ? "border-primary" : "border-transparent"} ${wrong === index ? "animate-shake" : ""}`}
           >
             {cell ? (
-              <CellGlyph
-                cell={cell}
-                size={compact ? Math.max(13, 38 / size) : Math.round(280 / size) * 0.7}
-              />
+              <CellGlyph cell={cell} />
             ) : null}
              {isMarked(index) && <span className="pointer-events-none absolute inset-[4%] rounded-full border-2 border-primary" aria-label="Changed guest" />}
              {isMarked(index) && tagged && <span aria-label="Who's this?" className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary font-mono text-[10px] font-bold leading-none text-primary-foreground">?</span>}
