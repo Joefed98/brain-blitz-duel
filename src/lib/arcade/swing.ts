@@ -43,6 +43,10 @@ const LEAD = 195 * FP;
 const METRE = 40 * FP;
 const COL = 40 * FP;
 export const SWING_FINISH_M = 500;
+export const SWING_REV = 2;
+export const SWING_DRAGON_HALF_W = 20 * FP;
+export const SWING_DRAGON_HALF_H = 14 * FP;
+export interface SwingDragon { x: number; y: number; }
 /** Anchors run a little past the 500 m finish so the last swing has somewhere to go. */
 const COURSE_LEN = START_X + (SWING_FINISH_M + 20) * METRE + 600 * FP;
 const COLS = Math.trunc(COURSE_LEN / COL) + 2;
@@ -166,7 +170,7 @@ function nearestAhead(anchors: readonly Anchor[], b: Body, from: number): number
 }
 
 /** Moves the body one tick; returns true if it died on the floor or a spike. */
-function moveBody(b: Body, c: { ceil: number[]; floor: number[]; spikes: Spike[]; anchors: Anchor[] }): boolean {
+function moveBody(b: Body, c: { ceil: number[]; floor: number[]; spikes: Spike[]; anchors: Anchor[]; dragons?: SwingDragon[] }): boolean {
   if (b.rope >= 0) {
     const a = c.anchors[b.rope]!;
     const t = b.th >> 4;
@@ -210,6 +214,9 @@ function moveBody(b: Body, c: { ceil: number[]; floor: number[]; spikes: Spike[]
     }
   }
   if (b.y + RADIUS >= lerpAt(c.floor, b.x)) return true;
+  for (const d of c.dragons ?? []) {
+    if (Math.abs(b.x - d.x) <= SWING_DRAGON_HALF_W + RADIUS && Math.abs(b.y - d.y) <= SWING_DRAGON_HALF_H + RADIUS) return true;
+  }
   for (const s of c.spikes) {
     if (s.x - b.x > SPIKE_HALF + RADIUS) break;
     if (b.x - s.x > SPIKE_HALF + RADIUS) continue;
@@ -290,6 +297,7 @@ function buildCourse(seed: number): Course {
 /* ================================ State ================================ */
 
 export interface SwingState extends Body {
+  dragons?: SwingDragon[];
   tick: number;
   rng: number;
   camX: number;
@@ -330,6 +338,21 @@ function init(seed: number): SwingState {
     anchors: course.anchors,
     spikes: course.spikes,
   };
+}
+
+function initDragons(seed: number): SwingState {
+  const s = init(seed);
+  let rng = s.rng;
+  const draw = (bound: number) => { const r = rngBelow(rng, bound); rng = r.state; return r.value; };
+  const count = 4 + draw(3);
+  const dragons: SwingDragon[] = [];
+  for (let i = 0; i < count; i++) {
+    const metre = 350 + Math.trunc(((i * 2 + 1) * 140) / (count * 2)) + draw(7) - 3;
+    const x = START_X + metre * METRE;
+    const y = (i % 2 === 0 ? 200 + draw(61) : 330 + draw(61)) * FP;
+    dragons.push({ x, y });
+  }
+  return { ...s, dragons };
 }
 
 function isOver(state: SwingState): boolean {
@@ -379,7 +402,7 @@ function score(state: SwingState): number {
 }
 
 export function swingExtra(s: SwingState) {
-  return { metres: swingMetres(s), survived: s.ended !== 2, survivedSeconds: s.tick / 60 };
+  return { metres: swingMetres(s), survived: s.ended !== 2, survivedSeconds: s.tick / 60, ...(s.dragons ? { dragonTotal: s.dragons.length } : {}) };
 }
 
 /* ============================= Checkpoints ============================= */
@@ -579,3 +602,8 @@ export const swingGame: ArcadeGame<SwingState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: SWING_INPUT_RANGES,
 };
+
+const dragonGame = { ...swingGame, init: initDragons };
+export function swingGameFor(rev?: number): typeof swingGame {
+  return rev === SWING_REV ? dragonGame : swingGame;
+}

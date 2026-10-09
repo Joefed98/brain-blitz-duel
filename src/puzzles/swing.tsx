@@ -6,6 +6,7 @@ import {
   SWING_REEL_DOWN,
   SWING_REEL_UP,
   swingCheckpoint,
+  SWING_REV,
   SWING_BG,
   SWING_CHECKPOINT_INTERVAL,
   SWING_GOLD,
@@ -17,7 +18,7 @@ import {
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
 import { SWING_TIME_MS, type SwingPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
-import { swingArtGame } from "@/lib/arcade/swing.renderer";
+import { swingArtGameFor } from "@/lib/arcade/swing.renderer";
 import { swingSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -38,7 +39,7 @@ function IntroExample() {
         <path d="M75 82 H80" stroke="var(--foreground)" strokeWidth={1.5} />
         <path d="M 84 82 Q 104 70 118 50" fill="none" stroke={SWING_GOLD} strokeOpacity={0.4} strokeDasharray="3 4" />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Swing the ninja back for momentum, then let go to fly forward.</p>
+      <p className="text-center text-xs text-muted-foreground">Swing the ninja back for momentum, then let go to fly forward. Watch out for dragons near the end.</p>
     </div>
   );
 }
@@ -56,7 +57,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={SWING_WORLD_W}
       worldH={SWING_WORLD_H}
-      game={swingArtGame}
+      game={swingArtGameFor(data?.swingRev)}
       sounds={swingSounds}
       checkpoint={swingCheckpoint}
       interval={SWING_CHECKPOINT_INTERVAL}
@@ -91,13 +92,13 @@ export function swingLine(r: { metres: number; survived: boolean; survivedSecond
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "swing") return null;
-  const result = replaySwingRun(puzzle.seed, myAnswer ?? "");
+  const result = replaySwingRun(puzzle.seed, myAnswer ?? "", puzzle.swingRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {swingLine(result)}
       </p>
-      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same cavern for everyone</p>
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{puzzle.swingRev === SWING_REV ? "Watch out for dragons near the end." : "Same cavern for everyone"}</p>
     </div>
   );
 }
@@ -109,7 +110,8 @@ export const swingPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: SWING_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "swing", seed: 1 }) satisfies SwingPuzzleData,
+  introLine: (puzzle) => puzzle.type === "swing" && puzzle.swingRev === SWING_REV ? "Watch out for dragons near the end." : null,
+  generate: () => ({ type: "swing", seed: 1, swingRev: SWING_REV }) satisfies SwingPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

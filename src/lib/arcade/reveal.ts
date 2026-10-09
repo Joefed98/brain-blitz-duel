@@ -252,7 +252,7 @@ const BUILDERS: Record<string, Builder> = {
     const done = metres >= 500;
     return {
       axis: { value: Math.min(500, metres), max: 500, label: "Metres" },
-      lines: [head(`${Math.min(500, metres)} m`, s, done)],
+      lines: [head(`${Math.min(500, metres)} m`, s, done), ...(n(r, "dragonTotal") > 0 ? ["Watch out for dragons near the end."] : [])],
       tiles: [{ label: done ? "Finished at" : b(r, "survived") ? "Survived" : "Fell at", value: sec(n(r, "survivedSeconds")) }],
       outcome: done ? "finish" : ended(r, false),
     };

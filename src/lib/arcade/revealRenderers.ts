@@ -142,7 +142,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     (p, a) => replayOrbitRun(seedOf(p), a),
     (s) => ({ x: s.x / FP, y: (s.y - s.camY) / FP }),
   ),
-  swing: simple(GOLD, 390, 620, swingGame, (p, a) => replaySwingRun(seedOf(p), a)),
+  swing: simple(GOLD, 390, 620, swingGame, (p, a) => replaySwingRun(seedOf(p), a, p.type === "swing" ? p.swingRev : undefined)),
   snip: {
     accent: "#E84A7F",
     worldW: SNIP_CONFIG.viewW,

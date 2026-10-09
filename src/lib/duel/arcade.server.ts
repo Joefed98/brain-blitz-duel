@@ -1,6 +1,8 @@
 import { INK_REV } from "@/lib/arcade/inkBridge";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
+import { SWING_REV } from "@/lib/arcade/swing";
+import { proveSwingSeed } from "./swingProof.server";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
 /**
@@ -174,7 +176,11 @@ export function generateSnip(): SnipPuzzleData {
 }
 
 export function generateSwing(): SwingPuzzleData {
-  return { type: "swing", seed: arcadeSeed() };
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const seed = arcadeSeed();
+    if (proveSwingSeed(seed)) return { type: "swing", seed, swingRev: SWING_REV };
+  }
+  throw new Error("Could not verify a safe Grappler course; try again.");
 }
 
 export function generateTilt(): TiltPuzzleData {
