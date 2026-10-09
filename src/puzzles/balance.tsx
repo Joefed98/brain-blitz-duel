@@ -188,7 +188,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   };
 
   const trayLeft = scale.tray.map((_, i) => i).filter((i) => placement[i] === null);
-  const disc = Math.min(40, spacing - 2);
 
   return (
     <div
@@ -228,6 +227,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
               {trayLeft.map((i) => (
                 <Button variant="ghost"
                   key={i}
+                  aria-label={`Select weight ${scale.tray[i] ?? 0}`}
                   onClick={() => tapWeight(i)}
                   className={`h-11 w-11 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
                 >
@@ -258,6 +258,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
             {trayLeft.map((i) => (
               <Button variant="ghost"
                 key={i}
+                aria-label={`Select weight ${scale.tray[i] ?? 0}`}
                 onClick={() => tapWeight(i)}
                 className={`h-11 w-11 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
               >
