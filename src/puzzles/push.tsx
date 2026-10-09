@@ -75,7 +75,7 @@ function Board({
 /** Wooden crate with plank lines; a green light shows when it sits on a marking. */
 function CrateArt({ home }: { home: boolean }) {
   return (
-    <svg viewBox="0 0 20 20" className="relative block h-[82%] w-[82%]" aria-label={home ? "Crate home" : "Crate"}>
+    <svg viewBox="0 0 20 20" className="relative block h-[75%] w-[75%]" aria-label={home ? "Crate home" : "Crate"}>
       <rect x="1" y="1" width="18" height="18" rx="2" fill="var(--crate)" stroke="var(--crate-dark)" strokeWidth="1.4" />
       <path d="M2 7h16M2 13h16" stroke="var(--crate-dark)" strokeWidth="1" />
       <path d="M3 3l14 14" stroke="var(--crate-dark)" strokeWidth="1.6" />
@@ -91,7 +91,7 @@ function CrateArt({ home }: { home: boolean }) {
 /** Top-down warehouse worker: shoulders, hi-vis vest and a hard hat. */
 function WorkerArt() {
   return (
-    <svg viewBox="0 0 20 20" className="relative block h-[78%] w-[78%]" aria-label="You">
+    <svg viewBox="0 0 20 20" className="relative block h-[75%] w-[75%]" aria-label="You">
       <ellipse cx="10" cy="11.5" rx="7.6" ry="5" fill="var(--worker-body)" stroke="var(--hazard-dark)" strokeWidth="0.8" />
       <path d="M5.2 9.2 7 15.6M14.8 9.2 13 15.6" stroke="var(--worker-vest)" strokeWidth="2.2" strokeLinecap="round" />
       <circle cx="10" cy="10" r="4.4" fill="var(--worker-hat)" stroke="var(--hazard-dark)" strokeWidth="0.9" />

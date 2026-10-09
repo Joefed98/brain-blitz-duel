@@ -145,7 +145,9 @@ function Rings({
             key={`strobe-${spoke}`}
             cx={centre + strobe * Math.cos(angle)}
             cy={centre + strobe * Math.sin(angle)}
-            r={Math.max(2.4, size * 0.011)}
+            r={aligned.has(spoke) ? Math.max(4.2, size * 0.02) : Math.max(2.8, size * 0.013)}
+            stroke={aligned.has(spoke) ? "var(--tally-white)" : "none"}
+            strokeWidth={1}
             fill={aligned.has(spoke) ? GLYPH_COLOURS.GOLD : "var(--strobe-off)"}
             className={aligned.has(spoke) ? "ring-glow" : undefined}
           />
