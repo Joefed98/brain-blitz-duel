@@ -12,7 +12,7 @@ import {
   CLAY_COUNT,
   CLAY_INPUT_RANGES,
   CLAY_RUN_TICKS,
-  CLAY_REV,
+  clayHasBirds,
   clayGameFor,
   type ClayCheckpoint,
   type ClayState,
@@ -35,7 +35,7 @@ export interface ClayRun {
 }
 
 export function encodeClayRun(run: ClayRun, rev?: number | null): string {
-  const fields = rev === CLAY_REV ? CLAY_CHECKPOINT_FIELDS_V2 : CLAY_CHECKPOINT_FIELDS;
+  const fields = clayHasBirds(rev) ? CLAY_CHECKPOINT_FIELDS_V2 : CLAY_CHECKPOINT_FIELDS;
   const checkpoints = (run.checkpoints ?? [])
     .map((item) => [...fields.map((f) => item[f] ?? 0), item.checksum].join(":"))
     .join(",");
@@ -46,7 +46,7 @@ export function decodeClayRun(raw: string, rev?: number | null): ClayRun {
   const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] = (
     String(raw ?? "").split("~")[0] ?? ""
   ).split("|");
-  const fields = rev === CLAY_REV ? CLAY_CHECKPOINT_FIELDS_V2 : CLAY_CHECKPOINT_FIELDS;
+  const fields = clayHasBirds(rev) ? CLAY_CHECKPOINT_FIELDS_V2 : CLAY_CHECKPOINT_FIELDS;
   const width = fields.length + 1;
   const checkpoints = checkpointPart
     .split(",")
@@ -135,7 +135,7 @@ export function replayClayRun(seed: number, raw: string, rev?: number | null): C
     missed: state.missed,
     shots: state.shots,
     total: CLAY_COUNT,
-    perfect: state.hits >= CLAY_COUNT && (rev !== CLAY_REV || (state.birdHits ?? 0) === 0),
+    perfect: state.hits >= CLAY_COUNT && (!clayHasBirds(rev) || (state.birdHits ?? 0) === 0),
     finished: state.tick >= CLAY_RUN_TICKS,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,

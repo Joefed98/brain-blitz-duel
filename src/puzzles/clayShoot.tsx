@@ -31,6 +31,7 @@ import {
   CLAY_W,
   type ClayState,
 } from "@/lib/arcade/clayShoot";
+import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { CLAYSHOOT_TIME_MS, type ClayShootPuzzleData } from "@/lib/duel/types";
 import { playSound, playTick } from "@/lib/sound";
@@ -67,6 +68,10 @@ function IntroExample() {
       )}
       {t >= 36 ? <circle cx={x} cy={y} r={14} fill="none" stroke="#F5B82E" strokeWidth={2} opacity={shot ? 1 - (t - 40) / 20 : 1} /> : null}
       <g transform="translate(154 32)" fill="#F7F7F8" stroke="#0B0B0F" strokeWidth="1">
+        <ellipse rx="8" ry="4" />
+        <path d="M-4 0 Q-11 -8 -14 0 Q-9 2 -3 2M3 0 Q9 -8 13 0 Q8 2 2 2" />
+      </g>
+      <g transform="translate(130 50)" fill="#F7F7F8" stroke="#0B0B0F" strokeWidth="1">
         <ellipse rx="8" ry="4" />
         <path d="M-4 0 Q-11 -8 -14 0 Q-9 2 -3 2M3 0 Q9 -8 13 0 Q8 2 2 2" />
       </g>
@@ -294,7 +299,7 @@ export const clayShootPuzzle: PuzzleDefinition = {
   arcadeRun: true,
   timeLimitMs: CLAYSHOOT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "clayshoot", seed: 1, clayRev: 2 }) satisfies ClayShootPuzzleData,
+  generate: () => ({ type: "clayshoot", seed: 1, clayRev: CLAY_REV }) satisfies ClayShootPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   introLine: () => "Don't shoot the birds — each one costs 10.",

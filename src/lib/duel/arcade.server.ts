@@ -3,6 +3,7 @@ import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
 import { proveSwingSeed } from "./swingProof.server";
+import { SWING_V3_BANK } from "./swingBank.server";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
 /**
@@ -175,9 +176,15 @@ export function generateSnip(): SnipPuzzleData {
   return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV };
 }
 
+/** Room/practice generation picks a proved course from the bank by the room seed; on-the-spot proving is only a fallback if the bank is empty or unlucky. */
 export function generateSwing(): SwingPuzzleData {
+  const roomSeed = arcadeSeed();
+  if (SWING_V3_BANK.length > 0) {
+    const index = ((roomSeed % SWING_V3_BANK.length) + SWING_V3_BANK.length) % SWING_V3_BANK.length;
+    return { type: "swing", seed: SWING_V3_BANK[index]!.seed, swingRev: SWING_REV };
+  }
   for (let attempt = 0; attempt < 8; attempt++) {
-    const seed = arcadeSeed();
+    const seed = attempt === 0 ? roomSeed : arcadeSeed();
     if (proveSwingSeed(seed)) return { type: "swing", seed, swingRev: SWING_REV };
   }
   throw new Error("Could not verify a safe Grappler course; try again.");

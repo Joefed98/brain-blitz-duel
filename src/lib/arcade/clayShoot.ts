@@ -90,13 +90,35 @@ export const CLAY_CONFIG = {
   birdPenalty: 10,
 } as const;
 
-/** Bird-hazard revision. Stored rounds without clayRev retain the clay-only sim and score. */
-export const CLAY_REV = 2;
+/** Bird-hazard revisions. Stored rounds without clayRev retain the clay-only sim and score. */
+export const CLAY_REV2 = 2;
+export const CLAY_REV = 3;
+/** rev2 legacy cadence: 3-4 birds, replays unchanged. */
 export const CLAY_BIRD_MIN = 3;
 export const CLAY_BIRD_MAX = 4;
 export const CLAY_BIRD_RX = 15;
 export const CLAY_BIRD_RY = 9;
 export const CLAY_BIRD_STARTLED_TICKS = 36;
+/** rev3 cadence: 10-12 birds, roughly one every 5-6s, occasional overlaps. */
+export const CLAY_BIRD_MIN_V3 = 10;
+export const CLAY_BIRD_MAX_V3 = 12;
+export const CLAY_BIRD_FIRST_MIN = 60;
+export const CLAY_BIRD_FIRST_SPAN = 141;
+export const CLAY_BIRD_GAP_TICKS = 300;
+export const CLAY_BIRD_GAP_JITTER = 61;
+export const CLAY_BIRD_SPEED_MIN = 760;
+export const CLAY_BIRD_SPEED_SPAN = 321;
+/** One in three games gets at least one moment with two birds up; never more than two such moments. */
+export const CLAY_BIRD_OVERLAP_GAME_CHANCE = 3;
+export const CLAY_BIRD_OVERLAP_MAX = 2;
+export const CLAY_BIRD_OVERLAP_OFFSET_MIN = 24;
+export const CLAY_BIRD_OVERLAP_OFFSET_SPAN = 60;
+/** Fraction-of-20 chance a bird uses a higher/lower variety band instead of a clay height. */
+export const CLAY_BIRD_VARIETY_ROLL = 5;
+
+export function clayHasBirds(rev?: number | null): boolean {
+  return rev === CLAY_REV2 || rev === CLAY_REV;
+}
 
 export const CLAY_RUN_TICKS = CLAY_CONFIG.runSeconds * TICKS_PER_SECOND;
 export const CLAY_W = CLAY_CONFIG.worldW;
@@ -288,6 +310,65 @@ function buildBirdSchedule(rngStart: number): { rng: number; schedule: ClayBirdS
   return { rng, schedule: { launch, side, launchY, vx, vy } };
 }
 
+function buildBirdScheduleV3(rngStart: number): { rng: number; schedule: ClayBirdSchedule } {
+  const c = CLAY_CONFIG;
+  let rng = rngStart | 0;
+  const draw = (bound: number) => {
+    const out = rngBelow(rng, bound);
+    rng = out.state;
+    return out.value;
+  };
+  const count = CLAY_BIRD_MIN_V3 + draw(CLAY_BIRD_MAX_V3 - CLAY_BIRD_MIN_V3 + 1);
+  const launch: number[] = [];
+  const side: number[] = [];
+  const launchY: number[] = [];
+  const vx: number[] = [];
+  const vy: number[] = [];
+  const firstSide = draw(2);
+  let t = CLAY_BIRD_FIRST_MIN + draw(CLAY_BIRD_FIRST_SPAN);
+  // Every bird must fully cross and exit before the round ends; cap the gap so
+  // the last launch leaves room for its full flight (worst case ~230 ticks).
+  const runMargin = 240;
+  const maxLast = CLAY_RUN_TICKS - runMargin;
+  const avgGap = count > 1 ? Math.floor((maxLast - t) / (count - 1)) : 0;
+  const gap = Math.max(1, Math.min(CLAY_BIRD_GAP_TICKS, avgGap));
+  const jitterCap = Math.max(0, Math.min(CLAY_BIRD_GAP_JITTER, avgGap - gap));
+  for (let i = 0; i < count; i++) {
+    launch.push(t);
+    t += gap + (jitterCap > 0 ? draw(jitterCap + 1) : 0);
+    const from = (firstSide + i + draw(2)) & 1;
+    side.push(from);
+    // Mostly clay heights (lower or middle band), with some higher/lower variety.
+    if (draw(CLAY_BIRD_VARIETY_ROLL) === 0) {
+      launchY.push(draw(2) === 0 ? 40 + draw(40) : 330 + draw(50));
+    } else {
+      launchY.push(draw(2) === 0 ? c.middleYMin + draw(c.middleYSpan) : c.lowerYMin + draw(c.lowerYSpan));
+    }
+    const speed = CLAY_BIRD_SPEED_MIN + draw(CLAY_BIRD_SPEED_SPAN);
+    vx.push(from === 0 ? speed : -speed);
+    vy.push(draw(121) - 60);
+  }
+  // Occasionally two birds overlap on screen: ~1/3 of games, at most twice.
+  if (count > 2 && draw(CLAY_BIRD_OVERLAP_GAME_CHANCE) === 0) {
+    const overlaps = 1 + draw(CLAY_BIRD_OVERLAP_MAX);
+    const used = new Set<number>();
+    for (let n = 0; n < overlaps; n++) {
+      const i = draw(count - 1);
+      // Never pull in a pair adjacent to an already-chosen pair: chaining
+      // (e.g. pulling i,i+1 and then i+1,i+2) could put 3 birds up at once.
+      if (used.has(i - 1) || used.has(i) || used.has(i + 1)) continue;
+      used.add(i);
+      const offset = CLAY_BIRD_OVERLAP_OFFSET_MIN + draw(CLAY_BIRD_OVERLAP_OFFSET_SPAN);
+      launch[i + 1] = Math.min(launch[i + 1]!, launch[i]! + offset);
+    }
+    // Keep launches non-decreasing after any pull-ins.
+    for (let i = 1; i < launch.length; i++) {
+      if (launch[i]! < launch[i - 1]!) launch[i] = launch[i - 1]!;
+    }
+  }
+  return { rng, schedule: { launch, side, launchY, vx, vy } };
+}
+
 /* ================================ State ================================ */
 
 export interface ClayState {
@@ -352,6 +433,24 @@ function init(seed: number): ClayState {
 function initRev2(seed: number): ClayState {
   const base = init(seed);
   const built = buildBirdSchedule(base.rng);
+  const count = built.schedule.launch.length;
+  return {
+    ...base,
+    rng: built.rng,
+    rev: CLAY_REV2,
+    birds: built.schedule,
+    birdX: new Array(count).fill(0),
+    birdY: new Array(count).fill(0),
+    birdStatus: new Array(count).fill(CLAY_BIRD_WAITING),
+    birdDoneTick: new Array(count).fill(0),
+    birdNext: 0,
+    birdHits: 0,
+  };
+}
+
+function initRev3(seed: number): ClayState {
+  const base = init(seed);
+  const built = buildBirdScheduleV3(base.rng);
   const count = built.schedule.launch.length;
   return {
     ...base,
@@ -526,9 +625,10 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
 }
 
 export function clayScore(orangeHits: number, goldHits: number, birdHits = 0, rev?: number): number {
-  const all = orangeHits === CLAY_CONFIG.orangeClays && goldHits === CLAY_CONFIG.goldClays && (rev !== CLAY_REV || birdHits === 0);
+  const hasBirds = clayHasBirds(rev);
+  const all = orangeHits === CLAY_CONFIG.orangeClays && goldHits === CLAY_CONFIG.goldClays && (!hasBirds || birdHits === 0);
   return clampInt(
-    orangeHits * CLAY_CONFIG.orangePoints + goldHits * CLAY_CONFIG.goldPoints + (all ? CLAY_CONFIG.perfectBonus : 0) - (rev === CLAY_REV ? birdHits * CLAY_CONFIG.birdPenalty : 0),
+    orangeHits * CLAY_CONFIG.orangePoints + goldHits * CLAY_CONFIG.goldPoints + (all ? CLAY_CONFIG.perfectBonus : 0) - (hasBirds ? birdHits * CLAY_CONFIG.birdPenalty : 0),
     0,
     150,
   );
@@ -578,7 +678,7 @@ export function clayCheckpoint(state: ClayState): ClayCheckpoint {
     next: state.next,
     posHash,
   };
-  if (state.rev === CLAY_REV) {
+  if (clayHasBirds(state.rev)) {
     let birdPosHash = 0;
     for (let i = 0; i < (state.birdStatus?.length ?? 0); i++) {
       birdPosHash = (Math.imul(birdPosHash, 31) + (state.birdStatus?.[i] ?? 0) * 7 + (state.birdX?.[i] ?? 0) + Math.imul(state.birdY?.[i] ?? 0, 3)) | 0;
@@ -709,7 +809,10 @@ export const clayGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
 };
 
 export const clayRev2Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: initRev2 };
+export const clayRev3Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: initRev3 };
 
 export function clayGameFor(rev?: number | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
-  return rev === CLAY_REV ? clayRev2Game : clayGame;
+  if (rev === CLAY_REV) return clayRev3Game;
+  if (rev === CLAY_REV2) return clayRev2Game;
+  return clayGame;
 }

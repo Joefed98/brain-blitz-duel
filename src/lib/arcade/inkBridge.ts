@@ -37,6 +37,8 @@ export const INK_INPUT_RELEASE = 13;
 export const INK_INPUT_UNDO = 14;
 export const INK_INPUT_RESET = 15;
 export const INK_INPUT_DROP_AGAIN = 16;
+/** Live levels only: commits the live draft strokes drawn since the last lift. */
+export const INK_INPUT_LIFT = 17;
 /** Stroke points closer than this to the pen are not sent. */
 export const INK_STEP_PX = 12;
 export const INK_LEVELS = 10;
@@ -66,6 +68,24 @@ const BLOCK_COUNTS = [1, 2, 3, 3, 4, 5, 6, 7, 7, 8];
 export const INK_REV = 2;
 export const INK_BIRD_H_FP = 1_664; // 6.5 px
 const BIRD_COUNTS = [1, 2, 3, 3, 4, 4, 4, 5, 5, 6];
+/**
+ * inkRev 3 ("Rainbow Bridge"): rounds 1–4 reuse old levels 3–6 (stationary
+ * pot), 5–8 reuse old levels 7–10 (moving pot), 9–10 are new "live" levels —
+ * stationary pot, slightly slower gravity, a shared ink budget 1.5× the usual
+ * and a second drawing phase while the ball falls (see INK_INPUT_LIFT).
+ * Rounds 1/2 generation and physics are untouched by this revision.
+ */
+export const INK_REV3 = 3;
+/** Live levels start at this 0-based index under inkRev 3. */
+const INK_LIVE_FROM = 8;
+/** Gravity on live levels: a little gentler than the usual 64 (1/256 px/tick²). */
+export const INK_LIVE_GRAVITY = 54;
+/** Shared ink budget multiplier on live levels (pre-release line + live strokes), ×256. */
+const INK_LIVE_BUDGET_256 = 384;
+/** No-draw zone radius around the ball's current position on live levels: one coin diameter. */
+export const INK_NO_DRAW_ZONE_PX = BALL_R * 2;
+/** Up to this many live strokes may be lifted (committed) per drop. */
+export const INK_LIVE_MAX_LIFTS = 2;
 /** Obstacle thickness in px (render and tests). */
 export function inkBlockH(b: InkBlock): number {
   return b.h ? b.h / FP : INK_BLOCK_H;
@@ -87,11 +107,32 @@ export const INK_INPUT_RANGES: readonly InputRange[] = [
   inputRange(INK_INPUT_UNDO, [0, 255]),
   inputRange(INK_INPUT_RESET, [0, 255]),
   inputRange(INK_INPUT_DROP_AGAIN, [0, 255]),
+  inputRange(INK_INPUT_LIFT, [0, 255]),
 ];
 
 /** Ink for a level (0-based), px: 500 at level 1 rising to 1,400 at level 10. */
 export function inkBudget(level: number): number {
   return 500 + Math.trunc((900 * clampInt(level, 0, INK_LEVELS - 1)) / (INK_LEVELS - 1));
+}
+
+/** Is this level (0-based) a "live" level — only true under inkRev 3, rounds 9–10. */
+export function inkIsLive(level: number, rev?: number | null): boolean {
+  return rev === INK_REV3 && level >= INK_LIVE_FROM;
+}
+
+/** Ink for a level, rev-aware: live levels share a budget 1.5× the usual. */
+export function inkBudgetFor(level: number, rev?: number | null): number {
+  const base = inkBudget(level);
+  return inkIsLive(level, rev) ? Math.trunc((base * INK_LIVE_BUDGET_256) / 256) : base;
+}
+
+/** Current slide speed of the bucket, px/tick (0 on a still pot). */
+export function inkSlideSpeed(lvl: InkLevel, tick: number): number {
+  if (lvl.slideAmp === 0) return 0;
+  const a =
+    (lvl.slidePhase + Math.trunc(((tick % lvl.slidePeriod) * 65536) / lvl.slidePeriod)) & 65535;
+  const da = Math.max(1, Math.trunc(65536 / lvl.slidePeriod));
+  return Math.trunc((lvl.slideAmp * (isin((a + da) & 65535) - isin(a))) / TRIG_ONE);
 }
 
 /* ================================ Types ================================ */
@@ -353,14 +394,20 @@ function rimBounce(ball: InkBall, bx: number, by: number): boolean {
 }
 
 /** One tick of the ball: 0 still going, 1 in the bucket, 2 failed. Mutates ball. */
-function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel, tick = 0): number {
+function moveBall(
+  ball: InkBall,
+  segs: readonly InkSeg[],
+  lvl: InkLevel,
+  tick = 0,
+  gravity = GRAVITY,
+): number {
   const bucketX = inkBucketX(lvl, tick);
   const px = ball.x;
   const py = ball.y;
   const seg = ball.on >= 0 ? segs[ball.on] : undefined;
   if (seg) {
     // Rolling: gravity along the line, fixed friction, onward along the stroke or off the end.
-    ball.sp += Math.trunc((GRAVITY * (seg.y1 - seg.y0)) / seg.len);
+    ball.sp += Math.trunc((gravity * (seg.y1 - seg.y0)) / seg.len);
     ball.sp -= Math.trunc((ball.sp * FRICTION_256) / 256);
     ball.sp = clampInt(ball.sp, -MAX_V, MAX_V);
     ball.u += ball.sp;
@@ -389,7 +436,7 @@ function moveBall(ball: InkBall, segs: readonly InkSeg[], lvl: InkLevel, tick = 
   } else {
     ball.on = -1;
     ball.stall = 0;
-    ball.vy = Math.min(MAX_V, ball.vy + GRAVITY);
+    ball.vy = Math.min(MAX_V, ball.vy + gravity);
     const steps = Math.max(1, Math.ceil(Math.hypot(ball.vx, ball.vy) / ((BALL_R * FP) / 2)));
     for (let sub = 1; sub <= steps; sub++) {
       const startX = ball.x,
@@ -493,10 +540,15 @@ function addStroke(p: Pen, x: number, y: number, start: boolean): void {
 }
 
 /** Runs a drop with fixed lines released on tick t0: 1 bucket, 2 failed. */
-function simulateDrop(lvl: InkLevel, segs: readonly InkSeg[], t0 = 0): number {
+function simulateDrop(
+  lvl: InkLevel,
+  segs: readonly InkSeg[],
+  t0 = 0,
+  gravity = GRAVITY,
+): number {
   const ball = spoutBall(lvl);
   for (let t = 0; t < DROP_MAX; t++) {
-    const r = moveBall(ball, segs, lvl, t0 + t + 1);
+    const r = moveBall(ball, segs, lvl, t0 + t + 1, gravity);
     if (r) return r;
   }
   return 2;
@@ -519,7 +571,13 @@ function blockOverlaps(a: InkBlock, b: InkBlock): boolean {
   return a.x0 < b.x1 + 16 && b.x0 < a.x1 + 16 && Math.abs(a.y - b.y) < 30;
 }
 
-function layout(level: number, count: number, draw: Draw, h?: number): InkLevel {
+function layout(
+  level: number,
+  count: number,
+  draw: Draw,
+  h?: number,
+  forceSlide = false,
+): InkLevel {
   const spoutX = 60 + draw(271);
   let bucketX = 50 + draw(291);
   if (Math.abs(bucketX - spoutX) < 100)
@@ -529,7 +587,7 @@ function layout(level: number, count: number, draw: Draw, h?: number): InkLevel 
   let slideAmp = 0;
   let slidePeriod = 1;
   let slidePhase = 0;
-  if (level >= SLIDE_FROM) {
+  if (forceSlide || level >= SLIDE_FROM) {
     bucketX = clampInt(bucketX, 72, INK_WORLD_W - 72);
     // Keep the whole slide (bucket plus rim) on screen.
     const room = Math.min(bucketX, INK_WORLD_W - bucketX) - INK_BUCKET_W / 2 - RIM_R - 4;
@@ -560,7 +618,11 @@ function layout(level: number, count: number, draw: Draw, h?: number): InkLevel 
 }
 
 /** Candidate reference strokes: a ramp under the spout to above the bucket, optionally via a waypoint. */
-function findReference(lvl: InkLevel, ink: number): { ref: number[][]; t0: number } | null {
+function findReference(
+  lvl: InkLevel,
+  ink: number,
+  gravity = GRAVITY,
+): { ref: number[][]; t0: number } | null {
   const dir = lvl.bucketX > lvl.spoutX ? 1 : -1;
   const sx = lvl.spoutX - dir * 24;
   const sy = SPOUT_Y + 28;
@@ -584,9 +646,9 @@ function findReference(lvl: InkLevel, ink: number): { ref: number[][]; t0: numbe
         const ref = [pts];
         const pen = strokeSegs(ref, ink);
         if (pen.penDown === 0) continue; // ran out of ink
-        if (simulateDrop(still, pen.segs) !== 1) continue;
+        if (simulateDrop(still, pen.segs, 0, gravity) !== 1) continue;
         if (!lvl.slideAmp) return { ref, t0: 0 };
-        const t0 = landingRelease(lvl, pen.segs);
+        const t0 = landingRelease(lvl, pen.segs, gravity);
         if (t0 >= 0) return { ref, t0 };
       }
     }
@@ -595,21 +657,85 @@ function findReference(lvl: InkLevel, ink: number): { ref: number[][]; t0: numbe
 }
 
 /** First of 16 evenly spaced release ticks over one slide period that lands; −1 if none. */
-function landingRelease(lvl: InkLevel, segs: readonly InkSeg[]): number {
+function landingRelease(lvl: InkLevel, segs: readonly InkSeg[], gravity = GRAVITY): number {
   const tries = lvl.slideAmp ? 16 : 1;
   for (let k = 0; k < tries; k++) {
     const t0 = Math.trunc((k * lvl.slidePeriod) / tries);
-    if (simulateDrop(lvl, segs, t0) === 1) return t0;
+    if (simulateDrop(lvl, segs, t0, gravity) === 1) return t0;
   }
   return -1;
 }
 
 /** Does any release over one slide period land with no lines? */
-function landsUnaided(lvl: InkLevel): boolean {
-  return landingRelease(lvl, []) >= 0;
+function landsUnaided(lvl: InkLevel, gravity = GRAVITY): boolean {
+  return landingRelease(lvl, [], gravity) >= 0;
+}
+
+/** Rev-3 level plan: 1–4 reuse old levels 3–6 stationary, 5–8 reuse old levels 7–10
+ * (inkRev2 bird counts) with a forced moving pot, 9–10 are new live levels (stationary,
+ * gentler gravity, hardest block count, shared live ink budget). */
+function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
+  let rng = seed | 0;
+  const draw: Draw = (bound) => {
+    const r = rngBelow(rng, Math.max(1, bound));
+    rng = r.state;
+    return r.value;
+  };
+  const list: InkLevel[] = [];
+  for (let i = 0; i < INK_LEVELS; i++) {
+    let sourceLevel: number;
+    let counts: readonly number[];
+    let birds = false;
+    let forceSlide = false;
+    let live = false;
+    if (i < 4) {
+      sourceLevel = i + 2;
+      counts = BLOCK_COUNTS;
+    } else if (i < 8) {
+      sourceLevel = i + 2;
+      counts = BIRD_COUNTS;
+      birds = true;
+      forceSlide = true;
+    } else {
+      sourceLevel = INK_LEVELS - 1;
+      counts = BLOCK_COUNTS;
+      live = true;
+    }
+    const h = birds ? INK_BIRD_H_FP : undefined;
+    const gravity = live ? INK_LIVE_GRAVITY : GRAVITY;
+    const count = counts[sourceLevel]!;
+    const ink = live ? inkBudgetFor(i, INK_REV3) : inkBudget(sourceLevel);
+    let made: InkLevel | null = null;
+    for (let attempt = 0; attempt < 120 && !made; attempt++) {
+      const c = Math.max(1, count - Math.trunc(attempt / 20));
+      const lvl = layout(sourceLevel, c, draw, h, forceSlide);
+      if (landsUnaided(lvl, gravity)) continue;
+      const found = findReference(lvl, ink, gravity);
+      if (found) made = { ...lvl, ref: found.ref, refT0: found.t0 };
+    }
+    if (!made) {
+      const spoutX = 120;
+      const lvl: InkLevel = {
+        spoutX,
+        bucketX: 300,
+        bucketY: 540,
+        blocks: [{ x0: 90, x1: 150, y: 200, ...(h ? { h } : {}) }],
+        slideAmp: 0,
+        slidePeriod: 1,
+        slidePhase: 0,
+        ref: [],
+        refT0: 0,
+      };
+      const found = findReference(lvl, ink, gravity);
+      made = { ...lvl, ref: found?.ref ?? [[96, 78, 300, 526]], refT0: found?.t0 ?? 0 };
+    }
+    list.push(made);
+  }
+  return { list, rng };
 }
 
 function buildLevels(seed: number, rev?: number): { list: InkLevel[]; rng: number } {
+  if (rev === INK_REV3) return buildLevelsRev3(seed);
   const birds = rev === INK_REV;
   const counts = birds ? BIRD_COUNTS : BLOCK_COUNTS;
   const h = birds ? INK_BIRD_H_FP : undefined;
@@ -757,6 +883,16 @@ export interface InkState {
   flashKind: number;
   flashTick: number;
   failedBall: { x: number; y: number } | null;
+  /** Revision this run was built under (for live-level checks in step/draw). */
+  rev: number | undefined;
+  /** Live levels: uncommitted strokes drawn since the last lift (faded, non-solid). */
+  draftSegs: InkSeg[];
+  draftStrokeStarts: number[];
+  draftPenX: number;
+  draftPenY: number;
+  draftPenDown: number;
+  /** Live levels: lifts (commits of the draft) used on the current drop. */
+  liveLifts: number;
 }
 
 const cache = new Map<string, ReturnType<typeof buildLevels>>();
@@ -795,6 +931,13 @@ function initWith(seed: number, rev?: number): InkState {
     flashKind: 0,
     flashTick: -100,
     failedBall: null,
+    rev,
+    draftSegs: [],
+    draftStrokeStarts: [],
+    draftPenX: 0,
+    draftPenY: 0,
+    draftPenDown: 0,
+    liveLifts: 0,
   };
 }
 
@@ -811,6 +954,10 @@ function resetLevel(s: InkState): void {
   s.ball = spoutBall(s.list[s.level]!);
   s.dropTicks = 0;
   s.positions = [];
+  s.draftSegs = [];
+  s.draftStrokeStarts = [];
+  s.draftPenDown = 0;
+  s.liveLifts = 0;
 }
 
 function step(state: InkState, input: ArcadeInputEvent | null): InkState {
@@ -825,14 +972,22 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
     positions: [...state.positions],
   };
 
+  const live = inkIsLive(s.level, s.rev);
+  const gravity = live ? INK_LIVE_GRAVITY : GRAVITY;
+
   if (input && !s.dropping) {
     if (input.k === INK_INPUT_STROKE) {
-      addStroke(
-        s,
-        clampInt(input.a, 0, INK_WORLD_W),
-        clampInt(input.b, 0, INK_WORLD_H),
-        input.c === 1,
-      );
+      // Live levels: only one pre-release line may be drawn (the rest comes mid-drop as lifts).
+      if (live && input.c === 1 && s.strokeStarts.length >= 1) {
+        // ignored: pre-release line cap reached
+      } else {
+        addStroke(
+          s,
+          clampInt(input.a, 0, INK_WORLD_W),
+          clampInt(input.b, 0, INK_WORLD_H),
+          input.c === 1,
+        );
+      }
     } else if (input.k === INK_INPUT_RELEASE) {
       s.dropping = 1;
       s.penDown = 0;
@@ -845,6 +1000,43 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
     } else if (input.k === INK_INPUT_RESET) {
       resetLevel(s);
     }
+  } else if (input && s.dropping && live) {
+    if (input.k === INK_INPUT_STROKE) {
+      const x = clampInt(input.a, 0, INK_WORLD_W);
+      const y = clampInt(input.b, 0, INK_WORLD_H);
+      // No-draw zone: a point too close to the ball breaks the stroke instead of drawing to it.
+      const tooClose =
+        Math.hypot(x - s.ball.x / FP, y - s.ball.y / FP) < INK_NO_DRAW_ZONE_PX;
+      if (tooClose) {
+        s.draftPenDown = 0;
+      } else {
+        const draft: Pen = {
+          segs: s.draftSegs,
+          strokeStarts: s.draftStrokeStarts,
+          penX: s.draftPenX,
+          penY: s.draftPenY,
+          penDown: s.draftPenDown,
+          ink: s.ink,
+        };
+        addStroke(draft, x, y, input.c === 1);
+        s.draftSegs = draft.segs;
+        s.draftStrokeStarts = draft.strokeStarts;
+        s.draftPenX = draft.penX;
+        s.draftPenY = draft.penY;
+        s.draftPenDown = draft.penDown;
+        s.ink = draft.ink;
+      }
+    } else if (input.k === INK_INPUT_LIFT) {
+      if (s.liveLifts < INK_LIVE_MAX_LIFTS && s.draftSegs.length > 0) {
+        const offset = s.segs.length;
+        s.segs = [...s.segs, ...s.draftSegs];
+        s.strokeStarts = [...s.strokeStarts, ...s.draftStrokeStarts.map((i) => i + offset)];
+        s.draftSegs = [];
+        s.draftStrokeStarts = [];
+        s.draftPenDown = 0;
+        s.liveLifts += 1;
+      }
+    }
   }
 
   if (s.dropping) {
@@ -852,7 +1044,9 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
     s.positions.push({ x: s.ball.x, y: s.ball.y });
     if (s.positions.length > PROGRESS_WINDOW) s.positions.shift();
     let result =
-      input?.k === INK_INPUT_DROP_AGAIN ? 2 : moveBall(s.ball, s.segs, s.list[s.level]!, tick);
+      input?.k === INK_INPUT_DROP_AGAIN
+        ? 2
+        : moveBall(s.ball, s.segs, s.list[s.level]!, tick, gravity);
     const old = s.positions[0];
     if (
       !result &&
