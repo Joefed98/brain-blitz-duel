@@ -32,7 +32,7 @@ import { snipGame } from "@/lib/arcade/snip";
 import { tiltGame } from "@/lib/arcade/tilt";
 import { makeBallTrackGame } from "@/lib/arcade/ballTrack";
 import { whackGame } from "@/lib/arcade/whack";
-import { clayGame } from "@/lib/arcade/clayShoot";
+import { clayGameFor } from "@/lib/arcade/clayShoot";
 import { tenDropGame } from "@/lib/arcade/tenDrop";
 import { colourClashGame } from "@/lib/arcade/colourClash";
 
@@ -107,7 +107,11 @@ const CASES: Case[] = [
     replay: (p, s, raw) => replayBallTrackRun((p as Extract<PuzzleData, { type: "balltrack" }>).course, s, raw),
   },
   { type: "whack", game: g(whackGame), replay: r(replayWhackRun) },
-  { type: "clayshoot", game: g(clayGame), replay: r(replayClayRun) },
+  {
+    type: "clayshoot",
+    game: (p) => clayGameFor(p.type === "clayshoot" ? p.clayRev : undefined) as unknown as AnyGame,
+    replay: (p, s, raw) => replayClayRun(s, raw, p.type === "clayshoot" ? p.clayRev : undefined),
+  },
   { type: "tendrop", game: g(tenDropGame), replay: r(replayTenDropRun) },
   { type: "stroop", game: g(colourClashGame), replay: (p: PuzzleData, s: number, raw: string) => replayColourClashRun(s, raw, clashVariantOf(p as never)) },
 ];

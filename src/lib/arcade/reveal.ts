@@ -314,10 +314,14 @@ const BUILDERS: Record<string, Builder> = {
   },
   clayshoot: (r, s) => ({
     axis: { value: n(r, "hits"), max: n(r, "total") || 25, label: "Clays" },
-    lines: [`${n(r, "hits")} / ${n(r, "total")} clays → ${s}`],
+    lines: [
+      `${n(r, "hits")} / ${n(r, "total")} clays → ${s}`,
+      ...(n(r, "birdTotal") > 0 ? [`${n(r, "birdHits")} bird${n(r, "birdHits") === 1 ? "" : "s"} hit · −${n(r, "birdHits") * 10}`] : []),
+    ],
     tiles: [
       { label: "Gold", value: String(n(r, "goldHits")) },
       { label: "Orange", value: String(n(r, "orangeHits")) },
+      ...(n(r, "birdTotal") > 0 ? [{ label: "Birds hit", value: String(n(r, "birdHits")) }] : []),
       { label: "Shots", value: String(n(r, "shots")) },
     ],
     outcome: b(r, "perfect") ? "finish" : "time",

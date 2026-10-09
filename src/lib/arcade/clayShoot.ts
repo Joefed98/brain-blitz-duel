@@ -466,7 +466,7 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
       next.shotHit = 0;
       next.log = pushLog(next.log, tick, CLAY_LOG_MISS_SHOT, 0);
     }
-    if (birds && birdX && birdY && birdStatus && birdDoneTick) {
+    if (best < 0 && birds && birdX && birdY && birdStatus && birdDoneTick) {
       let birdBest = -1;
       let birdBestD = Number.MAX_SAFE_INTEGER;
       const rx = CLAY_BIRD_RX * 256;

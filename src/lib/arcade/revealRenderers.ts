@@ -35,7 +35,7 @@ import { tiltArtGame as tiltGame } from "./tiltArt.renderer";
 import { btArtDraw } from "./ballTrackArt.renderer";
 import { BT_H, BT_W, type BtState } from "./ballTrack";
 import { whackArtGame as whackGame } from "./whack.renderer";
-import { clayGame, CLAY_H, CLAY_W } from "./clayShoot";
+import { clayGameFor, CLAY_H, CLAY_W } from "./clayShoot";
 import { tenDropGame, TD_H, TD_W } from "./tenDrop";
 import { colourClashGame } from "./colourClash";
 
@@ -167,7 +167,17 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     },
   },
   whack: simple(GOLD, 390, 560, whackGame, (p, a) => replayWhackRun(seedOf(p), a)),
-  clayshoot: simple("#E8762C", CLAY_W, CLAY_H, clayGame, (p, a) => replayClayRun(seedOf(p), a)),
+  clayshoot: {
+    accent: "#E8762C",
+    worldW: CLAY_W,
+    worldH: CLAY_H,
+    drawFinal: (ctx, puzzle, answer) => {
+      if (puzzle.type !== "clayshoot") return null;
+      const state = replayClayRun(puzzle.seed, answer, puzzle.clayRev).state;
+      clayGameFor(puzzle.clayRev).draw(ctx, state, { width: CLAY_W, height: CLAY_H });
+      return null;
+    },
+  },
   tendrop: simple(GOLD, TD_W, TD_H, tenDropGame, (p, a) => replayTenDropRun(seedOf(p), a)),
   stroop: simple(GOLD, 390, 560, colourClashGame, (p, a) => replayColourClashRun(seedOf(p), a, p.type === "stroop" ? clashVariantOf(p) : 0)),
 };

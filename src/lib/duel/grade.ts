@@ -1264,7 +1264,7 @@ export function gradeSubmission(
     }
     case "clayshoot": {
       const replayStart = performance.now();
-      const run = replayClayRun(puzzle.seed, answer);
+      const run = replayClayRun(puzzle.seed, answer, puzzle.clayRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1277,6 +1277,8 @@ export function gradeSubmission(
         hits: run.hits,
         orangeHits: run.orangeHits,
         goldHits: run.goldHits,
+        birdHits: run.birdHits,
+        birdTotal: run.birdTotal,
         missed: run.missed,
         shots: run.shots,
         total: run.total,

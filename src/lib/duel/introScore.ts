@@ -78,7 +78,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   numhunt: "Tap all 24 in order: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Not finished: 5 points for each number. Wrong tap: lose 5.",
   chain: linkedFinish(CHAIN_LENGTH, CHAIN_LINK_POINTS, CHAIN_FINISH_BONUS),
   whack: "Points for the share of targets you hit, up to 135, plus 15 if you hit them all. Wrong colour or empty tap: lose 3. Hedgehog: lose 5.",
-  clayshoot: "5 points for each orange clay and 10 for each gold one. Hit all 25 for 10 more.",
+  clayshoot: "5 points for each orange clay and 10 for each gold one. Lose 10 per bird. Hit all 25 without hitting a bird for 10 more.",
   symscan: "The three grids are worth 30, 45 and 55 points, scored by how many eagles you find. Wrong tap: lose 3. Get all three perfect for up to 20 for speed: the full 20 if you finish with at least half the time left.",
   countup: "The three trays are worth 30, 45 and 55 points; one off still earns some. Get all three exact for up to 20 for speed: the full 20 if you finish with at least half the time left.",
   spotdiff: standard("Find all six differences", "20 points for each difference found"),
