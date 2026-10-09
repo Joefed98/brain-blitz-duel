@@ -850,3 +850,4 @@ export const orbitRev3Game: ArcadeGame<OrbitRev3State, ArcadeInputEvent | null> 
 };
 
 export { ORBIT_LOOKAHEAD as ORBIT_REV3_LOOKAHEAD, ORBIT_ROCKET_DIAMETER as ORBIT_REV3_ROCKET_DIAMETER };
+export const __o3dbg = { buildCourse3Raw, runRev3Bot, hopOk3, initRev3From, stepRev3, findHopTapDelay };
