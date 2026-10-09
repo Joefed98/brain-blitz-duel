@@ -52,7 +52,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   wordsmith: "Longer words score more: 8 letters earn 11 word points; 9-11 letters earn 15. Round down 2.5 × your word points, up to 150.",
   wordhunt: "Longer words score more. Your word points count double, up to 150.",
   tilegrid: "Use all fifteen tiles in a valid grid: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Not finished: 8 points for each tile inside a real word.",
-  wordslide: "Make all five rows words: 100 points, plus up to 30 for speed: the full 30 if you finish with at least half the time left and up to 20 for using few moves. Not finished: 22 points for each row that is a word.",
+  wordslide: "Make all five rows words: 100 points, plus up to 20 for using few moves and up to 30 for speed: the full 30 if you finish with at least half the time left. Not finished: 22 points for each row that is a word.",
   wordsearch: standard("Find all six words", "20 points for each word found"),
   letterwheel: "Find every word: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Not finished: 15 points a word, or 13 on nine-word puzzles.",
   ladder: "Finish the ladder quickly for the most points. Getting close still scores.",
