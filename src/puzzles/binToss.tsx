@@ -19,7 +19,7 @@ import {
   binTossDrag,
   binTossDrawGhost,
 
-  binTossGame,
+  binTossGameFor,
   binTossTransform,
   BINTOSS_AIM,
   BINTOSS_BALL_COLOUR,
@@ -87,6 +87,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BinTossPuzzleData | null = puzzle.type === "bintoss" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const binTossGame = binTossGameFor(data?.binRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -199,6 +200,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                 progress: 0,
                 binCentre: binTossCentreAt(before, before.throwIndex, state.current.tick),
                 binIndex: before.throwIndex,
+                rev: before.rev,
                 tick: state.current.tick,
               };
             }

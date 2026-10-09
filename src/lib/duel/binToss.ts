@@ -9,7 +9,7 @@ import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
   binTossCheckpoint,
-  binTossGame,
+  binTossGameFor,
   binTossPerfect,
   BINTOSS_CHECKPOINT_INTERVAL,
   BINTOSS_INPUT_RANGES,
