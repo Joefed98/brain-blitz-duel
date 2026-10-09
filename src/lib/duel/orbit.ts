@@ -12,7 +12,7 @@ import {
 import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
 import { orbitRev3Game, orbitRev3Extra, initRev3From, decodeRev3Planets, buildCourse3, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "@/lib/arcade/orbitRev3";
 import { ORBIT_REV3 } from "@/lib/arcade/orbit";
-import type { OrbitRev3CompactPlanet } from "./orbitRev3Course.server";
+import type { OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 import type { ArcadeGame, ArcadeInputEvent } from "@/lib/arcade/engine";
 
 const run = makeArcadeRun<OrbitState, OrbitCheckpoint>({
