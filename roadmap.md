@@ -1,7 +1,7 @@
 ## Small renderer and camera tuning (Oct 10)
-- [ ] Restore Hover's coloured whole-barrier pulse; add subtle cached Gemstone shine and rare glints.
-- [ ] Change Orbit rev3 to capture pans and minimum safe-box flight pushes; verify replay and reduced motion.
-- [ ] Measure matched Gemstone timings; run the named suite against 16c plus the Fission fix and deliver report.
+- [x] Restore Hover's coloured whole-barrier pulse; add subtle cached Gemstone shine and rare glints.
+- [x] Change Orbit rev3 to 450ms capture pans (250ms reduced) and minimum safe-box flight pushes; ten-seed dense/sparse/pure-sim parity passes.
+- [x] Measure matched Gemstone timings; named suite 67/83 pass, 15 unchanged failures, 1 unchanged timeout; Fission now passes. Deliver full report.
 
 ## Arcade success regression investigation (Oct 10)
 - [x] Run the three reported checks alone; all original failures reproduce on exact pre-effects revision.
