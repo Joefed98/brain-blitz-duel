@@ -1,4 +1,4 @@
-import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { successHud, successFrame } from "./success.renderer";
 import { reducedMotion } from './art.renderer';
 /** Hover in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
@@ -76,20 +76,25 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   state.pillars.forEach((pillar, index) => {
     const left = px(pillarX(pillar, state.distance));
     if (left > HOVER_WORLD_W || left + width < 0) return;
-    // Gates met at higher speed glow brighter (display only).
-    const speedShare = (hoverScroll(index) - HOVER_SCROLL_START) / (HOVER_SCROLL_MAX - HOVER_SCROLL_START);
     const colour = BARRIER_CYCLES[Math.floor(index / 7) % 6] ?? "#FF4DFF";
-    // A flash for the few pixels after the gate is passed, from geometry alone.
+    // After crossing, scroll speed is constant until the next gate. Recover
+    // the pass age from distance, even on a fresh reveal or a skipped frame.
     const passedBy = px(state.distance - (pillar.x0 + HOVER_PILLAR_W - discLeft));
-    const flash = index < state.gates && passedBy >= 0 && passedBy < 48 ? 1 - passedBy / 48 : 0;
+    const duration = reducedMotion() ? 9 : 18;
+    const age = passedBy / px(hoverScroll(index + 1));
+    const flash = index < state.gates && age >= 0 && age < duration ? 1 - age / duration : 0;
     const top = px(pillar.gapTop);
     const bottom = top + px(pillar.gapH);
     drawPipe(ctx, left, 0, width, top, colour, bloom, flash, "bottom");
     drawPipe(ctx, left, bottom, width, HOVER_WORLD_H - bottom, colour, bloom, flash, "top");
   });
 
-  const reward=successFrame(ctx,{id:'hover',tick:state.tick,count:state.gates,colour:BARRIER_CYCLES[Math.floor(Math.max(0,state.gates-1)/7)%6]??SAUCER,width:HOVER_WORLD_W,height:HOVER_WORLD_H,point:{x:px(HOVER_DISC_X),y:px(state.y),shape:'line',radius:20},hud:{x:10,y:28,text:`BARRIERS ${state.gates}/${state.totalGates}`}});
-  if(!reducedMotion()&&state.gates>0&&state.gates%7===0&&reward.age<20){ctx.save();ctx.globalAlpha=.22*(1-reward.age/20);ctx.strokeStyle=BARRIER_CYCLES[Math.floor(state.gates/7)%6]??SAUCER;ctx.lineWidth=1;ctx.strokeRect(4,4,HOVER_WORLD_W-8,HOVER_WORLD_H-8);ctx.restore();}
+  // Ordinary passes are rewarded by the barrier itself, not a saucer trace.
+  // Feed only each five-gate milestone to the shared burst/edge/HUD reward.
+  const reward=successFrame(ctx,{id:'hover',tick:state.tick,count:Math.floor(state.gates/5),every:1,colour:BARRIER_CYCLES[Math.floor(Math.max(0,state.gates-1)/7)%6]??SAUCER,width:HOVER_WORLD_W,height:HOVER_WORLD_H,point:{x:px(HOVER_DISC_X),y:px(state.y),shape:'spark',radius:20},hud:{x:10,y:28,text:`BARRIERS ${state.gates}/${state.totalGates}`}});
+  const latest = state.pillars[state.gates - 1];
+  const colourAge = latest ? px(state.distance - (latest.x0 + HOVER_PILLAR_W - discLeft)) / px(hoverScroll(state.gates)) : Infinity;
+  if(!reducedMotion()&&state.gates>0&&state.gates%7===0&&colourAge<20){ctx.save();ctx.globalAlpha=.22*(1-colourAge/20);ctx.strokeStyle=BARRIER_CYCLES[Math.floor(state.gates/7)%6]??SAUCER;ctx.lineWidth=1;ctx.strokeRect(4,4,HOVER_WORLD_W-8,HOVER_WORLD_H-8);ctx.restore();}
   drawSaucer(ctx, state, crashIndicator);
   successHud(ctx,'hover',state.tick,10,28,()=>{retroReadout(ctx, 10, 10, `BARRIERS ${state.gates}/${state.totalGates}`, RETRO_WHITE);});
 
@@ -125,9 +130,9 @@ function drawPipe(
   pixelRect(ctx, x, edge, w, 1, colour);
   for (let column = 2; column < w; column += 6)
     pixelRect(ctx, x + column, capAt === "bottom" ? edge - 1 : edge + 1, Math.min(3, w - column), 1, RETRO_WHITE);
-  if (flash > 0 && !reducedMotion()) {
-    ctx.globalAlpha = flash * 0.85;
-    pixelRect(ctx, x, edge, w, 1, RETRO_WHITE);
+  if (flash > 0) {
+    ctx.globalAlpha = flash * 0.34;
+    pixelRect(ctx, x, y, w, h, colour);
     ctx.globalAlpha = 1;
   }
   ctx.restore();

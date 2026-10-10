@@ -160,6 +160,13 @@ function flatGem(ctx: CanvasRenderingContext2D, shape: string, cx: number, cy: n
   ctx.stroke();
   pathOf(ctx, inner); ctx.stroke();
   pathOf(ctx, pts); ctx.lineWidth = 1; ctx.stroke();
+  // Own-colour inner light is baked once into the clipped gem sprite.
+  const shine = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.25, 0, cx, cy, r * 0.9);
+  shine.addColorStop(0, shade(colour, 0.42));
+  shine.addColorStop(1, colour);
+  ctx.globalAlpha = 0.16;
+  ctx.fillStyle = shine;
+  pathOf(ctx, pts); ctx.fill();
   ctx.restore();
 }
 
@@ -442,6 +449,36 @@ interface SceneOptions {
   skip?: ReadonlySet<number>;
 }
 
+/** Wall/render clock only: three sparse lanes, one 400ms glint per lane.
+ * No per-frame sprite rebuild, no dirty-cell invalidation, no live blur.
+ * Suppressed on moving boards and under reduced motion. */
+function drawGlints(ctx: CanvasRenderingContext2D, cells: readonly number[], now: number): void {
+  if (reducedMotion()) return;
+  const period = 2300;
+  for (let lane = 0; lane < 3; lane++) {
+    const clock = now + lane * 690;
+    const cycle = Math.floor(clock / period);
+    const delay = artHash(cycle, lane + 31) % 650;
+    const age = clock % period - delay;
+    if (age < 0 || age >= 400) continue;
+    const index = artHash(cycle, lane + 71) % cells.length;
+    const kind = cells[index];
+    if (kind === undefined || kind >= MATCHUP_COLOURS.length) continue;
+    const { x, y } = centre(index);
+    const p = age / 400;
+    const gx = x + (p - 0.5) * RADIUS * 0.8;
+    const gy = y - RADIUS * 0.22;
+    ctx.save();
+    pathOf(ctx, cutPoints(MATCHUP_SHAPES[kind] ?? "circle", x, y, RADIUS)); ctx.clip();
+    ctx.globalAlpha = Math.sin(Math.PI * p) * 0.42;
+    ctx.strokeStyle = shade(MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD, 0.75);
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(gx - 2.8, gy); ctx.lineTo(gx + 2.8, gy);
+    ctx.moveTo(gx, gy - 3.5); ctx.lineTo(gx, gy + 3.5); ctx.stroke();
+    ctx.restore();
+  }
+}
+
 function drawScene(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize, options: SceneOptions = {}): void {
   const time = reducedMotion() ? 0 : state.tick / 60;
   const { scale, offsetX, offsetY } = matchupTransform(size);
@@ -457,6 +494,7 @@ function drawScene(ctx: CanvasRenderingContext2D, state: MatchupState, size: Can
   const animating = animationMs != null && state.lastAnimation.length > 0;
   if (animating && animationMs != null) drawAnimated(ctx, state, animationMs, time);
   else drawSettled(ctx, options.cells ?? state.cells, time, options.skip);
+  if (!animating && !options.skip) drawGlints(ctx, options.cells ?? state.cells, performance.now());
 
   if (!animating && !options.cells && matchupShowHint(state)) {
     const hint = matchupFindSwap(state.cells);

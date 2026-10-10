@@ -1,3 +1,8 @@
+## Small renderer and camera tuning (Oct 10)
+- [ ] Restore Hover's coloured whole-barrier pulse; add subtle cached Gemstone shine and rare glints.
+- [ ] Change Orbit rev3 to capture pans and minimum safe-box flight pushes; verify replay and reduced motion.
+- [ ] Measure matched Gemstone timings; run the named suite against 16c plus the Fission fix and deliver report.
+
 ## Arcade success regression investigation (Oct 10)
 - [x] Run the three reported checks alone; all original failures reproduce on exact pre-effects revision.
 - [x] Correct three stale checks and failure-exit reporting; all three pass, application sources unchanged.
