@@ -3,7 +3,7 @@ import { reducedMotion } from './art.renderer';
 export const SUCCESS_TICKS = 30;
 export const SUCCESS_PARTICLES = 16;
 export const SUCCESS_ACCENTS = {gold:'#FFD84A',orange:'#FF8A3C',white:'#F4FFF8',green:'#3DDC84',cyan:'#3DFFE0',pink:'#FF4DFF'} as const;
-export type SuccessShape='spark'|'pixel'|'ring'|'fish'|'bubble'|'splat'|'tick'|'line'|'none';
+export type SuccessShape='spark'|'pixel'|'ring'|'fish'|'bubble'|'splat'|'tick'|'line';
 export interface SuccessPoint{x:number;y:number;shape?:SuccessShape;label?:string|undefined;radius?:number}
 interface Reward extends SuccessPoint{at:number;milestone:boolean}
 interface Memory{tick:number;count:number;misses:number;chain:number;edge:number;rewards:Reward[];event:number}
@@ -30,7 +30,6 @@ export function successFrame(c:CanvasRenderingContext2D,o:SuccessOptions):{chain
 }
 function paint(c:CanvasRenderingContext2D,r:Reward,p:number,colour:string,count:number,still:boolean){
  c.save();c.globalAlpha=Math.min(.8,1-p);c.fillStyle=colour;c.strokeStyle=colour;c.lineWidth=1.5;const move=still?0:p,rad=r.radius??12,shape=r.shape??'spark';
- if(shape==='none'){c.restore();return}
  if(shape==='ring'){c.beginPath();c.arc(r.x,r.y,rad+move*20,0,Math.PI*2);c.stroke()}
  else if(shape==='line'){c.beginPath();c.moveTo(r.x-rad,r.y);c.lineTo(r.x+rad,r.y);c.stroke()}
  else if(shape==='tick'){c.beginPath();c.moveTo(r.x-6,r.y);c.lineTo(r.x-1,r.y+5);c.lineTo(r.x+8,r.y-7);c.stroke()}
