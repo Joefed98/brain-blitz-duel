@@ -913,4 +913,4 @@
 - [x] Preserve before screenshots and protected gameplay/source fingerprints.
 - [x] Apply scoped centring, shared dark word tiles and all 13 requested presentation refinements.
 - [x] Capture and inspect all 13 360px after screens; 360x640 captured states have no overflow; Lookout dense-grid 44px exception disclosed.
-- [ ] Compare check scripts with the last reported run; deliver screenshots, wording diff and results.
+- [x] Compare all 81 existing checks against pre-polish snapshot: 61 pass / 16 fail / 4 timeout both, no new pass-to-fail failures; new polish check passes. Deliver 39 phone captures and report; old before captures are archival and Lookout dense-grid exception disclosed.
