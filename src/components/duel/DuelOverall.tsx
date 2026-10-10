@@ -7,6 +7,8 @@ import { AnimatedScore } from "./AnimatedScore";
 
 interface DuelOverallProps {
   round: number;
+  /** The room's own round count; older rooms default to six. */
+  totalRounds?: number;
   rows: Standing[];
   mySlot: number;
   autoSeconds: number;
@@ -16,6 +18,7 @@ interface DuelOverallProps {
 
 export function DuelOverall({
   round,
+  totalRounds = TOTAL_ROUNDS,
   rows,
   mySlot,
   autoSeconds,
@@ -31,7 +34,7 @@ export function DuelOverall({
             Overall standings
           </p>
           <h1 className="mt-1 font-display text-lg font-bold text-foreground">
-            After round {round} of {TOTAL_ROUNDS}
+            After round {round} of {totalRounds}
           </h1>
           <span className="absolute right-0 top-0 font-mono text-[10px] uppercase text-muted-foreground">
             2 of 2

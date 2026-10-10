@@ -1003,8 +1003,13 @@ body.game-lock {
 .timer-ring-fill { stroke: var(--category-accent); }
 .fx-timer-critical .timer-ring-fill { stroke: var(--destructive); }
 .fx-timer-critical > span { color: var(--destructive); }
-.fx-timer-pulse .fx-timer-ring, .fx-timer-pulse > span { animation: fx-timer-pulse 1s ease-out both; }
-@keyframes fx-timer-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 20% { opacity: 0.7; transform: scale(1.04); } }
+/* Final 10 s: one swell per tick (each second remounts the ring and digits), never faster. */
+.fx-timer-pulse .fx-timer-ring, .fx-timer-pulse > span { transform-origin: center; animation: fx-timer-pulse 1s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+@keyframes fx-timer-pulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
+  18% { transform: scale(1.1); filter: brightness(1.35) drop-shadow(0 0 4px color-mix(in oklab, var(--destructive) 85%, transparent)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
+}
 @keyframes fx-pop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 @keyframes fx-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
 .animate-pop-in, .animate-tile-flash { animation: fx-pop 180ms ease-out; }
@@ -1015,6 +1020,8 @@ body.game-lock {
 @media (prefers-reduced-motion: reduce) {
   .screen-drift { animation: none; }
   .fx-timer-pulse .fx-timer-ring, .fx-timer-pulse > span { animation: none !important; }
+  /* Reduced motion: brighter red, no swell. */
+  .fx-timer-critical .fx-timer-ring, .fx-timer-critical > span { filter: brightness(1.35) drop-shadow(0 0 3px color-mix(in oklab, var(--destructive) 70%, transparent)); }
   .animate-phase-in, .animate-rise-settle, .animate-pop-in, .animate-tile-flash, .animate-shake, .animate-stamp-in, .animate-tag-slam, .animate-word-scale-in, .animate-row-stagger, .animate-reaction-float { animation: fx-fade 160ms ease-out !important; }
   @keyframes fx-fade { from { opacity: 0.65; } to { opacity: 1; } }
 }
@@ -1353,3 +1360,7 @@ body.game-lock {
 
 
 
+
+/* Rainbow Bridge live stroke refused: one brief red flash (single pulse, well under 3/s). */
+@keyframes ink-reject { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+@utility animate-ink-reject { animation: ink-reject 0.45s ease-out both; }

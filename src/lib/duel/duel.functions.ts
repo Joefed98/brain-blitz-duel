@@ -17,6 +17,7 @@ import {
   NEXT_ROUND_AUTO_MS,
   STANDINGS_MS,
   TOTAL_ROUNDS,
+  MAX_ROUNDS,
   type DuelPhase,
   type DuelPlayerRow,
   type DuelRow,
@@ -426,16 +427,16 @@ export const startRoomFn = createServerFn({ method: "POST" })
     const recentWords = await recentWordMatchWords(client, room.host_user_id);
     const lastGoNoGoFirst = await previousGoNoGoFirst(client, room, room.host_user_id);
     const categories = normaliseCategories(room.selected_categories);
-    if (
-      categories.reduce((total, category) => total + typesInCategory(category).length, 0) <
-      (room.round_count ?? TOTAL_ROUNDS)
-    )
+    if (!categories.some((category) => typesInCategory(category).length > 0))
       return {
         ok: false as const,
-        message: "These categories need at least six active games. Choose another category.",
+        message: "Choose at least one category with active games.",
       };
+    // One round per selected category, ordered by this room's seed.
+    const { newRoomSeed } = await import("./selection");
+    const roomSeed = newRoomSeed();
     const { roundOrder, puzzles } = buildRoomPuzzles({
-      rounds: room.round_count ?? TOTAL_ROUNDS,
+      seed: roomSeed,
       recent,
       categories,
       previousGoNoGoFirst: lastGoNoGoFirst as never,
@@ -443,7 +444,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       recentWordMatchWords: recentWords,
     });
     console.log(
-      `[room-selection] room=${room.room_code} categories=${categories.join(",")} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
+      `[room-selection] room=${room.room_code} seed=${roomSeed} categories=${categories.join(",")} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
     );
 
     const split = puzzles.map(splitPuzzle);
@@ -453,6 +454,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       .from("duels")
       .update({
         round_order: roundOrder,
+        round_count: roundOrder.length,
         puzzles_public: JSON.parse(JSON.stringify(split.map((s) => s.pub))),
         status: "in_progress",
         current_round: 1,
@@ -815,7 +817,7 @@ export const markReadyFn = createServerFn({ method: "POST" })
     await requireParticipant(client, data.roomId, context.userId);
     await client
       .from("duel_players")
-      .update({ ready_round: clamp(data.roundNumber, 0, TOTAL_ROUNDS) })
+      .update({ ready_round: clamp(data.roundNumber, 0, MAX_ROUNDS) })
       .eq("duel_id", data.roomId)
       .eq("user_id", context.userId);
     return { ok: true };
@@ -833,7 +835,7 @@ export const readyUpFn = createServerFn({ method: "POST" })
     const client = await db();
     const player = await requireParticipant(client, data.roomId, context.userId);
     const room = await getRoom(client, data.roomId);
-    const round = clamp(data.roundNumber, 1, TOTAL_ROUNDS);
+    const round = clamp(data.roundNumber, 1, MAX_ROUNDS);
     if (room.status !== "in_progress" || room.current_round !== round || room.phase !== "intro") {
       return { ok: true as const };
     }

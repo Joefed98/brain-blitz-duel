@@ -20,8 +20,10 @@ import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
 import { INKBRIDGE_TIME_MS, type InkBridgePuzzleData } from "@/lib/duel/types";
 import { drawInkRainbowExample, inkBridgeArtGameFor, INK_ART_BG } from "@/lib/arcade/inkBridge.renderer";
 import { inkBridgeSounds } from "@/lib/fx/gameSounds";
-import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
+import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { Button } from "@/components/ui/button";
+import { InkInputQueue, type InkPayload } from "@/lib/arcade/inkInputQueue";
+import { useReducedMotion } from "@/lib/motion";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -54,10 +56,12 @@ const LIVE_HINT_KEY = "duelz-inkbridge-live-hint";
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: InkBridgePuzzleData | null = puzzle.type === "inkbridge" ? puzzle : null;
-  // Stroke points and RELEASE presses waiting to be sent, one a tick, and the last point queued.
-  const pending = useRef<PointerPayload[]>([]);
-  const pen = useRef<{ x: number; y: number } | null>(null);
-  const presses = useRef(0);
+  // Stroke points and button presses waiting to be sent, one a tick (see InkInputQueue).
+  const input = useRef(new InkInputQueue());
+  // Live drops: what the last sent event was, to explain a stroke the sim refused.
+  const lastSent = useRef<{ payload: InkPayload; penDown: number; lifts: number } | null>(null);
+  const [reject, setReject] = useState<{ label: string; at: number } | null>(null);
+  const reduced = useReducedMotion();
   // Rounds 9–10 only: whether the current level is live (drawing continues while the ball falls).
   const liveLevelRef = useRef(false);
   const liveDroppingRef = useRef(false);
@@ -65,9 +69,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [liveDropping, setLiveDropping] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const hintSeen = useRef(false);
-  const queue = (payload: PointerPayload) => {
-    if (pending.current.length < 120) pending.current.push(payload);
-  };
+  useEffect(() => {
+    if (!reject) return;
+    const timer = window.setTimeout(() => setReject(null), 700);
+    return () => window.clearTimeout(timer);
+  }, [reject]);
   useEffect(() => {
     hintSeen.current = window.localStorage.getItem(LIVE_HINT_KEY) === "1";
   }, []);
@@ -99,32 +105,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             window.localStorage.setItem(LIVE_HINT_KEY, "1");
             setShowHint(true);
           }
-          return pending.current.shift() ?? null;
-        }}
-        pointer={(kind, x, y) => {
-          // Every payload carries k = 8 so the recorder files it as a stroke event.
-          if (kind === "down") {
-            pen.current = { x, y };
-            const start = { k: INK_INPUT_STROKE, a: x, b: y, c: 1 };
-            queue(start);
-            return start;
-          }
-          const from = pen.current;
-          if (!from) return null;
-          if (Math.hypot(x - from.x, y - from.y) >= INK_STEP_PX || (kind === "up" && (x !== from.x || y !== from.y))) {
-            pen.current = { x, y };
-            queue({ k: INK_INPUT_STROKE, a: x, b: y, c: 0 });
-          }
-          if (kind === "up") {
-            pen.current = null;
-            // Live levels: finger-up while the ball is falling commits the draft so far.
-            if (liveDroppingRef.current) {
-              presses.current = (presses.current + 1) % 256;
-              queue({ k: INK_INPUT_LIFT, a: presses.current, b: 0, c: 0 });
+          // Explain the previous live event if the sim refused it (never a silent fade).
+          const sent = lastSent.current;
+          lastSent.current = null;
+          if (sent && liveDroppingRef.current) {
+            const p = sent.payload;
+            if (p.k === INK_INPUT_STROKE && state.draftPenDown === 0 && (p.c === 1 || sent.penDown === 1)) {
+              setReject({ label: state.ink < 2 * 256 ? "No ink" : "Too close", at: Date.now() });
             }
           }
-          return null;
+          const next = input.current.next(liveDroppingRef.current);
+          if (next && liveDroppingRef.current) lastSent.current = { payload: next, penDown: state.draftPenDown, lifts: state.liveLifts };
+          return next;
         }}
+        pointer={(kind, x, y) => input.current.pointer(kind, x, y, liveDroppingRef.current)}
         onSubmit={(answer) => onSubmit(answer)}
         onDraftAnswer={onDraftAnswer}
         overlay={
@@ -133,6 +127,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               <span className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 rounded-full border border-primary bg-primary/90 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-foreground">
                 Live
               </span>
+            )}
+            {reject && (
+              <>
+                <span
+                  key={`flash-${reject.at}`}
+                  className={`pointer-events-none absolute inset-0 rounded-xl border-2 border-destructive ${reduced ? "" : "animate-ink-reject"}`}
+                  aria-hidden="true"
+                />
+                <span
+                  role="status"
+                  className="pointer-events-none absolute left-1/2 top-10 -translate-x-1/2 rounded-full bg-destructive px-3 py-1 text-xs font-bold uppercase tracking-wide text-destructive-foreground"
+                >
+                  {reject.label}
+                </span>
+              </>
             )}
             {showHint && (
               <p className="pointer-events-none absolute bottom-2 left-1/2 w-[90%] -translate-x-1/2 rounded-md bg-background/80 px-2 py-1 text-center text-xs text-foreground">
@@ -146,9 +155,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         {([ [INK_INPUT_UNDO, "UNDO"], [INK_INPUT_RESET, "RESET"], [INK_INPUT_RELEASE, "RELEASE"], [INK_INPUT_DROP_AGAIN, "DROP AGAIN"] ] as const).map(([k, label]) => (
           <Button key={k} type="button" disabled={locked || (k === INK_INPUT_UNDO && liveDropping)} variant={k === INK_INPUT_RELEASE ? "default" : "outline"} className="h-12 min-w-0 flex-1 px-1 text-xs font-bold" style={{ touchAction: "none" }} onPointerDown={(e) => {
             e.preventDefault();
-            presses.current = (presses.current + 1) % 256;
-            pen.current = null;
-            queue({ k, a: presses.current, b: 0, c: 0 });
+            input.current.press(k);
           }}>{label}</Button>
         ))}
       </div>

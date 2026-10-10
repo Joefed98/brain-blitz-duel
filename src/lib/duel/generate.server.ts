@@ -188,7 +188,7 @@ export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContex
   roundOrder: PuzzleType[];
   puzzles: PuzzleData[];
 } {
-  const roundOrder = pickRoundOrder({ rounds: TOTAL_ROUNDS, ...options });
+  const roundOrder = pickRoundOrder(options);
   return {
     roundOrder,
     puzzles: roundOrder.map((type) =>

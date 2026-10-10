@@ -22,6 +22,8 @@ function Arrow({ standing }: { standing: Standing }) {
 
 interface StandingsProps {
   round: number;
+  /** The room's own round count; older rooms default to six. */
+  totalRounds?: number;
   rows: Standing[];
   mySlot: number;
   autoSeconds: number;
@@ -30,7 +32,7 @@ interface StandingsProps {
 }
 
 /** The ranked table between rounds in a room of three or more. */
-export function Standings({ round, rows, mySlot, autoSeconds, isHost, onNext }: StandingsProps) {
+export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, mySlot, autoSeconds, isHost, onNext }: StandingsProps) {
   const nodes = useRef(new Map<number, HTMLLIElement>());
   const offsets = useRef(new Map<number, number>());
   const [displayRows, setDisplayRows] = useState(() => previousStandingOrder(rows));
@@ -63,7 +65,7 @@ export function Standings({ round, rows, mySlot, autoSeconds, isHost, onNext }: 
           Overall standings
         </p>
         <h1 className="mt-1 font-display text-lg font-bold text-foreground">
-          After round {round} of {TOTAL_ROUNDS}
+          After round {round} of {totalRounds}
         </h1>
         <span className="absolute right-0 top-0 font-mono text-[10px] uppercase text-muted-foreground">
           2 of 2

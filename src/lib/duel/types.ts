@@ -552,10 +552,6 @@ export interface DuelRow {
   round_order: PuzzleType[];
   /** Host setting: kept for older rooms; no longer used in the draw. */
   no_maths: boolean;
-  /** Host opt-in: include the number category in the round draw. */
-  add_maths: boolean;
-  /** Host toggle, on by default: one round is an arcade game. */
-  add_arcade: boolean;
 
   /**
    * Only what each player needs to render the round. Answers live in the
@@ -632,8 +628,10 @@ export const TARGET_TIME_MS = 75_000;
 /** Target Number: how close a miss still earns something. */
 export const TARGET_NEAR_POINTS = 50;
 export const TARGET_FAR_POINTS = 25;
-/** Six rounds, one from each puzzle category. */
+/** Default round count for older rooms; new rooms set round_count to their category count. */
 export const TOTAL_ROUNDS = 6;
+/** New rooms play one round per selected category: at most seven. */
+export const MAX_ROUNDS = 7;
 /** A room holds two to ten players; two plays as the classic duel. */
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 10;

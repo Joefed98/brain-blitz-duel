@@ -29,7 +29,7 @@ import {
 import { SWERVE_CHECKPOINT_INTERVAL } from "../src/lib/arcade/swerve.ts";
 import { encodeSwerveRun, replaySwerveRun, type SwerveTap } from "../src/lib/duel/swerve.ts";
 import { encodeSkylineRun, replaySkylineRun } from "../src/lib/duel/skyline.ts";
-import { pickRoundOrder } from "../src/lib/duel/selection.ts";
+import { pickRoundOrder, categoryOrderFor } from "../src/lib/duel/selection.ts";
 import { puzzleDef } from "../src/lib/duel/registry.ts";
 
 let failures = 0;
@@ -219,22 +219,23 @@ for (let sample = 0; sample < 200; sample++) {
   }
 }
 
-/* --------------------------- Arcade toggle ----------------------------- */
+/* ------------------- One round per selected category ------------------ */
 
 {
-  const isArcade = (type: string) => puzzleDef(type as never).category === "arcade";
-  for (let sample = 0; sample < 200; sample++) {
-    const on = pickRoundOrder({ addArcade: true });
-    const arcadeOn = on.filter(isArcade);
-    if (arcadeOn.length !== 1) fail(`arcade on: ${arcadeOn.length} arcade rounds`);
-    if (isArcade(on[0] ?? "")) fail("arcade landed in round one");
-    if (new Set(on).size !== on.length) fail("arcade draw repeated a type");
-    if (on.length !== 6) fail(`arcade on: ${on.length} rounds`);
-
-    const off = pickRoundOrder({ addArcade: false });
-    if (off.some(isArcade)) fail("arcade round drawn while the toggle is off");
-    if (off.length !== 6) fail(`arcade off: ${off.length} rounds`);
+  const cat = (type: string) => puzzleDef(type as never).category;
+  const all = ["logic", "pattern", "speed", "attention", "word", "number", "arcade"] as const;
+  let arcadeFirst = 0;
+  for (let seed = 0; seed < 700; seed++) {
+    const order = pickRoundOrder({ categories: [...all], seed });
+    if (order.length !== 7) fail(`seed ${seed}: ${order.length} rounds`);
+    if (new Set(order.map(cat)).size !== 7) fail(`seed ${seed}: repeated category`);
+    if (cat(order[0] ?? "") === "arcade") arcadeFirst++;
+    const again = categoryOrderFor([...all], seed);
+    if (again.join() !== order.map(cat).join()) fail(`seed ${seed}: order not seed-determined`);
   }
+  if (arcadeFirst === 0) fail("arcade never opened a room");
+  const solo = pickRoundOrder({ categories: ["arcade"], seed: 5 });
+  if (solo.length !== 1 || cat(solo[0]!) !== "arcade") fail("single category room");
 }
 
 console.log(

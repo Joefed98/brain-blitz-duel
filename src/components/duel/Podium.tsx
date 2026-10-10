@@ -124,7 +124,7 @@ export function Podium({
             </button>
             {open === row.slot && (
               <div className="border-t border-border px-3 py-2">
-                {playerBreakdown(results, row.slot).map((entry) => (
+                {playerBreakdown(results, row.slot, roundOrder.length || undefined).map((entry) => (
                   <div
                     key={entry.round}
                     className="flex items-center justify-between py-1 text-[11px]"

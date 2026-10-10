@@ -41,6 +41,7 @@ export function RoundIntro({
   startedAt,
   now,
   outcomes,
+  totalRounds = TOTAL_ROUNDS,
   ready = false,
   readyCount = 0,
   activeCount = 0,
@@ -110,7 +111,7 @@ export function RoundIntro({
         ) : null}
         <div className="flex flex-col gap-0.5">
           <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            {practice ? "Practice" : `Round ${round} of ${TOTAL_ROUNDS}`}{" "}
+            {practice ? "Practice" : `Round ${round} of ${totalRounds}`}{" "}
             <span className="category-tag">· {theme.accent}</span>
           </span>
           {!counting && onReady ? (
@@ -119,7 +120,7 @@ export function RoundIntro({
             </span>
           ) : null}
         </div>
-        {!practice && <RoundPips currentRound={round} outcomes={outcomes} />}
+        {!practice && <RoundPips currentRound={round} outcomes={outcomes} totalRounds={totalRounds} />}
       </div>
 
       <h1 className="w-full min-w-0 whitespace-normal break-words text-center font-display text-[2.25rem] font-bold leading-none animate-pop-in sm:text-[2.75rem]">

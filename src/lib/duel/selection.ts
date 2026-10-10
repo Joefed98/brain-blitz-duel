@@ -2,21 +2,15 @@
  * Round selection for a room.
  *
  * Categories are host-selected in the lobby. Retired types are never drawn.
- * A room's six rounds are always six different types.
+ * A room plays one round per selected category, in a seeded random order.
  *
  * The draw is weighted against what the host's group has just played, so four
  * rooms in a row come close to twenty-four different games.
  */
 
 import { randomBelow, shuffled, weightedPick } from "./random";
-import {
-  ARCADE_CATEGORY,
-  CORE_CATEGORIES,
-  CORE_SIXTH_WEIGHTS,
-  puzzleDef,
-  typesInCategory,
-} from "./registry";
-import { TOTAL_ROUNDS, type PuzzleCategory, type PuzzleType } from "./types";
+import { typesInCategory } from "./registry";
+import type { PuzzleCategory, PuzzleType } from "./types";
 import { normaliseCategories } from "./categories";
 
 /**
@@ -39,14 +33,48 @@ function recencyWeight<T>(value: T, seen: readonly (readonly T[])[]): number {
 }
 
 export interface RoundSelectionOptions {
-  rounds?: number;
   categories?: readonly PuzzleCategory[];
   /** Round orders of the host's last rooms, most recent first. */
   recent?: RecentRounds;
-  /** Host opt-in: the number category joins the pool. */
-  addMaths?: boolean;
-  /** Host toggle, on by default: exactly one round is an arcade game. */
-  addArcade?: boolean;
+  /** Room seed for the category order; drawn fresh when omitted. */
+  seed?: number;
+}
+
+/** Room seeds are 31-bit non-negative integers. */
+export function newRoomSeed(): number {
+  return randomBelow(0x8000_0000);
+}
+
+/** mulberry32: a small, well-mixed PRNG for the seeded category order. */
+function seededRng(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 0x1_0000_0000;
+  };
+}
+
+/**
+ * The room's category order: one round per selected category, as a uniform
+ * Fisher–Yates permutation driven only by the room seed. Every order is
+ * equally likely and any category (arcade included) can open the room.
+ */
+export function categoryOrderFor(
+  categories: readonly PuzzleCategory[],
+  seed: number,
+): PuzzleCategory[] {
+  const order = normaliseCategories(categories).filter(
+    (category) => typesInCategory(category).length > 0,
+  );
+  const rng = seededRng(seed);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  return order;
 }
 
 /** One type from a category, avoiding types already drawn and recent rooms. */
@@ -66,96 +94,14 @@ function pickType(
   return weightedPick(options, (type) => recencyWeight(type, recent));
 }
 
-/** Draws the room's round order. */
+/** Draws the room's round order: exactly one game from each selected category. */
 export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[] {
-  const rounds = options.rounds ?? TOTAL_ROUNDS;
   const recent = (options.recent ?? []).slice(0, RECENT_WEIGHTS.length);
-  const recentCategories = recent.map((order) =>
-    order.map((type) => puzzleDef(type)?.category).filter(Boolean),
-  ) as PuzzleCategory[][];
-
-  if (options.categories) {
-    const pool = normaliseCategories(options.categories).filter(
-      (category) => typesInCategory(category).length,
-    );
-    const counts = new Map<PuzzleCategory, number>(pool.map((category) => [category, 0]));
-    const selected: PuzzleCategory[] = [];
-    while (selected.length < rounds) {
-      const eligible = pool.filter(
-        (category) => typesInCategory(category).length > (counts.get(category) ?? 0),
-      );
-      if (!eligible.length) break;
-      const min = Math.min(...eligible.map((category) => counts.get(category) ?? 0));
-      const tied = eligible.filter((category) => (counts.get(category) ?? 0) === min);
-      // With all five core categories present, give them the first five draws.
-      const core =
-        CORE_CATEGORIES.every((category) => pool.includes(category)) && selected.length < 5
-          ? tied.filter((category) => CORE_CATEGORIES.includes(category))
-          : tied;
-      const category = weightedPick(shuffled(core.length ? core : tied), (candidate) =>
-        recencyWeight(candidate, recentCategories),
-      );
-      selected.push(category);
-      counts.set(category, (counts.get(category) ?? 0) + 1);
-    }
-    const used: PuzzleType[] = [];
-    for (const category of selected) {
-      const type = pickType(category, used, recent);
-      if (type) used.push(type);
-    }
-    return pool.length >= rounds && CORE_CATEGORIES.every((category) => pool.includes(category))
-      ? used
-      : shuffled(used);
-  }
-
-  // Arcade is on unless the host turns it off; when it is on it takes exactly
-  // one round, so the rest of the draw fills one round fewer.
-  const wantArcade = options.addArcade !== false && typesInCategory(ARCADE_CATEGORY).length > 0;
-  const slots = wantArcade ? Math.max(1, rounds - 1) : rounds;
-
-  const optIns: PuzzleCategory[] = [
-    ...(options.addMaths ? (["number"] as const) : []),
-  ];
-  const pool = [...CORE_CATEGORIES, ...optIns].filter(
-    (category) => typesInCategory(category).length > 0,
-  );
-
-  // As many different categories as the pool allows, weighted by recency.
-  const remaining = shuffled(pool);
-  const categories: PuzzleCategory[] = [];
-  while (categories.length < slots && remaining.length > 0) {
-    const chosen = weightedPick(remaining, (category) => recencyWeight(category, recentCategories));
-    categories.push(chosen);
-    remaining.splice(remaining.indexOf(chosen), 1);
-  }
-
+  const order = categoryOrderFor(options.categories ?? [], options.seed ?? newRoomSeed());
   const types: PuzzleType[] = [];
-  for (const category of categories) {
+  for (const category of order) {
     const type = pickType(category, types, recent);
     if (type) types.push(type);
   }
-
-  // Not enough categories to fill the room: the remaining rounds come from core
-  // categories weighted toward logic and pattern.
-  while (types.length < slots) {
-    const candidates = CORE_CATEGORIES.filter((category) =>
-      typesInCategory(category).some((type) => !types.includes(type)),
-    );
-    if (candidates.length === 0) break;
-    const category = weightedPick(
-      candidates,
-      (c) => (CORE_SIXTH_WEIGHTS[c] ?? 0.05) * recencyWeight(c, recentCategories),
-    );
-    const type = pickType(category, types, recent);
-    if (!type) break;
-    types.push(type);
-  }
-
-  const order = shuffled(types);
-  if (wantArcade) {
-    const arcade = pickType(ARCADE_CATEGORY, order, recent);
-    // Never round one: the arcade round lands anywhere from round two onwards.
-    if (arcade) order.splice(1 + randomBelow(order.length), 0, arcade);
-  }
-  return order;
+  return types;
 }
