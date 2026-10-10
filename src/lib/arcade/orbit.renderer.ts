@@ -431,7 +431,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
   if (rocket) ctx.drawImage(rocket, -rocket.width / 2, -rocket.height / 2);
   ctx.restore();
 
-  if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:capturePlanet.x/FP,y:capturePlanet.y/FP-cam,shape:'ring',radius:capturePlanet.r/FP+8},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
+  if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
@@ -460,8 +460,8 @@ export { ORBIT_BG };
 /**
  * Rev3 world-scroll art: same geometry helpers as rev1/2 (tracePath,
  * drawPlanet, drawSun, drawBelt, planetLook) but translated by the shared,
- * render-only orbitCamera (sim-tick deterministic; locked to the rocket with
- * no cap in flight, capped at 6 units/tick while orbiting) instead of the
+ * render-only orbitCamera (sim-tick deterministic capture pans and minimum
+ * safe-box flight pushes) instead of the
  * fixed camY scroll. Rev1/2 drawing above is untouched. Why: one camera
  * module keeps play, reveal and intro-demo frames identical without the sim
  * knowing about the viewport.
@@ -470,14 +470,13 @@ import {
   orbitCamera,
   orbitCameraObserve,
   orbitVisiblePlanets,
-  orbitCameraArrow,
   ORBIT_CAM_VIEW_W,
   ORBIT_CAM_VIEW_H,
-  ORBIT_ARROW_GOLD,
   type OrbitCamOffset,
 } from "./orbitCamera";
 import { orbitRev3Game, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
 import { devDisplayAllowed } from "@/lib/devDisplay";
+import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.renderer';
 
 /** One baked sprite per (planet index, lobe, radius) — drawPlanet has no time dependence. */
 const rev3SpriteCaches = new WeakMap<Planet[], Map<string, HTMLCanvasElement>>();
@@ -561,31 +560,6 @@ function rev3GlowLayer(ctx: CanvasRenderingContext2D, state: OrbitRev3State, vis
   ctx.restore();
 }
 
-function rev3Arrow(ctx: CanvasRenderingContext2D, arrow: { angle: number; off: number }): void {
-  const cx = ORBIT_CAM_VIEW_W / 2;
-  const cy = ORBIT_CAM_VIEW_H / 2;
-  const insetX = ORBIT_CAM_VIEW_W / 2 - 26;
-  const insetY = ORBIT_CAM_VIEW_H / 2 - 36;
-  const ux = Math.cos(arrow.angle);
-  const uy = Math.sin(arrow.angle);
-  const k = Math.min(insetX / (Math.abs(ux) || 1e-6), insetY / (Math.abs(uy) || 1e-6));
-  const ax = cx + ux * k;
-  const ay = cy + uy * k;
-  ctx.save();
-  ctx.translate(ax, ay);
-  ctx.rotate(Math.atan2(uy, ux));
-  ctx.globalAlpha = 0.6 + 0.4 * arrow.off;
-  ctx.fillStyle = ORBIT_ARROW_GOLD;
-  ctx.beginPath();
-  ctx.moveTo(12, 0);
-  ctx.lineTo(-8, -8);
-  ctx.lineTo(-8, 8);
-  ctx.closePath();
-  ctx.fill();
-  ctx.globalAlpha = 1;
-  ctx.restore();
-}
-
 function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, size: CanvasSize): void {
   const still = prefersReducedMotion();
   const t = still ? 0 : state.tick / 60;
@@ -605,6 +579,7 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
 
   const capturePlanet=state.planets[state.cur];
   rev3Starfield(ctx, cam, t, still);
+   drawOrbitShootingStar(ctx, state, cam, still);
 
   // Cull to the view plus one ring's margin either side (orbitVisiblePlanets).
   const visible = orbitVisiblePlanets(state, cam);
@@ -745,11 +720,7 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
   ctx.fill();
   ctx.restore();
 
-  // Gold edge arrow (screen space) when the next ring is more than 30% off-screen.
-  const arrow = orbitCameraArrow(state, cam);
-  if (arrow) rev3Arrow(ctx, arrow);
-
-  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:capturePlanet.x/FP-cam.x,y:capturePlanet.y/FP-cam.y,shape:'ring',radius:capturePlanet.r/FP+8},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
+  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
@@ -781,11 +752,13 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
 /** The rev3 sim with its camera-scrolled renderer swapped in. */
 export const orbitRev3ArtGame = {
   ...orbitRev3Game,
-  init: (seed: number) => { const state = orbitRev3Game.init(seed); orbitCameraObserve(state); return state; },
+  init: (seed: number) => { const state = orbitRev3Game.init(seed); orbitCameraObserve(state); orbitRewardObserve(state); return state; },
   step: (state: OrbitRev3State, input: Parameters<typeof orbitRev3Game.step>[1]) => {
     orbitCameraObserve(state);
+    orbitRewardObserve(state);
     const next = orbitRev3Game.step(state, input);
     orbitCameraObserve(next);
+    orbitRewardObserve(next);
     return next;
   },
   draw: drawOrbitRev3Art,
