@@ -14,7 +14,7 @@ const STEEL = "#788DA4";
 const STEEL_LIGHT = "#A9BED0";
 const TOWER_DARK = "#131D2C";
 const TOWER_NEAR = "#202C3D";
-const WINDOW_LIGHT = "#C8B981";
+const WINDOW_LIGHT = "#FFC966";
 const PANE_GLOW = "rgba(216,243,255,0.18)";
 const GROUND = "#424F60";
 const JIB_Y = 30;
@@ -101,16 +101,15 @@ function drawBlock(ctx: CanvasRenderingContext2D, x: number, top: number, w: num
   ctx.fillStyle = STEEL_LIGHT;
   ctx.fillRect(x, top, w, 2);
 
-  // Warm lit windows for placed floors.
+  // Warm lit windows for placed floors (fade in over ~20 ticks after landing).
   if (age !== Infinity) {
-    const fade = Math.min(1, age / 20);
-    ctx.fillStyle = WINDOW_LIGHT;
-    ctx.globalAlpha = 0.7 * fade;
-    const inset = 6;
-    for (let wy = top + 8; wy < top + h - 6; wy += 10) {
-      for (let wx = x + inset + 4; wx < x + w - inset - 4; wx += 8) {
-        if (artHash(wx, wy) % 2 === 0) ctx.fillRect(wx, wy, 3, 5);
-      }
+    const fade = Math.max(0, Math.min(1, age / 20));
+    for (let p = 0; p < panes; p++) {
+      const lit = artHash(index * 31 + p, 7) % 5;
+      if (lit === 0) continue;
+      ctx.globalAlpha = fade * (lit === 1 ? 0.45 : 0.85);
+      ctx.fillStyle = lit === 4 ? "#FFE3A3" : WINDOW_LIGHT;
+      ctx.fillRect(x + inset + p * pw + 2, top + inset + 3, pw - 4, h - inset * 2 - 6);
     }
     ctx.globalAlpha = 1;
   }
