@@ -1327,3 +1327,8 @@ body.game-lock {
 [data-puzzle-surface="numpyramid"] .pyramid-paint-cell.bg-muted { background: var(--puzzle-given) !important; }
 [data-puzzle-surface="numpyramid"] .pyramid-tray-tile[data-puzzle-cell] { background: linear-gradient(to bottom, var(--letter-tile-top), var(--letter-tile-bottom)) !important; color: var(--foreground) !important; box-shadow: inset 0 0 0 1px var(--category-accent), var(--letter-tile-shadow) !important; }
 [data-puzzle-surface="numpyramid"] .pyramid-tray-tile[data-puzzle-state="selected"] { box-shadow: inset 0 0 0 2px var(--primary), var(--letter-tile-shadow) !important; }
+
+.word-letter-tile.bg-primary\/20, .word-letter-tile.bg-primary\/40, .word-letter-tile.ring-2, .word-letter-tile.bg-primary { background-image: linear-gradient(to bottom, color-mix(in oklab, var(--category-accent) 20%, var(--letter-tile-top)), var(--letter-tile-bottom)); }
+[data-puzzle-surface] .word-letter-tile.text-destructive { color: var(--destructive) !important; }
+[data-puzzle-surface] .word-letter-tile.bg-destructive, [data-puzzle-surface] .word-letter-tile.bg-warn { background-image: linear-gradient(to bottom, color-mix(in oklab, var(--destructive) 28%, var(--letter-tile-top)), var(--letter-tile-bottom)); }
+[data-puzzle-surface] .word-letter-tile[data-puzzle-state="selected"] { box-shadow: inset 0 0 0 2px var(--primary), var(--letter-tile-shadow) !important; }
