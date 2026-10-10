@@ -910,7 +910,7 @@
 - [ ] Two 360px mid-run mock screenshots (one with edge arrow); demo needs re-recording
 
 ## Puzzle Polish A (Oct 10)
-- [ ] Preserve before screenshots and protected gameplay/source fingerprints.
-- [ ] Apply scoped centring, shared dark word tiles and all 13 requested presentation refinements.
-- [ ] Capture and inspect 360px after screens; verify 360x640 control clearance and disclose dense-grid limits.
+- [x] Preserve before screenshots and protected gameplay/source fingerprints.
+- [x] Apply scoped centring, shared dark word tiles and all 13 requested presentation refinements.
+- [x] Capture and inspect all 13 360px after screens; 360x640 captured states have no overflow; Lookout dense-grid 44px exception disclosed.
 - [ ] Compare check scripts with the last reported run; deliver screenshots, wording diff and results.
