@@ -1,7 +1,7 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /** Orchard Snip. Art only: original world, camera, rope nodes and collision geometry. */
 import type { CanvasSize } from './engine';
-import { snipCamera, snipGame, snipView, SNIP_CONFIG, SNIP_H, SNIP_W, type SnipState } from './snip';
+import { snipCamera, snipGame, snipView, SNIP_CONFIG, SNIP_EATEN, SNIP_H, SNIP_W, type SnipState } from './snip';
 import { countryStamp, drawCountryside, COUNTRY_SKY, COUNTRY_GRASS_DARK, COUNTRY_WOOD, COUNTRY_WOOD_DARK, COUNTRY_WOOD_LIGHT, COUNTRY_STONE, COUNTRY_STONE_DARK, COUNTRY_GOLD, COUNTRY_GOLD_EDGE, COUNTRY_SHINE, COUNTRY_APPLE, COUNTRY_APPLE_EDGE } from './countryside.renderer';
 
 export interface SnipSwipe { a: number; b: number; c: number; d: number; at: number }
@@ -78,7 +78,7 @@ export function drawSnipArt(c:CanvasRenderingContext2D,state:SnipState,size:Canv
   for(const sw of swipes){const k=1-(now-sw.at)/200;if(k<=0)continue;c.globalAlpha=k*0.8;c.beginPath();c.moveTo(sw.a,sw.b);c.lineTo(sw.c,sw.d);c.stroke();}
   c.globalAlpha=1;
   const completed=SNIP_CONFIG.templates[state.order[Math.max(0,state.level-1)]??state.template];
-  if(completed)successFrame(c,{id:'snip',tick:state.tick,count:state.eaten,eventTick:state.lastOutcome===1?state.endTick:0,colour:COUNTRY_GOLD,width:SNIP_W,height:SNIP_H,point:{x:completed.mouth[0],y:completed.mouth[1],shape:'spark'}});
+  if(completed)successFrame(c,{id:'snip',tick:state.tick,count:state.eaten,eventTick:state.lastOutcome===SNIP_EATEN?state.endTick:0,colour:COUNTRY_GOLD,width:SNIP_W,height:SNIP_H,point:{x:completed.mouth[0],y:completed.mouth[1],shape:'spark'}});
   c.restore();
 }
 /** Fixed illustration uses the same cached apple and basket, never changes demo inputs. */

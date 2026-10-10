@@ -1,3 +1,4 @@
+import { reducedMotion } from "./art.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /** Beat in the Retro Arcade world. Render only; the chart, judging and score are untouched. */
 import {
@@ -24,6 +25,7 @@ import { pixelRect, retroBloom, retroNeon, retroReadout, retroScreen, retroText,
 
 const NEON = BEAT_LANE_COLOURS.map(retroNeon);
 const GOLD = "#FFD84A";
+const lanePulses=new WeakMap<CanvasRenderingContext2D,{tick:number;event:number;at:number}>();
 
 function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize): void {
   // Stretch, exactly as the original draw, so taps map to the same lanes.
@@ -34,7 +36,12 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   const laneW = BEAT_WORLD_W / BEAT_LANES;
   const bloom = retroBloom();
   const tier = BEAT_COMBO_TIERS.filter((t) => state.combo >= t).length;
-  const hit = state.lastJudge === 1 && state.judgeAge < 12;
+  const eventTick=state.tick-state.judgeAge;
+  let pulse=lanePulses.get(ctx);
+  if(!pulse||state.tick<pulse.tick)pulse={tick:state.tick,event:-Infinity,at:-Infinity};
+  if(state.lastJudge===1&&eventTick!==pulse.event){if(eventTick-pulse.at>=20)pulse.at=eventTick;pulse.event=eventTick;}
+  pulse.tick=state.tick;lanePulses.set(ctx,pulse);
+  const hit = !reducedMotion() && state.lastJudge === 1 && eventTick===pulse.at && state.judgeAge < 12;
 
   for (let lane = 0; lane < BEAT_LANES; lane++) {
     const x = lane * laneW;
