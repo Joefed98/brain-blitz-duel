@@ -243,15 +243,21 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
   for (let lane = 0; lane < lanes; lane += 1) {
     ctx.fillStyle = lane === state.lane ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.035)"; ctx.fillRect(left + lane * laneW, 66, laneW - 2, 406);
     const colour = clashGatesAt(state, state.tick)[lane]!;
+    ctx.save();
+    ctx.shadowColor = CLASH_COLOURS[colour]!; ctx.shadowBlur = 14;
     ctx.fillStyle = CLASH_COLOURS[colour]!; ctx.fillRect(left + lane * laneW + 4, 472, laneW - 10, 22);
-    ctx.fillStyle = "#E9E9EF"; ctx.font = "bold 10px ui-monospace, monospace"; ctx.fillText(CLASH_NAMES[colour]!, left + (lane + 0.5) * laneW, 512);
+    ctx.restore();
+    ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 12px ui-monospace, monospace"; ctx.fillText(CLASH_NAMES[colour]!, left + (lane + 0.5) * laneW, 512);
   }
   const current = state.items.at(-1);
   if (current) {
-    ctx.fillStyle = CLASH_COLOURS[current.ink]!; ctx.font = "bold 27px ui-sans-serif, sans-serif";
+    ctx.save();
+    ctx.shadowColor = CLASH_COLOURS[current.ink]!; ctx.shadowBlur = 10;
+    ctx.fillStyle = CLASH_COLOURS[current.ink]!; ctx.font = "bold 30px ui-sans-serif, sans-serif";
     ctx.fillText(CLASH_NAMES[current.word]!, left + (state.lane + 0.5) * laneW, state.itemY / FP);
+    ctx.restore();
   }
-  ctx.fillStyle = "#E9E9EF"; ctx.font = "bold 13px ui-monospace, monospace"; ctx.fillText(state.queue > 0 ? `${state.correct} right · ${state.wrong} wrong · ${state.queue - state.correct - state.wrong} left` : `${state.correct} right · ${state.wrong} wrong`, 195, 548);
+  ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 15px ui-monospace, monospace"; ctx.fillText(state.queue > 0 ? `${state.correct} right · ${state.wrong} wrong · ${state.queue - state.correct - state.wrong} left` : `${state.correct} right · ${state.wrong} wrong`, 195, 548);
   ctx.restore();
 }
 

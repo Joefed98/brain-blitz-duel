@@ -1,1 +1,30 @@
 /* Puzzle Polish B — group a (presentation only). */
+
+/* --- pairmatch (Matchmaker): back pattern, bolder board sizing --- */
+.pairmatch-card-back {
+  background-color: var(--muted);
+  background-image:
+    repeating-linear-gradient(45deg, color-mix(in oklab, var(--category-accent) 38%, transparent) 0 3px, transparent 3px 9px),
+    radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--category-accent) 22%, transparent), transparent 70%);
+}
+.game-column [data-polish="pairmatch"] { justify-content: flex-start; padding-top: 2px; }
+.game-column [data-polish="pairmatch"] > [data-game-arena="fixed"] {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: calc(100cqh - 34px);
+  display: flex;
+  align-items: center;
+}
+.game-column [data-polish="pairmatch"] > [data-game-arena="fixed"] > div { width: 100%; }
+.game-column [data-polish="pairmatch"] > [data-game-arena="fixed"] { max-width: min(440px, 94cqw); }
+.game-column [data-polish="pairmatch"] > [data-game-controls="status"] { flex: 0 0 auto; }
+
+/* --- unblock (Gridlock): bevelled blocks --- */
+.unblock-bevel {
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -3px 4px rgba(0, 0, 0, 0.35),
+    inset 2px 0 0 rgba(255, 255, 255, 0.12),
+    inset -2px 0 0 rgba(0, 0, 0, 0.18);
+}
+.unblock-exit-arrow { filter: drop-shadow(0 0 3px color-mix(in oklab, var(--primary) 70%, transparent)); }

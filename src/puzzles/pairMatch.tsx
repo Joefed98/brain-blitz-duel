@@ -21,17 +21,25 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 function CardFace({ card, size }: { card: PairCard; size: number }) {
   const fill = GLYPH_COLOURS[card.colour];
+  const stroke = "var(--card-foreground, #0a0a0f)";
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      {card.shape === "circle" && <circle cx="12" cy="12" r="9.5" fill={fill} />}
-      {card.shape === "square" && (
-        <rect x="2.5" y="2.5" width="19" height="19" rx="2" fill={fill} />
+      {card.shape === "circle" && (
+        <circle cx="12" cy="12" r="10.2" fill={fill} stroke={stroke} strokeWidth={0.9} />
       )}
-      {card.shape === "triangle" && <polygon points="12,2.5 22,21 2,21" fill={fill} />}
+      {card.shape === "square" && (
+        <rect x="2" y="2" width="20" height="20" rx="2.5" fill={fill} stroke={stroke} strokeWidth={0.9} />
+      )}
+      {card.shape === "triangle" && (
+        <polygon points="12,1.6 22.8,21.5 1.2,21.5" fill={fill} stroke={stroke} strokeWidth={0.9} strokeLinejoin="round" />
+      )}
       {card.shape === "star" && (
         <polygon
-          points="12,2 14.9,8.9 22.4,9.5 16.7,14.4 18.5,21.7 12,17.8 5.5,21.7 7.3,14.4 1.6,9.5 9.1,8.9"
+          points="12,1.2 15.2,8.7 23.4,9.4 17.1,14.9 19.1,23 12,18.6 4.9,23 6.9,14.9 0.6,9.4 8.8,8.7"
           fill={fill}
+          stroke={stroke}
+          strokeWidth={0.9}
+          strokeLinejoin="round"
         />
       )}
     </svg>
@@ -69,20 +77,16 @@ function Board({
             type="button"
             aria-label={open ? `${card.colour} ${card.shape}` : "Face-down card"}
             onPointerDown={onCard ? () => onCard(index) : undefined}
-            className={`flex aspect-square items-center justify-center rounded-lg border-2 transition-transform ${
+            className={`pairmatch-card flex aspect-square items-center justify-center rounded-lg border-2 transition-transform ${
               matched.has(index)
                 ? "border-primary bg-primary/10"
                 : open
                   ? "border-border bg-card"
-                  : "border-border bg-muted"
+                  : "pairmatch-card-back border-border"
             }`}
             style={{ transitionDuration: `${PAIR_FLIP_MS}ms` }}
           >
-            {open ? (
-              <CardFace card={card} size={glyph} />
-            ) : (
-              <span className="font-mono text-xs text-muted-foreground/50">◇</span>
-            )}
+            {open ? <CardFace card={card} size={glyph} /> : null}
           </button>
         );
       })}
@@ -176,7 +180,7 @@ function Stage({
   };
 
   return (
-    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+    <div data-polish="pairmatch" data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
       <div data-game-arena="fixed" className="w-full max-w-[340px]">
         <Board
           cards={data.cards}

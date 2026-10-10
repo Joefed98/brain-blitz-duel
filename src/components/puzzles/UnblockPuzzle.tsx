@@ -36,7 +36,7 @@ function Vehicle({
   return (
     <div
       onPointerDown={onPointerDown}
-      className={`absolute rounded-lg border ${
+      className={`absolute rounded-lg border unblock-bevel ${
         gold ? "border-primary bg-primary/80" : "border-border bg-muted"
       } ${shaking ? "animate-shake" : ""}`}
       style={{
@@ -72,12 +72,20 @@ export function UnblockBoard({
       className="relative aspect-square w-full rounded-xl border border-border bg-card/60"
       style={size ? { width: size, height: size } : undefined}
     >
-      {/* The exit gap. */}
+      {/* The exit gap, with a gold arrow pointing the way out. */}
       <div
         className="absolute rounded-r-sm border-y-2 border-r-4 border-primary bg-primary/20"
         style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 10, right: -10 }}
         aria-hidden="true"
       />
+      <svg
+        className="unblock-exit-arrow absolute"
+        style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 16, right: -24 }}
+        viewBox="0 0 16 24"
+        aria-hidden="true"
+      >
+        <polygon points="0,4 9,12 0,20" fill="var(--primary)" />
+      </svg>
       <div
         className="absolute inset-0 grid"
         style={{
@@ -218,6 +226,14 @@ export function UnblockPuzzle({
               style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 10, right: -10 }}
               aria-hidden="true"
             />
+            <svg
+              className="unblock-exit-arrow absolute"
+              style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 16, right: -24 }}
+              viewBox="0 0 16 24"
+              aria-hidden="true"
+            >
+              <polygon points="0,4 9,12 0,20" fill="var(--primary)" />
+            </svg>
             <div
               className="absolute inset-0 grid"
               style={{
