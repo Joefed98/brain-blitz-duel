@@ -25,6 +25,7 @@ import {
 } from "./orbit";
 import { icos, isin, TRIG_ONE } from "./trig";
 import { reducedMotion as prefersReducedMotion } from "./art.renderer";
+import { drawShootingStar } from "./orbitShootingStar.renderer";
 
 /** Rocket body + fins + soft glow, cached per dead state. */
 const rocketCaches = new Map<string, HTMLCanvasElement>();
@@ -308,6 +309,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
   const cam = state.camY / FP;
   const capturePlanet=state.planets[state.cur];
   drawStars(ctx, cam, t, still);
+  drawShootingStar(ctx, 'orbit', state.tick, state.captured, ORBIT_WORLD_W, ORBIT_WORLD_H, still);
 
   const visible: number[] = [];
   for (let i = Math.max(0, state.cur - 2); i < state.planets.length; i++) {
@@ -431,7 +433,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
   if (rocket) ctx.drawImage(rocket, -rocket.width / 2, -rocket.height / 2);
   ctx.restore();
 
-  if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:capturePlanet.x/FP,y:capturePlanet.y/FP-cam,shape:'ring',radius:capturePlanet.r/FP+8},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
+  if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:capturePlanet.x/FP,y:capturePlanet.y/FP-cam,shape:'none',radius:capturePlanet.r/FP+8},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
@@ -605,6 +607,7 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
 
   const capturePlanet=state.planets[state.cur];
   rev3Starfield(ctx, cam, t, still);
+  drawShootingStar(ctx, 'orbit3', state.tick, state.captured, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H, still);
 
   // Cull to the view plus one ring's margin either side (orbitVisiblePlanets).
   const visible = orbitVisiblePlanets(state, cam);
@@ -749,7 +752,7 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
   const arrow = orbitCameraArrow(state, cam);
   if (arrow) rev3Arrow(ctx, arrow);
 
-  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:capturePlanet.x/FP-cam.x,y:capturePlanet.y/FP-cam.y,shape:'ring',radius:capturePlanet.r/FP+8},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
+  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:capturePlanet.x/FP-cam.x,y:capturePlanet.y/FP-cam.y,shape:'none',radius:capturePlanet.r/FP+8},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
