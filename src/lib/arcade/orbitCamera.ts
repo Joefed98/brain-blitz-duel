@@ -23,6 +23,7 @@ let frames = new WeakMap<object, { normal: OrbitCamOffset; reduced: OrbitCamOffs
 let envelopes = new WeakMap<object, { left: number; right: number; top: number; bottom: number }>();
 let clampOverrideCount = 0;
 const paths = new WeakMap<Planet, OrbitCamOffset[]>();
+const shares = new WeakMap<Planet, Map<string, number>>();
 function ringPath(p: Planet): OrbitCamOffset[] {
   let path = paths.get(p);
   if (!path) {
@@ -38,6 +39,11 @@ function ringPath(p: Planet): OrbitCamOffset[] {
 export function orbitNextRingShare(s: Rev3Like, cam: OrbitCamOffset): number {
   const p = s.planets[nextIndex(s)];
   if (!p) return 1;
+  let memo = shares.get(p);
+  if (!memo) { memo = new Map(); shares.set(p, memo); }
+  const key = `${cam.x},${cam.y}`;
+  const cached = memo.get(key);
+  if (cached !== undefined) return cached;
   const path = ringPath(p);
   let total = 0, visible = 0;
   for (let i = 1; i < path.length; i++) {
@@ -52,7 +58,10 @@ export function orbitNextRingShare(s: Rev3Like, cam: OrbitCamOffset): number {
     }
     visible += length * Math.max(0, hi - lo);
   }
-  return total ? visible / total : 1;
+  const share = total ? visible / total : 1;
+  if (memo.size >= 8) memo.clear();
+  memo.set(key, share);
+  return share;
 }
 export function orbitCameraClampOverrideCount(): number { return clampOverrideCount; }
 /** Full path bounds, not the circling rocket: this target never oscillates. */
@@ -70,7 +79,6 @@ function framedPlanet(s: Rev3Like): OrbitCamOffset {
     envelopes.set(p, b);
   }
   const next = s.planets[nextIndex(s)] ?? p;
-  const cx = p.x / FP, cy = p.y / FP;
   const wantX = next.x / FP - ORBIT_CAM_VIEW_W / 2;
   const wantY = next.y / FP - ORBIT_CAM_VIEW_H / 2;
   // Constrain the lean so the entire path remains in the safe box.
