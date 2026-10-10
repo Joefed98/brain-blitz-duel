@@ -52,7 +52,11 @@ function Panel({
   compact = false,
 }: PanelProps) {
   return (
-    <div className="flex h-full w-full flex-col justify-between rounded-2xl border-2 border-border bg-background/70 p-2">
+    <div className="bomb-plate relative flex h-full w-full flex-col justify-between rounded-2xl border-2 border-border p-2">
+      <span aria-hidden="true" data-corner="tl" className="bomb-screw" />
+      <span aria-hidden="true" data-corner="tr" className="bomb-screw" />
+      <span aria-hidden="true" data-corner="bl" className="bomb-screw" />
+      <span aria-hidden="true" data-corner="br" className="bomb-screw" />
       <div className="flex items-center justify-between gap-2 px-1">
         <span
           aria-hidden="true"
@@ -65,7 +69,7 @@ function Panel({
           }}
         />
         <span
-          className="rounded bg-muted px-2 font-mono text-[11px] tracking-widest text-foreground/80"
+          className="bomb-serial rounded bg-muted px-2 py-0.5 font-mono text-sm font-bold tracking-widest text-foreground/90"
           style={{ backgroundColor: "#5A5A5A22" }}
         >
           {serial}
@@ -77,7 +81,7 @@ function Panel({
           {BOMB_SWITCH_POSITIONS.map((position) => (
             <span
               key={position}
-              className={`h-2.5 w-3 rounded-sm ${position === switchPosition ? "bg-primary" : "bg-border"}`}
+              className={`h-3 w-3.5 rounded-sm ${position === switchPosition ? "bg-primary" : "bg-border"}`}
               title={position}
             />
           ))}
@@ -96,12 +100,12 @@ function Panel({
               aria-label={`Wire ${index + 1}`}
               className="flex w-full items-center gap-1"
             >
-              <span className="font-mono text-[10px] text-muted-foreground">{index + 1}</span>
+              <span className="bomb-wire-index font-mono text-sm font-bold text-muted-foreground">{index + 1}</span>
               <span className="flex flex-1 items-center">
                 <span
                   className="rounded-full"
                   style={{
-                    height: compact ? 5 : 9,
+                    height: compact ? 4 : 7,
                     flex: isCutWire ? "0 0 42%" : 1,
                     backgroundColor: WIRE_HEX[colour],
                     opacity: isCutWire ? 0.7 : 1,
@@ -113,7 +117,7 @@ function Panel({
                   <span
                     className="rounded-full"
                     style={{
-                      height: compact ? 5 : 9,
+                      height: compact ? 4 : 7,
                       flex: "0 0 42%",
                       backgroundColor: WIRE_HEX[colour],
                       opacity: 0.7,
