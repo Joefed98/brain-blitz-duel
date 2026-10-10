@@ -1,4 +1,4 @@
-import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { successFrame, SUCCESS_ACCENTS, SUCCESS_PARTICLES, SUCCESS_TICKS } from "./success.renderer";
 /** Burst in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
   burstCeiling,
@@ -145,6 +145,11 @@ function glowRect(ctx: CanvasRenderingContext2D, left: number, top: number, widt
 }
 type Pop = { tick: number; x: number; y: number; colour: string; spread: number };
 const popMemo = new WeakMap<CanvasRenderingContext2D, { tick: number; seen: number; pops: Pop[] }>();
+/** Pre-effects pops keep the full shared cap; only a live full-split sparkle reserves its share. */
+function popBudget(state: BurstState): number {
+  const sparkle = state.popSize === 3 && state.tick - state.popTick >= 0 && state.tick - state.popTick < SUCCESS_TICKS;
+  return sparkle ? FX_PARTICLE_LIMIT - SUCCESS_PARTICLES : FX_PARTICLE_LIMIT;
+}
 function particles(ctx: CanvasRenderingContext2D, state: BurstState): void {
   let memo = popMemo.get(ctx);
   if (!memo || state.tick < memo.tick) memo = { tick: state.tick, seen: -100, pops: [] };
@@ -155,7 +160,7 @@ function particles(ctx: CanvasRenderingContext2D, state: BurstState): void {
     memo.seen = state.popTick;
     if (state.tick - state.popTick >= 0 && state.tick - state.popTick < duration &&
       state.balls.length <= BURST_FX_ENEMY_THRESHOLD && state.shots.length <= BURST_FX_SHOT_THRESHOLD &&
-      memo.pops.length * 4 + 4 <= 16) {
+      memo.pops.length * 8 + 8 <= popBudget(state)) {
       memo.pops.push({ tick: state.popTick, x: state.popX / FP, y: state.popY / FP,
         colour: retroNeon(BURST_COLOURS[state.popSize] ?? RETRO_WHITE), spread: BURST_RADIUS[state.popSize] ?? 16 });
     }
@@ -164,7 +169,7 @@ function particles(ctx: CanvasRenderingContext2D, state: BurstState): void {
   for (const pop of memo.pops) {
     const age = reducedMotion() ? 0 : (state.tick - pop.tick) / 18;
     ctx.globalAlpha = 1 - age;
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 8; i++) {
       const angle = i * Math.PI / 4 + 0.35, distance = pop.spread * age + 2;
       pixelRect(ctx, pop.x + Math.cos(angle) * distance - 2, pop.y + Math.sin(angle) * distance - 2, 4, 4, pop.colour);
     }
