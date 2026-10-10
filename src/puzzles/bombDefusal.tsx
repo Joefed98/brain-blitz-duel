@@ -283,7 +283,7 @@ function Stage({
     .map((action) => action.slice(1) as "A" | "B");
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" data-polish="bomb" className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="shrink-0 rounded-xl border border-border bg-card p-2">
         {puzzle.rules.map((rule, index) => (
           <p key={rule.id} className="text-[14px] leading-snug">
