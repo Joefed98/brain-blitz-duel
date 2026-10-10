@@ -93,7 +93,7 @@ function Board({
           return (
             <div
               key={cell}
-              className={`relative flex aspect-square items-center justify-center rounded-sm ${over ? "bg-destructive" : "bg-background"}`}
+              className={`lightup-wall relative flex aspect-square items-center justify-center rounded-sm ${over ? "bg-destructive" : ""}`}
             >
               {n >= 0 && (
                 <span className={`font-mono font-bold ${over ? "text-destructive-foreground" : "text-foreground"} ${small ? "text-xs" : "text-lg"}`}>{n}</span>
@@ -110,19 +110,19 @@ function Board({
         return (
           <div
             key={cell}
-            className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-sm border ${
-              lit ? "border-transparent bg-primary/15" : "border-dotted border-muted-foreground/50 bg-card"
+            className={`lightup-cell relative flex aspect-square items-center justify-center overflow-hidden rounded-sm border ${
+              lit ? "lightup-cell-lit border-transparent" : "border-dotted border-muted-foreground/50 bg-card"
             }`}
           >
             {beam.h.has(cell) && (
               <span
-                className={`absolute inset-x-0 top-1/2 -translate-y-1/2 ${beam.redH.has(cell) ? "bg-destructive" : "bg-primary/60"}`}
+                className={`absolute inset-x-0 top-1/2 -translate-y-1/2 ${beam.redH.has(cell) ? "bg-destructive" : "lightup-beam"}`}
                 style={{ height: beamW }}
               />
             )}
             {beam.v.has(cell) && (
               <span
-                className={`absolute inset-y-0 left-1/2 -translate-x-1/2 ${beam.redV.has(cell) ? "bg-destructive" : "bg-primary/60"}`}
+                className={`absolute inset-y-0 left-1/2 -translate-x-1/2 ${beam.redV.has(cell) ? "bg-destructive" : "lightup-beam"}`}
                 style={{ width: beamW }}
               />
             )}

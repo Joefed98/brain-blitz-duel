@@ -91,12 +91,12 @@ function Board({
       {[...clueAt].map(([cell, n]) => (
         <span
           key={`n${cell}`}
-          className="shikaku-clue pointer-events-none flex min-h-0 min-w-0 items-center justify-center overflow-hidden font-mono font-bold leading-none text-foreground"
+          className="shikaku-clue pointer-events-none flex h-full w-full min-h-0 min-w-0 items-center justify-center overflow-hidden text-center font-mono font-bold leading-none text-foreground"
           style={{ gridRow: Math.floor(cell / size) + 1, gridColumn: (cell % size) + 1, zIndex: 3,
-            fontSize: small ? `clamp(12px, calc((100cqw - ${size - 1}px) / ${size} * 0.8), 20px)` : undefined,
+            fontSize: small ? `clamp(13px, calc((100cqw - ${size - 1}px) / ${size} * 0.88), 22px)` : undefined,
           }}
         >
-          <span className={small ? "leading-none" : "text-lg"}>{n}</span>
+          <span className={small ? "leading-none" : "text-xl leading-none"}>{n}</span>
         </span>
       ))}
     </div>

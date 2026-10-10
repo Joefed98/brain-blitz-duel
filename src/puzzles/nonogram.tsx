@@ -54,22 +54,27 @@ function Board({
       }}
     >
       <span />
-      {cols.map((clue, col) => (
-        <span
-          key={`c${col}`}
-          className={`flex items-end justify-center whitespace-pre pb-1 font-mono text-[12px] leading-none ${
-            lineSatisfied(clue, cellsOf("col", col))
-              ? "text-muted-foreground/40"
-              : "text-foreground"
-          }`}
-        >
-          {clueText(clue).split(" ").join("\n")}
-        </span>
-      ))}
-      {rows.map((clue, row) => (
+      {cols.map((clue, col) => {
+        const guide = size >= 10 && (col + 1) % 5 === 0 && col + 1 !== size;
+        return (
+          <span
+            key={`c${col}`}
+            className={`nono-clue-col flex items-end justify-center gap-0.5 whitespace-pre pb-1.5 font-mono text-[15px] font-bold leading-[1.15] ${guide ? "nono-guide-col" : ""} ${
+              lineSatisfied(clue, cellsOf("col", col))
+                ? "text-muted-foreground/40"
+                : "text-foreground"
+            }`}
+          >
+            {clueText(clue).split(" ").join("\n")}
+          </span>
+        );
+      })}
+      {rows.map((clue, row) => {
+        const rowGuide = size >= 10 && (row + 1) % 5 === 0 && row + 1 !== size;
+        return (
         <Fragment key={`r${row}`}>
           <span
-            className={`flex max-w-9 items-center justify-end gap-0.5 pr-1 font-mono text-[12px] leading-none ${
+            className={`nono-clue-row flex max-w-10 items-center justify-end gap-1 pr-1.5 font-mono text-[15px] font-bold leading-none ${
               lineSatisfied(clue, cellsOf("row", row))
                 ? "text-muted-foreground/40"
                 : "text-foreground"
@@ -84,6 +89,7 @@ function Board({
             const mark = marks[index] ?? 0;
             const gold = goldCells?.has(index);
             const wrong = wrongCells?.has(index);
+            const colGuide = size >= 10 && (col + 1) % 5 === 0 && col + 1 !== size;
             return (
               <button
                 key={index}
@@ -91,6 +97,8 @@ function Board({
                 aria-label={`Row ${row + 1} column ${col + 1}`}
                 onPointerDown={onCell ? () => onCell(index) : undefined}
                 className={`flex items-center justify-center border text-[13px] font-bold ${
+                  rowGuide ? "nono-guide-row" : ""
+                } ${colGuide ? "nono-guide-col" : ""} ${
                   wrong
                     ? "border-warn bg-warn/30 text-warn"
                     : gold || mark === 1
@@ -103,7 +111,8 @@ function Board({
             );
           })}
         </Fragment>
-      ))}
+        );
+      })}
     </div>
   );
 }

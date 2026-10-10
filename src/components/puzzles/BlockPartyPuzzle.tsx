@@ -140,7 +140,7 @@ export function BlockBoard({
           }}
           aria-hidden="true"
         >
-           <span className="block h-5 w-5 max-h-[80%] max-w-[80%] rounded-full border-2 border-primary bg-background" />
+           <span className="block h-5 w-5 max-h-[80%] max-w-[80%] rounded-full bg-primary block-party-peg" />
         </div>
       ))}
 
@@ -345,10 +345,10 @@ export function BlockPartyPuzzle({
   );
   const boardSize = Math.min(layoutSize.width, Math.max(0, layoutSize.height - traySize.height - 28));
   const boardCell = boardSize / N;
-  const trayCell = Math.min(boardCell * 0.75, trayCellCapacity);
+  const trayCell = Math.min(boardCell * 0.92, trayCellCapacity);
 
   return (
-    <div ref={layoutRef} data-stage-column="2" className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">
+    <div ref={layoutRef} data-stage-column="2" data-polish="blockparty" className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex shrink-0 items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           covered <span className="text-primary">{covered}</span> / {BLOCK_FREE_CELLS}

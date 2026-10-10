@@ -48,7 +48,7 @@ function Gem({ lit }: { lit: boolean }) {
   return (
     <svg viewBox="0 0 24 24" className="h-full w-full overflow-visible" aria-hidden="true">
       <polygon
-        points="12,2 22,12 12,22 2,12"
+        points="12,1 23,12 12,23 1,12"
         fill={lit ? GOLD : GREY}
         fillOpacity={lit ? 1 : 0.55}
         stroke={GOLD}
@@ -85,9 +85,9 @@ function DirectionalGem({ lit, from }: { lit: boolean; from?: BeamDir }) {
 
 function Splitter({ kind = "S-" }: { kind?: MirrorKind }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-[90%] w-[90%]" aria-hidden="true">
-      <polygon points="12,1.5 22.5,12 12,22.5 1.5,12" fill="var(--card)" stroke="var(--opponent)" strokeWidth="1.8" />
-      <path transform={kind === "S|" ? "" : "rotate(90 12 12)"} d="M12 22V12M2 12H22M2 12L6 8M2 12L6 16M22 12L18 8M22 12L18 16" fill="none" stroke="var(--opponent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 24 24" className="h-full w-full" aria-hidden="true">
+      <polygon points="12,0.5 23.5,12 12,23.5 0.5,12" fill="var(--card)" stroke="var(--opponent)" strokeWidth="1.8" />
+      <path transform={kind === "S|" ? "" : "rotate(90 12 12)"} d="M12 22V12M2 12H22M2 12L6 8M2 12L6 16M22 12L18 8M22 12L18 16" fill="none" stroke="var(--opponent)" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -194,7 +194,7 @@ function LaserBoard({
         }}
       >
         {Array.from({ length: cols * rows }, (_, cell) => {
-          if (wall.has(cell)) return <div key={cell} className="rounded-md bg-foreground/75" />;
+          if (wall.has(cell)) return <div key={cell} className="rounded-md bg-foreground/60" />;
           const piece = mirrorAt.get(cell);
           if (piece && isSplitter(piece)) return <div key={cell} aria-label={`Splitter ${piece === "S|" ? "vertical" : "horizontal"} input`} className="flex items-center justify-center"><Splitter kind={piece} /></div>;
           if (splitters.includes(cell)) return <div key={cell} aria-label="Splitter" className="flex items-center justify-center"><Splitter /></div>;
@@ -221,7 +221,7 @@ function LaserBoard({
                   bombFlash ? "border-destructive bg-destructive/40" : "border-destructive/70"
                 }`}
               >
-                <span className="h-1/2 w-1/2 rounded-full bg-foreground/85" />
+                <span className="h-[62%] w-[62%] rounded-full bg-foreground/85" />
               </div>
             );
           }
@@ -266,7 +266,7 @@ function LaserBoard({
             ) : null)}
             {placed.filter((piece) => !isSplitter(piece.kind)).map((mirror) => {
               const centre = at(mirror.cell);
-              const reach = unit * 0.34;
+              const reach = unit * 0.42;
               const forward = mirror.kind === "/";
               return (
                 <line
@@ -276,7 +276,7 @@ function LaserBoard({
                   x2={centre.x + reach}
                   y2={centre.y + (forward ? -reach : reach)}
                   stroke="#FFFFFF"
-                  strokeWidth={Math.max(1.5, unit * 0.14)}
+                  strokeWidth={Math.max(2, unit * 0.2)}
                   strokeLinecap="round"
                 />
               );
@@ -590,7 +590,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   const splitterPlaced = placed.filter((piece) => isSplitter(piece.kind)).length;
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" data-polish="laser" className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         mirrors <span className="text-primary">{mirrorsPlaced}</span> / {total}
         {splitterTotal > 0 ? <> · splitter <span className="text-opponent">{splitterPlaced}</span> / {splitterTotal}</> : null}

@@ -1,0 +1,34 @@
+/* Puzzle Polish B — group b (presentation only). */
+
+/* Group B puzzle polish: blockparty (Tessellate), gravity (Topsy-Turvy),
+   tiles (Jumbled), laser (Lightbender) — presentation only. */
+
+/* blockparty: solid gold studs for the pegs, with a soft highlight. */
+.block-party-peg {
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.45),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* gravity: mid-grey stone walls with a subtle bevel instead of flat white. */
+.gravity-wall {
+  background: var(--muted-foreground);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* Centre the play block vertically and let the board/controls use the
+   available height at narrow viewports, without pushing controls off screen. */
+.game-column [data-polish="blockparty"] > [data-game-arena="fixed"] { flex: 0 1 auto; }
+.game-column [data-polish="blockparty"] > [data-game-controls="tray"] { flex: 1 1 auto; min-height: 96px; }
+
+.game-column [data-polish="gravity"][data-stage-column] > [data-game-arena="board"] { flex: 1 1 auto; min-height: 0; }
+.game-column [data-polish="gravity"] > [data-game-controls="pad"] { flex: 0 0 auto; }
+
+.game-column [data-polish="tiles"] > [data-game-controls="actions"] { flex: 0 0 auto; }
+
+.game-column [data-polish="laser"] > [data-game-arena="board"] { flex: 1 1 auto; min-height: 0; }
+.game-column [data-polish="laser"] > [data-game-controls] { flex: 0 0 auto; }
+/* Jumbled tiles keep their 1→8 gradient over the shared cell surface. */
+[data-puzzle-surface] [aria-label^="Tile "][data-pointer-index][data-puzzle-cell] { background-color: var(--tile-fill) !important; }

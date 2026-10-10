@@ -21,6 +21,17 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const GOLD = "var(--primary)";
 
+/** Five-point star polygon centred at (cx, cy), in SVG grid units. */
+function starPoints(cx: number, cy: number, outer: number, inner: number): string {
+  const points: string[] = [];
+  for (let i = 0; i < 10; i += 1) {
+    const radius = i % 2 === 0 ? outer : inner;
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
+    points.push(`${cx + radius * Math.cos(angle)},${cy + radius * Math.sin(angle)}`);
+  }
+  return points.join(" ");
+}
+
 /** Thin wall lines on the card colour, with the drawn route over the top. */
 function MazeBoard({
   cells,
@@ -117,8 +128,8 @@ function MazeBoard({
             x2={wall.x2}
             y2={wall.y2}
             stroke="var(--muted-foreground)"
-            strokeWidth={0.045}
-            opacity={0.85}
+            strokeWidth={0.07}
+            opacity={0.55}
             strokeLinecap="square"
           />
         ))}
@@ -128,14 +139,26 @@ function MazeBoard({
           r={0.18}
           fill="var(--muted-foreground)"
         />
-        <rect
-          x={(exit % cols) + 0.24}
-          y={Math.floor(exit / cols) + 0.2}
-          width={0.5}
-          height={0.6}
-          rx={0.1}
+        {/* Goal: a gold star flag marking the exit cell. */}
+        <polygon
+          points={starPoints((exit % cols) + 0.5, Math.floor(exit / cols) + 0.5, 0.32, 0.14)}
           fill={GOLD}
+          stroke="var(--card)"
+          strokeWidth={0.02}
         />
+        {/* Player: current route head, a larger glowing gold dot. */}
+        {(() => {
+          const head = path.length ? path[path.length - 1]! : start;
+          return (
+            <circle
+              cx={(head % cols) + 0.5}
+              cy={Math.floor(head / cols) + 0.5}
+              r={0.24}
+              fill={GOLD}
+              style={{ filter: "drop-shadow(0 0 0.14px var(--primary)) drop-shadow(0 0 0.28px var(--primary))" }}
+            />
+          );
+        })()}
       </svg>
     </div>
   );

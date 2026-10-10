@@ -61,13 +61,13 @@ function Dial({
       {onStep && arrow("▲", 1)}
       <div
         {...swipe}
-        className={`flex items-center justify-center rounded-lg border-2 bg-background font-mono font-bold tabular-nums ${
-          wrong ? "border-warn text-warn" : gold ? "border-primary text-primary" : "border-border"
+        className={`safe-dial-drum flex items-center justify-center rounded-lg border-2 font-mono font-bold tabular-nums ${
+          wrong ? "border-warn text-warn" : gold ? "border-primary text-primary" : "border-border text-foreground"
         }`}
         style={{
-          width: compact ? 34 : 37,
-          height: compact ? 44 : 40,
-          fontSize: compact ? 22 : 21,
+          width: compact ? 34 : 46,
+          height: compact ? 44 : 56,
+          fontSize: compact ? 22 : 28,
           touchAction: "none",
         }}
       >
@@ -142,17 +142,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
   if (!isSafe) return null;
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-polish="safe" data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <div data-game-arena="fixed" className="flex min-h-0 flex-[1.2] flex-col justify-center rounded-lg border border-border bg-card px-3 py-2">
         {puzzle.clues.map((clue) => (
-          <p key={clue.text} className="text-center text-[19.2px] leading-[1.45]">
+          <p key={clue.text} className="safe-clue-text text-center leading-[1.45]">
             {clue.text}
           </p>
         ))}
       </div>
 
       <div
-        data-game-controls="dial" className={`mx-auto flex min-h-[152px] w-4/5 flex-[0.8] flex-col items-center justify-center gap-1 rounded-lg border-2 border-border bg-card/60 p-1 ${
+        data-game-controls="dial" className={`safe-metal-panel mx-auto flex min-h-[152px] w-4/5 flex-[0.8] flex-col items-center justify-center gap-1 rounded-lg border-2 border-border p-1 ${
           shake ? "animate-shake border-warn" : ""
         }`}
       >
