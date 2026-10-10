@@ -499,7 +499,7 @@ function draw(ctx: CanvasRenderingContext2D, state: TenDropState, size: CanvasSi
   ctx.clip();
   ctx.fillStyle = "#101016";
   ctx.fillRect(0, 0, TD_W, TD_H);
-  ctx.strokeStyle = "rgba(255,255,255,0.06)";
+  ctx.strokeStyle = "rgba(255,255,255,0.23)";
   ctx.lineWidth = 1;
   for (let col = 1; col < c.cols; col++) {
     ctx.beginPath();
@@ -516,6 +516,7 @@ function draw(ctx: CanvasRenderingContext2D, state: TenDropState, size: CanvasSi
     const x = t.col * TD_COL_W + (TD_COL_W - c.tileW) / 2 + shake;
     const y = t.y / 256;
     const op = tdKind(t.tile) !== TD_DIGIT;
+    ctx.font = `700 ${op ? 36 : 28}px 'JetBrains Mono', ui-monospace, monospace`;
     ctx.fillStyle = shaking ? "#4A1E1E" : op ? "#2A2414" : "#22222C";
     ctx.beginPath();
     ctx.roundRect(x, y, c.tileW, c.tileH, 12);

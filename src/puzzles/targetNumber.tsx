@@ -206,7 +206,7 @@ function TargetStage({
   const isLockedNow = locked || lockedHere;
 
   return (
-    <div data-stage-column="2" className={`relative flex min-h-0 flex-1 flex-col gap-2 ${column ? "" : "justify-between"}`}>
+    <div data-polish="target" data-stage-column="2" className={`relative flex min-h-0 flex-1 flex-col gap-2 ${column ? "" : "justify-between"}`}>
       <div className="flex flex-col items-center gap-2">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Target</p>
         <p className="font-mono text-5xl font-bold leading-none text-primary tabular-nums">
@@ -214,14 +214,14 @@ function TargetStage({
         </p>
       </div>
 
-      <div data-game-arena="fixed" className="flex max-h-[3.75rem] min-h-10 flex-col items-center gap-0.5 overflow-y-auto rounded-lg px-2">
+      <div data-game-arena="fixed" data-scrollable className="target-history flex h-[104px] shrink-0 flex-col items-center gap-1 overflow-y-auto rounded-lg bg-muted/20 px-2 py-2">
         {steps.length === 0 ? (
           <p className="font-mono text-xs text-muted-foreground">No steps yet</p>
         ) : (
           steps.map((step, index) => (
             <p
               key={`${index}-${step.result}`}
-              className="font-mono text-xs tabular-nums text-muted-foreground"
+              className="font-mono text-lg leading-6 tabular-nums text-foreground"
             >
               {formatStep(step)}
             </p>

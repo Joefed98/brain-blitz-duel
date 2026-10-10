@@ -23,7 +23,7 @@ import { playLock, playWrong } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const GAP = 2;
-const TRAY_TILE = 34; // eight per row, so fifteen tiles fit in two rows
+const TRAY_TILE = 44; // eight per row at 360px, with no overlapping targets
 
 function MiniGrid({ cells, cell = 20 }: { cells: string[]; cell?: number }) {
   return (
@@ -34,7 +34,7 @@ function MiniGrid({ cells, cell = 20 }: { cells: string[]; cell?: number }) {
       {cells.map((letter, i) => (
         <span
           key={i}
-          className={`flex items-center justify-center rounded-[3px] font-display font-bold ${letter ? "bg-primary text-primary-foreground" : "bg-background/40"}`}
+          className={`word-letter-tile flex items-center justify-center rounded-[3px] font-display font-bold ${letter ? "bg-primary text-primary-foreground" : "bg-background/40"}`}
           style={{ height: cell, fontSize: Math.round(cell * 0.6) }}
         >
           {letter}
@@ -58,7 +58,7 @@ function IntroExample() {
         {cells.map((letter, i) => (
           <span
             key={i}
-            className={`flex h-[30px] items-center justify-center rounded font-display text-sm font-bold ${letter ? "bg-primary text-primary-foreground shadow-[inset_0_-3px_0_var(--opponent)]" : "bg-background/40"}`}
+            className={`word-letter-tile flex h-[30px] items-center justify-center rounded font-display text-sm font-bold ${letter ? "bg-primary text-primary-foreground shadow-[inset_0_-3px_0_var(--opponent)]" : "bg-background/40"}`}
           >
             {letter}
           </span>
@@ -89,10 +89,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   useEffect(() => {
     const space = boardSpace.current;
     if (!space) return;
-    const measure = () => setCellSize(Math.max(40, Math.min(44, Math.floor(Math.min(
+    const measure = () => setCellSize(Math.max(44, Math.floor(Math.min(
       (space.clientWidth - 12 - GAP * (TG_SIZE - 1)) / TG_SIZE,
       (space.clientHeight - 12 - GAP * (TG_SIZE - 1)) / TG_SIZE,
-    )))));
+    ))));
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(space);
@@ -199,7 +199,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   };
 
   return (
-    <div data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1">
+    <div data-polish="tilegrid" data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1">
       <div ref={boardSpace} data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
       <div
         className="grid shrink-0 rounded-xl border-2 border-border bg-card p-1"
@@ -216,7 +216,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
                 if (tile !== null) tapPlaced(tile);
                 else if (selected !== null) place(selected, i);
               }}
-              className={`flex items-center justify-center rounded-md font-display text-xl font-bold transition-colors ${
+              className={`word-letter-tile interlock-cell flex items-center justify-center rounded-md font-display text-xl font-bold transition-colors ${
                 letter
                   ? flash.has(i)
                     ? "bg-warn text-foreground"
@@ -237,19 +237,19 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       <div onClick={(event) => {
         if (selected === null || event.target !== event.currentTarget || placed.indexOf(selected) < 0) return;
         returnToTray(selected);
-      }} data-game-controls="tray" className="flex h-[102px] w-[318px] shrink-0 flex-wrap content-start justify-center gap-1.5 [@media(max-height:700px)]:h-[102px]">
+      }} data-game-controls="tray" className="interlock-tray grid w-full shrink-0 grid-cols-8 justify-items-center">
         {inTray.map((tile) => (
           <span
             key={tile}
             onClick={() => { if (!frozen) setSelected((current) => current === tile ? null : tile); }}
-            className={`flex items-center justify-center rounded-lg bg-primary font-display text-xl font-bold text-primary-foreground ${selected === tile ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
+            className={`word-letter-tile flex items-center justify-center rounded-lg bg-primary font-display text-xl font-bold text-primary-foreground ${selected === tile ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
             style={{ width: TRAY_TILE, height: TRAY_TILE }}
           >
             {tray[tile]}
           </span>
         ))}
       </div>
-      <div data-game-controls="actions" className="flex w-[318px] shrink-0 items-center gap-2">
+      <div data-game-controls="actions" className="flex w-full shrink-0 items-center gap-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           placed <span className="text-primary">{goodCells.size}</span> / {TG_TILES}
         </span>

@@ -42,15 +42,15 @@ const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "
 
 function Hud({ target, total, flash }: { target: number; total: number; flash: "" | "red" | "gold" }) {
   return (
-    <div className="relative h-10 w-full shrink-0 font-mono font-bold leading-none">
+    <div className="relative h-14 w-full shrink-0 font-mono font-bold leading-none">
       <div
-        className="absolute left-2 top-1/2 -translate-y-1/2 text-2xl text-primary"
+        className="absolute left-2 top-1/2 -translate-y-1/2 text-4xl text-primary"
         aria-label={`Running total ${total}`}
       >
         {total}
       </div>
       <div
-        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md px-2 text-3xl transition-colors ${
+        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md px-2 text-4xl transition-colors ${
           flash === "gold" ? "bg-primary text-primary-foreground" : "text-foreground"
         }`}
         aria-label={`Target ${target}`}
@@ -251,7 +251,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div ref={wrap} data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
+    <div ref={wrap} data-polish="tendrop" data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
       <Hud {...hud} />
       <div
         ref={board}

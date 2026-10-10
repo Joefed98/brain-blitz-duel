@@ -114,6 +114,7 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
   const key = `${phaseStartedAt}:${flashes.join(",")}`;
   const [times, setTimes] = useState<(number | null)[]>(() => flashes.map(() => null));
   const [falseStarts, setFalseStarts] = useState(0);
+  const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
   const [lastShown, setLastShown] = useState<{ text: string; until: number; bad: boolean } | null>(null);
   const [t, setT] = useState(() => serverNow() - phaseStartedAt);
   const submitted = useRef("");
@@ -201,16 +202,22 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
   const showLast = lastShown && t < lastShown.until;
 
   return (
-    <div data-stage-column="3" className="flex flex-1 flex-col gap-3">
+    <div data-polish="reaction" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-end font-mono text-sm uppercase tracking-widest text-muted-foreground">
         {falseStarts > 0 && <span className="text-warn">{falseStarts} false</span>}
       </div>
       <button
         type="button"
         aria-label="Reaction area"
-        onPointerDown={handleTap}
-        data-game-arena="tall" className={`flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
+        onPointerDown={(event) => {
+          handleTap();
+          if (locked || done) return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          setRipple({ x: event.clientX - rect.left, y: event.clientY - rect.top, id: event.timeStamp });
+        }}
+        data-game-arena="tall" className={`relative overflow-hidden flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
       >
+        {ripple && <span key={ripple.id} aria-hidden="true" className="reaction-tap-ripple" style={{ left: ripple.x, top: ripple.y }} onAnimationEnd={() => setRipple(null)} />}
         {liveIndex >= 0 ? null : showLast ? (
           <span
             className={`font-mono text-4xl font-bold tabular-nums ${lastShown.bad ? "text-warn" : "text-primary"}`}

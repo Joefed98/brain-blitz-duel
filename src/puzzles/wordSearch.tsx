@@ -54,7 +54,7 @@ function Grid({
         return (
           <div
             key={cell}
-            className={`flex aspect-square items-center justify-center rounded-sm font-mono font-bold ${fill} ${missedOutline}`}
+            className={`word-letter-tile flex aspect-square items-center justify-center rounded-sm font-mono font-bold ${fill} ${missedOutline}`}
             style={{ fontSize: small ? 9 : "clamp(14px, 5cqw, 22px)" }}
           >
             {grid[cell]}
@@ -147,9 +147,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   if (!data) return null;
   const gold = new Set(found.flatMap((f) => f.cells));
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1">
+    <div data-polish="wordsearch" data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1">
       <div className="flex shrink-0 flex-col items-center">
-        <p className="font-display text-xl font-bold leading-tight text-foreground">{data.category}</p>
+        <p className="font-display text-2xl font-bold leading-tight text-foreground">{data.category}</p>
         <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           <span className="text-primary">{found.length}</span> / {total} found
         </p>
@@ -158,6 +158,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         <div style={{ width: "min(100cqw, 100cqh)", aspectRatio: "1 / 1" }}>
           <Grid grid={data.grid} size={size} gold={gold} live={new Set(line)} bad={new Set(bad)} pointer={pointer} />
         </div>
+      </div>
+      <div data-game-controls="words" className="lookout-words flex w-full shrink-0 flex-wrap justify-center gap-1.5" aria-label={`${found.length} found, ${Math.max(0, total - found.length)} still to find`}>
+        {found.map((entry) => <span key={entry.word} className="lookout-word-chip">{entry.word}</span>)}
+        {Array.from({ length: Math.max(0, total - found.length) }, (_, i) => <span key={`empty-${i}`} className="lookout-word-placeholder" aria-label="Word still to find" />)}
       </div>
     </div>
   );

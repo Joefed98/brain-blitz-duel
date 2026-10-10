@@ -901,9 +901,16 @@
 - [x] Winner reveal phase
 
 ## Orbit scrolling camera (orbitRev 3, Oct 9)
+- Separate earlier Orbit work remains tracked below; do not alter it during Puzzle Polish A.
 - [ ] Versioned rev 3: 1,000-wide world, seeded zig-zag generator, 190-tick flight cap, rev 1/2 byte-identical
 - [ ] Render-only tick-driven camera (rocket lock in flight, safe box, gold edge arrow, reduced motion)
 - [ ] Release-window proof (≥2 windows ≥4 ticks), 500-layout server bank, live fallback
 - [ ] Report fallback share, >120-unit sideways share, bot completion vs rev 2
 - [ ] Split outside-belt check; new proof/replay/legacy/camera/bounds checks; 300 s runner results
 - [ ] Two 360px mid-run mock screenshots (one with edge arrow); demo needs re-recording
+
+## Puzzle Polish A (Oct 10)
+- [ ] Preserve before screenshots and protected gameplay/source fingerprints.
+- [ ] Apply scoped centring, shared dark word tiles and all 13 requested presentation refinements.
+- [ ] Capture and inspect 360px after screens; verify 360x640 control clearance and disclose dense-grid limits.
+- [ ] Compare check scripts with the last reported run; deliver screenshots, wording diff and results.

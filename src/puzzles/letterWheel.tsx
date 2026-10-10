@@ -40,7 +40,7 @@ function Crossword({
         return (
           <div
             key={cell}
-            className={`flex items-center justify-center rounded-sm font-mono font-bold ${
+            className={`word-letter-tile flex items-center justify-center rounded-sm font-mono font-bold ${
               ch ? "bg-primary text-primary-foreground" : miss ? "bg-card text-muted-foreground ring-1 ring-inset ring-destructive" : "bg-card"
             }`}
             style={{ fontSize: cellPx ? cellPx * 0.6 : "clamp(12px, 8cqmin, 24px)" }}
@@ -170,10 +170,10 @@ function Wheel({
         return (
           <div
             key={i}
-            className={`pointer-events-none absolute flex items-center justify-center rounded-full font-display font-bold ${
+            className={`word-letter-tile pointer-events-none absolute flex items-center justify-center rounded-full font-display font-bold ${
               on ? "bg-primary text-primary-foreground" : "text-foreground"
             }`}
-            style={{ left: `${x - 12}%`, top: `${y - 12}%`, width: "24%", height: "24%", fontSize: "clamp(18px, 10cqmin, 32px)" }}
+            style={{ left: `${x - 12}%`, top: `${y - 12}%`, width: "24%", height: "24%", fontSize: "clamp(28px, 12cqmin, 32px)" }}
           >
             {ch}
           </div>
@@ -275,7 +275,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   };
 
   return (
-    <div data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1">
+    <div data-polish="letterwheel" data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1">
       <div data-arena-part="letterwheel-board" className="flex min-h-0 w-full flex-[6] items-center justify-center" style={{ containerType: "size" }}>
         <div
           style={{

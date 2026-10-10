@@ -101,7 +101,7 @@ function Bar({
   return (
     <div
       ref={barRef}
-      className={`relative overflow-hidden rounded-2xl border border-border bg-card ${vertical ? "h-full min-h-72 w-1/2" : "h-16 w-full"}`}
+      className={`relative overflow-hidden rounded-2xl border border-border bg-card ${vertical ? "h-full min-h-72 w-1/2" : "h-20 w-full"}`}
     >
       {spec.hidden && !vertical && (
         <span
@@ -281,12 +281,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
       tabIndex={0}
       aria-label="Stop the marker"
       onPointerDown={handleTap}
-      data-stage-column="7" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-7"
+      data-polish="stopwatch" data-stage-column="7" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-7"
     >
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
         Watch {Math.min(cursor.index + 1, watches.length)} / {watches.length}
       </p>
-      <div data-game-arena={spec.vertical ? "tall" : "fixed"} className={`flex min-h-0 w-full ${spec.vertical ? "flex-1 justify-end" : ""}`}>
+      <div data-game-arena={spec.vertical ? "tall" : "fixed"} className={`flex min-h-0 w-full ${spec.vertical ? "flex-1 justify-center" : ""}`}>
         <Bar
           key={cursor.index}
           spec={spec}
@@ -304,6 +304,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
       >
         {done && now >= cursor.shownUntil ? "All ten done" : label}
       </p>
+      <div data-game-controls="history" className="stopwatch-history grid h-16 w-full grid-cols-3 gap-2" aria-label="Recent results">
+        {errors.slice(cursor.result === null ? -3 : -4, cursor.result === null ? undefined : -1).map((ms, i, list) => <span key={errors.length - list.length + i} className="flex flex-col items-center justify-center rounded-md border border-border bg-card px-1 font-mono text-sm text-foreground"><span className="text-muted-foreground">{errors.length - list.length + i + (cursor.result === null ? 1 : 0)}</span><span>{ms >= STOPWATCH_MISS_MS ? "Missed" : `${ms} ms off`}</span></span>)}
+      </div>
     </div>
   );
 }

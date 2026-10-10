@@ -61,7 +61,8 @@ function Board({
           <span
             key={i}
             data-cell={i}
-            className={`flex items-center justify-center rounded-lg border-2 font-display font-bold text-foreground ${tone}`}
+            data-valid-row={good.has(row) ? "true" : undefined}
+             className={`word-letter-tile flex items-center justify-center rounded-lg border-2 font-display font-bold text-foreground ${tone}`}
             style={{ height: cell, fontSize: Math.round(cell * 0.5) }}
           >
             {letter}
@@ -85,10 +86,10 @@ function Board({
               aria-label={isLocked ? `Unlock row ${row + 1}` : `Lock row ${row + 1}`}
               disabled={!can}
               onClick={() => onLock(row)}
-              className={`flex w-9 items-center justify-center rounded-lg ${isLocked ? "bg-primary/20 text-primary" : "text-muted-foreground"} disabled:opacity-25`}
+              className={`flex w-11 shrink-0 items-center justify-center rounded-lg ${isLocked ? "bg-primary/20 text-primary" : "text-foreground"} disabled:opacity-60`}
               style={{ height: cell }}
             >
-              {isLocked ? <Lock className="h-5 w-5" /> : <LockOpen className="h-5 w-5" />}
+              {isLocked ? <Lock className="h-7 w-7" /> : <LockOpen className="h-7 w-7" />}
             </button>
           );
         })}
@@ -105,7 +106,7 @@ function IntroExample() {
       {cells.map((l, i) => (
         <span
           key={i}
-          className={`flex h-[26px] items-center justify-center rounded border font-display text-xs font-bold ${i < 3 ? (good ? "border-opponent bg-opponent/15" : "border-primary bg-primary/10") : "border-transparent bg-background/40"}`}
+          className={`word-letter-tile flex h-[26px] items-center justify-center rounded border font-display text-xs font-bold ${i < 3 ? (good ? "border-opponent bg-opponent/15" : "border-primary bg-primary/10") : "border-transparent bg-background/40"}`}
         >
           {l}
         </span>
@@ -232,7 +233,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   };
 
   return (
-    <div ref={root} data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3" style={NO_SCROLL_STYLE}>
+    <div ref={root} data-polish="wordslide" data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3" style={NO_SCROLL_STYLE}>
       <Board grid={replay.grid} cell={CELL} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} onLock={(row) => { playSound("pz_padlock"); push(`L${row}`); }} />
       <p data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         Moves <span className="text-primary">{replay.moves}</span>

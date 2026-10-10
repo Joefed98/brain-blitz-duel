@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useEffect, useRef } from "react";
 
@@ -65,18 +66,18 @@ export function buildEquation(): EquationPuzzleData {
 
 function OperatorSlot({ value, onClick }: { value: Operator | null; onClick?: (() => void) | undefined }) {
   return (
-    <button
+    <Button
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`flex h-11 w-11 items-center justify-center rounded-lg border font-mono text-xl font-bold ${
+      className={`equation-slot flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border font-mono text-xl font-bold ${
         value
           ? "border-primary/70 bg-primary/15 text-primary"
           : "border-dashed border-border bg-card text-muted-foreground"
       }`}
     >
       {value ? display(value) : "▢"}
-    </button>
+    </Button>
   );
 }
 
@@ -161,15 +162,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
   const last = stage >= total - 1;
 
   return (
-    <div data-stage-column="3" className={`flex min-h-0 flex-1 flex-col gap-3 ${column ? "" : "justify-between"}`}>
+    <div data-polish="equation" data-stage-column="3" className={`flex min-h-0 flex-1 flex-col gap-3 ${column ? "" : "justify-between"}`}>
       <div data-game-arena="fixed" className="flex flex-col items-center gap-3">
         <StageProgress stage={stage} total={total} />
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
           Equation {stage + 1} of {total} · left to right
         </p>
-        <div className="flex w-full flex-wrap items-center justify-center gap-1 rounded-2xl bg-card px-2 py-3 font-mono text-lg font-bold tabular-nums min-[390px]:text-xl">
+        <div className="polish-equation flex w-full flex-wrap items-center justify-center gap-x-1 gap-y-3 rounded-lg bg-card px-2 py-4 font-mono text-[32px] font-bold tabular-nums">
           {current.numbers.map((n, index) => (
-            <span key={index} className="flex items-center gap-1.5">
+            <span key={index} className="flex items-center gap-1">
               <span>{n}</span>
               {index < current.numbers.length - 1 && (
                 <OperatorSlot value={slots[index] ?? null} onClick={frozen ? undefined : () => clearSlot(index)} />
@@ -181,7 +182,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
         <StageCorrect visible={holding} />
         <div className="grid grid-cols-4 gap-2">
           {OPERATORS.map((op) => (
-            <button
+            <Button
               key={op}
               type="button"
               disabled={frozen}
@@ -189,12 +190,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
               className="tap-target flex h-16 w-16 items-center justify-center rounded-xl border border-border bg-card font-mono text-3xl font-bold text-foreground disabled:opacity-50"
             >
               {display(op)}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
-      <button
+      <Button
         data-game-controls="submit"
         type="button"
         onClick={() => !frozen && advance(slots)}
@@ -202,7 +203,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
         className="tap-target w-full rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
       >
         {last ? "Submit" : "Next"}
-      </button>
+      </Button>
     </div>
   );
 }

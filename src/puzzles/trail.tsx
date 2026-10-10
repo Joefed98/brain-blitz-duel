@@ -61,8 +61,8 @@ function Grid({
               x2={b.x}
               y2={b.y}
               stroke="var(--primary)"
-              strokeOpacity={0.35}
-              strokeWidth={Math.max(3, cell * 0.14)}
+              strokeOpacity={0.65}
+              strokeWidth={Math.max(6, cell * 0.22)}
               strokeLinecap="round"
             />
           );
@@ -74,10 +74,10 @@ function Grid({
           const wrong = marks !== undefined && step !== undefined && marks[step - 1] !== c;
           const cls =
             g != null
-              ? "bg-foreground text-background"
+              ? "trail-given bg-foreground text-background"
               : step !== undefined
-                ? `border-2 bg-card text-primary ${wrong ? "border-destructive text-destructive" : "border-primary"}`
-                : "border-2 border-dashed border-border bg-background/60";
+                ? `trail-entered border-2 bg-card text-primary ${wrong ? "border-destructive text-destructive" : "border-primary"}`
+                : "trail-empty border border-border bg-muted/20";
           return (
             <div
               key={c}
@@ -171,7 +171,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const busy = locked || complete;
   // Count, two gaps, top inset and 44px controls; no tray. Keep 36px squares.
   const fit = Math.min(space.w - 8, space.h - 84);
-  const cell = Math.max(36, Math.min(60, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
+  const cell = Math.max(44, Math.min(60, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
 
   const refuse = (c: number) => {
     if (lastRefused.current === c) return;
@@ -272,6 +272,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 
   return (
     <div
+      data-polish="trail"
       ref={box}
       data-play-area
       data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 pt-1 select-none"

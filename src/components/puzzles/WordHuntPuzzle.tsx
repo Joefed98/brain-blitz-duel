@@ -61,11 +61,11 @@ export function WordHuntBoard({
           <polyline
             points={path.map((cell) => `${centre(cell).x},${centre(cell).y}`).join(" ")}
             fill="none"
-            stroke="var(--primary)"
+            stroke="var(--category-accent)"
             strokeWidth={2.6}
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity={0.9}
+            opacity={0.5}
           />
         )}
         {path.length > 0 && pointer && (
@@ -74,10 +74,10 @@ export function WordHuntBoard({
             y1={centre(path[path.length - 1] ?? 0).y}
             x2={pointer.x}
             y2={pointer.y}
-            stroke="var(--primary)"
+            stroke="var(--category-accent)"
             strokeWidth={2.6}
             strokeLinecap="round"
-            opacity={0.9}
+            opacity={0.5}
           />
         )}
       </svg>
@@ -92,7 +92,7 @@ export function WordHuntBoard({
               onPointerDown={
                 interactive && onPathStart ? (event) => onPathStart(cell, event) : undefined
               }
-              className={`flex items-center justify-center rounded-lg border font-display font-bold uppercase transition-colors duration-100 ${
+              className={`word-letter-tile flex items-center justify-center rounded-lg border font-display font-bold uppercase transition-colors duration-100 ${
                 lit
                   ? "border-primary bg-primary/20 text-primary"
                   : "border-border bg-card text-foreground"
@@ -301,12 +301,12 @@ export function WordHuntPuzzle({
   }, [finish, tapCell]);
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
+    <div data-polish="wordhunt" data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
+      <div className="grid grid-cols-2 items-center font-mono text-base font-semibold uppercase text-foreground">
         <span>
           points <span className="text-primary">{points}</span>
         </span>
-        <span>words: {found.length}</span>
+        <span className="text-right">words: {found.length}</span>
       </div>
 
       <div
