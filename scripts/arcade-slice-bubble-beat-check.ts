@@ -248,7 +248,8 @@ for (let sample = 0; sample < 40; sample++) {
       if (!at) continue;
       const cx = Math.trunc(at.x / 256);
       const cy = Math.trunc(at.y / 256);
-      if (cy < SLICE_HUD_H + 30 || cy > SLICE_WORLD_H - 30 || cx < 30 || cx > SLICE_WORLD_W - 30) continue;
+      if (cy < SLICE_HUD_H + 30 || cy > SLICE_WORLD_H - 30 || cx < 30 || cx > SLICE_WORLD_W - 30)
+        continue;
       input = { t: tick, k: SLICE_INPUT_SWIPE, a: cx - 30, b: cy, c: cx + 30, d: cy };
       events.push(input);
       break;
@@ -268,8 +269,7 @@ for (let sample = 0; sample < 40; sample++) {
   ).length;
   if (frenzyCut === 0 || lineCut === 0) fail(`slice ${seed}: specials were not sliced`);
   if (state.frenzyFrom.length !== frenzyCut) fail(`slice ${seed}: frenzy windows not recorded`);
-  const expected =
-    start.objects.length + frenzyCut * SLICE_FRENZY_COUNT;
+  const expected = start.objects.length + frenzyCut * SLICE_FRENZY_COUNT;
   if (state.objects.length !== expected) {
     fail(`slice ${seed}: spawned ${state.objects.length - start.objects.length}, expected extra`);
   }
@@ -290,7 +290,12 @@ for (let sample = 0; sample < 40; sample++) {
   if (!bomb) fail(`slice ${seed}: no bomb fixture for suppression boundaries`);
   else {
     const fixture = { ...state, frenzyFrom: [600] };
-    for (const [launchTick, suppressed] of [[599, false], [600, true], [779, true], [780, false]] as const) {
+    for (const [launchTick, suppressed] of [
+      [599, false],
+      [600, true],
+      [779, true],
+      [780, false],
+    ] as const) {
       if (sliceSuppressed(fixture, { ...bomb, launchTick }) !== suppressed) {
         fail(`slice ${seed}: frenzy suppression boundary ${launchTick} differs`);
       }

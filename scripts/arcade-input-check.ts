@@ -374,7 +374,9 @@ if (
   else {
     const landing = binTossPredict(launch.vx, launch.vy, 0);
     if (launch.vx !== 585 || launch.vy !== -1012 || landing.x !== 202 || landing.y !== 432) {
-      fail(`reference input calibration changed: velocity ${launch.vx},${launch.vy}; landing ${landing.x},${landing.y}`);
+      fail(
+        `reference input calibration changed: velocity ${launch.vx},${launch.vy}; landing ${landing.x},${landing.y}`,
+      );
     }
   }
 }
@@ -394,7 +396,8 @@ for (let index = 0; index < BINTOSS_THROWS; index++) {
       break;
     }
   }
-  if (!reachable) fail(`bin toss throw ${index + 1}: no legal 60-degree aim reaches the resting bin`);
+  if (!reachable)
+    fail(`bin toss throw ${index + 1}: no legal 60-degree aim reaches the resting bin`);
 }
 
 // A reference-strength straight-up aim must land on the centre at arrow one.
@@ -410,8 +413,11 @@ for (let index = 0; index < BINTOSS_THROWS; index++) {
   }
 }
 
-if (BINTOSS_FIRST_DIST !== 135 * 256 || BINTOSS_DIST_STEP !== 15 * 256 ||
-    binTossBinCentre(BINTOSS_THROWS - 1) - BINTOSS_BALL_X !== 270 * 256) {
+if (
+  BINTOSS_FIRST_DIST !== 135 * 256 ||
+  BINTOSS_DIST_STEP !== 15 * 256 ||
+  binTossBinCentre(BINTOSS_THROWS - 1) - BINTOSS_BALL_X !== 270 * 256
+) {
   fail("bin toss distances are not 135–270 px in 15 px steps");
 }
 if (BINTOSS_BIN_HALF !== 40 * 256) fail("bin toss opening is not 80 px");
@@ -444,7 +450,8 @@ for (let seed = 1; seed <= 200; seed++) {
   const bin = binTossGame.init(seed);
   const expected = bullseyeWinds(seed);
   const bull = bullseyeInit(seed, expected);
-  if (bin.winds.some((wind) => wind === 0 || wind < -4 || wind > 4)) fail(`bintoss ${seed}: wind out of range`);
+  if (bin.winds.some((wind) => wind === 0 || wind < -4 || wind > 4))
+    fail(`bintoss ${seed}: wind out of range`);
   if (bull.winds.some((wind) => wind < -3 || wind > 3)) fail(`bullseye ${seed}: wind out of range`);
   if (bull.winds.join(",") !== expected.join(",")) fail(`bullseye ${seed}: stored winds differ`);
   for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) {
