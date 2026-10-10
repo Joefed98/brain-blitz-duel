@@ -1,3 +1,8 @@
+## Orbit next-planet framing and shooting star (Oct 10)
+- [ ] Remove capture ring and edge arrow; retain independent streak/HUD feedback and add capture-count shooting star.
+- [ ] Verify next-ring visibility across every bank course, preserve replay and camera rules; version selection only if exclusions are required.
+- [ ] Measure effect-active draw time and compare the full named suite with the last run; deliver report.
+
 ## Small renderer and camera tuning (Oct 10)
 - [x] Restore Hover's coloured whole-barrier pulse; add subtle cached Gemstone shine and rare glints.
 - [x] Change Orbit rev3 to 450ms capture pans (250ms reduced) and minimum safe-box flight pushes; ten-seed dense/sparse/pure-sim parity passes.
