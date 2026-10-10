@@ -23,6 +23,9 @@ import {
 import { playSound } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
+import { prefersReducedMotion } from "@/lib/motion";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 
 const CELL = 56;
 const GAP = 4;
@@ -131,6 +134,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const data: WordSlidePuzzleData | null = puzzle.type === "wordslide" ? puzzle : null;
   const [tokens, setTokens] = useStageState<string[]>(stateKey, "slideTokens", () => []);
   const [verdicts, setVerdicts] = useState<Record<string, boolean>>({});
+  const [accepted, setAccepted] = useState<AcceptedWordMoment | null>(null);
   const submitted = useRef(false);
   const board = useRef<HTMLDivElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
@@ -154,7 +158,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     for (const word of rowWords) {
       if (word in verdicts) continue;
       void checkWord(word, [])
-        .then((v) => setVerdicts((c) => ({ ...c, [word]: v.valid })))
+        .then((v) => { setVerdicts((c) => ({ ...c, [word]: v.valid })); if (v.valid) setAccepted(previous => ({ word: v.word, points: 22, serial: (previous?.serial ?? 0) + 1 })); })
         .catch(() => undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -181,7 +185,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   useLayoutEffect(() => {
     const shift = lastShift.current;
     lastShift.current = null;
-    if (!shift || !board.current) return;
+    if (!shift || !board.current || prefersReducedMotion()) return;
     const offset = -(CELL + GAP) * shift.dir;
     for (let k = 0; k < WS_SIZE; k++) {
       if (shift.axis === "c" && lockedRows.has(k)) continue;
@@ -201,7 +205,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     if (frozen) return;
     const parsed = parseToken(token);
     if (parsed && typeof parsed === "object" && !("lock" in parsed)) {
-      if (parsed.axis === "r" && lockedRows.has(parsed.index)) return;
+      if (parsed.axis === "r" && lockedRows.has(parsed.index)) return puzzleReject(board.current);
       lastShift.current = parsed;
     }
     hapticTick();
@@ -225,7 +229,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         Math.abs(dx) >= Math.abs(dy)
           ? { axis: "r", index: Math.floor(start / WS_SIZE), dir: dx > 0 ? 1 : -1 }
           : { axis: "c", index: start % WS_SIZE, dir: dy > 0 ? 1 : -1 };
-      if (shift.axis === "r" && lockedRows.has(shift.index)) return;
+      if (shift.axis === "r" && lockedRows.has(shift.index)) return puzzleReject(board.current);
       push(shiftToken(shift));
     };
     window.addEventListener("pointerup", up);
@@ -234,10 +238,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
 
   return (
     <div ref={root} data-polish="wordslide" data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3" style={NO_SCROLL_STYLE}>
+      <FoundWordMoment value={accepted} />
       <Board grid={replay.grid} cell={CELL} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} onLock={(row) => { playSound("pz_padlock"); push(`L${row}`); }} />
-      <p data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        Moves <span className="text-primary">{replay.moves}</span>
-      </p>
+      <div data-game-controls="status" className="relative flex h-8 shrink-0 items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        <span>Moves <span className="text-primary">{replay.moves}</span></span>
+      </div>
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">
         <Button
           type="button"

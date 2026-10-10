@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useEffect, useRef } from "react";
 
 import { useGridPointer } from "@/components/puzzles/GridDrag";
@@ -198,7 +199,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       !locked && data
         ? (cell) => {
             // One press = one tap on the cell first touched.
-            if (pressed.current || submitted.current || walls.has(cell)) return;
+            if (pressed.current || submitted.current) return;
+            if (walls.has(cell)) return puzzleReject();
             pressed.current = true;
             buzz(8);
             setMarks((current) => current.map((m, i) => (i === cell ? (((m + 1) % 3) as Mark) : m)));

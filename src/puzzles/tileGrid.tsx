@@ -21,6 +21,7 @@ import type { TileGridPuzzleData } from "@/lib/duel/types";
 import { playLock, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 
 const GAP = 2;
 const TRAY_TILE = 44; // eight per row at 360px, with no overlapping targets
@@ -81,6 +82,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const [flash, setFlash] = useState<Set<number>>(new Set());
   const [selected, setSelected] = useState<number | null>(null);
   const [checking, setChecking] = useState(false);
+  const [accepted, setAccepted] = useState<AcceptedWordMoment | null>(null);
   const lastTap = useRef<{ tile: number; time: number } | null>(null);
   const submitted = useRef(false);
   const boardSpace = useRef<HTMLDivElement | null>(null);
@@ -119,6 +121,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       const verdict = await checkWord(word, []).catch(() => ({ valid: false }));
       pending.current.delete(word);
       setVerdicts((v) => ({ ...v, [word]: verdict.valid }));
+      if (verdict.valid) setAccepted(previous => ({ word, points: "points" in verdict && typeof verdict.points === "number" ? verdict.points : 0, serial: (previous?.serial ?? 0) + 1 }));
       return verdict.valid;
     },
     [checkWord, verdicts],
@@ -200,7 +203,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
 
   return (
     <div data-polish="tilegrid" data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1">
-      <div ref={boardSpace} data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+      <FoundWordMoment value={accepted} />
+      <div ref={boardSpace} data-game-arena="board" className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
       <div
         className="grid shrink-0 rounded-xl border-2 border-border bg-card p-1"
         style={{ gridTemplateColumns: `repeat(${TG_SIZE}, ${cellSize}px)`, gap: GAP }}

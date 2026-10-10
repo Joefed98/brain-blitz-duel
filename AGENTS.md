@@ -40,4 +40,5 @@
 - Pipeline BFS is presentation-only; scenery and Grappler art are private renderers. Why: paint cannot alter grading.
 - Grappler swingRev selects dragons; courses come from the server-only proved bank by seed, live proof only as fallback. Why: legacy replay, fast starts.
 
-- Refresh icons share one-to-one direction/kind art; Bonk caches original circular-footprint sprites in its renderer and shares vectors with its intro. Why: new artwork must preserve generated variants and replay state.
+- Refresh icons/Bonk cache original footprint art for replay parity.
+- letterShuffle preserves tile IDs; practiceBest stores device-only scores; puzzleReject paints errors without grading/audio.

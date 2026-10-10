@@ -1,3 +1,4 @@
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef } from "react";
 
@@ -176,6 +177,7 @@ function Stage({
     }
     buzz(20);
     playWrong();
+    puzzleReject();
     timer.current = setTimeout(() => setOpen([]), PAIR_FLIP_BACK_MS);
   };
 

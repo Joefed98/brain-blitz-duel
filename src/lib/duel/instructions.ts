@@ -19,6 +19,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Words must be at least 4 letters. Use each letter once.", detail: "There's always a word using every tile." },
       { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine." },
       { action: "Tap the round letter tiles in order", detail: "Include the glowing centre letter. Tap a selected letter again to remove it. Clear empties the word; Enter checks it." },
+      { action: "Shuffle", detail: "rearranges the outer letters for free; the centre stays fixed." },
       { action: "Words are checked", detail: "against a standard British English dictionary." },
     ],
     score: "Longer words score more: 8 letters = 11 word points; 9-11 letters = 15. Round score = floor(2.5 × word points), up to 150.",
@@ -879,7 +880,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Find the six hidden words from the category.",
     how: [
       { action: "Drag in a straight line", detail: "through the letters in any direction, backwards too." },
-      { action: "A hidden word turns gold.", detail: "Only the count shows until you find them." },
+      { action: "A found word gets a line through it and a filled chip.", detail: "Only the count shows until you find them." },
     ],
     score: "20 per word. Find all six for 130 plus up to 20 speed points.",
   },
@@ -888,6 +889,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag through the letters and let go,", detail: "or tap letters then Submit or the word." },
       { action: "Crossword words fill gold.", detail: "Words must be at least 3 letters. Other real words are not in this puzzle." },
+      { action: "Shuffle", detail: "rearranges the wheel for free without changing the crossword." },
     ],
     score: "15 per word on eight-word puzzles, 13 on nine-word puzzles. Find them all for 130 plus up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },

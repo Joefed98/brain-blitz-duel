@@ -1,3 +1,10 @@
+## Feel upgrades A (Oct 10)
+- [x] Synchronise final-ten red timer pulse with existing ticks across timed rounds; add Go / No-Go's shared timer.
+- [x] Add identity-preserving Nucleus/Roundabout shuffle and reserved accepted-word displays; Lookout found strokes.
+- [x] Add device-local practice bests on intro/results, excluding demos and rooms; blocked/empty storage checks pass.
+- [x] Share existing puzzle rejection signals and explicit blocked-move feedback; report old-feedback coverage and device-verification limits.
+- [x] Full named suite unchanged: 67 pass/15 fail/1 timeout; no regressions, Snip 785.6s under exception; deliver report/evidence. Device fit/feel remains Joseph-tested.
+
 ## Orbit next-planet framing and shooting star (Oct 10)
 - [x] Remove capture ring and edge arrow; retain independent streak/HUD feedback and add capture-count shooting star.
 - [x] Verify next-ring visibility across every bank course: dynamic minimum 32%, settled minimum 39.423%; all 504 retained, replay checks pass.

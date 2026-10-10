@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useEffect, useMemo, useRef } from "react";
 
 import { ArrowPad, gridCellAt } from "@/components/puzzles/GridDrag";
@@ -234,7 +235,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
       if (cell === last) return current;
       // Retracing one step backwards undoes a wrong turn.
       if (current.length > 1 && cell === current[current.length - 2]) return current.slice(0, -1);
-      if (!mazeOpen(cells, last, cell)) return current;
+      if (!mazeOpen(cells, last, cell)) { puzzleReject(); return current; }
       return [...current, cell];
     });
   };
@@ -244,10 +245,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
     const last = path[path.length - 1] ?? start;
     const col = last % MAZE_COLS;
     const row = Math.floor(last / MAZE_COLS);
-    if (dir === "U" && row === 0) return;
-    if (dir === "D" && row >= Math.floor((cells.length - 1) / MAZE_COLS)) return;
-    if (dir === "L" && col === 0) return;
-    if (dir === "R" && col === MAZE_COLS - 1) return;
+    if (dir === "U" && row === 0) return puzzleReject();
+    if (dir === "D" && row >= Math.floor((cells.length - 1) / MAZE_COLS)) return puzzleReject();
+    if (dir === "L" && col === 0) return puzzleReject();
+    if (dir === "R" && col === MAZE_COLS - 1) return puzzleReject();
     const next =
       dir === "U"
         ? last - MAZE_COLS

@@ -8,6 +8,7 @@ import { puzzleDef } from "@/lib/duel/registry";
 import { usePuzzleSurfaces } from "@/components/puzzles/usePuzzleSurfaces";
 import { GameLayoutDevOverlay } from "./GameLayoutDevOverlay";
 import { GameColumnLayout } from "@/components/puzzles/gameColumn";
+import { usePuzzleRejections } from "@/components/puzzles/usePuzzleRejections";
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -124,6 +125,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
   const puzzleSurface = Boolean(gameScreen && definition && !definition.retired && !definition.arcadeRun && definition.category !== "arcade");
   const surfaceRef = useRef<HTMLDivElement>(null);
   usePuzzleSurfaces(surfaceRef, gameType, puzzleSurface);
+  usePuzzleRejections(surfaceRef, Boolean(gameScreen && definition && !definition.arcadeRun && definition.category !== "arcade"), gameType);
   return (
     <div
       ref={surfaceRef}

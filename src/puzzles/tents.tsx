@@ -125,7 +125,7 @@ function Board({
               type="button"
               disabled={!onTap || tree}
               onClick={onTap && !tree ? () => onTap(cell) : undefined}
-              className={`flex aspect-square items-center justify-center rounded-md border border-border ${flash === cell ? "animate-pulse bg-destructive/50" : "camp-cell"}`}
+              className={`flex aspect-square items-center justify-center rounded-md border border-border camp-cell ${flash === cell ? "animate-shake" : ""}`}
               aria-label={tree ? "Tree" : mark === 1 ? "Tent" : mark === 2 ? "Grass" : "Empty"}
             >
               {tree ? (

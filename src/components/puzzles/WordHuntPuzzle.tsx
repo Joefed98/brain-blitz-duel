@@ -14,6 +14,7 @@ import {
   type WordHuntPuzzleData,
 } from "@/lib/duel/types";
 import type { CheckWord } from "@/puzzles/types";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 
 interface Found {
   word: string;
@@ -181,6 +182,7 @@ export function WordHuntPuzzle({
     if (word.length < WORDHUNT_MIN_LENGTH) {
       playWrong();
       setFlash("bad");
+      puzzleReject(gridRef.current);
       setMessage(`${WORDHUNT_MIN_LENGTH} letters or more`);
       return;
     }
@@ -201,6 +203,7 @@ export function WordHuntPuzzle({
       hapticTick();
     } else {
       setFlash("bad");
+      puzzleReject(gridRef.current);
       setMessage(verdict.reason ?? "Not a word");
     }
   }, [checkWord, wordOf]);
@@ -311,7 +314,7 @@ export function WordHuntPuzzle({
 
       <div
         data-game-arena="word" className={`flex min-h-0 flex-1 flex-col items-center rounded-xl transition-colors duration-150 ${
-          flash === "good" ? "bg-ok/25" : flash === "bad" ? "bg-warn/25" : "bg-transparent"
+          flash === "good" ? "bg-ok/25" : "bg-transparent"
         }`}
       >
         <AcceptedWordChip word={acceptedWord} />

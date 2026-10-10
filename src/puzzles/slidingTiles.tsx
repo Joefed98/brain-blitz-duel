@@ -1,3 +1,4 @@
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef } from "react";
@@ -170,7 +171,7 @@ function Stage({
     if (locked || submitted.current || replay.solved) return;
     const next = [...moves, tile];
     const after = replayTiles(data.frame, next);
-    if (after.moves === replay.moves) return;
+    if (after.moves === replay.moves) return puzzleReject();
     hapticTick();
     setMoves(next);
     if (after.solved) {

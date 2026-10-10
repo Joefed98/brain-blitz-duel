@@ -47,6 +47,7 @@ import {
 import { roundMusicFor } from "@/lib/fx/theme";
 import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import type { SubmitMeta } from "@/puzzles/types";
+import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
 
 export const Route = createFileRoute("/practice")({
   ssr: false,
@@ -55,18 +56,18 @@ export const Route = createFileRoute("/practice")({
       { title: "Duelz practice — try any puzzle type" },
       {
         name: "description",
-        content: "Play any single Duelz puzzle type on your own. Nothing is scored or saved.",
+        content: "Practise any Duelz game and keep personal best scores on this device. Room scores are unaffected.",
       },
       { property: "og:title", content: "Duelz practice — try any puzzle type" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
-        content: "Practise one puzzle type at a time. Nothing counts anywhere.",
+        content: "Practise Duelz games with personal best scores saved only on this device.",
       },
       {
         name: "twitter:description",
-        content: "Practise one puzzle type at a time. Nothing counts anywhere.",
+        content: "Practise Duelz games with personal best scores saved only on this device.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -103,6 +104,8 @@ function PracticeScreen() {
   const [sealed, setSealed] = useState("");
   const [startedAt, setStartedAt] = useState(0);
   const [graded, setGraded] = useState<Graded | null>(null);
+  const [deviceBest, setDeviceBest] = useState<number | null>(null);
+  const [newBest, setNewBest] = useState(false);
   const [run, setRun] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const grading = useRef(false);
@@ -155,6 +158,8 @@ function PracticeScreen() {
         return count + 1;
       });
       setType(next);
+      setDeviceBest(readPracticeBest(next));
+      setNewBest(false);
       setGraded(null);
       setPuzzle(null);
       setStage("loading");
@@ -214,6 +219,7 @@ function PracticeScreen() {
       buzz(15);
       const remaining =
         clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - Date.now());
+      const wasExample = exampleRun.current;
       const result = await practiceGradeFn({
         data: {
           puzzle,
@@ -235,6 +241,11 @@ function PracticeScreen() {
         extra = null;
       }
       setGraded({ ...(rest as Graded), extra });
+      if (!wasExample) {
+        const record = recordPracticeBest(puzzle.type, result.score);
+        setDeviceBest(record.best);
+        setNewBest(record.improved);
+      }
       setStartedAt(Date.now());
       setStage("reveal");
     },
@@ -296,6 +307,11 @@ function PracticeScreen() {
     resultCued.current = run;
     playCorrect();
   }, [stage, run]);
+  useEffect(() => {
+    if (stage !== "result" || !newBest) return;
+    const timer = setTimeout(() => setNewBest(false), 1600);
+    return () => clearTimeout(timer);
+  }, [stage, newBest]);
 
   if (stage === "list") {
     return (
@@ -304,7 +320,7 @@ function PracticeScreen() {
           <div>
             <h1 className="font-display text-2xl font-bold">Practice</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              One puzzle at a time, on this device. Nothing is scored or saved.
+              One puzzle at a time. Personal bests stay on this device.
             </p>
             <DevKeyStatus status={demoStatus} />
           </div>
@@ -393,6 +409,7 @@ function PracticeScreen() {
           now={now}
           outcomes={[]}
           practice
+          deviceBest={deviceBest}
           onBack={cancelIntro}
           puzzle={puzzle}
           onReady={() => {
@@ -442,6 +459,10 @@ function PracticeScreen() {
             {puzzleName(type)}
           </p>
           <p className="font-mono text-6xl font-bold text-primary animate-pop-in">{graded.score}</p>
+          <div className="flex h-12 shrink-0 flex-col items-center gap-1" aria-live="polite">
+            <p className="font-mono text-sm text-muted-foreground">Best: {deviceBest ?? "—"} · this device</p>
+            {newBest ? <p className="font-display text-sm font-bold text-primary practice-new-best">New best!</p> : null}
+          </div>
           <p className="text-sm text-muted-foreground">
             {graded.isCorrect ? "Correct" : "Not quite"} ·{" "}
             {graded.reactionAvgMs !== null

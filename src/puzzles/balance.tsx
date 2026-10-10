@@ -1,5 +1,6 @@
 import { Kettlebell } from "@/components/puzzles/refreshIcons";
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -204,7 +205,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const available = (tray: number) => Array.from({ length: BAL_PEGS }, (_, peg) => peg).filter((peg) =>
     !scale.fixed.some((f) => f.peg === peg) && !placement.some((p, i) => i !== tray && p === peg));
   const hang = (tray: number, peg: number) => {
-    if (!available(tray).includes(peg)) return;
+    if (!available(tray).includes(peg)) return puzzleReject();
     // Button taps update the same placement array encoded for server torque validation.
     const next = [...placement]; next[tray] = peg;
     setSelected(null); hapticTick(); setCurrent(next);

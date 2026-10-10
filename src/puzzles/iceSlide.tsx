@@ -21,6 +21,7 @@ import {
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -268,6 +269,7 @@ function Stage({
     }
     fallsSeen.current = replay.falls;
     setFlash(true);
+    puzzleReject();
     buzz(25);
     playWrong();
     const timer = setTimeout(() => setFlash(false), 320);
@@ -317,7 +319,7 @@ function Stage({
         data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center touch-none rounded-lg transition-colors"
         style={{
           touchAction: "none",
-          backgroundColor: flash ? "color-mix(in srgb, var(--warn) 35%, transparent)" : undefined,
+          outline: flash ? "2px solid var(--destructive)" : undefined,
         }}
         {...swipe}
       >

@@ -6,6 +6,10 @@ import { useStageState } from "@/lib/duel/stageState";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData, type LetterWheelSlot } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
+import { Shuffle } from "lucide-react";
+import { shuffleLetterOrder } from "@/components/puzzles/letterShuffle";
+import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -76,6 +80,7 @@ function Wheel({
   onTap,
   disabled,
   shake,
+  order,
 }: {
   letters: string;
   path: readonly number[];
@@ -84,6 +89,7 @@ function Wheel({
   onTap?: (index: number) => void;
   disabled?: boolean;
   shake?: boolean;
+  order?: readonly number[];
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const live = useRef<number[]>([]);
@@ -92,6 +98,8 @@ function Wheel({
   const startIndex = useRef<number | null>(null);
   const dragging = useRef(false);
   const n = letters.length;
+  const displayed = order ?? Array.from({ length: n }, (_, i) => i);
+  const position = (index: number) => wheelPos(displayed.indexOf(index), n);
 
   const hit = (x: number, y: number): number | null => {
     const box = ref.current?.getBoundingClientRect();
@@ -99,7 +107,7 @@ function Wheel({
     const px = ((x - box.left) / box.width) * 100;
     const py = ((y - box.top) / box.height) * 100;
     for (let i = 0; i < n; i++) {
-      const [cx, cy] = wheelPos(i, n);
+      const [cx, cy] = position(i);
       if ((px - cx) ** 2 + (py - cy) ** 2 < 12 ** 2) return i;
     }
     return null;
@@ -154,7 +162,7 @@ function Wheel({
       <svg viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 h-full w-full">
         {path.length > 1 && (
           <polyline
-            points={path.map((i) => wheelPos(i, n).join(",")).join(" ")}
+            points={path.map((i) => position(i).join(",")).join(" ")}
             fill="none"
             stroke="var(--primary)"
             strokeWidth={4}
@@ -165,12 +173,12 @@ function Wheel({
         )}
       </svg>
       {[...letters].map((ch, i) => {
-        const [x, y] = wheelPos(i, n);
+        const [x, y] = position(i);
         const on = path.includes(i);
         return (
           <div
             key={i}
-            className={`word-letter-tile pointer-events-none absolute flex items-center justify-center rounded-full font-display font-bold ${
+            className={`word-letter-tile letter-shuffle-tile pointer-events-none absolute flex items-center justify-center rounded-full font-display font-bold ${
               on ? "bg-primary text-primary-foreground" : "text-foreground"
             }`}
             style={{ left: `${x - 12}%`, top: `${y - 12}%`, width: "24%", height: "24%", fontSize: "clamp(28px, 12cqmin, 32px)" }}
@@ -212,6 +220,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const [path, setPath] = useState<number[]>([]);
   const [shake, setShake] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
+  const [accepted, setAccepted] = useState<AcceptedWordMoment | null>(null);
+  const [order, setOrder] = useState(() => Array.from({ length: data?.letters.length ?? 0 }, (_, i) => i));
   const submitted = useRef(false);
 
   const wheel = data?.letters ?? "";
@@ -258,6 +268,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
     void checkWord(word, words).then((v) => {
       if (v.valid && v.reason?.startsWith("slot:")) {
         const i = Number(v.reason.slice(5));
+        setAccepted(previous => ({ word: v.word, points: data.slots.length === 8 ? 15 : 13, serial: (previous?.serial ?? 0) + 1 }));
         buzz(12);
         setFilled((f) => {
           const next = [...f];
@@ -265,6 +276,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           return next;
         });
       } else if (v.reason === "Not in this puzzle") {
+        puzzleReject();
         setFlash("Not in this puzzle");
         setTimeout(() => setFlash(null), 900);
       } else {
@@ -287,11 +299,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           <Crossword cols={data.cols} rows={data.rows} slots={data.slots} letters={letterMap(data.cols, data.slots, filled)} />
         </div>
       </div>
-      <p data-arena-part="letterwheel-word" className="flex h-7 shrink-0 items-center justify-center px-2 font-mono text-lg font-bold tracking-widest text-primary" aria-live="polite">
-        {current || flash || ""}
-      </p>
+      <div data-arena-part="letterwheel-word" className="relative flex h-8 shrink-0 items-center justify-center px-2 font-mono text-lg font-bold tracking-widest text-primary" aria-live="polite">
+        <span>{current || flash || ""}</span>
+      </div>
+      <FoundWordMoment value={accepted} />
       <div data-game-arena="letterwheel-wheel" className="flex min-h-[142px] w-full flex-[4] -translate-y-1 items-center justify-center" style={{ containerType: "size" }}>
-        <Wheel letters={wheel} path={path} onPath={setPath} onRelease={release} onTap={tapLetter} disabled={done} shake={shake} />
+        <Wheel letters={wheel} order={order} path={path} onPath={setPath} onRelease={release} onTap={tapLetter} disabled={done} shake={shake} />
       </div>
       <div data-game-controls="actions" className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pt-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -305,7 +318,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         >
           Submit
         </Button>
-        <span aria-hidden="true" />
+        <Button type="button" variant="outline" className="h-11 w-11 justify-self-end p-0" title="Shuffle letters" aria-label="Shuffle letters" disabled={done} onClick={() => setOrder(previous => shuffleLetterOrder(previous))}><Shuffle className="h-5 w-5" /></Button>
       </div>
     </div>
   );

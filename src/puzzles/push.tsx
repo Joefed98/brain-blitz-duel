@@ -1,3 +1,4 @@
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -155,7 +156,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   const step = (dir: SlideDir) => {
     if (locked || submitted.current || replay.solved) return;
     const result = movePusher(replay.state, dir, new Set(walls));
-    if (!result.moved) return;
+    if (!result.moved) return puzzleReject();
     setMoves((current) => [...current, dir]);
   };
 
