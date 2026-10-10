@@ -42,17 +42,18 @@ function barrierSprite(w: number, colour: string): ArtCanvas | null {
   const c = layer && artContext(layer);
   if (!layer || !c) return null;
   c.scale(2, 2);
-  c.fillStyle = "#39114F"; c.fillRect(0, 0, w, HOVER_WORLD_H);
+  c.fillStyle = colour; c.fillRect(0, 0, w, HOVER_WORLD_H);
+  c.fillStyle = "rgba(0,0,0,0.72)"; c.fillRect(0, 0, w, HOVER_WORLD_H);
   // One baked glow pass, clipped by the raster's exact rectangular footprint.
   c.shadowColor = colour; c.shadowBlur = 3;
   for (let y = 0; y < HOVER_WORLD_H; y += 12) {
-    c.fillStyle = Math.floor(y / 12) % 2 ? "#9E38D6" : "#C642CE";
-    c.fillRect(0, y, w, 11);
+    c.fillStyle = colour; c.fillRect(0, y, w, 11);
   }
   c.shadowBlur = 0;
   for (let y = 0; y < HOVER_WORLD_H; y += 12) {
-    c.fillStyle = colour; c.fillRect(2, y + 2, w - 4, 1);
-    c.fillStyle = "#5A1D75"; c.fillRect(w / 2, y + 3, 1, 7);
+    c.fillStyle = Math.floor(y / 12) % 2 ? "rgba(0,0,0,0.38)" : "rgba(0,0,0,0.22)"; c.fillRect(0, y, w, 11);
+    c.fillStyle = "rgba(255,255,255,0.55)"; c.fillRect(2, y + 2, w - 4, 1);
+    c.fillStyle = "rgba(0,0,0,0.45)"; c.fillRect(w / 2, y + 3, 1, 7);
   }
   barrierCache.set(colour, layer);
   return layer;
