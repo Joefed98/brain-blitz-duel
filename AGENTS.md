@@ -20,15 +20,16 @@
 - RoundIntro renders optional definition `introLine(puzzle)`; why: fixed examples stay fixed while puzzle-specific facts still show.
 - TimerBar is the only countdown: accent ring in its existing 20px slot; PhoneShell owns 4px side safety; why: preserve board space.
 - Room settings/draws exclude Memory and RETIRED_TYPES; practice retains both via allTypesInCategory. Why: retirement must not remove practice access.
-- The browser-safe gameNames catalog supplies each active registry entry's name and named board/demo labels; all non-display logic stays keyed by PuzzleType. Why: display renames must not change saved rounds, assets, inputs or code identifiers.
+- gameNames owns display names; PuzzleType keys all logic. Why: renames cannot change saved rounds, assets, inputs or IDs.
 - Square puzzle arenas use container-sized squares and SVG viewBoxes with coordinate conversion for scaled input; why: boards must remain centred, square and correctly tappable at every arena size.
-- The answer reveal shows only the server-stored round score (AnswerReveal's StoredScore, "Scoring…" until it lands); puzzle Reveals must never compute or print a score; scripts/reveal-score-check.tsx guards this. Why: local maths drifted from server scoring.
+- AnswerReveal's StoredScore alone prints scores ("Scoring…" while pending); reveal-score-check guards it. Why: local maths drifted from server scoring.
 - RoundIntro exposes Back only in practice; its practice callback cancels the intro and clears run state without grading. Why: leaving an intro must not create results or affect rooms.
 - Non-engine demos use the real Stage, INTRO_EXAMPLE_SEED, sealed example id and recorded area-fraction actions/verdicts; why: real UI without exposed answers or divergent play.
 - Changed inputs/layouts reject demos by shape or presentation revision; why: stale touches must not target new controls.
 
 - FX/audio stay outside sims; dev displays require accepted keys; Pull clayRev owns birds while unstamped rounds stay clay-only. Why: safe feedback and legacy replay.
 - Success renderers observe existing counters/ticks with bounded per-canvas replay memory; Gemstone caches gem sprites and dirty cells. Why: rewards never change gameplay/audio/data.
+- run-checks records named pass/fail/timeout results: 300s, Snip 1800s, deep Orbit opt-in. Why: reproducible coverage and comparable reports.
 - soundSettings owns device channel migration and normalized slider values; sound.ts owns bus gains and round-track ramp classification, while MuteToggle owns compact overlay controls. Why: all screens share settings without altering gameplay or clock ownership.
 
 - PhoneShell shares paint; WordsmithRing owns the shared circular orbit board and wordInput owns taps; presentation revisions reject coordinate demos of obsolete boards. Wordsmith keeps centre index, size bands and original-band seeded examples. Why: demo compatibility.
