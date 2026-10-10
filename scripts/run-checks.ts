@@ -43,7 +43,12 @@ function runOne(file: string): Promise<{ file: string; ok: boolean; status: "pas
     }, timeoutMs);
     child.on("close", (code) => {
       clearTimeout(timer);
-      resolve({ file, ok: !timedOut && code === 0, status: timedOut ? "timeout" : code === 0 ? "pass" : "fail", timeoutMs, ms: Date.now() - started, output });
+      // Older proof scripts print failed assertions but still exit zero.
+      // Match only unambiguous nonzero failure summaries, not expected negative
+      // test diagnostics such as "desync" or "input payload out of range".
+      const assertionFailed = /^FAIL(?:\s|:)|^[1-9]\d* CHECK\(S\) FAILED|^[1-9]\d* failures;|^[1-9]\d* failed\s*$/m.test(output);
+      const ok = !timedOut && code === 0 && !assertionFailed;
+      resolve({ file, ok, status: timedOut ? "timeout" : ok ? "pass" : "fail", timeoutMs, ms: Date.now() - started, output });
     });
   });
 }

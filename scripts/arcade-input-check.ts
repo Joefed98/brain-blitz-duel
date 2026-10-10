@@ -365,18 +365,16 @@ if (
 
 /* ---------------------------- Calibration ------------------------------ */
 
-// Reference strength retains its original 160px no-wind calibration; the
-// October 4 distance increase did not change this input mapping.
+// Reference strength retains its historical integer launch and predicted
+// landing; the October 4 distance increase did not change this input mapping.
 {
   const drag = dragAt(REFERENCE_DRAG_PX, 60);
   const launch = binTossDrag(drag.dx, drag.dy);
   if (!launch) fail("the reference bin toss aim was ignored");
   else {
     const landing = binTossPredict(launch.vx, launch.vy, 0);
-    const centre = Math.round(BINTOSS_BALL_X / 256) + 160;
-    const tolerance = 1;
-    if (Math.abs(landing.x - centre) > tolerance) {
-      fail(`reference aim landed at ${landing.x}, bin centre ${centre}`);
+    if (launch.vx !== 585 || launch.vy !== -1012 || landing.x !== 202 || landing.y !== 432) {
+      fail(`reference input calibration changed: velocity ${launch.vx},${launch.vy}; landing ${landing.x},${landing.y}`);
     }
   }
 }
