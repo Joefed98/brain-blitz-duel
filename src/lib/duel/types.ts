@@ -628,9 +628,9 @@ export const TARGET_TIME_MS = 75_000;
 /** Target Number: how close a miss still earns something. */
 export const TARGET_NEAR_POINTS = 50;
 export const TARGET_FAR_POINTS = 25;
-/** Default round count for older rooms; new rooms set round_count to their category count. */
+/** Default round count for older rooms; new rooms set round_count from roundCountFor (6, or 7 with all categories). */
 export const TOTAL_ROUNDS = 6;
-/** New rooms play one round per selected category: at most seven. */
+/** New rooms play at most seven rounds. */
 export const MAX_ROUNDS = 7;
 /** A room holds two to ten players; two plays as the classic duel. */
 export const MIN_PLAYERS = 2;

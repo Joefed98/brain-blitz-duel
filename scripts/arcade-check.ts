@@ -219,27 +219,32 @@ for (let sample = 0; sample < 200; sample++) {
   }
 }
 
-/* ------------------- One round per selected category ------------------ */
+/* ------------- 6 rounds (7 with all), shared between categories ------------- */
 
 {
   const cat = (type: string) => puzzleDef(type as never).category;
   const all = ["logic", "pattern", "speed", "attention", "word", "number", "arcade"] as const;
-  let arcadeFirst = 0;
-  for (let seed = 0; seed < 700; seed++) {
-    const order = pickRoundOrder({ categories: [...all], seed });
-    if (order.length !== 7) fail(`seed ${seed}: ${order.length} rounds`);
-    if (new Set(order.map(cat)).size !== 7) fail(`seed ${seed}: repeated category`);
-    if (cat(order[0] ?? "") === "arcade") arcadeFirst++;
-    const again = categoryOrderFor([...all], seed);
-    if (again.join() !== order.map(cat).join()) fail(`seed ${seed}: order not seed-determined`);
+  for (let n = 1; n <= 7; n++) {
+    let arcadeFirst = 0;
+    for (let seed = 0; seed < 400; seed++) {
+      const cats = [...all.slice(7 - n)];
+      const order = pickRoundOrder({ categories: cats, seed: seed * 7919 + n });
+      const want = n === 7 ? 7 : 6;
+      if (order.length !== want) fail(`n=${n} seed ${seed}: ${order.length} rounds`);
+      if (new Set(order).size !== order.length) fail(`n=${n} seed ${seed}: repeated game`);
+      const cs = order.map(cat);
+      if (n > 1) for (let i = 1; i < cs.length; i++) if (cs[i] === cs[i - 1]) fail(`n=${n} seed ${seed}: adjacent category`);
+      if (new Set(cs).size !== n) fail(`n=${n} seed ${seed}: category missing`);
+      if (cs[0] === "arcade") arcadeFirst++;
+      const again = categoryOrderFor(cats, seed * 7919 + n);
+      if (again.join() !== cs.join()) fail(`n=${n} seed ${seed}: order not seed-determined`);
+    }
+    if (arcadeFirst === 0) fail(`n=${n}: arcade never opened a room`);
   }
-  if (arcadeFirst === 0) fail("arcade never opened a room");
-  const solo = pickRoundOrder({ categories: ["arcade"], seed: 5 });
-  if (solo.length !== 1 || cat(solo[0]!) !== "arcade") fail("single category room");
 }
 
 console.log(
   failures === 0
-    ? "arcade checks passed: Swerve and Skyline client/server states and checkpoints identical over 200 runs each; one round per selected category in seeded order"
+    ? "arcade checks passed: Swerve and Skyline client/server states and checkpoints identical over 200 runs each; 6/7-round shared category deals in seeded order"
     : `${failures} failures; first failing tick ${firstFailingTick ?? "unknown"}`,
 );
