@@ -54,3 +54,4 @@
     inset 0 1px 0 color-mix(in oklab, var(--foreground) 12%, transparent),
     inset 0 0 0 1px color-mix(in oklab, black 30%, transparent);
 }
+.game-column [data-polish="lightsout"][data-stage-column] > [data-game-arena="board"] { flex: 1 1 auto; min-height: 0; }

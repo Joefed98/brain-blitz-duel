@@ -23,7 +23,7 @@
 .game-column [data-polish="blockparty"] > [data-game-arena="fixed"] { flex: 0 1 auto; }
 .game-column [data-polish="blockparty"] > [data-game-controls="tray"] { flex: 1 1 auto; min-height: 96px; }
 
-.game-column [data-polish="gravity"] > [data-game-arena="board"] { flex: 1 1 auto; min-height: 0; }
+.game-column [data-polish="gravity"][data-stage-column] > [data-game-arena="board"] { flex: 1 1 auto; min-height: 0; }
 .game-column [data-polish="gravity"] > [data-game-controls="pad"] { flex: 0 0 auto; }
 
 .game-column [data-polish="tiles"] > [data-game-controls="actions"] { flex: 0 0 auto; }
