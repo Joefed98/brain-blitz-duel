@@ -5,7 +5,7 @@ import { equationPuzzle } from '../src/puzzles/equation';
 import { puzzlePresentation, puzzleInputDemoCompatible, POLISH_A_DEMOS } from '../src/components/puzzles/wordInput';
 const css = readFileSync('src/styles.css', 'utf8');
 assert.match(css, /\.game-column \[data-polish\].*justify-content: center/);
-assert.match(css, /letterwheel-wheel.*clamp\(200px/);
+assert.match(css, /--lw-wheel: clamp\(200px/);
 assert.match(css, /prefers-reduced-motion.*reaction-tap-fade/s);
 for (const type of POLISH_A_DEMOS) {
  assert.equal(puzzleInputDemoCompatible(type, {}), false, `${type}: old demo must be rejected`);

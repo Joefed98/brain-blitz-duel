@@ -2,9 +2,11 @@ import type { GridGeometry } from "./GridDrag";
 
 /** Coordinate recordings made before these control-layout changes cannot replay. */
 export const POLISH_A_DEMOS = new Set(["wordhunt", "tilegrid", "wordslide", "wordsearch", "letterwheel", "target", "equation", "numpyramid", "trail", "stopwatch", "numhunt", "reaction"]);
-export const POLISH_A_PRESENTATION = "oct12-roundabout-layout";
+export const POLISH_A_PRESENTATION = "oct10-polish-a";
+/** Roundabout re-balanced crossword/wheel split; older Roundabout coordinate demos are rejected. */
+export const ROUNDABOUT_PRESENTATION = "oct10-roundabout-balance";
 export function puzzlePresentation(type: string): string {
-  return POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
+  return type === "letterwheel" ? ROUNDABOUT_PRESENTATION : POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
 }
 export const REVISED_PUZZLE_DEMOS = new Set([...POLISH_A_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
