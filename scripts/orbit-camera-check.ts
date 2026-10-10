@@ -1,6 +1,6 @@
 /** Capture pans, strict settled holds, minimum flight pushes and replay parity. */
 import assert from 'node:assert/strict';
-import { FP, ORBIT_INPUT_TAP, ORBIT_TOTAL, lapPhases } from '../src/lib/arcade/orbit';
+import { FP, ORBIT_INPUT_TAP, ORBIT_TOTAL, lapPhases, orbitPos } from '../src/lib/arcade/orbit';
 import { findHopTapDelay, orbitRev3Game, ORBIT_REV3_RUN_TICKS, initRev3From, decodeRev3Planets, ORBIT_REV3_WORLD_W, type OrbitRev3State } from '../src/lib/arcade/orbitRev3';
 import { ORBIT_REV3_BANK } from '../src/lib/duel/orbitRev3Bank.server';
 import { orbitStarAge, orbitRewardReset, ORBIT_STAR_TICKS } from '../src/lib/arcade/orbitRewards.renderer';
@@ -104,3 +104,24 @@ for(const entry of ORBIT_REV3_BANK){
 }
 assert.equal(ORBIT_STAR_TICKS,48);
 console.log(`BANK PASS: ${ORBIT_REV3_BANK.length} layouts, ${bankTicks} ticks, ${orbitTicks} orbit/motion samples, minimum next-ring arc ${(minShare*100).toFixed(6)}%, ${captures} captures/${stars} shooting stars, 0 excluded`);
+// Fast witnesses can skip planets: independently verify every possible orbit.
+let allOrbits=0,allPoints=0,framedMin=1,visibleCentres=0;
+for(const entry of ORBIT_REV3_BANK){
+ const decoded=decodeRev3Planets(entry.planets);
+ for(let cur=0;cur<ORBIT_TOTAL;cur++){
+  const planets=decoded.map(p=>({...p}));
+  const p=planets[cur];assert(p);
+  const pos=orbitPos(p,0);
+  const state={...initRev3From(planets,ORBIT_REV3_WORLD_W),cur,x:pos.x,y:pos.y};
+  const cam=orbitCamera(state),share=orbitNextRingShare(state,cam);
+  assert(share>=.3,'every possible bank orbit shows >=30% of next path');framedMin=Math.min(framedMin,share);
+  for(let phase=0;phase<65536;phase+=64){
+   const q=orbitPos(p,phase),x=q.x/FP-cam.x,y=q.y/FP-cam.y;
+   assert(x>=50&&x<=340&&y>=120&&y<=500,'whole current orbit stays in safe box');allPoints++;
+  }
+  const next=planets[cur+1];assert(next);
+  if(next.x/FP>=cam.x&&next.x/FP<=cam.x+390&&next.y/FP>=cam.y&&next.y/FP<=cam.y+620)visibleCentres++;
+  allOrbits++;
+ }
+}
+console.log(`ALL ORBITS PASS: ${allOrbits} orbits/${allPoints} phase points, settled minimum ${(framedMin*100).toFixed(6)}%, next centres visible ${visibleCentres}/${allOrbits}`);
