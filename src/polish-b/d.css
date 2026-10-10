@@ -49,3 +49,6 @@ span.nono-guide-col { border-right-width: 2px; border-right-style: solid; border
 /* Shared cell surface would flatten these; keep walls and lit cells distinct. */
 [data-puzzle-surface] .lightup-wall.lightup-wall[data-puzzle-cell][data-puzzle-state] { background-color: color-mix(in oklab, var(--muted-foreground) 55%, var(--card)) !important; }
 [data-puzzle-surface] .lightup-cell-lit.lightup-cell-lit[data-puzzle-cell][data-puzzle-state] { background-color: color-mix(in oklab, var(--primary) 30%, var(--card)) !important; }
+/* Short phones: tighten wire rows (never the text) so wires never slide under the serial or buttons. */
+[data-polish="bomb"] .bomb-wire-index { line-height: 1; }
+[data-polish="bomb"] .bomb-plate > div:nth-of-type(2) { gap: 2px; padding-block: 2px; }

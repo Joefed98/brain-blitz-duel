@@ -1340,3 +1340,4 @@ body.game-lock {
 [data-puzzle-surface] .word-letter-tile.bg-destructive, [data-puzzle-surface] .word-letter-tile.bg-warn { background-image: linear-gradient(to bottom, color-mix(in oklab, var(--destructive) 28%, var(--letter-tile-top)), var(--letter-tile-bottom)); }
 [data-puzzle-surface] .word-letter-tile[data-puzzle-state="selected"] { box-shadow: inset 0 0 0 2px var(--primary), var(--letter-tile-shadow) !important; }
 
+
