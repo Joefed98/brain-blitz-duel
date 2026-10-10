@@ -126,13 +126,19 @@ for (let round = 0; round < ROUNDS; round += 1) {
   check(`tiles ${round}: minimum is exact`, proved?.min === minMoves);
   check(`tiles ${round}: in place counted`, tilesInPlace(solvedFrame()) === TILES_COUNT);
 
-  // Undo and Reset rewind the frame without ever inventing a win.
+  // Undo and Reset rewind the frame without ever inventing a win. Since the
+  // Sep 26 rule, `moves` counts every slide made (undone ones included), so
+  // Undo/Reset cannot lower the move count used for scoring.
+  const threeIn = replayTiles(frame, (solution ?? []).slice(0, 3));
   const undone = replayTiles(frame, [...(solution ?? []).slice(0, 4), TILES_UNDO]);
-  check(`tiles ${round}: undo steps back`, undone.moves === 3 && !undone.solved);
+  check(
+    `tiles ${round}: undo steps back`,
+    !undone.solved && undone.moves === 4 && undone.frame.every((v, i) => v === threeIn.frame[i]),
+  );
   const reset = replayTiles(frame, [...(solution ?? []).slice(0, 5), TILES_RESET]);
   check(
     `tiles ${round}: reset clears`,
-    reset.moves === 0 && reset.frame.every((v, i) => v === frame[i]),
+    !reset.solved && reset.moves === 5 && reset.frame.every((v, i) => v === frame[i]),
   );
   const decoded = decodeTileMoves(encodeTileMoves(solution ?? []));
   check(`tiles ${round}: round-trips`, replayTiles(frame, decoded).solved);
