@@ -8,6 +8,7 @@ import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
  * wing flap and a small bob inside it do. Original design.
  */
 const frames: ArtCanvas[] = [];
+type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 
 const OUTLINE = '#140203';
 const BODY = '#7E0F14';
@@ -251,7 +252,7 @@ export function drawGrapplerDragonV3(c: CanvasRenderingContext2D, x: number, y: 
 }
 
 /** Bat wing: arm + three finger bones radiating from the wrist, membrane scalloped between. */
-function drawWing(g: CanvasRenderingContext2D, sx: number, sy: number, scale: number, beat: number, far: boolean): void {
+function drawWing(g: Ctx, sx: number, sy: number, scale: number, beat: number, far: boolean): void {
   const lift = (1 - beat) * 7 * scale;
   const wx = sx - 4 * scale;
   const wy = sy - 9 * scale - lift * 0.6;
@@ -305,7 +306,7 @@ function drawWing(g: CanvasRenderingContext2D, sx: number, sy: number, scale: nu
   g.fill();
 }
 
-function limb(g: CanvasRenderingContext2D, hx: number, hy: number, kx: number, ky: number, fx: number, fy: number): void {
+function limb(g: Ctx, hx: number, hy: number, kx: number, ky: number, fx: number, fy: number): void {
   g.lineWidth = 3;
   g.strokeStyle = OUTLINE;
   g.beginPath();

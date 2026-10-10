@@ -240,6 +240,6 @@ for (let sample = 0; sample < 200; sample++) {
 
 console.log(
   failures === 0
-    ? "arcade checks passed: Swerve and Skyline client/server states and checkpoints identical over 200 runs each; toggle honoured"
+    ? "arcade checks passed: Swerve and Skyline client/server states and checkpoints identical over 200 runs each; one round per selected category in seeded order"
     : `${failures} failures; first failing tick ${firstFailingTick ?? "unknown"}`,
 );
