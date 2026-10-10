@@ -403,11 +403,11 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         </div>
       </div>
       <p className="font-display text-xl font-bold">
-        <span className={myCorrect ? "text-primary" : "text-warn"}>
+        <span className={myCorrect ? "text-ok" : "text-warn"}>
           {replay.exploded
             ? `Exploded at step ${replay.correctPrefix + 1}`
             : replay.defused
-              ? "Defused"
+              ? "DEFUSED"
               : `${replay.correctPrefix} / ${required.length} steps`}
         </span>
         {myCorrect && elapsed !== null && (

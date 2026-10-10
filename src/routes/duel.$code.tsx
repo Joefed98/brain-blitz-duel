@@ -93,6 +93,7 @@ import {
   type RoundRevealData,
 } from "@/lib/duel/types";
 import type { SubmitMeta } from "@/puzzles/types";
+import { nearMiss } from "@/lib/duel/nearMiss";
 
 export const Route = createFileRoute("/duel/$code")({
   ssr: false,
@@ -307,7 +308,10 @@ function DuelScreen() {
   const roundDetails = new Map(
     (currentReveal ? currentReveal.players : []).map((detail) => [detail.playerSlot, detail]),
   );
-  const table = standings(roomPlayers, results, scoredThrough, roundDetails);
+  const table = standings(roomPlayers, results, scoredThrough, roundDetails).map((row) => {
+    const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;
+    return line ? { ...row, summary: `${row.summary} · ${line}` } : row;
+  });
   const myStanding = table.find((r) => r.slot === mySlot);
   const opponentStanding = table.find((r) => r.slot === opponentSlot);
   const roundTitle = puzzle

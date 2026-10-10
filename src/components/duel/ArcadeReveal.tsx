@@ -21,6 +21,7 @@ interface ArcadeRevealProps {
   /** round_results.extra.reveal for this player, built by the server replay. */
   myReveal: ArcadeRevealData | null;
   players: RevealPlayer[];
+  nearMissLine?: string | null;
 }
 
 const PLAYER_COLOURS = [
@@ -185,7 +186,7 @@ function Track({ players, axis, accent }: { players: RevealPlayer[]; axis: Arcad
   );
 }
 
-export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players }: ArcadeRevealProps) {
+export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nearMissLine }: ArcadeRevealProps) {
   const accent = ARCADE_REVEAL_RENDERERS[puzzle.type]?.accent ?? "var(--me)";
   const shownScore = useCountUp(myScore);
   return (
@@ -214,6 +215,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players }: A
                 </p>
               ))
             : null}
+          {myScore !== null && nearMissLine ? <p className="text-center font-mono text-sm text-primary">{nearMissLine}</p> : null}
         </div>
 
         <Track players={players} axis={myReveal?.axis ?? null} accent={accent} />

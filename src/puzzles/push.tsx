@@ -218,13 +218,13 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 
   // The minimum solution plays back over about three seconds.
   useEffect(() => {
-    if (frames.length < 2) return;
+    if (myCorrect || frames.length < 2) return;
     const gap = Math.max(120, Math.round(3000 / (frames.length - 1)));
     const timer = setInterval(() => {
       setFrame((value) => (value + 1 < frames.length ? value + 1 : value));
     }, gap);
     return () => clearInterval(timer);
-  }, [frames.length]);
+  }, [frames.length, myCorrect]);
 
   if (!isPush) return null;
 
@@ -244,7 +244,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <div style={{ width: 176 }}>
-        <Board walls={puzzle.walls} targets={puzzle.targets} crates={crates} pusher={pusherCell} />
+        <Board walls={puzzle.walls} targets={puzzle.targets} crates={myCorrect ? mine.state.crates : crates} pusher={myCorrect ? mine.state.pusher : pusherCell} />
       </div>
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         minimum · {min} push{min === 1 ? "" : "es"}

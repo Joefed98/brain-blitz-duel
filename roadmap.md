@@ -1,3 +1,9 @@
+## Feel upgrades B (Oct 10)
+- [x] Add reveal-only solved-puzzle display flourishes without delaying submission, locking or reveal; preserve existing three flourishes.
+- [x] Add factual stored-result near-miss lines for clear-finish arcade games; Scrumper uses stored reached level, not apples.
+- [x] Remove points from Interlock, Slider and Roundabout accepted-word chips only.
+- [ ] Compare full named suite with Feel A baseline and deliver lists/report.
+
 ## Feel upgrades A (Oct 10)
 - [x] Synchronise final-ten red timer pulse with existing ticks across timed rounds; add Go / No-Go's shared timer.
 - [x] Add identity-preserving Nucleus/Roundabout shuffle and reserved accepted-word displays; Lookout found strokes.

@@ -177,7 +177,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <div style={{ width: 190 }}>
-        <LightsGrid lights={puzzle.lights} numbers={numbers} gap={8} />
+        <LightsGrid lights={myCorrect ? new Array(puzzle.lights.length).fill(false) : puzzle.lights} numbers={numbers} gap={8} />
       </div>
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · min{" "}
