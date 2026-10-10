@@ -176,6 +176,7 @@
   --category-accent: var(--category-logic);
   --puzzle-surface: oklch(0.205 0.012 285);
   --puzzle-edge: oklch(0.36 0.014 285);
+  --tenfall-lane: color-mix(in srgb, var(--foreground) 23%, transparent);
   --letter-tile-top: color-mix(in oklab, var(--puzzle-surface) 88%, var(--foreground));
   --letter-tile-bottom: color-mix(in oklab, var(--puzzle-surface) 82%, var(--background));
   --letter-tile-edge: color-mix(in oklab, var(--puzzle-edge) 72%, var(--foreground));
