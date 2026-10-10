@@ -47,5 +47,5 @@ span.nono-guide-col { border-right-width: 2px; border-right-style: solid; border
   box-shadow: 0 0 6px color-mix(in oklab, var(--primary) 60%, transparent);
 }
 /* Shared cell surface would flatten these; keep walls and lit cells distinct. */
-[data-puzzle-surface] .lightup-wall[data-puzzle-cell] { background-color: color-mix(in oklab, var(--muted-foreground) 55%, var(--card)) !important; }
-[data-puzzle-surface] .lightup-cell-lit[data-puzzle-cell] { background-color: color-mix(in oklab, var(--primary) 30%, var(--card)) !important; }
+[data-puzzle-surface] .lightup-wall.lightup-wall[data-puzzle-cell][data-puzzle-state] { background-color: color-mix(in oklab, var(--muted-foreground) 55%, var(--card)) !important; }
+[data-puzzle-surface] .lightup-cell-lit.lightup-cell-lit[data-puzzle-cell][data-puzzle-state] { background-color: color-mix(in oklab, var(--primary) 30%, var(--card)) !important; }
