@@ -27,9 +27,7 @@ const files = readdirSync("scripts")
   .filter((f) => filters.length === 0 || filters.some((s) => f.includes(s)))
   .sort();
 
-function runOne(
-  file: string,
-): Promise<{
+function runOne(file: string): Promise<{
   file: string;
   ok: boolean;
   status: "pass" | "fail" | "timeout";
