@@ -384,8 +384,8 @@ export function duelOutcome(
   return "draw";
 }
 
-export function roundBreakdown(results: RoundResultRow[], mySlot: number, opponentSlot: number) {
-  return Array.from({ length: TOTAL_ROUNDS }, (_, i) => {
+export function roundBreakdown(results: RoundResultRow[], mySlot: number, opponentSlot: number, rounds = TOTAL_ROUNDS) {
+  return Array.from({ length: rounds }, (_, i) => {
     const round = i + 1;
     return {
       round,

@@ -27,9 +27,9 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
-        content: "Up to 10 players. Six rounds. Fastest brain wins.",
+        content: "Up to 10 players. One round per category. Fastest brain wins.",
       },
-      { name: "twitter:description", content: "Up to 10 players. Six rounds. Fastest brain wins." },
+      { name: "twitter:description", content: "Up to 10 players. One round per category. Fastest brain wins." },
     ],
   }),
   component: Home,
@@ -99,7 +99,7 @@ function Home() {
         <div className="flex flex-col items-center text-center">
           <Wordmark size="lg" />
           <p className="mt-3 text-sm text-muted-foreground">
-            Up to 10 players. Six rounds. Fastest brain wins.
+            Up to 10 players. One round per category. Fastest brain wins.
           </p>
           <div className="mt-6 h-px w-16 bg-border" />
           <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">

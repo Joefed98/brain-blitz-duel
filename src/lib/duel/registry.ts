@@ -138,17 +138,6 @@ export const OPT_IN_CATEGORIES: PuzzleCategory[] = ["number"];
 /** The arcade pool: one round at most, and only when the host toggle is on. */
 export const ARCADE_CATEGORY: PuzzleCategory = "arcade";
 
-/** Weighting for a core category filling an extra round. */
-export const CORE_SIXTH_WEIGHTS: Record<PuzzleCategory, number> = {
-  logic: 0.35,
-  pattern: 0.35,
-  speed: 0.15,
-  attention: 0.1,
-  word: 0.05,
-  number: 0,
-  memory: 0,
-  arcade: 0,
-};
 
 /** Never drawn in rooms; still playable in practice. */
 const RETIRED_TYPES = new Set<PuzzleType>([

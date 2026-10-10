@@ -87,8 +87,6 @@ const INK_LIVE_BUDGET_256 = 384;
 export const INK_LIVE_PRE_CAP = 170;
 /** No-draw zone radius around the ball's current position on live levels: one coin diameter. */
 export const INK_NO_DRAW_ZONE_PX = BALL_R * 2;
-/** Up to this many live strokes may be lifted (committed) per drop. */
-export const INK_LIVE_MAX_LIFTS = 2;
 /** Obstacle thickness in px (render and tests). */
 export function inkBlockH(b: InkBlock): number {
   return b.h ? b.h / FP : INK_BLOCK_H;
@@ -1167,7 +1165,7 @@ export interface InkState {
   draftPenX: number;
   draftPenY: number;
   draftPenDown: number;
-  /** Live levels: lifts (commits of the draft) used on the current drop. */
+  /** Live levels: lifts (commits of the draft) made on the current drop (count only). */
   liveLifts: number;
   /** Live levels: ink spent on the pre-release line so far this drop, 1/256 px
    * (enforces INK_LIVE_PRE_CAP in real play, independent of the shared ink pool). */
@@ -1328,7 +1326,9 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
         s.ink = draft.ink;
       }
     } else if (input.k === INK_INPUT_LIFT) {
-      if (s.liveLifts < INK_LIVE_MAX_LIFTS && s.draftSegs.length > 0) {
+      // Every lifted live stroke commits (there is no per-drop stroke limit: an
+      // earlier two-stroke cap silently left later, lower strokes as dashed drafts).
+      if (s.draftSegs.length > 0) {
         const offset = s.segs.length;
         s.segs = [...s.segs, ...s.draftSegs];
         s.strokeStarts = [...s.strokeStarts, ...s.draftStrokeStarts.map((i) => i + offset)];

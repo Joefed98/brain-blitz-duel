@@ -110,11 +110,11 @@ export const Route = createFileRoute("/duel/$code")({
       { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
-        content: "Six rounds. Two to ten players. Fastest brain wins.",
+        content: "One round per category. Two to ten players. Fastest brain wins.",
       },
       {
         name: "twitter:description",
-        content: "Six rounds. Two to ten players. Fastest brain wins.",
+        content: "One round per category. Two to ten players. Fastest brain wins.",
       },
     ],
   }),
@@ -722,7 +722,7 @@ function DuelScreen() {
         <div ref={podiumShell}>
           <PhoneShell>
             <Podium
-              rows={standings(roomPlayers, results, TOTAL_ROUNDS)}
+              rows={standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS)}
               mySlot={mySlot}
               results={results}
               roundOrder={duel.round_order}
@@ -745,7 +745,7 @@ function DuelScreen() {
             opponentName={opponent?.display_name ?? "Opponent"}
             myTotal={totalScore(results, mySlot)}
             opponentTotal={totalScore(results, opponentSlot)}
-            breakdown={roundBreakdown(results, mySlot, opponentSlot)}
+            breakdown={roundBreakdown(results, mySlot, opponentSlot, duel.round_count ?? TOTAL_ROUNDS)}
             roundOrder={duel.round_order}
             busy={rematchBusy}
             isHost={isHost}
@@ -793,6 +793,7 @@ function DuelScreen() {
       <PhoneShell constrained gameScreen gameType={puzzle?.type}>
         <AnswerReveal
           round={round}
+          totalRounds={duel.round_count ?? TOTAL_ROUNDS}
           puzzle={currentReveal?.puzzle ?? puzzle}
           answersReady={!!currentReveal}
           myAnswer={myResult?.answer ?? null}
@@ -874,6 +875,7 @@ function DuelScreen() {
         {isMulti ? (
           <Standings
             round={round}
+            totalRounds={duel.round_count ?? TOTAL_ROUNDS}
             rows={table}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
@@ -883,6 +885,7 @@ function DuelScreen() {
         ) : (
           <DuelOverall
             round={round}
+            totalRounds={duel.round_count ?? TOTAL_ROUNDS}
             rows={table}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
@@ -918,10 +921,10 @@ function DuelScreen() {
   return (
     <PhoneShell constrained gameScreen gameType={puzzle?.type} gameHeader={roomGameHeader}>
       <GameLayout
-        label={`Round ${round} of ${TOTAL_ROUNDS}`}
+        label={`Round ${round} of ${duel.round_count ?? TOTAL_ROUNDS}`}
         title={puzzle ? puzzleName(puzzle.type) : ""}
         help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
-        progress={<RoundPips currentRound={round} outcomes={outcomes} />}
+        progress={<RoundPips currentRound={round} outcomes={outcomes} totalRounds={duel.round_count ?? TOTAL_ROUNDS} />}
         timer={
           showTimer ? (
             <TimerBar

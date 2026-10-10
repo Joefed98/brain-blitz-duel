@@ -94,7 +94,7 @@ const ENTRIES = {
   pz_clash_lane: { channel: "effects", frequency: 0, ms: 100, url: "/__l5e/assets-v1/e6426f6d-f864-4541-a87a-fbe3496343bd/pz_clash_lane.mp3" },
   pz_clash_right: { channel: "effects", frequency: 0, ms: 301, url: "/__l5e/assets-v1/9291e53f-9f27-473b-98f7-96c0fb354d25/pz_clash_right.mp3" },
   pz_clash_wrong: { channel: "effects", frequency: 0, ms: 250, url: "/__l5e/assets-v1/7f7a52e0-fa3f-4d86-bfe3-848b2a2821aa/pz_clash_wrong.mp3" },
-  // Round-number announcements; round7 unreachable until rooms exceed seven rounds.
+  // Round-number announcements; round7 plays in seven-category rooms.
   round1: { channel: "voice", frequency: 440, ms: 1298, url: "/__l5e/assets-v1/c5cf8b8a-45e5-421a-b9bd-b573330b523e/round1.mp3" },
   round2: { channel: "voice", frequency: 440, ms: 1532, url: "/__l5e/assets-v1/38655cdb-4eef-451e-a4b4-43134f963009/round2.mp3" },
   round3: { channel: "voice", frequency: 440, ms: 1399, url: "/__l5e/assets-v1/83bb215c-2438-4d36-913f-895a67ab1881/round3.mp3" },

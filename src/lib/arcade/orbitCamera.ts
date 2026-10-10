@@ -4,8 +4,29 @@ import type { OrbitRev3State } from "./orbitRev3";
 const FP = 256;
 export const ORBIT_CAM_VIEW_W = 390;
 export const ORBIT_CAM_VIEW_H = 620;
+/** Pan for a normal hop (~0.45 s); longer pans scale up to double this (~0.9 s). */
 export const ORBIT_CAPTURE_PAN_TICKS = 27;
 export const ORBIT_REDUCED_PAN_TICKS = 15;
+export const ORBIT_CAPTURE_PAN_MAX_TICKS = 54;
+export const ORBIT_REDUCED_PAN_MAX_TICKS = 30;
+/** Camera travel (world units) at or below which a pan takes the base duration. */
+export const ORBIT_PAN_NORMAL_DIST = 160;
+/** Camera travel at or above which a pan takes the maximum duration. */
+export const ORBIT_PAN_LONG_DIST = 420;
+/** Pan duration in sim ticks for a capture pan of `dist` world units. */
+export function orbitPanTicks(dist: number, reducedMotion = false): number {
+  const lo = reducedMotion ? ORBIT_REDUCED_PAN_TICKS : ORBIT_CAPTURE_PAN_TICKS;
+  const hi = reducedMotion ? ORBIT_REDUCED_PAN_MAX_TICKS : ORBIT_CAPTURE_PAN_MAX_TICKS;
+  const t = Math.max(0, Math.min(1, (dist - ORBIT_PAN_NORMAL_DIST) / (ORBIT_PAN_LONG_DIST - ORBIT_PAN_NORMAL_DIST)));
+  return Math.round(lo + (hi - lo) * t);
+}
+/** Per-tick decay of an interrupted pan's glide during flight. */
+export const ORBIT_GLIDE_DECAY = 0.7;
+/** Largest per-tick flight catch-up toward the safe box (world units). */
+export const ORBIT_FLIGHT_CATCH = 8;
+/** Margin keeping the rocket fully on screen during a pan. */
+export const ORBIT_ROCKET_ON_SCREEN = 14;
+const ROCKET_ON_SCREEN = ORBIT_ROCKET_ON_SCREEN;
 export const ORBIT_SAFE_INSET_X = 50;
 const SAFE_INSET_X = ORBIT_SAFE_INSET_X;
 const SAFE_INSET_Y = 120;
@@ -35,12 +56,29 @@ interface Entry extends OrbitCamOffset {
   start: number;
   from: OrbitCamOffset;
   target: OrbitCamOffset;
+  /** Duration of the current pan in ticks (scaled by its distance). */
+  dur: number;
+  /** Pan velocity carried into flight when a tap interrupts a pan; decays to zero. */
+  glide: OrbitCamOffset;
+  /** Last tick's pan velocity (for the glide). */
+  panV: OrbitCamOffset;
 }
 let normal = new WeakMap<object, Entry>();
 let reduced = new WeakMap<object, Entry>();
 let frames = new WeakMap<object, { normal: OrbitCamOffset; reduced: OrbitCamOffset }>();
 let envelopes = new WeakMap<object, { left: number; right: number; top: number; bottom: number }>();
 let clampOverrideCount = 0;
+let visibilityPans = 0;
+/** Settled visibility corrections (each an eased pan) since the last reset. */
+export function orbitCameraVisibilityPans(): number {
+  return visibilityPans;
+}
+/** Is the camera mid-pan at this state (capture or visibility pan)? */
+export function orbitCameraPanning(state: Rev3Like, opts?: { reducedMotion?: boolean }): boolean {
+  orbitCameraObserve(state);
+  const e = (opts?.reducedMotion ? reduced : normal).get(state.planets);
+  return !!e && e.tick === state.tick && Number.isFinite(e.start);
+}
 const paths = new WeakMap<Planet, OrbitCamOffset[]>();
 const shares = new WeakMap<Planet, Map<string, number>>();
 function ringPath(p: Planet): OrbitCamOffset[] {
@@ -133,6 +171,12 @@ function framedPlanet(s: Rev3Like): OrbitCamOffset {
   );
   return { x, y };
 }
+function pushInside(r: OrbitCamOffset, c: OrbitCamOffset, m: number): OrbitCamOffset {
+  return {
+    x: Math.max(r.x - (ORBIT_CAM_VIEW_W - m), Math.min(r.x - m, c.x)),
+    y: Math.max(r.y - (ORBIT_CAM_VIEW_H - m), Math.min(r.y - m, c.y)),
+  };
+}
 function pushSafe(r: OrbitCamOffset, c: OrbitCamOffset): OrbitCamOffset {
   return {
     x: Math.max(r.x - (ORBIT_CAM_VIEW_W - SAFE_INSET_X), Math.min(r.x - SAFE_INSET_X, c.x)),
@@ -156,6 +200,9 @@ function advance(s: Rev3Like, still: boolean): OrbitCamOffset {
       start: -Infinity,
       from: at,
       target,
+      dur: still ? ORBIT_REDUCED_PAN_TICKS : ORBIT_CAPTURE_PAN_TICKS,
+      glide: { x: 0, y: 0 },
+      panV: { x: 0, y: 0 },
     };
   } else {
     e = { ...previous, tick: s.tick };
@@ -172,27 +219,55 @@ function advance(s: Rev3Like, still: boolean): OrbitCamOffset {
         start: s.tick,
         from: { x: previous.x, y: previous.y },
         target,
+        // Every capture (including skipped planets) gets one eased pan whose
+        // duration scales with how far the camera has to travel.
+        dur: orbitPanTicks(Math.hypot(target.x - previous.x, target.y - previous.y), still),
       };
     }
     let at: OrbitCamOffset = { x: previous.x, y: previous.y };
-    // Flight interrupts a pan: never chase the rocket or the next planet.
-    if (s.flying > 0) e.start = -Infinity;
-    else if (Number.isFinite(e.start)) {
-      const p = Math.min(
-        1,
-        (s.tick - e.start) / (still ? ORBIT_REDUCED_PAN_TICKS : ORBIT_CAPTURE_PAN_TICKS),
-      );
+    // Flight interrupts a pan: never chase the rocket or the next planet, but
+    // let the interrupted pan glide to a stop over a few ticks instead of halting.
+    if (s.flying > 0) {
+      if (Number.isFinite(e.start)) e.glide = { ...e.panV };
+      e.start = -Infinity;
+      e.panV = { x: 0, y: 0 };
+      e.glide = { x: e.glide.x * ORBIT_GLIDE_DECAY, y: e.glide.y * ORBIT_GLIDE_DECAY };
+      if (Math.hypot(e.glide.x, e.glide.y) < 0.2) e.glide = { x: 0, y: 0 };
+      at = { x: at.x + e.glide.x, y: at.y + e.glide.y };
+    } else if (Number.isFinite(e.start)) {
+      const p = Math.min(1, (s.tick - e.start) / Math.max(1, e.dur));
       const eased = p * p * (3 - 2 * p);
       at = {
         x: e.from.x + (e.target.x - e.from.x) * eased,
         y: e.from.y + (e.target.y - e.from.y) * eased,
       };
-      if (p === 1) e.start = -Infinity;
-    }
-    let safe = pushSafe(rocketOf(s), at);
+      e.panV = { x: at.x - previous.x, y: at.y - previous.y };
+      if (p === 1) {
+        e.start = -Infinity;
+        e.panV = { x: 0, y: 0 };
+      }
+    } else e.glide = { x: 0, y: 0 };
+    const panning = Number.isFinite(e.start);
+    // Mid-pan the rocket only needs to stay on screen (a small margin), so the
+    // pan starts exactly where the camera was — no correction step first. The
+    // pan target frames the whole orbit inside the safe box, so it ends there.
+    let safe: OrbitCamOffset;
+    if (s.flying) {
+      // Flight: hold, moving only toward the minimum safe-box push, at most
+      // ORBIT_FLIGHT_CATCH units a tick (so a tap mid-pan cannot snap), while
+      // the rocket always stays fully on screen.
+      const wanted = pushSafe(rocketOf(s), at);
+      const dx = wanted.x - at.x,
+        dy = wanted.y - at.y,
+        len = Math.hypot(dx, dy);
+      const k = len > ORBIT_FLIGHT_CATCH ? ORBIT_FLIGHT_CATCH / len : 1;
+      safe = pushInside(rocketOf(s), { x: at.x + dx * k, y: at.y + dy * k }, ROCKET_ON_SCREEN);
+    } else if (panning) safe = pushInside(rocketOf(s), at, ROCKET_ON_SCREEN);
+    else safe = pushSafe(rocketOf(s), at);
     // Capture visibility takes priority over easing, just like rocket safety.
     // Project only as far toward the safe whole-orbit target as necessary.
-    if (!s.flying && orbitNextRingShare(s, safe) < 0.32 && orbitNextRingShare(s, target) >= 0.32) {
+    // Visibility correction only once settled, and as an eased pan, never a jump.
+    if (!panning && !s.flying && orbitNextRingShare(s, safe) < 0.32 && orbitNextRingShare(s, target) >= 0.32) {
       let lo = 0,
         hi = 1;
       for (let k = 0; k < 16; k++) {
@@ -204,10 +279,12 @@ function advance(s: Rev3Like, still: boolean): OrbitCamOffset {
         if (orbitNextRingShare(s, candidate) >= 0.32) hi = m;
         else lo = m;
       }
-      safe = { x: safe.x + (target.x - safe.x) * hi, y: safe.y + (target.y - safe.y) * hi };
-      // Rebase the remaining pan so the visibility correction cannot bounce back.
+      const goal = { x: safe.x + (target.x - safe.x) * hi, y: safe.y + (target.y - safe.y) * hi };
       e.from = safe;
+      e.target = goal;
       e.start = s.tick;
+      e.dur = orbitPanTicks(Math.hypot(goal.x - safe.x, goal.y - safe.y), still);
+      visibilityPans++;
     }
     if (safe.x !== at.x || safe.y !== at.y) clampOverrideCount++;
     e.x = safe.x;
@@ -252,4 +329,5 @@ export function orbitCameraResetCache(): void {
   frames = new WeakMap();
   envelopes = new WeakMap();
   clampOverrideCount = 0;
+  visibilityPans = 0;
 }
