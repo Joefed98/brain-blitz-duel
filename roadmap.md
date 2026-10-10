@@ -1,7 +1,7 @@
 ## Orbit next-planet framing and shooting star (Oct 10)
-- [ ] Remove capture ring and edge arrow; retain independent streak/HUD feedback and add capture-count shooting star.
-- [ ] Verify next-ring visibility across every bank course, preserve replay and camera rules; version selection only if exclusions are required.
-- [ ] Measure effect-active draw time and compare the full named suite with the last run; deliver report.
+- [x] Remove capture ring and edge arrow; retain independent streak/HUD feedback and add capture-count shooting star.
+- [x] Verify next-ring visibility across every bank course: dynamic minimum 32%, settled minimum 39.423%; all 504 retained, replay checks pass.
+- [x] Measure effect-active draw time (local median 0.645ms/p95 1.327ms); full named suite remains 67 pass/15 fail/1 timeout; deliver report. Device frame time remains user-tested.
 
 ## Small renderer and camera tuning (Oct 10)
 - [x] Restore Hover's coloured whole-barrier pulse; add subtle cached Gemstone shine and rare glints.
