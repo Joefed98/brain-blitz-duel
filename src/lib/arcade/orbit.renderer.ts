@@ -296,7 +296,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
     const sun = i === ORBIT_TOTAL;
     ctx.strokeStyle = sun ? ORBIT_GOLD : planetLook(p, i, 0).colour;
     ctx.lineWidth = i === state.cur ? 2 : 1;
-    ctx.globalAlpha = i === state.cur ? 0.75 : 0.3;
+    ctx.globalAlpha = i === state.cur ? 0.9 : 0.45;
     tracePath(ctx, p, p.x / FP, p.y / FP - cam, 0, 65536, 72);
     ctx.stroke();
   }
@@ -438,7 +438,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
   ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`, 14, 26);
   if (state.checkpoint >= 0) {
     ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
-    ctx.font = "600 12px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.font = "600 14px 'JetBrains Mono', ui-monospace, monospace";
     ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, 44);
   }
   if (state.tick - state.respawnTick < 45) {
@@ -613,7 +613,7 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
     const sun = i === ORBIT_TOTAL;
     ctx.strokeStyle = sun ? ORBIT_GOLD : planetLook(p, i, 0).colour;
     ctx.lineWidth = i === state.cur ? 2 : 1;
-    ctx.globalAlpha = i === state.cur ? 0.75 : 0.3;
+    ctx.globalAlpha = i === state.cur ? 0.9 : 0.45;
     tracePath(ctx, p, p.x / FP - cam.x, p.y / FP - cam.y, 0, 65536, 72);
     ctx.stroke();
   }
@@ -753,7 +753,7 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
   ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`, 14, 26);
   if (state.checkpoint >= 0) {
     ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
-    ctx.font = "600 12px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.font = "600 14px 'JetBrains Mono', ui-monospace, monospace";
     ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, 44);
   }
   if (state.tick - state.respawnTick < 45) {

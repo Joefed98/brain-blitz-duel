@@ -28,8 +28,7 @@ import {
 
 const FP = 256;
 const px = (v: number) => v / FP;
-const PIPE = "#E95AFF";
-const PIPE_FAST = "#F6ADFF";
+const BARRIER_CYCLES = ["#FF4DFF", "#3DFFE0", "#FFD84A", "#4BFF7A", "#FF9A3C", "#B49CFF"];
 const SAUCER = "#FFD84A";
 const SAUCER_DARK = "#B8901C";
 const DOME = "#5CD0FF";
@@ -76,7 +75,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
     if (left > HOVER_WORLD_W || left + width < 0) return;
     // Gates met at higher speed glow brighter (display only).
     const speedShare = (hoverScroll(index) - HOVER_SCROLL_START) / (HOVER_SCROLL_MAX - HOVER_SCROLL_START);
-    const colour = speedShare > 0.5 ? PIPE_FAST : PIPE;
+    const colour = BARRIER_CYCLES[Math.floor(index / 7) % 6] ?? "#FF4DFF";
     // A flash for the few pixels after the gate is passed, from geometry alone.
     const passedBy = px(state.distance - (pillar.x0 + HOVER_PILLAR_W - discLeft));
     const flash = index < state.gates && passedBy >= 0 && passedBy < 48 ? 1 - passedBy / 48 : 0;

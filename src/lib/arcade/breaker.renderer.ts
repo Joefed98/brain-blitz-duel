@@ -1,4 +1,3 @@
-/** Breaker in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
   breakerGame,
   brkDestroyed,
@@ -27,6 +26,7 @@ import {
   type BrkState,
 } from "./breaker";
 import { px, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
+import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import {
   drawRetroTrail,
   pixelRect,
@@ -42,17 +42,61 @@ import {
   RETRO_WHITE,
 } from "./retro.renderer";
 
-/** Neon brick shades by hits left: lighter = fewer hits. */
-const BRICK_NEON = ["#9FE8FF", "#3DA8FF", "#1F5FD6"] as const;
 const PADDLE = "#FFD84A";
 const LASER = "#B4FF9A";
+const RAINBOW = [
+  "#FF3B5C", // Red
+  "#FF8A3C", // Orange
+  "#FFD84A", // Gold
+  "#B4FF9A", // Lime
+  "#3DFFE0", // Cyan
+  "#5CD0FF", // Blue
+  "#C59CFF", // Violet
+];
 const powerColour = (power: number): string => power === BRK_POWER_LASER ? LASER : BRK_POWER_COLOURS[power] ?? PADDLE;
 const BURST_MS = 320;
 
 const memo = new WeakMap<CanvasRenderingContext2D, { tick: number; bricks: number[]; deaths: { index: number; at: number }[] }>();
 
+/** Cache for brick sprites: keyed by color + power + HP taken. */
+const brickCache = new Map<string, ArtCanvas>();
+function getBrickSprite(colour: string, power: number, taken: number, bloom: number): ArtCanvas | undefined {
+  const key = `${colour}-${power}-${taken}-${bloom > 0}`;
+  const cached = brickCache.get(key);
+  if (cached) return cached;
+  const canvas = artCanvas(BRK_BRICK_W, BRK_BRICK_H);
+  const ctx = canvas && (artContext(canvas) as CanvasRenderingContext2D | null);
+  if (!canvas || !ctx) return undefined;
+
+  if (power >= 0) {
+    // Dark brick, metal outline, white pixel star.
+    pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, BRK_BRICK_H, "#101018");
+    pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, 2, colour, bloom);
+    pixelRect(ctx, 1, BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, colour);
+    pixelRect(ctx, 1, 0, 2, BRK_BRICK_H, colour);
+    pixelRect(ctx, BRK_BRICK_W - 3, 0, 2, BRK_BRICK_H, colour);
+    pixelStar(ctx, BRK_BRICK_W / 2, BRK_BRICK_H / 2);
+  } else {
+    // Neon brick with bevel highlights.
+    pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, BRK_BRICK_H, colour, bloom);
+    // Bevel: lighter top/left, darker bottom/right.
+    pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, 2, "rgba(255,255,255,0.35)");
+    pixelRect(ctx, 1, 0, 2, BRK_BRICK_H, "rgba(255,255,255,0.35)");
+    pixelRect(ctx, 1, BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, "rgba(0,0,0,0.35)");
+    pixelRect(ctx, BRK_BRICK_W - 3, 0, 2, BRK_BRICK_H, "rgba(0,0,0,0.35)");
+    // Pixel cracks per hit taken.
+    for (let c = 0; c < taken; c++) {
+      const cx = 10 + c * 16;
+      pixelRect(ctx, cx, 4, 2, 4, "#000000");
+      pixelRect(ctx, cx + 2, 8, 2, 4, "#000000");
+      pixelRect(ctx, cx, 12, 2, 4, "#000000");
+    }
+  }
+  brickCache.set(key, canvas);
+  return canvas;
+}
+
 function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize): void {
-  // Stretch, as the original draw, so the drag maps to the same paddle x.
   retroScreen(ctx, size, BRK_WORLD_W, BRK_WORLD_H, "stretch", (c) => drawWorld(c, state, ctx));
 }
 
@@ -66,7 +110,8 @@ function brickXY(index: number) {
 function brickColour(state: BrkState, index: number, left: number): string {
   const power = (state.gold[index] ?? 0) - 1;
   if (power >= 0) return powerColour(power);
-  return BRICK_NEON[Math.max(0, left - 1)] ?? BRICK_NEON[0];
+  const row = Math.trunc(index / BRK_COLS);
+  return RAINBOW[row % RAINBOW.length]!;
 }
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRenderingContext2D): void {
@@ -82,7 +127,6 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   m.bricks = state.bricks.slice();
   memo.set(key, m);
 
-  // Walls as neon rails, on the original wall line.
   const wallColour = "#2A4A7A";
   pixelRect(ctx, BRK_WALL - 2, BRK_HUD_H + BRK_WALL - 2, BRK_WORLD_W - 2 * BRK_WALL + 4, 2, wallColour);
   pixelRect(ctx, BRK_WALL - 2, BRK_HUD_H + BRK_WALL - 2, 2, BRK_WORLD_H, wallColour);
@@ -93,26 +137,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     const { x, y } = brickXY(index);
     const power = (state.gold[index] ?? 0) - 1;
     const colour = brickColour(state, index, left);
-    if (power >= 0) {
-      // Dark brick, metal outline, white pixel star.
-      pixelRect(ctx, x + 1, y, BRK_BRICK_W - 2, BRK_BRICK_H, "#101018");
-      pixelRect(ctx, x + 1, y, BRK_BRICK_W - 2, 2, colour, bloom);
-      pixelRect(ctx, x + 1, y + BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, colour);
-      pixelRect(ctx, x + 1, y, 2, BRK_BRICK_H, colour);
-      pixelRect(ctx, x + BRK_BRICK_W - 3, y, 2, BRK_BRICK_H, colour);
-      pixelStar(ctx, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2);
-      return;
-    }
-    pixelRect(ctx, x + 1, y, BRK_BRICK_W - 2, BRK_BRICK_H, colour, left === 1 ? bloom * 0.6 : 0);
-    pixelRect(ctx, x + 1, y, BRK_BRICK_W - 2, 2, "rgba(255,255,255,0.35)");
-    pixelRect(ctx, x + 1, y + BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, "rgba(0,0,0,0.35)");
-    // Pixel cracks per hit taken.
     const taken = (state.maxHp[index] ?? 1) - left;
-    for (let c = 0; c < taken; c++) {
-      const cx = x + 10 + c * 16;
-      pixelRect(ctx, cx, y + 4, 2, 4, "#000000");
-      pixelRect(ctx, cx + 2, y + 8, 2, 4, "#000000");
-      pixelRect(ctx, cx, y + 12, 2, 4, "#000000");
+    const b = power >= 0 ? bloom : (left === 1 ? bloom * 0.6 : 0);
+    const sprite = getBrickSprite(colour, power, taken, b);
+    if (sprite) {
+      ctx.drawImage(sprite, x, y);
     }
   });
 
@@ -123,7 +152,6 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   }
 
   if (state.beam > 0) {
-    // Thin vertical neon lines inside the original beam column.
     const col = brkPaddleColumn(state.paddleX);
     const left = BRK_WALL_X + col * BRK_BRICK_W + 6;
     const width = BRK_BRICK_W - 12;
@@ -142,7 +170,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
       capsule.kind === BRK_POWER_MULTI ? "2" : capsule.kind === BRK_POWER_SPAM ? "5" : "L",
       cx,
       cy - 3,
-      6,
+      8,
       "#000000",
       "center",
     );
@@ -154,7 +182,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     const bx = px(ball.x);
     const by = px(ball.y);
     const colour = state.pause > 0 ? "rgba(255,216,74,0.45)" : ball.spam === 1 ? PADDLE : "#BFF6FF";
-    if (state.pause === 0) drawRetroTrail(ctx, retroTrail(key, state.tick, `b${i}`, bx, by), BRK_BALL_R, colour);
+    if (state.pause === 0) drawRetroTrail(ctx, retroTrail(key, state.tick, `b${i}`, bx, by, 6), BRK_BALL_R, colour);
     retroBall(ctx, bx, by, BRK_BALL_R, colour, state.pause > 0 ? colour : RETRO_WHITE);
   });
 
@@ -164,18 +192,17 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
       ctx,
       laser ? "TAP TO FIRE LASER" : `TAP TO FIRE x${state.charges}`,
       BRK_WORLD_W / 2,
-      BRK_PADDLE_Y + BRK_PADDLE_H + 14,
-      9,
+      BRK_PADDLE_Y + BRK_PADDLE_H + 16,
+      15,
       laser ? LASER : powerColour(BRK_POWER_SPAM),
       "center",
     );
   }
 
   retroReadout(ctx, 14, 8, `BRICKS ${brkDestroyed(state)}/${BRK_BRICKS}`, RETRO_WHITE);
-  if (state.pause > 0) retroText(ctx, "RELAUNCHING", BRK_WORLD_W / 2, BRK_PADDLE_Y - 40, 10, PADDLE, "center");
+  if (state.pause > 0) retroText(ctx, "RELAUNCHING", BRK_WORLD_W / 2, BRK_PADDLE_Y - 40, 16, PADDLE, "center");
 }
 
-/** A white five-point star in 2 px blocks, inside the brick. */
 function pixelStar(ctx: CanvasRenderingContext2D, cx: number, cy: number): void {
   const r = 7;
   const pts: [number, number][] = [];
