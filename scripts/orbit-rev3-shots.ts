@@ -20,7 +20,7 @@ import {
 import { orbitRev3ArtGame } from "../src/lib/arcade/orbit.renderer";
 import {
   orbitCamera,
-  orbitCameraArrow,
+  orbitNextRingShare,
   orbitCameraResetCache,
   ORBIT_CAM_VIEW_W,
   ORBIT_CAM_VIEW_H,
@@ -57,7 +57,7 @@ function simulate(seed: number, maxTick: number) {
   const arrowTicks: number[] = [];
   const recordCamera = (s: OrbitRev3State) => {
     const cam = orbitCamera(s, { reducedMotion: false });
-    if (orbitCameraArrow(s, cam)) arrowTicks.push(s.tick);
+    if (!s.flying && orbitNextRingShare(s, cam) < .5) arrowTicks.push(s.tick);
   };
   recordCamera(state);
   for (let t = 1; t <= maxTick; t++) {
@@ -157,9 +157,9 @@ function run(seed: number, label: string, wantArrow: boolean) {
   const warm = simulate(seed, tick);
   const state = saveLayoutShot(tick, warm.states, `${OUT_DIR}/layout-${label}.png`);
   saveRouteOverview(seed, planets, state, `${OUT_DIR}/route-${label}.png`);
-  const arrowNow = !!orbitCameraArrow(state, orbitCamera(state, { reducedMotion: false }));
+  const nextRingShare = orbitNextRingShare(state, orbitCamera(state, { reducedMotion: false }));
   console.log(
-    `seed ${seed} (${label}): proof.ok=${proof.ok} taps used by tick ${MAX_TICK}=${tapsUsed} -> rendered tick ${state.tick}, cur ${state.cur}/${ORBIT_TOTAL}, arrow=${arrowNow}, arrowTicks found=${arrowTicks.length}`,
+    `seed ${seed} (${label}): proof.ok=${proof.ok} taps used by tick ${MAX_TICK}=${tapsUsed} -> rendered tick ${state.tick}, cur ${state.cur}/${ORBIT_TOTAL}, next ring=${nextRingShare}, edge-framing samples=${arrowTicks.length}`,
   );
 }
 
