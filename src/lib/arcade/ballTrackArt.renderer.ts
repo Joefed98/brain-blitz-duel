@@ -1,3 +1,4 @@
+import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /**
  * Ball Track in the Toybox world: a wooden marble run. Render only; mirrors
  * btDraw's private geometry (tile centres, tube path, ball radius 22.5) and
@@ -213,5 +214,7 @@ export function btArtDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: Bt
     const p = btBallPoint(s, b);
     toyMarble(ctx, p.x, p.y, BALL_R, BT_PALETTE[b.colour]!, 0, b.colour);
   }
+  const lastHome=[...s.landings].reverse().find(m=>m.ok);
+  successFrame(ctx,{id:'balltrack',tick:s.tick,count:s.home,eventTick:lastHome?.tick,misses:s.wrong+s.lost,colour:TOY_BRASS,width:BT_W,height:BT_H,point:{x:(lastHome?.cell??0)*BT_TILE+BT_TILE/2,y:trayY+BT_TRAY_H/2,shape:'ring',radius:20}});
   void TOY_WOOD_DARK;
 }

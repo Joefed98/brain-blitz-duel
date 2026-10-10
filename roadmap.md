@@ -1,3 +1,9 @@
+## Arcade success effects (Oct 10)
+- [ ] Optimise Gemstone sprites/dirty cells before adding existing-state success rewards across the requested games.
+- [ ] Verify bounded/reduced-motion/replay drawing and effect-active local timings; capture 360px peak renderer images.
+- [ ] Compare checks with the last run using 300s per script; deliver triggers, timings and limitations.
+- [ ] Actual accepted-key device frame readings: awaiting the user's own phone checks.
+
 ## Grappler dragons (Oct 9)
 - [x] Add versioned 4–6 stationary final-stretch dragons; legacy sim/replay preserved.
 - [x] Require private timed completion witness for every returned room seed; 20/20 sampled witnesses replay identically. Local search about 2.65s; hosted start latency unmeasured.

@@ -1,3 +1,4 @@
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /** Beat in the Retro Arcade world. Render only; the chart, judging and score are untouched. */
 import {
   beatGame,
@@ -33,7 +34,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   const laneW = BEAT_WORLD_W / BEAT_LANES;
   const bloom = retroBloom();
   const tier = BEAT_COMBO_TIERS.filter((t) => state.combo >= t).length;
-  const hit = state.lastJudge !== BEAT_JUDGE_NONE && state.lastJudge !== BEAT_JUDGE_MISS && state.judgeAge < 12;
+  const hit = state.lastJudge === 1 && state.judgeAge < 12;
 
   for (let lane = 0; lane < BEAT_LANES; lane++) {
     const x = lane * laneW;
@@ -47,7 +48,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
       const bands = 2 + tier * 2;
       for (let b = 0; b < bands; b++) {
         const alpha = Math.round((0.18 + tier * 0.06) * (1 - b / bands) * 255).toString(16).padStart(2, "0");
-        pixelRect(ctx, x, BEAT_HIT_LINE_Y - (b + 1) * 24, laneW, 24, `${colour}${alpha}`);
+        pixelRect(ctx, x, BEAT_HIT_LINE_Y - (b + 1) * 24, laneW, 24, `${(tier>=3?GOLD:tier===2?SUCCESS_ACCENTS.pink:SUCCESS_ACCENTS.cyan)}${alpha}`);
       }
     }
     if (hit && state.lastLane === lane) {
@@ -108,7 +109,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   }
 
   pixelRect(ctx, 0, 0, BEAT_WORLD_W, BEAT_HUD_H, "#000000");
-  retroReadout(ctx, 12, 2, `COMBO ${state.combo}`, RETRO_WHITE);
+  const reward=successFrame(ctx,{id:'beat',tick:state.tick,count:state.combo,eventTick:state.lastJudge===1?state.tick-state.judgeAge:0,misses:state.misses,every:10,colour:tier>=3?GOLD:tier===2?SUCCESS_ACCENTS.pink:SUCCESS_ACCENTS.cyan,width:BEAT_WORLD_W,height:BEAT_WORLD_H,point:{x:beatLaneX(Math.max(0,state.lastLane)),y:BEAT_HIT_LINE_Y,shape:'ring',radius:6},hud:{x:12,y:20,text:`COMBO ${state.combo}`}});
+  if(state.lastJudge===1&&state.judgeAge<10){ctx.save();ctx.globalAlpha=.45*(1-state.judgeAge/10);ctx.strokeStyle=RETRO_WHITE;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(beatLaneX(Math.max(0,state.lastLane)),BEAT_HIT_LINE_Y,8+state.judgeAge*3,3,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
+  successHud(ctx,'beat',state.tick,12,20,()=>{retroReadout(ctx, 12, 2, `COMBO ${state.combo}`, RETRO_WHITE);});
 }
 
 /** A glowing pixel bar on the note's exact rect, with a darker inner line. */

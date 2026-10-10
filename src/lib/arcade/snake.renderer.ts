@@ -1,3 +1,4 @@
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /** Eat and Grow's cached Retro Arcade meteor. Presentation only. */
 import {
   snakeGame, snakeCol, snakeRow, SNAKE_BOARD_H, SNAKE_BOARD_W,
@@ -18,6 +19,7 @@ const HOT = "#FFF4D2";
 const ROCK = "#29282D";
 const ROCK_FLECK = "#77747B";
 const SMOKE = "#85818B";
+const PICKUP_TAILS=["#FF6545","#FFD84A","#3DFFE0"] as const;
 const PELLET = "#FFD84A";
 const EYE = RETRO_BLACK;
 const SPRITE_RATIO = 2;
@@ -34,8 +36,8 @@ const point = (cell: number) => ({ x: SNAKE_BOARD_X + snakeCol(cell) * SNAKE_CEL
 const direction = (dir: number) => ({ x: dir === 1 ? 1 : dir === 3 ? -1 : 0, y: dir === 2 ? 1 : dir === 0 ? -1 : 0 });
 
 /** Fixed DPR-2 sprites: only cache creation draws pixel planes and pays for blur. */
-function stamp(kind: "bead" | "head" | "star", level = 0, dir = 0): ArtCanvas | null {
-  const id = `${kind}:${level}:${kind === "head" ? dir : 0}`;
+function stamp(kind: "bead" | "head" | "star", level = 0, dir = 0, tail = 0): ArtCanvas | null {
+  const id = `${kind}:${level}:${kind === "head" ? dir : 0}:${tail}`;
   const old = stamps.get(id);
   if (old) return old;
   const canvas = artCanvas(SNAKE_CELL * SPRITE_RATIO, SNAKE_CELL * SPRITE_RATIO);
@@ -86,7 +88,7 @@ function stamp(kind: "bead" | "head" | "star", level = 0, dir = 0): ArtCanvas | 
         } else {
           // Flat flame tongues, not gradients: each bead remains a discrete cell.
           const tongue = ((x / 2 + y / 2) % 5 === 0) && dy < 1;
-          c.fillStyle = tongue && level < 4 ? FLAMES[Math.max(0, level - 1)] ?? flame : flame;
+          c.fillStyle = tail===0 ? (tongue && level < 4 ? FLAMES[Math.max(0, level - 1)] ?? flame : flame) : PICKUP_TAILS[tail%PICKUP_TAILS.length]??flame;
           if (level === LEVELS - 1 && (x / 2 + y / 2) % 4 === 0) c.fillStyle = SMOKE;
         }
         c.fillRect(x, y, 2, 2);
@@ -179,7 +181,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
       const p = point(cell);
       const level = Math.min(LEVELS - 1, Math.round(i / Math.max(1, state.body.length - 1) * (LEVELS - 1)));
       ctx.globalAlpha = state.dead && motion ? 1 - 0.35 * Math.min(1, deathAge / DEATH_MS) : 1;
-      blit(ctx, stamp(i === 0 ? "head" : "bead", i === 0 ? 0 : level, state.dir), p.x, p.y);
+      const shift=Math.floor(state.eaten/5)%3;
+      blit(ctx, stamp(i === 0 ? "head" : "bead", i === 0 ? 0 : level, state.dir,shift), p.x, p.y);
     }
     ctx.globalAlpha = 1;
     eyes(ctx, head.x, head.y, state.dir);
@@ -201,11 +204,13 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
     }
     if (motion) sparks(ctx, state, now, deathAge);
   }
+  const rewardPoint=memo.eatCell>=0?point(memo.eatCell):point(state.body[0]??0);
+  successFrame(ctx,{id:'snake',tick:state.tick,count:state.eaten,colour:ACCENT,width:SNAKE_WORLD_W,height:SNAKE_WORLD_H,point:{...rewardPoint,shape:'spark'},hud:{x:14,y:22,text:`PELLETS ${state.eaten}`}});
   ctx.restore();
   // Same 1UP readout, without a per-frame text blur.
   const on = Math.floor(retroClock() / 500) % 2 === 0;
   retroText(ctx, "1UP", 14, 10, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
-  retroText(ctx, `PELLETS ${state.eaten}`, 14, 22, 10, RETRO_WHITE);
+  successHud(ctx,'snake',state.tick,14,22,()=>{retroText(ctx, `PELLETS ${state.eaten}`, 14, 22, 10, RETRO_WHITE);});
 }
 
 /** Analytic sparks: no emitter allocation, shared maximum, no sim randomness. */

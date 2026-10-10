@@ -1,3 +1,4 @@
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /**
  * Skyline art (Real World construction site). Render only: reads SkylineState,
  * never mutates it. Blocks fill exactly the sim's block rectangles; the camera
@@ -218,7 +219,7 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
     const seamY = SKYLINE_WORLD_H - (state.blocks.length - 1) * blockH;
     ctx.fillStyle = REAL_GOLD;
     for (const ex of [px(top.x), px(top.x + top.w)]) {
-      for (let k = 0; k < 6; k++) {
+      for (let k = 0; k < 4; k++) {
         const h = artHash(state.perfectTick, k + (ex > 195 ? 10 : 0));
         const vx = ((h % 9) - 4) * 0.4 + (ex > px(top.x) ? 0.8 : -0.8);
         const vy = -1.2 - ((h >>> 5) % 5) * 0.3;
@@ -230,6 +231,7 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
     ctx.fillStyle = REAL_GOLD;
     ctx.fillRect(-SKYLINE_WORLD_W, seamY - 1, SKYLINE_WORLD_W * 3, 2);
   }
+
   void SKYLINE_PERFECT_GROW;
 
   // Overhangs (and a missed block) fall away as chunks.
@@ -246,6 +248,8 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
   }
   ctx.restore();
 
+  const perfectTop=state.blocks.at(-1);
+  if(perfectTop)successFrame(ctx,{id:'skyline',tick:state.tick,count:state.perfects,eventTick:state.perfectTick,colour:REAL_GOLD,width:SKYLINE_WORLD_W,height:SKYLINE_WORLD_H,point:{x:(px(perfectTop.x+perfectTop.w/2)-SKYLINE_WORLD_W/2)*zoom+SKYLINE_WORLD_W/2,y:SKYLINE_WORLD_H+(-(state.blocks.length-1)*blockH+camScroll)*zoom,shape:'spark',label:'PERFECT'},hud:{x:12,y:12,text:`Blocks ${state.placed}`}});
   // Crane jib at the top, trolley above the hook's screen x.
   drawCrane(ctx, (hookX - SKYLINE_WORLD_W / 2) * zoom + SKYLINE_WORLD_W / 2, state.tick);
 
@@ -253,7 +257,7 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
   ctx.fillStyle = REAL_NIGHT_TEXT;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  ctx.fillText(`Blocks ${state.placed}`, 12, 12);
+  successHud(ctx,'skyline',state.tick,12,12,()=>{ctx.fillText(`Blocks ${state.placed}`, 12, 12);});
 
   if (state.missed && crashIndicator) {
     ctx.fillStyle = "rgba(229, 72, 77, 0.18)";

@@ -1,3 +1,4 @@
+import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /** Orchard Snip. Art only: original world, camera, rope nodes and collision geometry. */
 import type { CanvasSize } from './engine';
 import { snipCamera, snipGame, snipView, SNIP_CONFIG, SNIP_H, SNIP_W, type SnipState } from './snip';
@@ -75,6 +76,9 @@ export function drawSnipArt(c:CanvasRenderingContext2D,state:SnipState,size:Canv
   const now=typeof performance==='undefined'?0:performance.now();
   c.strokeStyle=COUNTRY_SHINE;c.lineWidth=2;c.lineCap='round';
   for(const sw of swipes){const k=1-(now-sw.at)/200;if(k<=0)continue;c.globalAlpha=k*0.8;c.beginPath();c.moveTo(sw.a,sw.b);c.lineTo(sw.c,sw.d);c.stroke();}
+  c.globalAlpha=1;
+  const completed=SNIP_CONFIG.templates[state.order[Math.max(0,state.level-1)]??state.template];
+  if(completed)successFrame(c,{id:'snip',tick:state.tick,count:state.eaten,eventTick:state.lastOutcome===1?state.endTick:0,colour:COUNTRY_GOLD,width:SNIP_W,height:SNIP_H,point:{x:completed.mouth[0],y:completed.mouth[1],shape:'spark'}});
   c.restore();
 }
 /** Fixed illustration uses the same cached apple and basket, never changes demo inputs. */

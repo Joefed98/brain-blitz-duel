@@ -13,6 +13,8 @@ import {
   MATCHUP_SYMBOL_PCT, MATCHUP_TEXT, type MatchupAnimStep, type MatchupState,
 } from "./matchup";
 import { artHash, reducedMotion } from "./art.renderer";
+import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { successHud, successFrame } from "./success.renderer";
 
 /** Nine frames at 60 Hz, independent of simulation ticks. */
 export const MATCHUP_SWAP_MS = 150;
@@ -162,7 +164,7 @@ function flatGem(ctx: CanvasRenderingContext2D, shape: string, cx: number, cy: n
 }
 
 /** One gem centred on (cx, cy) at the sim's symbol radius. */
-export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: number, cy: number, radius: number, time = 0): void {
+function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: number, cy: number, radius: number, time = 0): void {
   ctx.save();
   // Includes special fuse details: never exceed the symbol's bounds.
   ctx.beginPath();
@@ -215,6 +217,17 @@ export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: 
   }
   ctx.restore();
 }
+
+const gemSprites = new Map<string, ArtCanvas>();
+export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: number, cy: number, radius: number, time = 0): void {
+ const key = `${kind}:${radius}`; let stamp = gemSprites.get(key);
+ if (!stamp) { const canvas = artCanvas(Math.ceil(radius * 4 + 4), Math.ceil(radius * 4 + 4)); const native = canvas && artContext(canvas);
+  if (canvas && native) { native.scale(2, 2); paintMatchupGem(native as CanvasRenderingContext2D, kind, radius + 1, radius + 1, radius, 0); stamp = canvas; if(gemSprites.size>=64){const oldest=gemSprites.keys().next().value;if(oldest!==undefined)gemSprites.delete(oldest);}gemSprites.set(key, stamp); }
+ }
+ if (stamp) ctx.drawImage(stamp, cx-radius-1, cy-radius-1, stamp.width/2, stamp.height/2);
+ else paintMatchupGem(ctx, kind, cx, cy, radius, time);
+}
+const boardLayers = new WeakMap<CanvasRenderingContext2D, { canvas: ArtCanvas; cells: number[] }>();
 
 /* ================================ Board =============================== */
 
@@ -273,6 +286,18 @@ function drawNextStrip(ctx: CanvasRenderingContext2D, state: MatchupState, time:
 }
 
 function drawSettled(ctx: CanvasRenderingContext2D, cells: readonly number[], time: number, skip?: ReadonlySet<number>): void {
+ if (!skip) {
+  let layer=boardLayers.get(ctx);
+  if (!layer) { const canvas=artCanvas(MATCHUP_BOARD_W*2,MATCHUP_BOARD_H*2); if(canvas){layer={canvas,cells:[]};boardLayers.set(ctx,layer);} }
+  const native=layer&&artContext(layer.canvas);
+  if(layer&&native){const c=native as CanvasRenderingContext2D;c.save();c.scale(2,2);
+   for(let i=0;i<cells.length;i++){if(layer.cells[i]===cells[i])continue;const x=(i%MATCHUP_SIZE)*MATCHUP_CELL_PX,y=Math.floor(i/MATCHUP_SIZE)*MATCHUP_CELL_PX;
+    c.clearRect(x,y,MATCHUP_CELL_PX,MATCHUP_CELL_PX);c.fillStyle=cellFill(Math.floor(i/MATCHUP_SIZE),i%MATCHUP_SIZE);c.fillRect(x,y,MATCHUP_CELL_PX,MATCHUP_CELL_PX);
+    drawMatchupGem(c,cells[i]??0,x+MATCHUP_CELL_PX/2,y+MATCHUP_CELL_PX/2,RADIUS,time);layer.cells[i]=cells[i]??0;
+   }c.restore();ctx.drawImage(layer.canvas,MATCHUP_BOARD_X,MATCHUP_BOARD_Y,MATCHUP_BOARD_W,MATCHUP_BOARD_H);
+   ctx.strokeStyle="rgba(0,0,0,0.5)";ctx.lineWidth=2;ctx.strokeRect(MATCHUP_BOARD_X+1,MATCHUP_BOARD_Y+1,MATCHUP_BOARD_W-2,MATCHUP_BOARD_H-2);return;
+  }
+ }
   drawGrid(ctx);
   for (let index = 0; index < cells.length; index++) {
     if (skip?.has(index)) continue;
@@ -285,7 +310,7 @@ function animatedKind(step: MatchupAnimStep, index: number): number {
   return step.created.find((item) => item.index === index)?.kind ?? step.before[index] ?? 0;
 }
 
-function shatter(ctx: CanvasRenderingContext2D, kind: number, index: number, p: number, still: boolean): void {
+function shatter(ctx: CanvasRenderingContext2D, kind: number, index: number, p: number, still: boolean, shards = 4, cascade = 1): void {
   const { x, y } = centre(index);
   if (still) {
     ctx.globalAlpha = 1 - p;
@@ -298,10 +323,10 @@ function shatter(ctx: CanvasRenderingContext2D, kind: number, index: number, p: 
   drawMatchupGem(ctx, kind, x, y, RADIUS);
   ctx.globalAlpha = 1;
   const ease = 1 - (1 - p) * (1 - p);
-  for (let k = 0; k < 7; k++) {
+  for (let k = 0; k < shards; k++) {
     const h = artHash(index * 31 + k, 5);
     const a = (k / 7) * Math.PI * 2 + (h % 100) / 60;
-    const d = ease * (14 + (h >>> 8) % 12);
+    const d = ease * (14 + (h >>> 8) % 12) * Math.min(1.6, 1 + (cascade-1)*0.2);
     const s = 2.5 + ((h >>> 4) % 3);
     ctx.globalAlpha = 1 - p;
     ctx.fillStyle = colour;
@@ -364,7 +389,7 @@ function drawDetonations(ctx: CanvasRenderingContext2D, step: MatchupAnimStep, p
 function drawAnimated(ctx: CanvasRenderingContext2D, state: MatchupState, elapsedMs: number, time: number): void {
   const still = reducedMotion();
   let remaining = elapsedMs;
-  for (const step of state.lastAnimation) {
+  for (const [stepIndex, step] of state.lastAnimation.entries()) {
     const dropMs = Math.max(1, step.ticks) * MATCHUP_DROP_MS;
     if (remaining >= MATCHUP_CLEAR_MS + dropMs) {
       remaining -= MATCHUP_CLEAR_MS + dropMs;
@@ -379,7 +404,9 @@ function drawAnimated(ctx: CanvasRenderingContext2D, state: MatchupState, elapse
         const { x, y } = centre(index);
         drawMatchupGem(ctx, animatedKind(step, index), x, y, RADIUS, time);
       }
-      for (const index of cleared) shatter(ctx, animatedKind(step, index), index, p, still);
+      let budget=16;
+      for (const index of cleared) {const shards=Math.min(4,budget);budget-=shards;shatter(ctx,animatedKind(step,index),index,p,still,shards,stepIndex+1);}
+      if(stepIndex>0){ctx.save();ctx.globalAlpha=1-p;ctx.fillStyle=MATCHUP_GOLD;ctx.font="700 20px 'JetBrains Mono', monospace";ctx.textAlign="right";ctx.textBaseline="top";ctx.fillText(`×${stepIndex+1}`,MATCHUP_BOARD_X+MATCHUP_BOARD_W-8,12);ctx.restore();}
       drawDetonations(ctx, step, Math.min(1, remaining / MATCHUP_DETONATE_MS));
       return;
     }
@@ -448,7 +475,8 @@ function drawScene(ctx: CanvasRenderingContext2D, state: MatchupState, size: Can
   ctx.fillStyle = MATCHUP_TEXT;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  ctx.fillText(`${state.raw} pts`, 12, 12);
+  successHud(ctx,'matchup',state.tick,12,12,()=>{ctx.fillText(`${state.raw} pts`, 12, 12);});
+  successFrame(ctx,{id:'matchup',tick:state.tick,count:state.cascades,eventTick:state.lastScoreTick,colour:MATCHUP_GOLD,width:390,height:560,point:{...centre(state.lastCleared[0]??0),shape:'pixel',label:state.lastSteps>1?`×${state.lastSteps}`:undefined},hud:{x:12,y:12,text:`${state.raw} pts`}});
   ctx.restore();
 }
 

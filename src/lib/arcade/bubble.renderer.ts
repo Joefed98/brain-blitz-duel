@@ -5,6 +5,7 @@
  * the side wall margins and above the sim ceiling line.
  */
 import type { CanvasSize } from "./engine";
+import { successHud, successFrame } from './success.renderer';
 import {
   bubbleGame,
   bubCellX,
@@ -170,7 +171,7 @@ function blitBubble(ctx: CanvasRenderingContext2D, value: number, x: number, y: 
 interface Fx { kind: 0 | 1; value: number; x: number; y: number; born: number; seed: number }
 interface Memo { tick: number; grid: number[]; descents: number; fx: Fx[] }
 const memos = new WeakMap<object, Memo>();
-const FX_CAP = 48;
+const FX_CAP = 4;
 
 function memoFor(ctx: CanvasRenderingContext2D, state: BubState): Memo {
   let m = memos.get(ctx);
@@ -292,18 +293,18 @@ export function drawBubbleArt(ctx: CanvasRenderingContext2D, state: BubState, si
   trackRemovals(m, state, lastFlight);
   const now = seaNow();
   const still = reducedMotion();
-  m.fx = m.fx.filter((f) => now - f.born < (f.kind === 0 ? 700 : 900));
+  m.fx = m.fx.filter((f) => now - f.born < (still ? 160 : 480));
   for (const f of m.fx) {
     const age = (now - f.born) / 1000;
     if (f.kind === 0) {
-      const k = age / 0.7;
+      const k = age / (still ? 0.16 : 0.48);
       // Symbol drifts up and fades; a stream of tiny bubbles.
       ctx.save();
       ctx.globalAlpha = 1 - k;
-      drawCreature(ctx, bubCreature(f.value), X(f.x), Y(f.y) - (still ? 0 : age * 60 * rs), radius * 0.9);
+      drawCreature(ctx, 'fish', X(f.x), Y(f.y) - (still ? 0 : age * 60 * rs), radius * 0.3);
       ctx.fillStyle = "rgba(230,245,255,0.85)";
       if (!still) {
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 3; i++) {
           const a = ((f.seed + i * 1301) % 628) / 100;
           ctx.beginPath();
           ctx.arc(
@@ -318,7 +319,7 @@ export function drawBubbleArt(ctx: CanvasRenderingContext2D, state: BubState, si
       }
       ctx.restore();
     } else {
-      const k = age / 0.9;
+      const k = age / (still ? 0.16 : 0.48);
       blitBubble(ctx, f.value, X(f.x), Y(f.y) + (still ? 0 : age * age * 520 * rs), radius, dpr, 1 - k);
     }
   }
@@ -363,7 +364,10 @@ export function drawBubbleArt(ctx: CanvasRenderingContext2D, state: BubState, si
   ctx.font = `bold ${Math.round(18 * rs)}px ui-monospace, monospace`;
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
-  ctx.fillText(`Popped ${state.popped}`, X(14), Y(BUB_HUD_H * 0.36));
+  successHud(ctx,'bubble',state.tick,14,18,()=>{ctx.fillText(`Popped ${state.popped}`, X(14), Y(BUB_HUD_H * 0.36));});
+  const pop=m.fx[m.fx.length-1];
+  successFrame(ctx,{id:'bubble',tick:state.tick,count:state.popped,colour:SEA_GOLD,width:size.width,height:size.height,point:{x:X(pop?.x??BUB_SHOOTER_X),y:Y(pop?.y??BUB_TOP),shape:'fish'},hud:{x:X(14),y:Y(8),text:`Popped ${state.popped}`}});
+  successFrame(ctx,{id:'bubble-drop',tick:state.tick,count:Math.floor(state.dropped/5),colour:SEA_TEXT,width:size.width,height:size.height,point:{x:X(pop?.x??BUB_SHOOTER_X),y:Y(pop?.y??BUB_TOP),shape:'bubble'}});
   ctx.fillStyle = SEA_TEXT;
   ctx.restore();
 }

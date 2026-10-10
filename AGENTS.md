@@ -28,7 +28,7 @@
 - Changed inputs/layouts reject demos by shape or presentation revision; why: stale touches must not target new controls.
 
 - FX/audio stay outside sims; dev displays require accepted keys; Pull clayRev owns birds while unstamped rounds stay clay-only. Why: safe feedback and legacy replay.
-- Hover barriers use cached bounded rasters; Fission lives reuse player sprites. Why: bounded render cost.
+- Success renderers observe existing counters/ticks with bounded per-canvas replay memory; Gemstone caches gem sprites and dirty cells. Why: rewards never change gameplay/audio/data.
 - soundSettings owns device channel migration and normalized slider values; sound.ts owns bus gains and round-track ramp classification, while MuteToggle owns compact overlay controls. Why: all screens share settings without altering gameplay or clock ownership.
 
 - PhoneShell shares paint; WordsmithRing owns the shared circular orbit board and wordInput owns taps; presentation revisions reject coordinate demos of obsolete boards. Wordsmith keeps centre index, size bands and original-band seeded examples. Why: demo compatibility.

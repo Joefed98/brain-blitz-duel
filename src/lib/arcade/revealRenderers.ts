@@ -35,7 +35,8 @@ import { tiltArtGame as tiltGame } from "./tiltArt.renderer";
 import { btArtDraw } from "./ballTrackArt.renderer";
 import { BT_H, BT_W, type BtState } from "./ballTrack";
 import { whackArtGame as whackGame } from "./whack.renderer";
-import { clayGameFor, CLAY_H, CLAY_W } from "./clayShoot";
+import { CLAY_H, CLAY_W } from "./clayShoot";
+import { clayArtGameFor } from './clayShoot.renderer';
 import { tenDropGame, TD_H, TD_W } from "./tenDrop";
 import { colourClashGame } from "./colourClash";
 
@@ -179,7 +180,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     drawFinal: (ctx, puzzle, answer) => {
       if (puzzle.type !== "clayshoot") return null;
       const state = replayClayRun(puzzle.seed, answer, puzzle.clayRev).state;
-      clayGameFor(puzzle.clayRev).draw(ctx, state, { width: CLAY_W, height: CLAY_H });
+      clayArtGameFor(puzzle.clayRev).draw(ctx, state, { width: CLAY_W, height: CLAY_H });
       return null;
     },
   },

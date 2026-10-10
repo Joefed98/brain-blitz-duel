@@ -1,3 +1,4 @@
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import { sceneryTexture, grassTexture } from "./sceneryTexture.renderer";
 import type { CanvasSize } from './engine';
@@ -163,6 +164,8 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
     c.beginPath();c.arc(state.ball.x/FP,state.ball.y/FP,INK_NO_DRAW_ZONE_PX,0,Math.PI*2);c.stroke();
     c.setLineDash([]);c.restore();
   }
+  const caughtLevel=state.list[Math.max(0,state.level-1)]??lvl;
+  successFrame(c,{id:'inkbridge',tick:state.tick,count:state.levels,misses:state.fails,eventTick:state.flashKind===1?state.flashTick:0,colour:GOLD,width:INK_WORLD_W,height:INK_WORLD_H,point:{x:inkBucketX(caughtLevel,state.flashTick),y:caughtLevel.bucketY,shape:'spark'}});
   const age=state.tick-state.flashTick;
   if(state.flashKind===2&&state.failedBall&&age<20) {
     c.globalAlpha=1-age/20;stamp(c,'coin',14,14,state.failedBall.x/FP-7,state.failedBall.y/FP-7,coin);
@@ -191,7 +194,7 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
     }
   }
   for(let i=0;i<INK_FAILS;i++){c.fillStyle=i<state.fails?RED:EMPTY;c.beginPath();c.arc(228+i*14,18,5,0,Math.PI*2);c.fill();}
-  c.fillStyle=TEXT;c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='left';c.textBaseline='alphabetic';c.fillText(`Level ${Math.min(state.level+1,INK_LEVELS)} / ${INK_LEVELS}`,12,22);
+  c.fillStyle=TEXT;c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='left';c.textBaseline='alphabetic';successHud(c,'inkbridge',state.tick,12,22,()=>c.fillText(`Level ${Math.min(state.level+1,INK_LEVELS)} / ${INK_LEVELS}`,12,22));
   c.restore();
 }
 /** Fixed intro art shares the same sprites; no gameplay inputs or demo log changes. */

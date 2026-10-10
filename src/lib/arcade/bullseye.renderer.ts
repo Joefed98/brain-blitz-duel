@@ -1,3 +1,4 @@
+import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /**
  * Bullseye in the Fairground world: painted wooden board on a hay bale,
  * throwing darts, chalk aim line. Render only; reads state, never writes it.
@@ -204,6 +205,7 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
         ctx.restore();
       }
     }
+    successFrame(ctx,{id:'bullseye',tick:state.tick,count:state.flightTick===0?state.hits.filter(h=>h.ring===0).length:Math.max(0,state.hits.filter(h=>h.ring===0).length-(last?.ring===0?1:0)),colour:BULLSEYE_GOLD,width:BULLSEYE_WORLD_W,height:BULLSEYE_WORLD_H,point:{x:last?.x??BULLSEYE_CX,y:last?.y??BULLSEYE_CY,shape:'spark'}});
     if (last && state.flightTick > 0) {
       const progress = (BULLSEYE_FLIGHT_TICKS - state.flightTick) / BULLSEYE_FLIGHT_TICKS;
       const x = BULLSEYE_BOW_X + (last.x - BULLSEYE_BOW_X) * progress;

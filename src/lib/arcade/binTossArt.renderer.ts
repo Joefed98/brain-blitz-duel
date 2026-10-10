@@ -1,3 +1,5 @@
+import { BINTOSS_NEXT_DELAY } from "./binToss";
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import {
   BINTOSS_BALL_R, BINTOSS_FLOOR_Y, BINTOSS_FLY, BINTOSS_MISS_COLOUR,
@@ -171,6 +173,8 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
     if (!reducedMotion() && basketAge < 500) lean = Math.sin(basketAge / 45) * 2 * (1 - basketAge / 500);
     drawBucket(ctx, centre, half, lean, index >= BINTOSS_SLIDE_FROM);
 
+    const caughtIndex=Math.max(0,state.throwIndex-1);
+    successFrame(ctx,{id:'bintoss',tick:state.tick,count:state.baskets,eventTick:state.results.at(-1)===1?state.readyTick-BINTOSS_NEXT_DELAY:0,misses:state.resolved-state.baskets,colour:SUCCESS_ACCENTS.gold,width:BINTOSS_WORLD_W,height:BINTOSS_WORLD_H,point:{x:px(binTossCentreAt(state,caughtIndex,state.tick)),y:px(BINTOSS_RIM_Y),shape:'spark'},hud:{x:12,y:12,text:`Throw ${Math.min(BINTOSS_THROWS,state.throwIndex+1)} / ${BINTOSS_THROWS} · ${state.baskets} in`}});
     if (state.throwIndex < BINTOSS_THROWS) drawWind(ctx, state.winds[state.throwIndex] ?? 0);
     if (state.resolved < BINTOSS_THROWS) {
       drawTrail(ctx, state);
@@ -189,7 +193,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
     const shown = Math.min(BINTOSS_THROWS, state.throwIndex + 1);
-    ctx.fillText(`Throw ${shown} / ${BINTOSS_THROWS} · ${state.baskets} in`, 12, 12);
+  successHud(ctx,'bintoss',state.tick,12,12,()=>{ctx.fillText(`Throw ${shown} / ${BINTOSS_THROWS} · ${state.baskets} in`, 12, 12);});
     for (let i = 0; i < BINTOSS_THROWS; i++) {
       const result = state.results[i];
       ctx.fillStyle = result === 1 ? "#F5B82E" : result === 0 ? BINTOSS_MISS_COLOUR : "#F7F7F844";

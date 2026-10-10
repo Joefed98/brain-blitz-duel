@@ -1,3 +1,4 @@
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import {
   breakerGame,
   brkDestroyed,
@@ -111,7 +112,7 @@ function brickColour(state: BrkState, index: number, left: number): string {
   const power = (state.gold[index] ?? 0) - 1;
   if (power >= 0) return powerColour(power);
   const row = Math.trunc(index / BRK_COLS);
-  return RAINBOW[row % RAINBOW.length]!;
+  return RAINBOW[row % RAINBOW.length] ?? PADDLE;
 }
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRenderingContext2D): void {
@@ -124,7 +125,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   }
   m.deaths = m.deaths.filter((d) => now - d.at < BURST_MS);
   m.tick = state.tick;
-  m.bricks = state.bricks.slice();
+  // Previous HP remains available until hit effects have observed it.
   memo.set(key, m);
 
   const wallColour = "#2A4A7A";
@@ -176,6 +177,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     );
   }
 
+  const changed=state.bricks.findIndex((hp,i)=>hp<(m.bricks[i]??hp));
+  const hitPoint=changed>=0?brickXY(changed):brickXY(m.deaths.at(-1)?.index??0);
+  const reward=successFrame(ctx,{id:'breaker',tick:state.tick,count:state.hits,misses:state.losses,colour:PADDLE,width:BRK_WORLD_W,height:BRK_WORLD_H,point:{x:hitPoint.x+BRK_BRICK_W/2,y:hitPoint.y+BRK_BRICK_H/2,shape:'pixel'},hud:{x:14,y:26,text:`BRICKS ${brkDestroyed(state)}/${BRK_BRICKS}`}});
+  if(reward.chain>=10){ctx.save();ctx.globalAlpha=.3;ctx.strokeStyle=PADDLE;ctx.lineWidth=3;ctx.strokeRect(state.paddleX-BRK_PADDLE_W/2-2,BRK_PADDLE_Y-2,BRK_PADDLE_W+4,BRK_PADDLE_H+4);ctx.restore();}
   retroPaddle(ctx, state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y, BRK_PADDLE_W, BRK_PADDLE_H, PADDLE, "#5A4510", bloom);
 
   state.balls.forEach((ball, i) => {
@@ -186,6 +191,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     retroBall(ctx, bx, by, BRK_BALL_R, colour, state.pause > 0 ? colour : RETRO_WHITE);
   });
 
+  m.bricks = state.bricks.slice();
   if (state.held > 0) {
     const laser = state.held === BRK_POWER_LASER + 1;
     retroText(
@@ -199,7 +205,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     );
   }
 
-  retroReadout(ctx, 14, 8, `BRICKS ${brkDestroyed(state)}/${BRK_BRICKS}`, RETRO_WHITE);
+  successHud(ctx,'breaker',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, `BRICKS ${brkDestroyed(state)}/${BRK_BRICKS}`, RETRO_WHITE);});
   if (state.pause > 0) retroText(ctx, "RELAUNCHING", BRK_WORLD_W / 2, BRK_PADDLE_Y - 40, 16, PADDLE, "center");
 }
 

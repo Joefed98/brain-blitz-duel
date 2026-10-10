@@ -1,3 +1,4 @@
+import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /** Lava-tube artwork only. Never mutates the simulation or changes its geometry. */
 import type { CanvasSize } from "./engine";
 import {
@@ -434,6 +435,7 @@ export function drawFlipArt(ctx: CanvasRenderingContext2D, state: FlipState, siz
   ctx.save();
   // Pool deaths sink behind the opening; no new player or hazard geometry.
   if (sink !== null) { bandPath(ctx, ceilAt, floorAt); ctx.clip(); }
+  successFrame(ctx,{id:'flip',tick:state.tick,count:state.cursor,eventTick:state.flipT>0?state.tick-(FLIP_ARC_TICKS-state.flipT):0,enabled:state.ended===0,colour:MATERIAL.hot,width:FLIP_WORLD_W,height:FLIP_WORLD_H,point:{x:RUNNER_X,y:y+(state.side===0?-14:14),shape:'pixel'}});
   drawFigure(ctx, state, y, still, sink);
   ctx.restore();
   ctx.restore();
