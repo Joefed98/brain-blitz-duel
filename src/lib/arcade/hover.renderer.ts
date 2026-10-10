@@ -125,9 +125,9 @@ function drawPipe(
   pixelRect(ctx, x, edge, w, 1, colour);
   for (let column = 2; column < w; column += 6)
     pixelRect(ctx, x + column, capAt === "bottom" ? edge - 1 : edge + 1, Math.min(3, w - column), 1, RETRO_WHITE);
-  if (flash > 0) {
+  if (flash > 0 && !reducedMotion()) {
     ctx.globalAlpha = flash * 0.85;
-    pixelRect(ctx, x, y, w, h, RETRO_WHITE);
+    pixelRect(ctx, x, edge, w, 1, RETRO_WHITE);
     ctx.globalAlpha = 1;
   }
   ctx.restore();

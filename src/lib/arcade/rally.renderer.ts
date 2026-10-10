@@ -1,3 +1,4 @@
+import { reducedMotion } from "./art.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import {
   rallyGame,
@@ -44,9 +45,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   const heat=reward.chain>=20?SUCCESS_ACCENTS.orange:reward.chain>=10?GOLD:RETRO_WHITE;
   const bloom = retroBloom();
   const top = RALLY_HUD_H + RALLY_WALL;
-  pixelRect(ctx, RALLY_WALL - 2, top - 2, RALLY_WORLD_W - 2 * RALLY_WALL + 4, 2, reward.milestoneAge<30?GOLD:COURT, bloom * 0.5);
-  pixelRect(ctx, RALLY_WALL - 2, top - 2, 2, RALLY_WORLD_H, reward.milestoneAge<30?GOLD:COURT, bloom * 0.5);
-  pixelRect(ctx, RALLY_WORLD_W - RALLY_WALL, top - 2, 2, RALLY_WORLD_H, reward.milestoneAge<30?GOLD:COURT, bloom * 0.5);
+  pixelRect(ctx, RALLY_WALL - 2, top - 2, RALLY_WORLD_W - 2 * RALLY_WALL + 4, 2, !reducedMotion()&&reward.milestoneAge<30?GOLD:COURT, bloom * 0.5);
+  pixelRect(ctx, RALLY_WALL - 2, top - 2, 2, RALLY_WORLD_H, !reducedMotion()&&reward.milestoneAge<30?GOLD:COURT, bloom * 0.5);
+  pixelRect(ctx, RALLY_WORLD_W - RALLY_WALL, top - 2, 2, RALLY_WORLD_H, !reducedMotion()&&reward.milestoneAge<30?GOLD:COURT, bloom * 0.5);
   const mid = Math.round((top + RALLY_PADDLE_Y) / 2);
   for (let x = RALLY_WALL + 6; x < RALLY_WORLD_W - RALLY_WALL - 6; x += 16) pixelRect(ctx, x, mid - 1, 8, 2, `${COURT}AA`);
 

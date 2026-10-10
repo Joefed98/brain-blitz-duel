@@ -8,7 +8,7 @@ export function drawClaySuccess(ctx:CanvasRenderingContext2D,state:ClayState,siz
   let latest=-1;
   for(let i=0;i<state.status.length;i++)if(state.status[i]===CLAY_HIT&&(latest<0||(state.doneTick[i]??0)>(state.doneTick[latest]??0)))latest=i;
   ctx.save();ctx.scale(scaleX,scaleY);
-  successFrame(ctx,{id:'clay',tick:state.tick,count:state.hits,misses:state.missed+(state.birdHits??0),colour:SUCCESS_ACCENTS.gold,width:CLAY_W,height:CLAY_H,
+  successFrame(ctx,{id:'clay',tick:state.tick,count:state.goldHits,misses:state.missed+(state.birdHits??0),colour:SUCCESS_ACCENTS.gold,width:CLAY_W,height:CLAY_H,
     eventTick:state.doneTick[latest],point:{x:(state.x[latest]??0)/256,y:(state.y[latest]??0)/256,shape:'spark'},enabled:latest>=0&&state.schedule.kind[latest]===CLAY_KIND_GOLD});
   ctx.restore();
 }
