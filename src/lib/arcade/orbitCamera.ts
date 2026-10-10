@@ -52,7 +52,8 @@ export function orbitNextRingShare(s: Rev3Like, cam: OrbitCamOffset): number {
     const dx = b.x - a.x, dy = b.y - a.y, length = Math.hypot(dx, dy);
     total += length;
     let lo = 0, hi = 1;
-    for (const [start, delta, min, max] of [[a.x, dx, cam.x, cam.x + ORBIT_CAM_VIEW_W], [a.y, dy, cam.y, cam.y + ORBIT_CAM_VIEW_H]]) {
+    const axes: [number, number, number, number][] = [[a.x, dx, cam.x, cam.x + ORBIT_CAM_VIEW_W], [a.y, dy, cam.y, cam.y + ORBIT_CAM_VIEW_H]];
+    for (const [start, delta, min, max] of axes) {
       if (Math.abs(delta) < 1e-12) { if (start < min || start > max) hi = -1; }
       else { const t1 = (min - start) / delta, t2 = (max - start) / delta; lo = Math.max(lo, Math.min(t1, t2)); hi = Math.min(hi, Math.max(t1, t2)); }
     }

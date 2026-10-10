@@ -27,14 +27,15 @@ export function drawOrbitShootingStar(c: CanvasRenderingContext2D, s: OrbitRev3S
   const p = age / duration, x = -40 + p * (ORBIT_CAM_VIEW_W + 100), y = 70 + p * 160;
   const tail = still ? 24 : 75, alpha = Math.sin(Math.PI * p) * (still ? 0.25 : 0.8);
   c.save();
-  c.beginPath(); c.rect(0, 0, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
-  for (const i of [s.cur, Math.min(s.cur + 1, s.planets.length - 1)]) {
+  for (const i of new Set([s.cur, Math.min(s.cur + 1, s.planets.length - 1)])) {
     const planet = s.planets[i]; if (!planet) continue;
     const r = Math.max(planet.r / 256 * 1.6, planet.kind === 2 ? planet.ring / 256 * 1.5 + planet.r / 256 : planet.r / 256 + 12);
     const px = planet.x / 256 - cam.x, py = planet.y / 256 - cam.y;
-    c.moveTo(px + r, py); c.arc(px, py, r, 0, Math.PI * 2);
+    c.beginPath(); c.rect(0, 0, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
+    c.moveTo(px + r, py); c.arc(px, py, r, 0, Math.PI * 2); c.clip('evenodd');
   }
   const rx = s.x / 256 - cam.x, ry = s.y / 256 - cam.y;
+  c.beginPath(); c.rect(0, 0, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
   c.moveTo(rx + 26, ry); c.arc(rx, ry, 26, 0, Math.PI * 2);
   c.clip('evenodd');
   const gradient = c.createLinearGradient(x - tail, y - tail * .36, x, y);
