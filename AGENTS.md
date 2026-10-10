@@ -14,7 +14,7 @@
 - AcceptedWordChip owns the reserved confirmation row for word-entry boards, sized by the remaining board region; why: accepted words must not move or cover controls.
 - StageCorrect owns the fixed confirmation slot and persisted presentation-only hold deadline for staged puzzles; why: intermediate solved boards stay visible without pausing the shared round clock.
 - PhoneShell/GameLayout own equal round geometry; chat stays outside play/reveal, Stage omits repeated hints. Why: room/practice parity.
-- Game screens follow the `.game-column` rule: top-anchored 100%-height column, stages mark `data-stage-column`/`data-game-arena`/`data-game-controls`, the capped arena is the only flexible item and controls sit 12px below it; legacy demos keep old layout via `GameColumnLayout`/log revision. Why: controls never drift down with dead space above.
+- `.game-column` keeps controls 12px below arenas; scoped `data-polish` centres whole bounded play blocks, others stay top-anchored. Shared word-letter-tile owns paint; histories/ripples are presentation-only; revisions reject stale coordinate demos. Why: polish cannot alter input encoding, grading or replay.
 - Directional game controls use the shared press-safe button so pointer holds cannot trigger selection, callouts, or context menus.
 - All word games (Wordsmith, Word Hunt, Word Ladder, Tile Grid, Word Slide) check words through the one server-only SCOWL British English list behind dictionary.server.ts; why: one consistent dictionary that never reaches a device.
 - RoundIntro renders optional definition `introLine(puzzle)`; why: fixed examples stay fixed while puzzle-specific facts still show.

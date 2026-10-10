@@ -62,7 +62,7 @@ function Pyramid({
               <div
                 key={c}
                 data-np-cell={given ? undefined : cell}
-                className={`flex items-center justify-center rounded-md font-mono font-bold ${cls} ${dragFrom === cell ? "opacity-30" : ""}`}
+                className={`pyramid-paint-cell flex items-center justify-center rounded-md font-mono font-bold ${cls} ${dragFrom === cell ? "opacity-30" : ""}`}
                 style={{ width: cellW, height: cellH, fontSize: cellH * 0.42 }}
               >
                 {value ?? ""}
@@ -171,9 +171,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   if (!data || !board) return null;
   const placedTray = new Set(Object.values(placements));
   const filled = npFilled(board.givens, board.tray, placements);
-  const heightFit = Math.floor((size.height - 244) / board.rows / 0.72);
-  const cellW = Math.max(38, Math.min(board.rows === 4 ? 62 : 56, Math.floor((size.width - 16) / board.rows), heightFit));
-  const cellH = Math.round(cellW * 0.72);
+  const widthFit = Math.floor((size.width - (board.rows - 1) * 4 - 8) / board.rows);
+  const cellW = Math.max(44, widthFit);
+  const trayW = Math.max(44, Math.floor((size.width - 16 - 5 * 6) / 6));
+  const trayRows = Math.ceil(board.tray.length / 6);
+  const heightFit = Math.floor((size.height - 116 - trayRows * 50) / board.rows);
+  const cellH = Math.max(44, Math.min(Math.round(cellW * 0.78), heightFit));
 
   const drop = (tray: number, from: number | null, cell: number | null) => {
     if (busy) return;
@@ -227,14 +230,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (typeof target === "number" && placements[target] === undefined) { drop(selected.tray, selected.from, target); setSelected(null); }
     else if (target === "tray" && selected.from !== null) { drop(selected.tray, selected.from, null); setSelected(null); }
   };
-  const tileClass = (tray: number) => `flex items-center justify-center rounded-md border-2 bg-card font-mono font-bold text-primary ${selected?.tray === tray ? "border-foreground ring-2 ring-primary" : "border-primary"}`;
+  const tileClass = (tray: number) => `pyramid-tray-tile flex items-center justify-center rounded-md border-2 bg-card font-mono font-bold text-primary ${selected?.tray === tray ? "border-foreground ring-2 ring-primary" : "border-primary"}`;
 
   return (
-    <div ref={box} data-play-area data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-0.5 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
+    <div ref={box} data-polish="numpyramid" data-play-area data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-0.5 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
       <StageProgress stage={stage} total={NP_SET_SIZE} />
-      <div className="flex h-8 w-full shrink-0 items-center justify-between">
+      <div className="flex h-11 w-full shrink-0 items-center justify-between">
         <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {NP_SET_SIZE}</p>
-        <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => advance(placements)}>Skip</Button>
+        <Button type="button" variant="ghost" size="sm" className="h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>Skip</Button>
       </div>
       <StageCorrect visible={holding} />
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center">
@@ -247,8 +250,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           </div>
         </div>
       </div>
-      <div data-np-tray data-game-controls="tray" className={`${column ? "" : "mt-auto "}flex w-full shrink-0 flex-wrap justify-center gap-1.5 rounded-lg bg-muted/40 p-2`} style={{ ...NO_TOUCH, minHeight: cellH * 2 + 20 }}>
-        {board.tray.map((value, tray) => placedTray.has(tray) ? null : <div key={tray} className={`${tileClass(tray)} ${drag?.tray === tray ? "opacity-30" : ""}`} style={{ width: cellW, height: cellH, fontSize: cellH * 0.42 }} onPointerDown={(e) => start(e, tray, null)}>{value}</div>)}
+      <div data-np-tray data-game-controls="tray" className={`${column ? "" : "mt-auto "}flex w-full shrink-0 flex-wrap justify-center gap-1.5 rounded-lg bg-muted/40 p-2`} style={{ ...NO_TOUCH, minHeight: trayRows * 50 + 10 }}>
+        {board.tray.map((value, tray) => placedTray.has(tray) ? null : <div key={tray} className={`${tileClass(tray)} ${drag?.tray === tray ? "opacity-30" : ""}`} style={{ width: trayW, height: 44, fontSize: 20 }} onPointerDown={(e) => start(e, tray, null)}>{value}</div>)}
       </div>
       {drag?.moved && <div className="pointer-events-none fixed z-50 flex items-center justify-center rounded-md border-2 border-primary bg-card font-mono font-bold text-primary shadow-lg" style={{ width: cellW, height: cellH, fontSize: cellH * 0.42, left: drag.x - cellW / 2, top: drag.y - cellH - 12 }}>{board.tray[drag.tray]}</div>}
     </div>

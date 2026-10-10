@@ -66,7 +66,7 @@ function Circle({
             ? "border-primary bg-primary text-primary-foreground"
             : "border-border bg-card text-foreground"
       }`}
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.46) }}
     >
       {n}
     </span>
@@ -161,7 +161,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   const elapsed = Math.max(0, now - phaseStartedAt);
 
   return (
-    <div data-stage-column="3" className="flex flex-1 flex-col gap-3">
+    <div data-polish="numhunt" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           Next: {spots[Math.min(next, spots.length - 1)]?.n ?? ""}
@@ -182,7 +182,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
             className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
           >
-            <Circle n={spot.n} done={index < next} wrong={flash === index} />
+            <Circle n={spot.n} done={index < next} wrong={flash === index} size={44} />
           </button>
         ))}
       </div>
