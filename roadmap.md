@@ -950,9 +950,9 @@
 - [x] Compare all 81 existing checks against pre-polish snapshot: 61 pass / 16 fail / 4 timeout both, no new pass-to-fail failures; new polish check passes. Deliver 39 phone captures and report; old before captures are archival and Lookout dense-grid exception disclosed.
 
 ## Phone test fixes and round rotation (Oct 10)
-- [ ] Rainbow Bridge live stroke bottom-half commit bug + rejection labels
-- [ ] Orbit skipped-planet capture pan scaled by distance; check update
-- [ ] Grappler classic dragon art (64×44)
-- [ ] Stronger red timer pulse
-- [ ] Round rotation: one round per selected category, seeded shuffle; dead code removal
-- [ ] Full named checks vs last run + report
+- [x] Rainbow Bridge live stroke bottom-half commit bug + rejection labels
+- [x] Orbit skipped-planet capture pan scaled by distance; check update
+- [x] Grappler classic dragon art (64×44)
+- [x] Stronger red timer pulse
+- [x] Round rotation: one round per selected category, seeded shuffle; dead code removal
+- [x] Full named checks vs last run + report
