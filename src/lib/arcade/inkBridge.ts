@@ -924,7 +924,8 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
           y: shieldY,
           ...(h ? { h } : {}),
         };
-        if (!lvl.blocks.some((o) => blockOverlaps(o, shield))) lvl.blocks = [...lvl.blocks, shield];
+        // The shield row always exists: birds it would overlap give way to it.
+        lvl.blocks = [...lvl.blocks.filter((o) => !blockOverlaps(o, shield)), shield];
       }
       if (landsUnaided(lvl, gravity)) continue;
       if (live) {
