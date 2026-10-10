@@ -163,7 +163,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
     const head = point(headCell);
     // Light only between contiguous centres; no interpolation or moved segments.
     if (motion && !state.dead) {
-      ctx.fillStyle = ACCENT; ctx.globalAlpha = 0.12;
+      const lengthFactor = Math.min(1, state.body.length / 25); ctx.fillStyle = ACCENT; ctx.globalAlpha = 0.12 + 0.16 * lengthFactor;
       for (let i = 1; i < state.body.length; i++) {
         const cell = state.body[i], ahead = state.body[i - 1];
         if (cell === undefined || ahead === undefined) continue;

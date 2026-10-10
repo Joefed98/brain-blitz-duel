@@ -54,3 +54,6 @@ span.nono-guide-col { border-right-width: 2px; border-right-style: solid; border
 [data-polish="bomb"] .bomb-plate > div:nth-of-type(2) { gap: 2px; padding-block: 2px; }
 [data-polish="bomb"] .bomb-plate > div:nth-of-type(2) { overflow: hidden; justify-content: space-evenly; }
 [data-polish="bomb"] .bomb-plate > div:nth-of-type(2) > button { flex: 1 1 0; min-height: 0; max-height: 26px; }
+
+/* Arcade Polish A: keep the wire panel from collapsing when the play block is centred. */
+.game-column [data-polish="bomb"][data-stage-column] > [data-game-arena="board"] { flex: 1 1 auto !important; min-height: 196px !important; }

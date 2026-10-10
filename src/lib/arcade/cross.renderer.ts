@@ -240,6 +240,9 @@ function drawWalker(ctx: CanvasRenderingContext2D, x: number, y: number, facing:
   ctx.moveTo(0, 4);
   ctx.lineTo(4 + side * 2 - stride * 4, 13);
   ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
   ctx.restore();
 }
 

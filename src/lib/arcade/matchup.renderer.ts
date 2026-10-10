@@ -444,7 +444,7 @@ function drawScene(ctx: CanvasRenderingContext2D, state: MatchupState, size: Can
       ctx.globalAlpha = 1;
     }
   }
-  ctx.font = "600 15px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.font = "600 20px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = MATCHUP_TEXT;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";

@@ -160,16 +160,21 @@ function Panel({
   );
 }
 
+
 const TOKEN_RE = /(wires \d and \d|wire \d|button [AB]|press [AB]|\b(?:Red|Blue|Green|Yellow|White|Black)\b)/gi;
 
-function tint(hex: string): CSSProperties {
-  // Black ink needs a light halo on the dark card.
-  return hex === WIRE_HEX.BLACK
-    ? { color: "#0B0B0D", textShadow: "0 0 3px #F2F2F2, 0 0 1px #F2F2F2", fontWeight: 700 }
-    : { color: hex, fontWeight: 700 };
+function Swatch({ colour }: { colour: WireColour }) {
+  return (
+    <span
+      className="mx-0.5 inline-block h-2.5 w-4 shrink-0 rounded-[2px] align-middle shadow-[0_0_0_1px_rgba(0,0,0,0.3)]"
+      style={{
+        backgroundColor: WIRE_HEX[colour],
+        border: colour === "BLACK" ? "1px solid #8A8A94" : "none",
+      }}
+    />
+  );
 }
 
-/** A rule exactly as templated, with wire, button and colour words in their colour. */
 function RuleText({
   text,
   wires,
@@ -185,35 +190,49 @@ function RuleText({
       {parts.map((part, index) => {
         if (index % 2 === 0) return <span key={index}>{part}</span>;
         const lower = part.toLowerCase();
+        
         if (lower.startsWith("wires ")) {
           const [a, b] = (part.match(/\d/g) ?? []).map(Number);
+          const c1 = wires[(a ?? 1) - 1] ?? "WHITE";
+          const c2 = wires[(b ?? 1) - 1] ?? "WHITE";
           return (
-            <span key={index}>
-              wires <span style={tint(WIRE_HEX[wires[(a ?? 1) - 1] ?? "WHITE"])}>{a}</span> and{" "}
-              <span style={tint(WIRE_HEX[wires[(b ?? 1) - 1] ?? "WHITE"])}>{b}</span>
+            <span key={index} className="inline-flex items-center font-bold text-foreground/90">
+              wires&nbsp;
+              <Swatch colour={c1} />
+              <span>{a}</span>
+              &nbsp;and&nbsp;
+              <Swatch colour={c2} />
+              <span>{b}</span>
             </span>
           );
         }
+        
         if (lower.startsWith("wire ")) {
           const n = Number(part.slice(5));
+          const colour = wires[n - 1] ?? "WHITE";
           return (
-            <span key={index} style={tint(WIRE_HEX[wires[n - 1] ?? "WHITE"])}>
+            <span key={index} className="inline-flex items-center font-bold text-foreground/90">
+              <Swatch colour={colour} />
               {part}
             </span>
           );
         }
+        
         if (lower.startsWith("button ") || lower.startsWith("press ")) {
           const label = part.slice(-1) as "A" | "B";
           const colour = buttons.find((b) => b.label === label)?.colour ?? "WHITE";
           return (
-            <span key={index} style={tint(WIRE_HEX[colour])}>
+            <span key={index} className="inline-flex items-center font-bold text-foreground/90">
+              <Swatch colour={colour} />
               {part}
             </span>
           );
         }
+        
         const colour = part.toUpperCase() as WireColour;
         return (
-          <span key={index} style={tint(WIRE_HEX[colour] ?? "#FFFFFF")}>
+          <span key={index} className="inline-flex items-center font-bold uppercase tracking-tight text-foreground/90">
+            <Swatch colour={colour} />
             {part}
           </span>
         );

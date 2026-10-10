@@ -1,11 +1,6 @@
-/**
- * Bin Toss in the Fairground world: rubber ball, tin bucket on the stall
- * counter (opening exactly the sim's bin), trolley when the bucket slides.
- * Render only; reads state, never writes it.
- */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import {
-  BINTOSS_BALL_R, BINTOSS_FLOOR_Y, BINTOSS_FLY, BINTOSS_GRAVITY, BINTOSS_MISS_COLOUR,
+  BINTOSS_BALL_R, BINTOSS_FLOOR_Y, BINTOSS_FLY, BINTOSS_MISS_COLOUR,
   BINTOSS_RIM_Y, BINTOSS_SLIDE_FROM, BINTOSS_THROWS, BINTOSS_WAIT, BINTOSS_WIND_MAX,
   BINTOSS_WORLD_H, BINTOSS_WORLD_W, BINTOSS_BIN_COLOUR,
   binTossCentreAt, binTossGame, binTossHalf, binTossPath, type BinTossGhost, type BinTossLandingPresentation, type BinTossState,
@@ -46,7 +41,6 @@ function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number,
   const h = FLOOR - top;
   ctx.save();
   if (trolley) {
-    // Trolley sits on the counter below the floor line: platform and wheels.
     ctx.fillStyle = "#3A2A1E";
     ctx.fillRect(centre - half - 3, FLOOR, half * 2 + 6, 4);
     ctx.fillStyle = "#1C1612";
@@ -63,7 +57,6 @@ function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number,
     }
   }
   ctx.translate(centre + lean, FLOOR);
-  // Body: exactly the sim's trapezium (opening ±half at the rim, 4 px in at the base).
   const body = new Path2D();
   body.moveTo(-half, -h);
   body.lineTo(-half + 4, 0);
@@ -79,7 +72,6 @@ function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number,
   ctx.fill(body);
   ctx.save();
   ctx.clip(body);
-  // Stacked-tin ridges.
   ctx.strokeStyle = "rgba(40, 44, 52, 0.3)";
   ctx.lineWidth = 1.5;
   for (const f of [0.22, 0.5, 0.78]) {
@@ -100,7 +92,6 @@ function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number,
   ctx.strokeStyle = TIN_DARK;
   ctx.lineWidth = 1;
   ctx.stroke(body);
-  // The opening: dark mouth, bright rolled rim, exactly ±half wide.
   ctx.fillStyle = "#1A1D24";
   ctx.beginPath();
   ctx.ellipse(0, -h, half - 1, 3.2, 0, 0, Math.PI * 2);
@@ -143,29 +134,32 @@ function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   fairPennant(ctx, BINTOSS_WORLD_W - 30, 10, wind, BINTOSS_WIND_MAX);
 }
 
+const trails = new WeakMap<CanvasRenderingContext2D, { tick: number; points: { x: number; y: number }[] }>();
 function drawTrail(ctx: CanvasRenderingContext2D, state: BinTossState): void {
   if (state.phase !== BINTOSS_FLY || reducedMotion()) return;
-  let x = state.x;
-  let y = state.y;
-  const vx = state.vx;
-  let vy = state.vy;
+  let memo = trails.get(ctx);
+  if (!memo || state.tick < memo.tick) memo = { tick: state.tick, points: [] };
+  memo.tick = state.tick;
+  const last = memo.points[memo.points.length - 1];
+  if (!last || last.x !== state.x || last.y !== state.y) memo.points.push({ x: state.x, y: state.y });
+  while (memo.points.length > 6) memo.points.shift();
+  trails.set(ctx, memo);
+
   ctx.save();
   ctx.fillStyle = BINTOSS_RUBBER;
-  for (let step = 1; step <= 6; step++) {
-    x -= vx;
-    y -= vy;
-    vy -= BINTOSS_GRAVITY;
-    if (y > BINTOSS_FLOOR_Y || x < 0) break;
-    ctx.globalAlpha = 0.28 * (1 - step / 7);
+  const n = memo.points.length;
+  for (let i = 0; i < n - 1; i++) {
+    const p = memo.points[i]!;
+    const k = (i + 1) / n;
+    ctx.globalAlpha = 0.28 * k;
     ctx.beginPath();
-    ctx.arc(px(x), px(y), px(BINTOSS_BALL_R) * (1 - step / 12), 0, Math.PI * 2);
+    ctx.arc(px(p.x), px(p.y), px(BINTOSS_BALL_R) * (0.5 + 0.5 * k), 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSize): void {
-  // Presentation memories (ms since change): basket wobble, counter bounce.
   const basketAge = fairChangeAge(ctx, "bintoss-baskets", state.baskets);
   const resolvedAge = fairChangeAge(ctx, "bintoss-resolved", state.resolved);
   fairScreen(ctx, size, BINTOSS_WORLD_W, BINTOSS_WORLD_H, FLOOR, () => {
@@ -182,7 +176,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
       drawTrail(ctx, state);
       const r = px(BINTOSS_BALL_R);
       let y = px(state.y);
-      // A miss onto the counter: a short presentation-only bounce on the spot.
       const missed = state.phase === BINTOSS_WAIT && state.results[state.results.length - 1] === 0;
       if (missed && !reducedMotion() && resolvedAge < 420 && y >= FLOOR - r - 2) {
         const u = resolvedAge / 420;
@@ -207,7 +200,6 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
   }, [0.3, 0.52]);
 }
 
-/** Same no-wind path, with artwork-only contrast against the evening sky. */
 export function binTossArtAim(ctx: CanvasRenderingContext2D, size: CanvasSize, aim: BinTossGhost, cancelled = false): void {
   const points = binTossPath(aim.vx, aim.vy, 0, false);
   const first = points[0];
@@ -234,7 +226,6 @@ export function binTossArtAim(ctx: CanvasRenderingContext2D, size: CanvasSize, a
   ctx.restore();
 }
 
-/** Scored-ball drop into the bucket; presentation only, same path as before. */
 export function binTossArtLanding(
   ctx: CanvasRenderingContext2D,
   size: CanvasSize,
@@ -264,7 +255,6 @@ export function binTossArtLanding(
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
-  // Inside the bucket: clipped to the body and dimmed so it reads as behind the tin.
   ctx.beginPath();
   ctx.moveTo(centre - half, rim);
   ctx.lineTo(centre - half + 4, FLOOR);

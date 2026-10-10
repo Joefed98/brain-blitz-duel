@@ -228,8 +228,8 @@ export function retroText(
 export function retroReadout(ctx: CanvasRenderingContext2D, x: number, y: number, value: string, colour: string): void {
   const t = retroClock();
   const on = t === 0 || Math.floor(t / 500) % 2 === 0;
-  retroText(ctx, "1UP", x, y, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
-  retroText(ctx, value, x, y + 12, 10, colour, "left", 4);
+  retroText(ctx, "1UP", x, y, 14, on ? RETRO_RED : "rgba(255,59,92,0.35)");
+  retroText(ctx, value, x, y + 18, 14, colour, "left", 4);
 }
 
 /**

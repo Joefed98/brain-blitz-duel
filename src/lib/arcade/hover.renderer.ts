@@ -28,8 +28,7 @@ import {
 
 const FP = 256;
 const px = (v: number) => v / FP;
-const PIPE = "#E95AFF";
-const PIPE_FAST = "#F6ADFF";
+const BARRIER_CYCLES = ["#FF4DFF", "#3DFFE0", "#FFD84A", "#4BFF7A", "#FF9A3C", "#B49CFF"];
 const SAUCER = "#FFD84A";
 const SAUCER_DARK = "#B8901C";
 const DOME = "#5CD0FF";
@@ -43,17 +42,18 @@ function barrierSprite(w: number, colour: string): ArtCanvas | null {
   const c = layer && artContext(layer);
   if (!layer || !c) return null;
   c.scale(2, 2);
-  c.fillStyle = "#39114F"; c.fillRect(0, 0, w, HOVER_WORLD_H);
+  c.fillStyle = colour; c.fillRect(0, 0, w, HOVER_WORLD_H);
+  c.fillStyle = "rgba(0,0,0,0.72)"; c.fillRect(0, 0, w, HOVER_WORLD_H);
   // One baked glow pass, clipped by the raster's exact rectangular footprint.
   c.shadowColor = colour; c.shadowBlur = 3;
   for (let y = 0; y < HOVER_WORLD_H; y += 12) {
-    c.fillStyle = Math.floor(y / 12) % 2 ? "#9E38D6" : "#C642CE";
-    c.fillRect(0, y, w, 11);
+    c.fillStyle = colour; c.fillRect(0, y, w, 11);
   }
   c.shadowBlur = 0;
   for (let y = 0; y < HOVER_WORLD_H; y += 12) {
-    c.fillStyle = colour; c.fillRect(2, y + 2, w - 4, 1);
-    c.fillStyle = "#5A1D75"; c.fillRect(w / 2, y + 3, 1, 7);
+    c.fillStyle = Math.floor(y / 12) % 2 ? "rgba(0,0,0,0.38)" : "rgba(0,0,0,0.22)"; c.fillRect(0, y, w, 11);
+    c.fillStyle = "rgba(255,255,255,0.55)"; c.fillRect(2, y + 2, w - 4, 1);
+    c.fillStyle = "rgba(0,0,0,0.45)"; c.fillRect(w / 2, y + 3, 1, 7);
   }
   barrierCache.set(colour, layer);
   return layer;
@@ -76,7 +76,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
     if (left > HOVER_WORLD_W || left + width < 0) return;
     // Gates met at higher speed glow brighter (display only).
     const speedShare = (hoverScroll(index) - HOVER_SCROLL_START) / (HOVER_SCROLL_MAX - HOVER_SCROLL_START);
-    const colour = speedShare > 0.5 ? PIPE_FAST : PIPE;
+    const colour = BARRIER_CYCLES[Math.floor(index / 7) % 6] ?? "#FF4DFF";
     // A flash for the few pixels after the gate is passed, from geometry alone.
     const passedBy = px(state.distance - (pillar.x0 + HOVER_PILLAR_W - discLeft));
     const flash = index < state.gates && passedBy >= 0 && passedBy < 48 ? 1 - passedBy / 48 : 0;

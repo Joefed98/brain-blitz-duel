@@ -202,8 +202,8 @@ function drawFighter(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: n
   }
   // Wings to the full 40 px width, nose at the box top.
   const g = ctx.createLinearGradient(0, top, 0, bottom);
-  g.addColorStop(0, "#FFE4A0");
-  g.addColorStop(1, "#C98A1C");
+  g.addColorStop(0, "#FFF3D0");
+  g.addColorStop(1, "#E6A830");
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.moveTo(cx, top);
@@ -243,6 +243,14 @@ export function drawWavefrontBeam(ctx: CanvasRenderingContext2D, x: number, y: n
   const piercing = kind === "piercing";
   const w = Math.min(WAV_BOLT_W, piercing ? 3 : 2);
   const h = Math.min(WAV_BOLT_H, piercing ? 12 : 8);
+  if (kind === "player") {
+    ctx.fillStyle = "rgba(61, 220, 132, 0.3)";
+    ctx.fillRect(x - w / 2 - 2, y - 2, w + 4, h + 4);
+  }
+  if (kind === "player") {
+    ctx.fillStyle = "rgba(61, 220, 132, 0.35)";
+    ctx.fillRect(x - w / 2 - 2, y - 2, w + 4, h + 4);
+  }
   ctx.fillStyle = piercing ? WAV_PURPLE : kind === "enemy" ? WAV_RED : "#3DDC84";
   ctx.fillRect(x - w / 2, y, w, h);
 }

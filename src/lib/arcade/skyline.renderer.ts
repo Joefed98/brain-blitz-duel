@@ -14,7 +14,7 @@ const STEEL = "#788DA4";
 const STEEL_LIGHT = "#A9BED0";
 const TOWER_DARK = "#131D2C";
 const TOWER_NEAR = "#202C3D";
-const WINDOW_LIGHT = "#C8B981";
+const WINDOW_LIGHT = "#FFC966";
 const PANE_GLOW = "rgba(216,243,255,0.18)";
 const GROUND = "#424F60";
 const JIB_Y = 30;
@@ -24,14 +24,17 @@ const SPARK_TICKS = 18;
 const zoomMemo = new WeakMap<CanvasRenderingContext2D, number>();
 
 interface Chunk { x: number; w: number; top: number; dir: number; at: number; colour: number }
-interface Memory { tick: number; len: number; x: number; w: number; missed: boolean; chunks: Chunk[] }
+interface Memory { tick: number; len: number; x: number; w: number; missed: boolean; chunks: Chunk[]; placementTicks: number[] }
 const memories = new WeakMap<CanvasRenderingContext2D, Memory>();
 
 function remember(ctx: CanvasRenderingContext2D, s: SkylineState): Memory {
-  const m = realMemo(memories, ctx, s.tick, () => ({ tick: s.tick, len: s.blocks.length, x: s.x, w: s.w, missed: s.missed, chunks: [] }));
+  const m = realMemo(memories, ctx, s.tick, () => ({ tick: s.tick, len: s.blocks.length, x: s.x, w: s.w, missed: s.missed, chunks: [], placementTicks: new Array(s.blocks.length).fill(-1e9) }));
   const blockH = px(SKYLINE_BLOCK_H);
   const now = realNow();
   if (s.tick !== m.tick) {
+    if (s.blocks.length > m.len) {
+      for (let i = m.len; i < s.blocks.length; i++) m.placementTicks[i] = s.tick;
+    }
     if (s.blocks.length > m.len && s.perfectTick !== s.tick) {
       const top = s.blocks[s.blocks.length - 1]!;
       const y = SKYLINE_WORLD_H - (s.blocks.length - 1) * blockH - blockH;
@@ -83,7 +86,7 @@ function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: numbe
   ctx.restore();
 }
 
-function drawBlock(ctx: CanvasRenderingContext2D, x: number, top: number, w: number, h: number, index: number): void {
+function drawBlock(ctx: CanvasRenderingContext2D, x: number, top: number, w: number, h: number, index: number, age = Infinity): void {
   ctx.fillStyle = STEEL;
   ctx.fillRect(x, top, w, h);
   ctx.fillStyle = GLASS[index % GLASS.length]!;
@@ -97,6 +100,19 @@ function drawBlock(ctx: CanvasRenderingContext2D, x: number, top: number, w: num
   for (let p = 0; p < panes; p++) ctx.fillRect(x + inset + p * pw + 1, top + inset + 2, Math.max(1, (pw - 2) * 0.3), h - inset * 2 - 4);
   ctx.fillStyle = STEEL_LIGHT;
   ctx.fillRect(x, top, w, 2);
+
+  // Warm lit windows for placed floors (fade in over ~20 ticks after landing).
+  if (age !== Infinity) {
+    const fade = Math.max(0, Math.min(1, age / 20));
+    for (let p = 0; p < panes; p++) {
+      const lit = artHash(index * 31 + p, 7) % 5;
+      if (lit === 0) continue;
+      ctx.globalAlpha = fade * (lit === 1 ? 0.45 : 0.85);
+      ctx.fillStyle = lit === 4 ? "#FFE3A3" : WINDOW_LIGHT;
+      ctx.fillRect(x + inset + p * pw + 2, top + inset + 3, pw - 4, h - inset * 2 - 6);
+    }
+    ctx.globalAlpha = 1;
+  }
 }
 
 function drawCrane(ctx: CanvasRenderingContext2D, trolleyX: number, tick: number): void {
@@ -170,7 +186,7 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
       ctx.fillStyle = REAL_SHADOW;
       if (r > l) ctx.fillRect(l, top + blockH, r - l, 3);
     }
-    drawBlock(ctx, px(block.x), top, px(block.w), blockH, index);
+    drawBlock(ctx, px(block.x), top, px(block.w), blockH, index, state.tick - (mem.placementTicks[index] ?? state.tick));
   });
 
   const hangTop = SKYLINE_WORLD_H - state.blocks.length * blockH - blockH;
