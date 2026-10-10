@@ -161,7 +161,7 @@ function Panel({
 }
 
 
-const TOKEN_RE = /(wires \d and \d|wire \d|button [AB]|press [AB]|\\b(?:Red|Blue|Green|Yellow|White|Black)\\b)/gi;
+const TOKEN_RE = /(wires \d and \d|wire \d|button [AB]|press [AB]|\b(?:Red|Blue|Green|Yellow|White|Black)\b)/gi;
 
 function Swatch({ colour }: { colour: WireColour }) {
   return (
@@ -169,7 +169,7 @@ function Swatch({ colour }: { colour: WireColour }) {
       className="mx-0.5 inline-block h-2.5 w-4 shrink-0 rounded-[2px] align-middle shadow-[0_0_0_1px_rgba(0,0,0,0.3)]"
       style={{
         backgroundColor: WIRE_HEX[colour],
-        border: colour === "BLACK" ? "1px solid rgba(255,255,255,0.2)" : "none",
+        border: colour === "BLACK" ? "1px solid #8A8A94" : "none",
       }}
     />
   );

@@ -85,14 +85,14 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
 
   // Combo in pixel font, growing with the combo.
   if (state.combo > 0) {
-    const sizePx = Math.min(22, 10 + tier * 3 + Math.floor(Math.min(state.combo, 40) / 10));
+    const sizePx = Math.min(22, 14 + tier * 3 + Math.floor(Math.min(state.combo, 40) / 10));
     const colour = tier >= 3 ? GOLD : tier === 2 ? NEON[2]! : tier === 1 ? NEON[0]! : RETRO_WHITE;
     retroText(ctx, `${state.combo}x`, BEAT_WORLD_W - 8, BEAT_HIT_LINE_Y + 10, sizePx, colour, "right", bloom);
   }
 
   // Judgement word pops at the hit line.
   if (state.lastJudge !== BEAT_JUDGE_NONE && state.lastJudge !== BEAT_JUDGE_PENDING && state.judgeAge < 24) {
-    const pop = state.judgeAge < 4 ? 14 - state.judgeAge : 10;
+    const pop = state.judgeAge < 4 ? 18 - state.judgeAge : 14;
     ctx.globalAlpha = Math.max(0, 1 - state.judgeAge / 24);
     retroText(
       ctx,
