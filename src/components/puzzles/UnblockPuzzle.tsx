@@ -80,7 +80,7 @@ export function UnblockBoard({
       />
       <svg
         className="unblock-exit-arrow absolute"
-        style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 16, right: -24 }}
+        style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 14, right: 1 }}
         viewBox="0 0 16 24"
         aria-hidden="true"
       >
@@ -228,7 +228,7 @@ export function UnblockPuzzle({
             />
             <svg
               className="unblock-exit-arrow absolute"
-              style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 16, right: -24 }}
+              style={{ top: pct(UNBLOCK_EXIT_ROW), height: pct(1), width: 14, right: 1 }}
               viewBox="0 0 16 24"
               aria-hidden="true"
             >

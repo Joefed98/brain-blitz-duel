@@ -30,3 +30,5 @@
 
 .game-column [data-polish="laser"] > [data-game-arena="board"] { flex: 1 1 auto; min-height: 0; }
 .game-column [data-polish="laser"] > [data-game-controls] { flex: 0 0 auto; }
+/* Jumbled tiles keep their 1→8 gradient over the shared cell surface. */
+[data-puzzle-surface] [data-polish="tiles"] [aria-label^="Tile "][data-puzzle-cell] { background-color: var(--tile-fill) !important; }

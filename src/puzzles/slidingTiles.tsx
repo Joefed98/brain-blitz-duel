@@ -74,6 +74,7 @@ function Frame({
             style={{
               height: cell,
               background: tileFill(value),
+              ["--tile-fill" as string]: tileFill(value),
               fontSize: Math.round(cell * 0.42),
               transition: `transform ${TILES_SLIDE_MS}ms ease-out`,
             }}
