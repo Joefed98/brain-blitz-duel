@@ -14,8 +14,8 @@ const SPIKE_HEIGHT = 22;
 const OVERHANG_DEPTH = 34;
 /** Canvas-only material tokens shared by every part of this renderer. */
 const MATERIAL = {
-  wash: "rgba(8,7,10,0.76)", tunnel: "#0B0C10", basalt: "#17171C",
-  nearRock: "#202027", farRock: "#101116", seam: "#303039",
+  wash: "rgba(8,7,10,0.76)", tunnel: "#121418", basalt: "#1E1E24",
+  nearRock: "#2A2A32", farRock: "#181A20", seam: "#303039",
   lava: "#FF4A24", hot: "#FFAA46", core: "#E73720", obsidian: "#090A0D",
   figure: "#F5B82E", boot: "#59636D", mineral: "#C98760",
   lamp: "#FFE4A1", dust: "rgba(161,153,147,0.22)",
@@ -123,6 +123,9 @@ function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number,
     ctx.lineTo(x + 8, y + outward * 37);
     ctx.lineTo(x + 24, y + outward * 57);
     ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
   }
   // Spouts sit only between all obstacle spans, and erupt away from the band.
   for (let k = Math.floor(cam / 115) - 1; k < Math.floor(cam / 115) + 5; k++) {
@@ -142,6 +145,9 @@ function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number,
     ctx.moveTo(x - 4, y);
     ctx.quadraticCurveTo(x - 8, y + outward * height, x + 3, y + outward * (height - 6));
     ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
     ctx.globalAlpha = 1;
   }
   // Low-contrast particles behind the action; reduced motion fixes their phase.
@@ -208,6 +214,9 @@ function drawRockObstacle(ctx: CanvasRenderingContext2D, a: number, b: number, i
     ctx.lineTo(tip + slot * 0.1, at(tip) + inward * height * 0.4);
     ctx.lineTo(tip, at(tip) + inward * height * 0.86);
     ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
     ctx.globalAlpha = 0.55;
     ctx.strokeStyle = MATERIAL.mineral;
     ctx.lineWidth = 0.7;
@@ -217,6 +226,9 @@ function drawRockObstacle(ctx: CanvasRenderingContext2D, a: number, b: number, i
       ctx.lineTo(tip + sign * slot * 0.13, at(tip) + inward * height * 0.48);
       ctx.lineTo(tip + sign * slot * 0.06, at(tip) + inward * height * 0.7);
       ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
     }
     ctx.restore();
   }
@@ -247,6 +259,9 @@ export function drawFlipPool(ctx: CanvasRenderingContext2D, a: number, b: number
     ctx.beginPath();
     flipSurfaceLine(ctx, x => at(x) - inward * (4 + k * 7 + Math.sin((x - a) * 0.07 + time * 0.65 + k) * 1.1), a + 2, b - 2);
     ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
   }
   ctx.globalAlpha = 0.7;
   for (let k = 0; k < 4; k++) {
@@ -265,6 +280,9 @@ export function drawFlipPool(ctx: CanvasRenderingContext2D, a: number, b: number
   ctx.lineTo(a, at(a) - inward * POOL_DEPTH);
   ctx.moveTo(b, at(b));
   ctx.lineTo(b, at(b) - inward * POOL_DEPTH);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
   ctx.stroke();
   ctx.restore();
 }
@@ -297,6 +315,9 @@ function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: number, 
   ctx.moveTo(0, 3); ctx.lineTo(-3 + stride, 9);
   ctx.moveTo(0, 3); ctx.lineTo(3 - stride, 9);
   ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
   ctx.fillStyle = MATERIAL.boot;
   ctx.fillRect(-5 + stride, 8, 4, 2.5);
   ctx.fillRect(1 - stride, 8, 4, 2.5);
@@ -320,6 +341,11 @@ export function drawFlipArt(ctx: CanvasRenderingContext2D, state: FlipState, siz
   ctx.fillRect(0, 0, size.width, size.height);
   ctx.translate((size.width - FLIP_WORLD_W * scale) / 2, (size.height - FLIP_WORLD_H * scale) / 2);
   ctx.scale(scale, scale);
+  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = "#F7F7F8";
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+  ctx.fillText(`${flipGame.score(state)}`, 14, 14);
   ctx.beginPath();
   ctx.rect(0, 0, FLIP_WORLD_W, FLIP_WORLD_H);
   ctx.clip();
@@ -355,17 +381,29 @@ export function drawFlipArt(ctx: CanvasRenderingContext2D, state: FlipState, siz
     ctx.strokeStyle = "rgba(255,69,24,0.1)";
     ctx.lineWidth = 26;
     ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
     ctx.strokeStyle = "rgba(255,76,24,0.2)";
     ctx.lineWidth = 12;
     ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
     ctx.restore();
     rail();
     ctx.strokeStyle = MATERIAL.lava;
     ctx.lineWidth = 2;
     ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
     ctx.strokeStyle = MATERIAL.hot;
     ctx.lineWidth = 0.8;
     ctx.stroke();
+  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
   }
 
   const y = runnerY(state.side, state.flipT) + state.warpY;

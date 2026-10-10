@@ -25,6 +25,33 @@ import {
 import { icos, isin, TRIG_ONE } from "./trig";
 import { reducedMotion as prefersReducedMotion } from "./art.renderer";
 
+/** Rocket body + fins + soft glow, cached per dead state. */
+const rocketCaches = new Map<string, HTMLCanvasElement>();
+function getRocketSprite(dead: boolean): HTMLCanvasElement | null {
+  if (typeof document === "undefined") return null;
+  const key = dead ? "dead" : "alive";
+  const hit = rocketCaches.get(key); if (hit) return hit;
+  const size = 48, r = size / 2;
+  const canvas = document.createElement("canvas"); canvas.width = size; canvas.height = size;
+  const c = canvas.getContext("2d"); if (!c) return null;
+  c.translate(r, r);
+  c.shadowColor = dead ? "rgba(255,77,77,0.4)" : "rgba(255,214,102,0.4)";
+  c.shadowBlur = 6;
+  // Fins.
+  c.fillStyle = dead ? "#8A2B33" : "#C8862A";
+  c.beginPath(); c.moveTo(-6, -2); c.lineTo(-9, -6); c.lineTo(-2, -3); c.closePath();
+  c.moveTo(-6, 2); c.lineTo(-9, 6); c.lineTo(-2, 3); c.closePath(); c.fill();
+  // Body.
+  c.fillStyle = dead ? "#FF4D4D" : "#F4F1EA";
+  c.beginPath(); c.moveTo(10, 0); c.quadraticCurveTo(4, -4.5, -6, -3); c.lineTo(-6, 3); c.quadraticCurveTo(4, 4.5, 10, 0); c.closePath(); c.fill();
+  c.shadowBlur = 0;
+  c.fillStyle = dead ? "#5A1820" : "#F5C542";
+  c.beginPath(); c.moveTo(10, 0); c.quadraticCurveTo(7, -2.6, 5, -2.6); c.lineTo(5, 2.6); c.quadraticCurveTo(7, 2.6, 10, 0); c.fill();
+  c.fillStyle = "#4D8CFF"; c.beginPath(); c.arc(1, 0, 1.6, 0, Math.PI * 2); c.fill();
+  rocketCaches.set(key, canvas); return canvas;
+}
+
+
 /* Mirrors of private sim constants, used only to trace the same paths. */
 const FP = 256;
 const ELLIPSE_B_PCT = 60;
@@ -378,7 +405,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
     ctx.lineCap = "butt";
   }
 
-  // Rocket, nose at the ship's point heading forward.
+    // Rocket, nose at the ship's point heading forward.
   ctx.save();
   ctx.translate(sx, sy);
   ctx.rotate(Math.atan2(uy, ux));
@@ -398,38 +425,8 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
     ctx.closePath();
     ctx.fill();
   }
-  // Fins.
-  ctx.fillStyle = dead ? "#8A2B33" : "#C8862A";
-  ctx.beginPath();
-  ctx.moveTo(-6, -2);
-  ctx.lineTo(-9, -6);
-  ctx.lineTo(-2, -3);
-  ctx.closePath();
-  ctx.moveTo(-6, 2);
-  ctx.lineTo(-9, 6);
-  ctx.lineTo(-2, 3);
-  ctx.closePath();
-  ctx.fill();
-  // Body.
-  ctx.fillStyle = dead ? ORBIT_RED : "#F4F1EA";
-  ctx.beginPath();
-  ctx.moveTo(10, 0);
-  ctx.quadraticCurveTo(4, -4.5, -6, -3);
-  ctx.lineTo(-6, 3);
-  ctx.quadraticCurveTo(4, 4.5, 10, 0);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = dead ? "#5A1820" : ORBIT_GOLD;
-  ctx.beginPath();
-  ctx.moveTo(10, 0);
-  ctx.quadraticCurveTo(7, -2.6, 5, -2.6);
-  ctx.lineTo(5, 2.6);
-  ctx.quadraticCurveTo(7, 2.6, 10, 0);
-  ctx.fill();
-  ctx.fillStyle = "#4D8CFF";
-  ctx.beginPath();
-  ctx.arc(1, 0, 1.6, 0, Math.PI * 2);
-  ctx.fill();
+  const rocket = getRocketSprite(dead);
+  if (rocket) ctx.drawImage(rocket, -rocket.width / 2, -rocket.height / 2);
   ctx.restore();
 
   ctx.fillStyle = "#FFFFFF";

@@ -40,8 +40,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
     const colour = NEON[lane]!;
     const h = BEAT_WORLD_H - BEAT_HUD_H;
     pixelRect(ctx, x, BEAT_HUD_H, laneW, h, `${colour}10`);
-    pixelRect(ctx, x + 2, BEAT_HUD_H, 2, h, `${colour}66`);
-    pixelRect(ctx, x + laneW - 4, BEAT_HUD_H, 2, h, `${colour}66`);
+    pixelRect(ctx, x + 2, BEAT_HUD_H, 2, h, `${colour}A0`);
+    pixelRect(ctx, x + laneW - 4, BEAT_HUD_H, 2, h, `${colour}A0`);
     if (tier > 0) {
       // Combo glow in stepped pixel bands above the hit line (display only).
       const bands = 2 + tier * 2;
@@ -74,7 +74,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
       const headY = held ? BEAT_HIT_LINE_Y : yAt(remaining);
       const tailY = yAt(remaining + hold);
       // Beam, then pixel end caps, at the original tail/cap rects.
-      pixelRect(ctx, lane * laneW + laneW / 2 - 9, tailY, 18, Math.max(0, headY - tailY), `${colour}${held ? "CC" : "66"}`);
+      pixelRect(ctx, lane * laneW + laneW / 2 - 9, tailY, 18, Math.max(0, headY - tailY), `${colour}${held ? "CC" : "A0"}`);
       pixelRect(ctx, lane * laneW + laneW / 2 - 3, tailY, 6, Math.max(0, headY - tailY), colour);
       pixelRect(ctx, lane * laneW + 14, tailY - 4, laneW - 28, 8, colour, bloom);
       drawBar(ctx, lane * laneW + 10, headY - BEAT_NOTE_H / 2, laneW - 20, colour, bloom);
@@ -108,7 +108,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   }
 
   pixelRect(ctx, 0, 0, BEAT_WORLD_W, BEAT_HUD_H, "#000000");
-  retroReadout(ctx, 12, 8, `COMBO ${state.combo}`, RETRO_WHITE);
+  retroReadout(ctx, 12, 2, `COMBO ${state.combo}`, RETRO_WHITE);
 }
 
 /** A glowing pixel bar on the note's exact rect, with a darker inner line. */
