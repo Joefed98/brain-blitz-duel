@@ -22,8 +22,12 @@ import {
   binTossCheckpoint,
   binTossDrag,
   binTossGame,
+  binTossHalf,
   binTossPredict,
   BINTOSS_BALL_R,
+  BINTOSS_BALL_X,
+  BINTOSS_RIM_INSET,
+  BINTOSS_THROWS,
   BINTOSS_BIN_HALF,
   BINTOSS_WIND_MAX,
   BINTOSS_FIRST_DIST,
@@ -361,19 +365,38 @@ if (
 
 /* ---------------------------- Calibration ------------------------------ */
 
-// A reference-strength aim at 60° must land in the bin on throw five (160 px).
+// Reference strength retains its original 160px no-wind calibration; the
+// October 4 distance increase did not change this input mapping.
 {
   const drag = dragAt(REFERENCE_DRAG_PX, 60);
   const launch = binTossDrag(drag.dx, drag.dy);
   if (!launch) fail("the reference bin toss aim was ignored");
   else {
     const landing = binTossPredict(launch.vx, launch.vy, 0);
-    const centre = Math.round(binTossBinCentre(4) / 256);
-    const tolerance = Math.round((BINTOSS_BIN_HALF - 2_560) / 256);
+    const centre = Math.round(BINTOSS_BALL_X / 256) + 160;
+    const tolerance = 1;
     if (Math.abs(landing.x - centre) > tolerance) {
       fail(`reference aim landed at ${landing.x}, bin centre ${centre}`);
     }
   }
+}
+
+// Independently protect reachability of every current resting bin, including
+// narrowed version-2 openings, without recalibrating the player's launch speed.
+for (let index = 0; index < BINTOSS_THROWS; index++) {
+  const centre = Math.round(binTossBinCentre(index) / 256);
+  const tolerance = (binTossHalf(index, 2) - BINTOSS_RIM_INSET) / 256;
+  let reachable = false;
+  for (let length = DRAG_MIN_PX; length <= DRAG_FULL_PX; length++) {
+    const drag = dragAt(length, 60);
+    const launch = binTossDrag(drag.dx, drag.dy);
+    if (!launch) continue;
+    if (Math.abs(binTossPredict(launch.vx, launch.vy, 0).x - centre) <= tolerance) {
+      reachable = true;
+      break;
+    }
+  }
+  if (!reachable) fail(`bin toss throw ${index + 1}: no legal 60-degree aim reaches the resting bin`);
 }
 
 // A reference-strength straight-up aim must land on the centre at arrow one.
@@ -389,8 +412,9 @@ if (
   }
 }
 
-if (BINTOSS_FIRST_DIST !== 100 * 256 || BINTOSS_DIST_STEP !== 15 * 256) {
-  fail("bin toss distances are not 100–235 px");
+if (BINTOSS_FIRST_DIST !== 135 * 256 || BINTOSS_DIST_STEP !== 15 * 256 ||
+    binTossBinCentre(BINTOSS_THROWS - 1) - BINTOSS_BALL_X !== 270 * 256) {
+  fail("bin toss distances are not 135–270 px in 15 px steps");
 }
 if (BINTOSS_BIN_HALF !== 40 * 256) fail("bin toss opening is not 80 px");
 if (BULLSEYE_OUTER_R !== 91) fail("bullseye outer radius is not 91 px");
@@ -525,3 +549,4 @@ for (const key of ["bintoss", "bullseye"] as const) {
 
 console.log(`first failing tick: ${firstFailingTick ?? "none"}`);
 console.log(failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`);
+process.exitCode = failures === 0 ? 0 : 1;
