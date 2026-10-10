@@ -62,6 +62,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const liveLevelRef = useRef(false);
   const liveDroppingRef = useRef(false);
   const [liveLevel, setLiveLevel] = useState(false);
+  const [liveDropping, setLiveDropping] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const hintSeen = useRef(false);
   const queue = (payload: PointerPayload) => {
@@ -92,6 +93,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           liveLevelRef.current = live;
           liveDroppingRef.current = live && state.dropping === 1;
           if (live !== liveLevel) setLiveLevel(live);
+          if (liveDroppingRef.current !== liveDropping) setLiveDropping(liveDroppingRef.current);
           if (live && !hintSeen.current && !showHint) {
             hintSeen.current = true;
             window.localStorage.setItem(LIVE_HINT_KEY, "1");
@@ -142,7 +144,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       />
       <div data-game-controls="tools" className="flex h-12 shrink-0 gap-1.5">
         {([ [INK_INPUT_UNDO, "UNDO"], [INK_INPUT_RESET, "RESET"], [INK_INPUT_RELEASE, "RELEASE"], [INK_INPUT_DROP_AGAIN, "DROP AGAIN"] ] as const).map(([k, label]) => (
-          <Button key={k} type="button" disabled={locked} variant={k === INK_INPUT_RELEASE ? "default" : "outline"} className="h-12 min-w-0 flex-1 px-1 text-xs font-bold" style={{ touchAction: "none" }} onPointerDown={(e) => {
+          <Button key={k} type="button" disabled={locked || (k === INK_INPUT_UNDO && liveDropping)} variant={k === INK_INPUT_RELEASE ? "default" : "outline"} className="h-12 min-w-0 flex-1 px-1 text-xs font-bold" style={{ touchAction: "none" }} onPointerDown={(e) => {
             e.preventDefault();
             presses.current = (presses.current + 1) % 256;
             pen.current = null;

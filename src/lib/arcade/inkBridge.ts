@@ -84,7 +84,7 @@ export const INK_LIVE_GRAVITY = 54;
 const INK_LIVE_BUDGET_256 = 384;
 /** Pre-release line ink cap on live levels, px: short enough that it alone usually strands the
  * ball well short of the bucket, so the mid-fall live stroke genuinely does the rescuing. */
-const INK_LIVE_PRE_CAP = 170;
+export const INK_LIVE_PRE_CAP = 170;
 /** No-draw zone radius around the ball's current position on live levels: one coin diameter. */
 export const INK_NO_DRAW_ZONE_PX = BALL_R * 2;
 /** Up to this many live strokes may be lifted (committed) per drop. */
@@ -788,11 +788,27 @@ function findLiveReference(
       }
     }
     if (drawTick < 0 || drawTick + 2 >= trace.length - 1) continue;
+    // The live stroke is a catch ramp drawn just beneath the falling ball (a stroke
+    // starting at the pre-line's end would sit inside the no-draw ring as the ball
+    // leaves it), placed a few ticks into the fall and leading to the pot.
+    const catches: { t: number; x: number; y: number }[] = [];
+    for (const d of [2, 8, 16]) {
+      const t = drawTick + d;
+      if (t + 3 >= trace.length - 1) break;
+      const p = trace[t + 2]!;
+      for (const dy0 of [26, 44])
+        for (const dx0 of [6]) {
+          const cx = Math.round(p.x / FP) + dir * dx0;
+          const cy = Math.round(p.y / FP) + dy0;
+          if (cx >= 2 && cx <= INK_WORLD_W - 2 && cy < INK_WORLD_H) catches.push({ t, x: cx, y: cy });
+        }
+    }
+    for (const cat of catches) {
     for (const lift of lifts) {
       for (const ex of ends) {
         const ey = lvl.bucketY - lift;
-        if (w[1] >= ey - 10) continue;
-        const ref2 = [[w[0], w[1], ex, ey]];
+        if (cat.y >= ey - 10) continue;
+        const ref2 = [[cat.x, cat.y, ex, ey]];
         const pen2 = strokeSegs(ref2, Math.trunc(remaining / FP));
         if (pen2.penDown !== 1) continue;
         let safe = true;
@@ -801,13 +817,13 @@ function findLiveReference(
         // sees the position after tick drawTick-1, and STROKE(point) at drawTick+1 sees
         // the position after tick drawTick. Mirror that here (checked against both
         // endpoints, with one extra tick of margin either side).
-        for (const tt of [drawTick - 1, drawTick, drawTick + 1]) {
+        for (const tt of [cat.t - 1, cat.t, cat.t + 1]) {
           const p = trace[Math.max(0, Math.min(tt, trace.length - 1))]!;
-          if (Math.hypot(p.x / FP - w[0], p.y / FP - w[1]) < zone) safe = false;
+          if (Math.hypot(p.x / FP - cat.x, p.y / FP - cat.y) < zone) safe = false;
           if (Math.hypot(p.x / FP - ex, p.y / FP - ey) < zone) safe = false;
         }
         if (!safe) continue;
-        const actTick = drawTick + 2;
+        const actTick = cat.t + 2;
         const result = simulateStaged(
           lvl,
           [
@@ -818,10 +834,11 @@ function findLiveReference(
         );
         if (result !== 1) continue;
         const preAlone = simulateDrop(lvl, pen1.segs, 0, gravity) === 1;
-        const candidate = { ref: ref1, t0: 0, liveRef: [{ tick: drawTick, pts: ref2[0]! }], preAlone };
+        const candidate = { ref: ref1, t0: 0, liveRef: [{ tick: cat.t, pts: ref2[0]! }], preAlone };
         if (!preAlone) return candidate;
         if (!fallback) fallback = candidate;
       }
+    }
     }
   }
   return fallback;
@@ -874,24 +891,20 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
   const list: InkLevel[] = [];
   for (let i = 0; i < INK_LEVELS; i++) {
     let sourceLevel: number;
-    let counts: readonly number[];
-    let birds = false;
     let forceSlide = false;
     let live = false;
     if (i < 4) {
       sourceLevel = i + 2;
-      counts = BLOCK_COUNTS;
     } else if (i < 8) {
       sourceLevel = i + 2;
-      counts = BIRD_COUNTS;
-      birds = true;
       forceSlide = true;
     } else {
       sourceLevel = INK_LEVELS - 1;
-      counts = BLOCK_COUNTS;
       live = true;
     }
-    const h = birds ? INK_BIRD_H_FP : undefined;
+    // Every round under inkRev 3 draws white birds, never the old red blocks.
+    const counts: readonly number[] = BIRD_COUNTS;
+    const h = INK_BIRD_H_FP;
     const gravity = live ? INK_LIVE_GRAVITY : GRAVITY;
     const count = counts[sourceLevel]!;
     const ink = inkBudgetFor(i, INK_REV3);
@@ -935,7 +948,9 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
         spoutX,
         bucketX: 300,
         bucketY: 540,
-        blocks: live ? [] : [{ x0: 90, x1: 150, y: 200, ...(h ? { h } : {}) }],
+        blocks: live
+          ? [{ x0: Math.max(0, spoutX - 70), x1: Math.min(INK_WORLD_W, spoutX + 70), y: 420, h }]
+          : [{ x0: 90, x1: 150, y: 200, h }],
         slideAmp: 0,
         slidePeriod: 1,
         slidePhase: 0,
@@ -1275,7 +1290,11 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
     } else if (input.k === INK_INPUT_UNDO) {
       const start = s.strokeStarts.pop();
       if (start !== undefined) {
-        for (const seg of s.segs.splice(start)) s.ink += seg.len * FP;
+        for (const seg of s.segs.splice(start)) {
+          s.ink += seg.len * FP;
+          // Live levels: the pre-release cap is refunded too, so the line can be redrawn.
+          if (live) s.preInkUsed = Math.max(0, s.preInkUsed - seg.len * FP);
+        }
         s.penDown = 0;
       }
     } else if (input.k === INK_INPUT_RESET) {

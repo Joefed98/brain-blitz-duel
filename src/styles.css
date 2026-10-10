@@ -1296,8 +1296,10 @@ body.game-lock {
 .interlock-tray { height: 88px; gap: 0; grid-auto-rows: 44px; }
 .interlock-tray .word-letter-tile { min-width: 44px; min-height: 44px; }
 .game-column [data-polish="wordsearch"] > [data-game-arena] { height: min(100cqw, calc(100cqh - 136px)); }
-.game-column [data-polish="letterwheel"] > [data-arena-part="letterwheel-board"] { flex: 0 1 auto; height: min(180px, calc(100cqh - 336px)); min-height: 90px; }
-.game-column [data-polish="letterwheel"] > [data-game-arena="letterwheel-wheel"] { flex: 0 0 240px; height: 240px; min-height: 240px; max-height: 240px; transform: none; }
+/* Roundabout: the crossword gets about 238px (eight 28px rows) before the wheel grows past 200px. */
+.game-column [data-polish="letterwheel"] { --lw-wheel: clamp(200px, calc(100cqh - 318px), 240px); }
+.game-column [data-polish="letterwheel"] > [data-arena-part="letterwheel-board"] { flex: 0 1 auto; height: min(260px, calc(100cqh - var(--lw-wheel) - 80px)); min-height: 112px; }
+.game-column [data-polish="letterwheel"] > [data-game-arena="letterwheel-wheel"] { flex: 0 0 auto; height: var(--lw-wheel); aspect-ratio: 1; transform: none; }
 .game-column [data-polish="letterwheel"] [data-game-controls] { padding-top: 0; }
 .game-column [data-polish="numpyramid"] > [data-game-arena] { flex: 0 1 auto; }
 .game-column [data-polish="stopwatch"] > [data-game-arena="tall"] { height: min(288px, calc(100cqh - 200px)); }
