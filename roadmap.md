@@ -1,7 +1,7 @@
 ## Arcade success regression investigation (Oct 10)
-- [ ] Run the three reported checks alone and compare exact failures against pre-effects sources.
-- [ ] Fix proven renderer regressions or evidenced stale assertions without changing gameplay/audio/data.
-- [ ] Run the complete named suite with 300s caps, Snip 1800s, deep Orbit optional; deliver errors, evidence and all statuses.
+- [x] Run the three reported checks alone; all original failures reproduce on exact pre-effects revision.
+- [x] Correct three stale checks and failure-exit reporting; all three pass, application sources unchanged.
+- [x] Complete named suite: 66/83 pass, 16 fail, 1 timeout; Snip passes in 703s under 1800s, deep Orbit optional. Deliver exact errors, historical evidence and all statuses.
 
 ## Arcade success effects (Oct 10)
 - [x] Optimise Gemstone sprites/dirty cells; add existing-state rewards across 23 games.
