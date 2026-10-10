@@ -1,7 +1,7 @@
 ## Arcade success effects (Oct 10)
-- [ ] Optimise Gemstone sprites/dirty cells before adding existing-state success rewards across the requested games.
-- [ ] Verify bounded/reduced-motion/replay drawing and effect-active local timings; capture 360px peak renderer images.
-- [ ] Compare checks with the last run using 300s per script; deliver triggers, timings and limitations.
+- [x] Optimise Gemstone sprites/dirty cells; add existing-state rewards across 23 games.
+- [x] Verify bounded/reduced-motion/replay helper and 24 immutable renderer fixtures; deliver representative 360px captures and effect-active local timings. Exhaustive device peak captures remain unverified.
+- [x] Run 84 checks with 300s caps: 63 pass, 18 fail, 3 timeout; deliver trigger/timing report. Prior 67/83 report lacks named failures, so exact zero-regression certification remains unavailable.
 - [ ] Actual accepted-key device frame readings: awaiting the user's own phone checks.
 
 ## Grappler dragons (Oct 9)
