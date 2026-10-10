@@ -89,7 +89,7 @@ function SudokuGrid({
             ) : marks.length ? (
               <span
                 className="grid w-full grid-cols-3 gap-0 px-[6%] font-mono text-muted-foreground"
-                style={{ fontSize: "max(7px, calc(100cqw / 6 * 0.22))" }}
+                style={{ fontSize: "max(8px, calc(100cqw / 6 * 0.26))" }}
               >
                 {DIGITS.map((digit) => (
                   <span key={digit} className="text-center">
@@ -190,7 +190,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
+    <div data-polish="sudoku" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <SudokuGrid
           values={grid}

@@ -48,10 +48,10 @@ function LightsGrid({
           type="button"
           disabled={!onPress}
           onClick={onPress ? () => onPress(cell) : undefined}
-          className={`relative rounded-xl border transition-colors duration-100 ${
+          className={`lightsout-bulb relative rounded-xl border transition-colors duration-100 ${
             on
-              ? "border-primary bg-primary shadow-[0_0_18px_var(--primary)]"
-              : "border-border bg-card"
+              ? "lightsout-bulb-on border-primary bg-primary shadow-[0_0_18px_var(--primary)]"
+              : "lightsout-bulb-off border-border bg-card"
           } ${flash === cell ? "animate-pop-in" : ""}`}
           aria-label={`Light ${cell + 1} ${on ? "on" : "off"}`}
         >
@@ -137,7 +137,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
+    <div data-polish="lightsout" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         presses <span className="text-primary">{presses.filter((cell) => cell >= 0).length}</span>
       </p>

@@ -51,7 +51,7 @@ function FlowBoard({
     for (const cell of path) filled.set(cell, GLYPH_COLOURS[colour]);
   });
 
-  const stroke = metrics ? Math.max(2, metrics.cellW * 0.55) : 0;
+  const stroke = metrics ? Math.max(3, metrics.cellW * 0.68) : 0;
 
   return (
     <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none">
@@ -84,7 +84,7 @@ function FlowBoard({
           return (
             <div
               key={cell}
-              className="flex items-center justify-center rounded-[3px] border border-border/60 bg-card"
+              className="flow-cell flex items-center justify-center rounded-[3px] border border-border bg-card"
               style={tint ? { backgroundColor: `${tint}22`, borderColor: `${tint}55` } : undefined}
             >
               {/* The dot is a child of its own cell, so it is always dead centre,
@@ -93,10 +93,11 @@ function FlowBoard({
                 <span
                   className="relative block rounded-full"
                   style={{
-                    width: "62%",
-                    height: "62%",
+                    width: "64%",
+                    height: "64%",
                     zIndex: 2,
                     backgroundColor: GLYPH_COLOURS[dot.colour],
+                    boxShadow: "0 0 0 2px var(--background), 0 0 0 3px color-mix(in oklab, var(--foreground) 25%, transparent)",
                   }}
                 />
               )}
@@ -277,7 +278,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
   if (puzzle.type !== "flow") return null;
 
   return (
-    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
+    <div data-polish="flow" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         cells filled <span className="text-primary">{filled}</span> / {FLOW_CELLS - walls.length} ·{" "}
         {verdict.pairsJoined} / {pairs.length} pairs

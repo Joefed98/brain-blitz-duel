@@ -41,7 +41,7 @@ function Board({
   const metrics = useGridMetrics(gridRef, cols, cols);
   const walls = useMemo(() => new Set(data.walls), [data.walls]);
   const locked = gravityLocked(balls, data.targets);
-  const ballSize = metrics ? Math.max(6, Math.min(metrics.cellW, metrics.cellH) * 0.66) : 0;
+  const ballSize = metrics ? Math.max(6, Math.min(metrics.cellW, metrics.cellH) * 0.78) : 0;
   const tiltStyle =
     lean === "U"
       ? "rotateX(6deg)"
@@ -75,11 +75,11 @@ function Board({
           return (
             <div
               key={cell}
-              className={`rounded-[3px] ${walls.has(cell) ? "bg-foreground/80" : "bg-card"}`}
+              className={`rounded-[3px] ${walls.has(cell) ? "gravity-wall" : "bg-card"}`}
               style={
                 target >= 0
                   ? {
-                      boxShadow: `inset 0 0 0 ${isLocked ? 4 : 2}px ${BALL_COLOURS[target]}`,
+                      boxShadow: `inset 0 0 0 ${isLocked ? 5 : 3}px ${BALL_COLOURS[target]}`,
                       borderRadius: "999px",
                       borderStyle: isLocked ? undefined : "dashed",
                     }
@@ -181,7 +181,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
   };
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" data-polish="gravity" className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         tilts <span className="text-primary">{replay.tilts}</span> · locked{" "}
         <span className="text-primary">{replay.locked} / 4</span>

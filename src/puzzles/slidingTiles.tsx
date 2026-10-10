@@ -2,7 +2,6 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef } from "react";
 
-import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick, pointerElementIndex } from "@/components/puzzles/GridDrag";
 import { useNoTouchScroll } from "@/components/puzzles/noScroll";
 import {
@@ -19,27 +18,22 @@ import {
   TILES_SIZE,
   TILES_SLIDE_MS,
   TILES_TIME_MS,
-  type StroopColour,
   type TilesPuzzleData,
 } from "@/lib/duel/types";
 import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** One game colour per tile value, so a solved frame reads as a pattern. */
-const TILE_COLOURS: StroopColour[] = [
-  "RED",
-  "BLUE",
-  "GREEN",
-  "ORANGE",
-  "PURPLE",
-  "PINK",
-  "BROWN",
-  "YELLOW",
-];
+/**
+ * A soft, continuous hue ramp from tile 1 through 8, so finished order reads
+ * at a glance without the louder flat glyph colours.
+ */
+const TILE_GRADIENT_STOPS = 8;
 
 function tileFill(value: number): string {
-  return GLYPH_COLOURS[TILE_COLOURS[(value - 1) % TILE_COLOURS.length]!];
+  const step = (value - 1) % TILE_GRADIENT_STOPS;
+  const hue = 215 - (step / (TILE_GRADIENT_STOPS - 1)) * 175;
+  return `hsl(${hue.toFixed(0)} 52% 58%)`;
 }
 
 function Frame({
@@ -193,7 +187,7 @@ function Stage({
   };
 
   return (
-    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+    <div data-stage-column="3" data-polish="tiles" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
       <Frame frame={replay.frame} cell={86} onTile={slide} />
       <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         moves <span className="text-primary">{replay.moves}</span>

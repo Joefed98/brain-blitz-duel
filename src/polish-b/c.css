@@ -1,1 +1,56 @@
 /* Puzzle Polish B — group c (presentation only). */
+
+/* --- lightsout: bulb outline when off, soft glow when on --- */
+.game-column [data-polish="lightsout"] .lightsout-bulb-off {
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--foreground) 14%, transparent),
+    inset 0 2px 5px color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+.game-column [data-polish="lightsout"] .lightsout-bulb-on {
+  box-shadow:
+    0 0 20px 2px color-mix(in oklab, var(--primary) 70%, transparent),
+    inset 0 0 10px color-mix(in oklab, var(--primary-foreground) 35%, transparent);
+}
+
+/* --- sudoku: larger keypad, matched toward board cell size --- */
+.game-column [data-polish="sudoku"] [data-game-controls="numbers"] .grid-cols-6 > button {
+  min-height: 44px;
+  height: min(15cqh, 56px);
+  font-size: 20px;
+}
+.game-column [data-polish="sudoku"] [data-game-controls="numbers"] .grid-cols-2 > button {
+  min-height: 44px;
+}
+
+/* --- flow: clearer cell borders (drawn paths/endpoints sized inline) --- */
+.game-column [data-polish="flow"] .flow-cell {
+  border-width: 1.5px;
+}
+
+/* --- safe: brushed-metal dial drums on a dark metal panel --- */
+.game-column [data-polish="safe"] .safe-clue-text {
+  font-size: 21px;
+}
+.game-column [data-polish="safe"] .safe-dial-drum {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--foreground) 10%, var(--background)) 0%,
+    var(--background) 18%,
+    color-mix(in oklab, var(--foreground) 6%, var(--background)) 50%,
+    var(--background) 82%,
+    color-mix(in oklab, var(--foreground) 10%, var(--background)) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--foreground) 18%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, var(--background) 60%, black),
+    0 1px 2px color-mix(in oklab, black 40%, transparent);
+}
+.game-column [data-polish="safe"] .safe-metal-panel {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--foreground) 10%, var(--card)) 0%,
+    color-mix(in oklab, black 55%, var(--card)) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--foreground) 12%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, black 30%, transparent);
+}
