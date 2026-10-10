@@ -42,3 +42,4 @@
 
 - Refresh icons/Bonk cache original footprint art for replay parity.
 - letterShuffle keeps IDs; practiceBest is local; puzzleReject/useSolveFlourish/nearMiss paint existing verdicts/facts only, never grading/audio/phases.
+- Room draws play exactly one round per selected category, ordered by a seeded uniform permutation (categoryOrderFor) and stored as round_count at start; every round-count display reads the room's round_count. Why: rooms in progress keep their dealt rounds and screens handle 1–7 rounds.
