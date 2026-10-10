@@ -1,4 +1,4 @@
-import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /**
  * Orbit art pass. Render only: reads OrbitState and never mutates it. Every
  * body, path and hazard arc is drawn from the sim's own geometry (planet
@@ -435,7 +435,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`, 14, 26);
+  successHud(ctx,'orbit',state.tick,14,26,()=>ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`,14,26));
   if (state.checkpoint >= 0) {
     ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
     ctx.font = "600 14px 'JetBrains Mono', ui-monospace, monospace";
@@ -752,7 +752,7 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`, 14, 26);
+  successHud(ctx,'orbit3',state.tick,14,26,()=>ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`,14,26));
   if (state.checkpoint >= 0) {
     ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
     ctx.font = "600 14px 'JetBrains Mono', ui-monospace, monospace";

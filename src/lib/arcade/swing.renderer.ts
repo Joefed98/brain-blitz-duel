@@ -1,4 +1,4 @@
-import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /**
  * Swing art pass. Render only: reads SwingState and never mutates it. The lava
  * surface is the sim's floor line, stalactites use the sim's spike polygon and
@@ -378,7 +378,7 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`${Math.min(SWING_FINISH_M, swingMetres(state))} / ${SWING_FINISH_M} m`, 14, 26);
+  successHud(ctx,'swing',state.tick,14,26,()=>ctx.fillText(`${Math.min(SWING_FINISH_M,swingMetres(state))} / ${SWING_FINISH_M} m`,14,26));
   ctx.restore();
 }
 

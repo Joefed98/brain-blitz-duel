@@ -1,4 +1,4 @@
-import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /**
  * Cross art pass. Render only: reads CrossState and never mutates it. Vehicles
  * fill exactly their collision boxes; the walker stays inside the sim's 16 px
@@ -353,7 +353,7 @@ export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, s
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  ctx.fillText(`Crossings ${state.crossings}`, 14, 10);
+  successHud(ctx,'cross',state.tick,14,10,()=>ctx.fillText(`Crossings ${state.crossings}`,14,10));
 
   successFrame(ctx,{id:'cross',tick:state.tick,count:state.crossings,misses:CROSS_LIVES-state.lives,colour:CROSS_PLAYER,width:CROSS_WORLD_W,height:CROSS_WORLD_H,point:{x:cx,y:CROSS_HUD_H+CROSS_KERB_H/2,shape:'line',radius:24,label:'+1'},hud:{x:14,y:10,text:`Crossings ${state.crossings}`}});
   if (hitAge < 20 && !state.dead && crashIndicator) {

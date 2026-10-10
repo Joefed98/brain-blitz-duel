@@ -1,4 +1,4 @@
-import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /**
  * Wavefront art pass. Render only: reads WavState and never mutates it. Hulls
  * fill each shape's 28 px hit cell, armour fills its block, the saucer stays
@@ -396,7 +396,7 @@ export function drawWavefrontArt(ctx: CanvasRenderingContext2D, state: WavState,
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  ctx.fillText(`Wave ${state.wave} · ${wavefrontGame.score(state)}`, 14, 14);
+  successHud(ctx,'wavefront-hit',state.tick,14,14,()=>ctx.fillText(`Wave ${state.wave} · ${wavefrontGame.score(state)}`,14,14));
   if (state.pierce > 0) {
     ctx.fillStyle = WAV_PURPLE;
     ctx.fillText(`Laser ×${state.pierce}`, 14, 34);

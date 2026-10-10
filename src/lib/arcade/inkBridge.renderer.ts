@@ -1,4 +1,4 @@
-import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import { sceneryTexture, grassTexture } from "./sceneryTexture.renderer";
 import type { CanvasSize } from './engine';
@@ -194,7 +194,7 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
     }
   }
   for(let i=0;i<INK_FAILS;i++){c.fillStyle=i<state.fails?RED:EMPTY;c.beginPath();c.arc(228+i*14,18,5,0,Math.PI*2);c.fill();}
-  c.fillStyle=TEXT;c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='left';c.textBaseline='alphabetic';c.fillText(`Level ${Math.min(state.level+1,INK_LEVELS)} / ${INK_LEVELS}`,12,22);
+  c.fillStyle=TEXT;c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='left';c.textBaseline='alphabetic';successHud(c,'inkbridge',state.tick,12,22,()=>c.fillText(`Level ${Math.min(state.level+1,INK_LEVELS)} / ${INK_LEVELS}`,12,22));
   c.restore();
 }
 /** Fixed intro art shares the same sprites; no gameplay inputs or demo log changes. */
