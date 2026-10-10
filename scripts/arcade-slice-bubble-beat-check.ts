@@ -20,6 +20,8 @@ import {
   sliceSuppressed,
   SLICE_CHECKPOINT_INTERVAL,
   SLICE_FRENZY_COUNT,
+  SLICE_FRENZY_TICKS,
+  SLICE_HUD_H,
   SLICE_INPUT_RANGES,
   SLICE_INPUT_SWIPE,
   SLICE_RUN_TICKS,
@@ -220,7 +222,8 @@ for (let sample = 0; sample < SAMPLES; sample++) {
 /* ------------------- Slice: the two multicoloured specials ---------------- */
 
 for (let sample = 0; sample < 40; sample++) {
-  const seed = 1 + Math.floor(Math.random() * 2_000_000_000);
+  // Repeatable coverage, including the two initial run's missed-special seeds.
+  const seed = [1599091466, 460854467][sample] ?? 1 + sample * 49_999_991;
   const start = sliceGame.init(seed);
   const specials = start.objects
     .map((object, index) => ({ object, index }))
@@ -230,29 +233,28 @@ for (let sample = 0; sample < 40; sample++) {
     if (entry.object.launchTick < 10 * 60) fail(`slice ${seed}: a special lands in the first 10 s`);
   }
 
-  // One swipe straight through each special, on a tick it is airborne.
-  const events = [];
-  for (const entry of specials) {
-    for (let age = 4; age < 40; age++) {
-      const tick = entry.object.launchTick + age;
-      const at = sliceObjectAt(entry.object, tick);
-      if (!at) break;
-      const cx = Math.trunc(at.x / 256);
-      const cy = Math.trunc(at.y / 256);
-      if (cy < 60 || cy > 560 || cx < 40 || cx > 350) continue;
-      if (events.some((event) => event.t === tick)) continue;
-      events.push({ t: tick, k: 8, a: cx - 30, b: cy, c: cx + 30, d: cy });
-      break;
-    }
-  }
-  events.sort((a, b) => a.t - b.t);
-  const byTick = new Map(events.map((event) => [event.t, event]));
+  // Aim at the live position, not a precomputed un-slowed trajectory. Cutting
+  // the first slow-motion special changes subsequent objects' world ages.
+  const events: ArcadeInputEvent[] = [];
 
   let state = start;
   const checkpoints: SliceCheckpoint[] = [];
   let ticks = 0;
   for (let tick = 1; tick <= SLICE_RUN_TICKS; tick++) {
-    state = sliceGame.step(state, byTick.get(tick) ?? null);
+    let input: ArcadeInputEvent | null = null;
+    for (const entry of specials) {
+      if (state.slicedAt[entry.index]) continue;
+      const at = sliceObjectAt(entry.object, tick, state.slowFrom);
+      if (!at) continue;
+      const cx = Math.trunc(at.x / 256);
+      const cy = Math.trunc(at.y / 256);
+      if (cy < SLICE_HUD_H + 30 || cy > SLICE_WORLD_H - 30 || cx < 30 || cx > SLICE_WORLD_W - 30)
+        continue;
+      input = { t: tick, k: SLICE_INPUT_SWIPE, a: cx - 30, b: cy, c: cx + 30, d: cy };
+      events.push(input);
+      break;
+    }
+    state = sliceGame.step(state, input);
     ticks = tick;
     if (state.tick % SLICE_CHECKPOINT_INTERVAL === 0) checkpoints.push(sliceCheckpoint(state));
     if (tick % 149 === 0) integers(sliceValues(state), `slice specials ${seed}`, tick);
@@ -267,8 +269,7 @@ for (let sample = 0; sample < 40; sample++) {
   ).length;
   if (frenzyCut === 0 || lineCut === 0) fail(`slice ${seed}: specials were not sliced`);
   if (state.frenzyFrom.length !== frenzyCut) fail(`slice ${seed}: frenzy windows not recorded`);
-  const expected =
-    start.objects.length + frenzyCut * SLICE_FRENZY_COUNT;
+  const expected = start.objects.length + frenzyCut * SLICE_FRENZY_COUNT;
   if (state.objects.length !== expected) {
     fail(`slice ${seed}: spawned ${state.objects.length - start.objects.length}, expected extra`);
   }
@@ -276,10 +277,28 @@ for (let sample = 0; sample < 40; sample++) {
   for (const object of state.objects) {
     if (!object.bomb) continue;
     const inside = state.frenzyFrom.some(
-      (from) => object.launchTick >= from && object.launchTick < from + 300,
+      (from) => object.launchTick >= from && object.launchTick < from + SLICE_FRENZY_TICKS,
     );
     if (inside && !sliceSuppressed(state, object)) {
       fail(`slice ${seed}: a bomb survived a frenzy`);
+    }
+  }
+  // Pin the current three-second contract and both ends of its half-open
+  // interval so replacing an obsolete literal cannot weaken suppression.
+  if (SLICE_FRENZY_TICKS !== 180) fail("slice: frenzy duration is not three seconds");
+  const bomb = state.objects.find((object) => object.bomb);
+  if (!bomb) fail(`slice ${seed}: no bomb fixture for suppression boundaries`);
+  else {
+    const fixture = { ...state, frenzyFrom: [600] };
+    for (const [launchTick, suppressed] of [
+      [599, false],
+      [600, true],
+      [779, true],
+      [780, false],
+    ] as const) {
+      if (sliceSuppressed(fixture, { ...bomb, launchTick }) !== suppressed) {
+        fail(`slice ${seed}: frenzy suppression boundary ${launchTick} differs`);
+      }
     }
   }
 
@@ -486,3 +505,4 @@ console.log(
     ? `slice/bubble/beat checks passed: client and server states, checkpoints and scores identical over ${SAMPLES} random runs each; payload ranges enforced`
     : `${failures} failures; first failing tick ${firstFailingTick ?? "unknown"}`,
 );
+process.exitCode = failures === 0 ? 0 : 1;

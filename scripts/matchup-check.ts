@@ -4,7 +4,7 @@
  *  2. 200 runs of random valid AND invalid swaps replay identically: same final
  *     state, same checkpoints every 300 ticks, same score
  *  3. no fresh PRNG call happens during play except the no-valid-swap reshuffle
- *  4. the declared input range (k = 3, rows/columns 0…6) rejects bad payloads
+ *  4. the declared input range (k = 3, rows 0…7, columns 0…6) rejects bad payloads
  *  5. the game sits in the arcade category, is core and is not retired
  */
 
@@ -24,6 +24,7 @@ import {
   MATCHUP_QUEUE_LEN,
   MATCHUP_RUN_TICKS,
   MATCHUP_SIZE,
+  MATCHUP_ROWS,
   type MatchupCheckpoint,
   type MatchupState,
 } from "../src/lib/arcade/matchup.ts";
@@ -100,7 +101,7 @@ for (let sample = 0; sample < 200; sample++) {
       if (found) {
         input = { t: tick, k: 3, a: found.row1, b: found.col1, c: found.row2, d: found.col2 };
       } else {
-        const row = randomInt(0, MATCHUP_SIZE - 1);
+        const row = randomInt(0, MATCHUP_ROWS - 1);
         const col = randomInt(0, MATCHUP_SIZE - 2);
         input = { t: tick, k: 3, a: row, b: col, c: row, d: col + 1 };
       }
@@ -172,7 +173,8 @@ if (invalidSwaps === 0) fail("no invalid swap was ever exercised");
 /* -------------------------- Range validation ----------------------------- */
 
 const rejected: [string, ArcadeInputEvent[]][] = [
-  ["a row above the board", [{ t: 10, k: 3, a: MATCHUP_SIZE, b: 0, c: 0, d: 0 }]],
+  ["a row above the board", [{ t: 10, k: 3, a: MATCHUP_ROWS, b: 0, c: 0, d: 0 }]],
+  ["a target row above the board", [{ t: 10, k: 3, a: 0, b: 0, c: MATCHUP_ROWS, d: 0 }]],
   ["a column above the board", [{ t: 10, k: 3, a: 0, b: MATCHUP_SIZE, c: 0, d: 0 }]],
   ["a negative row", [{ t: 10, k: 3, a: -1, b: 0, c: 0, d: 0 }]],
   ["a negative target column", [{ t: 10, k: 3, a: 0, b: 0, c: 0, d: -1 }]],
@@ -203,6 +205,17 @@ const rejected: [string, ArcadeInputEvent[]][] = [
 for (const [label, events] of rejected) {
   if (checkInputEvents(events, MATCHUP_RUN_TICKS, MATCHUP_INPUT_RANGES).ok) {
     fail(`range validation accepted ${label}`);
+  }
+}
+
+// The eighth row is legal, for both the source and destination. Rejecting it
+// would hide a real input-range regression on the rectangular board.
+for (const event of [
+  { t: 10, k: 3, a: MATCHUP_ROWS - 1, b: 0, c: MATCHUP_ROWS - 1, d: 1 },
+  { t: 10, k: 3, a: MATCHUP_ROWS - 2, b: 0, c: MATCHUP_ROWS - 1, d: 0 },
+]) {
+  if (!checkInputEvents([event], MATCHUP_RUN_TICKS, MATCHUP_INPUT_RANGES).ok) {
+    fail("range validation rejected a legal eighth-row swap");
   }
 }
 
@@ -239,3 +252,4 @@ console.log(`runs needing a reshuffle: ${reshuffleRuns} / 200`);
 console.log(`invalid swaps exercised: ${invalidSwaps}`);
 console.log(`first failing tick: ${firstFailingTick ?? "none"}`);
 console.log(failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`);
+process.exitCode = failures === 0 ? 0 : 1;
