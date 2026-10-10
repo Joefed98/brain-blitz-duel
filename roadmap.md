@@ -1,3 +1,10 @@
+## Feel upgrades A (Oct 10)
+- [ ] Synchronise final-ten red timer pulse with existing ticks across timed rounds.
+- [ ] Add display-only Nucleus/Roundabout shuffle and missing accepted-word displays; Lookout found strokes.
+- [ ] Add device-local practice bests on intro/results, excluding demos and rooms.
+- [ ] Unify existing puzzle rejection signals; audit old feedback without altering rules.
+- [ ] Run full named checks against 67 pass/15 fail/1 timeout baseline and deliver report.
+
 ## Orbit next-planet framing and shooting star (Oct 10)
 - [x] Remove capture ring and edge arrow; retain independent streak/HUD feedback and add capture-count shooting star.
 - [x] Verify next-ring visibility across every bank course: dynamic minimum 32%, settled minimum 39.423%; all 504 retained, replay checks pass.

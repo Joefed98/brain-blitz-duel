@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { AcceptedWordChip } from "./AcceptedWordChip";
 import { WordsmithRing } from "./WordsmithRing";
 import { toggleWordsmithTile } from "./wordInput";
+import { Shuffle } from "lucide-react";
+import { shuffleLetterOrder } from "./letterShuffle";
 
 import {
   WORDSMITH_MIN_LENGTH,
+  WORDSMITH_CENTRE_INDEX,
   WORDSMITH_TIME_MS,
   type WordsmithPuzzleData,
 } from "@/lib/duel/types";
@@ -36,6 +39,7 @@ export function WordsmithPuzzle({
 }: WordsmithPuzzleProps) {
   const column = useGameColumnLayout();
   const letters = puzzle.letters;
+  const [order, setOrder] = useState(() => letters.map((_, i) => i));
   const [selectedTiles, setSelectedTiles] = useState<number[]>([]);
   const [found, setFound] = useState<Found[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -144,7 +148,7 @@ export function WordsmithPuzzle({
         <AcceptedWordChip word={acceptedWord} hidden={listOpen} />
         <div className="word-confirmation-board-space">
           <div className="word-confirmation-board">
-            <WordsmithRing letters={letters} selected={selectedTiles} disabled={locked || busy} onTap={tapTile} />
+            <WordsmithRing letters={letters} order={order} selected={selectedTiles} disabled={locked || busy} onTap={tapTile} />
           </div>
         </div>
       </div>
@@ -154,7 +158,8 @@ export function WordsmithPuzzle({
       </div>
       <p data-game-controls="status" className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>
 
-      <div data-game-controls="actions" className={`${column ? "" : "mt-auto "}grid shrink-0 grid-cols-2 gap-2`}>
+      <div data-game-controls="actions" className={`${column ? "" : "mt-auto "}grid shrink-0 grid-cols-[44px_1fr_1fr] gap-2`}>
+        <Button type="button" variant="outline" className="h-11 w-11 p-0" aria-label="Shuffle letters" title="Shuffle letters" disabled={locked || busy} onClick={() => setOrder(current => shuffleLetterOrder(current, WORDSMITH_CENTRE_INDEX))}><Shuffle className="h-5 w-5" /></Button>
         <Button type="button" variant="outline" onClick={() => {
           selectedRef.current = [];
           setSelectedTiles([]);

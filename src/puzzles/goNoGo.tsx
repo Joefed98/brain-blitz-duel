@@ -16,6 +16,8 @@ import {
 } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { TimerBar } from "@/components/duel/TimerBar";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 
 const DISTRACTOR_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "PURPLE"];
 const GOLD_SHAPES: GlyphShape[] = ["square", "triangle", "star"];
@@ -117,6 +119,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     const offset = serverNow() - phaseStartedAt - index * GONOGO_SLOT_MS;
     setTaps((prev) => {
       if (prev[index] !== null && prev[index] !== undefined) return prev;
+      if (!item?.target) puzzleReject();
       const next = [...prev];
       next[index] = Math.max(1, Math.round(offset));
       return next;
@@ -125,6 +128,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6">
+      <TimerBar totalMs={GONOGO_RUN_MS} msRemaining={Math.max(0, GONOGO_RUN_MS - elapsed)} active={!locked && running} />
       <div className="flex gap-1.5">
         {items.map((_, i) => (
           <span

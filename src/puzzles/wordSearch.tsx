@@ -19,6 +19,7 @@ function Grid({
   missedPath,
   pointer,
   small = false,
+  foundPaths = [],
 }: {
   grid: string;
   size: number;
@@ -29,13 +30,14 @@ function Grid({
   missedPath?: ReadonlySet<number>;
   pointer?: ReturnType<typeof useGridPointer>;
   small?: boolean;
+  foundPaths?: readonly (readonly number[])[];
 }) {
   return (
     <div
       ref={pointer?.ref}
       {...(pointer ? pointer.handlers : {})}
       data-play-area
-      className="grid h-full w-full select-none"
+      className="relative grid h-full w-full select-none"
       style={{ ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
     >
       {Array.from({ length: size * size }, (_, cell) => {
@@ -61,6 +63,13 @@ function Grid({
           </div>
         );
       })}
+      <svg viewBox={`0 0 ${size} ${size}`} className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+        {foundPaths.map((path, i) => {
+          const a = path[0], b = path.at(-1);
+          if (a === undefined || b === undefined) return null;
+          return <line key={i} x1={a % size + 0.5} y1={Math.floor(a / size) + 0.5} x2={b % size + 0.5} y2={Math.floor(b / size) + 0.5} stroke="var(--primary-foreground)" strokeWidth={0.06} strokeLinecap="round" opacity={0.7} />;
+        })}
+      </svg>
     </div>
   );
 }
@@ -76,7 +85,7 @@ function IntroExample() {
         Animals · <span className="text-primary">1</span> / 6
       </p>
       <div style={{ width: 150, containerType: "inline-size" }}>
-        <Grid grid={EXAMPLE_GRID} size={5} gold={new Set(EXAMPLE_CELLS)} small />
+        <Grid grid={EXAMPLE_GRID} size={5} gold={new Set(EXAMPLE_CELLS)} foundPaths={[EXAMPLE_CELLS]} small />
       </div>
       <p className="max-w-[260px] text-center text-xs text-muted-foreground">
         LION, found diagonally and backwards. Words can run in any of eight directions.
@@ -156,7 +165,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       </div>
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
         <div style={{ width: "min(100cqw, 100cqh)", aspectRatio: "1 / 1" }}>
-          <Grid grid={data.grid} size={size} gold={gold} live={new Set(line)} bad={new Set(bad)} pointer={pointer} />
+          <Grid grid={data.grid} size={size} gold={gold} foundPaths={found.map(f => f.cells)} live={new Set(line)} bad={new Set(bad)} pointer={pointer} />
         </div>
       </div>
       <div data-game-controls="words" className="lookout-words flex w-full shrink-0 flex-wrap justify-center gap-1.5" aria-label={`${found.length} found, ${Math.max(0, total - found.length)} still to find`}>
@@ -181,7 +190,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <div style={{ width: 210, containerType: "inline-size" }}>
-        <Grid grid={puzzle.grid} size={puzzle.size} gold={gold} missedPath={missed} small />
+        <Grid grid={puzzle.grid} size={puzzle.size} gold={gold} foundPaths={verdict.found.map(i => placements[i]?.cells ?? [])} missedPath={missed} small />
       </div>
       <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 font-mono text-xs uppercase tracking-widest">
         {placements.map((p, i) => (

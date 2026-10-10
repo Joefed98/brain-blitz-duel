@@ -1002,8 +1002,8 @@ body.game-lock {
 .timer-ring-fill { stroke: var(--category-accent); }
 .fx-timer-critical .timer-ring-fill { stroke: var(--destructive); }
 .fx-timer-critical > span { color: var(--destructive); }
-.fx-timer-pulse .fx-timer-ring, .fx-timer-pulse > span { animation: fx-timer-pulse 1s ease-in-out infinite; }
-@keyframes fx-timer-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 45% { opacity: 0.5; transform: scale(1.05); } }
+.fx-timer-pulse .fx-timer-ring, .fx-timer-pulse > span { animation: fx-timer-pulse 1s ease-out both; }
+@keyframes fx-timer-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 20% { opacity: 0.7; transform: scale(1.04); } }
 @keyframes fx-pop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 @keyframes fx-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
 .animate-pop-in, .animate-tile-flash { animation: fx-pop 180ms ease-out; }
@@ -1013,7 +1013,7 @@ body.game-lock {
 .round-instructions > div > p:first-child { color: var(--category-accent); }
 @media (prefers-reduced-motion: reduce) {
   .screen-drift { animation: none; }
-  .fx-timer-pulse .fx-timer-ring, .fx-timer-pulse > span { animation: fx-fade 1s ease-in-out infinite !important; }
+  .fx-timer-pulse .fx-timer-ring, .fx-timer-pulse > span { animation: none !important; }
   .animate-phase-in, .animate-rise-settle, .animate-pop-in, .animate-tile-flash, .animate-shake, .animate-stamp-in, .animate-tag-slam, .animate-word-scale-in, .animate-row-stagger, .animate-reaction-float { animation: fx-fade 160ms ease-out !important; }
   @keyframes fx-fade { from { opacity: 0.65; } to { opacity: 1; } }
 }
@@ -1314,7 +1314,15 @@ body.game-lock {
 [data-puzzle-surface] .word-letter-tile[data-puzzle-state="error"] { box-shadow: inset 0 0 0 2px var(--destructive), var(--letter-tile-shadow) !important; }
 .interlock-cell { border: 1px solid var(--letter-tile-edge); }
 .lookout-word-chip, .lookout-word-placeholder { display: inline-flex; align-items: center; justify-content: center; min-width: 72px; height: 28px; max-width: 100%; padding-inline: 8px; border: 1px solid var(--puzzle-edge); border-radius: 5px; font-family: var(--font-mono); font-size: 14px; color: var(--foreground); background: var(--puzzle-surface); }
-.lookout-word-chip { border-color: var(--category-accent); }
+.lookout-word-chip { border-color: var(--category-accent); background: var(--primary); color: var(--primary-foreground); }
+.found-word-moment { animation-duration: 600ms; }
+.practice-new-best { animation: practice-best-moment 1800ms ease-out both; }
+@keyframes practice-best-moment { 0% { opacity: 0; } 12%, 75% { opacity: 1; } 100% { opacity: 0; } }
+.letter-shuffle-tile { transition: left 260ms ease-out, top 260ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .letter-shuffle-tile, .practice-new-best { transition: none; animation: none; } }
+@media (prefers-reduced-motion: reduce) { .practice-new-best { animation: practice-best-moment 1800ms linear both; } }
+[data-shared-rejections] [data-game-stage] .animate-shake { animation: none !important; }
+[data-game-stage] [data-puzzle-rejected] { outline: 2px solid var(--destructive) !important; outline-offset: -2px; }
 .lookout-word-placeholder { background: var(--background); }
 [data-puzzle-surface="numpyramid"] .pyramid-tray-tile { background: linear-gradient(to bottom, var(--letter-tile-top), var(--letter-tile-bottom)) !important; color: var(--foreground) !important; border-color: var(--category-accent); box-shadow: inset 0 0 0 1px var(--category-accent), var(--letter-tile-shadow) !important; }
 [data-puzzle-surface="trail"] .trail-given { background: var(--puzzle-given) !important; color: var(--foreground) !important; }

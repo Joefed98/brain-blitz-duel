@@ -27,6 +27,7 @@ interface RoundIntroProps {
   activeCount?: number;
   onReady?: () => void;
   practice?: boolean;
+  deviceBest?: number | null;
   onBack?: () => void;
   /** This round's public puzzle, for puzzle-specific intro lines. */
   puzzle?: PuzzleData | null;
@@ -45,6 +46,7 @@ export function RoundIntro({
   activeCount = 0,
   onReady,
   practice = false,
+  deviceBest = null,
   onBack,
   puzzle = null,
 }: RoundIntroProps) {
@@ -123,6 +125,7 @@ export function RoundIntro({
       <h1 className="w-full min-w-0 whitespace-normal break-words text-center font-display text-[2.25rem] font-bold leading-none animate-pop-in sm:text-[2.75rem]">
         {puzzleName(type)}
       </h1>
+      {practice ? <p className="text-center font-mono text-xs text-muted-foreground">Best: {deviceBest ?? "—"} · this device</p> : null}
 
       {counting ? (
         <div className="flex flex-1 items-center justify-center" aria-live="polite">

@@ -23,7 +23,7 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
   const progress = Math.max(0, Math.min(1, remaining / limit));
   const seconds = Math.ceil(remaining / 1000);
   const finalTen = active && remaining > 0 && remaining <= 10_000;
-  const critical = active && remaining > 0 && remaining <= 5_000;
+  const critical = finalTen;
   const warned10 = useRef(false);
   const warnSecond = useRef<number | null>(null);
   useEffect(() => {
@@ -57,11 +57,11 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
   useEffect(() => () => stopWarning10(), []);
   return (
     <div
-      className={`flex h-5 w-full shrink-0 items-center justify-end gap-1 ${finalTen ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`}
+      className={`flex h-5 w-full shrink-0 items-center justify-end gap-1 ${finalTen && !reduced ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`}
       aria-label={`${seconds} seconds remaining`}
       role="timer"
     >
-      <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0 fx-timer-ring" aria-hidden="true">
+      <svg key={seconds} viewBox="0 0 20 20" className="h-5 w-5 shrink-0 fx-timer-ring" aria-hidden="true">
         <circle cx="10" cy="10" r="8" className="timer-ring-track" />
         <circle
           cx="10"
@@ -78,7 +78,7 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
           }
         />
       </svg>
-      <span className="w-9 text-right font-mono text-[11px] font-bold leading-none tabular-nums text-timer-gold">
+      <span key={`digit-${seconds}`} className="w-9 text-right font-mono text-[11px] font-bold leading-none tabular-nums text-timer-gold">
         {seconds}
       </span>
     </div>

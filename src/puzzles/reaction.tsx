@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useEffect, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
@@ -186,6 +187,7 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
     if (stamp < 0 || stamp - lastFalseAt.current < 250) return;
     lastFalseAt.current = stamp;
     setFalseStarts((n) => n + 1);
+    puzzleReject();
     setLastShown({ text: "False start", until: stamp + 900, bad: true });
   };
 

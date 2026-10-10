@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";
@@ -235,8 +236,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
           moved.current = true;
           return current.map((value, index) => (index === active ? path.slice(0, -1) : value));
         }
-        if (!flowAdjacent(last, cell)) return current;
-        if (path.includes(cell) || walls.includes(cell)) return current;
+        if (!flowAdjacent(last, cell)) { puzzleReject(); return current; }
+        if (path.includes(cell) || walls.includes(cell)) { puzzleReject(); return current; }
 
         const pair = pairs[active]!;
         // Its own partner dot is welcome; any other colour's dot is refused.
@@ -244,10 +245,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
         const otherDot = pairs.some(
           (other, index) => index !== active && (other.a === cell || other.b === cell),
         );
-        if (otherDot) return current;
+        if (otherDot) { puzzleReject(); return current; }
         // Another colour's path is refused too — it is never cut back.
         const crosses = current.some((value, index) => index !== active && value.includes(cell));
-        if (crosses) return current;
+        if (crosses) { puzzleReject(); return current; }
 
         moved.current = true;
         const next = [...current];
