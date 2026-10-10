@@ -28,7 +28,7 @@
 - Changed inputs/layouts reject demos by shape or presentation revision; why: stale touches must not target new controls.
 
 - FX/audio stay outside sims; dev displays require accepted keys; Pull clayRev owns birds while unstamped rounds stay clay-only. Why: safe feedback and legacy replay.
-- Success renderers observe existing counters/ticks with bounded per-canvas replay memory; Gemstone caches gem sprites and dirty cells. Why: rewards never change gameplay/audio/data.
+- Success renderers read counters with bounded memory; Gemstone caches sprites/dirty cells. Orbit art observes pure steps and rebuilds recorded inputs for capture pans. Why: skipped frames/reveals stay identical without sim writes.
 - run-checks records named pass/fail/timeout results: 300s, Snip 1800s, deep Orbit opt-in. Why: reproducible coverage and comparable reports.
 - soundSettings owns device channel migration and normalized slider values; sound.ts owns bus gains and round-track ramp classification, while MuteToggle owns compact overlay controls. Why: all screens share settings without altering gameplay or clock ownership.
 

@@ -468,6 +468,7 @@ export { ORBIT_BG };
  */
 import {
   orbitCamera,
+  orbitCameraObserve,
   orbitVisiblePlanets,
   orbitCameraArrow,
   ORBIT_CAM_VIEW_W,
@@ -778,7 +779,17 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
 }
 
 /** The rev3 sim with its camera-scrolled renderer swapped in. */
-export const orbitRev3ArtGame = { ...orbitRev3Game, draw: drawOrbitRev3Art };
+export const orbitRev3ArtGame = {
+  ...orbitRev3Game,
+  init: (seed: number) => { const state = orbitRev3Game.init(seed); orbitCameraObserve(state); return state; },
+  step: (state: OrbitRev3State, input: Parameters<typeof orbitRev3Game.step>[1]) => {
+    orbitCameraObserve(state);
+    const next = orbitRev3Game.step(state, input);
+    orbitCameraObserve(next);
+    return next;
+  },
+  draw: drawOrbitRev3Art,
+};
 
 /**
  * Dispatches on the replayed state's own `rev` field rather than puzzle data,

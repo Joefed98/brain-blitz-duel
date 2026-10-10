@@ -27,7 +27,11 @@ import { junctionArtGame as junctionGame, junctionRevealGame } from "./junction.
 import { inkBridgeArtGame as inkBridgeGame } from "./inkBridge.renderer";
 import { BURST_FLOOR_Y } from "./burst";
 import { burstArtGame as burstGame } from "./burst.renderer";
-import { orbitArtGame as orbitGame, orbitArtGameFor } from "./orbit.renderer";
+import { orbitArtGame as orbitGame, orbitArtGameFor, orbitRev3ArtGame } from "./orbit.renderer";
+import { decodeOrbitRun } from "@/lib/duel/orbit";
+import { checkInputEvents } from "./engine";
+import { ORBIT_REV3 } from "./orbit";
+import { decodeRev3Planets, initRev3From, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "./orbitRev3";
 import { swingArtGame as swingGame } from "./swing.renderer";
 import { drawSnipArt as drawSnip } from "./snip.renderer";
 import { snipCamera, SNIP_CONFIG, SNIP_H, type SnipState } from "./snip";
@@ -141,6 +145,16 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     worldH: 620,
     drawFinal: (ctx, puzzle, answer) => {
       const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined);
+      if (puzzle.type === "orbit" && puzzle.orbitRev === ORBIT_REV3 && puzzle.planets) {
+        // Visual reconstruction only: scoring above still uses the original replay.
+        const run = decodeOrbitRun(answer);
+        const checked = checkInputEvents(run.events, orbitRev3ArtGame.runTicks, orbitRev3ArtGame.inputRanges ?? []);
+        const events = new Map(checked.events.map(event => [event.t, event]));
+        let visual: OrbitRev3State = initRev3From(decodeRev3Planets(puzzle.planets), ORBIT_REV3_WORLD_W);
+        for (let tick = 1; tick <= state.tick; tick++) visual = orbitRev3ArtGame.step(visual, events.get(tick) ?? null);
+        orbitRev3ArtGame.draw(ctx, visual, { width: 390, height: 620 });
+        return null;
+      }
       // Dispatches on the replayed state's own rev field (rev3 draws via the
       // camera-scrolled renderer; rev1/2 stay byte-identical) rather than
       // puzzle data, so this keeps working once rev3 reaches the server.
