@@ -1,13 +1,18 @@
 import type { GridGeometry } from "./GridDrag";
 
 /** Coordinate recordings made before these control-layout changes cannot replay. */
-export const REVISED_PUZZLE_DEMOS = new Set(["wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const POLISH_A_DEMOS = new Set(["wordhunt", "tilegrid", "wordslide", "wordsearch", "letterwheel", "target", "equation", "numpyramid", "trail", "stopwatch", "numhunt", "reaction"]);
+export const POLISH_A_PRESENTATION = "oct10-polish-a";
+export function puzzlePresentation(type: string): string {
+  return POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
+}
+export const REVISED_PUZZLE_DEMOS = new Set([...POLISH_A_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
   if (!REVISED_PUZZLE_DEMOS.has(type)) return true;
   if (typeof log !== "object" || log === null || !("presentation" in log)) return false;
-  return log.presentation === (type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION);
+  return log.presentation === puzzlePresentation(type);
 }
 export const WORDSMITH_PRESENTATION = "oct8-atom-orbit";
 

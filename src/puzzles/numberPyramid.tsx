@@ -62,7 +62,7 @@ function Pyramid({
               <div
                 key={c}
                 data-np-cell={given ? undefined : cell}
-                className={`flex items-center justify-center rounded-md font-mono font-bold ${cls} ${dragFrom === cell ? "opacity-30" : ""}`}
+                className={`pyramid-paint-cell flex items-center justify-center rounded-md font-mono font-bold ${cls} ${dragFrom === cell ? "opacity-30" : ""}`}
                 style={{ width: cellW, height: cellH, fontSize: cellH * 0.42 }}
               >
                 {value ?? ""}

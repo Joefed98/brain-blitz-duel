@@ -1318,3 +1318,12 @@ body.game-lock {
 .reaction-tap-ripple { position: absolute; width: 24px; height: 24px; border: 2px solid var(--foreground); border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); animation: reaction-tap-ripple 300ms ease-out both; }
 @keyframes reaction-tap-ripple { from { opacity: .75; transform: translate(-50%, -50%) scale(.5); } to { opacity: 0; transform: translate(-50%, -50%) scale(2.5); } }
 @media (prefers-reduced-motion: reduce) { .reaction-tap-ripple { animation: reaction-tap-fade 180ms ease-out both !important; } @keyframes reaction-tap-fade { from { opacity: .6; } to { opacity: 0; } } }
+
+/* Button defaults must not shrink the enlarged equation back to text-sm. */
+.polish-equation { font-size: 32px; }
+.polish-equation .equation-slot { width: 56px; height: 56px; padding: 0; font-size: 28px; }
+[data-polish="equation"] .grid-cols-4 > button { font-size: 32px; }
+[data-puzzle-surface="numpyramid"] .pyramid-paint-cell[data-puzzle-cell="overlay"] { background: var(--puzzle-surface) !important; box-shadow: inset 0 0 0 1px var(--puzzle-edge); }
+[data-puzzle-surface="numpyramid"] .pyramid-paint-cell.bg-muted { background: var(--puzzle-given) !important; }
+[data-puzzle-surface="numpyramid"] .pyramid-tray-tile[data-puzzle-cell] { background: linear-gradient(to bottom, var(--letter-tile-top), var(--letter-tile-bottom)) !important; color: var(--foreground) !important; box-shadow: inset 0 0 0 1px var(--category-accent), var(--letter-tile-shadow) !important; }
+[data-puzzle-surface="numpyramid"] .pyramid-tray-tile[data-puzzle-state="selected"] { box-shadow: inset 0 0 0 2px var(--primary), var(--letter-tile-shadow) !important; }

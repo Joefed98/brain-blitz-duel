@@ -67,6 +67,7 @@ export function buildEquation(): EquationPuzzleData {
 function OperatorSlot({ value, onClick }: { value: Operator | null; onClick?: (() => void) | undefined }) {
   return (
     <Button
+      variant="ghost"
       type="button"
       onClick={onClick}
       disabled={!onClick}
@@ -184,7 +185,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
           {OPERATORS.map((op) => (
             <Button
               key={op}
-              type="button"
+              variant="ghost"
+      type="button"
               disabled={frozen}
               onClick={() => tapOperator(op)}
               className="tap-target flex h-16 w-16 items-center justify-center rounded-xl border border-border bg-card font-mono text-3xl font-bold text-foreground disabled:opacity-50"
@@ -197,7 +199,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
 
       <Button
         data-game-controls="submit"
-        type="button"
+        variant="ghost"
+      type="button"
         onClick={() => !frozen && advance(slots)}
         disabled={frozen}
         className="tap-target w-full rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
@@ -218,7 +221,7 @@ function Line({ numbers, ops }: { numbers: number[]; ops: string[] }) {
       {numbers.map((n, index) => (
         <span key={index}>
           {n}
-          {index < ops.length ? ` ${display(ops[index]!)} ` : ""}
+          {index < ops.length ? ` ${display(ops[index] ?? "")} ` : ""}
         </span>
       ))}
     </>
