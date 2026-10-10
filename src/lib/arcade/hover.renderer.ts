@@ -1,3 +1,5 @@
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { reducedMotion } from './art.renderer';
 /** Hover in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
   hoverGame,
@@ -86,8 +88,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
     drawPipe(ctx, left, bottom, width, HOVER_WORLD_H - bottom, colour, bloom, flash, "top");
   });
 
+  const reward=successFrame(ctx,{id:'hover',tick:state.tick,count:state.gates,colour:BARRIER_CYCLES[Math.floor(Math.max(0,state.gates-1)/7)%6]??SAUCER,width:HOVER_WORLD_W,height:HOVER_WORLD_H,point:{x:px(HOVER_DISC_X),y:px(state.y),shape:'line',radius:20},hud:{x:10,y:28,text:`BARRIERS ${state.gates}/${state.totalGates}`}});
+  if(!reducedMotion()&&state.gates>0&&state.gates%7===0&&reward.age<20){ctx.save();ctx.globalAlpha=.22*(1-reward.age/20);ctx.strokeStyle=BARRIER_CYCLES[Math.floor(state.gates/7)%6]??SAUCER;ctx.lineWidth=1;ctx.strokeRect(4,4,HOVER_WORLD_W-8,HOVER_WORLD_H-8);ctx.restore();}
   drawSaucer(ctx, state, crashIndicator);
-  retroReadout(ctx, 10, 10, `BARRIERS ${state.gates}/${state.totalGates}`, RETRO_WHITE);
+  successHud(ctx,'hover',state.tick,10,28,()=>{retroReadout(ctx, 10, 10, `BARRIERS ${state.gates}/${state.totalGates}`, RETRO_WHITE);});
 
   if (state.crashed && crashIndicator) {
     ctx.fillStyle = "rgba(255,59,92,0.2)";

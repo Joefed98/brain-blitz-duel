@@ -1,3 +1,4 @@
+import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /** Burst in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
   burstCeiling,
@@ -148,12 +149,13 @@ function particles(ctx: CanvasRenderingContext2D, state: BurstState): void {
   let memo = popMemo.get(ctx);
   if (!memo || state.tick < memo.tick) memo = { tick: state.tick, seen: -100, pops: [] };
   memo.tick = state.tick;
-  memo.pops = memo.pops.filter(p => state.tick - p.tick < 18);
+  const duration=reducedMotion()?10:18;
+  memo.pops = memo.pops.filter(p => state.tick - p.tick < duration);
   if (state.popTick !== memo.seen) {
     memo.seen = state.popTick;
-    if (state.tick - state.popTick >= 0 && state.tick - state.popTick < 18 &&
+    if (state.tick - state.popTick >= 0 && state.tick - state.popTick < duration &&
       state.balls.length <= BURST_FX_ENEMY_THRESHOLD && state.shots.length <= BURST_FX_SHOT_THRESHOLD &&
-      memo.pops.length * 8 + 8 <= FX_PARTICLE_LIMIT) {
+      memo.pops.length * 4 + 4 <= 16) {
       memo.pops.push({ tick: state.popTick, x: state.popX / FP, y: state.popY / FP,
         colour: retroNeon(BURST_COLOURS[state.popSize] ?? RETRO_WHITE), spread: BURST_RADIUS[state.popSize] ?? 16 });
     }
@@ -162,7 +164,7 @@ function particles(ctx: CanvasRenderingContext2D, state: BurstState): void {
   for (const pop of memo.pops) {
     const age = reducedMotion() ? 0 : (state.tick - pop.tick) / 18;
     ctx.globalAlpha = 1 - age;
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 4; i++) {
       const angle = i * Math.PI / 4 + 0.35, distance = pop.spread * age + 2;
       pixelRect(ctx, pop.x + Math.cos(angle) * distance - 2, pop.y + Math.sin(angle) * distance - 2, 4, 4, pop.colour);
     }
@@ -217,6 +219,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
       ctx.fillStyle = RETRO_WHITE; ctx.beginPath(); ctx.arc(x, y, r - .6, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
     }
   }
+  successFrame(ctx,{id:'burst',tick:state.tick,count:state.cleared,eventTick:state.popSize===3?state.popTick:0,colour:SHIP,width:BURST_WORLD_W,height:BURST_FLOOR_Y,point:{x:state.popX/FP,y:state.popY/FP,shape:'spark'},enabled:state.balls.length<=BURST_FX_ENEMY_THRESHOLD&&state.shots.length<=BURST_FX_SHOT_THRESHOLD});
   particles(ctx, state);
 
   // Ship in the exact player box; flashes while invulnerable or just hit.

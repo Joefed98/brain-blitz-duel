@@ -1,3 +1,4 @@
+import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /**
  * Swing art pass. Render only: reads SwingState and never mutates it. The lava
  * surface is the sim's floor line, stalactites use the sim's spike polygon and
@@ -312,6 +313,8 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
     ctx.fill();
   });
 
+  const anchor=state.anchors[state.rope];
+  if(anchor)successFrame(ctx,{id:'swing',tick:state.tick,count:Math.max(0,state.rope),eventTick:state.grabTick,colour:SWING_GOLD,width:SWING_WORLD_W,height:SWING_WORLD_H,point:{x:sx(anchor.x),y:anchor.y/FP,shape:'spark'}});
   const fx = sx(state.x);
   const fy = state.y / FP;
   let armX = -0.6;

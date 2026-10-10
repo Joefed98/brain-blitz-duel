@@ -1,3 +1,4 @@
+import { successFrame, successHud } from "./success.renderer";
 /** Slice Kitchen art only. World transform, collision radii and state are authoritative. */
 import type { CanvasSize } from './engine';
 import { TICKS_PER_SECOND } from './engine';
@@ -135,6 +136,9 @@ export function drawSliceArt(ctx:CanvasRenderingContext2D,state:SliceState,size:
   }
   memo.tick=state.tick;memo.trail=memo.trail.filter(e=>now-e.at<110).slice(-6);
   ctx.save();ctx.scale(sx,sy);const bg=background();if(bg)ctx.drawImage(bg as CanvasImageSource,0,0,SLICE_WORLD_W,SLICE_WORLD_H);else paintBackground(ctx);
+  const latest=state.slicedAt.reduce((best,t,i)=>t>(state.slicedAt[best]??0)?i:best,0),object=state.objects[latest];
+  const cutAt=object?sliceObjectAt(object,state.slicedAt[latest]??state.tick,state.slowFrom):null;
+  successFrame(ctx,{id:'slice',tick:state.tick,count:state.slices,eventTick:state.slicedAt[latest],colour:object?colours[foodOf(object.colour)]:K.tomato,width:SLICE_WORLD_W,height:SLICE_WORLD_H,point:{x:cutAt?cutAt.x/256:195,y:cutAt?cutAt.y/256:310,shape:'splat'},hud:{x:20,y:14,text:`Sliced ${state.slices}`}});
   let particles=0;
   for(let i=0;i<state.objects.length;i++) {
     const o=state.objects[i];if(!o||sliceSuppressed(state,o))continue;
@@ -181,10 +185,10 @@ export function drawSliceArt(ctx:CanvasRenderingContext2D,state:SliceState,size:
   if(state.flash>0){ctx.fillStyle=`rgba(224,80,60,${state.flash/SLICE_FLASH_TICKS*.45})`;ctx.fillRect(0,0,SLICE_WORLD_W,SLICE_WORLD_H);}
   drawSliceComboMeter(ctx,state);
   ctx.fillStyle='rgba(18,12,8,0.78)';ctx.fillRect(0,0,SLICE_WORLD_W,SLICE_HUD_H);
-  ctx.fillStyle='#F6EEE2';ctx.font='bold 20px ui-monospace, monospace';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillText(`Sliced ${state.slices}`,20,SLICE_HUD_H/2);ctx.textAlign='center';
+  ctx.fillStyle='#F6EEE2';ctx.font='bold 20px ui-monospace, monospace';ctx.textBaseline='middle';ctx.textAlign='left';successHud(ctx,'slice',state.tick,20,SLICE_HUD_H/2,()=>ctx.fillText(`Sliced ${state.slices}`,20,SLICE_HUD_H/2));ctx.textAlign='center';
   if(sliceFrenzyOn(state,state.tick))ctx.fillText('SAUCY',SLICE_WORLD_W/2,SLICE_HUD_H/2);else if(sliceSlowOn(state,state.tick))ctx.fillText('SIMMER',SLICE_WORLD_W/2,SLICE_HUD_H/2);
   ctx.strokeStyle=K.edge;ctx.lineWidth=2;ctx.strokeRect(1,1,SLICE_WORLD_W-2,SLICE_WORLD_H-2);
-  if(state.comboFlash>0){ctx.strokeStyle=K.gold;ctx.globalAlpha=state.comboFlash/SLICE_COMBO_FLASH_TICKS;ctx.lineWidth=6;ctx.strokeRect(3,3,SLICE_WORLD_W-6,SLICE_WORLD_H-6);}
+  if(!still&&state.comboFlash>0){ctx.strokeStyle=K.gold;ctx.globalAlpha=state.comboFlash/SLICE_COMBO_FLASH_TICKS;ctx.lineWidth=6;ctx.strokeRect(3,3,SLICE_WORLD_W-6,SLICE_WORLD_H-6);}
   ctx.restore();
 }
 export const sliceArtGame={...sliceGame,draw:drawSliceArt};
@@ -202,6 +206,7 @@ export function drawSliceComboMeter(ctx:CanvasRenderingContext2D,state:SliceStat
     if(amount>0){ctx.fillStyle=K.gold;ctx.fillRect(x+1,y+1,(w-2)*amount,h-2);}
     ctx.strokeRect(x,y,w,h);ctx.fillStyle='#F6EEE2';ctx.fillText(`x${i+1}`,x+w/2,y+h+4);
   }
+  if(filled>0){ctx.save();ctx.fillStyle=K.chilli;ctx.beginPath();ctx.moveTo(x0+98,y+18);ctx.quadraticCurveTo(x0+85,y+8,x0+96,y-3);ctx.quadraticCurveTo(x0+96,y+6,x0+104,y+10);ctx.quadraticCurveTo(x0+111,y+18,x0+98,y+18);ctx.fill();ctx.fillStyle=K.mustard;circle(ctx,x0+99,y+12,3,K.mustard);ctx.restore();}
   if(filled>0){ctx.font="14px 'JetBrains Mono', monospace";ctx.fillText(`${Math.ceil(left/TICKS_PER_SECOND)}s`,x0+(shown*(w+gap)-gap)/2,y+h+21);}
   ctx.restore();
 }

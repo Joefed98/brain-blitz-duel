@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { clayArtGameFor } from '@/lib/arcade/clayShoot.renderer';
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters, devDiagnosticsOn } from "@/lib/arcade/diagnostics";
@@ -105,7 +106,7 @@ function Pips({ status, kind }: { status: number[]; kind: number[] }) {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: ClayShootPuzzleData | null = puzzle.type === "clayshoot" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const game = clayGameFor(data?.clayRev);
+  const game = clayArtGameFor(data?.clayRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);

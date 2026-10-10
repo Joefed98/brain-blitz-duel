@@ -1,3 +1,4 @@
+import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { whackGame, WHACK_COLS, WHACK_HOLES, WHACK_GAP_PX, WHACK_STATUS_WRONG, WHACK_STATUS_RETIRED, WHACK_STATUS_UP, WHACK_STATUS_HIT, type WhackState } from './whack';
 import type { CanvasSize } from './engine';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
@@ -93,6 +94,10 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
     }
     ctx.restore();
   }
+  let lastHit=-1;
+  for(let i=0;i<state.status.length;i++)if(state.status[i]===WHACK_STATUS_HIT&&(lastHit<0||(state.doneTick[i]??0)>(state.doneTick[lastHit]??0)))lastHit=i;
+  const hitHole=state.schedule.hole[lastHit]??0,hitOrigin=origin(hitHole);
+  successFrame(ctx,{id:'whack',tick:state.tick,count:state.hits,misses:state.wrong+state.bombs+state.empty,colour:PALETTE.gold,width:size.width,height:size.height,eventTick:state.doneTick[lastHit],point:{x:hitOrigin.x+cellW/2,y:hitOrigin.y+cellH/2-8,shape:'spark'},enabled:lastHit>=0&&state.schedule.kind[lastHit]===0});
   ctx.restore();
 }
 

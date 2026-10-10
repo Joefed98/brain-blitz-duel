@@ -1,3 +1,4 @@
+import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /**
  * Junction art (Real World). Render only: reads JuncState, never mutates it.
  * Cars fill the unchanged 41×24 car box; only the 2D visual turn path changes.
@@ -67,13 +68,14 @@ export function junctionArtCarPose(car: JuncCar): { x: number; y: number; dx: nu
 const CAR_COLOURS = [CROSS_BLOCK_COLOURS[2], CROSS_BLOCK_COLOURS[4], CROSS_BLOCK_COLOURS[1], CROSS_BLOCK_COLOURS[5]];
 
 interface Ghost { x: number; y: number; dx: number; dy: number; colour: number; start: number }
-interface Memory { tick: number; gaveUp: number; seen: Map<number, { car: JuncCar; x: number; y: number; dx: number; dy: number }>; ghosts: Ghost[] }
+interface Memory { tick: number; gaveUp: number; seen: Map<number, { car: JuncCar; x: number; y: number; dx: number; dy: number }>; ghosts: Ghost[]; success:{x:number;y:number} }
 const memories = new WeakMap<object, Memory>();
 const crashSeen = new WeakMap<CanvasRenderingContext2D, number>();
 
 function remember(state: JuncState): Memory {
-  const m = realMemo(memories, state.arrivals, state.tick, () => ({ tick: state.tick, gaveUp: state.gaveUp, seen: new Map(), ghosts: [] }));
+  const m = realMemo(memories, state.arrivals, state.tick, () => ({ tick: state.tick, gaveUp: state.gaveUp, seen: new Map(), ghosts: [],success:{x:JUNC_CX+HALF+24,y:JUNC_CY} }));
   if (state.tick !== m.tick) {
+    for(const car of state.cars)if(car.cleared&&!car.amb&&!m.seen.get(car.id)?.car.cleared){const old=m.seen.get(car.id);m.success=old?{x:old.x,y:old.y}:junctionArtCarPose(car);}
     if (state.gaveUp > m.gaveUp) {
       const live = new Set(state.cars.map((c) => c.id));
       for (const [id, prev] of m.seen) {
@@ -216,6 +218,8 @@ export function drawJunctionArt(ctx: CanvasRenderingContext2D, state: JuncState,
   ctx.clip();
   drawScene(ctx);
 
+  const clearPose=m.success;
+  successFrame(ctx,{id:'junction',tick:state.tick,count:state.cleared,misses:state.gaveUp,colour:SUCCESS_ACCENTS.green,width:JUNC_WORLD_W,height:JUNC_WORLD_H,point:{x:clearPose.x,y:clearPose.y-18,shape:'tick'},hud:{x:JUNC_CX-65,y:16,text:`Cleared ${state.cleared}`}});
   // Given-up cars fade where they were.
   for (const g of m.ghosts) {
     drawCar(ctx, g.x, g.y, g.dx, g.dy, CAR_COLOURS[g.colour % CAR_COLOURS.length]!, false, tick, 1 - (tick - g.start) / FADE_TICKS);
@@ -291,7 +295,7 @@ export function drawJunctionArt(ctx: CanvasRenderingContext2D, state: JuncState,
   ctx.strokeStyle = REAL_INK;
   ctx.strokeText(`Cleared ${state.cleared}`, JUNC_WORLD_W / 2, 30);
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillText(`Cleared ${state.cleared}`, JUNC_WORLD_W / 2, 30);
+  successHud(ctx,'junction',state.tick,195,30,()=>{ctx.fillText(`Cleared ${state.cleared}`, JUNC_WORLD_W / 2, 30);});
   ctx.restore();
 }
 

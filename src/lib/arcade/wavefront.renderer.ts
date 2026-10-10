@@ -1,3 +1,4 @@
+import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /**
  * Wavefront art pass. Render only: reads WavState and never mutates it. Hulls
  * fill each shape's 28 px hit cell, armour fills its block, the saucer stays
@@ -286,9 +287,10 @@ function drawSaucer(ctx: CanvasRenderingContext2D, x: number, t: number): void {
 }
 
 function drawBursts(ctx: CanvasRenderingContext2D, state: WavState, palette: string[], still: boolean): void {
+  let budget=16;
   for (const b of state.bursts) {
     const age = state.tick - b.t;
-    if (age > 24) continue;
+    if (age >= (still?10:24)) continue;
     const p = age / 24;
     const colour = palette[b.c] ?? "#FFFFFF";
     ctx.globalAlpha = 1 - p;
@@ -303,7 +305,7 @@ function drawBursts(ctx: CanvasRenderingContext2D, state: WavState, palette: str
       ctx.arc(b.x, b.y, Math.max(0, 6 * (1 - p * 2)), 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = colour;
-      for (let k = 0; k < 9; k++) {
+      for (let k = 0; k < 4 && budget>0; k++,budget--) {
         const a = (k / 9) * Math.PI * 2 + (artHash(b.t, k) % 100) / 80;
         const d = 3 + age * (1.1 + (artHash(k, b.t) % 6) / 10);
         ctx.fillRect(b.x + Math.cos(a) * d - 1.5, b.y + Math.sin(a) * d - 1.5, 3, 3);
@@ -329,6 +331,10 @@ export function drawWavefrontArt(ctx: CanvasRenderingContext2D, state: WavState,
   ctx.scale(scale, scale);
   drawStars(ctx, WAV_WORLD_W, WAV_WORLD_H, 91);
 
+  const latest=state.bursts.at(-1);
+  successFrame(ctx,{id:'wavefront-hit',tick:state.tick,count:state.shapesDown+state.armourHits,eventTick:latest?.t,misses:WAV_LIVES-state.lives,colour:WAV_GOLD,width:WAV_WORLD_W,height:WAV_WORLD_H,point:{x:latest?.x??state.shipX,y:latest?.y??WAV_SHIP_Y,shape:'pixel'},hud:{x:14,y:14,text:`Wave ${state.wave}`}});
+  const clear=successFrame(ctx,{id:'wavefront-clear',tick:state.tick,count:state.wavesCleared,colour:WAV_PURPLE,width:WAV_WORLD_W,height:WAV_WORLD_H,point:{x:WAV_WORLD_W/2,y:80,shape:'spark'}});
+  if(!still&&clear.age<24){ctx.save();ctx.globalAlpha=.35*(1-clear.age/24);ctx.strokeStyle=SUCCESS_ACCENTS.white;ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<12;i++){const x=15+(i*73)%360,y=60+(i*47)%450;ctx.moveTo(x,y);ctx.lineTo(x+(x-195)*.08,y+10+clear.age*.7);}ctx.stroke();ctx.restore();}
   state.shapes.forEach((code, i) => {
     if (code === 0 || code === WAV_ARMOUR_CODE) return;
     const box = wavShapeBox(state, i);

@@ -1,3 +1,4 @@
+import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /**
  * Orbit art pass. Render only: reads OrbitState and never mutates it. Every
  * body, path and hazard arc is drawn from the sim's own geometry (planet
@@ -305,6 +306,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
   ctx.rect(0, 0, ORBIT_WORLD_W, ORBIT_WORLD_H);
   ctx.clip();
   const cam = state.camY / FP;
+  const capturePlanet=state.planets[state.cur];
   drawStars(ctx, cam, t, still);
 
   const visible: number[] = [];
@@ -429,6 +431,7 @@ export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, s
   if (rocket) ctx.drawImage(rocket, -rocket.width / 2, -rocket.height / 2);
   ctx.restore();
 
+  if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:capturePlanet.x/FP,y:capturePlanet.y/FP-cam,shape:'ring',radius:capturePlanet.r/FP+8},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
@@ -599,6 +602,7 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
   ctx.rect(0, 0, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
   ctx.clip();
 
+  const capturePlanet=state.planets[state.cur];
   rev3Starfield(ctx, cam, t, still);
 
   // Cull to the view plus one ring's margin either side (orbitVisiblePlanets).
@@ -744,6 +748,7 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
   const arrow = orbitCameraArrow(state, cam);
   if (arrow) rev3Arrow(ctx, arrow);
 
+  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,misses:1-state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:capturePlanet.x/FP-cam.x,y:capturePlanet.y/FP-cam.y,shape:'ring',radius:capturePlanet.r/FP+8},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
