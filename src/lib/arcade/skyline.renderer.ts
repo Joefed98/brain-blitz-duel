@@ -28,7 +28,7 @@ interface Memory { tick: number; len: number; x: number; w: number; missed: bool
 const memories = new WeakMap<CanvasRenderingContext2D, Memory>();
 
 function remember(ctx: CanvasRenderingContext2D, s: SkylineState): Memory {
-  const m = realMemo(memories, ctx, s.tick, () => ({ tick: s.tick, len: s.blocks.length, x: s.x, w: s.w, missed: s.missed, chunks: [], placementTicks: new Array(s.blocks.length).fill(s.tick) }));
+  const m = realMemo(memories, ctx, s.tick, () => ({ tick: s.tick, len: s.blocks.length, x: s.x, w: s.w, missed: s.missed, chunks: [], placementTicks: new Array(s.blocks.length).fill(-1e9) }));
   const blockH = px(SKYLINE_BLOCK_H);
   const now = realNow();
   if (s.tick !== m.tick) {
@@ -187,7 +187,7 @@ export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineStat
       ctx.fillStyle = REAL_SHADOW;
       if (r > l) ctx.fillRect(l, top + blockH, r - l, 3);
     }
-    drawBlock(ctx, px(block.x), top, px(block.w), blockH, index, state.tick - (m.placementTicks[index] ?? state.tick));
+    drawBlock(ctx, px(block.x), top, px(block.w), blockH, index, state.tick - (mem.placementTicks[index] ?? state.tick));
   });
 
   const hangTop = SKYLINE_WORLD_H - state.blocks.length * blockH - blockH;
