@@ -1,0 +1,168 @@
+[
+ {
+  "source": "stored-round",
+  "duel_id": "eb81f4c1-0176-40c6-a400-4e854db860f5",
+  "seed": 299183268,
+  "raw": "299183268|30|93:0:0:0:0:0,254:0:0:0:0:0,439:0:0:0:0:0,605:0:0:0:0:0,689:0:0:0:0:0,852:0:0:0:0:0,1007:0:0:0:0:0,1177:0:0:0:0:0,1345:0:0:0:0:0,1695:0:0:0:0:0,1864:0:0:0:0:0|1939|300:2:10544:76811:-97272:0:2:2:-1:1:0:1980137787:1462062111,600:3:61782:77240:-185475:0:3:3:-1:1:0:1980137787:2652186364,900:6:1548:76268:-363652:0:6:6:-1:1:0:1980137787:3317643634,1200:7:34708:33938:-456222:25:7:7:-1:1:0:1980137787:1359277216,1500:9:60815:58657:-564441:0:9:9:-1:1:0:1980137787:646843266,1800:10:34124:42197:-619186:0:10:10:-1:1:0:1980137787:3356492931~score=30;tick=1939;cur=10;angle=53796;x=-404;y=-674449;flying=76;captured=10;best=10;checkpoint=-1;respawns=1;ended=2;rng=1980137787",
+  "score": 30,
+  "extra": {
+   "captured": 10,
+   "claimedScore": 30,
+   "clientLag": true,
+   "clientTick": 1939,
+   "desyncTick": null,
+   "diag": {
+    "clamped": 0,
+    "client": {
+     "angle": 53796,
+     "best": 10,
+     "captured": 10,
+     "checkpoint": -1,
+     "cur": 10,
+     "ended": 2,
+     "flying": 76,
+     "respawns": 1,
+     "rng": 1980137787,
+     "score": 30,
+     "tick": 1939,
+     "x": -404,
+     "y": -674449
+    },
+    "desyncTick": null,
+    "dropped": 0,
+    "first": null,
+    "received": 11,
+    "replayEndTick": 1939,
+    "replayMs": 0,
+    "server": {
+     "angle": 53796,
+     "best": 10,
+     "captured": 10,
+     "checkpoint": -1,
+     "cur": 10,
+     "ended": 2,
+     "flying": 76,
+     "respawns": 1,
+     "rng": 1980137787,
+     "score": 30,
+     "tick": 1939,
+     "x": -404,
+     "y": -674449
+    }
+   },
+   "endedSeconds": 32.3,
+   "finished": false,
+   "flagged": false,
+   "inputs": 11,
+   "passed": 10,
+   "reveal": {
+    "axis": {
+     "label": "Planets",
+     "max": 40,
+     "value": 10
+    },
+    "lines": [
+     "10 / 40 planets \u2192 30"
+    ],
+    "outcome": "crash",
+    "tiles": [
+     {
+      "label": "Checkpoint planet",
+      "value": "none"
+     },
+     {
+      "label": "Planets",
+      "value": "10"
+     }
+    ]
+   },
+   "secondsLeft": 0,
+   "survived": false,
+   "survivedSeconds": 32.31666666666667,
+   "total": 40
+  }
+ },
+ {
+  "source": "stored-round",
+  "duel_id": "eb81f4c1-0176-40c6-a400-4e854db860f5",
+  "seed": 299183268,
+  "raw": "299183268|42|88:0:0:0:0:0,254:0:0:0:0:0,334:0:0:0:0:0,390:0:0:0:0:0,472:0:0:0:0:0,538:0:0:0:0:0,596:0:0:0:0:0,658:0:0:0:0:0,720:0:0:0:0:0,782:0:0:0:0:0,860:0:0:0:0:0,942:0:0:0:0:0,1032:0:0:0:0:0,1106:0:0:0:0:0,1178:0:0:0:0:0|1251|300:2:13958:69270:-94116:0:2:2:-1:1:0:1980137787:1020773598,600:6:61471:72547:-381850:6:6:6:-1:1:0:1980137787:3438045924,900:11:9761:47846:-664035:0:11:11:-1:1:0:1980137787:1378846765,1200:14:59680:31037:-896301:24:14:14:-1:1:0:1980137787:886690094~score=42;tick=1251;cur=14;angle=59680;x=-481;y=-944802;flying=74;captured=14;best=14;checkpoint=-1;respawns=1;ended=2;rng=1980137787",
+  "score": 42,
+  "extra": {
+   "captured": 14,
+   "claimedScore": 42,
+   "clientLag": true,
+   "clientTick": 1251,
+   "desyncTick": null,
+   "diag": {
+    "clamped": 0,
+    "client": {
+     "angle": 59680,
+     "best": 14,
+     "captured": 14,
+     "checkpoint": -1,
+     "cur": 14,
+     "ended": 2,
+     "flying": 74,
+     "respawns": 1,
+     "rng": 1980137787,
+     "score": 42,
+     "tick": 1251,
+     "x": -481,
+     "y": -944802
+    },
+    "desyncTick": null,
+    "dropped": 0,
+    "first": null,
+    "received": 15,
+    "replayEndTick": 1251,
+    "replayMs": 0,
+    "server": {
+     "angle": 59680,
+     "best": 14,
+     "captured": 14,
+     "checkpoint": -1,
+     "cur": 14,
+     "ended": 2,
+     "flying": 74,
+     "respawns": 1,
+     "rng": 1980137787,
+     "score": 42,
+     "tick": 1251,
+     "x": -481,
+     "y": -944802
+    }
+   },
+   "endedSeconds": 20.9,
+   "finished": false,
+   "flagged": false,
+   "inputs": 15,
+   "passed": 14,
+   "reveal": {
+    "axis": {
+     "label": "Planets",
+     "max": 40,
+     "value": 14
+    },
+    "lines": [
+     "14 / 40 planets \u2192 42"
+    ],
+    "outcome": "crash",
+    "tiles": [
+     {
+      "label": "Checkpoint planet",
+      "value": "none"
+     },
+     {
+      "label": "Planets",
+      "value": "14"
+     }
+    ]
+   },
+   "secondsLeft": 0,
+   "survived": false,
+   "survivedSeconds": 20.85,
+   "total": 40
+  }
+ }
+]

@@ -32,7 +32,7 @@ mkdirSync(OUT_DIR, { recursive: true });
 
 const FP = 256;
 const TARGET_TICK = 1500;
-const MAX_TICK = 1500;
+const MAX_TICK = Number(process.env.MAX_TICK ?? 1500);
 const SHOT_W = 360;
 const SHOT_H = 572; // 360/390 * 620
 
@@ -153,7 +153,9 @@ function run(seed: number, label: string, wantArrow: boolean) {
     const nearest = states.reduce((best, s) => (Math.abs(s.tick - TARGET_TICK) < Math.abs(best.tick - TARGET_TICK) ? s : best));
     tick = nearest.tick;
   }
-  const state = saveLayoutShot(tick, states, `${OUT_DIR}/layout-${label}.png`);
+  // Re-warm the camera spring up to exactly the chosen tick so the drawn frame matches it.
+  const warm = simulate(seed, tick);
+  const state = saveLayoutShot(tick, warm.states, `${OUT_DIR}/layout-${label}.png`);
   saveRouteOverview(seed, planets, state, `${OUT_DIR}/route-${label}.png`);
   const arrowNow = !!orbitCameraArrow(state, orbitCamera(state, { reducedMotion: false }));
   console.log(
@@ -162,4 +164,4 @@ function run(seed: number, label: string, wantArrow: boolean) {
 }
 
 run(1001, "a", false);
-run(2002, "b", true);
+for (const s of (process.env.ARROW_SEEDS ?? "2002").split(",").map(Number)) run(s, `b-${s}`, true);

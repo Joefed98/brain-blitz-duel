@@ -1,7 +1,7 @@
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import { sceneryTexture, grassTexture } from "./sceneryTexture.renderer";
 import type { CanvasSize } from './engine';
-import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkIsLive, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_NO_DRAW_ZONE_PX, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
+import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_NO_DRAW_ZONE_PX, INK_LIVE_PRE_CAP, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { COUNTRY_SKY as SKY, COUNTRY_GRASS as GRASS, countryCloud as cloud, countryStamp, drawCountryside, drawCountryGround } from './countryside.renderer';
 
@@ -169,11 +169,27 @@ export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:
     if(inkFailedOnBlock(state)){c.fillStyle=RED;c.globalAlpha=(1-age/20)*0.7;c.beginPath();c.arc(state.failedBall.x/FP,state.failedBall.y/FP,7,0,Math.PI*2);c.fill();}c.globalAlpha=1;
   }
   // Left side empties first; the surviving right-hand rainbow is clipped, not rescaled.
-  const remaining=Math.max(0,Math.min(1,state.ink/(inkBudget(state.level)*FP)));
+  const remaining=Math.max(0,Math.min(1,state.ink/(inkBudgetFor(state.level,state.rev)*FP)));
   c.fillStyle=EMPTY;c.fillRect(272,12,104,12);
   c.save();c.beginPath();c.rect(274+100*(1-remaining),14,100*remaining,8);c.clip();
   const meter=sprite('meter',100,8,m=>{m.fillStyle=rainbow(m,0,0,100,0,0,100);m.fillRect(0,0,100,8);});
   if(meter)c.drawImage(meter,274,14,100,8);c.restore();
+  // Live levels before release: mark how far the capped first line can drain the meter,
+  // and flash the meter plus the pen end once that cap is reached (render only).
+  if(inkIsLive(state.level,state.rev)&&!state.dropping) {
+    const budget=inkBudgetFor(state.level,state.rev);
+    const mx=274+100*Math.min(1,INK_LIVE_PRE_CAP/budget);
+    c.fillStyle=TEXT;c.fillRect(mx-1,10,2,16);
+    const atCap=state.preInkUsed>=(INK_LIVE_PRE_CAP-2)*FP;
+    if(atCap) {
+      const pulse=0.55+0.45*Math.sin(state.tick/3);
+      c.save();c.globalAlpha=pulse;c.strokeStyle=RED;c.lineWidth=2;c.strokeRect(271,11,106,14);
+      const last=state.segs[state.segs.length-1];
+      if(last){c.beginPath();c.arc(last.x1,last.y1,7,0,Math.PI*2);c.stroke();}
+      c.fillStyle=RED;c.font="bold 11px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='right';c.textBaseline='top';c.fillText('LINE LIMIT',376,28);
+      c.restore();
+    }
+  }
   for(let i=0;i<INK_FAILS;i++){c.fillStyle=i<state.fails?RED:EMPTY;c.beginPath();c.arc(228+i*14,18,5,0,Math.PI*2);c.fill();}
   c.fillStyle=TEXT;c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='left';c.textBaseline='alphabetic';c.fillText(`Level ${Math.min(state.level+1,INK_LEVELS)} / ${INK_LEVELS}`,12,22);
   c.restore();

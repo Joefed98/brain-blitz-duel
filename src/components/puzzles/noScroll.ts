@@ -27,6 +27,8 @@ export function useNoTouchScroll(ref: RefObject<HTMLElement | null>): void {
       if (event.cancelable) event.preventDefault();
     };
     node.addEventListener("touchmove", stop, { passive: false });
-    return () => node.removeEventListener("touchmove", stop);
+    return () => {
+      node.removeEventListener("touchmove", stop);
+    };
   }, [ref]);
 }
