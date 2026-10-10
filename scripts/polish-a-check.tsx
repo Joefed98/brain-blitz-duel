@@ -11,7 +11,7 @@ for (const type of POLISH_A_DEMOS) {
  assert.equal(puzzleInputDemoCompatible(type, {}), false, `${type}: old demo must be rejected`);
  assert.equal(puzzleInputDemoCompatible(type, { presentation: puzzlePresentation(type) }), true);
 }
-const html = renderToStaticMarkup(<equationPuzzle.Stage puzzle={{type:'equation',stages:[{numbers:[12,3,7,2,5],target:55}],operators:[]} phaseStartedAt={0} now={0} locked={false} onSubmit={()=>{}}/>);
+const html = renderToStaticMarkup(<equationPuzzle.Stage puzzle={{type:'equation',stages:[{numbers:[12,3,7,2,5],target:55}],operators:[]}} phaseStartedAt={0} now={0} locked={false} onSubmit={()=>{}}/>);
 assert.equal((html.match(/equation-slot/g) ?? []).length, 4);
 assert.match(html, /polish-equation/);
 assert.match(readFileSync('src/puzzles/numberHunt.tsx','utf8'), /wrong=\{flash === index\} size=\{44\}/);
