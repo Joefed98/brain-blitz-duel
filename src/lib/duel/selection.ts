@@ -2,7 +2,8 @@
  * Round selection for a room.
  *
  * Categories are host-selected in the lobby. Retired types are never drawn.
- * A room plays one round per selected category, in a seeded random order.
+ * A room plays 6 rounds (7 with all seven categories) shared between the
+ * selected categories, in a seeded order with no category twice in a row.
  *
  * The draw is weighted against what the host's group has just played, so four
  * rooms in a row come close to twenty-four different games.
@@ -57,24 +58,54 @@ function seededRng(seed: number): () => number {
   };
 }
 
+/** Rounds in a room: 6, or 7 when all seven categories are selected. */
+export function roundCountFor(categoryCount: number): number {
+  if (categoryCount <= 0) return 0;
+  return categoryCount >= 7 ? 7 : 6;
+}
+
+/** True when no two neighbouring rounds share a category. */
+function noAdjacentRepeats(order: readonly PuzzleCategory[]): boolean {
+  for (let i = 1; i < order.length; i++) if (order[i] === order[i - 1]) return false;
+  return true;
+}
+
 /**
- * The room's category order: one round per selected category, as a uniform
- * Fisher–Yates permutation driven only by the room seed. Every order is
- * equally likely and any category (arcade included) can open the room.
+ * The room's category order, driven only by the room seed.
+ * Shares the rounds out (6 per room, 7 with all seven categories; 4 categories
+ * get two extras on two different random categories, 5 get one random extra),
+ * then shuffles with Fisher–Yates until no category plays twice in a row —
+ * uniform over all valid orders. One-category rooms repeat that category.
  */
 export function categoryOrderFor(
   categories: readonly PuzzleCategory[],
   seed: number,
 ): PuzzleCategory[] {
-  const order = normaliseCategories(categories).filter(
+  const chosen = normaliseCategories(categories).filter(
     (category) => typesInCategory(category).length > 0,
   );
+  const n = chosen.length;
+  if (n === 0) return [];
   const rng = seededRng(seed);
-  for (let i = order.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [order[i], order[j]] = [order[j]!, order[i]!];
+  const total = roundCountFor(n);
+  const base = Math.floor(total / n);
+  const pool: PuzzleCategory[] = [];
+  for (const category of chosen) for (let k = 0; k < base; k++) pool.push(category);
+  // Extras go to distinct categories, each equally likely.
+  const remaining = [...chosen];
+  for (let extra = total - base * n; extra > 0; extra--) {
+    const index = Math.floor(rng() * remaining.length);
+    pool.push(remaining.splice(index, 1)[0]!);
   }
-  return order;
+  if (n === 1) return pool;
+  for (;;) {
+    const order = [...pool];
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [order[i], order[j]] = [order[j]!, order[i]!];
+    }
+    if (noAdjacentRepeats(order)) return order;
+  }
 }
 
 /** One type from a category, avoiding types already drawn and recent rooms. */
@@ -94,7 +125,7 @@ function pickType(
   return weightedPick(options, (type) => recencyWeight(type, recent));
 }
 
-/** Draws the room's round order: exactly one game from each selected category. */
+/** Draws the room's round order; no game repeats within a room. */
 export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[] {
   const recent = (options.recent ?? []).slice(0, RECENT_WEIGHTS.length);
   const order = categoryOrderFor(options.categories ?? [], options.seed ?? newRoomSeed());
