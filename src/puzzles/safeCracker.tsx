@@ -193,7 +193,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <div className="flex gap-2">
+      <div className={`flex gap-2 ${myCorrect ? "safe-metal-panel solve-safe-door rounded-lg border border-border p-2" : ""}`}>
         {combination.map((digit, dial) => (
           <Dial key={dial} digit={digit} gold compact />
         ))}

@@ -1,0 +1,43 @@
+/* Reveal-only solve finishes; no live arena geometry changes. */
+[data-solve-flourish="lightsout"] .lightsout-bulb {
+  animation: solve-lights-off 540ms ease-out both;
+}
+[data-solve-flourish="lightsout"] .lightsout-bulb:nth-child(5n + 2) {
+  animation-delay: 110ms;
+}
+[data-solve-flourish="lightsout"] .lightsout-bulb:nth-child(5n + 3) {
+  animation-delay: 220ms;
+}
+[data-solve-flourish="lightsout"] .lightsout-bulb:nth-child(5n + 4) {
+  animation-delay: 330ms;
+}
+[data-solve-flourish="lightsout"] .lightsout-bulb:nth-child(5n + 5) {
+  animation-delay: 440ms;
+}
+@keyframes solve-lights-off {
+  from {
+    background-color: var(--primary);
+    box-shadow: inset 0 0 10px var(--primary);
+  }
+  to {
+    background-color: var(--card);
+    box-shadow: none;
+  }
+}
+[data-solve-flourish="safe"] .solve-safe-door {
+  transform-origin: left center;
+}
+[data-solve-flourish="safe"] .safe-dial-drum {
+  animation: solve-drum-lock 600ms ease-out;
+}
+@keyframes solve-drum-lock {
+  45% {
+    box-shadow: inset 0 0 0 2px var(--ok);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-solve-flourish="lightsout"] .lightsout-bulb,
+  [data-solve-flourish="safe"] .safe-dial-drum {
+    animation: none;
+  }
+}

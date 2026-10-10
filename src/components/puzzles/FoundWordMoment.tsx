@@ -25,7 +25,7 @@ export function FoundWordMoment({ value }: { value: AcceptedWordMoment | null })
           key={value.serial}
           className="accepted-word-chip found-word-moment max-w-full truncate rounded-md bg-primary px-3 py-1 font-mono text-xs font-bold uppercase text-accepted-word-foreground"
         >
-          {value.word} · +{value.points}
+          {value.word}
         </span>
       ) : null}
     </div>

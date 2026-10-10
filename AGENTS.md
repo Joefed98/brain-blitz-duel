@@ -41,4 +41,4 @@
 - Grappler swingRev selects dragons; courses come from the server-only proved bank by seed, live proof only as fallback. Why: legacy replay, fast starts.
 
 - Refresh icons/Bonk cache original footprint art for replay parity.
-- letterShuffle preserves tile IDs; practiceBest stores device-only scores; puzzleReject paints errors without grading/audio.
+- letterShuffle keeps IDs; practiceBest is local; puzzleReject/useSolveFlourish/nearMiss paint existing verdicts/facts only, never grading/audio/phases.

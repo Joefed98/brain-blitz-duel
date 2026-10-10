@@ -11,6 +11,8 @@ import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playSound, stopMusic } from "@/lib/sound";
 import { bombRevealExploded } from "@/puzzles/bombDefusal";
+import { useSolveFlourish } from "@/components/puzzles/useSolveFlourish";
+import { nearMiss } from "@/lib/duel/nearMiss";
 
 const REVEAL_SCORE_DELAY_MS = 350;
 import { fx } from "@/lib/fx";
@@ -154,6 +156,8 @@ export function AnswerReveal({
   const puzzleOwnsRevealLayout = puzzle.type === "chain" || puzzle.type === "intruder";
   const cued = useRef(0);
   const scoreCue = useRef<number | undefined>(undefined);
+  const solvedBoard = useRef<HTMLDivElement>(null);
+  useSolveFlourish(solvedBoard, puzzle.type, answersReady && myScore !== null && myCorrect);
 
   useEffect(() => {
     if (myScore === null || cued.current === round) return;
@@ -190,6 +194,7 @@ export function AnswerReveal({
           puzzle={puzzle}
           myAnswer={myAnswer}
           myScore={myScore}
+          nearMissLine={nearMiss(puzzle.type, myExtra)}
           myReveal={(myExtra?.["reveal"] as ArcadeRevealData | undefined) ?? null}
           players={
             players ?? [
@@ -206,7 +211,7 @@ export function AnswerReveal({
           </p>
         ) : null}
         <StoredScore score={myScore} />
-        <div className="answer-reveal-content flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
+        <div ref={solvedBoard} className="answer-reveal-content flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           {answersReady ? (
             <Reveal
               puzzle={puzzle}

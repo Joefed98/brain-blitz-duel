@@ -71,13 +71,13 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 
   // The shortest solution plays back over about three seconds.
   useEffect(() => {
-    if (solution.length === 0) return;
+    if (myCorrect || solution.length === 0) return;
     const gap = Math.max(220, Math.round(3000 / solution.length));
     const id = setInterval(() => {
       setStep((current) => (current >= solution.length ? current : current + 1));
     }, gap);
     return () => clearInterval(id);
-  }, [solution.length]);
+  }, [solution.length, myCorrect]);
 
   if (puzzle.type !== "unblock") return null;
 
@@ -85,7 +85,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   let vehicles = (puzzle.vehicles ?? []).map((vehicle) => ({ ...vehicle }));
   let available = solution.length > 0 && vehicles.length > 0;
   try {
-    for (const move of solution.slice(0, step)) {
+    for (const move of myCorrect ? decodeMoves(myAnswer ?? "") : solution.slice(0, step)) {
       const next = applyMove(vehicles, move);
       if (!next) {
         available = false;
