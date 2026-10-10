@@ -259,9 +259,6 @@ export function drawFlipPool(ctx: CanvasRenderingContext2D, a: number, b: number
     ctx.beginPath();
     flipSurfaceLine(ctx, x => at(x) - inward * (4 + k * 7 + Math.sin((x - a) * 0.07 + time * 0.65 + k) * 1.1), a + 2, b - 2);
     ctx.stroke();
-  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
   }
   ctx.globalAlpha = 0.7;
   for (let k = 0; k < 4; k++) {
@@ -280,9 +277,6 @@ export function drawFlipPool(ctx: CanvasRenderingContext2D, a: number, b: number
   ctx.lineTo(a, at(a) - inward * POOL_DEPTH);
   ctx.moveTo(b, at(b));
   ctx.lineTo(b, at(b) - inward * POOL_DEPTH);
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
-  ctx.lineWidth = 1;
   ctx.stroke();
   ctx.restore();
 }
@@ -381,29 +375,17 @@ export function drawFlipArt(ctx: CanvasRenderingContext2D, state: FlipState, siz
     ctx.strokeStyle = "rgba(255,69,24,0.1)";
     ctx.lineWidth = 26;
     ctx.stroke();
-  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
     ctx.strokeStyle = "rgba(255,76,24,0.2)";
     ctx.lineWidth = 12;
     ctx.stroke();
-  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
     ctx.restore();
     rail();
     ctx.strokeStyle = MATERIAL.lava;
     ctx.lineWidth = 2;
     ctx.stroke();
-  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
     ctx.strokeStyle = MATERIAL.hot;
     ctx.lineWidth = 0.8;
     ctx.stroke();
-  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
   }
 
   const y = runnerY(state.side, state.flipT) + state.warpY;
