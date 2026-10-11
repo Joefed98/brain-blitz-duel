@@ -37,7 +37,9 @@ for (const category of ROOM_CATEGORIES) {
 
 const category = (type: PuzzleType) => puzzleDef(type).category;
 const recentFor = (seed: number): PuzzleType[][] =>
-  seed % 3 === 0 ? [] : [pickRoundOrder({ categories: [...ROOM_CATEGORIES], seed: seed + 100_000 })];
+  seed % 3 === 0
+    ? []
+    : [pickRoundOrder({ categories: [...ROOM_CATEGORIES], seed: seed + 100_000 })];
 
 let rooms = 0;
 for (const selection of SELECTIONS) {
@@ -67,37 +69,46 @@ for (const selection of SELECTIONS) {
       if (k < low || k > high) fail(`${tag}: ${c} has ${k} rounds, want ${low}–${high}`);
       if (k === high && high > low) extraCounts.set(c, (extraCounts.get(c) ?? 0) + 1);
     }
-    for (const c of counts.keys()) if (!selection.includes(c)) fail(`${tag}: drew ${c}, not selected`);
+    for (const c of counts.keys())
+      if (!selection.includes(c)) fail(`${tag}: drew ${c}, not selected`);
     // No category in back-to-back rounds when more than one is selected.
     if (n > 1)
       for (let i = 1; i < order.length; i++)
-        if (category(order[i]!) === category(order[i - 1]!)) fail(`${tag}: ${category(order[i]!)} twice in a row`);
+        if (category(order[i]!) === category(order[i - 1]!))
+          fail(`${tag}: ${category(order[i]!)} twice in a row`);
     // Same seed (and history) → identical room, order and games.
     const again = pickRoundOrder({ categories: selection, seed, recent });
-    if (again.join() !== order.join()) fail(`${tag}: same seed gave ${again.join(",")} then ${order.join(",")}`);
+    if (again.join() !== order.join())
+      fail(`${tag}: same seed gave ${again.join(",")} then ${order.join(",")}`);
     if (categoryOrderFor(selection, seed).join() !== order.map(category).join())
       fail(`${tag}: category order is not the seeded deal`);
     // Recent-avoidance: last room's games are skipped while a category has alternatives.
     const last = recent[0] ?? [];
     for (const type of order)
-      if (last.includes(type) && typesInCategory(category(type)).length - (counts.get(category(type)) ?? 0) >= 4)
+      if (
+        last.includes(type) &&
+        typesInCategory(category(type)).length - (counts.get(category(type)) ?? 0) >= 4
+      )
         fail(`${tag}: repeated ${type} from the previous room despite alternatives`);
   }
   // The seed, not a fixed rule, picks which categories take the extra rounds.
-  if (n === 4 && extraCounts.size < 4) fail(`${selection.join("+")}: extras only ever went to ${[...extraCounts.keys()].join(",")}`);
+  if (n === 4 && extraCounts.size < 4)
+    fail(`${selection.join("+")}: extras only ever went to ${[...extraCounts.keys()].join(",")}`);
 }
 
 // Different seeds give different rooms.
 const distinct = new Set(
   Array.from({ length: 50 }, (_, s) => pickRoundOrder({ categories: ["arcade"], seed: s }).join()),
 );
-if (distinct.size < 40) fail(`one-category rooms: only ${distinct.size} distinct deals from 50 seeds`);
+if (distinct.size < 40)
+  fail(`one-category rooms: only ${distinct.size} distinct deals from 50 seeds`);
 
 // Every round-count display reads the room's stored round_count (in play) or
 // roomRoundCount (lobby, before the deal), never the category count.
 const room = readFileSync("src/routes/duel.$code.tsx", "utf8");
 const lobby = readFileSync("src/components/duel/RoomLobby.tsx", "utf8");
-if (!/roomRoundCount\(categories\)/.test(lobby)) fail("lobby round count does not use roomRoundCount");
+if (!/roomRoundCount\(categories\)/.test(lobby))
+  fail("lobby round count does not use roomRoundCount");
 if (/categories\.length\} \{/.test(lobby) || /roundCount = categories\.length/.test(lobby))
   fail("lobby still counts categories as rounds");
 for (const [label, pattern] of [

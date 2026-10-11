@@ -6,6 +6,7 @@ import { type SubmitExtra } from "./grade";
 import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
 import { puzzleDef, puzzleDurationMs, puzzleRevealMs, typesInCategory } from "./registry";
 import { generateRoomCode } from "./puzzles";
+import { linkRoomState } from "./roomLink";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import { allContinued, allIntroReady, betweenScreenDue, isContinuePhase } from "./roomFlow";
 import {
@@ -392,13 +393,7 @@ export const roomPreviewFn = createServerFn({ method: "POST" })
     return {
       found: true as const,
       roomCode: code,
-      state: room.disbanded_at
-        ? ("disbanded" as const)
-        : room.status === "waiting"
-          ? ("lobby" as const)
-          : room.status === "finished"
-            ? ("finished" as const)
-            : ("playing" as const),
+      state: linkRoomState(room),
       playerCount: players.length,
       maxPlayers: room.max_players ?? MAX_PLAYERS,
     };

@@ -18,3 +18,12 @@ export function codeFromInput(value: string): string {
   const fromLink = /\/duel\/([a-zA-Z]+)/.exec(value)?.[1];
   return (fromLink ?? value.replace(/[^a-zA-Z]/g, "")).toUpperCase().slice(0, ROOM_CODE_LENGTH);
 }
+
+/** What a room link can offer someone who isn't in the room yet. */
+export type LinkRoomState = "lobby" | "playing" | "finished" | "disbanded";
+
+export function linkRoomState(room: { status: string; disbanded_at: string | null }): LinkRoomState {
+  if (room.disbanded_at) return "disbanded";
+  if (room.status === "waiting") return "lobby";
+  return room.status === "finished" ? "finished" : "playing";
+}

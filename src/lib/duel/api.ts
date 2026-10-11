@@ -22,6 +22,7 @@ import {
   submitAnswerFn,
   type SubmitExtra,
 } from "./duel.functions";
+import type { LinkRoomState } from "./roomLink";
 import { ensureSession } from "./session";
 import type { DuelPlayerRow, DuelRow, RoundResultRow, RoundRevealData } from "./types";
 import type { PuzzleCategory } from "./types";
@@ -197,7 +198,7 @@ export type RoomPreview =
   | {
       found: true;
       roomCode: string;
-      state: "lobby" | "playing" | "finished" | "disbanded";
+      state: LinkRoomState;
       playerCount: number;
       maxPlayers: number;
     };
