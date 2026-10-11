@@ -1,4 +1,6 @@
 import { reducedMotion } from "./art.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { BEAT_FX } from "./arcadeFxGames.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /** Beat in the Retro Arcade world. Render only; the chart, judging and score are untouched. */
 import {
@@ -29,7 +31,7 @@ const lanePulses=new WeakMap<CanvasRenderingContext2D,{tick:number;event:number;
 
 function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize): void {
   // Stretch, exactly as the original draw, so taps map to the same lanes.
-  retroScreen(ctx, size, BEAT_WORLD_W, BEAT_WORLD_H, "stretch", (c) => drawWorld(c, state));
+  retroScreen(ctx, size, BEAT_WORLD_W, BEAT_WORLD_H, "stretch", (c) => arcadeFx(c, BEAT_FX, state, () => drawWorld(c, state)));
 }
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {

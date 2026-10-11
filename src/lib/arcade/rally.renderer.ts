@@ -1,4 +1,6 @@
 import { reducedMotion } from "./art.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { RALLY_FX } from "./arcadeFxGames.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import {
   rallyGame,
@@ -34,10 +36,10 @@ const BALL = "#5CD0FF";
 const GOLD = "#FFD84A";
 
 function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
-  retroScreen(ctx, size, RALLY_WORLD_W, RALLY_WORLD_H, "stretch", (c) => drawWorld(c, state, ctx));
+  retroScreen(ctx, size, RALLY_WORLD_W, RALLY_WORLD_H, "stretch", (c) => arcadeFx(c, RALLY_FX, state, () => drawWorld(c, state, ctx)));
 }
 function drawReveal(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
-  retroScreen(ctx, size, RALLY_WORLD_W, RALLY_WORLD_H, "stretch", (c) => drawWorld(c, state, ctx, false));
+  retroScreen(ctx, size, RALLY_WORLD_W, RALLY_WORLD_H, "stretch", (c) => arcadeFx(c, RALLY_FX, state, () => drawWorld(c, state, ctx, false)));
 }
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: CanvasRenderingContext2D, crashIndicator = true): void {

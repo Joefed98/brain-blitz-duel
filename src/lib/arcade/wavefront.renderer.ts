@@ -1,4 +1,7 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { drawArtSprite } from "./sprites.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { WAVEFRONT_FX } from "./arcadeFxGames.renderer";
 /**
  * Wavefront art pass. Render only: reads WavState and never mutates it. Hulls
  * fill each shape's 28 px hit cell, armour fills its block, the saucer stays
@@ -183,6 +186,8 @@ function drawArmourHull(ctx: CanvasRenderingContext2D, state: WavState, a: WavAr
 }
 
 function drawFighter(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number, moving: boolean, recoil: number, t: number): void {
+  // Art pilot (Space): the ship sprite fills the ship's hit box; code art when absent.
+  if (drawArtSprite(ctx, "space", "player", cx - w / 2, cy - h / 2 + recoil, w, h)) return;
   const top = cy - h / 2;
   const bottom = cy + h / 2;
   ctx.save();
@@ -318,7 +323,12 @@ function drawBursts(ctx: CanvasRenderingContext2D, state: WavState, palette: str
 /** Render-side memory of recent ship movement, for the engine flame only. */
 const motion = { tick: -1, shipX: 0, movedTick: -100 };
 
+/** The game's drawing through the shared success layer (presentation only). */
 export function drawWavefrontArt(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize): void {
+  arcadeFx(ctx, WAVEFRONT_FX, state, () => drawWavefrontArtWorld(ctx, state, size), size);
+}
+
+function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize): void {
   const still = reducedMotion();
   const t = still ? 0 : state.tick / 60;
   const scale = Math.min(size.width / WAV_WORLD_W, size.height / WAV_WORLD_H);

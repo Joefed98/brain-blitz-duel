@@ -1,4 +1,7 @@
 import { successFrame, successHud } from "./success.renderer";
+import { drawArtSprite } from "./sprites.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { SLICE_FX } from "./arcadeFxGames.renderer";
 /** Slice Kitchen art only. World transform, collision radii and state are authoritative. */
 import type { CanvasSize } from './engine';
 import { TICKS_PER_SECOND } from './engine';
@@ -119,7 +122,12 @@ function background():ArtCanvas|null {
 interface Cut {angle:number;offset:number}
 interface Memo {tick:number;trail:{seg:readonly[number,number,number,number];at:number}[];cuts:Map<number,Cut>}
 const memos=new WeakMap<object,Memo>();
-export function drawSliceArt(ctx:CanvasRenderingContext2D,state:SliceState,size:CanvasSize):void {
+/** The game's drawing through the shared success layer (presentation only). */
+export function drawSliceArt(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize): void {
+  arcadeFx(ctx, SLICE_FX, state, () => drawSliceArtWorld(ctx, state, size), size);
+}
+
+function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:CanvasSize):void {
   const sx=size.width/SLICE_WORLD_W,sy=size.height/SLICE_WORLD_H;
   const tr=typeof ctx.getTransform==='function'?ctx.getTransform():null;
   const dpr=tr?Math.max(1,Math.min(2,Math.hypot(tr.a,tr.b))):1;
@@ -166,7 +174,8 @@ export function drawSliceArt(ctx:CanvasRenderingContext2D,state:SliceState,size:
       ctx.globalAlpha=1;continue;
     }
     const at=sliceObjectAt(o,state.tick,state.slowFrom);if(!at)continue;const cx=at.x/256,cy=at.y/256;
-    ctx.drawImage(stamp as CanvasImageSource,cx-r,cy-r,2*r,2*r);
+    // Art pilot (Kitchen): food sprites fill the collision circle's square; code art when absent or for chillies.
+    if(o.bomb||!drawArtSprite(ctx,'kitchen',kind,cx-r,cy-r,2*r,2*r))ctx.drawImage(stamp as CanvasImageSource,cx-r,cy-r,2*r,2*r);
     if(o.special){const tint=o.special===SLICE_SPECIAL_SLOW?K.silver:SLICE_RAINBOW[Math.floor((still?0:now/110))%SLICE_RAINBOW.length]??K.tomato;
       ctx.globalAlpha=still?.28:.25+.16*Math.sin(now/140);ctx.strokeStyle=tint;ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
     }

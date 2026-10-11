@@ -1364,3 +1364,18 @@ body.game-lock {
 /* Rainbow Bridge live stroke refused: one brief red flash (single pulse, well under 3/s). */
 @keyframes ink-reject { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
 @utility animate-ink-reject { animation: ink-reject 0.45s ease-out both; }
+
+/* Arcade results: full clear / personal best moment (ArcadeCelebration). */
+.arcade-celebration-headline { animation: arcade-celebration-headline 2600ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes arcade-celebration-headline {
+  0% { opacity: 0; transform: scale(0.6); }
+  12% { opacity: 1; transform: scale(1.08); }
+  20%, 80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+.arcade-score-celebrate { animation: arcade-score-celebrate 900ms ease-out 2; text-shadow: 0 0 18px currentColor; }
+@keyframes arcade-score-celebrate { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) {
+  .arcade-celebration-headline { animation: practice-best-moment 2600ms linear both; }
+  .arcade-score-celebrate { animation: none; }
+}

@@ -4,6 +4,8 @@
  * each colour keeps its own cut so shapes stay distinguishable.
  */
 import type { CanvasSize } from "./engine";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { MATCHUP_FX } from "./arcadeFxGames.renderer";
 import type { SoundId } from "@/lib/fx/manifest";
 import {
   matchupFindSwap, matchupGame, matchupIndex, matchupShowHint, matchupTransform,
@@ -479,7 +481,12 @@ function drawGlints(ctx: CanvasRenderingContext2D, cells: readonly number[], now
   }
 }
 
+/** The board drawing through the shared success layer (presentation only). */
 function drawScene(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize, options: SceneOptions = {}): void {
+  arcadeFx(ctx, MATCHUP_FX, state, () => drawSceneWorld(ctx, state, size, options), size);
+}
+
+function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize, options: SceneOptions = {}): void {
   const time = reducedMotion() ? 0 : state.tick / 60;
   const { scale, offsetX, offsetY } = matchupTransform(size);
   ctx.save();

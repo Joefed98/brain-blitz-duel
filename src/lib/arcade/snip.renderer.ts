@@ -1,4 +1,7 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { drawArtSprite } from "./sprites.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { SNIP_FX } from "./arcadeFxGames.renderer";
 /** Orchard Snip. Art only: original world, camera, rope nodes and collision geometry. */
 import type { CanvasSize } from './engine';
 import { snipCamera, snipGame, snipView, SNIP_CONFIG, SNIP_EATEN, SNIP_H, SNIP_W, type SnipState } from './snip';
@@ -56,7 +59,12 @@ function twine(c:CanvasRenderingContext2D,points:readonly (readonly [number,numb
   c.strokeStyle=COUNTRY_WOOD_DARK;c.lineWidth=3.5;c.stroke();
   c.strokeStyle=COUNTRY_WOOD_LIGHT;c.lineWidth=1.4;c.setLineDash([3,2]);c.stroke();c.restore();
 }
-export function drawSnipArt(c:CanvasRenderingContext2D,state:SnipState,size:CanvasSize,trail?:readonly (readonly [number,number])[],cameraX=snipCamera(state,state.sx/256-SNIP_CONFIG.viewW/2,1),swipes:readonly SnipSwipe[]=[]):void {
+/** The game's drawing through the shared success layer (presentation only). */
+export function drawSnipArt(c: CanvasRenderingContext2D, state: SnipState, size: CanvasSize, trail?: readonly (readonly [number, number])[], cameraX = snipCamera(state, state.sx / 256 - SNIP_CONFIG.viewW / 2, 1), swipes: readonly SnipSwipe[] = []): void {
+  arcadeFx(c, SNIP_FX, state, () => drawSnipArtWorld(c, state, size, trail, cameraX, swipes), size);
+}
+
+function drawSnipArtWorld(c:CanvasRenderingContext2D,state:SnipState,size:CanvasSize,trail?:readonly (readonly [number,number])[],cameraX=snipCamera(state,state.sx/256-SNIP_CONFIG.viewW/2,1),swipes:readonly SnipSwipe[]=[]):void {
   const tpl=SNIP_CONFIG.templates[state.template];if(!tpl)return;
   const {scaleX,scaleY}=snipView(size);
   c.save();c.fillStyle=COUNTRY_SKY;c.fillRect(0,0,size.width,size.height);c.beginPath();c.rect(0,0,size.width,size.height);c.clip();
@@ -69,7 +77,8 @@ export function drawSnipArt(c:CanvasRenderingContext2D,state:SnipState,size:Canv
   countryStamp(c,'orchard-wall',3,SNIP_H,0,0,wall);countryStamp(c,'orchard-wall',3,SNIP_H,SNIP_W-3,0,wall);
   for(const [x0,y0,x1,y1] of tpl.platforms)countryStamp(c,'orchard-rail',x1-x0,y1-y0,x0,y0,ctx=>rail(ctx,x1-x0,y1-y0));
   countryStamp(c,'orchard-basket',64,64,tpl.mouth[0]-32,tpl.mouth[1]-32,basket);
-  state.starX.forEach((x,i)=>{const y=state.starY[i];if(state.starGot[i]||y===undefined)return;countryStamp(c,'orchard-leaf',48,48,x/256-24,y/256-24,leaf);});
+  state.starX.forEach((x,i)=>{const y=state.starY[i];if(state.starGot[i]||y===undefined)return;// Art pilot (Orchard): golden-leaf sprite fills the 48 px pickup disc's square; code art when absent.
+    if(!drawArtSprite(c,'orchard','leaf',x/256-24,y/256-24,48,48))countryStamp(c,'orchard-leaf',48,48,x/256-24,y/256-24,leaf);});
   for(const rope of state.ropes){const pts:[number,number][]=[];for(let i=0;i<rope.x.length;i++){const x=rope.x[i],y=rope.y[i];if(x!==undefined&&y!==undefined)pts.push([x/256,y/256]);}if(rope.alive)pts.push([state.sx/256,state.sy/256]);twine(c,pts,rope.alive?1:0.6);}
   countryStamp(c,'orchard-apple',24,24,state.sx/256-12,state.sy/256-12,apple);
   if(trail&&trail.length>1){const first=trail[0];if(first){c.strokeStyle=COUNTRY_SHINE;c.lineWidth=2;c.beginPath();c.moveTo(first[0],first[1]);for(const [x,y] of trail)c.lineTo(x,y);c.stroke();}}

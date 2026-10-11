@@ -10,6 +10,7 @@
  * starts at 12).
  */
 import type { CanvasSize } from "./engine";
+import { drawArtSprite } from "./sprites.renderer";
 import { reducedMotion } from "./art.renderer";
 
 export const FAIR_SKY_TOP = "#0D1838";
@@ -127,6 +128,8 @@ function sky(ctx: CanvasRenderingContext2D, size: CanvasSize, horizon: number, f
 
 function counter(ctx: CanvasRenderingContext2D, size: CanvasSize, top: number, scale: number): void {
   if (top >= size.height) return;
+  // Art pilot (Fairground): wooden stall counter below the play area (no collision); code art when absent.
+  if (drawArtSprite(ctx, "fairground", "counter", 0, top, size.width, size.height - top)) return;
   ctx.fillStyle = FAIR_WOOD;
   ctx.fillRect(0, top, size.width, size.height - top);
   ctx.fillStyle = FAIR_WOOD_LIGHT;

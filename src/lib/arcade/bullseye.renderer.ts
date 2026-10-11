@@ -1,4 +1,6 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { BULLSEYE_FX } from "./arcadeFxGames.renderer";
 /**
  * Bullseye in the Fairground world: painted wooden board on a hay bale,
  * throwing darts, chalk aim line. Render only; reads state, never writes it.
@@ -180,7 +182,7 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
   const shown = state.flightTick > 0 ? Math.max(0, state.arrowIndex - 1)
     : Math.min(state.arrowIndex, BULLSEYE_ARROWS - 1);
   const landAge = fairChangeAge(ctx, "bullseye-landed", state.flightTick === 0 ? state.hits.length : -1);
-  fairScreen(ctx, size, BULLSEYE_WORLD_W, BULLSEYE_WORLD_H, COUNTER_Y, () => {
+  fairScreen(ctx, size, BULLSEYE_WORLD_W, BULLSEYE_WORLD_H, COUNTER_Y, () => arcadeFx(ctx, BULLSEYE_FX, state, () => {
     const dx = bullseyeTargetDx(shown, state.tick, state.driftPhase, state.driftDir);
     drawBoard(ctx, bullseyeScalePct(shown), dx, bullseyeRingValues(state, shown), shown >= BULLSEYE_DRIFT_FROM);
 
@@ -234,7 +236,7 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
     ctx.textAlign = "left";
     const shownArrow = Math.min(BULLSEYE_ARROWS, state.arrowIndex + 1);
     ctx.fillText(`Dart ${shownArrow} / ${BULLSEYE_ARROWS} · ${state.total} pts`, 12, 12);
-  }, [0.08, 0.3]);
+  }), [0.08, 0.3]);
 }
 
 /** Chalk aim line from the dart to the predicted landing point. Render only. */

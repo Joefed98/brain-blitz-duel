@@ -1,4 +1,6 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { INKBRIDGE_FX } from "./arcadeFxGames.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import { sceneryTexture, grassTexture } from "./sceneryTexture.renderer";
 import type { CanvasSize } from './engine';
@@ -125,7 +127,12 @@ function drawBridge(c:CanvasRenderingContext2D,state:InkState):void {
   }
   if(cache?.surface)c.drawImage(cache.surface,0,0,INK_WORLD_W,INK_WORLD_H);else paintBridge(c,state);
 }
-export function drawInkBridgeArt(c:CanvasRenderingContext2D,state:InkState,size:CanvasSize):void {
+/** The game's drawing through the shared success layer (presentation only). */
+export function drawInkBridgeArt(c: CanvasRenderingContext2D, state: InkState, size: CanvasSize): void {
+  arcadeFx(c, INKBRIDGE_FX, state, () => drawInkBridgeArtWorld(c, state, size), size);
+}
+
+function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:CanvasSize):void {
   const lvl=state.list[Math.min(state.level,state.list.length-1)];if(!lvl)return;
   const scale=Math.min(size.width/INK_WORLD_W,size.height/INK_WORLD_H);
   c.save();c.fillStyle=SKY;c.fillRect(0,0,size.width,size.height);

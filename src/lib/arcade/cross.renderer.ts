@@ -1,4 +1,7 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { drawArtSprite } from "./sprites.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { CROSS_FX } from "./arcadeFxGames.renderer";
 /**
  * Cross art pass. Render only: reads CrossState and never mutates it. Vehicles
  * fill exactly their collision boxes; the walker stays inside the sim's 16 px
@@ -146,6 +149,8 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 /** A car or lorry filling exactly its collision box (shared by the Real World games). */
 export function drawVehicle(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dir: number, colour: string, lorry: boolean, beams = true): void {
+  // Art pilot (Real World): side-on vehicle sprites fill the vehicle's lane box, mirrored for leftward traffic.
+  if (drawArtSprite(ctx, "realworld", lorry ? "lorry" : "car", x, y, w, h, { flipX: dir < 0 })) return;
   const front = dir > 0 ? x + w : x;
   const back = dir > 0 ? x : x + w;
   const body = ctx.createLinearGradient(0, y, 0, y + h);
@@ -247,7 +252,12 @@ function drawWalker(ctx: CanvasRenderingContext2D, x: number, y: number, facing:
   ctx.restore();
 }
 
+/** The game's drawing through the shared success layer (presentation only). */
 export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true): void {
+  arcadeFx(ctx, CROSS_FX, state, () => drawCrossArtWorld(ctx, state, size, crashIndicator), size);
+}
+
+function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true): void {
   const still = reducedMotion();
   const scale = Math.min(size.width / CROSS_WORLD_W, size.height / CROSS_WORLD_H);
   const offsetX = (size.width - CROSS_WORLD_W * scale) / 2;

@@ -437,6 +437,7 @@ function PracticeScreen() {
           myMsRemaining={graded.msRemaining}
           myScore={graded.score}
           myExtra={graded.extra ?? null}
+          personalBest={newBest}
           startedAt={startedAt}
           now={now}
         />

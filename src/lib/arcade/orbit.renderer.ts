@@ -1,4 +1,6 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { ORBIT_FX, ORBIT3_FX } from "./arcadeFxGames.renderer";
 /**
  * Orbit art pass. Render only: reads OrbitState and never mutates it. Every
  * body, path and hazard arc is drawn from the sim's own geometry (planet
@@ -289,7 +291,12 @@ function drawStars(ctx: CanvasRenderingContext2D, cam: number, t: number, still:
   ctx.globalAlpha = 1;
 }
 
+/** Orbit drawing through the shared success layer (presentation only). */
 export function drawOrbitArt(ctx: CanvasRenderingContext2D, state: OrbitState, size: CanvasSize): void {
+  arcadeFx(ctx, ORBIT_FX, state, () => drawOrbitArtWorld(ctx, state, size), size);
+}
+
+function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, size: CanvasSize): void {
   const still = prefersReducedMotion();
   const t = still ? 0 : state.tick / 60;
   const scale = Math.min(size.width / ORBIT_WORLD_W, size.height / ORBIT_WORLD_H);
@@ -561,6 +568,10 @@ function rev3GlowLayer(ctx: CanvasRenderingContext2D, state: OrbitRev3State, vis
 }
 
 function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, size: CanvasSize): void {
+  arcadeFx(ctx, ORBIT3_FX, state, () => drawOrbitRev3ArtWorld(ctx, state, size), size);
+}
+
+function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3State, size: CanvasSize): void {
   const still = prefersReducedMotion();
   const t = still ? 0 : state.tick / 60;
   const cam = orbitCamera(state, { reducedMotion: still });

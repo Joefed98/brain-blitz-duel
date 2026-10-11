@@ -1,4 +1,6 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { SNAKE_FX } from "./arcadeFxGames.renderer";
 /** Eat and Grow's cached Retro Arcade meteor. Presentation only. */
 import {
   snakeGame, snakeCol, snakeRow, SNAKE_BOARD_H, SNAKE_BOARD_W,
@@ -242,6 +244,6 @@ function sparks(ctx: CanvasRenderingContext2D, state: SnakeState, now: number, d
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize): void {
-  retroScreen(ctx, size, SNAKE_WORLD_W, SNAKE_WORLD_H, "fit", c => drawWorld(c, state, ctx));
+  retroScreen(ctx, size, SNAKE_WORLD_W, SNAKE_WORLD_H, "fit", c => arcadeFx(c, SNAKE_FX, state, () => drawWorld(c, state, ctx)));
 }
 export const snakeArtGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeGame, draw };

@@ -5,6 +5,9 @@
  * the side wall margins and above the sim ceiling line.
  */
 import type { CanvasSize } from "./engine";
+import { artReady, drawArtSprite } from "./sprites.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { BUBBLE_FX } from "./arcadeFxGames.renderer";
 import { successHud, successFrame } from './success.renderer';
 import {
   bubbleGame,
@@ -51,6 +54,8 @@ export function bubCreature(value: number): BubCreature {
 
 /** Draws a creature centred at (cx, cy), fitting radius r. */
 export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx: number, cy: number, r: number): void {
+  // Art pilot (Underwater): creature sprites inside the bubble (the bubble circle stays the drawn bound).
+  if (drawArtSprite(c, "underwater", kind, cx - r * 0.62, cy - r * 0.62, r * 1.24, r * 1.24)) return;
   c.save();
   c.fillStyle = "rgba(8,20,36,0.82)";
   c.strokeStyle = "rgba(8,20,36,0.82)";
@@ -161,7 +166,7 @@ function paintBubble(value: number) {
 
 /** Blits a cached bubble sprite at CSS-px centre with CSS-px radius. */
 function blitBubble(ctx: CanvasRenderingContext2D, value: number, x: number, y: number, radius: number, dpr: number, alpha = 1): void {
-  const sprite = seaSprite(`bub${value}`, radius * 2 * dpr, paintBubble(value));
+  const sprite = seaSprite(`bub${value}${artReady("underwater", bubCreature(value)) ? "-art" : ""}`, radius * 2 * dpr, paintBubble(value));
   if (!sprite) return;
   if (alpha !== 1) ctx.globalAlpha = alpha;
   ctx.drawImage(sprite as CanvasImageSource, x - radius, y - radius, radius * 2, radius * 2);
@@ -210,7 +215,12 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
 
 let lastFlight = 0;
 
+/** The game's drawing through the shared success layer (presentation only). */
 export function drawBubbleArt(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize): void {
+  arcadeFx(ctx, BUBBLE_FX, state, () => drawBubbleArtWorld(ctx, state, size), size);
+}
+
+function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize): void {
   const sx = size.width / BUB_WORLD_W;
   const sy = size.height / BUB_WORLD_H;
   const rs = Math.min(sx, sy);

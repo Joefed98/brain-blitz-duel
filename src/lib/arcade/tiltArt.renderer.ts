@@ -4,6 +4,9 @@
  * half-size cs/4) and reads state without writing it.
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
+import { drawArtSprite } from "./sprites.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { TILT_FX } from "./arcadeFxGames.renderer";
 import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltGame, type Maze, type TiltState } from "./tilt";
 import {
   TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_WOOD_DARK,
@@ -84,7 +87,12 @@ function padlock(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
   ctx.restore();
 }
 
+/** The maze drawing through the shared success layer (presentation only). */
 function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize): void {
+  arcadeFx(ctx, TILT_FX, state, () => drawWorld(ctx, state, size), size);
+}
+
+function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize): void {
   const scale = Math.min(size.width / TILT_WORLD_W, size.height / TILT_WORLD_H);
   const ox = (size.width - TILT_WORLD_W * scale) / 2;
   const oy = (size.height - TILT_WORLD_H * scale) / 2;
@@ -225,7 +233,9 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
     ctx.globalAlpha = 1;
   }
   if (!(state.ended === 1 && state.mazes >= TILT_MAX_MAZES)) {
-    toyMarble(ctx, state.x / FP - o, state.y / FP - o, m.br / FP, TILT_MARBLE_BLUE, -rot);
+    // Art pilot (Toybox): marble sprite fills the marble's collision circle; code art when absent.
+    const mx = state.x / FP - o, my = state.y / FP - o, mr = m.br / FP;
+    if (!drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) toyMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
   }
   ctx.restore();
   ctx.restore();
