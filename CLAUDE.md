@@ -45,11 +45,18 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   belt check; `--json=<path>` saves results; extra args filter by filename).
 - One check: `bun scripts/<name>-check.ts`.
 - A check fails if it exits non-zero, times out, or prints a FAIL summary.
-- Install deps first (`bun install --frozen-lockfile`). Many checks import server
-  functions (`@tanstack/react-start`) or need `happy-dom` / `@napi-rs/canvas`; a
-  "Cannot find module" failure is an environment problem, not a check result.
-  `bun.lock` pins 54 packages to Lovable's private npm cache, which returns 403 outside
-  Lovable, so a cloud session needs Joe's go-ahead to install them another way.
+- Install deps first. Many checks import server functions (`@tanstack/react-start`) or
+  need `happy-dom` / `@napi-rs/canvas`; a "Cannot find module" failure is an
+  environment problem, not a check result.
+- **Package registry:** `bun.lock` pins 54 packages to Lovable's private npm cache
+  (`europe-west*-npm.pkg.dev/lovable-core-prod/...`), which returns 403 outside Lovable.
+  The approved workaround: back up `bun.lock`, temporarily rewrite those URLs to
+  `https://registry.npmjs.org/` (same versions and integrity hashes), run
+  `bun install --frozen-lockfile`, then restore `bun.lock` and confirm
+  `git diff -- bun.lock` is empty. **Never commit a changed `bun.lock`**; Lovable builds
+  from it. Joe's cloud environment can do this automatically through a setup script
+  (kept in the environment settings, not in the repo); if `node_modules` is missing at
+  session start, the script didn't run, so ask Joe before working around it.
 - `scripts/*-bank.ts` rebuild server-only banks; run them only when a bank must change.
 
 ## Rules (non-negotiable)
