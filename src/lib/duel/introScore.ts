@@ -44,9 +44,13 @@ const fewestMoves = (finish: string, notFinished: string, shape: "B" | "C" = "B"
 const arcadeFinish = (progress: string, finish: string) =>
   `Points for ${progress}. ${finish} for ${COMPLETE}, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left.`;
 
-/** Arcade 130 / 150 split: partial runs cap at 130; a full clear scores 130 plus a speed bonus, up to 150. */
-const arcadeSplit = (progress: string, goal: string) =>
-  `Points for ${progress}. ${goal} for up to 150; otherwise up to ${COMPLETE}. Finishing earns ${COMPLETE}, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left.`;
+/**
+ * Arcade 130 / 150 split: a full clear scores 130 plus a speed bonus, up to 150; partial
+ * runs are capped at 130, or lower where the per-unit points stop short (partialMax; the
+ * six-game scoring check proves each figure against the sim).
+ */
+const arcadeSplit = (progress: string, goal: string, partialMax: number = COMPLETE) =>
+  `Points for ${progress}. ${goal} for up to 150; otherwise up to ${partialMax}. Finishing earns ${COMPLETE}, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left.`;
 
 /** Arcade open-ended. */
 const arcadeOpen = (counts: string, penalty?: string) =>
@@ -133,7 +137,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   // Arcade
   hover: arcadeOpen("each barrier gap you fly through; all of them scores 150"),
   skyline: arcadeConverted(`${SKYLINE_BLOCK_POINTS} points per block stacked, plus ${SKYLINE_PERFECT_POINTS} per perfect drop`),
-  bintoss: arcadeSplit("each bucket, 10 a time", `Sink all ${BINTOSS_THROWS} buckets`),
+  bintoss: arcadeSplit("each bucket, 10 a time", `Sink all ${BINTOSS_THROWS} buckets`, 90),
   bullseye: `Rings: ${BULLSEYE_RING_VALUES.join(", ")} from the centre out. ${arcadeConverted("Multiply your ring total by 1.7, then subtract 20")} Minimum 0. Missed or unfired darts add nothing to the ring total.`,
   matchup: arcadePar(MATCHUP_PAR_RAW),
   snake: arcadeOpen("each star you eat"),
@@ -146,12 +150,12 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   wavefront: "Points for ships, armour hits, saucers and waves cleared. Clear all five waves perfectly for 150.",
   flip: "The longer you last, the more you score. Survive the full minute for 150.",
   junction: arcadeTraffic(2, 4),
-  inkbridge: `${arcadeSplit(`each level, ${INK_LEVEL_POINTS} a time`, `Finish all ${INK_LEVELS} levels`)} Rounds 1-4 are standard, 5-8 have moving pots, and 9-10 are live!`,
+  inkbridge: `${arcadeSplit(`each level, ${INK_LEVEL_POINTS} a time`, `Finish all ${INK_LEVELS} levels`, 99)} Rounds 1-4 are standard, 5-8 have moving pots, and 9-10 are live!`,
   burst: "Points for each atom you destroy or split. Losing a life costs 9. Clear four waves without losing a life for 150.",
-  orbit: arcadeSplit("each planet you reach", "Reach the sun"),
+  orbit: arcadeSplit("each planet you reach", "Reach the sun", 117),
   snip: `${SNIP_CONFIG.pointsPerSweet} points for each apple you collect, plus ${SNIP_CONFIG.pointsPerStar} for each leaf. Collect all ${SNIP_CONFIG.levels} apples for up to ${SNIP_CONFIG.finishBonus} more for speed: the full ${SNIP_CONFIG.finishBonus} if you finish with at least half the time left. Up to ${SNIP_CONFIG.maxScore}.`,
   swing: arcadeSplit("how far you swing", `Reach ${SWING_FINISH_M} metres`),
-  tilt: arcadeSplit("each maze you finish", `Finish all ${TILT_MAX_MAZES} mazes`),
+  tilt: arcadeSplit("each maze you finish", `Finish all ${TILT_MAX_MAZES} mazes`, 90),
   balltrack: `${arcadeSplit(`the share of ${BT_BALLS} marbles you get home, rounded to the nearest whole point`, `Get all ${BT_BALLS} marbles home`)} Wrong trays cost nothing.`,
   swerve: arcadeOpen("each coin you collect"),
   dual: "The longer both runners survive, the more you score. The full minute is 150.",

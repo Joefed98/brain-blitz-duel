@@ -57,11 +57,20 @@ No change in Lookout (wordsearch), Tents and Trees (tents), Trail (trail), Match
 
 > Points for each brick destroyed. Clear all 80 bricks for up to 150; otherwise up to 130. Finishing earns 130, plus up to 20 for speed: the full 20 if you finish with at least half the time left.
 
-The other seven follow the same pattern: "Get all 30 marbles home", "Sink all 10 buckets", "Clear the whole field", "Finish all 10 levels", "Reach the sun", "Reach 500 metres" and "Finish all 4 mazes", each with "for up to 150; otherwise up to 130." Ball Tracker keeps "Wrong trays cost nothing." Rainbow Bridge keeps its level-type line.
+The goals are "Get all 30 marbles home", "Sink all 10 buckets", "Clear all 80 bricks", "Clear the whole field", "Finish all 10 levels", "Reach the sun", "Reach 500 metres" and "Finish all 4 mazes", each followed by "for up to 150; otherwise up to N." Ball Tracker keeps "Wrong trays cost nothing." Rainbow Bridge keeps its level-type line.
 
-**Assumption, for Joe:** "otherwise up to 130" is the coded cap, worded as in your example. For four games a partial run can't actually reach 130: Swish tops out at 90 (9 buckets), Tilt at 90 (3 mazes), Rainbow Bridge at 99 (9 levels) and Orbit at 117 (planet 39 of 40). The line is true as a cap, but you may want the real maximum for those four.
+**Partial maximum (Joe, 11 Oct):** where per-unit points stop short of 130, the intro shows the real partial maximum, one unit short of a full clear:
 
-**Checks updated:** `scripts/six-game-scoring-check.ts` now asserts that all eight intros contain " for up to 150; otherwise up to 130.", plus the goal wording for six of them. It also asserts that Scrumper and Mixed Signals (stroop) don't carry the split line, and that the Scrumper intro no longer says "for 130". This check is the existing INTRO_SCORE wording check; `bullseye-cross-flip-tuning-check.ts`, the only other check that reads `INTRO_SCORE`, needed no change.
+| Game | Partial maximum shown |
+|---|---|
+| Swish (bintoss) | 90 (9 buckets × 10) |
+| Tilt (tilt) | 90 (3 mazes × 30) |
+| Rainbow Bridge (inkbridge) | 99 (9 levels × 11) |
+| Orbit (orbit) | 117 (planet 39 of 40 × 3) |
+
+Ball Tracker, Breaker, Coral Pop and Grappler keep "otherwise up to 130", the coded cap. (Strictly, one unit short gives Ball Tracker 126 and Breaker 128; Coral Pop depends on the starting field.)
+
+**Checks updated:** `scripts/six-game-scoring-check.ts` now asserts that each of the eight intros contains " for up to 150; otherwise up to N." with its own partial maximum, plus the goal wording for six of them. It proves the four lower figures against the sims: Swish and Tilt `score()` one unit short, `inkScoreOf(9)`, and Orbit `score()` at planet 39 for both `orbitGame` and `orbitRev3Game`. It also asserts that Scrumper and Mixed Signals (stroop) don't carry the split line, and that the Scrumper intro no longer says "for 130". This check is the existing INTRO_SCORE wording check; `bullseye-cross-flip-tuning-check.ts`, the only other check that reads `INTRO_SCORE`, needed no change.
 
 Mixed Signals (stroop, attention) and Tenfall (tendrop, number) also use 130 + up to 20 for speed, but they are not arcade-category games and their partial formulas aren't capped at 130 by a separate rule, so their text is unchanged.
 
