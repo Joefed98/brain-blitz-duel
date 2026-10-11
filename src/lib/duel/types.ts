@@ -2151,6 +2151,8 @@ export interface FlipPuzzleData {
   type: "flip";
   /** Draws the whole corridor — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = bend at 15 s, crumbling tiles, stars, larger runner); absent = original. */
+  flipRev?: number;
 }
 
 export interface ParryPuzzleData {
@@ -2305,6 +2307,8 @@ export interface BallTrackPuzzleData {
   /** Playbook piece actions and the proving event log — private until the reveal. */
   par?: number;
   playbook?: string;
+  /** Rules revision (2 = turn occupied tubes, bottom-row switch points); absent = original. */
+  btRev?: number;
 }
 
 /** Letter Wheel: 120 s to fill a small crossword from a wheel of letters. */

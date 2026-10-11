@@ -12,7 +12,7 @@ import {
 import { encodeFlipRun, replayFlipRun } from "@/lib/duel/flip";
 import { FLIP_TIME_MS, type FlipPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
-import { flipArtGame } from "@/lib/arcade/flipArt.renderer";
+import { flipArtGameFor } from "@/lib/arcade/flipArt.renderer";
 import { flipSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -26,15 +26,19 @@ function IntroExample() {
         <line x1={0} y1={106} x2={168} y2={106} stroke={FLIP_GOLD} strokeWidth={2} />
         <polygon points="96,106 104,92 112,106 120,92 128,106" fill={FLIP_RED} />
         <path d="M40 96 Q60 64 80 34" fill="none" stroke={FLIP_GOLD} strokeOpacity={0.4} strokeDasharray="3 4" />
-        <rect x={74} y={26} width={14} height={18} rx={7} fill={FLIP_GOLD} />
+        <rect x={18} y={106} width={34} height={6} fill="#7C726A" />
+        <path d="M26 106 l2 4 M38 106 l-1 5 M46 106 l2 3" stroke="#FF8C3C" strokeWidth={1.2} />
+        <polygon points="132,34 134.4,39 140,39.6 135.8,43.2 137,48.6 132,46 127,48.6 128.2,43.2 124,39.6 129.6,39" fill="#FFE84A" />
+        <rect x={72} y={26} width={18} height={22} rx={8} fill={FLIP_GOLD} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Spikes below? Flip to the ceiling.</p>
+      <p className="text-center text-xs text-muted-foreground">Spikes below? Flip up. Grab the stars; cracked tiles give way.</p>
     </div>
   );
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: FlipPuzzleData | null = puzzle.type === "flip" ? puzzle : null;
+  const game = flipArtGameFor(data?.flipRev);
   return (
     <ArcadeCanvasStage
       diagKey="flip"
@@ -45,7 +49,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={FLIP_WORLD_W}
       worldH={FLIP_WORLD_H}
-      game={flipArtGame}
+      game={game}
       sounds={flipSounds}
       checkpoint={flipCheckpoint}
       interval={FLIP_CHECKPOINT_INTERVAL}
@@ -65,12 +69,17 @@ export function flipLine(r: { survived: boolean; survivedSeconds: number }): str
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "flip") return null;
-  const result = replayFlipRun(puzzle.seed, myAnswer ?? "");
+  const result = replayFlipRun(puzzle.seed, myAnswer ?? "", puzzle.flipRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {flipLine(result)}
       </p>
+      {result.starsTotal > 0 ? (
+        <p className="shrink-0 text-center font-mono text-base text-foreground">
+          ★ {result.stars} / {result.starsTotal} stars
+        </p>
+      ) : null}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same corridor for everyone</p>
     </div>
   );

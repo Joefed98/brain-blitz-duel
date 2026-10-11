@@ -14,7 +14,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
+import { decodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { legacyDigest } from "./arcade-batch1-legacy";
 import {
   crossBlocked,
@@ -41,6 +41,39 @@ import {
   type CrossState,
 } from "../src/lib/arcade/cross";
 import { encodeCrossRun, replayCrossRun } from "../src/lib/duel/cross";
+import {
+  flipCheckpoint,
+  flipCrackTick,
+  flipGameFor,
+  flipScoreOfV2,
+  flipStarsTaken,
+  flipWarpAmp,
+  FLIP_CRUMBLE,
+  FLIP_INPUT_TAP,
+  FLIP_REV,
+  FLIP_RUN_TICKS,
+  FLIP_STARS,
+  type FlipState,
+} from "../src/lib/arcade/flip";
+import { encodeFlipRun, replayFlipRun } from "../src/lib/duel/flip";
+import {
+  btCheckpoint,
+  btNext,
+  btRotatable,
+  btScoreOf,
+  makeBallTrackGame,
+  BT_BALLS,
+  BT_COLS,
+  BT_HOPPER_COL,
+  BT_K_ROTATE,
+  BT_PERFECT_MAX,
+  BT_REV,
+  BT_ROWS,
+  BT_STEP_TICKS,
+  type BtState,
+} from "../src/lib/arcade/ballTrack";
+import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
+import { BALL_TRACK_BANK } from "../src/lib/duel/ballTrackBank.server";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
@@ -50,6 +83,9 @@ const ok = (value: unknown, message: string) => {
   checks++;
 };
 const section = (name: string) => console.log(`— ${name}`);
+/** BATCH1_ONLY=cross,flip,balltrack,slice runs only those sections (legacy and intro always run). */
+const ONLY = process.env.BATCH1_ONLY?.split(",");
+const want = (key: string) => !ONLY || ONLY.includes(key);
 
 /* ============================ 1. Legacy identity ============================ */
 section("legacy identity");
@@ -62,6 +98,7 @@ section("legacy identity");
 }
 
 /* =============================== 2a. Jaywalk =============================== */
+if (want("cross")) {
 section("Jaywalk crossRev 2");
 const cross2 = crossGameFor(CROSS_REV);
 ok(crossGameFor(undefined) !== cross2 && crossGameFor(undefined).init(5).rev === undefined, "unstamped Jaywalk keeps the original game");
@@ -175,6 +212,178 @@ for (const seed of CROSS_SEEDS.slice(0, 12)) {
 console.log(`  150 reached through the server replay on ${best150} of 12 seeds (planner never loses a life)`);
 const crossIntro = INTRO_SCORE.cross;
 ok(/Up to 150/.test(crossIntro) && /2 points/.test(crossIntro) && /plus 4/.test(crossIntro), "Jaywalk intro states 2 per lane, 4 per crossing, up to 150");
+}
+
+/* =============================== 2b. Roofbound =============================== */
+if (want("flip")) {
+section("Roofbound flipRev 2");
+const flip2 = flipGameFor(FLIP_REV);
+ok(flipGameFor(undefined).init(5).rev === undefined && flip2.init(5).rev === FLIP_REV, "stamp gates the new rules");
+ok(flipWarpAmp(15 * 60, FLIP_REV) === 0 && flipWarpAmp(15 * 60 + 30, FLIP_REV) > 0, "rev 2 bends from 15 s");
+ok(flipWarpAmp(20 * 60, null) === 0 && flipWarpAmp(15 * 60 + 30, null) === 0, "original still bends from 20 s");
+ok(flipScoreOfV2(FLIP_RUN_TICKS, 0) === 130 && flipScoreOfV2(FLIP_RUN_TICKS, FLIP_STARS) === 150, "survival up to 130, stars up to 20");
+ok(flipScoreOfV2(1800, 10) === 32 + 20, "survival keeps the squared curve, rescaled");
+
+/** Sim-exact planner: per dynamics key keep the run with the most stars (stars never change dynamics). */
+function planFlip(seed: number): ArcadeInputEvent[] {
+  type Node = { state: FlipState; parent: number; tap: boolean };
+  const layers: Node[][] = [[{ state: flip2.init(seed), parent: -1, tap: false }]];
+  for (let tick = 1; tick <= FLIP_RUN_TICKS; tick++) {
+    const best = new Map<string, Node>();
+    const prev = layers[tick - 1]!;
+    prev.forEach((node, index) => {
+      for (const tap of [false, true]) {
+        const next = flip2.step(node.state, tap ? { t: tick, k: FLIP_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null);
+        if (next.ended === 2) continue;
+        const cracks = next.cracks ?? [];
+        const key = `${next.side}:${next.flipT}:${cracks.at(-2)}:${cracks.at(-1)}`;
+        const held = best.get(key);
+        if (!held || flipStarsTaken(next) > flipStarsTaken(held.state)) best.set(key, { state: next, parent: index, tap });
+      }
+    });
+    if (!best.size) throw new Error(`seed ${seed}: no surviving run at tick ${tick}`);
+    layers.push([...best.values()]);
+  }
+  const last = layers[FLIP_RUN_TICKS]!;
+  let at = last.indexOf(last.reduce((a, b) => (flipStarsTaken(b.state) > flipStarsTaken(a.state) ? b : a)));
+  const events: ArcadeInputEvent[] = [];
+  for (let tick = FLIP_RUN_TICKS; tick > 0; tick--) {
+    const node = layers[tick]![at]!;
+    if (node.tap) events.unshift({ t: tick, k: FLIP_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 });
+    at = node.parent;
+  }
+  return events;
+}
+
+let flip150 = 0;
+const FLIP_SEEDS = [1, 7_654_322, 15_308_643];
+let flipCracked = 0;
+for (const seed of FLIP_SEEDS) {
+  const course = flip2.init(seed);
+  ok(course.stars?.length === FLIP_STARS, `seed ${seed}: ten stars`);
+  ok(course.segs.some((seg) => seg.kind === FLIP_CRUMBLE), `seed ${seed}: crumbling tiles present`);
+  const planned = planFlip(seed);
+  const events: ArcadeInputEvent[] = [];
+  const checkpoints: ReturnType<typeof flipCheckpoint>[] = [];
+  let state = flip2.init(seed);
+  let cracked = 0;
+  while (!flip2.isOver(state)) {
+    const t = state.tick + 1;
+    const want = planned.find((e) => e.t === t);
+    if (want) recordInput(events, want, flip2.inputRanges);
+    state = flip2.step(state, inputAt(events, t));
+    if (state.tick % 300 === 0) checkpoints.push(flipCheckpoint(state));
+  }
+  for (let i = 0; i < state.segs.length; i++) if (flipCrackTick(state, i) !== null) cracked += 1;
+  const score = flip2.score(state);
+  const replay = replayFlipRun(seed, encodeFlipRun({ seed, claimedScore: score, events, endTick: state.tick, checkpoints }), FLIP_REV);
+  ok(replay.score === score && !replay.flagged && replay.stars === FLIP_STARS, `seed ${seed}: server replay agrees`);
+  ok(score === 150, `seed ${seed}: survive + all stars = 150 (got ${score})`);
+  flipCracked += cracked;
+  flip150 += score === 150 ? 1 : 0;
+}
+ok(flipCracked > 0, "the winning runs stood on crumbling tiles and flipped off in time");
+console.log(`  150 reached through the server replay on ${flip150} of ${FLIP_SEEDS.length} seeds (survived 60 s, all 10 stars; ${flipCracked} crumbling tiles survived)`);
+ok(/130/.test(INTRO_SCORE.flip) && /2/.test(INTRO_SCORE.flip) && /150/.test(INTRO_SCORE.flip), "Roofbound intro states 130 + 2 per star, 150");
+}
+
+/* ============================= 2c. Ball Tracker ============================= */
+if (want("balltrack")) {
+section("Ball Tracker btRev 2");
+{
+  const course = BALL_TRACK_BANK[0]!.course;
+  const v1 = makeBallTrackGame(course);
+  const v2 = makeBallTrackGame(course, BT_REV);
+  ok(v1.init(1).rev === undefined && v2.init(1).rev === BT_REV, "stamp gates the new rules");
+  const tap = (t: number, a: number): ArcadeInputEvent => ({ t, k: BT_K_ROTATE, a, b: 0, c: 0, d: 0 });
+  // Find a marble sitting in a rotatable horizontal tube, then turn the tube under it.
+  const rot = v2.rotatable;
+  let probe: BtState = v2.init(1);
+  let target = -1;
+  while (probe.tick < 3000 && target < 0) {
+    probe = v2.step(probe, null);
+    const b = probe.balls.find((ball) => rot.has(ball.cell) && probe.vert[ball.cell] === 0 && ball.above === 0 && probe.tick < ball.at - 2);
+    if (b) target = b.id;
+  }
+  ok(target >= 0, "a marble reaches a turnable tube");
+  const ball = probe.balls.find((b) => b.id === target)!;
+  const cell = ball.cell;
+  const legacyTry = v1.step({ ...probe, rev: undefined }, tap(probe.tick + 1, cell));
+  ok(legacyTry.vert[cell] === 0, "original rules still lock an occupied tube");
+  let turned = v2.step(probe, tap(probe.tick + 1, cell));
+  ok(turned.vert[cell] === 1 && turned.turned![cell] === turned.tick, "rev 2 turns the tube with the marble inside");
+  while (turned.balls.find((b) => b.id === target)?.cell === cell) turned = v2.step(turned, null);
+  const moved = turned.balls.find((b) => b.id === target);
+  ok(!moved || moved.cell === cell + BT_COLS, "the marble leaves by the new (lower) exit");
+  ok(!moved || ((moved.via ?? 0) & 1) === 1, "the marble remembers riding the turn");
+  ok(JSON.stringify(v2.step(probe, tap(probe.tick + 1, cell))) === JSON.stringify(v2.step(probe, tap(probe.tick + 1, cell))), "deterministic");
+
+  // Switch points: only on a live tray drop; a switched drop sends the marble on along the row.
+  const bottom = (BT_ROWS - 1) * BT_COLS;
+  const s0 = v2.init(1);
+  const live = course.trays.findIndex((tray, col) => col > 0 && tray >= 0);
+  const dead = course.trays.findIndex((tray, col) => col > 0 && tray < 0);
+  ok(v2.step(s0, tap(1, bottom + live)).sw === 1 << live, "tap toggles a live switch point");
+  ok(dead < 0 || v2.step(s0, tap(1, bottom + dead)).sw === 0, "no switch point where no cup is live");
+  ok(btNext(bottom + live, true, false, course, 1, 0).cell >= 100, "open switch: the marble drops into the cup");
+  ok(btNext(bottom + live, true, false, course, 1, 1 << live).cell === bottom + live + 1 || live === BT_COLS - 1, "switched: the marble rolls on");
+  ok(v1.step(v1.init(1), tap(1, bottom + live)).sw === undefined, "original rules ignore bottom-row taps");
+
+  // Every banked playbook (proved under the original locks) still gets all 30 home under rev 2.
+  let minScore = 999, maxScore = 0;
+  for (const [index, entry] of BALL_TRACK_BANK.entries()) {
+    if (index % 4 !== 0) continue;
+    const game = makeBallTrackGame(entry.course, BT_REV);
+    const playbook = decodeInputEvents(entry.playbook);
+    const byTick = new Map(playbook.map((e) => [e.t, e]));
+    let st = game.init(1);
+    const events: ArcadeInputEvent[] = [];
+    const checkpoints: ReturnType<typeof btCheckpoint>[] = [];
+    while (!game.isOver(st)) {
+      const t = st.tick + 1;
+      const e = byTick.get(t);
+      if (e) recordInput(events, e, game.inputRanges);
+      st = game.step(st, inputAt(events, t));
+      if (st.tick % 300 === 0) checkpoints.push(btCheckpoint(st));
+    }
+    const score = game.score(st);
+    const seed = index + 1;
+    const replay = replayBallTrackRun(entry.course, seed, encodeBallTrackRun(entry.course, { seed, claimedScore: score, events, endTick: st.tick, checkpoints }, BT_REV), BT_REV);
+    ok(st.home === BT_BALLS && replay.score === score && !replay.flagged, `bank course ${index}: playbook still gets all 30 home under rev 2`);
+    minScore = Math.min(minScore, score);
+    maxScore = Math.max(maxScore, score);
+  }
+  ok(minScore > 130 && maxScore <= BT_PERFECT_MAX, "perfect playbook runs score a little over 130");
+
+  // The bound: shortest possible route for the last marble with every tube and switch set ideally.
+  const rotatableAll = new Set(BALL_TRACK_BANK.flatMap((e) => btRotatable(e.course)));
+  let frontier = [{ cell: BT_HOPPER_COL, above: true }];
+  let moves = 1;
+  let minMoves = Infinity;
+  for (; moves < 40 && minMoves === Infinity; moves++) {
+    const next: typeof frontier = [];
+    for (const node of frontier) {
+      const options = rotatableAll.has(node.cell) ? [false, true] : [false];
+      for (const vertical of options) for (const sw of [0, 0x7f]) {
+        const n = btNext(node.cell, node.above, vertical, { ...course, trays: [-1, 0, 0, 0, 0, 0, 0] }, 0, sw);
+        if (n.cell >= 100) minMoves = Math.min(minMoves, moves + 1);
+        else if (n.cell >= 0) next.push({ cell: n.cell, above: n.fromAbove });
+      }
+    }
+    frontier = next;
+  }
+  let lastRelease = 0;
+  for (let st = v2.init(1); st.tick < 3000; ) {
+    const before = st.next;
+    st = v2.step(st, null);
+    if (st.next > before) lastRelease = st.tick;
+  }
+  const earliest = lastRelease + BT_STEP_TICKS * (minMoves + 1);
+  ok(btScoreOf(BT_BALLS, 0, earliest) === BT_PERFECT_MAX, `bound: last marble lands no earlier than tick ${earliest} → ${BT_PERFECT_MAX}`);
+  ok(INTRO_SCORE.balltrack.includes(`for up to ${BT_PERFECT_MAX}; otherwise up to ${btScoreOf(BT_BALLS - 1, 0)}`), "Ball Tracker intro states the true maximums");
+  console.log(`  occupied turns and switch points work; ${Math.ceil(BALL_TRACK_BANK.length / 4)} banked playbooks still prove their courses (perfect runs ${minScore}–${maxScore}); perfect-run bound ${BT_PERFECT_MAX} (150 is not reachable: the last marble drops at tick ${lastRelease})`);
+}
+}
 
 /* ============================ 3. Intro rules ============================ */
 section("intro text");

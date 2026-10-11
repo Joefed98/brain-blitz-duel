@@ -1401,7 +1401,7 @@ export function gradeSubmission(
     }
     case "flip": {
       const replayStart = performance.now();
-      const run = replayFlipRun(puzzle.seed, answer);
+      const run = replayFlipRun(puzzle.seed, answer, puzzle.flipRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1412,6 +1412,7 @@ export function gradeSubmission(
       extraDetail = {
         survivedSeconds: run.survivedSeconds,
         survived: run.survived,
+        ...(run.starsTotal > 0 ? { stars: run.stars, starsTotal: run.starsTotal } : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,
@@ -1731,7 +1732,7 @@ export function gradeSubmission(
     case "balltrack": {
       // The full input log is replayed against the stored course.
       const replayStart = performance.now();
-      const run = replayBallTrackRun(puzzle.course, puzzle.seed, answer);
+      const run = replayBallTrackRun(puzzle.course, puzzle.seed, answer, puzzle.btRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = run.perfect;

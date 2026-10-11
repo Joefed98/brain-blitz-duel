@@ -69,7 +69,7 @@ const { binTossArtGame } = await import("../src/lib/arcade/binTossArt.renderer")
 const { drawBullseye } = await import("../src/lib/arcade/bullseye.renderer");
 const { bullseyeGame } = await import("../src/lib/arcade/bullseye");
 const { bubbleArtGame } = await import("../src/lib/arcade/bubble.renderer");
-const { flipArtGame } = await import("../src/lib/arcade/flipArt.renderer");
+const { flipArtGameFor } = await import("../src/lib/arcade/flipArt.renderer");
 const { swingArtGame } = await import("../src/lib/arcade/swing.renderer");
 const { snipArtGame } = await import("../src/lib/arcade/snip.renderer");
 const { tiltArtGame } = await import("../src/lib/arcade/tiltArt.renderer");
@@ -96,7 +96,7 @@ type AnyGame = {
 };
 
 const course = BALL_TRACK_BANK[0]!.course;
-const btGame = makeBallTrackGame(course);
+const btGame = makeBallTrackGame(course, 2);
 const GAMES: Record<string, AnyGame> = {
   hover: hoverArtGame as AnyGame,
   breaker: breakerArtGame as AnyGame,
@@ -114,7 +114,7 @@ const GAMES: Record<string, AnyGame> = {
   bintoss: binTossArtGame as AnyGame,
   bullseye: { ...bullseyeGame, draw: drawBullseye } as AnyGame,
   bubble: bubbleArtGame as AnyGame,
-  flip: flipArtGame as AnyGame,
+  flip: flipArtGameFor(2) as AnyGame,
   swing: swingArtGame as AnyGame,
   snip: snipArtGame as AnyGame,
   tilt: tiltArtGame as AnyGame,
@@ -287,7 +287,13 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, dropped: s.dropped + 4 }),
     (s) => ({ ...s, cleared: true }),
   ],
-  flip: [(s) => ({ ...s, tick: s.tick + 600 }), (s) => ({ ...s, ended: 1 })],
+  flip: [
+    (s) => ({ ...s, tick: s.tick + 600 }),
+    (s) => ({ ...s, ended: 1 }),
+    (s) => ({ ...s, got: (s.got ?? 0) | 1 }),
+    (s) => ({ ...s, got: 1023 }),
+    (s) => ({ ...s, cracks: [0, s.tick - 30] }),
+  ],
   swing: [
     (s) => ({ ...s, maxX: s.maxX + 100 * 256 * 40 }),
     (s) => ({ ...s, ended: 1, maxX: s.maxX + 600 * 256 * 40 }),
@@ -298,7 +304,12 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, eaten: 10 }),
   ],
   tilt: [(s) => ({ ...s, mazes: s.mazes + 1 }), (s) => ({ ...s, mazes: 4 })],
-  balltrack: [(s) => ({ ...s, home: s.home + 5 }), (s) => ({ ...s, home: 30 })],
+  balltrack: [
+    (s) => ({ ...s, home: s.home + 5 }),
+    (s) => ({ ...s, home: 30 }),
+    (s) => ({ ...s, rideHomes: (s.rideHomes ?? 0) + 1 }),
+    (s) => ({ ...s, switchHomes: (s.switchHomes ?? 0) + 1 }),
+  ],
   matchup: [
     (s) => ({ ...s, cascades: s.cascades + 1, lastSteps: 3 }),
     (s) => ({ ...s, bestLine: 5 }),

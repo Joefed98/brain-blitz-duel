@@ -738,11 +738,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   flip: {
     goal: "Run the corridor - flip to the other side to dodge.",
     how: [
-      { action: "Tap to flip gravity.", detail: "" },
-      { action: "Spikes and gaps on one side", detail: "mean run on the other." },
-      { action: "From 20 s the corridor bends.", detail: "Hazards ride the bends with you." },
+      { action: "Tap to flip", detail: "to the other side. Spikes or lava on one side? Run on the other." },
+      { action: "Cracked stone tiles break", detail: "soon after you land on them, so flip off quickly." },
+      { action: "Grab the gold stars.", detail: "From 15 seconds the corridor bends." },
+      { action: "Hazards ride the bends with you,", detail: "so the gap between floor and ceiling never changes.", helpOnly: true },
+      { action: "A tile starts cracking", detail: "the moment you touch it and is gone less than half a second later.", helpOnly: true },
     ],
-    score: "The longer you last, the more you score - the full minute is 150.",
+    score: "floor(130 × (seconds survived ÷ 60)²) + 2 per gold star (10 on the course): the full minute plus every star = 150.",
   },
   parry: {
     goal: "Block every arrow with the gong shield.",
@@ -868,13 +870,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "30 per completed pyramid, plus up to 30 for finishing all four early. The current pyramid earns proportional partial points.",
   },
   balltrack: {
-    goal: "Steer every ball into the tray of its colour.",
+    goal: "Steer every marble into the cup of its colour.",
     how: [
-      { action: "30 balls drop about every 1.72 seconds", detail: "- the last is released at about 50 seconds; the run lasts 60 seconds." },
-      { action: "Tap a gold tube to turn it into a drop", detail: "- the bottom row is fixed, so send each ball down early…" },
-      { action: "…the track's bottom row re-lays and the trays swap colours mid-round", detail: "- watch for both." },
+      { action: "Tap a gold tube to turn it.", detail: "A marble that rolls into an upright tube drops to the row below." },
+      { action: "Tubes turn with a marble inside:", detail: "it swings round with the tube and rolls out of the new end." },
+      { action: "Tap an arrow on the bottom row", detail: "to switch between dropping into that cup (↓) and rolling past it (→)." },
+      { action: "A new marble drops about every two seconds;", detail: "the last one drops at 50 seconds and the run lasts a minute.", helpOnly: true },
+      { action: "Mid-round the bottom row moves and the cups swap colours", detail: "- a countdown warns you before each change.", helpOnly: true },
     ],
-    score: "round(130 × marbles home ÷ 30); all 30 home = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left. Cap 150. Wrong trays have no penalty.",
+    score: "round(130 × marbles home ÷ 30). All 30 home = 130 + a speed bonus, at most 5 because the last marble drops at 50 s. Wrong cups cost nothing.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",

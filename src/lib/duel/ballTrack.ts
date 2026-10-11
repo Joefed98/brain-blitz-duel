@@ -13,10 +13,10 @@ import {
 } from "@/lib/arcade/ballTrack";
 import { makeArcadeRun, type FlatReplay, type FlatRun } from "./arcadeRun";
 
-const runFor = (course: BtCourse) =>
+const runFor = (course: BtCourse, rev?: number | null) =>
   makeArcadeRun<BtState, BtCheckpoint>({
     tag: "balltrack",
-    game: makeBallTrackGame(course),
+    game: makeBallTrackGame(course, rev),
     checkpoint: btCheckpoint,
     keys: BT_CHECKPOINT_KEYS,
     interval: BT_CHECKPOINT_INTERVAL,
@@ -32,8 +32,8 @@ export interface BallTrackResult extends FlatReplay<BtState, BtCheckpoint> {
   speed: number;
 }
 
-export function encodeBallTrackRun(course: BtCourse, run: FlatRun<BtCheckpoint>): string {
-  return runFor(course).encode(run);
+export function encodeBallTrackRun(course: BtCourse, run: FlatRun<BtCheckpoint>, rev?: number | null): string {
+  return runFor(course, rev).encode(run);
 }
 
 export function decodeBallTrackRun(course: BtCourse, raw: string): FlatRun<BtCheckpoint> {
@@ -41,8 +41,8 @@ export function decodeBallTrackRun(course: BtCourse, raw: string): FlatRun<BtChe
 }
 
 /** The single place a Ball Track score is worked out. */
-export function replayBallTrackRun(course: BtCourse, seed: number, raw: string): BallTrackResult {
-  const result = runFor(course).replay(seed, raw);
+export function replayBallTrackRun(course: BtCourse, seed: number, raw: string, rev?: number | null): BallTrackResult {
+  const result = runFor(course, rev).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

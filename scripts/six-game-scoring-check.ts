@@ -66,7 +66,9 @@ for (const [type, text] of [["matchup", "2,500"], ["bullseye", "1.7 × ring tota
 // Each split intro shows the real partial maximum: the score one unit short of a clear (Grappler rounds to 130).
 const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: 90, breaker: 128, bubble: 128, inkbridge: 99, orbit: 117, swing: 130, tilt: 90 } as const;
 for (const [type, max] of Object.entries(SPLIT_PARTIAL_MAX) as [keyof typeof SPLIT_PARTIAL_MAX, number][]) {
-  eq(INTRO_SCORE[type].includes(` for up to 150; otherwise up to ${max}.`), true, `${type} intro states the split with partial max ${max}`);
+  // Ball Tracker states its true perfect-run maximum (135, proved in arcade-batch1-check), not the 150 cap.
+  const full = type === "balltrack" ? 135 : 150;
+  eq(INTRO_SCORE[type].includes(` for up to ${full}; otherwise up to ${max}.`), true, `${type} intro states the split with partial max ${max}`);
 }
 eq(btScoreOf(BT_BALLS - 1, 0), SPLIT_PARTIAL_MAX.balltrack, "Ball Tracker partial max");
 const brk = breakerGame.init(1);
@@ -87,7 +89,7 @@ for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }
 for (const [type, goal] of [["balltrack", "Get all 30 marbles home"], ["bintoss", "Sink all 10 buckets"], ["breaker", "Clear all 80 bricks"], ["inkbridge", "Finish all 10 levels"], ["swing", "Reach 500 metres"], ["tilt", "Finish all 4 mazes"]] as const) {
-  eq(INTRO_SCORE[type].includes(`${goal} for up to 150`), true, `${type} intro goal`);
+  eq(INTRO_SCORE[type].includes(`${goal} for up to ${type === "balltrack" ? 135 : 150}`), true, `${type} intro goal`);
 }
 // Scrumper and Mixed Signals are not on the split: no partial cap at 130.
 for (const type of ["snip", "stroop"] as const) eq(INTRO_SCORE[type].includes("otherwise up to 130"), false, `${type} intro has no split line`);

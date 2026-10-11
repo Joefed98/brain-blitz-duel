@@ -1,3 +1,4 @@
+import { FLIP_REV } from "@/lib/arcade/flip";
 import { CROSS_REV } from "@/lib/arcade/cross";
 import { INK_REV3 } from "@/lib/arcade/inkBridge";
 import { SNIP_REV } from "@/lib/arcade/snip";
@@ -152,7 +153,7 @@ export function generateColourClash(): StroopPuzzleData {
 }
 
 export function generateFlip(): FlipPuzzleData {
-  return { type: "flip", seed: arcadeSeed() };
+  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV };
 }
 
 export function generateParry(): ParryPuzzleData {

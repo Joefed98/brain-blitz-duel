@@ -1,7 +1,7 @@
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
 import { BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
-import { BT_BALLS } from "@/lib/arcade/ballTrack";
+import { BT_BALLS, BT_PERFECT_MAX } from "@/lib/arcade/ballTrack";
 import { BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { BRK_BRICKS } from "@/lib/arcade/breaker";
 import { INK_LEVELS } from "@/lib/arcade/inkBridge";
@@ -45,8 +45,8 @@ const arcadeFinish = (progress: string, finish: string) =>
  * or lower where the per-unit points stop short (partialMax; the six-game scoring check
  * proves each figure against the sim).
  */
-const arcadeSplit = (progress: string, goal: string, partialMax: number = COMPLETE) =>
-  `Points for ${progress}. ${goal} for up to 150; otherwise up to ${partialMax}.`;
+const arcadeSplit = (progress: string, goal: string, partialMax: number = COMPLETE, fullMax = 150) =>
+  `Points for ${progress}. ${goal} for up to ${fullMax}; otherwise up to ${partialMax}.`;
 
 /** Arcade open-ended. */
 const arcadeOpen = (counts: string, penalty?: string) =>
@@ -139,7 +139,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   slice: "Points for each food you slice; cut several at once for more. Chilli: lose 10.",
   beat: "Points for each note you hit in time. Missed note: lose 2.",
   wavefront: "Points for ships, saucers and waves cleared. Clear all five waves perfectly for 150.",
-  flip: "The longer you last, the more you score. Survive the full minute for 150.",
+  flip: "Up to 130 for lasting the full minute, plus 2 for each gold star. Up to 150.",
   junction: "2 per car, 4 per ambulance, 40 for lasting the minute. A stopped ambulance: lose 4.",
   inkbridge: arcadeSplit("each level", `Finish all ${INK_LEVELS} levels`, 99),
   burst: "Points for each atom you destroy or split. Clear four waves without losing a life for 150.",
@@ -147,7 +147,8 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   snip: `${SNIP_CONFIG.pointsPerSweet} points for each apple and ${SNIP_CONFIG.pointsPerStar} for each leaf. Collect all ${SNIP_CONFIG.levels} quickly for more.`,
   swing: arcadeSplit("how far you swing", `Reach ${SWING_FINISH_M} metres`),
   tilt: arcadeSplit("each maze", `Finish all ${TILT_MAX_MAZES} mazes`, 90),
-  balltrack: arcadeSplit("each marble home", `Get all ${BT_BALLS} marbles home`, 126),
+  // The last marble drops at 50 s, so a perfect run tops out at 135 (arcade-batch1-check proves the bound).
+  balltrack: arcadeSplit("each marble home", `Get all ${BT_BALLS} marbles home`, 126, BT_PERFECT_MAX),
   swerve: arcadeOpen("each coin you collect"),
   dual: "The longer both runners survive, the more you score. The full minute is 150.",
   steady: "Start on 150. Touching the edge: lose 5.",
