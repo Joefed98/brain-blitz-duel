@@ -57,11 +57,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   from it. Joe's cloud environment can do this automatically through a setup script
   (kept in the environment settings, not in the repo); if `node_modules` is missing at
   session start, the script didn't run, so ask Joe before working around it.
-- Baseline (11 Oct 2026, full deps, after the new-types determinism fix): 87 of 87
+- Baseline (11 Oct 2026, full deps, after the batch-2 arcade upgrades): 92 of 92
   pass, 0 fail, 0 timeout (the default run; the two `--include-optional` checks are
   extra). Slowest: snip-check ~660 s (1,800 s limit); puzzle-bank ~200 s;
   burst-swing-score, arcade-self-replay, ink-live, ink-live-bottom and orbit-camera
-  take 100–140 s each. new-types checks seeded bank draws and takes ~10 s. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set.
+  take 100–140 s each. new-types checks seeded bank draws and takes ~10 s. arcade-batch2-check (legacy digests, bots proving 150) takes ~60 s. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set.
 - puzzle-input-tuning rewrites `.lovable/audits/puzzle-input-oct6.md`; restore it
   (`git checkout`) before committing.
 - `scripts/*-bank.ts` rebuild server-only banks; run them only when a bank must change.
