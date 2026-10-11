@@ -74,6 +74,24 @@ import {
 } from "../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
 import { BALL_TRACK_BANK } from "../src/lib/duel/ballTrackBank.server";
+import {
+  sliceCheckpoint,
+  sliceGameFor,
+  sliceMayoCount,
+  sliceMultiplier,
+  sliceObjectAt,
+  sliceSuppressed,
+  SLICE_INPUT_SWIPE,
+  SLICE_MAYO_TICKS,
+  SLICE_R,
+  SLICE_REV,
+  SLICE_SPECIAL_MAYO,
+  SLICE_SPECIAL_R,
+  SLICE_WORLD_H,
+  SLICE_WORLD_W,
+  type SliceState,
+} from "../src/lib/arcade/slice";
+import { encodeSliceRun, replaySliceRun } from "../src/lib/duel/slice";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
@@ -383,6 +401,149 @@ section("Ball Tracker btRev 2");
   ok(INTRO_SCORE.balltrack.includes(`for up to ${BT_PERFECT_MAX}; otherwise up to ${btScoreOf(BT_BALLS - 1, 0)}`), "Ball Tracker intro states the true maximums");
   console.log(`  occupied turns and switch points work; ${Math.ceil(BALL_TRACK_BANK.length / 4)} banked playbooks still prove their courses (perfect runs ${minScore}–${maxScore}); perfect-run bound ${BT_PERFECT_MAX} (150 is not reachable: the last marble drops at tick ${lastRelease})`);
 }
+}
+
+/* ================================ 2d. Slice ================================ */
+if (want("slice")) {
+section("Slice sliceRev 2");
+const slice1 = sliceGameFor(undefined);
+const slice2 = sliceGameFor(SLICE_REV);
+ok(slice1.init(5).rev === undefined && slice2.init(5).rev === SLICE_REV, "stamp gates the new rules");
+for (const seed of [3, 4242, 99_001, 123_456_789]) {
+  const a = slice1.init(seed), b2 = slice2.init(seed);
+  const mayos = b2.objects.filter((o) => o.special === SLICE_SPECIAL_MAYO);
+  ok(mayos.length >= 1 && mayos.length <= 2, `seed ${seed}: one or two mayonnaise bottles`);
+  ok(mayos.every((o) => o.launchTick >= 600 && o.launchTick <= 3600 - 240), "same appearance window as the other specials");
+  // Everything the original schedule had is still there, unchanged (mayo is drawn after it).
+  const key = (o: { launchTick: number; x: number; vx: number; vy: number; special: number }) => `${o.launchTick}:${o.x}:${o.vx}:${o.vy}:${o.special}`;
+  ok(a.objects.every((o) => b2.objects.some((m) => key(m) === key(o))), `seed ${seed}: original objects unchanged`);
+}
+
+/** One-tick swipe segment that a bot picks: cuts the most foods, never a chilli. */
+type Seg = [number, number, number, number];
+function hits(state: SliceState, tick: number, seg: Seg) {
+  let foods = 0, bombs = 0, specials = 0;
+  const [x1, y1, x2, y2] = seg;
+  const ax = x2 - Math.trunc(((x2 - x1) * 5) / 4), ay = y2 - Math.trunc(((y2 - y1) * 5) / 4);
+  state.objects.forEach((o, i) => {
+    if (state.slicedAt[i] || sliceSuppressed(state, o)) return;
+    const at = sliceObjectAt(o, tick, state.slowFrom, state.mayo);
+    if (!at) return;
+    const cx = Math.trunc(at.x / 256), cy = Math.trunc(at.y / 256), r = o.special ? SLICE_SPECIAL_R : SLICE_R;
+    if (cy - r > SLICE_WORLD_H || cy + r < 44) return;
+    const dx = x2 - ax, dy = y2 - ay, fx = cx - ax, fy = cy - ay, len2 = dx * dx + dy * dy;
+    const dot = fx * dx + fy * dy;
+    let d2: number;
+    if (dot <= 0) d2 = fx * fx + fy * fy;
+    else if (dot >= len2) d2 = (cx - x2) ** 2 + (cy - y2) ** 2;
+    else d2 = (fx * dy - fy * dx) ** 2 / len2;
+    if (d2 > (r - 2) * (r - 2)) return;
+    if (o.bomb) bombs++;
+    else if (o.special) specials++;
+    else foods++;
+  });
+  return { foods, bombs, specials };
+}
+function botRun(game: typeof slice2, seed: number) {
+  let state = game.init(seed);
+  const events: ArcadeInputEvent[] = [];
+  const checkpoints: ReturnType<typeof sliceCheckpoint>[] = [];
+  let lastEnd: [number, number] = [-1, -1];
+  while (!game.isOver(state)) {
+    const t = state.tick + 1;
+    let best: { seg: Seg; score: number } | null = null;
+    // Airborne foods' centres next tick; try lines through pairs and flat lines through each.
+    const pts: [number, number][] = [];
+    state.objects.forEach((o, i) => {
+      if (state.slicedAt[i] || o.bomb || sliceSuppressed(state, o)) return;
+      const at = sliceObjectAt(o, t, state.slowFrom, state.mayo);
+      if (at && at.y / 256 < SLICE_WORLD_H - 10 && at.y / 256 > 60) pts.push([Math.trunc(at.x / 256), Math.trunc(at.y / 256)]);
+    });
+    const consider = (x1: number, y1: number, x2: number, y2: number) => {
+      const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+      const ux = (x2 - x1) / len, uy = (y2 - y1) / len;
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+      const half = 170;
+      const seg: Seg = [mx - ux * half, my - uy * half, mx + ux * half, my + uy * half].map((v, k) =>
+        Math.max(0, Math.min(k % 2 ? SLICE_WORLD_H : SLICE_WORLD_W, Math.round(v)))) as Seg;
+      if (seg[0] === lastEnd[0] && seg[1] === lastEnd[1]) seg[0] += seg[0] > 0 ? -1 : 1;
+      const h = hits(state, t, seg);
+      if (h.bombs) return;
+      const value = h.foods * 10 + h.specials * 25;
+      if (value > 0 && (!best || value > best.score)) best = { seg, score: value };
+    };
+    for (let i = 0; i < pts.length; i++) {
+      const [px0, py0] = pts[i]!;
+      consider(px0 - 50, py0, px0 + 50, py0);
+      consider(px0, py0 - 50, px0, py0 + 50);
+      consider(px0 - 40, py0 - 40, px0 + 40, py0 + 40);
+      consider(px0 - 40, py0 + 40, px0 + 40, py0 - 40);
+      for (let j = i + 1; j < pts.length; j++) consider(px0, py0, pts[j]![0], pts[j]![1]);
+    }
+    // Wait for a 3+ cut while the combo can still be fed; otherwise take what is there before it drops.
+    const chosen = best as { seg: Seg; score: number } | null;
+    const urgent = state.objects.some((o, i) => {
+      if (state.slicedAt[i] || o.bomb) return false;
+      const now = sliceObjectAt(o, t, state.slowFrom, state.mayo);
+      const later = sliceObjectAt(o, t + 8, state.slowFrom, state.mayo);
+      return !!now && (!later || later.y / 256 > SLICE_WORLD_H - 30);
+    });
+    // With ×3 banked and over five seconds left, every food is worth taking now.
+    const relaxed = state.comboLive === 1 && sliceMultiplier(state.streak) >= 3 && state.comboUntil - t > 300;
+    if (chosen && (chosen.score >= 25 || urgent || relaxed)) {
+      recordInput(events, { t, k: SLICE_INPUT_SWIPE, a: chosen.seg[0], b: chosen.seg[1], c: chosen.seg[2], d: chosen.seg[3] }, game.inputRanges);
+      lastEnd = [chosen.seg[2], chosen.seg[3]];
+    }
+    state = game.step(state, inputAt(events, t));
+    if (state.tick % 300 === 0) checkpoints.push(sliceCheckpoint(state));
+  }
+  return { state, events, checkpoints, score: game.score(state) };
+}
+const SLICE_SEEDS = [11, 222, 3_333, 44_444, 555_555, 6_666_666, 77_777_777, 888];
+const totals = { v1: [] as number[], v2: [] as number[] };
+let slice150: number | null = null;
+for (const seed of SLICE_SEEDS) {
+  totals.v1.push(botRun(slice1, seed).score);
+  const run = botRun(slice2, seed);
+  totals.v2.push(run.score);
+  const raw = encodeSliceRun({ seed, claimedScore: run.score, events: run.events, endTick: run.state.tick, checkpoints: run.checkpoints });
+  const replay = replaySliceRun(seed, raw, SLICE_REV);
+  ok(replay.score === run.score && !replay.flagged, `seed ${seed}: server replay agrees`);
+  if (run.score === 150 && slice150 === null) slice150 = seed;
+  if (sliceMayoCount(run.state) > 0) ok(replay.mayo === sliceMayoCount(run.state), "reveal mayo counter matches");
+}
+// Reachability: scan further seeds for a rev-2 bot log that hits the cap.
+for (let seed = 1; seed <= 60 && slice150 === null; seed++) {
+  const run = botRun(slice2, seed * 7_919);
+  if (run.score !== 150) continue;
+  const raw = encodeSliceRun({ seed: seed * 7_919, claimedScore: 150, events: run.events, endTick: run.state.tick, checkpoints: run.checkpoints });
+  const replay = replaySliceRun(seed * 7_919, raw, SLICE_REV);
+  if (replay.score === 150 && !replay.flagged) slice150 = seed * 7_919;
+}
+console.log(`  150 reached through the server replay on rev 2 (seed ${slice150})`);
+const mean = (list: number[]) => list.reduce((a, b) => a + b, 0) / list.length;
+console.log(`  bot scores — original: ${totals.v1.join(", ")} (mean ${mean(totals.v1).toFixed(1)}); rev 2: ${totals.v2.join(", ")} (mean ${mean(totals.v2).toFixed(1)})`);
+ok(slice150 !== null, "a real rev-2 log reaches 150 through the server replay");
+ok(totals.v2.filter((x) => x === 150).length <= totals.v1.filter((x) => x === 150).length + 2, "mayo does not make 150 routine");
+
+// Chilli ends the combo on rev 2 only.
+{
+  const base = slice2.init(4242);
+  const live = { ...base, comboLive: 1, streak: 2, comboUntil: 900, tick: 300 };
+  const chilli = base.objects.findIndex((o) => o.bomb);
+  const o = base.objects[chilli]!;
+  const tick = o.launchTick + 30;
+  const at = sliceObjectAt(o, tick, [])!;
+  const x = Math.trunc(at.x / 256), y = Math.trunc(at.y / 256);
+  const swipe = (st: SliceState) => ({ ...st, tick: tick - 1, comboUntil: tick + 600 });
+  const cut: ArcadeInputEvent = { t: tick, k: SLICE_INPUT_SWIPE, a: Math.max(0, x - 30), b: y, c: Math.min(SLICE_WORLD_W, x + 30), d: y };
+  const after2 = slice2.step(swipe(live), cut);
+  const after1 = slice1.step(swipe({ ...live, rev: undefined, mayo: undefined }), cut);
+  ok(after2.bombsHit === 1 && after2.comboLive === 0 && sliceMultiplier(after2.streak) === 1, "rev 2: a chilli ends the combo");
+  ok(after1.bombsHit === 1 && after1.comboLive === 1, "original: a chilli only costs points");
+}
+ok(SLICE_MAYO_TICKS > 60 && SLICE_MAYO_TICKS < 90, "the squeeze lasts just over a second");
+ok(/Up to 150/.test(INTRO_SCORE.slice) && /lose 10/.test(INTRO_SCORE.slice), "Slice intro: up to 150, chilli loses 10");
 }
 
 /* ============================ 3. Intro rules ============================ */

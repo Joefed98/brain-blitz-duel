@@ -136,7 +136,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   breaker: arcadeSplit("each brick", `Clear all ${BRK_BRICKS} bricks`, 128),
   rally: `${RALLY_GOLD_POINTS} points per gold-ball hit, up to 150. The blue ball scores nothing.`,
   bubble: arcadeSplit("each bubble", "Clear the whole field", 128),
-  slice: "Points for each food you slice; cut several at once for more. Chilli: lose 10.",
+  slice: "Points for each food sliced; cut several at once for more. Chilli: lose 10. Up to 150.",
   beat: "Points for each note you hit in time. Missed note: lose 2.",
   wavefront: "Points for ships, saucers and waves cleared. Clear all five waves perfectly for 150.",
   flip: "Up to 130 for lasting the full minute, plus 2 for each gold star. Up to 150.",

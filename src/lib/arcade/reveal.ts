@@ -132,6 +132,8 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Best combo", value: `×${n(r, "bestMult")}` },
       { label: "Ketchup / mustard", value: String(n(r, "bonuses")) },
       { label: "Chillies", value: String(n(r, "bombsHit")) },
+      // sliceRev 2 rounds only: mayonnaise bottles cut.
+      ...(("mayoOn" in r ? b(r, "mayoOn") : "mayo" in r) ? [{ label: "Mayo", value: String(n(r, "mayo")) }] : []),
     ],
     outcome: "time",
   }),

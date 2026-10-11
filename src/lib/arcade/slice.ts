@@ -79,6 +79,25 @@ export const SLICE_BOMB_PERCENT = 12;
 export const SLICE_SPECIAL_NONE = 0;
 export const SLICE_SPECIAL_FRENZY = 1;
 export const SLICE_SPECIAL_SLOW = 2;
+/** sliceRev 2: the mayonnaise bottle ("Squeeze") pulls nearby foods together. */
+export const SLICE_SPECIAL_MAYO = 3;
+
+/* -------------------------- sliceRev 2 (Oct 2026) -------------------------- */
+
+/**
+ * Stored as puzzle.sliceRev. Rev 2 adds the mayonnaise bottle (same seeded
+ * timing as the other two specials: once or twice, never in the first ten
+ * seconds) and makes a sliced chilli end the combo as well as cost ten points.
+ * Scoring weights and the cap are unchanged. Rounds without sliceRev replay on
+ * the original rules.
+ */
+export const SLICE_REV = 2;
+/** The pull: foods within this many px of the bottle when it is cut gather at that spot. */
+export const SLICE_MAYO_RADIUS = 170;
+export const SLICE_MAYO_TICKS = 72;
+export const SLICE_MAYO_RAMP = 12;
+/** Gathered foods sit this close (per mille of their natural offset) to the pull point. */
+export const SLICE_MAYO_HOLD_PERMILLE = 880;
 
 /** No special appears in the first ten seconds. */
 export const SLICE_SPECIAL_EARLIEST = 10 * TICKS_PER_SECOND;
@@ -228,7 +247,7 @@ function buildFrenzyPayload(rng: number): { rng: number; payload: SliceObject[] 
 }
 
 /** Everything about the throw schedule comes from the seed, once, at init. */
-function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
+function buildSchedule(seed: number, rev?: number): { rng: number; objects: SliceObject[] } {
   let rng = seed | 0;
   const objects: SliceObject[] = [];
   let bombFreeFrom = 0;
@@ -280,8 +299,9 @@ function buildSchedule(seed: number): { rng: number; objects: SliceObject[] } {
     }
   }
 
-  // The two specials, once or twice each, never in the first ten seconds.
-  for (const special of [SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_SLOW]) {
+  // The two specials, once or twice each, never in the first ten seconds (rev 2 adds the mayonnaise after them).
+  const specials = rev === SLICE_REV ? [SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_SLOW, SLICE_SPECIAL_MAYO] : [SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_SLOW];
+  for (const special of specials) {
     const countDraw = rngBelow(rng, 2);
     rng = countDraw.state;
     const count = 1 + countDraw.value;
@@ -340,7 +360,14 @@ export function sliceObjectAt(
   object: SliceObject,
   tick: number,
   slowFrom: readonly number[] = [],
+  mayo: readonly number[] = [],
 ): { x: number; y: number } | null {
+  const natural = naturalAt(object, tick, slowFrom);
+  if (!natural || mayo.length === 0 || object.bomb || object.special) return natural;
+  return slicePulled(object, natural, tick, slowFrom, mayo);
+}
+
+function naturalAt(object: SliceObject, tick: number, slowFrom: readonly number[]): { x: number; y: number } | null {
   const age = worldAge(object, tick, slowFrom);
   if (age === null) return null;
   const drop = Math.trunc((SLICE_GRAV * age * (age + 10)) / 200);
@@ -348,6 +375,36 @@ export function sliceObjectAt(
     x: object.x + Math.trunc((object.vx * age) / 10),
     y: (SLICE_WORLD_H + SLICE_R) * 256 + Math.trunc((object.vy * age) / 10) + drop,
   };
+}
+
+/** Pull weight (per mille) at `since` ticks into a squeeze: ramp in, hold, ramp out. */
+export function sliceMayoWeight(since: number): number {
+  if (since < 0 || since >= SLICE_MAYO_TICKS) return 0;
+  const edge = Math.min(since + 1, SLICE_MAYO_TICKS - since, SLICE_MAYO_RAMP);
+  return Math.trunc((SLICE_MAYO_HOLD_PERMILLE * edge) / SLICE_MAYO_RAMP);
+}
+
+/**
+ * Rev 2 squeeze: `mayo` holds flattened [tick, x px, y px] for each cut bottle.
+ * A food that was airborne, inside the radius when the bottle was cut, and still
+ * airborne when the pull ends is drawn toward the cut point for the pull's span.
+ */
+function slicePulled(object: SliceObject, natural: { x: number; y: number }, tick: number,
+  slowFrom: readonly number[], mayo: readonly number[]): { x: number; y: number } {
+  let { x, y } = natural;
+  for (let k = 0; k + 2 < mayo.length; k += 3) {
+    const from = mayo[k]!;
+    const weight = sliceMayoWeight(tick - from);
+    if (weight === 0) continue;
+    const at = naturalAt(object, from, slowFrom);
+    if (!at || !naturalAt(object, from + SLICE_MAYO_TICKS, slowFrom)) continue;
+    const cx = mayo[k + 1]! * 256, cy = mayo[k + 2]! * 256;
+    const dx = Math.trunc((at.x - cx) / 256), dy = Math.trunc((at.y - cy) / 256);
+    if (dx * dx + dy * dy > SLICE_MAYO_RADIUS * SLICE_MAYO_RADIUS) continue;
+    x += Math.trunc(((cx - x) * weight) / 1000);
+    y += Math.trunc(((cy - y) * weight) / 1000);
+  }
+  return { x, y };
 }
 
 /** A payload object, timed off the tick its special was sliced on. */
@@ -375,6 +432,9 @@ export interface SliceState {
   frenzyFrom: number[];
   /** The tick each slow-motion window started on. */
   slowFrom: number[];
+  /** sliceRev 2 only (absent on original rounds): the stamp and [tick, x, y] per cut mayonnaise bottle. */
+  rev?: number;
+  mayo?: number[];
   flash: number;
   /** 1 while a combo is live (started by a 3+ disc swipe). */
   comboLive: number;
@@ -403,7 +463,11 @@ export interface SliceState {
 }
 
 function init(seed: number): SliceState {
-  const schedule = buildSchedule(seed);
+  return initFor(seed);
+}
+
+function initFor(seed: number, rev?: number): SliceState {
+  const schedule = buildSchedule(seed, rev);
   return {
     tick: 0,
     rng: schedule.rng,
@@ -455,6 +519,18 @@ function isOver(state: SliceState): boolean {
 /** True while a frenzy is running. */
 export function sliceFrenzyOn(state: SliceState, tick: number): boolean {
   return state.frenzyFrom.some((from) => tick >= from && tick < from + SLICE_FRENZY_TICKS);
+}
+
+/** True while a squeeze (rev 2) is pulling foods together. */
+export function sliceMayoOn(state: SliceState, tick: number): boolean {
+  const mayo = state.mayo ?? [];
+  for (let k = 0; k + 2 < mayo.length; k += 3) if (sliceMayoWeight(tick - mayo[k]!) > 0) return true;
+  return false;
+}
+
+/** Mayonnaise bottles cut (rev 2; 0 on original rounds). */
+export function sliceMayoCount(state: Pick<SliceState, "mayo">): number {
+  return Math.trunc((state.mayo?.length ?? 0) / 3);
 }
 
 /** True while slow motion is running. */
@@ -579,13 +655,14 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
     const added: SliceObject[] = [];
     const frenzies: number[] = [];
     const slows: number[] = [];
+    const mayos: number[] = [];
     const hitDiscs: number[] = [];
 
     for (let index = 0; index < state.objects.length; index++) {
       if (state.slicedAt[index]) continue;
       const object = state.objects[index]!;
       if (sliceSuppressed(state, object)) continue;
-      const at = sliceObjectAt(object, tick, state.slowFrom);
+      const at = sliceObjectAt(object, tick, state.slowFrom, state.mayo);
       if (!at) continue;
       const cx = Math.trunc(at.x / 256);
       const cy = Math.trunc(at.y / 256);
@@ -601,12 +678,14 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
       }
       if (object.special === SLICE_SPECIAL_FRENZY) frenzies.push(tick);
       if (object.special === SLICE_SPECIAL_SLOW) slows.push(tick);
+      if (object.special === SLICE_SPECIAL_MAYO) mayos.push(tick, cx, cy);
       for (const item of object.payload) added.push(spawned(item, tick));
     }
 
     if (slicedAt) next.slicedAt = slicedAt;
     if (frenzies.length > 0) next.frenzyFrom = [...state.frenzyFrom, ...frenzies];
     if (slows.length > 0) next.slowFrom = [...state.slowFrom, ...slows];
+    if (mayos.length > 0) next.mayo = [...(state.mayo ?? []), ...mayos];
     // Accumulate every segment of one finger-down/up path; qualify only once.
     next.strokeCuts += cut;
     const qualifies = next.strokeCuts >= SLICE_COMBO_START && next.strokeQualified === 0;
@@ -637,6 +716,14 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
     if (bombs > 0) {
       next.bombsHit = state.bombsHit + bombs;
       next.flash = SLICE_FLASH_TICKS;
+      if (state.rev === SLICE_REV) {
+        // Rev 2: a chilli ends the combo, and this swipe cannot start a new one.
+        next.comboLive = 0;
+        next.streak = 0;
+        next.comboUntil = 0;
+        next.comboFlash = 0;
+        next.strokeQualified = 1;
+      }
     }
   }
 
@@ -692,7 +779,7 @@ export function sliceCheckpointState(state: SliceState): SliceCheckpointState {
     }
     const object = state.objects[index]!;
     if (sliceSuppressed(state, object)) continue;
-    if (sliceObjectAt(object, state.tick, state.slowFrom)) airborne += 1;
+    if (sliceObjectAt(object, state.tick, state.slowFrom, state.mayo)) airborne += 1;
   }
   return {
     tick: state.tick,
@@ -700,7 +787,8 @@ export function sliceCheckpointState(state: SliceState): SliceCheckpointState {
     bonuses: state.bonuses,
     bombsHit: state.bombsHit,
     airborne,
-    slicedFold: (slicedFold ^ Math.imul(state.strokeCuts, 31) ^ Math.imul(state.strokeLen, 131) ^ state.strokeWeighted ^ state.strokeQualified ^ state.comboUntil ^ state.strokeActive) | 0,
+    slicedFold: (slicedFold ^ Math.imul(state.strokeCuts, 31) ^ Math.imul(state.strokeLen, 131) ^ state.strokeWeighted ^ state.strokeQualified ^ state.comboUntil ^ state.strokeActive ^
+      Math.imul(sliceMayoCount(state), 7919)) | 0,
     objectCount: state.objects.length,
     frenzies: state.frenzyFrom.length,
     streak: state.streak,
@@ -914,3 +1002,13 @@ export const sliceGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: SLICE_INPUT_RANGES,
 };
+
+const sliceRev2Game: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
+  ...sliceGame,
+  init: (seed: number) => ({ ...initFor(seed, SLICE_REV), rev: SLICE_REV, mayo: [] }),
+};
+
+/** Takes puzzle.sliceRev; anything else is the original kitchen. */
+export function sliceGameFor(rev?: number | null): ArcadeGame<SliceState, ArcadeInputEvent | null> {
+  return rev === SLICE_REV ? sliceRev2Game : sliceGame;
+}

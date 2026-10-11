@@ -628,18 +628,16 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "150 − 5 per touch.",
   },
   slice: {
-    goal: "Slice the flying discs. Don't hit the bombs.",
+    goal: "Slice the flying food. Don't cut the chillies.",
     how: [
-      { action: "Swipe through the discs", detail: "to slice them in half." },
-      { action: "Never touch the lit chilli", detail: "- each one costs ten points." },
-      {
-        action: "Two special bottles",
-        detail: "- Saucy (ketchup) opens three bomb-free seconds; Simmer (mustard) slows everything for four.",
-      },
-      { action: "Cut 3+ discs in one swipe", detail: "one finger-down-to-up path counts together, even a curve or loop. First combo gives ×2, second gives ×3. Each combo resets 10 seconds; only expiry returns you to ×1." },
-      { action: "Each swipe has a length limit", detail: "- curve it, but it stops after about three-quarters of the screen." },
+      { action: "Swipe through the food", detail: "to slice it. Cut 3 or more in one swipe for a combo: ×2, then ×3." },
+      { action: "Never cut a chilli:", detail: "it costs 10 points and ends your combo." },
+      { action: "Cut a bottle:", detail: "ketchup stops chillies, mustard slows time, mayo pulls food together." },
+      { action: "Saucy (ketchup)", detail: "gives three chilli-free seconds. Simmer (mustard) slows everything for four. Squeeze (mayo) pulls nearby food to where you cut it for just over a second.", helpOnly: true },
+      { action: "One finger-down-to-up path counts together,", detail: "even a curve or loop. Each combo resets a 10-second timer; the combo ends when it runs out or you cut a chilli.", helpOnly: true },
+      { action: "Each swipe has a length limit", detail: "- curve it, but it stops after about three-quarters of the screen.", helpOnly: true },
     ],
-    score: "floor(235 × combo-weighted slices ÷ (3 × foods available)) −10 per chilli; capped at 150.",
+    score: "floor(235 × combo-weighted slices ÷ (3 × foods available)) −10 per chilli; capped at 150. A chilli also ends the combo.",
   },
   bubble: {
     goal: "Pop the bubbles by matching three of a colour.",

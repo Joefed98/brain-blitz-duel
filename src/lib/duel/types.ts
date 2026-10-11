@@ -2047,6 +2047,8 @@ export interface SlicePuzzleData {
   type: "slice";
   /** Draws the whole launch schedule, bombs included — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = mayonnaise bottle, chilli ends the combo); absent = original. */
+  sliceRev?: number;
 }
 
 export interface BubblePuzzleData {

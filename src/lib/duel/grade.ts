@@ -1114,7 +1114,7 @@ export function gradeSubmission(
     }
     case "slice": {
       const replayStart = performance.now();
-      const run = replaySliceRun(puzzle.seed, answer);
+      const run = replaySliceRun(puzzle.seed, answer, puzzle.sliceRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1128,6 +1128,7 @@ export function gradeSubmission(
         bestMult: run.bestMult,
         bonuses: run.bonuses,
         bombsHit: run.bombsHit,
+        ...(run.mayoOn ? { mayo: run.mayo } : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

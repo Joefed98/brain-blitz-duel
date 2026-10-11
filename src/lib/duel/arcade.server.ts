@@ -1,3 +1,4 @@
+import { SLICE_REV } from "@/lib/arcade/slice";
 import { FLIP_REV } from "@/lib/arcade/flip";
 import { CROSS_REV } from "@/lib/arcade/cross";
 import { INK_REV3 } from "@/lib/arcade/inkBridge";
@@ -109,7 +110,7 @@ export function generateSteady(): SteadyPuzzleData {
 }
 
 export function generateSlice(): SlicePuzzleData {
-  return { type: "slice", seed: arcadeSeed() };
+  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV };
 }
 
 export function generateBubble(): BubblePuzzleData {

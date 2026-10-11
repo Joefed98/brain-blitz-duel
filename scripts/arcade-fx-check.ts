@@ -64,7 +64,7 @@ const { skylineArtGame } = await import("../src/lib/arcade/skyline.renderer");
 const { crossArtGameFor } = await import("../src/lib/arcade/cross.renderer");
 const { junctionArtGame } = await import("../src/lib/arcade/junction.renderer");
 const { inkBridgeArtGameFor } = await import("../src/lib/arcade/inkBridge.renderer");
-const { sliceArtGame } = await import("../src/lib/arcade/slice.renderer");
+const { sliceArtGameFor } = await import("../src/lib/arcade/slice.renderer");
 const { binTossArtGame } = await import("../src/lib/arcade/binTossArt.renderer");
 const { drawBullseye } = await import("../src/lib/arcade/bullseye.renderer");
 const { bullseyeGame } = await import("../src/lib/arcade/bullseye");
@@ -110,7 +110,7 @@ const GAMES: Record<string, AnyGame> = {
   cross: crossArtGameFor(2) as AnyGame,
   junction: junctionArtGame as AnyGame,
   inkbridge: inkBridgeArtGameFor(3) as AnyGame,
-  slice: sliceArtGame as AnyGame,
+  slice: sliceArtGameFor(2) as AnyGame,
   bintoss: binTossArtGame as AnyGame,
   bullseye: { ...bullseyeGame, draw: drawBullseye } as AnyGame,
   bubble: bubbleArtGame as AnyGame,
@@ -259,6 +259,8 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, frenzyFrom: [...s.frenzyFrom, s.tick] }),
     (s) => ({ ...s, slowFrom: [...s.slowFrom, s.tick] }),
     (s) => ({ ...s, slices: s.slices + 25 }),
+    (s) => ({ ...s, mayo: [...(s.mayo ?? []), s.tick, 195, 300] }),
+    (s) => ({ ...s, slices: s.slices + 5 }),
   ],
   bintoss: [(s) => ({ ...s, results: [...s.results, 1, 1, 1] }), (s) => ({ ...s, baskets: 10 })],
   bullseye: [

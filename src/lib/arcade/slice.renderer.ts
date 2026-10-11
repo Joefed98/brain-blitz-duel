@@ -5,7 +5,8 @@ import { SLICE_FX } from "./arcadeFxGames.renderer";
 /** Slice Kitchen art only. World transform, collision radii and state are authoritative. */
 import type { CanvasSize } from './engine';
 import { TICKS_PER_SECOND } from './engine';
-import { sliceFrenzyOn, sliceGame, sliceObjectAt, sliceSlowOn, sliceSuppressed,
+import { sliceFrenzyOn, sliceGame, sliceGameFor, sliceMayoOn, sliceMayoWeight, sliceObjectAt, sliceSlowOn, sliceSuppressed,
+  SLICE_SPECIAL_MAYO,
   SLICE_COMBO_TICKS, SLICE_COMBO_FLASH_TICKS, SLICE_FLASH_TICKS, SLICE_HALVES_TICKS, SLICE_HUD_H, SLICE_R,
   SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_NONE, SLICE_SPECIAL_R, SLICE_SPECIAL_SLOW,
   SLICE_WORLD_H, SLICE_WORLD_W, SLICE_RAINBOW, SLICE_SILVER, type SliceState } from './slice';
@@ -18,7 +19,8 @@ const K = { ink:'#232721', board:'#AC784B', grain:'#855936', edge:'#70492F', til
   grout:'#A5BFBA', counter:'#648985', white:'#FFF9EB', gold:'#F5C542', silver:SLICE_SILVER,
   bagel:'#F4BF61', cabbage:'#56B63B', onion:'#EAF3D8', meat:'#925237', tomato:'#F52C35', flesh:'#FFF0BE',
   cabbageLight:'#B7E47C', cabbageDark:'#287C35', onionGreen:'#76AB58', onionFace:'#F9FBEA', meatFace:'#CB8067', fat:'#F5DCC2',
-  seeds:'#FFE18E', leaf:'#275C27', mustard:'#FFDC24', chilli:'#ED202F', glow:'rgba(255,38,45,0.45)' };
+  seeds:'#FFE18E', leaf:'#275C27', mustard:'#FFDC24', chilli:'#ED202F', glow:'rgba(255,38,45,0.45)',
+  mayo:'#FFF6DC', mayoShade:'#E9DDB8', mayoCap:'#3F7FD8', knot:'#6E4428', groove:'#93623C' };
 export const SLICE_FOODS = ['bagel','cabbage','onion','meat'] as const;
 type Food = typeof SLICE_FOODS[number];
 const colours: Record<Food,string> = {bagel:K.bagel,cabbage:K.cabbage,onion:K.onion,meat:K.meat};
@@ -86,6 +88,26 @@ function paintBottle(mustard:boolean) {
     c.strokeStyle=K.ink;c.lineWidth=r*.06;c.beginPath();c.moveTo(-r*.25,r*.48);c.lineTo(r*.25,r*.48);c.stroke();
   };
 }
+/**
+ * Mayonnaise ("Squeeze"): cream, never red or yellow, and its own silhouette — a
+ * tall ribbed squeeze bottle with a blue cap and star nozzle, not the ketchup and
+ * mustard bottles' wide labelled shape. The outer circle is the collision envelope.
+ */
+function paintMayo(c:CanvasRenderingContext2D,size:number) {
+  const r=size/2;c.translate(r,r);
+  circle(c,0,0,r,K.ink);circle(c,0,0,r*.94,K.mayoShade);
+  // Tall bottle body.
+  c.fillStyle=K.mayo;c.beginPath();c.roundRect(-r*.42,-r*.42,r*.84,r*1.22,r*.3);c.fill();
+  c.strokeStyle=K.ink;c.lineWidth=r*.06;c.stroke();
+  // Squeeze ribs.
+  c.strokeStyle=K.mayoShade;c.lineWidth=r*.07;
+  for(const y of [-.12,.12,.36]){c.beginPath();c.moveTo(-r*.3,r*y);c.lineTo(r*.3,r*y);c.stroke();}
+  // Blue cap and star nozzle.
+  c.fillStyle=K.mayoCap;c.beginPath();c.roundRect(-r*.3,-r*.66,r*.6,r*.28,r*.06);c.fill();
+  c.fillStyle=K.white;c.beginPath();
+  for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5,d=k%2?r*.08:r*.18;const x=Math.cos(a)*d,y=-r*.78+Math.sin(a)*d;if(k)c.lineTo(x,y);else c.moveTo(x,y);}
+  c.closePath();c.fill();
+}
 /** Chilli's red circular outer skin preserves the entire hazardous collision body. */
 function paintChilli(c:CanvasRenderingContext2D,size:number) {
   const r=size/2;c.translate(r,r);circle(c,0,0,r,K.ink);circle(c,0,0,r*.94,K.chilli);
@@ -100,8 +122,24 @@ function paintGlow(c:CanvasRenderingContext2D,size:number) {
 function paintBackground(c:CanvasRenderingContext2D) {
   const W=SLICE_WORLD_W,H=SLICE_WORLD_H;
   c.fillStyle=K.board;c.fillRect(0,0,W,H);
+  // End-grain planks: three glued strips with slightly different tones and seams.
+  for(let p=0;p<3;p++){c.fillStyle=p===1?'rgba(255,230,190,0.06)':'rgba(60,30,10,0.05)';c.fillRect(p*W/3,SLICE_HUD_H,W/3,H-SLICE_HUD_H);}
+  c.strokeStyle='rgba(70,40,20,0.35)';c.lineWidth=1;for(let p=1;p<3;p++){c.beginPath();c.moveTo(p*W/3,SLICE_HUD_H);c.lineTo(p*W/3,H);c.stroke();}
   c.strokeStyle=K.grain;c.lineWidth=.7;
   for(let i=0;i<60;i++){const y=SLICE_HUD_H+10+i*10;c.beginPath();c.moveTo(0,y);c.bezierCurveTo(W*.3,y+Math.sin(i)*4,W*.7,y-3,W,y+2);c.stroke();}
+  // Knots with rings, fixed positions.
+  for(const [x,y,rr] of [[W*.22,SLICE_HUD_H+150,9],[W*.74,SLICE_HUD_H+330,7],[W*.48,H-90,6]] as const){
+    c.fillStyle=K.knot;c.beginPath();c.ellipse(x,y,rr,rr*.6,0,0,Math.PI*2);c.fill();
+    c.strokeStyle='rgba(110,68,40,0.55)';c.lineWidth=.8;for(const k of [1.6,2.3,3.1]){c.beginPath();c.ellipse(x,y,rr*k,rr*.6*k,0,0,Math.PI*2);c.stroke();}
+  }
+  // Knife scores: pale short scratches.
+  c.strokeStyle='rgba(255,236,205,0.22)';c.lineWidth=.9;
+  for(let i=0;i<26;i++){const x=(i*97)%W,y=SLICE_HUD_H+40+((i*151)%(H-SLICE_HUD_H-80)),a=((i*37)%60-30)*Math.PI/180,l=14+(i*13)%22;
+    c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);c.stroke();}
+  // Juice groove round the board's edge, and a hanging hole at the bottom.
+  c.strokeStyle=K.groove;c.lineWidth=3;c.beginPath();c.roundRect(9,SLICE_HUD_H+9,W-18,H-SLICE_HUD_H-18,14);c.stroke();
+  c.strokeStyle='rgba(255,236,205,0.18)';c.lineWidth=1;c.beginPath();c.roundRect(10.5,SLICE_HUD_H+10.5,W-21,H-SLICE_HUD_H-21,13);c.stroke();
+  c.fillStyle=K.edge;c.beginPath();c.ellipse(W/2,H-22,14,5,0,0,Math.PI*2);c.fill();
   // Tiles and kitchen objects live behind the existing HUD, not in a newly reserved arena.
   c.fillStyle=K.tile;c.fillRect(0,0,W,SLICE_HUD_H);
   c.strokeStyle=K.grout;c.lineWidth=1;for(let x=0;x<W;x+=48)c.strokeRect(x,0,48,SLICE_HUD_H);
@@ -136,7 +174,7 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
   if(state.swipe&&state.tick!==memo.tick){memo.trail.push({seg:state.swipe,at:now});
     const [x1,y1,x2,y2]=state.swipe,angle=Math.atan2(y2-y1,x2-x1);
     state.slicedAt.forEach((t,i)=>{if(t>memo.tick&&!memo.cuts.has(i)){
-      const object=state.objects[i],at=object?sliceObjectAt(object,t,state.slowFrom):null;
+      const object=state.objects[i],at=object?sliceObjectAt(object,t,state.slowFrom,state.mayo):null;
       const r=object?.special?SLICE_SPECIAL_R:SLICE_R;
       const offset=at?Math.max(-r+1,Math.min(r-1,((at.x/256-x1)*-Math.sin(angle)+(at.y/256-y1)*Math.cos(angle)))):0;
       memo.cuts.set(i,{angle,offset});
@@ -145,17 +183,19 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
   memo.tick=state.tick;memo.trail=memo.trail.filter(e=>now-e.at<110).slice(-6);
   ctx.save();ctx.scale(sx,sy);const bg=background();if(bg)ctx.drawImage(bg as CanvasImageSource,0,0,SLICE_WORLD_W,SLICE_WORLD_H);else paintBackground(ctx);
   const latest=state.slicedAt.reduce((best,t,i)=>t>(state.slicedAt[best]??0)?i:best,0),object=state.objects[latest];
-  const cutAt=object?sliceObjectAt(object,state.slicedAt[latest]??state.tick,state.slowFrom):null;
+  const cutAt=object?sliceObjectAt(object,state.slicedAt[latest]??state.tick,state.slowFrom,state.mayo):null;
+  drawSqueeze(ctx,state,still);
   successFrame(ctx,{id:'slice',tick:state.tick,count:state.slices,eventTick:state.slicedAt[latest],colour:object?colours[foodOf(object.colour)]:K.tomato,width:SLICE_WORLD_W,height:SLICE_WORLD_H,point:{x:cutAt?cutAt.x/256:195,y:cutAt?cutAt.y/256:310,shape:'splat'},hud:{x:20,y:14,text:`Sliced ${state.slices}`}});
   let particles=0;
   for(let i=0;i<state.objects.length;i++) {
     const o=state.objects[i];if(!o||sliceSuppressed(state,o))continue;
     const slicedAt=state.slicedAt[i]??0,r=o.special?SLICE_SPECIAL_R:SLICE_R,kind=foodOf(o.colour);
-    const stamp=sprite(o.bomb?'chilli':o.special===SLICE_SPECIAL_FRENZY?'ketchup':o.special===SLICE_SPECIAL_SLOW?'mustard':kind,px*r/SLICE_R,
-      o.bomb?paintChilli:o.special?paintBottle(o.special===SLICE_SPECIAL_SLOW):paintFood(kind));
+    const mayo=o.special===SLICE_SPECIAL_MAYO;
+    const stamp=sprite(o.bomb?'chilli':mayo?'mayo':o.special===SLICE_SPECIAL_FRENZY?'ketchup':o.special===SLICE_SPECIAL_SLOW?'mustard':kind,px*r/SLICE_R,
+      o.bomb?paintChilli:mayo?paintMayo:o.special?paintBottle(o.special===SLICE_SPECIAL_SLOW):paintFood(kind));
     if(!stamp)continue;
     if(slicedAt){const age=state.tick-slicedAt;if(age>SLICE_HALVES_TICKS)continue;
-      const at=sliceObjectAt(o,slicedAt,state.slowFrom);if(!at)continue;
+      const at=sliceObjectAt(o,slicedAt,state.slowFrom,state.mayo);if(!at)continue;
       const cx=at.x/256,cy=at.y/256+(still?0:age*age/20),spread=still?3:3+age;
       const cut=memo.cuts.get(i)??{angle:0,offset:0};
       const face=!o.bomb&&!o.special?sprite(`${kind}-face`,px,paintFood(kind,true)):stamp;
@@ -173,10 +213,10 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
       }
       ctx.globalAlpha=1;continue;
     }
-    const at=sliceObjectAt(o,state.tick,state.slowFrom);if(!at)continue;const cx=at.x/256,cy=at.y/256;
+    const at=sliceObjectAt(o,state.tick,state.slowFrom,state.mayo);if(!at)continue;const cx=at.x/256,cy=at.y/256;
     // Art pilot (Kitchen): food sprites fill the collision circle's square; code art when absent or for chillies.
     if(o.bomb||!drawArtSprite(ctx,'kitchen',kind,cx-r,cy-r,2*r,2*r))ctx.drawImage(stamp as CanvasImageSource,cx-r,cy-r,2*r,2*r);
-    if(o.special){const tint=o.special===SLICE_SPECIAL_SLOW?K.silver:SLICE_RAINBOW[Math.floor((still?0:now/110))%SLICE_RAINBOW.length]??K.tomato;
+    if(o.special){const tint=mayo?K.white:o.special===SLICE_SPECIAL_SLOW?K.silver:SLICE_RAINBOW[Math.floor((still?0:now/110))%SLICE_RAINBOW.length]??K.tomato;
       ctx.globalAlpha=still?.28:.25+.16*Math.sin(now/140);ctx.strokeStyle=tint;ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
     }
     if(o.bomb){const glow=sprite('chilli-glow',px,paintGlow);if(glow)ctx.drawImage(glow as CanvasImageSource,cx-r,cy-r,2*r,2*r);
@@ -196,11 +236,29 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
   ctx.fillStyle='rgba(18,12,8,0.78)';ctx.fillRect(0,0,SLICE_WORLD_W,SLICE_HUD_H);
   ctx.fillStyle='#F6EEE2';ctx.font='bold 20px ui-monospace, monospace';ctx.textBaseline='middle';ctx.textAlign='left';successHud(ctx,'slice',state.tick,20,SLICE_HUD_H/2,()=>ctx.fillText(`Sliced ${state.slices}`,20,SLICE_HUD_H/2));ctx.textAlign='center';
   if(sliceFrenzyOn(state,state.tick))ctx.fillText('SAUCY',SLICE_WORLD_W/2,SLICE_HUD_H/2);else if(sliceSlowOn(state,state.tick))ctx.fillText('SIMMER',SLICE_WORLD_W/2,SLICE_HUD_H/2);
+  else if(sliceMayoOn(state,state.tick))ctx.fillText('SQUEEZE',SLICE_WORLD_W/2,SLICE_HUD_H/2);
   ctx.strokeStyle=K.edge;ctx.lineWidth=2;ctx.strokeRect(1,1,SLICE_WORLD_W-2,SLICE_WORLD_H-2);
   if(!still&&state.comboFlash>0){ctx.strokeStyle=K.gold;ctx.globalAlpha=state.comboFlash/SLICE_COMBO_FLASH_TICKS;ctx.lineWidth=6;ctx.strokeRect(3,3,SLICE_WORLD_W-6,SLICE_WORLD_H-6);}
   ctx.restore();
 }
 export const sliceArtGame={...sliceGame,draw:drawSliceArt};
+/** The art game for a stored puzzle.sliceRev (play, demos and reveals). */
+export function sliceArtGameFor(rev?:number|null){return {...sliceGameFor(rev),draw:drawSliceArt};}
+
+/** Rev 2 squeeze: a creamy swirl at the pull point while foods gather (presentation only). */
+function drawSqueeze(ctx:CanvasRenderingContext2D,state:SliceState,still:boolean):void {
+  const mayo=state.mayo??[];
+  for(let k=0;k+2<mayo.length;k+=3){
+    const since=state.tick-mayo[k]!;const w=sliceMayoWeight(since);if(w===0)continue;
+    const x=mayo[k+1]!,y=mayo[k+2]!,a=w/1000,turn=still?0:since/9;
+    ctx.save();ctx.globalAlpha=.5*a;
+    const g=ctx.createRadialGradient(x,y,4,x,y,60);g.addColorStop(0,'rgba(255,246,220,0.9)');g.addColorStop(1,'rgba(255,246,220,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,60,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=.75*a;ctx.strokeStyle=K.mayo;ctx.lineWidth=4;ctx.lineCap='round';
+    for(let arm=0;arm<3;arm++){ctx.beginPath();for(let t=0;t<=1.001;t+=.1){const rr=8+t*40,ang=turn+arm*2.094+t*2.4;const px=x+Math.cos(ang)*rr,py=y+Math.sin(ang)*rr;if(t)ctx.lineTo(px,py);else ctx.moveTo(px,py);}ctx.stroke();}
+    ctx.restore();
+  }
+}
 
 /** Qualifying-combo progress only: labels do not replace the sim's scoring multiplier. */
 export function drawSliceComboMeter(ctx:CanvasRenderingContext2D,state:SliceState):void {
@@ -228,5 +286,6 @@ export function drawSliceKitchenExample(ctx:CanvasRenderingContext2D):void {
   for(const [kind,x,y] of [['bagel',44,70],['cabbage',84,50],['meat',124,72]] as const){
     const s=sprite(kind,26,paintFood(kind));if(s)ctx.drawImage(s as CanvasImageSource,x-13,y-13,26,26);
   }
+  const m=sprite('mayo',22,paintMayo);if(m)ctx.drawImage(m as CanvasImageSource,138,86,22,22);
   ctx.strokeStyle=K.silver;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(24,92);ctx.lineTo(146,40);ctx.stroke();ctx.restore();
 }

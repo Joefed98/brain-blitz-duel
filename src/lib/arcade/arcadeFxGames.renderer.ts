@@ -88,7 +88,7 @@ import {
   BULLSEYE_WORLD_W,
   type BullseyeState,
 } from "./bullseye";
-import { SLICE_WORLD_H, SLICE_WORLD_W, sliceMultiplier, type SliceState } from "./slice";
+import { SLICE_WORLD_H, SLICE_WORLD_W, sliceMayoCount, sliceMultiplier, type SliceState } from "./slice";
 import { BUB_WORLD_H, BUB_WORLD_W, type BubState } from "./bubble";
 import { SNIP_CONFIG, SNIP_H, snipCamera, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
@@ -458,6 +458,15 @@ export const SLICE_FX: ArcadeFxSpec<SliceState> = {
     { kind: "perfect", count: (s) => s.frenzyFrom.length, label: () => "SAUCY!" },
     { kind: "perfect", count: (s) => s.slowFrom.length, label: () => "SIMMER!" },
     { kind: "streak", count: (s) => s.slices, every: 25, label: (_s, n) => `${n} SLICED` },
+    // sliceRev 2: the mayonnaise bottle, and a big gathered cut (4+ foods in one frame).
+    { kind: "perfect", count: sliceMayoCount, label: () => "SQUEEZE!" },
+    {
+      kind: "combo",
+      count: (s) => s.slices,
+      minDelta: 4,
+      at: (s) => (s.strokeX >= 0 ? { x: s.strokeX, y: s.strokeY } : null),
+      label: (_s, _n, d) => `${d} IN ONE!`,
+    },
   ],
 };
 
