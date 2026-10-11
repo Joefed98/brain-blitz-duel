@@ -569,7 +569,9 @@ for (const type of (["matchup", "bubble", "snake", "hover"] as const).filter(wan
   const help = PUZZLE_INSTRUCTIONS[type];
   const intro = help.how.filter((line) => !line.helpOnly);
   ok(intro.length <= 3, `${type}: intro HOW has at most three lines (${intro.length})`);
-  for (const line of intro) ok(`${line.action} ${line.detail}`.length <= 110, `${type}: intro HOW line is short: ${line.action} ${line.detail}`);
+  // One phone line each at 375 px (measured in Chromium: READY fully visible at 375×667 with these lengths).
+  for (const line of intro) ok(`${line.action} ${line.detail}`.length <= 46, `${type}: intro HOW line fits one line: ${line.action} ${line.detail}`);
+  ok(help.goal.length <= 34, `${type}: intro GOAL fits one line: ${help.goal}`);
   ok(INTRO_SCORE[type].length <= 90, `${type}: intro SCORE within 90 characters`);
   ok(!/pellet/i.test(JSON.stringify(help) + INTRO_SCORE[type]), `${type}: no "pellet" wording`);
 }
