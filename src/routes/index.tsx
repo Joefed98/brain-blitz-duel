@@ -10,26 +10,26 @@ import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { unlockAudio } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
 import { gameCounts } from "@/lib/duel/registry";
+import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
 
 const GAME_COUNTS = gameCounts();
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Duelz — Live Puzzle Rooms for 2–10 Players" },
+      { title: APP_TITLE },
       {
         name: "description",
-        content:
-          "Duelz is a live puzzle room: up to ten players solve the same six timed puzzles at the same moment. Share a room code and see who wins.",
+        content: APP_DESCRIPTION,
       },
-      { property: "og:title", content: "Duelz — Live Puzzle Rooms for 2–10 Players" },
+      { property: "og:title", content: APP_TITLE },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
-        content: "Up to 10 players. One round per category. Fastest brain wins.",
+        content: APP_DESCRIPTION,
       },
-      { name: "twitter:description", content: "Up to 10 players. One round per category. Fastest brain wins." },
+      { name: "twitter:description", content: APP_DESCRIPTION },
     ],
   }),
   component: Home,

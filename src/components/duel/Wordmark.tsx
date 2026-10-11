@@ -1,4 +1,6 @@
-/** The Duelz mark: tight Space Grotesk with a gold bolt beside it. */
+import { APP_NAME } from "@/lib/brand";
+
+/** The app mark: tight Space Grotesk with a gold bolt beside it. */
 export function BoltGlyph({ className = "h-4 w-4", viewBox = "0 0 24 24" }: { className?: string; viewBox?: string }) {
   return (
     <svg viewBox={viewBox} className={className} aria-hidden="true">
@@ -16,7 +18,7 @@ export function Wordmark({ size = "sm" }: { size?: "sm" | "lg" }) {
           large ? "text-5xl" : "text-base"
         }`}
       >
-        Duelz
+        {APP_NAME}
       </span>
       <BoltGlyph className={`${large ? "h-7 w-7" : "h-3.5 w-3.5"} text-primary`} />
     </span>

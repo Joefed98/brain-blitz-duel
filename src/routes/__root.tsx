@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ensureSession } from "../lib/duel/session";
 import { installSoundUnlock } from "../lib/sound";
+import { APP_DESCRIPTION, APP_NAME, APP_TITLE } from "../lib/brand";
 
 function NotFoundComponent() {
   return (
@@ -80,17 +81,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Duelz — 1v1 Puzzle Duels" },
+      { title: APP_TITLE },
       {
         name: "description",
-        content: "Three puzzles. Thirty seconds each. Fastest brain wins.",
+        content: APP_DESCRIPTION,
       },
+      { property: "og:title", content: APP_TITLE },
+      { property: "og:description", content: APP_DESCRIPTION },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:card", content: "summary" },
       { name: "theme-color", content: "#0B0B0F" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "Duelz" },
+      { name: "apple-mobile-web-app-title", content: APP_NAME },
       { name: "mobile-web-app-capable", content: "yes" },
     ],
     links: [

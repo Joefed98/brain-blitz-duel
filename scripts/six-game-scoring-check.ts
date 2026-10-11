@@ -59,7 +59,9 @@ for (const home of [0, 15, 29, 30]) {
   eq(reveal?.lines[0]?.startsWith(`${home} / 30 home`), true, "Ball Track breakdown");
 }
 eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup reveal par");
-for (const [type, text] of [["balltrack", "30"], ["matchup", "2,500"], ["junction", "lose 4"], ["rally", "2.5"], ["skyline", "3 per perfect"], ["bullseye", "subtract 20"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
+for (const [type, text] of [["balltrack", "30"], ["junction", "lose 4"], ["rally", "2.5"], ["skyline", "3 per perfect"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
+// Formula detail lives in the "?" help since the intro was shortened (first-run audit, 11 Oct).
+for (const [type, text] of [["matchup", "2,500"], ["bullseye", "1.7 × ring total − 20"], ["junction", "−4"], ["skyline", "3 × perfect drops"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // Ruling B (11 Oct): the eight 130 / 150 split games state both parts in one line.
 // Each split intro shows the real partial maximum: the score one unit short of a clear (Grappler rounds to 130).
 const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: 90, breaker: 128, bubble: 128, inkbridge: 99, orbit: 117, swing: 130, tilt: 90 } as const;

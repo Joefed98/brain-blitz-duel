@@ -37,7 +37,7 @@ export function DuelOverall({
             After round {round} of {totalRounds}
           </h1>
           <span className="absolute right-0 top-0 font-mono text-[10px] uppercase text-muted-foreground">
-            2 of 2
+            Overall
           </span>
         </header>
         <div className="mt-12 flex items-center gap-3">

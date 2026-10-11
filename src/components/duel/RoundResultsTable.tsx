@@ -57,7 +57,7 @@ export function RoundResultsTable({
           {roundTitle}
         </h1>
         <span className="absolute right-0 top-0 font-mono text-[10px] uppercase text-muted-foreground">
-          {finalRound ? "Final round" : "1 of 2"}
+          {finalRound ? "Final round" : "This round"}
         </span>
       </header>
 
