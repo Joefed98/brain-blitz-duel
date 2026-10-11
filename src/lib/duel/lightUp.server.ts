@@ -8,6 +8,7 @@ import { gameDisplayName } from "./gameNames";
 import { randInt, shuffled } from "./random";
 import {
   countLightUpSolutions,
+  lightUpValid,
   LIGHTUP_SIZE,
   orth,
   sightLine,
@@ -15,10 +16,15 @@ import {
 } from "./lightUp";
 import type { LightUpPuzzleData } from "./types";
 
-export function generateLightUp(): LightUpPuzzleData {
+export const LIGHTUP_MIN_WALLS = 18;
+export const LIGHTUP_MAX_WALLS = 23;
+/** The live generator's own attempt cap. */
+export const LIGHTUP_MAX_ATTEMPTS = 100_000;
+
+export function generateLightUp(maxAttempts = LIGHTUP_MAX_ATTEMPTS): LightUpPuzzleData {
   const size = LIGHTUP_SIZE;
-  for (let attempt = 0; attempt < 100000; attempt++) {
-    const walls = shuffled([...Array(size * size).keys()]).slice(0, randInt(18, 23));
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const walls = shuffled([...Array(size * size).keys()]).slice(0, randInt(LIGHTUP_MIN_WALLS, LIGHTUP_MAX_WALLS));
     const wallSet = new Set(walls);
     const lit = new Set<number>();
     const bulbs: number[] = [];
@@ -49,4 +55,26 @@ export function generateLightUp(): LightUpPuzzleData {
     };
   }
   throw new Error(`${gameDisplayName("lightup")} generation failed`);
+}
+
+/**
+ * Re-checks a stored board as `generateLightUp` accepts one: 18–23 sorted
+ * walls, half of them numbered (at least two 0s and one 3), a valid stored
+ * bulb layout, and an exhaustive count of exactly one solution.
+ */
+export function verifyLightUpPuzzle(puzzle: LightUpPuzzleData): string | null {
+  const { size, walls, wallNumbers, solution } = puzzle;
+  if (puzzle.type !== "lightup") return "wrong type";
+  if (size !== LIGHTUP_SIZE) return "size";
+  if (walls.length < LIGHTUP_MIN_WALLS || walls.length > LIGHTUP_MAX_WALLS) return "wall count";
+  if (walls.some((c, i) => !Number.isInteger(c) || c < 0 || c >= size * size || (i > 0 && c <= walls[i - 1]!)))
+    return "walls not distinct and sorted";
+  if (wallNumbers.length !== walls.length) return "wall numbers";
+  const numbered = wallNumbers.filter((n) => n >= 0);
+  if (numbered.length !== Math.round(walls.length * 0.5)) return "numbered wall count";
+  if (numbered.filter((n) => n === 0).length < 2 || !numbered.includes(3)) return "needs two 0s and a 3";
+  const board: LightUpBoard = { size, walls, wallNumbers };
+  if (!solution || !lightUpValid(board, solution)) return "solution does not solve";
+  if (countLightUpSolutions(board, 2) !== 1) return "not proven unique";
+  return null;
 }

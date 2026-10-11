@@ -57,8 +57,11 @@ export function routeUsesFeatures(
   return { portal, cracked };
 }
 
-export function generateIceSlide(): SlidePuzzleData {
-  for (let attempt = 1; attempt <= 500_000; attempt++) {
+/** The live generator's own attempt cap. */
+export const SLIDE_MAX_ATTEMPTS = 500_000;
+
+export function generateIceSlide(maxAttempts = SLIDE_MAX_ATTEMPTS): SlidePuzzleData {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const cells = shuffled(Array.from({ length: SLIDE_CELLS }, (_, i) => i));
     const exit = cells.find(border)!;
     const pool = cells.filter((cell) => cell !== exit);
@@ -109,4 +112,41 @@ export function generateIceSlide(): SlidePuzzleData {
     };
   }
   throw new Error(`${gameDisplayName("iceslide")} generator could not build a reachable layout`);
+}
+
+/**
+ * Re-checks a stored layout as `generateIceSlide` accepts one: feature counts
+ * in range on distinct cells, the exit on the border, and a fresh search over
+ * (cell, broken-ice mask) giving the same minimum and route, inside the band,
+ * through a portal and over thin ice.
+ */
+export function verifyIceSlidePuzzle(puzzle: SlidePuzzleData): string | null {
+  if (puzzle.type !== "iceslide") return "wrong type";
+  const arrows = puzzle.arrows ?? [];
+  const portals = puzzle.portals ?? [];
+  const thin = puzzle.thin ?? [];
+  const { walls, holes, start, exit } = puzzle;
+  if (walls.length < SLIDE_MIN_WALLS || walls.length > SLIDE_MAX_WALLS) return "wall count";
+  if (holes.length < SLIDE_MIN_HOLES || holes.length > SLIDE_MAX_HOLES) return "hole count";
+  if (arrows.length < SLIDE_MIN_ARROWS || arrows.length > SLIDE_MAX_ARROWS) return "arrow count";
+  if (portals.length < SLIDE_MIN_PORTALS || portals.length > SLIDE_MAX_PORTALS) return "portal count";
+  if (thin.length < SLIDE_MIN_THIN || thin.length > SLIDE_MAX_THIN) return "thin-ice count";
+  if (!border(exit)) return "exit not on the border";
+  const cells = [...walls, ...holes, ...arrows.map((a) => a.cell), ...portals.flat(), ...thin, start, exit];
+  if (new Set(cells).size !== cells.length || cells.some((c) => !Number.isInteger(c) || c < 0 || c >= SLIDE_CELLS))
+    return "cells overlap or out of range";
+  const wallSet = new Set(walls);
+  for (const arrow of arrows) {
+    if (!DIRS.includes(arrow.dir)) return "arrow direction";
+    const next = slideStep(arrow.cell, arrow.dir);
+    if (next === null || wallSet.has(next)) return "arrow into a wall";
+  }
+  const found = slideSearch(slideBoard(puzzle), undefined, SLIDE_MAX_MOVES);
+  if (!found) return "exit not reachable within the cap";
+  if (found.min < SLIDE_MIN_MOVES || found.min > SLIDE_MAX_MOVES) return "minimum outside the band";
+  if (found.min !== puzzle.minMoves) return "stored minimum";
+  if (found.route.join("") !== puzzle.solution) return "stored route";
+  const uses = routeUsesFeatures(puzzle, found.route);
+  if (!uses.portal || !uses.cracked) return "route misses a portal or thin ice";
+  return null;
 }

@@ -7,7 +7,7 @@ import { gameDisplayName } from "./gameNames";
  */
 
 import { flowCol, flowNeighbours, flowRow, verifyFlow } from "./flow";
-import { shuffled } from "./random";
+import { random, randomBelow, shuffled } from "./random";
 import {
   FLOW_CELLS,
   FLOW_MAX_PAIRS,
@@ -27,8 +27,9 @@ const COLOURS: FlowColour[] = [
 
 const NEIGHBOURS: number[][] = Array.from({ length: FLOW_CELLS }, (_, c) => flowNeighbours(c));
 
+/** Every draw goes through ./random, so `withSeededRandom` reproduces a board exactly. */
 function randomInt(n: number): number {
-  return Math.floor(Math.random() * n);
+  return randomBelow(n);
 }
 
 /** Wall cells, never touching each other and never on a corner. */
@@ -220,7 +221,7 @@ function mergedPaths(blocked: Set<number>, pairCount: number): number[][] | null
   while (paths.length > pairCount && stuck < 4000) {
     const i = randomInt(paths.length);
     const path = paths[i]!;
-    const fromEnd = Math.random() < 0.5 ? path[0]! : path[path.length - 1]!;
+    const fromEnd = random() < 0.5 ? path[0]! : path[path.length - 1]!;
     const options = shuffled(NEIGHBOURS[fromEnd]!).filter((n) => {
       const j = pathOf[n]!;
       if (j < 0 || j === i) return false;
@@ -250,9 +251,12 @@ function mergedPaths(blocked: Set<number>, pairCount: number): number[][] | null
   return paths;
 }
 
-export function generateFlow(stats?: FlowGenStats): FlowPuzzleData {
+/** The live generator's own attempt cap. */
+export const FLOW_MAX_ATTEMPTS = 3000;
+
+export function generateFlow(stats?: FlowGenStats, maxAttempts = FLOW_MAX_ATTEMPTS): FlowPuzzleData {
   let attempts = 0;
-  for (let outer = 0; outer < 3000; outer++) {
+  for (let outer = 0; outer < maxAttempts; outer++) {
     attempts++;
     const walls = pickWalls();
     const pairCount = FLOW_MIN_PAIRS + randomInt(FLOW_MAX_PAIRS - FLOW_MIN_PAIRS + 1);
@@ -282,4 +286,39 @@ export function gradeFlowPaths(
 ): { solved: boolean; pairsJoined: number; filled: number } {
   const verdict = verifyFlow(pairs, paths, walls);
   return { solved: verdict.solved, pairsJoined: verdict.pairsJoined, filled: verdict.filled };
+}
+
+/**
+ * Re-checks a stored board against every rule `generateFlow` applies before it
+ * accepts one: wall placement, pair count and colours, path shape, the
+ * solution itself, and the exhaustive uniqueness proof. Null when it passes.
+ */
+export function verifyFlowPuzzle(puzzle: FlowPuzzleData): string | null {
+  const walls = puzzle.walls ?? [];
+  const paths = puzzle.solution;
+  if (puzzle.type !== "flow") return "wrong type";
+  if (walls.length < FLOW_MIN_WALLS || walls.length > FLOW_MAX_WALLS) return "wall count";
+  for (const [i, w] of walls.entries()) {
+    if (!Number.isInteger(w) || w < 0 || w >= FLOW_CELLS) return "wall cell";
+    if (NEIGHBOURS[w]!.length < 3) return "wall on a corner";
+    for (const other of walls.slice(0, i)) {
+      if (Math.abs(flowRow(w) - flowRow(other)) + Math.abs(flowCol(w) - flowCol(other)) < 3) return "walls too close";
+    }
+  }
+  const P = puzzle.pairs.length;
+  if (P < FLOW_MIN_PAIRS || P > FLOW_MAX_PAIRS) return "pair count";
+  const colours = puzzle.pairs.map((pair) => pair.colour);
+  if (new Set(colours).size !== P || colours.some((c) => !COLOURS.includes(c))) return "colours";
+  if (!paths || paths.length !== P) return "solution paths";
+  for (const [index, path] of paths.entries()) {
+    const pair = puzzle.pairs[index]!;
+    if (path[0] !== pair.a || path[path.length - 1] !== pair.b) return "path ends";
+    if (path.length < FLOW_MIN_PATH || path.length > 16) return "path length";
+    if (selfTouching(path)) return "self-touching path";
+    if (flowBends(path) < 1) return "straight path";
+    if (NEIGHBOURS[pair.a]!.includes(pair.b)) return "dots side by side";
+  }
+  if (!verifyFlow(puzzle.pairs, paths, walls).solved) return "solution does not solve";
+  if (countFlowSolutions(puzzle.pairs, walls) !== 1) return "not proven unique";
+  return null;
 }

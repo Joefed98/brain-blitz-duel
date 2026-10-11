@@ -9,6 +9,8 @@
 import { randInt, randomBelow, shuffled } from "./random";
 import {
   colourAlreadyHome,
+  decodeTubeMoves,
+  replayTubes,
   cloneTubes,
   encodeTubeMoves,
   pour,
@@ -117,8 +119,11 @@ export function tubesMinimum(
   return null;
 }
 
-export function generateTubes(): TubesPuzzleData {
-  for (let attempt = 0; attempt < 400; attempt++) {
+/** The live generator's own attempt cap. */
+export const TUBES_MAX_ATTEMPTS = 400;
+
+export function generateTubes(maxAttempts = TUBES_MAX_ATTEMPTS): TubesPuzzleData {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let state = solvedState();
     const scrambles = randInt(TUBES_MIN_SCRAMBLE, TUBES_MAX_SCRAMBLE);
     for (let step = 0; step < scrambles; step++) {
@@ -143,4 +148,32 @@ export function generateTubes(): TubesPuzzleData {
     };
   }
   throw new Error("Sort the Tubes generator could not build a proven-solvable board");
+}
+
+/**
+ * Re-checks a stored board as `generateTubes` accepts one: eight colours of
+ * five balls in ten tubes, no tube finished and no colour home, and a fresh
+ * breadth-first search giving the same minimum and pour list, inside the band.
+ */
+export function verifyTubesPuzzle(puzzle: TubesPuzzleData): string | null {
+  const { tubes } = puzzle;
+  if (puzzle.type !== "tubes") return "wrong type";
+  if (tubes.length !== TUBES_COUNT) return "tube count";
+  if (tubes.some((tube) => tube.length > TUBE_CAPACITY)) return "overfull tube";
+  const counts = new Array<number>(TUBES_COLOURS).fill(0);
+  for (const tube of tubes) for (const ball of tube) {
+    if (!Number.isInteger(ball) || ball < 0 || ball >= TUBES_COLOURS) return "ball colour";
+    counts[ball]! += 1;
+  }
+  if (counts.some((n) => n !== TUBE_CAPACITY)) return "balls per colour";
+  if (tubes.some(tubeSorted)) return "a tube starts finished";
+  if (colourAlreadyHome(tubes)) return "a colour starts home";
+  const found = tubesMinimum(tubes);
+  if (!found) return "no solution within the search cap";
+  if (found.minMoves < TUBES_MIN_MIN_MOVES || found.minMoves > TUBES_MAX_MIN_MOVES) return "minimum outside the band";
+  if (found.minMoves !== puzzle.minMoves) return "stored minimum";
+  if (encodeTubeMoves(found.solution) !== puzzle.solution) return "stored solution";
+  const replay = replayTubes(tubes, decodeTubeMoves(puzzle.solution ?? ""));
+  if (!replay.solved || replay.moves !== puzzle.minMoves) return "solution does not replay";
+  return null;
 }

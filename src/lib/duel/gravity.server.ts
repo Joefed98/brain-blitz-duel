@@ -110,10 +110,40 @@ function attempt(): GravityPuzzleData | null {
   };
 }
 
-export function generateGravity(): GravityPuzzleData {
-  for (let tries = 1; ; tries++) {
+/** Unlimited unless a cap is given (the bank build and the live fallback pass one). */
+export function generateGravity(maxTries = Number.POSITIVE_INFINITY): GravityPuzzleData {
+  for (let tries = 1; tries <= maxTries; tries++) {
     const puzzle = attempt();
     if (puzzle) return puzzle;
     if (tries % 2000 === 0) console.warn(`[gravity] ${tries} boards rejected so far`);
   }
+  throw new Error(`Gravity generator found no board in ${maxTries} tries`);
+}
+
+/**
+ * Re-checks a stored board as `generateGravity` accepts one: four balls and
+ * targets on distinct open squares, a wall count in range, no lock on the
+ * first tilt, and a fresh joint breadth-first search giving the same minimum
+ * and tilt list, inside the band, with at least two lock interactions.
+ */
+export function verifyGravityPuzzle(puzzle: GravityPuzzleData): string | null {
+  if (puzzle.type !== "gravity") return "wrong type";
+  const { starts, targets } = puzzle;
+  const walls = new Set(puzzle.walls);
+  if (puzzle.walls.length < GRAV_MIN_WALLS || puzzle.walls.length > GRAV_MAX_WALLS) return "wall count";
+  if (puzzle.walls.some((c, i) => i > 0 && c <= puzzle.walls[i - 1]!)) return "walls not sorted";
+  if (starts.length !== GRAV_BALLS || targets.length !== GRAV_BALLS) return "ball count";
+  const all = [...puzzle.walls, ...starts, ...targets];
+  if (new Set(all).size !== all.length || all.some((c) => !Number.isInteger(c) || c < 0 || c >= GRAV_CELLS))
+    return "cells overlap or out of range";
+  for (const dir of GRAVITY_DIRS) {
+    if (tilt(walls, starts, targets, dir).locked.length) return "locks on the first tilt";
+  }
+  const found = gravityMinimum(walls, starts, targets, GRAV_MAX_TILTS);
+  if (!found) return "no solution within the cap";
+  if (found.minMoves < GRAV_MIN_TILTS || found.minMoves > GRAV_MAX_TILTS) return "minimum outside the band";
+  if (found.minMoves !== puzzle.minMoves) return "stored minimum";
+  if (encodeGravityTilts(found.solution) !== puzzle.solution) return "stored solution";
+  if (lockInteractions(walls, starts, targets, found.solution) < 2) return "too few lock interactions";
+  return null;
 }

@@ -29,6 +29,8 @@ import {
 
 /** How many of the host's recent rooms feed the repeat-avoiding draw. */
 const RECENT_ROOMS = 3;
+/** How many of the host's recent rooms' banked boards a new room avoids. */
+const RECENT_BANK_ROOMS = 20;
 
 /* -------------------------------------------------------------------------- */
 /*  Server-only helpers                                                        */
@@ -339,6 +341,25 @@ async function recentWordMatchWords(client: any, hostUserId: string | null): Pro
   return runs.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).flatMap((run) => run.words);
 }
 
+/** Banked boards (puzzleBank.server.ts) from the host's recent rooms, so a new room skips them. */
+async function recentBankKeys(client: any, hostUserId: string | null): Promise<Set<string>> {
+  const keys = new Set<string>();
+  if (!hostUserId) return keys;
+  const { data } = await client.from("duels")
+    .select("puzzles_public")
+    .eq("host_user_id", hostUserId)
+    .order("created_at", { ascending: false }).limit(RECENT_BANK_ROOMS);
+  const { bankKey } = await import("./puzzleBank.server");
+  for (const row of data ?? []) {
+    if (!Array.isArray(row.puzzles_public)) continue;
+    for (const puzzle of row.puzzles_public) {
+      const key = bankKey(puzzle);
+      if (key) keys.add(key);
+    }
+  }
+  return keys;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Server functions — the only way any of the tables is written               */
 /* -------------------------------------------------------------------------- */
@@ -426,6 +447,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
     const recent = await recentRoundOrders(client, room, room.host_user_id);
     const recentWords = await recentWordMatchWords(client, room.host_user_id);
     const lastGoNoGoFirst = await previousGoNoGoFirst(client, room, room.host_user_id);
+    const recentBanked = await recentBankKeys(client, room.host_user_id);
     const categories = normaliseCategories(room.selected_categories);
     if (!categories.some((category) => typesInCategory(category).length > 0))
       return {
@@ -442,6 +464,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       previousGoNoGoFirst: lastGoNoGoFirst as never,
       unblockRow,
       recentWordMatchWords: recentWords,
+      recentBankKeys: recentBanked,
     });
     console.log(
       `[room-selection] room=${room.room_code} seed=${roomSeed} categories=${categories.join(",")} recentRooms=${recent.length} order=${roundOrder.join(",")}`,
