@@ -57,6 +57,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   from it. Joe's cloud environment can do this automatically through a setup script
   (kept in the environment settings, not in the repo); if `node_modules` is missing at
   session start, the script didn't run, so ask Joe before working around it.
+- Baseline (11 Oct 2026, full deps): 69 pass, 15 fail, 0 timeout. All 15 failures are
+  stale tests (old fixtures, renamed exports, old expectations, not real game bugs):
+  arcade-oct4, bullseye-cross-flip-tuning, colour-clash-rev3, four-tuning,
+  gravity-chain-intruder, ink-rainbow, intro-demo, new-types, puzzle-input-tuning,
+  puzzle-surface, room-viewport, shared-fx, slice-kitchen, speed-tuning,
+  stroke-tiles-rings. ink-live takes 220–305 s, right at the 300 s limit.
 - `scripts/*-bank.ts` rebuild server-only banks; run them only when a bank must change.
 
 ## Rules (non-negotiable)
