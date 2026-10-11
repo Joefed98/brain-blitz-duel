@@ -65,16 +65,16 @@ const CC0 = "CC0 1.0 Universal (public domain)";
  */
 export const ART_WORLDS: Readonly<Record<ArtWorld, ArtWorldManifest>> = {
   retro: {
-    pack: "Puzzle Pack",
+    pack: "Puzzle Pack 1",
     author: KENNEY,
-    page: "https://kenney.nl/assets/puzzle-pack",
+    page: "https://kenney.nl/assets/puzzle-pack-1",
     licence: CC0,
     sprites: { paddle: { file: "paddle.png" } },
   },
   space: {
-    pack: "Space Shooter Redux",
+    pack: "Space Shooter Remastered",
     author: KENNEY,
-    page: "https://kenney.nl/assets/space-shooter-redux",
+    page: "https://kenney.nl/assets/space-shooter-remastered",
     licence: CC0,
     sprites: { player: { file: "player.png" } },
   },
@@ -109,13 +109,21 @@ export const ART_WORLDS: Readonly<Record<ArtWorld, ArtWorldManifest>> = {
     author: KENNEY,
     page: "https://kenney.nl/assets/fish-pack",
     licence: CC0,
-    // Only the fish symbol is piloted; the other four creatures keep their code art.
-    sprites: { fish: { file: "fish.png" } },
+    // All five bubble creatures or none: bubble.renderer draws art only when every
+    // one is ready. Fish Pack has fish but no crab, starfish, jellyfish or shell,
+    // so no files are bundled and Coral Pop keeps its code art.
+    sprites: {
+      crab: { file: "crab.png" },
+      starfish: { file: "starfish.png" },
+      fish: { file: "fish.png" },
+      jellyfish: { file: "jellyfish.png" },
+      shell: { file: "shell.png" },
+    },
   },
   cavelava: {
-    pack: "Platformer Pack Redux",
+    pack: "Platformer Pack Remastered",
     author: KENNEY,
-    page: "https://kenney.nl/assets/platformer-pack-redux",
+    page: "https://kenney.nl/assets/platformer-pack-remastered",
     licence: CC0,
     sprites: { anchor: { file: "anchor.png" } },
   },
