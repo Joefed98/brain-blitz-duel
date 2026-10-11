@@ -1,4 +1,7 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { drawArtSprite } from "./sprites.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { BREAKER_FX } from "./arcadeFxGames.renderer";
 import {
   breakerGame,
   brkDestroyed,
@@ -98,7 +101,7 @@ function getBrickSprite(colour: string, power: number, taken: number, bloom: num
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize): void {
-  retroScreen(ctx, size, BRK_WORLD_W, BRK_WORLD_H, "stretch", (c) => drawWorld(c, state, ctx));
+  retroScreen(ctx, size, BRK_WORLD_W, BRK_WORLD_H, "stretch", (c) => arcadeFx(c, BREAKER_FX, state, () => drawWorld(c, state, ctx)));
 }
 
 function brickXY(index: number) {
@@ -181,7 +184,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   const hitPoint=changed>=0?brickXY(changed):brickXY(m.deaths.at(-1)?.index??0);
   const reward=successFrame(ctx,{id:'breaker',tick:state.tick,count:state.hits,misses:state.losses,colour:PADDLE,width:BRK_WORLD_W,height:BRK_WORLD_H,point:{x:hitPoint.x+BRK_BRICK_W/2,y:hitPoint.y+BRK_BRICK_H/2,shape:'pixel'},hud:{x:14,y:26,text:`BRICKS ${brkDestroyed(state)}/${BRK_BRICKS}`}});
   if(reward.chain>=10){ctx.save();ctx.globalAlpha=.3;ctx.strokeStyle=PADDLE;ctx.lineWidth=3;ctx.strokeRect(state.paddleX-BRK_PADDLE_W/2-2,BRK_PADDLE_Y-2,BRK_PADDLE_W+4,BRK_PADDLE_H+4);ctx.restore();}
-  retroPaddle(ctx, state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y, BRK_PADDLE_W, BRK_PADDLE_H, PADDLE, "#5A4510", bloom);
+  // Art pilot (Retro): the paddle sprite fills the collision rectangle; code art when absent.
+  if (!drawArtSprite(ctx, "retro", "paddle", state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y, BRK_PADDLE_W, BRK_PADDLE_H)) retroPaddle(ctx, state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y, BRK_PADDLE_W, BRK_PADDLE_H, PADDLE, "#5A4510", bloom);
 
   state.balls.forEach((ball, i) => {
     const bx = px(ball.x);

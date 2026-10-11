@@ -1,4 +1,6 @@
 import { successHud, successFrame } from "./success.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { HOVER_FX } from "./arcadeFxGames.renderer";
 import { reducedMotion } from './art.renderer';
 /** Hover in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
@@ -62,10 +64,10 @@ function barrierSprite(w: number, colour: string): ArtCanvas | null {
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize): void {
-  retroScreen(ctx, size, HOVER_WORLD_W, HOVER_WORLD_H, "fit", (c) => drawWorld(c, state));
+  retroScreen(ctx, size, HOVER_WORLD_W, HOVER_WORLD_H, "fit", (c) => arcadeFx(c, HOVER_FX, state, () => drawWorld(c, state)));
 }
 function drawReveal(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize): void {
-  retroScreen(ctx, size, HOVER_WORLD_W, HOVER_WORLD_H, "fit", (c) => drawWorld(c, state, false));
+  retroScreen(ctx, size, HOVER_WORLD_W, HOVER_WORLD_H, "fit", (c) => arcadeFx(c, HOVER_FX, state, () => drawWorld(c, state, false)));
 }
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndicator = true): void {

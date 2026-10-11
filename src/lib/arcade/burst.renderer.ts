@@ -1,4 +1,6 @@
 import { successFrame, SUCCESS_ACCENTS, SUCCESS_PARTICLES, SUCCESS_TICKS } from "./success.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { BURST_FX } from "./arcadeFxGames.renderer";
 /** Burst in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
   burstCeiling,
@@ -86,7 +88,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BurstState, size: CanvasSize
   lifeMemo.set(ctx, { tick: state.tick, lives: state.lives });
   const age = retroEventAge(ctx, "life", lost);
   const flash = age < 400 ? 1 - age / 400 : 0;
-  retroScreen(ctx, size, BURST_WORLD_W, BURST_FLOOR_Y, "fit", (c) => drawWorld(c, state, flash), flash);
+  retroScreen(ctx, size, BURST_WORLD_W, BURST_FLOOR_Y, "fit", (c) => arcadeFx(c, BURST_FX, state, () => drawWorld(c, state, flash)), flash);
 }
 
 type Stamp = { layer: ArtCanvas; width: number; height: number; pad: number };

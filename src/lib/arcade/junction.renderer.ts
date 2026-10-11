@@ -1,4 +1,6 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { JUNCTION_FX } from "./arcadeFxGames.renderer";
 /**
  * Junction art (Real World). Render only: reads JuncState, never mutates it.
  * Cars fill the unchanged 41×24 car box; only the 2D visual turn path changes.
@@ -202,7 +204,12 @@ function drawCar(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number
   ctx.restore();
 }
 
+/** The game's drawing through the shared success layer (presentation only). */
 export function drawJunctionArt(ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize, crashIndicator = true): void {
+  arcadeFx(ctx, JUNCTION_FX, state, () => drawJunctionArtWorld(ctx, state, size, crashIndicator), size);
+}
+
+function drawJunctionArtWorld(ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize, crashIndicator = true): void {
   const scale = Math.min(size.width / JUNC_WORLD_W, size.height / JUNC_WORLD_H);
   const ox = (size.width - JUNC_WORLD_W * scale) / 2;
   const oy = (size.height - JUNC_WORLD_H * scale) / 2;

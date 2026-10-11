@@ -1,4 +1,6 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { FLIP_FX } from "./arcadeFxGames.renderer";
 /** Lava-tube artwork only. Never mutates the simulation or changes its geometry. */
 import type { CanvasSize } from "./engine";
 import {
@@ -326,7 +328,12 @@ function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: number, 
   ctx.restore();
 }
 
+/** The game's drawing through the shared success layer (presentation only). */
 export function drawFlipArt(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize): void {
+  arcadeFx(ctx, FLIP_FX, state, () => drawFlipArtWorld(ctx, state, size), size);
+}
+
+function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize): void {
   const still = reducedMotion();
   const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(state.tick / 10);
   const scale = Math.min(size.width / FLIP_WORLD_W, size.height / FLIP_WORLD_H);

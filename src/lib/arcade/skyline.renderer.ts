@@ -1,4 +1,6 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { SKYLINE_FX } from "./arcadeFxGames.renderer";
 /**
  * Skyline art (Real World construction site). Render only: reads SkylineState,
  * never mutates it. Blocks fill exactly the sim's block rectangles; the camera
@@ -145,7 +147,12 @@ function drawCrane(ctx: CanvasRenderingContext2D, trolleyX: number, tick: number
   void tick;
 }
 
+/** The game's drawing through the shared success layer (presentation only). */
 export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize, crashIndicator = true): void {
+  arcadeFx(ctx, SKYLINE_FX, state, () => drawSkylineArtWorld(ctx, state, size, crashIndicator), size);
+}
+
+function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize, crashIndicator = true): void {
   const scale = Math.min(size.width / SKYLINE_WORLD_W, size.height / SKYLINE_WORLD_H);
   const offsetX = (size.width - SKYLINE_WORLD_W * scale) / 2;
   const offsetY = (size.height - SKYLINE_WORLD_H * scale) / 2;

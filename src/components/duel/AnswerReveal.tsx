@@ -35,6 +35,8 @@ interface AnswerRevealProps {
   answersReady: boolean;
   /** Everyone in the room for the arcade progress track (practice: omitted, own marker only). */
   players?: RevealPlayer[];
+  /** Practice only: this run beat the device's practice best (arcade results celebration). */
+  personalBest?: boolean;
   startedAt: number;
   now: number;
 }
@@ -147,6 +149,7 @@ export function AnswerReveal({
   myExtra,
   answersReady,
   players,
+  personalBest,
   startedAt,
   now,
 }: AnswerRevealProps) {
@@ -198,6 +201,8 @@ export function AnswerReveal({
           myAnswer={myAnswer}
           myScore={myScore}
           nearMissLine={nearMiss(puzzle.type, myExtra)}
+          personalBest={personalBest}
+          round={round}
           myReveal={(myExtra?.["reveal"] as ArcadeRevealData | undefined) ?? null}
           players={
             players ?? [

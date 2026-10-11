@@ -1,4 +1,6 @@
 import { BINTOSS_NEXT_DELAY } from "./binToss";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { BINTOSS_FX } from "./arcadeFxGames.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import {
@@ -164,7 +166,7 @@ function drawTrail(ctx: CanvasRenderingContext2D, state: BinTossState): void {
 function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSize): void {
   const basketAge = fairChangeAge(ctx, "bintoss-baskets", state.baskets);
   const resolvedAge = fairChangeAge(ctx, "bintoss-resolved", state.resolved);
-  fairScreen(ctx, size, BINTOSS_WORLD_W, BINTOSS_WORLD_H, FLOOR, () => {
+  fairScreen(ctx, size, BINTOSS_WORLD_W, BINTOSS_WORLD_H, FLOOR, () => arcadeFx(ctx, BINTOSS_FX, state, () => {
     const index = Math.min(state.throwIndex, BINTOSS_THROWS - 1);
     const centre = px(binTossCentreAt(state, index, state.tick));
     const half = px(binTossHalf(index, state.rev));
@@ -201,7 +203,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
       ctx.arc(20 + i * 16, BINTOSS_WORLD_H - 16, 4, 0, Math.PI * 2);
       ctx.fill();
     }
-  }, [0.3, 0.52]);
+  }), [0.3, 0.52]);
 }
 
 export function binTossArtAim(ctx: CanvasRenderingContext2D, size: CanvasSize, aim: BinTossGhost, cancelled = false): void {

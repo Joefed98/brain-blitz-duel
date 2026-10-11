@@ -1,4 +1,6 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { BALLTRACK_FX } from "./arcadeFxGames.renderer";
 /**
  * Ball Track in the Toybox world: a wooden marble run. Render only; mirrors
  * btDraw's private geometry (tile centres, tube path, ball radius 22.5) and
@@ -65,7 +67,12 @@ function symbol(ctx: CanvasRenderingContext2D, kind: number, x: number, y: numbe
   else { ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath(); }
 }
 
+/** Ball Tracker drawing (world units; the caller scales) through the shared success layer. */
 export function btArtDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtState, rotatable?: Set<number>) {
+  arcadeFx(ctx, BALLTRACK_FX, s, () => btArtDrawWorld(ctx, course, s, rotatable));
+}
+
+function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtState, rotatable?: Set<number>) {
   const gridY = BT_HOPPER_H;
   const rot = rotatable ?? new Set(btRotatable(course));
   toyTabletop(ctx);

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
+import { ArcadeCelebration, type CelebrationKind } from "@/components/duel/ArcadeCelebration";
 import { WaitingLine } from "@/components/duel/Dots";
+import { arcadeWorldOf } from "@/lib/arcade/arcadeFxGames.renderer";
+import { recordArcadeRoomBest, runKey } from "@/lib/fx/arcadeBest";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -22,6 +25,10 @@ interface ArcadeRevealProps {
   myReveal: ArcadeRevealData | null;
   players: RevealPlayer[];
   nearMissLine?: string | null;
+  /** Practice passes its own device-best verdict; rooms leave it out and use the room record. */
+  personalBest?: boolean | undefined;
+  /** Identifies this run for the room best record (one verdict per run). */
+  round?: number | undefined;
 }
 
 const PLAYER_COLOURS = [
@@ -186,12 +193,27 @@ function Track({ players, axis, accent }: { players: RevealPlayer[]; axis: Arcad
   );
 }
 
-export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nearMissLine }: ArcadeRevealProps) {
+/** Full clear (the server replay's "finish" outcome) and/or a new device best, once the stored score lands. */
+function useCelebration(puzzle: PuzzleData, myAnswer: string | null, myScore: number | null, myReveal: ArcadeRevealData | null, personalBest: boolean | undefined, round: number | undefined): CelebrationKind | null {
+  const [best, setBest] = useState(false);
+  useEffect(() => {
+    if (myScore === null || !myReveal) return;
+    if (personalBest !== undefined) setBest(personalBest);
+    else setBest(recordArcadeRoomBest(puzzle.type, myScore, runKey(puzzle.type, round, myAnswer)));
+  }, [puzzle.type, myScore, myReveal, myAnswer, personalBest, round]);
+  if (myScore === null || !myReveal) return null;
+  const full = myReveal.outcome === "finish";
+  return full && best ? "both" : full ? "full" : best ? "best" : null;
+}
+
+export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nearMissLine, personalBest, round }: ArcadeRevealProps) {
   const accent = ARCADE_REVEAL_RENDERERS[puzzle.type]?.accent ?? "var(--me)";
   const shownScore = useCountUp(myScore);
+  const celebration = useCelebration(puzzle, myAnswer, myScore, myReveal, personalBest, round);
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl">
       <Backdrop puzzle={puzzle} answer={myAnswer ?? ""} outcome={myReveal?.outcome ?? null} />
+      {celebration ? <ArcadeCelebration kind={celebration} world={arcadeWorldOf(puzzle.type)} /> : null}
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-between gap-3 px-3 py-4">
         <div className="flex flex-col items-center gap-1">
           {myScore === null ? (
@@ -201,7 +223,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
           ) : (
             <p
               data-reveal-score={myScore}
-              className="font-mono text-6xl font-bold tabular-nums leading-none text-primary"
+              className={`font-mono text-6xl font-bold tabular-nums leading-none text-primary${celebration ? " arcade-score-celebrate" : ""}`}
               aria-label={`${myScore} points`}
             >
               {shownScore}

@@ -1,4 +1,7 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { drawArtSprite } from "./sprites.renderer";
+import { arcadeFx } from "./arcadeFx.renderer";
+import { SWING_FX } from "./arcadeFxGames.renderer";
 /**
  * Swing art pass. Render only: reads SwingState and never mutates it. The lava
  * surface is the sim's floor line, stalactites use the sim's spike polygon and
@@ -34,7 +37,12 @@ function lerpAt(arr: readonly number[], x: number): number {
   return arr[i]! + Math.trunc(((arr[i + 1]! - arr[i]!) * f) / COL);
 }
 
+/** The game's drawing through the shared success layer (presentation only). */
 export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize): void {
+  arcadeFx(ctx, SWING_FX, state, () => drawSwingArtWorld(ctx, state, size), size);
+}
+
+function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize): void {
   const still = reducedMotion();
   const t = still ? 0 : state.tick / 60;
   const scale = Math.min(size.width / SWING_WORLD_W, size.height / SWING_WORLD_H);
@@ -302,6 +310,8 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
     const x = sx(a.x);
     if (x < -20 || x > SWING_WORLD_W + 20) return;
     const flash = i === state.rope && state.tick - state.grabTick < 12;
+    // Art pilot (Cave & Lava): anchor sprite at the ring's size; the gold grab flash stays code-drawn.
+    if (!flash && drawArtSprite(ctx, "cavelava", "anchor", x - 6, a.y / FP - 6, 12, 12)) return;
     ctx.strokeStyle = flash ? SWING_GOLD : "#C9A25A";
     ctx.lineWidth = flash ? 4 : 2.5;
     ctx.beginPath();
