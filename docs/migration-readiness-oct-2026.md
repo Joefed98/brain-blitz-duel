@@ -271,6 +271,20 @@ Fallback options if banks are not ready in time:
 - Generate each round in its own invocation, so the CPU budget is per puzzle. This still fails for `flow` and `blockparty` worst cases.
 - Keep `startRoomFn` and `practiceGenerateFn` on a host without the 2 s cap (see §6, step 3).
 
+### 3.1a Update (11 Oct 2026): the six flagged games are banked
+
+Chroma Lines, Tessellate, Polypotions, Topsy-Turvy, Lamplighter and Skid now draw rooms and practice from committed banks of 1,000 boards each (`src/lib/duel/puzzleBank.server.ts`, built by `scripts/<game>-bank.ts`). Each board is the live generator's output under a fixed seed, re-verified with the generator's own rules. The room seed picks the board, and boards from the host's last 20 rooms are skipped. An empty bank falls back to capped live generation. The stored puzzle shape is unchanged, so there is no stamp. Measured the same way as §3 (60 seeded 7-category rooms in one process; composite = each category's slowest type at its worst):
+
+| | Bun before | Bun after | Deno before | Deno after |
+|---|---:|---:|---:|---:|
+| Room median | 307 ms | 10 ms | 211 ms | 9 ms |
+| Room p95 | 3,890 ms | 341 ms | 3,029 ms | 226 ms |
+| Worst room | 6,605 ms | 451 ms | 5,957 ms | 276 ms |
+| Worst composite room | 14,986 ms | 697 ms | 8,834 ms | 525 ms |
+| Slowest banked draw | — | 0.45 ms | — | 0.22 ms |
+
+Hanoi (`tower`, ~250–365 ms worst) is now the largest single cost. The Bun ESM server bundle grew from 4.91 MB to 6.83 MB; the six bank files total 2.1 MB of source.
+
 ### 3.2 Existing banks
 
 | Game | Bank | Entries | Source size |
