@@ -7,8 +7,17 @@ import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { DropoutBanner } from "../src/components/duel/DropoutBanner";
-import { absentRivals, canFinishNow, endedByForfeit } from "../src/lib/duel/roomFlow";
-import { finishGame } from "../src/lib/duel/roomPhase.server";
+import {
+  absentRivals,
+  canFinishNow,
+  endedByForfeit,
+  forfeitOutcome,
+} from "../src/lib/duel/roomFlow";
+import {
+  finishGame,
+  forfeitRecord,
+  recordForfeitInHistory,
+} from "../src/lib/duel/roomPhase.server";
 import { duelOutcome, totalScore, totalScoreThrough } from "../src/lib/duel/scoring";
 import { DISCONNECT_MS, type DuelPlayerRow, type RoundResultRow } from "../src/lib/duel/types";
 import { memoryDb } from "./fixtures/memoryDb";
@@ -147,6 +156,97 @@ const roomRow = {
   assert(db.writes.every((w) => w.table !== "round_results"));
 }
 
+// The forfeit is the recorded outcome everywhere results are kept: the
+// finished room (forfeitOutcome) and the "previous games" entry Play again
+// writes. Ben leads on points, but Ana stayed, so Ana wins.
+const bigLead = [result(1, 1, 60), result(2, 1, 300), result(1, 2, 90), result(1, 3, 70)];
+{
+  const players = [player(1), player(2, { last_seen_at: gone })];
+  const earlier = { winner: "Cleo", date: seen(86_400_000), score: 410, round_order: [] };
+  const db = memoryDb({
+    duels: [
+      {
+        id: "room",
+        status: "in_progress",
+        current_round: 3,
+        phase: "result",
+        disbanded_at: null,
+        tournament_history: [earlier],
+      },
+    ],
+    duel_players: players.map((p) => ({ ...p })),
+    round_results: bigLead.map((r) => ({ ...r })),
+  });
+  const done = await finishGame(db.client, { ...roomRow, phase: "result" }, players, "u1", NOW);
+  assert.deepEqual(done, { ok: true, finished: true });
+  const finishedRoom = db.tables["duels"]![0]! as never as {
+    status: string;
+    phase: string;
+    disbanded_at: null;
+    tournament_history: (typeof earlier)[];
+  };
+  const stored = db.tables["duel_players"] as unknown as DuelPlayerRow[];
+  const outcome = forfeitOutcome(finishedRoom, stored);
+  assert.equal(outcome?.winner.display_name, "Ana", "the player who stayed wins");
+  assert.deepEqual(
+    outcome?.forfeited.map((p) => p.display_name),
+    ["Ben"],
+  );
+  assert.equal(duelOutcome(bigLead, 1, 2), "loss", "points alone would have said Ben");
+  assert.equal(
+    forfeitOutcome({ ...finishedRoom, phase: "winner_reveal" }, stored),
+    null,
+    "normal finishes are not forfeits",
+  );
+
+  // Read before the reset (it clears statuses and results)...
+  const record = forfeitRecord(finishedRoom, stored, bigLead);
+  assert.deepEqual(record, { historyIndex: 1, winner: "Ana", score: 220, forfeitedBy: ["Ben"] });
+  // ...then restart_duel_room resets the room and appends the points leader.
+  const roomState = db.tables["duels"]![0]!;
+  Object.assign(roomState, {
+    status: "waiting",
+    tournament_history: [earlier, { winner: "Ben", date: seen(0), score: 300, round_order: [] }],
+  });
+  const scoresBefore = JSON.stringify(db.tables["round_results"]);
+  assert.equal(await recordForfeitInHistory(db.client, "room", record!), true);
+  const history = roomState["tournament_history"] as Record<string, unknown>[];
+  assert.deepEqual(history[0], earlier, "earlier games untouched");
+  assert.equal(history[1]!["winner"], "Ana");
+  assert.equal(history[1]!["score"], 220, "the winner's own stored total");
+  assert.equal(history[1]!["forfeit"], true);
+  assert.deepEqual(history[1]!["forfeited_by"], ["Ben"]);
+  assert.equal(JSON.stringify(db.tables["round_results"]), scoresBefore, "round scores unchanged");
+  assert(db.writes.every((w) => w.table !== "round_results"));
+
+  // Guards: only the entry the reset just appended, only once the room is back in its lobby.
+  const writesSoFar = db.writes.length;
+  assert.equal(
+    await recordForfeitInHistory(db.client, "room", { ...record!, historyIndex: 0 }),
+    false,
+  );
+  roomState["status"] = "in_progress";
+  assert.equal(await recordForfeitInHistory(db.client, "room", record!), false);
+  assert.equal(db.writes.length, writesSoFar, "refused calls write nothing");
+}
+
+// Wiring: Play again reads the forfeit before the reset and records it after;
+// a host who left can't restart (the reset would remove their own row).
+{
+  const server = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
+  const rematch = server.slice(
+    server.indexOf("export const rematchFn"),
+    server.indexOf("export const checkWordFn"),
+  );
+  assert.match(rematch, /if \(me\.status === "left"\) return \{ ok: false/);
+  assert.match(
+    rematch,
+    /forfeitRecord\([\s\S]*client\.rpc\("restart_duel_room"[\s\S]*recordForfeitInHistory\(client, room\.id, forfeit\)/,
+  );
+  const lobby = readFileSync("src/components/duel/RoomLobby.tsx", "utf8");
+  assert.match(lobby, /entry\.forfeit \? " \(others left\)"/);
+}
+
 // The banner: who left, the scores, and Finish now.
 const banner = renderToStaticMarkup(
   <DropoutBanner absentNames={["Ben"]} myTotal={220} absentTotal={140} onFinish={async () => {}} />,
@@ -165,7 +265,8 @@ assert.equal(
   4,
   "intro, two result layouts and standings",
 );
-assert.match(route, /endedByForfeit\(duel\)/);
+assert.match(route, /const forfeit = forfeitOutcome\(duel, players\)/);
+assert.match(route, /const canPlayAgain = isHost && me\.status !== "left"/);
 assert.match(route, /left the game\. You win\./);
 const server = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
 const finishFn = server.slice(server.indexOf("export const finishNowFn"));
@@ -173,5 +274,5 @@ assert.match(finishFn, /finishGame\(client, room, players, context\.userId, Date
 assert.doesNotMatch(finishFn.slice(0, finishFn.indexOf("});")), /round_results/);
 
 console.log(
-  "PASS: Finish now only for the last player here, finishes once, marks absent players left, never writes round results; absent rounds score 0; forfeit finishes read as wins; banner shows names, scores and Finish now; no dead-end screen. No device test.",
+  "PASS: Finish now only for the last player here, finishes once, marks absent players left, never writes round results; absent rounds score 0; the player who stayed is the recorded winner on the final screen and in the previous-games history (even when behind on points), earlier entries and round scores untouched; banner shows names, scores and Finish now; no dead-end screen. No device test.",
 );

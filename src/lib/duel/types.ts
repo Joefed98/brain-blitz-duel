@@ -538,12 +538,26 @@ export type PuzzleData =
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "starting" | "round_title" | "intro" | "puzzle" | "reveal" | "result" | "standings" | "winner_reveal";
 
+/** One finished game in a room's "previous games", appended on Play again. */
+export interface TournamentEntry {
+  winner: string;
+  date: string;
+  /** The winner's total; stored round scores are never changed. */
+  score: number;
+  round_order: PuzzleType[];
+  word_match_words?: string[];
+  /** The game ended through "Finish now": the winner was the last player still in it. */
+  forfeit?: boolean;
+  /** Who had left or dropped out when it was finished. */
+  forfeited_by?: string[];
+}
+
 export interface DuelRow {
   id: string;
   room_code: string;
   status: "waiting" | "countdown" | "in_progress" | "finished";
   selected_categories: PuzzleCategory[];
-  tournament_history: { winner: string; date: string; score: number; round_order: PuzzleType[]; word_match_words?: string[] }[];
+  tournament_history: TournamentEntry[];
   disbanded_at: string | null;
   /** The player who created the room; only they can start it or remove players. */
   host_user_id: string | null;

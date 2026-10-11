@@ -123,6 +123,22 @@ export function canFinishNow(
 }
 
 /**
+ * The recorded outcome of a room that ended through "Finish now": the one
+ * player still in the room wins, and everyone stored as left forfeited. The
+ * final screen and the "previous games" history both read this, so they always
+ * agree. Null for any other finish. Stored round scores are not involved.
+ */
+export function forfeitOutcome(
+  room: { status: string; phase: DuelPhase | string | null; disbanded_at: string | null },
+  players: readonly DuelPlayerRow[],
+): { winner: DuelPlayerRow; forfeited: DuelPlayerRow[] } | null {
+  if (!endedByForfeit(room)) return null;
+  const remaining = players.filter((p) => p.status !== "left");
+  if (remaining.length !== 1) return null;
+  return { winner: remaining[0]!, forfeited: players.filter((p) => p.status === "left") };
+}
+
+/**
  * A room that ended through "Finish now" (rather than the timed winner reveal
  * or the old final standings, or a disband). The players who were gone at that
  * moment are stored as left; the one who stayed is shown the win.

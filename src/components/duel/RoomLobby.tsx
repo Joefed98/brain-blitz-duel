@@ -38,7 +38,7 @@ interface RoomLobbyProps {
   onDisband: () => void;
   /** Guests only: leave the lobby (the caller confirms first). */
   onLeave: () => void;
-  tournamentHistory: { winner: string; date: string }[];
+  tournamentHistory: { winner: string; date: string; forfeit?: boolean }[];
 }
 
 /** Host presets, each with the one-line description shown under them. */
@@ -260,7 +260,8 @@ export function RoomLobby({
             .reverse()
             .map((entry, index) => (
               <p key={`${entry.date}-${index}`} className="text-xs text-muted-foreground">
-                {entry.winner} won · {new Date(entry.date).toLocaleDateString()}
+                {entry.winner} won{entry.forfeit ? " (others left)" : ""} ·{" "}
+                {new Date(entry.date).toLocaleDateString()}
               </p>
             ))}
         </div>

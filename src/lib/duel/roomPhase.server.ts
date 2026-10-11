@@ -5,8 +5,16 @@
  * the room exactly once. Server-only; the client is the service-role
  * Supabase client (or an in-memory stand-in in scripts/*-check.ts).
  */
-import { canFinishNow, continueMark, type ContinuePhase } from "./roomFlow";
-import { TOTAL_ROUNDS, type DuelPhase, type DuelPlayerRow, type DuelRow } from "./types";
+import { canFinishNow, continueMark, forfeitOutcome, type ContinuePhase } from "./roomFlow";
+import { totalScore } from "./scoring";
+import {
+  TOTAL_ROUNDS,
+  type DuelPhase,
+  type DuelPlayerRow,
+  type DuelRow,
+  type RoundResultRow,
+  type TournamentEntry,
+} from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -117,4 +125,66 @@ export async function finishGame(
   for (const gone of players.filter((p) => p.user_id !== userId && p.status !== "left"))
     await client.from("duel_players").update({ status: "left" }).eq("id", gone.id);
   return { ok: true, finished: true };
+}
+
+/** What a forfeited game's history entry must say, read before the room resets. */
+export interface ForfeitRecord {
+  /** The history length before Play again appends this game's entry. */
+  historyIndex: number;
+  winner: string;
+  score: number;
+  forfeitedBy: string[];
+}
+
+/** Null unless the room ended through "Finish now" (roomFlow.forfeitOutcome). */
+export function forfeitRecord(
+  room: Pick<DuelRow, "status" | "phase" | "disbanded_at" | "tournament_history">,
+  players: readonly DuelPlayerRow[],
+  results: readonly RoundResultRow[],
+): ForfeitRecord | null {
+  const outcome = forfeitOutcome(room, players);
+  if (!outcome) return null;
+  return {
+    historyIndex: room.tournament_history?.length ?? 0,
+    winner: outcome.winner.display_name,
+    score: totalScore([...results], outcome.winner.player_slot),
+    forfeitedBy: outcome.forfeited.map((p) => p.display_name),
+  };
+}
+
+/**
+ * Play again's reset (the restart_duel_room RPC) appends this game's history
+ * entry with the points leader as winner. For a forfeited game that entry is
+ * set to the player who stayed, marked as a forfeit. Only the entry the reset
+ * just appended is touched (guarded on the history length and the room being
+ * back in its lobby); earlier entries and round scores are never changed.
+ */
+export async function recordForfeitInHistory(
+  client: any,
+  roomId: string,
+  record: ForfeitRecord,
+): Promise<boolean> {
+  const { data } = await client
+    .from("duels")
+    .select("tournament_history, status")
+    .eq("id", roomId)
+    .maybeSingle();
+  const history = (data?.tournament_history ?? null) as TournamentEntry[] | null;
+  if (!Array.isArray(history) || data?.status !== "waiting") return false;
+  if (history.length !== record.historyIndex + 1) return false;
+  const entry: TournamentEntry = {
+    ...history[record.historyIndex]!,
+    winner: record.winner,
+    score: record.score,
+    forfeit: true,
+    forfeited_by: record.forfeitedBy,
+  };
+  const { data: written } = await client
+    .from("duels")
+    .update({ tournament_history: [...history.slice(0, record.historyIndex), entry] })
+    .eq("id", roomId)
+    .eq("status", "waiting")
+    .select("id")
+    .maybeSingle();
+  return !!written;
 }

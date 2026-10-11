@@ -11,8 +11,10 @@ import { mergePuzzle, splitPuzzle } from "./secrets";
 import { allContinued, allIntroReady, betweenScreenDue, isContinuePhase } from "./roomFlow";
 import {
   finishGame,
+  forfeitRecord,
   leaveBetweenRoundScreen,
   recordContinue,
+  recordForfeitInHistory,
   setPhase,
 } from "./roomPhase.server";
 import { DUEL_START_MS, ROUND_TITLE_MS, WINNER_REVEAL_MS } from "./startPresentation";
@@ -960,17 +962,28 @@ export const rematchFn = createServerFn({ method: "POST" })
   .inputValidator((input: { roomId: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    await requireParticipant(client, data.roomId, context.userId);
+    const me = await requireParticipant(client, data.roomId, context.userId);
     const room = await getRoom(client, data.roomId);
 
     if (room.host_user_id !== context.userId) {
       return { ok: false as const, message: "Waiting for the host to play again." };
     }
+    // A host who left (and forfeited) can't restart: the reset removes left players.
+    if (me.status === "left") return { ok: false as const, message: "You left this game." };
+    // Read a forfeit's outcome before the reset clears statuses and results.
+    const { data: resultRows } = await client.from("round_results").select("*").eq("duel_id", room.id);
+    const forfeit = forfeitRecord(
+      room,
+      await getPlayers(client, room.id),
+      (resultRows ?? []) as RoundResultRow[],
+    );
     const { data: restarted, error } = await client.rpc("restart_duel_room", {
       p_room_id: room.id,
       p_host_id: context.userId,
     });
     if (error || !restarted) return { ok: false as const, message: "Could not play again yet." };
+    if (forfeit && !(await recordForfeitInHistory(client, room.id, forfeit)))
+      console.warn(`[rematch] room=${room.room_code}: forfeit winner not recorded in history`);
     return { ok: true as const, roomId: room.id, roomCode: room.room_code };
   });
 

@@ -72,7 +72,7 @@ import {
   allContinued,
   allIntroReady,
   canFinishNow,
-  endedByForfeit,
+  forfeitOutcome,
   hasContinued,
   isContinuePhase,
   waitedOn,
@@ -750,7 +750,11 @@ function DuelScreen() {
   }
 
   if (duel.status === "finished") {
-    const forfeit = endedByForfeit(duel);
+    // A "Finish now" ending: the same recorded outcome the room's history keeps.
+    const forfeit = forfeitOutcome(duel, players);
+    const iWonForfeit = forfeit?.winner.user_id === me.user_id;
+    // A host who left can't restart the room (the reset removes left players).
+    const canPlayAgain = isHost && me.status !== "left";
     // The other player in a two-player game, even after they left.
     const rival = opponent ?? players.find((p) => p.player_slot === opponentSlot) ?? null;
     const rivalName = rival?.display_name ?? "Opponent";
@@ -763,7 +767,7 @@ function DuelScreen() {
               mySlot={mySlot}
               results={results}
               roundOrder={duel.round_order}
-              isHost={isHost}
+              isHost={canPlayAgain}
               busy={rematchBusy}
               onPlayAgain={() => void handlePlayAgain()}
               onLeave={() => void handleLeave()}
@@ -777,8 +781,16 @@ function DuelScreen() {
       <div ref={podiumShell}>
         <PhoneShell>
           <FinalResult
-            outcome={forfeit ? (me.status === "left" ? "loss" : "win") : duelOutcome(results, mySlot, opponentSlot)}
-            note={forfeit ? (me.status === "left" ? "You left the game." : `${rivalName} left the game. You win.`) : null}
+            outcome={
+              forfeit ? (iWonForfeit ? "win" : "loss") : duelOutcome(results, mySlot, opponentSlot)
+            }
+            note={
+              forfeit
+                ? iWonForfeit
+                  ? `${rivalName} left the game. You win.`
+                  : `You left the game. ${forfeit.winner.display_name} wins.`
+                : null
+            }
             myName={me.display_name}
             opponentName={rivalName}
             myTotal={totalScore(results, mySlot)}
@@ -786,7 +798,7 @@ function DuelScreen() {
             breakdown={roundBreakdown(results, mySlot, opponentSlot, duel.round_count ?? TOTAL_ROUNDS)}
             roundOrder={duel.round_order}
             busy={rematchBusy}
-            isHost={isHost}
+            isHost={canPlayAgain}
             onPlayAgain={() => void handlePlayAgain()}
             onHome={() => void handleLeave()}
           />
