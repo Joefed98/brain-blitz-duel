@@ -18,7 +18,6 @@ import {
   MIRMATCH_TIME_MS,
   SPIN_ITEMS,
   SPIN_TIME_MS,
-  STROOP_ITEMS,
   TOTAL_ROUNDS,
   UNBLOCK_TIME_MS,
   WORDMATCH_ITEMS,
@@ -171,14 +170,6 @@ export function scoreTargetNumber(
 export function scoreReaction(averageMs: number, falseStarts = 0): number {
   const base = averageMs <= 200 ? 150 : clamp(Math.round(150 - 0.16 * (averageMs - 200)), 0, 150);
   return clamp(base - 8 * Math.max(0, falseStarts), 0, 150);
-}
-
-/** Colour Clash: accuracy out of 100, plus the speed bonus on a flawless run. */
-export function scoreStroop(correctCount: number, msRemaining: number): number {
-  const correct = clamp(correctCount, 0, STROOP_ITEMS);
-  const accuracy = Math.min(correct >= STROOP_ITEMS ? BASE_POINTS : 90, Math.round((BASE_POINTS * correct) / STROOP_ITEMS));
-  const bonus = correct >= STROOP_ITEMS ? speedBonus(msRemaining) : 0;
-  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
 /** Symbol Scan: proportional credit, less five points for every wrong tap. */

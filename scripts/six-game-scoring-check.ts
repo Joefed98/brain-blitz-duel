@@ -7,7 +7,16 @@ import { rallyGame } from "../src/lib/arcade/rally";
 import { skylineGame } from "../src/lib/arcade/skyline";
 import { bullseyeScoreFor, BULLSEYE_RING_VALUES } from "../src/lib/arcade/bullseye";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
+import { binTossGame, BINTOSS_THROWS } from "../src/lib/arcade/binToss";
+import { tiltGame, TILT_MAX_MAZES } from "../src/lib/arcade/tilt";
+import { breakerGame, BRK_BRICKS } from "../src/lib/arcade/breaker";
+import { bubbleGame } from "../src/lib/arcade/bubble";
+import { swingGame, swingMetres, SWING_FINISH_M } from "../src/lib/arcade/swing";
+import { inkScoreOf, INK_LEVELS } from "../src/lib/arcade/inkBridge";
+import { orbitGame, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { orbitRev3Game } from "../src/lib/arcade/orbitRev3";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
+import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { BALL_TRACK_BANK } from "../src/lib/duel/ballTrackBank.server";
 
 let checks = 0;
@@ -51,6 +60,38 @@ for (const home of [0, 15, 29, 30]) {
 }
 eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup reveal par");
 for (const [type, text] of [["balltrack", "30"], ["matchup", "2,500"], ["junction", "lose 4"], ["rally", "2.5"], ["skyline", "3 per perfect"], ["bullseye", "subtract 20"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
+// Ruling B (11 Oct): the eight 130 / 150 split games state both parts in one line.
+// Each split intro shows the real partial maximum: the score one unit short of a clear (Grappler rounds to 130).
+const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: 90, breaker: 128, bubble: 128, inkbridge: 99, orbit: 117, swing: 130, tilt: 90 } as const;
+for (const [type, max] of Object.entries(SPLIT_PARTIAL_MAX) as [keyof typeof SPLIT_PARTIAL_MAX, number][]) {
+  eq(INTRO_SCORE[type].includes(` for up to 150; otherwise up to ${max}.`), true, `${type} intro states the split with partial max ${max}`);
+}
+eq(btScoreOf(BT_BALLS - 1, 0), SPLIT_PARTIAL_MAX.balltrack, "Ball Tracker partial max");
+const brk = breakerGame.init(1);
+eq(brk.bricks.length, BRK_BRICKS, "Breaker brick count");
+eq(breakerGame.score({ ...brk, bricks: brk.bricks.map((_, i) => (i === 0 ? 1 : 0)) }), SPLIT_PARTIAL_MAX.breaker, "Breaker partial max");
+const bub = bubbleGame.init(1);
+const lastBubble = bub.grid.findIndex((cell) => cell !== 0);
+eq(bubbleGame.score({ ...bub, cleared: false, grid: bub.grid.map((cell, i) => (i === lastBubble ? cell : 0)) }), SPLIT_PARTIAL_MAX.bubble, "Coral Pop partial max");
+for (let seed = 1; seed <= 200; seed++) eq(bubbleGame.init(seed).startCount, bub.startCount, "Coral Pop field size is fixed");
+const sw = swingGame.init(1);
+const sw499 = { ...sw, maxX: sw.maxX + (SWING_FINISH_M - 1) * 40 * 256 + 39 * 256 };
+eq(swingMetres(sw499), SWING_FINISH_M - 1, "Grappler test state is 499 m");
+eq(swingGame.score(sw499), SPLIT_PARTIAL_MAX.swing, "Grappler partial max (499 m)");
+eq(binTossGame.score({ ...binTossGame.init(1), baskets: BINTOSS_THROWS - 1 }), SPLIT_PARTIAL_MAX.bintoss, "Swish partial max");
+eq(tiltGame.score({ ...tiltGame.init(1), mazes: TILT_MAX_MAZES - 1 }), SPLIT_PARTIAL_MAX.tilt, "Tilt partial max");
+eq(inkScoreOf(INK_LEVELS - 1, 0), SPLIT_PARTIAL_MAX.inkbridge, "Rainbow Bridge partial max");
+for (const game of [orbitGame, orbitRev3Game] as const) {
+  eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
+}
+for (const [type, goal] of [["balltrack", "Get all 30 marbles home"], ["bintoss", "Sink all 10 buckets"], ["breaker", "Clear all 80 bricks"], ["inkbridge", "Finish all 10 levels"], ["swing", "Reach 500 metres"], ["tilt", "Finish all 4 mazes"]] as const) {
+  eq(INTRO_SCORE[type].includes(`${goal} for up to 150`), true, `${type} intro goal`);
+}
+// Scrumper and Mixed Signals are not on the split: no partial cap at 130.
+for (const type of ["snip", "stroop"] as const) eq(INTRO_SCORE[type].includes("otherwise up to 130"), false, `${type} intro has no split line`);
+eq(INTRO_SCORE.snip.includes("for 130"), false, "Scrumper intro: a full clear is not a flat 130");
+eq(INTRO_SCORE.snip.includes("10 points for each apple") && INTRO_SCORE.snip.includes("3 for each leaf"), true, "Scrumper intro points");
+for (const type of ["balltrack", "snip"] as const) eq(/75 s|÷ \d+ s/.test(PUZZLE_INSTRUCTIONS[type].score), false, `${type} help has no seconds divisor`);
 const demoGuard = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
 eq(demoGuard.includes('data.type === "balltrack"') && demoGuard.includes("course.balls.length !== BT_BALLS"), true, "Old Ball Track demo rejected");
 for (const type of ["matchup", "junction", "rally", "skyline", "bullseye"]) eq(demoGuard.includes(`data.type === "${type}"`), false, `${type} demo not invalidated`);

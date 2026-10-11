@@ -3,6 +3,12 @@ import { MOVES_SHAPE } from "./scoring";
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
 import { BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
+import { BINTOSS_THROWS } from "@/lib/arcade/binToss";
+import { BRK_BRICKS } from "@/lib/arcade/breaker";
+import { INK_LEVELS, INK_LEVEL_POINTS } from "@/lib/arcade/inkBridge";
+import { SNIP_CONFIG } from "@/lib/arcade/snip";
+import { SWING_FINISH_M } from "@/lib/arcade/swing";
+import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { MATCHUP_PAR_RAW } from "@/lib/arcade/matchup";
 import { RALLY_GOLD_POINTS } from "@/lib/arcade/rally";
 import { SKYLINE_BLOCK_POINTS, SKYLINE_PERFECT_POINTS } from "@/lib/arcade/skyline";
@@ -37,6 +43,14 @@ const fewestMoves = (finish: string, notFinished: string, shape: "B" | "C" = "B"
 /** Arcade with a finish state. */
 const arcadeFinish = (progress: string, finish: string) =>
   `Points for ${progress}. ${finish} for ${COMPLETE}, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left.`;
+
+/**
+ * Arcade 130 / 150 split: a full clear scores 130 plus a speed bonus, up to 150; partial
+ * runs are capped at 130, or lower where the per-unit points stop short (partialMax; the
+ * six-game scoring check proves each figure against the sim).
+ */
+const arcadeSplit = (progress: string, goal: string, partialMax: number = COMPLETE) =>
+  `Points for ${progress}. ${goal} for up to 150; otherwise up to ${partialMax}. Finishing earns ${COMPLETE}, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left.`;
 
 /** Arcade open-ended. */
 const arcadeOpen = (counts: string, penalty?: string) =>
@@ -123,26 +137,26 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   // Arcade
   hover: arcadeOpen("each barrier gap you fly through; all of them scores 150"),
   skyline: arcadeConverted(`${SKYLINE_BLOCK_POINTS} points per block stacked, plus ${SKYLINE_PERFECT_POINTS} per perfect drop`),
-  bintoss: arcadeFinish("each bucket, 10 a time", "Sink all ten"),
+  bintoss: arcadeSplit("each bucket, 10 a time", `Sink all ${BINTOSS_THROWS} buckets`, 90),
   bullseye: `Rings: ${BULLSEYE_RING_VALUES.join(", ")} from the centre out. ${arcadeConverted("Multiply your ring total by 1.7, then subtract 20")} Minimum 0. Missed or unfired darts add nothing to the ring total.`,
   matchup: arcadePar(MATCHUP_PAR_RAW),
   snake: arcadeOpen("each star you eat"),
   cross: `${CROSS_LANE_POINTS} points for each lane crossed, plus ${CROSS_CROSSING_POINTS} for each full crossing, up to 150. Being hit costs a life, not points.`,
-  breaker: arcadeFinish("each brick destroyed", "Clear all 80"),
+  breaker: arcadeSplit("each brick destroyed", `Clear all ${BRK_BRICKS} bricks`, 128),
   rally: `${arcadeConverted(`${RALLY_GOLD_POINTS} points per gold-ball hit`)} The blue ball scores nothing.`,
   slice: "Points for each food you slice, and cutting three or more at once boosts your multiplier. Chilli: lose 10.",
-  bubble: arcadeFinish("the share of bubbles you clear", "Clear the whole field"),
+  bubble: arcadeSplit("the share of bubbles you clear", "Clear the whole field", 128),
   beat: "Points for each note: most for perfect timing, less for good or OK. Missed note: lose 2. Holds count only if you press and let go in time.",
   wavefront: "Points for ships, armour hits, saucers and waves cleared. Clear all five waves perfectly for 150.",
   flip: "The longer you last, the more you score. Survive the full minute for 150.",
   junction: arcadeTraffic(2, 4),
-  inkbridge: "11 points per level. Finish all ten for 130, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Rounds 1-4 are standard, 5-8 have moving pots, and 9-10 are live!",
+  inkbridge: `${arcadeSplit(`each level, ${INK_LEVEL_POINTS} a time`, `Finish all ${INK_LEVELS} levels`, 99)} Rounds 1-4 are standard, 5-8 have moving pots, and 9-10 are live!`,
   burst: "Points for each atom you destroy or split. Losing a life costs 9. Clear four waves without losing a life for 150.",
-  orbit: arcadeFinish("each planet you reach", "Reach the sun"),
-  snip: arcadeFinish("each apple you collect, with extra for each leaf", "Collect all ten apples"),
-  swing: arcadeFinish("how far you swing", "Reach 500 metres"),
-  tilt: arcadeFinish("each maze you finish", "Finish all four"),
-  balltrack: `${arcadeFinish(`the share of ${BT_BALLS} marbles you get home, rounded to the nearest whole point`, `Get all ${BT_BALLS} home`)} Wrong trays cost nothing.`,
+  orbit: arcadeSplit("each planet you reach", "Reach the sun", 117),
+  snip: `${SNIP_CONFIG.pointsPerSweet} points for each apple you collect, plus ${SNIP_CONFIG.pointsPerStar} for each leaf. Collect all ${SNIP_CONFIG.levels} apples for up to ${SNIP_CONFIG.finishBonus} more for speed: the full ${SNIP_CONFIG.finishBonus} if you finish with at least half the time left. Up to ${SNIP_CONFIG.maxScore}.`,
+  swing: arcadeSplit("how far you swing", `Reach ${SWING_FINISH_M} metres`),
+  tilt: arcadeSplit("each maze you finish", `Finish all ${TILT_MAX_MAZES} mazes`, 90),
+  balltrack: `${arcadeSplit(`the share of ${BT_BALLS} marbles you get home, rounded to the nearest whole point`, `Get all ${BT_BALLS} marbles home`, 126)} Wrong trays cost nothing.`,
   swerve: arcadeOpen("each coin you collect"),
   dual: "The longer both runners survive, the more you score. The full minute is 150.",
   steady: "Start on 150. Touching the edge: lose 5.",

@@ -92,6 +92,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    grades from moves/inputs. Only AnswerReveal's stored score is ever shown.
 8. Keep display names in `gameNames.ts`; `PuzzleType` ids never change.
 
+**Known gap (ruled 11 Oct 2026):** Flash (`reaction`) trusts the phone's per-flash
+reaction times and false-start count (clamped only; see `grade.ts` case "reaction").
+It needs server-verifiable timing before ranked play (Phase 3, before ratings).
+Bang On (`stopwatch`) and Ascend (`numhunt`) also grade from phone-reported values;
+see `docs/scoring-audit-oct-2026.md`.
+
 ## Working process
 
 - **Prompt reports must list every check by name** with pass / fail / timeout, never

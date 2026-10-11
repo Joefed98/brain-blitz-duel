@@ -172,7 +172,7 @@ export function countTentSolutions(board: TentsBoard, limit = 2): number {
   return found;
 }
 
-/** 10 per correctly placed tent; all correct with no wrong tents adds round(30 × ms_remaining ÷ limit). Cap 150. */
+/** 10 per correctly placed tent, up to 110; all correct with no wrong tents = 130 + up to 20 for speed (speedBonusCurve). Cap 150. */
 export function scoreTents(
   _solved: boolean,
   msRemaining: number,
