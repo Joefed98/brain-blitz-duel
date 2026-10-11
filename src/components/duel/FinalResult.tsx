@@ -9,10 +9,11 @@ import { fx } from "@/lib/fx";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { Dots } from "./Dots";
-import { WinBurst } from "./WinBurst";
 
 interface FinalResultProps {
   outcome: Outcome;
+  /** Why the game ended early ("Sam left the game. You win."), if it did. */
+  note?: string | null;
   myName: string;
   opponentName: string;
   myTotal: number;
@@ -27,6 +28,7 @@ interface FinalResultProps {
 
 export function FinalResult({
   outcome,
+  note = null,
   myName,
   opponentName,
   myTotal,
@@ -60,13 +62,17 @@ export function FinalResult({
 
   return (
     <div className="relative flex flex-1 flex-col justify-between gap-8 pt-8 animate-phase-in">
-      {outcome === "win" && <WinBurst />}
       <div className="flex flex-col gap-8">
         <h1
           className={`relative text-center font-display text-6xl font-bold animate-word-scale-in ${headlineColor}`}
         >
           {headline}
         </h1>
+        {note && (
+          <p data-forfeit-note className="-mt-6 text-center text-sm text-foreground/80">
+            {note}
+          </p>
+        )}
 
         <div className="flex items-end justify-center gap-4">
           <div className="text-center">

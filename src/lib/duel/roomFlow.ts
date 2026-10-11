@@ -3,12 +3,20 @@
  * show the same counts). Presentation pacing only: nothing here touches
  * grading, scoring or what a round contains.
  */
-import { DISCONNECT_MS, type DuelPhase, type DuelPlayerRow } from "./types";
+import {
+  DISCONNECT_MS,
+  NEXT_ROUND_AUTO_MS,
+  STANDINGS_MS,
+  type DuelPhase,
+  type DuelPlayerRow,
+} from "./types";
 
 /** The between-round screens every player can tap Continue on. */
 export type ContinuePhase = "result" | "standings";
 
-export function isContinuePhase(phase: DuelPhase | string | null | undefined): phase is ContinuePhase {
+export function isContinuePhase(
+  phase: DuelPhase | string | null | undefined,
+): phase is ContinuePhase {
   return phase === "result" || phase === "standings";
 }
 
@@ -42,7 +50,11 @@ export function waitedOn(players: readonly DuelPlayerRow[], now: number): DuelPl
 }
 
 /** True once every player the intro waits for has tapped Ready. */
-export function allIntroReady(players: readonly DuelPlayerRow[], round: number, now: number): boolean {
+export function allIntroReady(
+  players: readonly DuelPlayerRow[],
+  round: number,
+  now: number,
+): boolean {
   const waiting = waitedOn(players, now);
   return waiting.length > 0 && waiting.every((p) => p.intro_ready_round >= round);
 }
@@ -58,19 +70,52 @@ export function allContinued(
   return waiting.length > 0 && waiting.every((p) => hasContinued(p, round, phase));
 }
 
+/** How long a between-round screen waits at most. */
+export function betweenScreenTimerMs(phase: ContinuePhase): number {
+  return phase === "result" ? NEXT_ROUND_AUTO_MS : STANDINGS_MS;
+}
+
 /**
- * The players other than `userId` who started this game with them and are now
- * gone: tapped Leave, or stopped sending heartbeats.
+ * Whether a results or standings screen should move on now: its timer has run
+ * out, everyone it waits for has tapped Continue, or (older clients) the host
+ * pressed Next.
  */
-export function absentRivals(players: readonly DuelPlayerRow[], userId: string, now: number): DuelPlayerRow[] {
-  return players.filter((p) => p.user_id !== userId && (p.status === "left" || !isConnected(p, now)));
+export function betweenScreenDue(
+  phase: ContinuePhase,
+  elapsedMs: number,
+  players: readonly DuelPlayerRow[],
+  round: number,
+  now: number,
+  hostNext = false,
+): boolean {
+  return (
+    hostNext || elapsedMs >= betweenScreenTimerMs(phase) || allContinued(players, round, phase, now)
+  );
+}
+
+/**
+ * The players other than `userId` who are gone: tapped Leave, or stopped
+ * sending heartbeats.
+ */
+export function absentRivals(
+  players: readonly DuelPlayerRow[],
+  userId: string,
+  now: number,
+): DuelPlayerRow[] {
+  return players.filter(
+    (p) => p.user_id !== userId && (p.status === "left" || !isConnected(p, now)),
+  );
 }
 
 /**
  * "Finish now": allowed once the caller is the only player still here. The
  * caller must not have left, and everyone else must have left or dropped out.
  */
-export function canFinishNow(players: readonly DuelPlayerRow[], userId: string, now: number): boolean {
+export function canFinishNow(
+  players: readonly DuelPlayerRow[],
+  userId: string,
+  now: number,
+): boolean {
   const me = players.find((p) => p.user_id === userId);
   if (!me || me.status === "left") return false;
   const others = players.filter((p) => p.user_id !== userId);

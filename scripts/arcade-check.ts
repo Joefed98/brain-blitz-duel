@@ -219,7 +219,7 @@ for (let sample = 0; sample < 200; sample++) {
   }
 }
 
-/* -- 6 rounds (7 with all), shared between categories; arcade-only plays 5 -- */
+/* ------------- 6 rounds (7 with all), shared between categories ------------- */
 
 {
   const cat = (type: string) => puzzleDef(type as never).category;
@@ -229,8 +229,7 @@ for (let sample = 0; sample < 200; sample++) {
     for (let seed = 0; seed < 400; seed++) {
       const cats = [...all.slice(7 - n)];
       const order = pickRoundOrder({ categories: cats, seed: seed * 7919 + n });
-      // n = 1 is ["arcade"]: arcade-only rooms play five different arcade games.
-      const want = n === 1 ? 5 : n === 7 ? 7 : 6;
+      const want = n === 7 ? 7 : 6;
       if (order.length !== want) fail(`n=${n} seed ${seed}: ${order.length} rounds`);
       if (new Set(order).size !== order.length) fail(`n=${n} seed ${seed}: repeated game`);
       const cs = order.map(cat);
@@ -246,6 +245,6 @@ for (let sample = 0; sample < 200; sample++) {
 
 console.log(
   failures === 0
-    ? "arcade checks passed: Swerve and Skyline client/server states and checkpoints identical over 200 runs each; 6/7-round shared category deals (5 for arcade-only) in seeded order"
+    ? "arcade checks passed: Swerve and Skyline client/server states and checkpoints identical over 200 runs each; 6/7-round shared category deals in seeded order"
     : `${failures} failures; first failing tick ${firstFailingTick ?? "unknown"}`,
 );

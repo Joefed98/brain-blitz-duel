@@ -1,9 +1,8 @@
 import type { Standing } from "@/lib/duel/scoring";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { positionChange } from "@/lib/duel/resultPresentation";
-import { Button } from "@/components/ui/button";
-
 import { AnimatedScore } from "./AnimatedScore";
+import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 
 interface DuelOverallProps {
   round: number;
@@ -12,8 +11,7 @@ interface DuelOverallProps {
   rows: Standing[];
   mySlot: number;
   autoSeconds: number;
-  isHost: boolean;
-  onNext: () => void;
+  continueState: ContinueState;
 }
 
 export function DuelOverall({
@@ -22,8 +20,7 @@ export function DuelOverall({
   rows,
   mySlot,
   autoSeconds,
-  isHost,
-  onNext,
+  continueState,
 }: DuelOverallProps) {
   const ordered = [...rows].sort((a, b) => a.position - b.position || a.slot - b.slot);
   return (
@@ -54,8 +51,8 @@ export function DuelOverall({
                 <p className="mt-3 font-mono text-4xl font-bold tabular-nums text-foreground">
                   <AnimatedScore value={row.total} />
                 </p>
-                <p className="mt-2 font-mono text-xs text-muted-foreground">
-                  +{row.roundScore} · {positionChange(row)}
+                <p className="mt-2 font-mono text-xs text-foreground/80">
+                  +{row.roundScore} this round · {positionChange(row)}
                 </p>
                 <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   #{index + 1}
@@ -65,18 +62,7 @@ export function DuelOverall({
           })}
         </div>
       </div>
-      {isHost ? (
-        <Button
-          className="press tap-target w-full font-display font-bold uppercase"
-          onClick={onNext}
-        >
-          Next round ({autoSeconds}s)
-        </Button>
-      ) : (
-        <p className="text-center font-mono text-xs uppercase text-muted-foreground">
-          Next round in {autoSeconds}s
-        </p>
-      )}
+      <ContinueFooter next="Next round" autoSeconds={autoSeconds} state={continueState} />
     </div>
   );
 }

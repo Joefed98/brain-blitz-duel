@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
@@ -319,6 +319,12 @@ function PracticeScreen() {
       <PhoneShell>
         <div className="flex flex-1 flex-col gap-6">
           <div>
+            <Link
+              to="/"
+              className="press tap-target -ml-1 inline-flex items-center gap-1 px-1 font-display text-sm font-semibold uppercase tracking-widest text-muted-foreground"
+            >
+              <span aria-hidden="true">←</span> Home
+            </Link>
             <h1 className="font-display text-2xl font-bold">Practice</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               One puzzle at a time. Personal bests stay on this device.

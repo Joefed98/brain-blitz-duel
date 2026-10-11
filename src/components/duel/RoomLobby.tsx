@@ -1,7 +1,11 @@
+import { useState } from "react";
+
 import { MAX_PLAYERS, MIN_PLAYERS, type DuelPlayerRow } from "@/lib/duel/types";
 import type { PuzzleCategory } from "@/lib/duel/types";
 import { CATEGORY_ORDER, PUZZLE_CATEGORIES, STANDARD_CATEGORIES } from "@/lib/duel/categories";
+import { CHAT_BAR_HEIGHT } from "@/lib/duel/chatConstants";
 import { typesInCategory } from "@/lib/duel/registry";
+import { roomRoundCount } from "@/lib/duel/selection";
 
 import { Dots, WaitingLine } from "./Dots";
 
@@ -32,15 +36,29 @@ interface RoomLobbyProps {
   /** Host only: mute or unmute a player's chat and reactions for everyone. */
   onMuteForEveryone: (slot: number, muted: boolean) => void;
   onDisband: () => void;
+  /** Guests only: leave the lobby (the caller confirms first). */
+  onLeave: () => void;
   tournamentHistory: { winner: string; date: string }[];
 }
 
 /** Host presets, each with the one-line description shown under them. */
 const PRESETS: { label: string; values: readonly PuzzleCategory[]; description: string }[] = [
   { label: "Standard", values: STANDARD_CATEGORIES, description: "Standard: a mix of puzzles and arcade, one game per category." },
-  { label: "Arcade only", values: ["arcade"], description: "Arcade only: a single arcade game." },
-  { label: "Puzzles only", values: PUZZLE_CATEGORIES, description: "Puzzles only: one puzzle per category, no arcade." },
+  { label: "Arcade only", values: ["arcade"], description: "Arcade only: six different arcade games." },
+  { label: "Puzzles only", values: PUZZLE_CATEGORIES, description: "Puzzles only: six puzzles across five categories, no arcade." },
 ];
+
+/** How the dealt rounds relate to the chosen categories, for the lobby line. */
+function roundsLine(categories: readonly PuzzleCategory[]): string {
+  const rounds = roomRoundCount(categories);
+  const shape =
+    categories.length === rounds
+      ? "one game per category"
+      : categories.length === 1
+        ? "all different games from one category"
+        : "shared evenly between the categories";
+  return `${rounds} ${rounds === 1 ? "round" : "rounds"}, ${shape} · about ${rounds * 2} min`;
+}
 
 /** The waiting room for two to ten players. */
 export function RoomLobby({
@@ -55,24 +73,35 @@ export function RoomLobby({
   onRemove,
   onMuteForEveryone,
   onDisband,
+  onLeave,
   tournamentHistory,
 }: RoomLobbyProps) {
   const canStart = players.length >= MIN_PLAYERS;
   const playersNeeded = MIN_PLAYERS - players.length;
   const hostName = players.find((player) => player.user_id === hostUserId)?.display_name;
-  const roundCount = categories.length;
   const hasEmptyCategory = CATEGORY_ORDER.some((category) => !typesInCategory(category).length);
+  const [removing, setRemoving] = useState<number | null>(null);
 
   return (
     <div className="flex w-full flex-col gap-4">
+      {isHost && (
+        <div className="flex flex-col items-center gap-1 text-center" data-host-label>
+          <span className="rounded-full border border-primary/70 bg-primary/10 px-3 py-1 font-display text-xs font-bold uppercase tracking-widest text-primary">
+            You're the host
+          </span>
+          <p className="text-sm text-muted-foreground">
+            {canStart
+              ? "Choose categories, then start."
+              : "Send this link to friends. Start when everyone's in."}
+          </p>
+        </div>
+      )}
       <p className="text-center font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
         {players.length} of {MAX_PLAYERS} players
       </p>
-      {isHost && (
-        <p className="text-center text-sm text-muted-foreground">
-          {canStart
-            ? "You're the host: choose categories, then start."
-            : "Send this code to friends. Start when everyone's in."}
+      {isHost && players.length > 1 && (
+        <p className="text-center text-[11px] text-muted-foreground">
+          🔊 Chat: mute that player's chat for everyone · ×: remove them
         </p>
       )}
 
@@ -105,21 +134,38 @@ export function RoomLobby({
                       : `Mute ${player.display_name} for everyone`
                   }
                   onClick={() => onMuteForEveryone(player.player_slot, !player.muted_by_host)}
-                  className={`press flex h-11 w-11 items-center justify-center rounded-lg text-sm ${
+                  className={`press flex h-11 w-12 flex-col items-center justify-center rounded-lg leading-none ${
                     player.muted_by_host ? "text-warn" : "text-muted-foreground"
                   }`}
                 >
-                  {player.muted_by_host ? "🔇" : "🔊"}
+                  <span className="text-sm" aria-hidden="true">{player.muted_by_host ? "🔇" : "🔊"}</span>
+                  <span className="mt-0.5 text-[9px] uppercase tracking-wide" aria-hidden="true">
+                    {player.muted_by_host ? "Muted" : "Chat"}
+                  </span>
                 </button>
               )}
               {isHost && !isMe && (
                 <button
                   type="button"
-                  aria-label={`Remove ${player.display_name}`}
-                  onClick={() => onRemove(player.player_slot)}
-                  className="press flex h-11 w-11 items-center justify-center rounded-lg text-lg text-muted-foreground"
+                  aria-label={
+                    removing === player.player_slot
+                      ? `Confirm removing ${player.display_name}`
+                      : `Remove ${player.display_name}`
+                  }
+                  onClick={() => {
+                    if (removing === player.player_slot) {
+                      setRemoving(null);
+                      onRemove(player.player_slot);
+                    } else setRemoving(player.player_slot);
+                  }}
+                  onBlur={() => setRemoving((slot) => (slot === player.player_slot ? null : slot))}
+                  className={`press flex h-11 items-center justify-center rounded-lg ${
+                    removing === player.player_slot
+                      ? "w-auto bg-warn/15 px-2 font-display text-xs font-bold uppercase text-warn"
+                      : "w-11 text-lg text-muted-foreground"
+                  }`}
                 >
-                  ×
+                  {removing === player.player_slot ? "Remove?" : "×"}
                 </button>
               )}
             </li>
@@ -153,7 +199,7 @@ export function RoomLobby({
               ({ values }) =>
                 categories.length === values.length &&
                 categories.every((category) => values.includes(category)),
-            )?.description ?? "Custom: one game from each category you pick."}
+            )?.description ?? "Custom: at least six rounds, shared between the categories you pick."}
           </p>
         )}
         {isHost ? (
@@ -201,9 +247,8 @@ export function RoomLobby({
               .join(" · ")}
           </p>
         )}
-        <p className="text-xs text-muted-foreground">
-          {roundCount} {roundCount === 1 ? "round" : "rounds"}, one game per category · about{" "}
-          {roundCount * 2} min
+        <p className="text-xs text-muted-foreground" data-lobby-rounds>
+          {roundsLine(categories)}
         </p>
       </div>
 
@@ -221,36 +266,55 @@ export function RoomLobby({
         </div>
       )}
 
-      {isHost ? (
-        <>
-          <button
-            type="button"
-            onClick={onStart}
-            disabled={!canStart || starting}
-            className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
-          >
-            {starting ? (
-              <>
-                <span>Starting</span>
-                <Dots className="bg-primary-foreground" />
-              </>
-            ) : canStart ? (
-              "Start game"
-            ) : (
-              `Waiting for ${playersNeeded} more ${playersNeeded === 1 ? "player" : "players"}`
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={onDisband}
-            className="press text-sm text-muted-foreground underline decoration-border underline-offset-4"
-          >
-            Disband room
-          </button>
-        </>
-      ) : (
-        <WaitingLine label={hostName ? `Waiting for ${hostName} (host) to start` : "Waiting for the host to start"} />
-      )}
+      {/* Pinned above the chat bar so Start / Waiting stay on screen with ten players. */}
+      <div
+        data-lobby-footer
+        className="sticky z-30 -mx-1 flex flex-col gap-2 bg-background/95 px-1 pb-1 pt-2"
+        style={{ bottom: `calc(${CHAT_BAR_HEIGHT + 8}px + env(safe-area-inset-bottom, 0px))` }}
+      >
+        {isHost ? (
+          <>
+            <button
+              type="button"
+              onClick={onStart}
+              disabled={!canStart || starting}
+              className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
+            >
+              {starting ? (
+                <>
+                  <span>Starting</span>
+                  <Dots className="bg-primary-foreground" />
+                </>
+              ) : canStart ? (
+                "Start game"
+              ) : (
+                `Waiting for ${playersNeeded} more ${playersNeeded === 1 ? "player" : "players"}`
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onDisband}
+              className="press text-sm text-muted-foreground underline decoration-border underline-offset-4"
+            >
+              Disband room
+            </button>
+          </>
+        ) : (
+          <>
+            <WaitingLine
+              className="min-h-11"
+              label={hostName ? `Waiting for ${hostName} (host) to start` : "Waiting for the host to start"}
+            />
+            <button
+              type="button"
+              onClick={onLeave}
+              className="press tap-target w-full rounded-xl border border-border font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              Leave room
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

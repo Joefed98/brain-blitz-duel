@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { formatElapsed, roundResultOrder } from "@/lib/duel/resultPresentation";
+import {
+  VERDICT_LABEL,
+  VERDICT_TONE,
+  formatElapsed,
+  roundResultOrder,
+  roundVerdict,
+  summaryWithoutTime,
+} from "@/lib/duel/resultPresentation";
 import type { Standing } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 
 import { AnimatedScore } from "./AnimatedScore";
+import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 
 interface RoundResultsTableProps {
   roundTitle: string;
@@ -14,9 +21,8 @@ interface RoundResultsTableProps {
   times: ReadonlyMap<number, number | null>;
   mySlot: number;
   autoSeconds: number;
-  isHost: boolean;
   finalRound: boolean;
-  onNext: () => void;
+  continueState: ContinueState;
 }
 
 export function RoundResultsTable({
@@ -25,9 +31,8 @@ export function RoundResultsTable({
   times,
   mySlot,
   autoSeconds,
-  isHost,
   finalRound,
-  onNext,
+  continueState,
 }: RoundResultsTableProps) {
   const ordered = roundResultOrder(rows, times);
   const topScore = Math.max(0, ...ordered.map((row) => row.roundScore));
@@ -69,6 +74,8 @@ export function RoundResultsTable({
           const isMe = row.slot === mySlot;
           const won = row.roundScore > 0 && row.roundScore === topScore;
           const open = expanded === row.slot;
+          const verdict = roundVerdict(row);
+          const summary = summaryWithoutTime(row.summary);
           return (
             <li key={row.slot} className="min-h-0">
               <button
@@ -91,44 +98,39 @@ export function RoundResultsTable({
                       {row.name}
                     </span>
                     {won && (
-                      <span className="shrink-0 rounded border border-primary px-1 py-0.5 font-mono text-[7px] font-bold uppercase text-primary">
+                      <span className="shrink-0 rounded border border-primary px-1 py-0.5 font-mono text-[9px] font-bold uppercase leading-none text-primary">
                         Round won
                       </span>
                     )}
-                    <span className="ml-auto shrink-0 font-mono text-[9px] text-muted-foreground">
+                    <span className="ml-auto shrink-0 font-mono text-[11px] tabular-nums text-foreground/80">
                       {formatElapsed(times.get(row.slot) ?? null)}
                     </span>
                   </span>
                   <span
-                    className={`block font-mono text-[9px] leading-tight text-muted-foreground ${open ? "whitespace-normal" : "truncate"}`}
+                    className={`block font-mono text-[11px] leading-tight text-foreground/80 ${open ? "whitespace-normal" : "truncate"}`}
                   >
-                    {open ? [row.summary, ...row.detail].join(" · ") : row.summary}
+                    <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
+                      {VERDICT_LABEL[verdict]}
+                    </span>
+                    {summary ? ` · ${open ? [summary, ...row.detail].join(" · ") : summary}` : ""}
                   </span>
                 </span>
-                <AnimatedScore
-                  value={row.roundScore}
-                  className={`w-12 text-right font-mono text-xl font-bold tabular-nums ${won ? "text-primary" : "text-foreground"}`}
-                />
+                <span className="flex items-center gap-1">
+                  <AnimatedScore
+                    value={row.roundScore}
+                    className={`w-12 text-right font-mono text-xl font-bold tabular-nums ${won ? "text-primary" : "text-foreground"}`}
+                  />
+                  <span aria-hidden="true" className="w-3 text-center font-mono text-[11px] text-muted-foreground">
+                    {open ? "▴" : "▾"}
+                  </span>
+                </span>
               </button>
             </li>
           );
         })}
       </ol>
 
-      <footer className="shrink-0 pt-1">
-        {isHost ? (
-          <Button
-            className="press tap-target w-full font-display font-bold uppercase"
-            onClick={onNext}
-          >
-            {finalRound ? `Winner (${autoSeconds}s)` : `Next (${autoSeconds}s)`}
-          </Button>
-        ) : (
-          <p className="text-center font-mono text-xs uppercase text-muted-foreground">
-            {finalRound ? "Winner" : "Standings"} in {autoSeconds}s
-          </p>
-        )}
-      </footer>
+      <ContinueFooter next={finalRound ? "Winner" : "Standings"} autoSeconds={autoSeconds} state={continueState} />
     </div>
   );
 }

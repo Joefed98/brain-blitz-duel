@@ -7,13 +7,13 @@ import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
 import { puzzleDef, puzzleDurationMs, puzzleRevealMs, typesInCategory } from "./registry";
 import { generateRoomCode } from "./puzzles";
 import { mergePuzzle, splitPuzzle } from "./secrets";
+import { allContinued, allIntroReady, betweenScreenDue, isContinuePhase } from "./roomFlow";
 import {
-  allContinued,
-  allIntroReady,
-  canFinishNow,
-  continueMark,
-  isContinuePhase,
-} from "./roomFlow";
+  finishGame,
+  leaveBetweenRoundScreen,
+  recordContinue,
+  setPhase,
+} from "./roomPhase.server";
 import { DUEL_START_MS, ROUND_TITLE_MS, WINNER_REVEAL_MS } from "./startPresentation";
 import {
   INACTIVE_AFTER_MISSED,
@@ -144,22 +144,6 @@ function firstFreeSlot(players: DuelPlayerRow[], maxPlayers: number): number | n
   return null;
 }
 
-/** Guarded so several phones calling at the same moment can never skip a screen. */
-async function setPhase(
-  client: any,
-  roomId: string,
-  round: number,
-  from: DuelPhase,
-  to: DuelPhase,
-): Promise<void> {
-  await client
-    .from("duels")
-    .update({ phase: to, phase_started_at: nowIso() })
-    .eq("id", roomId)
-    .eq("current_round", round)
-    .eq("phase", from);
-}
-
 /**
  * Everyone active has tapped READY: pull the intro's start stamp back so only
  * the 3-2-1 countdown is left. Guarded on the stamp itself, so a burst of taps
@@ -174,47 +158,6 @@ async function startIntroCountdown(client: any, room: DuelRow, round: number): P
     .eq("current_round", round)
     .eq("phase", "intro")
     .gt("phase_started_at", cutoff);
-}
-
-/**
- * Leaves a between-round screen (results or standings) for the next one. Both
- * writes are guarded on the round and the phase being left, so a timer expiry,
- * the last Continue tap and a host tap arriving together move it exactly once.
- */
-async function leaveBetweenRoundScreen(client: any, room: DuelRow, round: number): Promise<void> {
-  if (room.phase === "result") {
-    if (round >= (room.round_count ?? TOTAL_ROUNDS)) {
-      // Last round: the shared winner reveal replaces the overall standings.
-      await setPhase(client, room.id, round, "result", "winner_reveal");
-      return;
-    }
-    await setPhase(client, room.id, round, "result", "standings");
-    return;
-  }
-  if (room.phase !== "standings") return;
-
-  if (round >= (room.round_count ?? TOTAL_ROUNDS)) {
-    await client
-      .from("duels")
-      .update({ status: "finished" })
-      .eq("id", room.id)
-      .eq("current_round", round)
-      .eq("phase", "standings");
-    return;
-  }
-
-  const startedAt = nowIso();
-  await client
-    .from("duels")
-    .update({
-      current_round: round + 1,
-      phase: "round_title",
-      phase_started_at: startedAt,
-      round_started_at: startedAt,
-    })
-    .eq("id", room.id)
-    .eq("current_round", round)
-    .eq("phase", "standings");
 }
 
 async function createRoomRow(
@@ -773,9 +716,8 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     if (!isContinuePhase(room.phase)) return { ok: true };
     // The timer is the most a between-round screen waits; it ends early once
     // every connected active player has tapped Continue.
-    const timer = room.phase === "result" ? NEXT_ROUND_AUTO_MS : STANDINGS_MS;
-    const everyoneIn = allContinued(players, round, room.phase, Date.now());
-    if (!hostNext && !everyoneIn && elapsed < timer) return { ok: true };
+    if (!betweenScreenDue(room.phase, elapsed, players, round, Date.now(), hostNext))
+      return { ok: true };
     await leaveBetweenRoundScreen(client, room, round);
     return { ok: true };
   });
@@ -927,12 +869,7 @@ export const continueFn = createServerFn({ method: "POST" })
     ) {
       return { ok: true as const };
     }
-    const mark = continueMark(round, room.phase);
-    await client
-      .from("duel_players")
-      .update({ ready_round: mark, status: "active", last_seen_at: nowIso() })
-      .eq("id", player.id)
-      .lt("ready_round", mark);
+    await recordContinue(client, player.id, round, room.phase);
 
     const players = await getPlayers(client, room.id);
     if (allContinued(players, round, room.phase, Date.now()))
@@ -953,26 +890,9 @@ export const finishNowFn = createServerFn({ method: "POST" })
     const client = await db();
     await requireParticipant(client, data.roomId, context.userId);
     const room = await getRoom(client, data.roomId);
-    if (room.status !== "in_progress" || room.disbanded_at) return { ok: true as const };
-    if (room.phase === "winner_reveal")
-      return { ok: false as const, message: "The game is already ending." };
     const players = await getPlayers(client, room.id);
-    const now = Date.now();
-    if (!canFinishNow(players, context.userId, now))
-      return { ok: false as const, message: "Other players are still here." };
-
-    const { data: claimed } = await client
-      .from("duels")
-      .update({ status: "finished" })
-      .eq("id", room.id)
-      .eq("status", "in_progress")
-      .eq("current_round", room.current_round)
-      .eq("phase", room.phase)
-      .select("id")
-      .maybeSingle();
-    if (!claimed) return { ok: true as const };
-    for (const gone of players.filter((p) => p.user_id !== context.userId && p.status !== "left"))
-      await client.from("duel_players").update({ status: "left" }).eq("id", gone.id);
+    const result = await finishGame(client, room, players, context.userId, Date.now());
+    if (!result.ok) return { ok: false as const, message: result.message };
     return { ok: true as const };
   });
 

@@ -66,6 +66,9 @@
   --color-category-logic: var(--category-logic);
   --color-category-arcade: var(--category-arcade);
   --color-timer-gold: var(--timer-gold);
+  --color-podium-gold: var(--podium-gold);
+  --color-podium-silver: var(--podium-silver);
+  --color-podium-bronze: var(--podium-bronze);
   --font-display: var(--font-display);
   --font-sans: var(--font-body);
   --font-mono: var(--font-mono);
@@ -292,6 +295,10 @@
   --warn: oklch(0.68 0.21 25);
   --timer-green: oklch(0.72 0.17 145);
   --timer-orange: oklch(0.75 0.17 55);
+  /* Podium medals: clear gold, silver-grey, bronze-amber (never the red warn tone). */
+  --podium-gold: #FFD23F;
+  --podium-silver: #C3C9D2;
+  --podium-bronze: #D08A3E;
   --ball-red: #FF4D4D;
   --ball-blue: #4D8CFF;
   --ball-green: #3DDC84;

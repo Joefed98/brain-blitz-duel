@@ -9,28 +9,45 @@ import { buzz } from "@/lib/motion";
 import { playVoice } from "@/lib/sound";
 import { fx } from "@/lib/fx";
 
-import { AnimatedScore } from "./AnimatedScore";
-import { Dots } from "./Dots";
-import { WinBurst } from "./WinBurst";
+import { CHAT_BAR_HEIGHT } from "@/lib/duel/chatConstants";
 
+import { AnimatedScore } from "./AnimatedScore";
+import { ConfettiBurst } from "./ArcadeCelebration";
+import { Dots } from "./Dots";
+
+/** Gold, silver-grey and bronze-amber blocks (podium tokens in styles.css). */
 const PLINTH = [
-  { height: "h-24", tone: "border-primary/70 bg-primary/15 text-primary" },
-  { height: "h-16", tone: "border-border bg-card text-muted-foreground" },
-  { height: "h-12", tone: "border-warn/50 bg-warn/10 text-warn" },
+  { height: "h-20", tone: "border-podium-gold bg-podium-gold/25 text-podium-gold" },
+  { height: "h-14", tone: "border-podium-silver/80 bg-podium-silver/15 text-podium-silver" },
+  { height: "h-10", tone: "border-podium-bronze/80 bg-podium-bronze/20 text-podium-bronze" },
 ];
+
+/** Every total on the podium counts up from 0 over this long. */
+const COUNT_UP_MS = 1200;
 
 function Plinth({ standing, place }: { standing: Standing | undefined; place: number }) {
   if (!standing) return <div className="flex-1" />;
   const style = PLINTH[place - 1];
   if (!style) return null;
   return (
-    <div className="flex flex-1 flex-col items-center justify-end gap-2">
+    <div className="relative flex flex-1 flex-col items-center justify-end gap-1" data-podium-place={place}>
+      {place === 1 && (
+        // The winner moment: one confetti burst over the gold block (outside
+        // the block's pop-in scale, so the canvas measures its full size).
+        <div className="pointer-events-none absolute -inset-x-4 -top-16 bottom-0 z-10" aria-hidden="true">
+          <ConfettiBurst world="gem" />
+        </div>
+      )}
       <span className="max-w-full truncate font-display text-xs text-foreground">
         {standing.name}
       </span>
-      <span className="font-mono text-lg font-bold tabular-nums text-foreground">
-        {standing.total}
-      </span>
+      <AnimatedScore
+        value={standing.total}
+        from={0}
+        durationMs={COUNT_UP_MS}
+        quiet
+        className="font-mono text-lg font-bold tabular-nums text-foreground"
+      />
       <div
         className={`flex w-full animate-pop-in items-start justify-center rounded-t-xl border pt-2 font-mono text-sm font-bold ${style.height} ${style.tone}`}
       >
@@ -72,24 +89,17 @@ export function Podium({
     cued.current = true;
     fx.onPodium();
     playVoice("gg");
-    if (won) {
-
-      buzz([25, 50, 25]);
-    } else {
-
-    }
+    if (won) buzz([25, 50, 25]);
   }, [won]);
 
   return (
-    <div className="relative flex flex-1 flex-col justify-between gap-6 pt-6 animate-phase-in">
-      {won && <WinBurst />}
-
+    <div className="relative flex flex-1 flex-col gap-4 pt-2 animate-phase-in">
       {won ? (
-        <h1 className="text-center font-display text-5xl font-bold text-primary animate-word-scale-in">
+        <h1 className="text-center font-display text-4xl font-bold text-podium-gold animate-word-scale-in">
           1st
         </h1>
       ) : (
-        <h1 className="text-center font-display text-3xl font-bold text-foreground animate-word-scale-in">
+        <h1 className="text-center font-display text-2xl font-bold text-foreground animate-word-scale-in">
           You finished {ordinal(mine?.position ?? rows.length)} of {rows.length}
         </h1>
       )}
@@ -100,13 +110,16 @@ export function Podium({
         <Plinth standing={rows.find((r) => r.position === 3)} place={3} />
       </div>
 
-      <ul className="flex flex-col gap-1 overflow-y-auto">
+      <p className="-mb-2 text-center text-[11px] text-foreground/70">Tap a player for their round scores</p>
+      <ul className="flex flex-col gap-1">
         {rows.map((row) => (
           <li key={row.slot} className="overflow-hidden rounded-xl border border-border bg-card">
             <button
               type="button"
+              aria-expanded={open === row.slot}
+              aria-label={`${row.name}: ${row.total} points. Show round scores`}
               onClick={() => setOpen((current) => (current === row.slot ? null : row.slot))}
-              className={`flex w-full items-center gap-3 px-3 py-3 text-left ${
+              className={`flex w-full items-center gap-3 px-3 py-2 text-left ${
                 row.slot === mySlot ? "bg-primary/10" : ""
               } ${row.status === "inactive" ? "opacity-40" : ""}`}
             >
@@ -116,10 +129,13 @@ export function Podium({
               <span className="flex-1 truncate font-display text-sm">{row.name}</span>
               <AnimatedScore
                 value={row.total}
+                from={0}
+                durationMs={COUNT_UP_MS}
+                quiet
                 className="font-mono text-base font-bold tabular-nums"
               />
-              <span className="font-mono text-xs text-muted-foreground">
-                {open === row.slot ? "−" : "+"}
+              <span aria-hidden="true" className="w-3 text-center font-mono text-xs text-muted-foreground">
+                {open === row.slot ? "▴" : "▾"}
               </span>
             </button>
             {open === row.slot && (
@@ -141,7 +157,12 @@ export function Podium({
         ))}
       </ul>
 
-      <div className="flex flex-col gap-3">
+      {/* Pinned above the chat bar so Play again and Leave never need a scroll. */}
+      <div
+        data-podium-actions
+        className="sticky z-30 mt-auto flex flex-col gap-2 bg-background/95 pb-1 pt-2"
+        style={{ bottom: `calc(${CHAT_BAR_HEIGHT + 8}px + env(safe-area-inset-bottom, 0px))` }}
+      >
         {isHost ? (
           <button
             type="button"

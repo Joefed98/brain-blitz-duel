@@ -3,7 +3,11 @@ import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
+import { ConfirmDialog } from "@/components/duel/ConfirmDialog";
+import type { ContinueState } from "@/components/duel/ContinueFooter";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
+import { DropoutBanner, LeaveGameButton } from "@/components/duel/DropoutBanner";
+import { JoinFromLink } from "@/components/duel/JoinFromLink";
 import { FinalResult } from "@/components/duel/FinalResult";
 import { GameLayout, PhoneShell } from "@/components/duel/PhoneShell";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
@@ -48,8 +52,10 @@ import {
   advancePhase,
   checkGroup,
   checkWord,
+  continueOn,
   ensureRematch,
   fetchRevealPuzzle,
+  finishNow,
   leaveRoom,
   disbandRoom,
   readyUp,
@@ -60,7 +66,17 @@ import {
 } from "@/lib/duel/api";
 import { serverNow, toMs } from "@/lib/duel/clock";
 import { clearStageState } from "@/lib/duel/stageState";
-import { elapsedMs, formatElapsed } from "@/lib/duel/resultPresentation";
+import { elapsedMs, formatElapsed, roundVerdict } from "@/lib/duel/resultPresentation";
+import {
+  absentRivals,
+  allContinued,
+  allIntroReady,
+  canFinishNow,
+  endedByForfeit,
+  hasContinued,
+  isContinuePhase,
+  waitedOn,
+} from "@/lib/duel/roomFlow";
 import {
   duelOutcome,
   resultFor,
@@ -94,6 +110,7 @@ import {
 } from "@/lib/duel/types";
 import type { SubmitMeta } from "@/puzzles/types";
 import { nearMiss } from "@/lib/duel/nearMiss";
+import { roomInvite } from "@/lib/duel/roomLink";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
@@ -147,15 +164,14 @@ function HomeButton({ label = "Back to home" }: { label?: string }) {
   );
 }
 
-/** Lobby controls: copy the code, or share the join link where supported. */
+/** Lobby controls: Copy and Share both hand over the room link plus the code. */
 function LobbyActions({ roomCode }: { roomCode: string }) {
   const [copied, setCopied] = useState(false);
-  const link = typeof window === "undefined" ? "" : `${window.location.origin}/duel/${roomCode}`;
-  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+  const { link, text } = roomInvite(roomCode, typeof window === "undefined" ? "" : window.location.origin);
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(roomCode);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       buzz(10);
       window.setTimeout(() => setCopied(false), 1600);
@@ -164,13 +180,14 @@ function LobbyActions({ roomCode }: { roomCode: string }) {
     }
   };
 
+  // Where the share sheet isn't available, Share copies the link instead.
   const share = async () => {
+    if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+      await copy();
+      return;
+    }
     try {
-      await navigator.share({
-        title: APP_NAME,
-        text: `Join my ${APP_NAME} room — code ${roomCode} — ${link}`,
-        url: link,
-      });
+      await navigator.share({ title: APP_NAME, text, url: link });
     } catch {
       /* dismissed */
     }
@@ -183,17 +200,15 @@ function LobbyActions({ roomCode }: { roomCode: string }) {
         onClick={() => void copy()}
         className="press tap-target flex-1 rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
       >
-        {copied ? "Copied" : "Copy code"}
+        {copied ? "Link copied" : "Copy link"}
       </button>
-      {canShare && (
-        <button
-          type="button"
-          onClick={() => void share()}
-          className="press tap-target flex-1 rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
-        >
-          Share link
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => void share()}
+        className="press tap-target flex-1 rounded-xl border border-primary/70 bg-primary/10 font-display text-xs font-semibold uppercase tracking-widest text-primary"
+      >
+        Share
+      </button>
     </div>
   );
 }
@@ -210,6 +225,7 @@ function DuelScreen() {
   const [rematchBusy, setRematchBusy] = useState(false);
   const [starting, setStarting] = useState(false);
   const [confirmDisband, setConfirmDisband] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const timeoutSubmitted = useRef<string>("");
   const draftAnswer = useRef("");
   const lastAdvance = useRef(0);
@@ -304,9 +320,10 @@ function DuelScreen() {
   });
 
   const activeCount = roomPlayers.filter((p) => p.status === "active").length || 1;
-  const introReadyCount = roomPlayers.filter(
-    (p) => p.status === "active" && p.intro_ready_round >= round,
-  ).length;
+  // Ready and Continue wait only for connected active players (roomFlow).
+  const waitingOn = waitedOn(roomPlayers, now);
+  const waitCount = waitingOn.length || 1;
+  const introReadyCount = waitingOn.filter((p) => p.intro_ready_round >= round).length;
   const answeredThisRound = results.filter((r) => r.round_number === round).length;
   const roundDetails = new Map(
     (currentReveal ? currentReveal.players : []).map((detail) => [detail.playerSlot, detail]),
@@ -355,20 +372,18 @@ function DuelScreen() {
     if (phaseStart === null) return;
     const elapsed = now - phaseStart;
 
-    const activeReady = roomPlayers.filter(
-      (p) => p.status === "active" && p.intro_ready_round >= round,
-    ).length;
-
     let due = false;
     if (phase === "starting") due = elapsed >= DUEL_START_MS;
     else if (phase === "round_title") due = elapsed >= ROUND_TITLE_MS;
     else if (phase === "intro")
-      due = elapsed >= INTRO_MS || (elapsed < INTRO_WAIT_MS && activeReady >= activeCount);
+      due = elapsed >= INTRO_MS || (elapsed < INTRO_WAIT_MS && allIntroReady(roomPlayers, round, now));
     else if (phase === "puzzle")
       due = answeredThisRound >= activeCount || (deadline !== null && now > deadline + 800);
     else if (phase === "reveal") due = elapsed >= puzzleRevealMs(puzzle);
-    else if (phase === "result") due = elapsed >= NEXT_ROUND_AUTO_MS;
-    else if (phase === "standings") due = elapsed >= STANDINGS_MS;
+    else if (phase === "result")
+      due = elapsed >= NEXT_ROUND_AUTO_MS || allContinued(roomPlayers, round, phase, now);
+    else if (phase === "standings")
+      due = elapsed >= STANDINGS_MS || allContinued(roomPlayers, round, phase, now);
     else if (phase === "winner_reveal") due = elapsed >= WINNER_REVEAL_MS;
 
     if (!due) {
@@ -578,6 +593,27 @@ function DuelScreen() {
     await navigate({ to: "/" });
   };
 
+  const handleFinishNow = async () => {
+    if (!duel) return;
+    await finishNow(duel.id);
+    await state.refresh();
+  };
+
+  // Results and standings: everyone's Continue; the server moves on once all are in.
+  const continueState: ContinueState = {
+    continued: !!me && isContinuePhase(phase) && hasContinued(me, round, phase),
+    continuedCount: isContinuePhase(phase)
+      ? waitingOn.filter((p) => hasContinued(p, round, phase)).length
+      : 0,
+    waitingCount: waitCount,
+    onContinue: () => {
+      if (!duel || !isContinuePhase(phase)) return;
+      unlockAudio();
+      buzz(10);
+      void continueOn(duel.id, round, phase).then(() => state.refresh());
+    },
+  };
+
   const handleDisband = async () => {
     if (!duel) return;
     await disbandRoom(duel.id);
@@ -592,22 +628,12 @@ function DuelScreen() {
     );
   }
 
-  if (state.notFound || !duel) {
+  // Not in the room (a room's rows are only readable by its players): the link
+  // offers a name-only join while the room is in its lobby.
+  if (state.notFound || !duel || !me || (me.status === "left" && duel.status === "waiting")) {
     return (
       <Centered>
-        <h1 className="font-display text-2xl">Room not found</h1>
-        <p className="text-sm text-muted-foreground">No room exists with the code {roomCode}.</p>
-        <HomeButton />
-      </Centered>
-    );
-  }
-
-  if (!me) {
-    return (
-      <Centered>
-        <h1 className="font-display text-2xl">You're not in this room</h1>
-        <p className="text-sm text-muted-foreground">Head back home and join with the room code.</p>
-        <HomeButton />
+        <JoinFromLink roomCode={roomCode} onJoined={state.refresh} />
       </Centered>
     );
   }
@@ -644,25 +670,40 @@ function DuelScreen() {
     return <WinnerReveal startedAt={phaseStart} />;
   }
 
-  if (state.opponentDisconnected) {
+  // A player who tapped Leave doesn't come back into a game in progress.
+  if (me.status === "left" && duel.status === "in_progress") {
     return (
       <Centered>
-        <h1 className="font-display text-2xl text-warn">Opponent disconnected</h1>
-        <p className="text-sm text-muted-foreground">
-          {opponent?.display_name} dropped out of the duel.
-        </p>
+        <h1 className="font-display text-2xl">You left this game</h1>
+        <p className="text-sm text-muted-foreground">The others are still playing.</p>
         <HomeButton />
       </Centered>
     );
   }
 
+  // Everyone else has left or dropped out: no dead end. The rounds carry on
+  // on their timers (absent players score 0) and the player can finish now.
+  const absent = absentRivals(players, me.user_id, now);
+  const dropout =
+    duel.status === "in_progress" && canFinishNow(players, me.user_id, now) ? (
+      <DropoutBanner
+        absentNames={absent.map((p) => p.display_name)}
+        myTotal={myTotal}
+        absentTotal={absent.length === 1 ? totalScoreThrough(results, absent[0]!.player_slot, scoredThrough) : null}
+        onFinish={handleFinishNow}
+      />
+    ) : null;
+  // Guests can leave a game between rounds (the host's leave would close the room).
+  const leaveAction =
+    duel.status === "in_progress" && !isHost ? <LeaveGameButton onLeave={handleLeave} /> : undefined;
+
   if (duel.status === "waiting") {
     return (
       <PhoneShell>
-        <div className="flex flex-1 flex-col items-center justify-center gap-7 text-center">
+        <div className="flex flex-1 flex-col items-center gap-5 pt-2 text-center">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Room code</p>
-            <p className="mt-3 font-mono text-6xl font-bold tracking-[0.2em] text-primary animate-pop-in">
+            <p className="mt-2 font-mono text-5xl font-bold tracking-[0.2em] text-primary animate-pop-in">
               {duel.room_code}
             </p>
           </div>
@@ -680,38 +721,27 @@ function DuelScreen() {
             tournamentHistory={duel.tournament_history ?? []}
             onCategoriesChange={(categories) => void setRoomModes(duel.id, categories)}
             onDisband={() => setConfirmDisband(true)}
+            onLeave={() => setConfirmLeave(true)}
             onRemove={(slot) => void removePlayer(duel.id, slot)}
             onMuteForEveryone={(slot, muted) => void setPlayerMuted(duel.id, slot, muted)}
           />
           {confirmDisband && (
-            <div
-              role="alertdialog"
-              aria-label="Disband room"
-              className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-6"
-            >
-              <div className="w-full max-w-sm space-y-4 rounded-md border border-border bg-card p-5 text-center">
-                <p className="font-display text-lg">Disband this room?</p>
-                <p className="text-sm text-muted-foreground">
-                  The code will no longer work for anyone.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDisband(false)}
-                    className="tap-target flex-1 rounded-md border border-border"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleDisband()}
-                    className="tap-target flex-1 rounded-md bg-primary text-primary-foreground"
-                  >
-                    Disband
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ConfirmDialog
+              title="Disband this room?"
+              body="The code will no longer work for anyone."
+              confirmLabel="Disband"
+              onCancel={() => setConfirmDisband(false)}
+              onConfirm={() => void handleDisband()}
+            />
+          )}
+          {confirmLeave && (
+            <ConfirmDialog
+              title="Leave this room?"
+              body="You can join again with the link while the room is in the lobby."
+              confirmLabel="Leave"
+              onCancel={() => setConfirmLeave(false)}
+              onConfirm={() => void handleLeave()}
+            />
           )}
         </div>
         <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
@@ -720,6 +750,10 @@ function DuelScreen() {
   }
 
   if (duel.status === "finished") {
+    const forfeit = endedByForfeit(duel);
+    // The other player in a two-player game, even after they left.
+    const rival = opponent ?? players.find((p) => p.player_slot === opponentSlot) ?? null;
+    const rivalName = rival?.display_name ?? "Opponent";
     if (isMulti) {
       return (
         <div ref={podiumShell}>
@@ -743,9 +777,10 @@ function DuelScreen() {
       <div ref={podiumShell}>
         <PhoneShell>
           <FinalResult
-            outcome={duelOutcome(results, mySlot, opponentSlot)}
+            outcome={forfeit ? (me.status === "left" ? "loss" : "win") : duelOutcome(results, mySlot, opponentSlot)}
+            note={forfeit ? (me.status === "left" ? "You left the game." : `${rivalName} left the game. You win.`) : null}
             myName={me.display_name}
-            opponentName={opponent?.display_name ?? "Opponent"}
+            opponentName={rivalName}
             myTotal={totalScore(results, mySlot)}
             opponentTotal={totalScore(results, opponentSlot)}
             breakdown={roundBreakdown(results, mySlot, opponentSlot, duel.round_count ?? TOTAL_ROUNDS)}
@@ -763,7 +798,8 @@ function DuelScreen() {
 
   if ((phase === "intro" || phase === "starting" || phase === "round_title") && puzzle) {
     return (
-      <PhoneShell gameType={puzzle.type}>
+      <PhoneShell gameType={puzzle.type} topAction={leaveAction}>
+        {dropout}
         <RoundIntro
           round={round}
           totalRounds={duel.round_count}
@@ -778,7 +814,7 @@ function DuelScreen() {
           outcomes={outcomes}
           ready={me.intro_ready_round >= round}
           readyCount={introReadyCount}
-          activeCount={activeCount}
+          activeCount={waitCount}
           onReady={() => {
             unlockAudio();
             playLock();
@@ -831,7 +867,8 @@ function DuelScreen() {
     );
     if (isMulti) {
       return (
-        <PhoneShell gameType={puzzle?.type}>
+        <PhoneShell gameType={puzzle?.type} topAction={leaveAction}>
+          {dropout}
           <span className="category-tag">{puzzle ? puzzleDef(puzzle.type).category : ""}</span>
           <RoundResultsTable
             roundTitle={roundTitle}
@@ -839,31 +876,35 @@ function DuelScreen() {
             times={roundTimes}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
-            isHost={isHost}
             finalRound={round >= duel.round_count}
-            onNext={() => void advancePhase(duel.id, true)}
+            continueState={continueState}
           />
           <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
         </PhoneShell>
       );
     }
     return (
-      <PhoneShell gameType={puzzle?.type}>
+      <PhoneShell gameType={puzzle?.type} topAction={leaveAction}>
+        {dropout}
         <span className="category-tag">{puzzle ? puzzleDef(puzzle.type).category : ""}</span>
         <RoundResult
           roundTitle={roundTitle}
           myName={me.display_name}
           opponentName={opponent?.display_name ?? "Opponent"}
           myRoundScore={myResult?.score ?? 0}
+          myVerdict={roundVerdict({ roundCorrect: myResult ? myResult.is_correct : null, roundScore: myResult?.score ?? 0 })}
           mySummary={myStanding?.summary ?? "No answer"}
           myTime={formatElapsed(roundTimes.get(mySlot) ?? null)}
           opponentRoundScore={opponentResult?.score ?? 0}
+          opponentVerdict={roundVerdict({
+            roundCorrect: opponentResult ? opponentResult.is_correct : null,
+            roundScore: opponentResult?.score ?? 0,
+          })}
           opponentSummary={opponentStanding?.summary ?? "No answer"}
           opponentTime={formatElapsed(roundTimes.get(opponentSlot) ?? null)}
           autoSeconds={autoSeconds}
           finalRound={round >= duel.round_count}
-          isHost={isHost}
-          onNext={() => void advancePhase(duel.id, true)}
+          continueState={continueState}
         />
         <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
       </PhoneShell>
@@ -873,7 +914,8 @@ function DuelScreen() {
   if (phase === "standings") {
     const autoSeconds = Math.max(0, Math.ceil((STANDINGS_MS - (now - (phaseStart ?? now))) / 1000));
     return (
-      <PhoneShell gameType={puzzle?.type}>
+      <PhoneShell gameType={puzzle?.type} topAction={leaveAction}>
+        {dropout}
         <span className="category-tag">{puzzle ? puzzleDef(puzzle.type).category : ""}</span>
         {isMulti ? (
           <Standings
@@ -882,8 +924,7 @@ function DuelScreen() {
             rows={table}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
-            isHost={isHost}
-            onNext={() => void advancePhase(duel.id, true)}
+            continueState={continueState}
           />
         ) : (
           <DuelOverall
@@ -892,8 +933,7 @@ function DuelScreen() {
             rows={table}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
-            isHost={isHost}
-            onNext={() => void advancePhase(duel.id, true)}
+            continueState={continueState}
           />
         )}
         <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
