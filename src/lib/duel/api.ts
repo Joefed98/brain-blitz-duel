@@ -8,7 +8,9 @@ import {
   heartbeatFn,
   joinRoomFn,
   leaveRoomFn,
-  markReadyFn,
+  continueFn,
+  finishNowFn,
+  roomPreviewFn,
   readyUpFn,
   rematchFn,
   removePlayerFn,
@@ -135,10 +137,6 @@ export async function submitAnswer(params: {
   });
 }
 
-export async function markReady(roomId: string, roundNumber: number): Promise<void> {
-  await markReadyFn({ data: { roomId, roundNumber } });
-}
-
 /** Tapping READY on the round intro. */
 export async function readyUp(roomId: string, roundNumber: number): Promise<void> {
   await readyUpFn({ data: { roomId, roundNumber } });
@@ -177,6 +175,37 @@ export async function checkGroup(
   indices: number[],
 ): Promise<{ valid: boolean; groupIndex?: number; theme?: string }> {
   return checkGroupFn({ data: { roomId: duelId, roundNumber, indices } });
+}
+
+/** "Continue" on the round results or standings screen. */
+export async function continueOn(
+  roomId: string,
+  roundNumber: number,
+  phase: "result" | "standings",
+): Promise<void> {
+  await continueFn({ data: { roomId, roundNumber, phase } });
+}
+
+/** The last player still in the game ends it as a win. */
+export async function finishNow(roomId: string): Promise<void> {
+  const result = await finishNowFn({ data: { roomId } });
+  if (!result.ok) throw new DuelError(result.message);
+}
+
+export type RoomPreview =
+  | { found: false }
+  | {
+      found: true;
+      roomCode: string;
+      state: "lobby" | "playing" | "finished" | "disbanded";
+      playerCount: number;
+      maxPlayers: number;
+    };
+
+/** What a room link says to someone who is not in the room yet. */
+export async function fetchRoomPreview(roomCode: string): Promise<RoomPreview> {
+  await ensureSession();
+  return (await roomPreviewFn({ data: { roomCode } })) as RoomPreview;
 }
 
 /** Host only: resets this room for another tournament. */

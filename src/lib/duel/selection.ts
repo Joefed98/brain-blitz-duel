@@ -4,12 +4,13 @@
  * Categories are host-selected in the lobby. Retired types are never drawn.
  * A room plays 6 rounds (7 with all seven categories) shared between the
  * selected categories, in a seeded order with no category twice in a row.
+ * Arcade-only rooms play ARCADE_ONLY_ROUNDS different arcade games instead.
  *
  * The draw is weighted against what the host's group has just played, so four
  * rooms in a row come close to twenty-four different games.
  */
 
-import { randomBelow, shuffled, weightedPick } from "./random";
+import { randomBelow, shuffled, weightedPick, withSeededRandom } from "./random";
 import { typesInCategory } from "./registry";
 import type { PuzzleCategory, PuzzleType } from "./types";
 import { normaliseCategories } from "./categories";
@@ -64,6 +65,30 @@ export function roundCountFor(categoryCount: number): number {
   return categoryCount >= 7 ? 7 : 6;
 }
 
+/** An arcade-only room plays this many different arcade games. */
+export const ARCADE_ONLY_ROUNDS = 5;
+/** Keeps the arcade-only game draw independent of the category-order stream. */
+const ARCADE_DRAW_SALT = 0x5a17_c0de;
+
+/** True when Arcade is the only selected category with games. */
+export function isArcadeOnly(categories: readonly PuzzleCategory[]): boolean {
+  const chosen = playableCategories(categories);
+  return chosen.length === 1 && chosen[0] === "arcade";
+}
+
+function playableCategories(categories: readonly PuzzleCategory[]): PuzzleCategory[] {
+  return normaliseCategories(categories).filter((category) => typesInCategory(category).length > 0);
+}
+
+/**
+ * Rounds a room with these categories will play: the lobby and the draw both
+ * read this, so the count shown before Start is the count dealt.
+ */
+export function roomRoundCount(categories: readonly PuzzleCategory[]): number {
+  if (isArcadeOnly(categories)) return Math.min(ARCADE_ONLY_ROUNDS, typesInCategory("arcade").length);
+  return roundCountFor(playableCategories(categories).length);
+}
+
 /** True when no two neighbouring rounds share a category. */
 function noAdjacentRepeats(order: readonly PuzzleCategory[]): boolean {
   for (let i = 1; i < order.length; i++) if (order[i] === order[i - 1]) return false;
@@ -81,13 +106,11 @@ export function categoryOrderFor(
   categories: readonly PuzzleCategory[],
   seed: number,
 ): PuzzleCategory[] {
-  const chosen = normaliseCategories(categories).filter(
-    (category) => typesInCategory(category).length > 0,
-  );
+  const chosen = playableCategories(categories);
   const n = chosen.length;
   if (n === 0) return [];
   const rng = seededRng(seed);
-  const total = roundCountFor(n);
+  const total = roomRoundCount(chosen);
   const base = Math.floor(total / n);
   const pool: PuzzleCategory[] = [];
   for (const category of chosen) for (let k = 0; k < base; k++) pool.push(category);
@@ -128,11 +151,18 @@ function pickType(
 /** Draws the room's round order; no game repeats within a room. */
 export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[] {
   const recent = (options.recent ?? []).slice(0, RECENT_WEIGHTS.length);
-  const order = categoryOrderFor(options.categories ?? [], options.seed ?? newRoomSeed());
-  const types: PuzzleType[] = [];
-  for (const category of order) {
-    const type = pickType(category, types, recent);
-    if (type) types.push(type);
-  }
-  return types;
+  const seed = options.seed ?? newRoomSeed();
+  const order = categoryOrderFor(options.categories ?? [], seed);
+  const draw = () => {
+    const types: PuzzleType[] = [];
+    for (const category of order) {
+      const type = pickType(category, types, recent);
+      if (type) types.push(type);
+    }
+    return types;
+  };
+  // Arcade-only rooms draw their games from the room seed too, so the whole
+  // order is fixed by it; other rooms keep their unseeded per-category draw.
+  return isArcadeOnly(options.categories ?? []) ? withSeededRandom(seed ^ ARCADE_DRAW_SALT, draw) : draw();
 }
+
