@@ -35,6 +35,13 @@ interface RoomLobbyProps {
   tournamentHistory: { winner: string; date: string }[];
 }
 
+/** Host presets, each with the one-line description shown under them. */
+const PRESETS: { label: string; values: readonly PuzzleCategory[]; description: string }[] = [
+  { label: "Standard", values: STANDARD_CATEGORIES, description: "Standard: a mix of puzzles and arcade, one game per category." },
+  { label: "Arcade only", values: ["arcade"], description: "Arcade only: a single arcade game." },
+  { label: "Puzzles only", values: PUZZLE_CATEGORIES, description: "Puzzles only: one puzzle per category, no arcade." },
+];
+
 /** The waiting room for two to ten players. */
 export function RoomLobby({
   players,
@@ -51,12 +58,23 @@ export function RoomLobby({
   tournamentHistory,
 }: RoomLobbyProps) {
   const canStart = players.length >= MIN_PLAYERS;
+  const playersNeeded = MIN_PLAYERS - players.length;
+  const hostName = players.find((player) => player.user_id === hostUserId)?.display_name;
+  const roundCount = categories.length;
+  const hasEmptyCategory = CATEGORY_ORDER.some((category) => !typesInCategory(category).length);
 
   return (
     <div className="flex w-full flex-col gap-4">
       <p className="text-center font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
         {players.length} of {MAX_PLAYERS} players
       </p>
+      {isHost && (
+        <p className="text-center text-sm text-muted-foreground">
+          {canStart
+            ? "You're the host: choose categories, then start."
+            : "Send this code to friends. Start when everyone's in."}
+        </p>
+      )}
 
       <ul className="flex flex-col gap-2">
         {players.map((player) => {
@@ -72,6 +90,9 @@ export function RoomLobby({
               <span className="flex-1 truncate font-display text-sm text-foreground">
                 {player.display_name}
               </span>
+              {player.user_id === hostUserId && (
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Host</span>
+              )}
               {isMe && (
                 <span className="text-[10px] uppercase tracking-widest text-primary">You</span>
               )}
@@ -110,11 +131,7 @@ export function RoomLobby({
         <p className="font-display text-sm font-semibold text-foreground">Categories</p>
         {isHost && (
           <div className="flex flex-wrap gap-2">
-            {[
-              { label: "Standard", values: STANDARD_CATEGORIES },
-              { label: "Arcade only", values: ["arcade"] as PuzzleCategory[] },
-              { label: "Puzzles only", values: PUZZLE_CATEGORIES },
-            ].map(({ label, values }) => (
+            {PRESETS.map(({ label, values }) => (
               <button
                 key={label}
                 type="button"
@@ -129,6 +146,15 @@ export function RoomLobby({
               </button>
             ))}
           </div>
+        )}
+        {isHost && (
+          <p className="text-xs text-muted-foreground">
+            {PRESETS.find(
+              ({ values }) =>
+                categories.length === values.length &&
+                categories.every((category) => values.includes(category)),
+            )?.description ?? "Custom: one game from each category you pick."}
+          </p>
         )}
         {isHost ? (
           <div className="flex flex-wrap gap-2">
@@ -161,7 +187,13 @@ export function RoomLobby({
               </button>
             ))}
           </div>
-        ) : (
+        ) : null}
+        {isHost && (
+          <p className="text-xs text-muted-foreground">
+            {hasEmptyCategory ? "Faded categories have no games yet. " : ""}Keep at least one category.
+          </p>
+        )}
+        {isHost ? null : (
           <p className="text-sm text-muted-foreground">
             Categories:{" "}
             {categories
@@ -169,11 +201,15 @@ export function RoomLobby({
               .join(" · ")}
           </p>
         )}
+        <p className="text-xs text-muted-foreground">
+          {roundCount} {roundCount === 1 ? "round" : "rounds"}, one game per category · about{" "}
+          {roundCount * 2} min
+        </p>
       </div>
 
       {tournamentHistory.length > 0 && (
         <div className="space-y-1 border-t border-border pt-3">
-          <p className="font-display text-xs text-muted-foreground">Previous tournaments</p>
+          <p className="font-display text-xs text-muted-foreground">Previous games</p>
           {tournamentHistory
             .slice(-3)
             .reverse()
@@ -201,7 +237,7 @@ export function RoomLobby({
             ) : canStart ? (
               "Start game"
             ) : (
-              "Need 2 players"
+              `Waiting for ${playersNeeded} more ${playersNeeded === 1 ? "player" : "players"}`
             )}
           </button>
           <button
@@ -213,7 +249,7 @@ export function RoomLobby({
           </button>
         </>
       ) : (
-        <WaitingLine label="Waiting for host to start" />
+        <WaitingLine label={hostName ? `Waiting for ${hostName} (host) to start` : "Waiting for the host to start"} />
       )}
     </div>
   );

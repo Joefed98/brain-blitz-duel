@@ -94,27 +94,30 @@ import {
 } from "@/lib/duel/types";
 import type { SubmitMeta } from "@/puzzles/types";
 import { nearMiss } from "@/lib/duel/nearMiss";
+import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
+
+const ROOM_TITLE = `Join a ${APP_NAME} room`;
+const ROOM_DESCRIPTION = `You're invited to a live ${APP_NAME} room. ${APP_TAGLINE}`;
 
 export const Route = createFileRoute("/duel/$code")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Duelz room — six timed puzzle rounds" },
+      { title: ROOM_TITLE },
       {
         name: "description",
-        content:
-          "Up to ten players solve the same six timed puzzles at the same moment. Highest total wins.",
+        content: ROOM_DESCRIPTION,
       },
-      { property: "og:title", content: "Duelz room — six timed puzzle rounds" },
+      { property: "og:title", content: ROOM_TITLE },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
-        content: "One round per category. Two to ten players. Fastest brain wins.",
+        content: ROOM_DESCRIPTION,
       },
       {
         name: "twitter:description",
-        content: "One round per category. Two to ten players. Fastest brain wins.",
+        content: ROOM_DESCRIPTION,
       },
     ],
   }),
@@ -164,8 +167,8 @@ function LobbyActions({ roomCode }: { roomCode: string }) {
   const share = async () => {
     try {
       await navigator.share({
-        title: "Duelz",
-        text: `Join my Duelz room — code ${roomCode} — ${link}`,
+        title: APP_NAME,
+        text: `Join my ${APP_NAME} room — code ${roomCode} — ${link}`,
         url: link,
       });
     } catch {
