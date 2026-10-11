@@ -79,8 +79,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    write to it.
 2. **Version-stamp every gameplay change.** Any change to rules, generation, physics,
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
-   `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `bombVersion`,
-   `rulesVersion`). Unstamped/older rounds must replay and score exactly as before.
+   `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
+   `sliceRev`, `bombVersion`, `rulesVersion`). Unstamped/older rounds must replay and score exactly as before.
    Prove it with the game's legacy-replay/identity check.
 3. **Arcade bounds rule.** Drawn art must sit within 2 px of the sim's collision bounds,
    so what players see is what collides.

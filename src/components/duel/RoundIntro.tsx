@@ -96,7 +96,7 @@ export function RoundIntro({
   // Round music is owned by the room/practice round state, never by this screen.
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">
+    <div className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">
       <div className="category-header flex items-start justify-between">
         {practice && onBack ? (
           <Button

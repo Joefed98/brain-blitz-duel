@@ -971,6 +971,13 @@ body.game-lock {
   animation: arcade-reveal-glow 1.6s ease-in-out infinite;
 }
 
+/* Round intro: never taller than the viewport inside PhoneShell's unconstrained column
+   (pad-safe top/bottom and the 2.75rem top bar), so the sticky READY footer stays on
+   screen at 375×667 and any extra content scrolls inside .round-intro-content. */
+.round-intro {
+  max-height: calc(100dvh - max(1.5rem, env(safe-area-inset-top)) - max(2rem, env(safe-area-inset-bottom)) - 2.75rem);
+}
+
 /* Intro demo: height-led so the intro never scrolls at 375×667. */
 .intro-demo {
   height: clamp(120px, 26svh, 210px);

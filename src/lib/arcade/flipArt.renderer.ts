@@ -305,8 +305,8 @@ function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: number, 
   }
   ctx.translate(RUNNER_X, y + (sink ?? 0) * 32 * (state.side === 0 ? 1 : -1));
   ctx.rotate(angle);
-  // The original figure was drawn for a 24 × 28 box; rev 2 scales it to its 32 × 36 box.
-  if (big) ctx.scale(1.4, 1.4);
+  // The original figure was drawn for a 24 × 28 box; rev 2 scales it up to fill its 32 × 36 box.
+  if (big) ctx.scale(1.65, 1.65);
   if (big) {
     // Dark outline pass first so the gold reads against lava and rock alike.
     ctx.strokeStyle = MATERIAL.obsidian;
