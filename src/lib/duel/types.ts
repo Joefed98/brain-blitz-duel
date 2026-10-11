@@ -1895,6 +1895,8 @@ export interface HoverPuzzleData {
   type: "hover";
   /** Drives every pillar of the run — identical for everyone in the room. */
   seed: number;
+  /** Course revision (2 = gold stars, two-gap and moving barriers); absent = original course. */
+  hoverRev?: number;
 }
 
 /* ============================ Swerve / Skyline =========================== */

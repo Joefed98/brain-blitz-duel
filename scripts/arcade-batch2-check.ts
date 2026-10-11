@@ -35,6 +35,28 @@ import {
   type SnakeState,
 } from "../src/lib/arcade/snake";
 import { encodeSnakeRun, replaySnakeRun } from "../src/lib/duel/snake";
+import {
+  hoverCheckpoint,
+  hoverGame,
+  hoverGameFor,
+  hoverGapTop,
+  hoverMoveOffset,
+  hoverStarY,
+  pillarX,
+  HOVER_DISC_R,
+  HOVER_DISC_X,
+  HOVER_GAP_MARGIN,
+  HOVER_GAP_MIN,
+  HOVER_MOVE_AMP,
+  HOVER_PILLAR_W,
+  HOVER_REACHABLE_GATES,
+  HOVER_REV,
+  HOVER_RUN_TICKS,
+  HOVER_STARS,
+  HOVER_WORLD_BOTTOM,
+  type HoverState,
+} from "../src/lib/arcade/hover";
+import { encodeHoverRun, replayHoverRun } from "../src/lib/duel/hover";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
@@ -204,6 +226,117 @@ if (want("snake")) {
     s = game.step(s, null);
     ok(s.rockWarn === slot.cell && s.rockLandTick === slot.tick, "the shadow starts 2 s before the slot's landing tick");
   }
+}
+
+
+/* ================================ 2b. Hover ================================ */
+if (want("hover")) {
+  section("Hover hoverRev 2");
+  const game = hoverGameFor(HOVER_REV);
+  ok(hoverGameFor(undefined) === hoverGame && hoverGame.init(5).rev === undefined, "unstamped Hover keeps the original game");
+  ok(game.init(5).rev === HOVER_REV, "rev-2 state carries the stamp");
+  ok(JSON.stringify(game.init(77)) === JSON.stringify(game.init(77)), "rev-2 courses are seeded");
+  ok(hoverGame.init(5).totalGates === 42 && HOVER_REACHABLE_GATES === 42 && hoverGame.init(5).pillars.length === 45, "45 barriers are built and a clean run reaches 42 (the text says 42)");
+  ok(/\b42 barriers\b/.test(INTRO_SCORE.hover) && PUZZLE_INSTRUCTIONS.hover.score.includes("42"), "intro and help say 42 barriers");
+  for (const seed of SEEDS(200, 7919)) {
+    const s = game.init(seed);
+    const legacy = hoverGame.init(seed);
+    ok(s.totalGates === HOVER_REACHABLE_GATES, "rev 2 keeps the 42 reachable barriers");
+    ok(s.totalStars === HOVER_STARS, `seed ${seed}: ten gold stars on reachable barriers`);
+    s.pillars.forEach((p, i) => {
+      ok(p.x0 === legacy.pillars[i]!.x0, "barrier spacing unchanged");
+      const sweep = p.movePhase === undefined ? 0 : HOVER_MOVE_AMP;
+      ok(p.gapTop - sweep >= HOVER_GAP_MARGIN && p.gapTop + p.gapH + sweep <= HOVER_WORLD_BOTTOM - HOVER_GAP_MARGIN, "every gap stays inside the margins");
+      if (p.gap2Top !== undefined) {
+        ok(i >= 16 && p.movePhase === undefined && p.starDy === undefined, "two-gap barriers are later, still and starless");
+        ok(p.gap2Top - (p.gapTop + p.gapH) >= 15_360, "a solid wall between the two gaps");
+      }
+      if (p.movePhase !== undefined) ok(i >= 23, "moving barriers only on later stretches");
+      if (p.starDy !== undefined) {
+        ok(p.gapH === HOVER_GAP_MIN && i < HOVER_REACHABLE_GATES, "stars sit in the tightest gaps on reachable barriers");
+        ok(p.starDy > HOVER_DISC_R && p.starDy < p.gapH - HOVER_DISC_R, "a star sits inside its gap");
+      }
+    });
+  }
+  // The moving offset is a slow, bounded, continuous integer wave.
+  for (let t = 0; t < 1000; t++) {
+    const a = hoverMoveOffset(t, 17), b = hoverMoveOffset(t + 1, 17);
+    ok(Number.isInteger(a) && Math.abs(a) <= HOVER_MOVE_AMP && Math.abs(b - a) <= 256, "moving gaps slide at most 1 px a tick");
+  }
+
+  /** Beam search over tap / no tap on the real sim: proves every barrier and every star on a seed. */
+  const playHover = (seed: number) => {
+    type Node = { s: HoverState; taps: { t: number; prev: Node["taps"] } | null };
+    let beam: Node[] = [{ s: game.init(seed), taps: null }];
+    const target = (s: HoverState) => {
+      for (let i = s.gates; i < s.pillars.length; i++) {
+        const p = s.pillars[i]!;
+        const ahead = pillarX(p, s.distance) + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R);
+        if (ahead < 0) continue;
+        const starY = hoverStarY(p, s.tick);
+        if (starY !== null && !(s.starsTaken ?? []).includes(i)) return starY;
+        const top = hoverGapTop(p, s.tick) + (p.gapH >> 1);
+        if (p.gap2Top === undefined) return top;
+        const low = p.gap2Top + ((p.gap2H ?? 0) >> 1);
+        return Math.abs(low - s.y) < Math.abs(top - s.y) ? low : top;
+      }
+      return HOVER_WORLD_BOTTOM >> 1;
+    };
+    for (let tick = 1; tick <= HOVER_RUN_TICKS; tick++) {
+      const next = new Map<string, { node: Node; cost: number }>();
+      for (const node of beam) {
+        for (const tap of [false, true]) {
+          const s = game.step(node.s, tap);
+          if (s.crashed) continue;
+          const key = `${s.stars ?? 0}:${s.y >> 10}:${s.vy >> 8}`;
+          const cost = -(s.stars ?? 0) * 1e9 - s.gates * 1e7 + Math.abs(s.y - target(s));
+          const old = next.get(key);
+          if (!old || cost < old.cost) next.set(key, { node: { s, taps: tap ? { t: tick, prev: node.taps } : node.taps }, cost });
+        }
+      }
+      // Keep the best few per star count, so a doomed star chase never crowds out the safe line.
+      const ranked = [...next.values()].sort((a, b) => a.cost - b.cost);
+      const perStars = new Map<number, number>();
+      beam = [];
+      for (const item of ranked) {
+        const stars = item.node.s.stars ?? 0;
+        const used = perStars.get(stars) ?? 0;
+        if (used >= 220) continue;
+        perStars.set(stars, used + 1);
+        beam.push(item.node);
+      }
+      if (beam.length === 0) { if (process.env.BATCH2_DEBUG) console.log("beam died at", tick); break; }
+    }
+    const best = [...beam].sort((a, b) => (b.s.stars ?? 0) - (a.s.stars ?? 0) || b.s.gates - a.s.gates)[0];
+    const inputs: number[] = [];
+    for (let link = best?.taps ?? null; link; link = link.prev) inputs.push(link.t);
+    inputs.reverse();
+    // Replay the chosen taps exactly as the phone would, with checkpoints.
+    let state = game.init(seed);
+    const taps = new Set(inputs);
+    const checkpoints: ReturnType<typeof hoverCheckpoint>[] = [];
+    while (!game.isOver(state)) {
+      state = game.step(state, taps.has(state.tick + 1));
+      if (state.tick % 300 === 0) checkpoints.push(hoverCheckpoint(state));
+    }
+    const score = game.score(state);
+    return { state, score, raw: encodeHoverRun({ seed, claimedScore: score, inputs, endTick: state.tick, checkpoints }) };
+  };
+  const RUNS = SEEDS(Number(process.env.BATCH2_HOVER_RUNS ?? 6), 15_485_863);
+  let full = 0;
+  for (const seed of RUNS) {
+    const run = playHover(seed);
+    const replay = replayHoverRun(seed, run.raw, HOVER_REV);
+    ok(replay.score === run.score && !replay.flagged, `seed ${seed}: server replay agrees (${replay.reason ?? "ok"})`);
+    ok(JSON.stringify(replay.state) === JSON.stringify(run.state), `seed ${seed}: identical final state`);
+    ok(run.score === 150 && replay.gates === 42 && replay.stars === HOVER_STARS, `seed ${seed}: all 42 barriers and all ${HOVER_STARS} stars (score ${run.score}, ${replay.gates} barriers, ${replay.stars} stars)`);
+    if (run.score === 150) full += 1;
+  }
+  console.log(`  beam bot: 150 (42 barriers + ${HOVER_STARS} stars) on ${full} / ${RUNS.length} seeds through the server replay`);
+  // Barriers alone cap at 130; stars alone at 20.
+  const s0 = game.init(9);
+  ok(game.score({ ...s0, gates: 42 }) === 130 && game.score({ ...s0, stars: 10 }) === 20 && game.score({ ...s0, gates: 42, stars: 10 }) === 150, "barriers worth up to 130, stars up to 20, cap 150");
+  ok(game.score({ ...s0, gates: 45, stars: 12 }) === 150, "score never exceeds 150");
 }
 
 function cellAway(cell: number): number {

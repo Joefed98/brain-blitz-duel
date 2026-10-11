@@ -1,4 +1,5 @@
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
+import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import type { PuzzleType } from "./types";
 
 export interface PuzzleInstructionLine {
@@ -495,13 +496,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Fewest moves + speed: solved = 100 + up to 25 for moves (full at the minimum, 0 at twice it) + up to 25 for speed: the full 25 if you finish with at least half the time left. Unfinished: 12 per aligned spoke.",
   },
   hover: {
-    goal: "Fly through as many gaps in the energy barriers as you can.",
+    goal: "Fly through the gaps in the energy barriers. Grab gold stars if you dare.",
     how: [
-      { action: "Tap anywhere", detail: "to hover up; let go to drop." },
-      { action: "Hit anything", detail: "and the run ends." },
-      { action: "Everyone flies", detail: "the same course for sixty seconds." },
+      { action: "Tap anywhere to hover up.", detail: "Let go to drop. Hit anything and the run ends." },
+      { action: "Gold stars sit near the edge", detail: "of some tight gaps. Touch one for a bonus." },
+      { action: "Later barriers have two gaps", detail: "(take either) or slide slowly up and down." },
+      { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run and ${HOVER_STARS} gold stars.`, helpOnly: true },
     ],
-    score: "150 × barriers passed ÷ total barriers.",
+    score: `Barriers: ${HOVER_V2_GATES_SCORE} × barriers passed ÷ ${HOVER_REACHABLE_GATES} (all a clean run reaches). Gold stars: ${HOVER_V2_STARS_SCORE} × stars ÷ ${HOVER_STARS}. Up to 150.`,
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",

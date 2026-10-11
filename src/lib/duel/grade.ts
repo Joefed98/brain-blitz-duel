@@ -848,7 +848,7 @@ export function gradeSubmission(
       // The run is replayed from the stored seed; the phone's own score is
       // never trusted, only recorded as a claim on the stored result.
       const replayStart = performance.now();
-      const run = replayHoverRun(puzzle.seed, answer);
+      const run = replayHoverRun(puzzle.seed, answer, puzzle.hoverRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -859,6 +859,7 @@ export function gradeSubmission(
       extraDetail = {
         gates: run.gates,
         totalGates: run.totalGates,
+        ...(puzzle.hoverRev ? { hoverRev: puzzle.hoverRev, stars: run.stars, totalStars: run.totalStars } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

@@ -10,6 +10,16 @@ import type { ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_WORLD_H, HOVER_WORLD_W, type HoverState } from "./hover";
+
+/** hoverRev 2: passed barriers of one kind (original courses have none, so these stay 0). */
+function hoverPassed(s: HoverState, kind: "twoGap" | "moving"): number {
+  let n = 0;
+  for (let i = 0; i < s.gates; i++) {
+    const p = s.pillars[i];
+    if (p && (kind === "twoGap" ? p.gap2Top !== undefined : p.movePhase !== undefined)) n += 1;
+  }
+  return n;
+}
 import {
   BRK_BRICK_H,
   BRK_BRICK_W,
@@ -116,6 +126,29 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       every: 7,
       at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }),
       label: (_s, n) => `ZONE ${Math.floor(n / 7) + 1}`,
+    },
+    // hoverRev 2 success moments: a gold star, a two-gap barrier, a moving barrier.
+    {
+      kind: "perfect",
+      count: (s) => s.stars ?? 0,
+      at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) - 16 }),
+      label: () => "GOLD STAR!",
+      colour: () => "#FFD84A",
+    },
+    {
+      kind: "pop",
+      count: (s) => hoverPassed(s, "twoGap"),
+      at: (s) => ({ x: px(HOVER_DISC_X) + 30, y: px(s.y) - 14 }),
+      label: (s) => {
+        const p = s.pillars[s.gates - 1];
+        return p?.gap2Top !== undefined && s.y >= p.gap2Top ? "LOWER GAP!" : "UPPER GAP!";
+      },
+    },
+    {
+      kind: "pop",
+      count: (s) => hoverPassed(s, "moving"),
+      at: (s) => ({ x: px(HOVER_DISC_X) + 30, y: px(s.y) - 14 }),
+      label: () => "SLIPPED THROUGH!",
     },
     {
       kind: "final",

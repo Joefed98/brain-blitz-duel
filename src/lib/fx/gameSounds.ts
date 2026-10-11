@@ -137,6 +137,8 @@ export function hoverSounds(): GameSounds<HoverState> {
         if (state.crashed && !prev.crashed) playSound("arc_retro_explode");
         else {
           if (state.gates > prev.gates) playSound("arc_retro_note");
+          // hoverRev 2: a gold star collected.
+          if ((state.stars ?? 0) > (prev.stars ?? 0)) playSound("arc_retro_coin", 0.8);
         }
       }
       prev = state;

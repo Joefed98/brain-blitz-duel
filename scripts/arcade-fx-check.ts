@@ -53,6 +53,7 @@ const specs = await import("../src/lib/arcade/arcadeFxGames.renderer");
 const sprites = await import("../src/lib/arcade/sprites.renderer");
 
 const { hoverArtGame } = await import("../src/lib/arcade/hover.renderer");
+const { hoverRev2Game } = await import("../src/lib/arcade/hover");
 const { breakerArtGame } = await import("../src/lib/arcade/breaker.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
@@ -99,7 +100,7 @@ type AnyGame = {
 const course = BALL_TRACK_BANK[0]!.course;
 const btGame = makeBallTrackGame(course);
 const GAMES: Record<string, AnyGame> = {
-  hover: hoverArtGame as AnyGame,
+  hover: { ...hoverArtGame, init: hoverRev2Game.init } as AnyGame,
   breaker: breakerArtGame as AnyGame,
   rally: rallyArtGame as AnyGame,
   beat: beatArtGame as AnyGame,
@@ -221,7 +222,13 @@ for (const [name, game] of Object.entries(GAMES)) {
 // must complete. Index order matches each spec's `events`.
 const zeros = (n: number) => Array.from({ length: n }, () => 0);
 const BUMPS: Record<string, ((s: any) => any)[]> = {
-  hover: [(s) => ({ ...s, gates: s.gates + 7 }), (s) => ({ ...s, gates: s.totalGates })],
+  hover: [
+    (s) => ({ ...s, gates: s.gates + 7 }),
+    (s) => ({ ...s, stars: (s.stars ?? 0) + 1 }),
+    (s) => ({ ...s, gates: 17 }),
+    (s) => ({ ...s, gates: 24 }),
+    (s) => ({ ...s, gates: s.totalGates }),
+  ],
   breaker: [
     (s) => ({ ...s, powerUps: s.powerUps + 1 }),
     (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (i < 10 ? 0 : b)) }),

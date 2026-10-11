@@ -10,6 +10,7 @@ import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { RALLY_GOLD_POINTS } from "@/lib/arcade/rally";
 import { SNAKE_PELLET_POINTS } from "@/lib/arcade/snake";
+import { HOVER_REACHABLE_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { SKYLINE_BLOCK_POINTS, SKYLINE_PERFECT_POINTS } from "@/lib/arcade/skyline";
 import { EQUATION_STAGE_POINTS, CHAIN_LENGTH, CHAIN_LINK_POINTS, type PuzzleType } from "./types";
 
@@ -127,7 +128,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
   // Arcade
-  hover: arcadeOpen("each barrier gap you fly through; all of them scores 150"),
+  hover: `Up to ${HOVER_V2_GATES_SCORE} for flying through all ${HOVER_REACHABLE_GATES} barriers, plus up to ${HOVER_V2_STARS_SCORE} for gold stars.`,
   skyline: `${SKYLINE_BLOCK_POINTS} points per block stacked, plus ${SKYLINE_PERFECT_POINTS} per perfect drop. Up to 150.`,
   bintoss: arcadeSplit("each bucket", `Sink all ${BINTOSS_THROWS} buckets`, 90),
   bullseye: `Rings score ${BULLSEYE_RING_VALUES[0]} in the centre down to ${BULLSEYE_RING_VALUES[BULLSEYE_RING_VALUES.length - 1]} at the edge. Higher totals score more.`,

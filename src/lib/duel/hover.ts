@@ -9,7 +9,7 @@ import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
   hoverCheckpoint,
-  hoverGame,
+  hoverGameFor,
   hoverSurvived,
   HOVER_CHECKPOINT_INTERVAL,
   HOVER_RUN_TICKS,
@@ -85,6 +85,9 @@ export interface HoverResult {
   gates: number;
   /** Gates a clean run would have reached on this course. */
   totalGates: number;
+  /** hoverRev 2: gold stars collected and stars on the reachable course (0 / 0 on original rounds). */
+  stars: number;
+  totalStars: number;
   survived: boolean;
   /** Seconds into the run when the disc crashed, or the full run length. */
   endedSeconds: number;
@@ -105,7 +108,8 @@ export interface HoverResult {
 }
 
 /** The single place a Hover score is worked out. */
-export function replayHoverRun(seed: number, raw: string): HoverResult {
+export function replayHoverRun(seed: number, raw: string, rev?: number | null): HoverResult {
+  const hoverGame = hoverGameFor(rev);
   const run = decodeHoverRun(raw);
   // A phone that never reached tick 3600 has its run ended where it stopped: no
   // crash is invented after its last tap, and no survival bonus is given.
@@ -143,6 +147,8 @@ export function replayHoverRun(seed: number, raw: string): HoverResult {
   const result: HoverResult = {
     gates: state.gates,
     totalGates: state.totalGates,
+    stars: state.stars ?? 0,
+    totalStars: state.totalStars ?? 0,
     survived,
     endedSeconds: Math.round((ticks / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,
