@@ -5,7 +5,9 @@
  */
 
 import { flowNeighbours, verifyFlow } from "../src/lib/duel/flow";
-import { countFlowSolutions, flowBends, generateFlow } from "../src/lib/duel/flow.server";
+import { countFlowSolutions, flowBends } from "../src/lib/duel/flow.server";
+import { bankFor, bankKey, drawBankedPuzzle } from "../src/lib/duel/puzzleBank.server";
+import { withSeededRandom } from "../src/lib/duel/random";
 import { decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "../src/lib/duel/slide";
 import { generateIceSlide, routeUsesFeatures } from "../src/lib/duel/slide.server";
 import { PUSH_BANK } from "../src/lib/duel/pushBank.server";
@@ -43,12 +45,23 @@ function fail(message: string): never {
 
 /* ----------------------------- Colour Connect ---------------------------- */
 
-// Each board is proved unique by the generator (~2 s apiece), so 30 boards
-// keeps this check well inside the 300 s runner limit.
+// Rooms and practice draw Chroma Lines from the committed bank, so this checks
+// boards drawn the same way under fixed seeds: the same 30 boards every run.
+// (The unseeded live generator can exhaust its attempt cap, which made this
+// check flaky; puzzle-bank-check covers the generator via seeded rebuilds.)
 const FLOW_BOARDS = 30;
+const flowBank = bankFor("flow");
+if (flowBank.length === 0) fail("Colour Connect bank is empty, so rooms would generate live");
+const flowBankKeys = new Set(flowBank.map((entry) => bankKey(entry)));
+const drawnKeys = new Set<string>();
 let shortest = FLOW_CELLS;
 for (let i = 0; i < FLOW_BOARDS; i++) {
-  const puzzle = generateFlow();
+  const puzzle = drawBankedPuzzle("flow", Math.imul(i + 1, 0x9e3779b1) >>> 0, drawnKeys);
+  if (puzzle.type !== "flow") fail(`Colour Connect draw returned ${puzzle.type}`);
+  const key = bankKey(puzzle)!;
+  if (!flowBankKeys.has(key)) fail("Colour Connect draw is not a bank board");
+  if (drawnKeys.has(key)) fail("Colour Connect draw repeated a board it was told to avoid");
+  drawnKeys.add(key);
   const paths = puzzle.solution ?? [];
   const walls = puzzle.walls ?? [];
   const count = puzzle.pairs.length;
@@ -70,12 +83,13 @@ for (let i = 0; i < FLOW_BOARDS; i++) {
   const covered = new Set(paths.flat());
   if (covered.size !== FLOW_CELLS - walls.length) fail("Colour Connect does not fill every open cell");
 }
-console.log(`Colour Connect: ${FLOW_BOARDS} boards OK · shortest path ${shortest} cells`);
+console.log(`Colour Connect: ${FLOW_BOARDS} seeded bank draws OK (bank ${flowBank.length}) · shortest path ${shortest} cells`);
 
 /* -------------------------------- Ice Slide ------------------------------- */
 
 for (let i = 0; i < 40; i++) {
-  const puzzle = generateIceSlide();
+  // Fixed seeds, so the same 40 layouts are checked every run.
+  const puzzle = withSeededRandom(Math.imul(i + 1, 0x85ebca6b) >>> 0, () => generateIceSlide());
   const holes = puzzle.holes ?? [];
   const arrows = puzzle.arrows ?? [];
   const min = puzzle.minMoves ?? 0;
