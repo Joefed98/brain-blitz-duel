@@ -130,8 +130,30 @@ Headless renders of every active game (68) plus the room screens, for design rev
 | Overall standings (after round 3 of 5) | [room/standings.png](room/standings.png) |
 | Podium (final) | [room/podium.png](room/podium.png) |
 
+## Contact sheets
+
+Review sheets in `sheets/`. Each game gets one row (intro, mid-play and reveal side by side, scaled to 83 %) with its display name and id above it. Each sheet holds at most 6 games: a category is split evenly across sheets, and the long side stays under 4,000 px. Gridlock (`unblock`) appears as a labelled empty row. The room sheet shows the five room screens at full size in one row.
+
+| Sheet | Size (px) | Games |
+|---|---|---|
+| [sheets/word-1.png](sheets/word-1.png) | 1052 × 3918 | Nucleus (`wordsmith`), Interlock (`tilegrid`), Slider (`wordslide`), Forage (`wordhunt`), Lookout (`wordsearch`), Roundabout (`letterwheel`) |
+| [sheets/number-1.png](sheets/number-1.png) | 1052 × 3918 | Counterweight (`balance`), Exact (`target`), Operator (`equation`), Tenfall (`tendrop`), Integer Pyramid (`numpyramid`), Trail (`trail`) |
+| [sheets/speed-1.png](sheets/speed-1.png) | 1052 × 3918 | Flash (`reaction`), Ascend (`numhunt`), Bang On (`stopwatch`), Don't Break the Chain (`chain`), Bonk (`whack`), Pull! (`clayshoot`) |
+| [sheets/attention-1.png](sheets/attention-1.png) | 1052 × 2636 | Mixed Signals (`stroop`), Eagle Eye (`symscan`), Double Take (`spotdiff`), Tally (`countup`) |
+| [sheets/attention-2.png](sheets/attention-2.png) | 1052 × 1995 | Labyrinth (`maze`), Interloper (`intruder`), Matchmaker (`pairmatch`) |
+| [sheets/pattern-1.png](sheets/pattern-1.png) | 1052 × 2636 | Gridlock (`unblock`), Tessellate (`blockparty`), Skid (`iceslide`), Lightbender (`laser`) |
+| [sheets/pattern-2.png](sheets/pattern-2.png) | 1052 × 1995 | Topsy-Turvy (`gravity`), Jumbled (`tiles`), Turntable (`rings`) |
+| [sheets/logic-1.png](sheets/logic-1.png) | 1052 × 3277 | Blackout (`lightsout`), Pipeline (`pipes`), Box Six (`sudoku`), Chroma Lines (`flow`), Heave (`push`) |
+| [sheets/logic-2.png](sheets/logic-2.png) | 1052 × 3277 | Hanoi (`tower`), Polypotions (`tubes`), Safe Cracker (`safe`), Bomb Defusal (`bomb`), Mosaic (`nonogram`) |
+| [sheets/logic-3.png](sheets/logic-3.png) | 1052 × 2636 | Colour Flood (`flood`), Tents and Trees (`tents`), Shikaku (`shikaku`), Lamplighter (`lightup`) |
+| [sheets/arcade-1.png](sheets/arcade-1.png) | 1052 × 3918 | Hover (`hover`), High Rise (`skyline`), Swish (`bintoss`), Flightpath (`bullseye`), Gemstone (`matchup`), Breaker (`breaker`) |
+| [sheets/arcade-2.png](sheets/arcade-2.png) | 1052 × 3918 | Rally (`rally`), Slice (`slice`), Coral Pop (`bubble`), Tempo (`beat`), Meteor (`snake`), Jaywalk (`cross`) |
+| [sheets/arcade-3.png](sheets/arcade-3.png) | 1052 × 3277 | Wavefront (`wavefront`), Roofbound (`flip`), Junction (`junction`), Rainbow Bridge (`inkbridge`), Fission (`burst`) |
+| [sheets/arcade-4.png](sheets/arcade-4.png) | 1052 × 3277 | Orbit (`orbit`), Grappler (`swing`), Scrumper (`snip`), Tilt (`tilt`), Ball Tracker (`balltrack`) |
+| [sheets/room-1.png](sheets/room-1.png) | 2062 × 832 | Home, Lobby, Round results, Overall standings, Podium |
+
 ## Games that couldn't be rendered
 
 - `unblock` (Gridlock, pattern): The server could not generate the puzzle. Unblock boards come from the Supabase unblock_bank table, read with the service-role client, and this container has no SUPABASE_SERVICE_ROLE_KEY (the server reported "Missing Supabase environment variable(s): SUPABASE_SERVICE_ROLE_KEY"), so practice stays on "Making a puzzle". The Supabase host is also unreachable from this container.
 
-Total: 206 PNG files.
+Total: 206 screenshots plus 15 contact sheets (221 PNG files).
