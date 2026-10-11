@@ -7,9 +7,10 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { INTRO_EXAMPLE_SEED } from "../src/lib/duel/puzzleDemo";
-import { extendWordHuntPath, wordHuntInnerCell, toggleWordsmithTile, puzzleInputDemoCompatible, PUZZLE_INPUT_PRESENTATION, WORDSMITH_PRESENTATION } from "../src/components/puzzles/wordInput";
+import { extendWordHuntPath, wordHuntInnerCell, toggleWordsmithTile, puzzleInputDemoCompatible, PUZZLE_INPUT_PRESENTATION, WORDSMITH_PRESENTATION, POLISH_B_PRESENTATION } from "../src/components/puzzles/wordInput";
+import { shuffleLetterOrder } from "../src/components/puzzles/letterShuffle";
 import { applyPuzzleSurfaces } from "../src/components/puzzles/usePuzzleSurfaces";
-import type { PuzzleType } from "../src/lib/duel/types";
+import { WORDSMITH_SIZES, type PuzzleType } from "../src/lib/duel/types";
 
 // No browser or pretend layout engine: input arithmetic and SSR/DOM structure only.
 assert.deepEqual(toggleWordsmithTile([0, 1, 4, 7], 1), [0, 4, 7]);
@@ -42,14 +43,26 @@ assert.equal(puzzleInputDemoCompatible("wordsmith", { actions: [] }), false);
 assert.equal(puzzleInputDemoCompatible("maze", { actions: [] }), false);
 assert.equal(puzzleInputDemoCompatible("wordsmith", { presentation: PUZZLE_INPUT_PRESENTATION }), false);
 assert.equal(puzzleInputDemoCompatible("wordsmith", { presentation: WORDSMITH_PRESENTATION }), true);
-assert.equal(puzzleInputDemoCompatible("sudoku", {}), true);
+// Sudoku joined the Polish B demo set: only recordings stamped with that presentation replay.
+assert.equal(puzzleInputDemoCompatible("sudoku", {}), false);
+assert.equal(puzzleInputDemoCompatible("sudoku", { presentation: POLISH_B_PRESENTATION }), true);
 
 const css = readFileSync("src/styles.css", "utf8");
 assert.match(css, /\.game-screen,[\s\S]*?canvas,\s*button,[\s\S]*?-webkit-tap-highlight-color: transparent !important/);
 assert.match(readFileSync("src/puzzles/beat.tsx", "utf8"), /style=\{\{ \.\.\.NO_SCROLL_STYLE, background: BEAT_BG \}\}/);
 assert.match(css, /sudoku-box-top[^}]*border-top: 3px/);
 const wordsmithSource = readFileSync("src/components/puzzles/WordsmithPuzzle.tsx", "utf8");
-assert.doesNotMatch(wordsmithSource, /<input|onPointerMove|Math.random|Shuffle/);
+assert.doesNotMatch(wordsmithSource, /<input|onPointerMove|Math.random/);
+// Shuffle is now a deterministic visual reorder that keeps the centre tile fixed.
+assert.match(wordsmithSource, /shuffleLetterOrder\(current, WORDSMITH_CENTRE_INDEX\)/);
+{
+  const start = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+  const once = shuffleLetterOrder(start, 4);
+  assert.equal(once[4], 4);
+  assert.deepEqual([...once].sort((a, b) => a - b), start);
+  assert.notDeepEqual(once, start);
+  assert.deepEqual(shuffleLetterOrder(start, 4), once);
+}
 assert.match(wordsmithSource, /toggleWordsmithTile/);
 assert.match(wordsmithSource, /checkWord\(/);
 const keys: PuzzleType[] = ["wordsmith", "wordhunt", "target", "maze", "rings", "lightsout", "sudoku", "flood", "shikaku", "beat"];
@@ -82,7 +95,10 @@ for (const key of keys) {
       assert.ok(root.innerHTML.length);
       applyPuzzleSurfaces(root as unknown as HTMLElement, key);
       if (key === "wordsmith") {
-        assert.equal(root.querySelectorAll("[data-wordsmith-tile]").length, 9);
+        // Boards now hold 8-11 letters (WORDSMITH_SIZES); live/reveal show this puzzle's letters.
+        const tiles = root.querySelectorAll("[data-wordsmith-tile]").length;
+        assert.ok((WORDSMITH_SIZES as readonly number[]).includes(tiles));
+        if (phase !== "intro" && full.type === "wordsmith") assert.equal(tiles, full.letters.length);
         assert.equal(root.querySelectorAll("input").length, 0);
         assert.equal(root.querySelectorAll("[data-wordsmith-tile][data-puzzle-cell]").length, 0);
       }

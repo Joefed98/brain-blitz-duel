@@ -17,8 +17,11 @@ for (const definition of Object.values(PUZZLE_REGISTRY)) {
   assert.equal(definition.theme.accent, definition.category);
   for (const hook of FX_HOOKS) assert.ok(SOUND_MANIFEST[definition.theme.sounds[hook] ?? "correct"]);
 }
+// Music beds now ship real loops (lobby, standings, per-category and per-arcade beds).
+assert.equal(SOUND_MANIFEST.lobby_loop?.channel, "music");
+assert.match(SOUND_MANIFEST.lobby_loop?.url ?? "", /lobby_loop\.mp3$/);
 for (const entry of Object.values(SOUND_MANIFEST)) {
-  if (entry.channel === "music") assert.equal(entry.url, null);
+  if (entry.channel === "music" && entry.url !== null) assert.match(entry.url, /\.mp3$/);
 }
 assert.equal(renderToStaticMarkup(<TimerBar active totalMs={60000} msRemaining={5000} />).match(/role="timer"/g)?.length, 1);
 assert.ok(renderToStaticMarkup(<ProgressStrip name="Player" value={150} />).includes("150"));

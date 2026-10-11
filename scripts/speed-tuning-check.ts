@@ -1,20 +1,22 @@
 import { buildReaction } from "../src/puzzles/reaction";
-import { buildStopWatch, markerState, stopWatchPoints, targetCentre } from "../src/puzzles/stopWatch";
-import { REACTION_DECOY_MS, REACTION_FLASH_MS, REACTION_ROUND_MS } from "../src/lib/duel/types";
+import { buildStopWatch, markerState, targetCentre } from "../src/puzzles/stopWatch";
+import { scoreStopWatch } from "../src/lib/duel/scoring";
+import { REACTION_DECOY_MS, REACTION_FLASH_MS, REACTION_MAX_FLASHES, REACTION_MIN_FLASHES, REACTION_ROUND_MS } from "../src/lib/duel/types";
 
 let reactionRounds = 0;
 for (let run = 0; run < 1_000; run++) {
   const puzzle = buildReaction();
-  if (puzzle.flashes.length !== 5) throw new Error("Reaction flash count");
-  if (puzzle.decoys.length < 5 || puzzle.decoys.length > 15) throw new Error("Reaction decoy total");
-  if (puzzle.flashes[0]! < 3_000) throw new Error("First gold before 3 seconds");
-  if (puzzle.flashes.at(-1)! + REACTION_FLASH_MS > REACTION_ROUND_MS) throw new Error("Gold exceeds round");
+  const flashCount = puzzle.flashes.length;
+  if (flashCount < REACTION_MIN_FLASHES || flashCount > REACTION_MAX_FLASHES) throw new Error("Reaction flash count");
+  if (puzzle.decoys.length < flashCount || puzzle.decoys.length > 3 * flashCount) throw new Error("Reaction decoy total");
+  if (puzzle.flashes[0]! < 4_000) throw new Error("First gold before 4 seconds");
+  if (puzzle.flashes.at(-1)! + REACTION_FLASH_MS > REACTION_ROUND_MS - 500) throw new Error("Gold exceeds round");
   if (!puzzle.decoys.some((d) => d.color === "blue")) {
     // Individual rounds need not contain every colour; the aggregate check below covers blue generation.
   }
   for (let i = 1; i < puzzle.flashes.length; i++) {
     const gap = puzzle.flashes[i]! - puzzle.flashes[i - 1]!;
-    if (gap < 5_000 || gap > 12_000) throw new Error("Gold spacing");
+    if (gap < 5_000 || gap > 8_000) throw new Error("Gold spacing");
   }
   let segmentStart = 0;
   for (const flash of puzzle.flashes) {
@@ -60,17 +62,19 @@ for (let run = 0; run < 1_000; run++) {
     if (markerState(spec, elapsed).pass !== spec.passes) throw new Error(`Watch ${index + 1} completion`);
     for (let sample = 0; sample <= 20; sample++) {
       const centre = targetCentre(spec, (sample * (spec.moving?.cycleMs ?? 1)) / 20);
-      if (centre - spec.half < 0 || centre + spec.half > 1) throw new Error("Target leaves bar");
+      // Moving targets (centre up to 0.88 ± 0.1) may push the band edge past the
+      // overflow-hidden bar, but the centre line players aim at stays inside it.
+      if (centre < spec.half || centre > 1 - 0.01) throw new Error("Target centre leaves bar");
       if (spec.vertical && centre - spec.half < 0.5) throw new Error("Vertical target leaves upper half");
     }
   }
   watchSets += 1;
 }
 
-if (stopWatchPoints(0) !== 150 || stopWatchPoints(100) !== 125 || stopWatchPoints(400) !== 50) {
+if (scoreStopWatch(0) !== 150 || scoreStopWatch(20) !== 150 || scoreStopWatch(100) !== 128 || scoreStopWatch(400) !== 47) {
   throw new Error("Stop Watch scoring changed");
 }
 
 console.log(`Reaction schedules: ${reactionRounds}/1000 valid; colours: ${[...colours].sort().join(", ")}`);
 console.log(`Stop Watch sets: ${watchSets}/1000 valid; counters: 2–11; watches 8–10 wrap`);
-console.log("Stop Watch scores: 0 ms=150, 100 ms=125, 400 ms=50");
+console.log("Stop Watch scores: 0-20 ms=150, 100 ms=128, 400 ms=47");

@@ -1,6 +1,8 @@
 /** Non-browser drawing/geometry checks only; no replay or identity proof. */
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { SOUND_MANIFEST } from '../src/lib/fx/manifest';
+mkdirSync('/tmp/slice-kitchen',{recursive:true});
 import { createCanvas } from '@napi-rs/canvas';
 import { drawSliceArt, drawSliceKitchenExample, SLICE_FOODS } from '../src/lib/arcade/slice.renderer';
 import { sliceGame, SLICE_R, SLICE_SPECIAL_R, SLICE_WORLD_W, SLICE_WORLD_H, SLICE_COLOURS } from '../src/lib/arcade/slice';
@@ -35,7 +37,7 @@ for(const c of surfaces.filter(c=>c.width===c.height)){
  assert(minX<=2&&minY<=2&&maxX>=c.width-3&&maxY>=c.height-3,'collision silhouette reaches all four extents within 2px');
 }
 const preview=createCanvas(168,120);drawSliceKitchenExample(preview.getContext('2d') as unknown as CanvasRenderingContext2D);writeFileSync('/tmp/slice-kitchen/example.png',preview.toBuffer('image/png'));
-const sounds=readFileSync('src/lib/fx/gameSounds.ts','utf8').split('export function sliceSounds()')[1]??'';
-for(const id of ['arc_crash','arc_pickup'])assert(sounds.includes(`"${id}"`));assert(!sounds.includes('arc_sea_'));
+const sounds=readFileSync('src/lib/fx/gameSounds.ts','utf8').split('export function sliceSounds()')[1]?.split('\nexport function ')[0]??'';
+for(const id of ['arc_knife_slice','arc_slice_combo','arc_crash']){assert(sounds.includes(`"${id}"`),`Slice cue ${id}`);assert(SOUND_MANIFEST[id as keyof typeof SOUND_MANIFEST],`manifest ${id}`);}assert(!sounds.includes('arc_sea_'));
 const art=readFileSync('src/lib/arcade/slice.renderer.ts','utf8');assert(art.includes('particles<FX_PARTICLE_LIMIT'));assert(art.includes("./cache.renderer"));assert(!art.includes('shadowBlur'));assert(!art.includes('seas.renderer'));
 console.log(JSON.stringify({checks,mapping:SLICE_FOODS,cachedSurfaces:allocations,phoneSizes:['390x700','375x667'],bounds:'exact 40px food/hazard and 32px special stamps; raster extents within 2px',motion:'normal and reduced',browserTests:0,identityProofs:0}));

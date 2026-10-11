@@ -37,7 +37,7 @@ for (let seed = 1; seed <= 1000; seed++) {
     const third = (p: typeof a) => Math.floor((p.gapTop + p.gapH/2) * 3 / HOVER_WORLD_BOTTOM);
     assert(Math.abs(third(a)-third(b)) !== 2);
   }
-  assert.equal(hoverGame.score({ ...h, gates: h.totalGates }), 100);
+  assert.equal(hoverGame.score({ ...h, gates: h.totalGates }), 150);
   const b = bubbleGame.init(seed), visited = new Set<number>();
   let occupied = 0;
   for (let r = 0; r < BUB_START_ROWS; r++) for (let c = 0; c < bubRowCols(r); c++) {
@@ -74,7 +74,7 @@ const lane = c.courses[0]?.lanes.findIndex(l => crossBlocked(l, crossColumnCentr
 assert(lane >= 0);
 c = crossGame.step({ ...c, lane: lane+1, reached:lane+1, crossings:0 }, null);
 assert.equal(c.lane,0); assert.equal(c.lives,2); assert.equal(c.crossings,0); assert.equal(c.reached,lane+1);
-assert.equal(BURST_LIVES,2); assert.equal(burstGame.init(1).lives,2);
+assert.equal(BURST_LIVES,3); assert.equal(burstGame.init(1).lives,3);
 assert(!typesInCategory('arcade').includes('bastion'));
 assert(allTypesInCategory('arcade').includes('bastion'));
 console.log('Arcade tuning mechanics passed: 1,000 Hover/Bubble seeds, 200 rectangular Matchup boards, hold endpoints, crash respawn, lives and retirement. No browser tests.');

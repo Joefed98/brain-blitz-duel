@@ -3,12 +3,13 @@
  * Run with: bun scripts/gravity-chain-intruder-check.ts
  */
 
-import { generateGravity } from "../src/lib/duel/gravity.server";
-import { decodeGravityTilts, replayGravity } from "../src/lib/duel/gravity";
+import { generateGravity, lockInteractions } from "../src/lib/duel/gravity.server";
+import { decodeGravityTilts, replayGravity, tilt, GRAVITY_DIRS } from "../src/lib/duel/gravity";
 import { generateIntruder } from "../src/lib/duel/intruder.server";
 import { intruderColoursTooClose } from "../src/lib/duel/intruder";
 import {
-  GRAV_FALLBACK_MIN_TILTS,
+  GRAV_BALLS,
+  GRAV_MIN_TILTS,
   GRAV_MAX_TILTS,
   INTRUDER_BOARD_SIZES,
   INTRUDER_CHANGE_COUNTS,
@@ -29,24 +30,18 @@ function check(label: string, ok: boolean) {
 for (let round = 0; round < ROUNDS; round++) {
   const puzzle = generateGravity();
   const solution = decodeGravityTilts(puzzle.solution ?? "");
-  const replay = replayGravity(
-    puzzle.walls,
-    { a: puzzle.startA, b: puzzle.startB },
-    puzzle.targetA,
-    puzzle.targetB,
-    solution,
-  );
-  // The generator eases its minimum to GRAV_FALLBACK_MIN_TILTS after 200
-  // failed attempts, so the wanted band is the wider one, not GRAV_MIN_TILTS.
-  check("gravity minimum stored", (puzzle.minMoves ?? 0) >= GRAV_FALLBACK_MIN_TILTS);
+  const walls = new Set(puzzle.walls);
+  const replay = replayGravity(walls, puzzle.starts, puzzle.targets, solution);
+  check("gravity ball count", puzzle.starts.length === GRAV_BALLS && puzzle.targets.length === GRAV_BALLS);
+  check("gravity minimum stored", (puzzle.minMoves ?? 0) >= GRAV_MIN_TILTS);
   check("gravity minimum in band", (puzzle.minMoves ?? 0) <= GRAV_MAX_TILTS);
-  check("gravity solution solves the joint state", replay.solved);
+  check("gravity solution solves the board", replay.solved);
   check("gravity solution length equals the minimum", replay.tilts === puzzle.minMoves);
-  check("gravity shortest route uses ball-blocks-ball", replay.usedBlock);
   check(
-    "gravity shortest route swaps the balls' relative order",
-    solutionSwapsOrder(new Set(puzzle.walls), { a: puzzle.startA, b: puzzle.startB }, solution),
+    "gravity no ball locks on the first tilt",
+    GRAVITY_DIRS.every((dir) => tilt(walls, puzzle.starts, puzzle.targets, dir).locked.length === 0),
   );
+  check("gravity shortest route has lock interactions", lockInteractions(walls, puzzle.starts, puzzle.targets, solution) >= 2);
 }
 
 for (let round = 0; round < ROUNDS; round++) {
@@ -86,36 +81,21 @@ for (let round = 0; round < ROUNDS; round++) {
       if (kind === "shape") check("intruder shape change", before.shape !== after.shape);
       check("intruder does not rotate", before.rot === after.rot);
     });
-    const lastCell = answer.cells.at(-1)!;
-    const position = { row: Math.floor(lastCell / board.size), col: lastCell % board.size };
+    // The generator applies this rule before boards 4-5 slide the grid, so
+    // compare the source cells (perm maps a shown cell back to its source).
+    const sources = answer.cells.map((cell) => (board.perm ? board.perm[cell]! : cell));
     if (previous) {
+      const prev = previous;
       check(
         "intruder never the same position twice in a row",
-        previous.row !== position.row || previous.col !== position.col,
+        sources.every((cell) => Math.floor(cell / board.size) !== prev.row || cell % board.size !== prev.col),
       );
     }
+    const lastCell = sources.at(-1)!;
+    const position = { row: Math.floor(lastCell / board.size), col: lastCell % board.size };
     previous = position;
   });
 }
 
 console.log(failures === 0 ? `All checks passed (${ROUNDS} rounds each)` : `${failures} failures`);
 process.exit(failures === 0 ? 0 : 1);
-
-function centralNodes(nodes: { x: number; y: number }[]): number {
-  return nodes.filter(
-    (node) => node.x >= 100 / 3 && node.x <= 200 / 3 && node.y >= 100 / 3 && node.y <= 200 / 3,
-  ).length;
-}
-
-function minimumSpacing(nodes: { x: number; y: number }[]): number {
-  let smallest = Infinity;
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      smallest = Math.min(
-        smallest,
-        Math.hypot(nodes[i]!.x - nodes[j]!.x, nodes[i]!.y - nodes[j]!.y),
-      );
-    }
-  }
-  return smallest;
-}
