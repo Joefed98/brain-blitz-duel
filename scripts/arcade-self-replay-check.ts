@@ -1,5 +1,7 @@
 /**
- * Self-replay proof for all 19 arcade games. Each run drives the sim exactly the
+ * Self-replay proof for every arcade-engine game: all 22 active arcade games
+ * (each on the revision live rooms stamp today, plus the legacy rules stored
+ * rounds still replay on), Colour Clash, and the retired games kept for practice. Each run drives the sim exactly the
  * way the phone does — random candidate inputs (many deliberately out of range)
  * go through recordInput/recordTap, and the sim reads its input for each tick
  * from the recorded log only. The submitted string is that log, unmodified.
@@ -83,6 +85,18 @@ import { encodeHotFloorRun, replayHotFloorRun } from "@/lib/duel/hotFloor";
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
 import { clashCheckpoint, colourClashGame, colourClashRev3Game } from "@/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "@/lib/duel/colourClash";
+import { snipCheckpoint, snipGameFor, SNIP_REV } from "@/lib/arcade/snip";
+import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
+import { btCheckpoint, makeBallTrackGame } from "@/lib/arcade/ballTrack";
+import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
+import { BALL_TRACK_BANK } from "@/lib/duel/ballTrackBank.server";
+import { ORBIT_REV3 } from "@/lib/arcade/orbit";
+import { encodeRev3Planets, initRev3From, orbitRev3Game, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
+import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
+import { binTossGameFor, BINTOSS_REV } from "@/lib/arcade/binToss";
+import { inkBridgeGameFor, INK_REV3 } from "@/lib/arcade/inkBridge";
+import { swingGameFor, SWING_REV } from "@/lib/arcade/swing";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const RUNS = Number(process.argv[2] ?? 40);
@@ -105,7 +119,20 @@ interface Game {
   rate: number;
   encode: (run: any) => string;
   replay: (seed: number, raw: string) => any;
+  /** Per-seed game, for games whose rules depend on stored puzzle data (course, planets). */
+  gameFor?: (seed: number) => any;
+  /** Picks a seed live rooms could actually be dealt (e.g. a bank entry); default random. */
+  seedFor?: (n: number) => number;
 }
+
+/** Ball Tracker: the server deals a bank course; the replay is against that stored course. */
+const btCourse = (seed: number) => BALL_TRACK_BANK[seed % BALL_TRACK_BANK.length]!.course;
+/** Orbit rev 3: rooms only deal bank seeds, with the proved planets stored in the puzzle. */
+const orbitPlanets = (seed: number) => {
+  const planets = orbitRev3PlanetsForSeed(seed);
+  if (!planets) throw new Error(`orbit rev3: seed ${seed} is not a bank seed`);
+  return planets;
+};
 
 const GAMES: Game[] = [
   {
@@ -289,6 +316,34 @@ const GAMES: Game[] = [
   { key: "orbit", game: orbitGame, checkpoint: orbitCheckpoint, mode: "events", rate: 25, encode: encodeOrbitRun, replay: replayOrbitRun },
   { key: "swing", game: swingGame, checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: replaySwingRun },
   { key: "tilt", game: tiltGame, checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: replayTiltRun },
+  // Active games missing until Oct 2026: Scrumper and Ball Tracker.
+  { key: "snip", game: snipGameFor(SNIP_REV), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV) },
+  { key: "snip/v1", game: snipGameFor(null), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, null) },
+  {
+    key: "balltrack",
+    game: makeBallTrackGame(btCourse(0)),
+    gameFor: (seed: number) => makeBallTrackGame(btCourse(seed)),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(btCourse(run.seed), run),
+    replay: (seed: number, raw: string) => replayBallTrackRun(btCourse(seed), seed, raw),
+  },
+  // Current stamped revisions of games whose entries above replay their legacy (unstamped) rules.
+  {
+    key: "orbit/v3",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => ({ ...orbitRev3Game, init: () => initRev3From(orbitPlanets(seed), ORBIT_REV3_WORLD_W) }),
+    seedFor: (n: number) => ORBIT_REV3_BANK[n % ORBIT_REV3_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV3, encodeRev3Planets(orbitPlanets(seed))),
+  },
+  { key: "bintoss/v2", game: binTossGameFor(BINTOSS_REV), checkpoint: binTossCheckpoint, mode: "events", rate: 15, encode: encodeBinTossRun, replay: (seed: number, raw: string) => replayBinTossRun(seed, raw, BINTOSS_REV) },
+  { key: "ink/v3", game: inkBridgeGameFor(INK_REV3), checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV3) },
+  { key: "swing/v3", game: swingGameFor(SWING_REV), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV) },
   { key: "hotfloor", game: hotFloorGame, checkpoint: hotfloorCheckpoint, mode: "events", rate: 60, encode: encodeHotFloorRun, replay: replayHotFloorRun },
   { key: "stroop", game: colourClashRev3Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 3) },
   { key: "stroop", game: colourClashGame, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 0) },
@@ -316,14 +371,15 @@ for (const spec of GAMES.filter((g) => !ONLY || ONLY.includes(g.key))) {
   let failed = 0;
   let reason = "";
   for (let run = 0; run < RUNS; run++) {
-    const seed = between(1, 0x7ffffffe);
-    let state = spec.init ? spec.init(seed) : spec.game.init(seed);
+    const seed = spec.seedFor ? spec.seedFor(run) : between(1, 0x7ffffffe);
+    const game = spec.gameFor ? spec.gameFor(seed) : spec.game;
+    let state = spec.init ? spec.init(seed) : game.init(seed);
     const events: ArcadeInputEvent[] = [];
     const taps: number[] = [];
     const swerve: { tick: number; dir: 1 | -1 }[] = [];
     const checkpoints: any[] = [];
-    const ranges: readonly InputRange[] = spec.game.inputRanges ?? [];
-    while (!spec.game.isOver(state) && state.tick < spec.game.runTicks) {
+    const ranges: readonly InputRange[] = game.inputRanges ?? [];
+    while (!game.isOver(state) && state.tick < game.runTicks) {
       const t = state.tick + 1;
       const wants = rand(1000) < spec.rate;
       let input: any;
@@ -338,10 +394,10 @@ for (const spec of GAMES.filter((g) => !ONLY || ONLY.includes(g.key))) {
         if (wants) recordInput(events, candidate(ranges, t), ranges);
         input = inputAt(events, t);
       }
-      state = spec.game.step(state, input);
+      state = game.step(state, input);
       if (state.tick % INTERVAL === 0) checkpoints.push(spec.checkpoint(state));
     }
-    const score = spec.game.score(state);
+    const score = game.score(state);
     const body = {
       seed,
       claimedScore: score,
