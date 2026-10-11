@@ -575,6 +575,49 @@ const unit = (
       checks += 2;
     }
   }
+  // Preload: resolves only once every sprite in the world has settled, so the
+  // intro demo (which waits on it) never draws before the art has loaded.
+  {
+    sprites.resetArtImages();
+    let empty = false;
+    void sprites.preloadArtWorld("kitchen").then(() => (empty = true));
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(empty, true, "a world with no bundled files settles at once");
+    assert.equal(sprites.isArtWorld("gem"), false, "gem has no art world");
+    assert.equal(sprites.isArtWorld("toybox"), true, "toybox is an art world");
+    const fake = createCanvas(8, 8);
+    let fire: (() => void) | null = null;
+    class SlowImage {
+      naturalWidth = 8;
+      naturalHeight = 8;
+      decoding = "";
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_: string) {
+        fire = () => {
+          Object.assign(this, fake);
+          this.onload?.();
+        };
+      }
+    }
+    Object.defineProperty(globalThis, "Image", { configurable: true, value: SlowImage });
+    const saved = sprites.ART_WORLDS.toybox.sprites;
+    (sprites.ART_WORLDS.toybox as { sprites: unknown }).sprites = { marble: { url: "test://marble.png" } };
+    let done = false;
+    const pending = sprites.preloadArtWorld("toybox").then(() => (done = true));
+    await new Promise((r) => setTimeout(r, 5));
+    assert.equal(done, false, "preload waits while a sprite is still loading");
+    assert.equal(sprites.artReady("toybox", "marble"), false, "not ready before load");
+    assert.ok(fire, "loading started");
+    fire!();
+    await pending;
+    assert.equal(sprites.artReady("toybox", "marble"), true, "ready once preload resolves");
+    (sprites.ART_WORLDS.toybox as { sprites: unknown }).sprites = saved;
+    Reflect.deleteProperty(globalThis, "Image");
+    sprites.resetArtImages();
+    checks += 7;
+  }
+
   // Coral Pop is all five creatures or none.
   const uw = sprites.ART_WORLDS.underwater.sprites;
   assert.deepEqual(Object.keys(uw).sort(), ["crab", "fish", "jellyfish", "shell", "starfish"], "underwater: all five bubble creatures");

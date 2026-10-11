@@ -5,11 +5,12 @@ files to add. Written 11 Oct 2026 alongside the shared success layer
 (`src/lib/arcade/arcadeFx.renderer.ts`) and the art pipeline
 (`src/lib/arcade/sprites.renderer.ts`).
 
-## Status: five pilots have art (11 Oct 2026)
+## Status: four worlds have art (11 Oct 2026)
 
 All nine packs were downloaded from kenney.nl on 11 Oct 2026 (every zip is served
-from kenney.nl itself; no other host was needed). Five pilots now draw Kenney art:
-Breaker, Wavefront, Swish and Flightpath (one shared counter), Grappler and Tilt.
+from kenney.nl itself; no other host was needed). These pilots now draw Kenney art:
+Wavefront, Swish and Flightpath (one shared counter), Grappler and Tilt. Breaker had
+the Puzzle Pack 1 paddle briefly; Joe removed it, so Breaker draws its gold code paddle.
 Four keep their code art on purpose; see "Worlds left on code art" below. A missing
 or failed file still falls back to the code art, so nothing else changed.
 
@@ -26,6 +27,11 @@ or failed file still falls back to the code art, so nothing else changed.
   loading or failed, it returns `false` and does not touch the context, and the
   caller draws its original code art. Loading starts on first use and never blocks
   a frame.
+- **Preload:** `RoundIntro` calls `preloadGameArt(type)` (`gameArt.renderer.ts`) as
+  each intro starts, which loads the game's world sprites. `preloadArtWorld` resolves
+  once every sprite is ready or has failed (at once for a world with no files), and
+  `IntroDemo` draws no frame until it resolves, so no intro or demo frame ever shows
+  code art that the art replaces a moment later.
 - **Resolution:** every arcade canvas caps its backing store at devicePixelRatio 2.
   Each sprite is pre-scaled once per drawn size to the context's device scale and
   cached (96 entries max), so a frame draws one small image without resampling a
@@ -49,7 +55,7 @@ current official download pages.
 
 | World | Pack | URL | Licence | Pilot game: what the art replaces | Art in use? |
 |---|---|---|---|---|---|
-| Retro | Puzzle Pack 1 | https://kenney.nl/assets/puzzle-pack-1 | CC0 1.0 | Breaker: the paddle | Yes |
+| Retro | Puzzle Pack 1 | https://kenney.nl/assets/puzzle-pack-1 | CC0 1.0 | Breaker: the paddle | No: removed (Joe), gold code paddle kept |
 | Space | Space Shooter Remastered | https://kenney.nl/assets/space-shooter-remastered | CC0 1.0 | Wavefront: the player ship | Yes |
 | Real World | Racing Pack | https://kenney.nl/assets/racing-pack | CC0 1.0 | Jaywalk: cars and lorries | No: no lorry in the pack |
 | Kitchen | Food Kit | https://kenney.nl/assets/food-kit | CC0 1.0 | Slice: the four foods (chillies stay code-drawn) | No: 3D renders |
@@ -86,7 +92,7 @@ file is trimmed to its visible content and stored as an optimised PNG.
 
 | Target path (exact) | Taken from | Size | Notes |
 |---|---|---|---|
-| `src/assets/arcade/retro/paddle.png` | Puzzle Pack 1: `PNG/Double/paddleBlu.png` | 208 × 48, 1,219 B | Already trimmed; the 2× copy keeps it sharp at DPR 2. |
+| `src/assets/arcade/retro/paddle.png` | Not added | | `PNG/Double/paddleBlu.png` (208 × 48) was tried and removed at Joe's request: a smooth glossy capsule on the pixel/neon Retro screen. |
 | `src/assets/arcade/space/player.png` | Space Shooter Remastered: `PNG/playerShip1_blue.png` | 99 × 75, 2,208 B | Nose up as shipped. |
 | `src/assets/arcade/fairground/counter.png` | Shooting Gallery: `PNG/Stall/bg_wood.png` | 256 × 256, 1,799 B | A tiling texture: the counter tiles it in 96-unit squares clipped to the strip (stretching it smeared the planks). |
 | `src/assets/arcade/cavelava/anchor.png` | Platformer Pack Remastered: `PNG/Items/coinGold.png` | 48 × 48, 2,644 B | Trimmed from 128 × 128 and downscaled. Gold matches the old gold rings; `coinSilver.png` read as a grey dot against the lava. |
@@ -96,7 +102,7 @@ file is trimmed to its visible content and stored as an optimised PNG.
 | `src/assets/arcade/underwater/{crab,starfish,fish,jellyfish,shell}.png` | Not added | | Fish Pack has fish only (`PNG/Default/fish_*.png`). |
 | `src/assets/arcade/orchard/leaf.png` | Not added | | Foliage Pack has no single leaf. |
 
-Total added to the app bundle: 5 files, 8,994 bytes (about 9 KB).
+Total added to the app bundle: 4 files, 7,775 bytes (about 7.6 KB). Each is under Vite's 4 KB inline limit, so they ship as base64 inside the `PhoneShell` chunk (about 10.5 KB).
 
 ## Worlds left on code art
 
@@ -111,17 +117,15 @@ Total added to the app bundle: 5 files, 8,994 bytes (about 9 KB).
 - **Real World (Jaywalk, also Junction and Skyline through `drawVehicle`):** Racing Pack
   has cars only. A car stretched into the lorry box looks wrong, and Kenney cars with
   code-drawn lorries would clash. The sprite would also make every car the same colour.
+- **Retro (Breaker):** the Puzzle Pack 1 paddle was a smooth glossy blue capsule, the
+  one smooth object on a pixel/neon screen, replacing a gold paddle. Removed at Joe's
+  request; Breaker keeps its gold code paddle.
 - **Orchard (Scrumper):** Foliage Pack has no single leaf. Its `Leaves/` files are
   canopy-edge tiles, and the nearest shape (the two-leaf sprout `foliagePack_018.png`)
   would read worse than the current gold leaf disc.
 
 ## Style notes (flagged for Joe)
 
-- **Retro (Breaker):** the Kenney paddle is a smooth glossy blue capsule. The rest of
-  the Retro screen is pixel/neon (pixel font, scanline bricks), and the old paddle was
-  gold. It reads fine in play but is the one smooth object on a pixel screen. If it
-  jars on a phone, `paddleRed.png` is the only alternative in the pack; removing the
-  file restores the code paddle.
 - **Space (Wavefront):** the ship has Kenney's dark outline and more detail than the
   flat code enemies. It reads well and also replaces the lives icons in the HUD.
 - **Fairground, Cave & Lava, Toybox:** consistent with the surrounding code art.

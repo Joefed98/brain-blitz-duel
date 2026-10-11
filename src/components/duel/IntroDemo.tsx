@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 import { DEMO_LENGTH_TICKS, demoTouches, placeholderRun, runAtTick as runFrame } from "@/lib/arcade/introDemo";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
+import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
 import { getIntroDemoFn } from "@/lib/duel/introDemo.functions";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -80,25 +81,34 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
       }
     };
 
-    if (!source.live) {
-      drawTick(1);
-      return;
-    }
+    // No demo frame is drawn until the game's world art has loaded (or failed),
+    // so a frame never shows code art that the art is about to replace.
+    let cancelled = false;
     let frame = 0;
-    let lastTick = -1;
-    const started = performance.now();
-    const loop = (now: number) => {
-      const tick = (Math.floor(((now - started) * TICKS_PER_SECOND) / 1000) % DEMO_LENGTH_TICKS) + 1;
-      // Two sim ticks per drawn frame keeps the replay-to-tick cost low.
-      if (tick !== lastTick && (tick - lastTick >= 2 || tick < lastTick)) {
-        lastTick = tick;
-        drawTick(tick);
+    void preloadGameArt(type).then(() => {
+      if (cancelled) return;
+      if (!source.live) {
+        drawTick(1);
+        return;
       }
+      let lastTick = -1;
+      const started = performance.now();
+      const loop = (now: number) => {
+        const tick = (Math.floor(((now - started) * TICKS_PER_SECOND) / 1000) % DEMO_LENGTH_TICKS) + 1;
+        // Two sim ticks per drawn frame keeps the replay-to-tick cost low.
+        if (tick !== lastTick && (tick - lastTick >= 2 || tick < lastTick)) {
+          lastTick = tick;
+          drawTick(tick);
+        }
+        frame = requestAnimationFrame(loop);
+      };
       frame = requestAnimationFrame(loop);
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
     };
-    frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
-  }, [renderer, source]);
+  }, [renderer, source, type]);
 
   if (!renderer) return null;
   return (
