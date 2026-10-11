@@ -9,7 +9,8 @@ import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
   matchupCheckpoint,
-  matchupGame,
+  matchupGameFor,
+  matchupParRaw,
   MATCHUP_CHECKPOINT_INTERVAL,
   MATCHUP_INPUT_RANGES,
   MATCHUP_RUN_TICKS,
@@ -88,6 +89,11 @@ export function decodeMatchupRun(raw: string): MatchupRun {
 
 export interface MatchupResult {
   raw: number;
+  /** The par this round scores against (matchupRev 2 has its own). */
+  parRaw: number;
+  /** matchupRev 2: Jackpot gems made and set off (0 on original rounds). */
+  jackpots: number;
+  jackpotsFired: number;
   swaps: number;
   bestLine: number;
   cascades: number;
@@ -106,7 +112,8 @@ export interface MatchupResult {
 }
 
 /** The single place a Matchup score is worked out. */
-export function replayMatchupRun(seed: number, raw: string): MatchupResult {
+export function replayMatchupRun(seed: number, raw: string, rev?: number | null): MatchupResult {
+  const matchupGame = matchupGameFor(rev);
   const run = decodeMatchupRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, MATCHUP_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < MATCHUP_RUN_TICKS;
@@ -143,6 +150,9 @@ export function replayMatchupRun(seed: number, raw: string): MatchupResult {
   const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
   const result: MatchupResult = {
     raw: state.raw,
+    parRaw: matchupParRaw(state),
+    jackpots: state.jackpots ?? 0,
+    jackpotsFired: state.jackpotsFired ?? 0,
     swaps: state.swaps,
     bestLine: state.bestLine,
     cascades: state.cascades,

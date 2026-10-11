@@ -1,7 +1,7 @@
 /** Formula, schedule and intro/reveal regressions for the six Oct 6 scoring changes; no identity proof here. */
 import { readFileSync } from "node:fs";
 import { btScoreOf, BT_BALLS, BT_DROP_TICKS, BT_RUN_TICKS, makeBallTrackGame } from "../src/lib/arcade/ballTrack";
-import { matchupGame, MATCHUP_PAR_RAW } from "../src/lib/arcade/matchup";
+import { matchupGame, matchupRev2Game, MATCHUP_PAR_RAW, MATCHUP_V2_PAR_RAW } from "../src/lib/arcade/matchup";
 import { juncScoreOf } from "../src/lib/arcade/junction";
 import { rallyGame } from "../src/lib/arcade/rally";
 import { skylineGame } from "../src/lib/arcade/skyline";
@@ -10,7 +10,7 @@ import { buildArcadeReveal } from "../src/lib/arcade/reveal";
 import { binTossGame, BINTOSS_THROWS } from "../src/lib/arcade/binToss";
 import { tiltGame, TILT_MAX_MAZES } from "../src/lib/arcade/tilt";
 import { breakerGame, BRK_BRICKS } from "../src/lib/arcade/breaker";
-import { bubbleGame } from "../src/lib/arcade/bubble";
+import { bubbleGame, bubbleRev2Game } from "../src/lib/arcade/bubble";
 import { swingGame, swingMetres, SWING_FINISH_M } from "../src/lib/arcade/swing";
 import { inkScoreOf, INK_LEVELS } from "../src/lib/arcade/inkBridge";
 import { orbitGame, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
@@ -43,6 +43,9 @@ eq([BT_BALLS, BT_DROP_TICKS, BT_RUN_TICKS, releases.length, releases[0], release
 eq(MATCHUP_PAR_RAW, 2500, "Matchup par");
 const match = matchupGame.init(1);
 for (let raw = 0; raw <= 4000; raw++) eq(matchupGame.score({ ...match, raw }), clamp(Math.floor(150 * raw / 2500)), "Matchup");
+// matchupRev 2 (constant play) scores against its own par; the "?" help states it.
+const match2 = matchupRev2Game.init(1);
+for (let raw = 0; raw <= 8000; raw += 7) eq(matchupRev2Game.score({ ...match2, raw }), clamp(Math.floor(150 * raw / MATCHUP_V2_PAR_RAW)), "Matchup rev 2");
 for (let cars = 0; cars <= 90; cars++) for (const gave of [0, 1, 50]) for (const through of [0, 1, 4]) for (const stopped of [0, 1, 4]) for (const survived of [false, true]) {
   eq(juncScoreOf(cars, gave, survived, through, stopped), clamp(2 * cars + 4 * through - 4 * stopped - gave + (survived ? 40 : 0)), "Junction");
 }
@@ -61,10 +64,10 @@ for (const home of [0, 15, 29, 30]) {
 eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup reveal par");
 for (const [type, text] of [["balltrack", "30"], ["junction", "lose 4"], ["rally", "2.5"], ["skyline", "3 per perfect"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
 // Formula detail lives in the "?" help since the intro was shortened (first-run audit, 11 Oct).
-for (const [type, text] of [["matchup", "2,500"], ["bullseye", "1.7 × ring total − 20"], ["junction", "−4"], ["skyline", "3 × perfect drops"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
+for (const [type, text] of [["matchup", MATCHUP_V2_PAR_RAW.toLocaleString("en-GB")], ["bullseye", "1.7 × ring total − 20"], ["junction", "−4"], ["skyline", "3 × perfect drops"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // Ruling B (11 Oct): the eight 130 / 150 split games state both parts in one line.
 // Each split intro shows the real partial maximum: the score one unit short of a clear (Grappler rounds to 130).
-const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: 90, breaker: 128, bubble: 128, inkbridge: 99, orbit: 117, swing: 130, tilt: 90 } as const;
+const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: 90, breaker: 128, bubble: 99, inkbridge: 99, orbit: 117, swing: 130, tilt: 90 } as const;
 for (const [type, max] of Object.entries(SPLIT_PARTIAL_MAX) as [keyof typeof SPLIT_PARTIAL_MAX, number][]) {
   eq(INTRO_SCORE[type].includes(` for up to 150; otherwise up to ${max}.`), true, `${type} intro states the split with partial max ${max}`);
 }
@@ -74,7 +77,9 @@ eq(brk.bricks.length, BRK_BRICKS, "Breaker brick count");
 eq(breakerGame.score({ ...brk, bricks: brk.bricks.map((_, i) => (i === 0 ? 1 : 0)) }), SPLIT_PARTIAL_MAX.breaker, "Breaker partial max");
 const bub = bubbleGame.init(1);
 const lastBubble = bub.grid.findIndex((cell) => cell !== 0);
-eq(bubbleGame.score({ ...bub, cleared: false, grid: bub.grid.map((cell, i) => (i === lastBubble ? cell : 0)) }), SPLIT_PARTIAL_MAX.bubble, "Coral Pop partial max");
+// Coral Pop: rounds stamped bubbleRev 2 (current) cap a part-cleared field at 99; original rounds keep 128.
+eq(bubbleRev2Game.score({ ...bubbleRev2Game.init(1), cleared: false, grid: bub.grid.map((cell, i) => (i === lastBubble ? cell : 0)) }), SPLIT_PARTIAL_MAX.bubble, "Coral Pop partial max");
+eq(bubbleGame.score({ ...bub, cleared: false, grid: bub.grid.map((cell, i) => (i === lastBubble ? cell : 0)) }), 128, "Coral Pop original partial max");
 for (let seed = 1; seed <= 200; seed++) eq(bubbleGame.init(seed).startCount, bub.startCount, "Coral Pop field size is fixed");
 const sw = swingGame.init(1);
 const sw499 = { ...sw, maxX: sw.maxX + (SWING_FINISH_M - 1) * 40 * 256 + 39 * 256 };

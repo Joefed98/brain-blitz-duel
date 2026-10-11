@@ -16,7 +16,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   bubCheckpoint,
-  bubbleGame,
+  bubbleGameFor,
   bubColour,
   BUB_BG,
   BUB_CHECKPOINT_INTERVAL,
@@ -63,9 +63,20 @@ function IntroExample() {
           fill="none"
         />
         <circle cx={84} cy={106} r={9} fill={bubColour(1)} />
+        <g transform="translate(130 96)">
+          <circle r={9} fill="#F4F1FF" />
+          {["#FF4D4D", "#FFE600", "#3DDC84", "#4D8CFF", "#B26BFF"].map((colour, i) => (
+            <path key={colour} d={`M0 0 L${(9 * Math.cos((i * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} ${(9 * Math.sin((i * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} A9 9 0 0 1 ${(9 * Math.cos(((i + 1) * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} ${(9 * Math.sin(((i + 1) * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} Z`} fill={colour} opacity={0.75} />
+          ))}
+          <circle r={4.5} fill="#F4F1FF" />
+        </g>
+        <g transform="translate(150 70)">
+          <circle r={9} fill="#1C1F26" stroke="#FF4D4D" strokeWidth={1.5} />
+          <circle r={2} cy={-3} fill="#FF4D4D" />
+        </g>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Bank off the walls to reach a match.
+        Bank off the walls to reach a match. Rainbow Jokers match any colour; mines and torpedoes clear lots at once.
       </p>
     </div>
   );
@@ -74,6 +85,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BubblePuzzleData | null = puzzle.type === "bubble" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const bubbleGame = bubbleGameFor(data?.bubbleRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -293,7 +305,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "bubble") return null;
-  const result = replayBubbleRun(puzzle.seed, myAnswer ?? "");
+  const result = replayBubbleRun(puzzle.seed, myAnswer ?? "", puzzle.bubbleRev);
   const shots = decodeBubbleRun(myAnswer ?? "").events.length;
 
   return (
@@ -318,6 +330,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           ? ` · reached the line at ${result.endedSeconds.toFixed(1)}s`
           : ""}
       </p>
+      {puzzle.bubbleRev ? (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          Jokers {result.jokers} · bombs {result.bombs} · torpedoes {result.lines}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -23,7 +23,7 @@ import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { beatCheckpoint, beatGame } from "@/lib/arcade/beat";
 import { binTossCheckpoint, binTossGame } from "@/lib/arcade/binToss";
 import { brkCheckpoint, breakerGame } from "@/lib/arcade/breaker";
-import { bubCheckpoint, bubbleGame } from "@/lib/arcade/bubble";
+import { bubCheckpoint, bubbleGame, bubbleGameFor, BUB_REV } from "@/lib/arcade/bubble";
 import {
   bullseyeCheckpoint,
   bullseyeGame,
@@ -33,7 +33,7 @@ import {
 import { crossCheckpoint, crossGame } from "@/lib/arcade/cross";
 import { dualCheckpoint, dualGame } from "@/lib/arcade/dual";
 import { hoverCheckpoint, hoverGame, hoverGameFor, HOVER_REV } from "@/lib/arcade/hover";
-import { matchupCheckpoint, matchupGame } from "@/lib/arcade/matchup";
+import { matchupCheckpoint, matchupGame, matchupGameFor, MATCHUP_REV } from "@/lib/arcade/matchup";
 import { rallyCheckpoint, rallyGame } from "@/lib/arcade/rally";
 import { ricoCheckpoint, ricoGame } from "@/lib/arcade/ricochet";
 import { skylineCheckpoint, skylineGame } from "@/lib/arcade/skyline";
@@ -341,6 +341,8 @@ const GAMES: Game[] = [
     encode: encodeOrbitRun,
     replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV3, encodeRev3Planets(orbitPlanets(seed))),
   },
+  { key: "matchup/v2", game: matchupGameFor(MATCHUP_REV), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV) },
+  { key: "bubble/v2", game: bubbleGameFor(BUB_REV), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV) },
   { key: "hover/v2", game: hoverGameFor(HOVER_REV), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV) },
   { key: "snake/v2", game: snakeGameFor(SNAKE_REV), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV) },
   { key: "bintoss/v2", game: binTossGameFor(BINTOSS_REV), checkpoint: binTossCheckpoint, mode: "events", rate: 15, encode: encodeBinTossRun, replay: (seed: number, raw: string) => replayBinTossRun(seed, raw, BINTOSS_REV) },

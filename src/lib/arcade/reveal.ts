@@ -99,10 +99,11 @@ const BUILDERS: Record<string, Builder> = {
     outcome: b(r, "finished") ? "finish" : "time",
   }),
   matchup: (r, s) => ({
-    axis: { value: n(r, "raw"), max: MATCHUP_PAR_RAW, label: "Match points" },
+    axis: { value: n(r, "raw"), max: n(r, "parRaw") || MATCHUP_PAR_RAW, label: "Match points" },
     lines: [`${n(r, "raw").toLocaleString("en-GB")} match points → ${s}`],
     tiles: [
       { label: "Best line", value: String(n(r, "bestLine")) },
+      ...(n(r, "jackpots") > 0 ? [{ label: "Jackpots", value: String(n(r, "jackpots")) }] : []),
       { label: "Cascades", value: String(n(r, "cascades")) },
       { label: "Swaps", value: String(n(r, "swaps")) },
     ],

@@ -456,6 +456,10 @@ export function bubbleSounds(): GameSounds<BubState> {
             playSound("arc_sea_pop", 0.7, 1, true);
           }
         }
+        // bubbleRev 2 specials layer their own sound over the pop.
+        if ((state.bombs ?? 0) > (prev.bombs ?? 0)) playSound("arc_big_explode", 0.6, 1, true);
+        if ((state.lines ?? 0) > (prev.lines ?? 0)) playSound("arc_laser_beam", 0.55, 1.2, true);
+        if ((state.jokers ?? 0) > (prev.jokers ?? 0)) playSound("arc_rainbow", 0.6, 1, true);
       }
       prev = state;
     },

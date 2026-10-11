@@ -1,4 +1,6 @@
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
+import { BUB_JOKER_BLOCK, BUB_SPECIAL_BLOCK, BUB_V2_PARTIAL } from "@/lib/arcade/bubble";
+import { MATCHUP_V2_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import type { PuzzleType } from "./types";
 
@@ -557,12 +559,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   matchup: {
     goal: "Make lines of three or more matching symbols.",
     how: [
-      { action: "Swap two neighbours", detail: "by dragging one onto the other." },
-      { action: "Make four, five, or a T / L", detail: "to create a bomb (nearby blast), white four-point star (row and column) or six-point star (both diagonals), including on cascades." },
-      { action: "Trigger specials", detail: "to clear nearby symbols and start chain reactions." },
-      { action: "Sixty seconds", detail: "on the same board for everyone." },
+      { action: "Swap two neighbours", detail: "by dragging one onto the other. Keep swapping while gems fall." },
+      { action: "Make 4, 5 or an L / T", detail: "for a bomb, a row-and-column star or a diagonal star." },
+      { action: "5 and an L / T in one swap", detail: "makes a jackpot gem: it clears its whole colour plus a cross." },
+      { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
+      { action: "Sixty seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
     ],
-    score: "3 = 10, 4 = 25, 5 = 50; clamp(floor(150 × match points ÷ 2,500), 0, 150).",
+    score: `3 in a line = 10, 4 = 25, 5 = 50; a special scores 10 for each gem it clears. clamp(floor(150 × match points ÷ ${MATCHUP_V2_PAR_RAW.toLocaleString("en-GB")}), 0, 150).`,
   },
   snake: {
     goal: "Eat the stars and don't hit anything.",
@@ -650,12 +653,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   bubble: {
     goal: "Pop the bubbles by matching three of a colour.",
     how: [
-      { action: "Drag to aim, release to shoot", detail: "- bounce off the walls." },
-      { action: "Three of a colour pop", detail: "when they touch." },
-      { action: "Bubbles left hanging", detail: "fall off the field." },
-      { action: "Ninety seconds", detail: "on the same field for everyone." },
+      { action: "Drag to aim, release to shoot.", detail: "Three of a colour pop; bubbles left hanging fall." },
+      { action: "The rainbow Joker", detail: "matches any colour it touches." },
+      { action: "A mine bubble", detail: "blasts its neighbours; a torpedo clears its whole row." },
+      { action: "Specials come in the queue:", detail: `a Joker every ${BUB_JOKER_BLOCK} shots or so, a mine and a torpedo every ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
+      { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
     ],
-    score: "130 × share of starting bubbles cleared; clear the field = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
+    score: `Clear the field = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left. Otherwise ${BUB_V2_PARTIAL} × share of starting bubbles cleared.`,
   },
   beat: {
     goal: "Tap the notes in time.",

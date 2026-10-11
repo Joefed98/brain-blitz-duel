@@ -57,6 +57,39 @@ import {
   type HoverState,
 } from "../src/lib/arcade/hover";
 import { encodeHoverRun, replayHoverRun } from "../src/lib/duel/hover";
+import {
+  bubbleGame,
+  bubbleGameFor,
+  bubCellX,
+  bubCellY,
+  BUB_BOMB,
+  BUB_COLS,
+  BUB_JOKER,
+  BUB_LINE,
+  BUB_QUEUE,
+  BUB_R,
+  BUB_REV,
+  BUB_V2_PARTIAL_MAX,
+  type BubState,
+} from "../src/lib/arcade/bubble";
+import { encodeBubbleRun, replayBubbleRun } from "../src/lib/duel/bubble";
+import {
+  matchupGame,
+  matchupGameFor,
+  matchupHasLine,
+  matchupIndex,
+  matchupPending,
+  MATCHUP_CELLS,
+  MATCHUP_INPUT_SWAP,
+  MATCHUP_JACKPOT,
+  MATCHUP_REV,
+  MATCHUP_SIZE,
+  MATCHUP_V2_PAR_RAW,
+  MATCHUP_V2_STEP_TICKS,
+  type MatchupState,
+} from "../src/lib/arcade/matchup";
+import { encodeMatchupRun, replayMatchupRun } from "../src/lib/duel/matchup";
+import { playBubble, playMatchup } from "./arcade-batch2-bots";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
@@ -337,6 +370,192 @@ if (want("hover")) {
   const s0 = game.init(9);
   ok(game.score({ ...s0, gates: 42 }) === 130 && game.score({ ...s0, stars: 10 }) === 20 && game.score({ ...s0, gates: 42, stars: 10 }) === 150, "barriers worth up to 130, stars up to 20, cap 150");
   ok(game.score({ ...s0, gates: 45, stars: 12 }) === 150, "score never exceeds 150");
+}
+
+/* ============================== 2c. Coral Pop ============================== */
+if (want("bubble")) {
+  section("Coral Pop bubbleRev 2");
+  const game = bubbleGameFor(BUB_REV);
+  ok(bubbleGameFor(undefined) === bubbleGame && bubbleGame.init(5).rev === undefined, "unstamped Coral Pop keeps the original game");
+  ok(game.init(5).rev === BUB_REV, "rev-2 state carries the stamp");
+  ok(JSON.stringify(game.init(31)) === JSON.stringify(game.init(31)), "rev-2 queues are seeded");
+  for (const seed of SEEDS(200, 7919)) {
+    const s = game.init(seed);
+    const legacy = bubbleGame.init(seed);
+    ok(JSON.stringify(s.grid) === JSON.stringify(legacy.grid), "rev 2 keeps the original field (no specials in it)");
+    const count = (v: number) => s.queue.filter((q) => q === v).length;
+    ok(count(BUB_JOKER) === 8 && count(BUB_BOMB) === 2 && count(BUB_LINE) === 2, `seed ${seed}: 8 Jokers, 2 mines, 2 torpedoes in the queue`);
+    ok(s.queue.slice(0, 5).every((v) => v <= 5), "the first five shots are plain colours");
+    s.queue.forEach((v, i) => {
+      if (v <= 5) ok(v === legacy.queue[i], "every plain queue colour is unchanged");
+    });
+    ok(s.queue.length === BUB_QUEUE, "queue length unchanged");
+  }
+
+  /** Fires `kind` from just below an empty cell so it lands there; returns the state after landing. */
+  const landAt = (base: BubState, grid: number[], row: number, col: number, kind: number) => {
+    let s: BubState = {
+      ...base,
+      grid,
+      startCount: grid.filter(Boolean).length,
+      flightColour: kind,
+      x: bubCellX(row, col) * 256,
+      y: (bubCellY(row, base.descents) + BUB_R + 6) * 256,
+      vx: 0,
+      vy: -1536,
+    };
+    for (let i = 0; i < 20 && s.flightColour !== 0; i++) s = game.step(s, null);
+    return s;
+  };
+  {
+    const base = game.init(77);
+    const empty = () => base.grid.map(() => 0);
+    const at = (r: number, c: number) => r * BUB_COLS + c;
+    // Row 0 alternates two colours (holds everything, matches nothing); row 1: red pair, gap, blue pair.
+    const grid = empty();
+    for (let c = 0; c < 10; c++) grid[at(0, c)] = c % 2 === 0 ? 3 : 4;
+    grid[at(1, 1)] = 1;
+    grid[at(1, 2)] = 1;
+    grid[at(1, 4)] = 2;
+    grid[at(1, 5)] = 2;
+    const joker = landAt(base, grid, 1, 3, BUB_JOKER);
+    ok(joker.grid[at(1, 1)] === 0 && joker.grid[at(1, 2)] === 0 && joker.grid[at(1, 4)] === 0 && joker.grid[at(1, 5)] === 0 && joker.grid[at(1, 3)] === 0, "a Joker between a red pair and a blue pair pops both");
+    ok(joker.jokers === 1 && joker.popped === 5, `the Joker counts itself with the four it matched (jokers ${joker.jokers}, popped ${joker.popped}, dropped ${joker.dropped})`);
+    const lone = empty();
+    for (let c = 0; c < 10; c++) lone[at(0, c)] = c % 2 === 0 ? 3 : 4;
+    const kept = landAt(base, lone, 1, 3, BUB_JOKER);
+    ok(kept.grid[at(1, 3)] === 3 || kept.grid[at(1, 3)] === 4, "a Joker that matches nothing stays, as a colour it touches");
+    ok(kept.jokers === 0, "and does not count as used");
+    const bomb = landAt(base, grid, 1, 3, BUB_BOMB);
+    ok(bomb.grid[at(1, 2)] === 0 && bomb.grid[at(1, 4)] === 0 && bomb.grid[at(0, 3)] === 0 && bomb.grid[at(0, 4)] === 0 && bomb.grid[at(1, 3)] === 0, "a mine clears its neighbours and itself");
+    ok(bomb.grid[at(1, 1)] === 0 || bomb.dropped > 0 || bomb.grid[at(1, 1)] === 1, "a mine leaves farther bubbles (or drops loose ones)");
+    ok(bomb.bombs === 1, "the mine counts");
+    const torpedo = landAt(base, grid, 1, 3, BUB_LINE);
+    ok([1, 2, 4, 5].every((c) => torpedo.grid[at(1, c)] === 0) && torpedo.grid[at(0, 0)] === 3, "a torpedo clears its whole row and nothing above");
+    ok(torpedo.lines === 1 && torpedo.lastSpecialCleared === 4, "the torpedo counts what it cleared");
+  }
+  // Score: partial credit up to 99 (one bubble left), a full clear 130 + speed.
+  {
+    const s = game.init(1);
+    const last = s.grid.findIndex((v) => v > 0);
+    ok(game.score({ ...s, grid: s.grid.map((v, i) => (i === last ? v : 0)) }) === BUB_V2_PARTIAL_MAX, `a part-cleared field scores up to ${BUB_V2_PARTIAL_MAX}`);
+    ok(/up to 99\b/.test(INTRO_SCORE.bubble), "the intro states the 99 partial maximum");
+    ok(game.score({ ...s, cleared: true, endedTick: 1 }) === 150, "a full clear early scores 150");
+  }
+  // Real play: replay identity, balance against the original, and a 150 through the server replay.
+  {
+    const SEED_150 = 96;
+    const run = playBubble(game, SEED_150, 0);
+    const raw = encodeBubbleRun({ seed: SEED_150, claimedScore: run.score, events: run.events, endTick: run.state.tick, checkpoints: run.checkpoints });
+    const replay = replayBubbleRun(SEED_150, raw, BUB_REV);
+    ok(replay.score === run.score && !replay.flagged && JSON.stringify(replay.state) === JSON.stringify(run.state), "server replay agrees");
+    ok(replay.score === 150 && replay.cleared, `150 is reachable on bubbleRev 2 through the server replay (seed ${SEED_150}, cleared at ${replay.endedSeconds} s)`);
+    const N = Number(process.env.BATCH2_BUBBLE_RUNS ?? 16);
+    let v1 = 0, v2 = 0, clears1 = 0, clears2 = 0;
+    for (const seed of SEEDS(N, 7919)) {
+      const a = playBubble(bubbleGame, seed, 30);
+      const b = playBubble(game, seed, 30);
+      v1 += a.score;
+      v2 += b.score;
+      clears1 += a.state.cleared ? 1 : 0;
+      clears2 += b.state.cleared ? 1 : 0;
+    }
+    console.log(`  shot bot (0.5 s between shots), ${N} seeds: original mean ${(v1 / N).toFixed(1)} (${clears1} clears), rev 2 mean ${(v2 / N).toFixed(1)} (${clears2} clears)`);
+    ok(Math.abs(v2 - v1) / N <= 15, "rev 2 stays within 15 points of the original on average (rebalanced partial credit)");
+  }
+}
+
+/* =============================== 2d. Gemstone =============================== */
+if (want("matchup")) {
+  section("Gemstone matchupRev 2");
+  const game = matchupGameFor(MATCHUP_REV);
+  ok(matchupGameFor(undefined) === matchupGame && matchupGame.init(5).rev === undefined, "unstamped Gemstone keeps the original game");
+  ok(game.init(5).rev === MATCHUP_REV, "rev-2 state carries the stamp");
+  ok(JSON.stringify(game.init(5).queues) === JSON.stringify(matchupGame.init(5).queues), "rev 2 keeps the same board and refill queues");
+
+  // A board with no lines where swapping (2,2)<->(3,2) makes a 5-line in row 3 and a 3-line down column 2 (a T).
+  const jackpotBoard = (): number[] => {
+    const cells = Array.from({ length: MATCHUP_CELLS }, (_, i) => {
+      const r = Math.floor(i / MATCHUP_SIZE), c = i % MATCHUP_SIZE;
+      return 2 + ((r + 2 * c) % 4);
+    });
+    for (const c of [0, 1, 3, 4]) cells[matchupIndex(3, c)] = 0;
+    cells[matchupIndex(3, 2)] = 1;
+    cells[matchupIndex(2, 2)] = 0;
+    cells[matchupIndex(4, 2)] = 0;
+    cells[matchupIndex(5, 2)] = 0;
+    return cells;
+  };
+  {
+    const board = jackpotBoard();
+    ok(!matchupHasLine(board), "the jackpot test board has no line before the swap");
+    let s: MatchupState = { ...game.init(9), cells: board };
+    s = game.step(s, { t: 1, k: MATCHUP_INPUT_SWAP, a: 2, b: 2, c: 3, d: 2 });
+    ok(s.cells.includes(MATCHUP_JACKPOT + 0) && s.jackpots === 1, "5 and a T in one swap makes a Jackpot gem in that colour");
+    const legacy = matchupGame.step({ ...matchupGame.init(9), cells: board }, { t: 1, k: MATCHUP_INPUT_SWAP, a: 2, b: 2, c: 3, d: 2 });
+    ok(legacy.cells.every((v) => v < MATCHUP_JACKPOT), "the original rules never make a Jackpot");
+    // Let any cascade settle, then set the Jackpot off by swapping it.
+    for (let i = 0; i < 400 && matchupPending(s); i++) s = game.step(s, null);
+    const where = s.cells.findIndex((v) => v === MATCHUP_JACKPOT);
+    ok(where >= 0, "the Jackpot gem is on the settled board");
+    const r = Math.floor(where / MATCHUP_SIZE), c = where % MATCHUP_SIZE;
+    const colourCount = s.cells.filter((v) => v === 0).length;
+    const before = s.raw;
+    const nr = r > 0 ? r - 1 : r + 1;
+    s = game.step(s, { t: s.tick + 1, k: MATCHUP_INPUT_SWAP, a: r, b: c, c: nr, d: c });
+    ok(s.jackpotsFired === 1, "swapping a Jackpot sets it off");
+    ok(s.raw - before >= 10 * Math.max(colourCount, MATCHUP_SIZE + 7), `it clears its colour plus a cross (+${s.raw - before} points)`);
+    ok(s.raw - before < MATCHUP_V2_PAR_RAW / 10, "one Jackpot is worth well under a tenth of the par (it cannot make 150 alone)");
+  }
+  // Constant play: swaps land while a cascade is still to resolve, and replay identically.
+  {
+    let pendingSwaps = 0;
+    let best = 0;
+    for (const seed of SEEDS(Number(process.env.BATCH2_MATCHUP_RUNS ?? 6), 15_485_863)) {
+      const run = playMatchup(game, seed, 20);
+      const raw = encodeMatchupRun({ seed, claimedScore: run.score, events: run.events, endTick: run.state.tick, checkpoints: run.checkpoints });
+      const replay = replayMatchupRun(seed, raw, MATCHUP_REV);
+      ok(replay.score === run.score && !replay.flagged && JSON.stringify(replay.state) === JSON.stringify(run.state), `seed ${seed}: server replay agrees`);
+      best = Math.max(best, replay.score);
+      // Count swaps applied while the board was still settling.
+      let s = game.init(seed);
+      const byTick = new Map(run.events.map((e) => [e.t, e]));
+      for (let t = 1; t <= run.state.tick; t++) {
+        const event = byTick.get(t) ?? null;
+        const pending = matchupPending(s);
+        const next = game.step(s, event);
+        if (event && pending && next.swaps > s.swaps) pendingSwaps += 1;
+        s = next;
+      }
+    }
+    ok(pendingSwaps > 0, `swaps are accepted while gems are still clearing (${pendingSwaps} in the sample)`);
+    ok(best === 150, "150 is reachable on matchupRev 2 through the server replay");
+    // Cascade steps resolve MATCHUP_V2_STEP_TICKS apart, on sim ticks.
+    let s = game.init(4242);
+    let lastStep = -1;
+    for (const e of playMatchup(game, 4242, 40).events) {
+      while (s.tick + 1 < e.t) {
+        const serial = s.resolveSerial ?? 0;
+        s = game.step(s, null);
+        if ((s.resolveSerial ?? 0) > serial) {
+          if (lastStep >= 0) ok(s.tick - lastStep >= MATCHUP_V2_STEP_TICKS, "cascade steps are spaced on the sim clock");
+          lastStep = s.tick;
+        }
+      }
+      const serial = s.resolveSerial ?? 0;
+      s = game.step(s, e);
+      if ((s.resolveSerial ?? 0) > serial) lastStep = -1;
+    }
+    // Balance: the same bot pace scores about the same on both rules.
+    const N = 8;
+    let v1 = 0, v2 = 0;
+    for (const seed of SEEDS(N, 7919)) {
+      v1 += playMatchup(matchupGame, seed, 60).score;
+      v2 += playMatchup(game, seed, 60).score;
+    }
+    console.log(`  swap bot (1 s think), ${N} seeds: original mean ${(v1 / N).toFixed(1)}, rev 2 mean ${(v2 / N).toFixed(1)} (par ${MATCHUP_V2_PAR_RAW})`);
+    ok(Math.abs(v2 - v1) / N <= 15, "at the same pace rev 2 stays within 15 points of the original (rebalanced par)");
+  }
 }
 
 function cellAway(cell: number): number {

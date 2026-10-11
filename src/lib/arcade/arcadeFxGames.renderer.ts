@@ -72,11 +72,19 @@ import {
   type BullseyeState,
 } from "./bullseye";
 import { SLICE_WORLD_H, SLICE_WORLD_W, sliceMultiplier, type SliceState } from "./slice";
-import { BUB_WORLD_H, BUB_WORLD_W, type BubState } from "./bubble";
+import { bubCellX, bubCellY, BUB_COLS, BUB_WORLD_H, BUB_WORLD_W, type BubState } from "./bubble";
+
+/** Where the last special landed (bubbleRev 2), in world units. */
+function bubSpecialPoint(s: BubState): { x: number; y: number } {
+  const cell = s.lastSpecialCell ?? -1;
+  if (cell < 0) return { x: BUB_WORLD_W / 2, y: BUB_WORLD_H / 2 };
+  const row = Math.floor(cell / BUB_COLS);
+  return { x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, s.descents) };
+}
 import { SNIP_CONFIG, SNIP_H, snipCamera, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { BT_BALLS, BT_H, BT_W, type BtState } from "./ballTrack";
-import { MATCHUP_PAR_RAW, MATCHUP_WORLD_H, MATCHUP_WORLD_W, type MatchupState } from "./matchup";
+import { matchupParRaw, MATCHUP_WORLD_H, MATCHUP_WORLD_W, type MatchupState } from "./matchup";
 
 /** Which world each active arcade game belongs to (docs/duelz-game-bank.md). */
 export const ARCADE_GAME_WORLDS = {
@@ -554,6 +562,10 @@ export const BUBBLE_FX: ArcadeFxSpec<BubState> = {
       at: (s) => ({ x: px(s.x), y: px(s.y) }),
       label: (_s, _n, d) => `${d} DROPPED!`,
     },
+    // bubbleRev 2 specials (original rounds never have any).
+    { kind: "perfect", count: (s) => s.jokers ?? 0, at: (s) => bubSpecialPoint(s), label: () => "JOKER!" },
+    { kind: "perfect", count: (s) => s.bombs ?? 0, at: (s) => bubSpecialPoint(s), label: (s) => `BOOM! ×${s.lastSpecialCleared ?? 0}` },
+    { kind: "perfect", count: (s) => s.lines ?? 0, at: (s) => bubSpecialPoint(s), label: (s) => `TORPEDO! ×${s.lastSpecialCleared ?? 0}` },
     { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "REEF CLEARED!" },
   ],
 };
@@ -679,9 +691,12 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
       label: (s) => `CASCADE ×${s.lastSteps}`,
     },
     { kind: "perfect", count: (s) => s.bestLine, min: 5, label: (_s, n) => `${n} IN A LINE!` },
+    // matchupRev 2: a Jackpot gem made (5 and an L/T in one swap) and one set off.
+    { kind: "perfect", count: (s) => s.jackpots ?? 0, label: () => "JACKPOT GEM!", colour: () => "#FFFFFF" },
+    { kind: "combo", count: (s) => s.jackpotsFired ?? 0, label: () => "JACKPOT!" },
     {
       kind: "final",
-      count: (s) => (s.raw >= MATCHUP_PAR_RAW ? 1 : 0),
+      count: (s) => (s.raw >= matchupParRaw(s) ? 1 : 0),
       label: () => "PAR SMASHED!",
     },
   ],

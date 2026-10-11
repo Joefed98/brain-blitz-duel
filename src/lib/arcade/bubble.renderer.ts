@@ -14,9 +14,14 @@ import {
   bubCellX,
   bubCellY,
   bubColour,
+  bubIsSpecial,
   bubNextColour,
   bubRowCols,
+  BUB_BOMB,
   BUB_COLS,
+  BUB_JOKER,
+  BUB_LINE,
+  BUB_PALETTE,
   BUB_HUD_H,
   BUB_MAX_ROWS,
   BUB_R,
@@ -142,7 +147,109 @@ export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx:
   c.restore();
 }
 
+/**
+ * bubbleRev 2 specials, each with its own look and none of the creature
+ * symbols: a pearl Joker ringed with all five colours, a black sea mine (Bomb)
+ * with a red light, and a teal Torpedo bubble with a white torpedo pointing both
+ * ways. All drawn inside the bubble circle (the collision bound).
+ */
+function paintSpecial(value: number) {
+  return (c: CanvasRenderingContext2D, size: number) => {
+    const r = size / 2;
+    c.save();
+    c.beginPath();
+    c.arc(r, r, r - 0.5, 0, Math.PI * 2);
+    c.clip();
+    if (value === BUB_JOKER) {
+      const g = c.createRadialGradient(r * 0.7, r * 0.65, r * 0.1, r, r, r);
+      g.addColorStop(0, "#FFFFFF");
+      g.addColorStop(1, "#DCD6F2");
+      c.fillStyle = g;
+      c.fillRect(0, 0, size, size);
+      BUB_PALETTE.forEach((colour, i) => {
+        const a0 = -Math.PI / 2 + (i * 2 * Math.PI) / BUB_PALETTE.length;
+        c.fillStyle = colour;
+        c.beginPath();
+        c.moveTo(r, r);
+        c.arc(r, r, r, a0, a0 + (2 * Math.PI) / BUB_PALETTE.length);
+        c.closePath();
+        c.fill();
+      });
+      c.fillStyle = "#FFFFFF";
+      c.beginPath();
+      c.arc(r, r, r * 0.52, 0, Math.PI * 2);
+      c.fill();
+      // A sparkle: the Joker plays any colour.
+      c.fillStyle = "#2A2350";
+      c.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 4;
+        const d = i % 2 === 0 ? r * 0.4 : r * 0.13;
+        c.lineTo(r + Math.cos(a) * d, r + Math.sin(a) * d);
+      }
+      c.closePath();
+      c.fill();
+    } else if (value === BUB_BOMB) {
+      c.fillStyle = "#3A1E22";
+      c.fillRect(0, 0, size, size);
+      c.fillStyle = "#14161B";
+      c.beginPath();
+      c.arc(r, r, r * 0.66, 0, Math.PI * 2);
+      c.fill();
+      // Mine spikes, inside the rim.
+      c.strokeStyle = "#14161B";
+      c.lineWidth = Math.max(1.5, r * 0.18);
+      c.lineCap = "round";
+      c.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = (i * Math.PI) / 4;
+        c.moveTo(r + Math.cos(a) * r * 0.6, r + Math.sin(a) * r * 0.6);
+        c.lineTo(r + Math.cos(a) * r * 0.86, r + Math.sin(a) * r * 0.86);
+      }
+      c.stroke();
+      c.fillStyle = "#FF3B3B";
+      c.beginPath();
+      c.arc(r, r - r * 0.18, r * 0.17, 0, Math.PI * 2);
+      c.fill();
+      c.fillStyle = "rgba(255,255,255,0.35)";
+      c.beginPath();
+      c.arc(r - r * 0.25, r - r * 0.3, r * 0.12, 0, Math.PI * 2);
+      c.fill();
+    } else {
+      const g = c.createRadialGradient(r * 0.75, r * 0.7, r * 0.1, r, r, r);
+      g.addColorStop(0, "#7EE6F2");
+      g.addColorStop(1, "#128AA0");
+      c.fillStyle = g;
+      c.fillRect(0, 0, size, size);
+      // Torpedo body with a fin, and arrowheads both ways: it clears the whole row.
+      c.fillStyle = "#FFFFFF";
+      c.beginPath();
+      c.ellipse(r, r, r * 0.42, r * 0.17, 0, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.moveTo(r - r * 0.92, r);
+      c.lineTo(r - r * 0.62, r - r * 0.24);
+      c.lineTo(r - r * 0.62, r + r * 0.24);
+      c.closePath();
+      c.moveTo(r + r * 0.92, r);
+      c.lineTo(r + r * 0.62, r - r * 0.24);
+      c.lineTo(r + r * 0.62, r + r * 0.24);
+      c.closePath();
+      c.fill();
+      c.fillStyle = "#0B4652";
+      c.fillRect(r - r * 0.06, r - r * 0.17, r * 0.12, r * 0.34);
+    }
+    c.restore();
+    c.strokeStyle = "rgba(255,255,255,0.85)";
+    c.lineWidth = Math.max(1, r * 0.1);
+    c.beginPath();
+    c.arc(r, r, r - c.lineWidth, 0, Math.PI * 2);
+    c.stroke();
+  };
+}
+
 function paintBubble(value: number) {
+  if (bubIsSpecial(value)) return paintSpecial(value);
   return (c: CanvasRenderingContext2D, size: number) => {
     const r = size / 2;
     const colour = bubColour(value);
@@ -172,30 +279,46 @@ function paintBubble(value: number) {
 
 /** Blits a cached bubble sprite at CSS-px centre with CSS-px radius. */
 function blitBubble(ctx: CanvasRenderingContext2D, value: number, x: number, y: number, radius: number, dpr: number, alpha = 1): void {
-  const sprite = seaSprite(`bub${value}${creatureArtReady() ? "-art" : ""}`, radius * 2 * dpr, paintBubble(value));
+  const key = bubIsSpecial(value) ? `bub-special${value}` : `bub${value}${creatureArtReady() ? "-art" : ""}`;
+  const sprite = seaSprite(key, radius * 2 * dpr, paintBubble(value));
   if (!sprite) return;
   if (alpha !== 1) ctx.globalAlpha = alpha;
   ctx.drawImage(sprite as CanvasImageSource, x - radius, y - radius, radius * 2, radius * 2);
   if (alpha !== 1) ctx.globalAlpha = 1;
 }
 
-interface Fx { kind: 0 | 1; value: number; x: number; y: number; born: number; seed: number }
-interface Memo { tick: number; grid: number[]; descents: number; fx: Fx[] }
+/** kind 0 pop, 1 drop; bubbleRev 2: 2 bomb blast, 3 torpedo row flash, 4 joker sparkle. */
+interface Fx { kind: 0 | 1 | 2 | 3 | 4; value: number; x: number; y: number; born: number; seed: number }
+interface Memo { tick: number; grid: number[]; descents: number; fx: Fx[]; specials: number; blast: Fx | null }
 const memos = new WeakMap<object, Memo>();
 const FX_CAP = 4;
 
 function memoFor(ctx: CanvasRenderingContext2D, state: BubState): Memo {
   let m = memos.get(ctx);
   if (!m || state.tick < m.tick) {
-    m = { tick: state.tick, grid: [...state.grid], descents: state.descents, fx: [] };
+    m = { tick: state.tick, grid: [...state.grid], descents: state.descents, fx: [], specials: specialCount(state), blast: null };
     memos.set(ctx, m);
   }
   return m;
 }
 
+function specialCount(state: BubState): number {
+  return (state.jokers ?? 0) + (state.bombs ?? 0) + (state.lines ?? 0);
+}
+
 function trackRemovals(m: Memo, state: BubState, colour: number): void {
   if (state.tick === m.tick) return;
   const now = seaNow();
+  // bubbleRev 2: a special went off since the last frame; what it cleared pops (no fall).
+  const special = specialCount(state) > m.specials;
+  if (special && (state.lastSpecialCell ?? -1) >= 0) {
+    const cell = state.lastSpecialCell!;
+    const row = Math.floor(cell / BUB_COLS);
+    const kind = state.lastSpecial === BUB_BOMB ? 2 : state.lastSpecial === BUB_LINE ? 3 : 4;
+    m.blast = { kind, value: state.lastSpecial ?? 0, x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, m.descents), born: now, seed: cell };
+  }
+  m.specials = specialCount(state);
+  if (special) colour = -1;
   if (state.popped + state.dropped > 0 && state.grid !== m.grid) {
     for (let row = 0; row < BUB_MAX_ROWS; row++) {
       for (let col = 0; col < bubRowCols(row); col++) {
@@ -204,7 +327,7 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
         if (!was || state.grid[i]) continue;
         if (m.fx.length >= FX_CAP) m.fx.shift();
         m.fx.push({
-          kind: was === colour ? 0 : 1,
+          kind: was === colour || colour === -1 ? 0 : 1,
           value: was,
           x: bubCellX(row, col),
           y: bubCellY(row, m.descents),
@@ -337,6 +460,47 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     } else {
       const k = age / (still ? 0.16 : 0.48);
       blitBubble(ctx, f.value, X(f.x), Y(f.y) + (still ? 0 : age * age * 520 * rs), radius, dpr, 1 - k);
+    }
+  }
+
+  // bubbleRev 2: the special's blast — a ring for the Bomb, a flash along the row for the Torpedo, a sparkle for the Joker.
+  if (m.blast) {
+    const f = m.blast;
+    const age = (now - f.born) / 1000;
+    const life = still ? 0.2 : 0.55;
+    if (age >= life) m.blast = null;
+    else {
+      const k = age / life;
+      ctx.save();
+      ctx.globalAlpha = 1 - k;
+      if (f.kind === 2) {
+        ctx.strokeStyle = "#FFB347";
+        ctx.lineWidth = Math.max(2, 5 * rs * (1 - k));
+        ctx.beginPath();
+        ctx.arc(X(f.x), Y(f.y), (BUB_R + (still ? 2 : k * 2.4) * BUB_ROW_H) * rs, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,240,200,0.5)";
+        ctx.beginPath();
+        ctx.arc(X(f.x), Y(f.y), BUB_R * rs * (1.2 - k * 0.6), 0, Math.PI * 2);
+        ctx.fill();
+      } else if (f.kind === 3) {
+        ctx.fillStyle = "rgba(200,250,255,0.75)";
+        const h = BUB_R * 2 * sy * (1 - k * 0.7);
+        ctx.fillRect(X(BUB_WALL), Y(f.y) - h / 2, X(BUB_WORLD_W - 2 * BUB_WALL), h);
+      } else {
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = Math.max(1.5, 2.5 * rs);
+        for (let i = 0; i < 5; i++) {
+          const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+          const d = (BUB_R + (still ? 4 : k * 26)) * rs;
+          ctx.strokeStyle = BUB_PALETTE[i] ?? "#FFFFFF";
+          ctx.beginPath();
+          ctx.moveTo(X(f.x) + Math.cos(a) * d * 0.6, Y(f.y) + Math.sin(a) * d * 0.6);
+          ctx.lineTo(X(f.x) + Math.cos(a) * d, Y(f.y) + Math.sin(a) * d);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
     }
   }
 

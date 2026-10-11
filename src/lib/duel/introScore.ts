@@ -10,6 +10,7 @@ import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { RALLY_GOLD_POINTS } from "@/lib/arcade/rally";
 import { SNAKE_PELLET_POINTS } from "@/lib/arcade/snake";
+import { BUB_V2_PARTIAL_MAX } from "@/lib/arcade/bubble";
 import { HOVER_REACHABLE_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { SKYLINE_BLOCK_POINTS, SKYLINE_PERFECT_POINTS } from "@/lib/arcade/skyline";
 import { EQUATION_STAGE_POINTS, CHAIN_LENGTH, CHAIN_LINK_POINTS, type PuzzleType } from "./types";
@@ -137,7 +138,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   cross: `${CROSS_LANE_POINTS} points for each lane crossed, plus ${CROSS_CROSSING_POINTS} for each full crossing. Up to 150.`,
   breaker: arcadeSplit("each brick", `Clear all ${BRK_BRICKS} bricks`, 128),
   rally: `${RALLY_GOLD_POINTS} points per gold-ball hit, up to 150. The blue ball scores nothing.`,
-  bubble: arcadeSplit("each bubble", "Clear the whole field", 128),
+  bubble: arcadeSplit("each bubble", "Clear the whole field", BUB_V2_PARTIAL_MAX),
   slice: "Points for each food you slice; cut several at once for more. Chilli: lose 10.",
   beat: "Points for each note you hit in time. Missed note: lose 2.",
   wavefront: "Points for ships, saucers and waves cleared. Clear all five waves perfectly for 150.",

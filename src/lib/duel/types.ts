@@ -1950,6 +1950,8 @@ export interface MatchupPuzzleData {
   type: "matchup";
   /** Draws the board and each column's refill queue — identical for everyone. */
   seed: number;
+  /** Rule revision (2 = Jackpot gem, constant play, own par); absent = original rules. */
+  matchupRev?: number;
 }
 
 /* ================= Snake / Cross / Dual / Ricochet ======================= */
@@ -2069,6 +2071,8 @@ export interface BubblePuzzleData {
   type: "bubble";
   /** Draws the starting field and the whole bubble queue — identical for everyone. */
   seed: number;
+  /** Rule revision (2 = Joker, Bomb and Torpedo bubbles in the queue); absent = original rules. */
+  bubbleRev?: number;
 }
 
 export interface BeatPuzzleData {

@@ -71,6 +71,7 @@ const { binTossArtGame } = await import("../src/lib/arcade/binTossArt.renderer")
 const { drawBullseye } = await import("../src/lib/arcade/bullseye.renderer");
 const { bullseyeGame } = await import("../src/lib/arcade/bullseye");
 const { bubbleArtGame } = await import("../src/lib/arcade/bubble.renderer");
+const { bubbleRev2Game } = await import("../src/lib/arcade/bubble");
 const { flipArtGame } = await import("../src/lib/arcade/flipArt.renderer");
 const { swingArtGame } = await import("../src/lib/arcade/swing.renderer");
 const { snipArtGame } = await import("../src/lib/arcade/snip.renderer");
@@ -79,6 +80,7 @@ const { btArtDraw } = await import("../src/lib/arcade/ballTrackArt.renderer");
 const { makeBallTrackGame } = await import("../src/lib/arcade/ballTrack");
 const { BALL_TRACK_BANK } = await import("../src/lib/duel/ballTrackBank.server");
 const { matchupArtGame } = await import("../src/lib/arcade/matchup.renderer");
+const { matchupRev2Game } = await import("../src/lib/arcade/matchup");
 
 type AnyGame = {
   init: (seed: number) => any;
@@ -115,7 +117,7 @@ const GAMES: Record<string, AnyGame> = {
   slice: sliceArtGame as AnyGame,
   bintoss: binTossArtGame as AnyGame,
   bullseye: { ...bullseyeGame, draw: drawBullseye } as AnyGame,
-  bubble: bubbleArtGame as AnyGame,
+  bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
   flip: flipArtGame as AnyGame,
   swing: swingArtGame as AnyGame,
   snip: snipArtGame as AnyGame,
@@ -124,7 +126,7 @@ const GAMES: Record<string, AnyGame> = {
     ...btGame,
     draw: (ctx: CanvasRenderingContext2D, s: any) => btArtDraw(ctx, course, s, btGame.rotatable),
   } as AnyGame,
-  matchup: matchupArtGame as AnyGame,
+  matchup: { ...matchupArtGame, init: matchupRev2Game.init } as AnyGame,
 };
 
 assert.equal(Object.keys(GAMES).length, 22, "22 active arcade games");
@@ -293,6 +295,9 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   bubble: [
     (s) => ({ ...s, popped: s.popped + 6 }),
     (s) => ({ ...s, dropped: s.dropped + 4 }),
+    (s) => ({ ...s, jokers: (s.jokers ?? 0) + 1, lastSpecialCell: 13 }),
+    (s) => ({ ...s, bombs: (s.bombs ?? 0) + 1, lastSpecialCell: 13, lastSpecialCleared: 5 }),
+    (s) => ({ ...s, lines: (s.lines ?? 0) + 1, lastSpecialCell: 13, lastSpecialCleared: 8 }),
     (s) => ({ ...s, cleared: true }),
   ],
   flip: [(s) => ({ ...s, tick: s.tick + 600 }), (s) => ({ ...s, ended: 1 })],
@@ -310,7 +315,9 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   matchup: [
     (s) => ({ ...s, cascades: s.cascades + 1, lastSteps: 3 }),
     (s) => ({ ...s, bestLine: 5 }),
-    (s) => ({ ...s, raw: 2500 }),
+    (s) => ({ ...s, jackpots: (s.jackpots ?? 0) + 1 }),
+    (s) => ({ ...s, jackpotsFired: (s.jackpotsFired ?? 0) + 1 }),
+    (s) => ({ ...s, raw: 1e6 }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {

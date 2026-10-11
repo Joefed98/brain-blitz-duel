@@ -1144,7 +1144,7 @@ export function gradeSubmission(
     }
     case "bubble": {
       const replayStart = performance.now();
-      const run = replayBubbleRun(puzzle.seed, answer);
+      const run = replayBubbleRun(puzzle.seed, answer, puzzle.bubbleRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1157,6 +1157,7 @@ export function gradeSubmission(
         dropped: run.dropped,
         shots: run.shots,
         bubblesLeft: run.bubblesLeft,
+        ...(puzzle.bubbleRev ? { bubbleRev: puzzle.bubbleRev, jokers: run.jokers, bombs: run.bombs, lines: run.lines } : {}),
         startCount: run.state.startCount,
         cleared: run.cleared,
         survived: run.survived,
@@ -1837,7 +1838,7 @@ export function gradeSubmission(
     case "matchup": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replayMatchupRun(puzzle.seed, answer);
+      const run = replayMatchupRun(puzzle.seed, answer, puzzle.matchupRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1849,6 +1850,7 @@ export function gradeSubmission(
         raw: run.raw,
         swaps: run.swaps,
         bestLine: run.bestLine,
+        ...(puzzle.matchupRev ? { matchupRev: puzzle.matchupRev, parRaw: run.parRaw, jackpots: run.jackpots, jackpotsFired: run.jackpotsFired } : {}),
         cascades: run.cascades,
         reshuffles: run.reshuffles,
         endedSeconds: run.endedSeconds,
