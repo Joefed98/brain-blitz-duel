@@ -164,7 +164,11 @@ await titleTransition(
 );
 assert.equal(stored.phase_started_at, new Date(19000).toISOString());
 assert.doesNotMatch(titleBody, /hostNext|allIntroReady/);
-assert.match(server, /current_round: round \+ 1,\s+phase: "round_title"/);
+// The standings → next round write lives with the other guarded phase writes.
+assert.match(
+  readFileSync("src/lib/duel/roomPhase.server.ts", "utf8"),
+  /current_round: round \+ 1,\s+phase: "round_title"/,
+);
 assert.match(title, /puzzleDef\(type\)\.category/);
 assert.match(title, /elapsed > ROUND_TITLE_VOICE_CUTOFF_MS\) return/);
 assert.match(title, /prepareRoundMusic/);
