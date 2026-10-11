@@ -1,4 +1,5 @@
 import { INK_REV3 } from "@/lib/arcade/inkBridge";
+import { SNAKE_REV } from "@/lib/arcade/snake";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
@@ -79,7 +80,7 @@ export function generateMatchup(): MatchupPuzzleData {
 }
 
 export function generateSnake(): SnakePuzzleData {
-  return { type: "snake", seed: arcadeSeed() };
+  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV };
 }
 
 export function generateCross(): CrossPuzzleData {

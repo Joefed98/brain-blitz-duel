@@ -246,7 +246,18 @@ export const SNAKE_FX: ArcadeFxSpec<SnakeState> = {
       count: (s) => s.eaten,
       every: 10,
       at: snakeHead,
-      label: (_s, n) => `${n} PELLETS`,
+      label: (_s, n) => `${n} STARS`,
+    },
+    // snakeRev 2: a rock landed and the meteor's head was clear of it (original rounds have no rocks).
+    {
+      kind: "pop",
+      count: (s) => s.rocks?.length ?? 0,
+      when: (s) => !s.dead,
+      at: (s) => {
+        const rock = s.rocks?.[s.rocks.length - 1] ?? 0;
+        return { x: SNAKE_BOARD_X + snakeCol(rock) * SNAKE_CELL + SNAKE_CELL / 2, y: SNAKE_BOARD_Y + snakeRow(rock) * SNAKE_CELL - 6 };
+      },
+      label: () => "DODGED!",
     },
     {
       kind: "final",

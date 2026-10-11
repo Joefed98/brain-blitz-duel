@@ -1960,8 +1960,10 @@ export const RICO_TIME_MS = 63_000;
 
 export interface SnakePuzzleData {
   type: "snake";
-  /** Draws the whole pellet queue — identical for everyone in the room. */
+  /** Draws the whole star queue (and rock schedule) — identical for everyone in the room. */
   seed: number;
+  /** Rule revision (2 = asteroids); absent = original rules. */
+  snakeRev?: number;
 }
 
 export interface CrossPuzzleData {

@@ -33,7 +33,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
       <div>
         <p className="font-mono text-[10px] font-bold uppercase text-category-accent">How</p>
         <div className="flex flex-col gap-0.5 text-sm leading-snug text-muted-foreground">
-          {instructions.how.map((line) => (
+          {instructions.how.filter((line) => overlay || !line.helpOnly).map((line) => (
             <p key={`${line.action}-${line.detail}`}>
               <strong className="font-bold text-foreground">{line.action}</strong> {line.detail}
             </p>

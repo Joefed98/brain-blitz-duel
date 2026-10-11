@@ -38,7 +38,7 @@ import { rallyCheckpoint, rallyGame } from "@/lib/arcade/rally";
 import { ricoCheckpoint, ricoGame } from "@/lib/arcade/ricochet";
 import { skylineCheckpoint, skylineGame } from "@/lib/arcade/skyline";
 import { sliceCheckpoint, sliceGame } from "@/lib/arcade/slice";
-import { snakeCheckpoint, snakeGame } from "@/lib/arcade/snake";
+import { snakeCheckpoint, snakeGame, snakeGameFor, SNAKE_REV } from "@/lib/arcade/snake";
 import { stdCheckpoint, steadyGame } from "@/lib/arcade/steady";
 import { swerveCheckpoint, swerveGame, type SwerveInput } from "@/lib/arcade/swerve";
 import { encodeBeatRun, replayBeatRun } from "@/lib/duel/beat";
@@ -341,6 +341,7 @@ const GAMES: Game[] = [
     encode: encodeOrbitRun,
     replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV3, encodeRev3Planets(orbitPlanets(seed))),
   },
+  { key: "snake/v2", game: snakeGameFor(SNAKE_REV), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV) },
   { key: "bintoss/v2", game: binTossGameFor(BINTOSS_REV), checkpoint: binTossCheckpoint, mode: "events", rate: 15, encode: encodeBinTossRun, replay: (seed: number, raw: string) => replayBinTossRun(seed, raw, BINTOSS_REV) },
   { key: "ink/v3", game: inkBridgeGameFor(INK_REV3), checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV3) },
   { key: "swing/v3", game: swingGameFor(SWING_REV), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV) },

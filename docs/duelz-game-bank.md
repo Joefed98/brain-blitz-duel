@@ -147,7 +147,7 @@ All run on the deterministic engine: 60 ticks/s, integer physics, seeded courses
 | Slice (slice) | Kitchen | swipe | Chop flying foods on a chopping board, avoid chillies; combo multiplier up to ×3; Saucy (ketchup, bomb-free) and Simmer (mustard, slow-mo). | 60 s |
 | Coral Pop (bubble) | Underwater | drag-aim | Hex bubble shooter, five colours with sea-creature symbols, fixed queue. | 90 s |
 | Tempo (beat) | Retro | tap lanes | Four-lane rhythm chart at 120 BPM with hold notes and combo. | 60 s |
-| Meteor (snake) | Retro | swipe | Snake-style meteor with a fixed pellet queue; the tail glows as it grows. | 60 s |
+| Meteor (snake) | Retro | swipe | Snake-style meteor with a fixed star queue; the tail glows as it grows. snakeRev 2: seeded asteroids (2 s shadow, head-only hits) from length 10. | 60 s |
 | Jaywalk (cross) | Real World | swipe 4-way | Cross nine lanes of traffic, faster each crossing; 3 lives. Score = 2 × lanes + 4 × crossings. | 60 s |
 | Wavefront (wavefront) | Space | tap/drag | Shoot rows of geometric ships, armoured ships and saucers through five waves; 3 lives. | 60 s |
 | Roofbound (flip) | Cave & Lava | tap | Gravity-flip runner through a lava tube; bends ramp up in the last 15 s; score rises with survival time. | 60 s |

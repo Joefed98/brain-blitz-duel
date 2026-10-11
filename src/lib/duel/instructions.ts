@@ -4,6 +4,8 @@ import type { PuzzleType } from "./types";
 export interface PuzzleInstructionLine {
   action: string;
   detail: string;
+  /** Shown only in the "?" help, not on the round intro (keeps the intro to three lines). */
+  helpOnly?: boolean;
 }
 
 export interface PuzzleInstructions {
@@ -561,11 +563,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "3 = 10, 4 = 25, 5 = 50; clamp(floor(150 × match points ÷ 2,500), 0, 150).",
   },
   snake: {
-    goal: "Eat the pellets and don't hit anything.",
+    goal: "Eat the stars and don't hit anything.",
     how: [
-      { action: "Swipe to turn", detail: "up, down, left or right." },
-      { action: "You grow with every pellet", detail: "and you speed up." },
-      { action: "Everyone gets", detail: "the same food in the same order." },
+      { action: "Swipe to turn.", detail: "Each star makes you longer and faster." },
+      { action: "From length 10, rocks fall.", detail: "A red shadow shows the square 2 seconds before." },
+      { action: "Only your head can hit a rock.", detail: "Your tail passes through." },
+      { action: "One more rock", detail: "lands every 5 stars after that, up to 8. Stars never appear on a rock.", helpOnly: true },
+      { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
     ],
     score: "5 points per star eaten, up to 150.",
   },

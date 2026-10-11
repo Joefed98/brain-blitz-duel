@@ -57,6 +57,7 @@ const { breakerArtGame } = await import("../src/lib/arcade/breaker.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
+const { snakeRev2Game } = await import("../src/lib/arcade/snake");
 const { burstArtGame } = await import("../src/lib/arcade/burst.renderer");
 const { wavefrontArtGame } = await import("../src/lib/arcade/wavefront.renderer");
 const { orbitArtGame } = await import("../src/lib/arcade/orbit.renderer");
@@ -102,7 +103,7 @@ const GAMES: Record<string, AnyGame> = {
   breaker: breakerArtGame as AnyGame,
   rally: rallyArtGame as AnyGame,
   beat: beatArtGame as AnyGame,
-  snake: snakeArtGame as AnyGame,
+  snake: { ...snakeArtGame, init: snakeRev2Game.init } as AnyGame,
   burst: burstArtGame as AnyGame,
   wavefront: wavefrontArtGame as AnyGame,
   orbit: orbitArtGame as AnyGame,
@@ -232,7 +233,11 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   ],
   rally: [(s) => ({ ...s, hits: s.hits + 10 }), (s) => ({ ...s, goldHits: s.goldHits + 1 })],
   beat: [(s) => ({ ...s, combo: s.combo + 10 }), (s) => ({ ...s, maxCombo: s.chart.ticks.length })],
-  snake: [(s) => ({ ...s, eaten: s.eaten + 10 }), (s) => ({ ...s, eaten: s.queue.length })],
+  snake: [
+    (s) => ({ ...s, eaten: s.eaten + 10 }),
+    (s) => ({ ...s, dead: false, rocks: [...(s.rocks ?? []), 2 * 15 + 2] }),
+    (s) => ({ ...s, eaten: s.queue.length }),
+  ],
   burst: [
     (s) => ({ ...s, cleared: s.cleared + 1 }),
     (s) => ({ ...s, ended: 1, lives: 3, cleared: 4 }),

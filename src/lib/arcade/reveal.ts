@@ -168,7 +168,8 @@ const BUILDERS: Record<string, Builder> = {
     lines: [`${n(r, "pellets")} stars → ${s}`],
     tiles: [
       { label: "Length", value: String(n(r, "length")) },
-      { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "endedSeconds")) },
+      { label: b(r, "survived") ? "Survived" : b(r, "rockHit") ? "Hit a rock at" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "endedSeconds")) },
+      ...(n(r, "rocks") > 0 ? [{ label: "Rocks dodged", value: String(n(r, "rocksDodged")) }] : []),
     ],
     outcome: ended(r, false),
   }),

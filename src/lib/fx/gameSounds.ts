@@ -154,6 +154,9 @@ export function snakeSounds(): GameSounds<SnakeState> {
       if (prev && state.tick > prev.tick) {
         if (state.dead && !prev.dead) playSound("arc_retro_explode");
         else if (state.eaten > prev.eaten) playSound("arc_retro_blip");
+        // snakeRev 2: a rock's shadow appears, then it lands clear of the head.
+        else if ((state.rocks?.length ?? 0) > (prev.rocks?.length ?? 0)) playSound("arc_retro_hit", 0.7);
+        else if ((state.rockWarn ?? -1) >= 0 && (prev.rockWarn ?? -1) < 0) playSound("arc_retro_note", 0.5, 0.7);
       }
       prev = state;
     },

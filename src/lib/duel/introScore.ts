@@ -9,6 +9,7 @@ import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { RALLY_GOLD_POINTS } from "@/lib/arcade/rally";
+import { SNAKE_PELLET_POINTS } from "@/lib/arcade/snake";
 import { SKYLINE_BLOCK_POINTS, SKYLINE_PERFECT_POINTS } from "@/lib/arcade/skyline";
 import { EQUATION_STAGE_POINTS, CHAIN_LENGTH, CHAIN_LINK_POINTS, type PuzzleType } from "./types";
 
@@ -131,7 +132,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   bintoss: arcadeSplit("each bucket", `Sink all ${BINTOSS_THROWS} buckets`, 90),
   bullseye: `Rings score ${BULLSEYE_RING_VALUES[0]} in the centre down to ${BULLSEYE_RING_VALUES[BULLSEYE_RING_VALUES.length - 1]} at the edge. Higher totals score more.`,
   matchup: "Match lines of three or more; longer lines score far more. Up to 150.",
-  snake: arcadeOpen("each star you eat"),
+  snake: `${SNAKE_PELLET_POINTS} points for each star you eat. Up to 150.`,
   cross: `${CROSS_LANE_POINTS} points for each lane crossed, plus ${CROSS_CROSSING_POINTS} for each full crossing. Up to 150.`,
   breaker: arcadeSplit("each brick", `Clear all ${BRK_BRICKS} bricks`, 128),
   rally: `${RALLY_GOLD_POINTS} points per gold-ball hit, up to 150. The blue ball scores nothing.`,

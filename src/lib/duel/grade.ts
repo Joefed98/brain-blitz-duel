@@ -925,7 +925,7 @@ export function gradeSubmission(
     case "snake": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replaySnakeRun(puzzle.seed, answer);
+      const run = replaySnakeRun(puzzle.seed, answer, puzzle.snakeRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -935,6 +935,7 @@ export function gradeSubmission(
       score = run.score;
       extraDetail = {
         pellets: run.pellets,
+        ...(puzzle.snakeRev ? { snakeRev: puzzle.snakeRev, rocks: run.rocks, rocksDodged: run.rocksDodged, rockHit: run.rockHit } : {}),
         length: run.length,
         survived: run.survived,
         endedSeconds: run.endedSeconds,

@@ -5,7 +5,7 @@ import { SNAKE_FX } from "./arcadeFxGames.renderer";
 import {
   snakeGame, snakeCol, snakeRow, SNAKE_BOARD_H, SNAKE_BOARD_W,
   SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_CELL, SNAKE_COLS, SNAKE_ROWS,
-  SNAKE_WORLD_H, SNAKE_WORLD_W, type SnakeState,
+  SNAKE_WORLD_H, SNAKE_WORLD_W, SNAKE_ROCK_WARN_TICKS, type SnakeState,
 } from "./snake";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
@@ -38,7 +38,7 @@ const point = (cell: number) => ({ x: SNAKE_BOARD_X + snakeCol(cell) * SNAKE_CEL
 const direction = (dir: number) => ({ x: dir === 1 ? 1 : dir === 3 ? -1 : 0, y: dir === 2 ? 1 : dir === 0 ? -1 : 0 });
 
 /** Fixed DPR-2 sprites: only cache creation draws pixel planes and pays for blur. */
-function stamp(kind: "bead" | "head" | "star", level = 0, dir = 0, tail = 0): ArtCanvas | null {
+function stamp(kind: "bead" | "head" | "star" | "rock", level = 0, dir = 0, tail = 0): ArtCanvas | null {
   const id = `${kind}:${level}:${kind === "head" ? dir : 0}:${tail}`;
   const old = stamps.get(id);
   if (old) return old;
@@ -48,7 +48,24 @@ function stamp(kind: "bead" | "head" | "star", level = 0, dir = 0, tail = 0): Ar
   c.scale(SPRITE_RATIO, SPRITE_RATIO);
   c.imageSmoothingEnabled = false;
   const middle = SNAKE_CELL / 2;
-  if (kind === "star") {
+  if (kind === "rock") {
+    // A landed asteroid: a pixel boulder filling the cell (the head's whole collision square).
+    for (let y = 0; y < SNAKE_CELL; y += 2) {
+      for (let x = 0; x < SNAKE_CELL; x += 2) {
+        const dx = x + 1 - middle, dy = y + 1 - middle;
+        const lumpy = middle - 1 + (((x * 7 + y * 3) >> 2) % 3 === 0 ? -1 : 0);
+        if (dx * dx + dy * dy > lumpy * lumpy) continue;
+        const lit = dx + dy < -6;
+        const crater = (dx - 3) * (dx - 3) + (dy + 2) * (dy + 2) < 10 || (dx + 4) * (dx + 4) + (dy - 4) * (dy - 4) < 6;
+        c.fillStyle = crater ? "#1B1A1F" : lit ? ROCK_FLECK : (x + y) % 6 === 0 ? "#3A383F" : "#4A4750";
+        c.fillRect(x, y, 2, 2);
+      }
+    }
+    c.fillStyle = RETRO_WHITE;
+    c.globalAlpha = 0.5;
+    c.fillRect(middle - 6, middle - 7, 2, 2);
+    c.globalAlpha = 1;
+  } else if (kind === "star") {
     c.fillStyle = PELLET;
     c.shadowColor = PELLET;
     c.shadowBlur = 3;
@@ -162,6 +179,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   ctx.beginPath(); ctx.rect(SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_BOARD_W, SNAKE_BOARD_H); ctx.clip();
   const pellet = point(state.pellet);
   blit(ctx, stamp("star"), pellet.x, pellet.y, PELLET);
+  drawRocks(ctx, state, motion);
   const headCell = state.body[0];
   if (headCell !== undefined) {
     const head = point(headCell);
@@ -207,12 +225,55 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
     if (motion) sparks(ctx, state, now, deathAge);
   }
   const rewardPoint=memo.eatCell>=0?point(memo.eatCell):point(state.body[0]??0);
-  successFrame(ctx,{id:'snake',tick:state.tick,count:state.eaten,colour:ACCENT,width:SNAKE_WORLD_W,height:SNAKE_WORLD_H,point:{...rewardPoint,shape:'spark'},hud:{x:14,y:22,text:`PELLETS ${state.eaten}`}});
+  successFrame(ctx,{id:'snake',tick:state.tick,count:state.eaten,colour:ACCENT,width:SNAKE_WORLD_W,height:SNAKE_WORLD_H,point:{...rewardPoint,shape:'spark'},hud:{x:14,y:22,text:`STARS ${state.eaten}`}});
   ctx.restore();
   // Same 1UP readout, without a per-frame text blur.
   const on = Math.floor(retroClock() / 500) % 2 === 0;
   retroText(ctx, "1UP", 14, 10, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
-  successHud(ctx,'snake',state.tick,14,22,()=>{retroText(ctx, `PELLETS ${state.eaten}`, 14, 22, 10, RETRO_WHITE);});
+  successHud(ctx,'snake',state.tick,14,22,()=>{retroText(ctx, `STARS ${state.eaten}`, 14, 22, 10, RETRO_WHITE);});
+  if (state.rev) {
+    const rocks = state.rocks?.length ?? 0;
+    const falling = (state.rockWarn ?? -1) >= 0;
+    retroText(ctx, falling ? "ROCK INCOMING" : `ROCKS ${rocks}`, SNAKE_WORLD_W - 14, 22, 8, falling && on ? RETRO_RED : "rgba(255,255,255,0.6)", "right");
+  }
+}
+
+/**
+ * snakeRev 2 asteroids: the falling rock's shadow (a red square that darkens and
+ * tightens over its 2 s, timed by the sim tick) and every landed rock. All read
+ * from the state; the rock fills its cell, the head's collision square.
+ */
+function drawRocks(ctx: CanvasRenderingContext2D, state: SnakeState, motion: boolean): void {
+  const warn = state.rockWarn ?? -1;
+  if (warn >= 0) {
+    const p = point(warn);
+    const left = Math.max(0, (state.rockLandTick ?? 0) - state.tick);
+    const k = 1 - Math.min(1, left / SNAKE_ROCK_WARN_TICKS);
+    const half = SNAKE_CELL / 2 - 1;
+    ctx.fillStyle = `rgba(255,59,92,${0.16 + 0.34 * k})`;
+    ctx.fillRect(p.x - half, p.y - half, half * 2, half * 2);
+    // Pixel crosshair corners closing in as the rock falls.
+    const blink = motion ? Math.floor(state.tick / (k > 0.6 ? 4 : 9)) % 2 === 0 : true;
+    ctx.fillStyle = blink ? RETRO_RED : "rgba(255,59,92,0.5)";
+    const r = Math.round(half - 3 * (1 - k));
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+      ctx.fillRect(p.x + sx * r - (sx > 0 ? 4 : 0), p.y + sy * r - (sy > 0 ? 2 : 0), 4, 2);
+      ctx.fillRect(p.x + sx * r - (sx > 0 ? 2 : 0), p.y + sy * r - (sy > 0 ? 4 : 0), 2, 4);
+    }
+    // The rock itself, small and high, growing as it nears the ground.
+    if (motion && k > 0.35) {
+      const sprite = stamp("rock");
+      const size = Math.round(6 + 14 * k);
+      const lift = Math.round((1 - k) * 40);
+      ctx.globalAlpha = 0.5 + 0.5 * k;
+      if (sprite) ctx.drawImage(sprite, Math.round(p.x - size / 2), Math.round(p.y - size / 2 - lift), size, size);
+      ctx.globalAlpha = 1;
+    }
+  }
+  for (const rock of state.rocks ?? []) {
+    const p = point(rock);
+    blit(ctx, stamp("rock"), p.x, p.y, ROCK);
+  }
 }
 
 /** Analytic sparks: no emitter allocation, shared maximum, no sim randomness. */
