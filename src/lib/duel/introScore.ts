@@ -90,7 +90,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   pairmatch: standard("Find all fifteen pairs", "8 per pair"),
   maze: standard("Reach the exit", "points for how far you got"),
   intruder: standard("Get all five boards right", "24 per board"),
-  stroop: `${arcadeFinish("each word sorted", `All ${CLASH_QUEUE} right`)} Wrong gate: lose 2.`,
+  stroop: `${arcadeFinish("word sorted", `All ${CLASH_QUEUE} right`)} Wrong gate: lose 2.`,
   sortrush: "Points for each one you sort correctly. Wrong gate: lose 2.",
   gonogo: "Points for each right choice. A perfect run scores extra if you're quick.",
   sequence: "Repeat the whole sequence quickly for the most points.",
