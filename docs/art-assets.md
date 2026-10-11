@@ -77,6 +77,8 @@ the code reads.
 | `src/assets/arcade/space/player.png` | Space Shooter Redux: `PNG/playerShip1_blue.png` | Trim, nose pointing up. Drawn into the 40 × 24 hit box. |
 | `src/assets/arcade/realworld/car.png` | Racing Pack: a car from `PNG/Cars/` (e.g. `car_red_1.png`) | Rotate so the car faces **right**, then trim. Leftward traffic is mirrored in code. |
 | `src/assets/arcade/realworld/lorry.png` | Racing Pack: the longest vehicle in `PNG/Cars/` | Same as `car.png`. |
+| `src/assets/arcade/realworld/cone.png` | Racing Pack: a traffic cone from `PNG/Objects/` (e.g. `cone_straight.png`) | Jaywalk roadworks (crossRev 2). Trim; drawn into a 16 × 20 box on each closed column. |
+| `src/assets/arcade/realworld/barrier.png` | Racing Pack: a red-white barrier from `PNG/Objects/` (e.g. `barrier_red_white.png`) | Jaywalk roadworks. Trim, long side horizontal; stretched over each closed run, 14 px tall. |
 | `src/assets/arcade/kitchen/bagel.png` | Food Kit preview: bagel | Square, trimmed, centred. |
 | `src/assets/arcade/kitchen/cabbage.png` | Food Kit preview: cabbage (or lettuce) | Square, trimmed, centred. |
 | `src/assets/arcade/kitchen/onion.png` | Food Kit preview: onion | Square, trimmed, centred. |

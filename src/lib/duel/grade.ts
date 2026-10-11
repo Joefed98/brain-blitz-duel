@@ -950,7 +950,7 @@ export function gradeSubmission(
     }
     case "cross": {
       const replayStart = performance.now();
-      const run = replayCrossRun(puzzle.seed, answer);
+      const run = replayCrossRun(puzzle.seed, answer, puzzle.crossRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

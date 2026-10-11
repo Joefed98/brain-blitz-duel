@@ -37,7 +37,17 @@ import {
 } from "./snake";
 import { BURST_FLOOR_Y, BURST_LIVES, BURST_WORLD_W, type BurstState } from "./burst";
 import { SKYLINE_WORLD_H, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
-import { CROSS_HUD_H, CROSS_WORLD_H, CROSS_WORLD_W, type CrossState } from "./cross";
+import {
+  crossColumnCentreFp,
+  crossKindCrossed,
+  crossLaneCentre,
+  CROSS_HUD_H,
+  CROSS_KIND_CYCLE,
+  CROSS_KIND_ROADWORKS,
+  CROSS_WORLD_H,
+  CROSS_WORLD_W,
+  type CrossState,
+} from "./cross";
 import { JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
 import { INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
 import { WAV_SHIP_Y, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
@@ -358,6 +368,19 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
       count: (s) => s.crossings,
       at: () => ({ x: CROSS_WORLD_W / 2, y: CROSS_HUD_H + 30 }),
       label: (s) => (s.hitThisCrossing ? "ACROSS!" : "CLEAN CROSSING!"),
+    },
+    // crossRev 2: past a cyclist lane or through the roadworks (original courses have neither).
+    {
+      kind: "pop",
+      count: (s) => crossKindCrossed(s, CROSS_KIND_CYCLE),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane) - 20 }),
+      label: () => "PAST THE BIKES!",
+    },
+    {
+      kind: "pop",
+      count: (s) => crossKindCrossed(s, CROSS_KIND_ROADWORKS),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane) - 20 }),
+      label: () => "THROUGH THE CONES!",
     },
   ],
 };

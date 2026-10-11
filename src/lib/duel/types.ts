@@ -1954,6 +1954,8 @@ export interface CrossPuzzleData {
   type: "cross";
   /** Draws every crossing's traffic — identical for everyone in the room. */
   seed: number;
+  /** Course revision (2 = fair early gaps, cyclists, roadworks); absent = original traffic. */
+  crossRev?: number;
 }
 
 export interface DualPuzzleData {

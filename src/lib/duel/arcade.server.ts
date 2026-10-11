@@ -1,3 +1,4 @@
+import { CROSS_REV } from "@/lib/arcade/cross";
 import { INK_REV3 } from "@/lib/arcade/inkBridge";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
@@ -83,7 +84,7 @@ export function generateSnake(): SnakePuzzleData {
 }
 
 export function generateCross(): CrossPuzzleData {
-  return { type: "cross", seed: arcadeSeed() };
+  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV };
 }
 
 export function generateDual(): DualPuzzleData {

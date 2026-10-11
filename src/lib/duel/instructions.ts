@@ -4,6 +4,8 @@ import type { PuzzleType } from "./types";
 export interface PuzzleInstructionLine {
   action: string;
   detail: string;
+  /** Shown only in the "?" help, not on the round intro (keeps the intro to three lines). */
+  helpOnly?: boolean;
 }
 
 export interface PuzzleInstructions {
@@ -572,13 +574,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   cross: {
     goal: "Get across the traffic as many times as you can.",
     how: [
-      { action: "Swipe up to hop", detail: "one lane forward; swipe down to step back." },
-      { action: "Swipe left or right", detail: "to move sideways." },
-      {
-        action: "After each crossing",
-        detail: "you get a second on the kerb before the next one.",
-      },
-      { action: "Three lives", detail: "a hit costs one and restarts you on the start lane of this crossing after a second." },
+      { action: "Swipe up to hop forward.", detail: "Swipe down to step back, left or right to step sideways." },
+      { action: "Bikes race along green lanes", detail: "from crossing 3. Cones block the road from crossing 4: find the gap." },
+      { action: "Three lives.", detail: "A hit sends you back to the start of this crossing." },
+      { action: "The first two crossings", detail: "always leave wide gaps in every lane. Later traffic is tighter and faster.", helpOnly: true },
+      { action: "After each crossing", detail: "you get a second on the kerb before the next one.", helpOnly: true },
     ],
     score: "2 × total lanes crossed + 4 × crossings completed, up to 150. No clean-crossing bonus.",
   },
