@@ -6,7 +6,17 @@ import { type SubmitExtra } from "./grade";
 import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
 import { puzzleDef, puzzleDurationMs, puzzleRevealMs, typesInCategory } from "./registry";
 import { generateRoomCode } from "./puzzles";
+import { linkRoomState } from "./roomLink";
 import { mergePuzzle, splitPuzzle } from "./secrets";
+import { allContinued, allIntroReady, betweenScreenDue, isContinuePhase } from "./roomFlow";
+import {
+  finishGame,
+  forfeitRecord,
+  leaveBetweenRoundScreen,
+  recordContinue,
+  recordForfeitInHistory,
+  setPhase,
+} from "./roomPhase.server";
 import { DUEL_START_MS, ROUND_TITLE_MS, WINNER_REVEAL_MS } from "./startPresentation";
 import {
   INACTIVE_AFTER_MISSED,
@@ -137,22 +147,6 @@ function firstFreeSlot(players: DuelPlayerRow[], maxPlayers: number): number | n
   return null;
 }
 
-/** Guarded so several phones calling at the same moment can never skip a screen. */
-async function setPhase(
-  client: any,
-  roomId: string,
-  round: number,
-  from: DuelPhase,
-  to: DuelPhase,
-): Promise<void> {
-  await client
-    .from("duels")
-    .update({ phase: to, phase_started_at: nowIso() })
-    .eq("id", roomId)
-    .eq("current_round", round)
-    .eq("phase", from);
-}
-
 /**
  * Everyone active has tapped READY: pull the intro's start stamp back so only
  * the 3-2-1 countdown is left. Guarded on the stamp itself, so a burst of taps
@@ -167,12 +161,6 @@ async function startIntroCountdown(client: any, room: DuelRow, round: number): P
     .eq("current_round", round)
     .eq("phase", "intro")
     .gt("phase_started_at", cutoff);
-}
-
-/** True once every active player is ready for this round's intro. */
-function allIntroReady(players: DuelPlayerRow[], round: number): boolean {
-  const waitingOn = activePlayers(players);
-  return waitingOn.length > 0 && waitingOn.every((p) => p.intro_ready_round >= round);
 }
 
 async function createRoomRow(
@@ -386,6 +374,33 @@ export const createRoomFn = createServerFn({ method: "POST" })
     return { roomId: room.id, roomCode: room.room_code };
   });
 
+/**
+ * What a visitor who is not (yet) in a room may know about it from its link:
+ * whether it can be joined, and nothing else (no puzzles, answers or names).
+ */
+export const roomPreviewFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomCode: string }) => input)
+  .handler(async ({ data }) => {
+    const client = await db();
+    const code = String(data.roomCode ?? "").trim().toUpperCase().slice(0, 8);
+    const { data: found } = await client
+      .from("duels")
+      .select("id, status, disbanded_at, max_players")
+      .eq("room_code", code)
+      .maybeSingle();
+    if (!found) return { found: false as const };
+    const room = found as Pick<DuelRow, "id" | "status" | "disbanded_at" | "max_players">;
+    const players = present(await getPlayers(client, room.id));
+    return {
+      found: true as const,
+      roomCode: code,
+      state: linkRoomState(room),
+      playerCount: players.length,
+      maxPlayers: room.max_players ?? MAX_PLAYERS,
+    };
+  });
+
 export const joinRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomCode: string; displayName: string }) => input)
@@ -454,7 +469,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
         ok: false as const,
         message: "Choose at least one category with active games.",
       };
-    // One round per selected category, ordered by this room's seed.
+    // Rounds shared between the selected categories (roomRoundCount), ordered by this room's seed.
     const { newRoomSeed } = await import("./selection");
     const roomSeed = newRoomSeed();
     const { roundOrder, puzzles } = buildRoomPuzzles({
@@ -656,7 +671,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     }
 
     if (room.phase === "intro") {
-      if (elapsed < INTRO_WAIT_MS && allIntroReady(players, round)) {
+      if (elapsed < INTRO_WAIT_MS && allIntroReady(players, round, Date.now())) {
         await startIntroCountdown(client, room, round);
         return { ok: true };
       }
@@ -695,43 +710,12 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
 
     const hostNext = data.hostNext === true && context.userId === room.host_user_id;
 
-    if (room.phase === "result") {
-      if (!hostNext && elapsed < NEXT_ROUND_AUTO_MS) return { ok: true };
-      if (round >= (room.round_count ?? TOTAL_ROUNDS)) {
-        // Last round: the shared winner reveal replaces the overall standings.
-        await setPhase(client, room.id, round, "result", "winner_reveal");
-        return { ok: true };
-      }
-      await setPhase(client, room.id, round, "result", "standings");
+    if (!isContinuePhase(room.phase)) return { ok: true };
+    // The timer is the most a between-round screen waits; it ends early once
+    // every connected active player has tapped Continue.
+    if (!betweenScreenDue(room.phase, elapsed, players, round, Date.now(), hostNext))
       return { ok: true };
-    }
-
-    if (room.phase !== "standings" || (!hostNext && elapsed < STANDINGS_MS)) {
-      return { ok: true };
-    }
-
-    if (round >= (room.round_count ?? TOTAL_ROUNDS)) {
-      await client
-        .from("duels")
-        .update({ status: "finished" })
-        .eq("id", room.id)
-        .eq("current_round", round)
-        .eq("phase", "standings");
-      return { ok: true };
-    }
-
-    const startedAt = nowIso();
-    await client
-      .from("duels")
-      .update({
-        current_round: round + 1,
-        phase: "round_title",
-        phase_started_at: startedAt,
-        round_started_at: startedAt,
-      })
-      .eq("id", room.id)
-      .eq("current_round", round)
-      .eq("phase", "standings");
+    await leaveBetweenRoundScreen(client, room, round);
     return { ok: true };
   });
 
@@ -832,20 +816,6 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-export const markReadyFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; roundNumber: number }) => input)
-  .handler(async ({ data, context }) => {
-    const client = await db();
-    await requireParticipant(client, data.roomId, context.userId);
-    await client
-      .from("duel_players")
-      .update({ ready_round: clamp(data.roundNumber, 0, MAX_ROUNDS) })
-      .eq("duel_id", data.roomId)
-      .eq("user_id", context.userId);
-    return { ok: true };
-  });
-
 /**
  * "READY" on the round intro. Stored per player per round so a refresh comes
  * back with the right state, and the round starts as soon as every active
@@ -870,7 +840,56 @@ export const readyUpFn = createServerFn({ method: "POST" })
       .lt("intro_ready_round", round);
 
     const players = await getPlayers(client, room.id);
-    if (allIntroReady(players, round)) await startIntroCountdown(client, room, round);
+    if (allIntroReady(players, round, Date.now())) await startIntroCountdown(client, room, round);
+    return { ok: true as const };
+  });
+
+/**
+ * "Continue" on the round results or standings. Stored per player as a rising
+ * mark (roomFlow.continueMark) so a refresh comes back with the right state;
+ * the screen moves on as soon as every connected active player is in, and
+ * never later than its timer.
+ */
+export const continueFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string; roundNumber: number; phase: string }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    const player = await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
+    const round = clamp(data.roundNumber, 1, MAX_ROUNDS);
+    if (
+      room.status !== "in_progress" ||
+      room.current_round !== round ||
+      !isContinuePhase(room.phase) ||
+      room.phase !== data.phase
+    ) {
+      return { ok: true as const };
+    }
+    await recordContinue(client, player.id, round, room.phase);
+
+    const players = await getPlayers(client, room.id);
+    if (allContinued(players, round, room.phase, Date.now()))
+      await leaveBetweenRoundScreen(client, room, round);
+    return { ok: true as const };
+  });
+
+/**
+ * "Finish now": the last player still here ends the game. Everyone who had
+ * left or dropped out is stored as left, and the room finishes outside the
+ * winner reveal, which is how screens recognise a forfeit (roomFlow.endedByForfeit).
+ * Stored rounds and scores are untouched.
+ */
+export const finishNowFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
+    const players = await getPlayers(client, room.id);
+    const result = await finishGame(client, room, players, context.userId, Date.now());
+    if (!result.ok) return { ok: false as const, message: result.message };
     return { ok: true as const };
   });
 
@@ -943,17 +962,28 @@ export const rematchFn = createServerFn({ method: "POST" })
   .inputValidator((input: { roomId: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    await requireParticipant(client, data.roomId, context.userId);
+    const me = await requireParticipant(client, data.roomId, context.userId);
     const room = await getRoom(client, data.roomId);
 
     if (room.host_user_id !== context.userId) {
       return { ok: false as const, message: "Waiting for the host to play again." };
     }
+    // A host who left (and forfeited) can't restart: the reset removes left players.
+    if (me.status === "left") return { ok: false as const, message: "You left this game." };
+    // Read a forfeit's outcome before the reset clears statuses and results.
+    const { data: resultRows } = await client.from("round_results").select("*").eq("duel_id", room.id);
+    const forfeit = forfeitRecord(
+      room,
+      await getPlayers(client, room.id),
+      (resultRows ?? []) as RoundResultRow[],
+    );
     const { data: restarted, error } = await client.rpc("restart_duel_room", {
       p_room_id: room.id,
       p_host_id: context.userId,
     });
     if (error || !restarted) return { ok: false as const, message: "Could not play again yet." };
+    if (forfeit && !(await recordForfeitInHistory(client, room.id, forfeit)))
+      console.warn(`[rematch] room=${room.room_code}: forfeit winner not recorded in history`);
     return { ok: true as const, roomId: room.id, roomCode: room.room_code };
   });
 

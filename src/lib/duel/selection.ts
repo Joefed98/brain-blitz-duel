@@ -2,14 +2,17 @@
  * Round selection for a room.
  *
  * Categories are host-selected in the lobby. Retired types are never drawn.
- * A room plays 6 rounds (7 with all seven categories) shared between the
- * selected categories, in a seeded order with no category twice in a row.
+ * Every room plays at least 6 rounds: one per category with 6 or 7 categories
+ * selected, otherwise 6 rounds spread as evenly as possible between them. The
+ * room seed fixes which categories get the extras, the order (no category
+ * twice in a row where possible) and every game drawn, so one seed always
+ * deals the same room.
  *
  * The draw is weighted against what the host's group has just played, so four
  * rooms in a row come close to twenty-four different games.
  */
 
-import { randomBelow, shuffled, weightedPick } from "./random";
+import { randomBelow, shuffled, weightedPick, withSeededRandom } from "./random";
 import { typesInCategory } from "./registry";
 import type { PuzzleCategory, PuzzleType } from "./types";
 import { normaliseCategories } from "./categories";
@@ -64,6 +67,19 @@ export function roundCountFor(categoryCount: number): number {
   return categoryCount >= 7 ? 7 : 6;
 }
 
+/** Rounds a room with these categories plays; the lobby and the draw both read it. */
+export function roomRoundCount(categories: readonly PuzzleCategory[]): number {
+  return roundCountFor(playableCategories(categories).length);
+}
+
+/** Selected categories that have active games, in the standard order. */
+function playableCategories(categories: readonly PuzzleCategory[]): PuzzleCategory[] {
+  return normaliseCategories(categories).filter((category) => typesInCategory(category).length > 0);
+}
+
+/** Keeps the game draw's random stream separate from the category-order stream. */
+const GAME_DRAW_SALT = 0x5a17_c0de;
+
 /** True when no two neighbouring rounds share a category. */
 function noAdjacentRepeats(order: readonly PuzzleCategory[]): boolean {
   for (let i = 1; i < order.length; i++) if (order[i] === order[i - 1]) return false;
@@ -81,9 +97,7 @@ export function categoryOrderFor(
   categories: readonly PuzzleCategory[],
   seed: number,
 ): PuzzleCategory[] {
-  const chosen = normaliseCategories(categories).filter(
-    (category) => typesInCategory(category).length > 0,
-  );
+  const chosen = playableCategories(categories);
   const n = chosen.length;
   if (n === 0) return [];
   const rng = seededRng(seed);
@@ -125,14 +139,21 @@ function pickType(
   return weightedPick(options, (type) => recencyWeight(type, recent));
 }
 
-/** Draws the room's round order; no game repeats within a room. */
+/**
+ * Draws the room's round order; no game repeats within a room. The game picks
+ * (with their recent-avoidance weighting) run on the room seed too, so the
+ * same seed and history always give the same rounds.
+ */
 export function pickRoundOrder(options: RoundSelectionOptions = {}): PuzzleType[] {
   const recent = (options.recent ?? []).slice(0, RECENT_WEIGHTS.length);
-  const order = categoryOrderFor(options.categories ?? [], options.seed ?? newRoomSeed());
-  const types: PuzzleType[] = [];
-  for (const category of order) {
-    const type = pickType(category, types, recent);
-    if (type) types.push(type);
-  }
-  return types;
+  const seed = options.seed ?? newRoomSeed();
+  const order = categoryOrderFor(options.categories ?? [], seed);
+  return withSeededRandom((seed ^ GAME_DRAW_SALT) >>> 0, () => {
+    const types: PuzzleType[] = [];
+    for (const category of order) {
+      const type = pickType(category, types, recent);
+      if (type) types.push(type);
+    }
+    return types;
+  });
 }

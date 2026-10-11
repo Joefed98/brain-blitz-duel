@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkHostPresence, fetchDuelByCode, fetchPlayers, fetchResults, heartbeat } from "./api";
 import { calibrateServerClock, initServerClock, serverNow } from "./clock";
 import { ensureSession } from "./session";
-import { DISCONNECT_MS, type DuelPlayerRow, type DuelRow, type RoundResultRow } from "./types";
+import { type DuelPlayerRow, type DuelRow, type RoundResultRow } from "./types";
 
 export interface DuelState {
   loading: boolean;
@@ -16,7 +16,6 @@ export interface DuelState {
   me: DuelPlayerRow | null;
   /** Only meaningful in a two-player room. */
   opponent: DuelPlayerRow | null;
-  opponentDisconnected: boolean;
   /** Everyone who has not tapped Leave, in slot order. */
   roomPlayers: DuelPlayerRow[];
   isHost: boolean;
@@ -151,11 +150,6 @@ export function useDuel(roomCode: string): DuelState {
     return () => window.clearInterval(id);
   }, [load, userId]);
 
-  const opponentDisconnected =
-    !!opponent &&
-    duel?.status === "in_progress" &&
-    now - new Date(opponent.last_seen_at).getTime() > DISCONNECT_MS;
-
   useEffect(() => {
     if (!duel || duel.status !== "waiting" || !me || isHost) return;
     const id = window.setInterval(() => void checkHostPresence(duel.id), 8000);
@@ -170,7 +164,6 @@ export function useDuel(roomCode: string): DuelState {
     results,
     me,
     opponent,
-    opponentDisconnected: opponentDisconnected && !isMulti,
     roomPlayers,
     isHost,
     isMulti,

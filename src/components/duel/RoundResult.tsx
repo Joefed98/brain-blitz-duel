@@ -2,24 +2,43 @@ import { useEffect, useRef } from "react";
 
 import { MAX_ROUND_SCORE } from "@/lib/duel/scoring";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
-import { Button } from "@/components/ui/button";
+import {
+  VERDICT_LABEL,
+  VERDICT_TONE,
+  summaryWithoutTime,
+  type RoundVerdict,
+} from "@/lib/duel/resultPresentation";
 
 import { AnimatedScore } from "./AnimatedScore";
+import { ContinueFooter, type ContinueState } from "./ContinueFooter";
+
+function SummaryLine({ verdict, summary }: { verdict: RoundVerdict; summary: string }) {
+  const rest = summaryWithoutTime(summary);
+  return (
+    <p title={summary} className="mt-1 font-mono text-[11px] leading-snug text-foreground/80">
+      <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
+        {VERDICT_LABEL[verdict]}
+      </span>
+      {rest ? ` · ${rest}` : ""}
+    </p>
+  );
+}
 
 interface RoundResultProps {
   roundTitle: string;
   myName: string;
   opponentName: string;
   myRoundScore: number;
+  myVerdict: RoundVerdict;
   mySummary: string;
   myTime: string;
   opponentRoundScore: number;
+  opponentVerdict: RoundVerdict;
   opponentSummary: string;
   opponentTime: string;
   autoSeconds: number;
   finalRound: boolean;
-  isHost: boolean;
-  onNext: () => void;
+  continueState: ContinueState;
 }
 
 export function RoundResult({
@@ -27,15 +46,16 @@ export function RoundResult({
   myName,
   opponentName,
   myRoundScore,
+  myVerdict,
   mySummary,
   myTime,
   opponentRoundScore,
+  opponentVerdict,
   opponentSummary,
   opponentTime,
   autoSeconds,
   finalRound,
-  isHost,
-  onNext,
+  continueState,
 }: RoundResultProps) {
   const iWon = myRoundScore > opponentRoundScore;
   const theyWon = opponentRoundScore > myRoundScore;
@@ -73,13 +93,8 @@ export function RoundResult({
             } ${theyWon ? "opacity-60" : ""}`}
           >
             <p className="truncate font-display text-sm text-me">{myName}</p>
-            <p className="font-mono text-[10px] text-muted-foreground">{myTime}</p>
-            <p
-              title={mySummary}
-              className="mt-1 font-mono text-[10px] leading-snug text-primary/80"
-            >
-              {mySummary}
-            </p>
+            <p className="font-mono text-[11px] tabular-nums text-foreground/80">{myTime}</p>
+            <SummaryLine verdict={myVerdict} summary={mySummary} />
             <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-me">
               <AnimatedScore value={myRoundScore} />
             </p>
@@ -101,13 +116,8 @@ export function RoundResult({
             } ${iWon ? "opacity-60" : ""}`}
           >
             <p className="truncate font-display text-sm text-opponent">{opponentName}</p>
-            <p className="font-mono text-[10px] text-muted-foreground">{opponentTime}</p>
-            <p
-              title={opponentSummary}
-              className="mt-1 font-mono text-[10px] leading-snug text-muted-foreground"
-            >
-              {opponentSummary}
-            </p>
+            <p className="font-mono text-[11px] tabular-nums text-foreground/80">{opponentTime}</p>
+            <SummaryLine verdict={opponentVerdict} summary={opponentSummary} />
             <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-opponent">
               <AnimatedScore value={opponentRoundScore} />
             </p>
@@ -126,19 +136,7 @@ export function RoundResult({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        {isHost && (
-          <Button
-            onClick={onNext}
-            className="press tap-target w-full font-display font-bold uppercase"
-          >
-            {finalRound ? "Winner" : "Next"} ({autoSeconds}s)
-          </Button>
-        )}
-        <p className="text-center font-mono text-xs text-muted-foreground">
-          {finalRound ? "Winner" : "Standings"} in {autoSeconds}s
-        </p>
-      </div>
+      <ContinueFooter next={finalRound ? "Winner" : "Standings"} autoSeconds={autoSeconds} state={continueState} />
     </div>
   );
 }
