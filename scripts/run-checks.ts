@@ -4,7 +4,7 @@
  * gets 1800s because its cut-time search over every template is much slower.
  *
  *   bun scripts/run-checks.ts            # run every routine check
- *   bun scripts/run-checks.ts --include-optional # include deep Orbit (300s)
+ *   bun scripts/run-checks.ts --include-optional # include deep Orbit (300s) and the full puzzle-bank rebuild (3600s)
  *   bun scripts/run-checks.ts --json=/tmp/check-results.json # save full results
  *   bun scripts/run-checks.ts foo bar    # run only checks whose filename includes "foo" or "bar"
  */
@@ -14,8 +14,9 @@ import { readdirSync, writeFileSync } from "node:fs";
 const DEFAULT_TIMEOUT_MS = 300_000;
 const TIMEOUT_OVERRIDES: Record<string, number> = {
   "snip-check.ts": 1_800_000,
+  "puzzle-bank-rebuild-check.ts": 3_600_000,
 };
-const OPTIONAL_CHECKS = new Set(["orbit-outside-belt-deep-check.ts"]);
+const OPTIONAL_CHECKS = new Set(["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts"]);
 
 const args = process.argv.slice(2);
 const includeOptional = args.includes("--include-optional");

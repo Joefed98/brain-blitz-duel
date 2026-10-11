@@ -1,162 +1,153 @@
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
-import { MOVES_SHAPE } from "./scoring";
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
 import { BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { BRK_BRICKS } from "@/lib/arcade/breaker";
-import { INK_LEVELS, INK_LEVEL_POINTS } from "@/lib/arcade/inkBridge";
+import { INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
-import { MATCHUP_PAR_RAW } from "@/lib/arcade/matchup";
 import { RALLY_GOLD_POINTS } from "@/lib/arcade/rally";
 import { SKYLINE_BLOCK_POINTS, SKYLINE_PERFECT_POINTS } from "@/lib/arcade/skyline";
-import { EQUATION_STAGE_POINTS, CHAIN_LENGTH, CHAIN_LINK_POINTS, CHAIN_FINISH_BONUS, type PuzzleType } from "./types";
+import { EQUATION_STAGE_POINTS, CHAIN_LENGTH, CHAIN_LINK_POINTS, type PuzzleType } from "./types";
 
 /**
- * Plain-English SCORE lines for the round intro. Built from one template per
- * scoring shape so the wording follows the scoring numbers; the exact formula
- * stays in the "?" help (instructions.ts).
+ * Plain-English SCORE lines for the round intro: at most two short lines on a phone,
+ * no scoring terms. Built from a few templates so the numbers follow the scoring
+ * constants; the exact formula stays in the "?" help (instructions.ts).
+ * intro-score-text-check guards the length and wording.
  */
 const COMPLETE = 130;
-const SPEED = 20;
 
-/** Standard: 130 + up to 20 for speed: the full 20 if you finish with at least half the time left; flat points otherwise. */
+/** Finish for 130 plus a speed bonus; partial credit otherwise. */
 const standard = (finish: string, notFinished: string) =>
-  `${finish}: ${COMPLETE} points, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left. Not finished: ${notFinished}.`;
+  `${finish} for ${COMPLETE}, more if you're quick. Otherwise ${notFinished}.`;
 
-/** Fixed links with a completion-only speed bonus (the full bonus if you finish with at least half the time left). */
-const linkedFinish = (length: number, points: number, bonus: number) =>
-  `Complete all ${length} links: ${length * points} points, plus up to ${bonus} for speed: the full ${bonus} if you finish with at least half the time left. Not finished: ${points} per link, rounded down. A wrong or missed tap ends your run.`;
+/** Fixed links with a completion-only speed bonus. */
+const linkedFinish = (length: number, points: number) =>
+  `${points} points per link. Finish all ${length} for ${length * points}, more if you're quick.`;
 
-/** Standard staged: solved weights total 130, plus completion-only SPEED(20). */
+/** Staged: each part scores; all parts for 130 plus a speed bonus. */
 const standardStaged = (weights: readonly number[]) =>
-  `Stages score ${weights.join(" / ")} points. All ${weights.length} correct: ${weights.reduce((sum, n) => sum + n, 0)} points, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left. Not finished: add the points for stages solved.`;
+  `Points for each part you solve. Solve all ${weights.length} for ${weights.reduce((sum, n) => sum + n, 0)}, more if you're quick.`;
 
 /** Fewest moves: 100 + moves points + speed points. */
-const fewestMoves = (finish: string, notFinished: string, shape: "B" | "C" = "B") => {
-  const w = MOVES_SHAPE[shape];
-  return `${finish}: 100 points, plus up to ${w.moves} for using few moves and up to ${w.speed} for speed: the full ${w.speed} if you finish with at least half the time left. Not finished: ${notFinished}.`;
-};
+const fewestMoves = (finish: string, notFinished: string) =>
+  `${finish} for 100, more for few moves and speed. ${notFinished}.`;
 
 /** Arcade with a finish state. */
 const arcadeFinish = (progress: string, finish: string) =>
-  `Points for ${progress}. ${finish} for ${COMPLETE}, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left.`;
+  `Points per ${progress}. ${finish}: ${COMPLETE}, more if you're quick.`;
 
 /**
- * Arcade 130 / 150 split: a full clear scores 130 plus a speed bonus, up to 150; partial
- * runs are capped at 130, or lower where the per-unit points stop short (partialMax; the
- * six-game scoring check proves each figure against the sim).
+ * Arcade 130 / 150 split: a full clear scores up to 150; partial runs are capped at 130,
+ * or lower where the per-unit points stop short (partialMax; the six-game scoring check
+ * proves each figure against the sim).
  */
 const arcadeSplit = (progress: string, goal: string, partialMax: number = COMPLETE) =>
-  `Points for ${progress}. ${goal} for up to 150; otherwise up to ${partialMax}. Finishing earns ${COMPLETE}, plus up to ${SPEED} for speed: the full ${SPEED} if you finish with at least half the time left.`;
+  `Points for ${progress}. ${goal} for up to 150; otherwise up to ${partialMax}.`;
 
 /** Arcade open-ended. */
 const arcadeOpen = (counts: string, penalty?: string) =>
   `Points for ${counts}.${penalty ? ` ${penalty}.` : ""}`;
 
-/** Converted raw totals and weighted counters, rounded down and capped. */
-const arcadeConverted = (counts: string) => `${counts}. Round down to a whole point, up to 150.`;
-const arcadePar = (par: number) => `Bigger lines score far more match points. ${par.toLocaleString("en-GB")} match points earn 150; fewer earn a proportional share, rounded down.`;
-const arcadeTraffic = (car: number, ambulance: number) => `${car} points per car through, ${ambulance} per ambulance through, and 40 for lasting the minute. A car that gives up: lose 1. A stopped ambulance: lose ${ambulance}. Minimum 0, maximum 150.`;
-
 export const INTRO_SCORE: Record<PuzzleType, string> = {
   // Word
-  wordsmith: "Longer words score more: 8 letters earn 11 word points; 9-11 letters earn 15. Round down 2.5 × your word points, up to 150.",
-  wordhunt: "Longer words score more. Your word points count double, up to 150.",
-  tilegrid: "Use all fifteen tiles in a valid grid: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Not finished: 8 points for each tile inside a real word.",
-  wordslide: "Make all five rows words: 100 points, plus up to 20 for using few moves and up to 30 for speed: the full 30 if you finish with at least half the time left. Not finished: 22 points for each row that is a word.",
-  wordsearch: standard("Find all six words", "20 points for each word found"),
-  letterwheel: "Find every word: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Not finished: 15 points a word, or 13 on nine-word puzzles.",
+  wordsmith: "Longer words score much more. Up to 150.",
+  wordhunt: "Longer words score more. Up to 150.",
+  tilegrid: standard("Use all 15 tiles", "8 per tile in a word"),
+  wordslide: "Make all five rows words for 100, more for few moves and speed. Otherwise 22 per word row.",
+  wordsearch: standard("Find all six words", "20 per word"),
+  letterwheel: standard("Find every word", "points for each word"),
   ladder: "Finish the ladder quickly for the most points. Getting close still scores.",
-  groups: "More groups means more points. Find all four for a speed bonus (the full bonus if you finish with at least half the time left).",
-  wordmatch: "Get all eight right: 100 points, plus up to 50 for speed: the full 50 if you finish with at least half the time left. Otherwise 13 points for each correct pair.",
+  groups: "Points for each group. Find all four quickly for extra points.",
+  wordmatch: "Get all eight right for 100, more if you're quick. Otherwise 13 per pair.",
 
   // Number
-  target: "Hit the target exactly: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. One off scores 120, and it drops faster the further away you are.",
+  target: "Hit the target exactly for 130, more if you're quick. Close answers still score.",
   equation: standardStaged(EQUATION_STAGE_POINTS),
-  balance: "Balance the three scales for 20, 40 and 60 points. Balance all three: 120 points, plus up to 30 for speed: the full 30 if you finish with at least half the time left.",
-  numpyramid: "Each finished pyramid scores 30, and all four earn up to 30 for speed: the full 30 if you finish with at least half the time left. The pyramid you're on scores for the bricks you've got right.",
-  trail: standard("Complete the path", "5 for each tile in the right place") + " Wrong tiles cost nothing.",
-  tendrop: "13 points for each target you hit. Clear all ten for up to 20 for speed: the full 20 if you finish with at least half the time left.",
-  numseq: "Twenty points for each sequence. Get all five right for a speed bonus (the full bonus if you finish with at least half the time left).",
+  balance: "The scales score 20, 40 and 60. Balance all three for 120, more if you're quick.",
+  numpyramid: "30 for each pyramid you finish, more if you're quick. Bricks right still score.",
+  trail: standard("Complete the path", "5 per tile in place"),
+  tendrop: "13 points for each target you hit. Clear all ten quickly for extra points.",
+  numseq: "20 points for each sequence. Get all five quickly for extra points.",
   chaincalc: "Get it right quickly for the most points.",
-  pctsprint: "More correct answers means more points. Get all five for a speed bonus (the full bonus if you finish with at least half the time left).",
-  sumhunt: "10 points for each stage. Clear the whole grid for a time bonus (the full bonus if you finish with at least half the time left).",
+  pctsprint: "Points for each right answer. Get all five quickly for extra points.",
+  sumhunt: "10 points for each board you clear. Clear the whole grid quickly for extra points.",
   numclimb: "Each digit you recall in order raises your score.",
 
   // Attention
-  reaction: "Average 200 ms or faster for 150 points; slower reactions score less. A miss counts as a very slow tap. Tapping too early: lose 8.",
-  stopwatch: "Stop within 20 ms of the zone on average for 150 points; bigger misses score less. A watch you never stop counts as a big miss.",
-  numhunt: "Tap all 24 in order: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Not finished: 5 points for each number. Wrong tap: lose 5.",
-  chain: linkedFinish(CHAIN_LENGTH, CHAIN_LINK_POINTS, CHAIN_FINISH_BONUS),
-  whack: "Points for the share of targets you hit, up to 135, plus 15 if you hit them all. Wrong colour or empty tap: lose 3. Hedgehog: lose 5.",
-  clayshoot: "5 points for each orange clay and 10 for each gold one. Lose 10 per bird. Hit all 25 without hitting a bird for 10 more.",
-  symscan: "The three grids are worth 30, 45 and 55 points, scored by how many eagles you find. Wrong tap: lose 3. Get all three perfect for up to 20 for speed: the full 20 if you finish with at least half the time left.",
-  countup: "The three trays are worth 30, 45 and 55 points; one off still earns some. Get all three exact for up to 20 for speed: the full 20 if you finish with at least half the time left.",
-  spotdiff: standard("Find all six differences", "20 points for each difference found"),
-  pairmatch: standard("Find all fifteen pairs", "8 points for each pair found"),
-  maze: standard("Reach the exit", "points for how far along the route you got"),
-  intruder: standard("Get all five boards right", "24 points for each board right, or 12 for half of one"),
-  stroop: `${arcadeFinish(`the share of the ${CLASH_QUEUE} words you sort correctly, rounded to the nearest whole point`, `Sort all ${CLASH_QUEUE}`)} Wrong gate: lose 2.`,
-  sortrush: "Points for the share you sort correctly. Wrong gate: lose 2.",
-  gonogo: "More correct choices means more points. A perfect run earns a speed bonus (the full bonus if you finish with at least half the time left).",
+  reaction: "Tap fast: 200 ms or quicker on average scores 150. Tapping too early loses 8.",
+  stopwatch: "Stop each watch as close to the zone as you can. Closer scores more, up to 150.",
+  numhunt: standard("Tap all 24 in order", "5 per number"),
+  chain: linkedFinish(CHAIN_LENGTH, CHAIN_LINK_POINTS),
+  whack: "Points for each target you hit; all of them scores 150. Wrong taps lose points.",
+  clayshoot: "5 for each orange clay and 10 for each gold one. Hitting a bird: lose 10.",
+  symscan: "Points for each eagle you find. All three grids perfect: more if you're quick.",
+  countup: "Points for each tray; one off still scores. All three exact: more if you're quick.",
+  spotdiff: standard("Find all six differences", "20 per difference"),
+  pairmatch: standard("Find all fifteen pairs", "8 per pair"),
+  maze: standard("Reach the exit", "points for how far you got"),
+  intruder: standard("Get all five boards right", "24 per board"),
+  stroop: `${arcadeFinish("word sorted", `All ${CLASH_QUEUE} right`)} Wrong gate: lose 2.`,
+  sortrush: "Points for each one you sort correctly. Wrong gate: lose 2.",
+  gonogo: "Points for each right choice. A perfect run scores extra if you're quick.",
   sequence: "Repeat the whole sequence quickly for the most points.",
   reverse: "Repeat the whole sequence quickly for the most points.",
   spatial: "Find every tile quickly for the most points.",
-  spin: "More correct answers means more points. A perfect run earns a speed bonus (the full bonus if you finish with at least half the time left).",
-  mirmatch: "More correct answers means more points. Get all five for a speed bonus (the full bonus if you finish with at least half the time left).",
-  patcomp: "Each correct pattern scores. Get all three for a speed bonus (the full bonus if you finish with at least half the time left).",
+  spin: "Points for each right answer. A perfect run scores extra if you're quick.",
+  mirmatch: "Points for each right answer. Get all five quickly for extra points.",
+  patcomp: "Points for each right pattern. Get all three quickly for extra points.",
 
   // Logic and pattern
-  unblock: fewestMoves("Free the gold block", "up to 70 points for clearing its lane"),
-  lightsout: fewestMoves("Turn every light off", "up to 85 points if only a few lights are left on"),
-  pipes: standard("Connect every pipe", "points for how many tiles are connected"),
-  sudoku: standard("Fill the grid", "points for each correct cell, up to 110"),
-  flow: "Connect every pair: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Run out of time: 10 points for each pair you connected.",
-  iceslide: fewestMoves("Reach the exit", "up to 90 points for how close you got"),
-  push: fewestMoves("Get every crate home", "points for each crate on a floor marking, up to 110"),
-  laser: "Light every gem on your first shot: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Second shot 115, third 100. Not finished: 15 points for each gem lit.",
-  tower: fewestMoves("Move the whole tower", "points for each ring in place from the bottom, up to 110"),
-  tubes: fewestMoves("Cork every flask", "22 points for each corked flask, up to 110"),
-  safe: "Open the safe on your first try: 130 points, plus up to 20 for speed: the full 20 if you finish with at least half the time left. Second try 115, third 100. Not opened: 15 points for each dial right.",
-  bomb: standard("Defuse the bomb", "75 × correct steps before a strike ÷ 6, rounded"),
-  gravity: fewestMoves("Park all four balls", "30 points for each ball on its target"),
-  nonogram: standard("Complete the picture", "points for each correct cell, up to 110. Wrong cell: lose 5"),
-  flood: fewestMoves("Flood the board", "points for how much of the board you flooded", "C"),
-  tiles: fewestMoves("Put the tiles in order", "14 points for each tile in place"),
-  rings: fewestMoves("Line up every spoke", "12 points for each matching spoke"),
-  blockparty: standard("Place all nine pieces", "12 points for each piece placed"),
-  shikaku: standard("Fill the grid", "points for each cell covered, up to 110"),
-  lightup: standard("Light every cell", "points for each lit cell, up to 110. Clashing bulbs: lose 5"),
-  tents: standard("Place every tent", "10 points for each correct tent, up to 110"),
+  unblock: fewestMoves("Free the gold block", "Clearing its lane still scores"),
+  lightsout: fewestMoves("Turn every light off", "A few left on still scores"),
+  pipes: standard("Connect every pipe", "points per connected tile"),
+  sudoku: standard("Fill the grid", "points for each right cell"),
+  flow: standard("Connect every pair", "10 per pair"),
+  iceslide: fewestMoves("Reach the exit", "Getting close still scores"),
+  push: fewestMoves("Get every crate home", "Each crate home scores"),
+  laser: "Light every gem on your first shot for 130, more if you're quick. Later shots score less.",
+  tower: fewestMoves("Move the whole tower", "Each ring in place scores"),
+  tubes: fewestMoves("Cork every flask", "22 per corked flask"),
+  safe: "Open the safe on your first try for 130, more if you're quick. Later tries score less.",
+  bomb: standard("Defuse the bomb", "points for each right step"),
+  gravity: fewestMoves("Park all four balls", "30 per ball parked"),
+  nonogram: standard("Complete the picture", "points for each right cell"),
+  flood: fewestMoves("Flood the board", "Part-flooded still scores"),
+  tiles: fewestMoves("Put the tiles in order", "14 per tile in place"),
+  rings: fewestMoves("Line up every spoke", "12 per matching spoke"),
+  blockparty: standard("Place all nine pieces", "12 per piece"),
+  shikaku: standard("Fill the grid", "points for each cell covered"),
+  lightup: standard("Light every cell", "points for each lit cell"),
+  tents: standard("Place every tent", "10 per right tent"),
   stroke: "Finish on your first try for a bonus.",
-  dig: "Fill the drain with clean water: 100 points plus a time bonus (the full bonus if you finish with at least half the time left), and 20 more if you stay within the planned digs. Otherwise points for clean water drained.",
+  dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
   // Arcade
   hover: arcadeOpen("each barrier gap you fly through; all of them scores 150"),
-  skyline: arcadeConverted(`${SKYLINE_BLOCK_POINTS} points per block stacked, plus ${SKYLINE_PERFECT_POINTS} per perfect drop`),
-  bintoss: arcadeSplit("each bucket, 10 a time", `Sink all ${BINTOSS_THROWS} buckets`, 90),
-  bullseye: `Rings: ${BULLSEYE_RING_VALUES.join(", ")} from the centre out. ${arcadeConverted("Multiply your ring total by 1.7, then subtract 20")} Minimum 0. Missed or unfired darts add nothing to the ring total.`,
-  matchup: arcadePar(MATCHUP_PAR_RAW),
+  skyline: `${SKYLINE_BLOCK_POINTS} points per block stacked, plus ${SKYLINE_PERFECT_POINTS} per perfect drop. Up to 150.`,
+  bintoss: arcadeSplit("each bucket", `Sink all ${BINTOSS_THROWS} buckets`, 90),
+  bullseye: `Rings score ${BULLSEYE_RING_VALUES[0]} in the centre down to ${BULLSEYE_RING_VALUES[BULLSEYE_RING_VALUES.length - 1]} at the edge. Higher totals score more.`,
+  matchup: "Match lines of three or more; longer lines score far more. Up to 150.",
   snake: arcadeOpen("each star you eat"),
-  cross: `${CROSS_LANE_POINTS} points for each lane crossed, plus ${CROSS_CROSSING_POINTS} for each full crossing, up to 150. Being hit costs a life, not points.`,
-  breaker: arcadeSplit("each brick destroyed", `Clear all ${BRK_BRICKS} bricks`, 128),
-  rally: `${arcadeConverted(`${RALLY_GOLD_POINTS} points per gold-ball hit`)} The blue ball scores nothing.`,
-  slice: "Points for each food you slice, and cutting three or more at once boosts your multiplier. Chilli: lose 10.",
-  bubble: arcadeSplit("the share of bubbles you clear", "Clear the whole field", 128),
-  beat: "Points for each note: most for perfect timing, less for good or OK. Missed note: lose 2. Holds count only if you press and let go in time.",
-  wavefront: "Points for ships, armour hits, saucers and waves cleared. Clear all five waves perfectly for 150.",
+  cross: `${CROSS_LANE_POINTS} points for each lane crossed, plus ${CROSS_CROSSING_POINTS} for each full crossing. Up to 150.`,
+  breaker: arcadeSplit("each brick", `Clear all ${BRK_BRICKS} bricks`, 128),
+  rally: `${RALLY_GOLD_POINTS} points per gold-ball hit, up to 150. The blue ball scores nothing.`,
+  bubble: arcadeSplit("each bubble", "Clear the whole field", 128),
+  slice: "Points for each food you slice; cut several at once for more. Chilli: lose 10.",
+  beat: "Points for each note you hit in time. Missed note: lose 2.",
+  wavefront: "Points for ships, saucers and waves cleared. Clear all five waves perfectly for 150.",
   flip: "The longer you last, the more you score. Survive the full minute for 150.",
-  junction: arcadeTraffic(2, 4),
-  inkbridge: `${arcadeSplit(`each level, ${INK_LEVEL_POINTS} a time`, `Finish all ${INK_LEVELS} levels`, 99)} Rounds 1-4 are standard, 5-8 have moving pots, and 9-10 are live!`,
-  burst: "Points for each atom you destroy or split. Losing a life costs 9. Clear four waves without losing a life for 150.",
+  junction: "2 per car, 4 per ambulance, 40 for lasting the minute. A stopped ambulance: lose 4.",
+  inkbridge: arcadeSplit("each level", `Finish all ${INK_LEVELS} levels`, 99),
+  burst: "Points for each atom you destroy or split. Clear four waves without losing a life for 150.",
   orbit: arcadeSplit("each planet you reach", "Reach the sun", 117),
-  snip: `${SNIP_CONFIG.pointsPerSweet} points for each apple you collect, plus ${SNIP_CONFIG.pointsPerStar} for each leaf. Collect all ${SNIP_CONFIG.levels} apples for up to ${SNIP_CONFIG.finishBonus} more for speed: the full ${SNIP_CONFIG.finishBonus} if you finish with at least half the time left. Up to ${SNIP_CONFIG.maxScore}.`,
+  snip: `${SNIP_CONFIG.pointsPerSweet} points for each apple and ${SNIP_CONFIG.pointsPerStar} for each leaf. Collect all ${SNIP_CONFIG.levels} quickly for more.`,
   swing: arcadeSplit("how far you swing", `Reach ${SWING_FINISH_M} metres`),
-  tilt: arcadeSplit("each maze you finish", `Finish all ${TILT_MAX_MAZES} mazes`, 90),
-  balltrack: `${arcadeSplit(`the share of ${BT_BALLS} marbles you get home, rounded to the nearest whole point`, `Get all ${BT_BALLS} marbles home`, 126)} Wrong trays cost nothing.`,
+  tilt: arcadeSplit("each maze", `Finish all ${TILT_MAX_MAZES} mazes`, 90),
+  balltrack: arcadeSplit("each marble home", `Get all ${BT_BALLS} marbles home`, 126),
   swerve: arcadeOpen("each coin you collect"),
   dual: "The longer both runners survive, the more you score. The full minute is 150.",
   steady: "Start on 150. Touching the edge: lose 5.",

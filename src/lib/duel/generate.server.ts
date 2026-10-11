@@ -8,7 +8,8 @@ import { SPEED_PAR_VERSION, puzzleUsesSpeedPar, withSpeedCurve } from "./speedPa
 import { generateBlockParty } from "./blockParty.server";
 import { generateGroups } from "./groups.server";
 import { gradeSubmission, type Graded, type SubmitExtra } from "./grade";
-import { pickRoundOrder, type RoundSelectionOptions } from "./selection";
+import { newRoomSeed, pickRoundOrder, type RoundSelectionOptions } from "./selection";
+import { drawBankedPuzzle, isBankedType } from "./puzzleBank.server";
 import { puzzleDef } from "./registry";
 import { TOTAL_ROUNDS, type GoNoGoItem, type PuzzleData, type PuzzleType } from "./types";
 import { generateUnblock, type UnblockBankRow } from "./unblock.server";
@@ -94,6 +95,15 @@ export interface GenerateContext {
   unblockRow?: UnblockBankRow | null;
   /** Word Match prompts from the host's last ten tournaments. */
   recentWordMatchWords?: string[];
+  /**
+   * Draw the six slow puzzle types (see puzzleBank.server.ts) from their
+   * precomputed bank with this seed instead of generating live. Room start
+   * passes the room seed; practice passes a fresh one. Omitted: live generation
+   * (the fixed intro examples and the checks rely on that).
+   */
+  bankSeed?: number;
+  /** Public identities (`bankKey`) of banked boards the host played recently. */
+  recentBankKeys?: ReadonlySet<string> | undefined;
 }
 
 /** Every new puzzle is stamped with the speed-par scoring version; stored rounds without it keep the legacy curve. */
@@ -103,6 +113,8 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
+  if (context.bankSeed !== undefined && isBankedType(type))
+    return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();
   if (type === "gonogo") return buildGoNoGo(context.previousGoNoGoFirst ?? null);
   if (type === "wordmatch") return buildWordMatch(context.recentWordMatchWords ?? []);
@@ -188,7 +200,9 @@ export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContex
   roundOrder: PuzzleType[];
   puzzles: PuzzleData[];
 } {
-  const roundOrder = pickRoundOrder(options);
+  // The room seed orders the categories and picks every banked board.
+  const seed = options.seed ?? newRoomSeed();
+  const roundOrder = pickRoundOrder({ ...options, seed });
   return {
     roundOrder,
     puzzles: roundOrder.map((type) =>
@@ -196,6 +210,8 @@ export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContex
         previousGoNoGoFirst: options.previousGoNoGoFirst ?? null,
         unblockRow: options.unblockRow ?? null,
         recentWordMatchWords: options.recentWordMatchWords ?? [],
+        bankSeed: seed,
+        recentBankKeys: options.recentBankKeys,
       }),
     ),
   };

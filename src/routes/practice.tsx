@@ -48,26 +48,27 @@ import { roundMusicFor } from "@/lib/fx/theme";
 import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import type { SubmitMeta } from "@/puzzles/types";
 import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
+import { APP_NAME } from "@/lib/brand";
 
 export const Route = createFileRoute("/practice")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Duelz practice — try any puzzle type" },
+      { title: `${APP_NAME} practice — try any game` },
       {
         name: "description",
-        content: "Practise any Duelz game and keep personal best scores on this device. Room scores are unaffected.",
+        content: `Practise any ${APP_NAME} game and keep personal best scores on this device. Room scores are unaffected.`,
       },
-      { property: "og:title", content: "Duelz practice — try any puzzle type" },
+      { property: "og:title", content: `${APP_NAME} practice — try any game` },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
-        content: "Practise Duelz games with personal best scores saved only on this device.",
+        content: `Practise ${APP_NAME} games with personal best scores saved only on this device.`,
       },
       {
         name: "twitter:description",
-        content: "Practise Duelz games with personal best scores saved only on this device.",
+        content: `Practise ${APP_NAME} games with personal best scores saved only on this device.`,
       },
       { name: "robots", content: "noindex" },
     ],
@@ -465,7 +466,7 @@ function PracticeScreen() {
             {newBest ? <p className="font-display text-sm font-bold text-primary practice-new-best">New best!</p> : null}
           </div>
           <p className="text-sm text-muted-foreground">
-            {graded.isCorrect ? "Correct" : "Not quite"} ·{" "}
+            {graded.isCorrect ? "Correct" : graded.score > 0 ? "Partly solved" : "Not quite"} ·{" "}
             {graded.reactionAvgMs !== null
               ? `${graded.reactionAvgMs}ms average`
               : `${secondsUsed}s`}

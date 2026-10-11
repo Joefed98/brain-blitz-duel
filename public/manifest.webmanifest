@@ -1,7 +1,7 @@
 {
-  "name": "Duelz — 1v1 Puzzle Duels",
+  "name": "Duelz",
   "short_name": "Duelz",
-  "description": "Three timed puzzles, head to head. Fastest brain wins.",
+  "description": "Play skill games live with friends. Everyone plays the same games at the same moment, and the highest score wins.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

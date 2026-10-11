@@ -5,6 +5,7 @@ import { buildArcadeReveal } from "@/lib/arcade/reveal";
 import { flipGame, flipWarpAt, FLIP_FLOOR_Y, FLIP_CEIL_Y } from "@/lib/arcade/flip";
 import { drawFlipHazard, flipSurfaceLine } from "@/lib/arcade/flip.renderer";
 import { INTRO_SCORE } from "@/lib/duel/introScore";
+import { PUZZLE_INSTRUCTIONS } from "@/lib/duel/instructions";
 
 assert.deepEqual([...BULLSEYE_RING_VALUES], [10, 9, 8, 3, 2, 1]);
 for (let seed = 1; seed <= 200; seed++) {
@@ -75,5 +76,7 @@ for (let seed = 1; seed <= 10; seed++) {
   }
 }
 assert.ok(!INTRO_SCORE.cross.includes("earns extra"));
-assert.ok(INTRO_SCORE.bullseye.includes("1.7") && INTRO_SCORE.bullseye.includes("subtract 20"));
+// The intro stays short (first-run audit, 11 Oct); the "?" help keeps the formula.
+assert.ok(INTRO_SCORE.bullseye.includes("10 in the centre down to 1"));
+assert.ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes("1.7 × ring total − 20"));
 console.log("Bullseye values/shuffles/scores, Cross score/cap/reveal and Flip curve vertices passed; no browser tests.");

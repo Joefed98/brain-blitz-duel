@@ -92,9 +92,31 @@ export function StoredScore({ score }: { score: number | null }) {
   );
 }
 
-function Verdict({ correct }: { correct: boolean }) {
+/**
+ * Solved ✓, partly solved (amber half ring, shown with the stored points), or ✗ for zero.
+ * Partial is a stored score above 0 that isn't fully correct; until the score lands an
+ * unsolved round shows an empty ring so the mark never flips from ✗ to partial.
+ */
+function Verdict({ correct, score }: { correct: boolean; score: number | null }) {
+  if (!correct && score === null) {
+    return <div data-verdict="pending" className="h-14 w-14 rounded-full border-2 border-border" aria-hidden="true" />;
+  }
+  if (!correct && score !== null && score > 0) {
+    return (
+      <div data-verdict="partial" className="flex flex-col items-center gap-1 animate-pop-in">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-timer-orange text-timer-orange">
+          <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
+            <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2.4" />
+            <path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" />
+          </svg>
+        </div>
+        <p className="font-display text-sm font-bold text-timer-orange">Partly solved</p>
+      </div>
+    );
+  }
   return (
     <div
+      data-verdict={correct ? "correct" : "wrong"}
       className={`flex h-14 w-14 items-center justify-center rounded-full border-2 animate-pop-in ${
         correct ? "border-me text-me" : "border-warn text-warn"
       }`}
@@ -212,7 +234,7 @@ export function AnswerReveal({
         />
       ) : (
       <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
-        {!puzzleOwnsRevealLayout ? <Verdict correct={myCorrect} /> : null}
+        {!puzzleOwnsRevealLayout ? <Verdict correct={myCorrect} score={myScore} /> : null}
         {!puzzleOwnsRevealLayout ? (
           <p className="text-base uppercase tracking-[0.25em] text-muted-foreground">
             {def.revealHeading ?? "The answer was"}

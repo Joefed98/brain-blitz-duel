@@ -89,6 +89,9 @@ export function PuzzleHelp({ type, open, onClose }: PuzzleHelpProps) {
         aria-label={`${puzzleDef(type).name} help`}
         className="w-full rounded-lg border border-border bg-card p-4 shadow-xl"
       >
+        <p className="mb-3 text-center text-sm font-bold text-foreground">
+          The clock keeps running while this is open.
+        </p>
         <PuzzleInstructions type={type} overlay />
         {type === "lightup" && <HelpExample type={type} />}
         <p className="mt-4 text-center font-mono text-[10px] uppercase text-muted-foreground">
