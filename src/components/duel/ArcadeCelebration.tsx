@@ -16,20 +16,12 @@ const CONFETTI = 56;
 const DURATION_MS = 2000;
 
 /**
- * The results screen's end-of-run moment for a full clear or a personal best:
- * a one-shot confetti burst in the world's colours and a headline. Presentation
- * only; it reads the stored outcome and score and never shows a number of its own.
+ * The one-shot confetti burst in an arcade world's colours, filling its
+ * positioned parent. Presentation only; also used for the podium winner.
  */
-export function ArcadeCelebration({
-  kind,
-  world,
-}: {
-  kind: CelebrationKind;
-  world: ArcadeWorld | null;
-}) {
+export function ConfettiBurst({ world }: { world: ArcadeWorld | null }) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const theme = ARCADE_WORLD_THEMES[world ?? "gem"];
-
   useEffect(() => {
     const node = canvas.current;
     if (!node || prefersReducedMotion()) return;
@@ -99,6 +91,23 @@ export function ArcadeCelebration({
     return () => cancelAnimationFrame(frame);
   }, [theme]);
 
+  return <canvas ref={canvas} data-confetti-burst className="absolute inset-0 h-full w-full" />;
+}
+
+/**
+ * The results screen's end-of-run moment for a full clear or a personal best:
+ * a one-shot confetti burst in the world's colours and a headline. Presentation
+ * only; it reads the stored outcome and score and never shows a number of its own.
+ */
+export function ArcadeCelebration({
+  kind,
+  world,
+}: {
+  kind: CelebrationKind;
+  world: ArcadeWorld | null;
+}) {
+  const theme = ARCADE_WORLD_THEMES[world ?? "gem"];
+
   return (
     <>
       <p role="status" className="sr-only">
@@ -109,7 +118,7 @@ export function ArcadeCelebration({
         aria-hidden="true"
         data-arcade-celebration={kind}
       >
-        <canvas ref={canvas} className="absolute inset-0 h-full w-full" />
+        <ConfettiBurst world={world} />
         <div className="absolute inset-x-0 top-[34%] flex justify-center">
           <span
             className="arcade-celebration-headline rounded-full px-4 py-1.5 font-display text-xl font-bold uppercase tracking-wide"

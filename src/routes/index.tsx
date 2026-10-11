@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { Dots } from "@/components/duel/Dots";
@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/duel/Wordmark";
 import { MuteToggle } from "@/components/duel/MuteToggle";
 import { createRoom, joinRoomByCode } from "@/lib/duel/api";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
+import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
 import { unlockAudio } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
 import { gameCounts } from "@/lib/duel/registry";
@@ -37,7 +38,7 @@ export const Route = createFileRoute("/")({
 
 type Mode = "home" | "create" | "join";
 
-const CODE_LENGTH = 4;
+const CODE_LENGTH = ROOM_CODE_LENGTH;
 
 function Home() {
   const navigate = useNavigate();
@@ -91,7 +92,14 @@ function Home() {
 
   return (
     <PhoneShell bare>
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-2">
+        <Link
+          to="/practice"
+          onClick={() => unlockAudio()}
+          className="press tap-target inline-flex items-center gap-2 rounded-full border border-primary/70 bg-primary/10 px-4 font-display text-sm font-bold uppercase tracking-wide text-primary"
+        >
+          <span aria-hidden="true">▶</span> Practice solo
+        </Link>
         <MuteToggle />
       </div>
 
@@ -99,7 +107,7 @@ function Home() {
         <div className="flex flex-col items-center text-center">
           <Wordmark size="lg" />
           <p className="mt-3 text-sm text-muted-foreground">
-            Up to 10 players. One round per category. Fastest brain wins.
+            Up to 10 players. Same games, same moment. Highest score wins.
           </p>
           <div className="mt-6 h-px w-16 bg-border" />
           <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
@@ -185,14 +193,13 @@ function Home() {
                     ref={codeRef}
                     id="code"
                     value={code}
-                    maxLength={CODE_LENGTH}
                     inputMode="text"
                     autoCapitalize="characters"
                     autoCorrect="off"
                     aria-label="Room code"
                     onChange={(e) => {
                       setError(null);
-                      setCode(e.target.value.replace(/[^a-zA-Z]/g, "").toUpperCase());
+                      setCode(codeFromInput(e.target.value));
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") void start();

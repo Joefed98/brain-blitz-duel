@@ -3,10 +3,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Standing } from "@/lib/duel/scoring";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { positionChange, previousStandingOrder } from "@/lib/duel/resultPresentation";
-import { Button } from "@/components/ui/button";
 import { prefersReducedMotion } from "@/lib/motion";
 
 import { AnimatedScore } from "./AnimatedScore";
+import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 
 function Arrow({ standing }: { standing: Standing }) {
   const change = positionChange(standing);
@@ -27,12 +27,11 @@ interface StandingsProps {
   rows: Standing[];
   mySlot: number;
   autoSeconds: number;
-  isHost: boolean;
-  onNext: () => void;
+  continueState: ContinueState;
 }
 
 /** The ranked table between rounds in a room of three or more. */
-export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, mySlot, autoSeconds, isHost, onNext }: StandingsProps) {
+export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, mySlot, autoSeconds, continueState }: StandingsProps) {
   const nodes = useRef(new Map<number, HTMLLIElement>());
   const offsets = useRef(new Map<number, number>());
   const [displayRows, setDisplayRows] = useState(() => previousStandingOrder(rows));
@@ -71,6 +70,9 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, mySlot, aut
           Overall
         </span>
       </header>
+      <p className="shrink-0 text-center font-mono text-[10px] text-foreground/70">
+        ▲▼ places moved · +points this round · total
+      </p>
 
       <ul
         className="relative grid min-h-0 flex-1 gap-1.5"
@@ -99,7 +101,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, mySlot, aut
                     {row.name}
                   </span>
                 </span>
-                <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                <span className="font-mono text-[11px] tabular-nums text-foreground/80">
                   +{row.roundScore}
                 </span>
                 <AnimatedScore
@@ -112,20 +114,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, mySlot, aut
         })}
       </ul>
 
-      <footer className="shrink-0 pt-1">
-        {isHost ? (
-          <Button
-            onClick={onNext}
-            className="press tap-target w-full font-display font-bold uppercase"
-          >
-            Next round ({autoSeconds}s)
-          </Button>
-        ) : (
-          <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            Next round in {autoSeconds}s
-          </p>
-        )}
-      </footer>
+      <ContinueFooter next="Next round" autoSeconds={autoSeconds} state={continueState} />
     </div>
   );
 }

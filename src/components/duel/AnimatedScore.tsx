@@ -2,17 +2,33 @@ import { useEffect, useRef, useState } from "react";
 import { prefersReducedMotion } from "@/lib/motion";
 import { visualFx } from "@/lib/fx";
 
-/** Counts up quickly whenever the value changes. */
-export function AnimatedScore({ value, className }: { value: number; className?: string }) {
-  const [display, setDisplay] = useState(value);
-  const fromRef = useRef(value);
+/**
+ * Counts up quickly whenever the value changes. `from` starts the first count
+ * somewhere else (the podium counts every total up from 0); `quiet` skips the
+ * score-pop effect for counts that aren't a newly revealed score.
+ */
+export function AnimatedScore({
+  value,
+  className,
+  from: start,
+  durationMs = 450,
+  quiet = false,
+}: {
+  value: number;
+  className?: string;
+  from?: number;
+  durationMs?: number;
+  quiet?: boolean;
+}) {
+  const [display, setDisplay] = useState(start ?? value);
+  const fromRef = useRef(start ?? value);
 
   useEffect(() => {
     const from = fromRef.current;
     if (from === value) return;
-    if (value > from) visualFx("onRevealScore", value - from);
+    if (value > from && !quiet) visualFx("onRevealScore", value - from);
     if (prefersReducedMotion()) { setDisplay(value); fromRef.current = value; return; }
-    const duration = 450;
+    const duration = durationMs;
     const start = performance.now();
     let frame = 0;
 
@@ -28,7 +44,7 @@ export function AnimatedScore({ value, className }: { value: number; className?:
 
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [value]);
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <span className={className}>{display}</span>;
 }

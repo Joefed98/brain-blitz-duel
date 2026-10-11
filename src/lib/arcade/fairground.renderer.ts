@@ -10,7 +10,7 @@
  * starts at 12).
  */
 import type { CanvasSize } from "./engine";
-import { drawArtSprite } from "./sprites.renderer";
+import { artReady, drawArtSprite } from "./sprites.renderer";
 import { reducedMotion } from "./art.renderer";
 
 export const FAIR_SKY_TOP = "#0D1838";
@@ -129,14 +129,26 @@ function sky(ctx: CanvasRenderingContext2D, size: CanvasSize, horizon: number, f
 function counter(ctx: CanvasRenderingContext2D, size: CanvasSize, top: number, scale: number): void {
   if (top >= size.height) return;
   // Art pilot (Fairground): wooden stall counter below the play area (no collision); code art when absent.
-  if (drawArtSprite(ctx, "fairground", "counter", 0, top, size.width, size.height - top)) return;
-  ctx.fillStyle = FAIR_WOOD;
-  ctx.fillRect(0, top, size.width, size.height - top);
+  // The pack's wood is a square tiling texture, so it is tiled (clipped to the strip), never stretched.
+  const art = artReady("fairground", "counter");
+  if (art) {
+    const tile = 96 * scale;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, top, size.width, size.height - top);
+    ctx.clip();
+    for (let y = top; y < size.height; y += tile)
+      for (let x = 0; x < size.width; x += tile) drawArtSprite(ctx, "fairground", "counter", x, y, tile, tile);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = FAIR_WOOD;
+    ctx.fillRect(0, top, size.width, size.height - top);
+  }
   ctx.fillStyle = FAIR_WOOD_LIGHT;
   ctx.fillRect(0, top, size.width, Math.max(2, 3 * scale));
   ctx.fillStyle = FAIR_WOOD_DARK;
   const plank = 48 * scale;
-  for (let x = plank; x < size.width; x += plank) ctx.fillRect(Math.round(x), top + 4 * scale, 1, size.height - top);
+  if (!art) for (let x = plank; x < size.width; x += plank) ctx.fillRect(Math.round(x), top + 4 * scale, 1, size.height - top);
   ctx.globalAlpha = 0.35;
   ctx.fillRect(0, top + 3 * scale, size.width, Math.max(1, 2 * scale));
   ctx.globalAlpha = 1;

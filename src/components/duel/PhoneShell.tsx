@@ -21,6 +21,8 @@ interface PhoneShellProps {
   gameType?: PuzzleType | undefined;
   /** Room score summary that replaces the wordmark without taking board height. */
   gameHeader?: ReactNode;
+  /** A small control beside the mute toggle (a guest's Leave between rounds). */
+  topAction?: ReactNode;
 }
 
 /** Inline no-select style for text on game screens (timer digits, HUD, banners). */
@@ -118,7 +120,7 @@ function useRootSelectionLock(active: boolean) {
 }
 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
-export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader }: PhoneShellProps) {
+export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
   const definition = gameType ? puzzleDef(gameType) : undefined;
   const theme = definition?.theme;
@@ -147,7 +149,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
         {!bare && (
           <div data-game-topbar={gameScreen ? "" : undefined} className="mb-2 grid h-9 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
             <div className="min-w-0">{gameHeader ?? <Wordmark />}</div>
-            <div className="flex shrink-0 items-center"><MuteToggle /></div>
+            <div className="flex shrink-0 items-center">{topAction}<MuteToggle /></div>
           </div>
         )}
         {children}

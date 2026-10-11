@@ -65,16 +65,16 @@ const CC0 = "CC0 1.0 Universal (public domain)";
  */
 export const ART_WORLDS: Readonly<Record<ArtWorld, ArtWorldManifest>> = {
   retro: {
-    pack: "Puzzle Pack",
+    pack: "Puzzle Pack 1",
     author: KENNEY,
-    page: "https://kenney.nl/assets/puzzle-pack",
+    page: "https://kenney.nl/assets/puzzle-pack-1",
     licence: CC0,
     sprites: { paddle: { file: "paddle.png" } },
   },
   space: {
-    pack: "Space Shooter Redux",
+    pack: "Space Shooter Remastered",
     author: KENNEY,
-    page: "https://kenney.nl/assets/space-shooter-redux",
+    page: "https://kenney.nl/assets/space-shooter-remastered",
     licence: CC0,
     sprites: { player: { file: "player.png" } },
   },
@@ -115,13 +115,21 @@ export const ART_WORLDS: Readonly<Record<ArtWorld, ArtWorldManifest>> = {
     author: KENNEY,
     page: "https://kenney.nl/assets/fish-pack",
     licence: CC0,
-    // Only the fish symbol is piloted; the other four creatures keep their code art.
-    sprites: { fish: { file: "fish.png" } },
+    // All five bubble creatures or none: bubble.renderer draws art only when every
+    // one is ready. Fish Pack has fish but no crab, starfish, jellyfish or shell,
+    // so no files are bundled and Coral Pop keeps its code art.
+    sprites: {
+      crab: { file: "crab.png" },
+      starfish: { file: "starfish.png" },
+      fish: { file: "fish.png" },
+      jellyfish: { file: "jellyfish.png" },
+      shell: { file: "shell.png" },
+    },
   },
   cavelava: {
-    pack: "Platformer Pack Redux",
+    pack: "Platformer Pack Remastered",
     author: KENNEY,
-    page: "https://kenney.nl/assets/platformer-pack-redux",
+    page: "https://kenney.nl/assets/platformer-pack-remastered",
     licence: CC0,
     sprites: { anchor: { file: "anchor.png" } },
   },
@@ -165,7 +173,10 @@ type LoadState = {
   image: CanvasImageSource | null;
   width: number;
   height: number;
+  /** Resolves once the image is ready or has failed; never rejects. */
+  settled: Promise<void>;
 };
+const SETTLED = Promise.resolve();
 const images = new Map<string, LoadState>();
 
 function sourceKey(world: ArtWorld, def: ArtSpriteDef): string | null {
@@ -180,11 +191,18 @@ function load(world: ArtWorld, def: ArtSpriteDef): LoadState | null {
   if (known) return known;
   const url = def.url ?? BUNDLED[key];
   if (!url || typeof Image === "undefined") {
-    const missing: LoadState = { status: "failed", image: null, width: 0, height: 0 };
+    const missing: LoadState = { status: "failed", image: null, width: 0, height: 0, settled: SETTLED };
     images.set(key, missing);
     return missing;
   }
-  const entry: LoadState = { status: "loading", image: null, width: 0, height: 0 };
+  let settle = () => {};
+  const entry: LoadState = {
+    status: "loading",
+    image: null,
+    width: 0,
+    height: 0,
+    settled: new Promise<void>((resolve) => (settle = resolve)),
+  };
   images.set(key, entry);
   const img = new Image();
   img.decoding = "async";
@@ -193,9 +211,11 @@ function load(world: ArtWorld, def: ArtSpriteDef): LoadState | null {
     entry.image = img;
     entry.width = img.naturalWidth;
     entry.height = img.naturalHeight;
+    settle();
   };
   img.onerror = () => {
     entry.status = "failed";
+    settle();
   };
   img.src = url;
   return entry;
@@ -207,9 +227,20 @@ export function artReady(world: ArtWorld, name: string): boolean {
   return Boolean(def && load(world, def)?.status === "ready");
 }
 
-/** Starts loading a world's sprites (e.g. during the round intro); never blocks. */
-export function preloadArtWorld(world: ArtWorld): void {
-  for (const def of Object.values(ART_WORLDS[world].sprites)) load(world, def);
+/** True for a world that has an art manifest (e.g. not the Gemstone "gem" fx world). */
+export function isArtWorld(world: string | null | undefined): world is ArtWorld {
+  return typeof world === "string" && Object.prototype.hasOwnProperty.call(ART_WORLDS, world);
+}
+
+/**
+ * Starts loading a world's sprites (the round intro calls this). The promise
+ * resolves once every sprite is ready or has failed, and at once when the
+ * world has no bundled files; it never rejects. Callers that must not draw a
+ * frame before the art can wait on it; nothing else ever blocks on art.
+ */
+export function preloadArtWorld(world: ArtWorld): Promise<void> {
+  const pending = Object.values(ART_WORLDS[world].sprites).map((def) => load(world, def)?.settled ?? SETTLED);
+  return Promise.all(pending).then(() => undefined);
 }
 
 /** Test/dev hook: supply an already-decoded image for a sprite's source. */
@@ -223,7 +254,7 @@ export function registerArtImage(
   const def = ART_WORLDS[world].sprites[name];
   const key = def ? sourceKey(world, def) : null;
   if (!key) throw new Error(`Unknown sprite ${world}/${name}`);
-  images.set(key, { status: "ready", image, width, height });
+  images.set(key, { status: "ready", image, width, height, settled: SETTLED });
   scaled.clear();
 }
 
