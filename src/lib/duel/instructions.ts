@@ -800,7 +800,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Cut the last rope", detail: "and the apple drops; the walls bounce it without losing speed, and the camera follows across the wider arena." },
       { action: "Don't let it settle on a ledge", detail: "or fly out the top or bottom - 10 levels, 12 s each." },
     ],
-    score: "10 per apple collected, +3 for each level's single leaf; collect all ten for round(20 × time left ÷ 60 s). Cap 150.",
+    score: "10 per apple collected, +3 for each level's single leaf; collect all ten for up to 20 for speed: the full 20 if you finish with at least half the time left. Cap 150.",
   },
   swing: {
     goal: "Swing the ninja to the 500 m finish.",
@@ -874,7 +874,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a gold tube to turn it into a drop", detail: "- the bottom row is fixed, so send each ball down early…" },
       { action: "…the track's bottom row re-lays and the trays swap colours mid-round", detail: "- watch for both." },
     ],
-    score: "round(130 × marbles home ÷ 30), plus round(20 × sim time left ÷ 60 s) only when all 30 are home. Cap 150. Wrong trays have no penalty.",
+    score: "round(130 × marbles home ÷ 30); all 30 home = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left. Cap 150. Wrong trays have no penalty.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",

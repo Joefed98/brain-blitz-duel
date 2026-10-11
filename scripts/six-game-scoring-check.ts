@@ -8,6 +8,7 @@ import { skylineGame } from "../src/lib/arcade/skyline";
 import { bullseyeScoreFor, BULLSEYE_RING_VALUES } from "../src/lib/arcade/bullseye";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
+import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { BALL_TRACK_BANK } from "../src/lib/duel/ballTrackBank.server";
 
 let checks = 0;
@@ -51,6 +52,18 @@ for (const home of [0, 15, 29, 30]) {
 }
 eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup reveal par");
 for (const [type, text] of [["balltrack", "30"], ["matchup", "2,500"], ["junction", "lose 4"], ["rally", "2.5"], ["skyline", "3 per perfect"], ["bullseye", "subtract 20"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
+// Ruling B (11 Oct): the eight 130 / 150 split games state both parts in one line.
+for (const type of ["balltrack", "bintoss", "breaker", "bubble", "inkbridge", "orbit", "swing", "tilt"] as const) {
+  eq(INTRO_SCORE[type].includes(" for up to 150; otherwise up to 130."), true, `${type} intro states the 130 / 150 split`);
+}
+for (const [type, goal] of [["balltrack", "Get all 30 marbles home"], ["bintoss", "Sink all 10 buckets"], ["breaker", "Clear all 80 bricks"], ["inkbridge", "Finish all 10 levels"], ["swing", "Reach 500 metres"], ["tilt", "Finish all 4 mazes"]] as const) {
+  eq(INTRO_SCORE[type].includes(`${goal} for up to 150`), true, `${type} intro goal`);
+}
+// Scrumper and Mixed Signals are not on the split: no partial cap at 130.
+for (const type of ["snip", "stroop"] as const) eq(INTRO_SCORE[type].includes("otherwise up to 130"), false, `${type} intro has no split line`);
+eq(INTRO_SCORE.snip.includes("for 130"), false, "Scrumper intro: a full clear is not a flat 130");
+eq(INTRO_SCORE.snip.includes("10 points for each apple") && INTRO_SCORE.snip.includes("3 for each leaf"), true, "Scrumper intro points");
+for (const type of ["balltrack", "snip"] as const) eq(/75 s|÷ \d+ s/.test(PUZZLE_INSTRUCTIONS[type].score), false, `${type} help has no seconds divisor`);
 const demoGuard = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
 eq(demoGuard.includes('data.type === "balltrack"') && demoGuard.includes("course.balls.length !== BT_BALLS"), true, "Old Ball Track demo rejected");
 for (const type of ["matchup", "junction", "rally", "skyline", "bullseye"]) eq(demoGuard.includes(`data.type === "${type}"`), false, `${type} demo not invalidated`);

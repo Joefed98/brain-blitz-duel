@@ -110,7 +110,6 @@ import {
   scoreBlockParty,
   scoreMirrorMatch,
   scoreSpin,
-  scoreStroop,
   scoreUnblock,
   scoreTargetNumber,
   scoreWordMatch,
