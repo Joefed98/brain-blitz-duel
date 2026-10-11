@@ -21,7 +21,8 @@ for (let seed = 1; seed <= 200; seed++) {
     });
   }
 }
-for (let total = 0; total <= 100; total++) assert.equal(bullseyeScoreFor(total), Math.round(3 * total / 2));
+for (let total = 0; total <= 100; total++) assert.equal(bullseyeScoreFor(total), Math.max(0, Math.floor(17 * total / 10 - 20)));
+assert.equal(bullseyeScoreFor(100), 150);
 const base = crossGame.init(123);
 for (let crossings = 0; crossings <= 10; crossings++) {
   for (let reached = 0; reached <= 9; reached++) {
@@ -74,5 +75,5 @@ for (let seed = 1; seed <= 10; seed++) {
   }
 }
 assert.ok(!INTRO_SCORE.cross.includes("earns extra"));
-assert.ok(INTRO_SCORE.bullseye.length <= 156);
+assert.ok(INTRO_SCORE.bullseye.includes("1.7") && INTRO_SCORE.bullseye.includes("subtract 20"));
 console.log("Bullseye values/shuffles/scores, Cross score/cap/reveal and Flip curve vertices passed; no browser tests.");

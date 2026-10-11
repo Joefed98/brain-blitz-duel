@@ -2,6 +2,10 @@
  * Rainbow Bridge inkRev 3 live-level check.
  *
  *   bun scripts/ink-live-check.ts [seeds]
+ *   INK_LIVE_SEEDS=60 bun scripts/ink-live-check.ts   # full 60-seed run
+ *
+ * Defaults to 20 seeds so the suite run stays well under the 300 s limit
+ * (60 seeds took 220-305 s).
  */
 import {
   inkBridgeInkRev3Game,
@@ -25,7 +29,7 @@ import {
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../src/lib/duel/inkBridge";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
-const SEEDS = Number(process.argv[2] ?? 60);
+const SEEDS = Number(process.argv[2] ?? process.env["INK_LIVE_SEEDS"] ?? 20);
 let failures = 0;
 const fail = (m: string) => { failures++; console.error("FAIL", m); };
 

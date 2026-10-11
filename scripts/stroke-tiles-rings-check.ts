@@ -33,6 +33,7 @@ import {
   encodeRingTaps,
   freshOffsets,
   replayRings,
+  ringPattern,
   ringsMinMoves,
 } from "../src/lib/duel/rings";
 import { generateRings } from "../src/lib/duel/rings.server";
@@ -148,6 +149,7 @@ for (let round = 0; round < ROUNDS; round += 1) {
 for (let round = 0; round < ROUNDS; round += 1) {
   const puzzle = generateRings();
   const { segments, minMoves, solution } = puzzle;
+  const pattern = puzzle.pattern ?? 0;
   check(`rings ${round}: four rings of eight`, segments.length === RINGS_COUNT);
   check(
     `rings ${round}: two of each colour per ring`,
@@ -166,38 +168,32 @@ for (let round = 0; round < ROUNDS; round += 1) {
     `rings ${round}: minimum in band`,
     (minMoves ?? 0) >= RINGS_MIN_TURNS && (minMoves ?? 0) <= RINGS_MAX_TURNS,
   );
-  const replay = replayRings(segments, solution ?? []);
+  const replay = replayRings(segments, pattern, solution ?? []);
   check(`rings ${round}: solution solves`, replay.solved);
   check(`rings ${round}: solution is minimal`, replay.moves === minMoves);
-  const proved = ringsMinMoves(segments);
+  const proved = ringsMinMoves(segments, pattern);
   check(`rings ${round}: minimum is exact`, proved?.min === minMoves);
 
-  // Rings two and three drag the next ring out; inner and outer turn alone.
-  const ringTwo = replayRings(segments, [encodeRingTap(1, true)]);
-  check(
-    `rings ${round}: ring two is linked`,
-    ringTwo.offsets[0] === 0 &&
-      ringTwo.offsets[1] === 7 &&
-      ringTwo.offsets[2] === 7 &&
-      ringTwo.offsets[3] === 0,
-  );
-  const ringThree = replayRings(segments, [encodeRingTap(2, true)]);
-  check(
-    `rings ${round}: ring three is linked`,
-    ringThree.offsets[0] === 0 &&
-      ringThree.offsets[1] === 0 &&
-      ringThree.offsets[2] === 7 &&
-      ringThree.offsets[3] === 7,
-  );
-  const inner = replayRings(segments, [0]);
-  check(`rings ${round}: inner turns alone`, inner.offsets.filter(Boolean).length === 1);
-  const outer = replayRings(segments, [6]);
-  check(`rings ${round}: outer turns alone`, outer.offsets.filter(Boolean).length === 1);
-  const anticlockwise = replayRings(segments, [encodeRingTap(0, false)]);
+  // Each puzzle carries one link pattern: a clockwise turn moves the ring one
+  // step (offset 7) and each linked ring the same (7) or opposite (1) way.
+  // Rings with no outgoing link turn alone.
+  for (let ring = 0; ring < RINGS_COUNT; ring++) {
+    const expected = freshOffsets();
+    expected[ring] = RINGS_SEGMENTS - 1;
+    for (const link of ringPattern(pattern).links) {
+      if (link.from === ring) expected[link.to] = link.sign === 1 ? RINGS_SEGMENTS - 1 : 1;
+    }
+    const turned = replayRings(segments, pattern, [encodeRingTap(ring, true)]);
+    check(
+      `rings ${round}: ring ${ring + 1} follows pattern ${pattern}`,
+      turned.offsets.every((offset, i) => offset === expected[i]),
+    );
+  }
+  const anticlockwise = replayRings(segments, pattern, [encodeRingTap(0, false)]);
   check(`rings ${round}: anticlockwise direction`, anticlockwise.offsets[0] === 1);
   const decoded = decodeRingTaps(encodeRingTaps(solution ?? []));
-  check(`rings ${round}: round-trips`, replayRings(segments, decoded).solved);
-  const partial = replayRings(segments, (solution ?? []).slice(0, 2));
+  check(`rings ${round}: round-trips`, replayRings(segments, pattern, decoded).solved);
+  const partial = replayRings(segments, pattern, (solution ?? []).slice(0, 2));
   check(`rings ${round}: partial not solved`, !partial.solved);
 }
 

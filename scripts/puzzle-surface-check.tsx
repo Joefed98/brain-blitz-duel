@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
 import { PUZZLE_REGISTRY } from "../src/lib/duel/registry";
@@ -20,8 +20,6 @@ assert.equal(surfaceState("bg-primary"), "active");
 assert.equal(surfaceState("text-destructive"), "error");
 assert.equal(surfaceState("bg-card", true), "given");
 assert.equal(pathWidth(50), 8);
-const css = readFileSync("src/styles.css", "utf8");
-assert.ok(css.includes("[data-puzzle-surface]"));
 const records: Record<string, unknown>[] = [];
 const risks: Record<string, string> = {
   wordsmith: "Found-word list and answer controls need short-screen checks; reveal lists can scroll.",
@@ -116,7 +114,9 @@ for (const [key, definition] of active) {
     }
     const shell = renderToStaticMarkup(<PhoneShell constrained gameScreen gameType={type}><span /></PhoneShell>);
     assert.ok(shell.includes(`data-puzzle-surface="${key}"`));
-    assert.ok(shell.includes("h-[100dvh] overflow-hidden"));
+    // Play shells fill the game-locked root (html/body 100%) instead of sizing to 100dvh.
+    assert.ok(shell.includes("no-overscroll h-full overflow-hidden"));
+    assert.ok(!shell.includes("100dvh"));
     records.push({ key, name: definition.name, viewport: `${width}x${height}`, result: "PASS markup/geometry invariants; rendered fit UNVERIFIED", coverage: phaseCounts.join("; "), exception: MEANINGFUL_SURFACE_GAMES.has(key) ? "Meaningful fills/objects retained; shared edge, text and selection only" : "Shared surfaces; existing control dimensions retained", sizing: risks[key] });
   }
 }

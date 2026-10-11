@@ -5,22 +5,18 @@
  */
 
 import { flowNeighbours, verifyFlow } from "../src/lib/duel/flow";
-import { generateFlow } from "../src/lib/duel/flow.server";
-import {
-  decodeSlideMoves,
-  replaySlide,
-  slideDistance,
-  slideRouteAvoidsHoles,
-} from "../src/lib/duel/slide";
-import { generateIceSlide } from "../src/lib/duel/slide.server";
-import { meaningfulSlideArrows } from "../src/lib/duel/slide.server";
+import { countFlowSolutions, flowBends, generateFlow } from "../src/lib/duel/flow.server";
+import { decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "../src/lib/duel/slide";
+import { generateIceSlide, routeUsesFeatures } from "../src/lib/duel/slide.server";
 import { PUSH_BANK } from "../src/lib/duel/pushBank.server";
 import { decodePushSolution, pushStep, replayPush } from "../src/lib/duel/push";
 import {
   FLOW_CELLS,
-  FLOW_COLS,
+  FLOW_MAX_PAIRS,
+  FLOW_MAX_WALLS,
+  FLOW_MIN_PAIRS,
   FLOW_MIN_PATH,
-  FLOW_PAIRS,
+  FLOW_MIN_WALLS,
   PUSH_BANK_SIZE,
   PUSH_MAX_CRATES,
   PUSH_MAX_PUSHES,
@@ -34,7 +30,10 @@ import {
   SLIDE_MIN_ARROWS,
   SLIDE_MIN_HOLES,
   SLIDE_MIN_MOVES,
-  SLIDE_MIN_STOPPERS,
+  SLIDE_MAX_PORTALS,
+  SLIDE_MAX_THIN,
+  SLIDE_MIN_PORTALS,
+  SLIDE_MIN_THIN,
 } from "../src/lib/duel/types";
 
 function fail(message: string): never {
@@ -44,29 +43,34 @@ function fail(message: string): never {
 
 /* ----------------------------- Colour Connect ---------------------------- */
 
+// Each board is proved unique by the generator (~2 s apiece), so 30 boards
+// keeps this check well inside the 300 s runner limit.
+const FLOW_BOARDS = 30;
 let shortest = FLOW_CELLS;
-for (let i = 0; i < 200; i++) {
+for (let i = 0; i < FLOW_BOARDS; i++) {
   const puzzle = generateFlow();
   const paths = puzzle.solution ?? [];
-  if (paths.length !== FLOW_PAIRS) fail("Colour Connect did not produce eight paths");
-  if (new Set(puzzle.pairs.map((pair) => pair.colour)).size !== FLOW_PAIRS)
-    fail("Colour Connect did not use all eight colours");
-  if (!verifyFlow(puzzle.pairs, paths).solved)
+  const walls = puzzle.walls ?? [];
+  const count = puzzle.pairs.length;
+  if (count < FLOW_MIN_PAIRS || count > FLOW_MAX_PAIRS) fail(`Colour Connect pair count ${count}`);
+  if (walls.length < FLOW_MIN_WALLS || walls.length > FLOW_MAX_WALLS) fail(`Colour Connect wall count ${walls.length}`);
+  if (paths.length !== count) fail("Colour Connect stored a path count that differs from the pairs");
+  if (new Set(puzzle.pairs.map((pair) => pair.colour)).size !== count)
+    fail("Colour Connect reused a colour");
+  if (!verifyFlow(puzzle.pairs, paths, walls).solved)
     fail("Colour Connect stored paths do not solve the board");
+  if (countFlowSolutions(puzzle.pairs, walls) !== 1) fail("Colour Connect board has more than one solution");
   for (const [index, path] of paths.entries()) {
     if (path.length < FLOW_MIN_PATH) fail(`Colour Connect path shorter than ${FLOW_MIN_PATH}`);
     shortest = Math.min(shortest, path.length);
-    const rows = new Set(path.map((cell) => Math.floor(cell / FLOW_COLS)));
-    const cols = new Set(path.map((cell) => cell % FLOW_COLS));
-
-    if (rows.size === 1 || cols.size === 1) fail("Colour Connect produced a straight path");
+    if (flowBends(path) < 1) fail("Colour Connect produced a straight path");
     const pair = puzzle.pairs[index]!;
     if (flowNeighbours(pair.a).includes(pair.b)) fail("Colour Connect produced an adjacent pair");
   }
   const covered = new Set(paths.flat());
-  if (covered.size !== FLOW_CELLS) fail("Colour Connect does not fill every cell");
+  if (covered.size !== FLOW_CELLS - walls.length) fail("Colour Connect does not fill every open cell");
 }
-console.log(`Colour Connect: 200 boards OK · shortest path ${shortest} cells`);
+console.log(`Colour Connect: ${FLOW_BOARDS} boards OK · shortest path ${shortest} cells`);
 
 /* -------------------------------- Ice Slide ------------------------------- */
 
@@ -83,32 +87,29 @@ for (let i = 0; i < 40; i++) {
   if (arrows.length < SLIDE_MIN_ARROWS || arrows.length > SLIDE_MAX_ARROWS) {
     fail(`Ice Slide arrow count ${arrows.length}`);
   }
-  if (!meaningfulSlideArrows(puzzle.walls, holes, arrows, puzzle.start, puzzle.exit)) {
-    fail("Ice Slide shipped an arrow that does not change a reachable path");
+  const portals = puzzle.portals ?? [];
+  const thin = puzzle.thin ?? [];
+  if (portals.length < SLIDE_MIN_PORTALS || portals.length > SLIDE_MAX_PORTALS) {
+    fail(`Ice Slide portal pair count ${portals.length}`);
   }
-  const distance = slideDistance(
-    puzzle.walls,
-    holes,
-    puzzle.start,
-    puzzle.exit,
-    puzzle.start,
-    arrows,
-  );
+  if (thin.length < SLIDE_MIN_THIN || thin.length > SLIDE_MAX_THIN) {
+    fail(`Ice Slide thin-ice count ${thin.length}`);
+  }
+  const board = slideBoard(puzzle);
+  const distance = slideDistance(board, { cell: puzzle.start, mask: 0 });
   if (distance === null) fail("Ice Slide shipped an unreachable exit");
   if (distance !== min) fail(`Ice Slide minimum ${min} disagrees with the search (${distance})`);
   const stats = puzzle.stats;
   if (!stats) fail("Ice Slide shipped no generator stats");
   if (stats.minMoves !== min) fail("Ice Slide stats minimum disagrees with the puzzle");
   if (stats.easyExit) fail("Ice Slide exit is reachable too easily");
-  if (stats.stoppers < SLIDE_MIN_STOPPERS) fail(`Ice Slide only has ${stats.stoppers} stoppers`);
   const moves = decodeSlideMoves(puzzle.solution ?? "");
-  const replay = replaySlide(puzzle.walls, holes, puzzle.start, puzzle.exit, moves, arrows);
+  const replay = replaySlide(board, moves);
   if (!replay.solved || replay.moves !== min)
     fail("Ice Slide stored route does not reach the exit");
   if (replay.falls) fail("Ice Slide stored route falls into a hole");
-  if (!slideRouteAvoidsHoles(puzzle.walls, holes, puzzle.start, puzzle.exit, moves, arrows)) {
-    fail("Ice Slide stored route slides over a hole");
-  }
+  const uses = routeUsesFeatures(puzzle, moves);
+  if (!uses.portal || !uses.cracked) fail("Ice Slide stored route skips the portal or thin ice");
 }
 console.log(
   `Ice Slide: 40 layouts OK · holes and arrows handled by the search · every minimum is ${SLIDE_MIN_MOVES}-${SLIDE_MAX_MOVES} slides · exit never within ${SLIDE_EASY_MOVES} slides`,

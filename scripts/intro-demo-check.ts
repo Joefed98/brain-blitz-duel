@@ -26,7 +26,8 @@ import { flipGame } from "@/lib/arcade/flip";
 import { junctionGame } from "@/lib/arcade/junction";
 import { inkBridgeGame } from "@/lib/arcade/inkBridge";
 import { burstGame } from "@/lib/arcade/burst";
-import { orbitGame } from "@/lib/arcade/orbit";
+import { orbitGame, ORBIT_REV3 } from "@/lib/arcade/orbit";
+import { orbitRev3Game, initRev3From, decodeRev3Planets, buildCourse3, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
 import { swingGameFor } from "@/lib/arcade/swing";
 import { snipGame } from "@/lib/arcade/snip";
 import { tiltGame } from "@/lib/arcade/tilt";
@@ -34,7 +35,6 @@ import { makeBallTrackGame } from "@/lib/arcade/ballTrack";
 import { whackGame } from "@/lib/arcade/whack";
 import { clayGameFor } from "@/lib/arcade/clayShoot";
 import { tenDropGame } from "@/lib/arcade/tenDrop";
-import { colourClashGame } from "@/lib/arcade/colourClash";
 
 import { replayHoverRun } from "@/lib/duel/hover";
 import { replaySkylineRun } from "@/lib/duel/skyline";
@@ -62,7 +62,7 @@ import { replayWhackRun } from "@/lib/duel/whack";
 import { replayClayRun } from "@/lib/duel/clayShoot";
 import { replayTenDropRun } from "@/lib/duel/tenDrop";
 import { replayColourClashRun } from "@/lib/duel/colourClash";
-import { clashVariantOf } from "@/lib/arcade/colourClash";
+import { clashVariantOf, colourClashGameFor } from "@/lib/arcade/colourClash";
 
 type AnyGame = ArcadeGame<unknown, unknown>;
 interface Case {
@@ -99,7 +99,12 @@ const CASES: Case[] = [
   { type: "burst", game: g(burstGame), replay: r(replayBurstRun) },
   {
     type: "orbit",
-    game: g(orbitGame),
+    // orbitRev 3 rounds fly the stamped puzzle's own planets, as the phone and server do.
+    game: (p) => {
+      if (p.type !== "orbit" || p.orbitRev !== ORBIT_REV3) return orbitGame as unknown as AnyGame;
+      const planets = p.planets && p.planets.length > 0 ? decodeRev3Planets(p.planets) : buildCourse3(p.seed, ORBIT_REV3_WORLD_W).planets;
+      return { ...orbitRev3Game, init: () => initRev3From(planets, ORBIT_REV3_WORLD_W) } as unknown as AnyGame;
+    },
     replay: (p, s, raw) => replayOrbitRun(s, raw, p.type === "orbit" ? p.orbitRev : undefined, p.type === "orbit" ? p.planets : undefined),
   },
   { type: "swing", game: (p) => swingGameFor(p.type === "swing" ? p.swingRev : undefined) as unknown as AnyGame, replay: (p, s, raw) => replaySwingRun(s, raw, p.type === "swing" ? p.swingRev : undefined) },
@@ -117,7 +122,7 @@ const CASES: Case[] = [
     replay: (p, s, raw) => replayClayRun(s, raw, p.type === "clayshoot" ? p.clayRev : undefined),
   },
   { type: "tendrop", game: g(tenDropGame), replay: r(replayTenDropRun) },
-  { type: "stroop", game: g(colourClashGame), replay: (p: PuzzleData, s: number, raw: string) => replayColourClashRun(s, raw, clashVariantOf(p as never)) },
+  { type: "stroop", game: (p) => colourClashGameFor(clashVariantOf(p as never)) as unknown as AnyGame, replay: (p: PuzzleData, s: number, raw: string) => replayColourClashRun(s, raw, clashVariantOf(p as never)) },
 ];
 
 const quietError = console.error;

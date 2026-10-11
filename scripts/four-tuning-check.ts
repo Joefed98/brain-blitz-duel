@@ -1,5 +1,6 @@
 import { hotFloorGame, hotfloorCourseSurvivable } from "@/lib/arcade/hotFloor";
-import { orbitGame } from "@/lib/arcade/orbit";
+import { strict as assert } from "node:assert";
+import { orbitGame, ORBIT_TOTAL } from "@/lib/arcade/orbit";
 import { swingGame } from "@/lib/arcade/swing";
 import { tiltGame } from "@/lib/arcade/tilt";
 
@@ -13,6 +14,8 @@ console.log("swing score 30s/60s:", swingGame.score({ ...sw, tick: 1800 }), swin
 const ti = tiltGame.init(5);
 console.log("tilt runTicks", tiltGame.runTicks, "score 3/5/7 mazes:", [3, 5, 7].map((m) => tiltGame.score({ ...ti, mazes: m, ended: 1 })));
 const o = orbitGame.init(9);
-console.log("orbit planets", o.planets.length - 1, "rings px:", [1, 11, 21, 31, 41, 51, 60].map((i) => o.planets[i]!.ring / 256));
+assert.equal(ORBIT_TOTAL, 40);
+assert.equal(o.planets.length - 1, ORBIT_TOTAL, "Orbit course ends at planet 40");
+console.log("orbit planets", o.planets.length - 1, "rings px:", [1, 11, 21, 31, 40].map((i) => o.planets[i]!.ring / 256));
 console.log("orbit hazards on:", o.planets.map((p, i) => (p.hazard >= 0 ? i : -1)).filter((i) => i >= 0).join(","));
-console.log("orbit score 47 passed:", orbitGame.score({ ...o, cur: 47 }), "finished 51.6s:", orbitGame.score({ ...o, cur: 60, finished: 1, tick: 3096 }));
+console.log("orbit score 35 passed:", orbitGame.score({ ...o, cur: 35 }), "finished 51.6s:", orbitGame.score({ ...o, cur: ORBIT_TOTAL, finished: 1, tick: 3096 }));
