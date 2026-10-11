@@ -52,10 +52,16 @@ export function bubCreature(value: number): BubCreature {
   return BUB_CREATURES[(value - 1) % BUB_CREATURES.length] ?? "fish";
 }
 
+/** True once all five creature sprites are ready; art is all five or none. */
+function creatureArtReady(): boolean {
+  return BUB_CREATURES.every((k) => artReady("underwater", k));
+}
+
 /** Draws a creature centred at (cx, cy), fitting radius r. */
 export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx: number, cy: number, r: number): void {
-  // Art pilot (Underwater): creature sprites inside the bubble (the bubble circle stays the drawn bound).
-  if (drawArtSprite(c, "underwater", kind, cx - r * 0.62, cy - r * 0.62, r * 1.24, r * 1.24)) return;
+  // Art pilot (Underwater): creature sprites inside the bubble (the bubble circle stays the drawn bound),
+  // only once all five are ready so art and drawn symbols never mix.
+  if (creatureArtReady() && drawArtSprite(c, "underwater", kind, cx - r * 0.62, cy - r * 0.62, r * 1.24, r * 1.24)) return;
   c.save();
   c.fillStyle = "rgba(8,20,36,0.82)";
   c.strokeStyle = "rgba(8,20,36,0.82)";
@@ -166,7 +172,7 @@ function paintBubble(value: number) {
 
 /** Blits a cached bubble sprite at CSS-px centre with CSS-px radius. */
 function blitBubble(ctx: CanvasRenderingContext2D, value: number, x: number, y: number, radius: number, dpr: number, alpha = 1): void {
-  const sprite = seaSprite(`bub${value}${artReady("underwater", bubCreature(value)) ? "-art" : ""}`, radius * 2 * dpr, paintBubble(value));
+  const sprite = seaSprite(`bub${value}${creatureArtReady() ? "-art" : ""}`, radius * 2 * dpr, paintBubble(value));
   if (!sprite) return;
   if (alpha !== 1) ctx.globalAlpha = alpha;
   ctx.drawImage(sprite as CanvasImageSource, x - radius, y - radius, radius * 2, radius * 2);

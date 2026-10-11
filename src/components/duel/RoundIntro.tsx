@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
+import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -80,6 +81,12 @@ export function RoundIntro({
   useEffect(() => {
     if (practice) prepareRoundMusic(roundMusicFor(type, puzzleDef(type).category));
   }, [type, practice]);
+
+  // Arcade art: start loading the game's world sprites as the intro begins, so the
+  // demo (which waits for them) and the round itself draw the art from frame one.
+  useEffect(() => {
+    void preloadGameArt(type);
+  }, [type]);
 
   // Intro bed: restarts on each intro, never during the 3-2-1 (late arrivals skip it).
   useEffect(() => {

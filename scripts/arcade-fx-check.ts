@@ -545,6 +545,85 @@ const unit = (
     "no bundling outside Vite: every sprite reports unbundled",
   );
   checks += 2;
+
+  // Bundled art files: each belongs to a manifest sprite and is trimmed to its
+  // visible content (opaque pixels reach all four edges), so filling the
+  // collision rectangle keeps the drawn art within the bounds rule.
+  const { readdirSync, existsSync } = await import("node:fs");
+  const { loadImage } = await import("@napi-rs/canvas");
+  const root = new URL("../src/assets/arcade/", import.meta.url);
+  for (const w of worlds) {
+    const dir = new URL(`${w}/`, root);
+    if (!existsSync(dir)) continue;
+    const m = sprites.ART_WORLDS[w as keyof typeof sprites.ART_WORLDS];
+    const named = new Set(Object.values(m.sprites).map((d) => d.file));
+    for (const file of readdirSync(dir).filter((f) => /\.(png|webp)$/.test(f))) {
+      assert.ok(named.has(file), `${w}/${file}: named by a manifest sprite`);
+      const img = await loadImage(new URL(file, dir).pathname);
+      const cv = createCanvas(img.width, img.height);
+      const g2 = cv.getContext("2d");
+      g2.drawImage(img, 0, 0);
+      const px = g2.getImageData(0, 0, img.width, img.height).data;
+      let x0 = img.width, y0 = img.height, x1 = -1, y1 = -1;
+      for (let y = 0; y < img.height; y++)
+        for (let x = 0; x < img.width; x++)
+          if (px[(y * img.width + x) * 4 + 3]! > 8) {
+            x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+          }
+      assert.ok(x0 === 0 && y0 === 0 && x1 === img.width - 1 && y1 === img.height - 1, `${w}/${file}: trimmed (no transparent margin)`);
+      summary.push(`art ${w}/${file} ${img.width}x${img.height} trimmed`);
+      checks += 2;
+    }
+  }
+  // Preload: resolves only once every sprite in the world has settled, so the
+  // intro demo (which waits on it) never draws before the art has loaded.
+  {
+    sprites.resetArtImages();
+    let empty = false;
+    void sprites.preloadArtWorld("kitchen").then(() => (empty = true));
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(empty, true, "a world with no bundled files settles at once");
+    assert.equal(sprites.isArtWorld("gem"), false, "gem has no art world");
+    assert.equal(sprites.isArtWorld("toybox"), true, "toybox is an art world");
+    const fake = createCanvas(8, 8);
+    let fire: (() => void) | null = null;
+    class SlowImage {
+      naturalWidth = 8;
+      naturalHeight = 8;
+      decoding = "";
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_: string) {
+        fire = () => {
+          Object.assign(this, fake);
+          this.onload?.();
+        };
+      }
+    }
+    Object.defineProperty(globalThis, "Image", { configurable: true, value: SlowImage });
+    const saved = sprites.ART_WORLDS.toybox.sprites;
+    (sprites.ART_WORLDS.toybox as { sprites: unknown }).sprites = { marble: { url: "test://marble.png" } };
+    let done = false;
+    const pending = sprites.preloadArtWorld("toybox").then(() => (done = true));
+    await new Promise((r) => setTimeout(r, 5));
+    assert.equal(done, false, "preload waits while a sprite is still loading");
+    assert.equal(sprites.artReady("toybox", "marble"), false, "not ready before load");
+    assert.ok(fire, "loading started");
+    fire!();
+    await pending;
+    assert.equal(sprites.artReady("toybox", "marble"), true, "ready once preload resolves");
+    (sprites.ART_WORLDS.toybox as { sprites: unknown }).sprites = saved;
+    Reflect.deleteProperty(globalThis, "Image");
+    sprites.resetArtImages();
+    checks += 7;
+  }
+
+  // Coral Pop is all five creatures or none.
+  const uw = sprites.ART_WORLDS.underwater.sprites;
+  assert.deepEqual(Object.keys(uw).sort(), ["crab", "fish", "jellyfish", "shell", "starfish"], "underwater: all five bubble creatures");
+  const uwFiles = existsSync(new URL("underwater/", root)) ? readdirSync(new URL("underwater/", root)).filter((f) => /\.(png|webp)$/.test(f)) : [];
+  assert.ok(uwFiles.length === 0 || uwFiles.length === 5, "underwater: all five creature files or none");
+  checks += 2;
 }
 
 for (const line of summary) console.log(`  ${line}`);
