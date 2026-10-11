@@ -4,7 +4,8 @@
  * to the next row (or the tray in the fixed bottom row). Balls drop every 103 ticks. The server replays the tap log.
  */
 
-import { finishScore, inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
+import { clampInt, finishScore, inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
+import { speedBonusCurve } from "../duel/speedPar";
 
 /* ================================ Config ================================ */
 
@@ -250,17 +251,33 @@ export function btOver(s: BtState): boolean {
 }
 
 /** Perfect-run speed bonus: round(20 × (run ticks − last landing) ÷ run ticks). */
-export function btSpeedBonus(home: number, lastLand: number): number {
+export function btSpeedBonus(home: number, lastLand: number, rev?: number | null): number {
   if (home !== BT_BALLS) return 0;
+  if (rev === BT_REV) return btScoreOfV2(home, lastLand) - 130;
   return finishScore(BT_RUN_TICKS, lastLand) - 130;
 }
 
 /**
- * The most a perfect run can score: the last marble is released at tick 2988 and
- * needs at least 12 sixteen-tick steps (hopper, row 1, down column 5 to its cup),
- * so it lands no earlier than tick 3180 → 130 + 5.
+ * The earliest tick the last marble can land: it is released at tick 2988 and
+ * needs at least 12 sixteen-tick steps (hopper, row 1, down column 5 to its cup).
+ * Under the original rules the speed bonus is measured against the 60 s run, so a
+ * perfect run tops out at 130 + 5 (BT_LEGACY_PERFECT_MAX). arcade-batch1-check
+ * proves both figures.
  */
-export const BT_PERFECT_MAX = 135;
+export const BT_LAST_LAND_MIN = 3180;
+export const BT_LEGACY_PERFECT_MAX = 135;
+
+/**
+ * btRev 2: all home = 130 + the 50 % par speed bonus measured over the window the
+ * last marble can actually land in (tick 3180 to the buzzer): the full 20 if it
+ * lands within the first half of that window, then an even fall to 0 at 60 s.
+ */
+export function btScoreOfV2(home: number, lastLand = BT_RUN_TICKS): number {
+  if (home < BT_BALLS) return Math.max(0, Math.min(130, Math.round((130 * home) / BT_BALLS)));
+  const window = BT_RUN_TICKS - BT_LAST_LAND_MIN;
+  const left = BT_RUN_TICKS - Math.max(BT_LAST_LAND_MIN, Math.min(BT_RUN_TICKS, lastLand));
+  return clampInt(130 + speedBonusCurve(20, left, window), 0, 150);
+}
 
 /** round(130 × home ÷ ball count); all home = 130 + speed bonus; wrong trays have no penalty. */
 export function btScoreOf(home: number, _wrong: number, lastLand = BT_RUN_TICKS): number {
@@ -269,6 +286,7 @@ export function btScoreOf(home: number, _wrong: number, lastLand = BT_RUN_TICKS)
 }
 
 export function btScore(s: BtState): number {
+  if (s.rev === BT_REV) return btScoreOfV2(s.home, s.lastLand);
   return btScoreOf(s.home, s.wrong, s.lastLand);
 }
 

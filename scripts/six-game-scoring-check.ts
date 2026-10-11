@@ -1,6 +1,8 @@
 /** Formula, schedule and intro/reveal regressions for the six Oct 6 scoring changes; no identity proof here. */
 import { readFileSync } from "node:fs";
-import { btScoreOf, BT_BALLS, BT_DROP_TICKS, BT_RUN_TICKS, makeBallTrackGame } from "../src/lib/arcade/ballTrack";
+import { btCheckpoint, btScoreOf, btScoreOfV2, BT_BALLS, BT_DROP_TICKS, BT_LAST_LAND_MIN, BT_REV, BT_RUN_TICKS, makeBallTrackGame } from "../src/lib/arcade/ballTrack";
+import { decodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
+import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
 import { matchupGame, MATCHUP_PAR_RAW } from "../src/lib/arcade/matchup";
 import { juncScoreOf } from "../src/lib/arcade/junction";
 import { rallyGame } from "../src/lib/arcade/rally";
@@ -66,11 +68,45 @@ for (const [type, text] of [["matchup", "2,500"], ["bullseye", "1.7 × ring tota
 // Each split intro shows the real partial maximum: the score one unit short of a clear (Grappler rounds to 130).
 const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: 90, breaker: 128, bubble: 128, inkbridge: 99, orbit: 117, swing: 130, tilt: 90 } as const;
 for (const [type, max] of Object.entries(SPLIT_PARTIAL_MAX) as [keyof typeof SPLIT_PARTIAL_MAX, number][]) {
-  // Ball Tracker states its true perfect-run maximum (135, proved in arcade-batch1-check), not the 150 cap.
-  const full = type === "balltrack" ? 135 : 150;
-  eq(INTRO_SCORE[type].includes(` for up to ${full}; otherwise up to ${max}.`), true, `${type} intro states the split with partial max ${max}`);
+  eq(INTRO_SCORE[type].includes(` for up to 150; otherwise up to ${max}.`), true, `${type} intro states the split with partial max ${max}`);
 }
 eq(btScoreOf(BT_BALLS - 1, 0), SPLIT_PARTIAL_MAX.balltrack, "Ball Tracker partial max");
+// btRev 2: the full-clear speed bonus is timed over the window the last marble can land in
+// (tick 3180 to 3600), so a perfect, fast run reaches 150; the partial maximum stays 126.
+eq(BT_LAST_LAND_MIN, 3180, "Ball Tracker earliest last landing");
+for (let home = 0; home < BT_BALLS; home++) eq(btScoreOfV2(home, 0), Math.round(130 * home / 30), "Ball Tracker rev 2 partial");
+eq(btScoreOfV2(BT_BALLS - 1, BT_LAST_LAND_MIN), SPLIT_PARTIAL_MAX.balltrack, "Ball Tracker rev 2 partial max");
+for (let last = BT_LAST_LAND_MIN - 200; last <= BT_RUN_TICKS; last += 7) {
+  const left = BT_RUN_TICKS - Math.max(BT_LAST_LAND_MIN, last);
+  eq(btScoreOfV2(BT_BALLS, last), 130 + Math.round(20 * Math.min(1, left / 210)), "Ball Tracker rev 2 finish (par over the landing window)");
+}
+eq(btScoreOfV2(BT_BALLS, BT_LAST_LAND_MIN), 150, "Ball Tracker rev 2 full clear at the earliest landing = 150");
+eq(btScoreOfV2(BT_BALLS, 3390), 150, "Ball Tracker rev 2 full bonus through 56.5 s");
+eq(btScoreOfV2(BT_BALLS, BT_RUN_TICKS), 130, "Ball Tracker rev 2 bonus 0 at the buzzer");
+// Proof on real logs: banked playbooks replayed through the server path under rev 2 reach 150.
+let bt150 = 0;
+for (const [index, entry] of BALL_TRACK_BANK.entries()) {
+  if (index % 20 !== 0) continue;
+  const g = makeBallTrackGame(entry.course, BT_REV);
+  const byTick = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
+  let st = g.init(1);
+  const events: ArcadeInputEvent[] = [];
+  const checkpoints: ReturnType<typeof btCheckpoint>[] = [];
+  while (!g.isOver(st)) {
+    const t = st.tick + 1;
+    const e = byTick.get(t);
+    if (e) recordInput(events, e, g.inputRanges);
+    st = g.step(st, inputAt(events, t));
+    if (st.tick % 300 === 0) checkpoints.push(btCheckpoint(st));
+  }
+  const score = g.score(st);
+  const replay = replayBallTrackRun(entry.course, index + 1, encodeBallTrackRun(entry.course, { seed: index + 1, claimedScore: score, events, endTick: st.tick, checkpoints }, BT_REV), BT_REV);
+  eq([replay.score, replay.flagged, replay.home], [score, false, 30], "Ball Tracker rev 2 playbook replay");
+  if (score === 150) bt150++;
+}
+eq(bt150 > 0, true, "Ball Tracker rev 2: a real perfect run reaches 150 through the server replay");
+// Unstamped rounds keep the original 60 s timing (a perfect run tops out at 135).
+eq(btScoreOf(BT_BALLS, 0, BT_LAST_LAND_MIN), 135, "Ball Tracker original perfect-run maximum unchanged");
 const brk = breakerGame.init(1);
 eq(brk.bricks.length, BRK_BRICKS, "Breaker brick count");
 eq(breakerGame.score({ ...brk, bricks: brk.bricks.map((_, i) => (i === 0 ? 1 : 0)) }), SPLIT_PARTIAL_MAX.breaker, "Breaker partial max");
@@ -89,7 +125,7 @@ for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }
 for (const [type, goal] of [["balltrack", "Get all 30 marbles home"], ["bintoss", "Sink all 10 buckets"], ["breaker", "Clear all 80 bricks"], ["inkbridge", "Finish all 10 levels"], ["swing", "Reach 500 metres"], ["tilt", "Finish all 4 mazes"]] as const) {
-  eq(INTRO_SCORE[type].includes(`${goal} for up to ${type === "balltrack" ? 135 : 150}`), true, `${type} intro goal`);
+  eq(INTRO_SCORE[type].includes(`${goal} for up to 150`), true, `${type} intro goal`);
 }
 // Scrumper and Mixed Signals are not on the split: no partial cap at 130.
 for (const type of ["snip", "stroop"] as const) eq(INTRO_SCORE[type].includes("otherwise up to 130"), false, `${type} intro has no split line`);

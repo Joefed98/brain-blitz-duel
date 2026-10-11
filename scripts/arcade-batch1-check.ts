@@ -66,7 +66,9 @@ import {
   BT_COLS,
   BT_HOPPER_COL,
   BT_K_ROTATE,
-  BT_PERFECT_MAX,
+  BT_LAST_LAND_MIN,
+  BT_LEGACY_PERFECT_MAX,
+  btScoreOfV2,
   BT_REV,
   BT_ROWS,
   BT_STEP_TICKS,
@@ -371,7 +373,7 @@ section("Ball Tracker btRev 2");
     minScore = Math.min(minScore, score);
     maxScore = Math.max(maxScore, score);
   }
-  ok(minScore > 130 && maxScore <= BT_PERFECT_MAX, "perfect playbook runs score a little over 130");
+  ok(minScore > 140 && maxScore === 150, "perfect playbook runs reach 150 under rev 2 when the last marble lands by 56.5 s");
 
   // The bound: shortest possible route for the last marble with every tube and switch set ideally.
   const rotatableAll = new Set(BALL_TRACK_BANK.flatMap((e) => btRotatable(e.course)));
@@ -397,9 +399,10 @@ section("Ball Tracker btRev 2");
     if (st.next > before) lastRelease = st.tick;
   }
   const earliest = lastRelease + BT_STEP_TICKS * (minMoves + 1);
-  ok(btScoreOf(BT_BALLS, 0, earliest) === BT_PERFECT_MAX, `bound: last marble lands no earlier than tick ${earliest} → ${BT_PERFECT_MAX}`);
-  ok(INTRO_SCORE.balltrack.includes(`for up to ${BT_PERFECT_MAX}; otherwise up to ${btScoreOf(BT_BALLS - 1, 0)}`), "Ball Tracker intro states the true maximums");
-  console.log(`  occupied turns and switch points work; ${Math.ceil(BALL_TRACK_BANK.length / 4)} banked playbooks still prove their courses (perfect runs ${minScore}–${maxScore}); perfect-run bound ${BT_PERFECT_MAX} (150 is not reachable: the last marble drops at tick ${lastRelease})`);
+  ok(earliest === BT_LAST_LAND_MIN, `the last marble lands no earlier than tick ${earliest}`);
+  ok(btScoreOfV2(BT_BALLS, earliest) === 150 && btScoreOf(BT_BALLS, 0, earliest) === BT_LEGACY_PERFECT_MAX, "rev 2 perfect max 150; original stays 135");
+  ok(INTRO_SCORE.balltrack.includes(`for up to 150; otherwise up to ${btScoreOfV2(BT_BALLS - 1, earliest)}`), "Ball Tracker intro states the true maximums");
+  console.log(`  occupied turns and switch points work; ${Math.ceil(BALL_TRACK_BANK.length / 4)} banked playbooks still prove their courses (perfect runs score ${minScore}–${maxScore} under rev 2; earliest last landing tick ${BT_LAST_LAND_MIN}, last release ${lastRelease})`);
 }
 }
 

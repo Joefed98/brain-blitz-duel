@@ -875,7 +875,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A marble drops about every two seconds", detail: "until 50 seconds; the run lasts a minute.", helpOnly: true },
       { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "a countdown warns you.", helpOnly: true },
     ],
-    score: "round(130 × marbles home ÷ 30). All 30 home = 130 + up to 5 for speed (the last marble drops at 50 s). Wrong cups cost nothing.",
+    score: "round(130 × marbles home ÷ 30). All 30 home = 130 + up to 20 for speed, timed from the earliest the last marble can land (53 s): the full 20 if it lands by 56.5 s, then less until 0 at 60 s. Wrong cups cost nothing.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",
