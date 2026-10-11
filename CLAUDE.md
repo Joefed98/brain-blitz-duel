@@ -65,6 +65,10 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 - puzzle-input-tuning rewrites `.lovable/audits/puzzle-input-oct6.md`; restore it
   (`git checkout`) before committing.
 - `scripts/*-bank.ts` rebuild server-only banks; run them only when a bank must change.
+  The six slow-generator banks (`flow`, `blockparty`, `tubes`, `gravity`, `lightup`,
+  `iceslide`; `scripts/puzzle-bank-lib.ts`) are seeded and rebuild byte-for-byte;
+  `bun scripts/<game>-bank.ts --check` proves it without writing. Any change to one of
+  those generators or verifiers must be followed by rebuilding its bank.
 
 ## Rules (non-negotiable)
 

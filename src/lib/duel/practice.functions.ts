@@ -90,13 +90,17 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
       }
     }
     if (!example) {
-      const { pub, priv } = splitPuzzle(generatePuzzle(type, { unblockRow }));
+      // Slow types come from their precomputed bank; a fresh seed picks the board.
+      const { newRoomSeed } = await import("./selection");
+      const { pub, priv } = splitPuzzle(generatePuzzle(type, { unblockRow, bankSeed: newRoomSeed() }));
       return { puzzle: pub, sealed: await seal(priv) };
     }
     const { withSeededRandom } = await import("./random");
     const { INTRO_EXAMPLE_ID, INTRO_EXAMPLE_SEED } = await import("./puzzleDemo");
     const { generateWordsmithExample } = await import("./wordsmith.server");
-    const made = withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? generateWordsmithExample() : generatePuzzle(type, { unblockRow }));
+    // The six banked types store their example, so it needs no live solve.
+    const { bankedIntroExample } = await import("./puzzleBank.server");
+    const made = bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? generateWordsmithExample() : generatePuzzle(type, { unblockRow }));
     const { pub, priv } = splitPuzzle(made);
     return { puzzle: pub, sealed: await seal({ ...priv, __example: INTRO_EXAMPLE_ID }) };
   });
