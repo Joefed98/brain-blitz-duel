@@ -157,3 +157,15 @@ Review sheets in `sheets/`. Each game gets one row (intro, mid-play and reveal s
 - `unblock` (Gridlock, pattern): The server could not generate the puzzle. Unblock boards come from the Supabase unblock_bank table, read with the service-role client, and this container has no SUPABASE_SERVICE_ROLE_KEY (the server reported "Missing Supabase environment variable(s): SUPABASE_SERVICE_ROLE_KEY"), so practice stays on "Making a puzzle". The Supabase host is also unreachable from this container.
 
 Total: 206 screenshots plus 15 contact sheets (221 PNG files).
+
+## Word batch: Strikeout, Cryptogrid, Swapword (12 Oct 2026)
+
+Captured on the word-batch branch the same way (local `vite dev`, Playwright, pre-installed Chromium, device scale 1), but from ordinary practice puzzles (a fresh seed each, not the fixed example) and with a few scripted inputs, so the play shots show feedback: Strikeout after guessing E A R I O T and typing CRAN into word 2; Cryptogrid after selecting two numbers and pressing letters; Swapword after one tap-tap swap and one drag. Reveals are the real AnswerReveal after the round ended (Strikeout and Swapword by running out of strikes or swaps, Cryptogrid at the buzzer). Measured in the browser: no page or element overflow on play and reveal at 390 × 700 and 375 × 667.
+
+| Game id | Name | Intro | Mid-play | Reveal | 375 × 667 |
+|---|---|---|---|---|---|
+| `strikeout` | Strikeout | [word/strikeout-intro.png](word/strikeout-intro.png) | [word/strikeout-play.png](word/strikeout-play.png) | [word/strikeout-reveal.png](word/strikeout-reveal.png) | [play](word/strikeout-play-375x667.png) |
+| `codeword` | Cryptogrid | [word/codeword-intro.png](word/codeword-intro.png) | [word/codeword-play.png](word/codeword-play.png) | [word/codeword-reveal.png](word/codeword-reveal.png) | [play](word/codeword-play-375x667.png), [reveal](word/codeword-reveal-375x667.png) |
+| `swapword` | Swapword | [word/swapword-intro.png](word/swapword-intro.png) | [word/swapword-play.png](word/swapword-play.png) | [word/swapword-reveal.png](word/swapword-reveal.png) | [play](word/swapword-play-375x667.png), [reveal](word/swapword-reveal-375x667.png) |
+
+Swapword's board shape (swapwordRev 1) on its own: [word/swapword-board.png](word/swapword-board.png).

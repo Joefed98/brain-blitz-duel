@@ -8,6 +8,7 @@
 
 import { PROFANITY_WORDS } from "./profanity.server";
 import { SCOWL_COMMON_COUNT, SCOWL_WORDS_RAW } from "./wordlist.server";
+import { COMMON_WORDS_RAW } from "./commonWords.server";
 
 /** Never accepted, whatever the dictionary says. */
 const BLOCKED = new Set([
@@ -172,4 +173,26 @@ export function isCommonPrefix(prefix: string): boolean {
     prefixes = set;
   }
   return prefixes.has(prefix);
+}
+
+const answerLists = new Map<number, string[]>();
+
+/**
+ * Puzzle answers for Strikeout, Cryptogrid and Swapword: the common-words subset
+ * (SCOWL sizes 10–35, British spellings, no plurals or -s verb forms, no proper
+ * nouns; commonWords.server.ts), upper case, every word also passing isWord.
+ */
+export function answerWords(length: number): string[] {
+  const cached = answerLists.get(length);
+  if (cached) return cached;
+  const list = COMMON_WORDS_RAW.split(/\s+/)
+    .filter((word) => word.length === length && isWord(word))
+    .map((word) => word.toUpperCase());
+  answerLists.set(length, list);
+  return list;
+}
+
+/** Every dictionary word of one length, upper case (Cryptogrid's uniqueness proof). */
+export function dictionaryWords(length: number): string[] {
+  return [...dictionary().all].filter((word) => word.length === length).map((word) => word.toUpperCase());
 }

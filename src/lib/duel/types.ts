@@ -94,6 +94,9 @@ export type PuzzleType =
   | "trail"
   | "dig"
   | "letterwheel"
+  | "strikeout"
+  | "codeword"
+  | "swapword"
   | "snip";
 
 export type PuzzleCategory =
@@ -520,6 +523,9 @@ export type PuzzleData =
   | DigPuzzleData
   | WordSearchPuzzleData
   | LetterWheelPuzzleData
+  | StrikeoutPuzzleData
+  | CodewordPuzzleData
+  | SwapwordPuzzleData
   | WavefrontPuzzleData
   | BastionPuzzleData
   | RooftopPuzzleData
@@ -2374,6 +2380,54 @@ export interface LetterWheelPuzzleData {
   slots: LetterWheelSlot[];
   /** Word for each slot — private until the reveal. */
   words?: string[];
+}
+
+/** Strikeout: reveal five hidden five-letter words a letter at a time; five strikes end it. */
+export const STRIKEOUT_TIME_MS = 100_000;
+
+export interface StrikeoutPuzzleData {
+  type: "strikeout";
+  /** Rules revision (1 = first release). */
+  strikeoutRev: number;
+  rows: number;
+  length: number;
+  /** The five hidden words, upper case — private until the reveal. */
+  words?: string[];
+}
+
+/** Cryptogrid: a filled 7 × 7 crossword with a number in every white cell. */
+export const CODEWORD_TIME_MS = 120_000;
+
+export interface CodewordPuzzleData {
+  type: "codeword";
+  /** Rules revision (1 = first release). */
+  codewordRev: number;
+  size: number;
+  /** size × size cells, row by row: 0 = black square, otherwise the cell's number (1…numbers). */
+  cells: number[];
+  /** How many different numbers (= different letters) the grid uses. */
+  numbers: number;
+  /** Numbers shown at the start, each with its letter. */
+  givens: { n: number; letter: string }[];
+  /** Letter of each number (index n − 1), upper case — private until the reveal. */
+  solution?: string;
+}
+
+/** Swapword: swap tiles until six crossing words read correctly. */
+export const SWAPWORD_TIME_MS = 120_000;
+
+export interface SwapwordPuzzleData {
+  type: "swapword";
+  /** Rules revision (1 = first release; also fixes the board shape). */
+  swapwordRev: number;
+  /** Starting letters, one per tile in the layout's tile order, upper case. */
+  start: string;
+  /** Proven fewest swaps that solve the board. */
+  minSwaps: number;
+  /** Swap budget: minSwaps + 5. Running out ends the round. */
+  maxSwaps: number;
+  /** Solved letters in tile order — private until the reveal. */
+  solution?: string;
 }
 
 export interface WordSearchPlacement {

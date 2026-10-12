@@ -25,7 +25,7 @@ Legend: **Built** = live and drawn in rooms · **Retired** = practice only, neve
 
 ---
 
-## Word (core) — 6 active
+## Word (core) — 9 active
 
 | Game (id) | Status | Description | Time |
 |---|---|---|---|
@@ -35,9 +35,12 @@ Legend: **Built** = live and drawn in rooms · **Retired** = practice only, neve
 | Slider (wordslide) | Built | Slide letters so all five rows are words; a padlock locks a solved row. 100 + 30 speed + 20 moves; 22 per valid row otherwise. | 100 s |
 | Lookout (wordsearch) | Built | Find the themed hidden words in a 10×10 grid; found words get a strike-through and fill a chip below. 20 per word; wrong picks cost nothing. | 120 s |
 | Roundabout (letterwheel) | Built | Drag across a letter wheel to fill a small crossword; Shuffle rearranges the wheel. Per-word credit plus speed. | 100 s |
+| Strikeout (strikeout) | Built | Five hidden five-letter words; guess letters on a shared QWERTY keypad (each fills every matching tile) or tap a word and Solve it; five strikes end the round. 20 per word; all five = 120 + 4 per strike left + up to 10 speed. | 100 s |
+| Cryptogrid (codeword) | Built | 7 × 7 filled crossword with a number in every white cell; 4 numbers given; assign letters to crack the code. Bank of 1,000 boards, each proven unique against the full dictionary. Credit per number; cracked = 130 + speed. | 120 s |
+| Swapword (swapword) | Built | 21 tiles in a 6 × 6 figure-eight of six crossing words; swap tiles until every word reads; gold / teal / grey marks; budget = proven minimum + 5. 5 per tile placed; solved = 100 + swaps + speed. | 120 s |
 | Word Ladder (ladder) | Retired | One letter at a time between two words (retired 6 Oct). | |
 | Groups (groups) / Word Match (wordmatch) | Retired | | |
-| Compound Words, Swapword, Word Drop | To build (high) | See the master plan's new-games table. | |
+| Compound Words, Word Drop | To build (high) | See the master plan's new-games table. | |
 | Fill-In, Cryptex, Unscramble Ladder, Mini Crossword | To build (medium/low) | | |
 | Longest Word / Word Association Chain / Reverse Definitions / Homophone Match / Speed Typing / Crossword Sprint | Bank | | |
 

@@ -100,6 +100,9 @@ import {
   DIG_TIME_MS,
   WORDSEARCH_TIME_MS,
   LETTERWHEEL_TIME_MS,
+  STRIKEOUT_TIME_MS,
+  CODEWORD_TIME_MS,
+  SWAPWORD_TIME_MS,
   WAVEFRONT_TIME_MS,
   BASTION_TIME_MS,
   ROOFTOP_TIME_MS,
@@ -165,6 +168,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   dig: DIG_TIME_MS,
   wordsearch: WORDSEARCH_TIME_MS,
   letterwheel: LETTERWHEEL_TIME_MS,
+  strikeout: STRIKEOUT_TIME_MS,
+  codeword: CODEWORD_TIME_MS,
+  swapword: SWAPWORD_TIME_MS,
   wavefront: WAVEFRONT_TIME_MS,
   bastion: BASTION_TIME_MS,
   rooftop: ROOFTOP_TIME_MS,
@@ -1501,6 +1507,27 @@ const letterWheelSummary: SummaryBuilder = (result) => {
   return { summary: `${slots} / ${total} words`, detail: [] };
 };
 
+const strikeoutSummary: SummaryBuilder = (result) => {
+  const solved = Number(result.extra?.["solvedRows"] ?? 0);
+  const strikes = Number(result.extra?.["strikes"] ?? 0);
+  return { summary: `${solved} / 5 words · ${strikes} strike${strikes === 1 ? "" : "s"}`, detail: [] };
+};
+
+const codewordSummary: SummaryBuilder = (result) => {
+  if (result.extra?.["solved"] === true) return { summary: "Cracked", detail: [] };
+  const correct = Number(result.extra?.["correct"] ?? 0);
+  const hidden = Number(result.extra?.["hidden"] ?? 0);
+  return { summary: `${correct} / ${hidden} letters`, detail: [] };
+};
+
+const swapwordSummary: SummaryBuilder = (result) => {
+  const swaps = Number(result.extra?.["swaps"] ?? 0);
+  if (result.extra?.["solved"] === true) {
+    return { summary: `Solved · ${swaps} swaps (min ${Number(result.extra?.["minSwaps"] ?? 0)})`, detail: [] };
+  }
+  return { summary: `${Number(result.extra?.["placed"] ?? 0)} tiles placed`, detail: [] };
+};
+
 const tentsSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tents") return { summary: "—", detail: [] };
   const correct = Number(result.extra?.["correct"] ?? 0);
@@ -1628,6 +1655,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   dig: digSummary,
   wordsearch: wordSearchSummary,
   letterwheel: letterWheelSummary,
+  strikeout: strikeoutSummary,
+  codeword: codewordSummary,
+  swapword: swapwordSummary,
 };
 
 function joinOperators(values: string[]): string {
@@ -1731,6 +1761,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   dig: () => null,
   wordsearch: () => null,
   letterwheel: () => null,
+  strikeout: () => null,
+  codeword: () => null,
+  swapword: () => null,
 
   rings: (p) => (p.type === "rings" && p.minMoves ? `${p.minMoves} turns` : null),
 };

@@ -72,6 +72,16 @@ export function nearMiss(
         ? `${left} bubble${left === 1 ? "" : "s"} left to clear`
         : null;
     }
+    case "strikeout":
+      return extra["done"] === true ? null : remaining("solvedRows", 5, "word");
+    case "codeword":
+      return extra["solved"] === true ? null : remaining("correct", number("hidden"), "letter");
+    case "swapword": {
+      const left = number("tilesLeft");
+      return extra["solved"] !== true && left !== null && left > 0
+        ? `${left} tile${left === 1 ? "" : "s"} from solved`
+        : null;
+    }
     default:
       return null;
   }

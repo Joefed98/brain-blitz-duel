@@ -315,6 +315,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
               onSubmit={() => undefined}
               checkWord={(word) => verdict({ valid: false, points: 0, word }).then((v) => ({ ...v, points: v.points ?? 0, word: v.word ?? word }))}
               checkGroup={() => verdict({ valid: false })}
+              checkMoves={() => Promise.resolve(null)}
             />
           </ArrowModeOverride.Provider>
           </GameColumnLayout.Provider>

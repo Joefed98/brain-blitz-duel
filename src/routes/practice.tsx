@@ -12,6 +12,7 @@ import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import {
   practiceCheckWordFn,
   practiceCheckGroupFn,
+  practiceCheckMovesFn,
   practiceGenerateFn,
   practiceGradeFn,
 } from "@/lib/duel/practice.functions";
@@ -47,6 +48,7 @@ import {
 import { roundMusicFor } from "@/lib/fx/theme";
 import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import type { SubmitMeta } from "@/puzzles/types";
+import type { MovesView } from "@/lib/duel/moves";
 import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
 import { APP_NAME } from "@/lib/brand";
 
@@ -556,6 +558,9 @@ function PracticeScreen() {
             recorder.current?.verdict(verdict);
             return verdict;
           }}
+          checkMoves={async (moves) =>
+            (await practiceCheckMovesFn({ data: { puzzle, sealed, moves } })) as MovesView | null
+          }
         />
       </GameLayout>
     </PhoneShell>

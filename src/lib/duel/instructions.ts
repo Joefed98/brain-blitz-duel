@@ -1018,6 +1018,33 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "15 per word on eight-word puzzles, 13 on nine-word puzzles. Find them all for 130 plus up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },
+  strikeout: {
+    goal: "Reveal five hidden five-letter words before you take five strikes.",
+    how: [
+      { action: "Tap a letter:", detail: "it fills every matching tile in every word. Gold keys are in the puzzle, red keys are strikes." },
+      { action: "Tap a word, type all five letters, then Solve.", detail: "It must be a real word (others are refused for free); a wrong guess is a strike." },
+      { action: "Five strikes end the round.", detail: "A word is solved once all its letters show." },
+    ],
+    score: "Unfinished: 20 per solved word + 2 per letter showing in unsolved words, up to 110. All five: 120 + 4 per strike left + up to 10 for speed (the full 10 if you finish with at least half the time left).",
+  },
+  codeword: {
+    goal: "Crack the code: every number stands for one letter of a finished crossword.",
+    how: [
+      { action: "Tap a square,", detail: "then a letter: every square with that number fills. The strip above the keys shows what you have decoded." },
+      { action: "Each letter has one number.", detail: "Using a letter again moves it from its old number; Clear empties the selected number." },
+      { action: "Four numbers start decoded.", detail: "The grid completes the moment every number is right." },
+    ],
+    score: "Unfinished: 110 × numbers decoded right ÷ numbers to find; wrong letters cost nothing. Cracked: 130 + up to 20 for speed (the full 20 if you finish with at least half the time left).",
+  },
+  swapword: {
+    goal: "Swap the tiles until all six crossing words read correctly.",
+    how: [
+      { action: "Drag a tile onto another,", detail: "or tap one then the other, to swap them." },
+      { action: "Gold tiles are in place.", detail: "Teal tiles belong elsewhere in a word through them; grey tiles fit neither word. A letter shows teal only as often as it is still needed." },
+      { action: "Every swap counts.", detail: "Running out of swaps ends the round." },
+    ],
+    score: "Unfinished: 5 per tile you put in place (tiles that started in place don't count), up to 100. Solved: 100 + up to 25 for few swaps (25 at the minimum, less for each extra) + up to 25 for speed.",
+  },
   lightup: {
     goal: "Place bulbs so every white square is lit.",
     how: [

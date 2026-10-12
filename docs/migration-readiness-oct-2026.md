@@ -39,6 +39,7 @@ There are 26 `createServerFn` handlers in 5 files. Client calls go through `src/
 | `rematchFn` | Host only: calls RPC `restart_duel_room`. | `{roomId}` | `duel_players`, `duels` | via RPC: `round_results`, `duel_secrets`, `duel_players` (deletes/updates), `duels` |
 | `checkWordFn` | Live word check for Roundabout, Lookout, Forage, Interlock, Slider, Word Ladder and Nucleus. Uses the server-only dictionary and private placements. | `{roomId, roundNumber, word, found[], path?}` | `duel_players`, `duels`, `duel_secrets` | — |
 | `checkGroupFn` | Groups: checks four tiles against the private partition. | `{roomId, roundNumber, indices}` | `duel_players`, `duels`, `duel_secrets` | — |
+| `checkMovesFn` | Strikeout, Cryptogrid, Swapword: replays the player's whole move list against the private puzzle and returns only the board view (revealed tiles / solved flag / tile marks). Stateless. | `{roomId, roundNumber, moves}` | `duel_players`, `duels`, `duel_secrets` | — |
 
 ### 1.2 Other files
 
@@ -299,6 +300,8 @@ Hanoi (`tower`, ~250–365 ms worst) is now the largest single cost. The Bun ESM
 | Dig (retired) | `digBank.server.ts` | 300 | 210 KB |
 | Colour Flood | `floodBank.server.json` | 400 | 185 KB |
 | Roundabout | `letterWheelBank.server.ts` | 300 | 142 KB |
+| Cryptogrid | `codewordBank.server.ts` | 1,000 | 82 KB |
+| Strikeout / Cryptogrid / Swapword answers | `commonWords.server.ts` (SCOWL ≤ 35 ∩ word-frequency top 20k) | 5,890 words | 90 KB |
 | Trail | `trailBank.server.ts` | 300 | 85 KB |
 | Heave | `pushBank.server.ts` | 120 | 53 KB |
 | Dictionary | `wordlist.server.ts` (SCOWL British, 58,287 common words) | 1 string | 951 KB |
