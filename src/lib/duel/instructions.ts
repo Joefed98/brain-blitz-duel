@@ -957,7 +957,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Hold to grab and swing,", detail: "let go to fly." },
       { action: "From 200 m a dragon chases you:", detail: "keep going." },
-      { action: "Touch stars as you swing past", detail: "for bonus points." },
+      { action: "Touch stars as you fly by", detail: "for bonus points." },
       { action: "Stuck? Keep swinging", detail: "- every pass gets you higher. Swipe up to shorten the rope for speed, down to let it out.", helpOnly: true },
       { action: "The dragon flies at a steady pace behind you.", detail: "Slow down or stall and it catches you, which ends the run. A marker at the left edge shows how far back it is.", helpOnly: true },
       { action: "Loose stalactites crumble, shedding grit,", detail: "for two seconds before they fall. Don't be under one.", helpOnly: true },
