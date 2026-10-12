@@ -169,3 +169,30 @@ the old `rev` and gains only `band`/`acted` (and Tilt's best maze progress), whi
   with no checkpoint desync and score exactly their band breakdown; every curve's rules; idle runs score 0; Coral Pop's queue.
 - `scripts/arcade-self-replay-check.ts` covers all 22 band revisions alongside the stored ones; the batch 1–5 legacy digests
   still pass.
+
+## Tuning A (12 Oct 2026)
+
+Three games changed play on their existing band curves, each under a new stamp that `BAND_STAMPS` lists alongside the
+band stamp (Wavefront wavRev 4, Orbit orbitRev 6, Grappler swingRev 6). High Rise (flag art) and Tilt (drawing, cup
+proof, arena position) changed no sim and keep skylineRev 3 / tiltRev 3. Medians (p10–p90) from
+`bun scripts/arcade-skill-bands.ts <game> --rev=next|tuned --seeds=60`, same seeds and players:
+
+| Game | Revision | Average | Good | Great | Near-perfect |
+|---|---|---|---|---|---|
+| Wavefront | wavRev 3 (before) | 74 (58–90) | 111 (71–150) | 150 (88–150) | 150 (136–150) |
+| Wavefront | wavRev 4 (shapes) | 73 (65–102) | 99 (72–150) | 140 (86–150) | 140 (96–150) |
+| Orbit | orbitRev 5 (before) | 64 (0–110) | 100 (39–117) | 120 (85–135) | 135 (120–150) |
+| Orbit | orbitRev 6 (fly-in, quicker miss) | 64 (0–110) | 100 (39–117) | 120 (85–145) | 136 (120–150) |
+| Grappler | swingRev 5 (before) | 77 (22–118) | 100 (39–130) | 130 (92–148) | 148 (128–149) |
+| Grappler | swingRev 6 (touch stars, 2 s crumble) | 75 (22–112) | 101 (46–136) | 129 (95–148) | 137 (116–148) |
+| High Rise | skylineRev 3 (unchanged) | 72 (59–88) | 99 (81–109) | 121 (107–130) | 145 (136–150) |
+| Tilt | tiltRev 3 (unchanged) | 67 (28–98) | 106 (29–125) | 119 (39–137) | 131 (39–140) |
+
+- Wavefront's shapes are wider than the grid, so they reach the walls (and drop) sooner; first measured with each shape's
+  lowest ships where the grid's bottom row starts, average/good fell to 70/78. Shapes now settle at the top on wave 2 and
+  21 px lower each wave after (`WAV_FORM_STEP_Y`), which brings every level back to the rev-3 band.
+- Grappler near-perfect players finish less often when they chase touch stars that sit off their own line (stars were
+  previously on anchors they grabbed anyway): 137 against 148. Bigger stars and moving stars off lava jets did not change
+  that; it stays inside the 135–138 range seven games already sit in, and every other level is in band.
+- `scripts/arcade-tuning-a-check.ts` replays 40 runs recorded on the pre-change code
+  (`scripts/fixtures/arcade-tuning-a-legacy.json`) to the same score and final state.

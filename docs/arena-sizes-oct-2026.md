@@ -14,7 +14,7 @@ Analytic geometry, cross-checked in the browser by arcade-play-check; not device
 | Meteor | 390x532 | 367x501 | 382x521 | 382x521 | 422x576 | 496x676 | 0.979x | 116px | 199px | 0px |
 | Fission | 390x560 | 320x459 | 343x492 | 382x549 | 422x606 | 412x592 | 0.979x | 116px | 87px | 0px |
 | Wavefront | 390x620 | 342x543 | 362x576 | 382x607 | 422x671 | 425x676 | 0.979x | 116px | 113px | 0px |
-| Orbit | 390x620 | 304x483 | 325x516 | 382x607 | 422x671 | 387x616 | 0.979x | 116px | 53px | 0px |
+| Orbit | 390x620 | 294x467 | 315x500 | 382x607 | 422x671 | 377x600 | 0.979x | 116px | 37px | 0px |
 | High Rise | 390x560 | 367x527 | 382x549 | 382x549 | 422x606 | 471x676 | 0.979x | 116px | 171px | 0px |
 | Jaywalk | 390x580 | 365x543 | 382x568 | 382x568 | 422x628 | 455x676 | 0.979x | 116px | 152px | 0px |
 | Junction | 390x620 | 342x543 | 362x576 | 382x607 | 422x671 | 425x676 | 0.979x | 116px | 113px | 0px |
@@ -26,6 +26,6 @@ Analytic geometry, cross-checked in the browser by arcade-play-check; not device
 | Roofbound | 390x620 | 342x543 | 362x576 | 382x607 | 422x671 | 425x676 | 0.979x | 116px | 113px | 0px |
 | Grappler | 390x620 | 342x543 | 362x576 | 382x607 | 422x671 | 425x676 | 0.979x | 116px | 113px | 0px |
 | Scrumper | 360x560 | 323x503 | 345x536 | 382x594 | 422x656 | 409x636 | 1.061x | 156px | 86px | 0px |
-| Tilt | 440x470 | 367x392 | 382x408 | 382x408 | 422x451 | 633x676 | 0.868x | 116px | 312px | 0px |
+| Tilt | 440x470 | 367x392 | 382x408 | 382x408 | 422x451 | 610x652 | 0.868x | 140px | 288px | 0px |
 | Ball Tracker | 700x1000 | 352x503 | 375x536 | 382x546 | 422x603 | 445x636 | 0.546x | 116px | 134px | 0px |
 | Gemstone | 390x560 | 367x527 | 382x549 | 382x549 | 422x606 | 471x676 | 0.979x | 116px | 171px | 0px |

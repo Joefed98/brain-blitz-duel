@@ -47,7 +47,8 @@ assert.match(readFileSync("src/puzzles/rotatingRings.tsx", "utf8"), /ring \{sele
 const arcadeRows = [
   { file: "burst", row: /data-game-controls="pad" className="grid h-\[72px\] shrink-0[^"]*grid-cols-3[^"]*gap-3/, button: /className="h-14 w-full/g, count: 3, width: (w: number) => (w - 8 - 2 * 12) / 3, tall: 56 },
   { file: "inkBridge", row: /data-game-controls="tools" className="flex h-12 shrink-0 gap-1\.5"/, button: /className="h-12 min-w-0 flex-1/g, count: 1, width: (w: number) => (w - 8 - 3 * 6) / 4, tall: 48 },
-  { file: "orbit", row: /data-game-controls="checkpoint" className="flex h-12 shrink-0/, button: /className="h-11 px-5/g, count: 1, width: () => 44, tall: 44 },
+  // Orbit's 64 px row holds its 44 px button 16 px up from the bottom edge (Tuning A).
+  { file: "orbit", row: /data-game-controls="checkpoint" className="flex h-16 shrink-0 items-center justify-center pb-4"/, button: /className="h-11 px-5/g, count: 1, width: () => 44, tall: 44 },
 ];
 for (const { file, row, button, count, width, tall } of arcadeRows) {
   const source = readFileSync(`src/puzzles/${file}.tsx`, "utf8");
