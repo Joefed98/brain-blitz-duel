@@ -52,6 +52,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
     unless asked.
   - Push fixes in as few commits as possible: every push triggers a full run (a newer
     push cancels the one in progress).
+  - arcade-play-check (headless Chromium) has its own `play` shard, which installs
+    Playwright's Chromium. CI never compares frame times with the local fixture: it
+    uses `.github/ci/arcade-play-baseline.json`, recorded on a CI runner (Actions →
+    Checks → Run workflow with "record arcade baseline", then commit the artifact),
+    and until that file exists it applies only the absolute under-30-fps ceiling.
+    Never loosen the limits to get green.
   - A new `scripts/*-check.ts` runs automatically (in the catch-all shard); add it to a
     shard in `.github/ci/shards.ts` if it is slow.
 - Run all (Actions does this; locally only if Joe asks): `bun scripts/run-checks.ts`

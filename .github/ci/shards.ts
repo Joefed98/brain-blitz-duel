@@ -1,13 +1,17 @@
 /**
  * CI shard lists for .github/workflows/checks.yml (one job per key; the matrix
  * there must name the same keys). Balanced by runtime from a full local run on
- * 12 Oct 2026 (snip ~625 s alone; a, b and c ~600 s each). Rebalance if one
+ * 12 Oct 2026 (snip ~625 s alone; a, b and c ~600 s each; play ~555 s in #16). Rebalance if one
  * job's time drifts well past the others.
  *
  * A check file not listed here still runs, in CATCH_ALL.
  */
 export const SHARDS: Record<string, string[]> = {
   snip: ["snip-check.ts"],
+  // Headless Chromium (arrives with #16; skipped while the file doesn't exist).
+  // The workflow installs the browser and swaps in the CI frame-time baseline
+  // for this shard only.
+  play: ["arcade-play-check.ts"],
   a: [
     "arcade-fixes-check.ts",
     "arcade-fx-check.ts",

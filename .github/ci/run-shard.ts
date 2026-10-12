@@ -25,6 +25,7 @@ const allChecks = readdirSync("scripts")
   .sort();
 const listed = new Set(Object.values(SHARDS).flat());
 const stale = [...listed, ...Object.keys(CI_SKIP)].filter((f) => !allChecks.includes(f));
+const notYet = SHARDS[shard].filter((f) => !allChecks.includes(f));
 const unassigned = allChecks.filter(
   (f) => !listed.has(f) && !OPTIONAL.includes(f) && !(f in CI_SKIP),
 );
@@ -63,6 +64,7 @@ for (const f of files) {
 for (const r of results)
   if (!files.includes(r.file))
     lines.push(`| ${r.file} | ${icon[r.status]} | ${(r.ms / 1000).toFixed(1)} s |`);
+for (const f of notYet) lines.push(`| ${f} | ⏭️ skipped (not in this branch yet) | — |`);
 const passed = results.filter((r) => r.status === "pass").length;
 lines.push("", `**${passed} of ${files.length} passed.**`);
 if (shard === CATCH_ALL && unassigned.length)
@@ -72,7 +74,10 @@ if (shard === CATCH_ALL && Object.keys(CI_SKIP).length) {
   for (const [f, why] of Object.entries(CI_SKIP)) lines.push(`- ${f}: ${why}`);
 }
 if (shard === CATCH_ALL && stale.length)
-  lines.push("", `⚠️ shards.ts lists files that no longer exist: ${stale.join(", ")}.`);
+  lines.push(
+    "",
+    `Listed in shards.ts but not in this branch (not yet landed, or removed): ${stale.join(", ")}.`,
+  );
 lines.push("");
 
 const summary = lines.join("\n");
