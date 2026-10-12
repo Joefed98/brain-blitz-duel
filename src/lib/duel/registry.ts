@@ -87,6 +87,9 @@ import { hotFloorPuzzle } from "@/puzzles/hotFloor";
 import { ballTrackPuzzle } from "@/puzzles/ballTrack";
 import { wordSearchPuzzle } from "@/puzzles/wordSearch";
 import { letterWheelPuzzle } from "@/puzzles/letterWheel";
+import { strikeoutPuzzle } from "@/puzzles/strikeout";
+import { codewordPuzzle } from "@/puzzles/codeword";
+import { swapwordPuzzle } from "@/puzzles/swapword";
 import { tenDropPuzzle } from "@/puzzles/tenDrop";
 import { wordfallPuzzle } from "@/puzzles/wordfall";
 import { clayShootPuzzle } from "@/puzzles/clayShoot";
@@ -263,6 +266,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   balltrack: ballTrackPuzzle,
   wordsearch: wordSearchPuzzle,
   letterwheel: letterWheelPuzzle,
+  strikeout: strikeoutPuzzle,
+  codeword: codewordPuzzle,
+  swapword: swapwordPuzzle,
   tendrop: tenDropPuzzle,
   wordfall: wordfallPuzzle,
   clayshoot: clayShootPuzzle,

@@ -97,8 +97,15 @@ export const BAND_STAMPS: Record<string, readonly [field: string, rev: number, .
   bullseye: ["bullRev", BULLSEYE_REV_BAND],
 };
 
-/** True when a stored puzzle was dealt on the Oct 2026 score bands. */
+/**
+ * True when a stored puzzle was dealt on the Oct 2026 score bands: the band
+ * revision or a later one (Tuning B's bullRev 4, brkRev 4 and rallyRev 4, and
+ * Tuning A's wavRev 4, orbitRev 6 and swingRev 6 keep the bands), never an earlier one.
+ */
 export function puzzleUsesBands(puzzle: { type: string } & Record<string, unknown>): boolean {
   const stamp = BAND_STAMPS[puzzle.type];
-  return Boolean(stamp && stamp.slice(1).includes(puzzle[stamp[0]] as number));
+  // The band revision or any later one: Tuning B's (bullRev 4, brkRev 4, rallyRev 4) and
+  // Tuning A's (listed after the band stamp above) all keep the bands.
+  const rev = stamp ? puzzle[stamp[0]] : undefined;
+  return Boolean(stamp && typeof rev === "number" && (rev >= stamp[1] || stamp.slice(1).includes(rev)));
 }

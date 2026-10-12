@@ -84,6 +84,8 @@ export const RALLY_TARGET_W = 44;
 export const RALLY_TARGET_SPOTS = 48;
 /** Points for a gold ball striking a target pad. */
 export const RALLY_TARGET_POINTS = 3;
+/** rallyRev 4 marker (Tuning B): pads keep to their own half. */
+export const RALLY_TUNE = 1;
 /** The bumper: a round post, radius 14 px, from 30 s; balls bounce off it like a mirror. */
 export const RALLY_BUMPER_R = 14;
 export const RALLY_BUMPER_FROM = 30 * TICKS_PER_SECOND;
@@ -146,6 +148,8 @@ export interface RallyState extends BandFields {
   /** Rev 2 only, render only: the tick and spot of the last target strike. */
   struckTick?: number;
   struckLeft?: number;
+  /** rallyRev 4 only (Tuning B): 1 = each pad keeps to its own half of the wall. Absent on every earlier round. */
+  tune?: number;
 }
 
 /** Total returns, which is what shrinks the paddle. */
@@ -281,7 +285,10 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
               targetHits += 1;
               struckTick = tick;
               struckLeft = left;
-              live[k] = Math.max(...live) + 1;
+              // rallyRev 4: a struck pad moves to its own next spot (same half of the
+              // wall), so the two pads never overlap. Earlier revisions take the
+              // next spot after the higher pad, which could put both in one half.
+              live[k] = state.tune === RALLY_TUNE ? live[k]! + RALLY_TARGETS_LIVE : Math.max(...live) + 1;
               break;
             }
           }
@@ -428,6 +435,8 @@ export function rallyCheckpoint(state: RallyState): RallyCheckpoint {
   const values = Object.values(snapshot);
   // Rev 2 folds its own counters in; older states never have them, so their sums are unchanged.
   if (state.rev === RALLY_REV) values.push(state.targetHits ?? 0, state.bounces ?? 0, ...(state.live ?? []));
+  // rallyRev 4 adds its marker last, so rev-2/3 checksums are unchanged.
+  if (state.tune !== undefined) values.push(state.tune);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -542,6 +551,7 @@ export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { 
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
 export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  if (rev === RALLY_REV_TUNED) return rallyTunedGame;
   if (rev === RALLY_REV_BAND) return rallyBandGame;
   return rev === RALLY_REV ? rallyRev2Game : rallyGame;
 }
@@ -559,7 +569,7 @@ export function rallyBandUnits(goldHits: number, targetHits: number): number {
 
 export function rallyBandParts(state: RallyState): BandParts {
   const units = rallyBandUnits(state.goldHits, state.targetHits ?? 0);
-  return { units, points: bandPoints(RALLY_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${state.goldHits} gold hits · ${state.targetHits ?? 0} targets` };
+  return { units, points: bandPoints(state.tune === RALLY_TUNE ? RALLY_V4_BAND_CURVE : RALLY_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${state.goldHits} gold hits · ${state.targetHits ?? 0} targets` };
 }
 
 function scoreBand(state: RallyState): number {
@@ -567,3 +577,23 @@ function scoreBand(state: RallyState): number {
 }
 
 export const rallyBandGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = { ...rallyRev2Game, init: (seed) => bandInit(rallyRev2Game.init(seed)) };
+
+/* ================= Tuning B (rallyRev 4): pads never overlap ================= */
+
+/**
+ * rallyRev 4 (Tuning B, Oct 2026): rallyRev 3 play and bands, except a struck
+ * +3 pad moves to the next spot in its own half of the far wall (even spots
+ * left, odd right; the halves are 8 px apart), so the two pads never overlap,
+ * before or after they move. States keep `rev: 2` and add `tune: 1`.
+ */
+export const RALLY_REV_TUNED = 4;
+/**
+ * rallyRev 4 band knots: pads in separate halves are easier to reach, so the
+ * same players strike more (refitted with scripts/arcade-skill-bands.ts --rev=current); 150 at 240.
+ */
+export const RALLY_V4_BAND_CURVE = bandCurve([0, 105, 139, 154, 195, 240], [0, 70, 100, 125, 145, 150]);
+
+export const rallyTunedGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
+  ...rallyRev2Game,
+  init: (seed) => bandInit({ ...rallyRev2Game.init(seed), tune: RALLY_TUNE }),
+};

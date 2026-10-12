@@ -17,7 +17,7 @@
  * leads it through the middle.
  */
 import {
-  bullseyeBalloonAt,
+  bullseyeBalloonPos,
   bullseyeDrag,
   bullseyeRingValues,
   bullseyeScalePct,
@@ -35,6 +35,7 @@ import {
   BULLSEYE_INPUT_SHOT,
   BULLSEYE_REF_V,
   BULLSEYE_RING_STEP,
+  BULLSEYE_TUNE,
   type BullseyeState,
 } from "../../../src/lib/arcade/bullseye";
 import { DRAG_FULL_PX, DRAG_MAX_SCALE_256, DRAG_MIN_PX, DRAG_MIN_SCALE_256 } from "../../../src/lib/arcade/engine";
@@ -76,7 +77,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const scale = bullseyeScalePct(arrow) / 100;
       const ring = BULLSEYE_RING_STEP * scale;
       const balloon = s.balloons?.[arrow] ?? null;
-      const goBalloon = Boolean(balloon) && !human.slip();
+      let goBalloon = Boolean(balloon) && !human.slip();
       const drift = arrow >= BULLSEYE_DRIFT_FROM;
       // The gold 10: the middle, or the top of its band when the rings are shuffled.
       const values = bullseyeRingValues(s, arrow);
@@ -85,13 +86,39 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const ringOff = tenAt === 0 ? 0 : ring * (tenAt + 0.5);
       // When to let go, and where the spot is at landing.
       let at = ready;
-      let spot: { x: number; y: number };
+      let spot: { x: number; y: number } = { x: BULLSEYE_CX, y: BULLSEYE_CY - ringOff };
       let useSway = true;
       let timeScale = 1;
-      if (goBalloon) {
+      if (goBalloon && s.tune === BULLSEYE_TUNE) {
+        // bullRev 4: the balloon adds to the ring under it, so a patient player
+        // waits (up to 4 s) for it to cross the 10 and throws through it there;
+        // otherwise they throw at it where it is, or leave it if it is far off.
+        const tenSpot = (u: number) => ({ x: BULLSEYE_CX + bullseyeTargetDx(arrow, u, s.driftPhase, s.driftDir), y: BULLSEYE_CY - ringOff });
+        const wait = human.chance(WAIT_END[level]!);
+        let best = ready;
+        let bestD = Infinity;
+        for (let u = ready; u < ready + (wait ? 240 : 1); u++) {
+          const p = bullseyeBalloonPos(s, arrow, u + BULLSEYE_FLIGHT_TICKS)!;
+          const t10 = tenSpot(u + BULLSEYE_FLIGHT_TICKS);
+          const d = Math.hypot(p.x - t10.x, p.y - t10.y);
+          if (d < bestD) {
+            bestD = d;
+            best = u;
+          }
+        }
+        if (wait && bestD > ring * 2.5) goBalloon = false; // not worth leaving the 10 for
+        else {
+          at = best;
+          timeScale = 1.3;
+          spot = bullseyeBalloonPos(s, arrow, at + BULLSEYE_FLIGHT_TICKS)!;
+        }
+      } else if (goBalloon) {
         // Leading a slow floating balloon: the reticle is put on where it will be.
         timeScale = 1.3;
-        spot = bullseyeBalloonAt(balloon!, at + BULLSEYE_FLIGHT_TICKS);
+        spot = bullseyeBalloonPos(s, arrow, at + BULLSEYE_FLIGHT_TICKS)!;
+      }
+      if (goBalloon) {
+        // spot and timing set above
       } else if (drift) {
         // Watch the drift and let go ~a flight-time before the target reaches the chosen point.
         const waitEnd = human.chance(WAIT_END[level]!);
@@ -109,8 +136,6 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         useSway = false;
         timeScale = waitEnd ? 1.3 : 1.5;
         spot = { x: BULLSEYE_CX + dxAt(at), y: BULLSEYE_CY - ringOff };
-      } else {
-        spot = { x: BULLSEYE_CX, y: BULLSEYE_CY - ringOff };
       }
       // Wind: the player shifts the reticle against it, misjudging the amount.
       const shift = bullseyeWindShiftPx(arrow, s.winds[arrow] ?? 0);

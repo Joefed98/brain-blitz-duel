@@ -13,6 +13,9 @@
  * human, same seed: score-only revisions replay the identical log), --rev=tuned
  * the later revision a tuning pass stamps on the same band curve (Tuning A:
  * Wavefront, Orbit, Grappler, Tilt).
+ * --rev=current measures a later gameplay revision (a game's `current`, Tuning B)
+ * against its band revision: the band revision is reported as "live", today's
+ * revision as "next".
  * --levels=average,near limits the levels. --save=<dir> writes each run's
  * encoded log (for fixtures). Not a check: it has no pass/fail and is not run
  * by run-checks or CI. One game at 30 seeds × 4 levels takes ~10 s to a few
@@ -31,7 +34,7 @@ import { UNITS } from "./arcade-skill-bands/units";
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const SEEDS = Number(opt("seeds") ?? 30);
-const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "tuned";
+const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current" | "tuned";
 const JOBS = Number(opt("jobs") ?? 1);
 const JSON_PATH = opt("json");
 const SAVE_DIR = opt("save");
@@ -112,11 +115,14 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
   }
   const revs: ["live" | "next" | "tuned", number | null][] = [];
   if (REV_MODE === "tuned") {
-    // The revision rooms stamp today when a later tuning pass changed play on the band curve.
+    // The revision rooms stamp today when a later tuning pass changed play on the band curve (Tuning A).
     if (spec.tuned === undefined) console.error(`${spec.type}: no tuned revision`);
     else revs.push(["tuned", spec.tuned]);
+  } else if (REV_MODE === "current") {
+    if (spec.current === undefined || spec.next === undefined) console.error(`${spec.type}: no current revision past the band revision`);
+    else revs.push(["live", spec.next], ["next", spec.current]);
   } else if (REV_MODE !== "next") revs.push(["live", spec.live]);
-  if (REV_MODE !== "live" && REV_MODE !== "tuned") {
+  if (REV_MODE !== "live" && REV_MODE !== "current" && REV_MODE !== "tuned") {
     if (spec.next === undefined) console.error(`${spec.type}: no next revision`);
     else revs.push(["next", spec.next]);
   }

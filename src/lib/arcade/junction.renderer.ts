@@ -84,6 +84,8 @@ const BUS_COLOUR = "#E8B21C";
 export const JUNC_LANE_COLOURS = ["#38BDF8", "#FB923C", "#C084FC", "#4ADE80", "#F472B6", "#FACC15", "#2DD4BF", "#F87171"] as const;
 const DIAG_HALF = 15;
 const HIGHLIGHT_MS = 550;
+/** Rev 2: how far back from the stop line each lane is tinted in its light's colour, px. */
+const LANE_TINT_PX = 70;
 
 interface LightMemory { lights: number; changed: number[] }
 const lightMemo = new WeakMap<CanvasRenderingContext2D, LightMemory>();
@@ -182,6 +184,17 @@ function drawLaneMarks(ctx: CanvasRenderingContext2D, state: JuncState, changed:
       ctx.stroke();
       ctx.restore();
     }
+    // Tuning B: the last stretch of the lane is tinted in its light's colour, so
+    // with eight roads each light reads as owning its lane, not its neighbour's.
+    ctx.save();
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 20;
+    ctx.lineCap = "butt";
+    ctx.beginPath();
+    lanePath(ctx, ap, stop - LANE_TINT_PX, stop);
+    ctx.stroke();
+    ctx.restore();
     // Stop line across the lane, in the road's colour, joined to its light along the kerb.
     const p = juncLanePoint(ap, stop);
     ctx.strokeStyle = colour;
@@ -191,13 +204,33 @@ function drawLaneMarks(ctx: CanvasRenderingContext2D, state: JuncState, changed:
     ctx.lineTo(p.x + p.dy * 14, p.y - p.dx * 14);
     ctx.stroke();
     const [lx, ly] = JUNC_LIGHT_AT_V2[ap]!;
+    const fromX = p.x - p.dy * 15;
+    const fromY = p.y + p.dx * 15;
+    // The link: a dark casing under the coloured dashes so it reads over asphalt,
+    // kerb and grass alike, and a dot where it meets the stop line.
+    ctx.strokeStyle = "rgba(20, 26, 36, 0.7)";
+    ctx.lineWidth = 5.5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(fromX, fromY);
+    ctx.lineTo(lx, ly);
+    ctx.stroke();
+    ctx.strokeStyle = colour;
     ctx.lineWidth = 2.5;
+    ctx.lineCap = "butt";
     ctx.setLineDash([4, 3]);
     ctx.beginPath();
-    ctx.moveTo(p.x - p.dy * 15, p.y + p.dx * 15);
+    ctx.moveTo(fromX, fromY);
     ctx.lineTo(lx, ly);
     ctx.stroke();
     ctx.setLineDash([]);
+    ctx.fillStyle = colour;
+    ctx.strokeStyle = "rgba(20, 26, 36, 0.7)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(fromX, fromY, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
     // Painted arrow behind the stop line: straight on for main roads, bear left for diagonals.
     const q = juncLanePoint(ap, stop - 34);
     ctx.save();

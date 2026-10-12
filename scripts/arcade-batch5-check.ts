@@ -32,6 +32,7 @@ import {
   RALLY_PADDLE_Y,
   RALLY_REV,
   RALLY_REV_BAND,
+  RALLY_REV_TUNED,
   RALLY_TARGET_W,
   RALLY_WALL,
   RALLY_WORLD_W,
@@ -50,6 +51,7 @@ import {
   BULLSEYE_CY,
   BULLSEYE_REV,
   BULLSEYE_REV_BAND,
+  BULLSEYE_REV_TUNED,
 } from "../src/lib/arcade/bullseye";
 import { encodeBullseyeRun, replayBullseyeRun } from "../src/lib/duel/bullseye";
 import {
@@ -172,7 +174,7 @@ if (want("bullseye")) {
   section("Flightpath bullRev 2 (inner bull, drifting balloons)");
   const game = bullseyeGameFor(BULLSEYE_REV);
   const generated = generateBullseye();
-  ok(generated.bullRev === BULLSEYE_REV_BAND, "new rounds are stamped bullRev 3 (rev 2 play on the score bands)");
+  ok(generated.bullRev === BULLSEYE_REV_TUNED && BULLSEYE_REV_BAND === 3, "new rounds are stamped bullRev 4 (Tuning B value balloons; bullRev 3 = rev 2 play on the score bands)");
   ok(bullseyeGameFor(undefined) === bullseyeGame && bullseyeInit(5).balloons === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = bullseyeInitRev2(seed, bullseyeWinds(seed));
@@ -229,7 +231,7 @@ if (want("bullseye")) {
 if (want("rally")) {
   section("Rally rallyRev 2 (far-wall targets, bumper from 30 s)");
   const game = rallyGameFor(RALLY_REV);
-  ok(generateRally().rallyRev === RALLY_REV_BAND, "new rounds are stamped rallyRev 3 (rev 2 play on the score bands)");
+  ok(generateRally().rallyRev === RALLY_REV_TUNED && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 4 (Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
   ok(rallyGameFor(undefined) === rallyGame && rallyGame.init(5).spots === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = game.init(seed);

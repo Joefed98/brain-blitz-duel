@@ -107,6 +107,10 @@ import {
 import { countPatternAnswers } from "./pattern";
 import { decodeMoves, replayUnblock } from "./unblock";
 import { puzzleTimeLimitMs } from "./registry";
+import { isWord } from "./dictionary.server";
+import { decodeStrikeout, encodeStrikeout, replayStrikeout, scoreStrikeout, soTally } from "./strikeout";
+import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
+import { decodeSwapword, replaySwapword, scoreSwapword, swapwordPlaced } from "./swapword";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import {
   scoreGoNoGo,
@@ -266,6 +270,8 @@ export function gradeSubmission(
   let errors: number | null = null;
   let extraDetail: Record<string, unknown> | null = null;
   let storedMs = ms;
+  /** Strikeout stores its canonical action list (rejected solves dropped) so the reveal replays it exactly. */
+  let storedAnswer: string | null = null;
 
   switch (puzzle.type) {
     case "groups": {
@@ -1976,6 +1982,49 @@ export function gradeSubmission(
       extraDetail = { slots: v.slots.length, total: puzzle.slots.length, cells: v.cells, totalCells: v.totalCells };
       break;
     }
+    case "strikeout": {
+      // Every guess and solve is replayed on the stored words; solves are checked against the dictionary.
+      const state = replayStrikeout(puzzle.words ?? [], decodeStrikeout(answer), isWord);
+      const tally = soTally(state);
+      isCorrect = tally.done;
+      correctCount = tally.solvedRows;
+      errors = tally.strikes;
+      score = scoreStrikeout(tally, ms, timeLimitMs);
+      storedAnswer = encodeStrikeout(state.effective);
+      extraDetail = {
+        solvedRows: tally.solvedRows,
+        partialTiles: tally.partialTiles,
+        strikes: tally.strikes,
+        done: tally.done,
+        over: state.over,
+        strikeoutRev: puzzle.strikeoutRev,
+      };
+      break;
+    }
+    case "codeword": {
+      // The final letter code is rebuilt from every assignment and compared with the stored one.
+      const letters = replayCodeword(puzzle.numbers, puzzle.givens, decodeCodeword(answer, puzzle.numbers));
+      const tally = codewordTally(letters, puzzle.solution ?? "", puzzle.givens);
+      const given = new Set(puzzle.givens.map((g) => g.n));
+      isCorrect = tally.solved;
+      correctCount = tally.correct;
+      errors = letters.filter((l, i) => l && !given.has(i + 1) && l !== puzzle.solution?.[i]).length;
+      score = scoreCodeword(tally, ms, timeLimitMs);
+      extraDetail = { solved: tally.solved, correct: tally.correct, hidden: tally.hidden, codewordRev: puzzle.codewordRev };
+      break;
+    }
+    case "swapword": {
+      // Every swap is replayed on the stored scramble, within the swap budget.
+      const run = replaySwapword(puzzle.start, decodeSwapword(answer), puzzle.maxSwaps, puzzle.solution);
+      const solution = puzzle.solution ?? "";
+      const placed = swapwordPlaced(puzzle.start, run.board, solution);
+      const left = [...run.board].filter((ch, t) => ch !== solution[t]).length;
+      isCorrect = run.solved;
+      correctCount = placed;
+      score = scoreSwapword(run.solved, run.swaps, puzzle.minSwaps, placed, ms, timeLimitMs);
+      extraDetail = { solved: run.solved, swaps: run.swaps, minSwaps: puzzle.minSwaps, placed, tilesLeft: left, swapwordRev: puzzle.swapwordRev };
+      break;
+    }
     case "lightup": {
       // The bulb layout is re-lit against the stored walls and numbers.
       const bulbs = decodeBulbs(answer, puzzle);
@@ -2079,6 +2128,7 @@ export function gradeSubmission(
         pops: run.pops,
         balloons: run.balloons,
         bullRev: run.bullRev,
+        ...(run.tuned ? { tuned: run.tuned, balloonPoints: run.balloonPoints } : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -2121,7 +2171,7 @@ export function gradeSubmission(
   const reveal = buildArcadeReveal(puzzle.type, revealRun, score);
   if (reveal) extraDetail = { ...(extraDetail ?? {}), reveal };
   return {
-    answer,
+    answer: storedAnswer ?? answer,
     isCorrect,
     score,
     reactionAvgMs,

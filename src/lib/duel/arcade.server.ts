@@ -12,10 +12,10 @@ import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SWING_REV_TUNED } from "@/lib/arcade/swing";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
-import { BRK_REV_BAND } from "@/lib/arcade/breaker";
+import { BRK_REV_TUNED } from "@/lib/arcade/breaker";
 import { WAV_REV_SHAPES } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
-import { RALLY_REV_BAND } from "@/lib/arcade/rally";
+import { RALLY_REV_TUNED } from "@/lib/arcade/rally";
 import { BEAT_REV_BAND } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
@@ -30,7 +30,7 @@ import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
  */
 
 import { randomBelow } from "./random";
-import { bullseyeWinds, BULLSEYE_REV_BAND } from "@/lib/arcade/bullseye";
+import { bullseyeWinds, BULLSEYE_REV_TUNED } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
   BullseyePuzzleData,
@@ -87,7 +87,7 @@ export function generateBinToss(): BinTossPuzzleData {
 
 export function generateBullseye(): BullseyePuzzleData {
   const seed = arcadeSeed();
-  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV_BAND };
+  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV_TUNED };
 }
 
 export function generateMatchup(): MatchupPuzzleData {
@@ -111,11 +111,11 @@ export function generateRicochet(): RicoPuzzleData {
 }
 
 export function generateBreaker(): BreakerPuzzleData {
-  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_BAND };
+  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_TUNED };
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_BAND };
+  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_TUNED };
 }
 
 export function generateSteady(): SteadyPuzzleData {

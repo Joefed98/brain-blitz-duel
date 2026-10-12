@@ -106,6 +106,10 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   balltrack: ["par", "playbook"],
   wordsearch: ["placements"],
   letterwheel: ["words", "bonus"],
+  // The hidden words, the letter code and the solved board; live checks replay moves server-side.
+  strikeout: ["words"],
+  codeword: ["solution"],
+  swapword: ["solution"],
   wavefront: [],
   bastion: [],
   rooftop: [],

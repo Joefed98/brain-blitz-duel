@@ -150,8 +150,8 @@ export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx:
 /**
  * bubbleRev 2 specials, each with its own look and none of the creature
  * symbols, all drawn inside the bubble circle (the collision bound):
- *  - Joker: a thick five-colour rainbow ring round a white pearl with a violet
- *    four-point sparkle (unlike the starfish's five points).
+ *  - Joker (Tuning B): a night-black bubble with a thin five-colour rainbow
+ *    rim, a gold three-point crown with three jewels and white glints.
  *  - Mine: a black naval sea mine with round-tipped horns and a red light, on an
  *    amber warning bubble.
  *  - Torpedo: a silver torpedo side-on (red-banded nose, cross fins, propeller)
@@ -165,40 +165,78 @@ function paintSpecial(value: number) {
     c.arc(r, r, r - 0.5, 0, Math.PI * 2);
     c.clip();
     if (value === BUB_JOKER) {
-      // Rainbow ring: one band per colour, bright and even.
+      // Tuning B redesign: a night-black bubble (every creature bubble is a
+      // bright colour, the mine amber, the torpedo sea blue) with a thin
+      // rainbow rim, a gold crown with three jewels and white glints: reads as
+      // "wild" at a glance and shares no shape with a creature.
+      const night = c.createRadialGradient(r * 0.75, r * 0.68, r * 0.05, r, r, r);
+      night.addColorStop(0, "#3A2A6E");
+      night.addColorStop(1, "#0E0820");
+      c.fillStyle = night;
+      c.fillRect(0, 0, size, size);
+      // Rainbow rim: the five creature colours in an even ring round the edge.
+      const rim = Math.max(1.5, r * 0.2);
+      c.lineWidth = rim;
       BUB_PALETTE.forEach((colour, i) => {
         const a0 = -Math.PI / 2 + (i * 2 * Math.PI) / BUB_PALETTE.length;
-        c.fillStyle = colour;
+        c.strokeStyle = colour;
         c.beginPath();
-        c.moveTo(r, r);
-        c.arc(r, r, r, a0 - 0.02, a0 + (2 * Math.PI) / BUB_PALETTE.length + 0.02);
-        c.closePath();
+        c.arc(r, r, r - rim / 2, a0 - 0.03, a0 + (2 * Math.PI) / BUB_PALETTE.length + 0.03);
+        c.stroke();
+      });
+      // Gold crown: band and three points, each tipped with a ball.
+      const base = r + r * 0.28;
+      const band = r * 0.2;
+      const left = r - r * 0.46;
+      const right = r + r * 0.46;
+      const tip = r - r * 0.36;
+      const crown = c.createLinearGradient(0, tip, 0, base);
+      crown.addColorStop(0, "#FFF1A8");
+      crown.addColorStop(1, "#E3A81B");
+      c.fillStyle = crown;
+      c.beginPath();
+      c.moveTo(left, base);
+      c.lineTo(left, base - band);
+      c.lineTo(left - r * 0.04, tip + r * 0.06);
+      c.lineTo(r - r * 0.2, base - band - r * 0.12);
+      c.lineTo(r, tip);
+      c.lineTo(r + r * 0.2, base - band - r * 0.12);
+      c.lineTo(right + r * 0.04, tip + r * 0.06);
+      c.lineTo(right, base - band);
+      c.lineTo(right, base);
+      c.closePath();
+      c.fill();
+      c.strokeStyle = "#7A4A00";
+      c.lineWidth = Math.max(0.8, r * 0.06);
+      c.lineJoin = "round";
+      c.stroke();
+      c.fillStyle = "#FFE066";
+      for (const [x, y] of [[left - r * 0.04, tip + r * 0.06], [r, tip], [right + r * 0.04, tip + r * 0.06]] as const) {
+        c.beginPath();
+        c.arc(x, y, r * 0.08, 0, Math.PI * 2);
+        c.fill();
+      }
+      // Three jewels on the band: pink, cyan, lime.
+      ["#FF4FA3", "#3FE0F0", "#9BF24B"].forEach((jewel, i) => {
+        c.fillStyle = jewel;
+        c.beginPath();
+        c.arc(r + (i - 1) * r * 0.27, base - band / 2, r * 0.075, 0, Math.PI * 2);
         c.fill();
       });
-      const pearl = c.createRadialGradient(r * 0.82, r * 0.78, r * 0.05, r, r, r * 0.62);
-      pearl.addColorStop(0, "#FFFFFF");
-      pearl.addColorStop(1, "#E7E2FA");
-      c.fillStyle = pearl;
-      c.beginPath();
-      c.arc(r, r, r * 0.6, 0, Math.PI * 2);
-      c.fill();
-      // A four-point sparkle (not the starfish's five points) with two small glints: wild.
-      const sparkle = (cx: number, cy: number, outer: number, inner: number) => {
+      // White four-point glints.
+      const glint = (cx: number, cy: number, outer: number) => {
         c.beginPath();
         for (let i = 0; i < 8; i++) {
           const a = -Math.PI / 2 + (i * Math.PI) / 4;
-          const d = i % 2 === 0 ? outer : inner;
+          const d = i % 2 === 0 ? outer : outer * 0.25;
           c.lineTo(cx + Math.cos(a) * d, cy + Math.sin(a) * d);
         }
         c.closePath();
+        c.fill();
       };
-      c.fillStyle = "#5B3FD0";
-      sparkle(r, r, r * 0.46, r * 0.12);
-      c.fill();
-      sparkle(r + r * 0.3, r - r * 0.3, r * 0.14, r * 0.04);
-      c.fill();
-      sparkle(r - r * 0.28, r + r * 0.3, r * 0.1, r * 0.03);
-      c.fill();
+      c.fillStyle = "#FFFFFF";
+      glint(r + r * 0.42, r - r * 0.5, r * 0.16);
+      glint(r - r * 0.5, r + r * 0.48, r * 0.11);
     } else if (value === BUB_BOMB) {
       const warn = c.createRadialGradient(r * 0.75, r * 0.7, r * 0.1, r, r, r);
       warn.addColorStop(0, "#FFC46B");
@@ -339,14 +377,14 @@ function blitBubble(ctx: CanvasRenderingContext2D, value: number, x: number, y: 
 
 /** kind 0 pop, 1 drop; bubbleRev 2: 2 bomb blast, 3 torpedo row flash, 4 joker sparkle. */
 interface Fx { kind: 0 | 1 | 2 | 3 | 4; value: number; x: number; y: number; born: number; seed: number }
-interface Memo { tick: number; grid: number[]; descents: number; fx: Fx[]; specials: number; blast: Fx | null }
+interface Memo { tick: number; grid: number[]; descents: number; fx: Fx[]; specials: number; blast: Fx | null; cleared: number; rise: { born: number; seed: number } | null }
 const memos = new WeakMap<object, Memo>();
 const FX_CAP = 4;
 
 function memoFor(ctx: CanvasRenderingContext2D, state: BubState): Memo {
   let m = memos.get(ctx);
   if (!m || state.tick < m.tick) {
-    m = { tick: state.tick, grid: [...state.grid], descents: state.descents, fx: [], specials: specialCount(state), blast: null };
+    m = { tick: state.tick, grid: [...state.grid], descents: state.descents, fx: [], specials: specialCount(state), blast: null, cleared: state.popped + state.dropped, rise: null };
     memos.set(ctx, m);
   }
   return m;
@@ -356,9 +394,21 @@ function specialCount(state: BubState): number {
   return (state.jokers ?? 0) + (state.bombs ?? 0) + (state.lines ?? 0);
 }
 
+/** A shot that pops or drops at least this many bubbles at once sends a burst of bubbles up the screen. */
+const BIG_HIT = 8;
+/** The rising burst: how many bubbles, how long each takes bottom to top, and the most any one waits (seconds). */
+const RISE_COUNT = 22;
+const RISE_SECONDS = 1.1;
+const RISE_STAGGER = 0.35;
+
 function trackRemovals(m: Memo, state: BubState, colour: number): void {
   if (state.tick === m.tick) return;
   const now = seaNow();
+  // Tuning B: a big hit (lots popped or dropped in one go) sends bubbles rising
+  // from the bottom of the screen to the top. Presentation clock only.
+  const cleared = state.popped + state.dropped;
+  if (cleared - m.cleared >= BIG_HIT && !reducedMotion()) m.rise = { born: now, seed: state.tick };
+  m.cleared = cleared;
   // bubbleRev 2: a special went off since the last frame; what it cleared pops (no fall).
   const special = specialCount(state) > m.specials;
   if (special && (state.lastSpecialCell ?? -1) >= 0) {
@@ -549,6 +599,39 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
           ctx.lineTo(X(f.x) + Math.cos(a) * d, Y(f.y) + Math.sin(a) * d);
           ctx.stroke();
         }
+      }
+      ctx.restore();
+    }
+  }
+
+  // Tuning B big-hit burst: see-through bubbles race from the bottom of the
+  // screen to the top in about a second, drawn behind the gun and the loaded
+  // bubble so the next shot is never covered.
+  if (m.rise) {
+    const age = (seaNow() - m.rise.born) / 1000;
+    if (age > RISE_SECONDS + RISE_STAGGER || age < 0) m.rise = null;
+    else {
+      ctx.save();
+      for (let i = 0; i < RISE_COUNT; i++) {
+        const h = (m.rise.seed * 131 + i * 977) % 1000;
+        const delay = ((h % 97) / 97) * RISE_STAGGER;
+        const k = (age - delay) / RISE_SECONDS;
+        if (k <= 0 || k >= 1) continue;
+        const r = (3 + (h % 8)) * rs;
+        const x = ((i + 0.5) / RISE_COUNT) * size.width + Math.sin(k * 9 + i) * 6 * rs;
+        const y = size.height + r - k * (size.height + 2 * r);
+        ctx.globalAlpha = 0.6 * Math.min(1, (1 - k) * 3);
+        ctx.fillStyle = "rgba(200,236,255,0.14)";
+        ctx.strokeStyle = "rgba(225,245,255,0.85)";
+        ctx.lineWidth = Math.max(1, 1.4 * rs);
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.beginPath();
+        ctx.arc(x - r * 0.35, y - r * 0.35, Math.max(0.8, r * 0.22), 0, Math.PI * 2);
+        ctx.fill();
       }
       ctx.restore();
     }

@@ -55,6 +55,7 @@ import {
   BRK_POWER_SPAM,
   BRK_REV,
   BRK_REV_BAND,
+  BRK_REV_TUNED,
   BRK_SLIDE_AMP,
   BRK_SLIDE_STARTS,
   BRK_V2_LASER_BRICKS,
@@ -119,7 +120,7 @@ section("legacy identity");
   console.log(`  ${saved.length} stored-rule runs (wavefront, breaker, burst, swing 0/2/3) identical to the pre-upgrade code`);
 }
 // Tuning A moved new Wavefront and Grappler rounds on to wavRev 4 / swingRev 6 (same band curve; arcade-tuning-a-check).
-ok(generateWavefront().wavRev === WAV_REV_SHAPES && generateBreaker().brkRev === BRK_REV_BAND && generateBurst().burstRev === BURST_REV_BAND && generateSwing().swingRev === SWING_REV_TUNED, "new rounds are stamped with the score-band revisions (the batch-3 rules plus the Oct 2026 bands; Tuning A for Wavefront and Grappler)");
+ok(generateWavefront().wavRev === WAV_REV_SHAPES && generateBreaker().brkRev === BRK_REV_TUNED && generateBurst().burstRev === BURST_REV_BAND && generateSwing().swingRev === SWING_REV_TUNED, "new rounds are stamped with the score-band revisions (the batch-3 rules plus the Oct 2026 bands; Tuning A for Wavefront and Grappler; Breaker brkRev 4 adds Tuning B's 3.5 s Fireball)");
 
 /* ================================ 2a. Wavefront ================================ */
 if (want("wavefront")) {

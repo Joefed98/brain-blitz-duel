@@ -83,7 +83,7 @@ function IntroExample() {
         </g>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Bank off the walls to reach a match. Rainbow Jokers match any colour; mines and torpedoes clear lots at once.
+        Bank off the walls to reach a match. Crown Jokers match any colour; mines and torpedoes clear lots at once.
       </p>
     </div>
   );

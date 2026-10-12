@@ -43,6 +43,9 @@ const CATEGORY_MUSIC: Partial<Record<PuzzleCategory, SoundId>> = {
 const PUZZLE_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   wordsmith: "music_word_1",
   letterwheel: "music_word_1",
+  strikeout: "music_word_1",
+  codeword: "music_word_2",
+  swapword: "music_word_3",
   wordhunt: "music_word_2",
   wordsearch: "music_word_2",
   tilegrid: "music_word_3",

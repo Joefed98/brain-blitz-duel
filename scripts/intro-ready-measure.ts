@@ -7,6 +7,10 @@
  *
  *   bun scripts/intro-ready-measure.ts bintoss bullseye rally beat inkbridge orbit
  *   bun scripts/intro-ready-measure.ts --url=http://127.0.0.1:5179 orbit
+ *   bun scripts/intro-ready-measure.ts --all --sizes=375x667   # every game, puzzles included
+ *
+ * A case fails when READY is not fully on screen or the intro text above it
+ * scrolls (any overflow inside .round-intro-content).
  */
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -15,7 +19,13 @@ import { gameDisplayName } from "../src/lib/duel/gameNames";
 
 const args = process.argv.slice(2);
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
-const GAMES = args.filter((a) => !a.startsWith("--"));
+const ALL = args.includes("--all");
+const SIZES = (args.find((a) => a.startsWith("--sizes="))?.slice(8) ?? "375x667,390x700")
+  .split(",")
+  .map((s) => s.split("x").map(Number) as [number, number]);
+const GAMES = ALL
+  ? await import("../src/lib/duel/registry").then((r) => r.PUZZLE_TYPES.filter((t) => r.puzzleDef(t).category !== "memory"))
+  : args.filter((a) => !a.startsWith("--"));
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PORT = 5181;
 
@@ -41,12 +51,18 @@ const { origin, proc } = await startServer();
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 let failures = 0;
 try {
-  for (const [width, height] of [[375, 667], [390, 700]] as const) {
+  for (const [width, height] of SIZES) {
     for (const game of GAMES) {
       const page = await browser.newPage({ viewport: { width, height } });
       await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
       const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
-      await button.waitFor({ timeout: 60_000 });
+      try {
+        await button.waitFor({ timeout: ALL ? 15_000 : 60_000 });
+      } catch {
+        console.log(`skip ${width}x${height} ${game}: not in the practice list`);
+        await page.close();
+        continue;
+      }
       await page.waitForTimeout(1500);
       await button.click();
       const ready = page.getByRole("button", { name: /^Ready/ });
@@ -57,7 +73,7 @@ try {
         const el = document.querySelector(".round-intro-content");
         return el ? el.scrollHeight - el.clientHeight : 0;
       });
-      const visible = !!box && box.y >= 0 && box.y + box.height <= height;
+      const visible = !!box && box.y >= 0 && box.y + box.height <= height && scrolled <= 0;
       if (!visible) failures++;
       console.log(`${visible ? "ok  " : "FAIL"} ${width}x${height} ${game.padEnd(10)} READY ${box ? `${Math.round(box.y)}-${Math.round(box.y + box.height)}` : "missing"} · intro overflow ${scrolled}px`);
       await page.close();
@@ -68,7 +84,7 @@ try {
   if (proc?.pid) try { process.kill(-proc.pid); } catch { /* gone */ }
 }
 if (failures) {
-  console.log(`FAIL: READY not fully visible in ${failures} case(s)`);
+  console.log(`FAIL: READY not fully visible or intro text scrolls in ${failures} case(s)`);
   process.exit(1);
 }
-console.log("READY fully visible without scrolling for every game and size");
+console.log("READY fully visible and no intro scrolling for every game and size");

@@ -150,7 +150,22 @@ function matchupClearPoint(s: MatchupState): { x: number; y: number } {
     x += p.x;
     y += p.y;
   }
-  return { x: x / cells.length, y: y / cells.length };
+  x /= cells.length;
+  y /= cells.length;
+  // Always a gem that was actually cleared: the one nearest the middle of the
+  // clear (the bare centroid of an L, a T or two separate lines can fall on a
+  // gem that stayed put).
+  let best = centre(cells[0]!);
+  let bestD = Infinity;
+  for (const index of cells) {
+    const p = centre(index);
+    const d = (p.x - x) ** 2 + (p.y - y) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = p;
+    }
+  }
+  return best;
 }
 
 /** A Jackpot gem's cell on the board (matchupRev 2+), else the last clear. */
@@ -224,6 +239,7 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       every: 7,
       at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }),
       label: (_s, n) => `ZONE ${Math.floor(n / 7) + 1}`,
+      sweep: true,
     },
     // hoverRev 2 success moments: a gold star, a two-gap barrier, a moving barrier.
     {
@@ -232,6 +248,7 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) - 16 }),
       label: () => "GOLD STAR!",
       colour: () => "#FFD84A",
+      neon: true,
     },
     {
       kind: "pop",
@@ -314,6 +331,7 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 96 }),
       label: () => "FIREBALL!",
       colour: () => "#FF6A2B",
+      neon: true,
     },
     {
       kind: "pop",
@@ -324,8 +342,8 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       },
       label: () => "MOVING TARGET!",
     },
-    { kind: "clear", count: brkRowsCleared, at: lowestClearedRow, label: () => "ROW CLEAR!" },
-    { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "WALL CLEARED!" },
+    { kind: "clear", count: brkRowsCleared, at: lowestClearedRow, label: () => "ROW CLEAR!", sweep: true },
+    { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "WALL CLEARED!", neon: true, sweep: true },
   ],
 };
 
@@ -342,6 +360,7 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       every: 10,
       at: (s) => ({ x: px(s.x), y: RALLY_PADDLE_Y - 8 }),
       label: (_s, n) => `RALLY ${n}`,
+      sweep: true,
     },
     {
       kind: "pop",
@@ -355,6 +374,7 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       count: (s) => s.targetHits ?? 0,
       at: (s) => ({ x: (s.struckLeft ?? RALLY_WORLD_W / 2) + 22, y: 70 }),
       label: () => "TARGET!",
+      neon: true,
     },
     {
       // Rev 2: a ball came off the bumper.
@@ -379,6 +399,7 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
       every: 10,
       at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: BEAT_HIT_LINE_Y }),
       label: (_s, n) => `COMBO ${n}`,
+      neon: true,
     },
     {
       // Rev 2: a swipe note swiped the right way in time.
@@ -391,6 +412,7 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
       kind: "final",
       count: (s) => (s.chart.ticks.length > 0 && s.maxCombo >= s.chart.ticks.length ? 1 : 0),
       label: () => "FULL COMBO!",
+      sweep: true,
     },
   ],
 };
@@ -416,6 +438,7 @@ export const SNAKE_FX: ArcadeFxSpec<SnakeState> = {
       every: 10,
       at: snakeHead,
       label: (_s, n) => `${n} STARS`,
+      sweep: true,
     },
     // snakeRev 2: a rock landed and the meteor's head was clear of it (original rounds have no rocks).
     {
@@ -441,6 +464,7 @@ export const SNAKE_FX: ArcadeFxSpec<SnakeState> = {
       when: (s) => !s.dead,
       at: snakeHead,
       label: () => "SHOWER DODGED!",
+      neon: true,
     },
     {
       kind: "final",
@@ -458,7 +482,7 @@ export const BURST_FX: ArcadeFxSpec<BurstState> = {
   height: BURST_FLOOR_Y,
   fit: "world",
   events: [
-    { kind: "clear", count: (s) => s.cleared, label: (_s, n) => `WAVE ${n} CLEARED` },
+    { kind: "clear", count: (s) => s.cleared, label: (_s, n) => `WAVE ${n} CLEARED`, sweep: true },
     // burstRev 2: a FREEZE icon caught (original rounds keep 0).
     {
       kind: "perfect",
@@ -466,6 +490,7 @@ export const BURST_FX: ArcadeFxSpec<BurstState> = {
       at: (s) => ({ x: s.x / 256, y: BURST_FLOOR_Y - 60 }),
       label: () => "FREEZE!",
       colour: () => "#9FE8FF",
+      neon: true,
     },
     // Mirrors the sim's own top-up condition (burstScoreOf): finished, no life lost, 4+ waves.
     {
@@ -494,12 +519,14 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
         return { x, y: 70 };
       },
       label: () => "SAUCER!",
+      neon: true,
     },
     {
       kind: "clear",
       count: (s) => s.wavesCleared,
       at: (s) => ({ x: s.shipX, y: WAV_SHIP_Y - 30 }),
       label: (_s, n) => `WAVE ${n} CLEARED`,
+      sweep: true,
     },
     // wavRev 2: a diver shot down mid-dive, boss hits every 6, the boss destroyed (the final moment).
     {
@@ -770,12 +797,32 @@ export const BINTOSS_FX: ArcadeFxSpec<BinTossState> = {
   ],
 };
 
+/**
+ * Darts that have landed: the in-flight dart (already in `hits` from its
+ * release) is left out until it lands. Counting only landed darts keeps every
+ * counter steady through a flight, so an event fires once, on the landing of
+ * the dart that earned it, never again on later darts.
+ */
+function bullLanded(s: BullseyeState): BullseyeState["hits"] {
+  return s.flightTick === 0 ? s.hits : s.hits.slice(0, -1);
+}
+
+/** A dart in the bullseye: the centre disc, while it is the gold 10. */
+function isBull(h: BullseyeState["hits"][number]): boolean {
+  return h.ring === 0 && h.value - (h.bal ?? 0) >= 10;
+}
+
 function bullRun(s: BullseyeState): number {
-  if (s.flightTick !== 0) return 0;
+  const landed = bullLanded(s);
   let run = 0;
-  for (let i = s.hits.length - 1; i >= 0 && s.hits[i]!.ring === 0; i--) run += 1;
+  for (let i = landed.length - 1; i >= 0 && isBull(landed[i]!); i--) run += 1;
   return run;
 }
+
+const lastLanded = (s: BullseyeState) => {
+  const h = bullLanded(s).at(-1);
+  return { x: h?.x ?? BULLSEYE_CX, y: h?.y ?? BULLSEYE_CY };
+};
 
 export const BULLSEYE_FX: ArcadeFxSpec<BullseyeState> = {
   game: "bullseye",
@@ -787,22 +834,22 @@ export const BULLSEYE_FX: ArcadeFxSpec<BullseyeState> = {
   events: [
     {
       kind: "perfect",
-      count: (s) => (s.flightTick === 0 ? s.hits.filter((h) => h.ring === 0).length : 0),
-      at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
+      count: (s) => bullLanded(s).filter(isBull).length,
+      at: lastLanded,
       label: () => "BULLSEYE!",
     },
     {
       // Rev 2: the tiny inner bull.
       kind: "perfect",
-      count: (s) => (s.flightTick === 0 ? s.hits.filter((h) => h.bull === 1).length : 0),
-      at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
+      count: (s) => bullLanded(s).filter((h) => h.bull === 1).length,
+      at: lastLanded,
       label: () => "INNER BULL!",
     },
     {
       // Rev 2: a balloon popped.
       kind: "pop",
-      count: (s) => (s.flightTick === 0 ? s.hits.filter((h) => h.pop === 1).length : 0),
-      at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
+      count: (s) => bullLanded(s).filter((h) => h.pop === 1).length,
+      at: lastLanded,
       label: () => "POP!",
     },
     { kind: "combo", count: bullRun, min: 2, label: (_s, n) => `${n} BULLS IN A ROW` },

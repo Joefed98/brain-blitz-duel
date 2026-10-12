@@ -22,7 +22,7 @@ import { bubCheckpoint, bubbleGameFor, BUB_REV, BUB_REV_BAND } from "../../src/l
 import { encodeBubbleRun, replayBubbleRun } from "../../src/lib/duel/bubble";
 import { crossCheckpoint, crossGameFor, CROSS_REV, CROSS_REV_BAND } from "../../src/lib/arcade/cross";
 import { encodeCrossRun, replayCrossRun } from "../../src/lib/duel/cross";
-import { rallyCheckpoint, rallyGameFor, RALLY_REV, RALLY_REV_BAND } from "../../src/lib/arcade/rally";
+import { rallyCheckpoint, rallyGameFor, RALLY_REV, RALLY_REV_BAND, RALLY_REV_TUNED } from "../../src/lib/arcade/rally";
 import { encodeRallyRun, replayRallyRun } from "../../src/lib/duel/rally";
 import { snakeCheckpoint, snakeGameFor, SNAKE_REV, SNAKE_REV_BAND } from "../../src/lib/arcade/snake";
 import { encodeSnakeRun, replaySnakeRun } from "../../src/lib/duel/snake";
@@ -36,7 +36,7 @@ import { skylineCheckpoint, skylineGameFor, SKYLINE_REV, SKYLINE_REV_BAND } from
 import { encodeSkylineRun, replaySkylineRun } from "../../src/lib/duel/skyline";
 import { juncCheckpoint, junctionGameFor, JUNC_REV, JUNC_REV_BAND } from "../../src/lib/arcade/junction";
 import { encodeJunctionRun, replayJunctionRun } from "../../src/lib/duel/junction";
-import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND } from "../../src/lib/arcade/breaker";
+import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND, BRK_REV_TUNED } from "../../src/lib/arcade/breaker";
 import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
 import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
@@ -54,7 +54,7 @@ import { encodeBurstRun, replayBurstRun } from "../../src/lib/duel/burst";
 import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND, SWING_REV_TUNED } from "../../src/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "../../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../../src/lib/duel/swingBankV4.server";
-import { bullseyeCheckpoint, bullseyeGameFor, bullseyeInitFor, bullseyeWinds, BULLSEYE_REV, BULLSEYE_REV_BAND } from "../../src/lib/arcade/bullseye";
+import { bullseyeCheckpoint, bullseyeGameFor, bullseyeInitFor, bullseyeWinds, BULLSEYE_REV, BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED } from "../../src/lib/arcade/bullseye";
 import { encodeBullseyeRun, replayBullseyeRun } from "../../src/lib/duel/bullseye";
 
 export interface GameSpec {
@@ -65,6 +65,11 @@ export interface GameSpec {
   next?: number;
   /** A later revision on the same band curve that changed play (Tuning A), when there is one. */
   tuned?: number;
+  /**
+   * Revision rooms stamp today, when a later gameplay change (Tuning B, Oct 2026)
+   * moved past `next`; `--rev=current` measures it against `next`.
+   */
+  current?: number;
   /** The seed a live room would store for the n-th sample. */
   seedFor: (n: number) => number;
   /** The game (sim + score) for a revision and stored seed. */
@@ -119,14 +124,14 @@ export const GAMES: GameSpec[] = [
   simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun),
   simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun),
   simple("cross", CROSS_REV, CROSS_REV_BAND, crossGameFor, crossCheckpoint, encodeCrossRun, replayCrossRun),
-  simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun),
+  { ...simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun), current: RALLY_REV_TUNED },
   simple("snake", SNAKE_REV, SNAKE_REV_BAND, snakeGameFor, snakeCheckpoint, encodeSnakeRun, replaySnakeRun),
   simple("bintoss", BINTOSS_REV3, BINTOSS_REV_BAND, binTossGameFor, binTossCheckpoint, encodeBinTossRun, replayBinTossRun),
   simple("snip", SNIP_REV3, SNIP_REV_BAND, snipGameFor, snipCheckpoint, encodeSnipRun, replaySnipRun),
   simple("hover", HOVER_REV, HOVER_REV_BAND, hoverGameFor, hoverCheckpoint, encodeHoverRun, replayHoverRun, true),
   simple("skyline", SKYLINE_REV, SKYLINE_REV_BAND, skylineGameFor, skylineCheckpoint, encodeSkylineRun, replaySkylineRun, true),
   simple("junction", JUNC_REV, JUNC_REV_BAND, junctionGameFor, juncCheckpoint, encodeJunctionRun, replayJunctionRun),
-  simple("breaker", BRK_REV, BRK_REV_BAND, breakerGameFor, brkCheckpoint, encodeBreakerRun, replayBreakerRun),
+  { ...simple("breaker", BRK_REV, BRK_REV_BAND, breakerGameFor, brkCheckpoint, encodeBreakerRun, replayBreakerRun), current: BRK_REV_TUNED },
   simple("tilt", TILT_REV, TILT_REV_BAND, tiltGameFor, tiltCheckpoint, encodeTiltRun, replayTiltRun),
   {
     type: "orbit",
@@ -162,6 +167,7 @@ export const GAMES: GameSpec[] = [
     type: "bullseye",
     live: BULLSEYE_REV,
     next: BULLSEYE_REV_BAND,
+    current: BULLSEYE_REV_TUNED,
     seedFor: plain,
     gameFor: (rev, seed) => ({ ...bullseyeGameFor(rev), init: () => bullseyeInitFor(seed, bullseyeWinds(seed), rev) }),
     checkpoint: bullseyeCheckpoint,

@@ -12,6 +12,8 @@ import {
   bullseyeFinished,
   bullseyeGame,
   bullseyeInitFor,
+  bullseyeBalloonPoints,
+  BULLSEYE_TUNE,
   bullseyeInner,
   bullseyeInnerBulls,
   bullseyePops,
@@ -106,6 +108,9 @@ export interface BullseyeResult {
   balloons: number;
   /** The revision the run was played on (0 = unstamped). */
   bullRev: number;
+  /** bullRev 4: 1 for the value balloons across the board, and the balloon points they added (0 on older rounds). */
+  tuned: number;
+  balloonPoints: number;
   /** Arrows in the gold or red rings. */
   inner: number;
   hits: BullseyeHit[];
@@ -172,6 +177,8 @@ export function replayBullseyeRun(
     pops: bullseyePops(state),
     balloons: (state.balloons ?? []).filter(Boolean).length,
     bullRev: state.rev ?? 0,
+    tuned: state.tune === BULLSEYE_TUNE ? 1 : 0,
+    balloonPoints: bullseyeBalloonPoints(state),
     hits: state.hits,
     finished: bullseyeFinished(state),
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,

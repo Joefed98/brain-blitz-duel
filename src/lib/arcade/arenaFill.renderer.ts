@@ -1,12 +1,17 @@
 import type { ArcadeFxGame, EngineFxGame } from "./arcadeFxGames.renderer";
 
+/** No fill: the spare space below the arena stays the page colour. */
+export const ARENA_NO_FILL = "transparent";
+
 /**
  * The colour below each arcade arena when the screen is taller than the fitted
  * world (ArcadeArenaSlot): the colour the game's art paints along its bottom edge,
  * so the spare space reads as part of the arena, not empty page. Presentation only.
+ * Tuning B: Hover, Tilt, Roofbound, Rainbow Bridge, Junction and High Rise have
+ * none (ARENA_NO_FILL); their spare space goes back to the page colour.
  */
 export const ARCADE_ARENA_FILL: Record<ArcadeFxGame, string> = {
-  hover: "#2C0A0F",
+  hover: ARENA_NO_FILL,
   breaker: "#000000",
   rally: "#061821",
   beat: "#0B0A10",
@@ -14,18 +19,18 @@ export const ARCADE_ARENA_FILL: Record<ArcadeFxGame, string> = {
   burst: "#000000",
   wavefront: "#07070C",
   orbit: "#06060F",
-  skyline: "#1C2839",
+  skyline: ARENA_NO_FILL,
   cross: "#0B0B0F",
-  junction: "#86BF63",
-  inkbridge: "#65B94B",
+  junction: ARENA_NO_FILL,
+  inkbridge: ARENA_NO_FILL,
   slice: "#70492F",
   bintoss: "#B37A41",
   bullseye: "#BB8044",
   bubble: "#06172E",
-  flip: "#2A2A32",
+  flip: ARENA_NO_FILL,
   swing: "#4F0C08",
   snip: "#408B37",
-  tilt: "#AC8353",
+  tilt: ARENA_NO_FILL,
   balltrack: "#7E5C38",
   matchup: "#0B0B0F",
 };

@@ -50,7 +50,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 import { ARCADE_FX_SPECS, ARCADE_GAME_WORLDS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
-import { ARCADE_ARENA_FILL, ENGINE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
+import { ARCADE_ARENA_FILL, ARENA_NO_FILL, ENGINE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
 
@@ -337,7 +337,8 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     if (Math.abs(arena.x - slot.x - (slot.w - arena.w) / 2) > 0.5) problems.push(`${at}: arena not centred across its slot`);
     if (m.canvas && (Math.abs(m.canvas.w - arena.w) > 1 || Math.abs(m.canvas.h - arena.h) > 1)) problems.push(`${at}: canvas does not fill the arena`);
     const hex = fill.replace("#", "");
-    const rgb = `rgb(${Number.parseInt(hex.slice(0, 2), 16)}, ${Number.parseInt(hex.slice(2, 4), 16)}, ${Number.parseInt(hex.slice(4, 6), 16)})`;
+    // ARENA_NO_FILL ("transparent", Tuning B): the space below shows the page colour.
+    const rgb = fill === ARENA_NO_FILL ? "rgba(0, 0, 0, 0)" : `rgb(${Number.parseInt(hex.slice(0, 2), 16)}, ${Number.parseInt(hex.slice(2, 4), 16)}, ${Number.parseInt(hex.slice(4, 6), 16)})`;
     if (m.fill !== rgb) problems.push(`${at}: space below the arena painted ${m.fill}, not the arena fill ${rgb}`);
     if (Math.abs(m.fillW - arena.w) > 1) problems.push(`${at}: fill below the arena is ${m.fillW.toFixed(1)} px wide, not the arena's ${arena.w.toFixed(1)}`);
     const gap = h - m.stageBottom;
