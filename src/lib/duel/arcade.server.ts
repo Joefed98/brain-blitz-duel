@@ -13,7 +13,7 @@ import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SWING_REV_BAND } from "@/lib/arcade/swing";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
 import { BRK_REV_BAND } from "@/lib/arcade/breaker";
-import { WAV_REV_BAND } from "@/lib/arcade/wavefront";
+import { WAV_REV_SHAPES } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_BAND } from "@/lib/arcade/orbit";
 import { RALLY_REV_BAND } from "@/lib/arcade/rally";
 import { BEAT_REV_BAND } from "@/lib/arcade/beat";
@@ -152,7 +152,7 @@ export function generateWhack(): WhackPuzzleData {
 }
 
 export function generateWavefront(): WavefrontPuzzleData {
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_BAND };
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_SHAPES };
 }
 
 export function generateBastion(): BastionPuzzleData {

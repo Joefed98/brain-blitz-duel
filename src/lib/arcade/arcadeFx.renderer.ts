@@ -766,9 +766,13 @@ function paint<S>(
     ctx.font = `700 ${size}px ${theme.font}`;
     ctx.lineWidth = Math.max(2, size / 5);
     ctx.strokeStyle = theme.outline;
-    ctx.strokeText(pop.text, pop.x, pop.y - rise);
+    // Keep the whole text inside the arena, wherever the event happened (an edge or the top).
+    const half = ctx.measureText(pop.text).width / 2 + ctx.lineWidth;
+    const x = Math.min(Math.max(pop.x, clip.x + half), clip.x + clip.w - half);
+    const y = Math.min(Math.max(pop.y - rise, clip.y + size / 2 + ctx.lineWidth), clip.y + clip.h - size / 2 - ctx.lineWidth);
+    ctx.strokeText(pop.text, x, y);
     ctx.fillStyle = pop.colour;
-    ctx.fillText(pop.text, pop.x, pop.y - rise);
+    ctx.fillText(pop.text, x, y);
   }
   ctx.restore();
 }

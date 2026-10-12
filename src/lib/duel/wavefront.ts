@@ -6,6 +6,7 @@ import {
   wavefrontGameFor,
   WAV_REV,
   WAV_REV_BAND,
+  WAV_REV_SHAPES,
   WAV_CHECKPOINT_INTERVAL,
   WAV_CHECKPOINT_KEYS,
   type WavCheckpoint,
@@ -37,6 +38,15 @@ const runBand = makeArcadeRun<WavState, WavCheckpoint>({
   interval: WAV_CHECKPOINT_INTERVAL,
 });
 
+/** Tuning A: shaped formations for waves 2–5. */
+const runShapes = makeArcadeRun<WavState, WavCheckpoint>({
+  tag: "wavefront",
+  game: wavefrontGameFor(WAV_REV_SHAPES),
+  checkpoint: wavCheckpoint,
+  keys: WAV_CHECKPOINT_KEYS,
+  interval: WAV_CHECKPOINT_INTERVAL,
+});
+
 export type WavefrontRun = FlatRun<WavCheckpoint>;
 
 export interface WavefrontResult extends FlatReplay<WavState, WavCheckpoint> {
@@ -58,7 +68,7 @@ export const decodeWavefrontRun = run.decode;
 
 /** The single place a Wavefront score is worked out. */
 export function replayWavefrontRun(seed: number, raw: string, rev?: number | null): WavefrontResult {
-  const result = (rev === WAV_REV_BAND ? runBand : rev === WAV_REV ? runV2 : run).replay(seed, raw);
+  const result = (rev === WAV_REV_SHAPES ? runShapes : rev === WAV_REV_BAND ? runBand : rev === WAV_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

@@ -225,6 +225,8 @@ export interface WavState extends BandFields {
   boss?: WavBoss | null;
   bossHits?: number;
   bossKilled?: number;
+  /** wavRev 4: 1 when waves 2–5 fly in their own formation shapes (WAV_FORMS); absent otherwise. */
+  shaped?: number;
   /** wavRev 2: ships that rammed the player while diving (destroyed, no points), and divers shot down. */
   rammed?: number;
   diversDown?: number;
@@ -365,6 +367,8 @@ function isOver(state: WavState): boolean {
 }
 
 export function wavShapeBox(state: WavState, index: number): { x: number; y: number } {
+  const form = wavForm(state);
+  if (form) return { x: state.fx + form[index]![0], y: state.fy + form[index]![1] };
   const row = Math.trunc(index / WAV_COLS);
   const col = index % WAV_COLS;
   return { x: state.fx + col * PITCH_X, y: state.fy + row * PITCH_Y };
@@ -414,8 +418,21 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     });
     if (rc >= 0) {
       const nextX = s.fx + s.dir * STEP_PX;
-      const left = nextX + lc * PITCH_X;
-      const right = nextX + rc * PITCH_X + WAV_CELL;
+      let left = nextX + lc * PITCH_X;
+      let right = nextX + rc * PITCH_X + WAV_CELL;
+      const form = wavForm(s);
+      if (form) {
+        // wavRev 4: the live ships' own boxes reach the walls, wherever they sit in the shape.
+        let lo = WAV_WORLD_W;
+        let hi = -WAV_WORLD_W;
+        s.shapes.forEach((code, i) => {
+          if (code === 0) return;
+          lo = Math.min(lo, form[i]![0]);
+          hi = Math.max(hi, form[i]![0]);
+        });
+        left = nextX + lo;
+        right = nextX + hi + WAV_CELL;
+      }
       if (left < EDGE || right > WAV_WORLD_W - EDGE) {
         s.fy += PITCH_Y;
         s.dir = -s.dir;
@@ -679,13 +696,17 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
   // Enemy fire from any shape in the lowest two occupied rows, chosen from the seed.
   if (!entering && !s.boss) s.redIn -= 1;
   if (s.redIn <= 0) {
+    // wavRev 4 shapes: a ship's "row" is its height in the shape in grid rows (PITCH_Y), and its "column" its x.
+    const form = wavForm(s);
+    const rowOf = (i: number) => (form ? Math.trunc(form[i]![1] / PITCH_Y) : Math.trunc(i / WAV_COLS));
+    const colOf = (i: number) => (form ? form[i]![0] : i % WAV_COLS);
     let lowest = -1;
     s.shapes.forEach((code, i) => {
-      if (code !== 0) lowest = Math.max(lowest, Math.trunc(i / WAV_COLS));
+      if (code !== 0) lowest = Math.max(lowest, rowOf(i));
     });
     const shooters: number[] = [];
     s.shapes.forEach((code, i) => {
-      if (code !== 0 && code !== WAV_ARMOUR_CODE && !away.has(i) && Math.trunc(i / WAV_COLS) >= lowest - 1)
+      if (code !== 0 && code !== WAV_ARMOUR_CODE && !away.has(i) && rowOf(i) >= lowest - 1)
         shooters.push(i);
     });
     let volley = 1;
@@ -696,12 +717,12 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     }
     let usedCol = -1;
     for (let shot = 0; shot < volley && shooters.length > 0 && s.reds.length < MAX_RED; shot++) {
-      const pool = shooters.filter((i) => i % WAV_COLS !== usedCol);
+      const pool = shooters.filter((i) => colOf(i) !== usedCol);
       if (pool.length === 0) break;
       const pick = rngBelow(s.rng, pool.length);
       s.rng = pick.state;
       const index = pool[pick.value] ?? 0;
-      usedCol = index % WAV_COLS;
+      usedCol = colOf(index);
       const box = wavShapeBox(s, index);
       s.reds.push({ x: (box.x + WAV_CELL / 2) * FP, y: (box.y + WAV_CELL) * FP });
     }
@@ -747,11 +768,24 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
       const next = newShapes(s.rng);
       s.rng = next.rng;
       s.shapes = next.shapes;
-      const armour = placeArmour(s.rng, s.shapes, s.wave);
-      s.rng = armour.rng;
-      s.armour = armour.armour;
-      s.fx = START_X;
-      s.fyTarget = Math.min(MAX_START_Y, START_Y + (s.wave - 1) * PITCH_Y);
+      const form = wavForm(s);
+      if (form) {
+        // wavRev 4: the shape's first slots are its armour core (2 rows on the grid pitch, slot 0 top-left).
+        const [cells, hp] = WAV_ARMOUR_BY_WAVE[Math.min(s.wave - 2, WAV_ARMOUR_BY_WAVE.length - 1)]!;
+        for (let i = 0; i < cells; i++) s.shapes[i] = WAV_ARMOUR_CODE;
+        s.armour = { col: 0, row: 0, w: cells / 2, h: 2, hp, maxHp: hp };
+        const size = wavFormSize(s.wave);
+        s.fx = Math.trunc((WAV_WORLD_W - size.w) / 2);
+        // Shapes are wider than the grid (they reach the walls, and drop, sooner), so they settle higher:
+        // at the top on wave 2, WAV_FORM_STEP_Y lower each wave after (measured to keep the score bands).
+        s.fyTarget = START_Y + (s.wave - 2) * WAV_FORM_STEP_Y;
+      } else {
+        const armour = placeArmour(s.rng, s.shapes, s.wave);
+        s.rng = armour.rng;
+        s.armour = armour.armour;
+        s.fx = START_X;
+        s.fyTarget = Math.min(MAX_START_Y, START_Y + (s.wave - 1) * PITCH_Y);
+      }
       s.fy = s.fyTarget - ENTRY_DIST;
       s.dir = 1;
     }
@@ -776,10 +810,11 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
 
   // Reached the ship's line?
   let lowest = -1;
+  const shapedForm = wavForm(s);
   s.shapes.forEach((code, i) => {
-    if (code !== 0) lowest = Math.max(lowest, Math.trunc(i / WAV_COLS));
+    if (code !== 0) lowest = Math.max(lowest, shapedForm ? shapedForm[i]![1] : Math.trunc(i / WAV_COLS) * PITCH_Y);
   });
-  const reached = lowest >= 0 && s.fy + lowest * PITCH_Y + WAV_CELL >= WAV_SHIP_Y - WAV_SHIP_H / 2;
+  const reached = lowest >= 0 && s.fy + lowest + WAV_CELL >= WAV_SHIP_Y - WAV_SHIP_H / 2;
 
   if (s.lives <= 0 || reached) {
     s.lives = Math.max(0, s.lives);
@@ -915,6 +950,8 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
     const extra = [state.rev, state.enter ?? 0, state.diveIn ?? 0, state.bossHits ?? 0, state.bossKilled ?? 0, state.rammed ?? 0, state.diversDown ?? 0];
     if (state.boss) extra.push(state.boss.x, state.boss.dir, state.boss.hp, state.boss.fireIn);
     for (const d of state.divers ?? []) extra.push(d.cell, d.t, d.x, d.y);
+    // wavRev 4 only, after every rev-2 value.
+    if (state.shaped) extra.push(state.shaped);
     for (const value of extra) {
       checksum ^= value | 0;
       checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1140,6 +1177,7 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
 export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_SHAPES) return wavefrontShapesGame;
   if (rev === WAV_REV_BAND) return wavefrontBandGame;
   return rev === WAV_REV ? wavefrontGameV2 : wavefrontGame;
 }
@@ -1161,3 +1199,75 @@ function scoreBand(state: WavState): number {
 }
 
 export const wavefrontBandGame: ArcadeGame<WavState, ArcadeInputEvent | null> = { ...wavefrontGameV2, init: (seed) => bandInit(wavefrontGameV2.init(seed)) };
+
+/* ================= Tuning A (wavRev 4, Oct 2026) ================= */
+/*
+ * Waves 2–5 each fly in their own formation shape with the same 30 ships as
+ * the grid (wave 1 keeps the grid): a triangle, a circle, a pentagon and an
+ * octagon, each round an armour core of the wave's usual size and hits. The
+ * ships, colours and every seeded draw are the rev-2 ones (the core takes no
+ * placement draws), scored on the rev-3 band curve. Rev-3 and older rounds
+ * never set `shaped`, so they replay unchanged.
+ */
+export const WAV_REV_SHAPES = 4;
+
+/**
+ * Each shaped wave's 30 cell boxes: top-left [x, y] in whole px from the
+ * formation's origin (fx, fy). The first slots are the armour core (2 rows on
+ * the grid's 44 × 36 pitch, slot 0 its top-left cell); the rest outline the
+ * shape. Index 0–1 are unused (wave 1 is the grid).
+ */
+export const WAV_FORMS: readonly (readonly (readonly [number, number])[])[] = [
+  [],
+  [],
+  // Wave 2: triangle (apex toward the player), 2 × 2 armour core.
+  [
+    [117, 44], [161, 44], [117, 80], [161, 80], [139, 186], [122, 163], [104, 140], [87, 116], [70, 93], [52, 70],
+    [35, 47], [18, 23], [0, 0], [28, 0], [56, 0], [84, 0], [111, 0], [139, 0], [167, 0], [194, 0],
+    [222, 0], [250, 0], [278, 0], [260, 23], [243, 46], [226, 70], [208, 93], [191, 116], [174, 139], [156, 163],
+  ],
+  // Wave 3: circle, 3 × 2 armour core.
+  [
+    [86, 84], [130, 84], [174, 84], [86, 120], [130, 120], [174, 120], [130, 0], [164, 3], [195, 14], [222, 30],
+    [243, 51], [256, 76], [260, 102], [256, 128], [243, 153], [222, 174], [195, 190], [164, 201], [130, 204], [96, 201],
+    [65, 190], [38, 174], [17, 153], [4, 128], [0, 102], [4, 76], [17, 51], [38, 30], [65, 14], [96, 3],
+  ],
+  // Wave 4: pentagon (point toward the player), 4 × 2 armour core.
+  [
+    [65, 73], [109, 73], [153, 73], [197, 73], [65, 109], [109, 109], [153, 109], [197, 109], [131, 203], [105, 188],
+    [79, 172], [52, 157], [26, 141], [0, 126], [12, 94], [25, 63], [37, 32], [50, 0], [90, 0], [131, 0],
+    [172, 0], [212, 0], [225, 32], [237, 63], [250, 94], [262, 126], [236, 141], [210, 157], [183, 172], [157, 188],
+  ],
+  // Wave 5: octagon, 5 × 2 armour core.
+  [
+    [51, 82], [95, 82], [139, 82], [183, 82], [227, 82], [51, 118], [95, 118], [139, 118], [183, 118], [227, 118],
+    [196, 0], [223, 20], [251, 39], [278, 59], [278, 100], [278, 141], [251, 161], [223, 180], [196, 200], [139, 200],
+    [82, 200], [55, 180], [27, 161], [0, 141], [0, 100], [0, 59], [27, 39], [55, 20], [82, 0], [139, 0],
+  ],
+];
+
+/** How much lower each shaped wave settles than the one before, px (wave 2 settles at the top). */
+export const WAV_FORM_STEP_Y = 21;
+
+/** A shaped wave's width and height, px (its boxes' extent). */
+export function wavFormSize(wave: number): { w: number; h: number } {
+  const form = WAV_FORMS[wave]!;
+  let w = 0;
+  let h = 0;
+  for (const [x, y] of form) {
+    w = Math.max(w, x + WAV_CELL);
+    h = Math.max(h, y + WAV_CELL);
+  }
+  return { w, h };
+}
+
+/** The current wave's shape (wavRev 4, waves 2–5), or null for the grid. */
+export function wavForm(state: { shaped?: number; wave: number }): readonly (readonly [number, number])[] | null {
+  if (!state.shaped || state.wave < 2 || state.wave > WAV_V2_WAVES) return null;
+  return WAV_FORMS[state.wave] ?? null;
+}
+
+export const wavefrontShapesGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
+  ...wavefrontBandGame,
+  init: (seed) => ({ ...wavefrontBandGame.init(seed), shaped: 1 }),
+};

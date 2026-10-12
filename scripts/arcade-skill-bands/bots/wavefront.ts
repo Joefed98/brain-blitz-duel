@@ -12,6 +12,7 @@
 import { ARCADE_INPUT_DRAG } from "../../../src/lib/arcade/engine";
 import {
   wavDiverCentre,
+  wavForm,
   wavShapeBox,
   WAV_BOSS_W,
   WAV_CELL,
@@ -138,19 +139,31 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       }
     }
     if (!chasing && !seen.boss) {
-      // Columns that still hold a shape the bolts can reach.
-      const live: { c: number; x: number; low: number }[] = [];
-      for (let c = 0; c < WAV_COLS; c++) {
-        let low = -1;
-        for (let r = WAV_ROWS - 1; r >= 0; r--) {
-          const code = seen.shapes[r * WAV_COLS + c] ?? 0;
-          if (code !== 0) {
-            low = r;
-            break;
+      // Columns that still hold a shape the bolts can reach: grid columns, or (wavRev 4
+      // shapes) each x a ship sits at, its lowest ship first. `cell` is that ship's slot.
+      const live: { c: number; x: number; low: number; cell: number }[] = [];
+      const form = wavForm(seen);
+      if (form) {
+        const byX = new Map<number, number>();
+        seen.shapes.forEach((code, i) => {
+          if (code === 0) return;
+          const best = byX.get(form[i]![0]);
+          if (best === undefined || form[i]![1] > form[best]![1]) byX.set(form[i]![0], i);
+        });
+        for (const [ox, cell] of [...byX].sort((a, b) => a[0] - b[0]))
+          live.push({ c: ox, x: wavShapeBox(seen, cell).x + WAV_CELL / 2, low: form[cell]![1] / 36, cell });
+      } else
+        for (let c = 0; c < WAV_COLS; c++) {
+          let low = -1;
+          for (let r = WAV_ROWS - 1; r >= 0; r--) {
+            const code = seen.shapes[r * WAV_COLS + c] ?? 0;
+            if (code !== 0) {
+              low = r;
+              break;
+            }
           }
+          if (low >= 0) live.push({ c, x: wavShapeBox(seen, low * WAV_COLS + c).x + WAV_CELL / 2, low, cell: low * WAV_COLS + c });
         }
-        if (low >= 0) live.push({ c, x: wavShapeBox(seen, low * WAV_COLS + c).x + WAV_CELL / 2, low });
-      }
       const colLive = live.some((l) => l.c === col);
       if ((!colLive && col >= 0) || t >= rethinkAt) {
         if (!colLive && col >= 0 && t < rethinkAt) {
@@ -171,7 +184,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         // March lead: one 8-px step every stepIn ticks, over the bolt's flight.
         const step = Math.max(6, seen.waveBase - Math.trunc(seen.waveKills / 3));
         const entering = (seen.enter ?? 0) > 0;
-        const flight = (BOLT_Y0 - (wavShapeBox(seen, target.low * WAV_COLS + target.c).y + WAV_CELL)) / BOLT_SPEED;
+        const flight = (BOLT_Y0 - (wavShapeBox(seen, target.cell).y + WAV_CELL)) / BOLT_SPEED;
         const lead = entering ? 0 : ((seen.dir * 8) / step) * (flight + lag) * (1 + human.p.judgement * colErr);
         want = target.x + lead + colErr * human.p.aimSdPx;
       }

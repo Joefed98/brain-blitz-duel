@@ -10,7 +10,7 @@ import type { PuzzleType } from "../../src/lib/duel/types";
 import { btCheckpoint, makeBallTrackGame, BT_REV, BT_REV_BAND } from "../../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../../src/lib/duel/ballTrack";
 import { BALL_TRACK_BANK } from "../../src/lib/duel/ballTrackBank.server";
-import { wavCheckpoint, wavefrontGameFor, WAV_REV, WAV_REV_BAND } from "../../src/lib/arcade/wavefront";
+import { wavCheckpoint, wavefrontGameFor, WAV_REV, WAV_REV_BAND, WAV_REV_SHAPES } from "../../src/lib/arcade/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "../../src/lib/duel/wavefront";
 import { flipCheckpoint, flipGameFor, FLIP_REV, FLIP_REV_BAND } from "../../src/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "../../src/lib/duel/flip";
@@ -63,6 +63,8 @@ export interface GameSpec {
   live: number | null;
   /** Revision stamped after it (undefined while the pass is being measured). */
   next?: number;
+  /** A later revision on the same band curve that changed play (Tuning A), when there is one. */
+  tuned?: number;
   /** The seed a live room would store for the n-th sample. */
   seedFor: (n: number) => number;
   /** The game (sim + score) for a revision and stored seed. */
@@ -111,7 +113,7 @@ export const GAMES: GameSpec[] = [
     encode: (run, rev, seed) => encodeBallTrackRun(btCourse(seed), run, rev),
     replay: (seed, raw, rev) => replayBallTrackRun(btCourse(seed), seed, raw, rev),
   },
-  simple("wavefront", WAV_REV, WAV_REV_BAND, wavefrontGameFor, wavCheckpoint, encodeWavefrontRun, replayWavefrontRun),
+  { ...simple("wavefront", WAV_REV, WAV_REV_BAND, wavefrontGameFor, wavCheckpoint, encodeWavefrontRun, replayWavefrontRun), tuned: WAV_REV_SHAPES },
   simple("flip", FLIP_REV, FLIP_REV_BAND, flipGameFor, flipCheckpoint, encodeFlipRun, replayFlipRun),
   simple("inkbridge", INK_REV4, INK_REV_BAND, inkBridgeGameFor, inkCheckpoint, encodeInkBridgeRun, replayInkBridgeRun),
   simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun),

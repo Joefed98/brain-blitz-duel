@@ -487,7 +487,12 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
     {
       kind: "perfect",
       count: (s) => s.saucers,
-      at: (s) => ({ x: px(s.saucerX), y: 70 }),
+      // The sim clears saucerX on the hit, so the saucer's burst marks where it was hit.
+      at: (s) => {
+        let x = px(s.saucerX);
+        for (const b of s.bursts) if (b.c === 3) x = b.x;
+        return { x, y: 70 };
+      },
       label: () => "SAUCER!",
     },
     {

@@ -6,7 +6,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { BandCurve, BandParts } from "./scoreBands";
 import { btBandParts, BT_BAND_CURVE, BT_REV_BAND } from "./ballTrack";
-import { wavefrontBandParts, WAV_BAND_CURVE, WAV_REV_BAND } from "./wavefront";
+import { wavefrontBandParts, WAV_BAND_CURVE, WAV_REV_BAND, WAV_REV_SHAPES } from "./wavefront";
 import { flipBandParts, FLIP_BAND_CURVE, FLIP_REV_BAND } from "./flip";
 import { inkBridgeBandParts, INK_BAND_CURVE, INK_REV_BAND } from "./inkBridge";
 import { matchupBandParts, MATCHUP_BAND_CURVE, MATCHUP_REV_BAND } from "./matchup";
@@ -68,10 +68,13 @@ export const BAND_SPECS: Record<string, BandSpec> = {
   bullseye: { parts: bullseyeBandParts, curve: BULLSEYE_BAND_CURVE, kind: "open" },
 };
 
-/** The puzzle field and revision that stamp each game's score bands. */
-export const BAND_STAMPS: Record<string, readonly [field: string, rev: number]> = {
+/**
+ * The puzzle field and revision that stamp each game's score bands, then any
+ * later revisions that changed play but still score on the same bands.
+ */
+export const BAND_STAMPS: Record<string, readonly [field: string, rev: number, ...later: number[]]> = {
   balltrack: ["btRev", BT_REV_BAND],
-  wavefront: ["wavRev", WAV_REV_BAND],
+  wavefront: ["wavRev", WAV_REV_BAND, WAV_REV_SHAPES],
   flip: ["flipRev", FLIP_REV_BAND],
   inkbridge: ["inkRev", INK_REV_BAND],
   matchup: ["matchupRev", MATCHUP_REV_BAND],
@@ -97,5 +100,5 @@ export const BAND_STAMPS: Record<string, readonly [field: string, rev: number]> 
 /** True when a stored puzzle was dealt on the Oct 2026 score bands. */
 export function puzzleUsesBands(puzzle: { type: string } & Record<string, unknown>): boolean {
   const stamp = BAND_STAMPS[puzzle.type];
-  return Boolean(stamp && puzzle[stamp[0]] === stamp[1]);
+  return Boolean(stamp && stamp.slice(1).includes(puzzle[stamp[0]] as number));
 }

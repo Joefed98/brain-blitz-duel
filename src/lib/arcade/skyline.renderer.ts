@@ -10,6 +10,7 @@ import { px, type CanvasSize } from "./engine";
 import { skylineFlagAt, skylineGustAt, SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM } from "./skyline";
 import { skylineGame, SKYLINE_BLOCK_H, SKYLINE_MIN_ZOOM, SKYLINE_PERFECT_GROW, SKYLINE_WORLD_H, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
 import { artHash, reducedMotion } from "./art.renderer";
+import { APP_LOGO_URL } from "@/lib/brand";
 import { realMemo, realNow, realNightSky, REAL_GOLD, REAL_SHADOW, REAL_NIGHT_BG, REAL_NIGHT_TEXT, REAL_LAMP, REAL_LAMP_WASH } from "./realworld.renderer";
 
 /** City glass tints, cycled per level. */
@@ -148,13 +149,47 @@ function drawCrane(ctx: CanvasRenderingContext2D, trolleyX: number, tick: number
   void tick;
 }
 
-const FLAG_RED = "#E5484D";
-const FLAG_WHITE = "#F4F4F5";
+/** The app logo's black and bolt yellow, for the cloth before the logo file has loaded. */
+const FLAG_BLACK = "#0B0B0F";
+const FLAG_BOLT = "#FFD21F";
+/** BoltGlyph's bolt (24-unit box), the stand-in until the logo file is ready. */
+const FLAG_BOLT_PATH = [[14, 2], [5, 14], [11, 14], [9, 22], [19, 9], [13, 9], [14, 2]] as const;
+
+/** The app logo (APP_LOGO_URL), loaded once per page; null until it is ready or if it fails. */
+let flagLogo: HTMLImageElement | null = null;
+let flagLogoStarted = false;
+function flagLogoImage(): HTMLImageElement | null {
+  if (!flagLogoStarted && typeof Image !== "undefined") {
+    flagLogoStarted = true;
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => (flagLogo = img);
+    img.src = APP_LOGO_URL;
+  }
+  return flagLogo;
+}
+
+/**
+ * The logo, `s` px square, centred at (cx, cy) inside the current clip: the app
+ * logo file when it has loaded, else its black square and bolt drawn in code.
+ */
+function drawFlagLogo(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number): void {
+  const img = flagLogoImage();
+  if (img) {
+    ctx.drawImage(img, cx - s / 2, cy - s / 2, s, s);
+    return;
+  }
+  ctx.fillStyle = FLAG_BOLT;
+  ctx.beginPath();
+  for (const [bx, by] of FLAG_BOLT_PATH) ctx.lineTo(cx + ((bx - 12) / 24) * s, cy + ((by - 12) / 24) * s);
+  ctx.fill();
+}
 
 /**
  * skylineRev 2: the flag on the top block (pole at its centre, behind the
- * sliding block). Hanging still = calm; streaming and rippling = a gust is
- * about to blow or is blowing, toward `dir`. Presentation only.
+ * sliding block), showing the app logo (black with the yellow bolt). Hanging
+ * still = calm; streaming and rippling = a gust is about to blow or is
+ * blowing, toward `dir`. Presentation only.
  */
 function drawFlag(ctx: CanvasRenderingContext2D, x: number, top: number, dir: number, tick: number, zoom: number): void {
   // Screen-sized whatever the camera zoom; the pole clears the sliding block (one block high) so the cloth is never hidden.
@@ -173,42 +208,56 @@ function drawFlag(ctx: CanvasRenderingContext2D, x: number, top: number, dir: nu
   ctx.arc(x, top - poleH, 3 * k, 0, Math.PI * 2);
   ctx.fill();
   const still = dir === 0 || reducedMotion();
-  const len = 34 * k;
-  const h = 20 * k;
+  // A little smaller than the old red-and-white flag (34 × 20).
+  const len = 28 * k;
+  const h = 17 * k;
   const phase = (tick / 60) * Math.PI * 2 * 2.2;
-  const pts: [number, number][] = [];
+  const y0 = top - poleH + 2 * k;
   if (dir === 0) {
-    // Hanging limp down the pole.
-    ctx.fillStyle = FLAG_RED;
+    // Hanging limp down the pole: the logo's black cloth with the bolt upright on it.
+    const w = 8 * k;
+    const drop = len * 0.75;
+    ctx.fillStyle = FLAG_BLACK;
     ctx.beginPath();
-    ctx.moveTo(x, top - poleH + 2 * k);
-    ctx.lineTo(x + 8 * k, top - poleH + 4 * k);
-    ctx.lineTo(x + 7 * k, top - poleH + 4 * k + len * 0.8);
-    ctx.lineTo(x, top - poleH + 2 * k + len * 0.75);
+    ctx.moveTo(x, y0);
+    ctx.lineTo(x + w, y0 + 2 * k);
+    ctx.lineTo(x + w - k, y0 + 2 * k + drop);
+    ctx.lineTo(x, y0 + drop);
     ctx.closePath();
     ctx.fill();
+    ctx.clip();
+    drawFlagLogo(ctx, x + w / 2, y0 + drop / 2 + k, w * 1.9);
     ctx.restore();
     return;
   }
+  const wave = (u: number) => (still ? 0 : Math.sin(phase - u * 5) * 4 * k * u);
+  const pts: [number, number][] = [];
   for (let i = 0; i <= 8; i++) {
     const u = i / 8;
-    const wave = still ? 0 : Math.sin(phase - u * 5) * 4 * k * u;
-    pts.push([x + dir * len * u, top - poleH + 2 * k + wave]);
+    pts.push([x + dir * len * u, y0 + wave(u)]);
   }
-  ctx.fillStyle = FLAG_RED;
+  ctx.fillStyle = FLAG_BLACK;
   ctx.beginPath();
   ctx.moveTo(pts[0]![0], pts[0]![1]);
   for (const [px0, py0] of pts) ctx.lineTo(px0, py0);
   for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i]![0], pts[i]![1] + h);
   ctx.closePath();
   ctx.fill();
-  // A white stripe so the ripple reads at a glance.
-  ctx.fillStyle = FLAG_WHITE;
-  ctx.beginPath();
-  for (let i = 0; i < pts.length; i++) ctx.lineTo(pts[i]![0], pts[i]![1] + h * 0.4);
-  for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i]![0], pts[i]![1] + h * 0.6);
-  ctx.closePath();
-  ctx.fill();
+  // The logo rides the ripple: each eighth of the cloth draws its slice of the logo
+  // shifted by that slice's wave, clipped to the slice (never mirrored, whichever way it flies).
+  const s = h * 1.15;
+  const cx = x + (dir * len) / 2;
+  for (let i = 0; i < 8; i++) {
+    const xa = Math.min(pts[i]![0], pts[i + 1]![0]);
+    const xb = Math.max(pts[i]![0], pts[i + 1]![0]);
+    const dy = (pts[i]![1] + pts[i + 1]![1]) / 2 - y0;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(xa - 0.25 * k, y0 + dy, xb - xa + 0.5 * k, h);
+    ctx.clip();
+    drawFlagLogo(ctx, cx, y0 + dy + h / 2, s);
+    ctx.restore();
+  }
   ctx.restore();
 }
 
