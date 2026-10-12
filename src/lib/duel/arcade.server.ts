@@ -8,6 +8,7 @@ import { MATCHUP_REV } from "@/lib/arcade/matchup";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { SKYLINE_REV } from "@/lib/arcade/skyline";
 import { TILT_REV } from "@/lib/arcade/tilt";
+import { JUNC_REV } from "@/lib/arcade/junction";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
 import { ORBIT_REV3 } from "@/lib/arcade/orbit";
@@ -167,7 +168,7 @@ export function generateParry(): ParryPuzzleData {
 }
 
 export function generateJunction(): JunctionPuzzleData {
-  return { type: "junction", seed: arcadeSeed() };
+  return { type: "junction", seed: arcadeSeed(), junctionRev: JUNC_REV };
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {

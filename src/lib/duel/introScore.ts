@@ -1,3 +1,4 @@
+import { JUNC_V2_BUS_POINTS, JUNC_V2_CAR_POINTS, JUNC_V2_SURVIVE_BONUS } from "@/lib/arcade/junction";
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
 import { BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
@@ -143,7 +144,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   beat: "Points for each note you hit in time. Missed note: lose 2.",
   wavefront: "Points for ships, saucers and waves cleared. Clear all five waves perfectly for 150.",
   flip: "Up to 130 for lasting the full minute, plus 2 for each gold star. Up to 150.",
-  junction: "2 per car, 4 per ambulance, 40 for lasting the minute. A stopped ambulance: lose 4.",
+  junction: `${JUNC_V2_CAR_POINTS} per car, ${JUNC_V2_BUS_POINTS} per bus, ±4 per ambulance, ${JUNC_V2_SURVIVE_BONUS} for lasting the minute. Up to 150.`,
   inkbridge: arcadeSplit("each level", `Finish all ${INK_LEVELS} levels`, 99),
   burst: "Points for each atom you destroy or split. Clear four waves without losing a life for 150.",
   orbit: arcadeSplit("each planet you reach", "Reach the sun", 117),

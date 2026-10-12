@@ -6,6 +6,7 @@ import {
   SKYLINE_V2_PERFECT_POINTS,
   SKYLINE_WIND_FROM,
 } from "@/lib/arcade/skyline";
+import { JUNC_V2_BUS_POINTS, JUNC_V2_CAR_POINTS, JUNC_V2_SURVIVE_BONUS } from "@/lib/arcade/junction";
 import {
   TILT_STARS_PER_MAZE,
   TILT_TWO_FROM,
@@ -790,14 +791,20 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "2 per arrow deflected, −10 per life lost.",
   },
   junction: {
-    goal: "Keep the traffic moving without a crash.",
+    goal: "Keep traffic moving, no crashes.",
     how: [
-      { action: "Tap the black corner beside a road", detail: "to switch its light between red (stop) and green (go)." },
-      { action: "Cars on red queue up", detail: "- and they don't wait forever." },
-      { action: "Later,", detail: "some cars turn - they flash an indicator a second before the line." },
-      { action: "Ambulances (flashing blue)", detail: "come fast from 20 s - give them green before they reach the line." },
+      { action: "Tap a light", detail: "to switch its road red or green." },
+      { action: "Every 12 s", detail: "a new diagonal road joins." },
+      { action: "Cars from crossing roads", detail: "must not meet." },
+      { action: "Each light", detail: "stands at its own road's stop line, ringed in that road's colour; the stop line and the arrow painted on the lane share it. Tap the light, or anywhere along its lane, and the lane flashes.", helpOnly: true },
+      { action: "Sharing the middle:", detail: "straight-on traffic from opposite main roads can cross together. Turning cars, and cars from a diagonal road (they bear left onto the main road), need the middle to themselves.", helpOnly: true },
+      { action: "Cars on red queue up", detail: "- and they don't wait forever.", helpOnly: true },
+      { action: "Buses (long, yellow)", detail: "take longer to clear the middle and block it while they cross.", helpOnly: true },
+      { action: "Later,", detail: "some main-road cars turn - they flash an indicator a second before the line.", helpOnly: true },
+      { action: "Ambulances (flashing blue)", detail: "come fast from 20 s on the main roads - give them green before they reach the line.", helpOnly: true },
+      { action: "Everyone", detail: "gets the same new roads in the same order, and the same traffic.", helpOnly: true },
     ],
-    score: "2 per car through, −1 per car that gives up, +4 per ambulance waved through, −4 if one has to stop, +40 for surviving the minute. Clamp 0-150.",
+    score: `${JUNC_V2_CAR_POINTS} per car through, ${JUNC_V2_BUS_POINTS} per bus, −1 per driver who gives up, +4 per ambulance waved through, −4 if one has to stop, +${JUNC_V2_SURVIVE_BONUS} for surviving the minute. Clamp 0-150.`,
   },
   inkbridge: {
     goal: "Draw a path so the coin rolls into the pot.",

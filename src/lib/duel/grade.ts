@@ -1458,7 +1458,7 @@ export function gradeSubmission(
     }
     case "junction": {
       const replayStart = performance.now();
-      const run = replayJunctionRun(puzzle.seed, answer);
+      const run = replayJunctionRun(puzzle.seed, answer, puzzle.junctionRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1472,6 +1472,7 @@ export function gradeSubmission(
         ambThrough: run.ambThrough,
         ambStopped: run.ambStopped,
         total: run.total,
+        ...(puzzle.junctionRev ? { junctionRev: puzzle.junctionRev, busCleared: run.busCleared, diagCleared: run.diagCleared } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

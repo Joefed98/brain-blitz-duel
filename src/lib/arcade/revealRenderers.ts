@@ -136,7 +136,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     (s) => ({ x: s.shipX, y: WAV_SHIP_Y }),
   ),
   flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a, p.type === "flip" ? p.flipRev : undefined)),
-  junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a), undefined, junctionRevealGame),
+  junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a, p.type === "junction" ? p.junctionRev : undefined), undefined, junctionRevealGame),
   inkbridge: simple("#2ED3B7", 390, 620, inkBridgeGame, (p, a) => replayInkBridgeRun(seedOf(p), a, p.type === "inkbridge" ? p.inkRev : undefined)),
   burst: simple("#2ED3B7", 390, BURST_FLOOR_Y, burstGame, (p, a) => replayBurstRun(seedOf(p), a)),
   orbit: {

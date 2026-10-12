@@ -58,7 +58,7 @@ import {
   CROSS_WORLD_W,
   type CrossState,
 } from "./cross";
-import { JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
+import { JUNC_BUILD_EVERY, JUNC_BUILDS, JUNC_LIGHT_AT_V2, JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
 import { INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
 import { WAV_SHIP_Y, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
 import { ORBIT_WORLD_H, ORBIT_WORLD_W, type OrbitState } from "./orbit";
@@ -536,6 +536,19 @@ export const JUNCTION_FX: ArcadeFxSpec<JuncState> = {
       label: () => "AMBULANCE THROUGH!",
     },
     { kind: "streak", count: (s) => s.cleared, every: 10, label: (_s, n) => `${n} CLEARED` },
+    // junctionRev 2 (original rounds keep these at 0): a new diagonal road, a bus through, the new roads' traffic.
+    {
+      kind: "pop",
+      count: (s) => (s.rev ? Math.min(JUNC_BUILDS, Math.trunc(s.tick / JUNC_BUILD_EVERY)) : 0),
+      at: (s) => {
+        const ap = (s.builds ?? [])[Math.max(0, Math.min(JUNC_BUILDS, Math.trunc(s.tick / JUNC_BUILD_EVERY)) - 1)] ?? 4;
+        const [x, y] = JUNC_LIGHT_AT_V2[ap]!;
+        return { x, y: y - 26 };
+      },
+      label: (_s, n) => (n >= JUNC_BUILDS ? "EIGHT-WAY JUNCTION!" : "NEW ROAD!"),
+    },
+    { kind: "pop", count: (s) => s.busCleared ?? 0, at: () => ({ x: JUNC_WORLD_W / 2, y: JUNC_WORLD_H / 2 - 50 }), label: () => "BUS THROUGH!" },
+    { kind: "streak", count: (s) => s.diagCleared ?? 0, every: 5, label: (_s, n) => `${n} FROM THE NEW ROADS` },
   ],
 };
 

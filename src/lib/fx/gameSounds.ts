@@ -18,7 +18,7 @@ import { BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_THROWS, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
 import type { BtState } from "@/lib/arcade/ballTrack";
-import type { JuncState } from "@/lib/arcade/junction";
+import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import type { SkylineState } from "@/lib/arcade/skyline";
 import type { InkState } from "@/lib/arcade/inkBridge";
 import { inkFailedOnBlock } from "@/lib/arcade/inkBridge.renderer";
@@ -386,6 +386,9 @@ export function junctionSounds(): GameSounds<JuncState> {
         }
         const known = new Set(prev.cars.map((c) => c.id));
         if (state.cars.some((c) => c.amb && !known.has(c.id))) playSound("arc_siren", 0.5);
+        // junctionRev 2: a new road opens; a bus clears the junction.
+        if (state.rev && Math.trunc(state.tick / JUNC_BUILD_EVERY) > Math.trunc(prev.tick / JUNC_BUILD_EVERY) && state.tick <= JUNC_BUILDS * JUNC_BUILD_EVERY) playSound("arc_clank", 0.7);
+        if ((state.busCleared ?? 0) > (prev.busCleared ?? 0)) playSound("arc_honk", 0.4);
         if (state.ended === 2 && prev.ended === 0) playSound("arc_crash");
         else if (state.ended === 1 && prev.ended === 0) playSound("stage_complete");
       }

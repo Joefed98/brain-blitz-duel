@@ -2195,6 +2195,8 @@ export interface JunctionPuzzleData {
   type: "junction";
   /** Draws every car arrival — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = diagonal roads every 12 s, lights at their lanes, buses); absent = original rules. */
+  junctionRev?: number;
 }
 
 export interface InkBridgePuzzleData {

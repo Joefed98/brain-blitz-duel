@@ -50,6 +50,30 @@ import {
 } from "../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { playTilt } from "./tilt-bot";
+import {
+  juncApproachAtV2,
+  juncBuildOrder,
+  juncBuiltAt,
+  juncCarPose,
+  juncCarPoseV2,
+  juncLanePoint,
+  junctionGame,
+  junctionGameFor,
+  juncStopOf,
+  JUNC_APPROACHES_V2,
+  JUNC_BUILD_EVERY,
+  JUNC_DIAG_FIRST_CAR,
+  JUNC_INPUT_TAP,
+  JUNC_LIGHT_AT_V2,
+  JUNC_REV,
+  JUNC_V2_BUS_POINTS,
+  JUNC_V2_CAR_POINTS,
+  JUNC_V2_SURVIVE_BONUS,
+  type JuncCar,
+  type JuncState,
+} from "../src/lib/arcade/junction";
+import { encodeJunctionRun, replayJunctionRun } from "../src/lib/duel/junction";
+import { playJunction } from "./junction-bot";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
@@ -245,9 +269,108 @@ if (want("tilt")) {
   void tiltCheckpoint;
 }
 
+
+/* =============================== 2c. Junction =============================== */
+if (want("junction")) {
+  section("Junction junctionRev 2 (diagonal roads every 12 s, lights at their lanes, buses)");
+  const game = junctionGameFor(JUNC_REV);
+  ok(junctionGameFor(undefined) === junctionGame && junctionGame.init(5).rev === undefined, "unstamped Junction keeps the original game");
+  ok(game.init(5).rev === JUNC_REV && game.inputRanges![0]!.a[1] === JUNC_APPROACHES_V2 - 1, "the state carries the stamp; lights 0–7 are valid inputs");
+  ok(JSON.stringify(game.init(99)) === JSON.stringify(game.init(99)), "roads and traffic are seeded");
+  const orders = new Set<string>();
+  for (const seed of SEEDS(40)) {
+    const s0 = game.init(seed);
+    const builds = s0.builds!;
+    orders.add(builds.join());
+    ok(builds.slice().sort().join() === "4,5,6,7" && builds.join() === juncBuildOrder(seed).join(), `seed ${seed}: every diagonal is built once, in the seeded order`);
+    builds.forEach((ap, k) => ok(juncBuiltAt(builds, ap) === (k + 1) * JUNC_BUILD_EVERY, "a road is built at 12, 24, 36 and 48 s"));
+    for (const a of s0.arrivals) {
+      if (a.ap >= 4) ok(a.tick >= juncBuiltAt(builds, a.ap) + JUNC_DIAG_FIRST_CAR && !a.amb && !a.kind && !a.turn, "diagonal cars arrive only after their road is built (no buses, ambulances or turns on them)");
+      if (a.kind === 1) ok(a.ap < 4 && !a.turn, "buses use the main roads, straight on");
+    }
+    for (const ap of builds) ok(s0.arrivals.some((a) => a.ap === ap), `seed ${seed}: cars arrive on road ${ap}`);
+    ok(s0.arrivals.some((a) => a.kind === 1), `seed ${seed}: buses in the traffic`);
+  }
+  ok(orders.size > 6, `the build order varies by room seed (${orders.size} orders in 40 seeds)`);
+  // A tap on a road not built yet switches nothing; once built it switches.
+  {
+    let s = game.init(4242);
+    const first = s.builds![0]!;
+    s = game.step(s, { t: 1, k: JUNC_INPUT_TAP, a: first, b: 0, c: 0, d: 0 });
+    ok(((s.lights >> first) & 1) === 0, "tapping an unbuilt road does nothing");
+    s = { ...s, tick: JUNC_BUILD_EVERY, cars: [], next: s.arrivals.length };
+    s = game.step(s, { t: s.tick + 1, k: JUNC_INPUT_TAP, a: first, b: 0, c: 0, d: 0 });
+    ok(((s.lights >> first) & 1) === 1, "once built, its light switches");
+  }
+  // Box time: a bus keeps the middle longer than a car.
+  const boxTicks = (car: Partial<JuncCar>) => {
+    let s: JuncState = { ...game.init(1), next: 1e9, lights: 255, cars: [{ id: 1, ap: 0, turn: 0, s: 0, wait: 0, patience: 999, cleared: 0, colour: 0, amb: 0, stopped: 0, kind: 0, ...car }] };
+    let n = 0;
+    for (let k = 0; k < 400 && s.cars.length; k++) {
+      s = game.step(s, null);
+      const c = s.cars[0];
+      if (c && c.s > juncStopOf(c.ap) && !c.cleared) n += 1;
+    }
+    return n;
+  };
+  const carBox = boxTicks({});
+  const busBox = boxTicks({ kind: 1 });
+  ok(busBox > carBox + 8, `a bus blocks the middle longer than a car (${busBox} vs ${carBox} ticks)`);
+  // Crash rules: diagonal + anything crashes; opposite straight main roads share.
+  {
+    const base: JuncState = { ...game.init(1), next: 1e9, lights: 255 };
+    const mk = (ap: number, s: number): JuncCar => ({ id: ap, ap, turn: 0, s, wait: 0, patience: 999, cleared: 0, colour: 0, amb: 0, stopped: 0, kind: 0 });
+    const inside = (ap: number) => juncStopOf(ap) + 20 * 256;
+    ok(game.step({ ...base, cars: [mk(0, inside(0)), mk(1, inside(1))] }, null).ended === 0, "opposite straight-on main-road cars share the middle");
+    ok(game.step({ ...base, cars: [mk(0, inside(0)), mk(2, inside(2))] }, null).ended === 2, "crossing main roads crash");
+    for (const d of [4, 5, 6, 7]) ok(game.step({ ...base, cars: [mk(0, inside(0)), mk(d, inside(d))] }, null).ended === 2, `a diagonal car (${d}) and a main-road car in the middle crash`);
+  }
+  // Lights: by their own stop line, clear of every lane, far apart, and a tap on each picks it.
+  {
+    const paths: [number, number][] = [];
+    for (let ap = 0; ap < JUNC_APPROACHES_V2; ap++)
+      for (let s = 0; s < 700; s += 4) {
+        const p = ap < 4 ? juncCarPose({ id: 0, ap, turn: 0, s: s * 256 } as JuncCar) : juncCarPoseV2({ id: 0, ap, turn: 0, s: s * 256 } as JuncCar);
+        paths.push([p.x, p.y]);
+      }
+    const all = [4, 5, 6, 7];
+    for (let ap = 0; ap < JUNC_APPROACHES_V2; ap++) {
+      const [lx, ly] = JUNC_LIGHT_AT_V2[ap]!;
+      const stop = juncLanePoint(ap, juncStopOf(ap) / 256);
+      ok(Math.hypot(lx - stop.x, ly - stop.y) <= 45, `light ${ap} stands by its own stop line`);
+      ok(Math.min(...paths.map(([x, y]) => Math.hypot(x - lx, y - ly))) >= 24, `light ${ap} is clear of every lane`);
+      for (let o = ap + 1; o < JUNC_APPROACHES_V2; o++) ok(Math.hypot(lx - JUNC_LIGHT_AT_V2[o]![0], ly - JUNC_LIGHT_AT_V2[o]![1]) >= 60, `lights ${ap} and ${o} are at least 60 px apart`);
+      ok(juncApproachAtV2(lx, ly, all, 3600) === ap && juncApproachAtV2(lx + 20, ly - 20, all, 3600) === ap, `a tap on (or 28 px around) light ${ap} picks it`);
+      const lane = juncLanePoint(ap, juncStopOf(ap) / 256 - 90);
+      ok(juncApproachAtV2(lane.x, lane.y, all, 3600) === ap, `a tap on lane ${ap}'s queue picks its light`);
+      if (ap >= 4) ok(juncApproachAtV2(lx, ly, [], 3600) !== ap, `an unbuilt road's light cannot be picked`);
+    }
+    ok(JUNC_LIGHT_AT_V2.every(([x, y]) => x > 0 && x < 390 && y > 40 && y < 620), "every light is on screen below the HUD");
+  }
+  // Points: 150 reachable with the full junction, through the server replay, but not easy.
+  let best = 0;
+  let total = 0;
+  const raws: number[] = [];
+  for (const seed of [1, 77, 4242, 31337]) {
+    const run = playJunction(game, seed, {});
+    const score = game.score(run.state);
+    const raw = encodeJunctionRun({ seed, claimedScore: score, events: run.events, endTick: run.state.tick, checkpoints: run.checkpoints });
+    const replay = replayJunctionRun(seed, raw, JUNC_REV);
+    ok(replay.score === score && !replay.flagged && JSON.stringify(replay.state) === JSON.stringify(run.state), `seed ${seed}: server replay agrees (${score})`);
+    ok((run.state.diagCleared ?? 0) > 0 && (run.state.busCleared ?? 0) > 0, `seed ${seed}: the run clears diagonal cars and buses`);
+    const s = run.state;
+    raws.push(JUNC_V2_CAR_POINTS * (s.cleared - (s.busCleared ?? 0)) + JUNC_V2_BUS_POINTS * (s.busCleared ?? 0) - s.gaveUp + 4 * (s.ambThrough - s.ambStopped) + (s.ended === 1 ? JUNC_V2_SURVIVE_BONUS : 0));
+    best = Math.max(best, replay.score);
+    total += replay.score;
+  }
+  ok(best === 150, "150 is reachable on junctionRev 2 through the server replay");
+  ok(Math.min(...raws) < 175, `the look-ahead bot's uncapped totals (${raws.join(", ")}) stay near the cap (original: about 175 for every seed)`);
+  console.log(`  look-ahead bot: mean ${(total / 4).toFixed(1)}, uncapped ${raws.join(", ")}`);
+}
+
 /* ============================ 3. Intro text rules ============================ */
 section("intro text");
-for (const type of (["skyline", "tilt"] as const).filter(want)) {
+for (const type of (["skyline", "tilt", "junction"] as const).filter(want)) {
   const help = PUZZLE_INSTRUCTIONS[type];
   const intro = help.how.filter((line) => !line.helpOnly);
   ok(intro.length <= 3, `${type}: intro HOW has at most three lines (${intro.length})`);
@@ -257,6 +380,7 @@ for (const type of (["skyline", "tilt"] as const).filter(want)) {
   ok(INTRO_SCORE[type].length <= 90, `${type}: intro SCORE within 90 characters (${INTRO_SCORE[type].length})`);
 }
 if (want("skyline")) ok(/up to 150/i.test(INTRO_SCORE.skyline), "High Rise intro states the 150 maximum the bot reaches");
+if (want("junction")) ok(/up to 150/i.test(INTRO_SCORE.junction), "Junction intro states the 150 maximum the bot reaches");
 if (want("tilt")) ok(INTRO_SCORE.tilt.includes(`up to ${TILT_V2_PARTIAL_MAX}`) && /up to 150/.test(INTRO_SCORE.tilt), "Tilt intro states the real partial maximum and the 150");
 
 console.log(`arcade batch 4: ${checks} checks passed`);

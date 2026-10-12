@@ -231,8 +231,13 @@ const BUILDERS: Record<string, Builder> = {
   }),
   junction: (r, s) => ({
     axis: { value: n(r, "cleared"), max: null, label: "Cars cleared" },
-    lines: [`${n(r, "cleared")} cars cleared → ${s}`],
+    lines: [
+      n(r, "junctionRev") > 0
+        ? `${n(r, "cleared")} through (${n(r, "busCleared")} buses, ${n(r, "diagCleared")} from the new roads) → ${s}`
+        : `${n(r, "cleared")} cars cleared → ${s}`,
+    ],
     tiles: [
+      ...(n(r, "junctionRev") > 0 ? [{ label: "Buses through", value: String(n(r, "busCleared")) }] : []),
       { label: "Ambulances through", value: String(n(r, "ambThrough")) },
       { label: "Gave up", value: String(n(r, "gaveUp")) },
     ],

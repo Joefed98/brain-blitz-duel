@@ -1339,7 +1339,10 @@ const junctionSummary: SummaryBuilder = (result) => {
   const stopped = Number(result.extra?.["ambStopped"] ?? 0);
   return {
     summary: survived ? `${head} · survived` : `${head} · crash at ${ended.toFixed(1)}s`,
-    detail: [`Ambulances: ${through} through · ${stopped} stopped`],
+    detail: [
+      `Ambulances: ${through} through · ${stopped} stopped`,
+      ...(result.extra?.["junctionRev"] ? [`${Number(result.extra?.["busCleared"] ?? 0)} buses · ${Number(result.extra?.["diagCleared"] ?? 0)} from the new roads`] : []),
+    ],
   };
 };
 

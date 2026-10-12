@@ -69,7 +69,7 @@ import { flipCheckpoint, flipGame, flipGameFor, FLIP_REV } from "@/lib/arcade/fl
 import { encodeFlipRun, replayFlipRun } from "@/lib/duel/flip";
 import { parryCheckpoint, parryGame } from "@/lib/arcade/parry";
 import { encodeParryRun, replayParryRun } from "@/lib/duel/parry";
-import { juncCheckpoint, junctionGame } from "@/lib/arcade/junction";
+import { juncCheckpoint, junctionGame, junctionGameFor, JUNC_REV } from "@/lib/arcade/junction";
 import { encodeJunctionRun, replayJunctionRun } from "@/lib/duel/junction";
 import { inkBridgeGame, inkCheckpoint } from "@/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
@@ -358,6 +358,7 @@ const GAMES: Game[] = [
   { key: "matchup/v2", game: matchupGameFor(MATCHUP_REV2), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV2) },
   { key: "matchup/v3", game: matchupGameFor(MATCHUP_REV), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV) },
   { key: "bubble/v2", game: bubbleGameFor(BUB_REV), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV) },
+  { key: "junction/v2", game: junctionGameFor(JUNC_REV), checkpoint: juncCheckpoint, mode: "events", rate: 15, encode: encodeJunctionRun, replay: (seed: number, raw: string) => replayJunctionRun(seed, raw, JUNC_REV) },
   { key: "tilt/v2", game: tiltGameFor(TILT_REV), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV) },
   { key: "skyline/v2", game: skylineGameFor(SKYLINE_REV), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, SKYLINE_REV) },
   { key: "hover/v2", game: hoverGameFor(HOVER_REV), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV) },
