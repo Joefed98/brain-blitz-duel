@@ -27,6 +27,8 @@ const COL = 40 * FP;
 const STAR_CHASE: Record<string, number> = { average: 0.1, good: 0.35, great: 0.65, near: 0.9 };
 /** Pace a player wants (px a tick): trades a further anchor against time spent. */
 const PACE = 4;
+/** How much a star-chaser values a star anchor, in px of progress. */
+const STAR_PULL = 250;
 /** How far ahead (ticks) a player looks for a release point on the rope. */
 const RELEASE_HORIZON = 150;
 const FLIGHT_LOOK = 70;
@@ -114,7 +116,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const dy = b.y - a.y;
     const len = Math.sqrt(dx * dx + dy * dy);
     if (a.y + len + RADIUS > floorAt(b, a.x) - 12 * FP) return { j: -1, v: -Infinity };
-    return { j, v: (a.x - from) / FP + (wantStar(b, j) ? 160 : 0) };
+    return { j, v: (a.x - from) / FP + (wantStar(b, j) ? STAR_PULL : 0) };
   };
 
   /** Own timing spread (ticks) for a press `start` ticks into a flight, and where in a window they aim. */
@@ -315,7 +317,6 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         let at = (g.start < look ? aim : Math.max(aim, look)) + human.timingTicks(scale);
         if (human.slip(0.25)) at += (human.chance(0.5) ? 1 : -1) * human.int(5, 12);
         pendingAt = plan.at(t + Math.max(1, at), hold(1));
-        if (process.env.SDBG) console.log("GRAB", t, JSON.stringify(g), "aim", aim, "at", at, "look", look);
       }
     }
     return null;
