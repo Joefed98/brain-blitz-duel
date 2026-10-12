@@ -137,6 +137,8 @@ export function hoverSounds(): GameSounds<HoverState> {
         if (state.crashed && !prev.crashed) playSound("arc_retro_explode");
         else {
           if (state.gates > prev.gates) playSound("arc_retro_note");
+          // hoverRev 2: a gold star collected.
+          if ((state.stars ?? 0) > (prev.stars ?? 0)) playSound("arc_retro_coin", 0.8);
         }
       }
       prev = state;
@@ -154,6 +156,9 @@ export function snakeSounds(): GameSounds<SnakeState> {
       if (prev && state.tick > prev.tick) {
         if (state.dead && !prev.dead) playSound("arc_retro_explode");
         else if (state.eaten > prev.eaten) playSound("arc_retro_blip");
+        // snakeRev 2: a rock's shadow appears, then it lands clear of the head.
+        else if ((state.rocks?.length ?? 0) > (prev.rocks?.length ?? 0)) playSound("arc_retro_hit", 0.7);
+        else if ((state.rockWarn ?? -1) >= 0 && (prev.rockWarn ?? -1) < 0) playSound("arc_retro_note", 0.5, 0.7);
       }
       prev = state;
     },
@@ -451,6 +456,10 @@ export function bubbleSounds(): GameSounds<BubState> {
             playSound("arc_sea_pop", 0.7, 1, true);
           }
         }
+        // bubbleRev 2 specials layer their own sound over the pop.
+        if ((state.bombs ?? 0) > (prev.bombs ?? 0)) playSound("arc_big_explode", 0.6, 1, true);
+        if ((state.lines ?? 0) > (prev.lines ?? 0)) playSound("arc_laser_beam", 0.55, 1.2, true);
+        if ((state.jokers ?? 0) > (prev.jokers ?? 0)) playSound("arc_rainbow", 0.6, 1, true);
       }
       prev = state;
     },

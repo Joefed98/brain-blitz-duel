@@ -5,8 +5,12 @@ import { reducedMotion } from './art.renderer';
 /** Hover in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
   hoverGame,
+  hoverGapTop,
   hoverScroll,
+  hoverStarY,
   pillarX,
+  HOVER_MOVE_AMP,
+  HOVER_STAR_R,
   HOVER_DISC_R,
   HOVER_DISC_X,
   HOVER_IMPULSE,
@@ -26,6 +30,7 @@ import {
   retroClock,
   retroReadout,
   retroScreen,
+  retroText,
   RETRO_RED,
   RETRO_WHITE,
 } from "./retro.renderer";
@@ -85,10 +90,19 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
     const duration = reducedMotion() ? 9 : 18;
     const age = passedBy / px(hoverScroll(index + 1));
     const flash = index < state.gates && age >= 0 && age < duration ? 1 - age / duration : 0;
-    const top = px(pillar.gapTop);
+    const top = px(hoverGapTop(pillar, state.tick));
     const bottom = top + px(pillar.gapH);
     drawPipe(ctx, left, 0, width, top, colour, bloom, flash, "bottom");
-    drawPipe(ctx, left, bottom, width, HOVER_WORLD_H - bottom, colour, bloom, flash, "top");
+    if (pillar.gap2Top !== undefined) {
+      // hoverRev 2 two-gap barrier: a middle block between the upper and lower gaps.
+      const top2 = px(pillar.gap2Top);
+      const bottom2 = top2 + px(pillar.gap2H ?? 0);
+      drawPipe(ctx, left, bottom, width, top2 - bottom, colour, bloom, flash, "both");
+      drawPipe(ctx, left, bottom2, width, HOVER_WORLD_H - bottom2, colour, bloom, flash, "top");
+      drawForkArrows(ctx, left + width / 2 - 3, bottom, top2);
+    } else drawPipe(ctx, left, bottom, width, HOVER_WORLD_H - bottom, colour, bloom, flash, "top");
+    if (pillar.movePhase !== undefined) drawSlideRail(ctx, left, width, pillar, state.tick);
+    drawStar(ctx, state, pillar, index, left + width / 2);
   });
 
   // Ordinary passes are rewarded by the barrier itself, not a saucer trace.
@@ -99,11 +113,71 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   if(!reducedMotion()&&state.gates>0&&state.gates%7===0&&colourAge<20){ctx.save();ctx.globalAlpha=.22*(1-colourAge/20);ctx.strokeStyle=BARRIER_CYCLES[Math.floor(state.gates/7)%6]??SAUCER;ctx.lineWidth=1;ctx.strokeRect(4,4,HOVER_WORLD_W-8,HOVER_WORLD_H-8);ctx.restore();}
   drawSaucer(ctx, state, crashIndicator);
   successHud(ctx,'hover',state.tick,10,28,()=>{retroReadout(ctx, 10, 10, `BARRIERS ${state.gates}/${state.totalGates}`, RETRO_WHITE);});
+  if ((state.totalStars ?? 0) > 0) retroText(ctx, `STARS ${state.stars ?? 0}/${state.totalStars}`, 10, 46, 14, STAR_GOLD, "left", 4);
 
   if (state.crashed && crashIndicator) {
     ctx.fillStyle = "rgba(255,59,92,0.2)";
     ctx.fillRect(0, 0, HOVER_WORLD_W, HOVER_WORLD_H);
   }
+}
+
+const STAR_GOLD = "#FFD84A";
+
+/** A gold star (hoverRev 2) drawn in 2 px blocks inside its collection circle; gone once taken. */
+function drawStar(ctx: CanvasRenderingContext2D, state: HoverState, pillar: HoverState["pillars"][number], index: number, cx: number): void {
+  const starY = hoverStarY(pillar, state.tick);
+  if (starY === null || state.starsTaken?.includes(index)) return;
+  const r = px(HOVER_STAR_R);
+  const cy = px(starY);
+  const twinkle = reducedMotion() ? 0 : Math.floor(retroClock() / 180) % 4;
+  pixelShape(ctx, cx, cy, r, 2, (dx, dy) => {
+    // A four-point pixel star: a plus with a filled core.
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    if (ax * ax + ay * ay > r * r) return null;
+    if (ax <= 2 && ay <= 2) return RETRO_WHITE;
+    if (ax <= 2.5 || ay <= 2.5 || ax + ay <= r * 0.8) return STAR_GOLD;
+    return null;
+  });
+  if (twinkle === 0) pixelRect(ctx, cx + r - 1, cy - r - 1, 2, 2, RETRO_WHITE);
+}
+
+/**
+ * Moving barrier (hoverRev 2): white rail marks inside the barrier at the two
+ * ends of its gap's slide, and arrows on the lips pointing the way it moves.
+ * Everything sits on the solid barrier, inside its collision rectangle.
+ */
+function drawSlideRail(ctx: CanvasRenderingContext2D, left: number, width: number, pillar: HoverState["pillars"][number], tick: number): void {
+  const base = px(pillar.gapTop);
+  const gap = px(pillar.gapH);
+  const amp = px(HOVER_MOVE_AMP);
+  const top = px(hoverGapTop(pillar, tick));
+  ctx.globalAlpha = 0.8;
+  for (const y of [base - amp - 2, base + gap + amp]) {
+    for (let x = 2; x < width - 2; x += 4) pixelRect(ctx, left + x, Math.round(y), 2, 2, RETRO_WHITE);
+  }
+  const rising = hoverGapTop(pillar, tick + 1) < hoverGapTop(pillar, tick);
+  const cx = left + width / 2;
+  for (const lip of [top - 6, top + gap + 2]) {
+    const y = Math.round(lip);
+    pixelRect(ctx, cx - 1, rising ? y : y + 2, 2, 2, RETRO_WHITE);
+    pixelRect(ctx, cx - 3, rising ? y + 2 : y, 6, 2, RETRO_WHITE);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** Two-gap barrier (hoverRev 2): white chevrons on the middle block pointing to both gaps. */
+function drawForkArrows(ctx: CanvasRenderingContext2D, x: number, wallTop: number, wallBottom: number): void {
+  if (wallBottom - wallTop < 24) return;
+  const colour = RETRO_WHITE;
+  ctx.globalAlpha = 0.7;
+  const mid = (wallTop + wallBottom) / 2;
+  for (const dir of [-1, 1]) {
+    const y = mid + dir * 6;
+    pixelRect(ctx, x + 2, Math.round(y), 2, 2, colour);
+    pixelRect(ctx, x, Math.round(y + dir * 2), 2, 2, colour);
+    pixelRect(ctx, x + 4, Math.round(y + dir * 2), 2, 2, colour);
+  }
+  ctx.globalAlpha = 1;
 }
 
 /** Stacked energy blocks fill the exact pillar rectangle, without a cap or lip. */
@@ -116,7 +190,7 @@ function drawPipe(
   colour: string,
   bloom: number,
   flash: number,
-  capAt: "top" | "bottom",
+  capAt: "top" | "bottom" | "both",
 ): void {
   if (h <= 0) return;
   const stamp = barrierSprite(w, colour);
@@ -128,10 +202,12 @@ function drawPipe(
       pixelRect(ctx, x, y + row, w, Math.min(11, h - row), colour);
   }
   // A thin jagged energy trace remains inside the flat facing block edge.
-  const edge = capAt === "bottom" ? y + h - 1 : y;
-  pixelRect(ctx, x, edge, w, 1, colour);
-  for (let column = 2; column < w; column += 6)
-    pixelRect(ctx, x + column, capAt === "bottom" ? edge - 1 : edge + 1, Math.min(3, w - column), 1, RETRO_WHITE);
+  for (const end of capAt === "both" ? (["top", "bottom"] as const) : [capAt]) {
+    const edge = end === "bottom" ? y + h - 1 : y;
+    pixelRect(ctx, x, edge, w, 1, colour);
+    for (let column = 2; column < w; column += 6)
+      pixelRect(ctx, x + column, end === "bottom" ? edge - 1 : edge + 1, Math.min(3, w - column), 1, RETRO_WHITE);
+  }
   if (flash > 0) {
     ctx.globalAlpha = flash * 0.34;
     pixelRect(ctx, x, y, w, h, colour);

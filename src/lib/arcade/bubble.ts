@@ -5,6 +5,17 @@
  * init, so everyone shoots the same colours at the same field. Shots arrive as
  * the shared drag-aim release (kind 2, a = vx, b = vy) and the flight, the
  * sticking cell, the pops and the drops are all integer arithmetic.
+ *
+ * bubbleRev 2 (stamped on the puzzle) places special bubbles in the same fixed
+ * queue, at seeded slots, replacing those slots' colours (every other queue
+ * entry and the field are unchanged):
+ *  - Joker (BUB_JOKER): matches whatever colour it touches. It joins every
+ *    touching colour group and pops each one that reaches three with it; if none
+ *    does, it stays as the colour of the biggest group it touches.
+ *  - Bomb (BUB_BOMB): bursts where it lands, clearing every bubble within two
+ *    cells.
+ *  - Torpedo (BUB_LINE): clears the whole row it lands in.
+ * Specials never stay on the field and never appear in it at the start.
  */
 
 import {
@@ -61,6 +72,32 @@ export const BUB_MIN_GROUP = 3;
 /** Par: popped + 2 x dropped = 90. */
 /** Cleared = 130 + round(20 × ticks left ÷ run); otherwise round(130 × bubbles removed ÷ bubbles at start), 0…130. */
 
+/** Rule revision stamped on new rounds (puzzle.bubbleRev); absent = original rules. */
+export const BUB_REV = 2;
+/** Special queue values (bubbleRev 2); colours stay 1…5. */
+export const BUB_JOKER = 6;
+export const BUB_BOMB = 7;
+export const BUB_LINE = 8;
+/** One Joker in each block of 15 shots, from shot 6; one Bomb and one Torpedo in each block of 60. */
+export const BUB_JOKER_BLOCK = 15;
+export const BUB_SPECIAL_BLOCK = 60;
+export const BUB_SPECIAL_FROM = 5;
+/** A Bomb clears every bubble within this many hex steps of where it lands (its neighbours). */
+export const BUB_BOMB_RADIUS = 1;
+/**
+ * bubbleRev 2 rebalance: a part-cleared field scores up to this share instead of
+ * 130 (a full clear still scores 130 + speed). Specials clear far more bubbles;
+ * a full-knowledge shot bot averaged 72 on the original rules, 105+ on rev 2 at
+ * 130, and 78 at 100 (scripts/arcade-batch2-check.ts measures it).
+ */
+export const BUB_V2_PARTIAL = 100;
+/** The most a part-cleared rev-2 field can score (one bubble left on the fixed-size field). */
+export const BUB_V2_PARTIAL_MAX = 99;
+
+export function bubIsSpecial(value: number): boolean {
+  return value === BUB_JOKER || value === BUB_BOMB || value === BUB_LINE;
+}
+
 export const BUB_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BUB_INPUT_SHOT, [-BUB_V_MAX, BUB_V_MAX], [-BUB_V_MAX, 0]),
 ];
@@ -102,6 +139,16 @@ export interface BubState {
   endedTick: number;
   /** Bubbles on the field at the start of the run. */
   startCount: number;
+  /** bubbleRev 2 only; absent on unstamped rounds. */
+  rev?: number;
+  /** Specials that went off: Jokers that popped something, Bombs and Torpedoes that cleared something. */
+  jokers?: number;
+  bombs?: number;
+  lines?: number;
+  /** The last special's landing cell and what it cleared, for the art only. */
+  lastSpecial?: number;
+  lastSpecialCell?: number;
+  lastSpecialCleared?: number;
 }
 
 function cellIndex(row: number, col: number): number {
@@ -150,6 +197,110 @@ function init(seed: number): BubState {
     endedTick: 0,
     startCount: grid.filter((cell) => cell !== 0).length,
   };
+}
+
+/**
+ * bubbleRev 2: the original field and queue, then special slots drawn from the
+ * PRNG continuing after the queue. Slots are distinct and every block gets one.
+ */
+function initRev2(seed: number): BubState {
+  const base = init(seed);
+  let rng = base.rng;
+  const queue = [...base.queue];
+  const used = new Set<number>();
+  const place = (value: number, from: number, to: number) => {
+    for (let guard = 0; guard < 64; guard++) {
+      const drawn = rngBelow(rng, to - from);
+      rng = drawn.state;
+      const slot = from + drawn.value;
+      if (used.has(slot)) continue;
+      used.add(slot);
+      queue[slot] = value;
+      return;
+    }
+  };
+  for (let from = BUB_SPECIAL_FROM; from < BUB_QUEUE; from += BUB_JOKER_BLOCK) {
+    place(BUB_JOKER, from, Math.min(BUB_QUEUE, from + BUB_JOKER_BLOCK));
+  }
+  for (let from = BUB_SPECIAL_FROM; from < BUB_QUEUE; from += BUB_SPECIAL_BLOCK) {
+    const to = Math.min(BUB_QUEUE, from + BUB_SPECIAL_BLOCK);
+    place(BUB_BOMB, from, to);
+    place(BUB_LINE, from, to);
+  }
+  return {
+    ...base,
+    rng,
+    queue,
+    rev: BUB_REV,
+    jokers: 0,
+    bombs: 0,
+    lines: 0,
+    lastSpecial: 0,
+    lastSpecialCell: -1,
+    lastSpecialCleared: 0,
+  };
+}
+
+/** Cells within `radius` hex steps of a cell, the cell included. */
+function hexArea(start: number, radius: number): number[] {
+  const seen = new Set<number>([start]);
+  let frontier = [start];
+  for (let ring = 0; ring < radius; ring++) {
+    const next: number[] = [];
+    for (const index of frontier) {
+      for (const [nr, nc] of neighbours(Math.floor(index / BUB_COLS), index % BUB_COLS)) {
+        if (!inGrid(nr, nc)) continue;
+        const cell = cellIndex(nr, nc);
+        if (seen.has(cell)) continue;
+        seen.add(cell);
+        next.push(cell);
+      }
+    }
+    frontier = next;
+  }
+  return [...seen].sort((a, b) => a - b);
+}
+
+/**
+ * bubbleRev 2: a special has just landed on `landed` (grid holds its value).
+ * Returns the cells it clears (field bubbles only; the special itself is never
+ * counted) and the colour a Joker keeps if it pops nothing (0 = removed).
+ */
+function resolveSpecial(grid: number[], landed: number, kind: number): { cleared: number[]; keep: number } {
+  const row = Math.floor(landed / BUB_COLS);
+  if (kind === BUB_BOMB) {
+    return { cleared: hexArea(landed, BUB_BOMB_RADIUS).filter((i) => i !== landed && grid[i]! > 0), keep: 0 };
+  }
+  if (kind === BUB_LINE) {
+    const cleared: number[] = [];
+    for (let col = 0; col < bubRowCols(row); col++) {
+      const i = cellIndex(row, col);
+      if (i !== landed && grid[i]! > 0) cleared.push(i);
+    }
+    return { cleared, keep: 0 };
+  }
+  // Joker: try every colour it touches, in colour order.
+  const touching = new Set<number>();
+  for (const [nr, nc] of neighbours(row, landed % BUB_COLS)) {
+    if (!inGrid(nr, nc)) continue;
+    const v = grid[cellIndex(nr, nc)]!;
+    if (v > 0 && v <= BUB_COLOUR_COUNT) touching.add(v);
+  }
+  const popped = new Set<number>();
+  let keep = 0;
+  let keepSize = 0;
+  for (let colour = 1; colour <= BUB_COLOUR_COUNT; colour++) {
+    if (!touching.has(colour)) continue;
+    grid[landed] = colour;
+    const group = colourGroup(grid, landed);
+    if (group.length >= BUB_MIN_GROUP) for (const i of group) if (i !== landed) popped.add(i);
+    if (group.length > keepSize) {
+      keep = colour;
+      keepSize = group.length;
+    }
+  }
+  grid[landed] = kind;
+  return { cleared: [...popped].sort((a, b) => a - b), keep: popped.size > 0 ? 0 : keep };
 }
 
 function isOver(state: BubState): boolean {
@@ -358,7 +509,34 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
     next.y = y;
     next.vx = vx;
 
-    if (landed !== null) {
+    if (landed !== null && bubIsSpecial(next.flightColour)) {
+      // bubbleRev 2 specials (they only ever come from a stamped queue).
+      const kind = next.flightColour;
+      const grid = [...next.grid];
+      grid[landed] = kind;
+      next.flightColour = 0;
+      next.shots = next.shots + 1;
+      const { cleared, keep } = resolveSpecial(grid, landed, kind);
+      for (const index of cleared) grid[index] = 0;
+      grid[landed] = keep;
+      // A Joker that popped groups counts itself among the popped, as a matching shot does.
+      next.popped = next.popped + cleared.length + (kind === BUB_JOKER && cleared.length > 0 ? 1 : 0);
+      if (cleared.length > 0) {
+        if (kind === BUB_JOKER) next.jokers = (next.jokers ?? 0) + 1;
+        else if (kind === BUB_BOMB) next.bombs = (next.bombs ?? 0) + 1;
+        else next.lines = (next.lines ?? 0) + 1;
+      }
+      next.lastSpecial = kind;
+      next.lastSpecialCell = landed;
+      next.lastSpecialCleared = cleared.length;
+      const loose = unattached(grid);
+      for (const index of loose) grid[index] = 0;
+      next.dropped = next.dropped + loose.length;
+      if (next.shots % BUB_DESCEND_EVERY === 0) next.descents = next.descents + 1;
+      next.grid = grid;
+      if (bubOccupied(grid) === 0) next.cleared = true;
+      else if (reachedShooter(grid, next.descents)) next.dead = true;
+    } else if (landed !== null) {
       const grid = [...next.grid];
       grid[landed] = next.flightColour;
       next.flightColour = 0;
@@ -394,7 +572,9 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
 function score(state: BubState): number {
   if (state.cleared) return finishScore(BUB_RUN_TICKS, state.endedTick);
   const start = Math.max(1, state.startCount);
-  return clampInt(Math.round((130 * (start - bubRemaining(state))) / start), 0, 130);
+  // bubbleRev 2 rebalance: specials clear far more, so a part-cleared field earns up to BUB_V2_PARTIAL instead of 130.
+  const partial = state.rev === BUB_REV ? BUB_V2_PARTIAL : 130;
+  return clampInt(Math.round((partial * (start - bubRemaining(state))) / start), 0, partial);
 }
 
 /** Bubbles still on the field. */
@@ -447,7 +627,9 @@ export function bubCheckpointState(state: BubState): BubCheckpointState {
 export function bubCheckpoint(state: BubState): BubCheckpoint {
   const snapshot = bubCheckpointState(state);
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  // bubbleRev 2 folds its special counters into the checksum; the encoded fields stay the same.
+  const extra = state.rev === BUB_REV ? [state.jokers ?? 0, state.bombs ?? 0, state.lines ?? 0, state.queueAt] : [];
+  for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -463,6 +645,10 @@ export const BUB_PALETTE = ["#FF4D4D", "#FFE600", "#3DDC84", "#4D8CFF", "#B26BFF
 export const BUB_SYMBOLS = ["dot", "ring", "square", "triangle", "star"] as const;
 
 export function bubColour(value: number): string {
+  // bubbleRev 2 specials: pearl Joker, black Bomb, teal Torpedo.
+  if (value === BUB_JOKER) return "#F4F1FF";
+  if (value === BUB_BOMB) return "#1C1F26";
+  if (value === BUB_LINE) return "#1FB5C9";
   return BUB_PALETTE[(value - 1) % BUB_PALETTE.length] ?? BUB_GOLD;
 }
 
@@ -618,3 +804,11 @@ export const bubbleGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: BUB_INPUT_RANGES,
 };
+
+/** bubbleRev 2 (Joker, Bomb and Torpedo in the queue). Same step and score; init seeds the specials. */
+export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { ...bubbleGame, init: initRev2 };
+
+/** The game for a stored round: its bubbleRev picks the rules (absent = original). */
+export function bubbleGameFor(rev?: number | null): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  return rev === BUB_REV ? bubbleRev2Game : bubbleGame;
+}

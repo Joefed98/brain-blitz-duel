@@ -1895,6 +1895,8 @@ export interface HoverPuzzleData {
   type: "hover";
   /** Drives every pillar of the run — identical for everyone in the room. */
   seed: number;
+  /** Course revision (2 = gold stars, two-gap and moving barriers); absent = original course. */
+  hoverRev?: number;
 }
 
 /* ============================ Swerve / Skyline =========================== */
@@ -1948,6 +1950,8 @@ export interface MatchupPuzzleData {
   type: "matchup";
   /** Draws the board and each column's refill queue — identical for everyone. */
   seed: number;
+  /** Rule revision (2 = Jackpot gem, constant play, own par); absent = original rules. */
+  matchupRev?: number;
 }
 
 /* ================= Snake / Cross / Dual / Ricochet ======================= */
@@ -1960,8 +1964,10 @@ export const RICO_TIME_MS = 63_000;
 
 export interface SnakePuzzleData {
   type: "snake";
-  /** Draws the whole pellet queue — identical for everyone in the room. */
+  /** Draws the whole star queue (and rock schedule) — identical for everyone in the room. */
   seed: number;
+  /** Rule revision (2 = asteroids); absent = original rules. */
+  snakeRev?: number;
 }
 
 export interface CrossPuzzleData {
@@ -2069,6 +2075,8 @@ export interface BubblePuzzleData {
   type: "bubble";
   /** Draws the starting field and the whole bubble queue — identical for everyone. */
   seed: number;
+  /** Rule revision (2 = Joker, Bomb and Torpedo bubbles in the queue); absent = original rules. */
+  bubbleRev?: number;
 }
 
 export interface BeatPuzzleData {

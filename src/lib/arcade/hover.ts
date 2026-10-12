@@ -8,6 +8,19 @@
  *
  * The scroll speed rises with every gate passed, so the ramp depends only on the
  * player's own gate count and stays deterministic.
+ *
+ * The course builds 45 barriers (HOVER_GATE_COUNT, capacity), of which a clean
+ * run reaches 42 in sixty seconds (HOVER_REACHABLE_GATES); scoring uses the
+ * reachable count.
+ *
+ * hoverRev 2 (stamped on the puzzle) keeps the same course spacing, gap sizes
+ * and scroll ramp and adds, all built at init from the seed:
+ *  - gold stars on ten barriers whose gap is narrowed to the minimum, each sitting
+ *    near the upper or lower lip, collected by touching it (optional, risky);
+ *  - two-gap barriers on later stretches (pass through either gap);
+ *  - moving barriers on later stretches, whose single gap slides up and down on a
+ *    slow integer triangle wave keyed to the sim tick.
+ * Score: up to 130 for barriers plus up to 20 for stars, cap 150.
  */
 
 import {
@@ -58,6 +71,27 @@ export const HOVER_WORLD_BOTTOM = 143_360;
 /** Score is the fraction of reachable gates passed, scaled to this maximum. */
 export const HOVER_ALL_GATES_SCORE = 150;
 
+/** Rule revision stamped on new rounds (puzzle.hoverRev); absent = original rules. */
+export const HOVER_REV = 2;
+/** hoverRev 2 scoring: barriers up to 130, stars up to 20, cap 150. */
+export const HOVER_V2_GATES_SCORE = 130;
+export const HOVER_V2_STARS_SCORE = 20;
+/** Gold stars per course, on barriers from this index on (the tighter part of the run). */
+export const HOVER_STARS = 10;
+export const HOVER_STAR_FROM = 14;
+/** Star radius and its centre's distance inside the gap lip, fixed-point. */
+export const HOVER_STAR_R = 1_792;
+export const HOVER_STAR_INSET = 5_376;
+/** Two-gap barriers: from this index, every third barrier (index % 3 === 1). */
+export const HOVER_TWO_GAP_FROM = 16;
+/** Solid wall kept between the two gaps, at least. */
+export const HOVER_TWO_GAP_WALL = 15_360;
+/** Moving barriers: from this index, every third barrier (index % 3 === 2). */
+export const HOVER_MOVE_FROM = 23;
+/** A moving gap slides ±40 px over a 4 s cycle (0.67 px a tick). */
+export const HOVER_MOVE_AMP = 10_240;
+export const HOVER_MOVE_PERIOD = 240;
+
 /* ================================ State ================================ */
 
 export interface HoverPillar {
@@ -65,6 +99,13 @@ export interface HoverPillar {
   x0: number;
   gapTop: number;
   gapH: number;
+  /** hoverRev 2 only (absent on original courses): a second, lower gap. */
+  gap2Top?: number;
+  gap2H?: number;
+  /** hoverRev 2 only: the gap slides by hoverMoveOffset(tick, movePhase). */
+  movePhase?: number;
+  /** hoverRev 2 only: a gold star's centre, as an offset from the (moving) gap top. */
+  starDy?: number;
 }
 
 export interface HoverState {
@@ -81,6 +122,12 @@ export interface HoverState {
   /** The tick the run ended on, or 0 while it is still going. */
   endedTick: number;
   pillars: HoverPillar[];
+  /** hoverRev 2 only; absent on unstamped rounds. */
+  rev?: number;
+  /** Stars collected, the pillar index of each (in order), and stars on reachable barriers. */
+  stars?: number;
+  starsTaken?: number[];
+  totalStars?: number;
 }
 
 /** Gap height in fixed-point units for the nth pillar. */
@@ -146,6 +193,105 @@ function countTotalGates(pillars: HoverPillar[]): number {
   return gates;
 }
 
+/** Barriers a clean run reaches; the scroll ramp alone fixes it, whatever the gaps. */
+export const HOVER_REACHABLE_GATES = countTotalGates(
+  Array.from({ length: HOVER_GATE_COUNT }, (_, i) => ({ x0: HOVER_FIRST_X + i * HOVER_SPACING, gapTop: 0, gapH: 0 })),
+);
+
+/** hoverRev 2: a moving gap's offset at this tick, an integer triangle wave in ±HOVER_MOVE_AMP. */
+export function hoverMoveOffset(tick: number, phase: number): number {
+  const half = HOVER_MOVE_PERIOD >> 1;
+  const p = (tick + phase) % HOVER_MOVE_PERIOD;
+  const tri = p < half ? p : HOVER_MOVE_PERIOD - p;
+  return Math.trunc((2 * HOVER_MOVE_AMP * tri) / half) - HOVER_MOVE_AMP;
+}
+
+/** The (first) gap's top at this tick; moving gaps slide, others stay put. */
+export function hoverGapTop(pillar: HoverPillar, tick: number): number {
+  return pillar.movePhase === undefined ? pillar.gapTop : pillar.gapTop + hoverMoveOffset(tick, pillar.movePhase);
+}
+
+/** A star's centre height at this tick, or null when the barrier has none. */
+export function hoverStarY(pillar: HoverPillar, tick: number): number | null {
+  return pillar.starDy === undefined ? null : hoverGapTop(pillar, tick) + pillar.starDy;
+}
+
+/**
+ * hoverRev 2 course: the original seeded course, then (from a separate PRNG
+ * stream continuing after it) the later barriers are reshaped into two-gap and
+ * moving barriers, and ten barriers get a tightened gap and a gold star.
+ */
+function buildCourseRev2(seed: number): { pillars: HoverPillar[]; totalStars: number } {
+  const built = buildCourse(seed);
+  let rng = built.rng;
+  const draw = (n: number) => {
+    const drawn = rngBelow(rng, Math.max(1, n));
+    rng = drawn.state;
+    return drawn.value;
+  };
+  const mid = HOVER_WORLD_BOTTOM >> 1;
+  const pillars: HoverPillar[] = built.pillars.map((pillar) => ({ ...pillar }));
+  const twoGap = (index: number) => index >= HOVER_TWO_GAP_FROM && index % 3 === 1;
+  const moving = (index: number) => index >= HOVER_MOVE_FROM && index % 3 === 2;
+  // Stars: ten distinct single-gap barriers among the reachable ones from HOVER_STAR_FROM.
+  const candidates: number[] = [];
+  for (let i = HOVER_STAR_FROM; i < HOVER_REACHABLE_GATES; i++) if (!twoGap(i)) candidates.push(i);
+  const starred = new Set<number>();
+  while (starred.size < HOVER_STARS && starred.size < candidates.length) {
+    starred.add(candidates[draw(candidates.length)]!);
+  }
+  pillars.forEach((pillar, index) => {
+    const gap = pillar.gapH;
+    const half = gap >> 1;
+    if (twoGap(index)) {
+      // Upper and lower gaps, each the barrier's own size, a solid wall between.
+      const upperLow = HOVER_GAP_MARGIN + half;
+      const upperHigh = mid - (HOVER_TWO_GAP_WALL >> 1) - half;
+      const lowerLow = mid + (HOVER_TWO_GAP_WALL >> 1) + half;
+      const lowerHigh = HOVER_WORLD_BOTTOM - HOVER_GAP_MARGIN - half;
+      const upper = upperLow + (draw(((upperHigh - upperLow) >> 8) + 1) << 8);
+      const lower = lowerLow + (draw(((lowerHigh - lowerLow) >> 8) + 1) << 8);
+      pillar.gapTop = upper - half;
+      pillar.gapH = gap;
+      pillar.gap2Top = lower - half;
+      pillar.gap2H = gap;
+      return;
+    }
+    let gapH = gap;
+    if (starred.has(index)) gapH = HOVER_GAP_MIN;
+    const gapHalf = gapH >> 1;
+    const swing = moving(index) ? HOVER_MOVE_AMP : 0;
+    // Keep the whole sweep inside the margins, and the centre near the old one.
+    const low = HOVER_GAP_MARGIN + gapHalf + swing;
+    const high = HOVER_WORLD_BOTTOM - HOVER_GAP_MARGIN - gapHalf - swing;
+    const centre = Math.max(low, Math.min(high, pillar.gapTop + half));
+    pillar.gapTop = centre - gapHalf;
+    pillar.gapH = gapH;
+    if (swing) pillar.movePhase = draw(HOVER_MOVE_PERIOD);
+    if (starred.has(index)) pillar.starDy = draw(2) === 0 ? HOVER_STAR_INSET : gapH - HOVER_STAR_INSET;
+  });
+  return { pillars, totalStars: starred.size };
+}
+
+function initRev2(seed: number): HoverState {
+  const { pillars, totalStars } = buildCourseRev2(seed);
+  return {
+    tick: 0,
+    y: 71_680,
+    vy: 0,
+    distance: 0,
+    gates: 0,
+    totalGates: countTotalGates(pillars),
+    crashed: false,
+    endedTick: 0,
+    pillars,
+    rev: HOVER_REV,
+    stars: 0,
+    starsTaken: [],
+    totalStars,
+  };
+}
+
 function init(seed: number): HoverState {
   const { pillars } = buildCourse(seed);
   return {
@@ -169,7 +315,55 @@ function hits(pillar: HoverPillar, distance: number, y: number): boolean {
   return y - HOVER_DISC_R < pillar.gapTop || y + HOVER_DISC_R > pillar.gapTop + pillar.gapH;
 }
 
+/** hoverRev 2 collision: inside either gap (the first one may be moving) while overlapping. */
+function hitsRev2(pillar: HoverPillar, distance: number, y: number, tick: number): boolean {
+  const left = pillarX(pillar, distance);
+  const right = left + HOVER_PILLAR_W;
+  const overlaps = right > HOVER_DISC_X - HOVER_DISC_R && left < HOVER_DISC_X + HOVER_DISC_R;
+  if (!overlaps) return false;
+  const inside = (top: number, h: number) => y - HOVER_DISC_R >= top && y + HOVER_DISC_R <= top + h;
+  if (inside(hoverGapTop(pillar, tick), pillar.gapH)) return false;
+  if (pillar.gap2Top !== undefined && inside(pillar.gap2Top, pillar.gap2H ?? 0)) return false;
+  return true;
+}
+
+function stepRev2(state: HoverState, tapped: boolean): HoverState {
+  if (isOver(state)) return state;
+  const vy = clampInt(tapped ? HOVER_IMPULSE : state.vy + HOVER_GRAVITY, -HOVER_TERMINAL, HOVER_TERMINAL);
+  const y = state.y + vy;
+  const tick = state.tick + 1;
+  const distance = state.distance + hoverScroll(state.gates);
+  let gates = state.gates;
+  while (gates < state.pillars.length && distance > passedAt(state.pillars[gates]!)) gates += 1;
+
+  const ceiling = y - HOVER_DISC_R <= 0;
+  const floor = y + HOVER_DISC_R >= HOVER_WORLD_BOTTOM;
+  const crashed = ceiling || floor || state.pillars.some((pillar) => hitsRev2(pillar, distance, y, tick));
+  // A star counts when the disc touches it (and the disc did not crash this tick).
+  let stars = state.stars ?? 0;
+  let starsTaken = state.starsTaken ?? [];
+  if (!crashed) {
+    const reach = (HOVER_DISC_R + HOVER_STAR_R) * (HOVER_DISC_R + HOVER_STAR_R);
+    state.pillars.forEach((pillar, index) => {
+      const starY = hoverStarY(pillar, tick);
+      if (starY === null || starsTaken.includes(index)) return;
+      const dx = pillarX(pillar, distance) + (HOVER_PILLAR_W >> 1) - HOVER_DISC_X;
+      const dy = starY - y;
+      if (Math.abs(dx) > HOVER_DISC_R + HOVER_STAR_R) return;
+      if (dx * dx + dy * dy <= reach) {
+        starsTaken = [...starsTaken, index];
+        stars += 1;
+      }
+    });
+  }
+  const next: HoverState = { ...state, tick, y, vy, distance, gates, stars, starsTaken };
+  if (crashed) return { ...next, crashed: true, endedTick: tick };
+  if (tick >= HOVER_RUN_TICKS) return { ...next, endedTick: tick };
+  return next;
+}
+
 function step(state: HoverState, tapped: boolean): HoverState {
+  if (state.rev === HOVER_REV) return stepRev2(state, tapped);
   if (isOver(state)) return state;
 
   const vy = clampInt(
@@ -225,7 +419,7 @@ export function hoverCheckpointState(state: HoverState): HoverCheckpointState {
     speed: hoverScroll(state.gates),
     gates: state.gates,
     nextPillarX: next ? pillarX(next, state.distance) : 0,
-    nextGapTop: next?.gapTop ?? 0,
+    nextGapTop: next ? hoverGapTop(next, state.tick) : 0,
     nextGapH: next?.gapH ?? 0,
   };
 }
@@ -234,7 +428,9 @@ export function hoverCheckpointState(state: HoverState): HoverCheckpointState {
 export function hoverCheckpoint(state: HoverState): HoverCheckpoint {
   const snapshot = hoverCheckpointState(state);
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  // hoverRev 2 folds its stars into the checksum; the encoded fields stay the same.
+  const extra = state.rev === HOVER_REV ? [state.stars ?? 0, ...(state.starsTaken ?? [])] : [];
+  for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -250,7 +446,15 @@ export function hoverSurvived(state: HoverState): boolean {
 }
 
 function score(state: HoverState): number {
+  if (state.rev === HOVER_REV) return hoverScoreV2(state);
   return clampInt(Math.round(HOVER_ALL_GATES_SCORE * state.gates / Math.max(1, state.totalGates)), 0, HOVER_ALL_GATES_SCORE);
+}
+
+/** hoverRev 2: up to 130 for barriers and up to 20 for stars, cap 150. */
+export function hoverScoreV2(state: HoverState): number {
+  const barriers = Math.round((HOVER_V2_GATES_SCORE * state.gates) / Math.max(1, state.totalGates));
+  const stars = Math.round((HOVER_V2_STARS_SCORE * (state.stars ?? 0)) / Math.max(1, state.totalStars ?? 0));
+  return clampInt(Math.min(barriers, HOVER_V2_GATES_SCORE) + Math.min(stars, HOVER_V2_STARS_SCORE), 0, 150);
 }
 
 /* ================================ Drawing ============================== */
@@ -277,10 +481,15 @@ function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize
     const left = px(pillarX(pillar, state.distance));
     const width = px(HOVER_PILLAR_W);
     if (left > HOVER_WORLD_W || left + width < 0) continue;
-    const top = px(pillar.gapTop);
+    const top = px(hoverGapTop(pillar, state.tick));
     const gap = px(pillar.gapH);
     ctx.fillRect(left, 0, width, Math.max(0, top));
-    ctx.fillRect(left, top + gap, width, Math.max(0, HOVER_WORLD_H - top - gap));
+    if (pillar.gap2Top !== undefined) {
+      const top2 = px(pillar.gap2Top);
+      const gap2 = px(pillar.gap2H ?? 0);
+      ctx.fillRect(left, top + gap, width, Math.max(0, top2 - top - gap));
+      ctx.fillRect(left, top2 + gap2, width, Math.max(0, HOVER_WORLD_H - top2 - gap2));
+    } else ctx.fillRect(left, top + gap, width, Math.max(0, HOVER_WORLD_H - top - gap));
   }
 
   ctx.beginPath();
@@ -312,3 +521,11 @@ export const hoverGame: ArcadeGame<HoverState> = {
   score,
   draw,
 };
+
+/** hoverRev 2 (stars, two-gap and moving barriers). Same step/score dispatch; init builds the new course. */
+export const hoverRev2Game: ArcadeGame<HoverState> = { ...hoverGame, init: initRev2 };
+
+/** The game for a stored round: its hoverRev picks the rules (absent = original). */
+export function hoverGameFor(rev?: number | null): ArcadeGame<HoverState> {
+  return rev === HOVER_REV ? hoverRev2Game : hoverGame;
+}

@@ -137,17 +137,17 @@ All run on the deterministic engine: 60 ticks/s, integer physics, seeded courses
 
 | Game (id) | World | Input | Description | Run |
 |---|---|---|---|---|
-| Hover (hover) | Retro | tap | Fly a saucer through gaps in energy barriers; barrier colour changes every 7 (six colours); each barrier lights up as you pass. | 60 s |
+| Hover (hover) | Retro | tap | Fly a saucer through gaps in energy barriers; barrier colour changes every 7 (six colours); each barrier lights up as you pass. hoverRev 2: gold stars in tight gaps, two-gap and moving barriers; 130 barriers + 20 stars. | 60 s |
 | High Rise (skyline) | Real World | tap | Drop swinging blocks onto a night-time tower; perfect drops restore width; windows light floor by floor. | 60 s |
 | Swish (bintoss) | Fairground | drag-aim | Ten throws into a tin bucket that moves back each throw; wind shown by a pennant; catch zone 15% smaller since Oct. | 10 throws / 60 s |
 | Flightpath (bullseye) | Fairground | drag-aim | Ten darts at a drifting board; rings worth 10, 9, 8, 3, 2, 1; score = 1.5 × ring total. | 10 darts / 45 s |
-| Gemstone (matchup) | Own | swap | 7×8 match-3 with fixed refill queues; specials; gems glow with occasional glints. | 60 s |
+| Gemstone (matchup) | Own | swap | 7×8 match-3 with fixed refill queues; specials; gems glow with occasional glints. matchupRev 2: Jackpot gem (5 + L/T in one swap), constant play, par 5,000. | 60 s |
 | Breaker (breaker) | Retro | drag | 80 bricks in rainbow rows; gold power-up bricks (multi-ball, spam, laser); ball trail. | 90 s |
 | Rally (rally) | Retro | drag | Keep the rally going; paddle shrinks per hit; a gold ball joins every 10 s; the ball glows hotter as the rally grows. | 60 s |
 | Slice (slice) | Kitchen | swipe | Chop flying foods on a chopping board, avoid chillies; combo multiplier up to ×3; Saucy (ketchup, bomb-free) and Simmer (mustard, slow-mo). | 60 s |
-| Coral Pop (bubble) | Underwater | drag-aim | Hex bubble shooter, five colours with sea-creature symbols, fixed queue. | 90 s |
+| Coral Pop (bubble) | Underwater | drag-aim | Hex bubble shooter, five colours with sea-creature symbols, fixed queue. bubbleRev 2: Joker, mine and torpedo bubbles in the queue; part-clear credit up to 100. | 90 s |
 | Tempo (beat) | Retro | tap lanes | Four-lane rhythm chart at 120 BPM with hold notes and combo. | 60 s |
-| Meteor (snake) | Retro | swipe | Snake-style meteor with a fixed pellet queue; the tail glows as it grows. | 60 s |
+| Meteor (snake) | Retro | swipe | Snake-style meteor with a fixed star queue; the tail glows as it grows. snakeRev 2: seeded asteroids (2 s shadow, head-only hits) from length 10. | 60 s |
 | Jaywalk (cross) | Real World | swipe 4-way | Cross nine lanes of traffic, faster each crossing; 3 lives. Score = 2 × lanes + 4 × crossings. | 60 s |
 | Wavefront (wavefront) | Space | tap/drag | Shoot rows of geometric ships, armoured ships and saucers through five waves; 3 lives. | 60 s |
 | Roofbound (flip) | Cave & Lava | tap | Gravity-flip runner through a lava tube; bends ramp up in the last 15 s; score rises with survival time. | 60 s |

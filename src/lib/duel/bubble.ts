@@ -8,7 +8,7 @@ import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
   bubCheckpoint,
-  bubbleGame,
+  bubbleGameFor,
   bubOccupied,
   bubSurvived,
   BUB_CHECKPOINT_INTERVAL,
@@ -94,6 +94,10 @@ export function decodeBubbleRun(raw: string): BubbleRun {
 
 export interface BubbleResult {
   popped: number;
+  /** bubbleRev 2: specials that cleared something (0 on original rounds). */
+  jokers: number;
+  bombs: number;
+  lines: number;
   dropped: number;
   shots: number;
   bubblesLeft: number;
@@ -113,7 +117,8 @@ export interface BubbleResult {
 }
 
 /** The single place a Bubble Pop score is worked out. */
-export function replayBubbleRun(seed: number, raw: string): BubbleResult {
+export function replayBubbleRun(seed: number, raw: string, rev?: number | null): BubbleResult {
+  const bubbleGame = bubbleGameFor(rev);
   const run = decodeBubbleRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BUB_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < BUB_RUN_TICKS;
@@ -150,6 +155,9 @@ export function replayBubbleRun(seed: number, raw: string): BubbleResult {
   const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
   const result: BubbleResult = {
     popped: state.popped,
+    jokers: state.jokers ?? 0,
+    bombs: state.bombs ?? 0,
+    lines: state.lines ?? 0,
     dropped: state.dropped,
     shots: state.shots,
     bubblesLeft: bubOccupied(state.grid),

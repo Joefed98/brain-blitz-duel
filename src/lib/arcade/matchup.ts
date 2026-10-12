@@ -10,6 +10,21 @@
  *
  * Every value in the state is an integer; a swap, its clears, falls, refills
  * and cascades all resolve inside the tick the swap event applies on.
+ *
+ * Specials (all revisions): a line of 4 makes a Bomb (3×3 blast), a line of 5+
+ * a white four-point star (MATCHUP_CROSS: its row and column), and an L or T
+ * (a row and a column line sharing a gem) a six-point star (MATCHUP_STAR: both
+ * diagonals). Swapping a special, or catching it in a clear, sets it off.
+ *
+ * matchupRev 2 (stamped on the puzzle) adds:
+ *  - the Jackpot gem (MATCHUP_JACKPOT + colour): made where one swap's own
+ *    clear makes an L or T one of whose lines is 5 or longer. Set off, it clears
+ *    every gem of its colour plus its whole row and column (10 points a gem).
+ *  - constant play: a swap resolves only its own clear at once; each cascade
+ *    after it resolves MATCHUP_V2_STEP_TICKS later, and the player may keep
+ *    swapping meanwhile. Refills still come from the fixed column queues, every
+ *    step happens on a sim tick, and the server replay is identical.
+ *  - its own par (MATCHUP_V2_PAR_RAW), since faster play scores more points.
  */
 
 import {
@@ -41,6 +56,25 @@ export const MATCHUP_CROSS = 7;
 export const MATCHUP_STAR = 8;
 /** Raw points for a perfect-feeling run: 2500 raw = 150. Tune here. */
 export const MATCHUP_PAR_RAW = 2500;
+
+/** Rule revision stamped on new rounds (puzzle.matchupRev); absent = original rules. */
+export const MATCHUP_REV = 2;
+/** matchupRev 2 Jackpot gem: kinds MATCHUP_JACKPOT + colour (10…15). */
+export const MATCHUP_JACKPOT = 10;
+/** matchupRev 2: ticks between one cascade step and the next (the swap's own clear is immediate). */
+export const MATCHUP_V2_STEP_TICKS = 18;
+/**
+ * matchupRev 2 par: raw points for 150. Constant play removes the wait for each
+ * cascade animation, so the same player makes far more swaps: a full-board swap
+ * bot at a 1 s think time scored 2.2× the raw points of the original rules.
+ * Doubling the par keeps scores level at about a 1.2 s pace.
+ */
+export const MATCHUP_V2_PAR_RAW = 5000;
+
+/** True for a Jackpot gem (matchupRev 2) of any colour. */
+export function matchupIsJackpot(kind: number): boolean {
+  return kind >= MATCHUP_JACKPOT && kind < MATCHUP_JACKPOT + MATCHUP_KINDS;
+}
 
 /** Cells are 50 px; symbols are drawn at 70% of the cell. */
 export const MATCHUP_CELL_PX = 50;
@@ -94,7 +128,8 @@ function isNormal(kind: number): boolean {
 }
 
 function isSpecial(kind: number): boolean {
-  return kind === MATCHUP_BOMB || kind === MATCHUP_CROSS || kind === MATCHUP_STAR;
+  // Jackpots only ever exist on matchupRev 2 boards, so original boards behave as before.
+  return kind === MATCHUP_BOMB || kind === MATCHUP_CROSS || kind === MATCHUP_STAR || matchupIsJackpot(kind);
 }
 
 /** One game colour per symbol kind. */
@@ -273,6 +308,15 @@ export interface MatchupState {
   lastInvalidB: number;
   lastInvalidTick: number;
   endedTick: number;
+  /** matchupRev 2 only; absent on unstamped rounds. */
+  rev?: number;
+  /** The tick the next cascade step resolves on, or 0 when the board is settled. */
+  pendingTick?: number;
+  /** Resolution steps so far; the phone animates each new one. */
+  resolveSerial?: number;
+  /** Jackpot gems made and set off. */
+  jackpots?: number;
+  jackpotsFired?: number;
 }
 
 function drawSymbol(rng: number): { state: number; value: number } {
@@ -347,7 +391,7 @@ function lineSpecialIndex(run: MatchupRun, preferred: number | null): number {
   return preferred !== null && run.cells.includes(preferred) ? preferred : middleCell(run);
 }
 
-function addBlast(index: number, kind: number, gone: Set<number>): number {
+function addBlast(index: number, kind: number, gone: Set<number>, cells: readonly number[] = []): number {
   let gained = 0;
   const row = Math.trunc(index / MATCHUP_SIZE);
   const col = index % MATCHUP_SIZE;
@@ -364,6 +408,12 @@ function addBlast(index: number, kind: number, gone: Set<number>): number {
       }
     }
   } else if (kind === MATCHUP_CROSS) {
+    for (let c = 0; c < MATCHUP_SIZE; c++) add(matchupIndex(row, c));
+    for (let r = 0; r < MATCHUP_ROWS; r++) add(matchupIndex(r, col));
+  } else if (matchupIsJackpot(kind)) {
+    // Every gem of its colour, then its whole row and column.
+    const colour = kind - MATCHUP_JACKPOT;
+    for (let target = 0; target < MATCHUP_CELLS; target++) if (cells[target] === colour) add(target);
     for (let c = 0; c < MATCHUP_SIZE; c++) add(matchupIndex(row, c));
     for (let r = 0; r < MATCHUP_ROWS; r++) add(matchupIndex(r, col));
   } else if (kind === MATCHUP_STAR) {
@@ -395,7 +445,7 @@ function expandSpecials(
     const kind = cells[index] ?? -1;
     if (!isSpecial(kind)) continue;
     detonated.push(index);
-    gained += addBlast(index, kind, gone);
+    gained += addBlast(index, kind, gone, cells);
     for (const target of gone) {
       if (
         isSpecial(cells[target] ?? -1) &&
@@ -454,15 +504,20 @@ function resolveBoard(
   preferredSpecial: number | null,
   detonations: readonly number[] = [],
   otherSwapped: number | null = null,
-): { gain: number; steps: number; best: number; cleared: number[]; animation: MatchupAnimStep[] } {
+  /** matchupRev 2: resolve at most this many steps, and allow a Jackpot on the first. */
+  v2: { maxSteps: number; jackpot: boolean } | null = null,
+): { gain: number; steps: number; best: number; cleared: number[]; animation: MatchupAnimStep[]; jackpots: number; fired: number } {
   let gain = 0;
   let steps = 0;
   let best = 0;
   let preferred = preferredSpecial;
   const cleared: number[] = [];
   const animation: MatchupAnimStep[] = [];
+  let jackpots = 0;
+  let fired = 0;
 
   for (;;) {
+    if (v2 && steps >= v2.maxSteps) break;
     const activeDetonations = steps === 0 ? detonations : [];
     const runs = matchupRuns(cells);
     if (runs.length === 0 && activeDetonations.length === 0) break;
@@ -485,7 +540,10 @@ function resolveBoard(
       if (horizontal && vertical && !starRuns.has(horizontal) && !starRuns.has(vertical)) {
         starRuns.add(horizontal);
         starRuns.add(vertical);
-        created.set(cell, MATCHUP_STAR);
+        // matchupRev 2: the swap's own L/T with a line of 5+ makes a Jackpot in that colour.
+        const jackpot = v2?.jackpot && steps === 0 && (horizontal.length >= 5 || vertical.length >= 5);
+        created.set(cell, jackpot ? MATCHUP_JACKPOT + (cells[cell] ?? 0) : MATCHUP_STAR);
+        if (jackpot) jackpots += 1;
       }
     }
 
@@ -515,6 +573,7 @@ function resolveBoard(
 
     const special = expandSpecials(cells, gone, activeDetonations);
     gain += special.gained;
+    for (const index of special.detonated) if (matchupIsJackpot(cells[index] ?? -1)) fired += 1;
     for (const index of special.detonated) gone.add(index);
 
     if (gone.size === 0) break;
@@ -541,7 +600,7 @@ function resolveBoard(
     if (steps > 64) break;
   }
 
-  return { gain, steps, best, cleared, animation };
+  return { gain, steps, best, cleared, animation, jackpots, fired };
 }
 
 /** A board with no valid swap is reshuffled with the state's own PRNG. */
@@ -567,7 +626,117 @@ function isOver(state: MatchupState): boolean {
   return state.tick >= MATCHUP_RUN_TICKS;
 }
 
+function initRev2(seed: number): MatchupState {
+  return { ...init(seed), rev: MATCHUP_REV, pendingTick: 0, resolveSerial: 0, jackpots: 0, jackpotsFired: 0 };
+}
+
+/** matchupRev 2: true while cascade steps are still to resolve (the board is not settled). */
+export function matchupPending(state: MatchupState): boolean {
+  return (state.pendingTick ?? 0) > 0;
+}
+
+/**
+ * matchupRev 2 step. A valid swap resolves its own clear on this tick; each
+ * cascade after it resolves MATCHUP_V2_STEP_TICKS later, one step at a time,
+ * while further swaps are accepted on any tick. A swap is valid when it puts
+ * one of its two gems in a line, or moves a special.
+ */
+function stepRev2(state: MatchupState, input: ArcadeInputEvent | null): MatchupState {
+  if (isOver(state)) return state;
+  const tick = state.tick + 1;
+  const done = (next: MatchupState) => (isOver(next) ? { ...next, endedTick: tick } : next);
+  /** Settled after this step: reshuffle a board with no valid swap left. */
+  const settle = (next: MatchupState): MatchupState => {
+    if (matchupHasLine(next.cells)) return { ...next, pendingTick: tick + MATCHUP_V2_STEP_TICKS };
+    if (matchupFindSwap(next.cells)) return { ...next, pendingTick: 0 };
+    const shuffled = reshuffle([...next.cells], next.rng);
+    return { ...next, pendingTick: 0, rng: shuffled.state, cells: shuffled.cells, reshuffles: next.reshuffles + 1 };
+  };
+
+  if (input && input.k === MATCHUP_INPUT_SWAP) {
+    const row1 = clampInt(input.a, 0, MATCHUP_ROWS - 1);
+    const col1 = clampInt(input.b, 0, MATCHUP_SIZE - 1);
+    const row2 = clampInt(input.c, 0, MATCHUP_ROWS - 1);
+    const col2 = clampInt(input.d, 0, MATCHUP_SIZE - 1);
+    if (adjacent(row1, col1, row2, col2)) {
+      const a = matchupIndex(row1, col1);
+      const b = matchupIndex(row2, col2);
+      const cells = [...state.cells];
+      const av = cells[a] ?? 0;
+      const bv = cells[b] ?? 0;
+      cells[a] = bv;
+      cells[b] = av;
+      const specialSeeds = [a, b].filter((index) => isSpecial(cells[index] ?? -1));
+      const own = matchupRuns(cells).some((run) => run.cells.includes(a) || run.cells.includes(b));
+      if (!own && specialSeeds.length === 0) {
+        return done({
+          ...state,
+          tick,
+          lastInvalidA: a,
+          lastInvalidB: b,
+          lastInvalidTick: tick,
+          lastGain: 0,
+          lastCleared: [],
+          lastAnimation: [],
+          lastAnimTicks: 0,
+        });
+      }
+      const heads = [...state.heads];
+      const resolved = resolveBoard(cells, state.queues, heads, b, specialSeeds, a, { maxSteps: 1, jackpot: true });
+      return done(
+        settle({
+          ...state,
+          tick,
+          cells,
+          heads,
+          swaps: state.swaps + 1,
+          raw: state.raw + resolved.gain,
+          bestLine: Math.max(state.bestLine, resolved.best),
+          lastScoreTick: tick,
+          lastGain: resolved.gain,
+          lastSteps: 1,
+          lastCleared: resolved.cleared,
+          lastAnimation: resolved.animation,
+          lastAnimTicks: MATCHUP_V2_STEP_TICKS,
+          lastInvalidA: -1,
+          lastInvalidB: -1,
+          resolveSerial: (state.resolveSerial ?? 0) + 1,
+          jackpots: (state.jackpots ?? 0) + resolved.jackpots,
+          jackpotsFired: (state.jackpotsFired ?? 0) + resolved.fired,
+        }),
+      );
+    }
+  }
+
+  if (matchupPending(state) && tick >= (state.pendingTick ?? 0)) {
+    const cells = [...state.cells];
+    const heads = [...state.heads];
+    const resolved = resolveBoard(cells, state.queues, heads, null, [], null, { maxSteps: 1, jackpot: false });
+    return done(
+      settle({
+        ...state,
+        tick,
+        cells,
+        heads,
+        raw: state.raw + resolved.gain,
+        bestLine: Math.max(state.bestLine, resolved.best),
+        cascades: state.cascades + resolved.steps,
+        lastGain: resolved.gain,
+        lastSteps: state.lastSteps + 1,
+        lastCleared: resolved.cleared,
+        lastAnimation: resolved.animation,
+        lastAnimTicks: MATCHUP_V2_STEP_TICKS,
+        resolveSerial: (state.resolveSerial ?? 0) + 1,
+        jackpotsFired: (state.jackpotsFired ?? 0) + resolved.fired,
+      }),
+    );
+  }
+
+  return done({ ...state, tick });
+}
+
 function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState {
+  if (state.rev === MATCHUP_REV) return stepRev2(state, input);
   if (isOver(state)) return state;
   const tick = state.tick + 1;
 
@@ -644,8 +813,13 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
   return isOver(next) ? { ...next, endedTick: tick } : next;
 }
 
+/** The par a round scores against: matchupRev 2 has its own. */
+export function matchupParRaw(state: Pick<MatchupState, "rev">): number {
+  return state.rev === MATCHUP_REV ? MATCHUP_V2_PAR_RAW : MATCHUP_PAR_RAW;
+}
+
 function score(state: MatchupState): number {
-  return clampInt(Math.floor((150 * state.raw) / MATCHUP_PAR_RAW), 0, 150);
+  return clampInt(Math.floor((150 * state.raw) / matchupParRaw(state)), 0, 150);
 }
 
 /** True once the hint should be shown. Derived from the sim, so it is shared. */
@@ -695,7 +869,9 @@ export function matchupCheckpointState(state: MatchupState): MatchupCheckpointSt
 
 export function matchupCheckpoint(state: MatchupState): MatchupCheckpoint {
   const snapshot = matchupCheckpointState(state);
-  return { ...snapshot, checksum: fnv(Object.values(snapshot)) };
+  // matchupRev 2 folds its pending step and jackpots into the checksum; the encoded fields stay the same.
+  const extra = state.rev === MATCHUP_REV ? [state.pendingTick ?? 0, state.resolveSerial ?? 0, state.jackpots ?? 0, state.jackpotsFired ?? 0] : [];
+  return { ...snapshot, checksum: fnv([...Object.values(snapshot), ...extra]) };
 }
 
 /* ================================ Drawing ============================== */
@@ -738,6 +914,10 @@ export function matchupCellAt(
 export const MATCHUP_CLEAR_MS = 200;
 export const MATCHUP_DROP_MS = 120;
 export const MATCHUP_DETONATE_MS = 250;
+/** matchupRev 2 step animation: 110 ms clear, then 45 ms a row of drop, at most 180 ms (fits in 18 ticks). */
+export const MATCHUP_V2_CLEAR_MS = 110;
+export const MATCHUP_V2_DROP_MS = 45;
+export const MATCHUP_V2_DROP_MAX_MS = 180;
 
 function roundedRect(
   ctx: CanvasRenderingContext2D,
@@ -915,11 +1095,20 @@ function animatedKind(step: MatchupAnimStep, index: number): number {
   return created?.kind ?? step.before[index] ?? 0;
 }
 
-export function matchupAnimationDuration(steps: readonly MatchupAnimStep[]): number {
-  return steps.reduce(
-    (total, item) => total + MATCHUP_CLEAR_MS + Math.max(1, item.ticks) * MATCHUP_DROP_MS,
-    0,
-  );
+/**
+ * Clear and drop times for one animated step. matchupRev 2 (constant play)
+ * squeezes each step into the MATCHUP_V2_STEP_TICKS gap before the next one.
+ */
+export function matchupStepTiming(step: MatchupAnimStep, state?: Pick<MatchupState, "rev">): { clear: number; drop: number } {
+  if (state?.rev === MATCHUP_REV) return { clear: MATCHUP_V2_CLEAR_MS, drop: Math.min(MATCHUP_V2_DROP_MAX_MS, Math.max(1, step.ticks) * MATCHUP_V2_DROP_MS) };
+  return { clear: MATCHUP_CLEAR_MS, drop: Math.max(1, step.ticks) * MATCHUP_DROP_MS };
+}
+
+export function matchupAnimationDuration(steps: readonly MatchupAnimStep[], state?: Pick<MatchupState, "rev">): number {
+  return steps.reduce((total, item) => {
+    const timing = matchupStepTiming(item, state);
+    return total + timing.clear + timing.drop;
+  }, 0);
 }
 
 function drawDetonations(
@@ -1126,3 +1315,11 @@ export const matchupGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: MATCHUP_INPUT_RANGES,
 };
+
+/** matchupRev 2 (Jackpot gem, constant play, own par). Same step/score dispatch; init stamps the state. */
+export const matchupRev2Game: ArcadeGame<MatchupState, ArcadeInputEvent | null> = { ...matchupGame, init: initRev2 };
+
+/** The game for a stored round: its matchupRev picks the rules (absent = original). */
+export function matchupGameFor(rev?: number | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+  return rev === MATCHUP_REV ? matchupRev2Game : matchupGame;
+}

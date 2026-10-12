@@ -1103,8 +1103,10 @@ const snakeSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
   return {
     summary: survived
-      ? `${pellets} pellets · survived`
-      : `${pellets} pellets · crashed at ${ended.toFixed(1)}s`,
+      ? `${pellets} star${pellets === 1 ? "" : "s"} · survived`
+      : result.extra?.["rockHit"] === true
+        ? `${pellets} star${pellets === 1 ? "" : "s"} · hit a rock at ${ended.toFixed(1)}s`
+        : `${pellets} star${pellets === 1 ? "" : "s"} · crashed at ${ended.toFixed(1)}s`,
     detail: [survived ? "Lasted the whole minute" : "Run ended early"],
   };
 };

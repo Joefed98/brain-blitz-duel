@@ -12,7 +12,8 @@ import {
   MATCHUP_BOARD_H, MATCHUP_BOARD_W, MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOMB, MATCHUP_CELL_PX,
   MATCHUP_CLEAR_MS, MATCHUP_COLOURS, MATCHUP_CROSS, MATCHUP_DETONATE_MS, MATCHUP_DROP_MS, MATCHUP_GOLD,
   MATCHUP_NEXT_H, MATCHUP_NEXT_Y, MATCHUP_QUEUE_LEN, MATCHUP_ROWS, MATCHUP_SHAPES, MATCHUP_SIZE, MATCHUP_STAR,
-  MATCHUP_SYMBOL_PCT, MATCHUP_TEXT, type MatchupAnimStep, type MatchupState,
+  MATCHUP_SYMBOL_PCT, MATCHUP_TEXT, MATCHUP_JACKPOT, matchupIsJackpot, matchupPending, matchupStepTiming,
+  type MatchupAnimStep, type MatchupState,
 } from "./matchup";
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
@@ -55,7 +56,9 @@ export function matchupStepSound(step: MatchupAnimStep): SoundId {
   for (const index of step.detonated) {
     const kind = step.before[index] ?? -1;
     if (kind === MATCHUP_BOMB || kind === MATCHUP_CROSS || kind === MATCHUP_STAR) kinds.add(kind);
+    if (matchupIsJackpot(kind)) kinds.add(MATCHUP_JACKPOT);
   }
+  if (kinds.has(MATCHUP_JACKPOT)) return "arc_rainbow";
   if (kinds.has(MATCHUP_BOMB)) return "arc_gem_bomb";
   if (kinds.has(MATCHUP_STAR)) return "arc_gem_star";
   if (kinds.has(MATCHUP_CROSS)) return "arc_gem_zap";
@@ -211,6 +214,34 @@ function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: number
     const w = radius * 0.22;
     ctx.fillRect(cx - radius * 0.85, cy - w / 2, radius * 1.7, w);
     ctx.fillRect(cx - w / 2, cy - radius * 0.85, w, radius * 1.7);
+  } else if (matchupIsJackpot(kind)) {
+    // Jackpot (matchupRev 2): a round brilliant in its colour inside a rainbow rim, a white star at its heart.
+    const colour = MATCHUP_COLOURS[kind - MATCHUP_JACKPOT] ?? MATCHUP_GOLD;
+    MATCHUP_COLOURS.forEach((rim, i) => {
+      const a0 = -Math.PI / 2 + (i * Math.PI * 2) / MATCHUP_COLOURS.length;
+      ctx.fillStyle = rim;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, radius, a0, a0 + (Math.PI * 2) / MATCHUP_COLOURS.length);
+      ctx.closePath();
+      ctx.fill();
+    });
+    const pts = cutPoints("circle", cx, cy, radius * 0.74);
+    facetedGem(ctx, pts, cx, cy, radius * 0.74, colour);
+    ctx.fillStyle = SPECIAL_WHITE;
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const a = -Math.PI / 2 + (k * Math.PI) / 4;
+      const d = k % 2 === 0 ? radius * 0.42 : radius * 0.14;
+      ctx.lineTo(cx + Math.cos(a) * d, cy + Math.sin(a) * d);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = SPECIAL_WHITE;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius - 0.8, 0, Math.PI * 2);
+    ctx.stroke();
   } else if (kind === MATCHUP_STAR) {
     const pts = cutPoints("star", cx, cy, radius);
     facetedGem(ctx, pts, cx, cy, radius, SPECIAL_WHITE);
@@ -362,7 +393,26 @@ function drawDetonations(ctx: CanvasRenderingContext2D, step: MatchupAnimStep, p
     ctx.globalAlpha = 1 - progress * 0.7;
     ctx.strokeStyle = MATCHUP_GOLD;
     ctx.lineWidth = 2;
-    if (kind === MATCHUP_STAR) {
+    if (matchupIsJackpot(kind)) {
+      // Jackpot: a white cross sweep plus a ring on every gem of its colour.
+      const colour = MATCHUP_COLOURS[kind - MATCHUP_JACKPOT] ?? MATCHUP_GOLD;
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.fillRect(MATCHUP_BOARD_X, y - 5, MATCHUP_BOARD_W, 10);
+      ctx.fillRect(x - 5, MATCHUP_BOARD_Y, 10, MATCHUP_BOARD_H);
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = 3;
+      for (let target = 0; target < step.before.length; target++) {
+        if (step.before[target] !== kind - MATCHUP_JACKPOT) continue;
+        const c = centre(target);
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, RADIUS * (0.6 + progress * 0.9), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.beginPath();
+      ctx.arc(x, y, 8 + progress * MATCHUP_CELL_PX * 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === MATCHUP_STAR) {
       const spread = MATCHUP_CELL_PX * (0.5 + progress * MATCHUP_SIZE);
       ctx.lineWidth = 4;
       ctx.beginPath();
@@ -398,15 +448,17 @@ function drawDetonations(ctx: CanvasRenderingContext2D, step: MatchupAnimStep, p
 function drawAnimated(ctx: CanvasRenderingContext2D, state: MatchupState, elapsedMs: number, time: number): void {
   const still = reducedMotion();
   let remaining = elapsedMs;
-  for (const [stepIndex, step] of state.lastAnimation.entries()) {
-    const dropMs = Math.max(1, step.ticks) * MATCHUP_DROP_MS;
-    if (remaining >= MATCHUP_CLEAR_MS + dropMs) {
-      remaining -= MATCHUP_CLEAR_MS + dropMs;
+  for (const [stepOffset, step] of state.lastAnimation.entries()) {
+    // matchupRev 2 animates one step at a time; its chain depth is the sim's own count.
+    const stepIndex = state.rev ? Math.max(0, state.lastSteps - 1) : stepOffset;
+    const { clear: clearMs, drop: dropMs } = matchupStepTiming(step, state);
+    if (remaining >= clearMs + dropMs) {
+      remaining -= clearMs + dropMs;
       continue;
     }
     const cleared = new Set(step.cleared);
-    if (remaining < MATCHUP_CLEAR_MS) {
-      const p = remaining / MATCHUP_CLEAR_MS;
+    if (remaining < clearMs) {
+      const p = remaining / clearMs;
       drawGrid(ctx);
       for (let index = 0; index < MATCHUP_ROWS * MATCHUP_SIZE; index++) {
         if (cleared.has(index)) continue;
@@ -416,10 +468,10 @@ function drawAnimated(ctx: CanvasRenderingContext2D, state: MatchupState, elapse
       let budget=16;
       for (const index of cleared) {const shards=Math.min(4,budget);budget-=shards;shatter(ctx,animatedKind(step,index),index,p,still,shards,stepIndex+1);}
       if(stepIndex>0){ctx.save();ctx.globalAlpha=1-p;ctx.fillStyle=MATCHUP_GOLD;ctx.font="700 20px 'JetBrains Mono', monospace";ctx.textAlign="right";ctx.textBaseline="top";ctx.fillText(`×${stepIndex+1}`,MATCHUP_BOARD_X+MATCHUP_BOARD_W-8,12);ctx.restore();}
-      drawDetonations(ctx, step, Math.min(1, remaining / MATCHUP_DETONATE_MS));
+      drawDetonations(ctx, step, Math.min(1, remaining / Math.min(MATCHUP_DETONATE_MS, clearMs * 1.25)));
       return;
     }
-    const p = Math.min(1, (remaining - MATCHUP_CLEAR_MS) / dropMs);
+    const p = Math.min(1, (remaining - clearMs) / dropMs);
     drawGrid(ctx);
     for (let row = 0; row < MATCHUP_ROWS; row++) {
       for (let col = 0; col < MATCHUP_SIZE; col++) {
@@ -503,7 +555,7 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
   else drawSettled(ctx, options.cells ?? state.cells, time, options.skip);
   if (!animating && !options.skip) drawGlints(ctx, options.cells ?? state.cells, performance.now());
 
-  if (!animating && !options.cells && matchupShowHint(state)) {
+  if (!animating && !options.cells && !matchupPending(state) && matchupShowHint(state)) {
     const hint = matchupFindSwap(state.cells);
     if (hint) {
       ctx.strokeStyle = MATCHUP_GOLD;

@@ -10,6 +10,16 @@ import type { ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_WORLD_H, HOVER_WORLD_W, type HoverState } from "./hover";
+
+/** hoverRev 2: passed barriers of one kind (original courses have none, so these stay 0). */
+function hoverPassed(s: HoverState, kind: "twoGap" | "moving"): number {
+  let n = 0;
+  for (let i = 0; i < s.gates; i++) {
+    const p = s.pillars[i];
+    if (p && (kind === "twoGap" ? p.gap2Top !== undefined : p.movePhase !== undefined)) n += 1;
+  }
+  return n;
+}
 import {
   BRK_BRICK_H,
   BRK_BRICK_W,
@@ -89,11 +99,19 @@ import {
   type BullseyeState,
 } from "./bullseye";
 import { SLICE_WORLD_H, SLICE_WORLD_W, sliceMayoCount, sliceMultiplier, type SliceState } from "./slice";
-import { BUB_WORLD_H, BUB_WORLD_W, type BubState } from "./bubble";
+import { bubCellX, bubCellY, BUB_COLS, BUB_WORLD_H, BUB_WORLD_W, type BubState } from "./bubble";
+
+/** Where the last special landed (bubbleRev 2), in world units. */
+function bubSpecialPoint(s: BubState): { x: number; y: number } {
+  const cell = s.lastSpecialCell ?? -1;
+  if (cell < 0) return { x: BUB_WORLD_W / 2, y: BUB_WORLD_H / 2 };
+  const row = Math.floor(cell / BUB_COLS);
+  return { x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, s.descents) };
+}
 import { SNIP_CONFIG, SNIP_H, snipCamera, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { BT_BALLS, BT_H, BT_W, type BtState } from "./ballTrack";
-import { MATCHUP_PAR_RAW, MATCHUP_WORLD_H, MATCHUP_WORLD_W, type MatchupState } from "./matchup";
+import { matchupParRaw, MATCHUP_WORLD_H, MATCHUP_WORLD_W, type MatchupState } from "./matchup";
 
 /** Which world each active arcade game belongs to (docs/duelz-game-bank.md). */
 export const ARCADE_GAME_WORLDS = {
@@ -143,6 +161,29 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       every: 7,
       at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }),
       label: (_s, n) => `ZONE ${Math.floor(n / 7) + 1}`,
+    },
+    // hoverRev 2 success moments: a gold star, a two-gap barrier, a moving barrier.
+    {
+      kind: "perfect",
+      count: (s) => s.stars ?? 0,
+      at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) - 16 }),
+      label: () => "GOLD STAR!",
+      colour: () => "#FFD84A",
+    },
+    {
+      kind: "pop",
+      count: (s) => hoverPassed(s, "twoGap"),
+      at: (s) => ({ x: px(HOVER_DISC_X) + 30, y: px(s.y) - 14 }),
+      label: (s) => {
+        const p = s.pillars[s.gates - 1];
+        return p?.gap2Top !== undefined && s.y >= p.gap2Top ? "LOWER GAP!" : "UPPER GAP!";
+      },
+    },
+    {
+      kind: "pop",
+      count: (s) => hoverPassed(s, "moving"),
+      at: (s) => ({ x: px(HOVER_DISC_X) + 30, y: px(s.y) - 14 }),
+      label: () => "SLIPPED THROUGH!",
     },
     {
       kind: "final",
@@ -273,7 +314,18 @@ export const SNAKE_FX: ArcadeFxSpec<SnakeState> = {
       count: (s) => s.eaten,
       every: 10,
       at: snakeHead,
-      label: (_s, n) => `${n} PELLETS`,
+      label: (_s, n) => `${n} STARS`,
+    },
+    // snakeRev 2: a rock landed and the meteor's head was clear of it (original rounds have no rocks).
+    {
+      kind: "pop",
+      count: (s) => s.rocks?.length ?? 0,
+      when: (s) => !s.dead,
+      at: (s) => {
+        const rock = s.rocks?.[s.rocks.length - 1] ?? 0;
+        return { x: SNAKE_BOARD_X + snakeCol(rock) * SNAKE_CELL + SNAKE_CELL / 2, y: SNAKE_BOARD_Y + snakeRow(rock) * SNAKE_CELL - 6 };
+      },
+      label: () => "DODGED!",
     },
     {
       kind: "final",
@@ -559,6 +611,10 @@ export const BUBBLE_FX: ArcadeFxSpec<BubState> = {
       at: (s) => ({ x: px(s.x), y: px(s.y) }),
       label: (_s, _n, d) => `${d} DROPPED!`,
     },
+    // bubbleRev 2 specials (original rounds never have any).
+    { kind: "perfect", count: (s) => s.jokers ?? 0, at: (s) => bubSpecialPoint(s), label: () => "JOKER!" },
+    { kind: "perfect", count: (s) => s.bombs ?? 0, at: (s) => bubSpecialPoint(s), label: (s) => `BOOM! ×${s.lastSpecialCleared ?? 0}` },
+    { kind: "perfect", count: (s) => s.lines ?? 0, at: (s) => bubSpecialPoint(s), label: (s) => `TORPEDO! ×${s.lastSpecialCleared ?? 0}` },
     { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "REEF CLEARED!" },
   ],
 };
@@ -695,9 +751,12 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
       label: (s) => `CASCADE ×${s.lastSteps}`,
     },
     { kind: "perfect", count: (s) => s.bestLine, min: 5, label: (_s, n) => `${n} IN A LINE!` },
+    // matchupRev 2: a Jackpot gem made (5 and an L/T in one swap) and one set off.
+    { kind: "perfect", count: (s) => s.jackpots ?? 0, label: () => "JACKPOT GEM!", colour: () => "#FFFFFF" },
+    { kind: "combo", count: (s) => s.jackpotsFired ?? 0, label: () => "JACKPOT!" },
     {
       kind: "final",
-      count: (s) => (s.raw >= MATCHUP_PAR_RAW ? 1 : 0),
+      count: (s) => (s.raw >= matchupParRaw(s) ? 1 : 0),
       label: () => "PAR SMASHED!",
     },
   ],

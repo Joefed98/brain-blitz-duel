@@ -53,10 +53,12 @@ const specs = await import("../src/lib/arcade/arcadeFxGames.renderer");
 const sprites = await import("../src/lib/arcade/sprites.renderer");
 
 const { hoverArtGame } = await import("../src/lib/arcade/hover.renderer");
+const { hoverRev2Game } = await import("../src/lib/arcade/hover");
 const { breakerArtGame } = await import("../src/lib/arcade/breaker.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
+const { snakeRev2Game } = await import("../src/lib/arcade/snake");
 const { burstArtGame } = await import("../src/lib/arcade/burst.renderer");
 const { wavefrontArtGame } = await import("../src/lib/arcade/wavefront.renderer");
 const { orbitArtGame } = await import("../src/lib/arcade/orbit.renderer");
@@ -69,6 +71,7 @@ const { binTossArtGame } = await import("../src/lib/arcade/binTossArt.renderer")
 const { drawBullseye } = await import("../src/lib/arcade/bullseye.renderer");
 const { bullseyeGame } = await import("../src/lib/arcade/bullseye");
 const { bubbleArtGame } = await import("../src/lib/arcade/bubble.renderer");
+const { bubbleRev2Game } = await import("../src/lib/arcade/bubble");
 const { flipArtGameFor } = await import("../src/lib/arcade/flipArt.renderer");
 const { swingArtGame } = await import("../src/lib/arcade/swing.renderer");
 const { snipArtGame } = await import("../src/lib/arcade/snip.renderer");
@@ -77,6 +80,7 @@ const { btArtDraw } = await import("../src/lib/arcade/ballTrackArt.renderer");
 const { makeBallTrackGame } = await import("../src/lib/arcade/ballTrack");
 const { BALL_TRACK_BANK } = await import("../src/lib/duel/ballTrackBank.server");
 const { matchupArtGame } = await import("../src/lib/arcade/matchup.renderer");
+const { matchupRev2Game } = await import("../src/lib/arcade/matchup");
 
 type AnyGame = {
   init: (seed: number) => any;
@@ -98,11 +102,11 @@ type AnyGame = {
 const course = BALL_TRACK_BANK[0]!.course;
 const btGame = makeBallTrackGame(course, 2);
 const GAMES: Record<string, AnyGame> = {
-  hover: hoverArtGame as AnyGame,
+  hover: { ...hoverArtGame, init: hoverRev2Game.init } as AnyGame,
   breaker: breakerArtGame as AnyGame,
   rally: rallyArtGame as AnyGame,
   beat: beatArtGame as AnyGame,
-  snake: snakeArtGame as AnyGame,
+  snake: { ...snakeArtGame, init: snakeRev2Game.init } as AnyGame,
   burst: burstArtGame as AnyGame,
   wavefront: wavefrontArtGame as AnyGame,
   orbit: orbitArtGame as AnyGame,
@@ -113,7 +117,7 @@ const GAMES: Record<string, AnyGame> = {
   slice: sliceArtGameFor(2) as AnyGame,
   bintoss: binTossArtGame as AnyGame,
   bullseye: { ...bullseyeGame, draw: drawBullseye } as AnyGame,
-  bubble: bubbleArtGame as AnyGame,
+  bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
   flip: flipArtGameFor(2) as AnyGame,
   swing: swingArtGame as AnyGame,
   snip: snipArtGame as AnyGame,
@@ -122,7 +126,7 @@ const GAMES: Record<string, AnyGame> = {
     ...btGame,
     draw: (ctx: CanvasRenderingContext2D, s: any) => btArtDraw(ctx, course, s, btGame.rotatable),
   } as AnyGame,
-  matchup: matchupArtGame as AnyGame,
+  matchup: { ...matchupArtGame, init: matchupRev2Game.init } as AnyGame,
 };
 
 assert.equal(Object.keys(GAMES).length, 22, "22 active arcade games");
@@ -220,7 +224,13 @@ for (const [name, game] of Object.entries(GAMES)) {
 // must complete. Index order matches each spec's `events`.
 const zeros = (n: number) => Array.from({ length: n }, () => 0);
 const BUMPS: Record<string, ((s: any) => any)[]> = {
-  hover: [(s) => ({ ...s, gates: s.gates + 7 }), (s) => ({ ...s, gates: s.totalGates })],
+  hover: [
+    (s) => ({ ...s, gates: s.gates + 7 }),
+    (s) => ({ ...s, stars: (s.stars ?? 0) + 1 }),
+    (s) => ({ ...s, gates: 17 }),
+    (s) => ({ ...s, gates: 24 }),
+    (s) => ({ ...s, gates: s.totalGates }),
+  ],
   breaker: [
     (s) => ({ ...s, powerUps: s.powerUps + 1 }),
     (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (i < 10 ? 0 : b)) }),
@@ -232,7 +242,11 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   ],
   rally: [(s) => ({ ...s, hits: s.hits + 10 }), (s) => ({ ...s, goldHits: s.goldHits + 1 })],
   beat: [(s) => ({ ...s, combo: s.combo + 10 }), (s) => ({ ...s, maxCombo: s.chart.ticks.length })],
-  snake: [(s) => ({ ...s, eaten: s.eaten + 10 }), (s) => ({ ...s, eaten: s.queue.length })],
+  snake: [
+    (s) => ({ ...s, eaten: s.eaten + 10 }),
+    (s) => ({ ...s, dead: false, rocks: [...(s.rocks ?? []), 2 * 15 + 2] }),
+    (s) => ({ ...s, eaten: s.queue.length }),
+  ],
   burst: [
     (s) => ({ ...s, cleared: s.cleared + 1 }),
     (s) => ({ ...s, ended: 1, lives: 3, cleared: 4 }),
@@ -287,6 +301,9 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   bubble: [
     (s) => ({ ...s, popped: s.popped + 6 }),
     (s) => ({ ...s, dropped: s.dropped + 4 }),
+    (s) => ({ ...s, jokers: (s.jokers ?? 0) + 1, lastSpecialCell: 13 }),
+    (s) => ({ ...s, bombs: (s.bombs ?? 0) + 1, lastSpecialCell: 13, lastSpecialCleared: 5 }),
+    (s) => ({ ...s, lines: (s.lines ?? 0) + 1, lastSpecialCell: 13, lastSpecialCleared: 8 }),
     (s) => ({ ...s, cleared: true }),
   ],
   flip: [
@@ -315,7 +332,9 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   matchup: [
     (s) => ({ ...s, cascades: s.cascades + 1, lastSteps: 3 }),
     (s) => ({ ...s, bestLine: 5 }),
-    (s) => ({ ...s, raw: 2500 }),
+    (s) => ({ ...s, jackpots: (s.jackpots ?? 0) + 1 }),
+    (s) => ({ ...s, jackpotsFired: (s.jackpotsFired ?? 0) + 1 }),
+    (s) => ({ ...s, raw: 1e6 }),
   ],
 };
 for (const [name, game] of Object.entries(GAMES)) {

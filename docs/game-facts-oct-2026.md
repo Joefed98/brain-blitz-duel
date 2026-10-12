@@ -993,7 +993,7 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 63,000 ms (63 s); sim run 60 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
-- **Board and items:** 390×560 world; 45 barriers (`HOVER_GATE_COUNT`)
+- **Board and items:** 390×560 world; 45 barriers built (`HOVER_GATE_COUNT`, capacity), of which a clean run reaches 42 (`HOVER_REACHABLE_GATES`, the scoring total). hoverRev 2 (Oct 2026) adds 10 gold stars, two-gap barriers from barrier 17 and moving barriers from barrier 24; score 130 × barriers ÷ 42 + 20 × stars ÷ 10
 - **Revision:** `speedPar: 1` only
 - **Input:** Hold to rise, release to drop
 - **Scoring:** `score()` in `src/lib/arcade/hover.ts`, replayed on the server by `src/lib/duel/hover.ts` from `src/lib/duel/grade.ts`

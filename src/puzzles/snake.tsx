@@ -15,13 +15,12 @@ import {
 } from "@/lib/arcade/engine";
 import {
   snakeCheckpoint,
-  snakeGame,
+  snakeGameFor,
   SNAKE_BG,
   SNAKE_BODY,
   SNAKE_CHECKPOINT_INTERVAL,
   SNAKE_HEAD,
   SNAKE_INPUT_TURN,
-  SNAKE_PELLET,
   SNAKE_RUN_TICKS,
   SNAKE_SWIPE_PX,
   type SnakeState,
@@ -35,7 +34,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: a short trail about to reach the pellet. */
+/** Fixed intro still: a short trail about to reach the star, and a rock's shadow. */
 function IntroExample() {
   const body = [
     [3, 2],
@@ -74,10 +73,12 @@ function IntroExample() {
             fill={index === 0 ? SNAKE_HEAD : SNAKE_BODY}
           />
         ))}
-        <circle cx={3 * 24 + 12} cy={24 + 12} r={7} fill={SNAKE_PELLET} />
+        <path d="M84 30 L86 34 L91 36 L86 38 L84 42 L82 38 L77 36 L82 34 Z" fill="#FFD84A" />
+        <rect x={5 * 24 + 3} y={2 * 24 + 3} width={18} height={18} rx={4} fill="rgba(255,77,77,0.28)" stroke="rgba(255,77,77,0.7)" strokeDasharray="3 2" />
+        <rect x={5 * 24 + 2} y={4 * 24 + 2} width={20} height={20} rx={6} fill="#4A4750" stroke="#77747B" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Swipe up and the head takes the pellet.
+        Swipe up for the star. Keep your head off the red shadows: a rock lands there.
       </p>
     </div>
   );
@@ -86,6 +87,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SnakePuzzleData | null = puzzle.type === "snake" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const snakeGame = snakeGameFor(data?.snakeRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -280,16 +282,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "snake") return null;
-  const result = replaySnakeRun(puzzle.seed, myAnswer ?? "");
+  const result = replaySnakeRun(puzzle.seed, myAnswer ?? "", puzzle.snakeRev);
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.pellets} pellet{result.pellets === 1 ? "" : "s"} ·{" "}
-        {result.survived ? "survived" : `crashed at ${result.endedSeconds.toFixed(1)}s`}
+        {result.pellets} star{result.pellets === 1 ? "" : "s"} ·{" "}
+        {result.survived ? "survived" : result.rockHit ? `hit a rock at ${result.endedSeconds.toFixed(1)}s` : `crashed at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        Same food for everyone
+        {puzzle.snakeRev ? `Same stars and rocks for everyone${result.rocks > 0 ? ` · ${result.rocks} rock${result.rocks === 1 ? "" : "s"} landed` : ""}` : "Same stars for everyone"}
       </p>
     </div>
   );
