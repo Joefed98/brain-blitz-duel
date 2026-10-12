@@ -127,7 +127,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     dragPointer.current = null;
     submitted.current = false;
     forceRedraw((n) => n + 1);
-  }, [seed]);
+  }, [seed, game]);
 
   useEffect(() => {
     if (!data) return;
