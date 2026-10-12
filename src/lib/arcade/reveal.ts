@@ -8,8 +8,11 @@
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
 import { BT_BALLS } from "./ballTrack";
 import { MATCHUP_PAR_RAW } from "./matchup";
+import { WF_PAR } from "./wordfall";
 import { HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
+import { BAND_SPECS } from "./bandParts";
+import { bandLines } from "./scoreBands";
 
 export interface ArcadeRevealTile {
   label: string;
@@ -437,6 +440,24 @@ const BUILDERS: Record<string, Builder> = {
     ],
     outcome: b(r, "perfect") ? "finish" : "time",
   }),
+  wordfall: (r, s) => {
+    const best = Array.isArray(r["best"]) ? (r["best"] as unknown[]).map(String).slice(0, 5) : [];
+    const par = n(r, "par") || WF_PAR;
+    return {
+      axis: { value: Math.min(n(r, "points"), par), max: par, label: "Word points" },
+      lines: [
+        `${n(r, "points")} / ${par} word points → ${s}`,
+        best.length ? `Best: ${best.join(" · ")}` : "No words found",
+        ...(b(r, "overflow") ? [`A column overflowed at ${sec(n(r, "endedSeconds"))}`] : []),
+      ],
+      tiles: [
+        { label: "Words", value: String(n(r, "words")) },
+        { label: "Longest", value: n(r, "longest") ? `${n(r, "longest")} letters` : "—" },
+        { label: b(r, "overflow") ? "Overflowed" : "Survived", value: b(r, "overflow") ? sec(n(r, "endedSeconds")) : "90 s" },
+      ],
+      outcome: n(r, "points") >= par ? "finish" : b(r, "overflow") ? "crash" : "time",
+    };
+  },
   tendrop: (r, s) => {
     const done = n(r, "cleared") >= 10;
     return {
@@ -486,5 +507,10 @@ export const ARCADE_REVEAL_TYPES = Object.keys(BUILDERS);
 export function buildArcadeReveal(type: string, run: unknown, score: number): ArcadeRevealData | null {
   const builder = BUILDERS[type];
   if (!builder || !run || typeof run !== "object") return null;
-  return builder(run as Run, score);
+  const data = builder(run as Run, score);
+  // Oct 2026 score-band rounds: same axis and tiles, breakdown lines from the band rules.
+  const state = (run as Run)["state"] as { band?: number; acted?: number } | undefined;
+  const band = BAND_SPECS[type];
+  if (band && state && typeof state === "object" && state.band) return { ...data, lines: bandLines(band.parts(state), score, Boolean(state.acted)) };
+  return data;
 }

@@ -4,6 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { serverNow } from "@/lib/duel/clock";
 import { randInt } from "@/lib/duel/random";
 import {
+  TAP_LOG_MAX,
+  TAP_LOG_PREFIX,
+  TAP_REV,
+  decodeNumberTaps,
+  encodeNumberTaps,
+  replayAscend,
+  usesTapLog,
+  type NumberTap,
+} from "@/lib/duel/tapLog";
+import {
   NUMHUNT_CIRCLE_PX,
   NUMHUNT_COUNT,
   NUMHUNT_FLASH_MS,
@@ -35,6 +45,13 @@ export function parseRun(answer: string | null) {
     errors: Number.isFinite(errors) ? errors! : 0,
     elapsedMs: Number.isFinite(elapsed) ? elapsed! : 0,
   };
+}
+
+/** A tap-log answer, replayed as the server scored it: count reached, wrong taps, finishing time. */
+function loggedRun(puzzle: NumberHuntPuzzleData, answer: string | null) {
+  if (!answer?.startsWith(TAP_LOG_PREFIX)) return { reached: 0, errors: 0, elapsedMs: 0 };
+  const replay = replayAscend(puzzle, decodeNumberTaps(answer, NUMHUNT_TIME_MS, puzzle).taps);
+  return { reached: replay.reached, errors: replay.errors, elapsedMs: replay.finishedAt ?? 0 };
 }
 
 const EXAMPLE_SPOTS: HuntSpot[] = [
@@ -109,7 +126,8 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
+/** Rounds stored before tap logs (no `tapRev`): the phone's own "reached,errors" summary. */
+function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
   const layouts = puzzle.type === "numhunt" ? puzzle.layouts : [];
   const key = layouts.flat().map((s) => `${s.x}:${s.y}`).join("|");
   const [next, setNext] = useState(0);
@@ -158,8 +176,39 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     }
   };
 
-  const elapsed = Math.max(0, now - phaseStartedAt);
+  return (
+    <AscendBoard
+      spots={spots}
+      next={next}
+      errors={errors}
+      flash={flash}
+      pulse={moveFlash === layoutIndex}
+      locked={locked}
+      elapsed={Math.max(0, now - phaseStartedAt)}
+      onTap={handleTap}
+    />
+  );
+}
 
+function AscendBoard({
+  spots,
+  next,
+  errors,
+  flash,
+  pulse,
+  locked,
+  elapsed,
+  onTap,
+}: {
+  spots: HuntSpot[];
+  next: number;
+  errors: number;
+  flash: number | null;
+  pulse: boolean;
+  locked: boolean;
+  elapsed: number;
+  onTap: (index: number) => void;
+}) {
   return (
     <div data-polish="numhunt" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -171,14 +220,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
         </span>
       </div>
 
-      <div data-game-arena="tall" className={`relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10 ${moveFlash === layoutIndex ? "animate-pulse" : ""}`}>
+      <div data-game-arena="tall" className={`relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10 ${pulse ? "animate-pulse" : ""}`}>
         {spots.map((spot, index) => (
           <button
             key={index}
             type="button"
             aria-label={`Circle ${spot.n}`}
             disabled={locked}
-            onClick={() => handleTap(index)}
+            onClick={() => onTap(index)}
             className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
           >
@@ -194,9 +243,88 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   );
 }
 
+/**
+ * Tap-log rounds (`tapRev`): every tap is logged by its number on the round
+ * clock and sent raw, finished or not; the server checks each one against the
+ * layout on screen at that moment. What the phone shows comes from the same replay.
+ */
+function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const layouts = puzzle.type === "numhunt" ? puzzle.layouts : [];
+  const key = layouts.flat().map((s) => `${s.x}:${s.y}`).join("|");
+  const taps = useRef<NumberTap[]>([]);
+  const [logLength, setLogLength] = useState(0);
+  const [flash, setFlash] = useState<number | null>(null);
+  const [moveFlash, setMoveFlash] = useState(-1);
+  const submitted = useRef("");
+
+  useEffect(() => {
+    taps.current = [];
+    setLogLength(0);
+    setFlash(null);
+  }, [key]);
+
+  useEffect(() => {
+    if (flash === null) return;
+    const id = setTimeout(() => setFlash(null), NUMHUNT_FLASH_MS);
+    return () => clearTimeout(id);
+  }, [flash]);
+
+  const layoutIndex = Math.min(3, Math.floor(Math.max(0, now - phaseStartedAt) / NUMHUNT_MOVE_MS));
+  const spots = layouts[layoutIndex] ?? (puzzle.type === "numhunt" ? puzzle.spots : []);
+
+  useEffect(() => {
+    if (layoutIndex === 0) return;
+    setMoveFlash(layoutIndex);
+    const id = setTimeout(() => setMoveFlash(-1), NUMHUNT_FLASH_MS);
+    return () => clearTimeout(id);
+  }, [layoutIndex]);
+
+  useEffect(() => {
+    if (logLength > 0) onDraftAnswer?.(encodeNumberTaps(taps.current));
+  }, [logLength]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (puzzle.type !== "numhunt") return null;
+  const replay = replayAscend(puzzle, taps.current);
+
+  const handleTap = (index: number) => {
+    const spot = spots[index];
+    if (locked || !spot || replay.finishedAt !== null) return;
+    const log = taps.current;
+    if (log.length >= TAP_LOG_MAX) return;
+    // Whole ms on the round clock, never earlier than the tap before.
+    const stamp = Math.max(0, Math.round(serverNow() - phaseStartedAt), log[log.length - 1]?.t ?? 0);
+    taps.current = [...log, { n: spot.n, t: stamp }];
+    setLogLength(taps.current.length);
+    const after = replayAscend(puzzle, taps.current);
+    const outcome = after.outcomes[after.outcomes.length - 1];
+    if (outcome === "wrong") setFlash(index);
+    if (after.finishedAt !== null && submitted.current !== key) {
+      submitted.current = key;
+      onSubmit(encodeNumberTaps(taps.current), { errors: after.errors });
+    }
+  };
+
+  return (
+    <AscendBoard
+      spots={spots}
+      next={replay.reached}
+      errors={replay.errors}
+      flash={flash}
+      pulse={moveFlash === layoutIndex}
+      locked={locked}
+      elapsed={Math.max(0, now - phaseStartedAt)}
+      onTap={handleTap}
+    />
+  );
+}
+
+function Stage(props: PuzzleStageProps) {
+  return usesTapLog(props.puzzle) ? <LoggedStage {...props} /> : <LegacyStage {...props} />;
+}
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "numhunt") return null;
-  const { reached, errors, elapsedMs } = parseRun(myAnswer);
+  const { reached, errors, elapsedMs } = usesTapLog(puzzle) ? loggedRun(puzzle, myAnswer) : parseRun(myAnswer);
   const finished = reached >= puzzle.spots.length;
 
   return (
@@ -273,7 +401,7 @@ function buildLayout(values: number[]): HuntSpot[] {
 export function buildNumberHunt(): NumberHuntPuzzleData {
   const values = pickValues();
   const layouts = Array.from({ length: 4 }, () => buildLayout(values));
-  return { type: "numhunt", spots: layouts[0]!, layouts };
+  return { type: "numhunt", spots: layouts[0]!, layouts, tapRev: TAP_REV };
 }
 
 export const numberHuntPuzzle: PuzzleDefinition = {
@@ -284,7 +412,8 @@ export const numberHuntPuzzle: PuzzleDefinition = {
   generate: buildNumberHunt,
   revealHeading: "Your run",
   check: (answer, puzzle) =>
-    puzzle.type === "numhunt" && parseRun(answer).reached >= puzzle.spots.length,
+    puzzle.type === "numhunt" &&
+    (usesTapLog(puzzle) ? loggedRun(puzzle, answer) : parseRun(answer)).reached >= puzzle.spots.length,
   IntroExample,
   Stage,
   Reveal,

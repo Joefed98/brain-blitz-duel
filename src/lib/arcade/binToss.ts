@@ -23,6 +23,7 @@ import {
   type DragLaunch,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { icos, isin } from "./trig";
 
 /* ============================== Constants ============================== */
@@ -431,7 +432,7 @@ export const BINTOSS_AIM = 0;
 export const BINTOSS_FLY = 1;
 export const BINTOSS_WAIT = 2;
 
-export interface BinTossState {
+export interface BinTossState extends BandFields {
   /** Rev 3 only: the hoop for each throw (null on throws without one). */
   hoops?: (BinTossHoop | null)[];
   /** Rev 3 only: the spinner for each throw (null on throws without one). */
@@ -1077,9 +1078,9 @@ export const binTossGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = {
   key: "bintoss",
   runTicks: BINTOSS_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: BINTOSS_INPUT_RANGES,
 };
@@ -1187,6 +1188,25 @@ export const binTossRev3Game: ArcadeGame<BinTossState, ArcadeInputEvent | null> 
 
 /** Takes puzzle.binRev; anything else is the original bin. */
 export function binTossGameFor(rev?: number | null): ArcadeGame<BinTossState, ArcadeInputEvent | null> {
+  if (rev === BINTOSS_REV_BAND) return binTossBandGame;
   if (rev === BINTOSS_REV3) return binTossRev3Game;
   return rev === BINTOSS_REV2 ? binTossRev2Game : binTossGame;
 }
+
+/* ================= Oct 2026 score bands (binRev 4) ================= */
+
+/** Score-band revision (puzzle.binRev = 4): rev-3 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const BINTOSS_REV_BAND = 4;
+/** Buckets count 10 and hoop swishes 3; 140 at every bucket and hoop; all ten in adds 10 (no 99 cap). */
+export const BINTOSS_BAND_CURVE = bandCurve([0, 45, 70, 80, 90, 109], [0, 70, 100, 118, 138, 140]);
+export function binTossBandParts(state: BinTossState): BandParts {
+  const units = 10 * clampInt(state.baskets, 0, BINTOSS_THROWS) + BINTOSS_HOOP_POINTS * clampInt(state.swishes ?? 0, 0, BINTOSS_HOOP_COUNT);
+  const finished = state.baskets >= BINTOSS_THROWS;
+  return { units, points: bandPoints(BINTOSS_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.baskets} / ${BINTOSS_THROWS} buckets · ${state.swishes ?? 0} hoops`, bonusText: "All ten in" };
+}
+
+function scoreBand(state: BinTossState): number {
+  return bandTotal(binTossBandParts(state), Boolean(state.acted));
+}
+
+export const binTossBandGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = { ...binTossRev3Game, init: (seed) => bandInit(binTossRev3Game.init(seed)) };

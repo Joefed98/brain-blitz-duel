@@ -35,6 +35,7 @@ import {
   WAV_POINTS_SAUCER,
   WAV_POINTS_WAVE,
   WAV_REV,
+  WAV_REV_BAND,
   WAV_SHAPES,
   WAV_V2_RUN_TICKS,
   WAV_V2_WAVES,
@@ -53,6 +54,7 @@ import {
   BRK_POWER_MULTI,
   BRK_POWER_SPAM,
   BRK_REV,
+  BRK_REV_BAND,
   BRK_SLIDE_AMP,
   BRK_SLIDE_STARTS,
   BRK_V2_LASER_BRICKS,
@@ -69,6 +71,7 @@ import {
   BURST_FREEZE_TICKS,
   BURST_ICON_FREEZE,
   BURST_REV,
+  BURST_REV_BAND,
   BURST_V2_PARTIAL_MAX,
   type BurstState,
 } from "../src/lib/arcade/burst";
@@ -83,6 +86,7 @@ import {
   SWING_CHASE_GAP,
   SWING_JET_BUBBLE,
   SWING_REV,
+  SWING_REV_BAND,
   SWING_REV_V2,
   SWING_REV_V3,
   SWING_ROCK_WARN,
@@ -114,7 +118,7 @@ section("legacy identity");
   checks += saved.length;
   console.log(`  ${saved.length} stored-rule runs (wavefront, breaker, burst, swing 0/2/3) identical to the pre-upgrade code`);
 }
-ok(generateWavefront().wavRev === WAV_REV && generateBreaker().brkRev === BRK_REV && generateBurst().burstRev === BURST_REV && generateSwing().swingRev === SWING_REV, "new rounds are stamped with the new revisions");
+ok(generateWavefront().wavRev === WAV_REV_BAND && generateBreaker().brkRev === BRK_REV_BAND && generateBurst().burstRev === BURST_REV_BAND && generateSwing().swingRev === SWING_REV_BAND, "new rounds are stamped with the score-band revisions (the batch-3 rules plus the Oct 2026 bands)");
 
 /* ================================ 2a. Wavefront ================================ */
 if (want("wavefront")) {
@@ -212,7 +216,7 @@ if (want("wavefront")) {
   const text = JSON.stringify(PUZZLE_INSTRUCTIONS.wavefront) + INTRO_SCORE.wavefront;
   ok(!/block/i.test(text) && /armoured ship/.test(text), "Wavefront text says armoured ships, never blocks");
   ok(/90 s/.test(PUZZLE_INSTRUCTIONS.wavefront.goal), "the intro says 90 seconds");
-  ok(/150 needs every wave plus the boss/.test(INTRO_SCORE.wavefront), "intro: 150 needs every wave plus the boss");
+  ok(/Destroy the boss for 10 more/.test(INTRO_SCORE.wavefront), "intro: destroying the boss adds 10 (score bands)");
 }
 
 /* ================================ 2b. Breaker ================================ */
@@ -274,7 +278,7 @@ if (want("breaker")) {
     best = Math.max(best, replay.score);
   }
   ok(best === 150, `150 is reachable on brkRev 2 through the server replay (best ${best})`);
-  ok(game.score({ ...game.init(1), bricks: game.init(1).bricks.map((_, i) => (i === 0 ? 1 : 0)) }) === 128 && INTRO_SCORE.breaker.includes("otherwise up to 128"), "intro partial maximum (128) is true");
+  ok(game.score({ ...game.init(1), bricks: game.init(1).bricks.map((_, i) => (i === 0 ? 1 : 0)) }) === 128 && !INTRO_SCORE.breaker.includes("otherwise up to"), "stored rounds keep the 128 partial maximum; the band intro states none");
   const help = JSON.stringify(PUZZLE_INSTRUCTIONS.breaker);
   ok(/×3/.test(help) && /shots/.test(help) && !/×5 balls/.test(help), "help names ×3 shots, not ×5 balls");
 }
@@ -327,7 +331,7 @@ if (want("burst")) {
     best = Math.max(best, replay.score);
   }
   ok(best === 150, `150 is reachable on burstRev 2 through the server replay (best ${best})`);
-  ok(/90 s/.test(INTRO_SCORE.burst) && /no life lost/.test(INTRO_SCORE.burst) && /4\+ waves/.test(INTRO_SCORE.burst) && /up to 130/.test(INTRO_SCORE.burst), "intro: 150 needs the full 90 s run, no life lost, 4+ waves; otherwise up to 130");
+  ok(/90 s for 10 more/.test(INTRO_SCORE.burst) && /lost life/.test(INTRO_SCORE.burst), "intro: atoms, lives, 10 more for the 90 s (score bands)");
 }
 
 /* ================================ 2d. Grappler ================================ */
@@ -381,7 +385,7 @@ if (want("swing")) {
   }
   // Scoring: distance up to 120, stars up to 10 (130 unfinished), 500 m adds 20.
   ok(swingScoreV4(499, 10) === 130 && swingScoreV4(250, 0) === 60 && swingScoreV4(500, 10) === 150 && swingScoreV4(500, 3) === 143, "120 × m ÷ 500 + stars; 500 m adds 20");
-  ok(INTRO_SCORE.swing.includes("otherwise up to 130") && INTRO_SCORE.swing.includes("for up to 150"), "intro states the real partial maximum (130)");
+  ok(INTRO_SCORE.swing.includes("500 metres for 10 more") && !INTRO_SCORE.swing.includes("otherwise"), "intro states the 10 for 500 m and no partial cap (score bands)");
   // The bank: every entry has 10 stars; sampled entries reach 150 through the server replay.
   ok(SWING_V4_BANK.length >= 200 && SWING_V4_BANK.every((e) => e.stars === SWING_STARS), `${SWING_V4_BANK.length} banked courses, each proved with all 10 stars`);
   let reached = 0;

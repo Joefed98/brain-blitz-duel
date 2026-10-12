@@ -7,6 +7,7 @@ import { GameLayout, PhoneShell } from "@/components/duel/PhoneShell";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 
 import { RoundIntro } from "@/components/duel/RoundIntro";
+import { preloadGameData } from "@/lib/duel/gamePreload";
 import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import {
@@ -116,6 +117,11 @@ function PracticeScreen() {
   const draftAnswer = useRef("");
   /** The run whose round ended early (submitted); its music stops at once. */
   const [endedKey, setEndedKey] = useState("");
+  // Letterfall's word list starts downloading (or loads from the device cache) as soon as
+  // the game list is shown, so the run never waits for it.
+  useEffect(() => {
+    if (stage === "list") void preloadGameData("wordfall");
+  }, [stage]);
   const now = useTicker(stage === "intro" || stage === "puzzle" || stage === "reveal");
   const { key: demoKey, status: demoStatus } = useDemoKey();
   const stateKey = `practice-${run}`;

@@ -27,6 +27,8 @@ import {
   JUNC_BUILD_TICKS,
   JUNC_LIGHT_AT_V2,
   JUNC_REV,
+  JUNC_REV_BAND,
+  junctionBandGame,
   junctionRev2Game,
   type JuncCar,
   type JuncState,
@@ -503,7 +505,9 @@ function drawJunctionArtWorld(ctx: CanvasRenderingContext2D, state: JuncState, s
 
 export const junctionArtGame = { ...junctionGame, draw: drawJunctionArt };
 export const junctionRev2ArtGame = { ...junctionRev2Game, draw: drawJunctionArt };
+const junctionBandArtGame = { ...junctionBandGame, draw: drawJunctionArt };
 export function junctionArtGameFor(rev?: number | null) {
+  if (rev === JUNC_REV_BAND) return junctionBandArtGame;
   return rev === JUNC_REV ? junctionRev2ArtGame : junctionArtGame;
 }
 export const junctionRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize) => drawJunctionArt(ctx, state, size, false) };

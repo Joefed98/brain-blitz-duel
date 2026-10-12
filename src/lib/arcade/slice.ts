@@ -25,6 +25,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -419,7 +420,7 @@ function spawned(object: SliceObject, tick: number): SliceObject {
 
 /* ================================ State ================================ */
 
-export interface SliceState {
+export interface SliceState extends BandFields {
   tick: number;
   rng: number;
   objects: SliceObject[];
@@ -996,9 +997,9 @@ export const sliceGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
   key: "slice",
   runTicks: SLICE_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: SLICE_INPUT_RANGES,
 };
@@ -1010,5 +1011,34 @@ const sliceRev2Game: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.sliceRev; anything else is the original kitchen. */
 export function sliceGameFor(rev?: number | null): ArcadeGame<SliceState, ArcadeInputEvent | null> {
+  if (rev === SLICE_REV_BAND) return sliceBandGame;
   return rev === SLICE_REV ? sliceRev2Game : sliceGame;
 }
+
+/* ================= Oct 2026 score bands (sliceRev 3) ================= */
+
+/** Score-band revision (puzzle.sliceRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const SLICE_REV_BAND = 3;
+/** Per mille of the most a run can earn (every food at ×3); 150 at 900. A chilli still costs 10. */
+export const SLICE_BAND_CURVE = bandCurve([0, 410, 645, 745, 830, 900], [0, 78, 105, 130, 147, 150]);
+
+export function sliceBandParts(state: SliceState): BandParts {
+  const total = Math.max(1, sliceTotalDiscs(state));
+  const units = Math.floor((1000 * Math.min(state.weighted, total * SLICE_COMBO_MAX)) / (total * SLICE_COMBO_MAX));
+  const chillies = Math.max(0, state.bombsHit);
+  return {
+    units,
+    points: bandPoints(SLICE_BAND_CURVE, units),
+    bonus: 0,
+    penalty: SLICE_BOMB_PENALTY * chillies,
+    finished: false,
+    text: `${state.slices} foods sliced`,
+    penaltyText: `${chillies} ${chillies === 1 ? "chilli" : "chillies"}`,
+  };
+}
+
+function scoreBand(state: SliceState): number {
+  return bandTotal(sliceBandParts(state), Boolean(state.acted));
+}
+
+export const sliceBandGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = { ...sliceRev2Game, init: (seed) => bandInit(sliceRev2Game.init(seed)) };

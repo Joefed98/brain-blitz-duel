@@ -6,6 +6,8 @@ import {
   inkBridgeInkRev3Game,
   inkBridgeInkRev4Game,
   INK_REV,
+  INK_REV_BAND,
+  inkBridgeGameFor,
   INK_REV3,
   INK_REV4,
   inkCheckpoint,
@@ -48,6 +50,14 @@ const rev4Run = makeArcadeRun<InkState, InkCheckpoint>({
   keys: INK_CHECKPOINT_KEYS,
   interval: INK_CHECKPOINT_INTERVAL,
 });
+/** inkRev 5: rev-4 play on the Oct 2026 score bands. */
+const bandRun = makeArcadeRun<InkState, InkCheckpoint>({
+  tag: "inkbridge",
+  game: inkBridgeGameFor(INK_REV_BAND),
+  checkpoint: inkCheckpoint,
+  keys: INK_CHECKPOINT_KEYS,
+  interval: INK_CHECKPOINT_INTERVAL,
+});
 
 export interface InkBridgeResult extends FlatReplay<InkState, InkCheckpoint> {
   levels: number;
@@ -64,7 +74,7 @@ export const decodeInkBridgeRun = run.decode;
 
 /** The single place an Ink Bridge score is worked out. */
 export function replayInkBridgeRun(seed: number, raw: string, rev?: number | null): InkBridgeResult {
-  const picked = rev === INK_REV4 ? rev4Run : rev === INK_REV3 ? rev3Run : rev === INK_REV ? birdsRun : run;
+  const picked = rev === INK_REV_BAND ? bandRun : rev === INK_REV4 ? rev4Run : rev === INK_REV3 ? rev3Run : rev === INK_REV ? birdsRun : run;
   const result = picked.replay(seed, raw);
   const s = result.state;
   return {

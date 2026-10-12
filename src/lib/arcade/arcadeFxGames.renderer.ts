@@ -119,6 +119,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
 import { SNIP_CONFIG, SNIP_H, snipCamera, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { BT_BALLS, BT_H, BT_W, type BtState } from "./ballTrack";
+import { wfWord, WF_H, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
   matchupIsJackpot,
   matchupParRaw,
@@ -190,8 +191,21 @@ export const ARCADE_GAME_WORLDS = {
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
 
+/**
+ * Engine games outside the Arcade category that draw in an arcade world and
+ * through the shared success layer. Kept apart from the 22 so their counts and
+ * checks stay as they are; arcade-play-check plays these too.
+ */
+export const ENGINE_GAME_WORLDS = {
+  wordfall: "toybox",
+} as const satisfies Record<string, ArcadeWorld>;
+
+export type EngineFxGame = keyof typeof ENGINE_GAME_WORLDS;
+
 export function arcadeWorldOf(type: string): ArcadeWorld | null {
-  return (ARCADE_GAME_WORLDS as Record<string, ArcadeWorld>)[type] ?? null;
+  return (ARCADE_GAME_WORLDS as Record<string, ArcadeWorld>)[type] ??
+    (ENGINE_GAME_WORLDS as Record<string, ArcadeWorld>)[type] ??
+    null;
 }
 
 /* ================================ Retro ================================ */
@@ -1053,3 +1067,35 @@ export const ARCADE_FX_SPECS = {
   balltrack: BALLTRACK_FX,
   matchup: MATCHUP_FX,
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;
+
+/* ============================ Engine word games ============================ */
+
+/** Letterfall: a pop names each word, longer words get the bigger burst, par gets the finale. */
+export const WORDFALL_FX: ArcadeFxSpec<WordfallState> = {
+  game: "wordfall",
+  world: "toybox",
+  width: WF_W,
+  height: WF_H,
+  events: [
+    {
+      kind: "pop",
+      count: (s) => s.words,
+      when: (s) => wfWord(s.lastWord).length < 6,
+      at: () => ({ x: WF_W / 2, y: WF_WELL_Y + 120 }),
+      label: (s) => `${wfWord(s.lastWord).toUpperCase()}!`,
+    },
+    {
+      kind: "perfect",
+      count: (s) => s.words,
+      when: (s) => wfWord(s.lastWord).length >= 6,
+      at: () => ({ x: WF_W / 2, y: WF_WELL_Y + 120 }),
+      label: (s) => `${wfWord(s.lastWord).length} LETTERS!`,
+    },
+    { kind: "final", count: (s) => (s.points >= WF_PAR ? 1 : 0), label: () => "PAR REACHED!" },
+  ],
+};
+
+/** Specs for ENGINE_GAME_WORLDS, keyed the same way. */
+export const ENGINE_FX_SPECS = {
+  wordfall: WORDFALL_FX,
+} satisfies Record<EngineFxGame, ArcadeFxSpec<never>>;

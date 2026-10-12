@@ -1,26 +1,27 @@
-import { SLICE_REV } from "@/lib/arcade/slice";
-import { FLIP_REV } from "@/lib/arcade/flip";
-import { CROSS_REV } from "@/lib/arcade/cross";
-import { INK_REV4 } from "@/lib/arcade/inkBridge";
-import { SNAKE_REV } from "@/lib/arcade/snake";
-import { BUB_REV } from "@/lib/arcade/bubble";
-import { MATCHUP_REV } from "@/lib/arcade/matchup";
-import { SNIP_REV3 } from "@/lib/arcade/snip";
-import { SKYLINE_REV } from "@/lib/arcade/skyline";
-import { TILT_REV } from "@/lib/arcade/tilt";
-import { JUNC_REV } from "@/lib/arcade/junction";
-import { BINTOSS_REV } from "@/lib/arcade/binToss";
-import { SWING_REV } from "@/lib/arcade/swing";
-import { BURST_REV } from "@/lib/arcade/burst";
-import { BRK_REV } from "@/lib/arcade/breaker";
-import { WAV_REV } from "@/lib/arcade/wavefront";
-import { ORBIT_REV3, ORBIT_REV4 } from "@/lib/arcade/orbit";
-import { RALLY_REV } from "@/lib/arcade/rally";
-import { BEAT_REV } from "@/lib/arcade/beat";
+import { SLICE_REV_BAND } from "@/lib/arcade/slice";
+import { FLIP_REV_BAND } from "@/lib/arcade/flip";
+import { CROSS_REV_BAND } from "@/lib/arcade/cross";
+import { INK_REV_BAND } from "@/lib/arcade/inkBridge";
+import { SNAKE_REV_BAND } from "@/lib/arcade/snake";
+import { BUB_REV_BAND } from "@/lib/arcade/bubble";
+import { MATCHUP_REV_BAND } from "@/lib/arcade/matchup";
+import { SNIP_REV_BAND } from "@/lib/arcade/snip";
+import { SKYLINE_REV_BAND } from "@/lib/arcade/skyline";
+import { TILT_REV_BAND } from "@/lib/arcade/tilt";
+import { JUNC_REV_BAND } from "@/lib/arcade/junction";
+import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
+import { SWING_REV_BAND } from "@/lib/arcade/swing";
+import { BURST_REV_BAND } from "@/lib/arcade/burst";
+import { BRK_REV_BAND } from "@/lib/arcade/breaker";
+import { WAV_REV_BAND } from "@/lib/arcade/wavefront";
+import { ORBIT_REV_BAND } from "@/lib/arcade/orbit";
+import { RALLY_REV_BAND } from "@/lib/arcade/rally";
+import { BEAT_REV_BAND } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V4_BANK } from "./swingBankV4.server";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
+import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
 /**
  * Server-only seeds for the arcade rounds. One seed per round drives the whole
@@ -29,7 +30,7 @@ import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
  */
 
 import { randomBelow } from "./random";
-import { bullseyeWinds, BULLSEYE_REV } from "@/lib/arcade/bullseye";
+import { bullseyeWinds, BULLSEYE_REV_BAND } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
   BullseyePuzzleData,
@@ -48,6 +49,7 @@ import type {
   BeatPuzzleData,
   WhackPuzzleData,
   TenDropPuzzleData,
+  WordfallPuzzleData,
   ClayShootPuzzleData,
   WavefrontPuzzleData,
   BastionPuzzleData,
@@ -76,28 +78,28 @@ export function generateSwerve(): SwervePuzzleData {
 }
 
 export function generateSkyline(): SkylinePuzzleData {
-  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV };
+  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_BAND };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
-  return { type: "bintoss", seed: arcadeSeed(), binRev: BINTOSS_REV };
+  return { type: "bintoss", seed: arcadeSeed(), binRev: BINTOSS_REV_BAND };
 }
 
 export function generateBullseye(): BullseyePuzzleData {
   const seed = arcadeSeed();
-  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV };
+  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV_BAND };
 }
 
 export function generateMatchup(): MatchupPuzzleData {
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV };
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_BAND };
 }
 
 export function generateSnake(): SnakePuzzleData {
-  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV };
+  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_BAND };
 }
 
 export function generateCross(): CrossPuzzleData {
-  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV };
+  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_BAND };
 }
 
 export function generateDual(): DualPuzzleData {
@@ -109,11 +111,11 @@ export function generateRicochet(): RicoPuzzleData {
 }
 
 export function generateBreaker(): BreakerPuzzleData {
-  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV };
+  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_BAND };
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV };
+  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_BAND };
 }
 
 export function generateSteady(): SteadyPuzzleData {
@@ -121,19 +123,24 @@ export function generateSteady(): SteadyPuzzleData {
 }
 
 export function generateSlice(): SlicePuzzleData {
-  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV };
+  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_BAND };
 }
 
 export function generateBubble(): BubblePuzzleData {
-  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV };
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_BAND };
 }
 
 export function generateBeat(): BeatPuzzleData {
-  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV };
+  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_BAND };
 }
 
 export function generateTenDrop(): TenDropPuzzleData {
   return { type: "tendrop", seed: arcadeSeed() };
+}
+
+/** Letterfall: the seed draws the letter queue and drop columns; stamped rev 1 and speed-par 1. */
+export function generateWordfall(): WordfallPuzzleData {
+  return { type: "wordfall", seed: arcadeSeed(), wordfallRev: WORDFALL_REV, speedPar: 1 };
 }
 
 export function generateClayShoot(): ClayShootPuzzleData {
@@ -145,7 +152,7 @@ export function generateWhack(): WhackPuzzleData {
 }
 
 export function generateWavefront(): WavefrontPuzzleData {
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV };
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_BAND };
 }
 
 export function generateBastion(): BastionPuzzleData {
@@ -165,7 +172,7 @@ export function generateColourClash(): StroopPuzzleData {
 }
 
 export function generateFlip(): FlipPuzzleData {
-  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV };
+  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_BAND };
 }
 
 export function generateParry(): ParryPuzzleData {
@@ -173,15 +180,15 @@ export function generateParry(): ParryPuzzleData {
 }
 
 export function generateJunction(): JunctionPuzzleData {
-  return { type: "junction", seed: arcadeSeed(), junctionRev: JUNC_REV };
+  return { type: "junction", seed: arcadeSeed(), junctionRev: JUNC_REV_BAND };
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV4 };
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_BAND };
 }
 
 export function generateBurst(): BurstPuzzleData {
-  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV };
+  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_BAND };
 }
 
 export function generateOrbit(): OrbitPuzzleData {
@@ -189,15 +196,15 @@ export function generateOrbit(): OrbitPuzzleData {
   // Rev 3 only from the proved bank: live proof is too slow for a room start, so an empty bank keeps rev 2.
   const bankPlanets = orbitRev3PlanetsForSeed(seed);
   if (!bankPlanets) return { type: "orbit", seed };
-  // Rev 4 when the course has proved black holes (scripts/orbit-hole-bank.ts); otherwise rev 3.
+  // Rev 5 (Oct 2026 score bands): the rev-4 rules with the course's proved black holes
+  // (scripts/orbit-hole-bank.ts), or none when the course has no proved holes.
   const bankSeed = orbitRev3BankEntryForSeed(seed)?.seed;
   const holes = bankSeed === undefined ? null : orbitHolesForBankSeed(bankSeed);
-  if (holes) return { type: "orbit", seed, orbitRev: ORBIT_REV4, planets: encodeRev3Planets(bankPlanets), holes };
-  return { type: "orbit", seed, orbitRev: ORBIT_REV3, planets: encodeRev3Planets(bankPlanets) };
+  return { type: "orbit", seed, orbitRev: ORBIT_REV_BAND, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [] };
 }
 
 export function generateSnip(): SnipPuzzleData {
-  return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV3 };
+  return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV_BAND };
 }
 
 /** Room/practice generation picks a proved course from the bank by the room seed; on-the-spot proving is only a fallback if the bank is empty or unlucky. */
@@ -205,17 +212,17 @@ export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
   if (SWING_V4_BANK.length > 0) {
     const index = ((roomSeed % SWING_V4_BANK.length) + SWING_V4_BANK.length) % SWING_V4_BANK.length;
-    return { type: "swing", seed: SWING_V4_BANK[index]!.seed, swingRev: SWING_REV };
+    return { type: "swing", seed: SWING_V4_BANK[index]!.seed, swingRev: SWING_REV_BAND };
   }
   for (let attempt = 0; attempt < 8; attempt++) {
     const seed = attempt === 0 ? roomSeed : arcadeSeed();
-    if (proveSwingSeed(seed)) return { type: "swing", seed, swingRev: SWING_REV };
+    if (proveSwingSeed(seed)) return { type: "swing", seed, swingRev: SWING_REV_BAND };
   }
   throw new Error("Could not verify a safe Grappler course; try again.");
 }
 
 export function generateTilt(): TiltPuzzleData {
-  return { type: "tilt", seed: arcadeSeed(), tiltRev: TILT_REV };
+  return { type: "tilt", seed: arcadeSeed(), tiltRev: TILT_REV_BAND };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

@@ -13,6 +13,7 @@ import { GameLayout, PhoneShell } from "@/components/duel/PhoneShell";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
+import { preloadGameData } from "@/lib/duel/gamePreload";
 import { DuelStart } from "@/components/duel/DuelStart";
 import { RoundTitle } from "@/components/duel/RoundTitle";
 import {
@@ -248,6 +249,13 @@ function DuelScreen() {
   const phase = duel?.phase ?? "intro";
 
   useEffect(() => setHelpOpen(false), [phase, round]);
+
+  // The round order is fixed at room start: if Letterfall is in it, fetch its word list
+  // now (or load it from the device cache) so no player waits for it at play time.
+  const roundOrderKey = Array.isArray(duel?.round_order) ? duel.round_order.join(",") : "";
+  useEffect(() => {
+    if (roundOrderKey.split(",").includes("wordfall")) void preloadGameData("wordfall");
+  }, [roundOrderKey]);
 
   /**
    * The round's puzzle never changes once the round starts, so it is held by

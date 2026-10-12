@@ -24,6 +24,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Config ============================== */
 
@@ -228,7 +229,7 @@ export interface SnipRope {
   oy: number[];
 }
 
-export interface SnipState {
+export interface SnipState extends BandFields {
   tick: number;
   rng: number;
   /** Template per level (fixed rising order). */
@@ -868,9 +869,9 @@ export const snipGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = {
   key: "snip",
   runTicks: SNIP_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw: (ctx, state, size) => drawSnip(ctx, state, size),
   inputRanges: SNIP_INPUT_RANGES,
 };
@@ -915,5 +916,24 @@ function initRev3(seed: number): SnipState {
 
 export const snipRev3Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipGame, init: initRev3 };
 export function snipGameFor(rev?: number | null): ArcadeGame<SnipState, ArcadeInputEvent | null> {
+  if (rev === SNIP_REV_BAND) return snipBandGame;
   return rev === SNIP_REV3 ? snipRev3Game : rev === SNIP_REV ? snipRev2Game : snipGame;
 }
+
+/* ================= Oct 2026 score bands (snipRev 4) ================= */
+
+/** Score-band revision (puzzle.snipRev = 4): rev-3 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const SNIP_REV_BAND = 4;
+/** Apples count 10 and leaves 2; 140 at all ten apples and leaves; all ten apples adds up to 10 for speed. */
+export const SNIP_BAND_CURVE = bandCurve([0, 62, 80, 90, 120], [0, 70, 100, 134, 140]);
+export function snipBandParts(state: SnipState): BandParts {
+  const units = 10 * clampInt(state.eaten, 0, SNIP_CONFIG.levels) + 2 * Math.max(0, state.stars);
+  const finished = state.eaten >= SNIP_CONFIG.levels && state.finishTick > 0;
+  return { units, points: bandPoints(SNIP_BAND_CURVE, units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, SNIP_RUN_TICKS - state.finishTick, SNIP_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.eaten} / ${SNIP_CONFIG.levels} apples · ${state.stars} leaves`, bonusText: "All ten apples" };
+}
+
+function scoreBand(state: SnipState): number {
+  return bandTotal(snipBandParts(state), Boolean(state.acted));
+}
+
+export const snipBandGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipRev3Game, init: (seed) => bandInit(snipRev3Game.init(seed)) };

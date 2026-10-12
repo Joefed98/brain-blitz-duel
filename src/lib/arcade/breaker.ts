@@ -1,3 +1,4 @@
+import { speedBonusCurve } from "../duel/speedPar";
 /**
  * Breaker — an arcade game on the shared engine.
  *
@@ -25,6 +26,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -180,7 +182,7 @@ export interface BrkCapsule {
   kind: number;
 }
 
-export interface BrkState {
+export interface BrkState extends BandFields {
   /** brkRev 2 only (absent on original rounds). */
   rev?: number;
   /** brkRev 2: the two sliding rows (first slides from 30 s, second from 60 s). */
@@ -847,9 +849,9 @@ export const breakerGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
   key: "breaker",
   runTicks: BRK_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: BRK_INPUT_RANGES,
 };
@@ -860,5 +862,24 @@ const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breake
 
 /** The game for a stored brkRev (absent = the original board and power-ups). */
 export function breakerGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_BAND) return breakerBandGame;
   return rev === BRK_REV ? breakerGameV2 : breakerGame;
 }
+
+/* ================= Oct 2026 score bands (brkRev 3) ================= */
+
+/** Score-band revision (puzzle.brkRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const BRK_REV_BAND = 3;
+/** Bricks destroyed; 140 at all 80 (the 130 cap is gone); clearing the wall adds up to 10 for speed. */
+export const BRK_BAND_CURVE = bandCurve([0, 60, 67, 76, 79, 80], [0, 70, 100, 125, 138, 140]);
+export function breakerBandParts(state: BrkState): BandParts {
+  const units = brkDestroyed(state);
+  const finished = brkDestroyed(state) >= BRK_BRICKS;
+  return { units, points: bandPoints(BRK_BAND_CURVE, units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, BRK_RUN_TICKS - clampInt(state.endedTick, 0, BRK_RUN_TICKS), BRK_RUN_TICKS) : 0, penalty: 0, finished, text: `${brkDestroyed(state)} / ${BRK_BRICKS} bricks`, bonusText: "Wall cleared" };
+}
+
+function scoreBand(state: BrkState): number {
+  return bandTotal(breakerBandParts(state), Boolean(state.acted));
+}
+
+export const breakerBandGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameV2, init: (seed) => bandInit(breakerGameV2.init(seed)) };

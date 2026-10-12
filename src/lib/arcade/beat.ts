@@ -17,6 +17,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -197,7 +198,7 @@ function buildChart(seed: number): { rng: number; chart: BeatChart } {
 
 /* ================================ State ================================ */
 
-export interface BeatState {
+export interface BeatState extends BandFields {
   /** Rev 2 only: the stamp, and swipe notes judged so far (hit, and missed or wrong way). */
   rev?: number;
   swipesHit?: number;
@@ -633,9 +634,9 @@ export const beatGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
   key: "beat",
   runTicks: BEAT_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: BEAT_INPUT_RANGES,
 };
@@ -664,6 +665,7 @@ export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ..
 
 /** Takes puzzle.beatRev; anything else is the original game. */
 export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  if (rev === BEAT_REV_BAND) return beatBandGame;
   return rev === BEAT_REV ? beatRev2Game : beatGame;
 }
 
@@ -671,3 +673,25 @@ export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeIn
 export function beatSwipeCount(state: BeatState): number {
   return (state.chart.swipes ?? []).filter((d) => d !== 0).length;
 }
+
+/* ================= Oct 2026 score bands (beatRev 3) ================= */
+
+/** Score-band revision (puzzle.beatRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const BEAT_REV_BAND = 3;
+/**
+ * Per mille of a perfect chart: Perfect 4, Good 3, OK 1, a missed note −2
+ * (half a note, was −8), over 4 × notes; 150 at 1,000 (every note Perfect).
+ */
+export const BEAT_BAND_CURVE = bandCurve([0, 590, 810, 920, 975, 1000], [0, 70, 100, 125, 145, 150]);
+
+export function beatBandParts(state: BeatState): BandParts {
+  const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - 2 * state.misses);
+  const units = Math.floor((1000 * quarters) / Math.max(1, BEAT_PERFECT_Q * beatNoteCount(state)));
+  return { units, points: bandPoints(BEAT_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${state.perfect} perfect · ${state.good} good · ${state.ok} OK · ${state.misses} missed` };
+}
+
+function scoreBand(state: BeatState): number {
+  return bandTotal(beatBandParts(state), Boolean(state.acted));
+}
+
+export const beatBandGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatRev2Game, init: (seed) => bandInit(beatRev2Game.init(seed)) };

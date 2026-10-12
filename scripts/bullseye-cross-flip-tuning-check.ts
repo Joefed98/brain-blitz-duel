@@ -78,5 +78,6 @@ for (let seed = 1; seed <= 10; seed++) {
 assert.ok(!INTRO_SCORE.cross.includes("earns extra"));
 // The intro stays short (first-run audit, 11 Oct); the "?" help keeps the formula.
 assert.ok(INTRO_SCORE.bullseye.includes("10 in the centre down to 1"));
-assert.ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes("1.7 × dart total − 20"));
+// Score bands (Oct 2026): the help gives the band knots; stored rounds keep floor(1.7 × total − 20).
+assert.ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes("an inner bull or a balloon 12") && PUZZLE_INSTRUCTIONS.bullseye.score.includes("Points follow"));
 console.log("Bullseye values/shuffles/scores, Cross score/cap/reveal and Flip curve vertices passed; no browser tests.");

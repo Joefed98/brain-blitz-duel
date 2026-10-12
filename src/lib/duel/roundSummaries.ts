@@ -2,6 +2,7 @@ import { TILT_V2_FINISH_BONUS, TILT_V2_MAZE_POINTS, TILT_V2_STAR_POINTS } from "
 import { chainRules } from "./chain";
 import { crossLine } from "@/lib/duel/crossLine";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
+import { WF_PAR } from "@/lib/arcade/wordfall";
 import {
   checkPatternAnswer,
   decodePatternAnswers,
@@ -90,6 +91,7 @@ import {
   BEAT_TIME_MS,
   WHACK_TIME_MS,
   TENDROP_TIME_MS,
+  WORDFALL_TIME_MS,
   CLAYSHOOT_TIME_MS,
   TENTS_TIME_MS,
   SHIKAKU_TIME_MS,
@@ -97,6 +99,9 @@ import {
   BALLTRACK_TIME_MS,
   NUMPYRAMID_TIME_MS,
   TRAIL_TIME_MS,
+  MEASURE_TIME_MS,
+  CHECKOUT_TIME_MS,
+  NUMLINE_TIME_MS,
   DIG_TIME_MS,
   WORDSEARCH_TIME_MS,
   LETTERWHEEL_TIME_MS,
@@ -158,6 +163,7 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   beat: BEAT_TIME_MS,
   whack: WHACK_TIME_MS,
   tendrop: TENDROP_TIME_MS,
+  wordfall: WORDFALL_TIME_MS,
   clayshoot: CLAYSHOOT_TIME_MS,
   tents: TENTS_TIME_MS,
   shikaku: SHIKAKU_TIME_MS,
@@ -165,6 +171,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   balltrack: BALLTRACK_TIME_MS,
   numpyramid: NUMPYRAMID_TIME_MS,
   trail: TRAIL_TIME_MS,
+  measure: MEASURE_TIME_MS,
+  checkout: CHECKOUT_TIME_MS,
+  numline: NUMLINE_TIME_MS,
   dig: DIG_TIME_MS,
   wordsearch: WORDSEARCH_TIME_MS,
   letterwheel: LETTERWHEEL_TIME_MS,
@@ -1250,6 +1259,21 @@ const tenDropSummary: SummaryBuilder = (result) => {
   };
 };
 
+const wordfallSummary: SummaryBuilder = (result) => {
+  const points = Number(result.extra?.["points"] ?? 0);
+  const par = Number(result.extra?.["par"] ?? WF_PAR);
+  const words = Number(result.extra?.["words"] ?? 0);
+  const best = Array.isArray(result.extra?.["best"]) ? (result.extra["best"] as unknown[]).map(String) : [];
+  const overflow = result.extra?.["overflow"] === true;
+  return {
+    summary: `${words} word${words === 1 ? "" : "s"} · ${points} / ${par} points`,
+    detail: [
+      ...(best.length ? [`Best: ${best.slice(0, 3).join(", ")}`] : []),
+      ...(overflow ? ["A column overflowed"] : []),
+    ],
+  };
+};
+
 const clayShootSummary: SummaryBuilder = (result) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 25);
@@ -1478,6 +1502,28 @@ const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {
   return { summary: `${completed} / 4 pyramids complete`, detail: [] };
 };
 
+const measureSummary: SummaryBuilder = (result, puzzle) => {
+  const solved = Number(result.extra?.["solved"] ?? 0);
+  const boards = (result.extra?.["boards"] as { solved: boolean; moves: number; minMoves: number }[] | undefined) ?? [];
+  const detail = boards.flatMap((b, i) => (b.solved ? [`Puzzle ${i + 1}: ${b.moves} moves (fewest ${b.minMoves})`] : []));
+  if (result.is_correct) return { summary: `4 / 4 solved · ${seconds(elapsedMs(result, puzzle))}`, detail };
+  return { summary: `${solved} / 4 solved`, detail };
+};
+
+const checkoutSummary: SummaryBuilder = (result, puzzle) => {
+  const solved = Number(result.extra?.["solved"] ?? 0);
+  const fewest = Number(result.extra?.["fewest"] ?? 0);
+  const detail = solved ? [`${fewest} in the fewest darts`] : [];
+  if (result.is_correct) return { summary: `5 / 5 checked out · ${seconds(elapsedMs(result, puzzle))}`, detail };
+  return { summary: `${solved} / 5 checked out`, detail };
+};
+
+const numlineSummary: SummaryBuilder = (result) => {
+  const placed = Number(result.extra?.["placed"] ?? 0);
+  const close = Number(result.extra?.["withinFull"] ?? 0);
+  return { summary: `${placed} / 15 placed · ${close} within 2%`, detail: [] };
+};
+
 const trailSummary: SummaryBuilder = (result) => {
   const correctTiles = Number(result.extra?.["correctTiles"] ?? (result.is_correct ? 26 : 0));
   return { summary: `${correctTiles} / 26 tiles correct`, detail: [] };
@@ -1631,6 +1677,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   beat: beatSummary,
   whack: whackSummary,
   tendrop: tenDropSummary,
+  wordfall: wordfallSummary,
   clayshoot: clayShootSummary,
   wavefront: wavefrontSummary,
   bastion: bastionSummary,
@@ -1652,6 +1699,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   balltrack: ballTrackSummary,
   numpyramid: numberPyramidSummary,
   trail: trailSummary,
+  measure: measureSummary,
+  checkout: checkoutSummary,
+  numline: numlineSummary,
   dig: digSummary,
   wordsearch: wordSearchSummary,
   letterwheel: letterWheelSummary,
@@ -1737,6 +1787,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   beat: () => null,
   whack: () => null,
   tendrop: () => null,
+  wordfall: () => null,
   clayshoot: () => null,
   wavefront: () => null,
   bastion: () => null,
@@ -1758,6 +1809,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   balltrack: () => null,
   numpyramid: () => null,
   trail: () => null,
+  measure: (p) => (p.type === "measure" && p.minMoves ? `${p.minMoves.join(" · ")} moves` : null),
+  checkout: (p) => (p.type === "checkout" && p.minDarts ? `${p.minDarts.join(" · ")} darts` : null),
+  numline: () => null,
   dig: () => null,
   wordsearch: () => null,
   letterwheel: () => null,

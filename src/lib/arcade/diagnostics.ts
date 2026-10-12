@@ -24,6 +24,7 @@ import { stdCheckpoint } from "./steady";
 import { swerveCheckpoint } from "./swerve";
 import { whackCheckpoint } from "./whack";
 import { tenDropCheckpoint } from "./tenDrop";
+import { wordfallCheckpoint } from "./wordfall";
 import { clayCheckpoint } from "./clayShoot";
 import { wavCheckpoint } from "./wavefront";
 import { basCheckpoint } from "./bastion";
@@ -65,6 +66,7 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   swerve: swerveCheckpoint,
   whack: whackCheckpoint,
   tendrop: tenDropCheckpoint,
+  wordfall: wordfallCheckpoint,
   clayshoot: clayCheckpoint,
   wavefront: wavCheckpoint,
   bastion: basCheckpoint,

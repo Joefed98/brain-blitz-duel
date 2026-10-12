@@ -91,9 +91,14 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   // The seed draws the pop schedule; the run is replayed on the server.
   whack: [],
   tendrop: [],
+  // The seed draws the letter queue; the run is replayed on the server.
+  wordfall: [],
   clayshoot: [],
   numpyramid: ["solutions"],
   trail: ["solution"],
+  measure: ["minMoves", "solutions"],
+  checkout: ["minDarts", "routes"],
+  numline: ["values"],
   dig: ["route", "intended"],
   tents: ["solution"],
   shikaku: ["solution"],

@@ -2,6 +2,7 @@
 // at most two short lines on a phone, no scoring terms. The "?" help keeps the formula.
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
+import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 
 /** About two lines of text-sm on a 360 px phone. */
 const MAX_CHARS = 90;
@@ -20,6 +21,15 @@ for (const type of Object.keys(PUZZLE_INSTRUCTIONS)) {
   for (const term of JARGON) if (term.test(text)) failures.push(`${type}: scoring term ${term} in "${text}"`);
   checks++;
   if (!PUZZLE_INSTRUCTIONS[type as keyof typeof PUZZLE_INSTRUCTIONS]?.score) failures.push(`${type}: no "?" help score text`);
+}
+// Oct 2026 score bands: every active arcade intro says how to reach the top (no partial cap is stated),
+// and the "?" help gives the band knots.
+for (const type of Object.keys(BAND_SPECS) as (keyof typeof INTRO_SCORE)[]) {
+  checks++;
+  const text = INTRO_SCORE[type];
+  if (!/150|10 more/.test(text)) failures.push(`${type}: intro does not say how to reach the top: "${text}"`);
+  if (/otherwise up to \d+/.test(text)) failures.push(`${type}: intro still states a partial cap: "${text}"`);
+  if (!PUZZLE_INSTRUCTIONS[type].score.includes("Points follow")) failures.push(`${type}: "?" help has no band knots`);
 }
 if (failures.length) {
   console.log(failures.join("\n"));

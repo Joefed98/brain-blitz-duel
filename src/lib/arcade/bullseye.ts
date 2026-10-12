@@ -20,6 +20,7 @@ import {
   type DragLaunch,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -319,7 +320,7 @@ export interface BullseyeHit {
   pop?: number;
 }
 
-export interface BullseyeState {
+export interface BullseyeState extends BandFields {
   tick: number;
   rng: number;
   /** Wind for each arrow, −3 … +3. Same for everyone. */
@@ -737,9 +738,9 @@ export const bullseyeGame: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = 
   key: "bullseye",
   runTicks: BULLSEYE_RUN_TICKS,
   init: bullseyeInit,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: BULLSEYE_INPUT_RANGES,
 };
@@ -776,10 +777,30 @@ export const bullseyeRev2Game: ArcadeGame<BullseyeState, ArcadeInputEvent | null
 
 /** Takes puzzle.bullRev; anything else is the original game. */
 export function bullseyeGameFor(rev?: number | null): ArcadeGame<BullseyeState, ArcadeInputEvent | null> {
+  if (rev === BULLSEYE_REV_BAND) return bullseyeBandGame;
   return rev === BULLSEYE_REV ? bullseyeRev2Game : bullseyeGame;
 }
 
 /** Start state for a stored round: its own winds and its own revision. */
 export function bullseyeInitFor(seed: number, storedWinds: readonly number[] | undefined, rev?: number | null): BullseyeState {
+  if (rev === BULLSEYE_REV_BAND) return bandInit(bullseyeInitRev2(seed, storedWinds));
   return rev === BULLSEYE_REV ? bullseyeInitRev2(seed, storedWinds) : bullseyeInit(seed, storedWinds);
 }
+
+/* ================= Oct 2026 score bands (bullRev 3) ================= */
+
+/** Score-band revision (puzzle.bullRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const BULLSEYE_REV_BAND = 3;
+/** Dart total (rev-2 rings, 12 for an inner bull or a balloon); 150 at 110. */
+export const BULLSEYE_BAND_CURVE = bandCurve([0, 72, 82, 94, 102, 110], [0, 70, 100, 125, 145, 150]);
+
+export function bullseyeBandParts(state: BullseyeState): BandParts {
+  const units = Math.max(0, state.total);
+  return { units, points: bandPoints(BULLSEYE_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${units} points from ${state.arrowIndex} darts` };
+}
+
+function scoreBand(state: BullseyeState): number {
+  return bandTotal(bullseyeBandParts(state), Boolean(state.acted));
+}
+
+export const bullseyeBandGame: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = { ...bullseyeRev2Game, init: (seed) => bandInit(bullseyeInitRev2(seed)) };

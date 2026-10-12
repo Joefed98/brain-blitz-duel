@@ -20,6 +20,7 @@ import {
   WAV_BOSS_Y,
   WAV_BREATHER_TICKS,
   WAV_REV,
+  WAV_REV_BAND,
   WAV_V2_WAVES,
   WAV_ARMOUR_CODE,
   WAV_BOLT_H,
@@ -536,7 +537,9 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
 /** The sim with the art renderer swapped in; step/score are the sim's own. */
 export const wavefrontArtGame = { ...wavefrontGame, draw: drawWavefrontArt };
 const wavefrontArtGameV2 = { ...wavefrontGameFor(WAV_REV), draw: drawWavefrontArt };
+const wavefrontArtGameBand = { ...wavefrontGameFor(WAV_REV_BAND), draw: drawWavefrontArt };
 /** The art game for a stored wavRev; one cached object per revision. */
 export function wavefrontArtGameFor(rev?: number | null): typeof wavefrontArtGame {
+  if (rev === WAV_REV_BAND) return wavefrontArtGameBand;
   return rev === WAV_REV ? wavefrontArtGameV2 : wavefrontArtGame;
 }

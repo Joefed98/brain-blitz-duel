@@ -14,6 +14,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 import { drawFlipHazard, flipSurfaceLine } from "./flip.renderer";
 
@@ -464,7 +465,7 @@ export function flipDecisionShare(seed: number): { decisions: number; groups: nu
 
 /* ================================ State ================================ */
 
-export interface FlipState {
+export interface FlipState extends BandFields {
   tick: number;
   rng: number;
   x: number;
@@ -771,9 +772,9 @@ export const flipGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
   key: "flip",
   runTicks: FLIP_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: FLIP_INPUT_RANGES,
 };
@@ -782,6 +783,7 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
 export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  if (rev === FLIP_REV_BAND) return flipBandGame;
   return rev === FLIP_REV ? flipRev2Game : flipGame;
 }
 
@@ -789,3 +791,21 @@ export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeIn
 export function flipCourseV2(seed: number) {
   return buildCourseV2(seed);
 }
+
+/* ================= Oct 2026 score bands (flipRev 3) ================= */
+
+/** Score-band revision (puzzle.flipRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const FLIP_REV_BAND = 3;
+/** Each half second survived counts 1 and each gold star 3; 140 at the full minute with all ten stars; lasting the minute adds 10. */
+export const FLIP_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 150], [0, 15, 70, 100, 120, 140]);
+export function flipBandParts(state: FlipState): BandParts {
+  const units = Math.floor((state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS)) / 30) + 3 * flipStarsTaken(state);
+  const finished = state.ended === 1;
+  return { units, points: bandPoints(FLIP_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${((state.ended === 1 ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1)} s · ${flipStarsTaken(state)} stars`, bonusText: "Lasted the minute" };
+}
+
+function scoreBand(state: FlipState): number {
+  return bandTotal(flipBandParts(state), Boolean(state.acted));
+}
+
+export const flipBandGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipRev2Game, init: (seed) => bandInit(flipRev2Game.init(seed)) };

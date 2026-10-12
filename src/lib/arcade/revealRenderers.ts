@@ -30,7 +30,7 @@ import { burstArtGameFor } from "./burst.renderer";
 import { orbitArtGame as orbitGame, orbitArtGameFor, orbitRev3ArtGame } from "./orbit.renderer";
 import { decodeOrbitRun } from "@/lib/duel/orbit";
 import { checkInputEvents } from "./engine";
-import { ORBIT_REV3, ORBIT_REV4 } from "./orbit";
+import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND } from "./orbit";
 import { decodeOrbitHoles, decodeRev3Planets, initRev3From, initRev4From, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "./orbitRev3";
 import { swingArtGame as swingGame } from "./swing.renderer";
 import { drawSnipArt as drawSnip } from "./snip.renderer";
@@ -42,6 +42,9 @@ import { whackArtGame as whackGame } from "./whack.renderer";
 import { CLAY_H, CLAY_W } from "./clayShoot";
 import { clayArtGameFor } from './clayShoot.renderer';
 import { tenDropGame, TD_H, TD_W } from "./tenDrop";
+import { wordfallGame, WF_H, WF_W } from "./wordfall";
+import { wordfallArtGame } from "./wordfall.renderer";
+import { loadWordfallDict, wordfallDictReady } from "./wordfallDict";
 import { colourClashGame } from "./colourClash";
 
 import { replayHoverRun } from "@/lib/duel/hover";
@@ -69,6 +72,7 @@ import { replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { replayWhackRun } from "@/lib/duel/whack";
 import { replayClayRun } from "@/lib/duel/clayShoot";
 import { replayTenDropRun } from "@/lib/duel/tenDrop";
+import { replayWordfallRun } from "@/lib/duel/wordfall";
 import { replayColourClashRun } from "@/lib/duel/colourClash";
 import { clashVariantOf } from "@/lib/arcade/colourClash";
 
@@ -163,13 +167,13 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     worldH: 620,
     drawFinal: (ctx, puzzle, answer) => {
       const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined, puzzle.type === "orbit" ? puzzle.holes : undefined);
-      if (puzzle.type === "orbit" && (puzzle.orbitRev === ORBIT_REV3 || puzzle.orbitRev === ORBIT_REV4) && puzzle.planets) {
+      if (puzzle.type === "orbit" && (puzzle.orbitRev === ORBIT_REV3 || puzzle.orbitRev === ORBIT_REV4 || puzzle.orbitRev === ORBIT_REV_BAND) && puzzle.planets) {
         // Visual reconstruction only: scoring above still uses the original replay.
         const run = decodeOrbitRun(answer);
         const checked = checkInputEvents(run.events, orbitRev3ArtGame.runTicks, orbitRev3ArtGame.inputRanges ?? []);
         const events = new Map(checked.events.map(event => [event.t, event]));
         let visual: OrbitRev3State =
-          puzzle.orbitRev === ORBIT_REV4
+          puzzle.orbitRev === ORBIT_REV4 || puzzle.orbitRev === ORBIT_REV_BAND
             ? initRev4From(decodeRev3Planets(puzzle.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(puzzle.holes ?? []))
             : initRev3From(decodeRev3Planets(puzzle.planets), ORBIT_REV3_WORLD_W);
         for (let tick = 1; tick <= state.tick; tick++) visual = orbitRev3ArtGame.step(visual, events.get(tick) ?? null);
@@ -220,5 +224,19 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     },
   },
   tendrop: simple(GOLD, TD_W, TD_H, tenDropGame, (p, a) => replayTenDropRun(seedOf(p), a)),
+  wordfall: {
+    accent: "#D4A84A",
+    worldW: WF_W,
+    worldH: WF_H,
+    drawFinal: (ctx, puzzle, answer) => {
+      if (puzzle.type !== "wordfall") return null;
+      // The final well needs the word list; without it (a cold reload) draw the start well and fetch it.
+      const state = wordfallDictReady()
+        ? replayWordfallRun(puzzle.seed, answer, puzzle.wordfallRev).state
+        : (void loadWordfallDict().catch(() => undefined), wordfallGame.init(puzzle.seed));
+      wordfallArtGame.draw(ctx, state, { width: WF_W, height: WF_H });
+      return null;
+    },
+  },
   stroop: simple(GOLD, 390, 560, colourClashGame, (p, a) => replayColourClashRun(seedOf(p), a, p.type === "stroop" ? clashVariantOf(p) : 0)),
 };

@@ -57,6 +57,7 @@ import {
   generateSwerve,
   generateWhack,
   generateTenDrop,
+  generateWordfall,
   generateClayShoot,
   generateWavefront,
   generateBastion,
@@ -87,6 +88,11 @@ import { generateStrikeout } from "./strikeout.server";
 import { generateCodeword } from "./codeword.server";
 import { generateSwapword } from "./swapword.server";
 import { wordGameSeed } from "./wordSeed.server";
+import { generateMeasure } from "./measure.server";
+import { generateCheckout } from "./checkout.server";
+import { generateNumline } from "./numline.server";
+import { randomBelow } from "./random";
+import { saltSeed } from "./seededRng";
 
 import { buildGoNoGo } from "@/puzzles/goNoGo";
 import { buildWordMatch } from "@/puzzles/wordMatch";
@@ -171,6 +177,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "beat") return generateBeat();
   if (type === "whack") return generateWhack();
   if (type === "tendrop") return generateTenDrop();
+  if (type === "wordfall") return generateWordfall();
   if (type === "clayshoot") return generateClayShoot();
   if (type === "wavefront") return generateWavefront();
   if (type === "bastion") return generateBastion();
@@ -199,8 +206,20 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "strikeout") return generateStrikeout(wordGameSeed(type, context.bankSeed));
   if (type === "codeword") return generateCodeword(wordGameSeed(type, context.bankSeed));
   if (type === "swapword") return generateSwapword(wordGameSeed(type, context.bankSeed));
+  if (type === "measure") return generateMeasure(gameSeed(type, context));
+  if (type === "checkout") return generateCheckout(gameSeed(type, context));
+  if (type === "numline") return generateNumline(gameSeed(type, context));
 
   return puzzleDef(type).generate();
+}
+
+/**
+ * Brimful, Checkout and Ballpark build from one seed: the room seed (salted by
+ * type) in rooms and practice, so a room's puzzle follows from its seed; a
+ * fresh draw otherwise (fixed under withSeededRandom for intro examples).
+ */
+function gameSeed(type: PuzzleType, context: GenerateContext): number {
+  return context.bankSeed !== undefined ? saltSeed(context.bankSeed, type) : randomBelow(0x7fff_ffff);
 }
 
 /** Generated ONCE per room so every player receives identical puzzles. */
@@ -225,16 +244,20 @@ export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContex
   };
 }
 
-/** The single place an answer is checked and scored. */
+/**
+ * The single place an answer is checked and scored. `receivedMsRemaining` is the
+ * server's own time left when a room answer arrived (tap logs are held to it).
+ */
 export function gradeAnswer(
   puzzle: PuzzleData,
   answer: string,
   msRemaining: number,
   extra?: SubmitExtra,
+  receivedMsRemaining?: number,
 ): Graded {
   return withSpeedCurve(puzzleUsesSpeedPar(puzzle), () => {
     if (puzzle.type === "wordsmith") return gradeWordsmith(puzzle, answer, msRemaining);
     if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
-    return gradeSubmission(puzzle, answer, msRemaining, extra);
+    return gradeSubmission(puzzle, answer, msRemaining, extra, receivedMsRemaining);
   });
 }

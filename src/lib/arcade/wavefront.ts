@@ -18,6 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 
 /* ============================== Constants ============================== */
@@ -212,7 +213,7 @@ export interface WavBoss {
   fireIn: number;
 }
 
-export interface WavState {
+export interface WavState extends BandFields {
   /** wavRev 2 only (absent on original rounds). */
   rev?: number;
   /** wavRev 2: fly-in ticks left (formation or boss), the formation's resting fy, divers, the dive timer. */
@@ -1124,9 +1125,9 @@ export const wavefrontGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
   key: "wavefront",
   runTicks: WAV_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: WAV_INPUT_RANGES,
 };
@@ -1139,5 +1140,24 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
 export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_BAND) return wavefrontBandGame;
   return rev === WAV_REV ? wavefrontGameV2 : wavefrontGame;
 }
+
+/* ================= Oct 2026 score bands (wavRev 3) ================= */
+
+/** Score-band revision (puzzle.wavRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const WAV_REV_BAND = 3;
+/** Ships, armour hits and boss hits count 1, saucers 5, waves 15; 140 at a perfect five waves plus every boss hit; destroying the boss adds 10. */
+export const WAV_BAND_CURVE = bandCurve([0, 100, 214, 235, 255, WAV_PAR_V2 - WAV_POINTS_BOSS], [0, 25, 72, 100, 120, 140]);
+export function wavefrontBandParts(state: WavState): BandParts {
+  const units = state.shapesDown + state.armourHits + WAV_POINTS_SAUCER * state.saucers + WAV_POINTS_WAVE * state.wavesCleared + (state.bossHits ?? 0);
+  const finished = (state.bossKilled ?? 0) > 0;
+  return { units, points: bandPoints(WAV_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.saucers} saucers · ${state.bossHits ?? 0} boss hits`, bonusText: "Boss destroyed" };
+}
+
+function scoreBand(state: WavState): number {
+  return bandTotal(wavefrontBandParts(state), Boolean(state.acted));
+}
+
+export const wavefrontBandGame: ArcadeGame<WavState, ArcadeInputEvent | null> = { ...wavefrontGameV2, init: (seed) => bandInit(wavefrontGameV2.init(seed)) };
