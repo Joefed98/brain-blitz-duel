@@ -61,33 +61,37 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let skipBefore = 0;
   let pending: number | null = null;
   const init = game.init(seed) as SkylineState;
-  return driveTaps(game, (s: SkylineState, t) => {
-    history.push(s);
-    if (s.placed !== placed) {
-      placed = s.placed;
-      spawnTick = s.tick;
-      skipBefore = 0;
-      pending = null;
-    }
-    const seen = history[Math.max(0, history.length - 1 - lag)]!;
-    if (pending === null && seen.placed === s.placed && seen.tick >= spawnTick) {
-      const at = alignTick(seen, Math.max(t, skipBefore));
-      if (at !== null && at - t <= commitLead) {
-        // Seen moving for how long before committing; too short means a rushed (or skipped) drop.
-        const watched = t - spawnTick;
-        const scale = Math.sqrt(skylineSpeed(s.placed) / SKYLINE_SPEED_START);
-        if (watched >= lag + commitLead / 2 || skipBefore > 0) {
-          const rushed = watched < lag + commitLead;
-          let err = human.timingMs(scale * (rushed ? 1.4 : 1)) / TICK_MS;
-          if (human.slip(0.5)) err += (human.chance(0.5) ? 1 : -1) * human.int(4, 10);
-          pending = Math.max(t, Math.round(at + err));
-        } else skipBefore = at + 1;
+  return driveTaps(
+    game,
+    (s: SkylineState, t) => {
+      history.push(s);
+      if (s.placed !== placed) {
+        placed = s.placed;
+        spawnTick = s.tick;
+        skipBefore = 0;
+        pending = null;
       }
-    }
-    if (pending !== null && t >= pending) {
-      pending = null;
-      return true;
-    }
-    return false;
-  }, init);
+      const seen = history[Math.max(0, history.length - 1 - lag)]!;
+      if (pending === null && seen.placed === s.placed && seen.tick >= spawnTick) {
+        const at = alignTick(seen, Math.max(t, skipBefore));
+        if (at !== null && at - t <= commitLead) {
+          // Seen moving for how long before committing; too short means a rushed (or skipped) drop.
+          const watched = t - spawnTick;
+          const scale = Math.sqrt(skylineSpeed(s.placed) / SKYLINE_SPEED_START);
+          if (watched >= lag + commitLead / 2 || skipBefore > 0) {
+            const rushed = watched < lag + commitLead;
+            let err = human.timingMs(scale * (rushed ? 1.4 : 1)) / TICK_MS;
+            if (human.slip(0.5)) err += (human.chance(0.5) ? 1 : -1) * human.int(4, 10);
+            pending = Math.max(t, Math.round(at + err));
+          } else skipBefore = at + 1;
+        }
+      }
+      if (pending !== null && t >= pending) {
+        pending = null;
+        return true;
+      }
+      return false;
+    },
+    init,
+  );
 };

@@ -13,7 +13,14 @@
  * whether to go for one; if a route over the known stretch takes it, they
  * plan for that, otherwise they let it go. Slips: a flip well off its moment.
  */
-import { FLIP_INPUT_TAP, FLIP_RUNNER_HALF_PX_V2, FLIP_RUN_TICKS, FLIP_WORLD_W, flipSpeed, type FlipState } from "../../../src/lib/arcade/flip";
+import {
+  FLIP_INPUT_TAP,
+  FLIP_RUNNER_HALF_PX_V2,
+  FLIP_RUN_TICKS,
+  FLIP_WORLD_W,
+  flipSpeed,
+  type FlipState,
+} from "../../../src/lib/arcade/flip";
 import { driveEvents, type SkillBot } from "../bot";
 
 const FP = 256;
@@ -46,7 +53,12 @@ export const bot: SkillBot = ({ game, seed, human }) => {
    * states after k more ticks. Returns whether no tap is needed, and the first window of
    * tap ticks for the next flip that keeps a route alive (and takes the wanted star).
    */
-  const solve = (s: FlipState, t: number, H: number, star: number): { idle: boolean; win: [number, number] | null } => {
+  const solve = (
+    s: FlipState,
+    t: number,
+    H: number,
+    star: number,
+  ): { idle: boolean; win: [number, number] | null } => {
     type Node = { s: FlipState; kids: [number, number] };
     const layers: Node[][] = [[{ s, kids: [-1, -1] }]];
     for (let k = 0; k < H; k++) {
@@ -76,7 +88,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const alive: boolean[][] = layers.map((l) => l.map(() => false));
     for (let k = layers.length - 1; k >= 0; k--) {
       layers[k]!.forEach((node, i) => {
-        const ok = node.s.ended === 1 || (k === layers.length - 1 && layers.length === H + 1 && (star < 0 || ((node.s.got ?? 0) & (1 << star)) !== 0));
+        const ok =
+          node.s.ended === 1 ||
+          (k === layers.length - 1 &&
+            layers.length === H + 1 &&
+            (star < 0 || ((node.s.got ?? 0) & (1 << star)) !== 0));
         alive[k]![i] = ok || node.kids.some((c) => c >= 0 && alive[k + 1]![c]!);
       });
     }
@@ -111,85 +127,93 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     return { idle, win };
   };
 
-  return driveEvents(game, (s: FlipState, t) => {
-    // New things coming into view: each is processed a reaction after it appears on screen.
-    // The later parts of a recognised pattern (an overhang pair, offset spikes) are expected:
-    // they only need the tracking lag once the pattern's first part has been processed.
-    const edge = s.x + VIEW_AHEAD;
-    for (let i = segReady.length; i < s.segs.length && s.segs[i]!.x0 <= edge; i++) {
-      const seg = s.segs[i]!;
-      const prev = i > 0 ? s.segs[i - 1]! : null;
-      const sameGroup = prev !== null && prev.group === seg.group && seg.group !== 0;
-      segReady.push(sameGroup ? Math.max(segReady[i - 1]!, t + lag) : t + human.reactTicks());
-      dirty = true;
-    }
-    const stars = s.stars ?? [];
-    for (let i = starReady.length; i < stars.length && stars[i]!.x <= edge; i++) {
-      starReady.push(t + human.reactTicks());
-      starWant.push(human.chance(STAR_TRY[level]!));
-    }
-    for (let i = 0; i < segReady.length; i++) if (segReady[i] === t) dirty = true;
-    if ((s.flipT === 0 && lastFlipT > 0) || t >= replanAt) dirty = true;
-    lastFlipT = s.flipT;
+  return driveEvents(
+    game,
+    (s: FlipState, t) => {
+      // New things coming into view: each is processed a reaction after it appears on screen.
+      // The later parts of a recognised pattern (an overhang pair, offset spikes) are expected:
+      // they only need the tracking lag once the pattern's first part has been processed.
+      const edge = s.x + VIEW_AHEAD;
+      for (let i = segReady.length; i < s.segs.length && s.segs[i]!.x0 <= edge; i++) {
+        const seg = s.segs[i]!;
+        const prev = i > 0 ? s.segs[i - 1]! : null;
+        const sameGroup = prev !== null && prev.group === seg.group && seg.group !== 0;
+        segReady.push(sameGroup ? Math.max(segReady[i - 1]!, t + lag) : t + human.reactTicks());
+        dirty = true;
+      }
+      const stars = s.stars ?? [];
+      for (let i = starReady.length; i < stars.length && stars[i]!.x <= edge; i++) {
+        starReady.push(t + human.reactTicks());
+        starWant.push(human.chance(STAR_TRY[level]!));
+      }
+      for (let i = 0; i < segReady.length; i++) if (segReady[i] === t) dirty = true;
+      if ((s.flipT === 0 && lastFlipT > 0) || t >= replanAt) dirty = true;
+      lastFlipT = s.flipT;
 
-    if (dirty && pending === null) {
-      dirty = false;
-      // Known stretch: up to the first hazard not yet processed (or the edge of view).
-      let known = edge;
-      for (let i = s.cursor; i < s.segs.length; i++) {
-        if (i >= segReady.length || segReady[i]! > t) {
-          known = Math.min(known, s.segs[i]!.x0 - FP);
+      if (dirty && pending === null) {
+        dirty = false;
+        // Known stretch: up to the first hazard not yet processed (or the edge of view).
+        let known = edge;
+        for (let i = s.cursor; i < s.segs.length; i++) {
+          if (i >= segReady.length || segReady[i]! > t) {
+            known = Math.min(known, s.segs[i]!.x0 - FP);
+            break;
+          }
+        }
+        // Ticks until the runner's front reaches the end of the known stretch.
+        let H = 0;
+        let x = s.x;
+        while (
+          H < 120 &&
+          s.tick + H < FLIP_RUN_TICKS &&
+          x + flipSpeed(s.tick + H + 1) + HALF < known
+        ) {
+          H++;
+          x += flipSpeed(s.tick + H);
+        }
+        // The next wanted star (processed, ahead, not taken) inside the known stretch.
+        let star = -1;
+        for (let i = 0; i < stars.length; i++) {
+          if ((s.got ?? 0) & (1 << i) || !starWant[i] || (starReady[i] ?? Infinity) > t) continue;
+          if (stars[i]!.x + HALF < s.x) continue;
+          if (stars[i]!.x <= known) star = i;
           break;
         }
+        replanAt = t + Math.max(4, Math.floor(H / 3));
+        let plan = solve(s, t, H, star);
+        if (star >= 0 && !plan.idle && !plan.win) {
+          starWant[star] = false;
+          plan = solve(s, t, H, -1);
+        }
+        window = plan.idle ? null : plan.win;
+        if (!plan.idle && !plan.win) window = null;
       }
-      // Ticks until the runner's front reaches the end of the known stretch.
-      let H = 0;
-      let x = s.x;
-      while (H < 120 && s.tick + H < FLIP_RUN_TICKS && x + flipSpeed(s.tick + H + 1) + HALF < known) {
-        H++;
-        x += flipSpeed(s.tick + H);
-      }
-      // The next wanted star (processed, ahead, not taken) inside the known stretch.
-      let star = -1;
-      for (let i = 0; i < stars.length; i++) {
-        if (((s.got ?? 0) & (1 << i)) || !starWant[i] || (starReady[i] ?? Infinity) > t) continue;
-        if (stars[i]!.x + HALF < s.x) continue;
-        if (stars[i]!.x <= known) star = i;
-        break;
-      }
-      replanAt = t + Math.max(4, Math.floor(H / 3));
-      let plan = solve(s, t, H, star);
-      if (star >= 0 && !plan.idle && !plan.win) {
-        starWant[star] = false;
-        plan = solve(s, t, H, -1);
-      }
-      window = plan.idle ? null : plan.win;
-      if (!plan.idle && !plan.win) window = null;
-    }
 
-    if (pending === null && window && s.flipT === 0) {
-      const a = Math.max(window[0], t);
-      const b = window[1];
-      if (b < t) {
-        window = null;
-        dirty = true;
-      } else {
-        const aim = (a + b) / 2;
-        if (aim - t <= commitLead) {
-          const ahead = aim - t;
-          let err = human.timingMs(1 + ahead / 60) / (1000 / 60);
-          if (human.slip(0.5)) err += (human.chance(0.5) ? 1 : -1) * human.int(5, 12);
-          pending = Math.max(t, Math.round(aim + err));
+      if (pending === null && window && s.flipT === 0) {
+        const a = Math.max(window[0], t);
+        const b = window[1];
+        if (b < t) {
           window = null;
+          dirty = true;
+        } else {
+          const aim = (a + b) / 2;
+          if (aim - t <= commitLead) {
+            const ahead = aim - t;
+            let err = human.timingMs(1 + ahead / 60) / (1000 / 60);
+            if (human.slip(0.5)) err += (human.chance(0.5) ? 1 : -1) * human.int(5, 12);
+            pending = Math.max(t, Math.round(aim + err));
+            window = null;
+          }
         }
       }
-    }
-    if (pending !== null && t >= pending) {
-      if (s.flipT !== 0) return null;
-      pending = null;
-      dirty = true;
-      return TAP;
-    }
-    return null;
-  }, init);
+      if (pending !== null && t >= pending) {
+        if (s.flipT !== 0) return null;
+        pending = null;
+        dirty = true;
+        return TAP;
+      }
+      return null;
+    },
+    init,
+  );
 };

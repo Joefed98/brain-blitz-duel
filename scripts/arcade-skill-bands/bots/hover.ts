@@ -112,7 +112,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         const mid2 = p.gap2Top + (p.gap2H ?? 0) / 2;
         gap = human.pick([-Math.abs(mid1 - s.y), -Math.abs(mid2 - s.y)]);
       }
-      c = { gap, star: p.starDy !== undefined && human.chance(STAR_TRY[level]!), readErr: human.normal() };
+      c = {
+        gap,
+        star: p.starDy !== undefined && human.chance(STAR_TRY[level]!),
+        readErr: human.normal(),
+      };
       choice.set(idx, c);
     }
     // Timing of the pass as perceived (lagged view, scrolled on at the speed seen); offsets from now.
@@ -141,9 +145,23 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         slope = (hoverGapTop(p, seen.tick + until + 3) - hoverGapTop(p, seen.tick + until - 3)) / 6;
       }
     }
-    const star = c.star && p.starDy !== undefined ? top + ((hoverStarY(p, seen.tick) ?? 0) - hoverGapTop(p, seen.tick)) : null;
-    const speedFrac = (hoverScroll(s.gates) - HOVER_SCROLL_START) / (HOVER_SCROLL_MAX - HOVER_SCROLL_START);
-    return { idx, entry, centre, exit, lo: top + HOVER_DISC_R, hi: top + h - HOVER_DISC_R, slope, star, scale: 1 + 0.4 * speedFrac + (moving ? 0.3 : 0) };
+    const star =
+      c.star && p.starDy !== undefined
+        ? top + ((hoverStarY(p, seen.tick) ?? 0) - hoverGapTop(p, seen.tick))
+        : null;
+    const speedFrac =
+      (hoverScroll(s.gates) - HOVER_SCROLL_START) / (HOVER_SCROLL_MAX - HOVER_SCROLL_START);
+    return {
+      idx,
+      entry,
+      centre,
+      exit,
+      lo: top + HOVER_DISC_R,
+      hi: top + h - HOVER_DISC_R,
+      slope,
+      star,
+      scale: 1 + 0.4 * speedFrac + (moving ? 0.3 : 0),
+    };
   };
 
   /**
@@ -166,7 +184,14 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const reach = HOVER_DISC_R + HOVER_STAR_R - 2 * FP;
     const E = Math.max(0, tg.entry);
     const value = (room: number, starY: number | null, taps: number) =>
-      room - taps * 0.3 * FP + (tg.star !== null && starY !== null && Math.abs(starY - tg.star) <= reach && room > STAR_ROOM[level]! * FP ? 1000 * FP : 0);
+      room -
+      taps * 0.3 * FP +
+      (tg.star !== null &&
+      starY !== null &&
+      Math.abs(starY - tg.star) <= reach &&
+      room > STAR_ROOM[level]! * FP
+        ? 1000 * FP
+        : 0);
     // Room along an explicit path over the overlap window.
     const roomOf = (path: (k: number) => number) => {
       let r = Infinity;
@@ -187,7 +212,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const noTapRoom = floorOk >= N ? roomOf((k) => traj[k]!) : -Infinity;
     if (floorOk >= N) {
       const room = noTapRoom;
-      best = { first: -1, v: value(room, tg.centre >= 0 ? traj[Math.min(N - 1, tg.centre)]! : null, 0), room };
+      best = {
+        first: -1,
+        v: value(room, tg.centre >= 0 ? traj[Math.min(N - 1, tg.centre)]! : null, 0),
+        room,
+      };
     }
     // Window extremes of an arc started at u (relative), for u at or before entry.
     const ext = (u: number) => {
@@ -209,7 +238,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const yu1 = before(u);
       // Inside the barrier a tap is only made to save the pass (it would throw the disc high for the next one).
       if (yu1 - ARC > CEIL && (!inside || noTapRoom < 3 * FP)) {
-        const room = inside ? roomOf((k) => (k < u ? traj[k]! : yu1 + RISE[k - u]!)) : Math.min(yu1 + mn - tg.lo, tg.hi - (yu1 + mx));
+        const room = inside
+          ? roomOf((k) => (k < u ? traj[k]! : yu1 + RISE[k - u]!))
+          : Math.min(yu1 + mn - tg.lo, tg.hi - (yu1 + mx));
         // A tap inside the barrier only ever saves the pass; nobody hops up mid-gap for a star.
         const v = value(room, inside ? null : starAt(yu1), 1);
         if (v > best.v) best = { first: u, v, room };
@@ -235,42 +266,46 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     return Math.max(t, due + err);
   };
 
-  return driveTaps(game, (s: HoverState, t) => {
-    history.push(s);
-    const seen = history[Math.max(0, history.length - 1 - lag)]!;
-    if (pending === null && t - lastTap >= MIN_TAP_GAP) {
-      const tg = target(s, seen, t);
-      let due = -1;
-      if (tg) {
-        // Cruise height: dips where the arc's top would sit a little above the gap's middle (or on the star).
-        const apex = tg.star ?? (tg.lo + tg.hi) / 2 - 3 * FP;
-        const low = Math.min(FLOOR - 20 * FP, apex + ARC);
-        let cruise = false;
-        if (tg.entry <= APPROACH) {
-          const p = plan(s, tg);
-          if (p.room < -10 * FP && tg.entry > 2) cruise = true;
-          else due = p.first >= 0 ? t + p.first : -1;
-        } else cruise = true;
-        if (cruise) {
-          let y = s.y;
-          let vy = s.vy;
-          for (let k = 0; k <= commitLead; k++) {
-            if ((y >= low && vy >= 0) || (y >= low + 25 * FP && vy > -3 * FP)) {
-              due = t + k;
-              break;
+  return driveTaps(
+    game,
+    (s: HoverState, t) => {
+      history.push(s);
+      const seen = history[Math.max(0, history.length - 1 - lag)]!;
+      if (pending === null && t - lastTap >= MIN_TAP_GAP) {
+        const tg = target(s, seen, t);
+        let due = -1;
+        if (tg) {
+          // Cruise height: dips where the arc's top would sit a little above the gap's middle (or on the star).
+          const apex = tg.star ?? (tg.lo + tg.hi) / 2 - 3 * FP;
+          const low = Math.min(FLOOR - 20 * FP, apex + ARC);
+          let cruise = false;
+          if (tg.entry <= APPROACH) {
+            const p = plan(s, tg);
+            if (p.room < -10 * FP && tg.entry > 2) cruise = true;
+            else due = p.first >= 0 ? t + p.first : -1;
+          } else cruise = true;
+          if (cruise) {
+            let y = s.y;
+            let vy = s.vy;
+            for (let k = 0; k <= commitLead; k++) {
+              if ((y >= low && vy >= 0) || (y >= low + 25 * FP && vy > -3 * FP)) {
+                due = t + k;
+                break;
+              }
+              vy = clampV(vy + HOVER_GRAVITY);
+              y += vy;
             }
-            vy = clampV(vy + HOVER_GRAVITY);
-            y += vy;
           }
+          if (due >= 0 && due - t <= commitLead) pending = commit(due, t, tg.scale);
         }
-        if (due >= 0 && due - t <= commitLead) pending = commit(due, t, tg.scale);
       }
-    }
-    if (pending !== null && t >= pending && t - lastTap >= MIN_TAP_GAP) {
-      pending = null;
-      lastTap = t;
-      return true;
-    }
-    return false;
-  }, init);
+      if (pending !== null && t >= pending && t - lastTap >= MIN_TAP_GAP) {
+        pending = null;
+        lastTap = t;
+        return true;
+      }
+      return false;
+    },
+    init,
+  );
 };
