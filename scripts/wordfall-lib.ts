@@ -1,5 +1,11 @@
 /** Shared helpers for the Letterfall dictionary build and its check. */
 export const WORDFALL_DATA_PATH = new URL("../src/lib/arcade/wordfallWords.data.ts", import.meta.url).pathname;
+export const WORDFALL_META_PATH = new URL("../src/lib/arcade/wordfallWords.meta.ts", import.meta.url).pathname;
+/** The phone's copy: a plain text file in public/, named by the list's hash so every version has its own URL. */
+export const WORDFALL_PUBLIC_DIR = new URL("../public/wordfall/", import.meta.url).pathname;
+export function wordfallPublicName(hash: number): string {
+  return `words-${hash.toString(16)}.txt`;
+}
 
 /** Sorted words to the front-coded string the phone decodes. */
 export function encodeWordfallWords(words: readonly string[]): string {

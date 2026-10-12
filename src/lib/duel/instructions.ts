@@ -764,7 +764,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tiles drop faster", detail: "every 18 seconds; Qu counts as two letters.", helpOnly: true },
       { action: "If a new tile can't fit", detail: "into a full column, the run ends.", helpOnly: true },
     ],
-    score: "Longer words score more; hit par for 150. Overflow a column and the run ends. Word points: 3 letters 1, 4 = 2, 5 = 4, 6 = 7, 7+ = 11; score = 150 × points ÷ par (45), capped at 150.",
+    score: "Longer words score more; hit par for 150. Overflow a column and the run ends. Word points: 3 letters 1, 4 = 2, 5 = 4, 6 = 7, 7+ = 11; score = 150 × points ÷ par (30), capped at 150.",
   },
   tendrop: {
     goal: "Make the running total hit the target exactly.",

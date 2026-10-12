@@ -64,7 +64,7 @@ export const WF_MAX_CHAIN = 12;
 /** Word points by letters: 3 = 1, 4 = 2, 5 = 4, 6 = 7, 7+ = 11. */
 export const WF_WORD_POINTS = [0, 0, 0, 1, 2, 4, 7, 11] as const;
 /** First guess; ?dev=1 shows points and par so it can be set from real sessions. */
-export const WF_PAR = 45;
+export const WF_PAR = 30;
 export const WF_SHAKE_TICKS = 24;
 /** Best words kept for the reveal. */
 export const WF_BEST_KEEP = 5;

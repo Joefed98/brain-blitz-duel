@@ -2,6 +2,7 @@ import { TILT_V2_FINISH_BONUS, TILT_V2_MAZE_POINTS, TILT_V2_STAR_POINTS } from "
 import { chainRules } from "./chain";
 import { crossLine } from "@/lib/duel/crossLine";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
+import { WF_PAR } from "@/lib/arcade/wordfall";
 import {
   checkPatternAnswer,
   decodePatternAnswers,
@@ -1248,7 +1249,7 @@ const tenDropSummary: SummaryBuilder = (result) => {
 
 const wordfallSummary: SummaryBuilder = (result) => {
   const points = Number(result.extra?.["points"] ?? 0);
-  const par = Number(result.extra?.["par"] ?? 45);
+  const par = Number(result.extra?.["par"] ?? WF_PAR);
   const words = Number(result.extra?.["words"] ?? 0);
   const best = Array.isArray(result.extra?.["best"]) ? (result.extra["best"] as unknown[]).map(String) : [];
   const overflow = result.extra?.["overflow"] === true;

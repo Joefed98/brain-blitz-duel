@@ -31,7 +31,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   by both phone and server), grading (`grade.ts`), scoring (`scoring.ts`,
   `stagedRounds.ts`, `speedPar.ts`), display names (`gameNames.ts`), dictionary
   (`dictionary.server.ts`, server-only SCOWL British list; Letterfall alone ships an exact
-  packed copy to the phone, `arcade/wordfallWords.data.ts`, rebuilt by `scripts/wordfall-dict.ts`).
+  packed copy to the phone, `public/wordfall/words-<hash>.txt`, identical to the server's
+  `arcade/wordfallWords.data.ts`; both rebuilt by `scripts/wordfall-dict.ts`).
 - `src/lib/arcade/` — the deterministic engine (`engine.ts`) and one sim per arcade game
   (`<game>.ts`), with art in `*.renderer.ts` (never imported by the sim or server).
   Seeds and revision stamps come from `src/lib/duel/arcade.server.ts`.

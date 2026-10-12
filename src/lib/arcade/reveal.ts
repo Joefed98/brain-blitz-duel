@@ -8,6 +8,7 @@
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
 import { BT_BALLS } from "./ballTrack";
 import { MATCHUP_PAR_RAW } from "./matchup";
+import { WF_PAR } from "./wordfall";
 import { HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
 
@@ -439,7 +440,7 @@ const BUILDERS: Record<string, Builder> = {
   }),
   wordfall: (r, s) => {
     const best = Array.isArray(r["best"]) ? (r["best"] as unknown[]).map(String).slice(0, 5) : [];
-    const par = n(r, "par") || 45;
+    const par = n(r, "par") || WF_PAR;
     return {
       axis: { value: Math.min(n(r, "points"), par), max: par, label: "Word points" },
       lines: [

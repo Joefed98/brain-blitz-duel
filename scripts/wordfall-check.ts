@@ -3,7 +3,8 @@
  *  1. Dictionary: the committed phone list is exactly the rebuild from the SCOWL
  *     list (minus blocked words and Q-without-U words), decodes to the stated
  *     count and hash, and agrees with the server's isWord on every SCOWL word;
- *     reports the download size it adds (raw, gzip, brotli).
+ *     the phone's public text file and cache key match it exactly; reports the
+ *     download size it adds (raw, gzip, brotli).
  *  2. Plan: the same seed gives the same queue, columns and drops (tick by tick,
  *     with no input); every 20 consecutive queue tiles hold at least 8 vowels;
  *     drop intervals fall 1.6 s → 0.8 s across five 18 s phases.
@@ -19,7 +20,7 @@
  *
  *   bun scripts/wordfall-check.ts [botSeeds]
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { brotliCompressSync, gzipSync } from "node:zlib";
 
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -61,8 +62,9 @@ import { isWord } from "@/lib/duel/dictionary.server";
 import { SCOWL_WORDS_RAW } from "@/lib/duel/wordlist.server";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
 import "@/lib/duel/wordfallDict.server";
-import { wordfallDataSource } from "./wordfall-dict";
-import { WORDFALL_DATA_PATH, wordfallWordsHash } from "./wordfall-lib";
+import { wordfallDataSource, wordfallMetaSource } from "./wordfall-dict";
+import { WORDFALL_DATA_PATH, WORDFALL_META_PATH, WORDFALL_PUBLIC_DIR, wordfallWordsHash } from "./wordfall-lib";
+import { WORDFALL_META } from "@/lib/arcade/wordfallWords.meta";
 
 const BOT_SEEDS = Number(process.argv[2] ?? 20);
 let failures = 0;
@@ -80,6 +82,8 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 /* ------------------------------ 1. Dictionary ------------------------------ */
 {
   check(readFileSync(WORDFALL_DATA_PATH, "utf8") === wordfallDataSource(), "wordfallWords.data.ts is not the current rebuild (run bun scripts/wordfall-dict.ts)");
+  check(readFileSync(WORDFALL_META_PATH, "utf8") === wordfallMetaSource(), "wordfallWords.meta.ts is not the current rebuild (run bun scripts/wordfall-dict.ts)");
+  check(WORDFALL_META.count === WORDFALL_WORD_COUNT && WORDFALL_META.hash === WORDFALL_WORDS_HASH, "phone cache key (meta) disagrees with the data file");
   const decoded = [...decodeWordfallWords(WORDFALL_WORDS_FC)];
   check(decoded.length === WORDFALL_WORD_COUNT, `decoded ${decoded.length} words, file says ${WORDFALL_WORD_COUNT}`);
   check(wordfallWordsHash(decoded) === WORDFALL_WORDS_HASH, "decoded list hash differs from the stated hash");
@@ -103,10 +107,14 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
     }
   }
   check(disagree === 0, `phone list disagrees with the server's isWord on ${disagree} words (e.g. ${example})`);
-  const js = readFileSync(WORDFALL_DATA_PATH);
+  const publicPath = WORDFALL_PUBLIC_DIR + WORDFALL_META.url.split("/").pop();
+  const txt = existsSync(publicPath) ? readFileSync(publicPath) : Buffer.from("");
+  check(txt.toString("utf8") === WORDFALL_WORDS_FC, `phone copy ${WORDFALL_META.url} is missing or differs from the server's list`);
+  check(readdirSync(WORDFALL_PUBLIC_DIR).length === 1, "public/wordfall holds stale word-list versions");
+  const js = txt;
   console.log(
     `dictionary: ${WORDFALL_WORD_COUNT} words, agrees with isWord on ${scowl.size} SCOWL words; ` +
-      `download ${(js.length / 1024).toFixed(0)} KB raw, ${(gzipSync(js).length / 1024).toFixed(0)} KB gzip, ${(brotliCompressSync(js).length / 1024).toFixed(0)} KB brotli`,
+      `phone download (${WORDFALL_META.url}) ${(js.length / 1024).toFixed(0)} KB raw, ${(gzipSync(js).length / 1024).toFixed(0)} KB gzip, ${(brotliCompressSync(js).length / 1024).toFixed(0)} KB brotli`,
   );
 }
 
@@ -168,7 +176,7 @@ function idleRun(seed: number): { drops: DropRecord[]; state: WordfallState } {
   const intervals = [0, 1079, 1080, 2160, 3240, 4320, 5399].map(wfDropInterval);
   check(same(intervals, [96, 96, 84, 72, 60, 48, 48]), `drop intervals ${intervals.join(",")}`);
   check(same([3, 4, 5, 6, 7, 9, 12].map(wfWordPoints), [1, 2, 4, 7, 11, 11, 11]), "word points table");
-  check(wordfallScore(45) === 150 && wordfallScore(60) === 150 && wordfallScore(30) === 100 && wordfallScore(1) === 3 && wordfallScore(0) === 0, "score formula");
+  check(wordfallScore(30) === 150 && wordfallScore(60) === 150 && wordfallScore(15) === 75 && wordfallScore(1) === 5 && wordfallScore(0) === 0, "score formula");
   console.log("plan: 2000 seeds, every 20-tile window ≥ 8 vowels, balanced column bags, identical drops per seed");
 }
 

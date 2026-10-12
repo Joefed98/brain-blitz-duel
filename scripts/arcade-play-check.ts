@@ -27,7 +27,8 @@
  *    not the largest uniform fit of its slot, not top-anchored and centred, or its top
  *    moving between sizes; the space below the arena not painted the arena fill at the arena's width; the column not ending
  *    6-8 px above the bottom; a control below the arena under 44 px or off screen;
- *    for ENGINE_GAME_WORLDS games, the play column or the arena canvas not touch-action: none.
+ *    for ENGINE_GAME_WORLDS games, the play column or the arena canvas not touch-action: none;
+ *  - Letterfall: its word list was not cached on the device (IndexedDB) after play.
  *
  * It starts its own Vite dev server unless --url=<origin> is given.
  *
@@ -51,6 +52,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { ARCADE_FX_SPECS, ARCADE_GAME_WORLDS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { ARCADE_ARENA_FILL, ENGINE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
+import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
 
 const args = process.argv.slice(2);
 const RECORD = args.includes("--record");
@@ -465,6 +467,22 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
       }
       liveTotal += Math.max(seg.liveMs, 1);
       segments.push(seg);
+    }
+    if (game === "wordfall") {
+      // The word list loaded for play must now sit in the device cache, keyed by its version.
+      const version = await page.evaluate(() => new Promise<string | null>((done) => {
+        const open = indexedDB.open("duelz-wordfall", 1);
+        open.onerror = () => done(null);
+        open.onsuccess = () => {
+          try {
+            const get = open.result.transaction("words", "readonly").objectStore("words").get("packed");
+            get.onsuccess = () => done((get.result as { version?: string } | undefined)?.version ?? null);
+            get.onerror = () => done(null);
+          } catch { done(null); }
+        };
+      }));
+      const want = `${WORDFALL_META.hash}:${WORDFALL_META.count}`;
+      if (version !== want) problems.push(`word list not cached on the device (IndexedDB version ${version}, want ${want})`);
     }
     result.meanFrameMs = mean(segments.flatMap((sg) => sg.gaps));
     if (!RECORD) judge(result, segments, liveTotal, base, game);

@@ -8,7 +8,7 @@ import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
 import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
-import { preloadGameData } from "@/lib/duel/gamePreload";
+import { preloadGameData, useGameDataReady } from "@/lib/duel/gamePreload";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -69,6 +69,8 @@ export function RoundIntro({
   const seconds = Math.round((limitMs - (usesArcadeClock(type) ? 3000 : 0)) / 1000);
   const twoPlayer = activeCount === 2;
   const theme = puzzleDef(type).theme;
+  // Letterfall's word list: READY stays held until it is installed (normally long before).
+  const dataReady = useGameDataReady(type);
   const countdownCued = useRef("");
   useEffect(() => {
     if (!counting) return;
@@ -182,13 +184,13 @@ export function RoundIntro({
           <div className="sticky bottom-0 z-10 flex shrink-0 flex-col items-center gap-2 bg-background pt-1">
             <Button
               type="button"
-              disabled={ready}
+              disabled={ready || !dataReady}
               onClick={onReady}
               className={`press h-[60px] w-full rounded-2xl font-display text-2xl font-bold uppercase tracking-[0.12em] disabled:opacity-100 ${
                 ready ? "bg-opponent text-primary-foreground" : "bg-primary text-primary-foreground"
               }`}
             >
-              {ready ? "Ready ✓" : "Ready"}
+              {!dataReady ? "Loading words…" : ready ? "Ready ✓" : "Ready"}
             </Button>
 
             <p className="flex h-5 items-center gap-1.5 font-mono text-xs text-muted-foreground">
