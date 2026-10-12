@@ -6,6 +6,7 @@ import {
   juncBuildOrder,
   juncCheckpoint,
   JUNC_REV,
+  JUNC_REV_BAND,
   JUNC_BG,
   JUNC_CAR_COLOURS,
   JUNC_CHECKPOINT_INTERVAL,
@@ -44,7 +45,7 @@ function IntroExample() {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: JunctionPuzzleData | null = puzzle.type === "junction" ? puzzle : null;
-  const rev2 = data?.junctionRev === JUNC_REV;
+  const rev2 = data?.junctionRev === JUNC_REV || data?.junctionRev === JUNC_REV_BAND;
   const seed = data?.seed ?? 1;
   const builds = useMemo(() => juncBuildOrder(seed), [seed]);
   // The sim tick, so a tap only maps to a light that is already built (rev 2).

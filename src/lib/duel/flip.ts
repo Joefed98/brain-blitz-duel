@@ -6,6 +6,7 @@ import {
   flipStarsTaken,
   FLIP_CHECKPOINT_INTERVAL,
   FLIP_REV,
+  FLIP_REV_BAND,
   FLIP_CHECKPOINT_KEYS,
   type FlipCheckpoint,
   type FlipState,
@@ -22,6 +23,8 @@ const runFor = (rev?: number | null) =>
   });
 const run = runFor(null);
 const runV2 = runFor(FLIP_REV);
+/** flipRev 3: rev-2 play on the Oct 2026 score bands. */
+const runBand = runFor(FLIP_REV_BAND);
 
 export interface FlipResult extends FlatReplay<FlipState, FlipCheckpoint> {
   survived: boolean;
@@ -36,7 +39,7 @@ export const decodeFlipRun = run.decode;
 
 /** The single place a Flip score is worked out. */
 export function replayFlipRun(seed: number, raw: string, rev?: number | null): FlipResult {
-  const result = (rev === FLIP_REV ? runV2 : run).replay(seed, raw);
+  const result = (rev === FLIP_REV_BAND ? runBand : rev === FLIP_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return { ...result, survived: s.ended !== 2, survivedSeconds: s.tick / 60, stars: flipStarsTaken(s), starsTotal: s.stars?.length ?? 0 };
 }

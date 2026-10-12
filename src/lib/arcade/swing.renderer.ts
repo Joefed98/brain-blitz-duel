@@ -19,6 +19,7 @@ import {
   SWING_JET_ERUPT,
   SWING_JET_HALF_W,
   SWING_REV,
+  SWING_REV_BAND,
   SWING_ROCK_HALF_H,
   SWING_ROCK_HALF_W,
   SWING_ROCK_WARN,
@@ -575,7 +576,9 @@ export const swingArtGame = { ...swingGame, draw: drawSwingArt };
 const dragonArtGameV2 = { ...swingGameFor(2), draw: drawSwingArt };
 const dragonArtGameV3 = { ...swingGameFor(3), draw: drawSwingArt };
 const chaseArtGameV4 = { ...swingGameFor(SWING_REV), draw: drawSwingArt };
+const bandArtGameV5 = { ...swingGameFor(SWING_REV_BAND), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_BAND) return bandArtGameV5;
   if (rev === SWING_REV) return chaseArtGameV4;
   if (rev === 3) return dragonArtGameV3;
   if (rev === 2) return dragonArtGameV2;

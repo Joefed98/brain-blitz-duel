@@ -24,6 +24,7 @@ import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnost
 import { GAMES, type GameSpec } from "./arcade-skill-bands/games";
 import { Human, LEVELS, LEVEL_LABEL, type SkillLevel } from "./arcade-skill-bands/human";
 import type { SkillBot } from "./arcade-skill-bands/bot";
+import { UNITS } from "./arcade-skill-bands/units";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -44,6 +45,9 @@ export interface RunRecord {
   seed: number;
   score: number;
   counters: Record<string, number>;
+  /** Achievement units of the final state (scripts/arcade-skill-bands/units.ts). */
+  units: number;
+  finished: boolean;
   flagged: boolean;
   /** Bot sim score disagreed with the server replay (should never happen). */
   mismatch: boolean;
@@ -89,6 +93,8 @@ function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live
     seed,
     score: result.score,
     counters,
+    units: UNITS[spec.type]?.(result.state).u ?? 0,
+    finished: UNITS[spec.type]?.(result.state).finished ?? false,
     flagged: Boolean(result.flagged),
     mismatch: result.score !== score,
     ms: performance.now() - started,

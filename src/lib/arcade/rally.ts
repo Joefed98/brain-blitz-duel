@@ -23,6 +23,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -118,7 +119,7 @@ export interface RallyEntry {
   vy: number;
 }
 
-export interface RallyState {
+export interface RallyState extends BandFields {
   tick: number;
   rng: number;
   aimX: number;
@@ -499,9 +500,9 @@ export const rallyGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
   key: "rally",
   runTicks: RALLY_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: RALLY_INPUT_RANGES,
 };
@@ -541,5 +542,28 @@ export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { 
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
 export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  if (rev === RALLY_REV_BAND) return rallyBandGame;
   return rev === RALLY_REV ? rallyRev2Game : rallyGame;
 }
+
+/* ================= Oct 2026 score bands (rallyRev 3) ================= */
+
+/** Score-band revision (puzzle.rallyRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const RALLY_REV_BAND = 3;
+/** Gold-ball hits count 5 and pink targets 6; 150 at 220. */
+export const RALLY_BAND_CURVE = bandCurve([0, 100, 130, 155, 185, 220], [0, 70, 100, 125, 145, 150]);
+
+export function rallyBandUnits(goldHits: number, targetHits: number): number {
+  return 5 * Math.max(0, goldHits) + 6 * Math.max(0, targetHits);
+}
+
+export function rallyBandParts(state: RallyState): BandParts {
+  const units = rallyBandUnits(state.goldHits, state.targetHits ?? 0);
+  return { units, points: bandPoints(RALLY_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${state.goldHits} gold hits · ${state.targetHits ?? 0} targets` };
+}
+
+function scoreBand(state: RallyState): number {
+  return bandTotal(rallyBandParts(state), Boolean(state.acted));
+}
+
+export const rallyBandGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = { ...rallyRev2Game, init: (seed) => bandInit(rallyRev2Game.init(seed)) };

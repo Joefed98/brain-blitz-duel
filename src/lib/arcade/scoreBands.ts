@@ -70,6 +70,13 @@ export function bandOpen(curve: BandCurve, achieved: number): number {
   return clampInt(bandPoints(curve, achieved), 0, 150);
 }
 
+/** The "?" help SCORE text for a band game: what counts, the curve's knots, and the finish rule. */
+export function bandHelp(units: string, curve: BandCurve, finish?: string): string {
+  const top = curve.points[curve.points.length - 1]!;
+  const knots = `Points follow ${bandKnotText(curve)}, in straight lines between`;
+  return finish ? `${units} ${knots} (up to ${top}). ${finish} Up to 150.` : `${units} ${knots}: 150 at ${bandTop(curve).toLocaleString("en-GB")}.`;
+}
+
 /** "a → p" pairs for the "?" help, e.g. "1 → 14, 5 → 80, 10 → 140". */
 export function bandKnotText(curve: BandCurve, unit = ""): string {
   return curve.units
@@ -77,4 +84,82 @@ export function bandKnotText(curve: BandCurve, unit = ""): string {
     .filter(([u]) => u > 0)
     .map(([u, p]) => `${u.toLocaleString("en-GB")}${unit} → ${p}`)
     .join(", ");
+}
+
+/* ============================ Stamped states ============================ */
+
+/**
+ * Fields a band-stamped state carries (absent on every earlier round, so those
+ * replay byte-for-byte). `band` marks the Oct 2026 rules; `acted` turns 1 on
+ * the first tick with a player input, and a run with none scores 0.
+ */
+export interface BandFields {
+  band?: number;
+  acted?: number;
+}
+
+export const BAND_REV_MARK = 1;
+
+function isInput(input: unknown): boolean {
+  return input !== null && input !== undefined && input !== false;
+}
+
+/**
+ * Wraps a sim's step: on a band-stamped state it carries `band` forward and
+ * sets `acted` once an input arrives; `track` may add more band-only facts.
+ * Unstamped states pass straight through, untouched.
+ */
+export function bandStep<S, I>(step: (state: S, input: I) => S, track?: (prev: S, next: S) => S): (state: S, input: I) => S {
+  return (state: S, input: I): S => {
+    const next = step(state, input);
+    const prev = state as S & BandFields;
+    if (!prev.band || next === state) return next;
+    const acted = prev.acted || isInput(input) ? 1 : 0;
+    let out = next as S & BandFields;
+    if (out.band !== prev.band || (out.acted ?? 0) !== acted) out = { ...out, band: prev.band, acted };
+    return track ? track(state, out) : out;
+  };
+}
+
+/** Wraps a sim's score: band-stamped states score by `band`, every other state by the original rule. */
+export function bandScoreOf<S>(original: (state: S) => number, band: (state: S) => number): (state: S) => number {
+  return (state: S) => ((state as S & BandFields).band ? band(state) : original(state));
+}
+
+/** Marks an initial state as band-stamped. */
+export function bandInit<S>(state: S): S {
+  return { ...state, band: BAND_REV_MARK, acted: 0 };
+}
+
+/** One game's band score, broken down for the reveal. */
+export interface BandParts {
+  /** Achievement units and the points the curve gives them. */
+  units: number;
+  points: number;
+  /** Finish bonus earned (0 when not finished or an open game). */
+  bonus: number;
+  /** Penalty taken after the curve (e.g. Slice chillies), as a positive number. */
+  penalty: number;
+  finished: boolean;
+  /** Plain words for the achievement, e.g. "7 / 10 buckets · 2 hoops". */
+  text: string;
+  /** Plain words for the finish bonus, e.g. "all 10 in". */
+  bonusText?: string;
+  penaltyText?: string;
+}
+
+/** The score a breakdown adds up to; no input at all scores 0. */
+export function bandTotal(parts: BandParts, acted: boolean): number {
+  if (!acted) return 0;
+  return clampInt(parts.points + parts.bonus - parts.penalty, 0, 150);
+}
+
+/** Reveal lines for a breakdown (they always add up to the stored score). */
+export function bandLines(parts: BandParts, score: number, acted = true): string[] {
+  if (!acted) return [`${parts.text} · no input → 0`];
+  const lines = [`${parts.text} → ${parts.points}`];
+  if (parts.bonus > 0) lines.push(`${parts.bonusText ?? "Finished"} +${parts.bonus}`);
+  if (parts.penalty > 0) lines.push(`${parts.penaltyText ?? "Penalty"} −${parts.penalty}`);
+  if (score !== parts.points) lines.push(`Total → ${score}`);
+  return lines;
 }
