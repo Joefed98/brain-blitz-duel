@@ -11,8 +11,10 @@ import {
   bullseyeCheckpoint,
   bullseyeFinished,
   bullseyeGame,
-  bullseyeInit,
+  bullseyeInitFor,
   bullseyeInner,
+  bullseyeInnerBulls,
+  bullseyePops,
   BULLSEYE_ARROWS,
   BULLSEYE_CHECKPOINT_INTERVAL,
   BULLSEYE_INPUT_RANGES,
@@ -98,6 +100,12 @@ export function decodeBullseyeRun(raw: string): BullseyeRun {
 export interface BullseyeResult {
   arrows: number;
   total: number;
+  /** Rev 2: darts in the inner bull, balloons popped, and balloons in the run (0 on older rounds). */
+  innerBulls: number;
+  pops: number;
+  balloons: number;
+  /** The revision the run was played on (0 = unstamped). */
+  bullRev: number;
   /** Arrows in the gold or red rings. */
   inner: number;
   hits: BullseyeHit[];
@@ -120,6 +128,7 @@ export function replayBullseyeRun(
   seed: number,
   raw: string,
   winds?: readonly number[],
+  rev?: number | null,
 ): BullseyeResult {
   const run = decodeBullseyeRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BULLSEYE_RUN_TICKS) : 0;
@@ -130,7 +139,7 @@ export function replayBullseyeRun(
   const lastTick = clientLag ? endTick : BULLSEYE_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
-  let state = bullseyeInit(seed, winds);
+  let state = bullseyeInitFor(seed, winds, rev);
   let reached = 0;
   let desyncTick: number | null = null;
   const serverCheckpoints: BullseyeCheckpoint[] = [];
@@ -159,6 +168,10 @@ export function replayBullseyeRun(
     arrows: BULLSEYE_ARROWS,
     total: state.total,
     inner: bullseyeInner(state),
+    innerBulls: bullseyeInnerBulls(state),
+    pops: bullseyePops(state),
+    balloons: (state.balloons ?? []).filter(Boolean).length,
+    bullRev: state.rev ?? 0,
     hits: state.hits,
     finished: bullseyeFinished(state),
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,

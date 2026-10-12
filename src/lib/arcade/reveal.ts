@@ -85,25 +85,40 @@ const BUILDERS: Record<string, Builder> = {
   }),
   bintoss: (r, s) => {
     const done = n(r, "baskets") >= 10;
+    const hoops = n(r, "hoops");
+    const bonus = 3 * n(r, "swishes");
     return {
       axis: { value: n(r, "baskets"), max: 10, label: "Buckets" },
-      lines: [head(`${n(r, "baskets")} / 10 buckets`, s, done)],
+      lines:
+        hoops > 0
+          ? [
+              done && s >= 130 ? `10 / 10 buckets → 130 · time +${Math.max(0, s - 130 - bonus)}` : `${n(r, "baskets")} / 10 buckets → ${10 * n(r, "baskets")}`,
+              `${n(r, "swishes")} / ${hoops} hoop bonuses → +${bonus}`,
+              `Total → ${s}`,
+            ]
+          : [head(`${n(r, "baskets")} / 10 buckets`, s, done)],
       tiles: [
         { label: "Buckets", value: `${n(r, "baskets")} / 10` },
+        ...(hoops > 0 ? [{ label: "Hoop bonuses", value: `${n(r, "swishes")} / ${hoops}` }] : []),
         { label: "Throws", value: String(n(r, "throws")) },
       ],
       outcome: done ? "finish" : "time",
     };
   },
-  bullseye: (r, s) => ({
-    axis: { value: n(r, "total"), max: 100, label: "Ring total" },
-    lines: [`${n(r, "total")} / 100 rings → ${s}`],
-    tiles: [
-      { label: "Bullseyes", value: String(n(r, "inner")) },
-      { label: "Darts", value: String(n(r, "arrows")) },
-    ],
-    outcome: b(r, "finished") ? "finish" : "time",
-  }),
+  bullseye: (r, s) => {
+    // bullRev 2: inner bulls and balloons score 12, so the axis runs to 120.
+    const rev2 = n(r, "bullRev") === 2;
+    return {
+      axis: { value: n(r, "total"), max: rev2 ? 120 : 100, label: "Dart total" },
+      lines: rev2 ? [`${n(r, "total")} points from 10 darts → ${s}`] : [`${n(r, "total")} / 100 rings → ${s}`],
+      tiles: [
+        { label: "Bullseyes", value: String(n(r, "inner")) },
+        ...(rev2 ? [{ label: "Inner bulls", value: String(n(r, "innerBulls")) }, { label: "Balloons", value: `${n(r, "pops")} / ${n(r, "balloons")}` }] : []),
+        { label: "Darts", value: String(n(r, "arrows")) },
+      ],
+      outcome: b(r, "finished") ? "finish" : "time",
+    };
+  },
   matchup: (r, s) => ({
     axis: { value: n(r, "raw"), max: n(r, "parRaw") || MATCHUP_PAR_RAW, label: "Match points" },
     lines: [`${n(r, "raw").toLocaleString("en-GB")} match points → ${s}`],
@@ -131,9 +146,13 @@ const BUILDERS: Record<string, Builder> = {
   },
   rally: (r, s) => ({
     axis: { value: n(r, "goldHits"), max: null, label: "Gold-ball hits" },
-    lines: [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold → ${s}`],
+    lines:
+      n(r, "rallyRev") === 2
+        ? [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold · ${n(r, "targetHits")} targets → ${s}`]
+        : [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold → ${s}`],
     tiles: [
       { label: "Gold hits", value: String(n(r, "goldHits")) },
+      ...(n(r, "rallyRev") === 2 ? [{ label: "Targets", value: String(n(r, "targetHits")) }] : []),
       { label: "All hits", value: String(n(r, "hits")) },
       { label: "Paddle", value: `${n(r, "paddleWidth")} px` },
     ],
@@ -179,6 +198,7 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Perfects", value: String(n(r, "perfect")) },
       { label: "Best combo", value: String(n(r, "maxCombo")) },
       { label: "Holds", value: `${n(r, "holdsDone")} / ${n(r, "holds")}` },
+      ...(n(r, "swipes") > 0 ? [{ label: "Swipes", value: `${n(r, "swipesHit")} / ${n(r, "swipes")}` }] : []),
     ],
     outcome: "time",
   }),
@@ -269,14 +289,25 @@ const BUILDERS: Record<string, Builder> = {
     const rev = n(r, "rev");
     const current = levels < total ? levels + 1 : total;
     let phase = "";
-    if (rev === 3 && levels < total) {
-      phase = current <= 4 ? " (Standard)" : current <= 8 ? " (Moving Pot)" : " (Live)";
+    // Which kind of level the run stopped on, in plain words.
+    if (rev >= 3 && levels < total) {
+      phase = current <= 4 ? `, stopped on level ${current}: still pot` : current <= 8 ? `, stopped on level ${current}: moving pot` : `, stopped on level ${current}: live drawing`;
     }
+    const starLevels = n(r, "starLevels");
+    const bonus = 2 * n(r, "stars");
     return {
       axis: { value: levels, max: 10, label: "Levels" },
-      lines: [head(`${levels} / ${total} levels${phase}`, s, done)],
+      lines:
+        starLevels > 0
+          ? [
+              done && s >= 130 ? `10 / 10 levels → 130 · time +${Math.max(0, s - 130 - bonus)}` : `${levels} / ${total} levels${phase} → ${11 * levels}`,
+              `${n(r, "stars")} / ${starLevels} gold stars → +${bonus}`,
+              `Total → ${s}`,
+            ]
+          : [head(`${levels} / ${total} levels${phase}`, s, done)],
       tiles: [
         { label: "Levels", value: String(levels) },
+        ...(starLevels > 0 ? [{ label: "Gold stars", value: `${n(r, "stars")} / ${starLevels}` }] : []),
         { label: "Fails", value: String(n(r, "fails")) },
       ],
       outcome: done ? "finish" : "time",
@@ -307,6 +338,7 @@ const BUILDERS: Record<string, Builder> = {
       tiles: [
         { label: "Checkpoint planet", value: typeof r["checkpoint"] === "number" && n(r, "checkpoint") >= 0 ? String(n(r, "checkpoint")) : "none" },
         { label: "Planets", value: String(n(r, "captured")) },
+        ...(n(r, "holes") > 0 ? [{ label: "Black holes", value: `${n(r, "jumps")} / ${n(r, "holes")} (+${n(r, "skipped")} planets)` }] : []),
       ],
       outcome: done ? "finish" : ended(r, false),
     };

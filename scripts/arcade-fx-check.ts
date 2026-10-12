@@ -56,7 +56,9 @@ const { hoverArtGame } = await import("../src/lib/arcade/hover.renderer");
 const { hoverRev2Game } = await import("../src/lib/arcade/hover");
 const { breakerArtGameFor } = await import("../src/lib/arcade/breaker.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
+const { rallyRev2Game } = await import("../src/lib/arcade/rally");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
+const { beatRev2Game } = await import("../src/lib/arcade/beat");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
 const { snakeRev3Game } = await import("../src/lib/arcade/snake");
 const { burstArtGameFor } = await import("../src/lib/arcade/burst.renderer");
@@ -69,8 +71,9 @@ const { junctionRev2ArtGame: junctionArtGame } = await import("../src/lib/arcade
 const { inkBridgeArtGameFor } = await import("../src/lib/arcade/inkBridge.renderer");
 const { sliceArtGameFor } = await import("../src/lib/arcade/slice.renderer");
 const { binTossArtGame } = await import("../src/lib/arcade/binTossArt.renderer");
+const { binTossGameFor } = await import("../src/lib/arcade/binToss");
 const { drawBullseye } = await import("../src/lib/arcade/bullseye.renderer");
-const { bullseyeGame } = await import("../src/lib/arcade/bullseye");
+const { bullseyeGame, bullseyeRev2Game } = await import("../src/lib/arcade/bullseye");
 const { bubbleArtGame } = await import("../src/lib/arcade/bubble.renderer");
 const { bubbleRev2Game } = await import("../src/lib/arcade/bubble");
 const { flipArtGameFor } = await import("../src/lib/arcade/flipArt.renderer");
@@ -106,8 +109,8 @@ const btGame = makeBallTrackGame(course, 2);
 const GAMES: Record<string, AnyGame> = {
   hover: { ...hoverArtGame, init: hoverRev2Game.init } as AnyGame,
   breaker: breakerArtGameFor(2) as AnyGame,
-  rally: rallyArtGame as AnyGame,
-  beat: beatArtGame as AnyGame,
+  rally: { ...rallyArtGame, init: rallyRev2Game.init } as AnyGame,
+  beat: { ...beatArtGame, init: beatRev2Game.init } as AnyGame,
   snake: { ...snakeArtGame, init: snakeRev3Game.init } as AnyGame,
   burst: burstArtGameFor(2) as AnyGame,
   wavefront: wavefrontArtGameFor(2) as AnyGame,
@@ -115,10 +118,10 @@ const GAMES: Record<string, AnyGame> = {
   skyline: { ...skylineArtGame, init: skylineRev2Game.init } as AnyGame,
   cross: crossArtGameFor(3) as AnyGame,
   junction: junctionArtGame as AnyGame,
-  inkbridge: inkBridgeArtGameFor(3) as AnyGame,
+  inkbridge: inkBridgeArtGameFor(4) as AnyGame,
   slice: sliceArtGameFor(2) as AnyGame,
-  bintoss: binTossArtGame as AnyGame,
-  bullseye: { ...bullseyeGame, draw: drawBullseye } as AnyGame,
+  bintoss: { ...binTossArtGame, init: binTossGameFor(3).init } as AnyGame,
+  bullseye: { ...bullseyeGame, init: bullseyeRev2Game.init, draw: drawBullseye } as AnyGame,
   bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
   flip: flipArtGameFor(2) as AnyGame,
   swing: swingArtGameFor(4) as AnyGame,
@@ -244,8 +247,13 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     }),
     (s) => ({ ...s, cleared: true }),
   ],
-  rally: [(s) => ({ ...s, hits: s.hits + 10 }), (s) => ({ ...s, goldHits: s.goldHits + 1 })],
-  beat: [(s) => ({ ...s, combo: s.combo + 10 }), (s) => ({ ...s, maxCombo: s.chart.ticks.length })],
+  rally: [
+    (s) => ({ ...s, hits: s.hits + 10 }),
+    (s) => ({ ...s, goldHits: s.goldHits + 1 }),
+    (s) => ({ ...s, targetHits: (s.targetHits ?? 0) + 1, struckLeft: 60, struckTick: s.tick + 1 }),
+    (s) => ({ ...s, bounces: (s.bounces ?? 0) + 1 }),
+  ],
+  beat: [(s) => ({ ...s, combo: s.combo + 10 }), (s) => ({ ...s, swipesHit: (s.swipesHit ?? 0) + 1, lastLane: 2 }), (s) => ({ ...s, maxCombo: s.chart.ticks.length })],
   snake: [
     (s) => ({ ...s, eaten: s.eaten + 10 }),
     (s) => ({ ...s, dead: false, rocks: [...(s.rocks ?? []), 2 * 15 + 2] }),
@@ -285,7 +293,7 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, busCleared: (s.busCleared ?? 0) + 1 }),
     (s) => ({ ...s, diagCleared: (s.diagCleared ?? 0) + 5 }),
   ],
-  inkbridge: [(s) => ({ ...s, levels: s.levels + 1 }), (s) => ({ ...s, levels: 10 })],
+  inkbridge: [(s) => ({ ...s, levels: s.levels + 1 }), (s) => ({ ...s, stars: (s.stars ?? 0) + 1 }), (s) => ({ ...s, levels: 10 })],
   slice: [
     (s) => ({ ...s, comboLive: 1, streak: 2 }),
     (s) => ({ ...s, frenzyFrom: [...s.frenzyFrom, s.tick] }),
@@ -294,13 +302,20 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, mayo: [...(s.mayo ?? []), s.tick, 195, 300] }),
     (s) => ({ ...s, slices: s.slices + 5 }),
   ],
-  bintoss: [(s) => ({ ...s, results: [...s.results, 1, 1, 1] }), (s) => ({ ...s, baskets: 10 })],
+  bintoss: [
+    (s) => ({ ...s, results: [...s.results, 1, 1, 1] }),
+    (s) => ({ ...s, swishes: (s.swishes ?? 0) + 1 }),
+    (s) => ({ ...s, spinBaskets: (s.spinBaskets ?? 0) + 1 }),
+    (s) => ({ ...s, baskets: 10 }),
+  ],
   bullseye: [
     (s) => ({
       ...s,
       flightTick: 0,
       hits: [...s.hits, { x: 195, y: 224, ring: 0, value: 10, arrow: 0 }],
     }),
+    (s) => ({ ...s, flightTick: 0, hits: [...s.hits, { x: 195, y: 224, ring: 0, value: 12, arrow: 0, bull: 1, pop: 0 }] }),
+    (s) => ({ ...s, flightTick: 0, hits: [...s.hits, { x: 120, y: 160, ring: -1, value: 12, arrow: 2, bull: 0, pop: 1 }] }),
     (s) => ({
       ...s,
       flightTick: 0,

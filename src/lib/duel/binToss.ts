@@ -101,6 +101,9 @@ export interface BinTossResult {
   results: boolean[];
   /** Every throw taken and every one of them in. */
   perfect: boolean;
+  /** Rev 3: balls through the bonus hoop and into the bucket, and hoops in the run (0 on older rounds). */
+  swishes: number;
+  hoops: number;
   endedSeconds: number;
   score: number;
   flagged: boolean;
@@ -156,6 +159,8 @@ export function replayBinTossRun(seed: number, raw: string, rev?: number | null)
     throws: BINTOSS_THROWS,
     results: state.results.map((value) => value === 1),
     perfect: binTossPerfect(state),
+    swishes: state.swishes ?? 0,
+    hoops: (state.hoops ?? []).filter(Boolean).length,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,
     flagged: !check.ok || mismatch || desyncTick !== null,

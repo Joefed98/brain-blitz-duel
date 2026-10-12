@@ -1064,7 +1064,7 @@ export function gradeSubmission(
     }
     case "rally": {
       const replayStart = performance.now();
-      const run = replayRallyRun(puzzle.seed, answer);
+      const run = replayRallyRun(puzzle.seed, answer, puzzle.rallyRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1075,6 +1075,8 @@ export function gradeSubmission(
       extraDetail = {
         hits: run.hits,
         goldHits: run.goldHits,
+        targetHits: run.targetHits,
+        rallyRev: run.rallyRev,
         paddleWidth: run.paddleWidth,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
@@ -1178,7 +1180,7 @@ export function gradeSubmission(
     }
     case "beat": {
       const replayStart = performance.now();
-      const run = replayBeatRun(puzzle.seed, answer);
+      const run = replayBeatRun(puzzle.seed, answer, puzzle.beatRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1195,6 +1197,10 @@ export function gradeSubmission(
         misses: run.misses,
         strays: run.strays,
         maxCombo: run.maxCombo,
+        holds: run.holds,
+        holdsDone: run.holdsDone,
+        swipes: run.swipes,
+        swipesHit: run.swipesHit,
         clean: run.clean,
         finished: run.finished,
         endedSeconds: run.endedSeconds,
@@ -1503,6 +1509,8 @@ export function gradeSubmission(
         levels: run.levels,
         total: run.total,
         fails: run.fails,
+        stars: run.stars,
+        starLevels: run.starLevels,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,
@@ -1546,7 +1554,7 @@ export function gradeSubmission(
     }
     case "orbit": {
       const replayStart = performance.now();
-      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets);
+      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1557,6 +1565,8 @@ export function gradeSubmission(
       extraDetail = {
         passed: run.passed,
         captured: run.captured,
+        jumps: "jumps" in run ? run.jumps : 0,
+        skipped: "skipped" in run ? run.skipped : 0,
         finished: run.finished,
         secondsLeft: run.secondsLeft,
         total: run.total,
@@ -1833,6 +1843,8 @@ export function gradeSubmission(
       extraDetail = {
         baskets: run.baskets,
         throws: run.throws,
+        swishes: run.swishes,
+        hoops: run.hoops,
         results: run.results,
         perfect: run.perfect,
         endedSeconds: run.endedSeconds,
@@ -1877,7 +1889,7 @@ export function gradeSubmission(
     }
     case "bullseye": {
       const replayStart = performance.now();
-      const run = replayBullseyeRun(puzzle.seed, answer, puzzle.winds);
+      const run = replayBullseyeRun(puzzle.seed, answer, puzzle.winds, puzzle.bullRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1889,6 +1901,10 @@ export function gradeSubmission(
         total: run.total,
         inner: run.inner,
         arrows: run.arrows,
+        innerBulls: run.innerBulls,
+        pops: run.pops,
+        balloons: run.balloons,
+        bullRev: run.bullRev,
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

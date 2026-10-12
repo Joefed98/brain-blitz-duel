@@ -494,9 +494,51 @@ export function proveOrbitRev3Layout(seed: number, worldW = ORBIT_REV3_WORLD_W):
 
 /* ================================ State ================================ */
 
+/* ============================ Rev 4: black holes ============================ */
+
+/**
+ * A black hole near planet `from`, at (x, y) in 1/256 px. A flight released
+ * from `from` that passes within ORBIT_HOLE_R of its centre is swallowed and
+ * comes out in orbit round planet `to` (5 or 6 planets on); the planets in
+ * between count as reached. Holes are found and proved offline and shipped
+ * in the puzzle (scripts/orbit-hole-bank.ts).
+ */
+export interface OrbitHole {
+  from: number;
+  to: number;
+  x: number;
+  y: number;
+}
+/** Capture radius of a black hole (and its drawn disc), 1/256 px. */
+export const ORBIT_HOLE_R = 13 * FP;
+/** Compact hole row as shipped in the puzzle: [from, to, x, y]. */
+export type OrbitHoleRow = [number, number, number, number];
+export function encodeOrbitHoles(holes: readonly OrbitHole[]): OrbitHoleRow[] {
+  return holes.map((h) => [h.from, h.to, h.x, h.y]);
+}
+export function decodeOrbitHoles(rows: readonly OrbitHoleRow[]): OrbitHole[] {
+  return rows.map(([from, to, x, y]) => ({ from, to, x, y }));
+}
+
+/** Does the swept flight segment pass within the hole's capture radius? Integer only. */
+export function orbitFlightHitsHole(hole: OrbitHole, x0: number, y0: number, x1: number, y1: number): boolean {
+  const steps = Math.max(1, Math.trunc((Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) + FP - 1) / FP));
+  for (let k = 0; k <= steps; k++) {
+    const dx = x0 + Math.trunc(((x1 - x0) * k) / steps) - hole.x;
+    const dy = y0 + Math.trunc(((y1 - y0) * k) / steps) - hole.y;
+    if (dx * dx + dy * dy <= ORBIT_HOLE_R * ORBIT_HOLE_R) return true;
+  }
+  return false;
+}
+
 export interface OrbitRev3State {
   /** Marks this as a rev3 layout for orbitCamera.ts and shared drawing helpers. */
   rev: 3;
+  /** Rev 4 only: the black holes, jumps taken, planets skipped by them, and the last jump tick (render). */
+  holes?: OrbitHole[];
+  jumps?: number;
+  skipped?: number;
+  holeTick?: number;
   tick: number;
   rng: number;
   cur: number;
@@ -555,6 +597,11 @@ export function initRev3From(planets: Planet[], worldW: number, rng = 0): OrbitR
     endedTick: 0,
     planets,
   };
+}
+
+/** Rev 4 start state: the rev-3 start on these planets, plus the holes. */
+export function initRev4From(planets: Planet[], worldW: number, holes: OrbitHole[], rng = 0): OrbitRev3State {
+  return { ...initRev3From(planets, worldW, rng), holes, jumps: 0, skipped: 0, holeTick: -100 };
 }
 
 function init(seed: number): OrbitRev3State {
@@ -635,8 +682,26 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
       }
       if (s.ended || respawned) return s;
     }
-    const j = captureAt(s.planets, s.cur, s.x, s.y);
-    if (j >= 0) {
+    // Rev 4: a black hole beside the planet just left swallows the rocket and puts it in
+    // orbit round planet `to`; the planets in between count as reached.
+    const hole = s.holes ? s.holes.find((h) => h.from === s.cur && orbitFlightHitsHole(h, previousX, previousY, s.x, s.y)) : undefined;
+    const j = hole ? -1 : captureAt(s.planets, s.cur, s.x, s.y);
+    if (hole) {
+      const to = s.planets[hole.to]!;
+      s.skipped = (s.skipped ?? 0) + (hole.to - hole.from - 1);
+      s.jumps = (s.jumps ?? 0) + 1;
+      s.holeTick = tick;
+      s.cur = hole.to;
+      s.angle = 3 * ANG_QUARTER;
+      const pos = orbitPos(to, s.angle);
+      s.x = pos.x;
+      s.y = pos.y;
+      s.vx = 0;
+      s.vy = 0;
+      s.flying = 0;
+      s.captured += 1;
+      if (hole.to > s.best) s.best = hole.to;
+    } else if (j >= 0) {
       const to = s.planets[j]!;
       s.cur = j;
       s.angle = phaseAt(to, s.x, s.y);
@@ -676,6 +741,9 @@ function score(state: OrbitRev3State): number {
 
 export function orbitRev3Extra(s: OrbitRev3State) {
   return {
+    jumps: s.jumps ?? 0,
+    skipped: s.skipped ?? 0,
+    holes: s.holes?.length ?? 0,
     passed: s.best,
     respawned: s.respawns === 0,
     checkpoint: s.checkpoint,

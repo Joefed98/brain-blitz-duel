@@ -90,6 +90,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
       drawBar(ctx, lane * laneW + 10, headY - BEAT_NOTE_H / 2, laneW - 20, colour, bloom);
       continue;
     }
+    const swipe = state.chart.swipes?.[index] ?? 0;
+    if (swipe) {
+      drawSwipe(ctx, lane * laneW + 10, yAt(remaining) - BEAT_NOTE_H / 2, laneW - 20, colour, swipe, bloom);
+      continue;
+    }
     drawBar(ctx, lane * laneW + 10, yAt(remaining) - BEAT_NOTE_H / 2, laneW - 20, colour, bloom);
   }
 
@@ -121,6 +126,26 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   const reward=successFrame(ctx,{id:'beat',tick:state.tick,count:state.combo,eventTick:state.lastJudge===1?state.tick-state.judgeAge:0,misses:state.misses,every:10,colour:tier>=3?GOLD:tier===2?SUCCESS_ACCENTS.pink:SUCCESS_ACCENTS.cyan,width:BEAT_WORLD_W,height:BEAT_WORLD_H,point:{x:beatLaneX(Math.max(0,state.lastLane)),y:BEAT_HIT_LINE_Y,shape:'ring',radius:6},hud:{x:12,y:20,text:`COMBO ${state.combo}`}});
   if(state.lastJudge===1&&state.judgeAge<10){ctx.save();ctx.globalAlpha=.45*(1-state.judgeAge/10);ctx.strokeStyle=RETRO_WHITE;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(beatLaneX(Math.max(0,state.lastLane)),BEAT_HIT_LINE_Y,8+state.judgeAge*3,3,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
   successHud(ctx,'beat',state.tick,12,20,()=>{retroReadout(ctx, 12, 2, `COMBO ${state.combo}`, RETRO_WHITE);});
+}
+
+/**
+ * Rev 2 swipe note: the same rect as a tap note, outlined, with a pixel arrow
+ * pointing the way to swipe (white, so it reads on every lane colour).
+ */
+function drawSwipe(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, colour: string, dir: number, bloom: number): void {
+  pixelRect(ctx, x, y, w, BEAT_NOTE_H, "#000000");
+  pixelRect(ctx, x, y, w, 2, colour, bloom);
+  pixelRect(ctx, x, y + BEAT_NOTE_H - 2, w, 2, colour, bloom);
+  pixelRect(ctx, x, y, 2, BEAT_NOTE_H, colour, bloom);
+  pixelRect(ctx, x + w - 2, y, 2, BEAT_NOTE_H, colour, bloom);
+  const cx = x + w / 2;
+  const cy = y + BEAT_NOTE_H / 2;
+  // Shaft, then a stepped head.
+  pixelRect(ctx, cx - 12, cy - 1, 24, 2, RETRO_WHITE);
+  for (let k = 0; k < 5; k++) {
+    const hx = dir > 0 ? cx + 12 - k * 2 : cx - 12 + k * 2;
+    pixelRect(ctx, hx - 1, cy - 1 - k, 2, 2 + 2 * k, RETRO_WHITE);
+  }
 }
 
 /** A glowing pixel bar on the note's exact rect, with a darker inner line. */

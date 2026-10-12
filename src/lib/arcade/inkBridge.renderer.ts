@@ -4,7 +4,7 @@ import { INKBRIDGE_FX } from "./arcadeFxGames.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import { sceneryTexture, grassTexture } from "./sceneryTexture.renderer";
 import type { CanvasSize } from './engine';
-import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_NO_DRAW_ZONE_PX, INK_LIVE_PRE_CAP, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
+import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_NO_DRAW_ZONE_PX, INK_LIVE_PRE_CAP, INK_STAR_R, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { COUNTRY_SKY as SKY, COUNTRY_GRASS as GRASS, countryCloud as cloud, countryStamp, drawCountryside, drawCountryGround } from './countryside.renderer';
 
@@ -127,6 +127,27 @@ function drawBridge(c:CanvasRenderingContext2D,state:InkState):void {
   }
   if(cache?.surface)c.drawImage(cache.surface,0,0,INK_WORLD_W,INK_WORLD_H);else paintBridge(c,state);
 }
+/** Rev 4 gold star: five points filling the star's draw circle (radius INK_STAR_R). */
+function goldStar(m: CanvasRenderingContext2D): void {
+  const r = INK_STAR_R;
+  m.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const k = i % 2 === 0 ? r - 0.5 : r * 0.45;
+    m.lineTo(r + Math.cos(a) * k, r + Math.sin(a) * k);
+  }
+  m.closePath();
+  m.fillStyle = GOLD;
+  m.fill();
+  m.strokeStyle = GOLD_EDGE;
+  m.lineWidth = 1;
+  m.stroke();
+  m.fillStyle = SHINE;
+  m.beginPath();
+  m.arc(r - 2, r - 2, 1.6, 0, Math.PI * 2);
+  m.fill();
+}
+
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawInkBridgeArt(c: CanvasRenderingContext2D, state: InkState, size: CanvasSize): void {
   arcadeFx(c, INKBRIDGE_FX, state, () => drawInkBridgeArtWorld(c, state, size), size);
@@ -152,6 +173,8 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
     c.fillStyle=RED_EDGE;c.fillRect(b.x0,b.y+INK_BLOCK_H-1,b.x1-b.x0,1);
   }
   drawPot(c,inkBucketX(lvl,state.tick),lvl.bucketY,state.flashKind===1&&state.tick-state.flashTick<20);
+  // Rev 4: this level's gold star, until the coin in flight touches it (then it rides as a glow).
+  if(lvl.star){ if(!state.starGot) stamp(c,'star',INK_STAR_R*2,INK_STAR_R*2,lvl.star.x-INK_STAR_R,lvl.star.y-INK_STAR_R,goldStar); else { c.save();c.globalAlpha=0.5;c.strokeStyle=GOLD;c.lineWidth=2;c.beginPath();c.arc(state.ball.x/FP,state.ball.y/FP,BALL_R+4,0,Math.PI*2);c.stroke();c.restore(); } }
   drawBridge(c,state);
   if(state.dropping) {
     const trail=state.positions.slice(-5);c.strokeStyle=GOLD;c.lineWidth=2;c.lineCap='round';

@@ -335,6 +335,20 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       at: (s) => ({ x: s.paddleX, y: RALLY_PADDLE_Y - 10 }),
       label: () => "GOLD!",
     },
+    {
+      // Rev 2: the gold ball struck a far-wall target.
+      kind: "perfect",
+      count: (s) => s.targetHits ?? 0,
+      at: (s) => ({ x: (s.struckLeft ?? RALLY_WORLD_W / 2) + 22, y: 70 }),
+      label: () => "TARGET!",
+    },
+    {
+      // Rev 2: a ball came off the bumper.
+      kind: "pop",
+      count: (s) => s.bounces ?? 0,
+      at: (s) => (s.bumper ? { x: s.bumper.x, y: s.bumper.y - 20 } : null),
+      label: () => "BOING",
+    },
   ],
 };
 
@@ -351,6 +365,13 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
       every: 10,
       at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: BEAT_HIT_LINE_Y }),
       label: (_s, n) => `COMBO ${n}`,
+    },
+    {
+      // Rev 2: a swipe note swiped the right way in time.
+      kind: "pop",
+      count: (s) => s.swipesHit ?? 0,
+      at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: BEAT_HIT_LINE_Y - 20 }),
+      label: () => "SWIPE!",
     },
     {
       kind: "final",
@@ -514,7 +535,19 @@ export const ORBIT3_FX: ArcadeFxSpec<OrbitRev3State> = {
   world: "space",
   width: ORBIT_CAM_VIEW_W,
   height: ORBIT_CAM_VIEW_H,
-  events: orbitEvents,
+  events: [
+    ...orbitEvents,
+    {
+      // Rev 4: through a black hole, several planets on (shown as the planets it skipped).
+      kind: "clear" as const,
+      count: (s: OrbitRev3State) => s.jumps ?? 0,
+      at: () => ({ x: ORBIT_CAM_VIEW_W / 2, y: 120 }),
+      label: (s: OrbitRev3State) => {
+        const hole = s.holes?.find((h) => h.to === s.cur);
+        return hole ? `BLACK HOLE! +${hole.to - hole.from} PLANETS` : "BLACK HOLE!";
+      },
+    },
+  ],
 };
 
 /* ============================== Real World ============================== */
@@ -621,6 +654,16 @@ export const INKBRIDGE_FX: ArcadeFxSpec<InkState> = {
       label: (_s, n) => `LEVEL ${n}!`,
     },
     {
+      // Rev 4: the coin potted through the level's gold star.
+      kind: "perfect",
+      count: (s) => s.stars ?? 0,
+      at: (s) => {
+        const lvl = s.list[Math.max(0, s.level - 1)];
+        return lvl?.star ? { x: lvl.star.x, y: lvl.star.y } : null;
+      },
+      label: () => "GOLD STAR!",
+    },
+    {
       kind: "final",
       count: (s) => (s.levels >= INK_LEVELS ? 1 : 0),
       label: () => "ALL 10 LEVELS!",
@@ -684,6 +727,23 @@ export const BINTOSS_FX: ArcadeFxSpec<BinTossState> = {
       label: (_s, n) => `${n} IN A ROW`,
     },
     {
+      // Rev 3: through the bonus hoop and into the bucket.
+      kind: "perfect",
+      count: (s) => s.swishes ?? 0,
+      at: (s) => {
+        const hoop = s.hoops?.[Math.max(0, s.throwIndex - 1)];
+        return hoop ? { x: px(hoop.x), y: px(hoop.y) } : null;
+      },
+      label: () => "HOOP BONUS!",
+    },
+    {
+      // Rev 3: a bucket made past the spinner.
+      kind: "pop",
+      count: (s) => s.spinBaskets ?? 0,
+      at: () => ({ x: BINTOSS_WORLD_W / 2, y: 190 }),
+      label: () => "PAST THE SPINNER",
+    },
+    {
       kind: "final",
       count: (s) => (s.baskets >= BINTOSS_THROWS ? 1 : 0),
       label: () => "TEN OUT OF TEN!",
@@ -712,11 +772,25 @@ export const BULLSEYE_FX: ArcadeFxSpec<BullseyeState> = {
       at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
       label: () => "BULLSEYE!",
     },
+    {
+      // Rev 2: the tiny inner bull.
+      kind: "perfect",
+      count: (s) => (s.flightTick === 0 ? s.hits.filter((h) => h.bull === 1).length : 0),
+      at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
+      label: () => "INNER BULL!",
+    },
+    {
+      // Rev 2: a balloon popped.
+      kind: "pop",
+      count: (s) => (s.flightTick === 0 ? s.hits.filter((h) => h.pop === 1).length : 0),
+      at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
+      label: () => "POP!",
+    },
     { kind: "combo", count: bullRun, min: 2, label: (_s, n) => `${n} BULLS IN A ROW` },
     {
       kind: "final",
       count: (s) =>
-        s.flightTick === 0 && s.hits.length >= BULLSEYE_ARROWS && s.hits.every((h) => h.ring >= 0)
+        s.flightTick === 0 && s.hits.length >= BULLSEYE_ARROWS && s.hits.every((h) => h.ring >= 0 || h.pop === 1)
           ? 1
           : 0,
       label: () => "ALL TEN ON TARGET!",

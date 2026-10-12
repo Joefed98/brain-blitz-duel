@@ -481,7 +481,7 @@ import {
   ORBIT_CAM_VIEW_H,
   type OrbitCamOffset,
 } from "./orbitCamera";
-import { orbitRev3Game, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
+import { orbitRev3Game, ORBIT_HOLE_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
 import { devDisplayAllowed } from "@/lib/devDisplay";
 import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.renderer';
 
@@ -571,6 +571,52 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
   arcadeFx(ctx, ORBIT3_FX, state, () => drawOrbitRev3ArtWorld(ctx, state, size), size);
 }
 
+/**
+ * Rev 4 black hole: a dark disc exactly the capture radius, with a swirling
+ * accretion spiral inside it and a violet rim. `armed` (orbiting the planet it
+ * belongs to) brightens the rim; `since` is ticks since the last jump, for a
+ * brief gold flash. Render only.
+ */
+function drawBlackHole(ctx: CanvasRenderingContext2D, x: number, y: number, armed: boolean, t: number, since: number): void {
+  const r = ORBIT_HOLE_R / FP;
+  if (x < -r - 4 || y < -r - 4 || x > ORBIT_CAM_VIEW_W + r + 4 || y > ORBIT_CAM_VIEW_H + r + 4) return;
+  ctx.save();
+  const core = ctx.createRadialGradient(x, y, 0, x, y, r);
+  core.addColorStop(0, "#000000");
+  core.addColorStop(0.55, "#05010D");
+  core.addColorStop(0.85, "#2A0E4A");
+  core.addColorStop(1, "#8B5CF6");
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  // Two spiral arms turning inside the disc.
+  ctx.beginPath();
+  ctx.arc(x, y, r - 0.5, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.strokeStyle = "rgba(196,170,255,0.75)";
+  ctx.lineWidth = 1.5;
+  for (const arm of [0, Math.PI]) {
+    ctx.beginPath();
+    for (let k = 0; k <= 16; k++) {
+      const u = k / 16;
+      const a = arm + t * 2.4 + u * 3.2;
+      const rr = r * (0.2 + 0.75 * u);
+      if (k === 0) ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      else ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = since >= 0 && since < 30 ? ORBIT_GOLD : armed ? "#C4B5FD" : "rgba(139,92,246,0.7)";
+  ctx.lineWidth = armed ? 2 : 1.2;
+  ctx.beginPath();
+  ctx.arc(x, y, r - 1, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3State, size: CanvasSize): void {
   const still = prefersReducedMotion();
   const t = still ? 0 : state.tick / 60;
@@ -635,6 +681,9 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
     }
     drawBelt(ctx, p, state.tick, cam.y, still);
   }
+
+  // Rev 4: black holes in view.
+  for (const hole of state.holes ?? []) drawBlackHole(ctx, hole.x / FP - cam.x, hole.y / FP - cam.y, hole.from === state.cur && state.flying === 0, t, state.tick - (state.holeTick ?? -100));
 
   const since = state.tick - state.releaseTick;
   if (since >= 0 && since < ORBIT_TRAIL_TICKS && state.flying > 0) {

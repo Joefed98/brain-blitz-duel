@@ -18,7 +18,7 @@ import {
   bullseyeDrag,
 
   bullseyeGame,
-  bullseyeInit,
+  bullseyeInitFor,
   bullseyeAimPoint,
   bullseyeScalePct,
   bullseyeTransform,
@@ -42,7 +42,7 @@ import { ARCADE_CRASH_FREEZE_MS, type BullseyePuzzleData } from "@/lib/duel/type
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: the target, a wind arrow and a shot from the bow. */
+/** Fixed intro still: the target, a wind arrow, a balloon and a dart ready to throw. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -87,9 +87,8 @@ function IntroExample() {
         <text x="58" y="18" fill="#F7F7F8" fontSize="11" fontFamily="monospace">
           2
         </text>
-        <g stroke="#F7F7F8A0" strokeWidth="2" fill="none">
-          <path d="M84 104 A 16 16 0 0 1 112 104" />
-        </g>
+        <circle cx="150" cy="40" r="8" fill="#E8384F" />
+        <circle cx="147" cy="37" r="2" fill="#FFFFFF" opacity="0.6" />
         <g stroke={BULLSEYE_GOLD} strokeWidth="2" fill="none">
           <line x1="98" y1="104" x2="98" y2="72" />
           <line x1="93" y1="80" x2="98" y2="70" />
@@ -109,7 +108,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
-  const state = useRef<BullseyeState>(bullseyeInit(seed, data?.winds));
+  const state = useRef<BullseyeState>(bullseyeInitFor(seed, data?.winds, data?.bullRev));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof bullseyeCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
@@ -145,7 +144,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     });
 
   useEffect(() => {
-    state.current = bullseyeInit(seed, data?.winds);
+    state.current = bullseyeInitFor(seed, data?.winds, data?.bullRev);
     events.current = [];
     checkpoints.current = [];
     pending.current = [];
@@ -154,7 +153,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     submitted.current = false;
     endedAt.current = null;
     forceRedraw((n) => n + 1);
-  }, [data?.winds, seed]);
+  }, [data?.winds, data?.bullRev, seed]);
 
   useEffect(() => {
     if (!data) return;
@@ -339,7 +338,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "bullseye") return null;
-  const result = replayBullseyeRun(puzzle.seed, myAnswer ?? "", puzzle.winds);
+  const result = replayBullseyeRun(puzzle.seed, myAnswer ?? "", puzzle.winds, puzzle.bullRev);
   const shots = decodeBullseyeRun(myAnswer ?? "").events.length;
   const size = BULLSEYE_OUTER_R * 2 + 12;
 
@@ -363,9 +362,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             />
           ),
         )}
-        {result.hits.map((hit, index) => {
+        {result.hits.filter((hit) => hit.pop !== 1).map((hit, index) => {
           // Each hit is shown where it fell relative to the target it hit, so
-          // every arrow is comparable on one full-size ring set.
+          // every dart is comparable on one full-size ring set (balloon pops are listed below).
           const scale = bullseyeScalePct(hit.arrow);
           const x = size / 2 + ((hit.x - (hit.tdx ?? 0) - BULLSEYE_CX) * 100) / scale;
           const y = size / 2 + ((hit.y - BULLSEYE_CY) * 100) / scale;
@@ -373,10 +372,15 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         })}
       </svg>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.total} / 100 rings
+        {puzzle.bullRev ? `${result.total} points` : `${result.total} / 100 rings`}
       </p>
+      {puzzle.bullRev ? (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          {result.innerBulls} inner bull{result.innerBulls === 1 ? "" : "s"} · {result.pops} of {result.balloons} balloons
+        </p>
+      ) : null}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        {shots} of {BULLSEYE_ARROWS} arrows
+        {shots} of {BULLSEYE_ARROWS} darts
       </p>
     </div>
   );
@@ -396,7 +400,7 @@ export const bullseyePuzzle: PuzzleDefinition = {
       winds: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     }) satisfies BullseyePuzzleData,
   check: () => false,
-  revealHeading: "Your arrows",
+  revealHeading: "Your darts",
   IntroExample,
   Stage,
   Reveal,

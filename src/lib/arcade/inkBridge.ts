@@ -76,6 +76,23 @@ const BIRD_COUNTS = [1, 2, 3, 3, 4, 4, 4, 5, 5, 6];
  * Rounds 1/2 generation and physics are untouched by this revision.
  */
 export const INK_REV3 = 3;
+/**
+ * inkRev 4: inkRev 3's levels, unchanged, plus an optional gold star on four of
+ * levels 1–8. Each star sits on the path of a second proved line (a different
+ * route from the easy reference) and is never needed to pot the coin. Stars
+ * are placed from their own seeded stream, so the levels stay byte-identical.
+ */
+export const INK_REV4 = 4;
+/** Rev 3 rules (live levels 9–10, shared live ink) apply to rev 3 and rev 4. */
+function rev3Rules(rev?: number | null): boolean {
+  return rev === INK_REV3 || rev === INK_REV4;
+}
+/** Star draw radius in px; the coin collects it when its centre comes within STAR_R + coin radius. */
+export const INK_STAR_R = 9;
+export const INK_STAR_LEVELS = 4;
+export const INK_STAR_POINTS = 2;
+/** A star must sit at least this far (px) from every point of the easy reference route. */
+export const INK_STAR_OFF_ROUTE = 40;
 /** Live levels start at this 0-based index under inkRev 3. */
 const INK_LIVE_FROM = 8;
 /** Gravity on live levels: a little gentler than the usual 64 (1/256 px/tick²). */
@@ -118,7 +135,7 @@ export function inkBudget(level: number): number {
 
 /** Is this level (0-based) a "live" level — only true under inkRev 3, rounds 9–10. */
 export function inkIsLive(level: number, rev?: number | null): boolean {
-  return rev === INK_REV3 && level >= INK_LIVE_FROM;
+  return rev3Rules(rev) && level >= INK_LIVE_FROM;
 }
 
 /** Ink for a level, rev-aware: live levels share a budget 1.5× the usual. */
@@ -170,6 +187,10 @@ export interface InkLevel {
    * Live levels only: this is the *pre-release* line (one stroke). */
   ref: number[][];
   refT0: number;
+  /** Rev 4 only: the gold star (px) and the proved line through it (strokes and release tick). */
+  star?: { x: number; y: number };
+  starRef?: number[][];
+  starT0?: number;
   /** Live levels only: up to two live strokes completing the route, each fired as
    * STROKE(down)/STROKE(point)/LIFT starting at `tick` ticks after release (LIFT lands on
    * `tick + 2`, i.e. the stroke is committed two ticks after the first point is drawn). */
@@ -981,7 +1002,135 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
   return { list, rng };
 }
 
+/** Squared distance (px²) from a point to a bird's rectangle. */
+function blockDistance2(b: InkBlock, x: number, y: number): number {
+  const top = b.y;
+  const bottom = b.y + Math.ceil(inkBlockH(b));
+  const dx = x < b.x0 ? b.x0 - x : x > b.x1 ? x - b.x1 : 0;
+  const dy = y < top ? top - y : y > bottom ? y - bottom : 0;
+  return dx * dx + dy * dy;
+}
+
+/**
+ * Rev 4: a star for this (non-live) level, or null. Tries candidate lines in a
+ * seeded order; a candidate must pot the coin within the level's ink (with a
+ * timed release on a moving pot). The star goes at the point of its path
+ * farthest from the easy reference route, at least INK_STAR_OFF_ROUTE away,
+ * clear of every bird and well above the pot.
+ */
+function placeStar(lvl: InkLevel, level: number, draw: Draw): Pick<InkLevel, "star" | "starRef" | "starT0"> | null {
+  const ink = inkBudgetFor(level, INK_REV4);
+  const still: InkLevel = { ...lvl, slideAmp: 0 };
+  const refTrace = traceDrop(still, strokeSegs(lvl.ref, ink).segs);
+  const dir = lvl.bucketX > lvl.spoutX ? 1 : -1;
+  const sy = SPOUT_Y + 28;
+  const candidates: number[][] = [];
+  for (const sx of [lvl.spoutX - dir * 24, lvl.spoutX + dir * 24, lvl.spoutX - dir * 48]) {
+    for (const fy of [30, 50, 70])
+      for (const fx of [-120, -80, -40, 0, 40, 80, 120, 160]) {
+        const wx = lvl.spoutX + dir * fx;
+        const wy = sy + Math.trunc(((lvl.bucketY - sy) * fy) / 100);
+        for (const lift of [14, 30, 50])
+          for (const off of [0, -16, 16]) candidates.push([sx, sy, wx, wy, lvl.bucketX - dir * off, lvl.bucketY - lift]);
+      }
+  }
+  // Seeded order, so every room tries the same lines in the same order.
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = draw(i + 1);
+    [candidates[i], candidates[j]] = [candidates[j]!, candidates[i]!];
+  }
+  // The reference route in whole px, every other tick (it moves under 16 px a tick, far below the 40 px gap).
+  const refPts = refTrace.filter((_, i) => i % 2 === 0).map((r) => [Math.trunc(r.x / FP), Math.trunc(r.y / FP)] as const);
+  for (const pts of candidates.slice(0, 220)) {
+    if (pts[2]! < 4 || pts[2]! > INK_WORLD_W - 4 || pts[3]! >= pts[5]! - 10) continue;
+    const ref = [pts];
+    const pen = strokeSegs(ref, ink);
+    if (pen.penDown === 0) continue;
+    // One walk gives both the outcome and the path.
+    const ball = spoutBall(still);
+    const path: { x: number; y: number }[] = [];
+    let outcome = 0;
+    for (let t = 0; t < DROP_MAX && !outcome; t++) {
+      outcome = moveBall(ball, pen.segs, still, t + 1);
+      path.push({ x: ball.x, y: ball.y });
+    }
+    if (outcome !== 1) continue;
+    const t0 = lvl.slideAmp ? landingRelease(lvl, pen.segs) : 0;
+    if (t0 < 0) continue;
+    let best: { x: number; y: number } | null = null;
+    let bestD = -1;
+    for (const p of path) {
+      const x = Math.trunc(p.x / FP);
+      const y = Math.trunc(p.y / FP);
+      if (y < SPOUT_Y + 40 || y > lvl.bucketY - 40 || x < 14 || x > INK_WORLD_W - 14) continue;
+      let near = Infinity;
+      for (const [rx, ry] of refPts) {
+        const d = (rx - x) * (rx - x) + (ry - y) * (ry - y);
+        if (d < near) near = d;
+        if (near < INK_STAR_OFF_ROUTE * INK_STAR_OFF_ROUTE) break;
+      }
+      if (near < INK_STAR_OFF_ROUTE * INK_STAR_OFF_ROUTE + 4 * INK_STAR_OFF_ROUTE) continue;
+      if (lvl.blocks.some((b) => blockDistance2(b, x, y) < (INK_STAR_R + BALL_R + 4) ** 2)) continue;
+      if (near > bestD) {
+        bestD = near;
+        best = { x, y };
+      }
+    }
+    if (best) return { star: best, starRef: ref, starT0: t0 };
+  }
+  return null;
+}
+
+/** Rev 4: inkRev 3's levels with stars added on their own seeded stream. */
+function buildLevelsRev4(seed: number): { list: InkLevel[]; rng: number } {
+  const base = buildLevelsRev3(seed);
+  let srng = (seed ^ 0x51a7b5) | 0;
+  const draw: Draw = (bound) => {
+    const r = rngBelow(srng, Math.max(1, bound));
+    srng = r.state;
+    return r.value;
+  };
+  const order = Array.from({ length: INK_LIVE_FROM }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = draw(i + 1);
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  const list = base.list.map((lvl) => ({ ...lvl }));
+  let placed = 0;
+  for (const level of order) {
+    if (placed >= INK_STAR_LEVELS) break;
+    const star = placeStar(list[level]!, level, draw);
+    if (!star) continue;
+    list[level] = { ...list[level]!, ...star };
+    placed++;
+  }
+  return { list, rng: base.rng };
+}
+
+/** Test hook: each rev-4 star's proved line pots the coin through the star within its ink. */
+export function inkStarCheck(seed: number): { stars: number; proved: number; offRoute: number } {
+  const { list } = buildLevels(seed, INK_REV4);
+  let stars = 0, proved = 0, offRoute = 0;
+  list.forEach((lvl, i) => {
+    if (!lvl.star || !lvl.starRef) return;
+    stars++;
+    const pen = strokeSegs(lvl.starRef, inkBudgetFor(i, INK_REV4));
+    const ball = spoutBall(lvl);
+    let got = false;
+    let result = 0;
+    for (let t = 0; t < DROP_MAX && !result; t++) {
+      result = moveBall(ball, pen.segs, lvl, (lvl.starT0 ?? 0) + t + 1);
+      if ((ball.x / FP - lvl.star.x) ** 2 + (ball.y / FP - lvl.star.y) ** 2 <= (INK_STAR_R + BALL_R) ** 2) got = true;
+    }
+    if (pen.penDown === 1 && result === 1 && got) proved++;
+    const refTrace = traceDrop({ ...lvl, slideAmp: 0 }, strokeSegs(lvl.ref, inkBudgetFor(i, INK_REV4)).segs);
+    if (refTrace.every((r) => (r.x / FP - lvl.star!.x) ** 2 + (r.y / FP - lvl.star!.y) ** 2 >= (INK_STAR_OFF_ROUTE - 1) ** 2)) offRoute++;
+  });
+  return { stars, proved, offRoute };
+}
+
 function buildLevels(seed: number, rev?: number): { list: InkLevel[]; rng: number } {
+  if (rev === INK_REV4) return buildLevelsRev4(seed);
   if (rev === INK_REV3) return buildLevelsRev3(seed);
   const birds = rev === INK_REV;
   const counts = birds ? BIRD_COUNTS : BLOCK_COUNTS;
@@ -1170,6 +1319,9 @@ export interface InkState {
   /** Live levels: ink spent on the pre-release line so far this drop, 1/256 px
    * (enforces INK_LIVE_PRE_CAP in real play, independent of the shared ink pool). */
   preInkUsed: number;
+  /** Rev 4 only: stars potted, and whether the coin in this drop has touched the star. */
+  stars?: number;
+  starGot?: number;
 }
 
 const cache = new Map<string, ReturnType<typeof buildLevels>>();
@@ -1216,6 +1368,7 @@ function initWith(seed: number, rev?: number): InkState {
     draftPenDown: 0,
     liveLifts: 0,
     preInkUsed: 0,
+    ...(rev === INK_REV4 ? { stars: 0, starGot: 0 } : {}),
   };
 }
 
@@ -1237,6 +1390,7 @@ function resetLevel(s: InkState): void {
   s.draftPenDown = 0;
   s.liveLifts = 0;
   s.preInkUsed = 0;
+  if (s.rev === INK_REV4) s.starGot = 0;
 }
 
 function step(state: InkState, input: ArcadeInputEvent | null): InkState {
@@ -1348,6 +1502,13 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       input?.k === INK_INPUT_DROP_AGAIN
         ? 2
         : moveBall(s.ball, s.segs, s.list[s.level]!, tick, gravity);
+    // Rev 4: the coin collects the level's star by passing over it; it counts once the coin is potted.
+    const starLvl = s.rev === INK_REV4 ? s.list[s.level]! : null;
+    if (starLvl?.star && !s.starGot) {
+      const dx = s.ball.x / FP - starLvl.star.x;
+      const dy = s.ball.y / FP - starLvl.star.y;
+      if (dx * dx + dy * dy <= (INK_STAR_R + BALL_R) * (INK_STAR_R + BALL_R)) s.starGot = 1;
+    }
     const old = s.positions[0];
     if (
       !result &&
@@ -1359,6 +1520,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       result = 2;
     if (result === 1) {
       s.levels += 1;
+      if (s.rev === INK_REV4 && s.starGot) s.stars = (s.stars ?? 0) + 1;
       s.flashKind = 1;
       s.flashTick = tick;
       if (s.levels >= INK_LEVELS) {
@@ -1399,8 +1561,18 @@ export function inkScoreOf(levels: number, tick: number): number {
 }
 
 function score(state: InkState): number {
+  if (state.rev === INK_REV4) return inkRev4Score(state.levels, state.stars ?? 0, state.tick);
   return inkScoreOf(state.levels, state.tick);
 }
+
+/** Rev 4: 11 per level + 2 per star potted, up to 130; all ten = 130 + speed + stars, up to 150. */
+export function inkRev4Score(levels: number, stars: number, tick: number): number {
+  const bonus = INK_STAR_POINTS * clampInt(stars, 0, INK_STAR_LEVELS);
+  if (levels >= INK_LEVELS) return clampInt(finishScore(INK_RUN_TICKS, tick) + bonus, 0, 150);
+  return clampInt(INK_LEVEL_POINTS * Math.max(0, levels) + bonus, 0, 130);
+}
+/** Rev 4: the most a run short of all ten levels can score (nine levels, every star). */
+export const INK_V4_PARTIAL_MAX = 9 * 11 + 2 * 4;
 
 /* ============================= Checkpoints ============================= */
 
@@ -1460,6 +1632,8 @@ export function inkCheckpoint(state: InkState): InkCheckpoint {
     ...state.strokeStarts,
   ];
   for (const p of state.positions) values.push(p.x, p.y);
+  // Rev 4 folds its own counters in; older states never have them, so their sums are unchanged.
+  if (state.rev === INK_REV4) values.push(state.stars ?? 0, state.starGot ?? 0);
   for (const seg of state.segs) values.push(seg.x0, seg.y0, seg.x1, seg.y1);
   let checksum = 0x811c9dc5;
   for (const value of values) {
@@ -1638,7 +1812,9 @@ export const inkBridgeGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
 export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV) };
 /** Rainbow Bridge revision 3: reused levels plus the two live levels at the end. */
 export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
+export const inkBridgeInkRev4Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV4) };
 export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  if (rev === INK_REV4) return inkBridgeInkRev4Game;
   if (rev === INK_REV3) return inkBridgeInkRev3Game;
   return rev === INK_REV ? inkBridgeBirdsGame : inkBridgeGame;
 }

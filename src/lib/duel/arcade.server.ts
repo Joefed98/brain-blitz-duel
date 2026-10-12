@@ -1,7 +1,7 @@
 import { SLICE_REV } from "@/lib/arcade/slice";
 import { FLIP_REV } from "@/lib/arcade/flip";
 import { CROSS_REV } from "@/lib/arcade/cross";
-import { INK_REV3 } from "@/lib/arcade/inkBridge";
+import { INK_REV4 } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV } from "@/lib/arcade/snake";
 import { BUB_REV } from "@/lib/arcade/bubble";
 import { MATCHUP_REV } from "@/lib/arcade/matchup";
@@ -14,8 +14,10 @@ import { SWING_REV } from "@/lib/arcade/swing";
 import { BURST_REV } from "@/lib/arcade/burst";
 import { BRK_REV } from "@/lib/arcade/breaker";
 import { WAV_REV } from "@/lib/arcade/wavefront";
-import { ORBIT_REV3 } from "@/lib/arcade/orbit";
-import { orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
+import { ORBIT_REV3, ORBIT_REV4 } from "@/lib/arcade/orbit";
+import { RALLY_REV } from "@/lib/arcade/rally";
+import { BEAT_REV } from "@/lib/arcade/beat";
+import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V4_BANK } from "./swingBankV4.server";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
@@ -27,7 +29,7 @@ import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
  */
 
 import { randomBelow } from "./random";
-import { bullseyeWinds } from "@/lib/arcade/bullseye";
+import { bullseyeWinds, BULLSEYE_REV } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
   BullseyePuzzleData,
@@ -83,7 +85,7 @@ export function generateBinToss(): BinTossPuzzleData {
 
 export function generateBullseye(): BullseyePuzzleData {
   const seed = arcadeSeed();
-  return { type: "bullseye", seed, winds: bullseyeWinds(seed) };
+  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV };
 }
 
 export function generateMatchup(): MatchupPuzzleData {
@@ -111,7 +113,7 @@ export function generateBreaker(): BreakerPuzzleData {
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed() };
+  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV };
 }
 
 export function generateSteady(): SteadyPuzzleData {
@@ -127,7 +129,7 @@ export function generateBubble(): BubblePuzzleData {
 }
 
 export function generateBeat(): BeatPuzzleData {
-  return { type: "beat", seed: arcadeSeed() };
+  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV };
 }
 
 export function generateTenDrop(): TenDropPuzzleData {
@@ -175,7 +177,7 @@ export function generateJunction(): JunctionPuzzleData {
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV3 };
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV4 };
 }
 
 export function generateBurst(): BurstPuzzleData {
@@ -187,6 +189,10 @@ export function generateOrbit(): OrbitPuzzleData {
   // Rev 3 only from the proved bank: live proof is too slow for a room start, so an empty bank keeps rev 2.
   const bankPlanets = orbitRev3PlanetsForSeed(seed);
   if (!bankPlanets) return { type: "orbit", seed };
+  // Rev 4 when the course has proved black holes (scripts/orbit-hole-bank.ts); otherwise rev 3.
+  const bankSeed = orbitRev3BankEntryForSeed(seed)?.seed;
+  const holes = bankSeed === undefined ? null : orbitHolesForBankSeed(bankSeed);
+  if (holes) return { type: "orbit", seed, orbitRev: ORBIT_REV4, planets: encodeRev3Planets(bankPlanets), holes };
   return { type: "orbit", seed, orbitRev: ORBIT_REV3, planets: encodeRev3Planets(bankPlanets) };
 }
 

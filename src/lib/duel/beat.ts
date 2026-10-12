@@ -8,10 +8,10 @@ import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
   beatCheckpoint,
-  beatGame,
+  beatGameFor,
   beatNoteCount,
+  beatSwipeCount,
   BEAT_CHECKPOINT_INTERVAL,
-  BEAT_INPUT_RANGES,
   BEAT_RUN_TICKS,
   type BeatCheckpoint,
   type BeatState,
@@ -102,6 +102,9 @@ export interface BeatResult {
   maxCombo: number;
   holds: number;
   holdsDone: number;
+  /** Rev 2: swipe notes in the chart and swipes hit (0 on older rounds). */
+  swipes: number;
+  swipesHit: number;
   clean: boolean;
   finished: boolean;
   endedSeconds: number;
@@ -118,11 +121,12 @@ export interface BeatResult {
 }
 
 /** The single place a Beat score is worked out. */
-export function replayBeatRun(seed: number, raw: string): BeatResult {
+export function replayBeatRun(seed: number, raw: string, rev?: number | null): BeatResult {
+  const beatGame = beatGameFor(rev);
   const run = decodeBeatRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BEAT_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < BEAT_RUN_TICKS;
-  const check = checkInputEvents(run.events, BEAT_RUN_TICKS, BEAT_INPUT_RANGES);
+  const check = checkInputEvents(run.events, BEAT_RUN_TICKS, beatGame.inputRanges ?? []);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : BEAT_RUN_TICKS;
@@ -164,6 +168,8 @@ export function replayBeatRun(seed: number, raw: string): BeatResult {
     maxCombo: state.maxCombo,
     holds: state.chart.holds.filter((h) => h > 0).length,
     holdsDone: state.holdsDone,
+    swipes: beatSwipeCount(state),
+    swipesHit: state.swipesHit ?? 0,
     clean: state.misses === 0 && state.tick >= BEAT_RUN_TICKS,
     finished: state.tick >= BEAT_RUN_TICKS,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,

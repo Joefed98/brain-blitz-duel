@@ -1,5 +1,5 @@
 import type { BtCourse } from "@/lib/arcade/ballTrack";
-import type { OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
+import type { OrbitHoleRow, OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 export type PuzzleType =
   | "wordsmith"
   | "groups"
@@ -1931,7 +1931,7 @@ export interface BinTossPuzzleData {
   type: "bintoss";
   /** Drives the wind on all ten throws — identical for everyone in the room. */
   seed: number;
-  /** 2 = smaller bucket (85 % opening). Absent on rounds stored before it. */
+  /** 2 = smaller bucket (85 % opening); 3 = that bucket plus bonus hoops, spinners and wind scaled to it. Absent on rounds stored before rev 2. */
   binRev?: number;
 }
 
@@ -1941,6 +1941,8 @@ export interface BullseyePuzzleData {
   seed: number;
   /** Persisted with the round so every player and the server use the same winds. */
   winds: number[];
+  /** 2 = inner bull and drifting balloons. Absent on rounds stored before it. */
+  bullRev?: number;
 }
 
 /* ================================ Matchup ================================ */
@@ -2011,6 +2013,8 @@ export interface RallyPuzzleData {
   type: "rally";
   /** Draws the opening angle and every bounce nudge — identical for everyone. */
   seed: number;
+  /** 2 = far-wall targets and a bumper from 30 s. Absent on rounds stored before it. */
+  rallyRev?: number;
 }
 
 export interface SteadyPuzzleData {
@@ -2087,6 +2091,8 @@ export interface BeatPuzzleData {
   type: "beat";
   /** Draws the whole chart — identical for everyone. */
   seed: number;
+  /** 2 = swipe notes in the second half. Absent on rounds stored before it. */
+  beatRev?: number;
 }
 
 /* ============================== Tile Grid =============================== */
@@ -2205,7 +2211,7 @@ export interface JunctionPuzzleData {
 
 export interface InkBridgePuzzleData {
   type: "inkbridge";
-  /** 2 = white birds, fewer on levels 6–10. Absent = original blocks. */
+  /** 2 = white birds, fewer on levels 6–10; 3 = Rainbow Bridge (moving pot, live levels); 4 = that plus optional gold stars. Absent = original blocks. */
   inkRev?: number;
   /** Draws the drops and bucket moves — identical for everyone. */
   seed: number;
@@ -2245,6 +2251,8 @@ export interface OrbitPuzzleData {
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];
+  /** Rev 4 only: three proved black holes, [from, to, x, y] each (orbitHoleBank.server.ts). */
+  holes?: OrbitHoleRow[];
 }
 
 export interface SwingPuzzleData {

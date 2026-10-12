@@ -548,35 +548,68 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: `${SKYLINE_V2_BLOCK_POINTS} per block stacked + ${SKYLINE_V2_PERFECT_POINTS} per perfect drop (rounded down), plus ${SKYLINE_STREAK_POINTS} for each perfect drop from the ${SKYLINE_STREAK_FROM}rd in a row. Capped at 150.`,
   },
   bintoss: {
-    goal: "Throw the ball into the bin - ten throws.",
+    goal: "Throw the ball into the bucket.",
     how: [
-      { action: "Touch and drag to aim", detail: "the dotted path shows where it will go." },
+      { action: "Drag to aim,", detail: "then let go to throw." },
+      { action: "Wind 1 = a quarter bucket.", detail: "Aim into the wind." },
+      { action: "Through the hoop, then in:", detail: "+3 bonus." },
       {
-        action: "Each wind point moves the ball a quarter of a bin width.",
-        detail: "Wind 2 to the left? Aim half a bin width to the right.",
+        action: "Each wind point moves the ball a quarter of a bucket width.",
+        detail: "Wind 2 to the left? Aim half a bucket width to the right.",
+        helpOnly: true,
       },
-      { action: "The bin moves", detail: "further away every throw, and gets narrower from throw 4." },
-      { action: "From throw 7 the bin slides", detail: "side to side - time your release." },
+      { action: "The bucket moves", detail: "further away every throw, and gets narrower from throw 4.", helpOnly: true },
+      { action: "From throw 7 the bucket slides", detail: "side to side - time your release.", helpOnly: true },
+      {
+        action: "Hoops:",
+        detail: "on three of throws 2-5 a hoop hangs above the bucket. Go down through it and into the bucket for 3 bonus points. Its gold ends bounce the ball away.",
+        helpOnly: true,
+      },
+      {
+        action: "Spinners:",
+        detail: "on three of throws 6-10 a paddle turns in front of the bucket at a steady speed. Time your throw past it, or lob high over it.",
+        helpOnly: true,
+      },
+      { action: "Drag down to the cancel strip", detail: "to put a throw back.", helpOnly: true },
     ],
-    score: "10 per bucket; all ten = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
+    score: "10 per bucket and 3 per hoop bonus, up to 130. All ten in = 130 + up to 20 for speed (the full 20 if you finish with at least half the time left) + hoop bonuses, up to 150.",
   },
   bullseye: {
-    goal: "Hit the centre - ten arrows.",
+    goal: "Hit the centre - ten darts.",
     how: [
-      { action: "Touch and drag to aim", detail: "the dotted path shows where it will go." },
+      { action: "Drag to aim,", detail: "let go to throw." },
+      { action: "Wind 2?", detail: "Aim two rings into the wind." },
+      { action: "Inner bull 12. Balloons 12,", detail: "but use the dart." },
+      {
+        action: "Touch and drag to aim:",
+        detail: "the dotted path shows where the dart will land.",
+        helpOnly: true,
+      },
       {
         action: "Your aim sways - watch the ring and release at the right moment.",
         detail: "The ring circles once every two seconds.",
+        helpOnly: true,
       },
       {
-        action: "The wind moves your arrow by that many rings.",
+        action: "The wind moves your dart by that many rings.",
         detail: "Wind 2 to the right? Aim two rings to the left.",
+        helpOnly: true,
       },
-      { action: "The target", detail: "gets further away each shot." },
-      { action: "From the fourth arrow the target moves - lead it.", detail: "It is scored where it is when the arrow lands." },
-      { action: "From the seventh arrow the ring values swap places.", detail: "Read the numbers - each value keeps its colour." },
+      { action: "The target", detail: "gets further away each throw.", helpOnly: true },
+      { action: "From the fourth dart the target moves - lead it.", detail: "It is scored where it is when the dart lands.", helpOnly: true },
+      { action: "From the seventh dart the ring values swap places.", detail: "Read the numbers - each value keeps its colour.", helpOnly: true },
+      {
+        action: "Inner bull:",
+        detail: "the small pale spot in the middle of the 10 ring scores 12 instead of 10. It shows whenever the 10 is the centre ring.",
+        helpOnly: true,
+      },
+      {
+        action: "Balloons:",
+        detail: "on three of darts 3-10 a balloon drifts across the range. Pop it for 12 - that dart then scores nothing on the board.",
+        helpOnly: true,
+      },
     ],
-    score: "clamp(floor(1.7 × ring total − 20), 0, 150). Unfired darts add 0 to the ring total.",
+    score: "Each dart scores its ring (10 in the centre down to 1), 12 for the inner bull or a balloon. Score = clamp(floor(1.7 × dart total − 20), 0, 150). Unthrown darts add 0.",
   },
   matchup: {
     goal: "Line up three or more gems.",
@@ -649,13 +682,19 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   rally: {
     goal: "Keep the rally going.",
     how: [
-      { action: "Drag to move the paddle", detail: "along the bottom." },
-      { action: "Every hit", detail: "makes the paddle smaller and the ball faster." },
-      { action: "A gold ball drops in", detail: "every ten seconds - only gold hits score." },
-      { action: "Miss the blue ball", detail: "and the run is over." },
+      { action: "Drag the paddle.", detail: "Miss the blue ball: over." },
+      { action: "Only gold balls score:", detail: "each paddle hit." },
+      { action: "Gold on a pink wall pad:", detail: "+3." },
+      { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
+      { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
+      { action: "A gold ball drops in", detail: "every ten seconds - only gold balls score.", helpOnly: true },
+      { action: "Two pink target pads", detail: "sit on the far wall. A gold ball that hits one scores 3, and the pad moves somewhere new.", helpOnly: true },
+      { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
+      { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
     ],
-    score: "floor(2.5 × gold-ball hits), capped at 150. The blue ball scores nothing.",
+    score: "floor(2.5 × gold-ball hits) + 3 per pink target a gold ball hits, capped at 150. The blue ball scores nothing.",
   },
+
   steady: {
     goal: "Stay inside the track.",
     how: [
@@ -696,13 +735,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Tap the notes in time.",
     how: [
       { action: "Tap a lane", detail: "as its note reaches the line." },
-      { action: "Closer is better", detail: "- perfect, good, or just OK." },
-      { action: "A tap with no note", detail: "costs nothing." },
-      { action: "Notes with a tail are holds", detail: "- press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss." },
-      { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 - a miss resets it." },
+      { action: "Tail notes:", detail: "hold, let go at the end." },
+      { action: "Arrow notes:", detail: "swipe that way on the line." },
+      { action: "Closer is better", detail: "- perfect, good, or just OK.", helpOnly: true },
+      { action: "A tap with no note", detail: "costs nothing.", helpOnly: true },
+      { action: "Notes with a tail are holds", detail: "- press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss.", helpOnly: true },
+      { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
+      { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 - a miss resets it.", helpOnly: true },
     ],
-    score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150. Holds score only after both ends are judged; mistimed releases miss the whole note.",
+    score: "Perfect 1, good 0.75, OK 0.25, miss −2 (swipe notes the same), up to 150. Holds score only after both ends are judged; mistimed releases miss the whole note.",
   },
+
   ricochet: {
     goal: "Climb the shaft by leaping wall to wall.",
     how: [
@@ -817,16 +860,21 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: `${JUNC_V2_CAR_POINTS} per car through, ${JUNC_V2_BUS_POINTS} per bus, −1 per driver who gives up, +4 per ambulance waved through, −4 if one has to stop, +${JUNC_V2_SURVIVE_BONUS} for surviving the minute. Clamp 0-150.`,
   },
   inkbridge: {
-    goal: "Draw a path so the coin rolls into the pot.",
+    goal: "Roll the coin into the pot.",
     how: [
-      { action: "Rounds 1-4", detail: "Draw lines around the white birds, then tap RELEASE to drop the coin into a still pot." },
-      { action: "Rounds 5-8", detail: "The pot moves! Time your release so the coin rolls into it." },
-      { action: "Rounds 9-10: LIVE", detail: "Draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can't draw through birds or near the coin." },
-      { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live rounds." },
-      { action: "Three failed drops", detail: "and you're out." },
+      { action: "Draw a line,", detail: "then tap RELEASE to drop." },
+      { action: "Levels 9-10:", detail: "keep drawing as the coin falls." },
+      { action: "Gold star:", detail: "roll through it for +2." },
+      { action: "Levels 1-4", detail: "Draw lines around the white birds, then tap RELEASE to drop the coin into a still pot.", helpOnly: true },
+      { action: "Levels 5-8", detail: "The pot moves! Time your release so the coin rolls into it.", helpOnly: true },
+      { action: "Levels 9-10: LIVE", detail: "Draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can't draw through birds or near the coin.", helpOnly: true },
+      { action: "Gold stars:", detail: "four of levels 1-8 have one, on a harder route. Roll the coin through it and into the pot for 2 bonus points. You never need it to finish the level.", helpOnly: true },
+      { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
+      { action: "Three failed drops", detail: "and you're out.", helpOnly: true },
     ],
-    score: "11 per level; all ten = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
+    score: "11 per level and 2 per gold star, up to 130. All ten levels = 130 + up to 20 for speed (the full 20 if you finish with at least half the time left) + gold stars, up to 150.",
   },
+
   burst: {
     goal: "Split the atoms. Don't get hit.",
     how: [
@@ -841,14 +889,19 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "150 needs the full 90 s run with no life lost and four or more waves cleared. Otherwise 2 per atom destroyed or split, −9 per life lost, up to 130.",
   },
   orbit: {
-    goal: "Reach the sun, choosing one planet as your checkpoint.",
+    goal: "Fly planet to planet to the sun.",
     how: [
-      { action: "You orbit automatically.", detail: "Tap to let go - you fly straight until the next orbit catches you." },
-      { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring - it turns once every 12 seconds." },
-      { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops - never at the crossing." },
+      { action: "Tap to let go;", detail: "the next orbit catches you." },
+      { action: "Checkpoint:", detail: "a crash returns you there." },
+      { action: "Black hole:", detail: "fly in, skip 5-6 planets." },
+      { action: "You orbit automatically.", detail: "Tap to let go - you fly straight until the next orbit catches you.", helpOnly: true },
+      { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring - it turns once every 12 seconds.", helpOnly: true },
+      { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops - never at the crossing.", helpOnly: true },
+      { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out orbiting a planet 5 or 6 further on; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
     ],
-    score: "3 per planet; reach the sun (planet 40) = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
+    score: "3 per planet reached (planets skipped by a black hole count); reach the sun (planet 40) = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },
+
   snip: {
     goal: "Drop the apple into the basket.",
     how: [
