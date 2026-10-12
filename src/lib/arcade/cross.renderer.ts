@@ -551,7 +551,12 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
 /** The sim with the art renderer swapped in; step/score are the sim's own. */
 export const crossArtGame = { ...crossGame, draw: drawCrossArt };
 /** The art game for a stored puzzle.crossRev (play, demos and reveals). */
-export function crossArtGameFor(rev?: number | null) {
-  return { ...crossGameFor(rev), draw: drawCrossArt };
+const crossArtGames = new Map<number, typeof crossArtGame>();
+/** One cached object per revision (stages reset the run when `game` changes identity). */
+export function crossArtGameFor(rev?: number | null): typeof crossArtGame {
+  const key = rev ?? 0;
+  let game = crossArtGames.get(key);
+  if (!game) crossArtGames.set(key, (game = { ...crossGameFor(rev), draw: drawCrossArt }));
+  return game;
 }
 export const crossRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize) => drawCrossArt(ctx, state, size, false) };
