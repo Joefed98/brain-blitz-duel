@@ -19,6 +19,9 @@ import { encodeTiltRun, replayTiltRun } from "@/lib/duel/tilt";
 import { TILT_TIME_MS, type TiltPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 
+/** Tilt's arena sits this far below the other arcade arenas' fixed top edge (display only). */
+const TILT_ARENA_DROP = 24;
+
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Fixed intro still: a tilted disc maze, the ball rolling toward the teal exit. */
@@ -49,6 +52,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       background={TILT_BG}
       arenaBackground={ARCADE_ARENA_FILL.tilt}
       fitWorld
+      arenaDrop={TILT_ARENA_DROP}
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}

@@ -7,7 +7,7 @@ import { BUB_REV_BAND } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_BAND } from "@/lib/arcade/matchup";
 import { SNIP_REV_BAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND } from "@/lib/arcade/skyline";
-import { TILT_REV_BAND } from "@/lib/arcade/tilt";
+import { tiltSeedCupsReachable, TILT_REV_BAND } from "@/lib/arcade/tilt";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SWING_REV_TUNED } from "@/lib/arcade/swing";
@@ -222,7 +222,11 @@ export function generateSwing(): SwingPuzzleData {
 }
 
 export function generateTilt(): TiltPuzzleData {
-  return { type: "tilt", seed: arcadeSeed(), tiltRev: TILT_REV_BAND };
+  // Every cup reachable: the mazes' spanning-tree carve already guarantees it (tilt-cups-check
+  // proves it on 20,000 seeds); this re-deal only guards against a future maze change.
+  let seed = arcadeSeed();
+  for (let k = 0; k < 20 && !tiltSeedCupsReachable(seed); k++) seed = arcadeSeed();
+  return { type: "tilt", seed, tiltRev: TILT_REV_BAND };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

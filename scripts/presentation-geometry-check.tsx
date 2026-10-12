@@ -97,7 +97,7 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
 }
 // Arcade arenas (styles.css "Arcade arena slot"), CSS arithmetic. Every arcade arena
 // starts 116px down (8px pad + 36px top bar + 8px + 28px heading + 8px + 20px timer
-// + 8px; Scrumper adds its 32px HUD row + 8px), spans the column (viewport - 8px) and
+// + 8px; Scrumper adds its 32px HUD row + 8px, Tilt drops 24px), spans the column (viewport - 8px) and
 // its slot ends at the controls or 8px above the bottom (no inset in these sizes).
 // The arena is the world at min(slot width / W, slot height / H): one factor both ways.
 const css2 = readFileSync("src/styles.css", "utf8");
@@ -106,7 +106,7 @@ assert.match(css2, /\[data-arena-slot\] > \[data-game-arena\][^}]*height: min\(1
 assert.match(css2, /\[data-arena-slot\] \{[^}]*container-type: size;[^}]*align-items: center;[^}]*justify-content: flex-start/);
 assert.match(css2, /padding-bottom: calc\(max\(8px, env\(safe-area-inset-bottom\) \+ 6px\) - max\(8px, env\(safe-area-inset-bottom\)\)\)/);
 /** Height taken below each slot: 12px gap + control row (Swish: its 72px cancel strip). */
-const BELOW: Record<string, number> = { burst: 12 + 72, inkbridge: 12 + 48, orbit: 12 + 48, balltrack: 12 + 28, bintoss: 72 };
+const BELOW: Record<string, number> = { burst: 12 + 72, inkbridge: 12 + 48, orbit: 12 + 64, balltrack: 12 + 28, bintoss: 72 };
 /** Smallest touch target edge in each control row, by viewport width. */
 const TARGETS: Record<string, (w: number) => number> = {
   burst: (w) => Math.min(56, (w - 8 - 2 * 12) / 3),
@@ -119,7 +119,8 @@ const ARENA_SIZES = [[375, 667], [390, 700], [390, 844], [430, 932], [1280, 800]
 const arenaTable = new Map<string, { sizes: string[]; detail: string }>();
 for (const [width, height] of ARENA_SIZES) {
   for (const [game, spec] of Object.entries(ARCADE_FX_SPECS)) {
-    const top = 116 + (game === "snip" ? 40 : 0);
+    // Tilt sits TILT_ARENA_DROP (24px) lower, the one exception to the fixed top.
+    const top = 116 + (game === "snip" ? 40 : 0) + (game === "tilt" ? 24 : 0);
     const slotW = width - 8, slotH = height - 8 - top - (BELOW[game] ?? 0);
     const scale = Math.min(slotW / spec.width, slotH / spec.height);
     const w = spec.width * scale, h = spec.height * scale;

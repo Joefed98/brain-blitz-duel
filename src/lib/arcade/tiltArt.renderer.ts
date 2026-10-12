@@ -119,6 +119,8 @@ function walls(ctx: CanvasRenderingContext2D, m: Maze, o: number, dx: number, dy
     if (!m.inside[c]) continue;
     for (let d = 0; d < 4; d++) {
       if (c === m.exit && d === m.exitDir) continue;
+      // tiltRev 2: the amber marble's exit is open too (it was drawn shut, so its cup looked sealed off).
+      if (c === m.exit2 && d === m.exitDir2) continue;
       if (openNeighbour(m, c, d) >= 0) continue;
       const i = (c % m.n) + DX[d]!;
       const j = Math.trunc(c / m.n) + DY[d]!;
@@ -157,7 +159,21 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
   const cs = m.cs / FP;
   const o = (m.n * cs) / 2;
   const cup = cupOf(m, o);
-  const finish = toyChangeAge(ctx, "tilt-mazes", state.mazes, cup);
+  // Rev 2 remembers both cups and which marbles were still out, so whichever finished last sinks into its own cup.
+  const finish = toyChangeAge(
+    ctx,
+    "tilt-mazes",
+    state.mazes,
+    state.rev
+      ? {
+          blue: cupOf(m, o, m.exit, m.exitDir, true),
+          amber: state.b && (m.exit2 ?? -1) >= 0 ? cupOf(m, o, m.exit2!, m.exitDir2!, true) : null,
+          aHome: !!state.aHome,
+          bHome: !!state.bHome,
+          r: m.br / FP,
+        }
+      : cup,
+  );
   const gate = toyChangeAge(ctx, "tilt-gate", state.level * 2 + state.gate);
   const rot = (state.angle / 65536) * Math.PI * 2;
 
@@ -297,7 +313,18 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
   }
 
   // Finishing a maze: the marble sinks into the previous maze's cup.
-  const prevCup = finish.before as { x: number; y: number; r: number } | undefined;
+  type Cup = { x: number; y: number; r: number };
+  type Rev2Finish = { blue: Cup; amber: Cup | null; aHome: boolean; bHome: boolean; r: number };
+  const prev2 = state.rev ? (finish.before as Rev2Finish | undefined) : undefined;
+  if (prev2 && finish.age < 400 && !reducedMotion()) {
+    // Rev 2: each marble that was still rolling when the maze ended (the last one home) sinks into its own cup.
+    const u = finish.age / 400;
+    ctx.globalAlpha = 1 - u;
+    if (!prev2.aHome) toyMarble(ctx, prev2.blue.x, prev2.blue.y, prev2.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
+    if (prev2.amber && !prev2.bHome) toyMarble(ctx, prev2.amber.x, prev2.amber.y, prev2.r * (1 - 0.6 * u), TILT_MARBLE_AMBER, -rot, 3);
+    ctx.globalAlpha = 1;
+  }
+  const prevCup = state.rev ? undefined : (finish.before as Cup | undefined);
   if (prevCup && finish.age < 400 && !reducedMotion()) {
     const u = finish.age / 400;
     ctx.globalAlpha = 1 - u;
@@ -321,6 +348,22 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
     // Art pilot (Toybox): marble sprite fills the marble's collision circle; code art when absent.
     const mx = state.x / FP - o, my = state.y / FP - o, mr = m.br / FP;
     if (!drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) toyMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
+    // The marbles roll through each other, and pressed into the same corner they sit exactly on top of
+    // each other (and then move as one). The blue one is drawn last, so it used to hide the amber one
+    // completely: while their centres are within a marble radius, the amber marble's right half is drawn
+    // over the blue one, so the pair reads as one half-blue, half-amber marble and neither disappears.
+    if (state.b && !state.bHome) {
+      const bx = state.b.x / FP - o, by = state.b.y / FP - o;
+      if (Math.hypot(bx - mx, by - my) < mr) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, by, mr, -Math.PI / 2, Math.PI / 2);
+        ctx.closePath();
+        ctx.clip();
+        toyMarble(ctx, bx, by, mr, TILT_MARBLE_AMBER, -rot, 3);
+        ctx.restore();
+      }
+    }
   }
   ctx.restore();
   ctx.restore();

@@ -12,18 +12,20 @@ import type { CSSProperties, ReactNode } from "react";
  * Presentation only: games keep mapping pointers through the arena element's own
  * box, so world coordinates, input logs and replays are unchanged.
  */
-export function ArcadeArenaSlot({ width, height, background, children }: {
+export function ArcadeArenaSlot({ width, height, background, drop, children }: {
   /** World (view) size the game draws, in world units. */
   width: number;
   height: number;
   /** The arena's own colour, painted below it on tall screens. */
   background: string;
+  /** Px the slot (and so the arena) starts below the fixed top edge; Tilt only (TILT_ARENA_DROP). */
+  drop?: number;
   children: ReactNode;
 }) {
   return (
     <div
       data-arena-slot=""
-      style={{ "--arena-fill": background, "--arena-w": width, "--arena-h": height } as CSSProperties}
+      style={{ "--arena-fill": background, "--arena-w": width, "--arena-h": height, ...(drop ? { marginTop: drop } : {}) } as CSSProperties}
     >
       {children}
     </div>
