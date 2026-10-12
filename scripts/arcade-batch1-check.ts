@@ -75,9 +75,11 @@ import {
   BT_REV,
   BT_ROWS,
   BT_STEP_TICKS,
+  BT_TURN_TICKS,
   type BtState,
 } from "../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
+import { btArtBallPoint } from "../src/lib/arcade/ballTrackArt.renderer";
 import { BALL_TRACK_BANK } from "../src/lib/duel/ballTrackBank.server";
 import {
   sliceCheckpoint,
@@ -392,6 +394,37 @@ section("Ball Tracker btRev 2");
     ok(st.home === BT_BALLS && replay.score === score && !replay.flagged, `bank course ${index}: playbook still gets all 30 home under rev 2`);
     minScore = Math.min(minScore, score);
     maxScore = Math.max(maxScore, score);
+  }
+  // Drawn marbles never jump: replay playbooks (they turn tiles all the time) and follow every
+  // marble's drawn point tick to tick. Rolling is 100/16 px a tick; a swing with its tube adds at
+  // most a quarter-turn of up to one tile pitch (100 px) over BT_TURN_TICKS. Hopper entry and cup drops are
+  // excluded (those moves are in the sim's own straight lines anyway).
+  {
+    let worst = 0;
+    for (const entry of BALL_TRACK_BANK.slice(0, 40)) {
+      const game = makeBallTrackGame(entry.course, BT_REV);
+      const byTick = new Map(decodeInputEvents(entry.playbook).map((e) => [e.t, e]));
+      // Extra taps on occupied tubes so marbles really ride turns too.
+      let st = game.init(1);
+      const last = new Map<number, { x: number; y: number }>();
+      while (!game.isOver(st)) {
+        const t = st.tick + 1;
+        let input = byTick.get(t) ?? null;
+        if (!input && t % 97 === 0) {
+          const riding = st.balls.find((b) => game.rotatable.has(b.cell));
+          if (riding) input = { t, k: BT_K_ROTATE, a: riding.cell, b: 0, c: 0, d: 0 };
+        }
+        st = game.step(st, input);
+        for (const b of st.balls) {
+          const p = btArtBallPoint(st, b, game.rotatable);
+          const q = last.get(b.id);
+          if (q && b.cell >= 0 && b.from >= 0) worst = Math.max(worst, Math.hypot(p.x - q.x, p.y - q.y));
+          last.set(b.id, p);
+        }
+      }
+    }
+    ok(worst <= 100 / BT_STEP_TICKS + (100 * Math.PI) / 2 / BT_TURN_TICKS + 0.5, `drawn marbles move smoothly (largest step ${worst.toFixed(1)} px a tick)`);
+    console.log(`  drawn marble paths: largest per-tick step ${worst.toFixed(1)} px over 40 courses with turns while occupied`);
   }
   ok(minScore > 140 && maxScore === 150, "perfect playbook runs reach 150 under rev 2 when the last marble lands by 56.5 s");
 
