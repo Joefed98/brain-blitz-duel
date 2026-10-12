@@ -504,9 +504,9 @@ interface SceneOptions {
 }
 
 /**
- * Cascade bursts (presentation only): each clear (a swap's or a cascade
- * step's) bursts on exactly the cells it cleared, read from the sim's
- * lastCleared, and nowhere else. Memory per canvas, keyed by the sim's clear
+ * Cascade labels (presentation only): each clear (a swap's or a cascade
+ * step's) labels its chain count on the first cell it cleared, read from the
+ * sim's lastCleared (Tuning C removed the sparks and rings over the gems). Memory per canvas, keyed by the sim's clear
  * counters; a rewind (new run, replay, demo loop) resets it, and the first
  * frame a canvas sees never fires. Replaces the old ambient glints, which
  * sparkled on random gems and read as stray cascade effects.
@@ -543,28 +543,7 @@ function drawClearBursts(ctx: CanvasRenderingContext2D, state: MatchupState): vo
   ctx.clip();
   for (const burst of m.bursts) {
     const p = (state.tick - burst.tick) / life;
-    ctx.globalAlpha = Math.max(0, 0.85 * (1 - p));
-    ctx.fillStyle = MATCHUP_GOLD;
-    ctx.strokeStyle = "#FFFFFF";
-    ctx.lineWidth = 1.5;
-    for (const index of burst.cells) {
-      const { x, y } = centre(index);
-      if (still) {
-        ctx.beginPath();
-        ctx.arc(x, y, RADIUS * 0.7, 0, Math.PI * 2);
-        ctx.stroke();
-        continue;
-      }
-      // Four pixel sparks flying out of the cleared cell, within its own square.
-      const d = 3 + p * RADIUS * 0.9;
-      for (let k = 0; k < 4; k++) {
-        const a = k * (Math.PI / 2) + Math.PI / 4;
-        ctx.fillRect(Math.round(x + Math.cos(a) * d) - 1.5, Math.round(y + Math.sin(a) * d) - 1.5, 3, 3);
-      }
-      ctx.beginPath();
-      ctx.arc(x, y, RADIUS * (0.35 + 0.5 * p), 0, Math.PI * 2);
-      ctx.stroke();
-    }
+    // Tuning C: no sparks or rings over the cleared gems (they read as bubbles); only the chain count text.
     // The chain count sits on the first cleared gem, as before.
     if (burst.steps > 1 && burst.cells.length > 0) {
       const { x, y } = centre(burst.cells[0]!);

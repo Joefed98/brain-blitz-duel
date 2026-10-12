@@ -129,7 +129,7 @@ export function flipBendAt(tick: number, table: readonly { tick: number; length:
 }
 
 /** Integrated fixed-point angle prevents phase jumps when the period changes. */
-function warpPhaseTable(from: number, table: typeof FLIP_BEND_TABLE | typeof FLIP_BEND_TABLE_V2): readonly number[] {
+function warpPhaseTable(from: number, table: readonly { tick: number; length: number; displacement: number; period: number }[]): readonly number[] {
   const out = [0];
   let phase = 0;
   for (let tick = 1; tick <= FLIP_RUN_TICKS; tick++) {
@@ -140,6 +140,10 @@ function warpPhaseTable(from: number, table: typeof FLIP_BEND_TABLE | typeof FLI
 }
 const WARP_PHASE_AT = warpPhaseTable(FLIP_WARP_FROM, FLIP_BEND_TABLE);
 const WARP_PHASE_AT_V2 = warpPhaseTable(15 * TICKS_PER_SECOND, FLIP_BEND_TABLE_V2);
+/** flipRev 4 (Tuning C): the rev-2 bend, starting at 10 s instead of 15 s. */
+export const FLIP_WARP_FROM_V4 = 10 * TICKS_PER_SECOND;
+const FLIP_BEND_TABLE_V4 = [{ ...FLIP_BEND_TABLE[0], tick: FLIP_WARP_FROM_V4 }, ...FLIP_BEND_TABLE.slice(1)] as const;
+const WARP_PHASE_AT_V4 = warpPhaseTable(FLIP_WARP_FROM_V4, FLIP_BEND_TABLE_V4);
 
 export const FLIP_INPUT_RANGES: readonly InputRange[] = [inputRange(FLIP_INPUT_TAP)];
 
@@ -487,26 +491,29 @@ export interface FlipState extends BandFields {
   got?: number;
   /** Flattened [segment index, first-contact tick] pairs, in contact order. */
   cracks?: number[];
+  /** flipRev 4 only (Tuning C): 1 = the bend starts at 10 s and the run scores on FLIP_V4_BAND_CURVE. Absent on every earlier round. */
+  tunec?: number;
 }
 
-export function flipWarpAmp(tick: number, rev?: number | null): number {
-  const from = flipRulesFor(rev).warpFrom;
+export function flipWarpAmp(tick: number, rev?: number | null, early?: number): number {
+  // flipRev 4 (`early` = the state's tunec) bends from 10 s on the rev-2 table.
+  const from = early ? FLIP_WARP_FROM_V4 : flipRulesFor(rev).warpFrom;
   if (tick <= from) return 0;
   // Smooth integer onset: zero slope at both ends, full displacement 5 s after the start.
   const elapsed = Math.min(WARP_RAMP, tick - from);
-  const bend = rev === FLIP_REV ? flipBendAt(tick, FLIP_BEND_TABLE_V2) : flipBendAt(tick);
+  const bend = early ? flipBendAt(tick, FLIP_BEND_TABLE_V4) : rev === FLIP_REV ? flipBendAt(tick, FLIP_BEND_TABLE_V2) : flipBendAt(tick);
   return Math.trunc((bend.displacement * elapsed * elapsed * (3 * WARP_RAMP - 2 * elapsed)) / (WARP_RAMP * WARP_RAMP * WARP_RAMP));
 }
 
 /** Integer vertical offset (px) of one surface at world x (FP) on this tick. */
 export function flipWarpAt(s: FlipState, _side: number, worldX: number, tick = s.tick): number {
-  const amp = flipWarpAmp(tick, s.rev);
+  const amp = flipWarpAmp(tick, s.rev, s.tunec);
   if (amp === 0) return 0;
   const base = s.warpFloor; // Both boundaries belong to one constant-width band.
   const v2 = s.rev === FLIP_REV;
-  const bend = v2 ? flipBendAt(tick, FLIP_BEND_TABLE_V2) : flipBendAt(tick);
+  const bend = s.tunec ? flipBendAt(tick, FLIP_BEND_TABLE_V4) : v2 ? flipBendAt(tick, FLIP_BEND_TABLE_V2) : flipBendAt(tick);
   const along = Math.trunc(((worldX - s.x) * WARP_ANGLE) / (FP * bend.length));
-  const phase = (v2 ? WARP_PHASE_AT_V2 : WARP_PHASE_AT)[clampInt(tick, 0, FLIP_RUN_TICKS)] ?? 0;
+  const phase = (s.tunec ? WARP_PHASE_AT_V4 : v2 ? WARP_PHASE_AT_V2 : WARP_PHASE_AT)[clampInt(tick, 0, FLIP_RUN_TICKS)] ?? 0;
   const time = Math.trunc((phase * WARP_PERIOD_MIN) / (FP * s.warpPeriod));
   return Math.trunc((amp * isin((base + along + time) & (WARP_ANGLE - 1))) / TRIG_ONE);
 }
@@ -686,6 +693,8 @@ export function flipCheckpoint(state: FlipState): FlipCheckpoint {
   let checksum = 0x811c9dc5;
   // Rev 2 also folds taken stars and crumble contacts into the checksum (same encoded keys).
   const extra = state.rev === FLIP_REV ? [state.got ?? 0, ...(state.cracks ?? [])] : [];
+  // flipRev 4 adds its marker last.
+  if (state.tunec) extra.push(state.tunec);
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -783,6 +792,7 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
 export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  if (rev === FLIP_REV_TUNEC) return flipTunecGame;
   if (rev === FLIP_REV_BAND) return flipBandGame;
   return rev === FLIP_REV ? flipRev2Game : flipGame;
 }
@@ -801,7 +811,7 @@ export const FLIP_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 150], [0, 15, 70
 export function flipBandParts(state: FlipState): BandParts {
   const units = Math.floor((state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS)) / 30) + 3 * flipStarsTaken(state);
   const finished = state.ended === 1;
-  return { units, points: bandPoints(FLIP_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${((state.ended === 1 ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1)} s · ${flipStarsTaken(state)} stars`, bonusText: "Lasted the minute" };
+  return { units, points: bandPoints(state.tunec ? FLIP_V4_BAND_CURVE : FLIP_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${((state.ended === 1 ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1)} s · ${flipStarsTaken(state)} stars`, bonusText: "Lasted the minute" };
 }
 
 function scoreBand(state: FlipState): number {
@@ -809,3 +819,18 @@ function scoreBand(state: FlipState): number {
 }
 
 export const flipBandGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipRev2Game, init: (seed) => bandInit(flipRev2Game.init(seed)) };
+
+/* ================= Tuning C (flipRev 4, Oct 2026) ================= */
+
+/**
+ * flipRev 4 (Tuning C): flipRev 3 play and course, except the corridor starts
+ * bending at 10 s (FLIP_WARP_FROM_V4) instead of 15 s, on the same bend table
+ * and ramp. The bend is a shared vertical offset that the runner and every
+ * hazard ride together, so the course's crumble and star proofs are unchanged.
+ * Scored about 10 % higher (Joe found Roofbound slightly harsh): every knot
+ * below the top keeps its units and gains a tenth of its points; the full
+ * minute with all ten stars still reaches 140, plus 10. States add `tunec: 1`.
+ */
+export const FLIP_REV_TUNEC = 4;
+export const FLIP_V4_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 150], [0, 17, 77, 110, 132, 140]);
+export const flipTunecGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipBandGame, init: (seed) => ({ ...flipBandGame.init(seed), tunec: 1 }) };

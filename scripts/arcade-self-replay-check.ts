@@ -107,10 +107,10 @@ import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
 import "@/lib/duel/wordfallDict.server";
 
 import { BT_REV_BAND } from "@/lib/arcade/ballTrack";
-import { WAV_REV_BAND, WAV_REV_SHAPES } from "@/lib/arcade/wavefront";
-import { FLIP_REV_BAND } from "@/lib/arcade/flip";
-import { INK_REV_BAND } from "@/lib/arcade/inkBridge";
-import { MATCHUP_REV_BAND } from "@/lib/arcade/matchup";
+import { WAV_REV_BAND, WAV_REV_SHAPES, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
+import { FLIP_REV_BAND, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
+import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
+import { MATCHUP_REV_BAND, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TUNED } from "@/lib/arcade/rally";
@@ -118,16 +118,16 @@ import { SNAKE_REV_BAND } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SNIP_REV_BAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND } from "@/lib/arcade/skyline";
-import { HOVER_REV_BAND } from "@/lib/arcade/hover";
+import { HOVER_REV_BAND, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_TUNED } from "@/lib/arcade/breaker";
-import { TILT_REV_BAND } from "@/lib/arcade/tilt";
+import { TILT_REV_BAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { initBandFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
-import { BEAT_REV_BAND } from "@/lib/arcade/beat";
-import { SLICE_REV_BAND } from "@/lib/arcade/slice";
+import { BEAT_REV_BAND, BEAT_REV_TUNEC } from "@/lib/arcade/beat";
+import { SLICE_REV_BAND, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC } from "@/lib/arcade/swing";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -516,6 +516,16 @@ const GAMES: Game[] = [
     encode: encodeBullseyeRun,
     replay: (seed: number, raw: string) => replayBullseyeRun(seed, raw, bullseyeWinds(seed), BULLSEYE_REV_TUNED),
   },
+  // Tuning C (Oct 2026): every revision it stamps.
+  { key: "matchup/wait", game: matchupGameFor(MATCHUP_REV_WAIT), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_WAIT) },
+  { key: "swing/tunec", game: swingGameFor(SWING_REV_TUNEC), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_TUNEC) },
+  { key: "hover/tunec", game: hoverGameFor(HOVER_REV_TUNEC), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV_TUNEC) },
+  { key: "inkbridge/tunec", game: inkBridgeGameFor(INK_REV_TUNEC), checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_TUNEC) },
+  { key: "flip/tunec", game: flipGameFor(FLIP_REV_TUNEC), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_TUNEC) },
+  { key: "beat/tunec", game: beatGameFor(BEAT_REV_TUNEC), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_TUNEC) },
+  { key: "wavefront/tunec", game: wavefrontGameFor(WAV_REV_TUNEC), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, WAV_REV_TUNEC) },
+  { key: "tilt/tunec", game: tiltGameFor(TILT_REV_TUNEC), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_TUNEC) },
+  { key: "slice/tunec", game: sliceGameFor(SLICE_REV_TUNEC), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, SLICE_REV_TUNEC) },
   { key: "hotfloor", game: hotFloorGame, checkpoint: hotfloorCheckpoint, mode: "events", rate: 60, encode: encodeHotFloorRun, replay: replayHotFloorRun },
   { key: "stroop", game: colourClashRev3Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 3) },
   { key: "stroop", game: colourClashGame, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 0) },

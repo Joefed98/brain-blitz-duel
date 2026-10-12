@@ -1,7 +1,7 @@
 /**
  * Arcade play check: every active arcade game, played for real in headless Chromium.
  *
- * For each of the 22 active arcade games, plus the engine games of other categories
+ * For each of the 21 active arcade games (Junction is practice only since Tuning C), plus the engine games of other categories
  * that draw in an arcade world (ENGINE_GAME_WORLDS: Letterfall), it opens /practice at 390 × 700, starts
  * the run and feeds seeded taps and swipes until 15 s of LIVE play are covered: a run
  * that ends early by game-over is restarted (a fresh practice run) and play continues.
@@ -37,7 +37,7 @@
  * still playing one game at a time in its own browser, so every game runs under
  * the same conditions as the recorded baseline (and as a whole run).
  *
- *   bun scripts/arcade-play-check.ts                 # all 22 games
+ *   bun scripts/arcade-play-check.ts                 # all 21 games (and Letterfall)
  *   bun scripts/arcade-play-check.ts cross flip      # only these game ids
  *   bun scripts/arcade-play-check.ts --part=2/5      # the second of five groups
  *   bun scripts/arcade-play-check.ts --record        # rewrite the frame-time baseline
@@ -49,7 +49,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
-import { ARCADE_FX_SPECS, ARCADE_GAME_WORLDS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { ARCADE_ARENA_FILL, ARENA_NO_FILL, ENGINE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
@@ -226,7 +226,7 @@ async function main() {
     process.exit(1);
   }
   const { chromium } = await import("playwright");
-  let games = [...Object.keys(ARCADE_GAME_WORLDS), ...Object.keys(ENGINE_GAME_WORLDS)].filter((g) => ONLY.length === 0 || ONLY.includes(g));
+  let games = [...ACTIVE_ARCADE_GAMES, ...Object.keys(ENGINE_GAME_WORLDS)].filter((g) => ONLY.length === 0 || ONLY.includes(g));
   if (PART_ARG) {
     const [k, n] = PART_ARG.split("/").map(Number) as [number, number];
     if (!(n >= 1 && k >= 1 && k <= n)) {

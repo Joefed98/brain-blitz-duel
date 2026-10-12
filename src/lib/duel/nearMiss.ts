@@ -54,9 +54,12 @@ export function nearMiss(
     case "tendrop":
       return remaining("cleared", 10, "target");
     case "wavefront":
-      // wavRev 2: all five waves cleared leaves the boss.
-      if (extra["wavRev"] !== undefined && number("wavesCleared") === 5) return extra["bossKilled"] ? null : remaining("bossHits", 36, "boss hit");
-      return remaining("wavesCleared", 5, "wave");
+    {
+      // wavRev 2: all five waves cleared leaves the boss (wavRev 5, Tuning C: four).
+      const waves = extra["wavRev"] === 5 ? 4 : 5;
+      if (extra["wavRev"] !== undefined && number("wavesCleared") === waves) return extra["bossKilled"] ? null : remaining("bossHits", 36, "boss hit");
+      return remaining("wavesCleared", waves, "wave");
+    }
     case "flip": {
       const seconds = number("survivedSeconds");
       return extra["survived"] !== true && seconds !== null && seconds >= 0 && seconds < 60

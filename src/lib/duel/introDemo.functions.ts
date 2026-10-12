@@ -1,5 +1,5 @@
-import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED } from "@/lib/arcade/swing";
-import { INK_REV3, INK_REV4, INK_REV_BAND } from "@/lib/arcade/inkBridge";
+import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC } from "@/lib/arcade/swing";
+import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { chainDemoCompatible } from "./chain";
 import { createServerFn } from "@tanstack/react-start";
@@ -61,10 +61,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Four-step bomb demos cannot replay the six-step example.
     if (data.type === "bomb" && demo?.puzzle.type === "bomb" && demo.puzzle.bombVersion !== 2) return null;
     // Block-era Rainbow Bridge demos would show red blocks under the birds wording.
-    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV3 && demo.puzzle.inkRev !== INK_REV4 && demo.puzzle.inkRev !== INK_REV_BAND) return null;
+    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV3 && demo.puzzle.inkRev !== INK_REV4 && demo.puzzle.inkRev !== INK_REV_BAND && demo.puzzle.inkRev !== INK_REV_TUNEC) return null;
     if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
-    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV && demo.puzzle.swingRev !== SWING_REV_BAND && demo.puzzle.swingRev !== SWING_REV_TUNED) return null;
+    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV && demo.puzzle.swingRev !== SWING_REV_BAND && demo.puzzle.swingRev !== SWING_REV_TUNED && demo.puzzle.swingRev !== SWING_REV_TUNEC) return null;
     return demo;
   });
 

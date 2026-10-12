@@ -203,6 +203,8 @@ export interface BeatState extends BandFields {
   rev?: number;
   swipesHit?: number;
   swipesMissed?: number;
+  /** beatRev 4 only (Tuning C): 1 = scored on BEAT_V4_BAND_CURVE. Absent on every earlier round. */
+  tunec?: number;
   tick: number;
   rng: number;
   chart: BeatChart;
@@ -507,6 +509,8 @@ export function beatCheckpoint(state: BeatState): BeatCheckpoint {
   const values = Object.values(snapshot);
   // Rev 2 folds its own counters in; older states never have them, so their sums are unchanged.
   if (state.rev === BEAT_REV) values.push(state.swipesHit ?? 0, state.swipesMissed ?? 0);
+  // beatRev 4 (Tuning C) adds its marker last.
+  if (state.tunec) values.push(state.tunec);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -665,6 +669,7 @@ export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ..
 
 /** Takes puzzle.beatRev; anything else is the original game. */
 export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  if (rev === BEAT_REV_TUNEC) return beatTunecGame;
   if (rev === BEAT_REV_BAND) return beatBandGame;
   return rev === BEAT_REV ? beatRev2Game : beatGame;
 }
@@ -687,7 +692,7 @@ export const BEAT_BAND_CURVE = bandCurve([0, 590, 810, 920, 975, 1000], [0, 70, 
 export function beatBandParts(state: BeatState): BandParts {
   const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - 2 * state.misses);
   const units = Math.floor((1000 * quarters) / Math.max(1, BEAT_PERFECT_Q * beatNoteCount(state)));
-  return { units, points: bandPoints(BEAT_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${state.perfect} perfect · ${state.good} good · ${state.ok} OK · ${state.misses} missed` };
+  return { units, points: bandPoints(state.tunec ? BEAT_V4_BAND_CURVE : BEAT_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${state.perfect} perfect · ${state.good} good · ${state.ok} OK · ${state.misses} missed` };
 }
 
 function scoreBand(state: BeatState): number {
@@ -695,3 +700,15 @@ function scoreBand(state: BeatState): number {
 }
 
 export const beatBandGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatRev2Game, init: (seed) => bandInit(beatRev2Game.init(seed)) };
+
+/* ================= Tuning C (beatRev 4, Oct 2026) ================= */
+
+/**
+ * beatRev 4 (Tuning C): beatRev 3 play unchanged, scored about 10 % higher (Joe
+ * found Tempo slightly harsh): each knot below the top keeps its units and gains
+ * a tenth of its points (145 can only rise to 148); every note Perfect is still
+ * 150. States add `tunec: 1`.
+ */
+export const BEAT_REV_TUNEC = 4;
+export const BEAT_V4_BAND_CURVE = bandCurve([0, 590, 810, 920, 975, 1000], [0, 77, 110, 137, 148, 150]);
+export const beatTunecGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatBandGame, init: (seed) => ({ ...beatBandGame.init(seed), tunec: 1 }) };

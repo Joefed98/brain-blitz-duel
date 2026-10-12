@@ -205,6 +205,12 @@ export interface ArcadeFxEvent<S> {
    * a wave or stage clear. Edge only, never over the play area.
    */
   sweep?: boolean;
+  /**
+   * Text only at the event's place: no particle burst and no ring there
+   * (Gemstone, where bursts over the gems read as bubbles). The pop or banner,
+   * edge glow and flash still play.
+   */
+  textOnly?: boolean;
 }
 
 export interface ArcadeFxSpec<S> {
@@ -450,7 +456,7 @@ function spawn<S>(
   const seed = (m.seed = (m.seed + 1) | 0);
   const big = event.kind === "clear" || event.kind === "final";
 
-  const n = still ? Math.min(3, t.particles) : t.particles;
+  const n = event.textOnly ? 0 : still ? Math.min(3, t.particles) : t.particles;
   for (let i = 0; i < n; i++) {
     const angle = (i / n) * Math.PI * 2 + hash(seed, i) * 0.9;
     const speed = (0.45 + hash(seed, i + 97) * 0.55) * t.spread;
@@ -509,7 +515,7 @@ function spawn<S>(
     }
     if (m.pops.length > ARCADE_FX_MAX_POPS) m.pops.splice(0, m.pops.length - ARCADE_FX_MAX_POPS);
   }
-  if (t.ring) {
+  if (t.ring && !event.textOnly) {
     m.rings.push({
       x: point.x,
       y: point.y,

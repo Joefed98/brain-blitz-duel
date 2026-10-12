@@ -116,8 +116,20 @@ export const WAV_DROP_R = 8;
 export const WAV_REV = 2;
 export const WAV_V2_RUN_SECONDS = 90;
 export const WAV_V2_RUN_TICKS = WAV_V2_RUN_SECONDS * TICKS_PER_SECOND;
-/** Formation waves before the boss. */
+/** Formation waves before the boss (wavRev 5: WAV_V5_WAVES). */
 export const WAV_V2_WAVES = 5;
+/** wavRev 5 (Tuning C): four formation waves, then the boss as the fifth stage. */
+export const WAV_V5_WAVES = 4;
+/** wavRev 5: how far the formation drops at a wall on waves 3 and 4, px (half a row; other waves drop a full row). */
+export const WAV_DROP_SLOW_PX = 18;
+/** Formation waves before the boss on this state's revision. */
+export function wavWaves(state: { tunec?: number }): number {
+  return state.tunec ? WAV_V5_WAVES : WAV_V2_WAVES;
+}
+/** How far the formation drops when it reaches a wall: wavRev 5 waves 3 and 4 come down at half speed. */
+export function wavDropPx(state: { tunec?: number; wave: number }): number {
+  return state.tunec && (state.wave === 3 || state.wave === 4) ? WAV_DROP_SLOW_PX : PITCH_Y;
+}
 export const WAV_BREATHER_TICKS = 2 * TICKS_PER_SECOND;
 /** How far above its place a formation (or the boss) starts its fly-in, px. */
 const ENTRY_DIST = START_Y + WAV_ROWS * PITCH_Y;
@@ -227,6 +239,11 @@ export interface WavState extends BandFields {
   bossKilled?: number;
   /** wavRev 4: 1 when waves 2–5 fly in their own formation shapes (WAV_FORMS); absent otherwise. */
   shaped?: number;
+  /**
+   * wavRev 5 only (Tuning C): 1 = four formation waves then the boss, waves 3 and 4
+   * drop WAV_DROP_SLOW_PX at a wall instead of a full row, scored on WAV_V5_BAND_CURVE.
+   */
+  tunec?: number;
   /** wavRev 2: ships that rammed the player while diving (destroyed, no points), and divers shot down. */
   rammed?: number;
   diversDown?: number;
@@ -434,7 +451,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
         right = nextX + hi + WAV_CELL;
       }
       if (left < EDGE || right > WAV_WORLD_W - EDGE) {
-        s.fy += PITCH_Y;
+        s.fy += wavDropPx(s);
         s.dir = -s.dir;
       } else s.fx = nextX;
     }
@@ -761,7 +778,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     s.stepIn = stepEvery(s);
     s.redIn = s.redBase;
     s.armour = null;
-    if (s.wave > WAV_V2_WAVES) {
+    if (s.wave > wavWaves(s)) {
       // The boss: the formation grid stays empty from here on.
       s.boss = { x: Math.trunc((WAV_WORLD_W - WAV_BOSS_W) / 2), dir: 1, hp: WAV_BOSS_HP, fireIn: WAV_BOSS_FIRE_EVERY };
     } else {
@@ -952,6 +969,8 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
     for (const d of state.divers ?? []) extra.push(d.cell, d.t, d.x, d.y);
     // wavRev 4 only, after every rev-2 value.
     if (state.shaped) extra.push(state.shaped);
+    // wavRev 5 only, last.
+    if (state.tunec) extra.push(state.tunec);
     for (const value of extra) {
       checksum ^= value | 0;
       checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1177,6 +1196,7 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
 export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_TUNEC) return wavefrontTunecGame;
   if (rev === WAV_REV_SHAPES) return wavefrontShapesGame;
   if (rev === WAV_REV_BAND) return wavefrontBandGame;
   return rev === WAV_REV ? wavefrontGameV2 : wavefrontGame;
@@ -1191,7 +1211,7 @@ export const WAV_BAND_CURVE = bandCurve([0, 100, 214, 235, 255, WAV_PAR_V2 - WAV
 export function wavefrontBandParts(state: WavState): BandParts {
   const units = state.shapesDown + state.armourHits + WAV_POINTS_SAUCER * state.saucers + WAV_POINTS_WAVE * state.wavesCleared + (state.bossHits ?? 0);
   const finished = (state.bossKilled ?? 0) > 0;
-  return { units, points: bandPoints(WAV_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.saucers} saucers · ${state.bossHits ?? 0} boss hits`, bonusText: "Boss destroyed" };
+  return { units, points: bandPoints(state.tunec ? WAV_V5_BAND_CURVE : WAV_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.saucers} saucers · ${state.bossHits ?? 0} boss hits`, bonusText: "Boss destroyed" };
 }
 
 function scoreBand(state: WavState): number {
@@ -1262,12 +1282,42 @@ export function wavFormSize(wave: number): { w: number; h: number } {
 }
 
 /** The current wave's shape (wavRev 4, waves 2–5), or null for the grid. */
-export function wavForm(state: { shaped?: number; wave: number }): readonly (readonly [number, number])[] | null {
-  if (!state.shaped || state.wave < 2 || state.wave > WAV_V2_WAVES) return null;
+export function wavForm(state: { shaped?: number; tunec?: number; wave: number }): readonly (readonly [number, number])[] | null {
+  if (!state.shaped || state.wave < 2 || state.wave > wavWaves(state)) return null;
   return WAV_FORMS[state.wave] ?? null;
 }
 
 export const wavefrontShapesGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
   ...wavefrontBandGame,
   init: (seed) => ({ ...wavefrontBandGame.init(seed), shaped: 1 }),
+};
+
+/* ================= Tuning C (wavRev 5, Oct 2026) ================= */
+
+/**
+ * wavRev 5 (Tuning C): wavRev 4 play (shapes, divers, fly-ins, 90 s) with four
+ * formation waves (the grid, then the triangle, circle and pentagon) and the
+ * boss as the fifth stage; on waves 3 and 4 the formation drops half a row
+ * (WAV_DROP_SLOW_PX) at each wall, so it comes down at half the speed. The par
+ * counts the four waves plus every boss hit: 140 needs all of them, and 150
+ * the kill. Knots refitted for about 10 % more at the same skill (Joe found
+ * Wavefront harsh). States add `tunec: 1`; older rounds never set it.
+ */
+export const WAV_REV_TUNEC = 5;
+/** A perfect wavRev-5 run: every ship, every armour hit and all four waves, every boss hit and the kill. */
+export const WAV_PAR_V5 = (() => {
+  let raw = 0;
+  for (let wave = 1; wave <= WAV_V5_WAVES; wave++) {
+    raw += WAV_SHAPES + WAV_POINTS_WAVE;
+    if (wave >= 2) {
+      const [cells, hits] = WAV_ARMOUR_BY_WAVE[Math.min(wave - 2, WAV_ARMOUR_BY_WAVE.length - 1)]!;
+      raw += hits - cells;
+    }
+  }
+  return raw + WAV_BOSS_HP + WAV_POINTS_BOSS;
+})();
+export const WAV_V5_BAND_CURVE = bandCurve([0, 83, 177, 194, 210, WAV_PAR_V5 - WAV_POINTS_BOSS], [0, 28, 79, 110, 132, 140]);
+export const wavefrontTunecGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
+  ...wavefrontShapesGame,
+  init: (seed) => ({ ...wavefrontShapesGame.init(seed), tunec: 1 }),
 };

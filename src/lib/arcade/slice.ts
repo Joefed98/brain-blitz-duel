@@ -130,6 +130,10 @@ export const SLICE_COMBO_MAX = 3;
 /** Each recorded segment cuts 25% longer, extended back past its start. */
 export const SLICE_REACH_NUM = 5;
 export const SLICE_REACH_DEN = 4;
+/** sliceRev 4 (Tuning C): each segment cuts 50% longer (extended back past its start)… */
+export const SLICE_REACH_V4_NUM = 6;
+/** …and the blade is this many px wide either side of the line (foods are hit this much further away). */
+export const SLICE_BLADE_V4 = 4;
 
 /** Multiplier for this many qualifying slices in the live window. */
 export function sliceMultiplier(streak: number): number {
@@ -421,6 +425,8 @@ function spawned(object: SliceObject, tick: number): SliceObject {
 /* ================================ State ================================ */
 
 export interface SliceState extends BandFields {
+  /** sliceRev 4 only (Tuning C): 1 = the wider, longer blade (SLICE_BLADE_V4, SLICE_REACH_V4_NUM). Absent on every earlier round. */
+  tunec?: number;
   tick: number;
   rng: number;
   objects: SliceObject[];
@@ -647,8 +653,11 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
   }
   if (input && input.k === SLICE_INPUT_SWIPE && clipped) {
     // The cut reaches 25% further back along the swipe than the recorded start.
-    const ax = input.c - Math.trunc(((input.c - input.a) * SLICE_REACH_NUM) / SLICE_REACH_DEN);
-    const ay = input.d - Math.trunc(((input.d - input.b) * SLICE_REACH_NUM) / SLICE_REACH_DEN);
+    // sliceRev 4: 50% further back, and a blade SLICE_BLADE_V4 px wide either side of the line.
+    const reach = state.tunec ? SLICE_REACH_V4_NUM : SLICE_REACH_NUM;
+    const blade = state.tunec ? SLICE_BLADE_V4 : 0;
+    const ax = input.c - Math.trunc(((input.c - input.a) * reach) / SLICE_REACH_DEN);
+    const ay = input.d - Math.trunc(((input.d - input.b) * reach) / SLICE_REACH_DEN);
     next.swipe = [ax, ay, input.c, input.d];
     let cut = 0;
     let bombs = 0;
@@ -669,7 +678,7 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
       const cy = Math.trunc(at.y / 256);
       const radius = object.special ? SLICE_SPECIAL_R : SLICE_R;
       if (cy - radius > SLICE_WORLD_H || cy + radius < SLICE_HUD_H) continue;
-      if (!segmentHits(ax, ay, input.c, input.d, cx, cy, radius)) continue;
+      if (!segmentHits(ax, ay, input.c, input.d, cx, cy, radius + blade)) continue;
       slicedAt ??= [...state.slicedAt];
       slicedAt[index] = tick;
       if (object.bomb) bombs += 1;
@@ -800,7 +809,10 @@ export function sliceCheckpointState(state: SliceState): SliceCheckpointState {
 export function sliceCheckpoint(state: SliceState): SliceCheckpoint {
   const snapshot = sliceCheckpointState(state);
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  const values = Object.values(snapshot);
+  // sliceRev 4 adds its marker last, so older sums are unchanged.
+  if (state.tunec) values.push(state.tunec);
+  for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -1011,6 +1023,7 @@ const sliceRev2Game: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.sliceRev; anything else is the original kitchen. */
 export function sliceGameFor(rev?: number | null): ArcadeGame<SliceState, ArcadeInputEvent | null> {
+  if (rev === SLICE_REV_TUNEC) return sliceTunecGame;
   if (rev === SLICE_REV_BAND) return sliceBandGame;
   return rev === SLICE_REV ? sliceRev2Game : sliceGame;
 }
@@ -1028,7 +1041,7 @@ export function sliceBandParts(state: SliceState): BandParts {
   const chillies = Math.max(0, state.bombsHit);
   return {
     units,
-    points: bandPoints(SLICE_BAND_CURVE, units),
+    points: bandPoints(state.tunec ? SLICE_V4_BAND_CURVE : SLICE_BAND_CURVE, units),
     bonus: 0,
     penalty: SLICE_BOMB_PENALTY * chillies,
     finished: false,
@@ -1042,3 +1055,20 @@ function scoreBand(state: SliceState): number {
 }
 
 export const sliceBandGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = { ...sliceRev2Game, init: (seed) => bandInit(sliceRev2Game.init(seed)) };
+
+/* ================= Tuning C (sliceRev 4, Oct 2026) ================= */
+
+/**
+ * sliceRev 4 (Tuning C): sliceRev 3 play with a slightly bigger blade: each
+ * recorded segment cuts 50 % further back past its start (was 25 %) and hits
+ * anything within SLICE_BLADE_V4 px of the line (chillies too). The art draws
+ * the cut that wide. States add `tunec: 1`.
+ */
+export const SLICE_REV_TUNEC = 4;
+/**
+ * sliceRev 4 band knots: the bigger blade lifts average and good players about 5
+ * points on the sliceRev 3 curve, so the lower knots move up a little to keep the
+ * levels where they were (scripts/arcade-skill-bands.ts slice --rev=c); 150 still at 900.
+ */
+export const SLICE_V4_BAND_CURVE = bandCurve([0, 435, 670, 755, 835, 900], [0, 78, 105, 130, 147, 150]);
+export const sliceTunecGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = { ...sliceBandGame, init: (seed) => ({ ...sliceBandGame.init(seed), tunec: 1 }) };

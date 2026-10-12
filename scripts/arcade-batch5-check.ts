@@ -16,10 +16,10 @@ import { readFileSync } from "node:fs";
 
 import { legacyDigest } from "./arcade-batch5-legacy";
 import { playFlightpath, playInk, playRally, playSwish, playTempo } from "./arcade-batch5-bots";
-import { inkBridgeGameFor, inkCheckpoint, inkStarCheck, INK_LEVELS, INK_REV3, INK_REV4, INK_REV_BAND, INK_STAR_LEVELS, INK_V4_PARTIAL_MAX } from "../src/lib/arcade/inkBridge";
+import { inkBridgeGameFor, inkCheckpoint, inkStarCheck, INK_LEVELS, INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC, INK_STAR_LEVELS, INK_V4_PARTIAL_MAX } from "../src/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../src/lib/duel/inkBridge";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
-import { beatCheckpoint, beatGame, beatGameFor, beatSwipeCount, BEAT_REV, BEAT_REV_BAND, BEAT_SWIPE_FROM } from "../src/lib/arcade/beat";
+import { beatCheckpoint, beatGame, beatGameFor, beatSwipeCount, BEAT_REV, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_SWIPE_FROM } from "../src/lib/arcade/beat";
 import { encodeBeatRun, replayBeatRun } from "../src/lib/duel/beat";
 import {
   rallyCheckpoint,
@@ -274,7 +274,7 @@ if (want("rally")) {
 if (want("beat")) {
   section("Tempo beatRev 2 (swipe notes in the second half)");
   const game = beatGameFor(BEAT_REV);
-  ok(generateBeat().beatRev === BEAT_REV_BAND, "new rounds are stamped beatRev 3 (rev 2 play on the score bands)");
+  ok(generateBeat().beatRev === BEAT_REV_TUNEC, "new rounds are stamped beatRev 4 (rev 2 play on the score bands; Tuning C curve)");
   ok(beatGameFor(undefined) === beatGame && beatGame.init(5).chart.swipes === undefined, "unstamped rounds keep the original game");
   let swipeTotal = 0;
   for (const seed of SEEDS(200, 7919)) {
@@ -308,7 +308,7 @@ if (want("beat")) {
 if (want("inkbridge")) {
   section("Rainbow Bridge inkRev 4 (optional gold stars)");
   const game = inkBridgeGameFor(INK_REV4);
-  ok(generateInkBridge().inkRev === INK_REV_BAND, "new rounds are stamped inkRev 5 (rev 4 play on the score bands)");
+  ok(generateInkBridge().inkRev === INK_REV_TUNEC, "new rounds are stamped inkRev 6 (rev 4 play on the score bands; Tuning C curve)");
   ok(inkBridgeGameFor(INK_REV3).init(5).stars === undefined, "rev-3 rounds have no stars");
   const seeds = SEEDS(Number(process.env.BATCH5_INK_SEEDS ?? 12), 7919);
   for (const seed of seeds) {

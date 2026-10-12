@@ -138,34 +138,34 @@ Decision still open: revive Memory with new games or drop it.
 | Robot Instructions / Circuit Builder / Minefield / Magnetic Maze / Domino Logic / Escape Room / Find the Rule / Bridges | To build | | |
 | Logic Grid / Odd-One-Out / Syllogism Check / Truth-Teller / Weighing Puzzle / Cryptic Clues / Elimination Grid | Bank | | |
 
-## Arcade (core) — 22 active
+## Arcade (core) — 21 active
 
 All run on the deterministic engine: 60 ticks/s, integer physics, seeded courses identical for everyone in a room, the server replays the input log. Every gameplay change is version-stamped so old rounds replay and score as they were. Cap 150.
 
 | Game (id) | World | Input | Description | Run |
 |---|---|---|---|---|
-| Hover (hover) | Retro | tap | Fly a saucer through gaps in energy barriers; barrier colour changes every 7 (six colours); each barrier lights up as you pass. hoverRev 2: gold stars in tight gaps, two-gap and moving barriers; 130 barriers + 20 stars. | 60 s |
+| Hover (hover) | Retro | tap | Fly a saucer through gaps in energy barriers; barrier colour changes every 7 (six colours); each barrier lights up as you pass. hoverRev 2: gold stars in tight gaps, two-gap and moving barriers; 130 barriers + 20 stars. hoverRev 4 (Tuning C): scored about 10% lower. | 60 s |
 | High Rise (skyline) | Real World | tap | Drop swinging blocks onto a night-time tower; perfect drops restore width; windows light floor by floor. | 60 s |
 | Swish (bintoss) | Fairground | drag-aim | Ten throws into a tin bucket that moves back each throw; wind shown by a pennant (one point = a quarter of the bucket's width); catch zone 15% smaller since Oct. binRev 3: a bonus hoop above the bucket on three of throws 2–5 (+3 through it and in), a spinning paddle in front of the bucket on three of throws 6–10. | 10 throws / 60 s |
 | Flightpath (bullseye) | Fairground | drag-aim | Ten darts at a drifting board; rings worth 10, 9, 8, 3, 2, 1; score = 1.7 × dart total − 20. bullRev 2: a tiny inner bull worth 12, and a drifting balloon on three of darts 3–10 (pop it for 12; the dart is used up). | 10 darts / 45 s |
-| Gemstone (matchup) | Own | swap | 7×8 match-3 with fixed refill queues; specials; gems glow with occasional glints. matchupRev 2: Jackpot gem (5 + L/T in one swap), constant play, par 5,000; matchupRev 3: original fall speed, par 5,500. | 60 s |
+| Gemstone (matchup) | Own | swap | 7×8 match-3 with fixed refill queues; specials; gems glow with occasional glints. matchupRev 2: Jackpot gem (5 + L/T in one swap), constant play, par 5,000; matchupRev 3: original fall speed, par 5,500. matchupRev 5 (Tuning C, 12 Oct): constant play reverted — each swap waits for its gems to clear and fall at the original speed; 150 at 2,500 match points; no bursts over the gems (text pop-ups only). | 60 s |
 | Breaker (breaker) | Retro | drag | 80 bricks in rainbow rows; gold power-up bricks (multi-ball, spam, laser); ball trail. | 90 s |
 | Rally (rally) | Retro | drag | Keep the rally going; paddle shrinks per hit; a gold ball joins every 10 s; the ball glows hotter as the rally grows. rallyRev 2: two pink target pads on the far wall (+3 when a gold ball hits one; it moves on), a mirror bumper mid-court from 30 s, and a full Retro arena. | 60 s |
-| Slice (slice) | Kitchen | swipe | Chop flying foods on a chopping board, avoid chillies; combo multiplier up to ×3; Saucy (ketchup, bomb-free) and Simmer (mustard, slow-mo). | 60 s |
+| Slice (slice) | Kitchen | swipe | Chop flying foods on a chopping board, avoid chillies; combo multiplier up to ×3; Saucy (ketchup, bomb-free) and Simmer (mustard, slow-mo). sliceRev 4 (Tuning C): a slightly wider (4 px each side) and longer (cuts 50% back past the swipe's start) blade. | 60 s |
 | Coral Pop (bubble) | Underwater | drag-aim | Hex bubble shooter, five colours with sea-creature symbols, fixed queue. bubbleRev 2: Joker, mine and torpedo bubbles in the queue; part-clear credit up to 100. | 90 s |
-| Tempo (beat) | Retro | tap lanes | Four-lane rhythm chart at 120 BPM with hold notes and combo. beatRev 2: swipe notes (left/right arrows) from 30 s. | 60 s |
+| Tempo (beat) | Retro | tap lanes | Four-lane rhythm chart at 120 BPM with hold notes and combo. beatRev 2: swipe notes (left/right arrows) from 30 s. beatRev 4 (Tuning C): scored about 10% higher; no highlight box while holding a hold note. | 60 s |
 | Meteor (snake) | Retro | swipe | Snake-style meteor with a fixed star queue; the tail glows as it grows. snakeRev 2: seeded asteroids (2 s shadow, head-only hits) from length 10; snakeRev 3: a 3-rock meteor shower at 20 stars (cap 11 rocks). | 60 s |
 | Jaywalk (cross) | Real World | swipe 4-way | Cross nine lanes of traffic, faster each crossing; 3 lives. Score = 2 × lanes + 4 × crossings. | 60 s |
-| Wavefront (wavefront) | Space | tap/drag | Shoot rows of geometric ships, armoured ships and saucers through five waves; 3 lives. | 60 s |
-| Roofbound (flip) | Cave & Lava | tap | Gravity-flip runner through a lava tube; bends ramp up in the last 15 s; score rises with survival time. | 60 s |
-| Junction (junction) | Real World | tap | Traffic controller at a crossroads; prioritise ambulances; confirm turning cars; survival bonus. | 60 s |
-| Rainbow Bridge (inkbridge) | Real World | draw | Draw rainbow lines to guide a falling coin into the pot of gold past white birds (inkRev 3): levels 1–4 the pot stands still, 5–8 the pot moves, 9–10 live (one line before release, then draw as it falls, with a no-draw ring, shared ink and a shield row). 11 per level. inkRev 4: an optional gold star on four of levels 1–8, on a harder proved route (+2). | 120 s |
+| Wavefront (wavefront) | Space | tap/drag | Shoot rows of geometric ships, armoured ships and saucers through the waves, then the boss; 3 lives. wavRev 5 (Tuning C): four formation waves (grid, triangle, circle, pentagon) and the boss as the fifth stage; waves 3 and 4 come down at half speed; 150 needs all four waves and the boss; scored about 10% higher. | 90 s |
+| Roofbound (flip) | Cave & Lava | tap | Gravity-flip runner through a lava tube; score rises with survival time. flipRev 4 (Tuning C): the corridor bends from 10 s (was 15 s); scored about 10% higher. | 60 s |
+| Rainbow Bridge (inkbridge) | Real World | draw | Draw rainbow lines to guide a falling coin into the pot of gold past white birds (inkRev 3): levels 1–4 the pot stands still, 5–8 the pot moves, 9–10 live (one line before release, then draw as it falls, with a no-draw ring, shared ink and a shield row). 11 per level. inkRev 4: an optional gold star on four of levels 1–8, on a harder proved route (+2). inkRev 6 (Tuning C): scored about 6.5% lower, refitted from Joe's 110–124. | 120 s |
 | Fission (burst) | Retro | drag (1:1 follow) | Shoot glowing atoms that split into smaller atoms; shield power-up; 3 lives; 150 for a flawless run of 4+ waves. | 90 s |
 | Orbit (orbit) | Space | tap | Hop between orbits across 40 planets in a wide zig-zag world (orbitRev 3; 504-layout bank); the camera holds still while orbiting and pans after each capture; one player-set checkpoint; a shooting star every 10 planets. orbitRev 4: three black holes (about every 10 planets, proved offline in a hole bank) that throw a well-timed rocket 5 or 6 planets on; skipped planets count. | 90 s |
-| Grappler (swing) | Cave & Lava | tap/hold | A ninja swings from anchors across a lava cave to 500 m; 3–5 large red dragons hover in the last 150 m (touching one ends the run, like a stalactite); 504-course bank. | 60 s |
+| Grappler (swing) | Cave & Lava | tap/hold | A ninja swings from anchors across a lava cave to 500 m; 3–5 large red dragons hover in the last 150 m (touching one ends the run, like a stalactite); 504-course bank. swingRev 7 (Tuning C): scored about 10% lower. | 60 s |
 | Scrumper (snip) | Orchard | swipe | Cut ropes to drop the apple into the basket across ten levels, collecting golden leaves; levels drawn from 30 templates by difficulty band (snipRev 2). | 60 s |
-| Tilt (tilt) | Toybox | drag/tilt | Steer a glass marble through four wooden mazes, avoiding dark holes and the red ball, into the blue cup. | 90 s |
+| Tilt (tilt) | Toybox | drag/tilt | Steer a glass marble through four wooden mazes, avoiding dark holes and the red ball, into the blue cup. tiltRev 4 (Tuning C): the amber marble starts at least a maze's width along the paths from its cup; stars sit at the mouth of a black hole on or one cell off a route (a risky lean as you pass), otherwise one cell off the route; bands refitted. | 90 s |
 | Ball Tracker (balltrack) | Toybox | tap/drag | Route marbles into the right trays on a marble run; wrong trays cost nothing. | 60 s |
+| Junction (junction) | Retired 12 Oct (Tuning C): practice only | tap | Traffic controller at a crossroads; prioritise ambulances; confirm turning cars; survival bonus. Stored rounds still replay and score as before. | 60 s |
 | Swerve / Steady / Dual / Ricochet / Rooftop Run / Bastion / Sort Rush / Parry / Hot Floor | Retired | | | |
 
 **Arcade gameplay features planned for Claude Code (master plan step 10a):** Wavefront wave breaks, divers and a boss; High Rise accuracy changes block size, plus gusts; Pull! doubles; Slice combos; Junction ambulances (timed bonus/penalty). More ideas in the master plan's "Later" sections.
@@ -182,7 +182,7 @@ Joe's turn-based tactics concept for two players on their own phones: secret dep
 
 ---
 
-## Totals (10 Oct 2026)
+## Totals (10 Oct 2026; Arcade updated 12 Oct for Junction's retirement)
 
 | Category | Active in rooms | Retired |
 |---|---|---|
@@ -193,8 +193,8 @@ Joe's turn-based tactics concept for two players on their own phones: secret dep
 | Attention | 7 | 0 |
 | Pattern | 7 | 3 |
 | Logic | 14 | 2 |
-| Arcade | 22 | 9 |
-| **Total** | **72** | **26** |
+| Arcade | 21 | 10 |
+| **Total** | **71** | **27** |
 
 97 built. Target: at least six strong games per category (Word is at six, Number at nine; Memory is empty). Guiding rule: aim for around 40 outstanding games with radically different skill profiles rather than 100 variations.
 

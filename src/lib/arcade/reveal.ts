@@ -10,7 +10,7 @@ import { BT_BALLS } from "./ballTrack";
 import { MATCHUP_PAR_RAW } from "./matchup";
 import { WF_PAR } from "./wordfall";
 import { HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
-import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
+import { WAV_BOSS_HP, WAV_REV_TUNEC, WAV_V2_WAVES, WAV_V5_WAVES } from "./wavefront";
 import { BAND_SPECS } from "./bandParts";
 import { bandLines } from "./scoreBands";
 
@@ -233,12 +233,13 @@ const BUILDERS: Record<string, Builder> = {
   }),
   wavefront: (r, s) => {
     if (n(r, "wavRev") > 0) {
-      // wavRev 2: five waves, then the boss.
+      // wavRev 2: five waves, then the boss (wavRev 5: four).
       const killed = n(r, "bossKilled") > 0;
+      const waves = n(r, "wavRev") === WAV_REV_TUNEC ? WAV_V5_WAVES : WAV_V2_WAVES;
       return {
-        axis: { value: n(r, "wavesCleared"), max: WAV_V2_WAVES, label: "Waves" },
+        axis: { value: n(r, "wavesCleared"), max: waves, label: "Waves" },
         lines: [
-          `${n(r, "wavesCleared")} / ${WAV_V2_WAVES} waves · ${n(r, "shapesDown")} ships · ${n(r, "armourHits")} armour hits`,
+          `${n(r, "wavesCleared")} / ${waves} waves · ${n(r, "shapesDown")} ships · ${n(r, "armourHits")} armour hits`,
           `Boss: ${n(r, "bossHits")} / ${WAV_BOSS_HP} hits${killed ? " · destroyed" : ""} → ${s}`,
         ],
         tiles: [

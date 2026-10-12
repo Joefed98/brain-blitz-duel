@@ -134,7 +134,7 @@ const GAMES: Record<string, AnyGame> = {
   matchup: { ...matchupArtGame, init: matchupRev2Game.init } as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 22, "22 active arcade games");
+assert.equal(Object.keys(GAMES).length, 22, "22 arcade games with a world (21 active, Junction practice only)");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),

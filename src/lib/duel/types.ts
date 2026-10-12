@@ -1917,7 +1917,7 @@ export interface HoverPuzzleData {
   type: "hover";
   /** Drives every pillar of the run — identical for everyone in the room. */
   seed: number;
-  /** Course revision (2 = gold stars, two-gap and moving barriers); absent = original course. */
+  /** Course revision (2 = gold stars, two-gap and moving barriers; 3 = score bands; 4 = about 10% lower, Tuning C); absent = original course. */
   hoverRev?: number;
 }
 
@@ -1976,7 +1976,7 @@ export interface MatchupPuzzleData {
   type: "matchup";
   /** Draws the board and each column's refill queue — identical for everyone. */
   seed: number;
-  /** Rule revision (2 = Jackpot gem, constant play, own par); absent = original rules. */
+  /** Rule revision (2 = Jackpot gem, constant play, own par; 3 = original fall speed; 4 = score bands; 5 = wait for gems to fall, par 2,500, Tuning C); absent = original rules. */
   matchupRev?: number;
 }
 
@@ -2110,7 +2110,7 @@ export interface SlicePuzzleData {
   type: "slice";
   /** Draws the whole launch schedule, bombs included — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = mayonnaise bottle, chilli ends the combo); absent = original. */
+  /** Rules revision (2 = mayonnaise bottle, chilli ends the combo; 3 = score bands; 4 = wider, longer blade, Tuning C); absent = original. */
   sliceRev?: number;
 }
 
@@ -2126,7 +2126,7 @@ export interface BeatPuzzleData {
   type: "beat";
   /** Draws the whole chart — identical for everyone. */
   seed: number;
-  /** 2 = swipe notes in the second half. Absent on rounds stored before it. */
+  /** 2 = swipe notes in the second half; 3 = score bands; 4 = about 10% higher (Tuning C). Absent on rounds stored before rev 2. */
   beatRev?: number;
 }
 
@@ -2188,7 +2188,7 @@ export interface WavefrontPuzzleData {
   type: "wavefront";
   /** Draws every wave and enemy shot — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = 90 s, continuous waves, divers, boss); absent = original 60 s rules. */
+  /** Rules revision (2 = 90 s, continuous waves, divers, boss; 3 = score bands; 4 = shaped formations; 5 = four waves then the boss, slower waves 3–4, Tuning C); absent = original 60 s rules. */
   wavRev?: number;
 }
 
@@ -2222,7 +2222,7 @@ export interface FlipPuzzleData {
   type: "flip";
   /** Draws the whole corridor — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = bend at 15 s, crumbling tiles, stars, larger runner); absent = original. */
+  /** Rules revision (2 = bend at 15 s, crumbling tiles, stars, larger runner; 3 = score bands; 4 = bend at 10 s, about 10% higher, Tuning C); absent = original. */
   flipRev?: number;
 }
 
@@ -2246,7 +2246,7 @@ export interface JunctionPuzzleData {
 
 export interface InkBridgePuzzleData {
   type: "inkbridge";
-  /** 2 = white birds, fewer on levels 6–10; 3 = Rainbow Bridge (moving pot, live levels); 4 = that plus optional gold stars. Absent = original blocks. */
+  /** 2 = white birds, fewer on levels 6–10; 3 = Rainbow Bridge (moving pot, live levels); 4 = that plus optional gold stars; 5 = score bands; 6 = about 6.5% lower (Tuning C). Absent = original blocks. */
   inkRev?: number;
   /** Draws the drops and bucket moves — identical for everyone. */
   seed: number;
@@ -2292,6 +2292,7 @@ export interface OrbitPuzzleData {
 
 export interface SwingPuzzleData {
   type: "swing";
+  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C). */
   swingRev?: number;
   /** Draws the cavern — identical for everyone. */
   seed: number;
@@ -2305,7 +2306,7 @@ export interface TiltPuzzleData {
   type: "tilt";
   /** Draws every maze — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = bonus stars, two marbles from maze 3, rimmed cups); absent = original rules. */
+  /** Rules revision (2 = bonus stars, two marbles from maze 3, rimmed cups; 3 = score bands; 4 = amber start away from its cup, stars at the holes, Tuning C); absent = original rules. */
   tiltRev?: number;
 }
 

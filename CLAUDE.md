@@ -8,7 +8,7 @@ override anything general here.
 ## What this is
 
 Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
-short code and play the same timed rounds; 75 active games across Word, Number, Speed, Attention,
+short code and play the same timed rounds; 74 active games across Word, Number, Speed, Attention,
 Pattern, Logic and Arcade (Memory is dormant). Built in Lovable, synced to this repo.
 Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app).
 
@@ -65,7 +65,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
     banked generator or verifier.
   - Split checks: an entry `<file>@<k>/<n>` in `shards.ts` runs part k of n
     (`--part=k/n`). puzzle-bank-check's every-entry verification is split over `a`–`d`
-    (one part each, under 90 s on a 2-core runner); arcade-play-check's 22 games over
+    (one part each, under 90 s on a 2-core runner); arcade-play-check's 21 active arcade games (and Letterfall) over
     `play1`–`play5`. Together the parts check exactly what one whole run does.
   - While working, run only the checks for what you changed (`bun scripts/<name>-check.ts`,
     or `bun scripts/run-checks.ts <filter>`). **Don't run the full suite locally.**
@@ -78,7 +78,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
     baseline recording do, so the per-game frame-time comparison is unchanged. CI never
     compares frame times with the local fixture: it uses
     `.github/ci/arcade-play-baseline.json`, recorded on a CI runner (Actions → Checks →
-    Run workflow with "record arcade baseline", one job playing all 22 games; then commit
+    Run workflow with "record arcade baseline", one job playing every game; then commit
     the artifact's file there). Without that file it applies only the absolute
     under-30-fps ceiling. Re-record after a change that should alter frame times on
     purpose. Never loosen the limits to get green.
@@ -102,17 +102,17 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   from it. Joe's cloud environment can do this automatically through a setup script
   (kept in the environment settings, not in the repo); if `node_modules` is missing at
   session start, the script didn't run, so ask Joe before working around it.
-- **Baseline:** whatever the latest green PR run of the Checks workflow reports (96
-  routine checks as of 12 Oct 2026, with arcade-batch4-check, arcade-batch5-check and tap-log-check, plus the word
+- **Baseline:** whatever the latest green PR run of the Checks workflow reports (97
+  routine checks as of 12 Oct 2026, with arcade-tuning-c-check, with arcade-batch4-check, arcade-batch5-check and tap-log-check, plus the word
   batch's strikeout-check, codeword-check and swapword-check; the two `--include-optional` checks never run in
   CI). CI times (2-core runners), quick depth: arcade-play-check ~3 min per play job
   (~11 min whole), snip-check ~90 s (full ~8 min CI, ~12 min locally), each
   puzzle-bank-check part ~65 s (whole ~5 min CI, ~4 min on 4 local cores); arcade-fx,
   arcade-self-replay, ink-live-bottom and orbit-camera ~60–70 s; burst-swing-score and
-  reveal-score ~50 s. new-types checks seeded bank draws and takes ~10 s. number-batch-check (Brimful, Checkout, Ballpark: same-seed puzzles, BFS and exhaustive-search proofs, score anchors) takes ~12 s. wordfall-check (Letterfall dictionary, plan, a 20-seed bot proving par through the server replay, identity proof) takes ~6 s. arcade-batch1-check (legacy identity + 150 proofs for Jaywalk, Roofbound, Ball Tracker, Slice) takes ~2 min; arcade-batch2-check (legacy digests, bots proving 150 for Gemstone, Coral Pop, Meteor, Hover) takes ~60 s. arcade-batch4-check (legacy digest, stored Scrumper plans for all 60 templates, bots proving 150 for Scrumper, Junction, Tilt, High Rise) takes ~30 s. arcade-batch5-check (legacy digest, bots proving 150 for Swish, Flightpath, Rally, Tempo, Rainbow Bridge, Orbit's hole witnesses) takes ~45 s. arcade-tuning-a-check (Tuning A: pre-change runs replaying to the same score and state for High Rise, Wavefront, Orbit, Grappler and Tilt; Wavefront shapes, Orbit fly-in and earlier misses, Grappler touch stars, every Tilt cup reachable, 150 proofs) takes ~15 s; `CHECKS_FULL=1` checks every Grappler bank course and 40,000 Tilt seeds. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set. tap-log-check (Flash, Bang On and Ascend tap logs against honest runs recorded on main, phone parity in happy-dom, tampered logs) takes ~30 s; tuning-b-check (Flightpath bullRev 4 balloons and 150 via the server replay, Breaker's 3.5 s Fireball, Rally pads never overlapping, arena fills, Fission controls) takes ~5 s; `TAP_LOG_PARITY=all` plays every recorded run through the phone. codeword-check (all 1,000 Cryptogrid boards proven unique), strikeout-check and swapword-check take under 10 s each.
+  reveal-score ~50 s. new-types checks seeded bank draws and takes ~10 s. number-batch-check (Brimful, Checkout, Ballpark: same-seed puzzles, BFS and exhaustive-search proofs, score anchors) takes ~12 s. wordfall-check (Letterfall dictionary, plan, a 20-seed bot proving par through the server replay, identity proof) takes ~6 s. arcade-batch1-check (legacy identity + 150 proofs for Jaywalk, Roofbound, Ball Tracker, Slice) takes ~2 min; arcade-batch2-check (legacy digests, bots proving 150 for Gemstone, Coral Pop, Meteor, Hover) takes ~60 s. arcade-batch4-check (legacy digest, stored Scrumper plans for all 60 templates, bots proving 150 for Scrumper, Junction, Tilt, High Rise) takes ~30 s. arcade-batch5-check (legacy digest, bots proving 150 for Swish, Flightpath, Rally, Tempo, Rainbow Bridge, Orbit's hole witnesses) takes ~45 s. arcade-tuning-a-check (Tuning A: pre-change runs replaying to the same score and state for High Rise, Wavefront, Orbit, Grappler and Tilt; Wavefront shapes, Orbit fly-in and earlier misses, Grappler touch stars, every Tilt cup reachable, 150 proofs) takes ~15 s; `CHECKS_FULL=1` checks every Grappler bank course and 40,000 Tilt seeds. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set. tap-log-check (Flash, Bang On and Ascend tap logs against honest runs recorded on main, phone parity in happy-dom, tampered logs) takes ~30 s; arcade-tuning-c-check (Tuning C: 72 pre-change runs replaying to the same score and state for Gemstone, Grappler, Hover, Rainbow Bridge, Roofbound, Tempo, Wavefront, Tilt and Slice; Gemstone's wait and 2,500 par, the score-only curves on identical play, Roofbound's 10 s bend, Wavefront's four waves and boss, Tilt's amber start and hole-mouth stars, Slice's blade, Junction retired, 150 proofs) takes ~15 s; tuning-b-check (Flightpath bullRev 4 balloons and 150 via the server replay, Breaker's 3.5 s Fireball, Rally pads never overlapping, arena fills, Fission controls) takes ~5 s; `TAP_LOG_PARITY=all` plays every recorded run through the phone. codeword-check (all 1,000 Cryptogrid boards proven unique), strikeout-check and swapword-check take under 10 s each.
 - **Any arcade change** (a sim, renderer, art, effect or arcade stage): run
   `bun scripts/arcade-play-check.ts` with the game's own checks, arcade-self-replay,
-  arcade-fx and reveal-score. It plays all 22 active arcade games in headless Chromium
+  arcade-fx and reveal-score. It plays all 21 active arcade games (and Letterfall) in headless Chromium
   (390 × 700, practice mode, 15 s of scripted taps and swipes each, about 10–12 minutes)
   and fails if the sim tick or HUD timer stops, a console or page error appears, the
   average frame time is far above the per-game baseline from main
@@ -156,6 +156,10 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 7. **Server is the arbiter.** Clients never send scores or correctness; the server
    grades from moves/inputs. Only AnswerReveal's stored score is ever shown.
 8. Keep display names in `gameNames.ts`; `PuzzleType` ids never change.
+
+**Junction** (`junction`) is retired to practice since Tuning C (12 Oct 2026): rooms deal the 21
+active arcade games (`ACTIVE_ARCADE_GAMES` in `arcadeFxGames.renderer.ts`); Junction keeps its world,
+fill, effects and band curve for practice and stored rounds.
 
 **Trusted client inputs (updated 12 Oct 2026, ruling D):** Flash (`reaction`), Bang On
 (`stopwatch`) and Ascend (`numhunt`) rounds stamped `tapRev: 1` send raw tap logs, and the

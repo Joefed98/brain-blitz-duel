@@ -22,6 +22,8 @@ import {
   WAV_REV,
   WAV_REV_BAND,
   WAV_REV_SHAPES,
+  WAV_REV_TUNEC,
+  wavWaves,
   WAV_V2_WAVES,
   WAV_ARMOUR_CODE,
   WAV_BOLT_H,
@@ -517,7 +519,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     ctx.fillText(state.boss ? "BOSS" : `WAVE ${state.wave}`, WAV_WORLD_W / 2, 300);
     ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
     ctx.fillStyle = "#F7F7F8";
-    ctx.fillText(state.boss ? "Shoot it down" : state.wave === WAV_V2_WAVES ? "Last wave" : `of ${WAV_V2_WAVES}`, WAV_WORLD_W / 2, 332);
+    ctx.fillText(state.boss ? "Shoot it down" : state.wave === wavWaves(state) ? "Last wave" : `of ${wavWaves(state)}`, WAV_WORLD_W / 2, 332);
     ctx.globalAlpha = 1;
     ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
     ctx.textAlign = "left";
@@ -540,8 +542,10 @@ export const wavefrontArtGame = { ...wavefrontGame, draw: drawWavefrontArt };
 const wavefrontArtGameV2 = { ...wavefrontGameFor(WAV_REV), draw: drawWavefrontArt };
 const wavefrontArtGameBand = { ...wavefrontGameFor(WAV_REV_BAND), draw: drawWavefrontArt };
 const wavefrontArtGameShapes = { ...wavefrontGameFor(WAV_REV_SHAPES), draw: drawWavefrontArt };
+const wavefrontArtGameTunec = { ...wavefrontGameFor(WAV_REV_TUNEC), draw: drawWavefrontArt };
 /** The art game for a stored wavRev; one cached object per revision. */
 export function wavefrontArtGameFor(rev?: number | null): typeof wavefrontArtGame {
+  if (rev === WAV_REV_TUNEC) return wavefrontArtGameTunec;
   if (rev === WAV_REV_SHAPES) return wavefrontArtGameShapes;
   if (rev === WAV_REV_BAND) return wavefrontArtGameBand;
   return rev === WAV_REV ? wavefrontArtGameV2 : wavefrontArtGame;
