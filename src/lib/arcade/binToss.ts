@@ -13,6 +13,7 @@ import {
   finishScore,
   dragLaunch,
   inputRange,
+  isqrt,
   px,
   rngBelow,
   TICKS_PER_SECOND,
@@ -22,6 +23,7 @@ import {
   type DragLaunch,
   type InputRange,
 } from "./engine";
+import { icos, isin } from "./trig";
 
 /* ============================== Constants ============================== */
 
@@ -128,25 +130,168 @@ export const BINTOSS_WIND_ACC_NARROW = Math.round(
  * and rim inset all scaled to 85 % about the same centre. Wind, slides, ball
  * and scoring are unchanged. Rounds without binRev replay on the original bin.
  */
-export const BINTOSS_REV = 2;
+export const BINTOSS_REV2 = 2;
+/**
+ * Hoop-and-spinner revision (stored as puzzle.binRev = 3), on the rev-2 bucket:
+ * a bonus hoop above the bucket on three of throws 2–5, a spinning blocker in
+ * front of it on three of throws 6–10, and wind rescaled so one wind point is a
+ * quarter of the rev-2 bucket width. Winds and slides are drawn exactly as
+ * before; the new draws continue the same PRNG stream after them.
+ */
+export const BINTOSS_REV3 = 3;
+/** The revision new rounds are stamped with. */
+export const BINTOSS_REV = BINTOSS_REV3;
 export const BINTOSS_BIN_HALF_V2 = 8_704; // 34 px (was 40 px)
 export const BINTOSS_NARROW_HALF_V2 = 7_398; // ≈28.9 px (was 34 px)
 export const BINTOSS_RIM_INSET_V2 = 2_176; // 8.5 px (was 10 px)
 
 /** Half the bin opening for this throw. */
 export function binTossHalf(index: number, rev?: number): number {
-  if (rev === BINTOSS_REV) return index >= BINTOSS_NARROW_FROM ? BINTOSS_NARROW_HALF_V2 : BINTOSS_BIN_HALF_V2;
+  if (rev === BINTOSS_REV2 || rev === BINTOSS_REV3) return index >= BINTOSS_NARROW_FROM ? BINTOSS_NARROW_HALF_V2 : BINTOSS_BIN_HALF_V2;
   return index >= BINTOSS_NARROW_FROM ? BINTOSS_NARROW_HALF : BINTOSS_BIN_HALF;
 }
 
 /** How far inside the rim edge the ball centre must cross to count. */
 export function binTossRimInset(rev?: number): number {
-  return rev === BINTOSS_REV ? BINTOSS_RIM_INSET_V2 : BINTOSS_RIM_INSET;
+  return rev === BINTOSS_REV2 || rev === BINTOSS_REV3 ? BINTOSS_RIM_INSET_V2 : BINTOSS_RIM_INSET;
 }
 
-/** One wind point's acceleration for this throw: a quarter of its bin width. */
-export function binTossWindAcc(index: number): number {
+/**
+ * Rev 3: the same calibration on the rev-2 bucket, made exact. The wind is
+ * carried in units of 1/(T(T+1)/2) of 1/256 px (T = the reference flight's
+ * ticks), so one wind point's acceleration is simply a quarter of the bucket
+ * width and its drift over that flight is exactly that quarter, with no
+ * rounding.
+ */
+export const BINTOSS_WIND_SUB_V3 = (BINTOSS_WIND_TICKS * (BINTOSS_WIND_TICKS + 1)) / 2;
+export const BINTOSS_WIND_ACC_V3 = BINTOSS_BIN_HALF_V2 / 2;
+export const BINTOSS_WIND_ACC_NARROW_V3 = BINTOSS_NARROW_HALF_V2 / 2;
+
+/** The wind's sub-unit for a revision (see BINTOSS_WIND_SUB_V3). */
+export function binTossWindSub(rev?: number): number {
+  return rev === BINTOSS_REV3 ? BINTOSS_WIND_SUB_V3 : BINTOSS_WIND_SUB;
+}
+
+/**
+ * One wind point's acceleration for this throw: a quarter of its bucket width
+ * (rev 3), or of the original bucket width (unstamped and rev 2 rounds).
+ */
+export function binTossWindAcc(index: number, rev?: number): number {
+  if (rev === BINTOSS_REV3) return index >= BINTOSS_NARROW_FROM ? BINTOSS_WIND_ACC_NARROW_V3 : BINTOSS_WIND_ACC_V3;
   return index >= BINTOSS_NARROW_FROM ? BINTOSS_WIND_ACC_NARROW : BINTOSS_WIND_ACC;
+}
+
+/* ------------------------- Rev 3: hoop and spinner ------------------------ */
+
+/** Hoops on three of throws 2–5 (0-based 1–4): never a sliding or spinner throw. */
+export const BINTOSS_HOOP_FROM = 1;
+export const BINTOSS_HOOP_TO = 4;
+export const BINTOSS_HOOP_COUNT = 3;
+/** Opening half-width and the two rim caps that the ball bounces off, 1/256 px. */
+export const BINTOSS_HOOP_HALF = 5_632; // 22 px
+export const BINTOSS_HOOP_CAP_R = 768; // 3 px
+/** Hoop height above the bucket rim: 64–100 px, seeded. */
+export const BINTOSS_HOOP_LIFT_MIN = 64;
+export const BINTOSS_HOOP_LIFT_SPAN = 37;
+/** Extra points for a ball that goes through the hoop and then into the bucket. */
+export const BINTOSS_HOOP_POINTS = 3;
+
+/** Spinners on three of throws 6–10 (0-based 5–9). */
+export const BINTOSS_SPIN_FROM = 5;
+export const BINTOSS_SPIN_COUNT = 3;
+/** Pivot 22 px in front of the bucket's near rim edge and 46 px above the rim; it rides with the bucket. */
+export const BINTOSS_SPIN_GAP = 5_632;
+export const BINTOSS_SPIN_LIFT = 11_776;
+/** Bar half-length 24 px, half-thickness 3 px. */
+export const BINTOSS_SPIN_HALF = 6_144;
+export const BINTOSS_SPIN_THICK = 768;
+/** One full turn every 128 ticks (about 2.1 s): 512 angle units a tick. */
+export const BINTOSS_SPIN_RATE = 512;
+
+export interface BinTossHoop {
+  /** Hoop centre, 1/256 px. */
+  x: number;
+  y: number;
+}
+
+export interface BinTossSpinner {
+  /** Starting angle (65536 a turn) and turning direction ±1, seeded. */
+  phase: number;
+  dir: number;
+}
+
+/** The two hoop rim caps, 1/256 px. */
+export function binTossHoopCaps(hoop: BinTossHoop): [number, number][] {
+  return [
+    [hoop.x - BINTOSS_HOOP_HALF, hoop.y],
+    [hoop.x + BINTOSS_HOOP_HALF, hoop.y],
+  ];
+}
+
+/** Spinner pivot for this throw at this tick (it rides with the sliding bucket), 1/256 px. */
+export function binTossSpinPivot(state: Pick<BinTossState, "slides" | "rev">, index: number, tick: number): { x: number; y: number } {
+  const centre = binTossCentreAt(state, index, tick);
+  return { x: centre - binTossHalf(index, state.rev) - BINTOSS_SPIN_GAP, y: BINTOSS_RIM_Y - BINTOSS_SPIN_LIFT };
+}
+
+/** Spinner bar angle at a sim tick: fixed speed, no randomness after init. */
+export function binTossSpinAngle(spinner: BinTossSpinner, tick: number): number {
+  return (spinner.phase + spinner.dir * BINTOSS_SPIN_RATE * tick) & 65535;
+}
+
+/** The bar's two end points, 1/256 px. */
+export function binTossSpinEnds(
+  state: Pick<BinTossState, "slides" | "rev">,
+  index: number,
+  spinner: BinTossSpinner,
+  tick: number,
+): { x0: number; y0: number; x1: number; y1: number } {
+  const pivot = binTossSpinPivot(state, index, tick);
+  const angle = binTossSpinAngle(spinner, tick);
+  const dx = Math.trunc((BINTOSS_SPIN_HALF * icos(angle)) / 16_384);
+  const dy = Math.trunc((BINTOSS_SPIN_HALF * isin(angle)) / 16_384);
+  return { x0: pivot.x - dx, y0: pivot.y - dy, x1: pivot.x + dx, y1: pivot.y + dy };
+}
+
+/** Closest point on a segment to (x, y), integer maths only. */
+function closestOnSegment(x: number, y: number, x0: number, y0: number, x1: number, y1: number): { x: number; y: number } {
+  const ex = x1 - x0;
+  const ey = y1 - y0;
+  const len2 = ex * ex + ey * ey;
+  if (len2 <= 0) return { x: x0, y: y0 };
+  // Work in 1/1024 of the segment so the products stay well inside 2^53.
+  const t = clampInt(Math.trunc((((x - x0) * ex + (y - y0) * ey) * 1024) / len2), 0, 1024);
+  return { x: x0 + Math.trunc((ex * t) / 1024), y: y0 + Math.trunc((ey * t) / 1024) };
+}
+
+/**
+ * Bounces the ball off a round obstacle point (a hoop cap or the spinner bar's
+ * nearest point) with this reach. Pushes the ball out to the surface and
+ * reflects the inward part of its speed at half strength. Returns true on a hit.
+ */
+function bounceOff(
+  ball: { x: number; y: number; vx: number; vy: number },
+  cx: number,
+  cy: number,
+  reach: number,
+): boolean {
+  const dx = ball.x - cx;
+  const dy = ball.y - cy;
+  if (Math.abs(dx) >= reach || Math.abs(dy) >= reach) return false;
+  const d = isqrt(dx * dx + dy * dy);
+  if (d >= reach) return false;
+  const nx = d > 0 ? Math.trunc((dx * 1024) / d) : 0;
+  const ny = d > 0 ? Math.trunc((dy * 1024) / d) : -1024;
+  ball.x = cx + Math.trunc((nx * reach) / 1024);
+  ball.y = cy + Math.trunc((ny * reach) / 1024);
+  const vn = Math.trunc((ball.vx * nx + ball.vy * ny) / 1024);
+  if (vn < 0) {
+    // Reflect and keep half: v −= 1.5 × vn × n.
+    const k = vn + (vn >> 1);
+    ball.vx = Math.trunc(ball.vx - (k * nx) / 1024);
+    ball.vy = Math.trunc(ball.vy - (k * ny) / 1024);
+  }
+  return true;
 }
 
 /**
@@ -181,11 +326,12 @@ export function binTossAdvance(
   flight: BinTossFlight,
   wind: number,
   windAcc: number = BINTOSS_WIND_ACC,
+  sub: number = BINTOSS_WIND_SUB,
 ): BinTossFlight {
   const windV = flight.windV + wind * windAcc;
   const windPos = flight.windPos + windV;
   const drift =
-    Math.trunc(windPos / BINTOSS_WIND_SUB) - Math.trunc(flight.windPos / BINTOSS_WIND_SUB);
+    Math.trunc(windPos / sub) - Math.trunc(flight.windPos / sub);
   const vy = flight.vy + BINTOSS_GRAVITY;
   return {
     x: flight.x + flight.vx + drift,
@@ -207,6 +353,7 @@ export function binTossPath(
   wind: number,
   stopAtRim: boolean,
   windAcc: number = BINTOSS_WIND_ACC,
+  sub: number = BINTOSS_WIND_SUB,
 ): { x: number; y: number }[] {
   let flight: BinTossFlight = {
     x: BINTOSS_BALL_X,
@@ -218,7 +365,7 @@ export function binTossPath(
   };
   const points = [{ x: px(flight.x), y: px(flight.y) }];
   for (let tick = 0; tick < BINTOSS_RUN_TICKS; tick++) {
-    flight = binTossAdvance(flight, wind, windAcc);
+    flight = binTossAdvance(flight, wind, windAcc, sub);
     points.push({ x: px(flight.x), y: px(flight.y) });
     if (stopAtRim && flight.vy > 0 && flight.y >= BINTOSS_RIM_Y) break;
     if (flight.y >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) break;
@@ -233,8 +380,9 @@ export function binTossPredict(
   vy: number,
   wind: number,
   windAcc: number = BINTOSS_WIND_ACC,
+  sub: number = BINTOSS_WIND_SUB,
 ): { x: number; y: number } {
-  const path = binTossPath(vx, vy, wind, true, windAcc);
+  const path = binTossPath(vx, vy, wind, true, windAcc, sub);
   const last = path[path.length - 1]!;
   return { x: Math.round(last.x), y: Math.round(last.y) };
 }
@@ -284,6 +432,18 @@ export const BINTOSS_FLY = 1;
 export const BINTOSS_WAIT = 2;
 
 export interface BinTossState {
+  /** Rev 3 only: the hoop for each throw (null on throws without one). */
+  hoops?: (BinTossHoop | null)[];
+  /** Rev 3 only: the spinner for each throw (null on throws without one). */
+  spinners?: (BinTossSpinner | null)[];
+  /** Rev 3 only: 1 once the ball in flight has gone down through this throw's hoop. */
+  hooped?: number;
+  /** Rev 3 only: balls that went through the hoop and then into the bucket. */
+  swishes?: number;
+  /** Rev 3 only: baskets made on spinner throws. */
+  spinBaskets?: number;
+  /** Rev 3 only: last hoop or spinner contact tick (render only, like wobbleTick). */
+  knockTick?: number;
   tick: number;
   rng: number;
   /** The throw now in hand, 0-based; reaches ten when they are all done. */
@@ -371,8 +531,17 @@ export function binTossPerfect(state: BinTossState): boolean {
 
 /** Ends the throw in flight and starts the wait for the next ball. */
 function resolve(state: BinTossState, tick: number, scored: boolean): BinTossState {
+  const rev3 =
+    state.rev === BINTOSS_REV3
+      ? {
+          hooped: 0,
+          swishes: (state.swishes ?? 0) + (scored && state.hooped ? 1 : 0),
+          spinBaskets: (state.spinBaskets ?? 0) + (scored && state.spinners?.[state.throwIndex] ? 1 : 0),
+        }
+      : {};
   return {
     ...state,
+    ...rev3,
     tick,
     phase: BINTOSS_WAIT,
     resolved: state.resolved + 1,
@@ -438,7 +607,8 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
       windPos: state.windPos,
     },
     wind,
-    binTossWindAcc(state.throwIndex),
+    binTossWindAcc(state.throwIndex, state.rev),
+    binTossWindSub(state.rev),
   );
   let vx = advanced.vx;
   let vy = advanced.vy;
@@ -447,6 +617,44 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
   const windV = advanced.windV;
   const windPos = advanced.windPos;
   let wobbleTick = state.wobbleTick;
+  let hooped = state.hooped;
+  let knockTick = state.knockTick;
+
+  // Rev 3: the hoop's rim caps and the spinner bar bounce the ball; going down
+  // between the caps marks the throw as through the hoop.
+  if (state.rev === BINTOSS_REV3) {
+    const ball = { x: nx, y: ny, vx, vy };
+    const hoop = state.hoops?.[state.throwIndex] ?? null;
+    if (hoop) {
+      if (vy > 0 && state.y < hoop.y && ny >= hoop.y && Math.abs(nx - hoop.x) < BINTOSS_HOOP_HALF - BINTOSS_HOOP_CAP_R) hooped = 1;
+      for (const [cx, cy] of binTossHoopCaps(hoop)) {
+        if (bounceOff(ball, cx, cy, BINTOSS_HOOP_CAP_R + BINTOSS_BALL_R)) knockTick = tick;
+      }
+    }
+    const spinner = state.spinners?.[state.throwIndex] ?? null;
+    if (spinner) {
+      const bar = binTossSpinEnds(state, state.throwIndex, spinner, tick);
+      // Checked at the half step and the full step, so a fast ball cannot pass through the bar.
+      for (const part of [1, 2]) {
+        const sx = part === 1 ? state.x + ((ball.x - state.x) >> 1) : ball.x;
+        const sy = part === 1 ? state.y + ((ball.y - state.y) >> 1) : ball.y;
+        const near = closestOnSegment(sx, sy, bar.x0, bar.y0, bar.x1, bar.y1);
+        const probe = { x: sx, y: sy, vx: ball.vx, vy: ball.vy };
+        if (bounceOff(probe, near.x, near.y, BINTOSS_SPIN_THICK + BINTOSS_BALL_R)) {
+          ball.x = probe.x;
+          ball.y = probe.y;
+          ball.vx = probe.vx;
+          ball.vy = probe.vy;
+          knockTick = tick;
+          break;
+        }
+      }
+    }
+    nx = ball.x;
+    ny = ball.y;
+    vx = ball.vx;
+    vy = ball.vy;
+  }
 
   const centre = binTossCentreAt(state, state.throwIndex, tick);
 
@@ -454,7 +662,12 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
   if (vy > 0 && state.y < BINTOSS_RIM_Y && ny >= BINTOSS_RIM_Y) {
     const offset = Math.abs(nx - centre);
     if (offset <= half - binTossRimInset(state.rev)) {
-      return resolve({ ...state, x: nx, y: ny, wobbleTick }, tick, true);
+      const caught: BinTossState = { ...state, x: nx, y: ny, wobbleTick };
+      if (state.rev === BINTOSS_REV3) {
+        caught.hooped = hooped ?? 0;
+        caught.knockTick = knockTick ?? 0;
+      }
+      return resolve(caught, tick, true);
     }
     if (offset <= half + BINTOSS_BALL_R) {
       // A rim edge: the ball bounces away and the throw is a miss.
@@ -477,6 +690,10 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
   }
 
   const next: BinTossState = { ...state, tick, vx, vy, windV, windPos, x: nx, y: ny, wobbleTick };
+  if (state.rev === BINTOSS_REV3) {
+    next.hooped = hooped ?? 0;
+    next.knockTick = knockTick ?? 0;
+  }
 
   // Landing on the floor or leaving the canvas is a miss.
   if (ny >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) return resolve(next, tick, false);
@@ -488,10 +705,25 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
 }
 
 function score(state: BinTossState): number {
+  if (state.rev === BINTOSS_REV3) return binTossRev3Score(state.baskets, state.swishes ?? 0, state.tick);
   const baskets = clampInt(state.baskets, 0, BINTOSS_THROWS);
   // 10 per basket; a perfect 10/10 = 130 + round(20 × ticks left ÷ run).
   if (baskets >= BINTOSS_THROWS) return finishScore(BINTOSS_RUN_TICKS, state.tick);
   return clampInt(BINTOSS_BASKET_POINTS * baskets, 0, 130);
+}
+
+/** Rev 3: the most a run that misses at least one bucket can score (9 in, every hoop bonus). */
+export const BINTOSS_V3_PARTIAL_MAX = 9 * 10 + 3 * 3;
+
+/**
+ * Rev 3: 10 per bucket plus 3 per hoop swish, up to 130; all ten in = 130 +
+ * up to 20 for speed + 3 per hoop swish, up to 150.
+ */
+export function binTossRev3Score(baskets: number, swishes: number, tick: number): number {
+  const made = clampInt(baskets, 0, BINTOSS_THROWS);
+  const bonus = BINTOSS_HOOP_POINTS * clampInt(swishes, 0, BINTOSS_HOOP_COUNT);
+  if (made >= BINTOSS_THROWS) return clampInt(finishScore(BINTOSS_RUN_TICKS, tick) + bonus, 0, 150);
+  return clampInt(BINTOSS_BASKET_POINTS * made + bonus, 0, 130);
 }
 
 /* =========================== Integrity checks ========================== */
@@ -534,7 +766,10 @@ export function binTossCheckpointState(state: BinTossState): BinTossCheckpointSt
 export function binTossCheckpoint(state: BinTossState): BinTossCheckpoint {
   const snapshot = binTossCheckpointState(state);
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  const values = Object.values(snapshot);
+  // Rev 3 folds its own counters in; older states never have them, so their sums are unchanged.
+  if (state.rev === BINTOSS_REV3) values.push(state.hooped ?? 0, state.swishes ?? 0, state.spinBaskets ?? 0);
+  for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -723,6 +958,8 @@ export interface BinTossGhost {
   wind: number;
   /** Throw index, so the wind uses that throw's bin width. */
   index?: number;
+  /** Bucket revision, so the wind uses that revision's calibration. */
+  rev?: number | undefined;
 }
 
 export interface BinTossLandingPresentation {
@@ -767,7 +1004,7 @@ export function binTossDrawGhost(
   drawPath(
     ctx,
     size,
-    binTossPath(ghost.vx, ghost.vy, ghost.wind, true, binTossWindAcc(ghost.index ?? 0)),
+    binTossPath(ghost.vx, ghost.vy, ghost.wind, true, binTossWindAcc(ghost.index ?? 0, ghost.rev), binTossWindSub(ghost.rev)),
     BINTOSS_BALL_COLOUR,
     alpha,
   );
@@ -848,13 +1085,108 @@ export const binTossGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = {
 };
 
 function initRev2(seed: number): BinTossState {
-  return { ...init(seed), rev: BINTOSS_REV };
+  return { ...init(seed), rev: BINTOSS_REV2 };
+}
+
+/**
+ * Where a hoop goes on throw `index`: on the falling part of a seeded reference
+ * throw that lands in the middle of the still bucket with this throw's wind, so
+ * there is always a throw through the hoop and into the bucket. Returns null if
+ * no reference fits (the throw then has no hoop).
+ */
+function placeHoop(index: number, wind: number, liftPx: number, apexPx: number): BinTossHoop | null {
+  const centre = binTossBinCentre(index);
+  const hoopY = BINTOSS_RIM_Y - liftPx * 256;
+  const acc = binTossWindAcc(index, BINTOSS_REV3);
+  const sub = BINTOSS_WIND_SUB_V3;
+  for (let k = 0; k < 12; k++) {
+    // A throw whose top is apexPx above the hoop (seeded), then alternately higher and lower.
+    const apex = Math.max(12, apexPx + ((k + 1) >> 1) * (k % 2 ? 12 : -12));
+    const rise = (BINTOSS_BALL_Y - hoopY) / 256 + apex;
+    const vy = -clampInt(isqrt(2 * BINTOSS_GRAVITY * rise * 256), 800, BINTOSS_VY_MAX);
+    // The sideways speed whose rim crossing is nearest the bucket centre (the
+    // crossing moves right as the speed grows, so a bisection finds it).
+    let lo = -BINTOSS_VX_MAX;
+    let hi = BINTOSS_VX_MAX;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (binTossPredict(mid, vy, wind, acc, sub).x * 256 < centre) lo = mid;
+      else hi = mid;
+    }
+    const errLo = Math.abs(binTossPredict(lo, vy, wind, acc, sub).x * 256 - centre);
+    const errHi = Math.abs(binTossPredict(hi, vy, wind, acc, sub).x * 256 - centre);
+    const best = errLo <= errHi ? lo : hi;
+    if (Math.min(errLo, errHi) > 1_024) continue;
+    // Walk that flight in sim units to find where it falls through the hoop's height.
+    let flight: BinTossFlight = { x: BINTOSS_BALL_X, y: BINTOSS_BALL_Y, vx: best, vy, windV: 0, windPos: 0 };
+    let up: number | null = null;
+    let down: number | null = null;
+    for (let tick = 0; tick < 400 && down === null; tick++) {
+      const next = binTossAdvance(flight, wind, acc, sub);
+      if (next.vy < 0 && flight.y > hoopY && next.y <= hoopY) up = next.x;
+      if (next.vy > 0 && flight.y < hoopY && next.y >= hoopY) down = next.x;
+      flight = next;
+    }
+    if (down === null) continue;
+    // The rising part must pass clear of the hoop and its caps, and the hoop must sit over the bucket.
+    if (up !== null && Math.abs(up - down) < 40 * 256) continue;
+    if (Math.abs(down - centre) > 60 * 256) continue;
+    return { x: down, y: hoopY };
+  }
+  return null;
+}
+
+/** Picks `count` distinct throw indices from [from, to] off the PRNG stream. */
+function pickThrows(rng: number, from: number, to: number, count: number): { rng: number; picked: boolean[] } {
+  const pool: number[] = [];
+  for (let i = from; i <= to; i++) pool.push(i);
+  const picked = Array.from({ length: BINTOSS_THROWS }, () => false);
+  for (let n = 0; n < count && pool.length > 0; n++) {
+    const draw = rngBelow(rng, pool.length);
+    rng = draw.state;
+    picked[pool.splice(draw.value, 1)[0]!] = true;
+  }
+  return { rng, picked };
+}
+
+function initRev3(seed: number): BinTossState {
+  // Winds and slides first, exactly as every revision draws them.
+  const base = init(seed);
+  let rng = base.rng;
+  const hoopPick = pickThrows(rng, BINTOSS_HOOP_FROM, BINTOSS_HOOP_TO, BINTOSS_HOOP_COUNT);
+  rng = hoopPick.rng;
+  const spinPick = pickThrows(rng, BINTOSS_SPIN_FROM, BINTOSS_THROWS - 1, BINTOSS_SPIN_COUNT);
+  rng = spinPick.rng;
+  const hoops: (BinTossHoop | null)[] = [];
+  const spinners: (BinTossSpinner | null)[] = [];
+  for (let index = 0; index < BINTOSS_THROWS; index++) {
+    let hoop: BinTossHoop | null = null;
+    if (hoopPick.picked[index]) {
+      const lift = rngBelow(rng, BINTOSS_HOOP_LIFT_SPAN);
+      const apex = rngBelow(lift.state, 41);
+      rng = apex.state;
+      hoop = placeHoop(index, base.winds[index] ?? 0, BINTOSS_HOOP_LIFT_MIN + lift.value, 30 + apex.value);
+    }
+    hoops.push(hoop);
+    let spinner: BinTossSpinner | null = null;
+    if (spinPick.picked[index]) {
+      const phase = rngBelow(rng, 65_536);
+      const dir = rngBelow(phase.state, 2);
+      rng = dir.state;
+      spinner = { phase: phase.value, dir: dir.value === 0 ? -1 : 1 };
+    }
+    spinners.push(spinner);
+  }
+  return { ...base, rng, rev: BINTOSS_REV3, hoops, spinners, hooped: 0, swishes: 0, spinBaskets: 0, knockTick: 0 };
 }
 
 /** Smaller-bucket revision. */
 export const binTossRev2Game: ArcadeGame<BinTossState, ArcadeInputEvent | null> = { ...binTossGame, init: initRev2 };
+/** Hoop-and-spinner revision on the smaller bucket. */
+export const binTossRev3Game: ArcadeGame<BinTossState, ArcadeInputEvent | null> = { ...binTossGame, init: initRev3 };
 
 /** Takes puzzle.binRev; anything else is the original bin. */
 export function binTossGameFor(rev?: number | null): ArcadeGame<BinTossState, ArcadeInputEvent | null> {
-  return rev === BINTOSS_REV ? binTossRev2Game : binTossGame;
+  if (rev === BINTOSS_REV3) return binTossRev3Game;
+  return rev === BINTOSS_REV2 ? binTossRev2Game : binTossGame;
 }

@@ -11,7 +11,8 @@ import {
   BULLSEYE_ARROWS, BULLSEYE_BOW_X, BULLSEYE_BOW_Y, BULLSEYE_CX, BULLSEYE_CY,
   BULLSEYE_DRIFT_FROM, BULLSEYE_FLIGHT_TICKS, BULLSEYE_GOLD, BULLSEYE_OUTER_R, BULLSEYE_RINGS,
   BULLSEYE_RING_STEP, BULLSEYE_TEXT, BULLSEYE_WIND_MAX, BULLSEYE_WORLD_H, BULLSEYE_WORLD_W,
-  bullseyeRingValues, bullseyeScalePct, bullseyeTargetDx, type BullseyeState,
+  BULLSEYE_BALLOON_R, BULLSEYE_INNER_BULL_DIV, BULLSEYE_REV,
+  bullseyeBalloonAt, bullseyeRingValues, bullseyeScalePct, bullseyeTargetDx, type BullseyeState,
 } from "./bullseye";
 import { flightpathColour, flightpathInk } from "./flightpathPalette.renderer";
 import { reducedMotion } from "./art.renderer";
@@ -63,6 +64,73 @@ export function drawDart(
     ctx.fill();
     ctx.stroke();
   }
+  ctx.restore();
+}
+
+/** Rev 2: the inner bull, the sim's exact disc, gold with a white spark. */
+function drawInnerBull(ctx: CanvasRenderingContext2D, scalePct: number, dx: number): void {
+  const r = (BULLSEYE_OUTER_R * scalePct) / (100 * BULLSEYE_INNER_BULL_DIV);
+  ctx.save();
+  ctx.fillStyle = "#FFF4C2";
+  ctx.beginPath();
+  ctx.arc(BULLSEYE_CX + dx, BULLSEYE_CY, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#B8860B";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+const BALLOON_COLOURS = ["#E8384F", "#3B82F6", "#22C55E", "#A855F7"];
+
+/** Rev 2: a fairground balloon whose body is exactly the sim's pop circle. */
+function drawBalloon(ctx: CanvasRenderingContext2D, x: number, y: number, colour: string): void {
+  const r = BULLSEYE_BALLOON_R;
+  ctx.save();
+  // A short tied string below the knot (2 px: within the bounds rule).
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.moveTo(x - 2, y + r + 2);
+  ctx.lineTo(x + 2, y + r + 2);
+  ctx.lineTo(x, y + r - 1);
+  ctx.closePath();
+  ctx.fill();
+  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, 1, x, y, r);
+  g.addColorStop(0, "#FFFFFF");
+  g.addColorStop(0.18, colour);
+  g.addColorStop(1, colour);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.font = "700 9px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillText("12", x, y + 1);
+  ctx.restore();
+}
+
+/** Rev 2: rubber shreds flying out from a popped balloon. Presentation clock only. */
+function drawBalloonPop(ctx: CanvasRenderingContext2D, x: number, y: number, colour: string, age: number): void {
+  if (age > 420) return;
+  const u = age / 420;
+  ctx.save();
+  ctx.globalAlpha = 1 - u;
+  ctx.fillStyle = colour;
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + 0.3;
+    const d = BULLSEYE_BALLOON_R * (0.6 + u * 1.8);
+    ctx.fillRect(x + Math.cos(a) * d - 2, y + Math.sin(a) * d - 1.5, 4, 3);
+  }
+  ctx.strokeStyle = "#FFFFFF";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, BULLSEYE_BALLOON_R * (1 + u), 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -185,13 +253,26 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
   fairScreen(ctx, size, BULLSEYE_WORLD_W, BULLSEYE_WORLD_H, COUNTER_Y, () => arcadeFx(ctx, BULLSEYE_FX, state, () => {
     const dx = bullseyeTargetDx(shown, state.tick, state.driftPhase, state.driftDir);
     drawBoard(ctx, bullseyeScalePct(shown), dx, bullseyeRingValues(state, shown), shown >= BULLSEYE_DRIFT_FROM);
+    if (state.rev === BULLSEYE_REV && bullseyeRingValues(state, shown)[0] === 10) drawInnerBull(ctx, bullseyeScalePct(shown), dx);
 
     const last = state.hits[state.hits.length - 1];
+    // Rev 2: this dart's balloon drifts until the dart lands; a popped one bursts.
+    const balloon = state.balloons?.[shown] ?? null;
+    const balloonColour = BALLOON_COLOURS[shown % BALLOON_COLOURS.length]!;
+    const popped = last?.pop === 1 && last.arrow === shown;
+    if (balloon && !(popped && state.flightTick === 0)) {
+      const at = bullseyeBalloonAt(balloon, state.tick);
+      drawBalloon(ctx, at.x, at.y, balloonColour);
+    }
+    if (last?.pop === 1 && state.flightTick === 0 && !reducedMotion()) {
+      drawBalloonPop(ctx, last.x, last.y, BALLOON_COLOURS[last.arrow % BALLOON_COLOURS.length]!, landAge);
+    }
     if (last && state.flightTick === 0) {
       // Stuck in at its exact sim point; flights wobble once on landing.
       const wobble = !reducedMotion() && landAge < 450
         ? Math.sin(landAge / 30) * 0.35 * (1 - landAge / 450) : 0;
-      drawDart(ctx, last.x, last.y, 0.45, flightColour(last.arrow), wobble);
+      // A dart that popped a balloon is gone with it; only board hits stay stuck in.
+      if (last.pop !== 1) drawDart(ctx, last.x, last.y, 0.45, flightColour(last.arrow), wobble);
       if (landAge < 500) {
         const u = landAge / 500;
         const pop = reducedMotion() ? 1 : 1 + 0.2 * Math.sin(Math.min(1, u * 4) * Math.PI);

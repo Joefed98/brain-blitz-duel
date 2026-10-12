@@ -79,25 +79,40 @@ const BUILDERS: Record<string, Builder> = {
   }),
   bintoss: (r, s) => {
     const done = n(r, "baskets") >= 10;
+    const hoops = n(r, "hoops");
+    const bonus = 3 * n(r, "swishes");
     return {
       axis: { value: n(r, "baskets"), max: 10, label: "Buckets" },
-      lines: [head(`${n(r, "baskets")} / 10 buckets`, s, done)],
+      lines:
+        hoops > 0
+          ? [
+              done && s >= 130 ? `10 / 10 buckets → 130 · time +${Math.max(0, s - 130 - bonus)}` : `${n(r, "baskets")} / 10 buckets → ${10 * n(r, "baskets")}`,
+              `${n(r, "swishes")} / ${hoops} hoop bonuses → +${bonus}`,
+              `Total → ${s}`,
+            ]
+          : [head(`${n(r, "baskets")} / 10 buckets`, s, done)],
       tiles: [
         { label: "Buckets", value: `${n(r, "baskets")} / 10` },
+        ...(hoops > 0 ? [{ label: "Hoop bonuses", value: `${n(r, "swishes")} / ${hoops}` }] : []),
         { label: "Throws", value: String(n(r, "throws")) },
       ],
       outcome: done ? "finish" : "time",
     };
   },
-  bullseye: (r, s) => ({
-    axis: { value: n(r, "total"), max: 100, label: "Ring total" },
-    lines: [`${n(r, "total")} / 100 rings → ${s}`],
-    tiles: [
-      { label: "Bullseyes", value: String(n(r, "inner")) },
-      { label: "Darts", value: String(n(r, "arrows")) },
-    ],
-    outcome: b(r, "finished") ? "finish" : "time",
-  }),
+  bullseye: (r, s) => {
+    // bullRev 2: inner bulls and balloons score 12, so the axis runs to 120.
+    const rev2 = n(r, "bullRev") === 2;
+    return {
+      axis: { value: n(r, "total"), max: rev2 ? 120 : 100, label: "Dart total" },
+      lines: rev2 ? [`${n(r, "total")} points from 10 darts → ${s}`] : [`${n(r, "total")} / 100 rings → ${s}`],
+      tiles: [
+        { label: "Bullseyes", value: String(n(r, "inner")) },
+        ...(rev2 ? [{ label: "Inner bulls", value: String(n(r, "innerBulls")) }, { label: "Balloons", value: `${n(r, "pops")} / ${n(r, "balloons")}` }] : []),
+        { label: "Darts", value: String(n(r, "arrows")) },
+      ],
+      outcome: b(r, "finished") ? "finish" : "time",
+    };
+  },
   matchup: (r, s) => ({
     axis: { value: n(r, "raw"), max: n(r, "parRaw") || MATCHUP_PAR_RAW, label: "Match points" },
     lines: [`${n(r, "raw").toLocaleString("en-GB")} match points → ${s}`],

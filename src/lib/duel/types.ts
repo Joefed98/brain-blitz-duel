@@ -1929,7 +1929,7 @@ export interface BinTossPuzzleData {
   type: "bintoss";
   /** Drives the wind on all ten throws — identical for everyone in the room. */
   seed: number;
-  /** 2 = smaller bucket (85 % opening). Absent on rounds stored before it. */
+  /** 2 = smaller bucket (85 % opening); 3 = that bucket plus bonus hoops, spinners and wind scaled to it. Absent on rounds stored before rev 2. */
   binRev?: number;
 }
 
@@ -1939,6 +1939,8 @@ export interface BullseyePuzzleData {
   seed: number;
   /** Persisted with the round so every player and the server use the same winds. */
   winds: number[];
+  /** 2 = inner bull and drifting balloons. Absent on rounds stored before it. */
+  bullRev?: number;
 }
 
 /* ================================ Matchup ================================ */

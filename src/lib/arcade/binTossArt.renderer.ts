@@ -7,7 +7,9 @@ import {
   BINTOSS_BALL_R, BINTOSS_FLOOR_Y, BINTOSS_FLY, BINTOSS_MISS_COLOUR,
   BINTOSS_RIM_Y, BINTOSS_SLIDE_FROM, BINTOSS_THROWS, BINTOSS_WAIT, BINTOSS_WIND_MAX,
   BINTOSS_WORLD_H, BINTOSS_WORLD_W, BINTOSS_BIN_COLOUR,
-  binTossCentreAt, binTossGame, binTossHalf, binTossPath, type BinTossGhost, type BinTossLandingPresentation, type BinTossState,
+  BINTOSS_HOOP_CAP_R, BINTOSS_HOOP_HALF, BINTOSS_SPIN_THICK,
+  binTossCentreAt, binTossGame, binTossHalf, binTossPath, binTossSpinEnds, binTossSpinPivot,
+  type BinTossGhost, type BinTossHoop, type BinTossLandingPresentation, type BinTossState,
 } from "./binToss";
 import { reducedMotion } from "./art.renderer";
 import { FAIR_TEXT, fairChangeAge, fairPennant, fairScreen, fairTransform } from "./fairground.renderer";
@@ -108,6 +110,96 @@ function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number,
   ctx.restore();
 }
 
+const HOOP_RED = "#E8384F";
+const HOOP_WHITE = "#FFF4E0";
+const HOOP_GOLD = "#F5B82E";
+
+/**
+ * Rev 3 bonus hoop, side on: a striped ring whose two end caps are exactly the
+ * sim's bounce circles. `front` draws the near half (over the ball), otherwise
+ * the far half (under it).
+ */
+function drawHoop(ctx: CanvasRenderingContext2D, hoop: BinTossHoop, front: boolean, glow: number): void {
+  const x = px(hoop.x);
+  const y = px(hoop.y);
+  const half = px(BINTOSS_HOOP_HALF);
+  const cap = px(BINTOSS_HOOP_CAP_R);
+  ctx.save();
+  ctx.lineCap = "round";
+  if (glow > 0) {
+    ctx.strokeStyle = HOOP_GOLD;
+    ctx.globalAlpha = 0.55 * glow;
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.ellipse(x, y, half, 4, 0, front ? 0 : Math.PI, front ? Math.PI : Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // Red and white stripes round the ring.
+  const segments = 8;
+  for (let i = 0; i < segments; i++) {
+    const a0 = (front ? 0 : Math.PI) + (i * Math.PI) / segments;
+    ctx.strokeStyle = i % 2 ? HOOP_WHITE : HOOP_RED;
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.ellipse(x, y, half, 4, 0, a0, a0 + Math.PI / segments);
+    ctx.stroke();
+  }
+  if (front) {
+    for (const cx of [x - half, x + half]) {
+      ctx.fillStyle = HOOP_GOLD;
+      ctx.beginPath();
+      ctx.arc(cx, y, cap, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#7A4A10";
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+    // A small "+3" flag so the hoop reads as a bonus.
+    ctx.font = "700 10px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillStyle = HOOP_GOLD;
+    ctx.fillText("BONUS", x, y - 6);
+  }
+  ctx.restore();
+}
+
+/**
+ * Rev 3 spinner: a striped fairground paddle on a brass hub. The paddle is
+ * drawn as the sim's capsule (bar plus its half-thickness), so what you see is
+ * what the ball bounces off.
+ */
+function drawSpinner(ctx: CanvasRenderingContext2D, state: BinTossState, index: number, flash: number): void {
+  const spinner = state.spinners?.[index];
+  if (!spinner) return;
+  const bar = binTossSpinEnds(state, index, spinner, state.tick);
+  const pivot = binTossSpinPivot(state, index, state.tick);
+  const thick = px(BINTOSS_SPIN_THICK) * 2;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.strokeStyle = flash > 0 ? HOOP_GOLD : "#5B2A86";
+  ctx.lineWidth = thick;
+  ctx.beginPath();
+  ctx.moveTo(px(bar.x0), px(bar.y0));
+  ctx.lineTo(px(bar.x1), px(bar.y1));
+  ctx.stroke();
+  // Painted stripes along the paddle.
+  ctx.strokeStyle = HOOP_WHITE;
+  ctx.lineWidth = thick * 0.35;
+  ctx.setLineDash([4, 5]);
+  ctx.beginPath();
+  ctx.moveTo(px(bar.x0), px(bar.y0));
+  ctx.lineTo(px(bar.x1), px(bar.y1));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = HOOP_GOLD;
+  ctx.beginPath();
+  ctx.arc(px(pivot.x), px(pivot.y), thick * 0.45, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawWind(ctx: CanvasRenderingContext2D, wind: number): void {
   const centreX = BINTOSS_WORLD_W / 2;
   const y = 84;
@@ -174,6 +266,13 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
     let lean = state.wobbleTick > 0 && since >= 0 && since < 24 ? (since % 8 < 4 ? 2 : -2) : 0;
     if (!reducedMotion() && basketAge < 500) lean = Math.sin(basketAge / 45) * 2 * (1 - basketAge / 500);
     drawBucket(ctx, centre, half, lean, index >= BINTOSS_SLIDE_FROM);
+    // Rev 3: the hoop (glowing briefly after a swish) and the spinner.
+    const hoop = state.throwIndex < BINTOSS_THROWS ? (state.hoops?.[index] ?? null) : null;
+    const swishAge = fairChangeAge(ctx, "bintoss-swishes", state.swishes ?? 0);
+    const hoopGlow = state.hooped ? 1 : !reducedMotion() && swishAge < 600 ? 1 - swishAge / 600 : 0;
+    if (hoop) drawHoop(ctx, hoop, false, hoopGlow);
+    const knock = state.knockTick && state.tick - state.knockTick < 10 && !reducedMotion() ? 1 : 0;
+    if (state.throwIndex < BINTOSS_THROWS) drawSpinner(ctx, state, index, knock);
 
     const caughtIndex=Math.max(0,state.throwIndex-1);
     successFrame(ctx,{id:'bintoss',tick:state.tick,count:state.baskets,eventTick:state.results.at(-1)===1?state.readyTick-BINTOSS_NEXT_DELAY:0,misses:state.resolved-state.baskets,colour:SUCCESS_ACCENTS.gold,width:BINTOSS_WORLD_W,height:BINTOSS_WORLD_H,point:{x:px(binTossCentreAt(state,caughtIndex,state.tick)),y:px(BINTOSS_RIM_Y),shape:'spark'},hud:{x:12,y:12,text:`Throw ${Math.min(BINTOSS_THROWS,state.throwIndex+1)} / ${BINTOSS_THROWS} · ${state.baskets} in`}});
@@ -189,6 +288,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BinTossState, size: CanvasSi
       }
       drawRubberBall(ctx, px(state.x), y, r, ((state.tick * 11) % 360) * (Math.PI / 180));
     }
+    if (hoop) drawHoop(ctx, hoop, true, hoopGlow);
 
     ctx.font = "600 19.5px 'JetBrains Mono', ui-monospace, monospace";
     ctx.fillStyle = FAIR_TEXT;

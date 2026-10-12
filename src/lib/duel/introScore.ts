@@ -1,8 +1,8 @@
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
-import { BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
+import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
-import { BINTOSS_THROWS } from "@/lib/arcade/binToss";
+import { BINTOSS_THROWS, BINTOSS_V3_PARTIAL_MAX } from "@/lib/arcade/binToss";
 import { BRK_BRICKS } from "@/lib/arcade/breaker";
 import { INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SNIP_CONFIG } from "@/lib/arcade/snip";
@@ -131,8 +131,8 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   // Arcade
   hover: `Up to ${HOVER_V2_GATES_SCORE} for all ${HOVER_REACHABLE_GATES} barriers, plus up to ${HOVER_V2_STARS_SCORE} for gold stars.`,
   skyline: `${SKYLINE_BLOCK_POINTS} points per block stacked, plus ${SKYLINE_PERFECT_POINTS} per perfect drop. Up to 150.`,
-  bintoss: arcadeSplit("each bucket", `Sink all ${BINTOSS_THROWS} buckets`, 90),
-  bullseye: `Rings score ${BULLSEYE_RING_VALUES[0]} in the centre down to ${BULLSEYE_RING_VALUES[BULLSEYE_RING_VALUES.length - 1]} at the edge. Higher totals score more.`,
+  bintoss: arcadeSplit("each bucket and hoop", `Sink all ${BINTOSS_THROWS} buckets`, BINTOSS_V3_PARTIAL_MAX),
+  bullseye: `Rings score ${BULLSEYE_RING_VALUES[0]} in the centre down to ${BULLSEYE_RING_VALUES[BULLSEYE_RING_VALUES.length - 1]}; inner bull or balloon ${BULLSEYE_INNER_BULL_POINTS}. Up to 150.`,
   matchup: "Match lines of three or more; longer lines score far more. Up to 150.",
   snake: `${SNAKE_PELLET_POINTS} points for each star you eat. Up to 150.`,
   cross: `${CROSS_LANE_POINTS} points for each lane crossed, plus ${CROSS_CROSSING_POINTS} for each full crossing. Up to 150.`,

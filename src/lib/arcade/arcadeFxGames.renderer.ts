@@ -602,6 +602,23 @@ export const BINTOSS_FX: ArcadeFxSpec<BinTossState> = {
       label: (_s, n) => `${n} IN A ROW`,
     },
     {
+      // Rev 3: through the bonus hoop and into the bucket.
+      kind: "perfect",
+      count: (s) => s.swishes ?? 0,
+      at: (s) => {
+        const hoop = s.hoops?.[Math.max(0, s.throwIndex - 1)];
+        return hoop ? { x: px(hoop.x), y: px(hoop.y) } : null;
+      },
+      label: () => "HOOP BONUS!",
+    },
+    {
+      // Rev 3: a bucket made past the spinner.
+      kind: "pop",
+      count: (s) => s.spinBaskets ?? 0,
+      at: () => ({ x: BINTOSS_WORLD_W / 2, y: 190 }),
+      label: () => "PAST THE SPINNER",
+    },
+    {
       kind: "final",
       count: (s) => (s.baskets >= BINTOSS_THROWS ? 1 : 0),
       label: () => "TEN OUT OF TEN!",
@@ -630,11 +647,25 @@ export const BULLSEYE_FX: ArcadeFxSpec<BullseyeState> = {
       at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
       label: () => "BULLSEYE!",
     },
+    {
+      // Rev 2: the tiny inner bull.
+      kind: "perfect",
+      count: (s) => (s.flightTick === 0 ? s.hits.filter((h) => h.bull === 1).length : 0),
+      at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
+      label: () => "INNER BULL!",
+    },
+    {
+      // Rev 2: a balloon popped.
+      kind: "pop",
+      count: (s) => (s.flightTick === 0 ? s.hits.filter((h) => h.pop === 1).length : 0),
+      at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
+      label: () => "POP!",
+    },
     { kind: "combo", count: bullRun, min: 2, label: (_s, n) => `${n} BULLS IN A ROW` },
     {
       kind: "final",
       count: (s) =>
-        s.flightTick === 0 && s.hits.length >= BULLSEYE_ARROWS && s.hits.every((h) => h.ring >= 0)
+        s.flightTick === 0 && s.hits.length >= BULLSEYE_ARROWS && s.hits.every((h) => h.ring >= 0 || h.pop === 1)
           ? 1
           : 0,
       label: () => "ALL TEN ON TARGET!",

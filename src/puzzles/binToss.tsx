@@ -43,7 +43,7 @@ import { binTossSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Fixed intro still: the ball, the bin, the wind arrow and a flick gesture. */
+/** Fixed intro still: the ball, the bucket, the bonus hoop, the wind arrow and a flick gesture. */
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -68,6 +68,9 @@ function IntroExample() {
           strokeWidth="2.5"
         />
         <ellipse cx="158" cy="62" rx="16" ry="3" fill="none" stroke={BINTOSS_BIN_COLOUR} />
+        <ellipse cx="152" cy="34" rx="10" ry="2.5" fill="none" stroke="#E8384F" strokeWidth="1.6" />
+        <circle cx="142" cy="34" r="1.8" fill="#F5B82E" />
+        <circle cx="162" cy="34" r="1.8" fill="#F5B82E" />
         <g stroke={BINTOSS_BIN_COLOUR} strokeWidth="2">
           <line x1="96" y1="22" x2="72" y2="22" />
           <line x1="72" y1="22" x2="79" y2="17" />
@@ -386,6 +389,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             vy: launch.vy,
             wind: state.current.winds[state.current.throwIndex] ?? 0,
             index: state.current.throwIndex,
+            rev: state.current.rev,
           };
           pending.current.push({ t: 0, k: 1, a: launch.vx, b: launch.vy, c: 0, d: 0 });
         }}
@@ -441,8 +445,13 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         })}
       </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.baskets} / {result.throws} in
+        {result.baskets} / {result.throws} in the bucket
       </p>
+      {result.hoops > 0 ? (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          {result.swishes} / {result.hoops} hoop bonuses
+        </p>
+      ) : null}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {throws} throw{throws === 1 ? "" : "s"} taken · same winds for everyone
       </p>

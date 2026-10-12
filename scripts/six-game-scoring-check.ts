@@ -9,7 +9,7 @@ import { rallyGame } from "../src/lib/arcade/rally";
 import { skylineGame } from "../src/lib/arcade/skyline";
 import { bullseyeScoreFor, BULLSEYE_RING_VALUES } from "../src/lib/arcade/bullseye";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
-import { binTossGame, BINTOSS_THROWS } from "../src/lib/arcade/binToss";
+import { binTossGame, binTossGameFor, BINTOSS_REV3, BINTOSS_THROWS, BINTOSS_V3_PARTIAL_MAX } from "../src/lib/arcade/binToss";
 import { tiltGame, TILT_MAX_MAZES } from "../src/lib/arcade/tilt";
 import { breakerGame, BRK_BRICKS } from "../src/lib/arcade/breaker";
 import { bubbleGame, bubbleRev2Game } from "../src/lib/arcade/bubble";
@@ -69,10 +69,10 @@ for (const home of [0, 15, 29, 30]) {
 eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup reveal par");
 for (const [type, text] of [["balltrack", "30"], ["junction", "lose 4"], ["rally", "2.5"], ["skyline", "3 per perfect"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
 // Formula detail lives in the "?" help since the intro was shortened (first-run audit, 11 Oct).
-for (const [type, text] of [["matchup", MATCHUP_V3_PAR_RAW.toLocaleString("en-GB")], ["bullseye", "1.7 × ring total − 20"], ["junction", "−4"], ["skyline", "3 × perfect drops"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
+for (const [type, text] of [["matchup", MATCHUP_V3_PAR_RAW.toLocaleString("en-GB")], ["bullseye", "1.7 × dart total − 20"], ["junction", "−4"], ["skyline", "3 × perfect drops"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // Ruling B (11 Oct): the eight 130 / 150 split games state both parts in one line.
 // Each split intro shows the real partial maximum: the score one unit short of a clear (Grappler rounds to 130).
-const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: 90, breaker: 128, bubble: 99, inkbridge: 99, orbit: 117, swing: 130, tilt: 90 } as const;
+const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: BINTOSS_V3_PARTIAL_MAX, breaker: 128, bubble: 99, inkbridge: 99, orbit: 117, swing: 130, tilt: 90 } as const;
 for (const [type, max] of Object.entries(SPLIT_PARTIAL_MAX) as [keyof typeof SPLIT_PARTIAL_MAX, number][]) {
   eq(INTRO_SCORE[type].includes(` for up to 150; otherwise up to ${max}.`), true, `${type} intro states the split with partial max ${max}`);
 }
@@ -126,7 +126,9 @@ const sw = swingGame.init(1);
 const sw499 = { ...sw, maxX: sw.maxX + (SWING_FINISH_M - 1) * 40 * 256 + 39 * 256 };
 eq(swingMetres(sw499), SWING_FINISH_M - 1, "Grappler test state is 499 m");
 eq(swingGame.score(sw499), SPLIT_PARTIAL_MAX.swing, "Grappler partial max (499 m)");
-eq(binTossGame.score({ ...binTossGame.init(1), baskets: BINTOSS_THROWS - 1 }), SPLIT_PARTIAL_MAX.bintoss, "Swish partial max");
+eq(binTossGame.score({ ...binTossGame.init(1), baskets: BINTOSS_THROWS - 1 }), 90, "Swish partial max (unstamped and rev 2)");
+// binRev 3: nine in plus all three hoop bonuses.
+eq(binTossGameFor(BINTOSS_REV3).score({ ...binTossGameFor(BINTOSS_REV3).init(1), baskets: BINTOSS_THROWS - 1, swishes: 3 }), SPLIT_PARTIAL_MAX.bintoss, "Swish rev 3 partial max");
 eq(tiltGame.score({ ...tiltGame.init(1), mazes: TILT_MAX_MAZES - 1 }), SPLIT_PARTIAL_MAX.tilt, "Tilt partial max");
 eq(inkScoreOf(INK_LEVELS - 1, 0), SPLIT_PARTIAL_MAX.inkbridge, "Rainbow Bridge partial max");
 for (const game of [orbitGame, orbitRev3Game] as const) {

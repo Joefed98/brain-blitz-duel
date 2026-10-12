@@ -117,7 +117,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a), undefined, skylineRevealGame),
   bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a, p.type === "bintoss" ? p.binRev : undefined)),
   bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
-    replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : []),
+    replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : [], p.type === "bullseye" ? p.bullRev : undefined),
   ),
   matchup: simple(GOLD, 390, 560, matchupGame, (p, a) => replayMatchupRun(seedOf(p), a, p.type === "matchup" ? p.matchupRev : undefined)),
   breaker: simple(GOLD, 390, 620, breakerGame, (p, a) => replayBreakerRun(seedOf(p), a)),

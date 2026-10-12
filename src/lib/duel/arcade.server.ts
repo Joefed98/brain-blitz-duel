@@ -21,7 +21,7 @@ import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
  */
 
 import { randomBelow } from "./random";
-import { bullseyeWinds } from "@/lib/arcade/bullseye";
+import { bullseyeWinds, BULLSEYE_REV } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
   BullseyePuzzleData,
@@ -77,7 +77,7 @@ export function generateBinToss(): BinTossPuzzleData {
 
 export function generateBullseye(): BullseyePuzzleData {
   const seed = arcadeSeed();
-  return { type: "bullseye", seed, winds: bullseyeWinds(seed) };
+  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV };
 }
 
 export function generateMatchup(): MatchupPuzzleData {

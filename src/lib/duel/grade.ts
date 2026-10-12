@@ -1824,6 +1824,8 @@ export function gradeSubmission(
       extraDetail = {
         baskets: run.baskets,
         throws: run.throws,
+        swishes: run.swishes,
+        hoops: run.hoops,
         results: run.results,
         perfect: run.perfect,
         endedSeconds: run.endedSeconds,
@@ -1868,7 +1870,7 @@ export function gradeSubmission(
     }
     case "bullseye": {
       const replayStart = performance.now();
-      const run = replayBullseyeRun(puzzle.seed, answer, puzzle.winds);
+      const run = replayBullseyeRun(puzzle.seed, answer, puzzle.winds, puzzle.bullRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1880,6 +1882,10 @@ export function gradeSubmission(
         total: run.total,
         inner: run.inner,
         arrows: run.arrows,
+        innerBulls: run.innerBulls,
+        pops: run.pops,
+        balloons: run.balloons,
+        bullRev: puzzle.bullRev ?? 0,
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

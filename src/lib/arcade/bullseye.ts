@@ -224,6 +224,80 @@ export function bullseyeRingValue(ring: number, values: readonly number[] = BULL
   return ring < 0 ? 0 : (values[ring] ?? 0);
 }
 
+/* -------------------- Rev 2: inner bull and balloons --------------------- */
+
+/**
+ * Inner-bull-and-balloons revision (stored as puzzle.bullRev = 2). Winds, drift
+ * and ring shuffles are drawn exactly as before; the balloon draws continue
+ * the same PRNG stream after them. Unstamped rounds never see either.
+ */
+export const BULLSEYE_REV = 2;
+
+/** The inner bull: a disc a third the radius of the 10 ring, worth 12 (10 + 2). */
+export const BULLSEYE_INNER_BULL_POINTS = 12;
+/** Inner-bull radius as a fraction of the outer radius: 1 / (RINGS × 3). */
+export const BULLSEYE_INNER_BULL_DIV = BULLSEYE_RINGS * 3;
+
+/**
+ * True when (x, y) is in the inner bull for this arrow: the centre disc, only
+ * while the 10 is the centre ring (always on darts 1–6; on shuffled darts only
+ * when the 10 landed in the middle). Integer comparison, as bullseyeRingAt.
+ */
+export function bullseyeInInnerBull(x: number, y: number, scalePct: number, values: readonly number[]): boolean {
+  if (values[0] !== 10) return false;
+  const dx = x - BULLSEYE_CX;
+  const dy = y - BULLSEYE_CY;
+  return (dx * dx + dy * dy) * BULLSEYE_INNER_BULL_DIV * BULLSEYE_INNER_BULL_DIV * 10_000 <= (BULLSEYE_OUTER_R * scalePct) ** 2;
+}
+
+/** Balloons on three of darts 3–10 (0-based 2–9), each worth 12, popped instead of scoring on the board. */
+export const BULLSEYE_BALLOON_FROM = 2;
+export const BULLSEYE_BALLOON_COUNT = 3;
+export const BULLSEYE_BALLOON_POINTS = 12;
+/** Balloon radius, whole world px (the drawn body is exactly this circle). */
+export const BULLSEYE_BALLOON_R = 12;
+/** The balloon drifts across this band of the range and wraps round, so it is always somewhere in view. */
+export const BULLSEYE_BALLOON_LEFT = 20;
+export const BULLSEYE_BALLOON_SPAN = 350;
+/** Drift speed in 1/256 px a tick (0.45–0.85 px a tick), seeded per balloon. */
+export const BULLSEYE_BALLOON_SPEED_MIN = 115;
+export const BULLSEYE_BALLOON_SPEED_SPAN = 103;
+/** Height band of the balloon's path centre, whole px (around the target's height). */
+export const BULLSEYE_BALLOON_Y_MIN = BULLSEYE_CY - 120;
+export const BULLSEYE_BALLOON_Y_SPAN = 200;
+/** Bob: ±10 px, one bob every 240 ticks (4 s). */
+export const BULLSEYE_BALLOON_BOB = 10;
+export const BULLSEYE_BALLOON_BOB_PERIOD = 240;
+
+export interface BullseyeBalloon {
+  /** Drift direction ±1, speed (1/256 px a tick), start offset (1/256 px), path height (px), bob phase (ticks). */
+  dir: number;
+  speed: number;
+  offset: number;
+  y: number;
+  bob: number;
+}
+
+/** Where a dart's balloon is at a sim tick, whole world px. Integer only. */
+export function bullseyeBalloonAt(balloon: BullseyeBalloon, tick: number): { x: number; y: number } {
+  const span = BULLSEYE_BALLOON_SPAN * 256;
+  const travelled = (((balloon.offset + balloon.dir * balloon.speed * tick) % span) + span) % span;
+  const phase = (((tick + balloon.bob) % BULLSEYE_BALLOON_BOB_PERIOD) + BULLSEYE_BALLOON_BOB_PERIOD) % BULLSEYE_BALLOON_BOB_PERIOD;
+  const slot = Math.trunc((phase * BULLSEYE_SWAY_PERIOD) / BULLSEYE_BALLOON_BOB_PERIOD);
+  return {
+    x: BULLSEYE_BALLOON_LEFT + Math.trunc(travelled / 256),
+    y: balloon.y + Math.round((BULLSEYE_BALLOON_BOB * BULLSEYE_SWAY_SIN[slot]!) / BULLSEYE_SWAY_UNIT),
+  };
+}
+
+/** Does a landing point pop the balloon at this tick? */
+export function bullseyeBalloonPopped(balloon: BullseyeBalloon, tick: number, x: number, y: number): boolean {
+  const at = bullseyeBalloonAt(balloon, tick);
+  const dx = x - at.x;
+  const dy = y - at.y;
+  return dx * dx + dy * dy <= BULLSEYE_BALLOON_R * BULLSEYE_BALLOON_R;
+}
+
 /* ================================ State ================================ */
 
 export interface BullseyeHit {
@@ -239,6 +313,10 @@ export interface BullseyeHit {
   wind: number;
   /** Target's sideways offset when this arrow landed. */
   tdx: number;
+  /** Rev 2 only: 1 when it landed in the inner bull. */
+  bull?: number;
+  /** Rev 2 only: 1 when it popped the balloon (and scored nothing on the board). */
+  pop?: number;
 }
 
 export interface BullseyeState {
@@ -258,6 +336,9 @@ export interface BullseyeState {
   driftDir: number;
   /** Ring values centre-outwards per arrow; shuffled from arrow 7. Same for everyone. */
   ringValues: number[][];
+  /** Rev 2 only: the revision stamp, and each dart's balloon (null on darts without one). */
+  rev?: number;
+  balloons?: (BullseyeBalloon | null)[];
 }
 
 export function bullseyeWinds(seed: number): number[] {
@@ -344,14 +425,28 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
     const y = aimed.y;
     // Scored against where the target is when the arrow lands.
     const tdx = bullseyeTargetDx(arrow, tick + BULLSEYE_FLIGHT_TICKS, state.driftPhase, state.driftDir);
-    const ring = bullseyeRingAt(x - tdx, y, bullseyeScalePct(arrow));
-    const value = bullseyeRingValue(ring, bullseyeRingValues(state, arrow));
+    let ring = bullseyeRingAt(x - tdx, y, bullseyeScalePct(arrow));
+    let value = bullseyeRingValue(ring, bullseyeRingValues(state, arrow));
+    let hit: BullseyeHit = { x, y, ring, value, arrow, wind, tdx };
+    if (state.rev === BULLSEYE_REV) {
+      // Rev 2: a balloon in the way takes the dart; otherwise the inner bull adds 2.
+      const balloon = state.balloons?.[arrow] ?? null;
+      if (balloon && bullseyeBalloonPopped(balloon, tick + BULLSEYE_FLIGHT_TICKS, x, y)) {
+        ring = -1;
+        value = BULLSEYE_BALLOON_POINTS;
+        hit = { x, y, ring, value, arrow, wind, tdx, bull: 0, pop: 1 };
+      } else {
+        const bull = ring === 0 && bullseyeInInnerBull(x - tdx, y, bullseyeScalePct(arrow), bullseyeRingValues(state, arrow));
+        if (bull) value = BULLSEYE_INNER_BULL_POINTS;
+        hit = { x, y, ring, value, arrow, wind, tdx, bull: bull ? 1 : 0, pop: 0 };
+      }
+    }
     const next: BullseyeState = {
       ...state,
       tick,
       flightTick: BULLSEYE_FLIGHT_TICKS,
       arrowIndex: arrow + 1,
-      hits: [...state.hits, { x, y, ring, value, arrow, wind, tdx }],
+      hits: [...state.hits, hit],
       total: state.total + value,
     };
     if (isOver(next)) return { ...next, endedTick: tick };
@@ -367,13 +462,22 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
  * floor(1.7 × arrow total − 20), clamped to 0…150.
  * Arrows still unfired when the clock ends add nothing.
  */
-export function bullseyeScoreFor(total: number): number {
-  const points = clampInt(total, 0, BULLSEYE_ARROWS * 10);
+export function bullseyeScoreFor(total: number, rev?: number): number {
+  // Rev 2 totals can pass 100 (12 for an inner bull or a balloon); the curve is unchanged.
+  const points = clampInt(total, 0, BULLSEYE_ARROWS * (rev === BULLSEYE_REV ? 12 : 10));
   return clampInt(Math.floor((17 * points) / 10 - 20), 0, 150);
 }
 
 function score(state: BullseyeState): number {
-  return bullseyeScoreFor(state.total);
+  return bullseyeScoreFor(state.total, state.rev);
+}
+
+/** Rev 2: darts in the inner bull, and balloons popped. */
+export function bullseyeInnerBulls(state: BullseyeState): number {
+  return state.hits.filter((hit) => hit.bull === 1).length;
+}
+export function bullseyePops(state: BullseyeState): number {
+  return state.hits.filter((hit) => hit.pop === 1).length;
 }
 
 /** Arrows in the gold or red rings — the headline for the standings summary. */
@@ -420,7 +524,10 @@ export function bullseyeCheckpointState(state: BullseyeState): BullseyeCheckpoin
 export function bullseyeCheckpoint(state: BullseyeState): BullseyeCheckpoint {
   const snapshot = bullseyeCheckpointState(state);
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  const values = Object.values(snapshot);
+  // Rev 2 folds its own counters in; older states never have them, so their sums are unchanged.
+  if (state.rev === BULLSEYE_REV) values.push(bullseyeInnerBulls(state), bullseyePops(state));
+  for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -590,7 +697,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BullseyeState, size: CanvasS
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   const shownArrow = Math.min(BULLSEYE_ARROWS, state.arrowIndex + 1);
-  ctx.fillText(`Arrow ${shownArrow} / ${BULLSEYE_ARROWS} · ${state.total} pts`, 12, 12);
+  ctx.fillText(`Dart ${shownArrow} / ${BULLSEYE_ARROWS} · ${state.total} pts`, 12, 12);
   ctx.textAlign = "right";
 
   ctx.restore();
@@ -636,3 +743,43 @@ export const bullseyeGame: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = 
   draw,
   inputRanges: BULLSEYE_INPUT_RANGES,
 };
+
+/** Rev 2 start state: the original state plus balloons drawn after every original draw. */
+export function bullseyeInitRev2(seed: number, storedWinds?: readonly number[]): BullseyeState {
+  const base = bullseyeInit(seed, storedWinds);
+  let rng = base.rng;
+  const pool: number[] = [];
+  for (let i = BULLSEYE_BALLOON_FROM; i < BULLSEYE_ARROWS; i++) pool.push(i);
+  const balloons: (BullseyeBalloon | null)[] = Array.from({ length: BULLSEYE_ARROWS }, () => null);
+  for (let n = 0; n < BULLSEYE_BALLOON_COUNT; n++) {
+    const pick = rngBelow(rng, pool.length);
+    const dir = rngBelow(pick.state, 2);
+    const speed = rngBelow(dir.state, BULLSEYE_BALLOON_SPEED_SPAN);
+    const offset = rngBelow(speed.state, BULLSEYE_BALLOON_SPAN * 256);
+    const y = rngBelow(offset.state, BULLSEYE_BALLOON_Y_SPAN);
+    const bob = rngBelow(y.state, BULLSEYE_BALLOON_BOB_PERIOD);
+    rng = bob.state;
+    const index = pool.splice(pick.value, 1)[0]!;
+    balloons[index] = {
+      dir: dir.value === 0 ? -1 : 1,
+      speed: BULLSEYE_BALLOON_SPEED_MIN + speed.value,
+      offset: offset.value,
+      y: BULLSEYE_BALLOON_Y_MIN + y.value,
+      bob: bob.value,
+    };
+  }
+  return { ...base, rng, rev: BULLSEYE_REV, balloons };
+}
+
+/** Inner-bull-and-balloons revision. */
+export const bullseyeRev2Game: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = { ...bullseyeGame, init: (seed) => bullseyeInitRev2(seed) };
+
+/** Takes puzzle.bullRev; anything else is the original game. */
+export function bullseyeGameFor(rev?: number | null): ArcadeGame<BullseyeState, ArcadeInputEvent | null> {
+  return rev === BULLSEYE_REV ? bullseyeRev2Game : bullseyeGame;
+}
+
+/** Start state for a stored round: its own winds and its own revision. */
+export function bullseyeInitFor(seed: number, storedWinds: readonly number[] | undefined, rev?: number | null): BullseyeState {
+  return rev === BULLSEYE_REV ? bullseyeInitRev2(seed, storedWinds) : bullseyeInit(seed, storedWinds);
+}

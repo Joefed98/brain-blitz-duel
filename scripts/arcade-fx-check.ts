@@ -68,8 +68,9 @@ const { junctionArtGame } = await import("../src/lib/arcade/junction.renderer");
 const { inkBridgeArtGameFor } = await import("../src/lib/arcade/inkBridge.renderer");
 const { sliceArtGameFor } = await import("../src/lib/arcade/slice.renderer");
 const { binTossArtGame } = await import("../src/lib/arcade/binTossArt.renderer");
+const { binTossGameFor } = await import("../src/lib/arcade/binToss");
 const { drawBullseye } = await import("../src/lib/arcade/bullseye.renderer");
-const { bullseyeGame } = await import("../src/lib/arcade/bullseye");
+const { bullseyeGame, bullseyeRev2Game } = await import("../src/lib/arcade/bullseye");
 const { bubbleArtGame } = await import("../src/lib/arcade/bubble.renderer");
 const { bubbleRev2Game } = await import("../src/lib/arcade/bubble");
 const { flipArtGameFor } = await import("../src/lib/arcade/flipArt.renderer");
@@ -115,8 +116,8 @@ const GAMES: Record<string, AnyGame> = {
   junction: junctionArtGame as AnyGame,
   inkbridge: inkBridgeArtGameFor(3) as AnyGame,
   slice: sliceArtGameFor(2) as AnyGame,
-  bintoss: binTossArtGame as AnyGame,
-  bullseye: { ...bullseyeGame, draw: drawBullseye } as AnyGame,
+  bintoss: { ...binTossArtGame, init: binTossGameFor(3).init } as AnyGame,
+  bullseye: { ...bullseyeGame, init: bullseyeRev2Game.init, draw: drawBullseye } as AnyGame,
   bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
   flip: flipArtGameFor(2) as AnyGame,
   swing: swingArtGame as AnyGame,
@@ -278,13 +279,20 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, mayo: [...(s.mayo ?? []), s.tick, 195, 300] }),
     (s) => ({ ...s, slices: s.slices + 5 }),
   ],
-  bintoss: [(s) => ({ ...s, results: [...s.results, 1, 1, 1] }), (s) => ({ ...s, baskets: 10 })],
+  bintoss: [
+    (s) => ({ ...s, results: [...s.results, 1, 1, 1] }),
+    (s) => ({ ...s, swishes: (s.swishes ?? 0) + 1 }),
+    (s) => ({ ...s, spinBaskets: (s.spinBaskets ?? 0) + 1 }),
+    (s) => ({ ...s, baskets: 10 }),
+  ],
   bullseye: [
     (s) => ({
       ...s,
       flightTick: 0,
       hits: [...s.hits, { x: 195, y: 224, ring: 0, value: 10, arrow: 0 }],
     }),
+    (s) => ({ ...s, flightTick: 0, hits: [...s.hits, { x: 195, y: 224, ring: 0, value: 12, arrow: 0, bull: 1, pop: 0 }] }),
+    (s) => ({ ...s, flightTick: 0, hits: [...s.hits, { x: 120, y: 160, ring: -1, value: 12, arrow: 2, bull: 0, pop: 1 }] }),
     (s) => ({
       ...s,
       flightTick: 0,
