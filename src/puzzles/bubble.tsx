@@ -68,11 +68,16 @@ function IntroExample() {
           {["#FF4D4D", "#FFE600", "#3DDC84", "#4D8CFF", "#B26BFF"].map((colour, i) => (
             <path key={colour} d={`M0 0 L${(9 * Math.cos((i * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} ${(9 * Math.sin((i * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} A9 9 0 0 1 ${(9 * Math.cos(((i + 1) * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} ${(9 * Math.sin(((i + 1) * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} Z`} fill={colour} opacity={0.75} />
           ))}
-          <circle r={4.5} fill="#F4F1FF" />
+          <circle r={5.2} fill="#F4F1FF" />
+          <path d="M0 -4 L1 -1 L4 0 L1 1 L0 4 L-1 1 L-4 0 L-1 -1 Z" fill="#5B3FD0" />
         </g>
         <g transform="translate(150 70)">
-          <circle r={9} fill="#1C1F26" stroke="#FF4D4D" strokeWidth={1.5} />
-          <circle r={2} cy={-3} fill="#FF4D4D" />
+          <circle r={9} fill="#E0662A" />
+          <circle r={4.8} fill="#141519" />
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <circle key={i} r={1.1} cx={(6.8 * Math.cos((i * Math.PI) / 4)).toFixed(2)} cy={(6.8 * Math.sin((i * Math.PI) / 4)).toFixed(2)} fill="#141519" />
+          ))}
+          <circle r={1.6} fill="#FF2E2E" />
         </g>
       </svg>
       <p className="text-center text-xs text-muted-foreground">

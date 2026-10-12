@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { btCheckpoint, btScoreOf, btScoreOfV2, BT_BALLS, BT_DROP_TICKS, BT_LAST_LAND_MIN, BT_REV, BT_RUN_TICKS, makeBallTrackGame } from "../src/lib/arcade/ballTrack";
 import { decodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
-import { matchupGame, matchupRev2Game, MATCHUP_PAR_RAW, MATCHUP_V2_PAR_RAW } from "../src/lib/arcade/matchup";
+import { matchupGame, matchupRev2Game, matchupRev3Game, MATCHUP_PAR_RAW, MATCHUP_V2_PAR_RAW, MATCHUP_V3_PAR_RAW } from "../src/lib/arcade/matchup";
 import { juncScoreOf } from "../src/lib/arcade/junction";
 import { rallyGame } from "../src/lib/arcade/rally";
 import { skylineGame } from "../src/lib/arcade/skyline";
@@ -48,6 +48,9 @@ for (let raw = 0; raw <= 4000; raw++) eq(matchupGame.score({ ...match, raw }), c
 // matchupRev 2 (constant play) scores against its own par; the "?" help states it.
 const match2 = matchupRev2Game.init(1);
 for (let raw = 0; raw <= 8000; raw += 7) eq(matchupRev2Game.score({ ...match2, raw }), clamp(Math.floor(150 * raw / MATCHUP_V2_PAR_RAW)), "Matchup rev 2");
+// matchupRev 3 (original fall speed) has its own par, stated in the help.
+const match3 = matchupRev3Game.init(1);
+for (let raw = 0; raw <= 9000; raw += 7) eq(matchupRev3Game.score({ ...match3, raw }), clamp(Math.floor(150 * raw / MATCHUP_V3_PAR_RAW)), "Matchup rev 3");
 for (let cars = 0; cars <= 90; cars++) for (const gave of [0, 1, 50]) for (const through of [0, 1, 4]) for (const stopped of [0, 1, 4]) for (const survived of [false, true]) {
   eq(juncScoreOf(cars, gave, survived, through, stopped), clamp(2 * cars + 4 * through - 4 * stopped - gave + (survived ? 40 : 0)), "Junction");
 }
@@ -66,7 +69,7 @@ for (const home of [0, 15, 29, 30]) {
 eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup reveal par");
 for (const [type, text] of [["balltrack", "30"], ["junction", "lose 4"], ["rally", "2.5"], ["skyline", "3 per perfect"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
 // Formula detail lives in the "?" help since the intro was shortened (first-run audit, 11 Oct).
-for (const [type, text] of [["matchup", MATCHUP_V2_PAR_RAW.toLocaleString("en-GB")], ["bullseye", "1.7 × ring total − 20"], ["junction", "−4"], ["skyline", "3 × perfect drops"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
+for (const [type, text] of [["matchup", MATCHUP_V3_PAR_RAW.toLocaleString("en-GB")], ["bullseye", "1.7 × ring total − 20"], ["junction", "−4"], ["skyline", "3 × perfect drops"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // Ruling B (11 Oct): the eight 130 / 150 split games state both parts in one line.
 // Each split intro shows the real partial maximum: the score one unit short of a clear (Grappler rounds to 130).
 const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: 90, breaker: 128, bubble: 99, inkbridge: 99, orbit: 117, swing: 130, tilt: 90 } as const;

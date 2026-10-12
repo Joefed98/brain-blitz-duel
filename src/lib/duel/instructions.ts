@@ -1,6 +1,6 @@
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BUB_JOKER_BLOCK, BUB_SPECIAL_BLOCK, BUB_V2_PARTIAL } from "@/lib/arcade/bubble";
-import { MATCHUP_V2_PAR_RAW } from "@/lib/arcade/matchup";
+import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import type { PuzzleType } from "./types";
 
@@ -570,15 +570,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
       { action: "Sixty seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
     ],
-    score: `3 in a line = 10, 4 = 25, 5 = 50; a special scores 10 for each gem it clears. clamp(floor(150 × match points ÷ ${MATCHUP_V2_PAR_RAW.toLocaleString("en-GB")}), 0, 150).`,
+    score: `3 in a line = 10, 4 = 25, 5 = 50; a special scores 10 for each gem it clears. clamp(floor(150 × match points ÷ ${MATCHUP_V3_PAR_RAW.toLocaleString("en-GB")}), 0, 150).`,
   },
   snake: {
     goal: "Eat the stars; don't crash.",
     how: [
       { action: "Swipe to turn.", detail: "Stars grow and speed you up." },
       { action: "Red shadow?", detail: "A rock lands there in 2 s." },
-      { action: "Rocks hit only your head.", detail: "Steer round them." },
-      { action: "Rocks start at length 10:", detail: "one more every 5 stars, up to 8. A rock on your tail does nothing, and your tail passes through rocks. Stars never appear on a rock.", helpOnly: true },
+      { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks!" },
+      { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks.", helpOnly: true },
+      { action: "Rocks start at length 10:", detail: "one more every 5 stars, up to 8. Stars never appear on a rock.", helpOnly: true },
+      { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 11 rocks.", helpOnly: true },
       { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
       { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
     ],
