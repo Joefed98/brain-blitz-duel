@@ -7,6 +7,7 @@ export const MEANINGFUL_SURFACE_GAMES = new Set([
   "flow", "flood", "lightsout", "tents", "shikaku", "lightup", "pairmatch", "spotdiff", "symscan",
   "pipes", "iceslide", "push", "gravity", "unblock", "blockparty", "rings", "tubes", "balance", "tower", "laser",
   "reaction", "stopwatch", "bomb", "chain", "intruder", "numhunt",
+  "strikeout", "codeword", "swapword",
 ]);
 export function surfaceState(classes: string, given = false): string {
   if (/(?:border|bg|text)-(?:destructive|warn)(?:\b|\/)/.test(classes)) return "error";

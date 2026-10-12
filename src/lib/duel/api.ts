@@ -4,6 +4,7 @@ import {
   advancePhaseFn,
   checkWordFn,
   checkGroupFn,
+  checkMovesFn,
   createRoomFn,
   heartbeatFn,
   joinRoomFn,
@@ -22,6 +23,7 @@ import {
   submitAnswerFn,
   type SubmitExtra,
 } from "./duel.functions";
+import type { MovesView } from "./moves";
 import type { LinkRoomState } from "./roomLink";
 import { ensureSession } from "./session";
 import type { DuelPlayerRow, DuelRow, RoundResultRow, RoundRevealData } from "./types";
@@ -176,6 +178,15 @@ export async function checkGroup(
   indices: number[],
 ): Promise<{ valid: boolean; groupIndex?: number; theme?: string }> {
   return checkGroupFn({ data: { roomId: duelId, roundNumber, indices } });
+}
+
+/** Strikeout, Cryptogrid and Swapword: the server's view of the board after these moves. */
+export async function checkMoves(
+  duelId: string,
+  roundNumber: number,
+  moves: string,
+): Promise<MovesView | null> {
+  return (await checkMovesFn({ data: { roomId: duelId, roundNumber, moves } })) as MovesView | null;
 }
 
 /** "Continue" on the round results or standings screen. */

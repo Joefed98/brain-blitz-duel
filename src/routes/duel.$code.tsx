@@ -52,6 +52,7 @@ import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import {
   advancePhase,
   checkGroup,
+  checkMoves,
   checkWord,
   continueOn,
   ensureRematch,
@@ -573,6 +574,11 @@ function DuelScreen() {
     [],
   );
 
+  const handleCheckMoves = useCallback(
+    (moves: string) => checkMoves(latest.current.duel!.id, latest.current.round, moves),
+    [],
+  );
+
   const handlePlayAgain = async () => {
     if (!duel || !me) return;
     setRematchBusy(true);
@@ -1034,6 +1040,7 @@ function DuelScreen() {
             onDraftAnswer={handleDraftAnswer}
             checkWord={handleCheckWord}
             checkGroup={handleCheckGroup}
+            checkMoves={handleCheckMoves}
           />
         )}
       </GameLayout>

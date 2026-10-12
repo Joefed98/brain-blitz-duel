@@ -84,6 +84,10 @@ import { generateTrail } from "./trail.server";
 import { generateDig } from "./dig.server";
 import { generateWordSearch } from "./wordSearch.server";
 import { generateLetterWheel } from "./letterWheel.server";
+import { generateStrikeout } from "./strikeout.server";
+import { generateCodeword } from "./codeword.server";
+import { generateSwapword } from "./swapword.server";
+import { wordGameSeed } from "./wordSeed.server";
 import { generateMeasure } from "./measure.server";
 import { generateCheckout } from "./checkout.server";
 import { generateNumline } from "./numline.server";
@@ -198,6 +202,10 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "dig") return generateDig();
   if (type === "wordsearch") return generateWordSearch();
   if (type === "letterwheel") return generateLetterWheel();
+  // Room-seeded: every player in a room gets the same board from the room seed.
+  if (type === "strikeout") return generateStrikeout(wordGameSeed(type, context.bankSeed));
+  if (type === "codeword") return generateCodeword(wordGameSeed(type, context.bankSeed));
+  if (type === "swapword") return generateSwapword(wordGameSeed(type, context.bankSeed));
   if (type === "measure") return generateMeasure(gameSeed(type, context));
   if (type === "checkout") return generateCheckout(gameSeed(type, context));
   if (type === "numline") return generateNumline(gameSeed(type, context));

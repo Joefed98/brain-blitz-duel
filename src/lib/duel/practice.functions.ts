@@ -204,6 +204,18 @@ export const practiceCheckGroupFn = createServerFn({ method: "POST" })
     };
   });
 
+/** Strikeout, Cryptogrid and Swapword practice: replays the moves against the sealed answer half. */
+export const practiceCheckMovesFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { puzzle: PuzzleData; sealed: string; moves: string }) => input)
+  .handler(async ({ data }) => {
+    const type = data.puzzle?.type;
+    if (type !== "strikeout" && type !== "codeword" && type !== "swapword") return null;
+    const priv = await unseal(String(data.sealed ?? ""));
+    if (priv["type"] !== type) throw new Error("Bad practice puzzle.");
+    const { checkPuzzleMoves } = await import("./moves.server");
+    return checkPuzzleMoves(mergePuzzle(data.puzzle, priv), data.moves);
+  });
+
 async function demoKeyOk(key: unknown): Promise<boolean> {
   const expected = process.env["INTRO_DEMO_KEY"];
   if (!expected || typeof key !== "string" || !key) return false;

@@ -1057,6 +1057,30 @@ export const checkWordFn = createServerFn({ method: "POST" })
     return checkWordsmithWord(pub.letters, String(data.word ?? ""), found);
   });
 
+/**
+ * Strikeout, Cryptogrid and Swapword: replays the player's moves so far against
+ * the private puzzle and returns only what the board may show next.
+ */
+export const checkMovesFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string; roundNumber: number; moves: string }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
+    if (
+      room.status !== "in_progress" ||
+      room.current_round !== data.roundNumber ||
+      room.phase !== "puzzle"
+    )
+      return null;
+    const pub = room.puzzles_public[data.roundNumber - 1];
+    if (!pub || (pub.type !== "strikeout" && pub.type !== "codeword" && pub.type !== "swapword")) return null;
+    const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
+    const { checkPuzzleMoves } = await import("./moves.server");
+    return checkPuzzleMoves(mergePuzzle(pub, priv), data.moves);
+  });
+
 /** Groups only: validates four selected tile indices without revealing either partition. */
 export const checkGroupFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

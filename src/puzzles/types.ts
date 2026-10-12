@@ -8,6 +8,7 @@ import type {
   RoundResultRow,
 } from "@/lib/duel/types";
 import type { PuzzleInstructions } from "@/lib/duel/instructions";
+import type { MovesView } from "@/lib/duel/moves";
 
 /**
  * Per-type detail sent with a submission. Correctness and score are worked out
@@ -37,6 +38,9 @@ export type CheckGroup = (
   indices: number[],
 ) => Promise<{ valid: boolean; groupIndex?: number; theme?: string }>;
 
+/** Strikeout, Cryptogrid and Swapword: the server replays every move so far (null = no answer, e.g. round over). */
+export type CheckMoves = (moves: string) => Promise<MovesView | null>;
+
 export interface PuzzleStageProps {
   puzzle: PuzzleData;
   /**
@@ -56,6 +60,8 @@ export interface PuzzleStageProps {
   checkWord?: CheckWord;
   /** Groups only: checks a candidate group without exposing the other answer. */
   checkGroup?: CheckGroup;
+  /** Strikeout, Cryptogrid and Swapword: live server checks of the move list. */
+  checkMoves?: CheckMoves;
 }
 
 export interface PuzzleRevealProps {
